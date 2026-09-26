@@ -1,10 +1,12 @@
-import { ArrowLeft, ArrowRight, ArrowUpRight, BookOpen, CaretRight, CheckCircle, Code, FolderSimple, GithubLogo, GitPullRequest, House, Info, List, MagnifyingGlass, Pulse, SlidersHorizontal, WarningCircle, X } from '@phosphor-icons/react';
+import { ArrowLeft, ArrowRight, ArrowUpRight, BookOpen, CaretRight, Code, FolderSimple, GithubLogo, GitPullRequest, House, Info, List, MagnifyingGlass, Pulse, SlidersHorizontal, X } from '@phosphor-icons/react';
 import { useEffect, useState } from 'react';
 import { Link, NavLink, Route, Routes, useLocation, useParams, useSearchParams } from 'react-router-dom';
 import { Brand } from '../components/Brand';
 import { CodeDiff } from '../components/Workflow';
 import { PROJECT_URL, sampleRepositories } from '../data';
 import './workspace.css';
+import { PageHeading, Status, WorkspaceMissing } from '../components/WorkspaceUI';
+import { Changes, ChangeDetail, Runs, RunDetail } from './Activity';
 
 const navigation = [
   { path: '/app', name: 'Overview', icon: House, exact: true },
@@ -14,23 +16,13 @@ const navigation = [
   { path: '/app/settings', name: 'Settings', icon: SlidersHorizontal },
 ];
 
-export function Status({ value }: { value: string }) {
-  const positive = ['Unaffected', 'Example complete'].includes(value);
-  const negative = value === 'Example failed';
-  return <span className={`resource-status ${positive ? 'status-positive' : negative ? 'status-negative' : 'status-attention'}`}>{positive ? <CheckCircle /> : <WarningCircle />}{value}</span>;
-}
-
 export function Workspace() {
   const [menuOpen, setMenuOpen] = useState(false);
   const location = useLocation();
   useEffect(() => setMenuOpen(false), [location.pathname]);
   const current = navigation.find(item => item.exact ? location.pathname === item.path : location.pathname.startsWith(item.path));
   return <div className="workspace"><aside className={`app-sidebar ${menuOpen ? 'sidebar-open' : ''}`}><div className="sidebar-brand"><Brand /><button className="icon-button sidebar-close" aria-label="Close workspace navigation" onClick={() => setMenuOpen(false)}><X /></button></div><div className="workspace-identity"><span className="workspace-avatar">A</span><div><strong>Acme workspace</strong><small>Sample organization</small></div></div><nav aria-label="Workspace navigation">{navigation.map(item => <NavLink to={item.path} end={item.exact} key={item.path}><item.icon /><span>{item.name}</span></NavLink>)}</nav><div className="sidebar-bottom"><Link to="/docs"><BookOpen /> Documentation <ArrowUpRight /></Link><a href={PROJECT_URL} target="_blank" rel="noreferrer"><GithubLogo /> Source code <ArrowUpRight /></a><Link to="/"><ArrowLeft /> Back to Refit</Link></div></aside>{menuOpen && <button className="sidebar-backdrop" aria-label="Close navigation backdrop" onClick={() => setMenuOpen(false)} />}
-    <div className="app-main"><header className="app-topbar"><button className="icon-button app-menu" onClick={() => setMenuOpen(true)} aria-label="Open workspace navigation" aria-expanded={menuOpen}><List /></button><span>Workspace <CaretRight /> <strong>{current?.name ?? 'Not found'}</strong></span><span className="preview-chip">Product preview</span></header><main id="main-content" className="app-content"><div className="workspace-notice"><Info /><p>You’re exploring sample data. GitHub is not connected.</p><Link to="/docs#installation">What’s next <ArrowRight /></Link></div><Routes><Route index element={<Overview />} /><Route path="repositories" element={<Repositories />} /><Route path="repositories/:id" element={<RepositoryDetail />} /><Route path="*" element={<WorkspaceMissing />} /></Routes></main></div></div>;
-}
-
-export function PageHeading({ title, description, action }: { title: string; description: string; action?: React.ReactNode }) {
-  return <div className="app-page-heading"><div><h1>{title}</h1><p>{description}</p></div>{action}</div>;
+    <div className="app-main"><header className="app-topbar"><button className="icon-button app-menu" onClick={() => setMenuOpen(true)} aria-label="Open workspace navigation" aria-expanded={menuOpen}><List /></button><span>Workspace <CaretRight /> <strong>{current?.name ?? 'Not found'}</strong></span><span className="preview-chip">Product preview</span></header><main id="main-content" className="app-content"><div className="workspace-notice"><Info /><p>You’re exploring sample data. GitHub is not connected.</p><Link to="/docs#installation">What’s next <ArrowRight /></Link></div><Routes><Route index element={<Overview />} /><Route path="repositories" element={<Repositories />} /><Route path="repositories/:id" element={<RepositoryDetail />} /><Route path="changes" element={<Changes />} /><Route path="changes/:id" element={<ChangeDetail />} /><Route path="runs" element={<Runs />} /><Route path="runs/:id" element={<RunDetail />} /><Route path="*" element={<WorkspaceMissing />} /></Routes></main></div></div>;
 }
 
 function Overview() {
@@ -58,6 +50,3 @@ function RepositoryDetail() {
   return <><Link className="back-link" to="/app/repositories">← All repositories</Link><PageHeading title={repo.name} description={repo.description} action={<Status value={repo.status} />} /><div className="detail-metadata"><div><span>Language</span><strong>{repo.language}</strong></div><div><span>Provider</span><strong>{repo.provider}</strong></div><div><span>Source</span><strong>Illustrative fixture</strong></div></div><section className="detail-section"><h2>Impact evidence</h2><p>{repo.status === 'Affected' ? 'The example payment wrapper reads the changed charges field. A targeted update handles the latest-charge reference.' : repo.status === 'Unaffected' ? 'The checkout code does not read the changed response property. This example needs no migration.' : 'A dynamic property access cannot be classified confidently. The planned pipeline would retain evidence and request human review.'}</p><div className="detail-file"><Code /><code>{repo.file}</code></div>{repo.status === 'Affected' ? <CodeDiff /> : <div className="detail-explanation"><Info /><span>{repo.status === 'Unaffected' ? 'Unaffected is a result of analysis, not a synonym for “not scanned.”' : 'Uncertainty does not authorize an automatic patch.'}</span></div>}</section><div className="detail-actions"><Link className="button button-primary" to={`/demo?scenario=${repo.status === 'Unaffected' ? 'unaffected' : 'affected'}`}>Explore the scenario <ArrowRight /></Link><Link className="text-link" to="/docs#review">Review policy <ArrowUpRight /></Link></div></>;
 }
 
-export function WorkspaceMissing() {
-  return <div className="empty-state"><FolderSimple size={32} /><h1>Nothing at this address.</h1><p>This resource is not part of the sample workspace.</p><Link className="button button-primary" to="/app">Back to overview</Link></div>;
-}
