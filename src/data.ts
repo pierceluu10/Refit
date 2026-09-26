@@ -1,5 +1,4 @@
 export const PROJECT_URL = 'https://github.com/pierceluu10/Refit';
-export const SPECIFICATION_URL = `${PROJECT_URL}/blob/main/docs/PRD.md`;
 export const STEP_DURATION = 2200;
 export const COPY_FEEDBACK_DURATION = 2000;
 
