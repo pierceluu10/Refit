@@ -2,9 +2,10 @@ import { ArrowLeft } from '@phosphor-icons/react';
 import { Link, Route, Routes } from 'react-router-dom';
 import { PagePosition } from './components/Layout';
 import { Landing } from './pages/Landing';
+import { Demo } from './pages/Demo';
 
 export function App() {
-  return <><a className="skip-link" href="#main-content">Skip to content</a><PagePosition /><Routes><Route path="/" element={<Landing />} /><Route path="*" element={<NotFound />} /></Routes></>;
+  return <><a className="skip-link" href="#main-content">Skip to content</a><PagePosition /><Routes><Route path="/" element={<Landing />} /><Route path="/demo" element={<Demo />} /><Route path="*" element={<NotFound />} /></Routes></>;
 }
 
 function NotFound() {
