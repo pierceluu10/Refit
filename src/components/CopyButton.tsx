@@ -17,5 +17,22 @@ export function CopyButton({ text }: { text: string }) {
       else throw error;
     }
   }
-  return <span className="copy-control"><button className="icon-button" onClick={copy} aria-label={status === 'copied' ? 'Copied configuration' : 'Copy configuration'}>{status === 'copied' ? <Check /> : <Copy />}</button><span className={status === 'denied' ? 'copy-error' : 'sr-only'} role="status">{status === 'copied' ? 'Copied to clipboard' : status === 'denied' ? 'Clipboard unavailable. Select and copy the code.' : ''}</span></span>;
+  return (
+    <span className="copy-control">
+      <button
+        className="icon-button"
+        onClick={copy}
+        aria-label={status === 'copied' ? 'Copied configuration' : 'Copy configuration'}
+      >
+        {status === 'copied' ? <Check /> : <Copy />}
+      </button>
+      <span className={status === 'denied' ? 'copy-error' : 'sr-only'} role="status">
+        {status === 'copied'
+          ? 'Copied to clipboard'
+          : status === 'denied'
+            ? 'Clipboard unavailable. Select and copy the code.'
+            : ''}
+      </span>
+    </span>
+  );
 }

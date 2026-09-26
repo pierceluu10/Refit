@@ -6,18 +6,33 @@ import { App } from './App';
 function NavigationProbe() {
   const location = useLocation();
   const navigate = useNavigate();
-  return <><output aria-label="Current address">{location.pathname}{location.search}</output><button onClick={() => navigate(-1)}>Browser back</button></>;
+  return (
+    <>
+      <output aria-label="Current address">
+        {location.pathname}
+        {location.search}
+      </output>
+      <button onClick={() => navigate(-1)}>Browser back</button>
+    </>
+  );
 }
 
 function renderRoute(path: string) {
-  return render(<MemoryRouter initialEntries={[path]}><App /><NavigationProbe /></MemoryRouter>);
+  return render(
+    <MemoryRouter initialEntries={[path]}>
+      <App />
+      <NavigationProbe />
+    </MemoryRouter>,
+  );
 }
 
 describe('workspace navigation', () => {
   it('keeps repository filters in the URL and restores them when navigating back', () => {
     renderRoute('/app/repositories');
     fireEvent.change(screen.getByLabelText('Search repositories'), { target: { value: 'api' } });
-    fireEvent.change(screen.getByLabelText('Filter repositories by status'), { target: { value: 'Affected' } });
+    fireEvent.change(screen.getByLabelText('Filter repositories by status'), {
+      target: { value: 'Affected' },
+    });
     expect(screen.getByLabelText('Current address')).toHaveTextContent('q=api&status=Affected');
     expect(screen.queryByText('acme / web')).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('link', { name: /View acme \/ api/ }));
@@ -45,7 +60,10 @@ describe('workspace navigation', () => {
 
   it('falls back to the default scenario for an unknown demo query', () => {
     renderRoute('/demo?scenario=unknown');
-    expect(screen.getByRole('button', { name: 'Affected code' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: 'Affected code' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
     fireEvent.click(screen.getByRole('button', { name: 'Checks fail' }));
     expect(screen.getByLabelText('Current address')).toHaveTextContent('scenario=failed');
   });
@@ -55,7 +73,9 @@ describe('workspace navigation', () => {
     const trigger = screen.getByRole('button', { name: 'Open workspace navigation' });
     fireEvent.click(trigger);
     const drawer = screen.getByRole('dialog', { name: 'Workspace navigation' });
-    expect(within(drawer).getByRole('button', { name: 'Close workspace navigation' })).toHaveFocus();
+    expect(
+      within(drawer).getByRole('button', { name: 'Close workspace navigation' }),
+    ).toHaveFocus();
     const last = within(drawer).getByRole('link', { name: 'Back to Refit' });
     last.focus();
     fireEvent.keyDown(document, { key: 'Tab' });
@@ -69,6 +89,8 @@ describe('workspace navigation', () => {
     renderRoute('/app/repositories/not-real');
     expect(screen.getByRole('heading', { name: 'Nothing at this address.' })).toBeVisible();
     fireEvent.click(screen.getByRole('link', { name: 'Back to overview' }));
-    expect(screen.getByRole('heading', { name: 'A little change. The full picture.' })).toBeVisible();
+    expect(
+      screen.getByRole('heading', { name: 'A little change. The full picture.' }),
+    ).toBeVisible();
   });
 });

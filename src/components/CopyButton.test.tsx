@@ -8,16 +8,22 @@ describe('configuration copying', () => {
     Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } });
     render(<CopyButton text={'version: 1\n'} />);
     fireEvent.click(screen.getByRole('button', { name: 'Copy configuration' }));
-    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Copied to clipboard'));
+    await waitFor(() =>
+      expect(screen.getByRole('status')).toHaveTextContent('Copied to clipboard'),
+    );
     expect(writeText).toHaveBeenCalledWith('version: 1\n');
   });
 
   it('provides a manual recovery when clipboard permission is denied', async () => {
-    const writeText = vi.fn().mockRejectedValue(new DOMException('Clipboard denied', 'NotAllowedError'));
+    const writeText = vi
+      .fn()
+      .mockRejectedValue(new DOMException('Clipboard denied', 'NotAllowedError'));
     Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } });
     render(<CopyButton text={'version: 1\n'} />);
     fireEvent.click(screen.getByRole('button', { name: 'Copy configuration' }));
-    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Select and copy the code'));
+    await waitFor(() =>
+      expect(screen.getByRole('status')).toHaveTextContent('Select and copy the code'),
+    );
     expect(screen.queryByRole('button', { name: 'Copied configuration' })).not.toBeInTheDocument();
   });
 });

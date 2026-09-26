@@ -6,7 +6,11 @@ import { Settings } from './Settings';
 
 describe('repository configuration builder', () => {
   it('exports the selected package manager, checks, and repair limit', () => {
-    render(<MemoryRouter><Settings /></MemoryRouter>);
+    render(
+      <MemoryRouter>
+        <Settings />
+      </MemoryRouter>,
+    );
     fireEvent.change(screen.getByLabelText('Package manager'), { target: { value: 'pnpm' } });
     fireEvent.click(screen.getByRole('checkbox', { name: /Lint/ }));
     fireEvent.change(screen.getByLabelText('Maximum repair attempts'), { target: { value: '2' } });
@@ -22,7 +26,11 @@ describe('repository configuration builder', () => {
   });
 
   it('prevents exporting a configuration without validation', () => {
-    render(<MemoryRouter><Settings /></MemoryRouter>);
+    render(
+      <MemoryRouter>
+        <Settings />
+      </MemoryRouter>,
+    );
     fireEvent.click(screen.getByRole('checkbox', { name: /Typecheck/ }));
     fireEvent.click(screen.getByRole('checkbox', { name: /Lint/ }));
     fireEvent.click(screen.getByRole('checkbox', { name: /Tests/ }));
