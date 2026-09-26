@@ -83,7 +83,7 @@ pre { margin: 0; }
 .workflow-map { height: 162px; position: relative; }
 .workflow-lines { position: absolute; inset: 0; width: 100%; height: 100%; fill: none; stroke: #bbc7df; stroke-width: 1; }
 .workflow-lines .signal-line { stroke: var(--blue); stroke-width: 2; stroke-dasharray: 10 280; opacity: 0; }
-.is-playing .signal-line { opacity: 1; animation: signal-travel 2.2s linear infinite; }
+.is-playing .signal-line { opacity: 1; animation: signal-travel var(--step-duration) linear infinite; }
 .map-endpoint { position: absolute; top: 52px; display: flex; align-items: center; gap: 10px; background: var(--surface); border: 1px solid var(--border); padding: 12px 16px; border-radius: 7px; min-width: 200px; }
 .map-endpoint strong { display: block; font-size: 12px; font-weight: 550; }
 .map-endpoint span:not(.map-dot) { font: 10px var(--mono); display: block; color: var(--muted); margin-top: 5px; }
@@ -135,7 +135,7 @@ pre { margin: 0; }
 .window-footer { border-top: 1px solid var(--border); min-height: 32px; padding: 8px 17px; display: flex; justify-content: space-between; color: var(--muted); font-size: 9px; }
 .window-footer > span, .window-footer a { display: flex; align-items: center; gap: 6px; }
 .status-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--blue); }
-.spec-content h3, .validation-content h3, .review-content h3 { font-weight: 500; font-size: 24px; letter-spacing: -.035em; margin: 23px 24px 15px; }
+.spec-content h2, .validation-content h2, .review-content h2 { font-weight: 500; font-size: 24px; letter-spacing: -.035em; margin: 23px 24px 15px; }
 .spec-content p, .validation-content > p, .review-content > p { margin: 17px 24px; font-size: 12px; color: var(--muted); max-width: 540px; }
 .schema-change { display: flex; align-items: center; gap: 12px; padding: 14px 24px; background: #f4f6fa; overflow-x: auto; white-space: nowrap; font-size: 11px; }
 .schema-change svg { width: 15px; color: var(--muted); }
@@ -152,7 +152,7 @@ pre { margin: 0; }
 .review-summary svg { width: 14px; }
 .inline-notice { background: #f4f6f9; font-size: 10px; color: var(--muted); padding: 12px 16px; border-radius: 5px; margin: 12px 24px 20px; }
 .result-panel { padding: 32px; }
-.result-panel h3 { margin-top: 15px; font-size: 24px; font-weight: 500; letter-spacing: -.03em; }
+.result-panel h2 { margin-top: 15px; font-size: 24px; font-weight: 500; letter-spacing: -.03em; }
 .result-panel p { font-size: 13px; color: var(--muted); margin-top: 12px; max-width: 520px; }
 .result-panel .inline-notice { margin: 20px 0; }
 .notice-warning { color: var(--warning); background: #fff7e9; }
@@ -367,7 +367,7 @@ pre { margin: 0; }
   .line-number { width: 29px; padding-right: 8px; font-size: 8px; line-height: 2.55; }
   .artifact-footnote, .workflow-expanded .artifact-footnote { font-size: 9px; padding-inline: 12px; }
   .window-footer { font-size: 8px; padding-inline: 11px; }
-  .spec-content h3, .validation-content h3, .review-content h3 { font-size: 22px; margin: 20px 16px 14px; }
+  .spec-content h2, .validation-content h2, .review-content h2 { font-size: 22px; margin: 20px 16px 14px; }
   .spec-content p, .validation-content > p, .review-content > p { margin: 15px 16px; font-size: 11px; }
   .schema-change { padding-inline: 16px; font-size: 9px; gap: 8px; }
   .spec-content > a { margin-inline: 16px; font-size: 9px; }
@@ -377,7 +377,7 @@ pre { margin: 0; }
   .inline-notice { margin: 12px 16px 16px; font-size: 9px; }
   .check-list { margin-inline: 16px; }
   .result-panel { padding: 24px 16px; }
-  .result-panel h3 { font-size: 22px; }
+  .result-panel h2 { font-size: 22px; }
   .result-panel p { font-size: 12px; }
   .scope-strip { margin: 25px 22px 0; gap: 20px; }
   .scope-strip > div { gap: 24px; }
