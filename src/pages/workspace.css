@@ -200,3 +200,32 @@
   .impact-rows { font-size: 10px; }
   .impact-rows div > span { font-size: 10px; }
 }
+.settings-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: start; }
+.settings-form section { border-bottom: 1px solid var(--border); padding-bottom: 27px; margin-bottom: 27px; }
+.settings-form h2 { font-size: 19px; letter-spacing: -.02em; }
+.connection-state { display: flex; gap: 9px; align-items: flex-start; margin-top: 20px; }
+.connection-dot { width: 6px; height: 6px; background: #8790a1; border-radius: 50%; margin-top: 5px; }
+.connection-state strong { display: block; font-size: 12px; font-weight: 500; }
+.connection-state p { color: var(--muted); font-size: 11px; margin-top: 7px; }
+.settings-form .text-link { font-size: 10px; margin-top: 17px; }
+.setting-label { display: block; font-size: 12px; margin: 24px 0 10px; }
+.settings-form select { width: 100%; border: 1px solid var(--border); background: white; border-radius: 5px; padding: 12px; font-size: 12px; color: var(--ink); }
+.settings-form fieldset { padding: 0; border: 0; margin: 26px 0; }
+.settings-form legend { padding: 0; font-size: 12px; margin-bottom: 10px; }
+.check-option { display: flex; align-items: center; gap: 8px; padding: 11px 0; font-size: 12px; cursor: pointer; }
+.check-option input { accent-color: var(--blue); width: 16px; height: 16px; margin: 0; }
+.check-option code { color: var(--muted); margin-left: auto; font-size: 9px; }
+.setting-help { color: var(--muted); font-size: 10px; margin-top: 10px; }
+.settings-form .locked-setting { display: flex; gap: 12px; align-items: flex-start; border: 0; }
+.locked-setting > svg { width: 19px; height: 19px; color: var(--muted); margin-top: 2px; }
+.locked-setting h2 { font-size: 14px; }
+.locked-setting p { color: var(--muted); font-size: 11px; margin-top: 10px; }
+.settings-output { position: sticky; top: 30px; }
+.settings-output .docs-code { margin-top: 0; }
+.settings-output .button { margin-top: 18px; width: 100%; font-size: 12px; }
+.setting-export-note { display: flex; align-items: flex-start; gap: 8px; margin-top: 20px; color: var(--muted); }
+.setting-export-note svg { width: 15px; height: 15px; margin-top: 3px; }
+.setting-export-note p { font-size: 10px; }
+.form-error { color: var(--negative); background: #fff1f2; font-size: 11px; padding: 10px; border-radius: 4px; }
+@media (max-width: 1100px) { .settings-layout { gap: 27px; } }
+@media (max-width: 760px) { .settings-layout { grid-template-columns: 1fr; gap: 15px; } .settings-output { position: static; } }

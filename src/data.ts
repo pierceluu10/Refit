@@ -1,3 +1,5 @@
+import { createConfiguration, MAX_REPAIR_ATTEMPTS, validationChecks } from './configuration';
+
 export const PROJECT_URL = 'https://github.com/pierceluu10/Refit';
 export const STEP_DURATION = 2200;
 export const COPY_FEEDBACK_DURATION = 2000;
@@ -16,21 +18,7 @@ export const scenarios: Record<Scenario, { label: string; summary: string }> = {
   failed: { label: 'Checks fail', summary: 'The patch does not pass the example project’s tests. Validation blocks draft-PR publication.' },
 };
 
-export const configuration = `version: 1
-
-providers:
-  - stripe
-
-validation:
-  install: npm ci
-  commands:
-    - npm run typecheck
-    - npm run lint
-    - npm test
-
-migration:
-  maxAttempts: 3
-  draftPullRequests: true`;
+export const configuration = createConfiguration('npm', validationChecks, MAX_REPAIR_ATTEMPTS);
 
 export const sampleRepositories = [
   { id: 'acme-api', name: 'acme / api', language: 'TypeScript', provider: 'Stripe', status: 'Affected', file: 'src/billing/payments.ts', description: 'Payment processing and customer billing.' },
