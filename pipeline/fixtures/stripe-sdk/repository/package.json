@@ -1,0 +1,8 @@
+{
+  "name": "refit-stripe-sdk-fixture",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "stripe": "10.17.0"
+  }
+}
