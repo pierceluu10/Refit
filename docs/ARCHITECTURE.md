@@ -25,7 +25,7 @@ AI helps interpret application intent and edit code. Source diffs, job state, va
 | Review artifacts | `stripe:validate --bundle <new-directory>` exports the exact patch, report, draft PR description and file-hash manifest. Failed validation is preserved explicitly. No remote publication. |
 | Draft publication | `api:validate --publish-draft --github owner/repository --base main` requires fresh passing checks, no unresolved findings and a matching remote base. Publishes exact changed files on a deterministic branch, refuses branch collisions and reuses existing PRs. Controlled GitHub API tests pass; live publication remains unverified. |
 | AI assessment | Opt-in OpenAI Responses integration with strict structured output, bounded source context, evidence-ID validation and advisory decisions. Controlled-response tests pass; live model verification requires configuration. AI cannot edit code or publish. |
-| AI patch proposals | Opt-in `--ai-patch` requests exact source replacements tied to confirmed findings. Local checks enforce file scope, unique matches, non-overlap and parseable output, then rescan. Integrates with Docker validation and review bundles. Controlled model output has been exercised in actual containers; live quality and iterative repair remain unverified/unimplemented. |
+| AI patch proposals | Opt-in `--ai-patch` requests exact source replacements tied to confirmed findings. Local checks enforce file scope, unique matches, non-overlap and parseable output, then rescan. Optional `--repair-attempts 1` (maximum 2) regenerates a proposal using bounded failed-check output and reruns a fresh container. Tested attempts and stop reasons are retained. Live model quality remains unverified. |
 | Verification | Pipeline and frontend tests; opt-in real Docker tests exercise baseline/patched behavior, isolation checks, regressions, baseline failures and output limits. No production application or Stripe account has been exercised. |
 | Service integration | No HTTP service, database, queue, GitHub App or scheduled monitoring. Draft publication uses an explicit host token; the CLI is not connected to the frontend. |
 
@@ -99,7 +99,7 @@ The scanner then checks manifests and lockfiles, API-version configuration, impo
 
 ### 4. AI responsibilities
 
-Optional advisory assessment and one-shot AI patch proposals are implemented for the local Stripe pipeline. `--assess` transmits bounded finding context; `--ai-patch` transmits affected files and evidence. Both are explicit opt-ins. Patch proposals are checked locally before they can enter container validation. There is no model tool execution, automatic retry or repair loop. No live model evaluation has been run because credentials/model configuration are absent. The agent design below remains the target for those later capabilities.
+Optional advisory assessment, AI patch proposals and bounded repair are implemented for the local provider pipeline. `--assess` transmits bounded finding context; `--ai-patch` transmits affected files and evidence. `--repair-attempts` additionally transmits the previous failed diff and capped check logs. Repair is gated on a passing baseline, ordinary patched-check failure and an unchanged source revision. Every attempt replaces the original proposal, stays within original finding scope and runs against a fresh archive/container. There is no model tool execution or automatic retry of failed API requests. No live model evaluation has been run because credentials/model configuration are absent. The tool-using agent design below remains a future extension.
 
 Use OpenAI's Responses API behind a single server-side integration with a configurable `OPENAI_MODEL`. Select the deployed model using migration evaluations and measured cost; do not couple business logic to a model name.
 
@@ -114,7 +114,7 @@ This design uses [function calling](https://developers.openai.com/api/docs/guide
 
 ### 5. Execution and validation
 
-The local CLI implements baseline and patched command execution against an archived Git commit. It records exit codes, logs, revision, image ID and archive/patch hashes, and distinguishes baseline failure, regression, execution error and stale input. It does not install dependencies, perform repair attempts, or publish results. Configured checks and migration semantics still require human review.
+The local CLI implements baseline and patched command execution against an archived Git commit. It records exit codes, logs, revision, image ID and archive/patch hashes, and distinguishes baseline failure, regression, execution error and stale input. Optional bounded AI repair keeps tested attempt history. The separate publisher can publish the final validated candidate; dependency installation remains unimplemented. Configured checks and migration semantics still require human review.
 
 Sandbox workers use disposable non-root containers with resource/time limits, a restricted filesystem and controlled network access. Installation and application credentials stay outside the container. Dependency installation is an explicit sandbox stage. Cleanup runs on success, failure and cancellation. A Docker container alone is not a complete boundary for arbitrary hostile repositories; assess stronger isolation before opening the service broadly.
 

@@ -53,6 +53,14 @@ export function createReviewArtifacts(
         command: validation.command,
         baseline: { status: validation.baseline.status, exitCode: validation.baseline.exitCode },
         patched: { status: validation.patched.status, exitCode: validation.patched.exitCode },
+        repair: validation.repair,
+        attempts: validation.attempts.map((attempt) => ({
+          number: attempt.number,
+          patchHash: attempt.patchHash,
+          status: attempt.check.status,
+          exitCode: attempt.check.exitCode,
+          responseId: attempt.responseId,
+        })),
       }),
       destination === 'local'
         ? 'Full stdout, stderr and execution errors are preserved in report.json. The exact proposed change is in migration.patch.'

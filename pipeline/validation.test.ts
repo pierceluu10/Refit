@@ -183,6 +183,156 @@ it('rejects malformed command arrays before starting any processes', async () =>
   ).rejects.toThrow(/nonempty JSON array/);
 });
 
+it.each([-1, 3, 1.5, NaN])(
+  'rejects invalid repair limits before starting processes: %s',
+  async (repairAttempts) => {
+    await expect(
+      validateMigration({
+        ...options,
+        repository: '/unused',
+        command: ['node'],
+        repairAttempts,
+        aiPatch: { apiKey: 'unused', model: 'unused' },
+      }),
+    ).rejects.toThrow(/Repair attempts must be/);
+  },
+);
+
+it('requires AI opt-in before allowing repair attempts', async () => {
+  await expect(
+    validateMigration({ ...options, repository: '/unused', command: ['node'], repairAttempts: 1 }),
+  ).rejects.toThrow(/require --ai-patch/);
+});
+
+it
+  .skipIf(!IMAGE)
+  .each([
+    'success',
+    'repeat',
+    'exhausted',
+    'invalid-edit',
+    'baseline-failed',
+    'disabled',
+    'stale',
+  ] as const)(
+  'bounds AI repair and retains tested candidates in actual containers: %s',
+  async (scenario) => {
+    const root = await repository();
+    let requests = 0;
+    const good = '(await stripe.charges.list({ payment_intent: intent.id })).data';
+    const fetcher = vi.fn(async (_url: string, request: RequestInit) => {
+      requests++;
+      const body = JSON.parse(String(request.body));
+      const evidence = JSON.parse(body.input[0].content);
+      expect(evidence.files[0].content).toBe(SOURCE);
+      expect(body.tools).toBeUndefined();
+      if (requests > 1) {
+        expect(body.instructions).toContain('untrusted check output');
+        expect(evidence.repair.attempt).toBe(requests - 1);
+        expect(evidence.repair.failedPatch).toContain(
+          requests === 2 ? '+  return [];' : '+  return [1];',
+        );
+        expect(evidence.repair.check.stderr.length).toBeLessThanOrEqual(4096);
+        expect(evidence.repair.check.truncated).toBe(true);
+        expect(evidence.repair.check.stderr).toContain('repair_test_failure');
+      }
+      if (scenario === 'stale' && requests === 1)
+        await writeFile(join(root, 'billing.js'), `${SOURCE}\n// user edit\n`);
+      const replacement =
+        requests === 1 || scenario === 'repeat'
+          ? '[]'
+          : scenario === 'exhausted'
+            ? `[${requests - 1}]`
+            : good;
+      return new Response(
+        JSON.stringify({
+          id: `resp_repair_${requests}`,
+          model: 'test-model',
+          status: 'completed',
+          output: [
+            {
+              type: 'message',
+              role: 'assistant',
+              content: [
+                {
+                  type: 'output_text',
+                  text: JSON.stringify({
+                    summary: 'Controlled repair proposal.',
+                    uncertainties: ['Review pagination.'],
+                    edits: [
+                      {
+                        file:
+                          requests > 1 && scenario === 'invalid-edit'
+                            ? 'unrelated.ts'
+                            : 'billing.js',
+                        original: 'intent.charges.data',
+                        replacement,
+                        findingId: evidence.findings[0].id,
+                      },
+                    ],
+                  }),
+                },
+              ],
+            },
+          ],
+        }),
+      );
+    });
+    vi.stubGlobal('fetch', fetcher);
+    const result = await validateMigration({
+      ...options,
+      repository: root,
+      aiPatch: { apiKey: 'test-key', model: 'test-model' },
+      repairAttempts: scenario === 'disabled' ? 0 : 2,
+      command:
+        scenario === 'baseline-failed'
+          ? ['node', '-e', 'process.exit(9)']
+          : [
+              'node',
+              '-e',
+              `import('./billing.js').then(async m => { const result = await m.history('pi_test'); if (result.length !== 2) console.error('repair_test_failure: ' + 'x'.repeat(5000)); require('assert/strict').deepEqual(result, [{id:'ch_1'},{id:'ch_2'}]); })`,
+            ],
+    });
+    const expectedRequests =
+      scenario === 'exhausted'
+        ? 3
+        : ['baseline-failed', 'disabled', 'stale'].includes(scenario)
+          ? 1
+          : 2;
+    expect(requests).toBe(expectedRequests);
+    expect(result.validation.repair.requested).toBe(requests - 1);
+    expect(result.validation.status).toBe(
+      scenario === 'success'
+        ? 'passed'
+        : scenario === 'baseline-failed'
+          ? 'baseline-failed'
+          : scenario === 'stale'
+            ? 'stale'
+            : 'regression',
+    );
+    expect(result.validation.attempts.length).toBe(
+      scenario === 'success' ? 2 : scenario === 'exhausted' ? 3 : 1,
+    );
+    expect(result.validation.patchHash).toBe(digest(result.patch.diff));
+    expect(result.validation.attempts.at(-1)?.patchHash).toBe(result.validation.patchHash);
+    if (scenario === 'success') {
+      expect(result.validation.repair.stopReason).toBe('checks-passed');
+      expect(result.validation.attempts.map((attempt) => attempt.check.status)).toEqual([
+        'failed',
+        'passed',
+      ]);
+      expect(result.publicationFiles[0].content).toBe(SOURCE.replace('intent.charges.data', good));
+    }
+    if (scenario === 'repeat')
+      expect(result.validation.repair.stopReason).toBe('repeated-proposal');
+    if (scenario === 'exhausted') expect(result.validation.repair.stopReason).toBe('attempt-limit');
+    if (scenario === 'invalid-edit')
+      expect(result.validation.repair.error).toContain('outside its allowed scope');
+    if (scenario !== 'stale') expect(await readFile(join(root, 'billing.js'), 'utf8')).toBe(SOURCE);
+  },
+  60_000,
+);
+
 it.skipIf(!IMAGE)(
   'runs baseline and migration in restricted containers without changing the repository',
   async () => {

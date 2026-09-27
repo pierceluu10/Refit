@@ -9,7 +9,7 @@ import { discoverStripeRevision, encodeSnapshot, fetchStripeSnapshot } from './s
 import { digest, readSpecification } from './specifications.ts';
 import { PipelineInputError } from './types.ts';
 import { validateMigration } from './validation.ts';
-import { validateCheckCommand } from './validation-options.ts';
+import { validateCheckCommand, validateRepairAttempts } from './validation-options.ts';
 
 type Stage = 'inputs' | 'scan' | 'validation' | 'publication';
 type Status =
@@ -26,6 +26,7 @@ export async function runWorkflow(options: {
   providerConfig?: string;
   assessment?: { apiKey: string; model: string };
   aiPatch?: { apiKey: string; model: string };
+  repairAttempts?: number;
   publication?: ReturnType<typeof publicationConfiguration>;
 }) {
   if (Boolean(options.after) === Boolean(options.latestStripe))
@@ -33,6 +34,7 @@ export async function runWorkflow(options: {
   if (options.latestStripe && options.providerConfig)
     throw new PipelineInputError('--latest-stripe cannot be combined with a custom provider.');
   validateCheckCommand(options.command);
+  validateRepairAttempts(options.repairAttempts ?? 0, Boolean(options.aiPatch));
   const directory = await createArtifactDirectory(options.repository, options.output);
   const files: { path: string; sha256: string; bytes: number }[] = [];
   let stage: Stage = 'inputs';
@@ -121,6 +123,7 @@ export async function runWorkflow(options: {
       command: options.command,
       assessment: options.assessment,
       aiPatch: options.aiPatch,
+      repairAttempts: options.repairAttempts,
     });
     runId = report.runId;
     const review = createReviewArtifacts(report);

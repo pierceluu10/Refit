@@ -8,7 +8,7 @@ import { publicationConfiguration, publishDraft } from './publication.ts';
 import { parseCheckCommand } from './validation-options.ts';
 
 const USAGE =
-  'Usage: npm run api:validate -- --repository <clean-git-directory> --before <spec.json> --after <spec.json> [--provider-config <adapter.json>] --image <local-image> --command \'["npm","test"]\' [--output <new-report.json> | --bundle <new-directory>] [--assess (sends selected source context to OpenAI)] [--ai-patch (sends affected source files to OpenAI)] [--publish-draft --github owner/repository --base main (uses GITHUB_TOKEN)]';
+  'Usage: npm run api:validate -- --repository <clean-git-directory> --before <spec.json> --after <spec.json> [--provider-config <adapter.json>] --image <local-image> --command \'["npm","test"]\' [--output <new-report.json> | --bundle <new-directory>] [--assess (sends selected source context to OpenAI)] [--ai-patch (sends affected source files to OpenAI)] [--repair-attempts 0|1|2 (sends failed check output to OpenAI)] [--publish-draft --github owner/repository --base main (uses GITHUB_TOKEN)]';
 
 try {
   const { values } = parseArgs({
@@ -22,6 +22,7 @@ try {
       bundle: { type: 'string' },
       assess: { type: 'boolean' },
       'ai-patch': { type: 'boolean' },
+      'repair-attempts': { type: 'string' },
       'provider-config': { type: 'string' },
       help: { type: 'boolean' },
       'publish-draft': { type: 'boolean' },
@@ -56,6 +57,7 @@ try {
       command,
       assessment: assessmentConfiguration(values.assess, process.env),
       aiPatch: assessmentConfiguration(values['ai-patch'], process.env),
+      repairAttempts: Number(values['repair-attempts'] ?? 0),
       providerConfig: values['provider-config'],
     });
     const json = `${JSON.stringify(report, null, 2)}\n`;

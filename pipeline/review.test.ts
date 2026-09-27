@@ -33,6 +33,8 @@ async function report(): Promise<Report> {
       patched: { status: 'failed', exitCode: 1, stdout: '', stderr: 'expected charge history' },
       limits: { timeoutMs: 120_000, outputBytes: 1024 * 1024, network: 'none' },
       publishable: false,
+      attempts: [],
+      repair: { limit: 0, requested: 0, stopReason: 'not-needed-or-disabled', error: null },
       reason: 'Synthetic check results for artifact formatting tests.',
     },
   };

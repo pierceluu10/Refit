@@ -1,5 +1,16 @@
 import { PipelineInputError } from './types.ts';
 
+export const MAX_REPAIR_ATTEMPTS = 2;
+
+export function validateRepairAttempts(value: number, aiEnabled: boolean) {
+  if (!Number.isInteger(value) || value < 0 || value > MAX_REPAIR_ATTEMPTS)
+    throw new PipelineInputError(
+      `Repair attempts must be an integer from 0 to ${MAX_REPAIR_ATTEMPTS}.`,
+    );
+  if (value > 0 && !aiEnabled) throw new PipelineInputError('Repair attempts require --ai-patch.');
+  return value;
+}
+
 export function validateCheckCommand(value: unknown): string[] {
   if (
     !Array.isArray(value) ||

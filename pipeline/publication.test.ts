@@ -46,6 +46,8 @@ async function report(): Promise<Report> {
       patched: { status: 'passed', exitCode: 0, stdout: '', stderr: '' },
       limits: { timeoutMs: 120000, outputBytes: 1048576, network: 'none' },
       publishable: false,
+      attempts: [],
+      repair: { limit: 0, requested: 0, stopReason: 'not-needed-or-disabled', error: null },
       reason: 'Controlled publication test evidence.',
     },
   };

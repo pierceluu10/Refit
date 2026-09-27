@@ -15,7 +15,7 @@ A working frontend with:
 - A configuration builder that copies or downloads a valid example `refit.yml`.
 - Keyboard-accessible mobile navigation and reduced-motion support.
 
-**The workspace is a frontend preview.** Its data remains illustrative. A separate local pipeline analyzes repositories and supplied OpenAPI snapshots, proposes migration patches, validates checks in Docker, and can explicitly publish a draft PR; it is not connected to the UI. Optional AI assessment and patch proposals are implemented but have not been verified with a live model. GitHub publication has controlled API tests, not a live remote verification. There is no GitHub App installation flow, provider monitoring or iterative repair agent. The configuration builder produces a file locally; it does not apply settings to a remote repository.
+**The workspace is a frontend preview.** Its data remains illustrative. A separate local pipeline analyzes repositories and supplied OpenAPI snapshots, proposes migration patches, validates checks in Docker, and can explicitly publish a draft PR; it is not connected to the UI. Optional AI assessment, patch proposals and bounded repair are implemented but have not been verified with a live model. GitHub publication has controlled API tests, not a live remote verification. There is no GitHub App installation flow or background provider monitoring. The configuration builder produces a file locally; it does not apply settings to a remote repository.
 
 ## Stripe pipeline
 
@@ -44,7 +44,7 @@ The output directory must be new, outside the scanned repository, with an existi
 | `existing-pr` | Reused the matching PR; inspect `publication.json` for its current open/closed/draft state | 0 |
 | `error` | Input, setup, model, network or publication error | 1 |
 
-No-match results remain review-required, and passing tests do not prove migration semantics. The preflight scan makes no model calls; validation rescans a clean committed snapshot before generating the tested proposal. Workflow tests cover real Docker checks, failure gates and controlled GitHub responses. Live model and GitHub publication verification remain outstanding. This is a one-shot local agent, with no background scheduler or repair loop.
+No-match results remain review-required, and passing tests do not prove migration semantics. The preflight scan makes no model calls; validation rescans a clean committed snapshot before generating the tested proposal. Workflow tests cover real Docker checks, failure gates and controlled GitHub responses. Live model and GitHub publication verification remain outstanding. This is a one-shot local agent with optional bounded repair, and no background scheduler.
 
 ### Scan without executing repository code
 
@@ -103,7 +103,17 @@ npm run stripe:replay -- --ai-patch
 
 This sends the complete source files containing confirmed findings, plus impact evidence, to OpenAI. The same 64 KiB request-evidence limit applies. Each edit must reference a confirmed finding, match exactly one existing source string, and cover that finding's location. Refit rejects edits outside the supplied file set, overlapping replacements, unchanged replacements and syntactically invalid resulting code. It rescans the proposed code and reports remaining findings; disappearing findings are not proof of behavioral correctness.
 
-Use `stripe:validate --ai-patch` with your image and check command to apply the proposal only in the disposable copy and run baseline/patched checks. Add `--bundle` to export the exact model-generated diff and validation evidence. `--assess` is independent and adds a separate advisory model call if both flags are selected. A no-edit model response is reported as unsupported by the scan; validation stops because there is no patch to test. No repair loop, model tool execution or automatic publication is implemented.
+Use `stripe:validate --ai-patch` with your image and check command to apply the proposal only in the disposable copy and run baseline/patched checks. Add `--bundle` to export the exact model-generated diff and validation evidence. `--assess` is independent and adds a separate advisory model call if both flags are selected. A no-edit initial model response is reported as unsupported by the scan; validation stops because there is no patch to test. The model has no tool execution or publication permissions.
+
+### Optional bounded repair
+
+Add `--ai-patch --repair-attempts 1` to `api:run` or `api:validate` to allow one repair request after a failing patched check. The default is zero; the hard maximum is two additional proposals after the initial proposal. Each request uses the same configurable model and existing 60-second, 64 KiB evidence and 4,096 output-token limits. API failures and refusals are not retried automatically.
+
+Repair explicitly sends the previous failed diff and up to 4,096 characters from each check output stream to OpenAI, in addition to the original affected source/evidence. A truncation flag records omitted output. Logs can contain application data; enabling repair authorizes this additional transmission. Full check output remains in the local report.
+
+Only a passing baseline and an ordinary failing patched check can trigger repair. Baseline failures, execution errors and changed source revisions stop it. Each candidate is a complete proposal against the original source, tied to the original confirmed findings and subjected to the same scope, exact-match, overlap and syntax checks. It is applied to a fresh archive copy and checked in a fresh container. The command, image and baseline stay fixed. A repeated proposal, no-edit response, invalid edit or exhausted limit stops repair. Failed repair preserves the last tested candidate and its failing status; it never invents success.
+
+The report includes every tested diff, its hash, check output, response ID, and the repair count/stop reason. The final patch and publication files always correspond to the last tested candidate. Publication still requires passing checks, zero unresolved detected findings and a matching remote base. This is bounded proposal regeneration, not an agent with unrestricted tools or a guarantee that the model preserves semantics.
 
 Tests cover controlled model output through actual Docker validation. Live generation quality remains unverified, and semantic review is required even when tests pass.
 

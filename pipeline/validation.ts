@@ -8,7 +8,8 @@ import { runPipeline } from './run.ts';
 import { digest } from './specifications.ts';
 import { PipelineInputError } from './types.ts';
 import { readRepository } from './repository.ts';
-import { validateCheckCommand } from './validation-options.ts';
+import { validateCheckCommand, validateRepairAttempts } from './validation-options.ts';
+import { proposeAiPatch } from './ai-patches.ts';
 
 export interface PublicationFile {
   path: string;
@@ -24,6 +25,16 @@ const MAX_ARCHIVE_BYTES = 50 * 1024 * 1024;
 const IMAGE_ID = /^sha256:[a-f0-9]{64}$/;
 const CONTAINER_USER = '65534:65534';
 const WORKSPACE_TMPFS = '/workspace:rw,exec,size=512m,uid=65534,gid=65534,mode=0700';
+const MAX_REPAIR_LOG_CHARACTERS = 4096;
+
+export interface ValidationAttempt {
+  number: number;
+  patchHash: string;
+  diff: string;
+  check: CheckResult;
+  responseId: string | null;
+  evidenceHash: string | null;
+}
 
 export interface CheckResult {
   status: 'passed' | 'failed' | 'error';
@@ -132,8 +143,10 @@ export async function validateMigration(options: {
   assessment?: { apiKey: string; model: string };
   aiPatch?: { apiKey: string; model: string };
   providerConfig?: string;
+  repairAttempts?: number;
 }) {
   validateCheckCommand(options.command);
+  const repairLimit = validateRepairAttempts(options.repairAttempts ?? 0, Boolean(options.aiPatch));
   if (!options.image || options.image.startsWith('-'))
     throw new PipelineInputError('A local Docker image is required.');
   const repository = await realpath(options.repository);
@@ -163,7 +176,6 @@ export async function validateMigration(options: {
     const baselineDirectory = join(root, 'baseline');
     const patchedDirectory = join(root, 'patched');
     await mkdir(baselineDirectory);
-    await mkdir(patchedDirectory);
     const archive = join(root, 'source.tar');
     const archiveResult = await execute(
       'git',
@@ -175,8 +187,7 @@ export async function validateMigration(options: {
       },
     );
     await writeFile(archive, archiveResult.stdout);
-    for (const directory of [baselineDirectory, patchedDirectory])
-      await command('tar', ['-xf', archive, '-C', directory]);
+    await command('tar', ['-xf', archive, '-C', baselineDirectory]);
     const report = await runPipeline({
       ...options,
       repository: baselineDirectory,
@@ -186,32 +197,119 @@ export async function validateMigration(options: {
       throw new PipelineInputError(
         'No supported patch proposal is available for this committed revision.',
       );
-    const patch = join(root, 'migration.patch');
-    await writeFile(patch, report.patch.diff);
-    await command('git', ['apply', '--check', patch], patchedDirectory);
-    await command('git', ['apply', patch], patchedDirectory);
+    let proposal = report.patch;
     const originalSources = await readRepository(baselineDirectory, report.adapter.packageName);
-    const patchedSources = await readRepository(patchedDirectory, report.adapter.packageName);
-    const publicationFiles: PublicationFile[] = [];
-    for (const file of patchedSources.files) {
-      const original = originalSources.files.find((source) => source.path === file.path);
-      if (!original || original.content === file.content) continue;
-      const entry = entries.find((entry) => entry.slice(entry.indexOf('\t') + 1) === file.path);
-      const metadata = entry?.slice(0, entry.indexOf('\t')).split(' ');
-      const originalBlob = createHash('sha1')
-        .update(`blob ${Buffer.byteLength(original.content)}\0`)
-        .update(original.content)
-        .digest('hex');
-      if (!metadata || metadata[2] !== originalBlob)
-        throw new PipelineInputError('Archived source does not match the committed Git blob.');
-      publicationFiles.push({
-        path: file.path,
-        mode: metadata[0] as PublicationFile['mode'],
-        content: file.content,
-      });
-    }
+    const prepareCandidate = async (diff: string) => {
+      await rm(patchedDirectory, { recursive: true, force: true });
+      await mkdir(patchedDirectory);
+      await command('tar', ['-xf', archive, '-C', patchedDirectory]);
+      const patch = join(root, 'migration.patch');
+      await writeFile(patch, diff);
+      await command('git', ['apply', '--check', patch], patchedDirectory);
+      await command('git', ['apply', patch], patchedDirectory);
+      const patchedSources = await readRepository(patchedDirectory, report.adapter.packageName);
+      const publicationFiles: PublicationFile[] = [];
+      for (const file of patchedSources.files) {
+        const original = originalSources.files.find((source) => source.path === file.path);
+        if (!original || original.content === file.content) continue;
+        const entry = entries.find((entry) => entry.slice(entry.indexOf('\t') + 1) === file.path);
+        const metadata = entry?.slice(0, entry.indexOf('\t')).split(' ');
+        const originalBlob = createHash('sha1')
+          .update(`blob ${Buffer.byteLength(original.content)}\0`)
+          .update(original.content)
+          .digest('hex');
+        if (!metadata || metadata[2] !== originalBlob)
+          throw new PipelineInputError('Archived source does not match the committed Git blob.');
+        publicationFiles.push({
+          path: file.path,
+          mode: metadata[0] as PublicationFile['mode'],
+          content: file.content,
+        });
+      }
+      return publicationFiles;
+    };
+    let publicationFiles = await prepareCandidate(proposal.diff);
     const baseline = await containerCheck(baselineDirectory, image, options.command);
-    const patched = await containerCheck(patchedDirectory, image, options.command);
+    let patched = await containerCheck(patchedDirectory, image, options.command);
+    const attempts: ValidationAttempt[] = [];
+    const recordAttempt = () =>
+      attempts.push({
+        number: attempts.length + 1,
+        patchHash: digest(proposal.diff),
+        diff: proposal.diff,
+        check: patched,
+        responseId: 'responseId' in proposal ? proposal.responseId : null,
+        evidenceHash: 'evidenceHash' in proposal ? proposal.evidenceHash : null,
+      });
+    recordAttempt();
+    const repair: { limit: number; requested: number; stopReason: string; error: string | null } = {
+      limit: repairLimit,
+      requested: 0,
+      stopReason: 'not-needed-or-disabled',
+      error: null,
+    };
+    while (
+      baseline.status === 'passed' &&
+      patched.status === 'failed' &&
+      repair.requested < repairLimit &&
+      options.aiPatch
+    ) {
+      const latestRevision = (await git(['rev-parse', '--verify', 'HEAD^{commit}'])).stdout.trim();
+      if (
+        latestRevision !== revision ||
+        (await git(['status', '--porcelain', '--untracked-files=all'])).stdout
+      ) {
+        repair.stopReason = 'stale-repository';
+        break;
+      }
+      repair.requested++;
+      try {
+        const candidate = await proposeAiPatch(
+          originalSources,
+          report.changes,
+          report.findings,
+          options.aiPatch,
+          report.adapter,
+          {
+            attempt: repair.requested,
+            failedPatch: proposal.diff,
+            check: {
+              exitCode: patched.exitCode,
+              stdout: patched.stdout.slice(0, MAX_REPAIR_LOG_CHARACTERS),
+              stderr: patched.stderr.slice(0, MAX_REPAIR_LOG_CHARACTERS),
+              truncated:
+                patched.stdout.length > MAX_REPAIR_LOG_CHARACTERS ||
+                patched.stderr.length > MAX_REPAIR_LOG_CHARACTERS,
+            },
+          },
+        );
+        if (!candidate.diff) {
+          repair.stopReason = 'no-proposal';
+          break;
+        }
+        if (attempts.some((attempt) => attempt.patchHash === digest(candidate.diff))) {
+          repair.stopReason = 'repeated-proposal';
+          break;
+        }
+        const candidateFiles = await prepareCandidate(candidate.diff);
+        const check = await containerCheck(patchedDirectory, image, options.command);
+        proposal = candidate;
+        publicationFiles = candidateFiles;
+        patched = check;
+        recordAttempt();
+        repair.stopReason =
+          patched.status === 'passed'
+            ? 'checks-passed'
+            : patched.status === 'error'
+              ? 'execution-error'
+              : 'attempt-limit';
+      } catch (error) {
+        if (!(error instanceof Error)) throw error;
+        repair.stopReason = 'repair-error';
+        repair.error = `${error.name}: ${error.message}`;
+        break;
+      }
+    }
     const currentRevision = (await git(['rev-parse', '--verify', 'HEAD^{commit}'])).stdout.trim();
     const currentStatus = (await git(['status', '--porcelain', '--untracked-files=all'])).stdout;
     const validationStatus =
@@ -230,9 +328,11 @@ export async function validateMigration(options: {
       image,
       command: options.command,
       archiveHash: digest(archiveResult.stdout),
-      patchHash: digest(report.patch.diff),
+      patchHash: digest(proposal.diff),
       baseline,
       patched,
+      attempts,
+      repair,
       limits: { timeoutMs: CHECK_TIMEOUT_MS, outputBytes: MAX_OUTPUT_BYTES, network: 'none' },
       publishable: false,
       reason:
@@ -240,7 +340,7 @@ export async function validateMigration(options: {
     };
     return {
       ...report,
-      patch: { ...report.patch, validation: validationStatus },
+      patch: { ...proposal, validation: validationStatus },
       validation,
       publicationFiles,
     };

@@ -6,7 +6,7 @@ import { runWorkflow } from './workflow.ts';
 import { parseCheckCommand } from './validation-options.ts';
 
 const USAGE =
-  'Usage: npm run api:run -- --repository <clean-git-directory> --before <spec.json> (--after <spec.json> | --latest-stripe) --output <new-directory-outside-repository> --image <local-image> --command \'["npm","test"]\' [--provider-config <adapter.json>] [--assess] [--ai-patch] [--publish-draft --github owner/repository --base main]';
+  'Usage: npm run api:run -- --repository <clean-git-directory> --before <spec.json> (--after <spec.json> | --latest-stripe) --output <new-directory-outside-repository> --image <local-image> --command \'["npm","test"]\' [--provider-config <adapter.json>] [--assess] [--ai-patch] [--repair-attempts 0|1|2 (sends failed check output to OpenAI)] [--publish-draft --github owner/repository --base main]';
 
 try {
   const { values } = parseArgs({
@@ -21,6 +21,7 @@ try {
       'provider-config': { type: 'string' },
       assess: { type: 'boolean' },
       'ai-patch': { type: 'boolean' },
+      'repair-attempts': { type: 'string' },
       'publish-draft': { type: 'boolean' },
       github: { type: 'string' },
       base: { type: 'string' },
@@ -52,6 +53,7 @@ try {
       providerConfig: values['provider-config'],
       assessment: assessmentConfiguration(values.assess, process.env),
       aiPatch: assessmentConfiguration(values['ai-patch'], process.env),
+      repairAttempts: Number(values['repair-attempts'] ?? 0),
       publication: values['publish-draft']
         ? publicationConfiguration(values.github, values.base, process.env.GITHUB_TOKEN)
         : undefined,
