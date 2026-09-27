@@ -15,7 +15,7 @@ A working frontend with:
 - A configuration builder that copies or downloads a valid example `refit.yml`.
 - Keyboard-accessible mobile navigation and reduced-motion support.
 
-**The workspace is a frontend preview.** Its data remains illustrative. A separate local Stripe pipeline analyzes repositories and supplied OpenAPI snapshots, proposes migration patches, and can validate checks in Docker; it is not connected to the UI. Optional AI assessment and patch proposals are implemented but have not been verified with a live model. There is no live GitHub installation, provider monitoring, iterative repair agent or PR publication. The configuration builder produces a file locally; it does not apply settings to a remote repository.
+**The workspace is a frontend preview.** Its data remains illustrative. A separate local pipeline analyzes repositories and supplied OpenAPI snapshots, proposes migration patches, validates checks in Docker, and can explicitly publish a draft PR; it is not connected to the UI. Optional AI assessment and patch proposals are implemented but have not been verified with a live model. GitHub publication has controlled API tests, not a live remote verification. There is no GitHub App installation flow, provider monitoring or iterative repair agent. The configuration builder produces a file locally; it does not apply settings to a remote repository.
 
 ## Stripe pipeline
 
@@ -85,6 +85,27 @@ npm run stripe:replay -- --propose-patch
 The report's `patch.diff` contains a Git-compatible unified diff. It proposes replacing a direct `return intent.charges.data` with `(await stripe.charges.list({ payment_intent: intent.id })).data`, using the locally traced client. Only a one-argument PaymentIntent retrieval and a direct return in the same async function are supported. Other findings remain counted as unresolved.
 
 The proposal needs review: it adds a network request, uses default pagination, and can change error, timing and expansion behavior. No repository files are modified, no application tests are executed, and the report explicitly records `validation: not-run`. The diff contains source code; check it before sharing. Test coverage verifies Git application and executes the migrated fixture against a controlled Stripe client; that is not validation of your application's behavior.
+
+### Publish a validated draft PR
+
+Set `GITHUB_TOKEN` in your environment with repository **Contents: write** and **Pull requests: write** permissions for the intended target. Then explicitly add publication to a fresh validation run:
+
+```sh
+npm run api:validate -- \
+  --repository /absolute/path/to/clean-git-repository \
+  --before /tmp/refit-before.json --after /tmp/refit-after.json \
+  --image your-local-validation-image --command '["npm","test"]' \
+  --output /tmp/new-validation-report.json \
+  --publish-draft --github owner/repository --base main
+```
+
+This sends changed source files and a review description to the selected GitHub repository. It requires both checks to pass, zero unresolved detected findings, and the remote base to match the validated commit. These gates do not prove migration semantics or test quality. Review the diff, source evidence and configured checks before enabling publication. `--ai-patch` and `--provider-config` work with the same command.
+
+Refit builds a Git tree on the existing remote base, preserving unrelated files and the changed files' committed executable modes. It creates a deterministic `refit/…` branch and a **draft** PR. It never force-updates a branch, merges, or reopens a closed PR. Retries reuse a matching branch/PR; a branch with unexpected contents or parents is rejected. A base change requires fresh validation. Base/head checks are repeated before publication, but GitHub does not provide an atomic transaction across those reads and PR creation; reviewers must still check the current base.
+
+The token remains in the host publisher and is not sent to OpenAI or Docker. Full check logs stay local. The command only accepts freshly generated validation, not a saved report or unsigned bundle. The saved report remains pre-publication evidence; the final stdout object supplies the PR URL and whether it was created or reused. Setup, API or publication failures exit 1; partial failures can leave a branch or unreferenced Git objects. Rerun with a new output path to reconcile the same candidate. With AI enabled, a newly generated different patch has a different branch identity.
+
+Currently this supports `github.com`, an existing same-repository base commit, and an explicitly supplied token. It does not install a GitHub App, clone repositories, upload local-only base history, or schedule runs. Publication is covered by controlled GitHub responses for successful drafts, stale revisions, collisions, retries and concurrency; no live PR has been created during verification.
 
 ### Replay real upstream specifications
 

@@ -22,10 +22,11 @@ AI helps interpret application intent and edit code. Source diffs, job state, va
 | Patch proposals | Opt-in `--propose-patch` returns a unified diff for direct `charges.data` returns from a locally traced one-argument PaymentIntent retrieval. Remaining findings and semantic caveats remain explicit. |
 | Local validation | `stripe:validate` archives clean committed HEAD, applies a proposal to a disposable copy, and runs explicit baseline/patched commands in separate restricted offline Docker containers using a local image ID. Records logs, exit codes, hashes and stale-revision checks. Dependencies must be available in the image. |
 | Review artifacts | `stripe:validate --bundle <new-directory>` exports the exact patch, report, draft PR description and file-hash manifest. Failed validation is preserved explicitly. No remote publication. |
+| Draft publication | `api:validate --publish-draft --github owner/repository --base main` requires fresh passing checks, no unresolved findings and a matching remote base. Publishes exact changed files on a deterministic branch, refuses branch collisions and reuses existing PRs. Controlled GitHub API tests pass; live publication remains unverified. |
 | AI assessment | Opt-in OpenAI Responses integration with strict structured output, bounded source context, evidence-ID validation and advisory decisions. Controlled-response tests pass; live model verification requires configuration. AI cannot edit code or publish. |
 | AI patch proposals | Opt-in `--ai-patch` requests exact source replacements tied to confirmed findings. Local checks enforce file scope, unique matches, non-overlap and parseable output, then rescan. Integrates with Docker validation and review bundles. Controlled model output has been exercised in actual containers; live quality and iterative repair remain unverified/unimplemented. |
 | Verification | Pipeline and frontend tests; opt-in real Docker tests exercise baseline/patched behavior, isolation checks, regressions, baseline failures and output limits. No production application or Stripe account has been exercised. |
-| Service integration | No HTTP service, database, queue, GitHub App, scheduled monitoring or PR publication. The CLI is not connected to the frontend. |
+| Service integration | No HTTP service, database, queue, GitHub App or scheduled monitoring. Draft publication uses an explicit host token; the CLI is not connected to the frontend. |
 
 The analyzer is conservative: `affected` means a removed property has a locally traced PaymentIntent receiver. It does not prove that the repository is upgrading to the relevant API version. `needs-review` means Stripe is present but no such direct match is confirmed. `no-stripe-signal` means the supported scan found no Stripe import/dependency signal; it does not prove the absence of REST calls or dynamic integrations.
 
@@ -120,7 +121,9 @@ For the historical example, `charges` is a collection while `latest_charge` iden
 
 ### 6. Publication and product integration
 
-Local review bundles are implemented. Their draft PR description includes evidence, check results and review requirements, while their manifest binds file contents to hashes. A bundle is not publication authorization or a signed attestation. The remote publisher described below remains planned.
+Local review bundles and explicit remote draft publication are implemented. The publisher consumes a fresh validation result in the same CLI process; it does not trust imported reports or bundle manifests. It verifies the remote base, uses the exact changed contents and committed file modes retained by validation, and creates a tree based on the original remote tree. Unrelated files stay intact. Existing migration branches must match the expected tree and single parent; existing PRs, including closed ones, are reused. The CLI never force-pushes or merges. GitHub is exercised with controlled responses; a live repository/token is still needed for remote verification.
+
+The current publisher uses an explicit `GITHUB_TOKEN` on the host. It has bounded requests, no redirects, and keeps full check logs out of the PR. Partial failures can leave remote objects or a branch; retries reconcile a matching candidate. Repeated remote revision checks reduce stale publication but are not an atomic transaction with PR creation. GitHub App ownership, hosted audit state and installation-token lifecycle below remain planned.
 
 Only the publisher owns the short-lived GitHub installation token. It checks installation access, current base revision, passing recorded validation, allowed patch paths and idempotency before pushing a branch and opening a draft PR. A base revision change invalidates earlier validation and requires rerunning. The PR contains the provider source, exact usages, diff explanation and real check results. Refit never auto-merges.
 
@@ -133,6 +136,6 @@ The frontend then renders API-backed runs with loading, empty, failure and cance
 3. **Service:** authenticated API, PostgreSQL state/queue, GitHub installation and read-only checkout ingestion; connect actual reports to the workspace.
 4. **Execution:** local offline Docker validation is implemented; dependency provisioning, cancellation recovery, hosted workers and broader application evaluations remain planned.
 5. **AI:** schema-validated impact assessment, restricted patch tools, bounded repair and fixture-based evaluations.
-6. **Publication:** idempotent draft PRs, stale-revision checks, audit trail and operational limits.
+6. **Publication:** local draft publisher, retry reconciliation and stale-revision checks are implemented; live verification, installation tokens, durable audit trail and service operational limits remain.
 
 The existing CLI functions can be called from a worker, but none of the planned services are implied to exist yet. Keep the current npm layout until multiple deployable packages justify the PRD's proposed workspace migration.

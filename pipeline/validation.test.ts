@@ -1,5 +1,5 @@
 import { execFile } from 'node:child_process';
-import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { chmod, mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { promisify } from 'node:util';
@@ -23,12 +23,13 @@ export async function history(id) {
 }
 `;
 
-async function repository() {
+async function repository(executable = false) {
   const root = await mkdtemp(join(tmpdir(), 'refit-container-test-'));
   directories.push(root);
   await mkdir(join(root, 'node_modules/stripe'), { recursive: true });
   await writeFile(join(root, 'package.json'), '{"type":"module","dependencies":{"stripe":"test"}}');
   await writeFile(join(root, 'billing.js'), SOURCE);
+  if (executable) await chmod(join(root, 'billing.js'), 0o755);
   await writeFile(
     join(root, 'node_modules/stripe/package.json'),
     '{"type":"module","exports":"./index.js"}',
@@ -75,7 +76,7 @@ afterEach(async () => {
 it.skipIf(!IMAGE)(
   'validates a controlled AI proposal in actual containers',
   async () => {
-    const root = await repository();
+    const root = await repository(true);
     vi.stubGlobal(
       'fetch',
       vi.fn().mockImplementation(async (_url, request) => {
@@ -125,6 +126,16 @@ it.skipIf(!IMAGE)(
     });
     expect(report.validation.status).toBe('passed');
     expect(report.patch).toMatchObject({ generator: 'openai', validation: 'passed' });
+    expect(report.publicationFiles).toEqual([
+      {
+        path: 'billing.js',
+        mode: '100755',
+        content: SOURCE.replace(
+          'intent.charges.data',
+          '(await stripe.charges.list({ payment_intent: intent.id })).data',
+        ),
+      },
+    ]);
     expect(await readFile(join(root, 'billing.js'), 'utf8')).toBe(SOURCE);
   },
   60_000,
@@ -137,6 +148,33 @@ it('rejects dirty repositories before attempting Docker execution', async () => 
     validateMigration({ ...options, repository: root, command: ['node', '--version'] }),
   ).rejects.toThrow(/clean committed repository/);
 });
+
+it.skipIf(!IMAGE)(
+  'rejects archive substitutions rather than publishing source different from the commit',
+  async () => {
+    const root = await repository();
+    await writeFile(join(root, '.gitattributes'), 'billing.js export-subst\n');
+    await writeFile(join(root, 'billing.js'), `${SOURCE}\n// revision: $Format:%H$\n`);
+    await execute('git', ['-C', root, 'add', '.']);
+    await execute('git', [
+      '-C',
+      root,
+      '-c',
+      'user.name=Refit Test',
+      '-c',
+      'user.email=test@example.invalid',
+      '-c',
+      'commit.gpgsign=false',
+      'commit',
+      '-m',
+      'test: add archive substitution',
+    ]);
+    await expect(
+      validateMigration({ ...options, repository: root, command: ['node', '--version'] }),
+    ).rejects.toThrow(/Archived source does not match/);
+  },
+  60_000,
+);
 
 it('rejects malformed command arrays before starting any processes', async () => {
   await expect(
@@ -197,6 +235,16 @@ it.skipIf(!IMAGE)(
     expect(report.validation.image).toMatch(/^sha256:/);
     expect(report.validation.publishable).toBe(false);
     expect(report.patch.validation).toBe('passed');
+    expect(report.publicationFiles).toEqual([
+      {
+        path: 'billing.js',
+        mode: '100644',
+        content: SOURCE.replace(
+          'intent.charges.data',
+          '(await stripe.charges.list({ payment_intent: intent.id })).data',
+        ),
+      },
+    ]);
     expect(await readFile(join(root, 'billing.js'), 'utf8')).toBe(SOURCE);
     expect((await execute('git', ['-C', root, 'status', '--porcelain'])).stdout).toBe('');
   },

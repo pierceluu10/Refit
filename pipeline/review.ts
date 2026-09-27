@@ -13,7 +13,10 @@ function jsonBlock(value: unknown) {
   return `${fence}json\n${content}\n${fence}`;
 }
 
-export function createReviewArtifacts(report: ValidationReport) {
+export function createReviewArtifacts(
+  report: ValidationReport,
+  destination: 'local' | 'github' = 'local',
+) {
   const { validation, patch } = report;
   if (validation.patchHash !== digest(patch.diff) || patch.validation !== validation.status)
     throw new PipelineInputError(
@@ -35,7 +38,10 @@ export function createReviewArtifacts(report: ValidationReport) {
   const body =
     [
       `# ${title}`,
-      'The supplied API specifications remove fields read by the scanned code under the recorded SDK mapping. Inspect migration.patch for the exact proposed changes.',
+      'The supplied API specifications remove fields read by the scanned code under the recorded SDK mapping.',
+      destination === 'local'
+        ? 'Inspect migration.patch for the exact proposed changes.'
+        : 'Inspect the Files changed tab for the exact proposed changes.',
       jsonBlock({ generator: patch.generator, summary: patch.summary }),
       summary,
       `Proposed edits: ${patch.edits}. Unresolved detected findings: ${patch.unresolvedFindings}. Zero unresolved findings does not prove complete API or code coverage.`,
@@ -48,7 +54,9 @@ export function createReviewArtifacts(report: ValidationReport) {
         baseline: { status: validation.baseline.status, exitCode: validation.baseline.exitCode },
         patched: { status: validation.patched.status, exitCode: validation.patched.exitCode },
       }),
-      'Full stdout, stderr and execution errors are preserved in report.json. The exact proposed change is in migration.patch.',
+      destination === 'local'
+        ? 'Full stdout, stderr and execution errors are preserved in report.json. The exact proposed change is in migration.patch.'
+        : 'Full check logs remain in the local validation report; they are not uploaded to GitHub.',
       '## Evidence',
       jsonBlock({
         runId: report.runId,
@@ -63,7 +71,9 @@ export function createReviewArtifacts(report: ValidationReport) {
       '## Review requirements',
       'Confirm adapter mappings, API-version applicability and intended pagination, expansion, timing and error behavior. Review any added network requests, and inspect the diff and logs for sensitive content before sharing.',
       jsonBlock({ warnings: [...report.warnings, ...patch.warnings], coverage: report.coverage }),
-      'This is a local review artifact. Refit has not pushed a branch, opened a pull request, or approved publication.',
+      destination === 'local'
+        ? 'This is a local review artifact. Refit has not pushed a branch, opened a pull request, or approved publication.'
+        : 'Refit created this draft for human review. Passing checks do not prove migration correctness.',
     ].join('\n\n') + '\n';
   const files = {
     'report.json': `${JSON.stringify(report, null, 2)}\n`,

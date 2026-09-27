@@ -20,6 +20,7 @@ async function report(): Promise<Report> {
   if (!('diff' in scan.patch)) throw new Error('Expected fixture patch');
   return {
     ...scan,
+    publicationFiles: [],
     patch: { ...scan.patch, validation: 'regression' },
     validation: {
       status: 'regression',

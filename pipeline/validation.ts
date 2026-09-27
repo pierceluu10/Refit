@@ -1,5 +1,5 @@
 import { execFile } from 'node:child_process';
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { mkdir, mkdtemp, realpath, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -7,6 +7,13 @@ import { promisify } from 'node:util';
 import { runPipeline } from './run.ts';
 import { digest } from './specifications.ts';
 import { PipelineInputError } from './types.ts';
+import { readRepository } from './repository.ts';
+
+export interface PublicationFile {
+  path: string;
+  mode: '100644' | '100755';
+  content: string;
+}
 
 const execute = promisify(execFile);
 const PROCESS_TIMEOUT_MS = 30_000;
@@ -146,7 +153,7 @@ export async function validateMigration(options: {
     throw new PipelineInputError(
       'Validation requires a clean committed repository, including untracked files.',
     );
-  const entries = (await git(['ls-tree', '-r', revision])).stdout.split('\n').filter(Boolean);
+  const entries = (await git(['ls-tree', '-rz', revision])).stdout.split('\0').filter(Boolean);
   if (entries.some((entry) => !/^(100644|100755) blob /.test(entry)))
     throw new PipelineInputError(
       'Validation does not accept tracked symbolic links or submodules.',
@@ -188,6 +195,26 @@ export async function validateMigration(options: {
     await writeFile(patch, report.patch.diff);
     await command('git', ['apply', '--check', patch], patchedDirectory);
     await command('git', ['apply', patch], patchedDirectory);
+    const originalSources = await readRepository(baselineDirectory, report.adapter.packageName);
+    const patchedSources = await readRepository(patchedDirectory, report.adapter.packageName);
+    const publicationFiles: PublicationFile[] = [];
+    for (const file of patchedSources.files) {
+      const original = originalSources.files.find((source) => source.path === file.path);
+      if (!original || original.content === file.content) continue;
+      const entry = entries.find((entry) => entry.slice(entry.indexOf('\t') + 1) === file.path);
+      const metadata = entry?.slice(0, entry.indexOf('\t')).split(' ');
+      const originalBlob = createHash('sha1')
+        .update(`blob ${Buffer.byteLength(original.content)}\0`)
+        .update(original.content)
+        .digest('hex');
+      if (!metadata || metadata[2] !== originalBlob)
+        throw new PipelineInputError('Archived source does not match the committed Git blob.');
+      publicationFiles.push({
+        path: file.path,
+        mode: metadata[0] as PublicationFile['mode'],
+        content: file.content,
+      });
+    }
     const baseline = await containerCheck(baselineDirectory, image, options.command);
     const patched = await containerCheck(patchedDirectory, image, options.command);
     const currentRevision = (await git(['rev-parse', '--verify', 'HEAD^{commit}'])).stdout.trim();
@@ -214,9 +241,14 @@ export async function validateMigration(options: {
       limits: { timeoutMs: CHECK_TIMEOUT_MS, outputBytes: MAX_OUTPUT_BYTES, network: 'none' },
       publishable: false,
       reason:
-        'Validation records check results only. Migration semantics and unresolved findings require review; publication is not implemented.',
+        'Validation records check results only. Draft publication requires an explicit GitHub target and passing checks; migration semantics require human review.',
     };
-    return { ...report, patch: { ...report.patch, validation: validationStatus }, validation };
+    return {
+      ...report,
+      patch: { ...report.patch, validation: validationStatus },
+      validation,
+      publicationFiles,
+    };
   } finally {
     await rm(root, { recursive: true, force: true });
   }
