@@ -38,6 +38,20 @@ The report's `patch.diff` contains a Git-compatible unified diff. It proposes re
 
 The proposal needs review: it adds a network request, uses default pagination, and can change error, timing and expansion behavior. No repository files are modified, no application tests are executed, and the report explicitly records `validation: not-run`. The diff contains source code; check it before sharing. Test coverage verifies Git application and executes the migrated fixture against a controlled Stripe client; that is not validation of your application's behavior.
 
+### Replay real upstream specifications
+
+Download pinned Stripe OpenAPI revisions, then pass the resulting snapshots to the same scanner:
+
+```sh
+npm run stripe:snapshot -- --revision da4ef11c8691eb41e6b2a8d86c13343a973633e4 --output /tmp/refit-before.json
+npm run stripe:snapshot -- --revision 37236d21d9ef0c3e109e26f7a398c783ca1dde8c --output /tmp/refit-after.json
+npm run stripe:scan -- --repository pipeline/fixtures/repository --before /tmp/refit-before.json --after /tmp/refit-after.json --propose-patch
+```
+
+These are upstream commits from November 10 and November 17, 2022. This replay uses real specifications and the local sample codebase. Replace `--repository` with your own repository to scan real application code. Downloads require network access; subsequent scans work offline. Choose new output paths if these already exist.
+
+Snapshots preserve the original JSON text, its SHA-256 hash, full commit SHA and upstream URL in one JSON artifact. The scanner checks this structure and content hash before processing it, and includes provenance in the report. This detects accidental modification; it is not a cryptographic signature proving origin. Only full commit SHAs are accepted, downloads are bounded and redirects are refused. API-version applicability, scheduled monitoring and complete OpenAPI comparison remain future work.
+
 ## Develop
 
 Use Node.js 22.12+ or a newer supported Node.js release.

@@ -1,8 +1,30 @@
 import { createHash } from 'node:crypto';
-import { readFile } from 'node:fs/promises';
+import { readFile, stat } from 'node:fs/promises';
 import { PipelineInputError, type Removal } from './types.ts';
 
 type JsonObject = Record<string, unknown>;
+export const MAX_SPECIFICATION_BYTES = 64 * 1024 * 1024;
+export const STRIPE_SPECIFICATION_ROOT = 'https://raw.githubusercontent.com/stripe/openapi/';
+export const STRIPE_SPECIFICATION_PATH = 'openapi/spec3.json';
+export const COMMIT_REVISION = /^[a-f0-9]{40}$/;
+
+export interface Snapshot {
+  formatVersion: 1;
+  kind: 'refit-snapshot';
+  provider: 'stripe';
+  revision: string;
+  url: string;
+  hash: string;
+  content: string;
+}
+
+export function stripeSpecificationUrl(revision: string) {
+  if (!COMMIT_REVISION.test(revision))
+    throw new PipelineInputError(
+      'Stripe revision must be a full lowercase 40-character commit SHA.',
+    );
+  return `${STRIPE_SPECIFICATION_ROOT}${revision}/${STRIPE_SPECIFICATION_PATH}`;
+}
 
 export function isObject(value: unknown): value is JsonObject {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -24,8 +46,30 @@ export function digest(content: string): string {
 }
 
 export async function readSpecification(path: string) {
+  if ((await stat(path)).size > MAX_SPECIFICATION_BYTES)
+    throw new PipelineInputError(`${path} exceeds the 64 MiB specification input limit.`);
   const content = await readFile(path, 'utf8');
-  const document = parseObject(content, path);
+  const value = parseObject(content, path);
+  if (value.kind === 'refit-snapshot') {
+    if (
+      value.formatVersion !== 1 ||
+      value.provider !== 'stripe' ||
+      typeof value.revision !== 'string' ||
+      typeof value.content !== 'string' ||
+      value.url !== stripeSpecificationUrl(value.revision) ||
+      value.hash !== digest(value.content)
+    )
+      throw new PipelineInputError(`${path}: invalid snapshot provenance or content hash.`);
+    return {
+      ...parseSpecification(value.content, path),
+      provenance: { provider: value.provider, revision: value.revision, url: value.url },
+    };
+  }
+  return { ...parseSpecification(content, path), provenance: null };
+}
+
+export function parseSpecification(content: string, label: string) {
+  const document = parseObject(content, label);
   const components = document.components;
   if (
     typeof document.openapi !== 'string' ||
@@ -33,7 +77,7 @@ export async function readSpecification(path: string) {
     !isObject(components) ||
     !isObject(components.schemas)
   ) {
-    throw new PipelineInputError(`${path} must contain OpenAPI 3 components.schemas.`);
+    throw new PipelineInputError(`${label} must contain OpenAPI 3 components.schemas.`);
   }
   return { hash: digest(content), schemas: components.schemas };
 }

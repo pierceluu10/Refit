@@ -12,11 +12,12 @@ AI helps interpret application intent and edit code. Source diffs, job state, va
 | --- | --- |
 | Website and workspace | React/Vite frontend, interactive demo, docs, sample repositories/runs and configuration export. Workspace data remains illustrative. |
 | Local pipeline | Runnable TypeScript CLI in `pipeline/`; accepts a real local repository and two supplied OpenAPI JSON files. No credentials or network needed. |
+| Snapshot ingestion | `stripe:snapshot` downloads a full-SHA-pinned Stripe spec with bounded size/time and no redirects. Offline scans accept hash-checked snapshot envelopes and record provenance. No polling or automatic revision selection. |
 | Dependency detection | Reads Stripe declarations from package manifests, including nested workspaces. Reports declared ranges, not resolved lockfile versions. |
 | Specification comparison | Detects direct property removals in existing non-composed OpenAPI 3 component schemas. This limited detector is **not oasdiff** and does not implement the full PRD diff engine. |
 | Code analysis | TypeScript AST and lexical symbols trace local ESM Stripe clients, awaited PaymentIntent calls, immutable aliases, direct/string-indexed reads and destructuring. |
 | Evidence | JSON report with schema pointers, file/line/column, confirmed local matches versus review candidates, source hashes and repeatable run ID. |
-| Replay | Hand-authored minimal fixtures reproduce Stripe's documented 2022-11-15 `charges` removal. These are not archived upstream snapshots. |
+| Replay | Minimal offline fixtures plus a documented replay using real upstream commits from November 10 and 17, 2022. Both were exercised against the sample repository. |
 | Patch proposals | Opt-in `--propose-patch` returns a unified diff for direct `charges.data` returns from a locally traced one-argument PaymentIntent retrieval. Remaining findings and semantic caveats remain explicit. |
 | Verification | Pipeline and frontend tests; patch tests exercise CLI output, Git application, a controlled Stripe runtime, unsupported shapes and missing final newlines. Application validation remains unimplemented. |
 | Service integration | No HTTP API, database, queue, GitHub App, scheduled monitoring, model calls, sandbox or PR publication. The CLI is not connected to the frontend. |
@@ -85,7 +86,7 @@ Local artifact storage supports development; an S3-compatible store holds deploy
 
 ### 3. Provider ingestion and deterministic analysis
 
-A Stripe adapter resolves and fetches pinned upstream OpenAPI revisions, stores their SHA, content hash and provenance, and calls **oasdiff** for a complete machine-readable comparison. Normalize supported events into provider-independent records. Replace the current narrow property detector at this boundary; do not expand it into a homegrown full OpenAPI differ.
+Pinned Stripe snapshot downloads and provenance are implemented through the local CLI. Revision discovery, polling and **oasdiff** integration for a complete machine-readable comparison are planned. Normalize supported events into provider-independent records. Replace the current narrow property detector at this boundary; do not expand it into a homegrown full OpenAPI differ.
 
 The scanner then checks manifests and lockfiles, API-version configuration, imports, usages and references. Extend the current analyzer with cross-file symbol flow, typed SDK responses, wrappers and webhook payloads. Preserve uncertainty rather than filtering ambiguous repositories out. The generic worker consumes adapter results so another API provider can be added without rewriting orchestration.
 

@@ -30,6 +30,7 @@ export async function runPipeline(options: {
     runId: digest(`${before.hash}:${after.hash}:${repositoryHash}`),
     status,
     snapshots: { before: before.hash, after: after.hash },
+    provenance: { before: before.provenance, after: after.provenance },
     repository: {
       hash: repositoryHash,
       scannedFiles: repository.files.length,
