@@ -1,0 +1,7 @@
+{
+  "name": "stripe-replay-fixture",
+  "private": true,
+  "dependencies": {
+    "stripe": "^10.0.0"
+  }
+}
