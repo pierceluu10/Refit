@@ -101,7 +101,7 @@ it.each([
 it('supports missing final newlines and reports remaining unsupported findings', async () => {
   const root = await repository(`${prefix}\nasync function read() {
     const intent = await stripe.paymentIntents.retrieve('pi');
-    console.log(intent.charges);
+    const history = intent.charges;
     return intent.charges.data;
   }`);
   const report = await runPipeline({ ...options, repository: root });

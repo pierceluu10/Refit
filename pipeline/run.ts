@@ -67,7 +67,7 @@ export async function runPipeline(options: {
     coverage: {
       specification:
         'Direct properties removed from existing, non-composed OpenAPI 3 component schemas only. Not a complete breaking-change diff.',
-      code: 'Local immutable ESM SDK clients and awaited resource.method calls mapped by the recorded adapter; direct reads, string indexes, destructuring and immutable aliases. CommonJS, cross-file flows, wrappers, mutations, webhooks and dynamic code require review. Confirmed means traced under the supplied adapter mapping, not independently verified SDK semantics.',
+      code: 'Local immutable ESM SDK clients and awaited resource.method calls mapped by the recorded adapter; direct reads, string indexes, destructuring and immutable aliases. Detected writes, alias mutations and references passed to calls or stored in containers downgrade findings to review using conservative, flow-insensitive analysis. CommonJS, cross-file flows, wrappers, webhooks and dynamic code still require review. Confirmed means traced under the supplied adapter mapping, not independently verified SDK semantics.',
       decision:
         'No finding is not proof of no impact. API version applicability and resolved lockfile versions are not inferred.',
     },

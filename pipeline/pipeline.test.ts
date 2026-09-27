@@ -158,6 +158,57 @@ describe('symbol-based impact analysis', () => {
     expect(result.findings).toHaveLength(2);
     expect(result.findings.every((finding) => finding.confidence === 'review')).toBe(true);
   });
+  it.each([
+    'intent.charges = { data: [] };',
+    "intent['charges'] ??= { data: [] };",
+    'delete intent.charges;',
+    'intent.amount++;',
+    '--intent.amount;',
+    'const alias = intent; alias.charges = { data: [] };',
+    "let alias = intent; alias.id = 'different';",
+    'const charges = intent.charges; charges.data.push({});',
+    'const { charges } = intent; charges.data = [];',
+    'Object.assign(intent, { charges: { data: [] } });',
+    'normalize(intent);',
+    'normalize(intent.charges);',
+    'normalize(flag ? intent : other);',
+    'normalize(() => intent);',
+    'const holder = { intent };',
+    'const holder = { value: intent };',
+    'const holder = [intent];',
+    'const holder = flag ? intent : other;',
+    '({ charges: intent.charges } = other);',
+    'intent.normalize();',
+    'client.paymentIntents.retrieve = replacement;',
+    'const alias = client; alias.paymentIntents.retrieve = replacement;',
+    'configure(client);',
+  ])('declines confirmed impact and patches after mutation or escape: %s', (statement) => {
+    const result = analyze(`${prefix} async function read() {
+      const intent = await client.paymentIntents.retrieve('pi_test');
+      ${statement}
+      return intent.charges.data;
+    }`);
+    expect(result.findings.length).toBeGreaterThan(0);
+    expect(result.findings.every((finding) => finding.confidence === 'review')).toBe(true);
+    expect(result.findings.at(-1)?.reason).toContain('mutated or escape');
+    expect(result.edits).toEqual([]);
+  });
+  it('does not confirm inline awaited responses after the SDK client escapes', () => {
+    const result = analyze(
+      `${prefix} configure(client); async function read() { return (await client.paymentIntents.retrieve('pi')).charges; }`,
+    );
+    expect(result.findings[0].confidence).toBe('review');
+  });
+  it('keeps mutations of unrelated or shadowed objects separate from a traced response', () => {
+    const result = analyze(`${prefix} async function read() {
+      const intent = await client.paymentIntents.retrieve('pi_test');
+      const other = {}; other.charges = [];
+      function normalize(intent: any) { intent.id = 'changed'; }
+      return intent.charges.data;
+    }`);
+    expect(result.findings.at(-1)?.confidence).toBe('confirmed');
+    expect(result.edits).toHaveLength(1);
+  });
   it('does not match comments, strings or unrelated fields without a Stripe signal', () => {
     expect(
       analyze(

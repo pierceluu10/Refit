@@ -57,6 +57,8 @@ The replay uses curated fixtures for Stripe's historical `PaymentIntent.charges`
 
 This is a bounded impact analyzer, not a complete OpenAPI differ or migration agent. Unresolved code requires review; absence of a match never proves safety. See [the architecture and capability inventory](docs/ARCHITECTURE.md) for exact coverage, the full AI architecture and delivery order.
 
+`const` does not make SDK clients or responses immutable. The scanner downgrades detected property writes/deletes, updates, mutations through aliases, and references passed to functions or stored in objects/arrays to review. Replacing a client method also invalidates response evidence derived from that client. These findings cannot drive deterministic patches or serve as confirmed AI edit targets. This check is intentionally flow-insensitive: even a later write or a harmless helper receiving a field can prevent confirmation. It is not full interprocedural mutation analysis; dynamic behavior and cross-file effects remain unsupported.
+
 ### Configure another SDK
 
 `api:scan` and `api:validate` accept `--provider-config adapter.json`. Omitting it uses the built-in Stripe adapter; the existing `stripe:*` scripts remain available. A custom adapter declares the SDK package, constructor imports, and the schema returned by each supported resource/method pair:

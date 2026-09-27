@@ -1,6 +1,7 @@
 import { resolve } from 'node:path';
 import ts from 'typescript-compiler';
 import { STRIPE, type ProviderAdapter } from './providers.ts';
+import { unsafeBindings } from './mutations.ts';
 import {
   PipelineInputError,
   type Finding,
@@ -157,6 +158,7 @@ export function analyzeRepository(
       calls.push({ ...location(node), method: `${operation.resource}.${operation.method}` });
   }
   const providerDetected = imports.length > 0 || repository.dependencies.length > 0;
+  const unsafe = unsafeBindings(nodes, checker, clients, origins);
   function propose(node: ts.Node, receiver: ts.Expression, change: Removal) {
     if (
       provider !== STRIPE ||
@@ -224,7 +226,24 @@ export function analyzeRepository(
       if (tracked && change.schema !== schema) continue;
       if (property !== undefined && change.property !== property) continue;
       if (!tracked && !providerDetected) continue;
-      const confirmed = Boolean(tracked && property !== undefined && change.schema === schema);
+      const immediateCall =
+        ts.isParenthesizedExpression(receiver) &&
+        ts.isAwaitExpression(receiver.expression) &&
+        ts.isCallExpression(receiver.expression.expression)
+          ? receiver.expression.expression
+          : undefined;
+      const immediateResource =
+        immediateCall && ts.isPropertyAccessExpression(immediateCall.expression)
+          ? immediateCall.expression.expression
+          : undefined;
+      const uncertainMutation =
+        (ts.isIdentifier(receiver) && unsafe.has(symbol(receiver)!)) ||
+        (immediateResource &&
+          ts.isPropertyAccessExpression(immediateResource) &&
+          unsafe.has(symbol(immediateResource.expression)!));
+      const confirmed = Boolean(
+        tracked && !uncertainMutation && property !== undefined && change.schema === schema,
+      );
       if (confirmed) propose(node, receiver, change);
       if (property === undefined && !tracked) continue;
       findings.push({
@@ -234,7 +253,9 @@ export function analyzeRepository(
         confidence: confirmed ? 'confirmed' : 'review',
         reason: confirmed
           ? `Removed field read on a locally traced ${provider.id} ${schema} response.`
-          : 'Receiver or property cannot be proven by the supported local analysis; inspect manually.',
+          : uncertainMutation
+            ? 'Response or SDK client may be mutated or escape through an alias or call; inspect manually.'
+            : 'Receiver or property cannot be proven by the supported local analysis; inspect manually.',
       });
     }
   }

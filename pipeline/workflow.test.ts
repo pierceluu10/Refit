@@ -1,6 +1,6 @@
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join, resolve } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { afterEach, expect, it, vi } from 'vitest';
 import { runWorkflow } from './workflow.ts';
 import { validateMigration } from './validation.ts';
@@ -121,4 +121,25 @@ it('returns exit 2 and machine-readable evidence for a CLI run requiring review'
   await expect(result).rejects.toMatchObject({ code: 2, stderr: '' });
   const manifest = JSON.parse(await readFile(join(input.output, 'manifest.json'), 'utf8'));
   expect(manifest.status).toBe('needs-review');
+});
+
+it('stops mutated response evidence before AI generation, validation or publication', async () => {
+  const input = await options();
+  const repository = join(dirname(input.output), 'source');
+  await mkdir(repository);
+  await writeFile(
+    join(repository, 'billing.ts'),
+    `import Stripe from 'stripe'; const stripe = new Stripe();
+    async function history() { const intent = await stripe.paymentIntents.retrieve('pi');
+      normalize(intent); return intent.charges.data;
+    }`,
+  );
+  const result = await runWorkflow({
+    ...input,
+    repository,
+    aiPatch: { apiKey: 'unused', model: 'unused' },
+  });
+  expect(result.manifest.status).toBe('needs-review');
+  expect(validateMigration).not.toHaveBeenCalled();
+  expect(publishDraft).not.toHaveBeenCalled();
 });
