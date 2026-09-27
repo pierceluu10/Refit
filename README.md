@@ -15,7 +15,7 @@ A working frontend with:
 - A configuration builder that copies or downloads a valid example `refit.yml`.
 - Keyboard-accessible mobile navigation and reduced-motion support.
 
-**The workspace is a frontend preview.** Its data remains illustrative. A separate local Stripe pipeline analyzes repositories and supplied OpenAPI snapshots and can propose a narrow migration patch; it is not connected to the UI. There is no live GitHub installation, provider monitoring, AI integration, sandbox execution or PR publication. The configuration builder produces a file locally; it does not apply settings to a remote repository.
+**The workspace is a frontend preview.** Its data remains illustrative. A separate local Stripe pipeline analyzes repositories and supplied OpenAPI snapshots, proposes a narrow migration patch, and can validate checks in Docker; it is not connected to the UI. There is no live GitHub installation, provider monitoring, AI integration or PR publication. The configuration builder produces a file locally; it does not apply settings to a remote repository.
 
 ## Stripe pipeline
 
@@ -53,6 +53,34 @@ These are upstream commits from November 10 and November 17, 2022. This replay u
 Snapshots preserve the original JSON text, its SHA-256 hash, full commit SHA and upstream URL in one JSON artifact. The scanner checks this structure and content hash before processing it, and includes provenance in the report. This detects accidental modification; it is not a cryptographic signature proving origin. Only full commit SHAs are accepted, downloads are bounded and redirects are refused. API-version applicability, scheduled monitoring and complete OpenAPI comparison remain future work.
 
 ## Develop
+
+### Validate a proposed migration in Docker
+
+```sh
+npm run stripe:validate -- \
+  --repository /absolute/path/to/clean-git-repository \
+  --before /tmp/refit-before.json --after /tmp/refit-after.json \
+  --image your-local-validation-image \
+  --command '["npm","test"]' \
+  --output /tmp/refit-validation.json
+```
+
+This runs the chosen command against separate baseline and patched copies of committed `HEAD`. The repository must be clean and must not contain tracked symlinks or submodules. The report binds results to the commit, archive hash, patch hash, command and immutable local image ID. If the original checkout changes during the run, validation is marked stale. Original repository files are never patched.
+
+The image must already exist locally and contain the tools/dependencies your command needs. Refit does not pull images or install dependencies during validation. Containers run without networking, host environment variables, Git metadata or the Docker socket. All archived tracked files are copied, so committed credentials would still be present. The source mount and container root are read-only; disposable writable directories support checks. Each check is limited to 120 seconds, 1 MiB per output stream, 1 CPU, 1 GiB memory and 128 processes. Containers and temporary files are removed after each run. This is local Docker isolation, not a hardened multi-tenant execution service.
+
+Validation distinguishes `passed`, `baseline-failed`, `regression`, `error` and `stale`. Exit code 0 means both checks passed on the same revision, 2 means a completed validation did not pass, and 1 means setup/input/output failure. Passing the configured command does not prove complete migration correctness or authorize publication. Logs may contain application output; review artifacts before sharing.
+
+Container integration tests are opt-in and require a local Node image:
+
+```sh
+docker pull node:22-alpine
+REFIT_DOCKER_IMAGE=node:22-alpine npm test
+```
+
+They execute a controlled Stripe fixture in actual containers, including successful migration, regression and baseline failure cases. The standard test run skips container-dependent cases.
+
+## Frontend development
 
 Use Node.js 22.12+ or a newer supported Node.js release.
 

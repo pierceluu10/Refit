@@ -19,8 +19,9 @@ AI helps interpret application intent and edit code. Source diffs, job state, va
 | Evidence | JSON report with schema pointers, file/line/column, confirmed local matches versus review candidates, source hashes and repeatable run ID. |
 | Replay | Minimal offline fixtures plus a documented replay using real upstream commits from November 10 and 17, 2022. Both were exercised against the sample repository. |
 | Patch proposals | Opt-in `--propose-patch` returns a unified diff for direct `charges.data` returns from a locally traced one-argument PaymentIntent retrieval. Remaining findings and semantic caveats remain explicit. |
-| Verification | Pipeline and frontend tests; patch tests exercise CLI output, Git application, a controlled Stripe runtime, unsupported shapes and missing final newlines. Application validation remains unimplemented. |
-| Service integration | No HTTP API, database, queue, GitHub App, scheduled monitoring, model calls, sandbox or PR publication. The CLI is not connected to the frontend. |
+| Local validation | `stripe:validate` archives clean committed HEAD, applies a proposal to a disposable copy, and runs explicit baseline/patched commands in separate restricted offline Docker containers using a local image ID. Records logs, exit codes, hashes and stale-revision checks. Dependencies must be available in the image. |
+| Verification | Pipeline and frontend tests; opt-in real Docker tests exercise baseline/patched behavior, isolation checks, regressions, baseline failures and output limits. No production application or Stripe account has been exercised. |
+| Service integration | No HTTP API, database, queue, GitHub App, scheduled monitoring, model calls or PR publication. The CLI is not connected to the frontend. |
 
 The analyzer is conservative: `affected` means a removed property has a locally traced PaymentIntent receiver. It does not prove that the repository is upgrading to the relevant API version. `needs-review` means Stripe is present but no such direct match is confirmed. `no-stripe-signal` means the supported scan found no Stripe import/dependency signal; it does not prove the absence of REST calls or dynamic integrations.
 
@@ -105,7 +106,7 @@ This design uses [function calling](https://developers.openai.com/api/docs/guide
 
 ### 5. Execution and validation
 
-Run baseline checks on the pinned base revision first, then generate a patch and run the configured typecheck/lint/tests. Store exit codes, logs, revision and artifact hashes for both runs. Baseline failures must be distinguishable from migration regressions.
+The local CLI implements baseline and patched command execution against an archived Git commit. It records exit codes, logs, revision, image ID and archive/patch hashes, and distinguishes baseline failure, regression, execution error and stale input. It does not install dependencies, perform repair attempts, or publish results. Configured checks and migration semantics still require human review.
 
 Sandbox workers use disposable non-root containers with resource/time limits, a restricted filesystem and controlled network access. Installation and application credentials stay outside the container. Dependency installation is an explicit sandbox stage. Cleanup runs on success, failure and cancellation. A Docker container alone is not a complete boundary for arbitrary hostile repositories; assess stronger isolation before opening the service broadly.
 
@@ -122,7 +123,7 @@ The frontend then renders API-backed runs with loading, empty, failure and cance
 1. **Completed:** offline Stripe evidence scan, deterministic replay, tests and run instructions.
 2. **Provider ingestion:** pinned real snapshots, provenance, oasdiff, historical corpus and API-version applicability.
 3. **Service:** authenticated API, PostgreSQL state/queue, GitHub installation and read-only checkout ingestion; connect actual reports to the workspace.
-4. **Execution:** disposable sandbox, baseline validation and reproducible check artifacts.
+4. **Execution:** local offline Docker validation is implemented; dependency provisioning, cancellation recovery, hosted workers and broader application evaluations remain planned.
 5. **AI:** schema-validated impact assessment, restricted patch tools, bounded repair and fixture-based evaluations.
 6. **Publication:** idempotent draft PRs, stale-revision checks, audit trail and operational limits.
 

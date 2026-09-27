@@ -4,7 +4,7 @@ Refit turns external API changes into repository-specific, validated draft pull 
 
 ## Product truth
 
-The full specification is in `docs/PRD.md`. The implementation includes the frontend preview and a standalone local Stripe analysis CLI. The CLI compares supplied OpenAPI snapshots and scans local source for impact evidence. The workspace still uses illustrative data; it is not connected to the CLI. There is no GitHub App, live monitoring, AI integration, sandbox execution, patch generation or PR publishing yet. Examples must be labeled and must never impersonate actual work. See `docs/ARCHITECTURE.md` for current capabilities and the target system.
+The full specification is in `docs/PRD.md`. The implementation includes the frontend preview and standalone local Stripe CLIs. They download pinned upstream specifications, scan local source for impact evidence, propose a narrow migration patch, and run explicit baseline/patched checks in restricted Docker containers. The workspace still uses illustrative data; it is not connected to the CLI. There is no GitHub App, live monitoring, AI integration or PR publishing yet. Examples must be labeled and must never impersonate actual work. See `docs/ARCHITECTURE.md` for current capabilities and the target system.
 
 ## Audience and task
 

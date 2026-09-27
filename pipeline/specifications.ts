@@ -41,7 +41,7 @@ export function parseObject(content: string, label: string): JsonObject {
   return parsed;
 }
 
-export function digest(content: string): string {
+export function digest(content: string | Uint8Array): string {
   return createHash('sha256').update(content).digest('hex');
 }
 
