@@ -27,6 +27,11 @@ function renderRoute(path: string) {
 }
 
 describe('workspace navigation', () => {
+  it('sets the home tab title after the React app loads', () => {
+    renderRoute('/');
+    expect(document.title).toBe('Refit: Keep your integrations current');
+  });
+
   it('keeps repository filters in the URL and restores them when navigating back', () => {
     renderRoute('/app/repositories');
     fireEvent.change(screen.getByLabelText('Search repositories'), { target: { value: 'api' } });

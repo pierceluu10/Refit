@@ -79,12 +79,12 @@ export function PagePosition() {
     const target = hash ? document.getElementById(hash.slice(1)) : null;
     if (target) target.scrollIntoView();
     else window.scrollTo(0, 0);
-    const titles: Record<string, string> = {
-      '/': 'APIs change. Your code keeps up.',
-      '/demo': 'Interactive workflow',
-      '/docs': 'Documentation',
+    const titlesByPath: Record<string, string> = {
+      '/': 'Refit: Keep your integrations current',
+      '/demo': 'Refit: Interactive workflow',
+      '/docs': 'Refit: Documentation',
     };
-    document.title = `Refit — ${titles[pathname] ?? 'Workspace preview'}`;
+    document.title = titlesByPath[pathname] ?? 'Refit: Workspace preview';
   }, [pathname, hash]);
   return null;
 }
