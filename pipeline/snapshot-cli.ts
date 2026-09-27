@@ -1,30 +1,29 @@
 import { writeFile } from 'node:fs/promises';
 import { parseArgs } from 'node:util';
-import { fetchStripeSnapshot } from './snapshots.ts';
-import { MAX_SPECIFICATION_BYTES } from './specifications.ts';
+import { discoverStripeRevision, encodeSnapshot, fetchStripeSnapshot } from './snapshots.ts';
 import { PipelineInputError } from './types.ts';
 
 const USAGE =
-  'Usage: npm run stripe:snapshot -- --revision <full-commit-sha> --output <new-snapshot.json>';
+  'Usage: npm run stripe:snapshot -- (--revision <full-commit-sha> | --latest) --output <new-snapshot.json>';
 
 try {
   const { values } = parseArgs({
     options: {
       revision: { type: 'string' },
+      latest: { type: 'boolean' },
       output: { type: 'string' },
       help: { type: 'boolean' },
     },
   });
   if (values.help) console.log(USAGE);
-  else if (!values.revision || !values.output) {
+  else if ((!values.revision && !values.latest) || !values.output) {
     console.error(USAGE);
     process.exitCode = 1;
   } else {
-    const snapshot = await fetchStripeSnapshot(values.revision);
-    const encoded = `${JSON.stringify(snapshot)}\n`;
-    if (Buffer.byteLength(encoded) > MAX_SPECIFICATION_BYTES)
-      throw new PipelineInputError('Encoded snapshot exceeds the 64 MiB input limit.');
-    await writeFile(values.output, encoded, { flag: 'wx' });
+    if (values.revision && values.latest)
+      throw new PipelineInputError('Choose --revision or --latest, not both.');
+    const snapshot = await fetchStripeSnapshot(values.revision ?? (await discoverStripeRevision()));
+    await writeFile(values.output, encodeSnapshot(snapshot), { flag: 'wx', mode: 0o600 });
     console.log(
       JSON.stringify(
         {

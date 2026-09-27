@@ -119,7 +119,27 @@ npm run stripe:scan -- --repository pipeline/fixtures/repository --before /tmp/r
 
 These are upstream commits from November 10 and November 17, 2022. This replay uses real specifications and the local sample codebase. Replace `--repository` with your own repository to scan real application code. Downloads require network access; subsequent scans work offline. Choose new output paths if these already exist.
 
-Snapshots preserve the original JSON text, its SHA-256 hash, full commit SHA and upstream URL in one JSON artifact. The scanner checks this structure and content hash before processing it, and includes provenance in the report. This detects accidental modification; it is not a cryptographic signature proving origin. Only full commit SHAs are accepted, downloads are bounded and redirects are refused. API-version applicability, scheduled monitoring and complete OpenAPI comparison remain future work.
+### Check the latest upstream revision
+
+Create a baseline at the latest specification revision, or use a pinned snapshot corresponding to the integration you want to compare:
+
+```sh
+npm run stripe:snapshot -- --latest --output /tmp/refit-baseline.json
+npm run stripe:check -- \
+  --repository /absolute/path/to/repository \
+  --baseline /tmp/refit-baseline.json \
+  --output /tmp/new-refit-check --propose-patch
+```
+
+`--latest` discovers the most recent commit touching `openapi/spec3.json` on Stripe's default branch, then downloads using that immutable SHA. Discovery uses the public GitHub API without credentials, with bounded requests and explicit rate-limit errors. This is the published specification, not proof that your account or SDK uses that API version.
+
+`stripe:check` discovers the revision again, downloads it if different, and scans the local repository against the supplied baseline. It saves `before.json`, `after.json`, `report.json`, and a final `manifest.json` with content hashes in a new private directory outside the scanned repository. It rescans local code even when upstream is unchanged. `upstream: unchanged` describes specification content only; it never means the code is safe.
+
+The baseline is never advanced automatically. Keep using it until you have reviewed or migrated the relevant changes, then explicitly choose a newer baseline. Starting from today's snapshot does not detect migrations that happened before that snapshot. Checks compare the two endpoints; intermediate changes that were later reverted are not replayed. Failed checks remove the newly created directory and leave the baseline intact; an interrupted run without a manifest is incomplete. Existing output is never replaced. Exit 0 means the check completed, including when it found affected code; exit 1 means failure.
+
+This is a one-shot discovery-and-scan command, not a background scheduler. To validate or publish its proposal, use `api:validate` with the saved `before.json` and `after.json`, plus your Docker command and optional publication flags. A real upstream discovery and both unchanged/changed paths have been exercised against the sample repository; see [upstream evidence](docs/UPSTREAM-REPLAY.md).
+
+Snapshots preserve the original JSON text, its SHA-256 hash, full commit SHA and upstream URL in one JSON artifact. The scanner checks this structure and content hash before processing it, and includes provenance in the report. This detects accidental modification; it is not a cryptographic signature proving origin. Downloads resolve to full commit SHAs, are bounded, and refuse redirects. API-version applicability, scheduled monitoring and complete OpenAPI comparison remain future work.
 
 ## Develop
 
