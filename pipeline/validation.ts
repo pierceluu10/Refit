@@ -8,6 +8,7 @@ import { runPipeline } from './run.ts';
 import { digest } from './specifications.ts';
 import { PipelineInputError } from './types.ts';
 import { readRepository } from './repository.ts';
+import { validateCheckCommand } from './validation-options.ts';
 
 export interface PublicationFile {
   path: string;
@@ -132,13 +133,7 @@ export async function validateMigration(options: {
   aiPatch?: { apiKey: string; model: string };
   providerConfig?: string;
 }) {
-  if (
-    !options.command.length ||
-    options.command.some((part) => typeof part !== 'string' || !part || part.includes('\0'))
-  )
-    throw new PipelineInputError(
-      'Validation command must be a nonempty JSON array of nonempty strings.',
-    );
+  validateCheckCommand(options.command);
   if (!options.image || options.image.startsWith('-'))
     throw new PipelineInputError('A local Docker image is required.');
   const repository = await realpath(options.repository);

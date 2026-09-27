@@ -1,5 +1,6 @@
-import { mkdir, readFile, realpath, rm, writeFile } from 'node:fs/promises';
-import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
+import { readFile, realpath, rm, writeFile } from 'node:fs/promises';
+import { join } from 'node:path';
+import { createArtifactDirectory } from './artifacts.ts';
 import { discoverStripeRevision, encodeSnapshot, fetchStripeSnapshot } from './snapshots.ts';
 import { digest, readSpecification } from './specifications.ts';
 import { runPipeline } from './run.ts';
@@ -12,18 +13,8 @@ export async function checkStripe(options: {
   proposePatch?: boolean;
 }) {
   const repository = await realpath(options.repository);
-  const destination = resolve(options.output);
-  const parent = await realpath(dirname(destination));
-  const relativeParent = relative(repository, parent);
-  if (
-    !relativeParent ||
-    (!relativeParent.startsWith(`..${sep}`) &&
-      relativeParent !== '..' &&
-      !isAbsolute(relativeParent))
-  )
-    throw new PipelineInputError('Check output must be outside the scanned repository.');
   await readSpecification(options.baseline);
-  await mkdir(destination, { mode: 0o700 });
+  const destination = await createArtifactDirectory(repository, options.output);
   try {
     const beforePath = join(destination, 'before.json');
     const afterPath = join(destination, 'after.json');

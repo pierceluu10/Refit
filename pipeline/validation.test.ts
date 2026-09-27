@@ -6,6 +6,7 @@ import { promisify } from 'node:util';
 import { afterEach, expect, it, vi } from 'vitest';
 import { validateMigration } from './validation.ts';
 import { digest } from './specifications.ts';
+import { runWorkflow } from './workflow.ts';
 
 const execute = promisify(execFile);
 const directories: string[] = [];
@@ -293,6 +294,97 @@ it.skipIf(!IMAGE)(
       report.validation.limits.outputBytes,
     );
     expect(report.validation.publishable).toBe(false);
+  },
+  60_000,
+);
+
+it.skipIf(!IMAGE).each(['validated', 'regression', 'published', 'publication-error'] as const)(
+  'runs the combined workflow through actual Docker checks: %s',
+  async (scenario) => {
+    const root = await repository();
+    const output = `${root}-workflow`;
+    directories.push(output);
+    const revision = (await execute('git', ['-C', root, 'rev-parse', 'HEAD'])).stdout.trim();
+    const tree = 'c'.repeat(40);
+    const head = 'd'.repeat(40);
+    let branchExists = false;
+    const fetcher = vi.fn(async (url: string, request: RequestInit) => {
+      const path = decodeURIComponent(
+        new URL(url).pathname.replace('/repos/example/application', ''),
+      );
+      const response = (value: unknown, status = 200) =>
+        new Response(JSON.stringify(value), { status });
+      if (path === '/git/ref/heads/main')
+        return response({ object: { type: 'commit', sha: revision } });
+      if (path.startsWith('/git/ref/heads/refit/'))
+        return branchExists
+          ? response({ object: { type: 'commit', sha: head } })
+          : response({}, 404);
+      if (path === `/git/commits/${revision}`) return response({ tree: { sha: 'b'.repeat(40) } });
+      if (path === '/git/trees') return response({ sha: tree });
+      if (path === '/git/commits') return response({ sha: head });
+      if (path === '/git/refs') {
+        branchExists = true;
+        return response({});
+      }
+      if (path === `/git/commits/${head}`)
+        return response({ tree: { sha: tree }, parents: [{ sha: revision }] });
+      if (path === '/pulls' && request.method === 'GET') return response([]);
+      if (path === '/pulls' && request.method === 'POST')
+        return scenario === 'publication-error'
+          ? response({}, 503)
+          : response({
+              number: 1,
+              html_url: 'https://github.com/example/application/pull/1',
+              head: { sha: head },
+              base: { ref: 'main' },
+              draft: true,
+              state: 'open',
+            });
+      throw new Error(`Unexpected request ${path}`);
+    });
+    vi.stubGlobal('fetch', fetcher);
+    const result = await runWorkflow({
+      ...options,
+      repository: root,
+      output,
+      command:
+        scenario === 'regression'
+          ? [
+              'node',
+              '-e',
+              "process.exit(require('fs').readFileSync('billing.js','utf8').includes('return intent.charges.data') ? 0 : 7)",
+            ]
+          : [
+              'node',
+              '-e',
+              "import('./billing.js').then(async m => require('assert/strict').deepEqual(await m.history('pi_test'), [{id:'ch_1'},{id:'ch_2'}]))",
+            ],
+      publication:
+        scenario === 'validated'
+          ? undefined
+          : { repository: 'example/application', base: 'main', token: 'test-private-token' },
+    });
+    const expected = {
+      validated: 'validated',
+      regression: 'validation-failed',
+      published: 'draft-created',
+      'publication-error': 'error',
+    }[scenario];
+    expect(result.manifest.status).toBe(expected);
+    expect(result.manifest.stage).toBe(scenario.startsWith('publi') ? 'publication' : 'validation');
+    expect(await readFile(join(root, 'billing.js'), 'utf8')).toBe(SOURCE);
+    expect(
+      JSON.parse(await readFile(join(output, 'report.json'), 'utf8')).validation.revision,
+    ).toBe(revision);
+    for (const file of result.manifest.files)
+      expect(digest(await readFile(join(output, file.path)))).toBe(file.sha256);
+    if (scenario === 'validated' || scenario === 'regression')
+      expect(fetcher).not.toHaveBeenCalled();
+    if (scenario === 'published')
+      expect(JSON.parse(await readFile(join(output, 'publication.json'), 'utf8')).draft).toBe(true);
+    if (scenario === 'publication-error')
+      expect(result.manifest.error?.message).toContain('HTTP 503');
   },
   60_000,
 );

@@ -19,6 +19,35 @@ A working frontend with:
 
 ## Stripe pipeline
 
+### Run the complete local workflow
+
+```sh
+npm run api:run -- \
+  --repository /absolute/path/to/clean-git-repository \
+  --before /tmp/refit-before.json --after /tmp/refit-after.json \
+  --output /tmp/new-refit-run \
+  --image your-local-validation-image --command '["npm","test"]'
+```
+
+This stages immutable input copies, scans for impact, proposes a patch, runs baseline and patched checks in Docker, and saves a review bundle in one invocation. Add `--ai-patch` and/or `--assess` to use the configured OpenAI model during validation. Add `--publish-draft --github owner/repository --base main` to publish after the existing validation and remote-revision gates pass. AI and GitHub configuration, transmission scope and verification limitations are described below.
+
+For automatic Stripe revision discovery, replace `--after /tmp/refit-after.json` with `--latest-stripe`; `--before` must then be a pinned Refit snapshot. For another configured SDK, use two supplied specifications and `--provider-config adapter.json`. The workflow preserves a copy of the selected adapter, does not advance the baseline, and never changes the original repository.
+
+The output directory must be new, outside the scanned repository, with an existing parent. It contains copied specifications, `scan.json`, then `report.json`, `migration.patch` and `pull-request.md` when validation completes. Successful publication adds `publication.json`. A final `manifest.json` records the stopping stage, status, error when present, and hashes of completed artifacts. A directory without a valid manifest is incomplete. Setup/network failures retain completed evidence rather than claiming success. A publication failure may leave a remote branch or PR; rerun into a new output directory to reconcile the candidate.
+
+| Workflow status | Meaning | Exit |
+| --- | --- | --- |
+| `needs-review` | No confirmed supported usage, no deterministic rule, or unresolved findings; no publication | 2 |
+| `validation-failed` | Baseline, patched checks, execution or revision freshness failed | 2 |
+| `validated` | Both checks passed with zero unresolved detected findings; publication not requested | 0 |
+| `draft-created` | GitHub returned a new draft PR | 0 |
+| `existing-pr` | Reused the matching PR; inspect `publication.json` for its current open/closed/draft state | 0 |
+| `error` | Input, setup, model, network or publication error | 1 |
+
+No-match results remain review-required, and passing tests do not prove migration semantics. The preflight scan makes no model calls; validation rescans a clean committed snapshot before generating the tested proposal. Workflow tests cover real Docker checks, failure gates and controlled GitHub responses. Live model and GitHub publication verification remain outstanding. This is a one-shot local agent, with no background scheduler or repair loop.
+
+### Scan without executing repository code
+
 ```sh
 npm run stripe:replay
 npm run stripe:scan -- --repository /path/to/repo --before /path/to/before.json --after /path/to/after.json

@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "api:scan": "tsx pipeline/cli.ts",
+    "api:run": "tsx pipeline/workflow-cli.ts",
     "api:validate": "tsx pipeline/validation-cli.ts",
     "stripe:validate": "tsx pipeline/validation-cli.ts",
     "stripe:snapshot": "tsx pipeline/snapshot-cli.ts",

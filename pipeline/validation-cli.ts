@@ -5,6 +5,7 @@ import { PipelineInputError } from './types.ts';
 import { writeReviewBundle } from './review.ts';
 import { assessmentConfiguration } from './assessment.ts';
 import { publicationConfiguration, publishDraft } from './publication.ts';
+import { parseCheckCommand } from './validation-options.ts';
 
 const USAGE =
   'Usage: npm run api:validate -- --repository <clean-git-directory> --before <spec.json> --after <spec.json> [--provider-config <adapter.json>] --image <local-image> --command \'["npm","test"]\' [--output <new-report.json> | --bundle <new-directory>] [--assess (sends selected source context to OpenAI)] [--ai-patch (sends affected source files to OpenAI)] [--publish-draft --github owner/repository --base main (uses GITHUB_TOKEN)]';
@@ -46,13 +47,7 @@ try {
     const publication = values['publish-draft']
       ? publicationConfiguration(values.github, values.base, process.env.GITHUB_TOKEN)
       : undefined;
-    let command: unknown;
-    try {
-      command = JSON.parse(values.command);
-    } catch (cause) {
-      throw new PipelineInputError('--command must be a JSON array.', { cause });
-    }
-    if (!Array.isArray(command)) throw new PipelineInputError('--command must be a JSON array.');
+    const command = parseCheckCommand(values.command);
     const report = await validateMigration({
       repository: values.repository,
       before: values.before,
