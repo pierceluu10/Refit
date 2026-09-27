@@ -199,6 +199,8 @@ export function analyzeRepository(repository: Repository, changes: Removal[]) {
     });
   }
   function record(node: ts.Node, receiver: ts.Expression, property: string | undefined) {
+    // SDK resources are not response fields, even when their names match a removal.
+    if (ts.isIdentifier(receiver) && contains(clients, receiver)) return;
     const tracked =
       (ts.isIdentifier(receiver) && contains(intents, receiver)) ||
       (ts.isParenthesizedExpression(receiver) &&

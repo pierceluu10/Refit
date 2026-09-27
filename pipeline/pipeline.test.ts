@@ -115,6 +115,13 @@ describe('Stripe historical replay', () => {
 
 describe('symbol-based impact analysis', () => {
   const prefix = `import Payments from 'stripe'; const client = new Payments('test');`;
+  it('does not mistake SDK resources for removed response properties', () => {
+    expect(
+      analyze(
+        `${prefix} async function read() { return (await client.charges.list({payment_intent: 'pi'})).data; }`,
+      ).findings,
+    ).toEqual([]);
+  });
   it('tracks import aliases, client aliases, response aliases, literal indexes and destructuring', () => {
     const result = analyze(`${prefix}
       const alias = client;
