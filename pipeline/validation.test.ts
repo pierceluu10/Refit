@@ -5,6 +5,7 @@ import { join, resolve } from 'node:path';
 import { promisify } from 'node:util';
 import { afterEach, expect, it, vi } from 'vitest';
 import { validateMigration } from './validation.ts';
+import { digest } from './specifications.ts';
 
 const execute = promisify(execFile);
 const directories: string[] = [];
@@ -89,6 +90,8 @@ it.skipIf(!IMAGE)(
   async () => {
     const root = await repository();
     vi.stubEnv('REFIT_HOST_SECRET', 'must-not-enter-container');
+    const bundle = `${root}-review`;
+    directories.push(bundle);
     const script = `
     const assert = require('node:assert/strict');
     const fs = require('node:fs');
@@ -115,8 +118,20 @@ it.skipIf(!IMAGE)(
       options.image,
       '--command',
       JSON.stringify(['node', '-e', script]),
+      '--bundle',
+      bundle,
     ]);
-    const report = JSON.parse(result.stdout);
+    const output = JSON.parse(result.stdout);
+    expect(output.directory).toBe(bundle);
+    const manifest = JSON.parse(await readFile(join(bundle, 'manifest.json'), 'utf8'));
+    for (const file of manifest.files) {
+      const content = await readFile(join(bundle, file.path), 'utf8');
+      expect(digest(content)).toBe(file.sha256);
+      expect(Buffer.byteLength(content)).toBe(file.bytes);
+    }
+    const report = JSON.parse(await readFile(join(bundle, 'report.json'), 'utf8'));
+    expect(await readFile(join(bundle, 'migration.patch'), 'utf8')).toBe(report.patch.diff);
+    expect(await readFile(join(bundle, 'pull-request.md'), 'utf8')).toContain('Human review');
     expect(report.validation.status).toBe('passed');
     expect(report.validation.baseline.stdout).toContain('charge history passed');
     expect(report.validation.patched.stdout).toContain('charge history passed');

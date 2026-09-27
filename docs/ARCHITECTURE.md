@@ -20,6 +20,7 @@ AI helps interpret application intent and edit code. Source diffs, job state, va
 | Replay | Minimal offline fixtures plus a documented replay using real upstream commits from November 10 and 17, 2022. Both were exercised against the sample repository. |
 | Patch proposals | Opt-in `--propose-patch` returns a unified diff for direct `charges.data` returns from a locally traced one-argument PaymentIntent retrieval. Remaining findings and semantic caveats remain explicit. |
 | Local validation | `stripe:validate` archives clean committed HEAD, applies a proposal to a disposable copy, and runs explicit baseline/patched commands in separate restricted offline Docker containers using a local image ID. Records logs, exit codes, hashes and stale-revision checks. Dependencies must be available in the image. |
+| Review artifacts | `stripe:validate --bundle <new-directory>` exports the exact patch, report, draft PR description and file-hash manifest. Failed validation is preserved explicitly. No remote publication. |
 | Verification | Pipeline and frontend tests; opt-in real Docker tests exercise baseline/patched behavior, isolation checks, regressions, baseline failures and output limits. No production application or Stripe account has been exercised. |
 | Service integration | No HTTP API, database, queue, GitHub App, scheduled monitoring, model calls or PR publication. The CLI is not connected to the frontend. |
 
@@ -113,6 +114,8 @@ Sandbox workers use disposable non-root containers with resource/time limits, a 
 For the historical example, `charges` is a collection while `latest_charge` identifies the most recent charge. A list-to-single-value replacement may silently change business behavior. The optional deterministic proposal uses the Charges list endpoint filtered by PaymentIntent. It requires review of pagination, expansion, timing and additional request failures; no application validation is claimed. See [Stripe's change documentation](https://docs.stripe.com/changelog/2022-11-15/removes-charges-attribute-paymentintent) and [Charges list reference](https://docs.stripe.com/api/charges/list).
 
 ### 6. Publication and product integration
+
+Local review bundles are implemented. Their draft PR description includes evidence, check results and review requirements, while their manifest binds file contents to hashes. A bundle is not publication authorization or a signed attestation. The remote publisher described below remains planned.
 
 Only the publisher owns the short-lived GitHub installation token. It checks installation access, current base revision, passing recorded validation, allowed patch paths and idempotency before pushing a branch and opening a draft PR. A base revision change invalidates earlier validation and requires rerunning. The PR contains the provider source, exact usages, diff explanation and real check results. Refit never auto-merges.
 

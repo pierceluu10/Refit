@@ -71,6 +71,15 @@ The image must already exist locally and contain the tools/dependencies your com
 
 Validation distinguishes `passed`, `baseline-failed`, `regression`, `error` and `stale`. Exit code 0 means both checks passed on the same revision, 2 means a completed validation did not pass, and 1 means setup/input/output failure. Passing the configured command does not prove complete migration correctness or authorize publication. Logs may contain application output; review artifacts before sharing.
 
+Replace `--output` with `--bundle /tmp/new-refit-review` to export a private review directory containing:
+
+- `migration.patch`: the exact diff tested in the patched container.
+- `report.json`: scan evidence, provenance, input hashes and full check results.
+- `pull-request.md`: a draft PR description with validation status, affected usage, limitations and review requirements.
+- `manifest.json`: file sizes and SHA-256 hashes, the source revision, and an explicit unpublished status.
+
+The bundle directory must not already exist. Choose an output location outside the scanned repository to keep its working tree clean. Failed validations also produce bundles, clearly labeled with the failure; they retain exit code 2. Bundles are local artifacts and do not push a branch or open a PR. Hashes detect content changes relative to the manifest; they are not signatures or proof of trusted execution. If a process is interrupted while writing, a missing or invalid manifest means the bundle is incomplete.
+
 Container integration tests are opt-in and require a local Node image:
 
 ```sh

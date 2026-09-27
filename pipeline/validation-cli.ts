@@ -2,9 +2,10 @@ import { writeFile } from 'node:fs/promises';
 import { parseArgs } from 'node:util';
 import { validateMigration } from './validation.ts';
 import { PipelineInputError } from './types.ts';
+import { writeReviewBundle } from './review.ts';
 
 const USAGE =
-  'Usage: npm run stripe:validate -- --repository <clean-git-directory> --before <spec.json> --after <spec.json> --image <local-image> --command \'["npm","test"]\' [--output <new-report.json>]';
+  'Usage: npm run stripe:validate -- --repository <clean-git-directory> --before <spec.json> --after <spec.json> --image <local-image> --command \'["npm","test"]\' [--output <new-report.json> | --bundle <new-directory>]';
 
 try {
   const { values } = parseArgs({
@@ -15,6 +16,7 @@ try {
       image: { type: 'string' },
       command: { type: 'string' },
       output: { type: 'string' },
+      bundle: { type: 'string' },
       help: { type: 'boolean' },
     },
   });
@@ -29,6 +31,8 @@ try {
     console.error(USAGE);
     process.exitCode = 1;
   } else {
+    if (values.output && values.bundle)
+      throw new PipelineInputError('Choose either --output or --bundle, not both.');
     let command: unknown;
     try {
       command = JSON.parse(values.command);
@@ -44,7 +48,9 @@ try {
       command,
     });
     const json = `${JSON.stringify(report, null, 2)}\n`;
-    if (values.output) await writeFile(values.output, json, { flag: 'wx' });
+    if (values.bundle)
+      console.log(JSON.stringify(await writeReviewBundle(values.bundle, report), null, 2));
+    else if (values.output) await writeFile(values.output, json, { flag: 'wx' });
     else process.stdout.write(json);
     if (report.validation.status !== 'passed') process.exitCode = 2;
   }
