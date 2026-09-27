@@ -1,15 +1,21 @@
 import { analyzeRepository } from './analyzer.ts';
+import { proposePatch } from './patches.ts';
 import { readRepository } from './repository.ts';
 import { digest, findRemovedProperties, readSpecification } from './specifications.ts';
 
-export async function runPipeline(options: { repository: string; before: string; after: string }) {
+export async function runPipeline(options: {
+  repository: string;
+  before: string;
+  after: string;
+  proposePatch?: boolean;
+}) {
   const [repository, before, after] = await Promise.all([
     readRepository(options.repository),
     readSpecification(options.before),
     readSpecification(options.after),
   ]);
   const changes = findRemovedProperties(before.schemas, after.schemas);
-  const analysis = analyzeRepository(repository, changes);
+  const { edits, ...analysis } = analyzeRepository(repository, changes);
   const status = analysis.findings.some((finding) => finding.confidence === 'confirmed')
     ? 'affected'
     : analysis.stripeDetected
@@ -43,10 +49,12 @@ export async function runPipeline(options: { repository: string; before: string;
       status === 'affected'
         ? 'Review migration semantics, generate a patch, then validate in an isolated environment.'
         : 'Review unsupported patterns and API version applicability before deciding impact.',
-    patch: {
-      status: 'not-generated',
-      reason:
-        'This pipeline produces impact evidence. It does not modify repositories or execute their code.',
-    },
+    patch: options.proposePatch
+      ? proposePatch(repository, edits, analysis.findings.length)
+      : {
+          status: 'not-generated',
+          reason:
+            'This pipeline produces impact evidence. It does not modify repositories or execute their code.',
+        },
   };
 }

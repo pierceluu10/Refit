@@ -17,8 +17,9 @@ AI helps interpret application intent and edit code. Source diffs, job state, va
 | Code analysis | TypeScript AST and lexical symbols trace local ESM Stripe clients, awaited PaymentIntent calls, immutable aliases, direct/string-indexed reads and destructuring. |
 | Evidence | JSON report with schema pointers, file/line/column, confirmed local matches versus review candidates, source hashes and repeatable run ID. |
 | Replay | Hand-authored minimal fixtures reproduce Stripe's documented 2022-11-15 `charges` removal. These are not archived upstream snapshots. |
-| Verification | 15 pipeline tests plus the existing 16 frontend tests. CLI integration tests include report writing and overwrite refusal. |
-| Service integration | No HTTP API, database, queue, GitHub App, scheduled monitoring, model calls, sandbox, patches or PR publication. The CLI is not connected to the frontend. |
+| Patch proposals | Opt-in `--propose-patch` returns a unified diff for direct `charges.data` returns from a locally traced one-argument PaymentIntent retrieval. Remaining findings and semantic caveats remain explicit. |
+| Verification | Pipeline and frontend tests; patch tests exercise CLI output, Git application, a controlled Stripe runtime, unsupported shapes and missing final newlines. Application validation remains unimplemented. |
+| Service integration | No HTTP API, database, queue, GitHub App, scheduled monitoring, model calls, sandbox or PR publication. The CLI is not connected to the frontend. |
 
 The analyzer is conservative: `affected` means a removed property has a locally traced PaymentIntent receiver. It does not prove that the repository is upgrading to the relevant API version. `needs-review` means Stripe is present but no such direct match is confirmed. `no-stripe-signal` means the supported scan found no Stripe import/dependency signal; it does not prove the absence of REST calls or dynamic integrations.
 
@@ -107,7 +108,7 @@ Run baseline checks on the pinned base revision first, then generate a patch and
 
 Sandbox workers use disposable non-root containers with resource/time limits, a restricted filesystem and controlled network access. Installation and application credentials stay outside the container. Dependency installation is an explicit sandbox stage. Cleanup runs on success, failure and cancellation. A Docker container alone is not a complete boundary for arbitrary hostile repositories; assess stronger isolation before opening the service broadly.
 
-For the historical example, `charges` is a collection while `latest_charge` identifies the most recent charge. A list-to-single-value replacement may silently change business behavior. The migration must preserve the caller's intent and validate expansion/null handling. This is why today's pipeline reports evidence rather than applying a blind rename. See [Stripe's change documentation](https://docs.stripe.com/changelog/2022-11-15/removes-charges-attribute-paymentintent).
+For the historical example, `charges` is a collection while `latest_charge` identifies the most recent charge. A list-to-single-value replacement may silently change business behavior. The optional deterministic proposal uses the Charges list endpoint filtered by PaymentIntent. It requires review of pagination, expansion, timing and additional request failures; no application validation is claimed. See [Stripe's change documentation](https://docs.stripe.com/changelog/2022-11-15/removes-charges-attribute-paymentintent) and [Charges list reference](https://docs.stripe.com/api/charges/list).
 
 ### 6. Publication and product integration
 

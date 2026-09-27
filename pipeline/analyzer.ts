@@ -6,6 +6,7 @@ import {
   type Location,
   type Removal,
   type Repository,
+  type SourceEdit,
 } from './types.ts';
 
 const PAYMENT_INTENT_METHODS = new Set([
@@ -45,6 +46,8 @@ export function analyzeRepository(repository: Repository, changes: Removal[]) {
   const constructors = new Set<ts.Symbol>();
   const clients = new Set<ts.Symbol>();
   const intents = new Set<ts.Symbol>();
+  const origins = new Map<ts.Symbol, ts.CallExpression>();
+  const edits: SourceEdit[] = [];
   const nodes: ts.Node[] = [];
   const locations = new Map(
     [...sources.keys()].map((path, index) => [path, repository.files[index].path]),
@@ -136,7 +139,10 @@ export function analyzeRepository(repository: Repository, changes: Removal[]) {
     )
       add(clients, node.name);
     if (ts.isIdentifier(value) && contains(clients, value)) add(clients, node.name);
-    if (ts.isAwaitExpression(value) && paymentIntentCall(value.expression)) add(intents, node.name);
+    if (ts.isAwaitExpression(value) && paymentIntentCall(value.expression)) {
+      add(intents, node.name);
+      origins.set(symbol(node.name)!, value.expression as ts.CallExpression);
+    }
     if (ts.isIdentifier(value) && contains(intents, value)) add(intents, node.name);
   }
   for (const node of nodes) {
@@ -144,6 +150,54 @@ export function analyzeRepository(repository: Repository, changes: Removal[]) {
     if (method) calls.push({ ...location(node), method: `paymentIntents.${method}` });
   }
   const stripeDetected = imports.length > 0 || repository.dependencies.length > 0;
+  function propose(node: ts.Node, receiver: ts.Expression, change: Removal) {
+    if (change.property !== 'charges' || !ts.isIdentifier(receiver)) return;
+    const origin = origins.get(symbol(receiver)!);
+    const data = node.parent;
+    if (
+      !origin ||
+      origin.arguments.length !== 1 ||
+      !ts.isPropertyAccessExpression(origin.expression) ||
+      origin.expression.name.text !== 'retrieve' ||
+      !ts.isPropertyAccessExpression(data) ||
+      data.name.text !== 'data' ||
+      data.expression !== node ||
+      data.questionDotToken ||
+      !ts.isReturnStatement(data.parent) ||
+      data.parent.expression !== data ||
+      !ts.isPropertyAccessExpression(node) ||
+      node.questionDotToken
+    )
+      return;
+    const resource = origin.expression.expression as ts.PropertyAccessExpression;
+    const client = resource.expression as ts.Identifier;
+    const visible = checker
+      .getSymbolsInScope(node, ts.SymbolFlags.Value)
+      .find((candidate) => candidate.name === client.text);
+    if (visible !== symbol(client)) return;
+    const block = data.parent.parent;
+    if (!ts.isBlock(block)) return;
+    const owner = block.parent;
+    if (
+      !(
+        ts.isFunctionDeclaration(owner) ||
+        ts.isFunctionExpression(owner) ||
+        ts.isArrowFunction(owner)
+      ) ||
+      !owner.modifiers?.some((modifier) => modifier.kind === ts.SyntaxKind.AsyncKeyword)
+    )
+      return;
+    // Only a response declared in this function body; nested closures and aliases need review.
+    const declaration = symbol(receiver)?.valueDeclaration;
+    if (!declaration || declaration.parent.parent.parent !== block) return;
+    edits.push({
+      file: location(node).file,
+      start: data.getStart(),
+      end: data.getEnd(),
+      replacement: `(await ${client.text}.charges.list({ payment_intent: ${receiver.text}.id })).data`,
+      changeId: change.id,
+    });
+  }
   function record(node: ts.Node, receiver: ts.Expression, property: string | undefined) {
     const tracked =
       (ts.isIdentifier(receiver) && contains(intents, receiver)) ||
@@ -156,6 +210,7 @@ export function analyzeRepository(repository: Repository, changes: Removal[]) {
       const confirmed = Boolean(
         tracked && property !== undefined && change.schema === PAYMENT_INTENT_SCHEMA,
       );
+      if (confirmed) propose(node, receiver, change);
       if (property === undefined && !tracked) continue;
       findings.push({
         ...location(node),
@@ -188,5 +243,5 @@ export function analyzeRepository(repository: Repository, changes: Removal[]) {
       }
     }
   }
-  return { imports, calls, findings, stripeDetected };
+  return { imports, calls, findings, stripeDetected, edits };
 }

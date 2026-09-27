@@ -3,7 +3,7 @@ import { parseArgs } from 'node:util';
 import { runPipeline } from './run.ts';
 
 const USAGE =
-  'Usage: npm run stripe:scan -- --repository <directory> --before <openapi.json> --after <openapi.json> [--output <new-report.json>]';
+  'Usage: npm run stripe:scan -- --repository <directory> --before <openapi.json> --after <openapi.json> [--output <new-report.json>] [--propose-patch]';
 
 try {
   const { values } = parseArgs({
@@ -12,6 +12,7 @@ try {
       before: { type: 'string' },
       after: { type: 'string' },
       output: { type: 'string' },
+      'propose-patch': { type: 'boolean' },
       help: { type: 'boolean' },
     },
   });
@@ -25,6 +26,7 @@ try {
       repository: values.repository,
       before: values.before,
       after: values.after,
+      proposePatch: values['propose-patch'],
     });
     const json = `${JSON.stringify(report, null, 2)}\n`;
     if (values.output) await writeFile(values.output, json, { flag: 'wx' });

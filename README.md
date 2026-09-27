@@ -15,7 +15,7 @@ A working frontend with:
 - A configuration builder that copies or downloads a valid example `refit.yml`.
 - Keyboard-accessible mobile navigation and reduced-motion support.
 
-**The workspace is a frontend preview.** Its data remains illustrative. A separate local Stripe pipeline now analyzes repositories and supplied OpenAPI snapshots; it is not connected to the UI. There is no live GitHub installation, provider monitoring, AI integration, sandbox execution, patch generation or PR publication. The configuration builder produces a file locally; it does not apply settings to a remote repository.
+**The workspace is a frontend preview.** Its data remains illustrative. A separate local Stripe pipeline analyzes repositories and supplied OpenAPI snapshots and can propose a narrow migration patch; it is not connected to the UI. There is no live GitHub installation, provider monitoring, AI integration, sandbox execution or PR publication. The configuration builder produces a file locally; it does not apply settings to a remote repository.
 
 ## Stripe pipeline
 
@@ -27,6 +27,16 @@ npm run stripe:scan -- --repository /path/to/repo --before /path/to/before.json 
 The replay uses curated fixtures for Stripe's historical `PaymentIntent.charges` removal. The scan accepts real local repositories and OpenAPI 3 JSON snapshots, detects direct schema-property removals, traces supported Stripe calls, and produces JSON evidence with source locations and input hashes. It requires no API key and does not execute or change the scanned repository. Use `--output /path/to/new-report.json` to save a report without overwriting existing files.
 
 This is a bounded impact analyzer, not a complete OpenAPI differ or migration agent. Unresolved code requires review; absence of a match never proves safety. See [the architecture and capability inventory](docs/ARCHITECTURE.md) for exact coverage, the full AI architecture and delivery order.
+
+### Propose a migration
+
+```sh
+npm run stripe:replay -- --propose-patch
+```
+
+The report's `patch.diff` contains a Git-compatible unified diff. It proposes replacing a direct `return intent.charges.data` with `(await stripe.charges.list({ payment_intent: intent.id })).data`, using the locally traced client. Only a one-argument PaymentIntent retrieval and a direct return in the same async function are supported. Other findings remain counted as unresolved.
+
+The proposal needs review: it adds a network request, uses default pagination, and can change error, timing and expansion behavior. No repository files are modified, no application tests are executed, and the report explicitly records `validation: not-run`. The diff contains source code; check it before sharing. Test coverage verifies Git application and executes the migrated fixture against a controlled Stripe client; that is not validation of your application's behavior.
 
 ## Develop
 

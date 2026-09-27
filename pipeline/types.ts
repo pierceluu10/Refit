@@ -18,6 +18,14 @@ export interface Finding extends Location {
   reason: string;
 }
 
+export interface SourceEdit {
+  file: string;
+  start: number;
+  end: number;
+  replacement: string;
+  changeId: string;
+}
+
 export interface Repository {
   root: string;
   files: { path: string; content: string }[];
