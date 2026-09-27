@@ -1,0 +1,10 @@
+{
+  "id": "catalog-example",
+  "packageName": "@example/catalog",
+  "defaultImport": false,
+  "namedExport": "Catalog",
+  "operations": [
+    { "resource": "items", "method": "retrieve", "schema": "item" },
+    { "resource": "orders", "method": "retrieve", "schema": "order" }
+  ]
+}

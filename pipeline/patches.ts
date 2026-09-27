@@ -1,4 +1,5 @@
 import type { Repository, SourceEdit } from './types.ts';
+import { STRIPE, type ProviderAdapter } from './providers.ts';
 
 function lines(content: string, prefix: string) {
   const terminated = content.endsWith('\n');
@@ -36,21 +37,33 @@ export function renderPatch(repository: Repository, edits: SourceEdit[]) {
   return patches.join('');
 }
 
-export function proposePatch(repository: Repository, edits: SourceEdit[], findingCount: number) {
+export function proposePatch(
+  repository: Repository,
+  edits: SourceEdit[],
+  findingCount: number,
+  provider: ProviderAdapter = STRIPE,
+) {
   return {
     generator: 'deterministic' as const,
     summary:
-      'Replace direct charge-list returns with a Charges API request filtered by PaymentIntent ID.',
+      provider === STRIPE
+        ? 'Replace direct charge-list returns with a Charges API request filtered by PaymentIntent ID.'
+        : 'No deterministic migration rule is registered for this provider.',
     status: edits.length ? 'proposed' : 'unsupported',
     edits: edits.length,
     unresolvedFindings: findingCount - edits.length,
     diff: renderPatch(repository, edits),
     validation: 'not-run',
-    warnings: [
-      'Review required: adds a Charges list request using default pagination; timing, expansion and error behavior can differ.',
-      'Only direct returns of charges.data from a local PaymentIntent retrieve with one argument are supported. Request options, aliases and other shapes require review.',
-      'Patch contains source code. Review it for sensitive content before sharing.',
-    ],
-    source: 'https://docs.stripe.com/api/charges/list',
+    warnings:
+      provider !== STRIPE
+        ? [
+            'No deterministic migration rule is registered. Use a reviewed AI proposal or migrate manually.',
+          ]
+        : [
+            'Review required: adds a Charges list request using default pagination; timing, expansion and error behavior can differ.',
+            'Only direct returns of charges.data from a local PaymentIntent retrieve with one argument are supported. Request options, aliases and other shapes require review.',
+            'Patch contains source code. Review it for sensitive content before sharing.',
+          ],
+    source: provider === STRIPE ? 'https://docs.stripe.com/api/charges/list' : null,
   };
 }

@@ -27,7 +27,7 @@ export function createReviewArtifacts(report: ValidationReport) {
   )
     throw new PipelineInputError('Passing validation must include two successful check results.');
 
-  const title = 'Migrate affected Stripe PaymentIntent usage';
+  const title = `Migrate affected ${report.provider} API usage`;
   const summary =
     validation.status === 'passed'
       ? 'The configured baseline and patched checks passed. Human review of migration semantics is still required.'
@@ -35,7 +35,7 @@ export function createReviewArtifacts(report: ValidationReport) {
   const body =
     [
       `# ${title}`,
-      'The supplied Stripe specifications remove fields read by the scanned code. This proposal updates affected PaymentIntent usage; inspect migration.patch for the exact changes.',
+      'The supplied API specifications remove fields read by the scanned code under the recorded SDK mapping. Inspect migration.patch for the exact proposed changes.',
       jsonBlock({ generator: patch.generator, summary: patch.summary }),
       summary,
       `Proposed edits: ${patch.edits}. Unresolved detected findings: ${patch.unresolvedFindings}. Zero unresolved findings does not prove complete API or code coverage.`,
@@ -61,7 +61,7 @@ export function createReviewArtifacts(report: ValidationReport) {
       '## AI assessment (advisory)',
       jsonBlock(report.assessment),
       '## Review requirements',
-      'Confirm API-version applicability and intended pagination, expansion, timing and error behavior. The proposed migration adds a network request. Review the diff and logs for sensitive content before sharing.',
+      'Confirm adapter mappings, API-version applicability and intended pagination, expansion, timing and error behavior. Review any added network requests, and inspect the diff and logs for sensitive content before sharing.',
       jsonBlock({ warnings: [...report.warnings, ...patch.warnings], coverage: report.coverage }),
       'This is a local review artifact. Refit has not pushed a branch, opened a pull request, or approved publication.',
     ].join('\n\n') + '\n';

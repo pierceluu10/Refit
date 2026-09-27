@@ -28,6 +28,26 @@ The replay uses curated fixtures for Stripe's historical `PaymentIntent.charges`
 
 This is a bounded impact analyzer, not a complete OpenAPI differ or migration agent. Unresolved code requires review; absence of a match never proves safety. See [the architecture and capability inventory](docs/ARCHITECTURE.md) for exact coverage, the full AI architecture and delivery order.
 
+### Configure another SDK
+
+`api:scan` and `api:validate` accept `--provider-config adapter.json`. Omitting it uses the built-in Stripe adapter; the existing `stripe:*` scripts remain available. A custom adapter declares the SDK package, constructor imports, and the schema returned by each supported resource/method pair:
+
+```json
+{
+  "id": "catalog-example",
+  "packageName": "@example/catalog",
+  "defaultImport": false,
+  "namedExport": "Catalog",
+  "operations": [
+    { "resource": "items", "method": "retrieve", "schema": "item" }
+  ]
+}
+```
+
+This supports immutable ESM constructors and `await client.resource.method(...)` calls returning one mapped schema, including local response aliases. It does not automatically discover SDK semantics or support arbitrary fetch calls, factory clients, nested resources, list envelopes, cross-file wrappers or other languages. You must verify each mapping against the SDK. A confirmed finding means traced under that supplied mapping, not independently verified SDK behavior.
+
+Custom adapters use supplied OpenAPI JSON files; upstream downloading remains Stripe-only. The complete adapter is recorded in the report and included in run identity. Custom providers have no deterministic migration rule; use `--ai-patch` for a reviewed proposal. Assessment, AI patch checks, Docker validation and review bundles carry the selected adapter. The synthetic [catalog fixture](pipeline/fixtures/catalog/README.md) demonstrates this path without claiming support for a second real vendor.
+
 ### Optional AI assessment
 
 Set `OPENAI_API_KEY` and `OPENAI_MODEL` in your local environment, then add `--assess` to `stripe:scan`, `stripe:replay`, or `stripe:validate`. Choose a model that supports Responses API structured outputs; Refit does not select one automatically.

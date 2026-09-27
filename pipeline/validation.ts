@@ -123,6 +123,7 @@ export async function validateMigration(options: {
   command: string[];
   assessment?: { apiKey: string; model: string };
   aiPatch?: { apiKey: string; model: string };
+  providerConfig?: string;
 }) {
   if (
     !options.command.length ||

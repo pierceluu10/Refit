@@ -1,5 +1,6 @@
 import { resolve } from 'node:path';
 import ts from 'typescript-compiler';
+import { STRIPE, type ProviderAdapter } from './providers.ts';
 import {
   PipelineInputError,
   type Finding,
@@ -9,17 +10,11 @@ import {
   type SourceEdit,
 } from './types.ts';
 
-const PAYMENT_INTENT_METHODS = new Set([
-  'retrieve',
-  'create',
-  'update',
-  'confirm',
-  'cancel',
-  'capture',
-]);
-const PAYMENT_INTENT_SCHEMA = 'payment_intent';
-
-export function analyzeRepository(repository: Repository, changes: Removal[]) {
+export function analyzeRepository(
+  repository: Repository,
+  changes: Removal[],
+  provider: ProviderAdapter = STRIPE,
+) {
   const sources = new Map(
     repository.files.map((file) => [resolve(repository.root, file.path), file.content]),
   );
@@ -45,7 +40,7 @@ export function analyzeRepository(repository: Repository, changes: Removal[]) {
   const calls: (Location & { method: string })[] = [];
   const constructors = new Set<ts.Symbol>();
   const clients = new Set<ts.Symbol>();
-  const intents = new Set<ts.Symbol>();
+  const responses = new Map<ts.Symbol, string>();
   const origins = new Map<ts.Symbol, ts.CallExpression>();
   const edits: SourceEdit[] = [];
   const nodes: ts.Node[] = [];
@@ -87,14 +82,18 @@ export function analyzeRepository(repository: Repository, changes: Removal[]) {
     if (
       ts.isImportDeclaration(node) &&
       ts.isStringLiteral(node.moduleSpecifier) &&
-      node.moduleSpecifier.text === 'stripe'
+      node.moduleSpecifier.text === provider.packageName
     ) {
       imports.push(location(node));
       const clause = node.importClause;
-      if (clause?.name && !clause.isTypeOnly) add(constructors, clause.name);
+      if (provider.defaultImport && clause?.name && !clause.isTypeOnly)
+        add(constructors, clause.name);
       if (clause?.namedBindings && ts.isNamedImports(clause.namedBindings) && !clause.isTypeOnly) {
         for (const binding of clause.namedBindings.elements) {
-          if ((binding.propertyName ?? binding.name).text === 'Stripe' && !binding.isTypeOnly)
+          if (
+            (binding.propertyName ?? binding.name).text === provider.namedExport &&
+            !binding.isTypeOnly
+          )
             add(constructors, binding.name);
         }
       }
@@ -103,23 +102,26 @@ export function analyzeRepository(repository: Repository, changes: Removal[]) {
       ts.isCallExpression(node) &&
       ts.isIdentifier(node.expression) &&
       node.expression.text === 'require' &&
-      node.arguments.some((argument) => ts.isStringLiteral(argument) && argument.text === 'stripe')
+      node.arguments.some(
+        (argument) => ts.isStringLiteral(argument) && argument.text === provider.packageName,
+      )
     ) {
       imports.push(location(node));
     }
   }
-  function paymentIntentCall(node: ts.Node): string | undefined {
+  function responseCall(node: ts.Node) {
     if (!ts.isCallExpression(node) || !ts.isPropertyAccessExpression(node.expression)) return;
     const method = node.expression;
     const resource = method.expression;
     if (
-      PAYMENT_INTENT_METHODS.has(method.name.text) &&
       ts.isPropertyAccessExpression(resource) &&
-      resource.name.text === 'paymentIntents' &&
       ts.isIdentifier(resource.expression) &&
       contains(clients, resource.expression)
     )
-      return method.name.text;
+      return provider.operations.find(
+        (operation) =>
+          operation.resource === resource.name.text && operation.method === method.name.text,
+      );
   }
   // Resolve only immutable, lexical bindings; a same-named parameter is a different symbol.
   for (const node of nodes) {
@@ -139,19 +141,30 @@ export function analyzeRepository(repository: Repository, changes: Removal[]) {
     )
       add(clients, node.name);
     if (ts.isIdentifier(value) && contains(clients, value)) add(clients, node.name);
-    if (ts.isAwaitExpression(value) && paymentIntentCall(value.expression)) {
-      add(intents, node.name);
+    const operation = ts.isAwaitExpression(value) ? responseCall(value.expression) : undefined;
+    if (operation && ts.isAwaitExpression(value)) {
+      responses.set(symbol(node.name)!, operation.schema);
       origins.set(symbol(node.name)!, value.expression as ts.CallExpression);
     }
-    if (ts.isIdentifier(value) && contains(intents, value)) add(intents, node.name);
+    if (ts.isIdentifier(value)) {
+      const schema = responses.get(symbol(value)!);
+      if (schema) responses.set(symbol(node.name)!, schema);
+    }
   }
   for (const node of nodes) {
-    const method = paymentIntentCall(node);
-    if (method) calls.push({ ...location(node), method: `paymentIntents.${method}` });
+    const operation = responseCall(node);
+    if (operation)
+      calls.push({ ...location(node), method: `${operation.resource}.${operation.method}` });
   }
-  const stripeDetected = imports.length > 0 || repository.dependencies.length > 0;
+  const providerDetected = imports.length > 0 || repository.dependencies.length > 0;
   function propose(node: ts.Node, receiver: ts.Expression, change: Removal) {
-    if (change.property !== 'charges' || !ts.isIdentifier(receiver)) return;
+    if (
+      provider !== STRIPE ||
+      change.schema !== 'payment_intent' ||
+      change.property !== 'charges' ||
+      !ts.isIdentifier(receiver)
+    )
+      return;
     const origin = origins.get(symbol(receiver)!);
     const data = node.parent;
     if (
@@ -201,17 +214,17 @@ export function analyzeRepository(repository: Repository, changes: Removal[]) {
   function record(node: ts.Node, receiver: ts.Expression, property: string | undefined) {
     // SDK resources are not response fields, even when their names match a removal.
     if (ts.isIdentifier(receiver) && contains(clients, receiver)) return;
-    const tracked =
-      (ts.isIdentifier(receiver) && contains(intents, receiver)) ||
-      (ts.isParenthesizedExpression(receiver) &&
-        ts.isAwaitExpression(receiver.expression) &&
-        Boolean(paymentIntentCall(receiver.expression.expression)));
+    const schema = ts.isIdentifier(receiver)
+      ? responses.get(symbol(receiver)!)
+      : ts.isParenthesizedExpression(receiver) && ts.isAwaitExpression(receiver.expression)
+        ? responseCall(receiver.expression.expression)?.schema
+        : undefined;
+    const tracked = schema !== undefined;
     for (const change of changes) {
+      if (tracked && change.schema !== schema) continue;
       if (property !== undefined && change.property !== property) continue;
-      if (!tracked && !stripeDetected) continue;
-      const confirmed = Boolean(
-        tracked && property !== undefined && change.schema === PAYMENT_INTENT_SCHEMA,
-      );
+      if (!tracked && !providerDetected) continue;
+      const confirmed = Boolean(tracked && property !== undefined && change.schema === schema);
       if (confirmed) propose(node, receiver, change);
       if (property === undefined && !tracked) continue;
       findings.push({
@@ -220,7 +233,7 @@ export function analyzeRepository(repository: Repository, changes: Removal[]) {
         expression: property === undefined ? '[computed property]' : `.${property}`,
         confidence: confirmed ? 'confirmed' : 'review',
         reason: confirmed
-          ? 'Removed field read on a locally traced Stripe PaymentIntent response.'
+          ? `Removed field read on a locally traced ${provider.id} ${schema} response.`
           : 'Receiver or property cannot be proven by the supported local analysis; inspect manually.',
       });
     }
@@ -245,5 +258,12 @@ export function analyzeRepository(repository: Repository, changes: Removal[]) {
       }
     }
   }
-  return { imports, calls, findings, stripeDetected, edits };
+  return {
+    imports,
+    calls,
+    findings,
+    providerDetected,
+    stripeDetected: provider.id === 'stripe' && providerDetected,
+    edits,
+  };
 }

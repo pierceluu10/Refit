@@ -6,7 +6,7 @@ import { writeReviewBundle } from './review.ts';
 import { assessmentConfiguration } from './assessment.ts';
 
 const USAGE =
-  'Usage: npm run stripe:validate -- --repository <clean-git-directory> --before <spec.json> --after <spec.json> --image <local-image> --command \'["npm","test"]\' [--output <new-report.json> | --bundle <new-directory>] [--assess (sends selected source context to OpenAI)] [--ai-patch (sends affected source files to OpenAI)]';
+  'Usage: npm run api:validate -- --repository <clean-git-directory> --before <spec.json> --after <spec.json> [--provider-config <adapter.json>] --image <local-image> --command \'["npm","test"]\' [--output <new-report.json> | --bundle <new-directory>] [--assess (sends selected source context to OpenAI)] [--ai-patch (sends affected source files to OpenAI)]';
 
 try {
   const { values } = parseArgs({
@@ -20,6 +20,7 @@ try {
       bundle: { type: 'string' },
       assess: { type: 'boolean' },
       'ai-patch': { type: 'boolean' },
+      'provider-config': { type: 'string' },
       help: { type: 'boolean' },
     },
   });
@@ -51,6 +52,7 @@ try {
       command,
       assessment: assessmentConfiguration(values.assess, process.env),
       aiPatch: assessmentConfiguration(values['ai-patch'], process.env),
+      providerConfig: values['provider-config'],
     });
     const json = `${JSON.stringify(report, null, 2)}\n`;
     if (values.bundle)

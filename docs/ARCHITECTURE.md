@@ -14,6 +14,7 @@ AI helps interpret application intent and edit code. Source diffs, job state, va
 | Local pipeline | Runnable TypeScript CLI in `pipeline/`; accepts a real local repository and two supplied OpenAPI JSON files. No credentials or network needed. |
 | Snapshot ingestion | `stripe:snapshot` downloads a full-SHA-pinned Stripe spec with bounded size/time and no redirects. Offline scans accept hash-checked snapshot envelopes and record provenance. No polling or automatic revision selection. |
 | Dependency detection | Reads Stripe declarations from package manifests, including nested workspaces. Reports declared ranges, not resolved lockfile versions. |
+| Provider adapters | Built-in Stripe plus explicit custom SDK mappings through `--provider-config`. Maps ESM constructors and shallow resource/method responses to OpenAPI schemas. Package detection, change IDs, run identity, AI and validation use the selected adapter. Synthetic second-provider tests pass; arbitrary APIs are not automatically supported. |
 | Specification comparison | Detects direct property removals in existing non-composed OpenAPI 3 component schemas. This limited detector is **not oasdiff** and does not implement the full PRD diff engine. |
 | Code analysis | TypeScript AST and lexical symbols trace local ESM Stripe clients, awaited PaymentIntent calls, immutable aliases, direct/string-indexed reads and destructuring. |
 | Evidence | JSON report with schema pointers, file/line/column, confirmed local matches versus review candidates, source hashes and repeatable run ID. |
@@ -90,7 +91,7 @@ Local artifact storage supports development; an S3-compatible store holds deploy
 
 ### 3. Provider ingestion and deterministic analysis
 
-Pinned Stripe snapshot downloads and provenance are implemented through the local CLI. Revision discovery, polling and **oasdiff** integration for a complete machine-readable comparison are planned. Normalize supported events into provider-independent records. Replace the current narrow property detector at this boundary; do not expand it into a homegrown full OpenAPI differ.
+Pinned Stripe snapshot downloads and provenance are implemented through the local CLI. Custom SDK adapters now share the direct-property diff and local analysis pipeline, with provider-scoped change IDs and adapter-sensitive run identity. Revision discovery, polling and **oasdiff** integration for a complete machine-readable comparison are planned. Replace the current narrow property detector at this boundary; do not expand it into a homegrown full OpenAPI differ.
 
 The scanner then checks manifests and lockfiles, API-version configuration, imports, usages and references. Extend the current analyzer with cross-file symbol flow, typed SDK responses, wrappers and webhook payloads. Preserve uncertainty rather than filtering ambiguous repositories out. The generic worker consumes adapter results so another API provider can be added without rewriting orchestration.
 

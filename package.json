@@ -4,6 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "api:scan": "tsx pipeline/cli.ts",
+    "api:validate": "tsx pipeline/validation-cli.ts",
     "stripe:validate": "tsx pipeline/validation-cli.ts",
     "stripe:snapshot": "tsx pipeline/snapshot-cli.ts",
     "stripe:scan": "tsx pipeline/cli.ts",

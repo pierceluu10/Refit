@@ -24,7 +24,10 @@ const DEPENDENCY_SECTIONS = [
   'peerDependencies',
 ];
 
-export async function readRepository(directory: string): Promise<Repository> {
+export async function readRepository(
+  directory: string,
+  packageName = 'stripe',
+): Promise<Repository> {
   const root = await realpath(directory);
   if (!(await stat(root)).isDirectory())
     throw new PipelineInputError('Repository must be a directory.');
@@ -68,10 +71,13 @@ export async function readRepository(directory: string): Promise<Repository> {
       const manifest = parseObject(content, name);
       for (const section of DEPENDENCY_SECTIONS) {
         const dependencies = manifest[section];
-        if (!isObject(dependencies) || !Object.hasOwn(dependencies, 'stripe')) continue;
-        if (typeof dependencies.stripe !== 'string')
-          throw new PipelineInputError(`${name}: ${section}.stripe must be a version string.`);
-        repository.dependencies.push({ file: name, section, version: dependencies.stripe });
+        if (!isObject(dependencies) || !Object.hasOwn(dependencies, packageName)) continue;
+        const version = dependencies[packageName];
+        if (typeof version !== 'string')
+          throw new PipelineInputError(
+            `${name}: ${section}.${packageName} must be a version string.`,
+          );
+        repository.dependencies.push({ file: name, section, version });
       }
     }
   }

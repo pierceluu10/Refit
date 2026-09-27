@@ -1,0 +1,13 @@
+{
+  "openapi": "3.0.3",
+  "components": {
+    "schemas": {
+      "item": {
+        "properties": { "display_label": { "type": "string" }, "id": { "type": "string" } }
+      },
+      "order": {
+        "properties": { "legacy_label": { "type": "string" }, "id": { "type": "string" } }
+      }
+    }
+  }
+}

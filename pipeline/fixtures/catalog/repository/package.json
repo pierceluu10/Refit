@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "@example/catalog": "1.0.0"
+  }
+}

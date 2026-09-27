@@ -86,7 +86,11 @@ function escapePointer(value: string): string {
   return value.replaceAll('~', '~0').replaceAll('/', '~1');
 }
 
-export function findRemovedProperties(before: JsonObject, after: JsonObject): Removal[] {
+export function findRemovedProperties(
+  before: JsonObject,
+  after: JsonObject,
+  providerId = 'stripe',
+): Removal[] {
   const changes: Removal[] = [];
   for (const schema of Object.keys(before).sort()) {
     const previous = before[schema];
@@ -100,7 +104,7 @@ export function findRemovedProperties(before: JsonObject, after: JsonObject): Re
       if (Object.hasOwn(current.properties, property)) continue;
       const pointer = `/components/schemas/${escapePointer(schema)}/properties/${escapePointer(property)}`;
       changes.push({
-        id: digest(`stripe:property-removed:${pointer}`).slice(0, 24),
+        id: digest(`${providerId}:property-removed:${pointer}`).slice(0, 24),
         schema,
         property,
         pointer,
