@@ -3,9 +3,10 @@ import { parseArgs } from 'node:util';
 import { validateMigration } from './validation.ts';
 import { PipelineInputError } from './types.ts';
 import { writeReviewBundle } from './review.ts';
+import { assessmentConfiguration } from './assessment.ts';
 
 const USAGE =
-  'Usage: npm run stripe:validate -- --repository <clean-git-directory> --before <spec.json> --after <spec.json> --image <local-image> --command \'["npm","test"]\' [--output <new-report.json> | --bundle <new-directory>]';
+  'Usage: npm run stripe:validate -- --repository <clean-git-directory> --before <spec.json> --after <spec.json> --image <local-image> --command \'["npm","test"]\' [--output <new-report.json> | --bundle <new-directory>] [--assess (sends selected source context to OpenAI)]';
 
 try {
   const { values } = parseArgs({
@@ -17,6 +18,7 @@ try {
       command: { type: 'string' },
       output: { type: 'string' },
       bundle: { type: 'string' },
+      assess: { type: 'boolean' },
       help: { type: 'boolean' },
     },
   });
@@ -46,6 +48,7 @@ try {
       after: values.after,
       image: values.image,
       command,
+      assessment: assessmentConfiguration(values.assess, process.env),
     });
     const json = `${JSON.stringify(report, null, 2)}\n`;
     if (values.bundle)

@@ -5,6 +5,7 @@ import {
   type Snapshot,
 } from './specifications.ts';
 import { PipelineInputError } from './types.ts';
+import { readBoundedResponse } from './network.ts';
 
 const DOWNLOAD_TIMEOUT_MS = 30_000;
 
@@ -21,25 +22,7 @@ export async function fetchStripeSnapshot(revision: string): Promise<Snapshot> {
       `Stripe snapshot download failed with HTTP ${response.status} at ${url}.`,
     );
   }
-  if (!response.body) throw new PipelineInputError('Stripe snapshot response has no body.');
-  const reader = response.body.getReader();
-  const chunks: Uint8Array[] = [];
-  let size = 0;
-  try {
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      size += value.byteLength;
-      if (size > MAX_SPECIFICATION_BYTES) {
-        await reader.cancel();
-        throw new PipelineInputError('Stripe snapshot exceeds the 64 MiB download limit.');
-      }
-      chunks.push(value);
-    }
-  } finally {
-    reader.releaseLock();
-  }
-  const content = new TextDecoder('utf-8', { fatal: true }).decode(Buffer.concat(chunks));
+  const content = await readBoundedResponse(response, MAX_SPECIFICATION_BYTES, 'Stripe snapshot');
   const specification = parseSpecification(content, url);
   return {
     formatVersion: 1,

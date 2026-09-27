@@ -1,4 +1,5 @@
 import { analyzeRepository } from './analyzer.ts';
+import { assessMigration, buildAssessmentEvidence } from './assessment.ts';
 import { proposePatch } from './patches.ts';
 import { readRepository } from './repository.ts';
 import { digest, findRemovedProperties, readSpecification } from './specifications.ts';
@@ -8,6 +9,7 @@ export async function runPipeline(options: {
   before: string;
   after: string;
   proposePatch?: boolean;
+  assessment?: { apiKey: string; model: string };
 }) {
   const [repository, before, after] = await Promise.all([
     readRepository(options.repository),
@@ -39,6 +41,12 @@ export async function runPipeline(options: {
     changes,
     ...analysis,
     warnings: repository.warnings,
+    assessment: options.assessment
+      ? await assessMigration(
+          buildAssessmentEvidence(repository, changes, analysis.findings),
+          options.assessment,
+        )
+      : { status: 'not-requested' },
     coverage: {
       specification:
         'Direct properties removed from existing, non-composed OpenAPI 3 component schemas only. Not a complete breaking-change diff.',

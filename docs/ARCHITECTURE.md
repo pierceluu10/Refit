@@ -21,8 +21,9 @@ AI helps interpret application intent and edit code. Source diffs, job state, va
 | Patch proposals | Opt-in `--propose-patch` returns a unified diff for direct `charges.data` returns from a locally traced one-argument PaymentIntent retrieval. Remaining findings and semantic caveats remain explicit. |
 | Local validation | `stripe:validate` archives clean committed HEAD, applies a proposal to a disposable copy, and runs explicit baseline/patched commands in separate restricted offline Docker containers using a local image ID. Records logs, exit codes, hashes and stale-revision checks. Dependencies must be available in the image. |
 | Review artifacts | `stripe:validate --bundle <new-directory>` exports the exact patch, report, draft PR description and file-hash manifest. Failed validation is preserved explicitly. No remote publication. |
+| AI assessment | Opt-in OpenAI Responses integration with strict structured output, bounded source context, evidence-ID validation and advisory decisions. Controlled-response tests pass; live model verification requires configuration. AI cannot edit code or publish. |
 | Verification | Pipeline and frontend tests; opt-in real Docker tests exercise baseline/patched behavior, isolation checks, regressions, baseline failures and output limits. No production application or Stripe account has been exercised. |
-| Service integration | No HTTP API, database, queue, GitHub App, scheduled monitoring, model calls or PR publication. The CLI is not connected to the frontend. |
+| Service integration | No HTTP service, database, queue, GitHub App, scheduled monitoring or PR publication. The CLI is not connected to the frontend. |
 
 The analyzer is conservative: `affected` means a removed property has a locally traced PaymentIntent receiver. It does not prove that the repository is upgrading to the relevant API version. `needs-review` means Stripe is present but no such direct match is confirmed. `no-stripe-signal` means the supported scan found no Stripe import/dependency signal; it does not prove the absence of REST calls or dynamic integrations.
 
@@ -93,6 +94,8 @@ Pinned Stripe snapshot downloads and provenance are implemented through the loca
 The scanner then checks manifests and lockfiles, API-version configuration, imports, usages and references. Extend the current analyzer with cross-file symbol flow, typed SDK responses, wrappers and webhook payloads. Preserve uncertainty rather than filtering ambiguous repositories out. The generic worker consumes adapter results so another API provider can be added without rewriting orchestration.
 
 ### 4. AI responsibilities
+
+The optional advisory assessment is now implemented for the local Stripe pipeline. It transmits bounded finding context only when `--assess` is selected and validates cited finding IDs. It does not provide AI editing, tool execution, retries or repair. No live model evaluation has been run because credentials/model configuration are absent. The agent design below remains the target for those later capabilities.
 
 Use OpenAI's Responses API behind a single server-side integration with a configurable `OPENAI_MODEL`. Select the deployed model using migration evaluations and measured cost; do not couple business logic to a model name.
 

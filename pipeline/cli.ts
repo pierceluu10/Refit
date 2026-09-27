@@ -1,9 +1,10 @@
 import { writeFile } from 'node:fs/promises';
 import { parseArgs } from 'node:util';
 import { runPipeline } from './run.ts';
+import { assessmentConfiguration } from './assessment.ts';
 
 const USAGE =
-  'Usage: npm run stripe:scan -- --repository <directory> --before <openapi.json> --after <openapi.json> [--output <new-report.json>] [--propose-patch]';
+  'Usage: npm run stripe:scan -- --repository <directory> --before <openapi.json> --after <openapi.json> [--output <new-report.json>] [--propose-patch] [--assess (sends selected source context to OpenAI)]';
 
 try {
   const { values } = parseArgs({
@@ -13,6 +14,7 @@ try {
       after: { type: 'string' },
       output: { type: 'string' },
       'propose-patch': { type: 'boolean' },
+      assess: { type: 'boolean' },
       help: { type: 'boolean' },
     },
   });
@@ -27,6 +29,7 @@ try {
       before: values.before,
       after: values.after,
       proposePatch: values['propose-patch'],
+      assessment: assessmentConfiguration(values.assess, process.env),
     });
     const json = `${JSON.stringify(report, null, 2)}\n`;
     if (values.output) await writeFile(values.output, json, { flag: 'wx' });

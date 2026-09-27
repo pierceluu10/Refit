@@ -57,6 +57,8 @@ export function createReviewArtifacts(report: ValidationReport) {
         patchHash: validation.patchHash,
         findings: report.findings,
       }),
+      '## AI assessment (advisory)',
+      jsonBlock(report.assessment),
       '## Review requirements',
       'Confirm API-version applicability and intended pagination, expansion, timing and error behavior. The proposed migration adds a network request. Review the diff and logs for sensitive content before sharing.',
       jsonBlock({ warnings: [...report.warnings, ...patch.warnings], coverage: report.coverage }),

@@ -15,7 +15,7 @@ A working frontend with:
 - A configuration builder that copies or downloads a valid example `refit.yml`.
 - Keyboard-accessible mobile navigation and reduced-motion support.
 
-**The workspace is a frontend preview.** Its data remains illustrative. A separate local Stripe pipeline analyzes repositories and supplied OpenAPI snapshots, proposes a narrow migration patch, and can validate checks in Docker; it is not connected to the UI. There is no live GitHub installation, provider monitoring, AI integration or PR publication. The configuration builder produces a file locally; it does not apply settings to a remote repository.
+**The workspace is a frontend preview.** Its data remains illustrative. A separate local Stripe pipeline analyzes repositories and supplied OpenAPI snapshots, proposes a narrow migration patch, and can validate checks in Docker; it is not connected to the UI. Optional AI assessment is implemented but has not been verified with a live model. There is no live GitHub installation, provider monitoring, AI patch agent or PR publication. The configuration builder produces a file locally; it does not apply settings to a remote repository.
 
 ## Stripe pipeline
 
@@ -27,6 +27,20 @@ npm run stripe:scan -- --repository /path/to/repo --before /path/to/before.json 
 The replay uses curated fixtures for Stripe's historical `PaymentIntent.charges` removal. The scan accepts real local repositories and OpenAPI 3 JSON snapshots, detects direct schema-property removals, traces supported Stripe calls, and produces JSON evidence with source locations and input hashes. It requires no API key and does not execute or change the scanned repository. Use `--output /path/to/new-report.json` to save a report without overwriting existing files.
 
 This is a bounded impact analyzer, not a complete OpenAPI differ or migration agent. Unresolved code requires review; absence of a match never proves safety. See [the architecture and capability inventory](docs/ARCHITECTURE.md) for exact coverage, the full AI architecture and delivery order.
+
+### Optional AI assessment
+
+Set `OPENAI_API_KEY` and `OPENAI_MODEL` in your local environment, then add `--assess` to `stripe:scan`, `stripe:replay`, or `stripe:validate`. Choose a model that supports Responses API structured outputs; Refit does not select one automatically.
+
+```sh
+npm run stripe:replay -- --assess
+```
+
+This explicitly sends detected changes, finding metadata, and up to three source lines on either side of each finding to OpenAI. Source context can contain sensitive values; inspect your input before enabling it. The ordinary offline workflow makes no model request. Assessment uses a single request with `store: false`, a 60-second timeout, a 64 KiB evidence limit and a 4,096 output-token limit, with no automatic retries. `store: false` is not a claim of zero data retention.
+
+The response is advisory: it can suggest a migration or request review, but it cannot mark code safe, modify the deterministic findings, edit files, execute checks or publish. Refit validates the result and requires every cited finding ID to exist in the supplied evidence. A migration candidate must cite a confirmed finding. Refusals, incomplete responses, invalid references and API failures stop the command with an explicit error. Assessment evidence and its hash are saved with the report; review bundles include the advisory result.
+
+The integration has been exercised with controlled API responses, not a live model call: this environment has no configured API key or model. AI patch generation and repair remain planned. See [OpenAI structured outputs](https://developers.openai.com/api/docs/guides/structured-outputs) for the API contract used here.
 
 ### Propose a migration
 
