@@ -4,7 +4,7 @@ Refit turns external API changes into repository-specific, validated draft pull 
 
 ## Product truth
 
-The full specification is in `docs/PRD.md`. This implementation is a frontend: a landing page, interactive illustrative workflow, documentation, and a sample workspace. There is no connected GitHub App, live repository analysis, sandbox execution, or PR publishing yet. Examples must be labeled and must never impersonate actual work.
+The full specification is in `docs/PRD.md`. The implementation includes the frontend preview and a standalone local Stripe analysis CLI. The CLI compares supplied OpenAPI snapshots and scans local source for impact evidence. The workspace still uses illustrative data; it is not connected to the CLI. There is no GitHub App, live monitoring, AI integration, sandbox execution, patch generation or PR publishing yet. Examples must be labeled and must never impersonate actual work. See `docs/ARCHITECTURE.md` for current capabilities and the target system.
 
 ## Audience and task
 
@@ -16,4 +16,4 @@ Screenpipe and Nango are UI/UX references only. Light technical surfaces, strong
 
 ## Stack
 
-React and TypeScript with Vite; React Router for navigable frontend routes; native CSS for visual design and animation; Phosphor icons; self-hosted Geist and Geist Mono. Vitest and Testing Library exercise behavior. No backend or database is introduced in this frontend scope.
+React and TypeScript with Vite; React Router for navigable frontend routes; native CSS for visual design and animation; Phosphor icons; self-hosted Geist and Geist Mono. The local pipeline runs with tsx and the TypeScript compiler API. Vitest exercises the pipeline and Testing Library exercises the UI. There is no server or database yet.

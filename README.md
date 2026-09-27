@@ -15,7 +15,18 @@ A working frontend with:
 - A configuration builder that copies or downloads a valid example `refit.yml`.
 - Keyboard-accessible mobile navigation and reduced-motion support.
 
-**This is a frontend preview.** All workspace and migration data is explicitly illustrative. There is no live GitHub installation, provider monitoring, repository analysis, sandbox execution, or PR publication. The configuration builder produces a file locally; it does not apply settings to a remote repository.
+**The workspace is a frontend preview.** Its data remains illustrative. A separate local Stripe pipeline now analyzes repositories and supplied OpenAPI snapshots; it is not connected to the UI. There is no live GitHub installation, provider monitoring, AI integration, sandbox execution, patch generation or PR publication. The configuration builder produces a file locally; it does not apply settings to a remote repository.
+
+## Stripe pipeline
+
+```sh
+npm run stripe:replay
+npm run stripe:scan -- --repository /path/to/repo --before /path/to/before.json --after /path/to/after.json
+```
+
+The replay uses curated fixtures for Stripe's historical `PaymentIntent.charges` removal. The scan accepts real local repositories and OpenAPI 3 JSON snapshots, detects direct schema-property removals, traces supported Stripe calls, and produces JSON evidence with source locations and input hashes. It requires no API key and does not execute or change the scanned repository. Use `--output /path/to/new-report.json` to save a report without overwriting existing files.
+
+This is a bounded impact analyzer, not a complete OpenAPI differ or migration agent. Unresolved code requires review; absence of a match never proves safety. See [the architecture and capability inventory](docs/ARCHITECTURE.md) for exact coverage, the full AI architecture and delivery order.
 
 ## Develop
 
@@ -64,6 +75,8 @@ src/
   configuration.ts  Validated configuration generation
   data.ts           Explicitly illustrative frontend data
   test/             Browser API mocks and test setup
+pipeline/           Local Stripe scanner, CLI, fixtures and integration tests
+docs/ARCHITECTURE.md Current implementation and full target architecture
 docs/PRD.md         Full product and UI/UX requirements
 PRODUCT.md          Product truth and scope
 DESIGN.md           Implemented design tokens and visual guidance
