@@ -8,17 +8,21 @@ function lines(content: string, prefix: string) {
   return output + (terminated ? '' : '\\ No newline at end of file\n');
 }
 
-export function proposePatch(repository: Repository, edits: SourceEdit[], findingCount: number) {
+export function applySourceEdits(content: string, edits: SourceEdit[]) {
+  let updated = content;
+  for (const edit of [...edits].sort((a, b) => b.start - a.start))
+    updated = updated.slice(0, edit.start) + edit.replacement + updated.slice(edit.end);
+  return updated;
+}
+
+export function renderPatch(repository: Repository, edits: SourceEdit[]) {
   const patches: string[] = [];
   for (const file of repository.files) {
     const changes = edits
       .filter((edit) => edit.file === file.path)
       .sort((a, b) => b.start - a.start);
     if (!changes.length) continue;
-    let updated = file.content;
-    for (const edit of changes) {
-      updated = updated.slice(0, edit.start) + edit.replacement + updated.slice(edit.end);
-    }
+    const updated = applySourceEdits(file.content, changes);
     const count = (content: string) => content.split('\n').length - Number(content.endsWith('\n'));
     const oldPath = JSON.stringify(`a/${file.path}`);
     const newPath = JSON.stringify(`b/${file.path}`);
@@ -29,11 +33,18 @@ export function proposePatch(repository: Repository, edits: SourceEdit[], findin
         lines(updated, '+'),
     );
   }
+  return patches.join('');
+}
+
+export function proposePatch(repository: Repository, edits: SourceEdit[], findingCount: number) {
   return {
+    generator: 'deterministic' as const,
+    summary:
+      'Replace direct charge-list returns with a Charges API request filtered by PaymentIntent ID.',
     status: edits.length ? 'proposed' : 'unsupported',
     edits: edits.length,
     unresolvedFindings: findingCount - edits.length,
-    diff: patches.join(''),
+    diff: renderPatch(repository, edits),
     validation: 'not-run',
     warnings: [
       'Review required: adds a Charges list request using default pagination; timing, expansion and error behavior can differ.',

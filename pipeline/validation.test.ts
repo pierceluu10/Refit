@@ -66,10 +66,69 @@ async function repository() {
 
 afterEach(async () => {
   vi.unstubAllEnvs();
+  vi.unstubAllGlobals();
   await Promise.all(
     directories.splice(0).map((root) => rm(root, { recursive: true, force: true })),
   );
 });
+
+it.skipIf(!IMAGE)(
+  'validates a controlled AI proposal in actual containers',
+  async () => {
+    const root = await repository();
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation(async (_url, request) => {
+        const input = JSON.parse(JSON.parse(request.body).input[0].content);
+        return new Response(
+          JSON.stringify({
+            id: 'resp_container_patch',
+            model: 'test-model',
+            status: 'completed',
+            output: [
+              {
+                type: 'message',
+                role: 'assistant',
+                content: [
+                  {
+                    type: 'output_text',
+                    text: JSON.stringify({
+                      summary: 'Read charge history using Charges list.',
+                      uncertainties: ['Review pagination.'],
+                      edits: [
+                        {
+                          file: 'billing.js',
+                          original: 'intent.charges.data',
+                          replacement:
+                            '(await stripe.charges.list({ payment_intent: intent.id })).data',
+                          findingId: input.findings[0].id,
+                        },
+                      ],
+                    }),
+                  },
+                ],
+              },
+            ],
+          }),
+        );
+      }),
+    );
+    const report = await validateMigration({
+      ...options,
+      repository: root,
+      aiPatch: { apiKey: 'test-key', model: 'test-model' },
+      command: [
+        'node',
+        '-e',
+        "import('./billing.js').then(async m => require('assert/strict').deepEqual(await m.history('pi_test'), [{id:'ch_1'},{id:'ch_2'}]))",
+      ],
+    });
+    expect(report.validation.status).toBe('passed');
+    expect(report.patch).toMatchObject({ generator: 'openai', validation: 'passed' });
+    expect(await readFile(join(root, 'billing.js'), 'utf8')).toBe(SOURCE);
+  },
+  60_000,
+);
 
 it('rejects dirty repositories before attempting Docker execution', async () => {
   const root = await repository();

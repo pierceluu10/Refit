@@ -1,4 +1,5 @@
 import { analyzeRepository } from './analyzer.ts';
+import { proposeAiPatch } from './ai-patches.ts';
 import { assessMigration, buildAssessmentEvidence } from './assessment.ts';
 import { proposePatch } from './patches.ts';
 import { readRepository } from './repository.ts';
@@ -10,6 +11,7 @@ export async function runPipeline(options: {
   after: string;
   proposePatch?: boolean;
   assessment?: { apiKey: string; model: string };
+  aiPatch?: { apiKey: string; model: string };
 }) {
   const [repository, before, after] = await Promise.all([
     readRepository(options.repository),
@@ -58,12 +60,14 @@ export async function runPipeline(options: {
       status === 'affected'
         ? 'Review migration semantics, generate a patch, then validate in an isolated environment.'
         : 'Review unsupported patterns and API version applicability before deciding impact.',
-    patch: options.proposePatch
-      ? proposePatch(repository, edits, analysis.findings.length)
-      : {
-          status: 'not-generated',
-          reason:
-            'This pipeline produces impact evidence. It does not modify repositories or execute their code.',
-        },
+    patch: options.aiPatch
+      ? await proposeAiPatch(repository, changes, analysis.findings, options.aiPatch)
+      : options.proposePatch
+        ? proposePatch(repository, edits, analysis.findings.length)
+        : {
+            status: 'not-generated',
+            reason:
+              'This pipeline produces impact evidence. It does not modify repositories or execute their code.',
+          },
   };
 }

@@ -22,6 +22,7 @@ AI helps interpret application intent and edit code. Source diffs, job state, va
 | Local validation | `stripe:validate` archives clean committed HEAD, applies a proposal to a disposable copy, and runs explicit baseline/patched commands in separate restricted offline Docker containers using a local image ID. Records logs, exit codes, hashes and stale-revision checks. Dependencies must be available in the image. |
 | Review artifacts | `stripe:validate --bundle <new-directory>` exports the exact patch, report, draft PR description and file-hash manifest. Failed validation is preserved explicitly. No remote publication. |
 | AI assessment | Opt-in OpenAI Responses integration with strict structured output, bounded source context, evidence-ID validation and advisory decisions. Controlled-response tests pass; live model verification requires configuration. AI cannot edit code or publish. |
+| AI patch proposals | Opt-in `--ai-patch` requests exact source replacements tied to confirmed findings. Local checks enforce file scope, unique matches, non-overlap and parseable output, then rescan. Integrates with Docker validation and review bundles. Controlled model output has been exercised in actual containers; live quality and iterative repair remain unverified/unimplemented. |
 | Verification | Pipeline and frontend tests; opt-in real Docker tests exercise baseline/patched behavior, isolation checks, regressions, baseline failures and output limits. No production application or Stripe account has been exercised. |
 | Service integration | No HTTP service, database, queue, GitHub App, scheduled monitoring or PR publication. The CLI is not connected to the frontend. |
 
@@ -95,7 +96,7 @@ The scanner then checks manifests and lockfiles, API-version configuration, impo
 
 ### 4. AI responsibilities
 
-The optional advisory assessment is now implemented for the local Stripe pipeline. It transmits bounded finding context only when `--assess` is selected and validates cited finding IDs. It does not provide AI editing, tool execution, retries or repair. No live model evaluation has been run because credentials/model configuration are absent. The agent design below remains the target for those later capabilities.
+Optional advisory assessment and one-shot AI patch proposals are implemented for the local Stripe pipeline. `--assess` transmits bounded finding context; `--ai-patch` transmits affected files and evidence. Both are explicit opt-ins. Patch proposals are checked locally before they can enter container validation. There is no model tool execution, automatic retry or repair loop. No live model evaluation has been run because credentials/model configuration are absent. The agent design below remains the target for those later capabilities.
 
 Use OpenAI's Responses API behind a single server-side integration with a configurable `OPENAI_MODEL`. Select the deployed model using migration evaluations and measured cost; do not couple business logic to a model name.
 

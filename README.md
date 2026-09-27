@@ -15,7 +15,7 @@ A working frontend with:
 - A configuration builder that copies or downloads a valid example `refit.yml`.
 - Keyboard-accessible mobile navigation and reduced-motion support.
 
-**The workspace is a frontend preview.** Its data remains illustrative. A separate local Stripe pipeline analyzes repositories and supplied OpenAPI snapshots, proposes a narrow migration patch, and can validate checks in Docker; it is not connected to the UI. Optional AI assessment is implemented but has not been verified with a live model. There is no live GitHub installation, provider monitoring, AI patch agent or PR publication. The configuration builder produces a file locally; it does not apply settings to a remote repository.
+**The workspace is a frontend preview.** Its data remains illustrative. A separate local Stripe pipeline analyzes repositories and supplied OpenAPI snapshots, proposes migration patches, and can validate checks in Docker; it is not connected to the UI. Optional AI assessment and patch proposals are implemented but have not been verified with a live model. There is no live GitHub installation, provider monitoring, iterative repair agent or PR publication. The configuration builder produces a file locally; it does not apply settings to a remote repository.
 
 ## Stripe pipeline
 
@@ -40,7 +40,21 @@ This explicitly sends detected changes, finding metadata, and up to three source
 
 The response is advisory: it can suggest a migration or request review, but it cannot mark code safe, modify the deterministic findings, edit files, execute checks or publish. Refit validates the result and requires every cited finding ID to exist in the supplied evidence. A migration candidate must cite a confirmed finding. Refusals, incomplete responses, invalid references and API failures stop the command with an explicit error. Assessment evidence and its hash are saved with the report; review bundles include the advisory result.
 
-The integration has been exercised with controlled API responses, not a live model call: this environment has no configured API key or model. AI patch generation and repair remain planned. See [OpenAI structured outputs](https://developers.openai.com/api/docs/guides/structured-outputs) for the API contract used here.
+The integration has been exercised with controlled API responses, not a live model call: this environment has no configured API key or model. See [OpenAI structured outputs](https://developers.openai.com/api/docs/guides/structured-outputs) for the API contract used here.
+
+### Optional AI patch proposals
+
+With the same environment configuration, use `--ai-patch` to select model-generated edits instead of the deterministic migration rule:
+
+```sh
+npm run stripe:replay -- --ai-patch
+```
+
+This sends the complete source files containing confirmed findings, plus impact evidence, to OpenAI. The same 64 KiB request-evidence limit applies. Each edit must reference a confirmed finding, match exactly one existing source string, and cover that finding's location. Refit rejects edits outside the supplied file set, overlapping replacements, unchanged replacements and syntactically invalid resulting code. It rescans the proposed code and reports remaining findings; disappearing findings are not proof of behavioral correctness.
+
+Use `stripe:validate --ai-patch` with your image and check command to apply the proposal only in the disposable copy and run baseline/patched checks. Add `--bundle` to export the exact model-generated diff and validation evidence. `--assess` is independent and adds a separate advisory model call if both flags are selected. A no-edit model response is reported as unsupported by the scan; validation stops because there is no patch to test. No repair loop, model tool execution or automatic publication is implemented.
+
+Tests cover controlled model output through actual Docker validation. Live generation quality remains unverified, and semantic review is required even when tests pass.
 
 ### Propose a migration
 

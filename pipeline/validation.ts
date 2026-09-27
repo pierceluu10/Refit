@@ -122,6 +122,7 @@ export async function validateMigration(options: {
   image: string;
   command: string[];
   assessment?: { apiKey: string; model: string };
+  aiPatch?: { apiKey: string; model: string };
 }) {
   if (
     !options.command.length ||

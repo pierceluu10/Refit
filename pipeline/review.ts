@@ -27,7 +27,7 @@ export function createReviewArtifacts(report: ValidationReport) {
   )
     throw new PipelineInputError('Passing validation must include two successful check results.');
 
-  const title = 'Migrate Stripe PaymentIntent charge-history reads';
+  const title = 'Migrate affected Stripe PaymentIntent usage';
   const summary =
     validation.status === 'passed'
       ? 'The configured baseline and patched checks passed. Human review of migration semantics is still required.'
@@ -35,7 +35,8 @@ export function createReviewArtifacts(report: ValidationReport) {
   const body =
     [
       `# ${title}`,
-      'The supplied Stripe specification removes PaymentIntent.charges. This proposal replaces supported direct charge-list returns with a Charges API request filtered by PaymentIntent ID.',
+      'The supplied Stripe specifications remove fields read by the scanned code. This proposal updates affected PaymentIntent usage; inspect migration.patch for the exact changes.',
+      jsonBlock({ generator: patch.generator, summary: patch.summary }),
       summary,
       `Proposed edits: ${patch.edits}. Unresolved detected findings: ${patch.unresolvedFindings}. Zero unresolved findings does not prove complete API or code coverage.`,
       '## Validation',
