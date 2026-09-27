@@ -2,7 +2,7 @@ import { parseArgs } from 'node:util';
 import { checkStripe } from './check.ts';
 
 const USAGE =
-  'Usage: npm run stripe:check -- --repository <directory> --baseline <pinned-snapshot.json> --output <new-directory-outside-repository> [--propose-patch]';
+  'Usage: refit stripe-check --repository <directory> --baseline <pinned-snapshot.json> --output <new-directory-outside-repository> [--propose-patch]';
 try {
   const { values } = parseArgs({
     options: {

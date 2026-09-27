@@ -1,0 +1,112 @@
+import { execFile } from 'node:child_process';
+import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join, resolve } from 'node:path';
+import { promisify } from 'node:util';
+import { afterEach, expect, it } from 'vitest';
+
+const execute = promisify(execFile);
+const roots: string[] = [];
+const bin = resolve('bin/refit.mjs');
+const packager = resolve('scripts/package-cli.mjs');
+
+async function directory() {
+  const root = await mkdtemp(join(tmpdir(), 'refit-install-test-'));
+  roots.push(root);
+  return root;
+}
+
+async function pack(root: string) {
+  const { stdout } = await execute(
+    process.execPath,
+    [packager, '--output', join(root, 'archives')],
+    { timeout: 60_000 },
+  );
+  return JSON.parse(stdout) as {
+    archive: string;
+    version: string;
+    files: string[];
+    dependencies: Record<string, string>;
+  };
+}
+
+afterEach(async () => {
+  await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
+});
+
+it('routes replay from an unrelated directory without reading its TypeScript configuration', async () => {
+  const root = await directory();
+  await writeFile(join(root, 'tsconfig.json'), 'not valid json');
+  const result = await execute(process.execPath, [bin, 'replay', '--propose-patch'], { cwd: root });
+  const report = JSON.parse(result.stdout);
+  expect(report.status).toBe('affected');
+  expect(report.patch.status).toBe('proposed');
+  expect(report.findings[0].file).toBe('billing.ts');
+  await expect(
+    execute(process.execPath, [bin, 'not-a-command'], { cwd: root }),
+  ).rejects.toMatchObject({ code: 1, stderr: expect.stringContaining('Unknown command') });
+});
+
+it('packs only CLI runtime sources, fixtures, docs and exact runtime dependencies', async () => {
+  const root = await directory();
+  const result = await pack(root);
+  expect(result.files).toContain('bin/refit.mjs');
+  expect(result.files).toContain('pipeline/workflow.ts');
+  expect(result.files).toContain('pipeline/fixtures/repository/billing.ts');
+  expect(
+    result.files.some(
+      (file) =>
+        file.includes('.test.') || file.startsWith('src/') || file.startsWith('node_modules/'),
+    ),
+  ).toBe(false);
+  expect(Object.keys(result.dependencies).sort()).toEqual(['tsx', 'typescript-compiler']);
+  expect(result.dependencies.tsx).toMatch(/^\d+\.\d+\.\d+/);
+  expect(result.dependencies['typescript-compiler']).toMatch(/^npm:typescript@\d+\.\d+\.\d+/);
+  const extracted = await execute('tar', ['-xOf', result.archive, 'package/package.json']);
+  const metadata = JSON.parse(extracted.stdout);
+  expect(metadata.bin.refit).toBe('bin/refit.mjs');
+  expect(metadata.private).toBe(true);
+  expect(metadata.scripts).toBeUndefined();
+  await expect(pack(root)).rejects.toMatchObject({
+    code: 1,
+    stderr: expect.stringContaining('EEXIST'),
+  });
+}, 60_000);
+
+it.skipIf(!process.env.REFIT_PACKAGE_INSTALL)(
+  'installs the archive independently and runs its executable and bundled replay',
+  async () => {
+    const root = await directory();
+    const result = await pack(root);
+    const prefix = join(root, 'installed');
+    await execute(
+      'npm',
+      [
+        'install',
+        '--prefix',
+        prefix,
+        '--ignore-scripts',
+        '--no-audit',
+        '--no-fund',
+        '--omit=dev',
+        result.archive,
+      ],
+      { cwd: root, timeout: 120_000 },
+    );
+    const installed = join(prefix, 'node_modules/.bin/refit');
+    expect((await execute(installed, ['--version'], { cwd: root })).stdout.trim()).toBe(
+      result.version,
+    );
+    const replay = JSON.parse(
+      (await execute(installed, ['replay', '--propose-patch'], { cwd: root })).stdout,
+    );
+    expect(replay.status).toBe('affected');
+    expect(replay.patch.status).toBe('proposed');
+    for (const command of ['scan', 'run', 'validate', 'stripe-snapshot', 'stripe-check']) {
+      expect((await execute(installed, [command, '--help'], { cwd: root })).stdout).toContain(
+        'Usage:',
+      );
+    }
+  },
+  180_000,
+);

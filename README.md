@@ -19,6 +19,23 @@ A working frontend with:
 
 ## Stripe pipeline
 
+### Install the local CLI
+
+From a checkout with dependencies installed, build an installable archive:
+
+```sh
+npm run package:cli
+npm install --global ./dist-cli/refit-0.1.0.tgz
+refit --help
+refit replay --propose-patch
+```
+
+The build creates a new `dist-cli` directory and refuses to replace existing output. Use `npm run package:cli -- --output /path/to/new-directory` for another build. The archive contains agent sources, example fixtures and CLI docs, with only `tsx` and the TypeScript compiler as direct runtime dependencies, pinned to the installed versions used to build it. Installation may download their dependencies. It excludes the frontend and tests. This is a local archive; no package has been published to npm.
+
+The executable works from any directory and ignores that directory's TypeScript configuration. `refit scan`, `run`, `validate`, `stripe-snapshot` and `stripe-check` expose the same pipeline as the existing npm scripts. `refit replay` locates its own bundled fixtures. In a checkout, use `npm run refit -- <command>`. See [CLI usage](docs/CLI.md) for installed-command examples and requirements.
+
+The isolated-install test builds a fresh archive, installs it into a temporary prefix, executes its bin entry and runs replay without this checkout's `node_modules`. Enable it with `REFIT_PACKAGE_INSTALL=1 npm test`; it may access the npm registry. No global install or registry publication occurs during tests.
+
 ### Run the complete local workflow
 
 ```sh

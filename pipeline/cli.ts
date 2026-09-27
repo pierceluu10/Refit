@@ -4,7 +4,7 @@ import { runPipeline } from './run.ts';
 import { assessmentConfiguration } from './assessment.ts';
 
 const USAGE =
-  'Usage: npm run api:scan -- --repository <directory> --before <openapi.json> --after <openapi.json> [--provider-config <adapter.json>] [--output <new-report.json>] [--propose-patch] [--assess (sends selected source context to OpenAI)] [--ai-patch (sends affected source files to OpenAI)]';
+  'Usage: refit scan --repository <directory> --before <openapi.json> --after <openapi.json> [--provider-config <adapter.json>] [--output <new-report.json>] [--propose-patch] [--assess (sends selected source context to OpenAI)] [--ai-patch (sends affected source files to OpenAI)]';
 
 try {
   const { values } = parseArgs({

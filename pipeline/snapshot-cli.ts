@@ -4,7 +4,7 @@ import { discoverStripeRevision, encodeSnapshot, fetchStripeSnapshot } from './s
 import { PipelineInputError } from './types.ts';
 
 const USAGE =
-  'Usage: npm run stripe:snapshot -- (--revision <full-commit-sha> | --latest) --output <new-snapshot.json>';
+  'Usage: refit stripe-snapshot (--revision <full-commit-sha> | --latest) --output <new-snapshot.json>';
 
 try {
   const { values } = parseArgs({

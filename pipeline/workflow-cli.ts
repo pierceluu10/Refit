@@ -6,7 +6,7 @@ import { runWorkflow } from './workflow.ts';
 import { parseCheckCommand } from './validation-options.ts';
 
 const USAGE =
-  'Usage: npm run api:run -- --repository <clean-git-directory> --before <spec.json> (--after <spec.json> | --latest-stripe) --output <new-directory-outside-repository> --image <local-image> --command \'["npm","test"]\' [--provider-config <adapter.json>] [--assess] [--ai-patch] [--repair-attempts 0|1|2 (sends failed check output to OpenAI)] [--publish-draft --github owner/repository --base main]';
+  'Usage: refit run --repository <clean-git-directory> --before <spec.json> (--after <spec.json> | --latest-stripe) --output <new-directory-outside-repository> --image <local-image> --command \'["npm","test"]\' [--provider-config <adapter.json>] [--assess] [--ai-patch] [--repair-attempts 0|1|2 (sends failed check output to OpenAI)] [--publish-draft --github owner/repository --base main]';
 
 try {
   const { values } = parseArgs({
