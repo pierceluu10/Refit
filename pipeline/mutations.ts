@@ -18,12 +18,14 @@ export function unsafeBindings(
   checker: ts.TypeChecker,
   clients: Set<ts.Symbol>,
   origins: Map<ts.Symbol, ts.CallExpression>,
+  canonical: (symbol: ts.Symbol | undefined) => ts.Symbol | undefined = (symbol) => symbol,
+  initialUnsafe: Set<ts.Symbol> = new Set(),
 ) {
   const links = new Map<ts.Symbol, Set<ts.Symbol>>();
-  const unsafe = new Set<ts.Symbol>();
+  const unsafe = new Set(initialUnsafe);
   const binding = (node: ts.Node) => {
     const identifier = receiver(node);
-    return identifier ? checker.getSymbolAtLocation(identifier) : undefined;
+    return identifier ? canonical(checker.getSymbolAtLocation(identifier)) : undefined;
   };
   const link = (from: ts.Symbol | undefined, to: ts.Symbol | undefined) => {
     if (!from || !to) return;
@@ -41,7 +43,7 @@ export function unsafeBindings(
   };
   const aliases = (name: ts.BindingName, source: ts.Symbol | undefined) => {
     if (ts.isIdentifier(name)) {
-      const target = checker.getSymbolAtLocation(name);
+      const target = canonical(checker.getSymbolAtLocation(name));
       link(source, target);
       link(target, source);
     } else
@@ -86,11 +88,12 @@ export function unsafeBindings(
     }
     if (ts.isPropertyAssignment(node)) taint(node.initializer);
     if (ts.isShorthandPropertyAssignment(node)) {
-      const value = checker.getShorthandAssignmentValueSymbol(node);
+      const value = canonical(checker.getShorthandAssignmentValueSymbol(node));
       if (value) unsafe.add(value);
     }
     if (ts.isArrayLiteralExpression(node)) for (const element of node.elements) taint(element);
     if (ts.isSpreadAssignment(node) || ts.isSpreadElement(node)) taint(node.expression);
+    if (ts.isExportAssignment(node)) targets(node.expression);
   }
   // A replaced SDK method invalidates its responses, not the reverse.
   for (const [response, call] of origins) link(binding(call.expression), response);

@@ -2,7 +2,7 @@
 
 This fixture executes the actual npm `stripe` SDK against a local HTTP server. The integration test installs exact versions **10.17.0** and **19.1.0** into separate disposable repositories. It does not use a Stripe account or make requests to Stripe's service.
 
-`repository/billing.js` contains the original charge-history read. `contract.mjs` serves a minimal simulated API on a random loopback port. Its `before` response includes `PaymentIntent.charges`; its `after` response omits that field and exposes charge history through the Charges list endpoint.
+`repository/billing.js` contains the original charge-history read and imports the named client from `repository/client.js`. This exercises static cross-file client tracing. `contract.mjs` serves a minimal simulated API on a random loopback port. Its `before` response includes `PaymentIntent.charges`; its `after` response omits that field and exposes charge history through the Charges list endpoint.
 
 Run from the Refit checkout:
 

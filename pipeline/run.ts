@@ -72,7 +72,7 @@ export async function runPipeline(options: {
     coverage: {
       specification:
         'Direct properties removed from existing, non-composed OpenAPI 3 component schemas only. Not a complete breaking-change diff.',
-      code: 'Local immutable ESM SDK clients and awaited resource.method calls mapped by the recorded adapter; direct reads, string indexes, destructuring and immutable aliases. Detected writes, alias mutations and references passed to calls or stored in containers downgrade findings to review using conservative, flow-insensitive analysis. CommonJS, cross-file flows, wrappers, webhooks and dynamic code still require review. Confirmed means traced under the supplied adapter mapping, not independently verified SDK semantics.',
+      code: 'Immutable ESM SDK clients, including direct relative named imports of exported const bindings, and awaited resource.method calls mapped by the recorded adapter; direct reads, string indexes, destructuring and immutable aliases. Detected writes, alias mutations and references passed to calls or stored in containers downgrade findings to review across resolved bindings using conservative, flow-insensitive analysis. Namespace imports and re-exports invalidate shared-client confirmation. CommonJS, default client imports, path aliases, ambiguous resolution, wrappers, webhooks and dynamic code still require review. Confirmed means traced under the supplied adapter mapping, not independently verified SDK semantics.',
       decision:
         'No finding is not proof of no impact. Supported root npm lockfiles provide recorded SDK versions, not verified installed versions or API-version applicability.',
     },

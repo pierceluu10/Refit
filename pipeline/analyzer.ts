@@ -1,4 +1,4 @@
-import { resolve } from 'node:path';
+import { dirname, extname, resolve } from 'node:path';
 import ts from 'typescript-compiler';
 import { STRIPE, type ProviderAdapter } from './providers.ts';
 import { unsafeBindings } from './mutations.ts';
@@ -11,6 +11,8 @@ import {
   type SourceEdit,
 } from './types.ts';
 
+const SOURCE_EXTENSIONS = ['.ts', '.tsx', '.js', '.jsx', '.mts', '.cts', '.mjs', '.cjs'];
+
 export function analyzeRepository(
   repository: Repository,
   changes: Removal[],
@@ -21,13 +23,34 @@ export function analyzeRepository(
   );
   const options: ts.CompilerOptions = {
     allowJs: true,
-    noResolve: true,
     noLib: true,
     target: ts.ScriptTarget.Latest,
   };
   const host = ts.createCompilerHost(options);
+  const resolvedImports = new Map<string, string>();
   host.fileExists = (name) => sources.has(name);
   host.readFile = (name) => sources.get(name);
+  host.resolveModuleNames = (names, containingFile) =>
+    names.map((name) => {
+      if (!name.startsWith('./') && !name.startsWith('../')) return undefined;
+      const path = resolve(dirname(containingFile), name);
+      const extension = extname(path);
+      const candidates = extension
+        ? [
+            path,
+            ...(['.js', '.jsx', '.mjs', '.cjs'].includes(extension)
+              ? [
+                  path.slice(0, -extension.length) +
+                    { '.js': '.ts', '.jsx': '.tsx', '.mjs': '.mts', '.cjs': '.cts' }[extension],
+                ]
+              : []),
+          ]
+        : SOURCE_EXTENSIONS.flatMap((suffix) => [path + suffix, resolve(path, `index${suffix}`)]);
+      const matches = candidates.filter((candidate) => sources.has(candidate));
+      if (matches.length !== 1) return undefined;
+      resolvedImports.set(`${containingFile}\0${name}`, matches[0]);
+      return { resolvedFileName: matches[0] };
+    });
   host.getSourceFile = (name, languageVersion) => {
     const content = sources.get(name);
     return content === undefined
@@ -57,7 +80,36 @@ export function analyzeRepository(
       column: position.character + 1,
     };
   };
-  const symbol = (node: ts.Node) => checker.getSymbolAtLocation(node);
+  const canonical = (value: ts.Symbol | undefined): ts.Symbol | undefined => {
+    if (!value || !(value.flags & ts.SymbolFlags.Alias)) return value;
+    const binding = value.declarations?.[0];
+    if (
+      !binding ||
+      !ts.isImportSpecifier(binding) ||
+      binding.isTypeOnly ||
+      binding.parent.parent.isTypeOnly
+    )
+      return value;
+    const target = checker.getAliasedSymbol(value);
+    const declaration = target.valueDeclaration;
+    const statement = declaration?.parent.parent;
+    const imported = binding.parent.parent.parent;
+    if (
+      !declaration ||
+      !ts.isVariableDeclaration(declaration) ||
+      !statement ||
+      !ts.isVariableStatement(statement) ||
+      !statement.modifiers?.some((modifier) => modifier.kind === ts.SyntaxKind.ExportKeyword) ||
+      !ts.isStringLiteral(imported.moduleSpecifier)
+    )
+      return value;
+    return resolvedImports.get(
+      `${imported.getSourceFile().fileName}\0${imported.moduleSpecifier.text}`,
+    ) === declaration.getSourceFile().fileName
+      ? target
+      : value;
+  };
+  const symbol = (node: ts.Node) => canonical(checker.getSymbolAtLocation(node));
   const contains = (set: Set<ts.Symbol>, node: ts.Node) => {
     const found = symbol(node);
     return found !== undefined && set.has(found);
@@ -124,24 +176,32 @@ export function analyzeRepository(
           operation.resource === resource.name.text && operation.method === method.name.text,
       );
   }
+  const declarations = nodes.filter(
+    (node): node is ts.VariableDeclaration & { name: ts.Identifier; initializer: ts.Expression } =>
+      ts.isVariableDeclaration(node) &&
+      ts.isIdentifier(node.name) &&
+      Boolean(node.initializer) &&
+      ts.isVariableDeclarationList(node.parent) &&
+      Boolean(node.parent.flags & ts.NodeFlags.Const),
+  );
+  // Fixed-point propagation makes imported clients independent of source-file ordering.
+  let previousSize = -1;
+  while (previousSize !== clients.size) {
+    previousSize = clients.size;
+    for (const node of declarations) {
+      const value = node.initializer;
+      if (
+        ts.isNewExpression(value) &&
+        ts.isIdentifier(value.expression) &&
+        contains(constructors, value.expression)
+      )
+        add(clients, node.name);
+      if (ts.isIdentifier(value) && contains(clients, value)) add(clients, node.name);
+    }
+  }
   // Resolve only immutable, lexical bindings; a same-named parameter is a different symbol.
-  for (const node of nodes) {
-    if (
-      !ts.isVariableDeclaration(node) ||
-      !ts.isIdentifier(node.name) ||
-      !node.initializer ||
-      !ts.isVariableDeclarationList(node.parent) ||
-      !(node.parent.flags & ts.NodeFlags.Const)
-    )
-      continue;
+  for (const node of declarations) {
     const value = node.initializer;
-    if (
-      ts.isNewExpression(value) &&
-      ts.isIdentifier(value.expression) &&
-      contains(constructors, value.expression)
-    )
-      add(clients, node.name);
-    if (ts.isIdentifier(value) && contains(clients, value)) add(clients, node.name);
     const operation = ts.isAwaitExpression(value) ? responseCall(value.expression) : undefined;
     if (operation && ts.isAwaitExpression(value)) {
       responses.set(symbol(node.name)!, operation.schema);
@@ -158,7 +218,22 @@ export function analyzeRepository(
       calls.push({ ...location(node), method: `${operation.resource}.${operation.method}` });
   }
   const providerDetected = imports.length > 0 || repository.dependencies.length > 0;
-  const unsafe = unsafeBindings(nodes, checker, clients, origins);
+  const escapingClients = new Set<ts.Symbol>();
+  for (const node of nodes) {
+    const namespaceImport =
+      ts.isImportDeclaration(node) &&
+      node.importClause?.namedBindings &&
+      ts.isNamespaceImport(node.importClause.namedBindings);
+    if (!namespaceImport && !ts.isExportDeclaration(node)) continue;
+    const module = (node as ts.ImportDeclaration | ts.ExportDeclaration).moduleSpecifier;
+    const source =
+      module && ts.isStringLiteral(module)
+        ? resolvedImports.get(`${node.getSourceFile().fileName}\0${module.text}`)
+        : node.getSourceFile().fileName;
+    for (const client of clients)
+      if (client.valueDeclaration?.getSourceFile().fileName === source) escapingClients.add(client);
+  }
+  const unsafe = unsafeBindings(nodes, checker, clients, origins, canonical, escapingClients);
   function propose(node: ts.Node, receiver: ts.Expression, change: Removal) {
     if (
       provider !== STRIPE ||
@@ -187,9 +262,9 @@ export function analyzeRepository(
     const resource = origin.expression.expression as ts.PropertyAccessExpression;
     const client = resource.expression as ts.Identifier;
     const visible = checker
-      .getSymbolsInScope(node, ts.SymbolFlags.Value)
+      .getSymbolsInScope(node, ts.SymbolFlags.Value | ts.SymbolFlags.Alias)
       .find((candidate) => candidate.name === client.text);
-    if (visible !== symbol(client)) return;
+    if (canonical(visible) !== symbol(client)) return;
     const block = data.parent.parent;
     if (!ts.isBlock(block)) return;
     const owner = block.parent;
@@ -252,7 +327,7 @@ export function analyzeRepository(
         expression: property === undefined ? '[computed property]' : `.${property}`,
         confidence: confirmed ? 'confirmed' : 'review',
         reason: confirmed
-          ? `Removed field read on a locally traced ${provider.id} ${schema} response.`
+          ? `Removed field read on a statically traced ${provider.id} ${schema} response.`
           : uncertainMutation
             ? 'Response or SDK client may be mutated or escape through an alias or call; inspect manually.'
             : 'Receiver or property cannot be proven by the supported local analysis; inspect manually.',

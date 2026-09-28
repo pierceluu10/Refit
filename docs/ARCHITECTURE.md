@@ -97,7 +97,7 @@ Local artifact storage supports development; an S3-compatible store holds deploy
 
 Pinned Stripe snapshot downloads, latest revision discovery and one-shot checks against a retained baseline are implemented through the local CLI. Custom SDK adapters now share the direct-property diff and local analysis pipeline, with provider-scoped change IDs and adapter-sensitive run identity. Background polling and **oasdiff** integration for a complete machine-readable comparison are planned. Replace the current narrow property detector at this boundary; do not expand it into a homegrown full OpenAPI differ.
 
-The scanner then checks manifests and lockfiles, API-version configuration, imports, usages and references. Extend the current analyzer with cross-file symbol flow, typed SDK responses, wrappers and webhook payloads. Preserve uncertainty rather than filtering ambiguous repositories out. The generic worker consumes adapter results so another API provider can be added without rewriting orchestration.
+The scanner then checks manifests and lockfiles, API-version configuration, imports, usages and references. Direct relative named imports of exported const clients now share symbols and mutation evidence across scanned files. Namespace imports and re-exports prevent confirmation; default client imports, path aliases and ambiguous resolution remain unsupported. Extend this bounded support with broader cross-file symbol flow, typed SDK responses, wrappers and webhook payloads. Preserve uncertainty rather than filtering ambiguous repositories out. The generic worker consumes adapter results so another API provider can be added without rewriting orchestration.
 
 ### 4. AI responsibilities
 
