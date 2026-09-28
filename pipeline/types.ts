@@ -29,8 +29,23 @@ export interface SourceEdit {
 export interface Repository {
   root: string;
   files: { path: string; content: string }[];
-  dependencies: { file: string; section: string; version: string }[];
+  dependencies: (DependencyDeclaration & { lock: LockedDependency })[];
+  lockfiles: { file: string; hash: string; version: number | null }[];
   warnings: string[];
+}
+
+export interface DependencyDeclaration {
+  file: string;
+  section: string;
+  version: string;
+}
+
+export interface LockedDependency {
+  status: 'locked' | 'unknown';
+  file: string | null;
+  packagePath: string | null;
+  version: string | null;
+  reason: string;
 }
 
 export class PipelineInputError extends Error {

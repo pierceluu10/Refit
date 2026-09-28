@@ -1,7 +1,8 @@
 import { readdir, readFile, realpath, stat } from 'node:fs/promises';
 import { join, relative } from 'node:path';
-import { isObject, parseObject } from './specifications.ts';
-import { PipelineInputError, type Repository } from './types.ts';
+import { digest, isObject, parseObject } from './specifications.ts';
+import { PipelineInputError, type Repository, type DependencyDeclaration } from './types.ts';
+import { NPM_LOCKFILES, resolveLockedDependency, type NpmLockfile } from './lockfiles.ts';
 
 const EXCLUDED_DIRECTORIES = new Set([
   'node_modules',
@@ -31,7 +32,9 @@ export async function readRepository(
   const root = await realpath(directory);
   if (!(await stat(root)).isDirectory())
     throw new PipelineInputError('Repository must be a directory.');
-  const repository: Repository = { root, files: [], dependencies: [], warnings: [] };
+  const repository: Repository = { root, files: [], dependencies: [], lockfiles: [], warnings: [] };
+  const declarations: DependencyDeclaration[] = [];
+  const lockfiles: NpmLockfile[] = [];
   let totalBytes = 0;
   let fileCount = 0;
   async function visit(directoryPath: string): Promise<void> {
@@ -40,6 +43,8 @@ export async function readRepository(
     );
     for (const entry of entries) {
       const path = join(directoryPath, entry.name);
+      const isLockfile =
+        directoryPath === root && NPM_LOCKFILES.some((name) => name === entry.name);
       if (entry.isSymbolicLink()) {
         repository.warnings.push(`Skipped symbolic link: ${relative(root, path)}`);
         continue;
@@ -50,7 +55,8 @@ export async function readRepository(
       }
       if (
         !entry.isFile() ||
-        (entry.name !== 'package.json' &&
+        (!isLockfile &&
+          entry.name !== 'package.json' &&
           (!SOURCE_EXTENSION.test(entry.name) || DECLARATION_EXTENSION.test(entry.name)))
       )
         continue;
@@ -64,6 +70,16 @@ export async function readRepository(
       }
       const content = await readFile(path, 'utf8');
       const name = relative(root, path).split('\\').join('/');
+      if (isLockfile) {
+        const lockfile = parseObject(content, name);
+        lockfiles.push({ file: name, content: lockfile });
+        repository.lockfiles.push({
+          file: name,
+          hash: digest(content),
+          version: typeof lockfile.lockfileVersion === 'number' ? lockfile.lockfileVersion : null,
+        });
+        continue;
+      }
       if (entry.name !== 'package.json') {
         repository.files.push({ path: name, content });
         continue;
@@ -77,10 +93,14 @@ export async function readRepository(
           throw new PipelineInputError(
             `${name}: ${section}.${packageName} must be a version string.`,
           );
-        repository.dependencies.push({ file: name, section, version });
+        declarations.push({ file: name, section, version });
       }
     }
   }
   await visit(root);
+  repository.dependencies = declarations.map((dependency) => ({
+    ...dependency,
+    lock: resolveLockedDependency(dependency, packageName, lockfiles),
+  }));
   return repository;
 }

@@ -35,6 +35,7 @@ function analyze(content: string) {
     root: '/virtual',
     files: [{ path: 'billing.ts', content }],
     dependencies: [],
+    lockfiles: [],
     warnings: [],
   };
   return analyzeRepository(repository, changes);

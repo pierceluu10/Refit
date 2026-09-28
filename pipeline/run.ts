@@ -38,7 +38,11 @@ export async function runPipeline(options: {
         ? 'no-stripe-signal'
         : 'no-provider-signal';
   const repositoryHash = digest(
-    JSON.stringify({ files: repository.files, dependencies: repository.dependencies }),
+    JSON.stringify({
+      files: repository.files,
+      dependencies: repository.dependencies,
+      lockfiles: repository.lockfiles,
+    }),
   );
   return {
     formatVersion: 1,
@@ -54,6 +58,7 @@ export async function runPipeline(options: {
       hash: repositoryHash,
       scannedFiles: repository.files.length,
       dependencies: repository.dependencies,
+      lockfiles: repository.lockfiles,
     },
     changes,
     ...analysis,
@@ -69,7 +74,7 @@ export async function runPipeline(options: {
         'Direct properties removed from existing, non-composed OpenAPI 3 component schemas only. Not a complete breaking-change diff.',
       code: 'Local immutable ESM SDK clients and awaited resource.method calls mapped by the recorded adapter; direct reads, string indexes, destructuring and immutable aliases. Detected writes, alias mutations and references passed to calls or stored in containers downgrade findings to review using conservative, flow-insensitive analysis. CommonJS, cross-file flows, wrappers, webhooks and dynamic code still require review. Confirmed means traced under the supplied adapter mapping, not independently verified SDK semantics.',
       decision:
-        'No finding is not proof of no impact. API version applicability and resolved lockfile versions are not inferred.',
+        'No finding is not proof of no impact. Supported root npm lockfiles provide recorded SDK versions, not verified installed versions or API-version applicability.',
     },
     nextAction:
       status === 'affected'

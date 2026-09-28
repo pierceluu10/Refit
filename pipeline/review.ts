@@ -72,6 +72,8 @@ export function createReviewArtifacts(
         provenance: report.provenance,
         archiveHash: validation.archiveHash,
         patchHash: validation.patchHash,
+        dependencies: report.repository.dependencies,
+        lockfiles: report.repository.lockfiles,
         findings: report.findings,
       }),
       '## AI assessment (advisory)',

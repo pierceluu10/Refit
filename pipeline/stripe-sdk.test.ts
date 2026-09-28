@@ -60,6 +60,11 @@ it.skipIf(!process.env.REFIT_STRIPE_SDK).each(SDK_VERSIONS)(
       proposePatch: true,
     });
     expect(report.repository.dependencies[0].version).toBe(version);
+    expect(report.repository.dependencies[0].lock).toMatchObject({
+      status: 'locked',
+      version,
+      file: 'package-lock.json',
+    });
     expect(report.findings).toHaveLength(1);
     expect(report.patch).toMatchObject({ status: 'proposed', unresolvedFindings: 0 });
     if (!('diff' in report.patch)) throw new Error('Expected SDK migration proposal');
