@@ -49,3 +49,11 @@ Publication is also opt-in. Configure `GITHUB_TOKEN` with repository Contents an
 `run` returns 0 for validated or published/reused PR results, 2 for review-required or failed-validation results, and 1 for errors. It retains a final manifest and completed evidence in a new directory outside the repository. Failed runs may have fewer artifacts; a missing manifest means interruption. An existing output directory is never overwritten. Original repository files are not patched.
 
 Use `refit <command> --help` for all options. There is no background scheduler. Supported analysis is bounded and conservative: no finding does not prove safety, and passing checks does not prove migration correctness. Every proposal requires human review.
+
+Verify saved evidence before sharing it:
+
+```sh
+refit verify --directory /tmp/new-refit-demo/migration
+```
+
+This checks the declared SHA-256 hashes and byte counts in workflow, review-bundle and Stripe-check manifests. It rejects missing, changed, duplicate, linked or unlisted entries, unsupported manifest formats and paths outside the flat bundle. Limits are 16 artifacts, 256 MiB per artifact, 1 GiB total and a 64 KiB manifest. Exit 0 means the declared file bytes match the supplied manifest; exit 1 means verification failed. It makes no network requests and executes no repository code. The manifest is unsigned: matching hashes do not prove who produced it, whether it lists all required evidence, whether tests really ran or whether the migration is correct. Failed-run evidence can also pass this integrity check.

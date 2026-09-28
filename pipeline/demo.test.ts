@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { promisify } from 'node:util';
 import { expect, it } from 'vitest';
+import { verifyArtifacts } from './verification.ts';
 
 const execute = promisify(execFile);
 const image = process.env.REFIT_DOCKER_IMAGE;
@@ -63,6 +64,10 @@ it.skipIf(!image || !process.env.REFIT_STRIPE_SDK)(
       expect(after.requests).toHaveLength(2);
       expect(report.repository.dependencies[0].lock.version).toBe('10.17.0');
       expect(report.patch.unresolvedFindings).toBe(0);
+      expect(await verifyArtifacts(join(output, 'migration'))).toMatchObject({
+        status: 'integrity-verified',
+        files: 6,
+      });
       expect(await readFile(join(output, 'migration/pull-request.md'), 'utf8')).toContain(
         'baselineCommand',
       );
