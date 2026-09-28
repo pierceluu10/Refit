@@ -10,6 +10,7 @@ const commands = new Map([
   ['stripe-snapshot', 'snapshot-cli.ts'],
   ['stripe-check', 'check-cli.ts'],
   ['replay', 'cli.ts'],
+  ['demo', 'demo-cli.ts'],
 ]);
 const usage = `Refit: reviewable API migrations
 
@@ -21,6 +22,7 @@ Usage: refit <command> [options]
   stripe-snapshot  Download a pinned or latest Stripe specification
   stripe-check     Discover the latest Stripe spec and compare a saved baseline
   replay           Scan the bundled historical Stripe example
+  demo             Run a real-SDK migration demo against a simulated Stripe API
 
 Use refit <command> --help for command options.
 --version prints the installed version. --help prints this guide.

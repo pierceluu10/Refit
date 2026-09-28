@@ -18,6 +18,7 @@ try {
       after: { type: 'string' },
       image: { type: 'string' },
       command: { type: 'string' },
+      'baseline-command': { type: 'string' },
       output: { type: 'string' },
       bundle: { type: 'string' },
       assess: { type: 'boolean' },
@@ -30,7 +31,10 @@ try {
       base: { type: 'string' },
     },
   });
-  if (values.help) console.log(USAGE);
+  if (values.help)
+    console.log(
+      `${USAGE}\nOptional --baseline-command '<JSON array>' overrides only the baseline check. Both commands are recorded; review their contract differences.`,
+    );
   else if (
     !values.repository ||
     !values.before ||
@@ -55,6 +59,10 @@ try {
       after: values.after,
       image: values.image,
       command,
+      baselineCommand:
+        values['baseline-command'] !== undefined
+          ? parseCheckCommand(values['baseline-command'], '--baseline-command')
+          : undefined,
       assessment: assessmentConfiguration(values.assess, process.env),
       aiPatch: assessmentConfiguration(values['ai-patch'], process.env),
       repairAttempts: Number(values['repair-attempts'] ?? 0),

@@ -18,6 +18,7 @@ try {
       output: { type: 'string' },
       image: { type: 'string' },
       command: { type: 'string' },
+      'baseline-command': { type: 'string' },
       'provider-config': { type: 'string' },
       assess: { type: 'boolean' },
       'ai-patch': { type: 'boolean' },
@@ -28,7 +29,10 @@ try {
       help: { type: 'boolean' },
     },
   });
-  if (values.help) console.log(USAGE);
+  if (values.help)
+    console.log(
+      `${USAGE}\nOptional --baseline-command '<JSON array>' overrides only the baseline check. Both commands are recorded; review their contract differences.`,
+    );
   else if (
     !values.repository ||
     !values.before ||
@@ -50,6 +54,10 @@ try {
       output: values.output,
       image: values.image,
       command,
+      baselineCommand:
+        values['baseline-command'] !== undefined
+          ? parseCheckCommand(values['baseline-command'], '--baseline-command')
+          : undefined,
       providerConfig: values['provider-config'],
       assessment: assessmentConfiguration(values.assess, process.env),
       aiPatch: assessmentConfiguration(values['ai-patch'], process.env),

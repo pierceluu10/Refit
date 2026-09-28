@@ -140,12 +140,14 @@ export async function validateMigration(options: {
   after: string;
   image: string;
   command: string[];
+  baselineCommand?: string[];
   assessment?: { apiKey: string; model: string };
   aiPatch?: { apiKey: string; model: string };
   providerConfig?: string;
   repairAttempts?: number;
 }) {
   validateCheckCommand(options.command);
+  const baselineCommand = validateCheckCommand(options.baselineCommand ?? options.command);
   const repairLimit = validateRepairAttempts(options.repairAttempts ?? 0, Boolean(options.aiPatch));
   if (!options.image || options.image.startsWith('-'))
     throw new PipelineInputError('A local Docker image is required.');
@@ -229,7 +231,7 @@ export async function validateMigration(options: {
     };
     const initialCandidate = await prepareCandidate(proposal.diff);
     let publicationFiles = initialCandidate.publicationFiles;
-    const baseline = await containerCheck(baselineDirectory, image, options.command);
+    const baseline = await containerCheck(baselineDirectory, image, baselineCommand);
     let patched = await containerCheck(initialCandidate.directory, image, options.command);
     const attempts: ValidationAttempt[] = [];
     const recordAttempt = () =>
@@ -327,6 +329,7 @@ export async function validateMigration(options: {
       revision,
       image,
       command: options.command,
+      baselineCommand,
       archiveHash: digest(archiveResult.stdout),
       patchHash: digest(proposal.diff),
       baseline,

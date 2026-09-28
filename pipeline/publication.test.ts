@@ -40,6 +40,7 @@ async function report(): Promise<Report> {
       revision: REVISION,
       image: `sha256:${'e'.repeat(64)}`,
       command: ['npm', 'test'],
+      baselineCommand: ['npm', 'test'],
       archiveHash: 'f'.repeat(64),
       patchHash: digest(scan.patch.diff),
       baseline: { status: 'passed', exitCode: 0, stdout: 'PRIVATE LOG', stderr: '' },

@@ -23,12 +23,12 @@ export function validateCheckCommand(value: unknown): string[] {
   return value;
 }
 
-export function parseCheckCommand(content: string) {
+export function parseCheckCommand(content: string, option = '--command') {
   let value: unknown;
   try {
     value = JSON.parse(content);
   } catch (cause) {
-    throw new PipelineInputError('--command must be a JSON array.', { cause });
+    throw new PipelineInputError(`${option} must be a JSON array.`, { cause });
   }
   return validateCheckCommand(value);
 }

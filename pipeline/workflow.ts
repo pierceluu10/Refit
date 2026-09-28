@@ -23,6 +23,7 @@ export async function runWorkflow(options: {
   output: string;
   image: string;
   command: string[];
+  baselineCommand?: string[];
   providerConfig?: string;
   assessment?: { apiKey: string; model: string };
   aiPatch?: { apiKey: string; model: string };
@@ -34,6 +35,7 @@ export async function runWorkflow(options: {
   if (options.latestStripe && options.providerConfig)
     throw new PipelineInputError('--latest-stripe cannot be combined with a custom provider.');
   validateCheckCommand(options.command);
+  validateCheckCommand(options.baselineCommand ?? options.command);
   validateRepairAttempts(options.repairAttempts ?? 0, Boolean(options.aiPatch));
   const directory = await createArtifactDirectory(options.repository, options.output);
   const files: { path: string; sha256: string; bytes: number }[] = [];
@@ -121,6 +123,7 @@ export async function runWorkflow(options: {
       ...inputs,
       image: options.image,
       command: options.command,
+      baselineCommand: options.baselineCommand,
       assessment: options.assessment,
       aiPatch: options.aiPatch,
       repairAttempts: options.repairAttempts,

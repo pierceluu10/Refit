@@ -51,6 +51,7 @@ export function createReviewArtifacts(
         revision: validation.revision,
         image: validation.image,
         command: validation.command,
+        baselineCommand: validation.baselineCommand,
         baseline: { status: validation.baseline.status, exitCode: validation.baseline.exitCode },
         patched: { status: validation.patched.status, exitCode: validation.patched.exitCode },
         repair: validation.repair,
@@ -79,7 +80,7 @@ export function createReviewArtifacts(
       '## AI assessment (advisory)',
       jsonBlock(report.assessment),
       '## Review requirements',
-      'Confirm adapter mappings, API-version applicability and intended pagination, expansion, timing and error behavior. Review any added network requests, and inspect the diff and logs for sensitive content before sharing.',
+      'Confirm both check commands test the intended contracts, adapter mappings, API-version applicability and intended pagination, expansion, timing and error behavior. Different baseline and patched commands are not equivalent regression checks. Review any added network requests, and inspect the diff and logs for sensitive content before sharing.',
       jsonBlock({ warnings: [...report.warnings, ...patch.warnings], coverage: report.coverage }),
       destination === 'local'
         ? 'This is a local review artifact. Refit has not pushed a branch, opened a pull request, or approved publication.'

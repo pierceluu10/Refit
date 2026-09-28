@@ -181,6 +181,14 @@ it('rejects malformed command arrays before starting any processes', async () =>
   await expect(
     validateMigration({ ...options, repository: '/unused', command: [] }),
   ).rejects.toThrow(/nonempty JSON array/);
+  await expect(
+    validateMigration({
+      ...options,
+      repository: '/unused',
+      command: ['node'],
+      baselineCommand: [],
+    }),
+  ).rejects.toThrow(/nonempty JSON array/);
 });
 
 it.each([-1, 3, 1.5, NaN])(

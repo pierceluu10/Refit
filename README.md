@@ -38,6 +38,14 @@ The isolated-install test builds a fresh archive, installs it into a temporary p
 
 ### Run the complete local workflow
 
+To demonstrate the whole local migration with bundled application code, run:
+
+```sh
+npm run refit -- demo --image node:22-alpine --output /tmp/new-refit-demo
+```
+
+This requires Docker, a locally available Node image and npm registry access or cache. It installs the actual Stripe 10.17.0 SDK into a disposable synthetic application, demonstrates the old API passing and the new API breaking, then generates a patch and validates both contracts in restricted Docker containers. The API is simulated on loopback; no Stripe account, AI key or GitHub publication is involved. Review the retained `migration/report.json`, `migration/migration.patch` and `migration/pull-request.md`. Enable the automated end-to-end demo test with `REFIT_STRIPE_SDK=1 REFIT_DOCKER_IMAGE=node:22-alpine npm test`.
+
 ```sh
 npm run api:run -- \
   --repository /absolute/path/to/clean-git-repository \
@@ -47,6 +55,8 @@ npm run api:run -- \
 ```
 
 This stages immutable input copies, scans for impact, proposes a patch, runs baseline and patched checks in Docker, and saves a review bundle in one invocation. Add `--ai-patch` and/or `--assess` to use the configured OpenAI model during validation. Add `--publish-draft --github owner/repository --base main` to publish after the existing validation and remote-revision gates pass. AI and GitHub configuration, transmission scope and verification limitations are described below.
+
+Both checks normally use `--command`. An explicit `--baseline-command '<JSON argument array>'` can check the original code against an old contract while `--command` checks the patch against the new contract, as the demo does. Both commands appear in validation evidence and PR text. Different contracts require review and do not prove equivalent regression coverage. Repairs keep these commands fixed.
 
 For automatic Stripe revision discovery, replace `--after /tmp/refit-after.json` with `--latest-stripe`; `--before` must then be a pinned Refit snapshot. For another configured SDK, use two supplied specifications and `--provider-config adapter.json`. The workflow preserves a copy of the selected adapter, does not advance the baseline, and never changes the original repository.
 

@@ -13,6 +13,14 @@ refit scan --repository /path/to/repo --before before.json --after after.json
 
 The replay uses bundled synthetic application code and curated historical Stripe specifications. It does not modify your application. Paths supplied to other commands are resolved from your current directory.
 
+For a complete demonstrable migration with the real Stripe SDK:
+
+```sh
+refit demo --image node:22-alpine --output /tmp/new-refit-demo
+```
+
+Requires a running Docker daemon and that Node image already installed locally, plus npm registry access (or cache) for fixture dependencies. It installs Stripe 10.17.0 with install scripts disabled into a temporary synthetic application, verifies its old API behavior and expected new API failure, then generates a patch and validates old/new contracts in offline Docker containers. The API is a loopback simulation; no Stripe account, AI model or GitHub credentials are used. Temporary code and dependencies are removed. The output retains `contract-before-migration.json`, `demo.json`, and a `migration/` review bundle containing the patch, report, check logs and draft PR text. Existing output is never overwritten. Failure before `demo.json` leaves incomplete evidence, not a successful demo.
+
 Run a complete local migration with supplied snapshots:
 
 ```sh
@@ -21,6 +29,8 @@ refit run --repository /path/to/clean-git-repo \
   --output /tmp/new-refit-run \
   --image your-local-check-image --command '["npm","test"]'
 ```
+
+By default, validation executes `--command` for both baseline and patched code. If migrating between distinct test contracts, pass `--baseline-command '["node","contract.mjs","before"]'` with `--command '["node","contract.mjs","after"]'`. Both are recorded in the report and draft text and run under identical isolation limits. Different commands do not establish equivalent regression coverage; reviewers must inspect both contracts. AI repair only reruns the patched command and never changes these configured commands.
 
 Discover current Stripe specifications or check against a retained baseline:
 
