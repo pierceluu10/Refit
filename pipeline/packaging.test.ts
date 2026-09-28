@@ -102,7 +102,15 @@ it.skipIf(!process.env.REFIT_PACKAGE_INSTALL)(
     );
     expect(replay.status).toBe('affected');
     expect(replay.patch.status).toBe('proposed');
-    for (const command of ['scan', 'run', 'validate', 'stripe-snapshot', 'stripe-check']) {
+    for (const command of [
+      'scan',
+      'run',
+      'validate',
+      'stripe-snapshot',
+      'stripe-check',
+      'demo',
+      'verify',
+    ]) {
       expect((await execute(installed, [command, '--help'], { cwd: root })).stdout).toContain(
         'Usage:',
       );
