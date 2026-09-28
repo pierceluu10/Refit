@@ -183,6 +183,9 @@ describe('symbol-based impact analysis', () => {
     'client.paymentIntents.retrieve = replacement;',
     'const alias = client; alias.paymentIntents.retrieve = replacement;',
     'configure(client);',
+    'function getResponse() { return intent; }',
+    'const getResponse = () => intent;',
+    'function* responses() { yield intent; }',
   ])('declines confirmed impact and patches after mutation or escape: %s', (statement) => {
     const result = analyze(`${prefix} async function read() {
       const intent = await client.paymentIntents.retrieve('pi_test');

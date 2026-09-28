@@ -52,6 +52,15 @@ it.each<Record<string, string>>([
   },
   { 'barrel.ts': "export {stripe} from './client';" },
   { 'client.ts': `${client}\nexport default stripe;` },
+  { 'client.ts': `${client}\nexport function getClient() { return stripe; }` },
+  { 'client.ts': `${client}\nexport const getClient = () => stripe;` },
+  { 'client.ts': `${client}\nexport const getResource = () => stripe.paymentIntents;` },
+  {
+    'client.ts': `${client}\nlet alias = stripe; export const getResource = () => alias.paymentIntents;`,
+  },
+  { 'client.ts': `${client}\nexport function* clients() { yield stripe; }` },
+  { 'client.ts': `${client}\nexport function fail() { throw stripe; }` },
+  { 'client.ts': `${client}\nexport const getClient = () => flag ? (stripe as unknown) : null;` },
 ])('downgrades shared clients when another module mutates or exposes them: %j', (extra) => {
   const result = analyze({ 'billing.ts': consumer, 'client.ts': client, ...extra });
   expect(result.findings.find((finding) => finding.file === 'billing.ts')).toMatchObject({

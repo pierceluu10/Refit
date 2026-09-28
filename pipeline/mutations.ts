@@ -8,6 +8,7 @@ function receiver(node: ts.Node): ts.Identifier | undefined {
     ts.isParenthesizedExpression(node) ||
     ts.isAsExpression(node) ||
     ts.isTypeAssertionExpression(node) ||
+    ts.isSatisfiesExpression(node) ||
     ts.isNonNullExpression(node)
   )
     return receiver(node.expression);
@@ -23,6 +24,7 @@ export function unsafeBindings(
 ) {
   const links = new Map<ts.Symbol, Set<ts.Symbol>>();
   const unsafe = new Set(initialUnsafe);
+  const exposed: ts.Expression[] = [];
   const binding = (node: ts.Node) => {
     const identifier = receiver(node);
     return identifier ? canonical(checker.getSymbolAtLocation(identifier)) : undefined;
@@ -51,6 +53,12 @@ export function unsafeBindings(
         if (ts.isBindingElement(element)) aliases(element.name, source);
   };
   for (const node of nodes) {
+    if (
+      (ts.isReturnStatement(node) || ts.isThrowStatement(node) || ts.isYieldExpression(node)) &&
+      node.expression
+    )
+      exposed.push(node.expression);
+    if (ts.isArrowFunction(node) && !ts.isBlock(node.body)) exposed.push(node.body);
     if (ts.isVariableDeclaration(node) && node.initializer)
       aliases(node.name, binding(node.initializer));
     if (
@@ -95,15 +103,47 @@ export function unsafeBindings(
     if (ts.isSpreadAssignment(node) || ts.isSpreadElement(node)) taint(node.expression);
     if (ts.isExportAssignment(node)) targets(node.expression);
   }
+  const propagate = (seeds: Set<ts.Symbol>) => {
+    const reached = new Set(seeds);
+    const pending = [...seeds];
+    for (let index = 0; index < pending.length; index++) {
+      for (const dependent of links.get(pending[index]) ?? []) {
+        if (reached.has(dependent)) continue;
+        reached.add(dependent);
+        pending.push(dependent);
+      }
+    }
+    return reached;
+  };
+  const clientAliases = propagate(clients);
+  const expose = (expression: ts.Expression): void => {
+    if (ts.isIdentifier(expression)) taint(expression);
+    else if (
+      ts.isPropertyAccessExpression(expression) ||
+      ts.isElementAccessExpression(expression)
+    ) {
+      if (clientAliases.has(binding(expression)!)) taint(expression);
+    } else if (
+      ts.isParenthesizedExpression(expression) ||
+      ts.isAsExpression(expression) ||
+      ts.isTypeAssertionExpression(expression) ||
+      ts.isNonNullExpression(expression) ||
+      ts.isSatisfiesExpression(expression) ||
+      ts.isAwaitExpression(expression)
+    )
+      expose(expression.expression);
+    else if (ts.isConditionalExpression(expression)) {
+      expose(expression.whenTrue);
+      expose(expression.whenFalse);
+    } else if (ts.isBinaryExpression(expression)) {
+      expose(expression.left);
+      expose(expression.right);
+    }
+  };
+  // Returning an entire binding or SDK resource exposes it to callers. Ordinary response
+  // field returns remain supported; their value semantics require migration review.
+  for (const expression of exposed) expose(expression);
   // A replaced SDK method invalidates its responses, not the reverse.
   for (const [response, call] of origins) link(binding(call.expression), response);
-  const pending = [...unsafe];
-  for (let index = 0; index < pending.length; index++) {
-    for (const dependent of links.get(pending[index]) ?? []) {
-      if (unsafe.has(dependent)) continue;
-      unsafe.add(dependent);
-      pending.push(dependent);
-    }
-  }
-  return unsafe;
+  return propagate(unsafe);
 }

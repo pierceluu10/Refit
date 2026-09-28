@@ -96,6 +96,8 @@ This is a bounded impact analyzer, not a complete OpenAPI differ or migration ag
 
 Clients declared with `export const` can be consumed through direct relative named imports, including renamed imports. Resolution uses only scanned files: exact source paths, unique extensionless file/index paths, and unambiguous `.js` → `.ts` equivalents (also JSX, MJS and CJS counterparts). Ambiguous source/output pairs are not guessed. Mutations through supported imports downgrade all linked usage; namespace imports, re-exports and default exports of a shared client also require review. Default client imports, tsconfig path aliases, package exports, factory wrappers and dynamic imports are not traced. The real-SDK fixture exercises a separate client module through scan, patch generation and Docker validation.
 
+Returning, yielding or throwing an entire client/response binding also prevents confirmation, including concise getters and conditional branches. Returning an SDK resource exposes the shared client as well, even through a mutable alias. Ordinary response-field returns remain eligible for the narrow migration rule; this is conservative reference tracking, not a proof of arbitrary object or closure behavior.
+
 ### Configure another SDK
 
 `api:scan` and `api:validate` accept `--provider-config adapter.json`. Omitting it uses the built-in Stripe adapter; the existing `stripe:*` scripts remain available. A custom adapter declares the SDK package, constructor imports, and the schema returned by each supported resource/method pair:
