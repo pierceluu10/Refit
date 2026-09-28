@@ -174,7 +174,6 @@ export async function validateMigration(options: {
   const root = await mkdtemp(join(tmpdir(), 'refit-validation-'));
   try {
     const baselineDirectory = join(root, 'baseline');
-    const patchedDirectory = join(root, 'patched');
     await mkdir(baselineDirectory);
     const archive = join(root, 'source.tar');
     const archiveResult = await execute(
@@ -200,8 +199,8 @@ export async function validateMigration(options: {
     let proposal = report.patch;
     const originalSources = await readRepository(baselineDirectory, report.adapter.packageName);
     const prepareCandidate = async (diff: string) => {
-      await rm(patchedDirectory, { recursive: true, force: true });
-      await mkdir(patchedDirectory);
+      // Reusing a removed bind-mount path can expose a stale directory in Docker Desktop.
+      const patchedDirectory = await mkdtemp(join(root, 'candidate-'));
       await command('tar', ['-xf', archive, '-C', patchedDirectory]);
       const patch = join(root, 'migration.patch');
       await writeFile(patch, diff);
@@ -226,11 +225,12 @@ export async function validateMigration(options: {
           content: file.content,
         });
       }
-      return publicationFiles;
+      return { publicationFiles, directory: patchedDirectory };
     };
-    let publicationFiles = await prepareCandidate(proposal.diff);
+    const initialCandidate = await prepareCandidate(proposal.diff);
+    let publicationFiles = initialCandidate.publicationFiles;
     const baseline = await containerCheck(baselineDirectory, image, options.command);
-    let patched = await containerCheck(patchedDirectory, image, options.command);
+    let patched = await containerCheck(initialCandidate.directory, image, options.command);
     const attempts: ValidationAttempt[] = [];
     const recordAttempt = () =>
       attempts.push({
@@ -291,10 +291,10 @@ export async function validateMigration(options: {
           repair.stopReason = 'repeated-proposal';
           break;
         }
-        const candidateFiles = await prepareCandidate(candidate.diff);
-        const check = await containerCheck(patchedDirectory, image, options.command);
+        const preparedCandidate = await prepareCandidate(candidate.diff);
+        const check = await containerCheck(preparedCandidate.directory, image, options.command);
         proposal = candidate;
-        publicationFiles = candidateFiles;
+        publicationFiles = preparedCandidate.publicationFiles;
         patched = check;
         recordAttempt();
         repair.stopReason =

@@ -299,7 +299,7 @@ it
         : ['baseline-failed', 'disabled', 'stale'].includes(scenario)
           ? 1
           : 2;
-    expect(requests).toBe(expectedRequests);
+    expect(requests, JSON.stringify(result.validation, null, 2)).toBe(expectedRequests);
     expect(result.validation.repair.requested).toBe(requests - 1);
     expect(result.validation.status).toBe(
       scenario === 'success'
@@ -310,7 +310,7 @@ it
             ? 'stale'
             : 'regression',
     );
-    expect(result.validation.attempts.length).toBe(
+    expect(result.validation.attempts.length, JSON.stringify(result.validation, null, 2)).toBe(
       scenario === 'success' ? 2 : scenario === 'exhausted' ? 3 : 1,
     );
     expect(result.validation.patchHash).toBe(digest(result.patch.diff));
