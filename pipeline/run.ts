@@ -1,7 +1,7 @@
 import { analyzeRepository } from './analyzer.ts';
 import { proposeAiPatch } from './ai-patches.ts';
 import { assessMigration, buildAssessmentEvidence } from './assessment.ts';
-import { proposePatch } from './patches.ts';
+import { applySourceEdits, proposePatch } from './patches.ts';
 import { readRepository } from './repository.ts';
 import { readProviderAdapter, STRIPE } from './providers.ts';
 import { PipelineInputError } from './types.ts';
@@ -72,7 +72,7 @@ export async function runPipeline(options: {
     coverage: {
       specification:
         'Direct properties removed from existing, non-composed OpenAPI 3 component schemas only. Not a complete breaking-change diff.',
-      code: 'Immutable ESM SDK clients, including direct relative named imports of exported const bindings, and awaited resource.method calls mapped by the recorded adapter; direct reads, string indexes, destructuring and immutable aliases. Detected writes, alias mutations and references passed to calls or stored in containers downgrade findings to review across resolved bindings using conservative, flow-insensitive analysis. Namespace imports and re-exports invalidate shared-client confirmation. CommonJS, default client imports, path aliases, ambiguous resolution, wrappers, webhooks and dynamic code still require review. Confirmed means traced under the supplied adapter mapping, not independently verified SDK semantics.',
+      code: 'Immutable ESM SDK clients, including direct relative named imports of exported const bindings, and awaited resource.method calls mapped by the recorded adapter; direct reads, string indexes, destructuring and immutable aliases. Top-level one-parameter functions returning exactly one mapped SDK call are traced locally or through direct relative named imports. Detected writes, alias mutations and references passed to calls or stored in containers downgrade findings to review across resolved bindings using conservative, flow-insensitive analysis. Namespace imports and re-exports invalidate shared-client and wrapper confirmation. CommonJS, default imports, path aliases, ambiguous resolution, multi-step or transformed wrappers, webhooks and dynamic code still require review. Confirmed means traced under the supplied adapter mapping, not independently verified SDK semantics.',
       decision:
         'No finding is not proof of no impact. Supported root npm lockfiles provide recorded SDK versions, not verified installed versions or API-version applicability.',
     },
@@ -83,7 +83,25 @@ export async function runPipeline(options: {
     patch: options.aiPatch
       ? await proposeAiPatch(repository, changes, analysis.findings, options.aiPatch, provider)
       : options.proposePatch
-        ? proposePatch(repository, edits, analysis.findings.length, provider)
+        ? proposePatch(
+            repository,
+            edits,
+            analyzeRepository(
+              {
+                ...repository,
+                files: repository.files.map((file) => ({
+                  ...file,
+                  content: applySourceEdits(
+                    file.content,
+                    edits.filter((edit) => edit.file === file.path),
+                  ),
+                })),
+              },
+              changes,
+              provider,
+            ).findings.length,
+            provider,
+          )
         : {
             status: 'not-generated',
             reason:

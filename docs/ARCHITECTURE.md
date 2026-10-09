@@ -33,7 +33,7 @@ AI helps interpret application intent and edit code. Source diffs, job state, va
 
 The analyzer is conservative: `affected` means a removed property has a locally traced PaymentIntent receiver. It does not prove that the repository is upgrading to the relevant API version. `needs-review` means Stripe is present but no such direct match is confirmed. `no-stripe-signal` means the supported scan found no Stripe import/dependency signal; it does not prove the absence of REST calls or dynamic integrations.
 
-Cross-file wrappers, CommonJS client resolution, webhooks, mutation, list responses and dynamic flows need additional analysis. A same-named property on an unproven receiver is a review candidate, not confirmed evidence. No-match results never become an automatic “safe” decision.
+Transparent top-level one-parameter wrappers returning a mapped SDK call are traced through direct relative named imports. Transformed or multi-step wrappers, CommonJS client resolution, webhooks, mutation, list responses and dynamic flows need additional analysis. A same-named property on an unproven receiver is a review candidate, not confirmed evidence. No-match results never become an automatic “safe” decision. The [independent billing evaluation](BILLING-EVALUATION.md) records the guarded, paginated history migration and actual offline Docker results.
 
 ## Run it
 

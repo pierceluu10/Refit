@@ -41,6 +41,9 @@ export function unsafeBindings(
   };
   const targets = (node: ts.Node) => {
     if (receiver(node)) taint(node);
+    // Passing a call's result does not expose its callee or SDK client.
+    else if (ts.isCallExpression(node) || ts.isNewExpression(node))
+      for (const argument of node.arguments ?? []) targets(argument);
     else ts.forEachChild(node, targets);
   };
   const aliases = (name: ts.BindingName, source: ts.Symbol | undefined) => {

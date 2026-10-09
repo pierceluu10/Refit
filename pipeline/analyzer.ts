@@ -2,6 +2,7 @@ import { dirname, extname, resolve } from 'node:path';
 import ts from 'typescript-compiler';
 import { STRIPE, type ProviderAdapter } from './providers.ts';
 import { unsafeBindings } from './mutations.ts';
+import { guardedHistoryEdit } from './history-migration.ts';
 import {
   PipelineInputError,
   type Finding,
@@ -66,6 +67,7 @@ export function analyzeRepository(
   const clients = new Set<ts.Symbol>();
   const responses = new Map<ts.Symbol, string>();
   const origins = new Map<ts.Symbol, ts.CallExpression>();
+  const wrappedResponses = new Map<ts.Symbol, ts.Symbol>();
   const edits: SourceEdit[] = [];
   const nodes: ts.Node[] = [];
   const locations = new Map(
@@ -92,13 +94,16 @@ export function analyzeRepository(
       return value;
     const target = checker.getAliasedSymbol(value);
     const declaration = target.valueDeclaration;
-    const statement = declaration?.parent.parent;
+    const statement =
+      declaration && ts.isFunctionDeclaration(declaration)
+        ? declaration
+        : declaration?.parent.parent;
     const imported = binding.parent.parent.parent;
     if (
       !declaration ||
-      !ts.isVariableDeclaration(declaration) ||
+      !(ts.isVariableDeclaration(declaration) || ts.isFunctionDeclaration(declaration)) ||
       !statement ||
-      !ts.isVariableStatement(statement) ||
+      !(ts.isVariableStatement(statement) || ts.isFunctionDeclaration(statement)) ||
       !statement.modifiers?.some((modifier) => modifier.kind === ts.SyntaxKind.ExportKeyword) ||
       !ts.isStringLiteral(imported.moduleSpecifier)
     )
@@ -199,13 +204,59 @@ export function analyzeRepository(
       if (ts.isIdentifier(value) && contains(clients, value)) add(clients, node.name);
     }
   }
+  // Only transparent, top-level one-argument wrappers; no side effects or transformed responses.
+  const wrappers = new Map<ts.Symbol, ts.CallExpression>();
+  for (const node of nodes) {
+    if (
+      !ts.isFunctionDeclaration(node) ||
+      !node.name ||
+      !node.body ||
+      !ts.isSourceFile(node.parent) ||
+      node.parameters.length !== 1 ||
+      node.body.statements.length !== 1
+    )
+      continue;
+    const parameter = node.parameters[0];
+    const statement = node.body.statements[0];
+    if (
+      !ts.isIdentifier(parameter.name) ||
+      parameter.initializer ||
+      parameter.dotDotDotToken ||
+      parameter.questionToken ||
+      !ts.isReturnStatement(statement) ||
+      !statement.expression
+    )
+      continue;
+    const value = ts.isAwaitExpression(statement.expression)
+      ? statement.expression.expression
+      : statement.expression;
+    if (
+      !ts.isCallExpression(value) ||
+      value.arguments.length !== 1 ||
+      !ts.isIdentifier(value.arguments[0]) ||
+      symbol(value.arguments[0]) !== symbol(parameter.name) ||
+      !responseCall(value)
+    )
+      continue;
+    wrappers.set(symbol(node.name)!, value);
+  }
   // Resolve only immutable, lexical bindings; a same-named parameter is a different symbol.
   for (const node of declarations) {
     const value = node.initializer;
-    const operation = ts.isAwaitExpression(value) ? responseCall(value.expression) : undefined;
+    const awaited =
+      ts.isAwaitExpression(value) && ts.isCallExpression(value.expression)
+        ? value.expression
+        : undefined;
+    const wrapper =
+      awaited && ts.isIdentifier(awaited.expression) && awaited.arguments.length === 1
+        ? symbol(awaited.expression)
+        : undefined;
+    const origin = wrapper && wrappers.has(wrapper) ? wrappers.get(wrapper)! : awaited;
+    const operation = origin ? responseCall(origin) : undefined;
     if (operation && ts.isAwaitExpression(value)) {
       responses.set(symbol(node.name)!, operation.schema);
-      origins.set(symbol(node.name)!, value.expression as ts.CallExpression);
+      origins.set(symbol(node.name)!, origin!);
+      if (wrapper && wrappers.has(wrapper)) wrappedResponses.set(symbol(node.name)!, wrapper);
     }
     if (ts.isIdentifier(value)) {
       const schema = responses.get(symbol(value)!);
@@ -232,8 +283,12 @@ export function analyzeRepository(
         : node.getSourceFile().fileName;
     for (const client of clients)
       if (client.valueDeclaration?.getSourceFile().fileName === source) escapingClients.add(client);
+    for (const wrapper of wrappers.keys())
+      if (wrapper.valueDeclaration?.getSourceFile().fileName === source)
+        escapingClients.add(wrapper);
   }
   const unsafe = unsafeBindings(nodes, checker, clients, origins, canonical, escapingClients);
+  for (const [response, wrapper] of wrappedResponses) if (unsafe.has(wrapper)) unsafe.add(response);
   function propose(node: ts.Node, receiver: ts.Expression, change: Removal) {
     if (
       provider !== STRIPE ||
@@ -243,6 +298,23 @@ export function analyzeRepository(
     )
       return;
     const origin = origins.get(symbol(receiver)!);
+    const guarded =
+      origin &&
+      guardedHistoryEdit({
+        node,
+        receiver,
+        origin,
+        checker,
+        symbol,
+        clients,
+        locations,
+        change,
+      });
+    if (guarded) {
+      if (!edits.some((edit) => edit.file === guarded.file)) edits.push(guarded);
+      return;
+    }
+    if (edits.some((edit) => edit.file === location(node).file && edit.start === 0)) return;
     const data = node.parent;
     if (
       !origin ||

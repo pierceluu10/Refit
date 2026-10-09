@@ -114,7 +114,7 @@ Returning, yielding or throwing an entire client/response binding also prevents 
 }
 ```
 
-This supports immutable ESM constructors and `await client.resource.method(...)` calls returning one mapped schema, including local response aliases. It does not automatically discover SDK semantics or support arbitrary fetch calls, factory clients, nested resources, list envelopes, cross-file wrappers or other languages. You must verify each mapping against the SDK. A confirmed finding means traced under that supplied mapping, not independently verified SDK behavior.
+This supports immutable ESM constructors and `await client.resource.method(...)` calls returning one mapped schema, including local response aliases and transparent one-parameter wrappers imported directly from relative modules. It does not automatically discover SDK semantics or support arbitrary fetch calls, factory clients, nested resources, list envelopes, transformed or multi-step wrappers, or other languages. You must verify each mapping against the SDK. A confirmed finding means traced under that supplied mapping, not independently verified SDK behavior.
 
 Custom adapters use supplied OpenAPI JSON files; upstream downloading remains Stripe-only. The complete adapter is recorded in the report and included in run identity. Custom providers have no deterministic migration rule; use `--ai-patch` for a reviewed proposal. Assessment, AI patch checks, Docker validation and review bundles carry the selected adapter. The synthetic [catalog fixture](pipeline/fixtures/catalog/README.md) demonstrates this path without claiming support for a second real vendor.
 
@@ -162,9 +162,11 @@ Tests cover controlled model output through actual Docker validation. Live gener
 npm run stripe:replay -- --propose-patch
 ```
 
-The report's `patch.diff` contains a Git-compatible unified diff. It proposes replacing a direct `return intent.charges.data` with `(await stripe.charges.list({ payment_intent: intent.id })).data`, using the locally traced client. Only a one-argument PaymentIntent retrieval and a direct return in the same async function are supported. Other findings remain counted as unresolved.
+The report's `patch.diff` contains a Git-compatible unified diff. Direct local `return intent.charges.data` migrations use `(await stripe.charges.list({ payment_intent: intent.id })).data`. Refit also traces transparent one-parameter wrappers through direct relative named imports. A narrow guarded-history rule retains the initial retrieval, removes the obsolete missing-field guard and collects all pages using the proven client's async Charges iterator. Request options, transformed wrappers and other shapes require review. Remaining findings are counted by rescanning the proposed code.
 
 The proposal needs review: it adds a network request, uses default pagination, and can change error, timing and expansion behavior. No repository files are modified, no application tests are executed, and the report explicitly records `validation: not-run`. The diff contains source code; check it before sharing. Test coverage verifies Git application and executes the migrated fixture against a controlled Stripe client; that is not validation of your application's behavior.
+
+The [independent billing evaluation](docs/BILLING-EVALUATION.md) verifies the new guarded-history migration against both HTTP simulator contracts, unchanged billing tests, strict TypeScript, multi-page history and Refit's offline Docker workflow. Scan-only reports still record `validation: not-run`; workflow reports retain the actual check outcomes. Direct-return migrations use default pagination; guarded-history migrations collect all pages.
 
 ### Publish a validated draft PR
 
