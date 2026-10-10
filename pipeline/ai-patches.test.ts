@@ -114,3 +114,20 @@ it('allows a no-edit response without inventing a patch', async () => {
     unresolvedFindings: 1,
   });
 });
+
+it('includes imported context but prevents a model from editing read-only modules', async () => {
+  const { edit, repository, report } = await fixture();
+  repository.files[0].content =
+    "import {shared} from './shared.ts';\n" + repository.files[0].content;
+  repository.files.push({ path: 'shared.ts', content: 'export const shared = true;' });
+  const findings = report.findings.map((finding) => ({ ...finding, line: finding.line + 1 }));
+  respond([]);
+  const proposal = await proposeAiPatch(repository, report.changes, findings, OPTIONS);
+  expect(proposal.evidence.contextFiles).toEqual([
+    { path: 'shared.ts', content: 'export const shared = true;' },
+  ]);
+  respond([{ ...edit, file: 'shared.ts', original: 'true', replacement: 'false' }]);
+  await expect(proposeAiPatch(repository, report.changes, findings, OPTIONS)).rejects.toThrow(
+    /outside its allowed scope/,
+  );
+});

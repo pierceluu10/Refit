@@ -1,8 +1,9 @@
-import { dirname, extname, resolve } from 'node:path';
+import { resolve } from 'node:path';
 import ts from 'typescript-compiler';
 import { STRIPE, type ProviderAdapter } from './providers.ts';
 import { unsafeBindings } from './mutations.ts';
 import { guardedHistoryEdit } from './history-migration.ts';
+import { resolveSourceImport } from './source-imports.ts';
 import {
   PipelineInputError,
   type Finding,
@@ -11,8 +12,6 @@ import {
   type Repository,
   type SourceEdit,
 } from './types.ts';
-
-const SOURCE_EXTENSIONS = ['.ts', '.tsx', '.js', '.jsx', '.mts', '.cts', '.mjs', '.cjs'];
 
 export function analyzeRepository(
   repository: Repository,
@@ -33,24 +32,10 @@ export function analyzeRepository(
   host.readFile = (name) => sources.get(name);
   host.resolveModuleNames = (names, containingFile) =>
     names.map((name) => {
-      if (!name.startsWith('./') && !name.startsWith('../')) return undefined;
-      const path = resolve(dirname(containingFile), name);
-      const extension = extname(path);
-      const candidates = extension
-        ? [
-            path,
-            ...(['.js', '.jsx', '.mjs', '.cjs'].includes(extension)
-              ? [
-                  path.slice(0, -extension.length) +
-                    { '.js': '.ts', '.jsx': '.tsx', '.mjs': '.mts', '.cjs': '.cts' }[extension],
-                ]
-              : []),
-          ]
-        : SOURCE_EXTENSIONS.flatMap((suffix) => [path + suffix, resolve(path, `index${suffix}`)]);
-      const matches = candidates.filter((candidate) => sources.has(candidate));
-      if (matches.length !== 1) return undefined;
-      resolvedImports.set(`${containingFile}\0${name}`, matches[0]);
-      return { resolvedFileName: matches[0] };
+      const path = resolveSourceImport(name, containingFile, sources);
+      if (!path) return undefined;
+      resolvedImports.set(`${containingFile}\0${name}`, path);
+      return { resolvedFileName: path };
     });
   host.getSourceFile = (name, languageVersion) => {
     const content = sources.get(name);

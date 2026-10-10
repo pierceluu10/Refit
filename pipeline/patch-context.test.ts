@@ -1,0 +1,56 @@
+import { expect, it } from 'vitest';
+import { buildPatchContext } from './patch-context.ts';
+import type { Repository } from './types.ts';
+
+function repository(files: Record<string, string>): Repository {
+  return {
+    root: '/virtual',
+    files: Object.entries(files).map(([path, content]) => ({ path, content })),
+    dependencies: [],
+    lockfiles: [],
+    warnings: [],
+  };
+}
+
+it('supplies wrapper and client context transitively while excluding unrelated sources and cycles', () => {
+  const input = repository({
+    'billing/history.ts': "import {retrieve} from './payments.ts'; import Stripe from 'stripe';",
+    'billing/payments.ts': "import {stripe} from '../client.ts';",
+    'client.ts': "import {retrieve} from './billing/payments.ts'; export const stripe = {}",
+    'unrelated.ts': 'export const unrelated = true;',
+  });
+  expect(
+    buildPatchContext(input, new Set(['billing/history.ts'])).map((file) => file.path),
+  ).toEqual(['billing/payments.ts', 'client.ts']);
+});
+
+it('resolves output extensions and declines ambiguous source/output pairs', () => {
+  const files = {
+    'history.ts': "import {client} from './client.js';",
+    'client.ts': 'export const client = {};',
+  };
+  expect(buildPatchContext(repository(files), new Set(['history.ts']))).toHaveLength(1);
+  expect(
+    buildPatchContext(
+      repository({ ...files, 'client.js': files['client.ts'] }),
+      new Set(['history.ts']),
+    ),
+  ).toEqual([]);
+});
+
+it('keeps multiple editable files out of read-only context', () => {
+  const input = repository({
+    'one.ts': "import {two} from './two.ts';",
+    'two.ts': 'export const two = true;',
+  });
+  expect(buildPatchContext(input, new Set(['one.ts', 'two.ts']))).toEqual([]);
+});
+
+it('rejects excessive import context instead of silently truncating essential evidence', () => {
+  const files: Record<string, string> = {};
+  const CONTEXT_CHAIN_LENGTH = 14;
+  for (let index = 0; index < CONTEXT_CHAIN_LENGTH; index++)
+    files[`${index}.ts`] =
+      index + 1 < CONTEXT_CHAIN_LENGTH ? `import './${index + 1}.ts';` : 'export {};';
+  expect(() => buildPatchContext(repository(files), new Set(['0.ts']))).toThrow(/context exceeds/);
+});
