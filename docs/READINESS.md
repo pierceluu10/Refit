@@ -2,6 +2,8 @@
 
 **October 9 update:** the independent billing application now has a generated migration verified against both simulator contracts, unchanged tests, strict TypeScript, multi-page history and the actual offline Docker workflow. See [billing evaluation](BILLING-EVALUATION.md) for commands and bounded wrapper/guard support. This does not verify live AI or GitHub publication; the September checkpoint below records the earlier state.
 
+**Subsequent October 9 AI evaluation:** a live `gpt-5.4-mini` proposal passed both billing suites, TypeScript, multi-page and empty-history checks in Docker after earlier rejected and semantically incomplete proposals. See [AI evaluation](AI-EVALUATION.md) for the full outcomes and evidence paths. Live GitHub publication remains unverified.
+
 Refit has a working local migration pipeline and a reproducible real-SDK demo. It is not yet a hosted agent that continuously monitors arbitrary APIs or an application tested against a production repository.
 
 ## Verified paths

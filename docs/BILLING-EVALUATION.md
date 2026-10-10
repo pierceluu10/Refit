@@ -26,24 +26,30 @@ This opt-in integration test creates a disposable copy, applies Refit's generate
 For the Docker workflow, build a local dependency image. Image preparation downloads npm dependencies; the actual validation containers have no external network:
 
 ```sh
+mkdir -p /tmp/refit-billing-image
+cp /Users/pierceluu/Repos/refit-billing-demo/package.json \
+  /Users/pierceluu/Repos/refit-billing-demo/package-lock.json \
+  pipeline/fixtures/billing-pagination.mjs /tmp/refit-billing-image/
 docker build --pull=false \
   --file /Users/pierceluu/Repos/Refit/scripts/billing-validation.Dockerfile \
-  --tag refit-billing-check:local \
-  /Users/pierceluu/Repos/refit-billing-demo
+  --tag refit-billing-check:history \
+  /tmp/refit-billing-image
 
 node bin/refit.mjs run \
   --repository /Users/pierceluu/Repos/refit-billing-demo \
   --before /Users/pierceluu/Repos/refit-billing-demo/docs/contracts/before.json \
   --after /Users/pierceluu/Repos/refit-billing-demo/docs/contracts/after.json \
   --output /tmp/refit-billing-review \
-  --image refit-billing-check:local \
-  --baseline-command '["sh","-c","ln -s /opt/billing/node_modules node_modules && npm test"]' \
-  --command '["sh","-c","ln -s /opt/billing/node_modules node_modules && npm test && npm run test:after && npm run typecheck"]'
+  --image refit-billing-check:history \
+  --baseline-command '["sh","-c","ln -s /opt/billing/node_modules node_modules && npm test && node --import tsx /opt/refit-checks/billing-pagination.mjs before"]' \
+  --command '["sh","-c","ln -s /opt/billing/node_modules node_modules && npm test && npm run test:after && npm run typecheck && node --import tsx /opt/refit-checks/billing-pagination.mjs before && node --import tsx /opt/refit-checks/billing-pagination.mjs after"]'
 
 node bin/refit.mjs verify --directory /tmp/refit-billing-review
 ```
 
 The output directory must not exist. Review `migration.patch`, `report.json`, and `pull-request.md`. The recorded local evaluation bundle is in `dist-cli/billing-evaluation-2026-10-09`, an ignored directory. The workflow stages and tests the patch without applying it to the billing repository.
+
+The expanded image also checks multi-page and empty history inside the validation containers. To evaluate a saved AI patch with the independent integration test, set `REFIT_BILLING_PATCH` to its absolute `migration.patch` path alongside `REFIT_BILLING_REPOSITORY`. The test uses the supplied patch instead of the deterministic proposal; it makes no AI calls itself. See [live AI evaluation](AI-EVALUATION.md).
 
 ## Supported boundaries
 

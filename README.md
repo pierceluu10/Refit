@@ -15,7 +15,7 @@ A working frontend with:
 - A configuration builder that copies or downloads a valid example `refit.yml`.
 - Keyboard-accessible mobile navigation and reduced-motion support.
 
-**The workspace is a frontend preview.** Its data remains illustrative. A separate local pipeline analyzes repositories and supplied OpenAPI snapshots, proposes migration patches, validates checks in Docker, and can explicitly publish a draft PR; it is not connected to the UI. Optional AI assessment, patch proposals and bounded repair are implemented but have not been verified with a live model. GitHub publication has controlled API tests, not a live remote verification. There is no GitHub App installation flow or background provider monitoring. The configuration builder produces a file locally; it does not apply settings to a remote repository.
+**The workspace is a frontend preview.** Its data remains illustrative. A separate local pipeline analyzes repositories and supplied OpenAPI snapshots, proposes migration patches, validates checks in Docker, and can explicitly publish a draft PR; it is not connected to the UI. Optional AI assessment, patch proposals and bounded repair are implemented. A live AI patch has been validated for the independent billing demo; live assessment and repair quality remain unverified. GitHub publication has controlled API tests, not a live remote verification. There is no GitHub App installation flow or background provider monitoring. The configuration builder produces a file locally; it does not apply settings to a remote repository.
 
 ## Stripe pipeline
 
@@ -73,7 +73,7 @@ The output directory must be new, outside the scanned repository, with an existi
 | `existing-pr` | Reused the matching PR; inspect `publication.json` for its current open/closed/draft state | 0 |
 | `error` | Input, setup, model, network or publication error | 1 |
 
-No-match results remain review-required, and passing tests do not prove migration semantics. The preflight scan makes no model calls; validation rescans a clean committed snapshot before generating the tested proposal. Workflow tests cover real Docker checks, failure gates and controlled GitHub responses. Live model and GitHub publication verification remain outstanding. This is a one-shot local agent with optional bounded repair, and no background scheduler.
+No-match results remain review-required, and passing tests do not prove migration semantics. The preflight scan makes no model calls; validation rescans a clean committed snapshot before generating the tested proposal. Workflow tests cover real Docker checks, failure gates and controlled GitHub responses. A live AI patch was validated against the billing demo; broader model evaluations and live GitHub publication remain outstanding. This is a one-shot local agent with optional bounded repair, and no background scheduler.
 
 ### Scan without executing repository code
 
@@ -130,11 +130,15 @@ This explicitly sends detected changes, finding metadata, and up to three source
 
 The response is advisory: it can suggest a migration or request review, but it cannot mark code safe, modify the deterministic findings, edit files, execute checks or publish. Refit validates the result and requires every cited finding ID to exist in the supplied evidence. A migration candidate must cite a confirmed finding. Refusals, incomplete responses, invalid references and API failures stop the command with an explicit error. Assessment evidence and its hash are saved with the report; review bundles include the advisory result.
 
-The integration has been exercised with controlled API responses, not a live model call: this environment has no configured API key or model. See [OpenAI structured outputs](https://developers.openai.com/api/docs/guides/structured-outputs) for the API contract used here.
+Advisory assessment has controlled-response tests; live assessment quality remains unverified. Live patch evaluation is recorded separately below. See [OpenAI structured outputs](https://developers.openai.com/api/docs/guides/structured-outputs) for the API contract used here.
 
 ### Optional AI patch proposals
 
 With the same environment configuration, use `--ai-patch` to select model-generated edits instead of the deterministic migration rule:
+
+Patch evidence also includes up to 12 relative-import modules as read-only context, so the model can inspect wrapper signatures and existing client exports. These modules cannot be edited unless they independently contain confirmed findings. Relative-import resolution follows the scanner's ambiguity rules; the existing total input-size limit still applies.
+
+The [live AI evaluation](docs/AI-EVALUATION.md) records a successful `gpt-5.4-mini` migration of the independent billing application, along with rejected proposals and a pagination bug caught by stronger checks. This verifies one simulated migration, not general model reliability. GitHub publication remains unverified.
 
 ```sh
 npm run stripe:replay -- --ai-patch

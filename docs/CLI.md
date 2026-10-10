@@ -42,7 +42,7 @@ refit stripe-check --repository /path/to/repo \
 
 Use `refit run --latest-stripe` instead of `--after` to discover Stripe's latest spec during a complete run. The `--before` file must then be a pinned Refit snapshot. No baseline is automatically advanced. Other SDKs require supplied snapshots and an explicit `--provider-config` adapter.
 
-AI is opt-in. Configure `OPENAI_API_KEY` and `OPENAI_MODEL`, then add `--ai-patch` or `--assess`. Patch generation sends affected source files to OpenAI; assessment sends selected source context. Optional `--repair-attempts 1` sends failed-check output and allows a bounded retry (maximum 2). Logs and source can contain application data. Live model quality remains unverified.
+AI is opt-in. Configure `OPENAI_API_KEY` and `OPENAI_MODEL`, then add `--ai-patch` or `--assess`. Patch generation sends affected source files and up to 12 transitively resolved relative-import modules as read-only context to OpenAI; only affected files remain editable. Ambiguous imports are not guessed, and oversized context fails explicitly. Assessment sends selected source context. Optional `--repair-attempts 1` sends failed-check output and allows a bounded retry (maximum 2). Logs and source can contain application data. Model quality must be evaluated against application checks.
 
 Publication is also opt-in. Configure `GITHUB_TOKEN` with repository Contents and Pull requests write access, then add `--publish-draft --github owner/repository --base main`. It requires a matching remote base commit, passing checks and no unresolved detected findings. Refit never auto-merges. Remote publication is covered by controlled API tests; live GitHub verification remains outstanding.
 
