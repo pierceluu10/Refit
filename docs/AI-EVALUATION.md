@@ -45,4 +45,4 @@ npm test
 
 Patch requests now include at most 12 uniquely resolved relative-import modules as read-only context. Edit authority remains restricted to files containing confirmed findings; input byte limits remain enforced. Credentials are read from the local environment and were not committed.
 
-Live GitHub publication and broader application evaluations remain outstanding.
+On October 11, a subsequent [live PR evaluation](PR-EVALUATION.md) verified one bounded AI repair and GitHub draft publication. Broader application evaluations remain outstanding.

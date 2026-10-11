@@ -15,7 +15,7 @@ A working frontend with:
 - A configuration builder that copies or downloads a valid example `refit.yml`.
 - Keyboard-accessible mobile navigation and reduced-motion support.
 
-**The workspace is a frontend preview.** Its data remains illustrative. A separate local pipeline analyzes repositories and supplied OpenAPI snapshots, proposes migration patches, validates checks in Docker, and can explicitly publish a draft PR; it is not connected to the UI. Optional AI assessment, patch proposals and bounded repair are implemented. A live AI patch has been validated for the independent billing demo; live assessment and repair quality remain unverified. GitHub publication has controlled API tests, not a live remote verification. There is no GitHub App installation flow or background provider monitoring. The configuration builder produces a file locally; it does not apply settings to a remote repository.
+**The workspace is a frontend preview.** Its data remains illustrative. A separate local pipeline analyzes repositories and supplied OpenAPI snapshots, proposes migration patches, validates checks in Docker, and can explicitly publish a draft PR; it is not connected to the UI. Optional AI assessment, patch proposals and bounded repair are implemented. A live AI patch has been validated for the independent billing demo; live assessment and repair quality remain unverified. A live AI migration, one repair and GitHub draft publication have been verified against the independent billing demo. There is no GitHub App installation flow or background provider monitoring. The configuration builder produces a file locally; it does not apply settings to a remote repository.
 
 ## Stripe pipeline
 
@@ -73,7 +73,7 @@ The output directory must be new, outside the scanned repository, with an existi
 | `existing-pr` | Reused the matching PR; inspect `publication.json` for its current open/closed/draft state | 0 |
 | `error` | Input, setup, model, network or publication error | 1 |
 
-No-match results remain review-required, and passing tests do not prove migration semantics. The preflight scan makes no model calls; validation rescans a clean committed snapshot before generating the tested proposal. Workflow tests cover real Docker checks, failure gates and controlled GitHub responses. A live AI patch was validated against the billing demo; broader model evaluations and live GitHub publication remain outstanding. This is a one-shot local agent with optional bounded repair, and no background scheduler.
+No-match results remain review-required, and passing tests do not prove migration semantics. The preflight scan makes no model calls; validation rescans a clean committed snapshot before generating the tested proposal. Workflow tests cover real Docker checks, failure gates and controlled GitHub responses. A live AI patch was validated against the billing demo; broader model evaluations remain outstanding. The [live PR evaluation](docs/PR-EVALUATION.md) records draft publication and one successful repair on the billing demo. This is a one-shot local agent with optional bounded repair, and no background scheduler.
 
 ### Scan without executing repository code
 
@@ -138,7 +138,7 @@ With the same environment configuration, use `--ai-patch` to select model-genera
 
 Patch evidence also includes up to 12 relative-import modules as read-only context, so the model can inspect wrapper signatures and existing client exports. These modules cannot be edited unless they independently contain confirmed findings. Relative-import resolution follows the scanner's ambiguity rules; the existing total input-size limit still applies.
 
-The [live AI evaluation](docs/AI-EVALUATION.md) records a successful `gpt-5.4-mini` migration of the independent billing application, along with rejected proposals and a pagination bug caught by stronger checks. This verifies one simulated migration, not general model reliability. GitHub publication remains unverified.
+The [live AI evaluation](docs/AI-EVALUATION.md) records a successful `gpt-5.4-mini` migration of the independent billing application, along with rejected proposals and a pagination bug caught by stronger checks. This verifies one simulated migration, not general model reliability. A subsequent [live PR evaluation](docs/PR-EVALUATION.md) verified draft publication and one bounded repair.
 
 ```sh
 npm run stripe:replay -- --ai-patch
@@ -191,7 +191,7 @@ Refit builds a Git tree on the existing remote base, preserving unrelated files 
 
 The token remains in the host publisher and is not sent to OpenAI or Docker. Full check logs stay local. The command only accepts freshly generated validation, not a saved report or unsigned bundle. The saved report remains pre-publication evidence; the final stdout object supplies the PR URL and whether it was created or reused. Setup, API or publication failures exit 1; partial failures can leave a branch or unreferenced Git objects. Rerun with a new output path to reconcile the same candidate. With AI enabled, a newly generated different patch has a different branch identity.
 
-Currently this supports `github.com`, an existing same-repository base commit, and an explicitly supplied token. It does not install a GitHub App, clone repositories, upload local-only base history, or schedule runs. Publication is covered by controlled GitHub responses for successful drafts, stale revisions, collisions, retries and concurrency; no live PR has been created during verification.
+Currently this supports `github.com`, an existing same-repository base commit, and an explicitly supplied token. It does not install a GitHub App, clone repositories, upload local-only base history, or schedule runs. Publication is covered by controlled GitHub responses for successful drafts, stale revisions, collisions, retries and concurrency; a [live draft PR](https://github.com/pierceluu10/refit-billing-demo/pull/1) was also verified against the independent simulated billing app.
 
 ### Replay real upstream specifications
 
