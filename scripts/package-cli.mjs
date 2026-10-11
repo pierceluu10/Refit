@@ -39,7 +39,7 @@ else {
     }
     await writeFile(
       join(stage, 'package.json'),
-      `${JSON.stringify({ name: metadata.name, version: metadata.version, description: 'Local API migration agent with reviewable patches and isolated validation', private: true, type: 'module', engines: metadata.engines, bin: { refit: 'bin/refit.mjs' }, files: ['bin/', 'pipeline/', 'README.md', 'docs/'], dependencies }, null, 2)}\n`,
+      `${JSON.stringify({ name: metadata.name, version: metadata.version, description: 'Local API migration agent with reviewable patches and isolated validation', private: true, type: 'module', engines: metadata.engines, bin: { refit: 'bin/refit.mjs' }, files: ['bin/', 'pipeline/', 'README.md', 'docs/', 'public/', '.env.example'], dependencies }, null, 2)}\n`,
     );
     await mkdir(join(stage, 'bin'));
     await copyFile(join(root, 'bin/refit.mjs'), join(stage, 'bin/refit.mjs'));
@@ -52,10 +52,29 @@ else {
     await cp(join(root, 'pipeline/fixtures'), join(stage, 'pipeline/fixtures'), {
       recursive: true,
     });
-    await copyFile(join(root, 'docs/CLI.md'), join(stage, 'README.md'));
+    const cliGuide = await readFile(join(root, 'docs/CLI.md'), 'utf8');
+    await writeFile(
+      join(stage, 'README.md'),
+      cliGuide
+        .replaceAll('](GITHUB-APP.md)', '](docs/GITHUB-APP.md)')
+        .replaceAll('](TEST-REPOSITORIES.md)', '](docs/TEST-REPOSITORIES.md)'),
+    );
+    await copyFile(join(root, '.env.example'), join(stage, '.env.example'));
     await mkdir(join(stage, 'docs'));
-    for (const name of ['ARCHITECTURE.md', 'UPSTREAM-REPLAY.md'])
+    for (const name of [
+      'ARCHITECTURE.md',
+      'UPSTREAM-REPLAY.md',
+      'GITHUB-APP.md',
+      'TEST-REPOSITORIES.md',
+      'BILLING-EVALUATION.md',
+      'CLI.md',
+    ])
       await copyFile(join(root, 'docs', name), join(stage, 'docs', name));
+    await mkdir(join(stage, 'public'));
+    await copyFile(
+      join(root, 'public/refit-agent-avatar.png'),
+      join(stage, 'public/refit-agent-avatar.png'),
+    );
     const result = await execute(
       'npm',
       ['pack', '--json', '--ignore-scripts', '--pack-destination', output],

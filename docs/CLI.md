@@ -70,6 +70,8 @@ AI is opt-in. Configure `OPENAI_API_KEY` and `OPENAI_MODEL`, then add `--ai-patc
 
 Publication is also opt-in. Configure `GITHUB_TOKEN` with repository Contents and Pull requests write access, then add `--publish-draft --github owner/repository --base main`. It requires a matching remote base commit, passing checks and no unresolved detected findings. Refit never auto-merges. A live AI migration, bounded repair and draft publication were verified on the independent billing demo; see [the live PR evaluation](https://github.com/pierceluu10/refit-billing-demo/pull/1). This remains a simulated Stripe compatibility evaluation.
 
+For an App bot identity and logo, add `--github-app` with `GITHUB_APP_ID` and `GITHUB_APP_PRIVATE_KEY_FILE` configured locally. This selects an installation token instead of your personal token, discovers the target installation automatically and verifies the bot author. See [GitHub App setup](GITHUB-APP.md). [Testing another repository](TEST-REPOSITORIES.md) covers AI runs, check images and remote-base requirements.
+
 `run` returns 0 for validated or published/reused PR results, 2 for review-required or failed-validation results, and 1 for errors. It retains a final manifest and completed evidence in a new directory outside the repository. Failed runs may have fewer artifacts; a missing manifest means interruption. An existing output directory is never overwritten. Original repository files are not patched.
 
 `run` reports scanning, proposal generation, Docker checks, repairs and publication on stderr as they occur. Its final stdout remains JSON for scripts. Use `--quiet` to suppress progress. Failure status, its reason and the retained evidence path are shown without needing to open the JSON report.

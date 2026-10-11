@@ -52,6 +52,9 @@ it('packs only CLI runtime sources, fixtures, docs and exact runtime dependencie
   const result = await pack(root);
   expect(result.files).toContain('bin/refit.mjs');
   expect(result.files).toContain('pipeline/workflow.ts');
+  expect(result.files).toContain('pipeline/github-app.ts');
+  expect(result.files).toContain('public/refit-agent-avatar.png');
+  expect(result.files).toContain('docs/GITHUB-APP.md');
   expect(result.files).toContain('pipeline/fixtures/repository/billing.ts');
   expect(
     result.files.some(
