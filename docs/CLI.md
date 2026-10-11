@@ -72,6 +72,8 @@ Publication is also opt-in. Configure `GITHUB_TOKEN` with repository Contents an
 
 `run` returns 0 for validated or published/reused PR results, 2 for review-required or failed-validation results, and 1 for errors. It retains a final manifest and completed evidence in a new directory outside the repository. Failed runs may have fewer artifacts; a missing manifest means interruption. An existing output directory is never overwritten. Original repository files are not patched.
 
+`run` reports scanning, proposal generation, Docker checks, repairs and publication on stderr as they occur. Its final stdout remains JSON for scripts. Use `--quiet` to suppress progress. Failure status, its reason and the retained evidence path are shown without needing to open the JSON report.
+
 Use `refit <command> --help` for all options. There is no background scheduler. Supported analysis is bounded and conservative: no finding does not prove safety, and passing checks does not prove migration correctness. Every proposal requires human review.
 
 Verify saved evidence before sharing it:

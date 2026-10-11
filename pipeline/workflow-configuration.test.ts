@@ -139,13 +139,7 @@ it('preserves existing environment values and rejects duplicate or missing envir
     ),
   ).rejects.toMatchObject({ code: 1, stderr: expect.stringContaining('OPENAI_API_KEY') });
   await expect(
-    execute(process.execPath, [
-      bin,
-      '--env',
-      environment,
-      'replay',
-      `--env=${environment}`,
-    ]),
+    execute(process.execPath, [bin, '--env', environment, 'replay', `--env=${environment}`]),
   ).rejects.toMatchObject({ code: 1, stderr: expect.stringContaining('only once') });
   await expect(execute(process.execPath, [bin, 'replay', '--env'])).rejects.toMatchObject({
     code: 1,

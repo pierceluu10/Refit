@@ -7,12 +7,13 @@ import { parseCheckCommand } from './validation-options.ts';
 import { readWorkflowConfiguration } from './workflow-configuration.ts';
 
 const USAGE =
-  'Usage: refit run --config <run.json> --output <new-directory-outside-repository>\n   or: refit run --repository <clean-git-directory> --before <spec.json> (--after <spec.json> | --latest-stripe) --output <new-directory-outside-repository> --image <local-image> --command \'["npm","test"]\'\nOptional: [--env <.env>] [--provider-config <adapter.json>] [--assess] [--ai-patch] [--repair-attempts 0|1|2 (sends failed check output to OpenAI)] [--publish-draft --github owner/repository --base main]';
+  'Usage: refit run --config <run.json> --output <new-directory-outside-repository>\n   or: refit run --repository <clean-git-directory> --before <spec.json> (--after <spec.json> | --latest-stripe) --output <new-directory-outside-repository> --image <local-image> --command \'["npm","test"]\'\nOptional: [--env <.env>] [--quiet] [--provider-config <adapter.json>] [--assess] [--ai-patch] [--repair-attempts 0|1|2 (sends failed check output to OpenAI)] [--publish-draft --github owner/repository --base main]';
 
 try {
   const { values } = parseArgs({
     options: {
       config: { type: 'string' },
+      quiet: { type: 'boolean' },
       repository: { type: 'string' },
       before: { type: 'string' },
       after: { type: 'string' },
@@ -69,6 +70,7 @@ try {
       publication: values['publish-draft']
         ? publicationConfiguration(values.github, values.base, process.env.GITHUB_TOKEN)
         : undefined,
+      onProgress: values.quiet ? undefined : (message) => console.error(`[refit] ${message}`),
     });
     console.log(JSON.stringify(result, null, 2));
     process.exitCode =

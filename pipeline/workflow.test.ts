@@ -76,8 +76,9 @@ it('retains a pinned custom adapter and stops when no deterministic migration ex
 
 it('retains completed scan evidence when validation setup fails and never publishes', async () => {
   const input = await options();
+  const progress: string[] = [];
   vi.mocked(validateMigration).mockRejectedValueOnce(new Error('Docker image is unavailable'));
-  const result = await runWorkflow(input);
+  const result = await runWorkflow({ ...input, onProgress: (message) => progress.push(message) });
   expect(result.manifest).toMatchObject({
     status: 'error',
     stage: 'validation',
@@ -87,6 +88,9 @@ it('retains completed scan evidence when validation setup fails and never publis
     'affected',
   );
   expect(publishDraft).not.toHaveBeenCalled();
+  expect(progress.some((message) => message.includes('Publishing'))).toBe(false);
+  expect(progress.at(-2)).toContain('Docker image is unavailable');
+  expect(progress.at(-1)).toBe(`Evidence: ${input.output}`);
   await expect(runWorkflow(input)).rejects.toMatchObject({ code: 'EEXIST' });
 });
 
@@ -118,9 +122,36 @@ it('returns exit 2 and machine-readable evidence for a CLI run requiring review'
     '--command',
     JSON.stringify(input.command),
   ]);
-  await expect(result).rejects.toMatchObject({ code: 2, stderr: '' });
+  await expect(result).rejects.toMatchObject({
+    code: 2,
+    stderr: expect.stringContaining('[refit] needs-review:'),
+    stdout: expect.stringContaining('"status": "needs-review"'),
+  });
   const manifest = JSON.parse(await readFile(join(input.output, 'manifest.json'), 'utf8'));
   expect(manifest.status).toBe('needs-review');
+  await expect(
+    promisify(execFile)(process.execPath, [
+      resolve('bin/refit.mjs'),
+      'run',
+      '--quiet',
+      '--repository',
+      input.repository,
+      '--before',
+      input.before,
+      '--after',
+      input.before,
+      '--output',
+      join(dirname(input.output), 'quiet'),
+      '--image',
+      input.image,
+      '--command',
+      JSON.stringify(input.command),
+    ]),
+  ).rejects.toMatchObject({
+    code: 2,
+    stderr: '',
+    stdout: expect.stringContaining('"status": "needs-review"'),
+  });
 });
 
 it('stops mutated response evidence before AI generation, validation or publication', async () => {

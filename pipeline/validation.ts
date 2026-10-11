@@ -145,6 +145,7 @@ export async function validateMigration(options: {
   aiPatch?: { apiKey: string; model: string };
   providerConfig?: string;
   repairAttempts?: number;
+  onProgress?: (message: string) => void;
 }) {
   validateCheckCommand(options.command);
   const baselineCommand = validateCheckCommand(options.baselineCommand ?? options.command);
@@ -189,6 +190,11 @@ export async function validateMigration(options: {
     );
     await writeFile(archive, archiveResult.stdout);
     await command('tar', ['-xf', archive, '-C', baselineDirectory]);
+    options.onProgress?.(
+      options.aiPatch
+        ? 'Requesting an AI migration proposal...'
+        : 'Generating a deterministic migration proposal...',
+    );
     const report = await runPipeline({
       ...options,
       repository: baselineDirectory,
@@ -231,7 +237,9 @@ export async function validateMigration(options: {
     };
     const initialCandidate = await prepareCandidate(proposal.diff);
     let publicationFiles = initialCandidate.publicationFiles;
+    options.onProgress?.('Running baseline checks in offline Docker...');
     const baseline = await containerCheck(baselineDirectory, image, baselineCommand);
+    options.onProgress?.('Running patched checks in offline Docker...');
     let patched = await containerCheck(initialCandidate.directory, image, options.command);
     const attempts: ValidationAttempt[] = [];
     const recordAttempt = () =>
@@ -265,6 +273,9 @@ export async function validateMigration(options: {
         break;
       }
       repair.requested++;
+      options.onProgress?.(
+        `Patched checks failed. Requesting AI repair ${repair.requested} of ${repairLimit}...`,
+      );
       try {
         const candidate = await proposeAiPatch(
           originalSources,
@@ -294,6 +305,7 @@ export async function validateMigration(options: {
           break;
         }
         const preparedCandidate = await prepareCandidate(candidate.diff);
+        options.onProgress?.('Running repaired checks in offline Docker...');
         const check = await containerCheck(preparedCandidate.directory, image, options.command);
         proposal = candidate;
         publicationFiles = preparedCandidate.publicationFiles;

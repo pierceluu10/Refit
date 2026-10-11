@@ -29,6 +29,7 @@ export async function runWorkflow(options: {
   aiPatch?: { apiKey: string; model: string };
   repairAttempts?: number;
   publication?: ReturnType<typeof publicationConfiguration>;
+  onProgress?: (message: string) => void;
 }) {
   if (Boolean(options.after) === Boolean(options.latestStripe))
     throw new PipelineInputError('Choose exactly one of --after or --latest-stripe.');
@@ -66,10 +67,13 @@ export async function runWorkflow(options: {
       flag: 'wx',
       mode: 0o600,
     });
+    options.onProgress?.(`${status}: ${error ? error.message : reason}`);
+    options.onProgress?.(`Evidence: ${directory}`);
     return { directory, manifest };
   };
   let runId: string | null = null;
   try {
+    options.onProgress?.('Preparing API specifications...');
     await readSpecification(options.before);
     await save('before.json', await readFile(options.before, 'utf8'));
     const before = join(directory, 'before.json');
@@ -103,6 +107,7 @@ export async function runWorkflow(options: {
       providerConfig,
     };
     stage = 'scan';
+    options.onProgress?.('Scanning repository for affected API usage...');
     const scan = await runPipeline({ ...inputs, proposePatch: true });
     runId = scan.runId;
     await save('scan.json', `${JSON.stringify(scan, null, 2)}\n`);
@@ -119,6 +124,7 @@ export async function runWorkflow(options: {
         runId,
       );
     stage = 'validation';
+    options.onProgress?.('Validating the committed repository snapshot...');
     const report = await validateMigration({
       ...inputs,
       image: options.image,
@@ -127,6 +133,7 @@ export async function runWorkflow(options: {
       assessment: options.assessment,
       aiPatch: options.aiPatch,
       repairAttempts: options.repairAttempts,
+      onProgress: options.onProgress,
     });
     runId = report.runId;
     const review = createReviewArtifacts(report);
@@ -150,6 +157,7 @@ export async function runWorkflow(options: {
         runId,
       );
     stage = 'publication';
+    options.onProgress?.('Checks passed. Publishing a GitHub draft PR...');
     const publication = await publishDraft(report, options.publication);
     await save('publication.json', `${JSON.stringify(publication, null, 2)}\n`);
     return await finish(

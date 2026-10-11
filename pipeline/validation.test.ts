@@ -287,11 +287,13 @@ it
       );
     });
     vi.stubGlobal('fetch', fetcher);
+    const progress: string[] = [];
     const result = await validateMigration({
       ...options,
       repository: root,
       aiPatch: { apiKey: 'test-key', model: 'test-model' },
       repairAttempts: scenario === 'disabled' ? 0 : 2,
+      onProgress: (message) => progress.push(message),
       command:
         scenario === 'baseline-failed'
           ? ['node', '-e', 'process.exit(9)']
@@ -309,6 +311,10 @@ it
           : 2;
     expect(requests, JSON.stringify(result.validation, null, 2)).toBe(expectedRequests);
     expect(result.validation.repair.requested).toBe(requests - 1);
+    expect(progress.filter((message) => message.includes('Requesting AI repair'))).toHaveLength(
+      result.validation.repair.requested,
+    );
+    expect(progress.join('\n')).not.toContain('test-key');
     expect(result.validation.status).toBe(
       scenario === 'success'
         ? 'passed'
@@ -324,6 +330,13 @@ it
     expect(result.validation.patchHash).toBe(digest(result.patch.diff));
     expect(result.validation.attempts.at(-1)?.patchHash).toBe(result.validation.patchHash);
     if (scenario === 'success') {
+      expect(progress).toEqual([
+        'Requesting an AI migration proposal...',
+        'Running baseline checks in offline Docker...',
+        'Running patched checks in offline Docker...',
+        'Patched checks failed. Requesting AI repair 1 of 2...',
+        'Running repaired checks in offline Docker...',
+      ]);
       expect(result.validation.repair.stopReason).toBe('checks-passed');
       expect(result.validation.attempts.map((attempt) => attempt.check.status)).toEqual([
         'failed',
