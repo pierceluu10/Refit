@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
-import { tsImport } from 'tsx/esm/api';
 import { parseEnv } from 'node:util';
 
 const commands = new Map([
@@ -73,6 +72,7 @@ try {
         fixture('after.json'),
       );
     }
+    const { tsImport } = await import('tsx/esm/api');
     await tsImport(`../pipeline/${commands.get(command)}`, {
       parentURL: import.meta.url,
       tsconfig: false,
