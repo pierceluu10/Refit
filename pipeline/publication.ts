@@ -1,23 +1,26 @@
-import { readBoundedResponse } from './network.ts';
+import { GitHubRequestError, requestGitHub } from './github.ts';
+import { authenticateGitHubApp, type GitHubAppConfiguration } from './github-app.ts';
 import { createReviewArtifacts } from './review.ts';
 import { digest, isObject } from './specifications.ts';
 import { PipelineInputError } from './types.ts';
 import type { validateMigration } from './validation.ts';
 
-const REQUEST_TIMEOUT_MS = 30_000;
-const MAX_RESPONSE_BYTES = 2 * 1024 * 1024;
 const MAX_BODY_CHARACTERS = 60_000;
 const SHA = /^[a-f0-9]{40}$/;
 const REPOSITORY = /^[A-Za-z0-9][A-Za-z0-9-]*\/[A-Za-z0-9_.-]+$/;
 const BRANCH =
   /^(?!\/)(?!.*(?:\.\.|@\{|\/\/|\.lock(?:\/|$)))[^\s~^:?*\[\\\x00-\x1f\x7f]+(?<![/.])$/;
 type Report = Awaited<ReturnType<typeof validateMigration>>;
+type PublicationConfiguration = { repository: string; base: string } & (
+  { token: string; app?: never } | { app: GitHubAppConfiguration; token?: never }
+);
 
 export function publicationConfiguration(
   repository: string | undefined,
   base: string | undefined,
   token: string | undefined,
-) {
+  app?: GitHubAppConfiguration,
+): PublicationConfiguration {
   if (
     !repository ||
     !REPOSITORY.test(repository) ||
@@ -29,21 +32,10 @@ export function publicationConfiguration(
     throw new PipelineInputError(
       'Draft publication requires --github owner/repository and a valid --base branch.',
     );
-  if (!token?.trim()) throw new PipelineInputError('Draft publication requires GITHUB_TOKEN.');
+  if (app) return { repository, base, app };
+  if (!token?.trim())
+    throw new PipelineInputError('Draft publication requires GITHUB_TOKEN or --github-app.');
   return { repository, base, token: token.trim() };
-}
-
-class GitHubRequestError extends Error {
-  override name = 'GitHubRequestError';
-  constructor(
-    readonly status: number,
-    method: string,
-    path: string,
-  ) {
-    super(
-      `GitHub ${method} ${path.split('?')[0]} failed with HTTP ${status}. Publication may be partially complete; rerun to reconcile the migration branch.`,
-    );
-  }
 }
 
 function sha(value: unknown): string {
@@ -71,29 +63,17 @@ export async function publishDraft(
       'Draft publication requires passing baseline/patched checks, changed files and zero unresolved findings.',
     );
   const revision = sha(report.validation.revision);
-  const branch = `refit/${digest(`${report.runId}:${report.validation.patchHash}`).slice(0, 32)}`;
+  const authentication = options.app
+    ? await authenticateGitHubApp(options.app, options.repository)
+    : undefined;
+  const token = authentication?.token ?? options.token;
+  if (!token) throw new PipelineInputError('GitHub publication credentials are unavailable.');
+  const identity = authentication ? `:app:${authentication.publisher.appId}` : '';
+  const branch = `refit/${digest(`${report.runId}:${report.validation.patchHash}${identity}`).slice(0, 32)}`;
   if (branch === options.base)
     throw new PipelineInputError('Migration branch cannot be the base branch.');
-  const root = `https://api.github.com/repos/${options.repository}`;
-  const request = async (method: string, path: string, body?: unknown): Promise<unknown> => {
-    const response = await fetch(`${root}${path}`, {
-      method,
-      redirect: 'error',
-      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
-      headers: {
-        Authorization: `Bearer ${options.token}`,
-        Accept: 'application/vnd.github+json',
-        'Content-Type': 'application/json',
-        'X-GitHub-Api-Version': '2026-03-10',
-      },
-      body: body === undefined ? undefined : JSON.stringify(body),
-    });
-    if (!response.ok) {
-      await response.body?.cancel();
-      throw new GitHubRequestError(response.status, method, path);
-    }
-    return JSON.parse(await readBoundedResponse(response, MAX_RESPONSE_BYTES, 'GitHub'));
-  };
+  const request = (method: 'GET' | 'POST', path: string, body?: unknown) =>
+    requestGitHub(token, method, `/repos/${options.repository}${path}`, body);
   const reference = async (name: string, optional = false) => {
     try {
       const result = object(await request('GET', `/git/ref/heads/${encodeURIComponent(name)}`));
@@ -135,6 +115,9 @@ export async function publishDraft(
           message: `fix: migrate affected ${report.provider} API usage`,
           tree,
           parents: [revision],
+          ...(authentication
+            ? { author: authentication.author, committer: authentication.author }
+            : {}),
         }),
       ).sha,
     );
@@ -203,7 +186,8 @@ export async function publishDraft(
     object(pull.base).ref !== options.base ||
     typeof pull.draft !== 'boolean' ||
     (pull.state !== 'open' && pull.state !== 'closed') ||
-    (!reused && !pull.draft)
+    (!reused && !pull.draft) ||
+    (authentication && object(pull.user).login !== authentication.publisher.login)
   )
     throw new PipelineInputError(
       'GitHub pull request response does not match the requested migration. Inspect the remote branch before retrying.',
@@ -218,5 +202,6 @@ export async function publishDraft(
     revision,
     head,
     reviewRequired: true,
+    ...(authentication ? { publisher: authentication.publisher } : {}),
   };
 }

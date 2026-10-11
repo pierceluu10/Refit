@@ -5,4 +5,7 @@ dist-cli/
 .DS_Store
 .env
 .env.local
+.env.*
+!.env.example
+*.pem
 .impeccable/review/

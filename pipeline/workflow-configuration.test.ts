@@ -149,3 +149,32 @@ it('preserves existing environment values and rejects duplicate or missing envir
     execute(process.execPath, [bin, 'replay', '--env', join(root, 'missing.env')]),
   ).rejects.toMatchObject({ code: 1, stderr: expect.stringContaining('ENOENT') });
 });
+
+it('requires explicit publication and complete app configuration before starting an AI workflow', async () => {
+  const { root, path } = await setup();
+  const arguments_ = [
+    bin,
+    'run',
+    '--config',
+    path,
+    '--output',
+    join(root, 'evidence'),
+    '--github-app',
+  ];
+  await expect(execute(process.execPath, arguments_)).rejects.toMatchObject({
+    code: 1,
+    stderr: expect.stringContaining('require --publish-draft'),
+  });
+  await expect(
+    execute(
+      process.execPath,
+      [...arguments_, '--publish-draft', '--github', 'example/application', '--base', 'main'],
+      {
+        env: { ...process.env, GITHUB_APP_ID: '', GITHUB_APP_PRIVATE_KEY_FILE: '' },
+      },
+    ),
+  ).rejects.toMatchObject({ code: 1, stderr: expect.stringContaining('GITHUB_APP_ID') });
+  await expect(readFile(join(root, 'evidence/manifest.json'))).rejects.toMatchObject({
+    code: 'ENOENT',
+  });
+});

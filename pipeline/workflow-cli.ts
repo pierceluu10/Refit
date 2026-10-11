@@ -5,9 +5,10 @@ import { PipelineInputError } from './types.ts';
 import { runWorkflow } from './workflow.ts';
 import { parseCheckCommand } from './validation-options.ts';
 import { readWorkflowConfiguration } from './workflow-configuration.ts';
+import { githubAppConfiguration } from './github-app.ts';
 
 const USAGE =
-  'Usage: refit run --config <run.json> --output <new-directory-outside-repository>\n   or: refit run --repository <clean-git-directory> --before <spec.json> (--after <spec.json> | --latest-stripe) --output <new-directory-outside-repository> --image <local-image> --command \'["npm","test"]\'\nOptional: [--env <.env>] [--quiet] [--provider-config <adapter.json>] [--assess] [--ai-patch] [--repair-attempts 0|1|2 (sends failed check output to OpenAI)] [--publish-draft --github owner/repository --base main]';
+  'Usage: refit run --config <run.json> --output <new-directory-outside-repository>\n   or: refit run --repository <clean-git-directory> --before <spec.json> (--after <spec.json> | --latest-stripe) --output <new-directory-outside-repository> --image <local-image> --command \'["npm","test"]\'\nOptional: [--env <.env>] [--quiet] [--provider-config <adapter.json>] [--assess] [--ai-patch] [--repair-attempts 0|1|2 (sends failed check output to OpenAI)] [--publish-draft --github owner/repository --base main [--github-app]]';
 
 try {
   const { values } = parseArgs({
@@ -27,6 +28,7 @@ try {
       'ai-patch': { type: 'boolean' },
       'repair-attempts': { type: 'string' },
       'publish-draft': { type: 'boolean' },
+      'github-app': { type: 'boolean' },
       github: { type: 'string' },
       base: { type: 'string' },
       help: { type: 'boolean' },
@@ -47,8 +49,8 @@ try {
       values.command === undefined ? configuration?.command : parseCheckCommand(values.command);
     if (!repository || !before || !values.output || !image || !command)
       throw new PipelineInputError(`Missing run inputs.\n${USAGE}`);
-    if (!values['publish-draft'] && (values.github || values.base))
-      throw new PipelineInputError('--github and --base require --publish-draft.');
+    if (!values['publish-draft'] && (values.github || values.base || values['github-app']))
+      throw new PipelineInputError('--github, --base and --github-app require --publish-draft.');
     const specificationOverride =
       values.after !== undefined || values['latest-stripe'] !== undefined;
     const result = await runWorkflow({
@@ -68,7 +70,12 @@ try {
       aiPatch: assessmentConfiguration(values['ai-patch'], process.env),
       repairAttempts: Number(values['repair-attempts'] ?? 0),
       publication: values['publish-draft']
-        ? publicationConfiguration(values.github, values.base, process.env.GITHUB_TOKEN)
+        ? publicationConfiguration(
+            values.github,
+            values.base,
+            process.env.GITHUB_TOKEN,
+            values['github-app'] ? githubAppConfiguration(process.env) : undefined,
+          )
         : undefined,
       onProgress: values.quiet ? undefined : (message) => console.error(`[refit] ${message}`),
     });

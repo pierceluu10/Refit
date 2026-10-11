@@ -6,9 +6,10 @@ import { writeReviewBundle } from './review.ts';
 import { assessmentConfiguration } from './assessment.ts';
 import { publicationConfiguration, publishDraft } from './publication.ts';
 import { parseCheckCommand } from './validation-options.ts';
+import { githubAppConfiguration } from './github-app.ts';
 
 const USAGE =
-  'Usage: refit validate --repository <clean-git-directory> --before <spec.json> --after <spec.json> [--provider-config <adapter.json>] --image <local-image> --command \'["npm","test"]\' [--output <new-report.json> | --bundle <new-directory>] [--assess (sends selected source context to OpenAI)] [--ai-patch (sends affected source files to OpenAI)] [--repair-attempts 0|1|2 (sends failed check output to OpenAI)] [--publish-draft --github owner/repository --base main (uses GITHUB_TOKEN)]';
+  'Usage: refit validate --repository <clean-git-directory> --before <spec.json> --after <spec.json> [--provider-config <adapter.json>] --image <local-image> --command \'["npm","test"]\' [--output <new-report.json> | --bundle <new-directory>] [--assess (sends selected source context to OpenAI)] [--ai-patch (sends affected source files to OpenAI)] [--repair-attempts 0|1|2 (sends failed check output to OpenAI)] [--publish-draft --github owner/repository --base main (uses GITHUB_TOKEN or --github-app)]';
 
 try {
   const { values } = parseArgs({
@@ -27,6 +28,7 @@ try {
       'provider-config': { type: 'string' },
       help: { type: 'boolean' },
       'publish-draft': { type: 'boolean' },
+      'github-app': { type: 'boolean' },
       github: { type: 'string' },
       base: { type: 'string' },
     },
@@ -47,10 +49,15 @@ try {
   } else {
     if (values.output && values.bundle)
       throw new PipelineInputError('Choose either --output or --bundle, not both.');
-    if (!values['publish-draft'] && (values.github || values.base))
-      throw new PipelineInputError('--github and --base require --publish-draft.');
+    if (!values['publish-draft'] && (values.github || values.base || values['github-app']))
+      throw new PipelineInputError('--github, --base and --github-app require --publish-draft.');
     const publication = values['publish-draft']
-      ? publicationConfiguration(values.github, values.base, process.env.GITHUB_TOKEN)
+      ? publicationConfiguration(
+          values.github,
+          values.base,
+          process.env.GITHUB_TOKEN,
+          values['github-app'] ? githubAppConfiguration(process.env) : undefined,
+        )
       : undefined;
     const command = parseCheckCommand(values.command);
     const report = await validateMigration({

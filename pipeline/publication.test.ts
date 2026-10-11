@@ -5,6 +5,7 @@ import { publicationConfiguration, publishDraft } from './publication.ts';
 import { runPipeline } from './run.ts';
 import { digest } from './specifications.ts';
 import type { validateMigration } from './validation.ts';
+import * as githubApp from './github-app.ts';
 
 const REVISION = 'a'.repeat(40);
 const BASE_TREE = 'b'.repeat(40);
@@ -67,6 +68,7 @@ function github() {
     racePull: false,
     moveBaseOnCommit: false,
     moveHeadOnPullList: false,
+    author: 'example',
   };
   const calls: { method: string; path: string; body: Record<string, unknown> }[] = [];
   const fetch = vi.fn(async (input: string, options: RequestInit) => {
@@ -120,6 +122,7 @@ function github() {
         base: { ref: 'main' },
         draft: true,
         state: 'open',
+        user: { login: state.author },
       };
       return response(state.pull, state.racePull ? 422 : 201);
     }
@@ -249,4 +252,47 @@ it('requires explicit valid target and credentials', () => {
   );
   expect(() => publicationConfiguration('owner/repo', 'x/../main', 'secret')).toThrow(/--base/);
   expect(() => publicationConfiguration('owner/repo', 'main', '')).toThrow(/GITHUB_TOKEN/);
+});
+
+it('publishes with the verified app identity on a separate branch from personal-token runs', async () => {
+  const remote = github();
+  remote.state.author = 'refit-agent[bot]';
+  const authentication = vi.spyOn(githubApp, 'authenticateGitHubApp').mockResolvedValue({
+    token: 'test-token',
+    author: { name: 'Refit Agent', email: '123+refit-agent[bot]@users.noreply.github.com' },
+    publisher: { kind: 'github-app', appId: 123, name: 'Refit Agent', login: 'refit-agent[bot]' },
+  });
+  const value = await report();
+  const app = { appId: '123', privateKeyFile: '/private/key.pem' };
+  const result = await publishDraft(
+    value,
+    publicationConfiguration('example/application', 'main', 'ignored-personal-token', app),
+  );
+  expect(authentication).toHaveBeenCalledWith(app, 'example/application');
+  expect(result.publisher?.login).toBe('refit-agent[bot]');
+  expect(result.branch).not.toBe(
+    `refit/${digest(`${value.runId}:${value.validation.patchHash}`).slice(0, 32)}`,
+  );
+  expect(remote.calls.find((call) => call.path === '/git/commits')?.body).toMatchObject({
+    author: { name: 'Refit Agent', email: '123+refit-agent[bot]@users.noreply.github.com' },
+    committer: { name: 'Refit Agent', email: '123+refit-agent[bot]@users.noreply.github.com' },
+  });
+  expect(JSON.stringify(result)).not.toContain('test-token');
+  expect(JSON.stringify(remote.calls)).not.toContain('ignored-personal-token');
+});
+
+it('does not authenticate an app until the candidate passes the existing publication gates', async () => {
+  const authenticate = vi.spyOn(githubApp, 'authenticateGitHubApp');
+  const value = await report();
+  value.validation.status = value.patch.validation = 'regression';
+  await expect(
+    publishDraft(
+      value,
+      publicationConfiguration('example/application', 'main', undefined, {
+        appId: '123',
+        privateKeyFile: '/unused.pem',
+      }),
+    ),
+  ).rejects.toThrow('passing baseline');
+  expect(authenticate).not.toHaveBeenCalled();
 });
