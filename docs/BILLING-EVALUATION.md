@@ -57,7 +57,7 @@ With that image prepared and the billing demo in the adjacent repository, the ch
 node bin/refit.mjs run --config examples/billing-demo.refit.json --output /tmp/new-billing-review
 ```
 
-Add `--env-file .env --ai-patch --repair-attempts 1` to evaluate live OpenAI proposals. Add `--publish-draft --github pierceluu10/refit-billing-demo --base main` with `GITHUB_TOKEN` configured to publish after validation. The [October 11 evaluation](PR-EVALUATION.md) records a real draft PR and a successful bounded repair. The original billing repository remains unchanged for repeat runs.
+Add `--env .env --ai-patch --repair-attempts 1` to evaluate live OpenAI proposals. Add `--publish-draft --github pierceluu10/refit-billing-demo --base main` with `GITHUB_TOKEN` configured to publish after validation. The [October 11 evaluation](PR-EVALUATION.md) records a real draft PR and a successful bounded repair. The original billing repository remains unchanged for repeat runs.
 
 ## Supported boundaries
 

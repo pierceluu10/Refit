@@ -47,7 +47,7 @@ it('runs from another directory using paths relative to the configuration and ex
         'run',
         '--config',
         path,
-        '--env-file',
+        '--env',
         environment,
         '--output',
         join(root, 'evidence'),
@@ -128,7 +128,7 @@ it('preserves existing environment values and rejects duplicate or missing envir
         'run',
         '--config',
         path,
-        `--env-file=${environment}`,
+        `--env=${environment}`,
         '--output',
         join(root, 'evidence'),
         '--ai-patch',
@@ -141,17 +141,17 @@ it('preserves existing environment values and rejects duplicate or missing envir
   await expect(
     execute(process.execPath, [
       bin,
-      '--env-file',
+      '--env',
       environment,
       'replay',
-      `--env-file=${environment}`,
+      `--env=${environment}`,
     ]),
   ).rejects.toMatchObject({ code: 1, stderr: expect.stringContaining('only once') });
-  await expect(execute(process.execPath, [bin, 'replay', '--env-file'])).rejects.toMatchObject({
+  await expect(execute(process.execPath, [bin, 'replay', '--env'])).rejects.toMatchObject({
     code: 1,
     stderr: expect.stringContaining('requires a file path'),
   });
   await expect(
-    execute(process.execPath, [bin, 'replay', '--env-file', join(root, 'missing.env')]),
+    execute(process.execPath, [bin, 'replay', '--env', join(root, 'missing.env')]),
   ).rejects.toMatchObject({ code: 1, stderr: expect.stringContaining('ENOENT') });
 });

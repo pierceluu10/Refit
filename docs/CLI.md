@@ -4,7 +4,7 @@ Refit compares API specifications with local TypeScript/JavaScript usage, propos
 
 Requires Node.js 22.12+ or a supported newer release. Scanning needs no API key or Docker. Validation additionally requires Git, tar, a running Docker daemon, and a prebuilt local image containing your check dependencies.
 
-Pass `--env-file .env` to any command to load environment variables explicitly, including with an installed `refit` executable. Existing environment values take precedence. Refit does not automatically load files from the scanned repository. Keep credentials outside committed configuration files.
+Pass `--env .env` to any command to load environment variables explicitly, including with an installed `refit` executable. Existing environment values take precedence. Refit does not automatically load files from the scanned repository. Keep credentials outside committed configuration files.
 
 ```sh
 refit --help
@@ -49,7 +49,7 @@ Save the reusable inputs in a JSON run configuration to avoid repeating long com
 
 ```sh
 refit run --config ./run.json --output /tmp/new-refit-run
-refit run --env-file .env --config ./run.json --output /tmp/new-refit-ai-run --ai-patch
+refit run --env .env --config ./run.json --output /tmp/new-refit-ai-run --ai-patch
 ```
 
 Paths in the configuration are relative to its file; explicit CLI paths remain relative to your current directory. CLI values override configuration values. An explicit `--after` or `--latest-stripe` replaces the configured specification choice. Optional fields are `baselineCommand`, `providerConfig` and `latestStripe` (use it instead of `after`). Commands are argument arrays and run from the application root inside Docker; the image must already supply their dependencies. Unknown fields and files over 64 KiB are rejected. Output must always be supplied on the command line as a fresh directory. AI, repair and publication also require explicit CLI flags; configuration cannot enable them or contain credentials. This format is separate from the illustrative website's `refit.yml` export.
