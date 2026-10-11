@@ -21,7 +21,7 @@ From the Refit checkout, with the independent billing repository and prepared hi
 
 ```sh
 refit run --env .env --config examples/billing-demo.refit.json \
-  --output /tmp/refit-app-demo-001 --ai-patch --repair-attempts 1 \
+  --output /tmp/refit-app-demo-001 --ai-patch --repair-attempts 2 \
   --publish-draft --github pierceluu10/refit-billing-demo --base main --github-app
 ```
 
@@ -33,4 +33,6 @@ The commit uses the verified App bot's GitHub noreply email for author and commi
 
 ## Verification boundary
 
-Tests verify real RSA signatures and controlled GitHub responses, expiry/scope/identity checks, rejection before publication, App commit attribution and separation from personal-token branches. The existing personal-token live PR remains verified. A live App-authored PR additionally requires the registered App, installed permissions and local private key; controlled-response tests do not establish that those external settings exist.
+On October 11, 2026, the installed CLI created [draft PR #2](https://github.com/pierceluu10/refit-billing-demo/pull/2) as `refit-agent[bot]` using the registered **Refit Agent** App (ID `5275879`, owned by `refit-dev`) and its installation on the billing repository. GitHub confirmed the bot as both PR author and commit author/committer. The live OpenAI proposal passed offline Docker validation, and a separate download of the remote commit passed both simulator contracts, TypeScript, pagination/empty-history checks and both billing demos.
+
+Tests also verify RSA signatures, controlled GitHub responses, expiry/scope/identity checks, rejection before publication and separation from personal-token branches. The full gated Refit suite passed 263 tests with none skipped. This verifies a manually triggered CLI run through one installed App; installing the App does not start a hosted worker, webhook processing or scheduled monitoring. Stripe traffic in this evaluation was simulated; OpenAI and GitHub requests were live.
