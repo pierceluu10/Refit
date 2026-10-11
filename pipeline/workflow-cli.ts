@@ -4,13 +4,15 @@ import { publicationConfiguration } from './publication.ts';
 import { PipelineInputError } from './types.ts';
 import { runWorkflow } from './workflow.ts';
 import { parseCheckCommand } from './validation-options.ts';
+import { readWorkflowConfiguration } from './workflow-configuration.ts';
 
 const USAGE =
-  'Usage: refit run --repository <clean-git-directory> --before <spec.json> (--after <spec.json> | --latest-stripe) --output <new-directory-outside-repository> --image <local-image> --command \'["npm","test"]\' [--provider-config <adapter.json>] [--assess] [--ai-patch] [--repair-attempts 0|1|2 (sends failed check output to OpenAI)] [--publish-draft --github owner/repository --base main]';
+  'Usage: refit run --config <run.json> --output <new-directory-outside-repository>\n   or: refit run --repository <clean-git-directory> --before <spec.json> (--after <spec.json> | --latest-stripe) --output <new-directory-outside-repository> --image <local-image> --command \'["npm","test"]\'\nOptional: [--env-file <.env>] [--provider-config <adapter.json>] [--assess] [--ai-patch] [--repair-attempts 0|1|2 (sends failed check output to OpenAI)] [--publish-draft --github owner/repository --base main]';
 
 try {
   const { values } = parseArgs({
     options: {
+      config: { type: 'string' },
       repository: { type: 'string' },
       before: { type: 'string' },
       after: { type: 'string' },
@@ -33,32 +35,34 @@ try {
     console.log(
       `${USAGE}\nOptional --baseline-command '<JSON array>' overrides only the baseline check. Both commands are recorded; review their contract differences.`,
     );
-  else if (
-    !values.repository ||
-    !values.before ||
-    !values.output ||
-    !values.image ||
-    !values.command
-  ) {
-    console.error(USAGE);
-    process.exitCode = 1;
-  } else {
+  else {
+    const configuration = values.config
+      ? await readWorkflowConfiguration(values.config)
+      : undefined;
+    const repository = values.repository ?? configuration?.repository;
+    const before = values.before ?? configuration?.before;
+    const image = values.image ?? configuration?.image;
+    const command =
+      values.command === undefined ? configuration?.command : parseCheckCommand(values.command);
+    if (!repository || !before || !values.output || !image || !command)
+      throw new PipelineInputError(`Missing run inputs.\n${USAGE}`);
     if (!values['publish-draft'] && (values.github || values.base))
       throw new PipelineInputError('--github and --base require --publish-draft.');
-    const command = parseCheckCommand(values.command);
+    const specificationOverride =
+      values.after !== undefined || values['latest-stripe'] !== undefined;
     const result = await runWorkflow({
-      repository: values.repository,
-      before: values.before,
-      after: values.after,
-      latestStripe: values['latest-stripe'],
+      repository,
+      before,
+      after: specificationOverride ? values.after : configuration?.after,
+      latestStripe: specificationOverride ? values['latest-stripe'] : configuration?.latestStripe,
       output: values.output,
-      image: values.image,
+      image,
       command,
       baselineCommand:
         values['baseline-command'] !== undefined
           ? parseCheckCommand(values['baseline-command'], '--baseline-command')
-          : undefined,
-      providerConfig: values['provider-config'],
+          : configuration?.baselineCommand,
+      providerConfig: values['provider-config'] ?? configuration?.providerConfig,
       assessment: assessmentConfiguration(values.assess, process.env),
       aiPatch: assessmentConfiguration(values['ai-patch'], process.env),
       repairAttempts: Number(values['repair-attempts'] ?? 0),

@@ -2,6 +2,7 @@
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { tsImport } from 'tsx/esm/api';
+import { parseEnv } from 'node:util';
 
 const commands = new Map([
   ['scan', 'cli.ts'],
@@ -27,11 +28,28 @@ Usage: refit <command> [options]
   verify           Verify hashes and sizes in a saved evidence directory
 
 Use refit <command> --help for command options.
+Use --env-file <path> to load credentials explicitly. Existing environment values take precedence.
 --version prints the installed version. --help prints this guide.
 AI, repair and publication are explicit opt-ins. Run never auto-merges.
 `;
-const command = process.argv[2];
 try {
+  const environmentOptions = process.argv
+    .slice(2)
+    .map((argument, index) => ({ argument, index: index + 2 }))
+    .filter(({ argument }) => argument === '--env-file' || argument.startsWith('--env-file='));
+  if (environmentOptions.length > 1) throw new TypeError('Supply --env-file only once.');
+  if (environmentOptions.length) {
+    const { argument, index } = environmentOptions[0];
+    const separateValue = argument === '--env-file';
+    const path = separateValue ? process.argv[index + 1] : argument.slice('--env-file='.length);
+    if (!path || path.startsWith('--')) throw new TypeError('--env-file requires a file path.');
+    process.argv.splice(index, separateValue ? 2 : 1);
+    const environment = parseEnv(await readFile(path, 'utf8'));
+    for (const [name, value] of Object.entries(environment)) {
+      if (process.env[name] === undefined) process.env[name] = value;
+    }
+  }
+  const command = process.argv[2];
   if (!command || command === '--help' || command === '-h') console.log(usage);
   else if (command === '--version') {
     const metadata = JSON.parse(

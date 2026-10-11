@@ -4,6 +4,8 @@ Refit compares API specifications with local TypeScript/JavaScript usage, propos
 
 Requires Node.js 22.12+ or a supported newer release. Scanning needs no API key or Docker. Validation additionally requires Git, tar, a running Docker daemon, and a prebuilt local image containing your check dependencies.
 
+Pass `--env-file .env` to any command to load environment variables explicitly, including with an installed `refit` executable. Existing environment values take precedence. Refit does not automatically load files from the scanned repository. Keep credentials outside committed configuration files.
+
 ```sh
 refit --help
 refit --version
@@ -31,6 +33,28 @@ refit run --repository /path/to/clean-git-repo \
 ```
 
 By default, validation executes `--command` for both baseline and patched code. If migrating between distinct test contracts, pass `--baseline-command '["node","contract.mjs","before"]'` with `--command '["node","contract.mjs","after"]'`. Both are recorded in the report and draft text and run under identical isolation limits. Different commands do not establish equivalent regression coverage; reviewers must inspect both contracts. AI repair only reruns the patched command and never changes these configured commands.
+
+Save the reusable inputs in a JSON run configuration to avoid repeating long commands:
+
+```json
+{
+  "formatVersion": 1,
+  "repository": "./application",
+  "before": "./specifications/before.json",
+  "after": "./specifications/after.json",
+  "image": "application-checks:local",
+  "command": ["npm", "test"]
+}
+```
+
+```sh
+refit run --config ./run.json --output /tmp/new-refit-run
+refit run --env-file .env --config ./run.json --output /tmp/new-refit-ai-run --ai-patch
+```
+
+Paths in the configuration are relative to its file; explicit CLI paths remain relative to your current directory. CLI values override configuration values. An explicit `--after` or `--latest-stripe` replaces the configured specification choice. Optional fields are `baselineCommand`, `providerConfig` and `latestStripe` (use it instead of `after`). Commands are argument arrays and run from the application root inside Docker; the image must already supply their dependencies. Unknown fields and files over 64 KiB are rejected. Output must always be supplied on the command line as a fresh directory. AI, repair and publication also require explicit CLI flags; configuration cannot enable them or contain credentials. This format is separate from the illustrative website's `refit.yml` export.
+
+The Refit checkout includes `examples/billing-demo.refit.json` for the adjacent independent billing demo and its prepared history-check image. See [billing evaluation](https://github.com/pierceluu10/refit-billing-demo) for the application; these are simulated Stripe contracts.
 
 Discover current Stripe specifications or check against a retained baseline:
 

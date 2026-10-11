@@ -51,6 +51,14 @@ The output directory must not exist. Review `migration.patch`, `report.json`, an
 
 The expanded image also checks multi-page and empty history inside the validation containers. To evaluate a saved AI patch with the independent integration test, set `REFIT_BILLING_PATCH` to its absolute `migration.patch` path alongside `REFIT_BILLING_REPOSITORY`. The test uses the supplied patch instead of the deterministic proposal; it makes no AI calls itself. See [live AI evaluation](AI-EVALUATION.md).
 
+With that image prepared and the billing demo in the adjacent repository, the checkout's saved configuration shortens the same command:
+
+```sh
+node bin/refit.mjs run --config examples/billing-demo.refit.json --output /tmp/new-billing-review
+```
+
+Add `--env-file .env --ai-patch --repair-attempts 1` to evaluate live OpenAI proposals. Add `--publish-draft --github pierceluu10/refit-billing-demo --base main` with `GITHUB_TOKEN` configured to publish after validation. The [October 11 evaluation](PR-EVALUATION.md) records a real draft PR and a successful bounded repair. The original billing repository remains unchanged for repeat runs.
+
 ## Supported boundaries
 
 Wrapper tracing accepts a top-level function with exactly one required parameter and a body containing only a return of one mapped SDK call using that parameter. Direct relative named imports are supported. Extra arguments, defaults, transformations, wrapper chains, re-exports, namespace imports, mutation and client escape prevent confirmation or require review.
