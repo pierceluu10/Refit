@@ -160,7 +160,7 @@ Only a passing baseline and an ordinary failing patched check can trigger repair
 
 The report includes every tested diff, its hash, check output, response ID, and the repair count/stop reason. The final patch and publication files always correspond to the last tested candidate. Publication still requires passing checks, zero unresolved detected findings and a matching remote base. This is bounded proposal regeneration, not an agent with unrestricted tools or a guarantee that the model preserves semantics.
 
-Tests cover controlled model output through actual Docker validation. Live generation quality remains unverified, and semantic review is required even when tests pass.
+Tests cover controlled model output through actual Docker validation. The [live PR evaluation](docs/PR-EVALUATION.md) also verified one model repair after a pagination failure. This does not establish broader generation quality; semantic review remains required.
 
 ### Propose a migration
 

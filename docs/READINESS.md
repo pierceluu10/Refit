@@ -4,7 +4,7 @@
 
 **Subsequent October 9 AI evaluation:** a live `gpt-5.4-mini` proposal passed both billing suites, TypeScript, multi-page and empty-history checks in Docker after earlier rejected and semantically incomplete proposals. See [AI evaluation](AI-EVALUATION.md) for the full outcomes and evidence paths. A subsequent [October 11 evaluation](PR-EVALUATION.md) verified a live AI repair and draft PR publication.
 
-**October 11 update:** Refit created [draft PR #1](https://github.com/pierceluu10/refit-billing-demo/pull/1) in the private billing demo repository. Its first live AI candidate lost pagination; the extra check rejected it, one bounded repair passed, and only the repaired candidate was published. The downloaded remote branch independently passed both 14-test contracts, TypeScript, multi-page and empty-history checks, and the CLI demo. The full gated Refit suite passed 244 tests with none skipped. Original application files remain unchanged. This does not verify Stripe servers, arbitrary applications or a hosted product.
+**October 11 update:** Refit created [draft PR #1](https://github.com/pierceluu10/refit-billing-demo/pull/1) in the private billing demo repository. Its first live AI candidate lost pagination; the extra check rejected it, one bounded repair passed, and only the repaired candidate was published. The downloaded remote branch independently passed both 14-test contracts, TypeScript, multi-page and empty-history checks, and the CLI demo. The full gated Refit suite passed 244 tests with none skipped. The CLI now accepts saved JSON run inputs and explicit `--env` loading, reports progress on stderr and retains JSON stdout. The updated full suite passed 249 tests with none skipped; build and formatting passed. An archive was installed globally and its `refit run --config` command validated the billing app from another directory. Original application files remain unchanged. This does not verify Stripe servers, arbitrary applications or a hosted product.
 
 Refit has a working local migration pipeline and a reproducible real-SDK demo. It is not yet a hosted agent that continuously monitors arbitrary APIs or an application tested against a production repository.
 
@@ -14,11 +14,11 @@ Refit has a working local migration pipeline and a reproducible real-SDK demo. I
 | --- | --- | --- |
 | Ingest specification changes | Pinned Stripe downloads, latest-revision discovery, hash-checked snapshots and historical upstream replay | Stripe downloading only; generic adapters consume supplied OpenAPI JSON |
 | Find affected code | AST/symbol tests, direct relative imported clients, alias/mutation/escape tests and npm lock evidence | Direct removed properties and bounded ESM patterns; no complete OpenAPI differ or interprocedural analysis |
-| Generate a migration | Deterministic PaymentIntent charge-history patch, exact scoped AI replacement checks | One deterministic Stripe rule; live AI quality not verified |
+| Generate a migration | Deterministic PaymentIntent charge-history patch, exact scoped AI replacement checks | One deterministic Stripe rule and authored live AI evaluation; broader reliability remains unverified |
 | Validate in isolation | Actual offline Docker tests, baseline failure and regression gates, bounded repair attempts, stale-revision checks | Caller supplies meaningful checks and local dependencies/image; no hosted execution service |
 | Demonstrate the loop | `refit demo` uses real Stripe 10.17.0, an imported client, a simulated HTTP API, old-code failure and patched success in Docker | Synthetic application and API responses; no Stripe service or production application |
 | Preserve review evidence | Reports, diff, draft PR text and hash manifests; `refit verify` validates declared artifact bytes | Unsigned integrity evidence is not authenticity or proof of test quality |
-| Publish a draft PR | Controlled GitHub API and combined Docker workflow tests cover publication gates, collisions and reuse | No live remote publication verified; no auto-merge |
+| Publish a draft PR | Controlled GitHub API tests plus a live billing-demo draft PR cover publication | One test repository; no auto-merge |
 | Install independently | npm archive installed into a disposable prefix; executable, replay and command help run outside checkout | Local archive only; no npm registry release |
 | Explain the product | Existing landing page, walkthrough, docs and sample workspace build and frontend tests pass | Workspace remains illustrative and is not connected to the CLI |
 
