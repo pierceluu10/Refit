@@ -69,6 +69,7 @@ else {
         .replaceAll('](AUTOMATION.md)', '](docs/AUTOMATION.md)')
         .replaceAll('](LOCAL-SERVICE.md)', '](docs/LOCAL-SERVICE.md)')
         .replaceAll('](DEPENDENCIES.md)', '](docs/DEPENDENCIES.md)')
+        .replaceAll('](ENDPOINT-MIGRATIONS.md)', '](docs/ENDPOINT-MIGRATIONS.md)')
         .replaceAll('](../examples/', '](examples/'),
     );
     await copyFile(join(root, '.env.example'), join(stage, '.env.example'));
@@ -83,6 +84,7 @@ else {
       'AUTOMATION.md',
       'LOCAL-SERVICE.md',
       'DEPENDENCIES.md',
+      'ENDPOINT-MIGRATIONS.md',
       'READINESS.md',
       'AI-EVALUATION.md',
       'PR-EVALUATION.md',
