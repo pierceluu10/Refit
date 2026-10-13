@@ -1,4 +1,5 @@
 import { parse } from 'parse5';
+import { XMLParser, XMLValidator } from 'fast-xml-parser';
 import { digest, isObject } from './specifications.ts';
 import { fetchSpecificationResponse, readBoundedResponse } from './network.ts';
 import { PipelineInputError } from './types.ts';
@@ -8,6 +9,21 @@ export const MAX_DOCUMENTATION_BYTES = 1024 * 1024;
 export const MAX_DOCUMENTATION_SOURCES = 8;
 const HTML_CONTENT_TYPES = new Set(['text/html', 'application/xhtml+xml']);
 const TEXT_CONTENT_TYPES = new Set(['text/plain', 'text/markdown', 'text/x-markdown']);
+const FEED_CONTENT_TYPES = new Set([
+  'application/atom+xml',
+  'application/rss+xml',
+  'application/xml',
+  'text/xml',
+]);
+const MAX_DOCUMENTATION_FEED_ENTRIES = 250;
+const XML_ENTITY_LIMITS = {
+  enabled: true,
+  maxEntitySize: 1024,
+  maxExpansionDepth: 4,
+  maxTotalExpansions: MAX_DOCUMENTATION_BYTES,
+  maxExpandedLength: MAX_DOCUMENTATION_BYTES,
+  maxEntityCount: 100,
+};
 const IGNORED_TAGS = new Set([
   'script',
   'style',
@@ -165,7 +181,9 @@ export async function captureDocumentation(
   const contentType = response.headers.get('content-type')?.split(';', 1)[0]?.trim().toLowerCase();
   if (
     !contentType ||
-    (!HTML_CONTENT_TYPES.has(contentType) && !TEXT_CONTENT_TYPES.has(contentType))
+    (!HTML_CONTENT_TYPES.has(contentType) &&
+      !TEXT_CONTENT_TYPES.has(contentType) &&
+      !FEED_CONTENT_TYPES.has(contentType))
   ) {
     await response.body?.cancel();
     throw new PipelineInputError('Documentation sources must return HTML, Markdown or plain text.');
@@ -176,7 +194,11 @@ export async function captureDocumentation(
     'Documentation source',
   );
   const content = normalizeContent(
-    HTML_CONTENT_TYPES.has(contentType) ? htmlToText(sourceContent) : sourceContent,
+    HTML_CONTENT_TYPES.has(contentType)
+      ? htmlToText(sourceContent)
+      : FEED_CONTENT_TYPES.has(contentType)
+        ? feedToText(sourceContent)
+        : sourceContent,
   );
   if (!content) throw new PipelineInputError('Documentation source contains no visible text.');
   const hash = digest(content);
@@ -225,6 +247,113 @@ function htmlToText(html: string) {
       pending.push({ node: child, closing: false });
   }
   return output.join('');
+}
+
+function feedToText(xml: string) {
+  const content = xml.replace(/^\uFEFF/, '');
+  if (/<!DOCTYPE\b|<!ENTITY\b/i.test(content))
+    throw new PipelineInputError('Documentation feeds cannot declare custom XML entities.');
+  if (XMLValidator.validate(content) !== true)
+    throw new PipelineInputError('Documentation feed contains malformed XML.');
+
+  let parsed: unknown;
+  try {
+    parsed = new XMLParser({
+      ignoreAttributes: false,
+      attributeNamePrefix: '@_',
+      parseTagValue: false,
+      trimValues: true,
+      processEntities: XML_ENTITY_LIMITS,
+    }).parse(content);
+  } catch (cause) {
+    throw new PipelineInputError('Documentation feed could not be parsed safely.', { cause });
+  }
+  if (!isObject(parsed))
+    throw new PipelineInputError('Documentation feed has no RSS or Atom root.');
+  const root = Object.entries(parsed).find(([key]) => {
+    const name = localXmlName(key);
+    return name === 'rss' || name === 'feed';
+  });
+  if (!root || !isObject(root[1]))
+    throw new PipelineInputError('Documentation source must be an RSS 2.0 or Atom feed.');
+
+  const isAtom = localXmlName(root[0]) === 'feed';
+  const container = isAtom ? root[1] : readXmlField(root[1], 'channel');
+  if (!isObject(container))
+    throw new PipelineInputError('RSS documentation feed is missing its channel.');
+  const rawEntries = readXmlField(container, isAtom ? 'entry' : 'item');
+  const entries = rawEntries === undefined ? [] : asXmlArray(rawEntries);
+  if (!entries.length || entries.some((entry) => !isObject(entry)))
+    throw new PipelineInputError('Documentation feed contains no usable release entries.');
+  if (entries.length > MAX_DOCUMENTATION_FEED_ENTRIES)
+    throw new PipelineInputError(
+      `Documentation feeds may contain at most ${MAX_DOCUMENTATION_FEED_ENTRIES} entries.`,
+    );
+
+  return entries
+    .map((entry) => {
+      const title = xmlFieldText(readXmlField(entry, 'title'));
+      if (!title) throw new PipelineInputError('Every documentation feed entry must have a title.');
+      const date = xmlFieldText(
+        readXmlField(entry, 'published') ??
+          readXmlField(entry, 'updated') ??
+          readXmlField(entry, 'pubDate') ??
+          readXmlField(entry, 'date'),
+      );
+      const link = xmlLink(entry, isAtom);
+      const summary = xmlFieldText(
+        readXmlField(entry, 'content:encoded') ??
+          readXmlField(entry, 'content') ??
+          readXmlField(entry, 'summary') ??
+          readXmlField(entry, 'description'),
+      );
+      return [
+        `## ${title}`,
+        ...(date ? [`Published: ${date}`] : []),
+        ...(link ? [`Link: ${link}`] : []),
+        ...(summary ? ['', summary] : []),
+      ].join('\n');
+    })
+    .join('\n\n');
+}
+
+function localXmlName(key: string) {
+  return key.slice(key.lastIndexOf(':') + 1).toLowerCase();
+}
+
+function readXmlField(value: Record<string, unknown>, name: string) {
+  const target = name.toLowerCase();
+  return Object.entries(value).find(
+    ([key]) => key.toLowerCase() === target || localXmlName(key) === target,
+  )?.[1];
+}
+
+function asXmlArray(value: unknown) {
+  return Array.isArray(value) ? value : [value];
+}
+
+function xmlFieldText(value: unknown): string {
+  if (typeof value === 'string' || typeof value === 'number') return htmlToText(String(value));
+  if (Array.isArray(value)) return value.map(xmlFieldText).filter(Boolean).join('\n');
+  if (!isObject(value)) return '';
+  if (typeof value['#text'] === 'string') return htmlToText(value['#text']);
+  return Object.entries(value)
+    .filter(([key]) => !key.startsWith('@_') && key !== '#text')
+    .map(([, child]) => xmlFieldText(child))
+    .filter(Boolean)
+    .join('\n');
+}
+
+function xmlLink(entry: Record<string, unknown>, isAtom: boolean) {
+  const value = readXmlField(entry, 'link');
+  if (typeof value === 'string') return value.trim();
+  if (!isAtom) return '';
+  const links = value === undefined ? [] : asXmlArray(value);
+  const candidates = links.filter(isObject);
+  const selected =
+    candidates.find((link) => String(link['@_rel'] ?? '').toLowerCase() === 'alternate') ??
+    candidates[0];
+  return typeof selected?.['@_href'] === 'string' ? selected['@_href'].trim() : '';
 }
 
 function findContentRoot(root: HtmlNode) {

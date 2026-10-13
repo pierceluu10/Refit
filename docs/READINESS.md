@@ -1,8 +1,12 @@
 # Refit implementation checkpoints
 
+## October 13, 2026: provider-neutral RSS and Atom changelog feeds
+
+Configured documentation sources now accept RSS 2.0 and Atom XML in addition to HTML, Markdown and plain text. Entries become stable readable records of title, published/updated date, link and summary, so the existing watcher can store a hash-pinned baseline and unified diff without provider-specific parsing. XML is validated, custom entity declarations are rejected, expansion limits are set, and feeds with more than 250 entries stop rather than silently truncate. Packaging tests verify the CLI carries the parser dependency. This still requires the operator to supply each public feed URL; Refit does not discover provider feeds or treat feed prose as verified migration guidance. Feed-only updates remain review signals and do not invoke AI or PR publication.
+
 ## October 13, 2026: provider-neutral documentation change signals
 
-`watch` and local-service profiles can now monitor up to eight manually configured public documentation, changelog or release-note pages per provider target. Capture accepts bounded HTML, Markdown and plain text, strips non-visible HTML chrome, uses ETags, and stores hash-verified snapshots plus unified text diffs. A docs-only update is surfaced as review evidence and does not invoke AI, validation or GitHub publication. URLs are operator-selected; Refit does not discover feeds or treat documentation text as verified migration instructions. When an API contract update happens in the same poll, the documentation diff remains separate evidence and is not included in the model prompt or PR.
+`watch` and local-service profiles can now monitor up to eight manually configured public documentation, changelog or release-note sources per provider target. Capture accepts bounded HTML, Markdown, plain text and RSS/Atom, strips non-visible HTML chrome from pages, uses ETags, and stores hash-verified snapshots plus unified text diffs. A docs-only update is surfaced as review evidence and does not invoke AI, validation or GitHub publication. URLs are operator-selected; Refit does not discover feeds or treat documentation text as verified migration instructions. When an API contract update happens in the same poll, the documentation diff remains separate evidence and is not included in the model prompt or PR.
 
 ## October 13, 2026: explicit API-version applicability
 

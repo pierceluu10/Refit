@@ -6,7 +6,7 @@ Refit is being built to turn external API changes into repository-specific, vali
 
 ## Current release
 
-**Local agent 0.5:** `refit serve` runs approved App-managed repository profiles and verifies installation webhooks. `refit watch` and service profiles can track manually selected public changelog pages beside OpenAPI, save hash-verified text diffs, and report documentation-only changes without spending on AI or creating PRs. `refit prepare` installs locked public npm dependencies in a restricted container so supported projects can run checks offline without a hand-built dependency image. The shared engine still requires provider mappings and meaningful checks for each integration. [Run the Stripe service profile](docs/DEPENDENCIES.md), or [set up installation webhooks](docs/LOCAL-SERVICE.md).
+**Local agent 0.5:** `refit serve` runs approved App-managed repository profiles and verifies installation webhooks. `refit watch` and service profiles can track manually selected public changelog pages or RSS 2.0/Atom feeds beside OpenAPI, save hash-verified text diffs, and report documentation-only changes without spending on AI or creating PRs. `refit prepare` installs locked public npm dependencies in a restricted container so supported projects can run checks offline without a hand-built dependency image. The shared engine still requires provider mappings and meaningful checks for each integration. [Run the Stripe service profile](docs/DEPENDENCIES.md), or [set up installation webhooks](docs/LOCAL-SERVICE.md).
 
 The core is shared across providers; an actual OpenAI SDK conformance evaluation complements Stripe. SDK mappings, migration semantics and application checks still need verification. This is a local operator product, not a hosted service automatically activated by installing the App.
 
@@ -34,7 +34,7 @@ refit --help
 refit replay --propose-patch
 ```
 
-The build creates a new `dist-cli` directory and refuses to replace existing output. Use `npm run package:cli -- --output /path/to/new-directory` for another build. The archive contains agent sources, example fixtures and CLI docs, with `tsx`, the TypeScript compiler and `yaml` as direct runtime dependencies, pinned to the installed versions used to build it. Installation may download their dependencies. It excludes the frontend and tests. This is a local archive; no package has been published to npm.
+The build creates a new `dist-cli` directory and refuses to replace existing output. Use `npm run package:cli -- --output /path/to/new-directory` for another build. The archive contains agent sources, example fixtures and CLI docs, with every CLI runtime dependency pinned to the installed version used to build it. Installation may download their dependencies. It excludes the frontend and tests. This is a local archive; no package has been published to npm.
 
 The executable works from any directory and ignores that directory's TypeScript configuration. Use `refit scan`, `run`, `validate`, `stripe-snapshot`, `source-snapshot` and `stripe-check` for the main pipeline commands. `refit replay` locates its own bundled fixtures. In a checkout, use `npm run refit -- <command>`. See [CLI usage](docs/CLI.md) for installed-command examples and requirements.
 
