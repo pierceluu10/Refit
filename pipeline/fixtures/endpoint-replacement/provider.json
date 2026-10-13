@@ -1,0 +1,23 @@
+{
+  "id": "catalog-endpoint-example",
+  "packageName": "@example/catalog",
+  "defaultImport": false,
+  "namedExport": "Catalog",
+  "operations": [
+    {
+      "resource": "items",
+      "method": "retrieveLegacy",
+      "schema": "Item",
+      "operationId": "retrieveLegacyItem"
+    }
+  ],
+  "operationReplacements": [
+    {
+      "resource": "items",
+      "method": "retrieveLegacy",
+      "replacementResource": "items",
+      "replacementMethod": "retrieve",
+      "replacementOperationId": "retrieveItem"
+    }
+  ]
+}

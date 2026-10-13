@@ -20,6 +20,7 @@ const OPERATION_ANNOTATIONS = new Set([
   'deprecated',
   'externalDocs',
 ]);
+const PARAMETER_LOCATIONS = new Set(['path', 'query', 'header', 'cookie']);
 
 export interface OperationReplacement {
   id: string;
@@ -93,13 +94,14 @@ function contractSignature(endpoint: OpenApiOperation, document: Record<string, 
     Object.entries(endpoint.operation).filter(([key]) => !OPERATION_ANNOTATIONS.has(key)),
   );
   const components = isObject(document.components) ? document.components : {};
+  const pathParameters = validatePathParameters(endpoint, document);
   return JSON.stringify(
     contractValue(
       {
         openapi: document.openapi,
         jsonSchemaDialect: document.jsonSchemaDialect ?? null,
         httpMethod: endpoint.httpMethod,
-        pathParameters: [...endpoint.path.matchAll(/\{([^{}]+)\}/g)].map((match) => match[1]),
+        pathParameters,
         pathItemParameters: endpoint.pathItem.parameters ?? [],
         pathItemExtensions: Object.fromEntries(
           Object.entries(endpoint.pathItem).filter(([key]) => key.startsWith('x-')),
@@ -115,6 +117,60 @@ function contractSignature(endpoint: OpenApiOperation, document: Record<string, 
       document,
     ),
   );
+}
+
+function validatePathParameters(endpoint: OpenApiOperation, document: Record<string, unknown>) {
+  const names = [...endpoint.path.matchAll(/\{([^{}]+)\}/g)].map((match) => match[1]);
+  if (
+    new Set(names).size !== names.length ||
+    /[{}]/.test(endpoint.path.replace(/\{([^{}]+)\}/g, ''))
+  )
+    throw new PipelineInputError(
+      'Endpoint replacements require unambiguous path parameter templates.',
+    );
+  const effective = new Map<string, Record<string, unknown>>();
+  for (const parameters of [
+    endpoint.pathItem.parameters ?? [],
+    endpoint.operation.parameters ?? [],
+  ]) {
+    if (!Array.isArray(parameters))
+      throw new PipelineInputError('Endpoint replacement parameters must be arrays.');
+    const seen = new Set<string>();
+    for (const parameter of parameters) {
+      let definition = contractValue(parameter, document);
+      while (isObject(definition) && Object.hasOwn(definition, '$ref'))
+        definition = definition.definition;
+      if (
+        !isObject(definition) ||
+        typeof definition.name !== 'string' ||
+        !definition.name.trim() ||
+        typeof definition.in !== 'string' ||
+        !PARAMETER_LOCATIONS.has(definition.in) ||
+        isObject(definition.schema) === isObject(definition.content)
+      )
+        throw new PipelineInputError(
+          'Endpoint replacements require explicit, resolvable parameter definitions.',
+        );
+      const key = JSON.stringify([definition.in, definition.name]);
+      if (seen.has(key))
+        throw new PipelineInputError(
+          'Endpoint replacement parameters cannot contain duplicate name/location entries.',
+        );
+      seen.add(key);
+      effective.set(key, definition);
+    }
+  }
+  const pathParameters = [...effective.values()].filter((parameter) => parameter.in === 'path');
+  if (
+    pathParameters.length !== names.length ||
+    pathParameters.some(
+      (parameter) => parameter.required !== true || !names.includes(String(parameter.name)),
+    )
+  )
+    throw new PipelineInputError(
+      'Endpoint replacements require every path template parameter to have a matching required path parameter definition.',
+    );
+  return names;
 }
 
 function assertResponse(

@@ -69,6 +69,29 @@ export async function renderWorkflowResult(result: Result) {
       `API version Current: ${application}; before contract: ${before}; after contract: ${after}`,
     );
   }
+  if (report && Array.isArray(report.operationChanges)) {
+    for (const change of report.operationChanges.slice(0, MAX_SUMMARY_ITEMS)) {
+      if (
+        !isObject(change) ||
+        ![
+          'httpMethod',
+          'path',
+          'replacementPath',
+          'resource',
+          'method',
+          'replacementResource',
+          'replacementMethod',
+        ].every((key) => typeof change[key] === 'string')
+      )
+        continue;
+      rows.push(
+        `API change  ${terminalText(`${change.httpMethod} ${change.path} → ${change.httpMethod} ${change.replacementPath}`)}`,
+      );
+      rows.push(
+        `SDK mapping ${terminalText(`${change.resource}.${change.method} → ${change.replacementResource}.${change.replacementMethod}`)} (${change.supported ? 'configured contract match' : 'requires review'})`,
+      );
+    }
+  }
   if (report && Array.isArray(report.operationImpacts)) {
     const impacts = report.operationImpacts.filter(
       (impact): impact is Record<string, unknown> =>

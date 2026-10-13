@@ -159,7 +159,14 @@ export async function publishDraft(
       `Draft publication is blocked. ${apiVersion?.reason ?? 'API-version evidence is missing.'}`,
     );
   const artifacts = createReviewArtifacts(report, 'github');
-  if (unmappedBreakingChanges(report.specificationDiff, report.changes, report.findings).length)
+  if (
+    unmappedBreakingChanges(
+      report.specificationDiff,
+      report.changes,
+      report.findings,
+      report.operationChanges,
+    ).length
+  )
     throw new PipelineInputError(
       'Draft publication is blocked by unmapped breaking contract changes.',
     );

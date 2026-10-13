@@ -57,6 +57,52 @@ async function report(): Promise<Report> {
   };
 }
 
+async function endpointReport(): Promise<Report> {
+  const fixture = resolve('pipeline/fixtures/endpoint-replacement');
+  const scan = await runPipeline({
+    repository: `${fixture}/repository`,
+    before: `${fixture}/before.json`,
+    after: `${fixture}/after.json`,
+    providerConfig: `${fixture}/provider.json`,
+    apiVersion: '1',
+    proposePatch: true,
+  });
+  if (!('diff' in scan.patch)) throw new Error('Expected endpoint patch');
+  const base = await report();
+  const source = await readFile(`${fixture}/repository/src/items.ts`, 'utf8');
+  return {
+    ...base,
+    ...scan,
+    specificationDiff: {
+      engine: 'oasdiff',
+      version: 'controlled',
+      coverage: 'Controlled endpoint removal.',
+      changes: [
+        {
+          id: 'api-path-removed-without-deprecation',
+          level: 3,
+          text: 'api path removed',
+          path: '/legacy/items/{id}',
+          operation: 'GET',
+        },
+      ],
+    },
+    patch: { ...scan.patch, validation: 'passed' },
+    publicationFiles: [
+      {
+        path: 'src/items.ts',
+        mode: '100644',
+        content: source.replace('items.retrieveLegacy', 'items.retrieve'),
+      },
+    ],
+    validation: {
+      ...base.validation,
+      patchHash: digest(scan.patch.diff),
+      reason: 'Controlled publication evidence, not actual container checks.',
+    },
+  };
+}
+
 function github() {
   const state = {
     base: REVISION,
@@ -161,6 +207,28 @@ it('publishes only the candidate files on the existing base tree and creates a d
   expect(request.body.body).not.toContain('PRIVATE LOG');
   expect(request.body.body).not.toContain('This is a local review artifact');
   expect(JSON.stringify(remote.calls)).not.toContain('Co-authored-by');
+});
+
+it('publishes a configured endpoint replacement as a readable draft through the shared publisher', async () => {
+  const remote = github();
+  const value = await endpointReport();
+  expect(await publishDraft(value, OPTIONS)).toMatchObject({ status: 'created', draft: true });
+  const request = remote.calls.find((call) => call.method === 'POST' && call.path === '/pulls')!;
+  expect(request.body.title).toBe(
+    'Replace retired catalog-endpoint-example items.retrieveLegacy calls',
+  );
+  expect(request.body.body).toContain('`items.retrieveLegacy` → `items.retrieve`');
+  expect(remote.calls.find((call) => call.path === '/git/trees')?.body.tree).toEqual(
+    value.publicationFiles.map((file) => ({ ...file, type: 'blob' })),
+  );
+});
+
+it('blocks endpoint publication when any mapped usage remains unsupported', async () => {
+  const remote = github();
+  const value = await endpointReport();
+  value.operationChanges[0].supported = false;
+  await expect(publishDraft(value, OPTIONS)).rejects.toThrow(/unmapped breaking contract changes/);
+  expect(remote.fetch).not.toHaveBeenCalled();
 });
 
 it('reuses an existing PR even after a human closes it or marks it ready', async () => {

@@ -174,6 +174,9 @@ it.each([
     (documents: ReturnType<typeof contracts>) => {
       documents.after.paths['/items/{itemId}'] = documents.after.paths['/items/{id}'];
       delete documents.after.paths['/items/{id}'];
+      (documents.after.paths['/items/{itemId}'].get as Record<string, unknown>).parameters = [
+        { name: 'itemId', in: 'path', required: true, schema: { type: 'string' } },
+      ];
     },
   ],
 ])('rejects a replacement with a changed %s', (_label, mutate) => {
@@ -249,4 +252,15 @@ it('rejects invalid or colliding SDK replacements before scanning', () => {
       operationReplacements: [...provider.operationReplacements, provider.operationReplacements[0]],
     }),
   ).toThrow(/must be unique/);
+});
+
+it('rejects incomplete path parameter evidence and duplicate parameters', () => {
+  const missing = contracts();
+  delete (missing.after.paths['/items/{id}'].get as Record<string, unknown>).parameters;
+  expect(() => validate(missing)).toThrow(/matching required path parameter definition/);
+  const duplicate = contracts();
+  const operation = duplicate.after.paths['/items/{id}'].get as Record<string, unknown>;
+  const parameters = operation.parameters as unknown[];
+  operation.parameters = [...parameters, parameters[0]];
+  expect(() => validate(duplicate)).toThrow(/duplicate name\/location/);
 });

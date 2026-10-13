@@ -2,6 +2,10 @@ import { isObject } from './specifications.ts';
 import { PipelineInputError, type Location } from './types.ts';
 import type { ProviderAdapter } from './providers.ts';
 import { isRemovedOperationChange, listOpenApiOperations } from './openapi-operations.ts';
+import {
+  isHandledOperationRemoval,
+  type OperationReplacementEvidence,
+} from './provider-operation-replacements.ts';
 const BREAKING_CHANGE_LEVEL = 2;
 
 export interface MappedSdkCall extends Location {
@@ -61,6 +65,7 @@ export function findBreakingOperationImpacts(
   calls: MappedSdkCall[],
   mappings: ProviderOperationMapping[],
   breakingChanges?: unknown[],
+  operationChanges: OperationReplacementEvidence[] = [],
 ): BreakingOperationImpact[] {
   if (!diff || diff.engine !== 'oasdiff' || !mappings.length) return [];
   const impacts = new Map<string, BreakingOperationImpact>();
@@ -71,6 +76,7 @@ export function findBreakingOperationImpacts(
     ]),
   ];
   for (const change of candidates) {
+    if (isHandledOperationRemoval(change, operationChanges)) continue;
     if (
       !isObject(change) ||
       typeof change.id !== 'string' ||
