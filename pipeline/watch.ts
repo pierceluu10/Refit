@@ -315,8 +315,11 @@ async function watchLocalOnce(
       sourceHash: snapshot.hash,
     };
     await writeState(statePath, state);
+    const confirmedUsageCount = scan.findings.filter(
+      (finding) => finding.confidence === 'confirmed',
+    ).length;
     options.onProgress?.(
-      `Detected ${scan.findings.filter((finding) => finding.confidence === 'confirmed').length} confirmed usages; processing ${provider.id} migration.${capturedDocumentation.changes.length ? ` Recorded ${capturedDocumentation.changes.length} documentation change${capturedDocumentation.changes.length === 1 ? '' : 's'} for review.` : ''}`,
+      `Detected ${confirmedUsageCount} confirmed ${confirmedUsageCount === 1 ? 'usage' : 'usages'}; processing ${provider.id} migration.${capturedDocumentation.changes.length ? ` Recorded ${capturedDocumentation.changes.length} documentation change${capturedDocumentation.changes.length === 1 ? '' : 's'} for review.` : ''}`,
     );
     try {
       const result = await runWorkflow({
