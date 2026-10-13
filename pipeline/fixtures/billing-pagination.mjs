@@ -3,7 +3,7 @@ import { createRequire } from 'node:module';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-const DECLINED_ATTEMPTS = 12;
+const DECLINED_ATTEMPTS = 102;
 const PAYMENT_AMOUNT = 2000;
 const REFUND_AMOUNT = 500;
 const mode = process.argv[2] ?? 'after';

@@ -56,7 +56,7 @@ it.skipIf(!process.env.REFIT_BILLING_REPOSITORY)(
       expect(
         (await execute(process.execPath, ['--import', 'tsx', 'pagination-check.mjs'], options))
           .stdout,
-      ).toContain('Multi-page history passed: 13 attempts');
+      ).toContain('Multi-page history passed: 103 attempts');
       expect(await readFile(join(original, 'src/billing/history.ts'), 'utf8')).toContain(
         'payment.charges.data',
       );
