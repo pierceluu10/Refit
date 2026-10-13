@@ -343,12 +343,6 @@ export function analyzeRepository(
         ? (resolvableComponentSchema(schemaDefinitions, operation.schema) ?? operation.schema)
         : undefined;
     }
-    if (ts.isCallExpression(expression)) {
-      const operation = responseCall(expression);
-      return operation
-        ? (resolvableComponentSchema(schemaDefinitions, operation.schema) ?? operation.schema)
-        : undefined;
-    }
     return undefined;
   }
   function responseBinding(expression: ts.Expression): ts.Symbol | undefined {
