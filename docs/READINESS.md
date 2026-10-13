@@ -1,5 +1,17 @@
 # Refit implementation checkpoints
 
+## October 13, 2026: repository readiness and shared SDK inventory
+
+`refit doctor` inspects a root `.refit.json` or an explicitly selected operator workflow, checks clean committed Git state, validates contracts and adapter rules through the shared scanner, records API-version applicability and mapped/unmapped SDK calls, checks committed npm preparation inputs when enabled, and resolves the existing Docker image. It does not run application code, install dependencies, request AI, fetch provider sources, contact GitHub or activate a repository. Known setup failures are reported together with next steps; unexpected failures remain errors. Unsupported breaking changes and missing live-source baseline evidence block readiness. Full comparison defaults on, matching the worker; disabling it is an explicit review boundary.
+
+Adapter suggestions now use the same symbol-based client inventory as the scanner, including supported direct relative named imports of shared clients. Suggestions contain reconstructed method expressions and bounded locations, excluding arguments and inline source comments. This is still review-only mapping evidence, not verified SDK semantics. npm preparation and doctor share the same committed-manifest input gate.
+
+The fully gated suite passed **470 tests across 50 files with no skips**. Production build, typecheck and formatting passed. Tests cover dirty Git, version mismatch, unavailable Docker, unknown SDK methods, preparation mismatch, unsupported breaking changes, unpinned/conflicting live-source settings, sensitive configuration values, outside-directory CLI execution and refusal of AI flags. The installed archive includes the command. No live model evaluation was used.
+
+A retained local evaluation at `/Users/pierceluu/.refit/evaluations/repository-readiness-2026-10-13` inspected a committed simulated catalog `.refit.json`, then explicitly ran that same configuration through real `oasdiff` and offline Docker validation. The original repository stayed clean. A separate doctor report for the independent billing app passed setup checks and reported **3 mapped calls out of 9 observed SDK calls**, with `charges.list`, `customers.create` and `refunds.create` outside the current adapter mappings. Passing setup permits an attempt at validation; it does not establish complete coverage or migration correctness.
+
+The chosen onboarding direction is a checked-in `.refit.json` reviewed before activation. Doctor does not retain approval or load repository configuration automatically through the App; service activation still uses explicit operator profiles. See [repository setup](REPOSITORY-SETUP.md) for working local commands and the current boundary.
+
 ## October 13, 2026: configured endpoint replacements across providers
 
 Refit 0.6 adds `operationReplacements` for custom adapters: an explicit old SDK resource/method and a replacement method mapped to a new OpenAPI endpoint. Refit activates a rule only when the old endpoint disappears, the replacement endpoint is newly introduced, its operation ID resolves uniquely, and the supported recorded request/response, HTTP-method, path-parameter, server and security contracts match after traversing local component references. It edits only direct, non-optional calls on immutable, unescaped clients and preserves arguments, dependencies and client API-version configuration. Reports retain the configured mapping, contract hash and source locations. Unresolved usages or unrelated breaking changes still block automation.
