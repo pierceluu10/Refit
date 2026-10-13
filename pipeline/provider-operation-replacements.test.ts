@@ -264,3 +264,23 @@ it('rejects incomplete path parameter evidence and duplicate parameters', () => 
   operation.parameters = [...parameters, parameters[0]];
   expect(() => validate(duplicate)).toThrow(/duplicate name\/location/);
 });
+
+it('follows local parameter references and includes root authentication definitions', () => {
+  const documents = contracts();
+  for (const document of [documents.before, documents.after]) {
+    Object.assign(document.components, {
+      parameters: {
+        ItemId: { name: 'id', in: 'path', required: true, schema: { type: 'string' } },
+      },
+      securitySchemes: { key: { type: 'apiKey', in: 'header', name: 'x-api-key' } },
+    });
+    Object.assign(document, { security: [{ key: [] }] });
+    const operation = Object.values(document.paths)[0].get as Record<string, unknown>;
+    operation.parameters = [{ $ref: '#/components/parameters/ItemId' }];
+  }
+  expect(validate(documents)).toHaveLength(1);
+  Object.assign(documents.after.components, {
+    securitySchemes: { key: { type: 'apiKey', in: 'query', name: 'api_key' } },
+  });
+  expect(() => validate(documents)).toThrow(/changes its recorded request, response/);
+});
