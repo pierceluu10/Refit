@@ -6,6 +6,7 @@ import { runWorkflow } from './workflow.ts';
 import { validateMigration } from './validation.ts';
 import { publishDraft } from './publication.ts';
 import { digest } from './specifications.ts';
+import { renderWorkflowResult } from './workflow-presentation.ts';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 
@@ -51,6 +52,7 @@ it('records no-match evidence as review-required without calling a model, Docker
   expect(validateMigration).not.toHaveBeenCalled();
   expect(publishDraft).not.toHaveBeenCalled();
   expect(fetcher).not.toHaveBeenCalled();
+  expect(await renderWorkflowResult(result)).not.toContain('Generated');
   const manifest = await readFile(join(input.output, 'manifest.json'), 'utf8');
   expect(manifest).not.toContain('private-');
   for (const file of result.manifest.files)

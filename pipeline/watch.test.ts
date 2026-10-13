@@ -74,6 +74,15 @@ it('preserves failed jobs and permits one explicit retry with a fresh evidence d
   expect(first.output).not.toBe(retry.output);
 });
 
+it('uses the captured input instead of forwarding a run configuration discovery flag', async () => {
+  const input = await options();
+  const configuration = { ...input.configuration, latestStripe: true };
+  vi.mocked(runWorkflow).mockImplementation(async (value) => result(value));
+  await watchOnce({ ...input, configuration });
+  expect(vi.mocked(runWorkflow).mock.calls[0][0]).toMatchObject({ latestStripe: undefined });
+  expect(vi.mocked(runWorkflow).mock.calls[0][0].after).toContain('/snapshots/');
+});
+
 it('marks interrupted jobs for review instead of silently regenerating or publishing after restart', async () => {
   const input = await options();
   vi.mocked(runWorkflow).mockImplementation(async (value) => result(value));

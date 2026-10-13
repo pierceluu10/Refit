@@ -38,6 +38,7 @@ export async function renderWorkflowResult(result: Result) {
   if (
     report &&
     isObject(report.patch) &&
+    report.patch.status === 'proposed' &&
     typeof report.patch.generator === 'string' &&
     result.manifest.status !== 'existing-pr'
   )

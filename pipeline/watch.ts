@@ -48,6 +48,7 @@ export async function watchOnce(options: WatchOptions) {
       ...options.configuration,
       repository,
       fullDiff: options.configuration.fullDiff ?? true,
+      latestStripe: undefined,
     };
     const provider = await readProviderAdapter(configuration.providerConfig);
     const before = await readSpecification(configuration.before);
