@@ -31,6 +31,32 @@ export function isObject(value: unknown): value is JsonObject {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
+const COMPONENT_SCHEMA_PREFIX = '#/components/schemas/';
+
+export function componentReference(reference: unknown) {
+  if (typeof reference !== 'string' || !reference.startsWith(COMPONENT_SCHEMA_PREFIX))
+    return undefined;
+  const pointer = reference.slice(COMPONENT_SCHEMA_PREFIX.length);
+  if (!pointer || pointer.includes('/') || /~(?![01])/.test(pointer)) return undefined;
+  return pointer.replaceAll('~1', '/').replaceAll('~0', '~');
+}
+
+export function resolvableComponentSchema(schemas: Record<string, unknown>, name: string) {
+  const seen = new Set<string>();
+  let current = name;
+  while (!seen.has(current)) {
+    seen.add(current);
+    const definition = schemas[current];
+    if (!isObject(definition)) return undefined;
+    if (['allOf', 'anyOf', 'oneOf'].some((key) => key in definition)) return undefined;
+    if (isObject(definition.properties)) return current;
+    const referenced = componentReference(definition.$ref);
+    if (!referenced) return undefined;
+    current = referenced;
+  }
+  return undefined;
+}
+
 export function parseObject(content: string, label: string): JsonObject {
   let parsed: unknown;
   try {

@@ -1,5 +1,5 @@
 import { readFile, stat } from 'node:fs/promises';
-import { isObject, parseObject } from './specifications.ts';
+import { isObject, parseObject, resolvableComponentSchema } from './specifications.ts';
 import { PipelineInputError } from './types.ts';
 
 export interface ProviderAdapter {
@@ -22,6 +22,19 @@ export const STRIPE: ProviderAdapter = {
     schema: 'payment_intent',
   })),
 };
+
+export function validateProviderMappings(
+  provider: ProviderAdapter,
+  schemas: Record<string, unknown>,
+) {
+  for (const operation of provider.operations) {
+    if (resolvableComponentSchema(schemas, operation.schema)) continue;
+    throw new PipelineInputError(
+      `Provider operation ${operation.resource}.${operation.method} maps to schema "${operation.schema}", which is missing or unsupported in the before specification. Map it to a local component object schema with directly declared properties.`,
+    );
+  }
+}
+
 const MAX_CONFIG_BYTES = 64 * 1024;
 const MAX_OPERATIONS = 100;
 const MAX_PROPERTY_RENAMES = 100;

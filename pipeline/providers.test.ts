@@ -159,6 +159,36 @@ it('scans a second configured SDK through the CLI and distinguishes response sch
   expect(report.patch.summary).not.toContain('Charges');
 });
 
+it('rejects an SDK operation mapping whose response schema is missing from the baseline', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'refit-provider-mapping-'));
+  directories.push(root);
+  const provider = await readProviderAdapter(INPUTS.providerConfig);
+  provider.operations[0].schema = 'missing_response';
+  const providerConfig = join(root, 'provider.json');
+  await writeFile(providerConfig, JSON.stringify(provider));
+
+  await expect(runPipeline({ ...INPUTS, providerConfig })).rejects.toThrow(
+    'Provider operation items.retrieve maps to schema "missing_response", which is missing or unsupported in the before specification.',
+  );
+});
+
+it('accepts a local schema alias in a configured SDK mapping', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'refit-provider-schema-alias-'));
+  directories.push(root);
+  const provider = await readProviderAdapter(INPUTS.providerConfig);
+  provider.operations[0].schema = 'ItemResponse';
+  const providerConfig = join(root, 'provider.json');
+  await writeFile(providerConfig, JSON.stringify(provider));
+
+  const before = JSON.parse(await readFile(INPUTS.before, 'utf8'));
+  before.components.schemas.ItemResponse = { $ref: '#/components/schemas/item' };
+  const beforePath = join(root, 'before.json');
+  await writeFile(beforePath, JSON.stringify(before));
+
+  const report = await runPipeline({ ...INPUTS, before: beforePath, providerConfig });
+  expect(report.findings).toMatchObject([{ expression: '.legacy_label', confidence: 'confirmed' }]);
+});
+
 it('proposes only an explicitly configured, schema-matched property rename', async () => {
   const report = await runPipeline({ ...RENAME_INPUTS, proposePatch: true });
   expect(report.adapter.propertyRenames).toEqual([
