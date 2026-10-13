@@ -9,6 +9,7 @@ import {
 } from './adapter-suggestions.ts';
 import { readRepository } from './repository.ts';
 import { parseSpecification } from './specifications.ts';
+import { runPipeline } from './run.ts';
 
 const roots: string[] = [];
 
@@ -305,4 +306,89 @@ it('does not create an empty adapter when the model cannot confirm any mapping',
       },
     }),
   ).rejects.toThrow(/No confident adapter mappings were returned/);
+});
+
+it('uses a reviewed suggestion in the normal scanner and leaves migration generation off', async () => {
+  const root = await temporaryRoot();
+  const repositoryPath = await sampleRepository(root);
+  await writeFile(
+    join(repositoryPath, 'client.ts'),
+    `import Ledger from '@example/ledger';
+const client = new Ledger();
+export async function customerName(id: string) {
+  const customer = await client.customers.retrieve(id);
+  return customer.name;
+}
+`,
+  );
+  const beforeDocument = {
+    ...contract,
+    info: { ...contract.info, version: '1' },
+    components: {
+      schemas: {
+        ...contract.components.schemas,
+        Customer: {
+          ...contract.components.schemas.Customer,
+          properties: { id: { type: 'string' }, name: { type: 'string' } },
+        },
+      },
+    },
+  };
+  const afterDocument = JSON.parse(JSON.stringify(beforeDocument)) as typeof beforeDocument;
+  delete (afterDocument.components.schemas.Customer.properties as Record<string, unknown>).name;
+  afterDocument.info.version = '2';
+  const beforePath = join(root, 'before.json');
+  const afterPath = join(root, 'after.json');
+  const suggestionSpecPath = join(root, 'suggestion-spec.json');
+  const providerConfigPath = join(root, 'provider.json');
+  await Promise.all([
+    writeFile(beforePath, JSON.stringify(beforeDocument)),
+    writeFile(afterPath, JSON.stringify(afterDocument)),
+    writeFile(suggestionSpecPath, JSON.stringify(beforeDocument)),
+  ]);
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (input: string | URL | Request) =>
+      String(input).endsWith('/input_tokens')
+        ? new Response(JSON.stringify({ input_tokens: 900 }), { status: 200 })
+        : openAiResponse(
+            JSON.stringify({
+              operations: [
+                {
+                  resource: 'customers',
+                  method: 'retrieve',
+                  operationId: 'retrieveCustomer',
+                  schema: 'Customer',
+                },
+              ],
+              uncertainties: ['Verify the SDK response matches the Customer schema.'],
+            }),
+          ),
+    ),
+  );
+
+  const suggestion = await suggestProviderAdapter({
+    repositoryPath,
+    specificationPath: suggestionSpecPath,
+    identity,
+    ai: {
+      apiKey: 'test-key',
+      model: 'gpt-5.4-mini',
+      budget: { directory: join(root, 'budget'), limitUsd: 1 },
+    },
+  });
+  await writeFile(providerConfigPath, JSON.stringify(suggestion.adapter));
+  const report = await runPipeline({
+    repository: repositoryPath,
+    before: beforePath,
+    after: afterPath,
+    providerConfig: providerConfigPath,
+  });
+
+  expect(report.provider).toBe('example-ledger');
+  expect(report.findings).toMatchObject([
+    { file: 'client.ts', expression: '.name', confidence: 'confirmed' },
+  ]);
+  expect(report.status).toBe('affected');
+  expect(report.patch.status).toBe('not-generated');
 });

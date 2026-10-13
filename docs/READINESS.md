@@ -6,7 +6,7 @@
 
 This is advisory setup, not automatic SDK discovery: it does not establish semantic equivalence, trace arbitrary factories or wrappers, propose migration rules, activate a profile or make a change. Review the mapping against official SDK documentation, then scan the repository and inspect evidence before using it in a migration workflow. The model request is optional; generic breaking changes without a verified migration rule remain review-only. No live model call was used to verify this implementation.
 
-The fully gated test suite passed **426 tests across 46 files with no skips**, including package installation, SDK fixtures, offline Docker migration validation, npm dependency preparation, and `oasdiff`. The production build and formatting checks passed. Adapter-suggestion tests use mocked OpenAI responses and verify that source contents and unrelated code are not sent; they do not verify real model mapping quality.
+The fully gated test suite passed **427 tests across 46 files with no skips**, including a mocked adapter-suggestion-to-scan flow, package installation, SDK fixtures, offline Docker migration validation, npm dependency preparation, and `oasdiff`. The production build and formatting checks passed. Adapter-suggestion tests verify that source contents and unrelated code are not sent; they do not verify real model mapping quality.
 
 ## October 13, 2026: mapped callers for breaking OpenAPI changes
 
