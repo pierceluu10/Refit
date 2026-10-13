@@ -12,6 +12,10 @@ Configured provider adapters can now trace removed fields through direct local O
 
 The provider analyzer now follows literal non-negative numeric indexes into arrays when the array's `items` reference a local component schema. It carries that evidence through immutable array aliases, object destructuring of an array property and immutable array destructuring. A configured nested-field rename passes the before and after contracts in offline Docker. Dynamic indexes and inline, composed, tuple-style or external item schemas remain review cases. This traces an array element; it does not auto-edit a dynamic or destructured read of the removed field itself.
 
+## October 13, 2026: array iteration flow
+
+The analyzer also traces `const` `for...of` bindings and inline callbacks to common array iteration methods (`every`, `filter`, `find`, `flatMap`, `forEach`, `map` and `some`) when the callback has one identifier parameter and the array item uses a local component `$ref`. It treats callback mutations or item escape as response mutations, which downgrades findings to review. Named callbacks, additional callback parameters, mutable loop bindings and transformed array chains remain review cases. The array rename passes old and new runtime contracts in offline Docker through an inline `.map()` callback.
+
 ## October 13, 2026: configured property-rename rules
 
 Custom provider adapters may now declare `propertyRenames`. Refit activates a rule only when the before/after OpenAPI documents show the configured field was removed and a new replacement field appears on the same schema with the same simple scalar type (`string`, `integer`, `number` or `boolean`). The scanner must also trace a direct property read through the adapter's resource/method mapping. It then changes only that property-name token. Indexed reads, destructuring and unsupported source forms remain for review.
