@@ -82,9 +82,19 @@ export async function renderWorkflowResult(result: Result) {
       (count, impact) => count + (impact.usages as unknown[]).length,
       0,
     );
+    const changeCount = impacts.reduce(
+      (count, impact) =>
+        count +
+        (Array.isArray(impact.changes)
+          ? impact.changes.length
+          : typeof impact.text === 'string' && impact.text
+            ? 1
+            : 0),
+      0,
+    );
     if (impacts.length) {
       rows.push(
-        `Endpoints   ${impacts.length} removed ${impacts.length === 1 ? 'operation' : 'operations'} mapped to ${usageCount} SDK ${usageCount === 1 ? 'call site' : 'call sites'}`,
+        `Impact      ${changeCount} breaking API ${changeCount === 1 ? 'change' : 'changes'} across ${impacts.length} ${impacts.length === 1 ? 'operation' : 'operations'} map to ${usageCount} SDK ${usageCount === 1 ? 'call site' : 'call sites'}`,
       );
       for (const impact of impacts.slice(0, MAX_SUMMARY_ITEMS)) {
         const locations = (impact.usages as unknown[])
@@ -96,6 +106,14 @@ export async function renderWorkflowResult(result: Result) {
         rows.push(
           `API call    ${terminalText(`${impact.httpMethod} ${impact.path} (${impact.operationId})`)}${locations.length ? ` at ${summaryList(locations)}` : ''}`,
         );
+        const changes = Array.isArray(impact.changes) ? impact.changes : [];
+        for (const change of changes.slice(0, MAX_SUMMARY_ITEMS)) {
+          if (!isObject(change) || typeof change.id !== 'string' || typeof change.text !== 'string')
+            continue;
+          rows.push(`API change  ${terminalText(`[${change.id}] ${change.text}`)}`);
+        }
+        if (!changes.length && typeof impact.text === 'string' && impact.text)
+          rows.push(`API change  ${terminalText(impact.text)}`);
       }
     }
   }

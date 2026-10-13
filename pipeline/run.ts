@@ -7,14 +7,14 @@ import { readRepository } from './repository.ts';
 import { readProviderAdapter, STRIPE, validateProviderMappings } from './providers.ts';
 import { validatePropertyRenames } from './provider-renames.ts';
 import {
-  countRemovedOperationUsages,
-  findRemovedOperationImpacts,
+  countBreakingOperationUsages,
+  findBreakingOperationImpacts,
   validateProviderOperationMappings,
 } from './provider-operations.ts';
 import { compareApiVersion, validateApiVersion } from './api-version.ts';
 import { PipelineInputError } from './types.ts';
 import { digest, findRemovedProperties, readSpecification } from './specifications.ts';
-import { compareOpenApi } from './openapi-diff.ts';
+import { compareOpenApi, unmappedBreakingChanges } from './openapi-diff.ts';
 
 export async function runPipeline(options: {
   repository: string;
@@ -44,7 +44,7 @@ export async function runPipeline(options: {
   const apiVersion = compareApiVersion(applicationApiVersion, before.document, after.document);
   if (options.requireApiVersionMatch && apiVersion.applicability !== 'matches-before')
     throw new PipelineInputError(`Automated publication is blocked. ${apiVersion.reason}`);
-  validateProviderOperationMappings(provider, before.document);
+  const operationMappings = validateProviderOperationMappings(provider, before.document);
   validateProviderMappings(provider, before.schemas);
   const changes = findRemovedProperties(before.schemas, after.schemas, provider.id);
   validatePropertyRenames(provider, changes, before.schemas, after.schemas);
@@ -52,8 +52,18 @@ export async function runPipeline(options: {
     ? await compareOpenApi(before.document, after.document)
     : undefined;
   const { edits, ...analysis } = analyzeRepository(repository, changes, provider, before.schemas);
-  const operationImpacts = findRemovedOperationImpacts(specificationDiff, analysis.calls);
-  const operationUsageCount = countRemovedOperationUsages(operationImpacts);
+  const reviewableBreakingChanges = unmappedBreakingChanges(
+    specificationDiff,
+    changes,
+    analysis.findings,
+  );
+  const operationImpacts = findBreakingOperationImpacts(
+    specificationDiff,
+    analysis.calls,
+    operationMappings,
+    reviewableBreakingChanges,
+  );
+  const operationUsageCount = countBreakingOperationUsages(operationImpacts);
   const status =
     analysis.findings.some((finding) => finding.confidence === 'confirmed') ||
     operationImpacts.length
@@ -85,7 +95,7 @@ export async function runPipeline(options: {
       ? {
           status: 'not-generated' as const,
           reason:
-            'AI generation is blocked because the adapter maps code to removed API operations without a verified migration rule.',
+            'AI generation is blocked because the adapter maps code to unresolved breaking API changes without a verified migration rule.',
         }
       : await proposeAiPatch(
           repository,
@@ -143,7 +153,7 @@ export async function runPipeline(options: {
       ...(apiVersion.applicability === 'matches-before' ? [] : [apiVersion.reason]),
       ...(operationImpacts.length
         ? [
-            `${operationUsageCount} SDK call site${operationUsageCount === 1 ? '' : 's'} map to removed OpenAPI operations and require a verified migration rule.`,
+            `${operationUsageCount} SDK call site${operationUsageCount === 1 ? '' : 's'} map to unresolved breaking OpenAPI changes and require a verified migration rule.`,
           ]
         : []),
     ],
@@ -163,7 +173,7 @@ export async function runPipeline(options: {
       specification: specificationDiff
         ? specificationDiff.coverage
         : 'Direct properties removed from existing, non-composed OpenAPI 3 component schemas only. Not a complete breaking-change diff.',
-      code: 'Immutable ESM SDK clients, including direct relative named imports of exported const bindings, and awaited resource.method calls mapped by the recorded adapter. Optional adapter operationId mappings correlate removed OpenAPI operations with SDK call sites but do not authorize a migration. Property reads can follow direct local component-schema $refs through nested objects, supported array items, literal numeric indexes, const for...of bindings, inline one-parameter array callbacks and immutable aliases. Top-level one-parameter functions returning exactly one mapped SDK call are traced locally or through direct relative named imports. Removed-field indexes and destructuring can be reported but are not auto-edited. Dynamic indexes, mutable loop bindings, named or multi-parameter callbacks, transformed array chains, inline/composed/external schemas, detected writes, alias mutations, and references passed to calls or stored in containers remain review cases. Namespace imports and re-exports invalidate shared-client and wrapper confirmation. CommonJS, default imports, path aliases, ambiguous resolution, multi-step or transformed wrappers, webhooks and dynamic code still require review. Confirmed means traced under the supplied adapter mapping, not independently verified SDK semantics.',
+      code: 'Immutable ESM SDK clients, including direct relative named imports of exported const bindings, and awaited resource.method calls mapped by the recorded adapter. Optional adapter operationId mappings correlate unresolved breaking OpenAPI changes to SDK call sites but do not authorize a migration. Property reads can follow direct local component-schema $refs through nested objects, supported array items, literal numeric indexes, const for...of bindings, inline one-parameter array callbacks and immutable aliases. Top-level one-parameter functions returning exactly one mapped SDK call are traced locally or through direct relative named imports. Removed-field indexes and destructuring can be reported but are not auto-edited. Dynamic indexes, mutable loop bindings, named or multi-parameter callbacks, transformed array chains, inline/composed/external schemas, detected writes, alias mutations, and references passed to calls or stored in containers remain review cases. Namespace imports and re-exports invalidate shared-client and wrapper confirmation. CommonJS, default imports, path aliases, ambiguous resolution, multi-step or transformed wrappers, webhooks and dynamic code still require review. Confirmed means traced under the supplied adapter mapping, not independently verified SDK semantics.',
       decision:
         'No finding is not proof of no impact. Supported root npm lockfiles provide recorded SDK versions, not verified installed versions or API-version applicability.',
     },

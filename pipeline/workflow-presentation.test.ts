@@ -22,6 +22,21 @@ it('summarizes API impact, proposed edits and offline checks for interactive CLI
         { confidence: 'confirmed', file: 'src/billing/history.ts' },
         { confidence: 'confirmed', file: 'src/billing/history.ts' },
       ],
+      operationImpacts: [
+        {
+          operationId: 'retrieveCustomer',
+          path: '/customers/{id}',
+          httpMethod: 'GET',
+          changes: [
+            {
+              id: 'response-property-type-changed',
+              level: 3,
+              text: 'changed the response property type',
+            },
+          ],
+          usages: [{ file: 'src/billing/customer.ts', line: 18, column: 12 }],
+        },
+      ],
       patch: {
         status: 'proposed',
         generator: 'deterministic',
@@ -52,6 +67,10 @@ it('summarizes API impact, proposed edits and offline checks for interactive CLI
   expect(output).toContain('Migration validated');
   expect(output).toContain('Stripe removes payment_intent.charges');
   expect(output).toContain('2 confirmed usages in 1 file');
+  expect(output).toContain('1 breaking API change across 1 operation map to 1 SDK call site');
+  expect(output).toContain('GET /customers/{id} (retrieveCustomer)');
+  expect(output).toContain('[response-property-type-changed] changed the response property type');
+  expect(output).toContain('src/billing/customer.ts:18');
   expect(output).toContain('Use a paginated Charges list filtered by PaymentIntent.');
   expect(output).toContain('src/billing/history.ts');
   expect(output).toContain('Prepared from npm lockfile; checks offline');

@@ -19,7 +19,7 @@ import { unmappedBreakingChanges } from './openapi-diff.ts';
 import { validateMigration } from './validation.ts';
 import { validateCheckCommand, validateRepairAttempts } from './validation-options.ts';
 import { gitEnvironment } from './git-environment.ts';
-import { countRemovedOperationUsages } from './provider-operations.ts';
+import { countBreakingOperationUsages } from './provider-operations.ts';
 
 const PREFLIGHT_GIT_TIMEOUT_MS = 30_000;
 
@@ -132,11 +132,11 @@ export async function runWorkflow(options: {
     await save('scan.json', `${JSON.stringify(scan, null, 2)}\n`);
     if (scan.apiVersion.applicability !== 'matches-before')
       return await finish('needs-review', scan.apiVersion.reason, runId);
-    const operationUsageCount = countRemovedOperationUsages(scan.operationImpacts);
+    const operationUsageCount = countBreakingOperationUsages(scan.operationImpacts);
     if (operationUsageCount)
       return await finish(
         'needs-review',
-        `Refit traced ${operationUsageCount} SDK call site${operationUsageCount === 1 ? '' : 's'} to removed OpenAPI operations. A verified endpoint migration rule is required before AI generation, validation or publication.`,
+        `Refit traced ${operationUsageCount} SDK call site${operationUsageCount === 1 ? '' : 's'} to unresolved breaking OpenAPI changes. A verified migration rule is required before AI generation, validation or publication.`,
         runId,
       );
     const unmapped = unmappedBreakingChanges(scan.specificationDiff, scan.changes, scan.findings);

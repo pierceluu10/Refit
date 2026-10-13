@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { afterEach, expect, it, vi } from 'vitest';
 import { compareOpenApi } from './openapi-diff.ts';
 import {
-  findRemovedOperationImpacts,
+  findBreakingOperationImpacts,
   validateProviderOperationMappings,
 } from './provider-operations.ts';
 import { runPipeline } from './run.ts';
@@ -41,14 +41,20 @@ it('requires each configured operationId to resolve once in the before contract'
       },
     ],
   };
-  expect(() =>
+  expect(
     validateProviderOperationMappings(provider, {
       paths: {
         '/customers/{id}': { get: { operationId: 'retrieveCustomer' } },
         '/customers': { get: { operationId: 'listCustomers' } },
       },
     }),
-  ).not.toThrow();
+  ).toMatchObject([
+    {
+      operationId: 'retrieveCustomer',
+      path: '/customers/{id}',
+      httpMethod: 'GET',
+    },
+  ]);
   expect(() => validateProviderOperationMappings(provider, { paths: {} })).toThrow(
     /resolves to 0 operations/,
   );
@@ -66,7 +72,7 @@ it.each(['api-path-removed-with-deprecation', 'api-removed-with-deprecation'])(
   'reports a removed operation even when the contract marked it deprecated first (%s)',
   (id) => {
     expect(
-      findRemovedOperationImpacts(
+      findBreakingOperationImpacts(
         {
           engine: 'oasdiff',
           changes: [
@@ -89,16 +95,68 @@ it.each(['api-path-removed-with-deprecation', 'api-removed-with-deprecation'])(
             operationId: 'retrieveCustomer',
           },
         ],
+        [
+          {
+            resource: 'customers',
+            method: 'retrieve',
+            schema: 'Customer',
+            operationId: 'retrieveCustomer',
+            path: '/customers/{id}',
+            httpMethod: 'GET',
+          },
+        ],
       ),
     ).toMatchObject([
       {
         operationId: 'retrieveCustomer',
         httpMethod: 'GET',
+        changes: [{ id, level: 1 }],
         usages: [{ method: 'customers.retrieve' }],
       },
     ]);
   },
 );
+
+it('maps unresolved breaking changes by their baseline path and HTTP method', () => {
+  const change = {
+    id: 'response-property-type-changed',
+    text: 'changed the response property type',
+    level: 3,
+    operation: 'get',
+    path: '/customers/{id}',
+  };
+  expect(
+    findBreakingOperationImpacts(
+      { engine: 'oasdiff', changes: [change] },
+      [
+        {
+          file: 'billing.ts',
+          line: 4,
+          column: 24,
+          method: 'customers.retrieve',
+          operationId: 'retrieveCustomer',
+        },
+      ],
+      [
+        {
+          resource: 'customers',
+          method: 'retrieve',
+          schema: 'Customer',
+          operationId: 'retrieveCustomer',
+          path: '/customers/{id}',
+          httpMethod: 'GET',
+        },
+      ],
+      [change],
+    ),
+  ).toMatchObject([
+    {
+      operationId: 'retrieveCustomer',
+      changes: [{ id: 'response-property-type-changed', level: 3 }],
+      usages: [{ file: 'billing.ts', line: 4 }],
+    },
+  ]);
+});
 
 it('finds SDK call sites for a removed mapped OpenAPI operation and blocks paid or executable work', async () => {
   const root = await mkdtemp(join(tmpdir(), 'refit-provider-operation-test-'));
@@ -204,7 +262,9 @@ it('finds SDK call sites for a removed mapped OpenAPI operation and blocks paid 
   });
 
   expect(result.manifest).toMatchObject({ status: 'needs-review', stage: 'scan' });
-  expect(result.manifest.reason).toContain('traced 1 SDK call site to removed OpenAPI operations');
+  expect(result.manifest.reason).toContain(
+    'traced 1 SDK call site to unresolved breaking OpenAPI changes',
+  );
   expect(validateMigration).not.toHaveBeenCalled();
   expect(fetcher).not.toHaveBeenCalled();
   const scan = JSON.parse(await readFile(join(output, 'scan.json'), 'utf8'));
@@ -215,6 +275,7 @@ it('finds SDK call sites for a removed mapped OpenAPI operation and blocks paid 
         operationId: 'retrieveCustomer',
         path: '/customers/{id}',
         httpMethod: 'GET',
+        changes: [{ id: 'api-removed-without-deprecation', level: 3 }],
         usages: [{ method: 'customers.retrieve', file: 'catalog.ts', line: 4 }],
       },
     ],
@@ -222,5 +283,6 @@ it('finds SDK call sites for a removed mapped OpenAPI operation and blocks paid 
   });
   const terminal = await renderWorkflowResult(result);
   expect(terminal).toContain('GET /customers/{id} (retrieveCustomer)');
+  expect(terminal).toContain('[api-removed-without-deprecation] api removed without deprecation');
   expect(terminal).toContain('catalog.ts:4');
 });
