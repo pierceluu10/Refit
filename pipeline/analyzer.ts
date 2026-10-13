@@ -300,8 +300,29 @@ export function analyzeRepository(
   );
   for (const [response, wrapper] of wrappedResponses) if (unsafe.has(wrapper)) unsafe.add(response);
   function propose(node: ts.Node, receiver: ts.Expression, change: Removal) {
+    if (provider !== STRIPE) {
+      const rename = provider.propertyRenames?.find(
+        (candidate) => candidate.schema === change.schema && candidate.removed === change.property,
+      );
+      if (
+        rename &&
+        ts.isPropertyAccessExpression(node) &&
+        ts.isIdentifier(node.name) &&
+        node.name.text === change.property
+      ) {
+        const start = node.name.getStart();
+        if (!edits.some((edit) => edit.file === location(node).file && edit.start === start))
+          edits.push({
+            file: location(node).file,
+            start,
+            end: node.name.getEnd(),
+            replacement: rename.replacement,
+            changeId: change.id,
+          });
+      }
+      return;
+    }
     if (
-      provider !== STRIPE ||
       change.schema !== 'payment_intent' ||
       change.property !== 'charges' ||
       !ts.isIdentifier(receiver)
