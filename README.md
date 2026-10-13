@@ -6,7 +6,7 @@ Refit is being built to turn external API changes into repository-specific, vali
 
 ## Current release
 
-**Local agent 0.2:** `refit watch` now monitors a configured OpenAPI source with persistent job receipts, shared JSON/YAML ingestion and oasdiff comparison, bounded AI spending, Docker validation and GitHub App publication. Human CLI summaries and PR descriptions keep the detailed JSON evidence available for inspection. [Test the automated Stripe pipeline](docs/AUTOMATION.md), including a simulated change arriving while the worker is running.
+**Local agent 0.3:** `refit watch --sync-github` can fetch and refresh an App-managed repository while preserving your working copy. The worker monitors a configured OpenAPI source with persistent job receipts, shared JSON/YAML ingestion and oasdiff comparison, bounded AI spending, Docker validation and GitHub App publication. Human CLI summaries and PR descriptions keep the detailed JSON evidence available for inspection. [Test the automated Stripe pipeline](docs/AUTOMATION.md), including a simulated change arriving while the worker is running.
 
 The core is shared across providers; an actual OpenAI SDK conformance evaluation complements Stripe. SDK mappings, migration semantics and application checks still need verification. This is a local operator product, not a hosted service automatically activated by installing the App.
 
@@ -29,7 +29,7 @@ From a checkout with dependencies installed, build an installable archive:
 
 ```sh
 npm run package:cli
-npm install --global ./dist-cli/refit-0.2.0.tgz
+npm install --global ./dist-cli/refit-0.3.0.tgz
 refit --help
 refit replay --propose-patch
 ```
@@ -197,7 +197,7 @@ Refit builds a Git tree on the existing remote base, preserving unrelated files 
 
 The token remains in the host publisher and is not sent to OpenAI or Docker. Full check logs stay local. The command only accepts freshly generated validation, not a saved report or unsigned bundle. The saved report remains pre-publication evidence; the final stdout object supplies the PR URL and whether it was created or reused. Setup, API or publication failures exit 1; partial failures can leave a branch or unreferenced Git objects. Rerun with a new output path to reconcile the same candidate. With AI enabled, a newly generated different patch has a different branch identity.
 
-Currently this supports `github.com`, an existing same-repository base commit, and either an explicitly supplied personal token or a registered GitHub App. It does not install a GitHub App, clone repositories, upload local-only base history, or schedule runs. Publication is covered by controlled GitHub responses for successful drafts, stale revisions, collisions, retries and concurrency; a [live draft PR](https://github.com/pierceluu10/refit-billing-demo/pull/1) was also verified against the independent simulated billing app.
+Currently this supports `github.com`, an existing same-repository base commit, and either an explicitly supplied personal token or a registered GitHub App. The standalone publisher does not install the App or upload local-only base history. Use `watch --sync-github` for managed repository fetching and local polling; hosted installation enrollment remains planned. Publication is covered by controlled GitHub responses for successful drafts, stale revisions, collisions, retries and concurrency; a [live draft PR](https://github.com/pierceluu10/refit-billing-demo/pull/1) was also verified against the independent simulated billing app.
 
 You can also publish under a GitHub App bot identity using `--github-app`, `GITHUB_APP_ID` and `GITHUB_APP_PRIVATE_KEY_FILE`. Refit signs a JWT and obtains a short-lived installation token scoped to the chosen repository, verifies the bot identity, and uses its noreply email for commit authorship. Register and install the App once and upload its logo in GitHub settings; existing PR authors cannot be renamed. See [App setup](docs/GITHUB-APP.md) and [running AI on a test repository](docs/TEST-REPOSITORIES.md). This authentication mode is tested with real RSA signing and controlled API responses; live App publication requires those external settings.
 

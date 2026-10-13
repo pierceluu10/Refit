@@ -1,4 +1,4 @@
-# Local API monitoring with Refit 0.2
+# Local API monitoring with Refit 0.3
 
 Refit has a local polling worker that captures an OpenAPI source, compares it with a retained baseline, scans a repository, and processes each migration once. AI generation and GitHub publication are explicit options. Start with a single poll; remove `--once` to keep the worker running while your computer is on.
 
@@ -34,6 +34,33 @@ The saved result points to [Refit Agent's draft PR #3](https://github.com/pierce
 Remove `--once` to poll every five minutes, or set `--interval 60`. Press Ctrl+C to stop. Do not clear state or budget files between runs. The configured `after` file is a curated historical Stripe contract: this command tests automation with that supplied change, rather than discovering today's Stripe changes.
 
 The check image can be rebuilt using [the billing evaluation commands](BILLING-EVALUATION.md#reproduce). The current pagination harness creates **103 charge attempts**, exceeding Stripe's maximum list page size, and checks empty history under both simulator modes.
+
+## Let the App fetch and refresh the repository
+
+You no longer need a local clone or to pull the base branch manually. `--sync-github` uses an App-owned checkout inside the worker state directory and refreshes its base before every poll. The target is explicit and must be accessible to the installed App. State must be outside existing Git working copies.
+
+On Pierce's machine, repeat the verified remote workflow:
+
+```sh
+cd /Users/pierceluu/Repos/Refit
+refit watch --env .env \
+  --config examples/billing-demo.github.refit.json \
+  --state /Users/pierceluu/.refit/evaluations/stripe-managed-checkout-2026-10-12 \
+  --sync-github --github pierceluu10/refit-billing-demo --base main --github-app \
+  --once --publish-draft
+```
+
+This example omits `repository` and uses Refit's curated historical Stripe contract fixtures. It reuses the verified App draft without new AI or validation. Remove `--once` for continuous polling. Before returning a cached result, the worker refreshes App authorization and reads the current remote base. A changed base becomes a new repository revision for scanning.
+
+To run and inspect a fresh migration without publishing, choose a new state directory and omit `--publish-draft`. The live evaluation already did this at `/Users/pierceluu/.refit/evaluations/stripe-managed-validation-2026-10-12`, passing both billing contracts, TypeScript, 103-attempt pagination and empty history in offline Docker. It generated the supported deterministic history patch without calling OpenAI. The original billing checkout stayed clean and unmigrated.
+
+For AI, add the same `REFIT_AI_BUDGET_USD=2` and `REFIT_AI_BUDGET_DIRECTORY` environment values used above, followed by `--ai-patch --repair-attempts 2`. Scanning and the existing-PR preflight still run first; a reused job does not regenerate merely because AI was enabled. For a review-required or failed job, use `--retry --once` after addressing its cause. Switching publication mode requires a fresh state directory.
+
+For another repository, supply your API baseline/current source, provider mapping where needed, local check image, and meaningful commands in a run configuration. `repository` can be omitted for App-managed mode; `--sync-github`, `--github owner/repo`, `--base branch`, and `--github-app` remain explicit command-line choices. This is still one configured repository/source per worker, not automatic enrollment of every installation.
+
+Checkout credentials are short-lived, repository-scoped Contents **read** tokens. They are used only for GitHub reads and Git fetch; they never appear in Git URLs, command arguments, saved configuration, or the validation container. Publication obtains a separate scoped write token. Git subprocesses ignore inherited global/system configuration and credential helpers; hooks and submodule recursion are disabled. No package installation, application script, or repository hook runs during checkout.
+
+The managed directory stores ownership, configuration hash and pinned revision evidence. Modified tracked files, untracked or ignored files, changed Git configuration, and unexpected HEAD changes stop syncing rather than being overwritten. Prepared checkouts and clean completed updates can reconcile after interruption; ambiguous or dirty partial updates require inspection. Never edit the managed checkout: change the upstream repository or your normal working copy instead. The worker fetches commits at their full SHA and checks the GitHub base again before publication. Existing drafts with stale base history require review; Refit does not force-push or merge them.
 
 ## Demonstrate a change arriving while the worker runs
 
@@ -128,4 +155,4 @@ Evidence remains JSON for reproducibility and integrations. PRs show the change,
 
 ## Remaining product work
 
-The hosted layer needs installation/repository registration, authenticated checkout provisioning, webhook verification, durable hosted jobs, dependency provisioning, and tenant-level budgets. Live service contracts, SDK/API-version applicability, broader response flow and languages, and migration evaluations need additional work. The current worker handles one configured local repository and source per process; it does not automatically clone, fetch or enroll every repository where the App is installed.
+The hosted layer needs installation/repository registration, authenticated checkout provisioning, webhook verification, durable hosted jobs, dependency provisioning, and tenant-level budgets. Live service contracts, SDK/API-version applicability, broader response flow and languages, and migration evaluations need additional work. The current worker handles one configured local repository and source per process; App-managed mode can clone/fetch an explicit authorized target, but there is no automatic installation enrollment or hosted worker.

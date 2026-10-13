@@ -1,5 +1,15 @@
 # Refit implementation checkpoints
 
+## October 12, 2026: App-managed repository provisioning
+
+Refit 0.3 adds `watch --sync-github`: the installed App fetches an explicit authorized repository into a private managed checkout and refreshes the base before every poll. A run configuration can omit the local repository. Contents read tokens serve checkout; publication gets a separate write token. Git credentials are restricted to a child-process environment, never saved in URLs/configuration, and never supplied to checks. Ownership/configuration hashes and tracked/untracked/ignored file checks stop unexpected edits from being overwritten. Native Git tests cover base advancement, held locks, interrupted preparation/update recovery, and state outside working copies.
+
+The live App evaluation fetched the private billing demo at `a8ea0428ec7a3f2b90a24e2168791b4dba3e87c2`. One remote worker verified/reused PR #3 before generation. Another generated the supported deterministic patch and passed both 14-test contracts, TypeScript, 103-charge pagination and empty history in offline Docker. The original billing checkout stayed clean and unmigrated. No new AI spending was needed; the shared build ledger remains at $0.00357075.
+
+The full gated suite passed **301 tests with none skipped** across 33 files. Production build, typecheck, formatting and evidence integrity verification passed.
+
+See [App-managed commands](AUTOMATION.md#let-the-app-fetch-and-refresh-the-repository). This removes manual local checkout/pull setup; hosted installation enrollment and dependency provisioning remain future work.
+
 ## October 12, 2026: local automation and shared provider core
 
 Refit 0.2 adds a persistent local worker, public HTTPS/file/Stripe source capture, JSON/YAML parsing, a shared oasdiff changelog, bounded migration gates, App preflight deduplication, durable AI spending reservations, and human-readable CLI/PR presentation. [Local automation](AUTOMATION.md) provides the exact Stripe commands and a change-arrival demonstration. [Architecture](ARCHITECTURE.md) separates the implemented core from hosted onboarding.
