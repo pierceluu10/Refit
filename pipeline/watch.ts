@@ -19,6 +19,7 @@ import {
   type DocumentationSource,
 } from './documentation-sources.ts';
 import { readProviderAdapter } from './providers.ts';
+import { isRemovedOperationChange } from './openapi-operations.ts';
 import { digest, isObject, readSpecification } from './specifications.ts';
 import {
   hasErrorCode,
@@ -218,7 +219,7 @@ async function watchLocalOnce(
     const contractChanges =
       scan.specificationDiff.engine === 'oasdiff'
         ? scan.specificationDiff.changes
-            .filter((change) => Number(change.level) >= 2)
+            .filter((change) => Number(change.level) >= 2 || isRemovedOperationChange(change))
             .map(
               (change) =>
                 change.fingerprint ?? { id: change.id, path: change.path, text: change.text },
@@ -241,6 +242,9 @@ async function watchLocalOnce(
           applicability: scan.apiVersion.applicability,
         },
         changes: scan.changes.map((change) => change.id),
+        ...(scan.operationChanges.length
+          ? { operationChanges: scan.operationChanges.map((change) => change.id) }
+          : {}),
         contractChanges,
       }),
     );
