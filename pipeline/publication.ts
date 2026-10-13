@@ -4,6 +4,9 @@ import { createReviewArtifacts } from './review.ts';
 import { digest, isObject } from './specifications.ts';
 import { PipelineInputError } from './types.ts';
 import type { validateMigration } from './validation.ts';
+import type { runPipeline } from './run.ts';
+import { migrationIdentity } from './migration-identity.ts';
+import { unmappedBreakingChanges } from './openapi-diff.ts';
 
 const MAX_BODY_CHARACTERS = 60_000;
 const SHA = /^[a-f0-9]{40}$/;
@@ -49,11 +52,112 @@ function object(value: unknown) {
   return value;
 }
 
+async function publicationSession(options: PublicationConfiguration) {
+  const authentication = options.app
+    ? await authenticateGitHubApp(options.app, options.repository)
+    : undefined;
+  const token = authentication?.token ?? options.token;
+  if (!token) throw new PipelineInputError('GitHub publication credentials are unavailable.');
+  const request = (method: 'GET' | 'POST', path: string, body?: unknown) =>
+    requestGitHub(token, method, `/repos/${options.repository}${path}`, body);
+  return { authentication, request };
+}
+
+export async function findExistingMigration(
+  report: Awaited<ReturnType<typeof runPipeline>>,
+  revision: string,
+  options: PublicationConfiguration,
+) {
+  if (!options.app) return undefined;
+  const { authentication, request } = await publicationSession(options);
+  const remote = object(await request('GET', `/git/ref/heads/${encodeURIComponent(options.base)}`));
+  if (object(remote.object).sha !== sha(revision))
+    throw new PipelineInputError(
+      'GitHub base differs from the monitored commit. Update the local checkout before generating a migration.',
+    );
+  const query = new URLSearchParams({ state: 'open', base: options.base, per_page: '100' });
+  const pulls = await request('GET', `/pulls?${query}`);
+  if (!Array.isArray(pulls) || pulls.length >= 100)
+    throw new PipelineInputError(
+      'Existing PR search is incomplete; review repository pagination before starting another migration.',
+    );
+  const marker = `<!-- refit-migration:${migrationIdentity(report, revision)} -->`;
+  const matches = pulls
+    .filter(
+      (pull) =>
+        isObject(pull) &&
+        isObject(pull.user) &&
+        pull.user.login === authentication?.publisher.login &&
+        pull.state === 'open' &&
+        pull.draft === true &&
+        isObject(pull.base) &&
+        pull.base.ref === options.base &&
+        pull.base.sha === revision &&
+        isObject(pull.head) &&
+        typeof pull.head.ref === 'string' &&
+        pull.head.ref.startsWith('refit/') &&
+        isObject(pull.head.repo) &&
+        pull.head.repo.full_name === options.repository &&
+        typeof pull.body === 'string' &&
+        (pull.body.includes(marker) || pull.body.includes(`"runId": "${report.runId}"`)) &&
+        Number.isSafeInteger(pull.number) &&
+        Number(pull.number) > 0,
+    )
+    .sort((left, right) => Number(left.number) - Number(right.number));
+  const pull = matches[0];
+  if (!pull) return undefined;
+  const head = sha(object(pull.head).sha);
+  const commit = object(await request('GET', `/git/commits/${head}`));
+  if (
+    !Array.isArray(commit.parents) ||
+    commit.parents.length !== 1 ||
+    object(commit.parents[0]).sha !== revision
+  )
+    throw new PipelineInputError(
+      'Existing migration has a different base history; review it before starting another proposal.',
+    );
+  const current = object(
+    await request('GET', `/git/ref/heads/${encodeURIComponent(String(object(pull.head).ref))}`),
+  );
+  if (
+    object(current.object).sha !== head ||
+    pull.html_url !== `https://github.com/${options.repository}/pull/${pull.number}`
+  )
+    throw new PipelineInputError(
+      'Existing migration changed during discovery. Retry the read-only check.',
+    );
+  const latestBase = object(
+    await request('GET', `/git/ref/heads/${encodeURIComponent(options.base)}`),
+  );
+  if (object(latestBase.object).sha !== revision)
+    throw new PipelineInputError(
+      'GitHub base changed during migration discovery. Refresh the local checkout.',
+    );
+  return {
+    status: 'existing' as const,
+    url: pull.html_url as string,
+    number: pull.number as number,
+    draft: true,
+    state: 'open',
+    branch: object(pull.head).ref as string,
+    revision,
+    head,
+    reviewRequired: true,
+    publisher: authentication!.publisher,
+    duplicateCount: matches.length,
+    validation: 'not-rerun' as const,
+  };
+}
+
 export async function publishDraft(
   report: Report,
   options: ReturnType<typeof publicationConfiguration>,
 ) {
   const artifacts = createReviewArtifacts(report, 'github');
+  if (unmappedBreakingChanges(report.specificationDiff, report.changes, report.findings).length)
+    throw new PipelineInputError(
+      'Draft publication is blocked by unmapped breaking contract changes.',
+    );
   if (
     report.validation.status !== 'passed' ||
     report.patch.unresolvedFindings !== 0 ||
@@ -63,17 +167,11 @@ export async function publishDraft(
       'Draft publication requires passing baseline/patched checks, changed files and zero unresolved findings.',
     );
   const revision = sha(report.validation.revision);
-  const authentication = options.app
-    ? await authenticateGitHubApp(options.app, options.repository)
-    : undefined;
-  const token = authentication?.token ?? options.token;
-  if (!token) throw new PipelineInputError('GitHub publication credentials are unavailable.');
+  const { authentication, request } = await publicationSession(options);
   const identity = authentication ? `:app:${authentication.publisher.appId}` : '';
   const branch = `refit/${digest(`${report.runId}:${report.validation.patchHash}${identity}`).slice(0, 32)}`;
   if (branch === options.base)
     throw new PipelineInputError('Migration branch cannot be the base branch.');
-  const request = (method: 'GET' | 'POST', path: string, body?: unknown) =>
-    requestGitHub(token, method, `/repos/${options.repository}${path}`, body);
   const reference = async (name: string, optional = false) => {
     try {
       const result = object(await request('GET', `/git/ref/heads/${encodeURIComponent(name)}`));

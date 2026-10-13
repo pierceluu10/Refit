@@ -208,3 +208,18 @@ it('offers human output while preserving the review exit code and saved machine 
     promisify(execFile)(process.execPath, [resolve('bin/refit.mjs'), 'run', '--human', '--json']),
   ).rejects.toMatchObject({ code: 1, stderr: expect.stringContaining('Choose either') });
 });
+
+it('stops an aborted watcher before model generation or publication', async () => {
+  const input = await options();
+  const controller = new AbortController();
+  controller.abort();
+  const result = await runWorkflow({
+    ...input,
+    signal: controller.signal,
+    aiPatch: { apiKey: 'unused', model: 'unused' },
+    publication: { repository: 'owner/repo', base: 'main', token: 'unused' },
+  });
+  expect(result.manifest).toMatchObject({ status: 'error', error: { name: 'AbortError' } });
+  expect(validateMigration).not.toHaveBeenCalled();
+  expect(publishDraft).not.toHaveBeenCalled();
+});

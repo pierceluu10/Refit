@@ -1,7 +1,8 @@
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { afterEach, expect, it, vi } from 'vitest';
-import { publicationConfiguration, publishDraft } from './publication.ts';
+import { findExistingMigration, publicationConfiguration, publishDraft } from './publication.ts';
+import { migrationIdentity } from './migration-identity.ts';
 import { runPipeline } from './run.ts';
 import { digest } from './specifications.ts';
 import type { validateMigration } from './validation.ts';
@@ -279,6 +280,58 @@ it('publishes with the verified app identity on a separate branch from personal-
   });
   expect(JSON.stringify(result)).not.toContain('test-token');
   expect(JSON.stringify(remote.calls)).not.toContain('ignored-personal-token');
+});
+
+it('discovers equivalent App drafts before generation while ignoring foreign authors and reconciling legacy receipts', async () => {
+  vi.spyOn(githubApp, 'authenticateGitHubApp').mockResolvedValue({
+    token: 'test-token',
+    author: { name: 'Refit Agent', email: '123+refit-agent[bot]@users.noreply.github.com' },
+    publisher: { kind: 'github-app', appId: 123, name: 'Refit Agent', login: 'refit-agent[bot]' },
+  });
+  const value = await report();
+  const makePull = (number: number, body: string, author = 'refit-agent[bot]') => ({
+    number,
+    html_url: `https://github.com/example/application/pull/${number}`,
+    body,
+    state: 'open',
+    draft: true,
+    user: { login: author },
+    base: { ref: 'main', sha: REVISION },
+    head: { sha: HEAD, ref: 'refit/example', repo: { full_name: 'example/application' } },
+  });
+  const fetcher = vi.fn(async (input: string, options: RequestInit) => {
+    expect(options.method).toBe('GET');
+    const path = new URL(input).pathname;
+    const response = path.endsWith('/pulls')
+      ? [
+          makePull(1, `"runId": "${value.runId}"`, 'someone-else'),
+          makePull(3, `"runId": "${value.runId}"`),
+          makePull(2, `<!-- refit-migration:${migrationIdentity(value, REVISION)} -->`),
+        ]
+      : path.includes('/git/commits/')
+        ? { parents: [{ sha: REVISION }] }
+        : path.endsWith('/main')
+          ? { object: { sha: REVISION } }
+          : { object: { sha: HEAD } };
+    return new Response(JSON.stringify(response));
+  });
+  vi.stubGlobal('fetch', fetcher);
+  const result = await findExistingMigration(
+    value,
+    REVISION,
+    publicationConfiguration('example/application', 'main', undefined, {
+      appId: '123',
+      privateKeyFile: '/unused.pem',
+    }),
+  );
+  expect(result).toMatchObject({
+    number: 2,
+    status: 'existing',
+    duplicateCount: 2,
+    validation: 'not-rerun',
+    publisher: { login: 'refit-agent[bot]' },
+  });
+  expect(fetcher).toHaveBeenCalledTimes(5);
 });
 
 it('does not authenticate an app until the candidate passes the existing publication gates', async () => {

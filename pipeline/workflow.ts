@@ -1,16 +1,25 @@
 import type { AiOptions } from './ai-budget.ts';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
 import { readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { createArtifactDirectory } from './artifacts.ts';
 import { readProviderAdapter } from './providers.ts';
-import { publishDraft, type publicationConfiguration } from './publication.ts';
+import {
+  findExistingMigration,
+  publishDraft,
+  type publicationConfiguration,
+} from './publication.ts';
 import { createReviewArtifacts } from './review.ts';
 import { runPipeline } from './run.ts';
 import { discoverStripeRevision, encodeSnapshot, fetchStripeSnapshot } from './snapshots.ts';
 import { digest, readSpecification } from './specifications.ts';
 import { PipelineInputError } from './types.ts';
+import { unmappedBreakingChanges } from './openapi-diff.ts';
 import { validateMigration } from './validation.ts';
 import { validateCheckCommand, validateRepairAttempts } from './validation-options.ts';
+
+const PREFLIGHT_GIT_TIMEOUT_MS = 30_000;
 
 type Stage = 'inputs' | 'scan' | 'validation' | 'publication';
 type Status =
@@ -26,11 +35,13 @@ export async function runWorkflow(options: {
   command: string[];
   baselineCommand?: string[];
   providerConfig?: string;
+  fullDiff?: boolean;
   assessment?: AiOptions;
   aiPatch?: AiOptions;
   repairAttempts?: number;
   publication?: ReturnType<typeof publicationConfiguration>;
   onProgress?: (message: string) => void;
+  signal?: AbortSignal;
 }) {
   if (Boolean(options.after) === Boolean(options.latestStripe))
     throw new PipelineInputError('Choose exactly one of --after or --latest-stripe.');
@@ -74,6 +85,7 @@ export async function runWorkflow(options: {
   };
   let runId: string | null = null;
   try {
+    options.signal?.throwIfAborted();
     options.onProgress?.('Preparing API specifications...');
     await readSpecification(options.before);
     await save('before.json', await readFile(options.before, 'utf8'));
@@ -106,18 +118,48 @@ export async function runWorkflow(options: {
       before,
       after: join(directory, 'after.json'),
       providerConfig,
+      fullDiff: options.fullDiff,
     };
     stage = 'scan';
     options.onProgress?.('Scanning repository for affected API usage...');
     const scan = await runPipeline({ ...inputs, proposePatch: true });
     runId = scan.runId;
     await save('scan.json', `${JSON.stringify(scan, null, 2)}\n`);
+    const unmapped = unmappedBreakingChanges(scan.specificationDiff, scan.changes, scan.findings);
+    if (unmapped.length)
+      return await finish(
+        'needs-review',
+        `${unmapped.length} breaking contract changes are outside the confirmed response-field migration scope. Review the recorded contract report before proposing a patch.`,
+        runId,
+      );
     if (!scan.findings.some((finding) => finding.confidence === 'confirmed'))
       return await finish(
         'needs-review',
         'No confirmed supported usage was found. This does not prove no impact; no patch or publication was attempted.',
         runId,
       );
+    if (options.publication?.app) {
+      options.signal?.throwIfAborted();
+      options.onProgress?.('Checking for an existing Refit Agent migration...');
+      const execute = promisify(execFile);
+      const git = (argumentsList: string[]) =>
+        execute('git', ['-c', 'core.fsmonitor=false', '-C', options.repository, ...argumentsList], {
+          timeout: PREFLIGHT_GIT_TIMEOUT_MS,
+        });
+      if (!(await git(['status', '--porcelain', '--untracked-files=all'])).stdout) {
+        const revision = (await git(['rev-parse', '--verify', 'HEAD^{commit}'])).stdout.trim();
+        const existing = await findExistingMigration(scan, revision, options.publication);
+        if (existing) {
+          stage = 'publication';
+          await save('publication.json', `${JSON.stringify(existing, null, 2)}\n`);
+          return await finish(
+            'existing-pr',
+            `${existing.url} already covers these changes. AI generation and validation were not rerun.`,
+            runId,
+          );
+        }
+      }
+    }
     if (!options.aiPatch && scan.patch.status !== 'proposed')
       return await finish(
         'needs-review',
@@ -125,6 +167,7 @@ export async function runWorkflow(options: {
         runId,
       );
     stage = 'validation';
+    options.signal?.throwIfAborted();
     options.onProgress?.('Validating the committed repository snapshot...');
     const report = await validateMigration({
       ...inputs,
@@ -135,6 +178,7 @@ export async function runWorkflow(options: {
       aiPatch: options.aiPatch,
       repairAttempts: options.repairAttempts,
       onProgress: options.onProgress,
+      signal: options.signal,
     });
     runId = report.runId;
     const review = createReviewArtifacts(report);
@@ -158,6 +202,7 @@ export async function runWorkflow(options: {
         runId,
       );
     stage = 'publication';
+    options.signal?.throwIfAborted();
     options.onProgress?.('Checks passed. Publishing a GitHub draft PR...');
     const publication = await publishDraft(report, options.publication);
     await save('publication.json', `${JSON.stringify(publication, null, 2)}\n`);

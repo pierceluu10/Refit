@@ -20,7 +20,7 @@ export class GitHubRequestError extends Error {
 
 export async function requestGitHub(
   token: string,
-  method: 'GET' | 'POST',
+  method: 'GET' | 'POST' | 'PATCH',
   path: string,
   body?: unknown,
 ): Promise<unknown> {

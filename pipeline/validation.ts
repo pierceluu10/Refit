@@ -147,8 +147,10 @@ export async function validateMigration(options: {
   assessment?: AiOptions;
   aiPatch?: AiOptions;
   providerConfig?: string;
+  fullDiff?: boolean;
   repairAttempts?: number;
   onProgress?: (message: string) => void;
+  signal?: AbortSignal;
 }) {
   validateCheckCommand(options.command);
   const baselineCommand = validateCheckCommand(options.baselineCommand ?? options.command);
@@ -195,6 +197,7 @@ export async function validateMigration(options: {
     await command('tar', ['-xf', archive, '-C', baselineDirectory]);
     options.onProgress?.('Running baseline checks in offline Docker...');
     const baseline = await containerCheck(baselineDirectory, image, baselineCommand);
+    options.signal?.throwIfAborted();
     if (baseline.status === 'passed')
       options.onProgress?.(
         options.aiPatch
@@ -288,6 +291,7 @@ export async function validateMigration(options: {
         `Patched checks failed. Requesting AI repair ${repair.requested} of ${repairLimit}...`,
       );
       try {
+        options.signal?.throwIfAborted();
         const candidate = await proposeAiPatch(
           originalSources,
           report.changes,

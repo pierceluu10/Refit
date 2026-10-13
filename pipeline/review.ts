@@ -3,6 +3,7 @@ import { join, resolve } from 'node:path';
 import { digest } from './specifications.ts';
 import { PipelineInputError } from './types.ts';
 import type { validateMigration } from './validation.ts';
+import { migrationIdentity } from './migration-identity.ts';
 
 type ValidationReport = Awaited<ReturnType<typeof validateMigration>>;
 
@@ -51,7 +52,9 @@ export function createReviewArtifacts(
   const change = report.changes[0];
   const title =
     change && report.changes.length === 1
-      ? `Fix ${provider} usage after ${change.schema}.${change.property} removal`
+      ? provider === 'Stripe' && change.schema === 'payment_intent' && change.property === 'charges'
+        ? 'Fix Stripe payment history after PaymentIntent.charges removal'
+        : `Fix ${provider} usage after ${change.schema}.${change.property} removal`
       : `Migrate affected ${provider} API usage`;
   const summary =
     validation.status === 'passed'
@@ -93,6 +96,13 @@ export function createReviewArtifacts(
         ? 'Full stdout, stderr and execution errors are preserved in report.json. The exact proposed change is in migration.patch.'
         : 'Full check logs remain in the local validation report; they are not uploaded to GitHub.',
       '### Recorded inputs',
+      jsonBlock(
+        report.specificationDiff ?? {
+          engine: 'direct-properties',
+          changes: report.changes,
+          coverage: report.coverage.specification,
+        },
+      ),
       jsonBlock({
         runId: report.runId,
         snapshots: report.snapshots,
@@ -108,6 +118,7 @@ export function createReviewArtifacts(
         : ['### Advisory AI assessment', jsonBlock(report.assessment)]),
       jsonBlock({ warnings: [...report.warnings, ...patch.warnings], coverage: report.coverage }),
       '\n</details>',
+      `<!-- refit-migration:${migrationIdentity(report, validation.revision)} -->`,
     ].join('\n\n') + '\n';
   const files = {
     'report.json': `${JSON.stringify(report, null, 2)}\n`,

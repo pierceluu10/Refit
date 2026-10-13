@@ -31,10 +31,19 @@ export async function renderWorkflowResult(result: Result) {
       (finding) => isObject(finding) && finding.confidence === 'confirmed',
     );
     const files = new Set(confirmed.map((finding) => (finding as Record<string, unknown>).file));
-    rows.push(`Found       ${confirmed.length} confirmed usages in ${files.size} files`);
+    rows.push(
+      `Found       ${confirmed.length} confirmed ${confirmed.length === 1 ? 'usage' : 'usages'} in ${files.size} ${files.size === 1 ? 'file' : 'files'}`,
+    );
   }
-  if (report && isObject(report.patch) && typeof report.patch.generator === 'string')
-    rows.push(`Generated   ${terminalText(report.patch.generator)} migration`);
+  if (
+    report &&
+    isObject(report.patch) &&
+    typeof report.patch.generator === 'string' &&
+    result.manifest.status !== 'existing-pr'
+  )
+    rows.push(
+      `Generated   ${report.patch.generator === 'openai' ? 'AI' : 'Deterministic'} migration`,
+    );
   if (report && isObject(report.patch) && isObject(report.patch.usage)) {
     const usage = report.patch.usage;
     rows.push(
@@ -60,7 +69,9 @@ export async function renderWorkflowResult(result: Result) {
     const publisher = isObject(publication.publisher)
       ? publication.publisher.login
       : 'configured GitHub account';
-    rows.push(`Published   ${terminalText(String(publisher))}`);
+    rows.push(
+      `${result.manifest.status === 'existing-pr' ? 'Author      ' : 'Published   '}${terminalText(String(publisher))}`,
+    );
     rows.push(`PR          ${terminalText(publication.url)}`);
   }
   return [
