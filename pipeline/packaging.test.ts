@@ -60,6 +60,9 @@ it('packs only CLI runtime sources, fixtures, docs and exact runtime dependencie
   expect(result.files).toContain('pipeline/service-cli.ts');
   expect(result.files).toContain('docs/LOCAL-SERVICE.md');
   expect(result.files).toContain('docs/DEPENDENCIES.md');
+  expect(result.files).toContain('docs/ENDPOINT-MIGRATIONS.md');
+  expect(result.files).toContain('pipeline/fixtures/endpoint-replacement/provider.json');
+  expect(result.files).toContain('pipeline/provider-operation-replacements.ts');
   expect(result.files).toContain('pipeline/npm-dependencies.ts');
   expect(result.files).toContain('examples/billing-demo.npm.refit.json');
   expect(result.files).toContain('examples/local-service.npm.refit.json');

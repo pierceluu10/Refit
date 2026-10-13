@@ -189,19 +189,17 @@ export async function validateMigration(options: {
     options.onProgress?.('Running baseline checks in offline Docker...');
     const baseline = await containerCheck(baselineDirectory, image, baselineCommand, dependencies);
     options.signal?.throwIfAborted();
-    if (baseline.status === 'passed')
-      options.onProgress?.(
-        options.aiPatch
-          ? 'Requesting an AI migration proposal...'
-          : 'Generating a deterministic migration proposal...',
-      );
     const report = await runPipeline({
       ...options,
       repository: baselineDirectory,
       proposePatch: true,
       aiPatch: baseline.status === 'passed' ? options.aiPatch : undefined,
       assessment: baseline.status === 'passed' ? options.assessment : undefined,
+      onProgress: baseline.status === 'passed' ? options.onProgress : undefined,
     });
+    const configuredEndpointProposal = report.operationChanges.some(
+      (change) => change.usages.length > 0,
+    );
     const beforeSpecification = await readSpecification(options.before);
     if (beforeSpecification.hash !== report.snapshots.before)
       throw new PipelineInputError('Baseline specification changed during validation.');
@@ -263,14 +261,20 @@ export async function validateMigration(options: {
     const repair: { limit: number; requested: number; stopReason: string; error: string | null } = {
       limit: repairLimit,
       requested: 0,
-      stopReason: baseline.status === 'passed' ? 'not-needed-or-disabled' : 'baseline-failed',
+      stopReason:
+        baseline.status === 'passed'
+          ? configuredEndpointProposal
+            ? 'configured-endpoint-replacement'
+            : 'not-needed-or-disabled'
+          : 'baseline-failed',
       error: null,
     };
     while (
       baseline.status === 'passed' &&
       patched.status === 'failed' &&
       repair.requested < repairLimit &&
-      options.aiPatch
+      options.aiPatch &&
+      !configuredEndpointProposal
     ) {
       const latestRevision = (await git(['rev-parse', '--verify', 'HEAD^{commit}'])).stdout.trim();
       if (

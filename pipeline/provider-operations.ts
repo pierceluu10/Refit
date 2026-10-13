@@ -1,24 +1,12 @@
 import { isObject } from './specifications.ts';
 import { PipelineInputError, type Location } from './types.ts';
 import type { ProviderAdapter } from './providers.ts';
-
-const OPENAPI_METHODS = new Set([
-  'delete',
-  'get',
-  'head',
-  'options',
-  'patch',
-  'post',
-  'put',
-  'trace',
-]);
+import { isRemovedOperationChange, listOpenApiOperations } from './openapi-operations.ts';
+import {
+  isHandledOperationRemoval,
+  type OperationReplacementEvidence,
+} from './provider-operation-replacements.ts';
 const BREAKING_CHANGE_LEVEL = 2;
-const REMOVED_OPERATION_CHANGES = new Set([
-  'api-path-removed-with-deprecation',
-  'api-path-removed-without-deprecation',
-  'api-removed-with-deprecation',
-  'api-removed-without-deprecation',
-]);
 
 export interface MappedSdkCall extends Location {
   method: string;
@@ -61,15 +49,14 @@ export function validateProviderOperationMappings(
   if (!isObject(before) || !isObject(before.paths))
     throw new PipelineInputError('OpenAPI operation mappings require a document with paths.');
   return mapped.map((operation) => {
-    const matches = findOperationIds(
-      before.paths as Record<string, unknown>,
-      operation.operationId,
+    const matches = listOpenApiOperations(before).filter(
+      (candidate) => candidate.operation.operationId === operation.operationId,
     );
     if (matches.length !== 1)
       throw new PipelineInputError(
         `Provider operation ${operation.resource}.${operation.method} maps to OpenAPI operationId "${operation.operationId}", which resolves to ${matches.length} operations in the before specification.`,
       );
-    return { ...operation, ...matches[0] };
+    return { ...operation, path: matches[0].path, httpMethod: matches[0].httpMethod };
   });
 }
 
@@ -78,24 +65,24 @@ export function findBreakingOperationImpacts(
   calls: MappedSdkCall[],
   mappings: ProviderOperationMapping[],
   breakingChanges?: unknown[],
+  operationChanges: OperationReplacementEvidence[] = [],
 ): BreakingOperationImpact[] {
   if (!diff || diff.engine !== 'oasdiff' || !mappings.length) return [];
   const impacts = new Map<string, BreakingOperationImpact>();
   const candidates = [
     ...new Set([
       ...(breakingChanges ?? diff.changes),
-      ...diff.changes.filter(
-        (change) => isObject(change) && REMOVED_OPERATION_CHANGES.has(String(change.id)),
-      ),
+      ...diff.changes.filter(isRemovedOperationChange),
     ]),
   ];
   for (const change of candidates) {
+    if (isHandledOperationRemoval(change, operationChanges)) continue;
     if (
       !isObject(change) ||
       typeof change.id !== 'string' ||
       typeof change.text !== 'string' ||
       !Number.isFinite(Number(change.level)) ||
-      (Number(change.level) < BREAKING_CHANGE_LEVEL && !REMOVED_OPERATION_CHANGES.has(change.id)) ||
+      (Number(change.level) < BREAKING_CHANGE_LEVEL && !isRemovedOperationChange(change)) ||
       typeof change.path !== 'string' ||
       typeof change.operation !== 'string'
     )
@@ -135,20 +122,4 @@ export function countBreakingOperationUsages(impacts: BreakingOperationImpact[])
     ),
   );
   return locations.size;
-}
-
-function findOperationIds(paths: Record<string, unknown>, operationId: string) {
-  const matches: { path: string; httpMethod: string }[] = [];
-  for (const [path, pathItem] of Object.entries(paths)) {
-    if (!isObject(pathItem)) continue;
-    for (const [method, operation] of Object.entries(pathItem)) {
-      if (
-        OPENAPI_METHODS.has(method.toLowerCase()) &&
-        isObject(operation) &&
-        operation.operationId === operationId
-      )
-        matches.push({ path, httpMethod: method.toUpperCase() });
-    }
-  }
-  return matches;
 }

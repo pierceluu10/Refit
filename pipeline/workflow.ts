@@ -139,11 +139,16 @@ export async function runWorkflow(options: {
         `Refit traced ${operationUsageCount} SDK call site${operationUsageCount === 1 ? '' : 's'} to unresolved breaking OpenAPI changes. A verified migration rule is required before AI generation, validation or publication.`,
         runId,
       );
-    const unmapped = unmappedBreakingChanges(scan.specificationDiff, scan.changes, scan.findings);
+    const unmapped = unmappedBreakingChanges(
+      scan.specificationDiff,
+      scan.changes,
+      scan.findings,
+      scan.operationChanges,
+    );
     if (unmapped.length)
       return await finish(
         'needs-review',
-        `${unmapped.length} breaking contract changes are outside the confirmed response-field migration scope. Review the recorded contract report before proposing a patch.`,
+        `${unmapped.length} breaking contract changes are outside the supported migration rules. Review the recorded contract report before proposing a patch.`,
         runId,
       );
     if (!scan.findings.some((finding) => finding.confidence === 'confirmed'))

@@ -1,12 +1,20 @@
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { cp, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join, resolve } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
 import { afterEach, expect, it, vi } from 'vitest';
 import { watchOnce } from './watch.ts';
 import { runWorkflow } from './workflow.ts';
 import { documentationSourceId } from './documentation-sources.ts';
+import { compareOpenApi } from './openapi-diff.ts';
 
 vi.mock('./workflow.ts', () => ({ runWorkflow: vi.fn() }));
+vi.mock('./openapi-diff.ts', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('./openapi-diff.ts')>()),
+  compareOpenApi: vi.fn(),
+}));
+const execute = promisify(execFile);
 const roots: string[] = [];
 async function options() {
   const root = await mkdtemp(join(tmpdir(), 'refit-watch-test-'));
@@ -65,6 +73,78 @@ it('processes a change once across worker restarts and ignores documentation-onl
   expect(runWorkflow).toHaveBeenCalledTimes(1);
   expect(await readFile(join(input.stateDirectory, 'state.json'), 'utf8')).not.toContain('apiKey');
 });
+
+it.each([true, false])(
+  'creates a fresh worker job for an endpoint removed after deprecation (configured replacement: %s)',
+  async (configuredReplacement) => {
+    const input = await options();
+    const root = dirname(input.source.path);
+    const fixture = resolve('pipeline/fixtures/endpoint-replacement');
+    const repository = join(root, 'repository');
+    await cp(join(fixture, 'repository'), repository, { recursive: true });
+    const git = (arguments_: string[]) => execute('git', ['-C', repository, ...arguments_]);
+    await git(['init', '-b', 'main']);
+    await git(['add', '.']);
+    await git([
+      '-c',
+      'user.name=Fixture',
+      '-c',
+      'user.email=fixture@example.test',
+      '-c',
+      'commit.gpgsign=false',
+      'commit',
+      '-m',
+      'test: seed watcher catalog app',
+    ]);
+    const beforeDocument = JSON.parse(await readFile(join(fixture, 'before.json'), 'utf8'));
+    beforeDocument.paths['/legacy/items/{id}'].get.deprecated = true;
+    const before = join(root, 'before.json');
+    await writeFile(before, JSON.stringify(beforeDocument));
+    await writeFile(input.source.path, JSON.stringify(beforeDocument));
+    const provider = JSON.parse(await readFile(join(fixture, 'provider.json'), 'utf8'));
+    if (!configuredReplacement) delete provider.operationReplacements;
+    const providerConfig = join(root, 'provider.json');
+    await writeFile(providerConfig, JSON.stringify(provider));
+    const configuration = {
+      ...input.configuration,
+      repository,
+      before,
+      providerConfig,
+      apiVersion: '1',
+      fullDiff: true,
+    };
+    vi.mocked(compareOpenApi)
+      .mockReset()
+      .mockResolvedValueOnce({
+        engine: 'oasdiff',
+        version: 'controlled',
+        coverage: 'Controlled first poll.',
+        changes: [],
+      })
+      .mockResolvedValue({
+        engine: 'oasdiff',
+        version: 'controlled',
+        coverage: 'Controlled deprecated removal.',
+        changes: [
+          {
+            id: 'api-path-removed-with-deprecation',
+            text: 'api path removed with deprecation',
+            level: 1,
+            path: '/legacy/items/{id}',
+            operation: 'GET',
+          },
+        ],
+      });
+    vi.mocked(runWorkflow).mockImplementation(async (value) => result(value));
+    const first = await watchOnce({ ...input, configuration });
+    await writeFile(input.source.path, await readFile(join(fixture, 'after.json'), 'utf8'));
+    const removal = await watchOnce({ ...input, configuration });
+    expect(removal.status).toBe('processed');
+    expect(removal.jobKey).not.toBe(first.jobKey);
+    expect((await watchOnce({ ...input, configuration })).status).toBe('already-processed');
+    expect(runWorkflow).toHaveBeenCalledTimes(2);
+  },
+);
 
 it('preserves failed jobs and permits one explicit retry with a fresh evidence directory', async () => {
   const input = await options();

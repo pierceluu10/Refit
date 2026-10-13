@@ -53,7 +53,7 @@ try {
   });
   if (values.help)
     console.log(
-      `${USAGE}\n--documentation-source accepts up to eight public HTML, Markdown or plain-text changelog URLs. Refit saves a unified text diff and reports it for review; documentation changes alone never start AI generation or PR publication. --prepare-dependencies installs locked public npm packages with scripts disabled before offline checks. The default API source is the run configuration's after file or latestStripe setting. oasdiff is required unless fullDiff is false in that configuration. State deduplicates jobs across restarts. Retry is explicit and limited to one poll.`,
+      `${USAGE}\n--documentation-source accepts up to eight public HTML, Markdown, plain-text, RSS 2.0 or Atom changelog URLs. Refit saves a unified text diff and reports it for review; documentation changes alone never start AI generation or PR publication. --prepare-dependencies installs locked public npm packages with scripts disabled before offline checks. The default API source is the run configuration's after file or latestStripe setting. oasdiff is required unless fullDiff is false in that configuration. State deduplicates jobs across restarts. Retry is explicit and limited to one poll.`,
     );
   else {
     if (!values.config || !values.state) throw new PipelineInputError(USAGE);

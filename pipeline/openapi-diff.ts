@@ -6,6 +6,10 @@ import { promisify } from 'node:util';
 import { isObject } from './specifications.ts';
 import { PipelineInputError } from './types.ts';
 import type { Removal, Finding } from './types.ts';
+import {
+  isHandledOperationRemoval,
+  type OperationReplacementEvidence,
+} from './provider-operation-replacements.ts';
 
 const execute = promisify(execFile);
 const DIFF_TIMEOUT_MS = 30_000;
@@ -56,6 +60,7 @@ export function unmappedBreakingChanges(
   diff: { engine: string; changes: unknown[] } | undefined,
   changes: Removal[],
   findings: Finding[],
+  operationChanges: OperationReplacementEvidence[] = [],
 ) {
   if (!diff || diff.engine !== 'oasdiff') return [];
   const affected = changes.filter((change) =>
@@ -67,6 +72,7 @@ export function unmappedBreakingChanges(
     (entry) =>
       isObject(entry) &&
       Number(entry.level) >= 2 &&
+      !isHandledOperationRemoval(entry, operationChanges) &&
       !(
         typeof entry.id === 'string' &&
         RESPONSE_REMOVALS.has(entry.id) &&

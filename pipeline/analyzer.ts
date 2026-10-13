@@ -5,6 +5,7 @@ import { unsafeBindings } from './mutations.ts';
 import { guardedHistoryEdit } from './history-migration.ts';
 import { resolveSourceImport } from './source-imports.ts';
 import { componentReference, isObject, resolvableComponentSchema } from './specifications.ts';
+import type { OperationReplacement } from './provider-operation-replacements.ts';
 import {
   PipelineInputError,
   type Finding,
@@ -94,6 +95,7 @@ export function analyzeRepository(
   changes: Removal[],
   provider: ProviderAdapter = STRIPE,
   schemaDefinitions: Record<string, unknown> = {},
+  operationReplacements: OperationReplacement[] = [],
 ) {
   const sources = new Map(
     repository.files.map((file) => [resolve(repository.root, file.path), file.content]),
@@ -573,6 +575,41 @@ export function analyzeRepository(
     arrayIteration,
   );
   for (const [response, wrapper] of wrappedResponses) if (unsafe.has(wrapper)) unsafe.add(response);
+  for (const node of nodes) {
+    const operation = responseCall(node);
+    if (!operation || !ts.isCallExpression(node) || !ts.isPropertyAccessExpression(node.expression))
+      continue;
+    const replacement = operationReplacements.find(
+      (candidate) =>
+        candidate.resource === operation.resource && candidate.method === operation.method,
+    );
+    if (!replacement) continue;
+    const method = node.expression;
+    const resource = method.expression as ts.PropertyAccessExpression;
+    const client = resource.expression as ts.Identifier;
+    const confirmed =
+      !unsafe.has(symbol(client)!) &&
+      !node.questionDotToken &&
+      !method.questionDotToken &&
+      !resource.questionDotToken;
+    findings.push({
+      ...location(node),
+      changeId: replacement.id,
+      expression: `${operation.resource}.${operation.method}`,
+      confidence: confirmed ? 'confirmed' : 'review',
+      reason: confirmed
+        ? 'Removed endpoint call on an immutable SDK client under an operator-authored replacement with a matching recorded contract.'
+        : 'SDK client escape, mutation or optional invocation prevents a configured endpoint edit; inspect manually.',
+    });
+    if (confirmed)
+      edits.push({
+        ...location(node),
+        start: resource.name.getStart(),
+        end: method.name.getEnd(),
+        replacement: `${replacement.replacementResource}.${replacement.replacementMethod}`,
+        changeId: replacement.id,
+      });
+  }
   function propose(node: ts.Node, receiver: ts.Expression, change: Removal) {
     if (provider !== STRIPE) {
       const rename = provider.propertyRenames?.find(

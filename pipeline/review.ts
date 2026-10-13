@@ -71,18 +71,25 @@ export function createReviewArtifacts(
         ? 'OpenAI'
         : report.provider;
   const change = report.changes[0];
+  const operationChanges = report.operationChanges ?? [];
+  const endpoint = operationChanges[0];
   const title =
-    change && report.changes.length === 1
-      ? provider === 'Stripe' && change.schema === 'payment_intent' && change.property === 'charges'
-        ? 'Fix Stripe payment history after PaymentIntent.charges removal'
-        : `Fix ${provider} usage after ${change.schema}.${change.property} removal`
-      : `Migrate affected ${provider} API usage`;
+    endpoint && operationChanges.length === 1 && !report.changes.length
+      ? `Replace retired ${provider} ${endpoint.resource}.${endpoint.method} calls`
+      : change && report.changes.length === 1
+        ? provider === 'Stripe' &&
+          change.schema === 'payment_intent' &&
+          change.property === 'charges'
+          ? 'Fix Stripe payment history after PaymentIntent.charges removal'
+          : `Fix ${provider} usage after ${change.schema}.${change.property} removal`
+        : `Migrate affected ${provider} API usage`;
   const confirmedFindings = report.findings.filter((finding) => finding.confidence === 'confirmed');
   const affectedFiles = new Set(confirmedFindings.map((finding) => finding.file));
-  const changes = summaryList(
-    report.changes.map((entry) => code(`${entry.schema}.${entry.property}`)),
-  );
-  const changeSummary = changes || 'the API fields recorded in the technical evidence';
+  const changes = summaryList([
+    ...report.changes.map((entry) => code(`${entry.schema}.${entry.property}`)),
+    ...operationChanges.map((entry) => code(`${entry.httpMethod} ${entry.path}`)),
+  ]);
+  const changeSummary = changes || 'the API usages recorded in the technical evidence';
   const changedFiles = [...new Set(report.publicationFiles.map((file) => file.path))];
   const changedFilesSummary = changedFiles.length
     ? summaryList(changedFiles.map(code))
@@ -97,6 +104,11 @@ export function createReviewArtifacts(
       `The supplied ${plainText(provider)} API contract removes ${changeSummary}. Refit found ${confirmedFindings.length} confirmed ${confirmedFindings.length === 1 ? 'usage' : 'usages'} across ${affectedFiles.size} ${affectedFiles.size === 1 ? 'file' : 'files'}.`,
       `**API version:** ${apiVersionSummary(report)}`,
       `**${patch.generator === 'openai' ? 'AI proposal' : 'Migration'}:** ${plainText(patch.summary)}`,
+      ...(operationChanges.length
+        ? [
+            `**Configured replacements:** ${summaryList(operationChanges.map((entry) => `${code(`${entry.resource}.${entry.method}`)} → ${code(`${entry.replacementResource}.${entry.replacementMethod}`)} (${code(`${entry.httpMethod} ${entry.replacementPath}`)})`))}. Refit preserves the call arguments; review the SDK mapping and business meaning.`,
+          ]
+        : []),
       `**Files changed:** ${changedFilesSummary}`,
       '## Checks',
       `- Baseline: **${validation.baseline.status}**\n- Proposed changes: **${validation.patched.status}**\n- Patch attempts: **${validation.attempts.length}**; AI repairs: **${validation.repair.requested}**\n- Remaining findings: **${patch.unresolvedFindings}**`,
@@ -146,6 +158,7 @@ export function createReviewArtifacts(
         dependencies: report.repository.dependencies,
         lockfiles: report.repository.lockfiles,
         findings: report.findings,
+        ...(operationChanges.length ? { operationChanges } : {}),
       }),
       ...(report.assessment.status === 'not-requested'
         ? []
