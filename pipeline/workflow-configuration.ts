@@ -15,6 +15,7 @@ const CONFIGURATION_KEYS = new Set([
   'command',
   'baselineCommand',
   'providerConfig',
+  'fullDiff',
 ]);
 
 export async function readWorkflowConfiguration(path: string) {
@@ -39,6 +40,8 @@ export async function readWorkflowConfiguration(path: string) {
   };
   if (value.latestStripe !== undefined && typeof value.latestStripe !== 'boolean')
     throw new PipelineInputError('Run configuration latestStripe must be a boolean.');
+  if (value.fullDiff !== undefined && typeof value.fullDiff !== 'boolean')
+    throw new PipelineInputError('Run configuration fullDiff must be a boolean.');
   if ((value.after !== undefined) === Boolean(value.latestStripe))
     throw new PipelineInputError(
       'Run configuration requires exactly one of after or latestStripe.',
@@ -55,5 +58,6 @@ export async function readWorkflowConfiguration(path: string) {
       value.baselineCommand === undefined ? undefined : validateCheckCommand(value.baselineCommand),
     providerConfig:
       value.providerConfig === undefined ? undefined : resolve(directory, string('providerConfig')),
+    fullDiff: value.fullDiff as boolean | undefined,
   };
 }

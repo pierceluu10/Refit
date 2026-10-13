@@ -17,6 +17,7 @@ try {
       assess: { type: 'boolean' },
       'ai-patch': { type: 'boolean' },
       'provider-config': { type: 'string' },
+      'full-diff': { type: 'boolean' },
       help: { type: 'boolean' },
     },
   });
@@ -34,6 +35,7 @@ try {
       assessment: assessmentConfiguration(values.assess, process.env),
       aiPatch: assessmentConfiguration(values['ai-patch'], process.env),
       providerConfig: values['provider-config'],
+      fullDiff: values['full-diff'],
     });
     const json = `${JSON.stringify(report, null, 2)}\n`;
     if (values.output) await writeFile(values.output, json, { flag: 'wx' });

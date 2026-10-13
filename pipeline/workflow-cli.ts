@@ -22,6 +22,7 @@ try {
       before: { type: 'string' },
       after: { type: 'string' },
       'latest-stripe': { type: 'boolean' },
+      'full-diff': { type: 'boolean' },
       output: { type: 'string' },
       image: { type: 'string' },
       command: { type: 'string' },
@@ -71,6 +72,7 @@ try {
           ? parseCheckCommand(values['baseline-command'], '--baseline-command')
           : configuration?.baselineCommand,
       providerConfig: values['provider-config'] ?? configuration?.providerConfig,
+      fullDiff: values['full-diff'] ?? configuration?.fullDiff,
       assessment: assessmentConfiguration(values.assess, process.env),
       aiPatch: assessmentConfiguration(values['ai-patch'], process.env),
       repairAttempts: Number(values['repair-attempts'] ?? 0),

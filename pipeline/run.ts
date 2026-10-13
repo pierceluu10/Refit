@@ -7,6 +7,7 @@ import { readRepository } from './repository.ts';
 import { readProviderAdapter, STRIPE } from './providers.ts';
 import { PipelineInputError } from './types.ts';
 import { digest, findRemovedProperties, readSpecification } from './specifications.ts';
+import { compareOpenApi } from './openapi-diff.ts';
 
 export async function runPipeline(options: {
   repository: string;
@@ -16,6 +17,7 @@ export async function runPipeline(options: {
   assessment?: AiOptions;
   aiPatch?: AiOptions;
   providerConfig?: string;
+  fullDiff?: boolean;
 }) {
   const provider = await readProviderAdapter(options.providerConfig);
   const [repository, before, after] = await Promise.all([
@@ -30,6 +32,9 @@ export async function runPipeline(options: {
   )
     throw new PipelineInputError('Snapshot provenance does not match the configured provider.');
   const changes = findRemovedProperties(before.schemas, after.schemas, provider.id);
+  const specificationDiff = options.fullDiff
+    ? await compareOpenApi(before.document, after.document)
+    : undefined;
   const { edits, ...analysis } = analyzeRepository(repository, changes, provider);
   const status = analysis.findings.some((finding) => finding.confidence === 'confirmed')
     ? 'affected'
@@ -62,6 +67,11 @@ export async function runPipeline(options: {
       lockfiles: repository.lockfiles,
     },
     changes,
+    specificationDiff: specificationDiff ?? {
+      engine: 'direct-properties' as const,
+      changes,
+      coverage: 'Direct removed properties only; use fullDiff for the oasdiff contract report.',
+    },
     ...analysis,
     warnings: repository.warnings,
     assessment: options.assessment
@@ -71,8 +81,9 @@ export async function runPipeline(options: {
         )
       : { status: 'not-requested' },
     coverage: {
-      specification:
-        'Direct properties removed from existing, non-composed OpenAPI 3 component schemas only. Not a complete breaking-change diff.',
+      specification: specificationDiff
+        ? specificationDiff.coverage
+        : 'Direct properties removed from existing, non-composed OpenAPI 3 component schemas only. Not a complete breaking-change diff.',
       code: 'Immutable ESM SDK clients, including direct relative named imports of exported const bindings, and awaited resource.method calls mapped by the recorded adapter; direct reads, string indexes, destructuring and immutable aliases. Top-level one-parameter functions returning exactly one mapped SDK call are traced locally or through direct relative named imports. Detected writes, alias mutations and references passed to calls or stored in containers downgrade findings to review across resolved bindings using conservative, flow-insensitive analysis. Namespace imports and re-exports invalidate shared-client and wrapper confirmation. CommonJS, default imports, path aliases, ambiguous resolution, multi-step or transformed wrappers, webhooks and dynamic code still require review. Confirmed means traced under the supplied adapter mapping, not independently verified SDK semantics.',
       decision:
         'No finding is not proof of no impact. Supported root npm lockfiles provide recorded SDK versions, not verified installed versions or API-version applicability.',
