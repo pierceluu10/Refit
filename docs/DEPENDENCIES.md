@@ -1,0 +1,75 @@
+# Automatic npm validation environments
+
+Refit can prepare dependencies from a clean repository's committed `package.json` and `package-lock.json`, then run its checks in an ordinary local Node Docker image. This removes the custom dependency-image setup for supported npm projects. The same preparation works through `run`, `validate`, `watch` and service profiles.
+
+## Test the Stripe pipeline
+
+The local Docker daemon must be running and `node:22-alpine` must already be installed. Refit never pulls a base image automatically. If needed, download it explicitly with `docker pull node:22-alpine`.
+
+From the Refit checkout, run the installed App with the prepared npm profile:
+
+```sh
+cd /Users/pierceluu/Repos/Refit
+refit serve --env .env --config examples/local-service.npm.refit.json \
+  --state /Users/pierceluu/.refit/stripe-prepared-pilot --once
+```
+
+This discovers the installed App's access, fetches the billing demo into a managed checkout, scans the supplied historical Stripe contracts, prepares dependencies when necessary, and validates a deterministic migration. The example checks original behavior, both original/changed behavior after patching, and TypeScript. It leaves your billing checkout unchanged and does not publish a PR. Subsequent polls reuse the saved job and report that checks were not rerun. Omit `--once` for continuous polling.
+
+For draft publication, use a **fresh service state directory** and add `--publish-draft`. PR #3 already covers the demo, so Refit's publication preflight can reuse it before installation, generation or checks. To evaluate a new AI proposal locally, add `--ai-patch --repair-attempts 1` with fresh state and your shared spending allowance:
+
+```sh
+REFIT_AI_BUDGET_USD=2 \
+REFIT_AI_BUDGET_DIRECTORY=/Users/pierceluu/.refit/evaluations/2026-10-12 \
+refit serve --env .env --config examples/local-service.npm.refit.json \
+  --state /Users/pierceluu/.refit/stripe-prepared-ai-pilot \
+  --once --ai-patch --repair-attempts 1
+```
+
+This uses the existing project allowance rather than resetting spending. AI generation and publication remain explicit. Configuring a different source or baseline uses the same environment preparation; the historical sample does not discover a new live Stripe change.
+
+## Prepare or validate a local repository
+
+Inspect dependency preparation independently:
+
+```sh
+refit prepare --repository /Users/pierceluu/Repos/refit-billing-demo \
+  --image node:22-alpine
+```
+
+It prints the recorded Node/npm versions, number of locked package records and evidence path. This is not a count of installed packages: platform-specific optional records can be skipped by npm. `--json` supplies machine output. `--cache /absolute/path/outside-git` chooses a cache explicitly; otherwise `REFIT_DEPENDENCY_CACHE_DIRECTORY` or `~/.refit/dependencies` is used. An empty environment setting uses the default.
+
+You can also opt in on a run without creating a service:
+
+```sh
+refit run --repository /Users/pierceluu/Repos/refit-billing-demo \
+  --before pipeline/fixtures/before.json --after pipeline/fixtures/after.json \
+  --output /tmp/new-refit-prepared-run --image node:22-alpine \
+  --prepare-dependencies --baseline-command '["npm","test"]' \
+  --command '["sh","-c","npm test && npm run test:after && npm run typecheck"]' \
+  --human
+```
+
+Or add `"prepareDependencies": true` to a workflow file. `image` then names the existing Node base image; your commands can use ordinary `npm test` and `npm run ...` without linking a custom image's dependency directory. The prepared service example uses [this workflow](../examples/billing-demo.npm.refit.json).
+
+## Installation and checks
+
+Preparation reads only the two committed root manifest files. It verifies public registry package URLs and integrity records before starting a container. `npm ci` installs frozen dependencies, including development dependencies, with install lifecycle scripts, audit and funding requests disabled. Engine requirements are enforced. Separate empty npm configuration files override image-level configuration; repository `.npmrc`, `.env`, source files and host credentials are not provided to the installer. No repository Dockerfile or build script runs during preparation.
+
+The installer has bridge networking to download public npm packages, runs as a non-root user, and uses the same restricted Docker resources as validation: read-only root filesystem, no capabilities, no privilege escalation, 1 CPU, 1 GiB memory, 128 processes and a bounded writable workspace. Before archiving, Refit checks dependency symlinks resolve inside `node_modules`; broken or escaping links and special files fail preparation. Preparation has a 300-second deadline, a 256 MiB dependency archive limit and a 1 MiB log limit. Cancelled, failed or excessive output stops the client and removes the container; no successful cache is published.
+
+Validation snapshots the verified dependency archive into its own private temporary directory. Both baseline and patched containers extract that same snapshot into their temporary workspace, with **network disabled**. The configured application checks execute there. A passing installation is not a passing test or migration; baseline failures still stop before AI generation.
+
+## Cache, evidence and recovery
+
+Cache identity includes the exact committed manifest and lock bytes, immutable Docker image ID and preparation recipe version. Completed bundles are atomically published and include `dependencies.tar`, `environment.json`, `install.log` and an unsigned hash manifest. Refit verifies file types, hashes, sizes and input identity before reuse. Truncated, changed or incomplete existing bundles stop rather than silently reinstalling. Changing manifests or images creates a different cache entry.
+
+Use `refit verify --directory /absolute/path/to/bundle` for byte integrity. Verification does not authenticate the producer, audit npm packages or establish application behavior. Review `install.log` and input identity before removing an invalid bundle and deliberately preparing it again. Cache and worker state must remain outside Git repositories, including through directory symlinks. Active preparation locks are refused; a verified dead owner can be recovered using the existing state-lock rules.
+
+Validation reports and collapsed PR evidence record the runtime, image, input hashes, dependency archive hash, preparation policy and whether the cache was reused. Human output summarizes dependency preparation separately from check results. Previous configurations without preparation retain their worker identity; enabling preparation needs fresh worker/service state.
+
+## Supported projects
+
+Automatic preparation currently supports a single root npm project with a committed lockfile version 2 or 3, matching root dependency declarations and public `registry.npmjs.org` HTTPS tarballs with SHA-256-or-stronger integrity. Inputs are limited to 512 KiB for `package.json`, 8 MiB for the lockfile and 20,000 package records. The image must already contain compatible Node, npm, `/bin/sh` and `tar`.
+
+Workspaces, local/Git/URL dependencies, private registries, tracked `node_modules`, shrinkwrap files, bundled lock records, custom npm installation flags and packages requiring lifecycle builds use the existing custom-image path. A script-dependent package may install but fail its checks; Refit does not enable those scripts automatically. The supported preparation route is provider-independent, while SDK mapping, migration semantics and useful application checks still require verification.

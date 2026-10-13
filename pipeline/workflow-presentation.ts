@@ -57,6 +57,10 @@ export async function renderWorkflowResult(result: Result) {
   }
   if (report && isObject(report.validation)) {
     const validation = report.validation;
+    if (isObject(validation.environment))
+      rows.push(
+        `Dependencies ${validation.environment.reused ? 'Verified cache reused' : 'Prepared from npm lockfile'}; checks offline`,
+      );
     if (isObject(validation.baseline) && isObject(validation.patched))
       rows.push(
         `Checks      Original: ${validation.baseline.status}; proposed: ${validation.patched.status}`,

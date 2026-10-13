@@ -79,6 +79,7 @@ export function createReviewArtifacts(
         status: validation.status,
         revision: validation.revision,
         image: validation.image,
+        ...(validation.environment ? { environment: validation.environment } : {}),
         command: validation.command,
         baselineCommand: validation.baselineCommand,
         baseline: { status: validation.baseline.status, exitCode: validation.baseline.exitCode },

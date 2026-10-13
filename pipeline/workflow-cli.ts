@@ -25,6 +25,7 @@ try {
       'full-diff': { type: 'boolean' },
       output: { type: 'string' },
       image: { type: 'string' },
+      'prepare-dependencies': { type: 'boolean' },
       command: { type: 'string' },
       'baseline-command': { type: 'string' },
       'provider-config': { type: 'string' },
@@ -40,7 +41,7 @@ try {
   });
   if (values.help)
     console.log(
-      `${USAGE}\nUse --human for a readable summary or --json for machine output. Terminals default to human output; redirected output defaults to JSON.\nOptional --baseline-command '<JSON array>' overrides only the baseline check. Both commands are recorded; review their contract differences.`,
+      `${USAGE}\nUse --human for a readable summary or --json for machine output. Terminals default to human output; redirected output defaults to JSON.\n--prepare-dependencies installs locked public npm packages with scripts disabled before offline checks. Optional --baseline-command '<JSON array>' overrides only the baseline check. Both commands are recorded; review their contract differences.`,
     );
   else {
     if (values.json && values.human)
@@ -66,6 +67,7 @@ try {
       latestStripe: specificationOverride ? values['latest-stripe'] : configuration?.latestStripe,
       output: values.output,
       image,
+      prepareDependencies: values['prepare-dependencies'] ?? configuration?.prepareDependencies,
       command,
       baselineCommand:
         values['baseline-command'] !== undefined

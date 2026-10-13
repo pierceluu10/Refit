@@ -2,9 +2,11 @@
 
 Refit compares API specifications with local TypeScript/JavaScript usage, proposes reviewable migrations, validates them in Docker, and optionally opens a GitHub draft PR. This is an experimental local agent, not automatic support for every API or codebase.
 
-Requires Node.js 22.12+ or a supported newer release. Scanning needs no API key or Docker. Full contract comparisons and the default worker additionally require `oasdiff` on PATH (`brew install oasdiff` on macOS). Validation additionally requires Git, tar, a running Docker daemon, and a prebuilt local image containing your check dependencies.
+Requires Node.js 22.12+ or a supported newer release. Scanning needs no API key or Docker. Full contract comparisons and the default worker additionally require `oasdiff` on PATH (`brew install oasdiff` on macOS). Validation requires Git, tar, and a running Docker daemon. Use either a prebuilt image containing your check dependencies, or an existing Node/npm image plus `--prepare-dependencies` for a supported single-package project. See [dependency preparation](DEPENDENCIES.md).
 
 `refit serve` runs multiple approved App-managed profiles, verifies installation webhooks, and exposes authenticated local status. [Local service setup](LOCAL-SERVICE.md) includes the Stripe pilot and exact HTTPS webhook steps. The service still requires configured baselines and checks; installing the App alone does not start arbitrary repositories.
+
+For supported single-package npm projects, `refit prepare` installs committed lockfile dependencies in a restricted container for offline checks. Run workflows with `--prepare-dependencies` or set `prepareDependencies: true` in their JSON configuration. Read [dependency preparation](DEPENDENCIES.md) for requirements, security limits and the billing demo.
 
 Pass `--env .env` to any command to load environment variables explicitly, including with an installed `refit` executable. Existing environment values take precedence. Refit does not automatically load files from the scanned repository. Keep credentials outside committed configuration files.
 

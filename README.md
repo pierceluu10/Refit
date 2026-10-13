@@ -6,7 +6,7 @@ Refit is being built to turn external API changes into repository-specific, vali
 
 ## Current release
 
-**Local agent 0.4:** `refit serve` runs approved App-managed repository profiles, verifies installation webhooks, retains delivery receipts and exposes protected status. It uses the existing OpenAPI monitoring, shared JSON/YAML comparison, bounded AI spending, offline Docker validation and GitHub App publisher. Human CLI summaries and PR descriptions keep detailed JSON evidence available. [Run the installation-aware service](docs/LOCAL-SERVICE.md), or [test the single-target Stripe pipeline](docs/AUTOMATION.md).
+**Local agent 0.5:** `refit serve` runs approved App-managed repository profiles and verifies installation webhooks. `refit prepare` installs locked public npm dependencies in a restricted container so supported projects can run checks offline without a hand-built dependency image. The shared engine still requires provider mappings and meaningful checks for each integration. [Run the Stripe service profile](docs/DEPENDENCIES.md), or [set up installation webhooks](docs/LOCAL-SERVICE.md).
 
 The core is shared across providers; an actual OpenAI SDK conformance evaluation complements Stripe. SDK mappings, migration semantics and application checks still need verification. This is a local operator product, not a hosted service automatically activated by installing the App.
 
@@ -29,7 +29,7 @@ From a checkout with dependencies installed, build an installable archive:
 
 ```sh
 npm run package:cli
-npm install --global ./dist-cli/refit-0.4.0.tgz
+npm install --global ./dist-cli/refit-0.5.0.tgz
 refit --help
 refit replay --propose-patch
 ```
@@ -70,14 +70,14 @@ For automatic Stripe revision discovery, replace `--after /tmp/refit-after.json`
 
 The output directory must be new, outside the scanned repository, with an existing parent. It contains copied specifications, `scan.json`, then `report.json`, `migration.patch` and `pull-request.md` when validation completes. Successful publication adds `publication.json`. A final `manifest.json` records the stopping stage, status, error when present, and hashes of completed artifacts. A directory without a valid manifest is incomplete. Setup/network failures retain completed evidence rather than claiming success. A publication failure may leave a remote branch or PR; rerun into a new output directory to reconcile the candidate.
 
-| Workflow status | Meaning | Exit |
-| --- | --- | --- |
-| `needs-review` | No confirmed supported usage, no deterministic rule, or unresolved findings; no publication | 2 |
-| `validation-failed` | Baseline, patched checks, execution or revision freshness failed | 2 |
-| `validated` | Both checks passed with zero unresolved detected findings; publication not requested | 0 |
-| `draft-created` | GitHub returned a new draft PR | 0 |
-| `existing-pr` | Reused the matching PR; inspect `publication.json` for its current open/closed/draft state | 0 |
-| `error` | Input, setup, model, network or publication error | 1 |
+| Workflow status     | Meaning                                                                                     | Exit |
+| ------------------- | ------------------------------------------------------------------------------------------- | ---- |
+| `needs-review`      | No confirmed supported usage, no deterministic rule, or unresolved findings; no publication | 2    |
+| `validation-failed` | Baseline, patched checks, execution or revision freshness failed                            | 2    |
+| `validated`         | Both checks passed with zero unresolved detected findings; publication not requested        | 0    |
+| `draft-created`     | GitHub returned a new draft PR                                                              | 0    |
+| `existing-pr`       | Reused the matching PR; inspect `publication.json` for its current open/closed/draft state  | 0    |
+| `error`             | Input, setup, model, network or publication error                                           | 1    |
 
 No-match results remain review-required, and passing tests do not prove migration semantics. The preflight scan makes no model calls; validation rescans a clean committed snapshot before generating the tested proposal. Workflow tests cover real Docker checks, failure gates and controlled GitHub responses. A live AI patch was validated against the billing demo; broader model evaluations remain outstanding. The [live PR evaluation](docs/PR-EVALUATION.md) records draft publication and one successful repair on the billing demo. This one-shot command also powers the persistent local `watch` worker; hosted scheduling remains planned.
 
@@ -114,9 +114,7 @@ Returning, yielding or throwing an entire client/response binding also prevents 
   "packageName": "@example/catalog",
   "defaultImport": false,
   "namedExport": "Catalog",
-  "operations": [
-    { "resource": "items", "method": "retrieve", "schema": "item" }
-  ]
+  "operations": [{ "resource": "items", "method": "retrieve", "schema": "item" }]
 }
 ```
 
@@ -294,19 +292,19 @@ npm run format:check
 
 ## Routes
 
-| Route | Surface |
-| --- | --- |
-| `/` | Landing page |
-| `/demo` | Interactive workflow; accepts `?scenario=affected`, `unaffected`, or `failed` |
-| `/docs` | Product documentation |
-| `/app` | Sample workspace overview |
-| `/app/repositories` | Searchable and filterable sample repositories |
-| `/app/repositories/:id` | Repository-specific impact evidence |
-| `/app/changes` | Sample provider change |
-| `/app/changes/:id` | Change detail and repository impact |
-| `/app/runs` | Successful and failed sample runs |
-| `/app/runs/:id` | Timeline, diff, validation, and review; selected view is stored in `?tab=` |
-| `/app/settings` | Repository configuration builder |
+| Route                   | Surface                                                                       |
+| ----------------------- | ----------------------------------------------------------------------------- |
+| `/`                     | Landing page                                                                  |
+| `/demo`                 | Interactive workflow; accepts `?scenario=affected`, `unaffected`, or `failed` |
+| `/docs`                 | Product documentation                                                         |
+| `/app`                  | Sample workspace overview                                                     |
+| `/app/repositories`     | Searchable and filterable sample repositories                                 |
+| `/app/repositories/:id` | Repository-specific impact evidence                                           |
+| `/app/changes`          | Sample provider change                                                        |
+| `/app/changes/:id`      | Change detail and repository impact                                           |
+| `/app/runs`             | Successful and failed sample runs                                             |
+| `/app/runs/:id`         | Timeline, diff, validation, and review; selected view is stored in `?tab=`    |
+| `/app/settings`         | Repository configuration builder                                              |
 
 Deploy `dist/` to a static host with SPA fallback to `index.html` for application routes. Do not rewrite asset requests. The development and preview servers provide this routing behavior locally.
 
