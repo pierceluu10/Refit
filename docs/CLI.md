@@ -68,6 +68,17 @@ refit stripe-check --repository /path/to/repo \
   --baseline /tmp/new-baseline.json --output /tmp/new-refit-check
 ```
 
+For another provider that publishes a public OpenAPI 3 document, capture a pinned baseline from its HTTPS URL or from a local JSON/YAML file:
+
+```sh
+refit source-snapshot --provider example \
+  --url https://api.example.com/openapi.yaml \
+  --output /absolute/path/provider-baseline.json
+# Or replace --url with --file /absolute/path/openapi.yaml
+```
+
+Use the lowercase provider ID from the matching SDK adapter. Refit validates and saves the supplied document with that ID, source URL and SHA-256 content hash. The output path must be new; Refit will not overwrite a baseline. This command does not discover provider feeds or release notes. Use the pinned file as `before` and the matching `--source-url` with `refit watch` to monitor later versions. Generic sources must be public HTTPS without redirects, credentials or query parameters; bundle multi-file OpenAPI references first.
+
 Use `refit run --latest-stripe` instead of `--after` to discover Stripe's latest spec during a complete run. The `--before` file must then be a pinned Refit snapshot. No baseline is automatically advanced. Other SDKs require an explicit `--provider-config` adapter. An adapter may include `propertyRenames` to propose direct reads changing from a removed field to a newly added field of the same simple scalar type. This mapping is an operator-authored semantic assumption and remains subject to application checks and human review. JSON and YAML OpenAPI 3 inputs are supported. Add `--full-diff` to `scan` or `run` for the shared oasdiff changelog; unmapped breaking changes stop automatic workflow proposals and publication. External OpenAPI references are disabled.
 
 Use `refit watch --config run.json --state /path/outside-repository/state --once` to poll a configured source and process it once. Remove `--once` for continuous local polling. Override the source with `--source-url`, `--source-file` or `--latest-stripe`. The worker enables full contract comparison by default and retains job receipts across restarts; failed jobs require explicit `--retry --once`. See [local automation](AUTOMATION.md) for the verified Stripe command, spending controls, live sources and a change-arrival demo.

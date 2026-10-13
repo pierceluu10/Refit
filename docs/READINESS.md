@@ -1,5 +1,9 @@
 # Refit implementation checkpoints
 
+## October 13, 2026: provider-neutral OpenAPI baseline capture
+
+`refit source-snapshot` now saves a verified, hash-pinned baseline from a user-supplied public HTTPS URL or local OpenAPI JSON/YAML file for any provider ID. The existing generic watcher can compare later captures from the same URL, while Stripe retains its dedicated upstream revision discovery. This does not discover generic-provider feeds, documentation pages or changelogs. Generic migrations still require an explicit SDK adapter and application checks. See [CLI usage](CLI.md#discover-current-stripe-specifications-or-check-against-a-retained-baseline) and [local automation](AUTOMATION.md#use-a-real-upstream-source).
+
 ## October 13, 2026: configured property-rename rules
 
 Custom provider adapters may now declare `propertyRenames`. Refit activates a rule only when the before/after OpenAPI documents show the configured field was removed and a new replacement field appears on the same schema with the same simple scalar type (`string`, `integer`, `number` or `boolean`). The scanner must also trace a direct property read through the adapter's resource/method mapping. It then changes only that property-name token. Indexed reads, destructuring and unsupported source forms remain for review.
