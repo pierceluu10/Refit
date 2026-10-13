@@ -127,6 +127,7 @@ export function analyzeRepository(
   const findings: Finding[] = [];
   const imports: Location[] = [];
   const calls: (Location & { method: string })[] = [];
+  const sdkCalls: (Location & { resource: string; method: string; expression: string })[] = [];
   const constructors = new Set<ts.Symbol>();
   const clients = new Set<ts.Symbol>();
   const responses = new Map<ts.Symbol, string>();
@@ -232,7 +233,7 @@ export function analyzeRepository(
       imports.push(location(node));
     }
   }
-  function responseCall(node: ts.Node) {
+  function sdkCall(node: ts.Node) {
     if (!ts.isCallExpression(node) || !ts.isPropertyAccessExpression(node.expression)) return;
     const method = node.expression;
     const resource = method.expression;
@@ -241,9 +242,17 @@ export function analyzeRepository(
       ts.isIdentifier(resource.expression) &&
       contains(clients, resource.expression)
     )
+      return {
+        resource: resource.name.text,
+        method: method.name.text,
+        expression: `${resource.expression.text}.${resource.name.text}.${method.name.text}`,
+      };
+  }
+  function responseCall(node: ts.Node) {
+    const call = sdkCall(node);
+    if (call)
       return provider.operations.find(
-        (operation) =>
-          operation.resource === resource.name.text && operation.method === method.name.text,
+        (operation) => operation.resource === call.resource && operation.method === call.method,
       );
   }
   function arrayItemForExpression(expression: ts.Expression): string | undefined {
@@ -521,6 +530,8 @@ export function analyzeRepository(
     }
   }
   for (const node of nodes) {
+    const sdk = sdkCall(node);
+    if (sdk) sdkCalls.push({ ...location(node), ...sdk });
     const operation = responseCall(node);
     if (operation)
       calls.push({
@@ -774,6 +785,7 @@ export function analyzeRepository(
   return {
     imports,
     calls,
+    sdkCalls,
     findings,
     providerDetected,
     stripeDetected: provider.id === 'stripe' && providerDetected,
