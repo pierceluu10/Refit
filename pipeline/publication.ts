@@ -18,12 +18,7 @@ type PublicationConfiguration = { repository: string; base: string } & (
   { token: string; app?: never } | { app: GitHubAppConfiguration; token?: never }
 );
 
-export function publicationConfiguration(
-  repository: string | undefined,
-  base: string | undefined,
-  token: string | undefined,
-  app?: GitHubAppConfiguration,
-): PublicationConfiguration {
+export function validateGitHubTarget(repository: string | undefined, base: string | undefined) {
   if (
     !repository ||
     !REPOSITORY.test(repository) ||
@@ -35,10 +30,20 @@ export function publicationConfiguration(
     throw new PipelineInputError(
       'Draft publication requires --github owner/repository and a valid --base branch.',
     );
-  if (app) return { repository, base, app };
+  return { repository, base };
+}
+
+export function publicationConfiguration(
+  repository: string | undefined,
+  base: string | undefined,
+  token: string | undefined,
+  app?: GitHubAppConfiguration,
+): PublicationConfiguration {
+  const target = validateGitHubTarget(repository, base);
+  if (app) return { ...target, app };
   if (!token?.trim())
     throw new PipelineInputError('Draft publication requires GITHUB_TOKEN or --github-app.');
-  return { repository, base, token: token.trim() };
+  return { ...target, token: token.trim() };
 }
 
 function sha(value: unknown): string {
