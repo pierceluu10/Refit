@@ -13,6 +13,7 @@ const commands = new Map([
   ['demo', 'demo-cli.ts'],
   ['verify', 'verification-cli.ts'],
   ['watch', 'watch-cli.ts'],
+  ['serve', 'service-cli.ts'],
 ]);
 const usage = `Refit: reviewable API migrations
 
@@ -27,6 +28,7 @@ Usage: refit <command> [options]
   demo             Run a real-SDK migration demo against a simulated Stripe API
   verify           Verify hashes and sizes in a saved evidence directory
   watch            Monitor an OpenAPI source and process each detected change once
+  serve            Run installed repository workers with signed GitHub webhooks
 
 Use refit <command> --help for command options.
 Use --env <path> to load credentials explicitly. Existing environment values take precedence.

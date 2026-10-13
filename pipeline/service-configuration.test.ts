@@ -2,10 +2,15 @@ import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, expect, it } from 'vitest';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
+import { resolve } from 'node:path';
 import { readServiceConfiguration } from './service-configuration.ts';
 
 const roots: string[] = [];
 const APP = { appId: '123', privateKeyFile: 'unused-test-key' };
+const execute = promisify(execFile);
+const bin = resolve('bin/refit.mjs');
 async function setup() {
   const root = await mkdtemp(join(tmpdir(), 'refit-service-config-'));
   roots.push(root);
@@ -73,4 +78,29 @@ it('rejects duplicate identities, secrets, automatic publication and credential-
     await writeFile(path, JSON.stringify(value));
     await expect(readServiceConfiguration(path, APP)).rejects.toThrow();
   }
+});
+
+it('exposes service help and refuses missing authentication or invalid scheduling before creating state', async () => {
+  const { root, path, target } = await setup();
+  await writeFile(path, JSON.stringify({ formatVersion: 1, targets: [target] }));
+  expect((await execute(process.execPath, [bin, 'serve', '--help'])).stdout).toContain(
+    '/github/webhook',
+  );
+  const arguments_ = [bin, 'serve', '--config', path, '--state', join(root, 'state'), '--once'];
+  const environment = {
+    ...process.env,
+    GITHUB_APP_ID: APP.appId,
+    GITHUB_APP_PRIVATE_KEY_FILE: APP.privateKeyFile,
+    REFIT_WEBHOOK_SECRET: '',
+    REFIT_SERVICE_TOKEN: 'different-control-secret-for-tests-123',
+  };
+  await expect(execute(process.execPath, arguments_, { env: environment })).rejects.toMatchObject({
+    code: 1,
+    stderr: expect.stringContaining('REFIT_WEBHOOK_SECRET'),
+  });
+  await expect(
+    execute(process.execPath, [...arguments_, '--interval', '1'], {
+      env: { ...environment, REFIT_WEBHOOK_SECRET: 'webhook-secret-for-cli-tests-12345' },
+    }),
+  ).rejects.toMatchObject({ code: 1, stderr: expect.stringContaining('30–86400') });
 });
