@@ -5,7 +5,13 @@
       "id": "billing-demo-stripe",
       "repository": "pierceluu10/refit-billing-demo",
       "base": "main",
-      "workflow": "./billing-demo.github.refit.json"
+      "workflow": "./billing-demo.github.refit.json",
+      "documentationSources": [
+        {
+          "label": "Stripe API changelog",
+          "url": "https://docs.stripe.com/changelog.md"
+        }
+      ]
     }
   ]
 }

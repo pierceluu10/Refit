@@ -1,12 +1,14 @@
 # Refit architecture
 
-Refit 0.4 implements an installation-aware local service, API migration workers and explicit GitHub App publication. The website explains the product and shows illustrative runs; it does not control the service. The pipeline has been exercised on the independent Stripe billing application and with the actual OpenAI SDK against simulated HTTP contracts.
+Refit 0.5 implements an installation-aware local service, API migration workers and explicit GitHub App publication. The website explains the product and shows illustrative runs; it does not control the service. The pipeline has been exercised on the independent Stripe billing application and with the actual OpenAI SDK against simulated HTTP contracts.
 
 ## Implemented pipeline
 
 ```mermaid
 flowchart TD
-  SOURCE[Public OpenAPI URL, Stripe revision or local file] --> SNAP[Bounded JSON/YAML snapshot capture]
+  SOURCE[OpenAPI URL, Stripe revision or local file] --> SNAP[Bounded JSON/YAML snapshot capture]
+  DOCS[Configured changelog URL] --> TEXT[Visible-text snapshot]
+  TEXT --> DOCDIFF[Hash-verified review diff]
   BASE[Retained integration baseline] --> DIFF[oasdiff changelog and direct response-field removals]
   SNAP --> DIFF
   APP[Explicit GitHub App target] --> CLONE[Managed pinned checkout and base refresh]
@@ -35,7 +37,7 @@ flowchart TD
 
 | Component               | Current behavior                                                                                                                                                                                                                                      | Boundary                                                                                                                                                                                                     |
 | ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Sources                 | Stripe commit discovery, pinned downloads, public HTTPS documents with ETags, local JSON/YAML files; hashes and provenance retained                                                                                                                   | No arbitrary documentation crawler or authenticated provider feed; external refs disabled                                                                                                                    |
+| Sources                 | Stripe commit discovery, pinned OpenAPI downloads, public HTTPS documents with ETags, local JSON/YAML files, and up to eight configured public changelog/documentation URLs per target; hashes and provenance retained | No feed discovery, authenticated provider feeds or arbitrary crawler; external OpenAPI refs disabled; documentation diffs are review-only                                                                       |
 | Contract comparison     | Shared `oasdiff` changelog for breaking and non-breaking changes; direct component-property detector supplies code evidence                                                                                                                           | General contract detection is broader than automatic code mapping                                                                                                                                            |
 | Provider configuration  | SDK package/import constructors and resource-method response schema mappings; baseline preflight resolves local `$ref` aliases and rejects missing or unsupported mapped schemas; built-in Stripe and real OpenAI SDK conformance fixture                                                                                                                    | Mappings require verification; arbitrary SDKs and languages are not inferred automatically                                                                                                                   |
 | Analyzer                | TypeScript AST/symbols trace immutable ESM clients, direct relative named imports, shallow awaited SDK calls, nested component-schema `$ref`s, literal indexes, const `for...of`, inline array callbacks, immutable aliases, and transparent wrappers | Mutations/escapes downgrade findings; dynamic indexes, named/multi-parameter callbacks, transformed array chains, inline/composed/external schemas, CommonJS, dynamic flows and webhooks remain review cases |

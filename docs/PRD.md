@@ -2945,9 +2945,9 @@ After the MVP is stable, likely extensions include:
 
 ### More provider sources
 
+Operators can now attach public changelog and migration-documentation URLs to a provider profile. Refit captures visible text and records review-only diffs. Discovering authoritative feeds, monitoring SDK or GitHub releases, and using documentation as migration context remain future work.
+
 ```text
-official changelogs
-documentation diffs
 SDK releases
 GitHub releases
 OpenAPI HTTP sources

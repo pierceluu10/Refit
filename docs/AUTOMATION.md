@@ -1,6 +1,6 @@
-# Local API monitoring with Refit 0.4
+# Local API monitoring with Refit 0.5
 
-Refit has a local polling worker that captures an OpenAPI source, compares it with a retained baseline, scans a repository, and processes each migration once. AI generation and GitHub publication are explicit options. Start with a single poll; remove `--once` to keep the worker running while your computer is on.
+Refit has a local polling worker that captures an OpenAPI source, compares it with a retained baseline, scans a repository, and processes each migration once. It can also monitor up to eight manually configured public changelog or migration-documentation pages for each target. AI generation and GitHub publication are explicit options. Start with a single poll; remove `--once` to keep the worker running while your computer is on.
 
 This is the operator workflow for the installed Refit Agent. A customer installing the GitHub App does not yet start a hosted worker. The frontend is still illustrative.
 
@@ -127,7 +127,7 @@ JSON and YAML OpenAPI 3 documents share ingestion and comparison. HTTPS download
 
 ## Breaking changes and review gates
 
-The worker enables `oasdiff` by default. The full changelog records breaking and non-breaking contract changes. Documentation-only edits are saved as source observations and do not generate a new migration for already-processed code and breaking changes.
+The worker enables `oasdiff` by default. The full changelog records breaking and non-breaking contract changes. Optional documentation sources are captured independently as visible text, with navigation and hidden page content excluded where HTML provides a main/article region. The first capture becomes a baseline. Later page edits save hash-verified snapshots, a unified text diff and JSON evidence under `state/observations/documentation/`. A docs-only change is reported for review and does not start AI, patch generation, Docker checks or PR publication. When an OpenAPI migration runs in the same poll, the documentation diff is recorded alongside the watcher observation but is not sent to the model or included in the GitHub PR. Sources must be public HTTPS pages returning HTML, Markdown or plain text; Refit does not discover feeds, authenticate to providers or infer which page is authoritative.
 
 Automatic code handling is narrower than contract detection. Direct removed response fields must map to a supported SDK response and confirmed code usage. A response-removal changelog entry is considered covered only when its status, operation, path, and direct component-schema reference identify the same removed property. Type changes, removed endpoints, request changes, composed or inline responses, and other unmapped breaking changes stop the automatic proposal/publication path for review.
 
