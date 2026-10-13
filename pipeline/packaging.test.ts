@@ -63,6 +63,7 @@ it('packs only CLI runtime sources, fixtures, docs and exact runtime dependencie
   expect(result.files).toContain('docs/ENDPOINT-MIGRATIONS.md');
   expect(result.files).toContain('docs/REPOSITORY-SETUP.md');
   expect(result.files).toContain('docs/APP-ONBOARDING.md');
+  expect(result.files).toContain('docs/VENDOR_NOTES.md');
   expect(result.files).toContain('pipeline/enrollment-cli.ts');
   expect(result.files).toContain('pipeline/repository-enrollment.ts');
   expect(result.files).toContain('pipeline/fixtures/endpoint-replacement/provider.json');
