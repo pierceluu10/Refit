@@ -284,3 +284,13 @@ it('follows local parameter references and includes root authentication definiti
   });
   expect(() => validate(documents)).toThrow(/changes its recorded request, response/);
 });
+
+it('rejects anchored or dynamic schema references rather than comparing their text only', () => {
+  const documents = contracts();
+  documents.before.components.schemas.Item = {
+    type: 'object',
+    properties: { child: { $dynamicRef: '#item' } },
+  };
+  documents.after.components.schemas = structuredClone(documents.before.components.schemas);
+  expect(() => validate(documents)).toThrow(/anchors or dynamic references/);
+});

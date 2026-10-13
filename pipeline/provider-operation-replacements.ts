@@ -21,6 +21,14 @@ const OPERATION_ANNOTATIONS = new Set([
   'externalDocs',
 ]);
 const PARAMETER_LOCATIONS = new Set(['path', 'query', 'header', 'cookie']);
+const UNSUPPORTED_REFERENCE_KEYS = new Set([
+  '$id',
+  '$anchor',
+  '$dynamicAnchor',
+  '$dynamicRef',
+  '$recursiveAnchor',
+  '$recursiveRef',
+]);
 
 export interface OperationReplacement {
   id: string;
@@ -51,6 +59,12 @@ function contractValue(value: unknown, document: Record<string, unknown>) {
       );
     if (Array.isArray(value)) return value.map((entry) => visit(entry, references, depth + 1));
     if (!isObject(value)) return value;
+    if (
+      Object.keys(value).some((key) => UNSUPPORTED_REFERENCE_KEYS.has(key) && !isObject(value[key]))
+    )
+      throw new PipelineInputError(
+        'Endpoint replacements do not resolve schema identifiers, anchors or dynamic references; review this contract manually.',
+      );
     if (Object.hasOwn(value, '$ref')) {
       const reference = value.$ref;
       if (
