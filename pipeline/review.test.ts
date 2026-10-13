@@ -67,8 +67,9 @@ it('puts a concise engineer-facing summary before the collapsed machine evidence
   expect(visible).toContain('## What changed');
   expect(visible).toContain('API contract removes');
   expect(visible).toContain('payment_intent.charges');
+  expect(visible).toContain('`payment_intent.charges`');
   expect(visible).toMatch(/confirmed usages? across 1 file/);
-  expect(visible).toContain('src/billing/history.ts');
+  expect(visible).toContain('`src/billing/history.ts`');
   expect(visible).toContain('## Checks');
   expect(visible).not.toContain('```json');
   expect(body).toContain('<summary>Technical evidence and exact check commands</summary>');

@@ -24,7 +24,7 @@ function code(value: string) {
   const fence = '`'.repeat(
     Math.max(1, ...(content.match(/`+/g) ?? []).map((run) => run.length + 1)),
   );
-  return `${fence} ${content} ${fence}`;
+  return `${fence}${content}${fence}`;
 }
 
 function summaryList(values: string[]) {
