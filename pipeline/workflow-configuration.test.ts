@@ -21,6 +21,7 @@ async function setup() {
     repository: relative(root, join(fixture, 'repository')),
     before: relative(root, join(fixture, 'before.json')),
     after: relative(root, join(fixture, 'before.json')),
+    apiVersion: '2022-08-01',
     image: 'node:22-alpine',
     command: ['node', '--version'],
   };
@@ -87,6 +88,8 @@ it('rejects ambiguous specifications, invalid commands, versions and oversized f
     [{ latestStripe: 'true' }, 'boolean'],
     [{ prepareDependencies: 'true' }, 'boolean'],
     [{ before: '' }, 'before string'],
+    [{ apiVersion: '' }, 'apiVersion string'],
+    [{ apiVersion: 2022 }, 'apiVersion string'],
     [{ formatVersion: 2 }, 'formatVersion: 1'],
     [{ command: ['npm', ''] }, 'nonempty JSON array'],
   ] as const) {
@@ -95,6 +98,27 @@ it('rejects ambiguous specifications, invalid commands, versions and oversized f
   }
   await writeFile(path, ' '.repeat(CONFIGURATION_BYTE_LIMIT + 1));
   await expect(readWorkflowConfiguration(path)).rejects.toThrow('exceeds 64 KiB');
+});
+
+it('lets an explicit CLI API version override configuration and records after-version applicability', async () => {
+  const { root, path } = await setup();
+  await expect(
+    execute(process.execPath, [
+      bin,
+      'run',
+      '--config',
+      path,
+      '--after',
+      resolve(fixture, 'after.json'),
+      '--api-version',
+      '2022-11-15',
+      '--output',
+      join(root, 'evidence'),
+    ]),
+  ).rejects.toMatchObject({ code: 2, stdout: expect.stringContaining('needs-review') });
+  expect(
+    JSON.parse(await readFile(join(root, 'evidence/scan.json'), 'utf8')).apiVersion,
+  ).toMatchObject({ application: '2022-11-15', applicability: 'matches-after' });
 });
 
 it('lets a CLI after override replace latest discovery without fetching a remote specification', async () => {

@@ -22,6 +22,7 @@ async function options() {
     repository: fixture('repository'),
     before: fixture('before.json'),
     after: fixture('after.json'),
+    apiVersion: '2022-08-01',
     output: join(root, 'run'),
     image: 'node:22-alpine',
     command: ['node', '--version'],
@@ -59,6 +60,32 @@ it('records no-match evidence as review-required without calling a model, Docker
     expect(digest(await readFile(join(input.output, file.path)))).toBe(file.sha256);
 });
 
+it.each([
+  ['missing', undefined, 'unknown'],
+  ['already on after version', '2022-11-15', 'matches-after'],
+  ['unrelated version', '2023-01-01', 'matches-neither'],
+] as const)(
+  'stops automated work when the application API version is %s',
+  async (_label, apiVersion, applicability) => {
+    const input = await options();
+    const fetcher = vi.fn();
+    vi.stubGlobal('fetch', fetcher);
+    const result = await runWorkflow({
+      ...input,
+      apiVersion,
+      aiPatch: { apiKey: 'unused', model: 'unused' },
+      publication: { repository: 'owner/repo', base: 'main', token: 'unused' },
+    });
+    expect(result.manifest).toMatchObject({ status: 'needs-review', stage: 'scan' });
+    expect(validateMigration).not.toHaveBeenCalled();
+    expect(publishDraft).not.toHaveBeenCalled();
+    expect(fetcher).not.toHaveBeenCalled();
+    expect(
+      JSON.parse(await readFile(join(input.output, 'scan.json'), 'utf8')).apiVersion,
+    ).toMatchObject({ applicability });
+  },
+);
+
 it('retains a pinned custom adapter and stops when no deterministic migration exists', async () => {
   const input = await options();
   const result = await runWorkflow({
@@ -67,6 +94,7 @@ it('retains a pinned custom adapter and stops when no deterministic migration ex
     before: fixture('catalog/before.json'),
     after: fixture('catalog/after.json'),
     providerConfig: fixture('catalog/provider.json'),
+    apiVersion: '1.0.0',
   });
   expect(result.manifest.status).toBe('needs-review');
   expect(result.manifest.reason).toContain('no deterministic migration rule');
@@ -200,7 +228,7 @@ it('offers human output while preserving the review exit code and saved machine 
     ]),
   ).rejects.toMatchObject({
     code: 2,
-    stdout: expect.stringContaining('Refit needs review'),
+    stdout: expect.stringContaining('API version Current: unknown'),
     stderr: '',
   });
   expect(JSON.parse(await readFile(join(input.output, 'manifest.json'), 'utf8')).status).toBe(

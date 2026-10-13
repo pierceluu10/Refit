@@ -6,6 +6,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
 import { runPipeline } from './run.ts';
+import { compareApiVersion, validateApiVersion } from './api-version.ts';
 import { digest, readSpecification } from './specifications.ts';
 import { PipelineInputError } from './types.ts';
 import { readRepository } from './repository.ts';
@@ -117,6 +118,8 @@ export async function validateMigration(options: {
   assessment?: AiOptions;
   aiPatch?: AiOptions;
   providerConfig?: string;
+  apiVersion?: string;
+  requireApiVersionMatch?: boolean;
   fullDiff?: boolean;
   repairAttempts?: number;
   onProgress?: (message: string) => void;
@@ -125,6 +128,19 @@ export async function validateMigration(options: {
   validateCheckCommand(options.command);
   const baselineCommand = validateCheckCommand(options.baselineCommand ?? options.command);
   const repairLimit = validateRepairAttempts(options.repairAttempts ?? 0, Boolean(options.aiPatch));
+  if (options.requireApiVersionMatch) {
+    const [before, after] = await Promise.all([
+      readSpecification(options.before),
+      readSpecification(options.after),
+    ]);
+    const applicability = compareApiVersion(
+      validateApiVersion(options.apiVersion),
+      before.document,
+      after.document,
+    );
+    if (applicability.applicability !== 'matches-before')
+      throw new PipelineInputError(`Automated publication is blocked. ${applicability.reason}`);
+  }
   const snapshot = await readCommittedRepository(options.repository);
   const repository = snapshot.directory;
   const git = (args: string[]) =>

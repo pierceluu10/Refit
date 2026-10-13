@@ -4,7 +4,7 @@ import { runPipeline } from './run.ts';
 import { assessmentConfiguration } from './assessment.ts';
 
 const USAGE =
-  'Usage: refit scan --repository <directory> --before <openapi.json-or-yaml> --after <openapi.json-or-yaml> [--full-diff (requires oasdiff)] [--provider-config <adapter.json>] [--output <new-report.json>] [--propose-patch] [--assess (sends selected source context to OpenAI)] [--ai-patch (sends affected source files to OpenAI)]';
+  'Usage: refit scan --repository <directory> --before <openapi.json-or-yaml> --after <openapi.json-or-yaml> [--api-version <current-api-version>] [--full-diff (requires oasdiff)] [--provider-config <adapter.json>] [--output <new-report.json>] [--propose-patch] [--assess (sends selected source context to OpenAI)] [--ai-patch (sends affected source files to OpenAI)]';
 
 try {
   const { values } = parseArgs({
@@ -17,6 +17,7 @@ try {
       assess: { type: 'boolean' },
       'ai-patch': { type: 'boolean' },
       'provider-config': { type: 'string' },
+      'api-version': { type: 'string' },
       'full-diff': { type: 'boolean' },
       help: { type: 'boolean' },
     },
@@ -35,6 +36,7 @@ try {
       assessment: assessmentConfiguration(values.assess, process.env),
       aiPatch: assessmentConfiguration(values['ai-patch'], process.env),
       providerConfig: values['provider-config'],
+      apiVersion: values['api-version'],
       fullDiff: values['full-diff'],
     });
     const json = `${JSON.stringify(report, null, 2)}\n`;

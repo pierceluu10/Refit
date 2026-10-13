@@ -1,6 +1,6 @@
 {
   "openapi": "3.0.0",
-  "info": { "title": "Curated Stripe historical replay", "version": "2020-08-27" },
+  "info": { "title": "Curated Stripe historical replay", "version": "2022-08-01" },
   "paths": {},
   "components": {
     "schemas": {

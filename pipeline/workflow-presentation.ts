@@ -60,6 +60,15 @@ export async function renderWorkflowResult(result: Result) {
       rows.push(`API change  ${provider} removes ${summaryList(changes)}`);
     }
   }
+  if (report && isObject(report.apiVersion)) {
+    const version = report.apiVersion;
+    const application = typeof version.application === 'string' ? version.application : 'unknown';
+    const before = typeof version.before === 'string' ? version.before : 'unknown';
+    const after = typeof version.after === 'string' ? version.after : 'unknown';
+    rows.push(
+      `API version Current: ${application}; before contract: ${before}; after contract: ${after}`,
+    );
+  }
   if (report && Array.isArray(report.findings)) {
     const confirmed = report.findings.filter(
       (finding) => isObject(finding) && finding.confidence === 'confirmed',

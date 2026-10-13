@@ -84,6 +84,7 @@ describe('Stripe historical replay', () => {
     const source = await readFile(join(repository, 'billing.ts'), 'utf8');
     const report = await runPipeline({ repository, before, after });
     expect(report.status).toBe('affected');
+    expect(report.apiVersion.applicability).toBe('unknown');
     expect(report.changes).toHaveLength(1);
     expect(report.changes[0].property).toBe('charges');
     expect(report.findings).toEqual([
@@ -91,6 +92,9 @@ describe('Stripe historical replay', () => {
     ]);
     expect(report.repository.dependencies[0].version).toBe('^10.0.0');
     expect(report.runId).toBe((await runPipeline({ repository, before, after })).runId);
+    expect(
+      (await runPipeline({ repository, before, after, apiVersion: '2022-08-01' })).runId,
+    ).not.toBe(report.runId);
     expect(await readFile(join(repository, 'billing.ts'), 'utf8')).toBe(source);
     expect(report.patch.status).toBe('not-generated');
   });

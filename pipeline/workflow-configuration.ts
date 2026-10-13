@@ -15,6 +15,7 @@ const CONFIGURATION_KEYS = new Set([
   'command',
   'baselineCommand',
   'providerConfig',
+  'apiVersion',
   'fullDiff',
   'prepareDependencies',
 ]);
@@ -62,6 +63,7 @@ export async function readWorkflowConfiguration(path: string) {
       value.baselineCommand === undefined ? undefined : validateCheckCommand(value.baselineCommand),
     providerConfig:
       value.providerConfig === undefined ? undefined : resolve(directory, string('providerConfig')),
+    apiVersion: value.apiVersion === undefined ? undefined : string('apiVersion'),
     fullDiff: value.fullDiff as boolean | undefined,
     ...(value.prepareDependencies ? { prepareDependencies: true } : {}),
   };

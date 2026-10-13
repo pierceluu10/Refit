@@ -9,7 +9,7 @@ import { githubAppConfiguration } from './github-app.ts';
 import { renderWorkflowResult } from './workflow-presentation.ts';
 
 const USAGE =
-  'Usage: refit run --config <run.json> --output <new-directory-outside-repository>\n   or: refit run --repository <clean-git-directory> --before <spec.json-or-yaml> (--after <spec.json-or-yaml> | --latest-stripe) --output <new-directory-outside-repository> --image <local-image> --command \'["npm","test"]\'\nOptional: [--env <.env>] [--quiet] [--human | --json] [--full-diff (requires oasdiff)] [--provider-config <adapter.json>] [--assess] [--ai-patch] [--repair-attempts 0|1|2 (sends failed check output to OpenAI)] [--publish-draft --github owner/repository --base main [--github-app]]';
+  'Usage: refit run --config <run.json> --output <new-directory-outside-repository>\n   or: refit run --repository <clean-git-directory> --before <spec.json-or-yaml> (--after <spec.json-or-yaml> | --latest-stripe) --output <new-directory-outside-repository> --image <local-image> --command \'["npm","test"]\'\nOptional: [--env <.env>] [--quiet] [--human | --json] [--api-version <current-api-version>] [--full-diff (requires oasdiff)] [--provider-config <adapter.json>] [--assess] [--ai-patch] [--repair-attempts 0|1|2 (sends failed check output to OpenAI)] [--publish-draft --github owner/repository --base main [--github-app]]';
 
 try {
   const { values } = parseArgs({
@@ -29,6 +29,7 @@ try {
       command: { type: 'string' },
       'baseline-command': { type: 'string' },
       'provider-config': { type: 'string' },
+      'api-version': { type: 'string' },
       assess: { type: 'boolean' },
       'ai-patch': { type: 'boolean' },
       'repair-attempts': { type: 'string' },
@@ -74,6 +75,7 @@ try {
           ? parseCheckCommand(values['baseline-command'], '--baseline-command')
           : configuration?.baselineCommand,
       providerConfig: values['provider-config'] ?? configuration?.providerConfig,
+      apiVersion: values['api-version'] ?? configuration?.apiVersion,
       fullDiff: values['full-diff'] ?? configuration?.fullDiff,
       assessment: assessmentConfiguration(values.assess, process.env),
       aiPatch: assessmentConfiguration(values['ai-patch'], process.env),

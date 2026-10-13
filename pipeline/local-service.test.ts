@@ -44,6 +44,7 @@ function target(id = 'demo', repository = 'example/application'): ServiceTarget 
       command: ['npm', 'test'],
       baselineCommand: undefined,
       providerConfig: undefined,
+      apiVersion: undefined,
       fullDiff: false,
     },
     source: { kind: 'file', path: resolve('pipeline/fixtures/after.json') },

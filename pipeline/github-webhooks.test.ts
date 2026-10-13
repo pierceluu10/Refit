@@ -30,6 +30,7 @@ const targets: ServiceTarget[] = [
       command: ['npm', 'test'],
       baselineCommand: undefined,
       providerConfig: undefined,
+      apiVersion: undefined,
       fullDiff: true,
     },
     source: { kind: 'file', path: 'after.json' },

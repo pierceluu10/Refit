@@ -37,6 +37,7 @@ export async function runWorkflow(options: {
   baselineCommand?: string[];
   prepareDependencies?: boolean;
   providerConfig?: string;
+  apiVersion?: string;
   fullDiff?: boolean;
   assessment?: AiOptions;
   aiPatch?: AiOptions;
@@ -120,6 +121,7 @@ export async function runWorkflow(options: {
       before,
       after: join(directory, 'after.json'),
       providerConfig,
+      apiVersion: options.apiVersion,
       fullDiff: options.fullDiff,
     };
     stage = 'scan';
@@ -127,6 +129,8 @@ export async function runWorkflow(options: {
     const scan = await runPipeline({ ...inputs, proposePatch: true });
     runId = scan.runId;
     await save('scan.json', `${JSON.stringify(scan, null, 2)}\n`);
+    if (scan.apiVersion.applicability !== 'matches-before')
+      return await finish('needs-review', scan.apiVersion.reason, runId);
     const unmapped = unmappedBreakingChanges(scan.specificationDiff, scan.changes, scan.findings);
     if (unmapped.length)
       return await finish(

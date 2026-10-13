@@ -310,6 +310,7 @@ it.skipIf(!process.env.REFIT_NPM_PREPARE || !process.env.REFIT_BILLING_REPOSITOR
       repository,
       before: resolve('pipeline/fixtures/before.json'),
       after: resolve('pipeline/fixtures/after.json'),
+      apiVersion: '2022-08-01',
       image: process.env.REFIT_DOCKER_IMAGE ?? 'node:22-alpine',
       prepareDependencies: true,
       output: join(root, 'evidence'),
