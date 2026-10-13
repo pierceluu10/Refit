@@ -1,7 +1,7 @@
 import type { AiOptions, AiUsage } from './ai-budget.ts';
 import { execFile } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
-import { mkdir, mkdtemp, realpath, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
@@ -12,6 +12,12 @@ import { readRepository } from './repository.ts';
 import { validateCheckCommand, validateRepairAttempts } from './validation-options.ts';
 import { proposeAiPatch } from './ai-patches.ts';
 import { gitEnvironment } from './git-environment.ts';
+import { readCommittedRepository } from './committed-repository.ts';
+import {
+  dockerSandboxArguments,
+  removeDockerContainer,
+  resolveDockerImage,
+} from './docker-sandbox.ts';
 
 export interface PublicationFile {
   path: string;
@@ -24,9 +30,6 @@ const PROCESS_TIMEOUT_MS = 30_000;
 const CHECK_TIMEOUT_MS = 120_000;
 const MAX_OUTPUT_BYTES = 1024 * 1024;
 const MAX_ARCHIVE_BYTES = 50 * 1024 * 1024;
-const IMAGE_ID = /^sha256:[a-f0-9]{64}$/;
-const CONTAINER_USER = '65534:65534';
-const WORKSPACE_TMPFS = '/workspace:rw,exec,size=512m,uid=65534,gid=65534,mode=0700';
 const MAX_REPAIR_LOG_CHARACTERS = 4096;
 
 export interface ValidationAttempt {
@@ -67,43 +70,7 @@ async function containerCheck(
   try {
     const result = await execute(
       'docker',
-      [
-        'run',
-        '--name',
-        name,
-        '--pull',
-        'never',
-        '--network',
-        'none',
-        '--read-only',
-        '--user',
-        CONTAINER_USER,
-        '--cap-drop',
-        'ALL',
-        '--security-opt',
-        'no-new-privileges',
-        '--pids-limit',
-        '128',
-        '--memory',
-        '1g',
-        '--cpus',
-        '1',
-        '--tmpfs',
-        WORKSPACE_TMPFS,
-        '--tmpfs',
-        '/tmp:rw,noexec,size=64m,mode=1777',
-        '--mount',
-        `type=bind,src=${directory},dst=/input,readonly`,
-        '--workdir',
-        '/workspace',
-        '--entrypoint',
-        '/bin/sh',
-        image,
-        '-c',
-        'cp -R /input/. /workspace/ && exec "$@"',
-        'refit-check',
-        ...argumentsList,
-      ],
+      dockerSandboxArguments({ name, directory, image, command: argumentsList, network: 'none' }),
       { timeout: CHECK_TIMEOUT_MS, maxBuffer: MAX_OUTPUT_BYTES, encoding: 'utf8' },
     );
     return { status: 'passed', exitCode: 0, ...result };
@@ -125,17 +92,7 @@ async function containerCheck(
     };
   } finally {
     // A killed Docker client does not necessarily stop the container it started.
-    try {
-      await command('docker', ['rm', '--force', name]);
-    } catch (error) {
-      if (
-        !(error instanceof Error) ||
-        !('stderr' in error) ||
-        typeof error.stderr !== 'string' ||
-        !error.stderr.includes('No such container')
-      )
-        throw error;
-    }
+    await removeDockerContainer(name);
   }
 }
 
@@ -157,30 +114,12 @@ export async function validateMigration(options: {
   validateCheckCommand(options.command);
   const baselineCommand = validateCheckCommand(options.baselineCommand ?? options.command);
   const repairLimit = validateRepairAttempts(options.repairAttempts ?? 0, Boolean(options.aiPatch));
-  if (!options.image || options.image.startsWith('-'))
-    throw new PipelineInputError('A local Docker image is required.');
-  const repository = await realpath(options.repository);
+  const snapshot = await readCommittedRepository(options.repository);
+  const repository = snapshot.directory;
   const git = (args: string[]) =>
     command('git', ['-c', 'core.fsmonitor=false', '-C', repository, ...args]);
-  const topLevel = await realpath((await git(['rev-parse', '--show-toplevel'])).stdout.trim());
-  if (repository !== topLevel)
-    throw new PipelineInputError('Validation requires the Git repository root directory.');
-  const revision = (await git(['rev-parse', '--verify', 'HEAD^{commit}'])).stdout.trim();
-  const status = (await git(['status', '--porcelain', '--untracked-files=all'])).stdout;
-  if (status)
-    throw new PipelineInputError(
-      'Validation requires a clean committed repository, including untracked files.',
-    );
-  const entries = (await git(['ls-tree', '-rz', revision])).stdout.split('\0').filter(Boolean);
-  if (entries.some((entry) => !/^(100644|100755) blob /.test(entry)))
-    throw new PipelineInputError(
-      'Validation does not accept tracked symbolic links or submodules.',
-    );
-  const image = (
-    await command('docker', ['image', 'inspect', '--format', '{{.Id}}', options.image])
-  ).stdout.trim();
-  if (!IMAGE_ID.test(image))
-    throw new PipelineInputError('Docker did not resolve a unique immutable image ID.');
+  const { revision, entries } = snapshot;
+  const image = await resolveDockerImage(options.image);
   const root = await mkdtemp(join(tmpdir(), 'refit-validation-'));
   try {
     const baselineDirectory = join(root, 'baseline');
