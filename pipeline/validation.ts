@@ -117,6 +117,7 @@ export async function validateMigration(options: {
   prepareDependencies?: boolean;
   assessment?: AiOptions;
   aiPatch?: AiOptions;
+  documentationSnapshots?: readonly string[];
   providerConfig?: string;
   apiVersion?: string;
   requireApiVersionMatch?: boolean;
@@ -309,6 +310,7 @@ export async function validateMigration(options: {
                 patched.stderr.length > MAX_REPAIR_LOG_CHARACTERS,
             },
           },
+          options.documentationSnapshots,
         );
         if (!candidate.diff) {
           repair.stopReason = 'no-proposal';

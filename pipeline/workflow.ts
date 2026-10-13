@@ -46,6 +46,7 @@ export async function runWorkflow(options: {
   fullDiff?: boolean;
   assessment?: AiOptions;
   aiPatch?: AiOptions;
+  documentationSnapshots?: readonly string[];
   repairAttempts?: number;
   publication?: ReturnType<typeof publicationConfiguration>;
   onProgress?: (message: string) => void;
@@ -198,6 +199,7 @@ export async function runWorkflow(options: {
       prepareDependencies: options.prepareDependencies,
       assessment: options.assessment,
       aiPatch: options.aiPatch,
+      documentationSnapshots: options.documentationSnapshots,
       repairAttempts: options.repairAttempts,
       onProgress: options.onProgress,
       signal: options.signal,

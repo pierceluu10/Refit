@@ -327,6 +327,7 @@ async function watchLocalOnce(
         after,
         output,
         onProgress: options.onProgress,
+        documentationSnapshots: capturedDocumentation.snapshotPaths,
       });
       jobs[jobKey] = { ...(jobs[jobKey] as object), status: result.manifest.status };
       if (documentationSources.length) state.documentation = capturedDocumentation.state;
@@ -367,6 +368,7 @@ async function captureDocumentationSources(
   const state: Record<string, string> = {};
   const changes: DocumentationChange[] = [];
   const baselines: DocumentationBaseline[] = [];
+  const snapshotPaths: string[] = [];
   const sourceIds = new Set(sources.map(documentationSourceId));
   if (Object.keys(previousState).some((sourceId) => !sourceIds.has(sourceId)))
     throw new PipelineInputError(
@@ -391,11 +393,12 @@ async function captureDocumentationSources(
     const current = await captureDocumentation(source, previous);
     await writeDocumentationSnapshot(snapshots, source, current);
     state[sourceId] = current.hash;
+    snapshotPaths.push(documentationSnapshotPath(snapshots, sourceId, current.hash));
     if (!previous) baselines.push({ label: current.label, url: current.url, hash: current.hash });
     if (previous && previous.hash !== current.hash)
       changes.push(await recordDocumentationChange(observations, sourceId, previous, current));
   }
-  return { state, changes, baselines };
+  return { state, changes, baselines, snapshotPaths };
 }
 
 function documentationSnapshotPath(snapshots: string, sourceId: string, hash: string) {

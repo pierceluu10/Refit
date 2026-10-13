@@ -104,6 +104,19 @@ it('retains a pinned custom adapter and stops when no deterministic migration ex
   expect(validateMigration).not.toHaveBeenCalled();
 });
 
+it('forwards saved vendor-note paths into validation and leaves them off the scan', async () => {
+  const input = await options();
+  vi.mocked(validateMigration).mockRejectedValueOnce(new Error('stop before Docker'));
+  const documentationSnapshots = ['/tmp/refit-vendor-note.json'];
+  const result = await runWorkflow({ ...input, documentationSnapshots });
+  expect(result.manifest.status).toBe('error');
+  expect(vi.mocked(validateMigration).mock.calls[0][0].documentationSnapshots).toEqual(
+    documentationSnapshots,
+  );
+  const scan = await readFile(join(input.output, 'scan.json'), 'utf8');
+  expect(scan).not.toContain('refit-vendor-note');
+});
+
 it('retains completed scan evidence when validation setup fails and never publishes', async () => {
   const input = await options();
   const progress: string[] = [];

@@ -32,6 +32,7 @@ export async function runPipeline(options: {
   apiVersion?: string;
   requireApiVersionMatch?: boolean;
   fullDiff?: boolean;
+  documentationSnapshots?: readonly string[];
   onProgress?: (message: string) => void;
 }) {
   const applicationApiVersion = validateApiVersion(options.apiVersion);
@@ -155,6 +156,8 @@ export async function runPipeline(options: {
             options.aiPatch,
             provider,
             before.schemas,
+            undefined,
+            options.documentationSnapshots,
           )
       : deterministicRequested
         ? proposePatch(repository, edits, unresolvedFindingCount, provider, replacements)
