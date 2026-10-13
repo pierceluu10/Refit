@@ -11,7 +11,7 @@ afterEach(async () => {
 });
 
 it.skipIf(!process.env.REFIT_OASDIFF)(
-  'correlates a real oasdiff endpoint removal with configured SDK call sites',
+  'correlates real oasdiff endpoint removals and response changes with configured SDK call sites',
   async () => {
     const root = await mkdtemp(join(tmpdir(), 'refit-oasdiff-operation-test-'));
     roots.push(root);
@@ -35,7 +35,14 @@ it.skipIf(!process.env.REFIT_OASDIFF)(
         '/customers/{id}': {
           get: {
             operationId: 'retrieveCustomer',
-            responses: { '200': { description: 'Customer' } },
+            responses: {
+              '200': {
+                description: 'Customer',
+                content: {
+                  'application/json': { schema: { $ref: '#/components/schemas/Customer' } },
+                },
+              },
+            },
           },
         },
       },
@@ -96,5 +103,38 @@ it.skipIf(!process.env.REFIT_OASDIFF)(
       },
     ]);
     expect(report.patch).toMatchObject({ status: 'unsupported', unresolvedFindings: 1 });
+
+    const changedResponse = structuredClone(beforeSpecification);
+    changedResponse.info.version = '2.1.0';
+    changedResponse.components.schemas.Customer.properties.id.type = 'integer';
+    await writeFile(after, JSON.stringify(changedResponse));
+    const responseReport = await runPipeline({
+      repository,
+      before,
+      after,
+      providerConfig,
+      apiVersion: '1.0.0',
+      fullDiff: true,
+      proposePatch: true,
+    });
+    expect(
+      responseReport.specificationDiff.changes.some(
+        (change) =>
+          'path' in change &&
+          'operation' in change &&
+          String(change.id).includes('type-changed') &&
+          change.path === '/customers/{id}' &&
+          String(change.operation).toUpperCase() === 'GET',
+      ),
+    ).toBe(true);
+    expect(responseReport.operationImpacts).toMatchObject([
+      {
+        operationId: 'retrieveCustomer',
+        path: '/customers/{id}',
+        httpMethod: 'GET',
+        changes: [expect.objectContaining({ level: 3 })],
+        usages: [{ method: 'customers.retrieve', file: 'catalog.ts', line: 4 }],
+      },
+    ]);
   },
 );
