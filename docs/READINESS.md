@@ -1,5 +1,9 @@
 # Refit implementation checkpoints
 
+## October 13, 2026: mapped callers for removed OpenAPI operations
+
+Custom SDK adapters can optionally map each `resource.method` to a unique `operationId` in the pinned baseline. With `--full-diff`, Refit joins `oasdiff` operation-removal entries to the statically traced SDK calls and reports endpoint, method and call locations. Adapter IDs that are missing or duplicated in the baseline fail preflight. These findings remain review-only; no generic method replacement rule is registered. Automated runs block AI generation, Docker validation and publication when they detect mapped calls to removed operations. A focused workflow test verifies the evidence and confirms no model or validator request occurs.
+
 ## October 13, 2026: provider-neutral RSS and Atom changelog feeds
 
 Configured documentation sources now accept RSS 2.0 and Atom XML in addition to HTML, Markdown and plain text. Entries become stable readable records of title, published/updated date, link and summary, so the existing watcher can store a hash-pinned baseline and unified diff without provider-specific parsing. XML is validated, custom entity declarations are rejected, expansion limits are set, and feeds with more than 250 entries stop rather than silently truncate. Packaging tests verify the CLI carries the parser dependency. This still requires the operator to supply each public feed URL; Refit does not discover provider feeds or treat feed prose as verified migration guidance. Feed-only updates remain review signals and do not invoke AI or PR publication.

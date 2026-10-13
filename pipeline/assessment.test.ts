@@ -99,6 +99,21 @@ it('requires a confirmed cited finding for a migration candidate', async () => {
   await expect(assessMigration(input, OPTIONS)).rejects.toThrow(/confirmed finding/);
 });
 
+it('rejects a migration-candidate assessment when removed operations remain unresolved', async () => {
+  const input = await evidence();
+  input.operationImpacts = [
+    {
+      operationId: 'retrieveCustomer',
+      path: '/customers/{id}',
+      httpMethod: 'GET',
+      text: 'api removed without deprecation',
+      usages: [{ file: 'billing.ts', line: 4, column: 24, method: 'customers.retrieve' }],
+    },
+  ];
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue(response(assessment(input.findings[0].id))));
+  await expect(assessMigration(input, OPTIONS)).rejects.toThrow(/removed-operation impacts/);
+});
+
 it.each(['incomplete', 'failed'])(
   'does not accept a %s response even if it contains JSON',
   async (status) => {

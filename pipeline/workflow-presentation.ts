@@ -69,14 +69,49 @@ export async function renderWorkflowResult(result: Result) {
       `API version Current: ${application}; before contract: ${before}; after contract: ${after}`,
     );
   }
+  if (report && Array.isArray(report.operationImpacts)) {
+    const impacts = report.operationImpacts.filter(
+      (impact): impact is Record<string, unknown> =>
+        isObject(impact) &&
+        typeof impact.operationId === 'string' &&
+        typeof impact.path === 'string' &&
+        typeof impact.httpMethod === 'string' &&
+        Array.isArray(impact.usages),
+    );
+    const usageCount = impacts.reduce(
+      (count, impact) => count + (impact.usages as unknown[]).length,
+      0,
+    );
+    if (impacts.length) {
+      rows.push(
+        `Endpoints   ${impacts.length} removed ${impacts.length === 1 ? 'operation' : 'operations'} mapped to ${usageCount} SDK ${usageCount === 1 ? 'call site' : 'call sites'}`,
+      );
+      for (const impact of impacts.slice(0, MAX_SUMMARY_ITEMS)) {
+        const locations = (impact.usages as unknown[])
+          .filter(
+            (usage): usage is Record<string, unknown> =>
+              isObject(usage) && typeof usage.file === 'string' && typeof usage.line === 'number',
+          )
+          .map((usage) => terminalText(`${usage.file}:${usage.line}`));
+        rows.push(
+          `API call    ${terminalText(`${impact.httpMethod} ${impact.path} (${impact.operationId})`)}${locations.length ? ` at ${summaryList(locations)}` : ''}`,
+        );
+      }
+    }
+  }
   if (report && Array.isArray(report.findings)) {
     const confirmed = report.findings.filter(
       (finding) => isObject(finding) && finding.confidence === 'confirmed',
     );
     const files = new Set(confirmed.map((finding) => (finding as Record<string, unknown>).file));
-    rows.push(
-      `Found       ${confirmed.length} confirmed ${confirmed.length === 1 ? 'usage' : 'usages'} in ${files.size} ${files.size === 1 ? 'file' : 'files'}`,
-    );
+    if (
+      confirmed.length ||
+      !Array.isArray(report.operationImpacts) ||
+      !report.operationImpacts.length
+    )
+      rows.push(
+        `Found       ${confirmed.length} confirmed ${confirmed.length === 1 ? 'usage' : 'usages'} in ${files.size} ${files.size === 1 ? 'file' : 'files'}`,
+      );
   }
   if (
     report &&
