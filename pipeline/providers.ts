@@ -9,6 +9,13 @@ export interface ProviderAdapter {
   namedExport: string | null;
   operations: { resource: string; method: string; schema: string; operationId?: string }[];
   propertyRenames?: { schema: string; removed: string; replacement: string }[];
+  operationReplacements?: {
+    resource: string;
+    method: string;
+    replacementResource: string;
+    replacementMethod: string;
+    replacementOperationId: string;
+  }[];
 }
 
 export interface ProviderIdentity {
@@ -45,10 +52,23 @@ export function validateProviderMappings(
 const MAX_CONFIG_BYTES = 64 * 1024;
 const MAX_OPERATIONS = 100;
 const MAX_PROPERTY_RENAMES = 100;
+const MAX_OPERATION_REPLACEMENTS = 100;
 const MAX_SCHEMA_NAME_LENGTH = 256;
 const IDENTIFIER = /^[A-Za-z_$][A-Za-z0-9_$]*$/;
 const PROVIDER_ID = /^[a-z][a-z0-9-]{0,63}$/;
 const PACKAGE_NAME = /^(?:@[a-z0-9._-]+\/)?[a-z0-9._-]+$/;
+const REQUIRED_KEYS = ['defaultImport', 'id', 'namedExport', 'operations', 'packageName'];
+const CONFIG_KEYS = new Set([...REQUIRED_KEYS, 'propertyRenames', 'operationReplacements']);
+
+function validOperationId(value: unknown): value is string {
+  return (
+    typeof value === 'string' &&
+    Boolean(value.trim()) &&
+    value === value.trim() &&
+    value.length <= MAX_SCHEMA_NAME_LENGTH &&
+    !/[\u0000-\u001f\u007f]/.test(value)
+  );
+}
 
 export function validateProviderIdentity(value: Record<string, unknown>): ProviderIdentity {
   if (
@@ -85,10 +105,9 @@ export async function readProviderAdapter(path?: string): Promise<ProviderAdapte
 
 export function parseProviderAdapter(value: Record<string, unknown>): ProviderAdapter {
   const identity = validateProviderIdentity(value);
-  const keys = Object.keys(value).sort().join(',');
   if (
-    (keys !== 'defaultImport,id,namedExport,operations,packageName' &&
-      keys !== 'defaultImport,id,namedExport,operations,packageName,propertyRenames') ||
+    REQUIRED_KEYS.some((key) => !Object.hasOwn(value, key)) ||
+    Object.keys(value).some((key) => !CONFIG_KEYS.has(key)) ||
     !Array.isArray(value.operations) ||
     !value.operations.length ||
     value.operations.length > MAX_OPERATIONS
@@ -109,12 +128,7 @@ export function parseProviderAdapter(value: Record<string, unknown>): ProviderAd
       typeof operation.schema !== 'string' ||
       !operation.schema.trim() ||
       operation.schema.length > MAX_CONFIG_BYTES ||
-      (operation.operationId !== undefined &&
-        (typeof operation.operationId !== 'string' ||
-          !operation.operationId.trim() ||
-          operation.operationId !== operation.operationId.trim() ||
-          operation.operationId.length > MAX_SCHEMA_NAME_LENGTH ||
-          /[\u0000-\u001f\u007f]/.test(operation.operationId)))
+      (operation.operationId !== undefined && !validOperationId(operation.operationId))
     )
       throw new PipelineInputError(
         'Each provider operation must specify resource, method and schema strings, with an optional printable OpenAPI operationId.',
@@ -174,9 +188,76 @@ export function parseProviderAdapter(value: Record<string, unknown>): ProviderAd
       replacement: rename.replacement,
     };
   });
+  const replacements = value.operationReplacements;
+  if (
+    replacements !== undefined &&
+    (!Array.isArray(replacements) || replacements.length > MAX_OPERATION_REPLACEMENTS)
+  )
+    throw new PipelineInputError(
+      `Provider operationReplacements must contain at most ${MAX_OPERATION_REPLACEMENTS} entries.`,
+    );
+  const replacementSources = new Set<string>();
+  const replacementTargets = new Set<string>();
+  const replacementIds = new Set<string>();
+  const parsedReplacements = (replacements ?? []).map((replacement) => {
+    if (
+      !isObject(replacement) ||
+      Object.keys(replacement).sort().join(',') !==
+        'method,replacementMethod,replacementOperationId,replacementResource,resource' ||
+      ![
+        replacement.resource,
+        replacement.method,
+        replacement.replacementResource,
+        replacement.replacementMethod,
+      ].every((name) => typeof name === 'string' && IDENTIFIER.test(name)) ||
+      !validOperationId(replacement.replacementOperationId)
+    )
+      throw new PipelineInputError(
+        'Each operation replacement must name source and replacement SDK resource/method identifiers and a printable replacementOperationId.',
+      );
+    const resource = replacement.resource as string;
+    const method = replacement.method as string;
+    const replacementResource = replacement.replacementResource as string;
+    const replacementMethod = replacement.replacementMethod as string;
+    const source = `${resource}.${method}`;
+    const target = `${replacementResource}.${replacementMethod}`;
+    const mapped = operations.find(
+      (operation) => operation.resource === resource && operation.method === method,
+    );
+    if (!mapped?.operationId)
+      throw new PipelineInputError(
+        `Operation replacement source ${source} needs an existing operationId mapping.`,
+      );
+    if (
+      source === target ||
+      operations.some((operation) => `${operation.resource}.${operation.method}` === target)
+    )
+      throw new PipelineInputError(
+        `Operation replacement target ${target} must be a new, distinct SDK method mapping.`,
+      );
+    if (
+      replacementSources.has(source) ||
+      replacementTargets.has(target) ||
+      replacementIds.has(replacement.replacementOperationId)
+    )
+      throw new PipelineInputError(
+        'Operation replacement sources, SDK targets and replacement operation IDs must be unique.',
+      );
+    replacementSources.add(source);
+    replacementTargets.add(target);
+    replacementIds.add(replacement.replacementOperationId);
+    return {
+      resource,
+      method,
+      replacementResource,
+      replacementMethod,
+      replacementOperationId: replacement.replacementOperationId,
+    };
+  });
   return {
     ...identity,
     operations,
     ...(parsedRenames.length ? { propertyRenames: parsedRenames } : {}),
+    ...(parsedReplacements.length ? { operationReplacements: parsedReplacements } : {}),
   };
 }

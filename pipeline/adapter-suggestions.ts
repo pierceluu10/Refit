@@ -4,25 +4,9 @@ import { requestStructuredOutput } from './openai.ts';
 import type { AiOptions } from './ai-budget.ts';
 import { parseProviderAdapter, type ProviderIdentity } from './providers.ts';
 import { readRepository } from './repository.ts';
-import {
-  componentReference,
-  isObject,
-  parseObject,
-  readSpecification,
-  resolvableComponentSchema,
-} from './specifications.ts';
+import { isObject, parseObject, readSpecification } from './specifications.ts';
 import { PipelineInputError, type Repository } from './types.ts';
-
-const OPENAPI_METHODS = new Set([
-  'delete',
-  'get',
-  'head',
-  'options',
-  'patch',
-  'post',
-  'put',
-  'trace',
-]);
+import { listOpenApiOperations, successfulResponseSchema } from './openapi-operations.ts';
 const MAX_MAPPED_METHODS = 100;
 const MAX_OPERATION_CANDIDATES = 500;
 const MAX_CALL_SAMPLES = 3;
@@ -210,20 +194,16 @@ export function collectApiOperationCandidates(
     throw new PipelineInputError('Adapter suggestions require an OpenAPI document with paths.');
   const all: { operationId: string; path: string; httpMethod: string; schema?: string }[] = [];
   const operationIdCounts = new Map<string, number>();
-  for (const [path, pathItem] of Object.entries(document.paths)) {
-    if (!isObject(pathItem)) continue;
-    for (const [method, operation] of Object.entries(pathItem)) {
-      if (!OPENAPI_METHODS.has(method.toLowerCase()) || !isObject(operation)) continue;
-      const operationId = operation.operationId;
-      if (typeof operationId !== 'string' || !operationId.trim()) continue;
-      operationIdCounts.set(operationId, (operationIdCounts.get(operationId) ?? 0) + 1);
-      all.push({
-        operationId,
-        path,
-        httpMethod: method.toUpperCase(),
-        schema: responseSchema(operation, schemas),
-      });
-    }
+  for (const { path, httpMethod, operation } of listOpenApiOperations(document)) {
+    const operationId = operation.operationId;
+    if (typeof operationId !== 'string' || !operationId.trim()) continue;
+    operationIdCounts.set(operationId, (operationIdCounts.get(operationId) ?? 0) + 1);
+    all.push({
+      operationId,
+      path,
+      httpMethod,
+      schema: successfulResponseSchema(operation, schemas),
+    });
   }
   const available = all
     .filter(
@@ -377,24 +357,4 @@ export async function suggestProviderAdapter(options: {
 
 function isPackageImport(imported: string, packageName: string) {
   return imported === packageName || imported.startsWith(`${packageName}/`);
-}
-
-function responseSchema(operation: Record<string, unknown>, schemas: Record<string, unknown>) {
-  if (!isObject(operation.responses)) return undefined;
-  const responseSchemas = new Set<string>();
-  for (const [status, response] of Object.entries(operation.responses)) {
-    if (!/^2\d\d$/.test(status) || !isObject(response) || !isObject(response.content)) continue;
-    for (const [mediaType, media] of Object.entries(response.content)) {
-      if (!isJsonMediaType(mediaType) || !isObject(media) || !isObject(media.schema)) continue;
-      const reference = componentReference(media.schema.$ref);
-      const resolved = reference ? resolvableComponentSchema(schemas, reference) : undefined;
-      if (resolved) responseSchemas.add(resolved);
-    }
-  }
-  return responseSchemas.size === 1 ? [...responseSchemas][0] : undefined;
-}
-
-function isJsonMediaType(mediaType: string) {
-  const normalized = mediaType.split(';', 1)[0].trim().toLowerCase();
-  return normalized === 'application/json' || normalized.endsWith('+json');
 }
