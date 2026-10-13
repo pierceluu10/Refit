@@ -9,6 +9,7 @@ export interface Removal {
   schema: string;
   property: string;
   pointer: string;
+  type?: 'string';
 }
 
 export interface Finding extends Location {

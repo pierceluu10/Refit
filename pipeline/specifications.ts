@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import { readFile, stat } from 'node:fs/promises';
 import { PipelineInputError, type Removal } from './types.ts';
+import { parseDocument } from 'yaml';
 
 type JsonObject = Record<string, unknown>;
 export const MAX_SPECIFICATION_BYTES = 64 * 1024 * 1024;
@@ -49,7 +50,7 @@ export async function readSpecification(path: string) {
   if ((await stat(path)).size > MAX_SPECIFICATION_BYTES)
     throw new PipelineInputError(`${path} exceeds the 64 MiB specification input limit.`);
   const content = await readFile(path, 'utf8');
-  const value = parseObject(content, path);
+  const value = parseApiDocument(content, path);
   if (value.kind === 'refit-snapshot') {
     if (
       value.formatVersion !== 1 ||
@@ -65,21 +66,61 @@ export async function readSpecification(path: string) {
       provenance: { provider: value.provider, revision: value.revision, url: value.url },
     };
   }
+  if (value.kind === 'refit-source-snapshot') {
+    if (
+      value.formatVersion !== 1 ||
+      typeof value.provider !== 'string' ||
+      !/^[a-z][a-z0-9-]{0,63}$/.test(value.provider) ||
+      typeof value.content !== 'string' ||
+      value.hash !== digest(value.content) ||
+      value.revision !== value.hash ||
+      typeof value.url !== 'string' ||
+      !/^(https:|file:)/.test(value.url)
+    )
+      throw new PipelineInputError(`${path}: invalid source snapshot provenance or content hash.`);
+    return {
+      ...parseSpecification(value.content, path),
+      provenance: { provider: value.provider, revision: value.revision, url: value.url },
+    };
+  }
   return { ...parseSpecification(content, path), provenance: null };
 }
 
 export function parseSpecification(content: string, label: string) {
-  const document = parseObject(content, label);
+  const document = parseApiDocument(content, label);
   const components = document.components;
   if (
     typeof document.openapi !== 'string' ||
     !document.openapi.startsWith('3.') ||
-    !isObject(components) ||
-    !isObject(components.schemas)
+    (!isObject(document.paths) && !(isObject(components) && isObject(components.schemas))) ||
+    (components !== undefined && !isObject(components)) ||
+    (isObject(components) && components.schemas !== undefined && !isObject(components.schemas))
   ) {
-    throw new PipelineInputError(`${label} must contain OpenAPI 3 components.schemas.`);
+    throw new PipelineInputError(`${label} must contain OpenAPI 3 paths or components.schemas.`);
   }
-  return { hash: digest(content), schemas: components.schemas };
+  return {
+    hash: digest(content),
+    schemas: isObject(components) && isObject(components.schemas) ? components.schemas : {},
+    document,
+  };
+}
+
+function parseApiDocument(content: string, label: string): JsonObject {
+  if (content.trimStart().startsWith('{') || content.trimStart().startsWith('['))
+    return parseObject(content, label);
+  const parsed = parseDocument(content, { strict: true, uniqueKeys: true });
+  if (parsed.errors.length || parsed.warnings.length)
+    throw new PipelineInputError(`${label} contains invalid or unsupported YAML.`, {
+      cause: parsed.errors[0] ?? parsed.warnings[0],
+    });
+  let value: unknown;
+  try {
+    value = parsed.toJS({ maxAliasCount: 0 });
+  } catch (cause) {
+    throw new PipelineInputError(`${label} contains unsupported YAML aliases.`, { cause });
+  }
+  if (!isObject(value)) throw new PipelineInputError(`${label} must be an OpenAPI object.`);
+  return value;
 }
 
 function escapePointer(value: string): string {
@@ -108,6 +149,10 @@ export function findRemovedProperties(
         schema,
         property,
         pointer,
+        ...(isObject(previous.properties[property]) &&
+        previous.properties[property].type === 'string'
+          ? { type: 'string' as const }
+          : {}),
       });
     }
   }

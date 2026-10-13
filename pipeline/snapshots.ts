@@ -8,7 +8,7 @@ import {
   type Snapshot,
 } from './specifications.ts';
 import { PipelineInputError } from './types.ts';
-import { readBoundedResponse } from './network.ts';
+import { fetchSpecificationResponse, readBoundedResponse } from './network.ts';
 
 const DOWNLOAD_TIMEOUT_MS = 30_000;
 const MAX_DISCOVERY_BYTES = 1024 * 1024;
@@ -16,7 +16,7 @@ const MAX_DISCOVERY_BYTES = 1024 * 1024;
 export async function discoverStripeRevision() {
   const query = new URLSearchParams({ path: STRIPE_SPECIFICATION_PATH, per_page: '1' });
   const url = `https://api.github.com/repos/stripe/openapi/commits?${query}`;
-  const response = await fetch(url, {
+  const response = await fetchSpecificationResponse(url, {
     redirect: 'error',
     signal: AbortSignal.timeout(DOWNLOAD_TIMEOUT_MS),
     headers: { Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2026-03-10' },
@@ -48,7 +48,7 @@ export function encodeSnapshot(snapshot: Snapshot) {
 
 export async function fetchStripeSnapshot(revision: string): Promise<Snapshot> {
   const url = stripeSpecificationUrl(revision);
-  const response = await fetch(url, {
+  const response = await fetchSpecificationResponse(url, {
     redirect: 'error',
     signal: AbortSignal.timeout(DOWNLOAD_TIMEOUT_MS),
     headers: { Accept: 'application/json' },

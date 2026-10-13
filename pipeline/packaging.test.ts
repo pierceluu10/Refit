@@ -62,7 +62,7 @@ it('packs only CLI runtime sources, fixtures, docs and exact runtime dependencie
         file.includes('.test.') || file.startsWith('src/') || file.startsWith('node_modules/'),
     ),
   ).toBe(false);
-  expect(Object.keys(result.dependencies).sort()).toEqual(['tsx', 'typescript-compiler']);
+  expect(Object.keys(result.dependencies).sort()).toEqual(['tsx', 'typescript-compiler', 'yaml']);
   expect(result.dependencies.tsx).toMatch(/^\d+\.\d+\.\d+/);
   expect(result.dependencies['typescript-compiler']).toMatch(/^npm:typescript@\d+\.\d+\.\d+/);
   const extracted = await execute('tar', ['-xOf', result.archive, 'package/package.json']);
