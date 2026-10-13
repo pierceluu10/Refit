@@ -4,6 +4,10 @@
 
 `refit source-snapshot` now saves a verified, hash-pinned baseline from a user-supplied public HTTPS URL or local OpenAPI JSON/YAML file for any provider ID. The existing generic watcher can compare later captures from the same URL, while Stripe retains its dedicated upstream revision discovery. This does not discover generic-provider feeds, documentation pages or changelogs. Generic migrations still require an explicit SDK adapter and application checks. See [CLI usage](CLI.md#discover-current-stripe-specifications-or-check-against-a-retained-baseline) and [local automation](AUTOMATION.md#use-a-real-upstream-source).
 
+## October 13, 2026: nested component-schema response fields
+
+Configured provider adapters can now trace removed fields through direct local OpenAPI component-schema `$ref`s, nested property chains, and immutable local aliases, including destructuring of an intermediate object. The same schema graph is used when rescanning deterministic and AI proposals. A nested catalog SDK fixture passes old and new runtime contracts in offline Docker. Arrays and inline/composed/external schemas remain review cases. Refit can report removed-field indexes or destructuring but does not auto-edit them. See [provider adapter limits](../README.md#configure-another-sdk) and [architecture](ARCHITECTURE.md#provider-independent-core).
+
 ## October 13, 2026: configured property-rename rules
 
 Custom provider adapters may now declare `propertyRenames`. Refit activates a rule only when the before/after OpenAPI documents show the configured field was removed and a new replacement field appears on the same schema with the same simple scalar type (`string`, `integer`, `number` or `boolean`). The scanner must also trace a direct property read through the adapter's resource/method mapping. It then changes only that property-name token. Indexed reads, destructuring and unsupported source forms remain for review.
