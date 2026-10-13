@@ -13,9 +13,24 @@ const TITLES: Record<Result['manifest']['status'], string> = {
   'existing-pr': 'Existing PR found',
   error: 'Refit could not complete this run',
 };
+const MAX_SUMMARY_ITEMS = 3;
+const MAX_PROPOSAL_CHARACTERS = 180;
 
 export function terminalText(value: string) {
   return value.replace(/[\x00-\x1f\x7f]/g, ' ');
+}
+
+function summaryList(values: string[]) {
+  const visible = values.slice(0, MAX_SUMMARY_ITEMS);
+  const remaining = values.length - visible.length;
+  return `${visible.join(', ')}${remaining ? `, and ${remaining} more` : ''}`;
+}
+
+function proposalText(value: string) {
+  const text = terminalText(value);
+  return text.length > MAX_PROPOSAL_CHARACTERS
+    ? `${text.slice(0, MAX_PROPOSAL_CHARACTERS - 1)}…`
+    : text;
 }
 
 export async function renderWorkflowResult(result: Result) {
@@ -26,6 +41,25 @@ export async function renderWorkflowResult(result: Result) {
   const report = (await readArtifact('report.json')) ?? (await readArtifact('scan.json'));
   const publication = await readArtifact('publication.json');
   const rows: string[] = [];
+  if (report && typeof report.provider === 'string' && Array.isArray(report.changes)) {
+    const changes = report.changes
+      .filter(
+        (change): change is Record<string, unknown> =>
+          isObject(change) &&
+          typeof change.schema === 'string' &&
+          typeof change.property === 'string',
+      )
+      .map((change) => terminalText(`${change.schema}.${change.property}`));
+    if (changes.length) {
+      const provider =
+        report.provider === 'stripe'
+          ? 'Stripe'
+          : report.provider === 'openai'
+            ? 'OpenAI'
+            : terminalText(report.provider);
+      rows.push(`API change  ${provider} removes ${summaryList(changes)}`);
+    }
+  }
   if (report && Array.isArray(report.findings)) {
     const confirmed = report.findings.filter(
       (finding) => isObject(finding) && finding.confidence === 'confirmed',
@@ -45,6 +79,26 @@ export async function renderWorkflowResult(result: Result) {
     rows.push(
       `Generated   ${report.patch.generator === 'openai' ? 'AI' : 'Deterministic'} migration`,
     );
+  if (
+    report &&
+    isObject(report.patch) &&
+    report.patch.status === 'proposed' &&
+    typeof report.patch.summary === 'string'
+  )
+    rows.push(`Proposal    ${proposalText(report.patch.summary)}`);
+  if (report && Array.isArray(report.publicationFiles)) {
+    const files = [
+      ...new Set(
+        report.publicationFiles
+          .filter(
+            (file): file is Record<string, unknown> =>
+              isObject(file) && typeof file.path === 'string',
+          )
+          .map((file) => terminalText(file.path as string)),
+      ),
+    ];
+    if (files.length) rows.push(`Files       ${files.length} changed: ${summaryList(files)}`);
+  }
   if (report && isObject(report.patch) && isObject(report.patch.usage)) {
     const usage = report.patch.usage;
     rows.push(
