@@ -126,6 +126,7 @@ it.skipIf(!process.env.REFIT_PACKAGE_INSTALL)(
       'validate',
       'stripe-snapshot',
       'source-snapshot',
+      'adapter-suggest',
       'stripe-check',
       'demo',
       'verify',
