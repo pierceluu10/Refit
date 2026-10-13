@@ -17,7 +17,11 @@ import { digest, readSpecification } from './specifications.ts';
 import { PipelineInputError } from './types.ts';
 import { unmappedBreakingChanges } from './openapi-diff.ts';
 import { validateMigration } from './validation.ts';
-import { validateCheckCommand, validateRepairAttempts } from './validation-options.ts';
+import {
+  validateCheckCommand,
+  validateRepairAttempts,
+  validateWorkflowSources,
+} from './validation-options.ts';
 import { gitEnvironment } from './git-environment.ts';
 import { countBreakingOperationUsages } from './provider-operations.ts';
 
@@ -47,10 +51,7 @@ export async function runWorkflow(options: {
   onProgress?: (message: string) => void;
   signal?: AbortSignal;
 }) {
-  if (Boolean(options.after) === Boolean(options.latestStripe))
-    throw new PipelineInputError('Choose exactly one of --after or --latest-stripe.');
-  if (options.latestStripe && options.providerConfig)
-    throw new PipelineInputError('--latest-stripe cannot be combined with a custom provider.');
+  validateWorkflowSources(options);
   validateCheckCommand(options.command);
   validateCheckCommand(options.baselineCommand ?? options.command);
   validateRepairAttempts(options.repairAttempts ?? 0, Boolean(options.aiPatch));

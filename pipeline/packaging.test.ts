@@ -64,6 +64,8 @@ it('packs only CLI runtime sources, fixtures, docs and exact runtime dependencie
   expect(result.files).toContain('pipeline/fixtures/endpoint-replacement/provider.json');
   expect(result.files).toContain('pipeline/provider-operation-replacements.ts');
   expect(result.files).toContain('pipeline/npm-dependencies.ts');
+  expect(result.files).toContain('pipeline/readiness-cli.ts');
+  expect(result.files).toContain('pipeline/npm-inputs.ts');
   expect(result.files).toContain('examples/billing-demo.npm.refit.json');
   expect(result.files).toContain('examples/local-service.npm.refit.json');
   expect(result.files).toContain('pipeline/fixtures/repository/billing.ts');
@@ -136,6 +138,7 @@ it.skipIf(!process.env.REFIT_PACKAGE_INSTALL)(
       'watch',
       'serve',
       'prepare',
+      'doctor',
     ]) {
       expect((await execute(installed, [command, '--help'], { cwd: root })).stdout).toContain(
         'Usage:',

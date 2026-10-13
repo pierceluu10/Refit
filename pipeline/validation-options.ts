@@ -2,6 +2,17 @@ import { PipelineInputError } from './types.ts';
 
 export const MAX_REPAIR_ATTEMPTS = 2;
 
+export function validateWorkflowSources(options: {
+  after?: string;
+  latestStripe?: boolean;
+  providerConfig?: string;
+}) {
+  if (Boolean(options.after) === Boolean(options.latestStripe))
+    throw new PipelineInputError('Choose exactly one of --after or --latest-stripe.');
+  if (options.latestStripe && options.providerConfig)
+    throw new PipelineInputError('--latest-stripe cannot be combined with a custom provider.');
+}
+
 export function validateRepairAttempts(value: number, aiEnabled: boolean) {
   if (!Number.isInteger(value) || value < 0 || value > MAX_REPAIR_ATTEMPTS)
     throw new PipelineInputError(
