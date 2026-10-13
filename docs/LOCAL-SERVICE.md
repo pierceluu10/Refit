@@ -62,7 +62,7 @@ refit serve --env .env --config /absolute/path/to/service.json \
   --retry-target billing-demo-stripe --once
 ```
 
-This polls only the named target. Repeat `--retry-target` to select several distinct ids. Unknown or repeated ids and retries without `--once` fail before creating service state or contacting GitHub. Other targets' records remain unchanged. Human output and the exit code describe only the selected targets; JSON retains the full registry and includes `retryTargets` so prior failures on unselected targets remain visible.
+This polls only the named target. Repeat `--retry-target` to select several distinct ids. Unknown or repeated ids and retries without `--once` fail before creating service state or contacting GitHub. Other targets are not polled and their saved worker jobs are not retried. Installation webhooks still enforce access changes for every configured target. Human output and the exit code describe only the selected targets; JSON retains the full registry and includes `retryTargets` so prior failures on unselected targets remain visible.
 
 The App's access and approved configuration are checked again before retrying. An existing failed, interrupted or review-required job may get one fresh attempt and a new evidence directory; the original attempt remains available. Successful jobs stay cached, even when named for retry. Changing code or the current API contract creates a new normal job under the existing identity rules. A changed approved workflow, baseline or adapter still requires review and a new approval; a retry cannot bypass that gate.
 
