@@ -1,5 +1,13 @@
 # Refit implementation checkpoints
 
+## October 13, 2026: automatic npm checks in offline validation
+
+Refit 0.5 adds `refit prepare` and opt-in `prepareDependencies`/`--prepare-dependencies`. For supported single-root npm projects, it reads only committed `package.json` and `package-lock.json`, verifies matching dependency declarations and full SHA-256-or-stronger npm integrity values, installs locked public registry dependencies in a restricted container with install scripts disabled, and caches a hash-verified archive keyed by the immutable image and exact inputs. Baseline and patched checks extract the same prepared snapshot into network-disabled containers. This removes custom dependency-image preparation for ordinary supported npm projects.
+
+The real billing demo was prepared from its committed npm lockfile. Refit verified that a deliberately added `postinstall` did not run, then used the prepared archive to pass the independent 14-test before/after contracts, strict TypeScript, 103-attempt pagination and empty history in offline Docker. The demo repository and its tests stayed unchanged. The gated full suite passed **340 tests across 38 files with no skips**, including dependency installation, cache safety, CLI packaging and offline Docker validation.
+
+This does not support every npm layout: workspaces, private registries, local/Git URLs and lifecycle-dependent native builds still need a custom image. Installing dependencies is not proof the repository's checks are meaningful or that a proposed migration is semantically correct. Hosted execution, Go/Python/Java dependency preparation and customer onboarding remain open work. See [dependency preparation](DEPENDENCIES.md) for the exact support boundary.
+
 ## October 12, 2026: installation-aware local service
 
 Refit 0.4 adds `refit serve`: a loopback HTTP receiver verifies GitHub's raw-byte SHA-256 signatures, atomically persists delivery receipts and installation inventory, and schedules up to 32 approved repository/source profiles. App access is confirmed through GitHub at startup and each poll. Duplicate deliveries survive restart, conflicting GUID reuse is rejected, revoked access cancels the affected worker, and status requires a separate bearer token. Unknown installed repositories are recorded without executing code. Checkout, comparison, migration, budgets, checks and publication reuse the existing core.
@@ -12,7 +20,7 @@ The gated suite passed **315 tests with none skipped** across 36 files, includin
 
 The global CLI was installed as **0.4.0**. From an unrelated directory, its `serve --once --publish-draft --json` command confirmed App access and reused the saved successful worker result without rerunning checks. Local evaluations are retained at `~/.refit/evaluations/local-service-app-2026-10-12` and `~/.refit/evaluations/local-service-validation-2026-10-12`; the first also contains `http-evaluation.json` identifying simulated deliveries and real App access.
 
-See [local service setup](LOCAL-SERVICE.md) for exact pilot commands and public HTTPS webhook steps. Customer onboarding, automatic dependency provisioning, hosted queues, tenant isolation, broader migration semantics and SDK/API-version applicability remain future work. Installing the App alone does not start an arbitrary repository.
+See [local service setup](LOCAL-SERVICE.md) and [npm dependency preparation](DEPENDENCIES.md) for pilot commands. Hosted customer onboarding, hosted queues, tenant isolation, broader migration semantics, SDK/API-version applicability and dependency preparation outside single-root npm remain future work. Installing the App alone does not start an arbitrary repository.
 
 ## October 12, 2026: App-managed repository provisioning
 
@@ -50,17 +58,17 @@ Refit has a working local migration pipeline and a reproducible real-SDK demo. I
 
 ## Verified paths
 
-| Requirement | Current evidence | Boundary |
-| --- | --- | --- |
-| Ingest specification changes | Pinned Stripe downloads, latest-revision discovery, hash-checked snapshots and historical upstream replay | Stripe downloading only; generic adapters consume supplied OpenAPI JSON |
-| Find affected code | AST/symbol tests, direct relative imported clients, alias/mutation/escape tests and npm lock evidence | Direct removed properties and bounded ESM patterns; no complete OpenAPI differ or interprocedural analysis |
-| Generate a migration | Deterministic PaymentIntent charge-history patch, exact scoped AI replacement checks | One deterministic Stripe rule and authored live AI evaluation; broader reliability remains unverified |
-| Validate in isolation | Actual offline Docker tests, baseline failure and regression gates, bounded repair attempts, stale-revision checks | Caller supplies meaningful checks and local dependencies/image; no hosted execution service |
-| Demonstrate the loop | `refit demo` uses real Stripe 10.17.0, an imported client, a simulated HTTP API, old-code failure and patched success in Docker | Synthetic application and API responses; no Stripe service or production application |
-| Preserve review evidence | Reports, diff, draft PR text and hash manifests; `refit verify` validates declared artifact bytes | Unsigned integrity evidence is not authenticity or proof of test quality |
-| Publish a draft PR | Controlled GitHub API tests plus a live billing-demo draft PR cover publication | One test repository; no auto-merge |
-| Install independently | npm archive installed into a disposable prefix; executable, replay and command help run outside checkout | Local archive only; no npm registry release |
-| Explain the product | Existing landing page, walkthrough, docs and sample workspace build and frontend tests pass | Workspace remains illustrative and is not connected to the CLI |
+| Requirement                  | Current evidence                                                                                                                | Boundary                                                                                                   |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| Ingest specification changes | Pinned Stripe downloads, latest-revision discovery, hash-checked snapshots and historical upstream replay                       | Stripe downloading only; generic adapters consume supplied OpenAPI JSON                                    |
+| Find affected code           | AST/symbol tests, direct relative imported clients, alias/mutation/escape tests and npm lock evidence                           | Direct removed properties and bounded ESM patterns; no complete OpenAPI differ or interprocedural analysis |
+| Generate a migration         | Deterministic PaymentIntent charge-history patch, exact scoped AI replacement checks                                            | One deterministic Stripe rule and authored live AI evaluation; broader reliability remains unverified      |
+| Validate in isolation        | Actual offline Docker tests, baseline failure and regression gates, bounded repair attempts, stale-revision checks              | Caller supplies meaningful checks and local dependencies/image; no hosted execution service                |
+| Demonstrate the loop         | `refit demo` uses real Stripe 10.17.0, an imported client, a simulated HTTP API, old-code failure and patched success in Docker | Synthetic application and API responses; no Stripe service or production application                       |
+| Preserve review evidence     | Reports, diff, draft PR text and hash manifests; `refit verify` validates declared artifact bytes                               | Unsigned integrity evidence is not authenticity or proof of test quality                                   |
+| Publish a draft PR           | Controlled GitHub API tests plus a live billing-demo draft PR cover publication                                                 | One test repository; no auto-merge                                                                         |
+| Install independently        | npm archive installed into a disposable prefix; executable, replay and command help run outside checkout                        | Local archive only; no npm registry release                                                                |
+| Explain the product          | Existing landing page, walkthrough, docs and sample workspace build and frontend tests pass                                     | Workspace remains illustrative and is not connected to the CLI                                             |
 
 ## Validation performed
 
