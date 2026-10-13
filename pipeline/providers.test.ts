@@ -94,6 +94,22 @@ async function nestedProviderInputs(source: string) {
   return { repository, before: beforePath, after: afterPath, providerConfig, proposePatch: true };
 }
 
+async function arrayProviderInputs(source: string) {
+  const input = await nestedProviderInputs(source);
+  for (const path of [input.before, input.after]) {
+    const specification = JSON.parse(await readFile(path, 'utf8'));
+    specification.components.schemas.CityCollection = {
+      type: 'array',
+      items: { $ref: '#/components/schemas/City' },
+    };
+    specification.components.schemas.Customer.properties.places = {
+      $ref: '#/components/schemas/CityCollection',
+    };
+    await writeFile(path, JSON.stringify(specification));
+  }
+  return input;
+}
+
 async function seedRepository(root: string, files: Map<string, string>) {
   for (const [path, content] of files) await writeFile(join(root, path), `${content}\n`);
   await execute('git', ['init', root]);
@@ -196,24 +212,106 @@ export async function city(id: string) {
   ).toBe(false);
 });
 
-it('keeps array-item schema paths at review until it can prove their element binding', async () => {
+it.each([
+  ['a literal numeric index', 'return customer.places[0].legacy_city;'],
+  [
+    'immutable array and item aliases',
+    'const places = customer.places; const place = places[0]; return place.legacy_city;',
+  ],
+  [
+    'object destructuring of an array field',
+    'const { places } = customer; return places[0].legacy_city;',
+  ],
+  [
+    'array destructuring of a response item',
+    'const [place] = customer.places; return place.legacy_city;',
+  ],
+])('traces local OpenAPI array item refs through %s', async (_label, read) => {
+  const input = await arrayProviderInputs(`import { Catalog } from '@example/catalog';
+const catalog = new Catalog();
+export async function city(id: string) {
+  const customer = await catalog.customers.retrieve(id);
+  ${read}
+}`);
+  const report = await runPipeline(input);
+  expect(report.findings).toMatchObject([
+    {
+      expression: '.legacy_city',
+      confidence: 'confirmed',
+      reason: expect.stringContaining('City'),
+    },
+  ]);
+  expect(report.patch).toMatchObject({ status: 'proposed', edits: 1, unresolvedFindings: 0 });
+  if (!('diff' in report.patch)) throw new Error('Expected deterministic patch');
+  expect(report.patch.diff).toContain('display_city');
+});
+
+it.each([
+  ['a dynamic index', 'return customer.places[index].legacy_city;'],
+  [
+    'a mutable array destructuring binding',
+    'let [place] = customer.places; return place.legacy_city;',
+  ],
+])('keeps %s at review', async (_label, read) => {
+  const input = await arrayProviderInputs(`import { Catalog } from '@example/catalog';
+const catalog = new Catalog();
+export async function city(id: string, index: number) {
+  const customer = await catalog.customers.retrieve(id);
+  ${read}
+}`);
+  const report = await runPipeline(input);
+  expect(report.findings).toMatchObject([{ expression: '.legacy_city', confidence: 'review' }]);
+  expect(report.patch).toMatchObject({ status: 'unsupported', edits: 0, unresolvedFindings: 1 });
+});
+
+it('keeps inline array item schemas at review', async () => {
   const input = await nestedProviderInputs(`import { Catalog } from '@example/catalog';
 const catalog = new Catalog();
 export async function city(id: string) {
   const customer = await catalog.customers.retrieve(id);
   return customer.places[0].legacy_city;
 }`);
-  const before = JSON.parse(await readFile(input.before, 'utf8'));
-  before.components.schemas.Customer.properties.places = {
-    type: 'array',
-    items: { $ref: '#/components/schemas/City' },
-  };
-  const after = JSON.parse(await readFile(input.after, 'utf8'));
-  after.components.schemas.Customer.properties.places =
-    before.components.schemas.Customer.properties.places;
-  await writeFile(input.before, JSON.stringify(before));
-  await writeFile(input.after, JSON.stringify(after));
+  for (const path of [input.before, input.after]) {
+    const specification = JSON.parse(await readFile(path, 'utf8'));
+    specification.components.schemas.Customer.properties.places = {
+      type: 'array',
+      items: { type: 'object', properties: { legacy_city: { type: 'string' } } },
+    };
+    await writeFile(path, JSON.stringify(specification));
+  }
+  const report = await runPipeline(input);
+  expect(report.findings).toMatchObject([{ expression: '.legacy_city', confidence: 'review' }]);
+  expect(report.patch).toMatchObject({ status: 'unsupported', edits: 0, unresolvedFindings: 1 });
+});
 
+it.each([
+  [
+    'tuple-style arrays',
+    {
+      type: 'array',
+      prefixItems: [{ $ref: '#/components/schemas/City' }],
+      items: { $ref: '#/components/schemas/City' },
+    },
+  ],
+  [
+    'external item references',
+    {
+      type: 'array',
+      items: { $ref: 'https://api.example.test/openapi.json#/components/schemas/City' },
+    },
+  ],
+])('keeps %s at review', async (_label, placesSchema) => {
+  const input = await nestedProviderInputs(`import { Catalog } from '@example/catalog';
+const catalog = new Catalog();
+export async function city(id: string) {
+  const customer = await catalog.customers.retrieve(id);
+  return customer.places[0].legacy_city;
+}`);
+  for (const path of [input.before, input.after]) {
+    const specification = JSON.parse(await readFile(path, 'utf8'));
+    specification.components.schemas.Customer.properties.places = placesSchema;
+    await writeFile(path, JSON.stringify(specification));
+  }
   const report = await runPipeline(input);
   expect(report.findings).toMatchObject([{ expression: '.legacy_city', confidence: 'review' }]);
   expect(report.patch).toMatchObject({ status: 'unsupported', edits: 0, unresolvedFindings: 1 });
@@ -381,7 +479,7 @@ it.skipIf(!DOCKER_IMAGE)(
 );
 
 it.skipIf(!DOCKER_IMAGE)(
-  'validates a nested configured rename against controlled contracts in offline Docker',
+  'validates an array-item configured rename against controlled contracts in offline Docker',
   async () => {
     const root = await mkdtemp(join(tmpdir(), 'refit-nested-rename-docker-'));
     directories.push(root);
@@ -397,11 +495,9 @@ it.skipIf(!DOCKER_IMAGE)(
         schemas: {
           Customer: {
             type: 'object',
-            properties: { address: { $ref: '#/components/schemas/Address' } },
-          },
-          Address: {
-            type: 'object',
-            properties: { location: { $ref: '#/components/schemas/City' } },
+            properties: {
+              places: { type: 'array', items: { $ref: '#/components/schemas/City' } },
+            },
           },
           City: { type: 'object', properties: { legacy_city: { type: 'string' } } },
         },
@@ -414,11 +510,9 @@ it.skipIf(!DOCKER_IMAGE)(
         schemas: {
           Customer: {
             type: 'object',
-            properties: { address: { $ref: '#/components/schemas/Address' } },
-          },
-          Address: {
-            type: 'object',
-            properties: { location: { $ref: '#/components/schemas/City' } },
+            properties: {
+              places: { type: 'array', items: { $ref: '#/components/schemas/City' } },
+            },
           },
           City: { type: 'object', properties: { display_city: { type: 'string' } } },
         },
@@ -451,7 +545,7 @@ it.skipIf(!DOCKER_IMAGE)(
             'const catalog = new Catalog();',
             'export async function city(id) {',
             '  const customer = await catalog.customers.retrieve(id);',
-            '  return customer.address.location.legacy_city;',
+            '  return customer.places[0].legacy_city;',
             '}',
           ].join('\n'),
         ],
@@ -473,8 +567,8 @@ it.skipIf(!DOCKER_IMAGE)(
           [
             'export class Catalog {',
             "  customers = { retrieve: async () => process.env.API_CONTRACT === 'before'",
-            "    ? { address: { location: { legacy_city: 'Toronto' } } }",
-            "    : { address: { location: { display_city: 'Toronto' } } } };",
+            "    ? { places: [{ legacy_city: 'Toronto' }] }",
+            "    : { places: [{ display_city: 'Toronto' }] } };",
             '}',
           ].join('\n'),
         ],
@@ -491,7 +585,7 @@ it.skipIf(!DOCKER_IMAGE)(
       command: ['node', 'contract.js', 'after'],
     });
     expect(report.patch.generator).toBe('deterministic');
-    expect(report.patch.diff).toContain('customer.address.location.display_city');
+    expect(report.patch.diff).toContain('customer.places[0].display_city');
     expect(report.validation.baseline.status).toBe('passed');
     expect(report.validation.patched.status).toBe('passed');
     expect(report.validation.status).toBe('passed');

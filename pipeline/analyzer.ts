@@ -40,6 +40,36 @@ function resolvableSchema(schemas: Record<string, unknown>, name: string) {
   return undefined;
 }
 
+function componentDefinition(schemas: Record<string, unknown>, name: string) {
+  const seen = new Set<string>();
+  let current = name;
+  while (!seen.has(current)) {
+    seen.add(current);
+    const definition = schemas[current];
+    if (!isObject(definition)) return undefined;
+    if (['allOf', 'anyOf', 'oneOf'].some((key) => key in definition)) return undefined;
+    if ('$ref' in definition) {
+      const referenced = componentReference(definition.$ref);
+      if (!referenced) return undefined;
+      current = referenced;
+    } else return { name: current, definition };
+  }
+  return undefined;
+}
+
+function arrayItemSchema(schemas: Record<string, unknown>, value: unknown) {
+  if (!isObject(value) || ['allOf', 'anyOf', 'oneOf'].some((key) => key in value)) return undefined;
+  const referenced = '$ref' in value ? componentReference(value.$ref) : undefined;
+  if ('$ref' in value && !referenced) return undefined;
+  const definition = referenced ? componentDefinition(schemas, referenced)?.definition : value;
+  if (!isObject(definition) || definition.type !== 'array' || 'prefixItems' in definition)
+    return undefined;
+  const items = definition.items;
+  if (!isObject(items) || ['allOf', 'anyOf', 'oneOf'].some((key) => key in items)) return undefined;
+  const itemReference = componentReference(items.$ref);
+  return itemReference ? resolvableSchema(schemas, itemReference) : undefined;
+}
+
 function referencedPropertySchema(
   schemas: Record<string, unknown>,
   parent: string,
@@ -54,6 +84,24 @@ function referencedPropertySchema(
   if (['allOf', 'anyOf', 'oneOf'].some((key) => key in propertyDefinition)) return undefined;
   const referenced = componentReference(propertyDefinition.$ref);
   return referenced ? resolvableSchema(schemas, referenced) : undefined;
+}
+
+function referencedArrayItemSchema(
+  schemas: Record<string, unknown>,
+  parent: string,
+  property: string,
+) {
+  const canonicalParent = resolvableSchema(schemas, parent);
+  if (!canonicalParent) return undefined;
+  const definition = schemas[canonicalParent];
+  if (!isObject(definition) || !isObject(definition.properties)) return undefined;
+  return arrayItemSchema(schemas, definition.properties[property]);
+}
+
+function numericArrayIndex(expression: ts.Expression) {
+  if (!ts.isNumericLiteral(expression)) return false;
+  const index = Number(expression.text);
+  return Number.isSafeInteger(index) && index >= 0;
 }
 
 export function analyzeRepository(
@@ -95,6 +143,7 @@ export function analyzeRepository(
   const constructors = new Set<ts.Symbol>();
   const clients = new Set<ts.Symbol>();
   const responses = new Map<ts.Symbol, string>();
+  const arrayItems = new Map<ts.Symbol, string>();
   const origins = new Map<ts.Symbol, ts.CallExpression>();
   const wrappedResponses = new Map<ts.Symbol, ts.Symbol>();
   const edits: SourceEdit[] = [];
@@ -210,6 +259,37 @@ export function analyzeRepository(
           operation.resource === resource.name.text && operation.method === method.name.text,
       );
   }
+  function arrayItemForExpression(expression: ts.Expression): string | undefined {
+    if (ts.isIdentifier(expression)) {
+      const binding = symbol(expression);
+      if (!binding) return undefined;
+      const responseSchema = responses.get(binding);
+      const responseDefinition = responseSchema
+        ? componentDefinition(schemaDefinitions, responseSchema)?.definition
+        : undefined;
+      return arrayItems.get(binding) ?? arrayItemSchema(schemaDefinitions, responseDefinition);
+    }
+    if (ts.isPropertyAccessExpression(expression)) {
+      const parent = schemaForExpression(expression.expression);
+      return parent
+        ? referencedArrayItemSchema(schemaDefinitions, parent, expression.name.text)
+        : undefined;
+    }
+    if (ts.isElementAccessExpression(expression)) {
+      return expression.argumentExpression && numericArrayIndex(expression.argumentExpression)
+        ? arrayItemForExpression(expression.expression)
+        : undefined;
+    }
+    if (
+      ts.isParenthesizedExpression(expression) ||
+      ts.isAsExpression(expression) ||
+      ts.isTypeAssertionExpression(expression) ||
+      ts.isNonNullExpression(expression) ||
+      ts.isSatisfiesExpression(expression)
+    )
+      return arrayItemForExpression(expression.expression);
+    return undefined;
+  }
   function schemaForExpression(expression: ts.Expression): string | undefined {
     if (ts.isIdentifier(expression)) return responses.get(symbol(expression)!);
     if (ts.isPropertyAccessExpression(expression)) {
@@ -219,6 +299,8 @@ export function analyzeRepository(
         : undefined;
     }
     if (ts.isElementAccessExpression(expression)) {
+      if (expression.argumentExpression && numericArrayIndex(expression.argumentExpression))
+        return arrayItemForExpression(expression.expression);
       const parent = schemaForExpression(expression.expression);
       const property = expression.argumentExpression;
       return parent && property && ts.isStringLiteral(property)
@@ -330,6 +412,12 @@ export function analyzeRepository(
       responses.set(target, schema);
       responseSchemasChanged = true;
     };
+    const assignArrayItems = (name: ts.Identifier, schema: string | undefined) => {
+      const target = symbol(name);
+      if (!target || !schema || arrayItems.get(target) === schema) return;
+      arrayItems.set(target, schema);
+      responseSchemasChanged = true;
+    };
     for (const node of declarations) {
       const value = node.initializer;
       const awaited =
@@ -351,6 +439,7 @@ export function analyzeRepository(
         if (wrapper && wrappers.has(wrapper)) wrappedResponses.set(symbol(node.name)!, wrapper);
       }
       assignSchema(node.name, schemaForExpression(value));
+      assignArrayItems(node.name, arrayItemForExpression(value));
     }
     for (const node of nodes) {
       if (
@@ -372,6 +461,32 @@ export function analyzeRepository(
           element.name,
           referencedPropertySchema(schemaDefinitions, parentSchema, property.text),
         );
+        assignArrayItems(
+          element.name,
+          referencedArrayItemSchema(schemaDefinitions, parentSchema, property.text),
+        );
+      }
+    }
+    for (const node of nodes) {
+      if (
+        !ts.isVariableDeclaration(node) ||
+        !ts.isArrayBindingPattern(node.name) ||
+        !ts.isVariableDeclarationList(node.parent) ||
+        !(node.parent.flags & ts.NodeFlags.Const) ||
+        !node.initializer
+      )
+        continue;
+      const itemSchema = arrayItemForExpression(node.initializer);
+      if (!itemSchema) continue;
+      for (const element of node.name.elements) {
+        if (
+          !ts.isBindingElement(element) ||
+          !ts.isIdentifier(element.name) ||
+          element.initializer ||
+          element.dotDotDotToken
+        )
+          continue;
+        assignSchema(element.name, itemSchema);
       }
     }
   }
