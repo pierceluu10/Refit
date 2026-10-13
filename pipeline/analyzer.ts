@@ -1,6 +1,6 @@
 import { resolve } from 'node:path';
 import ts from 'typescript-compiler';
-import { STRIPE, type ProviderAdapter } from './providers.ts';
+import { STRIPE, validSdkResourcePath, type ProviderAdapter } from './providers.ts';
 import { unsafeBindings } from './mutations.ts';
 import { guardedHistoryEdit } from './history-migration.ts';
 import { resolveSourceImport } from './source-imports.ts';
@@ -233,20 +233,36 @@ export function analyzeRepository(
       imports.push(location(node));
     }
   }
+  function sdkAccess(expression: ts.Expression) {
+    const properties: (ts.PropertyAccessExpression & { name: ts.Identifier })[] = [];
+    let current = expression;
+    while (ts.isPropertyAccessExpression(current) && ts.isIdentifier(current.name)) {
+      properties.push(current as ts.PropertyAccessExpression & { name: ts.Identifier });
+      current = current.expression;
+    }
+    if (!ts.isIdentifier(current) || !contains(clients, current)) return;
+    return { client: current, properties: properties.reverse() };
+  }
   function sdkCall(node: ts.Node) {
-    if (!ts.isCallExpression(node) || !ts.isPropertyAccessExpression(node.expression)) return;
-    const method = node.expression;
-    const resource = method.expression;
-    if (
-      ts.isPropertyAccessExpression(resource) &&
-      ts.isIdentifier(resource.expression) &&
-      contains(clients, resource.expression)
-    )
-      return {
-        resource: resource.name.text,
-        method: method.name.text,
-        expression: `${resource.expression.text}.${resource.name.text}.${method.name.text}`,
-      };
+    if (!ts.isCallExpression(node)) return;
+    const access = sdkAccess(node.expression);
+    if (!access || access.properties.length < 2) return;
+    const resource = access.properties
+      .slice(0, -1)
+      .map((property) => property.name.text)
+      .join('.');
+    if (!validSdkResourcePath(resource)) return;
+    const method = access.properties.at(-1)!.name.text;
+    return {
+      resource,
+      method,
+      expression: `${access.client.text}.${resource}.${method}`,
+      client: access.client,
+      start: access.properties[0].name.getStart(),
+      optional:
+        Boolean(node.questionDotToken) ||
+        access.properties.some((property) => Boolean(property.questionDotToken)),
+    };
   }
   function responseCall(node: ts.Node) {
     const call = sdkCall(node);
@@ -525,7 +541,13 @@ export function analyzeRepository(
   }
   for (const node of nodes) {
     const sdk = sdkCall(node);
-    if (sdk) sdkCalls.push({ ...location(node), ...sdk });
+    if (sdk)
+      sdkCalls.push({
+        ...location(node),
+        resource: sdk.resource,
+        method: sdk.method,
+        expression: sdk.expression,
+      });
     const operation = responseCall(node);
     if (operation)
       calls.push({
@@ -569,13 +591,16 @@ export function analyzeRepository(
         change.schema === schema && change.property === field.name.text && change.type === 'string',
     );
   };
+  const initialUnsafe = new Set(escapingClients);
+  for (const [response, origin] of origins)
+    if (sdkCall(origin)?.optional) initialUnsafe.add(response);
   const unsafe = unsafeBindings(
     nodes,
     checker,
     clients,
     origins,
     canonical,
-    escapingClients,
+    initialUnsafe,
     readOnlyCall,
     arrayIteration,
   );
@@ -590,13 +615,8 @@ export function analyzeRepository(
     );
     if (!replacement) continue;
     const method = node.expression;
-    const resource = method.expression as ts.PropertyAccessExpression;
-    const client = resource.expression as ts.Identifier;
-    const confirmed =
-      !unsafe.has(symbol(client)!) &&
-      !node.questionDotToken &&
-      !method.questionDotToken &&
-      !resource.questionDotToken;
+    const call = sdkCall(node)!;
+    const confirmed = !unsafe.has(symbol(call.client)!) && !call.optional;
     findings.push({
       ...location(node),
       changeId: replacement.id,
@@ -609,7 +629,7 @@ export function analyzeRepository(
     if (confirmed)
       edits.push({
         ...location(node),
-        start: resource.name.getStart(),
+        start: call.start,
         end: method.name.getEnd(),
         replacement: `${replacement.replacementResource}.${replacement.replacementMethod}`,
         changeId: replacement.id,
@@ -715,7 +735,7 @@ export function analyzeRepository(
     )
       return;
     // SDK resources are not response fields, even when their names match a removal.
-    if (ts.isIdentifier(receiver) && contains(clients, receiver)) return;
+    if (sdkAccess(receiver)) return;
     const schema = schemaForExpression(receiver);
     const tracked = schema !== undefined;
     for (const change of changes) {
@@ -728,16 +748,11 @@ export function analyzeRepository(
         ts.isCallExpression(receiver.expression.expression)
           ? receiver.expression.expression
           : undefined;
-      const immediateResource =
-        immediateCall && ts.isPropertyAccessExpression(immediateCall.expression)
-          ? immediateCall.expression.expression
-          : undefined;
+      const immediateSdk = immediateCall ? sdkCall(immediateCall) : undefined;
       const responseSymbol = responseBinding(receiver);
       const uncertainMutation =
         (responseSymbol !== undefined && unsafe.has(responseSymbol)) ||
-        (immediateResource &&
-          ts.isPropertyAccessExpression(immediateResource) &&
-          unsafe.has(symbol(immediateResource.expression)!));
+        (immediateSdk && (immediateSdk.optional || unsafe.has(symbol(immediateSdk.client)!)));
       const confirmed = Boolean(
         tracked && !uncertainMutation && property !== undefined && change.schema === schema,
       );
@@ -751,7 +766,7 @@ export function analyzeRepository(
         reason: confirmed
           ? `Removed field read on a statically traced ${provider.id} ${schema} response.`
           : uncertainMutation
-            ? 'Response or SDK client may be mutated or escape through an alias or call; inspect manually.'
+            ? 'Response or SDK client may be mutated, escape through an alias or call, or come from an optional SDK invocation; inspect manually.'
             : 'Receiver or property cannot be proven by the supported local analysis; inspect manually.',
       });
     }

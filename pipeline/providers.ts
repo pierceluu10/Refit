@@ -55,6 +55,8 @@ const MAX_PROPERTY_RENAMES = 100;
 const MAX_OPERATION_REPLACEMENTS = 100;
 const MAX_SCHEMA_NAME_LENGTH = 256;
 const IDENTIFIER = /^[A-Za-z_$][A-Za-z0-9_$]*$/;
+export const MAX_SDK_RESOURCE_LENGTH = 256;
+const SDK_RESOURCE_PATH = /^[A-Za-z_$][A-Za-z0-9_$]*(?:\.[A-Za-z_$][A-Za-z0-9_$]*)*$/;
 const PROVIDER_ID = /^[a-z][a-z0-9-]{0,63}$/;
 const PACKAGE_NAME = /^(?:@[a-z0-9._-]+\/)?[a-z0-9._-]+$/;
 const REQUIRED_KEYS = ['defaultImport', 'id', 'namedExport', 'operations', 'packageName'];
@@ -67,6 +69,14 @@ function validOperationId(value: unknown): value is string {
     value === value.trim() &&
     value.length <= MAX_SCHEMA_NAME_LENGTH &&
     !/[\u0000-\u001f\u007f]/.test(value)
+  );
+}
+
+export function validSdkResourcePath(value: unknown): value is string {
+  return (
+    typeof value === 'string' &&
+    value.length <= MAX_SDK_RESOURCE_LENGTH &&
+    SDK_RESOURCE_PATH.test(value)
   );
 }
 
@@ -121,8 +131,7 @@ export function parseProviderAdapter(value: Record<string, unknown>): ProviderAd
     if (
       !isObject(operation) ||
       !['method,resource,schema', 'method,operationId,resource,schema'].includes(operationKeys) ||
-      typeof operation.resource !== 'string' ||
-      !IDENTIFIER.test(operation.resource) ||
+      !validSdkResourcePath(operation.resource) ||
       typeof operation.method !== 'string' ||
       !IDENTIFIER.test(operation.method) ||
       typeof operation.schema !== 'string' ||
@@ -131,7 +140,7 @@ export function parseProviderAdapter(value: Record<string, unknown>): ProviderAd
       (operation.operationId !== undefined && !validOperationId(operation.operationId))
     )
       throw new PipelineInputError(
-        'Each provider operation must specify resource, method and schema strings, with an optional printable OpenAPI operationId.',
+        'Each provider operation must specify an identifier-style resource path, method and schema strings, with an optional printable OpenAPI operationId.',
       );
     const key = `${operation.resource}.${operation.method}`;
     if (seen.has(key)) throw new PipelineInputError(`Duplicate provider operation: ${key}`);
@@ -204,12 +213,11 @@ export function parseProviderAdapter(value: Record<string, unknown>): ProviderAd
       !isObject(replacement) ||
       Object.keys(replacement).sort().join(',') !==
         'method,replacementMethod,replacementOperationId,replacementResource,resource' ||
-      ![
-        replacement.resource,
-        replacement.method,
-        replacement.replacementResource,
-        replacement.replacementMethod,
-      ].every((name) => typeof name === 'string' && IDENTIFIER.test(name)) ||
+      !validSdkResourcePath(replacement.resource) ||
+      !validSdkResourcePath(replacement.replacementResource) ||
+      ![replacement.method, replacement.replacementMethod].every(
+        (name) => typeof name === 'string' && IDENTIFIER.test(name),
+      ) ||
       !validOperationId(replacement.replacementOperationId)
     )
       throw new PipelineInputError(
