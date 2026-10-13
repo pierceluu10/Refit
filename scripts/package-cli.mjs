@@ -70,6 +70,9 @@ else {
       'BILLING-EVALUATION.md',
       'CLI.md',
       'AUTOMATION.md',
+      'READINESS.md',
+      'AI-EVALUATION.md',
+      'PR-EVALUATION.md',
     ])
       await copyFile(join(root, 'docs', name), join(stage, 'docs', name));
     await mkdir(join(stage, 'public'));
