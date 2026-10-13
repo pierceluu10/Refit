@@ -44,6 +44,7 @@ Save the reusable inputs in a JSON run configuration to avoid repeating long com
 {
   "formatVersion": 1,
   "repository": "./application",
+  "apiVersion": "1.0.0",
   "before": "./specifications/before.json",
   "after": "./specifications/after.json",
   "image": "application-checks:local",
@@ -56,7 +57,11 @@ refit run --config ./run.json --output /tmp/new-refit-run
 refit run --env .env --config ./run.json --output /tmp/new-refit-ai-run --ai-patch
 ```
 
-Paths in the configuration are relative to its file; explicit CLI paths remain relative to your current directory. CLI values override configuration values. An explicit `--after` or `--latest-stripe` replaces the configured specification choice. Optional fields are `baselineCommand`, `providerConfig`, `fullDiff` and `latestStripe` (use it instead of `after`). Commands are argument arrays and run from the application root inside Docker; the image must already supply their dependencies. Unknown fields and files over 64 KiB are rejected. Output must always be supplied on the command line as a fresh directory. AI, repair and publication also require explicit CLI flags; configuration cannot enable them or contain credentials. This format is separate from the illustrative website's `refit.yml` export.
+Set `apiVersion` in that configuration or pass `--api-version` when you know the API version the application actually uses. Refit compares it exactly with `info.version` in both OpenAPI documents and records the result in `scan.json`. This is an operator-supplied pin; Refit does not infer a Stripe account default or derive an API version from the SDK package lock. OpenAPI's `info.version` describes the API, separately from the OpenAPI format version.
+
+Paths in the configuration are relative to its file; explicit CLI paths remain relative to your current directory. CLI values override configuration values. An explicit `--after` or `--latest-stripe` replaces the configured specification choice. Optional fields are `baselineCommand`, `providerConfig`, `apiVersion`, `fullDiff` and `latestStripe` (use it instead of `after`). Commands are argument arrays and run from the application root inside Docker; the image must already supply their dependencies. Unknown fields and files over 64 KiB are rejected. Output must always be supplied on the command line as a fresh directory. AI, repair and publication also require explicit CLI flags; configuration cannot enable them or contain credentials. This format is separate from the illustrative website's `refit.yml` export.
+
+Automated `run`, `watch` and `serve` workflows proceed only when the supplied application API version exactly matches the before contract's OpenAPI `info.version`. Missing or different versions are saved as review evidence and stop before AI generation, Docker checks or PR publication. If the application already uses the after version, refresh and review the baseline before starting another migration. A direct `scan` still runs without a pin but marks applicability as unknown; `validate --publish-draft` performs the same check before validation begins. This conservative gate can leave a valid migration in review when a provider's `info.version` is not its actual API-version identifier.
 
 The Refit checkout includes `examples/billing-demo.refit.json` for the adjacent independent billing demo and its prepared history-check image. See [billing evaluation](https://github.com/pierceluu10/refit-billing-demo) for the application; these are simulated Stripe contracts.
 

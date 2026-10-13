@@ -1,5 +1,11 @@
 # Refit implementation checkpoints
 
+## October 13, 2026: explicit API-version applicability
+
+Reports compare an operator-supplied application API-version pin with `info.version` in both OpenAPI snapshots. Automated `run`, `watch` and `serve` stop at the scan stage unless the pin exactly matches the before contract; an after-version, unrelated version or missing evidence cannot spend on AI, start Docker validation or publish. Direct `validate --publish-draft` checks the pin before repository validation, and the publisher enforces it again. The Stripe billing profile uses the demo application's explicit `2022-08-01` client pin against the historical `2022-08-01` → `2022-11-15` change. This is provider-neutral but operator-declared; SDK lockfiles and account defaults are not treated as proof, and providers using `info.version` for another purpose remain review-only. Evidence includes current/before/after versions and human CLI output summarizes them.
+
+The default suite passed **372 tests** with 28 environment-gated tests skipped. With Stripe/OpenAI SDK fixtures, Docker, the billing repository, npm preparation, oasdiff and packaged CLI enabled, the full suite passed **400 tests with no skips**. Production build and formatting also passed. These checks used simulated provider HTTP and GitHub responses; no live model request or PR publication was part of this feature verification.
+
 ## October 13, 2026: provider-neutral OpenAPI baseline capture
 
 `refit source-snapshot` now saves a verified, hash-pinned baseline from a user-supplied public HTTPS URL or local OpenAPI JSON/YAML file for any provider ID. The existing generic watcher can compare later captures from the same URL, while Stripe retains its dedicated upstream revision discovery. This does not discover generic-provider feeds, documentation pages or changelogs. Generic migrations still require an explicit SDK adapter and application checks. See [CLI usage](CLI.md#discover-current-stripe-specifications-or-check-against-a-retained-baseline) and [local automation](AUTOMATION.md#use-a-real-upstream-source).
@@ -115,4 +121,4 @@ These results describe the code at this checkpoint, not future changes. The test
 
 ## Work beyond this checkpoint
 
-The product architecture still needs broader API change semantics, provider and language coverage, SDK/API-version applicability, dependency provisioning, application evaluations, scheduling, GitHub App onboarding and hosted job infrastructure. These are material product work, not capabilities implied by passing the local demo. The [architecture inventory](ARCHITECTURE.md) and [CLI guide](CLI.md) distinguish implemented behavior from that target.
+The product architecture still needs broader API change semantics, provider and language coverage, provider-specific proof of effective API versions, dependency provisioning, application evaluations, scheduling, GitHub App onboarding and hosted job infrastructure. These are material product work, not capabilities implied by passing the local demo. The [architecture inventory](ARCHITECTURE.md) and [CLI guide](CLI.md) distinguish implemented behavior from that target.
