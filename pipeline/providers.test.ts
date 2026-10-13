@@ -54,15 +54,7 @@ async function nestedProviderInputs(source: string) {
           type: 'object',
           properties: { location: { $ref: '#/components/schemas/City' } },
         },
-        City: {
-          type: 'object',
-          properties: {
-            legacy_city: {
-              type: 'string',
-              description: 'Nested city name stored as legacy_city before the rename.',
-            },
-          },
-        },
+        City: { type: 'object', properties: { legacy_city: { type: 'string' } } },
       },
     },
   };
@@ -725,7 +717,6 @@ it('passes the configured provider through AI generation and the rescan', async 
                         original: 'item.legacy_label',
                         replacement: 'item.display_label',
                         findingId: input.findings[0].id,
-                        passageIds: [input.passages[0].id],
                       },
                     ],
                   }),
@@ -778,7 +769,6 @@ export async function city(id: string) {
                         original: 'customer.address.location.legacy_city',
                         replacement: 'customer.address.location.display_city',
                         findingId: evidence.findings[0].id,
-                        passageIds: [evidence.passages[0].id],
                       },
                     ],
                   }),

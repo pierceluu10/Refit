@@ -117,7 +117,6 @@ it.skipIf(!IMAGE)(
                           replacement:
                             '(await stripe.charges.list({ payment_intent: intent.id })).data',
                           findingId: input.findings[0].id,
-                          passageIds: [input.passages[0].id],
                         },
                       ],
                     }),
@@ -257,9 +256,6 @@ it
         expect(evidence.repair.check.stderr.length).toBeLessThanOrEqual(4096);
         expect(evidence.repair.check.truncated).toBe(true);
         expect(evidence.repair.check.stderr).toContain('repair_test_failure');
-        expect(evidence.retrieval.findings[0].query.extraTerms).toEqual(
-          expect.arrayContaining(['repair_test_failure']),
-        );
       }
       if (scenario === 'stale' && requests === 1)
         await writeFile(join(root, 'billing.js'), `${SOURCE}\n// user edit\n`);
@@ -293,7 +289,6 @@ it
                         original: 'intent.charges.data',
                         replacement,
                         findingId: evidence.findings[0].id,
-                        passageIds: [evidence.passages[0].id],
                       },
                     ],
                   }),

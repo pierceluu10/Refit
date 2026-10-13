@@ -5,7 +5,7 @@ import { reserveAiBudget, responseUsage, type AiOptions } from './ai-budget.ts';
 
 const RESPONSES_URL = 'https://api.openai.com/v1/responses';
 const REQUEST_TIMEOUT_MS = 60_000;
-export const MAX_INPUT_BYTES = 64 * 1024;
+const MAX_INPUT_BYTES = 64 * 1024;
 const MAX_RESPONSE_BYTES = 256 * 1024;
 const MAX_OUTPUT_TOKENS = 4096;
 const MAX_INPUT_TOKENS = 16_384;

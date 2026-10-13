@@ -8,7 +8,6 @@ import { readProviderAdapter, STRIPE, validateProviderMappings } from './provide
 import { validatePropertyRenames } from './provider-renames.ts';
 import { compareApiVersion, validateApiVersion } from './api-version.ts';
 import { PipelineInputError } from './types.ts';
-import { readDocSnapshot } from './doc-snapshots.ts';
 import { digest, findRemovedProperties, readSpecification } from './specifications.ts';
 import { compareOpenApi } from './openapi-diff.ts';
 
@@ -23,7 +22,6 @@ export async function runPipeline(options: {
   apiVersion?: string;
   requireApiVersionMatch?: boolean;
   fullDiff?: boolean;
-  docSnapshots?: string[];
 }) {
   const applicationApiVersion = validateApiVersion(options.apiVersion);
   const provider = await readProviderAdapter(options.providerConfig);
@@ -116,15 +114,6 @@ export async function runPipeline(options: {
           options.aiPatch,
           provider,
           before.schemas,
-          undefined,
-          {
-            document: before.document,
-            sourceUrl: before.provenance?.url ?? `spec://${provider.id}`,
-            pageSha256: before.hash,
-            docSnapshots: options.docSnapshots?.length
-              ? await Promise.all(options.docSnapshots.map((path) => readDocSnapshot(path)))
-              : undefined,
-          },
         )
       : options.proposePatch
         ? proposePatch(

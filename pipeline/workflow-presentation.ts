@@ -118,22 +118,6 @@ export async function renderWorkflowResult(result: Result) {
         `AI budget   $${Number(report.patch.budget.spentUsd).toFixed(4)} recorded / $${Number(report.patch.budget.limitUsd).toFixed(2)} limit`,
       );
   }
-  if (
-    report &&
-    isObject(report.patch) &&
-    report.patch.generator === 'openai' &&
-    isObject(report.patch.retrieval) &&
-    Array.isArray(report.patch.retrieval.findings)
-  ) {
-    const parts = report.patch.retrieval.findings.filter(isObject).map((finding) => {
-      const retrieved = Array.isArray(finding.passages) ? finding.passages.length : 0;
-      const cited = Array.isArray(finding.citedPassageIds) ? finding.citedPassageIds.length : 0;
-      const file = typeof finding.file === 'string' ? terminalText(finding.file) : 'finding';
-      const line = typeof finding.line === 'number' ? `:${finding.line}` : '';
-      return `${file}${line} retrieved ${retrieved}, cited ${cited}`;
-    });
-    if (parts.length) rows.push(`03 Validate ${parts.join('; ')}`);
-  }
   if (report && isObject(report.validation)) {
     const validation = report.validation;
     if (isObject(validation.environment))

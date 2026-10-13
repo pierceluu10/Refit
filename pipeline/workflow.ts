@@ -13,8 +13,6 @@ import {
 import { createReviewArtifacts } from './review.ts';
 import { runPipeline } from './run.ts';
 import { discoverStripeRevision, encodeSnapshot, fetchStripeSnapshot } from './snapshots.ts';
-import { readDocSnapshot } from './doc-snapshots.ts';
-import { createPassageIndex, loadPinnedPages } from './passages.ts';
 import { digest, readSpecification } from './specifications.ts';
 import { PipelineInputError } from './types.ts';
 import { unmappedBreakingChanges } from './openapi-diff.ts';
@@ -44,7 +42,6 @@ export async function runWorkflow(options: {
   assessment?: AiOptions;
   aiPatch?: AiOptions;
   repairAttempts?: number;
-  docSnapshots?: string[];
   publication?: ReturnType<typeof publicationConfiguration>;
   onProgress?: (message: string) => void;
   signal?: AbortSignal;
@@ -178,33 +175,9 @@ export async function runWorkflow(options: {
       );
     stage = 'validation';
     options.signal?.throwIfAborted();
-    if (options.aiPatch) {
-      const adapter = await readProviderAdapter(providerConfig);
-      const snapshots = options.docSnapshots?.length
-        ? await Promise.all(options.docSnapshots.map((path) => readDocSnapshot(path)))
-        : [];
-      const index = await createPassageIndex({
-        provider: adapter.id,
-        document: baseline.document,
-        sourceUrl: baseline.provenance?.url ?? `spec://${adapter.id}`,
-        pageSha256: baseline.hash,
-        pages: [
-          ...(await loadPinnedPages()),
-          ...snapshots.map((snapshot) => ({
-            provider: snapshot.provider,
-            sourceUrl: snapshot.url,
-            pageSha256: snapshot.hash,
-            kind: 'doc' as const,
-            content: snapshot.content,
-          })),
-        ],
-      });
-      await save('passages.json', `${JSON.stringify(index, null, 2)}\n`);
-    }
     options.onProgress?.('Validating the committed repository snapshot...');
     const report = await validateMigration({
       ...inputs,
-      docSnapshots: options.docSnapshots,
       image: options.image,
       command: options.command,
       baselineCommand: options.baselineCommand,
