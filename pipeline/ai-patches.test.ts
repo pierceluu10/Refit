@@ -1,8 +1,13 @@
+import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { afterEach, expect, it, vi } from 'vitest';
 import { readRepository } from './repository.ts';
 import { runPipeline } from './run.ts';
 import { buildAssessmentEvidence } from './assessment.ts';
 import { proposeAiPatch } from './ai-patches.ts';
+import { digest } from './specifications.ts';
+import { MAX_INPUT_BYTES } from './openai.ts';
 
 const INPUTS = {
   repository: 'pipeline/fixtures/repository',
@@ -56,7 +61,52 @@ function respond(edits: unknown[]) {
   );
 }
 
-afterEach(() => vi.unstubAllGlobals());
+const scratch: string[] = [];
+
+afterEach(async () => {
+  vi.unstubAllGlobals();
+  await Promise.all(scratch.splice(0).map((path) => rm(path, { recursive: true, force: true })));
+});
+
+async function writeSnapshot(
+  content: string,
+  contentType = 'text/markdown',
+  source: { label: string; url: string } = {
+    label: 'Provider changelog',
+    url: 'https://docs.example.com/changelog',
+  },
+) {
+  const hash = digest(content);
+  const directory = await mkdtemp(join(tmpdir(), 'refit-vendor-note-'));
+  scratch.push(directory);
+  const path = join(directory, `${hash}.json`);
+  await writeFile(
+    path,
+    `${JSON.stringify({
+      formatVersion: 1,
+      kind: 'refit-documentation-snapshot',
+      label: source.label,
+      url: source.url,
+      revision: hash,
+      hash,
+      content,
+      contentType,
+    })}\n`,
+  );
+  return { path, hash, ...source, content };
+}
+
+function modelEvidence() {
+  const request = vi.mocked(fetch).mock.calls[0]?.[1] as RequestInit | undefined;
+  const body = JSON.parse(String(request?.body));
+  return {
+    body,
+    evidence: JSON.parse(body.input[0].content) as {
+      documentation?: Array<{ content: string; truncated: boolean; hash: string }>;
+      documentationOmissions?: Array<{ reason: string; hash: string }>;
+    },
+  };
+}
 
 it('produces a syntax-checked proposal through the public pipeline without changing source', async () => {
   const { edit, repository } = await fixture();
@@ -130,4 +180,113 @@ it('includes imported context but prevents a model from editing read-only module
   await expect(proposeAiPatch(repository, report.changes, findings, OPTIONS)).rejects.toThrow(
     /outside its allowed scope/,
   );
+});
+
+it('attaches one saved vendor page to the model request', async () => {
+  const { repository, report } = await fixture();
+  const page = await writeSnapshot('Use the Charges list filtered by payment_intent.');
+  respond([]);
+  const proposal = await proposeAiPatch(
+    repository,
+    report.changes,
+    report.findings,
+    OPTIONS,
+    undefined,
+    undefined,
+    undefined,
+    [page.path, page.path],
+  );
+  const { body, evidence } = modelEvidence();
+  expect(evidence.documentation).toEqual([
+    {
+      label: page.label,
+      url: page.url,
+      hash: page.hash,
+      content: page.content,
+      truncated: false,
+    },
+  ]);
+  expect(evidence.documentationOmissions).toBeUndefined();
+  expect(body.instructions).toContain('saved vendor page');
+  expect(proposal.evidence.documentation).toEqual(evidence.documentation);
+});
+
+it('marks a truncated vendor page and stays inside the evidence limit', async () => {
+  const { repository, report } = await fixture();
+  const page = await writeSnapshot(`${'charge history '.repeat(8000)}end.`);
+  respond([]);
+  await proposeAiPatch(
+    repository,
+    report.changes,
+    report.findings,
+    OPTIONS,
+    undefined,
+    undefined,
+    undefined,
+    [page.path],
+  );
+  const { evidence } = modelEvidence();
+  const note = evidence.documentation?.[0];
+  expect(note?.truncated).toBe(true);
+  expect(note?.content.endsWith('\n[truncated]')).toBe(true);
+  expect(note?.content.startsWith('charge history ')).toBe(true);
+  expect(note?.content).not.toContain('end.');
+  expect(Buffer.byteLength(JSON.stringify(evidence))).toBeLessThanOrEqual(MAX_INPUT_BYTES);
+});
+
+it('records a feed snapshot as omitted review text', async () => {
+  const { repository, report } = await fixture();
+  const page = await writeSnapshot('PaymentIntent charges moved to the Charges list.');
+  const feed = await writeSnapshot('Entry: charges removed', 'application/atom+xml', {
+    label: 'SDK releases',
+    url: 'https://github.com/example/sdk/releases.atom',
+  });
+  respond([]);
+  await proposeAiPatch(
+    repository,
+    report.changes,
+    report.findings,
+    OPTIONS,
+    undefined,
+    undefined,
+    {
+      attempt: 1,
+      failedPatch: '--- failed\n',
+      check: { exitCode: 1, stdout: '', stderr: 'failed', truncated: false },
+    },
+    [feed.path, page.path],
+  );
+  const { body, evidence } = modelEvidence();
+  expect(evidence.documentation?.map((note) => note.hash)).toEqual([page.hash]);
+  expect(evidence.documentationOmissions).toEqual([
+    { label: feed.label, url: feed.url, hash: feed.hash, reason: 'feed' },
+  ]);
+  expect(JSON.stringify(evidence.documentation)).not.toContain('Entry: charges removed');
+  expect(body.instructions).toContain('untrusted check output');
+  expect(body.instructions).toContain('feed entries stay in the human review diff');
+});
+
+it('leaves scans without --ai-patch unchanged when a vendor note is available', async () => {
+  const without = await runPipeline(INPUTS);
+  const withNote = await runPipeline({
+    ...INPUTS,
+    documentationSnapshots: ['/tmp/refit-missing-vendor-note.json'],
+  });
+  expect(withNote).toEqual(without);
+});
+
+it('rejects more saved notes than a watch configuration can capture', async () => {
+  const { repository, report } = await fixture();
+  await expect(
+    proposeAiPatch(
+      repository,
+      report.changes,
+      report.findings,
+      OPTIONS,
+      undefined,
+      undefined,
+      undefined,
+      Array.from({ length: 9 }, (_, index) => `note-${index}.json`),
+    ),
+  ).rejects.toThrow(/at most 8/);
 });

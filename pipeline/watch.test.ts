@@ -259,6 +259,9 @@ it('records public documentation changes as unified evidence without starting an
     currentHash: change.currentHash,
   });
   expect(runWorkflow).toHaveBeenCalledTimes(1);
+  const savedNotes = vi.mocked(runWorkflow).mock.calls[0][0].documentationSnapshots;
+  expect(savedNotes).toHaveLength(1);
+  expect(JSON.parse(await readFile(savedNotes![0], 'utf8')).content).toContain('Old behavior.');
 
   expect((await watchOnce({ ...input, documentationSources })).status).toBe('already-processed');
   expect(runWorkflow).toHaveBeenCalledTimes(1);
