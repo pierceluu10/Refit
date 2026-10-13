@@ -6,6 +6,7 @@ import { readWorkflowConfiguration } from './workflow-configuration.ts';
 import type { GitHubAppConfiguration } from './github-app.ts';
 import { PipelineInputError } from './types.ts';
 import type { SpecificationSource } from './openapi-sources.ts';
+import { readRepositoryApproval, type RepositoryApproval } from './repository-enrollment.ts';
 import {
   documentationSourceId,
   normalizeDocumentationSource,
@@ -21,18 +22,27 @@ const TARGET_KEYS = new Set([
   'repository',
   'base',
   'workflow',
+  'approval',
   'source',
   'documentationSources',
 ]);
 
-export interface ServiceTarget {
+interface ServiceTargetIdentity {
   id: string;
   repository: string;
   base: string;
-  workflow: Awaited<ReturnType<typeof readWorkflowConfiguration>>;
-  source: SpecificationSource;
   documentationSources: DocumentationSource[];
 }
+
+export type ServiceTarget = ServiceTargetIdentity &
+  (
+    | {
+        workflow: Awaited<ReturnType<typeof readWorkflowConfiguration>>;
+        source: SpecificationSource;
+        approval?: never;
+      }
+    | { approval: RepositoryApproval; workflow?: never; source?: SpecificationSource }
+  );
 
 export async function readServiceConfiguration(path: string, app: GitHubAppConfiguration) {
   if ((await stat(path)).size > MAX_CONFIGURATION_BYTES)
@@ -55,18 +65,20 @@ export async function readServiceConfiguration(path: string, app: GitHubAppConfi
   const directory = dirname(resolve(path));
   const targets: ServiceTarget[] = [];
   for (const target of value.targets) {
+    const profilePath = isObject(target) ? (target.workflow ?? target.approval) : undefined;
     if (
       !isObject(target) ||
       Object.keys(target).some((key) => !TARGET_KEYS.has(key)) ||
       typeof target.id !== 'string' ||
       !TARGET_ID.test(target.id) ||
       ids.has(target.id) ||
-      typeof target.workflow !== 'string' ||
-      !target.workflow.trim() ||
-      target.workflow.includes('\0')
+      (target.workflow === undefined) === (target.approval === undefined) ||
+      typeof profilePath !== 'string' ||
+      !profilePath.trim() ||
+      profilePath.includes('\0')
     )
       throw new PipelineInputError(
-        'Each service target needs a unique id, GitHub repository/base and workflow file.',
+        'Each service target needs a unique id, GitHub repository/base and exactly one workflow or approval file.',
       );
     const github = publicationConfiguration(
       typeof target.repository === 'string' ? target.repository : undefined,
@@ -74,10 +86,26 @@ export async function readServiceConfiguration(path: string, app: GitHubAppConfi
       undefined,
       app,
     );
-    const workflow = await readWorkflowConfiguration(resolve(directory, target.workflow));
-    let source: SpecificationSource = workflow.latestStripe
-      ? { kind: 'stripe-latest' }
-      : { kind: 'file', path: workflow.after! };
+    const approval =
+      target.approval === undefined
+        ? undefined
+        : await readRepositoryApproval(resolve(directory, profilePath));
+    if (
+      approval &&
+      (approval.repository !== github.repository.toLowerCase() || approval.base !== github.base)
+    )
+      throw new PipelineInputError(
+        'Repository approval belongs to another GitHub repository or base branch.',
+      );
+    const workflow =
+      target.workflow === undefined
+        ? undefined
+        : await readWorkflowConfiguration(resolve(directory, profilePath));
+    let source: SpecificationSource | undefined = workflow
+      ? workflow.latestStripe
+        ? { kind: 'stripe-latest' }
+        : { kind: 'file', path: workflow.after! }
+      : undefined;
     if (target.source !== undefined) {
       if (!isObject(target.source))
         throw new PipelineInputError('Service source must be an object.');
@@ -125,9 +153,10 @@ export async function readServiceConfiguration(path: string, app: GitHubAppConfi
       id: target.id,
       repository: github.repository,
       base: github.base,
-      workflow,
-      source,
       documentationSources,
+      ...(approval
+        ? { approval, ...(source ? { source } : {}) }
+        : { workflow: workflow!, source: source! }),
     });
   }
   return targets;

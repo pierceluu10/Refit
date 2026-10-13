@@ -21,6 +21,7 @@ export interface ServiceTargetState {
   output: string | null;
   message: string | null;
   checkedAt: string | null;
+  approvalFingerprint?: string;
 }
 export interface InstallationState {
   owner: string;
@@ -62,6 +63,7 @@ export async function openServiceStore(
           output: null,
           message: null,
           checkedAt: null,
+          ...(target.approval ? { approvalFingerprint: target.approval.fingerprint } : {}),
         },
       ]),
     ),
@@ -99,6 +101,7 @@ export async function openServiceStore(
           record.repository !== target.repository.toLowerCase() ||
           !ACCESS_STATES.has(String(record.access)) ||
           typeof record.status !== 'string' ||
+          record.approvalFingerprint !== target.approval?.fingerprint ||
           !(
             record.installationId === null ||
             (Number.isSafeInteger(record.installationId) && Number(record.installationId) > 0)

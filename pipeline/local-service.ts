@@ -8,14 +8,14 @@ import { authenticateGitHubRead, type GitHubAppConfiguration } from './github-ap
 import { standaloneStateDirectory } from './github-checkout.ts';
 import { requestGitHub } from './github.ts';
 import { parseWebhook, verifyWebhook, WebhookInputError } from './github-webhooks.ts';
-import { publicationConfiguration } from './publication.ts';
 import type { ServiceTarget } from './service-configuration.ts';
 import { openServiceStore } from './service-state.ts';
 import { digest, isObject } from './specifications.ts';
 import { withStateLock } from './state-files.ts';
 import { PipelineInputError } from './types.ts';
 import { validateRepairAttempts } from './validation-options.ts';
-import { watchOnce } from './watch.ts';
+import { pollServiceTarget } from './service-worker.ts';
+import { RepositoryApprovalError } from './repository-enrollment.ts';
 
 const HOST = '127.0.0.1';
 const MAX_BODY_BYTES = 1024 * 1024;
@@ -267,21 +267,14 @@ export async function runLocalService(options: {
             });
             if (!active) continue;
             authorized = true;
-            const result = await watchOnce({
-              configuration: {
-                ...target.workflow,
-                repository: undefined,
-                signal: controller.signal,
-                aiPatch: options.aiPatch,
-                repairAttempts,
-                publication: options.publishDraft
-                  ? publicationConfiguration(target.repository, target.base, undefined, options.app)
-                  : undefined,
-              },
-              source: target.source,
-              documentationSources: target.documentationSources,
+            const result = await pollServiceTarget({
+              target,
+              app: options.app,
+              signal: controller.signal,
+              aiPatch: options.aiPatch,
+              repairAttempts,
+              publishDraft: options.publishDraft,
               stateDirectory: join(directory, 'targets', target.id),
-              syncGitHub: { repository: target.repository, base: target.base, app: options.app },
               onProgress: (message) => options.onProgress?.(`[${target.id}] ${message}`),
             });
             await store.update((state) => {
@@ -328,7 +321,11 @@ export async function runLocalService(options: {
             await store.update((state) => {
               const record = state.targets[target.id];
               if (!authorized) record.access = 'blocked';
-              record.status = controller.signal.aborted ? 'interrupted' : 'error';
+              record.status = controller.signal.aborted
+                ? 'interrupted'
+                : error instanceof RepositoryApprovalError
+                  ? 'needs-review'
+                  : 'error';
               record.message = `${error.name}: ${error.message}`;
               record.checkedAt = new Date().toISOString();
             });

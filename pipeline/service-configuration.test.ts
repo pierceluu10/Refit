@@ -55,8 +55,8 @@ it('resolves each approved workflow and source relative to the service configura
     }),
   );
   const result = await readServiceConfiguration(path, APP);
-  expect(result[0].workflow.repository).toBeUndefined();
-  expect(result[0].workflow.before).toBe(join(root, 'before.json'));
+  expect(result[0].workflow?.repository).toBeUndefined();
+  expect(result[0].workflow?.before).toBe(join(root, 'before.json'));
   expect(result[0].source).toEqual({ kind: 'file', path: join(root, 'after.json') });
   expect(result[1].source).toEqual({ kind: 'file', path: join(root, 'current.yaml') });
   expect(result[1].documentationSources).toEqual([

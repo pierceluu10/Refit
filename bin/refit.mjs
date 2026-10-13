@@ -18,6 +18,7 @@ const commands = new Map([
   ['serve', 'service-cli.ts'],
   ['prepare', 'preparation-cli.ts'],
   ['doctor', 'readiness-cli.ts'],
+  ['enroll', 'enrollment-cli.ts'],
 ]);
 const usage = `Refit: reviewable API migrations
 
@@ -37,6 +38,7 @@ Usage: refit <command> [options]
   serve            Run installed repository workers with signed GitHub webhooks
   prepare          Prepare locked npm dependencies for offline validation
   doctor           Inspect repository setup without running code or spending on AI
+  enroll           Review and approve a checked-in repository workflow
 
 Use refit <command> --help for command options.
 Use --env <path> to load credentials explicitly. Existing environment values take precedence.
