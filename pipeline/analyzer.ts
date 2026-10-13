@@ -1,6 +1,6 @@
 import { resolve } from 'node:path';
 import ts from 'typescript-compiler';
-import { STRIPE, type ProviderAdapter } from './providers.ts';
+import { STRIPE, type ProviderAdapter, type ProviderOperation } from './providers.ts';
 import { unsafeBindings } from './mutations.ts';
 import { guardedHistoryEdit } from './history-migration.ts';
 import { resolveSourceImport } from './source-imports.ts';
@@ -49,7 +49,17 @@ export function analyzeRepository(
   const checker = program.getTypeChecker();
   const findings: Finding[] = [];
   const imports: Location[] = [];
-  const calls: (Location & { method: string })[] = [];
+  const calls: (Location & {
+    method: string;
+    optionsArgument:
+      | (Location & {
+          start: number;
+          end: number;
+          text: string;
+          syntax: string;
+        })
+      | null;
+  })[] = [];
   const constructors = new Set<ts.Symbol>();
   const clients = new Set<ts.Symbol>();
   const responses = new Map<ts.Symbol, string>();
@@ -154,19 +164,20 @@ export function analyzeRepository(
       imports.push(location(node));
     }
   }
-  function responseCall(node: ts.Node) {
+  function responseCall(node: ts.Node): ProviderOperation | undefined {
     if (!ts.isCallExpression(node) || !ts.isPropertyAccessExpression(node.expression)) return;
     const method = node.expression;
-    const resource = method.expression;
-    if (
-      ts.isPropertyAccessExpression(resource) &&
-      ts.isIdentifier(resource.expression) &&
-      contains(clients, resource.expression)
-    )
-      return provider.operations.find(
-        (operation) =>
-          operation.resource === resource.name.text && operation.method === method.name.text,
-      );
+    const resourceParts: string[] = [];
+    let receiver: ts.Expression = method.expression;
+    while (ts.isPropertyAccessExpression(receiver)) {
+      resourceParts.unshift(receiver.name.text);
+      receiver = receiver.expression;
+    }
+    if (!ts.isIdentifier(receiver) || !contains(clients, receiver)) return;
+    const resource = resourceParts.join('.');
+    return provider.operations.find(
+      (operation) => operation.resource === resource && operation.method === method.name.text,
+    );
   }
   const declarations = nodes.filter(
     (node): node is ts.VariableDeclaration & { name: ts.Identifier; initializer: ts.Expression } =>
@@ -240,7 +251,7 @@ export function analyzeRepository(
         : undefined;
     const origin = wrapper && wrappers.has(wrapper) ? wrappers.get(wrapper)! : awaited;
     const operation = origin ? responseCall(origin) : undefined;
-    if (operation && ts.isAwaitExpression(value)) {
+    if (operation?.schema && ts.isAwaitExpression(value)) {
       responses.set(symbol(node.name)!, operation.schema);
       origins.set(symbol(node.name)!, origin!);
       if (wrapper && wrappers.has(wrapper)) wrappedResponses.set(symbol(node.name)!, wrapper);
@@ -252,8 +263,22 @@ export function analyzeRepository(
   }
   for (const node of nodes) {
     const operation = responseCall(node);
-    if (operation)
-      calls.push({ ...location(node), method: `${operation.resource}.${operation.method}` });
+    if (operation && ts.isCallExpression(node)) {
+      const argument = node.arguments.find(ts.isObjectLiteralExpression);
+      calls.push({
+        ...location(node),
+        method: `${operation.resource}.${operation.method}`,
+        optionsArgument: argument
+          ? {
+              ...location(argument),
+              start: argument.getStart(),
+              end: argument.getEnd(),
+              text: argument.getText(),
+              syntax: ts.SyntaxKind[argument.kind],
+            }
+          : null,
+      });
+    }
   }
   const providerDetected = imports.length > 0 || repository.dependencies.length > 0;
   const escapingClients = new Set<ts.Symbol>();

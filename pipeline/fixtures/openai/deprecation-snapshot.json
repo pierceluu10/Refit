@@ -1,0 +1,19 @@
+{
+  "kind": "refit-deprecation-snapshot",
+  "version": 1,
+  "provider": "openai",
+  "source": {
+    "url": "https://fixture.invalid/openai/deprecations",
+    "retrievedAt": "2026-01-01T00:00:00.000Z",
+    "sha256": "ea4b39c0fe270b201b72f735c37ee491029dc030fa86107f8bc927ab87eec825"
+  },
+  "models": [
+    {
+      "id": "fixture-openai-retired-model",
+      "status": "retired",
+      "shutdownDate": null,
+      "replacement": "fixture-openai-replacement-model",
+      "sourceNote": "Synthetic test fixture only; this is not a vendor deprecation claim."
+    }
+  ]
+}

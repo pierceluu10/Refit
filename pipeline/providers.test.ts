@@ -139,3 +139,57 @@ it.each([
   );
   await expect(readProviderAdapter(config)).rejects.toThrow(/Invalid provider configuration/);
 });
+
+it('accepts dotted resources, schema-less request checks, and optional response schemas', async () => {
+  const provider = await readProviderAdapter(resolve('pipeline/fixtures/openai/provider.json'));
+  expect(provider.operations).toEqual([
+    {
+      resource: 'completions',
+      method: 'create',
+      requestChecks: [{ argument: 'model', kind: 'model-id' }],
+    },
+    {
+      resource: 'chat.completions',
+      method: 'create',
+      requestChecks: [{ argument: 'model', kind: 'model-id' }],
+    },
+  ]);
+  expect((await readProviderAdapter(INPUTS.providerConfig)).operations[0].schema).toBe('item');
+});
+
+it.each([
+  { resource: '.chat.completions', method: 'create', schema: 'Result' },
+  { resource: 'chat..completions', method: 'create', schema: 'Result' },
+  { resource: 'chat.completions.', method: 'create', schema: 'Result' },
+  { resource: 'chat.completions', method: 'create' },
+  { resource: 'chat.completions', method: 'create', schema: null },
+  { resource: 'chat.completions', method: 'create', requestChecks: [] },
+  {
+    resource: 'chat.completions',
+    method: 'create',
+    requestChecks: [{ argument: 'model', kind: 'other' }],
+  },
+  {
+    resource: 'chat.completions',
+    method: 'create',
+    requestChecks: [{ argument: 'model', kind: 'model-id', extra: true }],
+  },
+  {
+    resource: 'chat.completions',
+    method: 'create',
+    requestChecks: [
+      { argument: 'model', kind: 'model-id' },
+      { argument: 'model', kind: 'model-id' },
+    ],
+  },
+  { resource: 'chat.completions', method: 'create', schema: 'Result', extra: true },
+])('rejects malformed provider operation shapes: %j', async (operation) => {
+  const root = await mkdtemp(join(tmpdir(), 'refit-provider-operation-'));
+  directories.push(root);
+  const provider = await readProviderAdapter(INPUTS.providerConfig);
+  const config = join(root, 'provider.json');
+  await writeFile(config, JSON.stringify({ ...provider, operations: [operation] }));
+  await expect(readProviderAdapter(config)).rejects.toThrow(
+    /provider operation|provider request check|request check arguments/,
+  );
+});

@@ -11,6 +11,8 @@
     "api:validate": "tsx pipeline/validation-cli.ts",
     "stripe:validate": "tsx pipeline/validation-cli.ts",
     "stripe:snapshot": "tsx pipeline/snapshot-cli.ts",
+    "ai:snapshot": "tsx pipeline/ai-snapshot-cli.ts",
+    "ai:replay": "tsx pipeline/ai-replay-cli.ts",
     "stripe:check": "tsx pipeline/check-cli.ts",
     "stripe:scan": "tsx pipeline/cli.ts",
     "stripe:replay": "tsx pipeline/cli.ts --repository pipeline/fixtures/repository --before pipeline/fixtures/before.json --after pipeline/fixtures/after.json",

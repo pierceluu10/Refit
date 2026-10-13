@@ -52,6 +52,8 @@ npm run refit -- demo --image node:22-alpine --output /tmp/new-refit-demo
 
 This requires Docker, a locally available Node image and npm registry access or cache. It installs the actual Stripe 10.17.0 SDK into a disposable synthetic application, demonstrates the old API passing and the new API breaking, then generates a patch and validates both contracts in restricted Docker containers. The API is simulated on loopback; no Stripe account, AI key or GitHub publication is involved. Review the retained `migration/report.json`, `migration/migration.patch` and `migration/pull-request.md`. Enable the automated end-to-end demo test with `REFIT_STRIPE_SDK=1 REFIT_DOCKER_IMAGE=node:22-alpine npm test`.
 
+For the pinned OpenAI completion fixture, add `--provider openai` and use a new output directory. This proves the original call against live and retired loopback contracts, runs the deprecation scan and deterministic model-literal patch, then validates the original live and patched retired contracts in the same restricted offline containers. It requires no API key or provider account. Enable its end-to-end test with `REFIT_OPENAI_SDK=1 REFIT_DOCKER_IMAGE=node:22-alpine npm test`.
+
 ```sh
 npm run api:run -- \
   --repository /absolute/path/to/clean-git-repository \

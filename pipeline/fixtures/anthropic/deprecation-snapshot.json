@@ -1,0 +1,19 @@
+{
+  "kind": "refit-deprecation-snapshot",
+  "version": 1,
+  "provider": "anthropic",
+  "source": {
+    "url": "https://fixture.invalid/anthropic/deprecations",
+    "retrievedAt": "2026-01-01T00:00:00.000Z",
+    "sha256": "a4665a28503ccdc60b1103bc2779e080e8f76c2ce1e879d5ba00a3bc12d352a4"
+  },
+  "models": [
+    {
+      "id": "fixture-anthropic-retired-model",
+      "status": "retired",
+      "shutdownDate": null,
+      "replacement": "fixture-anthropic-replacement-model",
+      "sourceNote": "Synthetic test fixture only; this is not a vendor deprecation claim."
+    }
+  ]
+}

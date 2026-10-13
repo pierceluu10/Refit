@@ -1,0 +1,8 @@
+{
+  "name": "refit-anthropic-messages-fixture",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@anthropic-ai/sdk": "0.71.2"
+  }
+}

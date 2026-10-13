@@ -82,3 +82,80 @@ it.skipIf(!image || !process.env.REFIT_STRIPE_SDK)(
   },
   240_000,
 );
+
+it.skipIf(!image || !process.env.REFIT_OPENAI_SDK)(
+  'runs the OpenAI CLI demo offline and retains deprecation migration evidence',
+  async () => {
+    const root = await mkdtemp(join(tmpdir(), 'refit-openai-demo-test-'));
+    try {
+      const output = join(root, 'evidence');
+      const command = [
+        resolve('bin/refit.mjs'),
+        'demo',
+        '--provider',
+        'openai',
+        '--image',
+        image!,
+        '--output',
+        output,
+      ];
+      const result = await execute(process.execPath, command, { cwd: root, timeout: 240_000 });
+      const summary = JSON.parse(result.stdout);
+      expect(summary).toMatchObject({
+        kind: 'refit-openai-demo',
+        sdkVersion: '7.32.0',
+        originalLive: 'passed',
+        originalRetired: 'failed as expected',
+        published: false,
+        scan: {
+          status: 'affected',
+          confirmedFindings: 1,
+          needsReviewFindings: 2,
+          patchedLiterals: 1,
+          unresolvedFindings: 2,
+        },
+        validation: {
+          status: 'passed',
+          baseline: 'passed',
+          patched: 'passed',
+          network: 'none',
+        },
+      });
+      const read = async (name: string) => JSON.parse(await readFile(join(output, name), 'utf8'));
+      const original = await read('contract-before-migration.json');
+      expect(original.live.requests).toHaveLength(3);
+      expect(original.retired).toMatchObject({
+        exitCode: 1,
+        stderr: expect.stringContaining('"status":404,"code":"model_not_found"'),
+      });
+      const report = await read('migration/report.json');
+      expect(report.kind).toBe('refit-openai-deprecation-validation');
+      expect(report.validation).toMatchObject({
+        status: 'passed',
+        limits: { network: 'none' },
+      });
+      expect(JSON.parse(report.validation.baseline.stdout).requests).toHaveLength(3);
+      expect(JSON.parse(report.validation.patched.stdout).requests[0].body.model).toBe(
+        'fixture-openai-replacement-model',
+      );
+      expect(await readFile(join(output, 'migration/migration.patch'), 'utf8')).toContain(
+        "+    model: 'fixture-openai-replacement-model'",
+      );
+      expect(await readFile(join(output, 'migration/pull-request.md'), 'utf8')).toContain(
+        'No branch was pushed and no pull request was published.',
+      );
+      expect(await verifyArtifacts(join(output, 'migration'))).toMatchObject({
+        status: 'integrity-verified',
+        files: 3,
+      });
+      await expect(execute(process.execPath, command, { cwd: root })).rejects.toMatchObject({
+        code: 1,
+        stderr: expect.stringContaining('EEXIST'),
+      });
+      expect(await read('demo.json')).toEqual(summary);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  },
+  300_000,
+);

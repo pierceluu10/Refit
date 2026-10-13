@@ -62,7 +62,7 @@ async function inputs() {
     repository,
     before: beforePath,
     after: afterPath,
-    providerConfig: join(FIXTURE, 'provider.json'),
+    providerConfig: join(FIXTURE, 'openapi-provider.json'),
     proposePatch: true,
   };
 }

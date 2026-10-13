@@ -23,6 +23,14 @@ refit demo --image node:22-alpine --output /tmp/new-refit-demo
 
 Requires a running Docker daemon and that Node image already installed locally, plus npm registry access (or cache) for fixture dependencies. It installs Stripe 10.17.0 with install scripts disabled into a temporary synthetic application, verifies its old API behavior and expected new API failure, then generates a patch and validates old/new contracts in offline Docker containers. The API is a loopback simulation; no Stripe account, AI model or GitHub credentials are used. Temporary code and dependencies are removed. The output retains `contract-before-migration.json`, `demo.json`, and a `migration/` review bundle containing the patch, report, check logs and draft PR text. Existing output is never overwritten. Failure before `demo.json` leaves incomplete evidence, not a successful demo.
 
+Use the pinned OpenAI completion fixture instead:
+
+```sh
+refit demo --provider openai --image node:22-alpine --output /tmp/new-openai-demo
+```
+
+This installs the pinned OpenAI SDK, proves the original model call against live and retired loopback contracts, scans the temporary Git repository, applies the deterministic literal replacement, and checks the original live and patched retired contracts in restricted offline Docker containers. It uses no API key, provider account or GitHub publication. The review bundle records confirmed and unresolved findings without treating dynamic model values as safe.
+
 Run a complete local migration with supplied snapshots:
 
 ```sh
