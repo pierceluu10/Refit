@@ -46,14 +46,16 @@ afterEach(async () => {
   await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
 });
 
-async function inputs() {
+async function inputs(providerConfig = 'provider.json') {
   const root = await mkdtemp(join(tmpdir(), 'refit-openai-provider-'));
   roots.push(root);
   const repository = join(root, 'repository');
   await cp(join(FIXTURE, 'repository'), repository, { recursive: true });
   const after = structuredClone(CONTRACT);
-  delete (after.components.schemas.Model.properties as Record<string, unknown>).owned_by;
-  after.components.schemas.Model.required = ['id', 'object', 'created'];
+  const properties = after.components.schemas.Model.properties as Record<string, unknown>;
+  delete properties.owned_by;
+  properties.owner_name = { type: 'string' };
+  after.components.schemas.Model.required = ['id', 'object', 'created', 'owner_name'];
   const beforePath = join(root, 'before.json');
   const afterPath = join(root, 'after.json');
   await writeFile(beforePath, JSON.stringify(CONTRACT));
@@ -62,7 +64,7 @@ async function inputs() {
     repository,
     before: beforePath,
     after: afterPath,
-    providerConfig: join(FIXTURE, 'provider.json'),
+    providerConfig: join(FIXTURE, providerConfig),
     proposePatch: true,
   };
 }
@@ -102,9 +104,24 @@ it('keeps string-method reads uncertain when schema typing is absent or the resp
 });
 
 it.skipIf(!process.env.REFIT_OPENAI_SDK)(
-  'observes the same incompatibility through real SDK HTTP requests to an offline simulator',
+  'applies a configured rename through real SDK HTTP requests to an offline simulator',
   async () => {
     const input = await inputs();
+    await execute('git', ['init', input.repository]);
+    await execute('git', ['-C', input.repository, 'add', '--force', 'models.js', 'package.json']);
+    await execute('git', [
+      '-C',
+      input.repository,
+      '-c',
+      'user.name=Refit Test',
+      '-c',
+      'user.email=test@example.invalid',
+      '-c',
+      'commit.gpgsign=false',
+      'commit',
+      '-m',
+      'test: seed OpenAI fixture',
+    ]);
     await execute('npm', ['install', '--ignore-scripts', '--no-audit', '--no-fund'], {
       cwd: input.repository,
       timeout: INSTALL_TIMEOUT_MS,
@@ -125,6 +142,26 @@ it.skipIf(!process.env.REFIT_OPENAI_SDK)(
     });
     const report = await runPipeline(input);
     expect(report.findings[0].confidence).toBe('confirmed');
+    expect(report.patch.status).toBe('unsupported');
+
+    const migration = await runPipeline({
+      ...input,
+      providerConfig: join(FIXTURE, 'provider-renames.json'),
+    });
+    expect(migration.patch).toMatchObject({ status: 'proposed', edits: 1, unresolvedFindings: 0 });
+    if (!('diff' in migration.patch)) throw new Error('Expected configured migration patch');
+    expect(migration.patch.diff).toContain('model.owner_name');
+    const patch = join(input.repository, '..', 'migration.patch');
+    await writeFile(patch, migration.patch.diff);
+    await execute('git', ['-C', input.repository, 'apply', '--check', patch]);
+    await execute('git', ['-C', input.repository, 'apply', patch]);
+    const afterPatched = JSON.parse(
+      (await execute(process.execPath, [harness, source, 'after'])).stdout,
+    );
+    expect(afterPatched).toEqual({
+      requests: [{ method: 'GET', path: '/v1/models/gpt-4.1-mini' }],
+      owner: 'openai',
+    });
   },
   180_000,
 );

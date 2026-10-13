@@ -18,6 +18,7 @@ const server = createServer((request, response) => {
       object: 'model',
       created: 0,
       ...(mode === 'before' ? { owned_by: 'openai' } : {}),
+      ...(mode === 'after' ? { owner_name: 'openai' } : {}),
     }),
   );
 });

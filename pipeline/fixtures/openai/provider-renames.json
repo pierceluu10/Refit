@@ -1,0 +1,8 @@
+{
+  "id": "openai",
+  "packageName": "openai",
+  "defaultImport": true,
+  "namedExport": "OpenAI",
+  "operations": [{ "resource": "models", "method": "retrieve", "schema": "Model" }],
+  "propertyRenames": [{ "schema": "Model", "removed": "owned_by", "replacement": "owner_name" }]
+}
