@@ -14,7 +14,7 @@ const TITLES: Record<Result['manifest']['status'], string> = {
   error: 'Refit could not complete this run',
 };
 
-function terminalText(value: string) {
+export function terminalText(value: string) {
   return value.replace(/[\x00-\x1f\x7f]/g, ' ');
 }
 

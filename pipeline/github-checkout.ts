@@ -53,7 +53,7 @@ async function physicalDirectory(path: string) {
     throw new PipelineInputError('Managed checkout directories must not be symbolic links.');
 }
 
-async function standaloneStateDirectory(path: string) {
+export async function standaloneStateDirectory(path: string) {
   let directory = path;
   while (true) {
     if (await exists(join(directory, '.git')))

@@ -1,5 +1,19 @@
 # Refit implementation checkpoints
 
+## October 12, 2026: installation-aware local service
+
+Refit 0.4 adds `refit serve`: a loopback HTTP receiver verifies GitHub's raw-byte SHA-256 signatures, atomically persists delivery receipts and installation inventory, and schedules up to 32 approved repository/source profiles. App access is confirmed through GitHub at startup and each poll. Duplicate deliveries survive restart, conflicting GUID reuse is rejected, revoked access cancels the affected worker, and status requires a separate bearer token. Unknown installed repositories are recorded without executing code. Checkout, comparison, migration, budgets, checks and publication reuse the existing core.
+
+The service's real App evaluation fetched the billing demo at `a8ea0428ec7a3f2b90a24e2168791b4dba3e87c2`. A publishing poll verified/reused PR #3 without generation or revalidation. A separate deterministic migration passed both 14-test HTTP simulator contracts, strict TypeScript, 103-attempt pagination and empty history in offline Docker. The original billing checkout stayed clean and unmigrated. Its saved evidence passed integrity verification.
+
+A continuous local HTTP evaluation confirmed public health, protected status, HTTP 202 acknowledgement, duplicate delivery handling, bad-signature rejection, installation-event wakeup and clean Ctrl+C shutdown. Those deliveries were **simulated locally**, signed with the actual local webhook secret; no real public GitHub delivery has been tested. The App API and checkout were real. No additional AI generation was needed; the shared $2 ledger remains at $0.00357075 with no pending reservation.
+
+The gated suite passed **315 tests with none skipped** across 36 files, including actual Docker workflows, real Stripe/OpenAI SDK HTTP simulations, independent billing validation, frontend tests and independently installed CLI help/replay. Production build, typecheck and formatting passed. Service HTTP tests use real loopback requests with controlled GitHub/worker responses; they do not claim live Stripe behavior or hosted tenant isolation.
+
+The global CLI was installed as **0.4.0**. From an unrelated directory, its `serve --once --publish-draft --json` command confirmed App access and reused the saved successful worker result without rerunning checks. Local evaluations are retained at `~/.refit/evaluations/local-service-app-2026-10-12` and `~/.refit/evaluations/local-service-validation-2026-10-12`; the first also contains `http-evaluation.json` identifying simulated deliveries and real App access.
+
+See [local service setup](LOCAL-SERVICE.md) for exact pilot commands and public HTTPS webhook steps. Customer onboarding, automatic dependency provisioning, hosted queues, tenant isolation, broader migration semantics and SDK/API-version applicability remain future work. Installing the App alone does not start an arbitrary repository.
+
 ## October 12, 2026: App-managed repository provisioning
 
 Refit 0.3 adds `watch --sync-github`: the installed App fetches an explicit authorized repository into a private managed checkout and refreshes the base before every poll. A run configuration can omit the local repository. Contents read tokens serve checkout; publication gets a separate write token. Git credentials are restricted to a child-process environment, never saved in URLs/configuration, and never supplied to checks. Ownership/configuration hashes and tracked/untracked/ignored file checks stop unexpected edits from being overwritten. Native Git tests cover base advancement, held locks, interrupted preparation/update recovery, and state outside working copies.

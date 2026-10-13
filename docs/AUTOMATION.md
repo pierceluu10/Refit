@@ -1,8 +1,10 @@
-# Local API monitoring with Refit 0.3
+# Local API monitoring with Refit 0.4
 
 Refit has a local polling worker that captures an OpenAPI source, compares it with a retained baseline, scans a repository, and processes each migration once. AI generation and GitHub publication are explicit options. Start with a single poll; remove `--once` to keep the worker running while your computer is on.
 
 This is the operator workflow for the installed Refit Agent. A customer installing the GitHub App does not yet start a hosted worker. The frontend is still illustrative.
+
+For several configured repositories and signed installation webhooks, use the [local service](LOCAL-SERVICE.md). It includes startup App access discovery, protected status, persisted delivery deduplication and HTTPS tunnel instructions. The commands below remain useful for a single target or an explicit retry.
 
 ## Prerequisites
 
@@ -155,4 +157,4 @@ Evidence remains JSON for reproducibility and integrations. PRs show the change,
 
 ## Remaining product work
 
-The hosted layer needs installation/repository registration, authenticated checkout provisioning, webhook verification, durable hosted jobs, dependency provisioning, and tenant-level budgets. Live service contracts, SDK/API-version applicability, broader response flow and languages, and migration evaluations need additional work. The current worker handles one configured local repository and source per process; App-managed mode can clone/fetch an explicit authorized target, but there is no automatic installation enrollment or hosted worker.
+The local service now records installations, verifies webhooks and schedules approved App-managed profiles. Hosted customer authentication, automatic enrollment with approved checks, durable hosted jobs, dependency provisioning, tenant-level budgets and stronger isolation remain. Live service contracts, SDK/API-version applicability, broader code flows and migration evaluations also need work. The standalone `watch` worker handles one target; `serve` schedules up to 32 approved profiles sequentially.

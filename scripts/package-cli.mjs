@@ -58,7 +58,8 @@ else {
       cliGuide
         .replaceAll('](GITHUB-APP.md)', '](docs/GITHUB-APP.md)')
         .replaceAll('](TEST-REPOSITORIES.md)', '](docs/TEST-REPOSITORIES.md)')
-        .replaceAll('](AUTOMATION.md)', '](docs/AUTOMATION.md)'),
+        .replaceAll('](AUTOMATION.md)', '](docs/AUTOMATION.md)')
+        .replaceAll('](LOCAL-SERVICE.md)', '](docs/LOCAL-SERVICE.md)'),
     );
     await copyFile(join(root, '.env.example'), join(stage, '.env.example'));
     await mkdir(join(stage, 'docs'));
@@ -70,6 +71,7 @@ else {
       'BILLING-EVALUATION.md',
       'CLI.md',
       'AUTOMATION.md',
+      'LOCAL-SERVICE.md',
       'READINESS.md',
       'AI-EVALUATION.md',
       'PR-EVALUATION.md',

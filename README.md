@@ -6,7 +6,7 @@ Refit is being built to turn external API changes into repository-specific, vali
 
 ## Current release
 
-**Local agent 0.3:** `refit watch --sync-github` can fetch and refresh an App-managed repository while preserving your working copy. The worker monitors a configured OpenAPI source with persistent job receipts, shared JSON/YAML ingestion and oasdiff comparison, bounded AI spending, Docker validation and GitHub App publication. Human CLI summaries and PR descriptions keep the detailed JSON evidence available for inspection. [Test the automated Stripe pipeline](docs/AUTOMATION.md), including a simulated change arriving while the worker is running.
+**Local agent 0.4:** `refit serve` runs approved App-managed repository profiles, verifies installation webhooks, retains delivery receipts and exposes protected status. It uses the existing OpenAPI monitoring, shared JSON/YAML comparison, bounded AI spending, offline Docker validation and GitHub App publisher. Human CLI summaries and PR descriptions keep detailed JSON evidence available. [Run the installation-aware service](docs/LOCAL-SERVICE.md), or [test the single-target Stripe pipeline](docs/AUTOMATION.md).
 
 The core is shared across providers; an actual OpenAI SDK conformance evaluation complements Stripe. SDK mappings, migration semantics and application checks still need verification. This is a local operator product, not a hosted service automatically activated by installing the App.
 
@@ -29,7 +29,7 @@ From a checkout with dependencies installed, build an installable archive:
 
 ```sh
 npm run package:cli
-npm install --global ./dist-cli/refit-0.3.0.tgz
+npm install --global ./dist-cli/refit-0.4.0.tgz
 refit --help
 refit replay --propose-patch
 ```

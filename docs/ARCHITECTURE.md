@@ -1,6 +1,6 @@
 # Refit architecture
 
-Refit 0.3 implements a local API migration worker and explicit GitHub App publication. The website explains the product and shows illustrative runs; it does not control the worker. The local pipeline has been exercised on the independent Stripe billing application and with the actual OpenAI SDK against simulated HTTP contracts.
+Refit 0.4 implements an installation-aware local service, API migration workers and explicit GitHub App publication. The website explains the product and shows illustrative runs; it does not control the service. The pipeline has been exercised on the independent Stripe billing application and with the actual OpenAI SDK against simulated HTTP contracts.
 
 ## Implemented pipeline
 
@@ -26,6 +26,9 @@ flowchart TD
   CHECK -->|Pass and current revision| PR[Exact-file GitHub draft publisher]
   PR --> HUMAN[Engineer review and merge]
   POLL[Local watch loop] --> SOURCE
+  WEBHOOK[Signed installation events] --> SERVICE[Local service and delivery registry]
+  SERVICE --> POLL
+  SERVICE --> APP
 ```
 
 | Component | Current behavior | Boundary |
@@ -38,6 +41,7 @@ flowchart TD
 | Validation | Clean HEAD archive; baseline before generation; separate offline containers; scoped edits, rescan, stale-revision gates and up to two repairs | Operator supplies meaningful commands and preinstalled dependencies; local Docker is not hosted tenant isolation |
 | AI spending | Token counting, durable maximum-cost reservations, actual usage accounting and a shared allowance | Covers this CLI's ledger, not unrelated account spending; unaccounted requests retain reservations |
 | Monitoring | Local worker polls one configured source/repository; job receipts survive restarts; bounded source retries; failed migrations require explicit retry | No hosted scheduler or installation enrollment |
+| Installation service | Loopback HTTP receiver verifies raw-byte HMAC, persists deduplicated delivery receipts and installation inventory, confirms API access, wakes approved profiles and cancels removed access | Single operator, sequential profiles, explicit checks; public HTTPS delivery requires a tunnel or host |
 | Repository provisioning | Explicit App target fetches a pinned managed checkout; every poll refreshes the base; ownership/configuration and clean-state checks prevent overwrites | One operator-configured target; no automatic repository enrollment or dependency installation |
 | Publication | App installation token or personal token; verified base/tree/parent; exact tested files; bot identity checks, collision refusal and reconciliation | No auto-merge or force-push; reused App PRs are explicitly not revalidated |
 | Presentation | Readable terminals and PR prose; technical JSON retained in evidence and collapsed PR details | Frontend data remains illustrative |
@@ -66,6 +70,8 @@ Worker state is private and outside the scanned repository. Configuration identi
 
 State writes use temporary files, synchronization and rename. Process locks protect budgets and jobs; verified dead local owners can be recovered. Interrupted runs reconcile a valid final manifest or require explicit retry. There is no automatic paid regeneration of an uncertain job. Details and reproducible commands are in [local automation](AUTOMATION.md).
 
+The local service acknowledges installation deliveries after their receipt and access change are persisted, then wakes workers outside the HTTP handler. Signatures are checked against exact request bytes, delivery GUID conflicts fail closed, and unknown installed repositories do not become executable jobs. Access removal aborts the affected worker; the GitHub API confirms grants before checkout. Status requires a separate bearer token. Handler shutdown completes before releasing the service lock. Registry and per-target worker state persist outside working copies; configuration changes require fresh state. See [local service setup](LOCAL-SERVICE.md) for limits and public webhook steps.
+
 Checkout provisioning and publication use separate repository-scoped App tokens. The checkout token has Contents read access and is supplied only through a restricted Git child-process environment. It is never persisted in remote URLs or configuration. Managed ownership, configuration hashes, clean files and expected HEAD are checked before refreshing. Global/system Git configuration, credential helpers, hooks and submodule recursion are disabled; application code is not executed while fetching. A lock protects the checkout through validation.
 
 The publisher uses write credentials. App mode signs a short-lived JWT, discovers the authorized installation and requests a repository-scoped installation token. It verifies current base revision and the exact tested file/tree contents before publishing. Existing matching branches/PRs are reconciled; conflicting contents stop publication. A read-only preflight can reuse a verified App-authored draft for the same base and changes before generation. That result records that checks were not rerun. Human review and merge remain separate.
@@ -87,8 +93,8 @@ flowchart TD
   DB --> UI[Connected run status]
 ```
 
-This service layer is planned. It needs installation ownership, verified webhook delivery, installation-driven checkout scheduling, dependency preparation, durable leases/retries, tenant-level budgets, audit records and stronger isolation for untrusted repositories. PostgreSQL can hold installations, revisions and job state; blob storage can hold larger snapshots/logs. Separate HTTP handlers enqueue work rather than execute long migrations. An installed repository must be evaluated for supported integrations and checks rather than assumed migratable.
+The local service implements verified webhook delivery, installation inventory and configured checkout scheduling. Hosting this for customers still needs authenticated installation ownership, onboarding approval, dependency preparation, durable hosted leases/retries, tenant-level budgets, audit records and stronger isolation. PostgreSQL can hold installations, revisions and job state; blob storage can hold larger snapshots/logs. The current HTTP handler persists and signals work rather than executing migrations in the request. Every repository must be evaluated for supported integrations and meaningful checks before execution.
 
 Next reliability work should expand migration evaluations and SDK/API-version applicability, then broader code flows and migration categories. OpenAPI captures structural contracts; semantic changes in documentation, SDK behavior or business meaning require additional evidence. Hosted onboarding should use the existing core while preserving these limits.
 
-See [readiness](READINESS.md), [CLI usage](CLI.md), [App setup](GITHUB-APP.md) and [local automation](AUTOMATION.md) for evidence and setup.
+See [readiness](READINESS.md), [CLI usage](CLI.md), [App setup](GITHUB-APP.md), [local service](LOCAL-SERVICE.md) and [local automation](AUTOMATION.md) for evidence and setup.
