@@ -6,6 +6,10 @@ Refit is being built to turn external API changes into repository-specific, vali
 
 ## Current release
 
+**Local agent 0.2:** `refit watch` now monitors a configured OpenAPI source with persistent job receipts, shared JSON/YAML ingestion and oasdiff comparison, bounded AI spending, Docker validation and GitHub App publication. Human CLI summaries and PR descriptions keep the detailed JSON evidence available for inspection. [Test the automated Stripe pipeline](docs/AUTOMATION.md), including a simulated change arriving while the worker is running.
+
+The core is shared across providers; an actual OpenAI SDK conformance evaluation complements Stripe. SDK mappings, migration semantics and application checks still need verification. This is a local operator product, not a hosted service automatically activated by installing the App.
+
 A working frontend with:
 
 - A responsive landing page with text entrances and an animated migration diagram.
@@ -75,7 +79,7 @@ The output directory must be new, outside the scanned repository, with an existi
 | `existing-pr` | Reused the matching PR; inspect `publication.json` for its current open/closed/draft state | 0 |
 | `error` | Input, setup, model, network or publication error | 1 |
 
-No-match results remain review-required, and passing tests do not prove migration semantics. The preflight scan makes no model calls; validation rescans a clean committed snapshot before generating the tested proposal. Workflow tests cover real Docker checks, failure gates and controlled GitHub responses. A live AI patch was validated against the billing demo; broader model evaluations remain outstanding. The [live PR evaluation](docs/PR-EVALUATION.md) records draft publication and one successful repair on the billing demo. This is a one-shot local agent with optional bounded repair, and no background scheduler.
+No-match results remain review-required, and passing tests do not prove migration semantics. The preflight scan makes no model calls; validation rescans a clean committed snapshot before generating the tested proposal. Workflow tests cover real Docker checks, failure gates and controlled GitHub responses. A live AI patch was validated against the billing demo; broader model evaluations remain outstanding. The [live PR evaluation](docs/PR-EVALUATION.md) records draft publication and one successful repair on the billing demo. This one-shot command also powers the persistent local `watch` worker; hosted scheduling remains planned.
 
 ### Scan without executing repository code
 
@@ -229,7 +233,7 @@ The baseline is never advanced automatically. Keep using it until you have revie
 
 This is a one-shot discovery-and-scan command, not a background scheduler. To validate or publish its proposal, use `api:validate` with the saved `before.json` and `after.json`, plus your Docker command and optional publication flags. A real upstream discovery and both unchanged/changed paths have been exercised against the sample repository; see [upstream evidence](docs/UPSTREAM-REPLAY.md).
 
-Snapshots preserve the original JSON text, its SHA-256 hash, full commit SHA and upstream URL in one JSON artifact. The scanner checks this structure and content hash before processing it, and includes provenance in the report. This detects accidental modification; it is not a cryptographic signature proving origin. Downloads resolve to full commit SHAs, are bounded, and refuse redirects. API-version applicability, scheduled monitoring and complete OpenAPI comparison remain future work.
+Snapshots preserve the original JSON text, its SHA-256 hash, full commit SHA and upstream URL in one JSON artifact. The scanner checks this structure and content hash before processing it, and includes provenance in the report. This detects accidental modification; it is not a cryptographic signature proving origin. Downloads resolve to full commit SHAs, are bounded, and refuse redirects. API-version applicability remains future work. The local `watch` worker and optional oasdiff contract comparison are available; see [automation](docs/AUTOMATION.md).
 
 ## Develop
 

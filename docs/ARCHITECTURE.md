@@ -1,144 +1,89 @@
-# Refit: current implementation and architecture goal
+# Refit architecture
 
-## Goal
+Refit 0.2 implements a local API migration worker and explicit GitHub App publication. The website explains the product and shows illustrative runs; it does not control the worker. The local pipeline has been exercised on the independent Stripe billing application and with the actual OpenAI SDK against simulated HTTP contracts.
 
-Connect a GitHub repository once. Refit watches Stripe's API specification, identifies changes relevant to that repository, generates a focused migration in an isolated checkout, runs the project's checks, and opens a draft PR with evidence. An engineer reviews and merges.
-
-AI helps interpret application intent and edit code. Source diffs, job state, validation outcomes, and publishing permissions remain deterministic.
-
-## What exists now
-
-| Capability | Implemented state |
-| --- | --- |
-| Website and workspace | React/Vite frontend, interactive demo, docs, sample repositories/runs and configuration export. Workspace data remains illustrative. |
-| Local pipeline | Runnable TypeScript CLI in `pipeline/`; accepts a real local repository and two supplied OpenAPI JSON files. No credentials or network needed. |
-| Installation | `package:cli` creates a standalone local npm archive with a `refit` executable and exact direct runtime dependencies. Isolated installation/replay is verified outside the checkout. No npm registry publication or hosted installer exists. |
-| End-to-end demo | `refit demo` installs the real Stripe 10.17.0 SDK in a disposable synthetic application, records the simulated API break, then runs the migration workflow with old/new contract commands in offline Docker. It retains local review artifacts and never publishes. |
-| Combined workflow | `api:run` stages inputs, scans, validates and optionally publishes in one invocation. Supports latest Stripe discovery or supplied specs/custom adapters. Saves completed artifacts and a final stage/status/hash manifest; failure and review gates stop publication. Actual Docker tests and controlled GitHub responses exercise the combined path. |
-| Snapshot ingestion | `stripe:snapshot --latest` discovers the latest default-branch commit touching the spec and downloads at its full SHA. `stripe:check` discovers, compares against a pinned baseline, scans and exports replayable snapshots/report/manifest without advancing the baseline. Bounded requests, no redirects; live changed/unchanged checks exercised. No background polling. |
-| Dependency detection | Reads the selected SDK's manifest declarations, including nested workspaces. Root npm package-lock v2/v3 can supply recorded versions through importer and nearest package entries. Lock hashes participate in run identity. Installed versions and API-version applicability remain unverified. |
-| Provider adapters | Built-in Stripe plus explicit custom SDK mappings through `--provider-config`. Maps ESM constructors and shallow resource/method responses to OpenAPI schemas. Package detection, change IDs, run identity, AI and validation use the selected adapter. Synthetic second-provider tests pass; arbitrary APIs are not automatically supported. |
-| Specification comparison | Detects direct property removals in existing non-composed OpenAPI 3 component schemas. This limited detector is **not oasdiff** and does not implement the full PRD diff engine. |
-| Code analysis | TypeScript AST and symbols trace ESM SDK clients, direct relative named imports of exported const clients, mapped awaited calls, immutable aliases, direct/string-indexed reads and destructuring. Mutation/escape checks downgrade writes, alias mutation, helper calls, container storage and returned/yielded/thrown references; modified clients invalidate dependent responses. Namespace imports and re-exports require review. This is flow-insensitive and not full interprocedural analysis. |
-| Evidence | JSON report with schema pointers, file/line/column, confirmed traced matches versus review candidates, source/lock hashes and repeatable run ID. `refit verify` checks saved artifact sizes and hashes against the unsigned manifest, without claiming authenticity or migration correctness. |
-| Replay | Minimal offline fixtures plus a documented replay using real upstream commits from November 10 and 17, 2022. Both were exercised against the sample repository. |
-| Patch proposals | Opt-in `--propose-patch` returns a unified diff for direct `charges.data` returns from a locally traced one-argument PaymentIntent retrieval. Remaining findings and semantic caveats remain explicit. |
-| Local validation | `stripe:validate` archives clean committed HEAD, applies a proposal to a disposable copy, and runs explicit baseline/patched commands in separate restricted offline Docker containers using a local image ID. Optional `--baseline-command` supports distinct old/new contracts; both commands are recorded and require review. Records logs, exit codes, hashes and stale-revision checks. Dependencies must be available in the image or tracked archive. |
-| Review artifacts | `stripe:validate --bundle <new-directory>` exports the exact patch, report, draft PR description and file-hash manifest. Failed validation is preserved explicitly. No remote publication. |
-| Draft publication | `api:validate --publish-draft --github owner/repository --base main` requires fresh passing checks, no unresolved findings and a matching remote base. Publishes exact changed files on a deterministic branch, refuses branch collisions and reuses existing PRs. Controlled GitHub API tests pass; a [live draft PR](PR-EVALUATION.md) was verified on the independent simulated billing application. |
-| AI assessment | Opt-in OpenAI Responses integration with strict structured output, bounded source context, evidence-ID validation and advisory decisions. Controlled-response tests pass; live model verification requires configuration. AI cannot edit code or publish. |
-| AI patch proposals | Opt-in `--ai-patch` requests exact source replacements tied to confirmed findings. Local checks enforce file scope, unique matches, non-overlap and parseable output, then rescan. Optional `--repair-attempts 1` (maximum 2) regenerates a proposal using bounded failed-check output and reruns a fresh container. Tested attempts and stop reasons are retained. One live generation and repair passed the billing evaluation; broader model reliability remains unverified. |
-| Verification | Pipeline and frontend tests; opt-in real Docker tests exercise baseline/patched behavior, isolation checks, regressions, baseline failures, bounded AI repair and output limits. Real Stripe SDK 10.17.0 and 19.1.0 tests verify old-code failure and patched HTTP requests against a simulated loopback API. No production application or Stripe account has been exercised. |
-| Service integration | No HTTP service, database, queue, GitHub App or scheduled monitoring. Draft publication uses an explicit host token; the CLI is not connected to the frontend. |
-
-The analyzer is conservative: `affected` means a removed property has a locally traced PaymentIntent receiver. It does not prove that the repository is upgrading to the relevant API version. `needs-review` means Stripe is present but no such direct match is confirmed. `no-stripe-signal` means the supported scan found no Stripe import/dependency signal; it does not prove the absence of REST calls or dynamic integrations.
-
-Transparent top-level one-parameter wrappers returning a mapped SDK call are traced through direct relative named imports. Transformed or multi-step wrappers, CommonJS client resolution, webhooks, mutation, list responses and dynamic flows need additional analysis. A same-named property on an unproven receiver is a review candidate, not confirmed evidence. No-match results never become an automatic “safe” decision. The [independent billing evaluation](BILLING-EVALUATION.md) records the guarded, paginated history migration and actual offline Docker results.
-
-## Run it
-
-```sh
-npm ci
-npm run stripe:replay
-
-npm run stripe:scan -- \
-  --repository /absolute/path/to/repository \
-  --before /absolute/path/to/previous-openapi.json \
-  --after /absolute/path/to/current-openapi.json \
-  --output /absolute/path/to/new-report.json
-```
-
-Omit `--output` to print JSON. An existing output file is never overwritten. Exit code 0 means the scan completed, including when it found affected code; exit code 1 means invalid arguments or a scan/output error. The report has no timestamps, so the same supported inputs produce the same run ID. Reports do not include full source snippets or constructor arguments.
-
-The scanner reads source files without importing them, installing dependencies or executing scripts. It skips dependency/build directories and symlinks, reports skipped symlinks, and rejects repositories over 10,000 relevant files, 2 MiB per file or 50 MiB total. Malformed source and JSON fail explicitly.
-
-The frontend's TypeScript 7 package does not expose the legacy compiler API used by this analyzer. `typescript-compiler` is an npm alias for TypeScript 5.9.3, used only by the local pipeline. Syntax newer than that parser supports fails explicitly. `tsx` runs the CLI; neither is bundled into the browser.
-
-## Target architecture — planned
+## Implemented pipeline
 
 ```mermaid
 flowchart TD
-  UI[React workspace] --> API[Authenticated TypeScript API]
-  GH[GitHub App and webhooks] --> API
-  API --> DB[(PostgreSQL state and durable jobs)]
-  POLL[Stripe revision poller] --> BLOBS[Snapshot and artifact storage]
-  POLL --> DB
-  DB --> WORKER[Job worker]
-  BLOBS --> WORKER
-  WORKER --> DIFF[oasdiff and normalized change events]
-  DIFF --> SCAN[Dependency and AST analysis]
-  SCAN --> IMPACT[AI impact assessment with cited evidence]
-  IMPACT --> GATE{Migration warranted?}
-  GATE -->|Uncertain| REVIEW[Needs human review]
-  GATE -->|No| SKIP[Record no action]
-  GATE -->|Yes| AGENT[AI patch agent]
-  AGENT <--> SANDBOX[Isolated Docker checkout and restricted tools]
-  SANDBOX --> CHECKS[Baseline and patched validation]
-  CHECKS -->|Bounded repair| AGENT
-  CHECKS -->|Failure or budget exhausted| BLOCKED[Blocked run with logs]
-  CHECKS -->|Pass and current revision| PR[Draft PR publisher]
+  SOURCE[Public OpenAPI URL, Stripe revision or local file] --> SNAP[Bounded JSON/YAML snapshot capture]
+  BASE[Retained integration baseline] --> DIFF[oasdiff changelog and direct response-field removals]
+  SNAP --> DIFF
+  REPO[Clean committed local repository] --> SCAN[SDK mapping and TypeScript symbol analysis]
+  DIFF --> SCAN
+  SCAN --> STATE[Local job identity and evidence]
+  STATE --> GATE{Supported affected usage?}
+  GATE -->|Unmapped or uncertain| REVIEW[Record needs review]
+  GATE -->|Confirmed| EXISTING[Verify existing App migration]
+  EXISTING -->|Found| REUSE[Retain receipt without new AI]
+  EXISTING -->|New| BASECHECK[Offline original-code checks]
+  BASECHECK -->|Pass| PATCH[Deterministic rule or bounded AI proposal]
+  PATCH --> CHECK[Offline proposed-code checks and rescan]
+  CHECK -->|Configured bounded repair| PATCH
+  CHECK -->|Failure| FAILED[Retain failed evidence]
+  CHECK -->|Pass and current revision| PR[Exact-file GitHub draft publisher]
   PR --> HUMAN[Engineer review and merge]
-  WORKER --> DB
-  SANDBOX --> BLOBS
-  DB --> API
+  POLL[Local watch loop] --> SOURCE
 ```
 
-### 1. Control plane
+| Component | Current behavior | Boundary |
+| --- | --- | --- |
+| Sources | Stripe commit discovery, pinned downloads, public HTTPS documents with ETags, local JSON/YAML files; hashes and provenance retained | No arbitrary documentation crawler or authenticated provider feed; external refs disabled |
+| Contract comparison | Shared `oasdiff` changelog for breaking and non-breaking changes; direct component-property detector supplies code evidence | General contract detection is broader than automatic code mapping |
+| Provider configuration | SDK package/import constructors and resource-method response schema mappings; built-in Stripe, real OpenAI SDK conformance fixture | Mappings require verification; arbitrary SDKs and languages are not inferred automatically |
+| Analyzer | TypeScript AST/symbols trace immutable ESM clients, direct relative named imports, shallow awaited SDK calls, aliases, direct reads, destructuring, and transparent wrappers | Mutations/escapes downgrade findings; CommonJS, transformed wrappers, dynamic flows and webhooks remain review cases |
+| Patch generation | Narrow deterministic Stripe history migration or exact AI replacements restricted to confirmed files; imported context is read-only | No model tools or unrestricted edits; checks do not establish all semantics |
+| Validation | Clean HEAD archive; baseline before generation; separate offline containers; scoped edits, rescan, stale-revision gates and up to two repairs | Operator supplies meaningful commands and preinstalled dependencies; local Docker is not hosted tenant isolation |
+| AI spending | Token counting, durable maximum-cost reservations, actual usage accounting and a shared allowance | Covers this CLI's ledger, not unrelated account spending; unaccounted requests retain reservations |
+| Monitoring | Local worker polls one configured source/repository; job receipts survive restarts; bounded source retries; failed migrations require explicit retry | No hosted scheduler, automatic checkout sync, or installation enrollment |
+| Publication | App installation token or personal token; verified base/tree/parent; exact tested files; bot identity checks, collision refusal and reconciliation | No auto-merge or force-push; reused App PRs are explicitly not revalidated |
+| Presentation | Readable terminals and PR prose; technical JSON retained in evidence and collapsed PR details | Frontend data remains illustrative |
 
-The existing React app calls a TypeScript API for installations, repositories, changes, runs and artifacts. Authentication and installation ownership checks apply to every resource. GitHub webhooks are signature-verified and deduplicated. HTTP handlers validate requests and enqueue work; long jobs run separately.
+## Provider-independent core
 
-### 2. Persistence and orchestration
+Ingestion, OpenAPI comparison, evidence, job deduplication, AI accounting, Docker validation, and publication share one implementation. Another provider supplies an adapter and checks rather than a new orchestration pipeline. The OpenAI fixture verifies real `models.retrieve()` HTTP behavior and ordinary string-field usage through this shared path; its after contract is deliberately simulated and has no invented migration semantics.
 
-PostgreSQL holds tenants, installations, repositories, provider revisions, normalized changes, impact decisions, runs and durable jobs. Jobs have idempotency keys, leases, bounded attempts, retry scheduling and explicit failure states. The planned uniqueness boundary for a migration is repository + base revision + change identity; a repeated delivery must not publish another PR.
+`oasdiff` detects changes such as removed endpoints, response types, and request requirements. The code mapper currently confirms direct removed fields in existing non-composed component schemas. Breaking changelog entries outside that supported response-field scope stop automatic generation/publication. Correlation uses the old operation, response status and direct schema reference; identical field names on unrelated responses do not authorize publication. Inline/composed responses require review.
 
-Local artifact storage supports development; an S3-compatible store holds deployment snapshots, patches and logs. Keep large files out of ordinary database rows. Polling and workers must recover after restart. No Redis or separate workflow platform is needed for the initial design.
+The selected adapter and npm lockfile provide evidence, not proof that a deployed application uses a particular API version. No finding is not a safe result. Automatic adoption of new API features is outside the current scope; non-breaking changes stay in the recorded changelog.
 
-### 3. Provider ingestion and deterministic analysis
+## AI and validation
 
-Pinned Stripe snapshot downloads, latest revision discovery and one-shot checks against a retained baseline are implemented through the local CLI. Custom SDK adapters now share the direct-property diff and local analysis pipeline, with provider-scoped change IDs and adapter-sensitive run identity. Background polling and **oasdiff** integration for a complete machine-readable comparison are planned. Replace the current narrow property detector at this boundary; do not expand it into a homegrown full OpenAPI differ.
+The model receives relevant changes, confirmed findings, affected source files, and at most 12 resolved import modules as read-only context. It returns schema-validated exact replacements. Local checks reject edits outside scope, missing or ambiguous matches, overlaps and unparseable code. Refit rescans the candidate and runs the configured application checks. Repository text is untrusted evidence; it cannot choose credentials, permissions or validation commands.
 
-The scanner then checks manifests and lockfiles, API-version configuration, imports, usages and references. Direct relative named imports of exported const clients now share symbols and mutation evidence across scanned files. Namespace imports and re-exports prevent confirmation; default client imports, path aliases and ambiguous resolution remain unsupported. Extend this bounded support with broader cross-file symbol flow, typed SDK responses, wrappers and webhook payloads. Preserve uncertainty rather than filtering ambiguous repositories out. The generic worker consumes adapter results so another API provider can be added without rewriting orchestration.
+A baseline failure stops before model generation. Generation uses the OpenAI Responses API with strict output, fixed maximum output, default service tier and no automatic request retries. The input-token count precedes a locked ledger reservation. Actual usage settles it, including cached input and reasoning accounting. Unknown spending remains reserved rather than assumed free. Unknown model IDs require explicit prices. Assessment is optional and advisory; it is not necessary for the patch workflow.
 
-### 4. AI responsibilities
+Validation archives committed HEAD and checks separate baseline/patched copies in disposable non-root containers. Limits are 120 seconds per check, 1 MiB per output stream, 1 CPU, 1 GiB memory and 128 processes. Containers have no network, host environment, Git metadata or Docker socket. Commands may differ between old/new test contracts; both are recorded, and reviewers must assess equivalent coverage. Original repository files are not modified.
 
-Optional advisory assessment, AI patch proposals and bounded repair are implemented for the local provider pipeline. `--assess` transmits bounded finding context; `--ai-patch` transmits affected files, evidence and up to 12 relative-import modules as read-only context. `--repair-attempts` additionally transmits the previous failed diff and capped check logs. Repair is gated on a passing baseline, ordinary patched-check failure and an unchanged source revision. Every attempt replaces the original proposal, stays within original finding scope and runs against a fresh archive/container. There is no model tool execution or automatic retry of failed API requests. A live AI patch passed the independent billing evaluation, including pagination and empty history; one live bounded repair was subsequently verified in the [PR evaluation](PR-EVALUATION.md). Live assessment quality and broader repair reliability remain unverified. See [AI evaluation](AI-EVALUATION.md) for earlier failures and successful evidence. The tool-using agent design below remains a future extension.
+The historical Stripe migration preserves retrieval and charge history using paginated `stripe.charges.list({ payment_intent })`, rather than substituting a single `latest_charge`. The independent billing evaluation covers successful/failed payments, refunds, history, 103 attempts and empty history under two simulated contracts. This proves those checked behaviors, not live Stripe or universal correctness.
 
-Use OpenAI's Responses API behind a single server-side integration with a configurable `OPENAI_MODEL`. Select the deployed model using migration evaluations and measured cost; do not couple business logic to a model name.
+## Local state and publication
 
-Two steps share the same evidence bundle:
+Worker state is private and outside the scanned repository. Configuration identity includes baseline, source, repository, adapter, commands/image, comparison mode and publication target. Migration job identity includes committed revision, scanned content and breaking changes. Documentation-only updates can be recorded without repeated generation. Changing a configuration requires fresh state; baseline advancement is explicit.
 
-1. **Impact assessment:** return a schema-validated decision, affected usage IDs, source references, uncertainty and a proposed migration approach. Reject references not present in the evidence bundle. Schema validity alone does not prove correctness.
-2. **Patch generation:** work in an isolated checkout using narrow tools for reading/searching files, applying patches and invoking predefined validation commands. The worker executes tool calls and enforces path, attempt, time and cost limits.
+State writes use temporary files, synchronization and rename. Process locks protect budgets and jobs; verified dead local owners can be recovered. Interrupted runs reconcile a valid final manifest or require explicit retry. There is no automatic paid regeneration of an uncertain job. Details and reproducible commands are in [local automation](AUTOMATION.md).
 
-The model receives the provider change, relevant source context, repository configuration and actual tool results. Repository text is untrusted input, not authorization. The model cannot invent a passing check, choose its own publishing permissions, access installation credentials or merge a PR. A refusal, timeout, malformed result or unresolved impact becomes a visible run state.
+The publisher alone uses GitHub credentials. App mode signs a short-lived JWT, discovers the authorized installation and requests a repository-scoped installation token. It verifies current base revision and the exact tested file/tree contents before publishing. Existing matching branches/PRs are reconciled; conflicting contents stop publication. A read-only preflight can reuse a verified App-authored draft for the same base and changes before generation. That result records that checks were not rerun. Human review and merge remain separate.
 
-This design uses [function calling](https://developers.openai.com/api/docs/guides/function-calling) for controlled tools and [structured outputs](https://developers.openai.com/api/docs/guides/structured-outputs) for validated decisions. No AI is needed to execute the current replay.
+## Hosted product target
 
-### 5. Execution and validation
+```mermaid
+flowchart TD
+  SITE[Product website and install flow] --> APP[GitHub App installation]
+  APP --> API[Authenticated installation service]
+  WEBHOOK[Verified GitHub webhooks] --> API
+  API --> DB[(Installations, repositories and durable jobs)]
+  PROVIDERS[Provider feeds and retained baselines] --> DB
+  DB --> WORKERS[Repository workers using the shared core]
+  WORKERS --> SANDBOX[Provisioned isolated checks]
+  WORKERS --> STORE[Evidence storage]
+  WORKERS --> DRAFT[Refit Agent draft PR]
+  DRAFT --> REVIEW[Customer review]
+  DB --> UI[Connected run status]
+```
 
-The local CLI implements baseline and patched command execution against an archived Git commit. It records exit codes, logs, revision, image ID and archive/patch hashes, and distinguishes baseline failure, regression, execution error and stale input. Optional bounded AI repair keeps tested attempt history. The separate publisher can publish the final validated candidate; dependency installation remains unimplemented. Configured checks and migration semantics still require human review.
+This service layer is planned. It needs installation ownership, verified webhook delivery, checkout provisioning, dependency preparation, durable leases/retries, tenant-level budgets, audit records and stronger isolation for untrusted repositories. PostgreSQL can hold installations, revisions and job state; blob storage can hold larger snapshots/logs. Separate HTTP handlers enqueue work rather than execute long migrations. An installed repository must be evaluated for supported integrations and checks rather than assumed migratable.
 
-Sandbox workers use disposable non-root containers with resource/time limits, a restricted filesystem and controlled network access. Installation and application credentials stay outside the container. Dependency installation is an explicit sandbox stage. Cleanup runs on success, failure and cancellation. A Docker container alone is not a complete boundary for arbitrary hostile repositories; assess stronger isolation before opening the service broadly.
+Next reliability work should expand migration evaluations and SDK/API-version applicability, then broader code flows and migration categories. OpenAPI captures structural contracts; semantic changes in documentation, SDK behavior or business meaning require additional evidence. Hosted onboarding should use the existing core while preserving these limits.
 
-For the historical example, `charges` is a collection while `latest_charge` identifies the most recent charge. A list-to-single-value replacement may silently change business behavior. The optional deterministic proposal uses the Charges list endpoint filtered by PaymentIntent. It requires review of pagination, expansion, timing and additional request failures; no application validation is claimed. See [Stripe's change documentation](https://docs.stripe.com/changelog/2022-11-15/removes-charges-attribute-paymentintent) and [Charges list reference](https://docs.stripe.com/api/charges/list).
-
-### 6. Publication and product integration
-
-Local review bundles and explicit remote draft publication are implemented. The publisher consumes a fresh validation result in the same CLI process; it does not trust imported reports or bundle manifests. It verifies the remote base, uses the exact changed contents and committed file modes retained by validation, and creates a tree based on the original remote tree. Unrelated files stay intact. Existing migration branches must match the expected tree and single parent; existing PRs, including closed ones, are reused. The CLI never force-pushes or merges. GitHub is exercised with controlled responses; a live repository/token is still needed for remote verification.
-
-The current publisher uses an explicit `GITHUB_TOKEN` on the host. It has bounded requests, no redirects, and keeps full check logs out of the PR. Partial failures can leave remote objects or a branch; retries reconcile a matching candidate. Repeated remote revision checks reduce stale publication but are not an atomic transaction with PR creation. GitHub App ownership, hosted audit state and installation-token lifecycle below remain planned.
-
-Only the publisher owns the short-lived GitHub installation token. It checks installation access, current base revision, passing recorded validation, allowed patch paths and idempotency before pushing a branch and opening a draft PR. A base revision change invalidates earlier validation and requires rerunning. The PR contains the provider source, exact usages, diff explanation and real check results. Refit never auto-merges.
-
-The frontend then renders API-backed runs with loading, empty, failure and cancellation states. Existing illustrative records remain clearly separated from connected repositories.
-
-## Delivery order
-
-1. **Completed:** offline Stripe evidence scan, deterministic replay, tests and run instructions.
-2. **Provider ingestion:** pinned real snapshots, provenance, oasdiff, historical corpus and API-version applicability.
-3. **Service:** authenticated API, PostgreSQL state/queue, GitHub installation and read-only checkout ingestion; connect actual reports to the workspace.
-4. **Execution:** local offline Docker validation is implemented; dependency provisioning, cancellation recovery, hosted workers and broader application evaluations remain planned.
-5. **AI:** schema-validated impact assessment, restricted patch tools, bounded repair and fixture-based evaluations.
-6. **Publication:** local draft publisher, retry reconciliation and stale-revision checks are implemented; live verification, installation tokens, durable audit trail and service operational limits remain.
-
-The local workflow now composes the existing stages and records final run evidence. It is not a durable worker: there are no job leases, scheduled retries or crash resumption. Interrupted directories without a valid final manifest are incomplete, and a retry uses a new directory. These functions can be called from a future worker, but none of the planned services are implied to exist yet. Keep the current npm layout until multiple deployable packages justify the PRD's proposed workspace migration.
+See [readiness](READINESS.md), [CLI usage](CLI.md), [App setup](GITHUB-APP.md) and [local automation](AUTOMATION.md) for evidence and setup.

@@ -1,4 +1,18 @@
-# Refit implementation checkpoint — September 28, 2026
+# Refit implementation checkpoints
+
+## October 12, 2026: local automation and shared provider core
+
+Refit 0.2 adds a persistent local worker, public HTTPS/file/Stripe source capture, JSON/YAML parsing, a shared oasdiff changelog, bounded migration gates, App preflight deduplication, durable AI spending reservations, and human-readable CLI/PR presentation. [Local automation](AUTOMATION.md) provides the exact Stripe commands and a change-arrival demonstration. [Architecture](ARCHITECTURE.md) separates the implemented core from hosted onboarding.
+
+The live Stripe billing worker generated one OpenAI proposal for **$0.00357075** and passed both 14-test simulator contracts, TypeScript, 103-attempt pagination, and empty history. A repeated poll reused the job without generation. An App publishing poll verified and reused [draft PR #3](https://github.com/pierceluu10/refit-billing-demo/pull/3) before AI/validation; its description was updated to prose while preserving its original validation record. No new PR or merge was needed. The separate billing application remains unmigrated.
+
+A real OpenAI SDK 7.32.0 conformance test verifies normal `models.retrieve()` HTTP usage against before/after simulated Model responses. It detects the removed field through the shared adapter but does not invent a replacement. This is not an announced OpenAI API change. General contract detection is broader than supported automatic code mapping.
+
+The final gated suite passed **288 tests with none skipped** across 32 files: unit/controlled API checks, actual Docker workflows, real Stripe SDKs, the real OpenAI SDK, the independent billing migration, frontend behavior, and an independently installed CLI archive. Production build, typecheck and formatting passed. The current live AI patch was separately applied by the billing integration test without changing its tests.
+
+The worker also captured Stripe's real current published revision (`bcfd59f49dcac84a84d63d304c62793dff6e5916`) and compared it with an identical pinned baseline using oasdiff. It found no changed usages and made no model request. This verifies live feed ingestion and comparison, not account/API-version applicability. Historical checkpoints below retain their original counts and limitations.
+
+## September 28, 2026 checkpoint
 
 **October 11 GitHub App update:** Refit created [draft PR #2](https://github.com/pierceluu10/refit-billing-demo/pull/2) using the installed **Refit Agent** App. GitHub verified `refit-agent[bot]` as PR author and commit author/committer. Two earlier runs were correctly blocked for pagination/empty-history regressions; after clarifying the AI migration guidance, the next live proposal passed without repair. The downloaded remote commit independently passed both 14-test simulator contracts, TypeScript, all 13 history entries, empty history and demos under both API versions. The full gated Refit suite passed 263 tests with none skipped; typecheck and formatting passed. This is a manually triggered installed CLI workflow, not hosted monitoring. See [the App evaluation](PR-EVALUATION.md#live-github-app-publication).
 

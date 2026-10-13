@@ -6,4 +6,4 @@ The before response follows the documented Model resource. The after response **
 
 `provider.json` configures SDK-to-schema mapping without changing the analyzer. The shared OpenAPI differ detects the contract change and the scanner identifies the affected read. Automatic migration remains unsupported when no replacement semantics are established; that is a review result, not a fabricated fix.
 
-Run the optional real-SDK check with `REFIT_OPENAI_SDK=1 npm test`. The test installs the pinned SDK into a disposable copy; only dependency preparation accesses npm. SDK requests go to the local HTTP simulator.
+From the Refit source checkout, run the optional real-SDK check with `REFIT_OPENAI_SDK=1 npm test`. The test installs OpenAI SDK **7.32.0** into a disposable copy; only dependency preparation accesses npm. SDK requests go to the local HTTP simulator. The Model field contract is documented in [OpenAI's retrieve-model reference](https://developers.openai.com/api/reference/resources/models/methods/retrieve).

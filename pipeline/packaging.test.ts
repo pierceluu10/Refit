@@ -55,6 +55,8 @@ it('packs only CLI runtime sources, fixtures, docs and exact runtime dependencie
   expect(result.files).toContain('pipeline/github-app.ts');
   expect(result.files).toContain('public/refit-agent-avatar.png');
   expect(result.files).toContain('docs/GITHUB-APP.md');
+  expect(result.files).toContain('docs/AUTOMATION.md');
+  expect(result.files).toContain('pipeline/watch-cli.ts');
   expect(result.files).toContain('pipeline/fixtures/repository/billing.ts');
   expect(
     result.files.some(
@@ -113,6 +115,7 @@ it.skipIf(!process.env.REFIT_PACKAGE_INSTALL)(
       'stripe-check',
       'demo',
       'verify',
+      'watch',
     ]) {
       expect((await execute(installed, [command, '--help'], { cwd: root })).stdout).toContain(
         'Usage:',
