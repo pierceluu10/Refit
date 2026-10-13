@@ -150,6 +150,57 @@ await api.invoices.retrieve('inv_1');
   ).toMatchObject([{ resource: 'invoices', method: 'retrieve', callCount: 1 }]);
 });
 
+it('collects shared clients through relative named imports without including arguments or source comments', async () => {
+  const root = await temporaryRoot();
+  const repositoryPath = await sampleRepository(root);
+  await writeFile(
+    join(repositoryPath, 'shared.ts'),
+    `import Ledger from '@example/ledger';
+export const ledger = new Ledger('private-constructor-value');
+`,
+  );
+  await writeFile(
+    join(repositoryPath, 'billing.ts'),
+    `import { ledger as billing } from './shared.ts';
+await billing /* private-source-comment */ .payments.retrieve('private-payment-id');
+function shadowed(billing: unknown) { return billing.payments.refund('private-payment-id'); }
+`,
+  );
+  const repository = await readRepository(repositoryPath, identity.packageName);
+  const candidates = collectSdkMethodCandidates(repository, identity);
+  expect(candidates).toContainEqual({
+    resource: 'payments',
+    method: 'retrieve',
+    callCount: 1,
+    samples: [{ file: 'billing.ts', line: 2, column: 7, expression: 'billing.payments.retrieve' }],
+  });
+  expect(candidates.some((candidate) => candidate.method === 'refund')).toBe(false);
+  expect(JSON.stringify(candidates)).not.toContain('private-');
+});
+
+it('keeps namespace imports and re-exported clients outside the suggestion inventory', async () => {
+  const root = await temporaryRoot();
+  const repositoryPath = await sampleRepository(root);
+  await writeFile(
+    join(repositoryPath, 'shared.ts'),
+    `import Ledger from '@example/ledger'; export const ledger = new Ledger();`,
+  );
+  await writeFile(join(repositoryPath, 'reexport.ts'), `export { ledger } from './shared.ts';`);
+  await writeFile(
+    join(repositoryPath, 'unresolved.ts'),
+    `import * as shared from './shared.ts';
+import { ledger } from './reexport.ts';
+await shared.ledger.payments.retrieve('pay_1');
+await ledger.payments.refund('pay_1');
+`,
+  );
+  const candidates = collectSdkMethodCandidates(
+    await readRepository(repositoryPath, identity.packageName),
+    identity,
+  );
+  expect(candidates.some((candidate) => candidate.resource === 'payments')).toBe(false);
+});
+
 it('offers only unique JSON component-response operations and supports explicit narrowing', () => {
   const parsed = parseSpecification(JSON.stringify(contract), 'contract');
   const candidates = collectApiOperationCandidates(parsed.document, parsed.schemas);

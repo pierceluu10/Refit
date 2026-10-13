@@ -1,5 +1,4 @@
-import ts from 'typescript-compiler';
-import { resolve } from 'node:path';
+import { analyzeRepository } from './analyzer.ts';
 import { requestStructuredOutput } from './openai.ts';
 import type { AiOptions } from './ai-budget.ts';
 import { parseProviderAdapter, type ProviderIdentity } from './providers.ts';
@@ -73,106 +72,23 @@ export function collectSdkMethodCandidates(
   identity: ProviderIdentity,
 ): SdkMethodCandidate[] {
   const candidates = new Map<string, SdkMethodCandidate>();
-  const sourceFiles = new Map<string, ts.SourceFile>();
-  for (const file of repository.files) {
-    const fileName = resolve(repository.root, file.path);
-    sourceFiles.set(
-      fileName,
-      ts.createSourceFile(fileName, file.content, ts.ScriptTarget.Latest, true),
-    );
-  }
-  const compilerOptions: ts.CompilerOptions = {
-    allowJs: true,
-    checkJs: false,
-    noLib: true,
-    noResolve: true,
-    skipLibCheck: true,
-    target: ts.ScriptTarget.Latest,
-  };
-  const host = ts.createCompilerHost(compilerOptions, true);
-  host.getSourceFile = (fileName) => sourceFiles.get(resolve(fileName));
-  host.fileExists = (fileName) => sourceFiles.has(resolve(fileName));
-  host.readFile = (fileName) => sourceFiles.get(resolve(fileName))?.text;
-  const program = ts.createProgram([...sourceFiles.keys()], compilerOptions, host);
-  const checker = program.getTypeChecker();
-  for (const file of repository.files) {
-    const source = sourceFiles.get(resolve(repository.root, file.path))!;
-    const nodes: ts.Node[] = [];
-    const constructors = new Set<ts.Symbol>();
-    const clients = new Set<ts.Symbol>();
-    function visit(node: ts.Node) {
-      nodes.push(node);
-      ts.forEachChild(node, visit);
-    }
-    visit(source);
-    for (const node of nodes) {
-      if (
-        !ts.isImportDeclaration(node) ||
-        !ts.isStringLiteral(node.moduleSpecifier) ||
-        !isPackageImport(node.moduleSpecifier.text, identity.packageName)
-      )
-        continue;
-      const clause = node.importClause;
-      if (!clause || clause.isTypeOnly) continue;
-      if (identity.defaultImport && clause.name) {
-        const symbol = checker.getSymbolAtLocation(clause.name);
-        if (symbol) constructors.add(symbol);
-      }
-      if (identity.namedExport && clause.namedBindings && ts.isNamedImports(clause.namedBindings))
-        for (const binding of clause.namedBindings.elements) {
-          if (
-            !binding.isTypeOnly &&
-            (binding.propertyName ?? binding.name).text === identity.namedExport
-          ) {
-            const symbol = checker.getSymbolAtLocation(binding.name);
-            if (symbol) constructors.add(symbol);
-          }
-        }
-    }
-    for (const node of nodes) {
-      if (
-        ts.isVariableDeclaration(node) &&
-        ts.isIdentifier(node.name) &&
-        ts.isVariableDeclarationList(node.parent) &&
-        (node.parent.flags & ts.NodeFlags.Const) !== 0 &&
-        node.initializer &&
-        ts.isNewExpression(node.initializer) &&
-        ts.isIdentifier(node.initializer.expression) &&
-        constructors.has(checker.getSymbolAtLocation(node.initializer.expression)!)
-      ) {
-        const symbol = checker.getSymbolAtLocation(node.name);
-        if (symbol) clients.add(symbol);
-      }
-    }
-    for (const node of nodes) {
-      if (!ts.isCallExpression(node) || !ts.isPropertyAccessExpression(node.expression)) continue;
-      const method = node.expression;
-      const resource = method.expression;
-      if (
-        !ts.isPropertyAccessExpression(resource) ||
-        !ts.isIdentifier(resource.expression) ||
-        !clients.has(checker.getSymbolAtLocation(resource.expression)!)
-      )
-        continue;
-      const key = JSON.stringify([resource.name.text, method.name.text]);
-      const candidate = candidates.get(key) ?? {
-        resource: resource.name.text,
-        method: method.name.text,
-        callCount: 0,
-        samples: [],
-      };
-      candidate.callCount += 1;
-      if (candidate.samples.length < MAX_CALL_SAMPLES) {
-        const position = source.getLineAndCharacterOfPosition(node.getStart(source));
-        candidate.samples.push({
-          file: file.path,
-          line: position.line + 1,
-          column: position.character + 1,
-          expression: node.expression.getText(source),
-        });
-      }
-      candidates.set(key, candidate);
-    }
+  for (const call of analyzeRepository(repository, [], { ...identity, operations: [] }).sdkCalls) {
+    const key = JSON.stringify([call.resource, call.method]);
+    const candidate = candidates.get(key) ?? {
+      resource: call.resource,
+      method: call.method,
+      callCount: 0,
+      samples: [],
+    };
+    candidate.callCount += 1;
+    if (candidate.samples.length < MAX_CALL_SAMPLES)
+      candidate.samples.push({
+        file: call.file,
+        line: call.line,
+        column: call.column,
+        expression: call.expression,
+      });
+    candidates.set(key, candidate);
   }
   const result = [...candidates.values()].sort(
     (left, right) =>
@@ -353,8 +269,4 @@ export async function suggestProviderAdapter(options: {
     candidateOperationCount: operations.length,
     ...metadata,
   };
-}
-
-function isPackageImport(imported: string, packageName: string) {
-  return imported === packageName || imported.startsWith(`${packageName}/`);
 }

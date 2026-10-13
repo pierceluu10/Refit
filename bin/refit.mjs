@@ -17,6 +17,7 @@ const commands = new Map([
   ['watch', 'watch-cli.ts'],
   ['serve', 'service-cli.ts'],
   ['prepare', 'preparation-cli.ts'],
+  ['doctor', 'readiness-cli.ts'],
 ]);
 const usage = `Refit: reviewable API migrations
 
@@ -35,6 +36,7 @@ Usage: refit <command> [options]
   watch            Monitor an OpenAPI source and process each detected change once
   serve            Run installed repository workers with signed GitHub webhooks
   prepare          Prepare locked npm dependencies for offline validation
+  doctor           Inspect repository setup without running code or spending on AI
 
 Use refit <command> --help for command options.
 Use --env <path> to load credentials explicitly. Existing environment values take precedence.

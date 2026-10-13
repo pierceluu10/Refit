@@ -1,4 +1,4 @@
-# Local API monitoring with Refit 0.6
+# Local API monitoring with Refit 0.7
 
 Refit has a local polling worker that captures an OpenAPI source, compares it with a retained baseline, scans a repository, and processes each migration once. It can also monitor up to eight manually configured public changelog or migration-documentation pages for each target. AI generation and GitHub publication are explicit options. Start with a single poll; remove `--once` to keep the worker running while your computer is on.
 

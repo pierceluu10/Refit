@@ -2,7 +2,7 @@ import { readFile, stat } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { parseObject } from './specifications.ts';
 import { PipelineInputError } from './types.ts';
-import { validateCheckCommand } from './validation-options.ts';
+import { validateCheckCommand, validateWorkflowSources } from './validation-options.ts';
 
 const MAX_CONFIGURATION_BYTES = 64 * 1024;
 const CONFIGURATION_KEYS = new Set([
@@ -51,6 +51,11 @@ export async function readWorkflowConfiguration(path: string) {
       'Run configuration requires exactly one of after or latestStripe.',
     );
   const directory = dirname(resolve(path));
+  validateWorkflowSources({
+    after: value.after === undefined ? undefined : string('after'),
+    latestStripe: value.latestStripe as boolean | undefined,
+    providerConfig: value.providerConfig === undefined ? undefined : string('providerConfig'),
+  });
   return {
     repository:
       value.repository === undefined ? undefined : resolve(directory, string('repository')),
