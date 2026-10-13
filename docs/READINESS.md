@@ -16,6 +16,10 @@ The provider analyzer now follows literal non-negative numeric indexes into arra
 
 The analyzer also traces `const` `for...of` bindings and inline callbacks to common array iteration methods (`every`, `filter`, `find`, `flatMap`, `forEach`, `map` and `some`) when the callback has one identifier parameter and the array item uses a local component `$ref`. It treats callback mutations or item escape as response mutations, which downgrades findings to review. Named callbacks, additional callback parameters, mutable loop bindings and transformed array chains remain review cases. The array rename passes old and new runtime contracts in offline Docker through an inline `.map()` callback.
 
+## October 13, 2026: provider mapping preflight
+
+Before analysis, every adapter operation must resolve through local component `$ref`s to an object schema with directly declared properties in the baseline. Missing, composed, external and cyclic response-schema mappings fail with the SDK operation name instead of producing an unhelpful no-finding result. The analyzer and preflight share the same component resolver. Tests cover missing mappings and a valid local schema alias. The gated suite passed **382 tests across 40 files with no skips**, including Docker checks, Stripe and OpenAI SDK simulators, the independent billing migration, and `oasdiff`; build and formatting passed.
+
 ## October 13, 2026: configured property-rename rules
 
 Custom provider adapters may now declare `propertyRenames`. Refit activates a rule only when the before/after OpenAPI documents show the configured field was removed and a new replacement field appears on the same schema with the same simple scalar type (`string`, `integer`, `number` or `boolean`). The scanner must also trace a direct property read through the adapter's resource/method mapping. It then changes only that property-name token. Indexed reads, destructuring and unsupported source forms remain for review.
