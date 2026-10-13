@@ -521,7 +521,11 @@ export function analyzeRepository(
   for (const node of nodes) {
     const operation = responseCall(node);
     if (operation)
-      calls.push({ ...location(node), method: `${operation.resource}.${operation.method}` });
+      calls.push({
+        ...location(node),
+        method: `${operation.resource}.${operation.method}`,
+        ...(operation.operationId ? { operationId: operation.operationId } : {}),
+      });
   }
   const providerDetected = imports.length > 0 || repository.dependencies.length > 0;
   const escapingClients = new Set<ts.Symbol>();

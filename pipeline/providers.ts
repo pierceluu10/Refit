@@ -7,7 +7,7 @@ export interface ProviderAdapter {
   packageName: string;
   defaultImport: boolean;
   namedExport: string | null;
-  operations: { resource: string; method: string; schema: string }[];
+  operations: { resource: string; method: string; schema: string; operationId?: string }[];
   propertyRenames?: { schema: string; removed: string; replacement: string }[];
 }
 
@@ -72,24 +72,36 @@ export async function readProviderAdapter(path?: string): Promise<ProviderAdapte
     );
   const seen = new Set<string>();
   const operations = value.operations.map((operation) => {
+    const operationKeys = isObject(operation) ? Object.keys(operation).sort().join(',') : '';
     if (
       !isObject(operation) ||
-      Object.keys(operation).sort().join(',') !== 'method,resource,schema' ||
+      !['method,resource,schema', 'method,operationId,resource,schema'].includes(operationKeys) ||
       typeof operation.resource !== 'string' ||
       !IDENTIFIER.test(operation.resource) ||
       typeof operation.method !== 'string' ||
       !IDENTIFIER.test(operation.method) ||
       typeof operation.schema !== 'string' ||
       !operation.schema.trim() ||
-      operation.schema.length > MAX_CONFIG_BYTES
+      operation.schema.length > MAX_CONFIG_BYTES ||
+      (operation.operationId !== undefined &&
+        (typeof operation.operationId !== 'string' ||
+          !operation.operationId.trim() ||
+          operation.operationId !== operation.operationId.trim() ||
+          operation.operationId.length > MAX_SCHEMA_NAME_LENGTH ||
+          /[\u0000-\u001f\u007f]/.test(operation.operationId)))
     )
       throw new PipelineInputError(
-        'Each provider operation must specify resource, method and schema strings.',
+        'Each provider operation must specify resource, method and schema strings, with an optional printable OpenAPI operationId.',
       );
     const key = `${operation.resource}.${operation.method}`;
     if (seen.has(key)) throw new PipelineInputError(`Duplicate provider operation: ${key}`);
     seen.add(key);
-    return { resource: operation.resource, method: operation.method, schema: operation.schema };
+    return {
+      resource: operation.resource,
+      method: operation.method,
+      schema: operation.schema,
+      ...(operation.operationId ? { operationId: operation.operationId } : {}),
+    };
   });
   const propertyRenames = value.propertyRenames;
   if (
