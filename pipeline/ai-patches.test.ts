@@ -3,7 +3,8 @@ import { readRepository } from './repository.ts';
 import { runPipeline } from './run.ts';
 import { buildAssessmentEvidence } from './assessment.ts';
 import { proposeAiPatch, retrievalQueryForFinding } from './ai-patches.ts';
-import { createPassageIndex } from './passages.ts';
+import { createPassageIndex, PASSAGE_TEXT_CAP } from './passages.ts';
+import { MAX_INPUT_BYTES } from './openai.ts';
 import { STRIPE } from './providers.ts';
 import { retrieve } from './retrieval.ts';
 
@@ -166,6 +167,32 @@ it('leaves a confirmed finding unresolved when no passage matches', async () => 
     unresolvedReason: 'no supporting docs found',
     passages: [],
   });
+});
+
+it('stores the query, scored passages, and citations that report.json serializes', async () => {
+  const { edit, repository, report } = await fixture();
+  respond([edit]);
+  const proposal = await proposeAiPatch(repository, report.changes, report.findings, OPTIONS);
+  const stored = JSON.parse(JSON.stringify(proposal)) as {
+    retrieval: {
+      findings: {
+        query: { provider: string; operation?: string; fields: string[] };
+        passages: { id: string; score: number }[];
+        citedPassageIds: string[];
+      }[];
+    };
+    evidence: { passages?: { text: string }[] };
+  };
+  const finding = stored.retrieval.findings[0];
+  expect(finding.query).toMatchObject({ provider: 'stripe', fields: ['charges'] });
+  expect(finding.passages[0]).toEqual({ id: edit.passageIds[0], score: expect.any(Number) });
+  expect(finding.citedPassageIds).toEqual(edit.passageIds);
+  const passageText = (stored.evidence.passages ?? []).reduce(
+    (total, passage) => total + passage.text.length,
+    0,
+  );
+  expect(passageText).toBeLessThanOrEqual(PASSAGE_TEXT_CAP);
+  expect(Buffer.byteLength(JSON.stringify(proposal.evidence))).toBeLessThanOrEqual(MAX_INPUT_BYTES);
 });
 
 it('retrieves again from failing check terms during repair', async () => {

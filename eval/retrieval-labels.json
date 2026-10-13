@@ -1,0 +1,301 @@
+[
+  {
+    "id": "stripe-payment-intent-charges",
+    "provider": "stripe",
+    "operation": "paymentIntents.retrieve",
+    "field": "charges",
+    "changeKind": "removal",
+    "expectedPassageIds": ["44da6e513ed90cd5", "b7b90ec76b4fd90c"],
+    "confirmed": {
+      "url": "https://docs.stripe.com/changelog/2022-11-15/removes-charges-attribute-paymentintent",
+      "heading": "Removes the charges attribute from the PaymentIntent object"
+    },
+    "note": "Stripe's 2022-11-15 changelog says to use latest_charge instead of the charges list. stripe-node 11.0.0 also records the removal in favor of latest_charge. The pinned index explains the same removal at the Charges list page and the pinned changelog passage; those are the expected ids."
+  },
+  {
+    "id": "stripe-orders-resource",
+    "provider": "stripe",
+    "operation": "orders.retrieve",
+    "field": "Orders",
+    "changeKind": "removal",
+    "expectedPassageIds": [],
+    "confirmed": {
+      "url": "https://github.com/stripe/stripe-node/blob/v11.0.0/CHANGELOG.md",
+      "heading": "11.0.0 - 2022-11-16"
+    },
+    "note": "Changelog line: Remove Orders resource. (#1580). That heading is not in the pinned index."
+  },
+  {
+    "id": "stripe-sku-resource",
+    "provider": "stripe",
+    "operation": "skus.retrieve",
+    "field": "SKU",
+    "changeKind": "removal",
+    "expectedPassageIds": [],
+    "confirmed": {
+      "url": "https://github.com/stripe/stripe-node/blob/v11.0.0/CHANGELOG.md",
+      "heading": "11.0.0 - 2022-11-16"
+    },
+    "note": "Changelog line: Remove SKU resource (#1583)."
+  },
+  {
+    "id": "stripe-checkout-session-create-display-fields",
+    "provider": "stripe",
+    "operation": "checkout.sessions.create",
+    "field": "currency",
+    "changeKind": "removal",
+    "expectedPassageIds": [],
+    "confirmed": {
+      "url": "https://github.com/stripe/stripe-node/blob/v11.0.0/CHANGELOG.md",
+      "heading": "10.14.0 - 2022-10-13"
+    },
+    "note": "Same bullet removes currency, description, images, and name from Checkout.SessionCreateParams."
+  },
+  {
+    "id": "stripe-checkout-line-item-amount",
+    "provider": "stripe",
+    "operation": "checkout.sessions.listLineItems",
+    "field": "amount",
+    "changeKind": "removal",
+    "expectedPassageIds": [],
+    "confirmed": {
+      "url": "https://github.com/stripe/stripe-node/blob/v11.0.0/CHANGELOG.md",
+      "heading": "11.0.0 - 2022-11-16"
+    },
+    "note": "Changelog line: Remove deprecated amount field on Checkout.Session.LineItem. (#1614)."
+  },
+  {
+    "id": "stripe-alipay-and-bitcoin-source-types",
+    "provider": "stripe",
+    "operation": "customers.retrieve",
+    "field": "AlipayAccount",
+    "changeKind": "removal",
+    "expectedPassageIds": [],
+    "confirmed": {
+      "url": "https://github.com/stripe/stripe-node/blob/v11.0.0/CHANGELOG.md",
+      "heading": "10.0.0 - 2022-08-02"
+    },
+    "note": "Same removed section drops AlipayAccount and BitcoinReceiver source types. Product changes are also pointed at https://stripe.com/docs/upgrades#2022-08-01 from that changelog."
+  },
+  {
+    "id": "stripe-treasury-received-credit-reversed",
+    "provider": "stripe",
+    "operation": "treasury.receivedCredits",
+    "field": "reversed",
+    "changeKind": "rename",
+    "expectedPassageIds": [],
+    "confirmed": {
+      "url": "https://github.com/stripe/stripe-node/blob/v11.0.0/CHANGELOG.md",
+      "heading": "10.0.0 - 2022-08-02"
+    },
+    "note": "treasury.received_credit.reversed was removed. The changelog says to use treasury.received_credit.returned."
+  },
+  {
+    "id": "stripe-login-links-redirect-url",
+    "provider": "stripe",
+    "operation": "accounts.loginLinks.create",
+    "field": "redirect_url",
+    "changeKind": "removal",
+    "expectedPassageIds": [],
+    "confirmed": {
+      "url": "https://github.com/stripe/stripe-node/blob/v11.0.0/CHANGELOG.md",
+      "heading": "10.0.0 - 2022-08-02"
+    },
+    "note": "Changelog line: Remove redirect_url from LoginLinks definition."
+  },
+  {
+    "id": "stripe-issuing-card-retrieve-details",
+    "provider": "stripe",
+    "operation": "issuing.cards.retrieveDetails",
+    "field": "retrieveDetails",
+    "changeKind": "removal",
+    "expectedPassageIds": [],
+    "confirmed": {
+      "url": "https://github.com/stripe/stripe-node/blob/v11.0.0/CHANGELOG.md",
+      "heading": "10.0.0 - 2022-08-02"
+    },
+    "note": "Changelog line: Remove retrieveDetails from Issuing.Card. The same entry points at https://stripe.com/docs/issuing/cards/virtual."
+  },
+  {
+    "id": "stripe-recipient-resource",
+    "provider": "stripe",
+    "operation": "recipients.retrieve",
+    "field": "Recipient",
+    "changeKind": "removal",
+    "expectedPassageIds": [],
+    "confirmed": {
+      "url": "https://github.com/stripe/stripe-node/blob/v11.0.0/CHANGELOG.md",
+      "heading": "10.0.0 - 2022-08-02"
+    },
+    "note": "Changelog line: Remove Recipient resource and the recipient property from Card."
+  },
+  {
+    "id": "openai-owned-by-owner-name",
+    "provider": "openai",
+    "operation": "models.retrieve",
+    "field": "owned_by",
+    "changeKind": "synthetic-rename",
+    "expectedPassageIds": ["4df5e016e680249d"],
+    "confirmed": {
+      "url": "https://developers.openai.com/api/reference/resources/models/methods/retrieve",
+      "heading": "owned_by"
+    },
+    "note": "The owned_by to owner_name rename is the Refit fixture in pipeline/fixtures/openai/README.md. The pinned passage says that rename is synthetic and is not an announced OpenAI change. The live retrieve-model page documents owned_by."
+  },
+  {
+    "id": "openai-chat-functions-to-tools",
+    "provider": "openai",
+    "operation": "chat.completions.create",
+    "field": "functions",
+    "changeKind": "deprecation",
+    "expectedPassageIds": [],
+    "confirmed": {
+      "url": "https://developers.openai.com/api/reference/resources/chat/subresources/completions/methods/create/",
+      "heading": "Create chat completion"
+    },
+    "note": "Create chat completion marks functions deprecated in favor of tools. The API changelog repeats this under November, 2023 / Nov 6: Deprecated the Chat Completions functions parameter in favor of tools. https://developers.openai.com/api/docs/changelog"
+  },
+  {
+    "id": "openai-chat-function-call-to-tool-choice",
+    "provider": "openai",
+    "operation": "chat.completions.create",
+    "field": "function_call",
+    "changeKind": "deprecation",
+    "expectedPassageIds": [],
+    "confirmed": {
+      "url": "https://developers.openai.com/api/reference/resources/chat/subresources/completions/methods/create/",
+      "heading": "Create chat completion"
+    },
+    "note": "Request parameter function_call is deprecated in favor of tool_choice."
+  },
+  {
+    "id": "openai-chat-max-tokens-to-max-completion-tokens",
+    "provider": "openai",
+    "operation": "chat.completions.create",
+    "field": "max_tokens",
+    "changeKind": "deprecation",
+    "expectedPassageIds": [],
+    "confirmed": {
+      "url": "https://developers.openai.com/api/reference/resources/chat/subresources/completions/methods/create/",
+      "heading": "Create chat completion"
+    },
+    "note": "max_tokens is deprecated in favor of max_completion_tokens and is not compatible with o-series models."
+  },
+  {
+    "id": "openai-assistant-message-function-call",
+    "provider": "openai",
+    "operation": "chat.completions.create",
+    "field": "function_call",
+    "changeKind": "deprecation",
+    "expectedPassageIds": [],
+    "confirmed": {
+      "url": "https://developers.openai.com/api/reference/resources/chat/subresources/completions/methods/create/",
+      "heading": "Create chat completion"
+    },
+    "note": "Assistant message function_call is deprecated and replaced by tool_calls. Distinct from the request-level function_call parameter."
+  },
+  {
+    "id": "openai-assistants-api-shutdown",
+    "provider": "openai",
+    "operation": "assistants.create",
+    "field": "assistants",
+    "changeKind": "shutdown",
+    "expectedPassageIds": [],
+    "confirmed": {
+      "url": "https://developers.openai.com/api/docs/deprecations",
+      "heading": "2025-08-20: Assistants API"
+    },
+    "note": "Assistants API shutdown date 2026-08-26. Replacement named on that page: Responses API and Conversations API."
+  },
+  {
+    "id": "openai-edits-endpoint-shutdown",
+    "provider": "openai",
+    "operation": "edits.create",
+    "field": "edits",
+    "changeKind": "shutdown",
+    "expectedPassageIds": [],
+    "confirmed": {
+      "url": "https://developers.openai.com/api/docs/deprecations",
+      "heading": "Edit models & endpoint"
+    },
+    "note": "Table row shuts down /v1/edits on 2024-01-04 in favor of /v1/chat/completions."
+  },
+  {
+    "id": "openai-fine-tunes-endpoint-shutdown",
+    "provider": "openai",
+    "operation": "fineTunes.create",
+    "field": "fine-tunes",
+    "changeKind": "shutdown",
+    "expectedPassageIds": [],
+    "confirmed": {
+      "url": "https://developers.openai.com/api/docs/deprecations",
+      "heading": "2023-08-22: Fine-tunes endpoint"
+    },
+    "note": "Table row shuts down /v1/fine-tunes on 2024-01-04 in favor of /v1/fine_tuning/jobs."
+  },
+  {
+    "id": "anthropic-fixture-max-tokens",
+    "provider": "anthropic",
+    "operation": "messages.create",
+    "field": "max_tokens",
+    "changeKind": "synthetic-removal",
+    "expectedPassageIds": ["d445209964cfad26"],
+    "confirmed": {
+      "url": "https://docs.anthropic.com/en/api/messages",
+      "heading": "max_tokens"
+    },
+    "note": "pipeline/fixtures/anthropic/README.md removes Message.max_tokens only as a fixture. The pinned passage says it does not describe a live Anthropic removal. The live Messages reference still documents max_tokens."
+  },
+  {
+    "id": "anthropic-legacy-completions",
+    "provider": "anthropic",
+    "operation": "completions.create",
+    "field": "HUMAN_PROMPT",
+    "changeKind": "removal",
+    "expectedPassageIds": [],
+    "confirmed": {
+      "url": "https://github.com/anthropics/anthropic-sdk-python/blob/v1.0.0/MIGRATION.md",
+      "heading": "Removed: the legacy Text Completions API"
+    },
+    "note": "Python SDK v1 removes client.completions.create, HUMAN_PROMPT, and AI_PROMPT in favor of messages.create."
+  },
+  {
+    "id": "anthropic-messages-temperature",
+    "provider": "anthropic",
+    "operation": "messages.create",
+    "field": "temperature",
+    "changeKind": "removal",
+    "expectedPassageIds": [],
+    "confirmed": {
+      "url": "https://github.com/anthropics/anthropic-sdk-python/blob/v1.0.0/MIGRATION.md",
+      "heading": "Removed: deprecated request parameters"
+    },
+    "note": "messages.create, messages.stream, and messages.parse no longer accept temperature, top_p, or top_k on the method signature."
+  },
+  {
+    "id": "anthropic-output-format",
+    "provider": "anthropic",
+    "operation": "beta.messages.create",
+    "field": "output_format",
+    "changeKind": "rename",
+    "expectedPassageIds": [],
+    "confirmed": {
+      "url": "https://github.com/anthropics/anthropic-sdk-python/blob/v1.0.0/MIGRATION.md",
+      "heading": "Removed: deprecated request parameters"
+    },
+    "note": "output_format on beta.messages.create is replaced by output_config."
+  },
+  {
+    "id": "anthropic-messages-system-role",
+    "provider": "anthropic",
+    "operation": "messages.create",
+    "field": "system",
+    "changeKind": "constraint",
+    "expectedPassageIds": [],
+    "confirmed": {
+      "url": "https://docs.anthropic.com/en/api/messages",
+      "heading": "Create a Message"
+    },
+    "note": "The live Messages reference says a system prompt uses the top-level system parameter and that input messages have no system role. The pinned max_tokens passage does not mention system."
+  }
+]

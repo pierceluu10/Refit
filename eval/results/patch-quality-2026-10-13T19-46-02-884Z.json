@@ -1,0 +1,47 @@
+{
+  "measuredAt": "2026-10-13T19:46:02.884Z",
+  "model": null,
+  "runsRequested": 5,
+  "repairAttempts": 1,
+  "docker": false,
+  "status": "skipped",
+  "samplePullRequests": [],
+  "cases": [
+    {
+      "id": "stripe-billing-demo",
+      "status": "skipped",
+      "blockers": [
+        "OPENAI_API_KEY is unset.",
+        "OPENAI_MODEL is unset.",
+        "Docker is not available. spawn docker ENOENT",
+        "Billing demo repository is not present at /refit-billing-demo. examples/billing-demo.refit.json points there.",
+        "Retrieval off cannot be selected on validateMigration. proposeAiPatch accepts retrieval: disabled, and the scan/validation path does not."
+      ],
+      "runs": []
+    },
+    {
+      "id": "openai-rename-proof",
+      "status": "skipped",
+      "blockers": [
+        "OPENAI_API_KEY is unset.",
+        "OPENAI_MODEL is unset.",
+        "Docker is not available. spawn docker ENOENT",
+        "The OpenAI rename proof is built from pipeline/fixtures/openai/repository plus temporary before/after specs in eval/rag-eval.ts. That repository is not a Git root, and no Docker image is recorded for it.",
+        "Retrieval off cannot be selected on validateMigration."
+      ],
+      "runs": []
+    },
+    {
+      "id": "anthropic-fixture",
+      "status": "skipped",
+      "blockers": [
+        "OPENAI_API_KEY is unset.",
+        "OPENAI_MODEL is unset.",
+        "Docker is not available. spawn docker ENOENT",
+        "pipeline/fixtures/anthropic/repository is not a Git root, and no Docker image or check command is recorded for that fixture.",
+        "Retrieval off cannot be selected on validateMigration."
+      ],
+      "runs": []
+    }
+  ]
+}

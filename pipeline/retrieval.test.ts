@@ -30,7 +30,9 @@ it('returns the same ranked passages and enforces the character cap', () => {
   );
   const corpus = index(documents);
   const query = { provider: 'example', fields: ['fieldname'] };
-  expect(retrieve(query, corpus, 5)).toEqual(retrieve(query, corpus, 5));
+  const first = retrieve(query, corpus, 5);
+  expect(retrieve(query, corpus, 5)).toEqual(first);
+  expect(retrieve(query, corpus, 5)).toEqual(first);
   const capped = retrieve(query, corpus, 5);
   expect(capped.reduce((total, item) => total + item.passage.text.length, 0)).toBeLessThanOrEqual(
     PASSAGE_TEXT_CAP,
@@ -38,6 +40,19 @@ it('returns the same ranked passages and enforces the character cap', () => {
   expect(capped.length).toBeLessThan(5);
   expect(retrieve({ provider: 'example', fields: ['zzzznotpresent'] }, corpus)).toEqual([]);
   expect(retrieve({ provider: 'other', fields: ['fieldname'] }, corpus)).toEqual([]);
+});
+
+it('returns the same pinned passages for one query across 3 runs', async () => {
+  const corpus = await createPassageIndex({ provider: 'stripe' });
+  const query = {
+    provider: 'stripe',
+    operation: 'paymentIntents.retrieve',
+    fields: ['charges'],
+  };
+  const first = retrieve(query, corpus);
+  expect(retrieve(query, corpus)).toEqual(first);
+  expect(retrieve(query, corpus)).toEqual(first);
+  expect(first.length).toBeGreaterThan(0);
 });
 
 it('prints a top-4 hit for every labeled provider change', async () => {

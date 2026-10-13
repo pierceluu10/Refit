@@ -1,0 +1,150 @@
+{
+  "measuredAt": "2026-10-13T19:46:04.319Z",
+  "machine": {
+    "node": "v22.14.0",
+    "platform": "linux",
+    "arch": "x64"
+  },
+  "indexBuilds": [
+    {
+      "provider": "stripe",
+      "builds": 5,
+      "passages": 4,
+      "samplesMs": [
+        1.141055999999935,
+        0.883846000000176,
+        0.6295760000000428,
+        0.5704090000001543,
+        0.5151220000000194
+      ],
+      "medianMs": 0.6295760000000428
+    },
+    {
+      "provider": "openai",
+      "builds": 5,
+      "passages": 4,
+      "samplesMs": [
+        0.30606299999999464,
+        0.27803800000015144,
+        0.38053400000012516,
+        0.8744020000001456,
+        0.3939629999999852
+      ],
+      "medianMs": 0.38053400000012516
+    },
+    {
+      "provider": "anthropic",
+      "builds": 5,
+      "passages": 4,
+      "samplesMs": [
+        0.32029599999987113,
+        0.3052020000000084,
+        1.42770100000007,
+        0.35851400000001377,
+        0.6756629999999859
+      ],
+      "medianMs": 0.35851400000001377
+    }
+  ],
+  "retrieval": {
+    "queries": 1000,
+    "labels": 23,
+    "p50Ms": 0.023680000000013024,
+    "p95Ms": 0.063186000000087,
+    "maxMs": 6.961148999999978,
+    "percentile": "nearest-rank, ceil(percent/100*n)-1"
+  },
+  "promptSize": [
+    {
+      "case": "stripe-replay",
+      "on": {
+        "retrieval": "required",
+        "fetchCalled": true,
+        "evidenceCharacters": 3058,
+        "requestCharacters": 7253,
+        "passageCharacters": 450,
+        "estimatedEvidenceTokens": 765,
+        "estimatedRequestTokens": 1814
+      },
+      "off": {
+        "retrieval": "disabled",
+        "fetchCalled": true,
+        "evidenceCharacters": 1741,
+        "requestCharacters": 5486,
+        "passageCharacters": 0,
+        "estimatedEvidenceTokens": 436,
+        "estimatedRequestTokens": 1372
+      },
+      "extraEvidenceCharacters": 1317,
+      "extraRequestCharacters": 1767,
+      "extraEstimatedEvidenceTokens": 329,
+      "tokenEstimate": "ceil(characters / 4). This is not the API tokenizer and not usage from a model response."
+    },
+    {
+      "case": "openai-rename-proof",
+      "on": {
+        "retrieval": "required",
+        "fetchCalled": true,
+        "evidenceCharacters": 2521,
+        "requestCharacters": 6633,
+        "passageCharacters": 365,
+        "estimatedEvidenceTokens": 631,
+        "estimatedRequestTokens": 1659
+      },
+      "off": {
+        "retrieval": "disabled",
+        "fetchCalled": true,
+        "evidenceCharacters": 1559,
+        "requestCharacters": 5257,
+        "passageCharacters": 0,
+        "estimatedEvidenceTokens": 390,
+        "estimatedRequestTokens": 1315
+      },
+      "extraEvidenceCharacters": 962,
+      "extraRequestCharacters": 1376,
+      "extraEstimatedEvidenceTokens": 241,
+      "tokenEstimate": "ceil(characters / 4). This is not the API tokenizer and not usage from a model response."
+    },
+    {
+      "case": "anthropic-fixture",
+      "on": {
+        "retrieval": "required",
+        "fetchCalled": true,
+        "evidenceCharacters": 2122,
+        "requestCharacters": 6221,
+        "passageCharacters": 217,
+        "estimatedEvidenceTokens": 531,
+        "estimatedRequestTokens": 1556
+      },
+      "off": {
+        "retrieval": "disabled",
+        "fetchCalled": true,
+        "evidenceCharacters": 1330,
+        "requestCharacters": 5015,
+        "passageCharacters": 0,
+        "estimatedEvidenceTokens": 333,
+        "estimatedRequestTokens": 1254
+      },
+      "extraEvidenceCharacters": 792,
+      "extraRequestCharacters": 1206,
+      "extraEstimatedEvidenceTokens": 198,
+      "tokenEstimate": "ceil(characters / 4). This is not the API tokenizer and not usage from a model response."
+    }
+  ],
+  "model": {
+    "status": "skipped",
+    "model": null,
+    "reason": "OPENAI_API_KEY is unset, so no model call latency or response usage was collected."
+  },
+  "stageTimings": {
+    "status": "skipped",
+    "reason": "Layer 3 did not produce Detect, Understand, Validate, or Review timings. Validate is dominated by Docker when that path runs.",
+    "patchQualityFile": "/workspace/eval/results/patch-quality-2026-10-13T19-46-02-884Z.json",
+    "patchQualityStatus": "skipped"
+  },
+  "hyperfine": {
+    "installed": false,
+    "detail": "spawn hyperfine ENOENT",
+    "compared": false
+  }
+}

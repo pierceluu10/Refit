@@ -1,0 +1,19 @@
+{
+  "measuredAt": "2026-10-13T19:46:07.230Z",
+  "command": "node --import tsx pipeline/cli.ts --repository pipeline/fixtures/repository --before pipeline/fixtures/before.json --after pipeline/fixtures/after.json",
+  "flags": "no --ai-patch",
+  "mainRevision": "113626e0c8d23b7eada45595ca9f27e9fbe14bbd",
+  "stripeReplay": {
+    "identical": true,
+    "branchBytes": 5267,
+    "mainBytes": 5267,
+    "branchRunId": "4bc176068c1cab325172ba9c624486fcfb397274c745d63c767059ea8be4aeaf",
+    "mainRunId": "4bc176068c1cab325172ba9c624486fcfb397274c745d63c767059ea8be4aeaf",
+    "branchStatus": "affected",
+    "mainStatus": "affected"
+  },
+  "billingDemo": {
+    "status": "skipped",
+    "reason": "examples/billing-demo.refit.json points at ../../refit-billing-demo, which is not in this environment, and Docker is not available."
+  }
+}

@@ -1,0 +1,570 @@
+{
+  "measuredAt": "2026-10-13T19:46:01.676Z",
+  "index": {
+    "sha256": "fe2c4de5c7ca261aa1acb7b91d54b3b3db845b20c7b8fddffef3dcb843064db3",
+    "passages": 4,
+    "providers": [
+      "anthropic",
+      "openai",
+      "stripe"
+    ]
+  },
+  "labels": 23,
+  "byProvider": {
+    "anthropic": {
+      "labels": 5,
+      "hit1": 1,
+      "hit4": 1,
+      "hitAt1": 0.2,
+      "hitAt4": 0.2,
+      "mrr": 0.2,
+      "zeroResults": 0
+    },
+    "openai": {
+      "labels": 8,
+      "hit1": 1,
+      "hit4": 1,
+      "hitAt1": 0.125,
+      "hitAt4": 0.125,
+      "mrr": 0.125,
+      "zeroResults": 7
+    },
+    "stripe": {
+      "labels": 10,
+      "hit1": 1,
+      "hit4": 1,
+      "hitAt1": 0.1,
+      "hitAt4": 0.1,
+      "mrr": 0.1,
+      "zeroResults": 5
+    }
+  },
+  "overall": {
+    "labels": 23,
+    "hit1": 3,
+    "hit4": 3,
+    "hitAt1": 0.13043478260869565,
+    "hitAt4": 0.13043478260869565,
+    "mrr": 0.13043478260869565,
+    "zeroResults": 12
+  },
+  "hits": [
+    {
+      "id": "stripe-payment-intent-charges",
+      "rank": 1,
+      "reciprocal": 1
+    },
+    {
+      "id": "openai-owned-by-owner-name",
+      "rank": 1,
+      "reciprocal": 1
+    },
+    {
+      "id": "anthropic-fixture-max-tokens",
+      "rank": 1,
+      "reciprocal": 1
+    }
+  ],
+  "misses": [
+    {
+      "id": "stripe-orders-resource",
+      "provider": "stripe",
+      "query": {
+        "provider": "stripe",
+        "operation": "orders.retrieve",
+        "field": "Orders"
+      },
+      "expectedPassageIds": [],
+      "missingFromIndex": [],
+      "confirmed": {
+        "url": "https://github.com/stripe/stripe-node/blob/v11.0.0/CHANGELOG.md",
+        "heading": "11.0.0 - 2022-11-16"
+      },
+      "note": "Changelog line: Remove Orders resource. (#1580). That heading is not in the pinned index.",
+      "reason": "No pinned passage id was labeled for this confirmed source.",
+      "top": [
+        {
+          "rank": 1,
+          "id": "b7b90ec76b4fd90c",
+          "score": 1.050667,
+          "provider": "stripe",
+          "headingPath": [
+            "API updates",
+            "PaymentIntent charges"
+          ],
+          "sourceUrl": "https://docs.stripe.com/changelog"
+        },
+        {
+          "rank": 2,
+          "id": "44da6e513ed90cd5",
+          "score": 0.805056,
+          "provider": "stripe",
+          "headingPath": [
+            "Charges",
+            "charges"
+          ],
+          "sourceUrl": "https://docs.stripe.com/api/charges/list"
+        }
+      ]
+    },
+    {
+      "id": "stripe-sku-resource",
+      "provider": "stripe",
+      "query": {
+        "provider": "stripe",
+        "operation": "skus.retrieve",
+        "field": "SKU"
+      },
+      "expectedPassageIds": [],
+      "missingFromIndex": [],
+      "confirmed": {
+        "url": "https://github.com/stripe/stripe-node/blob/v11.0.0/CHANGELOG.md",
+        "heading": "11.0.0 - 2022-11-16"
+      },
+      "note": "Changelog line: Remove SKU resource (#1583).",
+      "reason": "No pinned passage id was labeled for this confirmed source.",
+      "top": [
+        {
+          "rank": 1,
+          "id": "b7b90ec76b4fd90c",
+          "score": 1.050667,
+          "provider": "stripe",
+          "headingPath": [
+            "API updates",
+            "PaymentIntent charges"
+          ],
+          "sourceUrl": "https://docs.stripe.com/changelog"
+        },
+        {
+          "rank": 2,
+          "id": "44da6e513ed90cd5",
+          "score": 0.805056,
+          "provider": "stripe",
+          "headingPath": [
+            "Charges",
+            "charges"
+          ],
+          "sourceUrl": "https://docs.stripe.com/api/charges/list"
+        }
+      ]
+    },
+    {
+      "id": "stripe-checkout-session-create-display-fields",
+      "provider": "stripe",
+      "query": {
+        "provider": "stripe",
+        "operation": "checkout.sessions.create",
+        "field": "currency"
+      },
+      "expectedPassageIds": [],
+      "missingFromIndex": [],
+      "confirmed": {
+        "url": "https://github.com/stripe/stripe-node/blob/v11.0.0/CHANGELOG.md",
+        "heading": "10.14.0 - 2022-10-13"
+      },
+      "note": "Same bullet removes currency, description, images, and name from Checkout.SessionCreateParams.",
+      "reason": "No pinned passage id was labeled for this confirmed source.",
+      "top": []
+    },
+    {
+      "id": "stripe-checkout-line-item-amount",
+      "provider": "stripe",
+      "query": {
+        "provider": "stripe",
+        "operation": "checkout.sessions.listLineItems",
+        "field": "amount"
+      },
+      "expectedPassageIds": [],
+      "missingFromIndex": [],
+      "confirmed": {
+        "url": "https://github.com/stripe/stripe-node/blob/v11.0.0/CHANGELOG.md",
+        "heading": "11.0.0 - 2022-11-16"
+      },
+      "note": "Changelog line: Remove deprecated amount field on Checkout.Session.LineItem. (#1614).",
+      "reason": "No pinned passage id was labeled for this confirmed source.",
+      "top": []
+    },
+    {
+      "id": "stripe-alipay-and-bitcoin-source-types",
+      "provider": "stripe",
+      "query": {
+        "provider": "stripe",
+        "operation": "customers.retrieve",
+        "field": "AlipayAccount"
+      },
+      "expectedPassageIds": [],
+      "missingFromIndex": [],
+      "confirmed": {
+        "url": "https://github.com/stripe/stripe-node/blob/v11.0.0/CHANGELOG.md",
+        "heading": "10.0.0 - 2022-08-02"
+      },
+      "note": "Same removed section drops AlipayAccount and BitcoinReceiver source types. Product changes are also pointed at https://stripe.com/docs/upgrades#2022-08-01 from that changelog.",
+      "reason": "No pinned passage id was labeled for this confirmed source.",
+      "top": [
+        {
+          "rank": 1,
+          "id": "b7b90ec76b4fd90c",
+          "score": 1.050667,
+          "provider": "stripe",
+          "headingPath": [
+            "API updates",
+            "PaymentIntent charges"
+          ],
+          "sourceUrl": "https://docs.stripe.com/changelog"
+        },
+        {
+          "rank": 2,
+          "id": "44da6e513ed90cd5",
+          "score": 0.805056,
+          "provider": "stripe",
+          "headingPath": [
+            "Charges",
+            "charges"
+          ],
+          "sourceUrl": "https://docs.stripe.com/api/charges/list"
+        }
+      ]
+    },
+    {
+      "id": "stripe-treasury-received-credit-reversed",
+      "provider": "stripe",
+      "query": {
+        "provider": "stripe",
+        "operation": "treasury.receivedCredits",
+        "field": "reversed"
+      },
+      "expectedPassageIds": [],
+      "missingFromIndex": [],
+      "confirmed": {
+        "url": "https://github.com/stripe/stripe-node/blob/v11.0.0/CHANGELOG.md",
+        "heading": "10.0.0 - 2022-08-02"
+      },
+      "note": "treasury.received_credit.reversed was removed. The changelog says to use treasury.received_credit.returned.",
+      "reason": "No pinned passage id was labeled for this confirmed source.",
+      "top": []
+    },
+    {
+      "id": "stripe-login-links-redirect-url",
+      "provider": "stripe",
+      "query": {
+        "provider": "stripe",
+        "operation": "accounts.loginLinks.create",
+        "field": "redirect_url"
+      },
+      "expectedPassageIds": [],
+      "missingFromIndex": [],
+      "confirmed": {
+        "url": "https://github.com/stripe/stripe-node/blob/v11.0.0/CHANGELOG.md",
+        "heading": "10.0.0 - 2022-08-02"
+      },
+      "note": "Changelog line: Remove redirect_url from LoginLinks definition.",
+      "reason": "No pinned passage id was labeled for this confirmed source.",
+      "top": []
+    },
+    {
+      "id": "stripe-issuing-card-retrieve-details",
+      "provider": "stripe",
+      "query": {
+        "provider": "stripe",
+        "operation": "issuing.cards.retrieveDetails",
+        "field": "retrieveDetails"
+      },
+      "expectedPassageIds": [],
+      "missingFromIndex": [],
+      "confirmed": {
+        "url": "https://github.com/stripe/stripe-node/blob/v11.0.0/CHANGELOG.md",
+        "heading": "10.0.0 - 2022-08-02"
+      },
+      "note": "Changelog line: Remove retrieveDetails from Issuing.Card. The same entry points at https://stripe.com/docs/issuing/cards/virtual.",
+      "reason": "No pinned passage id was labeled for this confirmed source.",
+      "top": []
+    },
+    {
+      "id": "stripe-recipient-resource",
+      "provider": "stripe",
+      "query": {
+        "provider": "stripe",
+        "operation": "recipients.retrieve",
+        "field": "Recipient"
+      },
+      "expectedPassageIds": [],
+      "missingFromIndex": [],
+      "confirmed": {
+        "url": "https://github.com/stripe/stripe-node/blob/v11.0.0/CHANGELOG.md",
+        "heading": "10.0.0 - 2022-08-02"
+      },
+      "note": "Changelog line: Remove Recipient resource and the recipient property from Card.",
+      "reason": "No pinned passage id was labeled for this confirmed source.",
+      "top": [
+        {
+          "rank": 1,
+          "id": "b7b90ec76b4fd90c",
+          "score": 1.050667,
+          "provider": "stripe",
+          "headingPath": [
+            "API updates",
+            "PaymentIntent charges"
+          ],
+          "sourceUrl": "https://docs.stripe.com/changelog"
+        },
+        {
+          "rank": 2,
+          "id": "44da6e513ed90cd5",
+          "score": 0.805056,
+          "provider": "stripe",
+          "headingPath": [
+            "Charges",
+            "charges"
+          ],
+          "sourceUrl": "https://docs.stripe.com/api/charges/list"
+        }
+      ]
+    },
+    {
+      "id": "openai-chat-functions-to-tools",
+      "provider": "openai",
+      "query": {
+        "provider": "openai",
+        "operation": "chat.completions.create",
+        "field": "functions"
+      },
+      "expectedPassageIds": [],
+      "missingFromIndex": [],
+      "confirmed": {
+        "url": "https://developers.openai.com/api/reference/resources/chat/subresources/completions/methods/create/",
+        "heading": "Create chat completion"
+      },
+      "note": "Create chat completion marks functions deprecated in favor of tools. The API changelog repeats this under November, 2023 / Nov 6: Deprecated the Chat Completions functions parameter in favor of tools. https://developers.openai.com/api/docs/changelog",
+      "reason": "No pinned passage id was labeled for this confirmed source.",
+      "top": []
+    },
+    {
+      "id": "openai-chat-function-call-to-tool-choice",
+      "provider": "openai",
+      "query": {
+        "provider": "openai",
+        "operation": "chat.completions.create",
+        "field": "function_call"
+      },
+      "expectedPassageIds": [],
+      "missingFromIndex": [],
+      "confirmed": {
+        "url": "https://developers.openai.com/api/reference/resources/chat/subresources/completions/methods/create/",
+        "heading": "Create chat completion"
+      },
+      "note": "Request parameter function_call is deprecated in favor of tool_choice.",
+      "reason": "No pinned passage id was labeled for this confirmed source.",
+      "top": []
+    },
+    {
+      "id": "openai-chat-max-tokens-to-max-completion-tokens",
+      "provider": "openai",
+      "query": {
+        "provider": "openai",
+        "operation": "chat.completions.create",
+        "field": "max_tokens"
+      },
+      "expectedPassageIds": [],
+      "missingFromIndex": [],
+      "confirmed": {
+        "url": "https://developers.openai.com/api/reference/resources/chat/subresources/completions/methods/create/",
+        "heading": "Create chat completion"
+      },
+      "note": "max_tokens is deprecated in favor of max_completion_tokens and is not compatible with o-series models.",
+      "reason": "No pinned passage id was labeled for this confirmed source.",
+      "top": []
+    },
+    {
+      "id": "openai-assistant-message-function-call",
+      "provider": "openai",
+      "query": {
+        "provider": "openai",
+        "operation": "chat.completions.create",
+        "field": "function_call"
+      },
+      "expectedPassageIds": [],
+      "missingFromIndex": [],
+      "confirmed": {
+        "url": "https://developers.openai.com/api/reference/resources/chat/subresources/completions/methods/create/",
+        "heading": "Create chat completion"
+      },
+      "note": "Assistant message function_call is deprecated and replaced by tool_calls. Distinct from the request-level function_call parameter.",
+      "reason": "No pinned passage id was labeled for this confirmed source.",
+      "top": []
+    },
+    {
+      "id": "openai-assistants-api-shutdown",
+      "provider": "openai",
+      "query": {
+        "provider": "openai",
+        "operation": "assistants.create",
+        "field": "assistants"
+      },
+      "expectedPassageIds": [],
+      "missingFromIndex": [],
+      "confirmed": {
+        "url": "https://developers.openai.com/api/docs/deprecations",
+        "heading": "2025-08-20: Assistants API"
+      },
+      "note": "Assistants API shutdown date 2026-08-26. Replacement named on that page: Responses API and Conversations API.",
+      "reason": "No pinned passage id was labeled for this confirmed source.",
+      "top": []
+    },
+    {
+      "id": "openai-edits-endpoint-shutdown",
+      "provider": "openai",
+      "query": {
+        "provider": "openai",
+        "operation": "edits.create",
+        "field": "edits"
+      },
+      "expectedPassageIds": [],
+      "missingFromIndex": [],
+      "confirmed": {
+        "url": "https://developers.openai.com/api/docs/deprecations",
+        "heading": "Edit models & endpoint"
+      },
+      "note": "Table row shuts down /v1/edits on 2024-01-04 in favor of /v1/chat/completions.",
+      "reason": "No pinned passage id was labeled for this confirmed source.",
+      "top": []
+    },
+    {
+      "id": "openai-fine-tunes-endpoint-shutdown",
+      "provider": "openai",
+      "query": {
+        "provider": "openai",
+        "operation": "fineTunes.create",
+        "field": "fine-tunes"
+      },
+      "expectedPassageIds": [],
+      "missingFromIndex": [],
+      "confirmed": {
+        "url": "https://developers.openai.com/api/docs/deprecations",
+        "heading": "2023-08-22: Fine-tunes endpoint"
+      },
+      "note": "Table row shuts down /v1/fine-tunes on 2024-01-04 in favor of /v1/fine_tuning/jobs.",
+      "reason": "No pinned passage id was labeled for this confirmed source.",
+      "top": []
+    },
+    {
+      "id": "anthropic-legacy-completions",
+      "provider": "anthropic",
+      "query": {
+        "provider": "anthropic",
+        "operation": "completions.create",
+        "field": "HUMAN_PROMPT"
+      },
+      "expectedPassageIds": [],
+      "missingFromIndex": [],
+      "confirmed": {
+        "url": "https://github.com/anthropics/anthropic-sdk-python/blob/v1.0.0/MIGRATION.md",
+        "heading": "Removed: the legacy Text Completions API"
+      },
+      "note": "Python SDK v1 removes client.completions.create, HUMAN_PROMPT, and AI_PROMPT in favor of messages.create.",
+      "reason": "No pinned passage id was labeled for this confirmed source.",
+      "top": [
+        {
+          "rank": 1,
+          "id": "d445209964cfad26",
+          "score": 1.43841,
+          "provider": "anthropic",
+          "headingPath": [
+            "Messages",
+            "max_tokens"
+          ],
+          "sourceUrl": "https://docs.anthropic.com/en/api/messages"
+        }
+      ]
+    },
+    {
+      "id": "anthropic-messages-temperature",
+      "provider": "anthropic",
+      "query": {
+        "provider": "anthropic",
+        "operation": "messages.create",
+        "field": "temperature"
+      },
+      "expectedPassageIds": [],
+      "missingFromIndex": [],
+      "confirmed": {
+        "url": "https://github.com/anthropics/anthropic-sdk-python/blob/v1.0.0/MIGRATION.md",
+        "heading": "Removed: deprecated request parameters"
+      },
+      "note": "messages.create, messages.stream, and messages.parse no longer accept temperature, top_p, or top_k on the method signature.",
+      "reason": "No pinned passage id was labeled for this confirmed source.",
+      "top": [
+        {
+          "rank": 1,
+          "id": "d445209964cfad26",
+          "score": 3.69877,
+          "provider": "anthropic",
+          "headingPath": [
+            "Messages",
+            "max_tokens"
+          ],
+          "sourceUrl": "https://docs.anthropic.com/en/api/messages"
+        }
+      ]
+    },
+    {
+      "id": "anthropic-output-format",
+      "provider": "anthropic",
+      "query": {
+        "provider": "anthropic",
+        "operation": "beta.messages.create",
+        "field": "output_format"
+      },
+      "expectedPassageIds": [],
+      "missingFromIndex": [],
+      "confirmed": {
+        "url": "https://github.com/anthropics/anthropic-sdk-python/blob/v1.0.0/MIGRATION.md",
+        "heading": "Removed: deprecated request parameters"
+      },
+      "note": "output_format on beta.messages.create is replaced by output_config.",
+      "reason": "No pinned passage id was labeled for this confirmed source.",
+      "top": [
+        {
+          "rank": 1,
+          "id": "d445209964cfad26",
+          "score": 3.69877,
+          "provider": "anthropic",
+          "headingPath": [
+            "Messages",
+            "max_tokens"
+          ],
+          "sourceUrl": "https://docs.anthropic.com/en/api/messages"
+        }
+      ]
+    },
+    {
+      "id": "anthropic-messages-system-role",
+      "provider": "anthropic",
+      "query": {
+        "provider": "anthropic",
+        "operation": "messages.create",
+        "field": "system"
+      },
+      "expectedPassageIds": [],
+      "missingFromIndex": [],
+      "confirmed": {
+        "url": "https://docs.anthropic.com/en/api/messages",
+        "heading": "Create a Message"
+      },
+      "note": "The live Messages reference says a system prompt uses the top-level system parameter and that input messages have no system role. The pinned max_tokens passage does not mention system.",
+      "reason": "No pinned passage id was labeled for this confirmed source.",
+      "top": [
+        {
+          "rank": 1,
+          "id": "d445209964cfad26",
+          "score": 3.69877,
+          "provider": "anthropic",
+          "headingPath": [
+            "Messages",
+            "max_tokens"
+          ],
+          "sourceUrl": "https://docs.anthropic.com/en/api/messages"
+        }
+      ]
+    }
+  ]
+}
