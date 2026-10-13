@@ -8,6 +8,7 @@ const commands = new Map([
   ['run', 'workflow-cli.ts'],
   ['validate', 'validation-cli.ts'],
   ['stripe-snapshot', 'snapshot-cli.ts'],
+  ['source-snapshot', 'source-snapshot-cli.ts'],
   ['stripe-check', 'check-cli.ts'],
   ['replay', 'cli.ts'],
   ['demo', 'demo-cli.ts'],
@@ -24,6 +25,7 @@ Usage: refit <command> [options]
   run              Scan, propose, validate and optionally publish a draft PR
   validate         Validate a proposal in restricted Docker containers
   stripe-snapshot  Download a pinned or latest Stripe specification
+  source-snapshot  Save a pinned OpenAPI snapshot for any provider
   stripe-check     Discover the latest Stripe spec and compare a saved baseline
   replay           Scan the bundled historical Stripe example
   demo             Run a real-SDK migration demo against a simulated Stripe API
