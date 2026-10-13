@@ -71,6 +71,7 @@ else {
         .replaceAll('](DEPENDENCIES.md)', '](docs/DEPENDENCIES.md)')
         .replaceAll('](ENDPOINT-MIGRATIONS.md)', '](docs/ENDPOINT-MIGRATIONS.md)')
         .replaceAll('](REPOSITORY-SETUP.md)', '](docs/REPOSITORY-SETUP.md)')
+        .replaceAll('](APP-ONBOARDING.md)', '](docs/APP-ONBOARDING.md)')
         .replaceAll('](../examples/', '](examples/'),
     );
     await copyFile(join(root, '.env.example'), join(stage, '.env.example'));
@@ -87,6 +88,7 @@ else {
       'DEPENDENCIES.md',
       'ENDPOINT-MIGRATIONS.md',
       'REPOSITORY-SETUP.md',
+      'APP-ONBOARDING.md',
       'READINESS.md',
       'AI-EVALUATION.md',
       'PR-EVALUATION.md',

@@ -2,6 +2,8 @@
 
 Inspect setup before running a migration with `refit doctor --repository /path/to/repo`. It defaults to a root `.refit.json`; `--config` selects an operator workflow instead. Human diagnostics explain Git, contract, mapping, API-version, preparation and Docker blockers without application execution, installs, AI or GitHub requests. `--json` supplies machine output. This does not approve or activate a repository. See [repository setup](REPOSITORY-SETUP.md).
 
+`refit enroll --repository /path/to/repo --github owner/repository --base main` reviews the committed `.refit.json`, baseline and adapter. After review, add `--approve <exact-fingerprint> --output /path/outside-git/approval.json`. Select that receipt through an `approval` service target to load the reviewed configuration from an App-managed checkout. Changed approved inputs stop before execution. See [App onboarding](APP-ONBOARDING.md).
+
 Refit compares API specifications with local TypeScript/JavaScript usage, proposes reviewable migrations, validates them in Docker, and optionally opens a GitHub draft PR. This is an experimental local agent, not automatic support for every API or codebase.
 
 Requires Node.js 22.12+ or a supported newer release. Scanning needs no API key or Docker. Full contract comparisons and the default worker additionally require `oasdiff` on PATH (`brew install oasdiff` on macOS). Validation requires Git, tar, and a running Docker daemon. Use either a prebuilt image containing your check dependencies, or an existing Node/npm image plus `--prepare-dependencies` for a supported single-package project. See [dependency preparation](DEPENDENCIES.md).

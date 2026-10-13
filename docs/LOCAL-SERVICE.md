@@ -4,6 +4,8 @@
 
 This is a single-operator local service. Installing the App on a repository records access; running that repository also requires an approved workflow, provider mapping where needed, a baseline and meaningful checks. Refit does not infer check commands from webhook payloads or run arbitrary installed repositories.
 
+Repositories can now own a committed root `.refit.json`, activated through an operator receipt rather than an external workflow copy. `refit enroll` displays its settings and file fingerprint; approval is explicit and held outside Git. Every managed poll checks that fingerprint before execution. See [App onboarding](APP-ONBOARDING.md).
+
 ## Run the Stripe pilot
 
 Use Node.js 22.12+, Git, tar, `oasdiff` on PATH and Docker. The billing demo's `refit-billing-check:history` image must already exist; [billing evaluation](BILLING-EVALUATION.md) documents its preparation. The App needs access to `pierceluu10/refit-billing-demo`. Keep App credentials and two **different** random service secrets in the ignored `.env`:
