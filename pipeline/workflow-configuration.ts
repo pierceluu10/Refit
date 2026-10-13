@@ -48,7 +48,8 @@ export async function readWorkflowConfiguration(path: string) {
     );
   const directory = dirname(resolve(path));
   return {
-    repository: resolve(directory, string('repository')),
+    repository:
+      value.repository === undefined ? undefined : resolve(directory, string('repository')),
     before: resolve(directory, string('before')),
     after: value.after === undefined ? undefined : resolve(directory, string('after')),
     latestStripe: value.latestStripe as boolean | undefined,

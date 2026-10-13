@@ -1,6 +1,6 @@
 import { execFile } from 'node:child_process';
 import { mkdir, readFile, realpath, writeFile } from 'node:fs/promises';
-import { isAbsolute, join, relative, resolve, sep } from 'node:path';
+import { join, resolve } from 'node:path';
 import { promisify } from 'node:util';
 import {
   captureSpecification,
@@ -9,40 +9,75 @@ import {
 } from './openapi-sources.ts';
 import { readProviderAdapter } from './providers.ts';
 import { digest, isObject, readSpecification } from './specifications.ts';
-import { readState, withStateLock, writeState } from './state-files.ts';
+import {
+  readState,
+  stateDirectoryOutsideRepository,
+  withStateLock,
+  writeState,
+} from './state-files.ts';
 import { runPipeline } from './run.ts';
 import { runWorkflow } from './workflow.ts';
 import { verifyArtifacts } from './verification.ts';
 import { PipelineInputError } from './types.ts';
+import { withGitHubCheckout, type GitHubCheckoutTarget } from './github-checkout.ts';
+import { gitEnvironment } from './git-environment.ts';
 
 const execute = promisify(execFile);
 const GIT_TIMEOUT_MS = 30_000;
 const RETRYABLE_STATUSES = new Set(['error', 'validation-failed', 'interrupted', 'needs-review']);
 type WorkflowOptions = Parameters<typeof runWorkflow>[0];
 export interface WatchOptions {
-  configuration: Omit<WorkflowOptions, 'output' | 'after' | 'latestStripe'>;
+  configuration: Omit<WorkflowOptions, 'repository' | 'output' | 'after' | 'latestStripe'> & {
+    repository?: string;
+  };
   source: SpecificationSource;
   stateDirectory: string;
   retry?: boolean;
   onProgress?: (message: string) => void;
+  syncGitHub?: GitHubCheckoutTarget;
 }
 
 export async function watchOnce(options: WatchOptions) {
+  if (options.syncGitHub) {
+    const directory = options.configuration.repository
+      ? await stateDirectoryOutsideRepository(
+          options.configuration.repository,
+          options.stateDirectory,
+        )
+      : resolve(options.stateDirectory);
+    return withGitHubCheckout(
+      {
+        directory: join(directory, 'github'),
+        target: options.syncGitHub,
+        signal: options.configuration.signal,
+        onProgress: options.onProgress,
+      },
+      async (checkout) => ({
+        ...(await watchLocalOnce({
+          ...options,
+          stateDirectory: directory,
+          configuration: { ...options.configuration, repository: checkout.directory },
+        })),
+        checkout,
+      }),
+    );
+  }
+  if (!options.configuration.repository)
+    throw new PipelineInputError('Watch requires a local repository or --sync-github.');
+  return watchLocalOnce({
+    ...options,
+    configuration: { ...options.configuration, repository: options.configuration.repository },
+  });
+}
+
+async function watchLocalOnce(
+  options: WatchOptions & { configuration: WatchOptions['configuration'] & { repository: string } },
+) {
   const repository = await realpath(options.configuration.repository);
-  const directory = resolve(options.stateDirectory);
-  const inside = relative(repository, directory);
-  if (!inside || (inside !== '..' && !inside.startsWith(`..${sep}`) && !isAbsolute(inside)))
-    throw new PipelineInputError('Watch state must be outside the monitored repository.');
-  await mkdir(directory, { recursive: true, mode: 0o700 });
-  const physicalDirectory = await realpath(directory);
-  const physicalInside = relative(repository, physicalDirectory);
-  if (
-    !physicalInside ||
-    (physicalInside !== '..' &&
-      !physicalInside.startsWith(`..${sep}`) &&
-      !isAbsolute(physicalInside))
-  )
-    throw new PipelineInputError('Watch state must not resolve inside the monitored repository.');
+  const physicalDirectory = await stateDirectoryOutsideRepository(
+    repository,
+    options.stateDirectory,
+  );
   return withStateLock(physicalDirectory, 'watch', async () => {
     const configuration = {
       ...options.configuration,
@@ -137,7 +172,7 @@ export async function watchOnce(options: WatchOptions) {
     const { stdout } = await execute(
       'git',
       ['-c', 'core.fsmonitor=false', '-C', repository, 'rev-parse', '--verify', 'HEAD^{commit}'],
-      { timeout: GIT_TIMEOUT_MS },
+      { timeout: GIT_TIMEOUT_MS, env: gitEnvironment() },
     );
     const revision = stdout.trim();
     const jobKey = digest(

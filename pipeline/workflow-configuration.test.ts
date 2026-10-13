@@ -178,3 +178,30 @@ it('requires explicit publication and complete app configuration before starting
     code: 'ENOENT',
   });
 });
+
+it('allows a checkout-free configuration but requires explicit App syncing before a worker can use it', async () => {
+  const { root, path, configuration } = await setup();
+  await writeFile(path, JSON.stringify({ ...configuration, repository: undefined }));
+  expect((await readWorkflowConfiguration(path)).repository).toBeUndefined();
+  const arguments_ = [bin, 'watch', '--config', path, '--state', join(root, 'state'), '--once'];
+  await expect(execute(process.execPath, arguments_)).rejects.toMatchObject({
+    code: 1,
+    stderr: expect.stringContaining('local repository or --sync-github'),
+  });
+  await expect(
+    execute(process.execPath, [
+      ...arguments_,
+      '--sync-github',
+      '--github',
+      'example/application',
+      '--base',
+      'main',
+    ]),
+  ).rejects.toMatchObject({
+    code: 1,
+    stderr: expect.stringContaining('--sync-github requires --github-app'),
+  });
+  await expect(readFile(join(root, 'state/github/managed-checkout.json'))).rejects.toMatchObject({
+    code: 'ENOENT',
+  });
+});

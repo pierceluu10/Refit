@@ -1,12 +1,30 @@
-import { mkdir, open, readFile, rename, rm, writeFile } from 'node:fs/promises';
+import { mkdir, open, readFile, realpath, rename, rm, writeFile } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
-import { join } from 'node:path';
+import { isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { isObject, parseObject } from './specifications.ts';
 import { PipelineInputError } from './types.ts';
 import { hostname } from 'node:os';
 
 export function hasErrorCode(error: unknown, code: string) {
   return error instanceof Error && 'code' in error && error.code === code;
+}
+
+export async function stateDirectoryOutsideRepository(repository: string, directory: string) {
+  const root = await realpath(repository);
+  const path = resolve(directory);
+  const inside = (candidate: string) => {
+    const location = relative(root, candidate);
+    return (
+      !location || (location !== '..' && !location.startsWith(`..${sep}`) && !isAbsolute(location))
+    );
+  };
+  if (inside(path))
+    throw new PipelineInputError('Watch state must be outside the monitored repository.');
+  await mkdir(path, { recursive: true, mode: 0o700 });
+  const physical = await realpath(path);
+  if (inside(physical))
+    throw new PipelineInputError('Watch state must not resolve inside the monitored repository.');
+  return physical;
 }
 
 export async function readState(path: string) {

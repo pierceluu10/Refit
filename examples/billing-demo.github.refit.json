@@ -1,0 +1,16 @@
+{
+  "formatVersion": 1,
+  "before": "../pipeline/fixtures/before.json",
+  "after": "../pipeline/fixtures/after.json",
+  "image": "refit-billing-check:history",
+  "baselineCommand": [
+    "sh",
+    "-c",
+    "ln -s /opt/billing/node_modules node_modules && npm test && node --import tsx /opt/refit-checks/billing-pagination.mjs before"
+  ],
+  "command": [
+    "sh",
+    "-c",
+    "ln -s /opt/billing/node_modules node_modules && npm test && npm run test:after && npm run typecheck && node --import tsx /opt/refit-checks/billing-pagination.mjs before && node --import tsx /opt/refit-checks/billing-pagination.mjs after"
+  ]
+}
