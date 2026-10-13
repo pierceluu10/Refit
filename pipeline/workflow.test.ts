@@ -118,10 +118,29 @@ it('retains completed scan evidence when validation setup fails and never publis
     'affected',
   );
   expect(publishDraft).not.toHaveBeenCalled();
+  expect(result.manifest.files.some((file) => file.path === 'passages.json')).toBe(false);
   expect(progress.some((message) => message.includes('Publishing'))).toBe(false);
   expect(progress.at(-2)).toContain('Docker image is unavailable');
   expect(progress.at(-1)).toBe(`Evidence: ${input.output}`);
   await expect(runWorkflow(input)).rejects.toMatchObject({ code: 'EEXIST' });
+});
+
+it('pins a hashed passage index only when AI patching reaches validation', async () => {
+  const input = await options();
+  vi.mocked(validateMigration).mockRejectedValueOnce(new Error('stopped after index'));
+  const result = await runWorkflow({
+    ...input,
+    aiPatch: { apiKey: 'test-key', model: 'test-model' },
+  });
+  expect(result.manifest.files.some((file) => file.path === 'passages.json')).toBe(true);
+  const saved = await readFile(join(input.output, 'passages.json'), 'utf8');
+  const index = JSON.parse(saved);
+  expect(index.kind).toBe('refit-passage-index');
+  expect(
+    index.passages.some((passage: { provider: string }) => passage.provider === 'stripe'),
+  ).toBe(true);
+  const listed = result.manifest.files.find((file) => file.path === 'passages.json');
+  expect(listed?.sha256).toBe(digest(saved));
 });
 
 it('rejects ambiguous discovery options and raw discovery baselines', async () => {

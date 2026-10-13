@@ -4,7 +4,13 @@
   "components": {
     "schemas": {
       "item": {
-        "properties": { "legacy_label": { "type": "string" }, "id": { "type": "string" } }
+        "properties": {
+          "legacy_label": {
+            "type": "string",
+            "description": "Stable label returned by items.retrieve. The legacy_label field is the previous item label."
+          },
+          "id": { "type": "string" }
+        }
       },
       "order": {
         "properties": { "legacy_label": { "type": "string" }, "id": { "type": "string" } }
