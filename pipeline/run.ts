@@ -4,7 +4,7 @@ import { proposeAiPatch } from './ai-patches.ts';
 import { assessMigration, buildAssessmentEvidence } from './assessment.ts';
 import { applySourceEdits, proposePatch } from './patches.ts';
 import { readRepository } from './repository.ts';
-import { readProviderAdapter, STRIPE } from './providers.ts';
+import { readProviderAdapter, STRIPE, validateProviderMappings } from './providers.ts';
 import { validatePropertyRenames } from './provider-renames.ts';
 import { PipelineInputError } from './types.ts';
 import { digest, findRemovedProperties, readSpecification } from './specifications.ts';
@@ -32,6 +32,7 @@ export async function runPipeline(options: {
     )
   )
     throw new PipelineInputError('Snapshot provenance does not match the configured provider.');
+  validateProviderMappings(provider, before.schemas);
   const changes = findRemovedProperties(before.schemas, after.schemas, provider.id);
   validatePropertyRenames(provider, changes, before.schemas, after.schemas);
   const specificationDiff = options.fullDiff
@@ -86,7 +87,7 @@ export async function runPipeline(options: {
       specification: specificationDiff
         ? specificationDiff.coverage
         : 'Direct properties removed from existing, non-composed OpenAPI 3 component schemas only. Not a complete breaking-change diff.',
-      code: 'Immutable ESM SDK clients, including direct relative named imports of exported const bindings, and awaited resource.method calls mapped by the recorded adapter. Property reads can follow direct local component-schema $refs through nested objects and immutable aliases. Top-level one-parameter functions returning exactly one mapped SDK call are traced locally or through direct relative named imports. Removed-field indexes and destructuring can be reported but are not auto-edited. Arrays, inline/composed/external schemas, detected writes, alias mutations, and references passed to calls or stored in containers remain review cases. Namespace imports and re-exports invalidate shared-client and wrapper confirmation. CommonJS, default imports, path aliases, ambiguous resolution, multi-step or transformed wrappers, webhooks and dynamic code still require review. Confirmed means traced under the supplied adapter mapping, not independently verified SDK semantics.',
+      code: 'Immutable ESM SDK clients, including direct relative named imports of exported const bindings, and awaited resource.method calls mapped by the recorded adapter. Property reads can follow direct local component-schema $refs through nested objects, supported array items, literal numeric indexes, const for...of bindings, inline one-parameter array callbacks and immutable aliases. Top-level one-parameter functions returning exactly one mapped SDK call are traced locally or through direct relative named imports. Removed-field indexes and destructuring can be reported but are not auto-edited. Dynamic indexes, mutable loop bindings, named or multi-parameter callbacks, transformed array chains, inline/composed/external schemas, detected writes, alias mutations, and references passed to calls or stored in containers remain review cases. Namespace imports and re-exports invalidate shared-client and wrapper confirmation. CommonJS, default imports, path aliases, ambiguous resolution, multi-step or transformed wrappers, webhooks and dynamic code still require review. Confirmed means traced under the supplied adapter mapping, not independently verified SDK semantics.',
       decision:
         'No finding is not proof of no impact. Supported root npm lockfiles provide recorded SDK versions, not verified installed versions or API-version applicability.',
     },
