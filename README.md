@@ -19,7 +19,7 @@ A working frontend with:
 - A configuration builder that copies or downloads a valid example `refit.yml`.
 - Keyboard-accessible mobile navigation and reduced-motion support.
 
-**The workspace is a frontend preview.** Its data remains illustrative. A separate local pipeline analyzes repositories and supplied OpenAPI snapshots, proposes migration patches, validates checks in Docker, and can explicitly publish a draft PR; it is not connected to the UI. Optional AI assessment, patch proposals and bounded repair are implemented. A live AI migration, one repair and GitHub draft publication have been verified against the independent billing demo; live assessment quality and broader repair reliability remain unverified. There is no GitHub App installation flow or background provider monitoring. The configuration builder produces a file locally; it does not apply settings to a remote repository.
+**The workspace is a frontend preview.** Its data remains illustrative. A separate local pipeline analyzes repositories and supplied OpenAPI snapshots, proposes migration patches, validates checks in Docker, and can explicitly publish a draft PR; it is not connected to the UI. Optional AI assessment, patch proposals and bounded repair are implemented. A live AI migration, one repair and GitHub draft publication have been verified against the independent billing demo; live assessment quality and broader repair reliability remain unverified. The installed GitHub App supports bot publication, and `watch` supports local polling. Hosted installation enrollment remains planned. The configuration builder produces a file locally; it does not apply settings to a remote repository.
 
 ## Stripe pipeline
 
@@ -29,16 +29,16 @@ From a checkout with dependencies installed, build an installable archive:
 
 ```sh
 npm run package:cli
-npm install --global ./dist-cli/refit-0.1.0.tgz
+npm install --global ./dist-cli/refit-0.2.0.tgz
 refit --help
 refit replay --propose-patch
 ```
 
-The build creates a new `dist-cli` directory and refuses to replace existing output. Use `npm run package:cli -- --output /path/to/new-directory` for another build. The archive contains agent sources, example fixtures and CLI docs, with only `tsx` and the TypeScript compiler as direct runtime dependencies, pinned to the installed versions used to build it. Installation may download their dependencies. It excludes the frontend and tests. This is a local archive; no package has been published to npm.
+The build creates a new `dist-cli` directory and refuses to replace existing output. Use `npm run package:cli -- --output /path/to/new-directory` for another build. The archive contains agent sources, example fixtures and CLI docs, with `tsx`, the TypeScript compiler and `yaml` as direct runtime dependencies, pinned to the installed versions used to build it. Installation may download their dependencies. It excludes the frontend and tests. This is a local archive; no package has been published to npm.
 
 The executable works from any directory and ignores that directory's TypeScript configuration. `refit scan`, `run`, `validate`, `stripe-snapshot` and `stripe-check` expose the same pipeline as the existing npm scripts. `refit replay` locates its own bundled fixtures. In a checkout, use `npm run refit -- <command>`. See [CLI usage](docs/CLI.md) for installed-command examples and requirements.
 
-Save repeated repository/specification/image/check inputs in a JSON run configuration, then use `refit run --config run.json --output /tmp/new-run`. `--env .env` explicitly loads credentials and `--quiet` suppresses progress on stderr; final stdout stays JSON. AI and publication remain explicit flags. The checkout includes `examples/billing-demo.refit.json` for the adjacent independent evaluation application and its prepared Docker image.
+Save repeated repository/specification/image/check inputs in a JSON run configuration, then use `refit run --config run.json --output /tmp/new-run`. `--env .env` explicitly loads credentials and `--quiet` suppresses progress on stderr; final stdout is readable in terminals and JSON when redirected (`--human` and `--json` override it). AI and publication remain explicit flags. The checkout includes `examples/billing-demo.refit.json` for the adjacent independent evaluation application and its prepared Docker image.
 
 The isolated-install test builds a fresh archive, installs it into a temporary prefix, executes its bin entry and runs replay without this checkout's `node_modules`. Enable it with `REFIT_PACKAGE_INSTALL=1 npm test`; it may access the npm registry. No global install or registry publication occurs during tests.
 
