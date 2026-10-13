@@ -6,11 +6,24 @@ import { readWorkflowConfiguration } from './workflow-configuration.ts';
 import type { GitHubAppConfiguration } from './github-app.ts';
 import { PipelineInputError } from './types.ts';
 import type { SpecificationSource } from './openapi-sources.ts';
+import {
+  documentationSourceId,
+  normalizeDocumentationSource,
+  MAX_DOCUMENTATION_SOURCES,
+  type DocumentationSource,
+} from './documentation-sources.ts';
 
 const MAX_CONFIGURATION_BYTES = 64 * 1024;
 const MAX_TARGETS = 32;
 const TARGET_ID = /^[a-z][a-z0-9-]{0,63}$/;
-const TARGET_KEYS = new Set(['id', 'repository', 'base', 'workflow', 'source']);
+const TARGET_KEYS = new Set([
+  'id',
+  'repository',
+  'base',
+  'workflow',
+  'source',
+  'documentationSources',
+]);
 
 export interface ServiceTarget {
   id: string;
@@ -18,6 +31,7 @@ export interface ServiceTarget {
   base: string;
   workflow: Awaited<ReturnType<typeof readWorkflowConfiguration>>;
   source: SpecificationSource;
+  documentationSources: DocumentationSource[];
 }
 
 export async function readServiceConfiguration(path: string, app: GitHubAppConfiguration) {
@@ -94,6 +108,18 @@ export async function readServiceConfiguration(path: string, app: GitHubAppConfi
           'Service source requires file/path, https/url or stripe-latest.',
         );
     }
+    if (target.documentationSources !== undefined && !Array.isArray(target.documentationSources))
+      throw new PipelineInputError('Documentation sources must be an array.');
+    const documentationSources = (target.documentationSources ?? []).map(
+      normalizeDocumentationSource,
+    );
+    if (
+      documentationSources.length > MAX_DOCUMENTATION_SOURCES ||
+      new Set(documentationSources.map(documentationSourceId)).size !== documentationSources.length
+    )
+      throw new PipelineInputError(
+        `Each target accepts up to ${MAX_DOCUMENTATION_SOURCES} unique documentation sources.`,
+      );
     ids.add(target.id);
     targets.push({
       id: target.id,
@@ -101,6 +127,7 @@ export async function readServiceConfiguration(path: string, app: GitHubAppConfi
       base: github.base,
       workflow,
       source,
+      documentationSources,
     });
   }
   return targets;

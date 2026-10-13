@@ -16,7 +16,11 @@ export class SpecificationUnavailableError extends PipelineInputError {
   override name = 'SpecificationUnavailableError';
 }
 
-export async function fetchSpecificationResponse(url: string, options: RequestInit) {
+export async function fetchSpecificationResponse(
+  url: string,
+  options: RequestInit,
+  sourceName = 'specification source',
+) {
   let response: Response;
   try {
     response = await fetch(url, options);
@@ -28,17 +32,14 @@ export async function fetchSpecificationResponse(url: string, options: RequestIn
         'code' in underlying &&
         TEMPORARY_NETWORK_CODES.has(String(underlying.code)))
     )
-      throw new SpecificationUnavailableError(
-        'The specification source is temporarily unavailable.',
-        { cause },
-      );
+      throw new SpecificationUnavailableError(`The ${sourceName} is temporarily unavailable.`, {
+        cause,
+      });
     throw cause;
   }
   if (TEMPORARY_HTTP_STATUSES.has(response.status)) {
     await response.body?.cancel();
-    throw new SpecificationUnavailableError(
-      `The specification source returned HTTP ${response.status}.`,
-    );
+    throw new SpecificationUnavailableError(`The ${sourceName} returned HTTP ${response.status}.`);
   }
   return response;
 }

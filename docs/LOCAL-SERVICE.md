@@ -62,13 +62,21 @@ The checked-in service file is small:
       "id": "billing-demo-stripe",
       "repository": "pierceluu10/refit-billing-demo",
       "base": "main",
-      "workflow": "./billing-demo.github.refit.json"
+      "workflow": "./billing-demo.github.refit.json",
+      "documentationSources": [
+        {
+          "label": "Stripe API changelog",
+          "url": "https://docs.stripe.com/changelog.md"
+        }
+      ]
     }
   ]
 }
 ```
 
 A profile defaults to its workflow's `after` file or `latestStripe` setting. Optional `source` values are `{ "kind": "file", "path": "./current.yaml" }`, `{ "kind": "https", "url": "https://provider.example/openapi.yaml" }`, or `{ "kind": "stripe-latest" }`. Paths resolve relative to the service configuration. Workflow files resolve their own relative paths. Configure a baseline appropriate to the integration; using the latest baseline detects future changes, while the supplied historical one reproduces the demo.
+
+Optional `documentationSources` lists up to eight manually selected public changelog or migration pages per target. Refit captures the visible page text and saves a unified diff when it changes. The status endpoint reports `documentation-changed`; the saved evidence path points to the documentation observation directory. These changes are review signals only and do not trigger AI generation or draft PRs.
 
 Multiple providers and repositories share the service, with a limit of 32 explicitly approved profiles. Provider adapters map SDK methods to response schemas; broader OpenAPI changes can be reported without being safely patchable. Every target still needs its own verified migration semantics and checks. See [architecture](ARCHITECTURE.md) for the supported code and contract boundaries.
 

@@ -4,6 +4,7 @@ import { join, resolve } from 'node:path';
 import { afterEach, expect, it, vi } from 'vitest';
 import { watchOnce } from './watch.ts';
 import { runWorkflow } from './workflow.ts';
+import { documentationSourceId } from './documentation-sources.ts';
 
 vi.mock('./workflow.ts', () => ({ runWorkflow: vi.fn() }));
 const roots: string[] = [];
@@ -46,6 +47,7 @@ function result(
 }
 afterEach(async () => {
   vi.clearAllMocks();
+  vi.unstubAllGlobals();
   await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
 });
 
@@ -132,4 +134,102 @@ it('preserves default worker identity when preparation is disabled and requires 
     configuration: { ...input.configuration, prepareDependencies: true },
   });
   expect(vi.mocked(runWorkflow).mock.calls.at(-1)?.[0].prepareDependencies).toBe(true);
+});
+
+it('records public documentation changes as unified evidence without starting another migration', async () => {
+  const input = await options();
+  const documentationSources = [
+    { label: 'Provider changelog', url: 'https://docs.example.com/changelog' },
+  ];
+  vi.stubGlobal(
+    'fetch',
+    vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response('<main><h1>Release 1</h1><p>Old behavior.</p></main>', {
+          headers: { 'content-type': 'text/html', etag: '"release-1"' },
+        }),
+      )
+      .mockResolvedValueOnce(
+        new Response('<main><h1>Release 1</h1><p>New behavior.</p></main>', {
+          headers: { 'content-type': 'text/html', etag: '"release-2"' },
+        }),
+      )
+      .mockResolvedValueOnce(new Response(null, { status: 304 })),
+  );
+  vi.mocked(runWorkflow).mockImplementation(async (value) => result(value));
+
+  const initial = await watchOnce({ ...input, documentationSources });
+  expect(initial.status).toBe('processed');
+  if (initial.status !== 'processed') throw new Error('Expected the initial poll to finish.');
+  expect(initial.documentationBaselines).toMatchObject([
+    { label: 'Provider changelog', url: 'https://docs.example.com/changelog' },
+  ]);
+  const changed = await watchOnce({ ...input, documentationSources });
+  expect(changed.status).toBe('documentation-changed');
+  if (changed.status !== 'documentation-changed') throw new Error('Expected documentation notice.');
+  expect(changed.documentationChanges).toHaveLength(1);
+  const change = changed.documentationChanges[0];
+  expect(change).toMatchObject({ label: 'Provider changelog', addedLines: 1, removedLines: 1 });
+  expect(await readFile(change.patch, 'utf8')).toContain('-Old behavior.');
+  expect(await readFile(change.patch, 'utf8')).toContain('+New behavior.');
+  expect(JSON.parse(await readFile(change.evidence, 'utf8'))).toMatchObject({
+    kind: 'refit-documentation-change',
+    previousHash: change.previousHash,
+    currentHash: change.currentHash,
+  });
+  expect(runWorkflow).toHaveBeenCalledTimes(1);
+
+  expect((await watchOnce({ ...input, documentationSources })).status).toBe('already-processed');
+  expect(runWorkflow).toHaveBeenCalledTimes(1);
+});
+
+it('keeps a documentation update pending when the accompanying API workflow throws', async () => {
+  const input = await options();
+  const documentationSources = [
+    { label: 'Provider changelog', url: 'https://docs.example.com/changelog' },
+  ];
+  vi.stubGlobal(
+    'fetch',
+    vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response('# Release one', {
+          headers: { 'content-type': 'text/markdown', etag: '"release-1"' },
+        }),
+      )
+      .mockResolvedValueOnce(
+        new Response('# Release two', {
+          headers: { 'content-type': 'text/markdown', etag: '"release-2"' },
+        }),
+      )
+      .mockResolvedValueOnce(
+        new Response('# Release two', {
+          headers: { 'content-type': 'text/markdown', etag: '"release-2"' },
+        }),
+      ),
+  );
+  vi.mocked(runWorkflow)
+    .mockImplementationOnce(async (value) => result(value))
+    .mockRejectedValueOnce(new Error('Controlled workflow interruption'));
+  await watchOnce({ ...input, documentationSources });
+
+  const after = JSON.parse(await readFile(input.source.path, 'utf8'));
+  delete after.components.schemas.payment_intent.properties.id;
+  await writeFile(input.source.path, JSON.stringify(after));
+  await expect(watchOnce({ ...input, documentationSources })).rejects.toThrow(
+    'Controlled workflow interruption',
+  );
+
+  const statePath = join(input.stateDirectory, 'state.json');
+  const stateAfterFailure = JSON.parse(await readFile(statePath, 'utf8'));
+  const sourceId = documentationSourceId(documentationSources[0]);
+  expect(stateAfterFailure.documentation[sourceId]).toBeTruthy();
+  const retainedHash = stateAfterFailure.documentation[sourceId];
+  const recovered = await watchOnce({ ...input, documentationSources });
+  expect(recovered.status).toBe('documentation-changed');
+  if (recovered.status !== 'documentation-changed')
+    throw new Error('Expected the pending documentation change to remain visible.');
+  expect(recovered.documentationChanges[0].previousHash).toBe(retainedHash);
+  expect(runWorkflow).toHaveBeenCalledTimes(2);
 });

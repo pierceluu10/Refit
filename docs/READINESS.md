@@ -1,5 +1,9 @@
 # Refit implementation checkpoints
 
+## October 13, 2026: provider-neutral documentation change signals
+
+`watch` and local-service profiles can now monitor up to eight manually configured public documentation, changelog or release-note pages per provider target. Capture accepts bounded HTML, Markdown and plain text, strips non-visible HTML chrome, uses ETags, and stores hash-verified snapshots plus unified text diffs. A docs-only update is surfaced as review evidence and does not invoke AI, validation or GitHub publication. URLs are operator-selected; Refit does not discover feeds or treat documentation text as verified migration instructions. When an API contract update happens in the same poll, the documentation diff remains separate evidence and is not included in the model prompt or PR.
+
 ## October 13, 2026: explicit API-version applicability
 
 Reports compare an operator-supplied application API-version pin with `info.version` in both OpenAPI snapshots. Automated `run`, `watch` and `serve` stop at the scan stage unless the pin exactly matches the before contract; an after-version, unrelated version or missing evidence cannot spend on AI, start Docker validation or publish. Direct `validate --publish-draft` checks the pin before repository validation, and the publisher enforces it again. The Stripe billing profile uses the demo application's explicit `2022-08-01` client pin against the historical `2022-08-01` → `2022-11-15` change. This is provider-neutral but operator-declared; SDK lockfiles and account defaults are not treated as proof, and providers using `info.version` for another purpose remain review-only. Evidence includes current/before/after versions and human CLI output summarizes them.

@@ -1,4 +1,5 @@
 import { execFile } from 'node:child_process';
+import { createPatch } from 'diff';
 import { mkdir, readFile, realpath, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { promisify } from 'node:util';
@@ -7,9 +8,20 @@ import {
   type SpecificationSource,
   type CapturedSpecification,
 } from './openapi-sources.ts';
+import {
+  captureDocumentation,
+  documentationSourceId,
+  normalizeDocumentationSource,
+  validateDocumentationSnapshot,
+  MAX_DOCUMENTATION_BYTES,
+  MAX_DOCUMENTATION_SOURCES,
+  type CapturedDocumentation,
+  type DocumentationSource,
+} from './documentation-sources.ts';
 import { readProviderAdapter } from './providers.ts';
 import { digest, isObject, readSpecification } from './specifications.ts';
 import {
+  hasErrorCode,
   readState,
   stateDirectoryOutsideRepository,
   withStateLock,
@@ -31,10 +43,28 @@ export interface WatchOptions {
     repository?: string;
   };
   source: SpecificationSource;
+  documentationSources?: DocumentationSource[];
   stateDirectory: string;
   retry?: boolean;
   onProgress?: (message: string) => void;
   syncGitHub?: GitHubCheckoutTarget;
+}
+
+interface DocumentationChange {
+  label: string;
+  url: string;
+  previousHash: string;
+  currentHash: string;
+  addedLines: number;
+  removedLines: number;
+  patch: string;
+  evidence: string;
+}
+
+interface DocumentationBaseline {
+  label: string;
+  url: string;
+  hash: string;
 }
 
 export async function watchOnce(options: WatchOptions) {
@@ -85,6 +115,18 @@ async function watchLocalOnce(
       fullDiff: options.configuration.fullDiff ?? true,
       latestStripe: undefined,
     };
+    const documentationSources = (options.documentationSources ?? [])
+      .map(normalizeDocumentationSource)
+      .sort((left, right) =>
+        documentationSourceId(left).localeCompare(documentationSourceId(right)),
+      );
+    if (
+      documentationSources.length > MAX_DOCUMENTATION_SOURCES ||
+      new Set(documentationSources.map(documentationSourceId)).size !== documentationSources.length
+    )
+      throw new PipelineInputError(
+        `Watch accepts up to ${MAX_DOCUMENTATION_SOURCES} unique documentation sources.`,
+      );
     const provider = await readProviderAdapter(configuration.providerConfig);
     const before = await readSpecification(configuration.before);
     const signature = digest(
@@ -94,6 +136,7 @@ async function watchLocalOnce(
         before: before.hash,
         apiVersion: configuration.apiVersion,
         source: options.source,
+        ...(documentationSources.length ? { documentationSources } : {}),
         image: configuration.image,
         ...(configuration.prepareDependencies ? { prepareDependencies: true } : {}),
         command: configuration.command,
@@ -120,6 +163,9 @@ async function watchLocalOnce(
         'Watch state belongs to another configuration or is invalid. Choose a fresh state directory.',
       );
     const jobs = state.jobs;
+    if (state.documentation !== undefined && !isObject(state.documentation))
+      throw new PipelineInputError('Watch documentation source state is invalid.');
+    const documentationState = isObject(state.documentation) ? state.documentation : {};
     let previousSnapshot: CapturedSpecification | undefined;
     if (typeof state.lastSource === 'string') {
       const path = join(physicalDirectory, 'snapshots', `${state.lastSource}.json`);
@@ -132,6 +178,12 @@ async function watchLocalOnce(
     const runs = join(physicalDirectory, 'runs');
     for (const path of [snapshots, observations, runs])
       await mkdir(path, { recursive: true, mode: 0o700 });
+    const capturedDocumentation = await captureDocumentationSources(
+      documentationSources,
+      documentationState,
+      snapshots,
+      observations,
+    );
     const baseline = join(snapshots, `${before.hash}.baseline.json`);
     try {
       await writeFile(baseline, await readFile(configuration.before, 'utf8'), {
@@ -197,8 +249,12 @@ async function watchLocalOnce(
       sourceHash: snapshot.hash,
       provider: provider.id,
       scan,
+      ...(capturedDocumentation.changes.length
+        ? { documentationChanges: capturedDocumentation.changes }
+        : {}),
     });
     state.lastSource = snapshot.hash;
+    await writeState(statePath, state);
     const previous = jobs[jobKey];
     if (isObject(previous) && previous.status === 'running') {
       try {
@@ -221,7 +277,18 @@ async function watchLocalOnce(
       }
     }
     if (isObject(previous) && !(options.retry && RETRYABLE_STATUSES.has(String(previous.status)))) {
+      if (documentationSources.length) state.documentation = capturedDocumentation.state;
       await writeState(statePath, state);
+      if (capturedDocumentation.changes.length)
+        return {
+          status: 'documentation-changed' as const,
+          provider: provider.id,
+          jobKey,
+          sourceHash: snapshot.hash,
+          previousStatus: String(previous.status),
+          output: join(observations, 'documentation'),
+          documentationChanges: capturedDocumentation.changes,
+        };
       return {
         status: 'already-processed' as const,
         provider: provider.id,
@@ -245,7 +312,7 @@ async function watchLocalOnce(
     };
     await writeState(statePath, state);
     options.onProgress?.(
-      `Detected ${scan.findings.filter((finding) => finding.confidence === 'confirmed').length} confirmed usages; processing ${provider.id} migration.`,
+      `Detected ${scan.findings.filter((finding) => finding.confidence === 'confirmed').length} confirmed usages; processing ${provider.id} migration.${capturedDocumentation.changes.length ? ` Recorded ${capturedDocumentation.changes.length} documentation change${capturedDocumentation.changes.length === 1 ? '' : 's'} for review.` : ''}`,
     );
     try {
       const result = await runWorkflow({
@@ -255,6 +322,7 @@ async function watchLocalOnce(
         onProgress: options.onProgress,
       });
       jobs[jobKey] = { ...(jobs[jobKey] as object), status: result.manifest.status };
+      if (documentationSources.length) state.documentation = capturedDocumentation.state;
       await writeState(statePath, state);
       return {
         status: 'processed' as const,
@@ -262,6 +330,12 @@ async function watchLocalOnce(
         jobKey,
         sourceHash: snapshot.hash,
         output,
+        ...(capturedDocumentation.changes.length
+          ? { documentationChanges: capturedDocumentation.changes }
+          : {}),
+        ...(capturedDocumentation.baselines.length
+          ? { documentationBaselines: capturedDocumentation.baselines }
+          : {}),
         result,
       };
     } catch (error) {
@@ -275,4 +349,126 @@ async function watchLocalOnce(
       throw error;
     }
   });
+}
+
+async function captureDocumentationSources(
+  sources: DocumentationSource[],
+  previousState: Record<string, unknown>,
+  snapshots: string,
+  observations: string,
+) {
+  const state: Record<string, string> = {};
+  const changes: DocumentationChange[] = [];
+  const baselines: DocumentationBaseline[] = [];
+  const sourceIds = new Set(sources.map(documentationSourceId));
+  if (Object.keys(previousState).some((sourceId) => !sourceIds.has(sourceId)))
+    throw new PipelineInputError(
+      'Watch documentation source state does not match its configuration.',
+    );
+  for (const source of sources) {
+    const sourceId = documentationSourceId(source);
+    const previousHash = previousState[sourceId];
+    let previous: CapturedDocumentation | undefined;
+    if (previousHash !== undefined) {
+      if (typeof previousHash !== 'string' || !/^[a-f0-9]{64}$/.test(previousHash))
+        throw new PipelineInputError('Watch documentation source hash is invalid.');
+      previous = validateDocumentationSnapshot(
+        JSON.parse(
+          await readFile(documentationSnapshotPath(snapshots, sourceId, previousHash), 'utf8'),
+        ),
+        source,
+      );
+      if (previous.hash !== previousHash)
+        throw new PipelineInputError('Watch documentation snapshot does not match saved state.');
+    }
+    const current = await captureDocumentation(source, previous);
+    await writeDocumentationSnapshot(snapshots, source, current);
+    state[sourceId] = current.hash;
+    if (!previous) baselines.push({ label: current.label, url: current.url, hash: current.hash });
+    if (previous && previous.hash !== current.hash)
+      changes.push(await recordDocumentationChange(observations, sourceId, previous, current));
+  }
+  return { state, changes, baselines };
+}
+
+function documentationSnapshotPath(snapshots: string, sourceId: string, hash: string) {
+  return join(snapshots, 'documentation', `${sourceId}-${hash}.json`);
+}
+
+async function writeDocumentationSnapshot(
+  snapshots: string,
+  source: DocumentationSource,
+  snapshot: CapturedDocumentation,
+) {
+  const path = documentationSnapshotPath(snapshots, documentationSourceId(source), snapshot.hash);
+  await mkdir(join(snapshots, 'documentation'), { recursive: true, mode: 0o700 });
+  try {
+    await writeFile(path, `${JSON.stringify(snapshot, null, 2)}\n`, {
+      flag: 'wx',
+      mode: 0o600,
+    });
+  } catch (error) {
+    if (!hasErrorCode(error, 'EEXIST')) throw error;
+    const current = validateDocumentationSnapshot(JSON.parse(await readFile(path, 'utf8')), source);
+    if (
+      current.hash !== snapshot.hash ||
+      Buffer.byteLength(current.content) > MAX_DOCUMENTATION_BYTES
+    )
+      throw new PipelineInputError('Saved documentation snapshot does not match its content hash.');
+  }
+}
+
+async function recordDocumentationChange(
+  observations: string,
+  sourceId: string,
+  previous: CapturedDocumentation,
+  current: CapturedDocumentation,
+): Promise<DocumentationChange> {
+  const patch = createPatch(
+    `documentation-${sourceId.slice(0, 12)}.md`,
+    previous.content,
+    current.content,
+    previous.hash,
+    current.hash,
+    { context: 3 },
+  );
+  const addedLines = patch
+    .split('\n')
+    .filter((line) => line.startsWith('+') && !line.startsWith('+++')).length;
+  const removedLines = patch
+    .split('\n')
+    .filter((line) => line.startsWith('-') && !line.startsWith('---')).length;
+  const changeId = digest(`${sourceId}\n${previous.hash}\n${current.hash}`);
+  const directory = join(observations, 'documentation');
+  await mkdir(directory, { recursive: true, mode: 0o700 });
+  const patchPath = join(directory, `${changeId}.patch`);
+  try {
+    await writeFile(patchPath, patch, { flag: 'wx', mode: 0o600 });
+  } catch (error) {
+    if (!hasErrorCode(error, 'EEXIST')) throw error;
+    if ((await readFile(patchPath, 'utf8')) !== patch)
+      throw new PipelineInputError('Saved documentation diff does not match its source snapshots.');
+  }
+  const evidence = join(directory, `${changeId}.json`);
+  await writeState(evidence, {
+    formatVersion: 1,
+    kind: 'refit-documentation-change',
+    label: current.label,
+    url: current.url,
+    previousHash: previous.hash,
+    currentHash: current.hash,
+    addedLines,
+    removedLines,
+    patch: patchPath,
+  });
+  return {
+    label: current.label,
+    url: current.url,
+    previousHash: previous.hash,
+    currentHash: current.hash,
+    addedLines,
+    removedLines,
+    patch: patchPath,
+    evidence,
+  };
 }
