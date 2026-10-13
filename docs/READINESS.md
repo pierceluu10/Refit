@@ -1,5 +1,13 @@
 # Refit implementation checkpoints
 
+## October 13, 2026: review-only provider adapter suggestions
+
+`refit adapter-suggest` can propose an initial SDK-to-OpenAPI mapping for an npm SDK without adding provider-specific Refit code. A local TypeScript symbol pass finds direct calls on `const client = new ImportedConstructor()` instances; the optional OpenAI request receives only those call names and a bounded list of unique OpenAPI operations with supported JSON component response schemas. Refit checks each proposed SDK method, operation ID and schema against that evidence, then writes a new adapter file only when at least one mapping survives validation. The command uses the shared token counter and spending ledger, and does not overwrite an existing output.
+
+This is advisory setup, not automatic SDK discovery: it does not establish semantic equivalence, trace arbitrary factories or wrappers, propose migration rules, activate a profile or make a change. Review the mapping against official SDK documentation, then scan the repository and inspect evidence before using it in a migration workflow. The model request is optional; generic breaking changes without a verified migration rule remain review-only. No live model call was used to verify this implementation.
+
+The fully gated test suite passed **426 tests across 46 files with no skips**, including package installation, SDK fixtures, offline Docker migration validation, npm dependency preparation, and `oasdiff`. The production build and formatting checks passed. Adapter-suggestion tests use mocked OpenAI responses and verify that source contents and unrelated code are not sent; they do not verify real model mapping quality.
+
 ## October 13, 2026: mapped callers for breaking OpenAPI changes
 
 Custom SDK adapters can optionally map each `resource.method` to a unique `operationId` in the pinned baseline. With `--full-diff`, Refit joins unresolved level-2/3 `oasdiff` changes to the baseline path and HTTP method, then reports change IDs, summaries and statically traced SDK call locations. Endpoint removals are also reported when marked non-breaking after deprecation. Adapter IDs that are missing or duplicated in the baseline fail preflight. These findings remain review-only; generic endpoint, request and response migration rules are not registered. Automated runs block AI generation, Docker validation and publication when mapped calls have unresolved breaking changes. Focused workflow tests verify the evidence and confirm no model or validator request occurs; a real `oasdiff` integration test covers endpoint removal and response-type changes.
