@@ -1,3 +1,4 @@
+import { readFile } from 'node:fs/promises';
 import { parse } from 'parse5';
 import { XMLParser, XMLValidator } from 'fast-xml-parser';
 import { digest, isObject } from './specifications.ts';
@@ -149,6 +150,44 @@ export function validateDocumentationSnapshot(
   )
     throw new PipelineInputError('Documentation snapshot provenance or content hash is invalid.');
   return value as unknown as CapturedDocumentation;
+}
+
+export function vendorNoteKind(contentType: string): 'page' | 'feed' {
+  const type = contentType.trim().toLowerCase();
+  if (FEED_CONTENT_TYPES.has(type)) return 'feed';
+  if (HTML_CONTENT_TYPES.has(type) || TEXT_CONTENT_TYPES.has(type)) return 'page';
+  throw new PipelineInputError(
+    'Saved documentation snapshot is not an HTML, Markdown, plain-text or feed note.',
+  );
+}
+
+export async function readDocumentationSnapshots(paths: readonly string[]) {
+  if (paths.length > MAX_DOCUMENTATION_SOURCES)
+    throw new PipelineInputError(
+      `AI patches accept at most ${MAX_DOCUMENTATION_SOURCES} saved vendor notes.`,
+    );
+  const notes: CapturedDocumentation[] = [];
+  const seen = new Set<string>();
+  for (const path of paths) {
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(await readFile(path, 'utf8'));
+    } catch (cause) {
+      throw new PipelineInputError('Saved documentation snapshot could not be read.', { cause });
+    }
+    if (!isObject(parsed) || typeof parsed.label !== 'string' || typeof parsed.url !== 'string')
+      throw new PipelineInputError('Documentation snapshot provenance or content hash is invalid.');
+    const snapshot = validateDocumentationSnapshot(parsed, {
+      label: parsed.label,
+      url: parsed.url,
+    });
+    vendorNoteKind(snapshot.contentType);
+    const identity = `${snapshot.url}\n${snapshot.hash}`;
+    if (seen.has(identity)) continue;
+    seen.add(identity);
+    notes.push(snapshot);
+  }
+  return notes;
 }
 
 export async function captureDocumentation(
