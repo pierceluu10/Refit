@@ -6,6 +6,7 @@ import { runWorkflow } from './workflow.ts';
 import { parseCheckCommand } from './validation-options.ts';
 import { readWorkflowConfiguration } from './workflow-configuration.ts';
 import { githubAppConfiguration } from './github-app.ts';
+import { renderWorkflowResult } from './workflow-presentation.ts';
 
 const USAGE =
   'Usage: refit run --config <run.json> --output <new-directory-outside-repository>\n   or: refit run --repository <clean-git-directory> --before <spec.json> (--after <spec.json> | --latest-stripe) --output <new-directory-outside-repository> --image <local-image> --command \'["npm","test"]\'\nOptional: [--env <.env>] [--quiet] [--provider-config <adapter.json>] [--assess] [--ai-patch] [--repair-attempts 0|1|2 (sends failed check output to OpenAI)] [--publish-draft --github owner/repository --base main [--github-app]]';
@@ -15,6 +16,8 @@ try {
     options: {
       config: { type: 'string' },
       quiet: { type: 'boolean' },
+      json: { type: 'boolean' },
+      human: { type: 'boolean' },
       repository: { type: 'string' },
       before: { type: 'string' },
       after: { type: 'string' },
@@ -36,9 +39,11 @@ try {
   });
   if (values.help)
     console.log(
-      `${USAGE}\nOptional --baseline-command '<JSON array>' overrides only the baseline check. Both commands are recorded; review their contract differences.`,
+      `${USAGE}\nUse --human for a readable summary or --json for machine output. Terminals default to human output; redirected output defaults to JSON.\nOptional --baseline-command '<JSON array>' overrides only the baseline check. Both commands are recorded; review their contract differences.`,
     );
   else {
+    if (values.json && values.human)
+      throw new PipelineInputError('Choose either --json or --human.');
     const configuration = values.config
       ? await readWorkflowConfiguration(values.config)
       : undefined;
@@ -79,7 +84,11 @@ try {
         : undefined,
       onProgress: values.quiet ? undefined : (message) => console.error(`[refit] ${message}`),
     });
-    console.log(JSON.stringify(result, null, 2));
+    console.log(
+      values.json || (!values.human && !process.stdout.isTTY)
+        ? JSON.stringify(result, null, 2)
+        : await renderWorkflowResult(result),
+    );
     process.exitCode =
       result.manifest.status === 'error'
         ? 1

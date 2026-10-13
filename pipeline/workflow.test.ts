@@ -174,3 +174,37 @@ it('stops mutated response evidence before AI generation, validation or publicat
   expect(validateMigration).not.toHaveBeenCalled();
   expect(publishDraft).not.toHaveBeenCalled();
 });
+
+it('offers human output while preserving the review exit code and saved machine evidence', async () => {
+  const input = await options();
+  await expect(
+    promisify(execFile)(process.execPath, [
+      resolve('bin/refit.mjs'),
+      'run',
+      '--human',
+      '--quiet',
+      '--repository',
+      input.repository,
+      '--before',
+      input.before,
+      '--after',
+      input.before,
+      '--output',
+      input.output,
+      '--image',
+      input.image,
+      '--command',
+      JSON.stringify(input.command),
+    ]),
+  ).rejects.toMatchObject({
+    code: 2,
+    stdout: expect.stringContaining('Refit needs review'),
+    stderr: '',
+  });
+  expect(JSON.parse(await readFile(join(input.output, 'manifest.json'), 'utf8')).status).toBe(
+    'needs-review',
+  );
+  await expect(
+    promisify(execFile)(process.execPath, [resolve('bin/refit.mjs'), 'run', '--human', '--json']),
+  ).rejects.toMatchObject({ code: 1, stderr: expect.stringContaining('Choose either') });
+});
