@@ -1,8 +1,8 @@
 # Refit implementation checkpoints
 
-## October 13, 2026: mapped callers for removed OpenAPI operations
+## October 13, 2026: mapped callers for breaking OpenAPI changes
 
-Custom SDK adapters can optionally map each `resource.method` to a unique `operationId` in the pinned baseline. With `--full-diff`, Refit joins `oasdiff` operation-removal entries to the statically traced SDK calls and reports endpoint, method and call locations. Adapter IDs that are missing or duplicated in the baseline fail preflight. These findings remain review-only; no generic method replacement rule is registered. Automated runs block AI generation, Docker validation and publication when they detect mapped calls to removed operations. A focused workflow test verifies the evidence and confirms no model or validator request occurs.
+Custom SDK adapters can optionally map each `resource.method` to a unique `operationId` in the pinned baseline. With `--full-diff`, Refit joins unresolved level-2/3 `oasdiff` changes to the baseline path and HTTP method, then reports change IDs, summaries and statically traced SDK call locations. Endpoint removals are also reported when marked non-breaking after deprecation. Adapter IDs that are missing or duplicated in the baseline fail preflight. These findings remain review-only; generic endpoint, request and response migration rules are not registered. Automated runs block AI generation, Docker validation and publication when mapped calls have unresolved breaking changes. Focused workflow tests verify the evidence and confirm no model or validator request occurs; a real `oasdiff` integration test covers endpoint removal and response-type changes.
 
 ## October 13, 2026: provider-neutral RSS and Atom changelog feeds
 
