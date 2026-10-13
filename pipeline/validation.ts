@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
 import { runPipeline } from './run.ts';
-import { digest } from './specifications.ts';
+import { digest, readSpecification } from './specifications.ts';
 import { PipelineInputError } from './types.ts';
 import { readRepository } from './repository.ts';
 import { validateCheckCommand, validateRepairAttempts } from './validation-options.ts';
@@ -186,6 +186,9 @@ export async function validateMigration(options: {
       aiPatch: baseline.status === 'passed' ? options.aiPatch : undefined,
       assessment: baseline.status === 'passed' ? options.assessment : undefined,
     });
+    const beforeSpecification = await readSpecification(options.before);
+    if (beforeSpecification.hash !== report.snapshots.before)
+      throw new PipelineInputError('Baseline specification changed during validation.');
     if (!('diff' in report.patch) || (!report.patch.diff && baseline.status === 'passed'))
       throw new PipelineInputError(
         'No supported patch proposal is available for this committed revision.',
@@ -273,6 +276,7 @@ export async function validateMigration(options: {
           report.findings,
           options.aiPatch,
           report.adapter,
+          beforeSpecification.schemas,
           {
             attempt: repair.requested,
             failedPatch: proposal.diff,

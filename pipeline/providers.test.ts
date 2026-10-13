@@ -31,6 +31,88 @@ afterEach(async () => {
   );
 });
 
+async function nestedProviderInputs(source: string) {
+  const root = await mkdtemp(join(tmpdir(), 'refit-nested-provider-'));
+  directories.push(root);
+  const repository = join(root, 'repository');
+  await mkdir(repository);
+  await writeFile(
+    join(repository, 'package.json'),
+    JSON.stringify({ dependencies: { '@example/catalog': '1.0.0' } }),
+  );
+  await writeFile(join(repository, 'catalog.ts'), source);
+  const before = {
+    openapi: '3.0.3',
+    paths: {},
+    components: {
+      schemas: {
+        Customer: {
+          type: 'object',
+          properties: { address: { $ref: '#/components/schemas/Address' } },
+        },
+        Address: {
+          type: 'object',
+          properties: { location: { $ref: '#/components/schemas/City' } },
+        },
+        City: { type: 'object', properties: { legacy_city: { type: 'string' } } },
+      },
+    },
+  };
+  const after = {
+    openapi: '3.0.3',
+    paths: {},
+    components: {
+      schemas: {
+        Customer: {
+          type: 'object',
+          properties: { address: { $ref: '#/components/schemas/Address' } },
+        },
+        Address: {
+          type: 'object',
+          properties: { location: { $ref: '#/components/schemas/City' } },
+        },
+        City: { type: 'object', properties: { display_city: { type: 'string' } } },
+      },
+    },
+  };
+  const beforePath = join(root, 'before.json');
+  const afterPath = join(root, 'after.json');
+  const providerConfig = join(root, 'provider.json');
+  await writeFile(beforePath, JSON.stringify(before));
+  await writeFile(afterPath, JSON.stringify(after));
+  await writeFile(
+    providerConfig,
+    JSON.stringify({
+      id: 'catalog-example',
+      packageName: '@example/catalog',
+      defaultImport: false,
+      namedExport: 'Catalog',
+      operations: [{ resource: 'customers', method: 'retrieve', schema: 'Customer' }],
+      propertyRenames: [{ schema: 'City', removed: 'legacy_city', replacement: 'display_city' }],
+    }),
+  );
+  return { repository, before: beforePath, after: afterPath, providerConfig, proposePatch: true };
+}
+
+async function seedRepository(root: string, files: Map<string, string>) {
+  for (const [path, content] of files) await writeFile(join(root, path), `${content}\n`);
+  await execute('git', ['init', root]);
+  await execute('git', ['-C', root, 'add', '--force', '.']);
+  await execute('git', [
+    '-C',
+    root,
+    '-c',
+    'user.name=Refit Test',
+    '-c',
+    'user.email=test@example.invalid',
+    '-c',
+    'commit.gpgsign=false',
+    'commit',
+    '-m',
+    'test: seed configured provider repository',
+  ]);
+}
+
 it('scans a second configured SDK through the CLI and distinguishes response schemas', async () => {
   const { stdout } = await execute(process.execPath, [
     '--import',
@@ -76,6 +158,93 @@ it('proposes only an explicitly configured, schema-matched property rename', asy
   expect(report.patch.diff).toContain('+  return item.display_label;');
   expect(report.patch.diff).toContain('+  return order.legacy_label;');
   expect(report.patch.warnings.join(' ')).toContain('operator-authored');
+});
+
+it.each([
+  ['a direct response chain', 'return customer.address.location.legacy_city;'],
+  [
+    'immutable nested aliases',
+    'const address = customer.address; const location = address.location; return location.legacy_city;',
+  ],
+  [
+    'nested destructured aliases',
+    'const { address } = customer; const { location } = address; return location.legacy_city;',
+  ],
+  ['a string-indexed reference', "return customer['address'].location.legacy_city;"],
+])('traces a nested OpenAPI $ref through %s', async (_label, read) => {
+  const input = await nestedProviderInputs(`import { Catalog } from '@example/catalog';
+const catalog = new Catalog();
+export async function city(id: string) {
+  const customer = await catalog.customers.retrieve(id);
+  ${read}
+}`);
+  const report = await runPipeline(input);
+  expect(report.findings).toMatchObject([
+    {
+      expression: '.legacy_city',
+      confidence: 'confirmed',
+      reason: expect.stringContaining('City'),
+    },
+  ]);
+  expect(report.patch).toMatchObject({ status: 'proposed', edits: 1, unresolvedFindings: 0 });
+  if (!('diff' in report.patch)) throw new Error('Expected deterministic patch');
+  expect(report.patch.diff).toContain('display_city');
+  expect(
+    report.patch.diff
+      .split('\n')
+      .some((line) => line.startsWith('+') && line.includes('legacy_city')),
+  ).toBe(false);
+});
+
+it('keeps array-item schema paths at review until it can prove their element binding', async () => {
+  const input = await nestedProviderInputs(`import { Catalog } from '@example/catalog';
+const catalog = new Catalog();
+export async function city(id: string) {
+  const customer = await catalog.customers.retrieve(id);
+  return customer.places[0].legacy_city;
+}`);
+  const before = JSON.parse(await readFile(input.before, 'utf8'));
+  before.components.schemas.Customer.properties.places = {
+    type: 'array',
+    items: { $ref: '#/components/schemas/City' },
+  };
+  const after = JSON.parse(await readFile(input.after, 'utf8'));
+  after.components.schemas.Customer.properties.places =
+    before.components.schemas.Customer.properties.places;
+  await writeFile(input.before, JSON.stringify(before));
+  await writeFile(input.after, JSON.stringify(after));
+
+  const report = await runPipeline(input);
+  expect(report.findings).toMatchObject([{ expression: '.legacy_city', confidence: 'review' }]);
+  expect(report.patch).toMatchObject({ status: 'unsupported', edits: 0, unresolvedFindings: 1 });
+});
+
+it('keeps mutable destructured response aliases at review', async () => {
+  const input = await nestedProviderInputs(`import { Catalog } from '@example/catalog';
+const catalog = new Catalog();
+export async function city(id: string) {
+  const customer = await catalog.customers.retrieve(id);
+  let { address } = customer;
+  return address.location.legacy_city;
+}`);
+  const report = await runPipeline(input);
+  expect(report.findings).toMatchObject([{ expression: '.legacy_city', confidence: 'review' }]);
+  expect(report.patch).toMatchObject({ status: 'unsupported', edits: 0, unresolvedFindings: 1 });
+});
+
+it('downgrades nested reads when a response alias escapes to a call', async () => {
+  const input = await nestedProviderInputs(`import { Catalog } from '@example/catalog';
+const catalog = new Catalog();
+export async function city(id: string) {
+  const customer = await catalog.customers.retrieve(id);
+  const { address } = customer;
+  const { location } = address;
+  normalize(location);
+  return location.legacy_city;
+}`);
+  const report = await runPipeline(input);
+  expect(report.findings).toMatchObject([{ expression: '.legacy_city', confidence: 'review' }]);
+  expect(report.patch).toMatchObject({ status: 'unsupported', edits: 0, unresolvedFindings: 1 });
 });
 
 it.each(['string', 'integer', 'number', 'boolean'])(
@@ -192,22 +361,7 @@ it.skipIf(!DOCKER_IMAGE)(
         ].join('\n'),
       ],
     ]);
-    for (const [path, content] of files) await writeFile(join(root, path), `${content}\n`);
-    await execute('git', ['init', root]);
-    await execute('git', ['-C', root, 'add', '--force', '.']);
-    await execute('git', [
-      '-C',
-      root,
-      '-c',
-      'user.name=Refit Test',
-      '-c',
-      'user.email=test@example.invalid',
-      '-c',
-      'commit.gpgsign=false',
-      'commit',
-      '-m',
-      'test: seed configured rename repository',
-    ]);
+    await seedRepository(root, files);
 
     const report = await validateMigration({
       repository: root,
@@ -219,6 +373,125 @@ it.skipIf(!DOCKER_IMAGE)(
       command: ['node', 'contract.js', 'after'],
     });
     expect(report.patch.generator).toBe('deterministic');
+    expect(report.validation.baseline.status).toBe('passed');
+    expect(report.validation.patched.status).toBe('passed');
+    expect(report.validation.status).toBe('passed');
+  },
+  60_000,
+);
+
+it.skipIf(!DOCKER_IMAGE)(
+  'validates a nested configured rename against controlled contracts in offline Docker',
+  async () => {
+    const root = await mkdtemp(join(tmpdir(), 'refit-nested-rename-docker-'));
+    directories.push(root);
+    const repository = join(root, 'repository');
+    await mkdir(join(repository, 'node_modules/@example/catalog'), { recursive: true });
+    const providerConfig = join(root, 'provider.json');
+    const beforePath = join(root, 'before.json');
+    const afterPath = join(root, 'after.json');
+    const before = {
+      openapi: '3.0.3',
+      paths: {},
+      components: {
+        schemas: {
+          Customer: {
+            type: 'object',
+            properties: { address: { $ref: '#/components/schemas/Address' } },
+          },
+          Address: {
+            type: 'object',
+            properties: { location: { $ref: '#/components/schemas/City' } },
+          },
+          City: { type: 'object', properties: { legacy_city: { type: 'string' } } },
+        },
+      },
+    };
+    const after = {
+      openapi: '3.0.3',
+      paths: {},
+      components: {
+        schemas: {
+          Customer: {
+            type: 'object',
+            properties: { address: { $ref: '#/components/schemas/Address' } },
+          },
+          Address: {
+            type: 'object',
+            properties: { location: { $ref: '#/components/schemas/City' } },
+          },
+          City: { type: 'object', properties: { display_city: { type: 'string' } } },
+        },
+      },
+    };
+    await writeFile(beforePath, JSON.stringify(before));
+    await writeFile(afterPath, JSON.stringify(after));
+    await writeFile(
+      providerConfig,
+      JSON.stringify({
+        id: 'catalog-example',
+        packageName: '@example/catalog',
+        defaultImport: false,
+        namedExport: 'Catalog',
+        operations: [{ resource: 'customers', method: 'retrieve', schema: 'Customer' }],
+        propertyRenames: [{ schema: 'City', removed: 'legacy_city', replacement: 'display_city' }],
+      }),
+    );
+    await seedRepository(
+      repository,
+      new Map([
+        [
+          'package.json',
+          JSON.stringify({ type: 'module', dependencies: { '@example/catalog': '1.0.0' } }),
+        ],
+        [
+          'catalog.js',
+          [
+            "import { Catalog } from '@example/catalog';",
+            'const catalog = new Catalog();',
+            'export async function city(id) {',
+            '  const customer = await catalog.customers.retrieve(id);',
+            '  return customer.address.location.legacy_city;',
+            '}',
+          ].join('\n'),
+        ],
+        [
+          'contract.js',
+          [
+            "import assert from 'node:assert/strict';",
+            'process.env.API_CONTRACT = process.argv[2];',
+            "const { city } = await import('./catalog.js');",
+            "assert.equal(await city('customer_1'), 'Toronto');",
+          ].join('\n'),
+        ],
+        [
+          'node_modules/@example/catalog/package.json',
+          JSON.stringify({ name: '@example/catalog', type: 'module', exports: './index.js' }),
+        ],
+        [
+          'node_modules/@example/catalog/index.js',
+          [
+            'export class Catalog {',
+            "  customers = { retrieve: async () => process.env.API_CONTRACT === 'before'",
+            "    ? { address: { location: { legacy_city: 'Toronto' } } }",
+            "    : { address: { location: { display_city: 'Toronto' } } } };",
+            '}',
+          ].join('\n'),
+        ],
+      ]),
+    );
+
+    const report = await validateMigration({
+      repository,
+      before: beforePath,
+      after: afterPath,
+      providerConfig,
+      image: DOCKER_IMAGE!,
+      baselineCommand: ['node', 'contract.js', 'before'],
+      command: ['node', 'contract.js', 'after'],
+    });
+    expect(report.patch.generator).toBe('deterministic');
+    expect(report.patch.diff).toContain('customer.address.location.display_city');
     expect(report.validation.baseline.status).toBe('passed');
     expect(report.validation.patched.status).toBe('passed');
     expect(report.validation.status).toBe('passed');
@@ -293,6 +566,59 @@ it('passes the configured provider through AI generation and the rescan', async 
   expect(report.patch).toMatchObject({ generator: 'openai', edits: 1, unresolvedFindings: 0 });
   if (!('diff' in report.patch)) throw new Error('Expected patch');
   expect(report.patch.diff).toContain('item.display_label');
+});
+
+it('preserves nested schema tracing during an AI proposal rescan', async () => {
+  const input = await nestedProviderInputs(`import { Catalog } from '@example/catalog';
+const catalog = new Catalog();
+export async function city(id: string) {
+  const customer = await catalog.customers.retrieve(id);
+  return customer.address.location.legacy_city;
+}`);
+  vi.stubGlobal(
+    'fetch',
+    vi.fn().mockImplementation(async (_url, request) => {
+      const evidence = JSON.parse(JSON.parse(request.body).input[0].content);
+      return new Response(
+        JSON.stringify({
+          id: 'resp_nested_catalog',
+          model: 'test-model',
+          status: 'completed',
+          output: [
+            {
+              type: 'message',
+              role: 'assistant',
+              content: [
+                {
+                  type: 'output_text',
+                  text: JSON.stringify({
+                    summary: 'Read the renamed address field.',
+                    uncertainties: ['Confirm the replacement field has the same meaning.'],
+                    edits: [
+                      {
+                        file: 'catalog.ts',
+                        original: 'customer.address.location.legacy_city',
+                        replacement: 'customer.address.location.display_city',
+                        findingId: evidence.findings[0].id,
+                      },
+                    ],
+                  }),
+                },
+              ],
+            },
+          ],
+        }),
+      );
+    }),
+  );
+
+  const report = await runPipeline({
+    ...input,
+    aiPatch: { apiKey: 'test-key', model: 'test-model' },
+  });
+  expect(report.patch).toMatchObject({ generator: 'openai', edits: 1, unresolvedFindings: 0 });
+  if (!('diff' in report.patch)) throw new Error('Expected proposed diff');
+  expect(report.patch.diff).toContain('customer.address.location.display_city');
 });
 
 it.each([

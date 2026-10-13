@@ -74,6 +74,7 @@ export async function proposeAiPatch(
   findings: Finding[],
   options: AiOptions,
   provider: ProviderAdapter = STRIPE,
+  schemaDefinitions: Record<string, unknown> = {},
   repair?: RepairFeedback,
 ) {
   const impact = buildAssessmentEvidence(
@@ -175,7 +176,7 @@ export async function proposeAiPatch(
       ),
     })),
   };
-  const remaining = analyzeRepository(modified, changes, provider);
+  const remaining = analyzeRepository(modified, changes, provider, schemaDefinitions);
   return {
     ...metadata,
     status: edits.length ? 'proposed' : 'unsupported',
