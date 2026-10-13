@@ -56,6 +56,18 @@ it('authenticates exact UTF-8 bytes and rejects tampering, missing signatures an
   expect(() => verifyWebhook(body, signature, 'not-a-guid', SECRET)).toThrow(/GUID/);
 });
 
+it('matches GitHub’s published independent webhook signature test vector', () => {
+  const delivery = randomUUID();
+  expect(
+    verifyWebhook(
+      Buffer.from('Hello, World!'),
+      'sha256=757107ea0eb2509fc211221cce984b8a37570b6d7586c22c46f4379c8b043e17',
+      delivery,
+      "It's a Secret to Everybody",
+    ),
+  ).toBe(delivery);
+});
+
 it('normalizes installation access without trusting foreign Apps, owners or executable payload fields', () => {
   const body = Buffer.from(JSON.stringify({ ...payload, command: ['untrusted', 'command'] }));
   const change = parseWebhook(body, 'installation', APP_ID);
