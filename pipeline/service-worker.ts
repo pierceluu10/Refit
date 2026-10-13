@@ -16,6 +16,7 @@ export async function pollServiceTarget(options: {
   aiPatch?: AiOptions;
   repairAttempts: number;
   publishDraft?: boolean;
+  retry?: boolean;
   onProgress?: (message: string) => void;
 }) {
   const { target } = options;
@@ -35,6 +36,7 @@ export async function pollServiceTarget(options: {
       documentationSources: target.documentationSources,
       stateDirectory: options.stateDirectory,
       syncGitHub: targetGitHub,
+      retry: options.retry,
       onProgress: options.onProgress,
     });
   if (
@@ -64,6 +66,7 @@ export async function pollServiceTarget(options: {
         source: target.source ?? profile.source,
         documentationSources: target.documentationSources,
         stateDirectory: options.stateDirectory,
+        retry: options.retry,
         onProgress: options.onProgress,
       });
       return { ...result, checkout };

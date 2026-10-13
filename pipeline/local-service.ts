@@ -91,6 +91,7 @@ export async function runLocalService(options: {
   port?: number;
   intervalSeconds?: number;
   once?: boolean;
+  retryTargets?: readonly string[];
   aiPatch?: AiOptions;
   repairAttempts?: number;
   publishDraft?: boolean;
@@ -98,6 +99,17 @@ export async function runLocalService(options: {
   onReady?: (url: string) => void;
   onProgress?: (message: string) => void;
 }) {
+  const retryTargets = new Set(options.retryTargets ?? []);
+  if (retryTargets.size && !options.once)
+    throw new PipelineInputError('--retry-target requires --once to avoid repeated paid retries.');
+  if (
+    retryTargets.size !== (options.retryTargets?.length ?? 0) ||
+    [...retryTargets].some((id) => !options.targets.some((target) => target.id === id))
+  )
+    throw new PipelineInputError('Retry targets must be unique configured target ids.');
+  const pollingTargets = retryTargets.size
+    ? options.targets.filter((target) => retryTargets.has(target.id))
+    : options.targets;
   validateServiceSecret(options.webhookSecret, 'REFIT_WEBHOOK_SECRET');
   validateServiceSecret(options.controlToken, 'REFIT_SERVICE_TOKEN');
   if (options.webhookSecret === options.controlToken)
@@ -217,7 +229,7 @@ export async function runLocalService(options: {
       options.onReady?.(`http://${HOST}:${address.port}`);
       do {
         requested = false;
-        for (const target of options.targets) {
+        for (const target of pollingTargets) {
           if (options.signal.aborted) break;
           const controller = new AbortController();
           const abort = () => controller.abort();
@@ -267,6 +279,10 @@ export async function runLocalService(options: {
             });
             if (!active) continue;
             authorized = true;
+            if (retryTargets.has(target.id))
+              options.onProgress?.(
+                `[${target.id}] Explicit retry requested; successful jobs remain cached.`,
+              );
             const result = await pollServiceTarget({
               target,
               app: options.app,
@@ -274,6 +290,7 @@ export async function runLocalService(options: {
               aiPatch: options.aiPatch,
               repairAttempts,
               publishDraft: options.publishDraft,
+              retry: retryTargets.has(target.id),
               stateDirectory: join(directory, 'targets', target.id),
               onProgress: (message) => options.onProgress?.(`[${target.id}] ${message}`),
             });
@@ -347,7 +364,11 @@ export async function runLocalService(options: {
           }
         }
       } while (!options.signal.aborted);
-      return { directory, registry: await store.read() };
+      return {
+        directory,
+        registry: await store.read(),
+        ...(retryTargets.size ? { retryTargets: [...retryTargets] } : {}),
+      };
     } finally {
       options.signal.removeEventListener('abort', stop);
       stop();

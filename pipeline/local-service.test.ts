@@ -6,6 +6,7 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { runLocalService } from './local-service.ts';
 import { watchOnce } from './watch.ts';
 import type { ServiceTarget } from './service-configuration.ts';
+import { authenticateGitHubRead } from './github-app.ts';
 
 const remote = vi.hoisted(() => ({ blocked: new Set<string>() }));
 vi.mock('./github-app.ts', () => ({
@@ -70,9 +71,12 @@ afterEach(async () => {
   vi.clearAllMocks();
   await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
 });
-async function start(targets = [target()]) {
-  const root = await mkdtemp(join(tmpdir(), 'refit-http-service-'));
-  roots.push(root);
+async function start(
+  targets = [target()],
+  options: { root?: string; once?: boolean; retryTargets?: string[] } = {},
+) {
+  const root = options.root ?? (await mkdtemp(join(tmpdir(), 'refit-http-service-')));
+  if (!options.root) roots.push(root);
   const controller = new AbortController();
   let ready!: (url: string) => void;
   const address = new Promise<string>((resolve) => {
@@ -88,6 +92,8 @@ async function start(targets = [target()]) {
     controlToken: CONTROL_TOKEN,
     signal: controller.signal,
     onReady: ready,
+    once: options.once,
+    retryTargets: options.retryTargets,
   });
   services.push({ controller, completion });
   const url = await Promise.race([
@@ -287,3 +293,81 @@ it('keeps confirmed installation access separate from a failed migration job', a
     message: 'Error: Check image is missing',
   });
 });
+
+it('retries only a named target in existing service state and preserves unrelated failure records', async () => {
+  const targets = [target(), target('other', 'example/other')];
+  const failed = {
+    status: 'already-processed' as const,
+    provider: 'stripe',
+    jobKey: 'failed-job',
+    sourceHash: 'test-source',
+    previousStatus: 'validation-failed',
+    output: '/tmp/failed-test-evidence',
+  };
+  vi.mocked(watchOnce).mockResolvedValueOnce(failed).mockResolvedValueOnce(failed);
+  const original = await start(targets, { once: true });
+  const before = await original.completion;
+  expect(before.registry.targets.demo.status).toBe('validation-failed');
+  vi.mocked(watchOnce).mockClear();
+  vi.mocked(authenticateGitHubRead).mockClear();
+  const retry = await start(targets, {
+    root: original.root,
+    once: true,
+    retryTargets: ['demo'],
+  });
+  const after = await retry.completion;
+  expect(after.retryTargets).toEqual(['demo']);
+  expect(vi.mocked(watchOnce)).toHaveBeenCalledTimes(1);
+  expect(vi.mocked(watchOnce).mock.calls[0][0]).toMatchObject({
+    retry: true,
+    syncGitHub: { repository: 'example/application' },
+  });
+  expect(vi.mocked(authenticateGitHubRead)).toHaveBeenCalledTimes(1);
+  expect(after.registry.targets.demo.status).toBe('existing-pr');
+  expect(after.registry.targets.other).toEqual(before.registry.targets.other);
+});
+
+it('accepts several explicitly named retry targets without polling another installed profile', async () => {
+  const service = await start(
+    [target(), target('second', 'example/second'), target('untouched', 'example/untouched')],
+    { once: true, retryTargets: ['demo', 'second'] },
+  );
+  const result = await service.completion;
+  expect(vi.mocked(watchOnce).mock.calls.map(([input]) => input.syncGitHub?.repository)).toEqual([
+    'example/application',
+    'example/second',
+  ]);
+  expect(vi.mocked(watchOnce).mock.calls.every(([input]) => input.retry)).toBe(true);
+  expect(result.registry.targets.untouched).toMatchObject({
+    status: 'not-run',
+    checkedAt: null,
+    access: 'unknown',
+  });
+});
+
+it.each([
+  { retryTargets: ['demo'], once: false, message: '--retry-target requires --once' },
+  { retryTargets: ['demo', 'demo'], once: true, message: 'unique configured target ids' },
+  { retryTargets: ['unknown'], once: true, message: 'unique configured target ids' },
+  { retryTargets: [''], once: true, message: 'unique configured target ids' },
+])(
+  'rejects an invalid retry selection before service or worker side effects: $retryTargets, once=$once',
+  async (selection) => {
+    const root = join(tmpdir(), `refit-invalid-retry-${randomUUID()}`);
+    await expect(
+      runLocalService({
+        targets: [target()],
+        app: APP,
+        directory: root,
+        port: 0,
+        signal: new AbortController().signal,
+        webhookSecret: WEBHOOK_SECRET,
+        controlToken: CONTROL_TOKEN,
+        ...selection,
+      }),
+    ).rejects.toThrow(selection.message);
+    expect(authenticateGitHubRead).not.toHaveBeenCalled();
+    expect(watchOnce).not.toHaveBeenCalled();
+    await expect(readFile(join(root, 'registry.json'))).rejects.toMatchObject({ code: 'ENOENT' });
+  },
+);
