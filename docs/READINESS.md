@@ -8,6 +8,10 @@
 
 Configured provider adapters can now trace removed fields through direct local OpenAPI component-schema `$ref`s, nested property chains, and immutable local aliases, including destructuring of an intermediate object. The same schema graph is used when rescanning deterministic and AI proposals. A nested catalog SDK fixture passes old and new runtime contracts in offline Docker. Arrays and inline/composed/external schemas remain review cases. Refit can report removed-field indexes or destructuring but does not auto-edit them. See [provider adapter limits](../README.md#configure-another-sdk) and [architecture](ARCHITECTURE.md#provider-independent-core).
 
+## October 13, 2026: explicit OpenAPI array item tracing
+
+The provider analyzer now follows literal non-negative numeric indexes into arrays when the array's `items` reference a local component schema. It carries that evidence through immutable array aliases, object destructuring of an array property and immutable array destructuring. A configured nested-field rename passes the before and after contracts in offline Docker. Dynamic indexes and inline, composed, tuple-style or external item schemas remain review cases. This traces an array element; it does not auto-edit a dynamic or destructured read of the removed field itself.
+
 ## October 13, 2026: configured property-rename rules
 
 Custom provider adapters may now declare `propertyRenames`. Refit activates a rule only when the before/after OpenAPI documents show the configured field was removed and a new replacement field appears on the same schema with the same simple scalar type (`string`, `integer`, `number` or `boolean`). The scanner must also trace a direct property read through the adapter's resource/method mapping. It then changes only that property-name token. Indexed reads, destructuring and unsupported source forms remain for review.
