@@ -19,6 +19,17 @@ refit scan --repository /path/to/repo --before before.json --after after.json
 
 The replay uses bundled synthetic application code and curated historical Stripe specifications. It does not modify your application. Paths supplied to other commands are resolved from your current directory.
 
+For another OpenAPI provider, `adapter-suggest` can propose an initial SDK-to-operation adapter without adding provider-specific Refit code:
+
+```sh
+refit adapter-suggest --repository /path/to/repo \
+  --spec /path/to/openapi.json --id example-provider \
+  --package @example/sdk --default-import \
+  --output ./refit-provider.json --env .env
+```
+
+Use `--export Client` instead of `--default-import` for a named SDK constructor; exactly one import style is required. The command sends OpenAI only the configured package/import style, direct `client.resource.method` call names with a few file/line samples, and unique OpenAPI operation IDs, paths, HTTP methods and supported JSON response schema names. It does not send whole source files or descriptions from the API spec. It requires explicit `OPENAI_API_KEY` and `OPENAI_MODEL`; the normal token counter and shared budget ledger apply. The output uses a new file with owner-only permissions and is never overwritten. For models without built-in budget pricing, configure all four token prices as documented under [optional AI assessment](#optional-ai-assessment). The model's choices are checked against observed calls and component response schemas, but matching SDK behavior remains a human judgment. Review the config, then run `refit scan --provider-config ./refit-provider.json` before any migration workflow. This suggestion supports up to 100 observed SDK methods and 500 candidate operations; repeat `--operation-id <id>` to narrow a large contract. It recognizes only direct calls on `const client = new ImportedConstructor()` instances and does not infer other clients, calls or languages.
+
 For a complete demonstrable migration with the real Stripe SDK:
 
 ```sh
@@ -90,7 +101,7 @@ Use `refit watch --config run.json --state /path/outside-repository/state --once
 
 Add `--sync-github --github owner/repository --base main --github-app` to let the App fetch and refresh a managed checkout before each poll. The run configuration may omit `repository` in this mode. State must be outside existing Git working copies. Read tokens are repository-scoped; local edits in the managed directory are refused, and your working copy is not reset. Hosted installation enrollment remains planned.
 
-AI is opt-in. Configure `OPENAI_API_KEY` and `OPENAI_MODEL`, then add `--ai-patch` or `--assess`. Patch generation sends affected source files and up to 12 transitively resolved relative-import modules as read-only context to OpenAI; only affected files remain editable. Ambiguous imports are not guessed, and oversized context fails explicitly. Assessment sends selected source context. Optional `--repair-attempts 1` sends failed-check output and allows a bounded retry (maximum 2). Logs and source can contain application data. Model quality must be evaluated against application checks. Baseline checks run before paid generation. The CLI uses a durable shared spending ledger (default $1 at `~/.refit/ai-budget`), pre-counts input tokens, reserves maximum generation cost, and records actual usage. Set `REFIT_AI_BUDGET_USD` and `REFIT_AI_BUDGET_DIRECTORY` for your shared allowance. Unknown model prices must be explicitly configured; unaccounted generation keeps its reservation.
+AI is opt-in. Configure `OPENAI_API_KEY` and `OPENAI_MODEL`, then add `--ai-patch` or `--assess`. Patch generation sends affected source files and up to 12 transitively resolved relative-import modules as read-only context to OpenAI; only affected files remain editable. Ambiguous imports are not guessed, and oversized context fails explicitly. Assessment sends selected source context. Optional `--repair-attempts 1` sends failed-check output and allows a bounded retry (maximum 2). Logs and source can contain application data. Model quality must be evaluated against application checks. Baseline checks run before paid generation. The CLI uses a durable shared spending ledger (default $1 at `~/.refit/ai-budget`), pre-counts input tokens, reserves maximum generation cost, and records actual usage. Set `REFIT_AI_BUDGET_USD` and `REFIT_AI_BUDGET_DIRECTORY` for your shared allowance. The built-in price table currently covers `gpt-5.4-mini`; for another model, set all four `REFIT_AI_INPUT_USD_PER_MILLION`, `REFIT_AI_CACHED_INPUT_USD_PER_MILLION`, `REFIT_AI_CACHE_WRITE_USD_PER_MILLION` and `REFIT_AI_OUTPUT_USD_PER_MILLION` values using that model's current prices. If usage cannot be accounted for, the reservation remains charged.
 
 Publication is also opt-in. Configure `GITHUB_TOKEN` with repository Contents and Pull requests write access, then add `--publish-draft --github owner/repository --base main`. It requires a matching remote base commit, passing checks and no unresolved detected findings. Refit never auto-merges. A live AI migration, bounded repair and draft publication were verified on the independent billing demo; see [the live PR evaluation](https://github.com/pierceluu10/refit-billing-demo/pull/1). This remains a simulated Stripe compatibility evaluation.
 

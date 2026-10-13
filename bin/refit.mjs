@@ -6,6 +6,7 @@ import { parseEnv } from 'node:util';
 const commands = new Map([
   ['scan', 'cli.ts'],
   ['run', 'workflow-cli.ts'],
+  ['adapter-suggest', 'adapter-suggest-cli.ts'],
   ['validate', 'validation-cli.ts'],
   ['stripe-snapshot', 'snapshot-cli.ts'],
   ['source-snapshot', 'source-snapshot-cli.ts'],
@@ -23,6 +24,7 @@ Usage: refit <command> [options]
 
   scan             Analyze a local repository against two specifications
   run              Scan, propose, validate and optionally publish a draft PR
+  adapter-suggest  Suggest a provider adapter from observed SDK calls and OpenAPI
   validate         Validate a proposal in restricted Docker containers
   stripe-snapshot  Download a pinned or latest Stripe specification
   source-snapshot  Save a pinned OpenAPI snapshot for any provider

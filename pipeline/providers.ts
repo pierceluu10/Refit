@@ -11,6 +11,13 @@ export interface ProviderAdapter {
   propertyRenames?: { schema: string; removed: string; replacement: string }[];
 }
 
+export interface ProviderIdentity {
+  id: string;
+  packageName: string;
+  defaultImport: boolean;
+  namedExport: string | null;
+}
+
 export const STRIPE: ProviderAdapter = {
   id: 'stripe',
   packageName: 'stripe',
@@ -43,15 +50,8 @@ const IDENTIFIER = /^[A-Za-z_$][A-Za-z0-9_$]*$/;
 const PROVIDER_ID = /^[a-z][a-z0-9-]{0,63}$/;
 const PACKAGE_NAME = /^(?:@[a-z0-9._-]+\/)?[a-z0-9._-]+$/;
 
-export async function readProviderAdapter(path?: string): Promise<ProviderAdapter> {
-  if (!path) return STRIPE;
-  if ((await stat(path)).size > MAX_CONFIG_BYTES)
-    throw new PipelineInputError('Provider configuration exceeds 64 KiB.');
-  const value = parseObject(await readFile(path, 'utf8'), 'Provider configuration');
-  const keys = Object.keys(value).sort().join(',');
+export function validateProviderIdentity(value: Record<string, unknown>): ProviderIdentity {
   if (
-    (keys !== 'defaultImport,id,namedExport,operations,packageName' &&
-      keys !== 'defaultImport,id,namedExport,operations,packageName,propertyRenames') ||
     typeof value.id !== 'string' ||
     !PROVIDER_ID.test(value.id) ||
     value.id === STRIPE.id ||
@@ -62,7 +62,33 @@ export async function readProviderAdapter(path?: string): Promise<ProviderAdapte
       value.namedExport === null ||
       (typeof value.namedExport === 'string' && IDENTIFIER.test(value.namedExport))
     ) ||
-    !(value.defaultImport || value.namedExport) ||
+    !(value.defaultImport || value.namedExport)
+  )
+    throw new PipelineInputError(
+      'Invalid provider configuration. Use a unique non-Stripe id, package, constructor import and 1–100 operations.',
+    );
+  return {
+    id: value.id,
+    packageName: value.packageName,
+    defaultImport: value.defaultImport,
+    namedExport: value.namedExport,
+  };
+}
+
+export async function readProviderAdapter(path?: string): Promise<ProviderAdapter> {
+  if (!path) return STRIPE;
+  if ((await stat(path)).size > MAX_CONFIG_BYTES)
+    throw new PipelineInputError('Provider configuration exceeds 64 KiB.');
+  const value = parseObject(await readFile(path, 'utf8'), 'Provider configuration');
+  return parseProviderAdapter(value);
+}
+
+export function parseProviderAdapter(value: Record<string, unknown>): ProviderAdapter {
+  const identity = validateProviderIdentity(value);
+  const keys = Object.keys(value).sort().join(',');
+  if (
+    (keys !== 'defaultImport,id,namedExport,operations,packageName' &&
+      keys !== 'defaultImport,id,namedExport,operations,packageName,propertyRenames') ||
     !Array.isArray(value.operations) ||
     !value.operations.length ||
     value.operations.length > MAX_OPERATIONS
@@ -149,10 +175,7 @@ export async function readProviderAdapter(path?: string): Promise<ProviderAdapte
     };
   });
   return {
-    id: value.id,
-    packageName: value.packageName,
-    defaultImport: value.defaultImport,
-    namedExport: value.namedExport,
+    ...identity,
     operations,
     ...(parsedRenames.length ? { propertyRenames: parsedRenames } : {}),
   };
