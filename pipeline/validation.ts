@@ -1,3 +1,4 @@
+import type { AiOptions, AiUsage } from './ai-budget.ts';
 import { execFile } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
 import { mkdir, mkdtemp, realpath, rm, writeFile } from 'node:fs/promises';
@@ -34,10 +35,12 @@ export interface ValidationAttempt {
   check: CheckResult;
   responseId: string | null;
   evidenceHash: string | null;
+  usage: AiUsage | null;
+  costUsd: number | null;
 }
 
 export interface CheckResult {
-  status: 'passed' | 'failed' | 'error';
+  status: 'passed' | 'failed' | 'error' | 'not-run';
   exitCode: number | null;
   stdout: string;
   stderr: string;
@@ -141,8 +144,8 @@ export async function validateMigration(options: {
   image: string;
   command: string[];
   baselineCommand?: string[];
-  assessment?: { apiKey: string; model: string };
-  aiPatch?: { apiKey: string; model: string };
+  assessment?: AiOptions;
+  aiPatch?: AiOptions;
   providerConfig?: string;
   repairAttempts?: number;
   onProgress?: (message: string) => void;
@@ -190,17 +193,22 @@ export async function validateMigration(options: {
     );
     await writeFile(archive, archiveResult.stdout);
     await command('tar', ['-xf', archive, '-C', baselineDirectory]);
-    options.onProgress?.(
-      options.aiPatch
-        ? 'Requesting an AI migration proposal...'
-        : 'Generating a deterministic migration proposal...',
-    );
+    options.onProgress?.('Running baseline checks in offline Docker...');
+    const baseline = await containerCheck(baselineDirectory, image, baselineCommand);
+    if (baseline.status === 'passed')
+      options.onProgress?.(
+        options.aiPatch
+          ? 'Requesting an AI migration proposal...'
+          : 'Generating a deterministic migration proposal...',
+      );
     const report = await runPipeline({
       ...options,
       repository: baselineDirectory,
       proposePatch: true,
+      aiPatch: baseline.status === 'passed' ? options.aiPatch : undefined,
+      assessment: baseline.status === 'passed' ? options.assessment : undefined,
     });
-    if (!('diff' in report.patch) || !report.patch.diff)
+    if (!('diff' in report.patch) || (!report.patch.diff && baseline.status === 'passed'))
       throw new PipelineInputError(
         'No supported patch proposal is available for this committed revision.',
       );
@@ -235,12 +243,13 @@ export async function validateMigration(options: {
       }
       return { publicationFiles, directory: patchedDirectory };
     };
-    const initialCandidate = await prepareCandidate(proposal.diff);
-    let publicationFiles = initialCandidate.publicationFiles;
-    options.onProgress?.('Running baseline checks in offline Docker...');
-    const baseline = await containerCheck(baselineDirectory, image, baselineCommand);
-    options.onProgress?.('Running patched checks in offline Docker...');
-    let patched = await containerCheck(initialCandidate.directory, image, options.command);
+    const initialCandidate =
+      baseline.status === 'passed' ? await prepareCandidate(proposal.diff) : undefined;
+    let publicationFiles = initialCandidate?.publicationFiles ?? [];
+    if (initialCandidate) options.onProgress?.('Running patched checks in offline Docker...');
+    let patched: CheckResult = initialCandidate
+      ? await containerCheck(initialCandidate.directory, image, options.command)
+      : { status: 'not-run', exitCode: null, stdout: '', stderr: '' };
     const attempts: ValidationAttempt[] = [];
     const recordAttempt = () =>
       attempts.push({
@@ -250,12 +259,14 @@ export async function validateMigration(options: {
         check: patched,
         responseId: 'responseId' in proposal ? proposal.responseId : null,
         evidenceHash: 'evidenceHash' in proposal ? proposal.evidenceHash : null,
+        usage: 'usage' in proposal ? proposal.usage : null,
+        costUsd: 'budget' in proposal ? (proposal.budget?.costUsd ?? null) : null,
       });
-    recordAttempt();
+    if (initialCandidate) recordAttempt();
     const repair: { limit: number; requested: number; stopReason: string; error: string | null } = {
       limit: repairLimit,
       requested: 0,
-      stopReason: 'not-needed-or-disabled',
+      stopReason: baseline.status === 'passed' ? 'not-needed-or-disabled' : 'baseline-failed',
       error: null,
     };
     while (

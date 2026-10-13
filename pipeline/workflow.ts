@@ -1,3 +1,4 @@
+import type { AiOptions } from './ai-budget.ts';
 import { readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { createArtifactDirectory } from './artifacts.ts';
@@ -25,8 +26,8 @@ export async function runWorkflow(options: {
   command: string[];
   baselineCommand?: string[];
   providerConfig?: string;
-  assessment?: { apiKey: string; model: string };
-  aiPatch?: { apiKey: string; model: string };
+  assessment?: AiOptions;
+  aiPatch?: AiOptions;
   repairAttempts?: number;
   publication?: ReturnType<typeof publicationConfiguration>;
   onProgress?: (message: string) => void;

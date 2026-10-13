@@ -304,13 +304,15 @@ it
             ],
     });
     const expectedRequests =
-      scenario === 'exhausted'
-        ? 3
-        : ['baseline-failed', 'disabled', 'stale'].includes(scenario)
-          ? 1
-          : 2;
+      scenario === 'baseline-failed'
+        ? 0
+        : scenario === 'exhausted'
+          ? 3
+          : ['baseline-failed', 'disabled', 'stale'].includes(scenario)
+            ? 1
+            : 2;
     expect(requests, JSON.stringify(result.validation, null, 2)).toBe(expectedRequests);
-    expect(result.validation.repair.requested).toBe(requests - 1);
+    expect(result.validation.repair.requested).toBe(Math.max(0, requests - 1));
     expect(progress.filter((message) => message.includes('Requesting AI repair'))).toHaveLength(
       result.validation.repair.requested,
     );
@@ -325,14 +327,26 @@ it
             : 'regression',
     );
     expect(result.validation.attempts.length, JSON.stringify(result.validation, null, 2)).toBe(
-      scenario === 'success' ? 2 : scenario === 'exhausted' ? 3 : 1,
+      scenario === 'baseline-failed'
+        ? 0
+        : scenario === 'success'
+          ? 2
+          : scenario === 'exhausted'
+            ? 3
+            : 1,
     );
     expect(result.validation.patchHash).toBe(digest(result.patch.diff));
-    expect(result.validation.attempts.at(-1)?.patchHash).toBe(result.validation.patchHash);
+    if (scenario !== 'baseline-failed')
+      expect(result.validation.attempts.at(-1)?.patchHash).toBe(result.validation.patchHash);
+    else {
+      expect(fetcher).not.toHaveBeenCalled();
+      expect(result.validation.patched.status).toBe('not-run');
+      expect(result.publicationFiles).toEqual([]);
+    }
     if (scenario === 'success') {
       expect(progress).toEqual([
-        'Requesting an AI migration proposal...',
         'Running baseline checks in offline Docker...',
+        'Requesting an AI migration proposal...',
         'Running patched checks in offline Docker...',
         'Patched checks failed. Requesting AI repair 1 of 2...',
         'Running repaired checks in offline Docker...',
@@ -460,9 +474,17 @@ it.skipIf(!IMAGE)(
     });
     expect(report.validation.status).toBe('error');
     expect(report.validation.baseline.status).toBe('error');
-    expect(report.validation.patched.status).toBe('error');
-    expect(Buffer.byteLength(report.validation.patched.stdout)).toBeLessThanOrEqual(
-      report.validation.limits.outputBytes,
+    expect(report.validation.patched.status).toBe('not-run');
+    const patched = await validateMigration({
+      ...options,
+      repository: root,
+      baselineCommand: ['node', '--version'],
+      command: ['node', '-e', "process.stdout.write('x'.repeat(2 * 1024 * 1024))"],
+    });
+    expect(patched.validation.baseline.status).toBe('passed');
+    expect(patched.validation.patched.status).toBe('error');
+    expect(Buffer.byteLength(patched.validation.patched.stdout)).toBeLessThanOrEqual(
+      patched.validation.limits.outputBytes,
     );
     expect(report.validation.publishable).toBe(false);
   },

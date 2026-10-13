@@ -1,3 +1,4 @@
+import type { AiOptions } from './ai-budget.ts';
 import { analyzeRepository } from './analyzer.ts';
 import { buildAssessmentEvidence } from './assessment.ts';
 import { requestStructuredOutput } from './openai.ts';
@@ -71,7 +72,7 @@ export async function proposeAiPatch(
   repository: Repository,
   changes: Removal[],
   findings: Finding[],
-  options: { apiKey: string; model: string },
+  options: AiOptions,
   provider: ProviderAdapter = STRIPE,
   repair?: RepairFeedback,
 ) {

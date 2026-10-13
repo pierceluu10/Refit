@@ -2,6 +2,7 @@ import { requestStructuredOutput } from './openai.ts';
 import { digest, parseObject } from './specifications.ts';
 import { PipelineInputError, type Finding, type Removal, type Repository } from './types.ts';
 import { STRIPE, type ProviderAdapter } from './providers.ts';
+import { aiBudgetConfiguration, type AiOptions } from './ai-budget.ts';
 
 const CONTEXT_LINES = 3;
 const MAX_TEXT_LENGTH = 2000;
@@ -63,17 +64,14 @@ type Evidence = ReturnType<typeof buildAssessmentEvidence>;
 
 export function assessmentConfiguration(
   enabled: boolean | undefined,
-  environment: {
-    OPENAI_API_KEY?: string;
-    OPENAI_MODEL?: string;
-  },
+  environment: Record<string, string | undefined>,
 ) {
   if (!enabled) return undefined;
   const apiKey = environment.OPENAI_API_KEY?.trim();
   const model = environment.OPENAI_MODEL?.trim();
   if (!apiKey || !model)
     throw new PipelineInputError('AI operations require OPENAI_API_KEY and OPENAI_MODEL.');
-  return { apiKey, model };
+  return { apiKey, model, budget: aiBudgetConfiguration(environment) };
 }
 
 function parseAssessment(content: string, evidence: Evidence) {
@@ -114,10 +112,7 @@ function parseAssessment(content: string, evidence: Evidence) {
   };
 }
 
-export async function assessMigration(
-  evidence: Evidence,
-  options: { apiKey: string; model: string },
-) {
+export async function assessMigration(evidence: Evidence, options: AiOptions) {
   const { content, ...metadata } = await requestStructuredOutput(
     {
       evidence,

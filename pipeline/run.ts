@@ -1,3 +1,4 @@
+import type { AiOptions } from './ai-budget.ts';
 import { analyzeRepository } from './analyzer.ts';
 import { proposeAiPatch } from './ai-patches.ts';
 import { assessMigration, buildAssessmentEvidence } from './assessment.ts';
@@ -12,8 +13,8 @@ export async function runPipeline(options: {
   before: string;
   after: string;
   proposePatch?: boolean;
-  assessment?: { apiKey: string; model: string };
-  aiPatch?: { apiKey: string; model: string };
+  assessment?: AiOptions;
+  aiPatch?: AiOptions;
   providerConfig?: string;
 }) {
   const provider = await readProviderAdapter(options.providerConfig);

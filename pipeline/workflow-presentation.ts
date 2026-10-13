@@ -35,6 +35,16 @@ export async function renderWorkflowResult(result: Result) {
   }
   if (report && isObject(report.patch) && typeof report.patch.generator === 'string')
     rows.push(`Generated   ${terminalText(report.patch.generator)} migration`);
+  if (report && isObject(report.patch) && isObject(report.patch.usage)) {
+    const usage = report.patch.usage;
+    rows.push(
+      `AI tokens   Latest proposal: ${usage.inputTokens} input; ${usage.outputTokens} output; ${usage.cachedInputTokens} cached`,
+    );
+    if (isObject(report.patch.budget))
+      rows.push(
+        `AI budget   $${Number(report.patch.budget.spentUsd).toFixed(4)} recorded / $${Number(report.patch.budget.limitUsd).toFixed(2)} limit`,
+      );
+  }
   if (report && isObject(report.validation)) {
     const validation = report.validation;
     if (isObject(validation.baseline) && isObject(validation.patched))
