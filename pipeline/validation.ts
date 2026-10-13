@@ -11,7 +11,8 @@ import { digest, readSpecification } from './specifications.ts';
 import { PipelineInputError } from './types.ts';
 import { readRepository } from './repository.ts';
 import { validateCheckCommand, validateRepairAttempts } from './validation-options.ts';
-import { proposeAiPatch } from './ai-patches.ts';
+import { proposeAiPatch, type PatchRetrieval } from './ai-patches.ts';
+import { readDocSnapshot } from './doc-snapshots.ts';
 import { gitEnvironment } from './git-environment.ts';
 import { readCommittedRepository } from './committed-repository.ts';
 import { MAX_DEPENDENCY_ARCHIVE_BYTES, prepareNpmDependencies } from './npm-dependencies.ts';
@@ -44,6 +45,7 @@ export interface ValidationAttempt {
   evidenceHash: string | null;
   usage: AiUsage | null;
   costUsd: number | null;
+  retrieval?: PatchRetrieval;
 }
 
 export interface CheckResult {
@@ -122,6 +124,7 @@ export async function validateMigration(options: {
   requireApiVersionMatch?: boolean;
   fullDiff?: boolean;
   repairAttempts?: number;
+  docSnapshots?: string[];
   onProgress?: (message: string) => void;
   signal?: AbortSignal;
 }) {
@@ -205,7 +208,15 @@ export async function validateMigration(options: {
     const beforeSpecification = await readSpecification(options.before);
     if (beforeSpecification.hash !== report.snapshots.before)
       throw new PipelineInputError('Baseline specification changed during validation.');
-    if (!('diff' in report.patch) || (!report.patch.diff && baseline.status === 'passed'))
+    const retrieval = 'retrieval' in report.patch ? report.patch.retrieval : undefined;
+    const missingDocs =
+      !('diff' in report.patch && report.patch.diff) &&
+      !!retrieval &&
+      retrieval.findings.some((finding) => finding.unresolvedReason === 'no supporting docs found');
+    if (
+      !('diff' in report.patch) ||
+      (!report.patch.diff && baseline.status === 'passed' && !missingDocs)
+    )
       throw new PipelineInputError(
         'No supported patch proposal is available for this committed revision.',
       );
@@ -241,7 +252,9 @@ export async function validateMigration(options: {
       return { publicationFiles, directory: patchedDirectory };
     };
     const initialCandidate =
-      baseline.status === 'passed' ? await prepareCandidate(proposal.diff) : undefined;
+      baseline.status === 'passed' && proposal.diff
+        ? await prepareCandidate(proposal.diff)
+        : undefined;
     let publicationFiles = initialCandidate?.publicationFiles ?? [];
     if (initialCandidate) options.onProgress?.('Running patched checks in offline Docker...');
     let patched: CheckResult = initialCandidate
@@ -258,6 +271,7 @@ export async function validateMigration(options: {
         evidenceHash: 'evidenceHash' in proposal ? proposal.evidenceHash : null,
         usage: 'usage' in proposal ? proposal.usage : null,
         costUsd: 'budget' in proposal ? (proposal.budget?.costUsd ?? null) : null,
+        ...('retrieval' in proposal ? { retrieval: proposal.retrieval } : {}),
       });
     if (initialCandidate) recordAttempt();
     const repair: { limit: number; requested: number; stopReason: string; error: string | null } = {
@@ -304,6 +318,14 @@ export async function validateMigration(options: {
                 patched.stdout.length > MAX_REPAIR_LOG_CHARACTERS ||
                 patched.stderr.length > MAX_REPAIR_LOG_CHARACTERS,
             },
+          },
+          {
+            document: beforeSpecification.document,
+            sourceUrl: beforeSpecification.provenance?.url ?? `spec://${report.adapter.id}`,
+            pageSha256: beforeSpecification.hash,
+            docSnapshots: options.docSnapshots?.length
+              ? await Promise.all(options.docSnapshots.map((path) => readDocSnapshot(path)))
+              : undefined,
           },
         );
         if (!candidate.diff) {

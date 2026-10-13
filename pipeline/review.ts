@@ -27,6 +27,23 @@ function code(value: string) {
   return `${fence}${content}${fence}`;
 }
 
+function paraphrase(passage: { headingPath: string[]; text: string }) {
+  const heading = passage.headingPath.join(' / ') || 'the provider document';
+  const sentence = passage.text.split(/(?<=[.!?])\s/)[0]?.trim() ?? '';
+  if (sentence.length >= 40 && sentence.length <= 160 && /[.!?]$/.test(sentence)) return sentence;
+  return `Documentation under ${heading} explains the cited change.`;
+}
+
+function sourceSection(patch: ValidationReport['patch']) {
+  if (!('retrieval' in patch) || !patch.retrieval) return '';
+  const retrieval = patch.retrieval;
+  const cited = new Set(retrieval.findings.flatMap((finding) => finding.citedPassageIds));
+  const lines = retrieval.passages
+    .filter((passage) => cited.has(passage.id))
+    .map((passage) => `- ${plainText(paraphrase(passage))} ${passage.sourceUrl}`);
+  return lines.length ? ['## Sources', ...lines].join('\n') : '';
+}
+
 function summaryList(values: string[]) {
   const visible = values.slice(0, MAX_SUMMARY_ITEMS);
   const remaining = values.length - visible.length;
@@ -91,6 +108,7 @@ export function createReviewArtifacts(
     validation.status === 'passed'
       ? 'The configured baseline and patched checks passed. Human review of migration semantics is still required.'
       : `Validation did not pass (${validation.status}). Resolve the recorded failure or stale input before treating this migration as validated.`;
+  const sources = sourceSection(patch);
   const body =
     [
       '## What changed',
@@ -98,6 +116,7 @@ export function createReviewArtifacts(
       `**API version:** ${apiVersionSummary(report)}`,
       `**${patch.generator === 'openai' ? 'AI proposal' : 'Migration'}:** ${plainText(patch.summary)}`,
       `**Files changed:** ${changedFilesSummary}`,
+      ...(sources ? [sources] : []),
       '## Checks',
       `- Baseline: **${validation.baseline.status}**\n- Proposed changes: **${validation.patched.status}**\n- Patch attempts: **${validation.attempts.length}**; AI repairs: **${validation.repair.requested}**\n- Remaining findings: **${patch.unresolvedFindings}**`,
       summary,

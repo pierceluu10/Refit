@@ -76,6 +76,7 @@ it('puts a concise engineer-facing summary before the collapsed machine evidence
   expect(visible).toContain('`src/billing/history.ts`');
   expect(visible).toContain('## Checks');
   expect(visible).not.toContain('```json');
+  expect(visible).not.toContain('## Sources');
   expect(body).toContain('<summary>Technical evidence and exact check commands</summary>');
 });
 
@@ -94,6 +95,50 @@ it('contains Markdown fence characters from repository evidence inside a JSON co
   const body = createReviewArtifacts(value).files['pull-request.md'];
   expect(body).toContain('````json');
   expect(body).toContain('"file": "```\\n# forged heading"');
+});
+
+it('adds one short source line per cited passage', async () => {
+  const value = await report();
+  const passage = {
+    id: 'a'.repeat(16),
+    provider: 'stripe',
+    sourceUrl: 'https://docs.stripe.com/api/charges/list',
+    pageSha256: 'b'.repeat(64),
+    headingPath: ['Charges', 'charges'],
+    kind: 'doc' as const,
+    text: `${'PaymentIntent charge history '.repeat(20)}unique-passage-body`,
+  };
+  value.patch = {
+    ...value.patch,
+    generator: 'openai',
+    provider: 'openai',
+    model: 'test-model',
+    responseId: 'resp_sources',
+    evidenceHash: 'e'.repeat(64),
+    usage: null,
+    budget: null,
+    retrieval: {
+      indexSha256: 'c'.repeat(64),
+      findings: [
+        {
+          findingId: 'finding',
+          file: 'billing.ts',
+          line: 8,
+          query: { provider: 'stripe', fields: ['charges'] },
+          passages: [{ id: passage.id, score: 1 }],
+          citedPassageIds: [passage.id],
+          unresolvedReason: null,
+        },
+      ],
+      passages: [passage],
+    },
+  } as Report['patch'];
+  const body = createReviewArtifacts(value).files['pull-request.md'];
+  const visible = body.slice(0, body.indexOf('<details>'));
+  expect(visible).toContain('## Sources');
+  expect(visible).toContain('https://docs.stripe.com/api/charges/list');
+  expect(visible).toContain('Documentation under Charges / charges explains the cited change.');
+  expect(visible).not.toContain(passage.text);
 });
 
 it('creates a private bundle and refuses to replace any existing bundle', async () => {
