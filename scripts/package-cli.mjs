@@ -30,7 +30,7 @@ else {
     await mkdir(output, { mode: 0o700 });
     const metadata = JSON.parse(await readFile(join(root, 'package.json'), 'utf8'));
     const dependencies = {};
-    for (const name of ['tsx', 'typescript-compiler', 'yaml']) {
+    for (const name of ['diff', 'parse5', 'tsx', 'typescript-compiler', 'yaml']) {
       const installed = JSON.parse(
         await readFile(join(root, 'node_modules', name, 'package.json'), 'utf8'),
       );

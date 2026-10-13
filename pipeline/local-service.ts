@@ -279,6 +279,7 @@ export async function runLocalService(options: {
                   : undefined,
               },
               source: target.source,
+              documentationSources: target.documentationSources,
               stateDirectory: join(directory, 'targets', target.id),
               syncGitHub: { repository: target.repository, base: target.base, app: options.app },
               onProgress: (message) => options.onProgress?.(`[${target.id}] ${message}`),
@@ -295,12 +296,28 @@ export async function runLocalService(options: {
               record.status =
                 result.status === 'processed'
                   ? result.result.manifest.status
-                  : result.previousStatus;
+                  : result.status === 'documentation-changed'
+                    ? result.status
+                    : result.previousStatus;
               record.output = result.output;
               record.message =
                 result.status === 'processed'
-                  ? result.result.manifest.reason
-                  : 'Saved worker result reused; checks were not rerun.';
+                  ? [
+                      result.result.manifest.reason,
+                      ...(result.documentationBaselines?.length
+                        ? [
+                            `Now monitoring ${result.documentationBaselines.length} documentation source${result.documentationBaselines.length === 1 ? '' : 's'}.`,
+                          ]
+                        : []),
+                      ...(result.documentationChanges?.length
+                        ? [
+                            `${result.documentationChanges.length} provider documentation change${result.documentationChanges.length === 1 ? '' : 's'} saved for review.`,
+                          ]
+                        : []),
+                    ].join(' ')
+                  : result.status === 'documentation-changed'
+                    ? `Provider documentation changed. Refit saved a unified diff and did not start a migration. The prior API workflow status remains ${result.previousStatus}.`
+                    : 'Saved worker result reused; checks were not rerun.';
             });
             const record = (await store.read()).targets[target.id];
             options.onProgress?.(

@@ -6,7 +6,13 @@ import { readServiceConfiguration } from './service-configuration.ts';
 import { PipelineInputError } from './types.ts';
 import { terminalText } from './workflow-presentation.ts';
 
-const REVIEW_STATUSES = new Set(['needs-review', 'validation-failed', 'interrupted', 'not-run']);
+const REVIEW_STATUSES = new Set([
+  'needs-review',
+  'validation-failed',
+  'interrupted',
+  'not-run',
+  'documentation-changed',
+]);
 const USAGE =
   'Usage: refit serve --config <service.json> --state <directory-outside-repository> [--port <number>] [--interval <seconds>] [--once] [--ai-patch --repair-attempts 0|1|2] [--publish-draft] [--json]';
 

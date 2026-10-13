@@ -45,7 +45,12 @@ it('resolves each approved workflow and source relative to the service configura
       formatVersion: 1,
       targets: [
         target,
-        { ...target, id: 'another-provider', source: { kind: 'file', path: './current.yaml' } },
+        {
+          ...target,
+          id: 'another-provider',
+          source: { kind: 'file', path: './current.yaml' },
+          documentationSources: [{ label: 'Changelog', url: 'https://docs.example.com/changelog' }],
+        },
       ],
     }),
   );
@@ -54,6 +59,9 @@ it('resolves each approved workflow and source relative to the service configura
   expect(result[0].workflow.before).toBe(join(root, 'before.json'));
   expect(result[0].source).toEqual({ kind: 'file', path: join(root, 'after.json') });
   expect(result[1].source).toEqual({ kind: 'file', path: join(root, 'current.yaml') });
+  expect(result[1].documentationSources).toEqual([
+    { label: 'Changelog', url: 'https://docs.example.com/changelog' },
+  ]);
 });
 
 it('rejects duplicate identities, secrets, automatic publication and credential-bearing source URLs', async () => {
@@ -80,11 +88,39 @@ it('rejects duplicate identities, secrets, automatic publication and credential-
   }
 });
 
+it('validates documentation monitors before the worker starts', async () => {
+  const { path, target } = await setup();
+  const valid = { label: 'Changelog', url: 'https://docs.example.com/changelog' };
+  for (const documentationSources of [
+    'invalid',
+    [valid, valid],
+    [{ ...valid, url: 'https://docs.example.com/changelog?token=secret' }],
+    [{ ...valid, url: 'https://secret@docs.example.com/changelog' }],
+    [{ ...valid, unexpected: true }],
+    Array.from({ length: 9 }, (_, index) => ({
+      label: `Source ${index}`,
+      url: `https://docs.example.com/changelog-${index}`,
+    })),
+  ]) {
+    await writeFile(
+      path,
+      JSON.stringify({
+        formatVersion: 1,
+        targets: [{ ...target, documentationSources }],
+      }),
+    );
+    await expect(readServiceConfiguration(path, APP)).rejects.toThrow();
+  }
+});
+
 it('exposes service help and refuses missing authentication or invalid scheduling before creating state', async () => {
   const { root, path, target } = await setup();
   await writeFile(path, JSON.stringify({ formatVersion: 1, targets: [target] }));
   expect((await execute(process.execPath, [bin, 'serve', '--help'])).stdout).toContain(
     '/github/webhook',
+  );
+  expect((await execute(process.execPath, [bin, 'watch', '--help'])).stdout).toContain(
+    '--documentation-source',
   );
   const arguments_ = [bin, 'serve', '--config', path, '--state', join(root, 'state'), '--once'];
   const environment = {

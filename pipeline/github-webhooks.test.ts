@@ -34,6 +34,7 @@ const targets: ServiceTarget[] = [
       fullDiff: true,
     },
     source: { kind: 'file', path: 'after.json' },
+    documentationSources: [],
   },
 ];
 async function store() {

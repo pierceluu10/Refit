@@ -48,6 +48,7 @@ function target(id = 'demo', repository = 'example/application'): ServiceTarget 
       fullDiff: false,
     },
     source: { kind: 'file', path: resolve('pipeline/fixtures/after.json') },
+    documentationSources: [],
   };
 }
 beforeEach(() => {
@@ -158,6 +159,37 @@ it('runs configured installed targets, protects status and acknowledges concurre
   expect(await readFile(join(service.root, 'registry.json'), 'utf8')).not.toContain(
     'private-read-test-token',
   );
+});
+
+it('surfaces documentation-only changes in service status without describing a migration run', async () => {
+  vi.mocked(watchOnce).mockResolvedValueOnce({
+    status: 'documentation-changed',
+    provider: 'stripe',
+    jobKey: 'documentation-change',
+    sourceHash: 'test-source',
+    previousStatus: 'validated',
+    output: '/tmp/refit-state/observations/documentation',
+    documentationChanges: [
+      {
+        label: 'Stripe changelog',
+        url: 'https://docs.stripe.com/changelog.md',
+        previousHash: 'a'.repeat(64),
+        currentHash: 'b'.repeat(64),
+        addedLines: 2,
+        removedLines: 1,
+        patch: '/tmp/refit-state/observations/documentation/change.patch',
+        evidence: '/tmp/refit-state/observations/documentation/change.json',
+      },
+    ],
+  });
+  const service = await start();
+  await expect
+    .poll(async () => (await status(service.url)).targets.demo.status, {
+      timeout: STATUS_TIMEOUT_MS,
+    })
+    .toBe('documentation-changed');
+  expect((await status(service.url)).targets.demo.message).toContain('did not start a migration');
+  expect((await status(service.url)).targets.demo.message).toContain('status remains validated');
 });
 
 it('rejects unauthenticated, conflicting, foreign-App and oversized requests without worker side effects', async () => {
