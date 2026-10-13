@@ -4,6 +4,7 @@ import { STRIPE, type ProviderAdapter } from './providers.ts';
 import { unsafeBindings } from './mutations.ts';
 import { guardedHistoryEdit } from './history-migration.ts';
 import { resolveSourceImport } from './source-imports.ts';
+import { isObject } from './specifications.ts';
 import {
   PipelineInputError,
   type Finding,
@@ -15,10 +16,51 @@ import {
 
 const PURE_STRING_METHODS = new Set(['toLowerCase', 'toUpperCase', 'trim', 'trimStart', 'trimEnd']);
 
+function componentReference(reference: unknown) {
+  const prefix = '#/components/schemas/';
+  if (typeof reference !== 'string' || !reference.startsWith(prefix)) return undefined;
+  const pointer = reference.slice(prefix.length);
+  if (!pointer || pointer.includes('/') || /~(?![01])/.test(pointer)) return undefined;
+  return pointer.replaceAll('~1', '/').replaceAll('~0', '~');
+}
+
+function resolvableSchema(schemas: Record<string, unknown>, name: string) {
+  const seen = new Set<string>();
+  let current = name;
+  while (!seen.has(current)) {
+    seen.add(current);
+    const definition = schemas[current];
+    if (!isObject(definition)) return undefined;
+    if (['allOf', 'anyOf', 'oneOf'].some((key) => key in definition)) return undefined;
+    if (isObject(definition.properties)) return current;
+    const referenced = componentReference(definition.$ref);
+    if (!referenced) return undefined;
+    current = referenced;
+  }
+  return undefined;
+}
+
+function referencedPropertySchema(
+  schemas: Record<string, unknown>,
+  parent: string,
+  property: string,
+) {
+  const canonicalParent = resolvableSchema(schemas, parent);
+  if (!canonicalParent) return undefined;
+  const definition = schemas[canonicalParent];
+  if (!isObject(definition) || !isObject(definition.properties)) return undefined;
+  const propertyDefinition = definition.properties[property];
+  if (!isObject(propertyDefinition)) return undefined;
+  if (['allOf', 'anyOf', 'oneOf'].some((key) => key in propertyDefinition)) return undefined;
+  const referenced = componentReference(propertyDefinition.$ref);
+  return referenced ? resolvableSchema(schemas, referenced) : undefined;
+}
+
 export function analyzeRepository(
   repository: Repository,
   changes: Removal[],
   provider: ProviderAdapter = STRIPE,
+  schemaDefinitions: Record<string, unknown> = {},
 ) {
   const sources = new Map(
     repository.files.map((file) => [resolve(repository.root, file.path), file.content]),
@@ -168,6 +210,57 @@ export function analyzeRepository(
           operation.resource === resource.name.text && operation.method === method.name.text,
       );
   }
+  function schemaForExpression(expression: ts.Expression): string | undefined {
+    if (ts.isIdentifier(expression)) return responses.get(symbol(expression)!);
+    if (ts.isPropertyAccessExpression(expression)) {
+      const parent = schemaForExpression(expression.expression);
+      return parent
+        ? referencedPropertySchema(schemaDefinitions, parent, expression.name.text)
+        : undefined;
+    }
+    if (ts.isElementAccessExpression(expression)) {
+      const parent = schemaForExpression(expression.expression);
+      const property = expression.argumentExpression;
+      return parent && property && ts.isStringLiteral(property)
+        ? referencedPropertySchema(schemaDefinitions, parent, property.text)
+        : undefined;
+    }
+    if (
+      ts.isParenthesizedExpression(expression) ||
+      ts.isAsExpression(expression) ||
+      ts.isTypeAssertionExpression(expression) ||
+      ts.isNonNullExpression(expression) ||
+      ts.isSatisfiesExpression(expression)
+    )
+      return schemaForExpression(expression.expression);
+    if (ts.isAwaitExpression(expression) && ts.isCallExpression(expression.expression)) {
+      const operation = responseCall(expression.expression);
+      return operation
+        ? (resolvableSchema(schemaDefinitions, operation.schema) ?? operation.schema)
+        : undefined;
+    }
+    if (ts.isCallExpression(expression)) {
+      const operation = responseCall(expression);
+      return operation
+        ? (resolvableSchema(schemaDefinitions, operation.schema) ?? operation.schema)
+        : undefined;
+    }
+    return undefined;
+  }
+  function responseBinding(expression: ts.Expression): ts.Symbol | undefined {
+    if (ts.isIdentifier(expression)) return symbol(expression);
+    if (
+      ts.isPropertyAccessExpression(expression) ||
+      ts.isElementAccessExpression(expression) ||
+      ts.isParenthesizedExpression(expression) ||
+      ts.isAsExpression(expression) ||
+      ts.isTypeAssertionExpression(expression) ||
+      ts.isNonNullExpression(expression) ||
+      ts.isSatisfiesExpression(expression)
+    )
+      return responseBinding(expression.expression);
+    return undefined;
+  }
   const declarations = nodes.filter(
     (node): node is ts.VariableDeclaration & { name: ts.Identifier; initializer: ts.Expression } =>
       ts.isVariableDeclaration(node) &&
@@ -228,26 +321,58 @@ export function analyzeRepository(
     wrappers.set(symbol(node.name)!, value);
   }
   // Resolve only immutable, lexical bindings; a same-named parameter is a different symbol.
-  for (const node of declarations) {
-    const value = node.initializer;
-    const awaited =
-      ts.isAwaitExpression(value) && ts.isCallExpression(value.expression)
-        ? value.expression
-        : undefined;
-    const wrapper =
-      awaited && ts.isIdentifier(awaited.expression) && awaited.arguments.length === 1
-        ? symbol(awaited.expression)
-        : undefined;
-    const origin = wrapper && wrappers.has(wrapper) ? wrappers.get(wrapper)! : awaited;
-    const operation = origin ? responseCall(origin) : undefined;
-    if (operation && ts.isAwaitExpression(value)) {
-      responses.set(symbol(node.name)!, operation.schema);
-      origins.set(symbol(node.name)!, origin!);
-      if (wrapper && wrappers.has(wrapper)) wrappedResponses.set(symbol(node.name)!, wrapper);
+  let responseSchemasChanged = true;
+  while (responseSchemasChanged) {
+    responseSchemasChanged = false;
+    const assignSchema = (name: ts.Identifier, schema: string | undefined) => {
+      const target = symbol(name);
+      if (!target || !schema || responses.get(target) === schema) return;
+      responses.set(target, schema);
+      responseSchemasChanged = true;
+    };
+    for (const node of declarations) {
+      const value = node.initializer;
+      const awaited =
+        ts.isAwaitExpression(value) && ts.isCallExpression(value.expression)
+          ? value.expression
+          : undefined;
+      const wrapper =
+        awaited && ts.isIdentifier(awaited.expression) && awaited.arguments.length === 1
+          ? symbol(awaited.expression)
+          : undefined;
+      const origin = wrapper && wrappers.has(wrapper) ? wrappers.get(wrapper)! : awaited;
+      const operation = origin ? responseCall(origin) : undefined;
+      if (operation && ts.isAwaitExpression(value)) {
+        assignSchema(
+          node.name,
+          resolvableSchema(schemaDefinitions, operation.schema) ?? operation.schema,
+        );
+        origins.set(symbol(node.name)!, origin!);
+        if (wrapper && wrappers.has(wrapper)) wrappedResponses.set(symbol(node.name)!, wrapper);
+      }
+      assignSchema(node.name, schemaForExpression(value));
     }
-    if (ts.isIdentifier(value)) {
-      const schema = responses.get(symbol(value)!);
-      if (schema) responses.set(symbol(node.name)!, schema);
+    for (const node of nodes) {
+      if (
+        !ts.isVariableDeclaration(node) ||
+        !ts.isObjectBindingPattern(node.name) ||
+        !ts.isVariableDeclarationList(node.parent) ||
+        !(node.parent.flags & ts.NodeFlags.Const) ||
+        !node.initializer
+      )
+        continue;
+      const parentSchema = schemaForExpression(node.initializer);
+      if (!parentSchema) continue;
+      for (const element of node.name.elements) {
+        if (!ts.isIdentifier(element.name) || element.initializer || element.dotDotDotToken)
+          continue;
+        const property = element.propertyName ?? element.name;
+        if (!ts.isIdentifier(property) && !ts.isStringLiteral(property)) continue;
+        assignSchema(
+          element.name,
+          referencedPropertySchema(schemaDefinitions, parentSchema, property.text),
+        );
+      }
     }
   }
   for (const node of nodes) {
@@ -283,7 +408,7 @@ export function analyzeRepository(
       return false;
     const field = node.expression.expression;
     if (!ts.isPropertyAccessExpression(field) || !ts.isIdentifier(field.expression)) return false;
-    const schema = responses.get(symbol(field.expression)!);
+    const schema = schemaForExpression(field.expression);
     return changes.some(
       (change) =>
         change.schema === schema && change.property === field.name.text && change.type === 'string',
@@ -394,11 +519,7 @@ export function analyzeRepository(
   function record(node: ts.Node, receiver: ts.Expression, property: string | undefined) {
     // SDK resources are not response fields, even when their names match a removal.
     if (ts.isIdentifier(receiver) && contains(clients, receiver)) return;
-    const schema = ts.isIdentifier(receiver)
-      ? responses.get(symbol(receiver)!)
-      : ts.isParenthesizedExpression(receiver) && ts.isAwaitExpression(receiver.expression)
-        ? responseCall(receiver.expression.expression)?.schema
-        : undefined;
+    const schema = schemaForExpression(receiver);
     const tracked = schema !== undefined;
     for (const change of changes) {
       if (tracked && change.schema !== schema) continue;
@@ -414,8 +535,9 @@ export function analyzeRepository(
         immediateCall && ts.isPropertyAccessExpression(immediateCall.expression)
           ? immediateCall.expression.expression
           : undefined;
+      const responseSymbol = responseBinding(receiver);
       const uncertainMutation =
-        (ts.isIdentifier(receiver) && unsafe.has(symbol(receiver)!)) ||
+        (responseSymbol !== undefined && unsafe.has(responseSymbol)) ||
         (immediateResource &&
           ts.isPropertyAccessExpression(immediateResource) &&
           unsafe.has(symbol(immediateResource.expression)!));
