@@ -226,6 +226,16 @@ it.each([
     'array destructuring of a response item',
     'const [place] = customer.places; return place.legacy_city;',
   ],
+  ['const for-of iteration', 'for (const place of customer.places) return place.legacy_city;'],
+  ['an inline map callback', 'return customer.places.map(place => place.legacy_city);'],
+  [
+    'an inline filter callback',
+    "return customer.places.filter(place => place.legacy_city === 'Toronto');",
+  ],
+  [
+    'an immutable alias in an inline callback',
+    'return customer.places.map(place => { const city = place; return city.legacy_city; });',
+  ],
 ])('traces local OpenAPI array item refs through %s', async (_label, read) => {
   const input = await arrayProviderInputs(`import { Catalog } from '@example/catalog';
 const catalog = new Catalog();
@@ -248,6 +258,7 @@ export async function city(id: string) {
 
 it.each([
   ['a dynamic index', 'return customer.places[index].legacy_city;'],
+  ['mutable for-of iteration', 'for (let place of customer.places) return place.legacy_city;'],
   [
     'a mutable array destructuring binding',
     'let [place] = customer.places; return place.legacy_city;',
@@ -258,6 +269,40 @@ const catalog = new Catalog();
 export async function city(id: string, index: number) {
   const customer = await catalog.customers.retrieve(id);
   ${read}
+}`);
+  const report = await runPipeline(input);
+  expect(report.findings).toMatchObject([{ expression: '.legacy_city', confidence: 'review' }]);
+  expect(report.patch).toMatchObject({ status: 'unsupported', edits: 0, unresolvedFindings: 1 });
+});
+
+it.each([
+  [
+    'a named callback',
+    'function readCity(place: unknown) { return place.legacy_city; } return customer.places.map(readCity);',
+  ],
+  [
+    'a callback with an index parameter',
+    'return customer.places.map((place, index) => place.legacy_city);',
+  ],
+])('keeps %s at review', async (_label, read) => {
+  const input = await arrayProviderInputs(`import { Catalog } from '@example/catalog';
+const catalog = new Catalog();
+export async function city(id: string) {
+  const customer = await catalog.customers.retrieve(id);
+  ${read}
+}`);
+  const report = await runPipeline(input);
+  expect(report.findings).toMatchObject([{ expression: '.legacy_city', confidence: 'review' }]);
+  expect(report.patch).toMatchObject({ status: 'unsupported', edits: 0, unresolvedFindings: 1 });
+});
+
+it('downgrades array callback findings when an item escapes to a call', async () => {
+  const input = await arrayProviderInputs(`import { Catalog } from '@example/catalog';
+const catalog = new Catalog();
+export async function city(id: string) {
+  const customer = await catalog.customers.retrieve(id);
+  customer.places.forEach(place => normalize(place));
+  return customer.places[0].legacy_city;
 }`);
   const report = await runPipeline(input);
   expect(report.findings).toMatchObject([{ expression: '.legacy_city', confidence: 'review' }]);
@@ -545,7 +590,7 @@ it.skipIf(!DOCKER_IMAGE)(
             'const catalog = new Catalog();',
             'export async function city(id) {',
             '  const customer = await catalog.customers.retrieve(id);',
-            '  return customer.places[0].legacy_city;',
+            '  return customer.places.map(place => place.legacy_city)[0];',
             '}',
           ].join('\n'),
         ],
@@ -585,7 +630,7 @@ it.skipIf(!DOCKER_IMAGE)(
       command: ['node', 'contract.js', 'after'],
     });
     expect(report.patch.generator).toBe('deterministic');
-    expect(report.patch.diff).toContain('customer.places[0].display_city');
+    expect(report.patch.diff).toContain('place.display_city');
     expect(report.validation.baseline.status).toBe('passed');
     expect(report.validation.patched.status).toBe('passed');
     expect(report.validation.status).toBe('passed');
