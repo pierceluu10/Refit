@@ -1,0 +1,11 @@
+{
+  "formatVersion": 1,
+  "targets": [
+    {
+      "id": "billing-demo-stripe",
+      "repository": "pierceluu10/refit-billing-demo",
+      "base": "main",
+      "workflow": "./billing-demo.npm.refit.json"
+    }
+  ]
+}

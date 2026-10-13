@@ -85,6 +85,7 @@ it('rejects ambiguous specifications, invalid commands, versions and oversized f
   for (const [override, message] of [
     [{ latestStripe: true }, 'exactly one'],
     [{ latestStripe: 'true' }, 'boolean'],
+    [{ prepareDependencies: 'true' }, 'boolean'],
     [{ before: '' }, 'before string'],
     [{ formatVersion: 2 }, 'formatVersion: 1'],
     [{ command: ['npm', ''] }, 'nonempty JSON array'],

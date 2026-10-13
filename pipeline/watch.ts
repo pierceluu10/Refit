@@ -94,6 +94,7 @@ async function watchLocalOnce(
         before: before.hash,
         source: options.source,
         image: configuration.image,
+        ...(configuration.prepareDependencies ? { prepareDependencies: true } : {}),
         command: configuration.command,
         baselineCommand: configuration.baselineCommand,
         fullDiff: configuration.fullDiff,

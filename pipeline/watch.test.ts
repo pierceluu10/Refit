@@ -110,3 +110,26 @@ it('rejects state inside the repository and refuses to reset state when configur
     }),
   ).rejects.toThrow(/another configuration/);
 });
+
+it('preserves default worker identity when preparation is disabled and requires fresh state to enable it', async () => {
+  const input = await options();
+  vi.mocked(runWorkflow).mockImplementation(async (value) => result(value));
+  await watchOnce(input);
+  expect(
+    (
+      await watchOnce({
+        ...input,
+        configuration: { ...input.configuration, prepareDependencies: false },
+      })
+    ).status,
+  ).toBe('already-processed');
+  await expect(
+    watchOnce({ ...input, configuration: { ...input.configuration, prepareDependencies: true } }),
+  ).rejects.toThrow(/another configuration/);
+  await watchOnce({
+    ...input,
+    stateDirectory: join(input.stateDirectory, '..', 'prepared-state'),
+    configuration: { ...input.configuration, prepareDependencies: true },
+  });
+  expect(vi.mocked(runWorkflow).mock.calls.at(-1)?.[0].prepareDependencies).toBe(true);
+});

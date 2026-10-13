@@ -18,6 +18,7 @@ try {
       before: { type: 'string' },
       after: { type: 'string' },
       image: { type: 'string' },
+      'prepare-dependencies': { type: 'boolean' },
       command: { type: 'string' },
       'baseline-command': { type: 'string' },
       output: { type: 'string' },
@@ -35,7 +36,7 @@ try {
   });
   if (values.help)
     console.log(
-      `${USAGE}\nOptional --baseline-command '<JSON array>' overrides only the baseline check. Both commands are recorded; review their contract differences.`,
+      `${USAGE}\n--prepare-dependencies installs locked public npm packages with scripts disabled before offline checks. Optional --baseline-command '<JSON array>' overrides only the baseline check. Both commands are recorded; review their contract differences.`,
     );
   else if (
     !values.repository ||
@@ -65,6 +66,7 @@ try {
       before: values.before,
       after: values.after,
       image: values.image,
+      prepareDependencies: values['prepare-dependencies'],
       command,
       baselineCommand:
         values['baseline-command'] !== undefined

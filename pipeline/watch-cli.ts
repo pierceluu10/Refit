@@ -32,6 +32,7 @@ try {
       'source-file': { type: 'string' },
       'latest-stripe': { type: 'boolean' },
       'ai-patch': { type: 'boolean' },
+      'prepare-dependencies': { type: 'boolean' },
       'repair-attempts': { type: 'string' },
       'publish-draft': { type: 'boolean' },
       'sync-github': { type: 'boolean' },
@@ -44,7 +45,7 @@ try {
   });
   if (values.help)
     console.log(
-      `${USAGE}\nThe default source is the run configuration's after file or latestStripe setting. oasdiff is required unless fullDiff is false in that configuration. State deduplicates jobs across restarts. Retry is explicit and limited to one poll.`,
+      `${USAGE}\n--prepare-dependencies installs locked public npm packages with scripts disabled before offline checks. The default source is the run configuration's after file or latestStripe setting. oasdiff is required unless fullDiff is false in that configuration. State deduplicates jobs across restarts. Retry is explicit and limited to one poll.`,
     );
   else {
     if (!values.config || !values.state) throw new PipelineInputError(USAGE);
@@ -104,6 +105,8 @@ try {
           result = await watchOnce({
             configuration: {
               ...configuration,
+              prepareDependencies:
+                values['prepare-dependencies'] ?? configuration.prepareDependencies,
               aiPatch,
               repairAttempts,
               signal: controller.signal,
