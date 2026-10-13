@@ -1,6 +1,7 @@
 {
   "formatVersion": 1,
   "repository": "../../refit-billing-demo",
+  "apiVersion": "2022-08-01",
   "before": "../../refit-billing-demo/docs/contracts/before.json",
   "after": "../../refit-billing-demo/docs/contracts/after.json",
   "image": "refit-billing-check:history",

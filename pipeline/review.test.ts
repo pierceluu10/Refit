@@ -15,6 +15,7 @@ async function report(): Promise<Report> {
     repository: resolve('pipeline/fixtures/repository'),
     before: resolve('pipeline/fixtures/before.json'),
     after: resolve('pipeline/fixtures/after.json'),
+    apiVersion: '2022-08-01',
     proposePatch: true,
   });
   if (!('diff' in scan.patch)) throw new Error('Expected fixture patch');
@@ -68,6 +69,9 @@ it('puts a concise engineer-facing summary before the collapsed machine evidence
   expect(visible).toContain('API contract removes');
   expect(visible).toContain('payment_intent.charges');
   expect(visible).toContain('`payment_intent.charges`');
+  expect(visible).toContain(
+    '**API version:** Application pin 2022-08-01 matches the before contract 2022-08-01; proposed contract 2022-11-15.',
+  );
   expect(visible).toMatch(/confirmed usages? across 1 file/);
   expect(visible).toContain('`src/billing/history.ts`');
   expect(visible).toContain('## Checks');

@@ -33,6 +33,20 @@ function summaryList(values: string[]) {
   return `${visible.join(', ')}${remaining ? `, and ${remaining} more` : ''}`;
 }
 
+function apiVersionSummary(report: ValidationReport) {
+  const { application, before, after, applicability } = report.apiVersion;
+  const current = plainText(application ?? 'unknown');
+  const baseline = plainText(before ?? 'unknown');
+  const proposed = plainText(after ?? 'unknown');
+  if (applicability === 'matches-before')
+    return `Application pin ${current} matches the before contract ${baseline}; proposed contract ${proposed}.`;
+  if (applicability === 'matches-after')
+    return `Application pin ${current} already matches the after contract ${proposed}, not the before contract ${baseline}.`;
+  if (applicability === 'matches-neither')
+    return `Application pin ${current} matches neither the before contract ${baseline} nor the after contract ${proposed}.`;
+  return `Applicability is unknown; current pin ${current}, before contract ${baseline}, after contract ${proposed}.`;
+}
+
 export function createReviewArtifacts(
   report: ValidationReport,
   destination: 'local' | 'github' = 'local',
@@ -81,6 +95,7 @@ export function createReviewArtifacts(
     [
       '## What changed',
       `The supplied ${plainText(provider)} API contract removes ${changeSummary}. Refit found ${confirmedFindings.length} confirmed ${confirmedFindings.length === 1 ? 'usage' : 'usages'} across ${affectedFiles.size} ${affectedFiles.size === 1 ? 'file' : 'files'}.`,
+      `**API version:** ${apiVersionSummary(report)}`,
       `**${patch.generator === 'openai' ? 'AI proposal' : 'Migration'}:** ${plainText(patch.summary)}`,
       `**Files changed:** ${changedFilesSummary}`,
       '## Checks',

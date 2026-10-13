@@ -9,7 +9,7 @@ import { parseCheckCommand } from './validation-options.ts';
 import { githubAppConfiguration } from './github-app.ts';
 
 const USAGE =
-  'Usage: refit validate --repository <clean-git-directory> --before <spec.json> --after <spec.json> [--provider-config <adapter.json>] --image <local-image> --command \'["npm","test"]\' [--output <new-report.json> | --bundle <new-directory>] [--assess (sends selected source context to OpenAI)] [--ai-patch (sends affected source files to OpenAI)] [--repair-attempts 0|1|2 (sends failed check output to OpenAI)] [--publish-draft --github owner/repository --base main (uses GITHUB_TOKEN or --github-app)]';
+  'Usage: refit validate --repository <clean-git-directory> --before <spec.json> --after <spec.json> [--api-version <current-api-version>] [--provider-config <adapter.json>] --image <local-image> --command \'["npm","test"]\' [--output <new-report.json> | --bundle <new-directory>] [--assess (sends selected source context to OpenAI)] [--ai-patch (sends affected source files to OpenAI)] [--repair-attempts 0|1|2 (sends failed check output to OpenAI)] [--publish-draft --github owner/repository --base main (uses GITHUB_TOKEN or --github-app)]';
 
 try {
   const { values } = parseArgs({
@@ -27,6 +27,7 @@ try {
       'ai-patch': { type: 'boolean' },
       'repair-attempts': { type: 'string' },
       'provider-config': { type: 'string' },
+      'api-version': { type: 'string' },
       help: { type: 'boolean' },
       'publish-draft': { type: 'boolean' },
       'github-app': { type: 'boolean' },
@@ -76,6 +77,8 @@ try {
       aiPatch: assessmentConfiguration(values['ai-patch'], process.env),
       repairAttempts: Number(values['repair-attempts'] ?? 0),
       providerConfig: values['provider-config'],
+      apiVersion: values['api-version'],
+      requireApiVersionMatch: Boolean(publication),
     });
     const json = `${JSON.stringify(report, null, 2)}\n`;
     if (values.bundle)

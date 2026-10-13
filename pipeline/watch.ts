@@ -92,6 +92,7 @@ async function watchLocalOnce(
         repository,
         provider,
         before: before.hash,
+        apiVersion: configuration.apiVersion,
         source: options.source,
         image: configuration.image,
         ...(configuration.prepareDependencies ? { prepareDependencies: true } : {}),
@@ -158,6 +159,7 @@ async function watchLocalOnce(
       before: configuration.before,
       after,
       providerConfig: configuration.providerConfig,
+      apiVersion: configuration.apiVersion,
       fullDiff: configuration.fullDiff,
       proposePatch: true,
     });
@@ -181,6 +183,11 @@ async function watchLocalOnce(
         revision,
         repositoryHash: scan.repository.hash,
         adapter: provider,
+        apiVersion: {
+          application: scan.apiVersion.application,
+          before: scan.apiVersion.before,
+          applicability: scan.apiVersion.applicability,
+        },
         changes: scan.changes.map((change) => change.id),
         contractChanges,
       }),

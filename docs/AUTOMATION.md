@@ -121,7 +121,7 @@ refit watch --config /absolute/path/provider.refit.json \
   --source-url https://api.example.com/openapi.yaml --once
 ```
 
-Set `before` in the run configuration to the captured baseline. The snapshot command saves the exact supplied contract and provenance; the worker polls the same URL for later versions. This requires a provider-published public OpenAPI URL and does not discover feeds or documentation pages. The configuration still needs a repository, an image, check commands, and `providerConfig`. The SDK adapter names its package, constructor imports, and resource methods mapped to response schemas. [The OpenAI fixture](../pipeline/fixtures/openai/README.md) demonstrates the shared engine with the actual OpenAI SDK. Its `owned_by` removal and synthetic `owner_name` replacement are simulations, not announced OpenAI changes. The basic adapter remains review-only; a separate explicit mapping demonstrates the generic property-rename rule.
+Set `before` in the run configuration to the captured baseline and `apiVersion` to the API version the application actually uses. The snapshot command saves the exact supplied contract and provenance; the worker polls the same URL for later versions. This requires a provider-published public OpenAPI URL and does not discover feeds or documentation pages. The configuration still needs a repository, an image, check commands, and `providerConfig`. The SDK adapter names its package, constructor imports, and resource methods mapped to response schemas. [The OpenAI fixture](../pipeline/fixtures/openai/README.md) demonstrates the shared engine with the actual OpenAI SDK. Its `owned_by` removal and synthetic `owner_name` replacement are simulations, not announced OpenAI changes. The basic adapter remains review-only; a separate explicit mapping demonstrates the generic property-rename rule.
 
 JSON and YAML OpenAPI 3 documents share ingestion and comparison. HTTPS downloads are bounded, refuse redirects and credential-bearing/query URLs, and reuse ETags when available. External OpenAPI references are disabled. Multi-file contracts must be bundled first; ambiguous references or unsupported schemas stop automatic publication.
 
@@ -131,7 +131,7 @@ The worker enables `oasdiff` by default. The full changelog records breaking and
 
 Automatic code handling is narrower than contract detection. Direct removed response fields must map to a supported SDK response and confirmed code usage. A response-removal changelog entry is considered covered only when its status, operation, path, and direct component-schema reference identify the same removed property. Type changes, removed endpoints, request changes, composed or inline responses, and other unmapped breaking changes stop the automatic proposal/publication path for review.
 
-Other providers reuse this worker, ingestion, differ, analyzer, budget, sandbox, and publisher. They still need verified SDK mappings, migration semantics, and application checks. Installing an App on an arbitrary repository does not supply that knowledge. `fullDiff: false` deliberately falls back to the narrower direct-property report; it does not imply full contract coverage.
+Other providers reuse this worker, ingestion, differ, analyzer, budget, sandbox, and publisher. They still need verified SDK mappings, migration semantics, an explicit API-version pin matching the before contract, and application checks. Installing an App on an arbitrary repository does not supply that knowledge. `fullDiff: false` deliberately falls back to the narrower direct-property report; it does not imply full contract coverage.
 
 ## AI efficiency and spending
 
@@ -147,7 +147,7 @@ The October 12 live generation used `gpt-5.4-mini-2026-03-17`: 2,133 input token
 
 ## State, recovery, and errors
 
-State retains captured snapshots, observations, job receipts, and per-attempt evidence. Job identity includes the committed revision, scanned repository content, adapter, and breaking changes. Source-only documentation edits do not create repeated AI jobs. Completed jobs are reused across restarts.
+State retains captured snapshots, observations, job receipts, and per-attempt evidence. Job identity includes the committed revision, scanned repository content, adapter, configured application API version, and breaking changes. Source-only documentation edits do not create repeated AI jobs. Completed jobs are reused across restarts.
 
 Failed, interrupted, and review-required jobs are not automatically regenerated. After resolving the cause, use the same command with `--retry --once`; a fresh evidence directory records the new attempt. Retry is refused for continuous mode to prevent repeated paid attempts. Successful jobs stay deduplicated. Enabling publication or changing baseline/source/checks requires a fresh state directory because it changes the worker configuration identity.
 
@@ -161,4 +161,4 @@ Evidence remains JSON for reproducibility and integrations. PRs show the change,
 
 ## Remaining product work
 
-The local service now records installations, verifies webhooks and schedules approved App-managed profiles. Hosted customer authentication, automatic enrollment with approved checks, durable hosted jobs, dependency provisioning, tenant-level budgets and stronger isolation remain. Live service contracts, SDK/API-version applicability, broader code flows and migration evaluations also need work. The standalone `watch` worker handles one target; `serve` schedules up to 32 approved profiles sequentially.
+The local service now records installations, verifies webhooks and schedules approved App-managed profiles. Hosted customer authentication, automatic enrollment with approved checks, durable hosted jobs, dependency provisioning, tenant-level budgets and stronger isolation remain. API-version applicability now has an explicit conservative gate, but provider-specific proof of the effective version, broader code flows and migration evaluations still need work. The standalone `watch` worker handles one target; `serve` schedules up to 32 approved profiles sequentially.

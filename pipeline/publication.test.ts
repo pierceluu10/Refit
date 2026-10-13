@@ -20,6 +20,7 @@ async function report(): Promise<Report> {
     repository: resolve('pipeline/fixtures/repository'),
     before: resolve('pipeline/fixtures/before.json'),
     after: resolve('pipeline/fixtures/after.json'),
+    apiVersion: '2022-08-01',
     proposePatch: true,
   });
   if (!('diff' in scan.patch)) throw new Error('Expected fixture patch');
@@ -192,6 +193,14 @@ it('stops failed, inconsistent and unresolved evidence before making a network r
   value.patch.unresolvedFindings = 0;
   value.validation.patchHash = 'tampered';
   await expect(publishDraft(value, OPTIONS)).rejects.toThrow(/consistent patch/);
+  expect(remote.fetch).not.toHaveBeenCalled();
+});
+
+it('blocks publication when application API-version applicability is unknown', async () => {
+  const remote = github();
+  const value = await report();
+  value.apiVersion.applicability = 'unknown';
+  await expect(publishDraft(value, OPTIONS)).rejects.toThrow(/Draft publication is blocked/);
   expect(remote.fetch).not.toHaveBeenCalled();
 });
 

@@ -13,7 +13,9 @@ flowchart TD
   CLONE --> REPO[Clean committed repository]
   REPO --> SCAN[SDK mapping and TypeScript symbol analysis]
   DIFF --> SCAN
-  SCAN --> STATE[Local job identity and evidence]
+  SCAN --> VERSION{Pinned API version matches before contract?}
+  VERSION -->|Unknown or mismatch| REVIEW[Record needs review]
+  VERSION -->|Exact match| STATE[Local job identity and evidence]
   STATE --> GATE{Supported affected usage?}
   GATE -->|Unmapped or uncertain| REVIEW[Record needs review]
   GATE -->|Confirmed| EXISTING[Verify existing App migration]
@@ -46,13 +48,15 @@ flowchart TD
 | Publication             | App installation token or personal token; verified base/tree/parent; exact tested files; bot identity checks, collision refusal and reconciliation                                                                                                    | No auto-merge or force-push; reused App PRs are explicitly not revalidated                                                                                                                                   |
 | Presentation            | Readable terminals and PR prose; technical JSON retained in evidence and collapsed PR details                                                                                                                                                         | Frontend data remains illustrative                                                                                                                                                                           |
 
+API-version applicability is an explicit gate between scanning and paid or executable work. The pin is operator-supplied and compared with OpenAPI `info.version`; an SDK lockfile or a provider account setting is not treated as evidence of the active API version. See [CLI version settings](CLI.md#refit-local-agent).
+
 ## Provider-independent core
 
 Ingestion, OpenAPI comparison, evidence, job deduplication, AI accounting, Docker validation, and publication share one implementation. Another provider supplies an adapter and checks rather than a new orchestration pipeline. Adapters may include explicit scalar-property rename mappings, but those mappings still need verified SDK behavior, semantic review and application checks. The OpenAI fixture exercises the shared mapping with a real SDK against an offline simulator; its replacement field is synthetic and makes no claim about OpenAI's live contract.
 
 `oasdiff` detects changes such as removed endpoints, response types, and request requirements. The code mapper currently confirms removed fields in existing non-composed component schemas, following direct local `$ref` links through nested response objects and array items, including literal numeric indexes, `const` `for...of` bindings, and inline callbacks to supported array iteration methods with one identifier parameter. Breaking changelog entries outside that supported response-field scope stop automatic generation/publication. Correlation uses the old operation, response status and direct schema reference; identical field names on unrelated responses do not authorize publication. Dynamic indexes, named or multi-parameter callbacks, transformed array chains, inline/composed/external item schemas and dynamic access require review.
 
-The selected adapter and npm lockfile provide evidence, not proof that a deployed application uses a particular API version. No finding is not a safe result. Automatic adoption of new API features is outside the current scope; non-breaking changes stay in the recorded changelog.
+The SDK adapter and npm lockfile do not prove which API version the application uses. Automated workflows now require an explicit operator pin and an exact match to the before contract's OpenAPI `info.version`; missing, after-version or unrelated pins stop before AI, checks and publication. This is conservative where a specification uses `info.version` for another purpose. No finding is not a safe result. Automatic adoption of new API features is outside the current scope; non-breaking changes stay in the recorded changelog.
 
 ## AI and validation
 
@@ -66,7 +70,7 @@ The historical Stripe migration preserves retrieval and charge history using pag
 
 ## Local state and publication
 
-Worker state is private and outside the scanned repository. Configuration identity includes baseline, source, repository, adapter, commands/image, comparison mode and publication target. Migration job identity includes committed revision, scanned content and breaking changes. Documentation-only updates can be recorded without repeated generation. Changing a configuration requires fresh state; baseline advancement is explicit.
+Worker state is private and outside the scanned repository. Configuration identity includes baseline, source, repository, adapter, API-version pin, commands/image, comparison mode and publication target. Migration job identity includes committed revision, scanned content, the configured application version and breaking changes; changes to OpenAPI title or descriptive metadata do not create duplicate jobs. Changing a configuration requires fresh state; baseline advancement is explicit.
 
 State writes use temporary files, synchronization and rename. Process locks protect budgets and jobs; verified dead local owners can be recovered. Interrupted runs reconcile a valid final manifest or require explicit retry. There is no automatic paid regeneration of an uncertain job. Details and reproducible commands are in [local automation](AUTOMATION.md).
 
@@ -95,6 +99,6 @@ flowchart TD
 
 The local service implements verified webhook delivery, installation inventory and configured checkout scheduling. Hosting this for customers still needs authenticated installation ownership, onboarding approval, durable hosted leases/retries, tenant-level budgets, audit records and stronger isolation. Dependency preparation currently covers single-root npm; hosted builds and more package ecosystems need separate work. PostgreSQL can hold installations, revisions and job state; blob storage can hold larger snapshots/logs. The current HTTP handler persists and signals work rather than executing migrations in the request. Every repository must be evaluated for supported integrations and meaningful checks before execution.
 
-Next reliability work should expand migration evaluations and SDK/API-version applicability, then broader code flows and migration categories. OpenAPI captures structural contracts; semantic changes in documentation, SDK behavior or business meaning require additional evidence. Hosted onboarding should use the existing core while preserving these limits.
+The first API-version applicability gate now requires explicit, exact evidence for automatic runs. Next reliability work should improve how each provider declares and proves its effective API version, expand migration evaluations, then broaden code flows and migration categories. OpenAPI captures structural contracts; semantic changes in documentation, SDK behavior or business meaning require additional evidence. Hosted onboarding should use the existing core while preserving these limits.
 
 See [readiness](READINESS.md), [CLI usage](CLI.md), [App setup](GITHUB-APP.md), [local service](LOCAL-SERVICE.md) and [local automation](AUTOMATION.md) for evidence and setup.

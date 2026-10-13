@@ -6,6 +6,7 @@ import { applySourceEdits, proposePatch } from './patches.ts';
 import { readRepository } from './repository.ts';
 import { readProviderAdapter, STRIPE, validateProviderMappings } from './providers.ts';
 import { validatePropertyRenames } from './provider-renames.ts';
+import { compareApiVersion, validateApiVersion } from './api-version.ts';
 import { PipelineInputError } from './types.ts';
 import { digest, findRemovedProperties, readSpecification } from './specifications.ts';
 import { compareOpenApi } from './openapi-diff.ts';
@@ -18,8 +19,11 @@ export async function runPipeline(options: {
   assessment?: AiOptions;
   aiPatch?: AiOptions;
   providerConfig?: string;
+  apiVersion?: string;
+  requireApiVersionMatch?: boolean;
   fullDiff?: boolean;
 }) {
+  const applicationApiVersion = validateApiVersion(options.apiVersion);
   const provider = await readProviderAdapter(options.providerConfig);
   const [repository, before, after] = await Promise.all([
     readRepository(options.repository, provider.packageName),
@@ -32,6 +36,9 @@ export async function runPipeline(options: {
     )
   )
     throw new PipelineInputError('Snapshot provenance does not match the configured provider.');
+  const apiVersion = compareApiVersion(applicationApiVersion, before.document, after.document);
+  if (options.requireApiVersionMatch && apiVersion.applicability !== 'matches-before')
+    throw new PipelineInputError(`Automated publication is blocked. ${apiVersion.reason}`);
   validateProviderMappings(provider, before.schemas);
   const changes = findRemovedProperties(before.schemas, after.schemas, provider.id);
   validatePropertyRenames(provider, changes, before.schemas, after.schemas);
@@ -58,8 +65,9 @@ export async function runPipeline(options: {
     provider: provider.id,
     adapter: provider,
     runId: digest(
-      `${before.hash}:${after.hash}:${repositoryHash}:${digest(JSON.stringify(provider))}`,
+      `${before.hash}:${after.hash}:${repositoryHash}:${digest(JSON.stringify(provider))}:${applicationApiVersion ?? ''}`,
     ),
+    apiVersion,
     status,
     snapshots: { before: before.hash, after: after.hash },
     provenance: { before: before.provenance, after: after.provenance },
@@ -76,7 +84,10 @@ export async function runPipeline(options: {
       coverage: 'Direct removed properties only; use fullDiff for the oasdiff contract report.',
     },
     ...analysis,
-    warnings: repository.warnings,
+    warnings: [
+      ...repository.warnings,
+      ...(apiVersion.applicability === 'matches-before' ? [] : [apiVersion.reason]),
+    ],
     assessment: options.assessment
       ? await assessMigration(
           buildAssessmentEvidence(repository, changes, analysis.findings, provider),

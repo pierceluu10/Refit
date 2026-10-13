@@ -8,6 +8,7 @@ import { runWorkflow } from './workflow.ts';
 import { PipelineInputError } from './types.ts';
 
 const execute = promisify(execFile);
+const DEMO_API_VERSION = '2022-08-01';
 const PROCESS_TIMEOUT_MS = 120_000;
 const MAX_OUTPUT_BYTES = 1024 * 1024;
 const fixtures = fileURLToPath(new URL('./fixtures/', import.meta.url));
@@ -89,6 +90,7 @@ try {
         repository,
         before: join(fixtures, 'before.json'),
         after: join(fixtures, 'after.json'),
+        apiVersion: DEMO_API_VERSION,
         output: join(output, 'migration'),
         image: values.image,
         baselineCommand: ['node', 'contract.mjs', './billing.js', 'before'],

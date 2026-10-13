@@ -1,5 +1,6 @@
 {
   "formatVersion": 1,
+  "apiVersion": "2022-08-01",
   "before": "../pipeline/fixtures/before.json",
   "after": "../pipeline/fixtures/after.json",
   "image": "refit-billing-check:history",

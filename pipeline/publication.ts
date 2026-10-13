@@ -153,6 +153,11 @@ export async function publishDraft(
   report: Report,
   options: ReturnType<typeof publicationConfiguration>,
 ) {
+  const apiVersion = report.apiVersion;
+  if (!apiVersion || apiVersion.applicability !== 'matches-before')
+    throw new PipelineInputError(
+      `Draft publication is blocked. ${apiVersion?.reason ?? 'API-version evidence is missing.'}`,
+    );
   const artifacts = createReviewArtifacts(report, 'github');
   if (unmappedBreakingChanges(report.specificationDiff, report.changes, report.findings).length)
     throw new PipelineInputError(

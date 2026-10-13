@@ -1,6 +1,6 @@
 # Historical replay fixture
 
-The two OpenAPI files are **hand-authored minimal fixtures**, not downloaded Stripe snapshots. They reproduce the `PaymentIntent.charges` removal documented in Stripe's [2022-11-15 changelog](https://docs.stripe.com/changelog/2022-11-15/removes-charges-attribute-paymentintent). They intentionally omit unrelated fields and the full expandable `latest_charge` schema.
+The two OpenAPI files are **hand-authored minimal fixtures**, not downloaded Stripe snapshots. They model the `PaymentIntent.charges` removal between API versions `2022-08-01` and `2022-11-15`, documented in Stripe's [2022-11-15 changelog](https://docs.stripe.com/changelog/2022-11-15/removes-charges-attribute-paymentintent). They intentionally omit unrelated fields and the full expandable `latest_charge` schema.
 
 `repository/` is an input for static analysis, never installed or executed. Its Stripe package version is a declared range, not a resolved version. No API key is needed.
 

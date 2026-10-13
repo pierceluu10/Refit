@@ -19,9 +19,11 @@ it.skipIf(!process.env.REFIT_BILLING_REPOSITORY)(
         repository: original,
         before: join(original, 'docs/contracts/before.json'),
         after: join(original, 'docs/contracts/after.json'),
+        apiVersion: '2022-08-01',
         proposePatch: true,
       });
       expect(report.status).toBe('affected');
+      expect(report.apiVersion.applicability).toBe('matches-before');
       expect(report.patch).toMatchObject({ status: 'proposed', unresolvedFindings: 0 });
       if (!('diff' in report.patch)) throw new Error('Expected migration patch.');
       const repository = join(root, 'application');

@@ -14,6 +14,7 @@ const IMAGE = process.env.REFIT_DOCKER_IMAGE;
 const options = {
   before: resolve('pipeline/fixtures/before.json'),
   after: resolve('pipeline/fixtures/after.json'),
+  apiVersion: '2022-08-01',
   image: IMAGE ?? 'node:22-alpine',
 };
 const SOURCE = `import Stripe from 'stripe';
@@ -23,6 +24,18 @@ export async function history(id) {
   return intent.charges.data;
 }
 `;
+
+it('blocks a publishable validation before repository access when API-version applicability is unknown', async () => {
+  await expect(
+    validateMigration({
+      repository: '/missing/repository',
+      ...options,
+      apiVersion: undefined,
+      command: ['npm', 'test'],
+      requireApiVersionMatch: true,
+    }),
+  ).rejects.toThrow(/Application API version is not configured/);
+});
 
 async function repository(executable = false) {
   const root = await mkdtemp(join(tmpdir(), 'refit-container-test-'));
