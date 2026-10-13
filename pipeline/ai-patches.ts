@@ -76,7 +76,12 @@ export async function proposeAiPatch(
   provider: ProviderAdapter = STRIPE,
   repair?: RepairFeedback,
 ) {
-  const impact = buildAssessmentEvidence(repository, changes, findings, provider);
+  const impact = buildAssessmentEvidence(
+    repository,
+    changes,
+    findings.filter((finding) => finding.confidence === 'confirmed'),
+    provider,
+  );
   const allowed = new Set(
     findings.filter((finding) => finding.confidence === 'confirmed').map((finding) => finding.file),
   );

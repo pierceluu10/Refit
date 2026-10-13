@@ -41,7 +41,7 @@ export function buildAssessmentEvidence(
   return {
     provider: provider.id,
     adapter: provider,
-    changes,
+    changes: changes.filter((change) => findings.some((finding) => finding.changeId === change.id)),
     findings: findings.map((finding) => {
       const lines = files.get(finding.file);
       if (!lines) throw new PipelineInputError('Finding references a missing source file.');
