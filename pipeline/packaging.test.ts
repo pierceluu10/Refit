@@ -62,6 +62,10 @@ it('packs only CLI runtime sources, fixtures, docs and exact runtime dependencie
   expect(result.files).toContain('docs/DEPENDENCIES.md');
   expect(result.files).toContain('docs/ENDPOINT-MIGRATIONS.md');
   expect(result.files).toContain('docs/REPOSITORY-SETUP.md');
+  expect(result.files).toContain('docs/APP-ONBOARDING.md');
+  expect(result.files).toContain('docs/VENDOR_NOTES.md');
+  expect(result.files).toContain('pipeline/enrollment-cli.ts');
+  expect(result.files).toContain('pipeline/repository-enrollment.ts');
   expect(result.files).toContain('pipeline/fixtures/endpoint-replacement/provider.json');
   expect(result.files).toContain('pipeline/provider-operation-replacements.ts');
   expect(result.files).toContain('pipeline/npm-dependencies.ts');
@@ -140,6 +144,7 @@ it.skipIf(!process.env.REFIT_PACKAGE_INSTALL)(
       'serve',
       'prepare',
       'doctor',
+      'enroll',
     ]) {
       expect((await execute(installed, [command, '--help'], { cwd: root })).stdout).toContain(
         'Usage:',

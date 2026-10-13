@@ -4,7 +4,8 @@ import { parseObject } from './specifications.ts';
 import { PipelineInputError } from './types.ts';
 import { validateCheckCommand, validateWorkflowSources } from './validation-options.ts';
 
-const MAX_CONFIGURATION_BYTES = 64 * 1024;
+export const MAX_WORKFLOW_CONFIGURATION_BYTES = 64 * 1024;
+export const REPOSITORY_CONFIGURATION = '.refit.json';
 const CONFIGURATION_KEYS = new Set([
   'formatVersion',
   'repository',
@@ -21,10 +22,14 @@ const CONFIGURATION_KEYS = new Set([
 ]);
 
 export async function readWorkflowConfiguration(path: string) {
-  if ((await stat(path)).size > MAX_CONFIGURATION_BYTES)
+  if ((await stat(path)).size > MAX_WORKFLOW_CONFIGURATION_BYTES)
     throw new PipelineInputError('Run configuration exceeds 64 KiB.');
   const content = await readFile(path, 'utf8');
-  if (Buffer.byteLength(content) > MAX_CONFIGURATION_BYTES)
+  return parseWorkflowConfiguration(content, path);
+}
+
+export function parseWorkflowConfiguration(content: string, path: string) {
+  if (Buffer.byteLength(content) > MAX_WORKFLOW_CONFIGURATION_BYTES)
     throw new PipelineInputError('Run configuration exceeds 64 KiB.');
   const value = parseObject(content, 'Run configuration');
   const unknown = Object.keys(value).filter((key) => !CONFIGURATION_KEYS.has(key));

@@ -1,4 +1,4 @@
-# Local API monitoring with Refit 0.7
+# Local API monitoring with Refit 0.8
 
 Refit has a local polling worker that captures an OpenAPI source, compares it with a retained baseline, scans a repository, and processes each migration once. It can also monitor up to eight manually configured public changelog or migration-documentation pages for each target. AI generation and GitHub publication are explicit options. Start with a single poll; remove `--once` to keep the worker running while your computer is on.
 
@@ -161,4 +161,4 @@ Evidence remains JSON for reproducibility and integrations. PRs show the change,
 
 ## Remaining product work
 
-The local service now records installations, verifies webhooks and schedules approved App-managed profiles. Hosted customer authentication, automatic enrollment with approved checks, durable hosted jobs, dependency provisioning, tenant-level budgets and stronger isolation remain. API-version applicability now has an explicit conservative gate, but provider-specific proof of the effective version, broader code flows and migration evaluations still need work. The standalone `watch` worker handles one target; `serve` schedules up to 32 approved profiles sequentially.
+The local service now records installations, verifies webhooks and schedules approved App-managed profiles. Checked-in workflows now support explicit local approval through [App onboarding](APP-ONBOARDING.md). Hosted customer authentication, automatic customer enrollment with approved checks, durable hosted jobs, dependency provisioning, tenant-level budgets and stronger isolation remain. API-version applicability now has an explicit conservative gate, but provider-specific proof of the effective version, broader code flows and migration evaluations still need work. The standalone `watch` worker handles one target; `serve` schedules up to 32 approved profiles sequentially.

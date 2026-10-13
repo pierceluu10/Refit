@@ -6,9 +6,8 @@ import { unmappedBreakingChanges } from './openapi-diff.ts';
 import { runPipeline } from './run.ts';
 import { hasErrorCode } from './state-files.ts';
 import { PipelineInputError } from './types.ts';
-import { readWorkflowConfiguration } from './workflow-configuration.ts';
+import { readWorkflowConfiguration, REPOSITORY_CONFIGURATION } from './workflow-configuration.ts';
 
-export const REPOSITORY_CONFIGURATION = '.refit.json';
 const MAX_UNMAPPED_EXAMPLES = 3;
 const FILE_ERROR_CODES = ['ENOENT', 'ENOTDIR', 'EACCES', 'EPERM'];
 

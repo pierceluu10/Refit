@@ -76,6 +76,12 @@ export async function readSpecification(path: string) {
   if ((await stat(path)).size > MAX_SPECIFICATION_BYTES)
     throw new PipelineInputError(`${path} exceeds the 64 MiB specification input limit.`);
   const content = await readFile(path, 'utf8');
+  return parseSpecificationInput(content, path);
+}
+
+export function parseSpecificationInput(content: string, path: string) {
+  if (Buffer.byteLength(content) > MAX_SPECIFICATION_BYTES)
+    throw new PipelineInputError(`${path} exceeds the 64 MiB specification input limit.`);
   const value = parseApiDocument(content, path);
   if (value.kind === 'refit-snapshot') {
     if (
