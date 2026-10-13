@@ -11,6 +11,7 @@ import { PipelineInputError } from './types.ts';
 import { readRepository } from './repository.ts';
 import { validateCheckCommand, validateRepairAttempts } from './validation-options.ts';
 import { proposeAiPatch } from './ai-patches.ts';
+import { gitEnvironment } from './git-environment.ts';
 
 export interface PublicationFile {
   path: string;
@@ -53,6 +54,7 @@ async function command(binary: string, args: string[], cwd?: string) {
     timeout: PROCESS_TIMEOUT_MS,
     maxBuffer: MAX_ARCHIVE_BYTES,
     encoding: 'utf8',
+    env: binary === 'git' ? gitEnvironment() : undefined,
   });
 }
 
@@ -191,6 +193,7 @@ export async function validateMigration(options: {
         encoding: 'buffer',
         timeout: PROCESS_TIMEOUT_MS,
         maxBuffer: MAX_ARCHIVE_BYTES,
+        env: gitEnvironment(),
       },
     );
     await writeFile(archive, archiveResult.stdout);

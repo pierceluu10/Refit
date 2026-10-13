@@ -18,6 +18,7 @@ import { PipelineInputError } from './types.ts';
 import { unmappedBreakingChanges } from './openapi-diff.ts';
 import { validateMigration } from './validation.ts';
 import { validateCheckCommand, validateRepairAttempts } from './validation-options.ts';
+import { gitEnvironment } from './git-environment.ts';
 
 const PREFLIGHT_GIT_TIMEOUT_MS = 30_000;
 
@@ -145,6 +146,7 @@ export async function runWorkflow(options: {
       const git = (argumentsList: string[]) =>
         execute('git', ['-c', 'core.fsmonitor=false', '-C', options.repository, ...argumentsList], {
           timeout: PREFLIGHT_GIT_TIMEOUT_MS,
+          env: gitEnvironment(),
         });
       if (!(await git(['status', '--porcelain', '--untracked-files=all'])).stdout) {
         const revision = (await git(['rev-parse', '--verify', 'HEAD^{commit}'])).stdout.trim();
