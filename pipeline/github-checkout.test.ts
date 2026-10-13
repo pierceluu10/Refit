@@ -172,6 +172,17 @@ it('refuses a different target before accessing a managed repository', async () 
   ).rejects.toThrow(/another GitHub target/);
 });
 
+it('refuses a state directory inside a working copy before creating it', async () => {
+  const input = await setup();
+  const directory = join(transport.source, 'worker-state');
+  await expect(withGitHubCheckout({ ...input, directory }, async () => undefined)).rejects.toThrow(
+    /outside any existing Git/,
+  );
+  await expect(readFile(join(directory, 'managed-checkout.json'))).rejects.toMatchObject({
+    code: 'ENOENT',
+  });
+});
+
 it('recovers a prepared staging directory when interrupted before its final rename', async () => {
   const input = await setup();
   const checkout = await withGitHubCheckout(input, async (checkout) => checkout);

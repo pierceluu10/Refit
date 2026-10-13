@@ -2,7 +2,7 @@ import { execFile } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { lstat, mkdir, mkdtemp, readFile, realpath, rename, rm } from 'node:fs/promises';
 import { devNull } from 'node:os';
-import { join, resolve } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { promisify } from 'node:util';
 import { authenticateGitHubRead, type GitHubAppConfiguration } from './github-app.ts';
 import { requestGitHub } from './github.ts';
@@ -51,6 +51,19 @@ async function physicalDirectory(path: string) {
   const status = await lstat(path);
   if (!status.isDirectory() || status.isSymbolicLink() || (await realpath(path)) !== path)
     throw new PipelineInputError('Managed checkout directories must not be symbolic links.');
+}
+
+async function standaloneStateDirectory(path: string) {
+  let directory = path;
+  while (true) {
+    if (await exists(join(directory, '.git')))
+      throw new PipelineInputError(
+        'Managed checkout state must be outside any existing Git working copy.',
+      );
+    const parent = dirname(directory);
+    if (parent === directory) return;
+    directory = parent;
+  }
 }
 
 async function git(directory: string, args: string[], token?: string) {
@@ -119,8 +132,10 @@ export async function withGitHubCheckout<T>(
   const { target } = options;
   publicationConfiguration(target.repository, target.base, undefined, target.app);
   const root = resolve(options.directory);
+  await standaloneStateDirectory(root);
   await mkdir(root, { recursive: true, mode: 0o700 });
   const directory = await realpath(root);
+  await standaloneStateDirectory(directory);
   return withStateLock(directory, 'checkout', async () => {
     options.signal?.throwIfAborted();
     const identity = digest(
