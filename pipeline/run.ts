@@ -13,6 +13,7 @@ import {
 } from './provider-operations.ts';
 import { compareApiVersion, validateApiVersion } from './api-version.ts';
 import { PipelineInputError } from './types.ts';
+import { readDocSnapshot } from './doc-snapshots.ts';
 import { digest, findRemovedProperties, readSpecification } from './specifications.ts';
 import { compareOpenApi, unmappedBreakingChanges } from './openapi-diff.ts';
 import {
@@ -33,6 +34,7 @@ export async function runPipeline(options: {
   requireApiVersionMatch?: boolean;
   fullDiff?: boolean;
   onProgress?: (message: string) => void;
+  docSnapshots?: string[];
 }) {
   const applicationApiVersion = validateApiVersion(options.apiVersion);
   const provider = await readProviderAdapter(options.providerConfig);
@@ -155,6 +157,15 @@ export async function runPipeline(options: {
             options.aiPatch,
             provider,
             before.schemas,
+            undefined,
+            {
+              document: before.document,
+              sourceUrl: before.provenance?.url ?? `spec://${provider.id}`,
+              pageSha256: before.hash,
+              docSnapshots: options.docSnapshots?.length
+                ? await Promise.all(options.docSnapshots.map((path) => readDocSnapshot(path)))
+                : undefined,
+            },
           )
       : deterministicRequested
         ? proposePatch(repository, edits, unresolvedFindingCount, provider, replacements)

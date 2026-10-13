@@ -75,9 +75,49 @@ it('summarizes API impact, proposed edits and offline checks for interactive CLI
   expect(output).toContain('src/billing/history.ts');
   expect(output).toContain('Prepared from npm lockfile; checks offline');
   expect(output).toContain('Original: passed; proposed: passed');
+  expect(output).not.toContain('03 Validate');
 
   const report = JSON.parse(await readFile(join(directory, 'report.json'), 'utf8'));
   report.changes[0].property = 'charges\u001b[2J';
   await writeFile(join(directory, 'report.json'), JSON.stringify(report));
   expect(await renderWorkflowResult(result)).not.toContain('\u001b');
+});
+
+it('shows retrieved and cited passages for an AI patch under validate', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'refit-presentation-ai-'));
+  directories.push(directory);
+  await writeFile(
+    join(directory, 'report.json'),
+    JSON.stringify({
+      provider: 'stripe',
+      changes: [{ schema: 'payment_intent', property: 'charges' }],
+      findings: [{ confidence: 'confirmed', file: 'billing.ts' }],
+      patch: {
+        status: 'proposed',
+        generator: 'openai',
+        summary: 'List charges for the PaymentIntent.',
+        retrieval: {
+          findings: [
+            {
+              file: 'billing.ts',
+              line: 8,
+              passages: [{ id: 'a' }, { id: 'b' }],
+              citedPassageIds: ['a'],
+            },
+          ],
+        },
+      },
+    }),
+  );
+  const result = {
+    directory,
+    manifest: {
+      files: [{ path: 'report.json' }],
+      status: 'validated',
+      reason: 'Baseline and patched checks passed.',
+      error: null,
+    },
+  } as unknown as Parameters<typeof renderWorkflowResult>[0];
+  const output = await renderWorkflowResult(result);
+  expect(output).toContain('03 Validate billing.ts:8 retrieved 2, cited 1');
 });
