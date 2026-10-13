@@ -31,9 +31,10 @@ export function githubAppConfiguration(environment: NodeJS.ProcessEnv): GitHubAp
   return { appId, privateKeyFile };
 }
 
-export async function authenticateGitHubApp(
+async function installationAccess(
   configuration: GitHubAppConfiguration,
   repository: string,
+  permissions: { contents: 'read' | 'write'; pull_requests?: 'write' },
 ) {
   if ((await stat(configuration.privateKeyFile)).size > MAX_PRIVATE_KEY_BYTES)
     throw new PipelineInputError('GitHub App private key exceeds 64 KiB.');
@@ -87,9 +88,10 @@ export async function authenticateGitHubApp(
     `/app/installations/${installation.id}/access_tokens`,
     {
       repositories: [name],
-      permissions: { contents: 'write', pull_requests: 'write' },
+      permissions,
     },
   );
+  const granted = isObject(access) && isObject(access.permissions) ? access.permissions : undefined;
   if (
     !isObject(access) ||
     typeof access.token !== 'string' ||
@@ -97,9 +99,11 @@ export async function authenticateGitHubApp(
     typeof access.expires_at !== 'string' ||
     !Number.isFinite(Date.parse(access.expires_at)) ||
     Date.parse(access.expires_at) <= Date.now() ||
-    !isObject(access.permissions) ||
-    access.permissions.contents !== 'write' ||
-    access.permissions.pull_requests !== 'write' ||
+    !granted ||
+    !Object.entries(permissions).every(([name, value]) => granted[name] === value) ||
+    Object.entries(granted).some(
+      ([name, value]) => name !== 'metadata' && !(name in permissions) && value !== 'none',
+    ) ||
     !Array.isArray(access.repositories) ||
     access.repositories.length !== 1 ||
     !isObject(access.repositories[0]) ||
@@ -107,10 +111,33 @@ export async function authenticateGitHubApp(
     access.repositories[0].full_name.toLowerCase() !== repository.toLowerCase()
   )
     throw new PipelineInputError(
-      'GitHub App token must be unexpired and scoped to the target repository with Contents and Pull requests write access.',
+      'GitHub App token must be unexpired and scoped to the target repository with exactly the requested permissions.',
     );
+  return { token: access.token, app, installationId: installation.id as number };
+}
+
+export async function authenticateGitHubRead(
+  configuration: GitHubAppConfiguration,
+  repository: string,
+) {
+  const access = await installationAccess(configuration, repository, { contents: 'read' });
+  return {
+    token: access.token,
+    appId: access.app.id as number,
+    installationId: access.installationId,
+  };
+}
+
+export async function authenticateGitHubApp(
+  configuration: GitHubAppConfiguration,
+  repository: string,
+) {
+  const { token, app } = await installationAccess(configuration, repository, {
+    contents: 'write',
+    pull_requests: 'write',
+  });
   const login = `${app.slug}[bot]`;
-  const bot = await requestGitHub(access.token, 'GET', `/users/${encodeURIComponent(login)}`);
+  const bot = await requestGitHub(token, 'GET', `/users/${encodeURIComponent(login)}`);
   if (
     !isObject(bot) ||
     bot.login !== login ||
@@ -120,7 +147,7 @@ export async function authenticateGitHubApp(
   )
     throw new PipelineInputError('GitHub did not return the expected App bot identity.');
   return {
-    token: access.token,
+    token,
     author: { name: app.name, email: `${bot.id}+${login}@users.noreply.github.com` },
     publisher: { kind: 'github-app' as const, appId: app.id, name: app.name, login },
   };

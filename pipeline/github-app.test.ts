@@ -3,7 +3,11 @@ import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, expect, it, vi } from 'vitest';
-import { authenticateGitHubApp, githubAppConfiguration } from './github-app.ts';
+import {
+  authenticateGitHubApp,
+  authenticateGitHubRead,
+  githubAppConfiguration,
+} from './github-app.ts';
 
 const APP_ID = 12345;
 const INSTALLATION_ID = 23456;
@@ -178,4 +182,26 @@ it('requires explicit app identifiers and a private key file without accepting a
       GITHUB_APP_PRIVATE_KEY_FILE: '/private/key.pem',
     }),
   ).toEqual({ appId: '12345', privateKeyFile: '/private/key.pem' });
+});
+
+it('uses a repository-scoped Contents read token for managed checkout without publisher permissions', async () => {
+  const remote = github();
+  remote.responses.access.permissions = {
+    contents: 'read',
+  } as typeof remote.responses.access.permissions;
+  const result = await authenticateGitHubRead(await configuration(), 'example/application');
+  expect(result).toMatchObject({
+    token: 'installation-test-token',
+    appId: APP_ID,
+    installationId: INSTALLATION_ID,
+  });
+  expect(remote.requests.find((request) => request.path.endsWith('/access_tokens'))?.body).toEqual({
+    repositories: ['application'],
+    permissions: { contents: 'read' },
+  });
+  expect(remote.requests.some((request) => request.path.startsWith('/users/'))).toBe(false);
+  remote.responses.access.permissions.pull_requests = 'write';
+  await expect(
+    authenticateGitHubRead(await configuration(), 'example/application'),
+  ).rejects.toThrow(/requested permissions/);
 });
