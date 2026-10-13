@@ -50,7 +50,23 @@ refit serve --env .env --config examples/local-service.refit.json \
   --ai-patch --repair-attempts 2 --publish-draft
 ```
 
-Changing generation mode, repair count, publication mode or configuration requires fresh service state. Existing matching App PRs stop before generation even when AI is enabled. Failed/review-required worker receipts remain deduplicated; the service does not automatically regenerate a failed paid proposal. Stop the service and use the corresponding [single-target `watch --retry --once` workflow](AUTOMATION.md#state-recovery-and-errors) with the same workflow, source, AI/publication settings and target state directory to retry deliberately.
+Changing generation mode, repair count, publication mode or configuration requires fresh service state. Existing matching App PRs stop before generation even when AI is enabled. Failed/review-required worker receipts remain deduplicated; the service does not automatically regenerate a failed paid proposal. Use a named one-time service retry after addressing the cause; the service preserves prior attempts and does not automatically retry paid failures.
+
+## Retry a failed target once
+
+Stop a running service with Ctrl+C before a manual retry; its process lock protects the same state. Keep the service configuration, state path and AI/repair/publication options identical to the original run, then add the configured target id and `--once`:
+
+```sh
+refit serve --env .env --config /absolute/path/to/service.json \
+  --state /absolute/path/to/service-state \
+  --retry-target billing-demo-stripe --once
+```
+
+This polls only the named target. Repeat `--retry-target` to select several distinct ids. Unknown or repeated ids and retries without `--once` fail before creating service state or contacting GitHub. Other targets' records remain unchanged. Human output and the exit code describe only the selected targets; JSON retains the full registry and includes `retryTargets` so prior failures on unselected targets remain visible.
+
+The App's access and approved configuration are checked again before retrying. An existing failed, interrupted or review-required job may get one fresh attempt and a new evidence directory; the original attempt remains available. Successful jobs stay cached, even when named for retry. Changing code or the current API contract creates a new normal job under the existing identity rules. A changed approved workflow, baseline or adapter still requires review and a new approval; a retry cannot bypass that gate.
+
+The spending ledger and publication reconciliation remain in effect. Retrying an AI-enabled failure can make another paid request within the same allowance. After inspection, restart your original continuous command without `--retry-target` or `--once`.
 
 ## Configure providers and repositories
 
