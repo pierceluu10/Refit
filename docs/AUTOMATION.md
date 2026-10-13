@@ -117,7 +117,7 @@ refit watch --config /absolute/path/provider.refit.json \
   --source-url https://api.example.com/openapi.yaml --once
 ```
 
-The configuration still needs `before`, a repository, an image, check commands, and `providerConfig`. The SDK adapter names its package, constructor imports, and resource methods mapped to response schemas. [The OpenAI fixture](../pipeline/fixtures/openai/README.md) demonstrates the same engine with the actual OpenAI SDK. Its removed `owned_by` field is a simulation, not an announced OpenAI change. There is no justified automatic replacement for that fixture, so it remains a review case.
+The configuration still needs `before`, a repository, an image, check commands, and `providerConfig`. The SDK adapter names its package, constructor imports, and resource methods mapped to response schemas. [The OpenAI fixture](../pipeline/fixtures/openai/README.md) demonstrates the shared engine with the actual OpenAI SDK. Its `owned_by` removal and synthetic `owner_name` replacement are simulations, not announced OpenAI changes. The basic adapter remains review-only; a separate explicit mapping demonstrates the generic property-rename rule.
 
 JSON and YAML OpenAPI 3 documents share ingestion and comparison. HTTPS downloads are bounded, refuse redirects and credential-bearing/query URLs, and reuse ETags when available. External OpenAPI references are disabled. Multi-file contracts must be bundled first; ambiguous references or unsupported schemas stop automatic publication.
 
