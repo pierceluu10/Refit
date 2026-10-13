@@ -8,6 +8,7 @@ export interface ProviderAdapter {
   defaultImport: boolean;
   namedExport: string | null;
   operations: { resource: string; method: string; schema: string }[];
+  propertyRenames?: { schema: string; removed: string; replacement: string }[];
 }
 
 export const STRIPE: ProviderAdapter = {
@@ -23,6 +24,8 @@ export const STRIPE: ProviderAdapter = {
 };
 const MAX_CONFIG_BYTES = 64 * 1024;
 const MAX_OPERATIONS = 100;
+const MAX_PROPERTY_RENAMES = 100;
+const MAX_SCHEMA_NAME_LENGTH = 256;
 const IDENTIFIER = /^[A-Za-z_$][A-Za-z0-9_$]*$/;
 const PROVIDER_ID = /^[a-z][a-z0-9-]{0,63}$/;
 const PACKAGE_NAME = /^(?:@[a-z0-9._-]+\/)?[a-z0-9._-]+$/;
@@ -32,8 +35,10 @@ export async function readProviderAdapter(path?: string): Promise<ProviderAdapte
   if ((await stat(path)).size > MAX_CONFIG_BYTES)
     throw new PipelineInputError('Provider configuration exceeds 64 KiB.');
   const value = parseObject(await readFile(path, 'utf8'), 'Provider configuration');
+  const keys = Object.keys(value).sort().join(',');
   if (
-    Object.keys(value).sort().join(',') !== 'defaultImport,id,namedExport,operations,packageName' ||
+    (keys !== 'defaultImport,id,namedExport,operations,packageName' &&
+      keys !== 'defaultImport,id,namedExport,operations,packageName,propertyRenames') ||
     typeof value.id !== 'string' ||
     !PROVIDER_ID.test(value.id) ||
     value.id === STRIPE.id ||
@@ -73,11 +78,57 @@ export async function readProviderAdapter(path?: string): Promise<ProviderAdapte
     seen.add(key);
     return { resource: operation.resource, method: operation.method, schema: operation.schema };
   });
+  const propertyRenames = value.propertyRenames;
+  if (
+    propertyRenames !== undefined &&
+    (!Array.isArray(propertyRenames) || propertyRenames.length > MAX_PROPERTY_RENAMES)
+  )
+    throw new PipelineInputError(
+      `Provider propertyRenames must contain at most ${MAX_PROPERTY_RENAMES} entries.`,
+    );
+  const seenRenames = new Set<string>();
+  const seenTargets = new Set<string>();
+  const parsedRenames = (propertyRenames ?? []).map((rename) => {
+    if (
+      !isObject(rename) ||
+      Object.keys(rename).sort().join(',') !== 'removed,replacement,schema' ||
+      typeof rename.schema !== 'string' ||
+      !rename.schema.trim() ||
+      rename.schema !== rename.schema.trim() ||
+      rename.schema.length > MAX_SCHEMA_NAME_LENGTH ||
+      typeof rename.removed !== 'string' ||
+      !IDENTIFIER.test(rename.removed) ||
+      typeof rename.replacement !== 'string' ||
+      !IDENTIFIER.test(rename.replacement) ||
+      rename.removed === rename.replacement
+    )
+      throw new PipelineInputError(
+        'Each property rename must specify a schema and distinct identifier-style removed and replacement fields.',
+      );
+    const source = JSON.stringify([rename.schema, rename.removed]);
+    const target = JSON.stringify([rename.schema, rename.replacement]);
+    if (seenRenames.has(source))
+      throw new PipelineInputError(
+        `Duplicate property rename source: ${rename.schema}.${rename.removed}`,
+      );
+    if (seenTargets.has(target))
+      throw new PipelineInputError(
+        `Duplicate property rename target: ${rename.schema}.${rename.replacement}`,
+      );
+    seenRenames.add(source);
+    seenTargets.add(target);
+    return {
+      schema: rename.schema,
+      removed: rename.removed,
+      replacement: rename.replacement,
+    };
+  });
   return {
     id: value.id,
     packageName: value.packageName,
     defaultImport: value.defaultImport,
     namedExport: value.namedExport,
     operations,
+    ...(parsedRenames.length ? { propertyRenames: parsedRenames } : {}),
   };
 }

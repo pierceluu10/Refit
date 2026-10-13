@@ -5,6 +5,7 @@ import { assessMigration, buildAssessmentEvidence } from './assessment.ts';
 import { applySourceEdits, proposePatch } from './patches.ts';
 import { readRepository } from './repository.ts';
 import { readProviderAdapter, STRIPE } from './providers.ts';
+import { validatePropertyRenames } from './provider-renames.ts';
 import { PipelineInputError } from './types.ts';
 import { digest, findRemovedProperties, readSpecification } from './specifications.ts';
 import { compareOpenApi } from './openapi-diff.ts';
@@ -32,6 +33,7 @@ export async function runPipeline(options: {
   )
     throw new PipelineInputError('Snapshot provenance does not match the configured provider.');
   const changes = findRemovedProperties(before.schemas, after.schemas, provider.id);
+  validatePropertyRenames(provider, changes, before.schemas, after.schemas);
   const specificationDiff = options.fullDiff
     ? await compareOpenApi(before.document, after.document)
     : undefined;

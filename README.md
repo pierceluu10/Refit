@@ -114,13 +114,16 @@ Returning, yielding or throwing an entire client/response binding also prevents 
   "packageName": "@example/catalog",
   "defaultImport": false,
   "namedExport": "Catalog",
-  "operations": [{ "resource": "items", "method": "retrieve", "schema": "item" }]
+  "operations": [{ "resource": "items", "method": "retrieve", "schema": "item" }],
+  "propertyRenames": [
+    { "schema": "item", "removed": "legacy_label", "replacement": "display_label" }
+  ]
 }
 ```
 
 This supports immutable ESM constructors and `await client.resource.method(...)` calls returning one mapped schema, including local response aliases and transparent one-parameter wrappers imported directly from relative modules. It does not automatically discover SDK semantics or support arbitrary fetch calls, factory clients, nested resources, list envelopes, transformed or multi-step wrappers, or other languages. You must verify each mapping against the SDK. A confirmed finding means traced under that supplied mapping, not independently verified SDK behavior.
 
-Custom adapters use supplied OpenAPI JSON files; upstream downloading remains Stripe-only. The complete adapter is recorded in the report and included in run identity. Custom providers have no deterministic migration rule; use `--ai-patch` for a reviewed proposal. Assessment, AI patch checks, Docker validation and review bundles carry the selected adapter. The synthetic [catalog fixture](pipeline/fixtures/catalog/README.md) demonstrates this path without claiming support for a second real vendor.
+Custom adapters use supplied OpenAPI JSON files; upstream downloading remains Stripe-only. The complete adapter is recorded in the report and included in run identity. An optional `propertyRenames` mapping can propose direct property-read edits when the removed field and newly added replacement are both the same simple OpenAPI scalar type (`string`, `integer`, `number` or `boolean`). This is an operator-authored semantic assumption: matching types do not establish equivalent meaning, API-version applicability or runtime behavior. The rule leaves indexes, destructuring and unsupported source shapes for review, and validation still depends on meaningful application checks. Providers without an applicable mapping can use `--ai-patch` for a reviewed proposal. Assessment, AI patch checks, Docker validation and review bundles carry the selected adapter. The synthetic [catalog fixture](pipeline/fixtures/catalog/README.md) demonstrates this path without claiming support for a second real vendor.
 
 ### Optional AI assessment
 
