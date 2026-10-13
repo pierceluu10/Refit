@@ -1,7 +1,7 @@
 import type { AiOptions, AiUsage } from './ai-budget.ts';
 import { execFile } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { copyFile, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
@@ -13,6 +13,8 @@ import { validateCheckCommand, validateRepairAttempts } from './validation-optio
 import { proposeAiPatch } from './ai-patches.ts';
 import { gitEnvironment } from './git-environment.ts';
 import { readCommittedRepository } from './committed-repository.ts';
+import { MAX_DEPENDENCY_ARCHIVE_BYTES, prepareNpmDependencies } from './npm-dependencies.ts';
+import { inspectArtifactFile } from './verification.ts';
 import {
   dockerSandboxArguments,
   removeDockerContainer,
@@ -65,12 +67,20 @@ async function containerCheck(
   directory: string,
   image: string,
   argumentsList: string[],
+  dependencies?: string,
 ): Promise<CheckResult> {
   const name = `refit-${randomUUID()}`;
   try {
     const result = await execute(
       'docker',
-      dockerSandboxArguments({ name, directory, image, command: argumentsList, network: 'none' }),
+      dockerSandboxArguments({
+        name,
+        directory,
+        image,
+        command: argumentsList,
+        network: 'none',
+        dependencies,
+      }),
       { timeout: CHECK_TIMEOUT_MS, maxBuffer: MAX_OUTPUT_BYTES, encoding: 'utf8' },
     );
     return { status: 'passed', exitCode: 0, ...result };
@@ -103,6 +113,7 @@ export async function validateMigration(options: {
   image: string;
   command: string[];
   baselineCommand?: string[];
+  prepareDependencies?: boolean;
   assessment?: AiOptions;
   aiPatch?: AiOptions;
   providerConfig?: string;
@@ -137,8 +148,30 @@ export async function validateMigration(options: {
     );
     await writeFile(archive, archiveResult.stdout);
     await command('tar', ['-xf', archive, '-C', baselineDirectory]);
+    let dependencies: string | undefined;
+    let environment: Record<string, unknown> | undefined;
+    if (options.prepareDependencies) {
+      const prepared = await prepareNpmDependencies({
+        repository,
+        image,
+        signal: options.signal,
+        onProgress: options.onProgress,
+      });
+      dependencies = join(root, 'dependencies.tar');
+      await copyFile(prepared.archive, dependencies);
+      const copied = await inspectArtifactFile(dependencies, MAX_DEPENDENCY_ARCHIVE_BYTES);
+      if (
+        copied.sha256 !== prepared.environment.archiveHash ||
+        copied.bytes !== prepared.environment.archiveBytes
+      )
+        throw new PipelineInputError(
+          'Prepared dependencies changed while creating the validation snapshot.',
+        );
+      environment = { ...prepared.environment, reused: prepared.reused };
+    }
+    options.signal?.throwIfAborted();
     options.onProgress?.('Running baseline checks in offline Docker...');
-    const baseline = await containerCheck(baselineDirectory, image, baselineCommand);
+    const baseline = await containerCheck(baselineDirectory, image, baselineCommand, dependencies);
     options.signal?.throwIfAborted();
     if (baseline.status === 'passed')
       options.onProgress?.(
@@ -193,7 +226,7 @@ export async function validateMigration(options: {
     let publicationFiles = initialCandidate?.publicationFiles ?? [];
     if (initialCandidate) options.onProgress?.('Running patched checks in offline Docker...');
     let patched: CheckResult = initialCandidate
-      ? await containerCheck(initialCandidate.directory, image, options.command)
+      ? await containerCheck(initialCandidate.directory, image, options.command, dependencies)
       : { status: 'not-run', exitCode: null, stdout: '', stderr: '' };
     const attempts: ValidationAttempt[] = [];
     const recordAttempt = () =>
@@ -263,7 +296,12 @@ export async function validateMigration(options: {
         }
         const preparedCandidate = await prepareCandidate(candidate.diff);
         options.onProgress?.('Running repaired checks in offline Docker...');
-        const check = await containerCheck(preparedCandidate.directory, image, options.command);
+        const check = await containerCheck(
+          preparedCandidate.directory,
+          image,
+          options.command,
+          dependencies,
+        );
         proposal = candidate;
         publicationFiles = preparedCandidate.publicationFiles;
         patched = check;
@@ -297,6 +335,7 @@ export async function validateMigration(options: {
       status: validationStatus,
       revision,
       image,
+      ...(environment ? { environment } : {}),
       command: options.command,
       baselineCommand,
       archiveHash: digest(archiveResult.stdout),

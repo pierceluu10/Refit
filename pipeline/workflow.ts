@@ -35,6 +35,7 @@ export async function runWorkflow(options: {
   image: string;
   command: string[];
   baselineCommand?: string[];
+  prepareDependencies?: boolean;
   providerConfig?: string;
   fullDiff?: boolean;
   assessment?: AiOptions;
@@ -176,6 +177,7 @@ export async function runWorkflow(options: {
       image: options.image,
       command: options.command,
       baselineCommand: options.baselineCommand,
+      prepareDependencies: options.prepareDependencies,
       assessment: options.assessment,
       aiPatch: options.aiPatch,
       repairAttempts: options.repairAttempts,

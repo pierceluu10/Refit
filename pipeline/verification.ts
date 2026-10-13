@@ -12,9 +12,14 @@ const MAX_TOTAL_BYTES = 1024 * 1024 * 1024;
 const MAX_FILES = 16;
 const HASH = /^[a-f0-9]{64}$/;
 const FILE_NAME = /^[a-z][a-z0-9.-]*$/;
-const KINDS = new Set(['refit-workflow', 'refit-review-bundle', 'refit-stripe-check']);
+const KINDS = new Set([
+  'refit-workflow',
+  'refit-review-bundle',
+  'refit-stripe-check',
+  'refit-npm-environment',
+]);
 
-async function inspectFile(path: string, limit: number, retainContent = false) {
+export async function inspectArtifactFile(path: string, limit: number, retainContent = false) {
   if (!(await lstat(path)).isFile())
     throw new PipelineInputError('Evidence must contain regular files, not links or directories.');
   const file = await open(path, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0));
@@ -41,7 +46,7 @@ async function inspectFile(path: string, limit: number, retainContent = false) {
 
 export async function verifyArtifacts(directory: string) {
   const root = await realpath(directory);
-  const manifestFile = await inspectFile(join(root, MANIFEST), MAX_MANIFEST_BYTES, true);
+  const manifestFile = await inspectArtifactFile(join(root, MANIFEST), MAX_MANIFEST_BYTES, true);
   const manifest = parseObject(manifestFile.content, MANIFEST);
   if (
     manifest.formatVersion !== 1 ||
@@ -78,7 +83,7 @@ export async function verifyArtifacts(directory: string) {
   if (unexpected.length)
     throw new PipelineInputError(`Unlisted evidence entries: ${unexpected.join(', ')}`);
   for (const entry of files) {
-    const actual = await inspectFile(join(root, entry.path), entry.bytes);
+    const actual = await inspectArtifactFile(join(root, entry.path), entry.bytes);
     if (actual.bytes !== entry.bytes || actual.sha256 !== entry.sha256)
       throw new PipelineInputError(`Evidence hash or byte count mismatch: ${entry.path}`);
   }
