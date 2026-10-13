@@ -10,6 +10,8 @@ A continuous local HTTP evaluation confirmed public health, protected status, HT
 
 The gated suite passed **315 tests with none skipped** across 36 files, including actual Docker workflows, real Stripe/OpenAI SDK HTTP simulations, independent billing validation, frontend tests and independently installed CLI help/replay. Production build, typecheck and formatting passed. Service HTTP tests use real loopback requests with controlled GitHub/worker responses; they do not claim live Stripe behavior or hosted tenant isolation.
 
+The global CLI was installed as **0.4.0**. From an unrelated directory, its `serve --once --publish-draft --json` command confirmed App access and reused the saved successful worker result without rerunning checks. Local evaluations are retained at `~/.refit/evaluations/local-service-app-2026-10-12` and `~/.refit/evaluations/local-service-validation-2026-10-12`; the first also contains `http-evaluation.json` identifying simulated deliveries and real App access.
+
 See [local service setup](LOCAL-SERVICE.md) for exact pilot commands and public HTTPS webhook steps. Customer onboarding, automatic dependency provisioning, hosted queues, tenant isolation, broader migration semantics and SDK/API-version applicability remain future work. Installing the App alone does not start an arbitrary repository.
 
 ## October 12, 2026: App-managed repository provisioning
