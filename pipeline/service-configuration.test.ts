@@ -140,3 +140,36 @@ it('exposes service help and refuses missing authentication or invalid schedulin
     }),
   ).rejects.toMatchObject({ code: 1, stderr: expect.stringContaining('30–86400') });
 });
+
+it.each([
+  { ids: ['billing'], once: false, message: '--retry-target requires --once' },
+  { ids: ['missing'], once: true, message: 'unique configured target ids' },
+  { ids: ['billing', 'billing'], once: true, message: 'unique configured target ids' },
+])('refuses an invalid retry CLI selection: $ids, once=$once', async ({ ids, once, message }) => {
+  const { root, path, target } = await setup();
+  await writeFile(path, JSON.stringify({ formatVersion: 1, targets: [target] }));
+  await expect(
+    execute(
+      process.execPath,
+      [
+        bin,
+        'serve',
+        '--config',
+        path,
+        '--state',
+        join(root, 'state'),
+        ...(once ? ['--once'] : []),
+        ...ids.flatMap((id) => ['--retry-target', id]),
+      ],
+      {
+        env: {
+          ...process.env,
+          GITHUB_APP_ID: APP.appId,
+          GITHUB_APP_PRIVATE_KEY_FILE: APP.privateKeyFile,
+          REFIT_WEBHOOK_SECRET: 'webhook-secret-for-cli-tests-12345',
+          REFIT_SERVICE_TOKEN: 'different-control-secret-for-tests-123',
+        },
+      },
+    ),
+  ).rejects.toMatchObject({ code: 1, stderr: expect.stringContaining(message) });
+});

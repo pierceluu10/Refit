@@ -1,5 +1,15 @@
 # Refit implementation checkpoints
 
+## October 13, 2026: one-time App service retries
+
+Refit 0.8.1 adds `serve --retry-target <id> --once`. Only explicitly selected service profiles are polled. Failed, interrupted and review-required worker receipts can get one new attempt using the existing configuration identity; old evidence is preserved. Successful jobs remain cached. Unknown/repeated ids or continuous retries are rejected before service state or GitHub requests. Approval, App access, spending limits and publication reconciliation still apply. Human output and the exit code cover selected targets; JSON retains the full registry plus the retry selection. Stop an existing service before running this command against its locked state.
+
+The fully gated suite passed **503 tests across 52 files with no skips**. Production build, typecheck and formatting passed. Tests cover selected and multiple targets, unchanged unrelated failures, invalid CLI selections, approval refusal under retry, actual offline Docker recovery after a controlled availability failure, retained failed evidence and successful-job deduplication.
+
+The live App evaluation at `/Users/pierceluu/.refit/evaluations/service-target-retries-2026-10-13` used two profiles for the existing approved billing configuration. A deliberately unavailable Docker socket was supplied only to the first evaluation process; the actual daemon was not stopped. App authorization and checkout succeeded, both jobs retained errors, and an ordinary poll reused those failures. With normal Docker access restored, a named billing retry passed the 14 baseline tests, both 14-test patched contracts and TypeScript, saving attempt 2. The unrelated profile's saved error record stayed unchanged; the selected CLI run exited 0. Retrying the successful target reused its output without checks. All three retained attempts passed integrity verification.
+
+App API access and Git transport were real. Stripe responses remained a historical HTTP simulation through the real SDK. No model request, AI spending or new PR was used, and the original billing checkout remained clean and unmigrated. See [service retry commands](LOCAL-SERVICE.md#retry-a-failed-target-once).
+
 ## October 13, 2026: approved checked-in App workflows
 
 Refit 0.8 adds `refit enroll` for a committed root `.refit.json`. A read-only review displays the exact workflow settings, baseline and optional provider adapter. Explicit approval requires that review's fingerprint and creates a new owner-only receipt outside Git. The receipt is bound to the GitHub repository/base and input bytes. App service targets selecting it fetch the committed base, verify approval before each poll, and use hash-checked copies of approved inputs through the shared worker. Installation alone still does not activate a repository, request AI or publish.

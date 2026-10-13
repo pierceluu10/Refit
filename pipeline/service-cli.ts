@@ -14,7 +14,7 @@ const REVIEW_STATUSES = new Set([
   'documentation-changed',
 ]);
 const USAGE =
-  'Usage: refit serve --config <service.json> --state <directory-outside-repository> [--port <number>] [--interval <seconds>] [--once] [--ai-patch --repair-attempts 0|1|2] [--publish-draft] [--json]';
+  'Usage: refit serve --config <service.json> --state <directory-outside-repository> [--port <number>] [--interval <seconds>] [--once] [--retry-target <id> ... --once] [--ai-patch --repair-attempts 0|1|2] [--publish-draft] [--json]';
 
 try {
   const { values } = parseArgs({
@@ -24,6 +24,7 @@ try {
       port: { type: 'string' },
       interval: { type: 'string' },
       once: { type: 'boolean' },
+      'retry-target': { type: 'string', multiple: true },
       'ai-patch': { type: 'boolean' },
       'repair-attempts': { type: 'string' },
       'publish-draft': { type: 'boolean' },
@@ -33,10 +34,14 @@ try {
   });
   if (values.help)
     console.log(
-      `${USAGE}\nRuns on 127.0.0.1:8787 by default; signed webhooks use /github/webhook and authenticated status uses /status. Requires GITHUB_APP_ID, GITHUB_APP_PRIVATE_KEY_FILE, REFIT_WEBHOOK_SECRET and a different REFIT_SERVICE_TOKEN. Configured targets are confirmed through GitHub before execution. Installation webhooks wake or cancel their workers; other installed repositories are recorded without execution. --once polls all targets and closes the HTTP listener. AI and draft PR publication require explicit opt-in.`,
+      `${USAGE}\nRuns on 127.0.0.1:8787 by default; signed webhooks use /github/webhook and authenticated status uses /status. Requires GITHUB_APP_ID, GITHUB_APP_PRIVATE_KEY_FILE, REFIT_WEBHOOK_SECRET and a different REFIT_SERVICE_TOKEN. Configured targets are confirmed through GitHub before execution. Installation webhooks wake or cancel their workers; other installed repositories are recorded without execution. --once polls all targets and closes the HTTP listener. --retry-target requires --once and polls only the named targets, permitting failed jobs one fresh attempt; successful jobs remain cached. Approval and access gates still apply. AI and draft PR publication require explicit opt-in.`,
     );
   else {
     if (!values.config || !values.state) throw new PipelineInputError(USAGE);
+    if (values['retry-target']?.length && !values.once)
+      throw new PipelineInputError(
+        '--retry-target requires --once to avoid repeated paid retries.',
+      );
     const app = githubAppConfiguration(process.env);
     const webhookSecret = validateServiceSecret(
       process.env.REFIT_WEBHOOK_SECRET,
@@ -61,6 +66,7 @@ try {
         port: values.port === undefined ? undefined : Number(values.port),
         intervalSeconds: values.interval === undefined ? undefined : Number(values.interval),
         once: values.once,
+        retryTargets: values['retry-target'],
         aiPatch: assessmentConfiguration(values['ai-patch'], process.env),
         repairAttempts: Number(values['repair-attempts'] ?? 0),
         publishDraft: values['publish-draft'],
@@ -68,10 +74,13 @@ try {
         onReady: (url) => console.error(`[refit] Listening at ${url}; webhook: /github/webhook`),
         onProgress: (message) => console.error(`[refit] ${terminalText(message)}`),
       });
+      const selected = Object.entries(result.registry.targets).filter(
+        ([id]) => !values['retry-target']?.length || values['retry-target'].includes(id),
+      );
       if (values.json) console.log(JSON.stringify(result));
       else {
         console.log(values.once ? 'Refit service poll complete' : 'Refit service stopped');
-        for (const [id, target] of Object.entries(result.registry.targets)) {
+        for (const [id, target] of selected) {
           console.log(
             `\n${id}  ${target.repository}\nStatus    ${terminalText(target.status)}\nAccess    ${target.access}`,
           );
@@ -81,7 +90,7 @@ try {
         console.log(`\nService state  ${terminalText(result.directory)}`);
       }
       if (values.once) {
-        const records = Object.values(result.registry.targets);
+        const records = selected.map(([, target]) => target);
         process.exitCode = records.some((target) => target.status === 'error')
           ? 1
           : records.some(

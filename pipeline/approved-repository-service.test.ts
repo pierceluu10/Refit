@@ -19,6 +19,7 @@ const transport = vi.hoisted(() => ({
   source: '',
   head: '',
   calls: [] as { binary: string; args: string[] }[],
+  dockerUnavailable: false,
   native: undefined as
     undefined | ((args: string[], cwd: string) => Promise<{ stdout: string; stderr: string }>),
 }));
@@ -31,6 +32,11 @@ vi.mock('node:child_process', async (original) => {
   Object.defineProperty(execFile, promisify.custom, {
     value: async (binary: string, args: string[], options: { env: NodeJS.ProcessEnv }) => {
       transport.calls.push({ binary, args });
+      if (binary === 'docker' && transport.dockerUnavailable)
+        throw Object.assign(new Error('Simulated unavailable Docker daemon'), {
+          code: 1,
+          stderr: 'Cannot connect to the Docker daemon',
+        });
       if (binary !== 'git' || !args.includes('fetch')) return execute(binary, args, options);
       const local = [...args];
       local[local.indexOf('origin')] = transport.source;
@@ -68,6 +74,7 @@ afterEach(async () => {
   vi.restoreAllMocks();
   vi.clearAllMocks();
   transport.calls = [];
+  transport.dockerUnavailable = false;
   await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
 });
 
@@ -196,6 +203,7 @@ it('blocks changed commands before source polling, paid generation, validation o
       ...sample.input,
       aiPatch: { apiKey: 'unused-private-key', model: 'test-model' },
       publishDraft: true,
+      retry: true,
     }),
   ).rejects.toBeInstanceOf(RepositoryApprovalError);
   expect(worker).not.toHaveBeenCalled();
@@ -274,7 +282,63 @@ it.skipIf(!process.env.REFIT_DOCKER_IMAGE || !process.env.REFIT_OASDIFF)(
     ).toBe(reviewedFingerprint);
     const dockerCalls = transport.calls.filter((call) => call.binary === 'docker').length;
     expect((await pollServiceTarget(sample.input)).status).toBe('already-processed');
+    expect((await pollServiceTarget({ ...sample.input, retry: true })).status).toBe(
+      'already-processed',
+    );
     expect(transport.calls.filter((call) => call.binary === 'docker')).toHaveLength(dockerCalls);
+    expect((await transport.native!(['status', '--porcelain'], transport.source)).stdout).toBe('');
+  },
+  60_000,
+);
+
+it.skipIf(!process.env.REFIT_DOCKER_IMAGE || !process.env.REFIT_OASDIFF)(
+  'retains a failed approved job and recovers it once through the service after Docker becomes available',
+  async () => {
+    const sample = await setup();
+    await cp(join(fixture, 'after.json'), join(transport.source, 'after.json'));
+    await commit();
+    const input = {
+      targets: [sample.target],
+      app: APP,
+      directory: join(sample.root, 'service-state'),
+      port: 0,
+      once: true,
+      signal: new AbortController().signal,
+      webhookSecret: WEBHOOK_SECRET,
+      controlToken: CONTROL_TOKEN,
+    };
+    transport.dockerUnavailable = true;
+    const first = await runLocalService(input);
+    expect(first.registry.targets.approved).toMatchObject({ access: 'active', status: 'error' });
+    const failedOutput = first.registry.targets.approved.output!;
+    expect((await verifyArtifacts(failedOutput)).status).toBe('integrity-verified');
+    transport.dockerUnavailable = false;
+    const dockerCalls = transport.calls.filter((call) => call.binary === 'docker').length;
+    const cached = await runLocalService(input);
+    expect(cached.registry.targets.approved.status).toBe('error');
+    expect(cached.registry.targets.approved.output).toBe(failedOutput);
+    expect(transport.calls.filter((call) => call.binary === 'docker')).toHaveLength(dockerCalls);
+    const retried = await runLocalService({ ...input, retryTargets: ['approved'] });
+    const record = retried.registry.targets.approved;
+    expect(record).toMatchObject({
+      access: 'active',
+      status: 'validated',
+      approvalFingerprint: sample.target.approval!.fingerprint,
+    });
+    expect(record.output).not.toBe(failedOutput);
+    expect(record.output).toMatch(/-2$/);
+    const report = JSON.parse(await readFile(join(record.output!, 'report.json'), 'utf8'));
+    expect(report.validation.baseline.status).toBe('passed');
+    expect(report.validation.patched.status).toBe('passed');
+    expect(report.patch.generator).toBe('deterministic');
+    expect((await verifyArtifacts(record.output!)).status).toBe('integrity-verified');
+    expect((await verifyArtifacts(failedOutput)).status).toBe('integrity-verified');
+    const checksAfterRetry = transport.calls.filter((call) => call.binary === 'docker').length;
+    const successfulRetry = await runLocalService({ ...input, retryTargets: ['approved'] });
+    expect(successfulRetry.registry.targets.approved.output).toBe(record.output);
+    expect(transport.calls.filter((call) => call.binary === 'docker')).toHaveLength(
+      checksAfterRetry,
+    );
     expect((await transport.native!(['status', '--porcelain'], transport.source)).stdout).toBe('');
   },
   60_000,
