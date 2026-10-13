@@ -2,7 +2,7 @@
 
 Date: 2026-10-13
 
-Commit: f25973ad2dbb0df3c5ae216f6f033711ff36c96d (retrieval implementation). This report and the scripts under `eval/` were added on top of that commit. They do not change retrieval, patch, repair, or validation logic.
+Commit: results and scripts are ab797e1b8a712232852f7f1e9ee742ed2b2b3a08, on retrieval implementation f25973ad2dbb0df3c5ae216f6f033711ff36c96d. Those scripts do not change retrieval, patch, repair, or validation logic.
 
 Model: not set. `OPENAI_API_KEY` and `OPENAI_MODEL` were unset, so no model name was returned by an API.
 
