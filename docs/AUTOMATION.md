@@ -112,12 +112,16 @@ Stripe discovery polls the latest Git commit touching its published specificatio
 For another provider with a public HTTPS OpenAPI document:
 
 ```sh
+refit source-snapshot --provider example \
+  --url https://api.example.com/openapi.yaml \
+  --output /absolute/path/provider-baseline.json
+
 refit watch --config /absolute/path/provider.refit.json \
   --state /absolute/path/outside-repository/provider-worker \
   --source-url https://api.example.com/openapi.yaml --once
 ```
 
-The configuration still needs `before`, a repository, an image, check commands, and `providerConfig`. The SDK adapter names its package, constructor imports, and resource methods mapped to response schemas. [The OpenAI fixture](../pipeline/fixtures/openai/README.md) demonstrates the shared engine with the actual OpenAI SDK. Its `owned_by` removal and synthetic `owner_name` replacement are simulations, not announced OpenAI changes. The basic adapter remains review-only; a separate explicit mapping demonstrates the generic property-rename rule.
+Set `before` in the run configuration to the captured baseline. The snapshot command saves the exact supplied contract and provenance; the worker polls the same URL for later versions. This requires a provider-published public OpenAPI URL and does not discover feeds or documentation pages. The configuration still needs a repository, an image, check commands, and `providerConfig`. The SDK adapter names its package, constructor imports, and resource methods mapped to response schemas. [The OpenAI fixture](../pipeline/fixtures/openai/README.md) demonstrates the shared engine with the actual OpenAI SDK. Its `owned_by` removal and synthetic `owner_name` replacement are simulations, not announced OpenAI changes. The basic adapter remains review-only; a separate explicit mapping demonstrates the generic property-rename rule.
 
 JSON and YAML OpenAPI 3 documents share ingestion and comparison. HTTPS downloads are bounded, refuse redirects and credential-bearing/query URLs, and reuse ETags when available. External OpenAPI references are disabled. Multi-file contracts must be bundled first; ambiguous references or unsupported schemas stop automatic publication.
 
