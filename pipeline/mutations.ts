@@ -22,6 +22,11 @@ export function unsafeBindings(
   canonical: (symbol: ts.Symbol | undefined) => ts.Symbol | undefined = (symbol) => symbol,
   initialUnsafe: Set<ts.Symbol> = new Set(),
   readOnlyCall: (node: ts.CallExpression) => boolean = () => false,
+  arrayIteration: (
+    node: ts.CallExpression,
+  ) =>
+    { callback: ts.Expression; parameter: ts.Identifier; source: ts.Expression } | undefined = () =>
+    undefined,
 ) {
   const links = new Map<ts.Symbol, Set<ts.Symbol>>();
   const unsafe = new Set(initialUnsafe);
@@ -66,6 +71,12 @@ export function unsafeBindings(
     if (ts.isVariableDeclaration(node) && node.initializer)
       aliases(node.name, binding(node.initializer));
     if (
+      ts.isForOfStatement(node) &&
+      ts.isVariableDeclarationList(node.initializer) &&
+      node.initializer.declarations.length === 1
+    )
+      aliases(node.initializer.declarations[0].name, binding(node.expression));
+    if (
       ts.isVariableDeclaration(node) &&
       node.initializer &&
       (ts.isConditionalExpression(node.initializer) || ts.isBinaryExpression(node.initializer))
@@ -88,7 +99,15 @@ export function unsafeBindings(
     )
       taint(node.operand);
     if (ts.isCallExpression(node) || ts.isNewExpression(node)) {
-      for (const argument of node.arguments ?? []) targets(argument);
+      const iteration = ts.isCallExpression(node) ? arrayIteration(node) : undefined;
+      for (const argument of node.arguments ?? [])
+        if (iteration?.callback !== argument) targets(argument);
+      if (iteration) {
+        const source = binding(iteration.source);
+        const target = canonical(checker.getSymbolAtLocation(iteration.parameter));
+        link(source, target);
+        link(target, source);
+      }
       if (
         ts.isCallExpression(node) &&
         (ts.isPropertyAccessExpression(node.expression) ||

@@ -15,6 +15,15 @@ import {
 } from './types.ts';
 
 const PURE_STRING_METHODS = new Set(['toLowerCase', 'toUpperCase', 'trim', 'trimStart', 'trimEnd']);
+const ARRAY_ITERATION_METHODS = new Set([
+  'every',
+  'filter',
+  'find',
+  'flatMap',
+  'forEach',
+  'map',
+  'some',
+]);
 
 function componentReference(reference: unknown) {
   const prefix = '#/components/schemas/';
@@ -290,6 +299,32 @@ export function analyzeRepository(
       return arrayItemForExpression(expression.expression);
     return undefined;
   }
+  function arrayIteration(node: ts.CallExpression) {
+    const method = node.expression;
+    if (
+      node.questionDotToken ||
+      !ts.isPropertyAccessExpression(method) ||
+      method.questionDotToken ||
+      !ARRAY_ITERATION_METHODS.has(method.name.text) ||
+      node.arguments.length !== 1
+    )
+      return undefined;
+    const callback = node.arguments[0];
+    if (!ts.isArrowFunction(callback) && !ts.isFunctionExpression(callback)) return undefined;
+    if (callback.parameters.length !== 1) return undefined;
+    const parameter = callback.parameters[0];
+    if (
+      !ts.isIdentifier(parameter.name) ||
+      parameter.initializer ||
+      parameter.dotDotDotToken ||
+      parameter.questionToken
+    )
+      return undefined;
+    const schema = arrayItemForExpression(method.expression);
+    return schema
+      ? { callback, parameter: parameter.name, source: method.expression, schema }
+      : undefined;
+  }
   function schemaForExpression(expression: ts.Expression): string | undefined {
     if (ts.isIdentifier(expression)) return responses.get(symbol(expression)!);
     if (ts.isPropertyAccessExpression(expression)) {
@@ -489,6 +524,23 @@ export function analyzeRepository(
         assignSchema(element.name, itemSchema);
       }
     }
+    for (const node of nodes) {
+      if (
+        !ts.isForOfStatement(node) ||
+        !ts.isVariableDeclarationList(node.initializer) ||
+        !(node.initializer.flags & ts.NodeFlags.Const) ||
+        node.initializer.declarations.length !== 1
+      )
+        continue;
+      const declaration = node.initializer.declarations[0];
+      if (!ts.isIdentifier(declaration.name)) continue;
+      assignSchema(declaration.name, arrayItemForExpression(node.expression));
+    }
+    for (const node of nodes) {
+      if (!ts.isCallExpression(node)) continue;
+      const iteration = arrayIteration(node);
+      if (iteration) assignSchema(iteration.parameter, iteration.schema);
+    }
   }
   for (const node of nodes) {
     const operation = responseCall(node);
@@ -515,6 +567,7 @@ export function analyzeRepository(
         escapingClients.add(wrapper);
   }
   const readOnlyCall = (node: ts.CallExpression) => {
+    if (arrayIteration(node)) return true;
     if (
       node.arguments.length ||
       !ts.isPropertyAccessExpression(node.expression) ||
@@ -537,6 +590,7 @@ export function analyzeRepository(
     canonical,
     escapingClients,
     readOnlyCall,
+    arrayIteration,
   );
   for (const [response, wrapper] of wrappedResponses) if (unsafe.has(wrapper)) unsafe.add(response);
   function propose(node: ts.Node, receiver: ts.Expression, change: Removal) {
@@ -632,6 +686,12 @@ export function analyzeRepository(
     });
   }
   function record(node: ts.Node, receiver: ts.Expression, property: string | undefined) {
+    if (
+      property !== undefined &&
+      ARRAY_ITERATION_METHODS.has(property) &&
+      arrayItemForExpression(receiver)
+    )
+      return;
     // SDK resources are not response fields, even when their names match a removal.
     if (ts.isIdentifier(receiver) && contains(clients, receiver)) return;
     const schema = schemaForExpression(receiver);
