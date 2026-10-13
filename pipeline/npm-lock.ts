@@ -14,6 +14,22 @@ const NON_REGISTRY_SOURCE =
   /^(?:file:|link:|workspace:|git(?:\+|:)|https?:|ssh:|github:|gitlab:|bitbucket:|\/|\.\.?\/)|^[^@\s]+\/[^@\s]+$/;
 const INTEGRITY =
   /^(?:sha(?:256|384|512)-[A-Za-z0-9+/]+={0,2})(?:\s+sha(?:256|384|512)-[A-Za-z0-9+/]+={0,2})*$/;
+const INTEGRITY_LENGTHS = new Map([
+  ['sha256', 32],
+  ['sha384', 48],
+  ['sha512', 64],
+]);
+
+function hasStrongIntegrity(value: unknown): value is string {
+  if (typeof value !== 'string' || !INTEGRITY.test(value)) return false;
+  return value.split(/\s+/).every((entry) => {
+    const [algorithm, encoded] = entry.split('-', 2);
+    const bytes = Buffer.from(encoded, 'base64');
+    return (
+      bytes.byteLength === INTEGRITY_LENGTHS.get(algorithm) && bytes.toString('base64') === encoded
+    );
+  });
+}
 
 function dependencySources(value: Record<string, unknown>) {
   for (const section of DEPENDENCY_SECTIONS) {
@@ -92,8 +108,7 @@ export function validateNpmLock(packageContent: string, lockContent: string) {
       typeof record.version !== 'string' ||
       !record.version.trim() ||
       typeof record.resolved !== 'string' ||
-      typeof record.integrity !== 'string' ||
-      !INTEGRITY.test(record.integrity)
+      !hasStrongIntegrity(record.integrity)
     )
       throw new PipelineInputError(
         'Every npm package requires a registry URL, version and SHA-256-or-stronger integrity; links and bundled records require a custom image.',

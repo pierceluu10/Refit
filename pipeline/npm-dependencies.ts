@@ -29,13 +29,32 @@ import { hasErrorCode, withStateLock, writeState } from './state-files.ts';
 import { PipelineInputError } from './types.ts';
 import { verifyArtifacts } from './verification.ts';
 
-const RECIPE_VERSION = 1;
+const RECIPE_VERSION = 2;
 const INSTALL_TIMEOUT_MS = 300_000;
 export const MAX_DEPENDENCY_ARCHIVE_BYTES = 256 * 1024 * 1024;
 const MAX_LOG_BYTES = 1024 * 1024;
 const MAX_ERROR_CHARACTERS = 4096;
 const ARCHIVE = 'dependencies.tar';
 const ENVIRONMENT = 'environment.json';
+export const DEPENDENCY_TREE_CHECK = `
+import { lstat, readdir, realpath } from "node:fs/promises";
+import { resolve, sep } from "node:path";
+const root = resolve(await realpath("."), "node_modules");
+const rootEntry = await lstat(root);
+if (!rootEntry.isDirectory() || (await realpath(root)) !== root) throw new Error("node_modules must be a physical directory");
+const prefix = root + sep;
+async function verify(path) {
+  const entry = await lstat(path);
+  if (entry.isSymbolicLink()) {
+    if (!(await realpath(path)).startsWith(prefix)) throw new Error("Dependency link escapes node_modules");
+  } else if (entry.isDirectory()) {
+    for (const child of await readdir(path)) await verify(resolve(path, child));
+  } else if (!entry.isFile()) {
+    throw new Error("Dependency tree contains a special file");
+  }
+}
+await verify(root);
+`;
 const INSTALL_COMMAND = [
   'sh',
   '-c',
@@ -45,7 +64,7 @@ const INSTALL_COMMAND = [
     'printf "REFIT_NPM_VERSION=" >&2; npm --version >&2; ' +
     'npm ci --ignore-scripts --include=dev --engine-strict --no-audit --no-fund ' +
     '--registry=https://registry.npmjs.org --cache=/workspace/.npm-cache >&2; ' +
-    'mkdir -p node_modules; tar -cf - node_modules',
+    `mkdir -p node_modules; node --input-type=module -e '${DEPENDENCY_TREE_CHECK}' && tar -cf - node_modules`,
 ];
 
 export class DependencyPreparationError extends PipelineInputError {
@@ -158,6 +177,13 @@ export async function prepareNpmDependencies(options: {
   const physicalCache = await realpath(cacheDirectory);
   await standaloneStateDirectory(physicalCache);
   const root = join(physicalCache, signature);
+  await mkdir(root, { recursive: true, mode: 0o700 });
+  const metadata = await lstat(root);
+  const physicalRoot = await realpath(root);
+  if (!metadata.isDirectory() || metadata.isSymbolicLink() || physicalRoot !== root)
+    throw new PipelineInputError('Dependency cache entries must be private physical directories.');
+  await chmod(root, 0o700);
+  await standaloneStateDirectory(root);
   const bundle = join(root, 'bundle');
   return withStateLock(root, 'prepare', async () => {
     let exists = false;

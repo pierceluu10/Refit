@@ -7,10 +7,11 @@ const manifest = {
   dependencies: { stripe: '10.17.0' },
   devDependencies: { typescript: '^5.7.2' },
 };
+const STRONG_INTEGRITY = `sha512-${Buffer.alloc(64).toString('base64')}`;
 const record = {
   version: '10.17.0',
   resolved: 'https://registry.npmjs.org/stripe/-/stripe-10.17.0.tgz',
-  integrity: 'sha512-YWJjZA==',
+  integrity: STRONG_INTEGRITY,
 };
 const lock = { lockfileVersion: 3, packages: { '': manifest, 'node_modules/stripe': record } };
 
@@ -48,6 +49,8 @@ it.each([
   { ...record, resolved: undefined },
   { ...record, integrity: undefined },
   { ...record, integrity: 'sha1-YWJjZA==' },
+  { ...record, integrity: 'sha512-YWJjZA==' },
+  { ...record, integrity: 'sha512-AAAA' },
   { ...record, link: true },
 ])('rejects unpinned or non-public package resolution before network use: %j', (value) => {
   expect(() =>

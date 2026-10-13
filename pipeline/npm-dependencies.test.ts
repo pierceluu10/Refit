@@ -1,11 +1,21 @@
 import { execFile } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
-import { mkdir, mkdtemp, readFile, readdir, rm, writeFile, chmod } from 'node:fs/promises';
+import {
+  chmod,
+  mkdir,
+  mkdtemp,
+  readFile,
+  readdir,
+  rm,
+  stat,
+  symlink,
+  writeFile,
+} from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { delimiter, join, resolve } from 'node:path';
+import { delimiter, dirname, join, resolve } from 'node:path';
 import { promisify } from 'node:util';
 import { afterEach, expect, it, vi } from 'vitest';
-import { prepareNpmDependencies } from './npm-dependencies.ts';
+import { DEPENDENCY_TREE_CHECK, prepareNpmDependencies } from './npm-dependencies.ts';
 import { dockerSandboxArguments, removeDockerContainer } from './docker-sandbox.ts';
 import { verifyArtifacts } from './verification.ts';
 import { runWorkflow } from './workflow.ts';
@@ -96,6 +106,26 @@ afterEach(async () => {
   await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
 });
 
+it('accepts dependency links inside node_modules and rejects links that escape its physical root', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'refit-dependency-tree-test-'));
+  roots.push(root);
+  const nodeModules = join(root, 'node_modules');
+  const packageDirectory = join(nodeModules, 'package');
+  const outside = join(root, 'outside');
+  await mkdir(packageDirectory, { recursive: true });
+  await mkdir(outside);
+  await writeFile(join(packageDirectory, 'index.js'), 'export {};');
+  await symlink(packageDirectory, join(nodeModules, 'internal'), 'dir');
+  const check = () =>
+    execute(process.execPath, ['--input-type=module', '-e', DEPENDENCY_TREE_CHECK], { cwd: root });
+  await check();
+  await symlink(outside, join(nodeModules, 'escape'), 'dir');
+  await expect(check()).rejects.toThrow(/Dependency link escapes node_modules/);
+  await rm(nodeModules, { recursive: true });
+  await symlink(outside, nodeModules, 'dir');
+  await expect(check()).rejects.toThrow(/node_modules must be a physical directory/);
+});
+
 it(
   'uses manifest-only input and restricted networked Docker, verifies cached bytes and does not reinstall unchanged inputs',
   async () => {
@@ -157,6 +187,18 @@ it('refuses an incomplete existing cache instead of silently reinstalling it', a
   await rm(prepared.archive);
   await expect(prepareNpmDependencies(fixture.options)).rejects.toThrow(/cache is incomplete/);
   expect((await fixture.calls()).filter((call) => call.args[0] === 'run')).toHaveLength(1);
+});
+
+it('refuses a cache-key directory symlink into a repository before writing its lock or bundle', async () => {
+  const fixture = await setup();
+  const prepared = await prepareNpmDependencies(fixture.options);
+  const keyDirectory = dirname(prepared.directory);
+  await rm(keyDirectory, { recursive: true });
+  await symlink(fixture.repository, keyDirectory);
+  await expect(prepareNpmDependencies(fixture.options)).rejects.toThrow(/physical directories/);
+  await expect(stat(join(fixture.repository, 'prepare.lock'))).rejects.toMatchObject({
+    code: 'ENOENT',
+  });
 });
 
 it.each(['fail', 'verbose'])(
