@@ -21,6 +21,7 @@ export function unsafeBindings(
   origins: Map<ts.Symbol, ts.CallExpression>,
   canonical: (symbol: ts.Symbol | undefined) => ts.Symbol | undefined = (symbol) => symbol,
   initialUnsafe: Set<ts.Symbol> = new Set(),
+  readOnlyCall: (node: ts.CallExpression) => boolean = () => false,
 ) {
   const links = new Map<ts.Symbol, Set<ts.Symbol>>();
   const unsafe = new Set(initialUnsafe);
@@ -94,7 +95,7 @@ export function unsafeBindings(
           ts.isElementAccessExpression(node.expression))
       ) {
         const owner = binding(node.expression.expression);
-        if (owner && !clients.has(owner)) unsafe.add(owner);
+        if (owner && !clients.has(owner) && !readOnlyCall(node)) unsafe.add(owner);
       }
     }
     if (ts.isPropertyAssignment(node)) taint(node.initializer);

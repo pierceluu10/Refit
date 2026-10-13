@@ -13,6 +13,8 @@ import {
   type SourceEdit,
 } from './types.ts';
 
+const PURE_STRING_METHODS = new Set(['toLowerCase', 'toUpperCase', 'trim', 'trimStart', 'trimEnd']);
+
 export function analyzeRepository(
   repository: Repository,
   changes: Removal[],
@@ -272,7 +274,30 @@ export function analyzeRepository(
       if (wrapper.valueDeclaration?.getSourceFile().fileName === source)
         escapingClients.add(wrapper);
   }
-  const unsafe = unsafeBindings(nodes, checker, clients, origins, canonical, escapingClients);
+  const readOnlyCall = (node: ts.CallExpression) => {
+    if (
+      node.arguments.length ||
+      !ts.isPropertyAccessExpression(node.expression) ||
+      !PURE_STRING_METHODS.has(node.expression.name.text)
+    )
+      return false;
+    const field = node.expression.expression;
+    if (!ts.isPropertyAccessExpression(field) || !ts.isIdentifier(field.expression)) return false;
+    const schema = responses.get(symbol(field.expression)!);
+    return changes.some(
+      (change) =>
+        change.schema === schema && change.property === field.name.text && change.type === 'string',
+    );
+  };
+  const unsafe = unsafeBindings(
+    nodes,
+    checker,
+    clients,
+    origins,
+    canonical,
+    escapingClients,
+    readOnlyCall,
+  );
   for (const [response, wrapper] of wrappedResponses) if (unsafe.has(wrapper)) unsafe.add(response);
   function propose(node: ts.Node, receiver: ts.Expression, change: Removal) {
     if (
