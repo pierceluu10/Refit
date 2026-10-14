@@ -7,6 +7,8 @@ import { guardedHistoryEdit } from './history-migration.ts';
 import { resolveSourceImport } from './source-imports.ts';
 import { componentReference, isObject, resolvableComponentSchema } from './specifications.ts';
 import type { OperationReplacement } from './provider-operation-replacements.ts';
+import type { RequestPropertyRename } from './provider-request-renames.ts';
+import { requestPropertyEdit } from './request-migration.ts';
 import {
   PipelineInputError,
   type Finding,
@@ -97,6 +99,7 @@ export function analyzeRepository(
   provider: ProviderAdapter = STRIPE,
   schemaDefinitions: Record<string, unknown> = {},
   operationReplacements: OperationReplacement[] = [],
+  requestPropertyRenames: RequestPropertyRename[] = [],
 ) {
   const sources = new Map(
     repository.files.map((file) => [resolve(repository.root, file.path), file.content]),
@@ -606,6 +609,38 @@ export function analyzeRepository(
     arrayIteration,
   );
   for (const [response, wrapper] of wrappedResponses) if (unsafe.has(wrapper)) unsafe.add(response);
+  for (const node of nodes) {
+    if (!ts.isCallExpression(node)) continue;
+    const call = sdkCall(node);
+    if (!call) continue;
+    for (const rule of requestPropertyRenames.filter(
+      (entry) => entry.resource === call.resource && entry.method === call.method,
+    )) {
+      const edit = requestPropertyEdit(node, rule);
+      if (edit.status === 'unaffected') continue;
+      const confirmed =
+        edit.status === 'editable' && !unsafe.has(symbol(call.client)!) && !call.optional;
+      findings.push({
+        ...location(node),
+        changeId: rule.id,
+        expression: `${rule.resource}.${rule.method} argument[${rule.argumentIndex}].${rule.removed}`,
+        confidence: confirmed ? 'confirmed' : 'review',
+        reason: confirmed
+          ? 'Removed request field in a direct SDK argument under an operator-authored rename with a matching recorded contract.'
+          : edit.status === 'review'
+            ? edit.reason
+            : 'SDK client escape, mutation or optional invocation prevents a request-field edit; inspect manually.',
+      });
+      if (confirmed && edit.status === 'editable')
+        edits.push({
+          file: location(node).file,
+          start: edit.start,
+          end: edit.end,
+          replacement: edit.replacement,
+          changeId: rule.id,
+        });
+    }
+  }
   for (const node of nodes) {
     const operation = responseCall(node);
     if (!operation || !ts.isCallExpression(node) || !ts.isPropertyAccessExpression(node.expression))

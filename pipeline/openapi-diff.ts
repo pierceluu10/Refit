@@ -10,6 +10,10 @@ import {
   isHandledOperationRemoval,
   type OperationReplacementEvidence,
 } from './provider-operation-replacements.ts';
+import {
+  isHandledRequestRename,
+  type RequestPropertyRenameEvidence,
+} from './provider-request-renames.ts';
 
 const execute = promisify(execFile);
 const DIFF_TIMEOUT_MS = 30_000;
@@ -61,6 +65,7 @@ export function unmappedBreakingChanges(
   changes: Removal[],
   findings: Finding[],
   operationChanges: OperationReplacementEvidence[] = [],
+  requestChanges: RequestPropertyRenameEvidence[] = [],
 ) {
   if (!diff || diff.engine !== 'oasdiff') return [];
   const affected = changes.filter((change) =>
@@ -73,6 +78,7 @@ export function unmappedBreakingChanges(
       isObject(entry) &&
       Number(entry.level) >= 2 &&
       !isHandledOperationRemoval(entry, operationChanges) &&
+      !isHandledRequestRename(entry, requestChanges) &&
       !(
         typeof entry.id === 'string' &&
         RESPONSE_REMOVALS.has(entry.id) &&

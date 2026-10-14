@@ -1,6 +1,7 @@
 import type { Repository, SourceEdit } from './types.ts';
 import { STRIPE, type ProviderAdapter } from './providers.ts';
 import type { OperationReplacement } from './provider-operation-replacements.ts';
+import type { RequestPropertyRename } from './provider-request-renames.ts';
 
 function lines(content: string, prefix: string) {
   const terminated = content.endsWith('\n');
@@ -44,18 +45,22 @@ export function proposePatch(
   unresolvedFindings: number,
   provider: ProviderAdapter = STRIPE,
   operationReplacements: OperationReplacement[] = [],
+  requestRenames: RequestPropertyRename[] = [],
 ) {
   const hasConfiguredRenames = Boolean(provider.propertyRenames?.length);
   const replacementIds = new Set(operationReplacements.map((replacement) => replacement.id));
+  const requestIds = new Set(requestRenames.map((rename) => rename.id));
+  const usedRequestRename = edits.some((edit) => requestIds.has(edit.changeId));
   const usedConfiguredRename =
     provider !== STRIPE &&
     hasConfiguredRenames &&
-    edits.some((edit) => !replacementIds.has(edit.changeId));
+    edits.some((edit) => !replacementIds.has(edit.changeId) && !requestIds.has(edit.changeId));
   const usedEndpointReplacement = edits.some((edit) => replacementIds.has(edit.changeId));
   return {
     generator: 'deterministic' as const,
-    summary:
-      provider === STRIPE
+    summary: usedRequestRename
+      ? 'Rename configured SDK request fields while preserving argument values and other call options.'
+      : provider === STRIPE
         ? 'Replace supported charge-history reads with Charges API requests filtered by PaymentIntent ID.'
         : usedEndpointReplacement
           ? usedConfiguredRename
@@ -71,8 +76,15 @@ export function proposePatch(
     unresolvedFindings,
     diff: renderPatch(repository, edits),
     validation: 'not-run',
-    warnings:
-      provider === STRIPE
+    warnings: usedRequestRename
+      ? [
+          'Request field mappings are operator-authored. Matching recorded contracts do not prove equivalent business meaning or SDK serialization behavior.',
+          'Only direct object-literal body arguments on immutable, unescaped SDK clients are edited. Spreads, computed keys, duplicate properties, aliases and optional SDK calls require review.',
+          'SDK dependencies and API-version declarations remain unchanged; verify that the installed SDK accepts the replacement field and coordinate the API rollout.',
+          'AI generation and repair are not used for configured request-field migrations. Review all edits and meaningful before/after checks.',
+          'Patch contains source code. Review it for sensitive content before sharing.',
+        ]
+      : provider === STRIPE
         ? [
             'Review required: adds Charges API requests; timing, expansion and error behavior can differ. Direct-return migrations retain default-page behavior; guarded-history migrations iterate all pages.',
             'Supports direct local charges.data returns and narrow missing-history guards after a local or transparent wrapped retrieve. Guarded migrations remove the missing-field error branch and retain the initial retrieval. Request options, transformed wrappers, aliases and other shapes require review.',

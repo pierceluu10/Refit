@@ -248,6 +248,9 @@ async function watchLocalOnce(
         ...(scan.operationChanges.length
           ? { operationChanges: scan.operationChanges.map((change) => change.id) }
           : {}),
+        ...(scan.requestChanges?.length
+          ? { requestChanges: scan.requestChanges.map((change) => change.id) }
+          : {}),
         contractChanges,
       }),
     );

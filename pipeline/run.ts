@@ -12,6 +12,10 @@ import {
 } from './providers.ts';
 import { validatePropertyRenames } from './provider-renames.ts';
 import {
+  requestRenameEvidence,
+  validateRequestPropertyRenames,
+} from './provider-request-renames.ts';
+import {
   countBreakingOperationUsages,
   findBreakingOperationImpacts,
   validateProviderOperationMappings,
@@ -75,12 +79,14 @@ export async function runPipeline(options: {
   const specificationDiff = options.fullDiff
     ? await compareOpenApi(before.document, after.document)
     : undefined;
+  const requestRenames = validateRequestPropertyRenames(provider, before.document, after.document);
   const { edits, apiVersionDeclarations, ...analysis } = analyzeRepository(
     repository,
     changes,
     provider,
     before.schemas,
     replacements,
+    requestRenames,
   );
   const apiVersion = compareApiVersion(
     applicationApiVersion,
@@ -99,11 +105,13 @@ export async function runPipeline(options: {
     analysis.calls,
     analysis.findings,
   );
+  const requestChanges = requestRenameEvidence(requestRenames, analysis.calls, analysis.findings);
   const reviewableBreakingChanges = unmappedBreakingChanges(
     specificationDiff,
     changes,
     analysis.findings,
     operationChanges,
+    requestChanges,
   );
   const operationImpacts = findBreakingOperationImpacts(
     specificationDiff,
@@ -115,7 +123,11 @@ export async function runPipeline(options: {
   const operationUsageCount = countBreakingOperationUsages(operationImpacts);
   const representedOperationLocations = new Set(
     analysis.findings
-      .filter((finding) => replacements.some((replacement) => replacement.id === finding.changeId))
+      .filter((finding) =>
+        [...replacements, ...requestRenames].some(
+          (replacement) => replacement.id === finding.changeId,
+        ),
+      )
       .map((finding) => JSON.stringify([finding.file, finding.line, finding.column])),
   );
   const additionalOperationUsageCount = countBreakingOperationUsages(
@@ -138,9 +150,11 @@ export async function runPipeline(options: {
         : provider.id === STRIPE.id
           ? 'no-stripe-signal'
           : 'no-provider-signal';
-  const configuredEndpointProposal = operationChanges.some((change) => change.usages.length > 0);
+  const configuredMigrationProposal =
+    operationChanges.some((change) => change.usages.length > 0) ||
+    requestChanges.some((change) => change.usages.length > 0);
   const deterministicRequested =
-    options.proposePatch || (options.aiPatch && configuredEndpointProposal);
+    options.proposePatch || (options.aiPatch && configuredMigrationProposal);
   const unresolvedFindingCount = deterministicRequested
     ? analyzeRepository(
         {
@@ -157,14 +171,15 @@ export async function runPipeline(options: {
         replacementAnalysisAdapter(provider, replacements),
         before.schemas,
         replacements,
+        requestRenames,
       ).findings.length
     : 0;
-  if (options.aiPatch && !configuredEndpointProposal && !operationImpacts.length)
+  if (options.aiPatch && !configuredMigrationProposal && !operationImpacts.length)
     options.onProgress?.('Requesting an AI migration proposal...');
   else if (deterministicRequested)
     options.onProgress?.('Generating a deterministic migration proposal...');
   const patch =
-    options.aiPatch && !configuredEndpointProposal
+    options.aiPatch && !configuredMigrationProposal
       ? operationImpacts.length
         ? {
             status: 'not-generated' as const,
@@ -182,7 +197,14 @@ export async function runPipeline(options: {
             options.documentationSnapshots,
           )
       : deterministicRequested
-        ? proposePatch(repository, edits, unresolvedFindingCount, provider, replacements)
+        ? proposePatch(
+            repository,
+            edits,
+            unresolvedFindingCount,
+            provider,
+            replacements,
+            requestRenames,
+          )
         : {
             status: 'not-generated' as const,
             reason:
@@ -225,6 +247,7 @@ export async function runPipeline(options: {
     ...analysis,
     operationImpacts,
     operationChanges,
+    ...(requestChanges.length ? { requestChanges } : {}),
     warnings: [
       ...repository.warnings,
       ...(apiVersion.applicability === 'matches-before' ? [] : [apiVersion.reason]),
