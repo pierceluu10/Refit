@@ -1,4 +1,4 @@
-import { WEBHOOK_REVIEW_REASON } from './stripe-webhook-payloads.ts';
+import { migrationReviewReason } from './migration-review.ts';
 import type { AiOptions } from './ai-budget.ts';
 import { analyzeRepository } from './analyzer.ts';
 import { proposeAiPatch } from './ai-patches.ts';
@@ -30,7 +30,8 @@ import {
 } from './api-version.ts';
 import { PipelineInputError } from './types.ts';
 import { digest, findRemovedProperties, readSpecification } from './specifications.ts';
-import { compareOpenApi, unmappedBreakingChanges } from './openapi-diff.ts';
+import { stripeAdapterFor } from './stripe-operations.ts';
+import { adapterContract, compareOpenApi, unmappedBreakingChanges } from './openapi-diff.ts';
 import {
   operationReplacementEvidence,
   replacementAnalysisAdapter,
@@ -54,12 +55,25 @@ export async function runPipeline(options: {
 }) {
   const applicationApiVersion = validateApiVersion(options.apiVersion);
   const policy = validateApiVersionPolicy(options.apiVersionPolicy);
-  const provider = await readProviderAdapter(options.providerConfig);
+  const configured = await readProviderAdapter(options.providerConfig);
   const [repository, before, after] = await Promise.all([
-    readRepository(options.repository, provider.packageName),
+    readRepository(options.repository, configured.packageName),
     readSpecification(options.before),
     readSpecification(options.after),
   ]);
+  // The built-in Stripe adapter grows to cover every Stripe method the application calls.
+  const provider =
+    configured === STRIPE
+      ? stripeAdapterFor(
+          STRIPE,
+          before.document,
+          new Set(
+            analyzeRepository(repository, [], STRIPE).sdkCalls.map(
+              (call) => `${call.resource}.${call.method}`,
+            ),
+          ),
+        )
+      : configured;
   if (
     [before, after].some(
       (snapshot) => snapshot.provenance && snapshot.provenance.provider !== provider.id,
@@ -78,17 +92,18 @@ export async function runPipeline(options: {
     after.schemas,
   );
   const specificationDiff = options.fullDiff
-    ? await compareOpenApi(before.document, after.document)
+    ? {
+        ...(await compareOpenApi(
+          adapterContract(before.document, provider),
+          adapterContract(after.document, provider),
+        )),
+        coverage:
+          'oasdiff compared only adapter-selected operations and their reachable components. Unselected endpoints, request schemas and unrelated components were not compared. Code and incoming-event coverage remain bounded; absence of a reported change is not proof of full API compatibility.',
+      }
     : undefined;
   const requestRenames = validateRequestPropertyRenames(provider, before.document, after.document);
-  const { edits, apiVersionDeclarations, sourceWarnings, ...analysis } = analyzeRepository(
-    repository,
-    changes,
-    provider,
-    before.schemas,
-    replacements,
-    requestRenames,
-  );
+  const { edits, apiVersionDeclarations, sourceWarnings, skippedFiles, ...analysis } =
+    analyzeRepository(repository, changes, provider, before.schemas, replacements, requestRenames);
   const apiVersion = compareApiVersion(
     applicationApiVersion,
     before.document,
@@ -175,18 +190,13 @@ export async function runPipeline(options: {
         requestRenames,
       ).findings.length
     : 0;
-  const webhookFindings = analysis.findings.filter((finding) => finding.webhook);
-  if (
-    options.aiPatch &&
-    !configuredMigrationProposal &&
-    !operationImpacts.length &&
-    !webhookFindings.length
-  )
+  const reviewReason = migrationReviewReason({ findings: analysis.findings, skippedFiles });
+  if (options.aiPatch && !configuredMigrationProposal && !operationImpacts.length && !reviewReason)
     options.onProgress?.('Requesting an AI migration proposal...');
-  else if (deterministicRequested && !webhookFindings.length)
+  else if (deterministicRequested && !reviewReason)
     options.onProgress?.('Generating a deterministic migration proposal...');
-  const patch = webhookFindings.length
-    ? { status: 'not-generated' as const, reason: WEBHOOK_REVIEW_REASON }
+  const patch = reviewReason
+    ? { status: 'not-generated' as const, reason: reviewReason! }
     : options.aiPatch && !configuredMigrationProposal
       ? operationImpacts.length
         ? {
@@ -273,13 +283,17 @@ export async function runPipeline(options: {
       coverage: 'Direct removed properties only; use fullDiff for the oasdiff contract report.',
     },
     ...analysis,
+    skippedFiles,
     operationImpacts,
     operationChanges,
     ...(requestChanges.length ? { requestChanges } : {}),
     warnings: [
       ...repository.warnings,
       ...sourceWarnings,
-      ...(webhookFindings.length ? [WEBHOOK_REVIEW_REASON] : []),
+      ...(reviewReason ? [reviewReason!] : []),
+      ...skippedFiles.map(
+        (file) => `Skipped unparseable file; its API usage was not scanned. ${file}`,
+      ),
       ...(apiVersion.applicability === 'matches-before' ? [] : [apiVersion.reason]),
       ...(apiVersion.source.status === 'verified' || apiVersionSourceBlocked(apiVersion)
         ? []
@@ -295,8 +309,8 @@ export async function runPipeline(options: {
           ]
         : []),
     ],
-    assessment: webhookFindings.length
-      ? { status: 'blocked' as const, reason: WEBHOOK_REVIEW_REASON }
+    assessment: reviewReason
+      ? { status: 'blocked' as const, reason: reviewReason! }
       : options.assessment
         ? await assessMigration(
             buildAssessmentEvidence(

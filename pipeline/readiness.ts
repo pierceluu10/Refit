@@ -5,6 +5,7 @@ import { readNpmPreparationInputs } from './npm-inputs.ts';
 import { unmappedBreakingChanges } from './openapi-diff.ts';
 import { runPipeline } from './run.ts';
 import { stripeWebhookConstructor } from './stripe-webhook-payloads.ts';
+import { migrationReviewReason } from './migration-review.ts';
 import { hasErrorCode } from './state-files.ts';
 import { PipelineInputError } from './types.ts';
 import { readWorkflowConfiguration, REPOSITORY_CONFIGURATION } from './workflow-configuration.ts';
@@ -168,6 +169,16 @@ export async function inspectRepositoryReadiness(options: {
     const evidence = scan.value;
     report.provider = { id: evidence.provider, packageName: evidence.adapter.packageName };
     report.currentSourceChecked = !workflow.latestStripe;
+    const originReview = migrationReviewReason(evidence);
+    if (originReview && !evidence.findings.some((finding) => finding.webhook))
+      report.checks.push({
+        id: 'source-provenance',
+        title: 'Migration source evidence',
+        status: 'blocked',
+        detail: originReview,
+        action:
+          'Repair skipped sources and establish SDK or incoming-event provenance before activation.',
+      });
     if (evidence.findings.some((finding) => finding.webhook))
       report.checks.push({
         id: 'webhook-migration',

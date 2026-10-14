@@ -1,4 +1,4 @@
-import { WEBHOOK_REVIEW_REASON } from './stripe-webhook-payloads.ts';
+import { migrationReviewReason } from './migration-review.ts';
 import type { AiOptions, AiUsage } from './ai-budget.ts';
 import { execFile } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
@@ -162,8 +162,8 @@ export async function validateMigration(options: {
   });
   if (apiVersionSourceBlocked(preflight.apiVersion))
     throw new PipelineInputError(`Validation is blocked. ${preflight.apiVersion.reason}`);
-  if (preflight.findings.some((finding) => finding.webhook))
-    throw new PipelineInputError(WEBHOOK_REVIEW_REASON);
+  const reviewReason = migrationReviewReason(preflight);
+  if (reviewReason) throw new PipelineInputError(reviewReason);
   const git = (args: string[]) =>
     command('git', ['-c', 'core.fsmonitor=false', '-C', repository, ...args]);
   const { revision, entries } = snapshot;

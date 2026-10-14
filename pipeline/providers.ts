@@ -65,7 +65,7 @@ export function validateProviderMappings(
 }
 
 const MAX_CONFIG_BYTES = 64 * 1024;
-const MAX_OPERATIONS = 100;
+export const MAX_OPERATIONS = 100;
 const MAX_PROPERTY_RENAMES = 100;
 const MAX_REQUEST_PROPERTY_RENAMES = 100;
 const MAX_OPERATION_REPLACEMENTS = 100;

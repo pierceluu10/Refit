@@ -1,5 +1,5 @@
 import { requestStructuredOutput } from './openai.ts';
-import { WEBHOOK_REVIEW_REASON } from './stripe-webhook-payloads.ts';
+import { migrationReviewReason } from './migration-review.ts';
 import { digest, parseObject } from './specifications.ts';
 import { PipelineInputError, type Finding, type Removal, type Repository } from './types.ts';
 import { STRIPE, type ProviderAdapter } from './providers.ts';
@@ -125,8 +125,8 @@ function parseAssessment(content: string, evidence: Evidence) {
 }
 
 export async function assessMigration(evidence: Evidence, options: AiOptions) {
-  if (evidence.findings.some((finding) => finding.webhook))
-    throw new PipelineInputError(WEBHOOK_REVIEW_REASON);
+  const reviewReason = migrationReviewReason(evidence);
+  if (reviewReason) throw new PipelineInputError(reviewReason);
   const { content, ...metadata } = await requestStructuredOutput(
     {
       evidence,

@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { compareOpenApi, unmappedBreakingChanges } from './openapi-diff.ts';
+import { adapterContract, compareOpenApi, unmappedBreakingChanges } from './openapi-diff.ts';
 
 const CONTRACT = {
   openapi: '3.0.3',
@@ -119,4 +119,51 @@ it('keeps type, endpoint and unrelated property changes out of automatic respons
       findings,
     ),
   ).toHaveLength(1);
+});
+
+it('keeps only the operations an adapter maps and the components they reference', () => {
+  const document = {
+    openapi: '3.0.3',
+    info: { title: 'Example', version: '1' },
+    paths: {
+      '/items/{id}': {
+        parameters: [{ $ref: '#/components/parameters/Id' }],
+        get: {
+          operationId: 'GetItem',
+          responses: {
+            '200': {
+              content: {
+                'application/json': {
+                  schema: { anyOf: [{ $ref: '#/components/schemas/item' }, { type: 'string' }] },
+                },
+              },
+            },
+          },
+        },
+        delete: { operationId: 'DeleteItem', responses: {} },
+      },
+      '/orders': { get: { operationId: 'ListOrders', responses: {} } },
+    },
+    components: {
+      parameters: { Id: { name: 'id', in: 'path', schema: { type: 'string' } } },
+      schemas: {
+        item: { properties: { owner: { $ref: '#/components/schemas/owner' } } },
+        owner: { properties: { name: { type: 'string' } } },
+        order: { properties: {} },
+      },
+      securitySchemes: { basic: { type: 'http', scheme: 'basic' } },
+    },
+  };
+  const pruned = adapterContract(document, {
+    id: 'example',
+    packageName: 'example',
+    defaultImport: true,
+    namedExport: null,
+    operations: [{ resource: 'items', method: 'retrieve', schema: 'item' }],
+  });
+  expect(Object.keys(pruned.paths)).toEqual(['/items/{id}']);
+  expect(Object.keys(pruned.paths['/items/{id}'])).toEqual(['parameters', 'get']);
+  expect(Object.keys(pruned.components.schemas).sort()).toEqual(['item', 'owner']);
+  expect(Object.keys(pruned.components.parameters)).toEqual(['Id']);
+  expect(pruned.components.securitySchemes).toEqual(document.components.securitySchemes);
 });

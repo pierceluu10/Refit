@@ -36,6 +36,7 @@ const { values } = parseArgs({
     ai: { type: 'boolean' },
     validate: { type: 'boolean' },
     limit: { type: 'string' },
+    split: { type: 'string' },
   },
 });
 if (!values.root || !values.output) throw new PipelineInputError(USAGE);
@@ -43,9 +44,17 @@ if (values.env) process.loadEnvFile(values.env);
 const root = resolve(values.root);
 const output = resolve(values.output);
 const ai = values.ai ? assessmentConfiguration(true, process.env)! : undefined;
-const selected = (
-  JSON.parse(await readFile(join(root, 'selected.json'), 'utf8')) as Selected[]
-).slice(0, values.limit ? Number(values.limit) : undefined);
+// --split labelled|heldOut restricts the run to the ground-truth or held-out repositories.
+const split = values.split
+  ? new Set(
+      (JSON.parse(await readFile(join(root, 'split.json'), 'utf8')) as Record<string, string[]>)[
+        values.split
+      ] ?? [],
+    )
+  : undefined;
+const selected = (JSON.parse(await readFile(join(root, 'selected.json'), 'utf8')) as Selected[])
+  .filter((entry) => !split || split.has(entry.repo))
+  .slice(0, values.limit ? Number(values.limit) : undefined);
 const specs = JSON.parse(await readFile(join(root, 'needed-specs.json'), 'utf8')) as Array<{
   version: string;
 }>;
@@ -125,6 +134,12 @@ for (const [index, entry] of selected.entries()) {
     removedFields: report.changes.length,
     confirmed: report.findings.filter((finding) => finding.confidence === 'confirmed').length,
     review: report.findings.filter((finding) => finding.confidence === 'review').length,
+    findings: report.findings.map((finding) => ({
+      file: finding.file,
+      line: finding.line,
+      property: finding.expression.replace(/^\??\./, ''),
+      confidence: finding.confidence,
+    })),
     affectedFields: [
       ...new Set(
         report.findings.map(

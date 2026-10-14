@@ -8,7 +8,7 @@ import type { runPipeline } from './run.ts';
 import { INTEGRATION_MARKER, migrationIdentity } from './migration-identity.ts';
 import { unmappedBreakingChanges } from './openapi-diff.ts';
 import { apiVersionSourceBlocked } from './api-version.ts';
-import { WEBHOOK_REVIEW_REASON } from './stripe-webhook-payloads.ts';
+import { migrationReviewReason } from './migration-review.ts';
 
 const MAX_BODY_CHARACTERS = 60_000;
 const SHA = /^[a-f0-9]{40}$/;
@@ -165,8 +165,8 @@ export async function publishDraft(
   options: ReturnType<typeof publicationConfiguration>,
 ) {
   const apiVersion = report.apiVersion;
-  if (report.findings.some((finding) => finding.webhook))
-    throw new PipelineInputError(WEBHOOK_REVIEW_REASON);
+  const reviewReason = migrationReviewReason(report);
+  if (reviewReason) throw new PipelineInputError(reviewReason);
   if (
     !apiVersion ||
     apiVersion.applicability !== 'matches-before' ||

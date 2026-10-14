@@ -1,0 +1,122 @@
+import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join, resolve } from 'node:path';
+import { afterEach, expect, it, vi } from 'vitest';
+import { runPipeline } from './run.ts';
+import { runWorkflow } from './workflow.ts';
+import { analyzeRepository } from './analyzer.ts';
+import { STRIPE } from './providers.ts';
+
+const roots: string[] = [];
+afterEach(async () => {
+  vi.unstubAllGlobals();
+  await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
+});
+
+it.each(['declared-type', 'skipped-source'] as const)(
+  'blocks paid and executable automation with %s evidence',
+  async (kind) => {
+    const root = await mkdtemp(join(tmpdir(), 'refit-source-review-'));
+    roots.push(root);
+    const version = '2025-02-24.acacia';
+    const before = resolve('pipeline/fixtures/stripe-webhooks/before.json');
+    const after = resolve('pipeline/fixtures/stripe-webhooks/after.json');
+    await writeFile(
+      join(root, 'client.ts'),
+      `import Stripe from 'stripe'; export const stripe = new Stripe('local-fixture', {apiVersion: '${version}'}); ${kind === 'declared-type' ? 'export function end(value: unknown) {return (value as Stripe.Subscription).current_period_end;}' : ''}`,
+    );
+    if (kind === 'skipped-source')
+      await writeFile(join(root, 'broken.ts'), 'export const value = {,};');
+    const fetch = vi.fn(() => {
+      throw new Error('Source review must not request a model or GitHub.');
+    });
+    vi.stubGlobal('fetch', fetch);
+    const options = {
+      repository: root,
+      before,
+      after,
+      apiVersion: version,
+      apiVersionPolicy: 'source-verified' as const,
+    };
+    const report = await runPipeline({
+      ...options,
+      proposePatch: true,
+      aiPatch: { apiKey: 'unused', model: 'unused' },
+      assessment: { apiKey: 'unused', model: 'unused' },
+    });
+    expect(report.patch).toMatchObject({ status: 'not-generated' });
+    expect(report.assessment).toMatchObject({ status: 'blocked' });
+    if (kind === 'declared-type')
+      expect(report.findings).toMatchObject([
+        { confidence: 'review', declaredType: { schema: 'subscription' } },
+      ]);
+    else expect(report.skippedFiles).toHaveLength(1);
+    const workflow = await runWorkflow({
+      ...options,
+      image: 'must-not-inspect',
+      command: ['must-not-execute'],
+      output: join(tmpdir(), `refit-source-review-output-${root.split('/').at(-1)}`),
+    });
+    roots.push(workflow.directory);
+    expect(workflow.manifest).toMatchObject({ status: 'needs-review', stage: 'scan' });
+    expect(fetch).not.toHaveBeenCalled();
+  },
+);
+
+it('does not let a type cast hide an optional SDK invocation', () => {
+  const result = analyzeRepository(
+    {
+      root: '/type-cast-test',
+      files: [
+        {
+          path: 'billing.ts',
+          content: `import Stripe from 'stripe'; const stripe = new Stripe('fixture'); async function history(id) {return ((await stripe.paymentIntents?.retrieve(id)) as Stripe.PaymentIntent).charges;}`,
+        },
+      ],
+      dependencies: [],
+      lockfiles: [],
+      warnings: [],
+    },
+    [
+      {
+        id: 'charges',
+        schema: 'payment_intent',
+        property: 'charges',
+        pointer: '/payment_intent/charges',
+      },
+    ],
+    STRIPE,
+    { payment_intent: { type: 'object', properties: { charges: { type: 'object' } } } },
+  );
+  expect(result.findings).toMatchObject([{ confidence: 'review' }]);
+  expect(result.edits).toEqual([]);
+});
+
+it('treats an unsigned typed event as a source hint when the contract omits Event', () => {
+  const result = analyzeRepository(
+    {
+      root: '/typed-event-test',
+      files: [
+        {
+          path: 'handler.ts',
+          content: `import type Stripe from 'stripe'; function handle(body: string) { const event: Stripe.Event = JSON.parse(body); if(event.type === 'customer.subscription.updated') return event.data.object.current_period_end; }`,
+        },
+      ],
+      dependencies: [],
+      lockfiles: [],
+      warnings: [],
+    },
+    [
+      {
+        id: 'period',
+        schema: 'subscription',
+        property: 'current_period_end',
+        pointer: '/subscription/current_period_end',
+      },
+    ],
+    STRIPE,
+    { subscription: { type: 'object', properties: { current_period_end: { type: 'integer' } } } },
+  );
+  expect(result.findings).toMatchObject([{ confidence: 'review', declaredType: {} }]);
+  expect(result.edits).toEqual([]);
+});

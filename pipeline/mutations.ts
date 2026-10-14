@@ -27,6 +27,9 @@ export function unsafeBindings(
   ) =>
     { callback: ts.Expression; parameter: ts.Identifier; source: ts.Expression } | undefined = () =>
     undefined,
+  // Reading a primitive field (`subscription.id`) and passing its value on cannot mutate the
+  // object it came from; only value positions use this, never assignment targets.
+  primitiveValue: (node: ts.Node) => boolean = () => false,
 ) {
   const links = new Map<ts.Symbol, Set<ts.Symbol>>();
   const unsafe = new Set(initialUnsafe);
@@ -45,12 +48,13 @@ export function unsafeBindings(
     const value = binding(node);
     if (value) unsafe.add(value);
   };
-  const targets = (node: ts.Node) => {
+  const targets = (node: ts.Node, value = true) => {
+    if (value && primitiveValue(node)) return;
     if (receiver(node)) taint(node);
     // Passing a call's result does not expose its callee or SDK client.
     else if (ts.isCallExpression(node) || ts.isNewExpression(node))
       for (const argument of node.arguments ?? []) targets(argument);
-    else ts.forEachChild(node, targets);
+    else ts.forEachChild(node, (child) => targets(child, value));
   };
   const aliases = (name: ts.BindingName, source: ts.Symbol | undefined) => {
     if (ts.isIdentifier(name)) {
@@ -87,7 +91,7 @@ export function unsafeBindings(
       node.operatorToken.kind >= ts.SyntaxKind.FirstAssignment &&
       node.operatorToken.kind <= ts.SyntaxKind.LastAssignment
     ) {
-      targets(node.left);
+      targets(node.left, false);
       // Assigning a reference into another object or binding allows later mutation through it.
       targets(node.right);
     }
@@ -117,12 +121,13 @@ export function unsafeBindings(
         if (owner && !clients.has(owner) && !readOnlyCall(node)) unsafe.add(owner);
       }
     }
-    if (ts.isPropertyAssignment(node)) taint(node.initializer);
+    if (ts.isPropertyAssignment(node) && !primitiveValue(node.initializer)) taint(node.initializer);
     if (ts.isShorthandPropertyAssignment(node)) {
       const value = canonical(checker.getShorthandAssignmentValueSymbol(node));
       if (value) unsafe.add(value);
     }
-    if (ts.isArrayLiteralExpression(node)) for (const element of node.elements) taint(element);
+    if (ts.isArrayLiteralExpression(node))
+      for (const element of node.elements) if (!primitiveValue(element)) taint(element);
     if (ts.isSpreadAssignment(node) || ts.isSpreadElement(node)) taint(node.expression);
     if (ts.isExportAssignment(node)) targets(node.expression);
   }

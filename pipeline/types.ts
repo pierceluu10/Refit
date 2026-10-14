@@ -17,6 +17,7 @@ export interface Finding extends Location {
   expression: string;
   confidence: 'confirmed' | 'review';
   reason: string;
+  declaredType?: { schema?: string };
   webhook?: {
     eventTypes: string[];
     schema?: string;

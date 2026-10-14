@@ -12,6 +12,7 @@ import { componentReference, isObject, resolvableComponentSchema } from './speci
 import type { OperationReplacement } from './provider-operation-replacements.ts';
 import type { RequestPropertyRename } from './provider-request-renames.ts';
 import { requestPropertyEdit } from './request-migration.ts';
+import { StripeTypes } from './stripe-types.ts';
 import {
   PipelineInputError,
   type Finding,
@@ -78,6 +79,18 @@ function referencedPropertySchema(
   return referenced ? resolvableComponentSchema(schemas, referenced) : undefined;
 }
 
+// Stripe list properties (`invoice.lines`, `subscription.items`) are inline objects whose `data`
+// array holds component objects; `parent.property.data` items resolve to that component.
+function inlineListItemSchema(schemas: Record<string, unknown>, parent: string, property: string) {
+  const canonicalParent = resolvableComponentSchema(schemas, parent);
+  const definition = canonicalParent ? schemas[canonicalParent] : undefined;
+  const list =
+    isObject(definition) && isObject(definition.properties)
+      ? definition.properties[property]
+      : undefined;
+  if (!isObject(list) || '$ref' in list || !isObject(list.properties)) return undefined;
+  return arrayItemSchema(schemas, list.properties.data);
+}
 function referencedArrayItemSchema(
   schemas: Record<string, unknown>,
   parent: string,
@@ -94,6 +107,25 @@ function numericArrayIndex(expression: ts.Expression) {
   if (!ts.isNumericLiteral(expression)) return false;
   const index = Number(expression.text);
   return Number.isSafeInteger(index) && index >= 0;
+}
+
+// Syntax errors in one source file; analyzeRepository skips such files instead of failing.
+export function syntaxErrors(path: string, content: string) {
+  const source = ts.createSourceFile(path, content, ts.ScriptTarget.Latest, true);
+  const program = ts.createProgram(
+    [path],
+    { allowJs: true, noLib: true },
+    {
+      ...ts.createCompilerHost({}),
+      fileExists: (name) => name === path,
+      readFile: (name) => (name === path ? content : undefined),
+      getSourceFile: (name) => (name === path ? source : undefined),
+      writeFile: () => undefined,
+    },
+  );
+  return program
+    .getSyntacticDiagnostics(source)
+    .map((diagnostic) => ts.flattenDiagnosticMessageText(diagnostic.messageText, '\n'));
 }
 
 export function analyzeRepository(
@@ -157,18 +189,41 @@ export function analyzeRepository(
     nodes.push(node);
     ts.forEachChild(node, visit);
   }
+  // An unparseable file that never imports the SDK is skipped and reported for review; one that
+  // does still fails the scan, because its evidence would be incomplete.
+  const skippedFiles: string[] = [];
+  const sdkImport = new RegExp(
+    `(?:from\\s*|import\\s*\\(\\s*|require\\s*\\(\\s*)['"]${provider.packageName.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&')}(?:/[^'"]*)?['"]`,
+  );
   for (const source of program.getSourceFiles()) {
     const diagnostics = program.getSyntacticDiagnostics(source);
     if (diagnostics.length) {
-      throw new PipelineInputError(
-        `${locations.get(source.fileName)}: ${ts.flattenDiagnosticMessageText(diagnostics[0].messageText, '\n')}`,
-      );
+      const message = `${locations.get(source.fileName)}: ${ts.flattenDiagnosticMessageText(diagnostics[0].messageText, '\n')}`;
+      if (sdkImport.test(source.text)) throw new PipelineInputError(message);
+      skippedFiles.push(message);
+      continue;
     }
     visit(source);
   }
   const modules = sourceBindings(nodes, checker, resolution.resolve);
   const canonical = modules.canonical;
   const symbol = (node: ts.Node) => canonical(checker.getSymbolAtLocation(node));
+  const stripeTypes =
+    provider.id === STRIPE.id
+      ? new StripeTypes(nodes, symbol, schemaDefinitions, provider.packageName)
+      : undefined;
+  // Receivers whose object type the code states (Stripe.* types, narrowed webhook events).
+  // Files that import Stripe, use Stripe types or webhooks, or call a mapped Stripe resource
+  // (including through a client imported from another module).
+  const stripeResources = [...new Set(provider.operations.map((operation) => operation.resource))]
+    .map((resource) => resource.replace(/[.$]/g, '\\$&'))
+    .join('|');
+  const stripeFilePattern = new RegExp(
+    `from\\s*['"]stripe['"]|require\\(\\s*['"]stripe['"]\\s*\\)|\\bStripe\\.|\\.webhooks\\.constructEvent${stripeResources ? `|\\.(?:${stripeResources})\\.[A-Za-z]+\\s*\\(` : ''}`,
+  );
+  const stripeFiles = new Set(
+    program.getSourceFiles().filter((source) => stripeFilePattern.test(source.text)),
+  );
   const contains = (set: Set<ts.Symbol>, node: ts.Node) => {
     const found = symbol(node);
     return found !== undefined && set.has(found);
@@ -226,13 +281,30 @@ export function analyzeRepository(
       const responseDefinition = responseSchema
         ? componentDefinition(schemaDefinitions, responseSchema)?.definition
         : undefined;
-      return arrayItems.get(binding) ?? arrayItemSchema(schemaDefinitions, responseDefinition);
+      return (
+        arrayItems.get(binding) ??
+        stripeTypes?.typedArrays.get(binding) ??
+        arrayItemSchema(schemaDefinitions, responseDefinition)
+      );
     }
+    // `invoice.lines?.data ?? []`: an empty-array fallback keeps the element type.
+    if (
+      ts.isBinaryExpression(expression) &&
+      (expression.operatorToken.kind === ts.SyntaxKind.QuestionQuestionToken ||
+        expression.operatorToken.kind === ts.SyntaxKind.BarBarToken) &&
+      ts.isArrayLiteralExpression(expression.right) &&
+      !expression.right.elements.length
+    )
+      return arrayItemForExpression(expression.left);
     if (ts.isPropertyAccessExpression(expression)) {
       const parent = schemaForExpression(expression.expression);
-      return parent
-        ? referencedArrayItemSchema(schemaDefinitions, parent, expression.name.text)
-        : undefined;
+      if (parent) return referencedArrayItemSchema(schemaDefinitions, parent, expression.name.text);
+      const list = expression.expression;
+      if (expression.name.text === 'data' && ts.isPropertyAccessExpression(list)) {
+        const owner = schemaForExpression(list.expression);
+        return owner ? inlineListItemSchema(schemaDefinitions, owner, list.name.text) : undefined;
+      }
+      return undefined;
     }
     if (ts.isElementAccessExpression(expression)) {
       return expression.argumentExpression && numericArrayIndex(expression.argumentExpression)
@@ -279,7 +351,10 @@ export function analyzeRepository(
     const payload = webhooks?.schema(expression);
     if (payload) return payload;
     if (webhooks?.event(expression)) return 'event';
-    if (ts.isIdentifier(expression)) return responses.get(symbol(expression)!);
+    if (ts.isIdentifier(expression)) {
+      const target = symbol(expression)!;
+      return responses.get(target) ?? stripeTypes?.typed.get(target);
+    }
     if (ts.isPropertyAccessExpression(expression)) {
       const parent = schemaForExpression(expression.expression);
       return parent
@@ -302,14 +377,16 @@ export function analyzeRepository(
       ts.isNonNullExpression(expression) ||
       ts.isSatisfiesExpression(expression)
     )
-      return schemaForExpression(expression.expression);
+      return (
+        schemaForExpression(expression.expression) ?? stripeTypes?.expressionSchema(expression)
+      );
     if (ts.isAwaitExpression(expression) && ts.isCallExpression(expression.expression)) {
       const operation = responseCall(expression.expression);
       return operation
         ? (resolvableComponentSchema(schemaDefinitions, operation.schema) ?? operation.schema)
-        : undefined;
+        : stripeTypes?.expressionSchema(expression);
     }
-    return undefined;
+    return stripeTypes?.expressionSchema(expression);
   }
   function responseBinding(expression: ts.Expression): ts.Symbol | undefined {
     if (ts.isIdentifier(expression)) return symbol(expression);
@@ -518,6 +595,7 @@ export function analyzeRepository(
   }
   for (const node of nodes) {
     const sdk = sdkCall(node);
+    if (sdk && stripeTypes) stripeFiles.add(node.getSourceFile());
     if (sdk)
       sdkCalls.push({
         ...location(node),
@@ -533,7 +611,10 @@ export function analyzeRepository(
         ...(operation.operationId ? { operationId: operation.operationId } : {}),
       });
   }
-  const providerDetected = imports.length > 0 || repository.dependencies.length > 0;
+  const providerDetected =
+    imports.length > 0 ||
+    repository.dependencies.length > 0 ||
+    Boolean(stripeTypes && (stripeTypes.typed.size || stripeTypes.typedArrays.size));
   const escapingClients = new Set<ts.Symbol>();
   for (const binding of [...clients, ...wrappers.keys()])
     if (
@@ -585,6 +666,25 @@ export function analyzeRepository(
   }
   for (const [response, origin] of origins)
     if (sdkCall(origin)?.optional) initialUnsafe.add(response);
+  const primitiveValue = (node: ts.Node): boolean => {
+    if (!stripeTypes) return false;
+    if (ts.isNonNullExpression(node) || ts.isParenthesizedExpression(node))
+      return primitiveValue(node.expression);
+    if (!ts.isPropertyAccessExpression(node)) return false;
+    const parent = schemaForExpression(node.expression);
+    const definition = parent
+      ? componentDefinition(schemaDefinitions, parent)?.definition
+      : undefined;
+    const property =
+      definition && isObject(definition.properties)
+        ? definition.properties[node.name.text]
+        : undefined;
+    return (
+      isObject(property) &&
+      typeof property.type === 'string' &&
+      ['string', 'integer', 'number', 'boolean'].includes(property.type)
+    );
+  };
   const unsafe = unsafeBindings(
     mutationNodes,
     checker,
@@ -594,6 +694,7 @@ export function analyzeRepository(
     initialUnsafe,
     readOnlyCall,
     arrayIteration,
+    primitiveValue,
   );
   for (const [response, wrapper] of wrappedResponses) if (unsafe.has(wrapper)) unsafe.add(response);
   for (const node of nodes) {
@@ -660,7 +761,7 @@ export function analyzeRepository(
   }
   function propose(node: ts.Node, receiver: ts.Expression, change: Removal) {
     if (webhooks?.origin(receiver)) return;
-    if (provider !== STRIPE) {
+    if (provider.id !== STRIPE.id) {
       const rename = provider.propertyRenames?.find(
         (candidate) => candidate.schema === change.schema && candidate.removed === change.property,
       );
@@ -753,6 +854,75 @@ export function analyzeRepository(
       changeId: change.id,
     });
   }
+  function sourceKind(
+    expression: ts.Expression,
+    seen = new Set<ts.Symbol>(),
+  ): 'sdk' | 'webhook' | 'declared-type' | undefined {
+    if (webhooks?.origin(expression)) return 'webhook';
+    if (ts.isIdentifier(expression)) {
+      const binding = symbol(expression);
+      if (!binding || seen.has(binding)) return;
+      const origin = origins.get(binding);
+      if (origin && responseCall(origin)) return 'sdk';
+      const next = new Set([...seen, binding]);
+      let declaration = binding.valueDeclaration;
+      while (declaration && ts.isBindingElement(declaration))
+        declaration = declaration.parent.parent;
+      if (declaration && ts.isVariableDeclaration(declaration)) {
+        const source =
+          declaration.initializer ??
+          (ts.isVariableDeclarationList(declaration.parent) &&
+          ts.isForOfStatement(declaration.parent.parent)
+            ? declaration.parent.parent.expression
+            : undefined);
+        const kind = source && sourceKind(source, next);
+        if (kind) return kind;
+      }
+      if (
+        declaration &&
+        ts.isParameter(declaration) &&
+        ts.isCallExpression(declaration.parent.parent)
+      ) {
+        const iteration = arrayIteration(declaration.parent.parent);
+        if (iteration) return sourceKind(iteration.source, next);
+      }
+      return stripeTypes?.typed.has(binding) || stripeTypes?.typedArrays.has(binding)
+        ? 'declared-type'
+        : undefined;
+    }
+    if (ts.isAwaitExpression(expression)) {
+      if (ts.isCallExpression(expression.expression)) {
+        const call = expression.expression;
+        if (
+          responseCall(call) ||
+          (ts.isIdentifier(call.expression) && wrappers.has(symbol(call.expression)!))
+        )
+          return 'sdk';
+      }
+      return sourceKind(expression.expression, seen);
+    }
+    if (
+      ts.isParenthesizedExpression(expression) ||
+      ts.isNonNullExpression(expression) ||
+      ts.isPropertyAccessExpression(expression) ||
+      ts.isElementAccessExpression(expression) ||
+      ts.isAsExpression(expression) ||
+      ts.isTypeAssertionExpression(expression) ||
+      ts.isSatisfiesExpression(expression)
+    ) {
+      const kind = sourceKind(expression.expression, seen);
+      if (kind) return kind;
+    }
+    if (
+      ts.isBinaryExpression(expression) &&
+      (expression.operatorToken.kind === ts.SyntaxKind.QuestionQuestionToken ||
+        expression.operatorToken.kind === ts.SyntaxKind.BarBarToken) &&
+      ts.isArrayLiteralExpression(expression.right) &&
+      !expression.right.elements.length
+    )
+      return sourceKind(expression.left, seen);
+    return stripeTypes?.expressionSchema(expression) ? 'declared-type' : undefined;
+  }
   function record(node: ts.Node, receiver: ts.Expression, property: string | undefined) {
     if (
       property !== undefined &&
@@ -765,16 +935,30 @@ export function analyzeRepository(
     const schema = schemaForExpression(receiver);
     const tracked = schema !== undefined;
     const webhook = webhooks?.origin(receiver);
+    const declaredType = sourceKind(receiver) === 'declared-type';
     for (const change of changes) {
       if (tracked && change.schema !== schema) continue;
       if (property !== undefined && change.property !== property) continue;
       if (!tracked && !providerDetected) continue;
-      const immediateCall =
-        ts.isParenthesizedExpression(receiver) &&
-        ts.isAwaitExpression(receiver.expression) &&
-        ts.isCallExpression(receiver.expression.expression)
-          ? receiver.expression.expression
-          : undefined;
+      // Unresolved Stripe receivers are flagged only where files work with Stripe; if none are
+      // identifiable, every same-named read stays flagged.
+      if (!tracked && stripeTypes && stripeFiles.size && !stripeFiles.has(node.getSourceFile()))
+        continue;
+      const directCall = (expression: ts.Expression): ts.CallExpression | undefined => {
+        if (ts.isAwaitExpression(expression) && ts.isCallExpression(expression.expression))
+          return expression.expression;
+        if (
+          ts.isParenthesizedExpression(expression) ||
+          ts.isAsExpression(expression) ||
+          ts.isTypeAssertionExpression(expression) ||
+          ts.isNonNullExpression(expression) ||
+          ts.isSatisfiesExpression(expression) ||
+          ts.isPropertyAccessExpression(expression) ||
+          ts.isElementAccessExpression(expression)
+        )
+          return directCall(expression.expression);
+      };
+      const immediateCall = directCall(receiver);
       const immediateSdk = immediateCall ? sdkCall(immediateCall) : undefined;
       const responseSymbol = responseBinding(receiver);
       const uncertainMutation =
@@ -785,7 +969,8 @@ export function analyzeRepository(
         !uncertainMutation &&
         property !== undefined &&
         change.schema === schema &&
-        (!webhook || webhook.schema !== undefined),
+        (!webhook || webhook.schema !== undefined) &&
+        !declaredType,
       );
       if (confirmed) propose(node, receiver, change);
       if (property === undefined && !tracked) continue;
@@ -794,6 +979,7 @@ export function analyzeRepository(
         changeId: change.id,
         expression: property === undefined ? '[computed property]' : `.${property}`,
         confidence: confirmed ? 'confirmed' : 'review',
+        ...(declaredType ? { declaredType: { schema } } : {}),
         ...(webhook
           ? {
               webhook: {
@@ -804,8 +990,9 @@ export function analyzeRepository(
               },
             }
           : {}),
-        reason:
-          confirmed && webhook
+        reason: declaredType
+          ? 'Declared Stripe type identifies this possible field usage; runtime SDK or incoming-event provenance is not established.'
+          : confirmed && webhook
             ? `Removed ${schema}.${change.property} read on a Stripe snapshot webhook payload narrowed by event.type. Incoming webhook API version and migration semantics require separate review.`
             : confirmed
               ? `Removed field read on a statically traced ${provider.id} ${schema} response.`
@@ -869,5 +1056,6 @@ export function analyzeRepository(
     providerDetected,
     stripeDetected: provider.id === 'stripe' && providerDetected,
     edits,
+    skippedFiles,
   };
 }

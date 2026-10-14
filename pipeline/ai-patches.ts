@@ -1,6 +1,6 @@
-import { WEBHOOK_REVIEW_REASON } from './stripe-webhook-payloads.ts';
+import { migrationReviewReason } from './migration-review.ts';
 import type { AiOptions } from './ai-budget.ts';
-import { analyzeRepository } from './analyzer.ts';
+import { analyzeRepository, syntaxErrors } from './analyzer.ts';
 import { buildAssessmentEvidence } from './assessment.ts';
 import {
   readDocumentationSnapshots,
@@ -222,8 +222,8 @@ export async function proposeAiPatch(
   documentationSnapshots?: readonly string[],
   afterSchemaDefinitions: Record<string, unknown> = {},
 ) {
-  if (findings.some((finding) => finding.webhook))
-    throw new PipelineInputError(WEBHOOK_REVIEW_REASON);
+  const reviewReason = migrationReviewReason({ findings });
+  if (reviewReason) throw new PipelineInputError(reviewReason);
   const impact = buildAssessmentEvidence(
     repository,
     changes,
@@ -333,6 +333,10 @@ export async function proposeAiPatch(
     })),
   };
   const editedFiles = new Set(edits.map((edit) => edit.file));
+  for (const file of modified.files.filter((candidate) => editedFiles.has(candidate.path))) {
+    const [error] = syntaxErrors(file.path, file.content);
+    if (error) throw new PipelineInputError(`AI patch makes ${file.path} invalid: ${error}`);
+  }
   const substitutions = [
     ...findFieldSubstitutions(
       repository,
