@@ -1,0 +1,10 @@
+{
+  "id": "openai",
+  "packageName": "openai",
+  "defaultImport": true,
+  "namedExport": "OpenAI",
+  "operations": [
+    { "resource": "chat.completions", "method": "create", "schema": "ChatCompletion" }
+  ],
+  "propertyRenames": [{ "schema": "ChatCompletion", "removed": "model", "replacement": "model_id" }]
+}

@@ -15,6 +15,7 @@ const ACCESS_STATES = new Set(['unknown', 'active', 'blocked']);
 
 export interface ServiceTargetState {
   repository: string;
+  integration?: string;
   installationId: number | null;
   access: 'unknown' | 'active' | 'blocked';
   status: string;
@@ -57,6 +58,7 @@ export async function openServiceStore(
         target.id,
         {
           repository: target.repository.toLowerCase(),
+          ...(target.integration ? { integration: target.integration } : {}),
           installationId: null,
           access: 'unknown',
           status: 'not-run',
@@ -99,6 +101,7 @@ export async function openServiceStore(
         if (
           !isObject(record) ||
           record.repository !== target.repository.toLowerCase() ||
+          record.integration !== target.integration ||
           !ACCESS_STATES.has(String(record.access)) ||
           typeof record.status !== 'string' ||
           record.approvalFingerprint !== target.approval?.fingerprint ||
