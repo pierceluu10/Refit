@@ -150,9 +150,9 @@ it(
         '1g',
       ]),
     );
-    expect(run.args.at(-1)).toContain(
-      'npm ci --ignore-scripts --include=dev --engine-strict --no-audit --no-fund',
-    );
+    expect(
+      run.args.find((argument: string) => argument.includes('npm ci --ignore-scripts')),
+    ).toContain('npm ci --ignore-scripts --include=dev --engine-strict --no-audit --no-fund');
     expect(JSON.stringify(run.args)).not.toContain(fixture.repository);
     expect((await prepareNpmDependencies(fixture.options)).reused).toBe(true);
     expect((await fixture.calls()).filter((call) => call.args[0] === 'run')).toHaveLength(1);

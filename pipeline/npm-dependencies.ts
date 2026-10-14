@@ -29,7 +29,7 @@ import { hasErrorCode, withStateLock, writeState } from './state-files.ts';
 import { PipelineInputError } from './types.ts';
 import { verifyArtifacts } from './verification.ts';
 
-const RECIPE_VERSION = 2;
+const RECIPE_VERSION = 3;
 const INSTALL_TIMEOUT_MS = 300_000;
 export const MAX_DEPENDENCY_ARCHIVE_BYTES = 256 * 1024 * 1024;
 const MAX_LOG_BYTES = 1024 * 1024;
@@ -38,22 +38,42 @@ const ARCHIVE = 'dependencies.tar';
 const ENVIRONMENT = 'environment.json';
 export const DEPENDENCY_TREE_CHECK = `
 import { lstat, readdir, realpath } from "node:fs/promises";
-import { resolve, sep } from "node:path";
-const root = resolve(await realpath("."), "node_modules");
-const rootEntry = await lstat(root);
-if (!rootEntry.isDirectory() || (await realpath(root)) !== root) throw new Error("node_modules must be a physical directory");
-const prefix = root + sep;
+import { relative, resolve, sep } from "node:path";
+const workspace = await realpath(".");
+const { links = {}, directories = [] } = JSON.parse(process.argv[1] ?? "{}");
+const roots = [resolve(workspace, "node_modules")];
+for (const directory of directories) {
+  const root = resolve(workspace, directory, "node_modules");
+  try { await lstat(root); roots.push(root); }
+  catch (error) { if (error.code !== "ENOENT") throw error; }
+}
+for (const root of roots) {
+  const entry = await lstat(root);
+  if (!entry.isDirectory() || (await realpath(root)) !== root) throw new Error("node_modules must be a physical directory");
+}
 async function verify(path) {
   const entry = await lstat(path);
   if (entry.isSymbolicLink()) {
-    if (!(await realpath(path)).startsWith(prefix)) throw new Error("Dependency link escapes node_modules");
+    const name = relative(workspace, path).split(sep).join("/");
+    if (Object.hasOwn(links, name)) {
+      const target = resolve(workspace, links[name]);
+      if (await realpath(path) !== target || await realpath(target) !== target || !(await lstat(target)).isDirectory())
+        throw new Error("Workspace link differs from the committed lockfile");
+    } else {
+      const physical = await realpath(path);
+      if (!roots.some((root) => physical.startsWith(root + sep)))
+        throw new Error("Dependency link escapes node_modules");
+    }
   } else if (entry.isDirectory()) {
     for (const child of await readdir(path)) await verify(resolve(path, child));
   } else if (!entry.isFile()) {
     throw new Error("Dependency tree contains a special file");
   }
 }
-await verify(root);
+for (const root of roots) await verify(root);
+for (const name of Object.keys(links)) {
+  if (!(await lstat(resolve(workspace, name))).isSymbolicLink()) throw new Error("Missing workspace dependency link");
+}
 `;
 const INSTALL_COMMAND = [
   'sh',
@@ -64,7 +84,10 @@ const INSTALL_COMMAND = [
     'printf "REFIT_NPM_VERSION=" >&2; npm --version >&2; ' +
     'npm ci --ignore-scripts --include=dev --engine-strict --no-audit --no-fund ' +
     '--registry=https://registry.npmjs.org --cache=/workspace/.npm-cache >&2; ' +
-    `mkdir -p node_modules; node --input-type=module -e '${DEPENDENCY_TREE_CHECK}' && tar -cf - node_modules`,
+    `mkdir -p node_modules; node --input-type=module -e '${DEPENDENCY_TREE_CHECK}' "$1"; shift; ` +
+    'printf "node_modules\\n" > /workspace/.refit-dependency-paths; ' +
+    'for directory do if [ -d "$directory/node_modules" ]; then printf "%s\\n" "$directory/node_modules" >> /workspace/.refit-dependency-paths; fi; done; ' +
+    'tar -cf - -T /workspace/.refit-dependency-paths',
 ];
 
 export class DependencyPreparationError extends PipelineInputError {
@@ -147,7 +170,8 @@ export async function prepareNpmDependencies(options: {
 }) {
   options.signal?.throwIfAborted();
   const snapshot = await readCommittedRepository(options.repository);
-  const { packageContent, lockContent, inputs } = await readNpmPreparationInputs(snapshot);
+  const { packageContent, lockContent, workspaceContents, inputs } =
+    await readNpmPreparationInputs(snapshot);
   const image = DOCKER_IMAGE_ID.test(options.image)
     ? options.image
     : await resolveDockerImage(options.image);
@@ -199,6 +223,10 @@ export async function prepareNpmDependencies(options: {
         environment.packageHash !== inputs.packageHash ||
         environment.lockHash !== inputs.lockHash ||
         environment.packages !== inputs.packages ||
+        JSON.stringify(environment.workspaceHashes ?? {}) !==
+          JSON.stringify(inputs.workspaceHashes ?? {}) ||
+        JSON.stringify(environment.workspaceLinks ?? {}) !==
+          JSON.stringify(inputs.workspaceLinks ?? {}) ||
         !archiveEntry ||
         environment.archiveHash !== archiveEntry.sha256 ||
         environment.archiveBytes !== archiveEntry.bytes ||
@@ -226,6 +254,10 @@ export async function prepareNpmDependencies(options: {
       await chmod(input, 0o755);
       await writeFile(join(input, 'package.json'), packageContent, { mode: 0o444 });
       await writeFile(join(input, 'package-lock.json'), lockContent, { mode: 0o444 });
+      for (const [directory, content] of workspaceContents) {
+        await mkdir(join(input, directory), { recursive: true, mode: 0o755 });
+        await writeFile(join(input, directory, 'package.json'), content, { mode: 0o444 });
+      }
       options.onProgress?.(
         'Installing locked public npm dependencies in restricted Docker; lifecycle scripts are disabled...',
       );
@@ -234,7 +266,15 @@ export async function prepareNpmDependencies(options: {
           name,
           directory: input,
           image,
-          command: INSTALL_COMMAND,
+          command: [
+            ...INSTALL_COMMAND,
+            'refit-npm-install',
+            JSON.stringify({
+              links: inputs.workspaceLinks ?? {},
+              directories: [...workspaceContents.keys()],
+            }),
+            ...workspaceContents.keys(),
+          ],
           network: 'bridge',
         }),
         join(staging, ARCHIVE),

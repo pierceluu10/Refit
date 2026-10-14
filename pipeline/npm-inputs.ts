@@ -1,5 +1,12 @@
 import type { readCommittedRepository } from './committed-repository.ts';
-import { validateNpmLock } from './npm-lock.ts';
+import {
+  MAX_LOCK_BYTES,
+  MAX_PACKAGE_BYTES,
+  npmWorkspaceDirectories,
+  validateNpmLock,
+} from './npm-lock.ts';
+import { readCommittedFile } from './committed-repository.ts';
+import { parseObject } from './specifications.ts';
 import { PipelineInputError } from './types.ts';
 
 export async function readNpmPreparationInputs(
@@ -12,17 +19,24 @@ export async function readNpmPreparationInputs(
     );
   if (
     paths.includes('npm-shrinkwrap.json') ||
-    paths.some((path) => path.startsWith('node_modules/'))
+    paths.some((path) => path.split('/').includes('node_modules'))
   )
     throw new PipelineInputError(
       'Tracked node_modules or npm-shrinkwrap.json require a custom validation image.',
     );
-  const packageContent = (await snapshot.git(['show', `${snapshot.revision}:package.json`])).stdout;
-  const lockContent = (await snapshot.git(['show', `${snapshot.revision}:package-lock.json`]))
-    .stdout;
+  const packageContent = await readCommittedFile(snapshot, 'package.json', MAX_PACKAGE_BYTES);
+  const lockContent = await readCommittedFile(snapshot, 'package-lock.json', MAX_LOCK_BYTES);
+  const directories = npmWorkspaceDirectories(parseObject(packageContent, 'package.json'), paths);
+  const workspaceContents = new Map<string, string>();
+  for (const directory of directories)
+    workspaceContents.set(
+      directory,
+      await readCommittedFile(snapshot, `${directory}/package.json`, MAX_PACKAGE_BYTES),
+    );
   return {
     packageContent,
     lockContent,
-    inputs: validateNpmLock(packageContent, lockContent),
+    workspaceContents,
+    inputs: validateNpmLock(packageContent, lockContent, workspaceContents),
   };
 }

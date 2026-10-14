@@ -1,8 +1,11 @@
 import { isObject, parseObject, digest } from './specifications.ts';
 import { PipelineInputError } from './types.ts';
+import { posix } from 'node:path';
 
-const MAX_PACKAGE_BYTES = 512 * 1024;
-const MAX_LOCK_BYTES = 8 * 1024 * 1024;
+export const MAX_PACKAGE_BYTES = 512 * 1024;
+export const MAX_LOCK_BYTES = 8 * 1024 * 1024;
+const MAX_WORKSPACES = 64;
+const NPM_PACKAGE_NAME = /^(?:@[a-z0-9._-]+\/)?[a-z0-9._-]+$/;
 const MAX_PACKAGES = 20_000;
 const DEPENDENCY_SECTIONS = [
   'dependencies',
@@ -44,7 +47,56 @@ function dependencySources(value: Record<string, unknown>) {
   }
 }
 
-export function validateNpmLock(packageContent: string, lockContent: string) {
+export function npmWorkspaceDirectories(manifest: Record<string, unknown>, paths: string[]) {
+  if (manifest.workspaces === undefined) return [];
+  const patterns = manifest.workspaces;
+  if (
+    !Array.isArray(patterns) ||
+    patterns.length > MAX_WORKSPACES ||
+    patterns.some(
+      (pattern) =>
+        typeof pattern !== 'string' ||
+        !pattern ||
+        pattern.startsWith('!') ||
+        pattern.startsWith('/') ||
+        /[\\\u0000-\u001f\u007f]/.test(pattern) ||
+        pattern.split('/').includes('..'),
+    )
+  )
+    throw new PipelineInputError(
+      'npm workspaces require at most 64 positive relative path/glob patterns. Negations, escaping paths and object declarations require a custom image.',
+    );
+  const directories = paths
+    .filter((path) => path.endsWith('/package.json'))
+    .map(posix.dirname)
+    .filter(
+      (directory) =>
+        !directory.split('/').includes('node_modules') &&
+        patterns.some((pattern) =>
+          posix.matchesGlob(directory, pattern.replace(/^(\.\/)+/, '').replace(/\/+$/, '')),
+        ),
+    )
+    .sort();
+  if (directories.length > MAX_WORKSPACES)
+    throw new PipelineInputError(
+      'Automatic preparation supports at most 64 committed npm workspace packages.',
+    );
+  for (const directory of directories)
+    if (
+      /[\\\u0000-\u001f\u007f]/.test(directory) ||
+      directory
+        .split('/')
+        .some((part) => !part || part === '..' || part === '.' || part.startsWith('-'))
+    )
+      throw new PipelineInputError('Workspace directories must be safe relative repository paths.');
+  return directories;
+}
+
+export function validateNpmLock(
+  packageContent: string,
+  lockContent: string,
+  workspaceContents: ReadonlyMap<string, string> = new Map(),
+) {
   if (
     Buffer.byteLength(packageContent) > MAX_PACKAGE_BYTES ||
     Buffer.byteLength(lockContent) > MAX_LOCK_BYTES
@@ -54,14 +106,8 @@ export function validateNpmLock(packageContent: string, lockContent: string) {
     );
   const manifest = parseObject(packageContent, 'package.json');
   const lock = parseObject(lockContent, 'package-lock.json');
-  if (
-    manifest.workspaces !== undefined ||
-    manifest.bundledDependencies !== undefined ||
-    manifest.bundleDependencies !== undefined
-  )
-    throw new PipelineInputError(
-      'Workspaces and root bundled dependencies require a custom validation image.',
-    );
+  if (manifest.bundledDependencies !== undefined || manifest.bundleDependencies !== undefined)
+    throw new PipelineInputError('Root bundled dependencies require a custom validation image.');
   dependencySources(manifest);
   if (manifest.overrides !== undefined) {
     if (!isObject(manifest.overrides))
@@ -83,27 +129,100 @@ export function validateNpmLock(packageContent: string, lockContent: string) {
     throw new PipelineInputError(
       'Automatic preparation requires a root npm lockfile version 2 or 3 with at most 20,000 package records.',
     );
-  for (const section of DEPENDENCY_SECTIONS) {
-    const normalize = (value: unknown) =>
-      JSON.stringify(
-        Object.entries(isObject(value) ? value : {}).sort(([left], [right]) =>
-          left.localeCompare(right),
-        ),
-      );
-    if (normalize(manifest[section]) !== normalize(lock.packages[''][section]))
+  const directories = npmWorkspaceDirectories(
+    manifest,
+    [...workspaceContents.keys()].map((directory) => `${directory}/package.json`),
+  );
+  if (
+    directories.length !== workspaceContents.size ||
+    JSON.stringify(manifest.workspaces) !== JSON.stringify(lock.packages[''].workspaces)
+  )
+    throw new PipelineInputError(
+      'Workspaces must match the committed root lockfile and selected workspace manifests.',
+    );
+  const workspaces = new Map(
+    directories.map((directory) => {
+      const content = workspaceContents.get(directory)!;
+      if (Buffer.byteLength(content) > MAX_PACKAGE_BYTES)
+        throw new PipelineInputError(`Workspace manifest ${directory} exceeds 512 KiB.`);
+      const value = parseObject(content, `${directory}/package.json`);
+      if (
+        typeof value.name !== 'string' ||
+        !NPM_PACKAGE_NAME.test(value.name) ||
+        value.name.startsWith('.') ||
+        value.bin !== undefined ||
+        value.workspaces !== undefined ||
+        value.bundledDependencies !== undefined ||
+        value.bundleDependencies !== undefined
+      )
+        throw new PipelineInputError(
+          'Each workspace requires an explicit npm name; workspace bins, nested workspace declarations and bundled dependencies require a custom image.',
+        );
+      dependencySources(value);
+      return [directory, value] as const;
+    }),
+  );
+  if (new Set([...workspaces.values()].map((value) => value.name)).size !== workspaces.size)
+    throw new PipelineInputError('npm workspace names must be unique.');
+  function matchingDeclarations(value: Record<string, unknown>, record: unknown) {
+    if (!isObject(record))
       throw new PipelineInputError(
-        'package.json dependency requirements differ from the committed root lockfile. Update and commit the lockfile before preparation.',
+        'Each npm workspace must have a committed lockfile package record.',
+      );
+    for (const section of DEPENDENCY_SECTIONS) {
+      const normalize = (value: unknown) =>
+        JSON.stringify(
+          Object.entries(isObject(value) ? value : {}).sort(([left], [right]) =>
+            left.localeCompare(right),
+          ),
+        );
+      if (normalize(value[section]) !== normalize(record[section]))
+        throw new PipelineInputError(
+          'package.json dependency requirements differ from the committed root lockfile. Update and commit the lockfile before preparation.',
+        );
+    }
+  }
+  matchingDeclarations(manifest, lock.packages['']);
+  for (const [directory, value] of workspaces) {
+    const record = lock.packages[directory];
+    matchingDeclarations(value, record);
+    if (
+      !isObject(record) ||
+      record.link ||
+      record.version !== value.version ||
+      (record.name !== undefined && record.name !== value.name)
+    )
+      throw new PipelineInputError(
+        'Workspace names and versions must match their committed lockfile records.',
       );
   }
+  const workspaceLinks: Record<string, string> = {};
   for (const [path, record] of Object.entries(lock.packages)) {
     if (!isObject(record))
       throw new PipelineInputError('npm lockfile package records must be objects.');
     dependencySources(record);
     if (!path) continue;
+    if (workspaces.has(path)) continue;
+    const dependencyPath =
+      (path.startsWith('node_modules/') ||
+        directories.some((directory) => path.startsWith(`${directory}/node_modules/`))) &&
+      !path.split('/').some((part) => !part || part === '..' || part === '.') &&
+      !/[\\\u0000-\u001f\u007f]/.test(path);
+    if (record.link === true) {
+      const target = typeof record.resolved === 'string' && workspaces.get(record.resolved);
+      if (
+        !dependencyPath ||
+        !target ||
+        !(path === `node_modules/${target.name}` || path.endsWith(`/node_modules/${target.name}`))
+      )
+        throw new PipelineInputError(
+          'npm links may only target a declared committed workspace under its exact package name.',
+        );
+      workspaceLinks[path] = record.resolved as string;
+      continue;
+    }
     if (
-      !path.startsWith('node_modules/') ||
-      path.split('/').some((part) => part === '..' || part === '.') ||
-      path.includes('\\') ||
+      !dependencyPath ||
       record.link ||
       typeof record.version !== 'string' ||
       !record.version.trim() ||
@@ -137,5 +256,13 @@ export function validateNpmLock(packageContent: string, lockContent: string) {
     packageHash: digest(packageContent),
     lockHash: digest(lockContent),
     packages: Object.keys(lock.packages).length - 1,
+    ...(workspaces.size
+      ? {
+          workspaceHashes: Object.fromEntries(
+            directories.map((directory) => [directory, digest(workspaceContents.get(directory)!)]),
+          ),
+          workspaceLinks,
+        }
+      : {}),
   };
 }
