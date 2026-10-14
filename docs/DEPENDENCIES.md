@@ -2,6 +2,8 @@
 
 Refit can prepare dependencies from a clean repository's committed `package.json` and `package-lock.json`, then run its checks in an ordinary local Node Docker image. This removes the custom dependency-image setup for supported npm projects. The same preparation works through `run`, `validate`, `watch` and service profiles.
 
+Positive-glob npm workspaces with committed manifests and root lockfiles are supported through the same preparation. Workspace links and nested dependency directories are verified and retained. See [workspace setup and boundaries](NPM-WORKSPACES.md).
+
 ## Test the Stripe pipeline
 
 The local Docker daemon must be running and `node:22-alpine` must already be installed. Refit never pulls a base image automatically. If needed, download it explicitly with `docker pull node:22-alpine`.
@@ -72,4 +74,4 @@ Validation reports and collapsed PR evidence record the runtime, image, input ha
 
 Automatic preparation currently supports a single root npm project with a committed lockfile version 2 or 3, matching root dependency declarations and public `registry.npmjs.org` HTTPS tarballs with SHA-256-or-stronger integrity. Inputs are limited to 512 KiB for `package.json`, 8 MiB for the lockfile and 20,000 package records. The image must already contain compatible Node, npm, `/bin/sh` and `tar`.
 
-Workspaces, local/Git/URL dependencies, private registries, tracked `node_modules`, shrinkwrap files, bundled lock records, custom npm installation flags and packages requiring lifecycle builds use the existing custom-image path. A script-dependent package may install but fail its checks; Refit does not enable those scripts automatically. The supported preparation route is provider-independent, while SDK mapping, migration semantics and useful application checks still require verification.
+Unsupported workspace layouts, explicit local/Git/URL dependencies, private registries, tracked `node_modules`, shrinkwrap files, bundled lock records, custom npm installation flags and packages requiring lifecycle builds use the existing custom-image path. A script-dependent package may install but fail its checks; Refit does not enable those scripts automatically. The supported preparation route is provider-independent, while SDK mapping, migration semantics and useful application checks still require verification.
