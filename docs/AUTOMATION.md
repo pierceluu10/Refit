@@ -1,10 +1,12 @@
-# Local API monitoring with Refit 0.9
+# Local API monitoring with Refit 0.10
 
 Refit has a local polling worker that captures an OpenAPI source, compares it with a retained baseline, scans a repository, and processes each migration once. It can also monitor up to eight manually configured public changelog or migration-documentation pages for each target. AI generation and GitHub publication are explicit options. Start with a single poll; remove `--once` to keep the worker running while your computer is on.
 
 This is the operator workflow for the installed Refit Agent. A customer installing the GitHub App does not yet start a hosted worker. The frontend is still illustrative.
 
 For several configured repositories and signed installation webhooks, use the [local service](LOCAL-SERVICE.md). It includes startup App access discovery, protected status, persisted delivery deduplication and HTTPS tunnel instructions. The commands below remain useful for a single target or an explicit retry. A root `.refit.json` can keep repository selection outside the file: add `--repository /path/to/repo` to the local watch command. It cannot be combined with `--sync-github`.
+
+Literal SDK version conflicts now stop automation. Set `apiVersionPolicy: "source-verified"` in a reviewed workflow to require static confirmation; runtime declarations stay unverified under the existing operator-pin pilot. The built-in Stripe adapter gained version metadata in 0.10, changing worker identity: preserve previous state and use a fresh directory when upgrading an existing Stripe worker. See [API-version policies](API-VERSIONS.md).
 
 ## Prerequisites
 
@@ -16,26 +18,25 @@ For several configured repositories and signed installation webhooks, use the [l
 
 From the source checkout, `node bin/refit.mjs` works wherever the examples below use `refit`. See [the CLI guide](CLI.md) and [GitHub App setup](GITHUB-APP.md). Keep state outside the monitored repository.
 
-## Repeat the verified Stripe App run
+## Repeat the current Stripe App validation
 
-On Pierce's existing machine, the image, adjacent billing repository, App installation, and `.env` are already configured:
+On Pierce's machine, the installed App and reviewed repository approval are already configured. This uses the approved `.refit.json` from an App-managed checkout:
 
 ```sh
 cd /Users/pierceluu/Repos/Refit
-REFIT_AI_BUDGET_USD=2 \
-REFIT_AI_BUDGET_DIRECTORY=/Users/pierceluu/.refit/evaluations/2026-10-12 \
-refit watch --env .env \
-  --config examples/billing-demo.refit.json \
-  --state /Users/pierceluu/.refit/evaluations/stripe-publisher-worker-2026-10-12 \
-  --once --ai-patch --repair-attempts 2 \
-  --publish-draft --github pierceluu10/refit-billing-demo --base main --github-app
+refit serve --env .env \
+  --config /Users/pierceluu/.refit/evaluations/app-enrollment-2026-10-13/billing-service.json \
+  --state /Users/pierceluu/.refit/evaluations/stripe-service-0.10-2026-10-14 \
+  --port 0 --once
 ```
 
-The saved result points to [Refit Agent's draft PR #3](https://github.com/pierceluu10/refit-billing-demo/pull/3). Repeating it returns `Already processed` and the evidence path. A new state directory would check for the existing App-authored migration before spending on AI. Existing-PR results explicitly say that generation and validation were not rerun. The local receipt is a past result; inspect GitHub for current PR status.
+The retained 0.10 evaluation found two history reads and passed 14 baseline tests, both 14-test patched contracts and TypeScript in offline Docker. Repeating the command confirms App access, refreshes the base and reuses validated evidence. This uses the historical HTTP simulator through the real Stripe SDK, with no AI request or publication. The runtime-selected SDK version is visibly unverified under the approved operator-pin policy.
 
-Remove `--once` to poll every five minutes, or set `--interval 60`. Press Ctrl+C to stop. Do not clear state or budget files between runs. The configured `after` file is a curated historical Stripe contract: this command tests automation with that supplied change, rather than discovering today's Stripe changes.
+Choose a fresh state directory to run checks again. Remove `--once` and use a fixed port for continuous monitoring while your computer is on. Changing AI or publication settings requires separate fresh state; enabling publication can create a new draft, so review the configured target and retained result first. Keep the shared $2 AI ledger for any later model evaluation.
 
-The check image can be rebuilt using [the billing evaluation commands](BILLING-EVALUATION.md#reproduce). The current pagination harness creates **103 charge attempts**, exceeding Stripe's maximum list page size, and checks empty history under both simulator modes.
+The earlier [App draft PR #3](https://github.com/pierceluu10/refit-billing-demo/pull/3) was created before the configuration merge. The normal local billing checkout still has that older base. A current publication preflight correctly refuses it because GitHub main has advanced. Use the App-managed workflow, or deliberately update your own clean checkout before a new manual publication run. The new version metadata preserves migration PR identity, but does not bypass revision checks or establish that an older PR covers the current base.
+
+The check environment can be reproduced using [the billing evaluation commands](BILLING-EVALUATION.md#reproduce). The pagination harness checks **103 charge attempts**, exceeding Stripe's maximum list page size, and empty history under both simulator modes. The configured source remains a curated historical contract; this pilot does not discover today's Stripe changes.
 
 ## Let the App fetch and refresh the repository
 
@@ -47,12 +48,12 @@ On Pierce's machine, repeat the verified remote workflow:
 cd /Users/pierceluu/Repos/Refit
 refit watch --env .env \
   --config examples/billing-demo.github.refit.json \
-  --state /Users/pierceluu/.refit/evaluations/stripe-managed-checkout-2026-10-12 \
+  --state /Users/pierceluu/.refit/evaluations/stripe-managed-checkout-0.10-2026-10-14 \
   --sync-github --github pierceluu10/refit-billing-demo --base main --github-app \
   --once --publish-draft
 ```
 
-This example omits `repository` and uses Refit's curated historical Stripe contract fixtures. It reuses the verified App draft without new AI or validation. Remove `--once` for continuous polling. Before returning a cached result, the worker refreshes App authorization and reads the current remote base. A changed base becomes a new repository revision for scanning.
+This example omits `repository` and uses Refit's curated historical Stripe contract fixtures. It refreshes the base and checks whether a matching current migration already exists; an older draft is not automatically reused after base advancement. Remove `--once` for continuous polling. Before returning a cached result, the worker refreshes App authorization and reads the current remote base. A changed base becomes a new repository revision for scanning.
 
 To run and inspect a fresh migration without publishing, choose a new state directory and omit `--publish-draft`. The live evaluation already did this at `/Users/pierceluu/.refit/evaluations/stripe-managed-validation-2026-10-12`, passing both billing contracts, TypeScript, 103-attempt pagination and empty history in offline Docker. It generated the supported deterministic history patch without calling OpenAI. The original billing checkout stayed clean and unmigrated.
 
