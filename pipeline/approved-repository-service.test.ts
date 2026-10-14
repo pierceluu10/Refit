@@ -244,6 +244,9 @@ it.skipIf(
         approvalFingerprint: sample.targets[0].approval!.fingerprint,
       });
       const report = JSON.parse(await readFile(join(record.output!, 'report.json'), 'utf8'));
+      expect(await readFile(join(record.output!, 'pull-request.md'), 'utf8')).toContain(
+        `**Integration:** \`${id}\``,
+      );
       expect(report.validation.baseline.status).toBe('passed');
       expect(report.validation.patched.status).toBe('passed');
       expect(report.validation.baseline.stdout).toContain('request error passed');

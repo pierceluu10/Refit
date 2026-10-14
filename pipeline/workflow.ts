@@ -59,6 +59,12 @@ export async function runWorkflow(options: {
   validateCheckCommand(options.command);
   validateCheckCommand(options.baselineCommand ?? options.command);
   validateRepairAttempts(options.repairAttempts ?? 0, Boolean(options.aiPatch));
+  const publication = options.publication
+    ? {
+        ...options.publication,
+        ...(options.integration ? { integration: options.integration } : {}),
+      }
+    : undefined;
   const directory = await createArtifactDirectory(options.repository, options.output);
   const files: { path: string; sha256: string; bytes: number }[] = [];
   let stage: Stage = 'inputs';
@@ -165,7 +171,7 @@ export async function runWorkflow(options: {
         'No confirmed supported usage was found. This does not prove no impact; no patch or publication was attempted.',
         runId,
       );
-    if (options.publication?.app) {
+    if (publication?.app) {
       options.signal?.throwIfAborted();
       options.onProgress?.('Checking for an existing Refit Agent migration...');
       const execute = promisify(execFile);
@@ -176,7 +182,7 @@ export async function runWorkflow(options: {
         });
       if (!(await git(['status', '--porcelain', '--untracked-files=all'])).stdout) {
         const revision = (await git(['rev-parse', '--verify', 'HEAD^{commit}'])).stdout.trim();
-        const existing = await findExistingMigration(scan, revision, options.publication);
+        const existing = await findExistingMigration(scan, revision, publication);
         if (existing) {
           stage = 'publication';
           await save('publication.json', `${JSON.stringify(existing, null, 2)}\n`);
@@ -211,7 +217,7 @@ export async function runWorkflow(options: {
       signal: options.signal,
     });
     runId = report.runId;
-    const review = createReviewArtifacts(report);
+    const review = createReviewArtifacts(report, 'local', options.integration);
     for (const [path, content] of Object.entries(review.files)) await save(path, content);
     if (report.validation.status !== 'passed')
       return await finish(
@@ -225,7 +231,7 @@ export async function runWorkflow(options: {
         'Checks passed but detected findings remain unresolved. Publication was not attempted.',
         runId,
       );
-    if (!options.publication)
+    if (!publication)
       return await finish(
         'validated',
         'Baseline and patched checks passed. Review artifacts are ready; publication was not requested.',
@@ -234,11 +240,11 @@ export async function runWorkflow(options: {
     stage = 'publication';
     options.signal?.throwIfAborted();
     options.onProgress?.('Checks passed. Publishing a GitHub draft PR...');
-    const publication = await publishDraft(report, options.publication);
-    await save('publication.json', `${JSON.stringify(publication, null, 2)}\n`);
+    const published = await publishDraft(report, publication);
+    await save('publication.json', `${JSON.stringify(published, null, 2)}\n`);
     return await finish(
-      publication.status === 'created' ? 'draft-created' : 'existing-pr',
-      publication.url,
+      published.status === 'created' ? 'draft-created' : 'existing-pr',
+      published.url,
       runId,
     );
   } catch (error) {

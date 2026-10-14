@@ -5,7 +5,7 @@ import { digest, isObject } from './specifications.ts';
 import { PipelineInputError } from './types.ts';
 import type { validateMigration } from './validation.ts';
 import type { runPipeline } from './run.ts';
-import { migrationIdentity } from './migration-identity.ts';
+import { INTEGRATION_MARKER, migrationIdentity } from './migration-identity.ts';
 import { unmappedBreakingChanges } from './openapi-diff.ts';
 import { apiVersionSourceBlocked } from './api-version.ts';
 
@@ -15,7 +15,7 @@ const REPOSITORY = /^[A-Za-z0-9][A-Za-z0-9-]*\/[A-Za-z0-9_.-]+$/;
 const BRANCH =
   /^(?!\/)(?!.*(?:\.\.|@\{|\/\/|\.lock(?:\/|$)))[^\s~^:?*\[\\\x00-\x1f\x7f]+(?<![/.])$/;
 type Report = Awaited<ReturnType<typeof validateMigration>>;
-type PublicationConfiguration = { repository: string; base: string } & (
+type PublicationConfiguration = { repository: string; base: string; integration?: string } & (
   { token: string; app?: never } | { app: GitHubAppConfiguration; token?: never }
 );
 
@@ -87,7 +87,7 @@ export async function findExistingMigration(
     throw new PipelineInputError(
       'Existing PR search is incomplete; review repository pagination before starting another migration.',
     );
-  const marker = `<!-- refit-migration:${migrationIdentity(report, revision)} -->`;
+  const marker = `<!-- refit-migration:${migrationIdentity(report, revision, options.integration)} -->`;
   const matches = pulls
     .filter(
       (pull) =>
@@ -105,7 +105,10 @@ export async function findExistingMigration(
         isObject(pull.head.repo) &&
         pull.head.repo.full_name === options.repository &&
         typeof pull.body === 'string' &&
-        (pull.body.includes(marker) || pull.body.includes(`"runId": "${report.runId}"`)) &&
+        (pull.body.includes(marker) ||
+          (!options.integration &&
+            !pull.body.includes(INTEGRATION_MARKER) &&
+            pull.body.includes(`"runId": "${report.runId}"`))) &&
         Number.isSafeInteger(pull.number) &&
         Number(pull.number) > 0,
     )
@@ -150,6 +153,7 @@ export async function findExistingMigration(
     head,
     reviewRequired: true,
     publisher: authentication!.publisher,
+    ...(options.integration ? { integration: options.integration } : {}),
     duplicateCount: matches.length,
     validation: 'not-rerun' as const,
   };
@@ -168,7 +172,7 @@ export async function publishDraft(
     throw new PipelineInputError(
       `Draft publication is blocked. ${apiVersion?.reason ?? 'API-version evidence is missing.'}`,
     );
-  const artifacts = createReviewArtifacts(report, 'github');
+  const artifacts = createReviewArtifacts(report, 'github', options.integration);
   if (
     unmappedBreakingChanges(
       report.specificationDiff,
@@ -190,7 +194,7 @@ export async function publishDraft(
     );
   const revision = sha(report.validation.revision);
   const { authentication, request } = await publicationSession(options);
-  const identity = authentication ? `:app:${authentication.publisher.appId}` : '';
+  const identity = `${authentication ? `:app:${authentication.publisher.appId}` : ''}${options.integration ? `:integration:${options.integration}` : ''}`;
   const branch = `refit/${digest(`${report.runId}:${report.validation.patchHash}${identity}`).slice(0, 32)}`;
   if (branch === options.base)
     throw new PipelineInputError('Migration branch cannot be the base branch.');
@@ -322,6 +326,7 @@ export async function publishDraft(
     revision,
     head,
     reviewRequired: true,
+    ...(options.integration ? { integration: options.integration } : {}),
     ...(authentication ? { publisher: authentication.publisher } : {}),
   };
 }

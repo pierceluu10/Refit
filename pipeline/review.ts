@@ -3,7 +3,7 @@ import { join, resolve } from 'node:path';
 import { digest } from './specifications.ts';
 import { PipelineInputError } from './types.ts';
 import type { validateMigration } from './validation.ts';
-import { migrationIdentity } from './migration-identity.ts';
+import { INTEGRATION_MARKER, migrationIdentity } from './migration-identity.ts';
 
 type ValidationReport = Awaited<ReturnType<typeof validateMigration>>;
 const MAX_SUMMARY_ITEMS = 5;
@@ -52,6 +52,7 @@ function apiVersionSummary(report: ValidationReport) {
 export function createReviewArtifacts(
   report: ValidationReport,
   destination: 'local' | 'github' = 'local',
+  integration?: string,
 ) {
   const { validation, patch } = report;
   if (validation.patchHash !== digest(patch.diff) || patch.validation !== validation.status)
@@ -75,7 +76,7 @@ export function createReviewArtifacts(
   const change = report.changes[0];
   const operationChanges = report.operationChanges ?? [];
   const endpoint = operationChanges[0];
-  const title =
+  const migrationTitle =
     endpoint && operationChanges.length === 1 && !report.changes.length
       ? `Replace retired ${provider} ${endpoint.resource}.${endpoint.method} calls`
       : change && report.changes.length === 1
@@ -85,6 +86,7 @@ export function createReviewArtifacts(
           ? 'Fix Stripe payment history after PaymentIntent.charges removal'
           : `Fix ${provider} usage after ${change.schema}.${change.property} removal`
         : `Migrate affected ${provider} API usage`;
+  const title = integration ? `[${plainText(integration)}] ${migrationTitle}` : migrationTitle;
   const confirmedFindings = report.findings.filter((finding) => finding.confidence === 'confirmed');
   const affectedFiles = new Set(confirmedFindings.map((finding) => finding.file));
   const changes = summaryList([
@@ -103,6 +105,9 @@ export function createReviewArtifacts(
   const body =
     [
       '## What changed',
+      ...(integration
+        ? [`**Integration:** ${code(integration)}. This draft covers this integration only.`]
+        : []),
       `The supplied ${plainText(provider)} API contract removes ${changeSummary}. Refit found ${confirmedFindings.length} confirmed ${confirmedFindings.length === 1 ? 'usage' : 'usages'} across ${affectedFiles.size} ${affectedFiles.size === 1 ? 'file' : 'files'}.`,
       `**API version:** ${apiVersionSummary(report)}`,
       `**SDK version declarations:** ${plainText(report.apiVersion.source.reason)} Policy: ${code(report.apiVersion.policy)}.`,
@@ -168,7 +173,8 @@ export function createReviewArtifacts(
         : ['### Advisory AI assessment', jsonBlock(report.assessment)]),
       jsonBlock({ warnings: [...report.warnings, ...patch.warnings], coverage: report.coverage }),
       '\n</details>',
-      `<!-- refit-migration:${migrationIdentity(report, validation.revision)} -->`,
+      ...(integration ? [`${INTEGRATION_MARKER}${integration} -->`] : []),
+      `<!-- refit-migration:${migrationIdentity(report, validation.revision, integration)} -->`,
     ].join('\n\n') + '\n';
   const files = {
     'report.json': `${JSON.stringify(report, null, 2)}\n`,
@@ -178,6 +184,7 @@ export function createReviewArtifacts(
   const manifest = {
     formatVersion: 1,
     kind: 'refit-review-bundle',
+    ...(integration ? { integration } : {}),
     runId: report.runId,
     revision: validation.revision,
     title,

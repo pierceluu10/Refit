@@ -88,6 +88,36 @@ it('rejects duplicate identities, secrets, automatic publication and credential-
   }
 });
 
+it('bounds expanded integration workers rather than only counting repository targets', async () => {
+  const { root, path, target } = await setup();
+  await writeFile(
+    join(root, 'workflow.json'),
+    JSON.stringify({
+      formatVersion: 2,
+      integrations: Array.from({ length: 8 }, (_, index) => ({
+        id: `api-${index}`,
+        before: 'before.json',
+        after: 'after.json',
+        image: 'checks:local',
+        command: ['npm', 'test'],
+      })),
+    }),
+  );
+  const repositories = Array.from({ length: 5 }, (_, index) => ({
+    ...target,
+    id: `repo-${index}`,
+  }));
+  await writeFile(path, JSON.stringify({ formatVersion: 1, targets: repositories.slice(0, 4) }));
+  const result = await readServiceConfiguration(path, APP);
+  expect(result).toHaveLength(32);
+  expect(result[0]).toMatchObject({ id: 'repo-0.api-0', integration: 'api-0' });
+  expect(result.at(-1)).toMatchObject({ id: 'repo-3.api-7', integration: 'api-7' });
+  await writeFile(path, JSON.stringify({ formatVersion: 1, targets: repositories }));
+  await expect(readServiceConfiguration(path, APP)).rejects.toThrow(
+    '32 integration workers after expansion',
+  );
+});
+
 it('validates documentation monitors before the worker starts', async () => {
   const { path, target } = await setup();
   const valid = { label: 'Changelog', url: 'https://docs.example.com/changelog' };
