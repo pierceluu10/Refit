@@ -23,6 +23,12 @@ export interface Finding extends Location {
     schema?: string;
     origin: Location;
     apiVersion: 'unverified';
+    migration?: {
+      rule: 'stripe-subscription-periods-price-id';
+      priceId: string;
+      beforeApiVersion: string;
+      afterApiVersion: string;
+    };
   };
 }
 
@@ -32,6 +38,7 @@ export interface SourceEdit {
   end: number;
   replacement: string;
   changeId: string;
+  rule?: 'stripe-subscription-periods-price-id';
 }
 
 export interface Repository {

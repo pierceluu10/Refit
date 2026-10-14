@@ -31,6 +31,7 @@ import {
 import { PipelineInputError } from './types.ts';
 import { digest, findRemovedProperties, readSpecification } from './specifications.ts';
 import { stripeAdapterFor } from './stripe-operations.ts';
+import { validateStripeSubscriptionPeriodContract } from './stripe-subscription-periods.ts';
 import { adapterContract, compareOpenApi, unmappedBreakingChanges } from './openapi-diff.ts';
 import {
   operationReplacementEvidence,
@@ -82,6 +83,11 @@ export async function runPipeline(options: {
     throw new PipelineInputError('Snapshot provenance does not match the configured provider.');
   const operationMappings = validateProviderOperationMappings(provider, before.document);
   validateProviderMappings(provider, before.schemas);
+  validateStripeSubscriptionPeriodContract(
+    provider.stripeSubscriptionPeriods,
+    before.document,
+    after.document,
+  );
   const changes = findRemovedProperties(before.schemas, after.schemas, provider.id);
   validatePropertyRenames(provider, changes, before.schemas, after.schemas);
   const replacements = validateOperationReplacements(
@@ -168,7 +174,8 @@ export async function runPipeline(options: {
           : 'no-provider-signal';
   const configuredMigrationProposal =
     operationChanges.some((change) => change.usages.length > 0) ||
-    requestChanges.some((change) => change.usages.length > 0);
+    requestChanges.some((change) => change.usages.length > 0) ||
+    analysis.findings.some((finding) => finding.webhook?.migration);
   const deterministicRequested =
     options.proposePatch || (options.aiPatch && configuredMigrationProposal);
   const unresolvedFindingCount = deterministicRequested
@@ -190,7 +197,11 @@ export async function runPipeline(options: {
         requestRenames,
       ).findings.length
     : 0;
-  const reviewReason = migrationReviewReason({ findings: analysis.findings, skippedFiles });
+  const reviewReason = migrationReviewReason(
+    { findings: analysis.findings, skippedFiles, adapter: provider },
+    true,
+  );
+  const advisoryReviewReason = migrationReviewReason({ findings: analysis.findings, skippedFiles });
   if (options.aiPatch && !configuredMigrationProposal && !operationImpacts.length && !reviewReason)
     options.onProgress?.('Requesting an AI migration proposal...');
   else if (deterministicRequested && !reviewReason)
@@ -309,8 +320,11 @@ export async function runPipeline(options: {
           ]
         : []),
     ],
-    assessment: reviewReason
-      ? { status: 'blocked' as const, reason: reviewReason! }
+    assessment: advisoryReviewReason
+      ? {
+          status: 'blocked' as const,
+          reason: advisoryReviewReason,
+        }
       : options.assessment
         ? await assessMigration(
             buildAssessmentEvidence(

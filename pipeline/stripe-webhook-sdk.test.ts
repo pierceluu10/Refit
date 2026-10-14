@@ -108,7 +108,7 @@ it.skipIf(!process.env.REFIT_STRIPE_SDK).each(SDK_VERSIONS)(
           finding.webhook?.schema === 'subscription' && finding.webhook.apiVersion === 'unverified',
       ),
     ).toBe(true);
-    expect(report.findings.every((finding) => finding.confidence === 'review')).toBe(true);
+    expect(report.findings.every((finding) => finding.confidence === 'confirmed')).toBe(true);
     expect(report.patch).toMatchObject({
       status: 'not-generated',
       reason: expect.stringContaining('migration-policy'),

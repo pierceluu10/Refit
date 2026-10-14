@@ -2,6 +2,7 @@ import { mkdir, rm, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { structuredPatch } from 'diff';
 import { digest, type AddedProperty } from './specifications.ts';
+import { affectedFields } from './report-fields.ts';
 import { PipelineInputError } from './types.ts';
 import type { validateMigration } from './validation.ts';
 import { INTEGRATION_MARKER, migrationIdentity } from './migration-identity.ts';
@@ -185,7 +186,7 @@ function replacementReasons(report: ValidationReport) {
   const reasons: string[] = [];
   const checks: string[] = [];
   const replacements: string[] = [];
-  for (const change of report.changes) {
+  for (const change of affectedFields(report.changes, report.findings)) {
     const removed = `${change.schema}.${change.property}`;
     const where = report.specificationDiff?.changes.find(
       (entry) =>
@@ -275,25 +276,30 @@ export function createReviewArtifacts(
     throw new PipelineInputError('Passing validation must include two successful check results.');
 
   const provider =
-    report.provider === 'stripe'
+    report.adapter.packageName === 'stripe'
       ? 'Stripe'
       : report.provider === 'openai'
         ? 'OpenAI'
         : report.provider;
-  const change = report.changes[0];
+  const relevantChanges = affectedFields(report.changes, report.findings);
+  const change = relevantChanges[0];
   const operationChanges = report.operationChanges ?? [];
   const endpoint = operationChanges[0];
   const requestChanges = report.requestChanges ?? [];
   const request = requestChanges[0];
-  const migrationTitle =
-    request &&
-    requestChanges.length === 1 &&
-    !operationChanges.length &&
-    report.changes.length === 1
+  const subscriptionPolicy = report.findings.some((finding) => finding.webhook?.migration)
+    ? report.adapter.stripeSubscriptionPeriods
+    : undefined;
+  const migrationTitle = subscriptionPolicy
+    ? 'Preserve Stripe subscription periods after item-level billing change'
+    : request &&
+        requestChanges.length === 1 &&
+        !operationChanges.length &&
+        relevantChanges.length === 1
       ? `Update ${provider} ${request.resource}.${request.method} requests after ${request.removed} removal`
-      : endpoint && operationChanges.length === 1 && !report.changes.length
+      : endpoint && operationChanges.length === 1 && !relevantChanges.length
         ? `Replace retired ${provider} ${endpoint.resource}.${endpoint.method} calls`
-        : change && report.changes.length === 1
+        : change && relevantChanges.length === 1
           ? provider === 'Stripe' &&
             change.schema === 'payment_intent' &&
             change.property === 'charges'
@@ -304,7 +310,7 @@ export function createReviewArtifacts(
   const confirmedFindings = report.findings.filter((finding) => finding.confidence === 'confirmed');
   const affectedFiles = new Set(confirmedFindings.map((finding) => finding.file));
   const changes = summaryList([
-    ...report.changes.map((entry) => code(`${entry.schema}.${entry.property}`)),
+    ...relevantChanges.map((entry) => code(`${entry.schema}.${entry.property}`)),
     ...operationChanges.map((entry) => code(`${entry.httpMethod} ${entry.path}`)),
   ]);
   const changeSummary = changes || 'the API usages recorded in the technical evidence';
@@ -342,6 +348,12 @@ export function createReviewArtifacts(
         ? [['| | Field | Type | Where |', '|---|---|---|---|', ...rows].join('\n')]
         : []),
       ...reasons,
+      ...(subscriptionPolicy
+        ? [
+            `**Subscription item policy:** select exactly one item whose price ID is ${code(subscriptionPolicy.priceId)}. Item order does not determine entitlement. Missing or duplicate matches and incomplete lists use the existing missing-period error.`,
+            `**Incoming event versions:** the patch checks signed ${code('event.api_version')} at runtime. ${code(subscriptionPolicy.beforeApiVersion)} retains legacy subscription periods; ${code(subscriptionPolicy.afterApiVersion)} reads the matched item's periods. Other versions are rejected. The outgoing SDK version does not establish the incoming version.`,
+          ]
+        : []),
       ...(requestChanges.length
         ? [
             `**Request fields:** ${summaryList(requestChanges.map((entry) => `${code(`${entry.resource}.${entry.method}`)} argument ${entry.argumentIndex}: ${code(entry.removed)} → ${code(entry.replacement)} (${code(`${entry.httpMethod} ${entry.path}`)})`))}. Argument values and other call options are preserved; review SDK serialization and business meaning.`,

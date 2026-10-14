@@ -84,6 +84,7 @@ else {
         .replaceAll('](NPM-WORKSPACES.md)', '](docs/NPM-WORKSPACES.md)')
         .replaceAll('](SOURCE-ALIASES.md)', '](docs/SOURCE-ALIASES.md)')
         .replaceAll('](STRIPE-WEBHOOKS.md)', '](docs/STRIPE-WEBHOOKS.md)')
+        .replaceAll('](STRIPE-SUBSCRIPTION-PERIODS.md)', '](docs/STRIPE-SUBSCRIPTION-PERIODS.md)')
         .replaceAll('](../examples/', '](examples/'),
     );
     await copyFile(join(root, '.env.example'), join(stage, '.env.example'));
@@ -109,6 +110,7 @@ else {
       'NPM-WORKSPACES.md',
       'SOURCE-ALIASES.md',
       'STRIPE-WEBHOOKS.md',
+      'STRIPE-SUBSCRIPTION-PERIODS.md',
       'READINESS.md',
       'AI-EVALUATION.md',
       'PR-EVALUATION.md',

@@ -2,6 +2,7 @@ import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { isObject, parseObject } from './specifications.ts';
 import type { runWorkflow } from './workflow.ts';
+import { affectedFields } from './report-fields.ts';
 
 type Result = Awaited<ReturnType<typeof runWorkflow>>;
 
@@ -44,17 +45,20 @@ export async function renderWorkflowResult(result: Result) {
   if (result.manifest.integration)
     rows.push(`Integration ${terminalText(result.manifest.integration)}`);
   if (report && typeof report.provider === 'string' && Array.isArray(report.changes)) {
-    const changes = report.changes
-      .filter(
-        (change): change is Record<string, unknown> =>
-          isObject(change) &&
-          typeof change.schema === 'string' &&
-          typeof change.property === 'string',
-      )
-      .map((change) => terminalText(`${change.schema}.${change.property}`));
+    const fields = report.changes.filter(
+      (change): change is Record<string, unknown> =>
+        isObject(change) &&
+        typeof change.schema === 'string' &&
+        typeof change.property === 'string',
+    );
+    const changes = affectedFields(
+      fields,
+      Array.isArray(report.findings) ? report.findings.filter(isObject) : [],
+    ).map((change) => terminalText(`${change.schema}.${change.property}`));
     if (changes.length) {
       const provider =
-        report.provider === 'stripe'
+        report.provider === 'stripe' ||
+        (isObject(report.adapter) && report.adapter.packageName === 'stripe')
           ? 'Stripe'
           : report.provider === 'openai'
             ? 'OpenAI'
@@ -161,9 +165,24 @@ export async function renderWorkflowResult(result: Result) {
       (finding) => isObject(finding) && isObject(finding.webhook),
     );
     if (webhookReads.length) {
-      rows.push(
-        `Webhooks    ${webhookReads.length} affected payload ${webhookReads.length === 1 ? 'read' : 'reads'}; incoming API version requires review`,
+      const policy =
+        isObject(report.adapter) && isObject(report.adapter.stripeSubscriptionPeriods)
+          ? report.adapter.stripeSubscriptionPeriods
+          : undefined;
+      const configured = Boolean(
+        policy &&
+        webhookReads.every(
+          (finding) =>
+            isObject(finding) && isObject(finding.webhook) && isObject(finding.webhook.migration),
+        ),
       );
+      rows.push(
+        `Webhooks    ${webhookReads.length} affected payload ${webhookReads.length === 1 ? 'read' : 'reads'}; ${configured ? 'proposed policy checks signed event versions at runtime' : 'incoming API version requires review'}`,
+      );
+      if (configured && typeof policy?.priceId === 'string')
+        rows.push(
+          `Item policy Exactly one match for price ${terminalText(policy.priceId)}; incomplete lists require review`,
+        );
       const types = [
         ...new Set(
           webhookReads.flatMap((finding) => {

@@ -169,8 +169,15 @@ export async function inspectRepositoryReadiness(options: {
     const evidence = scan.value;
     report.provider = { id: evidence.provider, packageName: evidence.adapter.packageName };
     report.currentSourceChecked = !workflow.latestStripe;
-    const originReview = migrationReviewReason(evidence);
-    if (originReview && !evidence.findings.some((finding) => finding.webhook))
+    const originReview = migrationReviewReason(evidence, true);
+    const webhookReview = migrationReviewReason(
+      {
+        adapter: evidence.adapter,
+        findings: evidence.findings.filter((finding) => finding.webhook),
+      },
+      true,
+    );
+    if (originReview && !webhookReview)
       report.checks.push({
         id: 'source-provenance',
         title: 'Migration source evidence',
@@ -179,7 +186,7 @@ export async function inspectRepositoryReadiness(options: {
         action:
           'Repair skipped sources and establish SDK or incoming-event provenance before activation.',
       });
-    if (evidence.findings.some((finding) => finding.webhook))
+    if (webhookReview)
       report.checks.push({
         id: 'webhook-migration',
         title: 'Webhook payload migration',
@@ -188,6 +195,14 @@ export async function inspectRepositoryReadiness(options: {
           'Affected snapshot webhook payload reads need separate incoming API-version and migration-policy review.',
         action:
           'Confirm endpoint/event versions and the intended subscription-item policy before activation.',
+      });
+    else if (evidence.findings.some((finding) => finding.webhook?.migration))
+      report.checks.push({
+        id: 'webhook-migration',
+        title: 'Webhook payload migration',
+        status: 'passed',
+        detail: `The configured price ${evidence.adapter.stripeSubscriptionPeriods!.priceId} matches a supported guarded handler. The proposed patch checks signed event versions; runtime checks have not run.`,
+        action: null,
       });
     if (evidence.sourceResolution.status === 'review')
       report.checks.push({

@@ -5,7 +5,10 @@ import { pathToFileURL } from 'node:url';
 
 const [repository, mode] = process.argv.slice(2);
 assert.ok(repository, 'Supply the webhook application directory.');
-assert.ok(['before', 'after', 'regression'].includes(mode), 'Unknown webhook contract mode.');
+assert.ok(
+  ['before', 'after', 'regression', 'migrated'].includes(mode),
+  'Unknown webhook contract mode.',
+);
 const { stripe } = await import(pathToFileURL(resolve(repository, 'client.js')));
 const { handleWebhook, MissingSubscriptionPeriodError } = await import(
   pathToFileURL(resolve(repository, 'entitlements.js'))
@@ -40,6 +43,7 @@ function snapshot(version, type = 'customer.subscription.updated') {
             {
               id: 'si_primary',
               object: 'subscription_item',
+              price: { id: 'price_primary', object: 'price' },
               ...(version === AFTER_VERSION
                 ? { current_period_start: PERIOD_START, current_period_end: PERIOD_END }
                 : {}),
@@ -47,6 +51,7 @@ function snapshot(version, type = 'customer.subscription.updated') {
             {
               id: 'si_addon',
               object: 'subscription_item',
+              price: { id: 'price_addon', object: 'price' },
               ...(version === AFTER_VERSION
                 ? { current_period_start: PERIOD_START, current_period_end: OTHER_PERIOD_END }
                 : {}),
@@ -127,10 +132,80 @@ try {
     endsAt: PERIOD_END,
     incomingApiVersion: version,
   });
-  if (mode === 'regression') {
+  if (mode === 'regression' || mode === 'migrated') {
     const changed = await deliver(after);
-    assert.equal(changed.status, 422);
-    assert.deepEqual(changed.body, { error: 'missing-subscription-period' });
+    assert.equal(changed.status, mode === 'migrated' ? 200 : 422);
+    if (mode === 'regression')
+      assert.deepEqual(changed.body, { error: 'missing-subscription-period' });
+    else {
+      assert.deepEqual(changed.body, { ...result.body, incomingApiVersion: AFTER_VERSION });
+      const reordered = snapshot(AFTER_VERSION);
+      reordered.data.object.items.data.reverse();
+      assert.deepEqual(
+        await deliver(reordered),
+        changed,
+        'Price identity must determine the period, independent of item order.',
+      );
+      const changedPeriod = snapshot(AFTER_VERSION);
+      changedPeriod.data.object.items.data[0].current_period_end = OTHER_PERIOD_END;
+      assert.equal(
+        (await deliver(changedPeriod)).body.endsAt,
+        OTHER_PERIOD_END,
+        'Period values must come from the actual matched item.',
+      );
+      const invalid = [
+        (event) => {
+          event.api_version = null;
+        },
+        (event) => {
+          event.api_version = '2025-04-30.basil';
+        },
+        (event) => {
+          event.api_version = BEFORE_VERSION;
+        },
+        (event) => {
+          event.data.object.items.has_more = true;
+        },
+        (event) => {
+          delete event.data.object.items.has_more;
+        },
+        (event) => {
+          event.data.object.items.data = [];
+        },
+        (event) => {
+          event.data.object.items.data[0].price.id = 'price_missing';
+        },
+        (event) => {
+          event.data.object.items.data[1].price.id = 'price_primary';
+        },
+        (event) => {
+          delete event.data.object.items.data[1].price;
+        },
+        (event) => {
+          event.data.object.items.data.push(null);
+        },
+        (event) => {
+          event.data.object.items.data[0].current_period_start = -1;
+        },
+        (event) => {
+          event.data.object.items.data[0].current_period_end = PERIOD_START - 1;
+        },
+        (event) => {
+          event.data.object.items.data[0].current_period_end = 1.5;
+        },
+        (event) => {
+          delete event.data.object.items.data[0].current_period_end;
+        },
+      ];
+      for (const change of invalid) {
+        const event = snapshot(AFTER_VERSION);
+        change(event);
+        assert.deepEqual(await deliver(event), {
+          status: 422,
+          body: { error: 'missing-subscription-period' },
+        });
+      }
+    }
     const oldAgain = await deliver(before);
     assert.equal(oldAgain.status, 200, 'Previously rendered events retain their original version.');
     for (const options of [{ signingSecret: 'whsec_wrong' }, { tamper: true }, { stale: true }]) {

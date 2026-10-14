@@ -1,6 +1,6 @@
 # Stripe snapshot webhook payloads
 
-Refit traces supported Stripe snapshot events from `stripe.webhooks.constructEvent(...)` or awaited `constructEventAsync(...)` into removed-field findings. Those findings stop automatic patches, AI assessment/generation, Docker migration validation and PR publication for the run. Incoming API-version evidence and an explicit migration policy are required before automation can be enabled. This release provides detection and review gates; it does not implement subscription-item selection yet.
+Refit traces supported Stripe snapshot events from `stripe.webhooks.constructEvent(...)` or awaited `constructEventAsync(...)` into removed-field findings. Those findings stop automation unless a supported deterministic rule establishes incoming-version handling and an explicit migration policy. The first exception is the reviewed [subscription-period price-ID policy](STRIPE-SUBSCRIPTION-PERIODS.md). Direct AI generation and advisory assessment remain blocked for webhook payloads.
 
 ## Separate incoming and outgoing versions
 
@@ -45,8 +45,8 @@ npm run refit -- scan \
   --propose-patch
 ```
 
-The fixture reports four entitlement-period accesses with webhook provenance. They remain under conservative escape review because the handler stores fields in its result object. Outgoing version is verified, incoming version is unverified, and no patch is generated. Manual workflows and workers show readable webhook/event rows and return `needs-review`; repeated polls reuse that receipt. Doctor exposes an activation blocker.
+The fixture reports four entitlement-period accesses with webhook provenance. Without a policy, outgoing version is verified, incoming version is unverified, and no patch is generated. Manual workflows and workers show readable webhook/event rows and return `needs-review`; repeated polls reuse that receipt. Doctor exposes an activation blocker. The current projection also declares scalar event metadata and price identity so the configured policy can validate its narrowly supported handler.
 
 ## Before automatic migration
 
-Approved configuration must describe an independently verified incoming-version boundary and a precise item-selection policy. A rule must define missing, duplicate and paginated-item behavior, preserve signatures, unrelated events, old events and error semantics, and pass both historical contracts in isolation. Refit currently refuses this automation rather than selecting the first item. The same field move can affect SDK responses and `previous_attributes`; those require their own supported migration rules.
+Approved configuration must describe an incoming-version boundary and a precise item-selection policy. The supported price-ID rule adds checks on the signed Event's `api_version` instead of assuming the SDK pin establishes it. It defines missing, duplicate and incomplete-list behavior, preserves signatures, unrelated/old events and the original error class, and runs historical contracts in isolation. All other webhook migrations are refused. The same field move can affect SDK responses and `previous_attributes`; those require their own supported migration rules.

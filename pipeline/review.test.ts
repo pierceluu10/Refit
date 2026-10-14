@@ -63,7 +63,14 @@ it('exports regression evidence without implying that checks passed or a PR exis
 });
 
 it('puts the provider change, code diff and validation before the collapsed machine evidence', async () => {
-  const body = createReviewArtifacts(await report()).files['pull-request.md'];
+  const value = await report();
+  value.changes.unshift({
+    id: 'unrelated',
+    schema: 'invoice',
+    property: 'subscription',
+    pointer: '/components/schemas/invoice/properties/subscription',
+  });
+  const body = createReviewArtifacts(value).files['pull-request.md'];
   const visible = body.slice(0, body.indexOf('<details>'));
   for (const heading of [
     '## Summary',
@@ -75,6 +82,8 @@ it('puts the provider change, code diff and validation before the collapsed mach
   ])
     expect(visible).toContain(heading);
   expect(visible).toContain('removes `payment_intent.charges`');
+  expect(visible).not.toContain('invoice.subscription');
+  expect(body.slice(body.indexOf('<details>'))).toContain('"unrelated"');
   expect(visible).toMatch(/confirmed usages? across 1 file/);
   expect(visible).toContain('| Removed | `payment_intent.charges` |');
   expect(visible).toContain(

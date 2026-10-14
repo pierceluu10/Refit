@@ -77,6 +77,16 @@ it('summarizes API impact, proposed edits and offline checks for interactive CLI
   expect(output).toContain('Original: passed; proposed: passed');
 
   const report = JSON.parse(await readFile(join(directory, 'report.json'), 'utf8'));
+  report.changes.unshift({ id: 'unrelated', schema: 'invoice', property: 'subscription' });
+  report.changes[1].id = 'history';
+  report.findings.forEach((finding: { changeId: string }) => {
+    finding.changeId = 'history';
+  });
+  await writeFile(join(directory, 'report.json'), JSON.stringify(report));
+  const scoped = await renderWorkflowResult(result);
+  expect(scoped).toContain('Stripe removes payment_intent.charges');
+  expect(scoped).not.toContain('invoice.subscription');
+  report.changes.shift();
   report.changes[0].property = 'charges\u001b[2J';
   await writeFile(join(directory, 'report.json'), JSON.stringify(report));
   expect(await renderWorkflowResult(result)).not.toContain('\u001b');
