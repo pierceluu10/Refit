@@ -303,12 +303,14 @@ it('shows the model fields the after contract adds to an affected schema', async
   expect(body.instructions).toContain('candidates, not proven replacements');
 });
 
-async function openaiInputs() {
+async function openaiInputs(
+  replacement: Record<string, Record<string, unknown>> = { owner_name: { type: 'string' } },
+) {
   const root = await mkdtemp(join(tmpdir(), 'refit-openai-rename-'));
   scratch.push(root);
-  const model = (property: string) => ({
+  const model = (fields: Record<string, Record<string, unknown>>) => ({
     openapi: '3.0.3',
-    info: { title: 'Simulated OpenAI contract', version: property },
+    info: { title: 'Simulated OpenAI contract', version: Object.keys(fields).join(',') },
     paths: {
       '/models/{model}': {
         parameters: [{ name: 'model', in: 'path', required: true, schema: { type: 'string' } }],
@@ -326,18 +328,17 @@ async function openaiInputs() {
       schemas: {
         Model: {
           type: 'object',
-          required: ['id', 'object', property],
-          properties: {
-            id: { type: 'string' },
-            object: { type: 'string' },
-            [property]: { type: 'string' },
-          },
+          required: ['id', 'object', ...Object.keys(fields)],
+          properties: { id: { type: 'string' }, object: { type: 'string' }, ...fields },
         },
       },
     },
   });
-  await writeFile(join(root, 'before.json'), JSON.stringify(model('owned_by')));
-  await writeFile(join(root, 'after.json'), JSON.stringify(model('owner_name')));
+  await writeFile(
+    join(root, 'before.json'),
+    JSON.stringify(model({ owned_by: { type: 'string' } })),
+  );
+  await writeFile(join(root, 'after.json'), JSON.stringify(model(replacement)));
   const inputs = {
     repository: 'pipeline/fixtures/openai/repository',
     before: join(root, 'before.json'),
@@ -405,3 +406,56 @@ it.each(['String(model.id).toLowerCase()', '`${model.object}`.toLowerCase()'])(
     );
   },
 );
+
+it('rejects an added field whose type differs from the removed field', async () => {
+  const { inputs, edit } = await openaiInputs({ context_window: { type: 'integer' } });
+  respond([edit('String(model.context_window).toLowerCase()')]);
+  await expect(runPipeline({ ...inputs, aiPatch: OPTIONS })).rejects.toThrow(
+    'AI replacement reads added field Model.context_window (integer) in place of removed Model.owned_by (string) in models.js:5.',
+  );
+});
+
+it.each([['the contract describes it', { type: 'object', description: 'Replaces owned_by.' }]])(
+  'accepts a different-typed added field when %s',
+  async (_name, owner) => {
+    const { inputs, edit } = await openaiInputs({ owner });
+    respond([edit('model.owner.name.toLowerCase()')]);
+    const report = await runPipeline({ ...inputs, aiPatch: OPTIONS });
+    expect(report.patch).toMatchObject({ status: 'proposed', edits: 1 });
+  },
+);
+
+it('rejects an undocumented different-typed added field', async () => {
+  const { inputs, edit } = await openaiInputs({ owner: { type: 'object' } });
+  respond([edit('model.owner.name.toLowerCase()')]);
+  await expect(runPipeline({ ...inputs, aiPatch: OPTIONS })).rejects.toThrow(
+    /reads added field Model\.owner \(object\)/,
+  );
+});
+
+it('rejects a pure fallback that keeps reading the removed field', async () => {
+  const { inputs, edit } = await openaiInputs();
+  respond([edit("(model.owned_by ?? '').toLowerCase()")]);
+  await expect(runPipeline({ ...inputs, aiPatch: OPTIONS })).rejects.toThrow(
+    'AI replacement still reads removed field Model.owned_by in models.js:5 without reading any added field.',
+  );
+});
+
+it('accepts a backward-compatible fallback that reads the added field first', async () => {
+  const { inputs, edit } = await openaiInputs();
+  respond([edit('(model.owner_name ?? model.owned_by).toLowerCase()')]);
+  const report = await runPipeline({ ...inputs, aiPatch: OPTIONS });
+  expect(report.patch).toMatchObject({ status: 'proposed', edits: 1 });
+});
+
+it('accepts a different-typed added field when a vendor note documents the replacement', async () => {
+  const { inputs, edit } = await openaiInputs({ owner: { type: 'object' } });
+  const note = await writeSnapshot('API 2.4.0: Model.owned_by moved to Model.owner.name.');
+  respond([edit('model.owner.name.toLowerCase()')]);
+  const report = await runPipeline({
+    ...inputs,
+    aiPatch: OPTIONS,
+    documentationSnapshots: [note.path],
+  });
+  expect(report.patch).toMatchObject({ status: 'proposed', edits: 1 });
+});

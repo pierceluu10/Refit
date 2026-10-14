@@ -3,12 +3,12 @@ import { mkdir, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { parseArgs } from 'node:util';
 import { assessmentConfiguration } from './assessment.ts';
-import { evalCases, type EvalCase } from './ai-eval-cases.ts';
+import { evalCases, type EvalCase, type EvalSet } from './ai-eval-cases.ts';
 import { prepareCase, runCaseAttempt, type EvalAttempt } from './ai-eval.ts';
 import { PipelineInputError } from './types.ts';
 
 const USAGE =
-  'Usage: npm run eval:ai -- --output <new-directory> [--env .env] [--repeat 3] [--case <id-substring>]';
+  'Usage: npm run eval:ai -- --output <new-directory> [--env .env] [--repeat 3] [--set tuning|held-out|all] [--case <id-substring>]';
 const MAX_REPEAT = 10;
 
 const { values } = parseArgs({
@@ -17,6 +17,7 @@ const { values } = parseArgs({
     env: { type: 'string' },
     repeat: { type: 'string', default: '3' },
     case: { type: 'string' },
+    set: { type: 'string', default: 'tuning' },
     help: { type: 'boolean' },
   },
 });
@@ -30,7 +31,11 @@ if (!Number.isInteger(repeat) || repeat < 1 || repeat > MAX_REPEAT)
   throw new PipelineInputError(`--repeat must be an integer from 1 to ${MAX_REPEAT}.`);
 if (values.env) process.loadEnvFile(values.env);
 const ai = assessmentConfiguration(true, process.env)!;
-const cases = evalCases().filter((testCase) => !values.case || testCase.id.includes(values.case));
+if (!['tuning', 'held-out', 'all'].includes(values.set!))
+  throw new PipelineInputError('--set must be tuning, held-out or all.');
+const cases = evalCases(values.set as EvalSet).filter(
+  (testCase) => !values.case || testCase.id.includes(values.case),
+);
 if (!cases.length) throw new PipelineInputError('No evaluation case matches --case.');
 
 await mkdir(values.output);
@@ -58,6 +63,7 @@ const metadata = {
   reportedModel: results.find((result) => result.model)?.model ?? null,
   repeat,
   cases: cases.length,
+  set: values.set,
 };
 await writeFile(
   join(values.output, 'results.json'),
@@ -100,7 +106,7 @@ function renderReport(
     `- **Date:** ${meta.date}`,
     `- **Refit commit:** \`${meta.refitCommit}\``,
     `- **Model:** \`${meta.configuredModel}\` (reported \`${meta.reportedModel}\`)`,
-    `- **Cases:** ${meta.cases} × ${meta.repeat} attempts = ${attempts.length} AI runs`,
+    `- **Cases:** ${meta.cases} (${meta.set} set) × ${meta.repeat} attempts = ${attempts.length} AI runs`,
     `- **Tokens:** ${sum('inputTokens').toLocaleString('en-US')} input, ${sum('outputTokens').toLocaleString('en-US')} output`,
     `- **Recorded cost:** $${sum('costUsd').toFixed(4)}`,
     '',
