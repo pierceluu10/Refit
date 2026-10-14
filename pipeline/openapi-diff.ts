@@ -3,6 +3,7 @@ import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
+import type { ProviderAdapter } from './providers.ts';
 import { isObject } from './specifications.ts';
 import { PipelineInputError } from './types.ts';
 import type { Removal, Finding } from './types.ts';
@@ -140,6 +141,15 @@ export async function compareOpenApi(before: object, after: object) {
       });
     if (cause instanceof SyntaxError)
       throw new PipelineInputError('oasdiff returned invalid JSON.', { cause });
+    if (
+      cause instanceof Error &&
+      'code' in cause &&
+      cause.code === 'ERR_CHILD_PROCESS_STDIO_MAXBUFFER'
+    )
+      throw new PipelineInputError(
+        `oasdiff reported more than ${MAX_DIFF_BYTES / 1024 / 1024} MiB of contract changes; the full comparison is too large to review automatically.`,
+        { cause },
+      );
     throw new PipelineInputError(
       'oasdiff could not compare these contracts. Check their validity and external specification references.',
       { cause },
@@ -147,4 +157,70 @@ export async function compareOpenApi(before: object, after: object) {
   } finally {
     await rm(directory, { recursive: true, force: true });
   }
+}
+
+const HTTP_METHODS = new Set(['get', 'put', 'post', 'delete', 'patch', 'head', 'options', 'trace']);
+
+function schemaReferences(value: unknown) {
+  const options = isObject(value) && Array.isArray(value.anyOf) ? value.anyOf : [value];
+  return options
+    .map((option) => (isObject(option) ? option.$ref : undefined))
+    .filter((reference): reference is string => typeof reference === 'string');
+}
+
+// Restricts a contract to the operations an adapter maps (by operationId or returned schema) and
+// every component they reference. Large provider contracts such as Stripe's (8–11 MB) otherwise
+// exceed the comparison limit, and changes to endpoints the application never calls would block
+// every migration.
+export function adapterContract(document: Record<string, unknown>, provider: ProviderAdapter) {
+  const operationIds = new Set(provider.operations.map((operation) => operation.operationId));
+  const schemas = new Set(
+    provider.operations.map((operation) => `#/components/schemas/${operation.schema}`),
+  );
+  const paths: Record<string, Record<string, unknown>> = {};
+  for (const [path, item] of Object.entries(isObject(document.paths) ? document.paths : {})) {
+    if (!isObject(item)) continue;
+    for (const [method, operation] of Object.entries(item)) {
+      if (!HTTP_METHODS.has(method) || !isObject(operation)) continue;
+      const responses = isObject(operation.responses) ? operation.responses : {};
+      const ok = isObject(responses['200']) ? responses['200'] : undefined;
+      const json = ok && isObject(ok.content) ? ok.content['application/json'] : undefined;
+      const returned = isObject(json) ? schemaReferences(json.schema) : [];
+      if (
+        !operationIds.has(operation.operationId as string) &&
+        !returned.some((reference) => schemas.has(reference))
+      )
+        continue;
+      paths[path] ??= Object.fromEntries(
+        Object.entries(item).filter(([key]) => !HTTP_METHODS.has(key)),
+      );
+      paths[path][method] = operation;
+    }
+  }
+  const components = isObject(document.components) ? document.components : {};
+  const kept: Record<string, Record<string, unknown>> = {};
+  const pending = [paths as unknown];
+  const seen = new Set<string>();
+  while (pending.length) {
+    const value = pending.pop();
+    if (Array.isArray(value)) pending.push(...value);
+    else if (isObject(value))
+      for (const [key, child] of Object.entries(value)) {
+        const match =
+          key === '$ref' && typeof child === 'string'
+            ? /^#\/components\/([^/]+)\/([^/]+)$/.exec(child)
+            : null;
+        if (match && !seen.has(child as string)) {
+          seen.add(child as string);
+          const group = components[match[1]];
+          const target = isObject(group) ? group[match[2]] : undefined;
+          if (target !== undefined) {
+            (kept[match[1]] ??= {})[match[2]] = target;
+            pending.push(target);
+          }
+        } else pending.push(child);
+      }
+  }
+  if (isObject(components.securitySchemes)) kept.securitySchemes = components.securitySchemes;
+  return { ...document, paths, components: kept };
 }

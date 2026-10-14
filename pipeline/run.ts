@@ -29,7 +29,8 @@ import {
 } from './api-version.ts';
 import { PipelineInputError } from './types.ts';
 import { digest, findRemovedProperties, readSpecification } from './specifications.ts';
-import { compareOpenApi, unmappedBreakingChanges } from './openapi-diff.ts';
+import { stripeAdapterFor } from './stripe-operations.ts';
+import { adapterContract, compareOpenApi, unmappedBreakingChanges } from './openapi-diff.ts';
 import {
   operationReplacementEvidence,
   replacementAnalysisAdapter,
@@ -53,12 +54,25 @@ export async function runPipeline(options: {
 }) {
   const applicationApiVersion = validateApiVersion(options.apiVersion);
   const policy = validateApiVersionPolicy(options.apiVersionPolicy);
-  const provider = await readProviderAdapter(options.providerConfig);
+  const configured = await readProviderAdapter(options.providerConfig);
   const [repository, before, after] = await Promise.all([
-    readRepository(options.repository, provider.packageName),
+    readRepository(options.repository, configured.packageName),
     readSpecification(options.before),
     readSpecification(options.after),
   ]);
+  // The built-in Stripe adapter grows to cover every Stripe method the application calls.
+  const provider =
+    configured === STRIPE
+      ? stripeAdapterFor(
+          STRIPE,
+          before.document,
+          new Set(
+            analyzeRepository(repository, [], STRIPE).sdkCalls.map(
+              (call) => `${call.resource}.${call.method}`,
+            ),
+          ),
+        )
+      : configured;
   if (
     [before, after].some(
       (snapshot) => snapshot.provenance && snapshot.provenance.provider !== provider.id,
@@ -77,17 +91,14 @@ export async function runPipeline(options: {
     after.schemas,
   );
   const specificationDiff = options.fullDiff
-    ? await compareOpenApi(before.document, after.document)
+    ? await compareOpenApi(
+        adapterContract(before.document, provider),
+        adapterContract(after.document, provider),
+      )
     : undefined;
   const requestRenames = validateRequestPropertyRenames(provider, before.document, after.document);
-  const { edits, apiVersionDeclarations, sourceWarnings, ...analysis } = analyzeRepository(
-    repository,
-    changes,
-    provider,
-    before.schemas,
-    replacements,
-    requestRenames,
-  );
+  const { edits, apiVersionDeclarations, sourceWarnings, skippedFiles, ...analysis } =
+    analyzeRepository(repository, changes, provider, before.schemas, replacements, requestRenames);
   const apiVersion = compareApiVersion(
     applicationApiVersion,
     before.document,
@@ -271,6 +282,9 @@ export async function runPipeline(options: {
     warnings: [
       ...repository.warnings,
       ...sourceWarnings,
+      ...skippedFiles.map(
+        (file) => `Skipped unparseable file; its API usage was not scanned. ${file}`,
+      ),
       ...(apiVersion.applicability === 'matches-before' ? [] : [apiVersion.reason]),
       ...(apiVersion.source.status === 'verified' || apiVersionSourceBlocked(apiVersion)
         ? []

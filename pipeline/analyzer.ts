@@ -95,6 +95,25 @@ function numericArrayIndex(expression: ts.Expression) {
   return Number.isSafeInteger(index) && index >= 0;
 }
 
+// Syntax errors in one source file; analyzeRepository skips such files instead of failing.
+export function syntaxErrors(path: string, content: string) {
+  const source = ts.createSourceFile(path, content, ts.ScriptTarget.Latest, true);
+  const program = ts.createProgram(
+    [path],
+    { allowJs: true, noLib: true },
+    {
+      ...ts.createCompilerHost({}),
+      fileExists: (name) => name === path,
+      readFile: (name) => (name === path ? content : undefined),
+      getSourceFile: (name) => (name === path ? source : undefined),
+      writeFile: () => undefined,
+    },
+  );
+  return program
+    .getSyntacticDiagnostics(source)
+    .map((diagnostic) => ts.flattenDiagnosticMessageText(diagnostic.messageText, '\n'));
+}
+
 export function analyzeRepository(
   repository: Repository,
   changes: Removal[],
@@ -156,12 +175,19 @@ export function analyzeRepository(
     nodes.push(node);
     ts.forEachChild(node, visit);
   }
+  // An unparseable file that never imports the SDK is skipped and reported for review; one that
+  // does still fails the scan, because its evidence would be incomplete.
+  const skippedFiles: string[] = [];
+  const sdkImport = new RegExp(
+    `(?:from\\s*|import\\s*\\(\\s*|require\\s*\\(\\s*)['"]${provider.packageName.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&')}(?:/[^'"]*)?['"]`,
+  );
   for (const source of program.getSourceFiles()) {
     const diagnostics = program.getSyntacticDiagnostics(source);
     if (diagnostics.length) {
-      throw new PipelineInputError(
-        `${locations.get(source.fileName)}: ${ts.flattenDiagnosticMessageText(diagnostics[0].messageText, '\n')}`,
-      );
+      const message = `${locations.get(source.fileName)}: ${ts.flattenDiagnosticMessageText(diagnostics[0].messageText, '\n')}`;
+      if (sdkImport.test(source.text)) throw new PipelineInputError(message);
+      skippedFiles.push(message);
+      continue;
     }
     visit(source);
   }
@@ -621,7 +647,7 @@ export function analyzeRepository(
       });
   }
   function propose(node: ts.Node, receiver: ts.Expression, change: Removal) {
-    if (provider !== STRIPE) {
+    if (provider.id !== STRIPE.id) {
       const rename = provider.propertyRenames?.find(
         (candidate) => candidate.schema === change.schema && candidate.removed === change.property,
       );
@@ -807,5 +833,6 @@ export function analyzeRepository(
     providerDetected,
     stripeDetected: provider.id === 'stripe' && providerDetected,
     edits,
+    skippedFiles,
   };
 }
