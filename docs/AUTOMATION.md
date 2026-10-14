@@ -1,10 +1,10 @@
-# Local API monitoring with Refit 0.8
+# Local API monitoring with Refit 0.9
 
 Refit has a local polling worker that captures an OpenAPI source, compares it with a retained baseline, scans a repository, and processes each migration once. It can also monitor up to eight manually configured public changelog or migration-documentation pages for each target. AI generation and GitHub publication are explicit options. Start with a single poll; remove `--once` to keep the worker running while your computer is on.
 
 This is the operator workflow for the installed Refit Agent. A customer installing the GitHub App does not yet start a hosted worker. The frontend is still illustrative.
 
-For several configured repositories and signed installation webhooks, use the [local service](LOCAL-SERVICE.md). It includes startup App access discovery, protected status, persisted delivery deduplication and HTTPS tunnel instructions. The commands below remain useful for a single target or an explicit retry.
+For several configured repositories and signed installation webhooks, use the [local service](LOCAL-SERVICE.md). It includes startup App access discovery, protected status, persisted delivery deduplication and HTTPS tunnel instructions. The commands below remain useful for a single target or an explicit retry. A root `.refit.json` can keep repository selection outside the file: add `--repository /path/to/repo` to the local watch command. It cannot be combined with `--sync-github`.
 
 ## Prerequisites
 

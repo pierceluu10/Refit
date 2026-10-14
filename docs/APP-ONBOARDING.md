@@ -1,6 +1,6 @@
 # Approve a repository workflow for the GitHub App
 
-An installed repository can own its root `.refit.json`. Refit fetches the App-authorized base into a managed checkout, verifies a local operator approval, then uses that committed configuration through the shared worker. Installing the App alone does not activate a repository. Approval, GitHub access, AI and draft publication are separate settings.
+An installed repository can own its root `.refit.json`. Refit fetches the App-authorized base into a managed checkout, verifies a local operator approval, then uses that committed configuration through the shared worker. Installing the App alone does not activate a repository. Approval, GitHub access, AI and draft publication are separate settings. The same root profile can be polled locally with `refit watch --repository /path/to/repo --config /path/to/repo/.refit.json --state /path/outside-git/worker --once`; the command-line repository selector keeps it out of the approved file.
 
 ## Review the committed configuration
 

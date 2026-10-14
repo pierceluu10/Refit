@@ -1,6 +1,6 @@
 # Configured endpoint replacements
 
-An adapter can name a replacement SDK method for a retired OpenAPI endpoint. Refit checks the recorded contracts and changes only the SDK resource/method tokens on supported direct calls. Arguments, client options, imports, dependencies and API-version configuration stay as they were. The mapping is supplied by the operator after reviewing the provider's migration guidance and SDK behavior.
+An adapter can name a replacement SDK method for a retired OpenAPI endpoint. Refit checks the recorded contracts and changes only the SDK resource/method tokens on supported direct calls. Arguments, client options, imports, dependencies and API-version configuration stay as they were. The mapping is supplied by the operator after reviewing the provider's migration guidance and SDK behavior. Source and replacement `resource` values can be dot-separated identifier paths up to 256 characters. For example, `inventory.legacy.items.retrieveLegacy` can become `inventory.current.products.get`; resource depth may change. Static named access is required, and optional or computed invocations stay review-only. SDK inventory, mutation checks, contract correlation, response tracing and post-patch rescanning use the same nested path handling.
 
 ```json
 {

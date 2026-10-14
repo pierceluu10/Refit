@@ -23,6 +23,14 @@ refit scan --repository /path/to/repo --before before.json --after after.json
 
 The replay uses bundled synthetic application code and curated historical Stripe specifications. It does not modify your application. Paths supplied to other commands are resolved from your current directory.
 
+Use a committed App-style profile locally without adding a repository selector to it:
+
+```sh
+refit watch --repository /path/to/repo --config /path/to/repo/.refit.json --state /path/outside-git/worker --once
+```
+
+The explicit local root overrides an operator profile's `repository` value. Paths to contracts and adapters still resolve relative to the configuration file. Choose either `--repository` or App-managed `--sync-github`; combining those command-line selectors is rejected. This does not approve or activate the profile for the App.
+
 For another OpenAPI provider, `adapter-suggest` can propose an initial SDK-to-operation adapter without adding provider-specific Refit code:
 
 ```sh
@@ -32,7 +40,7 @@ refit adapter-suggest --repository /path/to/repo \
   --output ./refit-provider.json --env .env
 ```
 
-Use `--export Client` instead of `--default-import` for a named SDK constructor; exactly one import style is required. The command sends OpenAI only the configured package/import style, direct `client.resource.method` call names with a few file/line samples, and unique OpenAPI operation IDs, paths, HTTP methods and supported JSON response schema names. It does not send whole source files or descriptions from the API spec. It requires explicit `OPENAI_API_KEY` and `OPENAI_MODEL`; the normal token counter and shared budget ledger apply. The output uses a new file with owner-only permissions and is never overwritten. For models without built-in budget pricing, configure all four token prices as documented under [optional AI assessment](#optional-ai-assessment). The model's choices are checked against observed calls and component response schemas, but matching SDK behavior remains a human judgment. Review the config, then run `refit scan --provider-config ./refit-provider.json` before any migration workflow. This suggestion supports up to 100 observed SDK methods and 500 candidate operations; repeat `--operation-id <id>` to narrow a large contract. It recognizes direct calls on `const client = new ImportedConstructor()` instances, including shared clients imported through supported direct relative named imports. Namespace imports, re-exports, factories and other languages remain outside the suggestion inventory; mutation and response semantics still need review.
+Use `--export Client` instead of `--default-import` for a named SDK constructor; exactly one import style is required. The command sends OpenAI only the configured package/import style, direct `client.resource.method` call names, including named nested resources such as `chat.completions`, with a few file/line samples, and unique OpenAPI operation IDs, paths, HTTP methods and supported JSON response schema names. It does not send whole source files or descriptions from the API spec. It requires explicit `OPENAI_API_KEY` and `OPENAI_MODEL`; the normal token counter and shared budget ledger apply. The output uses a new file with owner-only permissions and is never overwritten. For models without built-in budget pricing, configure all four token prices as documented under [optional AI assessment](#optional-ai-assessment). The model's choices are checked against observed calls and component response schemas, but matching SDK behavior remains a human judgment. Review the config, then run `refit scan --provider-config ./refit-provider.json` before any migration workflow. This suggestion supports up to 100 observed SDK methods and 500 candidate operations; repeat `--operation-id <id>` to narrow a large contract. It recognizes direct calls on `const client = new ImportedConstructor()` instances, including shared clients imported through supported direct relative named imports. Namespace imports, re-exports, factories and other languages remain outside the suggestion inventory; mutation and response semantics still need review. A resource can be an identifier path separated by dots, up to 256 characters; computed resource paths remain unsupported. Generated adapters retain that exact observed resource path and require the same semantic review as simple resources.
 
 For a complete demonstrable migration with the real Stripe SDK:
 
