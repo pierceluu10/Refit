@@ -97,6 +97,27 @@ npm run eval:ai -- --env .env --output /tmp/refit-ai-eval-one --repeat 1 --case 
 
 ## Results
 
+### Phase 2: type and fallback rules, with held-out cases (October 14, 2026, `gpt-5.4-mini`, commit `8c08751`)
+
+Rules 4 and 5 of the [guard](AI-PATCH-GUARD.md) were added: different-typed added fields are rejected unless documented, and pure fallbacks on removed fields are rejected. Each set ran 3 attempts per case: [tuning report](ai-evals/2026-10-14-gpt-5.4-mini-phase2-tuning.md) and [held-out report](ai-evals/2026-10-14-gpt-5.4-mini-phase2-held-out.md).
+
+| | Baseline | Guard (rules 1–3) | **Phase 2, tuning** | **Phase 2, held-out** |
+|---|---|---|---|---|
+| All attempts passed | 59% | 83% | **87%** | **77%** |
+| Critical: invented migration reached the proposal | 48 / 63 | 16 / 63 | **7 / 63** | **2 / 42** |
+| Rejected by the guard | — | 26 | **39** (26 rule 1–3, 12 rule 4, 1 rule 5) | **28** |
+| Correct fixes wrongly rejected | — | 0 | **0 / 78** | **0 / 54** |
+| Unfixable cases kept safe | 24% | 75% | **89%** | **95%** |
+| Fixable cases fixed | 92% | 96% | 95% | **67%** |
+
+- **The rules generalize.** On resources and field names never used while building them, 95% of unfixable cases stayed safe, and no correct fix was rejected.
+- **The 7 remaining tuning inventions:**
+  - 5 use an added *string* with unrelated meaning (`model.region`, `file.checksum`), which only evidence can distinguish;
+  - 1 replaces the read with a hardcoded `return ''` (no field read at all);
+  - 1 uses `owner_name` even though the vendor note says it's unrelated.
+- **Held-out fix rate is lower because of the model, not the guard.** All 18 failures are the model declining renames such as `VectorStore.name` → `display_name` and `Response.model` → `model_name` as "not established". The guard rejected none. It's weakest on `rename-compare` (0/6) and `rename-nullable` (1/6). This is the next model-side problem to measure, for example with a different model.
+- Cost: about $0.47 for 252 attempts.
+
 ### With the substitution guard (October 14, 2026, `gpt-5.4-mini`, commit `862bbeb`)
 
 The [substitution guard](AI-PATCH-GUARD.md) rejects AI patches that newly read a pre-existing response field outside a traced SDK call's arguments. The same 50 cases × 3 attempts were rerun: 168k input and 35k output tokens, $0.28. See the [full report](ai-evals/2026-10-14-gpt-5.4-mini-guard.md) and [raw data](ai-evals/2026-10-14-gpt-5.4-mini-guard.json).

@@ -581,4 +581,5 @@ it('provides a read-only CLI review and creates a receipt only with the displaye
   await expect(
     execute(process.execPath, [...argumentsList, '--ai-patch'], { cwd: sample.root }),
   ).rejects.toMatchObject({ code: 1, stderr: expect.stringContaining('Unknown option') });
-});
+  // Starts the CLI four times; shared CI runners can exceed the default 5s timeout.
+}, 30_000);
