@@ -1,5 +1,4 @@
 import ts from 'typescript-compiler';
-import { resolveSourceImport } from './source-imports.ts';
 import { SDK_IDENTIFIER } from './providers.ts';
 
 const loaderSafety = new WeakMap<ts.SourceFile, boolean>();
@@ -85,7 +84,7 @@ export interface ClientExport {
 export function sourceBindings(
   nodes: ts.Node[],
   checker: ts.TypeChecker,
-  sources: ReadonlyMap<string, unknown>,
+  resolveImport: (name: string, containingFile: string) => string | undefined,
 ) {
   const aliases = new Map<ts.Symbol, ts.Symbol>();
   const exports = new Map<string, Map<string | null, ts.Symbol>>();
@@ -262,15 +261,11 @@ export function sourceBindings(
       node.moduleReference.expression &&
       ts.isStringLiteral(node.moduleReference.expression)
     ) {
-      const file = resolveSourceImport(
-        node.moduleReference.expression.text,
-        containingFile,
-        sources,
-      );
+      const file = resolveImport(node.moduleReference.expression.text, containingFile);
       if (file) bind(node.name, file, null, 'commonjs');
     }
     if (ts.isImportDeclaration(node) && ts.isStringLiteral(node.moduleSpecifier)) {
-      const file = resolveSourceImport(node.moduleSpecifier.text, containingFile, sources);
+      const file = resolveImport(node.moduleSpecifier.text, containingFile);
       const clause = node.importClause;
       if (!file || !clause || clause.isTypeOnly) continue;
       if (clause.name) bind(clause.name, file, 'default', 'esm');
@@ -283,7 +278,7 @@ export function sourceBindings(
     if (ts.isExportDeclaration(node)) {
       const file =
         node.moduleSpecifier && ts.isStringLiteral(node.moduleSpecifier)
-          ? resolveSourceImport(node.moduleSpecifier.text, containingFile, sources)
+          ? resolveImport(node.moduleSpecifier.text, containingFile)
           : containingFile;
       if (file && !node.isTypeOnly) escapingSources.add(file);
     }
@@ -300,7 +295,7 @@ export function sourceBindings(
       (ts.isPropertyAccessExpression(value) && !value.questionDotToken
         ? staticRequire(value.expression, checker)
         : undefined);
-    const file = required && resolveSourceImport(required, containingFile, sources);
+    const file = required && resolveImport(required, containingFile);
     if (!file) continue;
     if (ts.isIdentifier(node.name))
       bind(
@@ -326,7 +321,7 @@ export function sourceBindings(
   // Non-binding requires expose a module namespace to code the analyzer cannot follow.
   for (const node of nodes) {
     const name = staticRequire(node, checker);
-    const file = name && resolveSourceImport(name, node.getSourceFile().fileName, sources);
+    const file = name && resolveImport(name, node.getSourceFile().fileName);
     if (!file) continue;
     const parent =
       ts.isPropertyAccessExpression(node.parent) && node.parent.expression === node

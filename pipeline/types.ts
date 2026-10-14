@@ -30,6 +30,8 @@ export interface SourceEdit {
 export interface Repository {
   root: string;
   files: { path: string; content: string }[];
+  configurations?: Repository['files'];
+  excludedPaths?: string[];
   dependencies: (DependencyDeclaration & { lock: LockedDependency })[];
   lockfiles: { file: string; hash: string; version: number | null }[];
   warnings: string[];

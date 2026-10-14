@@ -4,7 +4,7 @@ import { STRIPE, validSdkResourcePath, type ProviderAdapter } from './providers.
 import { unsafeBindings } from './mutations.ts';
 import { declaredApiVersions } from './declared-api-versions.ts';
 import { guardedHistoryEdit } from './history-migration.ts';
-import { resolveSourceImport } from './source-imports.ts';
+import { createSourceImportResolver } from './source-imports.ts';
 import { sourceBindings } from './source-modules.ts';
 import { sdkConstructors } from './sdk-constructors.ts';
 import { componentReference, isObject, resolvableComponentSchema } from './specifications.ts';
@@ -106,6 +106,7 @@ export function analyzeRepository(
   const sources = new Map(
     repository.files.map((file) => [resolve(repository.root, file.path), file.content]),
   );
+  const resolution = createSourceImportResolver(repository, sources);
   const options: ts.CompilerOptions = {
     allowJs: true,
     noLib: true,
@@ -116,7 +117,7 @@ export function analyzeRepository(
   host.readFile = (name) => sources.get(name);
   host.resolveModuleNames = (names, containingFile) =>
     names.map((name) => {
-      const path = resolveSourceImport(name, containingFile, sources);
+      const path = resolution.resolve(name, containingFile);
       if (!path) return undefined;
       return { resolvedFileName: path };
     });
@@ -164,7 +165,7 @@ export function analyzeRepository(
     }
     visit(source);
   }
-  const modules = sourceBindings(nodes, checker, sources);
+  const modules = sourceBindings(nodes, checker, resolution.resolve);
   const canonical = modules.canonical;
   const symbol = (node: ts.Node) => canonical(checker.getSymbolAtLocation(node));
   const contains = (set: Set<ts.Symbol>, node: ts.Node) => {
@@ -175,7 +176,7 @@ export function analyzeRepository(
     const found = symbol(node);
     if (found) set.add(found);
   };
-  const sdk = sdkConstructors({ nodes, checker, provider, symbol });
+  const sdk = sdkConstructors({ nodes, checker, provider, symbol, external: resolution.external });
   imports.push(...sdk.imports.map(location));
   function sdkAccess(expression: ts.Expression) {
     const properties: (ts.PropertyAccessExpression & { name: ts.Identifier })[] = [];
@@ -502,7 +503,8 @@ export function analyzeRepository(
   for (const binding of [...clients, ...wrappers.keys()])
     if (
       binding.valueDeclaration &&
-      modules.escapingSources.has(binding.valueDeclaration.getSourceFile().fileName)
+      (modules.escapingSources.has(binding.valueDeclaration.getSourceFile().fileName) ||
+        (resolution.unverified && Boolean(modules.clientExport(binding))))
     )
       escapingClients.add(binding);
   const readOnlyCall = (node: ts.CallExpression) => {
@@ -800,6 +802,7 @@ export function analyzeRepository(
       location,
     }),
     findings,
+    sourceWarnings: resolution.warnings,
     providerDetected,
     stripeDetected: provider.id === 'stripe' && providerDetected,
     edits,

@@ -80,7 +80,7 @@ export async function runPipeline(options: {
     ? await compareOpenApi(before.document, after.document)
     : undefined;
   const requestRenames = validateRequestPropertyRenames(provider, before.document, after.document);
-  const { edits, apiVersionDeclarations, ...analysis } = analyzeRepository(
+  const { edits, apiVersionDeclarations, sourceWarnings, ...analysis } = analyzeRepository(
     repository,
     changes,
     provider,
@@ -218,6 +218,8 @@ export async function runPipeline(options: {
   const repositoryHash = digest(
     JSON.stringify({
       files: repository.files,
+      ...(repository.excludedPaths?.length ? { excludedPaths: repository.excludedPaths } : {}),
+      ...(repository.configurations?.length ? { configurations: repository.configurations } : {}),
       dependencies: repository.dependencies,
       lockfiles: repository.lockfiles,
     }),
@@ -238,6 +240,15 @@ export async function runPipeline(options: {
       scannedFiles: repository.files.length,
       dependencies: repository.dependencies,
       lockfiles: repository.lockfiles,
+      ...(repository.configurations?.length
+        ? {
+            configurations: repository.configurations.map((file) => ({
+              path: file.path,
+              sha256: digest(file.content),
+              bytes: Buffer.byteLength(file.content),
+            })),
+          }
+        : {}),
     },
     changes,
     specificationDiff: specificationDiff ?? {
@@ -251,6 +262,7 @@ export async function runPipeline(options: {
     ...(requestChanges.length ? { requestChanges } : {}),
     warnings: [
       ...repository.warnings,
+      ...sourceWarnings,
       ...(apiVersion.applicability === 'matches-before' ? [] : [apiVersion.reason]),
       ...(apiVersion.source.status === 'verified' || apiVersionSourceBlocked(apiVersion)
         ? []

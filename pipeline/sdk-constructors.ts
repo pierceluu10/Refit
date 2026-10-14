@@ -6,9 +6,11 @@ export function sdkConstructors(options: {
   nodes: ts.Node[];
   checker: ts.TypeChecker;
   provider: ProviderAdapter;
+  external: (name: string, containingFile: string) => boolean;
   symbol: (node: ts.Node) => ts.Symbol | undefined;
 }) {
-  const { nodes, checker, provider, symbol } = options;
+  const { nodes, checker, provider, symbol, external } = options;
+  const vendor = (node: ts.Node) => external(provider.packageName, node.getSourceFile().fileName);
   const constructors = new Set<ts.Symbol>();
   const imports: ts.Node[] = [];
   const add = (node: ts.Node) => {
@@ -21,6 +23,7 @@ export function sdkConstructors(options: {
   }
   function requiredConstructor(node: ts.Node) {
     if (ts.isParenthesizedExpression(node)) return requiredConstructor(node.expression);
+    if (!vendor(node)) return false;
     if (staticRequire(node, checker) === provider.packageName) return provider.defaultImport;
     if (
       !ts.isPropertyAccessExpression(node) ||
@@ -40,6 +43,7 @@ export function sdkConstructors(options: {
       node.moduleSpecifier.text === provider.packageName
     ) {
       imports.push(node);
+      if (!vendor(node)) continue;
       const clause = node.importClause;
       if (provider.defaultImport && clause?.name && !clause.isTypeOnly) add(clause.name);
       if (clause?.namedBindings && ts.isNamedImports(clause.namedBindings) && !clause.isTypeOnly)
@@ -56,7 +60,7 @@ export function sdkConstructors(options: {
       node.moduleReference.expression.text === provider.packageName
     ) {
       imports.push(node);
-      if (provider.defaultImport) add(node.name);
+      if (vendor(node) && provider.defaultImport) add(node.name);
     }
     if (staticRequire(node, checker) === provider.packageName) imports.push(node);
     if (
@@ -69,7 +73,8 @@ export function sdkConstructors(options: {
     if (ts.isIdentifier(node.name) && requiredConstructor(node.initializer)) add(node.name);
     if (
       ts.isObjectBindingPattern(node.name) &&
-      staticRequire(node.initializer, checker) === provider.packageName
+      staticRequire(node.initializer, checker) === provider.packageName &&
+      vendor(node)
     )
       for (const entry of node.name.elements) {
         const key = entry.propertyName ?? entry.name;
