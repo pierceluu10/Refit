@@ -104,6 +104,7 @@ function modelEvidence() {
     evidence: JSON.parse(body.input[0].content) as {
       documentation?: Array<{ content: string; truncated: boolean; hash: string }>;
       documentationOmissions?: Array<{ reason: string; hash: string }>;
+      addedProperties?: Array<{ schema: string; property: string; type?: string }>;
     },
   };
 }
@@ -289,4 +290,58 @@ it('rejects more saved notes than a watch configuration can capture', async () =
       Array.from({ length: 9 }, (_, index) => `note-${index}.json`),
     ),
   ).rejects.toThrow(/at most 8/);
+});
+
+it('shows the model fields the after contract adds to an affected schema', async () => {
+  respond([]);
+  await runPipeline({ ...INPUTS, aiPatch: OPTIONS });
+  const { body, evidence } = modelEvidence();
+  expect(evidence.addedProperties).toEqual([
+    { schema: 'payment_intent', property: 'latest_charge', type: 'string' },
+  ]);
+  expect(body.instructions).toContain('candidates, not proven replacements');
+});
+
+it('lets the model see a renamed OpenAI field instead of guessing a substitute', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'refit-added-properties-'));
+  scratch.push(root);
+  const model = (property: string) => ({
+    openapi: '3.0.3',
+    info: { title: 'Simulated OpenAI contract', version: property },
+    paths: {
+      '/models/{model}': {
+        parameters: [{ name: 'model', in: 'path', required: true, schema: { type: 'string' } }],
+        get: {
+          responses: {
+            '200': {
+              description: 'Model',
+              content: { 'application/json': { schema: { $ref: '#/components/schemas/Model' } } },
+            },
+          },
+        },
+      },
+    },
+    components: {
+      schemas: {
+        Model: {
+          type: 'object',
+          required: ['id', property],
+          properties: { id: { type: 'string' }, [property]: { type: 'string' } },
+        },
+      },
+    },
+  });
+  await writeFile(join(root, 'before.json'), JSON.stringify(model('owned_by')));
+  await writeFile(join(root, 'after.json'), JSON.stringify(model('owner_name')));
+  respond([]);
+  await runPipeline({
+    repository: 'pipeline/fixtures/openai/repository',
+    before: join(root, 'before.json'),
+    after: join(root, 'after.json'),
+    providerConfig: 'pipeline/fixtures/openai/provider.json',
+    aiPatch: OPTIONS,
+  });
+  expect(modelEvidence().evidence.addedProperties).toEqual([
+    { schema: 'Model', property: 'owner_name', type: 'string' },
+  ]);
 });

@@ -195,6 +195,7 @@ export async function runPipeline(options: {
             before.schemas,
             undefined,
             options.documentationSnapshots,
+            after.schemas,
           )
       : deterministicRequested
         ? proposePatch(

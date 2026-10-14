@@ -221,9 +221,14 @@ export async function validateMigration(options: {
     const configuredRequestProposal = report.requestChanges?.some(
       (change) => change.usages.length > 0,
     );
-    const beforeSpecification = await readSpecification(options.before);
+    const [beforeSpecification, afterSpecification] = await Promise.all([
+      readSpecification(options.before),
+      readSpecification(options.after),
+    ]);
     if (beforeSpecification.hash !== report.snapshots.before)
       throw new PipelineInputError('Baseline specification changed during validation.');
+    if (afterSpecification.hash !== report.snapshots.after)
+      throw new PipelineInputError('Current specification changed during validation.');
     if (!('diff' in report.patch) || (!report.patch.diff && baseline.status === 'passed'))
       throw new PipelineInputError(
         'No supported patch proposal is available for this committed revision.',
@@ -353,6 +358,7 @@ export async function validateMigration(options: {
             },
           },
           options.documentationSnapshots,
+          afterSpecification.schemas,
         );
         if (!candidate.diff) {
           repair.stopReason = 'no-proposal';
