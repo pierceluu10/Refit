@@ -1,5 +1,5 @@
 import type { AiOptions } from './ai-budget.ts';
-import { analyzeRepository } from './analyzer.ts';
+import { analyzeRepository, syntaxErrors } from './analyzer.ts';
 import { buildAssessmentEvidence } from './assessment.ts';
 import {
   readDocumentationSnapshots,
@@ -330,6 +330,10 @@ export async function proposeAiPatch(
     })),
   };
   const editedFiles = new Set(edits.map((edit) => edit.file));
+  for (const file of modified.files.filter((candidate) => editedFiles.has(candidate.path))) {
+    const [error] = syntaxErrors(file.path, file.content);
+    if (error) throw new PipelineInputError(`AI patch makes ${file.path} invalid: ${error}`);
+  }
   const substitutions = [
     ...findFieldSubstitutions(
       repository,

@@ -231,8 +231,12 @@ describe('symbol-based impact analysis', () => {
     expect(result.stripeDetected).toBe(true);
     expect(result.findings[0].confidence).toBe('confirmed');
   });
-  it('fails on malformed source rather than generating misleading evidence', () => {
-    expect(() => analyze('const value = ;')).toThrow(/billing.ts/);
+  it('fails on malformed SDK source rather than generating misleading evidence', () => {
+    expect(() => analyze("import Stripe from 'stripe';\nconst value = ;")).toThrow(/billing.ts/);
+  });
+
+  it('skips and reports a malformed file that does not import the SDK', () => {
+    expect(analyze('const value = ;').skippedFiles).toEqual(['billing.ts: Expression expected.']);
   });
 });
 

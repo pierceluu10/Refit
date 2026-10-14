@@ -52,7 +52,7 @@ export function proposePatch(
   const requestIds = new Set(requestRenames.map((rename) => rename.id));
   const usedRequestRename = edits.some((edit) => requestIds.has(edit.changeId));
   const usedConfiguredRename =
-    provider !== STRIPE &&
+    provider.id !== STRIPE.id &&
     hasConfiguredRenames &&
     edits.some((edit) => !replacementIds.has(edit.changeId) && !requestIds.has(edit.changeId));
   const usedEndpointReplacement = edits.some((edit) => replacementIds.has(edit.changeId));
@@ -60,7 +60,7 @@ export function proposePatch(
     generator: 'deterministic' as const,
     summary: usedRequestRename
       ? 'Rename configured SDK request fields while preserving argument values and other call options.'
-      : provider === STRIPE
+      : provider.id === STRIPE.id
         ? 'Replace supported charge-history reads with Charges API requests filtered by PaymentIntent ID.'
         : usedEndpointReplacement
           ? usedConfiguredRename
@@ -84,7 +84,7 @@ export function proposePatch(
           'AI generation and repair are not used for configured request-field migrations. Review all edits and meaningful before/after checks.',
           'Patch contains source code. Review it for sensitive content before sharing.',
         ]
-      : provider === STRIPE
+      : provider.id === STRIPE.id
         ? [
             'Review required: adds Charges API requests; timing, expansion and error behavior can differ. Direct-return migrations retain default-page behavior; guarded-history migrations iterate all pages.',
             'Supports direct local charges.data returns and narrow missing-history guards after a local or transparent wrapped retrieve. Guarded migrations remove the missing-field error branch and retain the initial retrieval. Request options, transformed wrappers, aliases and other shapes require review.',
@@ -113,6 +113,6 @@ export function proposePatch(
                   'No deterministic migration rule is registered. Use a reviewed AI proposal or migrate manually.',
                   'Patch contains source code. Review it for sensitive content before sharing.',
                 ],
-    source: provider === STRIPE ? 'https://docs.stripe.com/api/charges/list' : null,
+    source: provider.id === STRIPE.id ? 'https://docs.stripe.com/api/charges/list' : null,
   };
 }
