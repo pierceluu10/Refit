@@ -41,6 +41,22 @@ Ranked by how many repositories each pattern affects, since one repository can r
 
 The shared-client patterns, path aliases and factories, are the norm in Next.js and Node services. That baseline predates 0.13. Refit now follows supported default-exported and CommonJS clients, including documented Stripe callable initialization. The table above retains the original measurement; it must not be read as a post-change result. See [current client forms](CLIENT-MODULES.md).
 
+## Configured-alias rerun (October 14, 2026)
+
+The same 45 pinned commits were fetched again and measured before (`19fed87`, Refit 0.14.0) and after configured aliases. Only repository source and local configuration were read; no application dependencies or scripts were installed or executed. The before run reproduces the original 82/352 traced-call count. The [new report](benchmarks/2026-10-14-source-alias-coverage.md) retains per-repository rows and miss examples.
+
+| Provider | Before | After |
+|---|---|---|
+| OpenAI | 38 / 187 (20%) | 38 / 187 (20%) |
+| Anthropic | 28 / 61 (46%) | 27 / 61 (44%) |
+| Stripe | 16 / 104 (15%) | 43 / 104 (41%) |
+| All | 82 / 352 (23%) | 108 / 352 (31%) |
+| Repositories with likely calls and zero traced | 22 / 40 | 18 / 40 |
+
+Configured aliases add **34 traced Stripe calls across nine repositories**. Eight previously traced calls (seven Stripe, one Anthropic) are now declined in two projects whose standard configuration delegates to unresolved project references. This is an explicit conservative boundary, not a claim those calls are non-SDK usages. One path-alias miss remains; other missing calls mostly involve class fields, factories, injected clients or unresolved project selection. The original parse-error repository still cannot be scanned.
+
+These counts measure call tracing, not confirmed breaking reads, recall/precision against ground truth, successful migrations or validated PRs. The [100-repository Stripe migration benchmark](STRIPE-BENCHMARK.md) has not been rerun for this slice. See [supported alias resolution](SOURCE-ALIASES.md).
+
 ## Limits of this benchmark
 
 - Candidates are found by shape, so a few non-SDK calls slip in. For example, one Mistral client's `client.chat.complete` was counted under OpenAI. Excluded candidates may also hide some real SDK calls.
@@ -50,7 +66,7 @@ The shared-client patterns, path aliases and factories, are the norm in Next.js 
 
 ## Recommended scanner work, in order
 
-1. **Resolve path aliases** from `tsconfig.json`/`jsconfig.json` `paths` (and `@/`, `~/`), following the default-export support added in 0.13. Affects 10 of 40 repositories.
+1. **Resolve remaining project configurations:** recorded local `paths`/`baseUrl` aliases now work. Project references and package-based inherited configuration remain unresolved; preserve review evidence until those mappings can be established.
 2. **Trace clients stored on class fields** (`this.client = new SDK()` in a constructor or field initializer). Affects 7 repositories, and is the most common pattern by call count.
 3. **Trace simple factories:** functions returning `new SDK(...)` or a module-level client, including memoized getters. Affects 7 repositories, plus 2 with inline factory calls.
 4. **Skip unparseable files instead of failing the whole scan**, and report which were skipped.

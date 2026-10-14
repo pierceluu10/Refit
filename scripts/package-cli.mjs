@@ -78,6 +78,7 @@ else {
         .replaceAll('](REQUEST-MIGRATIONS.md)', '](docs/REQUEST-MIGRATIONS.md)')
         .replaceAll('](CLIENT-MODULES.md)', '](docs/CLIENT-MODULES.md)')
         .replaceAll('](NPM-WORKSPACES.md)', '](docs/NPM-WORKSPACES.md)')
+        .replaceAll('](SOURCE-ALIASES.md)', '](docs/SOURCE-ALIASES.md)')
         .replaceAll('](../examples/', '](examples/'),
     );
     await copyFile(join(root, '.env.example'), join(stage, '.env.example'));
@@ -101,6 +102,7 @@ else {
       'REQUEST-MIGRATIONS.md',
       'CLIENT-MODULES.md',
       'NPM-WORKSPACES.md',
+      'SOURCE-ALIASES.md',
       'READINESS.md',
       'AI-EVALUATION.md',
       'PR-EVALUATION.md',

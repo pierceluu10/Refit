@@ -1,6 +1,6 @@
 import { resolve } from 'node:path';
 import ts from 'typescript-compiler';
-import { resolveSourceImport } from './source-imports.ts';
+import { createSourceImportResolver } from './source-imports.ts';
 import { sourceModuleReferences } from './source-modules.ts';
 import { PipelineInputError, type Repository } from './types.ts';
 
@@ -10,6 +10,7 @@ export function buildPatchContext(repository: Repository, editable: Set<string>)
   const sources = new Map(
     repository.files.map((file) => [resolve(repository.root, file.path), file]),
   );
+  const resolution = createSourceImportResolver(repository, sources);
   const pending = repository.files.filter((file) => editable.has(file.path));
   const visited = new Set(pending.map((file) => file.path));
   const context: Repository['files'] = [];
@@ -18,7 +19,7 @@ export function buildPatchContext(repository: Repository, editable: Set<string>)
     const path = resolve(repository.root, file.path);
     const source = ts.createSourceFile(path, file.content, ts.ScriptTarget.Latest, true);
     for (const name of sourceModuleReferences(source)) {
-      const imported = resolveSourceImport(name, path, sources);
+      const imported = resolution.resolve(name, path);
       const target = imported && sources.get(imported);
       if (!target || visited.has(target.path)) continue;
       if (context.length >= MAX_CONTEXT_FILES)
@@ -30,5 +31,9 @@ export function buildPatchContext(repository: Repository, editable: Set<string>)
       context.push(target);
     }
   }
+  if (resolution.unverified)
+    throw new PipelineInputError(
+      'AI imported source context has unverified or ambiguous repository alias configuration.',
+    );
   return context;
 }

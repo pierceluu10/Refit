@@ -69,6 +69,8 @@ it('packs only CLI runtime sources, fixtures, docs and exact runtime dependencie
   expect(result.files).toContain('docs/REQUEST-MIGRATIONS.md');
   expect(result.files).toContain('docs/CLIENT-MODULES.md');
   expect(result.files).toContain('docs/NPM-WORKSPACES.md');
+  expect(result.files).toContain('docs/SOURCE-ALIASES.md');
+  expect(result.files).toContain('pipeline/source-configurations.ts');
   expect(result.files).toContain('pipeline/fixtures/npm-workspaces/repository/package-lock.json');
   expect(result.files).toContain('pipeline/source-modules.ts');
   expect(result.files).toContain('pipeline/sdk-constructors.ts');

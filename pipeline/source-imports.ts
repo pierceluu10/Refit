@@ -1,4 +1,7 @@
-import { dirname, extname, resolve } from 'node:path';
+import { dirname, extname, isAbsolute, relative, resolve } from 'node:path';
+import type ts from 'typescript-compiler';
+import { sourceConfigurationOptions } from './source-configurations.ts';
+import type { Repository } from './types.ts';
 
 const SOURCE_EXTENSIONS = ['.ts', '.tsx', '.js', '.jsx', '.mts', '.cts', '.mjs', '.cjs'];
 const OUTPUT_EXTENSIONS: Record<string, string> = {
@@ -8,13 +11,7 @@ const OUTPUT_EXTENSIONS: Record<string, string> = {
   '.cjs': '.cts',
 };
 
-export function resolveSourceImport(
-  name: string,
-  containingFile: string,
-  sources: ReadonlyMap<string, unknown>,
-): string | undefined {
-  if (!name.startsWith('./') && !name.startsWith('../')) return;
-  const path = resolve(dirname(containingFile), name);
+function sourceMatches(path: string, sources: ReadonlyMap<string, unknown>) {
   const extension = extname(path);
   const candidates = extension
     ? [
@@ -24,6 +21,137 @@ export function resolveSourceImport(
           : []),
       ]
     : SOURCE_EXTENSIONS.flatMap((suffix) => [path + suffix, resolve(path, `index${suffix}`)]);
-  const matches = candidates.filter((candidate) => sources.has(candidate));
+  return candidates.filter((candidate) => sources.has(candidate));
+}
+
+export function resolveSourceImport(
+  name: string,
+  containingFile: string,
+  sources: ReadonlyMap<string, unknown>,
+): string | undefined {
+  if (!name.startsWith('./') && !name.startsWith('../')) return;
+  const matches = sourceMatches(resolve(dirname(containingFile), name), sources);
   return matches.length === 1 ? matches[0] : undefined;
+}
+
+function matchingPath(name: string, paths: ts.MapLike<string[]> | undefined) {
+  if (!paths) return;
+  if (Object.hasOwn(paths, name)) return { targets: paths[name], captured: undefined };
+  let longest = -1;
+  let match: { targets: string[]; captured: string | undefined } | undefined;
+  for (const [pattern, targets] of Object.entries(paths)) {
+    const star = pattern.indexOf('*');
+    if (star < 0 || star <= longest) continue;
+    const prefix = pattern.slice(0, star);
+    const suffix = pattern.slice(star + 1);
+    if (
+      name.startsWith(prefix) &&
+      name.endsWith(suffix) &&
+      name.length >= prefix.length + suffix.length
+    ) {
+      longest = star;
+      match = { targets, captured: name.slice(star, name.length - suffix.length) };
+    }
+  }
+  return match;
+}
+
+export function createSourceImportResolver(
+  repository: Repository,
+  sources: ReadonlyMap<string, unknown>,
+) {
+  const configuration = sourceConfigurationOptions(repository);
+  const root = resolve(repository.root);
+  let unsafe = configuration.unverified;
+  const warnings = new Set(configuration.warnings);
+  const exclusions = (repository.excludedPaths ?? []).map((name) => resolve(root, name));
+  function excluded(path: string) {
+    const declaration = path.replace(/\.(?:[cm]?[jt]sx?)$/, '');
+    return exclusions.some(
+      (entry) =>
+        path === entry ||
+        path.startsWith(entry + '/') ||
+        ['.d.ts', '.d.mts', '.d.cts'].some((suffix) => entry === resolve(path, 'index' + suffix)) ||
+        ['.d.ts', '.d.mts', '.d.cts'].some((suffix) => entry === declaration + suffix),
+    );
+  }
+  function inside(path: string) {
+    const name = relative(root, path);
+    return name !== '..' && !name.startsWith('../') && !isAbsolute(name);
+  }
+  for (const [file, options] of configuration.options) {
+    if (!options) continue;
+    const base = options.baseUrl ?? options.pathsBasePath;
+    if (
+      (options.baseUrl && !inside(options.baseUrl)) ||
+      (options.paths &&
+        Object.entries(options.paths).some(
+          ([pattern, targets]) =>
+            pattern.split('*').length > 2 ||
+            !Array.isArray(targets) ||
+            !targets.length ||
+            targets.some(
+              (target) =>
+                typeof target !== 'string' ||
+                target.split('*').length > 2 ||
+                !base ||
+                !inside(resolve(String(base), target)) ||
+                excluded(resolve(String(base), target)),
+            ),
+        ))
+    ) {
+      configuration.options.set(file, null);
+      unsafe = true;
+      warnings.add(
+        'Source alias resolution requires valid single-wildcard paths and targets inside the scanned repository. Shared clients require review.',
+      );
+    }
+  }
+  function resolveImport(name: string, file: string) {
+    if (name.startsWith('./') || name.startsWith('../'))
+      return resolveSourceImport(name, file, sources);
+    const options = configuration.options.get(file);
+    if (!options) return;
+    const match = matchingPath(name, options.paths);
+    const base = options.baseUrl ?? options.pathsBasePath;
+    const targets =
+      match && base
+        ? match.targets.map((target) =>
+            resolve(String(base), match.captured ? target.replace('*', match.captured) : target),
+          )
+        : [];
+    if (options.baseUrl) targets.push(resolve(options.baseUrl, name));
+    for (const target of targets) {
+      if (!inside(target) || excluded(target)) {
+        unsafe = true;
+        warnings.add(
+          'Source alias import leaves the scanned source set or may resolve through an excluded path; shared clients require review.',
+        );
+        return;
+      }
+      const matches = sourceMatches(target, sources);
+      if (matches.length > 1) {
+        unsafe = true;
+        warnings.add('Ambiguous source alias target; shared clients require review.');
+        return;
+      }
+      if (matches.length === 1) return matches[0];
+    }
+  }
+  return {
+    resolve: resolveImport,
+    external: (name: string, file: string) => {
+      const options = configuration.options.get(file);
+      if (options === null || matchingPath(name, options?.paths)) return false;
+      if (!options?.baseUrl) return true;
+      const target = resolve(options.baseUrl, name);
+      return inside(target) && !excluded(target) && sourceMatches(target, sources).length === 0;
+    },
+    get unverified() {
+      return unsafe;
+    },
+    get warnings() {
+      return [...warnings];
+    },
+  };
 }

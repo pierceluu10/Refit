@@ -148,6 +148,21 @@ it('aggregates dirty Git, API-version and Docker setup failures with actionable 
   ).toBe(true);
 });
 
+it('blocks activation when shared source alias configuration cannot be verified', async () => {
+  const sample = await setup();
+  await writeFile(join(sample.repository, 'tsconfig.json'), '{"extends":"@vendor/tsconfig"}');
+  await commit(sample.repository);
+  const report = await inspectRepositoryReadiness({ repository: sample.repository });
+  expect(report.status).toBe('needs-attention');
+  expect(report.checks.find((check) => check.id === 'source-resolution')).toMatchObject({
+    status: 'blocked',
+    detail: expect.stringContaining('unverified'),
+  });
+  await expect(readFile(join(sample.repository, 'application-executed'))).rejects.toMatchObject({
+    code: 'ENOENT',
+  });
+});
+
 it('reports unmapped calls on the same shared client without claiming complete integration coverage', async () => {
   const sample = await setup();
   await writeFile(

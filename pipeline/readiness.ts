@@ -97,7 +97,7 @@ export async function inspectRepositoryReadiness(options: {
     scope: [
       'Readiness permits an attempt at validation; it does not prove migration correctness or test quality.',
       'No application code, dependency installation, model request, source download, GitHub request or publication is performed.',
-      'Only bounded ESM client patterns and configured SDK mappings are inspected; other usage can remain undetected.',
+      'Only bounded ESM/CommonJS client patterns, supported repository aliases and configured SDK mappings are inspected; other usage can remain undetected.',
       'The configuration is not approved or activated by this command. SDK/API-version rollout and effective account versions still need review.',
     ],
   };
@@ -166,6 +166,15 @@ export async function inspectRepositoryReadiness(options: {
     const evidence = scan.value;
     report.provider = { id: evidence.provider, packageName: evidence.adapter.packageName };
     report.currentSourceChecked = !workflow.latestStripe;
+    if (evidence.sourceResolution.status === 'review')
+      report.checks.push({
+        id: 'source-resolution',
+        title: 'Shared client resolution',
+        status: 'blocked',
+        detail: evidence.sourceResolution.warnings.join(' '),
+        action:
+          'Resolve the repository tsconfig/jsconfig aliases and local extends inputs, then inspect the affected client usage before activation.',
+      });
     scan.check.detail = `${evidence.repository.scannedFiles} source files inspected; adapter contracts resolved. ${workflow.latestStripe ? 'Latest Stripe source was not fetched; only the baseline was inspected.' : 'Both supplied contracts were inspected.'}`;
     report.checks.push({
       id: 'api-version',

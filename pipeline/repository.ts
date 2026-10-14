@@ -1,5 +1,6 @@
 import { readdir, readFile, realpath, stat } from 'node:fs/promises';
-import { join, relative } from 'node:path';
+import { join, relative, resolve } from 'node:path';
+import { configurationReferences, SOURCE_CONFIGURATION_NAMES } from './source-configurations.ts';
 import { digest, isObject, parseObject } from './specifications.ts';
 import { PipelineInputError, type Repository, type DependencyDeclaration } from './types.ts';
 import { NPM_LOCKFILES, resolveLockedDependency, type NpmLockfile } from './lockfiles.ts';
@@ -18,6 +19,8 @@ const DECLARATION_EXTENSION = /\.d\.[cm]?ts$/;
 const MAX_FILES = 10_000;
 const MAX_FILE_BYTES = 2 * 1024 * 1024;
 const MAX_TOTAL_BYTES = 50 * 1024 * 1024;
+const MAX_CONFIGURATION_FILES = 128;
+const MAX_CONFIGURATION_BYTES = 128 * 1024;
 const DEPENDENCY_SECTIONS = [
   'dependencies',
   'devDependencies',
@@ -35,6 +38,9 @@ export async function readRepository(
   const repository: Repository = { root, files: [], dependencies: [], lockfiles: [], warnings: [] };
   const declarations: DependencyDeclaration[] = [];
   const lockfiles: NpmLockfile[] = [];
+  const configurationPaths = new Map<string, string>();
+  const pendingConfigurations: string[] = [];
+  const excludedPaths: string[] = [];
   let totalBytes = 0;
   let fileCount = 0;
   async function visit(directoryPath: string): Promise<void> {
@@ -47,11 +53,19 @@ export async function readRepository(
         directoryPath === root && NPM_LOCKFILES.some((name) => name === entry.name);
       if (entry.isSymbolicLink()) {
         repository.warnings.push(`Skipped symbolic link: ${relative(root, path)}`);
+        excludedPaths.push(relative(root, path));
         continue;
       }
       if (entry.isDirectory()) {
         if (!EXCLUDED_DIRECTORIES.has(entry.name)) await visit(path);
+        else excludedPaths.push(relative(root, path));
         continue;
+      }
+      if (entry.isFile() && DECLARATION_EXTENSION.test(entry.name))
+        excludedPaths.push(relative(root, path));
+      if (entry.isFile() && entry.name.endsWith('.json')) {
+        configurationPaths.set(path, relative(root, path).split('\\').join('/'));
+        if (SOURCE_CONFIGURATION_NAMES.includes(entry.name)) pendingConfigurations.push(path);
       }
       if (
         !entry.isFile() ||
@@ -98,6 +112,33 @@ export async function readRepository(
     }
   }
   await visit(root);
+  const configurations: Repository['files'] = [];
+  const loaded = new Set<string>();
+  for (let index = 0; index < pendingConfigurations.length; index++) {
+    const path = pendingConfigurations[index];
+    if (loaded.has(path)) continue;
+    loaded.add(path);
+    if (loaded.size > MAX_CONFIGURATION_FILES)
+      throw new PipelineInputError('Repository exceeds the 128 source-configuration file limit.');
+    const size = (await stat(path)).size;
+    totalBytes += size;
+    fileCount += 1;
+    if (size > MAX_CONFIGURATION_BYTES || totalBytes > MAX_TOTAL_BYTES || fileCount > MAX_FILES)
+      throw new PipelineInputError('Source configuration exceeds repository scan limits.');
+    const content = await readFile(path, 'utf8');
+    configurations.push({ path: configurationPaths.get(path)!, content });
+    for (const reference of configurationReferences(content)) {
+      const target = resolve(path, '..', reference);
+      const candidate = configurationPaths.has(target) ? target : `${target}.json`;
+      if (configurationPaths.has(candidate)) pendingConfigurations.push(candidate);
+    }
+  }
+  if (configurations.length)
+    repository.configurations = configurations.sort((left, right) =>
+      left.path.localeCompare(right.path),
+    );
+  if (configurations.length && excludedPaths.length)
+    repository.excludedPaths = excludedPaths.sort();
   repository.dependencies = declarations.map((dependency) => ({
     ...dependency,
     lock: resolveLockedDependency(dependency, packageName, lockfiles),
