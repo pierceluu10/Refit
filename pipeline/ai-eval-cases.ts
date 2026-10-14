@@ -26,7 +26,12 @@ export interface EvalCase {
   note?: string;
 }
 
-type ResourceName = 'models' | 'files' | 'batches';
+type ResourceName = 'models' | 'files' | 'batches' | 'vectorStores' | 'responses';
+
+// Held-out resources are never used while tuning prompts or rules; run them only to confirm.
+const TUNING: ResourceName[] = ['models', 'files', 'batches'];
+const HELD_OUT: ResourceName[] = ['vectorStores', 'responses'];
+export type EvalSet = 'tuning' | 'held-out' | 'all';
 
 interface Resource {
   schema: string;
@@ -108,6 +113,44 @@ const RESOURCES: Record<ResourceName, Resource> = {
     sibling: 'source_file_id',
     siblingValue: 'file-src-77',
     second: { old: 'endpoint', rename: 'target_endpoint', value: '/v1/chat/completions' },
+  },
+  vectorStores: {
+    schema: 'VectorStore',
+    path: '/vector_stores/{vector_store_id}',
+    variable: 'store',
+    functionName: 'getVectorStoreName',
+    idFunction: 'getVectorStoreId',
+    base: { id: STRING, object: STRING, created_at: INTEGER },
+    baseValues: { id: 'vs_abc123', object: 'vector_store', created_at: 1700000000 },
+    field: 'name',
+    rename: 'display_name',
+    obscure: 'title',
+    value: 'Support Docs',
+    unrelated: 'storage_tier',
+    unrelatedValue: 'standard',
+    count: 'file_count',
+    sibling: 'internal_name',
+    siblingValue: 'vs-internal-9',
+    second: { old: 'status', rename: 'state', value: 'completed' },
+  },
+  responses: {
+    schema: 'Response',
+    path: '/responses/{response_id}',
+    variable: 'response',
+    functionName: 'getResponseModel',
+    idFunction: 'getResponseId',
+    base: { id: STRING, object: STRING, created_at: INTEGER },
+    baseValues: { id: 'resp_abc123', object: 'response', created_at: 1700000000 },
+    field: 'model',
+    rename: 'model_name',
+    obscure: 'engine',
+    value: 'GPT-Demo',
+    unrelated: 'service_tier',
+    unrelatedValue: 'default',
+    count: 'output_tokens',
+    sibling: 'model_snapshot',
+    siblingValue: 'gpt-demo-2026',
+    second: { old: 'status', rename: 'lifecycle_status', value: 'completed' },
   },
 };
 
@@ -424,13 +467,16 @@ function createCase(resourceName: ResourceName, scenario: Scenario): EvalCase {
   };
 }
 
-export function evalCases(): EvalCase[] {
-  const resources = Object.keys(RESOURCES) as ResourceName[];
-  return [
-    ...SCENARIOS.flatMap((scenario) => resources.map((resource) => createCase(resource, scenario))),
+export function evalCases(set: EvalSet = 'tuning'): EvalCase[] {
+  const tuning = [
+    ...SCENARIOS.flatMap((scenario) => TUNING.map((resource) => createCase(resource, scenario))),
     createCase('models', DISAMBIGUATED),
     createCase('files', DISAMBIGUATED),
   ];
+  const heldOut = [...SCENARIOS, DISAMBIGUATED].flatMap((scenario) =>
+    HELD_OUT.map((resource) => createCase(resource, scenario)),
+  );
+  return set === 'tuning' ? tuning : set === 'held-out' ? heldOut : [...tuning, ...heldOut];
 }
 
 export function evalContract(testCase: EvalCase, side: 'before' | 'after') {

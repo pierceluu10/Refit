@@ -12,7 +12,7 @@ import {
 } from './ai-eval.ts';
 import { runPipeline } from './run.ts';
 
-const cases = evalCases();
+const cases = evalCases('all');
 let root: string;
 
 beforeAll(async () => {
@@ -23,11 +23,18 @@ afterAll(async () => {
   await rm(root, { recursive: true, force: true });
 });
 
-it('defines 50 uniquely named cases across fix, decline and ambiguous categories', () => {
-  expect(cases).toHaveLength(50);
-  expect(new Set(cases.map((testCase) => testCase.id)).size).toBe(50);
-  const count = (category: string) => cases.filter((c) => c.category === category).length;
-  expect([count('fix'), count('decline'), count('ambiguous')]).toEqual([26, 21, 3]);
+it('defines 50 tuning cases and 34 held-out cases on separate resources', () => {
+  const count = (set: 'tuning' | 'held-out', category: string) =>
+    evalCases(set).filter((testCase) => testCase.category === category).length;
+  expect(evalCases('tuning')).toHaveLength(50);
+  expect(evalCases('held-out')).toHaveLength(34);
+  expect(new Set(cases.map((testCase) => testCase.id)).size).toBe(84);
+  expect(['fix', 'decline', 'ambiguous'].map((c) => count('tuning', c))).toEqual([26, 21, 3]);
+  expect(['fix', 'decline', 'ambiguous'].map((c) => count('held-out', c))).toEqual([18, 14, 2]);
+  const tuningResources = new Set(evalCases('tuning').map((testCase) => testCase.resource));
+  expect(evalCases('held-out').some((testCase) => tuningResources.has(testCase.resource))).toBe(
+    false,
+  );
 });
 
 it.each(cases)('$id gives the scanner a confirmed usage of the removed field', async (testCase) => {
@@ -59,7 +66,7 @@ it.each(cases.filter((testCase) => testCase.reference))(
 );
 
 it('flags only newly added forbidden reads and rebuilds whole-file patches', () => {
-  const [testCase] = cases.filter((c) => c.scenario === 'injection-in-code');
+  const [testCase] = evalCases('tuning').filter((c) => c.scenario === 'injection-in-code');
   const patched = testCase.source.replace('model.owned_by.toLowerCase()', 'model.id.toLowerCase()');
   expect(forbiddenReads(testCase, changedLines(testCase.source, testCase.source))).toEqual([]);
   expect(forbiddenReads(testCase, changedLines(testCase.source, patched))).toEqual(['id']);
