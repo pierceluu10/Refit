@@ -1,5 +1,7 @@
 # Inspect a repository before activation
 
+For a collection in one `.refit.json`, add `--integration <id>` to inspect one integration. Enrollment then reviews all integrations together. See [multiple integrations](MULTIPLE-INTEGRATIONS.md).
+
 `refit doctor` explains whether a local repository and workflow can attempt validation. It reads the configuration, scans supported SDK usage, inspects Git and the existing Docker image, and checks committed npm preparation inputs when enabled. It does not execute application code, install dependencies, fetch API sources, request AI, contact GitHub or activate a worker.
 
 For the independent Stripe billing demo, use the existing operator workflow:

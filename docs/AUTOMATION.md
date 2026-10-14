@@ -1,5 +1,7 @@
 # Local API monitoring with Refit 0.10
 
+Collections with `formatVersion: 2` support up to eight named integrations in one repository. Manual `run`, `watch` and `doctor` commands require `--integration <id>`; enrollment reviews the whole collection and the App service expands it into independent targets such as `billing.stripe` and `billing.openai`, with separate draft PRs and retries. Existing single profiles keep their current commands. See [multiple integrations](MULTIPLE-INTEGRATIONS.md).
+
 Refit has a local polling worker that captures an OpenAPI source, compares it with a retained baseline, scans a repository, and processes each migration once. It can also monitor up to eight manually configured public changelog or migration-documentation pages for each target. AI generation and GitHub publication are explicit options. Start with a single poll; remove `--once` to keep the worker running while your computer is on.
 
 This is the operator workflow for the installed Refit Agent. A customer installing the GitHub App does not yet start a hosted worker. The frontend is still illustrative.
@@ -26,11 +28,11 @@ On Pierce's machine, the installed App and reviewed repository approval are alre
 cd /Users/pierceluu/Repos/Refit
 refit serve --env .env \
   --config /Users/pierceluu/.refit/evaluations/app-enrollment-2026-10-13/billing-service.json \
-  --state /Users/pierceluu/.refit/evaluations/stripe-service-0.10-2026-10-14 \
+  --state /Users/pierceluu/.refit/evaluations/stripe-service-0.11-2026-10-14 \
   --port 0 --once
 ```
 
-The retained 0.10 evaluation found two history reads and passed 14 baseline tests, both 14-test patched contracts and TypeScript in offline Docker. Repeating the command confirms App access, refreshes the base and reuses validated evidence. This uses the historical HTTP simulator through the real Stripe SDK, with no AI request or publication. The runtime-selected SDK version is visibly unverified under the approved operator-pin policy.
+The retained 0.11 evaluation found two history reads and passed 14 baseline tests, both 14-test patched contracts and TypeScript in offline Docker. Repeating the command confirms App access, refreshes the base and reuses validated evidence. This uses the historical HTTP simulator through the real Stripe SDK, with no AI request or publication. The runtime-selected SDK version is visibly unverified under the approved operator-pin policy.
 
 Choose a fresh state directory to run checks again. Remove `--once` and use a fixed port for continuous monitoring while your computer is on. Changing AI or publication settings requires separate fresh state; enabling publication can create a new draft, so review the configured target and retained result first. Keep the shared $2 AI ledger for any later model evaluation.
 

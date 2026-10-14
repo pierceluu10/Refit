@@ -1,5 +1,7 @@
 # Refit local agent
 
+Collections with `formatVersion: 2` support up to eight named integrations in one repository. Manual `run`, `watch` and `doctor` commands require `--integration <id>`; enrollment reviews the whole collection and the App service expands it into independent targets such as `billing.stripe` and `billing.openai`, with separate draft PRs and retries. Existing single profiles keep their current commands. See [multiple integrations](MULTIPLE-INTEGRATIONS.md).
+
 Inspect setup before running a migration with `refit doctor --repository /path/to/repo`. It defaults to a root `.refit.json`; `--config` selects an operator workflow instead. Human diagnostics explain Git, contract, mapping, API-version, preparation and Docker blockers without application execution, installs, AI or GitHub requests. `--json` supplies machine output. This does not approve or activate a repository. See [repository setup](REPOSITORY-SETUP.md).
 
 `refit enroll --repository /path/to/repo --github owner/repository --base main` reviews the committed `.refit.json`, baseline and adapter. After review, add `--approve <exact-fingerprint> --output /path/outside-git/approval.json`. Select that receipt through an `approval` service target to load the reviewed configuration from an App-managed checkout. Changed approved inputs stop before execution. See [App onboarding](APP-ONBOARDING.md).
