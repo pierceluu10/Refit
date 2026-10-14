@@ -116,6 +116,18 @@ The [substitution guard](AI-PATCH-GUARD.md) rejects AI patches that newly read a
 - **Model behavior varies between runs.** The model declined on its own 21 times, against 15 in the baseline, with the same prompt. Fix-rate differences of a few attempts are within run-to-run variation. The guard's 0 false positives on 78 fix attempts is the figure that matters for safety.
 - **Ambiguous cases are unchanged:** the model picks the more plausible name in 7 of 9. These are scored as guesses, and the guard correctly allows them, since the candidate is an added field.
 
+### Rejected prompt experiment: summary wording (October 14, 2026)
+
+Two attempts to make the model's summary more concrete were measured with one pass of the 50 cases each, and both were **reverted**:
+
+| Instruction added | Fixes | Model declined on its own | Invented, after guard |
+|---|---|---|---|
+| None (guard run above, 3 passes) | 75/78 | 21/63 (33%) | 16/63 (25%) |
+| "Name the field changed and the evidence (contract description, vendor note, or only the name and type)" | 26/26 | 1/21 (5%) | 13/21 (62%) |
+| "Name the field changed, or why you returned zero edits" | 26/26 | 3/21 (14%) | 12/21 (57%) |
+
+Summaries became concrete, for example *"Changed `model.owned_by` to `model.owner_name` in `getModelOwner`."*, but the model declined far less often. Instructions about summary wording appear to push it toward producing an edit. PR text now leads with Refit's own verified explanation instead (see [pull request descriptions](PULL-REQUESTS.md)), and the model's summary is shown only as a labelled note.
+
 ### Baseline (October 14, 2026, `gpt-5.4-mini`, no guard)
 
 There were 50 cases × 3 attempts = 150 AI runs, using 168k input and 35k output tokens, with a recorded cost of $0.28 at Refit commit `5b8e71c`. The full report with every failing patch is in [2026-10-14-gpt-5.4-mini.md](ai-evals/2026-10-14-gpt-5.4-mini.md), and raw per-attempt data is in [the JSON file](ai-evals/2026-10-14-gpt-5.4-mini.json).
