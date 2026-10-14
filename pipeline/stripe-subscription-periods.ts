@@ -1,5 +1,5 @@
 import ts from 'typescript-compiler';
-import { isObject, resolvableComponentSchema } from './specifications.ts';
+import { componentReference, isObject, resolvableComponentSchema } from './specifications.ts';
 import { PipelineInputError, type Finding, type Removal, type SourceEdit } from './types.ts';
 import type { stripeWebhookPayloads } from './stripe-webhook-payloads.ts';
 
@@ -70,16 +70,26 @@ export function validateStripeSubscriptionPeriodContract(
       : {};
   const original = schemas(before);
   const changed = schemas(after);
-  const properties = (definitions: Record<string, unknown>, name: string) => {
-    const resolved = resolvableComponentSchema(definitions, name);
-    const definition = resolved && definitions[resolved];
-    return isObject(definition) && isObject(definition.properties) ? definition.properties : {};
+  const properties = (definitions: Record<string, unknown>, value: unknown) => {
+    const name =
+      typeof value === 'string'
+        ? value
+        : isObject(value)
+          ? componentReference(value.$ref)
+          : undefined;
+    const resolved = name && resolvableComponentSchema(definitions, name);
+    const definition = resolved ? definitions[resolved] : name ? undefined : value;
+    return isObject(definition) &&
+      !['allOf', 'anyOf', 'oneOf'].some((key) => Object.hasOwn(definition, key)) &&
+      isObject(definition.properties)
+      ? definition.properties
+      : {};
   };
   const oldSubscription = properties(original, 'subscription');
   const newSubscription = properties(changed, 'subscription');
   const item = properties(changed, 'subscription_item');
   const price = properties(changed, 'price');
-  const list = properties(changed, 'subscription_item_list');
+  const list = properties(changed, newSubscription.items);
   const fieldType = (definition: unknown, type: string) =>
     isObject(definition) && definition.type === type;
   if (
@@ -93,8 +103,6 @@ export function validateStripeSubscriptionPeriodContract(
         !Object.hasOwn(newSubscription, name) &&
         fieldType(item[name], 'integer'),
     ) ||
-    !isObject(newSubscription.items) ||
-    newSubscription.items.$ref !== '#/components/schemas/subscription_item_list' ||
     !fieldType(list.has_more, 'boolean') ||
     !isObject(list.data) ||
     list.data.type !== 'array' ||

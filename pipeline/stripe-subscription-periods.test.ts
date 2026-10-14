@@ -151,6 +151,18 @@ it('accepts only Stripe policy adapters and checks the recorded historical field
   }
 });
 
+it('accepts Stripe inline item lists and refuses ambiguous compositions', () => {
+  const changed = structuredClone(after);
+  changed.components.schemas.subscription.properties.items =
+    changed.components.schemas.subscription_item_list;
+  delete changed.components.schemas.subscription_item_list;
+  expect(() => validateStripeSubscriptionPeriodContract(POLICY, before, changed)).not.toThrow();
+  changed.components.schemas.subscription.properties.items.anyOf = [{ type: 'object' }];
+  expect(() => validateStripeSubscriptionPeriodContract(POLICY, before, changed)).toThrow(
+    /does not match/,
+  );
+});
+
 it.each([
   application.replace(
     'const event = stripe.webhooks.constructEvent(body, signature, secret);',
@@ -299,7 +311,7 @@ it
         ...sample.options,
         image,
         prepareDependencies: true,
-        baselineCommand: ['node', '/opt/refit-checks/contract.mjs', '.', 'before'],
+        baselineCommand: ['node', '/opt/refit-checks/contract.mjs', '.', 'regression'],
         command:
           checks === 'passed'
             ? ['node', '/opt/refit-checks/contract.mjs', '.', 'migrated']
@@ -330,7 +342,7 @@ it
             image,
             prepareDependencies: true,
             fullDiff: false,
-            baselineCommand: ['node', '/opt/refit-checks/contract.mjs', '.', 'before'],
+            baselineCommand: ['node', '/opt/refit-checks/contract.mjs', '.', 'regression'],
             command: ['node', '/opt/refit-checks/contract.mjs', '.', 'migrated'],
             aiPatch: { apiKey: 'unused', model: 'unused' },
             repairAttempts: 2,
