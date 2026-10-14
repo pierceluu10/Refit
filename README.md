@@ -273,7 +273,7 @@ Replace `--output` with `--bundle /tmp/new-refit-review` to export a private rev
 
 - `migration.patch`: the exact diff tested in the patched container.
 - `report.json`: scan evidence, provenance, input hashes and full check results.
-- `pull-request.md`: a draft PR description with validation status, affected usage, limitations and review requirements.
+- `pull-request.md`: a draft PR description that explains the provider change, why each replacement was chosen and from which evidence, the exact changed lines, what each check ran and proved, and what to review. See [pull request descriptions](docs/PULL-REQUESTS.md).
 - `manifest.json`: file sizes and SHA-256 hashes, the source revision, and an explicit unpublished status.
 
 The bundle directory must not already exist. Choose an output location outside the scanned repository to keep its working tree clean. Failed validations also produce bundles, clearly labeled with the failure; they retain exit code 2. Bundles are local artifacts and do not push a branch or open a PR. Hashes detect content changes relative to the manifest; they are not signatures or proof of trusted execution. If a process is interrupted while writing, a missing or invalid manifest means the bundle is incomplete.
