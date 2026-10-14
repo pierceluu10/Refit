@@ -3,6 +3,7 @@
   "packageName": "@example/catalog",
   "defaultImport": false,
   "namedExport": "Catalog",
+  "apiVersion": { "constructorArgument": 0, "property": "apiVersion", "requestArguments": [] },
   "operations": [
     { "resource": "items", "method": "create", "schema": "Item", "operationId": "createItem" }
   ],
