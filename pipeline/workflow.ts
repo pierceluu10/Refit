@@ -1,3 +1,4 @@
+import { WEBHOOK_REVIEW_REASON } from './stripe-webhook-payloads.ts';
 import type { AiOptions } from './ai-budget.ts';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
@@ -144,6 +145,8 @@ export async function runWorkflow(options: {
     const scan = await runPipeline({ ...inputs, proposePatch: true });
     runId = scan.runId;
     await save('scan.json', `${JSON.stringify(scan, null, 2)}\n`);
+    if (scan.findings.some((finding) => finding.webhook))
+      return await finish('needs-review', WEBHOOK_REVIEW_REASON, runId);
     if (scan.apiVersion.applicability !== 'matches-before')
       return await finish('needs-review', scan.apiVersion.reason, runId);
     const operationUsageCount = countBreakingOperationUsages(scan.operationImpacts);

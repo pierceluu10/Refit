@@ -1,3 +1,4 @@
+import { WEBHOOK_REVIEW_REASON } from './stripe-webhook-payloads.ts';
 import type { AiOptions } from './ai-budget.ts';
 import { analyzeRepository } from './analyzer.ts';
 import { proposeAiPatch } from './ai-patches.ts';
@@ -174,12 +175,19 @@ export async function runPipeline(options: {
         requestRenames,
       ).findings.length
     : 0;
-  if (options.aiPatch && !configuredMigrationProposal && !operationImpacts.length)
+  const webhookFindings = analysis.findings.filter((finding) => finding.webhook);
+  if (
+    options.aiPatch &&
+    !configuredMigrationProposal &&
+    !operationImpacts.length &&
+    !webhookFindings.length
+  )
     options.onProgress?.('Requesting an AI migration proposal...');
-  else if (deterministicRequested)
+  else if (deterministicRequested && !webhookFindings.length)
     options.onProgress?.('Generating a deterministic migration proposal...');
-  const patch =
-    options.aiPatch && !configuredMigrationProposal
+  const patch = webhookFindings.length
+    ? { status: 'not-generated' as const, reason: WEBHOOK_REVIEW_REASON }
+    : options.aiPatch && !configuredMigrationProposal
       ? operationImpacts.length
         ? {
             status: 'not-generated' as const,
@@ -271,6 +279,7 @@ export async function runPipeline(options: {
     warnings: [
       ...repository.warnings,
       ...sourceWarnings,
+      ...(webhookFindings.length ? [WEBHOOK_REVIEW_REASON] : []),
       ...(apiVersion.applicability === 'matches-before' ? [] : [apiVersion.reason]),
       ...(apiVersion.source.status === 'verified' || apiVersionSourceBlocked(apiVersion)
         ? []
@@ -286,24 +295,26 @@ export async function runPipeline(options: {
           ]
         : []),
     ],
-    assessment: options.assessment
-      ? await assessMigration(
-          buildAssessmentEvidence(
-            repository,
-            changes,
-            analysis.findings,
-            provider,
-            operationImpacts,
-            operationChanges,
-          ),
-          options.assessment,
-        )
-      : { status: 'not-requested' },
+    assessment: webhookFindings.length
+      ? { status: 'blocked' as const, reason: WEBHOOK_REVIEW_REASON }
+      : options.assessment
+        ? await assessMigration(
+            buildAssessmentEvidence(
+              repository,
+              changes,
+              analysis.findings,
+              provider,
+              operationImpacts,
+              operationChanges,
+            ),
+            options.assessment,
+          )
+        : { status: 'not-requested' },
     coverage: {
       specification: specificationDiff
         ? specificationDiff.coverage
         : 'Direct properties removed from existing, non-composed OpenAPI 3 component schemas only. Not a complete breaking-change diff.',
-      code: `Immutable ESM/CommonJS SDK clients, including named/default imports and static requires of supported exported bindings through relative paths or recorded tsconfig/jsconfig paths and baseUrl, and awaited resource.method calls mapped by the recorded adapter. Resources can be dot-separated identifier paths up to ${MAX_SDK_RESOURCE_LENGTH} characters. Optional SDK invocations and computed resource access remain review cases; unawaited calls are not treated as response objects. Optional adapter operationId mappings correlate unresolved breaking OpenAPI changes to SDK call sites; explicit operationReplacements can edit direct, non-optional calls on unescaped clients after matching the old/new recorded contracts. Configured requestPropertyRenames edit direct object-literal body keys, including quoted and shorthand properties, after comparing the normalized operation contract; spreads, computed keys, duplicates, aliases and optional calls require review. Property reads can follow direct local component-schema $refs through nested objects, supported array items, literal numeric indexes, const for...of bindings, inline one-parameter array callbacks and immutable aliases. Top-level one-parameter functions returning exactly one mapped SDK call are traced locally or through supported named imports. Removed-field indexes and destructuring can be reported but are not auto-edited. Dynamic indexes, mutable loop bindings, named or multi-parameter callbacks, transformed array chains, inline/composed/external schemas, detected writes, alias mutations, and references passed to calls or stored in containers remain review cases. Namespace imports and re-exports invalidate shared-client and wrapper confirmation. Dynamic exports, local ESM/CommonJS interop, shadowed or exposed loaders, unconfigured or unverified aliases, ambiguous resolution, multi-step or transformed wrappers, webhooks and dynamic code still require review. Confirmed means traced under the supplied adapter mapping, not independently verified SDK semantics.`,
+      code: `Immutable ESM/CommonJS SDK clients, including named/default imports and static requires of supported exported bindings through relative paths or recorded tsconfig/jsconfig paths and baseUrl, and awaited resource.method calls mapped by the recorded adapter. Resources can be dot-separated identifier paths up to ${MAX_SDK_RESOURCE_LENGTH} characters. Optional SDK invocations and computed resource access remain review cases; unawaited calls are not treated as response objects. Optional adapter operationId mappings correlate unresolved breaking OpenAPI changes to SDK call sites; explicit operationReplacements can edit direct, non-optional calls on unescaped clients after matching the old/new recorded contracts. Configured requestPropertyRenames edit direct object-literal body keys, including quoted and shorthand properties, after comparing the normalized operation contract; spreads, computed keys, duplicates, aliases and optional calls require review. Property reads can follow direct local component-schema $refs through nested objects, supported array items, literal numeric indexes, const for...of bindings, inline one-parameter array callbacks and immutable aliases. Top-level one-parameter functions returning exactly one mapped SDK call are traced locally or through supported named imports. Removed-field indexes and destructuring can be reported but are not auto-edited. Dynamic indexes, mutable loop bindings, named or multi-parameter callbacks, transformed array chains, inline/composed/external schemas, detected writes, alias mutations, and references passed to calls or stored in containers remain review cases. Namespace imports and re-exports invalidate shared-client and wrapper confirmation. Dynamic exports, local ESM/CommonJS interop, shadowed or exposed loaders, unconfigured or unverified aliases, ambiguous resolution, multi-step or transformed wrappers and dynamic code still require review. Supported Stripe snapshot constructors, static payload aliases and exact event-type branches trace incoming payload reads under a curated mapping; webhook version and explicit migration-policy review block automatic patches, AI and publication. Unknown events, thin events, unsigned parsing and cross-function payload flows remain outside confirmation. Confirmed means traced under the supplied mapping, not independently verified SDK semantics or incoming API versions.`,
       decision:
         'No finding is not proof of no impact. Supported root npm lockfiles provide recorded SDK versions, not verified installed versions or API-version applicability.',
     },

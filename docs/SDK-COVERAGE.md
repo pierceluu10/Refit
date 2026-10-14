@@ -59,6 +59,8 @@ These counts measure call tracing, not confirmed breaking reads, recall/precisio
 
 ## Limits of this benchmark
 
+The separate [webhook field scan](benchmarks/2026-10-14-stripe-webhook-coverage.md) found no traced historical subscription-period or Invoice.subscription webhook reads in the 15 pinned Stripe repositories, with one parse refusal. It exposed and removed three same-name Checkout Session review matches; those were not affected Invoice reads. This is not a change to the call-tracing table above or a migration-success measurement.
+
 - Candidates are found by shape, so a few non-SDK calls slip in. For example, one Mistral client's `client.chat.complete` was counted under OpenAI. Excluded candidates may also hide some real SDK calls.
 - Miss reasons come from a per-file heuristic. They explain where the receiver came from, not whether Refit could safely trace it.
 - It measures **call tracing** only. Field-read tracing on traced responses, and migration success, are measured separately by the [AI evaluations](AI-EVALS.md).

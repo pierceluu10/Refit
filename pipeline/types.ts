@@ -17,6 +17,12 @@ export interface Finding extends Location {
   expression: string;
   confidence: 'confirmed' | 'review';
   reason: string;
+  webhook?: {
+    eventTypes: string[];
+    schema?: string;
+    origin: Location;
+    apiVersion: 'unverified';
+  };
 }
 
 export interface SourceEdit {

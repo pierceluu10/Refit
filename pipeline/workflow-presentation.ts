@@ -157,6 +157,27 @@ export async function renderWorkflowResult(result: Result) {
     }
   }
   if (report && Array.isArray(report.findings)) {
+    const webhookReads = report.findings.filter(
+      (finding) => isObject(finding) && isObject(finding.webhook),
+    );
+    if (webhookReads.length) {
+      rows.push(
+        `Webhooks    ${webhookReads.length} affected payload ${webhookReads.length === 1 ? 'read' : 'reads'}; incoming API version requires review`,
+      );
+      const types = [
+        ...new Set(
+          webhookReads.flatMap((finding) => {
+            const details = (finding as Record<string, unknown>).webhook;
+            return isObject(details) && Array.isArray(details.eventTypes)
+              ? details.eventTypes
+                  .filter((name): name is string => typeof name === 'string')
+                  .map(terminalText)
+              : [];
+          }),
+        ),
+      ];
+      rows.push(`Events      ${types.length ? summaryList(types) : 'Type could not be verified'}`);
+    }
     const confirmed = report.findings.filter(
       (finding) => isObject(finding) && finding.confidence === 'confirmed',
     );
@@ -169,6 +190,23 @@ export async function renderWorkflowResult(result: Result) {
       rows.push(
         `Found       ${confirmed.length} confirmed ${confirmed.length === 1 ? 'usage' : 'usages'} in ${files.size} ${files.size === 1 ? 'file' : 'files'}`,
       );
+    const review = report.findings.filter(
+      (finding) => isObject(finding) && finding.confidence === 'review',
+    );
+    if (review.length) {
+      const sources = [
+        ...new Set(
+          review.flatMap((finding) => {
+            const file = (finding as Record<string, unknown>).file;
+            return typeof file === 'string' ? [terminalText(file)] : [];
+          }),
+        ),
+      ];
+      rows.push(
+        `Review      ${review.length} ${review.length === 1 ? 'finding requires' : 'findings require'} review in ${sources.length} ${sources.length === 1 ? 'file' : 'files'}`,
+      );
+      if (sources.length) rows.push(`Sources     ${summaryList(sources)}`);
+    }
   }
   if (
     report &&

@@ -1,0 +1,41 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Reviewed Stripe subscription-period projection",
+    "version": "2025-03-31.basil"
+  },
+  "paths": {},
+  "components": {
+    "schemas": {
+      "payment_intent": {
+        "type": "object",
+        "properties": { "id": { "type": "string" } }
+      },
+      "subscription": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "items": { "$ref": "#/components/schemas/subscription_item_list" }
+        }
+      },
+      "subscription_item_list": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/subscription_item" }
+          },
+          "has_more": { "type": "boolean" }
+        }
+      },
+      "subscription_item": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "current_period_start": { "type": "integer" },
+          "current_period_end": { "type": "integer" }
+        }
+      }
+    }
+  }
+}

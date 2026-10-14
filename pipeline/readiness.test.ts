@@ -148,6 +148,49 @@ it('aggregates dirty Git, API-version and Docker setup failures with actionable 
   ).toBe(true);
 });
 
+it('requires incoming webhook version and subscription-item policy review before activation', async () => {
+  const sample = await setup();
+  const webhook = resolve('pipeline/fixtures/stripe-webhooks');
+  for (const file of ['before.json', 'after.json'])
+    await cp(join(webhook, file), join(sample.repository, file));
+  await cp(join(webhook, 'repository/client.js'), join(sample.repository, 'client.js'));
+  await cp(join(webhook, 'repository/entitlements.js'), join(sample.repository, 'entitlements.js'));
+  const { providerConfig: _provider, ...configuration } = sample.configuration;
+  await writeFile(
+    join(sample.repository, '.refit.json'),
+    JSON.stringify({ ...configuration, apiVersion: '2025-02-24.acacia' }),
+  );
+  await commit(sample.repository);
+  const fetch = vi.fn();
+  vi.stubGlobal('fetch', fetch);
+  const result = await inspectRepositoryReadiness({ repository: sample.repository });
+  expect(result.status).toBe('needs-attention');
+  expect(result.checks).toContainEqual(
+    expect.objectContaining({
+      id: 'webhook-migration',
+      status: 'blocked',
+      action: expect.stringContaining('subscription-item policy'),
+    }),
+  );
+  expect(result.sdkCoverage).toMatchObject({
+    observedCalls: 1,
+    mappedCalls: 0,
+    localHelperCalls: 1,
+    unmappedMethods: [],
+  });
+  expect(result.checks).toContainEqual(
+    expect.objectContaining({
+      id: 'sdk-coverage',
+      status: 'passed',
+      detail: expect.stringContaining('local webhook signature constructor'),
+    }),
+  );
+  expect(fetch).not.toHaveBeenCalled();
+  await expect(readFile(join(sample.repository, 'application-executed'))).rejects.toMatchObject({
+    code: 'ENOENT',
+  });
+});
+
 it('blocks activation when shared source alias configuration cannot be verified', async () => {
   const sample = await setup();
   await writeFile(join(sample.repository, 'tsconfig.json'), '{"extends":"@vendor/tsconfig"}');

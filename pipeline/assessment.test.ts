@@ -48,6 +48,20 @@ function assessment(id: string) {
 
 afterEach(() => vi.unstubAllGlobals());
 
+it('refuses advisory webhook assessment before making a paid request', async () => {
+  const input = await evidence();
+  input.findings[0].webhook = {
+    schema: 'payment_intent',
+    eventTypes: ['payment_intent.succeeded'],
+    origin: { file: 'handler.ts', line: 1, column: 1 },
+    apiVersion: 'unverified',
+  };
+  const fetch = vi.fn();
+  vi.stubGlobal('fetch', fetch);
+  await expect(assessMigration(input, OPTIONS)).rejects.toThrow(/migration-policy/);
+  expect(fetch).not.toHaveBeenCalled();
+});
+
 it('sends bounded source evidence only when requested and keeps the model advisory', async () => {
   const input = await evidence();
   const fetcher = vi.fn().mockResolvedValue(response(assessment(input.findings[0].id)));
