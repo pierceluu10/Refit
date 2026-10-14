@@ -11,6 +11,7 @@ export function migrationIdentity(
   // Applicability metadata must not duplicate an otherwise identical migration PR.
   const adapter = { ...report.adapter };
   delete adapter.apiVersion;
+  delete adapter.constructorCalls;
   return digest(
     JSON.stringify({
       revision,

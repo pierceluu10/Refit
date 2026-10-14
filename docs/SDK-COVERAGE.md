@@ -11,7 +11,7 @@ Before Refit can migrate anything, its scanner must **trace** a call: it must re
 
 Run it with `npm run benchmark:coverage -- --repos <dir> --list <pinned.json> --output <new-dir>`. The tool is `pipeline/sdk-coverage.ts`, with a classifier test in `pipeline/sdk-coverage.test.ts`.
 
-## Results (October 14, 2026)
+## Baseline results (October 14, 2026, before 0.13)
 
 The full report, including per-repository rows and examples of each miss, is in [`benchmarks/2026-10-14-sdk-coverage.md`](benchmarks/2026-10-14-sdk-coverage.md).
 
@@ -39,7 +39,7 @@ Ranked by how many repositories each pattern affects, since one repository can r
 | **Inline factory call** | `getAnthropic().messages.create(…)` | 2 | 5 |
 | Destructured or other variables | | 2 | 4 |
 
-The shared-client patterns, path aliases and factories, are the norm in Next.js and Node services. Today Refit follows only module-level `const client = new SDK()` clients, plus direct relative named imports of them.
+The shared-client patterns, path aliases and factories, are the norm in Next.js and Node services. That baseline predates 0.13. Refit now follows supported default-exported and CommonJS clients, including documented Stripe callable initialization. The table above retains the original measurement; it must not be read as a post-change result. See [current client forms](CLIENT-MODULES.md).
 
 ## Limits of this benchmark
 
@@ -50,7 +50,7 @@ The shared-client patterns, path aliases and factories, are the norm in Next.js 
 
 ## Recommended scanner work, in order
 
-1. **Resolve path aliases** from `tsconfig.json`/`jsconfig.json` `paths` (and `@/`, `~/`), and follow **default exports** of shared clients. Affects 10 of 40 repositories.
+1. **Resolve path aliases** from `tsconfig.json`/`jsconfig.json` `paths` (and `@/`, `~/`), following the default-export support added in 0.13. Affects 10 of 40 repositories.
 2. **Trace clients stored on class fields** (`this.client = new SDK()` in a constructor or field initializer). Affects 7 repositories, and is the most common pattern by call count.
 3. **Trace simple factories:** functions returning `new SDK(...)` or a module-level client, including memoized getters. Affects 7 repositories, plus 2 with inline factory calls.
 4. **Skip unparseable files instead of failing the whole scan**, and report which were skipped.

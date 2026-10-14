@@ -1,10 +1,12 @@
 import { execFile } from 'node:child_process';
-import { cp, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { promisify } from 'node:util';
 import { afterEach, expect, it } from 'vitest';
 import { runPipeline } from './run.ts';
+import { runWorkflow } from './workflow.ts';
+import { verifyArtifacts } from './verification.ts';
 
 const execute = promisify(execFile);
 const fixture = resolve('pipeline/fixtures/stripe-sdk');
@@ -122,6 +124,136 @@ it.skipIf(!process.env.REFIT_STRIPE_SDK).each(SDK_VERSIONS)(
       applicability: 'conflicts-with-code',
       source: { status: 'conflict' },
     });
+  },
+  180_000,
+);
+
+it
+  .skipIf(
+    !process.env.REFIT_STRIPE_SDK ||
+      !process.env.REFIT_DOCKER_IMAGE ||
+      !process.env.REFIT_NPM_PREPARE,
+  )
+  .each(
+    SDK_VERSIONS.flatMap((version) =>
+      ['esm-default', 'commonjs-factory'].map((format) => ({ version, format })),
+    ),
+  )(
+  'validates guarded $format history with real Stripe $version across pages and empty lists in offline Docker',
+  async ({ version, format }) => {
+    const root = await mkdtemp(join(tmpdir(), 'refit-client-module-sdk-'));
+    directories.push(root);
+    const repository = join(root, 'repository');
+    await cp(join(fixture, 'repository'), repository, { recursive: true });
+    await rm(join(repository, 'billing.js'));
+    const commonjs = format === 'commonjs-factory';
+    const extension = commonjs ? 'cjs' : 'js';
+    const source = join(repository, `billing.${extension}`);
+    const originalClient = (await readFile(join(repository, 'client.js'), 'utf8')).replace(
+      "  host: '127.0.0.1',",
+      "  apiVersion: '2022-08-01',\n  host: '127.0.0.1',",
+    );
+    const client = commonjs
+      ? originalClient
+          .replace("import Stripe from 'stripe';", "const Stripe = require('stripe');")
+          .replace('export const stripe = new Stripe', 'const stripe = Stripe') +
+        '\nmodule.exports = stripe;\n'
+      : originalClient.replace('export const stripe', 'const stripe') +
+        '\nexport default stripe;\n';
+    await rm(join(repository, 'client.js'));
+    await writeFile(join(repository, `client.${extension}`), client);
+    await writeFile(
+      join(repository, `payments.${extension}`),
+      commonjs
+        ? `const stripe = require('./client.cjs'); function retrieve(id) { return stripe.paymentIntents.retrieve(id); } module.exports = {retrieve};`
+        : `import stripe from './client.js'; export function retrieve(id) { return stripe.paymentIntents.retrieve(id); }`,
+    );
+    const application = `${commonjs ? "const {retrieve} = require('./payments.cjs');" : "import {retrieve} from './payments.js';"}
+class MissingHistory extends Error {}
+${commonjs ? '' : 'export '}async function chargeHistory(id) {
+  const intent = await retrieve(id);
+  if (!intent.charges) { throw new MissingHistory('Missing history'); }
+  return intent.charges.data;
+}
+${commonjs ? 'exports.chargeHistory = chargeHistory;' : ''}`;
+    await writeFile(source, application);
+    await writeFile(join(repository, '.gitignore'), 'node_modules/\n');
+    await mkdir(join(repository, 'simulator'));
+    await cp(join(fixture, 'contract.mjs'), join(repository, 'simulator/contract.mjs'));
+    await execute(
+      'npm',
+      [
+        'install',
+        '--ignore-scripts',
+        '--no-audit',
+        '--no-fund',
+        '--save-exact',
+        `stripe@${version}`,
+      ],
+      { cwd: repository, timeout: INSTALL_TIMEOUT_MS },
+    );
+    const harness = join(repository, 'simulator/contract.mjs');
+    for (const empty of ['0', '1']) {
+      const env = {
+        ...process.env,
+        REFIT_FIXTURE_PAGINATION: '1',
+        REFIT_FIXTURE_EMPTY: empty,
+        REFIT_EXPECTED_API_VERSION: '2022-08-01',
+      };
+      const before = JSON.parse(
+        (await execute(process.execPath, [harness, source, 'before'], { env })).stdout,
+      );
+      expect(before.chargeIds).toEqual(empty === '1' ? [] : ['ch_first', 'ch_second']);
+      await expect(
+        execute(process.execPath, [harness, source, 'after'], { env }),
+      ).rejects.toMatchObject({ code: 1, stderr: expect.stringContaining('Missing history') });
+    }
+    const git = (args: string[]) =>
+      execute('git', ['-C', repository, '-c', 'commit.gpgsign=false', ...args]);
+    await git(['init', '-b', 'main']);
+    await git(['add', '.']);
+    await git([
+      '-c',
+      'user.name=Refit Test',
+      '-c',
+      'user.email=test@example.invalid',
+      'commit',
+      '-m',
+      'test: seed guarded module fixture',
+    ]);
+    const checks = (mode: string) => [
+      'sh',
+      '-c',
+      `REFIT_FIXTURE_PAGINATION=1 REFIT_EXPECTED_API_VERSION=2022-08-01 node simulator/contract.mjs billing.${extension} ${mode} && REFIT_FIXTURE_EMPTY=1 REFIT_EXPECTED_API_VERSION=2022-08-01 node simulator/contract.mjs billing.${extension} ${mode}`,
+    ];
+    const result = await runWorkflow({
+      repository,
+      before: resolve('pipeline/fixtures/before.json'),
+      after: resolve('pipeline/fixtures/after.json'),
+      image: process.env.REFIT_DOCKER_IMAGE!,
+      prepareDependencies: true,
+      baselineCommand: checks('before'),
+      command: checks('after'),
+      apiVersion: '2022-08-01',
+      apiVersionPolicy: 'source-verified',
+      output: join(root, 'run'),
+    });
+    expect(result.manifest.status).toBe('validated');
+    const report = JSON.parse(await readFile(join(result.directory, 'report.json'), 'utf8'));
+    expect(report.apiVersion.source.status).toBe('verified');
+    expect(report.patch).toMatchObject({ generator: 'deterministic', unresolvedFindings: 0 });
+    expect(report.validation).toMatchObject({
+      baseline: { status: 'passed' },
+      patched: { status: 'passed' },
+    });
+    expect(report.validation.patched.stdout).toContain('starting_after=ch_first');
+    expect(report.validation.patched.stdout).toContain('"chargeIds":[]');
+    expect(report.publicationFiles.map((file: { path: string }) => file.path)).toEqual([
+      `billing.${extension}`,
+    ]);
+    expect(await readFile(source, 'utf8')).toBe(application);
+    expect((await git(['status', '--porcelain'])).stdout).toBe('');
+    expect((await verifyArtifacts(result.directory)).status).toBe('integrity-verified');
   },
   180_000,
 );

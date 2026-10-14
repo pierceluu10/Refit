@@ -171,12 +171,46 @@ it('keeps string-method reads uncertain when schema typing is absent or the resp
   expect((await runPipeline(input)).findings.at(-1)?.confidence).toBe('review');
 });
 
-it.skipIf(!process.env.REFIT_OPENAI_SDK)(
-  'applies a configured rename through real SDK HTTP requests to an offline simulator',
-  async () => {
+it.skipIf(!process.env.REFIT_OPENAI_SDK).each(['named', 'default', 'commonjs'])(
+  'applies a configured rename through real SDK %s modules and offline HTTP',
+  async (format) => {
     const input = await inputs();
+    const commonjs = format === 'commonjs';
+    const extension = commonjs ? 'cjs' : 'js';
+    if (format !== 'named') {
+      const originalClient = await readFile(join(input.repository, 'client.js'), 'utf8');
+      await writeFile(
+        join(input.repository, `client.${extension}`),
+        commonjs
+          ? originalClient
+              .replace("import OpenAI from 'openai';", "const { OpenAI } = require('openai');")
+              .replace('export const client', 'const client') + '\nmodule.exports = client;\n'
+          : originalClient.replace('export const client', 'const client') +
+              '\nexport default client;\n',
+      );
+      for (const [name, exported] of [
+        ['models', 'getModelOwner'],
+        ['chat', 'getCompletionModel'],
+      ]) {
+        const original = await readFile(join(input.repository, `${name}.js`), 'utf8');
+        await writeFile(
+          join(input.repository, `${name}.${extension}`),
+          commonjs
+            ? original
+                .replace(
+                  "import { client } from './client.js';",
+                  "const client = require('./client.cjs');",
+                )
+                .replace('export async function', 'async function') +
+                `\nexports.${exported} = ${exported};\n`
+            : original.replace('import { client }', 'import client'),
+        );
+        if (commonjs) await rm(join(input.repository, `${name}.js`));
+      }
+      if (commonjs) await rm(join(input.repository, 'client.js'));
+    }
     await installFixture(input);
-    const source = join(input.repository, 'models.js');
+    const source = join(input.repository, `models.${extension}`);
     const harness = join(FIXTURE, 'contract.mjs');
     const before = JSON.parse(
       (await execute(process.execPath, [harness, source, 'before'])).stdout,

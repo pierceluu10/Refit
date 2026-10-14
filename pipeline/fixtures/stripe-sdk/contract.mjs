@@ -7,10 +7,15 @@ const [source, mode] = process.argv.slice(2);
 assert.ok(source, 'A billing module path is required.');
 assert.ok(['before', 'after'].includes(mode), 'Mode must be before or after.');
 const intentId = 'pi_refit_contract';
-const charges = [
-  { id: 'ch_first', object: 'charge', payment_intent: intentId },
-  { id: 'ch_second', object: 'charge', payment_intent: intentId },
-];
+const PAGE_SIZE = 1;
+const paginated = process.env.REFIT_FIXTURE_PAGINATION === '1';
+const empty = process.env.REFIT_FIXTURE_EMPTY === '1';
+const charges = empty
+  ? []
+  : [
+      { id: 'ch_first', object: 'charge', payment_intent: intentId },
+      { id: 'ch_second', object: 'charge', payment_intent: intentId },
+    ];
 const list = { object: 'list', data: charges, has_more: false, url: '/v1/charges' };
 const requests = [];
 const apiVersions = [];
@@ -24,11 +29,19 @@ const server = createServer((request, response) => {
       JSON.stringify({
         id: intentId,
         object: 'payment_intent',
-        ...(mode === 'before' ? { charges: list } : { latest_charge: charges[1].id }),
+        ...(mode === 'before' ? { charges: list } : { latest_charge: charges.at(-1)?.id ?? null }),
       }),
     );
-  } else if (request.method === 'GET' && request.url === `/v1/charges?payment_intent=${intentId}`) {
-    response.end(JSON.stringify(list));
+  } else if (
+    request.method === 'GET' &&
+    request.url.startsWith(`/v1/charges?payment_intent=${intentId}`)
+  ) {
+    const cursor = new URL(request.url, 'http://127.0.0.1').searchParams.get('starting_after');
+    const start = cursor ? charges.findIndex((charge) => charge.id === cursor) + 1 : 0;
+    const data = paginated ? charges.slice(start, start + PAGE_SIZE) : charges;
+    response.end(
+      JSON.stringify({ ...list, data, has_more: paginated && start + PAGE_SIZE < charges.length }),
+    );
   } else {
     response.statusCode = 400;
     response.end(
@@ -60,6 +73,14 @@ try {
     assert.deepEqual(requests, [
       { method: 'GET', path: `/v1/payment_intents/${intentId}` },
       { method: 'GET', path: `/v1/charges?payment_intent=${intentId}` },
+      ...(paginated && !empty
+        ? [
+            {
+              method: 'GET',
+              path: `/v1/charges?payment_intent=${intentId}&starting_after=${charges[0].id}`,
+            },
+          ]
+        : []),
     ]);
   console.log(
     JSON.stringify({ mode, chargeIds: result.map((charge) => charge.id), requests, apiVersions }),

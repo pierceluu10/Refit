@@ -54,3 +54,16 @@ it('rejects excessive import context instead of silently truncating essential ev
       index + 1 < CONTEXT_CHAIN_LENGTH ? `import './${index + 1}.ts';` : 'export {};';
   expect(() => buildPatchContext(repository(files), new Set(['0.ts']))).toThrow(/context exceeds/);
 });
+
+it('includes static CommonJS and import-equals dependencies transitively without following dynamic calls', () => {
+  const input = repository({
+    'history.cts': "const {retrieve} = require('./payments.cjs'); require(dynamicPath);",
+    'payments.cts': "import client = require('./client.cjs');",
+    'client.cts': "const Stripe = require('stripe'); module.exports = Stripe('test');",
+    'unrelated.ts': 'export const secret = true;',
+  });
+  expect(buildPatchContext(input, new Set(['history.cts'])).map((file) => file.path)).toEqual([
+    'payments.cts',
+    'client.cts',
+  ]);
+});

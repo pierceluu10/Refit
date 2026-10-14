@@ -46,7 +46,7 @@ A provider adapter can add:
 
 This example describes `new Client({ headers: { version: '1' } })` and `client.resource.method(parameters, { headers: { version: '1' } })`. Indexes are zero-based, unique and bounded from 0 to 16. The property is a dot-separated identifier path. Use `requestArguments: []` only when that SDK has no version overrides in its supported calls. The mapping applies to every observed SDK resource method on a traced client, including nested resources and methods without an operation mapping. Verify the metadata against the actual SDK; it is an operator-authored assumption.
 
-The built-in Stripe mapping checks constructor argument 1, property `apiVersion`, and request arguments 1 and 2 for optional overloads. Both configuration mechanisms appear in [Stripe's official migration guide](https://github.com/stripe/stripe-node/wiki/Migration-guide-for-v12). Refit does not infer the account default used by older SDKs or the default embedded in newer SDKs.
+The built-in Stripe mapping checks both `new Stripe(...)` and its documented callable initialization through supported ESM/CommonJS client modules. It checks constructor argument 1, property `apiVersion`, and request arguments 1 and 2 for optional overloads. Both configuration mechanisms appear in [Stripe's official migration guide](https://github.com/stripe/stripe-node/wiki/Migration-guide-for-v12). Refit does not infer the account default used by older SDKs or the default embedded in newer SDKs.
 
 ## Read the evidence
 

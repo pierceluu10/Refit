@@ -224,12 +224,12 @@ describe('symbol-based impact analysis', () => {
       ).findings,
     ).toEqual([]);
   });
-  it('recognizes CommonJS as requiring review', () => {
+  it('traces a static CommonJS constructor and its awaited response', () => {
     const result = analyze(
       `const Stripe = require('stripe'); const stripe = new Stripe('test'); async function read() { const intent = await stripe.paymentIntents.retrieve('pi_test'); return intent.charges; }`,
     );
     expect(result.stripeDetected).toBe(true);
-    expect(result.findings[0].confidence).toBe('review');
+    expect(result.findings[0].confidence).toBe('confirmed');
   });
   it('fails on malformed source rather than generating misleading evidence', () => {
     expect(() => analyze('const value = ;')).toThrow(/billing.ts/);

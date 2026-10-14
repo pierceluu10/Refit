@@ -5,6 +5,8 @@ import { unsafeBindings } from './mutations.ts';
 import { declaredApiVersions } from './declared-api-versions.ts';
 import { guardedHistoryEdit } from './history-migration.ts';
 import { resolveSourceImport } from './source-imports.ts';
+import { sourceBindings } from './source-modules.ts';
+import { sdkConstructors } from './sdk-constructors.ts';
 import { componentReference, isObject, resolvableComponentSchema } from './specifications.ts';
 import type { OperationReplacement } from './provider-operation-replacements.ts';
 import type { RequestPropertyRename } from './provider-request-renames.ts';
@@ -110,14 +112,12 @@ export function analyzeRepository(
     target: ts.ScriptTarget.Latest,
   };
   const host = ts.createCompilerHost(options);
-  const resolvedImports = new Map<string, string>();
   host.fileExists = (name) => sources.has(name);
   host.readFile = (name) => sources.get(name);
   host.resolveModuleNames = (names, containingFile) =>
     names.map((name) => {
       const path = resolveSourceImport(name, containingFile, sources);
       if (!path) return undefined;
-      resolvedImports.set(`${containingFile}\0${name}`, path);
       return { resolvedFileName: path };
     });
   host.getSourceFile = (name, languageVersion) => {
@@ -132,7 +132,6 @@ export function analyzeRepository(
   const imports: Location[] = [];
   const calls: (Location & { method: string })[] = [];
   const sdkCalls: (Location & { resource: string; method: string; expression: string })[] = [];
-  const constructors = new Set<ts.Symbol>();
   const clients = new Set<ts.Symbol>();
   const responses = new Map<ts.Symbol, string>();
   const arrayItems = new Map<ts.Symbol, string>();
@@ -152,47 +151,6 @@ export function analyzeRepository(
       column: position.character + 1,
     };
   };
-  const canonical = (value: ts.Symbol | undefined): ts.Symbol | undefined => {
-    if (!value || !(value.flags & ts.SymbolFlags.Alias)) return value;
-    const binding = value.declarations?.[0];
-    if (
-      !binding ||
-      !ts.isImportSpecifier(binding) ||
-      binding.isTypeOnly ||
-      binding.parent.parent.isTypeOnly
-    )
-      return value;
-    const target = checker.getAliasedSymbol(value);
-    const declaration = target.valueDeclaration;
-    const statement =
-      declaration && ts.isFunctionDeclaration(declaration)
-        ? declaration
-        : declaration?.parent.parent;
-    const imported = binding.parent.parent.parent;
-    if (
-      !declaration ||
-      !(ts.isVariableDeclaration(declaration) || ts.isFunctionDeclaration(declaration)) ||
-      !statement ||
-      !(ts.isVariableStatement(statement) || ts.isFunctionDeclaration(statement)) ||
-      !statement.modifiers?.some((modifier) => modifier.kind === ts.SyntaxKind.ExportKeyword) ||
-      !ts.isStringLiteral(imported.moduleSpecifier)
-    )
-      return value;
-    return resolvedImports.get(
-      `${imported.getSourceFile().fileName}\0${imported.moduleSpecifier.text}`,
-    ) === declaration.getSourceFile().fileName
-      ? target
-      : value;
-  };
-  const symbol = (node: ts.Node) => canonical(checker.getSymbolAtLocation(node));
-  const contains = (set: Set<ts.Symbol>, node: ts.Node) => {
-    const found = symbol(node);
-    return found !== undefined && set.has(found);
-  };
-  const add = (set: Set<ts.Symbol>, node: ts.Node) => {
-    const found = symbol(node);
-    if (found) set.add(found);
-  };
   function visit(node: ts.Node) {
     nodes.push(node);
     ts.forEachChild(node, visit);
@@ -206,37 +164,19 @@ export function analyzeRepository(
     }
     visit(source);
   }
-  for (const node of nodes) {
-    if (
-      ts.isImportDeclaration(node) &&
-      ts.isStringLiteral(node.moduleSpecifier) &&
-      node.moduleSpecifier.text === provider.packageName
-    ) {
-      imports.push(location(node));
-      const clause = node.importClause;
-      if (provider.defaultImport && clause?.name && !clause.isTypeOnly)
-        add(constructors, clause.name);
-      if (clause?.namedBindings && ts.isNamedImports(clause.namedBindings) && !clause.isTypeOnly) {
-        for (const binding of clause.namedBindings.elements) {
-          if (
-            (binding.propertyName ?? binding.name).text === provider.namedExport &&
-            !binding.isTypeOnly
-          )
-            add(constructors, binding.name);
-        }
-      }
-    }
-    if (
-      ts.isCallExpression(node) &&
-      ts.isIdentifier(node.expression) &&
-      node.expression.text === 'require' &&
-      node.arguments.some(
-        (argument) => ts.isStringLiteral(argument) && argument.text === provider.packageName,
-      )
-    ) {
-      imports.push(location(node));
-    }
-  }
+  const modules = sourceBindings(nodes, checker, sources);
+  const canonical = modules.canonical;
+  const symbol = (node: ts.Node) => canonical(checker.getSymbolAtLocation(node));
+  const contains = (set: Set<ts.Symbol>, node: ts.Node) => {
+    const found = symbol(node);
+    return found !== undefined && set.has(found);
+  };
+  const add = (set: Set<ts.Symbol>, node: ts.Node) => {
+    const found = symbol(node);
+    if (found) set.add(found);
+  };
+  const sdk = sdkConstructors({ nodes, checker, provider, symbol });
+  imports.push(...sdk.imports.map(location));
   function sdkAccess(expression: ts.Expression) {
     const properties: (ts.PropertyAccessExpression & { name: ts.Identifier })[] = [];
     let current = expression;
@@ -393,14 +333,11 @@ export function analyzeRepository(
     previousSize = clients.size;
     for (const node of declarations) {
       const value = node.initializer;
-      if (
-        ts.isNewExpression(value) &&
-        ts.isIdentifier(value.expression) &&
-        contains(constructors, value.expression)
-      )
-        add(clients, node.name);
+      if (sdk.creation(value)) add(clients, node.name);
       if (ts.isIdentifier(value) && contains(clients, value)) add(clients, node.name);
     }
+    for (const [node, binding] of modules.inlineDefaults)
+      if (sdk.creation(node.expression)) clients.add(binding);
   }
   // Only transparent, top-level one-argument wrappers; no side effects or transformed responses.
   const wrappers = new Map<ts.Symbol, ts.CallExpression>();
@@ -562,23 +499,12 @@ export function analyzeRepository(
   }
   const providerDetected = imports.length > 0 || repository.dependencies.length > 0;
   const escapingClients = new Set<ts.Symbol>();
-  for (const node of nodes) {
-    const namespaceImport =
-      ts.isImportDeclaration(node) &&
-      node.importClause?.namedBindings &&
-      ts.isNamespaceImport(node.importClause.namedBindings);
-    if (!namespaceImport && !ts.isExportDeclaration(node)) continue;
-    const module = (node as ts.ImportDeclaration | ts.ExportDeclaration).moduleSpecifier;
-    const source =
-      module && ts.isStringLiteral(module)
-        ? resolvedImports.get(`${node.getSourceFile().fileName}\0${module.text}`)
-        : node.getSourceFile().fileName;
-    for (const client of clients)
-      if (client.valueDeclaration?.getSourceFile().fileName === source) escapingClients.add(client);
-    for (const wrapper of wrappers.keys())
-      if (wrapper.valueDeclaration?.getSourceFile().fileName === source)
-        escapingClients.add(wrapper);
-  }
+  for (const binding of [...clients, ...wrappers.keys()])
+    if (
+      binding.valueDeclaration &&
+      modules.escapingSources.has(binding.valueDeclaration.getSourceFile().fileName)
+    )
+      escapingClients.add(binding);
   const readOnlyCall = (node: ts.CallExpression) => {
     if (arrayIteration(node)) return true;
     if (
@@ -596,10 +522,31 @@ export function analyzeRepository(
     );
   };
   const initialUnsafe = new Set(escapingClients);
+  const mutationNodes = nodes.filter((node) => !modules.safeNodes.has(node));
+  const unsafeConstructors = unsafeBindings(
+    mutationNodes,
+    checker,
+    sdk.constructors,
+    new Map(),
+    canonical,
+  );
+  for (const [node, binding] of [
+    ...declarations.map((node) => [node.initializer, symbol(node.name)] as const),
+    ...[...modules.inlineDefaults].map(([node, binding]) => [node.expression, binding] as const),
+  ]) {
+    const creation = sdk.creation(node);
+    if (
+      binding &&
+      creation &&
+      (creation.arguments?.some(ts.isSpreadElement) ||
+        unsafeConstructors.has(sdk.binding(creation)!))
+    )
+      initialUnsafe.add(binding);
+  }
   for (const [response, origin] of origins)
     if (sdkCall(origin)?.optional) initialUnsafe.add(response);
   const unsafe = unsafeBindings(
-    nodes,
+    mutationNodes,
     checker,
     clients,
     origins,
@@ -712,6 +659,7 @@ export function analyzeRepository(
         clients,
         locations,
         change,
+        clientExport: modules.clientExport,
       });
     if (guarded) {
       if (!edits.some((edit) => edit.file === guarded.file)) edits.push(guarded);
@@ -833,10 +781,19 @@ export function analyzeRepository(
     sdkCalls,
     apiVersionDeclarations: declaredApiVersions({
       nodes,
+      mutationNodes,
+      initialUnsafe,
       checker,
       provider,
       clients,
-      constructor: (node) => contains(constructors, node),
+      creation: sdk.creation,
+      constructorBinding: sdk.binding,
+      clientBinding: (node) =>
+        ts.isVariableDeclaration(node.parent) && ts.isIdentifier(node.parent.name)
+          ? symbol(node.parent.name)
+          : ts.isExportAssignment(node.parent)
+            ? modules.inlineDefaults.get(node.parent)
+            : undefined,
       sdkCall,
       symbol,
       canonical,
