@@ -86,6 +86,7 @@ function renderReport(
   const outcomes = [
     'fixed',
     'declined',
+    'rejected',
     'wrong-fix',
     'invented',
     'guessed',
@@ -112,14 +113,15 @@ function renderReport(
       attempts.length,
     )})`,
     `- **Critical failures (invented a migration it should not have):** ${count((r) => r.critical)}`,
+    `- **Invented migrations stopped by the substitution guard:** ${count((r) => r.outcome === 'rejected' && r.pass)}; false positives on fixable cases: ${count((r) => r.outcome === 'rejected' && !r.pass)}`,
     `- **Correct fixes on fixable cases:** ${count((r) => r.category === 'fix' && r.outcome === 'fixed')}/${count((r) => r.category === 'fix')} (${percent(
       count((r) => r.category === 'fix' && r.outcome === 'fixed'),
       count((r) => r.category === 'fix'),
     )})`,
-    `- **Correct declines on unfixable cases:** ${count((r) => r.category === 'decline' && r.outcome === 'declined')}/${count((r) => r.category === 'decline')} (${percent(
-      count((r) => r.category === 'decline' && r.outcome === 'declined'),
+    `- **Unfixable cases kept safe (declined or rejected):** ${count((r) => r.category === 'decline' && r.pass)}/${count((r) => r.category === 'decline')} (${percent(
+      count((r) => r.category === 'decline' && r.pass),
       count((r) => r.category === 'decline'),
-    )})`,
+    )}); the model itself declined ${count((r) => r.category === 'decline' && r.outcome === 'declined')}`,
     '',
     '## Outcomes by category',
     '',

@@ -7,13 +7,14 @@ import type { AiOptions } from './ai-budget.ts';
 import { FAKE_SDK, evalAdapter, evalContract, type EvalCase } from './ai-eval-cases.ts';
 import { runPipeline } from './run.ts';
 import { digest } from './specifications.ts';
+import { FieldSubstitutionError } from './substitution-guard.ts';
 
 // proposeAiPatch() prepends three fixed review warnings before the model's own uncertainties.
 const FIXED_WARNINGS = 3;
 const SOURCE_FILE = 'src/client.js';
 
 export type EvalOutcome =
-  'fixed' | 'declined' | 'wrong-fix' | 'invented' | 'guessed' | 'not-sent' | 'error';
+  'fixed' | 'declined' | 'rejected' | 'wrong-fix' | 'invented' | 'guessed' | 'not-sent' | 'error';
 
 export interface EvalAttempt {
   id: string;
@@ -178,6 +179,35 @@ export async function runCaseAttempt(
       ...(prepared.notes.length ? { documentationSnapshots: prepared.notes } : {}),
     });
   } catch (error) {
+    if (error instanceof FieldSubstitutionError) {
+      const proposal = error.proposal as {
+        summary?: string;
+        uncertainties?: string[];
+        diff?: string;
+        model?: string;
+        usage?: { inputTokens?: number; outputTokens?: number };
+        budget?: { costUsd?: number };
+      };
+      const pass = testCase.category !== 'fix';
+      return {
+        ...base(testCase, attempt),
+        outcome: 'rejected',
+        pass,
+        critical: false,
+        detail: pass
+          ? `The substitution guard rejected an invented migration. ${error.message}`
+          : `False positive: the substitution guard rejected a fixable case. ${error.message}`,
+        summary: proposal.summary,
+        uncertainties: proposal.uncertainties,
+        changedLines: proposal.diff
+          ? changedLines(testCase.source, patchedSource(proposal.diff))
+          : undefined,
+        model: proposal.model,
+        inputTokens: proposal.usage?.inputTokens,
+        outputTokens: proposal.usage?.outputTokens,
+        costUsd: proposal.budget?.costUsd,
+      };
+    }
     return {
       ...base(testCase, attempt),
       outcome: 'error',
