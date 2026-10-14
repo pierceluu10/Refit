@@ -1,3 +1,4 @@
+import { WEBHOOK_REVIEW_REASON } from './stripe-webhook-payloads.ts';
 import type { AiOptions } from './ai-budget.ts';
 import { analyzeRepository } from './analyzer.ts';
 import { buildAssessmentEvidence } from './assessment.ts';
@@ -221,6 +222,8 @@ export async function proposeAiPatch(
   documentationSnapshots?: readonly string[],
   afterSchemaDefinitions: Record<string, unknown> = {},
 ) {
+  if (findings.some((finding) => finding.webhook))
+    throw new PipelineInputError(WEBHOOK_REVIEW_REASON);
   const impact = buildAssessmentEvidence(
     repository,
     changes,

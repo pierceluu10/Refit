@@ -166,6 +166,16 @@ export async function inspectRepositoryReadiness(options: {
     const evidence = scan.value;
     report.provider = { id: evidence.provider, packageName: evidence.adapter.packageName };
     report.currentSourceChecked = !workflow.latestStripe;
+    if (evidence.findings.some((finding) => finding.webhook))
+      report.checks.push({
+        id: 'webhook-migration',
+        title: 'Webhook payload migration',
+        status: 'blocked',
+        detail:
+          'Affected snapshot webhook payload reads need separate incoming API-version and migration-policy review.',
+        action:
+          'Confirm endpoint/event versions and the intended subscription-item policy before activation.',
+      });
     if (evidence.sourceResolution.status === 'review')
       report.checks.push({
         id: 'source-resolution',

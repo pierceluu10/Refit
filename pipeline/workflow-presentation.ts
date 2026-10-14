@@ -157,6 +157,27 @@ export async function renderWorkflowResult(result: Result) {
     }
   }
   if (report && Array.isArray(report.findings)) {
+    const webhookReads = report.findings.filter(
+      (finding) => isObject(finding) && isObject(finding.webhook),
+    );
+    if (webhookReads.length) {
+      rows.push(
+        `Webhooks    ${webhookReads.length} affected payload ${webhookReads.length === 1 ? 'read' : 'reads'}; incoming API version requires review`,
+      );
+      const types = [
+        ...new Set(
+          webhookReads.flatMap((finding) => {
+            const details = (finding as Record<string, unknown>).webhook;
+            return isObject(details) && Array.isArray(details.eventTypes)
+              ? details.eventTypes
+                  .filter((name): name is string => typeof name === 'string')
+                  .map(terminalText)
+              : [];
+          }),
+        ),
+      ];
+      rows.push(`Events      ${types.length ? summaryList(types) : 'Type could not be verified'}`);
+    }
     const confirmed = report.findings.filter(
       (finding) => isObject(finding) && finding.confidence === 'confirmed',
     );

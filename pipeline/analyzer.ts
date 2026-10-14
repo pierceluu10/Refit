@@ -7,6 +7,7 @@ import { guardedHistoryEdit } from './history-migration.ts';
 import { createSourceImportResolver } from './source-imports.ts';
 import { sourceBindings } from './source-modules.ts';
 import { sdkConstructors } from './sdk-constructors.ts';
+import { stripeWebhookPayloads } from './stripe-webhook-payloads.ts';
 import { componentReference, isObject, resolvableComponentSchema } from './specifications.ts';
 import type { OperationReplacement } from './provider-operation-replacements.ts';
 import type { RequestPropertyRename } from './provider-request-renames.ts';
@@ -216,6 +217,7 @@ export function analyzeRepository(
         (operation) => operation.resource === call.resource && operation.method === call.method,
       );
   }
+  let webhooks: ReturnType<typeof stripeWebhookPayloads> | undefined;
   function arrayItemForExpression(expression: ts.Expression): string | undefined {
     if (ts.isIdentifier(expression)) {
       const binding = symbol(expression);
@@ -274,6 +276,9 @@ export function analyzeRepository(
       : undefined;
   }
   function schemaForExpression(expression: ts.Expression): string | undefined {
+    const payload = webhooks?.payload(expression);
+    if (payload) return payload.schema;
+    if (webhooks?.event(expression)) return 'event';
     if (ts.isIdentifier(expression)) return responses.get(symbol(expression)!);
     if (ts.isPropertyAccessExpression(expression)) {
       const parent = schemaForExpression(expression.expression);
@@ -340,6 +345,11 @@ export function analyzeRepository(
     for (const [node, binding] of modules.inlineDefaults)
       if (sdk.creation(node.expression)) clients.add(binding);
   }
+  webhooks =
+    provider.packageName === 'stripe'
+      ? stripeWebhookPayloads({ nodes, symbol, sdkCall, schemas: schemaDefinitions, location })
+      : undefined;
+  for (const [binding, call] of webhooks?.events ?? []) origins.set(binding, call);
   // Only transparent, top-level one-argument wrappers; no side effects or transformed responses.
   const wrappers = new Map<ts.Symbol, ts.CallExpression>();
   for (const node of nodes) {
@@ -524,7 +534,10 @@ export function analyzeRepository(
     );
   };
   const initialUnsafe = new Set(escapingClients);
-  const mutationNodes = nodes.filter((node) => !modules.safeNodes.has(node));
+  for (const binding of webhooks?.unsafeEvents ?? []) initialUnsafe.add(binding);
+  const mutationNodes = nodes.filter(
+    (node) => !modules.safeNodes.has(node) && !webhooks?.initializations.has(node),
+  );
   const unsafeConstructors = unsafeBindings(
     mutationNodes,
     checker,
@@ -621,6 +634,7 @@ export function analyzeRepository(
       });
   }
   function propose(node: ts.Node, receiver: ts.Expression, change: Removal) {
+    if (webhooks?.origin(receiver)) return;
     if (provider !== STRIPE) {
       const rename = provider.propertyRenames?.find(
         (candidate) => candidate.schema === change.schema && candidate.removed === change.property,
@@ -725,6 +739,7 @@ export function analyzeRepository(
     if (sdkAccess(receiver)) return;
     const schema = schemaForExpression(receiver);
     const tracked = schema !== undefined;
+    const webhook = webhooks?.origin(receiver);
     for (const change of changes) {
       if (tracked && change.schema !== schema) continue;
       if (property !== undefined && change.property !== property) continue;
@@ -750,11 +765,24 @@ export function analyzeRepository(
         changeId: change.id,
         expression: property === undefined ? '[computed property]' : `.${property}`,
         confidence: confirmed ? 'confirmed' : 'review',
-        reason: confirmed
-          ? `Removed field read on a statically traced ${provider.id} ${schema} response.`
-          : uncertainMutation
-            ? 'Response or SDK client may be mutated or escape through an alias or call, or come from an optional SDK invocation; inspect manually.'
-            : 'Receiver or property cannot be proven by the supported local analysis; inspect manually.',
+        ...(webhook
+          ? {
+              webhook: {
+                schema: webhook.schema,
+                eventTypes: webhook.eventTypes,
+                origin: webhook.origin,
+                apiVersion: 'unverified' as const,
+              },
+            }
+          : {}),
+        reason:
+          confirmed && webhook
+            ? `Removed ${schema}.${change.property} read on a Stripe snapshot webhook payload narrowed by event.type. Incoming webhook API version and migration semantics require separate review.`
+            : confirmed
+              ? `Removed field read on a statically traced ${provider.id} ${schema} response.`
+              : uncertainMutation
+                ? 'Response or SDK client may be mutated or escape through an alias or call, or come from an optional SDK invocation; inspect manually.'
+                : 'Receiver or property cannot be proven by the supported local analysis; inspect manually.',
       });
     }
   }
@@ -797,7 +825,12 @@ export function analyzeRepository(
           : ts.isExportAssignment(node.parent)
             ? modules.inlineDefaults.get(node.parent)
             : undefined,
-      sdkCall,
+      sdkCall: (node) => {
+        const call = sdkCall(node);
+        return provider.packageName === 'stripe' && call?.resource === 'webhooks'
+          ? undefined
+          : call;
+      },
       symbol,
       canonical,
       location,

@@ -57,6 +57,20 @@ async function report(): Promise<Report> {
   };
 }
 
+it('refuses webhook publication even with otherwise passing validation evidence', async () => {
+  const evidence = await report();
+  evidence.findings[0].webhook = {
+    schema: 'payment_intent',
+    eventTypes: ['payment_intent.succeeded'],
+    origin: { file: 'webhook.ts', line: 1, column: 1 },
+    apiVersion: 'unverified',
+  };
+  const fetch = vi.fn();
+  vi.stubGlobal('fetch', fetch);
+  await expect(publishDraft(evidence, OPTIONS)).rejects.toThrow(/migration-policy/);
+  expect(fetch).not.toHaveBeenCalled();
+});
+
 async function endpointReport(): Promise<Report> {
   const fixture = resolve('pipeline/fixtures/endpoint-replacement');
   const scan = await runPipeline({

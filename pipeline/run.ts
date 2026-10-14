@@ -1,3 +1,4 @@
+import { WEBHOOK_REVIEW_REASON } from './stripe-webhook-payloads.ts';
 import type { AiOptions } from './ai-budget.ts';
 import { analyzeRepository } from './analyzer.ts';
 import { proposeAiPatch } from './ai-patches.ts';
@@ -174,12 +175,19 @@ export async function runPipeline(options: {
         requestRenames,
       ).findings.length
     : 0;
-  if (options.aiPatch && !configuredMigrationProposal && !operationImpacts.length)
+  const webhookFindings = analysis.findings.filter((finding) => finding.webhook);
+  if (
+    options.aiPatch &&
+    !configuredMigrationProposal &&
+    !operationImpacts.length &&
+    !webhookFindings.length
+  )
     options.onProgress?.('Requesting an AI migration proposal...');
-  else if (deterministicRequested)
+  else if (deterministicRequested && !webhookFindings.length)
     options.onProgress?.('Generating a deterministic migration proposal...');
-  const patch =
-    options.aiPatch && !configuredMigrationProposal
+  const patch = webhookFindings.length
+    ? { status: 'not-generated' as const, reason: WEBHOOK_REVIEW_REASON }
+    : options.aiPatch && !configuredMigrationProposal
       ? operationImpacts.length
         ? {
             status: 'not-generated' as const,
@@ -271,6 +279,7 @@ export async function runPipeline(options: {
     warnings: [
       ...repository.warnings,
       ...sourceWarnings,
+      ...(webhookFindings.length ? [WEBHOOK_REVIEW_REASON] : []),
       ...(apiVersion.applicability === 'matches-before' ? [] : [apiVersion.reason]),
       ...(apiVersion.source.status === 'verified' || apiVersionSourceBlocked(apiVersion)
         ? []
@@ -286,19 +295,21 @@ export async function runPipeline(options: {
           ]
         : []),
     ],
-    assessment: options.assessment
-      ? await assessMigration(
-          buildAssessmentEvidence(
-            repository,
-            changes,
-            analysis.findings,
-            provider,
-            operationImpacts,
-            operationChanges,
-          ),
-          options.assessment,
-        )
-      : { status: 'not-requested' },
+    assessment: webhookFindings.length
+      ? { status: 'blocked' as const, reason: WEBHOOK_REVIEW_REASON }
+      : options.assessment
+        ? await assessMigration(
+            buildAssessmentEvidence(
+              repository,
+              changes,
+              analysis.findings,
+              provider,
+              operationImpacts,
+              operationChanges,
+            ),
+            options.assessment,
+          )
+        : { status: 'not-requested' },
     coverage: {
       specification: specificationDiff
         ? specificationDiff.coverage
