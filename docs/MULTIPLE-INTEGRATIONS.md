@@ -62,11 +62,11 @@ refit run --repository /absolute/path/to/application \
 
 refit watch --repository /absolute/path/to/application \
   --config /absolute/path/to/application/.refit.json --integration stripe \
-  --state /absolute/path/outside-git/stripe-worker --once --human
+  --state /absolute/path/outside-git/stripe-worker --once
 
 refit watch --repository /absolute/path/to/application \
   --config /absolute/path/to/application/.refit.json --integration openai \
-  --state /absolute/path/outside-git/openai-worker --once --human
+  --state /absolute/path/outside-git/openai-worker --once
 ```
 
 Use a different state directory per integration. Switching a selector in existing worker state is refused. Missing/unknown selectors and invalid collection entries fail before execution. Human output and workflow manifests identify the selected integration. AI generation, repair and publication remain explicit opt-ins; these commands use none.
