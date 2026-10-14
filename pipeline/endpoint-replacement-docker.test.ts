@@ -143,6 +143,8 @@ it.skipIf(!DOCKER_IMAGE || !process.env.REFIT_OASDIFF)(
       ...options,
       providerConfig,
       apiVersionPolicy: 'source-verified',
+      baselineCommand: [...options.baselineCommand, '1'],
+      command: [...options.command, '1'],
     });
     expect(result.manifest.status).toBe('validated');
     const report = JSON.parse(await readFile(join(options.output, 'report.json'), 'utf8'));
