@@ -24,6 +24,7 @@ export interface ReadinessReport {
   kind: 'refit-readiness';
   status: 'ready-for-validation' | 'needs-attention';
   configuration: string;
+  integration?: string;
   repository: string | null;
   revision: string | null;
   provider: { id: string; packageName: string } | null;
@@ -76,6 +77,7 @@ async function inspectCheck<T>(
 export async function inspectRepositoryReadiness(options: {
   repository?: string;
   config?: string;
+  integration?: string;
 }): Promise<ReadinessReport> {
   const configurationPath = options.config
     ? resolve(options.config)
@@ -103,11 +105,12 @@ export async function inspectRepositoryReadiness(options: {
     'configuration',
     'Workflow configuration',
     `Supply --config with a valid workflow file, or commit ${REPOSITORY_CONFIGURATION} in the repository root.`,
-    () => readWorkflowConfiguration(configurationPath),
+    () => readWorkflowConfiguration(configurationPath, options.integration),
   );
   report.checks.push(configuration.check);
   if (!configuration.value) return report;
   const workflow = configuration.value;
+  if (workflow.integration) report.integration = workflow.integration;
   configuration.check.detail = 'Workflow fields and check command arrays are valid.';
   const repository =
     options.repository ??

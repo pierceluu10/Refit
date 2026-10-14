@@ -11,6 +11,7 @@ export function renderReadiness(report: ReadinessReport) {
       : 'Refit setup needs attention',
     '',
     `Configuration  ${terminalText(report.configuration)}`,
+    ...(report.integration ? [`Integration    ${terminalText(report.integration)}`] : []),
     ...(report.repository ? [`Repository     ${terminalText(report.repository)}`] : []),
     ...(report.provider ? [`Provider       ${terminalText(report.provider.id)}`] : []),
     '',

@@ -34,6 +34,7 @@ type Status =
 
 export async function runWorkflow(options: {
   repository: string;
+  integration?: string;
   before: string;
   after?: string;
   latestStripe?: boolean;
@@ -74,6 +75,7 @@ export async function runWorkflow(options: {
     const manifest = {
       formatVersion: 1,
       kind: 'refit-workflow',
+      ...(options.integration ? { integration: options.integration } : {}),
       status,
       stage,
       reason,
@@ -94,6 +96,7 @@ export async function runWorkflow(options: {
   let runId: string | null = null;
   try {
     options.signal?.throwIfAborted();
+    if (options.integration) options.onProgress?.(`Selected integration: ${options.integration}.`);
     options.onProgress?.('Preparing API specifications...');
     await readSpecification(options.before);
     await save('before.json', await readFile(options.before, 'utf8'));

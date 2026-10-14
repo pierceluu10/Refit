@@ -117,7 +117,7 @@ it('rejects ambiguous specifications, invalid commands, versions and oversized f
     [{ before: '' }, 'before string'],
     [{ apiVersion: '' }, 'apiVersion string'],
     [{ apiVersion: 2022 }, 'apiVersion string'],
-    [{ formatVersion: 2 }, 'formatVersion: 1'],
+    [{ formatVersion: 3 }, 'formatVersion: 1'],
     [{ command: ['npm', ''] }, 'nonempty JSON array'],
   ] as const) {
     await writeFile(path, JSON.stringify({ ...configuration, ...override }));
