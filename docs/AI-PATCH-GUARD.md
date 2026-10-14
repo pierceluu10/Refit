@@ -115,9 +115,9 @@ The model is non-deterministic, so the rerun produced a different set of inventi
 - **Explicit decision:** require the model to return `migrate` or `decline` and name the evidence each edit relies on.
 - **Held-out cases:** add evaluation cases on resources and field names not used while tuning, so the gains generalize beyond these 50 cases.
 
-## Phase 2 plan: type check, fallback check, held-out cases
+## Phase 2: type check, fallback check, held-out cases
 
-Status: **proposed, not implemented.** Target: the 11 remaining invented migrations the rules above allow by design (9 type mismatches and 2 fallbacks in the guard run), with no new false positives.
+Status: **implemented** (`findUnsafeReplacements()` in `pipeline/substitution-guard.ts`) and measured. Results: tuning 7/63 critical (was 16), held-out 2/42, and no correct fixes rejected in either set. See [AI evaluations](AI-EVALS.md). Target: the 11 remaining invented migrations the rules above allow by design (9 type mismatches and 2 fallbacks in the guard run), with no new false positives.
 
 ### Rule 4: an added field must match the removed field's type, unless documented
 
