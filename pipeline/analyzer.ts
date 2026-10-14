@@ -2,6 +2,7 @@ import { resolve } from 'node:path';
 import ts from 'typescript-compiler';
 import { STRIPE, validSdkResourcePath, type ProviderAdapter } from './providers.ts';
 import { unsafeBindings } from './mutations.ts';
+import { declaredApiVersions } from './declared-api-versions.ts';
 import { guardedHistoryEdit } from './history-migration.ts';
 import { resolveSourceImport } from './source-imports.ts';
 import { componentReference, isObject, resolvableComponentSchema } from './specifications.ts';
@@ -795,6 +796,17 @@ export function analyzeRepository(
     imports,
     calls,
     sdkCalls,
+    apiVersionDeclarations: declaredApiVersions({
+      nodes,
+      checker,
+      provider,
+      clients,
+      constructor: (node) => contains(constructors, node),
+      sdkCall,
+      symbol,
+      canonical,
+      location,
+    }),
     findings,
     providerDetected,
     stripeDetected: provider.id === 'stripe' && providerDetected,

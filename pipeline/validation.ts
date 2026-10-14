@@ -6,7 +6,12 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
 import { runPipeline } from './run.ts';
-import { compareApiVersion, validateApiVersion } from './api-version.ts';
+import {
+  apiVersionSourceBlocked,
+  compareApiVersion,
+  validateApiVersion,
+  type ApiVersionPolicy,
+} from './api-version.ts';
 import { digest, readSpecification } from './specifications.ts';
 import { PipelineInputError } from './types.ts';
 import { readRepository } from './repository.ts';
@@ -16,6 +21,7 @@ import { gitEnvironment } from './git-environment.ts';
 import { readCommittedRepository } from './committed-repository.ts';
 import { MAX_DEPENDENCY_ARCHIVE_BYTES, prepareNpmDependencies } from './npm-dependencies.ts';
 import { inspectArtifactFile } from './verification.ts';
+import { analyzeRepository } from './analyzer.ts';
 import {
   dockerSandboxArguments,
   removeDockerContainer,
@@ -120,6 +126,7 @@ export async function validateMigration(options: {
   documentationSnapshots?: readonly string[];
   providerConfig?: string;
   apiVersion?: string;
+  apiVersionPolicy?: ApiVersionPolicy;
   requireApiVersionMatch?: boolean;
   fullDiff?: boolean;
   repairAttempts?: number;
@@ -144,6 +151,16 @@ export async function validateMigration(options: {
   }
   const snapshot = await readCommittedRepository(options.repository);
   const repository = snapshot.directory;
+  const preflight = await runPipeline({
+    ...options,
+    repository,
+    proposePatch: false,
+    fullDiff: false,
+    aiPatch: undefined,
+    assessment: undefined,
+  });
+  if (apiVersionSourceBlocked(preflight.apiVersion))
+    throw new PipelineInputError(`Validation is blocked. ${preflight.apiVersion.reason}`);
   const git = (args: string[]) =>
     command('git', ['-c', 'core.fsmonitor=false', '-C', repository, ...args]);
   const { revision, entries } = snapshot;
@@ -219,6 +236,25 @@ export async function validateMigration(options: {
       await command('git', ['apply', '--check', patch], patchedDirectory);
       await command('git', ['apply', patch], patchedDirectory);
       const patchedSources = await readRepository(patchedDirectory, report.adapter.packageName);
+      const candidateVersion = compareApiVersion(
+        report.apiVersion.application ?? undefined,
+        { info: { version: report.apiVersion.before } },
+        { info: { version: report.apiVersion.after } },
+        {
+          configured: Boolean(report.adapter.apiVersion),
+          declarations: analyzeRepository(patchedSources, [], report.adapter)
+            .apiVersionDeclarations,
+        },
+        report.apiVersion.policy,
+      );
+      if (
+        apiVersionSourceBlocked(candidateVersion) ||
+        (report.apiVersion.source.status === 'verified' &&
+          candidateVersion.source.status !== 'verified')
+      )
+        throw new PipelineInputError(
+          'Migration proposal changes or weakens the verified SDK API-version declarations; inspect the version rollout separately.',
+        );
       const publicationFiles: PublicationFile[] = [];
       for (const file of patchedSources.files) {
         const original = originalSources.files.find((source) => source.path === file.path);

@@ -12,13 +12,16 @@ const NOT_FOUND = 404;
 const GONE = 410;
 const HTTP_METHOD = 'GET';
 const mode = process.argv[2];
+const expectedApiVersion = process.argv[3];
 if (!['before', 'after'].includes(mode))
   throw new TypeError('Expected before or after simulator mode.');
 const expectedPath = mode === 'before' ? LEGACY_ITEMS_PATH : CURRENT_ITEMS_PATH;
 const nodeModules = fileURLToPath(new URL('../node_modules', import.meta.url));
 const requests = [];
+const apiVersions = [];
 const server = createServer((request, response) => {
   const url = new URL(request.url, `http://${LOOPBACK}`);
+  apiVersions.push(request.headers['x-catalog-version']);
   requests.push({
     method: request.method,
     path: url.pathname,
@@ -75,6 +78,11 @@ try {
     locale: options.locale,
     requestId: options.requestId,
   });
+  if (expectedApiVersion)
+    assert.ok(
+      apiVersions.every((version) => version === expectedApiVersion),
+      'SDK API-version headers must preserve the declared version.',
+    );
   console.log(
     `Simulated endpoint contract passed (${mode}): success, options, and propagated 404.`,
   );

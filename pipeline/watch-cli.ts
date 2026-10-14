@@ -11,6 +11,7 @@ import { PipelineInputError } from './types.ts';
 import { SpecificationUnavailableError } from './network.ts';
 import { validateRepairAttempts } from './validation-options.ts';
 import { normalizeDocumentationSource } from './documentation-sources.ts';
+import { validateApiVersionPolicy } from './api-version.ts';
 
 const DEFAULT_INTERVAL_SECONDS = 300;
 const MINIMUM_INTERVAL_SECONDS = 30;
@@ -25,7 +26,7 @@ const FAILED_STATUSES = new Set([
   'documentation-changed',
 ]);
 const USAGE =
-  'Usage: refit watch --config <run.json> --state <directory-outside-repository> [--repository <local-git-root>] [--once] [--sync-github --github owner/repo --base main --github-app] [--source-url <public-https-openapi> | --source-file <openapi> | --latest-stripe] [--documentation-source <label=https-url> ...] [--interval <seconds>] [--retry --once] [--ai-patch --repair-attempts 0|1|2] [--publish-draft --github owner/repo --base main --github-app] [--json]';
+  'Usage: refit watch --config <run.json> --state <directory-outside-repository> [--repository <local-git-root>] [--api-version-policy operator-pin|source-verified] [--once] [--sync-github --github owner/repo --base main --github-app] [--source-url <public-https-openapi> | --source-file <openapi> | --latest-stripe] [--documentation-source <label=https-url> ...] [--interval <seconds>] [--retry --once] [--ai-patch --repair-attempts 0|1|2] [--publish-draft --github owner/repo --base main --github-app] [--json]';
 
 try {
   const { values } = parseArgs({
@@ -42,6 +43,7 @@ try {
       'latest-stripe': { type: 'boolean' },
       'ai-patch': { type: 'boolean' },
       'prepare-dependencies': { type: 'boolean' },
+      'api-version-policy': { type: 'string' },
       'repair-attempts': { type: 'string' },
       'publish-draft': { type: 'boolean' },
       'sync-github': { type: 'boolean' },
@@ -126,6 +128,10 @@ try {
             configuration: {
               ...configuration,
               repository: values.repository ?? configuration.repository,
+              apiVersionPolicy:
+                values['api-version-policy'] === undefined
+                  ? configuration.apiVersionPolicy
+                  : validateApiVersionPolicy(values['api-version-policy']),
               prepareDependencies:
                 values['prepare-dependencies'] ?? configuration.prepareDependencies,
               aiPatch,

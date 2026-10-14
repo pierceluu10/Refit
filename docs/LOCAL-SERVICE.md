@@ -24,17 +24,17 @@ From the Refit checkout, run one startup poll:
 ```sh
 cd /Users/pierceluu/Repos/Refit
 refit serve --env .env --config examples/local-service.refit.json \
-  --state /Users/pierceluu/.refit/evaluations/local-service-app-2026-10-12 \
+  --state /Users/pierceluu/.refit/evaluations/local-service-app-0.10-2026-10-14 \
   --once --publish-draft
 ```
 
-The supplied profile replays the historical Stripe `PaymentIntent.charges` removal; it does not announce a new live Stripe change. It authenticates the installed App, fetches the GitHub base into a private managed checkout, then checks for an existing migration. PR #3 already covers the demo, so a matching run reuses it and explicitly reports that generation and checks were not rerun. It never merges that PR or edits your normal checkout.
+The supplied profile replays the historical Stripe `PaymentIntent.charges` removal; it does not announce a new live Stripe change. It authenticates the installed App, fetches the GitHub base into a private managed checkout, then checks for an existing migration. A matching App draft on the current monitored revision is reused, with generation and checks explicitly marked as not rerun. The older PR #3 predates the approved configuration merge and is not proof of coverage for the current base. It never merges that PR or edits your normal checkout.
 
 For continuous monitoring, omit `--once`:
 
 ```sh
 refit serve --env .env --config examples/local-service.refit.json \
-  --state /Users/pierceluu/.refit/evaluations/local-service-app-2026-10-12 \
+  --state /Users/pierceluu/.refit/evaluations/local-service-app-0.10-2026-10-14 \
   --interval 300 --publish-draft
 ```
 

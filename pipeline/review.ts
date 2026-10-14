@@ -44,6 +44,8 @@ function apiVersionSummary(report: ValidationReport) {
     return `Application pin ${current} already matches the after contract ${proposed}, not the before contract ${baseline}.`;
   if (applicability === 'matches-neither')
     return `Application pin ${current} matches neither the before contract ${baseline} nor the after contract ${proposed}.`;
+  if (applicability === 'conflicts-with-code' || report.apiVersion.policy === 'source-verified')
+    return plainText(report.apiVersion.reason);
   return `Applicability is unknown; current pin ${current}, before contract ${baseline}, after contract ${proposed}.`;
 }
 
@@ -103,6 +105,7 @@ export function createReviewArtifacts(
       '## What changed',
       `The supplied ${plainText(provider)} API contract removes ${changeSummary}. Refit found ${confirmedFindings.length} confirmed ${confirmedFindings.length === 1 ? 'usage' : 'usages'} across ${affectedFiles.size} ${affectedFiles.size === 1 ? 'file' : 'files'}.`,
       `**API version:** ${apiVersionSummary(report)}`,
+      `**SDK version declarations:** ${plainText(report.apiVersion.source.reason)} Policy: ${code(report.apiVersion.policy)}.`,
       `**${patch.generator === 'openai' ? 'AI proposal' : 'Migration'}:** ${plainText(patch.summary)}`,
       ...(operationChanges.length
         ? [

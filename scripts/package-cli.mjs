@@ -73,6 +73,7 @@ else {
         .replaceAll('](REPOSITORY-SETUP.md)', '](docs/REPOSITORY-SETUP.md)')
         .replaceAll('](APP-ONBOARDING.md)', '](docs/APP-ONBOARDING.md)')
         .replaceAll('](VENDOR_NOTES.md)', '](docs/VENDOR_NOTES.md)')
+        .replaceAll('](API-VERSIONS.md)', '](docs/API-VERSIONS.md)')
         .replaceAll('](../examples/', '](examples/'),
     );
     await copyFile(join(root, '.env.example'), join(stage, '.env.example'));
@@ -91,6 +92,7 @@ else {
       'REPOSITORY-SETUP.md',
       'APP-ONBOARDING.md',
       'VENDOR_NOTES.md',
+      'API-VERSIONS.md',
       'READINESS.md',
       'AI-EVALUATION.md',
       'PR-EVALUATION.md',

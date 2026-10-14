@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { compareApiVersion, validateApiVersion } from './api-version.ts';
+import { compareApiVersion, validateApiVersion, validateApiVersionPolicy } from './api-version.ts';
 
 const before = { info: { version: '2022-08-01' } };
 const after = { info: { version: '2022-11-15' } };
@@ -45,4 +45,13 @@ it.each(['', ' 2022-08-01', '2022-08-01 ', '2022-08-01\n', 'x'.repeat(257)])(
 
 it('allows an omitted API version to remain explicit unknown evidence', () => {
   expect(validateApiVersion(undefined)).toBeUndefined();
+});
+
+it('requires an adapter-declared source proof under the strict version policy', () => {
+  const result = compareApiVersion('2022-08-01', before, after, undefined, 'source-verified');
+  expect(result.applicability).toBe('unknown');
+  expect(result.source.status).toBe('not-configured');
+  expect(result.reason).toContain('Source-verified policy blocks');
+  expect(validateApiVersionPolicy(undefined)).toBe('operator-pin');
+  expect(() => validateApiVersionPolicy('guess')).toThrow(/API-version policy/);
 });

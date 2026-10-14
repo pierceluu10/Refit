@@ -136,6 +136,7 @@ async function watchLocalOnce(
         provider,
         before: before.hash,
         apiVersion: configuration.apiVersion,
+        apiVersionPolicy: configuration.apiVersionPolicy,
         source: options.source,
         ...(documentationSources.length ? { documentationSources } : {}),
         image: configuration.image,
@@ -213,6 +214,7 @@ async function watchLocalOnce(
       after,
       providerConfig: configuration.providerConfig,
       apiVersion: configuration.apiVersion,
+      apiVersionPolicy: configuration.apiVersionPolicy,
       fullDiff: configuration.fullDiff,
       proposePatch: true,
     });

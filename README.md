@@ -6,7 +6,7 @@ Refit is being built to turn external API changes into repository-specific, vali
 
 ## Current release
 
-**Local agent 0.9:** `refit serve` runs approved App-managed repository profiles and verifies installation webhooks. `refit watch` and service profiles can track manually selected public changelog pages or RSS 2.0/Atom feeds beside OpenAPI, save hash-verified text diffs, and report documentation-only changes without spending on AI or creating PRs. `refit prepare` installs locked public npm dependencies in a restricted container so supported projects can run checks offline without a hand-built dependency image. The shared engine still requires provider mappings and meaningful checks for each integration. [Run the Stripe service profile](docs/DEPENDENCIES.md), or [set up installation webhooks](docs/LOCAL-SERVICE.md).
+**Local agent 0.10:** `refit serve` runs approved App-managed repository profiles and verifies installation webhooks. `refit watch` and service profiles can track manually selected public changelog pages or RSS 2.0/Atom feeds beside OpenAPI, save hash-verified text diffs, and report documentation-only changes without spending on AI or creating PRs. `refit prepare` installs locked public npm dependencies in a restricted container so supported projects can run checks offline without a hand-built dependency image. The shared engine still requires provider mappings and meaningful checks for each integration. [Run the Stripe service profile](docs/DEPENDENCIES.md), or [set up installation webhooks](docs/LOCAL-SERVICE.md).
 
 `refit doctor` inspects a checked-in `.refit.json` or an operator workflow before activation, explaining Git, contract, mapping, API-version, preparation and Docker setup without running app code or spending on AI. `refit enroll` reviews its committed workflow, baseline and adapter, then records explicit approval outside Git. The App-managed service verifies those inputs before each poll and stops changed configuration for review. `serve --retry-target <id> --once` deliberately retries a failed target while preserving old evidence and successful job receipts. See [repository setup](docs/REPOSITORY-SETUP.md) and [App onboarding](docs/APP-ONBOARDING.md).
 
@@ -31,7 +31,7 @@ From a checkout with dependencies installed, build an installable archive:
 
 ```sh
 npm run package:cli
-npm install --global ./dist-cli/refit-0.9.0.tgz
+npm install --global ./dist-cli/refit-0.10.0.tgz
 refit --help
 refit replay --propose-patch
 ```
@@ -40,7 +40,7 @@ The build creates a new `dist-cli` directory and refuses to replace existing out
 
 The executable works from any directory and ignores that directory's TypeScript configuration. Use `refit scan`, `run`, `validate`, `stripe-snapshot`, `source-snapshot` and `stripe-check` for the main pipeline commands. `refit replay` locates its own bundled fixtures. In a checkout, use `npm run refit -- <command>`. See [CLI usage](docs/CLI.md) for installed-command examples and requirements.
 
-Save repeated repository/specification/image/check inputs in a JSON run configuration, then use `refit run --config run.json --output /tmp/new-run`. Set `apiVersion` to the API version the application actually uses; automated runs compare it with the before OpenAPI `info.version` and stop for review when missing or different, before any AI request or Docker validation. This is an explicit operator pin, not an SDK-version guess. `--env .env` explicitly loads credentials and `--quiet` suppresses progress on stderr; final stdout is readable in terminals and JSON when redirected (`--human` and `--json` override it). AI and publication remain explicit flags. The checkout includes `examples/billing-demo.refit.json` for the adjacent independent evaluation application and its prepared Docker image.
+Save repeated repository/specification/image/check inputs in a JSON run configuration, then use `refit run --config run.json --output /tmp/new-run`. Set `apiVersion` to the API version the application actually uses; automated runs compare it with the before OpenAPI `info.version` and stop for review when missing or different, before any AI request or Docker validation. Literal SDK constructor and request-version conflicts also block automation. Optional `apiVersionPolicy: "source-verified"` requires matching supported source declarations; runtime configuration stays unverified under the compatibility operator-pin policy. See [API-version verification](docs/API-VERSIONS.md). `--env .env` explicitly loads credentials and `--quiet` suppresses progress on stderr; final stdout is readable in terminals and JSON when redirected (`--human` and `--json` override it). AI and publication remain explicit flags. The checkout includes `examples/billing-demo.refit.json` for the adjacent independent evaluation application and its prepared Docker image.
 
 The isolated-install test builds a fresh archive, installs it into a temporary prefix, executes its bin entry and runs replay without this checkout's `node_modules`. Enable it with `REFIT_PACKAGE_INSTALL=1 npm test`; it may access the npm registry. No global install or registry publication occurs during tests.
 
@@ -242,7 +242,7 @@ The baseline is never advanced automatically. Keep using it until you have revie
 
 This is a one-shot discovery-and-scan command, not a background scheduler. To validate or publish its proposal, use `api:validate` with the saved `before.json` and `after.json`, plus your Docker command and optional publication flags. A real upstream discovery and both unchanged/changed paths have been exercised against the sample repository; see [upstream evidence](docs/UPSTREAM-REPLAY.md).
 
-Snapshots preserve the original JSON text, its SHA-256 hash, full commit SHA and upstream URL in one JSON artifact. The scanner checks this structure and content hash before processing it, and includes provenance in the report. This detects accidental modification; it is not a cryptographic signature proving origin. Downloads resolve to full commit SHAs, are bounded, and refuse redirects. API-version applicability is checked only against an explicit operator pin; an upstream snapshot alone cannot establish which API version an application uses. The local `watch` worker and optional oasdiff contract comparison are available; see [automation](docs/AUTOMATION.md).
+Snapshots preserve the original JSON text, its SHA-256 hash, full commit SHA and upstream URL in one JSON artifact. The scanner checks this structure and content hash before processing it, and includes provenance in the report. This detects accidental modification; it is not a cryptographic signature proving origin. Downloads resolve to full commit SHAs, are bounded, and refuse redirects. API-version applicability combines an explicit operator pin with supported adapter-declared source evidence; an upstream snapshot alone cannot establish which API version an application uses. The local `watch` worker and optional oasdiff contract comparison are available; see [automation](docs/AUTOMATION.md).
 
 ## Develop
 

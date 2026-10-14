@@ -7,6 +7,11 @@ export interface ProviderAdapter {
   packageName: string;
   defaultImport: boolean;
   namedExport: string | null;
+  apiVersion?: {
+    constructorArgument: number;
+    property: string;
+    requestArguments: number[];
+  };
   operations: { resource: string; method: string; schema: string; operationId?: string }[];
   propertyRenames?: { schema: string; removed: string; replacement: string }[];
   operationReplacements?: {
@@ -30,6 +35,7 @@ export const STRIPE: ProviderAdapter = {
   packageName: 'stripe',
   defaultImport: true,
   namedExport: 'Stripe',
+  apiVersion: { constructorArgument: 1, property: 'apiVersion', requestArguments: [1, 2] },
   operations: ['retrieve', 'create', 'update', 'confirm', 'cancel', 'capture'].map((method) => ({
     resource: 'paymentIntents',
     method,
@@ -60,7 +66,13 @@ const SDK_RESOURCE_PATH = /^[A-Za-z_$][A-Za-z0-9_$]*(?:\.[A-Za-z_$][A-Za-z0-9_$]
 const PROVIDER_ID = /^[a-z][a-z0-9-]{0,63}$/;
 const PACKAGE_NAME = /^(?:@[a-z0-9._-]+\/)?[a-z0-9._-]+$/;
 const REQUIRED_KEYS = ['defaultImport', 'id', 'namedExport', 'operations', 'packageName'];
-const CONFIG_KEYS = new Set([...REQUIRED_KEYS, 'propertyRenames', 'operationReplacements']);
+const CONFIG_KEYS = new Set([
+  ...REQUIRED_KEYS,
+  'propertyRenames',
+  'operationReplacements',
+  'apiVersion',
+]);
+const MAX_SDK_ARGUMENT_INDEX = 16;
 
 function validOperationId(value: unknown): value is string {
   return (
@@ -126,6 +138,27 @@ export function parseProviderAdapter(value: Record<string, unknown>): ProviderAd
       'Invalid provider configuration. Use a unique non-Stripe id, package, constructor import and 1–100 operations.',
     );
   const seen = new Set<string>();
+  const apiVersion = value.apiVersion;
+  const argumentIndex = (index: unknown): index is number =>
+    typeof index === 'number' &&
+    Number.isInteger(index) &&
+    index >= 0 &&
+    index <= MAX_SDK_ARGUMENT_INDEX;
+  if (
+    apiVersion !== undefined &&
+    (!isObject(apiVersion) ||
+      Object.keys(apiVersion).sort().join(',') !==
+        'constructorArgument,property,requestArguments' ||
+      !argumentIndex(apiVersion.constructorArgument) ||
+      !validSdkResourcePath(apiVersion.property) ||
+      !Array.isArray(apiVersion.requestArguments) ||
+      apiVersion.requestArguments.length > MAX_SDK_ARGUMENT_INDEX + 1 ||
+      !apiVersion.requestArguments.every(argumentIndex) ||
+      new Set(apiVersion.requestArguments).size !== apiVersion.requestArguments.length)
+  )
+    throw new PipelineInputError(
+      `Provider apiVersion requires an identifier property path, a constructorArgument index and unique requestArguments indexes from 0 to ${MAX_SDK_ARGUMENT_INDEX}.`,
+    );
   const operations = value.operations.map((operation) => {
     const operationKeys = isObject(operation) ? Object.keys(operation).sort().join(',') : '';
     if (
@@ -265,6 +298,15 @@ export function parseProviderAdapter(value: Record<string, unknown>): ProviderAd
   return {
     ...identity,
     operations,
+    ...(apiVersion
+      ? {
+          apiVersion: {
+            constructorArgument: apiVersion.constructorArgument as number,
+            property: apiVersion.property as string,
+            requestArguments: apiVersion.requestArguments as number[],
+          },
+        }
+      : {}),
     ...(parsedRenames.length ? { propertyRenames: parsedRenames } : {}),
     ...(parsedReplacements.length ? { operationReplacements: parsedReplacements } : {}),
   };

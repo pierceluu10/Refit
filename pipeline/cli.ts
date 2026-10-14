@@ -2,9 +2,10 @@ import { writeFile } from 'node:fs/promises';
 import { parseArgs } from 'node:util';
 import { runPipeline } from './run.ts';
 import { assessmentConfiguration } from './assessment.ts';
+import { validateApiVersionPolicy } from './api-version.ts';
 
 const USAGE =
-  'Usage: refit scan --repository <directory> --before <openapi.json-or-yaml> --after <openapi.json-or-yaml> [--api-version <current-api-version>] [--full-diff (requires oasdiff)] [--provider-config <adapter.json>] [--output <new-report.json>] [--propose-patch] [--assess (sends selected source context to OpenAI)] [--ai-patch (sends affected source files to OpenAI)]';
+  'Usage: refit scan --repository <directory> --before <openapi.json-or-yaml> --after <openapi.json-or-yaml> [--api-version <current-api-version>] [--api-version-policy operator-pin|source-verified] [--full-diff (requires oasdiff)] [--provider-config <adapter.json>] [--output <new-report.json>] [--propose-patch] [--assess (sends selected source context to OpenAI)] [--ai-patch (sends affected source files to OpenAI)]';
 
 try {
   const { values } = parseArgs({
@@ -18,6 +19,7 @@ try {
       'ai-patch': { type: 'boolean' },
       'provider-config': { type: 'string' },
       'api-version': { type: 'string' },
+      'api-version-policy': { type: 'string' },
       'full-diff': { type: 'boolean' },
       help: { type: 'boolean' },
     },
@@ -37,6 +39,7 @@ try {
       aiPatch: assessmentConfiguration(values['ai-patch'], process.env),
       providerConfig: values['provider-config'],
       apiVersion: values['api-version'],
+      apiVersionPolicy: validateApiVersionPolicy(values['api-version-policy']),
       fullDiff: values['full-diff'],
     });
     const json = `${JSON.stringify(report, null, 2)}\n`;

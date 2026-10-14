@@ -7,6 +7,7 @@ import type { validateMigration } from './validation.ts';
 import type { runPipeline } from './run.ts';
 import { migrationIdentity } from './migration-identity.ts';
 import { unmappedBreakingChanges } from './openapi-diff.ts';
+import { apiVersionSourceBlocked } from './api-version.ts';
 
 const MAX_BODY_CHARACTERS = 60_000;
 const SHA = /^[a-f0-9]{40}$/;
@@ -159,7 +160,11 @@ export async function publishDraft(
   options: ReturnType<typeof publicationConfiguration>,
 ) {
   const apiVersion = report.apiVersion;
-  if (!apiVersion || apiVersion.applicability !== 'matches-before')
+  if (
+    !apiVersion ||
+    apiVersion.applicability !== 'matches-before' ||
+    apiVersionSourceBlocked(apiVersion)
+  )
     throw new PipelineInputError(
       `Draft publication is blocked. ${apiVersion?.reason ?? 'API-version evidence is missing.'}`,
     );
