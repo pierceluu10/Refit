@@ -115,6 +115,59 @@ The model is non-deterministic, so the rerun produced a different set of inventi
 - **Explicit decision:** require the model to return `migrate` or `decline` and name the evidence each edit relies on.
 - **Held-out cases:** add evaluation cases on resources and field names not used while tuning, so the gains generalize beyond these 50 cases.
 
+## Phase 2 plan: type check, fallback check, held-out cases
+
+Status: **proposed, not implemented.** Target: the 11 remaining invented migrations the rules above allow by design (9 type mismatches and 2 fallbacks in the guard run), with no new false positives.
+
+### Rule 4: an added field must match the removed field's type, unless documented
+
+Reject an AI patch that newly reads an **added** field of the affected response when its declared type differs from the type of every removed field in that schema. Example: `model.owned_by` (string) → `String(model.context_window)` (integer) is rejected with:
+
+> `AI replacement reads added field Model.context_window (integer) in place of removed Model.owned_by (string) in src/client.js:12. Added fields must have the removed field's type unless the contract or a vendor note documents the replacement.`
+
+- **Same mechanism as rules 1–3:** synthetic analyzer changes for each added field, with per-file read counts before and after the patch. The after-contract schemas are already passed to `proposeAiPatch()`.
+- **Documented exception:** a real migration can change type, for example `owned_by` (string) → `owner` (object) read as `model.owner.name`. Such a patch is allowed when the added field's after-contract description names the removed field, or an attached vendor note mentions both fields. These are the same evidence sources the PR description cites.
+- **Unknown types never block.** If either type is undeclared, the rule doesn't apply.
+
+### Rule 5: no pure fallbacks on the removed field
+
+Reject an AI patch if an edited file still reads a removed field **and the patch introduces no read of an added field**. For example `(model.owned_by ?? '').toLowerCase()` hides the break instead of migrating it.
+
+A backward-compatible fallback that reads the new field first is allowed, for example `(file.file_name ?? file.filename).toLowerCase()`. A recorded correct fix does exactly this, and an earlier, broader version of this rule would have blocked it. The rule reuses the rescan `proposeAiPatch()` already runs. It applies only to AI patches; deterministic rules keep their current `unresolvedFindings` reporting.
+
+### Expected impact on the recorded guard run
+
+| | Count |
+|---|---|
+| Inventions blocked by rule 4 | 9 of 16 |
+| Inventions blocked by rule 5 | 2 of 16 |
+| Correct fixes that would be blocked | 0 of 75. None reads a different-typed added field. The one that keeps the removed field also reads the new field, so it is allowed |
+| Still not caught | 5: an added **string** with unrelated meaning (`region`, `checksum`). Only evidence-citing can address these |
+
+### Held-out evaluation set
+
+Add 34 cases on two **new** resources with **new** field names, using the same 16 scenarios. For example `vectorStores.retrieve` (`VectorStore.name` → `display_name`) and `responses.retrieve` (`Response.model` → `model_name`). `npm run eval:ai` gains `--set tuning|held-out|all` (default `tuning`, today's 50 cases). Rules for using it:
+- Tune prompts and rules against `tuning` only.
+- Run `held-out` to confirm a change, and don't adjust anything based on its individual failures.
+- Report both sets side by side.
+
+### Tests
+
+- Rule 4:
+  - `owned_by` → `context_window` (integer) is rejected;
+  - `owned_by` → `owner_name` (string) passes;
+  - `owned_by` → `owner.name`, where `owner` is an object documented as "Replaces owned_by", passes.
+- Rule 5:
+  - `(model.owned_by ?? '')` is rejected;
+  - `(model.owner_name ?? model.owned_by)` passes;
+  - a complete migration passes.
+- The verified Stripe charges migration still passes.
+- The held-out cases pass the same case-validity checks as the tuning set (break is real, a correct answer exists, the scorer accepts it).
+
+### Measurement and cost
+
+Rerun `tuning` (50 × 3) and `held-out` (34 × 3): about 250 AI requests, roughly **$0.50**. About $0.22 of the current $1 allowance remains, so `REFIT_AI_BUDGET_USD` must be raised to about $2 first.
+
 ## Verification plan
 
 1. Implement the guard and its four tests, then run the full suite.
