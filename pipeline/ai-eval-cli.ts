@@ -100,6 +100,7 @@ function renderReport(
     'error',
   ] as const;
   const scenarios = [...new Set(evaluated.map((testCase) => testCase.scenario))];
+  const resources = [...new Set(evaluated.map((testCase) => testCase.resource))];
   const lines = [
     '# Refit AI migration evaluation results',
     '',
@@ -142,8 +143,8 @@ function renderReport(
     '',
     'Each cell shows passing attempts out of total for that resource.',
     '',
-    '| Scenario | Expected | models | files | batches | Pass rate |',
-    '|---|---|---|---|---|---|',
+    `| Scenario | Expected | ${resources.join(' | ')} | Pass rate |`,
+    `|---|---|${resources.map(() => '---').join('|')}|---|`,
     ...scenarios.map((scenario) => {
       const inScenario = attempts.filter((result) => result.scenario === scenario);
       const cell = (resource: string) => {
@@ -152,7 +153,7 @@ function renderReport(
           ? `${forResource.filter((r) => r.pass).length}/${forResource.length}`
           : '—';
       };
-      return `| \`${scenario}\` | ${inScenario[0].category} | ${cell('models')} | ${cell('files')} | ${cell('batches')} | ${percent(inScenario.filter((r) => r.pass).length, inScenario.length)} |`;
+      return `| \`${scenario}\` | ${inScenario[0].category} | ${resources.map(cell).join(' | ')} | ${percent(inScenario.filter((r) => r.pass).length, inScenario.length)} |`;
     }),
     '',
     '## Every non-passing attempt',
