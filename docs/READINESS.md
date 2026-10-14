@@ -1,5 +1,18 @@
 # Refit implementation checkpoints
 
+## October 14 checkpoint: configured source aliases (0.15.0)
+
+Refit resolves supported `paths` and `baseUrl` from the nearest standard TypeScript/JavaScript configuration, including local inherited inputs, using its installed TypeScript parser. One resolver serves shared ESM/CommonJS clients, supported wrappers, mutation evidence, API-version declarations and imported AI context. The reader captures bounded regular configuration files; their contents enter scan identity while reports expose path/hash/byte evidence. Mapped SDK-package lookalikes are refused. Ambiguous source/output targets, skipped paths and unresolved project configuration stay under review, with an explicit doctor blocker and no paid imported-context request. See [source aliases and runtime boundaries](SOURCE-ALIASES.md).
+
+The fully gated suite passed **1,045 tests across 66 files with no skips**. The new runtime case validates a billing workspace with matching native Node `#billing/*` and TypeScript mappings, actual Stripe SDKs 10.17.0/19.1.0, paginated/empty history, exact API-version headers, linked local source and TypeScript in offline Docker. Controlled generic tests cover a nested OpenAI resource with an invented rename. Mutation, inherited origin, ordered fallbacks, `${configDir}`, local package lookalikes, skipped sources, cycles and unknown project scopes have explicit checks. Build, typecheck, formatting and a separately installed package passed.
+
+A rerun on the same 45 pinned public repository commits reproduced the 0.14 baseline **82/352 traced calls** and measured **108/352 after aliases**. The slice adds 34 Stripe calls across nine repositories while declining eight previously traced calls in two unresolved project-reference configurations. Zero-traced repositories among the 40 with likely calls decreased from 22 to 18. Those repositories were only read, never installed or executed. These numbers measure tracing, not migration success, ground-truth recall/precision or the 100-repository Stripe upgrade benchmark. Class fields, factories, webhook payloads and project references remain substantial gaps. See [the measured comparison](SDK-COVERAGE.md).
+
+Retained installed CLI and worker evidence is at `/Users/pierceluu/.refit/evaluations/source-aliases-2026-10-14`. The worker observed a committed historical contract removal in an aliased workspace, confirmed two reads, validated a deterministic patch and reused its next poll. The application remained clean and unmigrated. A fresh installed GitHub App service fetched the approved billing demo at `cfa192fd2bab995da81bf7f95ea97e0b0ea5f676`, passed 14 baseline and both 14-test patched contracts plus TypeScript, and reused its second poll. Its separate state is `/Users/pierceluu/.refit/evaluations/stripe-service-0.15-2026-10-14`. Both evidence bundles passed integrity verification. App authorization/Git transport were live; Stripe responses were simulated. No paid AI request or new PR was used.
+
+The feature was committed and pushed on `codex/configured-source-aliases`, merged into main, and installed globally as 0.15.0 without npm registry publication or co-author trailers. Project references, package/outside extends and bundler-specific resolution remain unsupported. Static alias resolution does not independently prove runtime mapping; application checks must exercise it.
+
+
 
 ## October 14 checkpoint: npm workspace preparation (0.14.0)
 
