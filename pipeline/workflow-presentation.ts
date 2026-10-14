@@ -190,6 +190,23 @@ export async function renderWorkflowResult(result: Result) {
       rows.push(
         `Found       ${confirmed.length} confirmed ${confirmed.length === 1 ? 'usage' : 'usages'} in ${files.size} ${files.size === 1 ? 'file' : 'files'}`,
       );
+    const review = report.findings.filter(
+      (finding) => isObject(finding) && finding.confidence === 'review',
+    );
+    if (review.length) {
+      const sources = [
+        ...new Set(
+          review.flatMap((finding) => {
+            const file = (finding as Record<string, unknown>).file;
+            return typeof file === 'string' ? [terminalText(file)] : [];
+          }),
+        ),
+      ];
+      rows.push(
+        `Review      ${review.length} ${review.length === 1 ? 'finding requires' : 'findings require'} review in ${sources.length} ${sources.length === 1 ? 'file' : 'files'}`,
+      );
+      if (sources.length) rows.push(`Sources     ${summaryList(sources)}`);
+    }
   }
   if (
     report &&

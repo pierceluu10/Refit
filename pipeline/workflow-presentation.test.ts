@@ -80,4 +80,18 @@ it('summarizes API impact, proposed edits and offline checks for interactive CLI
   report.changes[0].property = 'charges\u001b[2J';
   await writeFile(join(directory, 'report.json'), JSON.stringify(report));
   expect(await renderWorkflowResult(result)).not.toContain('\u001b');
+  report.findings = [
+    {
+      confidence: 'review',
+      file: 'src/webhook.ts\u001b[2J',
+      webhook: { eventTypes: ['customer.subscription.updated'] },
+    },
+  ];
+  await writeFile(join(directory, 'report.json'), JSON.stringify(report));
+  const review = await renderWorkflowResult(result);
+  expect(review).toContain('1 affected payload read; incoming API version requires review');
+  expect(review).toContain('customer.subscription.updated');
+  expect(review).toContain('1 finding requires review in 1 file');
+  expect(review).toContain('Sources     src/webhook.ts');
+  expect(review).not.toContain('\u001b');
 });
