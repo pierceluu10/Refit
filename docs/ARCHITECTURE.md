@@ -1,6 +1,8 @@
 # Refit architecture
 
-Refit 0.11 implements an installation-aware local service, approved repository workflows, API migration workers and explicit GitHub App publication. The website explains the product and shows illustrative runs; it does not control the service. The pipeline has been exercised on the independent Stripe billing application and with the actual OpenAI SDK against simulated HTTP contracts.
+Configured `requestPropertyRenames` cover top-level JSON body fields on mapped SDK calls after checking that the recorded operation changes only by those names. Direct, quoted and shorthand properties retain their values and other arguments; uncertain requests stop for review, and these explicit rules use no AI generation or repair. See [request migrations](REQUEST-MIGRATIONS.md).
+
+Refit 0.12 implements an installation-aware local service, approved repository workflows, API migration workers and explicit GitHub App publication. The website explains the product and shows illustrative runs; it does not control the service. The pipeline has been exercised on the independent Stripe billing application and with the actual OpenAI SDK against simulated HTTP contracts.
 
 A checked-in configuration can group up to eight named integrations under one operator approval. The service expands that group into independent workers and draft PRs, retains scoped inputs and job evidence, and supports individual retries. Contract-source and version failures are evaluated per integration; changed approved inputs require group reapproval. The shared repository remains the scan boundary. See [multi-integration architecture and usage](MULTIPLE-INTEGRATIONS.md).
 

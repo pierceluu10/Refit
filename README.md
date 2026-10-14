@@ -6,11 +6,13 @@ Refit is being built to turn external API changes into repository-specific, vali
 
 ## Current release
 
-**Local agent 0.11:** `refit serve` runs approved App-managed repository profiles and verifies installation webhooks. `refit watch` and service profiles can track manually selected public changelog pages or RSS 2.0/Atom feeds beside OpenAPI, save hash-verified text diffs, and report documentation-only changes without spending on AI or creating PRs. `refit prepare` installs locked public npm dependencies in a restricted container so supported projects can run checks offline without a hand-built dependency image. The shared engine still requires provider mappings and meaningful checks for each integration. [Run the Stripe service profile](docs/DEPENDENCIES.md), or [set up installation webhooks](docs/LOCAL-SERVICE.md).
+**Local agent 0.12:** `refit serve` runs approved App-managed repository profiles and verifies installation webhooks. `refit watch` and service profiles can track manually selected public changelog pages or RSS 2.0/Atom feeds beside OpenAPI, save hash-verified text diffs, and report documentation-only changes without spending on AI or creating PRs. `refit prepare` installs locked public npm dependencies in a restricted container so supported projects can run checks offline without a hand-built dependency image. The shared engine still requires provider mappings and meaningful checks for each integration. [Run the Stripe service profile](docs/DEPENDENCIES.md), or [set up installation webhooks](docs/LOCAL-SERVICE.md).
 
 `refit doctor` inspects a checked-in `.refit.json` or an operator workflow before activation, explaining Git, contract, mapping, API-version, preparation and Docker setup without running app code or spending on AI. `refit enroll` reviews its committed workflow, baseline and adapter, then records explicit approval outside Git. The App-managed service verifies those inputs before each poll and stops changed configuration for review. `serve --retry-target <id> --once` deliberately retries a failed target while preserving old evidence and successful job receipts. See [repository setup](docs/REPOSITORY-SETUP.md) and [App onboarding](docs/APP-ONBOARDING.md).
 
 One checked-in `.refit.json` can now hold up to eight named integrations. Enrollment reviews them together; the App service gives each its own worker, checks, retry history and draft PR. Manual `run`, `watch` and `doctor` commands select one with `--integration <id>`. See [multiple integrations](docs/MULTIPLE-INTEGRATIONS.md).
+
+Configured request-field migrations now verify the recorded operation and rename supported SDK body properties without changing their values or other call options. Both ordinary and shorthand objects are supported; uncertain construction remains review-only. See [request migrations](docs/REQUEST-MIGRATIONS.md).
 
 The core is shared across providers; an actual OpenAI SDK conformance evaluation complements Stripe. SDK mappings, migration semantics and application checks still need verification. This is a local operator product, not a hosted service automatically activated by installing the App.
 
@@ -33,7 +35,7 @@ From a checkout with dependencies installed, build an installable archive:
 
 ```sh
 npm run package:cli
-npm install --global ./dist-cli/refit-0.11.0.tgz
+npm install --global ./dist-cli/refit-0.12.0.tgz
 refit --help
 refit replay --propose-patch
 ```
