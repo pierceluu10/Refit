@@ -1,5 +1,13 @@
 # Refit implementation checkpoints
 
+## October 14 checkpoint: integrated Stripe maintenance safeguards (0.17.0)
+
+The snapshot-webhook slice and incoming Stripe maintenance work now share one analyzer. The built-in adapter adds called Stripe methods whose contracts return a single component reference. Union responses stay under review; an operation overflow is refused rather than silently truncated. Explicit `Stripe.*` annotations, assertions, arrays and helper returns provide review hints, not runtime provenance. Signed webhook tracing takes precedence over those hints. Skipped unparseable source files stop automation because their API usage and mutations are unknown. The same provenance guard protects normal scan/workflow, validation, AI assessment/generation and publication paths. Installed packages now include the Stripe metadata needed by type-hint scanning.
+
+The fully gated suite passed **1,126 tests across 72 files with no skips**, alongside build, typecheck and formatting. Historical benchmark tooling and labels from the maintenance branch are preserved. Its earlier scores do not describe this integrated analyzer; declared-type confirmation has deliberately been downgraded. Full-diff coverage now explicitly identifies adapter-selected operations and reachable components, rather than claiming comparison of the entire vendor contract. This integration used no paid AI and created no PR.
+
+Webhook migration remains blocked in this release. The next rule uses the user's selected price-ID policy and must check signed incoming event versions, preserve old-event replay, and reject missing, duplicate or incomplete item lists before automation is enabled.
+
 ## October 14 checkpoint: Stripe snapshot webhook detection (0.16.0)
 
 Refit traces supported Stripe signature constructors, event/data/object aliases, static nested destructuring and exact event-type branches into payload field evidence. Curated event mappings establish the source schema; ordinary component/list tracing retains incoming-event provenance through supported nested reads. Missing components do not turn Checkout Session fields into Invoice matches. Mutations, incomplete narrowing and unsupported projections remain under review. Outgoing client versions never establish incoming webhook versions. Affected webhook findings stop deterministic/AI patches, advisory AI assessment, Docker migration validation and PR publication. Doctor requires incoming-version and explicit item-policy review and distinguishes local signature helpers from API operation mappings. CLI summaries show webhook event types, review counts and source files. See [webhook boundaries and replay](STRIPE-WEBHOOKS.md).

@@ -1,5 +1,7 @@
 # Refit local agent
 
+The Stripe scanner maps supported single-object SDK responses from the supplied contract. Explicit Stripe types provide review hints; they cannot authorize a migration. Unparseable skipped files also block automation. Full contract diff output describes its adapter-selected scope. Historical benchmark scores apply only to their recorded commits.
+
 Shared clients support direct relative named/default ESM imports and static CommonJS requires/exports, including Stripe callable initialization. Mutation and source-version checks follow the same module graph. See [client module forms and boundaries](CLIENT-MODULES.md).
 
 Recorded `tsconfig.json`/`jsconfig.json` `paths` and `baseUrl` can resolve shared clients and supported wrappers. Local inherited configurations are captured in scan evidence; ambiguous or unsupported resolution stops confirmation and appears in setup diagnostics. Runtime imports still need application checks. See [configured aliases](SOURCE-ALIASES.md).
