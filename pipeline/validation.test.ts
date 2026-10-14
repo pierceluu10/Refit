@@ -37,12 +37,12 @@ it('blocks a publishable validation before repository access when API-version ap
   ).rejects.toThrow(/Application API version is not configured/);
 });
 
-async function repository(executable = false) {
+async function repository(executable = false, source = SOURCE) {
   const root = await mkdtemp(join(tmpdir(), 'refit-container-test-'));
   directories.push(root);
   await mkdir(join(root, 'node_modules/stripe'), { recursive: true });
   await writeFile(join(root, 'package.json'), '{"type":"module","dependencies":{"stripe":"test"}}');
-  await writeFile(join(root, 'billing.js'), SOURCE);
+  await writeFile(join(root, 'billing.js'), source);
   if (executable) await chmod(join(root, 'billing.js'), 0o755);
   await writeFile(
     join(root, 'node_modules/stripe/package.json'),
@@ -121,10 +121,24 @@ afterEach(async () => {
   );
 });
 
-it.skipIf(!IMAGE)(
-  'validates a controlled AI proposal in actual containers',
-  async () => {
-    const root = await repository(true);
+it.skipIf(!IMAGE).each(['preserve', 'conflict', 'dynamic'] as const)(
+  'checks a controlled AI proposal against verified SDK versions in actual containers: %s',
+  async (versionChange) => {
+    const original = SOURCE.replace(
+      'new Stripe()',
+      "new Stripe('test', { apiVersion: '2022-08-01' })",
+    );
+    const root = await repository(true, original);
+    const migrated = original.replace(
+      'intent.charges.data',
+      '(await stripe.charges.list({ payment_intent: intent.id })).data',
+    );
+    const replacement =
+      versionChange === 'conflict'
+        ? migrated.replace("apiVersion: '2022-08-01'", "apiVersion: '2022-11-15'")
+        : versionChange === 'dynamic'
+          ? migrated.replace("apiVersion: '2022-08-01'", 'apiVersion: process.env.RUNTIME_VERSION')
+          : migrated;
     vi.stubGlobal(
       'fetch',
       vi.fn().mockImplementation(async (_url, request) => {
@@ -147,9 +161,8 @@ it.skipIf(!IMAGE)(
                       edits: [
                         {
                           file: 'billing.js',
-                          original: 'intent.charges.data',
-                          replacement:
-                            '(await stripe.charges.list({ payment_intent: intent.id })).data',
+                          original,
+                          replacement,
                           findingId: input.findings[0].id,
                         },
                       ],
@@ -162,7 +175,7 @@ it.skipIf(!IMAGE)(
         );
       }),
     );
-    const report = await validateMigration({
+    const validation = validateMigration({
       ...options,
       repository: root,
       aiPatch: { apiKey: 'test-key', model: 'test-model' },
@@ -172,19 +185,21 @@ it.skipIf(!IMAGE)(
         "import('./billing.js').then(async m => require('assert/strict').deepEqual(await m.history('pi_test'), [{id:'ch_1'},{id:'ch_2'}]))",
       ],
     });
+    if (versionChange !== 'preserve') {
+      await expect(validation).rejects.toThrow(/changes or weakens the verified SDK API-version/);
+      return;
+    }
+    const report = await validation;
     expect(report.validation.status).toBe('passed');
     expect(report.patch).toMatchObject({ generator: 'openai', validation: 'passed' });
     expect(report.publicationFiles).toEqual([
       {
         path: 'billing.js',
         mode: '100755',
-        content: SOURCE.replace(
-          'intent.charges.data',
-          '(await stripe.charges.list({ payment_intent: intent.id })).data',
-        ),
+        content: migrated,
       },
     ]);
-    expect(await readFile(join(root, 'billing.js'), 'utf8')).toBe(SOURCE);
+    expect(await readFile(join(root, 'billing.js'), 'utf8')).toBe(original);
   },
   60_000,
 );

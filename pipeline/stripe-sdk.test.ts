@@ -41,6 +41,14 @@ it.skipIf(!process.env.REFIT_STRIPE_SDK).each(SDK_VERSIONS)(
       await readFile(join(repository, 'node_modules/stripe/package.json'), 'utf8'),
     );
     expect(installed.version).toBe(version);
+    const clientPath = join(repository, 'client.js');
+    await writeFile(
+      clientPath,
+      (await readFile(clientPath, 'utf8')).replace(
+        "  host: '127.0.0.1',",
+        "  apiVersion: '2022-08-01',\n  host: '127.0.0.1',",
+      ),
+    );
     const source = join(repository, 'billing.js');
     const original = await readFile(source, 'utf8');
     const harness = join(fixture, 'contract.mjs');
@@ -49,6 +57,7 @@ it.skipIf(!process.env.REFIT_STRIPE_SDK).each(SDK_VERSIONS)(
     );
     expect(before.chargeIds).toEqual(['ch_first', 'ch_second']);
     expect(before.requests).toHaveLength(1);
+    expect(before.apiVersions).toEqual(['2022-08-01']);
     await expect(execute(process.execPath, [harness, source, 'after'])).rejects.toMatchObject({
       code: 1,
       stderr: expect.stringContaining('TypeError'),
@@ -58,6 +67,8 @@ it.skipIf(!process.env.REFIT_STRIPE_SDK).each(SDK_VERSIONS)(
       before: resolve('pipeline/fixtures/before.json'),
       after: resolve('pipeline/fixtures/after.json'),
       proposePatch: true,
+      apiVersion: '2022-08-01',
+      apiVersionPolicy: 'source-verified',
     });
     expect(report.repository.dependencies[0].version).toBe(version);
     expect(report.repository.dependencies[0].lock).toMatchObject({
@@ -66,6 +77,10 @@ it.skipIf(!process.env.REFIT_STRIPE_SDK).each(SDK_VERSIONS)(
       file: 'package-lock.json',
     });
     expect(report.findings).toHaveLength(1);
+    expect(report.apiVersion).toMatchObject({
+      applicability: 'matches-before',
+      source: { status: 'verified' },
+    });
     expect(report.patch).toMatchObject({ status: 'proposed', unresolvedFindings: 0 });
     if (!('diff' in report.patch)) throw new Error('Expected SDK migration proposal');
     const patch = join(root, 'migration.patch');
@@ -74,12 +89,39 @@ it.skipIf(!process.env.REFIT_STRIPE_SDK).each(SDK_VERSIONS)(
     await execute('git', ['apply', patch], { cwd: repository });
     const after = JSON.parse((await execute(process.execPath, [harness, source, 'after'])).stdout);
     expect(after.chargeIds).toEqual(before.chargeIds);
+    expect(after.apiVersions).toEqual(['2022-08-01', '2022-08-01']);
     expect(after.requests).toEqual([
       { method: 'GET', path: '/v1/payment_intents/pi_refit_contract' },
       { method: 'GET', path: '/v1/charges?payment_intent=pi_refit_contract' },
     ]);
     expect(await readFile(source, 'utf8')).not.toBe(original);
     expect(await readFile(join(fixture, 'repository/billing.js'), 'utf8')).toBe(original);
+    await writeFile(
+      source,
+      original.replace(
+        'stripe.paymentIntents.retrieve(paymentIntentId)',
+        "stripe.paymentIntents.retrieve(paymentIntentId, { apiVersion: '2022-11-15' })",
+      ),
+    );
+    const overridden = JSON.parse(
+      (
+        await execute(process.execPath, [harness, source, 'before'], {
+          env: { ...process.env, REFIT_EXPECTED_API_VERSION: '2022-11-15' },
+        })
+      ).stdout,
+    );
+    expect(overridden.apiVersions).toEqual(['2022-11-15']);
+    const conflicting = await runPipeline({
+      repository,
+      before: resolve('pipeline/fixtures/before.json'),
+      after: resolve('pipeline/fixtures/after.json'),
+      apiVersion: '2022-08-01',
+      apiVersionPolicy: 'source-verified',
+    });
+    expect(conflicting.apiVersion).toMatchObject({
+      applicability: 'conflicts-with-code',
+      source: { status: 'conflict' },
+    });
   },
   180_000,
 );

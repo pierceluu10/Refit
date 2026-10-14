@@ -214,6 +214,7 @@ async function watchLocalOnce(
       after,
       providerConfig: configuration.providerConfig,
       apiVersion: configuration.apiVersion,
+      apiVersionPolicy: configuration.apiVersionPolicy,
       fullDiff: configuration.fullDiff,
       proposePatch: true,
     });

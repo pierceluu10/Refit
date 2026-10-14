@@ -13,8 +13,11 @@ const charges = [
 ];
 const list = { object: 'list', data: charges, has_more: false, url: '/v1/charges' };
 const requests = [];
+const apiVersions = [];
+const expectedVersion = process.env.REFIT_EXPECTED_API_VERSION;
 const server = createServer((request, response) => {
   requests.push({ method: request.method, path: request.url });
+  apiVersions.push(request.headers['stripe-version'] ?? null);
   response.setHeader('Content-Type', 'application/json');
   if (request.method === 'GET' && request.url === `/v1/payment_intents/${intentId}`) {
     response.end(
@@ -48,12 +51,19 @@ try {
   const { chargeHistory } = await import(pathToFileURL(resolve(source)));
   const result = await chargeHistory(intentId);
   assert.deepEqual(result, charges, 'Migration must preserve the complete fixture charge list.');
+  if (expectedVersion)
+    assert.ok(
+      apiVersions.every((version) => version === expectedVersion),
+      'SDK requests must send the configured Stripe-Version header.',
+    );
   if (mode === 'after')
     assert.deepEqual(requests, [
       { method: 'GET', path: `/v1/payment_intents/${intentId}` },
       { method: 'GET', path: `/v1/charges?payment_intent=${intentId}` },
     ]);
-  console.log(JSON.stringify({ mode, chargeIds: result.map((charge) => charge.id), requests }));
+  console.log(
+    JSON.stringify({ mode, chargeIds: result.map((charge) => charge.id), requests, apiVersions }),
+  );
 } finally {
   server.closeAllConnections();
   if (server.listening)

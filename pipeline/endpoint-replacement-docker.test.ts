@@ -114,6 +114,56 @@ it.skipIf(!DOCKER_IMAGE || !process.env.REFIT_OASDIFF)(
 );
 
 it.skipIf(!DOCKER_IMAGE || !process.env.REFIT_OASDIFF)(
+  'validates a configured migration under source-verified version policy in offline Docker',
+  async () => {
+    const { repository, root, git, fetcher, options } = await scenario();
+    const provider = JSON.parse(await readFile(options.providerConfig, 'utf8'));
+    provider.apiVersion = { constructorArgument: 0, property: 'apiVersion', requestArguments: [] };
+    const providerConfig = join(root, 'versioned-provider.json');
+    await writeFile(providerConfig, JSON.stringify(provider));
+    const clientPath = join(repository, 'src/client.ts');
+    await writeFile(
+      clientPath,
+      (await readFile(clientPath, 'utf8')).replace(
+        'new Catalog({',
+        "new Catalog({ apiVersion: '1',",
+      ),
+    );
+    await git(['add', 'src/client.ts']);
+    await git([
+      '-c',
+      'user.name=Fixture',
+      '-c',
+      'user.email=fixture@example.test',
+      'commit',
+      '-m',
+      'test: declare fixture API version',
+    ]);
+    const result = await runWorkflow({
+      ...options,
+      providerConfig,
+      apiVersionPolicy: 'source-verified',
+    });
+    expect(result.manifest.status).toBe('validated');
+    const report = JSON.parse(await readFile(join(options.output, 'report.json'), 'utf8'));
+    expect(report.apiVersion).toMatchObject({
+      applicability: 'matches-before',
+      policy: 'source-verified',
+      source: { status: 'verified' },
+    });
+    expect(report.validation.baseline.status).toBe('passed');
+    expect(report.validation.patched.status).toBe('passed');
+    expect(await readFile(join(options.output, 'pull-request.md'), 'utf8')).toContain(
+      'SDK version declarations:',
+    );
+    expect(fetcher).not.toHaveBeenCalled();
+    expect((await git(['status', '--porcelain'])).stdout).toBe('');
+    expect(await verifyArtifacts(options.output)).toMatchObject({ status: 'integrity-verified' });
+  },
+  60_000,
+);
+
+it.skipIf(!DOCKER_IMAGE || !process.env.REFIT_OASDIFF)(
   'validates a nested resource migration through real oasdiff and offline Docker without requesting AI',
   async () => {
     const { repository, git, fetcher, output, options } = await scenario({

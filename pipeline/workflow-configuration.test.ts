@@ -33,6 +33,33 @@ afterEach(async () => {
   await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
 });
 
+it('loads strict policy and respects an explicit CLI override without execution or AI', async () => {
+  const { root, path, configuration } = await setup();
+  await writeFile(path, JSON.stringify({ ...configuration, apiVersionPolicy: 'source-verified' }));
+  expect((await readWorkflowConfiguration(path)).apiVersionPolicy).toBe('source-verified');
+  for (const [name, flags, policy] of [
+    ['strict', [], 'source-verified'],
+    ['operator', ['--api-version-policy', 'operator-pin'], 'operator-pin'],
+  ] as const) {
+    const output = join(root, name);
+    await expect(
+      execute(
+        process.execPath,
+        [bin, 'run', '--config', path, '--output', output, '--json', ...flags],
+        { cwd: tmpdir() },
+      ),
+    ).rejects.toMatchObject({ code: 2 });
+    const scan = JSON.parse(await readFile(join(output, 'scan.json'), 'utf8'));
+    expect(scan.apiVersion.policy).toBe(policy);
+    expect(scan.apiVersion.source.status).toBe('unknown');
+    expect(scan.apiVersion.applicability).toBe(
+      policy === 'source-verified' ? 'unknown' : 'matches-before',
+    );
+  }
+  await writeFile(path, JSON.stringify({ ...configuration, apiVersionPolicy: 'guess' }));
+  await expect(readWorkflowConfiguration(path)).rejects.toThrow(/API-version policy/);
+});
+
 it('runs from another directory using paths relative to the configuration and explicit env credentials', async () => {
   const { root, path } = await setup();
   const environment = join(root, '.env');

@@ -144,6 +144,7 @@ export function declaredApiVersions(options: {
           : undefined;
       const uncertain =
         node.arguments?.some(ts.isSpreadElement) ||
+        unsafe.has(symbol(node.expression)!) ||
         !binding ||
         !clients.has(binding) ||
         unsafe.has(binding);

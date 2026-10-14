@@ -110,6 +110,7 @@ it.each([
   `const options = () => ({ apiVersion: '${ORIGINAL}' }); const stripe = new Stripe('test', options());`,
   `const stripe = new Stripe('test', { apiVersion: '${ORIGINAL}' }); stripe._api.version = '${CHANGED}';`,
   `const stripe = new Stripe('test', { apiVersion: '${ORIGINAL}' }); expose(stripe);`,
+  `Stripe.prototype.request = customRequest; const stripe = new Stripe('test', { apiVersion: '${ORIGINAL}' });`,
   `const stripe = new Stripe('test', { apiVersion: '${ORIGINAL}' }); await stripe.paymentIntents.retrieve('id', runtimeOptions);`,
   `const stripe = new Stripe('test', { apiVersion: '${ORIGINAL}' }); await stripe.paymentIntents.retrieve(...args);`,
   `const stripe = new Stripe('test', { apiVersion: '${ORIGINAL}' }); await stripe?.paymentIntents.retrieve('id');`,
@@ -135,6 +136,11 @@ it('does not use a shadowing parameter or a similarly named imported SDK as vers
   expect(
     evidence(
       `${prefix} function read(Stripe) { const client = new Stripe('test', { apiVersion: '${ORIGINAL}' }); }`,
+    ).source.status,
+  ).toBe('unknown');
+  expect(
+    evidence(
+      `import Stripe from 'unrelated-sdk'; const stripe = new Stripe('test', { apiVersion: '${ORIGINAL}' });`,
     ).source.status,
   ).toBe('unknown');
 });
