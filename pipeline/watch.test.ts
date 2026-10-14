@@ -74,6 +74,76 @@ it('processes a change once across worker restarts and ignores documentation-onl
   expect(await readFile(join(input.stateDirectory, 'state.json'), 'utf8')).not.toContain('apiKey');
 });
 
+it('watches a committed root profile with an explicit local repository and deduplicates across CLI restarts', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'refit-watch-profile-'));
+  roots.push(root);
+  const repository = join(root, 'repository');
+  await cp(resolve('pipeline/fixtures/repository'), repository, { recursive: true });
+  for (const name of ['before.json', 'after.json'])
+    await cp(resolve('pipeline/fixtures/before.json'), join(repository, name));
+  const configuration = join(repository, '.refit.json');
+  await writeFile(
+    configuration,
+    JSON.stringify({
+      formatVersion: 1,
+      before: './before.json',
+      after: './after.json',
+      apiVersion: '2022-08-01',
+      image: 'unused-test-image',
+      command: ['node', '--version'],
+      fullDiff: false,
+    }),
+  );
+  const git = (args: string[]) => execute('git', ['-C', repository, ...args]);
+  await git(['init', '-b', 'main']);
+  await git(['add', '.']);
+  await git([
+    '-c',
+    'user.name=Fixture',
+    '-c',
+    'user.email=fixture@example.test',
+    '-c',
+    'commit.gpgsign=false',
+    'commit',
+    '-m',
+    'test: seed local profile',
+  ]);
+  const arguments_ = [
+    resolve('bin/refit.mjs'),
+    'watch',
+    '--repository',
+    repository,
+    '--config',
+    configuration,
+    '--state',
+    join(root, 'state'),
+    '--once',
+    '--json',
+  ];
+  const poll = async () => {
+    try {
+      await execute(process.execPath, arguments_, { cwd: root });
+      throw new Error('Expected review exit for an unchanged contract');
+    } catch (error) {
+      expect(error).toMatchObject({ code: 2, stderr: expect.any(String) });
+      return JSON.parse((error as { stdout: string }).stdout);
+    }
+  };
+  const first = await poll();
+  expect(first.status).toBe('processed');
+  expect(first.result.manifest.status).toBe('needs-review');
+  const repeated = await poll();
+  expect(repeated.status).toBe('already-processed');
+  expect(repeated.output).toBe(first.output);
+  expect((await git(['status', '--porcelain'])).stdout).toBe('');
+  await expect(
+    execute(process.execPath, [...arguments_, '--sync-github'], { cwd: root }),
+  ).rejects.toMatchObject({
+    code: 1,
+    stderr: expect.stringContaining('Choose a local --repository or --sync-github'),
+  });
+});
+
 it.each([true, false])(
   'creates a fresh worker job for an endpoint removed after deprecation (configured replacement: %s)',
   async (configuredReplacement) => {

@@ -22,6 +22,10 @@ export class Catalog {
     this.products = Object.freeze({
       get: (id, options) => this.#retrieve(CURRENT_ITEMS_PATH, id, options),
     });
+    this.inventory = Object.freeze({
+      legacy: Object.freeze({ items: this.items }),
+      current: Object.freeze({ products: this.products }),
+    });
   }
 
   async #retrieve(path, id, { requestId, locale } = {}) {

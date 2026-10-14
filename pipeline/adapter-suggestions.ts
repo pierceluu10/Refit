@@ -1,7 +1,11 @@
 import { analyzeRepository } from './analyzer.ts';
 import { requestStructuredOutput } from './openai.ts';
 import type { AiOptions } from './ai-budget.ts';
-import { parseProviderAdapter, type ProviderIdentity } from './providers.ts';
+import {
+  MAX_SDK_RESOURCE_LENGTH,
+  parseProviderAdapter,
+  type ProviderIdentity,
+} from './providers.ts';
 import { readRepository } from './repository.ts';
 import { isObject, parseObject, readSpecification } from './specifications.ts';
 import { PipelineInputError, type Repository } from './types.ts';
@@ -25,7 +29,7 @@ const RESPONSE_SCHEMA = {
         additionalProperties: false,
         required: ['resource', 'method', 'operationId', 'schema'],
         properties: {
-          resource: { type: 'string', minLength: 1, maxLength: 256 },
+          resource: { type: 'string', minLength: 1, maxLength: MAX_SDK_RESOURCE_LENGTH },
           method: { type: 'string', minLength: 1, maxLength: 256 },
           operationId: { type: 'string', minLength: 1, maxLength: 256 },
           schema: { type: 'string', minLength: 1, maxLength: 256 },
@@ -169,7 +173,7 @@ export async function suggestProviderAdapter(options: {
   const calls = collectSdkMethodCandidates(repository, options.identity);
   if (!calls.length)
     throw new PipelineInputError(
-      `No direct client.resource.method calls were found for ${options.identity.packageName} constructed from the configured import.`,
+      `No direct client.resource.method calls (including named nested resource paths) were found for ${options.identity.packageName} constructed from the configured import.`,
     );
   const operations = collectApiOperationCandidates(
     specification.document,

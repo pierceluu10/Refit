@@ -59,18 +59,28 @@ async function inputs() {
 }
 
 it.each([
-  ['items', 'retrieve'],
-  ['products', 'get'],
+  ['items', 'items', 'retrieve'],
+  ['items', 'products', 'get'],
+  ['items', 'inventory.current.products', 'get'],
+  ['inventory.legacy.items', 'items', 'retrieve'],
+  ['inventory.legacy.items', 'inventory.current.products', 'get'],
 ])(
-  'replaces a shared-client call with %s.%s, preserves arguments, and makes the changed HTTP contract pass',
-  async (replacementResource, replacementMethod) => {
+  'replaces a shared-client call from %s with %s.%s and preserves the HTTP contract',
+  async (resource, replacementResource, replacementMethod) => {
     const configuration = await inputs();
     const provider = JSON.parse(await readFile(configuration.providerConfig, 'utf8'));
+    provider.operations[0].resource = resource;
+    provider.operationReplacements[0].resource = resource;
     provider.operationReplacements[0].replacementResource = replacementResource;
     provider.operationReplacements[0].replacementMethod = replacementMethod;
     configuration.providerConfig = join(configuration.root, 'provider.json');
     await writeFile(configuration.providerConfig, JSON.stringify(provider));
-    const source = await readFile(join(configuration.repository, 'src/items.ts'), 'utf8');
+    const sourcePath = join(configuration.repository, 'src/items.ts');
+    const source = (await readFile(sourcePath, 'utf8')).replace(
+      'catalog.items.retrieveLegacy',
+      `catalog.${resource}.retrieveLegacy`,
+    );
+    await writeFile(sourcePath, source);
     const check = (mode: string) =>
       execute(process.execPath, ['--experimental-strip-types', 'simulator/check.mjs', mode], {
         cwd: configuration.repository,
@@ -89,7 +99,7 @@ it.each([
     });
     expect(fetcher).not.toHaveBeenCalled();
     expect(report.operationChanges).toMatchObject([
-      { supported: true, usages: [{ method: 'items.retrieveLegacy', file: 'src/items.ts' }] },
+      { supported: true, usages: [{ method: `${resource}.retrieveLegacy`, file: 'src/items.ts' }] },
     ]);
     expect(report.operationImpacts).toEqual([]);
     expect(
@@ -123,13 +133,30 @@ it.each([
   [
     'an escaped client',
     'register(catalog);\nexport async function label(id) { return await catalog.items.retrieveLegacy(id); }',
+    'items',
   ],
   [
     'an optional invocation',
     'export async function label(id) { return await catalog.items.retrieveLegacy?.(id); }',
+    'items',
   ],
-])('keeps %s for review and never starts AI or validation', async (_label, code) => {
+  [
+    'an escaped nested resource',
+    'register(catalog.inventory.legacy.items);\nexport async function label(id) { return await catalog.inventory.legacy.items.retrieveLegacy(id); }',
+    'inventory.legacy.items',
+  ],
+  [
+    'an optional nested resource',
+    'export async function label(id) { return await catalog.inventory?.legacy.items.retrieveLegacy(id); }',
+    'inventory.legacy.items',
+  ],
+])('keeps %s for review and never starts AI or validation', async (_label, code, resource) => {
   const configuration = await inputs();
+  const provider = JSON.parse(await readFile(configuration.providerConfig, 'utf8'));
+  provider.operations[0].resource = resource;
+  provider.operationReplacements[0].resource = resource;
+  configuration.providerConfig = join(configuration.root, 'provider.json');
+  await writeFile(configuration.providerConfig, JSON.stringify(provider));
   await writeFile(
     join(configuration.repository, 'src/items.ts'),
     `import { catalog } from './client.ts';\n${code}\n`,
@@ -140,6 +167,39 @@ it.each([
   expect(report.operationChanges).toMatchObject([{ supported: false }]);
   expect(report.findings).toMatchObject([{ confidence: 'review' }]);
   expect(report.patch).toMatchObject({ status: 'unsupported', unresolvedFindings: 1 });
+  const result = await runWorkflow({
+    ...configuration,
+    output: join(configuration.root, 'run'),
+    image: 'unused',
+    command: ['node', 'unused'],
+    aiPatch: { apiKey: 'unused', model: 'unused' },
+  });
+  expect(result.manifest.status).toBe('needs-review');
+  expect(validateMigration).not.toHaveBeenCalled();
+  expect(fetcher).not.toHaveBeenCalled();
+});
+
+it('maps nested SDK callers to an unhandled removed operation and stops before AI or checks', async () => {
+  const configuration = await inputs();
+  const provider = JSON.parse(await readFile(configuration.providerConfig, 'utf8'));
+  delete provider.operationReplacements;
+  provider.operations[0].resource = 'inventory.legacy.items';
+  configuration.providerConfig = join(configuration.root, 'provider.json');
+  await writeFile(configuration.providerConfig, JSON.stringify(provider));
+  const source = join(configuration.repository, 'src/items.ts');
+  await writeFile(
+    source,
+    (await readFile(source, 'utf8')).replace(
+      'catalog.items.retrieveLegacy',
+      'catalog.inventory.legacy.items.retrieveLegacy',
+    ),
+  );
+  const report = await runPipeline(configuration);
+  expect(report.operationImpacts).toMatchObject([
+    { usages: [{ method: 'inventory.legacy.items.retrieveLegacy' }] },
+  ]);
+  const fetcher = vi.fn();
+  vi.stubGlobal('fetch', fetcher);
   const result = await runWorkflow({
     ...configuration,
     output: join(configuration.root, 'run'),

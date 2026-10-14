@@ -25,13 +25,14 @@ const FAILED_STATUSES = new Set([
   'documentation-changed',
 ]);
 const USAGE =
-  'Usage: refit watch --config <run.json> --state <directory-outside-repository> [--once] [--sync-github --github owner/repo --base main --github-app] [--source-url <public-https-openapi> | --source-file <openapi> | --latest-stripe] [--documentation-source <label=https-url> ...] [--interval <seconds>] [--retry --once] [--ai-patch --repair-attempts 0|1|2] [--publish-draft --github owner/repo --base main --github-app] [--json]';
+  'Usage: refit watch --config <run.json> --state <directory-outside-repository> [--repository <local-git-root>] [--once] [--sync-github --github owner/repo --base main --github-app] [--source-url <public-https-openapi> | --source-file <openapi> | --latest-stripe] [--documentation-source <label=https-url> ...] [--interval <seconds>] [--retry --once] [--ai-patch --repair-attempts 0|1|2] [--publish-draft --github owner/repo --base main --github-app] [--json]';
 
 try {
   const { values } = parseArgs({
     options: {
       config: { type: 'string' },
       state: { type: 'string' },
+      repository: { type: 'string' },
       once: { type: 'boolean' },
       retry: { type: 'boolean' },
       interval: { type: 'string' },
@@ -59,6 +60,8 @@ try {
     if (!values.config || !values.state) throw new PipelineInputError(USAGE);
     if (values.retry && !values.once)
       throw new PipelineInputError('--retry requires --once to avoid repeated paid retries.');
+    if (values.repository !== undefined && values['sync-github'])
+      throw new PipelineInputError('Choose a local --repository or --sync-github, not both.');
     if (
       !values['publish-draft'] &&
       !values['sync-github'] &&
@@ -122,6 +125,7 @@ try {
           result = await watchOnce({
             configuration: {
               ...configuration,
+              repository: values.repository ?? configuration.repository,
               prepareDependencies:
                 values['prepare-dependencies'] ?? configuration.prepareDependencies,
               aiPatch,

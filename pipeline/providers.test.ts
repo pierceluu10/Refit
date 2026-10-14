@@ -206,6 +206,19 @@ it('proposes only an explicitly configured, schema-matched property rename', asy
   expect(report.patch.warnings.join(' ')).toContain('operator-authored');
 });
 
+it('does not treat an unawaited SDK promise as the mapped response object', async () => {
+  const input = await nestedProviderInputs(`import { Catalog } from '@example/catalog';
+const catalog = new Catalog();
+export function city(id: string) {
+  const customer = catalog.customers.retrieve(id);
+  return customer.address.location.legacy_city;
+}`);
+  const report = await runPipeline(input);
+  expect(report.calls).toMatchObject([{ method: 'customers.retrieve' }]);
+  expect(report.findings).toMatchObject([{ expression: '.legacy_city', confidence: 'review' }]);
+  expect(report.patch).toMatchObject({ status: 'unsupported', edits: 0 });
+});
+
 it.each([
   ['a direct response chain', 'return customer.address.location.legacy_city;'],
   [
