@@ -276,8 +276,8 @@ export function analyzeRepository(
       : undefined;
   }
   function schemaForExpression(expression: ts.Expression): string | undefined {
-    const payload = webhooks?.payload(expression);
-    if (payload) return payload.schema;
+    const payload = webhooks?.schema(expression);
+    if (payload) return payload;
     if (webhooks?.event(expression)) return 'event';
     if (ts.isIdentifier(expression)) return responses.get(symbol(expression)!);
     if (ts.isPropertyAccessExpression(expression)) {
@@ -347,7 +347,32 @@ export function analyzeRepository(
   }
   webhooks =
     provider.packageName === 'stripe'
-      ? stripeWebhookPayloads({ nodes, symbol, sdkCall, schemas: schemaDefinitions, location })
+      ? stripeWebhookPayloads({
+          nodes,
+          symbol,
+          sdkCall,
+          schemas: schemaDefinitions,
+          location,
+          iterationSource: (declaration) => {
+            if (
+              ts.isVariableDeclaration(declaration) &&
+              ts.isVariableDeclarationList(declaration.parent) &&
+              ts.isForOfStatement(declaration.parent.parent)
+            )
+              return declaration.parent.parent.expression;
+            if (ts.isParameter(declaration) && ts.isCallExpression(declaration.parent.parent)) {
+              const call = declaration.parent.parent;
+              const iteration = arrayIteration(call);
+              if (iteration?.parameter === declaration.name) return iteration.source;
+              if (
+                ts.isPropertyAccessExpression(call.expression) &&
+                ARRAY_ITERATION_METHODS.has(call.expression.name.text) &&
+                arrayItemForExpression(call.expression.expression)
+              )
+                return call.expression.expression;
+            }
+          },
+        })
       : undefined;
   for (const [binding, call] of webhooks?.events ?? []) origins.set(binding, call);
   // Only transparent, top-level one-argument wrappers; no side effects or transformed responses.
@@ -756,7 +781,11 @@ export function analyzeRepository(
         (responseSymbol !== undefined && unsafe.has(responseSymbol)) ||
         (immediateSdk && (immediateSdk.optional || unsafe.has(symbol(immediateSdk.client)!)));
       const confirmed = Boolean(
-        tracked && !uncertainMutation && property !== undefined && change.schema === schema,
+        tracked &&
+        !uncertainMutation &&
+        property !== undefined &&
+        change.schema === schema &&
+        (!webhook || webhook.schema !== undefined),
       );
       if (confirmed) propose(node, receiver, change);
       if (property === undefined && !tracked) continue;

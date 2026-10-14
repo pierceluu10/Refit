@@ -20,8 +20,16 @@ const schemas = {
     properties: {
       current_period_end: { type: 'integer' },
       current_period_start: { type: 'integer' },
+      items: { $ref: '#/components/schemas/subscription_item_list' },
     },
   },
+  subscription_item_list: {
+    type: 'object',
+    properties: {
+      data: { type: 'array', items: { $ref: '#/components/schemas/subscription_item' } },
+    },
+  },
+  subscription_item: { type: 'object', properties: { id: { type: 'string' } } },
   invoice: { type: 'object', properties: { subscription: { type: 'string' } } },
   'checkout.session': { type: 'object', properties: { subscription: { type: 'string' } } },
 };
@@ -241,6 +249,100 @@ it('uses the real dotted OpenAPI name for Checkout Session events', () => {
   expect(result.findings).toMatchObject([
     { confidence: 'confirmed', webhook: { schema: 'checkout.session' } },
   ]);
+});
+
+it('does not confuse a missing Checkout schema with an Invoice field of the same name', () => {
+  const repository = analyze(
+    `${initialize} if(event.type === 'checkout.session.completed') return event.data.object.subscription;`,
+  ).repository;
+  const { 'checkout.session': _session, ...incomplete } = schemas;
+  const result = analyzeRepository(
+    repository,
+    [
+      {
+        id: 'invoice-subscription',
+        schema: 'invoice',
+        property: 'subscription',
+        pointer: '/invoice/subscription',
+      },
+    ],
+    STRIPE,
+    incomplete,
+  );
+  expect(result.findings).toEqual([]);
+});
+
+it.each([
+  `return event.data.object.items.data[0].id;`,
+  `const item = event.data.object.items.data[0]; return item.id;`,
+  `for(const item of event.data.object.items.data) {if(item.id === wanted) return true;}`,
+  `return event.data.object.items.data.some(item => item.id === wanted);`,
+])('preserves webhook provenance through supported nested list reads: %s', (read) => {
+  const result = analyze(
+    `${initialize} if(event.type === 'customer.subscription.updated') {${read}}`,
+    {},
+    [
+      {
+        id: 'item-id',
+        schema: 'subscription_item',
+        property: 'id',
+        pointer: '/subscription_item/id',
+      },
+    ],
+  );
+  expect(result.findings).toHaveLength(1);
+  expect(result.findings[0]).toMatchObject({
+    confidence: 'confirmed',
+    webhook: {
+      schema: 'subscription',
+      eventTypes: ['customer.subscription.updated'],
+      apiVersion: 'unverified',
+    },
+  });
+  expect(result.edits).toEqual([]);
+});
+
+it('keeps supplied unresolved-schema removals under review even with a known event type', () => {
+  const repository = analyze(
+    `${initialize} if(event.type === 'checkout.session.completed') return event.data.object.subscription;`,
+  ).repository;
+  const { 'checkout.session': _session, ...incomplete } = schemas;
+  const result = analyzeRepository(
+    repository,
+    [
+      {
+        id: 'session-subscription',
+        schema: 'checkout.session',
+        property: 'subscription',
+        pointer: '/session/subscription',
+      },
+    ],
+    STRIPE,
+    incomplete,
+  );
+  expect(result.findings).toMatchObject([
+    { confidence: 'review', webhook: { apiVersion: 'unverified' } },
+  ]);
+  expect(result.edits).toEqual([]);
+});
+
+it('retains incoming-event review provenance in an unsupported multi-parameter array callback', () => {
+  const result = analyze(
+    `${initialize} if(event.type === 'customer.subscription.updated') return event.data.object.items.data.some((item, index) => item.id === wanted[index]);`,
+    {},
+    [
+      {
+        id: 'item-id',
+        schema: 'subscription_item',
+        property: 'id',
+        pointer: '/subscription_item/id',
+      },
+    ],
+  );
+  expect(result.findings).toMatchObject([
+    { confidence: 'review', webhook: { schema: 'subscription', apiVersion: 'unverified' } },
+  ]);
+  expect(result.edits).toEqual([]);
 });
 
 it('does not trace previous_attributes as the current snapshot object', () => {

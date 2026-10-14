@@ -90,6 +90,7 @@ export function stripeWebhookPayloads(options: {
   sdkCall: (node: ts.Node) => { resource: string; method: string; optional: boolean } | undefined;
   schemas: Record<string, unknown>;
   location: (node: ts.Node) => Location;
+  iterationSource: (declaration: ts.Declaration) => ts.Expression | undefined;
 }) {
   const { nodes, symbol, sdkCall, schemas, location } = options;
   const events = new Map<ts.Symbol, ts.CallExpression>();
@@ -287,9 +288,7 @@ export function stripeWebhookPayloads(options: {
       current = parent;
     }
   }
-  function payload(expression: ts.Expression) {
-    const binding = payloadEvent(expression);
-    if (!binding) return;
+  function mappedEvent(binding: ts.Symbol, expression: ts.Expression) {
     const eventTypes = narrow(expression, binding);
     if (!eventTypes?.length) return;
     const mapped = eventTypes.map((name) =>
@@ -297,15 +296,25 @@ export function stripeWebhookPayloads(options: {
     );
     const name = mapped[0];
     if (!name || !mapped.every((schema) => schema === name)) return;
-    const schema = resolvableComponentSchema(schemas, name);
-    return schema
-      ? {
-          schema,
-          eventTypes: [...new Set(eventTypes)].sort(),
-          binding,
-          origin: location(events.get(binding)!),
-        }
-      : undefined;
+    const resolved = resolvableComponentSchema(schemas, name);
+    return {
+      schema: resolved ?? name,
+      contractResolved: Boolean(resolved),
+      eventTypes: [...new Set(eventTypes)].sort(),
+      binding,
+      origin: location(events.get(binding)!),
+    };
+  }
+  function mappedPayload(expression: ts.Expression) {
+    const binding = payloadEvent(expression);
+    return binding ? mappedEvent(binding, expression) : undefined;
+  }
+  function payload(expression: ts.Expression) {
+    const mapped = mappedPayload(expression);
+    return mapped?.contractResolved ? mapped : undefined;
+  }
+  function schema(expression: ts.Expression) {
+    return mappedPayload(expression)?.schema;
   }
   function origin(
     expression: ts.Expression,
@@ -320,7 +329,12 @@ export function stripeWebhookPayloads(options: {
     | undefined {
     const snapshot = payload(expression);
     if (snapshot) return snapshot;
-    const binding = projection(expression)?.binding;
+    const projected = projection(expression);
+    const binding = projected?.binding;
+    if (projected && projected.path[0] === 'data' && projected.path[1] === 'object') {
+      const mapped = mappedEvent(projected.binding, expression);
+      if (mapped?.contractResolved) return mapped;
+    }
     if (binding)
       return {
         eventTypes: [...new Set(narrow(expression, binding) ?? [])].sort(),
@@ -332,13 +346,17 @@ export function stripeWebhookPayloads(options: {
       const alias = symbol(value);
       if (!alias || seen.has(alias)) return;
       let declaration = alias.valueDeclaration;
+      const iteration = declaration && options.iterationSource(declaration);
+      if (iteration) return origin(iteration, new Set([...seen, alias]));
       while (declaration && ts.isBindingElement(declaration))
         declaration = declaration.parent.parent;
       if (declaration && ts.isVariableDeclaration(declaration) && declaration.initializer)
         return origin(declaration.initializer, new Set([...seen, alias]));
     }
     const access = member(expression);
-    return access ? origin(access.owner, seen) : undefined;
+    const owner =
+      access?.owner ?? (ts.isElementAccessExpression(value) ? value.expression : undefined);
+    return owner ? origin(owner, seen) : undefined;
   }
-  return { events, unsafeEvents, initializations, event, payload, origin };
+  return { events, unsafeEvents, initializations, event, schema, origin };
 }
