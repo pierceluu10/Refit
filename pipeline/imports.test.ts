@@ -51,7 +51,6 @@ it.each<Record<string, string>>([
       "import * as clients from './client'; clients.stripe.paymentIntents.retrieve = replacement;",
   },
   { 'barrel.ts': "export {stripe} from './client';" },
-  { 'client.ts': `${client}\nexport default stripe;` },
   { 'client.ts': `${client}\nexport function getClient() { return stripe; }` },
   { 'client.ts': `${client}\nexport const getClient = () => stripe;` },
   { 'client.ts': `${client}\nexport const getResource = () => stripe.paymentIntents;` },

@@ -10,10 +10,12 @@ type PropertyResult =
 
 export function declaredApiVersions(options: {
   nodes: ts.Node[];
+  mutationNodes: ts.Node[];
   checker: ts.TypeChecker;
   provider: ProviderAdapter;
   clients: Set<ts.Symbol>;
-  constructor: (node: ts.Node) => boolean;
+  creation: (node: ts.Node) => ts.NewExpression | ts.CallExpression | undefined;
+  clientBinding: (node: ts.Node) => ts.Symbol | undefined;
   sdkCall: (node: ts.Node) => { client: ts.Identifier; optional: boolean } | undefined;
   symbol: (node: ts.Node) => ts.Symbol | undefined;
   canonical: (symbol: ts.Symbol | undefined) => ts.Symbol | undefined;
@@ -22,10 +24,6 @@ export function declaredApiVersions(options: {
   const mapping = options.provider.apiVersion;
   if (!mapping) return [];
   const { nodes, checker, clients, symbol, canonical, location } = options;
-  const isConstructor = (node: ts.Node): node is ts.NewExpression =>
-    ts.isNewExpression(node) &&
-    ts.isIdentifier(node.expression) &&
-    options.constructor(node.expression);
   // These recorded option consumers do not expose the options to an unknown application function.
   let unsafe = new Set<ts.Symbol>();
   function unwrap(expression: ts.Expression): ts.Expression {
@@ -120,8 +118,8 @@ export function declaredApiVersions(options: {
     }
   }
   unsafe = unsafeBindings(
-    nodes.filter((node) => {
-      if (isConstructor(node) || options.sdkCall(node)) return false;
+    options.mutationNodes.filter((node) => {
+      if (options.creation(node) || options.sdkCall(node)) return false;
       if (ts.isPropertyAssignment(node)) {
         const value = resolve(node.initializer);
         if (value && (ts.isStringLiteral(value) || ts.isNoSubstitutionTemplateLiteral(value)))
@@ -136,15 +134,13 @@ export function declaredApiVersions(options: {
   );
   const declarations: ApiVersionDeclaration[] = [];
   for (const node of nodes) {
-    if (isConstructor(node)) {
-      const result = version(node.arguments?.[mapping.constructorArgument]);
-      const binding =
-        ts.isVariableDeclaration(node.parent) && ts.isIdentifier(node.parent.name)
-          ? symbol(node.parent.name)
-          : undefined;
+    const creation = options.creation(node);
+    if (creation) {
+      const result = version(creation.arguments?.[mapping.constructorArgument]);
+      const binding = options.clientBinding(node);
       const uncertain =
-        node.arguments?.some(ts.isSpreadElement) ||
-        unsafe.has(symbol(node.expression)!) ||
+        creation.arguments?.some(ts.isSpreadElement) ||
+        unsafe.has(symbol(creation.expression)!) ||
         !binding ||
         !clients.has(binding) ||
         unsafe.has(binding);

@@ -19,6 +19,7 @@ const findings = [
 it('preserves the historical PR identity when adding or changing version-option metadata', () => {
   const historicalAdapter = { ...STRIPE };
   delete historicalAdapter.apiVersion;
+  delete historicalAdapter.constructorCalls;
   const historical = digest(
     JSON.stringify({ revision, adapter: historicalAdapter, changes: ['stripe-history'] }),
   );

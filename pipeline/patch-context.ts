@@ -1,6 +1,7 @@
 import { resolve } from 'node:path';
 import ts from 'typescript-compiler';
 import { resolveSourceImport } from './source-imports.ts';
+import { sourceModuleReferences } from './source-modules.ts';
 import { PipelineInputError, type Repository } from './types.ts';
 
 const MAX_CONTEXT_FILES = 12;
@@ -16,10 +17,8 @@ export function buildPatchContext(repository: Repository, editable: Set<string>)
     const file = pending[index];
     const path = resolve(repository.root, file.path);
     const source = ts.createSourceFile(path, file.content, ts.ScriptTarget.Latest, true);
-    for (const statement of source.statements) {
-      if (!ts.isImportDeclaration(statement) || !ts.isStringLiteral(statement.moduleSpecifier))
-        continue;
-      const imported = resolveSourceImport(statement.moduleSpecifier.text, path, sources);
+    for (const name of sourceModuleReferences(source)) {
+      const imported = resolveSourceImport(name, path, sources);
       const target = imported && sources.get(imported);
       if (!target || visited.has(target.path)) continue;
       if (context.length >= MAX_CONTEXT_FILES)

@@ -7,6 +7,7 @@ export interface ProviderAdapter {
   packageName: string;
   defaultImport: boolean;
   namedExport: string | null;
+  constructorCalls?: boolean;
   apiVersion?: {
     constructorArgument: number;
     property: string;
@@ -42,6 +43,7 @@ export const STRIPE: ProviderAdapter = {
   packageName: 'stripe',
   defaultImport: true,
   namedExport: 'Stripe',
+  constructorCalls: true,
   apiVersion: { constructorArgument: 1, property: 'apiVersion', requestArguments: [1, 2] },
   operations: ['retrieve', 'create', 'update', 'confirm', 'cancel', 'capture'].map((method) => ({
     resource: 'paymentIntents',
@@ -80,6 +82,7 @@ const CONFIG_KEYS = new Set([
   'requestPropertyRenames',
   'operationReplacements',
   'apiVersion',
+  'constructorCalls',
 ]);
 const MAX_SDK_ARGUMENT_INDEX = 16;
 
@@ -147,6 +150,8 @@ export function parseProviderAdapter(value: Record<string, unknown>): ProviderAd
       'Invalid provider configuration. Use a unique non-Stripe id, package, constructor import and 1–100 operations.',
     );
   const seen = new Set<string>();
+  if (value.constructorCalls !== undefined && typeof value.constructorCalls !== 'boolean')
+    throw new PipelineInputError('Provider constructorCalls must be a boolean.');
   const apiVersion = value.apiVersion;
   const argumentIndex = (index: unknown): index is number =>
     typeof index === 'number' &&
@@ -363,6 +368,9 @@ export function parseProviderAdapter(value: Record<string, unknown>): ProviderAd
   return {
     ...identity,
     operations,
+    ...(value.constructorCalls !== undefined
+      ? { constructorCalls: value.constructorCalls as boolean }
+      : {}),
     ...(apiVersion
       ? {
           apiVersion: {

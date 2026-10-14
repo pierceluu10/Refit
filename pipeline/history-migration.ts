@@ -1,6 +1,7 @@
 import { posix } from 'node:path';
 import ts from 'typescript-compiler';
 import type { Removal, SourceEdit } from './types.ts';
+import { sourceModuleReferences, type ClientExport } from './source-modules.ts';
 
 const CLIENT_ALIAS = 'refitStripe';
 const HISTORY_BINDING = 'refitCharges';
@@ -15,6 +16,7 @@ export function guardedHistoryEdit(options: {
   clients: Set<ts.Symbol>;
   locations: Map<string, string>;
   change: Removal;
+  clientExport: (binding: ts.Symbol) => ClientExport | undefined;
 }): SourceEdit | undefined {
   const { node, receiver, origin, checker, symbol, clients, locations, change } = options;
   const declaration = symbol(receiver)?.valueDeclaration;
@@ -83,22 +85,11 @@ export function guardedHistoryEdit(options: {
     return;
   const clientNode = origin.expression.expression.expression;
   const client = symbol(clientNode);
-  const clientDeclaration = client?.valueDeclaration;
-  if (
-    !client ||
-    !clients.has(client) ||
-    !clientDeclaration ||
-    !ts.isVariableDeclaration(clientDeclaration) ||
-    !ts.isIdentifier(clientDeclaration.name) ||
-    !ts.isVariableStatement(clientDeclaration.parent.parent) ||
-    !clientDeclaration.parent.parent.modifiers?.some(
-      (modifier) => modifier.kind === ts.SyntaxKind.ExportKeyword,
-    )
-  )
-    return;
+  const exported = client && options.clientExport(client);
+  if (!client || !clients.has(client) || !exported) return;
   const source = node.getSourceFile();
   const file = locations.get(source.fileName)!;
-  const target = locations.get(clientDeclaration.getSourceFile().fileName)!;
+  const target = locations.get(exported.file)!;
   if (file === target) return;
   const occupied = new Set(
     checker
@@ -115,9 +106,11 @@ export function guardedHistoryEdit(options: {
       ts.isStringLiteral(statement.moduleSpecifier) &&
       statement.moduleSpecifier.text.startsWith('.'),
   );
-  if (importDeclaration && ts.isStringLiteral(importDeclaration.moduleSpecifier)) {
-    const extension = posix.extname(importDeclaration.moduleSpecifier.text);
-    if (extension === '.js') modulePath = modulePath.replace(/\.ts$/, '.js');
+  const relativeImport = [...sourceModuleReferences(source)].find((name) => name.startsWith('.'));
+  if (relativeImport) {
+    const extension = posix.extname(relativeImport);
+    if (['.js', '.mjs', '.cjs'].includes(extension))
+      modulePath = modulePath.replace(/\.[cm]?ts$/, extension);
     else if (!extension) modulePath = modulePath.replace(/\.[cm]?[jt]sx?$/, '');
   }
   const newline = source.text.includes('\r\n') ? '\r\n' : '\n';
@@ -134,9 +127,10 @@ export function guardedHistoryEdit(options: {
   const content =
     source.text.slice(0, guard.getStart()) + replacement + source.text.slice(returned.getEnd());
   const insertion = importDeclaration?.getStart() ?? body.parent.getStart();
-  const updated =
-    content.slice(0, insertion) +
-    `import { ${clientDeclaration.name.text} as ${CLIENT_ALIAS} } from ${JSON.stringify(modulePath)};${newline}` +
-    content.slice(insertion);
+  const clientImport =
+    exported.kind === 'esm'
+      ? `import ${exported.name ? `{ ${exported.name} as ${CLIENT_ALIAS} }` : CLIENT_ALIAS} from ${JSON.stringify(modulePath)};`
+      : `const ${CLIENT_ALIAS} = require(${JSON.stringify(modulePath)})${exported.name ? `.${exported.name}` : ''};`;
+  const updated = content.slice(0, insertion) + clientImport + newline + content.slice(insertion);
   return { file, start: 0, end: source.text.length, replacement: updated, changeId: change.id };
 }
