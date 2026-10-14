@@ -766,7 +766,7 @@ export function analyzeRepository(
         reason: confirmed
           ? `Removed field read on a statically traced ${provider.id} ${schema} response.`
           : uncertainMutation
-            ? 'Response or SDK client may be mutated, escape through an alias or call, or come from an optional SDK invocation; inspect manually.'
+            ? 'Response or SDK client may be mutated or escape through an alias or call, or come from an optional SDK invocation; inspect manually.'
             : 'Receiver or property cannot be proven by the supported local analysis; inspect manually.',
       });
     }
