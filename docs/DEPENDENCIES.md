@@ -16,7 +16,7 @@ refit serve --env .env --config examples/local-service.npm.refit.json \
 
 This discovers the installed App's access, fetches the billing demo into a managed checkout, scans the supplied historical Stripe contracts, prepares dependencies when necessary, and validates a deterministic migration. The example checks original behavior, both original/changed behavior after patching, and TypeScript. It leaves your billing checkout unchanged and does not publish a PR. Subsequent polls reuse the saved job and report that checks were not rerun. Omit `--once` for continuous polling.
 
-For draft publication, use a **fresh service state directory** and add `--publish-draft`. PR #3 already covers the demo, so Refit's publication preflight can reuse it before installation, generation or checks. To evaluate a new AI proposal locally, add `--ai-patch --repair-attempts 1` with fresh state and your shared spending allowance:
+For draft publication, use a **fresh service state directory** and add `--publish-draft`. PR #3 predates the approved configuration merge and does not cover the current monitored base. Refit reuses an App draft only when its base and migration identity match; publication can create a new draft after validation. See [the current App evaluation](AUTOMATION.md). To evaluate a new AI proposal locally, add `--ai-patch --repair-attempts 1` with fresh state and your shared spending allowance:
 
 ```sh
 REFIT_AI_BUDGET_USD=2 \
