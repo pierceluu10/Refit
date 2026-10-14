@@ -21,7 +21,8 @@
     "typecheck": "tsc -b",
     "format": "prettier --write src pipeline bin scripts index.html vite.config.ts tsconfig.json package.json",
     "format:check": "prettier --check src pipeline bin scripts index.html vite.config.ts tsconfig.json package.json",
-    "eval:ai": "tsx pipeline/ai-eval-cli.ts"
+    "eval:ai": "tsx pipeline/ai-eval-cli.ts",
+    "benchmark:coverage": "tsx pipeline/sdk-coverage-cli.ts"
   },
   "dependencies": {
     "@fontsource-variable/geist": "^5.3.0",
