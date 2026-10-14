@@ -217,6 +217,15 @@ it.skipIf(!process.env.REFIT_OPENAI_SDK)(
   async () => {
     const input = await inputs('provider-chat-renames.json', 'chat');
     await installFixture(input);
+    await expect(
+      execute(process.execPath, ['client.js'], {
+        cwd: input.repository,
+        env: { ...process.env, REFIT_SIMULATOR_URL: 'https://api.openai.com/v1' },
+      }),
+    ).rejects.toMatchObject({
+      code: 1,
+      stderr: expect.stringContaining('only its loopback HTTP simulator'),
+    });
     const source = join(input.repository, 'chat.js');
     const harness = join(FIXTURE, 'contract.mjs');
     const check = (mode: string) => execute(process.execPath, [harness, source, mode, 'chat']);
