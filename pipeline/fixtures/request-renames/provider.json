@@ -1,0 +1,18 @@
+{
+  "id": "catalog-request-example",
+  "packageName": "@example/catalog",
+  "defaultImport": false,
+  "namedExport": "Catalog",
+  "operations": [
+    { "resource": "items", "method": "create", "schema": "Item", "operationId": "createItem" }
+  ],
+  "requestPropertyRenames": [
+    {
+      "resource": "items",
+      "method": "create",
+      "argumentIndex": 0,
+      "removed": "legacy_name",
+      "replacement": "display_name"
+    }
+  ]
+}
