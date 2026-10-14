@@ -156,14 +156,16 @@ it.skipIf(!IMAGE || !process.env.REFIT_OASDIFF)(
   60_000,
 );
 
-it.skipIf(
-  !IMAGE ||
-    !process.env.REFIT_OASDIFF ||
-    !process.env.REFIT_OPENAI_SDK ||
-    !process.env.REFIT_NPM_PREPARE,
-)(
-  'validates request serialization with the real OpenAI SDK in offline Docker',
-  async () => {
+it
+  .skipIf(
+    !IMAGE ||
+      !process.env.REFIT_OASDIFF ||
+      !process.env.REFIT_OPENAI_SDK ||
+      !process.env.REFIT_NPM_PREPARE,
+  )
+  .each(['named', 'default', 'commonjs'])(
+  'validates request serialization with real OpenAI %s client modules in offline Docker',
+  async (format) => {
     const sample = await scenario();
     await rm(sample.repository, { recursive: true });
     await mkdir(join(sample.repository, 'src'), { recursive: true });
@@ -191,6 +193,44 @@ it.skipIf(
       join(sample.repository, 'src/billing.js'),
       "import { client } from './client.js'; const MODEL = 'gpt-4.1-mini'; export async function createCompletion(prompt, requestId) { const completion = await client.chat.completions.create({ model: MODEL, messages: [{ role: 'user', content: prompt }], stream: false }, { headers: { 'x-request-id': requestId } }); return completion.id; }",
     );
+    const commonjs = format === 'commonjs';
+    const extension = commonjs ? 'cjs' : 'js';
+    if (format !== 'named') {
+      const clientPath = join(sample.repository, 'src/client.js');
+      const originalClient = await readFile(clientPath, 'utf8');
+      await writeFile(
+        join(sample.repository, `src/client.${extension}`),
+        commonjs
+          ? originalClient
+              .replace("import OpenAI from 'openai';", "const OpenAI = require('openai').OpenAI;")
+              .replace('export const client', 'const client') + '\nmodule.exports = {client};\n'
+          : originalClient.replace('export const client', 'const client') +
+              '\nexport default client;\n',
+      );
+      const billingPath = join(sample.repository, 'src/billing.js');
+      const originalBilling = await readFile(billingPath, 'utf8');
+      await writeFile(
+        join(sample.repository, `src/billing.${extension}`),
+        commonjs
+          ? originalBilling
+              .replace(
+                "import { client } from './client.js';",
+                "const {client} = require('./client.cjs');",
+              )
+              .replace('export async function', 'async function') +
+              '\nexports.createCompletion = createCompletion;\n'
+          : originalBilling.replace('import { client }', 'import client'),
+      );
+      if (commonjs) {
+        await rm(clientPath);
+        await rm(billingPath);
+        const harness = join(sample.repository, 'simulator/check.mjs');
+        await writeFile(
+          harness,
+          (await readFile(harness, 'utf8')).replace('../src/billing.js', '../src/billing.cjs'),
+        );
+      }
+    }
     const before = JSON.parse(await readFile(sample.options.before, 'utf8'));
     before.paths = {
       '/chat/completions': {
@@ -296,7 +336,7 @@ it.skipIf(
     );
     expect(report.repository.dependencies[0].lock.version).toBe(OPENAI_SDK);
     expect(report.publicationFiles.map((file: { path: string }) => file.path)).toEqual([
-      'src/billing.js',
+      `src/billing.${extension}`,
     ]);
     expect(sample.fetcher).not.toHaveBeenCalled();
     expect((await sample.git(['status', '--porcelain'])).stdout).toBe('');
