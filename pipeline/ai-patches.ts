@@ -10,6 +10,7 @@ import { MAX_INPUT_BYTES, requestStructuredOutput } from './openai.ts';
 import { STRIPE, type ProviderAdapter } from './providers.ts';
 import { applySourceEdits, renderPatch } from './patches.ts';
 import { buildPatchContext } from './patch-context.ts';
+import { FieldSubstitutionError, findFieldSubstitutions } from './substitution-guard.ts';
 import { findAddedProperties, parseObject, isObject } from './specifications.ts';
 import {
   PipelineInputError,
@@ -324,6 +325,21 @@ export async function proposeAiPatch(
       ),
     })),
   };
+  const substitutions = findFieldSubstitutions(
+    repository,
+    modified,
+    changes,
+    provider,
+    schemaDefinitions,
+    new Set(edits.map((edit) => edit.file)),
+  );
+  if (substitutions.length)
+    throw new FieldSubstitutionError(substitutions, {
+      ...metadata,
+      summary: value.summary,
+      uncertainties: value.uncertainties,
+      diff: renderPatch(repository, edits),
+    });
   const remaining = analyzeRepository(modified, changes, provider, schemaDefinitions);
   return {
     ...metadata,

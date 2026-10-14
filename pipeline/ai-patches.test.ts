@@ -8,6 +8,7 @@ import { buildAssessmentEvidence } from './assessment.ts';
 import { proposeAiPatch } from './ai-patches.ts';
 import { digest } from './specifications.ts';
 import { MAX_INPUT_BYTES } from './openai.ts';
+import { FieldSubstitutionError } from './substitution-guard.ts';
 
 const INPUTS = {
   repository: 'pipeline/fixtures/repository',
@@ -302,8 +303,8 @@ it('shows the model fields the after contract adds to an affected schema', async
   expect(body.instructions).toContain('candidates, not proven replacements');
 });
 
-it('lets the model see a renamed OpenAI field instead of guessing a substitute', async () => {
-  const root = await mkdtemp(join(tmpdir(), 'refit-added-properties-'));
+async function openaiInputs() {
+  const root = await mkdtemp(join(tmpdir(), 'refit-openai-rename-'));
   scratch.push(root);
   const model = (property: string) => ({
     openapi: '3.0.3',
@@ -325,23 +326,82 @@ it('lets the model see a renamed OpenAI field instead of guessing a substitute',
       schemas: {
         Model: {
           type: 'object',
-          required: ['id', property],
-          properties: { id: { type: 'string' }, [property]: { type: 'string' } },
+          required: ['id', 'object', property],
+          properties: {
+            id: { type: 'string' },
+            object: { type: 'string' },
+            [property]: { type: 'string' },
+          },
         },
       },
     },
   });
   await writeFile(join(root, 'before.json'), JSON.stringify(model('owned_by')));
   await writeFile(join(root, 'after.json'), JSON.stringify(model('owner_name')));
-  respond([]);
-  await runPipeline({
+  const inputs = {
     repository: 'pipeline/fixtures/openai/repository',
     before: join(root, 'before.json'),
     after: join(root, 'after.json'),
     providerConfig: 'pipeline/fixtures/openai/provider.json',
-    aiPatch: OPTIONS,
+  };
+  const report = await runPipeline(inputs);
+  const repository = await readRepository(inputs.repository, 'openai');
+  const [finding] = buildAssessmentEvidence(
+    repository,
+    report.changes,
+    report.findings,
+    report.adapter,
+  ).findings;
+  const edit = (replacement: string) => ({
+    file: 'models.js',
+    original: 'model.owned_by.toLowerCase()',
+    replacement,
+    findingId: finding.id,
   });
+  return { inputs, edit };
+}
+
+it('lets the model see a renamed OpenAI field instead of guessing a substitute', async () => {
+  const { inputs } = await openaiInputs();
+  respond([]);
+  await runPipeline({ ...inputs, aiPatch: OPTIONS });
   expect(modelEvidence().evidence.addedProperties).toEqual([
     { schema: 'Model', property: 'owner_name', type: 'string' },
   ]);
 });
+
+it('accepts the verified Stripe migration that passes a pre-existing field to an SDK call', async () => {
+  const { edit } = await fixture();
+  respond([edit]);
+  const report = await runPipeline({ ...INPUTS, aiPatch: OPTIONS });
+  expect(edit.replacement).toContain('payment_intent: intent.id');
+  expect(report.patch).toMatchObject({ status: 'proposed', edits: 1 });
+});
+
+it('accepts a replacement that reads a field added in the after contract', async () => {
+  const { inputs, edit } = await openaiInputs();
+  respond([edit('model.owner_name.toLowerCase()')]);
+  const report = await runPipeline({ ...inputs, aiPatch: OPTIONS });
+  expect(report.patch).toMatchObject({ status: 'proposed', edits: 1 });
+});
+
+it('rejects a pre-existing field substituted for the removed field', async () => {
+  const { inputs, edit } = await openaiInputs();
+  respond([edit('model.id.toLowerCase()')]);
+  const rejection = runPipeline({ ...inputs, aiPatch: OPTIONS });
+  await expect(rejection).rejects.toBeInstanceOf(FieldSubstitutionError);
+  await expect(rejection).rejects.toThrow(
+    'AI replacement substitutes pre-existing field Model.id for removed Model.owned_by in models.js:5.',
+  );
+});
+
+it.each(['String(model.id).toLowerCase()', '`${model.object}`.toLowerCase()'])(
+  'rejects a pre-existing field read outside an SDK call argument: %s',
+  async (replacement) => {
+    const { inputs, edit } = await openaiInputs();
+    respond([edit(replacement)]);
+    await expect(runPipeline({ ...inputs, aiPatch: OPTIONS })).rejects.toThrow(
+      /substitutes pre-existing field Model\.(id|object)/,
+    );
+  },
+);
