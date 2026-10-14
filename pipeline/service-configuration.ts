@@ -2,7 +2,7 @@ import { readFile, stat } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { isObject, parseObject } from './specifications.ts';
 import { publicationConfiguration } from './publication.ts';
-import { readWorkflowConfiguration } from './workflow-configuration.ts';
+import { readWorkflowConfiguration, readWorkflowConfigurations } from './workflow-configuration.ts';
 import type { GitHubAppConfiguration } from './github-app.ts';
 import { PipelineInputError } from './types.ts';
 import type { SpecificationSource } from './openapi-sources.ts';
@@ -25,10 +25,12 @@ const TARGET_KEYS = new Set([
   'approval',
   'source',
   'documentationSources',
+  'integrations',
 ]);
 
 interface ServiceTargetIdentity {
   id: string;
+  integration?: string;
   repository: string;
   base: string;
   documentationSources: DocumentationSource[];
@@ -97,67 +99,117 @@ export async function readServiceConfiguration(path: string, app: GitHubAppConfi
       throw new PipelineInputError(
         'Repository approval belongs to another GitHub repository or base branch.',
       );
-    const workflow =
+    const collection =
       target.workflow === undefined
         ? undefined
-        : await readWorkflowConfiguration(resolve(directory, profilePath));
-    let source: SpecificationSource | undefined = workflow
-      ? workflow.latestStripe
-        ? { kind: 'stripe-latest' }
-        : { kind: 'file', path: workflow.after! }
-      : undefined;
-    if (target.source !== undefined) {
-      if (!isObject(target.source))
-        throw new PipelineInputError('Service source must be an object.');
-      const input = target.source;
-      if (
-        input.kind === 'file' &&
-        typeof input.path === 'string' &&
-        input.path.trim() &&
-        !input.path.includes('\0') &&
-        Object.keys(input).sort().join(',') === 'kind,path'
-      )
-        source = { kind: 'file', path: resolve(directory, input.path) };
-      else if (
-        input.kind === 'https' &&
-        typeof input.url === 'string' &&
-        Object.keys(input).sort().join(',') === 'kind,url'
-      ) {
-        const url = new URL(input.url);
-        if (url.protocol !== 'https:' || url.username || url.password || url.search || url.hash)
-          throw new PipelineInputError(
-            'Service sources require a public HTTPS URL without credentials or query parameters.',
-          );
-        source = { kind: 'https', url: url.href };
-      } else if (input.kind === 'stripe-latest' && Object.keys(input).join(',') === 'kind')
-        source = { kind: 'stripe-latest' };
-      else
-        throw new PipelineInputError(
-          'Service source requires file/path, https/url or stripe-latest.',
-        );
-    }
-    if (target.documentationSources !== undefined && !Array.isArray(target.documentationSources))
-      throw new PipelineInputError('Documentation sources must be an array.');
-    const documentationSources = (target.documentationSources ?? []).map(
-      normalizeDocumentationSource,
-    );
+        : await readWorkflowConfigurations(resolve(directory, profilePath));
+    const entries = approval
+      ? (approval.integrations?.map((id) => ({ id, workflow: undefined })) ?? [
+          { id: null, workflow: undefined },
+        ])
+      : collection!.workflows;
+    const multiple = approval?.formatVersion === 2 || collection?.formatVersion === 2;
+    if (multiple && (target.source !== undefined || target.documentationSources !== undefined))
+      throw new PipelineInputError(
+        'Multi-integration targets require source and documentation overrides inside integrations, keyed by an approved integration id.',
+      );
     if (
-      documentationSources.length > MAX_DOCUMENTATION_SOURCES ||
-      new Set(documentationSources.map(documentationSourceId)).size !== documentationSources.length
+      target.integrations !== undefined &&
+      (!multiple ||
+        !isObject(target.integrations) ||
+        Object.keys(target.integrations).some((id) => !entries.some((entry) => entry.id === id)))
     )
       throw new PipelineInputError(
-        `Each target accepts up to ${MAX_DOCUMENTATION_SOURCES} unique documentation sources.`,
+        'Service integration overrides must name configured integrations on a multi-integration target.',
       );
     ids.add(target.id);
-    targets.push({
-      id: target.id,
-      repository: github.repository,
-      base: github.base,
-      documentationSources,
-      ...(approval
-        ? { approval, ...(source ? { source } : {}) }
-        : { workflow: workflow!, source: source! }),
-    });
+    for (const entry of entries) {
+      const overrides =
+        multiple && isObject(target.integrations) && Object.hasOwn(target.integrations, entry.id!)
+          ? target.integrations[entry.id!]
+          : multiple
+            ? {}
+            : target;
+      if (
+        !isObject(overrides) ||
+        (multiple &&
+          Object.keys(overrides).some((key) => !['source', 'documentationSources'].includes(key)))
+      )
+        throw new PipelineInputError(
+          'Each integration override may contain only source and documentationSources.',
+        );
+      const workflow = entry.workflow
+        ? { ...entry.workflow, ...(entry.id ? { integration: entry.id } : {}) }
+        : undefined;
+      const source =
+        overrides.source !== undefined
+          ? parseServiceSource(overrides.source, directory)
+          : workflow
+            ? workflow.latestStripe
+              ? { kind: 'stripe-latest' as const }
+              : { kind: 'file' as const, path: workflow.after! }
+            : undefined;
+      const documentationSources = parseDocumentationSources(overrides.documentationSources);
+      const id = entry.id ? `${target.id}.${entry.id}` : target.id;
+      if (entry.id && ids.has(id))
+        throw new PipelineInputError('Service target integration ids must be unique.');
+      ids.add(id);
+      targets.push({
+        id,
+        ...(entry.id ? { integration: entry.id } : {}),
+        repository: github.repository,
+        base: github.base,
+        documentationSources,
+        ...(approval
+          ? { approval, ...(source ? { source } : {}) }
+          : { workflow: workflow!, source: source! }),
+      });
+      if (targets.length > MAX_TARGETS)
+        throw new PipelineInputError(
+          `Service configuration exceeds ${MAX_TARGETS} integration workers after expansion.`,
+        );
+    }
   }
   return targets;
+}
+
+function parseServiceSource(value: unknown, directory: string): SpecificationSource {
+  if (!isObject(value)) throw new PipelineInputError('Service source must be an object.');
+  if (
+    value.kind === 'file' &&
+    typeof value.path === 'string' &&
+    value.path.trim() &&
+    !value.path.includes('\0') &&
+    Object.keys(value).sort().join(',') === 'kind,path'
+  )
+    return { kind: 'file', path: resolve(directory, value.path) };
+  if (
+    value.kind === 'https' &&
+    typeof value.url === 'string' &&
+    Object.keys(value).sort().join(',') === 'kind,url'
+  ) {
+    const url = new URL(value.url);
+    if (url.protocol !== 'https:' || url.username || url.password || url.search || url.hash)
+      throw new PipelineInputError(
+        'Service sources require a public HTTPS URL without credentials or query parameters.',
+      );
+    return { kind: 'https', url: url.href };
+  }
+  if (value.kind === 'stripe-latest' && Object.keys(value).join(',') === 'kind')
+    return { kind: 'stripe-latest' };
+  throw new PipelineInputError('Service source requires file/path, https/url or stripe-latest.');
+}
+
+function parseDocumentationSources(value: unknown): DocumentationSource[] {
+  if (value !== undefined && !Array.isArray(value))
+    throw new PipelineInputError('Documentation sources must be an array.');
+  const sources = ((value ?? []) as unknown[]).map(normalizeDocumentationSource);
+  if (
+    sources.length > MAX_DOCUMENTATION_SOURCES ||
+    new Set(sources.map(documentationSourceId)).size !== sources.length
+  )
+    throw new PipelineInputError(
+      `Each target accepts up to ${MAX_DOCUMENTATION_SOURCES} unique documentation sources.`,
+    );
+  return sources;
 }

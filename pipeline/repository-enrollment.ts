@@ -20,7 +20,9 @@ import { analyzeRepository } from './analyzer.ts';
 import { readRepository } from './repository.ts';
 import {
   MAX_WORKFLOW_CONFIGURATION_BYTES,
-  parseWorkflowConfiguration,
+  parseWorkflowConfigurations,
+  MAX_REPOSITORY_INTEGRATIONS,
+  validIntegrationId,
   REPOSITORY_CONFIGURATION,
 } from './workflow-configuration.ts';
 
@@ -37,6 +39,7 @@ const CACHE_FILES = {
 type InputRole = (typeof ROLES)[number];
 
 interface ApprovedInput {
+  integration?: string;
   role: InputRole;
   path: string;
   sha256: string;
@@ -44,7 +47,8 @@ interface ApprovedInput {
 }
 
 export interface RepositoryApproval {
-  formatVersion: 1;
+  formatVersion: 1 | 2;
+  integrations?: string[];
   kind: 'refit-repository-approval';
   repository: string;
   base: string;
@@ -76,9 +80,30 @@ function inputPath(value: unknown): string {
   return path;
 }
 
-function fingerprint(repository: string, base: string, files: ApprovedInput[]) {
+function cacheFileName(file: Pick<ApprovedInput, 'role' | 'integration'>) {
+  return `${file.integration ? `${file.integration}.` : ''}${CACHE_FILES[file.role]}`;
+}
+
+function fingerprint(
+  repository: string,
+  base: string,
+  files: ApprovedInput[],
+  integrations?: string[],
+) {
   return digest(
-    JSON.stringify({ formatVersion: 1, repository: repository.toLowerCase(), base, files }),
+    JSON.stringify({
+      formatVersion: integrations ? 2 : 1,
+      repository: repository.toLowerCase(),
+      base,
+      files: files.map(({ role, path, sha256, bytes, integration }) => ({
+        role,
+        path,
+        sha256,
+        bytes,
+        ...(integration ? { integration } : {}),
+      })),
+      ...(integrations ? { integrations } : {}),
+    }),
   );
 }
 
@@ -87,100 +112,158 @@ export async function inspectRepositoryEnrollment(options: {
   github: string;
   base: string;
 }) {
+  return inspectEnrollmentInputs(options);
+}
+
+async function inspectEnrollmentInputs(options: {
+  repository: string;
+  github: string;
+  base: string;
+  integration?: string;
+}) {
   const target = validateGitHubTarget(options.github, options.base);
   const snapshot = await readCommittedRepository(options.repository);
-  const contents = new Map<InputRole, string>();
+  const contents = new Map<string, string>();
   const configurationContent = await readCommittedFile(
     snapshot,
     REPOSITORY_CONFIGURATION,
     MAX_WORKFLOW_CONFIGURATION_BYTES,
   );
   const raw = parseObject(configurationContent, REPOSITORY_CONFIGURATION);
-  if (Object.hasOwn(raw, 'repository'))
-    throw new PipelineInputError(
-      'A repository .refit.json must not select another repository. The App-managed checkout supplies its root.',
-    );
-  const workflow = parseWorkflowConfiguration(
+  const configuration = parseWorkflowConfigurations(
     configurationContent,
     join(snapshot.directory, REPOSITORY_CONFIGURATION),
   );
-  const baselinePath = inputPath(raw.before);
-  const baselineContent = await readCommittedFile(snapshot, baselinePath, MAX_SPECIFICATION_BYTES);
-  const baseline = parseSpecificationInput(baselineContent, baselinePath);
-  let provider = STRIPE;
-  const paths: { role: InputRole; path: string }[] = [
+  if (configuration.workflows.some((entry) => Object.hasOwn(entry.settings, 'repository')))
+    throw new PipelineInputError(
+      'A repository .refit.json must not select another repository. The App-managed checkout supplies its root.',
+    );
+  if (
+    options.integration !== undefined &&
+    !configuration.workflows.some((entry) => entry.id === options.integration)
+  )
+    throw new PipelineInputError(
+      'The selected integration is not present in the committed repository profile.',
+    );
+  const paths: { role: InputRole; path: string; integration?: string }[] = [
     { role: 'workflow', path: REPOSITORY_CONFIGURATION },
-    { role: 'baseline', path: baselinePath },
   ];
-  contents.set('workflow', configurationContent);
-  contents.set('baseline', baselineContent);
-  if (raw.providerConfig !== undefined) {
-    const path = inputPath(raw.providerConfig);
-    const content = await readCommittedFile(snapshot, path, MAX_WORKFLOW_CONFIGURATION_BYTES);
-    provider = parseProviderAdapter(parseObject(content, path));
-    paths.push({ role: 'adapter', path });
-    contents.set('adapter', content);
-  }
-  if (baseline.provenance && baseline.provenance.provider !== provider.id)
-    throw new PipelineInputError(
-      'Repository baseline provenance does not match its provider adapter.',
+  contents.set(CACHE_FILES.workflow, configurationContent);
+  const profiles = [];
+  for (const entry of configuration.workflows) {
+    const { workflow, settings } = entry;
+    const integration = entry.id ?? undefined;
+    const baselinePath = inputPath(settings.before);
+    const baselineContent = await readCommittedFile(
+      snapshot,
+      baselinePath,
+      MAX_SPECIFICATION_BYTES,
     );
-  validateProviderMappings(provider, baseline.schemas);
-  validateProviderOperationMappings(provider, baseline.document);
-  const apiVersion = compareApiVersion(
-    validateApiVersion(workflow.apiVersion),
-    baseline.document,
-    {},
-    {
-      configured: Boolean(provider.apiVersion),
-      declarations: analyzeRepository(
-        await readRepository(snapshot.directory, provider.packageName),
-        [],
-        provider,
-        baseline.schemas,
-      ).apiVersionDeclarations,
-    },
-    workflow.apiVersionPolicy,
-  );
-  if (apiVersion.applicability !== 'matches-before')
-    throw new PipelineInputError(apiVersion.reason);
-  if (workflow.latestStripe && !baseline.provenance)
-    throw new PipelineInputError(
-      'Latest Stripe discovery requires a pinned Refit baseline snapshot.',
-    );
-  let source: { kind: 'file'; path: string } | { kind: 'stripe-latest' };
-  if (workflow.latestStripe) source = { kind: 'stripe-latest' };
-  else {
-    const path = inputPath(raw.after);
-    const content = await readCommittedFile(snapshot, path, MAX_SPECIFICATION_BYTES);
-    const specification = parseSpecificationInput(content, path);
-    if (specification.provenance && specification.provenance.provider !== provider.id)
-      throw new PipelineInputError(
-        'Repository after-contract provenance does not match its provider adapter.',
+    const baseline = parseSpecificationInput(baselineContent, baselinePath);
+    const baselineInput = {
+      role: 'baseline' as const,
+      path: baselinePath,
+      ...(integration ? { integration } : {}),
+    };
+    paths.push(baselineInput);
+    contents.set(cacheFileName(baselineInput), baselineContent);
+    let provider = STRIPE;
+    if (settings.providerConfig !== undefined) {
+      const adapterPath = inputPath(settings.providerConfig);
+      const adapterContent = await readCommittedFile(
+        snapshot,
+        adapterPath,
+        MAX_WORKFLOW_CONFIGURATION_BYTES,
       );
-    source = { kind: 'file', path: join(snapshot.directory, path) };
+      provider = parseProviderAdapter(parseObject(adapterContent, adapterPath));
+      const adapterInput = {
+        role: 'adapter' as const,
+        path: adapterPath,
+        ...(integration ? { integration } : {}),
+      };
+      paths.push(adapterInput);
+      contents.set(cacheFileName(adapterInput), adapterContent);
+    }
+    if (baseline.provenance && baseline.provenance.provider !== provider.id)
+      throw new PipelineInputError(
+        'Repository baseline provenance does not match its provider adapter.',
+      );
+    validateProviderMappings(provider, baseline.schemas);
+    validateProviderOperationMappings(provider, baseline.document);
+    const apiVersion = compareApiVersion(
+      validateApiVersion(workflow.apiVersion),
+      baseline.document,
+      {},
+      {
+        configured: Boolean(provider.apiVersion),
+        declarations: analyzeRepository(
+          await readRepository(snapshot.directory, provider.packageName),
+          [],
+          provider,
+          baseline.schemas,
+        ).apiVersionDeclarations,
+      },
+      workflow.apiVersionPolicy,
+    );
+    if (
+      (options.integration === undefined || entry.id === options.integration) &&
+      apiVersion.applicability !== 'matches-before'
+    )
+      throw new PipelineInputError(
+        `${integration ? `Integration ${integration}: ` : ''}${apiVersion.reason}`,
+      );
+    if (workflow.latestStripe && !baseline.provenance)
+      throw new PipelineInputError(
+        'Latest Stripe discovery requires a pinned Refit baseline snapshot.',
+      );
+    let source: { kind: 'file'; path: string } | { kind: 'stripe-latest' };
+    if (workflow.latestStripe) source = { kind: 'stripe-latest' };
+    else {
+      const afterPath = inputPath(settings.after);
+      if (options.integration === undefined || entry.id === options.integration) {
+        const current = parseSpecificationInput(
+          await readCommittedFile(snapshot, afterPath, MAX_SPECIFICATION_BYTES),
+          afterPath,
+        );
+        if (current.provenance && current.provenance.provider !== provider.id)
+          throw new PipelineInputError(
+            'Repository after-contract provenance does not match its provider adapter.',
+          );
+      }
+      source = { kind: 'file', path: join(snapshot.directory, afterPath) };
+    }
+    profiles.push({
+      id: entry.id,
+      workflow: { ...workflow, ...(integration ? { integration } : {}) },
+      source,
+      apiVersion,
+    });
   }
-  const files = paths.map(({ role, path }) => ({
-    role,
-    path,
-    sha256: digest(contents.get(role)!),
-    bytes: Buffer.byteLength(contents.get(role)!),
+  const files: ApprovedInput[] = paths.map((file) => ({
+    ...file,
+    sha256: digest(contents.get(cacheFileName(file))!),
+    bytes: Buffer.byteLength(contents.get(cacheFileName(file))!),
   }));
   if (new Set(files.map((file) => file.path)).size !== files.length)
     throw new PipelineInputError(
-      'Repository workflow, baseline and adapter must be separate committed files.',
+      'Repository workflow, baseline and adapter inputs must be separate committed files.',
     );
+  const integrations =
+    configuration.formatVersion === 2 ? profiles.map((profile) => profile.id!) : undefined;
   return {
+    formatVersion: configuration.formatVersion,
+    integrations,
+    profiles,
     repository: target.repository.toLowerCase(),
     base: target.base,
     reviewedRevision: snapshot.revision,
-    fingerprint: fingerprint(target.repository, target.base, files),
+    fingerprint: fingerprint(target.repository, target.base, files, integrations),
     files,
     contents,
-    workflow,
-    source,
     settings: raw,
-    apiVersion,
+    workflow: configuration.formatVersion === 1 ? profiles[0].workflow : undefined,
+    source: configuration.formatVersion === 1 ? profiles[0].source : undefined,
+    apiVersion: configuration.formatVersion === 1 ? profiles[0].apiVersion : undefined,
   };
 }
 
@@ -198,7 +281,8 @@ export async function approveRepositoryEnrollment(options: {
   await mkdir(dirname(output), { recursive: true, mode: 0o700 });
   await standaloneStateDirectory(await realpath(dirname(output)));
   const approval: RepositoryApproval = {
-    formatVersion: 1,
+    formatVersion: options.enrollment.formatVersion,
+    ...(options.enrollment.integrations ? { integrations: options.enrollment.integrations } : {}),
     kind: 'refit-repository-approval',
     repository: options.enrollment.repository,
     base: options.enrollment.base,
@@ -215,10 +299,13 @@ export async function readRepositoryApproval(path: string): Promise<RepositoryAp
   await standaloneStateDirectory(await realpath(dirname(resolve(path))));
   const file = await inspectArtifactFile(path, MAX_APPROVAL_BYTES, true);
   const value = parseObject(file.content, 'Repository approval');
+  const multiple = value.formatVersion === 2;
+  const expectedKeys = multiple
+    ? 'approvedAt,base,files,fingerprint,formatVersion,integrations,kind,repository,reviewedRevision'
+    : 'approvedAt,base,files,fingerprint,formatVersion,kind,repository,reviewedRevision';
   if (
-    Object.keys(value).sort().join(',') !==
-      'approvedAt,base,files,fingerprint,formatVersion,kind,repository,reviewedRevision' ||
-    value.formatVersion !== 1 ||
+    Object.keys(value).sort().join(',') !== expectedKeys ||
+    (value.formatVersion !== 1 && value.formatVersion !== 2) ||
     value.kind !== 'refit-repository-approval' ||
     typeof value.repository !== 'string' ||
     value.repository !== value.repository.toLowerCase() ||
@@ -232,43 +319,78 @@ export async function readRepositoryApproval(path: string): Promise<RepositoryAp
     new Date(value.approvedAt).toISOString() !== value.approvedAt ||
     !Array.isArray(value.files) ||
     value.files.length < 2 ||
-    value.files.length > ROLES.length
+    value.files.length > (multiple ? 1 + MAX_REPOSITORY_INTEGRATIONS * 2 : ROLES.length)
   )
     throw new PipelineInputError('Repository approval has an invalid format or identity.');
-  validateGitHubTarget(value.repository, value.base);
-  const files = value.files.map((file, index): ApprovedInput => {
+  let integrations: string[] | undefined;
+  if (multiple) {
     if (
-      !isObject(file) ||
-      Object.keys(file).sort().join(',') !== 'bytes,path,role,sha256' ||
-      file.role !== ROLES[index] ||
-      typeof file.path !== 'string' ||
-      inputPath(file.path) !== file.path ||
-      (file.role === 'workflow' && file.path !== REPOSITORY_CONFIGURATION) ||
-      typeof file.sha256 !== 'string' ||
-      !HASH.test(file.sha256) ||
-      typeof file.bytes !== 'number' ||
-      !Number.isSafeInteger(file.bytes) ||
-      file.bytes < 0 ||
-      file.bytes >
-        (file.role === 'baseline' ? MAX_SPECIFICATION_BYTES : MAX_WORKFLOW_CONFIGURATION_BYTES)
+      !Array.isArray(value.integrations) ||
+      !value.integrations.length ||
+      value.integrations.length > MAX_REPOSITORY_INTEGRATIONS ||
+      !value.integrations.every(validIntegrationId) ||
+      new Set(value.integrations).size !== value.integrations.length
+    )
+      throw new PipelineInputError('Repository approval requires unique integration identifiers.');
+    integrations = value.integrations as string[];
+  }
+  validateGitHubTarget(value.repository, value.base);
+  const files = value.files.map((entry, index): ApprovedInput => {
+    const scoped = multiple && index > 0;
+    if (
+      !isObject(entry) ||
+      Object.keys(entry).sort().join(',') !==
+        (scoped ? 'bytes,integration,path,role,sha256' : 'bytes,path,role,sha256') ||
+      !ROLES.includes(entry.role as InputRole) ||
+      (index === 0 && entry.role !== 'workflow') ||
+      (index > 0 && entry.role === 'workflow') ||
+      (!multiple && entry.role !== ROLES[index]) ||
+      (scoped &&
+        (!validIntegrationId(entry.integration) || !integrations!.includes(entry.integration))) ||
+      typeof entry.path !== 'string' ||
+      inputPath(entry.path) !== entry.path ||
+      (entry.role === 'workflow' && entry.path !== REPOSITORY_CONFIGURATION) ||
+      typeof entry.sha256 !== 'string' ||
+      !HASH.test(entry.sha256) ||
+      typeof entry.bytes !== 'number' ||
+      !Number.isSafeInteger(entry.bytes) ||
+      entry.bytes < 0 ||
+      entry.bytes >
+        (entry.role === 'baseline' ? MAX_SPECIFICATION_BYTES : MAX_WORKFLOW_CONFIGURATION_BYTES)
     )
       throw new PipelineInputError('Repository approval contains invalid file evidence.');
     return {
-      role: file.role as InputRole,
-      path: file.path,
-      sha256: file.sha256,
-      bytes: file.bytes,
+      role: entry.role as InputRole,
+      path: entry.path,
+      sha256: entry.sha256,
+      bytes: entry.bytes,
+      ...(scoped ? { integration: entry.integration as string } : {}),
     };
   });
+  if (integrations) {
+    const expected = [
+      CACHE_FILES.workflow,
+      ...integrations.flatMap((integration) => [
+        cacheFileName({ role: 'baseline', integration }),
+        ...(files.some((entry) => entry.integration === integration && entry.role === 'adapter')
+          ? [cacheFileName({ role: 'adapter', integration })]
+          : []),
+      ]),
+    ];
+    if (files.map(cacheFileName).join(',') !== expected.join(','))
+      throw new PipelineInputError(
+        'Repository approval must contain each integration baseline and its optional adapter in reviewed order.',
+      );
+  }
   if (
-    new Set(files.map((file) => file.path)).size !== files.length ||
-    fingerprint(value.repository, value.base, files) !== value.fingerprint
+    new Set(files.map((entry) => entry.path)).size !== files.length ||
+    fingerprint(value.repository, value.base, files, integrations) !== value.fingerprint
   )
     throw new PipelineInputError(
       'Repository approval fingerprint does not match its file evidence.',
     );
   return {
-    formatVersion: 1,
+    formatVersion: value.formatVersion as 1 | 2,
     kind: 'refit-repository-approval',
     repository: value.repository,
     base: value.base,
@@ -276,6 +398,7 @@ export async function readRepositoryApproval(path: string): Promise<RepositoryAp
     files,
     reviewedRevision: value.reviewedRevision,
     approvedAt: value.approvedAt,
+    ...(integrations ? { integrations } : {}),
   };
 }
 
@@ -307,15 +430,15 @@ async function cacheApprovedInputs(
     if (created)
       for (const file of enrollment.files)
         await writeFile(
-          join(directory, CACHE_FILES[file.role]),
-          enrollment.contents.get(file.role)!,
+          join(directory, cacheFileName(file)),
+          enrollment.contents.get(cacheFileName(file))!,
           { flag: 'wx', mode: 0o600 },
         );
-    const names = enrollment.files.map((file) => CACHE_FILES[file.role]);
+    const names = enrollment.files.map(cacheFileName);
     if ((await readdir(directory)).some((name) => !names.includes(name)))
       throw new PipelineInputError('Approved input cache contains unexpected files.');
     for (const file of enrollment.files) {
-      const actual = await inspectArtifactFile(join(directory, CACHE_FILES[file.role]), file.bytes);
+      const actual = await inspectArtifactFile(join(directory, cacheFileName(file)), file.bytes);
       if (actual.sha256 !== file.sha256 || actual.bytes !== file.bytes)
         throw new PipelineInputError(
           'Approved input cache changed. Inspect the cache before retrying; it will not be overwritten.',
@@ -337,13 +460,22 @@ export async function loadApprovedRepository(options: {
   repository: string;
   approval: RepositoryApproval;
   stateDirectory: string;
+  integration?: string;
 }) {
+  if (
+    options.approval.formatVersion === 2 &&
+    (!options.integration || !options.approval.integrations?.includes(options.integration))
+  )
+    throw new RepositoryApprovalError(
+      'A multi-integration approval requires a selected approved integration.',
+    );
   let enrollment: Awaited<ReturnType<typeof inspectRepositoryEnrollment>>;
   try {
-    enrollment = await inspectRepositoryEnrollment({
+    enrollment = await inspectEnrollmentInputs({
       repository: options.repository,
       github: options.approval.repository,
       base: options.approval.base,
+      integration: options.integration,
     });
   } catch (cause) {
     if (!(cause instanceof PipelineInputError)) throw cause;
@@ -372,15 +504,18 @@ export async function loadApprovedRepository(options: {
     options.stateDirectory,
   );
   const inputs = await cacheApprovedInputs(enrollment, stateDirectory);
+  const profile = enrollment.profiles.find((entry) => entry.id === (options.integration ?? null));
+  if (!profile)
+    throw new RepositoryApprovalError('Selected integration is absent from the approved profile.');
   return {
     workflow: {
-      ...enrollment.workflow,
-      before: join(inputs, CACHE_FILES.baseline),
-      providerConfig: enrollment.workflow.providerConfig
-        ? join(inputs, CACHE_FILES.adapter)
+      ...profile.workflow,
+      before: join(inputs, cacheFileName({ role: 'baseline', integration: options.integration })),
+      providerConfig: profile.workflow.providerConfig
+        ? join(inputs, cacheFileName({ role: 'adapter', integration: options.integration }))
         : undefined,
     },
-    source: enrollment.source,
+    source: profile.source,
     fingerprint: enrollment.fingerprint,
   };
 }
