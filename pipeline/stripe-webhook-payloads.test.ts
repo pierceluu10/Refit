@@ -116,6 +116,49 @@ it('supports immutable event aliases and literal payload indexes', () => {
 });
 
 it.each([
+  `const kind = event.type; const data = event.data; const snapshot = data.object; if(kind === 'customer.subscription.updated') return snapshot.current_period_end;`,
+  `const {type: kind, data: {object: snapshot}} = event; if(kind === 'customer.subscription.updated') return snapshot.current_period_end;`,
+  `const {data} = event; const {object: snapshot} = data; switch(event.type) {case 'customer.subscription.updated': return snapshot.current_period_end;}`,
+  `const {'type': kind, data: {'object': snapshot}} = event; if(kind === 'customer.subscription.updated') return snapshot['current_period_end'];`,
+])(
+  'follows immutable discriminant and payload projections without trusting casts: %s',
+  (handler) => {
+    const result = analyze(`${initialize} ${handler}`);
+    expect(result.findings).toHaveLength(1);
+    expect(result.findings[0]).toMatchObject({
+      confidence: 'confirmed',
+      webhook: { schema: 'subscription', eventTypes: ['customer.subscription.updated'] },
+    });
+    expect(result.edits).toEqual([]);
+  },
+);
+
+it.each([
+  `let kind = event.type; if(kind === 'customer.subscription.updated') {${payloadRead}}`,
+  `const {type: kind = 'customer.subscription.updated'} = event; if(kind === 'customer.subscription.updated') {${payloadRead}}`,
+  `const {data: {object: snapshot = supplied}} = event; if(event.type === 'customer.subscription.updated') return snapshot.current_period_end;`,
+  `const {[key]: snapshot} = event.data; if(event.type === 'customer.subscription.updated') return snapshot.current_period_end;`,
+  `const {...snapshot} = event.data.object; if(event.type === 'customer.subscription.updated') return snapshot.current_period_end;`,
+  `if(event.type === '__proto__') {${payloadRead}}`,
+  `if(event.type === 'constructor') {${payloadRead}}`,
+])('does not confirm defaults, dynamic projections or unknown event names: %s', (handler) => {
+  const result = analyze(`${initialize} ${handler}`);
+  expect(result.findings).toHaveLength(1);
+  expect(result.findings[0].confidence).toBe('review');
+  expect(result.edits).toEqual([]);
+});
+
+it('keeps a returned destructured field under the existing conservative escape boundary', () => {
+  const result = analyze(
+    `${initialize} if(event.type === 'customer.subscription.updated') {const {current_period_end: endsAt} = event.data.object; return endsAt;}`,
+  );
+  expect(result.findings).toMatchObject([
+    { confidence: 'review', webhook: { schema: 'subscription' } },
+  ]);
+  expect(result.edits).toEqual([]);
+});
+
+it.each([
   `${initialize} ${payloadRead}`,
   `const event = JSON.parse(body); if (event.type === 'customer.subscription.updated') {${payloadRead}}`,
   `const event = stripe.webhooks.constructEventAsync(body, signature, secret); if (event.type === 'customer.subscription.updated') {${payloadRead}}`,

@@ -160,13 +160,34 @@ export function stripeWebhookPayloads(options: {
       break;
     }
   }
-  function event(expression: ts.Expression, seen = new Set<ts.Symbol>()): ts.Symbol | undefined {
+  function projection(
+    expression: ts.Expression,
+    seen = new Set<ts.Symbol>(),
+  ): { binding: ts.Symbol; path: string[] } | undefined {
     const value = unwrap(expression);
+    const access = member(value);
+    if (access) {
+      const owner = projection(access.owner, seen);
+      return owner ? { ...owner, path: [...owner.path, access.name] } : undefined;
+    }
     if (!ts.isIdentifier(value)) return;
     const binding = symbol(value);
     if (!binding || seen.has(binding)) return;
-    if (events.has(binding)) return binding;
-    const declaration = binding.valueDeclaration;
+    if (events.has(binding)) return { binding, path: [] };
+    let declaration = binding.valueDeclaration;
+    const path: string[] = [];
+    while (declaration && ts.isBindingElement(declaration)) {
+      if (
+        declaration.dotDotDotToken ||
+        declaration.initializer ||
+        !ts.isObjectBindingPattern(declaration.parent)
+      )
+        return;
+      const name = declaration.propertyName ?? declaration.name;
+      if (!ts.isIdentifier(name) && !ts.isStringLiteral(name)) return;
+      path.unshift(name.text);
+      declaration = declaration.parent.parent;
+    }
     if (
       !declaration ||
       !ts.isVariableDeclaration(declaration) ||
@@ -175,34 +196,22 @@ export function stripeWebhookPayloads(options: {
       !(declaration.parent.flags & ts.NodeFlags.Const)
     )
       return;
-    return event(declaration.initializer, new Set([...seen, binding]));
+    const owner = projection(declaration.initializer, new Set([...seen, binding]));
+    return owner ? { ...owner, path: [...owner.path, ...path] } : undefined;
   }
-  function payloadEvent(
-    expression: ts.Expression,
-    seen = new Set<ts.Symbol>(),
-  ): ts.Symbol | undefined {
-    const value = unwrap(expression);
-    if (ts.isIdentifier(value)) {
-      const binding = symbol(value);
-      if (!binding || seen.has(binding)) return;
-      const declaration = binding.valueDeclaration;
-      if (
-        !declaration ||
-        !ts.isVariableDeclaration(declaration) ||
-        !declaration.initializer ||
-        !ts.isVariableDeclarationList(declaration.parent) ||
-        !(declaration.parent.flags & ts.NodeFlags.Const)
-      )
-        return;
-      return payloadEvent(declaration.initializer, new Set([...seen, binding]));
-    }
-    const object = member(value);
-    const data = object?.name === 'object' && member(object.owner);
-    return data && data.name === 'data' ? event(data.owner) : undefined;
+  function event(expression: ts.Expression) {
+    const source = projection(expression);
+    return source?.path.length === 0 ? source.binding : undefined;
+  }
+  function payloadEvent(expression: ts.Expression) {
+    const source = projection(expression);
+    return source?.path.length === 2 && source.path[0] === 'data' && source.path[1] === 'object'
+      ? source.binding
+      : undefined;
   }
   function typeEvent(expression: ts.Expression): ts.Symbol | undefined {
-    const access = member(expression);
-    return access?.name === 'type' ? event(access.owner) : undefined;
+    const source = projection(expression);
+    return source?.path.length === 1 && source.path[0] === 'type' ? source.binding : undefined;
   }
   function types(
     condition: ts.Expression,
@@ -298,7 +307,10 @@ export function stripeWebhookPayloads(options: {
         }
       : undefined;
   }
-  function origin(expression: ts.Expression):
+  function origin(
+    expression: ts.Expression,
+    seen = new Set<ts.Symbol>(),
+  ):
     | {
         schema?: string;
         eventTypes: string[];
@@ -308,15 +320,25 @@ export function stripeWebhookPayloads(options: {
     | undefined {
     const snapshot = payload(expression);
     if (snapshot) return snapshot;
-    const binding = payloadEvent(expression) ?? event(expression);
+    const binding = projection(expression)?.binding;
     if (binding)
       return {
         eventTypes: [...new Set(narrow(expression, binding) ?? [])].sort(),
         binding,
         origin: location(events.get(binding)!),
       };
+    const value = unwrap(expression);
+    if (ts.isIdentifier(value)) {
+      const alias = symbol(value);
+      if (!alias || seen.has(alias)) return;
+      let declaration = alias.valueDeclaration;
+      while (declaration && ts.isBindingElement(declaration))
+        declaration = declaration.parent.parent;
+      if (declaration && ts.isVariableDeclaration(declaration) && declaration.initializer)
+        return origin(declaration.initializer, new Set([...seen, alias]));
+    }
     const access = member(expression);
-    return access ? origin(access.owner) : undefined;
+    return access ? origin(access.owner, seen) : undefined;
   }
   return { events, unsafeEvents, initializations, event, payload, origin };
 }
