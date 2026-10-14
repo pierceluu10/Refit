@@ -161,9 +161,24 @@ export async function renderWorkflowResult(result: Result) {
       (finding) => isObject(finding) && isObject(finding.webhook),
     );
     if (webhookReads.length) {
-      rows.push(
-        `Webhooks    ${webhookReads.length} affected payload ${webhookReads.length === 1 ? 'read' : 'reads'}; incoming API version requires review`,
+      const policy =
+        isObject(report.adapter) && isObject(report.adapter.stripeSubscriptionPeriods)
+          ? report.adapter.stripeSubscriptionPeriods
+          : undefined;
+      const configured = Boolean(
+        policy &&
+        webhookReads.every(
+          (finding) =>
+            isObject(finding) && isObject(finding.webhook) && isObject(finding.webhook.migration),
+        ),
       );
+      rows.push(
+        `Webhooks    ${webhookReads.length} affected payload ${webhookReads.length === 1 ? 'read' : 'reads'}; ${configured ? 'proposed policy checks signed event versions at runtime' : 'incoming API version requires review'}`,
+      );
+      if (configured && typeof policy?.priceId === 'string')
+        rows.push(
+          `Item policy Exactly one match for price ${terminalText(policy.priceId)}; incomplete lists require review`,
+        );
       const types = [
         ...new Set(
           webhookReads.flatMap((finding) => {

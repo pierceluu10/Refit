@@ -162,7 +162,7 @@ export async function validateMigration(options: {
   });
   if (apiVersionSourceBlocked(preflight.apiVersion))
     throw new PipelineInputError(`Validation is blocked. ${preflight.apiVersion.reason}`);
-  const reviewReason = migrationReviewReason(preflight);
+  const reviewReason = migrationReviewReason(preflight, true);
   if (reviewReason) throw new PipelineInputError(reviewReason);
   const git = (args: string[]) =>
     command('git', ['-c', 'core.fsmonitor=false', '-C', repository, ...args]);
@@ -325,7 +325,8 @@ export async function validateMigration(options: {
       repair.requested < repairLimit &&
       options.aiPatch &&
       !configuredEndpointProposal &&
-      !configuredRequestProposal
+      !configuredRequestProposal &&
+      !report.findings.some((finding) => finding.webhook?.migration)
     ) {
       const latestRevision = (await git(['rev-parse', '--verify', 'HEAD^{commit}'])).stdout.trim();
       if (

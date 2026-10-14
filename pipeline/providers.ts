@@ -1,6 +1,10 @@
 import { readFile, stat } from 'node:fs/promises';
 import { isObject, parseObject, resolvableComponentSchema } from './specifications.ts';
 import { PipelineInputError } from './types.ts';
+import {
+  parseStripeSubscriptionPeriodPolicy,
+  type StripeSubscriptionPeriodPolicy,
+} from './stripe-subscription-periods.ts';
 
 export interface ProviderAdapter {
   id: string;
@@ -29,6 +33,7 @@ export interface ProviderAdapter {
     replacementMethod: string;
     replacementOperationId: string;
   }[];
+  stripeSubscriptionPeriods?: StripeSubscriptionPeriodPolicy;
 }
 
 export interface ProviderIdentity {
@@ -83,6 +88,7 @@ const CONFIG_KEYS = new Set([
   'operationReplacements',
   'apiVersion',
   'constructorCalls',
+  'stripeSubscriptionPeriods',
 ]);
 const MAX_SDK_ARGUMENT_INDEX = 16;
 
@@ -139,6 +145,14 @@ export async function readProviderAdapter(path?: string): Promise<ProviderAdapte
 
 export function parseProviderAdapter(value: Record<string, unknown>): ProviderAdapter {
   const identity = validateProviderIdentity(value);
+  const stripeSubscriptionPeriods =
+    value.stripeSubscriptionPeriods === undefined
+      ? undefined
+      : parseStripeSubscriptionPeriodPolicy(value.stripeSubscriptionPeriods);
+  if (stripeSubscriptionPeriods && identity.packageName !== 'stripe')
+    throw new PipelineInputError(
+      'stripeSubscriptionPeriods is available only for the Stripe SDK package.',
+    );
   if (
     REQUIRED_KEYS.some((key) => !Object.hasOwn(value, key)) ||
     Object.keys(value).some((key) => !CONFIG_KEYS.has(key)) ||
@@ -383,5 +397,6 @@ export function parseProviderAdapter(value: Record<string, unknown>): ProviderAd
     ...(parsedRenames.length ? { propertyRenames: parsedRenames } : {}),
     ...(parsedRequestRenames.length ? { requestPropertyRenames: parsedRequestRenames } : {}),
     ...(parsedReplacements.length ? { operationReplacements: parsedReplacements } : {}),
+    ...(stripeSubscriptionPeriods ? { stripeSubscriptionPeriods } : {}),
   };
 }

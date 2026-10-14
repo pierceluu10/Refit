@@ -275,7 +275,7 @@ export function createReviewArtifacts(
     throw new PipelineInputError('Passing validation must include two successful check results.');
 
   const provider =
-    report.provider === 'stripe'
+    report.adapter.packageName === 'stripe'
       ? 'Stripe'
       : report.provider === 'openai'
         ? 'OpenAI'
@@ -285,11 +285,15 @@ export function createReviewArtifacts(
   const endpoint = operationChanges[0];
   const requestChanges = report.requestChanges ?? [];
   const request = requestChanges[0];
-  const migrationTitle =
-    request &&
-    requestChanges.length === 1 &&
-    !operationChanges.length &&
-    report.changes.length === 1
+  const subscriptionPolicy = report.findings.some((finding) => finding.webhook?.migration)
+    ? report.adapter.stripeSubscriptionPeriods
+    : undefined;
+  const migrationTitle = subscriptionPolicy
+    ? 'Preserve Stripe subscription periods after item-level billing change'
+    : request &&
+        requestChanges.length === 1 &&
+        !operationChanges.length &&
+        report.changes.length === 1
       ? `Update ${provider} ${request.resource}.${request.method} requests after ${request.removed} removal`
       : endpoint && operationChanges.length === 1 && !report.changes.length
         ? `Replace retired ${provider} ${endpoint.resource}.${endpoint.method} calls`
@@ -342,6 +346,12 @@ export function createReviewArtifacts(
         ? [['| | Field | Type | Where |', '|---|---|---|---|', ...rows].join('\n')]
         : []),
       ...reasons,
+      ...(subscriptionPolicy
+        ? [
+            `**Subscription item policy:** select exactly one item whose price ID is ${code(subscriptionPolicy.priceId)}. Item order does not determine entitlement. Missing or duplicate matches and incomplete lists use the existing missing-period error.`,
+            `**Incoming event versions:** the patch checks signed ${code('event.api_version')} at runtime. ${code(subscriptionPolicy.beforeApiVersion)} retains legacy subscription periods; ${code(subscriptionPolicy.afterApiVersion)} reads the matched item's periods. Other versions are rejected. The outgoing SDK version does not establish the incoming version.`,
+          ]
+        : []),
       ...(requestChanges.length
         ? [
             `**Request fields:** ${summaryList(requestChanges.map((entry) => `${code(`${entry.resource}.${entry.method}`)} argument ${entry.argumentIndex}: ${code(entry.removed)} → ${code(entry.replacement)} (${code(`${entry.httpMethod} ${entry.path}`)})`))}. Argument values and other call options are preserved; review SDK serialization and business meaning.`,

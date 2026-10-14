@@ -165,7 +165,7 @@ export async function publishDraft(
   options: ReturnType<typeof publicationConfiguration>,
 ) {
   const apiVersion = report.apiVersion;
-  const reviewReason = migrationReviewReason(report);
+  const reviewReason = migrationReviewReason(report, report.patch.generator === 'deterministic');
   if (reviewReason) throw new PipelineInputError(reviewReason);
   if (
     !apiVersion ||

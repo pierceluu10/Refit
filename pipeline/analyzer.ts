@@ -13,6 +13,7 @@ import type { OperationReplacement } from './provider-operation-replacements.ts'
 import type { RequestPropertyRename } from './provider-request-renames.ts';
 import { requestPropertyEdit } from './request-migration.ts';
 import { StripeTypes } from './stripe-types.ts';
+import { subscriptionPeriodEdit, SUBSCRIPTION_PERIOD_RULE } from './stripe-subscription-periods.ts';
 import {
   PipelineInputError,
   type Finding,
@@ -209,7 +210,7 @@ export function analyzeRepository(
   const canonical = modules.canonical;
   const symbol = (node: ts.Node) => canonical(checker.getSymbolAtLocation(node));
   const stripeTypes =
-    provider.id === STRIPE.id
+    provider.packageName === STRIPE.packageName
       ? new StripeTypes(nodes, symbol, schemaDefinitions, provider.packageName)
       : undefined;
   // Receivers whose object type the code states (Stripe.* types, narrowed webhook events).
@@ -1020,6 +1021,30 @@ export function analyzeRepository(
         if (ts.isIdentifier(name) || ts.isStringLiteral(name))
           record(element, node.initializer, name.text);
       }
+    }
+  }
+  if (provider.stripeSubscriptionPeriods && webhooks) {
+    for (const source of program.getSourceFiles()) {
+      const file = locations.get(source.fileName);
+      if (!file) continue;
+      const proposal = subscriptionPeriodEdit({
+        source,
+        nodes: nodes.filter((node) => node.getSourceFile() === source),
+        findings,
+        changes,
+        policy: provider.stripeSubscriptionPeriods,
+        webhooks,
+        symbol,
+        unsafe,
+        file,
+      });
+      if (!proposal || edits.some((edit) => edit.file === file)) continue;
+      edits.push(proposal.edit);
+      for (const finding of proposal.findings)
+        finding.webhook!.migration = {
+          rule: SUBSCRIPTION_PERIOD_RULE,
+          ...provider.stripeSubscriptionPeriods,
+        };
     }
   }
   return {
