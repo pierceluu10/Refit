@@ -17,6 +17,7 @@ export function guardedHistoryEdit(options: {
   locations: Map<string, string>;
   change: Removal;
   clientExport: (binding: ts.Symbol) => ClientExport | undefined;
+  resolveImport: (name: string, containingFile: string) => string | undefined;
 }): SourceEdit | undefined {
   const { node, receiver, origin, checker, symbol, clients, locations, change } = options;
   const declaration = symbol(receiver)?.valueDeclaration;
@@ -104,11 +105,13 @@ export function guardedHistoryEdit(options: {
     (statement): statement is ts.ImportDeclaration =>
       ts.isImportDeclaration(statement) &&
       ts.isStringLiteral(statement.moduleSpecifier) &&
-      statement.moduleSpecifier.text.startsWith('.'),
+      Boolean(options.resolveImport(statement.moduleSpecifier.text, source.fileName)),
   );
-  const relativeImport = [...sourceModuleReferences(source)].find((name) => name.startsWith('.'));
-  if (relativeImport) {
-    const extension = posix.extname(relativeImport);
+  const sourceImport = [...sourceModuleReferences(source)].find((name) =>
+    options.resolveImport(name, source.fileName),
+  );
+  if (sourceImport) {
+    const extension = posix.extname(sourceImport);
     if (['.js', '.mjs', '.cjs'].includes(extension))
       modulePath = modulePath.replace(/\.[cm]?ts$/, extension);
     else if (!extension) modulePath = modulePath.replace(/\.[cm]?[jt]sx?$/, '');

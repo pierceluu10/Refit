@@ -662,6 +662,7 @@ export function analyzeRepository(
         locations,
         change,
         clientExport: modules.clientExport,
+        resolveImport: resolution.resolve,
       });
     if (guarded) {
       if (!edits.some((edit) => edit.file === guarded.file)) edits.push(guarded);

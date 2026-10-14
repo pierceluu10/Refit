@@ -69,10 +69,27 @@ async function scenario() {
   };
 }
 
-it.skipIf(!IMAGE || !process.env.REFIT_NPM_PREPARE)(
-  'validates a TypeScript billing workspace with linked local source and two actual Stripe versions in offline Docker',
-  async () => {
+it.skipIf(!IMAGE || !process.env.REFIT_NPM_PREPARE).each(['relative', 'alias'])(
+  'validates a TypeScript billing workspace using %s imports, linked local source and two actual Stripe versions in offline Docker',
+  async (imports) => {
     const sample = await scenario();
+    if (imports === 'alias') {
+      const directory = join(sample.repository, 'packages/billing');
+      const manifestPath = join(directory, 'package.json');
+      const manifest = JSON.parse(await readFile(manifestPath, 'utf8'));
+      manifest.imports = { '#billing/*': './src/*' };
+      await writeFile(manifestPath, JSON.stringify(manifest));
+      const configurationPath = join(directory, 'tsconfig.json');
+      const configuration = JSON.parse(await readFile(configurationPath, 'utf8'));
+      configuration.compilerOptions.paths = { '#billing/*': ['./src/*'] };
+      await writeFile(configurationPath, JSON.stringify(configuration));
+      const historyPath = join(directory, 'src/history.ts');
+      await writeFile(
+        historyPath,
+        (await readFile(historyPath, 'utf8')).replace('./client.ts', '#billing/client.ts'),
+      );
+      await sample.commit();
+    }
     const prepared = await prepareNpmDependencies({
       repository: sample.repository,
       image: IMAGE!,
@@ -126,6 +143,13 @@ it.skipIf(!IMAGE || !process.env.REFIT_NPM_PREPARE)(
       ]),
     );
     expect(report.apiVersion.source.status).toBe('verified');
+    expect(report.findings).toMatchObject([
+      { confidence: 'confirmed' },
+      { confidence: 'confirmed' },
+    ]);
+    expect(report.repository.configurations).toMatchObject([
+      { path: 'packages/billing/tsconfig.json' },
+    ]);
     expect(report.validation).toMatchObject({
       baseline: { status: 'passed' },
       patched: { status: 'passed' },

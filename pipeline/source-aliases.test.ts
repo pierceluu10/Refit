@@ -375,3 +375,53 @@ it('downgrades an otherwise traced client when a separate unresolved project mig
   expect(result.findings).toMatchObject([{ confidence: 'review' }]);
   expect(result.edits).toEqual([]);
 });
+
+it('adds an extensionless relative client import when guarded history uses extensionless aliases', () => {
+  const input = repository({
+    'src/client.ts': client,
+    'src/payments.ts':
+      "import stripe from '@/client'; export function retrieve(id: string) { return stripe.paymentIntents.retrieve(id); }",
+    'src/history.ts':
+      "import {retrieve} from '@/payments'; class MissingHistory extends Error {} export async function history(id: string) { const intent = await retrieve(id); if (!intent.charges) { throw new MissingHistory('Missing history'); } return intent.charges.data; }",
+  });
+  const result = analyzeRepository(input, [removal]);
+  expect(result.findings).toMatchObject([{ confidence: 'confirmed' }, { confidence: 'confirmed' }]);
+  expect(result.edits).toHaveLength(1);
+  expect(result.edits[0].replacement).toContain('import refitStripe from "./client";');
+  expect(buildPatchContext(input, new Set(['src/history.ts'])).map((file) => file.path)).toEqual([
+    'src/payments.ts',
+    'src/client.ts',
+  ]);
+  const changed = {
+    ...input,
+    files: input.files.map((file) => ({
+      ...file,
+      content: applySourceEdits(
+        file.content,
+        result.edits.filter((edit) => edit.file === file.path),
+      ),
+    })),
+  };
+  expect(analyzeRepository(changed, [removal]).findings).toEqual([]);
+});
+
+it('rejects a local baseUrl SDK lookalike even when source and output resolution is ambiguous', () => {
+  const { result } = analyze(
+    {
+      'src/stripe.ts': 'export default class Stripe {}',
+      'src/stripe.js': 'export default class Stripe {}',
+    },
+    { 'tsconfig.json': '{"compilerOptions":{"baseUrl":"./src","paths":{"@/*":["./*"]}}}' },
+  );
+  expect(result.sdkCalls).toEqual([]);
+  expect(result.edits).toEqual([]);
+});
+
+it('keeps cyclic configuration inheritance under review', () => {
+  const { result } = analyze(
+    {},
+    { 'tsconfig.json': '{"extends":"./base"}', 'base.json': '{"extends":"./tsconfig"}' },
+  );
+  expect(result.edits).toEqual([]);
+  expect(result.sourceWarnings.join(' ')).toContain('unverified');
+});
