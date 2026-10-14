@@ -76,6 +76,7 @@ else {
         .replaceAll('](API-VERSIONS.md)', '](docs/API-VERSIONS.md)')
         .replaceAll('](MULTIPLE-INTEGRATIONS.md)', '](docs/MULTIPLE-INTEGRATIONS.md)')
         .replaceAll('](REQUEST-MIGRATIONS.md)', '](docs/REQUEST-MIGRATIONS.md)')
+        .replaceAll('](CLIENT-MODULES.md)', '](docs/CLIENT-MODULES.md)')
         .replaceAll('](../examples/', '](examples/'),
     );
     await copyFile(join(root, '.env.example'), join(stage, '.env.example'));
@@ -97,6 +98,7 @@ else {
       'API-VERSIONS.md',
       'MULTIPLE-INTEGRATIONS.md',
       'REQUEST-MIGRATIONS.md',
+      'CLIENT-MODULES.md',
       'READINESS.md',
       'AI-EVALUATION.md',
       'PR-EVALUATION.md',
