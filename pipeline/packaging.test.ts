@@ -73,6 +73,9 @@ it('packs only CLI runtime sources, fixtures, docs and exact runtime dependencie
   expect(result.files).toContain('pipeline/source-configurations.ts');
   expect(result.files).toContain('pipeline/fixtures/npm-workspaces/repository/package-lock.json');
   expect(result.files).toContain('pipeline/source-modules.ts');
+  expect(result.files).toContain('docs/STRIPE-SUBSCRIPTION-PERIODS.md');
+  expect(result.files).toContain('pipeline/stripe-sdk-metadata.json');
+  expect(result.files).toContain('pipeline/fixtures/stripe-webhooks/provider-price-policy.json');
   expect(result.files).toContain('pipeline/sdk-constructors.ts');
   expect(result.files).toContain('pipeline/openapi-contracts.ts');
   expect(result.files).toContain('pipeline/provider-request-renames.ts');

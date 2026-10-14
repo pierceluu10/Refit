@@ -21,3 +21,5 @@ node "$demo_dir/contract.mjs" "$demo_dir/application" regression
 `before` succeeds. `after` deliberately exits 1 after HTTP 422, demonstrating the incompatibility. `regression` succeeds by asserting that failure, replaying an old event, rejecting wrong/tampered/stale signatures with HTTP 400, ignoring an unrelated event and verifying async construction. It does not fix the application. The gated suite exercises both SDKs locally and 17.7.0 in offline Docker.
 
 See [webhook tracing and automation gates](../../../docs/STRIPE-WEBHOOKS.md).
+
+The [price-policy adapter](provider-price-policy.json) explicitly selects the simulated `price_primary`. Refit can propose a narrowly supported migration using that policy; the application in this folder remains unmigrated. After applying a proposal to a separate copy, the `migrated` harness mode verifies old and new events, reordered items, changed period values, ambiguous/missing prices, incomplete lists, malformed periods, incoming versions and signatures. See [configuration and full workflow evaluation](../../../docs/STRIPE-SUBSCRIPTION-PERIODS.md).
