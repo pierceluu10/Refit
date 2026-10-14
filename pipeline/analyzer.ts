@@ -11,6 +11,7 @@ import { componentReference, isObject, resolvableComponentSchema } from './speci
 import type { OperationReplacement } from './provider-operation-replacements.ts';
 import type { RequestPropertyRename } from './provider-request-renames.ts';
 import { requestPropertyEdit } from './request-migration.ts';
+import { StripeTypes } from './stripe-types.ts';
 import {
   PipelineInputError,
   type Finding,
@@ -77,6 +78,18 @@ function referencedPropertySchema(
   return referenced ? resolvableComponentSchema(schemas, referenced) : undefined;
 }
 
+// Stripe list properties (`invoice.lines`, `subscription.items`) are inline objects whose `data`
+// array holds component objects; `parent.property.data` items resolve to that component.
+function inlineListItemSchema(schemas: Record<string, unknown>, parent: string, property: string) {
+  const canonicalParent = resolvableComponentSchema(schemas, parent);
+  const definition = canonicalParent ? schemas[canonicalParent] : undefined;
+  const list =
+    isObject(definition) && isObject(definition.properties)
+      ? definition.properties[property]
+      : undefined;
+  if (!isObject(list) || '$ref' in list || !isObject(list.properties)) return undefined;
+  return arrayItemSchema(schemas, list.properties.data);
+}
 function referencedArrayItemSchema(
   schemas: Record<string, unknown>,
   parent: string,
@@ -194,6 +207,91 @@ export function analyzeRepository(
   const modules = sourceBindings(nodes, checker, resolution.resolve);
   const canonical = modules.canonical;
   const symbol = (node: ts.Node) => canonical(checker.getSymbolAtLocation(node));
+  const stripeTypes =
+    provider.id === STRIPE.id
+      ? new StripeTypes(nodes, symbol, schemaDefinitions, provider.packageName)
+      : undefined;
+  // Receivers whose object type the code states (Stripe.* types, narrowed webhook events).
+  // Files that import Stripe, use Stripe types or webhooks, or call a mapped Stripe resource
+  // (including through a client imported from another module).
+  const stripeResources = [...new Set(provider.operations.map((operation) => operation.resource))]
+    .map((resource) => resource.replace(/[.$]/g, '\\$&'))
+    .join('|');
+  const stripeFilePattern = new RegExp(
+    `from\\s*['"]stripe['"]|require\\(\\s*['"]stripe['"]\\s*\\)|\\bStripe\\.|\\.webhooks\\.constructEvent${stripeResources ? `|\\.(?:${stripeResources})\\.[A-Za-z]+\\s*\\(` : ''}`,
+  );
+  const stripeFiles = new Set(
+    program.getSourceFiles().filter((source) => stripeFilePattern.test(source.text)),
+  );
+  // Bindings whose properties the code assigns, deletes or Object.assigns into.
+  const written = new Set<ts.Symbol>();
+  const rootSymbol = (expression: ts.Expression): ts.Symbol | undefined =>
+    ts.isIdentifier(expression)
+      ? symbol(expression)
+      : ts.isPropertyAccessExpression(expression) ||
+          ts.isElementAccessExpression(expression) ||
+          ts.isParenthesizedExpression(expression) ||
+          ts.isNonNullExpression(expression)
+        ? rootSymbol(expression.expression)
+        : undefined;
+  for (const node of nodes) {
+    const target =
+      ts.isBinaryExpression(node) &&
+      node.operatorToken.kind >= ts.SyntaxKind.FirstAssignment &&
+      node.operatorToken.kind <= ts.SyntaxKind.LastAssignment &&
+      (ts.isPropertyAccessExpression(node.left) || ts.isElementAccessExpression(node.left))
+        ? node.left
+        : ts.isDeleteExpression(node)
+          ? node.expression
+          : ts.isCallExpression(node) &&
+              node.expression.getText() === 'Object.assign' &&
+              node.arguments.length > 0
+            ? node.arguments[0]
+            : undefined;
+    const updated =
+      (ts.isPrefixUnaryExpression(node) || ts.isPostfixUnaryExpression(node)) &&
+      [ts.SyntaxKind.PlusPlusToken, ts.SyntaxKind.MinusMinusToken].includes(node.operator)
+        ? node.operand
+        : undefined;
+    const writtenSymbol = (target ?? updated) ? rootSymbol((target ?? updated)!) : undefined;
+    if (writtenSymbol) written.add(writtenSymbol);
+  }
+  // A write through an alias (`const alias = sub; alias.x = 1`) writes the original too.
+  const aliasEdges: [ts.Symbol, ts.Symbol][] = [];
+  for (const node of nodes) {
+    const pair =
+      ts.isVariableDeclaration(node) && node.initializer
+        ? ([node.name, node.initializer] as const)
+        : ts.isBinaryExpression(node) && node.operatorToken.kind === ts.SyntaxKind.EqualsToken
+          ? ([node.left, node.right] as const)
+          : undefined;
+    if (!pair || !ts.isIdentifier(pair[0])) continue;
+    const [left, right] = [symbol(pair[0]), rootSymbol(pair[1] as ts.Expression)];
+    if (left && right) aliasEdges.push([left, right]);
+  }
+  for (let changed = true; changed;) {
+    changed = false;
+    for (const [left, right] of aliasEdges)
+      if (written.has(left) !== written.has(right)) {
+        written.add(left);
+        written.add(right);
+        changed = true;
+      }
+  }
+  const statedType = (expression: ts.Expression): boolean => {
+    if (!stripeTypes) return false;
+    if (stripeTypes.expressionSchema(expression)) return true;
+    if (ts.isIdentifier(expression)) {
+      const target = symbol(expression);
+      return Boolean(target && stripeTypes.typed.has(target));
+    }
+    return ts.isPropertyAccessExpression(expression) ||
+      ts.isElementAccessExpression(expression) ||
+      ts.isParenthesizedExpression(expression) ||
+      ts.isNonNullExpression(expression)
+      ? statedType(expression.expression)
+      : false;
+  };
   const contains = (set: Set<ts.Symbol>, node: ts.Node) => {
     const found = symbol(node);
     return found !== undefined && set.has(found);
@@ -250,13 +348,30 @@ export function analyzeRepository(
       const responseDefinition = responseSchema
         ? componentDefinition(schemaDefinitions, responseSchema)?.definition
         : undefined;
-      return arrayItems.get(binding) ?? arrayItemSchema(schemaDefinitions, responseDefinition);
+      return (
+        arrayItems.get(binding) ??
+        stripeTypes?.typedArrays.get(binding) ??
+        arrayItemSchema(schemaDefinitions, responseDefinition)
+      );
     }
+    // `invoice.lines?.data ?? []`: an empty-array fallback keeps the element type.
+    if (
+      ts.isBinaryExpression(expression) &&
+      (expression.operatorToken.kind === ts.SyntaxKind.QuestionQuestionToken ||
+        expression.operatorToken.kind === ts.SyntaxKind.BarBarToken) &&
+      ts.isArrayLiteralExpression(expression.right) &&
+      !expression.right.elements.length
+    )
+      return arrayItemForExpression(expression.left);
     if (ts.isPropertyAccessExpression(expression)) {
       const parent = schemaForExpression(expression.expression);
-      return parent
-        ? referencedArrayItemSchema(schemaDefinitions, parent, expression.name.text)
-        : undefined;
+      if (parent) return referencedArrayItemSchema(schemaDefinitions, parent, expression.name.text);
+      const list = expression.expression;
+      if (expression.name.text === 'data' && ts.isPropertyAccessExpression(list)) {
+        const owner = schemaForExpression(list.expression);
+        return owner ? inlineListItemSchema(schemaDefinitions, owner, list.name.text) : undefined;
+      }
+      return undefined;
     }
     if (ts.isElementAccessExpression(expression)) {
       return expression.argumentExpression && numericArrayIndex(expression.argumentExpression)
@@ -300,7 +415,12 @@ export function analyzeRepository(
       : undefined;
   }
   function schemaForExpression(expression: ts.Expression): string | undefined {
-    if (ts.isIdentifier(expression)) return responses.get(symbol(expression)!);
+    if (ts.isIdentifier(expression)) {
+      const target = symbol(expression)!;
+      return responses.get(target) ?? stripeTypes?.typed.get(target);
+    }
+    const stated = stripeTypes?.expressionSchema(expression);
+    if (stated) return stated;
     if (ts.isPropertyAccessExpression(expression)) {
       const parent = schemaForExpression(expression.expression);
       return parent
@@ -573,6 +693,34 @@ export function analyzeRepository(
   }
   for (const [response, origin] of origins)
     if (sdkCall(origin)?.optional) initialUnsafe.add(response);
+  const primitiveValue = (node: ts.Node): boolean => {
+    if (!stripeTypes) return false;
+    if (
+      (ts.isAsExpression(node) || ts.isTypeAssertionExpression(node)) &&
+      [
+        ts.SyntaxKind.StringKeyword,
+        ts.SyntaxKind.NumberKeyword,
+        ts.SyntaxKind.BooleanKeyword,
+      ].includes(node.type.kind)
+    )
+      return true;
+    if (ts.isNonNullExpression(node) || ts.isParenthesizedExpression(node))
+      return primitiveValue(node.expression);
+    if (!ts.isPropertyAccessExpression(node)) return false;
+    const parent = schemaForExpression(node.expression);
+    const definition = parent
+      ? componentDefinition(schemaDefinitions, parent)?.definition
+      : undefined;
+    const property =
+      definition && isObject(definition.properties)
+        ? definition.properties[node.name.text]
+        : undefined;
+    return (
+      isObject(property) &&
+      typeof property.type === 'string' &&
+      ['string', 'integer', 'number', 'boolean'].includes(property.type)
+    );
+  };
   const unsafe = unsafeBindings(
     mutationNodes,
     checker,
@@ -582,6 +730,7 @@ export function analyzeRepository(
     initialUnsafe,
     readOnlyCall,
     arrayIteration,
+    primitiveValue,
   );
   for (const [response, wrapper] of wrappedResponses) if (unsafe.has(wrapper)) unsafe.add(response);
   for (const node of nodes) {
@@ -755,6 +904,10 @@ export function analyzeRepository(
       if (tracked && change.schema !== schema) continue;
       if (property !== undefined && change.property !== property) continue;
       if (!tracked && !providerDetected) continue;
+      // Unresolved Stripe receivers are flagged only where files work with Stripe; if none are
+      // identifiable, every same-named read stays flagged.
+      if (!tracked && stripeTypes && stripeFiles.size && !stripeFiles.has(node.getSourceFile()))
+        continue;
       const immediateCall =
         ts.isParenthesizedExpression(receiver) &&
         ts.isAwaitExpression(receiver.expression) &&
@@ -763,9 +916,13 @@ export function analyzeRepository(
           : undefined;
       const immediateSdk = immediateCall ? sdkCall(immediateCall) : undefined;
       const responseSymbol = responseBinding(receiver);
-      const uncertainMutation =
-        (responseSymbol !== undefined && unsafe.has(responseSymbol)) ||
-        (immediateSdk && (immediateSdk.optional || unsafe.has(symbol(immediateSdk.client)!)));
+      // A stated Stripe type is the evidence for what the object is; only a write to it (or an
+      // optional SDK call) leaves it uncertain. Traced responses keep the escape analysis.
+      const uncertainMutation = statedType(receiver)
+        ? (responseSymbol !== undefined && written.has(responseSymbol)) ||
+          Boolean(immediateSdk?.optional)
+        : (responseSymbol !== undefined && unsafe.has(responseSymbol)) ||
+          (immediateSdk && (immediateSdk.optional || unsafe.has(symbol(immediateSdk.client)!)));
       const confirmed = Boolean(
         tracked && !uncertainMutation && property !== undefined && change.schema === schema,
       );

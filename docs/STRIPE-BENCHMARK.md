@@ -70,6 +70,18 @@ Behind those reasons:
 
 Refit reports every real break but can't separate it from about 3,000 false matches, so it confirms none. Phase 2 of the [plan](STRIPE-PLAN.md) targets confirmed recall ≥ 90% at precision ≥ 98%.
 
+**After phase 2** (`Stripe.*` types, typed arrays and helper returns, narrowed webhook events, inline list items, primitive field values passed along, noise limited to Stripe files), with the existing escape and alias safety rules kept:
+
+| | Recall | Precision |
+|---|---|---|
+| Confirmed findings, labelled set | **51%** (20/39) | **100%** (20/20) |
+| Any finding | 100% (39/39) | 6% (39/619) |
+| Confirmed findings, 20 held-out repositories (checked by hand) | n/a | **100%** (8/8) |
+
+Across all 100 repositories: 0 scan crashes (was 3), 25 repositories with confirmed affected code (was 0), and 6,555 → about 1,000 review flags.
+
+The remaining misses are downgraded by deliberate safety rules: a Stripe response passed into another function, returned, or stored with an object-valued field; and repository-wide alias doubt when an alias import may resolve to an unscanned declaration file (2 reads). An experiment that trusted traced Stripe responses despite those escapes reached 95% recall at 100% precision on this set, but it contradicts tested safety requirements, so it is not applied. See the plan's open decisions.
+
 ## Reproduce
 
 ```sh
