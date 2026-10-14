@@ -346,3 +346,46 @@ it.each([
   expect(result.findings).toMatchObject([{ confidence: 'review' }]);
   expect(result.edits).toEqual([]);
 });
+
+it.each([
+  "const {default: billing} = require('./client.cjs');",
+  "const billing = require('./client.cjs').default;",
+])('does not confuse a direct CommonJS value with a named default property: %s', (consumer) => {
+  expect(
+    analyze({
+      'client.cjs': cjsClient + 'module.exports = client;',
+      'billing.cjs': consumer + read,
+    }).edits,
+  ).toEqual([]);
+});
+
+it('traces an actual named CommonJS default property', () => {
+  const result = analyze({
+    'client.cjs': cjsClient + 'exports.default = client;',
+    'billing.cjs': "const billing = require('./client.cjs').default;" + read,
+  });
+  expect(result.findings).toMatchObject([{ confidence: 'confirmed' }]);
+  expect(result.edits).toHaveLength(1);
+});
+
+it.each(['require = replacement;', 'configure(require);', 'const loader = require;'])(
+  'declines rewritten or exposed loaders: %s',
+  (mutation) => {
+    const result = analyze({
+      'billing.cjs': mutation + `const billing = require('stripe')('test', ${options});` + read,
+    });
+    expect(result.edits).toEqual([]);
+    expect(result.apiVersionDeclarations).toEqual([]);
+  },
+);
+
+it('does not verify versions for an unsupported module namespace escape', () => {
+  const result = analyze({
+    'client.ts': esmClient + 'export default client;',
+    'billing.ts': "import billing from './client.js';" + read,
+    'mutator.ts': "import * as namespace from './client.js'; configure(namespace);",
+  });
+  expect(result.apiVersionDeclarations.find((entry) => entry.kind === 'constructor')?.status).toBe(
+    'unknown',
+  );
+});

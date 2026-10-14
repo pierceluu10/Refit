@@ -11,6 +11,7 @@ type PropertyResult =
 export function declaredApiVersions(options: {
   nodes: ts.Node[];
   mutationNodes: ts.Node[];
+  initialUnsafe: Set<ts.Symbol>;
   checker: ts.TypeChecker;
   provider: ProviderAdapter;
   clients: Set<ts.Symbol>;
@@ -131,6 +132,7 @@ export function declaredApiVersions(options: {
     clients,
     new Map(),
     canonical,
+    options.initialUnsafe,
   );
   const declarations: ApiVersionDeclaration[] = [];
   for (const node of nodes) {

@@ -98,7 +98,7 @@ export function sdkConstructors(options: {
     if (!(ts.isNewExpression(node) || (provider.constructorCalls && ts.isCallExpression(node))))
       return;
     if (ts.isCallExpression(node) && node.questionDotToken) return;
-    let expression = node.expression;
+    let expression: ts.Expression = node.expression;
     while (ts.isParenthesizedExpression(expression)) expression = expression.expression;
     if (
       requiredConstructor(node.expression) ||

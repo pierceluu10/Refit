@@ -1,16 +1,46 @@
 import ts from 'typescript-compiler';
 import { resolveSourceImport } from './source-imports.ts';
+import { SDK_IDENTIFIER } from './providers.ts';
 
-export function unshadowedIdentifier(node: ts.Node, name: string, checker: ts.TypeChecker) {
-  if (!ts.isIdentifier(node) || node.text !== name) return false;
-  // TypeScript creates synthetic symbols for CommonJS globals and their export assignments.
-  return !(checker.getSymbolAtLocation(node)?.declarations ?? []).some(
+const loaderSafety = new WeakMap<ts.SourceFile, boolean>();
+
+function hasRuntimeDeclaration(node: ts.Node, checker: ts.TypeChecker) {
+  return (checker.getSymbolAtLocation(node)?.declarations ?? []).some(
     (declaration) =>
       !ts.isSourceFile(declaration) &&
       !ts.isBinaryExpression(declaration) &&
       !ts.isPropertyAccessExpression(declaration) &&
       !ts.isIdentifier(declaration),
   );
+}
+
+export function unshadowedIdentifier(node: ts.Node, name: string, checker: ts.TypeChecker) {
+  if (!ts.isIdentifier(node) || node.text !== name) return false;
+  // TypeScript creates synthetic symbols for CommonJS globals and their export assignments.
+  const global = !hasRuntimeDeclaration(node, checker);
+  if (!global || name !== 'require') return global;
+  const source = node.getSourceFile();
+  if (!loaderSafety.has(source)) {
+    let safe = true;
+    function visit(current: ts.Node) {
+      if (
+        ts.isIdentifier(current) &&
+        current.text === 'require' &&
+        !hasRuntimeDeclaration(current, checker)
+      ) {
+        const parent = current.parent;
+        if (
+          !(ts.isCallExpression(parent) && parent.expression === current) &&
+          !(ts.isPropertyAccessExpression(parent) && parent.name === current)
+        )
+          safe = false;
+      }
+      ts.forEachChild(current, visit);
+    }
+    visit(source);
+    loaderSafety.set(source, safe);
+  }
+  return loaderSafety.get(source)!;
 }
 
 export function staticRequire(node: ts.Node, checker?: ts.TypeChecker) {
@@ -58,7 +88,7 @@ export function sourceBindings(
   sources: ReadonlyMap<string, unknown>,
 ) {
   const aliases = new Map<ts.Symbol, ts.Symbol>();
-  const exports = new Map<string, Map<string, ts.Symbol>>();
+  const exports = new Map<string, Map<string | null, ts.Symbol>>();
   const formats = new Map<string, ClientExport['kind']>();
   const safeNodes = new Set<ts.Node>();
   const inlineDefaults = new Map<ts.ExportAssignment, ts.Symbol>();
@@ -79,13 +109,17 @@ export function sourceBindings(
   };
   const exportBinding = (expression: ts.Expression) =>
     ts.isIdentifier(expression) ? immutable(symbol(expression)) : undefined;
-  function add(file: string, name: string, binding: ts.Symbol, kind: ClientExport['kind']) {
-    const entries = exports.get(file) ?? new Map<string, ts.Symbol>();
+  function add(file: string, name: string | null, binding: ts.Symbol, kind: ClientExport['kind']) {
+    const entries = exports.get(file) ?? new Map<string | null, ts.Symbol>();
     if (entries.has(name)) escapingSources.add(file);
     entries.set(name, binding);
     exports.set(file, entries);
     formats.set(file, kind);
-    descriptions.set(binding, { file, kind, name: name === 'default' ? null : name });
+    descriptions.set(binding, {
+      file,
+      kind,
+      name: kind === 'esm' && name === 'default' ? null : name,
+    });
   }
   for (const node of nodes) {
     const file = node.getSourceFile().fileName;
@@ -125,15 +159,12 @@ export function sourceBindings(
       }
     }
   }
-  function exportTarget(node: ts.Expression): string | undefined {
+  function exportTarget(node: ts.Expression): string | null | undefined {
     if (!ts.isPropertyAccessExpression(node) || node.questionDotToken) return;
     if (unshadowedIdentifier(node.expression, 'module', checker) && node.name.text === 'exports')
-      return 'default';
+      return null;
     if (unshadowedIdentifier(node.expression, 'exports', checker)) return node.name.text;
-    if (
-      ts.isPropertyAccessExpression(node.expression) &&
-      exportTarget(node.expression) === 'default'
-    )
+    if (ts.isPropertyAccessExpression(node.expression) && exportTarget(node.expression) === null)
       return node.name.text;
   }
   const exportRoots = new Set<ts.Node>();
@@ -152,14 +183,14 @@ export function sourceBindings(
       continue;
     }
     exportRoots.add(node.left);
-    if (name === 'default') {
+    if (name === null) {
       if (directAssignments.has(file) || namedAssignments.has(file)) escapingSources.add(file);
       directAssignments.add(file);
     } else {
       if (directAssignments.has(file)) escapingSources.add(file);
       namedAssignments.add(file);
     }
-    if (name === 'default' && ts.isObjectLiteralExpression(node.right)) {
+    if (name === null && ts.isObjectLiteralExpression(node.right)) {
       for (const entry of node.right.properties) {
         const key = entry.name;
         const binding =
@@ -172,7 +203,8 @@ export function sourceBindings(
           !key ||
           !(ts.isIdentifier(key) || ts.isStringLiteral(key)) ||
           !binding ||
-          key.text === 'default'
+          key.text === '__proto__' ||
+          !SDK_IDENTIFIER.test(key.text)
         ) {
           escapingSources.add(file);
           continue;
@@ -183,7 +215,7 @@ export function sourceBindings(
       safeNodes.add(node);
     } else {
       const binding = exportBinding(node.right);
-      if (!binding || (name === 'default' && ts.isFunctionDeclaration(binding.valueDeclaration!))) {
+      if (!binding || (name === null && ts.isFunctionDeclaration(binding.valueDeclaration!))) {
         escapingSources.add(file);
         continue;
       }
@@ -204,7 +236,12 @@ export function sourceBindings(
       current = current.parent;
     if (!exportRoots.has(current)) escapingSources.add(node.getSourceFile().fileName);
   }
-  function bind(name: ts.Identifier, file: string, exported: string, kind: ClientExport['kind']) {
+  function bind(
+    name: ts.Identifier,
+    file: string,
+    exported: string | null,
+    kind: ClientExport['kind'],
+  ) {
     const target =
       formats.get(file) === kind && !escapingSources.has(file) && exports.get(file)?.get(exported);
     const local = symbol(name);
@@ -225,7 +262,7 @@ export function sourceBindings(
         containingFile,
         sources,
       );
-      if (file) bind(node.name, file, 'default', 'commonjs');
+      if (file) bind(node.name, file, null, 'commonjs');
     }
     if (ts.isImportDeclaration(node) && ts.isStringLiteral(node.moduleSpecifier)) {
       const file = resolveSourceImport(node.moduleSpecifier.text, containingFile, sources);
@@ -264,7 +301,7 @@ export function sourceBindings(
       bind(
         node.name,
         file,
-        ts.isPropertyAccessExpression(value) ? value.name.text : 'default',
+        ts.isPropertyAccessExpression(value) ? value.name.text : null,
         'commonjs',
       );
     else if (ts.isObjectBindingPattern(node.name) && staticRequire(value, checker)) {

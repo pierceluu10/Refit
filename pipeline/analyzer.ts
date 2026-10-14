@@ -784,6 +784,7 @@ export function analyzeRepository(
     apiVersionDeclarations: declaredApiVersions({
       nodes,
       mutationNodes,
+      initialUnsafe,
       checker,
       provider,
       clients,

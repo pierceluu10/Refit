@@ -70,7 +70,7 @@ const MAX_PROPERTY_RENAMES = 100;
 const MAX_REQUEST_PROPERTY_RENAMES = 100;
 const MAX_OPERATION_REPLACEMENTS = 100;
 const MAX_SCHEMA_NAME_LENGTH = 256;
-const IDENTIFIER = /^[A-Za-z_$][A-Za-z0-9_$]*$/;
+export const SDK_IDENTIFIER = /^[A-Za-z_$][A-Za-z0-9_$]*$/;
 export const MAX_SDK_RESOURCE_LENGTH = 256;
 const SDK_RESOURCE_PATH = /^[A-Za-z_$][A-Za-z0-9_$]*(?:\.[A-Za-z_$][A-Za-z0-9_$]*)*$/;
 const PROVIDER_ID = /^[a-z][a-z0-9-]{0,63}$/;
@@ -114,7 +114,7 @@ export function validateProviderIdentity(value: Record<string, unknown>): Provid
     typeof value.defaultImport !== 'boolean' ||
     !(
       value.namedExport === null ||
-      (typeof value.namedExport === 'string' && IDENTIFIER.test(value.namedExport))
+      (typeof value.namedExport === 'string' && SDK_IDENTIFIER.test(value.namedExport))
     ) ||
     !(value.defaultImport || value.namedExport)
   )
@@ -180,7 +180,7 @@ export function parseProviderAdapter(value: Record<string, unknown>): ProviderAd
       !['method,resource,schema', 'method,operationId,resource,schema'].includes(operationKeys) ||
       !validSdkResourcePath(operation.resource) ||
       typeof operation.method !== 'string' ||
-      !IDENTIFIER.test(operation.method) ||
+      !SDK_IDENTIFIER.test(operation.method) ||
       typeof operation.schema !== 'string' ||
       !operation.schema.trim() ||
       operation.schema.length > MAX_CONFIG_BYTES ||
@@ -218,9 +218,9 @@ export function parseProviderAdapter(value: Record<string, unknown>): ProviderAd
       rename.schema !== rename.schema.trim() ||
       rename.schema.length > MAX_SCHEMA_NAME_LENGTH ||
       typeof rename.removed !== 'string' ||
-      !IDENTIFIER.test(rename.removed) ||
+      !SDK_IDENTIFIER.test(rename.removed) ||
       typeof rename.replacement !== 'string' ||
-      !IDENTIFIER.test(rename.replacement) ||
+      !SDK_IDENTIFIER.test(rename.replacement) ||
       rename.removed === rename.replacement
     )
       throw new PipelineInputError(
@@ -262,10 +262,10 @@ export function parseProviderAdapter(value: Record<string, unknown>): ProviderAd
         'argumentIndex,method,removed,replacement,resource' ||
       !validSdkResourcePath(rename.resource) ||
       typeof rename.method !== 'string' ||
-      !IDENTIFIER.test(rename.method) ||
+      !SDK_IDENTIFIER.test(rename.method) ||
       !argumentIndex(rename.argumentIndex) ||
       ![rename.removed, rename.replacement].every(
-        (name) => typeof name === 'string' && IDENTIFIER.test(name) && name !== '__proto__',
+        (name) => typeof name === 'string' && SDK_IDENTIFIER.test(name) && name !== '__proto__',
       ) ||
       rename.removed === rename.replacement
     )
@@ -319,7 +319,7 @@ export function parseProviderAdapter(value: Record<string, unknown>): ProviderAd
       !validSdkResourcePath(replacement.resource) ||
       !validSdkResourcePath(replacement.replacementResource) ||
       ![replacement.method, replacement.replacementMethod].every(
-        (name) => typeof name === 'string' && IDENTIFIER.test(name),
+        (name) => typeof name === 'string' && SDK_IDENTIFIER.test(name),
       ) ||
       !validOperationId(replacement.replacementOperationId)
     )
