@@ -178,7 +178,12 @@ export function sourceBindings(
     const file = node.getSourceFile().fileName;
     const validPosition =
       ts.isExpressionStatement(node.parent) && ts.isSourceFile(node.parent.parent);
-    if (!validPosition || formats.get(file) === 'esm') {
+    const runtimeImport = node
+      .getSourceFile()
+      .statements.some(
+        (statement) => ts.isImportDeclaration(statement) && !statement.importClause?.isTypeOnly,
+      );
+    if (!validPosition || formats.get(file) === 'esm' || runtimeImport) {
       escapingSources.add(file);
       continue;
     }

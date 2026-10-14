@@ -389,3 +389,26 @@ it('does not verify versions for an unsupported module namespace escape', () => 
     'unknown',
   );
 });
+
+it.each(['new (Stripe)', '(Stripe)'])(
+  'preserves constructor mutation evidence through %s initialization',
+  (expression) => {
+    const source =
+      `const Stripe = require('stripe'); Stripe.prototype.request = replacement; const billing = ${expression}('test', ${options});` +
+      read;
+    const result = analyze({ 'billing.cjs': source });
+    expect(result.edits).toEqual([]);
+    expect(
+      result.apiVersionDeclarations.find((entry) => entry.kind === 'constructor')?.status,
+    ).toBe('unknown');
+  },
+);
+
+it('does not guess a mixed local ESM/CommonJS export module', () => {
+  expect(
+    analyze({
+      'client.ts': esmClient + 'module.exports = client;',
+      'billing.cts': "const billing = require('./client.js');" + read,
+    }).edits,
+  ).toEqual([]);
+});

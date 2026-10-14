@@ -16,6 +16,7 @@ export function declaredApiVersions(options: {
   provider: ProviderAdapter;
   clients: Set<ts.Symbol>;
   creation: (node: ts.Node) => ts.NewExpression | ts.CallExpression | undefined;
+  constructorBinding: (node: ts.NewExpression | ts.CallExpression) => ts.Symbol | undefined;
   clientBinding: (node: ts.Node) => ts.Symbol | undefined;
   sdkCall: (node: ts.Node) => { client: ts.Identifier; optional: boolean } | undefined;
   symbol: (node: ts.Node) => ts.Symbol | undefined;
@@ -142,7 +143,7 @@ export function declaredApiVersions(options: {
       const binding = options.clientBinding(node);
       const uncertain =
         creation.arguments?.some(ts.isSpreadElement) ||
-        unsafe.has(symbol(creation.expression)!) ||
+        unsafe.has(options.constructorBinding(creation)!) ||
         !binding ||
         !clients.has(binding) ||
         unsafe.has(binding);

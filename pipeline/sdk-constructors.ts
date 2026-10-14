@@ -15,6 +15,10 @@ export function sdkConstructors(options: {
     const binding = symbol(node);
     if (binding) constructors.add(binding);
   };
+  function constructorExpression(node: ts.Expression): ts.Expression {
+    while (ts.isParenthesizedExpression(node)) node = node.expression;
+    return node;
+  }
   function requiredConstructor(node: ts.Node) {
     if (ts.isParenthesizedExpression(node)) return requiredConstructor(node.expression);
     if (staticRequire(node, checker) === provider.packageName) return provider.defaultImport;
@@ -98,13 +102,18 @@ export function sdkConstructors(options: {
     if (!(ts.isNewExpression(node) || (provider.constructorCalls && ts.isCallExpression(node))))
       return;
     if (ts.isCallExpression(node) && node.questionDotToken) return;
-    let expression: ts.Expression = node.expression;
-    while (ts.isParenthesizedExpression(expression)) expression = expression.expression;
+    const expression = constructorExpression(node.expression);
     if (
       requiredConstructor(node.expression) ||
       (ts.isIdentifier(expression) && constructors.has(symbol(expression)!))
     )
       return node;
   }
-  return { imports, creation, constructors };
+  return {
+    imports,
+    creation,
+    constructors,
+    binding: (node: ts.NewExpression | ts.CallExpression) =>
+      symbol(constructorExpression(node.expression)),
+  };
 }

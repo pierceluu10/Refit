@@ -112,14 +112,12 @@ export function analyzeRepository(
     target: ts.ScriptTarget.Latest,
   };
   const host = ts.createCompilerHost(options);
-  const resolvedImports = new Map<string, string>();
   host.fileExists = (name) => sources.has(name);
   host.readFile = (name) => sources.get(name);
   host.resolveModuleNames = (names, containingFile) =>
     names.map((name) => {
       const path = resolveSourceImport(name, containingFile, sources);
       if (!path) return undefined;
-      resolvedImports.set(`${containingFile}\0${name}`, path);
       return { resolvedFileName: path };
     });
   host.getSourceFile = (name, languageVersion) => {
@@ -541,7 +539,7 @@ export function analyzeRepository(
       binding &&
       creation &&
       (creation.arguments?.some(ts.isSpreadElement) ||
-        unsafeConstructors.has(symbol(creation.expression)!))
+        unsafeConstructors.has(sdk.binding(creation)!))
     )
       initialUnsafe.add(binding);
   }
@@ -789,6 +787,7 @@ export function analyzeRepository(
       provider,
       clients,
       creation: sdk.creation,
+      constructorBinding: sdk.binding,
       clientBinding: (node) =>
         ts.isVariableDeclaration(node.parent) && ts.isIdentifier(node.parent.name)
           ? symbol(node.parent.name)
