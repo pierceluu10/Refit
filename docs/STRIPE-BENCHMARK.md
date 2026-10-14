@@ -59,6 +59,17 @@ Behind those reasons:
 - **Production mode can't diff real Stripe specs.** The 30s `oasdiff` limit is exceeded on 8–11 MB specifications, and some pairs fail to compare at all. The default worker mode therefore never reaches the code stage for Stripe.
 - **Validation coverage:** 57 repositories use npm, 26 pnpm, 5 yarn and 12 have no lockfile. Only 17 have a real test script.
 
+## Score against the ground truth
+
+[`benchmarks/STRIPE-LABELS.md`](benchmarks/STRIPE-LABELS.md) labels 30 of the repositories: 40 real breaking reads in 11 repositories. Today's Refit, generated full adapter, labelled set:
+
+| | Recall | Precision |
+|---|---|---|
+| Confirmed findings (what Refit acts on) | **0%** (0/39) | n/a |
+| Any finding, including review | 100% (39/39) | **1%** (39/3,048) |
+
+Refit reports every real break but can't separate it from about 3,000 false matches, so it confirms none. Phase 2 of the [plan](STRIPE-PLAN.md) targets confirmed recall ≥ 90% at precision ≥ 98%.
+
 ## Reproduce
 
 ```sh
