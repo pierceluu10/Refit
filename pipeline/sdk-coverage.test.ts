@@ -39,8 +39,7 @@ declare function getClient(): OpenAI;`,
   const byExpression = Object.fromEntries(sites.map((site) => [site.expression, site]));
   expect(byExpression['client.chat.completions.create']).toMatchObject({ traced: true });
   expect(byExpression['openai.chat.completions.create']).toMatchObject({
-    traced: false,
-    reason: 'commonjs-require',
+    traced: true,
   });
   expect(byExpression['this.client.responses.create']).toMatchObject({ reason: 'class-field' });
   expect(byExpression['openai.models.list']).toMatchObject({ reason: 'parameter' });
