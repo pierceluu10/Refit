@@ -30,11 +30,17 @@ export function unsafeBindings(
   // Reading a primitive field (`subscription.id`) and passing its value on cannot mutate the
   // object it came from; only value positions use this, never assignment targets.
   primitiveValue: (node: ts.Node) => boolean = () => false,
+  references?: {
+    rootBinding: (node: ts.Node) => ts.Symbol | undefined;
+    aliases: Map<ts.Symbol, ts.Symbol>;
+  },
 ) {
   const links = new Map<ts.Symbol, Set<ts.Symbol>>();
   const unsafe = new Set(initialUnsafe);
   const exposed: ts.Expression[] = [];
   const binding = (node: ts.Node) => {
+    const field = references?.rootBinding(node);
+    if (field) return field;
     const identifier = receiver(node);
     return identifier ? canonical(checker.getSymbolAtLocation(identifier)) : undefined;
   };
@@ -50,7 +56,7 @@ export function unsafeBindings(
   };
   const targets = (node: ts.Node, value = true) => {
     if (value && primitiveValue(node)) return;
-    if (receiver(node)) taint(node);
+    if (receiver(node) || references?.rootBinding(node)) taint(node);
     // Passing a call's result does not expose its callee or SDK client.
     else if (ts.isCallExpression(node) || ts.isNewExpression(node))
       for (const argument of node.arguments ?? []) targets(argument);
@@ -65,6 +71,10 @@ export function unsafeBindings(
       for (const element of name.elements)
         if (ts.isBindingElement(element)) aliases(element.name, source);
   };
+  for (const [field, source] of references?.aliases ?? []) {
+    link(field, source);
+    link(source, field);
+  }
   for (const node of nodes) {
     if (
       (ts.isReturnStatement(node) || ts.isThrowStatement(node) || ts.isYieldExpression(node)) &&
@@ -74,6 +84,13 @@ export function unsafeBindings(
     if (ts.isArrowFunction(node) && !ts.isBlock(node.body)) exposed.push(node.body);
     if (ts.isVariableDeclaration(node) && node.initializer)
       aliases(node.name, binding(node.initializer));
+    if (
+      ts.isPropertyDeclaration(node) &&
+      node.initializer &&
+      !ts.isArrowFunction(node.initializer) &&
+      !ts.isFunctionExpression(node.initializer)
+    )
+      targets(node.initializer);
     if (
       ts.isForOfStatement(node) &&
       ts.isVariableDeclarationList(node.initializer) &&
