@@ -172,6 +172,19 @@ it('requires incoming webhook version and subscription-item policy review before
       action: expect.stringContaining('subscription-item policy'),
     }),
   );
+  expect(result.sdkCoverage).toMatchObject({
+    observedCalls: 1,
+    mappedCalls: 0,
+    localHelperCalls: 1,
+    unmappedMethods: [],
+  });
+  expect(result.checks).toContainEqual(
+    expect.objectContaining({
+      id: 'sdk-coverage',
+      status: 'passed',
+      detail: expect.stringContaining('local webhook signature constructor'),
+    }),
+  );
   expect(fetch).not.toHaveBeenCalled();
   await expect(readFile(join(sample.repository, 'application-executed'))).rejects.toMatchObject({
     code: 'ENOENT',

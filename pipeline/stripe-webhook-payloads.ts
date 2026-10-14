@@ -54,6 +54,9 @@ const EVENT_SCHEMAS: Record<string, string> = Object.fromEntries([
   ),
 ]);
 const CONSTRUCT_METHODS = new Set(['constructEvent', 'constructEventAsync']);
+export function stripeWebhookConstructor(call: { resource: string; method: string } | undefined) {
+  return Boolean(call && call.resource === 'webhooks' && CONSTRUCT_METHODS.has(call.method));
+}
 export const WEBHOOK_REVIEW_REASON =
   'Webhook payload reads require separate incoming API-version and migration-policy review. SDK request versions do not establish webhook versions; automatic patching, AI and publication are blocked.';
 
@@ -134,13 +137,7 @@ export function stripeWebhookPayloads(options: {
       const awaited = ts.isAwaitExpression(value);
       if (ts.isAwaitExpression(value)) value = unwrap(value.expression);
       const call = sdkCall(value);
-      if (
-        !ts.isCallExpression(value) ||
-        !call ||
-        call.resource !== 'webhooks' ||
-        !CONSTRUCT_METHODS.has(call.method)
-      )
-        continue;
+      if (!ts.isCallExpression(value) || !call || !stripeWebhookConstructor(call)) continue;
       if (
         ts.isBinaryExpression(entry.node) &&
         (!ts.isExpressionStatement(entry.node.parent) ||

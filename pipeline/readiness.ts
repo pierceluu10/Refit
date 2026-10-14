@@ -4,6 +4,7 @@ import { resolveDockerImage } from './docker-sandbox.ts';
 import { readNpmPreparationInputs } from './npm-inputs.ts';
 import { unmappedBreakingChanges } from './openapi-diff.ts';
 import { runPipeline } from './run.ts';
+import { stripeWebhookConstructor } from './stripe-webhook-payloads.ts';
 import { hasErrorCode } from './state-files.ts';
 import { PipelineInputError } from './types.ts';
 import { readWorkflowConfiguration, REPOSITORY_CONFIGURATION } from './workflow-configuration.ts';
@@ -34,6 +35,7 @@ export interface ReadinessReport {
   sdkCoverage: {
     observedCalls: number;
     mappedCalls: number;
+    localHelperCalls: number;
     unmappedMethods: string[];
     unmappedExamples: { file: string; line: number; method: string }[];
   } | null;
@@ -230,7 +232,13 @@ export async function inspectRepositoryReadiness(options: {
         detail: 'Full comparison is disabled. Only supported removed properties were compared.',
         action: 'Enable fullDiff and install oasdiff to inspect broader breaking contract changes.',
       });
-    const unmapped = evidence.sdkCalls.filter(
+    const helpers = new Set(
+      evidence.adapter.packageName === 'stripe'
+        ? evidence.sdkCalls.filter(stripeWebhookConstructor)
+        : [],
+    );
+    const operationCalls = evidence.sdkCalls.filter((call) => !helpers.has(call));
+    const unmapped = operationCalls.filter(
       (call) =>
         !evidence.adapter.operations.some(
           (operation) => operation.resource === call.resource && operation.method === call.method,
@@ -238,7 +246,8 @@ export async function inspectRepositoryReadiness(options: {
     );
     report.sdkCoverage = {
       observedCalls: evidence.sdkCalls.length,
-      mappedCalls: evidence.calls.length,
+      mappedCalls: operationCalls.length - unmapped.length,
+      localHelperCalls: helpers.size,
       unmappedMethods: [
         ...new Set(unmapped.map((call) => `${call.resource}.${call.method}`)),
       ].sort(),
@@ -248,12 +257,14 @@ export async function inspectRepositoryReadiness(options: {
         method: `${call.resource}.${call.method}`,
       })),
     };
+    const mappedCalls = operationCalls.length - unmapped.length;
+    const missingMappings = !mappedCalls && (operationCalls.length > 0 || !helpers.size);
     report.checks.push({
       id: 'sdk-coverage',
       title: 'SDK call mapping',
-      status: !evidence.calls.length ? 'blocked' : unmapped.length ? 'review' : 'passed',
-      detail: `${evidence.calls.length} of ${evidence.sdkCalls.length} observed SDK calls have configured mappings. ${unmapped.length ? 'Unmapped calls are outside automatic coverage.' : 'This count does not prove complete code coverage.'}`,
-      action: !evidence.calls.length
+      status: missingMappings ? 'blocked' : unmapped.length ? 'review' : 'passed',
+      detail: `${mappedCalls} of ${operationCalls.length} observed SDK API calls have configured mappings. ${helpers.size ? `${helpers.size} local webhook signature constructor${helpers.size === 1 ? '' : 's'} recognized; incoming version and policy require separate review. ` : ''}${unmapped.length ? 'Unmapped calls are outside automatic coverage.' : 'This count does not prove complete code coverage.'}`,
+      action: missingMappings
         ? 'Confirm the SDK constructor/import mapping and supported client pattern, then inspect scan evidence before attempting a migration.'
         : unmapped.length
           ? 'Review unmapped methods against provider documentation and add verified adapter mappings where supported.'
