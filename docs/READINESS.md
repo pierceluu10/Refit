@@ -1,6 +1,17 @@
 # Refit implementation checkpoints
 
 
+## October 14 checkpoint: npm workspace preparation (0.14.0)
+
+Refit prepares supported npm workspace repositories from committed root/workspace manifests and the root lockfile. Positive relative glob arrays select at most 64 named packages. Importer requirements, names, versions and workspace link targets are checked before installation. The networked Docker input remains manifest-only with lifecycle scripts disabled; actual links and root/nested dependency directories are checked before archiving. Workspace source comes from the separate committed application snapshot during offline validation. Cache identity includes workspace manifest hashes, and recipe 3 separates older environments. The existing prepare/run/watch/doctor/enrollment/service paths reuse this implementation. See [workspace setup and boundaries](NPM-WORKSPACES.md).
+
+The fully gated suite passed **1,000 tests across 64 files with no skips**. A synthetic TypeScript monorepo uses actual Stripe 19.1.0 at the root, 10.17.0 in billing and a linked local ID package. Tests demonstrate the original after-contract history failure, then validate the deterministic patch with multi-page and empty history, exact version headers, both installed versions and TypeScript in offline Docker. They also verify manifest-only workspace staging, lifecycle-script suppression, archive contents, nested dependency roots, exact links, stale graph refusal and workspace-only cache invalidation. The canonical Stripe simulator is shared, not duplicated. Build, typecheck and formatting passed.
+
+Retained CLI evidence at `/Users/pierceluu/.refit/evaluations/npm-workspaces-2026-10-14` observes a committed simulated historical contract change, finds two history reads, validates the workspace patch, verifies evidence and reuses the next poll. From outside the checkout, the installed 0.14.0 prepare command reports two committed workspace manifests and reuses the verified environment; a fresh installed run passes both before/after contracts and TypeScript. The application stays clean and unmigrated.
+
+A fresh installed GitHub App service also fetched the approved independent billing demo at `cfa192fd2bab995da81bf7f95ea97e0b0ea5f676`. Recipe 3 prepared its ordinary root dependencies, and 14 baseline tests, both 14-test patched contracts and TypeScript passed in offline Docker. Evidence integrity passed. Its state is `/Users/pierceluu/.refit/evaluations/stripe-service-0.14-2026-10-14`. App access/Git transport were live; billing responses were simulated. This slice used no paid AI calls and created no new PR. Negative patterns, object/nested workspace declarations, workspace bins, non-registry dependency protocols and other package-manager locks remain outside automatic npm preparation.
+
+
 ## October 14 checkpoint: CommonJS and default-exported SDK clients (0.13.0)
 
 Refit traces immutable shared clients through direct relative named/default ESM imports and supported static CommonJS requires/exports. The built-in Stripe adapter recognizes documented callable initialization; other adapters must explicitly enable `constructorCalls`. A shared module graph drives SDK call evidence, mutations, constructor/request API-version checks, imported read-only AI context and the bounded guarded-history import. Dynamic exports, namespace imports, re-exports, mixed local module interop, ambiguous resolution and shadowed/exposed loaders remain review cases. See [client module forms](CLIENT-MODULES.md).
