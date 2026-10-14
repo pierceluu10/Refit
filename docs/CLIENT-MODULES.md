@@ -36,9 +36,9 @@ For another SDK, set `constructorCalls: true` in its reviewed provider adapter o
 
 ## Boundaries
 
-Only scanned relative source files are resolved. Exact paths, unique extensionless file/index paths and unambiguous `.js` → `.ts`, `.mjs` → `.mts` and `.cjs` → `.cts` paths are supported. Ambiguous source/output pairs are refused.
+Only scanned source files are resolved. Relative imports and supported repository `paths`/`baseUrl` mappings share the same graph. Exact paths, unique extensionless file/index paths and unambiguous `.js` → `.ts`, `.mjs` → `.mts` and `.cjs` → `.cts` paths are supported. Ambiguous source/output pairs are refused. See [configured aliases and runtime boundaries](SOURCE-ALIASES.md).
 
-Clients and constructor aliases must be immutable. Static CommonJS exports must be unambiguous top-level assignments to unshadowed globals; literal export objects may contain only supported identifier bindings. Namespace imports, re-exports, spreads, accessors, computed exports, changing the export object, shadowed or exposed loaders, package/path aliases, dynamic imports and application factory wrappers remain review cases. Refit does not reproduce a bundler's module interop, tsconfig alias rules or a package's export map.
+Clients and constructor aliases must be immutable. Static CommonJS exports must be unambiguous top-level assignments to unshadowed globals; literal export objects may contain only supported identifier bindings. Namespace imports, re-exports, spreads, accessors, computed exports, changing the export object, shadowed or exposed loaders, unconfigured or unresolved aliases, dynamic imports and application factory wrappers remain review cases. Refit does not reproduce a bundler's module interop or a package's export map.
 
 A confirmed finding means the usage was traced under the recorded adapter, not that arbitrary application behavior is proven. Strict source-version policy still requires resolvable matching options. Checks must exercise the application's intended contracts.
 
