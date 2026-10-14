@@ -1,6 +1,6 @@
 # Plan: guard AI patches against substituted fields
 
-Status: **proposed, not implemented.**
+Status: **implemented** in `pipeline/substitution-guard.ts`, called from `proposeAiPatch()`.
 
 ## Problem
 
@@ -94,6 +94,19 @@ Applying these exact rules to the recorded patches:
 | Uses an **added** field of a different type, e.g. `String(model.owned_details)` for a removed string | 11 | Rule 1 allows any added field |
 | Uses an **added** string field with unrelated meaning, e.g. `model.region` | 4 | Rule 1 allows any added field. Only meaning distinguishes it |
 | Keeps reading the removed field behind a fallback, e.g. `(model.owned_by ?? '').toLowerCase()` | 3 | Not a substitution of a pre-existing field |
+
+## Measured impact
+
+A fresh 50 cases × 3 attempts run with the guard enabled (commit `862bbeb`; see [results](ai-evals/2026-10-14-gpt-5.4-mini-guard.md)):
+
+| | Count |
+|---|---|
+| Invented migrations rejected | **26**, all substituting `id` |
+| Invented migrations not caught | 16: 9 added field of a different type, 5 added field with unrelated meaning, 2 removed-field fallbacks. All are outside these rules by design |
+| Pre-existing-field substitutions that slipped through | **0** |
+| Correct fixes wrongly rejected | **0 of 78** |
+
+The model is non-deterministic, so the rerun produced a different set of inventions than the baseline. The guard caught every one of the kind it targets.
 
 ## Optional follow-ups (not in scope unless approved)
 
