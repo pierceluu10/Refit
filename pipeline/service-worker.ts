@@ -55,6 +55,7 @@ export async function pollServiceTarget(options: {
       const profile = await loadApprovedRepository({
         repository: checkout.directory,
         approval: target.approval,
+        integration: target.integration,
         stateDirectory: options.stateDirectory,
       });
       options.signal.throwIfAborted();

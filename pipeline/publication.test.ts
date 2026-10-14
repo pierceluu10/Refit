@@ -250,6 +250,39 @@ it('reuses an existing PR even after a human closes it or marks it ready', async
   ).toHaveLength(1);
 });
 
+it('publishes separate named integrations against the same base without sharing branch or PR markers', async () => {
+  const value = await report();
+  const branches: string[] = [];
+  for (const integration of ['billing-stripe', 'secondary-stripe']) {
+    const remote = github();
+    const result = await publishDraft(value, { ...OPTIONS, integration });
+    expect(result).toMatchObject({ status: 'created', integration });
+    branches.push(result.branch);
+    const request = remote.calls.find((call) => call.method === 'POST' && call.path === '/pulls')!;
+    expect(request.body.title).toBe(
+      `[${integration}] Fix Stripe payment history after PaymentIntent.charges removal`,
+    );
+    expect(request.body.body).toContain(`**Integration:** \`${integration}\``);
+    expect(request.body.body).toContain(
+      `<!-- refit-migration:${migrationIdentity(value, REVISION, integration)} -->`,
+    );
+    expect(request.body.body).not.toContain(
+      `<!-- refit-migration:${migrationIdentity(value, REVISION)} -->`,
+    );
+    expect(remote.calls.find((call) => call.path === '/git/trees')?.body.tree).toEqual(
+      value.publicationFiles.map((file) => ({ ...file, type: 'blob' })),
+    );
+    expect(await publishDraft(value, { ...OPTIONS, integration })).toMatchObject({
+      status: 'existing',
+      branch: result.branch,
+    });
+    expect(
+      remote.calls.filter((call) => call.method === 'POST' && call.path === '/pulls'),
+    ).toHaveLength(1);
+  }
+  expect(new Set(branches).size).toBe(2);
+});
+
 it('stops failed, inconsistent and unresolved evidence before making a network request', async () => {
   const remote = github();
   const value = await report();
@@ -420,6 +453,56 @@ it('discovers equivalent App drafts before generation while ignoring foreign aut
     publisher: { login: 'refit-agent[bot]' },
   });
   expect(fetcher).toHaveBeenCalledTimes(5);
+});
+
+it('discovers only the selected integration draft and refuses unscoped legacy matches for named profiles', async () => {
+  vi.spyOn(githubApp, 'authenticateGitHubApp').mockResolvedValue({
+    token: 'test-token',
+    author: { name: 'Refit Agent', email: '123+refit-agent[bot]@users.noreply.github.com' },
+    publisher: { kind: 'github-app', appId: 123, name: 'Refit Agent', login: 'refit-agent[bot]' },
+  });
+  const value = await report();
+  const pulls = [undefined, 'billing-stripe', 'secondary-stripe'].map((integration, index) => ({
+    number: index + 1,
+    html_url: `https://github.com/example/application/pull/${index + 1}`,
+    body: `<!-- refit-migration:${migrationIdentity(value, REVISION, integration)} -->\n${integration ? `<!-- refit-integration:${integration} -->` : ''}\n"runId": "${value.runId}"`,
+    state: 'open',
+    draft: true,
+    user: { login: 'refit-agent[bot]' },
+    base: { ref: 'main', sha: REVISION },
+    head: { sha: HEAD, ref: 'refit/example', repo: { full_name: 'example/application' } },
+  }));
+  const fetcher = vi.fn(async (input: string, options: RequestInit) => {
+    expect(options.method).toBe('GET');
+    const path = new URL(input).pathname;
+    return new Response(
+      JSON.stringify(
+        path.endsWith('/pulls')
+          ? pulls
+          : path.includes('/git/commits/')
+            ? { parents: [{ sha: REVISION }] }
+            : { object: { sha: path.endsWith('/main') ? REVISION : HEAD } },
+      ),
+    );
+  });
+  vi.stubGlobal('fetch', fetcher);
+  const options = publicationConfiguration('example/application', 'main', undefined, {
+    appId: '123',
+    privateKeyFile: '/unused.pem',
+  });
+  expect(
+    await findExistingMigration(value, REVISION, { ...options, integration: 'billing-stripe' }),
+  ).toMatchObject({ number: 2, duplicateCount: 1, integration: 'billing-stripe' });
+  expect(
+    await findExistingMigration(value, REVISION, { ...options, integration: 'secondary-stripe' }),
+  ).toMatchObject({ number: 3, duplicateCount: 1, integration: 'secondary-stripe' });
+  expect(
+    await findExistingMigration(value, REVISION, { ...options, integration: 'another-stripe' }),
+  ).toBeUndefined();
+  expect(await findExistingMigration(value, REVISION, options)).toMatchObject({
+    number: 1,
+    duplicateCount: 1,
+  });
 });
 
 it('does not authenticate an app until the candidate passes the existing publication gates', async () => {

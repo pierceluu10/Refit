@@ -133,6 +133,7 @@ async function watchLocalOnce(
     const signature = digest(
       JSON.stringify({
         repository,
+        integration: configuration.integration,
         provider,
         before: before.hash,
         apiVersion: configuration.apiVersion,

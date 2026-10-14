@@ -1,0 +1,9 @@
+{
+  "name": "refit-multiple-integration-conformance",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "openai": "7.32.0",
+    "stripe": "10.17.0"
+  }
+}

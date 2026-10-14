@@ -41,6 +41,8 @@ export async function renderWorkflowResult(result: Result) {
   const report = (await readArtifact('report.json')) ?? (await readArtifact('scan.json'));
   const publication = await readArtifact('publication.json');
   const rows: string[] = [];
+  if (result.manifest.integration)
+    rows.push(`Integration ${terminalText(result.manifest.integration)}`);
   if (report && typeof report.provider === 'string' && Array.isArray(report.changes)) {
     const changes = report.changes
       .filter(

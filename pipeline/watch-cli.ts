@@ -26,12 +26,13 @@ const FAILED_STATUSES = new Set([
   'documentation-changed',
 ]);
 const USAGE =
-  'Usage: refit watch --config <run.json> --state <directory-outside-repository> [--repository <local-git-root>] [--api-version-policy operator-pin|source-verified] [--once] [--sync-github --github owner/repo --base main --github-app] [--source-url <public-https-openapi> | --source-file <openapi> | --latest-stripe] [--documentation-source <label=https-url> ...] [--interval <seconds>] [--retry --once] [--ai-patch --repair-attempts 0|1|2] [--publish-draft --github owner/repo --base main --github-app] [--json]';
+  'Usage: refit watch --config <run.json> [--integration <id>] --state <directory-outside-repository> [--repository <local-git-root>] [--api-version-policy operator-pin|source-verified] [--once] [--sync-github --github owner/repo --base main --github-app] [--source-url <public-https-openapi> | --source-file <openapi> | --latest-stripe] [--documentation-source <label=https-url> ...] [--interval <seconds>] [--retry --once] [--ai-patch --repair-attempts 0|1|2] [--publish-draft --github owner/repo --base main --github-app] [--json]';
 
 try {
   const { values } = parseArgs({
     options: {
       config: { type: 'string' },
+      integration: { type: 'string' },
       state: { type: 'string' },
       repository: { type: 'string' },
       once: { type: 'boolean' },
@@ -98,7 +99,7 @@ try {
         .length > 1
     )
       throw new PipelineInputError('Choose one specification source.');
-    const configuration = await readWorkflowConfiguration(values.config);
+    const configuration = await readWorkflowConfiguration(values.config, values.integration);
     const documentationSources = (values['documentation-source'] ?? []).map((entry) => {
       const separator = entry.indexOf('=');
       if (separator < 1)

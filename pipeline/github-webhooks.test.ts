@@ -164,3 +164,50 @@ it('records unconfigured repositories without creating an automatic worker targe
   );
   expect(Object.keys(state.targets)).toEqual(['demo']);
 });
+
+it('revokes every named integration in an installed repository and retains its evidence', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'refit-group-webhooks-'));
+  roots.push(root);
+  const group = ['stripe', 'openai'].map((integration) => ({
+    ...targets[0],
+    id: `billing.${integration}`,
+    integration,
+  }));
+  const value = await openServiceStore(root, 'group-configuration', APP_ID, group);
+  await value.update((state) => {
+    for (const target of group)
+      Object.assign(state.targets[target.id], {
+        installationId: INSTALLATION_ID,
+        access: 'active',
+        status: 'validated',
+        output: `/evidence/${target.integration}`,
+      });
+  });
+  const body = Buffer.from(
+    JSON.stringify({
+      action: 'removed',
+      installation: payload.installation,
+      repositories_added: [],
+      repositories_removed: payload.repositories,
+    }),
+  );
+  expect(
+    (
+      await value.accept(
+        randomUUID(),
+        'installation_repositories',
+        body,
+        parseWebhook(body, 'installation_repositories', APP_ID),
+      )
+    ).disabled,
+  ).toEqual(['billing.stripe', 'billing.openai']);
+  const registry = await value.read();
+  for (const target of group)
+    expect(registry.targets[target.id]).toMatchObject({
+      integration: target.integration,
+      access: 'blocked',
+      output: `/evidence/${target.integration}`,
+    });
+  const restarted = await openServiceStore(root, 'group-configuration', APP_ID, group);
+  expect((await restarted.read()).targets).toEqual(registry.targets);
+});

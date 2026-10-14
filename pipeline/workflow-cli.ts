@@ -10,12 +10,13 @@ import { renderWorkflowResult } from './workflow-presentation.ts';
 import { validateApiVersionPolicy } from './api-version.ts';
 
 const USAGE =
-  'Usage: refit run --config <run.json> --output <new-directory-outside-repository>\n   or: refit run --repository <clean-git-directory> --before <spec.json-or-yaml> (--after <spec.json-or-yaml> | --latest-stripe) --output <new-directory-outside-repository> --image <local-image> --command \'["npm","test"]\'\nOptional: [--env <.env>] [--quiet] [--human | --json] [--api-version <current-api-version>] [--api-version-policy operator-pin|source-verified] [--full-diff (requires oasdiff)] [--provider-config <adapter.json>] [--assess] [--ai-patch] [--repair-attempts 0|1|2 (sends failed check output to OpenAI)] [--publish-draft --github owner/repository --base main [--github-app]]';
+  'Usage: refit run --config <run.json> [--integration <id>] --output <new-directory-outside-repository>\n   or: refit run --repository <clean-git-directory> --before <spec.json-or-yaml> (--after <spec.json-or-yaml> | --latest-stripe) --output <new-directory-outside-repository> --image <local-image> --command \'["npm","test"]\'\nOptional: [--env <.env>] [--quiet] [--human | --json] [--api-version <current-api-version>] [--api-version-policy operator-pin|source-verified] [--full-diff (requires oasdiff)] [--provider-config <adapter.json>] [--assess] [--ai-patch] [--repair-attempts 0|1|2 (sends failed check output to OpenAI)] [--publish-draft --github owner/repository --base main [--github-app]]';
 
 try {
   const { values } = parseArgs({
     options: {
       config: { type: 'string' },
+      integration: { type: 'string' },
       quiet: { type: 'boolean' },
       json: { type: 'boolean' },
       human: { type: 'boolean' },
@@ -50,8 +51,10 @@ try {
     if (values.json && values.human)
       throw new PipelineInputError('Choose either --json or --human.');
     const configuration = values.config
-      ? await readWorkflowConfiguration(values.config)
+      ? await readWorkflowConfiguration(values.config, values.integration)
       : undefined;
+    if (values.integration && !values.config)
+      throw new PipelineInputError('--integration requires --config.');
     const repository = values.repository ?? configuration?.repository;
     const before = values.before ?? configuration?.before;
     const image = values.image ?? configuration?.image;
@@ -65,6 +68,7 @@ try {
       values.after !== undefined || values['latest-stripe'] !== undefined;
     const result = await runWorkflow({
       repository,
+      integration: configuration?.integration,
       before,
       after: specificationOverride ? values.after : configuration?.after,
       latestStripe: specificationOverride ? values['latest-stripe'] : configuration?.latestStripe,

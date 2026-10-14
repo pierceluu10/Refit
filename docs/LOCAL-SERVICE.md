@@ -1,5 +1,7 @@
 # Installation-aware local service
 
+Collections with `formatVersion: 2` support up to eight named integrations in one repository. Manual `run`, `watch` and `doctor` commands require `--integration <id>`; enrollment reviews the whole collection and the App service expands it into independent targets such as `billing.stripe` and `billing.openai`, with separate draft PRs and retries. Existing single profiles keep their current commands. See [multiple integrations](MULTIPLE-INTEGRATIONS.md).
+
 `refit serve` keeps explicitly configured GitHub App repositories current, polls their OpenAPI sources, and accepts signed installation webhooks. It uses the same scanner, migration gates, budget ledger, managed checkout, offline checks and draft publisher as `refit watch`.
 
 This is a single-operator local service. Installing the App on a repository records access; running that repository also requires an approved workflow, provider mapping where needed, a baseline and meaningful checks. Refit does not infer check commands from webhook payloads or run arbitrary installed repositories.

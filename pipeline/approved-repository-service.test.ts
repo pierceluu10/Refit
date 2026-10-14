@@ -158,6 +158,145 @@ async function setup() {
   };
 }
 
+async function setupMultiple() {
+  const root = await mkdtemp(join(tmpdir(), 'refit-multiple-app-'));
+  roots.push(root);
+  transport.source = join(root, 'source');
+  await cp(resolve('pipeline/fixtures/multiple-integrations/repository'), transport.source, {
+    recursive: true,
+  });
+  await transport.native!(['init', '--quiet', '--initial-branch=main'], transport.source);
+  await commit();
+  const enrollment = await inspectRepositoryEnrollment({
+    repository: transport.source,
+    github: 'example/application',
+    base: 'main',
+  });
+  await approveRepositoryEnrollment({
+    enrollment,
+    fingerprint: enrollment.fingerprint,
+    output: join(root, 'approval.json'),
+  });
+  const service = join(root, 'service.json');
+  await writeFile(
+    service,
+    JSON.stringify({
+      formatVersion: 1,
+      targets: [
+        {
+          id: 'billing',
+          repository: 'example/application',
+          base: 'main',
+          approval: './approval.json',
+        },
+      ],
+    }),
+  );
+  const targets = await readServiceConfiguration(service, APP);
+  return {
+    root,
+    targets,
+    input: {
+      targets,
+      app: APP,
+      directory: join(root, 'service-state'),
+      port: 0,
+      once: true,
+      signal: new AbortController().signal,
+      webhookSecret: WEBHOOK_SECRET,
+      controlToken: CONTROL_TOKEN,
+    },
+  };
+}
+
+async function publishSimulatedContracts() {
+  for (const provider of ['stripe', 'openai'])
+    await cp(
+      join(transport.source, 'contracts', `${provider}-after.json`),
+      join(transport.source, 'contracts', `${provider}-current.json`),
+    );
+  await commit();
+}
+
+it.skipIf(
+  !process.env.REFIT_DOCKER_IMAGE || !process.env.REFIT_OASDIFF || !process.env.REFIT_NPM_PREPARE,
+)(
+  'migrates two installed SDKs independently under one approval with peer checks and offline Docker',
+  async () => {
+    const sample = await setupMultiple();
+    const initial = await runLocalService(sample.input);
+    expect(Object.keys(initial.registry.targets)).toEqual(['billing.stripe', 'billing.openai']);
+    expect(Object.values(initial.registry.targets).map(({ status }) => status)).toEqual([
+      'needs-review',
+      'needs-review',
+    ]);
+    await publishSimulatedContracts();
+    const changed = await runLocalService(sample.input);
+    for (const [id, file] of [
+      ['stripe', 'src/history.ts'],
+      ['openai', 'src/model.js'],
+    ]) {
+      const record = changed.registry.targets[`billing.${id}`];
+      expect(record).toMatchObject({
+        integration: id,
+        status: 'validated',
+        access: 'active',
+        approvalFingerprint: sample.targets[0].approval!.fingerprint,
+      });
+      const report = JSON.parse(await readFile(join(record.output!, 'report.json'), 'utf8'));
+      expect(await readFile(join(record.output!, 'pull-request.md'), 'utf8')).toContain(
+        `**Integration:** \`${id}\``,
+      );
+      expect(report.validation.baseline.status).toBe('passed');
+      expect(report.validation.patched.status).toBe('passed');
+      expect(report.validation.baseline.stdout).toContain('request error passed');
+      expect(report.validation.patched.stdout).toContain('retrieval error passed');
+      expect(report.patch.generator).toBe('deterministic');
+      expect(report.publicationFiles.map((entry: { path: string }) => entry.path)).toEqual([file]);
+      expect((await verifyArtifacts(record.output!)).status).toBe('integrity-verified');
+    }
+    expect(changed.registry.targets['billing.stripe'].output).not.toBe(
+      changed.registry.targets['billing.openai'].output,
+    );
+    const calls = transport.calls.filter(({ binary }) => binary === 'docker').length;
+    const repeated = await runLocalService(sample.input);
+    expect(
+      Object.values(repeated.registry.targets).every(
+        ({ message }) => message === 'Saved worker result reused; checks were not rerun.',
+      ),
+    ).toBe(true);
+    expect(transport.calls.filter(({ binary }) => binary === 'docker')).toHaveLength(calls);
+    expect((await transport.native!(['status', '--porcelain'], transport.source)).stdout).toBe('');
+  },
+  120_000,
+);
+
+it.skipIf(
+  !process.env.REFIT_DOCKER_IMAGE || !process.env.REFIT_OASDIFF || !process.env.REFIT_NPM_PREPARE,
+)(
+  'retries only the selected integration while preserving the sibling failed receipt',
+  async () => {
+    const sample = await setupMultiple();
+    await publishSimulatedContracts();
+    transport.dockerUnavailable = true;
+    const failed = await runLocalService(sample.input);
+    expect(Object.values(failed.registry.targets).every(({ status }) => status === 'error')).toBe(
+      true,
+    );
+    const sibling = failed.registry.targets['billing.openai'];
+    transport.dockerUnavailable = false;
+    const retried = await runLocalService({ ...sample.input, retryTargets: ['billing.stripe'] });
+    expect(retried.registry.targets['billing.stripe'].status).toBe('validated');
+    expect(retried.registry.targets['billing.stripe'].output).toMatch(/-2$/);
+    expect(retried.registry.targets['billing.openai']).toEqual(sibling);
+    expect((await verifyArtifacts(sibling.output!)).status).toBe('integrity-verified');
+    const calls = transport.calls.filter(({ binary }) => binary === 'docker').length;
+    await runLocalService({ ...sample.input, retryTargets: ['billing.stripe'] });
+    expect(transport.calls.filter(({ binary }) => binary === 'docker')).toHaveLength(calls);
+  },
+  120_000,
+);
+
 it('loads reviewed inputs from a native App-managed checkout and reuses the worker receipt on restart', async () => {
   const sample = await setup();
   vi.stubGlobal(

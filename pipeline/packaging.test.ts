@@ -65,6 +65,11 @@ it('packs only CLI runtime sources, fixtures, docs and exact runtime dependencie
   expect(result.files).toContain('docs/APP-ONBOARDING.md');
   expect(result.files).toContain('docs/VENDOR_NOTES.md');
   expect(result.files).toContain('docs/API-VERSIONS.md');
+  expect(result.files).toContain('docs/MULTIPLE-INTEGRATIONS.md');
+  expect(result.files).toContain('pipeline/fixtures/multiple-integrations/repository/.refit.json');
+  expect(result.files).toContain(
+    'pipeline/fixtures/multiple-integrations/repository/package-lock.json',
+  );
   expect(result.files).toContain('pipeline/enrollment-cli.ts');
   expect(result.files).toContain('pipeline/repository-enrollment.ts');
   expect(result.files).toContain('pipeline/fixtures/endpoint-replacement/provider.json');
@@ -131,6 +136,50 @@ it.skipIf(!process.env.REFIT_PACKAGE_INSTALL)(
     );
     expect(replay.status).toBe('affected');
     expect(replay.patch.status).toBe('proposed');
+    const fixture = join(
+      prefix,
+      'node_modules/refit/pipeline/fixtures/multiple-integrations/repository',
+    );
+    const output = join(root, 'selected-stripe');
+    await expect(
+      execute(
+        installed,
+        [
+          'run',
+          '--repository',
+          fixture,
+          '--config',
+          join(fixture, '.refit.json'),
+          '--integration',
+          'stripe',
+          '--output',
+          output,
+          '--json',
+        ],
+        { cwd: root },
+      ),
+    ).rejects.toMatchObject({
+      code: 2,
+      stdout: expect.stringContaining('"integration": "stripe"'),
+    });
+    await expect(
+      execute(
+        installed,
+        [
+          'run',
+          '--repository',
+          fixture,
+          '--config',
+          join(fixture, '.refit.json'),
+          '--output',
+          join(root, 'ambiguous-run'),
+        ],
+        { cwd: root },
+      ),
+    ).rejects.toMatchObject({
+      code: 1,
+      stderr: expect.stringContaining('--integration'),
+    });
     for (const command of [
       'scan',
       'run',
