@@ -1,0 +1,272 @@
+[
+  {
+    "provider": "openai",
+    "repo": "transitive-bullshit/OpenOpenAI",
+    "stars": 549,
+    "commit": "5b6a2a19cadcd3e43013299c53e17f45d54f58ca"
+  },
+  {
+    "provider": "openai",
+    "repo": "i-am-alice/3rd-devs",
+    "stars": 491,
+    "commit": "ece916eaebeac495bb17ca6bcc69dd711604f98d"
+  },
+  {
+    "provider": "openai",
+    "repo": "jamonholmgren/flame",
+    "stars": 306,
+    "commit": "018b880e5fbe6d3c5e38d448abdc56eef31fd70f"
+  },
+  {
+    "provider": "openai",
+    "repo": "miikkaylisiurunen/raycast-ai-openrouter-proxy",
+    "stars": 272,
+    "commit": "efdcda9204651695824b10a101c67e9a123dc250"
+  },
+  {
+    "provider": "openai",
+    "repo": "TheOrcDev/orcish-ai-nextjs-framework",
+    "stars": 165,
+    "commit": "ad57e02f6cb082f22fa968494c8efa269cf3aee3"
+  },
+  {
+    "provider": "openai",
+    "repo": "openserv-labs/sdk",
+    "stars": 139,
+    "commit": "28b3b2a2651139099f8d41cfc1e2a8b57d54c6ee"
+  },
+  {
+    "provider": "openai",
+    "repo": "HyeonseoNam/auto-classifier",
+    "stars": 135,
+    "commit": "edb47272ccfb1a304e98fcd9f703bcc7fb071f91"
+  },
+  {
+    "provider": "openai",
+    "repo": "OceanPresentChao/llm-ReAct",
+    "stars": 128,
+    "commit": "8e152a6b7de5a36c06192fa84d289313900c92c5"
+  },
+  {
+    "provider": "openai",
+    "repo": "yzh503/obsidian-aicommander-plugin",
+    "stars": 96,
+    "commit": "480378895928fdbb8e0a9e5054bb0628908848de"
+  },
+  {
+    "provider": "openai",
+    "repo": "sinedied/mini-scraper",
+    "stars": 55,
+    "commit": "ae5e0f9e7e27b860c41dd897fe621e083b3185f6"
+  },
+  {
+    "provider": "openai",
+    "repo": "VapiAI/client-sdk-react-native",
+    "stars": 49,
+    "commit": "1d3b834789e39f44104af13fa805af3ded73f2e2"
+  },
+  {
+    "provider": "openai",
+    "repo": "foyer-work/merlin-node",
+    "stars": 42,
+    "commit": "4c6aa1efd2fca1577d9ca854e3301cddcd1a78b2"
+  },
+  {
+    "provider": "openai",
+    "repo": "Krisseck/Phrasing-Bot",
+    "stars": 34,
+    "commit": "e03540ba1c6661fc452e96f59ced4f415042bbc9"
+  },
+  {
+    "provider": "openai",
+    "repo": "wirewirewirewire/payload-ai",
+    "stars": 31,
+    "commit": "78d868030d3ae0f979c46033aca545676fc901d8"
+  },
+  {
+    "provider": "openai",
+    "repo": "geektutu/7days-geekagent",
+    "stars": 30,
+    "commit": "280bbb01087fc83a5211bd1e8c836fdf95663a53"
+  },
+  {
+    "provider": "anthropic",
+    "repo": "jackwener/open-antigravity",
+    "stars": 208,
+    "commit": "fab75833ea57a9d9050549d7a61ab93d90118ca2"
+  },
+  {
+    "provider": "anthropic",
+    "repo": "khaledh/pagemagic",
+    "stars": 159,
+    "commit": "3f2caacd2bbe37b354048c4dd5315433593665e9"
+  },
+  {
+    "provider": "anthropic",
+    "repo": "kristianfreeman/cloudflare-retrieval-augmented-generation-example",
+    "stars": 142,
+    "commit": "316d57d67bcfa544335a55aedb2b44e79ecb0135"
+  },
+  {
+    "provider": "anthropic",
+    "repo": "rubenmarcus/ralph-starter",
+    "stars": 108,
+    "commit": "ee9c7946c386bb9cecc4001a052e29ffa53f8f9a"
+  },
+  {
+    "provider": "anthropic",
+    "repo": "pompeii-labs/magma",
+    "stars": 99,
+    "commit": "5c5fffe016afe4ad857fdf1c92533bb5cf3a1fc5"
+  },
+  {
+    "provider": "anthropic",
+    "repo": "Lyt060814/nanocode",
+    "stars": 83,
+    "commit": "6c0a5f8f0261bb2412c2669b1464c5b2ca838dcb"
+  },
+  {
+    "provider": "anthropic",
+    "repo": "iceener/aidevs-agent-cracker",
+    "stars": 66,
+    "commit": "830561398e56b2ba41cf2bdfd18f10ad73520b12"
+  },
+  {
+    "provider": "anthropic",
+    "repo": "Adamlixi/codenano",
+    "stars": 63,
+    "commit": "a32e2a2d3ac2c41faf281973dffd59ceb07f0a66"
+  },
+  {
+    "provider": "anthropic",
+    "repo": "Vijaysingh1621/AI-powererd-interview-Assistant",
+    "stars": 50,
+    "commit": "eb24d0dc8ccb158e1b8ce1eeb0793ec7967880dc"
+  },
+  {
+    "provider": "anthropic",
+    "repo": "garden-md/garden-md",
+    "stars": 43,
+    "commit": "2d940cc9efbb72316055f31cbadefa2d882a90d0"
+  },
+  {
+    "provider": "anthropic",
+    "repo": "1runcacu/openclaude",
+    "stars": 36,
+    "commit": "d7a5f7d63a3061eb59d21684b97e6525bc5152f6"
+  },
+  {
+    "provider": "anthropic",
+    "repo": "kleneway/forq-cli",
+    "stars": 29,
+    "commit": "20397d0944217e7461afe49581c33ad0ee1a39c8"
+  },
+  {
+    "provider": "anthropic",
+    "repo": "heyitsnoah/obsidian-tools",
+    "stars": 28,
+    "commit": "7bc0fb7b69f40fed8bf22d5d8698d8f87b9ae6fd"
+  },
+  {
+    "provider": "anthropic",
+    "repo": "snarktank/code-editing-agent",
+    "stars": 24,
+    "commit": "d400693c78e4b570ebb82da7291c9fe26314540a"
+  },
+  {
+    "provider": "anthropic",
+    "repo": "adolfousier/neura-spark-listener-chatbot-ui",
+    "stars": 22,
+    "commit": "39ac7df4118031c0bef4c9e3669841190540f7f7"
+  },
+  {
+    "provider": "stripe",
+    "repo": "wevm/curl.md",
+    "stars": 290,
+    "commit": "72bab6a77fc0911caef36a86b52ca3d61b5580a8"
+  },
+  {
+    "provider": "stripe",
+    "repo": "RubricLab/maige",
+    "stars": 104,
+    "commit": "f785a27a7561f61f6fa98216ba69b1eb9d8f6fa2"
+  },
+  {
+    "provider": "stripe",
+    "repo": "samarbadriddin0v/google-drive-clone",
+    "stars": 104,
+    "commit": "42b3a16e15e3507a70f7320f9a6a5c7fc599e55f"
+  },
+  {
+    "provider": "stripe",
+    "repo": "brendansudol/punchlines-ai",
+    "stars": 60,
+    "commit": "093385416a737328185b86b3d82c966c86cfa46f"
+  },
+  {
+    "provider": "stripe",
+    "repo": "LucasKlemke/doctor-reborn",
+    "stars": 30,
+    "commit": "8a870fdd8a2684c148c7dcf45c02470c0454de58"
+  },
+  {
+    "provider": "stripe",
+    "repo": "Shivamrai15/Safari",
+    "stars": 25,
+    "commit": "d97e43155e20fa794dc0ca7d039f91049422a499"
+  },
+  {
+    "provider": "stripe",
+    "repo": "openshiporg/openfront-restaurant",
+    "stars": 24,
+    "commit": "284bc5a71e22f78be684fcc7463135795a47ab25"
+  },
+  {
+    "provider": "stripe",
+    "repo": "un/srm",
+    "stars": 21,
+    "commit": "42c06d437084f9eae8c4cb99a0958ddcb16c8ce2"
+  },
+  {
+    "provider": "stripe",
+    "repo": "kpirabaharan/Spotify-Clone",
+    "stars": 18,
+    "commit": "ca169ffc0105236ff07800908e36b229f22f2bb9"
+  },
+  {
+    "provider": "stripe",
+    "repo": "deifos/picturemeai_nextjs",
+    "stars": 15,
+    "commit": "b8350df9132dabce76ab8e15fa0232f24d138823"
+  },
+  {
+    "provider": "stripe",
+    "repo": "sagar2535/e-commerce-admin",
+    "stars": 14,
+    "commit": "ece8370fce07ef9fa0d512e34b0429d3eb560580"
+  },
+  {
+    "provider": "stripe",
+    "repo": "ahmedaliofficial/latest-nestjs-stripe",
+    "stars": 12,
+    "commit": "039c2819364034c8a3b267a1f8beeb791bf64025"
+  },
+  {
+    "provider": "stripe",
+    "repo": "CiphersLab/SaaSPilot",
+    "stars": 12,
+    "commit": "41bc80fea31d3e54a1691b54b7b79dd83af86f79"
+  },
+  {
+    "provider": "stripe",
+    "repo": "grepsoft/thelibrary",
+    "stars": 12,
+    "commit": "801ce84fbd2559e6c1522a8555126929530c893e"
+  },
+  {
+    "provider": "stripe",
+    "repo": "boristenkes/shop.co",
+    "stars": 10,
+    "commit": "2c8697cf8d87b96f3487d72cc6fb85e9d3906aab"
+  }
+]

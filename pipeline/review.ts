@@ -1,12 +1,16 @@
 import { mkdir, rm, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
-import { digest } from './specifications.ts';
+import { structuredPatch } from 'diff';
+import { digest, type AddedProperty } from './specifications.ts';
 import { PipelineInputError } from './types.ts';
 import type { validateMigration } from './validation.ts';
 import { INTEGRATION_MARKER, migrationIdentity } from './migration-identity.ts';
 
 type ValidationReport = Awaited<ReturnType<typeof validateMigration>>;
 const MAX_SUMMARY_ITEMS = 5;
+// Longer diffs stay readable in the Files changed tab and migration.patch.
+const MAX_VISIBLE_DIFF_LINES = 80;
+const MAX_QUOTE = 300;
 
 function jsonBlock(value: unknown) {
   const content = JSON.stringify(value, null, 2);
@@ -47,6 +51,209 @@ function apiVersionSummary(report: ValidationReport) {
   if (applicability === 'conflicts-with-code' || report.apiVersion.policy === 'source-verified')
     return plainText(report.apiVersion.reason);
   return `Applicability is unknown; current pin ${current}, before contract ${baseline}, after contract ${proposed}.`;
+}
+
+function fenced(language: string, content: string) {
+  const runs = content.match(/`+/g) ?? [];
+  const fence = '`'.repeat(runs.reduce((width, run) => Math.max(width, run.length + 1), 3));
+  return `${fence}${language}\n${content}\n${fence}`;
+}
+
+function quote(value: string) {
+  const text = value.replace(/\s+/g, ' ').trim();
+  return `> ${plainText(text.length > MAX_QUOTE ? `${text.slice(0, MAX_QUOTE)}…` : text)}`;
+}
+
+interface FileChange {
+  path: string;
+  before: string;
+  after: string;
+}
+
+// Refit patches replace whole files, so each file's old and new text is its -/+ lines.
+function fileChanges(diff: string): FileChange[] {
+  return diff
+    .split(/^diff --git /m)
+    .filter(Boolean)
+    .flatMap((block) => {
+      const lines = block.split('\n');
+      const header = lines.find((line) => line.startsWith('+++ '));
+      if (!header) return [];
+      let path: string;
+      try {
+        path = String(JSON.parse(header.slice(4))).replace(/^b\//, '');
+      } catch {
+        path = header.slice(4).replace(/^b\//, '');
+      }
+      const before: string[] = [];
+      const after: string[] = [];
+      let last: string[] | undefined;
+      let beforeEnds = true;
+      let afterEnds = true;
+      for (const line of lines.slice(lines.indexOf(header) + 1)) {
+        if (line.startsWith('-')) (last = before).push(line.slice(1));
+        else if (line.startsWith('+')) (last = after).push(line.slice(1));
+        else if (line.startsWith('\\ ')) {
+          if (last === before) beforeEnds = false;
+          if (last === after) afterEnds = false;
+        }
+      }
+      const text = (values: string[], ends: boolean) =>
+        values.length ? `${values.join('\n')}${ends ? '\n' : ''}` : '';
+      return [{ path, before: text(before, beforeEnds), after: text(after, afterEnds) }];
+    });
+}
+
+function enclosingFunction(lines: string[], index: number) {
+  for (let line = index; line >= 0; line--) {
+    const match = /\bfunction\s+([A-Za-z_$][\w$]*)/.exec(lines[line]);
+    if (match) return match[1];
+  }
+}
+
+function changeSections(diff: string) {
+  const sections: string[] = [];
+  let shown = 0;
+  let hidden = 0;
+  for (const file of fileChanges(diff)) {
+    const afterLines = file.after.split('\n');
+    for (const hunk of structuredPatch(file.path, file.path, file.before, file.after, '', '', {
+      context: 2,
+    }).hunks) {
+      if (shown + hunk.lines.length > MAX_VISIBLE_DIFF_LINES) {
+        hidden++;
+        continue;
+      }
+      shown += hunk.lines.length;
+      let line = hunk.newStart;
+      let firstChange = hunk.newStart;
+      for (const entry of hunk.lines) {
+        if (entry.startsWith('+') || entry.startsWith('-')) {
+          firstChange = line;
+          break;
+        }
+        line++;
+      }
+      const name = enclosingFunction(afterLines, firstChange - 1);
+      sections.push(
+        `${code(`${file.path}:${firstChange}`)}${name ? ` in ${code(`${name}()`)}` : ''}`,
+        fenced(
+          'diff',
+          hunk.lines
+            .filter((entry) => !entry.startsWith('\\'))
+            .join('\n')
+            .replace(/(\n\s*)+$/, ''),
+        ),
+      );
+    }
+  }
+  if (hidden)
+    sections.push(
+      `${hidden} more ${hidden === 1 ? 'change is' : 'changes are'} not shown here; see Files changed or migration.patch.`,
+    );
+  return sections;
+}
+
+function addedProperties(patch: ValidationReport['patch']): AddedProperty[] {
+  if (!('evidence' in patch) || !patch.evidence || typeof patch.evidence !== 'object') return [];
+  const value = (patch.evidence as { addedProperties?: unknown }).addedProperties;
+  return Array.isArray(value) ? (value as AddedProperty[]) : [];
+}
+
+function vendorNotes(patch: ValidationReport['patch']) {
+  if (!('evidence' in patch) || !patch.evidence || typeof patch.evidence !== 'object') return [];
+  const value = (patch.evidence as { documentation?: unknown }).documentation;
+  return Array.isArray(value)
+    ? (value as Array<{ label: string; url: string; content: string }>).filter(
+        (note) => typeof note?.content === 'string',
+      )
+    : [];
+}
+
+function addedReads(diff: string, property: string) {
+  const pattern = new RegExp(`\\.${property.replace(/[$]/g, '\\$&')}\\b`);
+  return fileChanges(diff).some((file) => pattern.test(file.after) && !pattern.test(file.before));
+}
+
+// States only what Refit can verify about why a replacement field was chosen.
+function replacementReasons(report: ValidationReport) {
+  const { patch } = report;
+  const added = addedProperties(patch);
+  const notes = vendorNotes(patch);
+  const renames = report.adapter.propertyRenames ?? [];
+  const rows: string[] = [];
+  const reasons: string[] = [];
+  const checks: string[] = [];
+  const replacements: string[] = [];
+  for (const change of report.changes) {
+    const removed = `${change.schema}.${change.property}`;
+    const where = report.specificationDiff?.changes.find(
+      (entry) =>
+        'removedProperty' in entry &&
+        entry.removedProperty === change.property &&
+        entry.responseSchema === change.schema,
+    );
+    const location =
+      where && 'path' in where && where.path
+        ? `${code(`${where.operation ?? ''} ${where.path}`.trim())} response`
+        : 'response';
+    rows.push(`| Removed | ${code(removed)} | ${plainText(change.type ?? '—')} | ${location} |`);
+    const rename = renames.find(
+      (entry) => entry.schema === change.schema && entry.removed === change.property,
+    );
+    const candidate =
+      added.find(
+        (entry) => entry.schema === change.schema && entry.property === rename?.replacement,
+      ) ??
+      added.find(
+        (entry) => entry.schema === change.schema && addedReads(patch.diff, entry.property),
+      );
+    const replacement = rename?.replacement ?? candidate?.property;
+    if (!replacement) continue;
+    const used = `${change.schema}.${replacement}`;
+    replacements.push(`${code(removed)} → ${code(used)}`);
+    rows.push(
+      `| Added | ${code(used)} | ${plainText(candidate?.type ?? change.type ?? '—')} | same response |`,
+    );
+    if (rename) {
+      reasons.push(
+        `**Why ${code(replacement)}:** an operator-configured rename rule in the provider adapter maps ${code(removed)} to ${code(used)}.`,
+      );
+      continue;
+    }
+    const described =
+      candidate?.description && candidate.description.includes(change.property)
+        ? candidate.description
+        : undefined;
+    const note = notes.find(
+      (entry) => entry.content.includes(change.property) && entry.content.includes(replacement),
+    );
+    if (described)
+      reasons.push(
+        `**Why ${code(replacement)}:** the after contract documents it as the replacement:`,
+        quote(described),
+      );
+    else if (note) {
+      const sentence =
+        note.content
+          .split(/(?<=[.!?])\s+|\n+/)
+          .find((part) => part.includes(change.property) && part.includes(replacement)) ??
+        note.content;
+      reasons.push(
+        `**Why ${code(replacement)}:** the attached vendor note (${plainText(note.label)}, ${plainText(note.url)}) says:`,
+        quote(sentence),
+      );
+    } else {
+      const sameType = candidate?.type && change.type && candidate.type === change.type;
+      reasons.push(
+        `**Why ${code(replacement)}:** it was added to the same response${sameType ? ` with the same type (${plainText(change.type!)})` : ''}. ⚠️ The contract does not document it as a replacement and no vendor note was attached, so **confirm it carries the same meaning**.`,
+      );
+      checks.push(
+        `- [ ] ${code(replacement)} carries the same meaning as ${code(change.property)} for your use`,
+      );
+    }
+  }
+  return { rows, reasons, checks, replacements };
 }
 
 export function createReviewArtifacts(
@@ -105,20 +312,36 @@ export function createReviewArtifacts(
   const changedFilesSummary = changedFiles.length
     ? summaryList(changedFiles.map(code))
     : 'See the Files changed tab for the proposed edits.';
-  const summary =
-    validation.status === 'passed'
-      ? 'The configured baseline and patched checks passed. Human review of migration semantics is still required.'
-      : `Validation did not pass (${validation.status}). Resolve the recorded failure or stale input before treating this migration as validated.`;
+  const { rows, reasons, checks, replacements } = replacementReasons(report);
+  const usageCount = `${confirmedFindings.length} confirmed ${confirmedFindings.length === 1 ? 'usage' : 'usages'}`;
+  const fileCount = `${affectedFiles.size} ${affectedFiles.size === 1 ? 'file' : 'files'}`;
+  const after = plainText(report.apiVersion.after ?? 'the after contract');
+  const passed = validation.status === 'passed';
+  const short = (hash: string) => code(`${hash.slice(0, 12)}…`);
+  const source = (side: 'before' | 'after') => {
+    const provenance = report.provenance?.[side] as { url?: unknown } | null | undefined;
+    return typeof provenance?.url === 'string' ? ` from ${plainText(provenance.url)}` : '';
+  };
+  const commandText = (value: readonly string[]) => code(value.join(' '));
+  const ai = patch.generator === 'openai';
+  const model = 'model' in patch && typeof patch.model === 'string' ? patch.model : undefined;
+  const stripeReview =
+    report.provider === 'stripe' || operationChanges.length > 0 || requestChanges.length > 0;
   const body =
     [
-      '## What changed',
+      '## Summary',
       ...(integration
         ? [`**Integration:** ${code(integration)}. This draft covers this integration only.`]
         : []),
-      `The supplied ${plainText(provider)} API contract removes ${changeSummary}. Refit found ${confirmedFindings.length} confirmed ${confirmedFindings.length === 1 ? 'usage' : 'usages'} across ${affectedFiles.size} ${affectedFiles.size === 1 ? 'file' : 'files'}.`,
-      `**API version:** ${apiVersionSummary(report)}`,
-      `**SDK version declarations:** ${plainText(report.apiVersion.source.reason)} Policy: ${code(report.apiVersion.policy)}.`,
-      `**${patch.generator === 'openai' ? 'AI proposal' : 'Migration'}:** ${plainText(patch.summary)}`,
+      `The ${plainText(provider)} API contract ${report.apiVersion.after ? `${after} ` : ''}removes ${changeSummary}. Refit updated ${usageCount} across ${fileCount}${replacements.length ? ` (${summaryList(replacements)})` : ''}: ${changedFilesSummary}.`,
+      passed
+        ? 'Your configured checks passed on the original and the migrated code. Human review of migration semantics is still required.'
+        : `**Validation did not pass (${validation.status}).** Resolve the recorded failure or stale input before treating this migration as validated.`,
+      '## Why: the provider change',
+      ...(rows.length
+        ? [['| | Field | Type | Where |', '|---|---|---|---|', ...rows].join('\n')]
+        : []),
+      ...reasons,
       ...(requestChanges.length
         ? [
             `**Request fields:** ${summaryList(requestChanges.map((entry) => `${code(`${entry.resource}.${entry.method}`)} argument ${entry.argumentIndex}: ${code(entry.removed)} → ${code(entry.replacement)} (${code(`${entry.httpMethod} ${entry.path}`)})`))}. Argument values and other call options are preserved; review SDK serialization and business meaning.`,
@@ -129,13 +352,36 @@ export function createReviewArtifacts(
             `**Configured replacements:** ${summaryList(operationChanges.map((entry) => `${code(`${entry.resource}.${entry.method}`)} → ${code(`${entry.replacementResource}.${entry.replacementMethod}`)} (${code(`${entry.httpMethod} ${entry.replacementPath}`)})`))}. Refit preserves the call arguments; review the SDK mapping and business meaning.`,
           ]
         : []),
-      `**Files changed:** ${changedFilesSummary}`,
-      '## Checks',
-      `- Baseline: **${validation.baseline.status}**\n- Proposed changes: **${validation.patched.status}**\n- Patch attempts: **${validation.attempts.length}**; AI repairs: **${validation.repair.requested}**\n- Remaining findings: **${patch.unresolvedFindings}**`,
-      summary,
-      `Baseline and patched application checks ran locally in restricted Docker containers with external networking disabled; these are not GitHub Actions checks. ${patch.generator === 'openai' ? 'Refit used AI to propose the patch.' : 'Refit used a deterministic migration rule.'}`,
-      '## Review before merging',
-      'Confirm the intended API version, then review added requests, pagination, empty-state behavior and error handling. Passing these checks does not establish complete API or code coverage.',
+      `**Contracts:** before ${short(report.snapshots.before)}${source('before')}, after ${short(report.snapshots.after)}${source('after')}.`,
+      `**API version:** ${apiVersionSummary(report)}`,
+      `**SDK version declarations:** ${plainText(report.apiVersion.source.reason)} Policy: ${code(report.apiVersion.policy)}.`,
+      '## What changed',
+      ...changeSections(patch.diff),
+      '## Validation',
+      [
+        '| Check | Code | Command | Result |',
+        '|---|---|---|---|',
+        `| Baseline | original | ${commandText(validation.baselineCommand)} | ${validation.baseline.status === 'passed' ? '✅' : '❌'} ${validation.baseline.status} |`,
+        `| Migration | patched | ${commandText(validation.command)} | ${validation.patched.status === 'passed' ? '✅' : '❌'} ${validation.patched.status} |`,
+      ].join('\n'),
+      `Both checks ran in restricted Docker containers with external networking disabled (image ${short(validation.image.replace(/^sha256:/, ''))}); these are not GitHub Actions checks. Patch attempts: **${validation.attempts.length}**; AI repairs: **${validation.repair.requested}**; remaining reads of removed fields: **${patch.unresolvedFindings}**.`,
+      passed
+        ? '**This shows** the migrated code passes your configured checks. **It does not show** that replacement fields carry the same meaning or that the checks cover every code path.'
+        : 'Inspect the failing check output in the local validation report before changing the patch.',
+      '## How this patch was made',
+      ai
+        ? `Proposed by AI${model ? ` (${code(model)})` : ''}, then checked by Refit before validation: edits are limited to confirmed usages, no pre-existing response field was substituted for a removed one, and the patched code was rescanned.`
+        : 'Generated by a deterministic Refit migration rule; no AI was used.',
+      `${ai ? "**Model's note:**" : '**Rule:**'} ${plainText(patch.summary)}`,
+      '## Before merging',
+      [
+        ...checks,
+        `- [ ] Your application will run against API version ${after}`,
+        ...(stripeReview
+          ? ['- [ ] Review added requests, pagination, empty-state behavior and error handling']
+          : []),
+        '- [ ] The checks above exercise the code paths you rely on',
+      ].join('\n'),
       destination === 'local'
         ? 'Inspect migration.patch. This is a local review artifact; Refit has not pushed a branch or opened a pull request.'
         : 'Inspect Files changed. Refit opens a draft for review and never merges it automatically.',

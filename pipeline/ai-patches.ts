@@ -10,7 +10,8 @@ import { MAX_INPUT_BYTES, requestStructuredOutput } from './openai.ts';
 import { STRIPE, type ProviderAdapter } from './providers.ts';
 import { applySourceEdits, renderPatch } from './patches.ts';
 import { buildPatchContext } from './patch-context.ts';
-import { parseObject, isObject } from './specifications.ts';
+import { FieldSubstitutionError, findFieldSubstitutions } from './substitution-guard.ts';
+import { findAddedProperties, parseObject, isObject } from './specifications.ts';
 import {
   PipelineInputError,
   type Finding,
@@ -60,6 +61,8 @@ For Stripe only, PaymentIntent.charges is a collection and latest_charge is not 
 Expanding a removed field does not restore it. Use the Charges list endpoint filtered by payment_intent. When returning charge history, iterate the list request directly with for await to collect ALL pages, without awaiting the request into a single-page response or imposing an invented limit. Import an existing proven client from the supplied context if needed; preserve the initial retrieval when it enforces existence/error behavior.
 An existing PaymentIntent with no payment attempts has valid empty charge history: return an empty array. A guard for an absent payment.charges field is obsolete after using the Charges endpoint; remove that guard, never replace it with a throw based on charges.length or charges.data.length. Preserve exported APIs and propagate retrieval/list request errors without inventing new failures for empty results.
 Preserve the intended list behavior, and explain pagination, expansion and added-network-request uncertainty.
+evidence.addedProperties lists properties the after contract adds to schemas with removed fields. They are candidates, not proven replacements: use one only when its name, type and description plainly carry the same meaning as the removed field; otherwise return zero edits and state the uncertainty.
+Never substitute an unrelated existing field, such as an identifier, for a removed field.
 Return zero edits when context is insufficient. API-version applicability is unknown.
 Do not assume the code is safe because a finding disappears. Human review remains required.`;
 const VENDOR_NOTE_INSTRUCTIONS = `
@@ -212,6 +215,7 @@ export async function proposeAiPatch(
   schemaDefinitions: Record<string, unknown> = {},
   repair?: RepairFeedback,
   documentationSnapshots?: readonly string[],
+  afterSchemaDefinitions: Record<string, unknown> = {},
 ) {
   const impact = buildAssessmentEvidence(
     repository,
@@ -227,8 +231,10 @@ export async function proposeAiPatch(
   const notes = documentationSnapshots?.length
     ? await readDocumentationSnapshots(documentationSnapshots)
     : [];
+  const addedProperties = findAddedProperties(schemaDefinitions, afterSchemaDefinitions, changes);
   const evidence = {
     ...impact,
+    ...(addedProperties.length ? { addedProperties } : {}),
     files: repository.files.filter((file) => allowed.has(file.path)),
     contextFiles: buildPatchContext(repository, allowed),
     ...(repair ? { repair } : {}),
@@ -319,6 +325,21 @@ export async function proposeAiPatch(
       ),
     })),
   };
+  const substitutions = findFieldSubstitutions(
+    repository,
+    modified,
+    changes,
+    provider,
+    schemaDefinitions,
+    new Set(edits.map((edit) => edit.file)),
+  );
+  if (substitutions.length)
+    throw new FieldSubstitutionError(substitutions, {
+      ...metadata,
+      summary: value.summary,
+      uncertainties: value.uncertainties,
+      diff: renderPatch(repository, edits),
+    });
   const remaining = analyzeRepository(modified, changes, provider, schemaDefinitions);
   return {
     ...metadata,
