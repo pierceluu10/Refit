@@ -142,6 +142,7 @@ export async function inspectRepositoryReadiness(options: {
           after: workflow.after ?? workflow.before,
           providerConfig: workflow.providerConfig,
           apiVersion: workflow.apiVersion,
+          apiVersionPolicy: workflow.apiVersionPolicy,
           fullDiff: workflow.fullDiff ?? true,
         }),
     ),
@@ -167,7 +168,7 @@ export async function inspectRepositoryReadiness(options: {
       id: 'api-version',
       title: 'Application API version',
       status: evidence.apiVersion.applicability === 'matches-before' ? 'passed' : 'blocked',
-      detail: evidence.apiVersion.reason,
+      detail: `${evidence.apiVersion.reason} ${evidence.apiVersion.source.reason} Policy: ${evidence.apiVersion.policy}.`,
       action:
         evidence.apiVersion.applicability === 'matches-before'
           ? null

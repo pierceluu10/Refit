@@ -3,6 +3,7 @@ import { dirname, resolve } from 'node:path';
 import { parseObject } from './specifications.ts';
 import { PipelineInputError } from './types.ts';
 import { validateCheckCommand, validateWorkflowSources } from './validation-options.ts';
+import { validateApiVersionPolicy } from './api-version.ts';
 
 export const MAX_WORKFLOW_CONFIGURATION_BYTES = 64 * 1024;
 export const REPOSITORY_CONFIGURATION = '.refit.json';
@@ -17,6 +18,7 @@ const CONFIGURATION_KEYS = new Set([
   'baselineCommand',
   'providerConfig',
   'apiVersion',
+  'apiVersionPolicy',
   'fullDiff',
   'prepareDependencies',
 ]);
@@ -74,6 +76,9 @@ export function parseWorkflowConfiguration(content: string, path: string) {
     providerConfig:
       value.providerConfig === undefined ? undefined : resolve(directory, string('providerConfig')),
     apiVersion: value.apiVersion === undefined ? undefined : string('apiVersion'),
+    ...(value.apiVersionPolicy === undefined
+      ? {}
+      : { apiVersionPolicy: validateApiVersionPolicy(value.apiVersionPolicy) }),
     fullDiff: value.fullDiff as boolean | undefined,
     ...(value.prepareDependencies ? { prepareDependencies: true } : {}),
   };

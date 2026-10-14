@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { afterEach, expect, it, vi } from 'vitest';
@@ -34,6 +34,38 @@ afterEach(async () => {
   vi.unstubAllGlobals();
   await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
 });
+
+it.each([
+  ['conflicting client declaration', '2022-11-15', 'operator-pin', 'conflicts-with-code'],
+  ['dynamic version under strict policy', undefined, 'source-verified', 'unknown'],
+] as const)(
+  'retains %s evidence before AI, validation or publication',
+  async (_label, version, apiVersionPolicy, applicability) => {
+    const input = await options();
+    const repository = join(dirname(input.output), 'application');
+    await cp(input.repository, repository, { recursive: true });
+    await writeFile(
+      join(repository, 'billing.ts'),
+      `import Stripe from 'stripe'; const stripe = new Stripe('test', { apiVersion: ${version ? `'${version}'` : 'process.env.STRIPE_VERSION'} }); const intent = await stripe.paymentIntents.retrieve('id'); console.log(intent.charges);`,
+    );
+    const fetcher = vi.fn();
+    vi.stubGlobal('fetch', fetcher);
+    const result = await runWorkflow({
+      ...input,
+      repository,
+      apiVersionPolicy,
+      aiPatch: { apiKey: 'unused', model: 'unused' },
+      publication: { repository: 'owner/repo', base: 'main', token: 'unused' },
+    });
+    expect(result.manifest).toMatchObject({ status: 'needs-review', stage: 'scan' });
+    expect(validateMigration).not.toHaveBeenCalled();
+    expect(publishDraft).not.toHaveBeenCalled();
+    expect(fetcher).not.toHaveBeenCalled();
+    expect(
+      JSON.parse(await readFile(join(input.output, 'scan.json'), 'utf8')).apiVersion,
+    ).toMatchObject({ applicability, policy: apiVersionPolicy });
+  },
+);
 
 it('records no-match evidence as review-required without calling a model, Docker or publisher', async () => {
   const input = await options();

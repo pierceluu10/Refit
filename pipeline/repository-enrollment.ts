@@ -16,6 +16,8 @@ import {
 import { hasErrorCode, stateDirectoryOutsideRepository } from './state-files.ts';
 import { PipelineInputError } from './types.ts';
 import { inspectArtifactFile } from './verification.ts';
+import { analyzeRepository } from './analyzer.ts';
+import { readRepository } from './repository.ts';
 import {
   MAX_WORKFLOW_CONFIGURATION_BYTES,
   parseWorkflowConfiguration,
@@ -129,6 +131,16 @@ export async function inspectRepositoryEnrollment(options: {
     validateApiVersion(workflow.apiVersion),
     baseline.document,
     {},
+    {
+      configured: Boolean(provider.apiVersion),
+      declarations: analyzeRepository(
+        await readRepository(snapshot.directory, provider.packageName),
+        [],
+        provider,
+        baseline.schemas,
+      ).apiVersionDeclarations,
+    },
+    workflow.apiVersionPolicy,
   );
   if (apiVersion.applicability !== 'matches-before')
     throw new PipelineInputError(apiVersion.reason);
@@ -168,6 +180,7 @@ export async function inspectRepositoryEnrollment(options: {
     workflow,
     source,
     settings: raw,
+    apiVersion,
   };
 }
 

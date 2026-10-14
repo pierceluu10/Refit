@@ -24,6 +24,7 @@ import {
 } from './validation-options.ts';
 import { gitEnvironment } from './git-environment.ts';
 import { countBreakingOperationUsages } from './provider-operations.ts';
+import type { ApiVersionPolicy } from './api-version.ts';
 
 const PREFLIGHT_GIT_TIMEOUT_MS = 30_000;
 
@@ -43,6 +44,7 @@ export async function runWorkflow(options: {
   prepareDependencies?: boolean;
   providerConfig?: string;
   apiVersion?: string;
+  apiVersionPolicy?: ApiVersionPolicy;
   fullDiff?: boolean;
   assessment?: AiOptions;
   aiPatch?: AiOptions;
@@ -125,6 +127,7 @@ export async function runWorkflow(options: {
       after: join(directory, 'after.json'),
       providerConfig,
       apiVersion: options.apiVersion,
+      apiVersionPolicy: options.apiVersionPolicy,
       fullDiff: options.fullDiff,
     };
     stage = 'scan';

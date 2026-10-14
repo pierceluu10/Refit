@@ -7,9 +7,10 @@ import { parseCheckCommand } from './validation-options.ts';
 import { readWorkflowConfiguration } from './workflow-configuration.ts';
 import { githubAppConfiguration } from './github-app.ts';
 import { renderWorkflowResult } from './workflow-presentation.ts';
+import { validateApiVersionPolicy } from './api-version.ts';
 
 const USAGE =
-  'Usage: refit run --config <run.json> --output <new-directory-outside-repository>\n   or: refit run --repository <clean-git-directory> --before <spec.json-or-yaml> (--after <spec.json-or-yaml> | --latest-stripe) --output <new-directory-outside-repository> --image <local-image> --command \'["npm","test"]\'\nOptional: [--env <.env>] [--quiet] [--human | --json] [--api-version <current-api-version>] [--full-diff (requires oasdiff)] [--provider-config <adapter.json>] [--assess] [--ai-patch] [--repair-attempts 0|1|2 (sends failed check output to OpenAI)] [--publish-draft --github owner/repository --base main [--github-app]]';
+  'Usage: refit run --config <run.json> --output <new-directory-outside-repository>\n   or: refit run --repository <clean-git-directory> --before <spec.json-or-yaml> (--after <spec.json-or-yaml> | --latest-stripe) --output <new-directory-outside-repository> --image <local-image> --command \'["npm","test"]\'\nOptional: [--env <.env>] [--quiet] [--human | --json] [--api-version <current-api-version>] [--api-version-policy operator-pin|source-verified] [--full-diff (requires oasdiff)] [--provider-config <adapter.json>] [--assess] [--ai-patch] [--repair-attempts 0|1|2 (sends failed check output to OpenAI)] [--publish-draft --github owner/repository --base main [--github-app]]';
 
 try {
   const { values } = parseArgs({
@@ -30,6 +31,7 @@ try {
       'baseline-command': { type: 'string' },
       'provider-config': { type: 'string' },
       'api-version': { type: 'string' },
+      'api-version-policy': { type: 'string' },
       assess: { type: 'boolean' },
       'ai-patch': { type: 'boolean' },
       'repair-attempts': { type: 'string' },
@@ -76,6 +78,9 @@ try {
           : configuration?.baselineCommand,
       providerConfig: values['provider-config'] ?? configuration?.providerConfig,
       apiVersion: values['api-version'] ?? configuration?.apiVersion,
+      apiVersionPolicy: validateApiVersionPolicy(
+        values['api-version-policy'] ?? configuration?.apiVersionPolicy,
+      ),
       fullDiff: values['full-diff'] ?? configuration?.fullDiff,
       assessment: assessmentConfiguration(values.assess, process.env),
       aiPatch: assessmentConfiguration(values['ai-patch'], process.env),

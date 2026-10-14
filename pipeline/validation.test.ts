@@ -79,6 +79,40 @@ async function repository(executable = false) {
   return root;
 }
 
+it('rejects declared version conflicts before Docker resolution or dependency installation', async () => {
+  const root = await repository();
+  await writeFile(
+    join(root, 'billing.js'),
+    SOURCE.replace('new Stripe()', "new Stripe('test', { apiVersion: '2022-11-15' })"),
+  );
+  await execute('git', ['-C', root, 'add', 'billing.js']);
+  await execute('git', [
+    '-C',
+    root,
+    '-c',
+    'user.name=Refit Test',
+    '-c',
+    'user.email=test@example.invalid',
+    'commit',
+    '-m',
+    'test: pin conflicting SDK API version',
+  ]);
+  vi.stubEnv('DOCKER_HOST', 'unix:///missing/refit-version-test.sock');
+  const fetcher = vi.fn();
+  vi.stubGlobal('fetch', fetcher);
+  await expect(
+    validateMigration({
+      ...options,
+      repository: root,
+      image: 'unavailable-version-test-image',
+      prepareDependencies: true,
+      command: ['npm', 'test'],
+      aiPatch: { apiKey: 'unused', model: 'unused' },
+    }),
+  ).rejects.toThrow(/Declared SDK API version 2022-11-15/);
+  expect(fetcher).not.toHaveBeenCalled();
+});
+
 afterEach(async () => {
   vi.unstubAllEnvs();
   vi.unstubAllGlobals();

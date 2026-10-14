@@ -44,6 +44,7 @@ try {
       fingerprint: enrollment.fingerprint,
       files: enrollment.files,
       settings: enrollment.settings,
+      apiVersion: enrollment.apiVersion,
       scope:
         'This review covers execution settings, baseline and adapter. Application code and current API source contents may change. No execution, AI or publication is enabled by this command.',
     };
@@ -66,7 +67,7 @@ try {
       console.log(
         values.json
           ? JSON.stringify(review, null, 2)
-          : `Review repository configuration\n\nTarget       ${terminalText(enrollment.repository)} at ${terminalText(enrollment.base)}\nRevision     ${enrollment.reviewedRevision}\nFingerprint  ${enrollment.fingerprint}\n\nCommitted inputs\n${enrollment.files.map((file) => `  ${file.role}: ${terminalText(file.path)} (${file.bytes} bytes, SHA-256 ${file.sha256})`).join('\n')}\n\nSettings\n${settings}\n\n${review.scope}\nApprove only after inspecting these settings and files, using --approve with this exact fingerprint and --output outside Git.`,
+          : `Review repository configuration\n\nTarget       ${terminalText(enrollment.repository)} at ${terminalText(enrollment.base)}\nRevision     ${enrollment.reviewedRevision}\nFingerprint  ${enrollment.fingerprint}\nVersion      ${terminalText(enrollment.apiVersion.reason)}\nSource proof ${terminalText(enrollment.apiVersion.source.status)} (${terminalText(enrollment.apiVersion.policy)})\n\nCommitted inputs\n${enrollment.files.map((file) => `  ${file.role}: ${terminalText(file.path)} (${file.bytes} bytes, SHA-256 ${file.sha256})`).join('\n')}\n\nSettings\n${settings}\n\n${review.scope}\nApprove only after inspecting these settings and files, using --approve with this exact fingerprint and --output outside Git.`,
       );
   }
 } catch (error) {

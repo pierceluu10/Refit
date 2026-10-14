@@ -272,6 +272,17 @@ it('blocks publication when application API-version applicability is unknown', a
   expect(remote.fetch).not.toHaveBeenCalled();
 });
 
+it('independently rejects conflicting or unverified strict source evidence before GitHub requests', async () => {
+  const remote = github();
+  const value = await report();
+  value.apiVersion.source.status = 'conflict';
+  await expect(publishDraft(value, OPTIONS)).rejects.toThrow(/Draft publication is blocked/);
+  value.apiVersion.source.status = 'unknown';
+  value.apiVersion.policy = 'source-verified';
+  await expect(publishDraft(value, OPTIONS)).rejects.toThrow(/Draft publication is blocked/);
+  expect(remote.fetch).not.toHaveBeenCalled();
+});
+
 it('rejects a stale base before writing any Git objects', async () => {
   const remote = github();
   remote.state.base = HEAD;

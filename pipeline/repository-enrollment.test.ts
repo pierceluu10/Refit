@@ -117,6 +117,43 @@ it('reviews only committed inputs, requires the exact fingerprint and writes a p
   ).rejects.toMatchObject({ code: 'EEXIST' });
 });
 
+it('rechecks source-verified API versions after application changes without relying on the approval fingerprint', async () => {
+  const sample = await setup();
+  const providerPath = join(sample.repository, 'provider.json');
+  const provider = JSON.parse(await readFile(providerPath, 'utf8'));
+  provider.apiVersion = { constructorArgument: 0, property: 'apiVersion', requestArguments: [] };
+  await writeFile(providerPath, JSON.stringify(provider));
+  await writeFile(
+    join(sample.repository, '.refit.json'),
+    JSON.stringify({ ...sample.configuration, apiVersionPolicy: 'source-verified' }),
+  );
+  const clientPath = join(sample.repository, 'src/client.ts');
+  await writeFile(
+    clientPath,
+    "import { Catalog } from '@example/catalog'; export const catalog = new Catalog({ apiVersion: '1' });",
+  );
+  await commit(sample.repository);
+  const enrollment = await inspectRepositoryEnrollment(sample.input);
+  expect(enrollment.apiVersion.source.status).toBe('verified');
+  const output = join(sample.root, 'strict-approval.json');
+  await approveRepositoryEnrollment({ enrollment, fingerprint: enrollment.fingerprint, output });
+  await writeFile(
+    clientPath,
+    "import { Catalog } from '@example/catalog'; export const catalog = new Catalog({ apiVersion: '2' });",
+  );
+  await commit(sample.repository);
+  await expect(inspectRepositoryEnrollment(sample.input)).rejects.toThrow(
+    /conflicts with the application pin/,
+  );
+  await expect(
+    loadApprovedRepository({
+      repository: sample.repository,
+      approval: await readRepositoryApproval(output),
+      stateDirectory: join(sample.root, 'strict-cache'),
+    }),
+  ).rejects.toThrow(/conflicts with the application pin/);
+});
+
 it('retains approval across application and current source changes while snapshotting reviewed inputs', async () => {
   const sample = await setup();
   const stateDirectory = join(sample.root, 'state');

@@ -16,7 +16,13 @@ import {
   findBreakingOperationImpacts,
   validateProviderOperationMappings,
 } from './provider-operations.ts';
-import { compareApiVersion, validateApiVersion } from './api-version.ts';
+import {
+  apiVersionSourceBlocked,
+  compareApiVersion,
+  validateApiVersion,
+  validateApiVersionPolicy,
+  type ApiVersionPolicy,
+} from './api-version.ts';
 import { PipelineInputError } from './types.ts';
 import { digest, findRemovedProperties, readSpecification } from './specifications.ts';
 import { compareOpenApi, unmappedBreakingChanges } from './openapi-diff.ts';
@@ -35,12 +41,14 @@ export async function runPipeline(options: {
   aiPatch?: AiOptions;
   providerConfig?: string;
   apiVersion?: string;
+  apiVersionPolicy?: ApiVersionPolicy;
   requireApiVersionMatch?: boolean;
   fullDiff?: boolean;
   documentationSnapshots?: readonly string[];
   onProgress?: (message: string) => void;
 }) {
   const applicationApiVersion = validateApiVersion(options.apiVersion);
+  const policy = validateApiVersionPolicy(options.apiVersionPolicy);
   const provider = await readProviderAdapter(options.providerConfig);
   const [repository, before, after] = await Promise.all([
     readRepository(options.repository, provider.packageName),
@@ -53,9 +61,6 @@ export async function runPipeline(options: {
     )
   )
     throw new PipelineInputError('Snapshot provenance does not match the configured provider.');
-  const apiVersion = compareApiVersion(applicationApiVersion, before.document, after.document);
-  if (options.requireApiVersionMatch && apiVersion.applicability !== 'matches-before')
-    throw new PipelineInputError(`Automated publication is blocked. ${apiVersion.reason}`);
   const operationMappings = validateProviderOperationMappings(provider, before.document);
   validateProviderMappings(provider, before.schemas);
   const changes = findRemovedProperties(before.schemas, after.schemas, provider.id);
@@ -70,13 +75,25 @@ export async function runPipeline(options: {
   const specificationDiff = options.fullDiff
     ? await compareOpenApi(before.document, after.document)
     : undefined;
-  const { edits, ...analysis } = analyzeRepository(
+  const { edits, apiVersionDeclarations, ...analysis } = analyzeRepository(
     repository,
     changes,
     provider,
     before.schemas,
     replacements,
   );
+  const apiVersion = compareApiVersion(
+    applicationApiVersion,
+    before.document,
+    after.document,
+    { configured: Boolean(provider.apiVersion), declarations: apiVersionDeclarations },
+    policy,
+  );
+  if (
+    (options.requireApiVersionMatch && apiVersion.applicability !== 'matches-before') ||
+    (apiVersionSourceBlocked(apiVersion) && (options.aiPatch || options.assessment))
+  )
+    throw new PipelineInputError(`Automated work is blocked. ${apiVersion.reason}`);
   const operationChanges = operationReplacementEvidence(
     replacements,
     analysis.calls,
@@ -187,7 +204,7 @@ export async function runPipeline(options: {
     provider: provider.id,
     adapter: provider,
     runId: digest(
-      `${before.hash}:${after.hash}:${repositoryHash}:${digest(JSON.stringify(provider))}:${applicationApiVersion ?? ''}`,
+      `${before.hash}:${after.hash}:${repositoryHash}:${digest(JSON.stringify(provider))}:${applicationApiVersion ?? ''}:${policy}`,
     ),
     apiVersion,
     status,
@@ -211,6 +228,9 @@ export async function runPipeline(options: {
     warnings: [
       ...repository.warnings,
       ...(apiVersion.applicability === 'matches-before' ? [] : [apiVersion.reason]),
+      ...(apiVersion.source.status === 'verified' || apiVersionSourceBlocked(apiVersion)
+        ? []
+        : [apiVersion.source.reason]),
       ...(operationImpacts.length
         ? [
             `${operationUsageCount} SDK call site${operationUsageCount === 1 ? '' : 's'} map to unresolved breaking OpenAPI changes and require a verified migration rule.`,
