@@ -12,6 +12,10 @@ import {
 } from './providers.ts';
 import { validatePropertyRenames } from './provider-renames.ts';
 import {
+  requestRenameEvidence,
+  validateRequestPropertyRenames,
+} from './provider-request-renames.ts';
+import {
   countBreakingOperationUsages,
   findBreakingOperationImpacts,
   validateProviderOperationMappings,
@@ -75,12 +79,14 @@ export async function runPipeline(options: {
   const specificationDiff = options.fullDiff
     ? await compareOpenApi(before.document, after.document)
     : undefined;
+  const requestRenames = validateRequestPropertyRenames(provider, before.document, after.document);
   const { edits, apiVersionDeclarations, ...analysis } = analyzeRepository(
     repository,
     changes,
     provider,
     before.schemas,
     replacements,
+    requestRenames,
   );
   const apiVersion = compareApiVersion(
     applicationApiVersion,
@@ -99,11 +105,13 @@ export async function runPipeline(options: {
     analysis.calls,
     analysis.findings,
   );
+  const requestChanges = requestRenameEvidence(requestRenames, analysis.calls, analysis.findings);
   const reviewableBreakingChanges = unmappedBreakingChanges(
     specificationDiff,
     changes,
     analysis.findings,
     operationChanges,
+    requestChanges,
   );
   const operationImpacts = findBreakingOperationImpacts(
     specificationDiff,
@@ -115,7 +123,11 @@ export async function runPipeline(options: {
   const operationUsageCount = countBreakingOperationUsages(operationImpacts);
   const representedOperationLocations = new Set(
     analysis.findings
-      .filter((finding) => replacements.some((replacement) => replacement.id === finding.changeId))
+      .filter((finding) =>
+        [...replacements, ...requestRenames].some(
+          (replacement) => replacement.id === finding.changeId,
+        ),
+      )
       .map((finding) => JSON.stringify([finding.file, finding.line, finding.column])),
   );
   const additionalOperationUsageCount = countBreakingOperationUsages(
@@ -138,9 +150,11 @@ export async function runPipeline(options: {
         : provider.id === STRIPE.id
           ? 'no-stripe-signal'
           : 'no-provider-signal';
-  const configuredEndpointProposal = operationChanges.some((change) => change.usages.length > 0);
+  const configuredMigrationProposal =
+    operationChanges.some((change) => change.usages.length > 0) ||
+    requestChanges.some((change) => change.usages.length > 0);
   const deterministicRequested =
-    options.proposePatch || (options.aiPatch && configuredEndpointProposal);
+    options.proposePatch || (options.aiPatch && configuredMigrationProposal);
   const unresolvedFindingCount = deterministicRequested
     ? analyzeRepository(
         {
@@ -157,14 +171,15 @@ export async function runPipeline(options: {
         replacementAnalysisAdapter(provider, replacements),
         before.schemas,
         replacements,
+        requestRenames,
       ).findings.length
     : 0;
-  if (options.aiPatch && !configuredEndpointProposal && !operationImpacts.length)
+  if (options.aiPatch && !configuredMigrationProposal && !operationImpacts.length)
     options.onProgress?.('Requesting an AI migration proposal...');
   else if (deterministicRequested)
     options.onProgress?.('Generating a deterministic migration proposal...');
   const patch =
-    options.aiPatch && !configuredEndpointProposal
+    options.aiPatch && !configuredMigrationProposal
       ? operationImpacts.length
         ? {
             status: 'not-generated' as const,
@@ -182,7 +197,14 @@ export async function runPipeline(options: {
             options.documentationSnapshots,
           )
       : deterministicRequested
-        ? proposePatch(repository, edits, unresolvedFindingCount, provider, replacements)
+        ? proposePatch(
+            repository,
+            edits,
+            unresolvedFindingCount,
+            provider,
+            replacements,
+            requestRenames,
+          )
         : {
             status: 'not-generated' as const,
             reason:
@@ -225,6 +247,7 @@ export async function runPipeline(options: {
     ...analysis,
     operationImpacts,
     operationChanges,
+    ...(requestChanges.length ? { requestChanges } : {}),
     warnings: [
       ...repository.warnings,
       ...(apiVersion.applicability === 'matches-before' ? [] : [apiVersion.reason]),
@@ -259,7 +282,7 @@ export async function runPipeline(options: {
       specification: specificationDiff
         ? specificationDiff.coverage
         : 'Direct properties removed from existing, non-composed OpenAPI 3 component schemas only. Not a complete breaking-change diff.',
-      code: `Immutable ESM SDK clients, including direct relative named imports of exported const bindings, and awaited resource.method calls mapped by the recorded adapter. Resources can be dot-separated identifier paths up to ${MAX_SDK_RESOURCE_LENGTH} characters. Optional SDK invocations and computed resource access remain review cases; unawaited calls are not treated as response objects. Optional adapter operationId mappings correlate unresolved breaking OpenAPI changes to SDK call sites; explicit operationReplacements can edit direct, non-optional calls on unescaped clients after matching the old/new recorded contracts. Property reads can follow direct local component-schema $refs through nested objects, supported array items, literal numeric indexes, const for...of bindings, inline one-parameter array callbacks and immutable aliases. Top-level one-parameter functions returning exactly one mapped SDK call are traced locally or through direct relative named imports. Removed-field indexes and destructuring can be reported but are not auto-edited. Dynamic indexes, mutable loop bindings, named or multi-parameter callbacks, transformed array chains, inline/composed/external schemas, detected writes, alias mutations, and references passed to calls or stored in containers remain review cases. Namespace imports and re-exports invalidate shared-client and wrapper confirmation. CommonJS, default imports, path aliases, ambiguous resolution, multi-step or transformed wrappers, webhooks and dynamic code still require review. Confirmed means traced under the supplied adapter mapping, not independently verified SDK semantics.`,
+      code: `Immutable ESM SDK clients, including direct relative named imports of exported const bindings, and awaited resource.method calls mapped by the recorded adapter. Resources can be dot-separated identifier paths up to ${MAX_SDK_RESOURCE_LENGTH} characters. Optional SDK invocations and computed resource access remain review cases; unawaited calls are not treated as response objects. Optional adapter operationId mappings correlate unresolved breaking OpenAPI changes to SDK call sites; explicit operationReplacements can edit direct, non-optional calls on unescaped clients after matching the old/new recorded contracts. Configured requestPropertyRenames edit direct object-literal body keys, including quoted and shorthand properties, after comparing the normalized operation contract; spreads, computed keys, duplicates, aliases and optional calls require review. Property reads can follow direct local component-schema $refs through nested objects, supported array items, literal numeric indexes, const for...of bindings, inline one-parameter array callbacks and immutable aliases. Top-level one-parameter functions returning exactly one mapped SDK call are traced locally or through direct relative named imports. Removed-field indexes and destructuring can be reported but are not auto-edited. Dynamic indexes, mutable loop bindings, named or multi-parameter callbacks, transformed array chains, inline/composed/external schemas, detected writes, alias mutations, and references passed to calls or stored in containers remain review cases. Namespace imports and re-exports invalidate shared-client and wrapper confirmation. CommonJS, default imports, path aliases, ambiguous resolution, multi-step or transformed wrappers, webhooks and dynamic code still require review. Confirmed means traced under the supplied adapter mapping, not independently verified SDK semantics.`,
       decision:
         'No finding is not proof of no impact. Supported root npm lockfiles provide recorded SDK versions, not verified installed versions or API-version applicability.',
     },

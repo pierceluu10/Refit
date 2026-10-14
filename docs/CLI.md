@@ -1,5 +1,7 @@
 # Refit local agent
 
+Configured `requestPropertyRenames` cover top-level JSON body fields on mapped SDK calls after checking that the recorded operation changes only by those names. Direct, quoted and shorthand properties retain their values and other arguments; uncertain requests stop for review, and these explicit rules use no AI generation or repair. See [request migrations](REQUEST-MIGRATIONS.md).
+
 Collections with `formatVersion: 2` support up to eight named integrations in one repository. Manual `run`, `watch` and `doctor` commands require `--integration <id>`; enrollment reviews the whole collection and the App service expands it into independent targets such as `billing.stripe` and `billing.openai`, with separate draft PRs and retries. Existing single profiles keep their current commands. See [multiple integrations](MULTIPLE-INTEGRATIONS.md).
 
 Inspect setup before running a migration with `refit doctor --repository /path/to/repo`. It defaults to a root `.refit.json`; `--config` selects an operator workflow instead. Human diagnostics explain Git, contract, mapping, API-version, preparation and Docker blockers without application execution, installs, AI or GitHub requests. `--json` supplies machine output. This does not approve or activate a repository. See [repository setup](REPOSITORY-SETUP.md).

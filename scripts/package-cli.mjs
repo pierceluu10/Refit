@@ -75,6 +75,7 @@ else {
         .replaceAll('](VENDOR_NOTES.md)', '](docs/VENDOR_NOTES.md)')
         .replaceAll('](API-VERSIONS.md)', '](docs/API-VERSIONS.md)')
         .replaceAll('](MULTIPLE-INTEGRATIONS.md)', '](docs/MULTIPLE-INTEGRATIONS.md)')
+        .replaceAll('](REQUEST-MIGRATIONS.md)', '](docs/REQUEST-MIGRATIONS.md)')
         .replaceAll('](../examples/', '](examples/'),
     );
     await copyFile(join(root, '.env.example'), join(stage, '.env.example'));
@@ -95,6 +96,7 @@ else {
       'VENDOR_NOTES.md',
       'API-VERSIONS.md',
       'MULTIPLE-INTEGRATIONS.md',
+      'REQUEST-MIGRATIONS.md',
       'READINESS.md',
       'AI-EVALUATION.md',
       'PR-EVALUATION.md',

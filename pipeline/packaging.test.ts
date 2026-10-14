@@ -66,6 +66,10 @@ it('packs only CLI runtime sources, fixtures, docs and exact runtime dependencie
   expect(result.files).toContain('docs/VENDOR_NOTES.md');
   expect(result.files).toContain('docs/API-VERSIONS.md');
   expect(result.files).toContain('docs/MULTIPLE-INTEGRATIONS.md');
+  expect(result.files).toContain('docs/REQUEST-MIGRATIONS.md');
+  expect(result.files).toContain('pipeline/openapi-contracts.ts');
+  expect(result.files).toContain('pipeline/provider-request-renames.ts');
+  expect(result.files).toContain('pipeline/fixtures/request-renames/provider.json');
   expect(result.files).toContain('pipeline/fixtures/multiple-integrations/repository/.refit.json');
   expect(result.files).toContain(
     'pipeline/fixtures/multiple-integrations/repository/package-lock.json',

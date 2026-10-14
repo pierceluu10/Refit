@@ -103,6 +103,62 @@ async function endpointReport(): Promise<Report> {
   };
 }
 
+async function requestReport(): Promise<Report> {
+  const fixture = resolve('pipeline/fixtures/request-renames');
+  const scan = await runPipeline({
+    repository: `${fixture}/repository`,
+    before: `${fixture}/before.json`,
+    after: `${fixture}/after.json`,
+    providerConfig: `${fixture}/provider.json`,
+    apiVersion: '1',
+    proposePatch: true,
+  });
+  if (!('diff' in scan.patch)) throw new Error('Expected request migration patch');
+  const base = await report();
+  const source = await readFile(`${fixture}/repository/src/items.ts`, 'utf8');
+  return {
+    ...base,
+    ...scan,
+    specificationDiff: {
+      engine: 'oasdiff',
+      version: 'controlled',
+      coverage: 'Controlled request rename.',
+      changes: [
+        {
+          id: 'request-property-removed',
+          text: 'removed the request property `legacy_name`',
+          path: '/items',
+          operation: 'POST',
+          level: 2,
+        },
+        {
+          id: 'new-required-request-property',
+          text: 'added the new required request property `display_name`',
+          path: '/items',
+          operation: 'POST',
+          level: 3,
+        },
+      ],
+    },
+    patch: { ...scan.patch, validation: 'passed' },
+    publicationFiles: [
+      {
+        path: 'src/items.ts',
+        mode: '100644',
+        content: source.replace(
+          '{ legacy_name, quantity }',
+          '{ display_name: legacy_name, quantity }',
+        ),
+      },
+    ],
+    validation: {
+      ...base.validation,
+      patchHash: digest(scan.patch.diff),
+      reason: 'Controlled request publication evidence; not actual container checks.',
+    },
+  };
+}
+
 function github() {
   const state = {
     base: REVISION,
@@ -227,6 +283,39 @@ it('blocks endpoint publication when any mapped usage remains unsupported', asyn
   const remote = github();
   const value = await endpointReport();
   value.operationChanges[0].supported = false;
+  await expect(publishDraft(value, OPTIONS)).rejects.toThrow(/unmapped breaking contract changes/);
+  expect(remote.fetch).not.toHaveBeenCalled();
+});
+
+it('publishes request-field migrations with readable function, body field and endpoint context', async () => {
+  const remote = github();
+  const value = await requestReport();
+  expect(await publishDraft(value, OPTIONS)).toMatchObject({ status: 'created', draft: true });
+  const request = remote.calls.find((call) => call.method === 'POST' && call.path === '/pulls')!;
+  expect(request.body.title).toBe(
+    'Update catalog-request-example items.create requests after legacy_name removal',
+  );
+  expect(request.body.body).toContain(
+    '`items.create` argument 0: `legacy_name` → `display_name` (`POST /items`)',
+  );
+  expect(request.body.body).toContain('Argument values and other call options are preserved');
+});
+
+it('blocks request publication independently when usage evidence is unsupported or another breaking change is unhandled', async () => {
+  const remote = github();
+  const value = await requestReport();
+  value.requestChanges![0].supported = false;
+  await expect(publishDraft(value, OPTIONS)).rejects.toThrow(/unmapped breaking contract changes/);
+  value.requestChanges![0].supported = true;
+  if (value.specificationDiff.engine !== 'oasdiff')
+    throw new Error('Expected controlled full contract evidence');
+  value.specificationDiff.changes.push({
+    id: 'required-query-parameter-added',
+    text: 'added another required parameter',
+    path: '/items',
+    operation: 'POST',
+    level: 3,
+  });
   await expect(publishDraft(value, OPTIONS)).rejects.toThrow(/unmapped breaking contract changes/);
   expect(remote.fetch).not.toHaveBeenCalled();
 });

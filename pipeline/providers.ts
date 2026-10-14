@@ -14,6 +14,13 @@ export interface ProviderAdapter {
   };
   operations: { resource: string; method: string; schema: string; operationId?: string }[];
   propertyRenames?: { schema: string; removed: string; replacement: string }[];
+  requestPropertyRenames?: {
+    resource: string;
+    method: string;
+    argumentIndex: number;
+    removed: string;
+    replacement: string;
+  }[];
   operationReplacements?: {
     resource: string;
     method: string;
@@ -58,6 +65,7 @@ export function validateProviderMappings(
 const MAX_CONFIG_BYTES = 64 * 1024;
 const MAX_OPERATIONS = 100;
 const MAX_PROPERTY_RENAMES = 100;
+const MAX_REQUEST_PROPERTY_RENAMES = 100;
 const MAX_OPERATION_REPLACEMENTS = 100;
 const MAX_SCHEMA_NAME_LENGTH = 256;
 const IDENTIFIER = /^[A-Za-z_$][A-Za-z0-9_$]*$/;
@@ -69,6 +77,7 @@ const REQUIRED_KEYS = ['defaultImport', 'id', 'namedExport', 'operations', 'pack
 const CONFIG_KEYS = new Set([
   ...REQUIRED_KEYS,
   'propertyRenames',
+  'requestPropertyRenames',
   'operationReplacements',
   'apiVersion',
 ]);
@@ -230,6 +239,62 @@ export function parseProviderAdapter(value: Record<string, unknown>): ProviderAd
       replacement: rename.replacement,
     };
   });
+  const requestRenames = value.requestPropertyRenames;
+  if (
+    requestRenames !== undefined &&
+    (!Array.isArray(requestRenames) || requestRenames.length > MAX_REQUEST_PROPERTY_RENAMES)
+  )
+    throw new PipelineInputError(
+      `Provider requestPropertyRenames must contain at most ${MAX_REQUEST_PROPERTY_RENAMES} entries.`,
+    );
+  const requestSources = new Set<string>();
+  const requestTargets = new Set<string>();
+  const requestArguments = new Map<string, number>();
+  const parsedRequestRenames = (requestRenames ?? []).map((rename) => {
+    if (
+      !isObject(rename) ||
+      Object.keys(rename).sort().join(',') !==
+        'argumentIndex,method,removed,replacement,resource' ||
+      !validSdkResourcePath(rename.resource) ||
+      typeof rename.method !== 'string' ||
+      !IDENTIFIER.test(rename.method) ||
+      !argumentIndex(rename.argumentIndex) ||
+      ![rename.removed, rename.replacement].every(
+        (name) => typeof name === 'string' && IDENTIFIER.test(name) && name !== '__proto__',
+      ) ||
+      rename.removed === rename.replacement
+    )
+      throw new PipelineInputError(
+        `Each request property rename requires SDK resource/method identifiers, argumentIndex from 0 to ${MAX_SDK_ARGUMENT_INDEX} and distinct identifier fields other than __proto__.`,
+      );
+    const resource = rename.resource as string;
+    const method = rename.method;
+    const removed = rename.removed as string;
+    const replacement = rename.replacement as string;
+    const operation = `${resource}.${method}`;
+    if (
+      !operations.some(
+        (entry) => entry.resource === resource && entry.method === method && entry.operationId,
+      )
+    )
+      throw new PipelineInputError(
+        `Request property rename ${operation} requires an existing operationId mapping.`,
+      );
+    const source = JSON.stringify([operation, removed]);
+    const target = JSON.stringify([operation, replacement]);
+    if (requestSources.has(source) || requestTargets.has(target))
+      throw new PipelineInputError(
+        'Request property rename sources and targets must be unique within each SDK operation.',
+      );
+    if (requestArguments.has(operation) && requestArguments.get(operation) !== rename.argumentIndex)
+      throw new PipelineInputError(
+        'Request property renames must select one SDK body argument per operation.',
+      );
+    requestSources.add(source);
+    requestTargets.add(target);
+    requestArguments.set(operation, rename.argumentIndex);
+    return { resource, method, argumentIndex: rename.argumentIndex, removed, replacement };
+  });
   const replacements = value.operationReplacements;
   if (
     replacements !== undefined &&
@@ -308,6 +373,7 @@ export function parseProviderAdapter(value: Record<string, unknown>): ProviderAd
         }
       : {}),
     ...(parsedRenames.length ? { propertyRenames: parsedRenames } : {}),
+    ...(parsedRequestRenames.length ? { requestPropertyRenames: parsedRequestRenames } : {}),
     ...(parsedReplacements.length ? { operationReplacements: parsedReplacements } : {}),
   };
 }

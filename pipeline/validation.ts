@@ -218,6 +218,9 @@ export async function validateMigration(options: {
     const configuredEndpointProposal = report.operationChanges.some(
       (change) => change.usages.length > 0,
     );
+    const configuredRequestProposal = report.requestChanges?.some(
+      (change) => change.usages.length > 0,
+    );
     const beforeSpecification = await readSpecification(options.before);
     if (beforeSpecification.hash !== report.snapshots.before)
       throw new PipelineInputError('Baseline specification changed during validation.');
@@ -302,7 +305,9 @@ export async function validateMigration(options: {
         baseline.status === 'passed'
           ? configuredEndpointProposal
             ? 'configured-endpoint-replacement'
-            : 'not-needed-or-disabled'
+            : configuredRequestProposal
+              ? 'configured-request-rename'
+              : 'not-needed-or-disabled'
           : 'baseline-failed',
       error: null,
     };
@@ -311,7 +316,8 @@ export async function validateMigration(options: {
       patched.status === 'failed' &&
       repair.requested < repairLimit &&
       options.aiPatch &&
-      !configuredEndpointProposal
+      !configuredEndpointProposal &&
+      !configuredRequestProposal
     ) {
       const latestRevision = (await git(['rev-parse', '--verify', 'HEAD^{commit}'])).stdout.trim();
       if (

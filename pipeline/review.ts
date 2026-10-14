@@ -76,16 +76,23 @@ export function createReviewArtifacts(
   const change = report.changes[0];
   const operationChanges = report.operationChanges ?? [];
   const endpoint = operationChanges[0];
+  const requestChanges = report.requestChanges ?? [];
+  const request = requestChanges[0];
   const migrationTitle =
-    endpoint && operationChanges.length === 1 && !report.changes.length
-      ? `Replace retired ${provider} ${endpoint.resource}.${endpoint.method} calls`
-      : change && report.changes.length === 1
-        ? provider === 'Stripe' &&
-          change.schema === 'payment_intent' &&
-          change.property === 'charges'
-          ? 'Fix Stripe payment history after PaymentIntent.charges removal'
-          : `Fix ${provider} usage after ${change.schema}.${change.property} removal`
-        : `Migrate affected ${provider} API usage`;
+    request &&
+    requestChanges.length === 1 &&
+    !operationChanges.length &&
+    report.changes.length === 1
+      ? `Update ${provider} ${request.resource}.${request.method} requests after ${request.removed} removal`
+      : endpoint && operationChanges.length === 1 && !report.changes.length
+        ? `Replace retired ${provider} ${endpoint.resource}.${endpoint.method} calls`
+        : change && report.changes.length === 1
+          ? provider === 'Stripe' &&
+            change.schema === 'payment_intent' &&
+            change.property === 'charges'
+            ? 'Fix Stripe payment history after PaymentIntent.charges removal'
+            : `Fix ${provider} usage after ${change.schema}.${change.property} removal`
+          : `Migrate affected ${provider} API usage`;
   const title = integration ? `[${plainText(integration)}] ${migrationTitle}` : migrationTitle;
   const confirmedFindings = report.findings.filter((finding) => finding.confidence === 'confirmed');
   const affectedFiles = new Set(confirmedFindings.map((finding) => finding.file));
@@ -112,6 +119,11 @@ export function createReviewArtifacts(
       `**API version:** ${apiVersionSummary(report)}`,
       `**SDK version declarations:** ${plainText(report.apiVersion.source.reason)} Policy: ${code(report.apiVersion.policy)}.`,
       `**${patch.generator === 'openai' ? 'AI proposal' : 'Migration'}:** ${plainText(patch.summary)}`,
+      ...(requestChanges.length
+        ? [
+            `**Request fields:** ${summaryList(requestChanges.map((entry) => `${code(`${entry.resource}.${entry.method}`)} argument ${entry.argumentIndex}: ${code(entry.removed)} → ${code(entry.replacement)} (${code(`${entry.httpMethod} ${entry.path}`)})`))}. Argument values and other call options are preserved; review SDK serialization and business meaning.`,
+          ]
+        : []),
       ...(operationChanges.length
         ? [
             `**Configured replacements:** ${summaryList(operationChanges.map((entry) => `${code(`${entry.resource}.${entry.method}`)} → ${code(`${entry.replacementResource}.${entry.replacementMethod}`)} (${code(`${entry.httpMethod} ${entry.replacementPath}`)})`))}. Refit preserves the call arguments; review the SDK mapping and business meaning.`,
@@ -167,6 +179,7 @@ export function createReviewArtifacts(
         lockfiles: report.repository.lockfiles,
         findings: report.findings,
         ...(operationChanges.length ? { operationChanges } : {}),
+        ...(requestChanges.length ? { requestChanges } : {}),
       }),
       ...(report.assessment.status === 'not-requested'
         ? []

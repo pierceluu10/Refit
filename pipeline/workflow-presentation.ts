@@ -94,6 +94,20 @@ export async function renderWorkflowResult(result: Result) {
       );
     }
   }
+  if (report && Array.isArray(report.requestChanges)) {
+    for (const change of report.requestChanges.slice(0, MAX_SUMMARY_ITEMS)) {
+      if (
+        !isObject(change) ||
+        !['resource', 'method', 'removed', 'replacement'].every(
+          (key) => typeof change[key] === 'string',
+        )
+      )
+        continue;
+      rows.push(
+        `Request     ${terminalText(`${change.resource}.${change.method} argument[${change.argumentIndex}]: ${change.removed} → ${change.replacement}`)} (${change.supported ? 'configured contract match' : 'requires review'})`,
+      );
+    }
+  }
   if (report && Array.isArray(report.operationImpacts)) {
     const impacts = report.operationImpacts.filter(
       (impact): impact is Record<string, unknown> =>

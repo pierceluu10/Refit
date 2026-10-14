@@ -191,6 +191,7 @@ export async function inspectRepositoryReadiness(options: {
       evidence.changes,
       evidence.findings,
       evidence.operationChanges,
+      evidence.requestChanges,
     );
     if (unsupportedChanges.length || evidence.operationImpacts.length)
       report.checks.push({
