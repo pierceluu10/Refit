@@ -42,6 +42,11 @@ try {
             '',
             `Runtime   ${prepared.environment.nodeVersion}; npm ${prepared.environment.npmVersion}`,
             `Packages  ${prepared.environment.packages} locked records`,
+            ...(prepared.environment.workspaceHashes
+              ? [
+                  `Workspaces ${Object.keys(prepared.environment.workspaceHashes).length} committed manifests`,
+                ]
+              : []),
             'Install   Public npm registry; lifecycle scripts disabled',
             'Checks    Network disabled when used for validation',
             `Evidence  ${terminalText(prepared.directory)}`,

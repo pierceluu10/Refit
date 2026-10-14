@@ -164,7 +164,7 @@ export function validateNpmLock(
   );
   if (new Set([...workspaces.values()].map((value) => value.name)).size !== workspaces.size)
     throw new PipelineInputError('npm workspace names must be unique.');
-  function matchingDeclarations(value: Record<string, unknown>, record: unknown) {
+  function matchingDeclarations(value: Record<string, unknown>, record: unknown, file: string) {
     if (!isObject(record))
       throw new PipelineInputError(
         'Each npm workspace must have a committed lockfile package record.',
@@ -178,14 +178,14 @@ export function validateNpmLock(
         );
       if (normalize(value[section]) !== normalize(record[section]))
         throw new PipelineInputError(
-          'package.json dependency requirements differ from the committed root lockfile. Update and commit the lockfile before preparation.',
+          `${file} dependency requirements differ from the committed root lockfile. Update and commit the lockfile before preparation.`,
         );
     }
   }
-  matchingDeclarations(manifest, lock.packages['']);
+  matchingDeclarations(manifest, lock.packages[''], 'package.json');
   for (const [directory, value] of workspaces) {
     const record = lock.packages[directory];
-    matchingDeclarations(value, record);
+    matchingDeclarations(value, record, `${directory}/package.json`);
     if (
       !isObject(record) ||
       record.link ||

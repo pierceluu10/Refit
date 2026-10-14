@@ -260,8 +260,10 @@ export async function inspectRepositoryReadiness(options: {
       'Commit matching root npm manifests and a supported public-registry lockfile, or use a custom dependency image.',
       () => readNpmPreparationInputs(snapshot.value!),
     );
-    if (dependencies.value)
-      dependencies.check.detail = `${dependencies.value.inputs.packages} locked package records passed preparation input checks. Installation and engine compatibility were not tested.`;
+    if (dependencies.value) {
+      const workspaces = Object.keys(dependencies.value.inputs.workspaceHashes ?? {}).length;
+      dependencies.check.detail = `${dependencies.value.inputs.packages} locked package records${workspaces ? ` and ${workspaces} committed workspace manifests` : ''} passed preparation input checks. Installation and engine compatibility were not tested.`;
+    }
     report.checks.push(dependencies.check);
   } else if (!workflow.prepareDependencies)
     report.checks.push({

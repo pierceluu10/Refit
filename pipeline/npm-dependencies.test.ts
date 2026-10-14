@@ -69,11 +69,15 @@ import {execFileSync} from 'node:child_process';
 const args=process.argv.slice(2);
 const log=${JSON.stringify(log)};
 let inputs;
+let inputFiles;
 if(args[0]==='run') {
  const mount=args[args.indexOf('--mount')+1];
- inputs=fs.readdirSync(mount.slice('type=bind,src='.length,mount.indexOf(',dst=')));
+ const directory=mount.slice('type=bind,src='.length,mount.indexOf(',dst='));
+ inputs=fs.readdirSync(directory);
+ const files=(prefix='')=>fs.readdirSync(directory+'/'+prefix,{withFileTypes:true}).flatMap(entry=>{const name=prefix+entry.name;return entry.isDirectory()?files(name+'/'):[name]});
+ inputFiles=files();
 }
-fs.appendFileSync(log,JSON.stringify({args,inputs})+'\\n');
+fs.appendFileSync(log,JSON.stringify({args,inputs,inputFiles})+'\\n');
 if(args[0]==='image'){console.log(${JSON.stringify(IMAGE)});process.exit(0)}
 if(args[0]==='rm')process.exit(0);
 if(process.env.REFIT_TEST_INSTALL_MODE==='wait'){setInterval(()=>{},1000)}
@@ -345,3 +349,76 @@ it.skipIf(!process.env.REFIT_NPM_PREPARE || !process.env.REFIT_BILLING_REPOSITOR
   },
   120_000,
 );
+
+it('allows only exact locked workspace links and checks nested dependency roots', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'refit-workspace-tree-'));
+  roots.push(root);
+  const workspace = join(root, 'packages', 'billing');
+  const nodeModules = join(root, 'node_modules');
+  await mkdir(join(nodeModules, '@demo'), { recursive: true });
+  await mkdir(join(workspace, 'node_modules', 'dependency'), { recursive: true });
+  await mkdir(join(root, 'packages', 'other'), { recursive: true });
+  const linked = join(nodeModules, '@demo', 'billing');
+  await symlink('../../packages/billing', linked, 'dir');
+  const metadata = {
+    links: { 'node_modules/@demo/billing': 'packages/billing' },
+    directories: ['packages/billing'],
+  };
+  const check = (value: { links: Record<string, string>; directories: string[] } = metadata) =>
+    execute(
+      process.execPath,
+      ['--input-type=module', '-e', DEPENDENCY_TREE_CHECK, JSON.stringify(value)],
+      { cwd: root },
+    );
+  await check();
+  await rm(linked);
+  await symlink('../../packages/other', linked, 'dir');
+  await expect(check()).rejects.toThrow(/Workspace link differs/);
+  await rm(linked);
+  await symlink('../../packages/billing', linked, 'dir');
+  await expect(check({ links: {}, directories: ['packages/billing'] })).rejects.toThrow(
+    /escapes node_modules/,
+  );
+  await symlink(join(root, 'packages', 'other'), join(workspace, 'node_modules', 'escape'), 'dir');
+  await expect(check()).rejects.toThrow(/escapes node_modules/);
+});
+
+it('copies only committed workspace manifests to the networked install input', async () => {
+  const sample = await setup();
+  const manifest = { ...INITIAL_MANIFEST, workspaces: ['packages/*'] };
+  const workspace = { name: '@demo/library', version: '1.0.0' };
+  await mkdir(join(sample.repository, 'packages/library'), { recursive: true });
+  await writeFile(join(sample.repository, 'package.json'), JSON.stringify(manifest));
+  await writeFile(
+    join(sample.repository, 'packages/library/package.json'),
+    JSON.stringify(workspace),
+  );
+  await writeFile(
+    join(sample.repository, 'packages/library/source.ts'),
+    'export const source = true;',
+  );
+  await writeFile(
+    join(sample.repository, 'packages/library/.npmrc'),
+    'registry=http://127.0.0.1:1',
+  );
+  await writeFile(join(sample.repository, 'packages/library/.env'), 'PRIVATE_FIXTURE=value');
+  await writeFile(
+    join(sample.repository, 'package-lock.json'),
+    JSON.stringify({
+      lockfileVersion: 3,
+      packages: {
+        '': manifest,
+        'packages/library': workspace,
+        'node_modules/@demo/library': { link: true, resolved: 'packages/library' },
+      },
+    }),
+  );
+  await commit(sample.repository);
+  await prepareNpmDependencies(sample.options);
+  const install = (await sample.calls()).find((call) => call.args[0] === 'run');
+  expect(install.inputFiles.sort()).toEqual([
+    'package-lock.json',
+    'package.json',
+    'packages/library/package.json',
+  ]);
+});
