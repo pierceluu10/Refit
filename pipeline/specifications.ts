@@ -159,6 +159,47 @@ function escapePointer(value: string): string {
   return value.replaceAll('~', '~0').replaceAll('/', '~1');
 }
 
+const MAX_ADDED_PROPERTIES = 20;
+const MAX_ADDED_DESCRIPTION = 200;
+
+export interface AddedProperty {
+  schema: string;
+  property: string;
+  type?: string;
+  description?: string;
+}
+
+export function findAddedProperties(
+  before: JsonObject,
+  after: JsonObject,
+  changes: Removal[],
+): AddedProperty[] {
+  const added: AddedProperty[] = [];
+  for (const schema of [...new Set(changes.map((change) => change.schema))].sort()) {
+    const previous = before[schema];
+    const current = after[schema];
+    if (!isObject(previous) || !isObject(previous.properties)) continue;
+    if (!isObject(current) || !isObject(current.properties)) continue;
+    for (const property of Object.keys(current.properties).sort()) {
+      if (Object.hasOwn(previous.properties, property)) continue;
+      const definition = current.properties[property];
+      added.push({
+        schema,
+        property,
+        ...(isObject(definition) && typeof definition.type === 'string'
+          ? { type: definition.type }
+          : {}),
+        ...(isObject(definition) && typeof definition.description === 'string'
+          ? { description: definition.description.slice(0, MAX_ADDED_DESCRIPTION) }
+          : {}),
+      });
+      // Keeps large provider schemas inside the model's input limit.
+      if (added.length === MAX_ADDED_PROPERTIES) return added;
+    }
+  }
+  return added;
+}
+
 export function findRemovedProperties(
   before: JsonObject,
   after: JsonObject,
