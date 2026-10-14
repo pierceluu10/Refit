@@ -2,6 +2,7 @@ import { mkdir, rm, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { structuredPatch } from 'diff';
 import { digest, type AddedProperty } from './specifications.ts';
+import { affectedFields } from './report-fields.ts';
 import { PipelineInputError } from './types.ts';
 import type { validateMigration } from './validation.ts';
 import { INTEGRATION_MARKER, migrationIdentity } from './migration-identity.ts';
@@ -185,7 +186,7 @@ function replacementReasons(report: ValidationReport) {
   const reasons: string[] = [];
   const checks: string[] = [];
   const replacements: string[] = [];
-  for (const change of report.changes) {
+  for (const change of affectedFields(report.changes, report.findings)) {
     const removed = `${change.schema}.${change.property}`;
     const where = report.specificationDiff?.changes.find(
       (entry) =>
@@ -280,7 +281,8 @@ export function createReviewArtifacts(
       : report.provider === 'openai'
         ? 'OpenAI'
         : report.provider;
-  const change = report.changes[0];
+  const relevantChanges = affectedFields(report.changes, report.findings);
+  const change = relevantChanges[0];
   const operationChanges = report.operationChanges ?? [];
   const endpoint = operationChanges[0];
   const requestChanges = report.requestChanges ?? [];
@@ -293,11 +295,11 @@ export function createReviewArtifacts(
     : request &&
         requestChanges.length === 1 &&
         !operationChanges.length &&
-        report.changes.length === 1
+        relevantChanges.length === 1
       ? `Update ${provider} ${request.resource}.${request.method} requests after ${request.removed} removal`
-      : endpoint && operationChanges.length === 1 && !report.changes.length
+      : endpoint && operationChanges.length === 1 && !relevantChanges.length
         ? `Replace retired ${provider} ${endpoint.resource}.${endpoint.method} calls`
-        : change && report.changes.length === 1
+        : change && relevantChanges.length === 1
           ? provider === 'Stripe' &&
             change.schema === 'payment_intent' &&
             change.property === 'charges'
@@ -308,7 +310,7 @@ export function createReviewArtifacts(
   const confirmedFindings = report.findings.filter((finding) => finding.confidence === 'confirmed');
   const affectedFiles = new Set(confirmedFindings.map((finding) => finding.file));
   const changes = summaryList([
-    ...report.changes.map((entry) => code(`${entry.schema}.${entry.property}`)),
+    ...relevantChanges.map((entry) => code(`${entry.schema}.${entry.property}`)),
     ...operationChanges.map((entry) => code(`${entry.httpMethod} ${entry.path}`)),
   ]);
   const changeSummary = changes || 'the API usages recorded in the technical evidence';
