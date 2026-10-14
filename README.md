@@ -159,6 +159,8 @@ Patch evidence also includes up to 12 relative-import modules as read-only conte
 
 The [live AI evaluation](docs/AI-EVALUATION.md) records a successful `gpt-5.4-mini` migration of the independent billing application, along with rejected proposals and a pagination bug caught by stronger checks. This verifies one simulated migration, not general model reliability. A subsequent [live PR evaluation](docs/PR-EVALUATION.md) verified draft publication and one bounded repair.
 
+`npm run eval:ai` runs 50 simulated OpenAI contract changes through the real AI migration step and scores whether each proposal works or, when no safe migration exists, whether the model declines. See [AI migration evaluations](docs/AI-EVALS.md) for the cases, scoring and latest results.
+
 ```sh
 npm run stripe:replay -- --ai-patch
 ```
