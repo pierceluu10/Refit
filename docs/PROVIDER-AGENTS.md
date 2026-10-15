@@ -16,12 +16,15 @@ Refit reads committed `package.json` declarations and the matching npm, pnpm or 
 
 | Provider | Detected from | Agent |
 |---|---|---|
-| Stripe | `stripe`, `api.stripe.com` | built-in |
+| Stripe | `stripe`, `api.stripe.com`, `files.stripe.com`, `connect.stripe.com` | built-in |
 | OpenAI | `openai`, `api.openai.com` | `examples/openai.provider.json` (preview: extend it with `refit adapter-suggest`) |
 | Anthropic | `@anthropic-ai/sdk`, `api.anthropic.com` | none yet |
 | Shopify | `@shopify/shopify-api`, `@shopify/admin-api-client`, `shopify-api-node`, `myshopify.com/admin/api` | none yet |
 | Meta Graph API | `facebook-nodejs-business-sdk`, `graph.facebook.com` | none yet |
 | Twilio | `twilio`, `api.twilio.com` | none yet |
+| SendGrid | `@sendgrid/mail`, `@sendgrid/client`, `api.sendgrid.com` | none yet |
+| Resend | `resend`, `api.resend.com` | none yet |
+| PayPal | `@paypal/paypal-server-sdk`, `@paypal/checkout-server-sdk`, `api-m.paypal.com`, `api-m.sandbox.paypal.com` | none yet |
 
 ## Add an agent
 

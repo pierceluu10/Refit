@@ -12,12 +12,13 @@ export interface ProviderAgent {
   guide: string | null;
 }
 
+// Source: npm package names and documented API base URLs on each provider's docs, 2026-10-15.
 export const AGENT_CATALOG: ProviderAgent[] = [
   {
     id: 'stripe',
     name: 'Stripe',
     packages: ['stripe'],
-    hostnames: ['api.stripe.com'],
+    hostnames: ['api.stripe.com', 'files.stripe.com', 'connect.stripe.com'],
     adapter: { builtIn: 'stripe' },
     guide: 'docs/STRIPE-PLAN.md',
   },
@@ -58,6 +59,30 @@ export const AGENT_CATALOG: ProviderAgent[] = [
     name: 'Twilio',
     packages: ['twilio'],
     hostnames: ['api.twilio.com'],
+    adapter: null,
+    guide: null,
+  },
+  {
+    id: 'sendgrid',
+    name: 'SendGrid',
+    packages: ['@sendgrid/mail', '@sendgrid/client'],
+    hostnames: ['api.sendgrid.com'],
+    adapter: null,
+    guide: null,
+  },
+  {
+    id: 'resend',
+    name: 'Resend',
+    packages: ['resend'],
+    hostnames: ['api.resend.com'],
+    adapter: null,
+    guide: null,
+  },
+  {
+    id: 'paypal',
+    name: 'PayPal',
+    packages: ['@paypal/paypal-server-sdk', '@paypal/checkout-server-sdk'],
+    hostnames: ['api-m.paypal.com', 'api-m.sandbox.paypal.com'],
     adapter: null,
     guide: null,
   },
