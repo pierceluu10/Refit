@@ -25,7 +25,7 @@ export const MAX_VALIDATION_ARCHIVE_BYTES = Math.max(
 );
 
 export function validationProfile(value = process.env.REFIT_VALIDATION_WORKSPACE) {
-  const name = value?.trim() || '512m';
+  const name = value?.trim() || '2g';
   if (!Object.hasOwn(VALIDATION_PROFILES, name))
     throw new PipelineInputError(
       `REFIT_VALIDATION_WORKSPACE must be one of ${Object.keys(VALIDATION_PROFILES).join(', ')}.`,
