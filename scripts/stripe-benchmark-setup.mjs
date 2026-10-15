@@ -27,6 +27,7 @@ const latest = pinned.specs
   .sort()
   .at(-1);
 await mkdir(join(root, 'specs'), { recursive: true });
+await mkdir(join(root, 'fixtures'), { recursive: true });
 await mkdir(join(root, 'repos'), { recursive: true });
 
 async function download(url, path) {
@@ -40,7 +41,7 @@ for (const { version, tag } of pinned.specs) {
   await download(`${OPENAPI}/${tag}/openapi/spec3.json`, join(root, 'specs', `${version}.json`));
   await download(
     `${OPENAPI}/${tag}/openapi/fixtures3.json`,
-    join(root, 'specs', `${version}.fixtures.json`),
+    join(root, 'fixtures', `${version}.json`),
   );
   const spec = JSON.parse(await readFile(join(root, 'specs', `${version}.json`), 'utf8'));
   if (spec.info?.version !== version)
