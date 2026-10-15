@@ -7,6 +7,7 @@ import { applySourceEdits } from './patches.ts';
 import { STRIPE } from './providers.ts';
 import { runPipeline } from './run.ts';
 import { findRemovedProperties } from './specifications.ts';
+import { migrationReviewReason } from './migration-review.ts';
 
 const roots: string[] = [];
 afterEach(async () => {
@@ -122,7 +123,7 @@ it('keeps an optional receiver optional and skips longer optional chains', () =>
   expect(result.patched).toContain('wrapped?.sub.current_period_end');
 });
 
-it('leaves webhook payloads and declared Stripe types to the incoming-version review', () => {
+it('reads both period shapes on webhook payloads and Stripe-typed values', () => {
   const result = analyze(`export function fromWebhook(body: string, signature: string) {
   const event = stripe.webhooks.constructEvent(body, signature, 'whsec');
   if (event.type === 'customer.subscription.updated') {
@@ -130,11 +131,96 @@ it('leaves webhook payloads and declared Stripe types to the incoming-version re
     return subscription.current_period_end;
   }
 }
-export function fromParameter(subscription: Stripe.Subscription) {
-  return subscription.current_period_end;
+export function fromParameter(subscription?: Stripe.Subscription) {
+  return subscription?.current_period_start;
 }`);
   expect(result.findings.filter((finding) => finding.confidence === 'confirmed')).toHaveLength(2);
-  expect(result.edits).toEqual([]);
+  expect(result.edits.map((edit) => edit.rule)).toEqual([
+    'stripe-subscription-periods-either-version',
+    'stripe-subscription-periods-either-version',
+  ]);
+  expect(result.findings.find((finding) => finding.webhook)?.webhook?.migration).toEqual({
+    rule: 'stripe-subscription-periods-either-version',
+  });
+  expect(result.patched).toContain(
+    "return (Reflect.get(subscription, 'current_period_end') ?? [Math.max(...(subscription.items?.data ?? []).map((item) => item.current_period_end))].find(Number.isFinite));",
+  );
+  expect(result.patched).toContain(
+    "return (subscription == null ? undefined : Reflect.get(subscription, 'current_period_start') ?? [Math.min(...(subscription.items?.data ?? []).map((item) => item.current_period_start))].find(Number.isFinite));",
+  );
+});
+
+it('evaluates the version-tolerant read against both payload shapes and missing periods', () => {
+  const content = `${header}export function read(subscription: Stripe.Subscription) {
+  return subscription.current_period_end;
+}`;
+  const result = analyze(content.slice(header.length));
+  const expression = result.patched.slice(result.patched.indexOf('return ') + 7, -3);
+  const read = new Function('subscription', `return ${expression};`) as (value: unknown) => unknown;
+  expect(read({ current_period_end: 100, items: { data: [{}] } })).toBe(100);
+  expect(
+    read({ items: { data: [{ current_period_end: 200 }, { current_period_end: 300 }] } }),
+  ).toBe(300);
+  expect(read({ items: { data: [{}] } })).toBeUndefined();
+  expect(read({ items: { data: [] } })).toBeUndefined();
+  expect(read({})).toBeUndefined();
+});
+
+it('leaves the rule to a configured price-ID policy', () => {
+  const content = `${header}export function fromWebhook(body: string, signature: string) {
+  const event = stripe.webhooks.constructEvent(body, signature, 'whsec');
+  if (event.type === 'customer.subscription.updated') {
+    const subscription = event.data.object as Stripe.Subscription;
+    return subscription.current_period_end;
+  }
+}`;
+  const result = analyzeRepository(
+    {
+      root: '/field-moves',
+      files: [{ path: 'billing.ts', content }],
+      dependencies: [],
+      lockfiles: [],
+      warnings: [],
+    },
+    findRemovedProperties(schemas(false), schemas(true), provider.id),
+    {
+      ...provider,
+      stripeSubscriptionPeriods: {
+        priceId: 'price_primary',
+        beforeApiVersion: '2025-02-24.acacia',
+        afterApiVersion: '2025-03-31.basil',
+      },
+    },
+    schemas(false),
+  );
+  expect(
+    result.edits.some((edit) => edit.rule === 'stripe-subscription-periods-either-version'),
+  ).toBe(false);
+});
+
+const mixed = `export async function ends(id: string) {
+  const subscription = await stripe.subscriptions.retrieve(id);
+  return subscription.current_period_end;
+}
+export function invoiceOwner(body: string, signature: string) {
+  const event = stripe.webhooks.constructEvent(body, signature, 'whsec');
+  if (event.type === 'invoice.paid') {
+    const invoice = event.data.object as Stripe.Invoice;
+    return invoice.subscription;
+  }
+}`;
+
+it('patches around an unmigrated webhook read and leaves it unresolved', async () => {
+  const report = await run(mixed);
+  expect(report.findings.find((finding) => finding.webhook)).toMatchObject({
+    confidence: 'confirmed',
+    expression: '.subscription',
+  });
+  expect(report.patch).toMatchObject({ status: 'proposed', unresolvedFindings: 1 });
+  const diff = 'diff' in report.patch ? report.patch.diff : '';
+  expect(diff).toContain('item.current_period_end');
+  expect(diff).not.toContain('parent');
+  expect(migrationReviewReason(report)).toMatch(/incoming API-version/);
 });
 
 async function run(

@@ -201,7 +201,9 @@ export async function inspectRepositoryReadiness(options: {
         id: 'webhook-migration',
         title: 'Webhook payload migration',
         status: 'passed',
-        detail: `The configured price ${evidence.adapter.stripeSubscriptionPeriods!.priceId} matches a supported guarded handler. The proposed patch checks signed event versions; runtime checks have not run.`,
+        detail: evidence.adapter.stripeSubscriptionPeriods
+          ? `The configured price ${evidence.adapter.stripeSubscriptionPeriods.priceId} matches a supported guarded handler. The proposed patch checks signed event versions; runtime checks have not run.`
+          : 'Webhook subscription-period reads accept both the old and the new payload shape, so the endpoint version can change separately. The widest item period is used when items differ; runtime checks have not run.',
         action: null,
       });
     if (evidence.sourceResolution.status === 'review')

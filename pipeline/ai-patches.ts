@@ -225,9 +225,12 @@ export async function proposeAiPatch(
   // receives findings they do not cover, and the guards check only its own edits.
   deterministicEdits: SourceEdit[] = [],
 ) {
-  findings = findings.filter((finding) => !editCovers(repository, deterministicEdits, finding));
-  const reviewReason = migrationReviewReason({ findings });
+  const reviewReason = migrationReviewReason({ findings }, false, true);
   if (reviewReason) throw new PipelineInputError(reviewReason);
+  // Webhook reads no rule migrates stay unresolved; the model never edits webhook payloads.
+  findings = findings.filter(
+    (finding) => !finding.webhook && !editCovers(repository, deterministicEdits, finding),
+  );
   const impact = buildAssessmentEvidence(
     repository,
     changes,
