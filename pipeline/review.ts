@@ -13,13 +13,6 @@ const MAX_SUMMARY_ITEMS = 5;
 const MAX_VISIBLE_DIFF_LINES = 80;
 const MAX_QUOTE = 300;
 
-function jsonBlock(value: unknown) {
-  const content = JSON.stringify(value, null, 2);
-  const runs = content.match(/`+/g) ?? [];
-  const fence = '`'.repeat(runs.reduce((width, run) => Math.max(width, run.length + 1), 3));
-  return `${fence}json\n${content}\n${fence}`;
-}
-
 function plainText(value: string) {
   return value.replace(/[\x00-\x1f\x7f]/g, ' ').replace(/[\\`*_{}\[\]<>#|]/g, '\\$&');
 }
@@ -32,31 +25,10 @@ function code(value: string) {
   return `${fence}${content}${fence}`;
 }
 
-// A generated check with no runnable function did not run; it is missing evidence, not a failure.
-function generatedMark(status: string) {
-  return status === 'passed' ? '✅' : status === 'not-run' ? '➖' : '❌';
-}
-
 function summaryList(values: string[]) {
   const visible = values.slice(0, MAX_SUMMARY_ITEMS);
   const remaining = values.length - visible.length;
   return `${visible.join(', ')}${remaining ? `, and ${remaining} more` : ''}`;
-}
-
-function apiVersionSummary(report: ValidationReport) {
-  const { application, before, after, applicability } = report.apiVersion;
-  const current = plainText(application ?? 'unknown');
-  const baseline = plainText(before ?? 'unknown');
-  const proposed = plainText(after ?? 'unknown');
-  if (applicability === 'matches-before')
-    return `Application pin ${current} matches the before contract ${baseline}; proposed contract ${proposed}.`;
-  if (applicability === 'matches-after')
-    return `Application pin ${current} already matches the after contract ${proposed}, not the before contract ${baseline}.`;
-  if (applicability === 'matches-neither')
-    return `Application pin ${current} matches neither the before contract ${baseline} nor the after contract ${proposed}.`;
-  if (applicability === 'conflicts-with-code' || report.apiVersion.policy === 'source-verified')
-    return plainText(report.apiVersion.reason);
-  return `Applicability is unknown; current pin ${current}, before contract ${baseline}, after contract ${proposed}.`;
 }
 
 function fenced(language: string, content: string) {
@@ -67,7 +39,7 @@ function fenced(language: string, content: string) {
 
 function quote(value: string) {
   const text = value.replace(/\s+/g, ' ').trim();
-  return `> ${plainText(text.length > MAX_QUOTE ? `${text.slice(0, MAX_QUOTE)}…` : text)}`;
+  return `“${plainText(text.length > MAX_QUOTE ? `${text.slice(0, MAX_QUOTE)}…` : text)}”`;
 }
 
 interface FileChange {
@@ -122,6 +94,10 @@ function changeSections(diff: string) {
   let shown = 0;
   let hidden = 0;
   for (const file of fileChanges(diff)) {
+    if (!file.before) {
+      sections.push(`New file ${code(file.path)}; see Files changed.`);
+      continue;
+    }
     const afterLines = file.after.split('\n');
     for (const hunk of structuredPatch(file.path, file.path, file.before, file.after, '', '', {
       context: 2,
@@ -187,23 +163,10 @@ function replacementReasons(report: ValidationReport) {
   const added = addedProperties(patch);
   const notes = vendorNotes(patch);
   const renames = report.adapter.propertyRenames ?? [];
-  const rows: string[] = [];
   const reasons: string[] = [];
-  const checks: string[] = [];
   const replacements: string[] = [];
   for (const change of affectedFields(report.changes, report.findings)) {
     const removed = `${change.schema}.${change.property}`;
-    const where = report.specificationDiff?.changes.find(
-      (entry) =>
-        'removedProperty' in entry &&
-        entry.removedProperty === change.property &&
-        entry.responseSchema === change.schema,
-    );
-    const location =
-      where && 'path' in where && where.path
-        ? `${code(`${where.operation ?? ''} ${where.path}`.trim())} response`
-        : 'response';
-    rows.push(`| Removed | ${code(removed)} | ${plainText(change.type ?? '—')} | ${location} |`);
     const rename = renames.find(
       (entry) => entry.schema === change.schema && entry.removed === change.property,
     );
@@ -218,12 +181,9 @@ function replacementReasons(report: ValidationReport) {
     if (!replacement) continue;
     const used = `${change.schema}.${replacement}`;
     replacements.push(`${code(removed)} → ${code(used)}`);
-    rows.push(
-      `| Added | ${code(used)} | ${plainText(candidate?.type ?? change.type ?? '—')} | same response |`,
-    );
     if (rename) {
       reasons.push(
-        `**Why ${code(replacement)}:** an operator-configured ${replacement.includes('.') ? 'move' : 'rename'} rule in the provider adapter maps ${code(removed)} to ${code(used)}.`,
+        `An operator-configured ${replacement.includes('.') ? 'move' : 'rename'} rule maps ${code(removed)} to ${code(used)}.`,
       );
       continue;
     }
@@ -236,8 +196,7 @@ function replacementReasons(report: ValidationReport) {
     );
     if (described)
       reasons.push(
-        `**Why ${code(replacement)}:** the after contract documents it as the replacement:`,
-        quote(described),
+        `The after contract documents ${code(replacement)} as the replacement: ${quote(described)}.`,
       );
     else if (note) {
       const sentence =
@@ -246,20 +205,16 @@ function replacementReasons(report: ValidationReport) {
           .find((part) => part.includes(change.property) && part.includes(replacement)) ??
         note.content;
       reasons.push(
-        `**Why ${code(replacement)}:** the attached vendor note (${plainText(note.label)}, ${plainText(note.url)}) says:`,
-        quote(sentence),
+        `The attached vendor note (${plainText(note.label)}, ${plainText(note.url)}) says ${quote(sentence)}.`,
       );
     } else {
       const sameType = candidate?.type && change.type && candidate.type === change.type;
       reasons.push(
-        `**Why ${code(replacement)}:** it was added to the same response${sameType ? ` with the same type (${plainText(change.type!)})` : ''}. ⚠️ The contract does not document it as a replacement and no vendor note was attached, so **confirm it carries the same meaning**.`,
-      );
-      checks.push(
-        `- [ ] ${code(replacement)} carries the same meaning as ${code(change.property)} for your use`,
+        `${code(replacement)} was added to the same response${sameType ? ` with the same type (${plainText(change.type!)})` : ''}. ⚠️ Nothing documents it as the replacement for ${code(change.property)}, so **confirm it carries the same meaning**.`,
       );
     }
   }
-  return { rows, reasons, checks, replacements };
+  return { reasons, replacements };
 }
 
 export function createReviewArtifacts(
@@ -319,169 +274,68 @@ export function createReviewArtifacts(
     ...operationChanges.map((entry) => code(`${entry.httpMethod} ${entry.path}`)),
   ]);
   const changeSummary = changes || 'the API usages recorded in the technical evidence';
-  const changedFiles = [...new Set(report.publicationFiles.map((file) => file.path))];
-  const changedFilesSummary = changedFiles.length
-    ? summaryList(changedFiles.map(code))
-    : 'See the Files changed tab for the proposed edits.';
-  const { rows, reasons, checks, replacements } = replacementReasons(report);
+  const { reasons, replacements } = replacementReasons(report);
   const usageCount = `${confirmedFindings.length} confirmed ${confirmedFindings.length === 1 ? 'usage' : 'usages'}`;
   const fileCount = `${affectedFiles.size} ${affectedFiles.size === 1 ? 'file' : 'files'}`;
   const after = plainText(report.apiVersion.after ?? 'the after contract');
   const passed = validation.status === 'passed';
-  const short = (hash: string) => code(`${hash.slice(0, 12)}…`);
-  const source = (side: 'before' | 'after') => {
-    const provenance = report.provenance?.[side] as { url?: unknown } | null | undefined;
-    return typeof provenance?.url === 'string' ? ` from ${plainText(provenance.url)}` : '';
-  };
   const commandText = (value: readonly string[]) => code(value.join(' '));
   const ai = patch.generator === 'openai';
   const model = 'model' in patch && typeof patch.model === 'string' ? patch.model : undefined;
-  const stripeReview =
-    report.provider === 'stripe' || operationChanges.length > 0 || requestChanges.length > 0;
   const periodReads = (rareCase: NonNullable<Finding['subscriptionPeriod']>['rareCase']) =>
     report.findings.filter((finding) => finding.subscriptionPeriod?.rareCase === rareCase);
   const flaggedPeriods = periodReads('flagged');
   const unconfirmed = report.findings.filter((finding) => finding.untraced);
   const selectedPeriods = [...periodReads('item-in-code'), ...periodReads('price-policy')];
+  const generated = validation.generated;
+  const sameCommand = validation.baselineCommand.join(' ') === validation.command.join(' ');
+  // One paragraph: what changed and why, the evidence and its limits, and what was left alone.
+  const summary = [
+    `${plainText(provider)} API ${report.apiVersion.after ? `${after} ` : ''}removes ${changeSummary}, so ${ai ? `AI${model ? ` (${code(model)})` : ''}, checked by Refit,` : 'a deterministic Refit rule'} updated ${usageCount} in ${fileCount}${replacements.length ? ` (${summaryList(replacements)})` : ''}.`,
+    ...reasons,
+    ...(subscriptionPolicy
+      ? [
+          `Subscription periods come from the one item priced ${code(subscriptionPolicy.priceId)}, by the signed event's ${code('api_version')}.`,
+        ]
+      : []),
+    ...(selectedPeriods.length
+      ? [
+          `Items on different billing periods use the item the code already treats as its plan: ${summaryList([...new Set(selectedPeriods.map((finding) => code(finding.subscriptionPeriod!.selection ?? '')))])}.`,
+        ]
+      : []),
+    ...(requestChanges.length
+      ? [
+          `Request fields: ${summaryList(requestChanges.map((entry) => `${code(`${entry.resource}.${entry.method}`)} ${code(entry.removed)} → ${code(entry.replacement)}`))}.`,
+        ]
+      : []),
+    ...(operationChanges.length
+      ? [
+          `Calls: ${summaryList(operationChanges.map((entry) => `${code(`${entry.resource}.${entry.method}`)} → ${code(`${entry.replacementResource}.${entry.replacementMethod}`)}`))}.`,
+        ]
+      : []),
+    passed
+      ? `Evidence: ${sameCommand ? `${commandText(validation.command)} passed on the original and the migrated code` : `${commandText(validation.baselineCommand)} passed on the original and ${commandText(validation.command)} on the migrated code`} in an offline Docker container${generated ? (generated.patched.status === 'not-run' ? '; generated stripe-mock checks did not run' : `; generated stripe-mock checks on ${generated.entryPoints.length} exported functions ${generated.patched.status} after the migration`) : ''}. That does not show the new fields mean the same for your app or that the checks cover every path.`
+      : `**Validation did not pass (${validation.status}).**`,
+    ...(unconfirmed.length
+      ? [
+          `Not changed, please check: ${unconfirmed.length} read${unconfirmed.length === 1 ? '' : 's'} of removed field names Refit could not trace to a Stripe object: ${summaryList([...new Set(unconfirmed.map((finding) => code(`${finding.file}:${finding.line} ${finding.expression}`)))])}.`,
+        ]
+      : []),
+    ...(flaggedPeriods.length
+      ? [
+          `Subscriptions with items on different billing periods are not handled. Set ${code('stripeSubscriptionPeriods')} to choose which item counts: ${summaryList(flaggedPeriods.map((finding) => code(`${finding.file}:${finding.line}`)))}.`,
+        ]
+      : []),
+    ...(integration ? [`This draft covers the ${code(integration)} integration only.`] : []),
+    ...(destination === 'local' ? ['Refit has not pushed a branch or opened a pull request.'] : []),
+  ].join(' ');
   const body =
     [
-      '## Summary',
-      ...(integration
-        ? [`**Integration:** ${code(integration)}. This draft covers this integration only.`]
-        : []),
-      `The ${plainText(provider)} API contract ${report.apiVersion.after ? `${after} ` : ''}removes ${changeSummary}. Refit updated ${usageCount} across ${fileCount}${replacements.length ? ` (${summaryList(replacements)})` : ''}: ${changedFilesSummary}.`,
-      passed
-        ? 'Your configured checks passed on the original and the migrated code. Human review of migration semantics is still required.'
-        : `**Validation did not pass (${validation.status}).** Resolve the recorded failure or stale input before treating this migration as validated.`,
-      '## Why: the provider change',
-      ...(rows.length
-        ? [['| | Field | Type | Where |', '|---|---|---|---|', ...rows].join('\n')]
-        : []),
-      ...reasons,
-      ...(subscriptionPolicy
-        ? [
-            `**Subscription item policy:** select exactly one item whose price ID is ${code(subscriptionPolicy.priceId)}. Item order does not determine entitlement. Missing or duplicate matches and incomplete lists use the existing missing-period error.`,
-            `**Incoming event versions:** the patch checks signed ${code('event.api_version')} at runtime. ${code(subscriptionPolicy.beforeApiVersion)} retains legacy subscription periods; ${code(subscriptionPolicy.afterApiVersion)} reads the matched item's periods. Other versions are rejected. The outgoing SDK version does not establish the incoming version.`,
-          ]
-        : []),
-      ...(selectedPeriods.length
-        ? [
-            `**Items on different billing periods:** the period comes from the item the application already treats as its plan: ${summaryList([...new Set(selectedPeriods.map((finding) => `${code(finding.subscriptionPeriod!.selection ?? '')} (${finding.subscriptionPeriod!.rareCase === 'price-policy' ? 'configured stripeSubscriptionPeriods' : 'selected in the code'})`))])}.`,
-          ]
-        : []),
-      ...(unconfirmed.length
-        ? [
-            `**Not changed, please check:** ${unconfirmed.length} read${unconfirmed.length === 1 ? '' : 's'} of removed field names that Refit could not trace to a Stripe object, so they may be the application's own data: ${summaryList([...new Set(unconfirmed.map((finding) => code(`${finding.file}:${finding.line} ${finding.expression}`)))].slice(0, 12))}.`,
-          ]
-        : []),
-      ...(flaggedPeriods.length
-        ? [
-            `**Subscriptions with items on different billing periods are not handled. Set ${code('stripeSubscriptionPeriods')} to choose which item counts.** Old-version events and subscriptions whose items share one period are handled. Affected reads: ${summaryList(flaggedPeriods.map((finding) => code(`${finding.file}:${finding.line}`)))}.`,
-          ]
-        : []),
-      ...(requestChanges.length
-        ? [
-            `**Request fields:** ${summaryList(requestChanges.map((entry) => `${code(`${entry.resource}.${entry.method}`)} argument ${entry.argumentIndex}: ${code(entry.removed)} → ${code(entry.replacement)} (${code(`${entry.httpMethod} ${entry.path}`)})`))}. Argument values and other call options are preserved; review SDK serialization and business meaning.`,
-          ]
-        : []),
-      ...(operationChanges.length
-        ? [
-            `**Configured replacements:** ${summaryList(operationChanges.map((entry) => `${code(`${entry.resource}.${entry.method}`)} → ${code(`${entry.replacementResource}.${entry.replacementMethod}`)} (${code(`${entry.httpMethod} ${entry.replacementPath}`)})`))}. Refit preserves the call arguments; review the SDK mapping and business meaning.`,
-          ]
-        : []),
-      `**Contracts:** before ${short(report.snapshots.before)}${source('before')}, after ${short(report.snapshots.after)}${source('after')}.`,
-      `**API version:** ${apiVersionSummary(report)}`,
-      `**SDK version declarations:** ${plainText(report.apiVersion.source.reason)} Policy: ${code(report.apiVersion.policy)}.`,
-      '## What changed',
+      summary,
       ...changeSections(patch.diff),
-      '## Validation',
-      [
-        '| Check | Code | Command | Result |',
-        '|---|---|---|---|',
-        `| Baseline | original | ${commandText(validation.baselineCommand)} | ${validation.baseline.status === 'passed' ? '✅' : '❌'} ${validation.baseline.status} |`,
-        `| Migration | patched | ${commandText(validation.command)} | ${validation.patched.status === 'passed' ? '✅' : '❌'} ${validation.patched.status} |`,
-        ...(validation.generated
-          ? [
-              `| Generated, ${report.apiVersion.before} mock | original | ${validation.generated.entryPoints.length} exported functions | ${generatedMark(validation.generated.baseline.status)} ${validation.generated.baseline.status} |`,
-              `| Generated, ${report.apiVersion.after} mock | patched | ${validation.generated.entryPoints.length} exported functions | ${generatedMark(validation.generated.patched.status)} ${validation.generated.patched.status} |`,
-            ]
-          : []),
-      ].join('\n'),
-      ...(validation.generated
-        ? [
-            `Generated checks called ${summaryList(validation.generated.entryPoints.map((entry) => code(`${entry.file}#${entry.name}`)))} with placeholder IDs against stripe-mock serving each version's published contract and fixtures, offline. ${validation.generated.notRunnable.length} could not run in isolation on the original code and were excluded; ${validation.generated.regressions.length} that ran on the original failed after the migration. ${validation.generated.uncoveredFindings} confirmed usages were not inside a callable exported function. Placeholder data checks response shapes, not business behavior.`,
-          ]
-        : []),
-      `Both checks ran in restricted Docker containers with external networking disabled (image ${short(validation.image.replace(/^sha256:/, ''))}); these are not GitHub Actions checks. Patch attempts: **${validation.attempts.length}**; AI repairs: **${validation.repair.requested}**; remaining reads of removed fields: **${patch.unresolvedFindings}**.`,
-      passed
-        ? '**This shows** the migrated code passes your configured checks. **It does not show** that replacement fields carry the same meaning or that the checks cover every code path.'
-        : 'Inspect the failing check output in the local validation report before changing the patch.',
-      '## How this patch was made',
-      ai
-        ? `Proposed by AI${model ? ` (${code(model)})` : ''}, then checked by Refit before validation: edits are limited to confirmed usages, no pre-existing response field was substituted for a removed one, and the patched code was rescanned.`
-        : 'Generated by a deterministic Refit migration rule; no AI was used.',
-      `${ai ? "**Model's note:**" : '**Rule:**'} ${plainText(patch.summary)}`,
-      '## Before merging',
-      [
-        ...checks,
-        `- [ ] Your application will run against API version ${after}`,
-        ...(stripeReview
-          ? ['- [ ] Review added requests, pagination, empty-state behavior and error handling']
-          : []),
-        '- [ ] The checks above exercise the code paths you rely on',
-      ].join('\n'),
-      destination === 'local'
-        ? 'Inspect migration.patch. This is a local review artifact; Refit has not pushed a branch or opened a pull request.'
-        : 'Inspect Files changed. Refit opens a draft for review and never merges it automatically.',
-      '<details>\n<summary>Technical evidence and exact check commands</summary>\n',
-      jsonBlock({
-        status: validation.status,
-        revision: validation.revision,
-        image: validation.image,
-        ...(validation.environment ? { environment: validation.environment } : {}),
-        command: validation.command,
-        baselineCommand: validation.baselineCommand,
-        baseline: { status: validation.baseline.status, exitCode: validation.baseline.exitCode },
-        patched: { status: validation.patched.status, exitCode: validation.patched.exitCode },
-        repair: validation.repair,
-        attempts: validation.attempts.map((attempt) => ({
-          number: attempt.number,
-          patchHash: attempt.patchHash,
-          status: attempt.check.status,
-          exitCode: attempt.check.exitCode,
-          responseId: attempt.responseId,
-        })),
-      }),
-      destination === 'local'
-        ? 'Full stdout, stderr and execution errors are preserved in report.json. The exact proposed change is in migration.patch.'
-        : 'Full check logs remain in the local validation report; they are not uploaded to GitHub.',
-      '### Recorded inputs',
-      jsonBlock(
-        report.specificationDiff ?? {
-          engine: 'direct-properties',
-          changes: report.changes,
-          coverage: report.coverage.specification,
-        },
-      ),
-      jsonBlock({
-        runId: report.runId,
-        snapshots: report.snapshots,
-        provenance: report.provenance,
-        archiveHash: validation.archiveHash,
-        patchHash: validation.patchHash,
-        dependencies: report.repository.dependencies,
-        lockfiles: report.repository.lockfiles,
-        findings: report.findings,
-        ...(operationChanges.length ? { operationChanges } : {}),
-        ...(requestChanges.length ? { requestChanges } : {}),
-      }),
-      ...(report.assessment.status === 'not-requested'
-        ? []
-        : ['### Advisory AI assessment', jsonBlock(report.assessment)]),
-      jsonBlock({ warnings: [...report.warnings, ...patch.warnings], coverage: report.coverage }),
-      '\n</details>',
       ...(integration ? [`${INTEGRATION_MARKER}${integration} -->`] : []),
       `<!-- refit-migration:${migrationIdentity(report, validation.revision, integration)} -->`,
+      `<!-- refit-evidence "runId": "${report.runId}", "patchHash": "${validation.patchHash}" -->`,
     ].join('\n\n') + '\n';
   const files = {
     'report.json': `${JSON.stringify(report, null, 2)}\n`,

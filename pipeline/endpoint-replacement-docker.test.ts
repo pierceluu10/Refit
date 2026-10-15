@@ -156,7 +156,7 @@ it.skipIf(!DOCKER_IMAGE || !process.env.REFIT_OASDIFF)(
     expect(report.validation.baseline.status).toBe('passed');
     expect(report.validation.patched.status).toBe('passed');
     expect(await readFile(join(options.output, 'pull-request.md'), 'utf8')).toContain(
-      'SDK version declarations:',
+      'passed on the original and the migrated code',
     );
     expect(fetcher).not.toHaveBeenCalled();
     expect((await git(['status', '--porcelain'])).stdout).toBe('');

@@ -316,9 +316,8 @@ it('publishes request-field migrations with readable function, body field and en
     'Update catalog-request-example items.create requests after legacy_name removal',
   );
   expect(request.body.body).toContain(
-    '`items.create` argument 0: `legacy_name` → `display_name` (`POST /items`)',
+    'Request fields: `items.create` `legacy_name` → `display_name`.',
   );
-  expect(request.body.body).toContain('Argument values and other call options are preserved');
 });
 
 it('blocks request publication independently when usage evidence is unsupported or another breaking change is unhandled', async () => {
@@ -371,7 +370,9 @@ it('publishes separate named integrations against the same base without sharing 
     expect(request.body.title).toBe(
       `[${integration}] Fix Stripe payment history after PaymentIntent.charges removal`,
     );
-    expect(request.body.body).toContain(`**Integration:** \`${integration}\``);
+    expect(request.body.body).toContain(
+      `This draft covers the \`${integration}\` integration only.`,
+    );
     expect(request.body.body).toContain(
       `<!-- refit-migration:${migrationIdentity(value, REVISION, integration)} -->`,
     );
