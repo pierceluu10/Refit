@@ -1,5 +1,13 @@
 # Refit implementation checkpoints
 
+## October 15 checkpoint: pinned pnpm preparation (0.22.0)
+
+`prepareDependencies` now accepts pnpm roots and bounded workspaces with an exact `packageManager` pin and a committed lockfile v9, including pnpm 12's separate environment document. Default/named catalogs and explicit `workspace:` links are verified against their recorded resolutions. Only manifest, lock and workspace-configuration bytes enter the networked installer; lifecycle scripts stay disabled and checks run offline from the verified archive. pnpm importers, package records and peer-qualified snapshots also supply recorded SDK versions to scans and readiness. See [pnpm requirements and limits](PNPM-WORKSPACES.md).
+
+The default suite passed **1,187 tests across 73 files**, with 73 environment-gated tests skipped, plus build, typecheck and formatting. The gated pnpm/npm preparation suites passed 46 tests with actual Docker: pnpm 9.15.4, 10.17.1, 11.28.5 and 12.4.2 each installed Stripe 19.1.0 and 10.17.0 through catalogs and links, then passed original/changed simulated Stripe contracts and TypeScript offline with install-script tripwires untouched. The two billing-repository cases that need a separately supplied checkout were skipped. No paid model request or live vendor API call was used.
+
+Paykit's pinned commit now resolves both Stripe declarations to 19.3.1 from lock evidence, but its workspace CLI bin still blocks automatic preparation. No Paykit dependencies were installed and no Paykit migration is implied. See [Paykit](PAYKIT-EVALUATION.md).
+
 ## October 14 checkpoint: SDK arguments in helper functions (0.21.0)
 
 Actual SDK arguments trace into supported named declarations and identifier-bound function/arrow expressions. Closed private helpers with one stable client origin reuse existing response, request and endpoint migration rules. Aliases and helper chains share mutation and API-version evidence. Exported/escaped helpers, unknown callers, multiple origins, argument uncertainty and mutations retain review metadata and stop the entire automated run before paid work, checks or publication. Type annotations alone never establish client identity. See [helper-client support](HELPER-CLIENTS.md).

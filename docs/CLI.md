@@ -34,6 +34,8 @@ Requires Node.js 22.12+ or a supported newer release. Scanning needs no API key 
 
 For supported single-package and npm workspace projects, `refit prepare` installs committed lockfile dependencies in a restricted container for offline checks. Run workflows with `--prepare-dependencies` or set `prepareDependencies: true` in their JSON configuration. Read [dependency preparation](DEPENDENCIES.md) for requirements, security limits and the billing demo, and [npm workspaces](NPM-WORKSPACES.md) for monorepo checks and supported layouts.
 
+The same preparation supports pinned pnpm roots and bounded catalog/workspace layouts, including pnpm 12's separate environment lock document. See [pnpm requirements](PNPM-WORKSPACES.md).
+
 Pass `--env .env` to any command to load environment variables explicitly, including with an installed `refit` executable. Existing environment values take precedence. Refit does not automatically load files from the scanned repository. Keep credentials outside committed configuration files.
 
 ```sh
