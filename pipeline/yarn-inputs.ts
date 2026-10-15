@@ -6,6 +6,7 @@ import {
   MAX_LOCK_BYTES,
   MAX_PACKAGE_BYTES,
   MAX_PACKAGES,
+  NPM_PACKAGE_NAME,
 } from './npm-lock.ts';
 import {
   CLASSIC_HEADER,
@@ -28,15 +29,46 @@ function registryTarball(source: string | undefined) {
   );
 }
 
-export function validateYarnInputs(packageContent: string, lockContent: string) {
+// Yarn 1 declares workspaces as an array or `{ packages }`; nohoist changes the layout.
+export function yarnWorkspacePatterns(manifest: Record<string, unknown>) {
+  const workspaces = manifest.workspaces;
+  if (workspaces === undefined || Array.isArray(workspaces)) return workspaces;
+  if (isObject(workspaces) && Object.keys(workspaces).join(',') === 'packages')
+    return workspaces.packages;
+  throw new PipelineInputError(
+    'Yarn workspaces must be a pattern list or { packages }; nohoist requires a custom image.',
+  );
+}
+
+export function validateYarnInputs(
+  packageContent: string,
+  lockContent: string,
+  workspaceContents: ReadonlyMap<string, string> = new Map(),
+) {
   if (
     Buffer.byteLength(packageContent) > MAX_PACKAGE_BYTES ||
-    Buffer.byteLength(lockContent) > MAX_LOCK_BYTES
+    Buffer.byteLength(lockContent) > MAX_LOCK_BYTES ||
+    [...workspaceContents.values()].some(
+      (content) => Buffer.byteLength(content) > MAX_PACKAGE_BYTES,
+    )
   )
     throw new PipelineInputError('Yarn preparation inputs exceed manifest or lockfile limits.');
   const manifest = parseObject(packageContent, 'package.json');
-  if (manifest.workspaces !== undefined)
-    throw new PipelineInputError('Yarn workspaces require a custom validation image.');
+  yarnWorkspacePatterns(manifest);
+  const workspaces = new Map<string, { directory: string; version: unknown }>();
+  for (const [directory, content] of workspaceContents) {
+    const value = parseObject(content, `${directory}/package.json`);
+    if (
+      typeof value.name !== 'string' ||
+      !NPM_PACKAGE_NAME.test(value.name) ||
+      workspaces.has(value.name) ||
+      value.workspaces !== undefined
+    )
+      throw new PipelineInputError(
+        'Yarn workspace packages need unique package names and no nested workspaces.',
+      );
+    workspaces.set(value.name, { directory, version: value.version });
+  }
   const pin =
     manifest.packageManager === undefined
       ? undefined
@@ -65,21 +97,36 @@ export function validateYarnInputs(packageContent: string, lockContent: string) 
       throw new PipelineInputError(
         'Every yarn.lock entry must resolve an exact version to a public registry tarball with SHA-256-or-stronger integrity.',
       );
-  for (const section of INSTALLED_SECTIONS) {
-    const dependencies = manifest[section];
-    if (dependencies === undefined) continue;
-    if (!isObject(dependencies))
-      throw new PipelineInputError(`package.json ${section} must be an object.`);
-    for (const [name, range] of Object.entries(dependencies))
-      if (
-        typeof range !== 'string' ||
-        LOCAL_OR_ALIASED.test(range) ||
-        !Object.hasOwn(entries, `${name}@${range}`)
-      )
-        throw new PipelineInputError(
-          `${name}@${String(range)} is not a public registry dependency recorded in yarn.lock; regenerate the lockfile or use a custom image.`,
-        );
-  }
+  const manifests: [string, Record<string, unknown>][] = [
+    ['package.json', manifest],
+    ...[...workspaceContents].map(
+      ([directory, content]) =>
+        [`${directory}/package.json`, parseObject(content, directory)] as [
+          string,
+          Record<string, unknown>,
+        ],
+    ),
+  ];
+  for (const [file, value] of manifests)
+    for (const section of INSTALLED_SECTIONS) {
+      const dependencies = value[section];
+      if (dependencies === undefined) continue;
+      if (!isObject(dependencies))
+        throw new PipelineInputError(`${file} ${section} must be an object.`);
+      for (const [name, range] of Object.entries(dependencies)) {
+        // Yarn 1 links a sibling workspace without a lock entry when its version satisfies the range.
+        const sibling = workspaces.get(name);
+        if (sibling && (range === '*' || range === sibling.version)) continue;
+        if (
+          typeof range !== 'string' ||
+          LOCAL_OR_ALIASED.test(range) ||
+          !Object.hasOwn(entries, `${name}@${range}`)
+        )
+          throw new PipelineInputError(
+            `${name}@${String(range)} in ${file} is not a public registry dependency recorded in yarn.lock or an exact sibling workspace; regenerate the lockfile or use a custom image.`,
+          );
+      }
+    }
   return {
     manager: 'yarn' as const,
     managerVersion: pin?.[1] ?? DEFAULT_YARN_VERSION,
@@ -89,5 +136,15 @@ export function validateYarnInputs(packageContent: string, lockContent: string) 
     packageHash: digest(packageContent),
     lockHash: digest(lockContent),
     packages: records.size,
+    ...(workspaces.size
+      ? {
+          workspaceHashes: Object.fromEntries(
+            [...workspaceContents].map(([directory, content]) => [directory, digest(content)]),
+          ),
+          workspaceLinks: Object.fromEntries(
+            [...workspaces].map(([name, { directory }]) => [`node_modules/${name}`, directory]),
+          ),
+        }
+      : {}),
   };
 }

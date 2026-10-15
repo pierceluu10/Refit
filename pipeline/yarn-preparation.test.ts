@@ -1,6 +1,6 @@
 import { execFile } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
-import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
@@ -41,7 +41,11 @@ it('refuses Yarn inputs that need a custom image', async () => {
   const cases: [string, Record<string, unknown>, string][] = [
     ['Yarn 2+ lockfile', manifest, berry],
     ['Yarn 2+ pin', { ...manifest, packageManager: 'yarn@4.9.2' }, classic],
-    ['workspaces', { ...manifest, workspaces: ['packages/*'] }, classic],
+    [
+      'nohoist workspaces',
+      { ...manifest, workspaces: { packages: ['packages/*'], nohoist: ['**'] } },
+      classic,
+    ],
     ['undeclared range', { ...manifest, dependencies: { stripe: '^18.0.0' } }, classic],
     ['git source', { ...manifest, dependencies: { stripe: 'github:stripe/stripe-node' } }, classic],
     [
@@ -141,3 +145,68 @@ it('bounds an operator-configured installation deadline', () => {
   for (const value of ['59', '1801', '600.5', 'ten', '-1'])
     expect(() => installTimeoutSeconds(value), value).toThrow('REFIT_DEPENDENCY_TIMEOUT_SECONDS');
 });
+
+it.skipIf(!process.env.REFIT_NPM_PREPARE || !process.env.REFIT_DOCKER_IMAGE)(
+  'prepares Yarn 1 workspaces with nested SDK versions and sibling links, then uses them offline',
+  async () => {
+    const root = await mkdtemp(join(tmpdir(), 'refit-yarn-workspaces-'));
+    roots.push(root);
+    const repository = join(root, 'repository');
+    await cp('pipeline/fixtures/npm-workspaces/repository', repository, { recursive: true });
+    await rm(join(repository, 'package-lock.json'));
+    await writeFile(
+      join(repository, 'yarn.lock'),
+      await readFile(join(FIXTURES, 'workspaces.lock'), 'utf8'),
+    );
+    await execute('git', ['init', repository]);
+    await execute('git', ['-C', repository, 'add', '--force', '.']);
+    await execute('git', [
+      '-C',
+      repository,
+      '-c',
+      'user.name=Refit Test',
+      '-c',
+      'user.email=test@example.invalid',
+      '-c',
+      'commit.gpgsign=false',
+      'commit',
+      '-m',
+      'test: record yarn workspace inputs',
+    ]);
+    const prepared = await prepareDependencies({
+      repository,
+      image: process.env.REFIT_DOCKER_IMAGE!,
+      cacheDirectory: join(root, 'cache'),
+    });
+    expect(prepared.environment).toMatchObject({
+      manager: 'yarn',
+      workspaceLinks: {
+        'node_modules/@refit-fixture/billing': 'packages/billing',
+        'node_modules/@refit-fixture/ids': 'packages/ids',
+      },
+    });
+    const name = `refit-offline-yarn-workspaces-${randomUUID()}`;
+    try {
+      const result = await execute(
+        'docker',
+        dockerSandboxArguments({
+          name,
+          directory: repository,
+          image: String(prepared.environment.image),
+          dependencies: prepared.archive,
+          network: 'none',
+          command: [
+            'sh',
+            '-c',
+            `yarn --version && node -e "const assert=require('node:assert/strict');const fs=require('node:fs');const version=(path)=>JSON.parse(fs.readFileSync(path,'utf8')).version;assert.equal(version('node_modules/stripe/package.json'),'19.1.0');assert.equal(version('packages/billing/node_modules/stripe/package.json'),'10.17.0');assert.equal(typeof require('@refit-fixture/ids'),'object');for (const tripwire of ['node_modules/root-script-ran','node_modules/workspace-script-ran','packages/billing/node_modules/workspace-script-ran']) assert.equal(fs.existsSync(tripwire),false);console.log('Yarn workspaces work offline with both Stripe versions.');"`,
+          ],
+        }),
+        { timeout: 30_000 },
+      );
+      expect(result.stdout).toContain('Yarn workspaces work offline with both Stripe versions.');
+    } finally {
+      await removeDockerContainer(name);
+    }
+  },
+  180_000,
+);
