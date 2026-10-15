@@ -3,6 +3,7 @@ import { STRIPE, type ProviderAdapter } from './providers.ts';
 import type { OperationReplacement } from './provider-operation-replacements.ts';
 import type { RequestPropertyRename } from './provider-request-renames.ts';
 import {
+  INVOICE_SUBSCRIPTION_HELPER_RULE,
   SUBSCRIPTION_PERIOD_HELPER_RULE,
   SUBSCRIPTION_PERIOD_RULE,
 } from './stripe-subscription-periods.ts';
@@ -10,6 +11,8 @@ import {
 const FIELD_MOVE_SOURCES: Partial<Record<NonNullable<SourceEdit['rule']>, string>> = {
   [SUBSCRIPTION_PERIOD_HELPER_RULE]:
     'https://docs.stripe.com/changelog/basil/2025-03-31/deprecate-subscription-current-period-start-and-end',
+  [INVOICE_SUBSCRIPTION_HELPER_RULE]:
+    'https://docs.stripe.com/changelog/basil/2025-03-31/adds-new-parent-field-to-invoicing-objects',
 };
 
 export function isFieldMove(edit: SourceEdit) {
@@ -122,6 +125,11 @@ export function proposePatch(
         ...(fieldMoves.some((edit) => edit.rule === SUBSCRIPTION_PERIOD_HELPER_RULE)
           ? [
               'Subscription periods are read through a generated helper: the old subscription-level field when present (old-version events), otherwise the period every item shares, otherwise the item the application already selects or the configured price policy. Webhook endpoints are not changed.',
+            ]
+          : []),
+        ...(fieldMoves.some((edit) => edit.rule === INVOICE_SUBSCRIPTION_HELPER_RULE)
+          ? [
+              'Invoice subscriptions are read through a generated helper: the old invoice.subscription field when present (old-version events), otherwise invoice.parent.subscription_details.subscription. Webhook endpoints are not changed.',
             ]
           : []),
         'The stripe package is not upgraded. TypeScript projects may need the stripe package version matching the new API version before they typecheck.',
