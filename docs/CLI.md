@@ -36,6 +36,8 @@ For supported single-package and npm workspace projects, `refit prepare` install
 
 The same preparation supports pinned pnpm roots and bounded catalog/workspace layouts, including pnpm 12's separate environment lock document. See [pnpm requirements](PNPM-WORKSPACES.md).
 
+Run `refit agents` to detect the provider SDKs a repository uses and `refit agents --add <id>` to add a matching agent to `.refit.json`. See [provider agents](PROVIDER-AGENTS.md).
+
 Pass `--env .env` to any command to load environment variables explicitly, including with an installed `refit` executable. Existing environment values take precedence. Refit does not automatically load files from the scanned repository. Keep credentials outside committed configuration files.
 
 ```sh

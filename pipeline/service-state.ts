@@ -37,6 +37,16 @@ export interface ServiceRegistry {
   targets: Record<string, ServiceTargetState>;
   installations: Record<string, InstallationState>;
   deliveries: Record<string, { hash: string; event: string; receivedAt: string }>;
+  pullRequests?: Record<string, PullRequestState>;
+}
+export interface PullRequestState {
+  repository: string;
+  number: number;
+  base: string;
+  head: string;
+  status: 'pending' | 'commented' | 'no-new-agents' | 'failed';
+  suggested: string[];
+  message: string | null;
 }
 
 export async function openServiceStore(
@@ -87,6 +97,7 @@ export async function openServiceStore(
         !isObject(value.targets) ||
         !isObject(value.installations) ||
         !isObject(value.deliveries) ||
+        (value.pullRequests !== undefined && !isObject(value.pullRequests)) ||
         Object.keys(value.targets).sort().join(',') !==
           targets
             .map((target) => target.id)
@@ -218,8 +229,29 @@ export async function openServiceStore(
           }
         }
       }
+      // Pull requests are recorded only for configured repositories; suggestions are posted later.
+      const watched =
+        change.kind === 'pull_request' &&
+        targets.some((target) => target.repository.toLowerCase() === change.repository);
+      if (change.kind === 'pull_request' && watched) {
+        const key = `${change.repository}#${change.number}`;
+        const pulls = (state.pullRequests ??= {});
+        pulls[key] = {
+          repository: change.repository,
+          number: change.number,
+          base: change.base,
+          head: change.head,
+          status: 'pending',
+          suggested: pulls[key]?.suggested ?? [],
+          message: null,
+        };
+      }
       state.deliveries[delivery] = { hash, event, receivedAt: new Date().toISOString() };
-      return { status: 'accepted' as const, disabled, wake: 'installationId' in change };
+      return {
+        status: 'accepted' as const,
+        disabled,
+        wake: 'installationId' in change || watched,
+      };
     });
   return { read, update, accept };
 }
