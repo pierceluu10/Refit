@@ -35,6 +35,7 @@ import {
   type GeneratedChecks,
 } from './generated-checks.ts';
 import { codeDiff, PACKAGE_FILES, packageDiff } from './stripe-package-upgrade.ts';
+import { compactPatch } from './patches.ts';
 import { SUBSCRIPTION_PERIOD_RULE } from './stripe-subscription-periods.ts';
 import {
   dockerSandboxArguments,
@@ -594,7 +595,7 @@ export async function validateMigration(options: {
           beforeSpecification.schemas,
           {
             attempt: repair.requested,
-            failedPatch: codeDiff(proposal.diff),
+            failedPatch: compactPatch(codeDiff(proposal.diff)),
             check: {
               exitCode: patched.exitCode,
               stdout: patched.stdout.slice(0, MAX_REPAIR_LOG_CHARACTERS),
