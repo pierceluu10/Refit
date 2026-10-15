@@ -1,3 +1,4 @@
+import { MAX_VALIDATION_ARCHIVE_BYTES } from './docker-sandbox.ts';
 import { createHash } from 'node:crypto';
 import { constants } from 'node:fs';
 import { lstat, open, readdir, realpath } from 'node:fs/promises';
@@ -7,8 +8,9 @@ import { PipelineInputError } from './types.ts';
 
 const MANIFEST = 'manifest.json';
 const MAX_MANIFEST_BYTES = 64 * 1024;
-const MAX_ARTIFACT_BYTES = 256 * 1024 * 1024;
-const MAX_TOTAL_BYTES = 1024 * 1024 * 1024;
+// A dependency archive is the largest artifact; other files are bounded far below it.
+const MAX_ARTIFACT_BYTES = MAX_VALIDATION_ARCHIVE_BYTES;
+const MAX_TOTAL_BYTES = MAX_VALIDATION_ARCHIVE_BYTES + 64 * 1024 * 1024;
 const MAX_FILES = 16;
 const HASH = /^[a-f0-9]{64}$/;
 const FILE_NAME = /^[a-z][a-z0-9.-]*$/;

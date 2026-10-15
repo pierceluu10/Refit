@@ -20,6 +20,10 @@ const VALIDATION_PROFILES = {
   '2g': { workspace: '2g', memory: '3g', archiveBytes: 1024 * MIB },
 } as const;
 
+export const MAX_VALIDATION_ARCHIVE_BYTES = Math.max(
+  ...Object.values(VALIDATION_PROFILES).map((profile) => profile.archiveBytes),
+);
+
 export function validationProfile(value = process.env.REFIT_VALIDATION_WORKSPACE) {
   const name = value?.trim() || '512m';
   if (!Object.hasOwn(VALIDATION_PROFILES, name))
