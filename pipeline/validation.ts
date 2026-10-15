@@ -28,6 +28,7 @@ import {
   generatedCommand,
   compareGeneratedRuns,
   generatedEntryPoints,
+  generatedImportMap,
   readMockDocument,
   writeHarness,
   type GeneratedChecks,
@@ -134,6 +135,7 @@ async function generatedStripeChecks(options: {
   image: string;
   dependencies?: string;
   entryPoints: ReturnType<typeof generatedEntryPoints>;
+  imports: ReturnType<typeof generatedImportMap>;
   runs: { directory: string; contract: string; side: 'before' | 'after'; dependencies?: string }[];
   onProgress?: (message: string) => void;
 }) {
@@ -154,7 +156,7 @@ async function generatedStripeChecks(options: {
       fixtures: await readMockDocument(fixtures.after, 'after fixtures file'),
     },
   };
-  await writeHarness(tools, entries);
+  await writeHarness(tools, entries, options.imports);
   const notRun: CheckResult = { status: 'not-run', exitCode: null, stdout: '', stderr: '' };
   const results: CheckResult[] = [];
   for (const run of options.runs) {
@@ -576,6 +578,7 @@ export async function validateMigration(options: {
             image,
             dependencies,
             entryPoints: generatedEntryPoints(originalSources, report.findings),
+            imports: generatedImportMap(originalSources),
             runs: [
               { directory: baselineDirectory, contract: options.before, side: 'before' },
               {
