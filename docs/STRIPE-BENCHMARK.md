@@ -155,6 +155,23 @@ Every proposed patch was reviewed by hand:
 - **`horizon-ui/shadcn-nextjs-boilerplate` was wrong.** Its client passes `apiVersion: null`, so responses follow the account's default version. The moved reads would return `NaN` until the account is upgraded. Field moves now apply only when the same patch bumps a literal `apiVersion`, and this repository now gets no patch.
 - **The other six are correct at runtime when a subscription's items share one billing period.** All six are TypeScript projects on stripe-node 12–16. Type-checking the patched code against stripe@12.9.0 and stripe@16.12.0 types fails twice: `apiVersion` is typed as the package's own version literal, and `SubscriptionItem` has no `current_period_end`. They need the `stripe` package upgrade before they build (plan open decision 7).
 
+### Re-run with AI (October 15)
+
+Rebuilt from pinned inputs with `scripts/stripe-benchmark-setup.mjs` (100 repositories, 21 versions, no failures), the scan reproduces **23 affected repositories** with the full adapter. A run with `--ai --validate` on `gpt-5.4-mini`, capped at $5 by a fresh ledger, **spent $0.038**:
+
+| Outcome | Repositories |
+|---|---|
+| Deterministic patches (subscription-period moves) | 6 |
+| AI asked, no edit proposed | 2 |
+| AI error (exact-replacement mismatch; ambiguous alias configuration) | 2 |
+| Blocked by the repository-wide webhook gate (plan open decision 2) | 10 |
+| Blocked by skipped unparseable files | 1 |
+| Validation stopped (lockfile integrity, dependency archive size, declared types) | 3 |
+
+In `Kanba-co/kanba`, the model named the documented `invoice.parent.subscription_details` replacement but declined to edit, because the read is not on a traced SDK response.
+
+[Generated checks](GENERATED-CHECKS.md) now find an entry point in 5 of the 6 patched repositories, all the Vercel/Supabase template's `manageSubscriptionStatusChange`, exported through an `export { … }` list. The sixth patch is in a webhook route. None of the five ran: `kpirabaharan/Spotify-Clone`'s Next.js dependencies exceed the 256 MiB archive limit, which the 512 MiB validation workspace imposes. These helpers also query Supabase before calling Stripe, so even with room they would be excluded offline as not runnable in isolation.
+
 ### Reproduce
 
 Rebuild the benchmark root from the pinned list and labels: shallow clones at the recorded commits, plus each API version's spec and fixtures, and the latest SDK spec, from `stripe/openapi`.
