@@ -1,5 +1,15 @@
 # Refit implementation checkpoints
 
+## October 15 checkpoint: configured nested field moves (0.23.0)
+
+An adapter's `propertyRenames` entry can now name a dot-separated replacement path of up to four identifiers. Before scanning, Refit checks that the path is new in the after contract, its intermediates are object references, and the value keeps the removed field's declared shape with compatible nullability. Confirmed direct reads on traced SDK responses get optional chaining where the contract allows a missing parent, plus a `?? null` fallback that keeps the removed nullable field's result. Reads already using the new path are not reported, even when other removals share segment names. Expandable values stay unedited when an `expand` array names the old field or cannot be read statically. Webhook payloads, declared-type values and other review shapes are unchanged. See [moved response fields](PROPERTY-MOVES.md).
+
+The default suite passed **1,195 tests across 74 files**, with 73 environment-gated tests skipped, plus build, typecheck and formatting. New cases cover the move edit and its runtime null behavior, required paths, colliding basil removals, expansion gates, contract rejections and parser limits.
+
+A local lab at `/Users/pierceluu/Repos/refit-stripe-lab` used the actual `stripe` 17.7.0 SDK with Stripe's published `2025-02-24.acacia` and `2025-04-30.basil` OpenAPI documents. `refit run` prepared npm dependencies, migrated three `invoice.subscription` reads to `invoice.parent.subscription_details.subscription`, and passed the original acacia and migrated basil simulated contracts in offline Docker. The original code fails against the basil shape. Evidence is at `/Users/pierceluu/.refit/evaluations/property-moves-2026-10-15`; the lab stayed clean. The responses were simulated, not live Stripe calls, and no AI was used.
+
+The lab ran with `fullDiff: false`. On the same real contracts, `--full-diff` reports 1,784 level-2/3 changes reachable from `invoices.retrieve`: 1,560 response enum additions and 216 required-property removals. These still block automation under the current policy. How to treat them for Stripe remains an open owner decision, so that gate is unchanged.
+
 ## October 15 checkpoint: pinned pnpm preparation (0.22.0)
 
 `prepareDependencies` now accepts pnpm roots and bounded workspaces with an exact `packageManager` pin and a committed lockfile v9, including pnpm 12's separate environment document. Default/named catalogs and explicit `workspace:` links are verified against their recorded resolutions. Only manifest, lock and workspace-configuration bytes enter the networked installer; lifecycle scripts stay disabled and checks run offline from the verified archive. pnpm importers, package records and peer-qualified snapshots also supply recorded SDK versions to scans and readiness. See [pnpm requirements and limits](PNPM-WORKSPACES.md).
