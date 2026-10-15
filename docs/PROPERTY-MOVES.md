@@ -27,19 +27,22 @@ A path has at most four identifier segments, and `__proto__` is refused. A repla
 
 ## Curated Stripe basil moves
 
-[`examples/stripe-basil-moves.provider.json`](../examples/stripe-basil-moves.provider.json) maps Stripe's invoice and invoice-item SDK methods. It configures the two basil moves that pass these checks against Stripe's published acacia and basil documents:
+[`examples/stripe-basil-moves.provider.json`](../examples/stripe-basil-moves.provider.json) maps Stripe's invoice and invoice-item SDK methods. It configures the six basil moves that pass these checks against Stripe's published acacia and basil documents:
 
 | Removed | New path |
 |---|---|
 | `invoice.subscription` | `invoice.parent.subscription_details.subscription` |
+| `invoice.quote` | `invoice.parent.quote_details.quote` |
+| `invoiceitem.subscription` | `invoiceitem.parent.subscription_details.subscription` |
 | `invoiceitem.subscription_item` | `invoiceitem.parent.subscription_details.subscription_item` |
+| `line_item.subscription_item` | `line_item.parent.subscription_item_details.subscription_item` |
+| `line_item.invoice_item` | `line_item.parent.invoice_item_details.invoice_item` |
 
-Copy it next to your contracts and reference it from `providerConfig`; add your own methods as needed. The other basil invoicing moves are deliberately absent because they change meaning:
+Copy it next to your contracts and reference it from `providerConfig`; add your own methods as needed. Line items are traced through `invoice.lines.data`. The other basil invoicing moves are deliberately absent because they change meaning:
 
-- `invoice.quote`, `invoiceitem.subscription`, `line_item.invoice_item` and `line_item.subscription_item` were expandable objects and are now ID strings only.
-- `invoice.subscription_details` now refers to a different object schema.
+- `invoice.subscription_details` and `line_item.proration_details` now refer to different object schemas.
 - `invoice.subscription_proration_date` gained a `unix-time` format annotation, and Refit compares formats strictly.
-- `line_item.proration` was required, but its new path can be missing for non-subscription lines.
+- `line_item.proration` was always present, but its new location can be missing for non-subscription lines.
 
 Those reads still need review or a reviewed AI proposal.
 
@@ -49,7 +52,7 @@ Before scanning, Refit checks the move against your recorded contracts:
 
 - The path resolves in the after contract and did not exist in the before contract.
 - Every intermediate segment is a direct or single-member `anyOf` reference to an object component.
-- The new value has the same declared shape as the removed one: type, `anyOf` members, references and expansion metadata. Descriptions and nullability are compared separately.
+- The new value has the same declared shape as the removed one: type, `anyOf` members, references and expansion metadata. Descriptions and nullability are compared separately. One narrowing is accepted: an expandable `string | object` field whose new location holds exactly its ID string. Unexpanded responses always returned that string, and the expansion gate below applies.
 - If any intermediate is nullable or not required, the removed field must have been nullable or optional. A required, non-nullable field always had a value, so a path that can be missing is refused.
 
 A move that fails any check stops the run with an error naming the move.
@@ -63,7 +66,7 @@ Only direct property reads on confirmed, statically traced SDK responses change.
 +  return (invoice.parent?.subscription_details?.subscription ?? null);
 ```
 
-Optional chaining appears only where the after contract allows a missing parent. For a removed nullable field, `?? null` keeps its `null` result when a parent is absent. A removed optional, non-nullable field read as `undefined` when absent, so its edit uses optional chaining without a fallback. If every intermediate is required and non-nullable, the edit reads the path directly.
+Nullability and optionality follow the recorded contract, not observed responses. Optional chaining appears only where the after contract allows a missing parent. For a removed nullable field, `?? null` keeps its `null` result when a parent is absent. A removed optional, non-nullable field read as `undefined` when absent, so its edit uses optional chaining without a fallback. If every intermediate is required and non-nullable, the edit reads the path directly.
 
 Reads that already use the new path are not reported, even where other removals share a segment name. Stripe's basil release also removed top-level `invoice.subscription_details` and `invoiceitem.subscription`.
 

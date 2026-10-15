@@ -349,7 +349,7 @@ it('applies the three move edits without overlapping', () => {
   ).toBe('x((invoice.parent?.a ?? null))');
 });
 
-it('migrates both curated basil moves with the shipped example adapter and real Stripe schemas', async () => {
+it('migrates every curated basil move with the shipped example adapter and real Stripe schemas', async () => {
   const root = await mkdtemp(join(tmpdir(), 'refit-basil-catalog-'));
   directories.push(root);
   await writeFile(
@@ -367,9 +367,29 @@ export async function invoiceSubscription(id) {
   return invoice.subscription;
 }
 
+export async function invoiceQuote(id) {
+  const invoice = await stripe.invoices.retrieve(id);
+  return invoice.quote;
+}
+
+export async function itemSubscription(id) {
+  const item = await stripe.invoiceItems.retrieve(id);
+  return item.subscription;
+}
+
 export async function itemSubscriptionItem(id) {
   const item = await stripe.invoiceItems.retrieve(id);
   return item.subscription_item;
+}
+
+export async function lineSubscriptionItems(id) {
+  const invoice = await stripe.invoices.retrieve(id);
+  return invoice.lines.data.map((line) => line.subscription_item);
+}
+
+export async function lineInvoiceItems(id) {
+  const invoice = await stripe.invoices.retrieve(id);
+  return invoice.lines.data.map((line) => line.invoice_item);
 }
 `,
   );
@@ -382,12 +402,15 @@ export async function itemSubscriptionItem(id) {
       proposePatch: true,
     }),
   );
-  expect(report.findings.filter((finding) => finding.confidence === 'confirmed')).toHaveLength(2);
+  expect(report.findings.filter((finding) => finding.confidence === 'confirmed')).toHaveLength(6);
   expect(report.patch).toMatchObject({ status: 'proposed', unresolvedFindings: 0 });
-  expect(report.patch.diff).toContain(
+  for (const line of [
     '+  return (invoice.parent?.subscription_details?.subscription ?? null);',
-  );
-  expect(report.patch.diff).toContain(
+    '+  return (invoice.parent?.quote_details?.quote ?? null);',
+    '+  return (item.parent?.subscription_details?.subscription ?? null);',
     '+  return item.parent?.subscription_details?.subscription_item;',
-  );
+    '+  return invoice.lines.data.map((line) => line.parent?.subscription_item_details?.subscription_item);',
+    '+  return invoice.lines.data.map((line) => line.parent?.invoice_item_details?.invoice_item);',
+  ])
+    expect(report.patch.diff).toContain(line);
 });

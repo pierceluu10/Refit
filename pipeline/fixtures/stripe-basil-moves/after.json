@@ -1302,6 +1302,267 @@
         },
         "required": ["subscription"],
         "type": "object"
+      },
+      "line_item": {
+        "properties": {
+          "amount": {
+            "description": "The amount, in cents (or local equivalent).",
+            "type": "integer"
+          },
+          "currency": {
+            "description": "Three-letter [ISO currency code](https://www.iso.org/iso-4217-currency-codes.html), in lowercase. Must be a [supported currency](https://stripe.com/docs/currencies).",
+            "format": "currency",
+            "type": "string"
+          },
+          "description": {
+            "description": "An arbitrary string attached to the object. Often useful for displaying to users.",
+            "maxLength": 5000,
+            "nullable": true,
+            "type": "string"
+          },
+          "discount_amounts": {
+            "description": "The amount of discount calculated per discount for this line item.",
+            "items": {
+              "$ref": "#/components/schemas/discounts_resource_discount_amount"
+            },
+            "nullable": true,
+            "type": "array"
+          },
+          "discountable": {
+            "description": "If true, discounts will apply to this line item. Always false for prorations.",
+            "type": "boolean"
+          },
+          "discounts": {
+            "description": "The discounts applied to the invoice line item. Line item discounts are applied before invoice discounts. Use `expand[]=discounts` to expand each discount.",
+            "items": {
+              "anyOf": [
+                {
+                  "maxLength": 5000,
+                  "type": "string"
+                },
+                {
+                  "$ref": "#/components/schemas/discount"
+                }
+              ],
+              "x-expansionResources": {
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/discount"
+                  }
+                ]
+              }
+            },
+            "type": "array"
+          },
+          "id": {
+            "description": "Unique identifier for the object.",
+            "maxLength": 5000,
+            "type": "string"
+          },
+          "invoice": {
+            "description": "The ID of the invoice that contains this line item.",
+            "maxLength": 5000,
+            "nullable": true,
+            "type": "string"
+          },
+          "livemode": {
+            "description": "Has the value `true` if the object exists in live mode or the value `false` if the object exists in test mode.",
+            "type": "boolean"
+          },
+          "metadata": {
+            "additionalProperties": {
+              "maxLength": 500,
+              "type": "string"
+            },
+            "description": "Set of [key-value pairs](https://stripe.com/docs/api/metadata) that you can attach to an object. This can be useful for storing additional information about the object in a structured format. Note that for line items with `type=subscription`, `metadata` reflects the current metadata from the subscription associated with the line item, unless the invoice line was directly updated with different metadata after creation.",
+            "type": "object"
+          },
+          "object": {
+            "description": "String representing the object's type. Objects of the same type share the same value.",
+            "enum": ["line_item"],
+            "type": "string"
+          },
+          "parent": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/billing_bill_resource_invoicing_lines_parents_invoice_line_item_parent"
+              }
+            ],
+            "description": "The parent that generated this invoice",
+            "nullable": true
+          },
+          "period": {
+            "$ref": "#/components/schemas/invoice_line_item_period"
+          },
+          "pretax_credit_amounts": {
+            "description": "Contains pretax credit amounts (ex: discount, credit grants, etc) that apply to this line item.",
+            "items": {
+              "$ref": "#/components/schemas/invoices_resource_pretax_credit_amount"
+            },
+            "nullable": true,
+            "type": "array"
+          },
+          "pricing": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/billing_bill_resource_invoicing_pricing_pricing"
+              }
+            ],
+            "description": "The pricing information of the line item.",
+            "nullable": true
+          },
+          "quantity": {
+            "description": "The quantity of the subscription, if the line item is a subscription or a proration.",
+            "nullable": true,
+            "type": "integer"
+          },
+          "subscription": {
+            "anyOf": [
+              {
+                "maxLength": 5000,
+                "type": "string"
+              },
+              {
+                "$ref": "#/components/schemas/subscription"
+              }
+            ],
+            "nullable": true,
+            "x-expansionResources": {
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/subscription"
+                }
+              ]
+            }
+          },
+          "taxes": {
+            "description": "The tax information of the line item.",
+            "items": {
+              "$ref": "#/components/schemas/billing_bill_resource_invoicing_taxes_tax"
+            },
+            "nullable": true,
+            "type": "array"
+          }
+        },
+        "required": [
+          "amount",
+          "currency",
+          "discountable",
+          "discounts",
+          "id",
+          "livemode",
+          "metadata",
+          "object",
+          "period"
+        ],
+        "type": "object"
+      },
+      "billing_bill_resource_invoicing_parents_invoice_quote_parent": {
+        "properties": {
+          "quote": {
+            "description": "The quote that generated this invoice",
+            "maxLength": 5000,
+            "type": "string"
+          }
+        },
+        "required": ["quote"],
+        "type": "object"
+      },
+      "billing_bill_resource_invoicing_lines_parents_invoice_line_item_parent": {
+        "properties": {
+          "invoice_item_details": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/billing_bill_resource_invoicing_lines_parents_invoice_line_item_invoice_item_parent"
+              }
+            ],
+            "description": "Details about the invoice item that generated this line item",
+            "nullable": true
+          },
+          "subscription_item_details": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/billing_bill_resource_invoicing_lines_parents_invoice_line_item_subscription_item_parent"
+              }
+            ],
+            "description": "Details about the subscription item that generated this line item",
+            "nullable": true
+          },
+          "type": {
+            "description": "The type of parent that generated this line item",
+            "enum": ["invoice_item_details", "subscription_item_details"],
+            "type": "string",
+            "x-stripeBypassValidation": true
+          }
+        },
+        "required": ["type"],
+        "type": "object"
+      },
+      "billing_bill_resource_invoicing_lines_parents_invoice_line_item_subscription_item_parent": {
+        "properties": {
+          "invoice_item": {
+            "description": "The invoice item that generated this line item",
+            "maxLength": 5000,
+            "nullable": true,
+            "type": "string"
+          },
+          "proration": {
+            "description": "Whether this is a proration",
+            "type": "boolean"
+          },
+          "proration_details": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/billing_bill_resource_invoicing_lines_common_proration_details"
+              }
+            ],
+            "description": "Additional details for proration line items",
+            "nullable": true
+          },
+          "subscription": {
+            "description": "The subscription that the subscription item belongs to",
+            "maxLength": 5000,
+            "nullable": true,
+            "type": "string"
+          },
+          "subscription_item": {
+            "description": "The subscription item that generated this line item",
+            "maxLength": 5000,
+            "type": "string"
+          }
+        },
+        "required": ["proration", "subscription_item"],
+        "type": "object"
+      },
+      "billing_bill_resource_invoicing_lines_parents_invoice_line_item_invoice_item_parent": {
+        "properties": {
+          "invoice_item": {
+            "description": "The invoice item that generated this line item",
+            "maxLength": 5000,
+            "type": "string"
+          },
+          "proration": {
+            "description": "Whether this is a proration",
+            "type": "boolean"
+          },
+          "proration_details": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/billing_bill_resource_invoicing_lines_common_proration_details"
+              }
+            ],
+            "description": "Additional details for proration line items",
+            "nullable": true
+          },
+          "subscription": {
+            "description": "The subscription that the invoice item belongs to",
+            "maxLength": 5000,
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": ["invoice_item", "proration"],
+        "type": "object"
       }
     }
   }

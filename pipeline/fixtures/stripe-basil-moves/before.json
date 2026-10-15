@@ -1299,6 +1299,229 @@
           "quantity"
         ],
         "type": "object"
+      },
+      "line_item": {
+        "properties": {
+          "amount": {
+            "description": "The amount, in cents (or local equivalent).",
+            "type": "integer"
+          },
+          "amount_excluding_tax": {
+            "description": "The integer amount in cents (or local equivalent) representing the amount for this line item, excluding all tax and discounts.",
+            "nullable": true,
+            "type": "integer"
+          },
+          "currency": {
+            "description": "Three-letter [ISO currency code](https://www.iso.org/iso-4217-currency-codes.html), in lowercase. Must be a [supported currency](https://stripe.com/docs/currencies).",
+            "format": "currency",
+            "type": "string"
+          },
+          "description": {
+            "description": "An arbitrary string attached to the object. Often useful for displaying to users.",
+            "maxLength": 5000,
+            "nullable": true,
+            "type": "string"
+          },
+          "discount_amounts": {
+            "description": "The amount of discount calculated per discount for this line item.",
+            "items": {
+              "$ref": "#/components/schemas/discounts_resource_discount_amount"
+            },
+            "nullable": true,
+            "type": "array"
+          },
+          "discountable": {
+            "description": "If true, discounts will apply to this line item. Always false for prorations.",
+            "type": "boolean"
+          },
+          "discounts": {
+            "description": "The discounts applied to the invoice line item. Line item discounts are applied before invoice discounts. Use `expand[]=discounts` to expand each discount.",
+            "items": {
+              "anyOf": [
+                {
+                  "maxLength": 5000,
+                  "type": "string"
+                },
+                {
+                  "$ref": "#/components/schemas/discount"
+                }
+              ],
+              "x-expansionResources": {
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/discount"
+                  }
+                ]
+              }
+            },
+            "type": "array"
+          },
+          "id": {
+            "description": "Unique identifier for the object.",
+            "maxLength": 5000,
+            "type": "string"
+          },
+          "invoice": {
+            "description": "The ID of the invoice that contains this line item.",
+            "maxLength": 5000,
+            "nullable": true,
+            "type": "string"
+          },
+          "invoice_item": {
+            "anyOf": [
+              {
+                "maxLength": 5000,
+                "type": "string"
+              },
+              {
+                "$ref": "#/components/schemas/invoiceitem"
+              }
+            ],
+            "description": "The ID of the [invoice item](https://stripe.com/docs/api/invoiceitems) associated with this line item if any.",
+            "x-expansionResources": {
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/invoiceitem"
+                }
+              ]
+            }
+          },
+          "livemode": {
+            "description": "Has the value `true` if the object exists in live mode or the value `false` if the object exists in test mode.",
+            "type": "boolean"
+          },
+          "metadata": {
+            "additionalProperties": {
+              "maxLength": 500,
+              "type": "string"
+            },
+            "description": "Set of [key-value pairs](https://stripe.com/docs/api/metadata) that you can attach to an object. This can be useful for storing additional information about the object in a structured format. Note that for line items with `type=subscription`, `metadata` reflects the current metadata from the subscription associated with the line item, unless the invoice line was directly updated with different metadata after creation.",
+            "type": "object"
+          },
+          "object": {
+            "description": "String representing the object's type. Objects of the same type share the same value.",
+            "enum": ["line_item"],
+            "type": "string"
+          },
+          "period": {
+            "$ref": "#/components/schemas/invoice_line_item_period"
+          },
+          "pretax_credit_amounts": {
+            "description": "Contains pretax credit amounts (ex: discount, credit grants, etc) that apply to this line item.",
+            "items": {
+              "$ref": "#/components/schemas/invoices_resource_pretax_credit_amount"
+            },
+            "nullable": true,
+            "type": "array"
+          },
+          "price": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/price"
+              }
+            ],
+            "description": "The price of the line item.",
+            "nullable": true
+          },
+          "proration": {
+            "description": "Whether this is a proration.",
+            "type": "boolean"
+          },
+          "proration_details": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/invoices_resource_line_items_proration_details"
+              }
+            ],
+            "description": "Additional details for proration line items",
+            "nullable": true
+          },
+          "quantity": {
+            "description": "The quantity of the subscription, if the line item is a subscription or a proration.",
+            "nullable": true,
+            "type": "integer"
+          },
+          "subscription": {
+            "anyOf": [
+              {
+                "maxLength": 5000,
+                "type": "string"
+              },
+              {
+                "$ref": "#/components/schemas/subscription"
+              }
+            ],
+            "description": "The subscription that the invoice item pertains to, if any.",
+            "nullable": true,
+            "x-expansionResources": {
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/subscription"
+                }
+              ]
+            }
+          },
+          "subscription_item": {
+            "anyOf": [
+              {
+                "maxLength": 5000,
+                "type": "string"
+              },
+              {
+                "$ref": "#/components/schemas/subscription_item"
+              }
+            ],
+            "description": "The subscription item that generated this line item. Left empty if the line item is not an explicit result of a subscription.",
+            "x-expansionResources": {
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/subscription_item"
+                }
+              ]
+            }
+          },
+          "tax_amounts": {
+            "description": "The amount of tax calculated per tax rate for this line item",
+            "items": {
+              "$ref": "#/components/schemas/invoice_tax_amount"
+            },
+            "type": "array"
+          },
+          "tax_rates": {
+            "description": "The tax rates which apply to the line item.",
+            "items": {
+              "$ref": "#/components/schemas/tax_rate"
+            },
+            "type": "array"
+          },
+          "type": {
+            "description": "A string identifying the type of the source of this line item, either an `invoiceitem` or a `subscription`.",
+            "enum": ["invoiceitem", "subscription"],
+            "type": "string"
+          },
+          "unit_amount_excluding_tax": {
+            "description": "The amount in cents (or local equivalent) representing the unit amount for this line item, excluding all tax and discounts.",
+            "format": "decimal",
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "amount",
+          "currency",
+          "discountable",
+          "discounts",
+          "id",
+          "livemode",
+          "metadata",
+          "object",
+          "period",
+          "proration",
+          "tax_amounts",
+          "tax_rates",
+          "type"
+        ],
+        "type": "object"
       }
     }
   }

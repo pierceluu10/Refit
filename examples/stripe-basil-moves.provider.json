@@ -4,20 +4,103 @@
   "defaultImport": true,
   "namedExport": null,
   "operations": [
-    { "resource": "invoices", "method": "retrieve", "schema": "invoice", "operationId": "GetInvoicesInvoice" },
-    { "resource": "invoices", "method": "create", "schema": "invoice", "operationId": "PostInvoices" },
-    { "resource": "invoices", "method": "update", "schema": "invoice", "operationId": "PostInvoicesInvoice" },
-    { "resource": "invoices", "method": "finalizeInvoice", "schema": "invoice", "operationId": "PostInvoicesInvoiceFinalize" },
-    { "resource": "invoices", "method": "markUncollectible", "schema": "invoice", "operationId": "PostInvoicesInvoiceMarkUncollectible" },
-    { "resource": "invoices", "method": "pay", "schema": "invoice", "operationId": "PostInvoicesInvoicePay" },
-    { "resource": "invoices", "method": "sendInvoice", "schema": "invoice", "operationId": "PostInvoicesInvoiceSend" },
-    { "resource": "invoices", "method": "voidInvoice", "schema": "invoice", "operationId": "PostInvoicesInvoiceVoid" },
-    { "resource": "invoiceItems", "method": "retrieve", "schema": "invoiceitem", "operationId": "GetInvoiceitemsInvoiceitem" },
-    { "resource": "invoiceItems", "method": "create", "schema": "invoiceitem", "operationId": "PostInvoiceitems" },
-    { "resource": "invoiceItems", "method": "update", "schema": "invoiceitem", "operationId": "PostInvoiceitemsInvoiceitem" }
+    {
+      "resource": "invoices",
+      "method": "retrieve",
+      "schema": "invoice",
+      "operationId": "GetInvoicesInvoice"
+    },
+    {
+      "resource": "invoices",
+      "method": "create",
+      "schema": "invoice",
+      "operationId": "PostInvoices"
+    },
+    {
+      "resource": "invoices",
+      "method": "update",
+      "schema": "invoice",
+      "operationId": "PostInvoicesInvoice"
+    },
+    {
+      "resource": "invoices",
+      "method": "finalizeInvoice",
+      "schema": "invoice",
+      "operationId": "PostInvoicesInvoiceFinalize"
+    },
+    {
+      "resource": "invoices",
+      "method": "markUncollectible",
+      "schema": "invoice",
+      "operationId": "PostInvoicesInvoiceMarkUncollectible"
+    },
+    {
+      "resource": "invoices",
+      "method": "pay",
+      "schema": "invoice",
+      "operationId": "PostInvoicesInvoicePay"
+    },
+    {
+      "resource": "invoices",
+      "method": "sendInvoice",
+      "schema": "invoice",
+      "operationId": "PostInvoicesInvoiceSend"
+    },
+    {
+      "resource": "invoices",
+      "method": "voidInvoice",
+      "schema": "invoice",
+      "operationId": "PostInvoicesInvoiceVoid"
+    },
+    {
+      "resource": "invoiceItems",
+      "method": "retrieve",
+      "schema": "invoiceitem",
+      "operationId": "GetInvoiceitemsInvoiceitem"
+    },
+    {
+      "resource": "invoiceItems",
+      "method": "create",
+      "schema": "invoiceitem",
+      "operationId": "PostInvoiceitems"
+    },
+    {
+      "resource": "invoiceItems",
+      "method": "update",
+      "schema": "invoiceitem",
+      "operationId": "PostInvoiceitemsInvoiceitem"
+    }
   ],
   "propertyRenames": [
-    { "schema": "invoice", "removed": "subscription", "replacement": "parent.subscription_details.subscription" },
-    { "schema": "invoiceitem", "removed": "subscription_item", "replacement": "parent.subscription_details.subscription_item" }
+    {
+      "schema": "invoice",
+      "removed": "subscription",
+      "replacement": "parent.subscription_details.subscription"
+    },
+    {
+      "schema": "invoice",
+      "removed": "quote",
+      "replacement": "parent.quote_details.quote"
+    },
+    {
+      "schema": "invoiceitem",
+      "removed": "subscription",
+      "replacement": "parent.subscription_details.subscription"
+    },
+    {
+      "schema": "invoiceitem",
+      "removed": "subscription_item",
+      "replacement": "parent.subscription_details.subscription_item"
+    },
+    {
+      "schema": "line_item",
+      "removed": "subscription_item",
+      "replacement": "parent.subscription_item_details.subscription_item"
+    },
+    {
+      "schema": "line_item",
+      "removed": "invoice_item",
+      "replacement": "parent.invoice_item_details.invoice_item"
+    }
   ]
 }
