@@ -1,24 +1,18 @@
 import { ArrowRight } from '@phosphor-icons/react';
-import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { scenarios, stages } from '../data';
-import type { Scenario } from '../data';
+import { stages } from '../data';
 import { Brand } from '../components/Brand';
 import { Footer, Header } from '../components/Layout';
 import { WaitlistForm } from '../components/WaitlistForm';
 import { Workflow } from '../components/Workflow';
 
 export function Waitlist() {
-  const [scenario, setScenario] = useState<Scenario>('affected');
   return (
     <>
       <Header />
       <main id="main-content">
-        <section className="hero waitlist-hero" id="waitlist">
+        <section className="hero" id="waitlist">
           <div className="hero-copy">
-            <p className="waitlist-badge">
-              <span /> Early access · Starting with Stripe
-            </p>
             <h1>
               <span>APIs change.</span>
               <span>Your code keeps up.</span>
@@ -30,33 +24,17 @@ export function Waitlist() {
             </p>
             <WaitlistForm />
           </div>
-        </section>
-        <section className="waitlist-demo content-width" id="demo">
-          <div className="section-heading">
-            <h2>See a migration.</h2>
-            <p>An illustrative walkthrough. Pick a scenario, then step through it.</p>
+          <div className="hero-product" id="demo">
+            <Workflow />
           </div>
-          <div className="scenario-picker" aria-label="Example scenario">
-            {(Object.keys(scenarios) as Scenario[]).map((key) => (
-              <button
-                key={key}
-                className={scenario === key ? 'selected' : ''}
-                aria-pressed={scenario === key}
-                onClick={() => setScenario(key)}
-              >
-                {scenarios[key].label}
-              </button>
-            ))}
-          </div>
-          <p className="scenario-summary">{scenarios[scenario].summary}</p>
-          <Workflow key={scenario} expanded scenario={scenario} />
-          <Link className="text-link" to="/app">
-            Explore the sample workspace <ArrowRight />
-          </Link>
         </section>
         <section className="process-section content-width" id="how-it-works">
           <div className="section-heading">
-            <h2>How it works.</h2>
+            <h2>
+              From “what changed?”
+              <br />
+              to “ready to review.”
+            </h2>
             <p>The busywork between an API update and a safe migration.</p>
           </div>
           <div className="process-grid">
@@ -65,9 +43,16 @@ export function Waitlist() {
                 <span className="process-number">0{index + 1}</span>
                 <h3>{stage.title}</h3>
                 <p>{stage.description}</p>
+                <div className="process-artifact">
+                  <span />
+                  {stage.artifact}
+                </div>
               </article>
             ))}
           </div>
+          <Link className="text-link" to="/demo">
+            Walk through every scenario <ArrowRight />
+          </Link>
         </section>
         <section className="closing-section">
           <div className="closing-rule" />
@@ -80,7 +65,7 @@ export function Waitlist() {
           <a className="button button-primary" href="#waitlist">
             Join the waitlist <ArrowRight />
           </a>
-          <p>Draft pull requests only. Refit never merges for you.</p>
+          <p>Early access starts with Stripe. Refit never merges for you.</p>
         </section>
       </main>
       <Footer />

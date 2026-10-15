@@ -1946,43 +1946,17 @@ pre {
     opacity: 0;
   }
 }
-.waitlist-hero {
-  padding-bottom: 104px;
-}
-.waitlist-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 28px;
-  padding: 6px 13px;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  background: var(--surface);
-  color: var(--muted);
-  font-size: 12px;
-  line-height: 1.4;
-}
-.waitlist-badge span {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--blue);
-}
-.hero-copy > .waitlist-badge {
-  margin-top: 0;
-  font-size: 12px;
-}
 .waitlist-form,
 .waitlist-done {
   max-width: 470px;
-  margin: 36px auto 0;
+  margin: 32px auto 0;
 }
 .waitlist-field {
   display: flex;
   gap: 6px;
   padding: 5px;
   border: 1px solid var(--border);
-  border-radius: 9px;
+  border-radius: 10px;
   background: var(--surface);
   box-shadow: 0 10px 24px -18px #18254266;
   transition:
@@ -2005,7 +1979,7 @@ pre {
   outline: none;
 }
 .waitlist-field input::placeholder {
-  color: #9aa2b0;
+  color: var(--muted);
 }
 .waitlist-field .button {
   min-height: 42px;
@@ -2028,7 +2002,8 @@ pre {
 }
 .waitlist-apis legend span {
   margin-left: 4px;
-  color: #9aa2b0;
+  color: var(--muted);
+  font-weight: 550;
 }
 .waitlist-apis > div {
   display: flex;
@@ -2049,7 +2024,11 @@ pre {
   transition:
     color var(--fast) ease,
     background-color var(--fast) ease,
-    border-color var(--fast) ease;
+    border-color var(--fast) ease,
+    transform var(--fast) var(--ease-out);
+}
+.waitlist-chip:active {
+  transform: scale(0.97);
 }
 .waitlist-chip input {
   position: absolute;
@@ -2078,35 +2057,26 @@ pre {
   gap: 10px;
   padding: 15px 18px;
   border: 1px solid var(--border);
-  border-radius: 9px;
+  border-radius: 10px;
   background: var(--surface);
   font-size: 14px;
   animation: text-enter var(--entrance) var(--ease-out) both;
 }
-.waitlist-demo {
-  padding-top: 96px;
-  border-top: 1px solid var(--border);
-}
-.waitlist-demo .workflow {
-  margin-bottom: 28px;
-}
 @media (hover: hover) and (pointer: fine) {
   .waitlist-chip:hover {
     color: var(--ink);
-    border-color: #c9d0da;
   }
 }
 @media (max-width: 640px) {
-  .waitlist-hero {
-    padding-bottom: 72px;
-  }
   .waitlist-field {
     flex-direction: column;
   }
   .waitlist-field input {
     min-height: 44px;
   }
-  .waitlist-demo {
-    padding-top: 64px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .waitlist-chip:active {
+    transform: none;
   }
 }
