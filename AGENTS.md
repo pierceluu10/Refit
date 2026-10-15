@@ -30,6 +30,7 @@ Build toward a reliable agent for many API providers, with separate integrations
 - Configure the GitHub App and local worker: [GitHub App](docs/GITHUB-APP.md) and [local service](docs/LOCAL-SERVICE.md).
 - Configure several APIs in one repository: [Multiple integrations](docs/MULTIPLE-INTEGRATIONS.md).
 - Check SDK dependency preparation: [Dependencies](docs/DEPENDENCIES.md), [npm workspaces](docs/NPM-WORKSPACES.md), and [pnpm workspaces](docs/PNPM-WORKSPACES.md).
+- Detect provider SDKs and add agents: [Provider agents](docs/PROVIDER-AGENTS.md).
 - See CLI commands and requirements: [CLI guide](docs/CLI.md).
 
 The guides explain onboarding a repository into Refit. This file explains how coding agents should contribute to Refit itself.
@@ -43,3 +44,4 @@ The guides explain onboarding a repository into Refit. This file explains how co
 - Stripe's published OpenAPI documents are pinned by `stripe/openapi` tag in `docs/benchmarks/2026-10-14-stripe-repos.json`. A local Stripe lab for end-to-end checks lives at `/Users/pierceluu/Repos/refit-stripe-lab`; it uses simulated responses only.
 - Open owner decision: `--full-diff` on real Stripe upgrades reports thousands of enum additions and reachable required-property removals, which block automation. The enum part was relaxed on explicit instruction in the self-maintaining pipeline PR: Stripe response enum additions block only where the code switches over the field. That change needs owner sign-off. Removals inside unexpanded Stripe objects stopped blocking with owner sign-off in 0.25.0. Direct removals the code never reads still block; do not relax the rest of the gate without an explicit decision.
 - Yarn 1 root projects are prepared like npm and pnpm; the shared tool installer is `pipeline/manager-install.ts`. `REFIT_DEPENDENCY_TIMEOUT_SECONDS` (60–1800) extends the install deadline. Preparation runs with a 2 GiB workspace and 3 GiB memory (owner decision, 0.28.0); validation defaults to a 2 GiB workspace, 3 GiB memory and 1 GiB archive (owner decision, 0.33.0), always offline; `REFIT_VALIDATION_WORKSPACE=1g|512m` selects smaller profiles.
+- The agent catalog lives in `pipeline/agent-catalog.ts`. Add a provider there with `adapter: null` until a reviewed adapter and rules exist; only entries with an adapter are suggested or addable.
