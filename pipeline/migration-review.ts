@@ -1,10 +1,7 @@
 import { WEBHOOK_REVIEW_REASON } from './stripe-webhook-payloads.ts';
 import type { Finding } from './types.ts';
 import type { ProviderAdapter } from './providers.ts';
-import {
-  SUBSCRIPTION_PERIOD_HELPER_RULE,
-  SUBSCRIPTION_PERIOD_RULE,
-} from './stripe-subscription-periods.ts';
+import { HELPER_RULES, SUBSCRIPTION_PERIOD_RULE } from './stripe-subscription-periods.ts';
 
 const DECLARED_TYPE_REVIEW_REASON =
   'Declared Stripe types identify possible usage but do not establish SDK or incoming-event provenance. Automatic migration, AI and publication require traced source evidence.';
@@ -36,7 +33,7 @@ export function migrationReviewReason(
         !(
           allowConfiguredWebhookMigration &&
           finding.confidence === 'confirmed' &&
-          finding.webhook.migration?.rule === SUBSCRIPTION_PERIOD_HELPER_RULE
+          HELPER_RULES.has(finding.webhook.migration?.rule ?? '')
         ) &&
         (!allowConfiguredWebhookMigration ||
           !policy ||

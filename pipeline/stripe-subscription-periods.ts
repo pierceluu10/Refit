@@ -12,6 +12,12 @@ export interface StripeSubscriptionPeriodPolicy {
 
 export const SUBSCRIPTION_PERIOD_RULE = 'stripe-subscription-periods-price-id';
 export const SUBSCRIPTION_PERIOD_HELPER_RULE = 'stripe-subscription-periods-helper';
+export const INVOICE_SUBSCRIPTION_HELPER_RULE = 'stripe-invoice-subscription-helper';
+// Rules whose edits call the generated helper module.
+export const HELPER_RULES = new Set<string>([
+  SUBSCRIPTION_PERIOD_HELPER_RULE,
+  INVOICE_SUBSCRIPTION_HELPER_RULE,
+]);
 const BEFORE_VERSION = '2025-02-24.acacia';
 const AFTER_VERSION = '2025-03-31.basil';
 const MAX_PRICE_ID_LENGTH = 256;
@@ -350,6 +356,7 @@ export const PERIOD_HELPERS = {
   current_period_start: 'getSubscriptionPeriodStart',
   current_period_end: 'getSubscriptionPeriodEnd',
 } as const;
+export const INVOICE_SUBSCRIPTION_HELPER = 'getInvoiceSubscription';
 export type PeriodRareCase = 'item-in-code' | 'price-policy' | 'flagged';
 
 // Replaces a period read with the generated helper; `plan` selects the item for subscriptions whose
@@ -369,6 +376,18 @@ export function subscriptionPeriodHelperEdit(
     changeId,
     SUBSCRIPTION_PERIOD_HELPER_RULE,
     (subscription) => `${helper}(${subscription}${plan ? `, ${plan}` : ''})`,
+  );
+}
+
+// Replaces an `invoice.subscription` read, which moved to `parent.subscription_details.subscription`.
+export function invoiceSubscriptionHelperEdit(node: ts.Node, file: string, changeId: string) {
+  if (!ts.isPropertyAccessExpression(node) || node.name.text !== 'subscription') return;
+  return movedReadEdit(
+    node,
+    file,
+    changeId,
+    INVOICE_SUBSCRIPTION_HELPER_RULE,
+    (invoice) => `${INVOICE_SUBSCRIPTION_HELPER}(${invoice})`,
   );
 }
 
@@ -401,6 +420,7 @@ type PlanItem = (items: PeriodItem[]) => PeriodItem | undefined;
 
 export function subscriptionPeriodHelperModule(kind: 'ts' | 'esm' | 'cjs') {
   const typed = kind === 'ts';
+  const t = (annotation: string) => (typed ? annotation : '');
   const exported = kind === 'cjs' ? '' : 'export ';
   const parameters = typed ? 'subscription: object, planItem?: PlanItem' : 'subscription, planItem';
   const result = typed ? ': number' : '';
@@ -412,5 +432,31 @@ ${exported}function getSubscriptionPeriodStart(${parameters})${result} {
 ${exported}function getSubscriptionPeriodEnd(${parameters})${result} {
   return subscriptionPeriod(subscription, 'current_period_end', planItem);
 }
-${kind === 'cjs' ? '\nmodule.exports = { getSubscriptionPeriodStart, getSubscriptionPeriodEnd };\n' : ''}`;
+
+${
+  typed
+    ? `// Typed like the removed field under old stripe types, like the new location under new ones.
+type InvoiceSubscription<T> = T extends { subscription: infer S }
+  ? S
+  : T extends { parent: infer P }
+    ? NonNullable<P> extends { subscription_details: infer D }
+      ? NonNullable<D> extends { subscription: infer S }
+        ? S | null
+        : string | null
+      : string | null
+    : string | null;
+
+`
+    : ''
+}// The old top-level field when present (old-version payloads), otherwise the new location.
+${exported}function getInvoiceSubscription${typed ? '<T extends object>(invoice: T): InvoiceSubscription<T>' : '(invoice)'} {
+  const legacy${t(': unknown')} = Reflect.get(invoice, 'subscription');
+  const parent${t(': unknown')} = Reflect.get(invoice, 'parent');
+  const details${t(': unknown')} =
+    parent && typeof parent === 'object' ? Reflect.get(parent, 'subscription_details') : undefined;
+  const moved${t(': unknown')} =
+    details && typeof details === 'object' ? Reflect.get(details, 'subscription') : undefined;
+  return (legacy !== undefined ? legacy : (moved ?? null))${typed ? ' as InvoiceSubscription<T>' : ''};
+}
+${kind === 'cjs' ? '\nmodule.exports = { getSubscriptionPeriodStart, getSubscriptionPeriodEnd, getInvoiceSubscription };\n' : ''}`;
 }

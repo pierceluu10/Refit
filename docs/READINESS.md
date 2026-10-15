@@ -1,5 +1,11 @@
 # Refit implementation checkpoints
 
+## October 15 checkpoint: invoice.subscription helper (unreleased)
+
+Stripe `invoice.subscription` reads are migrated deterministically through `getInvoiceSubscription()` in the generated helper file, which reads either API version; before this, every such read went to AI. Reads stay for review when the code expands `subscription` or the adapter configures its own move. 11 of the 23 affected benchmark repositories read this field. On `vukrosic/setup-nextjs-convex-clerk-typescript-stripe-shadcn-tailwindcss-react`, AI produced a passing fix in 1 of 4 runs; the rule produced a passing deterministic fix with no AI, published as [a draft PR by refit-agent[bot] on a refit-dev fork](https://github.com/refit-dev/setup-nextjs-convex-clerk-typescript-stripe-shadcn-tailwindcss-react/pull/1). That repository has no tests: the evidence is the TypeScript check, with stripe-mock checks not run. See [Stripe subscription periods](STRIPE-SUBSCRIPTION-PERIODS.md#invoice-subscription-reads).
+
+The default suite passed **1,278 tests across 82 files**, with 78 environment-gated tests skipped.
+
 ## October 15 checkpoint: provider detection and agent catalog (0.34.0)
 
 `refit agents` detects provider SDKs from committed manifests, npm, pnpm and yarn lock evidence, and raw API hostnames in source, without running code. It suggests only catalog agents with a shipped adapter: Stripe (built-in) and OpenAI (preview example adapter). Anthropic, Shopify, Meta Graph and Twilio are detected but have no agent yet. `--add <id>` writes a reviewable integration scaffold into `.refit.json`, converting single-workflow files and never duplicating an agent already configured under another adapter ID. Nothing is enrolled or activated. `refit serve` handles `pull_request` webhooks for configured repositories: it compares base and head `package.json` through the GitHub API and comments once per agent per pull request when a new SDK has an agent. See [provider agents](PROVIDER-AGENTS.md).

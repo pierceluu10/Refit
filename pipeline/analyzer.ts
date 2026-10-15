@@ -23,6 +23,10 @@ import {
   subscriptionPeriodHelperModule,
   SUBSCRIPTION_PERIOD_HELPER_RULE,
   SUBSCRIPTION_PERIOD_RULE,
+  HELPER_RULES,
+  INVOICE_SUBSCRIPTION_HELPER,
+  INVOICE_SUBSCRIPTION_HELPER_RULE,
+  invoiceSubscriptionHelperEdit,
   type PeriodRareCase,
 } from './stripe-subscription-periods.ts';
 import {
@@ -1039,6 +1043,19 @@ export function analyzeRepository(
         return edit.rule;
       }
     }
+    // Same for invoice.subscription, unless the code expands it (the expand path moved too) or the
+    // adapter configures its own move.
+    if (
+      provider.packageName === STRIPE.packageName &&
+      change.schema === 'invoice' &&
+      change.property === 'subscription' &&
+      !expandsField('subscription') &&
+      !propertyMoves.some((move) => move.schema === 'invoice' && move.removed === 'subscription') &&
+      (webhooks?.origin(receiver) || provenance === 'declared-type' || provenance === 'sdk')
+    ) {
+      const edit = invoiceSubscriptionHelperEdit(node, location(node).file, change.id);
+      if (edit && addEdit(edit)) return edit.rule;
+    }
     if (webhooks?.origin(receiver)) return;
     // A value known only from its Stripe.* type may be a webhook payload passed into a helper;
     // its shape follows the endpoint's version, so other rules report it but never edit it.
@@ -1369,7 +1386,8 @@ export function analyzeRepository(
         ...(webhook
           ? {
               webhook: {
-                ...(migration === SUBSCRIPTION_PERIOD_HELPER_RULE
+                ...(migration === SUBSCRIPTION_PERIOD_HELPER_RULE ||
+                migration === INVOICE_SUBSCRIPTION_HELPER_RULE
                   ? { migration: { rule: migration } }
                   : {}),
                 schema: webhook.schema,
@@ -1441,13 +1459,13 @@ export function analyzeRepository(
   }
   function dropPeriodHelper(file: string) {
     for (let index = edits.length - 1; index >= 0; index--)
-      if (edits[index].file === file && edits[index].rule === SUBSCRIPTION_PERIOD_HELPER_RULE)
+      if (edits[index].file === file && HELPER_RULES.has(edits[index].rule!))
         edits.splice(index, 1);
     for (const finding of findings)
-      if (finding.file === file && finding.subscriptionPeriod) {
+      if (finding.file === file) {
         delete finding.subscriptionPeriod;
-        if (finding.webhook?.migration?.rule === SUBSCRIPTION_PERIOD_HELPER_RULE)
-          delete finding.webhook.migration;
+        if (HELPER_RULES.has(finding.webhook?.migration?.rule ?? ''))
+          delete finding.webhook!.migration;
       }
   }
   if (provider.stripeSubscriptionPeriods && webhooks) {
@@ -1482,9 +1500,7 @@ export function analyzeRepository(
     .getSourceFiles()
     .filter((source) =>
       edits.some(
-        (edit) =>
-          edit.file === locations.get(source.fileName) &&
-          edit.rule === SUBSCRIPTION_PERIOD_HELPER_RULE,
+        (edit) => edit.file === locations.get(source.fileName) && HELPER_RULES.has(edit.rule!),
       ),
     );
   const moduleKind = (source: ts.SourceFile) =>
@@ -1501,7 +1517,7 @@ export function analyzeRepository(
   const kind = (['ts', 'esm', 'cjs'] as const)
     .map((candidate) => ({ candidate, count: kinds.filter((entry) => entry === candidate).length }))
     .sort((a, b) => b.count - a.count)[0]?.candidate;
-  const helperNames = Object.values(PERIOD_HELPERS) as string[];
+  const helperNames = [...Object.values(PERIOD_HELPERS), INVOICE_SUBSCRIPTION_HELPER] as string[];
   // Node16/NodeNext resolution requires explicit extensions on relative imports.
   const nodeModuleResolution = (repository.configurations ?? []).some((file) =>
     /"module(?:Resolution)?"\s*:\s*"node(?:16|next)"/i.test(file.content),
@@ -1525,10 +1541,12 @@ export function analyzeRepository(
       dropPeriodHelper(locations.get(source.fileName)!);
   const helperFiles = helperSources
     .map((source) => locations.get(source.fileName)!)
-    .filter((file) =>
-      edits.some((edit) => edit.file === file && edit.rule === SUBSCRIPTION_PERIOD_HELPER_RULE),
-    );
+    .filter((file) => edits.some((edit) => edit.file === file && HELPER_RULES.has(edit.rule!)));
   if (kind && helperFiles.length) {
+    // The module and its imports carry the rule of the reads they serve.
+    const moduleRule = edits.some((edit) => edit.rule === SUBSCRIPTION_PERIOD_HELPER_RULE)
+      ? SUBSCRIPTION_PERIOD_HELPER_RULE
+      : INVOICE_SUBSCRIPTION_HELPER_RULE;
     const directories = helperFiles.map((file) => posix.dirname(file).split('/'));
     const shared = directories[0].filter((segment, index) =>
       directories.every((directory) => directory[index] === segment),
@@ -1553,7 +1571,7 @@ export function analyzeRepository(
       end: 0,
       replacement: subscriptionPeriodHelperModule(kind),
       changeId: 'stripe-subscription-period-helper',
-      rule: SUBSCRIPTION_PERIOD_HELPER_RULE,
+      rule: moduleRule,
     });
     for (const file of helperFiles) {
       const source = helperSources.find((entry) => locations.get(entry.fileName) === file)!;
@@ -1561,7 +1579,7 @@ export function analyzeRepository(
         edits.some(
           (edit) =>
             edit.file === file &&
-            edit.rule === SUBSCRIPTION_PERIOD_HELPER_RULE &&
+            HELPER_RULES.has(edit.rule!) &&
             edit.replacement.includes(`${name}(`),
         ),
       );
@@ -1606,7 +1624,7 @@ export function analyzeRepository(
         end: anchor,
         replacement: anchor ? `\n${declaration}` : `${declaration}\n`,
         changeId: 'stripe-subscription-period-helper',
-        rule: SUBSCRIPTION_PERIOD_HELPER_RULE,
+        rule: moduleRule,
       });
     }
   }

@@ -41,6 +41,7 @@ export interface Finding extends Location {
           afterApiVersion: string;
         }
       | { rule: 'stripe-subscription-periods-helper' }
+      | { rule: 'stripe-invoice-subscription-helper' }
       | { rule: 'ai-version-tolerant' };
   };
 }
@@ -54,6 +55,7 @@ export interface SourceEdit {
   rule?:
     | 'stripe-subscription-periods-price-id'
     | 'stripe-subscription-periods-helper'
+    | 'stripe-invoice-subscription-helper'
     | 'stripe-api-version';
 }
 

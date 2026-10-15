@@ -325,16 +325,40 @@ export function invoiceOwner(body: string, signature: string) {
   }
 }`;
 
-it('patches around an unmigrated webhook read and leaves it unresolved', async () => {
+it('reads a webhook invoice.subscription through the generated helper for either version', async () => {
   const report = await run(mixed);
   expect(report.findings.find((finding) => finding.webhook)).toMatchObject({
     confidence: 'confirmed',
     expression: '.subscription',
+    webhook: { migration: { rule: 'stripe-invoice-subscription-helper' } },
   });
-  expect(report.patch).toMatchObject({ status: 'proposed', unresolvedFindings: 1 });
+  expect(report.patch).toMatchObject({ status: 'proposed', unresolvedFindings: 0 });
   const diff = 'diff' in report.patch ? report.patch.diff : '';
   expect(diff).toContain('getSubscriptionPeriodEnd(subscription)');
-  expect(diff).not.toContain('parent');
+  expect(diff).toContain('+    return (getInvoiceSubscription(invoice));');
+  expect(diff).toContain(
+    "+import { getSubscriptionPeriodEnd, getInvoiceSubscription } from './stripe-subscription-period';",
+  );
+  const helper = subscriptionPeriodHelperModule('cjs');
+  const { getInvoiceSubscription } = new Function('module', `${helper}; return module.exports;`)(
+    {},
+  );
+  expect(getInvoiceSubscription({ subscription: 'sub_old' })).toBe('sub_old');
+  expect(getInvoiceSubscription({ subscription: null })).toBeNull();
+  expect(
+    getInvoiceSubscription({ parent: { subscription_details: { subscription: 'sub_new' } } }),
+  ).toBe('sub_new');
+  expect(getInvoiceSubscription({ parent: null })).toBeNull();
+});
+
+it('leaves invoice.subscription unresolved when it is expanded', async () => {
+  const report = await run(
+    `${mixed}
+export const paid = (id: string) => stripe.invoices.retrieve(id, { expand: ['subscription'] });`,
+  );
+  expect(report.patch).toMatchObject({ status: 'proposed', unresolvedFindings: 1 });
+  const diff = 'diff' in report.patch ? report.patch.diff : '';
+  expect(diff).toContain('+    return invoice.subscription;');
   expect(migrationReviewReason(report)).toMatch(/incoming API-version/);
 });
 

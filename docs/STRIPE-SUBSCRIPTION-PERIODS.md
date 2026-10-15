@@ -22,6 +22,12 @@ If neither exists, step 3 returns `undefined` and the pull request says: "Subscr
 
 Each migrated finding records `subscriptionPeriod.rareCase`: `item-in-code`, `price-policy` or `flagged`. Imports follow each file's module style and its existing relative-import extensions, or `tsconfig` Node16/NodeNext resolution. Where a configured policy's guarded handler applies (below), that migration takes precedence over the helper.
 
+## Invoice subscription reads
+
+Stripe [moved `invoice.subscription` to `invoice.parent.subscription_details.subscription`](https://docs.stripe.com/changelog/basil/2025-03-31/adds-new-parent-field-to-invoicing-objects) in the same release. The generated helper file also exports `getInvoiceSubscription(invoice)`, and Refit rewrites `invoice.subscription` reads on the same sources (SDK responses, signed webhook payloads, `Stripe.Invoice`-typed values) to call it. It returns the old field when the payload has it, including `null`, otherwise the new location, otherwise `null`. Under TypeScript, the return type matches the old field with old `stripe` types and the new location with new ones.
+
+Refit leaves the read for review when the code expands `subscription` anywhere, because the expand path moved too, or when the adapter configures its own `propertyMoves` entry for it.
+
 ## Approved configuration
 
 Use a provider adapter referenced by a checked-in `.refit.json` through its existing `providerConfig` field. The adapter's ID is distinct from the reserved built-in `stripe` ID; its package is `stripe`, so signed-event tracing still applies. Add:

@@ -35,6 +35,8 @@ import { digest, findRemovedProperties, isObject, readSpecification } from './sp
 import { stripeAdapterFor } from './stripe-operations.ts';
 import {
   SUBSCRIPTION_PERIOD_HELPER_RULE,
+  INVOICE_SUBSCRIPTION_HELPER_RULE,
+  HELPER_RULES,
   SUBSCRIPTION_PERIOD_RULE,
   validateStripeSubscriptionPeriodContract,
 } from './stripe-subscription-periods.ts';
@@ -142,7 +144,15 @@ export async function runPipeline(options: {
     propertyExists(after.schemas, ['subscription', 'items']) &&
     propertyExists(after.schemas, ['subscription_item', 'current_period_start']) &&
     propertyExists(after.schemas, ['subscription_item', 'current_period_end']);
-  const movedTo = { [SUBSCRIPTION_PERIOD_HELPER_RULE]: itemPeriods } as Record<string, boolean>;
+  const movedTo = {
+    [SUBSCRIPTION_PERIOD_HELPER_RULE]: itemPeriods,
+    [INVOICE_SUBSCRIPTION_HELPER_RULE]: propertyExists(after.schemas, [
+      'invoice',
+      'parent',
+      'subscription_details',
+      'subscription',
+    ]),
+  } as Record<string, boolean>;
   const targetVersion = isObject(after.document.info) ? after.document.info.version : undefined;
   const versionEdits =
     provider.packageName === STRIPE.packageName &&
@@ -171,10 +181,13 @@ export async function runPipeline(options: {
   const ruleEdits = edits.filter(isFieldMove);
   // A read counts as migrated only while its helper edit is kept.
   for (const finding of analysis.findings)
-    if (finding.subscriptionPeriod && !editCovers(repository, edits, finding)) {
+    if (
+      (finding.subscriptionPeriod || HELPER_RULES.has(finding.webhook?.migration?.rule ?? '')) &&
+      !editCovers(repository, edits, finding)
+    ) {
       delete finding.subscriptionPeriod;
-      if (finding.webhook?.migration?.rule === SUBSCRIPTION_PERIOD_HELPER_RULE)
-        delete finding.webhook.migration;
+      if (HELPER_RULES.has(finding.webhook?.migration?.rule ?? ''))
+        delete finding.webhook!.migration;
     }
   if (specificationDiff && provider.packageName === STRIPE.packageName)
     specificationDiff.changes.push(
