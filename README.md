@@ -4,7 +4,7 @@
 <h1 align="center">Refit</h1>
 <p align="center"><strong>Turn upstream API changes into reviewed code updates.</strong></p>
 <p align="center">
-  <a href="https://github.com/pierceluu10/Refit/releases"><img src="https://img.shields.io/github/v/release/pierceluu10/Refit?include_prereleases&color=2563eb" alt="GitHub release" /></a>
+  <a href="https://github.com/pierceluu10/Refit/releases"><img src="https://img.shields.io/badge/releases-early_access-2563eb" alt="Early access releases" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-2563eb" alt="MIT license" /></a>
 </p>
 <p align="center">
