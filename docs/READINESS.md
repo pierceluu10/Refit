@@ -1,5 +1,13 @@
 # Refit implementation checkpoints
 
+## October 15 checkpoint: reproducible benchmark and per-function generated checks (0.30.0)
+
+`scripts/stripe-benchmark-setup.mjs` rebuilds the Stripe benchmark root from the pinned list and labels: clones at recorded commits, plus each version's spec and fixtures from `stripe/openapi`. The rebuilt run reproduces 23 affected repositories. An authorized AI run on `gpt-5.4-mini`, hard-capped at $5 by a fresh ledger, spent $0.038. It produced 6 deterministic patches and 2 AI no-edit decisions. 10 repositories stayed blocked by the repository-wide webhook gate. See [the re-run](STRIPE-BENCHMARK.md#re-run-with-ai-october-15).
+
+Generated checks now record a result per function. A function that fails on the original code is excluded as not runnable in isolation; only functions that ran there must run after the migration. Entry points include functions exported through `export { … }` lists. That finds 5 of the 6 patched benchmark repositories' helpers, but none ran: Next.js dependencies exceed the 256 MiB archive limit, and the helpers need Supabase first.
+
+The default suite passed **1,236 tests across 78 files**, with 77 environment-gated tests skipped, plus build, typecheck and formatting. New tests cover per-function exclusion, regressions, a harness that cannot start, and export-list entry points.
+
 ## October 15 checkpoint: generated Stripe checks (0.29.0)
 
 Workflows can opt into `generatedChecks`. Refit then calls the exported functions around confirmed findings, with placeholder IDs, against Stripe's official stripe-mock serving the before and after releases' published contracts and fixtures. stripe-mock runs inside the normal validation container on loopback. A Node preload redirects the Stripe SDK's `api.stripe.com` requests to it, so validation stays at `--network none` with no certificate changes. Both runs must complete for validation to pass. Uncovered usages, hashes and the image ID are recorded, and the PR names the functions called and states that placeholder data checks shapes, not behavior. See [generated checks](GENERATED-CHECKS.md).
