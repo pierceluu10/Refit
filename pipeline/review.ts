@@ -336,6 +336,7 @@ export function createReviewArtifacts(
   const periodReads = (rareCase: NonNullable<Finding['subscriptionPeriod']>['rareCase']) =>
     report.findings.filter((finding) => finding.subscriptionPeriod?.rareCase === rareCase);
   const flaggedPeriods = periodReads('flagged');
+  const unconfirmed = report.findings.filter((finding) => finding.untraced);
   const selectedPeriods = [...periodReads('item-in-code'), ...periodReads('price-policy')];
   const body =
     [
@@ -361,6 +362,11 @@ export function createReviewArtifacts(
       ...(selectedPeriods.length
         ? [
             `**Items on different billing periods:** the period comes from the item the application already treats as its plan: ${summaryList([...new Set(selectedPeriods.map((finding) => `${code(finding.subscriptionPeriod!.selection ?? '')} (${finding.subscriptionPeriod!.rareCase === 'price-policy' ? 'configured stripeSubscriptionPeriods' : 'selected in the code'})`))])}.`,
+          ]
+        : []),
+      ...(unconfirmed.length
+        ? [
+            `**Not changed, please check:** ${unconfirmed.length} read${unconfirmed.length === 1 ? '' : 's'} of removed field names that Refit could not trace to a Stripe object, so they may be the application's own data: ${summaryList([...new Set(unconfirmed.map((finding) => code(`${finding.file}:${finding.line} ${finding.expression}`)))].slice(0, 12))}.`,
           ]
         : []),
       ...(flaggedPeriods.length

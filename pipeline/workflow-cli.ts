@@ -105,6 +105,7 @@ try {
       image,
       prepareDependencies: values['prepare-dependencies'] ?? configuration?.prepareDependencies,
       generatedChecks: configuration?.generatedChecks,
+      compareTypeErrors: configuration?.compareTypeErrors,
       command,
       baselineCommand:
         values['baseline-command'] !== undefined

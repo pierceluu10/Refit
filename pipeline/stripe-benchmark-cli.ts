@@ -254,17 +254,17 @@ async function benchmark(entry: Selected, index: number) {
             afterFixtures: fixtures(latest),
           }
         : undefined;
-    // Without tests, a TypeScript typecheck reports errors without failing, so the patch's new
-    // errors can be counted against the baseline's.
+    // Without tests, TypeScript repositories typecheck; compareTypeErrors fails the patched check
+    // only on errors the patch introduced, which then go to AI repair.
     const command = hasTests
       ? ['npm', 'test']
       : typescript
-        ? ['sh', '-c', 'npx --no-install tsc --noEmit --pretty false -p . ; exit 0']
+        ? ['npx', '--no-install', 'tsc', '--noEmit', '--pretty', 'false', '-p', '.']
         : ['node', '-e', ''];
     const config = join(work, 'run.json');
     await writeFile(
       config,
-      `${JSON.stringify({ formatVersion: 1, repository: directory, apiVersion: entry.before, before, after, providerConfig: adapterPath, image: 'node:22-alpine', prepareDependencies: true, command, ...(generatedChecks ? { generatedChecks } : {}) }, null, 2)}\n`,
+      `${JSON.stringify({ formatVersion: 1, repository: directory, apiVersion: entry.before, before, after, providerConfig: adapterPath, image: 'node:22-alpine', prepareDependencies: true, command, ...(result.checks === 'typecheck' ? { compareTypeErrors: true } : {}), ...(generatedChecks ? { generatedChecks } : {}) }, null, 2)}\n`,
     );
     const bundle = join(work, 'run');
     try {

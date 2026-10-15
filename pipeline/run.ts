@@ -278,7 +278,7 @@ export async function runPipeline(options: {
         replacements,
         requestRenames,
         moves,
-      ).findings.length
+      ).findings.filter((finding) => !finding.untraced).length
     : 0;
   const reviewReason = migrationReviewReason(
     { findings: analysis.findings, skippedFiles, adapter: provider },
@@ -313,14 +313,22 @@ export async function runPipeline(options: {
             [...ruleEdits, ...versionEdits],
           )
       : deterministicRequested
-        ? proposePatch(
-            repository,
-            ruleEdits.length && !configuredMigrationProposal ? [...edits, ...versionEdits] : edits,
-            unresolvedFindingCount,
-            provider,
-            replacements,
-            requestRenames,
-          )
+        ? {
+            ...proposePatch(
+              repository,
+              ruleEdits.length && !configuredMigrationProposal
+                ? [...edits, ...versionEdits]
+                : edits,
+              unresolvedFindingCount,
+              provider,
+              replacements,
+              requestRenames,
+            ),
+            // AI repairs start again from the original code and must keep these rule edits.
+            ...(ruleEdits.length && !configuredMigrationProposal
+              ? { ruleEdits: [...ruleEdits, ...versionEdits] }
+              : {}),
+          }
         : {
             status: 'not-generated' as const,
             reason:

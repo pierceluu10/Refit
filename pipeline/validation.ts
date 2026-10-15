@@ -17,7 +17,7 @@ import { digest, readSpecification } from './specifications.ts';
 import { PipelineInputError } from './types.ts';
 import { readRepository } from './repository.ts';
 import { validateCheckCommand, validateRepairAttempts } from './validation-options.ts';
-import { proposeAiPatch } from './ai-patches.ts';
+import { proposeAiPatch, TYPE_ERROR_CHANGE } from './ai-patches.ts';
 import { gitEnvironment } from './git-environment.ts';
 import { readCommittedRepository } from './committed-repository.ts';
 import { prepareDependencies } from './dependency-preparation.ts';
@@ -35,6 +35,7 @@ import {
   type GeneratedChecks,
 } from './generated-checks.ts';
 import { codeDiff, PACKAGE_FILES, packageDiff } from './stripe-package-upgrade.ts';
+import { SUBSCRIPTION_PERIOD_RULE } from './stripe-subscription-periods.ts';
 import {
   dockerSandboxArguments,
   removeDockerContainer,
@@ -72,6 +73,47 @@ export interface CheckResult {
   stdout: string;
   stderr: string;
   error?: string;
+}
+
+const TYPE_ERROR = /^(.+?)\((\d+),(\d+)\): error (TS\d+): (.*)$/;
+
+// TypeScript diagnostics in a check's output, keyed without positions so moved lines still match.
+export function typeErrors(check: CheckResult) {
+  return `${check.stdout}\n${check.stderr}`
+    .split('\n')
+    .map((line) => TYPE_ERROR.exec(line.trim()))
+    .filter((match): match is RegExpExecArray => Boolean(match))
+    .map((match) => ({
+      file: match[1],
+      line: Number(match[2]),
+      column: Number(match[3]),
+      code: match[4],
+      message: match[5],
+      key: `${match[1]} ${match[4]} ${match[5]}`,
+    }));
+}
+
+// With compareTypeErrors, the original code's type errors are the baseline: a typecheck that
+// reports errors still ran, and the patched check fails only on errors the patch introduced.
+function introducedTypeErrors(baseline: CheckResult, patched: CheckResult) {
+  const before = new Set(typeErrors(baseline).map((error) => error.key));
+  return typeErrors(patched).filter((error) => !before.has(error.key));
+}
+
+export function compareTypeCheck(baseline: CheckResult, patched?: CheckResult): CheckResult {
+  const check = patched ?? baseline;
+  const errors = typeErrors(check);
+  if (check.status === 'error' || check.status === 'not-run') return check;
+  if (check.exitCode !== 0 && !errors.length) return { ...check, status: 'failed' };
+  if (!patched) return { ...check, status: 'passed' };
+  const introduced = introducedTypeErrors(baseline, check);
+  return introduced.length
+    ? {
+        ...check,
+        status: 'failed',
+        stdout: `Type errors this patch introduced:\n${introduced.map((error) => `${error.file}(${error.line},${error.column}): error ${error.code}: ${error.message}`).join('\n')}\n\n${check.stdout}`,
+      }
+    : { ...check, status: 'passed' };
 }
 
 async function command(binary: string, args: string[], cwd?: string) {
@@ -206,6 +248,7 @@ export async function validateMigration(options: {
   command: string[];
   baselineCommand?: string[];
   prepareDependencies?: boolean;
+  compareTypeErrors?: boolean;
   assessment?: AiOptions;
   aiPatch?: AiOptions;
   documentationSnapshots?: readonly string[];
@@ -293,7 +336,15 @@ export async function validateMigration(options: {
     }
     options.signal?.throwIfAborted();
     options.onProgress?.('Running baseline checks in offline Docker...');
-    const baseline = await containerCheck(baselineDirectory, image, baselineCommand, dependencies);
+    const baselineRun = await containerCheck(
+      baselineDirectory,
+      image,
+      baselineCommand,
+      dependencies,
+    );
+    const baseline = options.compareTypeErrors ? compareTypeCheck(baselineRun) : baselineRun;
+    const compared = (check: CheckResult) =>
+      options.compareTypeErrors ? compareTypeCheck(baselineRun, check) : check;
     options.signal?.throwIfAborted();
     const report = await runPipeline({
       ...options,
@@ -458,11 +509,13 @@ export async function validateMigration(options: {
     let candidateEnvironment = initialCandidate?.environment;
     if (initialCandidate) options.onProgress?.('Running patched checks in offline Docker...');
     let patched: CheckResult = initialCandidate
-      ? await containerCheck(
-          initialCandidate.directory,
-          image,
-          options.command,
-          initialCandidate.dependencies,
+      ? compared(
+          await containerCheck(
+            initialCandidate.directory,
+            image,
+            options.command,
+            initialCandidate.dependencies,
+          ),
         )
       : { status: 'not-run', exitCode: null, stdout: '', stderr: '' };
     const attempts: ValidationAttempt[] = [];
@@ -498,7 +551,9 @@ export async function validateMigration(options: {
       options.aiPatch &&
       !configuredEndpointProposal &&
       !configuredRequestProposal &&
-      !report.findings.some((finding) => finding.webhook?.migration)
+      !report.findings.some(
+        (finding) => finding.webhook?.migration?.rule === SUBSCRIPTION_PERIOD_RULE,
+      )
     ) {
       const latestRevision = (await git(['rev-parse', '--verify', 'HEAD^{commit}'])).stdout.trim();
       if (
@@ -517,7 +572,23 @@ export async function validateMigration(options: {
         const candidate = await proposeAiPatch(
           originalSources,
           report.changes,
-          report.findings,
+          [
+            ...report.findings,
+            // Introduced type errors become findings the repair may fix, wherever they are.
+            ...(options.compareTypeErrors
+              ? introducedTypeErrors(baselineRun, patched)
+                  .filter((error) => originalSources.files.some((file) => file.path === error.file))
+                  .map((error) => ({
+                    file: error.file,
+                    line: error.line,
+                    column: error.column,
+                    changeId: TYPE_ERROR_CHANGE,
+                    expression: error.code,
+                    confidence: 'confirmed' as const,
+                    reason: error.message,
+                  }))
+              : []),
+          ],
           options.aiPatch,
           report.adapter,
           beforeSpecification.schemas,
@@ -549,11 +620,13 @@ export async function validateMigration(options: {
         }
         const preparedCandidate = await prepareCandidate(candidate.diff);
         options.onProgress?.('Running repaired checks in offline Docker...');
-        const check = await containerCheck(
-          preparedCandidate.directory,
-          image,
-          options.command,
-          preparedCandidate.dependencies,
+        const check = compared(
+          await containerCheck(
+            preparedCandidate.directory,
+            image,
+            options.command,
+            preparedCandidate.dependencies,
+          ),
         );
         candidateDependencies = preparedCandidate.dependencies;
         candidateEnvironment = preparedCandidate.environment;
@@ -608,9 +681,12 @@ export async function validateMigration(options: {
               (check) => check?.status === 'error',
             )
           ? 'error'
-          : baseline.status !== 'passed' || (generated && generated.baseline.status !== 'passed')
+          : // A generated check with no runnable function is missing evidence, not a failure.
+            baseline.status !== 'passed' ||
+              (generated && !['passed', 'not-run'].includes(generated.baseline.status))
             ? 'baseline-failed'
-            : patched.status !== 'passed' || (generated && generated.patched.status !== 'passed')
+            : patched.status !== 'passed' ||
+                (generated && !['passed', 'not-run'].includes(generated.patched.status))
               ? 'regression'
               : 'passed';
     const validation = {

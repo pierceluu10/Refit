@@ -1253,6 +1253,35 @@ export function analyzeRepository(
       });
     });
   }
+  // A parameter of a callback (inline or named) passed to an iteration method on a traced array:
+  // its items are provider objects even when the callback shape is not confirmable.
+  function iterationCallback(expression: ts.Expression) {
+    let root = expression;
+    while (
+      ts.isPropertyAccessExpression(root) ||
+      ts.isElementAccessExpression(root) ||
+      ts.isNonNullExpression(root) ||
+      ts.isParenthesizedExpression(root)
+    )
+      root = root.expression;
+    const declaration = ts.isIdentifier(root) ? symbol(root)?.valueDeclaration : undefined;
+    if (!declaration || !ts.isParameter(declaration)) return false;
+    const callback = declaration.parent;
+    const name =
+      ts.isFunctionDeclaration(callback) && callback.name ? symbol(callback.name) : undefined;
+    return nodes.some(
+      (node) =>
+        ts.isCallExpression(node) &&
+        ts.isPropertyAccessExpression(node.expression) &&
+        ARRAY_ITERATION_METHODS.has(node.expression.name.text) &&
+        node.arguments.length > 0 &&
+        (node.arguments[0] === callback ||
+          (name !== undefined &&
+            ts.isIdentifier(node.arguments[0]) &&
+            symbol(node.arguments[0]) === name)) &&
+        arrayItemForExpression(node.expression.expression) !== undefined,
+    );
+  }
   function record(node: ts.Node, receiver: ts.Expression, property: string | undefined) {
     if (
       property !== undefined &&
@@ -1319,6 +1348,9 @@ export function analyzeRepository(
         confidence: confirmed ? 'confirmed' : 'review',
         ...(sourceClient ? helperEvidence(sourceClient, mutated) : {}),
         ...(declaredType ? { declaredType: { schema } } : {}),
+        ...(tracked || provenance || iterationCallback(receiver)
+          ? {}
+          : { untraced: true as const }),
         ...(migration === SUBSCRIPTION_PERIOD_HELPER_RULE && periodPlans.get(node)
           ? {
               subscriptionPeriod: {
