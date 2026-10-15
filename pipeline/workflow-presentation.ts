@@ -34,16 +34,8 @@ function proposalText(value: string) {
     : text;
 }
 
-export async function renderWorkflowResult(result: Result) {
-  const readArtifact = async (name: string) =>
-    result.manifest.files.some((file) => file.path === name)
-      ? parseObject(await readFile(join(result.directory, name), 'utf8'), name)
-      : undefined;
-  const report = (await readArtifact('report.json')) ?? (await readArtifact('scan.json'));
-  const publication = await readArtifact('publication.json');
+function renderReportRows(report: Record<string, unknown> | undefined, existingPr = false) {
   const rows: string[] = [];
-  if (result.manifest.integration)
-    rows.push(`Integration ${terminalText(result.manifest.integration)}`);
   if (report && typeof report.provider === 'string' && Array.isArray(report.changes)) {
     const fields = report.changes.filter(
       (change): change is Record<string, unknown> =>
@@ -72,7 +64,7 @@ export async function renderWorkflowResult(result: Result) {
     const before = typeof version.before === 'string' ? version.before : 'unknown';
     const after = typeof version.after === 'string' ? version.after : 'unknown';
     rows.push(
-      `API version Current: ${application}; before contract: ${before}; after contract: ${after}`,
+      `API version Current: ${terminalText(application)}; before contract: ${terminalText(before)}; after contract: ${terminalText(after)}`,
     );
   }
   if (report && Array.isArray(report.operationChanges)) {
@@ -232,7 +224,7 @@ export async function renderWorkflowResult(result: Result) {
     isObject(report.patch) &&
     report.patch.status === 'proposed' &&
     typeof report.patch.generator === 'string' &&
-    result.manifest.status !== 'existing-pr'
+    !existingPr
   )
     rows.push(
       `Generated   ${report.patch.generator === 'openai' ? 'AI' : 'Deterministic'} migration`,
@@ -282,6 +274,31 @@ export async function renderWorkflowResult(result: Result) {
         `Attempts    ${validation.attempts.length} tested; ${validation.repair.requested} AI repairs`,
       );
   }
+  return rows;
+}
+
+export function renderScanResult(value: unknown) {
+  const report = isObject(value) ? value : undefined;
+  return [
+    'Refit scan',
+    '',
+    ...renderReportRows(report),
+    '',
+    'Scan only: repository files unchanged; checks have not run.',
+    ...(report && typeof report.nextAction === 'string' ? [terminalText(report.nextAction)] : []),
+  ].join('\n');
+}
+
+export async function renderWorkflowResult(result: Result) {
+  const readArtifact = async (name: string) =>
+    result.manifest.files.some((file) => file.path === name)
+      ? parseObject(await readFile(join(result.directory, name), 'utf8'), name)
+      : undefined;
+  const report = (await readArtifact('report.json')) ?? (await readArtifact('scan.json'));
+  const publication = await readArtifact('publication.json');
+  const rows = renderReportRows(report, result.manifest.status === 'existing-pr');
+  if (result.manifest.integration)
+    rows.unshift(`Integration ${terminalText(result.manifest.integration)}`);
   if (publication && typeof publication.url === 'string') {
     const publisher = isObject(publication.publisher)
       ? publication.publisher.login

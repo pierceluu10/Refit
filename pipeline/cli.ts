@@ -3,9 +3,11 @@ import { parseArgs } from 'node:util';
 import { runPipeline } from './run.ts';
 import { assessmentConfiguration } from './assessment.ts';
 import { validateApiVersionPolicy } from './api-version.ts';
+import { PipelineInputError } from './types.ts';
+import { renderScanResult } from './workflow-presentation.ts';
 
 const USAGE =
-  'Usage: refit scan --repository <directory> --before <openapi.json-or-yaml> --after <openapi.json-or-yaml> [--api-version <current-api-version>] [--api-version-policy operator-pin|source-verified] [--full-diff (requires oasdiff)] [--provider-config <adapter.json>] [--output <new-report.json>] [--propose-patch] [--assess (sends selected source context to OpenAI)] [--ai-patch (sends affected source files to OpenAI)]';
+  'Usage: refit scan --repository <directory> --before <openapi.json-or-yaml> --after <openapi.json-or-yaml> [--human | --json] [--api-version <current-api-version>] [--api-version-policy operator-pin|source-verified] [--full-diff (requires oasdiff)] [--provider-config <adapter.json>] [--output <new-report.json>] [--propose-patch] [--assess (sends selected source context to OpenAI)] [--ai-patch (sends affected source files to OpenAI)]';
 
 try {
   const { values } = parseArgs({
@@ -14,6 +16,8 @@ try {
       before: { type: 'string' },
       after: { type: 'string' },
       output: { type: 'string' },
+      human: { type: 'boolean' },
+      json: { type: 'boolean' },
       'propose-patch': { type: 'boolean' },
       assess: { type: 'boolean' },
       'ai-patch': { type: 'boolean' },
@@ -24,8 +28,11 @@ try {
       help: { type: 'boolean' },
     },
   });
+  if (values.human && values.json) throw new PipelineInputError('Choose either --json or --human.');
   if (values.help) {
-    console.log(USAGE);
+    console.log(
+      `${USAGE}\nTerminals default to a readable summary; redirected output defaults to JSON. --output always saves the complete JSON report. Scanning does not run checks or modify repository files.`,
+    );
   } else if (!values.repository || !values.before || !values.after) {
     console.error(USAGE);
     process.exitCode = 1;
@@ -44,7 +51,12 @@ try {
     });
     const json = `${JSON.stringify(report, null, 2)}\n`;
     if (values.output) await writeFile(values.output, json, { flag: 'wx' });
-    else process.stdout.write(json);
+    if (!values.output || values.human)
+      process.stdout.write(
+        values.json || (!values.human && !process.stdout.isTTY)
+          ? json
+          : `${renderScanResult(report)}\n`,
+      );
   }
 } catch (error) {
   if (!(error instanceof Error)) throw error;
