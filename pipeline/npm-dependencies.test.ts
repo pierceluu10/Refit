@@ -152,8 +152,11 @@ it(
         'ALL',
         '--memory',
         '1g',
+        '--tmpfs',
+        '/workspace:rw,exec,size=2g,uid=65534,gid=65534,mode=0700',
       ]),
     );
+    expect(prepared.environment.installation).toMatchObject({ workspace: '2g' });
     expect(
       run.args.find((argument: string) => argument.includes('npm ci --ignore-scripts')),
     ).toContain('npm ci --ignore-scripts --include=dev --engine-strict --no-audit --no-fund');
@@ -421,4 +424,16 @@ it('copies only committed workspace manifests to the networked install input', a
     'package.json',
     'packages/library/package.json',
   ]);
+});
+
+it('keeps validation containers on the 512 MiB workspace', () => {
+  const args = dockerSandboxArguments({
+    name: 'refit-check',
+    directory: '/input',
+    image: IMAGE,
+    command: ['npm', 'test'],
+    network: 'none',
+  });
+  expect(args).toContain('/workspace:rw,exec,size=512m,uid=65534,gid=65534,mode=0700');
+  expect(args.join(' ')).not.toContain('size=2g');
 });
