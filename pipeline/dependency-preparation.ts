@@ -19,6 +19,8 @@ import { readCommittedRepository } from './committed-repository.ts';
 import {
   DOCKER_IMAGE_ID,
   dockerSandboxArguments,
+  PREPARATION_MEMORY,
+  PREPARATION_WORKSPACE_SIZE,
   removeDockerContainer,
   resolveDockerImage,
 } from './docker-sandbox.ts';
@@ -358,6 +360,7 @@ export async function prepareDependencies(options: {
             ...workspaceContents.keys(),
           ],
           network: 'bridge',
+          workspaceSize: PREPARATION_WORKSPACE_SIZE,
         }),
         join(staging, ARCHIVE),
         inputs,
@@ -387,6 +390,8 @@ export async function prepareDependencies(options: {
           lifecycleScripts: false,
           registry: 'https://registry.npmjs.org',
           timeoutMs: timeoutSeconds * 1000,
+          workspace: PREPARATION_WORKSPACE_SIZE,
+          memory: PREPARATION_MEMORY,
         },
         validation: { network: 'none' },
       };

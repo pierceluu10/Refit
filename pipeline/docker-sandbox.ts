@@ -7,7 +7,12 @@ const PROCESS_TIMEOUT_MS = 30_000;
 const MAX_OUTPUT_BYTES = 1024 * 1024;
 export const DOCKER_IMAGE_ID = /^sha256:[a-f0-9]{64}$/;
 const CONTAINER_USER = '65534:65534';
-const WORKSPACE_TMPFS = '/workspace:rw,exec,size=512m,uid=65534,gid=65534,mode=0700';
+const VALIDATION_WORKSPACE_SIZE = '512m';
+// Dependency installers hold the package cache and the unpacked tree at once. tmpfs pages count
+// against the memory limit, so preparation memory covers the workspace plus the installer.
+export const PREPARATION_WORKSPACE_SIZE = '2g';
+const VALIDATION_MEMORY = '1g';
+export const PREPARATION_MEMORY = '3g';
 
 export async function resolveDockerImage(image: string) {
   if (!image || image.startsWith('-') || image.includes('\0'))
@@ -46,6 +51,7 @@ export function dockerSandboxArguments(options: {
   command: string[];
   network: 'none' | 'bridge';
   dependencies?: string;
+  workspaceSize?: typeof PREPARATION_WORKSPACE_SIZE;
 }) {
   if ([options.directory, options.dependencies].some((path) => path?.includes(',')))
     throw new PipelineInputError('Docker bind-mount paths must not contain commas.');
@@ -67,11 +73,11 @@ export function dockerSandboxArguments(options: {
     '--pids-limit',
     '128',
     '--memory',
-    '1g',
+    options.workspaceSize ? PREPARATION_MEMORY : VALIDATION_MEMORY,
     '--cpus',
     '1',
     '--tmpfs',
-    WORKSPACE_TMPFS,
+    `/workspace:rw,exec,size=${options.workspaceSize ?? VALIDATION_WORKSPACE_SIZE},uid=65534,gid=65534,mode=0700`,
     '--tmpfs',
     '/tmp:rw,noexec,size=64m,mode=1777',
     '--mount',
