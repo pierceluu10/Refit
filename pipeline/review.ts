@@ -218,7 +218,7 @@ function replacementReasons(report: ValidationReport) {
     );
     if (rename) {
       reasons.push(
-        `**Why ${code(replacement)}:** an operator-configured rename rule in the provider adapter maps ${code(removed)} to ${code(used)}.`,
+        `**Why ${code(replacement)}:** an operator-configured ${replacement.includes('.') ? 'move' : 'rename'} rule in the provider adapter maps ${code(removed)} to ${code(used)}.`,
       );
       continue;
     }
