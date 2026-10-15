@@ -8,7 +8,7 @@ With owner sign-off, `--full-diff` no longer blocks on removed response properti
 
 The default suite passed **1,226 tests across 77 files**, with 75 environment-gated tests skipped, plus build, typecheck and formatting. The gated Yarn test installed a generated Yarn 1 lockfile with actual Stripe 17.7.0 in Docker, left its install-script tripwire untouched, ignored a hostile repository `.yarnrc`, ran `yarn` and the SDK offline, and reused its cache. The gated pnpm/npm preparation suites still pass.
 
-On the Stripe benchmark's five yarn repositories, read without running application code: four Yarn 1 lockfiles and one Yarn 2+ lockfile now record Stripe versions; one repository with both `package-lock.json` and `yarn.lock` stays unknown. Automatic preparation succeeded for `ahmedaliofficial/latest-nestjs-stripe` (514 locked records). `backmesh/backmesh` and `starwidesolutions/b2b-ecommerce-saaskit-` exceeded the 300-second installation limit, and `naveennaidu/OpenformStack` was correctly refused as Yarn 2+. No checks or migrations were run on these repositories.
+On the Stripe benchmark's five yarn repositories, read without running application code: three Yarn 1 lockfiles and one Yarn 2+ lockfile now record Stripe versions; the fifth repository, with both `package-lock.json` and `yarn.lock` stays unknown. Automatic preparation succeeded for `ahmedaliofficial/latest-nestjs-stripe` (514 locked records). `backmesh/backmesh` and `starwidesolutions/b2b-ecommerce-saaskit-` exceeded the 300-second installation limit, and `naveennaidu/OpenformStack` was correctly refused as Yarn 2+. No checks or migrations were run on these repositories.
 
 ## October 15 checkpoint: curated Stripe basil moves (0.24.0)
 
