@@ -47,6 +47,15 @@ The demo uses the real Stripe SDK against a **simulated API**, demonstrates the 
 
 Start with [repository setup](docs/REPOSITORY-SETUP.md), then [approve your configuration](docs/APP-ONBOARDING.md). Run locally or use the [GitHub App service](docs/LOCAL-SERVICE.md). One repository can monitor [multiple APIs](docs/MULTIPLE-INTEGRATIONS.md), with a separate draft PR for each integration.
 
+From a configured repository root:
+
+```sh
+refit doctor
+refit run
+```
+
+The evidence path is printed after the run. Add `--integration <id>` for a multi-API configuration or `--output <new-directory>` to choose where evidence stays.
+
 **Early access:** Stripe is the best-tested integration. Other providers need reviewed SDK mappings and migration rules. Installing the App also requires approved configuration and a running worker. AI and PR publication are explicit opt-ins; Refit never auto-merges. The website's workspace is an illustrative preview.
 
 See [current capabilities and verification](docs/READINESS.md), [architecture](docs/ARCHITECTURE.md), and [class-client support](docs/CLASS-CLIENTS.md) for the exact boundaries.

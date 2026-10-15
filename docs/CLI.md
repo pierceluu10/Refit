@@ -1,5 +1,9 @@
 # Refit local agent
 
+From a configured repository root, run `refit doctor` to inspect setup, then `refit run` to attempt the migration. Both find the root `.refit.json`; `--repository` selects another root and `--config` selects an operator workflow. Collections still require `--integration <id>`. AI and publication remain explicit flags.
+
+When `run` has no `--output`, evidence goes to a fresh private `refit-run-<uuid>` directory under the operating system's temporary directory. Its path is printed and included in JSON output. The OS may eventually remove temporary files; use `--output <new-directory-outside-repository>` for a chosen retained location. Existing output is never replaced. Manual specification flags do not silently load a root profile, and external operator workflows still need a repository selection. No contracts, mappings or check commands are guessed.
+
 Refit follows supported class-held SDK clients through field initializers, direct constructor assignments and lexical instance/arrow methods. Unstable class origins stop automation before AI, checks or publication. See [class-client support](CLASS-CLIENTS.md).
 
 `scan` and `replay` use a readable summary in terminals and JSON when redirected. Use `--human` or `--json` to select explicitly. `--output <new-report.json>` always saves the complete JSON report; add `--human` to also print a summary. Scan summaries explicitly identify that checks have not run and repository files remain unchanged.
