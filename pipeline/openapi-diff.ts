@@ -64,14 +64,77 @@ function responseRemovalLocation(change: Record<string, unknown>, before: object
   };
 }
 
+const SUBSCHEMA = /^anyOf\[subschema #(\d+)(?:: [^\]]*)?\]$/;
+
+// Names the expandable fields whose expanded object a removed response property lies inside.
+// Unexpanded responses return those fields as ID strings, so the property cannot appear unless a
+// request expands every one of them. Unresolvable paths name nothing and keep blocking.
+export function expansionLocation(change: Record<string, unknown>, before: object) {
+  if (
+    !RESPONSE_REMOVALS.has(String(change.id)) ||
+    typeof change.path !== 'string' ||
+    typeof change.operation !== 'string' ||
+    typeof change.text !== 'string' ||
+    !isObject(before) ||
+    !isObject(before.paths)
+  )
+    return undefined;
+  const match = change.text.match(
+    /^removed the (?:required|optional) property `([^`]+)` from the response with the `([^`]+)` status$/,
+  );
+  const item = before.paths[change.path];
+  const operation = isObject(item) ? item[change.operation.toLowerCase()] : undefined;
+  const responses = isObject(operation) ? operation.responses : undefined;
+  const response = match && isObject(responses) ? responses[match[2]] : undefined;
+  const content = isObject(response) && isObject(response.content) ? response.content : {};
+  const media = content['application/json'];
+  const components = isObject(before.components) ? before.components : {};
+  const schemas = isObject(components.schemas) ? components.schemas : {};
+  const resolve = (value: unknown) => {
+    const seen = new Set<string>();
+    let current = value;
+    while (isObject(current) && typeof current.$ref === 'string') {
+      const name = componentReference(current.$ref);
+      if (!name || seen.has(name)) return undefined;
+      seen.add(name);
+      current = schemas[name];
+    }
+    return isObject(current) ? current : undefined;
+  };
+  let node = resolve(isObject(media) ? media.schema : undefined);
+  let property: string | undefined;
+  const expansions: string[] = [];
+  for (const segment of match ? match[1].split('/') : []) {
+    if (!node) return undefined;
+    const subschema = segment.match(SUBSCHEMA);
+    if (subschema) {
+      const member = Array.isArray(node.anyOf) ? node.anyOf[Number(subschema[1]) - 1] : undefined;
+      if (!member) return undefined;
+      if (isObject(node['x-expansionResources']) && isObject(member) && member.$ref && property)
+        expansions.push(property);
+      node = resolve(member);
+    } else if (segment === 'items' && node.type === 'array') node = resolve(node.items);
+    else {
+      property = segment;
+      node = resolve(isObject(node.properties) ? node.properties[segment] : undefined);
+    }
+  }
+  return node && expansions.length ? { expansions } : undefined;
+}
+
 export function unmappedBreakingChanges(
   diff: { engine: string; changes: unknown[] } | undefined,
   changes: Removal[],
   findings: Finding[],
   operationChanges: OperationReplacementEvidence[] = [],
   requestChanges: RequestPropertyRenameEvidence[] = [],
+  expandedFields: string[] = ['*'],
 ) {
   if (!diff || diff.engine !== 'oasdiff') return [];
+  const unreachable = (entry: Record<string, unknown>) =>
+    !expandedFields.includes('*') &&
+    Array.isArray(entry.expansions) &&
+    entry.expansions.some((field) => !expandedFields.includes(field));
   const affected = changes.filter((change) =>
     findings.some(
       (finding) => finding.confidence === 'confirmed' && finding.changeId === change.id,
@@ -81,6 +144,7 @@ export function unmappedBreakingChanges(
     (entry) =>
       isObject(entry) &&
       Number(entry.level) >= 2 &&
+      !unreachable(entry) &&
       !isHandledOperationRemoval(entry, operationChanges) &&
       !isHandledRequestRename(entry, requestChanges) &&
       !(
@@ -142,6 +206,7 @@ export async function compareOpenApi(
       changes: kept.map((change): Record<string, unknown> => ({
         ...change,
         ...responseRemovalLocation(change, before),
+        ...expansionLocation(change, before),
       })),
       coverage: `Breaking contract changes reported by oasdiff (levels 2 and 3, plus removed fields and operations); ${changes.length - kept.length} other entries are not listed${options.openResponseEnums ? ', including Stripe response enum additions, which block only where the code switches over the field' : ''}. Documentation-only edits are not classified as code migrations. Mapping to application code remains bounded by the selected adapter and analyzer.`,
     };
