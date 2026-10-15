@@ -32,6 +32,11 @@ function code(value: string) {
   return `${fence}${content}${fence}`;
 }
 
+// A generated check with no runnable function did not run; it is missing evidence, not a failure.
+function generatedMark(status: string) {
+  return status === 'passed' ? '✅' : status === 'not-run' ? '➖' : '❌';
+}
+
 function summaryList(values: string[]) {
   const visible = values.slice(0, MAX_SUMMARY_ITEMS);
   const remaining = values.length - visible.length;
@@ -397,8 +402,8 @@ export function createReviewArtifacts(
         `| Migration | patched | ${commandText(validation.command)} | ${validation.patched.status === 'passed' ? '✅' : '❌'} ${validation.patched.status} |`,
         ...(validation.generated
           ? [
-              `| Generated, ${report.apiVersion.before} mock | original | ${validation.generated.entryPoints.length} exported functions | ${validation.generated.baseline.status === 'passed' ? '✅' : '❌'} ${validation.generated.baseline.status} |`,
-              `| Generated, ${report.apiVersion.after} mock | patched | ${validation.generated.entryPoints.length} exported functions | ${validation.generated.patched.status === 'passed' ? '✅' : '❌'} ${validation.generated.patched.status} |`,
+              `| Generated, ${report.apiVersion.before} mock | original | ${validation.generated.entryPoints.length} exported functions | ${generatedMark(validation.generated.baseline.status)} ${validation.generated.baseline.status} |`,
+              `| Generated, ${report.apiVersion.after} mock | patched | ${validation.generated.entryPoints.length} exported functions | ${generatedMark(validation.generated.patched.status)} ${validation.generated.patched.status} |`,
             ]
           : []),
       ].join('\n'),
