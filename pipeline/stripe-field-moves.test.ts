@@ -505,3 +505,17 @@ it('lists mixed-period reads without a selection in the pull request text', asyn
   );
   expect(body).toContain('`billing.ts:5`');
 });
+
+it('returns the rule patch without calling the model when rules cover every finding', async () => {
+  const fetch = vi.fn(() => {
+    throw new Error('Rules cover every finding; the model must not be called.');
+  });
+  vi.stubGlobal('fetch', fetch);
+  const report = await run(periodRead, true, { apiKey: 'test-key', model: 'test-model' });
+  expect(report.patch).toMatchObject({
+    status: 'proposed',
+    generator: 'deterministic',
+    unresolvedFindings: 0,
+  });
+  expect(fetch).not.toHaveBeenCalled();
+});
