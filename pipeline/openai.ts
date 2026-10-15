@@ -8,7 +8,9 @@ const REQUEST_TIMEOUT_MS = 60_000;
 export const MAX_INPUT_BYTES = 64 * 1024;
 const MAX_RESPONSE_BYTES = 256 * 1024;
 const MAX_OUTPUT_TOKENS = 4096;
-const MAX_INPUT_TOKENS = 16_384;
+// At least 2 bytes per token, so the 64 KiB byte limit binds first. JSON-wrapped source measures
+// about 3.5 bytes per token: a 16,384 cap rejected evidence the byte limit allowed.
+const MAX_INPUT_TOKENS = 32_768;
 
 export async function requestStructuredOutput(
   request: { evidence: unknown; instructions: string; name: string; schema: object },
