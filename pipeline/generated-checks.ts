@@ -31,11 +31,30 @@ export interface EntryPoint {
   parameters: number;
 }
 
-function exportedName(node: ts.Node): string | undefined {
+// Local names exported through `export { local, local as alias }` lists, mapped to the export name.
+function exportListNames(source: ts.SourceFile) {
+  const names = new Map<string, string>();
+  for (const statement of source.statements)
+    if (
+      ts.isExportDeclaration(statement) &&
+      !statement.moduleSpecifier &&
+      !statement.isTypeOnly &&
+      statement.exportClause &&
+      ts.isNamedExports(statement.exportClause)
+    )
+      for (const element of statement.exportClause.elements)
+        if (!element.isTypeOnly)
+          names.set((element.propertyName ?? element.name).text, element.name.text);
+  return names;
+}
+
+function exportedName(node: ts.Node, listed: Map<string, string>): string | undefined {
   const modifiers = ts.canHaveModifiers(node) ? (ts.getModifiers(node) ?? []) : [];
   const exported = modifiers.some((modifier) => modifier.kind === ts.SyntaxKind.ExportKeyword);
   const isDefault = modifiers.some((modifier) => modifier.kind === ts.SyntaxKind.DefaultKeyword);
   if (ts.isFunctionDeclaration(node) && exported) return isDefault ? 'default' : node.name?.text;
+  if (ts.isFunctionDeclaration(node) && node.name && ts.isSourceFile(node.parent))
+    return listed.get(node.name.text);
   if (
     (ts.isArrowFunction(node) || ts.isFunctionExpression(node)) &&
     ts.isVariableDeclaration(node.parent) &&
@@ -43,11 +62,13 @@ function exportedName(node: ts.Node): string | undefined {
     ts.isVariableDeclarationList(node.parent.parent) &&
     node.parent.parent.flags & ts.NodeFlags.Const &&
     ts.isVariableStatement(node.parent.parent.parent) &&
-    (ts.getModifiers(node.parent.parent.parent) ?? []).some(
+    ts.isSourceFile(node.parent.parent.parent.parent)
+  )
+    return (ts.getModifiers(node.parent.parent.parent) ?? []).some(
       (modifier) => modifier.kind === ts.SyntaxKind.ExportKeyword,
     )
-  )
-    return node.parent.name.text;
+      ? node.parent.name.text
+      : listed.get(node.parent.name.text);
   return undefined;
 }
 
@@ -76,6 +97,7 @@ export function generatedEntryPoints(repository: Repository, findings: Finding[]
       continue;
     }
     const source = ts.createSourceFile(file.path, file.content, ts.ScriptTarget.Latest, true);
+    const listed = exportListNames(source);
     const position = source.getPositionOfLineAndCharacter(finding.line - 1, finding.column - 1);
     let node: ts.Node | undefined = source;
     let enclosing: ts.SignatureDeclaration | undefined;
@@ -86,7 +108,7 @@ export function generatedEntryPoints(repository: Repository, findings: Finding[]
         .getChildren(source)
         .find((child) => child.getStart(source) <= position && position < child.getEnd());
       if (!next) break;
-      const exported = ts.isFunctionLike(next) ? exportedName(next) : undefined;
+      const exported = ts.isFunctionLike(next) ? exportedName(next, listed) : undefined;
       if (exported) {
         enclosing = next as ts.SignatureDeclaration;
         name = exported;

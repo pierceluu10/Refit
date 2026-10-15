@@ -61,6 +61,15 @@ export async function typed(request: Request) {
 export async function many(a, b, c, d) {
   return (await stripe.invoices.retrieve(a)).subscription;
 }
+
+const listedArrow = async (subscriptionId: string, customerId: string, createAction = false) =>
+  (await stripe.subscriptions.retrieve(subscriptionId)).current_period_end;
+
+async function listedDeclaration(id) {
+  return (await stripe.invoices.retrieve(id)).payment_intent;
+}
+
+export { listedArrow, listedDeclaration as renamed };
 `;
 
 it('selects exported functions with placeholder-friendly parameters and counts the rest', () => {
@@ -73,12 +82,16 @@ it('selects exported functions with placeholder-friendly parameters and counts t
     at('retrieve(id)).subscription'),
     at('retrieve(request.url)).subscription'),
     at('retrieve(a)).subscription'),
+    at(').current_period_end'),
+    at(').payment_intent'),
     { ...at(').quote'), confidence: 'review' },
   ]);
   expect(result.entries).toEqual([
     { file: 'billing.ts', name: 'direct', parameters: 1 },
     { file: 'billing.ts', name: 'arrow', parameters: 1 },
     { file: 'billing.ts', name: 'default', parameters: 1 },
+    { file: 'billing.ts', name: 'listedArrow', parameters: 3 },
+    { file: 'billing.ts', name: 'renamed', parameters: 1 },
   ]);
   expect(result.uncovered).toBe(3);
 });
