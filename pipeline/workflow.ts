@@ -162,6 +162,7 @@ export async function runWorkflow(options: {
       scan.findings,
       scan.operationChanges,
       scan.requestChanges,
+      scan.expandedFields,
     );
     if (unmapped.length)
       return await finish(

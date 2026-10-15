@@ -201,6 +201,7 @@ export async function runPipeline(options: {
     analysis.findings,
     operationChanges,
     requestChanges,
+    analysis.expandedFields,
   );
   const operationImpacts = findBreakingOperationImpacts(
     specificationDiff,

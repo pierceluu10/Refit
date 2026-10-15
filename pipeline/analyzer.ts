@@ -872,26 +872,36 @@ export function analyzeRepository(
       });
   }
   let expanded: Set<string> | undefined;
-  // A moved expandable field keeps its old expansion only if no request names it; unreadable
-  // expand values are treated as naming every field.
-  function expandsField(property: string) {
-    if (!expanded) {
-      expanded = new Set();
-      for (const node of nodes) {
-        if (!ts.isPropertyAssignment(node) || node.name.getText().replace(/['"]/g, '') !== 'expand')
-          continue;
-        const value = node.initializer;
-        if (
-          !ts.isArrayLiteralExpression(value) ||
-          !value.elements.every((element) => ts.isStringLiteralLike(element))
-        )
-          expanded.add('*');
-        else
-          for (const element of value.elements as ts.NodeArray<ts.StringLiteralLike>)
-            for (const segment of element.text.split('.')) expanded.add(segment);
-      }
+  // Fields named by literal `expand` arrays. Any other mention of `expand`, such as a variable,
+  // shorthand property or computed key, counts as expanding every field ('*').
+  function expandedFields() {
+    if (expanded) return expanded;
+    expanded = new Set();
+    const literalNames = new Set<ts.Node>();
+    for (const node of nodes) {
+      if (!ts.isPropertyAssignment(node) || node.name.getText().replace(/['"]/g, '') !== 'expand')
+        continue;
+      const value = node.initializer;
+      if (
+        !ts.isArrayLiteralExpression(value) ||
+        !value.elements.every((element) => ts.isStringLiteralLike(element))
+      )
+        continue;
+      literalNames.add(node.name);
+      for (const element of value.elements as ts.NodeArray<ts.StringLiteralLike>)
+        for (const segment of element.text.split('.')) expanded.add(segment);
     }
-    return expanded.has('*') || expanded.has(property);
+    for (const node of nodes)
+      if (
+        (ts.isIdentifier(node) || ts.isStringLiteralLike(node)) &&
+        node.text === 'expand' &&
+        !literalNames.has(node)
+      )
+        expanded.add('*');
+    return expanded;
+  }
+  function expandsField(property: string) {
+    return expandedFields().has('*') || expandedFields().has(property);
   }
   function propose(node: ts.Node, receiver: ts.Expression, change: Removal) {
     if (webhooks?.origin(receiver)) return;
@@ -1295,6 +1305,7 @@ export function analyzeRepository(
     imports,
     calls,
     sdkCalls,
+    expandedFields: [...expandedFields()].sort(),
     apiVersionDeclarations: declaredApiVersions({
       nodes,
       mutationNodes,

@@ -183,6 +183,7 @@ export async function publishDraft(
       report.findings,
       report.operationChanges,
       report.requestChanges,
+      report.expandedFields,
     ).length
   )
     throw new PipelineInputError(
