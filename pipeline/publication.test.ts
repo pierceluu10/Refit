@@ -370,9 +370,7 @@ it('publishes separate named integrations against the same base without sharing 
     expect(request.body.title).toBe(
       `[${integration}] Fix Stripe payment history after PaymentIntent.charges removal`,
     );
-    expect(request.body.body).toContain(
-      `This draft covers the \`${integration}\` integration only.`,
-    );
+    expect(request.body.body).toContain(`Covers the \`${integration}\` integration only.`);
     expect(request.body.body).toContain(
       `<!-- refit-migration:${migrationIdentity(value, REVISION, integration)} -->`,
     );

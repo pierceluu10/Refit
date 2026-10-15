@@ -68,7 +68,7 @@ it('exports regression evidence without implying that checks passed or a PR exis
   );
 });
 
-it('writes one paragraph on what changed, why and the evidence, then the diff', async () => {
+it('writes short labeled lines on what changed, why and the evidence, then the diff', async () => {
   const value = await report();
   value.changes.unshift({
     id: 'unrelated',
@@ -78,12 +78,14 @@ it('writes one paragraph on what changed, why and the evidence, then the diff', 
   });
   const body = createReviewArtifacts(value).files['pull-request.md'];
   const [summary, ...rest] = body.split('\n\n');
-  expect(summary).not.toContain('\n');
-  expect(summary).toContain('removes `payment_intent.charges`, so a deterministic Refit rule');
-  expect(summary).toMatch(/confirmed usages? in 1 file/);
-  expect(summary).toContain('**Validation did not pass (regression).**');
+  expect(summary).toMatch(
+    /^- \*\*What:\*\* A deterministic Refit rule \(no AI\) updated \d+ confirmed usages? in 1 file/,
+  );
+  expect(summary).toContain('- **Why:** Stripe API 2022-11-15 removes `payment_intent.charges`.');
+  expect(summary).toContain('- **Evidence:** ❌ **Validation did not pass (regression).**');
+  expect(summary.split('\n')).toHaveLength(4);
+  expect(rest[0]).toBe('#### Changes');
   expect(body).not.toContain('invoice.subscription');
-  expect(body).not.toContain('## ');
   expect(body).not.toContain('<details>');
   expect(rest.join('\n\n')).toContain('`billing.ts:7` in `chargeHistory()`');
   expect(rest.join('\n\n')).toContain('```diff');
@@ -171,12 +173,12 @@ function visibleBody(value: Report) {
 
 it('shows the exact changed lines and the configured rule behind a deterministic rename', async () => {
   const visible = visibleBody(await renameReport());
-  expect(visible).toContain('(`Model.owned_by` → `Model.owner_name`)');
+  expect(visible).toContain(': `Model.owned_by` → `Model.owner_name`.');
   expect(visible).toContain('`models.js:5` in `getModelOwner()`');
   expect(visible).toContain('-  return model.owned_by.toLowerCase();');
   expect(visible).toContain('+  return model.owner_name.toLowerCase();');
   expect(visible).toContain('An operator-configured rename rule maps `Model.owned_by`');
-  expect(visible).toContain('`npm run test:after` on the migrated code in an offline Docker');
+  expect(visible).toContain('`npm run test:after` on the migrated code (offline Docker)');
 });
 
 it('warns when only the name and type support an AI replacement', async () => {
@@ -188,7 +190,7 @@ it('warns when only the name and type support an AI replacement', async () => {
   expect(visible).toContain(
     'same type (string). ⚠️ Nothing documents it as the replacement for `owned_by`',
   );
-  expect(visible).toContain('so AI (`test-model`), checked by Refit, updated');
+  expect(visible).toContain('- **What:** AI (`test-model`), checked by Refit, updated');
 });
 
 it('quotes the contract description that documents an AI replacement', async () => {

@@ -290,48 +290,69 @@ export function createReviewArtifacts(
   const generated = validation.generated;
   const sameCommand = validation.baselineCommand.join(' ') === validation.command.join(' ');
   // One paragraph: what changed and why, the evidence and its limits, and what was left alone.
+  const line = (label: string, parts: string[]) =>
+    parts.length ? [`- **${label}:** ${parts.join(' ')}`] : [];
+  const checkCommand = sameCommand
+    ? `${commandText(validation.command)} passed on the original and migrated code`
+    : `${commandText(validation.baselineCommand)} passed on the original, ${commandText(validation.command)} on the migrated code`;
+  // Short labeled lines: what changed, why, the evidence and its limits, and what was left alone.
   const summary = [
-    `${plainText(provider)} API ${report.apiVersion.after ? `${after} ` : ''}removes ${changeSummary}, so ${ai ? `AI${model ? ` (${code(model)})` : ''}, checked by Refit,` : 'a deterministic Refit rule'} updated ${usageCount} in ${fileCount}${replacements.length ? ` (${summaryList(replacements)})` : ''}.`,
-    ...reasons,
-    ...(subscriptionPolicy
-      ? [
-          `Subscription periods come from the one item priced ${code(subscriptionPolicy.priceId)}, by the signed event's ${code('api_version')}.`,
-        ]
-      : []),
-    ...(selectedPeriods.length
-      ? [
-          `Items on different billing periods use the item the code already treats as its plan: ${summaryList([...new Set(selectedPeriods.map((finding) => code(finding.subscriptionPeriod!.selection ?? '')))])}.`,
-        ]
-      : []),
-    ...(requestChanges.length
-      ? [
-          `Request fields: ${summaryList(requestChanges.map((entry) => `${code(`${entry.resource}.${entry.method}`)} ${code(entry.removed)} → ${code(entry.replacement)}`))}.`,
-        ]
-      : []),
-    ...(operationChanges.length
-      ? [
-          `Calls: ${summaryList(operationChanges.map((entry) => `${code(`${entry.resource}.${entry.method}`)} → ${code(`${entry.replacementResource}.${entry.replacementMethod}`)}`))}.`,
-        ]
-      : []),
-    passed
-      ? `Evidence: ${sameCommand ? `${commandText(validation.command)} passed on the original and the migrated code` : `${commandText(validation.baselineCommand)} passed on the original and ${commandText(validation.command)} on the migrated code`} in an offline Docker container${generated ? (generated.patched.status === 'not-run' ? '; generated stripe-mock checks did not run' : `; generated stripe-mock checks on ${generated.entryPoints.length} exported functions ${generated.patched.status} after the migration`) : ''}. That does not show the new fields mean the same for your app or that the checks cover every path.`
-      : `**Validation did not pass (${validation.status}).**`,
-    ...(unconfirmed.length
-      ? [
-          `Not changed, please check: ${unconfirmed.length} read${unconfirmed.length === 1 ? '' : 's'} of removed field names Refit could not trace to a Stripe object: ${summaryList([...new Set(unconfirmed.map((finding) => code(`${finding.file}:${finding.line} ${finding.expression}`)))])}.`,
-        ]
-      : []),
-    ...(flaggedPeriods.length
-      ? [
-          `Subscriptions with items on different billing periods are not handled. Set ${code('stripeSubscriptionPeriods')} to choose which item counts: ${summaryList(flaggedPeriods.map((finding) => code(`${finding.file}:${finding.line}`)))}.`,
-        ]
-      : []),
-    ...(integration ? [`This draft covers the ${code(integration)} integration only.`] : []),
+    ...line('What', [
+      `${ai ? `AI${model ? ` (${code(model)})` : ''}, checked by Refit,` : 'A deterministic Refit rule (no AI)'} updated ${usageCount} in ${fileCount}${replacements.length ? `: ${summaryList(replacements)}` : ''}.`,
+      ...(integration ? [`Covers the ${code(integration)} integration only.`] : []),
+    ]),
+    ...line('Why', [
+      `${plainText(provider)} API ${report.apiVersion.after ? `${after} ` : ''}removes ${changeSummary}.`,
+      ...reasons,
+    ]),
+    ...line('How', [
+      ...(subscriptionPolicy
+        ? [
+            `Subscription periods come from the one item priced ${code(subscriptionPolicy.priceId)}, by the signed event's ${code('api_version')}.`,
+          ]
+        : []),
+      ...(selectedPeriods.length
+        ? [
+            `Items on different billing periods use the item the code already picks: ${summaryList([...new Set(selectedPeriods.map((finding) => code(finding.subscriptionPeriod!.selection ?? '')))])}.`,
+          ]
+        : []),
+      ...(requestChanges.length
+        ? [
+            `Request fields: ${summaryList(requestChanges.map((entry) => `${code(`${entry.resource}.${entry.method}`)} ${code(entry.removed)} → ${code(entry.replacement)}`))}.`,
+          ]
+        : []),
+      ...(operationChanges.length
+        ? [
+            `Calls: ${summaryList(operationChanges.map((entry) => `${code(`${entry.resource}.${entry.method}`)} → ${code(`${entry.replacementResource}.${entry.replacementMethod}`)}`))}.`,
+          ]
+        : []),
+    ]),
+    ...line(
+      'Evidence',
+      passed
+        ? [
+            `✅ ${checkCommand} (offline Docker).${generated ? (generated.patched.status === 'not-run' ? ' ➖ Generated stripe-mock checks did not run.' : ` ${generated.patched.status === 'passed' ? '✅' : '❌'} Generated stripe-mock checks ${generated.patched.status} on ${generated.entryPoints.length} exported functions.`) : ''} Not proof the new fields mean the same for your app or that every path is covered.`,
+          ]
+        : [`❌ **Validation did not pass (${validation.status}).**`],
+    ),
+    ...line('Please check', [
+      ...(unconfirmed.length
+        ? [
+            `${unconfirmed.length} read${unconfirmed.length === 1 ? '' : 's'} of removed field names Refit could not trace to a Stripe object, left unchanged: ${summaryList([...new Set(unconfirmed.map((finding) => code(`${finding.file}:${finding.line}`)))])}.`,
+          ]
+        : []),
+      ...(flaggedPeriods.length
+        ? [
+            `Subscriptions with items on different billing periods are not handled. Set ${code('stripeSubscriptionPeriods')} to choose which item counts: ${summaryList(flaggedPeriods.map((finding) => code(`${finding.file}:${finding.line}`)))}.`,
+          ]
+        : []),
+    ]),
     ...(destination === 'local' ? ['Refit has not pushed a branch or opened a pull request.'] : []),
-  ].join(' ');
+  ].join('\n');
   const body =
     [
       summary,
+      '#### Changes',
       ...changeSections(patch.diff),
       ...(integration ? [`${INTEGRATION_MARKER}${integration} -->`] : []),
       `<!-- refit-migration:${migrationIdentity(report, validation.revision, integration)} -->`,
