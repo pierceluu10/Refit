@@ -324,3 +324,46 @@ it('applies the three move edits without overlapping', () => {
     ]),
   ).toBe('x((invoice.parent?.a ?? null))');
 });
+
+it('migrates both curated basil moves with the shipped example adapter and real Stripe schemas', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'refit-basil-catalog-'));
+  directories.push(root);
+  await writeFile(
+    join(root, 'package.json'),
+    JSON.stringify({ dependencies: { stripe: '17.7.0' } }),
+  );
+  await writeFile(
+    join(root, 'billing.js'),
+    `import Stripe from 'stripe';
+
+const stripe = new Stripe('sk_test_placeholder');
+
+export async function invoiceSubscription(id) {
+  const invoice = await stripe.invoices.retrieve(id);
+  return invoice.subscription;
+}
+
+export async function itemSubscriptionItem(id) {
+  const item = await stripe.invoiceItems.retrieve(id);
+  return item.subscription_item;
+}
+`,
+  );
+  const report = await proposed(
+    Promise.resolve({
+      repository: root,
+      before: 'pipeline/fixtures/stripe-basil-moves/before.json',
+      after: 'pipeline/fixtures/stripe-basil-moves/after.json',
+      providerConfig: 'examples/stripe-basil-moves.provider.json',
+      proposePatch: true,
+    }),
+  );
+  expect(report.findings.filter((finding) => finding.confidence === 'confirmed')).toHaveLength(2);
+  expect(report.patch).toMatchObject({ status: 'proposed', unresolvedFindings: 0 });
+  expect(report.patch.diff).toContain(
+    '+  return (invoice.parent?.subscription_details?.subscription ?? null);',
+  );
+  expect(report.patch.diff).toContain(
+    '+  return item.parent?.subscription_details?.subscription_item;',
+  );
+});

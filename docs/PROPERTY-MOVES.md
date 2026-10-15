@@ -25,6 +25,24 @@ Use a custom adapter, referenced by `providerConfig`, whose ID differs from the 
 
 A path has at most four identifier segments, and `__proto__` is refused. A replacement without a dot keeps the existing [scalar rename](CLI.md) behavior.
 
+## Curated Stripe basil moves
+
+[`examples/stripe-basil-moves.provider.json`](../examples/stripe-basil-moves.provider.json) maps Stripe's invoice and invoice-item SDK methods. It configures the two basil moves that pass these checks against Stripe's published acacia and basil documents:
+
+| Removed | New path |
+|---|---|
+| `invoice.subscription` | `invoice.parent.subscription_details.subscription` |
+| `invoiceitem.subscription_item` | `invoiceitem.parent.subscription_details.subscription_item` |
+
+Copy it next to your contracts and reference it from `providerConfig`; add your own methods as needed. The other basil invoicing moves are deliberately absent because they change meaning:
+
+- `invoice.quote`, `invoiceitem.subscription`, `line_item.invoice_item` and `line_item.subscription_item` were expandable objects and are now ID strings only.
+- `invoice.subscription_details` now refers to a different object schema.
+- `invoice.subscription_proration_date` gained a `unix-time` format annotation, and Refit compares formats strictly.
+- `line_item.proration` was required, but its new path can be missing for non-subscription lines.
+
+Those reads still need review or a reviewed AI proposal.
+
 ## What Refit verifies
 
 Before scanning, Refit checks the move against your recorded contracts:
@@ -32,7 +50,7 @@ Before scanning, Refit checks the move against your recorded contracts:
 - The path resolves in the after contract and did not exist in the before contract.
 - Every intermediate segment is a direct or single-member `anyOf` reference to an object component.
 - The new value has the same declared shape as the removed one: type, `anyOf` members, references and expansion metadata. Descriptions and nullability are compared separately.
-- If any intermediate is nullable or not required, the removed field must have been nullable.
+- If any intermediate is nullable or not required, the removed field must have been nullable or optional. A required, non-nullable field always had a value, so a path that can be missing is refused.
 
 A move that fails any check stops the run with an error naming the move.
 
@@ -45,7 +63,7 @@ Only direct property reads on confirmed, statically traced SDK responses change.
 +  return (invoice.parent?.subscription_details?.subscription ?? null);
 ```
 
-Optional chaining appears only where the after contract allows a missing parent. `?? null` keeps the removed field's `null` result when a parent is absent. If every intermediate is required and non-nullable, the edit reads the path directly without a fallback.
+Optional chaining appears only where the after contract allows a missing parent. For a removed nullable field, `?? null` keeps its `null` result when a parent is absent. A removed optional, non-nullable field read as `undefined` when absent, so its edit uses optional chaining without a fallback. If every intermediate is required and non-nullable, the edit reads the path directly.
 
 Reads that already use the new path are not reported, even where other removals share a segment name. Stripe's basil release also removed top-level `invoice.subscription_details` and `invoiceitem.subscription`.
 
@@ -60,7 +78,7 @@ The edit does not change the SDK version, the client's `apiVersion` pin or webho
 
 ## Verified lab
 
-A local repository used the actual `stripe` 17.7.0 SDK and Stripe's published `2025-02-24.acacia` and `2025-04-30.basil` OpenAPI documents (`stripe/openapi` tags `v1505` and `v1719`). A loopback simulator served each version's invoice shape. `refit run` prepared npm dependencies with scripts disabled. The original code passed the acacia contract, and the migrated code passed the basil contract in offline Docker. It returned the subscription ID for a subscription invoice and `null` for a one-off invoice. The original code fails against the basil shape.
+A local repository used the curated adapter with the actual `stripe` 17.7.0 SDK and Stripe's published `2025-02-24.acacia` and `2025-04-30.basil` OpenAPI documents (`stripe/openapi` tags `v1505` and `v1719`). A loopback simulator served each version's invoice shape. `refit run` prepared npm dependencies with scripts disabled. The original code passed the acacia contract, and the migrated code passed the basil contract in offline Docker. It returned the subscription and subscription-item IDs for subscription invoices and items, and `null` for one-off ones. The original code fails against the basil shape.
 
 The responses were simulated, not live Stripe calls. Contract comparison used direct property removals (`fullDiff: false`). On these real contracts, `--full-diff` reports 1,784 level-2/3 changes in components reachable from `invoices.retrieve`: 1,560 response enum additions and 216 required-property removals. Under the current policy, any unmapped breaking change blocks automation. Treating these differently is an open policy decision, so the full-diff gate is unchanged.
 
