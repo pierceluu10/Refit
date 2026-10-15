@@ -3,7 +3,8 @@ import type { AiOptions } from './ai-budget.ts';
 import { analyzeRepository } from './analyzer.ts';
 import { proposeAiPatch } from './ai-patches.ts';
 import { assessMigration, buildAssessmentEvidence } from './assessment.ts';
-import { applySourceEdits, editCovers, isFieldMove, proposePatch } from './patches.ts';
+import { applySourceEdits, editCovers, isFieldMove, proposePatch, renderPatch } from './patches.ts';
+import { stripePackageUpgrade } from './stripe-package-upgrade.ts';
 import { propertyExists } from './stripe-field-moves.ts';
 import { readRepository } from './repository.ts';
 import {
@@ -33,6 +34,7 @@ import { PipelineInputError } from './types.ts';
 import { digest, findRemovedProperties, isObject, readSpecification } from './specifications.ts';
 import { stripeAdapterFor } from './stripe-operations.ts';
 import {
+  SUBSCRIPTION_PERIOD_EITHER_RULE,
   SUBSCRIPTION_PERIOD_ITEMS_RULE,
   validateStripeSubscriptionPeriodContract,
 } from './stripe-subscription-periods.ts';
@@ -136,11 +138,13 @@ export async function runPipeline(options: {
     moves,
   );
   // Field moves apply only when the target contract has the documented new location.
+  const itemPeriods =
+    propertyExists(after.schemas, ['subscription', 'items']) &&
+    propertyExists(after.schemas, ['subscription_item', 'current_period_start']) &&
+    propertyExists(after.schemas, ['subscription_item', 'current_period_end']);
   const movedTo = {
-    [SUBSCRIPTION_PERIOD_ITEMS_RULE]:
-      propertyExists(after.schemas, ['subscription', 'items']) &&
-      propertyExists(after.schemas, ['subscription_item', 'current_period_start']) &&
-      propertyExists(after.schemas, ['subscription_item', 'current_period_end']),
+    [SUBSCRIPTION_PERIOD_ITEMS_RULE]: itemPeriods,
+    [SUBSCRIPTION_PERIOD_EITHER_RULE]: itemPeriods,
   } as Record<string, boolean>;
   const targetVersion = isObject(after.document.info) ? after.document.info.version : undefined;
   const versionEdits =
@@ -170,9 +174,19 @@ export async function runPipeline(options: {
   // shortcut: requires some bumped literal pin, not the pin of each read's own client; trace the
   // client per read if repositories mix pinned and unpinned clients.
   const edits = analyzedEdits.filter(
-    (edit) => !isFieldMove(edit) || (movedTo[edit.rule!] && versionEdits.length > 0),
+    (edit) =>
+      !isFieldMove(edit) ||
+      (movedTo[edit.rule!] &&
+        (edit.rule === SUBSCRIPTION_PERIOD_EITHER_RULE || versionEdits.length > 0)),
   );
   const ruleEdits = edits.filter(isFieldMove);
+  // A webhook read counts as migrated only while its version-tolerant edit is kept.
+  for (const finding of analysis.findings)
+    if (
+      finding.webhook?.migration?.rule === SUBSCRIPTION_PERIOD_EITHER_RULE &&
+      !editCovers(repository, edits, finding)
+    )
+      delete finding.webhook.migration;
   if (specificationDiff && provider.packageName === STRIPE.packageName)
     specificationDiff.changes.push(
       ...switchedEnumAdditions(enumChecks, before.schemas, after.schemas),
@@ -274,6 +288,7 @@ export async function runPipeline(options: {
   const reviewReason = migrationReviewReason(
     { findings: analysis.findings, skippedFiles, adapter: provider },
     true,
+    true,
   );
   const advisoryReviewReason = migrationReviewReason({ findings: analysis.findings, skippedFiles });
   if (
@@ -321,10 +336,67 @@ export async function runPipeline(options: {
             reason:
               'This pipeline produces impact evidence. It does not modify repositories or execute their code.',
           };
-  const completePatch =
-    'unresolvedFindings' in patch && additionalOperationUsageCount > 0
-      ? { ...patch, unresolvedFindings: patch.unresolvedFindings + additionalOperationUsageCount }
+  // TypeScript projects need the stripe-node release for the new API version: its apiVersion
+  // literal type and the moved fields' types. The upgrade is added only when the patch bumps the pin.
+  const bumpedVersion =
+    versionEdits.length > 0 &&
+    'diff' in patch &&
+    patch.status === 'proposed' &&
+    'generator' in patch &&
+    (patch.generator === 'openai' || (ruleEdits.length > 0 && !configuredMigrationProposal));
+  const typescript = repository.files.some((file) => /\.(?:[cm]?ts|tsx)$/.test(file.path));
+  const upgrade =
+    bumpedVersion && typescript && typeof targetVersion === 'string'
+      ? await stripePackageUpgrade(repository.root, targetVersion)
+      : undefined;
+  const upgradedPatch =
+    upgrade && 'diff' in patch
+      ? 'upgrade' in upgrade
+        ? {
+            ...patch,
+            edits: patch.edits + upgrade.upgrade.files.length,
+            diff:
+              patch.diff +
+              renderPatch(
+                {
+                  ...repository,
+                  files: upgrade.upgrade.files.map((file) => ({
+                    path: file.path,
+                    content: file.before,
+                  })),
+                },
+                upgrade.upgrade.files.map((file) => ({
+                  file: file.path,
+                  start: 0,
+                  end: file.before.length,
+                  replacement: file.after,
+                  changeId: 'stripe-package',
+                })),
+              ),
+            sdkUpgrade: { from: upgrade.upgrade.from, to: upgrade.upgrade.to },
+            warnings: [
+              `Upgrades stripe from ${upgrade.upgrade.from} to ${upgrade.upgrade.to} in package.json and package-lock.json, using the npm registry's SHA-512 integrity. A major SDK upgrade can change other types and behavior; review the stripe-node changelog.`,
+              ...('warnings' in patch ? patch.warnings : []).filter(
+                (warning) => !warning.startsWith('The stripe package is not upgraded.'),
+              ),
+            ],
+          }
+        : {
+            ...patch,
+            sdkUpgrade: { skipped: upgrade.reason },
+            warnings: [
+              `The stripe package was not upgraded: ${upgrade.reason}`,
+              ...('warnings' in patch ? patch.warnings : []),
+            ],
+          }
       : patch;
+  const completePatch =
+    'unresolvedFindings' in upgradedPatch && additionalOperationUsageCount > 0
+      ? {
+          ...upgradedPatch,
+          unresolvedFindings: upgradedPatch.unresolvedFindings + additionalOperationUsageCount,
+        }
+      : upgradedPatch;
   const repositoryHash = digest(
     JSON.stringify({
       files: repository.files,

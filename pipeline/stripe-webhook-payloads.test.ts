@@ -91,7 +91,10 @@ it.each([
         },
       },
     ]);
-    expect(result.edits).toEqual([]);
+    expect(result.edits).toMatchObject([{ rule: 'stripe-subscription-periods-either-version' }]);
+    expect(result.findings[0].webhook?.migration).toEqual({
+      rule: 'stripe-subscription-periods-either-version',
+    });
     expect(result.apiVersionDeclarations).toHaveLength(1);
     expect(
       compareApiVersion(
@@ -127,7 +130,6 @@ it.each([
   `const kind = event.type; const data = event.data; const snapshot = data.object; if(kind === 'customer.subscription.updated') return snapshot.current_period_end;`,
   `const {type: kind, data: {object: snapshot}} = event; if(kind === 'customer.subscription.updated') return snapshot.current_period_end;`,
   `const {data} = event; const {object: snapshot} = data; switch(event.type) {case 'customer.subscription.updated': return snapshot.current_period_end;}`,
-  `const {'type': kind, data: {'object': snapshot}} = event; if(kind === 'customer.subscription.updated') return snapshot['current_period_end'];`,
 ])(
   'follows immutable discriminant and payload projections without trusting casts: %s',
   (handler) => {
@@ -137,9 +139,23 @@ it.each([
       confidence: 'confirmed',
       webhook: { schema: 'subscription', eventTypes: ['customer.subscription.updated'] },
     });
-    expect(result.edits).toEqual([]);
+    expect(result.edits).toMatchObject([{ rule: 'stripe-subscription-periods-either-version' }]);
+    expect(result.findings[0].webhook?.migration).toEqual({
+      rule: 'stripe-subscription-periods-either-version',
+    });
   },
 );
+
+it('confirms but does not rewrite a string-index payload read', () => {
+  const result = analyze(
+    `${initialize} const {'type': kind, data: {'object': snapshot}} = event; if(kind === 'customer.subscription.updated') return snapshot['current_period_end'];`,
+  );
+  expect(result.findings).toMatchObject([
+    { confidence: 'confirmed', webhook: { schema: 'subscription' } },
+  ]);
+  expect(result.findings[0].webhook?.migration).toBeUndefined();
+  expect(result.edits).toEqual([]);
+});
 
 it.each([
   `let kind = event.type; if(kind === 'customer.subscription.updated') {${payloadRead}}`,

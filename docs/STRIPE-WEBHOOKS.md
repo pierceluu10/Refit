@@ -1,6 +1,6 @@
 # Stripe snapshot webhook payloads
 
-Refit traces supported Stripe snapshot events from `stripe.webhooks.constructEvent(...)` or awaited `constructEventAsync(...)` into removed-field findings. Those findings stop automation unless a supported deterministic rule establishes incoming-version handling and an explicit migration policy. The first exception is the reviewed [subscription-period price-ID policy](STRIPE-SUBSCRIPTION-PERIODS.md). Direct AI generation and advisory assessment remain blocked for webhook payloads.
+Refit traces supported Stripe snapshot events from `stripe.webhooks.constructEvent(...)` or awaited `constructEventAsync(...)` into removed-field findings. Without a configured price policy, subscription-period reads on these payloads become [version-tolerant reads](STRIPE-SUBSCRIPTION-PERIODS.md#without-a-price-policy). Other webhook findings are left unedited: patch generation and validation continue for the rest of the repository, but publication stops until they are migrated. When webhook reads are the only confirmed findings, the run stops at review as before. Webhook findings otherwise stop automation unless a supported deterministic rule establishes incoming-version handling and an explicit migration policy. The first exception is the reviewed [subscription-period price-ID policy](STRIPE-SUBSCRIPTION-PERIODS.md). Direct AI generation and advisory assessment remain blocked for webhook payloads.
 
 ## Separate incoming and outgoing versions
 

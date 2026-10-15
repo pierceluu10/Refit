@@ -2,9 +2,9 @@ import { migrationReviewReason } from './migration-review.ts';
 import type { AiOptions, AiUsage } from './ai-budget.ts';
 import { execFile } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
-import { copyFile, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { copyFile, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { basename, join } from 'node:path';
 import { promisify } from 'node:util';
 import { runPipeline } from './run.ts';
 import {
@@ -32,6 +32,7 @@ import {
   writeHarness,
   type GeneratedChecks,
 } from './generated-checks.ts';
+import { codeDiff, PACKAGE_FILES, packageDiff } from './stripe-package-upgrade.ts';
 import {
   dockerSandboxArguments,
   removeDockerContainer,
@@ -133,7 +134,7 @@ async function generatedStripeChecks(options: {
   image: string;
   dependencies?: string;
   entryPoints: ReturnType<typeof generatedEntryPoints>;
-  runs: { directory: string; contract: string; side: 'before' | 'after' }[];
+  runs: { directory: string; contract: string; side: 'before' | 'after'; dependencies?: string }[];
   onProgress?: (message: string) => void;
 }) {
   const { entries, uncovered } = options.entryPoints;
@@ -169,7 +170,7 @@ async function generatedStripeChecks(options: {
         run.directory,
         options.image,
         generatedCommand(entries),
-        options.dependencies,
+        run.dependencies ?? options.dependencies,
         [
           { source: mock.binary, target: '/refit/stripe-mock' },
           { source: run.contract, target: '/refit/spec.json' },
@@ -241,7 +242,7 @@ export async function validateMigration(options: {
   });
   if (apiVersionSourceBlocked(preflight.apiVersion))
     throw new PipelineInputError(`Validation is blocked. ${preflight.apiVersion.reason}`);
-  const reviewReason = migrationReviewReason(preflight, true);
+  const reviewReason = migrationReviewReason(preflight, true, true);
   if (reviewReason) throw new PipelineInputError(reviewReason);
   const git = (args: string[]) =>
     command('git', ['-c', 'core.fsmonitor=false', '-C', repository, ...args]);
@@ -325,16 +326,69 @@ export async function validateMigration(options: {
       await writeFile(patch, diff);
       await command('git', ['apply', '--check', patch], patchedDirectory);
       await command('git', ['apply', patch], patchedDirectory);
+      // An SDK upgrade in the patch needs dependencies prepared from the patched lockfile, which
+      // preparation reads from a committed snapshot.
+      let candidateDependencies = dependencies;
+      let candidateEnvironment: Record<string, unknown> | undefined;
+      if (packageDiff(diff) && options.prepareDependencies) {
+        await command('git', ['init', '-q'], patchedDirectory);
+        await command('git', ['add', '-A'], patchedDirectory);
+        await command(
+          'git',
+          [
+            '-c',
+            'user.name=Refit',
+            '-c',
+            'user.email=refit@localhost',
+            '-c',
+            'commit.gpgsign=false',
+            'commit',
+            '-q',
+            '-m',
+            'Refit migration candidate',
+          ],
+          patchedDirectory,
+        );
+        const prepared = await prepareDependencies({
+          repository: patchedDirectory,
+          image,
+          signal: options.signal,
+          onProgress: options.onProgress,
+        });
+        await rm(join(patchedDirectory, '.git'), { recursive: true, force: true });
+        candidateEnvironment = { ...prepared.environment, reused: prepared.reused };
+        candidateDependencies = join(root, `${basename(patchedDirectory)}-dependencies.tar`);
+        await copyFile(prepared.archive, candidateDependencies);
+        const copied = await inspectArtifactFile(
+          candidateDependencies,
+          MAX_DEPENDENCY_ARCHIVE_BYTES,
+        );
+        if (
+          copied.sha256 !== prepared.environment.archiveHash ||
+          copied.bytes !== prepared.environment.archiveBytes
+        )
+          throw new PipelineInputError(
+            'Prepared dependencies changed while creating the validation snapshot.',
+          );
+      }
       const patchedSources = await readRepository(patchedDirectory, report.adapter.packageName);
+      const declarations = analyzeRepository(
+        patchedSources,
+        [],
+        report.adapter,
+      ).apiVersionDeclarations;
+      // Moving every literal pin to the target version is part of the migration, so the patched
+      // code is checked against that version instead of the original one.
+      const literals = declarations.filter((declaration) => declaration.status === 'literal');
+      const bumped =
+        report.apiVersion.after !== null &&
+        literals.length > 0 &&
+        literals.every((declaration) => declaration.value === report.apiVersion.after);
       const candidateVersion = compareApiVersion(
-        report.apiVersion.application ?? undefined,
+        (bumped ? report.apiVersion.after : report.apiVersion.application) ?? undefined,
         { info: { version: report.apiVersion.before } },
         { info: { version: report.apiVersion.after } },
-        {
-          configured: Boolean(report.adapter.apiVersion),
-          declarations: analyzeRepository(patchedSources, [], report.adapter)
-            .apiVersionDeclarations,
-        },
+        { configured: Boolean(report.adapter.apiVersion), declarations },
         report.apiVersion.policy,
       );
       if (
@@ -346,8 +400,24 @@ export async function validateMigration(options: {
           'Migration proposal changes or weakens the verified SDK API-version declarations; inspect the version rollout separately.',
         );
       const publicationFiles: PublicationFile[] = [];
-      for (const file of patchedSources.files) {
-        const original = originalSources.files.find((source) => source.path === file.path);
+      const packageFiles = await Promise.all(
+        PACKAGE_FILES.map(async (path) => ({
+          path,
+          before: await readFile(join(baselineDirectory, path), 'utf8').catch(() => undefined),
+          after: await readFile(join(patchedDirectory, path), 'utf8').catch(() => undefined),
+        })),
+      );
+      for (const file of [
+        ...patchedSources.files,
+        ...packageFiles
+          .filter((file) => file.before !== undefined && file.after !== undefined)
+          .map((file) => ({ path: file.path, content: file.after! })),
+      ]) {
+        const original =
+          originalSources.files.find((source) => source.path === file.path) ??
+          packageFiles
+            .filter((source) => source.path === file.path && source.before !== undefined)
+            .map((source) => ({ path: source.path, content: source.before! }))[0];
         if (!original || original.content === file.content) continue;
         const entry = entries.find((entry) => entry.slice(entry.indexOf('\t') + 1) === file.path);
         const metadata = entry?.slice(0, entry.indexOf('\t')).split(' ');
@@ -363,15 +433,27 @@ export async function validateMigration(options: {
           content: file.content,
         });
       }
-      return { publicationFiles, directory: patchedDirectory };
+      return {
+        publicationFiles,
+        directory: patchedDirectory,
+        dependencies: candidateDependencies,
+        environment: candidateEnvironment,
+      };
     };
     const initialCandidate =
       baseline.status === 'passed' ? await prepareCandidate(proposal.diff) : undefined;
     let publicationFiles = initialCandidate?.publicationFiles ?? [];
     let candidateDirectory = initialCandidate?.directory;
+    let candidateDependencies = initialCandidate?.dependencies;
+    let candidateEnvironment = initialCandidate?.environment;
     if (initialCandidate) options.onProgress?.('Running patched checks in offline Docker...');
     let patched: CheckResult = initialCandidate
-      ? await containerCheck(initialCandidate.directory, image, options.command, dependencies)
+      ? await containerCheck(
+          initialCandidate.directory,
+          image,
+          options.command,
+          initialCandidate.dependencies,
+        )
       : { status: 'not-run', exitCode: null, stdout: '', stderr: '' };
     const attempts: ValidationAttempt[] = [];
     const recordAttempt = () =>
@@ -431,7 +513,7 @@ export async function validateMigration(options: {
           beforeSpecification.schemas,
           {
             attempt: repair.requested,
-            failedPatch: proposal.diff,
+            failedPatch: codeDiff(proposal.diff),
             check: {
               exitCode: patched.exitCode,
               stdout: patched.stdout.slice(0, MAX_REPAIR_LOG_CHARACTERS),
@@ -445,6 +527,8 @@ export async function validateMigration(options: {
           afterSpecification.schemas,
           'ruleEdits' in report.patch ? report.patch.ruleEdits : [],
         );
+        // The SDK upgrade is deterministic; repairs change only code and keep it.
+        if (candidate.diff) candidate.diff += packageDiff(report.patch.diff);
         if (!candidate.diff) {
           repair.stopReason = 'no-proposal';
           break;
@@ -459,8 +543,10 @@ export async function validateMigration(options: {
           preparedCandidate.directory,
           image,
           options.command,
-          dependencies,
+          preparedCandidate.dependencies,
         );
+        candidateDependencies = preparedCandidate.dependencies;
+        candidateEnvironment = preparedCandidate.environment;
         proposal = candidate;
         publicationFiles = preparedCandidate.publicationFiles;
         candidateDirectory = preparedCandidate.directory;
@@ -492,7 +578,12 @@ export async function validateMigration(options: {
             entryPoints: generatedEntryPoints(originalSources, report.findings),
             runs: [
               { directory: baselineDirectory, contract: options.before, side: 'before' },
-              { directory: candidateDirectory, contract: options.after, side: 'after' },
+              {
+                directory: candidateDirectory,
+                contract: options.after,
+                side: 'after',
+                dependencies: candidateDependencies,
+              },
             ],
             onProgress: options.onProgress,
           })
@@ -516,6 +607,7 @@ export async function validateMigration(options: {
       revision,
       image,
       ...(environment ? { environment } : {}),
+      ...(candidateEnvironment ? { patchedEnvironment: candidateEnvironment } : {}),
       command: options.command,
       baselineCommand,
       archiveHash: digest(archiveResult.stdout),

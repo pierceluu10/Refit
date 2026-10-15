@@ -18,7 +18,9 @@ import { requestPropertyEdit } from './request-migration.ts';
 import { StripeTypes } from './stripe-types.ts';
 import {
   subscriptionPeriodEdit,
+  subscriptionPeriodEitherVersionEdit,
   subscriptionPeriodReadEdit,
+  SUBSCRIPTION_PERIOD_EITHER_RULE,
   SUBSCRIPTION_PERIOD_RULE,
 } from './stripe-subscription-periods.ts';
 import {
@@ -903,11 +905,36 @@ export function analyzeRepository(
   function expandsField(property: string) {
     return expandedFields().has('*') || expandedFields().has(property);
   }
-  function propose(node: ts.Node, receiver: ts.Expression, change: Removal) {
+  function addEdit(edit: SourceEdit) {
+    if (
+      edits.some(
+        (other) => other.file === edit.file && other.start < edit.end && edit.start < other.end,
+      )
+    )
+      return false;
+    edits.push(edit);
+    return true;
+  }
+  function propose(
+    node: ts.Node,
+    receiver: ts.Expression,
+    change: Removal,
+  ): SourceEdit['rule'] | undefined {
+    const provenance = sourceEvidence(receiver)?.kind;
+    // Webhook payloads and Stripe.*-typed values may arrive in either API version; their period
+    // reads accept both shapes. A configured price-ID policy keeps its own webhook migration.
+    if (
+      provider.packageName === STRIPE.packageName &&
+      !provider.stripeSubscriptionPeriods &&
+      change.schema === 'subscription' &&
+      (webhooks?.origin(receiver) || provenance === 'declared-type')
+    ) {
+      const either = subscriptionPeriodEitherVersionEdit(node, location(node).file, change.id);
+      if (either && addEdit(either)) return either.rule;
+    }
     if (webhooks?.origin(receiver)) return;
     // A value known only from its Stripe.* type may be a webhook payload passed into a helper;
-    // its shape follows the endpoint's version, so it is reported but never edited.
-    const provenance = sourceEvidence(receiver)?.kind;
+    // its shape follows the endpoint's version, so other rules report it but never edit it.
     if (provenance === 'declared-type' || provenance === 'unmapped-sdk') return;
     // Period moves apply only to SDK responses, whose shape follows the bumped outgoing apiVersion.
     if (provider.packageName === STRIPE.packageName && provenance === 'sdk') {
@@ -917,12 +944,7 @@ export function analyzeRepository(
           ? subscriptionPeriodReadEdit(node, file, change.id)
           : undefined;
       if (moved) {
-        if (
-          !edits.some(
-            (edit) => edit.file === file && edit.start < moved.end && moved.start < edit.end,
-          )
-        )
-          edits.push(moved);
+        addEdit(moved);
         return;
       }
     }
@@ -1193,7 +1215,7 @@ export function analyzeRepository(
         (!webhook || webhook.schema !== undefined) &&
         (provenance?.kind !== 'unmapped-sdk' || declaredType),
       );
-      if (confirmed) propose(node, receiver, change);
+      const migration = confirmed ? propose(node, receiver, change) : undefined;
       if (property === undefined && !tracked) continue;
       findings.push({
         ...location(node),
@@ -1210,6 +1232,9 @@ export function analyzeRepository(
         ...(webhook
           ? {
               webhook: {
+                ...(migration === SUBSCRIPTION_PERIOD_EITHER_RULE
+                  ? { migration: { rule: migration } }
+                  : {}),
                 schema: webhook.schema,
                 eventTypes: webhook.eventTypes,
                 origin: webhook.origin,

@@ -8,9 +8,6 @@ import { afterEach, expect, it, vi } from 'vitest';
 import { dockerSandboxArguments, removeDockerContainer } from './docker-sandbox.ts';
 import { prepareDependencies } from './dependency-preparation.ts';
 import { runPipeline } from './run.ts';
-import { validateMigration } from './validation.ts';
-import { verifyArtifacts } from './verification.ts';
-import { runWorkflow } from './workflow.ts';
 
 const execute = promisify(execFile);
 const FIXTURE = resolve('pipeline/fixtures/stripe-webhooks');
@@ -65,7 +62,7 @@ async function scenario(version: string) {
 }
 
 it.skipIf(!process.env.REFIT_STRIPE_SDK).each(SDK_VERSIONS)(
-  'exercises signed historical subscription webhooks with actual Stripe %s and refuses automation',
+  'exercises signed historical subscription webhooks with actual Stripe %s and patches both payload versions',
   async (version) => {
     const sample = await scenario(version);
     expect(
@@ -109,30 +106,22 @@ it.skipIf(!process.env.REFIT_STRIPE_SDK).each(SDK_VERSIONS)(
       ),
     ).toBe(true);
     expect(report.findings.every((finding) => finding.confidence === 'confirmed')).toBe(true);
-    expect(report.patch).toMatchObject({
-      status: 'not-generated',
-      reason: expect.stringContaining('migration-policy'),
-    });
-    await expect(
-      validateMigration({
-        ...sample.options,
-        image: 'must-not-inspect-webhook',
-        command: ['must-not-execute'],
-        prepareDependencies: true,
-      }),
-    ).rejects.toThrow(/migration-policy/);
-    const workflow = await runWorkflow({
-      ...sample.options,
-      image: 'must-not-inspect-webhook',
-      command: ['must-not-execute'],
-      aiPatch: { apiKey: 'unused', model: 'unused' },
-      output: join(sample.root, 'run'),
-    });
-    expect(workflow.manifest).toMatchObject({ status: 'needs-review', stage: 'scan' });
-    expect(workflow.manifest.files.map((file) => file.path)).not.toContain('migration.patch');
-    expect(await verifyArtifacts(workflow.directory)).toMatchObject({
-      status: 'integrity-verified',
-    });
+    expect(
+      report.findings.every(
+        (finding) =>
+          finding.webhook?.migration?.rule === 'stripe-subscription-periods-either-version',
+      ),
+    ).toBe(true);
+    expect(report.patch).toMatchObject({ status: 'proposed', unresolvedFindings: 0 });
+    // Previously rendered (old-version) signed events still succeed after the patch.
+    const patch = join(sample.root, 'migration.patch');
+    await writeFile(patch, 'diff' in report.patch ? report.patch.diff : '');
+    await sample.git(['apply', patch]);
+    const replay = JSON.parse(
+      (await execute(process.execPath, [harness, sample.repository, 'before'])).stdout,
+    );
+    expect(replay.deliveries[0].status).toBe(200);
+    await sample.git(['checkout', '--', '.']);
     expect(fetch).not.toHaveBeenCalled();
     expect((await sample.git(['status', '--porcelain'])).stdout).toBe('');
   },

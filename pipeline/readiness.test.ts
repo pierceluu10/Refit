@@ -148,7 +148,7 @@ it('aggregates dirty Git, API-version and Docker setup failures with actionable 
   ).toBe(true);
 });
 
-it('requires incoming webhook version and subscription-item policy review before activation', async () => {
+it('accepts version-tolerant webhook period reads without a price policy', async () => {
   const sample = await setup();
   const webhook = resolve('pipeline/fixtures/stripe-webhooks');
   for (const file of ['before.json', 'after.json'])
@@ -164,12 +164,12 @@ it('requires incoming webhook version and subscription-item policy review before
   const fetch = vi.fn();
   vi.stubGlobal('fetch', fetch);
   const result = await inspectRepositoryReadiness({ repository: sample.repository });
-  expect(result.status).toBe('needs-attention');
+  expect(result.status).toBe('ready-for-validation');
   expect(result.checks).toContainEqual(
     expect.objectContaining({
       id: 'webhook-migration',
-      status: 'blocked',
-      action: expect.stringContaining('subscription-item policy'),
+      status: 'passed',
+      detail: expect.stringContaining('both the old and the new payload shape'),
     }),
   );
   expect(result.sdkCoverage).toMatchObject({
