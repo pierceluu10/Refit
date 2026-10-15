@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
 import { afterEach, expect, it } from 'vitest';
-import { prepareDependencies } from './dependency-preparation.ts';
+import { installTimeoutSeconds, prepareDependencies } from './dependency-preparation.ts';
 import { dockerSandboxArguments, removeDockerContainer } from './docker-sandbox.ts';
 import { DEFAULT_YARN_VERSION, validateYarnInputs } from './yarn-inputs.ts';
 
@@ -133,3 +133,11 @@ it.skipIf(!process.env.REFIT_NPM_PREPARE || !process.env.REFIT_DOCKER_IMAGE)(
   },
   180_000,
 );
+
+it('bounds an operator-configured installation deadline', () => {
+  expect(installTimeoutSeconds(undefined)).toBe(300);
+  expect(installTimeoutSeconds(' ')).toBe(300);
+  expect(installTimeoutSeconds('900')).toBe(900);
+  for (const value of ['59', '1801', '600.5', 'ten', '-1'])
+    expect(() => installTimeoutSeconds(value), value).toThrow('REFIT_DEPENDENCY_TIMEOUT_SECONDS');
+});
