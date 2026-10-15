@@ -8,6 +8,7 @@ import { createSourceImportResolver } from './source-imports.ts';
 import { sourceBindings } from './source-modules.ts';
 import { sdkConstructors } from './sdk-constructors.ts';
 import { classClients } from './class-clients.ts';
+import { helperClients } from './helper-clients.ts';
 import { stripeWebhookPayloads } from './stripe-webhook-payloads.ts';
 import { componentReference, isObject, resolvableComponentSchema } from './specifications.ts';
 import type { OperationReplacement } from './provider-operation-replacements.ts';
@@ -167,7 +168,13 @@ export function analyzeRepository(
   const findings: Finding[] = [];
   const imports: Location[] = [];
   const calls: (Location & { method: string })[] = [];
-  const sdkCalls: (Location & { resource: string; method: string; expression: string })[] = [];
+  const sdkCalls: (Location & {
+    resource: string;
+    method: string;
+    expression: string;
+    helperClient?: Finding['helperClient'];
+  })[] = [];
+  const sdkCallNodes = new Map<ts.Node, (typeof sdkCalls)[number]>();
   const clients = new Set<ts.Symbol>();
   const responses = new Map<ts.Symbol, string>();
   const arrayItems = new Map<ts.Symbol, string>();
@@ -435,6 +442,19 @@ export function analyzeRepository(
     const binding = clientBinding(declaration.initializer);
     if (binding && clients.has(binding)) add(clients, declaration.name);
   }
+  const helperBindings = helperClients({
+    nodes,
+    clients,
+    checker,
+    symbol,
+    clientBinding,
+    creation: sdk.creation,
+  });
+  const clientReferences = {
+    rootBinding: classBindings.rootBinding,
+    aliases: [...classBindings.aliases, ...helperBindings.aliases],
+    localArgument: helperBindings.localArgument,
+  };
   webhooks =
     provider.packageName === 'stripe'
       ? stripeWebhookPayloads({
@@ -609,13 +629,16 @@ export function analyzeRepository(
   for (const node of nodes) {
     const sdk = sdkCall(node);
     if (sdk && stripeTypes) stripeFiles.add(node.getSourceFile());
-    if (sdk)
-      sdkCalls.push({
+    if (sdk) {
+      const evidence = {
         ...location(node),
         resource: sdk.resource,
         method: sdk.method,
         expression: sdk.expression,
-      });
+      };
+      sdkCalls.push(evidence);
+      sdkCallNodes.set(node, evidence);
+    }
     const operation = responseCall(node);
     if (operation)
       calls.push({
@@ -654,6 +677,7 @@ export function analyzeRepository(
   };
   const initialUnsafe = new Set(escapingClients);
   for (const binding of classBindings.unsafe) initialUnsafe.add(binding);
+  for (const binding of helperBindings.unsafe) initialUnsafe.add(binding);
   for (const binding of webhooks?.unsafeEvents ?? []) initialUnsafe.add(binding);
   const mutationNodes = nodes.filter(
     (node) =>
@@ -674,6 +698,7 @@ export function analyzeRepository(
     ...[...classBindings.fields.values()].map(
       (field) => [field.initializer, field.binding] as const,
     ),
+    ...helperBindings.creations,
   ]) {
     const creation = sdk.creation(node);
     if (
@@ -715,8 +740,22 @@ export function analyzeRepository(
     readOnlyCall,
     arrayIteration,
     primitiveValue,
-    classBindings,
+    clientReferences,
   );
+  function helperEvidence(expression: ts.Expression) {
+    const flow = helperBindings.client(expression);
+    return flow && unsafe.has(flow.binding)
+      ? {
+          helperClient: {
+            origin: location(flow.call),
+            parameter: location(flow.parameter),
+            stability: 'review' as const,
+          },
+        }
+      : {};
+  }
+  for (const [node, evidence] of sdkCallNodes)
+    Object.assign(evidence, helperEvidence(sdkCall(node)!.client));
   for (const [response, wrapper] of wrappedResponses) if (unsafe.has(wrapper)) unsafe.add(response);
   for (const node of nodes) {
     if (!ts.isCallExpression(node)) continue;
@@ -734,6 +773,7 @@ export function analyzeRepository(
         changeId: rule.id,
         expression: `${rule.resource}.${rule.method} argument[${rule.argumentIndex}].${rule.removed}`,
         confidence: confirmed ? 'confirmed' : 'review',
+        ...helperEvidence(call.client),
         reason: confirmed
           ? 'Removed request field in a direct SDK argument under an operator-authored rename with a matching recorded contract.'
           : edit.status === 'review'
@@ -767,6 +807,7 @@ export function analyzeRepository(
       changeId: replacement.id,
       expression: `${operation.resource}.${operation.method}`,
       confidence: confirmed ? 'confirmed' : 'review',
+      ...helperEvidence(call.client),
       reason: confirmed
         ? 'Removed endpoint call on an immutable SDK client under an operator-authored replacement with a matching recorded contract.'
         : 'SDK client escape, mutation or optional invocation prevents a configured endpoint edit; inspect manually.',
@@ -825,6 +866,10 @@ export function analyzeRepository(
         clientExport: modules.clientExport,
         resolveImport: resolution.resolve,
         classClient: (node) => classBindings!.reference(node)?.binding,
+        helperClient: (node) => {
+          const binding = clientBinding(node);
+          return binding && helperBindings.flows.has(binding) ? binding : undefined;
+        },
       });
     if (guarded) {
       if (!edits.some((edit) => edit.file === guarded.file)) edits.push(guarded);
@@ -1013,6 +1058,7 @@ export function analyzeRepository(
         changeId: change.id,
         expression: property === undefined ? '[computed property]' : `.${property}`,
         confidence: confirmed ? 'confirmed' : 'review',
+        ...(sourceClient ? helperEvidence(sourceClient) : {}),
         ...(declaredType ? { declaredType: { schema } } : {}),
         ...(classClient &&
         (unsafe.has(classClient.binding) ||
@@ -1102,6 +1148,7 @@ export function analyzeRepository(
         ts.isVariableDeclaration(node.parent) && ts.isIdentifier(node.parent.name)
           ? symbol(node.parent.name)
           : (classBindings!.creations.get(node) ??
+            helperBindings.creations.get(node) ??
             (ts.isExportAssignment(node.parent)
               ? modules.inlineDefaults.get(node.parent)
               : undefined)),
@@ -1114,7 +1161,7 @@ export function analyzeRepository(
       symbol,
       canonical,
       location,
-      references: classBindings,
+      references: clientReferences,
     }),
     findings,
     sourceWarnings: resolution.warnings,

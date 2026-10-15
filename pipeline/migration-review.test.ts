@@ -13,7 +13,7 @@ afterEach(async () => {
   await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
 });
 
-it.each(['declared-type', 'skipped-source'] as const)(
+it.each(['declared-type', 'skipped-source', 'helper-client'] as const)(
   'blocks paid and executable automation with %s evidence',
   async (kind) => {
     const root = await mkdtemp(join(tmpdir(), 'refit-source-review-'));
@@ -23,7 +23,15 @@ it.each(['declared-type', 'skipped-source'] as const)(
     const after = resolve('pipeline/fixtures/stripe-webhooks/after.json');
     await writeFile(
       join(root, 'client.ts'),
-      `import Stripe from 'stripe'; export const stripe = new Stripe('local-fixture', {apiVersion: '${version}'}); ${kind === 'declared-type' ? 'export function end(value: unknown) {return (value as Stripe.Subscription).current_period_end;}' : ''}`,
+      `import Stripe from 'stripe'; export const stripe = new Stripe('local-fixture', {apiVersion: '${version}'}); ${kind === 'declared-type' ? 'export function end(value: unknown) {return (value as Stripe.Subscription).current_period_end;}' : ''}
+${
+  kind === 'helper-client'
+    ? `export async function end(sdk, id) { const subscription = await sdk.subscriptions.retrieve(id); return subscription.current_period_end; }
+void end(stripe, 'sub');
+const separate = new Stripe('local-fixture', {apiVersion: '${version}'});
+async function direct(id) { const subscription = await separate.subscriptions.retrieve(id); return subscription.current_period_end; }`
+    : ''
+}`,
     );
     if (kind === 'skipped-source')
       await writeFile(join(root, 'broken.ts'), 'export const value = {,};');
@@ -31,12 +39,27 @@ it.each(['declared-type', 'skipped-source'] as const)(
       throw new Error('Source review must not request a model or GitHub.');
     });
     vi.stubGlobal('fetch', fetch);
+    const providerConfig = kind === 'helper-client' ? join(root, 'provider.json') : undefined;
+    if (providerConfig)
+      await writeFile(
+        providerConfig,
+        JSON.stringify({
+          id: 'stripe-helper-review',
+          packageName: 'stripe',
+          defaultImport: true,
+          namedExport: 'Stripe',
+          constructorCalls: true,
+          operations: [{ resource: 'subscriptions', method: 'retrieve', schema: 'subscription' }],
+        }),
+      );
     const options = {
       repository: root,
       before,
       after,
+      providerConfig,
       apiVersion: version,
-      apiVersionPolicy: 'source-verified' as const,
+      apiVersionPolicy:
+        kind === 'helper-client' ? ('operator-pin' as const) : ('source-verified' as const),
     };
     const report = await runPipeline({
       ...options,
@@ -50,7 +73,16 @@ it.each(['declared-type', 'skipped-source'] as const)(
       expect(report.findings).toMatchObject([
         { confidence: 'review', declaredType: { schema: 'subscription' } },
       ]);
-    else expect(report.skippedFiles).toHaveLength(1);
+    else if (kind === 'skipped-source') expect(report.skippedFiles).toHaveLength(1);
+    else {
+      expect(report.findings.some((finding) => finding.helperClient?.stability === 'review')).toBe(
+        true,
+      );
+      expect(report.findings.some((finding) => finding.confidence === 'confirmed')).toBe(true);
+      expect(report.patch).toMatchObject({
+        reason: expect.stringContaining('helper-client provenance'),
+      });
+    }
     const workflow = await runWorkflow({
       ...options,
       image: 'must-not-inspect',

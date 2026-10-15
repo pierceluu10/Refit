@@ -19,6 +19,7 @@ export interface Finding extends Location {
   reason: string;
   declaredType?: { schema?: string };
   classClient?: { origin: Location; stability: 'review' };
+  helperClient?: { origin: Location; parameter: Location; stability: 'review' };
   webhook?: {
     eventTypes: string[];
     schema?: string;

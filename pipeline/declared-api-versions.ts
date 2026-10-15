@@ -1,7 +1,7 @@
 import ts from 'typescript-compiler';
 import type { ApiVersionDeclaration } from './api-version.ts';
 import { validateApiVersion } from './api-version.ts';
-import { unsafeBindings } from './mutations.ts';
+import { unsafeBindings, type BindingReferences } from './mutations.ts';
 import type { ProviderAdapter } from './providers.ts';
 import { PipelineInputError, type Location } from './types.ts';
 
@@ -22,10 +22,7 @@ export function declaredApiVersions(options: {
   symbol: (node: ts.Node) => ts.Symbol | undefined;
   canonical: (symbol: ts.Symbol | undefined) => ts.Symbol | undefined;
   location: (node: ts.Node) => Location;
-  references?: {
-    rootBinding: (node: ts.Node) => ts.Symbol | undefined;
-    aliases: Map<ts.Symbol, ts.Symbol>;
-  };
+  references?: BindingReferences;
 }): ApiVersionDeclaration[] {
   const mapping = options.provider.apiVersion;
   if (!mapping) return [];

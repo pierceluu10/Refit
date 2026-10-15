@@ -19,6 +19,7 @@ export function guardedHistoryEdit(options: {
   clientExport: (binding: ts.Symbol) => ClientExport | undefined;
   resolveImport: (name: string, containingFile: string) => string | undefined;
   classClient?: (node: ts.Expression) => ts.Symbol | undefined;
+  helperClient?: (node: ts.Expression) => ts.Symbol | undefined;
 }): SourceEdit | undefined {
   const { node, receiver, origin, checker, symbol, clients, locations, change } = options;
   const declaration = symbol(receiver)?.valueDeclaration;
@@ -94,20 +95,21 @@ export function guardedHistoryEdit(options: {
     ts.isMethodDeclaration(body.parent) || ts.isArrowFunction(body.parent)
       ? options.classClient?.(clientNode)
       : undefined;
-  const client = classBinding ?? symbol(clientNode);
+  const localBinding = classBinding ?? options.helperClient?.(clientNode);
+  const client = localBinding ?? symbol(clientNode);
   const exported = client && options.clientExport(client);
-  if (!client || !clients.has(client) || (!classBinding && !exported)) return;
+  if (!client || !clients.has(client) || (!localBinding && !exported)) return;
   const source = node.getSourceFile();
   const file = locations.get(source.fileName)!;
   const target = exported ? locations.get(exported.file)! : undefined;
-  if (!classBinding && file === target) return;
+  if (!localBinding && file === target) return;
   const occupied = new Set(
     checker
       .getSymbolsInScope(node, ts.SymbolFlags.Value | ts.SymbolFlags.Alias)
       .map((entry) => entry.name),
   );
   if (
-    [HISTORY_BINDING, CHARGE_BINDING, ...(classBinding ? [] : [CLIENT_ALIAS])].some((name) =>
+    [HISTORY_BINDING, CHARGE_BINDING, ...(localBinding ? [] : [CLIENT_ALIAS])].some((name) =>
       occupied.has(name),
     )
   )
@@ -135,7 +137,7 @@ export function guardedHistoryEdit(options: {
   const indentation = source.text.slice(lineStart, guard.getStart()).match(/^\s*/)?.[0] ?? '';
   const replacement = [
     `const ${HISTORY_BINDING} = [];`,
-    `for await (const ${CHARGE_BINDING} of ${classBinding ? clientNode.getText() : CLIENT_ALIAS}.charges.list({ payment_intent: ${receiver.text}.id })) {`,
+    `for await (const ${CHARGE_BINDING} of ${localBinding ? clientNode.getText() : CLIENT_ALIAS}.charges.list({ payment_intent: ${receiver.text}.id })) {`,
     `  ${HISTORY_BINDING}.push(${CHARGE_BINDING});`,
     '}',
     `return ${HISTORY_BINDING};`,
@@ -143,7 +145,7 @@ export function guardedHistoryEdit(options: {
   // One whole-file edit keeps the added import and guarded replacement atomic.
   const content =
     source.text.slice(0, guard.getStart()) + replacement + source.text.slice(returned.getEnd());
-  if (classBinding)
+  if (localBinding)
     return { file, start: 0, end: source.text.length, replacement: content, changeId: change.id };
   const insertion = importDeclaration?.getStart() ?? body.parent.getStart();
   const clientImport =
