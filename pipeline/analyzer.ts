@@ -13,6 +13,7 @@ import { stripeWebhookPayloads } from './stripe-webhook-payloads.ts';
 import { componentReference, isObject, resolvableComponentSchema } from './specifications.ts';
 import type { OperationReplacement } from './provider-operation-replacements.ts';
 import type { RequestPropertyRename } from './provider-request-renames.ts';
+import type { PropertyMove } from './provider-renames.ts';
 import { requestPropertyEdit } from './request-migration.ts';
 import { StripeTypes } from './stripe-types.ts';
 import { subscriptionPeriodEdit, SUBSCRIPTION_PERIOD_RULE } from './stripe-subscription-periods.ts';
@@ -138,6 +139,7 @@ export function analyzeRepository(
   schemaDefinitions: Record<string, unknown> = {},
   operationReplacements: OperationReplacement[] = [],
   requestPropertyRenames: RequestPropertyRename[] = [],
+  propertyMoves: PropertyMove[] = [],
 ) {
   const sources = new Map(
     repository.files.map((file) => [resolve(repository.root, file.path), file.content]),
@@ -821,27 +823,72 @@ export function analyzeRepository(
         changeId: replacement.id,
       });
   }
+  let expanded: Set<string> | undefined;
+  // A moved expandable field keeps its old expansion only if no request names it; unreadable
+  // expand values are treated as naming every field.
+  function expandsField(property: string) {
+    if (!expanded) {
+      expanded = new Set();
+      for (const node of nodes) {
+        if (!ts.isPropertyAssignment(node) || node.name.getText().replace(/['"]/g, '') !== 'expand')
+          continue;
+        const value = node.initializer;
+        if (
+          !ts.isArrayLiteralExpression(value) ||
+          !value.elements.every((element) => ts.isStringLiteralLike(element))
+        )
+          expanded.add('*');
+        else
+          for (const element of value.elements as ts.NodeArray<ts.StringLiteralLike>)
+            for (const segment of element.text.split('.')) expanded.add(segment);
+      }
+    }
+    return expanded.has('*') || expanded.has(property);
+  }
   function propose(node: ts.Node, receiver: ts.Expression, change: Removal) {
     if (webhooks?.origin(receiver)) return;
     if (provider.id !== STRIPE.id) {
       const rename = provider.propertyRenames?.find(
         (candidate) => candidate.schema === change.schema && candidate.removed === change.property,
       );
+      const move = propertyMoves.find(
+        (candidate) => candidate.schema === change.schema && candidate.removed === change.property,
+      );
       if (
         rename &&
         ts.isPropertyAccessExpression(node) &&
         ts.isIdentifier(node.name) &&
-        node.name.text === change.property
+        node.name.text === change.property &&
+        (!move || !move.expandable || !expandsField(change.property))
       ) {
+        const file = location(node).file;
         const start = node.name.getStart();
-        if (!edits.some((edit) => edit.file === location(node).file && edit.start === start))
-          edits.push({
-            file: location(node).file,
-            start,
-            end: node.name.getEnd(),
-            replacement: rename.replacement,
-            changeId: change.id,
-          });
+        if (edits.some((edit) => edit.file === file && edit.start === start)) return;
+        edits.push({
+          file,
+          start,
+          end: node.name.getEnd(),
+          replacement: move ? move.accessor : rename.replacement,
+          changeId: change.id,
+        });
+        // Missing optional intermediates read as null, like the removed nullable field.
+        if (move?.fallbackNull)
+          edits.push(
+            {
+              file,
+              start: node.getStart(),
+              end: node.getStart(),
+              replacement: '(',
+              changeId: change.id,
+            },
+            {
+              file,
+              start: node.getEnd(),
+              end: node.getEnd(),
+              replacement: ' ?? null)',
+              changeId: change.id,
+            },
+          );
       }
       return;
     }
@@ -994,6 +1041,22 @@ export function analyzeRepository(
       return sourceEvidence(expression.left, seen);
     return stripeTypes?.expressionSchema(expression) ? { kind: 'declared-type' } : undefined;
   }
+  // Reads ending two or more segments into a configured move's new path use the new location,
+  // even where other removals share those segment names.
+  function readsMovedPath(node: ts.Node) {
+    return propertyMoves.some((move) => {
+      const path = move.accessor.split(/\??\./);
+      return path.slice(1).some((_, index) => {
+        let current: ts.Node = node;
+        for (const segment of path.slice(0, index + 2).reverse()) {
+          if (!ts.isPropertyAccessExpression(current) || current.name.text !== segment)
+            return false;
+          current = current.expression;
+        }
+        return true;
+      });
+    });
+  }
   function record(node: ts.Node, receiver: ts.Expression, property: string | undefined) {
     if (
       property !== undefined &&
@@ -1003,6 +1066,7 @@ export function analyzeRepository(
       return;
     // SDK resources are not response fields, even when their names match a removal.
     if (sdkAccess(receiver)) return;
+    if (readsMovedPath(node)) return;
     const schema = schemaForExpression(receiver);
     const tracked = schema !== undefined;
     const webhook = webhooks?.origin(receiver);

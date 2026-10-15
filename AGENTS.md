@@ -33,3 +33,12 @@ Build toward a reliable agent for many API providers, with separate integrations
 - See CLI commands and requirements: [CLI guide](docs/CLI.md).
 
 The guides explain onboarding a repository into Refit. This file explains how coding agents should contribute to Refit itself.
+
+## Release and verification notes
+
+- Work on a feature branch, open a PR against `main`, wait for CI (Node 22 and 24), then merge with a `feat: merge …` merge commit. Release commits are `chore: release Refit X.Y.Z …` and bump `package.json` and `package-lock.json`, add a dated `docs/READINESS.md` checkpoint, and update the guides they touch.
+- Publish milestones as GitHub pre-releases titled only `vX.Y.Z`, from an annotated tag on the merge commit. Attach `refit-X.Y.Z.tgz` from `npm run package:cli -- --output <new-directory>` and its `SHA256SUMS`. Smoke-install the archive before publishing.
+- Many suites are gated by environment variables and skip by default. Docker and real-SDK cases need `REFIT_DOCKER_IMAGE=node:22-alpine` plus `REFIT_NPM_PREPARE=1`, `REFIT_STRIPE_SDK=1` or `REFIT_OPENAI_SDK=1`. Report gated results separately from the default count.
+- Recorded lockfile fixtures must stay byte-exact; keep them in `.prettierignore` rather than reformatting them.
+- Stripe's published OpenAPI documents are pinned by `stripe/openapi` tag in `docs/benchmarks/2026-10-14-stripe-repos.json`. A local Stripe lab for end-to-end checks lives at `/Users/pierceluu/Repos/refit-stripe-lab`; it uses simulated responses only.
+- Open owner decision: `--full-diff` on real Stripe upgrades reports thousands of enum additions and reachable required-property removals, which block automation. Do not relax that gate without an explicit decision.
