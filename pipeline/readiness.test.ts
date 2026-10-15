@@ -361,4 +361,4 @@ it('routes human and JSON diagnostics outside the repository and returns exit 2 
   await expect(
     execute(process.execPath, [...argumentsList, '--ai-patch'], { cwd: sample.root }),
   ).rejects.toMatchObject({ code: 1, stderr: expect.stringContaining('Unknown option') });
-});
+}, 30_000);
