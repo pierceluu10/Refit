@@ -4,12 +4,17 @@ import { createServer, type IncomingMessage, type ServerResponse } from 'node:ht
 import { join, resolve } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 import type { AiOptions } from './ai-budget.ts';
-import { authenticateGitHubRead, type GitHubAppConfiguration } from './github-app.ts';
+import {
+  authenticateGitHubComment,
+  authenticateGitHubRead,
+  type GitHubAppConfiguration,
+} from './github-app.ts';
+import { suggestAgentsForPullRequest } from './agent-suggestions.ts';
 import { standaloneStateDirectory } from './github-checkout.ts';
 import { requestGitHub } from './github.ts';
 import { parseWebhook, verifyWebhook, WebhookInputError } from './github-webhooks.ts';
 import type { ServiceTarget } from './service-configuration.ts';
-import { openServiceStore } from './service-state.ts';
+import { openServiceStore, type PullRequestState } from './service-state.ts';
 import { digest, isObject } from './specifications.ts';
 import { withStateLock } from './state-files.ts';
 import { PipelineInputError } from './types.ts';
@@ -162,6 +167,45 @@ export async function runLocalService(options: {
       waiting?.abort();
     };
     options.signal.addEventListener('abort', stop, { once: true });
+    // Comments once per pull request head on agents for newly added provider SDKs. A failure is
+    // recorded and not retried until the pull request changes.
+    const suggestPendingAgents = async () => {
+      const pulls = Object.entries((await store.read()).pullRequests ?? {});
+      for (const [key, pull] of pulls) {
+        if (pull.status !== 'pending' || options.signal.aborted) continue;
+        const settle = (change: (record: PullRequestState) => void) =>
+          store.update((state) => {
+            const record = state.pullRequests?.[key];
+            if (record && record.head === pull.head) change(record);
+          });
+        try {
+          const { token } = await authenticateGitHubComment(options.app, pull.repository);
+          const result = await suggestAgentsForPullRequest({
+            request: (method, path, body) => requestGitHub(token, method, path, body),
+            repository: pull.repository,
+            number: pull.number,
+            base: pull.base,
+            head: pull.head,
+            alreadySuggested: pull.suggested,
+          });
+          await settle((record) => {
+            record.status = result.status;
+            record.suggested = [...new Set([...record.suggested, ...result.agents])];
+            record.message = null;
+          });
+          options.onProgress?.(
+            `[${key}] ${result.status}${result.agents.length ? `: ${result.agents.join(', ')}` : ''}`,
+          );
+        } catch (error) {
+          if (!(error instanceof Error)) throw error;
+          await settle((record) => {
+            record.status = 'failed';
+            record.message = `${error.name}: ${error.message}`;
+          });
+          options.onProgress?.(`[${key}] ${error.name}: ${error.message}`);
+        }
+      }
+    };
     const handlers = new Set<Promise<void>>();
     const server = createServer(
       { requestTimeout: REQUEST_TIMEOUT_MS, headersTimeout: HEADERS_TIMEOUT_MS },
@@ -352,6 +396,7 @@ export async function runLocalService(options: {
             options.signal.removeEventListener('abort', abort);
           }
         }
+        await suggestPendingAgents();
         if (options.once || options.signal.aborted) break;
         if (!requested) {
           waiting = new AbortController();

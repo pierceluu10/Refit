@@ -128,6 +128,18 @@ export async function authenticateGitHubRead(
   };
 }
 
+// Reads repository files and comments on pull requests; it cannot push or open pull requests.
+export async function authenticateGitHubComment(
+  configuration: GitHubAppConfiguration,
+  repository: string,
+) {
+  const access = await installationAccess(configuration, repository, {
+    contents: 'read',
+    pull_requests: 'write',
+  });
+  return { token: access.token };
+}
+
 export async function authenticateGitHubApp(
   configuration: GitHubAppConfiguration,
   repository: string,

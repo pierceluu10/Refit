@@ -31,6 +31,14 @@ export interface WebhookRepository {
 export type GitHubWebhook =
   | { kind: 'ping' | 'ignored' }
   | {
+      kind: 'pull_request';
+      installation: number;
+      repository: string;
+      number: number;
+      base: string;
+      head: string;
+    }
+  | {
       kind: 'installation' | 'repositories';
       installationId: number;
       owner: string;
@@ -84,6 +92,39 @@ function repositories(value: unknown, owner: string): WebhookRepository[] {
   });
 }
 
+const PULL_REQUEST_ACTIONS = new Set(['opened', 'reopened', 'synchronize']);
+const COMMIT = /^[a-f0-9]{40}$/;
+
+// Pull request events carry only the installation ID; the service acts on configured repositories.
+function pullRequest(payload: Record<string, unknown>): GitHubWebhook {
+  if (typeof payload.action !== 'string' || !PULL_REQUEST_ACTIONS.has(payload.action))
+    return { kind: 'ignored' };
+  const request = payload.pull_request;
+  const repository = payload.repository;
+  if (
+    !isObject(payload.installation) ||
+    !isObject(request) ||
+    !isObject(repository) ||
+    typeof repository.full_name !== 'string' ||
+    !REPOSITORY.test(repository.full_name) ||
+    !isObject(request.base) ||
+    !isObject(request.head) ||
+    typeof request.base.sha !== 'string' ||
+    !COMMIT.test(request.base.sha) ||
+    typeof request.head.sha !== 'string' ||
+    !COMMIT.test(request.head.sha)
+  )
+    throw new WebhookInputError(422, 'Pull request webhook is incomplete.');
+  return {
+    kind: 'pull_request',
+    installation: positiveIdentifier(payload.installation.id),
+    repository: repository.full_name.toLowerCase(),
+    number: positiveIdentifier(request.number),
+    base: request.base.sha,
+    head: request.head.sha,
+  };
+}
+
 export function parseWebhook(body: Uint8Array, event: unknown, appId: number): GitHubWebhook {
   if (typeof event !== 'string' || !/^[a-z_]+$/.test(event))
     throw new WebhookInputError(400, 'A GitHub event name is required.');
@@ -97,6 +138,7 @@ export function parseWebhook(body: Uint8Array, event: unknown, appId: number): G
     );
   }
   if (event === 'ping') return { kind: 'ping' };
+  if (event === 'pull_request') return pullRequest(payload);
   if (!['installation', 'installation_repositories'].includes(event)) return { kind: 'ignored' };
   const installation = payload.installation;
   if (
