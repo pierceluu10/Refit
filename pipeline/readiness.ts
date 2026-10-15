@@ -305,7 +305,7 @@ export async function inspectRepositoryReadiness(options: {
         id: 'sdk-version',
         title: 'Recorded SDK version',
         status: 'review',
-        detail: `${unknownLocks.length} SDK declaration${unknownLocks.length === 1 ? '' : 's'} lack a resolved supported npm/pnpm lockfile version.`,
+        detail: `${unknownLocks.length} SDK declaration${unknownLocks.length === 1 ? '' : 's'} lack a resolved supported npm, pnpm or yarn lockfile version.`,
         action:
           'Review the actual installed SDK version and replacement method availability; dependency declarations alone are not installation evidence.',
       });

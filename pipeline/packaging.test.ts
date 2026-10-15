@@ -95,7 +95,7 @@ it('packs only CLI runtime sources, fixtures, docs and exact runtime dependencie
   expect(result.files).toContain('pipeline/readiness-cli.ts');
   expect(result.files).toContain('pipeline/dependency-inputs.ts');
   expect(result.files).toContain('pipeline/pnpm-inputs.ts');
-  expect(result.files).toContain('pipeline/pnpm-install.ts');
+  expect(result.files).toContain('pipeline/manager-install.ts');
   expect(result.files).toContain('examples/billing-demo.npm.refit.json');
   expect(result.files).toContain('examples/local-service.npm.refit.json');
   expect(result.files).toContain('pipeline/fixtures/repository/billing.ts');

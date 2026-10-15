@@ -24,7 +24,7 @@ import {
 } from './docker-sandbox.ts';
 import { standaloneStateDirectory } from './github-checkout.ts';
 import { readPreparationInputs, type PreparationIdentity } from './dependency-inputs.ts';
-import { PNPM_INSTALL_COMMAND } from './pnpm-install.ts';
+import { PNPM_INSTALL_COMMAND, YARN_INSTALL_COMMAND } from './manager-install.ts';
 import { hasStrongIntegrity } from './npm-lock.ts';
 import { digest, parseObject } from './specifications.ts';
 import { hasErrorCode, withStateLock, writeState } from './state-files.ts';
@@ -93,14 +93,24 @@ function installCommand(manager: PreparationIdentity['manager']) {
       'printf "REFIT_NPM_VERSION=" >&2; npm --version >&2; ' +
       (manager === 'pnpm'
         ? PNPM_INSTALL_COMMAND
-        : 'npm ci --ignore-scripts --include=dev --engine-strict --no-audit --no-fund ' +
-          '--registry=https://registry.npmjs.org --cache=/workspace/.npm-cache >&2; ' +
-          'mkdir -p node_modules; ') +
+        : manager === 'yarn'
+          ? YARN_INSTALL_COMMAND
+          : 'npm ci --ignore-scripts --include=dev --engine-strict --no-audit --no-fund ' +
+            '--registry=https://registry.npmjs.org --cache=/workspace/.npm-cache >&2; ' +
+            'mkdir -p node_modules; ') +
       `node --input-type=module -e '${DEPENDENCY_TREE_CHECK}' "$1"; shift; ` +
       'printf "node_modules\\n" > /workspace/.refit-dependency-paths; ' +
       'for directory do if [ -d "$directory/node_modules" ]; then printf "%s\\n" "$directory/node_modules" >> /workspace/.refit-dependency-paths; fi; done; ' +
       'tar -cf - -T /workspace/.refit-dependency-paths',
   ];
+}
+
+function matchesManager(inputs: PreparationIdentity, version: unknown, integrity: unknown) {
+  return (
+    version === inputs.managerVersion &&
+    hasStrongIntegrity(integrity) &&
+    (!inputs.managerIntegrity || integrity === inputs.managerIntegrity)
+  );
 }
 
 export class DependencyPreparationError extends PipelineInputError {
@@ -164,20 +174,19 @@ async function installDependencies(
       );
     const nodeVersion = /^REFIT_NODE_VERSION=(v\d+\.\d+\.\d+)$/m.exec(stderr)?.[1];
     const npmVersion = /^REFIT_NPM_VERSION=(\d+\.\d+\.\d+)$/m.exec(stderr)?.[1];
-    const pnpmVersion = /^REFIT_PNPM_VERSION=(\d+\.\d+\.\d+)$/m.exec(stderr)?.[1];
-    const pnpmIntegrity = /^REFIT_PNPM_INTEGRITY=(\S+)$/m.exec(stderr)?.[1];
+    const tool = inputs.manager === 'npm' ? undefined : inputs.manager;
+    const marker = tool?.toUpperCase();
+    const toolVersion = new RegExp(`^REFIT_${marker}_VERSION=(\\d+\\.\\d+\\.\\d+)$`, 'm').exec(
+      stderr,
+    )?.[1];
+    const toolIntegrity = new RegExp(`^REFIT_${marker}_INTEGRITY=(\\S+)$`, 'm').exec(stderr)?.[1];
     if (!nodeVersion || !npmVersion || !bytes)
       throw new DependencyPreparationError(
         'Dependency preparation did not produce an archive and runtime version evidence.',
       );
-    if (
-      inputs.manager === 'pnpm' &&
-      (pnpmVersion !== inputs.managerVersion ||
-        !hasStrongIntegrity(pnpmIntegrity) ||
-        (inputs.managerIntegrity && pnpmIntegrity !== inputs.managerIntegrity))
-    )
+    if (tool && !matchesManager(inputs, toolVersion, toolIntegrity))
       throw new DependencyPreparationError(
-        'pnpm did not provide the expected pinned manager version and integrity evidence.',
+        `${tool} did not provide the expected pinned manager version and integrity evidence.`,
       );
     return {
       bytes,
@@ -185,7 +194,8 @@ async function installDependencies(
       stderr,
       nodeVersion,
       npmVersion,
-      ...(inputs.manager === 'pnpm' ? { pnpmVersion, pnpmIntegrity } : {}),
+      toolVersion,
+      toolIntegrity,
     };
   } catch (error) {
     child.kill('SIGKILL');
@@ -207,7 +217,7 @@ export async function prepareDependencies(options: {
   options.signal?.throwIfAborted();
   const snapshot = await readCommittedRepository(options.repository);
   const { files, workspaceContents, inputs } = await readPreparationInputs(snapshot);
-  const kind = inputs.manager === 'pnpm' ? 'refit-pnpm-environment' : 'refit-npm-environment';
+  const kind = `refit-${inputs.manager}-environment`;
   const image = DOCKER_IMAGE_ID.test(options.image)
     ? options.image
     : await resolveDockerImage(options.image);
@@ -259,10 +269,12 @@ export async function prepareDependencies(options: {
         Object.entries(inputs).some(
           ([key, value]) => JSON.stringify(environment[key]) !== JSON.stringify(value),
         ) ||
-        (inputs.manager === 'pnpm' &&
-          (environment.pnpmVersion !== inputs.managerVersion ||
-            !hasStrongIntegrity(environment.pnpmIntegrity) ||
-            (inputs.managerIntegrity && environment.pnpmIntegrity !== inputs.managerIntegrity))) ||
+        (inputs.manager !== 'npm' &&
+          !matchesManager(
+            inputs,
+            environment[`${inputs.manager}Version`],
+            environment[`${inputs.manager}Integrity`],
+          )) ||
         !archiveEntry ||
         environment.archiveHash !== archiveEntry.sha256 ||
         environment.archiveBytes !== archiveEntry.bytes ||
@@ -333,8 +345,11 @@ export async function prepareDependencies(options: {
         ...inputs,
         nodeVersion: result.nodeVersion,
         npmVersion: result.npmVersion,
-        ...(result.pnpmVersion
-          ? { pnpmVersion: result.pnpmVersion, pnpmIntegrity: result.pnpmIntegrity }
+        ...(inputs.manager === 'pnpm'
+          ? { pnpmVersion: result.toolVersion, pnpmIntegrity: result.toolIntegrity }
+          : {}),
+        ...(inputs.manager === 'yarn'
+          ? { yarnVersion: result.toolVersion, yarnIntegrity: result.toolIntegrity }
           : {}),
         archiveHash: result.sha256,
         archiveBytes: result.bytes,

@@ -18,7 +18,7 @@ try {
   });
   if (values.help)
     console.log(
-      `${USAGE}\nInstalls committed npm or pinned pnpm lockfile dependencies in restricted Docker with network access and lifecycle scripts disabled. No application source, credentials, .npmrc or repository commands are used during installation. Validation stays offline. Requires an already-installed image with Node, npm, sh and tar. Verified dependency bundles are cached outside Git repositories.`,
+      `${USAGE}\nInstalls committed npm, pinned pnpm or Yarn 1 lockfile dependencies in restricted Docker with network access and lifecycle scripts disabled. No application source, credentials, .npmrc or repository commands are used during installation. Validation stays offline. Requires an already-installed image with Node, npm, sh and tar. Verified dependency bundles are cached outside Git repositories.`,
     );
   else {
     if (!values.repository || !values.image) throw new PipelineInputError(USAGE);
@@ -40,7 +40,7 @@ try {
           [
             prepared.reused ? 'Verified dependencies reused' : 'Dependencies prepared',
             '',
-            `Runtime   ${prepared.environment.nodeVersion}; ${prepared.environment.pnpmVersion ? `pnpm ${prepared.environment.pnpmVersion}` : `npm ${prepared.environment.npmVersion}`}`,
+            `Runtime   ${prepared.environment.nodeVersion}; ${prepared.environment.pnpmVersion ? `pnpm ${prepared.environment.pnpmVersion}` : prepared.environment.yarnVersion ? `yarn ${prepared.environment.yarnVersion}` : `npm ${prepared.environment.npmVersion}`}`,
             `Packages  ${prepared.environment.packages} locked records`,
             ...(prepared.environment.workspaceHashes
               ? [
