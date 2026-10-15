@@ -1,5 +1,28 @@
 # Refit implementation checkpoints
 
+## October 15 checkpoint: AI handles what rules don't (unreleased)
+
+With `--ai-patch`, every confirmed finding no deterministic rule covers goes to the AI patcher, including webhook payload reads. Rules apply first; the model receives the rule-patched code and only the findings left, and the final diff contains both. For webhook payloads and `Stripe.*`-typed values, the model is told that payloads can arrive in older or newer API versions and must read the old field through `Reflect.get` when present, otherwise the new location. Webhook reads it rewrites are marked `ai-version-tolerant` and count as migrated. Without AI, unmigrated webhook reads keep the previous gate.
+
+Before this change, an AI-enabled run could still skip the model entirely: a repository with any helper-migrated webhook read was treated as configured, and webhook-only repositories errored with "AI patching requires at least one confirmed finding", losing their rule edits too. Both are fixed.
+
+The AI patch guard now counts only traced reads, and its fallback rule looks only at lines the model wrote; see [AI patch guard](AI-PATCH-GUARD.md#real-repository-adjustments-october-15). The vendor-note instruction now treats a documented new location as the replacement to use.
+
+On the 100-repository Stripe benchmark with `--ai`, proposals only (validation is still blocked by the sandbox archive limit):
+
+| | Before | After (final run) |
+|---|---|---|
+| Repositories where the model was called | 2 | 11 |
+| Fixed by rules alone | 11 | 10 |
+| Fixed with AI edits | 0 | 4 |
+| Model declined (said the evidence was insufficient) | 1 | 6 |
+| Errors or guard rejections | 8 | 1 |
+| Blocked before AI (skipped files, declared-type mutation) | 2 | 2 |
+
+The model is non-deterministic: across the three runs after the guard fixes it fixed 3 or 4 of the 11, with different repositories each time. Of four AI patches reviewed by hand, three read the subscription correctly for both old and new payloads. One handled only new-version payloads, because the read was a `Stripe.Invoice`-typed helper parameter; the version-tolerant instruction now covers typed values too. The whole investigation spent $0.38 of AI budget.
+
+The default suite passed **1,265 tests**, with 78 environment-gated tests skipped, plus typecheck and formatting. The oasdiff suite passed 10 of 10, and the Stripe SDK/Docker suites passed 45 of 45. The tuning and held-out AI evaluations were not rerun.
+
 ## October 15 checkpoint: subscription period helper (unreleased)
 
 Subscription-period reads no longer fall back to the widest period across items. Every `current_period_start/end` read on SDK responses, signed webhook payloads and `Stripe.Subscription`-typed values calls one generated helper. It returns the old subscription-level field when present, otherwise the period all items share, otherwise the item the application already selects (a `price.id` comparison or `items.data[N]` in the same function or file) or the configured price policy's item. Without either, mixed periods return `undefined`, and the pull request lists those reads with the instruction to set `stripeSubscriptionPeriods`. The guarded price-policy handler keeps precedence. Patches can now create files: the helper is rendered as a new file and included in publication. The gate is unchanged from the previous checkpoint.
