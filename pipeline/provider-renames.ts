@@ -98,9 +98,15 @@ export function validatePropertyRenames(
         throw moveError(rename);
       const anyOptional = resolved.optional.some(Boolean);
       const removedNullable = removed.nullable === true;
+      const definition = beforeSchemas[rename.schema] as Record<string, unknown>;
+      // An optional, non-nullable field read as undefined when absent, as a missing parent does.
+      const removedOptional = !(
+        Array.isArray(definition.required) && definition.required.includes(rename.removed)
+      );
       if (
         shape(removed) !== shape(resolved.target) ||
-        (!removedNullable && (anyOptional || resolved.target.nullable === true))
+        (!removedNullable &&
+          ((anyOptional && !removedOptional) || resolved.target.nullable === true))
       )
         throw moveError(rename);
       moves.push({
@@ -111,7 +117,7 @@ export function validatePropertyRenames(
             index === 0 ? segment : `${resolved.optional[index - 1] ? '?.' : '.'}${segment}`,
           )
           .join(''),
-        fallbackNull: anyOptional,
+        fallbackNull: anyOptional && removedNullable,
         expandable: shape(removed).includes('"$ref"'),
       });
       continue;

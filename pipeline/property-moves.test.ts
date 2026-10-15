@@ -178,6 +178,26 @@ it('keeps the removed field’s null result when any parent on the new path is m
   });
 });
 
+it('keeps undefined for an optional non-nullable field behind nullable parents', async () => {
+  const report = await proposed(
+    inputs(RETRIEVE, {
+      edit: ({ before }) => {
+        delete (before.components.schemas.invoice.properties.subscription as { nullable?: true })
+          .nullable;
+      },
+    }),
+  );
+  expect(report.patch).toMatchObject({ status: 'proposed', edits: 1, unresolvedFindings: 0 });
+  const line = report.patch.diff
+    .split('\n')
+    .find((entry: string) => entry.startsWith('+  return '))!;
+  const expression = line.slice('+  return '.length, -1);
+  expect(expression).toBe('invoice.parent?.subscription_details?.subscription');
+  const read = new Function('invoice', `return ${expression};`);
+  expect(read({ parent: null })).toBeUndefined();
+  expect(read({ parent: { subscription_details: { subscription: 'sub_123' } } })).toBe('sub_123');
+});
+
 it('reads required non-nullable intermediates directly without a fallback', async () => {
   const report = await proposed(
     inputs(RETRIEVE, {
@@ -248,9 +268,10 @@ it('rejects moves the recorded contracts do not support', async () => {
       },
     ],
     [
-      'non-nullable value behind nullable parents',
+      'required non-nullable value behind nullable parents',
       {
         edit: ({ before }) => {
+          Object.assign(before.components.schemas.invoice, { required: ['subscription'] });
           delete (before.components.schemas.invoice.properties.subscription as { nullable?: true })
             .nullable;
         },
