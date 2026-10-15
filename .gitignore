@@ -1,0 +1,11 @@
+node_modules/
+dist/
+*.tsbuildinfo
+.DS_Store
+
+# Never commit environment files. Only the empty example is tracked.
+.env
+.env.*
+!.env.example
+
+.impeccable/review/
