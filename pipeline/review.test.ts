@@ -84,6 +84,7 @@ it('follows the PR template: five sections, single-sentence bullets and no emoji
     '## Overview',
     '## API Impact & Spec Changes',
     '## Key Changes',
+    '## Code Changes',
     '## Automated Verification Gates',
     '## Related Telemetry',
   ]);
@@ -92,6 +93,8 @@ it('follows the PR template: five sections, single-sentence bullets and no emoji
   expect(body).toContain('- `billing.ts`: Migrates reads of `payment_intent.charges`');
   expect(body).toContain('- Test Suite Output: **Validation did not pass (regression).**');
   expect(body).toContain('- Security Scans: Not run.');
+  expect(body).toContain('`billing.ts:7` in `chargeHistory()`');
+  expect(body).toContain('```diff');
   expect(body).not.toContain('invoice.subscription');
   expect(body).not.toMatch(/\p{Extended_Pictographic}/u);
 });

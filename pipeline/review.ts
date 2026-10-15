@@ -1,5 +1,6 @@
 import { mkdir, rm, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
+import { structuredPatch } from 'diff';
 import { digest, type AddedProperty } from './specifications.ts';
 import { affectedFields } from './report-fields.ts';
 import { PipelineInputError, type Finding } from './types.ts';
@@ -10,6 +11,8 @@ type ValidationReport = Awaited<ReturnType<typeof validateMigration>>;
 const MAX_SUMMARY_ITEMS = 5;
 // Conventional Commits title limit from the PR template.
 const MAX_TITLE = 70;
+// Longer diffs stay readable in the Files changed tab and migration.patch.
+const MAX_VISIBLE_DIFF_LINES = 80;
 const MAX_QUOTE = 300;
 
 function plainText(value: string) {
@@ -28,6 +31,12 @@ function summaryList(values: string[]) {
   const visible = values.slice(0, MAX_SUMMARY_ITEMS);
   const remaining = values.length - visible.length;
   return `${visible.join(', ')}${remaining ? `, and ${remaining} more` : ''}`;
+}
+
+function fenced(language: string, content: string) {
+  const runs = content.match(/`+/g) ?? [];
+  const fence = '`'.repeat(runs.reduce((width, run) => Math.max(width, run.length + 1), 3));
+  return `${fence}${language}\n${content}\n${fence}`;
 }
 
 function quote(value: string) {
@@ -73,6 +82,60 @@ function fileChanges(diff: string): FileChange[] {
         values.length ? `${values.join('\n')}${ends ? '\n' : ''}` : '';
       return [{ path, before: text(before, beforeEnds), after: text(after, afterEnds) }];
     });
+}
+
+function enclosingFunction(lines: string[], index: number) {
+  for (let line = index; line >= 0; line--) {
+    const match = /\bfunction\s+([A-Za-z_$][\w$]*)/.exec(lines[line]);
+    if (match) return match[1];
+  }
+}
+
+function changeSections(diff: string) {
+  const sections: string[] = [];
+  let shown = 0;
+  let hidden = 0;
+  for (const file of fileChanges(diff)) {
+    if (!file.before) {
+      sections.push(`New file ${code(file.path)}; see Files changed.`);
+      continue;
+    }
+    const afterLines = file.after.split('\n');
+    for (const hunk of structuredPatch(file.path, file.path, file.before, file.after, '', '', {
+      context: 2,
+    }).hunks) {
+      if (shown + hunk.lines.length > MAX_VISIBLE_DIFF_LINES) {
+        hidden++;
+        continue;
+      }
+      shown += hunk.lines.length;
+      let line = hunk.newStart;
+      let firstChange = hunk.newStart;
+      for (const entry of hunk.lines) {
+        if (entry.startsWith('+') || entry.startsWith('-')) {
+          firstChange = line;
+          break;
+        }
+        line++;
+      }
+      const name = enclosingFunction(afterLines, firstChange - 1);
+      sections.push(
+        `${code(`${file.path}:${firstChange}`)}${name ? ` in ${code(`${name}()`)}` : ''}`,
+        fenced(
+          'diff',
+          hunk.lines
+            .filter((entry) => !entry.startsWith('\\'))
+            .join('\n')
+            .replace(/(\n\s*)+$/, ''),
+        ),
+      );
+    }
+  }
+  if (hidden)
+    sections.push(
+      `${hidden} more ${hidden === 1 ? 'change is' : 'changes are'} not shown here; see Files changed or migration.patch.`,
+    );
+  return sections;
 }
 
 function addedProperties(patch: ValidationReport['patch']): AddedProperty[] {
@@ -307,6 +370,8 @@ export function createReviewArtifacts(
       ].join('\n'),
       '## Key Changes',
       [...keyChanges, ...review.map((entry) => `- Review: ${entry}`)].join('\n'),
+      '## Code Changes',
+      ...changeSections(patch.diff),
       '## Automated Verification Gates',
       [
         `- Test Suite Output: ${

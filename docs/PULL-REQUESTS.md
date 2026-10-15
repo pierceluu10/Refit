@@ -1,6 +1,6 @@
 # Pull request descriptions
 
-Every Refit PR, whether a local `pull-request.md` or a published draft, follows one fixed template. It's built by `createReviewArtifacts()` in `pipeline/review.ts` from Refit's recorded report and states only what Refit recorded or can check. There are no emojis, and each bullet is one sentence. Full evidence (commands, hashes, findings, warnings, coverage and check logs) stays in the local `report.json`, and the diff is in Files changed.
+Every Refit PR, whether a local `pull-request.md` or a published draft, follows one fixed template. It's built by `createReviewArtifacts()` in `pipeline/review.ts` from Refit's recorded report and states only what Refit recorded or can check. There are no emojis, and each bullet is one sentence. Full evidence (commands, hashes, findings, warnings, coverage and check logs) stays in the local `report.json`.
 
 ## Title
 
@@ -13,6 +13,7 @@ Conventional Commits, under 70 characters, with no trailing punctuation: `fix(<s
 | **Overview** | What the provider removed, and whether a deterministic rule or AI (with its model) migrated how many usages in how many files |
 | **API Impact & Spec Changes** | Breaking changes: removed response fields, replacements, request-field renames and retired calls. Database migrations and environment variables are always None |
 | **Key Changes** | One line per changed file. Review lines follow: why each replacement was chosen (see below), item selection for subscription periods, and reads left unchanged |
+| **Code Changes** | The changed lines with two lines of context, each labelled `file:line` and its enclosing function, up to 80 lines. New files, such as the generated helper, are named with a pointer to Files changed |
 | **Automated Verification Gates** | The check command and its result on the original and migrated code in offline Docker, generated stripe-mock checks, the type check when it is the command, remaining reads of removed fields. Security scans: Not run |
 | **Related Telemetry** | No linked issue; the short Refit run ID and the integration |
 
