@@ -1,5 +1,11 @@
 # Refit implementation checkpoints
 
+## October 15 checkpoint: TypeScript imports in generated checks (0.31.0)
+
+Generated checks now load TypeScript code the way the scanner resolves it. On the host, Refit maps each source file's static and literal dynamic imports to the repository file its own verified resolver chooses: extensionless paths, `index` files and `tsconfig`/`jsconfig` aliases. A Node resolve hook in the offline sandbox reads that map, with no alias parsing inside the container. Otabek's benchmark validation funnel (#33) is merged: 0 of 23 affected repositories reached their own checks, and 11 are blocked by the 256 MiB archive limit.
+
+The default suite passed **1,256 tests across 79 files**, with 78 environment-gated tests skipped, plus build, typecheck and formatting. A new test runs a TypeScript module through an extensionless `@/lib/client` alias and an extensionless relative import against a Stripe-like client. It fails without the hook. In the local lab, a TypeScript function importing the client through an extensionless `@/client` alias ran in Docker against both stripe-mock versions with the actual `stripe` 17.7.0 SDK, alongside the five JavaScript functions; both runs passed.
+
 ## October 15 checkpoint: reproducible benchmark and per-function generated checks (0.30.0)
 
 `scripts/stripe-benchmark-setup.mjs` rebuilds the Stripe benchmark root from the pinned list and labels: clones at recorded commits, plus each version's spec and fixtures from `stripe/openapi`. The rebuilt run reproduces 23 affected repositories. An authorized AI run on `gpt-5.4-mini`, hard-capped at $5 by a fresh ledger, spent $0.038. It produced 6 deterministic patches and 2 AI no-edit decisions. 10 repositories stayed blocked by the repository-wide webhook gate. See [the re-run](STRIPE-BENCHMARK.md#re-run-with-ai-october-15).
