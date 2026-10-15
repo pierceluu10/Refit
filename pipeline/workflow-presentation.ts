@@ -269,6 +269,14 @@ function renderReportRows(report: Record<string, unknown> | undefined, existingP
       rows.push(
         `Checks      Original: ${validation.baseline.status}; proposed: ${validation.patched.status}`,
       );
+    if (
+      isObject(validation.generated) &&
+      isObject(validation.generated.baseline) &&
+      isObject(validation.generated.patched)
+    )
+      rows.push(
+        `Generated   stripe-mock: original ${validation.generated.baseline.status}; proposed ${validation.generated.patched.status}; ${Array.isArray(validation.generated.entryPoints) ? validation.generated.entryPoints.length : 0} functions, ${String(validation.generated.uncoveredFindings)} usages uncovered`,
+      );
     if (Array.isArray(validation.attempts) && isObject(validation.repair))
       rows.push(
         `Attempts    ${validation.attempts.length} tested; ${validation.repair.requested} AI repairs`,
