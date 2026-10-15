@@ -30,4 +30,10 @@ Its source default API version is `2025-10-29.clover`, with runtime user overrid
 
 ## Next verification
 
+### Helper tracing checkpoint (0.21)
+
+Reading the same unchanged commit with helper tracing recognizes **41 of the same 53 likely SDK call candidates**, up from zero. All 41 parameter-receiver misses are now traced. The analyzer records 45 SDK calls overall; four are outside the heuristic's likely-candidate set. All 45 carry helper review evidence because exported/escaped factory flows do not establish a closed caller set. This improves visibility, **not automatic migration eligibility**. The other twelve likely candidates remain unresolved.
+
+The result is retained separately as `coverage-after-helpers.json` beside the original baseline. No dependencies or Paykit application code were executed. See [helper boundaries](HELPER-CLIENTS.md).
+
 Establish real client provenance through supported helper/factory flows, preserving uncertainty for unknown callers and mutations. Separately add or supply locked pnpm preparation, identify an applicable real API change, and run meaningful application checks in isolation. A future GitHub App publication test should use an authorized repository or a user-owned fork with the App installed. Nothing in this read-only result establishes permission to publish to the upstream project.
