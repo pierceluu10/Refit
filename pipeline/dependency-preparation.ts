@@ -19,6 +19,7 @@ import { readCommittedRepository } from './committed-repository.ts';
 import {
   DOCKER_IMAGE_ID,
   dockerSandboxArguments,
+  MAX_VALIDATION_ARCHIVE_BYTES,
   PREPARATION_MEMORY,
   PREPARATION_WORKSPACE_SIZE,
   validationProfile,
@@ -172,7 +173,7 @@ async function installDependencies(
         bytes += chunk.length;
         if (bytes > archiveBytes)
           throw new DependencyPreparationError(
-            `Dependency archive exceeds ${archiveBytes / 1024 / 1024} MiB. REFIT_VALIDATION_WORKSPACE can enlarge validation for larger trees.`,
+            `Dependency archive exceeds ${archiveBytes / 1024 / 1024} MiB. ${archiveBytes < MAX_VALIDATION_ARCHIVE_BYTES ? 'REFIT_VALIDATION_WORKSPACE can enlarge validation for larger trees.' : 'This exceeds the largest validation profile; use a custom validation image.'}`,
           );
         hash.update(chunk);
         yield chunk;
