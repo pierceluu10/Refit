@@ -142,8 +142,6 @@ export async function runPipeline(options: {
       propertyExists(after.schemas, ['subscription_item', 'current_period_start']) &&
       propertyExists(after.schemas, ['subscription_item', 'current_period_end']),
   } as Record<string, boolean>;
-  const edits = analyzedEdits.filter((edit) => !isFieldMove(edit) || movedTo[edit.rule!]);
-  const ruleEdits = edits.filter(isFieldMove);
   const targetVersion = isObject(after.document.info) ? after.document.info.version : undefined;
   const versionEdits =
     provider.packageName === STRIPE.packageName &&
@@ -167,6 +165,14 @@ export async function runPipeline(options: {
             rule: 'stripe-api-version' as const,
           }))
       : [];
+  // Moved reads are correct only once the same patch pins the new outgoing version; a client
+  // without a literal version follows the account default, which a patch cannot change.
+  // shortcut: requires some bumped literal pin, not the pin of each read's own client; trace the
+  // client per read if repositories mix pinned and unpinned clients.
+  const edits = analyzedEdits.filter(
+    (edit) => !isFieldMove(edit) || (movedTo[edit.rule!] && versionEdits.length > 0),
+  );
+  const ruleEdits = edits.filter(isFieldMove);
   if (specificationDiff && provider.packageName === STRIPE.packageName)
     specificationDiff.changes.push(
       ...switchedEnumAdditions(enumChecks, before.schemas, after.schemas),

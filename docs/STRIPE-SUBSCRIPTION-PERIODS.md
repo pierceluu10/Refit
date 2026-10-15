@@ -34,7 +34,7 @@ The patch uses version-aware field lookup so an older SDK's subscription-item ty
 
 The first rule accepts one directly exported/named function with a const signed event, a definite unrelated-event return, a const `event.data.object` subscription, a guard checking both old fields for numbers, and a plain result object reading those fields. Its error is a local empty subclass of the global `Error` with literal constructor arguments. The event, client and payload must pass existing mutation/escape analysis. A single whole-file edit keeps the injected version/item checks and all four field replacements atomic.
 
-Transformed outputs, custom error constructors, mutated/escaped payloads, optional verification, shadowed globals, additional statement flows, multiple migrated handlers in one module and unsupported casts or aliases stay under review. This is not an arbitrary webhook refactoring agent. `previous_attributes` and SDK-response period migrations are outside this rule.
+Transformed outputs, custom error constructors, mutated/escaped payloads, optional verification, shadowed globals, additional statement flows, multiple migrated handlers in one module and unsupported casts or aliases stay under review. This is not an arbitrary webhook refactoring agent. `previous_attributes` is outside this rule. Period reads on SDK responses, not webhook payloads, have a separate rule: they move to the subscription items (earliest start, latest end) in the same patch that bumps a literal Stripe `apiVersion`. See the [self-maintaining pipeline](STRIPE-PLAN.md#self-maintaining-pipeline-october-15-2026).
 
 ## Try the bundled application
 

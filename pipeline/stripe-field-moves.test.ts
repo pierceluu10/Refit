@@ -137,10 +137,18 @@ export function fromParameter(subscription: Stripe.Subscription) {
   expect(result.edits).toEqual([]);
 });
 
-async function run(body: string, moved = true, aiPatch?: { apiKey: string; model: string }) {
+async function run(
+  body: string,
+  moved = true,
+  aiPatch?: { apiKey: string; model: string },
+  options = `{ apiVersion: '2024-06-20' }`,
+) {
   const root = await mkdtemp(join(tmpdir(), 'refit-field-moves-'));
   roots.push(root);
-  await writeFile(join(root, 'billing.ts'), header + body);
+  await writeFile(
+    join(root, 'billing.ts'),
+    header.replace(`{ apiVersion: '2024-06-20' }`, options) + body,
+  );
   await writeFile(
     join(root, 'package.json'),
     JSON.stringify({ name: 'app', dependencies: { stripe: '16.0.0' } }),
@@ -184,6 +192,12 @@ it('proposes the field move and the API-version bump as one patch', async () => 
   const diff = 'diff' in report.patch ? report.patch.diff : '';
   expect(diff).toContain("+const stripe = new Stripe('sk', { apiVersion: '2025-03-31.basil' });");
   expect(diff).toContain('item.current_period_end');
+});
+
+it('does not move reads when the client follows the account default version', async () => {
+  const report = await run(periodRead, true, undefined, '{ apiVersion: null }');
+  expect(report.findings).toMatchObject([{ confidence: 'confirmed' }]);
+  expect(report.patch).toMatchObject({ status: 'unsupported', edits: 0 });
 });
 
 it('does not move a field the target contract does not define', async () => {
