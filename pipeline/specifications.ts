@@ -82,7 +82,7 @@ export async function readSpecification(path: string) {
 export function parseSpecificationInput(content: string, path: string) {
   if (Buffer.byteLength(content) > MAX_SPECIFICATION_BYTES)
     throw new PipelineInputError(`${path} exceeds the 64 MiB specification input limit.`);
-  const value = parseApiDocument(content, path);
+  const value = parseDocumentObject(content, path);
   if (value.kind === 'refit-snapshot') {
     if (
       value.formatVersion !== 1 ||
@@ -119,7 +119,7 @@ export function parseSpecificationInput(content: string, path: string) {
 }
 
 export function parseSpecification(content: string, label: string) {
-  const document = parseApiDocument(content, label);
+  const document = parseDocumentObject(content, label);
   const components = document.components;
   if (
     typeof document.openapi !== 'string' ||
@@ -137,7 +137,7 @@ export function parseSpecification(content: string, label: string) {
   };
 }
 
-function parseApiDocument(content: string, label: string): JsonObject {
+export function parseDocumentObject(content: string, label: string): JsonObject {
   if (content.trimStart().startsWith('{') || content.trimStart().startsWith('['))
     return parseObject(content, label);
   const parsed = parseDocument(content, { strict: true, uniqueKeys: true });
@@ -151,7 +151,7 @@ function parseApiDocument(content: string, label: string): JsonObject {
   } catch (cause) {
     throw new PipelineInputError(`${label} contains unsupported YAML aliases.`, { cause });
   }
-  if (!isObject(value)) throw new PipelineInputError(`${label} must be an OpenAPI object.`);
+  if (!isObject(value)) throw new PipelineInputError(`${label} must contain an object.`);
   return value;
 }
 

@@ -1,13 +1,14 @@
 import { posix } from 'node:path';
 import { isObject } from './specifications.ts';
 import type { DependencyDeclaration, LockedDependency } from './types.ts';
+import { PNPM_LOCKFILE, resolvePnpmDependency } from './pnpm-lock.ts';
+import { EXACT_PACKAGE_VERSION } from './npm-lock.ts';
 
 export const NPM_LOCKFILES = ['npm-shrinkwrap.json', 'package-lock.json'] as const;
+export const DEPENDENCY_LOCKFILES = [...NPM_LOCKFILES, PNPM_LOCKFILE] as const;
 const SUPPORTED_LOCK_VERSIONS = new Set([2, 3]);
-const EXACT_VERSION =
-  /^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/;
 
-export interface NpmLockfile {
+export interface DependencyLockfile {
   file: string;
   content: Record<string, unknown>;
 }
@@ -15,8 +16,20 @@ export interface NpmLockfile {
 export function resolveLockedDependency(
   dependency: DependencyDeclaration,
   packageName: string,
-  lockfiles: NpmLockfile[],
+  lockfiles: DependencyLockfile[],
 ): LockedDependency {
+  const pnpm = lockfiles.find((lock) => lock.file === PNPM_LOCKFILE);
+  if (pnpm && lockfiles.length === 1)
+    return resolvePnpmDependency(dependency, packageName, pnpm.content);
+  if (pnpm)
+    return {
+      status: 'unknown',
+      file: null,
+      packagePath: null,
+      version: null,
+      reason:
+        'Multiple package-manager lockfiles require explicit review; no effective graph is assumed.',
+    };
   const selected = NPM_LOCKFILES.map((name) => lockfiles.find((lock) => lock.file === name)).find(
     Boolean,
   );
@@ -65,7 +78,7 @@ export function resolveLockedDependency(
         entry.link ||
         (entry.name !== undefined && entry.name !== packageName) ||
         typeof entry.version !== 'string' ||
-        !EXACT_VERSION.test(entry.version)
+        !EXACT_PACKAGE_VERSION.test(entry.version)
       )
         return unknown(
           'Nearest package entry is linked, aliased or lacks an exact version; no hoisted fallback is assumed.',
