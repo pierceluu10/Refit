@@ -1,6 +1,6 @@
 # Pull request descriptions
 
-Every Refit PR, whether a local `pull-request.md` or a published draft, follows one fixed template. It's built by `createReviewArtifacts()` in `pipeline/review.ts` from Refit's recorded report and states only what Refit recorded or can check. There are no emojis, and each bullet is one sentence. Full evidence (commands, hashes, findings, warnings, coverage and check logs) stays in the local `report.json`.
+Every Refit PR, whether a local `pull-request.md` or a published draft, follows one fixed template, [the agent PR template](PR-TEMPLATE.md). It's built by `createReviewArtifacts()` in `pipeline/review.ts` from Refit's recorded report and states only what Refit recorded or can check. There are no emojis, and each bullet is one sentence. Full evidence (commands, hashes, findings, warnings, coverage and check logs) stays in the local `report.json`.
 
 ## Title
 
