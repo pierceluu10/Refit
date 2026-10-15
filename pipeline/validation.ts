@@ -24,6 +24,14 @@ import { MAX_DEPENDENCY_ARCHIVE_BYTES, prepareDependencies } from './dependency-
 import { inspectArtifactFile } from './verification.ts';
 import { analyzeRepository } from './analyzer.ts';
 import {
+  extractStripeMock,
+  generatedCommand,
+  generatedEntryPoints,
+  readMockDocument,
+  writeHarness,
+  type GeneratedChecks,
+} from './generated-checks.ts';
+import {
   dockerSandboxArguments,
   removeDockerContainer,
   resolveDockerImage,
@@ -76,6 +84,7 @@ async function containerCheck(
   image: string,
   argumentsList: string[],
   dependencies?: string,
+  readOnlyMounts?: { source: string; target: string }[],
 ): Promise<CheckResult> {
   const name = `refit-${randomUUID()}`;
   try {
@@ -88,6 +97,7 @@ async function containerCheck(
         command: argumentsList,
         network: 'none',
         dependencies,
+        readOnlyMounts,
       }),
       { timeout: CHECK_TIMEOUT_MS, maxBuffer: MAX_OUTPUT_BYTES, encoding: 'utf8' },
     );
@@ -114,6 +124,74 @@ async function containerCheck(
   }
 }
 
+// Runs the enclosing exported functions of confirmed findings against stripe-mock serving each
+// side's pinned contract and fixtures, inside the same offline sandbox as configured checks.
+async function generatedStripeChecks(options: {
+  settings: GeneratedChecks;
+  root: string;
+  image: string;
+  dependencies?: string;
+  entryPoints: ReturnType<typeof generatedEntryPoints>;
+  runs: { directory: string; contract: string; side: 'before' | 'after' }[];
+  onProgress?: (message: string) => void;
+}) {
+  const { entries, uncovered } = options.entryPoints;
+  const tools = await mkdtemp(join(options.root, 'generated-'));
+  const mock = await extractStripeMock(options.settings.stripeMockImage, tools);
+  const fixtures = {
+    before: options.settings.beforeFixtures,
+    after: options.settings.afterFixtures,
+  };
+  const hashes = {
+    before: {
+      contract: await readMockDocument(options.runs[0].contract, 'before contract'),
+      fixtures: await readMockDocument(fixtures.before, 'before fixtures file'),
+    },
+    after: {
+      contract: await readMockDocument(options.runs[1].contract, 'after contract'),
+      fixtures: await readMockDocument(fixtures.after, 'after fixtures file'),
+    },
+  };
+  await writeHarness(tools, entries);
+  const notRun: CheckResult = { status: 'not-run', exitCode: null, stdout: '', stderr: '' };
+  const results: CheckResult[] = [];
+  for (const run of options.runs) {
+    if (!entries.length) {
+      results.push(notRun);
+      continue;
+    }
+    options.onProgress?.(
+      `Running generated Stripe checks against ${run.side}-version stripe-mock in offline Docker...`,
+    );
+    results.push(
+      await containerCheck(
+        run.directory,
+        options.image,
+        generatedCommand(entries),
+        options.dependencies,
+        [
+          { source: mock.binary, target: '/refit/stripe-mock' },
+          { source: run.contract, target: '/refit/spec.json' },
+          { source: fixtures[run.side], target: '/refit/fixtures.json' },
+          { source: tools, target: '/refit/generated' },
+        ],
+      ),
+    );
+  }
+  return {
+    engine: 'stripe-mock',
+    image: mock.imageId,
+    binaryHash: mock.binaryHash,
+    inputs: hashes,
+    entryPoints: entries,
+    uncoveredFindings: uncovered,
+    baseline: results[0],
+    patched: results[1],
+    claim:
+      "Exported functions enclosing confirmed findings ran against stripe-mock serving each side's contract and fixtures. Placeholder fixtures check response shapes, not business data or application tests.",
+  };
+}
+
 export async function validateMigration(options: {
   repository: string;
   before: string;
@@ -131,6 +209,7 @@ export async function validateMigration(options: {
   requireApiVersionMatch?: boolean;
   fullDiff?: boolean;
   repairAttempts?: number;
+  generatedChecks?: GeneratedChecks;
   onProgress?: (message: string) => void;
   signal?: AbortSignal;
 }) {
@@ -289,6 +368,7 @@ export async function validateMigration(options: {
     const initialCandidate =
       baseline.status === 'passed' ? await prepareCandidate(proposal.diff) : undefined;
     let publicationFiles = initialCandidate?.publicationFiles ?? [];
+    let candidateDirectory = initialCandidate?.directory;
     if (initialCandidate) options.onProgress?.('Running patched checks in offline Docker...');
     let patched: CheckResult = initialCandidate
       ? await containerCheck(initialCandidate.directory, image, options.command, dependencies)
@@ -383,6 +463,7 @@ export async function validateMigration(options: {
         );
         proposal = candidate;
         publicationFiles = preparedCandidate.publicationFiles;
+        candidateDirectory = preparedCandidate.directory;
         patched = check;
         recordAttempt();
         repair.stopReason =
@@ -398,16 +479,36 @@ export async function validateMigration(options: {
         break;
       }
     }
+    const generated =
+      options.generatedChecks &&
+      candidateDirectory &&
+      baseline.status === 'passed' &&
+      patched.status === 'passed'
+        ? await generatedStripeChecks({
+            settings: options.generatedChecks,
+            root,
+            image,
+            dependencies,
+            entryPoints: generatedEntryPoints(originalSources, report.findings),
+            runs: [
+              { directory: baselineDirectory, contract: options.before, side: 'before' },
+              { directory: candidateDirectory, contract: options.after, side: 'after' },
+            ],
+            onProgress: options.onProgress,
+          })
+        : undefined;
     const currentRevision = (await git(['rev-parse', '--verify', 'HEAD^{commit}'])).stdout.trim();
     const currentStatus = (await git(['status', '--porcelain', '--untracked-files=all'])).stdout;
     const validationStatus =
       currentRevision !== revision || currentStatus
         ? 'stale'
-        : baseline.status === 'error' || patched.status === 'error'
+        : [baseline, patched, generated?.baseline, generated?.patched].some(
+              (check) => check?.status === 'error',
+            )
           ? 'error'
-          : baseline.status !== 'passed'
+          : baseline.status !== 'passed' || (generated && generated.baseline.status !== 'passed')
             ? 'baseline-failed'
-            : patched.status !== 'passed'
+            : patched.status !== 'passed' || (generated && generated.patched.status !== 'passed')
               ? 'regression'
               : 'passed';
     const validation = {
@@ -421,6 +522,7 @@ export async function validateMigration(options: {
       patchHash: digest(proposal.diff),
       baseline,
       patched,
+      ...(generated ? { generated } : {}),
       attempts,
       repair,
       limits: { timeoutMs: CHECK_TIMEOUT_MS, outputBytes: MAX_OUTPUT_BYTES, network: 'none' },

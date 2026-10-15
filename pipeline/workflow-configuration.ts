@@ -23,7 +23,9 @@ const CONFIGURATION_KEYS = new Set([
   'apiVersionPolicy',
   'fullDiff',
   'prepareDependencies',
+  'generatedChecks',
 ]);
+const GENERATED_CHECK_KEYS = 'afterFixtures,beforeFixtures,stripeMockImage';
 
 export async function readWorkflowConfigurations(path: string) {
   if ((await stat(path)).size > MAX_WORKFLOW_CONFIGURATION_BYTES)
@@ -136,6 +138,18 @@ function parseSingleWorkflowConfiguration(value: Record<string, unknown>, path: 
       'Run configuration requires exactly one of after or latestStripe.',
     );
   const directory = dirname(resolve(path));
+  const generated = value.generatedChecks;
+  if (
+    generated !== undefined &&
+    (!isObject(generated) ||
+      Object.keys(generated).sort().join(',') !== GENERATED_CHECK_KEYS ||
+      Object.values(generated).some(
+        (field) => typeof field !== 'string' || !field.trim() || field.includes('\0'),
+      ))
+  )
+    throw new PipelineInputError(
+      'Run configuration generatedChecks requires stripeMockImage, beforeFixtures and afterFixtures strings.',
+    );
   validateWorkflowSources({
     after: value.after === undefined ? undefined : string('after'),
     latestStripe: value.latestStripe as boolean | undefined,
@@ -159,5 +173,14 @@ function parseSingleWorkflowConfiguration(value: Record<string, unknown>, path: 
       : { apiVersionPolicy: validateApiVersionPolicy(value.apiVersionPolicy) }),
     fullDiff: value.fullDiff as boolean | undefined,
     ...(value.prepareDependencies ? { prepareDependencies: true } : {}),
+    ...(isObject(generated)
+      ? {
+          generatedChecks: {
+            stripeMockImage: generated.stripeMockImage as string,
+            beforeFixtures: resolve(directory, generated.beforeFixtures as string),
+            afterFixtures: resolve(directory, generated.afterFixtures as string),
+          },
+        }
+      : {}),
   };
 }

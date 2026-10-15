@@ -52,8 +52,16 @@ export function dockerSandboxArguments(options: {
   network: 'none' | 'bridge';
   dependencies?: string;
   workspaceSize?: typeof PREPARATION_WORKSPACE_SIZE;
+  readOnlyMounts?: { source: string; target: string }[];
 }) {
-  if ([options.directory, options.dependencies].some((path) => path?.includes(',')))
+  const mounts = options.readOnlyMounts ?? [];
+  if (
+    [
+      options.directory,
+      options.dependencies,
+      ...mounts.flatMap((mount) => [mount.source, mount.target]),
+    ].some((path) => path?.includes(','))
+  )
     throw new PipelineInputError('Docker bind-mount paths must not contain commas.');
   return [
     'run',
@@ -85,6 +93,10 @@ export function dockerSandboxArguments(options: {
     ...(options.dependencies
       ? ['--mount', `type=bind,src=${options.dependencies},dst=/dependencies.tar,readonly`]
       : []),
+    ...mounts.flatMap((mount) => [
+      '--mount',
+      `type=bind,src=${mount.source},dst=${mount.target},readonly`,
+    ]),
     '--workdir',
     '/workspace',
     '--entrypoint',

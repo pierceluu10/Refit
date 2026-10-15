@@ -142,6 +142,9 @@ async function watchLocalOnce(
         ...(documentationSources.length ? { documentationSources } : {}),
         image: configuration.image,
         ...(configuration.prepareDependencies ? { prepareDependencies: true } : {}),
+        ...(configuration.generatedChecks
+          ? { generatedChecks: configuration.generatedChecks }
+          : {}),
         command: configuration.command,
         baselineCommand: configuration.baselineCommand,
         fullDiff: configuration.fullDiff,
