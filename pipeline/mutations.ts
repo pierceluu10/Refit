@@ -1,5 +1,11 @@
 import ts from 'typescript-compiler';
 
+export interface BindingReferences {
+  rootBinding: (node: ts.Node) => ts.Symbol | undefined;
+  aliases: Iterable<readonly [ts.Symbol, ts.Symbol]>;
+  localArgument?: (node: ts.CallExpression | ts.NewExpression, argument: ts.Expression) => boolean;
+}
+
 function receiver(node: ts.Node): ts.Identifier | undefined {
   if (ts.isIdentifier(node)) return node;
   if (
@@ -30,10 +36,7 @@ export function unsafeBindings(
   // Reading a primitive field (`subscription.id`) and passing its value on cannot mutate the
   // object it came from; only value positions use this, never assignment targets.
   primitiveValue: (node: ts.Node) => boolean = () => false,
-  references?: {
-    rootBinding: (node: ts.Node) => ts.Symbol | undefined;
-    aliases: Map<ts.Symbol, ts.Symbol>;
-  },
+  references?: BindingReferences,
 ) {
   const links = new Map<ts.Symbol, Set<ts.Symbol>>();
   const unsafe = new Set(initialUnsafe);
@@ -122,7 +125,8 @@ export function unsafeBindings(
     if (ts.isCallExpression(node) || ts.isNewExpression(node)) {
       const iteration = ts.isCallExpression(node) ? arrayIteration(node) : undefined;
       for (const argument of node.arguments ?? [])
-        if (iteration?.callback !== argument) targets(argument);
+        if (iteration?.callback !== argument && !references?.localArgument?.(node, argument))
+          targets(argument);
       if (iteration) {
         const source = binding(iteration.source);
         const target = canonical(checker.getSymbolAtLocation(iteration.parameter));

@@ -1,5 +1,13 @@
 # Refit implementation checkpoints
 
+## October 14 checkpoint: SDK arguments in helper functions (0.21.0)
+
+Actual SDK arguments trace into supported named declarations and identifier-bound function/arrow expressions. Closed private helpers with one stable client origin reuse existing response, request and endpoint migration rules. Aliases and helper chains share mutation and API-version evidence. Exported/escaped helpers, unknown callers, multiple origins, argument uncertainty and mutations retain review metadata and stop the entire automated run before paid work, checks or publication. Type annotations alone never establish client identity. See [helper-client support](HELPER-CLIENTS.md).
+
+The guarded Stripe history rule now accepts supported helper parameters and preserves retrieval, complete paginated charge history and empty lists. The fully gated suite passed **1,227 tests across 78 files with no skips**, plus build, typecheck and formatting. Actual Stripe 10.17.0 TypeScript helper code compiles and passes version headers, pagination and empty histories in offline Docker. Actual OpenAI 7.32.0 helper HTTP calls pass a configured invented response rename. Request/endpoint cases and mixed confirmed/review cases preserve the shared automation gate. No paid model request or live vendor API call was used.
+
+The independently installed candidate CLI validated a clean helper application at `c927751e2802`, verified both workflow manifests, and reused a repeated worker poll without checks. Retained evidence is at `/Users/pierceluu/.refit/evaluations/helper-clients-2026-10-14`; the application stays clean and unmigrated. Paykit's same pinned commit improves from **0/53 to 41/53 likely Stripe calls traced**, all new calls review-only. No Paykit dependencies or source code were executed. This is visibility evidence, not migration correctness or general provider support. See [Paykit's remaining gaps](PAYKIT-EVALUATION.md). pnpm preparation is the next requested slice.
+
 ## October 14 checkpoint: repository first run (0.20.0)
 
 From a configured repository root, `refit doctor` inspects setup and `refit run` attempts the workflow without repeating configuration, repository and output paths. `--repository` selects another root; explicitly selected `.refit.json` files derive their repository from that directory. External operator profiles still require a repository selection. Manual specification flags do not silently merge a root profile. Collections still require an integration selector. Implicit root profiles cannot redirect the run to another repository, and AI/publication remain explicit opt-ins.

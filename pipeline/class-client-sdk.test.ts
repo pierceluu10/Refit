@@ -62,10 +62,11 @@ it.skipIf(!IMAGE || !process.env.REFIT_STRIPE_SDK || !process.env.REFIT_NPM_PREP
   { version: '10.17.0', format: 'constructor' },
   { version: '19.1.0', format: 'private-field' },
   { version: '10.17.0', format: 'typescript-arrow' },
+  { version: '10.17.0', format: 'typescript-helper' },
 ])(
   'validates $format history with real Stripe $version, pagination and empty histories in offline Docker',
   async ({ version, format }) => {
-    const typed = format === 'typescript-arrow';
+    const typed = format.startsWith('typescript-');
     const sample = await repository('stripe-class-client', 'stripe', version, typed);
     const options = `{
     host: '127.0.0.1', port: Number(process.env.REFIT_FIXTURE_PORT), protocol: 'http',
@@ -82,7 +83,20 @@ it.skipIf(!IMAGE || !process.env.REFIT_STRIPE_SDK || !process.env.REFIT_NPM_PREP
     if (!intent.charges) { throw new MissingHistory('Missing history'); }
     return intent.charges.data;
   }`;
-    const source = `import Stripe from 'stripe';
+    const source =
+      format === 'typescript-helper'
+        ? `import Stripe from 'stripe';
+const REQUEST_TIMEOUT_MS = 1000;
+export class MissingHistory extends Error {}
+const stripe = ${initializer};
+async function readHistory(sdk: Stripe, id: string) {
+  const intent = await sdk.paymentIntents.retrieve(id);
+  if (!intent.charges) { throw new MissingHistory('Missing history'); }
+  return intent.charges.data;
+}
+export const chargeHistory = (id: string) => readHistory(stripe, id);
+`
+        : `import Stripe from 'stripe';
 const REQUEST_TIMEOUT_MS = 1000;
 export class MissingHistory extends Error {}
 export class Billing {
@@ -149,7 +163,7 @@ export const chargeHistory = (id${typed ? ': string' : ''}) => billing.history(i
     const report = JSON.parse(await readFile(join(result.directory, 'report.json'), 'utf8'));
     expect(report.patch).toMatchObject({ generator: 'deterministic', unresolvedFindings: 0 });
     expect(report.patch.diff).toContain(
-      `for await (const refitCharge of this.${field}.charges.list`,
+      `for await (const refitCharge of ${format === 'typescript-helper' ? 'sdk' : `this.${field}`}.charges.list`,
     );
     expect(report.validation).toMatchObject({
       baseline: { status: 'passed' },
@@ -167,11 +181,21 @@ export const chargeHistory = (id${typed ? ': string' : ''}) => billing.history(i
   180_000,
 );
 
-it.skipIf(!IMAGE || !process.env.REFIT_OPENAI_SDK || !process.env.REFIT_NPM_PREPARE)(
-  'validates a class-held actual OpenAI client through the generic adapter and simulated rename',
-  async () => {
+it
+  .skipIf(!IMAGE || !process.env.REFIT_OPENAI_SDK || !process.env.REFIT_NPM_PREPARE)
+  .each(['class', 'helper'])(
+  'validates a %s-held actual OpenAI client through the generic adapter and simulated rename',
+  async (format) => {
     const sample = await repository('openai-class-client', 'openai', '7.32.0');
-    const classSource = `import OpenAI from 'openai';
+    const classSource =
+      format === 'helper'
+        ? `import OpenAI from 'openai';
+const REQUEST_TIMEOUT_MS = 5000;
+const client = new OpenAI({ apiKey: 'refit-offline-test', baseURL: process.env.REFIT_SIMULATOR_URL, timeout: REQUEST_TIMEOUT_MS, maxRetries: 0 });
+const readOwner = async (sdk, id) => { const model = await sdk.models.retrieve(id); return model.owned_by.toLowerCase(); };
+export const getModelOwner = (id) => readOwner(client, id);
+`
+        : `import OpenAI from 'openai';
 const REQUEST_TIMEOUT_MS = 5000;
 export class ModelService {
   #client = new OpenAI({ apiKey: 'refit-offline-test', baseURL: process.env.REFIT_SIMULATOR_URL, timeout: REQUEST_TIMEOUT_MS, maxRetries: 0 });
