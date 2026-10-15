@@ -41,7 +41,7 @@ declare function getClient(): OpenAI;`,
   expect(byExpression['openai.chat.completions.create']).toMatchObject({
     traced: true,
   });
-  expect(byExpression['this.client.responses.create']).toMatchObject({ reason: 'class-field' });
+  expect(byExpression['this.client.responses.create']).toMatchObject({ traced: true });
   expect(byExpression['openai.models.list']).toMatchObject({ reason: 'parameter' });
   expect(byExpression['client.embeddings.create']).toMatchObject({ reason: 'factory-call' });
   expect(sites.some((site) => site.expression.startsWith('db.'))).toBe(false);
