@@ -1,5 +1,13 @@
 # Refit implementation checkpoints
 
+## October 15 checkpoint: Yarn 1 workspaces and installation deadline (0.26.0)
+
+Yarn 1 workspaces now use automatic preparation: up to 64 positive patterns (a list or `{ packages }`), unique names, sibling dependencies on `*` or an exact version, and verified root `node_modules/<name>` links. `nohoist` and workspace CLI bins still need a custom image. Operators can extend the installer deadline with `REFIT_DEPENDENCY_TIMEOUT_SECONDS` (60–1800); other sandbox limits are unchanged. See [dependency preparation](DEPENDENCIES.md).
+
+The default suite passed **1,227 tests across 77 files**, with 76 environment-gated tests skipped, plus build, typecheck and formatting. All five gated Yarn tests passed in Docker. The new workspace case uses a Yarn 1.22.22 lockfile generated for the existing workspace conformance app. It installs Stripe 19.1.0 at the root and 10.17.0 nested in a workspace, links the sibling workspace, leaves both install-script tripwires untouched, and resolves everything offline.
+
+Re-running the two large benchmark repositories with a 900-second deadline showed the earlier failures were not about time. `backmesh/backmesh` and `starwidesolutions/b2b-ecommerce-saaskit-` both stop with `ENOSPC` on the 512 MiB writable install workspace, where Yarn's download cache and the unpacked packages share space. Raising that limit is a sandbox-security decision and remains open, as for `alanagoyal/branded` under npm.
+
 ## October 15 checkpoint: Yarn 1 preparation and unexpanded removals (0.25.0)
 
 `prepareDependencies` now supports Yarn 1 root projects. Every `yarn.lock` entry must resolve an exact version to a public registry tarball with strong integrity, and every root range must be locked. The pinned Yarn 1 manager is installed through npm with integrity evidence, and dependencies install with `--frozen-lockfile --ignore-scripts --no-default-rc`. Only `package.json` and `yarn.lock` enter the networked installer, and checks run offline with `yarn` on PATH. Scans and readiness also record SDK versions from Yarn 1 and Yarn 2+ lockfiles. Yarn workspaces and Yarn 2+ installs still need a custom image. See [dependency preparation](DEPENDENCIES.md).
