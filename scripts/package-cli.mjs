@@ -46,7 +46,7 @@ else {
     }
     await writeFile(
       join(stage, 'package.json'),
-      `${JSON.stringify({ name: metadata.name, version: metadata.version, description: 'Local API migration agent with reviewable patches and isolated validation', private: true, type: 'module', engines: metadata.engines, bin: { refit: 'bin/refit.mjs' }, files: ['bin/', 'pipeline/', 'README.md', 'docs/', 'examples/', 'public/', '.env.example'], dependencies }, null, 2)}\n`,
+      `${JSON.stringify({ name: metadata.name, version: metadata.version, description: 'Local API migration agent with reviewable patches and isolated validation', private: true, type: 'module', engines: metadata.engines, bin: { refit: 'bin/refit.mjs' }, files: ['bin/', 'pipeline/', 'README.md', 'LICENSE', 'docs/', 'examples/', 'public/', '.env.example'], dependencies }, null, 2)}\n`,
     );
     await mkdir(join(stage, 'bin'));
     await copyFile(join(root, 'bin/refit.mjs'), join(stage, 'bin/refit.mjs'));
@@ -64,58 +64,10 @@ else {
       recursive: true,
     });
     await cp(join(root, 'examples'), join(stage, 'examples'), { recursive: true });
-    const cliGuide = await readFile(join(root, 'docs/CLI.md'), 'utf8');
-    await writeFile(
-      join(stage, 'README.md'),
-      cliGuide
-        .replaceAll('](GITHUB-APP.md)', '](docs/GITHUB-APP.md)')
-        .replaceAll('](TEST-REPOSITORIES.md)', '](docs/TEST-REPOSITORIES.md)')
-        .replaceAll('](AUTOMATION.md)', '](docs/AUTOMATION.md)')
-        .replaceAll('](LOCAL-SERVICE.md)', '](docs/LOCAL-SERVICE.md)')
-        .replaceAll('](DEPENDENCIES.md)', '](docs/DEPENDENCIES.md)')
-        .replaceAll('](ENDPOINT-MIGRATIONS.md)', '](docs/ENDPOINT-MIGRATIONS.md)')
-        .replaceAll('](REPOSITORY-SETUP.md)', '](docs/REPOSITORY-SETUP.md)')
-        .replaceAll('](APP-ONBOARDING.md)', '](docs/APP-ONBOARDING.md)')
-        .replaceAll('](VENDOR_NOTES.md)', '](docs/VENDOR_NOTES.md)')
-        .replaceAll('](API-VERSIONS.md)', '](docs/API-VERSIONS.md)')
-        .replaceAll('](MULTIPLE-INTEGRATIONS.md)', '](docs/MULTIPLE-INTEGRATIONS.md)')
-        .replaceAll('](REQUEST-MIGRATIONS.md)', '](docs/REQUEST-MIGRATIONS.md)')
-        .replaceAll('](CLIENT-MODULES.md)', '](docs/CLIENT-MODULES.md)')
-        .replaceAll('](NPM-WORKSPACES.md)', '](docs/NPM-WORKSPACES.md)')
-        .replaceAll('](SOURCE-ALIASES.md)', '](docs/SOURCE-ALIASES.md)')
-        .replaceAll('](STRIPE-WEBHOOKS.md)', '](docs/STRIPE-WEBHOOKS.md)')
-        .replaceAll('](STRIPE-SUBSCRIPTION-PERIODS.md)', '](docs/STRIPE-SUBSCRIPTION-PERIODS.md)')
-        .replaceAll('](../examples/', '](examples/'),
-    );
+    await copyFile(join(root, 'README.md'), join(stage, 'README.md'));
+    await copyFile(join(root, 'LICENSE'), join(stage, 'LICENSE'));
     await copyFile(join(root, '.env.example'), join(stage, '.env.example'));
-    await mkdir(join(stage, 'docs'));
-    for (const name of [
-      'ARCHITECTURE.md',
-      'UPSTREAM-REPLAY.md',
-      'GITHUB-APP.md',
-      'TEST-REPOSITORIES.md',
-      'BILLING-EVALUATION.md',
-      'CLI.md',
-      'AUTOMATION.md',
-      'LOCAL-SERVICE.md',
-      'DEPENDENCIES.md',
-      'ENDPOINT-MIGRATIONS.md',
-      'REPOSITORY-SETUP.md',
-      'APP-ONBOARDING.md',
-      'VENDOR_NOTES.md',
-      'API-VERSIONS.md',
-      'MULTIPLE-INTEGRATIONS.md',
-      'REQUEST-MIGRATIONS.md',
-      'CLIENT-MODULES.md',
-      'NPM-WORKSPACES.md',
-      'SOURCE-ALIASES.md',
-      'STRIPE-WEBHOOKS.md',
-      'STRIPE-SUBSCRIPTION-PERIODS.md',
-      'READINESS.md',
-      'AI-EVALUATION.md',
-      'PR-EVALUATION.md',
-    ])
-      await copyFile(join(root, 'docs', name), join(stage, 'docs', name));
+    await cp(join(root, 'docs'), join(stage, 'docs'), { recursive: true });
     await mkdir(join(stage, 'public'));
     await copyFile(
       join(root, 'public/refit-agent-avatar.png'),
