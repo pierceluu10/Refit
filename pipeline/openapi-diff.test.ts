@@ -3,6 +3,7 @@ import { analyzeRepository } from './analyzer.ts';
 import {
   adapterContract,
   compareOpenApi,
+  expansionLocation,
   switchedEnumAdditions,
   unmappedBreakingChanges,
 } from './openapi-diff.ts';
@@ -289,3 +290,117 @@ it.skipIf(!process.env.REFIT_OASDIFF)(
     expect(stripe.coverage).toContain('Stripe response enum additions');
   },
 );
+
+// Shapes follow Stripe's expandable fields: `anyOf: [ID string, object]` with expansion metadata.
+const EXPANDABLE_CONTRACT = {
+  openapi: '3.0.0',
+  paths: {
+    '/v1/invoices/{invoice}': {
+      get: {
+        responses: {
+          '200': {
+            description: 'Invoice',
+            content: { 'application/json': { schema: { $ref: '#/components/schemas/invoice' } } },
+          },
+        },
+      },
+    },
+  },
+  components: {
+    schemas: {
+      invoice: {
+        type: 'object',
+        properties: {
+          paid: { type: 'boolean' },
+          customer: {
+            anyOf: [{ type: 'string' }, { $ref: '#/components/schemas/customer' }],
+            'x-expansionResources': { oneOf: [{ $ref: '#/components/schemas/customer' }] },
+          },
+          account_tax_ids: {
+            type: 'array',
+            items: {
+              anyOf: [{ type: 'string' }, { $ref: '#/components/schemas/tax_id' }],
+              'x-expansionResources': { oneOf: [{ $ref: '#/components/schemas/tax_id' }] },
+            },
+          },
+          rendering: { anyOf: [{ $ref: '#/components/schemas/rendering' }], nullable: true },
+        },
+      },
+      customer: { type: 'object', properties: { legacy: { type: 'string' } } },
+      tax_id: { type: 'object', properties: { legacy: { type: 'string' } } },
+      rendering: { type: 'object', properties: { legacy: { type: 'string' } } },
+    },
+  },
+};
+
+function removal(property: string) {
+  return {
+    id: 'response-required-property-removed',
+    level: 3,
+    path: '/v1/invoices/{invoice}',
+    operation: 'GET',
+    text: `removed the required property \`${property}\` from the response with the \`200\` status`,
+  };
+}
+
+it('names the expandable fields a removed response property lies inside', () => {
+  const cases: [string, unknown][] = [
+    ['customer/anyOf[subschema #2: Customer]/legacy', { expansions: ['customer'] }],
+    [
+      'account_tax_ids/items/anyOf[subschema #2: tax_id]/legacy',
+      { expansions: ['account_tax_ids'] },
+    ],
+    ['paid', undefined],
+    ['rendering/anyOf[subschema #1: rendering]/legacy', undefined],
+    ['customer/anyOf[subschema #1]/legacy', undefined],
+    ['customer/anyOf[subschema #2: Customer]/missing', undefined],
+    ['missing/anyOf[subschema #2: Customer]/legacy', undefined],
+  ];
+  for (const [property, expected] of cases)
+    expect(expansionLocation(removal(property), EXPANDABLE_CONTRACT), property).toEqual(expected);
+});
+
+it('stops blocking on removals inside expansions only when no request expands them', () => {
+  const diff = {
+    engine: 'oasdiff',
+    changes: [
+      { ...removal('customer/anyOf[subschema #2: Customer]/legacy'), expansions: ['customer'] },
+      removal('paid'),
+    ],
+  };
+  const blocking = (expanded?: string[]) =>
+    unmappedBreakingChanges(diff, [], [], [], [], expanded).map((entry) =>
+      String((entry as { text: string }).text),
+    );
+  expect(blocking([])).toEqual([removal('paid').text]);
+  expect(blocking(['line_items'])).toEqual([removal('paid').text]);
+  expect(blocking(['customer'])).toHaveLength(2);
+  expect(blocking(['*'])).toHaveLength(2);
+  expect(blocking()).toHaveLength(2);
+});
+
+it('records literal expansions and treats any other expand mention as expanding everything', () => {
+  const fields = (source: string) =>
+    analyzeRepository(
+      {
+        root: '/repository',
+        files: [{ path: 'billing.ts', content: source }],
+        dependencies: [],
+      } as never,
+      [],
+      STRIPE,
+    ).expandedFields;
+  expect(
+    fields("stripe.invoices.retrieve(id, { expand: ['customer', 'lines.data.price'] });"),
+  ).toEqual(['customer', 'data', 'lines', 'price']);
+  expect(fields("stripe.invoices.retrieve(id, { 'expand': ['customer'] });")).toEqual(['customer']);
+  expect(fields('stripe.invoices.retrieve(id);')).toEqual([]);
+  for (const source of [
+    'stripe.invoices.retrieve(id, { expand });',
+    'stripe.invoices.retrieve(id, { expand: fields });',
+    'options.expand = fields;',
+    "options['expand'] = fields;",
+    "stripe.invoices.retrieve(id, { expand: [...fields, 'customer'] });",
+  ])
+    expect(fields(source), source).toContain('*');
+});
