@@ -420,6 +420,11 @@ export async function validateMigration(options: {
           packageFiles
             .filter((source) => source.path === file.path && source.before !== undefined)
             .map((source) => ({ path: source.path, content: source.before! }))[0];
+        // A file the patch creates (the generated period helper) has no committed original.
+        if (!original && !entries.some((entry) => entry.endsWith(`\t${file.path}`))) {
+          publicationFiles.push({ path: file.path, mode: '100644', content: file.content });
+          continue;
+        }
         if (!original || original.content === file.content) continue;
         const entry = entries.find((entry) => entry.slice(entry.indexOf('\t') + 1) === file.path);
         const metadata = entry?.slice(0, entry.indexOf('\t')).split(' ');

@@ -3,7 +3,7 @@ import { join, resolve } from 'node:path';
 import { structuredPatch } from 'diff';
 import { digest, type AddedProperty } from './specifications.ts';
 import { affectedFields } from './report-fields.ts';
-import { PipelineInputError } from './types.ts';
+import { PipelineInputError, type Finding } from './types.ts';
 import type { validateMigration } from './validation.ts';
 import { INTEGRATION_MARKER, migrationIdentity } from './migration-identity.ts';
 
@@ -333,6 +333,10 @@ export function createReviewArtifacts(
   const model = 'model' in patch && typeof patch.model === 'string' ? patch.model : undefined;
   const stripeReview =
     report.provider === 'stripe' || operationChanges.length > 0 || requestChanges.length > 0;
+  const periodReads = (rareCase: NonNullable<Finding['subscriptionPeriod']>['rareCase']) =>
+    report.findings.filter((finding) => finding.subscriptionPeriod?.rareCase === rareCase);
+  const flaggedPeriods = periodReads('flagged');
+  const selectedPeriods = [...periodReads('item-in-code'), ...periodReads('price-policy')];
   const body =
     [
       '## Summary',
@@ -352,6 +356,16 @@ export function createReviewArtifacts(
         ? [
             `**Subscription item policy:** select exactly one item whose price ID is ${code(subscriptionPolicy.priceId)}. Item order does not determine entitlement. Missing or duplicate matches and incomplete lists use the existing missing-period error.`,
             `**Incoming event versions:** the patch checks signed ${code('event.api_version')} at runtime. ${code(subscriptionPolicy.beforeApiVersion)} retains legacy subscription periods; ${code(subscriptionPolicy.afterApiVersion)} reads the matched item's periods. Other versions are rejected. The outgoing SDK version does not establish the incoming version.`,
+          ]
+        : []),
+      ...(selectedPeriods.length
+        ? [
+            `**Items on different billing periods:** the period comes from the item the application already treats as its plan: ${summaryList([...new Set(selectedPeriods.map((finding) => `${code(finding.subscriptionPeriod!.selection ?? '')} (${finding.subscriptionPeriod!.rareCase === 'price-policy' ? 'configured stripeSubscriptionPeriods' : 'selected in the code'})`))])}.`,
+          ]
+        : []),
+      ...(flaggedPeriods.length
+        ? [
+            `**Subscriptions with items on different billing periods are not handled. Set ${code('stripeSubscriptionPeriods')} to choose which item counts.** Old-version events and subscriptions whose items share one period are handled. Affected reads: ${summaryList(flaggedPeriods.map((finding) => code(`${finding.file}:${finding.line}`)))}.`,
           ]
         : []),
       ...(requestChanges.length

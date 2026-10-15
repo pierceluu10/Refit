@@ -2,7 +2,7 @@ import { WEBHOOK_REVIEW_REASON } from './stripe-webhook-payloads.ts';
 import type { Finding } from './types.ts';
 import type { ProviderAdapter } from './providers.ts';
 import {
-  SUBSCRIPTION_PERIOD_EITHER_RULE,
+  SUBSCRIPTION_PERIOD_HELPER_RULE,
   SUBSCRIPTION_PERIOD_RULE,
 } from './stripe-subscription-periods.ts';
 
@@ -32,7 +32,7 @@ export function migrationReviewReason(
         !(
           allowConfiguredWebhookMigration &&
           finding.confidence === 'confirmed' &&
-          finding.webhook.migration?.rule === SUBSCRIPTION_PERIOD_EITHER_RULE
+          finding.webhook.migration?.rule === SUBSCRIPTION_PERIOD_HELPER_RULE
         ) &&
         (!allowConfiguredWebhookMigration ||
           !policy ||

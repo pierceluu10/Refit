@@ -1,5 +1,11 @@
 # Refit implementation checkpoints
 
+## October 15 checkpoint: subscription period helper (unreleased)
+
+Subscription-period reads no longer fall back to the widest period across items. Every `current_period_start/end` read on SDK responses, signed webhook payloads and `Stripe.Subscription`-typed values calls one generated helper. It returns the old subscription-level field when present, otherwise the period all items share, otherwise the item the application already selects (a `price.id` comparison or `items.data[N]` in the same function or file) or the configured price policy's item. Without either, mixed periods return `undefined`, and the pull request lists those reads with the instruction to set `stripeSubscriptionPeriods`. The guarded price-policy handler keeps precedence. Patches can now create files: the helper is rendered as a new file and included in publication. The gate is unchanged from the previous checkpoint.
+
+The default suite passed **1,263 tests across 79 files** with 78 environment-gated tests skipped, plus typecheck and formatting. Gated separately: the oasdiff suite passed 10 of 10. The Stripe subscription-period, webhook SDK/Docker and package-upgrade suites passed 45 of 45, with actual stripe-node 17.7.0 and 19.1.0, an old-version signed delivery returning 200 after the patch, and a TypeScript project upgraded to stripe 23.0.0 typechecking with the helper. No live Stripe request or model request was used.
+
 ## October 15 checkpoint: TypeScript imports in generated checks (0.31.0)
 
 Generated checks now load TypeScript code the way the scanner resolves it. On the host, Refit maps each source file's static and literal dynamic imports to the repository file its own verified resolver chooses: extensionless paths, `index` files and `tsconfig`/`jsconfig` aliases. A Node resolve hook in the offline sandbox reads that map, with no alias parsing inside the container. Otabek's benchmark validation funnel (#33) is merged: 0 of 23 affected repositories reached their own checks, and 11 are blocked by the 256 MiB archive limit.
