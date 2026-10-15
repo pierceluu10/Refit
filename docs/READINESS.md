@@ -1,5 +1,11 @@
 # Refit implementation checkpoints
 
+## October 15 checkpoint: 2 GiB validation by default (0.33.0)
+
+At the owner's decision, offline validation now defaults to the `2g` profile: a 2 GiB workspace, 3 GiB memory and a 1 GiB dependency archive limit. Network stays disabled, along with the read-only root, dropped capabilities, non-root user, 1 CPU, 128 processes and 120-second check limit. `REFIT_VALIDATION_WORKSPACE=1g` or `512m` selects a smaller profile on constrained hosts. Reports record the workspace and memory used. On the Stripe benchmark, this profile brings 11 more of the 23 affected repositories to their checks; 3 pass every check (see 0.32.0).
+
+The default suite passed **1,266 tests across 79 files**, with 78 environment-gated tests skipped, plus build, typecheck and formatting. Sandbox-argument tests now assert the 2 GiB and 3 GiB default and `--network none`. The local Stripe lab validated end to end with no override, recording a `2g` workspace and `3g` memory, and six generated functions passed against both stripe-mock versions.
+
 ## October 15 checkpoint: larger validation profiles and compiled TypeScript checks (0.32.0)
 
 Operators can opt into a larger offline validation profile with `REFIT_VALIDATION_WORKSPACE`: `1g` or `2g`. Each raises the workspace, memory and dependency archive limit together, and network stays disabled. The default is unchanged at 512 MiB and 1 GiB, with a 256 MiB archive. Evidence verification now accepts archives up to the largest profile. Its old 256 MiB cap had rejected every archive the larger profile produced.
