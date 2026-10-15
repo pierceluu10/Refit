@@ -1,5 +1,11 @@
 # Refit implementation checkpoints
 
+## October 15 checkpoint: provider detection and agent catalog (0.34.0)
+
+`refit agents` detects provider SDKs from committed manifests, npm, pnpm and yarn lock evidence, and raw API hostnames in source, without running code. It suggests only catalog agents with a shipped adapter: Stripe (built-in) and OpenAI (preview example adapter). Anthropic, Shopify, Meta Graph and Twilio are detected but have no agent yet. `--add <id>` writes a reviewable integration scaffold into `.refit.json`, converting single-workflow files and never duplicating an agent already configured under another adapter ID. Nothing is enrolled or activated. `refit serve` handles `pull_request` webhooks for configured repositories: it compares base and head `package.json` through the GitHub API and comments once per agent per pull request when a new SDK has an agent. See [provider agents](PROVIDER-AGENTS.md).
+
+The default suite passed **1,273 tests across 81 files**, with 78 environment-gated tests skipped. New tests cover detection evidence, scaffolds, refusals, CLI writes, suggestion and deduplication logic, webhook parsing, and a signed end-to-end service delivery producing exactly one comment, all against a mocked GitHub API. No live GitHub comment was posted. On the local Stripe lab and the real `Kanba-co/kanba` clone, detection reported Stripe with locked versions 17.7.0 and 14.25.0.
+
 ## October 15 checkpoint: default-profile benchmark confirmation (0.33.1)
 
 The benchmark was re-run with validation on v0.33.0 defaults: no `REFIT_VALIDATION_WORKSPACE` override and no AI. It matches the earlier explicit `2g` run:
