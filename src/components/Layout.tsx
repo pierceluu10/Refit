@@ -35,14 +35,16 @@ export function Header() {
           <a href="/#how-it-works" onClick={() => setOpen(false)}>
             How it works
           </a>
-          <NavLink to="/demo">Demo</NavLink>
+          <a href="/#demo" onClick={() => setOpen(false)}>
+            Demo
+          </a>
           <NavLink to="/docs">Docs</NavLink>
           <a className="github-link" href={PROJECT_URL} target="_blank" rel="noreferrer">
             <GithubLogo weight="bold" /> GitHub <ArrowUpRight size={12} />
           </a>
-          <Link className="button button-small button-dark" to="/app">
-            Explore Refit <ArrowRight />
-          </Link>
+          <a className="button button-small button-dark" href="/#waitlist">
+            Join the waitlist <ArrowRight />
+          </a>
         </nav>
       </div>
     </header>

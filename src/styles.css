@@ -1946,3 +1946,167 @@ pre {
     opacity: 0;
   }
 }
+.waitlist-hero {
+  padding-bottom: 104px;
+}
+.waitlist-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 28px;
+  padding: 6px 13px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+.waitlist-badge span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--blue);
+}
+.hero-copy > .waitlist-badge {
+  margin-top: 0;
+  font-size: 12px;
+}
+.waitlist-form,
+.waitlist-done {
+  max-width: 470px;
+  margin: 36px auto 0;
+}
+.waitlist-field {
+  display: flex;
+  gap: 6px;
+  padding: 5px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--surface);
+  box-shadow: 0 10px 24px -18px #18254266;
+  transition:
+    border-color var(--fast) ease,
+    box-shadow var(--fast) ease;
+}
+.waitlist-field:focus-within {
+  border-color: #a9bff2;
+  box-shadow: 0 0 0 4px var(--blue-tint);
+}
+.waitlist-field input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  padding: 0 12px;
+  background: transparent;
+  color: var(--ink);
+  font-size: 14px;
+  text-align: left;
+  outline: none;
+}
+.waitlist-field input::placeholder {
+  color: #9aa2b0;
+}
+.waitlist-field .button {
+  min-height: 42px;
+  padding: 10px 16px;
+}
+.waitlist-field .button:disabled {
+  opacity: 0.7;
+  cursor: progress;
+}
+.waitlist-apis {
+  margin: 20px 0 0;
+  padding: 0;
+  border: 0;
+}
+.waitlist-apis legend {
+  margin: 0 auto 10px;
+  padding: 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+.waitlist-apis legend span {
+  margin-left: 4px;
+  color: #9aa2b0;
+}
+.waitlist-apis > div {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+}
+.waitlist-chip {
+  position: relative;
+  padding: 5px 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 12px;
+  cursor: pointer;
+  user-select: none;
+  transition:
+    color var(--fast) ease,
+    background-color var(--fast) ease,
+    border-color var(--fast) ease;
+}
+.waitlist-chip input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+.waitlist-chip:has(input:checked) {
+  border-color: #bccdf5;
+  background: var(--blue-tint);
+  color: var(--blue);
+}
+.waitlist-chip:has(input:focus-visible) {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}
+.waitlist-error {
+  min-height: 20px;
+  margin-top: 12px;
+  color: var(--negative);
+  font-size: 12px;
+}
+.waitlist-done {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 15px 18px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--surface);
+  font-size: 14px;
+  animation: text-enter var(--entrance) var(--ease-out) both;
+}
+.waitlist-demo {
+  padding-top: 96px;
+  border-top: 1px solid var(--border);
+}
+.waitlist-demo .workflow {
+  margin-bottom: 28px;
+}
+@media (hover: hover) and (pointer: fine) {
+  .waitlist-chip:hover {
+    color: var(--ink);
+    border-color: #c9d0da;
+  }
+}
+@media (max-width: 640px) {
+  .waitlist-hero {
+    padding-bottom: 72px;
+  }
+  .waitlist-field {
+    flex-direction: column;
+  }
+  .waitlist-field input {
+    min-height: 44px;
+  }
+  .waitlist-demo {
+    padding-top: 64px;
+  }
+}
