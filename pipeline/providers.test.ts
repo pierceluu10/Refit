@@ -339,7 +339,7 @@ export async function city(id: string) {
   expect(report.patch).toMatchObject({ status: 'unsupported', edits: 0, unresolvedFindings: 1 });
 });
 
-it('downgrades array callback findings when an item escapes to a call', async () => {
+it('keeps array callback findings confirmed when an item escapes to a call', async () => {
   const input = await arrayProviderInputs(`import { Catalog } from '@example/catalog';
 const catalog = new Catalog();
 export async function city(id: string) {
@@ -348,8 +348,8 @@ export async function city(id: string) {
   return customer.places[0].legacy_city;
 }`);
   const report = await runPipeline(input);
-  expect(report.findings).toMatchObject([{ expression: '.legacy_city', confidence: 'review' }]);
-  expect(report.patch).toMatchObject({ status: 'unsupported', edits: 0, unresolvedFindings: 1 });
+  expect(report.findings).toMatchObject([{ expression: '.legacy_city', confidence: 'confirmed' }]);
+  expect(report.patch).toMatchObject({ status: 'proposed', edits: 1, unresolvedFindings: 0 });
 });
 
 it('keeps inline array item schemas at review', async () => {
@@ -418,7 +418,7 @@ export async function city(id: string) {
   expect(report.patch).toMatchObject({ status: 'unsupported', edits: 0, unresolvedFindings: 1 });
 });
 
-it('downgrades nested reads when a response alias escapes to a call', async () => {
+it('keeps nested reads confirmed when a response alias escapes to a call', async () => {
   const input = await nestedProviderInputs(`import { Catalog } from '@example/catalog';
 const catalog = new Catalog();
 export async function city(id: string) {
@@ -429,8 +429,8 @@ export async function city(id: string) {
   return location.legacy_city;
 }`);
   const report = await runPipeline(input);
-  expect(report.findings).toMatchObject([{ expression: '.legacy_city', confidence: 'review' }]);
-  expect(report.patch).toMatchObject({ status: 'unsupported', edits: 0, unresolvedFindings: 1 });
+  expect(report.findings).toMatchObject([{ expression: '.legacy_city', confidence: 'confirmed' }]);
+  expect(report.patch).toMatchObject({ status: 'proposed', edits: 1, unresolvedFindings: 0 });
 });
 
 it.each(['string', 'integer', 'number', 'boolean'])(

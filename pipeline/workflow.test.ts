@@ -237,7 +237,7 @@ it('stops mutated response evidence before AI generation, validation or publicat
     join(repository, 'billing.ts'),
     `import Stripe from 'stripe'; const stripe = new Stripe();
     async function history() { const intent = await stripe.paymentIntents.retrieve('pi');
-      normalize(intent); return intent.charges.data;
+      delete intent.metadata; return intent.charges.data;
     }`,
   );
   const result = await runWorkflow({

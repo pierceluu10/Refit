@@ -45,12 +45,21 @@ it.each<Record<string, string>>([
   {
     'mutator.ts': "import {stripe} from './client'; stripe.paymentIntents.retrieve = replacement;",
   },
-  { 'mutator.ts': "import {stripe} from './client'; const alias = stripe; mutate(alias);" },
   {
     'mutator.ts':
       "import * as clients from './client'; clients.stripe.paymentIntents.retrieve = replacement;",
   },
   { 'barrel.ts': "export {stripe} from './client';" },
+])('downgrades shared clients when another module mutates or re-exports them: %j', (extra) => {
+  const result = analyze({ 'billing.ts': consumer, 'client.ts': client, ...extra });
+  expect(result.findings.find((finding) => finding.file === 'billing.ts')).toMatchObject({
+    confidence: 'review',
+  });
+  expect(result.edits).toEqual([]);
+});
+
+it.each<Record<string, string>>([
+  { 'mutator.ts': "import {stripe} from './client'; const alias = stripe; mutate(alias);" },
   { 'client.ts': `${client}\nexport function getClient() { return stripe; }` },
   { 'client.ts': `${client}\nexport const getClient = () => stripe;` },
   { 'client.ts': `${client}\nexport const getResource = () => stripe.paymentIntents;` },
@@ -60,13 +69,16 @@ it.each<Record<string, string>>([
   { 'client.ts': `${client}\nexport function* clients() { yield stripe; }` },
   { 'client.ts': `${client}\nexport function fail() { throw stripe; }` },
   { 'client.ts': `${client}\nexport const getClient = () => flag ? (stripe as unknown) : null;` },
-])('downgrades shared clients when another module mutates or exposes them: %j', (extra) => {
-  const result = analyze({ 'billing.ts': consumer, 'client.ts': client, ...extra });
-  expect(result.findings.find((finding) => finding.file === 'billing.ts')).toMatchObject({
-    confidence: 'review',
-  });
-  expect(result.edits).toEqual([]);
-});
+])(
+  'keeps shared clients confirmed when another module only passes or returns them: %j',
+  (extra) => {
+    const result = analyze({ 'billing.ts': consumer, 'client.ts': client, ...extra });
+    expect(result.findings.find((finding) => finding.file === 'billing.ts')).toMatchObject({
+      confidence: 'confirmed',
+    });
+    expect(result.edits).toHaveLength(1);
+  },
+);
 
 it.each([
   consumer.replace("'./client.js'", "'@/client'"),

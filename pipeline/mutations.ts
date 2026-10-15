@@ -6,6 +6,56 @@ export interface BindingReferences {
   localArgument?: (node: ts.CallExpression | ts.NewExpression, argument: ts.Expression) => boolean;
 }
 
+const MUTATING_METHODS = new Set([
+  'copyWithin',
+  'fill',
+  'pop',
+  'push',
+  'reverse',
+  'shift',
+  'sort',
+  'splice',
+  'unshift',
+]);
+const READ_ONLY_ARRAY_METHODS = new Set([
+  'at',
+  'concat',
+  'entries',
+  'every',
+  'filter',
+  'find',
+  'findIndex',
+  'findLast',
+  'findLastIndex',
+  'flat',
+  'flatMap',
+  'forEach',
+  'includes',
+  'indexOf',
+  'join',
+  'keys',
+  'lastIndexOf',
+  'map',
+  'reduce',
+  'reduceRight',
+  'slice',
+  'some',
+  'toReversed',
+  'toSorted',
+  'toSpliced',
+  'values',
+  'with',
+]);
+const MUTATING_STATICS = new Set([
+  'Object.assign',
+  'Object.defineProperty',
+  'Object.defineProperties',
+  'Object.setPrototypeOf',
+  'Reflect.set',
+  'Reflect.defineProperty',
+  'Reflect.deleteProperty',
+]);
+
 function receiver(node: ts.Node): ts.Identifier | undefined {
   if (ts.isIdentifier(node)) return node;
   if (
@@ -37,10 +87,14 @@ export function unsafeBindings(
   // object it came from; only value positions use this, never assignment targets.
   primitiveValue: (node: ts.Node) => boolean = () => false,
   references?: BindingReferences,
+  // false: only direct mutations (assignment targets, delete, ++/--, mutating methods) taint a
+  // binding; passing it to calls, returning, storing or aliasing it does not.
+  escapes = true,
 ) {
   const links = new Map<ts.Symbol, Set<ts.Symbol>>();
   const unsafe = new Set(initialUnsafe);
   const exposed: ts.Expression[] = [];
+  const rebound = new Set<ts.Symbol>();
   const binding = (node: ts.Node) => {
     const field = references?.rootBinding(node);
     if (field) return field;
@@ -79,6 +133,62 @@ export function unsafeBindings(
     link(source, field);
   }
   for (const node of nodes) {
+    if (!escapes) {
+      if (ts.isVariableDeclaration(node) && node.initializer)
+        aliases(node.name, binding(node.initializer));
+      if (
+        ts.isForOfStatement(node) &&
+        ts.isVariableDeclarationList(node.initializer) &&
+        node.initializer.declarations.length === 1
+      )
+        aliases(node.initializer.declarations[0].name, binding(node.expression));
+      if (
+        ts.isBinaryExpression(node) &&
+        node.operatorToken.kind >= ts.SyntaxKind.FirstAssignment &&
+        node.operatorToken.kind <= ts.SyntaxKind.LastAssignment
+      ) {
+        // Rebinding a variable changes only that variable, not the object it was read from.
+        if (ts.isIdentifier(node.left)) {
+          const value = binding(node.left);
+          if (value) rebound.add(value);
+        } else targets(node.left, false);
+      }
+      if (ts.isDeleteExpression(node)) taint(node.expression);
+      if (
+        (ts.isPrefixUnaryExpression(node) || ts.isPostfixUnaryExpression(node)) &&
+        (node.operator === ts.SyntaxKind.PlusPlusToken ||
+          node.operator === ts.SyntaxKind.MinusMinusToken)
+      )
+        taint(node.operand);
+      if (ts.isCallExpression(node)) {
+        const iteration = arrayIteration(node);
+        if (iteration) {
+          const source = binding(iteration.source);
+          const target = canonical(checker.getSymbolAtLocation(iteration.parameter));
+          link(source, target);
+          link(target, source);
+        }
+        const callee = node.expression;
+        if (ts.isPropertyAccessExpression(callee)) {
+          // A method called on the binding itself may be an application method that mutates it.
+          if (
+            MUTATING_METHODS.has(callee.name.text) ||
+            (ts.isIdentifier(callee.expression) &&
+              !clients.has(binding(callee.expression)!) &&
+              !READ_ONLY_ARRAY_METHODS.has(callee.name.text) &&
+              !readOnlyCall(node))
+          )
+            taint(callee.expression);
+          if (
+            ts.isIdentifier(callee.expression) &&
+            MUTATING_STATICS.has(`${callee.expression.text}.${callee.name.text}`) &&
+            node.arguments.length
+          )
+            taint(node.arguments[0]);
+        }
+      }
+      continue;
+    }
     if (
       (ts.isReturnStatement(node) || ts.isThrowStatement(node) || ts.isYieldExpression(node)) &&
       node.expression
@@ -194,5 +304,10 @@ export function unsafeBindings(
   for (const expression of exposed) expose(expression);
   // A replaced SDK method invalidates its responses, not the reverse.
   for (const [response, call] of origins) link(binding(call.expression), response);
-  return propagate(unsafe);
+  const result = propagate(unsafe);
+  for (const value of rebound) result.add(value);
+  // A rebound client no longer guarantees the origin of responses read through it.
+  for (const [response, call] of origins)
+    if (rebound.has(binding(call.expression)!)) result.add(response);
+  return result;
 }

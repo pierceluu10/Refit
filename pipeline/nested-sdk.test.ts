@@ -139,12 +139,8 @@ await client.inventory /* private comment */ .legacy.items.retrieve('private arg
 it.each([
   'catalog.inventory.legacy.items.retrieve = other;',
   'delete catalog.inventory.legacy.items;',
-  'inspect(catalog.inventory.legacy.items);',
   'const resource = catalog.inventory.legacy; resource.items = other;',
-  'const resource = catalog.inventory.legacy.items; inspect(resource);',
-  'export function exposed() { return catalog.inventory.legacy.items; }',
-  'export const exposed = () => catalog.inventory.legacy.items;',
-])('downgrades mutation or escape at every nested client level: %s', (mutation) => {
+])('downgrades mutation at every nested client level: %s', (mutation) => {
   const result = analyze(`import { catalog } from './client.ts';
 ${mutation}
 export async function label(id: string) {
@@ -153,6 +149,21 @@ export async function label(id: string) {
 }`);
   expect(result.findings).toMatchObject([{ expression: '.legacy_label', confidence: 'review' }]);
   expect(result.edits).toEqual([]);
+});
+
+it.each([
+  'inspect(catalog.inventory.legacy.items);',
+  'const resource = catalog.inventory.legacy.items; inspect(resource);',
+  'export function exposed() { return catalog.inventory.legacy.items; }',
+  'export const exposed = () => catalog.inventory.legacy.items;',
+])('keeps nested clients confirmed when a level only escapes: %s', (escape) => {
+  const result = analyze(`import { catalog } from './client.ts';
+${escape}
+export async function label(id: string) {
+  const item = await catalog.inventory.legacy.items.retrieve(id);
+  return item.legacy_label;
+}`);
+  expect(result.findings).toMatchObject([{ expression: '.legacy_label', confidence: 'confirmed' }]);
 });
 
 it.each([

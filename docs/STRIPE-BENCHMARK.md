@@ -92,3 +92,76 @@ npm run benchmark:stripe -- --root <dir with repos/, specs/, selected.json, need
 ```
 
 The collection steps (GitHub search, SDK version mapping, spec downloads) are described above. The pinned list is in `docs/benchmarks/`.
+
+## Self-maintaining pipeline: before and after
+
+Measured on October 15, 2026, on the same pinned 100 repositories. "Before" is `main` at `f512ffa` (Refit 0.21). "After" is the self-maintaining pipeline branch (escape changes, Stripe enum gating, field-move rules, `apiVersion` bump). Both runs used `npm run benchmark:stripe -- --env .env --ai --validate` with the generated full Stripe adapter. See the [plan](STRIPE-PLAN.md#self-maintaining-pipeline-october-15-2026) for what changed and the open decisions.
+
+### Detection
+
+| | Before | After |
+|---|---|---|
+| Labelled set: confirmed recall | 5% (2/39) | **95% (37/39)** |
+| Labelled set: confirmed precision, as labelled | 100% (2/2) | 86% (37/43) |
+| Labelled set: confirmed precision, six disputed labels corrected | 100% (2/2) | 100% (43/43) |
+| Held-out set: confirmed reads (checked by hand) | 1 in 1 repository | **10 in 4 repositories, all real breaks** |
+| All 100: confirmed reads | 5 in 4 repositories | **76 in 23 repositories** |
+| All 100: review-only reads | 744 | 673 |
+| Production mode (full contract diff) completes | 0 of 74 | **74 of 74** |
+
+All six "false positives" read `.subscription` inside an `invoice.payment_succeeded` branch on a payload cast to `Stripe.Checkout.Session`. At runtime it is an Invoice, whose `subscription` field basil removed (plan open decision 1). The two misses are tracing gaps, not escapes: an expanded `latest_invoice.payment_intent`, and `entitled[0] ?? sorted[0]`.
+
+### Confirmed breaks by change (after, all 100)
+
+| Change | Reads | Repositories | Source of the reads |
+|---|---|---|---|
+| `subscription.current_period_end` | 35 | 22 | 30 SDK responses, 4 typed values, 1 webhook |
+| `invoice.subscription` | 14 | 11 | 10 webhook, 4 typed values |
+| `invoice.payment_intent` | 14 | 2 | 12 typed values, 2 SDK responses |
+| `subscription.current_period_start` | 9 | 7 | 8 SDK responses, 1 typed value |
+| `line_item.price` | 3 | 1 | typed values |
+| `line_item.type` | 1 | 1 | typed value |
+
+Subscription periods (44 reads):
+- **Pierce's price-ID webhook rule handles 0.** No repository configures a price policy, none targets the exact `2025-02-24.acacia → 2025-03-31.basil` incoming pair, and only one confirmed period read is a webhook payload.
+- **The new SDK-response rule rewrites all 38 SDK-response reads.** 19 of them sit in repositories whose patch the repository-wide webhook gate blocks, and 2 in a repository with skipped unparseable files.
+- The 5 typed reads and the 1 webhook read are left to AI or review.
+
+`invoice.subscription` (14 reads): none is on an SDK response, so a [configured nested move](PROPERTY-MOVES.md) would not edit any of them either. The benchmark's generated adapter configures no moves. (An earlier version of this branch had a built-in `invoice.subscription` rule; it also fired zero times and was dropped in favor of the configured moves.)
+
+### Fixes
+
+| | Before | After |
+|---|---|---|
+| Affected repositories | 4 | 23 |
+| No patch generated | 4 (reason not recorded by the old benchmark) | 16 |
+| … blocked by the webhook incoming-version gate | | 9 |
+| … blocked by skipped files, unverified alias context or declared-type mutation | | 3 |
+| … stopped by the AI budget ledger or sandbox dependency preparation | | 4 |
+| Deterministic patches proposed | 0 | **6** (7 before the account-default fix below) |
+| AI patches proposed | 0 | 0: the AI budget ledger refused every call (plan open decision 9) |
+| Patches that bump the Stripe `apiVersion` in the same patch | 0 | 6 of 6 |
+| Repositories with runnable checks, among affected | 0 | 3 (`odota/core`, `alanagoyal/branded`, `pretzelai/stripe-no-webhooks`) |
+| Patches passing the repository's own checks | 0 | **0**, see below |
+| Repair attempts | 0 | 0 |
+| Patches that were wrong | 0 | **1 runtime-wrong** (fixed); **6 fail TypeScript typecheck** until the `stripe` package is upgraded |
+
+Why no patch reached the repositories' own checks:
+- `odota/core`: its lockfile has entries without registry integrity, which the sandbox refuses ("links and bundled records require a custom image").
+- `alanagoyal/branded`: dependency preparation ran out of space in the sandbox's 512 MB `/workspace` tmpfs (`ENOSPC`).
+- `pretzelai/stripe-no-webhooks`: a mutated `Stripe.Invoice` value keeps the declared-type gate on, and the repository's checks use `bun`, which the `node:22-alpine` image lacks.
+
+Every proposed patch was reviewed by hand:
+- **`horizon-ui/shadcn-nextjs-boilerplate` was wrong.** Its client passes `apiVersion: null`, so responses follow the account's default version. The moved reads would return `NaN` until the account is upgraded. Field moves now apply only when the same patch bumps a literal `apiVersion`, and this repository now gets no patch.
+- **The other six are correct at runtime when a subscription's items share one billing period.** All six are TypeScript projects on stripe-node 12–16. Type-checking the patched code against stripe@12.9.0 and stripe@16.12.0 types fails twice: `apiVersion` is typed as the package's own version literal, and `SubscriptionItem` has no `current_period_end`. They need the `stripe` package upgrade before they build (plan open decision 7).
+
+### Reproduce
+
+```sh
+npm run benchmark:stripe -- --root <dir with repos/, specs/, selected.json, needed-specs.json, split.json> \
+  --output <new-dir> --env .env --ai --validate
+npm run benchmark:stripe-score -- --results <new-dir>/results.json \
+  --labels docs/benchmarks/2026-10-14-stripe-labels.json
+```
+
+The benchmark attaches the pinned Stripe changelog pages in [`benchmarks/stripe-changelog/`](benchmarks/stripe-changelog/) to AI patches for the changes each repository hits.

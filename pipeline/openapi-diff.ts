@@ -4,9 +4,10 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
 import type { ProviderAdapter } from './providers.ts';
-import { isObject } from './specifications.ts';
+import { componentReference, isObject, resolvableComponentSchema } from './specifications.ts';
+import { isRemovedOperationChange } from './openapi-operations.ts';
 import { PipelineInputError } from './types.ts';
-import type { Removal, Finding } from './types.ts';
+import type { Removal, Finding, Location } from './types.ts';
 import {
   isHandledOperationRemoval,
   type OperationReplacementEvidence,
@@ -18,7 +19,9 @@ import {
 
 const execute = promisify(execFile);
 const DIFF_TIMEOUT_MS = 30_000;
-const MAX_DIFF_BYTES = 4 * 1024 * 1024;
+// Raw oasdiff output; real Stripe version pairs report ~100,000 entries (~85 MB) before filtering.
+const MAX_DIFF_BYTES = 256 * 1024 * 1024;
+const RESPONSE_ENUM_ADDITION = 'response-property-enum-value-added';
 const RESPONSE_REMOVALS = new Set([
   'response-required-property-removed',
   'response-optional-property-removed',
@@ -91,7 +94,14 @@ export function unmappedBreakingChanges(
   );
 }
 
-export async function compareOpenApi(before: object, after: object) {
+// Stripe can add values to open response enums without a version change
+// (https://docs.stripe.com/api/versioning#enums), so for Stripe they are not breaking on their own;
+// switchedEnumAdditions re-adds the ones the code switches over.
+export async function compareOpenApi(
+  before: object,
+  after: object,
+  options: { openResponseEnums?: boolean } = {},
+) {
   const directory = await mkdtemp(join(tmpdir(), 'refit-oasdiff-'));
   try {
     const base = join(directory, 'before.json');
@@ -118,15 +128,22 @@ export async function compareOpenApi(before: object, after: object) {
       )
     )
       throw new PipelineInputError('oasdiff returned an unsupported change report.');
+    // Informational entries are dropped unless they locate a removed field or operation.
+    const kept = (changes as Record<string, unknown>[]).filter(
+      (change) =>
+        !(options.openResponseEnums && change.id === RESPONSE_ENUM_ADDITION) &&
+        (Number(change.level) >= 2 ||
+          RESPONSE_REMOVALS.has(String(change.id)) ||
+          isRemovedOperationChange(change)),
+    );
     return {
       engine: 'oasdiff' as const,
       version,
-      changes: (changes as Record<string, unknown>[]).map((change): Record<string, unknown> => ({
+      changes: kept.map((change): Record<string, unknown> => ({
         ...change,
         ...responseRemovalLocation(change, before),
       })),
-      coverage:
-        'Breaking and non-breaking contract changes reported by oasdiff; levels 2 and 3 require breaking-change review. Documentation-only edits are not classified as code migrations. Mapping to application code remains bounded by the selected adapter and analyzer.',
+      coverage: `Breaking contract changes reported by oasdiff (levels 2 and 3, plus removed fields and operations); ${changes.length - kept.length} other entries are not listed${options.openResponseEnums ? ', including Stripe response enum additions, which block only where the code switches over the field' : ''}. Documentation-only edits are not classified as code migrations. Mapping to application code remains bounded by the selected adapter and analyzer.`,
     };
   } catch (cause) {
     if (cause instanceof PipelineInputError) throw cause;
@@ -223,4 +240,58 @@ export function adapterContract(document: Record<string, unknown>, provider: Pro
   }
   if (isObject(components.securitySchemes)) kept.securitySchemes = components.securitySchemes;
   return { ...document, paths, components: kept };
+}
+
+function enumValues(schemas: Record<string, unknown>, schema: string, property: string) {
+  const owner = resolvableComponentSchema(schemas, schema);
+  const definition = owner ? schemas[owner] : undefined;
+  let value =
+    isObject(definition) && isObject(definition.properties)
+      ? definition.properties[property]
+      : undefined;
+  const seen = new Set<string>();
+  const values = new Set<string>();
+  const pending = [value];
+  while (pending.length) {
+    value = pending.pop();
+    if (!isObject(value)) continue;
+    const referenced = componentReference(value.$ref);
+    if (referenced && !seen.has(referenced)) {
+      seen.add(referenced);
+      pending.push(schemas[referenced]);
+    }
+    for (const key of ['anyOf', 'oneOf'])
+      if (Array.isArray(value[key])) pending.push(...(value[key] as unknown[]));
+    if (Array.isArray(value.enum))
+      for (const entry of value.enum) if (typeof entry === 'string') values.add(entry);
+  }
+  return values;
+}
+
+// New response enum values on fields the code switches over or checks exhaustively.
+export function switchedEnumAdditions(
+  checks: (Location & { schema: string; property: string })[],
+  before: Record<string, unknown>,
+  after: Record<string, unknown>,
+) {
+  return checks.flatMap((check) => {
+    const old = enumValues(before, check.schema, check.property);
+    if (!old.size) return [];
+    const added = [...enumValues(after, check.schema, check.property)].filter(
+      (value) => !old.has(value),
+    );
+    return added.length
+      ? [
+          {
+            id: RESPONSE_ENUM_ADDITION,
+            level: 3,
+            text: `added ${added.map((value) => `\`${value}\``).join(', ')} to the \`${check.schema}.${check.property}\` enum, which ${check.file}:${check.line} checks exhaustively`,
+            responseSchema: check.schema,
+            property: check.property,
+            values: added,
+            usage: { file: check.file, line: check.line, column: check.column },
+          },
+        ]
+      : [];
+  });
 }

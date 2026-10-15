@@ -2,6 +2,7 @@ import ts from 'typescript-compiler';
 import { componentReference, isObject, resolvableComponentSchema } from './specifications.ts';
 import { PipelineInputError, type Finding, type Removal, type SourceEdit } from './types.ts';
 import type { stripeWebhookPayloads } from './stripe-webhook-payloads.ts';
+import { movedReadEdit } from './stripe-field-moves.ts';
 
 export interface StripeSubscriptionPeriodPolicy {
   priceId: string;
@@ -10,6 +11,7 @@ export interface StripeSubscriptionPeriodPolicy {
 }
 
 export const SUBSCRIPTION_PERIOD_RULE = 'stripe-subscription-periods-price-id';
+export const SUBSCRIPTION_PERIOD_ITEMS_RULE = 'stripe-subscription-periods-items';
 const BEFORE_VERSION = '2025-02-24.acacia';
 const AFTER_VERSION = '2025-03-31.basil';
 const MAX_PRICE_ID_LENGTH = 256;
@@ -342,4 +344,23 @@ export function subscriptionPeriodEdit(options: {
       findings: selected,
     };
   }
+}
+
+// SDK responses and Stripe.Subscription values follow the outgoing apiVersion, which the same patch
+// bumps; signed webhook payloads keep their endpoint's version and stay with the price-ID policy.
+// When items share one billing period this equals the old subscription-level value; otherwise it
+// is the widest period (earliest start, latest end).
+export function subscriptionPeriodReadEdit(node: ts.Node, file: string, changeId: string) {
+  if (!ts.isPropertyAccessExpression(node)) return;
+  const field = node.name.text;
+  if (field !== PERIOD_FIELDS[0] && field !== PERIOD_FIELDS[1]) return;
+  const aggregate = field === PERIOD_FIELDS[0] ? 'min' : 'max';
+  return movedReadEdit(
+    node,
+    file,
+    changeId,
+    SUBSCRIPTION_PERIOD_ITEMS_RULE,
+    (subscription) =>
+      `Math.${aggregate}(...${subscription}.items.data.map((item) => item.${field}))`,
+  );
 }

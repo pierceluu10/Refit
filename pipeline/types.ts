@@ -40,7 +40,10 @@ export interface SourceEdit {
   end: number;
   replacement: string;
   changeId: string;
-  rule?: 'stripe-subscription-periods-price-id';
+  rule?:
+    | 'stripe-subscription-periods-price-id'
+    | 'stripe-subscription-periods-items'
+    | 'stripe-api-version';
 }
 
 export interface Repository {
