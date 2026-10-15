@@ -1041,19 +1041,21 @@ export function analyzeRepository(
       return sourceEvidence(expression.left, seen);
     return stripeTypes?.expressionSchema(expression) ? { kind: 'declared-type' } : undefined;
   }
-  // A read already ending in a configured move's new path uses the new location.
-  function readsMovedPath(node: ts.Node, change: Removal) {
-    const move = propertyMoves.find(
-      (candidate) => candidate.schema === change.schema && candidate.removed === change.property,
-    );
-    if (!move) return false;
-    const path = move.accessor.split(/\??\./);
-    let current: ts.Node = node;
-    for (const segment of path.reverse()) {
-      if (!ts.isPropertyAccessExpression(current) || current.name.text !== segment) return false;
-      current = current.expression;
-    }
-    return true;
+  // Reads ending two or more segments into a configured move's new path use the new location,
+  // even where other removals share those segment names.
+  function readsMovedPath(node: ts.Node) {
+    return propertyMoves.some((move) => {
+      const path = move.accessor.split(/\??\./);
+      return path.slice(1).some((_, index) => {
+        let current: ts.Node = node;
+        for (const segment of path.slice(0, index + 2).reverse()) {
+          if (!ts.isPropertyAccessExpression(current) || current.name.text !== segment)
+            return false;
+          current = current.expression;
+        }
+        return true;
+      });
+    });
   }
   function record(node: ts.Node, receiver: ts.Expression, property: string | undefined) {
     if (
@@ -1064,6 +1066,7 @@ export function analyzeRepository(
       return;
     // SDK resources are not response fields, even when their names match a removal.
     if (sdkAccess(receiver)) return;
+    if (readsMovedPath(node)) return;
     const schema = schemaForExpression(receiver);
     const tracked = schema !== undefined;
     const webhook = webhooks?.origin(receiver);
@@ -1082,7 +1085,6 @@ export function analyzeRepository(
       // identifiable, every same-named read stays flagged.
       if (!tracked && stripeTypes && stripeFiles.size && !stripeFiles.has(node.getSourceFile()))
         continue;
-      if (readsMovedPath(node, change)) continue;
       const directCall = (expression: ts.Expression): ts.CallExpression | undefined => {
         if (ts.isAwaitExpression(expression) && ts.isCallExpression(expression.expression))
           return expression.expression;

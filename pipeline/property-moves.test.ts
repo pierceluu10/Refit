@@ -23,7 +23,8 @@ afterEach(async () => {
   );
 });
 
-// Shapes mirror Stripe's published 2025-02-24.acacia and 2025-04-30.basil invoice schemas.
+// Shapes mirror Stripe's published 2025-02-24.acacia and 2025-04-30.basil schemas, including
+// basil's other removals named like segments of the new path.
 function contracts() {
   const subscription = { type: 'object', properties: { id: { type: 'string' } } };
   const before = {
@@ -41,7 +42,16 @@ function contracts() {
               description: 'The subscription that this invoice was prepared for, if any.',
               nullable: true,
             },
+            subscription_details: {
+              anyOf: [{ $ref: '#/components/schemas/subscription_details_data' }],
+              nullable: true,
+            },
           },
+        },
+        subscription_details_data: { type: 'object', properties: { metadata: { type: 'object' } } },
+        invoiceitem: {
+          type: 'object',
+          properties: { id: { type: 'string' }, subscription: { ...EXPANDABLE_SUBSCRIPTION } },
         },
       },
     },
@@ -62,6 +72,8 @@ function contracts() {
             },
           },
         },
+        subscription_details_data: { type: 'object', properties: { metadata: { type: 'object' } } },
+        invoiceitem: { type: 'object', properties: { id: { type: 'string' } } },
         invoice_parent: {
           type: 'object',
           properties: {
