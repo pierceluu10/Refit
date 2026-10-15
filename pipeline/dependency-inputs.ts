@@ -11,12 +11,19 @@ import { PipelineInputError } from './types.ts';
 import { PNPM_LOCKFILE } from './pnpm-lock.ts';
 import { PNPM_WORKSPACE, validatePnpmInputs } from './pnpm-inputs.ts';
 import { YARN_LOCKFILE } from './yarn-lock.ts';
-import { validateYarnInputs, yarnWorkspacePatterns } from './yarn-inputs.ts';
+import {
+  validateBerryInputs,
+  validateYarnInputs,
+  YARN_RC,
+  yarnWorkspacePatterns,
+} from './yarn-inputs.ts';
+import { CLASSIC_HEADER } from './yarn-lock.ts';
 
 export interface PreparationIdentity {
   manager: 'npm' | 'pnpm' | 'yarn';
   managerVersion?: string;
   managerIntegrity?: string;
+  managerBundleSha512?: string;
   packageHash: string;
   lockHash: string;
   packages: number;
@@ -51,6 +58,21 @@ export async function readPreparationInputs(
   const manifest = parseObject(packageContent, 'package.json');
   if (yarn) {
     const lockContent = await readCommittedFile(snapshot, YARN_LOCKFILE, MAX_LOCK_BYTES);
+    if (!CLASSIC_HEADER.test(lockContent))
+      return {
+        files: new Map([
+          ['package.json', packageContent],
+          [YARN_LOCKFILE, lockContent],
+        ]),
+        workspaceContents: new Map<string, string>(),
+        inputs: validateBerryInputs(
+          packageContent,
+          lockContent,
+          paths.includes(YARN_RC)
+            ? await readCommittedFile(snapshot, YARN_RC, MAX_PACKAGE_BYTES)
+            : undefined,
+        ) as PreparationIdentity,
+      };
     const workspaceContents = new Map<string, string>();
     for (const directory of npmWorkspaceDirectories(
       { workspaces: yarnWorkspacePatterns(manifest) },
