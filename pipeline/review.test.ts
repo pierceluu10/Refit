@@ -68,7 +68,7 @@ it('exports regression evidence without implying that checks passed or a PR exis
   );
 });
 
-it('writes short labeled lines on what changed, why and the evidence, then the diff', async () => {
+it('follows the PR template: five sections, single-sentence bullets and no emoji', async () => {
   const value = await report();
   value.changes.unshift({
     id: 'unrelated',
@@ -76,19 +76,24 @@ it('writes short labeled lines on what changed, why and the evidence, then the d
     property: 'subscription',
     pointer: '/components/schemas/invoice/properties/subscription',
   });
-  const body = createReviewArtifacts(value).files['pull-request.md'];
-  const [summary, ...rest] = body.split('\n\n');
-  expect(summary).toMatch(
-    /^- \*\*What:\*\* A deterministic Refit rule \(no AI\) updated \d+ confirmed usages? in 1 file/,
-  );
-  expect(summary).toContain('- **Why:** Stripe API 2022-11-15 removes `payment_intent.charges`.');
-  expect(summary).toContain('- **Evidence:** ❌ **Validation did not pass (regression).**');
-  expect(summary.split('\n')).toHaveLength(4);
-  expect(rest[0]).toBe('#### Changes');
+  const { files, manifest } = createReviewArtifacts(value);
+  const body = files['pull-request.md'];
+  expect(manifest.title).toBe('fix(stripe): restore payment history after charges removal');
+  expect(manifest.title.length).toBeLessThanOrEqual(70);
+  expect(body.split('\n').filter((entry) => entry.startsWith('## '))).toEqual([
+    '## Overview',
+    '## API Impact & Spec Changes',
+    '## Key Changes',
+    '## Automated Verification Gates',
+    '## Related Telemetry',
+  ]);
+  expect(body).toContain('A deterministic Refit rule migrates');
+  expect(body).toContain('- Breaking Changes: Removes response fields `payment_intent.charges`');
+  expect(body).toContain('- `billing.ts`: Migrates reads of `payment_intent.charges`');
+  expect(body).toContain('- Test Suite Output: **Validation did not pass (regression).**');
+  expect(body).toContain('- Security Scans: Not run.');
   expect(body).not.toContain('invoice.subscription');
-  expect(body).not.toContain('<details>');
-  expect(rest.join('\n\n')).toContain('`billing.ts:7` in `chargeHistory()`');
-  expect(rest.join('\n\n')).toContain('```diff');
+  expect(body).not.toMatch(/\p{Extended_Pictographic}/u);
 });
 
 async function renameReport(evidence?: Record<string, unknown>): Promise<Report> {
@@ -173,12 +178,10 @@ function visibleBody(value: Report) {
 
 it('shows the exact changed lines and the configured rule behind a deterministic rename', async () => {
   const visible = visibleBody(await renameReport());
-  expect(visible).toContain(': `Model.owned_by` → `Model.owner_name`.');
-  expect(visible).toContain('`models.js:5` in `getModelOwner()`');
-  expect(visible).toContain('-  return model.owned_by.toLowerCase();');
-  expect(visible).toContain('+  return model.owner_name.toLowerCase();');
-  expect(visible).toContain('An operator-configured rename rule maps `Model.owned_by`');
-  expect(visible).toContain('`npm run test:after` on the migrated code (offline Docker)');
+  expect(visible).toContain('Replaces `Model.owned_by` → `Model.owner_name`.');
+  expect(visible).toContain('- `models.js`: Migrates reads of `Model.owned_by`');
+  expect(visible).toContain('- Review: An operator-configured rename rule maps `Model.owned_by`');
+  expect(visible).toContain('`npm run test:after` on the migrated code in offline Docker.');
 });
 
 it('warns when only the name and type support an AI replacement', async () => {
@@ -188,9 +191,9 @@ it('warns when only the name and type support an AI replacement', async () => {
     }),
   );
   expect(visible).toContain(
-    'same type (string). ⚠️ Nothing documents it as the replacement for `owned_by`',
+    'same type (string). Nothing documents it as the replacement for `owned_by`',
   );
-  expect(visible).toContain('- **What:** AI (`test-model`), checked by Refit, updated');
+  expect(visible).toContain('AI (`test-model`), checked by Refit, migrates');
 });
 
 it('quotes the contract description that documents an AI replacement', async () => {

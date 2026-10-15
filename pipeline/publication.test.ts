@@ -290,10 +290,10 @@ it('publishes a configured endpoint replacement as a readable draft through the 
   const value = await endpointReport();
   expect(await publishDraft(value, OPTIONS)).toMatchObject({ status: 'created', draft: true });
   const request = remote.calls.find((call) => call.method === 'POST' && call.path === '/pulls')!;
-  expect(request.body.title).toBe(
-    'Replace retired catalog-endpoint-example items.retrieveLegacy calls',
+  expect(request.body.title).toBe('fix(catalog): replace retired items.retrieveLegacy calls');
+  expect(request.body.body).toContain(
+    'Retires `items.retrieveLegacy` in favor of `items.retrieve`.',
   );
-  expect(request.body.body).toContain('`items.retrieveLegacy` → `items.retrieve`');
   expect(remote.calls.find((call) => call.path === '/git/trees')?.body.tree).toEqual(
     value.publicationFiles.map((file) => ({ ...file, type: 'blob' })),
   );
@@ -312,11 +312,9 @@ it('publishes request-field migrations with readable function, body field and en
   const value = await requestReport();
   expect(await publishDraft(value, OPTIONS)).toMatchObject({ status: 'created', draft: true });
   const request = remote.calls.find((call) => call.method === 'POST' && call.path === '/pulls')!;
-  expect(request.body.title).toBe(
-    'Update catalog-request-example items.create requests after legacy_name removal',
-  );
+  expect(request.body.title).toBe('fix(catalog): update items.create after legacy_name removal');
   expect(request.body.body).toContain(
-    'Request fields: `items.create` `legacy_name` → `display_name`.',
+    'Renames request field `legacy_name` to `display_name` in `items.create`.',
   );
 });
 
@@ -368,9 +366,9 @@ it('publishes separate named integrations against the same base without sharing 
     branches.push(result.branch);
     const request = remote.calls.find((call) => call.method === 'POST' && call.path === '/pulls')!;
     expect(request.body.title).toBe(
-      `[${integration}] Fix Stripe payment history after PaymentIntent.charges removal`,
+      `fix(${integration}): restore payment history after charges removal`,
     );
-    expect(request.body.body).toContain(`Covers the \`${integration}\` integration only.`);
+    expect(request.body.body).toContain(`, integration \`${integration}\`.`);
     expect(request.body.body).toContain(
       `<!-- refit-migration:${migrationIdentity(value, REVISION, integration)} -->`,
     );
