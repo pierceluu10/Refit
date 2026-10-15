@@ -3,9 +3,10 @@ import { isObject } from './specifications.ts';
 import type { DependencyDeclaration, LockedDependency } from './types.ts';
 import { PNPM_LOCKFILE, resolvePnpmDependency } from './pnpm-lock.ts';
 import { EXACT_PACKAGE_VERSION } from './npm-lock.ts';
+import { YARN_LOCKFILE, resolveYarnDependency } from './yarn-lock.ts';
 
 export const NPM_LOCKFILES = ['npm-shrinkwrap.json', 'package-lock.json'] as const;
-export const DEPENDENCY_LOCKFILES = [...NPM_LOCKFILES, PNPM_LOCKFILE] as const;
+export const DEPENDENCY_LOCKFILES = [...NPM_LOCKFILES, PNPM_LOCKFILE, YARN_LOCKFILE] as const;
 const SUPPORTED_LOCK_VERSIONS = new Set([2, 3]);
 
 export interface DependencyLockfile {
@@ -19,9 +20,12 @@ export function resolveLockedDependency(
   lockfiles: DependencyLockfile[],
 ): LockedDependency {
   const pnpm = lockfiles.find((lock) => lock.file === PNPM_LOCKFILE);
+  const yarn = lockfiles.find((lock) => lock.file === YARN_LOCKFILE);
   if (pnpm && lockfiles.length === 1)
     return resolvePnpmDependency(dependency, packageName, pnpm.content);
-  if (pnpm)
+  if (yarn && lockfiles.length === 1)
+    return resolveYarnDependency(dependency, packageName, yarn.content);
+  if (pnpm || yarn)
     return {
       status: 'unknown',
       file: null,

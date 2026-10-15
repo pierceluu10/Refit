@@ -1,3 +1,4 @@
+import { YARN_LOCKFILE, parseYarnLock } from './yarn-lock.ts';
 import { readdir, readFile, realpath, stat } from 'node:fs/promises';
 import { join, relative, resolve } from 'node:path';
 import { configurationReferences, SOURCE_CONFIGURATION_NAMES } from './source-configurations.ts';
@@ -93,7 +94,9 @@ export async function readRepository(
         const lockfile =
           name === PNPM_LOCKFILE
             ? parsePnpmLock(content).document
-            : parseDocumentObject(content, name);
+            : name === YARN_LOCKFILE
+              ? parseYarnLock(content)
+              : parseDocumentObject(content, name);
         lockfiles.push({ file: name, content: lockfile });
         repository.lockfiles.push({
           file: name,
