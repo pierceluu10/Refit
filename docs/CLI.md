@@ -1,5 +1,9 @@
 # Refit local agent
 
+Refit follows supported class-held SDK clients through field initializers, direct constructor assignments and lexical instance/arrow methods. Unstable class origins stop automation before AI, checks or publication. See [class-client support](CLASS-CLIENTS.md).
+
+`scan` and `replay` use a readable summary in terminals and JSON when redirected. Use `--human` or `--json` to select explicitly. `--output <new-report.json>` always saves the complete JSON report; add `--human` to also print a summary. Scan summaries explicitly identify that checks have not run and repository files remain unchanged.
+
 The Stripe scanner maps supported single-object SDK responses from the supplied contract. Explicit Stripe types provide review hints; they cannot authorize a migration. Unparseable skipped files also block automation. Full contract diff output describes its adapter-selected scope. Historical benchmark scores apply only to their recorded commits.
 
 Shared clients support direct relative named/default ESM imports and static CommonJS requires/exports, including Stripe callable initialization. Mutation and source-version checks follow the same module graph. See [client module forms and boundaries](CLIENT-MODULES.md).

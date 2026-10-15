@@ -7,6 +7,7 @@ import { guardedHistoryEdit } from './history-migration.ts';
 import { createSourceImportResolver } from './source-imports.ts';
 import { sourceBindings } from './source-modules.ts';
 import { sdkConstructors } from './sdk-constructors.ts';
+import { classClients } from './class-clients.ts';
 import { stripeWebhookPayloads } from './stripe-webhook-payloads.ts';
 import { componentReference, isObject, resolvableComponentSchema } from './specifications.ts';
 import type { OperationReplacement } from './provider-operation-replacements.ts';
@@ -234,15 +235,20 @@ export function analyzeRepository(
     if (found) set.add(found);
   };
   const sdk = sdkConstructors({ nodes, checker, provider, symbol, external: resolution.external });
+  let classBindings: ReturnType<typeof classClients> | undefined;
+  const clientBinding = (node: ts.Expression) =>
+    classBindings?.reference(node)?.binding ?? (ts.isIdentifier(node) ? symbol(node) : undefined);
   imports.push(...sdk.imports.map(location));
   function sdkAccess(expression: ts.Expression) {
     const properties: (ts.PropertyAccessExpression & { name: ts.Identifier })[] = [];
     let current = expression;
     while (ts.isPropertyAccessExpression(current) && ts.isIdentifier(current.name)) {
+      if (classBindings?.reference(current)) break;
       properties.push(current as ts.PropertyAccessExpression & { name: ts.Identifier });
       current = current.expression;
     }
-    if (!ts.isIdentifier(current) || !contains(clients, current)) return;
+    const binding = clientBinding(current);
+    if (!binding || !clients.has(binding)) return;
     return { client: current, properties: properties.reverse() };
   }
   function sdkCall(node: ts.Node) {
@@ -258,11 +264,12 @@ export function analyzeRepository(
     return {
       resource,
       method,
-      expression: `${access.client.text}.${resource}.${method}`,
+      expression: `${access.client.getText()}.${resource}.${method}`,
       client: access.client,
       start: access.properties[0].name.getStart(),
       optional:
         Boolean(node.questionDotToken) ||
+        (ts.isPropertyAccessExpression(access.client) && Boolean(access.client.questionDotToken)) ||
         access.properties.some((property) => Boolean(property.questionDotToken)),
     };
   }
@@ -422,6 +429,11 @@ export function analyzeRepository(
     }
     for (const [node, binding] of modules.inlineDefaults)
       if (sdk.creation(node.expression)) clients.add(binding);
+  }
+  classBindings = classClients({ nodes, creation: sdk.creation, clients, symbol, checker });
+  for (const declaration of declarations) {
+    const binding = clientBinding(declaration.initializer);
+    if (binding && clients.has(binding)) add(clients, declaration.name);
   }
   webhooks =
     provider.packageName === 'stripe'
@@ -641,9 +653,13 @@ export function analyzeRepository(
     );
   };
   const initialUnsafe = new Set(escapingClients);
+  for (const binding of classBindings.unsafe) initialUnsafe.add(binding);
   for (const binding of webhooks?.unsafeEvents ?? []) initialUnsafe.add(binding);
   const mutationNodes = nodes.filter(
-    (node) => !modules.safeNodes.has(node) && !webhooks?.initializations.has(node),
+    (node) =>
+      !modules.safeNodes.has(node) &&
+      !webhooks?.initializations.has(node) &&
+      !classBindings!.initializations.has(node),
   );
   const unsafeConstructors = unsafeBindings(
     mutationNodes,
@@ -655,6 +671,9 @@ export function analyzeRepository(
   for (const [node, binding] of [
     ...declarations.map((node) => [node.initializer, symbol(node.name)] as const),
     ...[...modules.inlineDefaults].map(([node, binding]) => [node.expression, binding] as const),
+    ...[...classBindings.fields.values()].map(
+      (field) => [field.initializer, field.binding] as const,
+    ),
   ]) {
     const creation = sdk.creation(node);
     if (
@@ -696,6 +715,7 @@ export function analyzeRepository(
     readOnlyCall,
     arrayIteration,
     primitiveValue,
+    classBindings,
   );
   for (const [response, wrapper] of wrappedResponses) if (unsafe.has(wrapper)) unsafe.add(response);
   for (const node of nodes) {
@@ -708,7 +728,7 @@ export function analyzeRepository(
       const edit = requestPropertyEdit(node, rule);
       if (edit.status === 'unaffected') continue;
       const confirmed =
-        edit.status === 'editable' && !unsafe.has(symbol(call.client)!) && !call.optional;
+        edit.status === 'editable' && !unsafe.has(clientBinding(call.client)!) && !call.optional;
       findings.push({
         ...location(node),
         changeId: rule.id,
@@ -741,7 +761,7 @@ export function analyzeRepository(
     if (!replacement) continue;
     const method = node.expression;
     const call = sdkCall(node)!;
-    const confirmed = !unsafe.has(symbol(call.client)!) && !call.optional;
+    const confirmed = !unsafe.has(clientBinding(call.client)!) && !call.optional;
     findings.push({
       ...location(node),
       changeId: replacement.id,
@@ -804,6 +824,7 @@ export function analyzeRepository(
         change,
         clientExport: modules.clientExport,
         resolveImport: resolution.resolve,
+        classClient: (node) => classBindings!.reference(node)?.binding,
       });
     if (guarded) {
       if (!edits.some((edit) => edit.file === guarded.file)) edits.push(guarded);
@@ -855,16 +876,19 @@ export function analyzeRepository(
       changeId: change.id,
     });
   }
-  function sourceKind(
+  function sourceEvidence(
     expression: ts.Expression,
     seen = new Set<ts.Symbol>(),
-  ): 'sdk' | 'webhook' | 'declared-type' | undefined {
-    if (webhooks?.origin(expression)) return 'webhook';
+  ):
+    | { kind: 'sdk' | 'unmapped-sdk'; call: ts.CallExpression }
+    | { kind: 'webhook' | 'declared-type' }
+    | undefined {
+    if (webhooks?.origin(expression)) return { kind: 'webhook' };
     if (ts.isIdentifier(expression)) {
       const binding = symbol(expression);
       if (!binding || seen.has(binding)) return;
       const origin = origins.get(binding);
-      if (origin && responseCall(origin)) return 'sdk';
+      if (origin && responseCall(origin)) return { kind: 'sdk', call: origin };
       const next = new Set([...seen, binding]);
       let declaration = binding.valueDeclaration;
       while (declaration && ts.isBindingElement(declaration))
@@ -876,7 +900,7 @@ export function analyzeRepository(
           ts.isForOfStatement(declaration.parent.parent)
             ? declaration.parent.parent.expression
             : undefined);
-        const kind = source && sourceKind(source, next);
+        const kind = source && sourceEvidence(source, next);
         if (kind) return kind;
       }
       if (
@@ -885,22 +909,23 @@ export function analyzeRepository(
         ts.isCallExpression(declaration.parent.parent)
       ) {
         const iteration = arrayIteration(declaration.parent.parent);
-        if (iteration) return sourceKind(iteration.source, next);
+        if (iteration) return sourceEvidence(iteration.source, next);
       }
       return stripeTypes?.typed.has(binding) || stripeTypes?.typedArrays.has(binding)
-        ? 'declared-type'
+        ? { kind: 'declared-type' }
         : undefined;
     }
     if (ts.isAwaitExpression(expression)) {
       if (ts.isCallExpression(expression.expression)) {
         const call = expression.expression;
-        if (
-          responseCall(call) ||
-          (ts.isIdentifier(call.expression) && wrappers.has(symbol(call.expression)!))
-        )
-          return 'sdk';
+        if (sdkCall(call)) return { kind: responseCall(call) ? 'sdk' : 'unmapped-sdk', call };
+        if (ts.isIdentifier(call.expression) && wrappers.has(symbol(call.expression)!))
+          return {
+            kind: 'sdk',
+            call: responseCall(call) ? call : wrappers.get(symbol(call.expression)!)!,
+          };
       }
-      return sourceKind(expression.expression, seen);
+      return sourceEvidence(expression.expression, seen);
     }
     if (
       ts.isParenthesizedExpression(expression) ||
@@ -911,7 +936,7 @@ export function analyzeRepository(
       ts.isTypeAssertionExpression(expression) ||
       ts.isSatisfiesExpression(expression)
     ) {
-      const kind = sourceKind(expression.expression, seen);
+      const kind = sourceEvidence(expression.expression, seen);
       if (kind) return kind;
     }
     if (
@@ -921,8 +946,8 @@ export function analyzeRepository(
       ts.isArrayLiteralExpression(expression.right) &&
       !expression.right.elements.length
     )
-      return sourceKind(expression.left, seen);
-    return stripeTypes?.expressionSchema(expression) ? 'declared-type' : undefined;
+      return sourceEvidence(expression.left, seen);
+    return stripeTypes?.expressionSchema(expression) ? { kind: 'declared-type' } : undefined;
   }
   function record(node: ts.Node, receiver: ts.Expression, property: string | undefined) {
     if (
@@ -936,7 +961,13 @@ export function analyzeRepository(
     const schema = schemaForExpression(receiver);
     const tracked = schema !== undefined;
     const webhook = webhooks?.origin(receiver);
-    const declaredType = sourceKind(receiver) === 'declared-type';
+    const provenance = sourceEvidence(receiver);
+    const declaredType =
+      provenance?.kind === 'declared-type' ||
+      (provenance?.kind === 'unmapped-sdk' && Boolean(stripeTypes?.expressionSchema(receiver)));
+    const sourceClient =
+      provenance && 'call' in provenance ? sdkCall(provenance.call)?.client : undefined;
+    const classClient = sourceClient && classBindings!.client(sourceClient);
     for (const change of changes) {
       if (tracked && change.schema !== schema) continue;
       if (property !== undefined && change.property !== property) continue;
@@ -964,13 +995,15 @@ export function analyzeRepository(
       const responseSymbol = responseBinding(receiver);
       const uncertainMutation =
         (responseSymbol !== undefined && unsafe.has(responseSymbol)) ||
-        (immediateSdk && (immediateSdk.optional || unsafe.has(symbol(immediateSdk.client)!)));
+        (immediateSdk &&
+          (immediateSdk.optional || unsafe.has(clientBinding(immediateSdk.client)!)));
       const confirmed = Boolean(
         tracked &&
         !uncertainMutation &&
         property !== undefined &&
         change.schema === schema &&
         (!webhook || webhook.schema !== undefined) &&
+        provenance?.kind !== 'unmapped-sdk' &&
         !declaredType,
       );
       if (confirmed) propose(node, receiver, change);
@@ -981,6 +1014,11 @@ export function analyzeRepository(
         expression: property === undefined ? '[computed property]' : `.${property}`,
         confidence: confirmed ? 'confirmed' : 'review',
         ...(declaredType ? { declaredType: { schema } } : {}),
+        ...(classClient &&
+        (unsafe.has(classClient.binding) ||
+          (provenance && 'call' in provenance && sdkCall(provenance.call)?.optional))
+          ? { classClient: { origin: location(classClient.origin), stability: 'review' as const } }
+          : {}),
         ...(webhook
           ? {
               webhook: {
@@ -1063,9 +1101,10 @@ export function analyzeRepository(
       clientBinding: (node) =>
         ts.isVariableDeclaration(node.parent) && ts.isIdentifier(node.parent.name)
           ? symbol(node.parent.name)
-          : ts.isExportAssignment(node.parent)
-            ? modules.inlineDefaults.get(node.parent)
-            : undefined,
+          : (classBindings!.creations.get(node) ??
+            (ts.isExportAssignment(node.parent)
+              ? modules.inlineDefaults.get(node.parent)
+              : undefined)),
       sdkCall: (node) => {
         const call = sdkCall(node);
         return provider.packageName === 'stripe' && call?.resource === 'webhooks'
@@ -1075,6 +1114,7 @@ export function analyzeRepository(
       symbol,
       canonical,
       location,
+      references: classBindings,
     }),
     findings,
     sourceWarnings: resolution.warnings,

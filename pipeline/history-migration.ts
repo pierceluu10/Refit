@@ -18,6 +18,7 @@ export function guardedHistoryEdit(options: {
   change: Removal;
   clientExport: (binding: ts.Symbol) => ClientExport | undefined;
   resolveImport: (name: string, containingFile: string) => string | undefined;
+  classClient?: (node: ts.Expression) => ts.Symbol | undefined;
 }): SourceEdit | undefined {
   const { node, receiver, origin, checker, symbol, clients, locations, change } = options;
   const declaration = symbol(receiver)?.valueDeclaration;
@@ -33,7 +34,11 @@ export function guardedHistoryEdit(options: {
   const body = first.parent;
   if (
     !ts.isBlock(body) ||
-    !ts.isFunctionDeclaration(body.parent) ||
+    !(
+      ts.isFunctionDeclaration(body.parent) ||
+      ts.isMethodDeclaration(body.parent) ||
+      (ts.isArrowFunction(body.parent) && ts.isPropertyDeclaration(body.parent.parent))
+    ) ||
     !body.parent.modifiers?.some((modifier) => modifier.kind === ts.SyntaxKind.AsyncKeyword) ||
     body.statements.length !== 3 ||
     body.statements[0] !== first
@@ -85,20 +90,29 @@ export function guardedHistoryEdit(options: {
   )
     return;
   const clientNode = origin.expression.expression.expression;
-  const client = symbol(clientNode);
+  const classBinding =
+    ts.isMethodDeclaration(body.parent) || ts.isArrowFunction(body.parent)
+      ? options.classClient?.(clientNode)
+      : undefined;
+  const client = classBinding ?? symbol(clientNode);
   const exported = client && options.clientExport(client);
-  if (!client || !clients.has(client) || !exported) return;
+  if (!client || !clients.has(client) || (!classBinding && !exported)) return;
   const source = node.getSourceFile();
   const file = locations.get(source.fileName)!;
-  const target = locations.get(exported.file)!;
-  if (file === target) return;
+  const target = exported ? locations.get(exported.file)! : undefined;
+  if (!classBinding && file === target) return;
   const occupied = new Set(
     checker
       .getSymbolsInScope(node, ts.SymbolFlags.Value | ts.SymbolFlags.Alias)
       .map((entry) => entry.name),
   );
-  if ([CLIENT_ALIAS, HISTORY_BINDING, CHARGE_BINDING].some((name) => occupied.has(name))) return;
-  let modulePath = posix.relative(posix.dirname(file), target);
+  if (
+    [HISTORY_BINDING, CHARGE_BINDING, ...(classBinding ? [] : [CLIENT_ALIAS])].some((name) =>
+      occupied.has(name),
+    )
+  )
+    return;
+  let modulePath = target ? posix.relative(posix.dirname(file), target) : '';
   if (!modulePath.startsWith('.')) modulePath = `./${modulePath}`;
   // Follow the repository's import extension convention rather than requiring TS runtime imports.
   const importDeclaration = source.statements.find(
@@ -121,7 +135,7 @@ export function guardedHistoryEdit(options: {
   const indentation = source.text.slice(lineStart, guard.getStart()).match(/^\s*/)?.[0] ?? '';
   const replacement = [
     `const ${HISTORY_BINDING} = [];`,
-    `for await (const ${CHARGE_BINDING} of ${CLIENT_ALIAS}.charges.list({ payment_intent: ${receiver.text}.id })) {`,
+    `for await (const ${CHARGE_BINDING} of ${classBinding ? clientNode.getText() : CLIENT_ALIAS}.charges.list({ payment_intent: ${receiver.text}.id })) {`,
     `  ${HISTORY_BINDING}.push(${CHARGE_BINDING});`,
     '}',
     `return ${HISTORY_BINDING};`,
@@ -129,11 +143,13 @@ export function guardedHistoryEdit(options: {
   // One whole-file edit keeps the added import and guarded replacement atomic.
   const content =
     source.text.slice(0, guard.getStart()) + replacement + source.text.slice(returned.getEnd());
+  if (classBinding)
+    return { file, start: 0, end: source.text.length, replacement: content, changeId: change.id };
   const insertion = importDeclaration?.getStart() ?? body.parent.getStart();
   const clientImport =
-    exported.kind === 'esm'
-      ? `import ${exported.name ? `{ ${exported.name} as ${CLIENT_ALIAS} }` : CLIENT_ALIAS} from ${JSON.stringify(modulePath)};`
-      : `const ${CLIENT_ALIAS} = require(${JSON.stringify(modulePath)})${exported.name ? `.${exported.name}` : ''};`;
+    exported!.kind === 'esm'
+      ? `import ${exported!.name ? `{ ${exported!.name} as ${CLIENT_ALIAS} }` : CLIENT_ALIAS} from ${JSON.stringify(modulePath)};`
+      : `const ${CLIENT_ALIAS} = require(${JSON.stringify(modulePath)})${exported!.name ? `.${exported!.name}` : ''};`;
   const updated = content.slice(0, insertion) + clientImport + newline + content.slice(insertion);
   return { file, start: 0, end: source.text.length, replacement: updated, changeId: change.id };
 }

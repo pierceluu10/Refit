@@ -1,5 +1,5 @@
 import { execFile } from 'node:child_process';
-import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { promisify } from 'node:util';
@@ -51,6 +51,9 @@ it('packs only CLI runtime sources, fixtures, docs and exact runtime dependencie
   const root = await directory();
   const result = await pack(root);
   expect(result.files).toContain('bin/refit.mjs');
+  expect(result.files).toContain('LICENSE');
+  expect(result.files).toContain('pipeline/class-clients.ts');
+  expect(result.files).toContain('docs/CLASS-CLIENTS.md');
   expect(result.files).toContain('pipeline/workflow.ts');
   expect(result.files).toContain('pipeline/github-app.ts');
   expect(result.files).toContain('public/refit-agent-avatar.png');
@@ -115,6 +118,8 @@ it('packs only CLI runtime sources, fixtures, docs and exact runtime dependencie
   expect(metadata.bin.refit).toBe('bin/refit.mjs');
   expect(metadata.private).toBe(true);
   expect(metadata.scripts).toBeUndefined();
+  const readme = await execute('tar', ['-xOf', result.archive, 'package/README.md']);
+  expect(readme.stdout).toBe(await readFile(resolve('README.md'), 'utf8'));
   await expect(pack(root)).rejects.toMatchObject({
     code: 1,
     stderr: expect.stringContaining('EEXIST'),

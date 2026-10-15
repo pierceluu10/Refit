@@ -57,6 +57,12 @@ Configured aliases add **34 traced Stripe calls across nine repositories**. Eigh
 
 These counts measure call tracing, not confirmed breaking reads, recall/precision against ground truth, successful migrations or validated PRs. The [100-repository Stripe migration benchmark](STRIPE-BENCHMARK.md) has not been rerun for this slice. See [supported alias resolution](SOURCE-ALIASES.md).
 
+## Class-client rerun (0.19)
+
+The same 45 clean pinned repository commits were read with main 0.18 and the class-client implementation. Their candidate count is 354, rather than the older reports' 352. Structural call tracing improves from **110/354 (31%) to 249/354 (70%)**: OpenAI 38→172, Anthropic 27→32 and Stripe unchanged at 45/106. Of the 41 repositories with candidates, zero-traced repositories decrease from 18 to 15. One repository contributes 103 of the 139 newly traced calls. Both runs complete all 45 scans.
+
+These counts include class clients that remain review-only when their stability is uncertain. They do not establish migration success or ground-truth recall/precision. No public application was installed or executed. See [the measured comparison and complete after report](benchmarks/2026-10-14-class-client-coverage.md) and [class-client boundaries](CLASS-CLIENTS.md).
+
 ## Limits of this benchmark
 
 The separate [webhook field scan](benchmarks/2026-10-14-stripe-webhook-coverage.md) found no traced historical subscription-period or Invoice.subscription webhook reads in the 15 pinned Stripe repositories, with one parse refusal. It exposed and removed three same-name Checkout Session review matches; those were not affected Invoice reads. This is not a change to the call-tracing table above or a migration-success measurement.
@@ -69,9 +75,9 @@ The separate [webhook field scan](benchmarks/2026-10-14-stripe-webhook-coverage.
 ## Recommended scanner work, in order
 
 1. **Resolve remaining project configurations:** recorded local `paths`/`baseUrl` aliases now work. Project references and package-based inherited configuration remain unresolved; preserve review evidence until those mappings can be established.
-2. **Trace clients stored on class fields** (`this.client = new SDK()` in a constructor or field initializer). Affects 7 repositories, and is the most common pattern by call count.
+2. **Extend conservative class tracing where evidence supports it:** ordinary constructor/field clients now work. Lazy getters, injected fields and unsafe receiver lifetimes remain gaps.
 3. **Trace simple factories:** functions returning `new SDK(...)` or a module-level client, including memoized getters. Affects 7 repositories, plus 2 with inline factory calls.
-4. **Skip unparseable files instead of failing the whole scan**, and report which were skipped.
+4. **Keep skipped-source review evidence:** unparseable files no longer fail the whole scan, but their unknown usages block automation.
 5. Then injected clients (parameters and object properties), clients created inside functions, and SDK subpath imports.
 
 Rerun this benchmark after each change. Coverage and the zero-traced repository count are the measures of progress.

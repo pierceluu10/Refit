@@ -30,5 +30,7 @@ export function migrationReviewReason(
   )
     return WEBHOOK_REVIEW_REASON;
   if (evidence.skippedFiles?.length) return SKIPPED_SOURCE_REVIEW_REASON;
+  if (evidence.findings.some((finding) => finding.classClient))
+    return 'Affected SDK responses use a class client whose initialization, mutation or receiver lifetime requires review. Automatic migration, AI and publication require stable class-client provenance.';
   if (evidence.findings.some((finding) => finding.declaredType)) return DECLARED_TYPE_REVIEW_REASON;
 }

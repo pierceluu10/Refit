@@ -18,10 +18,14 @@ export function declaredApiVersions(options: {
   creation: (node: ts.Node) => ts.NewExpression | ts.CallExpression | undefined;
   constructorBinding: (node: ts.NewExpression | ts.CallExpression) => ts.Symbol | undefined;
   clientBinding: (node: ts.Node) => ts.Symbol | undefined;
-  sdkCall: (node: ts.Node) => { client: ts.Identifier; optional: boolean } | undefined;
+  sdkCall: (node: ts.Node) => { client: ts.Expression; optional: boolean } | undefined;
   symbol: (node: ts.Node) => ts.Symbol | undefined;
   canonical: (symbol: ts.Symbol | undefined) => ts.Symbol | undefined;
   location: (node: ts.Node) => Location;
+  references?: {
+    rootBinding: (node: ts.Node) => ts.Symbol | undefined;
+    aliases: Map<ts.Symbol, ts.Symbol>;
+  };
 }): ApiVersionDeclaration[] {
   const mapping = options.provider.apiVersion;
   if (!mapping) return [];
@@ -134,6 +138,10 @@ export function declaredApiVersions(options: {
     new Map(),
     canonical,
     options.initialUnsafe,
+    undefined,
+    undefined,
+    undefined,
+    options.references,
   );
   const declarations: ApiVersionDeclaration[] = [];
   for (const node of nodes) {
