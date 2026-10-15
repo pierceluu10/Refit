@@ -356,6 +356,7 @@ for (const [index, entry] of selected.entries()) {
         summary?: string;
         diff?: string;
       };
+      if (patch.diff) await writeFile(join(work, 'proposal.patch'), patch.diff);
       result.ai = {
         outcome: patch.edits
           ? 'proposed'

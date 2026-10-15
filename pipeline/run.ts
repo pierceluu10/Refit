@@ -35,6 +35,7 @@ import { digest, findRemovedProperties, isObject, readSpecification } from './sp
 import { stripeAdapterFor } from './stripe-operations.ts';
 import {
   SUBSCRIPTION_PERIOD_HELPER_RULE,
+  SUBSCRIPTION_PERIOD_RULE,
   validateStripeSubscriptionPeriodContract,
 } from './stripe-subscription-periods.ts';
 import {
@@ -245,14 +246,20 @@ export async function runPipeline(options: {
   const configuredMigrationProposal =
     operationChanges.some((change) => change.usages.length > 0) ||
     requestChanges.some((change) => change.usages.length > 0) ||
-    analysis.findings.some((finding) => finding.webhook?.migration);
-  const rulesCoverAll =
-    ruleEdits.length > 0 &&
-    analysis.findings
-      .filter((finding) => finding.confidence === 'confirmed')
-      .every((finding) => editCovers(repository, ruleEdits, finding));
+    analysis.findings.some(
+      (finding) => finding.webhook?.migration?.rule === SUBSCRIPTION_PERIOD_RULE,
+    );
+  // AI receives every confirmed finding no rule covers, webhook payload reads included.
+  const aiFindings = analysis.findings.filter(
+    (finding) => finding.confidence === 'confirmed' && !editCovers(repository, ruleEdits, finding),
+  );
+  const useAi =
+    Boolean(options.aiPatch) &&
+    !configuredMigrationProposal &&
+    (aiFindings.length > 0 || operationImpacts.length > 0);
   const deterministicRequested =
-    options.proposePatch || (options.aiPatch && (configuredMigrationProposal || rulesCoverAll));
+    options.proposePatch ||
+    (options.aiPatch && !useAi && (configuredMigrationProposal || ruleEdits.length > 0));
   const unresolvedFindingCount = deterministicRequested
     ? analyzeRepository(
         {
@@ -277,21 +284,16 @@ export async function runPipeline(options: {
     { findings: analysis.findings, skippedFiles, adapter: provider },
     true,
     true,
+    useAi,
   );
   const advisoryReviewReason = migrationReviewReason({ findings: analysis.findings, skippedFiles });
-  if (
-    options.aiPatch &&
-    !configuredMigrationProposal &&
-    !rulesCoverAll &&
-    !operationImpacts.length &&
-    !reviewReason
-  )
+  if (useAi && !operationImpacts.length && !reviewReason)
     options.onProgress?.('Requesting an AI migration proposal...');
   else if (deterministicRequested && !reviewReason)
     options.onProgress?.('Generating a deterministic migration proposal...');
   const patch = reviewReason
     ? { status: 'not-generated' as const, reason: reviewReason! }
-    : options.aiPatch && !configuredMigrationProposal && !rulesCoverAll
+    : useAi
       ? operationImpacts.length
         ? {
             status: 'not-generated' as const,
@@ -302,7 +304,7 @@ export async function runPipeline(options: {
             repository,
             changes,
             analysis.findings,
-            options.aiPatch,
+            options.aiPatch!,
             provider,
             before.schemas,
             undefined,
@@ -378,6 +380,19 @@ export async function runPipeline(options: {
             ],
           }
       : patch;
+  // Webhook reads the AI rewrote for both payload versions count as migrated.
+  if ('migratedWebhookFindings' in patch)
+    for (const finding of analysis.findings)
+      if (
+        finding.webhook &&
+        patch.migratedWebhookFindings.some(
+          (location) =>
+            location.file === finding.file &&
+            location.line === finding.line &&
+            location.column === finding.column,
+        )
+      )
+        finding.webhook.migration = { rule: 'ai-version-tolerant' };
   const completePatch =
     'unresolvedFindings' in upgradedPatch && additionalOperationUsageCount > 0
       ? {

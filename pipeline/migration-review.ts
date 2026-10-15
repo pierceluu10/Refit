@@ -14,10 +14,12 @@ const SKIPPED_SOURCE_REVIEW_REASON =
 // `leaveUnmigratedWebhooks` lets patch generation and validation proceed around webhook reads that
 // no rule migrates, when other confirmed work exists; they stay unresolved, so publication (which
 // never passes it) still stops.
+// `aiWebhooks`: AI is enabled and receives unmigrated webhook reads, so they never block on their own.
 export function migrationReviewReason(
   evidence: { findings: Finding[]; skippedFiles?: string[]; adapter?: ProviderAdapter },
   allowConfiguredWebhookMigration = false,
   leaveUnmigratedWebhooks = false,
+  aiWebhooks = false,
 ) {
   const policy = evidence.adapter?.stripeSubscriptionPeriods;
   const otherWork = evidence.findings.some(
@@ -28,6 +30,8 @@ export function migrationReviewReason(
     evidence.findings.some(
       (finding) =>
         finding.webhook &&
+        !(aiWebhooks && !finding.webhook.migration) &&
+        finding.webhook.migration?.rule !== 'ai-version-tolerant' &&
         !(leaveUnmigratedWebhooks && otherWork && !finding.webhook.migration) &&
         !(
           allowConfiguredWebhookMigration &&

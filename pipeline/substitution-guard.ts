@@ -72,7 +72,10 @@ function substituteReads(
     visit(source);
     argumentRanges.set(file.path, ranges);
   }
+  // Only reads traced to the field's own object can substitute for it; same-named reads on
+  // unresolved receivers prove nothing.
   return analysis.findings.filter((finding) => {
+    if (finding.confidence !== 'confirmed') return false;
     const source = sources.get(finding.file);
     if (!source) return false;
     const position = source.getPositionOfLineAndCharacter(finding.line - 1, finding.column - 1);
@@ -191,9 +194,22 @@ export function findUnsafeReplacements(
         message: `AI replacement reads added field ${field.schema}.${field.property} (${entry.type}) in place of removed ${removed.map((change, index) => `${change.schema}.${change.property} (${removedTypes[index]})`).join(', ')} in ${file}:${line}. Added fields must have the removed field's type unless the contract or a vendor note documents the replacement.`,
       });
     }
+    // Only traced reads on lines the model wrote count; untouched reads elsewhere in the file are
+    // other findings, not a fallback it introduced.
+    const originalLines = new Set(
+      original.files
+        .find((candidate) => candidate.path === file)
+        ?.content.split('\n')
+        .map((line) => line.trim()),
+    );
+    const modifiedLines =
+      modified.files.find((candidate) => candidate.path === file)?.content.split('\n') ?? [];
     const leftover = remaining.find(
       (finding) =>
-        finding.file === file && changes.some((change) => change.id === finding.changeId),
+        finding.file === file &&
+        finding.confidence === 'confirmed' &&
+        !originalLines.has(modifiedLines[finding.line - 1]?.trim()) &&
+        changes.some((change) => change.id === finding.changeId),
     );
     if (leftover && !introduced.length) {
       const change = changes.find((candidate) => candidate.id === leftover.changeId)!;

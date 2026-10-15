@@ -38,7 +38,8 @@ export interface Finding extends Location {
           beforeApiVersion: string;
           afterApiVersion: string;
         }
-      | { rule: 'stripe-subscription-periods-helper' };
+      | { rule: 'stripe-subscription-periods-helper' }
+      | { rule: 'ai-version-tolerant' };
   };
 }
 

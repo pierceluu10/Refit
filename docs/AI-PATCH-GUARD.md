@@ -174,6 +174,15 @@ Rerun `tuning` (50 × 3) and `held-out` (34 × 3): about 250 AI requests, roughl
 2. Rerun the same 50 cases × 3 attempts (about $0.30) and compare against the October 14 baseline: blocked inventions, false positives on fixes, and any change in fix rate.
 3. Record the results in `docs/ai-evals/` and update `docs/AI-EVALS.md`.
 
+## Real-repository adjustments (October 15)
+
+On the 100-repository Stripe benchmark the guard rejected correct, version-tolerant webhook fixes, for two reasons. Both rules were narrowed to what their descriptions above already say:
+
+- **Rules 1–3 count only traced reads.** The guard now ignores same-named reads on receivers the analyzer cannot resolve. Before, an AI fix reading `invoice.parent?.subscription_details?.subscription` was reported as substituting `checkout.session.subscription`, because Checkout Session lost an unrelated field. The rules are about reads of the affected response, which requires a traced receiver.
+- **Rule 5 looks only at lines the model wrote.** Removed-field reads elsewhere in an edited file, untouched by the model, are other findings, not a fallback it introduced. A version-tolerant read of the old field through `Reflect.get(object, 'field')` is not a property read, so it is allowed; webhook payloads need it.
+
+The AI also now works on code that already carries the deterministic rule edits, so the guards judge only its own changes. Unit tests and the 244 evaluation-case checks pass. The tuning and held-out AI evaluations were not rerun after this change.
+
 ## Known limitations
 
 - Reads the analyzer cannot trace are invisible to the guard: destructuring (`const { id } = model`), computed access (`model['id']`), or a response passed through helper functions. These already reduce scanner confidence elsewhere.

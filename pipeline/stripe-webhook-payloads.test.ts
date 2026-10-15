@@ -4,8 +4,7 @@ import { join } from 'node:path';
 import { afterEach, expect, it, vi } from 'vitest';
 import { analyzeRepository } from './analyzer.ts';
 import { compareApiVersion } from './api-version.ts';
-import { proposeAiPatch } from './ai-patches.ts';
-import { readRepository } from './repository.ts';
+import { migrationReviewReason } from './migration-review.ts';
 import { runPipeline } from './run.ts';
 import { runWorkflow } from './workflow.ts';
 import { renderWorkflowResult } from './workflow-presentation.ts';
@@ -427,7 +426,7 @@ it('keeps webhook reads confirmed when another module only passes the shared cli
   ]);
 });
 
-it('stops AI generation, advisory assessment and the workflow before networked or executable work', async () => {
+async function webhookOnlyRepository() {
   const root = await mkdtemp(join(tmpdir(), 'refit-webhook-gate-'));
   roots.push(root);
   const repository = join(root, 'repository');
@@ -450,6 +449,11 @@ it('stops AI generation, advisory assessment and the workflow before networked o
     afterPath = join(root, 'after.json');
   await writeFile(beforePath, JSON.stringify(before));
   await writeFile(afterPath, JSON.stringify(after));
+  return { root, repository, beforePath, afterPath };
+}
+
+it('keeps unmigrated webhook reads at review without AI, before networked or executable work', async () => {
+  const { root, repository, beforePath, afterPath } = await webhookOnlyRepository();
   const fetch = vi.fn(() => {
     throw new Error('Webhook review must not request AI or GitHub.');
   });
@@ -461,7 +465,7 @@ it('stops AI generation, advisory assessment and the workflow before networked o
     after: afterPath,
     apiVersion: VERSION,
     apiVersionPolicy: 'source-verified',
-    aiPatch: ai,
+    proposePatch: true,
     assessment: ai,
   });
   expect(report.status).toBe('affected');
@@ -470,16 +474,12 @@ it('stops AI generation, advisory assessment and the workflow before networked o
     reason: expect.stringContaining('migration-policy'),
   });
   expect(report.assessment).toMatchObject({ status: 'blocked' });
-  await expect(
-    proposeAiPatch(await readRepository(repository), report.changes, report.findings, ai),
-  ).rejects.toThrow(/migration-policy/);
   const workflow = await runWorkflow({
     repository,
     before: beforePath,
     after: afterPath,
     apiVersion: VERSION,
     apiVersionPolicy: 'source-verified',
-    aiPatch: ai,
     image: 'must-not-inspect',
     command: ['must-not-execute'],
     output: join(root, 'run'),
@@ -487,4 +487,60 @@ it('stops AI generation, advisory assessment and the workflow before networked o
   expect(workflow.manifest).toMatchObject({ status: 'needs-review', stage: 'scan' });
   expect(await renderWorkflowResult(workflow)).toContain('incoming API version requires review');
   expect(fetch).not.toHaveBeenCalled();
+});
+
+it('sends unmigrated webhook reads to AI with version-tolerant instructions', async () => {
+  const { repository, beforePath, afterPath } = await webhookOnlyRepository();
+  let request: { instructions: string; input: { content: string }[] } | undefined;
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (_url: string, init: { body: string }) => {
+      request = JSON.parse(init.body);
+      const evidence = JSON.parse(request!.input[0].content);
+      return new Response(
+        JSON.stringify({
+          id: 'resp_webhook',
+          model: 'fixture-model',
+          status: 'completed',
+          output: [
+            {
+              type: 'message',
+              role: 'assistant',
+              content: [
+                {
+                  type: 'output_text',
+                  text: JSON.stringify({
+                    summary: 'Read the period from either payload version.',
+                    uncertainties: [],
+                    edits: [
+                      {
+                        file: 'handler.ts',
+                        findingId: evidence.findings[0].id,
+                        original: 'return subscription.current_period_end;',
+                        replacement:
+                          "return Reflect.get(subscription, 'current_period_end') ?? null;",
+                      },
+                    ],
+                  }),
+                },
+              ],
+            },
+          ],
+        }),
+      );
+    }),
+  );
+  const ai = { apiKey: 'local-fixture', model: 'fixture-model' };
+  const report = await runPipeline({
+    repository,
+    before: beforePath,
+    after: afterPath,
+    apiVersion: VERSION,
+    apiVersionPolicy: 'source-verified',
+    aiPatch: ai,
+  });
+  expect(request?.instructions).toContain('rendered in the webhook endpoint');
+  expect(report.patch).toMatchObject({ status: 'proposed', generator: 'openai' });
+  expect(report.findings[0].webhook?.migration).toEqual({ rule: 'ai-version-tolerant' });
+  expect(migrationReviewReason(report)).toBeUndefined();
 });
