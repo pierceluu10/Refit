@@ -4,15 +4,16 @@ import { PipelineInputError } from './types.ts';
 import { EXACT_PACKAGE_VERSION } from './npm-lock.ts';
 
 export const YARN_LOCKFILE = 'yarn.lock';
-const CLASSIC_HEADER = /^# yarn lockfile v1$/m;
-const REGISTRY_TARBALL = /^https:\/\/registry\.(?:yarnpkg\.com|npmjs\.org)\//;
+export const CLASSIC_HEADER = /^# yarn lockfile v1$/m;
+export const REGISTRY_TARBALL = /^https:\/\/registry\.(?:yarnpkg\.com|npmjs\.org)\//;
 // Registry ranges never contain '/', so `owner/repo` shorthands are caught with the hosted-git forms.
-const LOCAL_OR_ALIASED =
+export const LOCAL_OR_ALIASED =
   /^(?:npm:|workspace:|file:|link:|portal:|patch:|exec:|git[+:]|github:|gitlab:|bitbucket:|https?:)|\//;
 
-interface YarnEntry {
+export interface YarnEntry {
   version?: string;
   resolved?: string;
+  integrity?: string;
   resolution?: string;
 }
 
@@ -21,7 +22,7 @@ function descriptors(key: string) {
 }
 
 // Classic v1 is a custom format: unindented descriptor lines, then two-space indented fields.
-function parseClassic(content: string) {
+export function parseClassic(content: string) {
   const entries: Record<string, YarnEntry> = {};
   let current: YarnEntry | undefined;
   for (const line of content.split(/\r?\n/)) {
@@ -33,8 +34,8 @@ function parseClassic(content: string) {
       for (const descriptor of descriptors(line.slice(0, -1))) entries[descriptor] = current;
       continue;
     }
-    const field = line.match(/^ {2}(version|resolved) "?([^"]*)"?$/);
-    if (field && current) current[field[1] as 'version' | 'resolved'] = field[2];
+    const field = line.match(/^ {2}(version|resolved|integrity) "?([^"]*)"?$/);
+    if (field && current) current[field[1] as 'version' | 'resolved' | 'integrity'] = field[2];
   }
   return { format: 'yarn-classic', lockfileVersion: 1, entries };
 }

@@ -263,7 +263,7 @@ function renderReportRows(report: Record<string, unknown> | undefined, existingP
     const validation = report.validation;
     if (isObject(validation.environment))
       rows.push(
-        `Dependencies ${validation.environment.reused ? 'Verified cache reused' : 'Prepared from npm lockfile'}; checks offline`,
+        `Dependencies ${validation.environment.reused ? 'Verified cache reused' : `Prepared from ${typeof validation.environment.manager === 'string' ? validation.environment.manager : 'npm'} lockfile`}; checks offline`,
       );
     if (isObject(validation.baseline) && isObject(validation.patched))
       rows.push(

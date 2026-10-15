@@ -10,9 +10,11 @@ import { parseDocumentObject, parseObject } from './specifications.ts';
 import { PipelineInputError } from './types.ts';
 import { PNPM_LOCKFILE } from './pnpm-lock.ts';
 import { PNPM_WORKSPACE, validatePnpmInputs } from './pnpm-inputs.ts';
+import { YARN_LOCKFILE } from './yarn-lock.ts';
+import { validateYarnInputs } from './yarn-inputs.ts';
 
 export interface PreparationIdentity {
-  manager: 'npm' | 'pnpm';
+  manager: 'npm' | 'pnpm' | 'yarn';
   managerVersion?: string;
   managerIntegrity?: string;
   packageHash: string;
@@ -29,15 +31,16 @@ export async function readPreparationInputs(
 ) {
   const paths = snapshot.entries.map((entry) => entry.slice(entry.indexOf('\t') + 1));
   const pnpm = paths.includes(PNPM_LOCKFILE);
-  const lockfile = pnpm ? PNPM_LOCKFILE : 'package-lock.json';
+  const yarn = paths.includes(YARN_LOCKFILE);
+  const lockfile = pnpm ? PNPM_LOCKFILE : yarn ? YARN_LOCKFILE : 'package-lock.json';
   if (!paths.includes('package.json') || !paths.includes(lockfile))
     throw new PipelineInputError(
-      'Automatic preparation requires committed root package.json and package-lock.json or pnpm-lock.yaml.',
+      'Automatic preparation requires committed root package.json and package-lock.json, pnpm-lock.yaml or yarn.lock.',
     );
   if (
     paths.includes('npm-shrinkwrap.json') ||
-    paths.includes('yarn.lock') ||
-    (pnpm && paths.includes('package-lock.json')) ||
+    (pnpm && yarn) ||
+    ((pnpm || yarn) && paths.includes('package-lock.json')) ||
     (pnpm && paths.some((path) => /^\.pnpmfile\.[cm]?js$/.test(path.split('/').at(-1)!))) ||
     paths.some((path) => path.split('/').includes('node_modules'))
   )
@@ -46,6 +49,17 @@ export async function readPreparationInputs(
     );
   const packageContent = await readCommittedFile(snapshot, 'package.json', MAX_PACKAGE_BYTES);
   const manifest = parseObject(packageContent, 'package.json');
+  if (yarn) {
+    const lockContent = await readCommittedFile(snapshot, YARN_LOCKFILE, MAX_LOCK_BYTES);
+    return {
+      files: new Map([
+        ['package.json', packageContent],
+        [YARN_LOCKFILE, lockContent],
+      ]),
+      workspaceContents: new Map<string, string>(),
+      inputs: validateYarnInputs(packageContent, lockContent) as PreparationIdentity,
+    };
+  }
   if (
     !pnpm &&
     manifest.packageManager !== undefined &&
