@@ -7,12 +7,27 @@ const PROCESS_TIMEOUT_MS = 30_000;
 const MAX_OUTPUT_BYTES = 1024 * 1024;
 export const DOCKER_IMAGE_ID = /^sha256:[a-f0-9]{64}$/;
 const CONTAINER_USER = '65534:65534';
-const VALIDATION_WORKSPACE_SIZE = '512m';
 // Dependency installers hold the package cache and the unpacked tree at once. tmpfs pages count
 // against the memory limit, so preparation memory covers the workspace plus the installer.
 export const PREPARATION_WORKSPACE_SIZE = '2g';
-const VALIDATION_MEMORY = '1g';
 export const PREPARATION_MEMORY = '3g';
+const MIB = 1024 * 1024;
+// Operators can enlarge offline validation for large dependency trees. Each profile keeps memory
+// above the workspace and the dependency archive at half of it, so the unpacked tree still fits.
+const VALIDATION_PROFILES = {
+  '512m': { workspace: '512m', memory: '1g', archiveBytes: 256 * MIB },
+  '1g': { workspace: '1g', memory: '2g', archiveBytes: 512 * MIB },
+  '2g': { workspace: '2g', memory: '3g', archiveBytes: 1024 * MIB },
+} as const;
+
+export function validationProfile(value = process.env.REFIT_VALIDATION_WORKSPACE) {
+  const name = value?.trim() || '512m';
+  if (!Object.hasOwn(VALIDATION_PROFILES, name))
+    throw new PipelineInputError(
+      `REFIT_VALIDATION_WORKSPACE must be one of ${Object.keys(VALIDATION_PROFILES).join(', ')}.`,
+    );
+  return VALIDATION_PROFILES[name as keyof typeof VALIDATION_PROFILES];
+}
 
 export async function resolveDockerImage(image: string) {
   if (!image || image.startsWith('-') || image.includes('\0'))
@@ -81,11 +96,11 @@ export function dockerSandboxArguments(options: {
     '--pids-limit',
     '128',
     '--memory',
-    options.workspaceSize ? PREPARATION_MEMORY : VALIDATION_MEMORY,
+    options.workspaceSize ? PREPARATION_MEMORY : validationProfile().memory,
     '--cpus',
     '1',
     '--tmpfs',
-    `/workspace:rw,exec,size=${options.workspaceSize ?? VALIDATION_WORKSPACE_SIZE},uid=65534,gid=65534,mode=0700`,
+    `/workspace:rw,exec,size=${options.workspaceSize ?? validationProfile().workspace},uid=65534,gid=65534,mode=0700`,
     '--tmpfs',
     '/tmp:rw,noexec,size=64m,mode=1777',
     '--mount',

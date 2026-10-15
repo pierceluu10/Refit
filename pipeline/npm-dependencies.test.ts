@@ -16,7 +16,11 @@ import { delimiter, dirname, join, resolve } from 'node:path';
 import { promisify } from 'node:util';
 import { afterEach, expect, it, vi } from 'vitest';
 import { DEPENDENCY_TREE_CHECK, prepareDependencies } from './dependency-preparation.ts';
-import { dockerSandboxArguments, removeDockerContainer } from './docker-sandbox.ts';
+import {
+  dockerSandboxArguments,
+  removeDockerContainer,
+  validationProfile,
+} from './docker-sandbox.ts';
 import { verifyArtifacts } from './verification.ts';
 import { runWorkflow } from './workflow.ts';
 
@@ -437,4 +441,36 @@ it('keeps validation containers on the 512 MiB workspace and 1 GiB memory', () =
   expect(args).toContain('/workspace:rw,exec,size=512m,uid=65534,gid=65534,mode=0700');
   expect(args[args.indexOf('--memory') + 1]).toBe('1g');
   expect(args.join(' ')).not.toContain('size=2g');
+});
+
+it('enlarges validation only through a known REFIT_VALIDATION_WORKSPACE profile', () => {
+  expect(validationProfile(undefined)).toEqual({
+    workspace: '512m',
+    memory: '1g',
+    archiveBytes: 256 * 1024 * 1024,
+  });
+  expect(validationProfile('2g')).toEqual({
+    workspace: '2g',
+    memory: '3g',
+    archiveBytes: 1024 * 1024 * 1024,
+  });
+  for (const value of ['4g', '512', 'large'])
+    expect(() => validationProfile(value), value).toThrow('REFIT_VALIDATION_WORKSPACE');
+  const previous = process.env.REFIT_VALIDATION_WORKSPACE;
+  process.env.REFIT_VALIDATION_WORKSPACE = '1g';
+  try {
+    const args = dockerSandboxArguments({
+      name: 'refit-check',
+      directory: '/input',
+      image: IMAGE,
+      command: ['npm', 'test'],
+      network: 'none',
+    });
+    expect(args).toContain('/workspace:rw,exec,size=1g,uid=65534,gid=65534,mode=0700');
+    expect(args[args.indexOf('--memory') + 1]).toBe('2g');
+    expect(args[args.indexOf('--network') + 1]).toBe('none');
+  } finally {
+    if (previous === undefined) delete process.env.REFIT_VALIDATION_WORKSPACE;
+    else process.env.REFIT_VALIDATION_WORKSPACE = previous;
+  }
 });

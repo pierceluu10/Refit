@@ -20,7 +20,7 @@ import { validateCheckCommand, validateRepairAttempts } from './validation-optio
 import { proposeAiPatch } from './ai-patches.ts';
 import { gitEnvironment } from './git-environment.ts';
 import { readCommittedRepository } from './committed-repository.ts';
-import { MAX_DEPENDENCY_ARCHIVE_BYTES, prepareDependencies } from './dependency-preparation.ts';
+import { prepareDependencies } from './dependency-preparation.ts';
 import { inspectArtifactFile } from './verification.ts';
 import { analyzeRepository } from './analyzer.ts';
 import {
@@ -38,6 +38,7 @@ import {
   dockerSandboxArguments,
   removeDockerContainer,
   resolveDockerImage,
+  validationProfile,
 } from './docker-sandbox.ts';
 
 export interface PublicationFile {
@@ -278,7 +279,7 @@ export async function validateMigration(options: {
       });
       dependencies = join(root, 'dependencies.tar');
       await copyFile(prepared.archive, dependencies);
-      const copied = await inspectArtifactFile(dependencies, MAX_DEPENDENCY_ARCHIVE_BYTES);
+      const copied = await inspectArtifactFile(dependencies, validationProfile().archiveBytes);
       if (
         copied.sha256 !== prepared.environment.archiveHash ||
         copied.bytes !== prepared.environment.archiveBytes
@@ -363,7 +364,7 @@ export async function validateMigration(options: {
         await copyFile(prepared.archive, candidateDependencies);
         const copied = await inspectArtifactFile(
           candidateDependencies,
-          MAX_DEPENDENCY_ARCHIVE_BYTES,
+          validationProfile().archiveBytes,
         );
         if (
           copied.sha256 !== prepared.environment.archiveHash ||
@@ -625,7 +626,13 @@ export async function validateMigration(options: {
       ...(generated ? { generated } : {}),
       attempts,
       repair,
-      limits: { timeoutMs: CHECK_TIMEOUT_MS, outputBytes: MAX_OUTPUT_BYTES, network: 'none' },
+      limits: {
+        timeoutMs: CHECK_TIMEOUT_MS,
+        outputBytes: MAX_OUTPUT_BYTES,
+        network: 'none',
+        workspace: validationProfile().workspace,
+        memory: validationProfile().memory,
+      },
       publishable: false,
       reason:
         'Validation records check results only. Draft publication requires an explicit GitHub target and passing checks; migration semantics require human review.',
