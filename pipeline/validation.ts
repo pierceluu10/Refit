@@ -30,6 +30,7 @@ import {
   generatedEntryPoints,
   generatedImportMap,
   readMockDocument,
+  typescriptDirectory,
   writeHarness,
   type GeneratedChecks,
 } from './generated-checks.ts';
@@ -172,13 +173,14 @@ async function generatedStripeChecks(options: {
       await containerCheck(
         run.directory,
         options.image,
-        generatedCommand(entries),
+        generatedCommand(),
         run.dependencies ?? options.dependencies,
         [
           { source: mock.binary, target: '/refit/stripe-mock' },
           { source: run.contract, target: '/refit/spec.json' },
           { source: fixtures[run.side], target: '/refit/fixtures.json' },
           { source: tools, target: '/refit/generated' },
+          { source: typescriptDirectory(), target: '/refit/typescript' },
         ],
       ),
     );

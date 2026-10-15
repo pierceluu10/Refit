@@ -11,6 +11,7 @@ import {
   generatedEntryPoints,
   generatedImportMap,
   generatedResults,
+  typescriptDirectory,
   writeHarness,
 } from './generated-checks.ts';
 import { readRepository } from './repository.ts';
@@ -98,13 +99,11 @@ it('selects exported functions with placeholder-friendly parameters and counts t
   expect(result.uncovered).toBe(3);
 });
 
-it('strips TypeScript only when an entry point needs it', () => {
-  expect(generatedCommand([{ file: 'a.js', name: 'x', parameters: 0 }]).join(' ')).not.toContain(
-    'strip-types',
-  );
-  expect(generatedCommand([{ file: 'a.ts', name: 'x', parameters: 0 }]).join(' ')).toContain(
-    '--experimental-strip-types',
-  );
+it('runs the harness through the bundled TypeScript compiler without type stripping', () => {
+  const command = generatedCommand().join(' ');
+  expect(command).not.toContain('strip-types');
+  expect(command).toContain('--import /refit/generated/redirect.mjs');
+  expect(typescriptDirectory()).toMatch(/typescript-compiler$/);
 });
 
 // Mirrors stripe-node's NodeHttpClient: an HTTPS agent, and a body written after secureConnect.
@@ -255,7 +254,7 @@ it('excludes functions that cannot run on the original code and gates only regre
   expect(crashed.baseline.status).toBe('failed');
 });
 
-it('loads extensionless and tsconfig-aliased TypeScript imports through the resolved import map', async () => {
+it('loads aliased, extensionless and type-only TypeScript imports through the resolved import map', async () => {
   const root = await mkdtemp(join(tmpdir(), 'refit-generated-imports-'));
   roots.push(root);
   const app = join(root, 'app');
@@ -281,15 +280,20 @@ export function retrieve(path: string): Promise<{ parent: { subscription_details
 `,
   );
   await writeFile(
+    join(app, 'src', 'types.ts'),
+    'export interface Invoice { parent: { subscription_details: { subscription: string } } }\n',
+  );
+  await writeFile(
     join(app, 'src', 'format.ts'),
     'export const upper = (value: string): string => value.toUpperCase();\n',
   );
   await writeFile(
     join(app, 'src', 'billing.ts'),
     `import { retrieve } from '@/lib/client';
+import { Invoice } from '@/types';
 import { upper } from './format';
 export async function invoiceSubscription(id: string): Promise<string> {
-  const invoice = await retrieve('/v1/invoices/' + id);
+  const invoice: Invoice = await retrieve('/v1/invoices/' + id);
   return upper(invoice.parent.subscription_details.subscription);
 }
 `,
@@ -298,6 +302,7 @@ export async function invoiceSubscription(id: string): Promise<string> {
   const imports = generatedImportMap(repository);
   expect(imports['src/billing.ts']).toEqual({
     '@/lib/client': 'src/lib/client.ts',
+    '@/types': 'src/types.ts',
     './format': 'src/format.ts',
   });
   const server = createServer((_, response) => {
@@ -319,6 +324,7 @@ export async function invoiceSubscription(id: string): Promise<string> {
           ...process.env,
           REFIT_STRIPE_MOCK_PORT: String((server.address() as { port: number }).port),
           REFIT_GENERATED_ROOT: `${await realpath(app)}/`,
+          REFIT_TYPESCRIPT: join(typescriptDirectory(), 'lib', 'typescript.js'),
         },
         timeout: 10_000,
       },

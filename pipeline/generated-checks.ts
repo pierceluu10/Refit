@@ -1,6 +1,7 @@
 import { execFile } from 'node:child_process';
 import { readFile, writeFile } from 'node:fs/promises';
-import { join, relative, resolve } from 'node:path';
+import { createRequire } from 'node:module';
+import { dirname, join, relative, resolve } from 'node:path';
 import { promisify } from 'node:util';
 import ts from 'typescript-compiler';
 import { removeDockerContainer, resolveDockerImage } from './docker-sandbox.ts';
@@ -18,7 +19,6 @@ const MAX_ENTRY_POINTS = 20;
 const STRIPE_MOCK_BINARY = '/bin/stripe-mock';
 export const MOCK_PORT = 12111;
 const SOURCE_FILE = /\.(?:[cm]?js|[cm]?ts)$/;
-const TYPESCRIPT_FILE = /\.[cm]?ts$/;
 
 export interface GeneratedChecks {
   stripeMockImage: string;
@@ -172,14 +172,36 @@ export function generatedImportMap(repository: Repository) {
   return map;
 }
 
+// TypeScript sources are transpiled with the bundled compiler rather than Node's type stripping,
+// which keeps imports of type-only names (\`import { Price }\`) and fails at runtime.
 const RESOLVE = `import { readFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 const root = process.env.REFIT_GENERATED_ROOT ?? '/workspace/';
 const map = JSON.parse(readFileSync(new URL('imports.json', import.meta.url), 'utf8'));
+let ts;
+const compiler = () =>
+  (ts ??= createRequire(import.meta.url)(process.env.REFIT_TYPESCRIPT ?? '/refit/typescript/lib/typescript.js'));
+const TYPESCRIPT = /\\.(?:[cm]?ts|tsx)$/;
 export async function resolve(specifier, context, next) {
   const parent = context.parentURL?.startsWith('file:') ? fileURLToPath(context.parentURL) : '';
   const target = parent.startsWith(root) ? map[parent.slice(root.length)]?.[specifier] : undefined;
   return next(target ? pathToFileURL(root + target).href : specifier, context);
+}
+export async function load(url, context, next) {
+  if (!url.startsWith('file:') || !TYPESCRIPT.test(url)) return next(url, context);
+  const path = fileURLToPath(url);
+  const ts = compiler();
+  const output = ts.transpileModule(readFileSync(path, 'utf8'), {
+    fileName: path,
+    compilerOptions: {
+      module: ts.ModuleKind.ESNext,
+      target: ts.ScriptTarget.ES2022,
+      jsx: ts.JsxEmit.ReactJSX,
+      esModuleInterop: true,
+    },
+  });
+  return { format: 'module', source: output.outputText, shortCircuit: true };
 }
 `;
 
@@ -264,17 +286,19 @@ export async function writeHarness(
   await writeFile(join(directory, 'entries.json'), JSON.stringify(entries), { mode: 0o444 });
 }
 
-export function generatedCommand(entries: EntryPoint[]) {
-  const strip = entries.some((entry) => TYPESCRIPT_FILE.test(entry.file))
-    ? '--experimental-strip-types '
-    : '';
+export function generatedCommand() {
   return [
     'sh',
     '-c',
     `(/refit/stripe-mock -http-addr 127.0.0.1:${MOCK_PORT} -spec /refit/spec.json -fixtures /refit/fixtures.json >/tmp/refit-stripe-mock.log 2>&1 &); ` +
       'STRIPE_SECRET_KEY=sk_test_123 STRIPE_API_KEY=sk_test_123 STRIPE_KEY=sk_test_123 ' +
-      `exec node ${strip}--import /refit/generated/redirect.mjs /refit/generated/harness.mjs`,
+      'exec node --import /refit/generated/redirect.mjs /refit/generated/harness.mjs',
   ];
+}
+
+// The bundled TypeScript compiler package, mounted read-only for the sandbox load hook.
+export function typescriptDirectory() {
+  return dirname(createRequire(import.meta.url).resolve('typescript-compiler/package.json'));
 }
 
 // Copies the stripe-mock binary out of an existing local image; images are never pulled.
