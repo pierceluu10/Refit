@@ -430,7 +430,7 @@ it('copies only committed workspace manifests to the networked install input', a
   ]);
 });
 
-it('keeps validation containers on the 512 MiB workspace and 1 GiB memory', () => {
+it('runs validation containers on the default 2 GiB workspace and 3 GiB memory, offline', () => {
   const args = dockerSandboxArguments({
     name: 'refit-check',
     directory: '/input',
@@ -438,13 +438,18 @@ it('keeps validation containers on the 512 MiB workspace and 1 GiB memory', () =
     command: ['npm', 'test'],
     network: 'none',
   });
-  expect(args).toContain('/workspace:rw,exec,size=512m,uid=65534,gid=65534,mode=0700');
-  expect(args[args.indexOf('--memory') + 1]).toBe('1g');
-  expect(args.join(' ')).not.toContain('size=2g');
+  expect(args).toContain('/workspace:rw,exec,size=2g,uid=65534,gid=65534,mode=0700');
+  expect(args[args.indexOf('--memory') + 1]).toBe('3g');
+  expect(args[args.indexOf('--network') + 1]).toBe('none');
 });
 
 it('enlarges validation only through a known REFIT_VALIDATION_WORKSPACE profile', () => {
   expect(validationProfile(undefined)).toEqual({
+    workspace: '2g',
+    memory: '3g',
+    archiveBytes: 1024 * 1024 * 1024,
+  });
+  expect(validationProfile('512m')).toEqual({
     workspace: '512m',
     memory: '1g',
     archiveBytes: 256 * 1024 * 1024,
