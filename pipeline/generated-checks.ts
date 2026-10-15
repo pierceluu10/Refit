@@ -1,9 +1,10 @@
 import { execFile } from 'node:child_process';
 import { readFile, writeFile } from 'node:fs/promises';
-import { join } from 'node:path';
+import { join, relative, resolve } from 'node:path';
 import { promisify } from 'node:util';
 import ts from 'typescript-compiler';
 import { removeDockerContainer, resolveDockerImage } from './docker-sandbox.ts';
+import { createSourceImportResolver } from './source-imports.ts';
 import { digest } from './specifications.ts';
 import { PipelineInputError, type Finding, type Repository } from './types.ts';
 import type { CheckResult } from './validation.ts';
@@ -134,10 +135,60 @@ export function generatedEntryPoints(repository: Repository, findings: Finding[]
   return { entries: [...entries.values()], uncovered };
 }
 
+// Maps each source file's static and literal dynamic import specifiers to the repository file Refit's
+// own resolver chose, so the sandbox can load extensionless and tsconfig-aliased TypeScript imports.
+export function generatedImportMap(repository: Repository) {
+  const root = resolve(repository.root);
+  const sources = new Map(repository.files.map((file) => [resolve(root, file.path), file.content]));
+  const resolver = createSourceImportResolver(repository, sources);
+  const map: Record<string, Record<string, string>> = {};
+  for (const file of repository.files) {
+    if (!SOURCE_FILE.test(file.path)) continue;
+    const source = ts.createSourceFile(file.path, file.content, ts.ScriptTarget.Latest, true);
+    const specifiers: string[] = [];
+    const visit = (node: ts.Node) => {
+      if (
+        (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) &&
+        node.moduleSpecifier &&
+        ts.isStringLiteralLike(node.moduleSpecifier)
+      )
+        specifiers.push(node.moduleSpecifier.text);
+      if (
+        ts.isCallExpression(node) &&
+        node.expression.kind === ts.SyntaxKind.ImportKeyword &&
+        node.arguments.length === 1 &&
+        ts.isStringLiteralLike(node.arguments[0])
+      )
+        specifiers.push(node.arguments[0].text);
+      ts.forEachChild(node, visit);
+    };
+    visit(source);
+    for (const specifier of specifiers) {
+      const target = resolver.resolve(specifier, resolve(root, file.path));
+      if (target && sources.has(target))
+        (map[file.path] ??= {})[specifier] = relative(root, target).split('\\').join('/');
+    }
+  }
+  return map;
+}
+
+const RESOLVE = `import { readFileSync } from 'node:fs';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+const root = process.env.REFIT_GENERATED_ROOT ?? '/workspace/';
+const map = JSON.parse(readFileSync(new URL('imports.json', import.meta.url), 'utf8'));
+export async function resolve(specifier, context, next) {
+  const parent = context.parentURL?.startsWith('file:') ? fileURLToPath(context.parentURL) : '';
+  const target = parent.startsWith(root) ? map[parent.slice(root.length)]?.[specifier] : undefined;
+  return next(target ? pathToFileURL(root + target).href : specifier, context);
+}
+`;
+
 // Redirects the Stripe SDK's HTTPS requests for api.stripe.com to stripe-mock on loopback. The SDK
 // writes request bodies after `secureConnect`, so the plain socket re-emits it on `connect`.
 const REDIRECT = `import http from 'node:http';
 import https from 'node:https';
+import { register } from 'node:module';
+register('./resolve.mjs', import.meta.url);
 const port = Number(process.env.REFIT_STRIPE_MOCK_PORT ?? ${MOCK_PORT});
 const request = https.request;
 https.request = function (options, ...rest) {
@@ -201,8 +252,14 @@ export function generatedResults(stdout: string) {
   return results;
 }
 
-export async function writeHarness(directory: string, entries: EntryPoint[]) {
+export async function writeHarness(
+  directory: string,
+  entries: EntryPoint[],
+  imports: Record<string, Record<string, string>> = {},
+) {
   await writeFile(join(directory, 'redirect.mjs'), REDIRECT, { mode: 0o444 });
+  await writeFile(join(directory, 'resolve.mjs'), RESOLVE, { mode: 0o444 });
+  await writeFile(join(directory, 'imports.json'), JSON.stringify(imports), { mode: 0o444 });
   await writeFile(join(directory, 'harness.mjs'), HARNESS, { mode: 0o444 });
   await writeFile(join(directory, 'entries.json'), JSON.stringify(entries), { mode: 0o444 });
 }

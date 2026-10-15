@@ -1,6 +1,6 @@
 import { execFile } from 'node:child_process';
 import { createServer, type IncomingMessage } from 'node:http';
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, realpath, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
@@ -9,9 +9,11 @@ import {
   compareGeneratedRuns,
   generatedCommand,
   generatedEntryPoints,
+  generatedImportMap,
   generatedResults,
   writeHarness,
 } from './generated-checks.ts';
+import { readRepository } from './repository.ts';
 import { parseWorkflowConfiguration } from './workflow-configuration.ts';
 import type { Finding } from './types.ts';
 
@@ -166,9 +168,8 @@ it('redirects Stripe SDK requests to the local mock with a test key and records 
     expect(requests).toHaveLength(1);
     expect(requests[0].url).toBe('/v1/invoices/refit_placeholder_1');
     expect(requests[0].headers.authorization).toBe('Bearer sk_test_123');
-    await rm(join(tools, 'entries.json'));
-    await rm(join(tools, 'harness.mjs'));
-    await rm(join(tools, 'redirect.mjs'));
+    await rm(tools, { recursive: true });
+    await mkdir(tools);
     const broken = await run('broken');
     expect(generatedResults(broken.stdout).get('src/billing.mjs#broken')).toEqual({
       ok: false,
@@ -252,4 +253,81 @@ it('excludes functions that cannot run on the original code and gates only regre
     output({ a: true, b: true, c: true }),
   );
   expect(crashed.baseline.status).toBe('failed');
+});
+
+it('loads extensionless and tsconfig-aliased TypeScript imports through the resolved import map', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'refit-generated-imports-'));
+  roots.push(root);
+  const app = join(root, 'app');
+  const tools = join(root, 'tools');
+  await mkdir(join(app, 'src', 'lib'), { recursive: true });
+  await mkdir(tools);
+  await writeFile(join(app, 'package.json'), JSON.stringify({ type: 'module' }));
+  await writeFile(
+    join(app, 'tsconfig.json'),
+    '{\n  // comments are allowed\n  "compilerOptions": { "baseUrl": ".", "paths": { "@/*": ["src/*"] } },\n}\n',
+  );
+  await writeFile(
+    join(app, 'src', 'lib', 'client.ts'),
+    `import https from 'node:https';
+export function retrieve(path: string): Promise<{ parent: { subscription_details: { subscription: string } } }> {
+  return new Promise((resolve, reject) => {
+    const req = https.request({ host: 'api.stripe.com', port: 443, path, method: 'GET', agent: new https.Agent() });
+    req.on('response', (res) => { let data = ''; res.on('data', (c) => (data += c)); res.on('end', () => resolve(JSON.parse(data))); });
+    req.on('error', reject);
+    req.once('socket', (socket) => socket.once('secureConnect', () => req.end()));
+  });
+}
+`,
+  );
+  await writeFile(
+    join(app, 'src', 'format.ts'),
+    'export const upper = (value: string): string => value.toUpperCase();\n',
+  );
+  await writeFile(
+    join(app, 'src', 'billing.ts'),
+    `import { retrieve } from '@/lib/client';
+import { upper } from './format';
+export async function invoiceSubscription(id: string): Promise<string> {
+  const invoice = await retrieve('/v1/invoices/' + id);
+  return upper(invoice.parent.subscription_details.subscription);
+}
+`,
+  );
+  const repository = await readRepository(app, 'stripe');
+  const imports = generatedImportMap(repository);
+  expect(imports['src/billing.ts']).toEqual({
+    '@/lib/client': 'src/lib/client.ts',
+    './format': 'src/format.ts',
+  });
+  const server = createServer((_, response) => {
+    response.setHeader('Content-Type', 'application/json');
+    response.end(JSON.stringify({ parent: { subscription_details: { subscription: 'sub_x' } } }));
+  });
+  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+  try {
+    await writeHarness(
+      tools,
+      [{ file: 'src/billing.ts', name: 'invoiceSubscription', parameters: 1 }],
+      imports,
+    );
+    const result = await execute(
+      process.execPath,
+      ['--import', join(tools, 'redirect.mjs'), join(tools, 'harness.mjs')],
+      {
+        env: {
+          ...process.env,
+          REFIT_STRIPE_MOCK_PORT: String((server.address() as { port: number }).port),
+          REFIT_GENERATED_ROOT: `${await realpath(app)}/`,
+        },
+        timeout: 10_000,
+      },
+    );
+    expect(generatedResults(result.stdout).get('src/billing.ts#invoiceSubscription')).toEqual({
+      ok: true,
+    });
+  } finally {
+    server.closeAllConnections();
+    await new Promise((resolve) => server.close(resolve));
+  }
 });
