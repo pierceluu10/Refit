@@ -95,13 +95,20 @@ it.each([
 it.each([
   "import {stripe} from './client.ts'; stripe.paymentIntents.retrieve = replacement;",
   "import {retrieve} from './payments.ts'; retrieve = replacement;",
-  "import {retrieve} from './payments.ts'; mutate(retrieve);",
   "import * as payments from './payments.ts'; payments.retrieve = replacement;",
   "export {retrieve} from './payments.ts';",
-])('downgrades mutation or escaping wrapper/client bindings: %s', (content) => {
+])('downgrades mutation or re-exported wrapper/client bindings: %s', (content) => {
   const result = analyzeRepository(repository({ 'mutator.ts': content }), [change]);
   expect(result.findings.every((finding) => finding.confidence === 'review')).toBe(true);
   expect(result.edits).toEqual([]);
+});
+
+it('keeps wrapper responses confirmed when the wrapper is only passed to a call', () => {
+  const result = analyzeRepository(
+    repository({ 'mutator.ts': "import {retrieve} from './payments.ts'; mutate(retrieve);" }),
+    [change],
+  );
+  expect(result.findings.some((finding) => finding.confidence === 'confirmed')).toBe(true);
 });
 
 it.each([

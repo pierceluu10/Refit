@@ -89,10 +89,9 @@ it('traces an aliased default client, records its API version and includes it as
 
 it.each([
   `import billing from '@/client'; billing.paymentIntents.retrieve = replacement;`,
-  `import billing from '@/client'; mutate(billing);`,
   `import * as clients from '@/client'; mutate(clients.default);`,
   `export {default} from '@/client';`,
-])('carries mutation and escape evidence through an aliased consumer: %s', (mutator) => {
+])('carries mutation and re-export evidence through an aliased consumer: %s', (mutator) => {
   const { result } = analyze({ 'src/mutator.ts': mutator });
   expect(result.findings).toMatchObject([{ confidence: 'review' }]);
   expect(result.edits).toEqual([]);
@@ -367,13 +366,20 @@ it.each(['symlink', 'declaration', 'excluded directory'])(
   },
 );
 
-it('downgrades an otherwise traced client when a separate unresolved project might expose it', () => {
+it('keeps an aliased consumer confirmed when another module only passes the client to a call', () => {
+  const { result } = analyze({
+    'src/mutator.ts': "import billing from '@/client'; mutate(billing);",
+  });
+  expect(result.findings).toMatchObject([{ confidence: 'confirmed' }]);
+});
+
+it('confirms a traced client when a separate unresolved project might resolve imports elsewhere', () => {
   const { result } = analyze(
     { 'other/mutator.ts': "import billing from '@/client'; mutate(billing);" },
     { 'tsconfig.json': aliases, 'other/tsconfig.json': '{"extends":"@vendor/tsconfig"}' },
   );
-  expect(result.findings).toMatchObject([{ confidence: 'review' }]);
-  expect(result.edits).toEqual([]);
+  expect(result.findings).toMatchObject([{ confidence: 'confirmed' }]);
+  expect(result.sourceWarnings.length).toBeGreaterThan(0);
 });
 
 it('adds an extensionless relative client import when guarded history uses extensionless aliases', () => {

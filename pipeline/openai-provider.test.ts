@@ -151,12 +151,12 @@ it('detects OpenAI usage using configuration and leaves unsupported migration se
   expect(report.patch.status).toBe('unsupported');
 });
 
-it('keeps string-method reads uncertain when schema typing is absent or the response is modified', async () => {
+it('confirms string-method reads without schema typing and keeps modified responses uncertain', async () => {
   const input = await inputs();
   const before = JSON.parse(await readFile(input.before, 'utf8'));
   delete before.components.schemas.Model.properties.owned_by.type;
   await writeFile(input.before, JSON.stringify(before));
-  expect((await runPipeline(input)).findings[0].confidence).toBe('review');
+  expect((await runPipeline(input)).findings[0].confidence).toBe('confirmed');
   before.components.schemas.Model.properties.owned_by.type = 'string';
   await writeFile(input.before, JSON.stringify(before));
   const path = join(input.repository, 'models.js');

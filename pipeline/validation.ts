@@ -363,6 +363,7 @@ export async function validateMigration(options: {
           },
           options.documentationSnapshots,
           afterSpecification.schemas,
+          'ruleEdits' in report.patch ? report.patch.ruleEdits : [],
         );
         if (!candidate.diff) {
           repair.stopReason = 'no-proposal';

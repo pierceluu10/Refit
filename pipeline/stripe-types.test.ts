@@ -93,7 +93,7 @@ async function scan(files: Record<string, string>) {
 
 const header = `import Stripe from 'stripe';\nconst stripe = new Stripe('sk');\n`;
 
-it('records declared Stripe object reads for source-provenance review', async () => {
+it('confirms reads on values declared with Stripe types', async () => {
   const findings = await scan({
     'app/billing.ts': `${header}export function end(sub: Stripe.Subscription | null) {
   return sub?.current_period_end;
@@ -117,11 +117,11 @@ export function types(invoice: Stripe.Invoice) {
 `,
   });
   expect(findings).toEqual([
-    'app/billing.ts:4 .current_period_end review',
-    'app/billing.ts:7 .subscription review',
-    'app/billing.ts:12 .current_period_end review',
-    'app/billing.ts:15 .current_period_end review',
-    'app/billing.ts:19 .type review',
+    'app/billing.ts:4 .current_period_end confirmed',
+    'app/billing.ts:7 .subscription confirmed',
+    'app/billing.ts:12 .current_period_end confirmed',
+    'app/billing.ts:15 .current_period_end confirmed',
+    'app/billing.ts:19 .type confirmed',
   ]);
 });
 

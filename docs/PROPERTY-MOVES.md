@@ -74,8 +74,8 @@ Reads that already use the new path are not reported, even where other removals 
 
 - **Expanded fields.** If the moved value can be an expanded object, and any `expand` array names the old field or cannot be read statically, the read is left unchanged. The rescan reports it as unresolved. Expanding the old path would not expand the new one, so the value could silently change from an object to an ID string.
 - **Webhook payloads.** Signed-event payloads keep their separate incoming-version review.
-- **Declared types.** Values known only from `Stripe.*` type annotations remain review hints.
-- **Other shapes.** Destructuring, string indexes, writes, aliases of object-valued fields and escaped responses keep the existing review rules.
+- **Declared types.** Values known only from `Stripe.*` type annotations are reported as confirmed but are not moved: such a value may be a webhook payload passed into a helper, on the endpoint's version.
+- **Other shapes.** Destructuring, string indexes, writes and mutated responses keep the existing review rules. Responses that are only passed to functions, returned, stored or aliased stay confirmed and are moved.
 
 The edit does not change the SDK version, the client's `apiVersion` pin or webhook endpoint versions. Review the rollout separately. For example, the same Stripe SDK's TypeScript types may not declare `parent` until you upgrade the SDK.
 

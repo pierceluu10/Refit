@@ -114,10 +114,6 @@ it.each([
     `${imports} const client = ${creation}; ${helper.replace('const value', 'sdk.customers.retrieve = other; const value')} ${invoke}`,
   ],
   [
-    'escaped client',
-    `${imports} const client = ${creation}; ${helper.replace('const value', 'register(sdk); const value')} ${invoke}`,
-  ],
-  [
     'source mutation',
     `${imports} const client = ${creation}; ${helper} client.customers.retrieve = other; ${invoke}`,
   ],
@@ -133,10 +129,6 @@ it.each([
   [
     'multiple origins',
     `${imports} const client = ${creation}; const second = ${creation}; ${helper} read(second, 'id'); ${invoke}`,
-  ],
-  [
-    'SDK constructor escape',
-    `${imports} const client = ${creation}; expose(Catalog); ${helper} ${invoke}`,
   ],
   [
     'arguments access',
@@ -155,6 +147,22 @@ it.each([
   ]);
   expect(result.edits).toEqual([]);
   expect(migrationReviewReason(result)).toContain('stable helper-client provenance');
+});
+
+it.each([
+  [
+    'escaped client',
+    `${imports} const client = ${creation}; ${helper.replace('const value', 'register(sdk); const value')} ${invoke}`,
+  ],
+  [
+    'SDK constructor escape',
+    `${imports} const client = ${creation}; expose(Catalog); ${helper} ${invoke}`,
+  ],
+])('keeps reads through a helper confirmed after %s', (_name, source) => {
+  const result = analyze(source);
+  expect(result.findings).toMatchObject([{ confidence: 'confirmed' }]);
+  expect(result.findings[0].helperClient).toBeUndefined();
+  expect(migrationReviewReason(result)).toBeUndefined();
 });
 
 it('does not infer SDK identity from a parameter annotation alone', () => {

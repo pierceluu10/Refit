@@ -115,7 +115,6 @@ it.each([
     'alias mutation',
     `client = ${creation}; reset() { const alias = this.client; alias.customers.retrieve = alternate; }`,
   ],
-  ['client escape', `client = ${creation}; expose() { return this.client; }`],
   ['instance escape', `client = ${creation}; expose() { mutate(this); }`],
   ['constructor return', `client = ${creation}; constructor() { return otherInstance; }`],
   [
@@ -161,8 +160,12 @@ it('traces imported clients and keeps mutation evidence across the module graph'
   const source = `import { shared } from './client'; export class Service { client = shared; ${method} }`;
   const client = `${imports} export const shared = ${creation};`;
   expect(analyze(source, { 'client.ts': client }).findings[0].confidence).toBe('confirmed');
+  expect(
+    analyze(source, { 'client.ts': `${client} shared.customers.retrieve = other;` }).findings[0]
+      .confidence,
+  ).toBe('review');
   expect(analyze(source, { 'client.ts': `${client} mutate(shared);` }).findings[0].confidence).toBe(
-    'review',
+    'confirmed',
   );
 });
 
@@ -178,13 +181,22 @@ it('preserves class review evidence when the SDK operation has no adapter mappin
   ]);
 });
 
-it('does not let a class field expose and mutate the SDK constructor', () => {
+it('keeps class clients confirmed when a class field only stores the SDK constructor', () => {
   const result = analyze(
     `${imports} class Holder { constructorReference = Catalog; } class Service { client = ${creation}; ${method} }`,
   );
-  expect(result.findings[0].confidence).toBe('review');
-  expect(result.edits).toEqual([]);
+  expect(result.findings[0].confidence).toBe('confirmed');
 });
+
+it.each([['client escape', `client = ${creation}; expose() { return this.client; }`]])(
+  'keeps class-client reads confirmed after %s',
+  (_label, members) => {
+    const result = analyze(`${imports} class Service { ${members} ${method} }`);
+    expect(result.findings).toMatchObject([{ confidence: 'confirmed' }]);
+    expect(result.findings[0].classClient).toBeUndefined();
+    expect(migrationReviewReason(result)).toBeUndefined();
+  },
+);
 
 it('handles constructors with ordinary arrow callbacks without treating their returns as constructor exits', () => {
   const source = `${imports} class Service { client; constructor() { const read = () => { return 'ok'; }; this.client = ${creation}; } ${method} }`;

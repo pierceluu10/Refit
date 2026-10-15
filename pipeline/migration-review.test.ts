@@ -23,7 +23,7 @@ it.each(['declared-type', 'skipped-source', 'helper-client'] as const)(
     const after = resolve('pipeline/fixtures/stripe-webhooks/after.json');
     await writeFile(
       join(root, 'client.ts'),
-      `import Stripe from 'stripe'; export const stripe = new Stripe('local-fixture', {apiVersion: '${version}'}); ${kind === 'declared-type' ? 'export function end(value: unknown) {return (value as Stripe.Subscription).current_period_end;}' : ''}
+      `import Stripe from 'stripe'; export const stripe = new Stripe('local-fixture', {apiVersion: '${version}'}); ${kind === 'declared-type' ? "export function end(value: unknown) {const subscription = value as Stripe.Subscription; subscription.status = 'active'; return subscription.current_period_end;}" : ''}
 ${
   kind === 'helper-client'
     ? `export async function end(sdk, id) { const subscription = await sdk.subscriptions.retrieve(id); return subscription.current_period_end; }

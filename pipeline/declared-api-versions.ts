@@ -23,6 +23,8 @@ export function declaredApiVersions(options: {
   canonical: (symbol: ts.Symbol | undefined) => ts.Symbol | undefined;
   location: (node: ts.Node) => Location;
   references?: BindingReferences;
+  // Receives the text span of each literal version, for a patch that bumps it.
+  literals?: { file: string; start: number; end: number; value: string }[];
 }): ApiVersionDeclaration[] {
   const mapping = options.provider.apiVersion;
   if (!mapping) return [];
@@ -106,6 +108,7 @@ export function declaredApiVersions(options: {
   function version(expression: ts.Expression | undefined): {
     status: 'absent' | 'unknown' | 'literal';
     value: string | null;
+    node?: ts.Expression;
   } {
     if (!expression) return { status: 'absent', value: null };
     const result = property(expression, mapping!.property.split('.'));
@@ -114,7 +117,7 @@ export function declaredApiVersions(options: {
     if (!value || !(ts.isStringLiteral(value) || ts.isNoSubstitutionTemplateLiteral(value)))
       return { status: 'unknown', value: null };
     try {
-      return { status: 'literal', value: validateApiVersion(value.text)! };
+      return { status: 'literal', value: validateApiVersion(value.text)!, node: value };
     } catch (error) {
       if (!(error instanceof PipelineInputError)) throw error;
       return { status: 'unknown', value: null };
@@ -141,6 +144,13 @@ export function declaredApiVersions(options: {
     options.references,
   );
   const declarations: ApiVersionDeclaration[] = [];
+  const literalSpan = (node: ts.Expression, value: string) =>
+    options.literals?.push({
+      file: location(node).file,
+      start: node.getStart() + 1,
+      end: node.getEnd() - 1,
+      value,
+    });
   for (const node of nodes) {
     const creation = options.creation(node);
     if (creation) {
@@ -152,6 +162,7 @@ export function declaredApiVersions(options: {
         !binding ||
         !clients.has(binding) ||
         unsafe.has(binding);
+      if (result.node && !uncertain) literalSpan(result.node, result.value!);
       declarations.push({
         ...location(node),
         kind: 'constructor',
@@ -173,7 +184,8 @@ export function declaredApiVersions(options: {
       node.arguments.some(ts.isSpreadElement) ||
       results.some((result) => result.status === 'unknown') ||
       new Set(literal.map((result) => result.value)).size > 1;
-    for (const result of literal)
+    for (const result of literal) {
+      literalSpan(result.node!, result.value!);
       declarations.push({
         ...location(node),
         kind: 'request',
@@ -181,6 +193,7 @@ export function declaredApiVersions(options: {
         status: 'literal',
         reason: 'Literal per-request API-version override.',
       });
+    }
     if (unknown || !literal.length)
       declarations.push({
         ...location(node),

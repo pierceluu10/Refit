@@ -66,6 +66,13 @@ const sdkSpec = JSON.parse(
   await readFile(join(root, 'specs', `sdk-${latest}.json`), 'utf8'),
 ) as Record<string, unknown>;
 const operationsByVersion = new Map<string, ReturnType<typeof stripeOperations>>();
+// Pinned Stripe changelog pages, attached as AI vendor notes for the changes each repository hits.
+const CHANGELOG = resolve('docs/benchmarks/stripe-changelog');
+const changelogPages = (
+  JSON.parse(await readFile(join(CHANGELOG, 'index.json'), 'utf8')) as {
+    changes: Record<string, string>;
+  }
+).changes;
 const productionFailures = new Map<string, string>();
 await mkdir(output);
 
@@ -140,6 +147,14 @@ for (const [index, entry] of selected.entries()) {
       property: finding.expression.replace(/^\??\./, ''),
       confidence: finding.confidence,
     })),
+    confirmedFields: [
+      ...new Set(
+        report.findings
+          .filter((finding) => finding.confidence === 'confirmed')
+          .map((finding) => report.changes.find((change) => change.id === finding.changeId))
+          .map((change) => (change ? `${change.schema}.${change.property}` : undefined)),
+      ),
+    ].filter((field): field is string => Boolean(field)),
     affectedFields: [
       ...new Set(
         report.findings.map(
@@ -190,7 +205,11 @@ for (const [index, entry] of selected.entries()) {
       productionFailures.set(entry.before, message(error));
       result.productionMode = { error: message(error) };
     }
-  const full = result.fullAdapter as { confirmed: number };
+  const full = result.fullAdapter as { confirmed: number; confirmedFields: string[] };
+  const notes = [
+    ...new Set(full.confirmedFields?.map((field) => changelogPages[field]).filter(Boolean)),
+  ].map((page) => join(CHANGELOG, page));
+  result.changelogNotes = notes.map((path) => path.slice(CHANGELOG.length + 1));
   if (!full.confirmed || !ai) {
     log(full.confirmed ? `affected (${full.confirmed} usages), AI not requested` : 'not affected');
     continue;
@@ -223,6 +242,7 @@ for (const [index, entry] of selected.entries()) {
           '--output',
           bundle,
           '--ai-patch',
+          ...notes.flatMap((path) => ['--documentation-snapshot', path]),
           '--repair-attempts',
           '1',
           '--quiet',
@@ -247,12 +267,19 @@ for (const [index, entry] of selected.entries()) {
       patch: report.patch?.status,
       summary: report.patch?.summary,
       validation: report.validation?.status,
+      repairAttempts: report.validation?.repair?.requested ?? 0,
+      diff: report.patch?.diff?.slice(0, 8000),
       pullRequest: existsSync(join(bundle, 'pull-request.md')),
     };
     log(`workflow ${String((result.workflow as { status: string }).status)}`);
   } else {
     try {
-      const report = await runPipeline({ ...inputs, providerConfig: adapterPath, aiPatch: ai });
+      const report = await runPipeline({
+        ...inputs,
+        providerConfig: adapterPath,
+        aiPatch: ai,
+        documentationSnapshots: notes,
+      });
       const patch = report.patch as {
         status: string;
         edits?: number;
@@ -260,7 +287,13 @@ for (const [index, entry] of selected.entries()) {
         diff?: string;
       };
       result.ai = {
-        outcome: patch.edits ? 'proposed' : 'declined',
+        outcome: patch.edits
+          ? 'proposed'
+          : patch.status === 'not-generated'
+            ? 'blocked'
+            : 'declined',
+        generator: (patch as { generator?: string }).generator,
+        reason: (patch as { reason?: string }).reason,
         summary: patch.summary,
         diff: patch.diff?.slice(0, 4000),
       };
