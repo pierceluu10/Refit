@@ -1,5 +1,13 @@
 # Refit implementation checkpoints
 
+## October 15 checkpoint: curated Stripe basil moves (0.24.0)
+
+[`examples/stripe-basil-moves.provider.json`](../examples/stripe-basil-moves.provider.json) maps Stripe's invoice and invoice-item SDK methods and six basil moves: `invoice.subscription`, `invoice.quote`, `invoiceitem.subscription`, `invoiceitem.subscription_item`, `line_item.subscription_item` and `line_item.invoice_item`. Each passes the move checks against Stripe's published acacia and basil documents. Two rules make that possible. An optional, non-nullable field moves with optional chaining and no null fallback, keeping `undefined`. An expandable `string | object` field may move to a location that holds exactly its ID string, and the expansion gate still applies. Moves that change object schemas, formats or required presence stay out. See [moved response fields](PROPERTY-MOVES.md).
+
+The default suite passed **1,198 tests across 74 files**, with 73 environment-gated tests skipped, plus build, typecheck and formatting. A test checks the shipped adapter against excerpts of the real Stripe schemas and migrates all six moves, including line items read through `invoice.lines.data`.
+
+The local lab at `/Users/pierceluu/Repos/refit-stripe-lab` used this adapter with the actual `stripe` 17.7.0 SDK. `refit run` migrated eight usages across invoices, quotes, line items and invoice items. The original passed simulated acacia responses and the migration passed simulated basil responses in offline Docker; the original fails against basil. Evidence is at `/Users/pierceluu/.refit/evaluations/basil-moves-six-2026-10-15`. The responses were simulated, and no AI or live Stripe call was used. Nullability follows the recorded contract, not observed responses.
+
 ## October 15 checkpoint: configured nested field moves (0.23.0)
 
 An adapter's `propertyRenames` entry can now name a dot-separated replacement path of up to four identifiers. Before scanning, Refit checks that the path is new in the after contract, its intermediates are object references, and the value keeps the removed field's declared shape with compatible nullability. Confirmed direct reads on traced SDK responses get optional chaining where the contract allows a missing parent, plus a `?? null` fallback that keeps the removed nullable field's result. Reads already using the new path are not reported, even when other removals share segment names. Expandable values stay unedited when an `expand` array names the old field or cannot be read statically. Webhook payloads, declared-type values and other review shapes are unchanged. See [moved response fields](PROPERTY-MOVES.md).
