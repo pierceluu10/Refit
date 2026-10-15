@@ -1,5 +1,15 @@
 # Refit implementation checkpoints
 
+## October 15 checkpoint: Yarn 1 preparation and unexpanded removals (0.25.0)
+
+`prepareDependencies` now supports Yarn 1 root projects. Every `yarn.lock` entry must resolve an exact version to a public registry tarball with strong integrity, and every root range must be locked. The pinned Yarn 1 manager is installed through npm with integrity evidence, and dependencies install with `--frozen-lockfile --ignore-scripts --no-default-rc`. Only `package.json` and `yarn.lock` enter the networked installer, and checks run offline with `yarn` on PATH. Scans and readiness also record SDK versions from Yarn 1 and Yarn 2+ lockfiles. Yarn workspaces and Yarn 2+ installs still need a custom image. See [dependency preparation](DEPENDENCIES.md).
+
+With owner sign-off, `--full-diff` no longer blocks on removed response properties that lie inside an expandable field's expanded object, unless the repository expands that field. Any non-literal mention of `expand` keeps every such removal blocking. In the basil lab this removes 47 of 54 blocking changes on the called operations; direct removals the code never reads still block.
+
+The default suite passed **1,226 tests across 77 files**, with 75 environment-gated tests skipped, plus build, typecheck and formatting. The gated Yarn test installed a generated Yarn 1 lockfile with actual Stripe 17.7.0 in Docker, left its install-script tripwire untouched, ignored a hostile repository `.yarnrc`, ran `yarn` and the SDK offline, and reused its cache. The gated pnpm/npm preparation suites still pass.
+
+On the Stripe benchmark's five yarn repositories, read without running application code: four Yarn 1 lockfiles and one Yarn 2+ lockfile now record Stripe versions; one repository with both `package-lock.json` and `yarn.lock` stays unknown. Automatic preparation succeeded for `ahmedaliofficial/latest-nestjs-stripe` (514 locked records). `backmesh/backmesh` and `starwidesolutions/b2b-ecommerce-saaskit-` exceeded the 300-second installation limit, and `naveennaidu/OpenformStack` was correctly refused as Yarn 2+. No checks or migrations were run on these repositories.
+
 ## October 15 checkpoint: curated Stripe basil moves (0.24.0)
 
 [`examples/stripe-basil-moves.provider.json`](../examples/stripe-basil-moves.provider.json) maps Stripe's invoice and invoice-item SDK methods and six basil moves: `invoice.subscription`, `invoice.quote`, `invoiceitem.subscription`, `invoiceitem.subscription_item`, `line_item.subscription_item` and `line_item.invoice_item`. Each passes the move checks against Stripe's published acacia and basil documents. Two rules make that possible. An optional, non-nullable field moves with optional chaining and no null fallback, keeping `undefined`. An expandable `string | object` field may move to a location that holds exactly its ID string, and the expansion gate still applies. Moves that change object schemas, formats or required presence stay out. See [moved response fields](PROPERTY-MOVES.md).
