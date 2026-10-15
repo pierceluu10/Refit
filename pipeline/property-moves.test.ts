@@ -241,6 +241,30 @@ it('still moves the field when expansions name only other fields', async () => {
   expect(report.patch).toMatchObject({ status: 'proposed', unresolvedFindings: 0 });
 });
 
+it('moves an expandable field whose new location holds only its ID string, unless expanded', async () => {
+  const narrowed = {
+    edit: ({ after }: ReturnType<typeof contracts>) => {
+      after.components.schemas.invoice_subscription_parent.properties.subscription = {
+        maxLength: 5000,
+        type: 'string',
+      } as never;
+    },
+  };
+  const report = await proposed(inputs(RETRIEVE, narrowed));
+  expect(report.patch).toMatchObject({ status: 'proposed', unresolvedFindings: 0 });
+  expect(report.patch.diff).toContain(
+    '+  return (invoice.parent?.subscription_details?.subscription ?? null);',
+  );
+  const expanded = RETRIEVE.replace(
+    'stripe.invoices.retrieve(id)',
+    "stripe.invoices.retrieve(id, { expand: ['subscription'] })",
+  );
+  expect((await runPipeline(await inputs(expanded, narrowed))).patch).toMatchObject({
+    status: 'unsupported',
+    unresolvedFindings: 1,
+  });
+});
+
 it('rejects moves the recorded contracts do not support', async () => {
   const cases: [string, Parameters<typeof inputs>[1]][] = [
     [

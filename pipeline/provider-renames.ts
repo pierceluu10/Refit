@@ -69,6 +69,21 @@ function shape(value: unknown): string {
     .join(',')}}`;
 }
 
+// An expandable `string | object` whose new location holds only the ID string. Unexpanded
+// responses always returned that string, and moves of expandable fields stop where a request
+// expands the old field.
+function narrowsExpandable(removed: Record<string, unknown>, target: Record<string, unknown>) {
+  const members = Array.isArray(removed.anyOf) ? removed.anyOf : [];
+  return (
+    isObject(removed['x-expansionResources']) &&
+    members.length === 2 &&
+    target.type === 'string' &&
+    !shape(target).includes('"$ref"') &&
+    members.some((member) => shape(member) === shape(target)) &&
+    members.some((member) => isObject(member) && componentReference(member.$ref))
+  );
+}
+
 function moveError(rename: { schema: string; removed: string; replacement: string }) {
   return new PipelineInputError(
     `Configured move ${rename.schema}.${rename.removed} → ${rename.schema}.${rename.replacement} requires a path that is new in the after contract, object intermediates and a value with the same declared shape and compatible nullability.`,
@@ -104,7 +119,8 @@ export function validatePropertyRenames(
         Array.isArray(definition.required) && definition.required.includes(rename.removed)
       );
       if (
-        shape(removed) !== shape(resolved.target) ||
+        (shape(removed) !== shape(resolved.target) &&
+          !narrowsExpandable(removed, resolved.target)) ||
         (!removedNullable &&
           ((anyOptional && !removedOptional) || resolved.target.nullable === true))
       )
