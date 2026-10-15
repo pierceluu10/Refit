@@ -20,6 +20,12 @@ export interface Finding extends Location {
   declaredType?: { schema?: string };
   classClient?: { origin: Location; stability: 'review' };
   helperClient?: { origin: Location; parameter: Location; stability: 'review' };
+  // How a migrated subscription-period read handles subscriptions whose items have different
+  // periods: an item the code already selects, the configured price policy, or not at all.
+  subscriptionPeriod?: {
+    rareCase: 'item-in-code' | 'price-policy' | 'flagged';
+    selection?: string;
+  };
   webhook?: {
     eventTypes: string[];
     schema?: string;
@@ -32,7 +38,7 @@ export interface Finding extends Location {
           beforeApiVersion: string;
           afterApiVersion: string;
         }
-      | { rule: 'stripe-subscription-periods-either-version' };
+      | { rule: 'stripe-subscription-periods-helper' };
   };
 }
 
@@ -44,8 +50,7 @@ export interface SourceEdit {
   changeId: string;
   rule?:
     | 'stripe-subscription-periods-price-id'
-    | 'stripe-subscription-periods-items'
-    | 'stripe-subscription-periods-either-version'
+    | 'stripe-subscription-periods-helper'
     | 'stripe-api-version';
 }
 

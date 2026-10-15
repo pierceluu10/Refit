@@ -11,8 +11,7 @@ export interface StripeSubscriptionPeriodPolicy {
 }
 
 export const SUBSCRIPTION_PERIOD_RULE = 'stripe-subscription-periods-price-id';
-export const SUBSCRIPTION_PERIOD_ITEMS_RULE = 'stripe-subscription-periods-items';
-export const SUBSCRIPTION_PERIOD_EITHER_RULE = 'stripe-subscription-periods-either-version';
+export const SUBSCRIPTION_PERIOD_HELPER_RULE = 'stripe-subscription-periods-helper';
 const BEFORE_VERSION = '2025-02-24.acacia';
 const AFTER_VERSION = '2025-03-31.basil';
 const MAX_PRICE_ID_LENGTH = 256;
@@ -347,47 +346,71 @@ export function subscriptionPeriodEdit(options: {
   }
 }
 
-// SDK responses and Stripe.Subscription values follow the outgoing apiVersion, which the same patch
-// bumps; signed webhook payloads keep their endpoint's version and stay with the price-ID policy.
-// When items share one billing period this equals the old subscription-level value; otherwise it
-// is the widest period (earliest start, latest end).
-export function subscriptionPeriodReadEdit(node: ts.Node, file: string, changeId: string) {
-  if (!ts.isPropertyAccessExpression(node)) return;
-  const field = node.name.text;
-  if (field !== PERIOD_FIELDS[0] && field !== PERIOD_FIELDS[1]) return;
-  const aggregate = field === PERIOD_FIELDS[0] ? 'min' : 'max';
+export const PERIOD_HELPERS = {
+  current_period_start: 'getSubscriptionPeriodStart',
+  current_period_end: 'getSubscriptionPeriodEnd',
+} as const;
+export type PeriodRareCase = 'item-in-code' | 'price-policy' | 'flagged';
+
+// Replaces a period read with the generated helper; `plan` selects the item for subscriptions whose
+// items have different periods.
+export function subscriptionPeriodHelperEdit(
+  node: ts.Node,
+  file: string,
+  changeId: string,
+  plan: string | undefined,
+) {
+  if (!ts.isPropertyAccessExpression(node) || !Object.hasOwn(PERIOD_HELPERS, node.name.text))
+    return;
+  const helper = PERIOD_HELPERS[node.name.text as keyof typeof PERIOD_HELPERS];
   return movedReadEdit(
     node,
     file,
     changeId,
-    SUBSCRIPTION_PERIOD_ITEMS_RULE,
-    (subscription) =>
-      `Math.${aggregate}(...${subscription}.items.data.map((item) => item.${field}))`,
+    SUBSCRIPTION_PERIOD_HELPER_RULE,
+    (subscription) => `${helper}(${subscription}${plan ? `, ${plan}` : ''})`,
   );
 }
 
-// Webhook payloads and Stripe.Subscription values may be rendered in the old or the new API version
-// (a webhook endpoint keeps its own version). The old subscription-level field wins when present;
-// otherwise the widest item period, as for SDK responses. Reflect.get keeps the old field readable
-// under the new SDK types.
-export function subscriptionPeriodEitherVersionEdit(node: ts.Node, file: string, changeId: string) {
-  if (!ts.isPropertyAccessExpression(node)) return;
-  const field = node.name.text;
-  if (field !== PERIOD_FIELDS[0] && field !== PERIOD_FIELDS[1]) return;
-  if (
-    /\b(?:const|let|var|function|class|import)\s+(?:\{[^}]*\b)?Reflect\b/.test(
-      node.getSourceFile().text,
-    )
-  )
-    return;
-  const aggregate = field === PERIOD_FIELDS[0] ? 'min' : 'max';
-  return movedReadEdit(
-    node,
-    file,
-    changeId,
-    SUBSCRIPTION_PERIOD_EITHER_RULE,
-    (subscription) =>
-      // Missing or empty items give undefined, as the removed field did, rather than NaN.
-      `Reflect.get(${subscription}, '${field}') ?? [Math.${aggregate}(...(${subscription}.items?.data ?? []).map((item) => item.${field}))].find(Number.isFinite)`,
+const HELPER_BODY = (typed: boolean) => {
+  const t = (annotation: string) => (typed ? annotation : '');
+  return `${
+    typed
+      ? `type PeriodItem = { price?: { id?: string } | null };
+type PeriodField = 'current_period_start' | 'current_period_end';
+type PlanItem = (items: PeriodItem[]) => PeriodItem | undefined;
+
+// Typed like the removed field, which was also absent at runtime when Stripe omitted it.
+`
+      : ''
+  }function subscriptionPeriod(subscription${t(': object')}, field${t(': PeriodField')}, planItem${t('?: PlanItem')})${t(': number')} {
+  const legacy${t(': unknown')} = Reflect.get(subscription, field);
+  if (typeof legacy === 'number') return legacy;
+  const list${t(': unknown')} = Reflect.get(subscription, 'items');
+  const data${t(': unknown')} = list && typeof list === 'object' ? Reflect.get(list, 'data') : undefined;
+  const items = (Array.isArray(data) ? data : []).filter(
+    (item)${t(': item is PeriodItem')} => typeof item === 'object' && item !== null,
   );
+  const periods = new Set(items.map((item) => Reflect.get(item, field)));
+  const chosen = periods.size === 1 ? items[0] : planItem?.(items);
+  const value${t(': unknown')} = chosen ? Reflect.get(chosen, field) : undefined;
+  return ${typed ? '(' : ''}typeof value === 'number' ? value : undefined${typed ? ') as number' : ''};
+}
+`;
+};
+
+export function subscriptionPeriodHelperModule(kind: 'ts' | 'esm' | 'cjs') {
+  const typed = kind === 'ts';
+  const exported = kind === 'cjs' ? '' : 'export ';
+  const parameters = typed ? 'subscription: object, planItem?: PlanItem' : 'subscription, planItem';
+  const result = typed ? ': number' : '';
+  return `${HELPER_BODY(typed)}
+${exported}function getSubscriptionPeriodStart(${parameters})${result} {
+  return subscriptionPeriod(subscription, 'current_period_start', planItem);
+}
+
+${exported}function getSubscriptionPeriodEnd(${parameters})${result} {
+  return subscriptionPeriod(subscription, 'current_period_end', planItem);
+}
+${kind === 'cjs' ? '\nmodule.exports = { getSubscriptionPeriodStart, getSubscriptionPeriodEnd };\n' : ''}`;
 }

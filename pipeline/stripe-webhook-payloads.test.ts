@@ -91,10 +91,18 @@ it.each([
         },
       },
     ]);
-    expect(result.edits).toMatchObject([{ rule: 'stripe-subscription-periods-either-version' }]);
+    expect(result.edits.map((edit) => edit.file).sort()).toEqual([
+      'handler.ts',
+      'handler.ts',
+      'stripe-subscription-period.ts',
+    ]);
+    expect(result.edits.every((edit) => edit.rule === 'stripe-subscription-periods-helper')).toBe(
+      true,
+    );
     expect(result.findings[0].webhook?.migration).toEqual({
-      rule: 'stripe-subscription-periods-either-version',
+      rule: 'stripe-subscription-periods-helper',
     });
+    expect(result.findings[0].subscriptionPeriod).toEqual({ rareCase: 'flagged' });
     expect(result.apiVersionDeclarations).toHaveLength(1);
     expect(
       compareApiVersion(
@@ -139,10 +147,18 @@ it.each([
       confidence: 'confirmed',
       webhook: { schema: 'subscription', eventTypes: ['customer.subscription.updated'] },
     });
-    expect(result.edits).toMatchObject([{ rule: 'stripe-subscription-periods-either-version' }]);
+    expect(result.edits.map((edit) => edit.file).sort()).toEqual([
+      'handler.ts',
+      'handler.ts',
+      'stripe-subscription-period.ts',
+    ]);
+    expect(result.edits.every((edit) => edit.rule === 'stripe-subscription-periods-helper')).toBe(
+      true,
+    );
     expect(result.findings[0].webhook?.migration).toEqual({
-      rule: 'stripe-subscription-periods-either-version',
+      rule: 'stripe-subscription-periods-helper',
     });
+    expect(result.findings[0].subscriptionPeriod).toEqual({ rareCase: 'flagged' });
   },
 );
 

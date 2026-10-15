@@ -108,8 +108,7 @@ it.skipIf(!process.env.REFIT_STRIPE_SDK).each(SDK_VERSIONS)(
     expect(report.findings.every((finding) => finding.confidence === 'confirmed')).toBe(true);
     expect(
       report.findings.every(
-        (finding) =>
-          finding.webhook?.migration?.rule === 'stripe-subscription-periods-either-version',
+        (finding) => finding.webhook?.migration?.rule === 'stripe-subscription-periods-helper',
       ),
     ).toBe(true);
     expect(report.patch).toMatchObject({ status: 'proposed', unresolvedFindings: 0 });
@@ -122,6 +121,7 @@ it.skipIf(!process.env.REFIT_STRIPE_SDK).each(SDK_VERSIONS)(
     );
     expect(replay.deliveries[0].status).toBe(200);
     await sample.git(['checkout', '--', '.']);
+    await sample.git(['clean', '-fdq', '--exclude=node_modules']);
     expect(fetch).not.toHaveBeenCalled();
     expect((await sample.git(['status', '--porcelain'])).stdout).toBe('');
   },

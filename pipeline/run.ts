@@ -34,8 +34,7 @@ import { PipelineInputError } from './types.ts';
 import { digest, findRemovedProperties, isObject, readSpecification } from './specifications.ts';
 import { stripeAdapterFor } from './stripe-operations.ts';
 import {
-  SUBSCRIPTION_PERIOD_EITHER_RULE,
-  SUBSCRIPTION_PERIOD_ITEMS_RULE,
+  SUBSCRIPTION_PERIOD_HELPER_RULE,
   validateStripeSubscriptionPeriodContract,
 } from './stripe-subscription-periods.ts';
 import {
@@ -142,10 +141,7 @@ export async function runPipeline(options: {
     propertyExists(after.schemas, ['subscription', 'items']) &&
     propertyExists(after.schemas, ['subscription_item', 'current_period_start']) &&
     propertyExists(after.schemas, ['subscription_item', 'current_period_end']);
-  const movedTo = {
-    [SUBSCRIPTION_PERIOD_ITEMS_RULE]: itemPeriods,
-    [SUBSCRIPTION_PERIOD_EITHER_RULE]: itemPeriods,
-  } as Record<string, boolean>;
+  const movedTo = { [SUBSCRIPTION_PERIOD_HELPER_RULE]: itemPeriods } as Record<string, boolean>;
   const targetVersion = isObject(after.document.info) ? after.document.info.version : undefined;
   const versionEdits =
     provider.packageName === STRIPE.packageName &&
@@ -169,24 +165,16 @@ export async function runPipeline(options: {
             rule: 'stripe-api-version' as const,
           }))
       : [];
-  // Moved reads are correct only once the same patch pins the new outgoing version; a client
-  // without a literal version follows the account default, which a patch cannot change.
-  // shortcut: requires some bumped literal pin, not the pin of each read's own client; trace the
-  // client per read if repositories mix pinned and unpinned clients.
-  const edits = analyzedEdits.filter(
-    (edit) =>
-      !isFieldMove(edit) ||
-      (movedTo[edit.rule!] &&
-        (edit.rule === SUBSCRIPTION_PERIOD_EITHER_RULE || versionEdits.length > 0)),
-  );
+  // The period helper reads either API version, so it does not depend on the version pin.
+  const edits = analyzedEdits.filter((edit) => !isFieldMove(edit) || movedTo[edit.rule!]);
   const ruleEdits = edits.filter(isFieldMove);
-  // A webhook read counts as migrated only while its version-tolerant edit is kept.
+  // A read counts as migrated only while its helper edit is kept.
   for (const finding of analysis.findings)
-    if (
-      finding.webhook?.migration?.rule === SUBSCRIPTION_PERIOD_EITHER_RULE &&
-      !editCovers(repository, edits, finding)
-    )
-      delete finding.webhook.migration;
+    if (finding.subscriptionPeriod && !editCovers(repository, edits, finding)) {
+      delete finding.subscriptionPeriod;
+      if (finding.webhook?.migration?.rule === SUBSCRIPTION_PERIOD_HELPER_RULE)
+        delete finding.webhook.migration;
+    }
   if (specificationDiff && provider.packageName === STRIPE.packageName)
     specificationDiff.changes.push(
       ...switchedEnumAdditions(enumChecks, before.schemas, after.schemas),

@@ -203,7 +203,7 @@ export async function inspectRepositoryReadiness(options: {
         status: 'passed',
         detail: evidence.adapter.stripeSubscriptionPeriods
           ? `The configured price ${evidence.adapter.stripeSubscriptionPeriods.priceId} matches a supported guarded handler. The proposed patch checks signed event versions; runtime checks have not run.`
-          : 'Webhook subscription-period reads accept both the old and the new payload shape, so the endpoint version can change separately. The widest item period is used when items differ; runtime checks have not run.',
+          : `Webhook subscription-period reads accept both the old and the new payload shape, so the endpoint version can change separately. ${evidence.findings.some((finding) => finding.subscriptionPeriod?.rareCase === 'flagged') ? 'Subscriptions with items on different billing periods are not handled; set stripeSubscriptionPeriods to choose which item counts.' : 'Items on different billing periods use the item the application already selects or the configured price policy.'} Runtime checks have not run.`,
         action: null,
       });
     if (evidence.sourceResolution.status === 'review')

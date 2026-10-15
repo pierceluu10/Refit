@@ -71,6 +71,8 @@ function analyze(source = application) {
 it('creates one atomic policy patch with incoming-event evidence and no remaining removed-field findings', () => {
   const result = analyze();
   expect(result.edits).toHaveLength(1);
+  expect(result.edits[0].rule).toBe('stripe-subscription-periods-price-id');
+  expect(result.findings.some((finding) => finding.subscriptionPeriod)).toBe(false);
   expect(result.findings).toHaveLength(4);
   expect(
     result.findings.every(
@@ -94,6 +96,14 @@ it('creates one atomic policy patch with incoming-event evidence and no remainin
   expect(analyze(migrated).findings).toEqual([]);
   expect(migrated).toContain('event.api_version');
   expect(migrated).not.toContain('items.data[0]');
+});
+
+it('keeps the configured price policy ahead of an item the file selects', () => {
+  const result = analyze(
+    `${application}\nexport function firstItem(subscription) { return subscription.items.data[0]; }\n`,
+  );
+  expect(result.edits.map((edit) => edit.rule)).toEqual(['stripe-subscription-periods-price-id']);
+  expect(result.findings.some((finding) => finding.subscriptionPeriod)).toBe(false);
 });
 
 it('keeps direct AI generation blocked even when the deterministic policy is supported', async () => {
@@ -174,6 +184,18 @@ it.each([
   ),
   application.replace('stripe.webhooks.constructEvent(', 'stripe.webhooks?.constructEvent('),
   application.replace(
+    'const subscription = event.data.object;',
+    'const subscription = event.data.object; subscription.current_period_end = 0;',
+  ),
+  application.replaceAll('subscription', 'items'),
+])('keeps unsupported or mutated handlers under review', (source) => {
+  const result = analyze(source);
+  expect(result.edits).toEqual([]);
+  expect(result.findings.some((finding) => finding.webhook?.migration)).toBe(false);
+});
+
+it.each([
+  application.replace(
     'export class MissingSubscriptionPeriodError extends Error {}',
     'export class MissingSubscriptionPeriodError extends Error { constructor(message) { super(message); } }',
   ),
@@ -183,23 +205,37 @@ it.each([
   ),
   application.replace(
     'const subscription = event.data.object;',
-    'const subscription = event.data.object; subscription.current_period_end = 0;',
-  ),
-  application.replace(
-    'const subscription = event.data.object;',
     'const subscription = event.data.object; mutate(subscription);',
   ),
   application.replace(
     'export function handleWebhook(body, signature, secret)',
     'export function handleWebhook(body, signature, secret, Reflect)',
   ),
-  application.replaceAll('subscription', 'items'),
   `const refitSubscriptionPeriod = 'occupied';\n${application}`,
-])('keeps unsupported, mutated or shadowed handlers under review', (source) => {
-  const result = analyze(source);
-  expect(result.edits).toEqual([]);
-  expect(result.findings.some((finding) => finding.webhook?.migration)).toBe(false);
-});
+])(
+  'reads periods through the helper with the configured price item where the policy handler does not apply',
+  (source) => {
+    const result = analyze(source);
+    expect(result.edits.every((edit) => edit.rule === 'stripe-subscription-periods-helper')).toBe(
+      true,
+    );
+    expect(result.findings.length).toBeGreaterThan(0);
+    expect(
+      result.findings.every(
+        (finding) =>
+          finding.webhook?.migration?.rule === 'stripe-subscription-periods-helper' &&
+          finding.subscriptionPeriod?.rareCase === 'price-policy',
+      ),
+    ).toBe(true);
+    const patched = applySourceEdits(
+      source,
+      result.edits.filter((edit) => edit.file === 'entitlements.js'),
+    );
+    expect(patched).toContain(
+      `getSubscriptionPeriodEnd(subscription, (items) => items.find((item) => item.price?.id === "${POLICY.priceId}"))`,
+    );
+  },
+);
 
 async function scenario(version: string) {
   const root = await mkdtemp(join(tmpdir(), 'refit-period-policy-'));

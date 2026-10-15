@@ -4,16 +4,23 @@ Refit can propose a deterministic migration for a narrow signed-webhook handler 
 
 Stripe [moved subscription periods onto individual items in 2025-03-31.basil](https://docs.stripe.com/changelog/basil/2025-03-31/deprecate-subscription-current-period-start-and-end). Several items may have different periods. Selecting one by price is an application decision, not a conclusion Refit draws from the API diff.
 
-## Without a price policy
+## Every period read: the generated helper
 
-Without a configured policy, Refit rewrites period reads on signed webhook payloads and on values typed as `Stripe.Subscription` into a version-tolerant read:
+Refit rewrites every `current_period_start/end` read on SDK responses, signed webhook payloads and `Stripe.Subscription`-typed values into a call to one generated helper per repository (`stripe-subscription-period.ts` or `.js`, in the deepest folder the patched files share):
 
 ```ts
-Reflect.get(subscription, 'current_period_end') ??
-  [Math.max(...(subscription.items?.data ?? []).map((item) => item.current_period_end))].find(Number.isFinite)
+getSubscriptionPeriodEnd(subscription, (items) => items[0]);
 ```
 
-An event rendered in the old version keeps its subscription-level value. A new-version event uses the latest item end (earliest item start for `current_period_start`). Missing or empty items give `undefined`, as the removed field did, so existing missing-period checks still fire. The endpoint's API version can therefore change separately from the code. When items have different periods, the widest period is an entitlement choice: use the price-ID policy below to select a specific item instead. A configured policy always takes precedence.
+The helper returns, in order:
+
+1. the subscription-level field, when the event was rendered in an old API version;
+2. the period every item shares (one item, or all items equal), which covers almost every real subscription;
+3. for the rare subscription whose items have different periods, the period of the item the application already treats as its plan. Refit decides this at patch time: a `price.id` comparison on a subscription item, or a fixed `items.data[N]` index, in the same function, else in the same file. Without such code, the configured `stripeSubscriptionPeriods` price is used.
+
+If neither exists, step 3 returns `undefined` and the pull request says: "Subscriptions with items on different billing periods are not handled. Set `stripeSubscriptionPeriods` to choose which item counts." Missing or empty items return `undefined`, as the removed field did, so existing missing-period checks still fire. Refit never picks an earliest or latest period across items.
+
+Each migrated finding records `subscriptionPeriod.rareCase`: `item-in-code`, `price-policy` or `flagged`. Imports follow each file's module style and its existing relative-import extensions, or `tsconfig` Node16/NodeNext resolution. Where a configured policy's guarded handler applies (below), that migration takes precedence over the helper.
 
 ## Approved configuration
 

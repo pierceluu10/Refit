@@ -6,7 +6,10 @@ import { analyzeRepository } from './analyzer.ts';
 import { applySourceEdits } from './patches.ts';
 import { STRIPE } from './providers.ts';
 import { runPipeline } from './run.ts';
-import { findRemovedProperties } from './specifications.ts';
+import { digest, findRemovedProperties } from './specifications.ts';
+import { createReviewArtifacts } from './review.ts';
+import { subscriptionPeriodHelperModule } from './stripe-subscription-periods.ts';
+import ts from 'typescript-compiler';
 import { migrationReviewReason } from './migration-review.ts';
 
 const roots: string[] = [];
@@ -95,84 +98,99 @@ function analyze(body: string) {
   return { ...result, patched: applySourceEdits(content, result.edits) };
 }
 
-it('moves subscription period reads on SDK responses to the widest item period', () => {
+function helper(planText?: string) {
+  const module: { exports: Record<string, (subscription: object, plan?: unknown) => unknown> } = {
+    exports: {},
+  };
+  new Function('module', subscriptionPeriodHelperModule('cjs'))(module);
+  const plan = planText ? new Function(`return ${planText};`)() : undefined;
+  return (subscription: object) => module.exports.getSubscriptionPeriodEnd(subscription, plan);
+}
+const planOf = (replacement: string) => /, (\(items\) => .*)\)\)$/.exec(replacement)?.[1];
+const item = (end: number, price = 'price_basic') => ({
+  current_period_end: end,
+  price: { id: price },
+});
+
+it('reads every subscription period through the generated helper', () => {
   const result = analyze(`export async function period(id: string) {
   const subscription = await stripe.subscriptions.retrieve(id);
-  return [subscription.current_period_start, subscription.current_period_end];
+  return [subscription.current_period_start, subscription?.current_period_end];
 }`);
   expect(result.findings.map((finding) => finding.confidence)).toEqual(['confirmed', 'confirmed']);
-  expect(result.edits.map((edit) => edit.rule)).toEqual([
-    'stripe-subscription-periods-items',
-    'stripe-subscription-periods-items',
-  ]);
-  expect(result.patched).toContain(
-    'return [(Math.min(...subscription.items.data.map((item) => item.current_period_start))), (Math.max(...subscription.items.data.map((item) => item.current_period_end)))];',
-  );
-});
-
-it('keeps an optional receiver optional and skips longer optional chains', () => {
-  const result =
-    analyze(`export async function period(id: string, holder?: { sub: Stripe.Subscription }) {
-  const subscription = await stripe.subscriptions.retrieve(id);
-  const wrapped = { sub: subscription } as { sub: typeof subscription } | undefined;
-  return [subscription?.current_period_end, wrapped?.sub.current_period_end];
-}`);
-  expect(result.patched).toContain(
-    '(subscription == null ? undefined : Math.max(...subscription.items.data.map((item) => item.current_period_end)))',
-  );
-  expect(result.patched).toContain('wrapped?.sub.current_period_end');
-});
-
-it('reads both period shapes on webhook payloads and Stripe-typed values', () => {
-  const result = analyze(`export function fromWebhook(body: string, signature: string) {
-  const event = stripe.webhooks.constructEvent(body, signature, 'whsec');
-  if (event.type === 'customer.subscription.updated') {
-    const subscription = event.data.object as Stripe.Subscription;
-    return subscription.current_period_end;
-  }
-}
-export function fromParameter(subscription?: Stripe.Subscription) {
-  return subscription?.current_period_start;
-}`);
-  expect(result.findings.filter((finding) => finding.confidence === 'confirmed')).toHaveLength(2);
-  expect(result.edits.map((edit) => edit.rule)).toEqual([
-    'stripe-subscription-periods-either-version',
-    'stripe-subscription-periods-either-version',
-  ]);
-  expect(result.findings.find((finding) => finding.webhook)?.webhook?.migration).toEqual({
-    rule: 'stripe-subscription-periods-either-version',
-  });
-  expect(result.patched).toContain(
-    "return (Reflect.get(subscription, 'current_period_end') ?? [Math.max(...(subscription.items?.data ?? []).map((item) => item.current_period_end))].find(Number.isFinite));",
+  expect(result.edits.every((edit) => edit.rule === 'stripe-subscription-periods-helper')).toBe(
+    true,
   );
   expect(result.patched).toContain(
-    "return (subscription == null ? undefined : Reflect.get(subscription, 'current_period_start') ?? [Math.min(...(subscription.items?.data ?? []).map((item) => item.current_period_start))].find(Number.isFinite));",
+    "import { getSubscriptionPeriodStart, getSubscriptionPeriodEnd } from './stripe-subscription-period';",
   );
-});
-
-it('evaluates the version-tolerant read against both payload shapes and missing periods', () => {
-  const content = `${header}export function read(subscription: Stripe.Subscription) {
-  return subscription.current_period_end;
-}`;
-  const result = analyze(content.slice(header.length));
-  const expression = result.patched.slice(result.patched.indexOf('return ') + 7, -3);
-  const read = new Function('subscription', `return ${expression};`) as (value: unknown) => unknown;
-  expect(read({ current_period_end: 100, items: { data: [{}] } })).toBe(100);
+  expect(result.patched).toContain(
+    'return [(getSubscriptionPeriodStart(subscription)), (subscription == null ? undefined : getSubscriptionPeriodEnd(subscription))];',
+  );
+  expect(result.patched).not.toMatch(/Math\.(max|min)/);
   expect(
-    read({ items: { data: [{ current_period_end: 200 }, { current_period_end: 300 }] } }),
-  ).toBe(300);
-  expect(read({ items: { data: [{}] } })).toBeUndefined();
+    result.edits.find((edit) => edit.file === 'stripe-subscription-period.ts')?.replacement,
+  ).toBe(subscriptionPeriodHelperModule('ts'));
+  expect(result.findings.map((finding) => finding.subscriptionPeriod)).toEqual([
+    { rareCase: 'flagged' },
+    { rareCase: 'flagged' },
+  ]);
+});
+
+it('returns the old field, a shared period or undefined, never a widest period', () => {
+  const read = helper();
+  expect(read({ current_period_end: 100, items: { data: [item(200)] } })).toBe(100);
+  expect(read({ items: { data: [item(200)] } })).toBe(200);
+  expect(read({ items: { data: [item(300), item(300, 'price_addon')] } })).toBe(300);
+  expect(read({ items: { data: [item(300), item(400, 'price_addon')] } })).toBeUndefined();
+  expect(read({ items: { data: [{ price: { id: 'price_basic' } }] } })).toBeUndefined();
   expect(read({ items: { data: [] } })).toBeUndefined();
   expect(read({})).toBeUndefined();
 });
 
-it('leaves the rule to a configured price-ID policy', () => {
-  const content = `${header}export function fromWebhook(body: string, signature: string) {
-  const event = stripe.webhooks.constructEvent(body, signature, 'whsec');
-  if (event.type === 'customer.subscription.updated') {
-    const subscription = event.data.object as Stripe.Subscription;
-    return subscription.current_period_end;
-  }
+it('uses the item the same function selects by index for mixed periods', () => {
+  const result = analyze(`export async function access(id: string) {
+  const subscription = await stripe.subscriptions.retrieve(id);
+  return { price: subscription.items.data[1].price.id, ends: subscription.current_period_end };
+}`);
+  expect(result.findings[0].subscriptionPeriod).toEqual({
+    rareCase: 'item-in-code',
+    selection: 'items.data[1]',
+  });
+  const call = result.edits.find((edit) => edit.replacement.includes('getSubscriptionPeriodEnd('))!;
+  expect(planOf(call.replacement)).toBe('(items) => items[1]');
+  expect(
+    helper(planOf(call.replacement))({ items: { data: [item(300), item(400, 'price_addon')] } }),
+  ).toBe(400);
+});
+
+it.each([
+  ['a top-level constant', `const PRO = 'price_pro';\n`, 'PRO'],
+  ['an environment variable', '', 'process.env.STRIPE_PRO_PRICE'],
+  ['a literal', '', "'price_pro'"],
+])('uses the item the code compares with %s for mixed periods', (_label, declaration, value) => {
+  const result = analyze(`${declaration}export async function access(id: string) {
+  const subscription = await stripe.subscriptions.retrieve(id);
+  const paid = subscription.items.data.some((entry) => entry.price.id === ${value});
+  return paid ? subscription.current_period_end : 0;
+}`);
+  expect(result.findings[0].subscriptionPeriod).toEqual({
+    rareCase: 'item-in-code',
+    selection: `price.id === ${value}`,
+  });
+  const plan = planOf(
+    result.edits.find((edit) => edit.replacement.includes('getSubscriptionPeriodEnd('))!
+      .replacement,
+  );
+  expect(plan).toBe(`(items) => items.find((item) => item.price?.id === ${value})`);
+  if (value === "'price_pro'")
+    expect(helper(plan)({ items: { data: [item(300), item(400, 'price_pro')] } })).toBe(400);
+});
+
+it('uses the configured price policy item when the code selects none', () => {
+  const content = `${header}export async function ends(id: string) {
+  const subscription = await stripe.subscriptions.retrieve(id);
+  return subscription.current_period_end;
 }`;
   const result = analyzeRepository(
     {
@@ -193,9 +211,106 @@ it('leaves the rule to a configured price-ID policy', () => {
     },
     schemas(false),
   );
+  expect(result.findings[0].subscriptionPeriod).toEqual({
+    rareCase: 'price-policy',
+    selection: 'price.id === "price_primary"',
+  });
+  const plan = planOf(
+    result.edits.find((edit) => edit.replacement.includes('getSubscriptionPeriodEnd('))!
+      .replacement,
+  );
+  expect(helper(plan)({ items: { data: [item(300), item(400, 'price_primary')] } })).toBe(400);
+});
+
+it('reads webhook payloads and Stripe-typed values through the helper', () => {
+  const result = analyze(`export function fromWebhook(body: string, signature: string) {
+  const event = stripe.webhooks.constructEvent(body, signature, 'whsec');
+  if (event.type === 'customer.subscription.updated') {
+    const subscription = event.data.object as Stripe.Subscription;
+    return subscription.current_period_end;
+  }
+}
+export function fromParameter(subscription: Stripe.Subscription) {
+  return subscription.current_period_start;
+}`);
+  expect(result.findings.filter((finding) => finding.confidence === 'confirmed')).toHaveLength(2);
+  expect(result.findings.find((finding) => finding.webhook)?.webhook?.migration).toEqual({
+    rule: 'stripe-subscription-periods-helper',
+  });
+  expect(result.patched).toContain('return (getSubscriptionPeriodEnd(subscription));');
+  expect(result.patched).toContain('return (getSubscriptionPeriodStart(subscription));');
+});
+
+it('writes a CommonJS helper for CommonJS files', () => {
+  const content = `const Stripe = require('stripe');
+const stripe = new Stripe('sk', { apiVersion: '2024-06-20' });
+async function ends(id) {
+  const subscription = await stripe.subscriptions.retrieve(id);
+  return subscription.current_period_end;
+}
+module.exports = { ends };
+`;
+  const result = analyzeRepository(
+    {
+      root: '/field-moves',
+      files: [{ path: 'lib/billing.js', content }],
+      dependencies: [],
+      lockfiles: [],
+      warnings: [],
+    },
+    findRemovedProperties(schemas(false), schemas(true), provider.id),
+    provider,
+    schemas(false),
+  );
+  const patched = applySourceEdits(
+    content,
+    result.edits.filter((edit) => edit.file === 'lib/billing.js'),
+  );
+  expect(patched).toContain(
+    "const Stripe = require('stripe');\nconst { getSubscriptionPeriodEnd } = require('./stripe-subscription-period');\nconst stripe = new Stripe(",
+  );
   expect(
-    result.edits.some((edit) => edit.rule === 'stripe-subscription-periods-either-version'),
-  ).toBe(false);
+    result.edits.find((edit) => edit.file === 'lib/stripe-subscription-period.js')?.replacement,
+  ).toBe(subscriptionPeriodHelperModule('cjs'));
+});
+
+it('generates a TypeScript helper that compiles strictly without Stripe types', () => {
+  const files = new Map([
+    ['/check/helper.ts', subscriptionPeriodHelperModule('ts')],
+    [
+      '/check/use.ts',
+      `import { getSubscriptionPeriodEnd } from './helper';
+const subscription = { items: { data: [{ price: { id: 'p' }, current_period_end: 1 }] } };
+export const ends: number = getSubscriptionPeriodEnd(subscription, (items) => items.find((item) => item.price?.id === 'p'));
+export const first: number = getSubscriptionPeriodEnd(subscription, (items) => items[0]);
+`,
+    ],
+  ]);
+  const options = {
+    strict: true,
+    noEmit: true,
+    noLib: false,
+    target: ts.ScriptTarget.ES2022,
+    module: ts.ModuleKind.ESNext,
+    moduleResolution: ts.ModuleResolutionKind.Bundler,
+    types: [],
+  };
+  const host = ts.createCompilerHost(options);
+  const read = host.readFile.bind(host);
+  host.readFile = (name) => files.get(name) ?? read(name);
+  host.fileExists = (name) => files.has(name) || ts.sys.fileExists(name);
+  host.directoryExists = (name) => name === '/check' || ts.sys.directoryExists(name);
+  const getSource = host.getSourceFile.bind(host);
+  host.getSourceFile = (name, version) =>
+    files.has(name)
+      ? ts.createSourceFile(name, files.get(name)!, version, true)
+      : getSource(name, version);
+  const program = ts.createProgram([...files.keys()], options, host);
+  expect(
+    ts
+      .getPreEmitDiagnostics(program)
+      .map((diagnostic) => ts.flattenDiagnosticMessageText(diagnostic.messageText, '\n')),
+  ).toEqual([]);
 });
 
 const mixed = `export async function ends(id: string) {
@@ -218,7 +333,7 @@ it('patches around an unmigrated webhook read and leaves it unresolved', async (
   });
   expect(report.patch).toMatchObject({ status: 'proposed', unresolvedFindings: 1 });
   const diff = 'diff' in report.patch ? report.patch.diff : '';
-  expect(diff).toContain('item.current_period_end');
+  expect(diff).toContain('getSubscriptionPeriodEnd(subscription)');
   expect(diff).not.toContain('parent');
   expect(migrationReviewReason(report)).toMatch(/incoming API-version/);
 });
@@ -270,20 +385,26 @@ it('proposes the field move and the API-version bump as one patch', async () => 
   const report = await run(periodRead);
   expect(report.patch).toMatchObject({
     status: 'proposed',
-    edits: 2,
+    edits: 4,
     unresolvedFindings: 0,
     source:
       'https://docs.stripe.com/changelog/basil/2025-03-31/deprecate-subscription-current-period-start-and-end',
   });
   const diff = 'diff' in report.patch ? report.patch.diff : '';
   expect(diff).toContain("+const stripe = new Stripe('sk', { apiVersion: '2025-03-31.basil' });");
-  expect(diff).toContain('item.current_period_end');
+  expect(diff).toContain('return (getSubscriptionPeriodEnd(subscription));');
+  expect(diff).toContain(
+    'diff --git "a/stripe-subscription-period.ts" "b/stripe-subscription-period.ts"\nnew file mode 100644\n--- /dev/null',
+  );
 });
 
-it('does not move reads when the client follows the account default version', async () => {
+it('migrates reads for a client on the account default version without pinning one', async () => {
   const report = await run(periodRead, true, undefined, '{ apiVersion: null }');
   expect(report.findings).toMatchObject([{ confidence: 'confirmed' }]);
-  expect(report.patch).toMatchObject({ status: 'unsupported', edits: 0 });
+  expect(report.patch).toMatchObject({ status: 'proposed', edits: 3, unresolvedFindings: 0 });
+  const diff = 'diff' in report.patch ? report.patch.diff : '';
+  expect(diff).toContain('getSubscriptionPeriodEnd(subscription)');
+  expect(diff).not.toContain('2025-03-31.basil');
 });
 
 it('does not move a field the target contract does not define', async () => {
@@ -341,9 +462,40 @@ export async function secret(id: string) {
     { apiKey: 'test-key', model: 'test-model' },
   );
   expect(evidence!.findings.map((finding) => finding.expression)).toEqual(['.payment_intent']);
-  expect(report.patch).toMatchObject({ status: 'proposed', edits: 3, unresolvedFindings: 0 });
+  expect(report.patch).toMatchObject({ status: 'proposed', edits: 5, unresolvedFindings: 0 });
   const diff = 'diff' in report.patch ? report.patch.diff : '';
   expect(diff).toContain('invoice.confirmation_secret');
-  expect(diff).toContain('item.current_period_end');
+  expect(diff).toContain('getSubscriptionPeriodEnd(subscription)');
   expect(diff).toContain("apiVersion: '2025-03-31.basil'");
+});
+
+it('lists mixed-period reads without a selection in the pull request text', async () => {
+  const scan = await run(periodRead);
+  if (!('diff' in scan.patch)) throw new Error('Expected a patch');
+  expect(scan.findings[0].subscriptionPeriod).toEqual({ rareCase: 'flagged' });
+  const body = createReviewArtifacts({
+    ...scan,
+    publicationFiles: [],
+    patch: { ...scan.patch, validation: 'passed' },
+    validation: {
+      status: 'passed',
+      revision: 'a'.repeat(40),
+      image: `sha256:${'b'.repeat(64)}`,
+      command: ['npm', 'test'],
+      baselineCommand: ['npm', 'test'],
+      archiveHash: 'c'.repeat(64),
+      patchHash: digest(scan.patch.diff),
+      baseline: { status: 'passed', exitCode: 0, stdout: '', stderr: '' },
+      patched: { status: 'passed', exitCode: 0, stdout: '', stderr: '' },
+      limits: { timeoutMs: 120_000, outputBytes: 1024 * 1024, network: 'none' },
+      publishable: false,
+      attempts: [],
+      repair: { limit: 0, requested: 0, stopReason: 'not-needed-or-disabled', error: null },
+      reason: 'Synthetic check results for PR text.',
+    },
+  }).files['pull-request.md'];
+  expect(body).toContain(
+    'Subscriptions with items on different billing periods are not handled. Set `stripeSubscriptionPeriods` to choose which item counts.',
+  );
+  expect(body).toContain('`billing.ts:5`');
 });

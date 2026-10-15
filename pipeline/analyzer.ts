@@ -1,4 +1,4 @@
-import { resolve } from 'node:path';
+import { posix, resolve } from 'node:path';
 import ts from 'typescript-compiler';
 import { STRIPE, validSdkResourcePath, type ProviderAdapter } from './providers.ts';
 import { unsafeBindings } from './mutations.ts';
@@ -18,10 +18,12 @@ import { requestPropertyEdit } from './request-migration.ts';
 import { StripeTypes } from './stripe-types.ts';
 import {
   subscriptionPeriodEdit,
-  subscriptionPeriodEitherVersionEdit,
-  subscriptionPeriodReadEdit,
-  SUBSCRIPTION_PERIOD_EITHER_RULE,
+  PERIOD_HELPERS,
+  subscriptionPeriodHelperEdit,
+  subscriptionPeriodHelperModule,
+  SUBSCRIPTION_PERIOD_HELPER_RULE,
   SUBSCRIPTION_PERIOD_RULE,
+  type PeriodRareCase,
 } from './stripe-subscription-periods.ts';
 import {
   PipelineInputError,
@@ -915,39 +917,132 @@ export function analyzeRepository(
     edits.push(edit);
     return true;
   }
+  const periodPlans = new Map<
+    ts.Node,
+    { rareCase: PeriodRareCase; text?: string; selection?: string }
+  >();
+  function within(scope: ts.Node) {
+    return nodes.filter(
+      (candidate) =>
+        candidate.getSourceFile() === scope.getSourceFile() &&
+        candidate.pos >= scope.pos &&
+        candidate.end <= scope.end,
+    );
+  }
+  // A value the plan item's price can be compared with at every call site in the file.
+  function priceValue(expression: ts.Expression) {
+    if (ts.isStringLiteralLike(expression)) return expression.getText();
+    if (
+      ts.isPropertyAccessExpression(expression) &&
+      ts.isPropertyAccessExpression(expression.expression) &&
+      expression.expression.name.text === 'env' &&
+      ts.isIdentifier(expression.expression.expression) &&
+      expression.expression.expression.text === 'process'
+    )
+      return expression.getText();
+    if (!ts.isIdentifier(expression)) return;
+    const declaration = symbol(expression)?.valueDeclaration;
+    return declaration &&
+      ts.isVariableDeclaration(declaration) &&
+      ts.isVariableDeclarationList(declaration.parent) &&
+      declaration.parent.flags & ts.NodeFlags.Const &&
+      ts.isVariableStatement(declaration.parent.parent) &&
+      ts.isSourceFile(declaration.parent.parent.parent)
+      ? expression.getText()
+      : undefined;
+  }
+  // The item an application already treats as its plan: a `price.id` comparison on a subscription
+  // item, else a fixed `items.data[N]` index. Several different selections are ambiguous.
+  function itemSelection(scope: ts.Node) {
+    const prices = new Set<string>();
+    const indexes = new Set<string>();
+    for (const candidate of within(scope)) {
+      if (
+        ts.isBinaryExpression(candidate) &&
+        [ts.SyntaxKind.EqualsEqualsEqualsToken, ts.SyntaxKind.EqualsEqualsToken].includes(
+          candidate.operatorToken.kind,
+        )
+      )
+        for (const [side, other] of [
+          [candidate.left, candidate.right],
+          [candidate.right, candidate.left],
+        ]) {
+          const item =
+            ts.isPropertyAccessExpression(side) &&
+            side.name.text === 'id' &&
+            ts.isPropertyAccessExpression(side.expression) &&
+            side.expression.name.text === 'price'
+              ? side.expression.expression
+              : undefined;
+          const value = item && priceValue(other);
+          if (value && schemaForExpression(item) === 'subscription_item') prices.add(value);
+        }
+      if (
+        ts.isElementAccessExpression(candidate) &&
+        numericArrayIndex(candidate.argumentExpression) &&
+        ts.isPropertyAccessExpression(candidate.expression) &&
+        candidate.expression.name.text === 'data' &&
+        ts.isPropertyAccessExpression(candidate.expression.expression) &&
+        candidate.expression.expression.name.text === 'items' &&
+        schemaForExpression(candidate.expression.expression.expression) === 'subscription'
+      )
+        indexes.add(candidate.argumentExpression.getText());
+    }
+    if (prices.size === 1) {
+      const [price] = prices;
+      return {
+        text: `(items) => items.find((item) => item.price?.id === ${price})`,
+        selection: `price.id === ${price}`,
+      };
+    }
+    if (!prices.size && indexes.size === 1) {
+      const [index] = indexes;
+      return { text: `(items) => items[${index}]`, selection: `items.data[${index}]` };
+    }
+  }
+  function periodPlan(node: ts.Node): {
+    rareCase: PeriodRareCase;
+    text?: string;
+    selection?: string;
+  } {
+    for (let scope: ts.Node | undefined = node; scope; scope = scope.parent) {
+      if (!ts.isFunctionLike(scope) && !ts.isSourceFile(scope)) continue;
+      const selection = itemSelection(scope);
+      if (selection) return { rareCase: 'item-in-code', ...selection };
+    }
+    const policy = provider.stripeSubscriptionPeriods;
+    return policy
+      ? {
+          rareCase: 'price-policy',
+          text: `(items) => items.find((item) => item.price?.id === ${JSON.stringify(policy.priceId)})`,
+          selection: `price.id === ${JSON.stringify(policy.priceId)}`,
+        }
+      : { rareCase: 'flagged' };
+  }
   function propose(
     node: ts.Node,
     receiver: ts.Expression,
     change: Removal,
   ): SourceEdit['rule'] | undefined {
     const provenance = sourceEvidence(receiver)?.kind;
-    // Webhook payloads and Stripe.*-typed values may arrive in either API version; their period
-    // reads accept both shapes. A configured price-ID policy keeps its own webhook migration.
+    // Every subscription-period read (SDK response, webhook payload or Stripe.*-typed value) goes
+    // through the generated helper, which reads either API version.
     if (
       provider.packageName === STRIPE.packageName &&
-      !provider.stripeSubscriptionPeriods &&
       change.schema === 'subscription' &&
-      (webhooks?.origin(receiver) || provenance === 'declared-type')
+      (webhooks?.origin(receiver) || provenance === 'declared-type' || provenance === 'sdk')
     ) {
-      const either = subscriptionPeriodEitherVersionEdit(node, location(node).file, change.id);
-      if (either && addEdit(either)) return either.rule;
+      const plan = periodPlan(node);
+      const edit = subscriptionPeriodHelperEdit(node, location(node).file, change.id, plan.text);
+      if (edit && addEdit(edit)) {
+        periodPlans.set(node, plan);
+        return edit.rule;
+      }
     }
     if (webhooks?.origin(receiver)) return;
     // A value known only from its Stripe.* type may be a webhook payload passed into a helper;
     // its shape follows the endpoint's version, so other rules report it but never edit it.
     if (provenance === 'declared-type' || provenance === 'unmapped-sdk') return;
-    // Period moves apply only to SDK responses, whose shape follows the bumped outgoing apiVersion.
-    if (provider.packageName === STRIPE.packageName && provenance === 'sdk') {
-      const file = location(node).file;
-      const moved =
-        change.schema === 'subscription'
-          ? subscriptionPeriodReadEdit(node, file, change.id)
-          : undefined;
-      if (moved) {
-        addEdit(moved);
-        return;
-      }
-    }
     if (provider.id !== STRIPE.id) {
       const rename = provider.propertyRenames?.find(
         (candidate) => candidate.schema === change.schema && candidate.removed === change.property,
@@ -1224,6 +1319,16 @@ export function analyzeRepository(
         confidence: confirmed ? 'confirmed' : 'review',
         ...(sourceClient ? helperEvidence(sourceClient, mutated) : {}),
         ...(declaredType ? { declaredType: { schema } } : {}),
+        ...(migration === SUBSCRIPTION_PERIOD_HELPER_RULE && periodPlans.get(node)
+          ? {
+              subscriptionPeriod: {
+                rareCase: periodPlans.get(node)!.rareCase,
+                ...(periodPlans.get(node)!.selection
+                  ? { selection: periodPlans.get(node)!.selection }
+                  : {}),
+              },
+            }
+          : {}),
         ...(classClient &&
         (mutated.has(classClient.binding) ||
           (provenance && 'call' in provenance && sdkCall(provenance.call)?.optional))
@@ -1232,7 +1337,7 @@ export function analyzeRepository(
         ...(webhook
           ? {
               webhook: {
-                ...(migration === SUBSCRIPTION_PERIOD_EITHER_RULE
+                ...(migration === SUBSCRIPTION_PERIOD_HELPER_RULE
                   ? { migration: { rule: migration } }
                   : {}),
                 schema: webhook.schema,
@@ -1302,6 +1407,17 @@ export function analyzeRepository(
     const schema = schemaForExpression(checked.expression);
     if (schema) enumChecks.push({ ...location(node), schema, property: checked.name.text });
   }
+  function dropPeriodHelper(file: string) {
+    for (let index = edits.length - 1; index >= 0; index--)
+      if (edits[index].file === file && edits[index].rule === SUBSCRIPTION_PERIOD_HELPER_RULE)
+        edits.splice(index, 1);
+    for (const finding of findings)
+      if (finding.file === file && finding.subscriptionPeriod) {
+        delete finding.subscriptionPeriod;
+        if (finding.webhook?.migration?.rule === SUBSCRIPTION_PERIOD_HELPER_RULE)
+          delete finding.webhook.migration;
+      }
+  }
   if (provider.stripeSubscriptionPeriods && webhooks) {
     for (const source of program.getSourceFiles()) {
       const file = locations.get(source.fileName);
@@ -1317,13 +1433,149 @@ export function analyzeRepository(
         unsafe,
         file,
       });
-      if (!proposal || edits.some((edit) => edit.file === file)) continue;
+      if (!proposal) continue;
+      // The configured policy's whole-handler migration takes precedence over the helper.
+      dropPeriodHelper(file);
+      if (edits.some((edit) => edit.file === file)) continue;
       edits.push(proposal.edit);
       for (const finding of proposal.findings)
         finding.webhook!.migration = {
           rule: SUBSCRIPTION_PERIOD_RULE,
           ...provider.stripeSubscriptionPeriods,
         };
+    }
+  }
+  // One helper module per repository, beside the files that call it, imported where it is used.
+  const helperSources = program
+    .getSourceFiles()
+    .filter((source) =>
+      edits.some(
+        (edit) =>
+          edit.file === locations.get(source.fileName) &&
+          edit.rule === SUBSCRIPTION_PERIOD_HELPER_RULE,
+      ),
+    );
+  const moduleKind = (source: ts.SourceFile) =>
+    /\.[cm]?tsx?$/.test(source.fileName)
+      ? ('ts' as const)
+      : source.fileName.endsWith('.cjs') ||
+          (!source.fileName.endsWith('.mjs') &&
+            !source.statements.some(
+              (statement) => ts.isImportDeclaration(statement) || ts.isExportDeclaration(statement),
+            ))
+        ? ('cjs' as const)
+        : ('esm' as const);
+  const kinds = helperSources.map(moduleKind);
+  const kind = (['ts', 'esm', 'cjs'] as const)
+    .map((candidate) => ({ candidate, count: kinds.filter((entry) => entry === candidate).length }))
+    .sort((a, b) => b.count - a.count)[0]?.candidate;
+  const helperNames = Object.values(PERIOD_HELPERS) as string[];
+  // Node16/NodeNext resolution requires explicit extensions on relative imports.
+  const nodeModuleResolution = (repository.configurations ?? []).some((file) =>
+    /"module(?:Resolution)?"\s*:\s*"node(?:16|next)"/i.test(file.content),
+  );
+  for (const source of helperSources)
+    if (
+      moduleKind(source) !== kind ||
+      nodes.some(
+        (node) =>
+          node.getSourceFile() === source &&
+          ts.isIdentifier(node) &&
+          helperNames.includes(node.text) &&
+          !edits.some(
+            (edit) =>
+              edit.file === locations.get(source.fileName) &&
+              edit.start <= node.getStart() &&
+              node.getEnd() <= edit.end,
+          ),
+      )
+    )
+      dropPeriodHelper(locations.get(source.fileName)!);
+  const helperFiles = helperSources
+    .map((source) => locations.get(source.fileName)!)
+    .filter((file) =>
+      edits.some((edit) => edit.file === file && edit.rule === SUBSCRIPTION_PERIOD_HELPER_RULE),
+    );
+  if (kind && helperFiles.length) {
+    const directories = helperFiles.map((file) => posix.dirname(file).split('/'));
+    const shared = directories[0].filter((segment, index) =>
+      directories.every((directory) => directory[index] === segment),
+    );
+    const extension =
+      kind === 'ts'
+        ? 'ts'
+        : helperFiles.every((file) => file.endsWith(kind === 'esm' ? '.mjs' : '.cjs'))
+          ? kind === 'esm'
+            ? 'mjs'
+            : 'cjs'
+          : 'js';
+    const base = [
+      ...shared.filter((segment) => segment !== '.'),
+      'stripe-subscription-period',
+    ].join('/');
+    const taken = new Set(repository.files.map((file) => file.path.replace(/\.[^./]+$/, '')));
+    const stem = taken.has(base) ? `${base}-refit` : base;
+    edits.push({
+      file: `${stem}.${extension}`,
+      start: 0,
+      end: 0,
+      replacement: subscriptionPeriodHelperModule(kind),
+      changeId: 'stripe-subscription-period-helper',
+      rule: SUBSCRIPTION_PERIOD_HELPER_RULE,
+    });
+    for (const file of helperFiles) {
+      const source = helperSources.find((entry) => locations.get(entry.fileName) === file)!;
+      const used = helperNames.filter((name) =>
+        edits.some(
+          (edit) =>
+            edit.file === file &&
+            edit.rule === SUBSCRIPTION_PERIOD_HELPER_RULE &&
+            edit.replacement.includes(`${name}(`),
+        ),
+      );
+      const relativeImports = source.statements
+        .filter(ts.isImportDeclaration)
+        .map((statement) => (statement.moduleSpecifier as ts.StringLiteral).text)
+        .filter((specifier) => specifier.startsWith('.'));
+      const suffix =
+        kind === 'ts'
+          ? relativeImports.some((specifier) => specifier.endsWith('.js')) ||
+            (!relativeImports.length && nodeModuleResolution)
+            ? '.js'
+            : ''
+          : extension === 'js' && kind === 'cjs'
+            ? ''
+            : `.${extension}`;
+      let specifier = posix.relative(posix.dirname(file), stem) + suffix;
+      if (!specifier.startsWith('.')) specifier = `./${specifier}`;
+      const declaration =
+        kind === 'cjs'
+          ? `const { ${used.join(', ')} } = require('${specifier}');`
+          : `import { ${used.join(', ')} } from '${specifier}';`;
+      const prologue = source.statements.filter((_statement, index) =>
+        source.statements
+          .slice(0, index + 1)
+          .every(
+            (entry) =>
+              (ts.isExpressionStatement(entry) && ts.isStringLiteral(entry.expression)) ||
+              ts.isImportDeclaration(entry) ||
+              (kind === 'cjs' &&
+                ts.isVariableStatement(entry) &&
+                entry.declarationList.declarations.every(
+                  (variable) =>
+                    variable.initializer && /^require\(/.test(variable.initializer.getText()),
+                )),
+          ),
+      );
+      const anchor = prologue.at(-1)?.getEnd() ?? 0;
+      edits.push({
+        file,
+        start: anchor,
+        end: anchor,
+        replacement: anchor ? `\n${declaration}` : `${declaration}\n`,
+        changeId: 'stripe-subscription-period-helper',
+        rule: SUBSCRIPTION_PERIOD_HELPER_RULE,
+      });
     }
   }
   return {
