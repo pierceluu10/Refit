@@ -384,7 +384,7 @@ export function createReviewArtifacts(
       ].join('\n'),
       ...(validation.generated
         ? [
-            `Generated checks called ${summaryList(validation.generated.entryPoints.map((entry) => code(`${entry.file}#${entry.name}`)))} with placeholder IDs against stripe-mock serving each version's published contract and fixtures, offline. ${validation.generated.uncoveredFindings} confirmed usages were not inside a callable exported function. Placeholder data checks response shapes, not business behavior.`,
+            `Generated checks called ${summaryList(validation.generated.entryPoints.map((entry) => code(`${entry.file}#${entry.name}`)))} with placeholder IDs against stripe-mock serving each version's published contract and fixtures, offline. ${validation.generated.notRunnable.length} could not run in isolation on the original code and were excluded; ${validation.generated.regressions.length} that ran on the original failed after the migration. ${validation.generated.uncoveredFindings} confirmed usages were not inside a callable exported function. Placeholder data checks response shapes, not business behavior.`,
           ]
         : []),
       `Both checks ran in restricted Docker containers with external networking disabled (image ${short(validation.image.replace(/^sha256:/, ''))}); these are not GitHub Actions checks. Patch attempts: **${validation.attempts.length}**; AI repairs: **${validation.repair.requested}**; remaining reads of removed fields: **${patch.unresolvedFindings}**.`,

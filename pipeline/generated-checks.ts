@@ -6,6 +6,7 @@ import ts from 'typescript-compiler';
 import { removeDockerContainer, resolveDockerImage } from './docker-sandbox.ts';
 import { digest } from './specifications.ts';
 import { PipelineInputError, type Finding, type Repository } from './types.ts';
+import type { CheckResult } from './validation.ts';
 
 const execute = promisify(execFile);
 const PROCESS_TIMEOUT_MS = 30_000;
@@ -145,13 +146,38 @@ for (let attempt = 0; ; attempt++) {
   await new Promise((resolve) => setTimeout(resolve, 100));
 }
 for (const entry of entries) {
-  const module = await import(pathToFileURL(root + entry.file).href);
-  if (typeof module[entry.name] !== 'function') throw new Error(entry.file + ' does not export ' + entry.name);
-  const args = Array.from({ length: entry.parameters }, (_, index) => 'refit_placeholder_' + (index + 1));
-  await module[entry.name](...args);
-  console.log('REFIT_GENERATED_COMPLETED=' + entry.file + '#' + entry.name);
+  const id = entry.file + '#' + entry.name;
+  try {
+    const module = await import(pathToFileURL(root + entry.file).href);
+    if (typeof module[entry.name] !== 'function') throw new Error(id + ' is not an exported function');
+    const args = Array.from({ length: entry.parameters }, (_, index) => 'refit_placeholder_' + (index + 1));
+    await module[entry.name](...args);
+    console.log('REFIT_GENERATED_RESULT=' + JSON.stringify({ id, ok: true }));
+  } catch (error) {
+    const text = error instanceof Error ? error.name + ': ' + error.message : String(error);
+    console.log('REFIT_GENERATED_RESULT=' + JSON.stringify({ id, ok: false, error: text.slice(0, 500) }));
+  }
 }
 `;
+
+// Per-function results printed by the harness; a missing line means the harness did not reach it.
+export function generatedResults(stdout: string) {
+  const results = new Map<string, { ok: boolean; error?: string }>();
+  for (const line of stdout.split('\n')) {
+    if (!line.startsWith('REFIT_GENERATED_RESULT=')) continue;
+    const value: unknown = JSON.parse(line.slice('REFIT_GENERATED_RESULT='.length));
+    if (
+      typeof value === 'object' &&
+      value !== null &&
+      typeof (value as { id?: unknown }).id === 'string' &&
+      typeof (value as { ok?: unknown }).ok === 'boolean'
+    ) {
+      const { id, ok, error } = value as { id: string; ok: boolean; error?: unknown };
+      results.set(id, { ok, ...(typeof error === 'string' ? { error } : {}) });
+    }
+  }
+  return results;
+}
 
 export async function writeHarness(directory: string, entries: EntryPoint[]) {
   await writeFile(join(directory, 'redirect.mjs'), REDIRECT, { mode: 0o444 });
@@ -198,4 +224,37 @@ export async function readMockDocument(path: string, label: string) {
   if (!content.trimStart().startsWith('{'))
     throw new PipelineInputError(`Generated checks require a JSON ${label}.`);
   return digest(content);
+}
+
+// A function that fails on the original code against the before-version mock cannot run in
+// isolation (for example, it needs a database) and is excluded; only functions that ran there must
+// also run on the patched code against the after-version mock.
+export function compareGeneratedRuns(
+  entries: EntryPoint[],
+  before: CheckResult,
+  after: CheckResult,
+) {
+  const original = generatedResults(before.stdout);
+  const patched = generatedResults(after.stdout);
+  const id = (entry: EntryPoint) => `${entry.file}#${entry.name}`;
+  const runnable = entries.filter((entry) => original.get(id(entry))?.ok);
+  const regressions = runnable
+    .filter((entry) => !patched.get(id(entry))?.ok)
+    .map((entry) => ({
+      id: id(entry),
+      error: patched.get(id(entry))?.error ?? 'No result recorded.',
+    }));
+  const status = (check: CheckResult, failed: boolean): CheckResult['status'] =>
+    check.status !== 'passed' ? check.status : failed ? 'failed' : 'passed';
+  return {
+    notRunnable: entries
+      .filter((entry) => !original.get(id(entry))?.ok)
+      .map((entry) => ({
+        id: id(entry),
+        error: original.get(id(entry))?.error ?? 'No result recorded.',
+      })),
+    regressions,
+    baseline: { ...before, status: status(before, false) },
+    patched: { ...after, status: status(after, regressions.length > 0) },
+  };
 }

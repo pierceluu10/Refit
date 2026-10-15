@@ -26,6 +26,7 @@ import { analyzeRepository } from './analyzer.ts';
 import {
   extractStripeMock,
   generatedCommand,
+  compareGeneratedRuns,
   generatedEntryPoints,
   readMockDocument,
   writeHarness,
@@ -185,8 +186,7 @@ async function generatedStripeChecks(options: {
     inputs: hashes,
     entryPoints: entries,
     uncoveredFindings: uncovered,
-    baseline: results[0],
-    patched: results[1],
+    ...compareGeneratedRuns(entries, results[0], results[1]),
     claim:
       "Exported functions enclosing confirmed findings ran against stripe-mock serving each side's contract and fixtures. Placeholder fixtures check response shapes, not business data or application tests.",
   };

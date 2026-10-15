@@ -5,7 +5,13 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
 import { afterEach, expect, it } from 'vitest';
-import { generatedCommand, generatedEntryPoints, writeHarness } from './generated-checks.ts';
+import {
+  compareGeneratedRuns,
+  generatedCommand,
+  generatedEntryPoints,
+  generatedResults,
+  writeHarness,
+} from './generated-checks.ts';
 import { parseWorkflowConfiguration } from './workflow-configuration.ts';
 import type { Finding } from './types.ts';
 
@@ -107,7 +113,7 @@ export async function broken(id) {
 }
 `;
 
-it('redirects Stripe SDK requests to the local mock with a test key and fails on thrown errors', async () => {
+it('redirects Stripe SDK requests to the local mock with a test key and records thrown errors', async () => {
   const root = await mkdtemp(join(tmpdir(), 'refit-generated-'));
   roots.push(root);
   const tools = join(root, 'tools');
@@ -141,17 +147,19 @@ it('redirects Stripe SDK requests to the local mock with a test key and fails on
   };
   try {
     const passed = await run('invoiceSubscription');
-    expect(passed.stdout).toContain(
-      'REFIT_GENERATED_COMPLETED=src/billing.mjs#invoiceSubscription',
-    );
+    expect(generatedResults(passed.stdout).get('src/billing.mjs#invoiceSubscription')).toEqual({
+      ok: true,
+    });
     expect(requests).toHaveLength(1);
     expect(requests[0].url).toBe('/v1/invoices/refit_placeholder_1');
     expect(requests[0].headers.authorization).toBe('Bearer sk_test_123');
     await rm(join(tools, 'entries.json'));
     await rm(join(tools, 'harness.mjs'));
     await rm(join(tools, 'redirect.mjs'));
-    await expect(run('broken')).rejects.toMatchObject({
-      stderr: expect.stringContaining('Cannot read properties of undefined'),
+    const broken = await run('broken');
+    expect(generatedResults(broken.stdout).get('src/billing.mjs#broken')).toEqual({
+      ok: false,
+      error: expect.stringContaining('Cannot read properties of undefined'),
     });
   } finally {
     server.closeAllConnections();
@@ -192,4 +200,43 @@ it('parses generated checks only with all three settings and resolves fixture pa
     expect(() =>
       parseWorkflowConfiguration(JSON.stringify({ ...base, generatedChecks }), '/repo/.refit.json'),
     ).toThrow('generatedChecks requires');
+});
+
+it('excludes functions that cannot run on the original code and gates only regressions', () => {
+  const entries = ['a', 'b', 'c'].map((name) => ({ file: 'x.js', name, parameters: 1 }));
+  const output = (results: Record<string, boolean>) => ({
+    status: 'passed' as const,
+    exitCode: 0,
+    stderr: '',
+    stdout: Object.entries(results)
+      .map(
+        ([name, ok]) =>
+          `REFIT_GENERATED_RESULT=${JSON.stringify({ id: `x.js#${name}`, ok, ...(ok ? {} : { error: 'Error: database unavailable' }) })}`,
+      )
+      .join('\n'),
+  });
+  const clean = compareGeneratedRuns(
+    entries,
+    output({ a: true, b: false, c: true }),
+    output({ a: true, b: false, c: true }),
+  );
+  expect(clean).toMatchObject({
+    notRunnable: [{ id: 'x.js#b', error: 'Error: database unavailable' }],
+    regressions: [],
+    baseline: { status: 'passed' },
+    patched: { status: 'passed' },
+  });
+  const regressed = compareGeneratedRuns(
+    entries,
+    output({ a: true, b: false, c: true }),
+    output({ a: true, b: true, c: false }),
+  );
+  expect(regressed.regressions).toEqual([{ id: 'x.js#c', error: 'Error: database unavailable' }]);
+  expect(regressed.patched.status).toBe('failed');
+  const crashed = compareGeneratedRuns(
+    entries,
+    { status: 'failed', exitCode: 1, stdout: '', stderr: 'stripe-mock did not start' },
+    output({ a: true, b: true, c: true }),
+  );
+  expect(crashed.baseline.status).toBe('failed');
 });
