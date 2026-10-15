@@ -20,7 +20,7 @@ import { validateCheckCommand, validateRepairAttempts } from './validation-optio
 import { proposeAiPatch } from './ai-patches.ts';
 import { gitEnvironment } from './git-environment.ts';
 import { readCommittedRepository } from './committed-repository.ts';
-import { MAX_DEPENDENCY_ARCHIVE_BYTES, prepareNpmDependencies } from './npm-dependencies.ts';
+import { MAX_DEPENDENCY_ARCHIVE_BYTES, prepareDependencies } from './dependency-preparation.ts';
 import { inspectArtifactFile } from './verification.ts';
 import { analyzeRepository } from './analyzer.ts';
 import {
@@ -188,7 +188,7 @@ export async function validateMigration(options: {
     let dependencies: string | undefined;
     let environment: Record<string, unknown> | undefined;
     if (options.prepareDependencies) {
-      const prepared = await prepareNpmDependencies({
+      const prepared = await prepareDependencies({
         repository,
         image,
         signal: options.signal,

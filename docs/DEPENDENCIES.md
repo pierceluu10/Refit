@@ -1,6 +1,8 @@
-# Automatic npm validation environments
+# Automatic validation dependencies
 
 Refit can prepare dependencies from a clean repository's committed `package.json` and `package-lock.json`, then run its checks in an ordinary local Node Docker image. This removes the custom dependency-image setup for supported npm projects. The same preparation works through `run`, `validate`, `watch` and service profiles.
+
+Pinned pnpm projects and bounded workspaces use the same commands with `pnpm-lock.yaml`. Catalogs, explicit workspace links and pnpm's separate manager/application lock documents are supported. See [pnpm setup and limits](PNPM-WORKSPACES.md).
 
 Positive-glob npm workspaces with committed manifests and root lockfiles are supported through the same preparation. Workspace links and nested dependency directories are verified and retained. See [workspace setup and boundaries](NPM-WORKSPACES.md).
 
@@ -56,7 +58,7 @@ Or add `"prepareDependencies": true` to a workflow file. `image` then names the 
 
 ## Installation and checks
 
-Preparation reads only the two committed root manifest files. It verifies public registry package URLs and integrity records before starting a container. `npm ci` installs frozen dependencies, including development dependencies, with install lifecycle scripts, audit and funding requests disabled. Engine requirements are enforced. Separate empty npm configuration files override image-level configuration; repository `.npmrc`, `.env`, source files and host credentials are not provided to the installer. No repository Dockerfile or build script runs during preparation.
+Preparation reads committed root manifest/lock files and selected workspace manifests. It verifies public registry package URLs and integrity records before starting a container. `npm ci` installs frozen dependencies, including development dependencies, with install lifecycle scripts, audit and funding requests disabled. pnpm uses its declared pinned manager and frozen lockfile instead. Engine requirements are enforced. Separate empty npm configuration files override image-level configuration; repository `.npmrc`, `.env`, source files and host credentials are not provided to the installer. No repository Dockerfile or build script runs during preparation.
 
 The installer has bridge networking to download public npm packages, runs as a non-root user, and uses the same restricted Docker resources as validation: read-only root filesystem, no capabilities, no privilege escalation, 1 CPU, 1 GiB memory, 128 processes and a bounded writable workspace. Before archiving, Refit checks dependency symlinks resolve inside `node_modules`; broken or escaping links and special files fail preparation. Preparation has a 300-second deadline, a 256 MiB dependency archive limit and a 1 MiB log limit. Cancelled, failed or excessive output stops the client and removes the container; no successful cache is published.
 
@@ -72,6 +74,6 @@ Validation reports and collapsed PR evidence record the runtime, image, input ha
 
 ## Supported projects
 
-Automatic preparation currently supports a single root npm project with a committed lockfile version 2 or 3, matching root dependency declarations and public `registry.npmjs.org` HTTPS tarballs with SHA-256-or-stronger integrity. Inputs are limited to 512 KiB for `package.json`, 8 MiB for the lockfile and 20,000 package records. The image must already contain compatible Node, npm, `/bin/sh` and `tar`.
+Automatic npm preparation supports a root project or bounded positive-glob workspaces with a committed lockfile version 2 or 3, matching dependency declarations and public `registry.npmjs.org` HTTPS tarballs with SHA-256-or-stronger integrity. [pnpm](PNPM-WORKSPACES.md) has its own pinned-manager and lockfile-v9 requirements. Preparation inputs are limited to 512 KiB per manifest/configuration, 8 MiB for the lockfile and 20,000 package records per graph; the scanner's existing repository limits also apply. The image must already contain compatible Node, npm, `/bin/sh` and `tar`.
 
 Unsupported workspace layouts, explicit local/Git/URL dependencies, private registries, tracked `node_modules`, shrinkwrap files, bundled lock records, custom npm installation flags and packages requiring lifecycle builds use the existing custom-image path. A script-dependent package may install but fail its checks; Refit does not enable those scripts automatically. The supported preparation route is provider-independent, while SDK mapping, migration semantics and useful application checks still require verification.

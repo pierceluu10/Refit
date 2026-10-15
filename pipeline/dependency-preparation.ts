@@ -23,13 +23,15 @@ import {
   resolveDockerImage,
 } from './docker-sandbox.ts';
 import { standaloneStateDirectory } from './github-checkout.ts';
-import { readNpmPreparationInputs } from './npm-inputs.ts';
+import { readPreparationInputs, type PreparationIdentity } from './dependency-inputs.ts';
+import { PNPM_INSTALL_COMMAND } from './pnpm-install.ts';
+import { hasStrongIntegrity } from './npm-lock.ts';
 import { digest, parseObject } from './specifications.ts';
 import { hasErrorCode, withStateLock, writeState } from './state-files.ts';
 import { PipelineInputError } from './types.ts';
 import { verifyArtifacts } from './verification.ts';
 
-const RECIPE_VERSION = 3;
+const RECIPE_VERSION = 4;
 const INSTALL_TIMEOUT_MS = 300_000;
 export const MAX_DEPENDENCY_ARCHIVE_BYTES = 256 * 1024 * 1024;
 const MAX_LOG_BYTES = 1024 * 1024;
@@ -40,7 +42,13 @@ export const DEPENDENCY_TREE_CHECK = `
 import { lstat, readdir, realpath } from "node:fs/promises";
 import { relative, resolve, sep } from "node:path";
 const workspace = await realpath(".");
-const { links = {}, directories = [] } = JSON.parse(process.argv[1] ?? "{}");
+const { links = {}, optionalLinks = {}, directories = [], hashes = {} } = JSON.parse(process.argv[1] ?? "{}");
+const { readFile } = await import("node:fs/promises");
+const { createHash } = await import("node:crypto");
+for (const [file, hash] of Object.entries(hashes)) {
+  if (createHash("sha256").update(await readFile(file)).digest("hex") !== hash)
+    throw new Error("The installer changed a committed dependency input");
+}
 const roots = [resolve(workspace, "node_modules")];
 for (const directory of directories) {
   const root = resolve(workspace, directory, "node_modules");
@@ -55,8 +63,8 @@ async function verify(path) {
   const entry = await lstat(path);
   if (entry.isSymbolicLink()) {
     const name = relative(workspace, path).split(sep).join("/");
-    if (Object.hasOwn(links, name)) {
-      const target = resolve(workspace, links[name]);
+    if (Object.hasOwn(links, name) || Object.hasOwn(optionalLinks, name)) {
+      const target = resolve(workspace, links[name] ?? optionalLinks[name]);
       if (await realpath(path) !== target || await realpath(target) !== target || !(await lstat(target)).isDirectory())
         throw new Error("Workspace link differs from the committed lockfile");
     } else {
@@ -75,26 +83,36 @@ for (const name of Object.keys(links)) {
   if (!(await lstat(resolve(workspace, name))).isSymbolicLink()) throw new Error("Missing workspace dependency link");
 }
 `;
-const INSTALL_COMMAND = [
-  'sh',
-  '-c',
-  'set -eu; : > /tmp/refit-user.npmrc; : > /tmp/refit-global.npmrc; ' +
-    'export NPM_CONFIG_USERCONFIG=/tmp/refit-user.npmrc NPM_CONFIG_GLOBALCONFIG=/tmp/refit-global.npmrc; ' +
-    'node -p \'"REFIT_NODE_VERSION=" + process.version\' >&2; ' +
-    'printf "REFIT_NPM_VERSION=" >&2; npm --version >&2; ' +
-    'npm ci --ignore-scripts --include=dev --engine-strict --no-audit --no-fund ' +
-    '--registry=https://registry.npmjs.org --cache=/workspace/.npm-cache >&2; ' +
-    `mkdir -p node_modules; node --input-type=module -e '${DEPENDENCY_TREE_CHECK}' "$1"; shift; ` +
-    'printf "node_modules\\n" > /workspace/.refit-dependency-paths; ' +
-    'for directory do if [ -d "$directory/node_modules" ]; then printf "%s\\n" "$directory/node_modules" >> /workspace/.refit-dependency-paths; fi; done; ' +
-    'tar -cf - -T /workspace/.refit-dependency-paths',
-];
+function installCommand(manager: PreparationIdentity['manager']) {
+  return [
+    'sh',
+    '-c',
+    'set -eu; : > /tmp/refit-user.npmrc; : > /tmp/refit-global.npmrc; ' +
+      'export NPM_CONFIG_USERCONFIG=/tmp/refit-user.npmrc NPM_CONFIG_GLOBALCONFIG=/tmp/refit-global.npmrc; ' +
+      'node -p \'"REFIT_NODE_VERSION=" + process.version\' >&2; ' +
+      'printf "REFIT_NPM_VERSION=" >&2; npm --version >&2; ' +
+      (manager === 'pnpm'
+        ? PNPM_INSTALL_COMMAND
+        : 'npm ci --ignore-scripts --include=dev --engine-strict --no-audit --no-fund ' +
+          '--registry=https://registry.npmjs.org --cache=/workspace/.npm-cache >&2; ' +
+          'mkdir -p node_modules; ') +
+      `node --input-type=module -e '${DEPENDENCY_TREE_CHECK}' "$1"; shift; ` +
+      'printf "node_modules\\n" > /workspace/.refit-dependency-paths; ' +
+      'for directory do if [ -d "$directory/node_modules" ]; then printf "%s\\n" "$directory/node_modules" >> /workspace/.refit-dependency-paths; fi; done; ' +
+      'tar -cf - -T /workspace/.refit-dependency-paths',
+  ];
+}
 
 export class DependencyPreparationError extends PipelineInputError {
   override name = 'DependencyPreparationError';
 }
 
-async function installDependencies(argumentsList: string[], output: string, signal?: AbortSignal) {
+async function installDependencies(
+  argumentsList: string[],
+  output: string,
+  inputs: PreparationIdentity,
+  signal?: AbortSignal,
+) {
   signal?.throwIfAborted();
   const child = spawn('docker', argumentsList, { stdio: ['ignore', 'pipe', 'pipe'], signal });
   const exited = new Promise<{ code: number | null; signal: NodeJS.Signals | null }>(
@@ -142,15 +160,33 @@ async function installDependencies(argumentsList: string[], output: string, sign
       throw new DependencyPreparationError('Dependency preparation exceeded 300 seconds.');
     if (result.code !== 0)
       throw new DependencyPreparationError(
-        `npm dependency preparation failed (${result.code ?? result.signal}). ${stderr.slice(-MAX_ERROR_CHARACTERS)}`,
+        `${inputs.manager} dependency preparation failed (${result.code ?? result.signal}). ${stderr.slice(-MAX_ERROR_CHARACTERS)}`,
       );
     const nodeVersion = /^REFIT_NODE_VERSION=(v\d+\.\d+\.\d+)$/m.exec(stderr)?.[1];
     const npmVersion = /^REFIT_NPM_VERSION=(\d+\.\d+\.\d+)$/m.exec(stderr)?.[1];
+    const pnpmVersion = /^REFIT_PNPM_VERSION=(\d+\.\d+\.\d+)$/m.exec(stderr)?.[1];
+    const pnpmIntegrity = /^REFIT_PNPM_INTEGRITY=(\S+)$/m.exec(stderr)?.[1];
     if (!nodeVersion || !npmVersion || !bytes)
       throw new DependencyPreparationError(
         'Dependency preparation did not produce an archive and runtime version evidence.',
       );
-    return { bytes, sha256: hash.digest('hex'), stderr, nodeVersion, npmVersion };
+    if (
+      inputs.manager === 'pnpm' &&
+      (pnpmVersion !== inputs.managerVersion ||
+        !hasStrongIntegrity(pnpmIntegrity) ||
+        (inputs.managerIntegrity && pnpmIntegrity !== inputs.managerIntegrity))
+    )
+      throw new DependencyPreparationError(
+        'pnpm did not provide the expected pinned manager version and integrity evidence.',
+      );
+    return {
+      bytes,
+      sha256: hash.digest('hex'),
+      stderr,
+      nodeVersion,
+      npmVersion,
+      ...(inputs.manager === 'pnpm' ? { pnpmVersion, pnpmIntegrity } : {}),
+    };
   } catch (error) {
     child.kill('SIGKILL');
     await Promise.allSettled(tasks);
@@ -161,7 +197,7 @@ async function installDependencies(argumentsList: string[], output: string, sign
   }
 }
 
-export async function prepareNpmDependencies(options: {
+export async function prepareDependencies(options: {
   repository: string;
   image: string;
   cacheDirectory?: string;
@@ -170,8 +206,8 @@ export async function prepareNpmDependencies(options: {
 }) {
   options.signal?.throwIfAborted();
   const snapshot = await readCommittedRepository(options.repository);
-  const { packageContent, lockContent, workspaceContents, inputs } =
-    await readNpmPreparationInputs(snapshot);
+  const { files, workspaceContents, inputs } = await readPreparationInputs(snapshot);
+  const kind = inputs.manager === 'pnpm' ? 'refit-pnpm-environment' : 'refit-npm-environment';
   const image = DOCKER_IMAGE_ID.test(options.image)
     ? options.image
     : await resolveDockerImage(options.image);
@@ -214,19 +250,19 @@ export async function prepareNpmDependencies(options: {
         ? manifest.files.find((entry) => entry.path === ARCHIVE)
         : undefined;
       if (
-        verification.kind !== 'refit-npm-environment' ||
+        verification.kind !== kind ||
         environment.formatVersion !== 1 ||
-        environment.kind !== 'refit-npm-environment' ||
+        environment.kind !== kind ||
         environment.signature !== signature ||
         environment.image !== image ||
         environment.recipeVersion !== RECIPE_VERSION ||
-        environment.packageHash !== inputs.packageHash ||
-        environment.lockHash !== inputs.lockHash ||
-        environment.packages !== inputs.packages ||
-        JSON.stringify(environment.workspaceHashes ?? {}) !==
-          JSON.stringify(inputs.workspaceHashes ?? {}) ||
-        JSON.stringify(environment.workspaceLinks ?? {}) !==
-          JSON.stringify(inputs.workspaceLinks ?? {}) ||
+        Object.entries(inputs).some(
+          ([key, value]) => JSON.stringify(environment[key]) !== JSON.stringify(value),
+        ) ||
+        (inputs.manager === 'pnpm' &&
+          (environment.pnpmVersion !== inputs.managerVersion ||
+            !hasStrongIntegrity(environment.pnpmIntegrity) ||
+            (inputs.managerIntegrity && environment.pnpmIntegrity !== inputs.managerIntegrity))) ||
         !archiveEntry ||
         environment.archiveHash !== archiveEntry.sha256 ||
         environment.archiveBytes !== archiveEntry.bytes ||
@@ -237,7 +273,9 @@ export async function prepareNpmDependencies(options: {
           'Prepared dependency cache does not match its committed inputs.',
         );
       options.signal?.throwIfAborted();
-      options.onProgress?.('Reusing verified npm dependencies; installation was not rerun.');
+      options.onProgress?.(
+        `Reusing verified ${inputs.manager} dependencies; installation was not rerun.`,
+      );
       return { directory: bundle, archive: join(bundle, ARCHIVE), environment, reused: true };
     } catch (error) {
       if (!hasErrorCode(error, 'ENOENT')) throw error;
@@ -252,14 +290,12 @@ export async function prepareNpmDependencies(options: {
     try {
       await mkdir(staging, { mode: 0o700 });
       await chmod(input, 0o755);
-      await writeFile(join(input, 'package.json'), packageContent, { mode: 0o444 });
-      await writeFile(join(input, 'package-lock.json'), lockContent, { mode: 0o444 });
-      for (const [directory, content] of workspaceContents) {
-        await mkdir(join(input, directory), { recursive: true, mode: 0o755 });
-        await writeFile(join(input, directory, 'package.json'), content, { mode: 0o444 });
+      for (const [file, content] of files) {
+        await mkdir(resolve(input, file, '..'), { recursive: true, mode: 0o755 });
+        await writeFile(join(input, file), content, { mode: 0o444 });
       }
       options.onProgress?.(
-        'Installing locked public npm dependencies in restricted Docker; lifecycle scripts are disabled...',
+        `Installing locked public ${inputs.manager} dependencies in restricted Docker; lifecycle scripts are disabled...`,
       );
       const result = await installDependencies(
         dockerSandboxArguments({
@@ -267,29 +303,39 @@ export async function prepareNpmDependencies(options: {
           directory: input,
           image,
           command: [
-            ...INSTALL_COMMAND,
+            ...installCommand(inputs.manager),
             'refit-npm-install',
             JSON.stringify({
               links: inputs.workspaceLinks ?? {},
+              optionalLinks: inputs.workspaceOptionalLinks ?? {},
               directories: [...workspaceContents.keys()],
+              hashes: Object.fromEntries(
+                [...files].map(([file, content]) => [file, digest(content)]),
+              ),
+              managerVersion: inputs.managerVersion,
+              managerIntegrity: inputs.managerIntegrity,
             }),
             ...workspaceContents.keys(),
           ],
           network: 'bridge',
         }),
         join(staging, ARCHIVE),
+        inputs,
         options.signal,
       );
       options.signal?.throwIfAborted();
       const environment = {
         formatVersion: 1,
-        kind: 'refit-npm-environment',
+        kind,
         signature,
         recipeVersion: RECIPE_VERSION,
         image,
         ...inputs,
         nodeVersion: result.nodeVersion,
         npmVersion: result.npmVersion,
+        ...(result.pnpmVersion
+          ? { pnpmVersion: result.pnpmVersion, pnpmIntegrity: result.pnpmIntegrity }
+          : {}),
         archiveHash: result.sha256,
         archiveBytes: result.bytes,
         installation: {
@@ -305,7 +351,7 @@ export async function prepareNpmDependencies(options: {
       const environmentContent = await readFile(join(staging, ENVIRONMENT));
       await writeState(join(staging, 'manifest.json'), {
         formatVersion: 1,
-        kind: 'refit-npm-environment',
+        kind,
         status: 'prepared',
         files: [
           { path: ARCHIVE, sha256: result.sha256, bytes: result.bytes },

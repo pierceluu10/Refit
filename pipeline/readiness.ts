@@ -1,7 +1,7 @@
 import { basename, dirname, join, resolve } from 'node:path';
 import { readCommittedRepository } from './committed-repository.ts';
 import { resolveDockerImage } from './docker-sandbox.ts';
-import { readNpmPreparationInputs } from './npm-inputs.ts';
+import { readPreparationInputs } from './dependency-inputs.ts';
 import { unmappedBreakingChanges } from './openapi-diff.ts';
 import { runPipeline } from './run.ts';
 import { stripeWebhookConstructor } from './stripe-webhook-payloads.ts';
@@ -304,7 +304,7 @@ export async function inspectRepositoryReadiness(options: {
         id: 'sdk-version',
         title: 'Recorded SDK version',
         status: 'review',
-        detail: `${unknownLocks.length} SDK declaration${unknownLocks.length === 1 ? '' : 's'} lack a resolved supported root npm lockfile version.`,
+        detail: `${unknownLocks.length} SDK declaration${unknownLocks.length === 1 ? '' : 's'} lack a resolved supported npm/pnpm lockfile version.`,
         action:
           'Review the actual installed SDK version and replacement method availability; dependency declarations alone are not installation evidence.',
       });
@@ -312,9 +312,9 @@ export async function inspectRepositoryReadiness(options: {
   if (workflow.prepareDependencies && snapshot.value) {
     const dependencies = await inspectCheck(
       'dependencies',
-      'npm preparation inputs',
-      'Commit matching root npm manifests and a supported public-registry lockfile, or use a custom dependency image.',
-      () => readNpmPreparationInputs(snapshot.value!),
+      'Dependency preparation inputs',
+      'Commit matching root manifests and a supported public-registry lockfile, or use a custom dependency image.',
+      () => readPreparationInputs(snapshot.value!),
     );
     if (dependencies.value) {
       const workspaces = Object.keys(dependencies.value.inputs.workspaceHashes ?? {}).length;

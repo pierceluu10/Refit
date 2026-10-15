@@ -1,9 +1,14 @@
 import { readdir, readFile, realpath, stat } from 'node:fs/promises';
 import { join, relative, resolve } from 'node:path';
 import { configurationReferences, SOURCE_CONFIGURATION_NAMES } from './source-configurations.ts';
-import { digest, isObject, parseObject } from './specifications.ts';
+import { digest, isObject, parseObject, parseDocumentObject } from './specifications.ts';
 import { PipelineInputError, type Repository, type DependencyDeclaration } from './types.ts';
-import { NPM_LOCKFILES, resolveLockedDependency, type NpmLockfile } from './lockfiles.ts';
+import { PNPM_LOCKFILE, parsePnpmLock } from './pnpm-lock.ts';
+import {
+  DEPENDENCY_LOCKFILES,
+  resolveLockedDependency,
+  type DependencyLockfile,
+} from './lockfiles.ts';
 
 const EXCLUDED_DIRECTORIES = new Set([
   'node_modules',
@@ -37,7 +42,7 @@ export async function readRepository(
     throw new PipelineInputError('Repository must be a directory.');
   const repository: Repository = { root, files: [], dependencies: [], lockfiles: [], warnings: [] };
   const declarations: DependencyDeclaration[] = [];
-  const lockfiles: NpmLockfile[] = [];
+  const lockfiles: DependencyLockfile[] = [];
   const configurationPaths = new Map<string, string>();
   const pendingConfigurations: string[] = [];
   const excludedPaths: string[] = [];
@@ -50,7 +55,7 @@ export async function readRepository(
     for (const entry of entries) {
       const path = join(directoryPath, entry.name);
       const isLockfile =
-        directoryPath === root && NPM_LOCKFILES.some((name) => name === entry.name);
+        directoryPath === root && DEPENDENCY_LOCKFILES.some((name) => name === entry.name);
       if (entry.isSymbolicLink()) {
         repository.warnings.push(`Skipped symbolic link: ${relative(root, path)}`);
         excludedPaths.push(relative(root, path));
@@ -85,12 +90,20 @@ export async function readRepository(
       const content = await readFile(path, 'utf8');
       const name = relative(root, path).split('\\').join('/');
       if (isLockfile) {
-        const lockfile = parseObject(content, name);
+        const lockfile =
+          name === PNPM_LOCKFILE
+            ? parsePnpmLock(content).document
+            : parseDocumentObject(content, name);
         lockfiles.push({ file: name, content: lockfile });
         repository.lockfiles.push({
           file: name,
           hash: digest(content),
-          version: typeof lockfile.lockfileVersion === 'number' ? lockfile.lockfileVersion : null,
+          version:
+            typeof lockfile.lockfileVersion === 'number'
+              ? lockfile.lockfileVersion
+              : lockfile.lockfileVersion === '9.0'
+                ? 9
+                : null,
         });
         continue;
       }

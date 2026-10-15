@@ -1,0 +1,36 @@
+# pnpm repositories
+
+Refit prepares bounded pnpm projects and monorepos through the same `prepareDependencies` workflow as npm. No separate provider integration is needed for dependency installation.
+
+From a clean, configured repository with a local Node Docker image:
+
+```sh
+refit prepare --repository . --image node:22-alpine
+refit doctor
+refit run
+```
+
+Your workflow must set `prepareDependencies: true`, name meaningful baseline/patched commands, and supply reviewed API contracts. The image needs Node, npm, sh and tar. Refit installs the pinned pnpm tool inside the restricted installer; it does not require pnpm on your computer. See [repository setup](REPOSITORY-SETUP.md).
+
+## Required inputs
+
+- A committed root `package.json` with an exact stable `packageManager` pin such as `pnpm@12.4.2`. An optional `+sha512.<hex>` Corepack checksum is verified.
+- A committed root `pnpm-lock.yaml` using lockfile v9. Single documents and pnpm's separate environment/application documents are read explicitly. [pnpm documents this format](https://pnpm.io/lockfile).
+- For workspaces, committed `pnpm-workspace.yaml` and selected package manifests. Up to 64 positive relative package/glob patterns are supported. Names must be unique.
+- Public npm registry packages with exact locked snapshots and SHA-256-or-stronger integrity. Registry aliases can occur in the dependency graph; aliased SDK declarations remain unverified by the scanner.
+
+Default/named catalogs and explicit `workspace:*`, `workspace:^` or `workspace:~` links are supported. Catalog constraints must match their recorded resolutions, and links must target the selected workspace with the same package name. Registry overrides and supported boolean build settings are read, but **install scripts remain disabled** regardless of build approvals.
+
+## Installation and checks
+
+Only approved manifest, lock and workspace-configuration bytes enter the networked installer. Application source, `.env`, repository `.npmrc`, host credentials and repository hooks are excluded. pnpm configuration dependencies and custom hooks are refused. Both manager and application installs disable lifecycle scripts. The exact pnpm version and its recorded integrity are checked; frozen installation must leave every supplied input byte unchanged.
+
+The verified archive contains dependencies, bounded workspace links and the pinned manager, including pnpm 11/12's required launcher files. Baseline and patched checks use that same archive with **network disabled**. `pnpm` and local dependency commands are available on PATH. The common cache binds input hashes, workspace/catalog bytes, tool identity, immutable image and recipe. A repeated poll can reuse verified results; a cache mismatch stops instead of silently reinstalling.
+
+pnpm 9.15.4, 10.17.1, 11.28.5 and 12.4.2 are exercised with actual Stripe SDKs 10.17.0/19.1.0, catalogs, local links, pagination, empty history and TypeScript in offline Docker. This verifies those bounded layouts, not every pnpm option or vendor migration.
+
+## Limits
+
+Workspace CLI bins need application source to create their shims; they currently require a custom validation image. The same applies to injected/local-file dependencies, patches, downloaded configuration, managed runtimes, alternate stores/linkers, private registries, mixed package-manager lockfiles and packages requiring lifecycle builds. Unknown installation settings are refused. Existing resource and archive limits remain in force; a large repository can exceed them.
+
+[Paykit](PAYKIT-EVALUATION.md) now has recorded pnpm SDK versions and helper-call visibility, but its workspace bin still blocks automatic preparation. No Paykit install or successful migration is implied. SDK mapping, effective API versions and useful application checks remain separate requirements.

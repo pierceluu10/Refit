@@ -15,7 +15,7 @@ import { tmpdir } from 'node:os';
 import { delimiter, dirname, join, resolve } from 'node:path';
 import { promisify } from 'node:util';
 import { afterEach, expect, it, vi } from 'vitest';
-import { DEPENDENCY_TREE_CHECK, prepareNpmDependencies } from './npm-dependencies.ts';
+import { DEPENDENCY_TREE_CHECK, prepareDependencies } from './dependency-preparation.ts';
 import { dockerSandboxArguments, removeDockerContainer } from './docker-sandbox.ts';
 import { verifyArtifacts } from './verification.ts';
 import { runWorkflow } from './workflow.ts';
@@ -134,7 +134,7 @@ it(
   'uses manifest-only input and restricted networked Docker, verifies cached bytes and does not reinstall unchanged inputs',
   async () => {
     const fixture = await setup();
-    const prepared = await prepareNpmDependencies(fixture.options);
+    const prepared = await prepareDependencies(fixture.options);
     expect(prepared).toMatchObject({ reused: false, environment: { image: IMAGE, packages: 0 } });
     expect((await verifyArtifacts(prepared.directory)).kind).toBe('refit-npm-environment');
     const run = (await fixture.calls()).find((call) => call.args[0] === 'run');
@@ -158,7 +158,7 @@ it(
       run.args.find((argument: string) => argument.includes('npm ci --ignore-scripts')),
     ).toContain('npm ci --ignore-scripts --include=dev --engine-strict --no-audit --no-fund');
     expect(JSON.stringify(run.args)).not.toContain(fixture.repository);
-    expect((await prepareNpmDependencies(fixture.options)).reused).toBe(true);
+    expect((await prepareDependencies(fixture.options)).reused).toBe(true);
     expect((await fixture.calls()).filter((call) => call.args[0] === 'run')).toHaveLength(1);
   },
   NATIVE_PROCESS_TEST_TIMEOUT_MS,
@@ -166,40 +166,40 @@ it(
 
 it('invalidates dependencies when committed inputs or the immutable image change and refuses tampered cache bytes', async () => {
   const fixture = await setup();
-  const first = await prepareNpmDependencies(fixture.options);
+  const first = await prepareDependencies(fixture.options);
   await writeFile(
     join(fixture.repository, 'package.json'),
     JSON.stringify({ ...INITIAL_MANIFEST, scripts: { test: 'node --version' } }),
   );
   await commit(fixture.repository);
-  const changed = await prepareNpmDependencies(fixture.options);
-  const otherImage = await prepareNpmDependencies({
+  const changed = await prepareDependencies(fixture.options);
+  const otherImage = await prepareDependencies({
     ...fixture.options,
     image: `sha256:${'b'.repeat(64)}`,
   });
   expect(new Set([first.directory, changed.directory, otherImage.directory]).size).toBe(3);
   await writeFile(otherImage.archive, 'tampered archive');
   await expect(
-    prepareNpmDependencies({ ...fixture.options, image: `sha256:${'b'.repeat(64)}` }),
+    prepareDependencies({ ...fixture.options, image: `sha256:${'b'.repeat(64)}` }),
   ).rejects.toThrow(/hash or byte count mismatch/);
   expect((await fixture.calls()).filter((call) => call.args[0] === 'run')).toHaveLength(3);
 });
 
 it('refuses an incomplete existing cache instead of silently reinstalling it', async () => {
   const fixture = await setup();
-  const prepared = await prepareNpmDependencies(fixture.options);
+  const prepared = await prepareDependencies(fixture.options);
   await rm(prepared.archive);
-  await expect(prepareNpmDependencies(fixture.options)).rejects.toThrow(/cache is incomplete/);
+  await expect(prepareDependencies(fixture.options)).rejects.toThrow(/cache is incomplete/);
   expect((await fixture.calls()).filter((call) => call.args[0] === 'run')).toHaveLength(1);
 });
 
 it('refuses a cache-key directory symlink into a repository before writing its lock or bundle', async () => {
   const fixture = await setup();
-  const prepared = await prepareNpmDependencies(fixture.options);
+  const prepared = await prepareDependencies(fixture.options);
   const keyDirectory = dirname(prepared.directory);
   await rm(keyDirectory, { recursive: true });
   await symlink(fixture.repository, keyDirectory);
-  await expect(prepareNpmDependencies(fixture.options)).rejects.toThrow(/physical directories/);
+  await expect(prepareDependencies(fixture.options)).rejects.toThrow(/physical directories/);
   await expect(stat(join(fixture.repository, 'prepare.lock'))).rejects.toMatchObject({
     code: 'ENOENT',
   });
@@ -210,7 +210,7 @@ it.each(['fail', 'verbose'])(
   async (mode) => {
     const fixture = await setup();
     vi.stubEnv('REFIT_TEST_INSTALL_MODE', mode);
-    await expect(prepareNpmDependencies(fixture.options)).rejects.toThrow(
+    await expect(prepareDependencies(fixture.options)).rejects.toThrow(
       mode === 'fail' ? /simulated npm failure/ : /output exceeds 1 MiB/,
     );
     const [key] = await readdir(fixture.options.cacheDirectory);
@@ -223,7 +223,7 @@ it('cancels an in-flight Docker client, removes its container and leaves no reus
   const fixture = await setup();
   vi.stubEnv('REFIT_TEST_INSTALL_MODE', 'wait');
   const controller = new AbortController();
-  const preparation = prepareNpmDependencies({ ...fixture.options, signal: controller.signal });
+  const preparation = prepareDependencies({ ...fixture.options, signal: controller.signal });
   const rejection = expect(preparation).rejects.toMatchObject({ name: 'AbortError' });
   await expect
     .poll(async () =>
@@ -258,7 +258,7 @@ it.skipIf(!process.env.REFIT_NPM_PREPARE || !process.env.REFIT_BILLING_REPOSITOR
     await writeFile(join(repository, '.npmrc'), 'registry=http://127.0.0.1:1\n');
     await execute('git', ['init', repository]);
     await commit(repository);
-    const prepared = await prepareNpmDependencies({
+    const prepared = await prepareDependencies({
       repository,
       image: process.env.REFIT_DOCKER_IMAGE ?? 'node:22-alpine',
       cacheDirectory: join(root, 'cache'),
@@ -290,7 +290,7 @@ it.skipIf(!process.env.REFIT_NPM_PREPARE || !process.env.REFIT_BILLING_REPOSITOR
     }
     expect(
       (
-        await prepareNpmDependencies({
+        await prepareDependencies({
           repository,
           image: String(prepared.environment.image),
           cacheDirectory: join(root, 'cache'),
@@ -414,7 +414,7 @@ it('copies only committed workspace manifests to the networked install input', a
     }),
   );
   await commit(sample.repository);
-  await prepareNpmDependencies(sample.options);
+  await prepareDependencies(sample.options);
   const install = (await sample.calls()).find((call) => call.args[0] === 'run');
   expect(install.inputFiles.sort()).toEqual([
     'package-lock.json',

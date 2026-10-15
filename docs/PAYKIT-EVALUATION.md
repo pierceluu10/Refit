@@ -36,4 +36,10 @@ Reading the same unchanged commit with helper tracing recognizes **41 of the sam
 
 The result is retained separately as `coverage-after-helpers.json` beside the original baseline. No dependencies or Paykit application code were executed. See [helper boundaries](HELPER-CLIENTS.md).
 
+### pnpm checkpoint (0.22)
+
+The same pinned commit's two Stripe declarations now resolve to **19.3.1** from their pnpm importers, package records and peer-qualified snapshots. This is recorded lock evidence, not proof of an installed SDK or deployed API version.
+
+Read-only preparation preflight stops because `packages/paykit` declares a workspace CLI bin. The networked installer deliberately receives manifests rather than application source, so it cannot construct that source-dependent shim. Paykit therefore still requires a reviewed custom image or a separately implemented source-build path. Its dependencies were not installed and its tests were not executed. [Bounded pnpm preparation](PNPM-WORKSPACES.md) is tested on a separate conformance workspace, not on Paykit.
+
 Establish real client provenance through supported helper/factory flows, preserving uncertainty for unknown callers and mutations. Separately add or supply locked pnpm preparation, identify an applicable real API change, and run meaningful application checks in isolation. A future GitHub App publication test should use an authorized repository or a user-owned fork with the App installed. Nothing in this read-only result establishes permission to publish to the upstream project.
