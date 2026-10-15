@@ -17,6 +17,7 @@ const KINDS = new Set([
   'refit-review-bundle',
   'refit-stripe-check',
   'refit-npm-environment',
+  'refit-pnpm-environment',
 ]);
 
 export async function inspectArtifactFile(path: string, limit: number, retainContent = false) {

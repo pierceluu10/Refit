@@ -6,7 +6,7 @@ import { join, resolve } from 'node:path';
 import { promisify } from 'node:util';
 import { afterEach, expect, it, vi } from 'vitest';
 import { dockerSandboxArguments, removeDockerContainer } from './docker-sandbox.ts';
-import { prepareNpmDependencies } from './npm-dependencies.ts';
+import { prepareDependencies } from './dependency-preparation.ts';
 import { runPipeline } from './run.ts';
 import { validateMigration } from './validation.ts';
 import { verifyArtifacts } from './verification.ts';
@@ -143,7 +143,7 @@ it.skipIf(!process.env.REFIT_STRIPE_SDK || !IMAGE || !process.env.REFIT_NPM_PREP
   'reproduces the original and changed signed webhook contracts in offline Docker',
   async () => {
     const sample = await scenario(SDK_VERSIONS[0]);
-    const prepared = await prepareNpmDependencies({
+    const prepared = await prepareDependencies({
       repository: sample.repository,
       image: IMAGE!,
       cacheDirectory: join(sample.root, 'cache'),

@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { readFile, stat } from 'node:fs/promises';
 import { PipelineInputError, type Removal } from './types.ts';
-import { parseDocument } from 'yaml';
+import { parseAllDocuments } from 'yaml';
 
 type JsonObject = Record<string, unknown>;
 export const MAX_SPECIFICATION_BYTES = 64 * 1024 * 1024;
@@ -138,21 +138,33 @@ export function parseSpecification(content: string, label: string) {
 }
 
 export function parseDocumentObject(content: string, label: string): JsonObject {
+  return parseDocumentObjects(content, label, 1)[0];
+}
+
+export function parseDocumentObjects(
+  content: string,
+  label: string,
+  maximum: number,
+): JsonObject[] {
   if (content.trimStart().startsWith('{') || content.trimStart().startsWith('['))
-    return parseObject(content, label);
-  const parsed = parseDocument(content, { strict: true, uniqueKeys: true });
-  if (parsed.errors.length || parsed.warnings.length)
-    throw new PipelineInputError(`${label} contains invalid or unsupported YAML.`, {
-      cause: parsed.errors[0] ?? parsed.warnings[0],
-    });
-  let value: unknown;
-  try {
-    value = parsed.toJS({ maxAliasCount: 0 });
-  } catch (cause) {
-    throw new PipelineInputError(`${label} contains unsupported YAML aliases.`, { cause });
-  }
-  if (!isObject(value)) throw new PipelineInputError(`${label} must contain an object.`);
-  return value;
+    return [parseObject(content, label)];
+  const documents = parseAllDocuments(content, { strict: true, uniqueKeys: true });
+  if (!documents.length || documents.length > maximum)
+    throw new PipelineInputError(`${label} requires 1–${maximum} YAML documents.`);
+  return documents.map((parsed) => {
+    if (parsed.errors.length || parsed.warnings.length)
+      throw new PipelineInputError(`${label} contains invalid or unsupported YAML.`, {
+        cause: parsed.errors[0] ?? parsed.warnings[0],
+      });
+    let value: unknown;
+    try {
+      value = parsed.toJS({ maxAliasCount: 0 });
+    } catch (cause) {
+      throw new PipelineInputError(`${label} contains unsupported YAML aliases.`, { cause });
+    }
+    if (!isObject(value)) throw new PipelineInputError(`${label} must contain an object.`);
+    return value;
+  });
 }
 
 function escapePointer(value: string): string {

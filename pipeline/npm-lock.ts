@@ -36,13 +36,23 @@ export function hasStrongIntegrity(value: unknown): value is string {
   });
 }
 
+export function isRegistrySource(source: unknown): source is string {
+  return (
+    typeof source === 'string' &&
+    Boolean(source.trim()) &&
+    !NON_REGISTRY_SOURCE.test(source) &&
+    (!source.includes(':') ||
+      (source.startsWith('npm:') && !source.slice('npm:'.length).includes(':')))
+  );
+}
+
 function dependencySources(value: Record<string, unknown>) {
   for (const section of DEPENDENCY_SECTIONS) {
     const dependencies = value[section];
     if (dependencies === undefined) continue;
     if (!isObject(dependencies)) throw new PipelineInputError(`npm ${section} must be an object.`);
     for (const source of Object.values(dependencies))
-      if (typeof source !== 'string' || !source.trim() || NON_REGISTRY_SOURCE.test(source))
+      if (!isRegistrySource(source))
         throw new PipelineInputError(
           'Automatic preparation supports public npm registry dependencies only; local, Git and URL dependencies require a custom image.',
         );
@@ -234,25 +244,7 @@ export function validateNpmLock(
       throw new PipelineInputError(
         'Every npm package requires a registry URL, version and SHA-256-or-stronger integrity; links and bundled records require a custom image.',
       );
-    let url;
-    try {
-      url = new URL(record.resolved);
-    } catch (cause) {
-      throw new PipelineInputError('npm package registry URL is invalid.', { cause });
-    }
-    if (
-      url.protocol !== 'https:' ||
-      url.hostname !== 'registry.npmjs.org' ||
-      url.port ||
-      url.username ||
-      url.password ||
-      url.search ||
-      url.hash ||
-      !url.pathname.endsWith('.tgz')
-    )
-      throw new PipelineInputError(
-        'npm package tarballs must use public registry.npmjs.org HTTPS URLs without credentials or parameters.',
-      );
+    assertRegistryTarball(record.resolved);
   }
   return {
     packageHash: digest(packageContent),
@@ -267,4 +259,26 @@ export function validateNpmLock(
         }
       : {}),
   };
+}
+
+export function assertRegistryTarball(source: string) {
+  let url;
+  try {
+    url = new URL(source);
+  } catch (cause) {
+    throw new PipelineInputError('Package registry URL is invalid.', { cause });
+  }
+  if (
+    url.protocol !== 'https:' ||
+    url.hostname !== 'registry.npmjs.org' ||
+    url.port ||
+    url.username ||
+    url.password ||
+    url.search ||
+    url.hash ||
+    !url.pathname.endsWith('.tgz')
+  )
+    throw new PipelineInputError(
+      'Package tarballs must use public registry.npmjs.org HTTPS URLs without credentials or parameters.',
+    );
 }

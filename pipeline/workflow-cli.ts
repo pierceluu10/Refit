@@ -51,7 +51,7 @@ try {
   });
   if (values.help)
     console.log(
-      `${USAGE}\nFrom a repository root, run refit doctor, then refit run to use .refit.json. --repository selects another root. Evidence defaults to a new private directory in the operating system's temporary directory; use --output to retain it elsewhere.\nUse --human for a readable summary or --json for machine output. Terminals default to human output; redirected output defaults to JSON.\n--prepare-dependencies installs locked public npm packages with scripts disabled before offline checks. Optional --baseline-command '<JSON array>' overrides only the baseline check. Both commands are recorded; review their contract differences. AI and publication stay explicit opt-ins.`,
+      `${USAGE}\nFrom a repository root, run refit doctor, then refit run to use .refit.json. --repository selects another root. Evidence defaults to a new private directory in the operating system's temporary directory; use --output to retain it elsewhere.\nUse --human for a readable summary or --json for machine output. Terminals default to human output; redirected output defaults to JSON.\n--prepare-dependencies installs locked public npm/pnpm packages with scripts disabled before offline checks. Optional --baseline-command '<JSON array>' overrides only the baseline check. Both commands are recorded; review their contract differences. AI and publication stay explicit opt-ins.`,
     );
   else {
     if (values.json && values.human)

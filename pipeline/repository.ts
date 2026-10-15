@@ -3,6 +3,7 @@ import { join, relative, resolve } from 'node:path';
 import { configurationReferences, SOURCE_CONFIGURATION_NAMES } from './source-configurations.ts';
 import { digest, isObject, parseObject, parseDocumentObject } from './specifications.ts';
 import { PipelineInputError, type Repository, type DependencyDeclaration } from './types.ts';
+import { PNPM_LOCKFILE, parsePnpmLock } from './pnpm-lock.ts';
 import {
   DEPENDENCY_LOCKFILES,
   resolveLockedDependency,
@@ -89,7 +90,10 @@ export async function readRepository(
       const content = await readFile(path, 'utf8');
       const name = relative(root, path).split('\\').join('/');
       if (isLockfile) {
-        const lockfile = parseDocumentObject(content, name);
+        const lockfile =
+          name === PNPM_LOCKFILE
+            ? parsePnpmLock(content).document
+            : parseDocumentObject(content, name);
         lockfiles.push({ file: name, content: lockfile });
         repository.lockfiles.push({
           file: name,

@@ -39,7 +39,7 @@ try {
   });
   if (values.help)
     console.log(
-      `${USAGE}\n--prepare-dependencies installs locked public npm packages with scripts disabled before offline checks. Optional --baseline-command '<JSON array>' overrides only the baseline check. Both commands are recorded; review their contract differences.`,
+      `${USAGE}\n--prepare-dependencies installs locked public npm/pnpm packages with scripts disabled before offline checks. Optional --baseline-command '<JSON array>' overrides only the baseline check. Both commands are recorded; review their contract differences.`,
     );
   else if (
     !values.repository ||

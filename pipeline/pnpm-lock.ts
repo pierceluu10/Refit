@@ -1,9 +1,28 @@
 import { posix } from 'node:path';
-import { isObject } from './specifications.ts';
+import { isObject, parseDocumentObjects } from './specifications.ts';
 import type { DependencyDeclaration, LockedDependency } from './types.ts';
+import { PipelineInputError } from './types.ts';
 import { EXACT_PACKAGE_VERSION } from './npm-lock.ts';
 
 export const PNPM_LOCKFILE = 'pnpm-lock.yaml';
+const MAX_DOCUMENTS = 2;
+
+export function parsePnpmLock(content: string) {
+  const documents = parseDocumentObjects(content, PNPM_LOCKFILE, MAX_DOCUMENTS);
+  const environment = documents.length === MAX_DOCUMENTS ? documents[0] : undefined;
+  if (environment) {
+    const importer = isObject(environment.importers) ? environment.importers['.'] : undefined;
+    if (
+      !isObject(importer) ||
+      (!Object.hasOwn(importer, 'configDependencies') &&
+        !Object.hasOwn(importer, 'packageManagerDependencies'))
+    )
+      throw new PipelineInputError(
+        'The leading pnpm document must describe its package-manager environment, not a second application graph.',
+      );
+  }
+  return { document: documents.at(-1)!, environment };
+}
 
 export function resolvePnpmDependency(
   dependency: DependencyDeclaration,

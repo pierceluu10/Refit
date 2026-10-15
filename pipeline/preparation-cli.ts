@@ -1,5 +1,5 @@
 import { parseArgs } from 'node:util';
-import { prepareNpmDependencies } from './npm-dependencies.ts';
+import { prepareDependencies } from './dependency-preparation.ts';
 import { PipelineInputError } from './types.ts';
 import { terminalText } from './workflow-presentation.ts';
 
@@ -18,7 +18,7 @@ try {
   });
   if (values.help)
     console.log(
-      `${USAGE}\nInstalls committed root npm lockfile dependencies in restricted Docker with network access and lifecycle scripts disabled. No application source, credentials, .npmrc or repository commands are used during installation. Validation stays offline. Requires an already-installed image with Node, npm, sh and tar. Verified dependency bundles are cached outside Git repositories.`,
+      `${USAGE}\nInstalls committed npm or pinned pnpm lockfile dependencies in restricted Docker with network access and lifecycle scripts disabled. No application source, credentials, .npmrc or repository commands are used during installation. Validation stays offline. Requires an already-installed image with Node, npm, sh and tar. Verified dependency bundles are cached outside Git repositories.`,
     );
   else {
     if (!values.repository || !values.image) throw new PipelineInputError(USAGE);
@@ -27,7 +27,7 @@ try {
     process.once('SIGINT', stop);
     process.once('SIGTERM', stop);
     try {
-      const prepared = await prepareNpmDependencies({
+      const prepared = await prepareDependencies({
         repository: values.repository,
         image: values.image,
         cacheDirectory: values.cache,
@@ -40,7 +40,7 @@ try {
           [
             prepared.reused ? 'Verified dependencies reused' : 'Dependencies prepared',
             '',
-            `Runtime   ${prepared.environment.nodeVersion}; npm ${prepared.environment.npmVersion}`,
+            `Runtime   ${prepared.environment.nodeVersion}; ${prepared.environment.pnpmVersion ? `pnpm ${prepared.environment.pnpmVersion}` : `npm ${prepared.environment.npmVersion}`}`,
             `Packages  ${prepared.environment.packages} locked records`,
             ...(prepared.environment.workspaceHashes
               ? [

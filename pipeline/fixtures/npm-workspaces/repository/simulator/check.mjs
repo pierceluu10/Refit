@@ -14,7 +14,7 @@ assert.equal(
 assert.equal(typeof createRequire(import.meta.url)('stripe'), 'function');
 assert.equal(existsSync('node_modules/root-script-ran'), false);
 assert.equal(existsSync('packages/billing/node_modules/workspace-script-ran'), false);
-const { paymentIntentId } = await import('@refit-fixture/ids');
+const { paymentIntentId } = billingRequire('@refit-fixture/ids');
 assert.equal(paymentIntentId, 'pi_refit_contract');
 process.env.REFIT_FIXTURE_PAGINATION = '1';
 process.env.REFIT_FIXTURE_EMPTY = scenario === 'empty' ? '1' : '0';

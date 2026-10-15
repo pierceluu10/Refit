@@ -85,7 +85,7 @@ export function dockerSandboxArguments(options: {
     '/bin/sh',
     options.image,
     '-c',
-    `cp -R /input/. /workspace/ && ${options.dependencies ? 'tar -xf /dependencies.tar -C /workspace/ && ' : ''}exec "$@"`,
+    `cp -R /input/. /workspace/ && ${options.dependencies ? 'tar -xf /dependencies.tar -C /workspace/ && export PATH="/workspace/node_modules/.refit-tools/node_modules/.bin:/workspace/node_modules/.bin:$PATH" && ' : ''}exec "$@"`,
     'refit-check',
     ...options.command,
   ];

@@ -4,23 +4,47 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { promisify } from 'node:util';
 import { afterEach, expect, it } from 'vitest';
-import { prepareNpmDependencies } from './npm-dependencies.ts';
+import { prepareDependencies } from './dependency-preparation.ts';
 import { runWorkflow } from './workflow.ts';
 import { inspectRepositoryReadiness } from './readiness.ts';
 import { verifyArtifacts } from './verification.ts';
+import { digest } from './specifications.ts';
 
 const execute = promisify(execFile);
 const FIXTURE = resolve('pipeline/fixtures/npm-workspaces/repository');
 const IMAGE = process.env.REFIT_DOCKER_IMAGE;
+const PNPM_VERSIONS = ['9.15.4', '10.17.1', '11.28.5', '12.4.2'];
+const PNPM_FIXTURE = resolve('pipeline/fixtures/pnpm-workspaces');
 const roots: string[] = [];
 afterEach(async () => {
   await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
 });
-async function scenario() {
+async function scenario(pnpmVersion?: string) {
   const root = await mkdtemp(join(tmpdir(), 'refit-npm-workspaces-'));
   roots.push(root);
   const repository = join(root, 'repository');
   await cp(FIXTURE, repository, { recursive: true });
+  if (pnpmVersion) {
+    const root = JSON.parse(await readFile(join(repository, 'package.json'), 'utf8'));
+    delete root.workspaces;
+    root.packageManager = `pnpm@${pnpmVersion}`;
+    await writeFile(join(repository, 'package.json'), JSON.stringify(root, null, 2) + '\n');
+    const billingFile = join(repository, 'packages/billing/package.json');
+    const billing = JSON.parse(await readFile(billingFile, 'utf8'));
+    billing.dependencies.stripe = 'catalog:legacy';
+    billing.dependencies['@refit-fixture/ids'] = 'workspace:*';
+    billing.devDependencies.typescript = 'catalog:';
+    await writeFile(billingFile, JSON.stringify(billing, null, 2) + '\n');
+    await rm(join(repository, 'package-lock.json'));
+    await cp(
+      join(
+        PNPM_FIXTURE,
+        `pnpm-v${Number(pnpmVersion.split('.')[0]) >= 11 ? pnpmVersion.split('.')[0] : '9'}.yaml`,
+      ),
+      join(repository, 'pnpm-lock.yaml'),
+    );
+    await cp(join(PNPM_FIXTURE, 'pnpm-workspace.yaml'), join(repository, 'pnpm-workspace.yaml'));
+  }
   await cp(
     resolve('pipeline/fixtures/stripe-sdk/contract.mjs'),
     join(repository, 'simulator/stripe-contract.mjs'),
@@ -43,12 +67,30 @@ async function scenario() {
     ]);
   };
   await git(['init', '-b', 'main']);
-  await commit();
   const check = (mode: string) => [
     'sh',
     '-c',
-    `npm test --workspace @refit-fixture/billing -- ${mode} && npm test --workspace @refit-fixture/billing -- ${mode} empty && npm run typecheck --workspace @refit-fixture/billing`,
+    pnpmVersion
+      ? `pnpm --filter @refit-fixture/billing exec node --experimental-strip-types ../../simulator/check.mjs ${mode} && pnpm --filter @refit-fixture/billing exec node --experimental-strip-types ../../simulator/check.mjs ${mode} empty && pnpm --filter @refit-fixture/billing run typecheck`
+      : `npm test --workspace @refit-fixture/billing -- ${mode} && npm test --workspace @refit-fixture/billing -- ${mode} empty && npm run typecheck --workspace @refit-fixture/billing`,
   ];
+  if (pnpmVersion)
+    await writeFile(
+      join(repository, '.refit.json'),
+      JSON.stringify({
+        formatVersion: 1,
+        before: resolve('pipeline/fixtures/before.json'),
+        after: resolve('pipeline/fixtures/after.json'),
+        apiVersion: '2022-08-01',
+        apiVersionPolicy: 'source-verified',
+        image: IMAGE,
+        prepareDependencies: true,
+        fullDiff: false,
+        baselineCommand: check('before'),
+        command: ['sh', '-c', `${check('before')[2]} && ${check('after')[2]}`],
+      }),
+    );
+  await commit();
   return {
     root,
     repository,
@@ -63,11 +105,98 @@ async function scenario() {
       apiVersion: '2022-08-01',
       apiVersionPolicy: 'source-verified' as const,
       baselineCommand: check('before'),
-      command: check('after'),
+      command: pnpmVersion
+        ? ['sh', '-c', `${check('before')[2]} && ${check('after')[2]}`]
+        : check('after'),
       output: join(root, 'run'),
     },
   };
 }
+
+it.skipIf(!IMAGE || !process.env.REFIT_NPM_PREPARE).each(PNPM_VERSIONS)(
+  'prepares pinned pnpm %s with catalogs, links and both Stripe versions, then validates offline without install scripts',
+  async (version) => {
+    const sample = await scenario(version);
+    const options = {
+      repository: sample.repository,
+      image: IMAGE!,
+      cacheDirectory: join(sample.root, 'cache'),
+    };
+    const readiness = await inspectRepositoryReadiness({ repository: sample.repository });
+    expect(readiness.status).toBe('ready-for-validation');
+    expect(readiness.checks.find((check) => check.id === 'dependencies')?.status).toBe('passed');
+    const prepared = await prepareDependencies(options);
+    expect(prepared.environment).toMatchObject({
+      kind: 'refit-pnpm-environment',
+      manager: 'pnpm',
+      pnpmVersion: version,
+    });
+    expect(prepared.environment.pnpmIntegrity).toMatch(/^sha512-/);
+    expect((await verifyArtifacts(prepared.directory)).status).toBe('integrity-verified');
+    expect((await prepareDependencies(options)).reused).toBe(true);
+    const entries = (await execute('tar', ['-tf', prepared.archive])).stdout.split('\n');
+    expect(
+      entries.some((path) => path.startsWith('node_modules/.refit-tools/node_modules/pnpm/')),
+    ).toBe(true);
+    expect(
+      entries.some(
+        (path) =>
+          path.endsWith('/root-script-ran') ||
+          path.endsWith('/workspace-script-ran') ||
+          path.endsWith('/.env') ||
+          path.endsWith('/.npmrc') ||
+          path.endsWith('/src/history.ts'),
+      ),
+    ).toBe(false);
+    if (version === '12.4.2') {
+      const failed = await runWorkflow({
+        ...sample.options,
+        baselineCommand: sample.options.command,
+        output: join(sample.root, 'original-after'),
+      });
+      expect(failed.manifest.status).toBe('validation-failed');
+      const failure = JSON.parse(await readFile(join(failed.directory, 'report.json'), 'utf8'));
+      expect(failure.validation.baseline.stderr).toContain('Missing history');
+    }
+    const result = await runWorkflow(sample.options);
+    expect(result.manifest.status).toBe('validated');
+    const report = JSON.parse(await readFile(join(result.directory, 'report.json'), 'utf8'));
+    expect(
+      report.repository.dependencies
+        .map((dependency: { lock: { version: string } }) => dependency.lock.version)
+        .sort(),
+    ).toEqual(['10.17.0', '19.1.0']);
+    expect(report.patch).toMatchObject({ generator: 'deterministic', unresolvedFindings: 0 });
+    expect(report.validation).toMatchObject({
+      baseline: { status: 'passed' },
+      patched: { status: 'passed' },
+      environment: { manager: 'pnpm', pnpmVersion: version },
+    });
+    expect(report.validation.patched.stdout).toContain('starting_after=ch_first');
+    expect(report.validation.patched.stdout).toContain('"chargeIds":[]');
+    expect((await verifyArtifacts(result.directory)).status).toBe('integrity-verified');
+    expect((await sample.git(['status', '--porcelain'])).stdout).toBe('');
+    if (version === '12.4.2') {
+      const environmentFile = join(prepared.directory, 'environment.json');
+      const environment = JSON.parse(await readFile(environmentFile, 'utf8'));
+      environment.pnpmVersion = '0.0.0';
+      const bytes = JSON.stringify(environment);
+      await writeFile(environmentFile, bytes);
+      const manifestFile = join(prepared.directory, 'manifest.json');
+      const manifest = JSON.parse(await readFile(manifestFile, 'utf8'));
+      Object.assign(
+        manifest.files.find((file: { path: string }) => file.path === 'environment.json'),
+        { sha256: digest(bytes), bytes: Buffer.byteLength(bytes) },
+      );
+      await writeFile(manifestFile, JSON.stringify(manifest));
+      expect((await verifyArtifacts(prepared.directory)).status).toBe('integrity-verified');
+      await expect(prepareDependencies(options)).rejects.toThrow(
+        'does not match its committed inputs',
+      );
+    }
+  },
+  180_000,
+);
 
 it.skipIf(!IMAGE || !process.env.REFIT_NPM_PREPARE).each(['relative', 'alias'])(
   'validates a TypeScript billing workspace using %s imports, linked local source and two actual Stripe versions in offline Docker',
@@ -90,7 +219,7 @@ it.skipIf(!IMAGE || !process.env.REFIT_NPM_PREPARE).each(['relative', 'alias'])(
       );
       await sample.commit();
     }
-    const prepared = await prepareNpmDependencies({
+    const prepared = await prepareDependencies({
       repository: sample.repository,
       image: IMAGE!,
       cacheDirectory: join(sample.root, 'cache'),
@@ -163,7 +292,7 @@ it.skipIf(!IMAGE || !process.env.REFIT_NPM_PREPARE).each(['relative', 'alias'])(
     expect((await verifyArtifacts(result.directory)).status).toBe('integrity-verified');
     expect(
       (
-        await prepareNpmDependencies({
+        await prepareDependencies({
           repository: sample.repository,
           image: IMAGE!,
           cacheDirectory: join(sample.root, 'cache'),
@@ -183,19 +312,19 @@ it.skipIf(!IMAGE || !process.env.REFIT_NPM_PREPARE)(
       image: IMAGE!,
       cacheDirectory: join(sample.root, 'cache'),
     };
-    const first = await prepareNpmDependencies(options);
+    const first = await prepareDependencies(options);
     const path = join(sample.repository, 'packages/billing/package.json');
     const manifest = JSON.parse(await readFile(path, 'utf8'));
     manifest.scripts.test += ' ';
     await writeFile(path, JSON.stringify(manifest));
     await sample.commit();
-    const second = await prepareNpmDependencies(options);
+    const second = await prepareDependencies(options);
     expect(second.reused).toBe(false);
     expect(second.directory).not.toBe(first.directory);
     manifest.dependencies.stripe = '11.0.0';
     await writeFile(path, JSON.stringify(manifest));
     await sample.commit();
-    await expect(prepareNpmDependencies(options)).rejects.toThrow(/requirements differ/);
+    await expect(prepareDependencies(options)).rejects.toThrow(/requirements differ/);
     await writeFile(
       join(sample.repository, '.refit.json'),
       JSON.stringify({
