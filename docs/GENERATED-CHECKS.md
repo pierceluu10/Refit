@@ -33,11 +33,11 @@ stripe-mock's README says it serves only the latest API version, but its `-spec`
 - stripe-mock fixtures use placeholder values, and they differ between versions, so return values are not compared. The check catches crashes and type errors on the new response shape, such as reading a property of a removed field, not wrong results.
 - Code that does not crash on a missing field, for example by returning `undefined`, passes on both versions. Review stays necessary.
 - Only the Stripe SDK's default Node HTTP client is redirected. Clients configured with a custom host, a custom HTTP client or `fetch` are not redirected, and fail in the offline sandbox.
-- TypeScript entry points run with Node's `--experimental-strip-types`, which needs a recent Node 22 or newer in the validation image.
+- TypeScript entry points run with Node's `--experimental-strip-types`, which needs a recent Node 22 or newer in the validation image. Imports resolve through a map Refit computes with its own verified resolver, covering extensionless relative paths, `index` files and `tsconfig`/`jsconfig` path aliases. A small Node resolve hook in the sandbox reads that map. JSX/TSX files, CommonJS `require` of TypeScript, and unverified alias configurations are not handled.
 
 ## Real repositories
 
-On the Stripe benchmark, 5 of 6 deterministically patched repositories have an entry point. None could run, because Next.js dependency trees exceed the 256 MiB archive limit and the helpers query Supabase before Stripe. See [the benchmark re-run](STRIPE-BENCHMARK.md#re-run-with-ai-october-15). Generated checks fit libraries and service code more than full-stack apps today.
+The lab also covers a TypeScript module that imports its client through an extensionless `@/client` alias. On the Stripe benchmark, 5 of 6 deterministically patched repositories have an entry point. None could run, because Next.js dependency trees exceed the 256 MiB archive limit and the helpers query Supabase before Stripe. See [the benchmark re-run](STRIPE-BENCHMARK.md#re-run-with-ai-october-15). Generated checks fit libraries and service code more than full-stack apps today.
 
 ## Verified lab
 
