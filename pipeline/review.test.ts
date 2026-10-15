@@ -54,6 +54,23 @@ afterEach(async () => {
   );
 });
 
+it('accepts a compared typecheck that exits nonzero on errors that predate the patch', async () => {
+  const base = await report();
+  const passed: Report = {
+    ...base,
+    patch: { ...base.patch, validation: 'passed' },
+    validation: {
+      ...base.validation,
+      status: 'passed',
+      baseline: { status: 'passed', exitCode: 2, stdout: 'a.ts(1,1): error TS7006: x', stderr: '' },
+      patched: { status: 'passed', exitCode: 2, stdout: 'a.ts(1,1): error TS7006: x', stderr: '' },
+    },
+  };
+  expect(() => createReviewArtifacts(passed)).toThrow('two successful check results');
+  const compared = { ...passed, validation: { ...passed.validation, compareTypeErrors: true } };
+  expect(createReviewArtifacts(compared).files['pull-request.md']).toContain('passed');
+});
+
 it('exports regression evidence without implying that checks passed or a PR exists', async () => {
   const artifacts = createReviewArtifacts(await report());
   expect(artifacts.files['pull-request.md']).toContain('Validation did not pass (regression)');

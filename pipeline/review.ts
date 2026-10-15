@@ -229,8 +229,10 @@ export function createReviewArtifacts(
     );
   if (
     validation.status === 'passed' &&
+    // A compared typecheck passes with tsc's nonzero exit when the only errors predate the patch.
     [validation.baseline, validation.patched].some(
-      (check) => check.status !== 'passed' || check.exitCode !== 0,
+      (check) =>
+        check.status !== 'passed' || (check.exitCode !== 0 && !validation.compareTypeErrors),
     )
   )
     throw new PipelineInputError('Passing validation must include two successful check results.');
