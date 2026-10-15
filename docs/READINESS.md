@@ -1,5 +1,21 @@
 # Refit implementation checkpoints
 
+## October 15 checkpoint: default-profile benchmark confirmation (0.33.1)
+
+The benchmark was re-run with validation on v0.33.0 defaults: no `REFIT_VALIDATION_WORKSPACE` override and no AI. It matches the earlier explicit `2g` run:
+
+| Outcome | Repositories |
+|---|---|
+| Affected | 23 |
+| Pass every check (stop only on other unresolved findings) | 3 |
+| Fail their own baseline | 8 |
+| Exceed the 1 GiB archive | 3 |
+| Lockfile integrity or sync problems | 2 |
+| No deterministic rule (AI off) | 1 |
+| Declared-type evidence | 1 |
+
+The archive-limit error no longer suggests a larger profile when the default is already the largest. It points to a custom validation image instead.
+
 ## October 15 checkpoint: 2 GiB validation by default (0.33.0)
 
 At the owner's decision, offline validation now defaults to the `2g` profile: a 2 GiB workspace, 3 GiB memory and a 1 GiB dependency archive limit. Network stays disabled, along with the read-only root, dropped capabilities, non-root user, 1 CPU, 128 processes and 120-second check limit. `REFIT_VALIDATION_WORKSPACE=1g` or `512m` selects a smaller profile on constrained hosts. Reports record the workspace and memory used. On the Stripe benchmark, this profile brings 11 more of the 23 affected repositories to their checks; 3 pass every check (see 0.32.0).
