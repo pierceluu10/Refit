@@ -145,6 +145,7 @@ async function watchLocalOnce(
         ...(configuration.generatedChecks
           ? { generatedChecks: configuration.generatedChecks }
           : {}),
+        ...(configuration.compareTypeErrors ? { compareTypeErrors: true } : {}),
         command: configuration.command,
         baselineCommand: configuration.baselineCommand,
         fullDiff: configuration.fullDiff,

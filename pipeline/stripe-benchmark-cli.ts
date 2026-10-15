@@ -13,7 +13,7 @@ import { PipelineInputError, type Repository } from './types.ts';
 
 const execute = promisify(execFile);
 const USAGE =
-  'Usage: npm run benchmark:stripe -- --root <benchmark-dir> --output <new-dir> [--env .env] [--ai] [--validate] [--limit N]';
+  'Usage: npm run benchmark:stripe -- --root <benchmark-dir> --output <new-dir> [--env .env] [--ai] [--validate] [--limit N] [--concurrency N]';
 // Default `npm init` script; it is not a check.
 const PLACEHOLDER_TEST = /no test specified/;
 const VALIDATION_TIMEOUT_MS = 20 * 60 * 1000;
@@ -48,6 +48,7 @@ const { values } = parseArgs({
     ai: { type: 'boolean' },
     validate: { type: 'boolean' },
     limit: { type: 'string' },
+    concurrency: { type: 'string' },
     split: { type: 'string' },
   },
 });
@@ -91,7 +92,7 @@ await mkdir(output);
 const message = (error: unknown) => (error instanceof Error ? error.message : String(error));
 const results: Record<string, unknown>[] = [];
 
-for (const [index, entry] of selected.entries()) {
+async function benchmark(entry: Selected, index: number) {
   const started = Date.now();
   const directory = join(root, 'repos', entry.repo.replace('/', '__'));
   const work = join(output, 'repos', entry.repo.replace('/', '__'));
@@ -107,7 +108,7 @@ for (const [index, entry] of selected.entries()) {
     after: latest,
     packageManager: entry.packageManager,
   };
-  results.push(result);
+  results[index] = result;
   const log = (stage: string) =>
     console.error(`[${index + 1}/${selected.length}] ${entry.repo}: ${stage}`);
   let repository: Repository;
@@ -117,7 +118,7 @@ for (const [index, entry] of selected.entries()) {
   } catch (error) {
     result.read = message(error);
     log('Refit cannot read repository');
-    continue;
+    return;
   }
   try {
     const sites = measureCoverage(repository, 'stripe').filter((site) => site.likelySdk);
@@ -126,7 +127,7 @@ for (const [index, entry] of selected.entries()) {
   } catch (error) {
     result.scanCrash = message(error);
     log('scanner crashed');
-    continue;
+    return;
   }
   if (!operationsByVersion.has(entry.before))
     operationsByVersion.set(
@@ -195,14 +196,14 @@ for (const [index, entry] of selected.entries()) {
   }
   if (!mappedMethods) {
     log('no mapped Stripe methods');
-    continue;
+    return;
   }
   try {
     result.fullAdapter = summarize(await runPipeline({ ...inputs, providerConfig: adapterPath }));
   } catch (error) {
     result.fullAdapter = { error: message(error) };
     log('full-adapter scan failed');
-    continue;
+    return;
   }
   // The oasdiff comparison depends only on the contract pair; a failure applies to every
   // repository on the same before version, so it is attempted once per version.
@@ -224,7 +225,7 @@ for (const [index, entry] of selected.entries()) {
   result.changelogNotes = notes.map((path) => path.slice(CHANGELOG.length + 1));
   if (!full.confirmed) {
     log('not affected');
-    continue;
+    return;
   }
   const manifest = JSON.parse(
     await readFile(join(directory, 'package.json'), 'utf8').catch(() => '{}'),
@@ -253,17 +254,17 @@ for (const [index, entry] of selected.entries()) {
             afterFixtures: fixtures(latest),
           }
         : undefined;
-    // Without tests, a TypeScript typecheck reports errors without failing, so the patch's new
-    // errors can be counted against the baseline's.
+    // Without tests, TypeScript repositories typecheck; compareTypeErrors fails the patched check
+    // only on errors the patch introduced, which then go to AI repair.
     const command = hasTests
       ? ['npm', 'test']
       : typescript
-        ? ['sh', '-c', 'npx --no-install tsc --noEmit --pretty false -p . ; exit 0']
+        ? ['npx', '--no-install', 'tsc', '--noEmit', '--pretty', 'false', '-p', '.']
         : ['node', '-e', ''];
     const config = join(work, 'run.json');
     await writeFile(
       config,
-      `${JSON.stringify({ formatVersion: 1, repository: directory, apiVersion: entry.before, before, after, providerConfig: adapterPath, image: 'node:22-alpine', prepareDependencies: true, command, ...(generatedChecks ? { generatedChecks } : {}) }, null, 2)}\n`,
+      `${JSON.stringify({ formatVersion: 1, repository: directory, apiVersion: entry.before, before, after, providerConfig: adapterPath, image: 'node:22-alpine', prepareDependencies: true, command, ...(result.checks === 'typecheck' ? { compareTypeErrors: true } : {}), ...(generatedChecks ? { generatedChecks } : {}) }, null, 2)}\n`,
     );
     const bundle = join(work, 'run');
     try {
@@ -341,7 +342,7 @@ for (const [index, entry] of selected.entries()) {
     log(`workflow ${String((result.workflow as { status: string }).status)}`);
   } else if (!ai) {
     log(`affected (${full.confirmed} usages), AI not requested`);
-    continue;
+    return;
   } else {
     try {
       const report = await runPipeline({
@@ -379,5 +380,17 @@ for (const [index, entry] of selected.entries()) {
   result.seconds = Math.round((Date.now() - started) / 1000);
   await writeFile(join(output, 'results.json'), `${JSON.stringify(results, null, 2)}\n`);
 }
+// Repositories are independent; each validation container may use up to 3 GiB, so keep this
+// within the Docker host's memory (2 on an 8 GiB host).
+const concurrency = Math.max(1, Number(values.concurrency ?? 1));
+let next = 0;
+await Promise.all(
+  Array.from({ length: Math.min(concurrency, selected.length) }, async () => {
+    while (next < selected.length) {
+      const index = next++;
+      await benchmark(selected[index], index);
+    }
+  }),
+);
 await writeFile(join(output, 'results.json'), `${JSON.stringify(results, null, 2)}\n`);
 console.log(`Results: ${join(output, 'results.json')}`);

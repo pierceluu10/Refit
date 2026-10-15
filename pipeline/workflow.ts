@@ -46,6 +46,7 @@ export async function runWorkflow(options: {
   baselineCommand?: string[];
   prepareDependencies?: boolean;
   generatedChecks?: GeneratedChecks;
+  compareTypeErrors?: boolean;
   providerConfig?: string;
   apiVersion?: string;
   apiVersionPolicy?: ApiVersionPolicy;
@@ -217,6 +218,7 @@ export async function runWorkflow(options: {
       baselineCommand: options.baselineCommand,
       prepareDependencies: options.prepareDependencies,
       generatedChecks: options.generatedChecks,
+      compareTypeErrors: options.compareTypeErrors,
       assessment: options.assessment,
       aiPatch: options.aiPatch,
       documentationSnapshots: options.documentationSnapshots,

@@ -22,6 +22,8 @@ export interface Finding extends Location {
   helperClient?: { origin: Location; parameter: Location; stability: 'review' };
   // How a migrated subscription-period read handles subscriptions whose items have different
   // periods: an item the code already selects, the configured price policy, or not at all.
+  // A same-named read whose receiver Refit could not trace to a provider object.
+  untraced?: true;
   subscriptionPeriod?: {
     rareCase: 'item-in-code' | 'price-policy' | 'flagged';
     selection?: string;

@@ -23,6 +23,7 @@ const CONFIGURATION_KEYS = new Set([
   'apiVersionPolicy',
   'fullDiff',
   'prepareDependencies',
+  'compareTypeErrors',
   'generatedChecks',
 ]);
 const GENERATED_CHECK_KEYS = 'afterFixtures,beforeFixtures,stripeMockImage';
@@ -133,6 +134,8 @@ function parseSingleWorkflowConfiguration(value: Record<string, unknown>, path: 
     throw new PipelineInputError('Run configuration fullDiff must be a boolean.');
   if (value.prepareDependencies !== undefined && typeof value.prepareDependencies !== 'boolean')
     throw new PipelineInputError('Run configuration prepareDependencies must be a boolean.');
+  if (value.compareTypeErrors !== undefined && typeof value.compareTypeErrors !== 'boolean')
+    throw new PipelineInputError('Run configuration compareTypeErrors must be a boolean.');
   if ((value.after !== undefined) === Boolean(value.latestStripe))
     throw new PipelineInputError(
       'Run configuration requires exactly one of after or latestStripe.',
@@ -173,6 +176,7 @@ function parseSingleWorkflowConfiguration(value: Record<string, unknown>, path: 
       : { apiVersionPolicy: validateApiVersionPolicy(value.apiVersionPolicy) }),
     fullDiff: value.fullDiff as boolean | undefined,
     ...(value.prepareDependencies ? { prepareDependencies: true } : {}),
+    ...(value.compareTypeErrors ? { compareTypeErrors: true } : {}),
     ...(isObject(generated)
       ? {
           generatedChecks: {

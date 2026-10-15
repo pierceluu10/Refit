@@ -70,6 +70,9 @@ evidence.addedProperties lists properties the after contract adds to schemas wit
 Never substitute an unrelated existing field, such as an identifier, for a removed field.
 Return zero edits when context is insufficient. API-version applicability is unknown.
 Do not assume the code is safe because a finding disappears. Human review remains required.`;
+export const TYPE_ERROR_CHANGE = 'type-error';
+const TYPE_ERROR_INSTRUCTIONS = `
+Findings with changeId "type-error" are TypeScript errors the migration introduced, usually because the upgraded SDK types changed; the reason holds the compiler message. Fix each in place so the code typechecks against the new SDK types while keeping its behavior: rename or remove parameters the new types dropped, match the new type shapes, and correct invalid literals. Do not silence errors with any, as-casts to unrelated types or ts-ignore.`;
 const WEBHOOK_INSTRUCTIONS = `
 Findings with webhook evidence read a signed webhook payload; findings with declaredType evidence read a value known only from its Stripe type, which is often a webhook payload passed into a helper. A webhook payload is rendered in the webhook endpoint's own API version, which can be older or newer than the SDK's, so the same code receives both shapes. Each replacement for such a finding must work for both: read the removed field with Reflect.get(object, 'field_name') when it is present (old version), otherwise the new location (new version), and keep the original result when neither exists. Do not drop the old-shape read.`;
 const VENDOR_NOTE_INSTRUCTIONS = `
@@ -252,7 +255,13 @@ export async function proposeAiPatch(
   // receives findings they do not cover, and the guards check only its own edits.
   deterministicEdits: SourceEdit[] = [],
 ) {
-  findings = findings.filter((finding) => !editCovers(repository, deterministicEdits, finding));
+  // Type-error findings already point into the rule-patched code, so rules never cover them.
+  const typeErrorFindings = findings.filter((finding) => finding.changeId === TYPE_ERROR_CHANGE);
+  findings = findings.filter(
+    (finding) =>
+      finding.changeId !== TYPE_ERROR_CHANGE &&
+      !editCovers(repository, deterministicEdits, finding),
+  );
   const reviewReason = migrationReviewReason({ findings }, false, true, true);
   if (reviewReason) throw new PipelineInputError(reviewReason);
   // The model works on the rule-patched code and sees only the findings that remain there.
@@ -262,6 +271,7 @@ export async function proposeAiPatch(
     repository = withEdits(repository, deterministicEdits);
     findings = analyzeRepository(repository, changes, provider, schemaDefinitions).findings;
   }
+  findings = [...findings, ...typeErrorFindings];
   const impact = buildAssessmentEvidence(
     repository,
     changes,
@@ -293,6 +303,7 @@ export async function proposeAiPatch(
         (findings.some((finding) => finding.webhook || finding.declaredType)
           ? WEBHOOK_INSTRUCTIONS
           : '') +
+        (typeErrorFindings.length ? TYPE_ERROR_INSTRUCTIONS : '') +
         ('documentation' in noted || 'documentationOmissions' in noted
           ? VENDOR_NOTE_INSTRUCTIONS
           : '') +
@@ -446,7 +457,8 @@ export async function proposeAiPatch(
     edits: edits.length + deterministicEdits.length,
     ...(deterministicEdits.length ? { ruleEdits: deterministicEdits } : {}),
     migratedWebhookFindings,
-    unresolvedFindings: remaining.findings.length,
+    // Reads Refit could not trace to a provider object are listed for review, not counted.
+    unresolvedFindings: remaining.findings.filter((finding) => !finding.untraced).length,
     diff: renderPatch(original, merged),
     validation: 'not-run',
     warnings: [
