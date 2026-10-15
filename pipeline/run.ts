@@ -33,6 +33,7 @@ import { PipelineInputError } from './types.ts';
 import { digest, findRemovedProperties, isObject, readSpecification } from './specifications.ts';
 import { stripeAdapterFor } from './stripe-operations.ts';
 import {
+  SUBSCRIPTION_PERIOD_EITHER_RULE,
   SUBSCRIPTION_PERIOD_ITEMS_RULE,
   validateStripeSubscriptionPeriodContract,
 } from './stripe-subscription-periods.ts';
@@ -136,11 +137,13 @@ export async function runPipeline(options: {
     moves,
   );
   // Field moves apply only when the target contract has the documented new location.
+  const itemPeriods =
+    propertyExists(after.schemas, ['subscription', 'items']) &&
+    propertyExists(after.schemas, ['subscription_item', 'current_period_start']) &&
+    propertyExists(after.schemas, ['subscription_item', 'current_period_end']);
   const movedTo = {
-    [SUBSCRIPTION_PERIOD_ITEMS_RULE]:
-      propertyExists(after.schemas, ['subscription', 'items']) &&
-      propertyExists(after.schemas, ['subscription_item', 'current_period_start']) &&
-      propertyExists(after.schemas, ['subscription_item', 'current_period_end']),
+    [SUBSCRIPTION_PERIOD_ITEMS_RULE]: itemPeriods,
+    [SUBSCRIPTION_PERIOD_EITHER_RULE]: itemPeriods,
   } as Record<string, boolean>;
   const targetVersion = isObject(after.document.info) ? after.document.info.version : undefined;
   const versionEdits =
@@ -170,9 +173,19 @@ export async function runPipeline(options: {
   // shortcut: requires some bumped literal pin, not the pin of each read's own client; trace the
   // client per read if repositories mix pinned and unpinned clients.
   const edits = analyzedEdits.filter(
-    (edit) => !isFieldMove(edit) || (movedTo[edit.rule!] && versionEdits.length > 0),
+    (edit) =>
+      !isFieldMove(edit) ||
+      (movedTo[edit.rule!] &&
+        (edit.rule === SUBSCRIPTION_PERIOD_EITHER_RULE || versionEdits.length > 0)),
   );
   const ruleEdits = edits.filter(isFieldMove);
+  // A webhook read counts as migrated only while its version-tolerant edit is kept.
+  for (const finding of analysis.findings)
+    if (
+      finding.webhook?.migration?.rule === SUBSCRIPTION_PERIOD_EITHER_RULE &&
+      !editCovers(repository, edits, finding)
+    )
+      delete finding.webhook.migration;
   if (specificationDiff && provider.packageName === STRIPE.packageName)
     specificationDiff.changes.push(
       ...switchedEnumAdditions(enumChecks, before.schemas, after.schemas),
@@ -273,6 +286,7 @@ export async function runPipeline(options: {
     : 0;
   const reviewReason = migrationReviewReason(
     { findings: analysis.findings, skippedFiles, adapter: provider },
+    true,
     true,
   );
   const advisoryReviewReason = migrationReviewReason({ findings: analysis.findings, skippedFiles });

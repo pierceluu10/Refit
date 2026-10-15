@@ -4,6 +4,17 @@ Refit can propose a deterministic migration for a narrow signed-webhook handler 
 
 Stripe [moved subscription periods onto individual items in 2025-03-31.basil](https://docs.stripe.com/changelog/basil/2025-03-31/deprecate-subscription-current-period-start-and-end). Several items may have different periods. Selecting one by price is an application decision, not a conclusion Refit draws from the API diff.
 
+## Without a price policy
+
+Without a configured policy, Refit rewrites period reads on signed webhook payloads and on values typed as `Stripe.Subscription` into a version-tolerant read:
+
+```ts
+Reflect.get(subscription, 'current_period_end') ??
+  [Math.max(...(subscription.items?.data ?? []).map((item) => item.current_period_end))].find(Number.isFinite)
+```
+
+An event rendered in the old version keeps its subscription-level value. A new-version event uses the latest item end (earliest item start for `current_period_start`). Missing or empty items give `undefined`, as the removed field did, so existing missing-period checks still fire. The endpoint's API version can therefore change separately from the code. When items have different periods, the widest period is an entitlement choice: use the price-ID policy below to select a specific item instead. A configured policy always takes precedence.
+
 ## Approved configuration
 
 Use a provider adapter referenced by a checked-in `.refit.json` through its existing `providerConfig` field. The adapter's ID is distinct from the reserved built-in `stripe` ID; its package is `stripe`, so signed-event tracing still applies. Add:

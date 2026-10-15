@@ -147,7 +147,7 @@ export async function runWorkflow(options: {
     const scan = await runPipeline({ ...inputs, proposePatch: true });
     runId = scan.runId;
     await save('scan.json', `${JSON.stringify(scan, null, 2)}\n`);
-    const reviewReason = migrationReviewReason(scan, true);
+    const reviewReason = migrationReviewReason(scan, true, true);
     if (reviewReason) return await finish('needs-review', reviewReason, runId);
     if (scan.apiVersion.applicability !== 'matches-before')
       return await finish('needs-review', scan.apiVersion.reason, runId);

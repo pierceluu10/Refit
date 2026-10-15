@@ -12,6 +12,7 @@ export interface StripeSubscriptionPeriodPolicy {
 
 export const SUBSCRIPTION_PERIOD_RULE = 'stripe-subscription-periods-price-id';
 export const SUBSCRIPTION_PERIOD_ITEMS_RULE = 'stripe-subscription-periods-items';
+export const SUBSCRIPTION_PERIOD_EITHER_RULE = 'stripe-subscription-periods-either-version';
 const BEFORE_VERSION = '2025-02-24.acacia';
 const AFTER_VERSION = '2025-03-31.basil';
 const MAX_PRICE_ID_LENGTH = 256;
@@ -362,5 +363,31 @@ export function subscriptionPeriodReadEdit(node: ts.Node, file: string, changeId
     SUBSCRIPTION_PERIOD_ITEMS_RULE,
     (subscription) =>
       `Math.${aggregate}(...${subscription}.items.data.map((item) => item.${field}))`,
+  );
+}
+
+// Webhook payloads and Stripe.Subscription values may be rendered in the old or the new API version
+// (a webhook endpoint keeps its own version). The old subscription-level field wins when present;
+// otherwise the widest item period, as for SDK responses. Reflect.get keeps the old field readable
+// under the new SDK types.
+export function subscriptionPeriodEitherVersionEdit(node: ts.Node, file: string, changeId: string) {
+  if (!ts.isPropertyAccessExpression(node)) return;
+  const field = node.name.text;
+  if (field !== PERIOD_FIELDS[0] && field !== PERIOD_FIELDS[1]) return;
+  if (
+    /\b(?:const|let|var|function|class|import)\s+(?:\{[^}]*\b)?Reflect\b/.test(
+      node.getSourceFile().text,
+    )
+  )
+    return;
+  const aggregate = field === PERIOD_FIELDS[0] ? 'min' : 'max';
+  return movedReadEdit(
+    node,
+    file,
+    changeId,
+    SUBSCRIPTION_PERIOD_EITHER_RULE,
+    (subscription) =>
+      // Missing or empty items give undefined, as the removed field did, rather than NaN.
+      `Reflect.get(${subscription}, '${field}') ?? [Math.${aggregate}(...(${subscription}.items?.data ?? []).map((item) => item.${field}))].find(Number.isFinite)`,
   );
 }

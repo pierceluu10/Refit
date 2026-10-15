@@ -3,12 +3,15 @@ import { STRIPE, type ProviderAdapter } from './providers.ts';
 import type { OperationReplacement } from './provider-operation-replacements.ts';
 import type { RequestPropertyRename } from './provider-request-renames.ts';
 import {
+  SUBSCRIPTION_PERIOD_EITHER_RULE,
   SUBSCRIPTION_PERIOD_ITEMS_RULE,
   SUBSCRIPTION_PERIOD_RULE,
 } from './stripe-subscription-periods.ts';
 
 const FIELD_MOVE_SOURCES: Partial<Record<NonNullable<SourceEdit['rule']>, string>> = {
   [SUBSCRIPTION_PERIOD_ITEMS_RULE]:
+    'https://docs.stripe.com/changelog/basil/2025-03-31/deprecate-subscription-current-period-start-and-end',
+  [SUBSCRIPTION_PERIOD_EITHER_RULE]:
     'https://docs.stripe.com/changelog/basil/2025-03-31/deprecate-subscription-current-period-start-and-end',
 };
 
@@ -108,7 +111,9 @@ export function proposePatch(
               'Subscription periods are read from subscription items: the earliest item start and the latest item end. This equals the old value when items share one billing period; review entitlement logic for subscriptions whose items have different periods.',
             ]
           : []),
-        'Only reads on SDK responses are moved; their shape follows the updated outgoing API version. Webhook payloads keep their endpoint version and are not changed.',
+        fieldMoves.some((edit) => edit.rule === SUBSCRIPTION_PERIOD_EITHER_RULE)
+          ? 'Webhook payloads and Stripe.Subscription values keep their own API version, so their period reads accept both shapes: the old subscription-level field when present, otherwise the item periods. Webhook endpoints are not changed.'
+          : 'Only reads on SDK responses are moved; their shape follows the updated outgoing API version. Webhook payloads keep their endpoint version and are not changed.',
         'The stripe package is not upgraded. TypeScript projects may need the stripe package version matching the new API version before they typecheck.',
         'Patch contains source code. Review it for sensitive content before sharing.',
       ],

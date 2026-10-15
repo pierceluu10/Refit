@@ -73,7 +73,11 @@ it('creates one atomic policy patch with incoming-event evidence and no remainin
   expect(result.edits).toHaveLength(1);
   expect(result.findings).toHaveLength(4);
   expect(
-    result.findings.every((finding) => finding.webhook?.migration?.priceId === POLICY.priceId),
+    result.findings.every(
+      (finding) =>
+        finding.webhook?.migration?.rule === 'stripe-subscription-periods-price-id' &&
+        finding.webhook.migration.priceId === POLICY.priceId,
+    ),
   ).toBe(true);
   expect(migrationReviewReason({ ...result, adapter: provider })).toMatch(/migration-policy/);
   expect(migrationReviewReason({ ...result, adapter: provider }, true)).toBeUndefined();
