@@ -11,7 +11,7 @@ import { PipelineInputError } from './types.ts';
 import { PNPM_LOCKFILE } from './pnpm-lock.ts';
 import { PNPM_WORKSPACE, validatePnpmInputs } from './pnpm-inputs.ts';
 import { YARN_LOCKFILE } from './yarn-lock.ts';
-import { validateYarnInputs } from './yarn-inputs.ts';
+import { validateYarnInputs, yarnWorkspacePatterns } from './yarn-inputs.ts';
 
 export interface PreparationIdentity {
   manager: 'npm' | 'pnpm' | 'yarn';
@@ -51,13 +51,29 @@ export async function readPreparationInputs(
   const manifest = parseObject(packageContent, 'package.json');
   if (yarn) {
     const lockContent = await readCommittedFile(snapshot, YARN_LOCKFILE, MAX_LOCK_BYTES);
+    const workspaceContents = new Map<string, string>();
+    for (const directory of npmWorkspaceDirectories(
+      { workspaces: yarnWorkspacePatterns(manifest) },
+      paths,
+    ))
+      workspaceContents.set(
+        directory,
+        await readCommittedFile(snapshot, `${directory}/package.json`, MAX_PACKAGE_BYTES),
+      );
     return {
       files: new Map([
         ['package.json', packageContent],
         [YARN_LOCKFILE, lockContent],
+        ...[...workspaceContents].map(
+          ([directory, content]) => [`${directory}/package.json`, content] as const,
+        ),
       ]),
-      workspaceContents: new Map<string, string>(),
-      inputs: validateYarnInputs(packageContent, lockContent) as PreparationIdentity,
+      workspaceContents,
+      inputs: validateYarnInputs(
+        packageContent,
+        lockContent,
+        workspaceContents,
+      ) as PreparationIdentity,
     };
   }
   if (

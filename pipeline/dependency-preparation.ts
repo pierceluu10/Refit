@@ -32,7 +32,9 @@ import { PipelineInputError } from './types.ts';
 import { verifyArtifacts } from './verification.ts';
 
 const RECIPE_VERSION = 4;
-const INSTALL_TIMEOUT_MS = 300_000;
+const DEFAULT_INSTALL_TIMEOUT_SECONDS = 300;
+const MIN_INSTALL_TIMEOUT_SECONDS = 60;
+const MAX_INSTALL_TIMEOUT_SECONDS = 1800;
 export const MAX_DEPENDENCY_ARCHIVE_BYTES = 256 * 1024 * 1024;
 const MAX_LOG_BYTES = 1024 * 1024;
 const MAX_ERROR_CHARACTERS = 4096;
@@ -113,6 +115,21 @@ function matchesManager(inputs: PreparationIdentity, version: unknown, integrity
   );
 }
 
+// Operators can extend the installer deadline for large dependency trees; it stays bounded.
+export function installTimeoutSeconds(value = process.env.REFIT_DEPENDENCY_TIMEOUT_SECONDS) {
+  if (!value?.trim()) return DEFAULT_INSTALL_TIMEOUT_SECONDS;
+  const seconds = Number(value);
+  if (
+    !Number.isInteger(seconds) ||
+    seconds < MIN_INSTALL_TIMEOUT_SECONDS ||
+    seconds > MAX_INSTALL_TIMEOUT_SECONDS
+  )
+    throw new PipelineInputError(
+      `REFIT_DEPENDENCY_TIMEOUT_SECONDS must be a whole number from ${MIN_INSTALL_TIMEOUT_SECONDS} to ${MAX_INSTALL_TIMEOUT_SECONDS}.`,
+    );
+  return seconds;
+}
+
 export class DependencyPreparationError extends PipelineInputError {
   override name = 'DependencyPreparationError';
 }
@@ -121,6 +138,7 @@ async function installDependencies(
   argumentsList: string[],
   output: string,
   inputs: PreparationIdentity,
+  timeoutSeconds: number,
   signal?: AbortSignal,
 ) {
   signal?.throwIfAborted();
@@ -135,7 +153,7 @@ async function installDependencies(
   const timeout = setTimeout(() => {
     timedOut = true;
     child.kill('SIGKILL');
-  }, INSTALL_TIMEOUT_MS);
+  }, timeoutSeconds * 1000);
   let bytes = 0;
   const hash = createHash('sha256');
   const archive = pipeline(
@@ -167,7 +185,9 @@ async function installDependencies(
   try {
     const [, stderr, result] = await Promise.all(tasks);
     if (timedOut)
-      throw new DependencyPreparationError('Dependency preparation exceeded 300 seconds.');
+      throw new DependencyPreparationError(
+        `Dependency preparation exceeded ${timeoutSeconds} seconds. Set REFIT_DEPENDENCY_TIMEOUT_SECONDS (up to ${MAX_INSTALL_TIMEOUT_SECONDS}) for a larger dependency tree.`,
+      );
     if (result.code !== 0)
       throw new DependencyPreparationError(
         `${inputs.manager} dependency preparation failed (${result.code ?? result.signal}). ${stderr.slice(-MAX_ERROR_CHARACTERS)}`,
@@ -215,6 +235,7 @@ export async function prepareDependencies(options: {
   onProgress?: (message: string) => void;
 }) {
   options.signal?.throwIfAborted();
+  const timeoutSeconds = installTimeoutSeconds();
   const snapshot = await readCommittedRepository(options.repository);
   const { files, workspaceContents, inputs } = await readPreparationInputs(snapshot);
   const kind = `refit-${inputs.manager}-environment`;
@@ -333,6 +354,7 @@ export async function prepareDependencies(options: {
         }),
         join(staging, ARCHIVE),
         inputs,
+        timeoutSeconds,
         options.signal,
       );
       options.signal?.throwIfAborted();
@@ -357,7 +379,7 @@ export async function prepareDependencies(options: {
           network: 'bridge',
           lifecycleScripts: false,
           registry: 'https://registry.npmjs.org',
-          timeoutMs: INSTALL_TIMEOUT_MS,
+          timeoutMs: timeoutSeconds * 1000,
         },
         validation: { network: 'none' },
       };
