@@ -157,6 +157,12 @@ Every proposed patch was reviewed by hand:
 
 ### Reproduce
 
+Rebuild the benchmark root from the pinned list and labels: shallow clones at the recorded commits, plus each API version's spec and fixtures, and the latest SDK spec, from `stripe/openapi`.
+
+```sh
+node scripts/stripe-benchmark-setup.mjs --root <new-dir>
+```
+
 ```sh
 npm run benchmark:stripe -- --root <dir with repos/, specs/, selected.json, needed-specs.json, split.json> \
   --output <new-dir> --env .env --ai --validate
