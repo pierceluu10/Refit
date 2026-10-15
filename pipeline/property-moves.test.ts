@@ -192,6 +192,26 @@ it('keeps the removed field’s null result when any parent on the new path is m
   });
 });
 
+it('keeps undefined for an optional non-nullable field behind nullable parents', async () => {
+  const report = await proposed(
+    inputs(RETRIEVE, {
+      edit: ({ before }) => {
+        delete (before.components.schemas.invoice.properties.subscription as { nullable?: true })
+          .nullable;
+      },
+    }),
+  );
+  expect(report.patch).toMatchObject({ status: 'proposed', edits: 1, unresolvedFindings: 0 });
+  const line = report.patch.diff
+    .split('\n')
+    .find((entry: string) => entry.startsWith('+  return '))!;
+  const expression = line.slice('+  return '.length, -1);
+  expect(expression).toBe('invoice.parent?.subscription_details?.subscription');
+  const read = new Function('invoice', `return ${expression};`);
+  expect(read({ parent: null })).toBeUndefined();
+  expect(read({ parent: { subscription_details: { subscription: 'sub_123' } } })).toBe('sub_123');
+});
+
 it('reads required non-nullable intermediates directly without a fallback', async () => {
   const report = await proposed(
     inputs(RETRIEVE, {
@@ -235,6 +255,30 @@ it('still moves the field when expansions name only other fields', async () => {
   expect(report.patch).toMatchObject({ status: 'proposed', unresolvedFindings: 0 });
 });
 
+it('moves an expandable field whose new location holds only its ID string, unless expanded', async () => {
+  const narrowed = {
+    edit: ({ after }: ReturnType<typeof contracts>) => {
+      after.components.schemas.invoice_subscription_parent.properties.subscription = {
+        maxLength: 5000,
+        type: 'string',
+      } as never;
+    },
+  };
+  const report = await proposed(inputs(RETRIEVE, narrowed));
+  expect(report.patch).toMatchObject({ status: 'proposed', unresolvedFindings: 0 });
+  expect(report.patch.diff).toContain(
+    '+  return (invoice.parent?.subscription_details?.subscription ?? null);',
+  );
+  const expanded = RETRIEVE.replace(
+    'stripe.invoices.retrieve(id)',
+    "stripe.invoices.retrieve(id, { expand: ['subscription'] })",
+  );
+  expect((await runPipeline(await inputs(expanded, narrowed))).patch).toMatchObject({
+    status: 'unsupported',
+    unresolvedFindings: 1,
+  });
+});
+
 it('rejects moves the recorded contracts do not support', async () => {
   const cases: [string, Parameters<typeof inputs>[1]][] = [
     [
@@ -262,9 +306,10 @@ it('rejects moves the recorded contracts do not support', async () => {
       },
     ],
     [
-      'non-nullable value behind nullable parents',
+      'required non-nullable value behind nullable parents',
       {
         edit: ({ before }) => {
+          Object.assign(before.components.schemas.invoice, { required: ['subscription'] });
           delete (before.components.schemas.invoice.properties.subscription as { nullable?: true })
             .nullable;
         },
@@ -316,4 +361,70 @@ it('applies the three move edits without overlapping', () => {
       { file: 'f', start: name + 12, end: name + 12, replacement: ' ?? null)', changeId: 'c' },
     ]),
   ).toBe('x((invoice.parent?.a ?? null))');
+});
+
+it('migrates every curated basil move with the shipped example adapter and real Stripe schemas', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'refit-basil-catalog-'));
+  directories.push(root);
+  await writeFile(
+    join(root, 'package.json'),
+    JSON.stringify({ dependencies: { stripe: '17.7.0' } }),
+  );
+  await writeFile(
+    join(root, 'billing.js'),
+    `import Stripe from 'stripe';
+
+const stripe = new Stripe('sk_test_placeholder');
+
+export async function invoiceSubscription(id) {
+  const invoice = await stripe.invoices.retrieve(id);
+  return invoice.subscription;
+}
+
+export async function invoiceQuote(id) {
+  const invoice = await stripe.invoices.retrieve(id);
+  return invoice.quote;
+}
+
+export async function itemSubscription(id) {
+  const item = await stripe.invoiceItems.retrieve(id);
+  return item.subscription;
+}
+
+export async function itemSubscriptionItem(id) {
+  const item = await stripe.invoiceItems.retrieve(id);
+  return item.subscription_item;
+}
+
+export async function lineSubscriptionItems(id) {
+  const invoice = await stripe.invoices.retrieve(id);
+  return invoice.lines.data.map((line) => line.subscription_item);
+}
+
+export async function lineInvoiceItems(id) {
+  const invoice = await stripe.invoices.retrieve(id);
+  return invoice.lines.data.map((line) => line.invoice_item);
+}
+`,
+  );
+  const report = await proposed(
+    Promise.resolve({
+      repository: root,
+      before: 'pipeline/fixtures/stripe-basil-moves/before.json',
+      after: 'pipeline/fixtures/stripe-basil-moves/after.json',
+      providerConfig: 'examples/stripe-basil-moves.provider.json',
+      proposePatch: true,
+    }),
+  );
+  expect(report.findings.filter((finding) => finding.confidence === 'confirmed')).toHaveLength(6);
+  expect(report.patch).toMatchObject({ status: 'proposed', unresolvedFindings: 0 });
+  for (const line of [
+    '+  return (invoice.parent?.subscription_details?.subscription ?? null);',
+    '+  return (invoice.parent?.quote_details?.quote ?? null);',
+    '+  return (item.parent?.subscription_details?.subscription ?? null);',
+    '+  return item.parent?.subscription_details?.subscription_item;',
+    '+  return invoice.lines.data.map((line) => line.parent?.subscription_item_details?.subscription_item);',
+    '+  return invoice.lines.data.map((line) => line.parent?.invoice_item_details?.invoice_item);',
+  ])
+    expect(report.patch.diff).toContain(line);
 });

@@ -1,6 +1,13 @@
 # Refit implementation checkpoints
 
-## October 15 checkpoint: self-maintaining Stripe detection and field moves (unreleased)
+## October 15 checkpoint: curated Stripe basil moves (0.24.0)
+
+[`examples/stripe-basil-moves.provider.json`](../examples/stripe-basil-moves.provider.json) maps Stripe's invoice and invoice-item SDK methods and six basil moves: `invoice.subscription`, `invoice.quote`, `invoiceitem.subscription`, `invoiceitem.subscription_item`, `line_item.subscription_item` and `line_item.invoice_item`. Each passes the move checks against Stripe's published acacia and basil documents. Two rules make that possible. An optional, non-nullable field moves with optional chaining and no null fallback, keeping `undefined`. An expandable `string | object` field may move to a location that holds exactly its ID string, and the expansion gate still applies. Moves that change object schemas, formats or required presence stay out. See [moved response fields](PROPERTY-MOVES.md).
+
+After merging the self-maintaining Stripe work below, the default suite passed **1,208 tests across 75 files**, with 74 environment-gated tests skipped, plus build, typecheck and formatting. A test checks the shipped adapter against excerpts of the real Stripe schemas and migrates all six moves, including line items read through `invoice.lines.data`.
+
+The local lab at `/Users/pierceluu/Repos/refit-stripe-lab` used this adapter with the actual `stripe` 17.7.0 SDK. `refit run` migrated eight usages across invoices, quotes, line items and invoice items. The original passed simulated acacia responses and the migration passed simulated basil responses in offline Docker; the original fails against basil. Evidence is at `/Users/pierceluu/.refit/evaluations/basil-moves-six-2026-10-15`. The responses were simulated, and no AI or live Stripe call was used. Nullability follows the recorded contract, not observed responses.
+## October 15 checkpoint: self-maintaining Stripe detection and field moves (0.24.0)
 
 Read confirmation now follows mutations, not escapes. Traced SDK responses, signed webhook payloads and values with a resolved `Stripe.*` type stay confirmed when they are passed to functions, returned, stored or aliased. Property writes, `delete`, `++`/`--`, mutating array methods, `Object.assign`-style statics, methods called on the binding itself, rebinding a client and method replacement through a re-exported module still downgrade a read. Declared Stripe types now confirm and no longer stop automation unless the value is mutated. This supersedes the 0.17.0 statement that declared types are review hints. Repository-wide alias doubt from imports that may resolve to unscanned declaration files no longer downgrades reads. Request renames, endpoint replacements and the price-ID webhook rule keep the earlier escape analysis for their edits. The repository-wide webhook gate is unchanged.
 
