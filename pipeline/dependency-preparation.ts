@@ -24,7 +24,11 @@ import {
 } from './docker-sandbox.ts';
 import { standaloneStateDirectory } from './github-checkout.ts';
 import { readPreparationInputs, type PreparationIdentity } from './dependency-inputs.ts';
-import { PNPM_INSTALL_COMMAND, YARN_INSTALL_COMMAND } from './manager-install.ts';
+import {
+  PNPM_INSTALL_COMMAND,
+  YARN_BERRY_INSTALL_COMMAND,
+  YARN_INSTALL_COMMAND,
+} from './manager-install.ts';
 import { hasStrongIntegrity } from './npm-lock.ts';
 import { digest, parseObject } from './specifications.ts';
 import { hasErrorCode, withStateLock, writeState } from './state-files.ts';
@@ -85,7 +89,7 @@ for (const name of Object.keys(links)) {
   if (!(await lstat(resolve(workspace, name))).isSymbolicLink()) throw new Error("Missing workspace dependency link");
 }
 `;
-function installCommand(manager: PreparationIdentity['manager']) {
+function installCommand({ manager, managerVersion }: PreparationIdentity) {
   return [
     'sh',
     '-c',
@@ -96,7 +100,9 @@ function installCommand(manager: PreparationIdentity['manager']) {
       (manager === 'pnpm'
         ? PNPM_INSTALL_COMMAND
         : manager === 'yarn'
-          ? YARN_INSTALL_COMMAND
+          ? managerVersion?.startsWith('1.')
+            ? YARN_INSTALL_COMMAND
+            : YARN_BERRY_INSTALL_COMMAND
           : 'npm ci --ignore-scripts --include=dev --engine-strict --no-audit --no-fund ' +
             '--registry=https://registry.npmjs.org --cache=/workspace/.npm-cache >&2; ' +
             'mkdir -p node_modules; ') +
@@ -336,7 +342,7 @@ export async function prepareDependencies(options: {
           directory: input,
           image,
           command: [
-            ...installCommand(inputs.manager),
+            ...installCommand(inputs),
             'refit-npm-install',
             JSON.stringify({
               links: inputs.workspaceLinks ?? {},
@@ -347,6 +353,7 @@ export async function prepareDependencies(options: {
               ),
               managerVersion: inputs.managerVersion,
               managerIntegrity: inputs.managerIntegrity,
+              managerBundleSha512: inputs.managerBundleSha512,
             }),
             ...workspaceContents.keys(),
           ],

@@ -7,7 +7,7 @@ import { promisify } from 'node:util';
 import { afterEach, expect, it } from 'vitest';
 import { installTimeoutSeconds, prepareDependencies } from './dependency-preparation.ts';
 import { dockerSandboxArguments, removeDockerContainer } from './docker-sandbox.ts';
-import { DEFAULT_YARN_VERSION, validateYarnInputs } from './yarn-inputs.ts';
+import { DEFAULT_YARN_VERSION, validateBerryInputs, validateYarnInputs } from './yarn-inputs.ts';
 
 const execute = promisify(execFile);
 const FIXTURES = 'pipeline/fixtures/yarn-locks';
@@ -204,6 +204,135 @@ it.skipIf(!process.env.REFIT_NPM_PREPARE || !process.env.REFIT_DOCKER_IMAGE)(
         { timeout: 30_000 },
       );
       expect(result.stdout).toContain('Yarn workspaces work offline with both Stripe versions.');
+    } finally {
+      await removeDockerContainer(name);
+    }
+  },
+  180_000,
+);
+
+const BERRY_RC = 'nodeLinker: node-modules\n';
+
+it('accepts a pinned Yarn 2+ project on the node-modules linker', async () => {
+  const { manifest, berry } = await fixture();
+  const pinned = { ...manifest, packageManager: 'yarn@4.9.2' };
+  expect(validateBerryInputs(JSON.stringify(pinned), berry, BERRY_RC)).toMatchObject({
+    manager: 'yarn',
+    managerVersion: '4.9.2',
+  });
+  const checksum = 'b'.repeat(128);
+  expect(
+    validateBerryInputs(
+      JSON.stringify({ ...pinned, packageManager: `yarn@4.9.2+sha512.${checksum}` }),
+      berry,
+      BERRY_RC,
+    ),
+  ).toMatchObject({ managerBundleSha512: checksum });
+});
+
+it('accepts Yarn built-in compatibility patches but not repository patches', async () => {
+  const { manifest, berry } = await fixture();
+  const pinned = JSON.stringify({ ...manifest, packageManager: 'yarn@4.9.2' });
+  const builtin = `${berry}
+"fsevents@patch:fsevents@npm%3A~2.3.3#optional!builtin<compat/fsevents>":
+  version: 2.3.3
+  resolution: "fsevents@patch:fsevents@npm%3A2.3.3#optional!builtin<compat/fsevents>::version=2.3.3&hash=df0bf1"
+  conditions: os=darwin
+  languageName: node
+  linkType: hard
+`;
+  expect(() => validateBerryInputs(pinned, builtin, BERRY_RC)).not.toThrow();
+  for (const forged of [
+    builtin.replace('compat/fsevents>::version=2.3.3', 'compat/fsevents>::version=2.3.4'),
+    builtin.replace('fsevents@patch:fsevents@npm%3A2.3.3', 'fsevents@patch:other@npm%3A2.3.3'),
+    builtin.replace('#optional!builtin<compat/fsevents>::', '#~/.yarn/patches/fsevents.patch::'),
+  ])
+    expect(() => validateBerryInputs(pinned, forged, BERRY_RC)).toThrow();
+});
+
+it('refuses Yarn 2+ projects that need a custom image', async () => {
+  const { manifest, berry } = await fixture();
+  const pinned = { ...manifest, packageManager: 'yarn@4.9.2' };
+  const cases: [string, Record<string, unknown>, string, string | undefined][] = [
+    ['unpinned', manifest, berry, BERRY_RC],
+    ['Plug-n-Play default', pinned, berry, undefined],
+    ['Plug-n-Play explicit', pinned, berry, 'nodeLinker: pnp\n'],
+    ['custom settings', pinned, berry, `${BERRY_RC}npmRegistryServer: "https://npm.example"\n`],
+    ['workspaces', { ...pinned, workspaces: ['packages/*'] }, berry, BERRY_RC],
+    ['undeclared range', { ...pinned, dependencies: { stripe: '^18.0.0' } }, berry, BERRY_RC],
+    ['missing checksum', pinned, berry.replace(/^ {2}checksum: .*$/m, ''), BERRY_RC],
+    [
+      'patched package',
+      pinned,
+      berry.replace(
+        'resolution: "qs@npm:6.13.3"',
+        'resolution: "qs@patch:qs@npm%3A6.13.3#~/.yarn/patches/qs.patch"',
+      ),
+      BERRY_RC,
+    ],
+  ];
+  for (const [name, value, lock, rc] of cases)
+    expect(() => validateBerryInputs(JSON.stringify(value), lock, rc), name).toThrow();
+});
+
+it.skipIf(!process.env.REFIT_NPM_PREPARE || !process.env.REFIT_DOCKER_IMAGE)(
+  'prepares a pinned Yarn 4 project without scripts and runs yarn scripts offline',
+  async () => {
+    const root = await mkdtemp(join(tmpdir(), 'refit-yarn-berry-'));
+    roots.push(root);
+    const repository = join(root, 'repository');
+    await mkdir(repository);
+    const { manifest, berry } = await fixture();
+    manifest.dependencies = Object.fromEntries(Object.entries(manifest.dependencies).sort());
+    Object.assign(manifest, {
+      packageManager: 'yarn@4.9.2',
+      scripts: {
+        postinstall:
+          "node -e \"require('node:fs').writeFileSync('node_modules/refit-script-ran', 'bad')\"",
+        check:
+          "node -e \"const fs=require('node:fs');if(JSON.parse(fs.readFileSync('node_modules/stripe/package.json','utf8')).version!=='17.7.0'||fs.existsSync('node_modules/refit-script-ran'))process.exit(1);console.log('Yarn 4 script ran offline.')\"",
+      },
+    });
+    // Yarn 2+ rewrites manifests that differ from its own formatting; inputs are read-only.
+    await writeFile(join(repository, 'package.json'), `${JSON.stringify(manifest, null, 2)}\n`);
+    await writeFile(join(repository, 'yarn.lock'), berry);
+    await writeFile(join(repository, '.yarnrc.yml'), BERRY_RC);
+    await execute('git', ['init', repository]);
+    await execute('git', ['-C', repository, 'add', '.']);
+    await execute('git', [
+      '-C',
+      repository,
+      '-c',
+      'user.name=Refit Test',
+      '-c',
+      'user.email=test@example.invalid',
+      '-c',
+      'commit.gpgsign=false',
+      'commit',
+      '-m',
+      'test: record yarn berry inputs',
+    ]);
+    const prepared = await prepareDependencies({
+      repository,
+      image: process.env.REFIT_DOCKER_IMAGE!,
+      cacheDirectory: join(root, 'cache'),
+    });
+    expect(prepared.environment).toMatchObject({ manager: 'yarn', yarnVersion: '4.9.2' });
+    const name = `refit-offline-yarn-berry-${randomUUID()}`;
+    try {
+      const result = await execute(
+        'docker',
+        dockerSandboxArguments({
+          name,
+          directory: repository,
+          image: String(prepared.environment.image),
+          dependencies: prepared.archive,
+          network: 'none',
+          command: ['sh', '-c', 'test "$(yarn --version)" = 4.9.2 && yarn run check'],
+        }),
+        { timeout: 60_000 },
+      );
+      expect(result.stdout).toContain('Yarn 4 script ran offline.');
     } finally {
       await removeDockerContainer(name);
     }
