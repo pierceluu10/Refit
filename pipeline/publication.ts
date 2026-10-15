@@ -16,9 +16,13 @@ const REPOSITORY = /^[A-Za-z0-9][A-Za-z0-9-]*\/[A-Za-z0-9_.-]+$/;
 const BRANCH =
   /^(?!\/)(?!.*(?:\.\.|@\{|\/\/|\.lock(?:\/|$)))[^\s~^:?*\[\\\x00-\x1f\x7f]+(?<![/.])$/;
 type Report = Awaited<ReturnType<typeof validateMigration>>;
-type PublicationConfiguration = { repository: string; base: string; integration?: string } & (
-  { token: string; app?: never } | { app: GitHubAppConfiguration; token?: never }
-);
+type PublicationConfiguration = {
+  repository: string;
+  base: string;
+  integration?: string;
+  // Publish a draft whose checks passed even though confirmed findings remain unmigrated.
+  allowUnresolved?: boolean;
+} & ({ token: string; app?: never } | { app: GitHubAppConfiguration; token?: never });
 
 export function validateGitHubTarget(repository: string | undefined, base: string | undefined) {
   if (
@@ -191,11 +195,11 @@ export async function publishDraft(
     );
   if (
     report.validation.status !== 'passed' ||
-    report.patch.unresolvedFindings !== 0 ||
+    (report.patch.unresolvedFindings !== 0 && !options.allowUnresolved) ||
     !report.publicationFiles.length
   )
     throw new PipelineInputError(
-      'Draft publication requires passing baseline/patched checks, changed files and zero unresolved findings.',
+      'Draft publication requires passing baseline/patched checks, changed files and zero unresolved findings (or --publish-unresolved).',
     );
   const revision = sha(report.validation.revision);
   const { authentication, request } = await publicationSession(options);

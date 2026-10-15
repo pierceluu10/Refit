@@ -336,6 +336,11 @@ export function createReviewArtifacts(
         : [`❌ **Validation did not pass (${validation.status}).**`],
     ),
     ...line('Please check', [
+      ...(patch.unresolvedFindings
+        ? [
+            `**${patch.unresolvedFindings} confirmed read${patch.unresolvedFindings === 1 ? '' : 's'} of removed fields ${patch.unresolvedFindings === 1 ? 'is' : 'are'} still unmigrated.** The checks passed without ${patch.unresolvedFindings === 1 ? 'it' : 'them'}; migrate ${patch.unresolvedFindings === 1 ? 'it' : 'them'} before merging. Refit's run report lists the locations.`,
+          ]
+        : []),
       ...(unconfirmed.length
         ? [
             `${unconfirmed.length} read${unconfirmed.length === 1 ? '' : 's'} of removed field names Refit could not trace to a Stripe object, left unchanged: ${summaryList([...new Set(unconfirmed.map((finding) => code(`${finding.file}:${finding.line}`)))])}.`,
