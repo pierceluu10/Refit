@@ -72,7 +72,7 @@ Without a labelled answer key, "excellent" can't be proven.
 *Moves: validation coverage, validated PRs.*
 
 1. **pnpm and yarn dependency preparation,** plus workspace packages. Today it's npm-only: 26 pnpm and 5 yarn repositories in the benchmark.
-2. **Generated Stripe checks for repositories without tests,** which is 83 of the 100. Run the migrated code paths against Stripe responses for the old and new API versions. Option to research first: Stripe's official `stripe-mock` server, and whether it can serve specific historical versions. **Researched October 15:** it can, through its `-spec` and `-fixtures` flags and each `stripe/openapi` release's files. See the [generated-checks proposal](GENERATED-CHECKS.md), which needs a sandbox decision.
+2. **Generated Stripe checks for repositories without tests,** which is 83 of the 100. Run the migrated code paths against Stripe responses for the old and new API versions. Option to research first: Stripe's official `stripe-mock` server, and whether it can serve specific historical versions. **Researched October 15:** it can, through its `-spec` and `-fixtures` flags and each `stripe/openapi` release's files. [Generated checks](GENERATED-CHECKS.md) now run simple exported functions against versioned stripe-mock inside the offline sandbox (0.29.0).
 3. **Real-change evaluation cases:** small apps reproducing the benchmark's real patterns (a webhook handler reading `current_period_end`, a typed helper receiving `Stripe.Invoice`, …), scored by execution like the existing AI evals, with a held-out half.
 
 ## Phase 5: real draft PRs end to end

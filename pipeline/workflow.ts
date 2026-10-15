@@ -1,3 +1,4 @@
+import type { GeneratedChecks } from './generated-checks.ts';
 import { migrationReviewReason } from './migration-review.ts';
 import type { AiOptions } from './ai-budget.ts';
 import { execFile } from 'node:child_process';
@@ -44,6 +45,7 @@ export async function runWorkflow(options: {
   command: string[];
   baselineCommand?: string[];
   prepareDependencies?: boolean;
+  generatedChecks?: GeneratedChecks;
   providerConfig?: string;
   apiVersion?: string;
   apiVersionPolicy?: ApiVersionPolicy;
@@ -214,6 +216,7 @@ export async function runWorkflow(options: {
       command: options.command,
       baselineCommand: options.baselineCommand,
       prepareDependencies: options.prepareDependencies,
+      generatedChecks: options.generatedChecks,
       assessment: options.assessment,
       aiPatch: options.aiPatch,
       documentationSnapshots: options.documentationSnapshots,

@@ -1,41 +1,40 @@
-# Generated Stripe checks (proposal)
+# Generated Stripe checks
 
-Status: **proposal, not implemented.** It needs an owner decision on the validation sandbox before any code is written.
+Refit validates a migration by running the repository's own checks before and after the patch. 83 of the 100 repositories in the [Stripe benchmark](STRIPE-BENCHMARK.md) have no real test script. Generated checks add version-specific Stripe evidence for them. Refit calls the migrated code paths against Stripe's own mock server, serving the old and new API versions, with networking still disabled.
 
-## Problem
+## Configure
 
-Refit validates a migration by running the repository's own checks before and after the patch. 83 of the 100 repositories in the [Stripe benchmark](STRIPE-BENCHMARK.md) have no real test script, so a correct, confirmed migration still cannot be validated there. Phase 4.2 of the [Stripe plan](STRIPE-PLAN.md) asks for generated checks that run the migrated code paths against Stripe responses for the old and new API versions.
+Add `generatedChecks` to a workflow or `.refit.json`:
 
-## Research result: stripe-mock serves historical versions
+```json
+"generatedChecks": {
+  "stripeMockImage": "stripe/stripe-mock:latest",
+  "beforeFixtures": "./refit/stripe-2025-02-24.acacia.fixtures.json",
+  "afterFixtures": "./refit/stripe-2025-04-30.basil.fixtures.json"
+}
+```
 
-Stripe's [stripe-mock](https://github.com/stripe/stripe-mock) README says it is locked to the latest API version. Its source, however, accepts `-spec` and `-fixtures` flags, and every `stripe/openapi` release publishes both `spec3.json` and `fixtures3.json`. We ran the official `stripe/stripe-mock:latest` image with the files from tags `v1505` (`2025-02-24.acacia`) and `v1719` (`2025-04-30.basil`) and requested `GET /v1/invoices/in_123`:
+- `stripeMockImage` must already exist locally; Refit never pulls it. Pull the official image once with `docker pull stripe/stripe-mock:latest`. Evidence records its image ID and the hash of the binary used.
+- The fixtures files come from the same `stripe/openapi` releases as your `before` and `after` contracts (`openapi/fixtures3.json` next to `openapi/spec3.json`). Both contracts must be JSON.
+- Generated checks run in addition to `baselineCommand` and `command`, after those pass. Changing these settings changes the reviewed configuration, so `refit enroll` asks for approval again.
 
-| Version | `subscription` | `parent` |
-|---|---|---|
-| acacia | present (`null`) | absent |
-| basil | absent | `{ subscription_details: { subscription: "subscription" }, type: "quote_details", … }` |
+## What runs
 
-So stripe-mock can supply version-correct response shapes for both sides of a migration, offline, from Stripe's own published artifacts. Fixture values are placeholders such as `"subscription"`, so they prove shape compatibility, not business data.
+stripe-mock's README says it serves only the latest API version, but its `-spec` and `-fixtures` flags accept any release's published files. Refit verified this with the official image and Stripe's acacia and basil releases. Invoices had top-level `subscription` under acacia and `parent.subscription_details.subscription` under basil.
 
-## Proposed design
-
-1. **Opt-in.** A workflow sets `generatedChecks: "stripe"`. It applies only when the before and after contracts are pinned `stripe/openapi` releases whose fixtures Refit can pin by hash.
-2. **Entry points.** For each confirmed, edited finding, Refit takes the enclosing exported function. It qualifies only if every parameter is untyped or typed `string`, at most three of them. Other shapes are reported as not covered rather than guessed. Each qualifying function is called with deterministic placeholder IDs.
-3. **Harness.** A generated ESM script imports each entry point and awaits it, catching nothing. It records whether the call completed and which Stripe paths were requested. The harness is evidence, never committed and never part of the PR diff.
-4. **Runs.**
-   - Original code against before-version stripe-mock must complete. This is the baseline.
-   - Patched code against after-version stripe-mock must complete.
-   - Original code against after-version stripe-mock is recorded as the demonstrated break. It is expected to fail, and it is reported but never required.
-5. **Sandbox change, the decision needed.** Checks run today with `--network none`. stripe-mock would run in its own container on a per-run `docker network create --internal` network, with no route to the internet. The check container joins only that network. `api.stripe.com` resolves to the mock through `--add-host`, and the mock's self-signed certificate is trusted through `NODE_EXTRA_CA_CERTS`, not by disabling TLS verification. All other limits stay: read-only root, no capabilities, non-root user, 512 MiB workspace, 1 GiB memory. The mock container gets the same restrictions plus read-only mounts of the pinned spec and fixtures.
-6. **Evidence and claims.** Reports and PRs say the code ran against generated Stripe fixtures for both versions, and name the covered and uncovered entry points. They must not claim application tests or business correctness.
+1. **Entry points.** For each confirmed finding, Refit takes the innermost exported function around it. That can be a function declaration, an exported `const` arrow or function expression, or a default export, so findings inside inline callbacks count for their caller. A function qualifies if it has at most three parameters, each untyped or typed `string`. Other findings are counted as uncovered, never guessed.
+2. **Runs.** Original code runs against stripe-mock serving the before contract and fixtures. Patched code runs against the after contract and fixtures. Each qualifying function is called with placeholder IDs (`refit_placeholder_1`, …) and must complete without throwing. If either run fails, validation fails, and no AI repair is attempted for generated checks.
+3. **Sandbox.** Both runs use the normal validation container: `--network none`, read-only root, no capabilities, non-root user, 512 MiB workspace and 1 GiB memory. stripe-mock runs inside that container on `127.0.0.1`. A Node preload redirects HTTPS requests for `api.stripe.com` to it, and replaces the Authorization header with stripe-mock's standard test key. The redirect also handles the Stripe SDK writing request bodies only after `secureConnect`. The stripe-mock binary, contract, fixtures and generated harness are mounted read-only. There is no network, certificate or TLS change, and placeholder `STRIPE_SECRET_KEY`, `STRIPE_API_KEY` and `STRIPE_KEY` variables are set for code that reads them at import.
+4. **Evidence.** The validation report records the entry points, uncovered usages, both results, the image ID, the binary hash and the contract and fixtures hashes. The terminal summary and the PR's validation table show both runs. The PR text says the checks use placeholder data and check response shapes, not business behavior.
 
 ## Limits
 
-- Only simple exported functions qualify. Route handlers, class methods and functions taking request objects or Stripe objects need application-specific arguments.
-- Placeholder fixtures exercise shape changes such as removed and moved fields. They do not exercise value-dependent logic, pagination edge cases, webhooks or errors.
-- stripe-mock ignores most request semantics, so request-side migrations are checked for crashes, not correctness.
-- It adds a pinned third-party image (`stripe/stripe-mock`) that operators must pull explicitly, like the validation image.
+- Only simple exported functions are called. Route handlers, class methods, and functions taking request objects or Stripe objects need application-specific arguments and stay uncovered.
+- stripe-mock fixtures use placeholder values, and they differ between versions, so return values are not compared. The check catches crashes and type errors on the new response shape, such as reading a property of a removed field, not wrong results.
+- Code that does not crash on a missing field, for example by returning `undefined`, passes on both versions. Review stays necessary.
+- Only the Stripe SDK's default Node HTTP client is redirected. Clients configured with a custom host, a custom HTTP client or `fetch` are not redirected, and fail in the offline sandbox.
+- TypeScript entry points run with Node's `--experimental-strip-types`, which needs a recent Node 22 or newer in the validation image.
 
-## Decision needed
+## Verified lab
 
-Approve or reject point 5: an internal-only Docker network, plus a trusted mock certificate inside the check container, for generated-check runs only. Without it, generated checks can only run when the application lets its Stripe client host be configured, which most real code does not.
+The local lab at `/Users/pierceluu/Repos/refit-stripe-lab` used the actual `stripe` 17.7.0 SDK, the curated basil move adapter, and Stripe's acacia and basil specs and fixtures. `refit run` called five exported functions, including a line-item callback's caller, with no uncovered usages. They passed on the original code against acacia stripe-mock and on the migrated code against basil stripe-mock, offline. Evidence is at `/Users/pierceluu/.refit/evaluations/generated-checks-2-2026-10-15`. A unit test with a Stripe-like client confirms the redirect, the test-key substitution and failure on a thrown error. Without the `secureConnect` handling, the request hangs.

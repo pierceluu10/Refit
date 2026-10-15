@@ -104,6 +104,7 @@ try {
       output: values.output ?? join(tmpdir(), `${RUN_DIRECTORY_PREFIX}${randomUUID()}`),
       image,
       prepareDependencies: values['prepare-dependencies'] ?? configuration?.prepareDependencies,
+      generatedChecks: configuration?.generatedChecks,
       command,
       baselineCommand:
         values['baseline-command'] !== undefined

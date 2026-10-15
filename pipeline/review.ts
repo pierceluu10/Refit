@@ -375,7 +375,18 @@ export function createReviewArtifacts(
         '|---|---|---|---|',
         `| Baseline | original | ${commandText(validation.baselineCommand)} | ${validation.baseline.status === 'passed' ? '✅' : '❌'} ${validation.baseline.status} |`,
         `| Migration | patched | ${commandText(validation.command)} | ${validation.patched.status === 'passed' ? '✅' : '❌'} ${validation.patched.status} |`,
+        ...(validation.generated
+          ? [
+              `| Generated, ${report.apiVersion.before} mock | original | ${validation.generated.entryPoints.length} exported functions | ${validation.generated.baseline.status === 'passed' ? '✅' : '❌'} ${validation.generated.baseline.status} |`,
+              `| Generated, ${report.apiVersion.after} mock | patched | ${validation.generated.entryPoints.length} exported functions | ${validation.generated.patched.status === 'passed' ? '✅' : '❌'} ${validation.generated.patched.status} |`,
+            ]
+          : []),
       ].join('\n'),
+      ...(validation.generated
+        ? [
+            `Generated checks called ${summaryList(validation.generated.entryPoints.map((entry) => code(`${entry.file}#${entry.name}`)))} with placeholder IDs against stripe-mock serving each version's published contract and fixtures, offline. ${validation.generated.uncoveredFindings} confirmed usages were not inside a callable exported function. Placeholder data checks response shapes, not business behavior.`,
+          ]
+        : []),
       `Both checks ran in restricted Docker containers with external networking disabled (image ${short(validation.image.replace(/^sha256:/, ''))}); these are not GitHub Actions checks. Patch attempts: **${validation.attempts.length}**; AI repairs: **${validation.repair.requested}**; remaining reads of removed fields: **${patch.unresolvedFindings}**.`,
       passed
         ? '**This shows** the migrated code passes your configured checks. **It does not show** that replacement fields carry the same meaning or that the checks cover every code path.'

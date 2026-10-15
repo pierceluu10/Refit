@@ -1,5 +1,13 @@
 # Refit implementation checkpoints
 
+## October 15 checkpoint: generated Stripe checks (0.29.0)
+
+Workflows can opt into `generatedChecks`. Refit then calls the exported functions around confirmed findings, with placeholder IDs, against Stripe's official stripe-mock serving the before and after releases' published contracts and fixtures. stripe-mock runs inside the normal validation container on loopback. A Node preload redirects the Stripe SDK's `api.stripe.com` requests to it, so validation stays at `--network none` with no certificate changes. Both runs must complete for validation to pass. Uncovered usages, hashes and the image ID are recorded, and the PR names the functions called and states that placeholder data checks shapes, not behavior. See [generated checks](GENERATED-CHECKS.md).
+
+The default suite passed **1,235 tests across 78 files**, with 77 environment-gated tests skipped, plus build, typecheck and formatting. New tests cover entry-point selection and uncovered counting, TypeScript handling, configuration parsing, and the redirect against a Stripe-like client: test-key substitution, request path, and failure on a thrown error. That test fails without the `secureConnect` handling.
+
+In the local Stripe lab, with the actual `stripe` 17.7.0 SDK and Stripe's acacia and basil specs and fixtures, five exported functions ran against both stripe-mock versions with no uncovered usages. Both runs passed offline. Fixture values are placeholders and differ by version, so the check catches crashes on new shapes, not wrong values. No live Stripe call or AI was used.
+
 ## October 15 checkpoint: larger preparation workspace (0.28.0)
 
 At the owner's request, dependency preparation now gets a 2 GiB writable workspace. tmpfs pages count against container memory, and with only 2 GiB of space the installer was killed at the 1 GiB limit (exit 137). So preparation also gets 3 GiB of memory. Validation keeps its 512 MiB workspace and 1 GiB memory, and the 256 MiB dependency archive limit is unchanged because validation unpacks that archive. Evidence records the preparation workspace and memory.
