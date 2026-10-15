@@ -174,23 +174,11 @@ describe('symbol-based impact analysis', () => {
     'const charges = intent.charges; charges.data.push({});',
     'const { charges } = intent; charges.data = [];',
     'Object.assign(intent, { charges: { data: [] } });',
-    'normalize(intent);',
-    'normalize(intent.charges);',
-    'normalize(flag ? intent : other);',
-    'normalize(() => intent);',
-    'const holder = { intent };',
-    'const holder = { value: intent };',
-    'const holder = [intent];',
-    'const holder = flag ? intent : other;',
     '({ charges: intent.charges } = other);',
     'intent.normalize();',
     'client.paymentIntents.retrieve = replacement;',
     'const alias = client; alias.paymentIntents.retrieve = replacement;',
-    'configure(client);',
-    'function getResponse() { return intent; }',
-    'const getResponse = () => intent;',
-    'function* responses() { yield intent; }',
-  ])('declines confirmed impact and patches after mutation or escape: %s', (statement) => {
+  ])('declines confirmed impact and patches after mutation: %s', (statement) => {
     const result = analyze(`${prefix} async function read() {
       const intent = await client.paymentIntents.retrieve('pi_test');
       ${statement}
@@ -201,11 +189,36 @@ describe('symbol-based impact analysis', () => {
     expect(result.findings.at(-1)?.reason).toContain('mutated or escape');
     expect(result.edits).toEqual([]);
   });
-  it('does not confirm inline awaited responses after the SDK client escapes', () => {
+  it.each([
+    'normalize(intent);',
+    'normalize(intent.charges);',
+    'normalize(flag ? intent : other);',
+    'normalize(() => intent);',
+    'const holder = { intent };',
+    'const holder = { value: intent };',
+    'const holder = [intent];',
+    'const holder = flag ? intent : other;',
+    'configure(client);',
+    'function getResponse() { return intent; }',
+    'const getResponse = () => intent;',
+    'function* responses() { yield intent; }',
+  ])(
+    'keeps confirmed impact and patches when a response or client only escapes: %s',
+    (statement) => {
+      const result = analyze(`${prefix} async function read() {
+      const intent = await client.paymentIntents.retrieve('pi_test');
+      ${statement}
+      return intent.charges.data;
+    }`);
+      expect(result.findings.at(-1)?.confidence).toBe('confirmed');
+      expect(result.edits).toHaveLength(1);
+    },
+  );
+  it('confirms inline awaited responses after the SDK client escapes', () => {
     const result = analyze(
       `${prefix} configure(client); async function read() { return (await client.paymentIntents.retrieve('pi')).charges; }`,
     );
-    expect(result.findings[0].confidence).toBe('review');
+    expect(result.findings[0].confidence).toBe('confirmed');
   });
   it('keeps mutations of unrelated or shadowed objects separate from a traced response', () => {
     const result = analyze(`${prefix} async function read() {

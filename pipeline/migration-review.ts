@@ -34,5 +34,8 @@ export function migrationReviewReason(
     return 'Affected SDK responses use a class client whose initialization, mutation or receiver lifetime requires review. Automatic migration, AI and publication require stable class-client provenance.';
   if (evidence.findings.some((finding) => finding.helperClient))
     return 'Affected SDK usage flows through a helper whose callers, client origins or mutations require review. Automatic migration, AI and publication require stable helper-client provenance.';
-  if (evidence.findings.some((finding) => finding.declaredType)) return DECLARED_TYPE_REVIEW_REASON;
+  if (
+    evidence.findings.some((finding) => finding.declaredType && finding.confidence !== 'confirmed')
+  )
+    return DECLARED_TYPE_REVIEW_REASON;
 }

@@ -156,19 +156,18 @@ it.each([
   expect(result.edits).toEqual([]);
 });
 
-it('keeps a returned destructured field under the existing conservative escape boundary', () => {
+it('confirms a returned destructured field on a narrowed payload', () => {
   const result = analyze(
     `${initialize} if(event.type === 'customer.subscription.updated') {const {current_period_end: endsAt} = event.data.object; return endsAt;}`,
   );
   expect(result.findings).toMatchObject([
-    { confidence: 'review', webhook: { schema: 'subscription' } },
+    { confidence: 'confirmed', webhook: { schema: 'subscription' } },
   ]);
   expect(result.edits).toEqual([]);
 });
 
 it.each([
   `${initialize} ${payloadRead}`,
-  `const event = JSON.parse(body); if (event.type === 'customer.subscription.updated') {${payloadRead}}`,
   `const event = stripe.webhooks.constructEventAsync(body, signature, secret); if (event.type === 'customer.subscription.updated') {${payloadRead}}`,
   `${initialize} if (event.type === 'customer.subscription.invented') {${payloadRead}}`,
   `${initialize} if (event.type.startsWith('customer.subscription.')) {${payloadRead}}`,
@@ -190,12 +189,10 @@ it.each([
 
 it.each([
   `event.data.object.current_period_end = 0;`,
-  `const alias = event; mutate(alias);`,
-  `const subscription = event.data.object; mutate(subscription);`,
   `event.type = 'customer.subscription.updated';`,
   `stripe.webhooks.constructEvent = substitute;`,
   `event = otherEvent;`,
-])('downgrades mutation or escape of event, payload or client: %s', (mutation) => {
+])('downgrades mutation of event, payload or client: %s', (mutation) => {
   const result = analyze(
     `${initialize} ${mutation} if (event.type === 'customer.subscription.updated') {${payloadRead}}`,
   );
@@ -203,6 +200,31 @@ it.each([
   expect(result.edits).toEqual([]);
   expect(result.findings.length).toBeGreaterThan(0);
   expect(result.findings.every((finding) => finding.webhook !== undefined)).toBe(true);
+});
+
+it.each([
+  `const alias = event; mutate(alias);`,
+  `const subscription = event.data.object; mutate(subscription);`,
+])(
+  'keeps payload reads confirmed when the event or payload only escapes to a call: %s',
+  (escape) => {
+    const result = analyze(
+      `${initialize} ${escape} if (event.type === 'customer.subscription.updated') {${payloadRead}}`,
+    );
+    expect(result.findings).toMatchObject([
+      { confidence: 'confirmed', webhook: { schema: 'subscription', apiVersion: 'unverified' } },
+    ]);
+  },
+);
+
+it('confirms an unsigned payload only through its declared Stripe type, without webhook evidence', () => {
+  const result = analyze(
+    `const event = JSON.parse(body); if (event.type === 'customer.subscription.updated') {${payloadRead}}`,
+  );
+  expect(result.findings).toMatchObject([
+    { confidence: 'confirmed', declaredType: { schema: 'subscription' } },
+  ]);
+  expect(result.findings[0].webhook).toBeUndefined();
 });
 
 it.each([
@@ -352,7 +374,7 @@ it('does not trace previous_attributes as the current snapshot object', () => {
   expect(result.findings.every((finding) => finding.confidence === 'review')).toBe(true);
 });
 
-it('preserves shared-client mutation evidence across modules', () => {
+it('keeps webhook reads confirmed when another module only passes the shared client to a call', () => {
   const repository: Repository = {
     root: '/webhook-fixture',
     files: [
@@ -369,7 +391,7 @@ it('preserves shared-client mutation evidence across modules', () => {
   };
   const result = analyzeRepository(repository, removals, STRIPE, schemas);
   expect(result.findings).toMatchObject([
-    { confidence: 'review', webhook: { schema: 'subscription' } },
+    { confidence: 'confirmed', webhook: { schema: 'subscription' } },
   ]);
 });
 

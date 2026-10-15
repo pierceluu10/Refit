@@ -654,13 +654,18 @@ export function analyzeRepository(
     repository.dependencies.length > 0 ||
     Boolean(stripeTypes && (stripeTypes.typed.size || stripeTypes.typedArrays.size));
   const escapingClients = new Set<ts.Symbol>();
-  for (const binding of [...clients, ...wrappers.keys()])
+  // Module exports reachable through unsupported consumers can have their methods replaced.
+  const exposedClients = new Set<ts.Symbol>();
+  for (const binding of [...clients, ...wrappers.keys()]) {
+    if (!binding.valueDeclaration) continue;
+    if (modules.escapingSources.has(binding.valueDeclaration.getSourceFile().fileName))
+      exposedClients.add(binding);
     if (
-      binding.valueDeclaration &&
-      (modules.escapingSources.has(binding.valueDeclaration.getSourceFile().fileName) ||
-        (resolution.unverified && Boolean(modules.clientExport(binding))))
+      exposedClients.has(binding) ||
+      (resolution.unverified && Boolean(modules.clientExport(binding)))
     )
       escapingClients.add(binding);
+  }
   const readOnlyCall = (node: ts.CallExpression) => {
     if (arrayIteration(node)) return true;
     if (
@@ -678,9 +683,17 @@ export function analyzeRepository(
     );
   };
   const initialUnsafe = new Set(escapingClients);
-  for (const binding of classBindings.unsafe) initialUnsafe.add(binding);
-  for (const binding of helperBindings.unsafe) initialUnsafe.add(binding);
-  for (const binding of webhooks?.unsafeEvents ?? []) initialUnsafe.add(binding);
+  // Read confirmation ignores repository-wide alias doubt (imports that may resolve to unscanned
+  // declaration files); the read itself is traced to a Stripe call or a Stripe.* type.
+  const initialMutated = new Set(exposedClients);
+  for (const binding of [
+    ...classBindings.unsafe,
+    ...helperBindings.unsafe,
+    ...(webhooks?.unsafeEvents ?? []),
+  ]) {
+    initialUnsafe.add(binding);
+    initialMutated.add(binding);
+  }
   const mutationNodes = nodes.filter(
     (node) =>
       !modules.safeNodes.has(node) &&
@@ -694,6 +707,19 @@ export function analyzeRepository(
     new Map(),
     canonical,
   );
+  const mutatedConstructors = unsafeBindings(
+    mutationNodes,
+    checker,
+    sdk.constructors,
+    new Map(),
+    canonical,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    false,
+  );
   for (const [node, binding] of [
     ...declarations.map((node) => [node.initializer, symbol(node.name)] as const),
     ...[...modules.inlineDefaults].map(([node, binding]) => [node.expression, binding] as const),
@@ -703,16 +729,16 @@ export function analyzeRepository(
     ...helperBindings.creations,
   ]) {
     const creation = sdk.creation(node);
-    if (
-      binding &&
-      creation &&
-      (creation.arguments?.some(ts.isSpreadElement) ||
-        unsafeConstructors.has(sdk.binding(creation)!))
-    )
-      initialUnsafe.add(binding);
+    if (!binding || !creation) continue;
+    const spread = creation.arguments?.some(ts.isSpreadElement);
+    if (spread || unsafeConstructors.has(sdk.binding(creation)!)) initialUnsafe.add(binding);
+    if (spread || mutatedConstructors.has(sdk.binding(creation)!)) initialMutated.add(binding);
   }
   for (const [response, origin] of origins)
-    if (sdkCall(origin)?.optional) initialUnsafe.add(response);
+    if (sdkCall(origin)?.optional) {
+      initialUnsafe.add(response);
+      initialMutated.add(response);
+    }
   const primitiveValue = (node: ts.Node): boolean => {
     if (!stripeTypes) return false;
     if (ts.isNonNullExpression(node) || ts.isParenthesizedExpression(node))
@@ -744,9 +770,24 @@ export function analyzeRepository(
     primitiveValue,
     clientReferences,
   );
-  function helperEvidence(expression: ts.Expression) {
+  // Traced responses and Stripe-typed values passed into functions, returned, stored or aliased
+  // keep their confirmation; only direct mutations downgrade a read.
+  const mutated = unsafeBindings(
+    mutationNodes,
+    checker,
+    clients,
+    origins,
+    canonical,
+    initialMutated,
+    readOnlyCall,
+    arrayIteration,
+    primitiveValue,
+    clientReferences,
+    false,
+  );
+  function helperEvidence(expression: ts.Expression, uncertain = unsafe) {
     const flow = helperBindings.client(expression);
-    return flow && unsafe.has(flow.binding)
+    return flow && uncertain.has(flow.binding)
       ? {
           helperClient: {
             origin: location(flow.call),
@@ -758,7 +799,10 @@ export function analyzeRepository(
   }
   for (const [node, evidence] of sdkCallNodes)
     Object.assign(evidence, helperEvidence(sdkCall(node)!.client));
-  for (const [response, wrapper] of wrappedResponses) if (unsafe.has(wrapper)) unsafe.add(response);
+  for (const [response, wrapper] of wrappedResponses) {
+    if (unsafe.has(wrapper)) unsafe.add(response);
+    if (mutated.has(wrapper)) mutated.add(response);
+  }
   for (const node of nodes) {
     if (!ts.isCallExpression(node)) continue;
     const call = sdkCall(node);
@@ -847,6 +891,10 @@ export function analyzeRepository(
   }
   function propose(node: ts.Node, receiver: ts.Expression, change: Removal) {
     if (webhooks?.origin(receiver)) return;
+    // A value known only from its Stripe.* type may be a webhook payload passed into a helper;
+    // its shape follows the endpoint's version, so it is reported but never edited.
+    const provenance = sourceEvidence(receiver)?.kind;
+    if (provenance === 'declared-type' || provenance === 'unmapped-sdk') return;
     if (provider.id !== STRIPE.id) {
       const rename = provider.propertyRenames?.find(
         (candidate) => candidate.schema === change.schema && candidate.removed === change.property,
@@ -1103,17 +1151,16 @@ export function analyzeRepository(
       const immediateSdk = immediateCall ? sdkCall(immediateCall) : undefined;
       const responseSymbol = responseBinding(receiver);
       const uncertainMutation =
-        (responseSymbol !== undefined && unsafe.has(responseSymbol)) ||
+        (responseSymbol !== undefined && mutated.has(responseSymbol)) ||
         (immediateSdk &&
-          (immediateSdk.optional || unsafe.has(clientBinding(immediateSdk.client)!)));
+          (immediateSdk.optional || mutated.has(clientBinding(immediateSdk.client)!)));
       const confirmed = Boolean(
         tracked &&
         !uncertainMutation &&
         property !== undefined &&
         change.schema === schema &&
         (!webhook || webhook.schema !== undefined) &&
-        provenance?.kind !== 'unmapped-sdk' &&
-        !declaredType,
+        (provenance?.kind !== 'unmapped-sdk' || declaredType),
       );
       if (confirmed) propose(node, receiver, change);
       if (property === undefined && !tracked) continue;
@@ -1122,10 +1169,10 @@ export function analyzeRepository(
         changeId: change.id,
         expression: property === undefined ? '[computed property]' : `.${property}`,
         confidence: confirmed ? 'confirmed' : 'review',
-        ...(sourceClient ? helperEvidence(sourceClient) : {}),
+        ...(sourceClient ? helperEvidence(sourceClient, mutated) : {}),
         ...(declaredType ? { declaredType: { schema } } : {}),
         ...(classClient &&
-        (unsafe.has(classClient.binding) ||
+        (mutated.has(classClient.binding) ||
           (provenance && 'call' in provenance && sdkCall(provenance.call)?.optional))
           ? { classClient: { origin: location(classClient.origin), stability: 'review' as const } }
           : {}),
@@ -1139,15 +1186,18 @@ export function analyzeRepository(
               },
             }
           : {}),
-        reason: declaredType
-          ? 'Declared Stripe type identifies this possible field usage; runtime SDK or incoming-event provenance is not established.'
-          : confirmed && webhook
-            ? `Removed ${schema}.${change.property} read on a Stripe snapshot webhook payload narrowed by event.type. Incoming webhook API version and migration semantics require separate review.`
-            : confirmed
-              ? `Removed field read on a statically traced ${provider.id} ${schema} response.`
-              : uncertainMutation
-                ? 'Response or SDK client may be mutated or escape through an alias or call, or come from an optional SDK invocation; inspect manually.'
-                : 'Receiver or property cannot be proven by the supported local analysis; inspect manually.',
+        reason:
+          declaredType && confirmed
+            ? `Removed ${schema}.${change.property} read on a value declared with a Stripe.* type.`
+            : declaredType
+              ? 'Declared Stripe type identifies this possible field usage, but the value may be mutated; inspect manually.'
+              : confirmed && webhook
+                ? `Removed ${schema}.${change.property} read on a Stripe snapshot webhook payload narrowed by event.type. Incoming webhook API version and migration semantics require separate review.`
+                : confirmed
+                  ? `Removed field read on a statically traced ${provider.id} ${schema} response.`
+                  : uncertainMutation
+                    ? 'Response or SDK client may be mutated or escape through an alias or call, or come from an optional SDK invocation; inspect manually.'
+                    : 'Receiver or property cannot be proven by the supported local analysis; inspect manually.',
       });
     }
   }
