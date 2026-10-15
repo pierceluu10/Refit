@@ -188,3 +188,26 @@ npm run benchmark:stripe-score -- --results <new-dir>/results.json \
 ```
 
 The benchmark attaches the pinned Stripe changelog pages in [`benchmarks/stripe-changelog/`](benchmarks/stripe-changelog/) to AI patches for the changes each repository hits.
+
+## Validation funnel on real repositories (October 15, 2026)
+
+Measured with `npm run benchmark:stripe -- --validate` on `main` after the version-tolerant webhook reads, the SDK package upgrade and generated `stripe-mock` checks, with deterministic fixes only (no AI). The benchmark now validates every affected repository with a root npm lockfile and `stripe` declared, not only those with a test script:
+- repositories with a real test script run it;
+- TypeScript repositories without tests run a typecheck that reports errors without failing, and the benchmark counts errors the patch introduces;
+- the rest run a no-op command.
+
+Generated `stripe-mock` checks run in addition, using pinned `stripe/openapi` fixtures for both API versions.
+
+| Stage | Repositories |
+|---|---|
+| Affected (confirmed breaks) | 23 |
+| Root npm lockfile with `stripe` declared, so checks can be prepared | 18 (3 with tests, 15 TypeScript typecheck) |
+| Stopped at scan for review | 5 (4 with no deterministic rule for their reads, AI off; 1 declared-type mutation) |
+| **Dependency archive exceeds the 256 MiB validation limit** | **11** |
+| Lockfile entries without registry integrity | 1 (`odota/core`) |
+| Lockfile out of sync with `package.json` | 1 (`LDAWoo/webprodigies-plura`) |
+| Reached the repository's checks | **0** |
+
+The archive limit is what stops validation on real applications. Next.js apps routinely install more than 256 MiB, even though dependency preparation now has a 2 GiB workspace. Validation unpacks the archive into its 512 MiB workspace, so raising the archive limit also means raising the validation workspace and memory. That is a sandbox decision for the owner. Detection and patch generation are unaffected: production mode completed on 74 of 74 contract pairs.
+
+The end-to-end path does work when dependencies fit. A TypeScript app on stripe 16.12.0, using the real `2024-06-20` and `2026-09-30.endive` Stripe specifications, was patched with the moved read, the `apiVersion` bump and stripe 23.0.0. Both dependency sets were prepared in Docker, and `tsc` passed on the original and the patched code (workflow status `validated`). A gated test reproduces this.

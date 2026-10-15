@@ -17,6 +17,18 @@ const USAGE =
 // Default `npm init` script; it is not a check.
 const PLACEHOLDER_TEST = /no test specified/;
 const VALIDATION_TIMEOUT_MS = 20 * 60 * 1000;
+// `file(line,col): error TSxxxx: message`, keyed without the position so moved lines still match.
+const TYPE_ERROR = /^(.+?)\(\d+,\d+\): error (TS\d+): (.*)$/;
+
+function typeErrors(output: unknown) {
+  return new Set(
+    String(output ?? '')
+      .split('\n')
+      .map((line) => TYPE_ERROR.exec(line.trim()))
+      .filter((match): match is RegExpExecArray => Boolean(match))
+      .map((match) => `${match[1]} ${match[2]} ${match[3]}`),
+  );
+}
 
 interface Selected {
   repo: string;
@@ -210,25 +222,48 @@ for (const [index, entry] of selected.entries()) {
     ...new Set(full.confirmedFields?.map((field) => changelogPages[field]).filter(Boolean)),
   ].map((page) => join(CHANGELOG, page));
   result.changelogNotes = notes.map((path) => path.slice(CHANGELOG.length + 1));
-  if (!full.confirmed || !ai) {
-    log(full.confirmed ? `affected (${full.confirmed} usages), AI not requested` : 'not affected');
+  if (!full.confirmed) {
+    log('not affected');
     continue;
   }
   const manifest = JSON.parse(
     await readFile(join(directory, 'package.json'), 'utf8').catch(() => '{}'),
   );
+  const declared = { ...manifest.dependencies, ...manifest.devDependencies };
   const testScript: unknown = manifest.scripts?.test;
-  const validatable =
-    existsSync(join(directory, 'package-lock.json')) &&
-    Boolean({ ...manifest.dependencies, ...manifest.devDependencies }.stripe) &&
-    typeof testScript === 'string' &&
-    !PLACEHOLDER_TEST.test(testScript);
-  result.validatable = validatable;
-  if (values.validate && validatable) {
+  const hasTests = typeof testScript === 'string' && !PLACEHOLDER_TEST.test(testScript);
+  const typescript = existsSync(join(directory, 'tsconfig.json')) && Boolean(declared.typescript);
+  // Root npm projects with stripe can be prepared for checks; others are proposal-only.
+  const checkable = existsSync(join(directory, 'package-lock.json')) && Boolean(declared.stripe);
+  result.validatable = checkable && hasTests;
+  result.checks = !checkable
+    ? 'none'
+    : hasTests
+      ? 'tests'
+      : typescript
+        ? 'typecheck'
+        : 'generated-only';
+  if (values.validate && checkable) {
+    const fixtures = (version: string) => join(root, 'fixtures', `${version}.json`);
+    const generatedChecks =
+      existsSync(fixtures(entry.before)) && existsSync(fixtures(latest))
+        ? {
+            stripeMockImage: 'stripe/stripe-mock:latest',
+            beforeFixtures: fixtures(entry.before),
+            afterFixtures: fixtures(latest),
+          }
+        : undefined;
+    // Without tests, a TypeScript typecheck reports errors without failing, so the patch's new
+    // errors can be counted against the baseline's.
+    const command = hasTests
+      ? ['npm', 'test']
+      : typescript
+        ? ['sh', '-c', 'npx --no-install tsc --noEmit --pretty false -p . ; exit 0']
+        : ['node', '-e', ''];
     const config = join(work, 'run.json');
     await writeFile(
       config,
-      `${JSON.stringify({ formatVersion: 1, repository: directory, apiVersion: entry.before, before, after, providerConfig: adapterPath, image: 'node:22-alpine', prepareDependencies: true, command: ['npm', 'test'] }, null, 2)}\n`,
+      `${JSON.stringify({ formatVersion: 1, repository: directory, apiVersion: entry.before, before, after, providerConfig: adapterPath, image: 'node:22-alpine', prepareDependencies: true, command, ...(generatedChecks ? { generatedChecks } : {}) }, null, 2)}\n`,
     );
     const bundle = join(work, 'run');
     try {
@@ -241,10 +276,14 @@ for (const [index, entry] of selected.entries()) {
           config,
           '--output',
           bundle,
-          '--ai-patch',
-          ...notes.flatMap((path) => ['--documentation-snapshot', path]),
-          '--repair-attempts',
-          '1',
+          ...(ai
+            ? [
+                '--ai-patch',
+                ...notes.flatMap((path) => ['--documentation-snapshot', path]),
+                '--repair-attempts',
+                '1',
+              ]
+            : []),
           '--quiet',
           '--json',
         ],
@@ -259,19 +298,50 @@ for (const [index, entry] of selected.entries()) {
     const report = JSON.parse(
       await readFile(join(bundle, 'report.json'), 'utf8').catch(() => '{}'),
     );
+    const generated = report.validation?.generated;
     result.workflow = {
       status: outcome.status ?? 'missing-manifest',
       stage: outcome.stage,
       reason: outcome.reason,
       error: outcome.error?.message,
+      checks: result.checks,
       patch: report.patch?.status,
+      generator: report.patch?.generator,
       summary: report.patch?.summary,
+      unresolvedFindings: report.patch?.unresolvedFindings,
+      sdkUpgrade: report.patch?.sdkUpgrade,
       validation: report.validation?.status,
+      baseline: report.validation?.baseline?.status,
+      patched: report.validation?.patched?.status,
+      ...(result.checks === 'typecheck' && report.validation?.patched
+        ? {
+            typeErrors: {
+              baseline: typeErrors(report.validation.baseline?.stdout).size,
+              patched: typeErrors(report.validation.patched.stdout).size,
+              introduced: [...typeErrors(report.validation.patched.stdout)].filter(
+                (error) => !typeErrors(report.validation.baseline?.stdout).has(error),
+              ),
+            },
+          }
+        : {}),
+      ...(generated
+        ? {
+            generated: {
+              baseline: generated.baseline?.status,
+              patched: generated.patched?.status,
+              entryPoints: generated.entryPoints?.length ?? 0,
+              uncoveredFindings: generated.uncoveredFindings?.length ?? 0,
+            },
+          }
+        : {}),
       repairAttempts: report.validation?.repair?.requested ?? 0,
       diff: report.patch?.diff?.slice(0, 8000),
       pullRequest: existsSync(join(bundle, 'pull-request.md')),
     };
     log(`workflow ${String((result.workflow as { status: string }).status)}`);
+  } else if (!ai) {
+    log(`affected (${full.confirmed} usages), AI not requested`);
+    continue;
   } else {
     try {
       const report = await runPipeline({
