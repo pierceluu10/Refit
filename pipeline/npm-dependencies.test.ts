@@ -151,7 +151,7 @@ it(
         '--cap-drop',
         'ALL',
         '--memory',
-        '1g',
+        '3g',
         '--tmpfs',
         '/workspace:rw,exec,size=2g,uid=65534,gid=65534,mode=0700',
       ]),
@@ -426,7 +426,7 @@ it('copies only committed workspace manifests to the networked install input', a
   ]);
 });
 
-it('keeps validation containers on the 512 MiB workspace', () => {
+it('keeps validation containers on the 512 MiB workspace and 1 GiB memory', () => {
   const args = dockerSandboxArguments({
     name: 'refit-check',
     directory: '/input',
@@ -435,5 +435,6 @@ it('keeps validation containers on the 512 MiB workspace', () => {
     network: 'none',
   });
   expect(args).toContain('/workspace:rw,exec,size=512m,uid=65534,gid=65534,mode=0700');
+  expect(args[args.indexOf('--memory') + 1]).toBe('1g');
   expect(args.join(' ')).not.toContain('size=2g');
 });

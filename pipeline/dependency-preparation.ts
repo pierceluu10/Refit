@@ -19,6 +19,7 @@ import { readCommittedRepository } from './committed-repository.ts';
 import {
   DOCKER_IMAGE_ID,
   dockerSandboxArguments,
+  PREPARATION_MEMORY,
   PREPARATION_WORKSPACE_SIZE,
   removeDockerContainer,
   resolveDockerImage,
@@ -390,6 +391,7 @@ export async function prepareDependencies(options: {
           registry: 'https://registry.npmjs.org',
           timeoutMs: timeoutSeconds * 1000,
           workspace: PREPARATION_WORKSPACE_SIZE,
+          memory: PREPARATION_MEMORY,
         },
         validation: { network: 'none' },
       };
