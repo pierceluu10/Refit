@@ -1,5 +1,13 @@
 # Refit implementation checkpoints
 
+## October 15 checkpoint: Yarn 2+ preparation (0.27.0)
+
+Pinned Yarn 2–4 root projects on the node-modules linker now use automatic preparation. Lock entries must be exact npm resolutions with checksums, or Yarn's built-in `compat` patches, which ship in the verified bundle. Refit installs `@yarnpkg/cli-dist` through npm, checks a Corepack `+sha512` pin against the bundled `yarn.js` (byte-identical to the file Corepack hashes), and configures Yarn only through environment variables. Repository rc files never reach the installer. See [dependency preparation](DEPENDENCIES.md).
+
+The default suite passed **1,229 tests across 77 files**, with 77 environment-gated tests skipped, plus build, typecheck and formatting. Gated Yarn and pnpm preparation suites passed in Docker. The new Yarn 4.9.2 case installed Stripe 17.7.0 with its install-script tripwire untouched, then ran `yarn run` offline.
+
+The benchmark's Yarn 2+ repository, `naveennaidu/OpenformStack`, is refused twice over. It has no exact Yarn pin, and even with one added to a local copy, its `@esbuild/*` platform packages carry no lock checksum. Accepting those would let Yarn install binaries without integrity verification, so they remain on the custom-image path. No dependencies from that repository were installed.
+
 ## October 15 checkpoint: Yarn 1 workspaces and installation deadline (0.26.0)
 
 Yarn 1 workspaces now use automatic preparation: up to 64 positive patterns (a list or `{ packages }`), unique names, sibling dependencies on `*` or an exact version, and verified root `node_modules/<name>` links. `nohoist` and workspace CLI bins still need a custom image. Operators can extend the installer deadline with `REFIT_DEPENDENCY_TIMEOUT_SECONDS` (60–1800); other sandbox limits are unchanged. See [dependency preparation](DEPENDENCIES.md).
