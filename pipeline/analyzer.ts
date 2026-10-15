@@ -1221,6 +1221,30 @@ export function analyzeRepository(
       }
     }
   }
+  // `switch (subscription.status)` or `const unhandled: never = subscription.status`, directly or
+  // through one const alias; new enum values on these fields can reach unhandled code.
+  const enumChecks: (Location & { schema: string; property: string })[] = [];
+  for (const node of nodes) {
+    let checked = ts.isSwitchStatement(node)
+      ? node.expression
+      : ts.isVariableDeclaration(node) && node.type?.kind === ts.SyntaxKind.NeverKeyword
+        ? node.initializer
+        : undefined;
+    if (checked && ts.isIdentifier(checked)) {
+      const declaration = symbol(checked)?.valueDeclaration;
+      checked = declarations.find((entry) => entry === declaration)?.initializer;
+    }
+    while (
+      checked &&
+      (ts.isParenthesizedExpression(checked) ||
+        ts.isAsExpression(checked) ||
+        ts.isNonNullExpression(checked))
+    )
+      checked = checked.expression;
+    if (!checked || !ts.isPropertyAccessExpression(checked)) continue;
+    const schema = schemaForExpression(checked.expression);
+    if (schema) enumChecks.push({ ...location(node), schema, property: checked.name.text });
+  }
   if (provider.stripeSubscriptionPeriods && webhooks) {
     for (const source of program.getSourceFiles()) {
       const file = locations.get(source.fileName);
@@ -1278,6 +1302,7 @@ export function analyzeRepository(
       references: clientReferences,
     }),
     findings,
+    enumChecks,
     sourceWarnings: resolution.warnings,
     providerDetected,
     stripeDetected: provider.id === 'stripe' && providerDetected,

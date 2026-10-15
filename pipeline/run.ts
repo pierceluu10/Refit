@@ -32,7 +32,12 @@ import { PipelineInputError } from './types.ts';
 import { digest, findRemovedProperties, readSpecification } from './specifications.ts';
 import { stripeAdapterFor } from './stripe-operations.ts';
 import { validateStripeSubscriptionPeriodContract } from './stripe-subscription-periods.ts';
-import { adapterContract, compareOpenApi, unmappedBreakingChanges } from './openapi-diff.ts';
+import {
+  adapterContract,
+  compareOpenApi,
+  switchedEnumAdditions,
+  unmappedBreakingChanges,
+} from './openapi-diff.ts';
 import {
   operationReplacementEvidence,
   replacementAnalysisAdapter,
@@ -102,13 +107,14 @@ export async function runPipeline(options: {
         ...(await compareOpenApi(
           adapterContract(before.document, provider),
           adapterContract(after.document, provider),
+          { openResponseEnums: provider.packageName === STRIPE.packageName },
         )),
         coverage:
           'oasdiff compared only adapter-selected operations and their reachable components. Unselected endpoints, request schemas and unrelated components were not compared. Code and incoming-event coverage remain bounded; absence of a reported change is not proof of full API compatibility.',
       }
     : undefined;
   const requestRenames = validateRequestPropertyRenames(provider, before.document, after.document);
-  const { edits, apiVersionDeclarations, sourceWarnings, skippedFiles, ...analysis } =
+  const { edits, apiVersionDeclarations, sourceWarnings, skippedFiles, enumChecks, ...analysis } =
     analyzeRepository(
       repository,
       changes,
@@ -117,6 +123,10 @@ export async function runPipeline(options: {
       replacements,
       requestRenames,
       moves,
+    );
+  if (specificationDiff && provider.packageName === STRIPE.packageName)
+    specificationDiff.changes.push(
+      ...switchedEnumAdditions(enumChecks, before.schemas, after.schemas),
     );
   const apiVersion = compareApiVersion(
     applicationApiVersion,
