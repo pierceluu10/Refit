@@ -1,5 +1,18 @@
 # Refit implementation checkpoints
 
+## October 15 checkpoint: larger preparation workspace (0.28.0)
+
+At the owner's request, dependency preparation now gets a 2 GiB writable workspace. tmpfs pages count against container memory, and with only 2 GiB of space the installer was killed at the 1 GiB limit (exit 137). So preparation also gets 3 GiB of memory. Validation keeps its 512 MiB workspace and 1 GiB memory, and the 256 MiB dependency archive limit is unchanged because validation unpacks that archive. Evidence records the preparation workspace and memory.
+
+The default suite passed **1,231 tests across 77 files**, with 77 environment-gated tests skipped, plus build, typecheck and formatting. New assertions check that preparation runs with 2 GiB and 3 GiB and validation with 512 MiB and 1 GiB.
+
+Re-testing the large benchmark repositories with a 900-second deadline:
+- `backmesh/backmesh` (Yarn 1) now installs completely, then stops because its archive exceeds 256 MiB.
+- `alanagoyal/branded` (npm) also passes the space limit and stops at the archive limit.
+- `starwidesolutions/b2b-ecommerce-saaskit-` still fills the 2 GiB workspace, because Yarn 1 keeps both its cache and a copied tree.
+
+All three dependency trees exceed what the unchanged 512 MiB validation workspace could unpack, so they still need a custom image. The change helps mid-size projects whose cache and unpacked tree together exceeded 512 MiB while the result fits.
+
 ## October 15 checkpoint: Yarn 2+ preparation (0.27.0)
 
 Pinned Yarn 2–4 root projects on the node-modules linker now use automatic preparation. Lock entries must be exact npm resolutions with checksums, or Yarn's built-in `compat` patches, which ship in the verified bundle. Refit installs `@yarnpkg/cli-dist` through npm, checks a Corepack `+sha512` pin against the bundled `yarn.js` (byte-identical to the file Corepack hashes), and configures Yarn only through environment variables. Repository rc files never reach the installer. See [dependency preparation](DEPENDENCIES.md).
