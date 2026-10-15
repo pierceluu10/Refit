@@ -78,6 +78,7 @@ const MAX_SCHEMA_NAME_LENGTH = 256;
 export const SDK_IDENTIFIER = /^[A-Za-z_$][A-Za-z0-9_$]*$/;
 export const MAX_SDK_RESOURCE_LENGTH = 256;
 const SDK_RESOURCE_PATH = /^[A-Za-z_$][A-Za-z0-9_$]*(?:\.[A-Za-z_$][A-Za-z0-9_$]*)*$/;
+const MAX_PROPERTY_MOVE_DEPTH = 4;
 const PROVIDER_ID = /^[a-z][a-z0-9-]{0,63}$/;
 const PACKAGE_NAME = /^(?:@[a-z0-9._-]+\/)?[a-z0-9._-]+$/;
 const REQUIRED_KEYS = ['defaultImport', 'id', 'namedExport', 'operations', 'packageName'];
@@ -99,6 +100,14 @@ function validOperationId(value: unknown): value is string {
     value === value.trim() &&
     value.length <= MAX_SCHEMA_NAME_LENGTH &&
     !/[\u0000-\u001f\u007f]/.test(value)
+  );
+}
+
+function validPropertyPath(value: string) {
+  const segments = value.split('.');
+  return (
+    segments.length <= MAX_PROPERTY_MOVE_DEPTH &&
+    segments.every((segment) => SDK_IDENTIFIER.test(segment) && segment !== '__proto__')
   );
 }
 
@@ -234,11 +243,11 @@ export function parseProviderAdapter(value: Record<string, unknown>): ProviderAd
       typeof rename.removed !== 'string' ||
       !SDK_IDENTIFIER.test(rename.removed) ||
       typeof rename.replacement !== 'string' ||
-      !SDK_IDENTIFIER.test(rename.replacement) ||
+      !validPropertyPath(rename.replacement) ||
       rename.removed === rename.replacement
     )
       throw new PipelineInputError(
-        'Each property rename must specify a schema and distinct identifier-style removed and replacement fields.',
+        `Each property rename must specify a schema, an identifier-style removed field and a distinct replacement field or dot path of at most ${MAX_PROPERTY_MOVE_DEPTH} identifiers other than __proto__.`,
       );
     const source = JSON.stringify([rename.schema, rename.removed]);
     const target = JSON.stringify([rename.schema, rename.replacement]);

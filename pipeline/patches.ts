@@ -112,8 +112,8 @@ export function proposePatch(
               ]
             : usedConfiguredRename
               ? [
-                  'The field mapping is operator-authored. Matching scalar types do not prove equivalent meaning; verify API-version applicability and migration semantics.',
-                  'Only direct property reads are changed. Review application checks and behavior such as nullability, formatting, pagination and errors.',
+                  'The field mapping is operator-authored. Matching recorded types or shapes do not prove equivalent meaning; verify API-version applicability and migration semantics.',
+                  'Only direct property reads are changed. Nested moves use optional chaining with a null fallback where the recorded contract allows a missing parent; expandable moves stop for review when a request expands the old field. Review application checks and behavior such as nullability, formatting, pagination and errors.',
                   'Patch contains source code. Review it for sensitive content before sharing.',
                 ]
               : hasConfiguredRenames
