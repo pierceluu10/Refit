@@ -21,6 +21,7 @@ import {
   dockerSandboxArguments,
   PREPARATION_MEMORY,
   PREPARATION_WORKSPACE_SIZE,
+  validationProfile,
   removeDockerContainer,
   resolveDockerImage,
 } from './docker-sandbox.ts';
@@ -41,7 +42,6 @@ const RECIPE_VERSION = 4;
 const DEFAULT_INSTALL_TIMEOUT_SECONDS = 300;
 const MIN_INSTALL_TIMEOUT_SECONDS = 60;
 const MAX_INSTALL_TIMEOUT_SECONDS = 1800;
-export const MAX_DEPENDENCY_ARCHIVE_BYTES = 256 * 1024 * 1024;
 const MAX_LOG_BYTES = 1024 * 1024;
 const MAX_ERROR_CHARACTERS = 4096;
 const ARCHIVE = 'dependencies.tar';
@@ -163,14 +163,17 @@ async function installDependencies(
     child.kill('SIGKILL');
   }, timeoutSeconds * 1000);
   let bytes = 0;
+  const { archiveBytes } = validationProfile();
   const hash = createHash('sha256');
   const archive = pipeline(
     child.stdout,
     async function* (source) {
       for await (const chunk of source) {
         bytes += chunk.length;
-        if (bytes > MAX_DEPENDENCY_ARCHIVE_BYTES)
-          throw new DependencyPreparationError('Dependency archive exceeds 256 MiB.');
+        if (bytes > archiveBytes)
+          throw new DependencyPreparationError(
+            `Dependency archive exceeds ${archiveBytes / 1024 / 1024} MiB. REFIT_VALIDATION_WORKSPACE can enlarge validation for larger trees.`,
+          );
         hash.update(chunk);
         yield chunk;
       }

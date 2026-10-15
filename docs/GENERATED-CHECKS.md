@@ -33,7 +33,7 @@ stripe-mock's README says it serves only the latest API version, but its `-spec`
 - stripe-mock fixtures use placeholder values, and they differ between versions, so return values are not compared. The check catches crashes and type errors on the new response shape, such as reading a property of a removed field, not wrong results.
 - Code that does not crash on a missing field, for example by returning `undefined`, passes on both versions. Review stays necessary.
 - Only the Stripe SDK's default Node HTTP client is redirected. Clients configured with a custom host, a custom HTTP client or `fetch` are not redirected, and fail in the offline sandbox.
-- TypeScript entry points run with Node's `--experimental-strip-types`, which needs a recent Node 22 or newer in the validation image. Imports resolve through a map Refit computes with its own verified resolver, covering extensionless relative paths, `index` files and `tsconfig`/`jsconfig` path aliases. A small Node resolve hook in the sandbox reads that map. JSX/TSX files, CommonJS `require` of TypeScript, and unverified alias configurations are not handled.
+- TypeScript files are transpiled in the sandbox by Refit's bundled TypeScript compiler, mounted read-only, rather than by Node's type stripping, which keeps imports of type-only names and fails at runtime. Imports resolve through a map Refit computes with its own verified resolver: extensionless relative paths, `index` files and `tsconfig`/`jsconfig` aliases. CommonJS `require` of TypeScript and unverified alias configurations are not handled.
 
 ## Real repositories
 

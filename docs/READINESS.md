@@ -1,6 +1,19 @@
 # Refit implementation checkpoints
 
-## October 15 checkpoint: AI handles what rules don't (unreleased)
+## October 15 checkpoint: larger validation profiles and compiled TypeScript checks (0.32.0)
+
+Operators can opt into a larger offline validation profile with `REFIT_VALIDATION_WORKSPACE`: `1g` or `2g`. Each raises the workspace, memory and dependency archive limit together, and network stays disabled. The default is unchanged at 512 MiB and 1 GiB, with a 256 MiB archive. Evidence verification now accepts archives up to the largest profile. Its old 256 MiB cap had rejected every archive the larger profile produced.
+
+Benchmark validation without AI, under the `2g` profile, compared with the default:
+- 11 more of the 23 affected repositories reach their checks.
+- 3 pass every check: `mrwebwork/spotify`, `Shivamrai15/Safari` and `kpirabaharan/Spotify-Clone`. They stop for review only on other unresolved findings.
+- 8 fail their own baseline (typecheck) before any patch.
+- 3 still exceed even the 1 GiB archive.
+
+Generated checks now transpile TypeScript with the bundled compiler. The real repositories' type-only imports (`import { Price } from '@/types'`) had failed under Node's type stripping. Their `manageSubscriptionStatusChange` helpers now load, and stop at creating a Supabase client without application environment. They are correctly excluded as not runnable in isolation, and no regressions are reported.
+
+After merging the AI-first work, the default suite passed **1,266 tests across 79 files**, with 78 environment-gated tests skipped; three CLI tests that time out under full-suite load pass when run alone. A new test reproduces the type-only import failure and fails without the compiler hook. The local Stripe lab validates end to end with six generated functions.
+## October 15 checkpoint: AI handles what rules don't (0.32.0)
 
 With `--ai-patch`, every confirmed finding no deterministic rule covers goes to the AI patcher, including webhook payload reads. Rules apply first; the model receives the rule-patched code and only the findings left, and the final diff contains both. For webhook payloads and `Stripe.*`-typed values, the model is told that payloads can arrive in older or newer API versions and must read the old field through `Reflect.get` when present, otherwise the new location. Webhook reads it rewrites are marked `ai-version-tolerant` and count as migrated. Without AI, unmigrated webhook reads keep the previous gate.
 
@@ -23,7 +36,7 @@ The model is non-deterministic: across the three runs after the guard fixes it f
 
 The default suite passed **1,265 tests**, with 78 environment-gated tests skipped, plus typecheck and formatting. The oasdiff suite passed 10 of 10, and the Stripe SDK/Docker suites passed 45 of 45. The tuning and held-out AI evaluations were not rerun.
 
-## October 15 checkpoint: subscription period helper (unreleased)
+## October 15 checkpoint: subscription period helper (0.32.0)
 
 Subscription-period reads no longer fall back to the widest period across items. Every `current_period_start/end` read on SDK responses, signed webhook payloads and `Stripe.Subscription`-typed values calls one generated helper. It returns the old subscription-level field when present, otherwise the period all items share, otherwise the item the application already selects (a `price.id` comparison or `items.data[N]` in the same function or file) or the configured price policy's item. Without either, mixed periods return `undefined`, and the pull request lists those reads with the instruction to set `stripeSubscriptionPeriods`. The guarded price-policy handler keeps precedence. Patches can now create files: the helper is rendered as a new file and included in publication. The gate is unchanged from the previous checkpoint.
 

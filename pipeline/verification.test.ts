@@ -1,3 +1,4 @@
+import { MAX_VALIDATION_ARCHIVE_BYTES } from './docker-sandbox.ts';
 import { execFile } from 'node:child_process';
 import { mkdtemp, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -61,7 +62,7 @@ it.each(
     [entry, entry],
     [{ ...entry, bytes: -1 }],
     [{ ...entry, bytes: 0.5 }],
-    [{ ...entry, bytes: 257 * 1024 * 1024 }],
+    [{ ...entry, bytes: MAX_VALIDATION_ARCHIVE_BYTES + 1 }],
     [{ ...entry, sha256: 'invalid' }],
   ].map((files) => ({ files })),
 )('rejects malformed manifest entries: %j', async ({ files }) => {
