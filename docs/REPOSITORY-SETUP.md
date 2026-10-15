@@ -1,5 +1,17 @@
 # Inspect a repository before activation
 
+If the repository already has a reviewed root `.refit.json`, the first local attempt is:
+
+```sh
+cd /absolute/path/to/application
+refit doctor
+refit run
+```
+
+Doctor inspects setup without executing the application. Run uses the configured contracts, mappings, version policy and check commands; it does not infer them. A missing profile gets a setup explanation. A root profile cannot silently redirect a default run to another repository. Add `--integration <id>` for a collection.
+
+Run prints its evidence path. By default it creates a distinct private folder in the OS temporary directory, which the OS may later clean. Add `--output /absolute/path/outside-git/new-run` to choose a retained location. The existing isolation, version and publication gates apply. This convenience does not approve or activate the GitHub App.
+
 For a collection in one `.refit.json`, add `--integration <id>` to inspect one integration. Enrollment then reviews all integrations together. See [multiple integrations](MULTIPLE-INTEGRATIONS.md).
 
 `refit doctor` explains whether a local repository and workflow can attempt validation. It reads the configuration, scans supported SDK usage, inspects Git and the existing Docker image, and checks committed npm preparation inputs when enabled. It does not execute application code, install dependencies, fetch API sources, request AI, contact GitHub or activate a worker.
@@ -49,11 +61,10 @@ refit doctor --repository /tmp/refit-setup-demo
 The fictional SDK supplies its own simulator dependency for checks. Review the reported custom-image/dependency boundary, the configuration and adapter. After deciding to run this local example explicitly:
 
 ```sh
-refit run --config /tmp/refit-setup-demo/.refit.json \
-  --repository /tmp/refit-setup-demo \
-  --output /tmp/refit-setup-demo-evidence --human
+cd /tmp/refit-setup-demo
+refit run --human
 ```
 
-Docker must be running, `node:22-alpine` must already exist, and `oasdiff` must be on PATH. The output directory must be new and outside the repository. The run validates the simulated endpoint migration in isolated copies and leaves the original repository unchanged. See [endpoint migration limits](ENDPOINT-MIGRATIONS.md).
+Docker must be running, `node:22-alpine` must already exist, and `oasdiff` must be on PATH. Automatic output is private and outside the repository; an explicit output directory must be new and have an existing parent. The run validates the simulated endpoint migration in isolated copies and leaves the original repository unchanged. See [endpoint migration limits](ENDPOINT-MIGRATIONS.md).
 
-Installing the GitHub App or running doctor does not approve or activate `.refit.json`. `refit enroll` can review its committed settings and retain a fingerprint-bound local approval; `serve` then loads that configuration from the App-managed checkout. See [App onboarding](APP-ONBOARDING.md). Existing operator workflows still work. Local runs use an explicit `--config` and repository selection. Review changed commands, adapter rules, source baselines and version pins before any new activation.
+Installing the GitHub App or running doctor does not approve or activate `.refit.json`. `refit enroll` can review its committed settings and retain a fingerprint-bound local approval; `serve` then loads that configuration from the App-managed checkout. See [App onboarding](APP-ONBOARDING.md). Existing explicit operator workflows still work. Review changed commands, adapter rules, source baselines and version pins before any new activation.
