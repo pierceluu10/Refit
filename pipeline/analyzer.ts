@@ -16,7 +16,11 @@ import type { RequestPropertyRename } from './provider-request-renames.ts';
 import type { PropertyMove } from './provider-renames.ts';
 import { requestPropertyEdit } from './request-migration.ts';
 import { StripeTypes } from './stripe-types.ts';
-import { subscriptionPeriodEdit, SUBSCRIPTION_PERIOD_RULE } from './stripe-subscription-periods.ts';
+import {
+  subscriptionPeriodEdit,
+  subscriptionPeriodReadEdit,
+  SUBSCRIPTION_PERIOD_RULE,
+} from './stripe-subscription-periods.ts';
 import {
   PipelineInputError,
   type Finding,
@@ -895,6 +899,23 @@ export function analyzeRepository(
     // its shape follows the endpoint's version, so it is reported but never edited.
     const provenance = sourceEvidence(receiver)?.kind;
     if (provenance === 'declared-type' || provenance === 'unmapped-sdk') return;
+    // Period moves apply only to SDK responses, whose shape follows the bumped outgoing apiVersion.
+    if (provider.packageName === STRIPE.packageName && provenance === 'sdk') {
+      const file = location(node).file;
+      const moved =
+        change.schema === 'subscription'
+          ? subscriptionPeriodReadEdit(node, file, change.id)
+          : undefined;
+      if (moved) {
+        if (
+          !edits.some(
+            (edit) => edit.file === file && edit.start < moved.end && moved.start < edit.end,
+          )
+        )
+          edits.push(moved);
+        return;
+      }
+    }
     if (provider.id !== STRIPE.id) {
       const rename = provider.propertyRenames?.find(
         (candidate) => candidate.schema === change.schema && candidate.removed === change.property,
@@ -1224,6 +1245,7 @@ export function analyzeRepository(
   // `switch (subscription.status)` or `const unhandled: never = subscription.status`, directly or
   // through one const alias; new enum values on these fields can reach unhandled code.
   const enumChecks: (Location & { schema: string; property: string })[] = [];
+  const apiVersionLiterals: { file: string; start: number; end: number; value: string }[] = [];
   for (const node of nodes) {
     let checked = ts.isSwitchStatement(node)
       ? node.expression
@@ -1300,7 +1322,9 @@ export function analyzeRepository(
       canonical,
       location,
       references: clientReferences,
+      literals: apiVersionLiterals,
     }),
+    apiVersionLiterals,
     findings,
     enumChecks,
     sourceWarnings: resolution.warnings,

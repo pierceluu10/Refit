@@ -3,7 +3,8 @@ import type { AiOptions } from './ai-budget.ts';
 import { analyzeRepository } from './analyzer.ts';
 import { proposeAiPatch } from './ai-patches.ts';
 import { assessMigration, buildAssessmentEvidence } from './assessment.ts';
-import { applySourceEdits, proposePatch } from './patches.ts';
+import { applySourceEdits, editCovers, isFieldMove, proposePatch } from './patches.ts';
+import { propertyExists } from './stripe-field-moves.ts';
 import { readRepository } from './repository.ts';
 import {
   MAX_SDK_RESOURCE_LENGTH,
@@ -29,9 +30,12 @@ import {
   type ApiVersionPolicy,
 } from './api-version.ts';
 import { PipelineInputError } from './types.ts';
-import { digest, findRemovedProperties, readSpecification } from './specifications.ts';
+import { digest, findRemovedProperties, isObject, readSpecification } from './specifications.ts';
 import { stripeAdapterFor } from './stripe-operations.ts';
-import { validateStripeSubscriptionPeriodContract } from './stripe-subscription-periods.ts';
+import {
+  SUBSCRIPTION_PERIOD_ITEMS_RULE,
+  validateStripeSubscriptionPeriodContract,
+} from './stripe-subscription-periods.ts';
 import {
   adapterContract,
   compareOpenApi,
@@ -114,16 +118,55 @@ export async function runPipeline(options: {
       }
     : undefined;
   const requestRenames = validateRequestPropertyRenames(provider, before.document, after.document);
-  const { edits, apiVersionDeclarations, sourceWarnings, skippedFiles, enumChecks, ...analysis } =
-    analyzeRepository(
-      repository,
-      changes,
-      provider,
-      before.schemas,
-      replacements,
-      requestRenames,
-      moves,
-    );
+  const {
+    edits: analyzedEdits,
+    apiVersionDeclarations,
+    apiVersionLiterals,
+    sourceWarnings,
+    skippedFiles,
+    enumChecks,
+    ...analysis
+  } = analyzeRepository(
+    repository,
+    changes,
+    provider,
+    before.schemas,
+    replacements,
+    requestRenames,
+    moves,
+  );
+  // Field moves apply only when the target contract has the documented new location.
+  const movedTo = {
+    [SUBSCRIPTION_PERIOD_ITEMS_RULE]:
+      propertyExists(after.schemas, ['subscription', 'items']) &&
+      propertyExists(after.schemas, ['subscription_item', 'current_period_start']) &&
+      propertyExists(after.schemas, ['subscription_item', 'current_period_end']),
+  } as Record<string, boolean>;
+  const edits = analyzedEdits.filter((edit) => !isFieldMove(edit) || movedTo[edit.rule!]);
+  const ruleEdits = edits.filter(isFieldMove);
+  const targetVersion = isObject(after.document.info) ? after.document.info.version : undefined;
+  const versionEdits =
+    provider.packageName === STRIPE.packageName &&
+    applicationApiVersion &&
+    typeof targetVersion === 'string' &&
+    targetVersion !== applicationApiVersion
+      ? apiVersionLiterals
+          .filter((literal) => literal.value === applicationApiVersion)
+          .filter(
+            (literal, index, all) =>
+              all.findIndex(
+                (other) => other.file === literal.file && other.start === literal.start,
+              ) === index,
+          )
+          .map((literal) => ({
+            file: literal.file,
+            start: literal.start,
+            end: literal.end,
+            replacement: targetVersion,
+            changeId: 'stripe-api-version',
+            rule: 'stripe-api-version' as const,
+          }))
+      : [];
   if (specificationDiff && provider.packageName === STRIPE.packageName)
     specificationDiff.changes.push(
       ...switchedEnumAdditions(enumChecks, before.schemas, after.schemas),
@@ -194,8 +237,13 @@ export async function runPipeline(options: {
     operationChanges.some((change) => change.usages.length > 0) ||
     requestChanges.some((change) => change.usages.length > 0) ||
     analysis.findings.some((finding) => finding.webhook?.migration);
+  const rulesCoverAll =
+    ruleEdits.length > 0 &&
+    analysis.findings
+      .filter((finding) => finding.confidence === 'confirmed')
+      .every((finding) => editCovers(repository, ruleEdits, finding));
   const deterministicRequested =
-    options.proposePatch || (options.aiPatch && configuredMigrationProposal);
+    options.proposePatch || (options.aiPatch && (configuredMigrationProposal || rulesCoverAll));
   const unresolvedFindingCount = deterministicRequested
     ? analyzeRepository(
         {
@@ -221,13 +269,19 @@ export async function runPipeline(options: {
     true,
   );
   const advisoryReviewReason = migrationReviewReason({ findings: analysis.findings, skippedFiles });
-  if (options.aiPatch && !configuredMigrationProposal && !operationImpacts.length && !reviewReason)
+  if (
+    options.aiPatch &&
+    !configuredMigrationProposal &&
+    !rulesCoverAll &&
+    !operationImpacts.length &&
+    !reviewReason
+  )
     options.onProgress?.('Requesting an AI migration proposal...');
   else if (deterministicRequested && !reviewReason)
     options.onProgress?.('Generating a deterministic migration proposal...');
   const patch = reviewReason
     ? { status: 'not-generated' as const, reason: reviewReason! }
-    : options.aiPatch && !configuredMigrationProposal
+    : options.aiPatch && !configuredMigrationProposal && !rulesCoverAll
       ? operationImpacts.length
         ? {
             status: 'not-generated' as const,
@@ -244,11 +298,12 @@ export async function runPipeline(options: {
             undefined,
             options.documentationSnapshots,
             after.schemas,
+            [...ruleEdits, ...versionEdits],
           )
       : deterministicRequested
         ? proposePatch(
             repository,
-            edits,
+            ruleEdits.length && !configuredMigrationProposal ? [...edits, ...versionEdits] : edits,
             unresolvedFindingCount,
             provider,
             replacements,

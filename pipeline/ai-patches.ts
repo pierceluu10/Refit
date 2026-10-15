@@ -9,7 +9,7 @@ import {
 } from './documentation-sources.ts';
 import { MAX_INPUT_BYTES, requestStructuredOutput } from './openai.ts';
 import { STRIPE, type ProviderAdapter } from './providers.ts';
-import { applySourceEdits, renderPatch } from './patches.ts';
+import { applySourceEdits, editCovers, renderPatch } from './patches.ts';
 import { buildPatchContext } from './patch-context.ts';
 import {
   FieldSubstitutionError,
@@ -221,7 +221,11 @@ export async function proposeAiPatch(
   repair?: RepairFeedback,
   documentationSnapshots?: readonly string[],
   afterSchemaDefinitions: Record<string, unknown> = {},
+  // Rule-based edits (field moves, API-version bump) merged into the proposal; the model only
+  // receives findings they do not cover, and the guards check only its own edits.
+  deterministicEdits: SourceEdit[] = [],
 ) {
+  findings = findings.filter((finding) => !editCovers(repository, deterministicEdits, finding));
   const reviewReason = migrationReviewReason({ findings });
   if (reviewReason) throw new PipelineInputError(reviewReason);
   const impact = buildAssessmentEvidence(
@@ -364,16 +368,40 @@ export async function proposeAiPatch(
       uncertainties: value.uncertainties,
       diff: renderPatch(repository, edits),
     });
-  const remaining = analyzeRepository(modified, changes, provider, schemaDefinitions);
+  const merged = [
+    ...edits,
+    ...deterministicEdits.filter(
+      (rule) =>
+        !edits.some(
+          (edit) => edit.file === rule.file && edit.start < rule.end && rule.start < edit.end,
+        ),
+    ),
+  ];
+  const remaining = analyzeRepository(
+    {
+      ...repository,
+      files: repository.files.map((file) => ({
+        ...file,
+        content: applySourceEdits(
+          file.content,
+          merged.filter((edit) => edit.file === file.path),
+        ),
+      })),
+    },
+    changes,
+    provider,
+    schemaDefinitions,
+  );
   return {
     ...metadata,
-    status: edits.length ? 'proposed' : 'unsupported',
+    status: merged.length ? 'proposed' : 'unsupported',
     generator: 'openai' as const,
     summary: value.summary,
     evidence: noted,
-    edits: edits.length,
+    edits: merged.length,
+    ...(deterministicEdits.length ? { ruleEdits: deterministicEdits } : {}),
     unresolvedFindings: remaining.findings.length,
-    diff: renderPatch(repository, edits),
+    diff: renderPatch(repository, merged),
     validation: 'not-run',
     warnings: [
       'AI-generated proposal requires human review. Syntax and evidence checks do not prove preservation of behavior.',
