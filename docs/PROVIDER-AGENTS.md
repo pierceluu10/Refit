@@ -35,12 +35,12 @@ The scaffold names contract paths (`refit/<id>-before.json`, `refit/<id>-after.j
 
 ## Suggestions on pull requests
 
-When `refit serve` receives a `pull_request` webhook (opened, reopened or synchronized) for a configured repository, it compares the root `package.json` at the pull request's base and head through the GitHub API. If the head adds an SDK that has an agent and no configured adapter covers it, the App posts one comment naming the agent and the `refit agents --add` command. Each agent is suggested once per pull request, even across later pushes. A failed check is recorded in service status and is not retried until the pull request changes.
+When `refit serve` receives a `pull_request` webhook (opened, reopened or synchronized) for a configured repository, it lists the pull request's changed files through the GitHub API. Every changed `package.json`, at the root or in any workspace, is compared at the pull request's base and head. Added lines in changed JavaScript and TypeScript files are checked for catalog API hostnames; a hostname the same file's patch also removes counts as moved code. If the pull request adds an SDK or raw API call that has an agent and no configured adapter covers it, the App posts one comment naming the agent, the file and the `refit agents --add` command. Each agent is suggested once per pull request, even across later pushes. A failed check is recorded in service status and is not retried until the pull request changes.
 
 The comment uses a repository-scoped token with Contents read and Pull requests write. Subscribe the App to **Pull request** events; see [local service](LOCAL-SERVICE.md#receive-real-github-webhooks-through-https). The suggestion is advice only: no configuration is written, no worker starts and no code runs.
 
 ## Limits
 
 - Detection covers JavaScript and TypeScript repositories and the providers listed above. A provider used through a generic HTTP client without its hostname in source is not detected.
-- Pull request suggestions compare the root `package.json` only. Workspace manifests are not compared yet.
+- Pull request suggestions read the first 1,000 changed files. Files under `node_modules` are ignored, and a source file GitHub returns without a patch (very large diffs) is not checked for hostnames. Lockfile-only changes are not compared: a new direct SDK always enters through a manifest.
 - An agent's quality depends on its adapter and rules. Stripe has migration rules and benchmarks; OpenAI's example adapter maps one operation and needs extending for real use.

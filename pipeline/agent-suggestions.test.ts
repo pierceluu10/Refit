@@ -14,8 +14,33 @@ const HEAD = 'b'.repeat(40);
 const files = vi.hoisted(() => ({ refs: {} as Record<string, Record<string, unknown>> }));
 const posts = vi.hoisted(() => [] as { path: string; body: unknown }[]);
 
+const text = (value: unknown) => (typeof value === 'string' ? value : JSON.stringify(value));
 function contents(value: unknown) {
-  return { encoding: 'base64', content: Buffer.from(JSON.stringify(value)).toString('base64') };
+  return { encoding: 'base64', content: Buffer.from(text(value)).toString('base64') };
+}
+// Lists the files that differ between BASE and HEAD like GitHub's pull request files API, with a
+// patch that removes every base line and adds every head line.
+function changedFiles() {
+  const base = files.refs[BASE] ?? {};
+  const head = files.refs[HEAD] ?? {};
+  return [...new Set([...Object.keys(base), ...Object.keys(head)])]
+    .filter((filename) => text(base[filename]) !== text(head[filename]))
+    .map((filename) => ({
+      filename,
+      status: !(filename in base) ? 'added' : !(filename in head) ? 'removed' : 'modified',
+      patch: [
+        ...(filename in base
+          ? text(base[filename])
+              .split('\n')
+              .map((line) => `-${line}`)
+          : []),
+        ...(filename in head
+          ? text(head[filename])
+              .split('\n')
+              .map((line) => `+${line}`)
+          : []),
+      ].join('\n'),
+    }));
 }
 // Serves repository files per ref like GitHub's contents API, and records comment posts.
 async function fakeGitHub(method: string, path: string, body?: unknown) {
@@ -23,6 +48,7 @@ async function fakeGitHub(method: string, path: string, body?: unknown) {
     posts.push({ path, body });
     return { id: 1 };
   }
+  if (/^\/repos\/[^/]+\/[^/]+\/pulls\/\d+\/files\?/.test(path)) return changedFiles();
   const match = path.match(/^\/repos\/[^/]+\/[^/]+\/contents\/(.+)\?ref=([a-f0-9]{40})$/);
   if (!match)
     return { id: 789, full_name: path.slice('/repos/'.length), archived: false, disabled: false };
@@ -139,6 +165,56 @@ it('treats a missing base manifest or configuration as empty and skips configure
       head: HEAD,
     }),
   ).toEqual({ status: 'no-new-agents', agents: [] });
+});
+
+it('suggests agents for SDKs a workspace manifest adds and raw API hostnames new source calls', async () => {
+  const options = { request, repository: 'example/monorepo', number: 9, base: BASE, head: HEAD };
+  files.refs[BASE] = {
+    'package.json': { private: true, workspaces: ['packages/*'] },
+    'packages/api/package.json': { dependencies: { express: '5.0.0' } },
+  };
+  files.refs[HEAD] = {
+    ...files.refs[BASE],
+    'packages/api/package.json': { dependencies: { express: '5.0.0', openai: '4.80.0' } },
+    'node_modules/stripe/package.json': { dependencies: { stripe: '17.7.0' } },
+  };
+  expect(await suggestAgentsForPullRequest(options)).toEqual({
+    status: 'commented',
+    agents: ['openai'],
+  });
+  expect(String((posts[0].body as { body: string }).body)).toContain(
+    '`openai@4.80.0` in `packages/api/package.json`',
+  );
+
+  posts.length = 0;
+  files.refs[BASE] = { 'packages/billing/src/pay.ts': 'export const pay = () => 1;' };
+  files.refs[HEAD] = {
+    'packages/billing/src/pay.ts':
+      "export const pay = () => fetch('https://api.stripe.com/v1/charges');",
+  };
+  expect(await suggestAgentsForPullRequest(options)).toEqual({
+    status: 'commented',
+    agents: ['stripe'],
+  });
+  expect(String((posts[0].body as { body: string }).body)).toContain(
+    'calls `api.stripe.com` in `packages/billing/src/pay.ts`',
+  );
+
+  // Moving an existing call, or calling a provider whose agent is configured, suggests nothing.
+  posts.length = 0;
+  files.refs[BASE] = { 'src/a.ts': "fetch('https://api.stripe.com/v1/charges');" };
+  files.refs[HEAD] = { 'src/a.ts': "await fetch('https://api.stripe.com/v1/charges');" };
+  expect(await suggestAgentsForPullRequest(options)).toEqual({
+    status: 'no-new-agents',
+    agents: [],
+  });
+  files.refs[BASE] = { '.refit.json': { formatVersion: 1 } };
+  files.refs[HEAD] = { ...files.refs[BASE], 'src/b.ts': "fetch('https://api.stripe.com/v1/x');" };
+  expect(await suggestAgentsForPullRequest(options)).toEqual({
+    status: 'no-new-agents',
+    agents: [],
+  });
+  expect(posts).toHaveLength(0);
 });
 
 it('parses pull request webhooks for opened, reopened and synchronized pull requests only', () => {
