@@ -525,7 +525,7 @@ it('lists mixed-period reads without a selection in the pull request text', asyn
     },
   }).files['pull-request.md'];
   expect(body).toContain(
-    'Subscriptions with items on different billing periods are not handled. Set `stripeSubscriptionPeriods` to choose which item counts:',
+    'Subscriptions with items on different billing periods are not handled; set `stripeSubscriptionPeriods` to choose the item at',
   );
   expect(body).toContain('`billing.ts:5`');
 });
