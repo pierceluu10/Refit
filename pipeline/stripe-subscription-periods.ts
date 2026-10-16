@@ -13,10 +13,12 @@ export interface StripeSubscriptionPeriodPolicy {
 export const SUBSCRIPTION_PERIOD_RULE = 'stripe-subscription-periods-price-id';
 export const SUBSCRIPTION_PERIOD_HELPER_RULE = 'stripe-subscription-periods-helper';
 export const INVOICE_SUBSCRIPTION_HELPER_RULE = 'stripe-invoice-subscription-helper';
+export const INVOICE_PRICE_ID_HELPER_RULE = 'stripe-invoice-price-id-helper';
 // Rules whose edits call the generated helper module.
 export const HELPER_RULES = new Set<string>([
   SUBSCRIPTION_PERIOD_HELPER_RULE,
   INVOICE_SUBSCRIPTION_HELPER_RULE,
+  INVOICE_PRICE_ID_HELPER_RULE,
 ]);
 const BEFORE_VERSION = '2025-02-24.acacia';
 const AFTER_VERSION = '2025-03-31.basil';
@@ -357,6 +359,7 @@ export const PERIOD_HELPERS = {
   current_period_end: 'getSubscriptionPeriodEnd',
 } as const;
 export const INVOICE_SUBSCRIPTION_HELPER = 'getInvoiceSubscription';
+export const INVOICE_PRICE_ID_HELPER = 'getInvoicePriceId';
 export type PeriodRareCase = 'item-in-code' | 'price-policy' | 'flagged';
 
 // Replaces a period read with the generated helper; `plan` selects the item for subscriptions whose
@@ -389,6 +392,34 @@ export function invoiceSubscriptionHelperEdit(node: ts.Node, file: string, chang
     INVOICE_SUBSCRIPTION_HELPER_RULE,
     (invoice) => `${INVOICE_SUBSCRIPTION_HELPER}(${invoice})`,
   );
+}
+
+// Replaces a `line.price.id` read on an invoice line item or invoice item: the Price object moved to
+// `pricing.price_details.price`, which holds its ID. Other `price` reads need the full Price.
+export function invoicePriceIdHelperEdit(node: ts.Node, file: string, changeId: string) {
+  const read = node.parent;
+  if (
+    !ts.isPropertyAccessExpression(node) ||
+    node.name.text !== 'price' ||
+    !ts.isPropertyAccessExpression(read) ||
+    read.expression !== node ||
+    read.name.text !== 'id' ||
+    // `line.price?.id.length` short-circuits on a missing price; the helper result would not.
+    ((read.questionDotToken || node.questionDotToken) &&
+      (ts.isPropertyAccessExpression(read.parent) ||
+        ts.isElementAccessExpression(read.parent) ||
+        ts.isCallExpression(read.parent)) &&
+      read.parent.expression === read)
+  )
+    return;
+  const edit = movedReadEdit(
+    node,
+    file,
+    changeId,
+    INVOICE_PRICE_ID_HELPER_RULE,
+    (line) => `${INVOICE_PRICE_ID_HELPER}(${line})`,
+  );
+  return edit && { ...edit, end: read.getEnd() };
 }
 
 const HELPER_BODY = (typed: boolean) => {
@@ -458,5 +489,20 @@ ${exported}function getInvoiceSubscription${typed ? '<T extends object>(invoice:
     details && typeof details === 'object' ? Reflect.get(details, 'subscription') : undefined;
   return (legacy !== undefined ? legacy : (moved ?? null))${typed ? ' as InvoiceSubscription<T>' : ''};
 }
-${kind === 'cjs' ? '\nmodule.exports = { getSubscriptionPeriodStart, getSubscriptionPeriodEnd, getInvoiceSubscription };\n' : ''}`;
+
+// The old Price object's ID when present (old-version payloads), otherwise the price at
+// pricing.price_details: an ID, or a Price when expanded.
+${exported}function getInvoicePriceId(line${t(': object')})${t(': string | undefined')} {
+  const legacy${t(': unknown')} = Reflect.get(line, 'price');
+  const pricing${t(': unknown')} = legacy === undefined ? Reflect.get(line, 'pricing') : undefined;
+  const details${t(': unknown')} =
+    pricing && typeof pricing === 'object' && Reflect.get(pricing, 'type') === 'price_details'
+      ? Reflect.get(pricing, 'price_details')
+      : undefined;
+  const price${t(': unknown')} =
+    legacy !== undefined ? legacy : details && typeof details === 'object' ? Reflect.get(details, 'price') : undefined;
+  const id${t(': unknown')} = price && typeof price === 'object' ? Reflect.get(price, 'id') : price;
+  return typeof id === 'string' ? id : undefined;
+}
+${kind === 'cjs' ? '\nmodule.exports = { getSubscriptionPeriodStart, getSubscriptionPeriodEnd, getInvoiceSubscription, getInvoicePriceId };\n' : ''}`;
 }

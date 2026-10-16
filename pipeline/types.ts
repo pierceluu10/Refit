@@ -46,6 +46,7 @@ export interface Finding extends Location {
         }
       | { rule: 'stripe-subscription-periods-helper' }
       | { rule: 'stripe-invoice-subscription-helper' }
+      | { rule: 'stripe-invoice-price-id-helper' }
       | { rule: 'ai-version-tolerant' };
   };
 }
@@ -60,6 +61,7 @@ export interface SourceEdit {
     | 'stripe-subscription-periods-price-id'
     | 'stripe-subscription-periods-helper'
     | 'stripe-invoice-subscription-helper'
+    | 'stripe-invoice-price-id-helper'
     | 'stripe-api-version';
 }
 

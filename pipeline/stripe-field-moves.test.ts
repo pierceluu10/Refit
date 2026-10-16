@@ -48,6 +48,7 @@ function schemas(after: boolean, moved = true): Record<string, unknown> {
       type: 'object',
       properties: {
         id: string,
+        lines: list('line_item'),
         ...(after
           ? {
               confirmation_secret: string,
@@ -67,6 +68,34 @@ function schemas(after: boolean, moved = true): Record<string, unknown> {
       type: 'object',
       properties: { subscription: { anyOf: [string, ref('subscription')] } },
     },
+    ...Object.fromEntries(
+      ['line_item', 'invoiceitem'].map((schema) => [
+        schema,
+        {
+          type: 'object',
+          properties: {
+            id: string,
+            ...(after
+              ? moved
+                ? { pricing: { anyOf: [ref('pricing')], nullable: true } }
+                : {}
+              : { price: { anyOf: [ref('price')], nullable: true } }),
+          },
+        },
+      ]),
+    ),
+    pricing: {
+      type: 'object',
+      properties: {
+        type: { type: 'string', enum: ['price_details'] },
+        price_details: ref('pricing_price_details'),
+      },
+    },
+    pricing_price_details: {
+      type: 'object',
+      properties: { price: { anyOf: [string, ref('price')] }, product: string },
+    },
+    price: { type: 'object', properties: { id: string, nickname: { ...string, nullable: true } } },
   };
 }
 
@@ -76,6 +105,7 @@ const provider = {
   operations: [
     { resource: 'subscriptions', method: 'retrieve', schema: 'subscription' },
     { resource: 'invoices', method: 'retrieve', schema: 'invoice' },
+    { resource: 'invoiceItems', method: 'retrieve', schema: 'invoiceitem' },
   ],
 };
 const header = `import Stripe from 'stripe';\nconst stripe = new Stripe('sk', { apiVersion: '2024-06-20' });\n`;
@@ -279,10 +309,11 @@ it('generates a TypeScript helper that compiles strictly without Stripe types', 
     ['/check/helper.ts', subscriptionPeriodHelperModule('ts')],
     [
       '/check/use.ts',
-      `import { getSubscriptionPeriodEnd } from './helper';
+      `import { getSubscriptionPeriodEnd, getInvoicePriceId } from './helper';
 const subscription = { items: { data: [{ price: { id: 'p' }, current_period_end: 1 }] } };
 export const ends: number = getSubscriptionPeriodEnd(subscription, (items) => items.find((item) => item.price?.id === 'p'));
 export const first: number = getSubscriptionPeriodEnd(subscription, (items) => items[0]);
+export const price: string | undefined = getInvoicePriceId({ pricing: null });
 `,
     ],
   ]);
@@ -599,4 +630,65 @@ it('leaves invoicing moves without a behaviour-preserving read unresolved with t
   expect(result.findings[0].reason).toMatch(
     /^Removed field read on a statically traced stripe-moves invoice response\. Stripe 2025-03-31\.basil removed invoice\.payment_intent.*add-support-for-multiple-partial-payments-on-invoices$/,
   );
+});
+
+const priceReads = `export async function prices(id: string) {
+  const invoice = await stripe.invoices.retrieve(id);
+  const item = await stripe.invoiceItems.retrieve(id);
+  return invoice.lines.data.map((line) => [line.price.id, line?.price?.id, item.price?.id]);
+}
+export async function nicknames(id: string) {
+  const invoice = await stripe.invoices.retrieve(id);
+  const line = invoice.lines.data[0];
+  return [line.price?.nickname, line.price?.id.length];
+}`;
+
+it('reads invoice line item and invoice item price IDs through the generated helper', async () => {
+  const report = await run(priceReads);
+  expect(report.patch).toMatchObject({
+    status: 'proposed',
+    unresolvedFindings: 2,
+  });
+  const diff = 'diff' in report.patch ? report.patch.diff : '';
+  expect(diff).toContain(
+    '+  return invoice.lines.data.map((line) => [(getInvoicePriceId(line)), (line == null ? undefined : getInvoicePriceId(line)), (getInvoicePriceId(item))]);',
+  );
+  expect(diff).toContain('+  return [line.price?.nickname, line.price?.id.length];');
+  expect(diff).toContain("+import { getInvoicePriceId } from './stripe-subscription-period';");
+  expect(diff).toContain('+export function getInvoicePriceId(line: object): string | undefined {');
+  expect(report.patch).toMatchObject({
+    warnings: expect.arrayContaining([expect.stringContaining('pricing.price_details.price')]),
+  });
+});
+
+it('reads a webhook line item price ID through the helper for either version', async () => {
+  const report = await run(`export function priceOf(body: string, signature: string) {
+  const event = stripe.webhooks.constructEvent(body, signature, 'whsec');
+  if (event.type === 'invoice.paid') {
+    const invoice = event.data.object as Stripe.Invoice;
+    return invoice.lines.data[0].price?.id;
+  }
+}`);
+  expect(report.findings).toMatchObject([
+    { confidence: 'confirmed', webhook: { migration: { rule: 'stripe-invoice-price-id-helper' } } },
+  ]);
+  expect(report.patch).toMatchObject({ status: 'proposed', unresolvedFindings: 0 });
+  const { getInvoicePriceId } = new Function(
+    'module',
+    `${subscriptionPeriodHelperModule('cjs')}; return module.exports;`,
+  )({});
+  expect(getInvoicePriceId({ price: { id: 'price_old' } })).toBe('price_old');
+  expect(getInvoicePriceId({ price: null })).toBeUndefined();
+  const pricing = (price: unknown, type = 'price_details') => ({
+    pricing: { type, price_details: { price, product: 'prod_1' } },
+  });
+  expect(getInvoicePriceId(pricing('price_new'))).toBe('price_new');
+  expect(getInvoicePriceId(pricing({ id: 'price_expanded' }))).toBe('price_expanded');
+  expect(getInvoicePriceId(pricing('price_new', 'other'))).toBeUndefined();
+  expect(getInvoicePriceId({ pricing: null })).toBeUndefined();
+});
+
+it('does not move line item prices when the target contract lacks pricing details', async () => {
+  const report = await run(priceReads, false);
+  expect(report.patch).toMatchObject({ status: 'unsupported', edits: 0 });
 });
