@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { buildSchema, introspectionFromSchema } from 'graphql';
 import { afterEach, expect, it } from 'vitest';
+import { addAgents, builtInPackage, detectProviders } from './agent-catalog.ts';
 import { runPipeline } from './run.ts';
 import { readRepository } from './repository.ts';
 import { scanShopify } from './shopify-analysis.ts';
@@ -252,4 +253,44 @@ it('produces every report field the OpenAPI pipeline does', async () => {
   });
   const shared = Object.keys(stripe).filter((key) => !['adapter'].includes(key));
   expect(shared.filter((key) => !(key in shopify))).toEqual([]);
+});
+
+it('suggests the Shopify agent, scaffolds it with snapshot steps and then reports it configured', async () => {
+  const root = await directory({
+    'package.json': JSON.stringify({
+      name: 'app',
+      scripts: { test: 'vitest run' },
+      dependencies: { '@shopify/shopify-app-remix': '^4.0.0' },
+    }),
+    'package-lock.json': LOCK('14.0.1'),
+    'app/shopify.server.ts': SERVER('January26'),
+  });
+  const detections = await detectProviders(root);
+  expect(detections.map((entry) => [entry.agent.id, entry.agent.adapter])).toEqual([
+    ['shopify', { builtIn: 'shopify' }],
+  ]);
+  const scaffold = addAgents({
+    configuration: undefined,
+    v1Id: 'stripe',
+    detections,
+    ids: ['shopify'],
+    testScript: true,
+    lockfile: true,
+  });
+  expect(scaffold.configuration.integrations).toEqual([
+    {
+      id: 'shopify',
+      before: './refit/shopify-before.json',
+      after: './refit/shopify-after.json',
+      image: 'node:22-alpine',
+      prepareDependencies: true,
+      command: ['npm', 'test'],
+    },
+  ]);
+  expect(scaffold.adapterFiles).toEqual([]);
+  expect(scaffold.nextSteps[0]).toContain('refit shopify-snapshot --version');
+  expect(
+    builtInPackage((scaffold.configuration.integrations as Record<string, unknown>[])[0]),
+  ).toBe('@shopify/shopify-api');
+  expect(builtInPackage({ id: 'billing', before: './refit/stripe-before.json' })).toBe('stripe');
 });

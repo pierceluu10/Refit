@@ -1,4 +1,4 @@
-import { AGENT_CATALOG, type ProviderAgent } from './agent-catalog.ts';
+import { AGENT_CATALOG, builtInPackage, type ProviderAgent } from './agent-catalog.ts';
 import { GitHubRequestError } from './github.ts';
 import { isObject, parseObject } from './specifications.ts';
 import { REPOSITORY_CONFIGURATION } from './workflow-configuration.ts';
@@ -122,7 +122,7 @@ async function configuredPackages(request: GitHubRequest, repository: string, ba
   const packages = new Set<string>();
   for (const integration of integrations) {
     if (typeof integration.providerConfig !== 'string') {
-      packages.add('stripe');
+      packages.add(builtInPackage(integration));
       continue;
     }
     const path = integration.providerConfig.replace(/^\.\//, '');
