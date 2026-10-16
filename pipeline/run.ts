@@ -16,6 +16,11 @@ import {
 import { validatePropertyRenames } from './provider-renames.ts';
 import { removedRequestParameters } from './request-removals.ts';
 import {
+  isShopifySnapshot,
+  isShopifySnapshotFile,
+  runShopifyPipeline,
+} from './shopify-pipeline.ts';
+import {
   requestRenameEvidence,
   validateRequestPropertyRenames,
 } from './provider-request-renames.ts';
@@ -53,7 +58,7 @@ import {
   validateOperationReplacements,
 } from './provider-operation-replacements.ts';
 
-export async function runPipeline(options: {
+async function runOpenApiPipeline(options: {
   repository: string;
   before: string;
   after: string;
@@ -70,12 +75,12 @@ export async function runPipeline(options: {
 }) {
   const applicationApiVersion = validateApiVersion(options.apiVersion);
   const policy = validateApiVersionPolicy(options.apiVersionPolicy);
-  const configured = await readProviderAdapter(options.providerConfig);
-  const [repository, before, after] = await Promise.all([
-    readRepository(options.repository, configured.packageName),
+  const [before, after] = await Promise.all([
     readSpecification(options.before),
     readSpecification(options.after),
   ]);
+  const configured = await readProviderAdapter(options.providerConfig);
+  const repository = await readRepository(options.repository, configured.packageName);
   // The built-in Stripe adapter grows to cover every Stripe method the application calls.
   const provider =
     configured === STRIPE
@@ -533,4 +538,31 @@ export async function runPipeline(options: {
         : 'Review unsupported patterns and API version applicability before deciding impact.',
     patch: completePatch,
   };
+}
+
+export type PipelineReport = Awaited<ReturnType<typeof runOpenApiPipeline>>;
+
+// Shopify contracts are GraphQL schemas, not OpenAPI documents, so Shopify snapshots run the Shopify
+// pipeline. Its report carries every report field, with the OpenAPI-only ones empty.
+export async function runPipeline(
+  options: Parameters<typeof runOpenApiPipeline>[0],
+): Promise<PipelineReport> {
+  const kinds = await Promise.all([options.before, options.after].map(isShopifySnapshotFile));
+  if (!kinds.some(Boolean)) return runOpenApiPipeline(options);
+  const [before, after] = await Promise.all([
+    readSpecification(options.before),
+    readSpecification(options.after),
+  ]);
+  if (!isShopifySnapshot(before) || !isShopifySnapshot(after) || options.providerConfig)
+    throw new PipelineInputError(
+      'Shopify runs need Shopify schema snapshots for both contracts and the built-in adapter.',
+    );
+  return (await runShopifyPipeline({
+    repository: options.repository,
+    before,
+    after,
+    proposePatch: options.proposePatch,
+    apiVersion: validateApiVersion(options.apiVersion),
+    apiVersionPolicy: validateApiVersionPolicy(options.apiVersionPolicy),
+  })) as unknown as PipelineReport;
 }

@@ -50,6 +50,8 @@ export function migrationReviewReason(
   )
     return WEBHOOK_REVIEW_REASON;
   if (evidence.skippedFiles?.length) return SKIPPED_SOURCE_REVIEW_REASON;
+  const contractReview = evidence.findings.find((finding) => finding.contractReview);
+  if (contractReview) return contractReview.contractReview;
   if (evidence.findings.some((finding) => finding.requestParameter))
     return REMOVED_REQUEST_PARAMETER_REVIEW_REASON;
   if (evidence.findings.some((finding) => finding.classClient))
