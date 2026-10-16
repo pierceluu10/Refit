@@ -79,30 +79,23 @@ Dropping it lets the Dashboard decide, which can add Link, wallets, BNPL and asy
 
 ## Results (Refit `6d02116`, October 16)
 
-All three Stripe sets were rerun from a pinned worktree with the full pipeline.
+All three Stripe sets were rerun from a pinned worktree with the full pipeline, and every repository was measured. Docker was shut down partway through the fresh set; the 48 fresh repositories it had not reached were validated after a restart, at the same commit.
 
-- **Coverage.** The original 100 and held-out 50 completed. Docker was shut down before the fresh set finished, so 333 of its 381 repositories were measured. 40 never ran, and 8 failed only because the Docker daemon was gone; they are excluded.
-- **Validated fixes: 10 → 45** on the same repositories.
+**Validated fixes: 10 → 52** on the same 531 repositories.
 
-| | Original 100 | Held-out 50 | Fresh (333 measured) |
+| | Original 100 | Held-out 50 | Fresh 381 |
 |---|---|---|---|
-| Validated before the policy | 4 | 1 | 2 |
-| **Validated with the policy** | **11** | **7** | **27** |
-| Stopped on `payment_method_types` before | 27 | 18 | 125 |
-| … still stopped (case B or C, no literal pin, or a TypeScript project whose SDK cannot be upgraded) | 12 | 8 | 60 |
-| … now validated | 7 | 6 | 25 |
-| … patch proposed, then refused by validation preparation (lockfile, archive size, pnpm settings) | 4 | 4 | 28 |
-| … validation regression: other type errors after the stripe-node 23 upgrade, caught and not proposed | 4 | 0 | 5 |
-| … other (baseline failing, review stop, no checks) | 0 | 0 | 7 |
+| Validated before the policy | 4 | 1 | 5 |
+| **Validated with the policy** | **11** | **7** | **34** |
+| Stopped on `payment_method_types` before | 27 | 18 | 148 |
+| … still stopped (case B or C, no literal pin, or a TypeScript project whose SDK cannot be upgraded) | 12 | 8 | 69 |
+| … now validated | 7 | 6 | 29 |
+| … patch proposed, then refused by validation preparation (lockfile, archive size, pnpm settings) | 4 | 4 | 36 |
+| … validation regression: other type errors after the stripe-node 23 upgrade, caught and not proposed | 4 | 0 | 6 |
+| … other (baseline failing, review stop, no checks) | 0 | 0 | 8 |
 
-- **Every one of the 38 validated card-rule fixes was checked against its diff.** Each renames only the key on an exact `['card']` literal and moves the pin to `2026-09-30.endive`. Every TypeScript fix upgrades stripe-node to 23.0.0; the three JavaScript ones keep their package, as the gate allows.
+- **Every one of the 42 validated card-rule fixes was checked against its diff.** Each renames only the key on an exact `['card']` literal and moves the pin to `2026-09-30.endive`. Every TypeScript fix upgrades stripe-node to 23.0.0. The three JavaScript ones keep their package, as the gate allows.
 - **Three were also read in full by hand:** `pra9711/lexinote`, `sudeepmahato16/airbnb-clone` and `mahin67580/FoodieFrog`. In lexinote, only the invoice branch's `session.subscription` read moved.
-- **Evidence.** For 35 of the 38, `tsc` passed with no new errors, 14 of them with generated `stripe-mock` checks as well. The other 3 have no checks of their own, so only the generated `stripe-mock` checks ran.
-- **The other 48 fresh repositories were scanned without Docker.** Patches were proposed but not validated. 28 are affected:
-  - 18 get a deterministic patch, 14 of them through the card rule; all 14 diffs pass the same check;
-  - 9 still stop on `payment_method_types`;
-  - 1 has no deterministic rule.
-
-  Validated counts for these 48 need Docker and are not claimed.
+- **Evidence.** For 39 of the 42, `tsc` passed with no new errors, 16 of them with generated `stripe-mock` checks as well. The other 3 have no checks of their own, so only the generated `stripe-mock` checks ran.
 - **No other outcome changed.** Every repository that was not stopped on `payment_method_types` has the same outcome as before, and no previously validated fix was lost.
 - **The rerun found one bug, fixed with a test before these numbers.** Validation's preflight requests no patch, so it had dropped the rename and refused 29 patches the run had proposed.

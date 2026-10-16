@@ -1,5 +1,22 @@
 # Refit implementation checkpoints
 
+## October 16 checkpoint: fresh Stripe set complete and team PRs merged (unreleased, after 0.39.0)
+
+The 48 fresh Stripe repositories that Docker had not reached were validated at `6d02116`, the same commit as the other 333. All 381 are now measured: validated fixes went from 5 to 34 on the fresh set, and from 10 to 52 across all 531 Stripe repositories. All 42 card-rule fixes were checked against their diffs. See [the policy results](STRIPE-PAYMENT-METHOD-TYPES.md#results-refit-6d02116-october-16).
+
+Otabek's open PRs were merged on the owner's instruction:
+
+- Stripe labels for all 100 benchmark repositories, with per-repository outcome scoring (#78, with #85);
+- basil invoicing review reasons and an invoice price ID helper (#79, with #86);
+- bounded AI repair rounds driven by remaining type errors (#80);
+- unexpanded response changes no longer blocking, signed off by the owner (#84);
+- `[Needs review]` drafts for removed parameters and untested patches (#88);
+- pnpm release-age settings (#87, which had missed main).
+
+One interaction was fixed while merging: #80's guard against repairs that drop a removed parameter now subtracts the sites the card rule already renamed, so an AI repair of a card-rule patch is not stopped by mistake. A test covers it.
+
+The default suite passed **1,366 tests across 93 files**, with 78 environment-gated tests skipped, plus typecheck and formatting.
+
 ## October 16 checkpoint: unexpanded response changes (unreleased, after 0.38.0)
 
 The owner signed off on this gate change on 2026-10-16. The expansion gate from 0.25.0 now covers every response property change whose oasdiff text names a property path: removals, `any-of` additions, became-nullable, became-optional, `maxLength` unset or increased, and type changes. A change inside an expandable field's expanded object stops blocking `--full-diff` unless the repository expands that field. Any non-literal `expand` mention still keeps every such change blocking. Changes on the expandable field itself, direct fields, unrecognized texts and other change kinds still block. The 0.25.0 sign-off covered removals only, so this extension needs owner sign-off before release.
