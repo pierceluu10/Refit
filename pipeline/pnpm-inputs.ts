@@ -37,6 +37,8 @@ const CONFIGURATION_KEYS = new Set([
   'pmOnFail',
   'autoInstallPeers',
   'excludeLinksFromLockfile',
+  'minimumReleaseAge',
+  'minimumReleaseAgeExclude',
 ]);
 const IMPORTER_SECTIONS = new Set(['dependencies', 'devDependencies', 'optionalDependencies']);
 const LOCK_KEYS = new Set([
@@ -77,6 +79,19 @@ function configuration(value: Record<string, unknown>) {
         ))
     )
       throw new PipelineInputError(`pnpm ${key} must contain package names.`);
+  // The release-age gate only applies when pnpm resolves new versions; a frozen install fetches the
+  // locked, integrity-checked snapshots either way.
+  if (
+    (value.minimumReleaseAge !== undefined &&
+      (!Number.isSafeInteger(value.minimumReleaseAge) ||
+        (value.minimumReleaseAge as number) < 0)) ||
+    (value.minimumReleaseAgeExclude !== undefined &&
+      (!Array.isArray(value.minimumReleaseAgeExclude) ||
+        !value.minimumReleaseAgeExclude.every((entry) => typeof entry === 'string' && entry)))
+  )
+    throw new PipelineInputError(
+      'pnpm minimumReleaseAge must be a whole number of minutes and minimumReleaseAgeExclude a list of package patterns.',
+    );
   if (value.pmOnFail !== undefined && value.pmOnFail !== 'ignore' && value.pmOnFail !== 'error')
     throw new PipelineInputError('Unsupported pnpm package-manager policy.');
   if (
