@@ -2,6 +2,8 @@
 
 Every number here comes from real public repositories, frozen before the run that measured them, scanned at a pinned commit, and checked against the providers' real published contracts. No vendor API was called, no scanned repository was contacted, and validation ran each repository's own checks in offline Docker. Detailed method and per-repository results are linked from each section.
 
+**Latest (October 16, unreleased):** validated Stripe fixes rose from 53 to **74** on the same 531 repositories after the stripe-node upgrade gained pnpm and Yarn 1, and a new active-teams set (66 repositories) shows that client factories, not fix logic, limit Refit on current code. See [the section below](#stripe-node-upgrade-for-pnpm-and-yarn-and-the-active-teams-set-october-16).
+
 ## Summary (Refit 0.38.0)
 
 | Set | Repositories | Affected | Validated fixes | Main stop |
@@ -19,6 +21,48 @@ Every number here comes from real public repositories, frozen before the run tha
 - **Real breakage is common and precise.** 23 of 200 fresh Shopify apps (12%) send a query that fails on every Admin API version Shopify serves today, each at an exact line. 51 of 381 fresh Stripe apps (13%) also send an OpenAI model that OpenAI retires on 2026-10-23.
 - **Outcomes are deterministic.** Repeat runs matched 381 of 381 fresh Stripe repositories, 200 of 200 fresh Shopify apps and 150 of 150 earlier Stripe repositories (publication aside). Since the `payment_method_types` stop, no outcome depends on AI sampling.
 - **AI was almost never needed:** **$0.02** across every Stripe run in this release. Deterministic rules made every validated fix.
+
+## stripe-node upgrade for pnpm and Yarn, and the active-teams set (October 16)
+
+No owner decision changed. The stripe-node upgrade now covers root pnpm v9 and Yarn 1 projects and npm lockfiles in any standard formatting, and the benchmark validates Yarn roots ([checkpoint](READINESS.md), [dependency guide](DEPENDENCIES.md#stripe-node-upgrade-in-a-patch)). The same 531 repositories were rerun from pinned worktrees at `7238e46`; Yarn repositories were rerun at `fecd935`, which only lets the harness validate them. Per-repository outcomes: [fresh](benchmarks/2026-10-16-stripe-fixrate-fresh-results.json), [original](benchmarks/2026-10-16-stripe-fixrate-original-results.json), [held out](benchmarks/2026-10-16-stripe-fixrate-heldout-results.json).
+
+| | Original 100 | Held-out 50 | Fresh 381 | All 531 |
+|---|---|---|---|---|
+| Affected | 40 | 23 | 171 | 234 |
+| Validated before (`6d02116`) | 11 | 7 | 35 | 53 |
+| **Validated now** | **13** | **9** | **52** | **74** |
+| Stopped: `payment_method_types` outside the card rule | 11 | 8 | 63 | 82 |
+| Refused at validation preparation | 7 | 2 | 29 | 38 |
+| Regression caught by validation | 3 | 1 | 8 | 12 |
+| Other stops (declared types, invalid source, no checks, AI declined, failing baseline) | 6 | 3 | 19 | 28 |
+
+- **71 of the 74 are deterministic; three are AI repairs, each read in full.** `akn3107/whatsapp-store-creator` and `brendansudol/punchlines-ai` are correct. In punchlines-ai the period helper takes `(items) => items[0]` from the deterministic rule, because the same function already stores `subscription.items.data[0].price.id`. `ABHINAVJINDAL26/VANTAGE-Golf-Charity-Platform` also wraps a Checkout Session's `subscription`, which Stripe kept, in the Invoice helper; that returns the same value, but the edit is unnecessary. A model edit that adds its own item choice now stops for review (`e47b8ab`); none of these three did.
+- **The new upgrades were checked against the package managers, not only against `tsc`.** pnpm re-resolved 30 of 32 upgraded lockfiles byte for byte (the other two carry drift already in the repository); Yarn 1 accepted 12 of 13 with `--frozen-lockfile` (the thirteenth was already stale). Every validated fix also installed its patched lockfile frozen in offline Docker.
+- **Every regression is the same template.** All 12 are forks of one Supabase subscription starter whose `libs/supabaseAdmin.ts` assigns stripe-node 23's widened enums (`Price.Type`, `Interval`, now with `OtherString`) to narrow database types. No rule casts them.
+- **Yarn 1 needs room.** Four Yarn repositories ran out of the 2 GiB preparation workspace because Yarn 1 downloads every platform's optional binaries. Under the operator's `REFIT_VALIDATION_WORKSPACE=4g` profile, 3 of the 4 validate, each upgrading stripe-node to 23.0.0 in `yarn.lock`, and the fourth passes its checks with findings still unresolved ([results](benchmarks/2026-10-16-stripe-fixrate-yarn-4g-results.json)). These are not counted above.
+- **AI spend for every run in this section: $0.07.**
+
+### Active teams (frozen October 16)
+
+The fresh set skews toward old, idle code: 38% pin a 2022–2023 API version, and the median repository has 3 stars. [`2026-10-16-stripe-active-repos.json`](benchmarks/2026-10-16-stripe-active-repos.json) was selected and committed before any run by [`stripe-active-select.mjs`](../scripts/stripe-active-select.mjs), which records every exclusion:
+
+- **Search.** The fresh set's 13 code searches, minus the 531 repositories used before: 6,512 repositories.
+- **Criteria.** Not archived or a fork; under 50 MB; a default-branch commit in the 90 days before 2026-10-16 by at least two human authors (bots excluded); a GitHub Actions workflow; `stripe` in the root `package.json`; exactly one root lockfile. 72 qualified; 3,996 had no commit in 90 days and 799 had one human author.
+- **Kept.** 66 after dropping repositories already on endive (3), with no derivable API version (2) or that could not be cloned (1). 14 are owned by organisations. 46 of 66 pin a 2025–2026 API version.
+
+| Outcome | Repositories |
+|---|---|
+| No mapped Stripe SDK call found | 32 |
+| Not affected | 22 |
+| **Affected** | **11** |
+| … stopped: `payment_method_types` outside the card rule | 6 |
+| … refused at validation preparation (registry URL, lockfile, size) | 3 |
+| … stopped: unparseable source files | 2 |
+| … validated | 0 |
+| Over scan limits | 1 |
+
+- **Active code breaks less.** 17% are affected, against 45% of the fresh set, because recent pins are closer to the target. The breaking reads are the same ones: `subscription.current_period_end` (5), `invoice.subscription` (4), `subscription.current_period_start` (3).
+- **Tracing is the gap.** In 32 repositories Refit found 518 likely Stripe SDK calls and traced none; overall it traced 661 of 1,895 (35%, against 51% on the fresh set). At least 18 of the 32 create the client in a lazy factory, `getStripe()` assigning a module-level `let` on first use, which Refit does not follow. Until it does, "not affected" here means little.
 
 ## After the card-only `payment_method_types` policy (October 16)
 
@@ -64,7 +108,7 @@ The run used the full pipeline: deterministic rules, AI patches on `gpt-5.6-luna
 - **Confirmed breaking reads:** 514 in 171 repositories. The most common are `subscription.current_period_end` (91 repositories), `invoice.subscription` (71) and `subscription.current_period_start` (22). Refit traced 2,165 of 4,216 likely Stripe SDK calls (51%).
 - **Validated fixes.** All 5 are deterministic and were reviewed by hand ([`fix-reviews.json`](benchmarks/fix-reviews.json)). Each is published as a draft PR by Refit Agent on a fork in `refit-dev`; upstream repositories were not touched: [goal-reminder#1](https://github.com/refit-dev/goal-reminder/pull/1), [formail-app#1](https://github.com/refit-dev/formail-app/pull/1), [podvex#1](https://github.com/refit-dev/podvex/pull/1), [onellm-frontend#1](https://github.com/refit-dev/onellm-frontend/pull/1) and [vibe-stack#1](https://github.com/refit-dev/vibe-stack/pull/1).
   - **Correct:** `cdinnison/goal-reminder`, `seangray-dev/formail-app` and `tmachnacki/podvex`. Each moves the reads, bumps every pin and upgrades stripe-node to 23.0.0. In the Convex apps, only the invoice branch's `.subscription` read moves; the Checkout Session branch, whose field Stripe kept, is left alone.
-  - **Correct-partial:** `vinroger/onellm-frontend` has no literal pin, so the version stays with the account. `profullstack/vibe-stack` uses pnpm, which the SDK upgrade does not support yet.
+  - **Correct-partial:** `vinroger/onellm-frontend` has no literal pin, so the version stays with the account. `profullstack/vibe-stack` uses pnpm, which the SDK upgrade did not support then; it now validates with the upgrade.
 - **The run found two Refit bugs, both fixed with tests.**
   - Three repositories commit Supabase's generated `types_db.ts` as UTF-16, the way PowerShell writes it. TypeScript reads such files, but Refit treated them as binary and stopped the whole repository. Refit now decodes UTF-16 files that start with a byte-order mark and refuses to edit them. Those three now stop on `payment_method_types` instead.
   - Imports like `./stripe.server`, the Remix convention, were not resolved, because `.server` looked like a file extension.

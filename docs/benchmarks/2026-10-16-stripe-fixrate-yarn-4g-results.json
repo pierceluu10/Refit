@@ -1,0 +1,87 @@
+{
+  "run": "2026-10-16",
+  "refit": "fecd935",
+  "profile": "REFIT_VALIDATION_WORKSPACE=4g (operator choice)",
+  "target": "2026-09-30.endive",
+  "list": "2026-10-16-stripe-fresh-repos.json",
+  "outcomes": {
+    "validated": 3,
+    "stopped-for-review": 1
+  },
+  "rows": [
+    {
+      "repo": "vignesh-gupta/digibee-marketplace",
+      "commit": "974e169b7831751118789fdf52e4100044faa553",
+      "before": "2024-12-18.acacia",
+      "beforeSource": "apiVersion pin",
+      "packageManager": "yarn",
+      "outcome": "validated",
+      "sdkCalls": 9,
+      "tracedCalls": 9,
+      "confirmedReads": 1,
+      "confirmedFields": [],
+      "checks": "typecheck",
+      "sdkUpgrade": {
+        "from": "17.5.0",
+        "to": "23.0.0"
+      },
+      "reason": "Baseline and patched checks passed. Review artifacts are ready; publication was not requested.",
+      "seconds": 246
+    },
+    {
+      "repo": "Strata-Labs/BitScript",
+      "commit": "21af774f5cd2604acc591cd60e694a061a54a06c",
+      "before": "2023-10-16",
+      "beforeSource": "SDK version",
+      "packageManager": "yarn",
+      "outcome": "stopped-for-review",
+      "sdkCalls": 7,
+      "tracedCalls": 7,
+      "confirmedReads": 2,
+      "confirmedFields": [
+        "line_item.price"
+      ],
+      "checks": "typecheck",
+      "reason": "Checks passed but detected findings remain unresolved. Publication was not attempted.",
+      "seconds": 136
+    },
+    {
+      "repo": "shaoxuan0916/life-slice",
+      "commit": "a015a6003083c51f325e2944169ae63a5d9d9186",
+      "before": "2025-01-27.acacia",
+      "beforeSource": "apiVersion pin",
+      "packageManager": "yarn",
+      "outcome": "validated",
+      "sdkCalls": 2,
+      "tracedCalls": 2,
+      "confirmedReads": 1,
+      "confirmedFields": [],
+      "checks": "typecheck",
+      "sdkUpgrade": {
+        "from": "17.6.0",
+        "to": "23.0.0"
+      },
+      "reason": "Baseline and patched checks passed. Review artifacts are ready; publication was not requested.",
+      "seconds": 147
+    },
+    {
+      "repo": "Addisu87/digital-marketplace",
+      "commit": "2126f5d453f7a9d03aa8a17857d1fe7239d02aff",
+      "before": "2023-10-16",
+      "beforeSource": "apiVersion pin",
+      "packageManager": "yarn",
+      "outcome": "validated",
+      "sdkCalls": 4,
+      "tracedCalls": 4,
+      "confirmedReads": 1,
+      "confirmedFields": [],
+      "checks": "typecheck",
+      "sdkUpgrade": {
+        "from": "14.25.0",
+        "to": "23.0.0"
+      },
+      "reason": "Baseline and patched checks passed. Review artifacts are ready; publication was not requested.",
+      "seconds": 205
+    }
+  ]
+}
