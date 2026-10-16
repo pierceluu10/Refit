@@ -112,7 +112,10 @@ export function unsafeBindings(
     if (value) unsafe.add(value);
   };
   const targets = (node: ts.Node, value = true) => {
-    if (value && primitiveValue(node)) return;
+    // Type annotations name types and cannot reach a runtime value. Passing a function exposes the
+    // function, not the locals its body declares; the body's own mutations and returns are tracked
+    // directly.
+    if (ts.isTypeNode(node) || ts.isFunctionLike(node) || (value && primitiveValue(node))) return;
     if (receiver(node) || references?.rootBinding(node)) taint(node);
     // Passing a call's result does not expose its callee or SDK client.
     else if (ts.isCallExpression(node) || ts.isNewExpression(node))

@@ -181,3 +181,30 @@ it.each([
     }),
   ).toThrow(/Provider apiVersion/);
 });
+
+it('verifies a client created inside a handler passed to a framework call and used with type annotations', () => {
+  // The shape Convex actions use: the client is local to a handler function passed as an argument.
+  const result = evidence(`${prefix}
+    export const pay = action({
+      handler: async (ctx: unknown) => {
+        const stripe = new Stripe('test', { apiVersion: '${ORIGINAL}' });
+        const intent: Stripe.Response<Stripe.PaymentIntent> = await stripe.paymentIntents.retrieve('pi');
+        return (intent as Stripe.PaymentIntent).id;
+      },
+    });`);
+  expect(result.source.status).toBe('verified');
+  expect(result.source.declarations[0]).toMatchObject({ kind: 'constructor', status: 'literal' });
+});
+
+it('still refuses a handler-local client that escapes through a call or a returned function', () => {
+  for (const escape of ['register(stripe);', 'return () => stripe;'])
+    expect(
+      evidence(`${prefix}
+        export const pay = action({
+          handler: async () => {
+            const stripe = new Stripe('test', { apiVersion: '${ORIGINAL}' });
+            ${escape}
+          },
+        });`).source.status,
+    ).toBe('unknown');
+});
