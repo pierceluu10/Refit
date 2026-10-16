@@ -93,10 +93,12 @@ it('forks into the organization and points refit-base at the validated commit', 
     'fetch',
     vi.fn(async (url: string, init: { method: string; body?: string }) => {
       calls.push(`${init.method} ${url.replace('https://api.github.com', '')}`);
+      if (init.method === 'GET' && url.endsWith('/repos/refit-dev/app'))
+        return Response.json({ message: 'Not Found' }, { status: 404 });
       if (url.endsWith('/forks'))
         return Response.json({ full_name: 'refit-dev/app' }, { status: 202 });
       if (url.includes('/commits/'))
-        return new Response('{}', { status: calls.length > 2 ? 200 : 404 });
+        return new Response('{}', { status: calls.length > 3 ? 200 : 404 });
       return Response.json({}, { status: 201 });
     }),
   );
@@ -108,6 +110,7 @@ it('forks into the organization and points refit-base at the validated commit', 
     vi.unstubAllGlobals();
   }
   expect(calls).toEqual([
+    'GET /repos/refit-dev/app',
     'POST /repos/someone/app/forks',
     `GET /repos/refit-dev/app/commits/${commit}`,
     `GET /repos/refit-dev/app/commits/${commit}`,
@@ -123,7 +126,7 @@ it('summarizes affected repositories with their pull requests and stop reasons',
     {
       repo: 'a/one',
       fullAdapter: { confirmed: 2 },
-      workflow: { status: 'validated' },
+      workflow: { status: 'validated', reason: 'publication was not requested' },
       publication: { url: 'https://github.com/refit-dev/one/pull/1' },
     },
     {
@@ -139,4 +142,28 @@ it('summarizes affected repositories with their pull requests and stop reasons',
   );
   expect(table).toContain('| b/two | error |  | too / big |');
   expect(table).not.toContain('c/three');
+});
+
+it('reuses the organization fork instead of creating name-1', async () => {
+  const commit = 'b'.repeat(40);
+  const calls: string[] = [];
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (url: string, init: { method: string }) => {
+      calls.push(`${init.method} ${url.replace('https://api.github.com', '')}`);
+      if (url.endsWith('/repos/refit-dev/app'))
+        return Response.json({ full_name: 'refit-dev/app', parent: { full_name: 'someone/app' } });
+      if (url.includes('/commits/')) return new Response('{}', { status: 200 });
+      if (url.endsWith('/git/refs')) return Response.json({}, { status: 422 });
+      return Response.json({ object: { sha: commit } });
+    }),
+  );
+  try {
+    expect(await forkAtCommit('refit-dev', 'someone/app', commit, 'token', 0)).toBe(
+      'refit-dev/app',
+    );
+  } finally {
+    vi.unstubAllGlobals();
+  }
+  expect(calls.some((call) => call.endsWith('/forks'))).toBe(false);
 });

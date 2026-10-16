@@ -117,7 +117,10 @@ export function summaryTable(entries: Record<string, unknown>[]) {
     const outcome = publication?.url
       ? 'pull request'
       : String(workflow?.status ?? (affected ? 'affected' : 'not affected'));
-    const reason = String(publication?.error ?? workflow?.error ?? workflow?.reason ?? '')
+    // A published row needs no stop reason; the workflow's own reason predates publication.
+    const reason = String(
+      publication?.url ? '' : (publication?.error ?? workflow?.error ?? workflow?.reason ?? ''),
+    )
       .replace(/\s+/g, ' ')
       .replace(/\|/g, '/')
       .slice(0, 140);
@@ -172,10 +175,17 @@ export async function forkAtCommit(
       body: (await response.json().catch(() => ({}))) as Record<string, unknown>,
     };
   };
-  const forked = await github('POST', `/repos/${repository}/forks`, {
-    organization,
-    default_branch_only: true,
-  });
+  // GitHub lets an organization hold several forks of one repository, so creating a fork again
+  // would add `name-1`; reuse the organization's existing fork of the same name instead.
+  const existing = await github('GET', `/repos/${organization}/${repository.split('/')[1]}`);
+  const parent = existing.body.parent as { full_name?: string } | undefined;
+  const forked =
+    existing.status === 200 && parent?.full_name === repository
+      ? existing
+      : await github('POST', `/repos/${repository}/forks`, {
+          organization,
+          default_branch_only: true,
+        });
   const name = forked.body.full_name;
   if (forked.status >= 300 || typeof name !== 'string' || !name.startsWith(`${organization}/`))
     throw new PipelineInputError(`Fork of ${repository} failed: HTTP ${forked.status}.`);
