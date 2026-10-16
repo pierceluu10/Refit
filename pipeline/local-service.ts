@@ -6,11 +6,23 @@ import { setTimeout as delay } from 'node:timers/promises';
 import type { AiOptions } from './ai-budget.ts';
 import {
   authenticateGitHubComment,
+  authenticateGitHubIssues,
   authenticateGitHubRead,
   type GitHubAppConfiguration,
 } from './github-app.ts';
 import { suggestAgentsForPullRequest } from './agent-suggestions.ts';
-import { standaloneStateDirectory } from './github-checkout.ts';
+import {
+  alertDue,
+  alertStage,
+  deadlineBody,
+  deadlineComment,
+  deadlineTitle,
+  syncDeadlineIssue,
+  timing,
+} from './deadline-alerts.ts';
+import { agentStatus, configuredIntegrations, findDeadlineExposures } from './deadline-exposure.ts';
+import { loadDeadlineRegistry } from './deadline-registry.ts';
+import { standaloneStateDirectory, type GitHubCheckout } from './github-checkout.ts';
 import { requestGitHub } from './github.ts';
 import { parseWebhook, verifyWebhook, WebhookInputError } from './github-webhooks.ts';
 import type { ServiceTarget } from './service-configuration.ts';
@@ -100,6 +112,9 @@ export async function runLocalService(options: {
   aiPatch?: AiOptions;
   repairAttempts?: number;
   publishDraft?: boolean;
+  // Off unless set: opens or updates one issue per enrolled repository and registry deadline.
+  deadlineAlerts?: { leadDays: readonly number[]; registry?: string | URL };
+  now?: () => Date;
   signal: AbortSignal;
   onReady?: (url: string) => void;
   onProgress?: (message: string) => void;
@@ -206,6 +221,93 @@ export async function runLocalService(options: {
         }
       }
     };
+    // Matches each enrolled repository's managed checkout against the deadline registry and alerts
+    // once per lead time. A failed alert is recorded and not retried until the next lead time, so a
+    // partially completed GitHub request never opens a second issue.
+    const alertDeadlines = async (checkouts: Map<string, GitHubCheckout>) => {
+      if (!options.deadlineAlerts || !checkouts.size) return;
+      const { leadDays } = options.deadlineAlerts;
+      const now = options.now?.() ?? new Date();
+      let registry: Awaited<ReturnType<typeof loadDeadlineRegistry>>;
+      try {
+        registry = await loadDeadlineRegistry(options.deadlineAlerts.registry, now);
+      } catch (error) {
+        if (!(error instanceof Error)) throw error;
+        options.onProgress?.(`Deadline alerts skipped: ${error.name}: ${error.message}`);
+        return;
+      }
+      for (const [repository, checkout] of checkouts) {
+        if (options.signal.aborted) break;
+        try {
+          const [exposures, integrations] = await Promise.all([
+            findDeadlineExposures(checkout.directory, registry, now),
+            configuredIntegrations(checkout.directory),
+          ]);
+          const known = (await store.read()).deadlineAlerts ?? {};
+          const due = exposures
+            .map((exposure) => ({
+              exposure,
+              key: `${repository}|${exposure.deadline.id}`,
+              stage: alertStage(exposure.days, leadDays),
+            }))
+            .filter((alert) => alertDue(alert.stage, known[alert.key]?.stage));
+          if (!due.length) continue;
+          const { token } = await authenticateGitHubIssues(options.app, repository);
+          for (const { exposure, key, stage } of due) {
+            const previous = known[key];
+            const save = (change: {
+              issue: number | null;
+              status: 'opened' | 'updated' | 'failed';
+              message: string | null;
+            }) =>
+              store.update((state) => {
+                (state.deadlineAlerts ??= {})[key] = {
+                  repository,
+                  deadline: exposure.deadline.id,
+                  stage,
+                  checkedAt: now.toISOString(),
+                  ...change,
+                };
+              });
+            try {
+              const result = await syncDeadlineIssue({
+                request: (method, path, body) => requestGitHub(token, method, path, body),
+                repository,
+                issue: previous?.issue ?? null,
+                title: deadlineTitle(exposure),
+                body: deadlineBody({
+                  exposure,
+                  repository,
+                  revision: checkout.revision,
+                  status: agentStatus(exposure.deadline.provider, integrations),
+                  leadDays,
+                }),
+                comment: deadlineComment(exposure),
+              });
+              await save({ issue: result.issue, status: result.action, message: null });
+              options.onProgress?.(
+                `[${repository}] Deadline ${exposure.deadline.id}: issue #${result.issue} ${result.action} (${timing(exposure.days)}).`,
+              );
+            } catch (error) {
+              if (!(error instanceof Error)) throw error;
+              await save({
+                issue: previous?.issue ?? null,
+                status: 'failed',
+                message: `${error.name}: ${error.message}`,
+              });
+              options.onProgress?.(
+                `[${repository}] Deadline ${exposure.deadline.id}: ${error.name}: ${error.message}`,
+              );
+            }
+          }
+        } catch (error) {
+          if (!(error instanceof Error)) throw error;
+          options.onProgress?.(
+            `[${repository}] Deadline check failed: ${error.name}: ${error.message}`,
+          );
+        }
+      }
+    };
     const handlers = new Set<Promise<void>>();
     const server = createServer(
       { requestTimeout: REQUEST_TIMEOUT_MS, headersTimeout: HEADERS_TIMEOUT_MS },
@@ -273,6 +375,7 @@ export async function runLocalService(options: {
       options.onReady?.(`http://${HOST}:${address.port}`);
       do {
         requested = false;
+        const checkouts = new Map<string, GitHubCheckout>();
         for (const target of pollingTargets) {
           if (options.signal.aborted) break;
           const controller = new AbortController();
@@ -373,6 +476,12 @@ export async function runLocalService(options: {
                     ? `Provider documentation changed. Refit saved a unified diff and did not start a migration. The prior API workflow status remains ${result.previousStatus}.`
                     : 'Saved worker result reused; checks were not rerun.';
             });
+            // Enrolled (approved) repositories expose their managed checkout for deadline matching.
+            if (target.approval && 'checkout' in result && !controller.signal.aborted)
+              checkouts.set(
+                target.repository.toLowerCase(),
+                (result as { checkout: GitHubCheckout }).checkout,
+              );
             const record = (await store.read()).targets[target.id];
             options.onProgress?.(
               `[${target.id}] ${record.status}: ${record.message ?? 'Poll completed.'}${record.output ? ` Evidence: ${record.output}` : ''}`,
@@ -397,6 +506,7 @@ export async function runLocalService(options: {
           }
         }
         await suggestPendingAgents();
+        await alertDeadlines(checkouts);
         if (options.once || options.signal.aborted) break;
         if (!requested) {
           waiting = new AbortController();

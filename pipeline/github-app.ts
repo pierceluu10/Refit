@@ -34,7 +34,7 @@ export function githubAppConfiguration(environment: NodeJS.ProcessEnv): GitHubAp
 async function installationAccess(
   configuration: GitHubAppConfiguration,
   repository: string,
-  permissions: { contents: 'read' | 'write'; pull_requests?: 'write' },
+  permissions: { contents: 'read' | 'write'; pull_requests?: 'write'; issues?: 'write' },
 ) {
   if ((await stat(configuration.privateKeyFile)).size > MAX_PRIVATE_KEY_BYTES)
     throw new PipelineInputError('GitHub App private key exceeds 64 KiB.');
@@ -136,6 +136,19 @@ export async function authenticateGitHubComment(
   const access = await installationAccess(configuration, repository, {
     contents: 'read',
     pull_requests: 'write',
+  });
+  return { token: access.token };
+}
+
+// Reads repository files and opens or updates issues; it cannot push, comment on pull requests or
+// open pull requests.
+export async function authenticateGitHubIssues(
+  configuration: GitHubAppConfiguration,
+  repository: string,
+) {
+  const access = await installationAccess(configuration, repository, {
+    contents: 'read',
+    issues: 'write',
   });
   return { token: access.token };
 }
