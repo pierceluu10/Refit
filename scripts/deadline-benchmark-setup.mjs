@@ -8,22 +8,26 @@ import { fileURLToPath } from 'node:url';
 import { parseArgs, promisify } from 'node:util';
 
 const execute = promisify(execFile);
-const REFIT = fileURLToPath(new URL('../bin/refit.mjs', import.meta.url));
 const GIT_TIMEOUT_MS = 300_000;
 const { values } = parseArgs({
   options: {
     root: { type: 'string' },
-    list: { type: 'string', default: 'docs/benchmarks/2026-10-15-deadline-pilot-repos.json' },
+    list: { type: 'string', default: 'docs/benchmarks/2026-10-16-deadline-repos.json' },
+    // A Refit checkout to scan with; run it from a pinned `git worktree`, since each scan loads
+    // that checkout's current source files.
+    refit: { type: 'string', default: fileURLToPath(new URL('..', import.meta.url)) },
+    output: { type: 'string', default: 'results.json' },
     help: { type: 'boolean' },
   },
 });
 if (values.help || !values.root) {
   console.log(
-    'Usage: node scripts/deadline-benchmark-setup.mjs --root <dir> [--list <repos.json>]',
+    'Usage: node scripts/deadline-benchmark-setup.mjs --root <dir> [--list <repos.json>] [--refit <checkout>] [--output results.json]',
   );
   process.exit(values.help ? 0 : 1);
 }
 const root = resolve(values.root);
+const refit = join(resolve(values.refit), 'bin', 'refit.mjs');
 const pinned = JSON.parse(await readFile(values.list, 'utf8'));
 await mkdir(join(root, 'repos'), { recursive: true });
 
@@ -53,7 +57,7 @@ for (const [index, entry] of pinned.repos.entries()) {
     }
     const { stdout } = await execute(
       process.execPath,
-      [REFIT, 'deadlines', '--repository', directory, '--json'],
+      [refit, 'deadlines', '--repository', directory, '--json'],
       {
         maxBuffer: 64 * 1024 * 1024,
       },
@@ -73,7 +77,7 @@ for (const [index, entry] of pinned.repos.entries()) {
     });
   }
 }
-await writeFile(join(root, 'results.json'), `${JSON.stringify(results, null, 2)}\n`);
+await writeFile(join(root, values.output), `${JSON.stringify(results, null, 2)}\n`);
 console.log(
   JSON.stringify({ root, repos: pinned.repos.length, scanned: results.length, failures }, null, 2),
 );
