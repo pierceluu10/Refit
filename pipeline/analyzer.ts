@@ -14,7 +14,8 @@ import { componentReference, isObject, resolvableComponentSchema } from './speci
 import type { OperationReplacement } from './provider-operation-replacements.ts';
 import type { RequestPropertyRename } from './provider-request-renames.ts';
 import type { PropertyMove } from './provider-renames.ts';
-import { requestPropertyEdit } from './request-migration.ts';
+import { removedParameterProperty, requestPropertyEdit } from './request-migration.ts';
+import type { RequestParameterRemoval } from './request-removals.ts';
 import { StripeTypes } from './stripe-types.ts';
 import {
   subscriptionPeriodEdit,
@@ -152,6 +153,7 @@ export function analyzeRepository(
   operationReplacements: OperationReplacement[] = [],
   requestPropertyRenames: RequestPropertyRename[] = [],
   propertyMoves: PropertyMove[] = [],
+  requestParameterRemovals: RequestParameterRemoval[] = [],
 ) {
   const sources = new Map(
     repository.files.map((file) => [resolve(repository.root, file.path), file.content]),
@@ -846,6 +848,32 @@ export function analyzeRepository(
           replacement: edit.replacement,
           changeId: rule.id,
         });
+    }
+    for (const removal of requestParameterRemovals.filter(
+      (entry) =>
+        entry.resource === call.resource &&
+        entry.method === call.method &&
+        // An operator-authored rename already migrates this parameter.
+        !requestPropertyRenames.some(
+          (rule) =>
+            rule.resource === entry.resource &&
+            rule.method === entry.method &&
+            rule.removed === entry.parameter,
+        ),
+    )) {
+      const property = removedParameterProperty(node, removal);
+      if (!property) continue;
+      const confirmed = !unsafe.has(clientBinding(call.client)!) && !call.optional;
+      findings.push({
+        ...location(property),
+        changeId: removal.id,
+        expression: `${removal.resource}.${removal.method} argument[${removal.argumentIndex}].${removal.parameter}`,
+        confidence: confirmed ? 'confirmed' : 'review',
+        requestParameter: { operationId: removal.operationId, parameter: removal.parameter },
+        ...helperEvidence(call.client),
+        reason:
+          'The target API version no longer accepts this request parameter, and no reviewed replacement exists; removing or replacing it changes request behavior.',
+      });
     }
   }
   for (const node of nodes) {

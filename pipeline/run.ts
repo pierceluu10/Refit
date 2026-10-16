@@ -14,6 +14,7 @@ import {
   validateProviderMappings,
 } from './providers.ts';
 import { validatePropertyRenames } from './provider-renames.ts';
+import { removedRequestParameters } from './request-removals.ts';
 import {
   requestRenameEvidence,
   validateRequestPropertyRenames,
@@ -122,6 +123,7 @@ export async function runPipeline(options: {
       }
     : undefined;
   const requestRenames = validateRequestPropertyRenames(provider, before.document, after.document);
+  const parameterRemovals = removedRequestParameters(provider, before.document, after.document);
   const {
     edits: analyzedEdits,
     apiVersionDeclarations,
@@ -138,6 +140,7 @@ export async function runPipeline(options: {
     replacements,
     requestRenames,
     moves,
+    parameterRemovals,
   );
   // Field moves apply only when the target contract has the documented new location.
   const itemPeriods =
@@ -291,6 +294,7 @@ export async function runPipeline(options: {
         replacements,
         requestRenames,
         moves,
+        parameterRemovals,
       ).findings.filter((finding) => !finding.untraced).length
     : 0;
   const reviewReason = migrationReviewReason(
