@@ -9,9 +9,25 @@ const NANO_USD_PER_USD = 1_000_000_000;
 const TOKENS_PER_MILLION = 1_000_000;
 const DEFAULT_BUDGET_USD = 1;
 const MAX_BUDGET_USD = 1000;
-const MINI_MODELS = new Set(['gpt-5.4-mini', 'gpt-5.4-mini-2026-03-17']);
-// Standard text-token prices verified against official OpenAI documentation on 2026-10-12.
-const MINI_PRICES = { input: 0.75, cachedInput: 0.075, cacheWrite: 0.75, output: 4.5 };
+// Standard short-context text-token prices per million, from official OpenAI documentation
+// (gpt-5.4-mini verified 2026-10-12, gpt-5.6-luna 2026-10-15). OpenAI bills cache writes as input.
+const MODEL_PRICES: Record<string, AiPrices> = {
+  'gpt-5.4-mini': { input: 0.75, cachedInput: 0.075, cacheWrite: 0.75, output: 4.5 },
+  'gpt-5.6-luna': { input: 0.2, cachedInput: 0.02, cacheWrite: 0.2, output: 1.2 },
+};
+// Responses report a dated snapshot of the configured model, such as gpt-5.4-mini-2026-03-17.
+const SNAPSHOT = /-\d{4}-\d{2}-\d{2}$/;
+
+function builtInPrices(model: string): AiPrices | undefined {
+  return MODEL_PRICES[model.replace(SNAPSHOT, '')];
+}
+
+interface AiPrices {
+  input: number;
+  cachedInput: number;
+  cacheWrite: number;
+  output: number;
+}
 
 export interface AiUsage {
   inputTokens: number;
@@ -23,7 +39,7 @@ export interface AiUsage {
 export interface AiBudget {
   directory: string;
   limitUsd: number;
-  prices?: typeof MINI_PRICES;
+  prices?: AiPrices;
 }
 export interface AiOptions {
   apiKey: string;
@@ -107,12 +123,12 @@ export function responseUsage(value: unknown): AiUsage | null {
 }
 
 function pricesFor(model: string, budget: AiBudget) {
-  if (budget.prices) return budget.prices;
-  if (!MINI_MODELS.has(model))
+  const prices = budget.prices ?? builtInPrices(model);
+  if (!prices)
     throw new PipelineInputError(
       'This model needs explicit token prices before a budgeted request.',
     );
-  return MINI_PRICES;
+  return prices;
 }
 
 export async function reserveAiBudget(
@@ -173,9 +189,9 @@ export async function reserveAiBudget(
       throw new PipelineInputError(
         'OpenAI usage is unavailable; the maximum request reservation remains charged against the budget.',
       );
-    if (!budget.prices && !MINI_MODELS.has(responseModel))
+    if (!budget.prices && builtInPrices(responseModel) !== prices)
       throw new PipelineInputError(
-        'OpenAI returned an unpriced model; the request reservation remains in the budget.',
+        'OpenAI returned an unpriced model or one priced differently from the configured model; the request reservation remains in the budget.',
       );
     const costNano = Math.ceil(
       (((usage.inputTokens - usage.cachedInputTokens - usage.cacheWriteInputTokens) * prices.input +

@@ -132,3 +132,19 @@ it('serializes competing reservations and fails closed on unpriced models or cha
     process.cwd(),
   );
 });
+
+it('prices gpt-5.6-luna and its dated snapshots, and refuses a response from a differently priced model', async () => {
+  const configuration = await budget();
+  const settle = await reserveAiBudget(configuration, 'gpt-5.6-luna', 1000, 4096);
+  const usage = {
+    inputTokens: 1000,
+    cachedInputTokens: 500,
+    cacheWriteInputTokens: 0,
+    outputTokens: 100,
+    reasoningTokens: 40,
+  };
+  // 500 × $0.20 + 500 × $0.02 + 100 × $1.20, per million tokens.
+  expect((await settle(usage, 'gpt-5.6-luna-2026-09-24')).costUsd).toBeCloseTo(0.00023);
+  const mismatched = await reserveAiBudget(configuration, 'gpt-5.6-luna', 1000, 4096);
+  await expect(mismatched(usage, 'gpt-5.4-mini-2026-03-17')).rejects.toThrow(/unpriced model/);
+});
