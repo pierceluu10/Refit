@@ -1,7 +1,11 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { isMap, isScalar, parseDocument, type Document } from 'yaml';
-import { fetchSpecificationResponse, readBoundedResponse } from './network.ts';
+import {
+  fetchSpecificationResponse,
+  readBoundedResponse,
+  SpecificationUnavailableError,
+} from './network.ts';
 import { EXACT_PACKAGE_VERSION } from './npm-lock.ts';
 import { isObject } from './specifications.ts';
 
@@ -45,10 +49,20 @@ export const STRIPE_SDK_RELEASES: Record<string, string> = {
 const REGISTRY = 'https://registry.npmjs.org/stripe/';
 const MAX_METADATA_BYTES = 1024 * 1024;
 const REQUEST_TIMEOUT_MS = 30_000;
+const REGISTRY_ATTEMPTS = 3;
+const REGISTRY_RETRY_MS = 2_000;
 const INTEGRITY = /^sha512-[A-Za-z0-9+/]{86}==$/;
 const VERSION_SPEC = /^([~^]?)(\d+\.\d+\.\d+)$/;
 // pnpm writes flow maps without inner padding and never folds long lines.
 const PNPM_FORMAT = { lineWidth: 0, flowCollectionPadding: false, singleQuote: true };
+const NPM_FORMATS = [2, 4, '\t'].flatMap((indent) =>
+  ['\n', '\r\n'].flatMap((newline) =>
+    ['', '\n'].map(
+      (end) => (lock: unknown) =>
+        `${JSON.stringify(lock, null, indent)}${end}`.replace(/\n/g, newline),
+    ),
+  ),
+);
 const PNPM_IMPORTER_SECTIONS = ['dependencies', 'devDependencies', 'optionalDependencies'];
 
 export const PACKAGE_FILES = ['package.json', 'package-lock.json', 'pnpm-lock.yaml'];
@@ -132,18 +146,32 @@ function manifestDeclaration(
   };
 }
 
+// Benchmark runs under load saw single connection resets; a short retry keeps them from skipping
+// the upgrade. Any other failure is reported at once.
+async function registryResponse(target: string) {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await fetchSpecificationResponse(
+        `${REGISTRY}${target}`,
+        {
+          redirect: 'error',
+          signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+          headers: { Accept: 'application/json' },
+        },
+        'npm registry',
+      );
+    } catch (error) {
+      if (!(error instanceof SpecificationUnavailableError) || attempt === REGISTRY_ATTEMPTS)
+        throw error;
+      await new Promise((done) => setTimeout(done, REGISTRY_RETRY_MS * attempt));
+    }
+  }
+}
+
 async function registryRelease(target: string): Promise<Release | Refusal> {
   let metadata: unknown;
   try {
-    const response = await fetchSpecificationResponse(
-      `${REGISTRY}${target}`,
-      {
-        redirect: 'error',
-        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
-        headers: { Accept: 'application/json' },
-      },
-      'npm registry',
-    );
+    const response = await registryResponse(target);
     if (!response.ok) {
       await response.body?.cancel();
       return { reason: `The npm registry returned HTTP ${response.status} for stripe ${target}.` };
@@ -253,9 +281,10 @@ async function npmUpgrade(
   if ('reason' in declared) return declared;
   if (![2, 3].includes(lock.lockfileVersion as number))
     return { reason: 'Only npm lockfile versions 2 and 3 are upgraded.' };
-  // Rewriting with npm's own formatting keeps the diff to the changed entries.
-  if (lockText !== `${JSON.stringify(lock, null, 2)}\n`)
-    return { reason: 'package-lock.json is not in npm formatting.' };
+  // npm keeps a lockfile's indentation and line endings; rewriting the same way keeps the diff to
+  // the changed entries.
+  const render = NPM_FORMATS.find((format) => format(lock) === lockText);
+  if (!render) return { reason: 'package-lock.json is not in npm formatting.' };
   const packages = lock.packages as Record<string, unknown>;
   const entry = packages['node_modules/stripe'];
   if (!isObject(entry) || typeof entry.version !== 'string')
@@ -310,7 +339,7 @@ async function npmUpgrade(
         {
           path: 'package-lock.json',
           before: lockText,
-          after: `${JSON.stringify(lock, null, 2)}\n`,
+          after: render(lock),
         },
       ],
     },

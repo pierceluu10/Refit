@@ -138,6 +138,45 @@ it('accepts an installed optional peer inside its range', async () => {
   expect('upgrade' in result).toBe(true);
 });
 
+it.each([
+  ['tab indentation', (lock: unknown) => `${JSON.stringify(lock, null, '\t')}\n`],
+  ['four spaces without a final newline', (lock: unknown) => JSON.stringify(lock, null, 4)],
+  [
+    'CRLF line endings',
+    (lock: unknown) => `${JSON.stringify(lock, null, 2)}\n`.replace(/\n/g, '\r\n'),
+  ],
+])('keeps a package-lock.json written with %s in that formatting', async (_label, format) => {
+  registry();
+  const result = await stripePackageUpgrade(
+    await project({ raw: format(lockfile()) }),
+    '2026-09-30.endive',
+  );
+  if (!('upgrade' in result)) throw new Error(result.reason);
+  const lock = result.upgrade.files[1];
+  expect(lock.after).toBe(format(JSON.parse(lock.after)));
+  expect(JSON.parse(lock.after).packages['node_modules/stripe'].version).toBe(TARGET);
+});
+
+it('retries the registry after a temporary network failure', async () => {
+  vi.useFakeTimers({ toFake: ['setTimeout'] });
+  const fetch = registry();
+  fetch.mockRejectedValueOnce(
+    Object.assign(new TypeError('fetch failed'), {
+      cause: Object.assign(new Error('reset'), { code: 'ECONNRESET' }),
+    }),
+  );
+  const pending = stripePackageUpgrade(await project(), '2026-09-30.endive');
+  // File reads are real I/O, so step the faked clock until the retry has been sent.
+  while (fetch.mock.calls.length < 2) {
+    await new Promise((done) => setImmediate(done));
+    vi.advanceTimersByTime(2_000);
+  }
+  const result = await pending;
+  vi.useRealTimers();
+  expect('upgrade' in result).toBe(true);
+  expect(fetch).toHaveBeenCalledTimes(2);
+});
+
 it('keeps exact and dev declarations as they were written', async () => {
   registry();
   const result = await stripePackageUpgrade(
