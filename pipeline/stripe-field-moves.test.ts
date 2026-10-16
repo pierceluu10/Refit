@@ -543,3 +543,60 @@ it('returns the rule patch without calling the model when rules cover every find
   });
   expect(fetch).not.toHaveBeenCalled();
 });
+
+// Reduced 2025-02-24.acacia → 2025-03-31.basil invoicing contracts for moves without a rule.
+function invoicingSchemas(after: boolean): Record<string, unknown> {
+  return {
+    invoice: {
+      type: 'object',
+      properties: {
+        id: string,
+        lines: list('line_item'),
+        ...(after
+          ? { confirmation_secret: string }
+          : { payment_intent: { anyOf: [string, ref('payment_intent')], nullable: true } }),
+      },
+    },
+    payment_intent: { type: 'object', properties: { id: string } },
+    line_item: {
+      type: 'object',
+      properties: {
+        id: string,
+        amount: integer,
+        ...(after ? {} : { type: string, price: { anyOf: [ref('price')], nullable: true } }),
+      },
+    },
+    price: { type: 'object', properties: { id: string, nickname: string } },
+  };
+}
+
+it('leaves invoicing moves without a behaviour-preserving read unresolved with their reason', () => {
+  const content = `${header}export async function lines(id: string) {
+  const invoice = await stripe.invoices.retrieve(id);
+  const line = invoice.lines.data[0];
+  return [invoice.payment_intent, line.type, line.price?.nickname, line.amount];
+}`;
+  const result = analyzeRepository(
+    {
+      root: '/field-moves',
+      files: [{ path: 'billing.ts', content }],
+      dependencies: [],
+      lockfiles: [],
+      warnings: [],
+    },
+    findRemovedProperties(invoicingSchemas(false), invoicingSchemas(true), provider.id),
+    provider,
+    invoicingSchemas(false),
+  );
+  expect(result.edits).toEqual([]);
+  expect(
+    result.findings.map((finding) => [finding.expression, finding.confidence, finding.reason]),
+  ).toEqual([
+    ['.payment_intent', 'confirmed', expect.stringContaining('invoice.confirmation_secret')],
+    ['.type', 'confirmed', expect.stringContaining('documents no mapping between the values')],
+    ['.price', 'confirmed', expect.stringContaining('holds only the price ID')],
+  ]);
+  expect(result.findings[0].reason).toMatch(
+    /^Removed field read on a statically traced stripe-moves invoice response\. Stripe 2025-03-31\.basil removed invoice\.payment_intent.*add-support-for-multiple-partial-payments-on-invoices$/,
+  );
+});

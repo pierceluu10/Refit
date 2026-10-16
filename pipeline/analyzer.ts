@@ -30,6 +30,7 @@ import {
   invoiceSubscriptionHelperEdit,
   type PeriodRareCase,
 } from './stripe-subscription-periods.ts';
+import { STRIPE_MOVE_REVIEW } from './stripe-field-moves.ts';
 import {
   PipelineInputError,
   type Finding,
@@ -1386,6 +1387,15 @@ export function analyzeRepository(
       );
       const migration = confirmed ? propose(node, receiver, change) : undefined;
       if (property === undefined && !tracked) continue;
+      const file = location(node).file;
+      const moveReview =
+        confirmed &&
+        provider.packageName === STRIPE.packageName &&
+        !edits.some(
+          (edit) => edit.file === file && edit.start < node.getEnd() && node.getStart() < edit.end,
+        )
+          ? STRIPE_MOVE_REVIEW[`${change.schema}.${change.property}`]
+          : undefined;
       findings.push({
         ...location(node),
         changeId: change.id,
@@ -1426,7 +1436,7 @@ export function analyzeRepository(
             }
           : {}),
         reason:
-          declaredType && confirmed
+          (declaredType && confirmed
             ? `Removed ${schema}.${change.property} read on a value declared with a Stripe.* type.`
             : declaredType
               ? 'Declared Stripe type identifies this possible field usage, but the value may be mutated; inspect manually.'
@@ -1436,7 +1446,8 @@ export function analyzeRepository(
                   ? `Removed field read on a statically traced ${provider.id} ${schema} response.`
                   : uncertainMutation
                     ? 'Response or SDK client may be mutated or escape through an alias or call, or come from an optional SDK invocation; inspect manually.'
-                    : 'Receiver or property cannot be proven by the supported local analysis; inspect manually.',
+                    : 'Receiver or property cannot be proven by the supported local analysis; inspect manually.') +
+          (moveReview ? ` ${moveReview}` : ''),
       });
     }
   }

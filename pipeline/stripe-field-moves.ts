@@ -58,3 +58,17 @@ export function propertyExists(schemas: Record<string, unknown>, path: string[])
   }
   return true;
 }
+
+const PRICING_REVIEW =
+  'Stripe 2025-03-31.basil replaced this full Price object with pricing.price_details.price, which holds only the price ID unless pricing.price_details.price is expanded (check pricing.type is price_details first). Reading other Price fields needs that expand or a prices.retrieve call, so Refit does not rewrite it. Source: https://docs.stripe.com/changelog/basil/2025-03-31/invoice-pricing-configurations';
+
+// Removed Stripe reads whose new location is not a behaviour-preserving read; they stay unresolved
+// with this reason. Source: docs/benchmarks/stripe-changelog/ pages, captured 2026-10-15.
+export const STRIPE_MOVE_REVIEW: Record<string, string> = {
+  'line_item.type':
+    'Stripe 2025-03-31.basil replaced line_item.type (invoiceitem or subscription) with line_item.parent.type (invoice_item_details or subscription_item_details; parent can be null). Stripe documents no mapping between the values, so Refit does not rewrite it. Source: https://docs.stripe.com/changelog/basil/2025-03-31/adds-new-parent-field-to-invoicing-objects',
+  'line_item.price': PRICING_REVIEW,
+  'invoiceitem.price': PRICING_REVIEW,
+  'invoice.payment_intent':
+    'Stripe 2025-03-31.basil removed invoice.payment_intent: an invoice can have several payments, listed in invoice.payments (expand payments) or the Invoice Payments API. Picking one PaymentIntent changes behaviour, so Refit does not rewrite it. For a Payment Element client secret, Stripe documents invoice.confirmation_secret.client_secret (expand confirmation_secret). Source: https://docs.stripe.com/changelog/basil/2025-03-31/add-support-for-multiple-partial-payments-on-invoices',
+};

@@ -46,6 +46,14 @@ Copy it next to your contracts and reference it from `providerConfig`; add your 
 
 Those reads still need review or a reviewed AI proposal.
 
+These basil removals have a new location, but no read of it behaves the same, so no rule rewrites them. Confirmed reads stay unresolved, and their finding reason names the cause and links the changelog:
+
+| Removed | Why it stops for review |
+|---|---|
+| `line_item.type` | [Replaced by `line_item.parent.type`](https://docs.stripe.com/changelog/basil/2025-03-31/adds-new-parent-field-to-invoicing-objects), whose values (`invoice_item_details`, `subscription_item_details`) differ and whose `parent` can be null. Stripe documents no value mapping. |
+| `line_item.price`, `invoiceitem.price` | [Replaced by `pricing.price_details.price`](https://docs.stripe.com/changelog/basil/2025-03-31/invoice-pricing-configurations), which holds the price ID, not the Price object, unless the code expands it. |
+| `invoice.payment_intent` | [Replaced by `invoice.payments`](https://docs.stripe.com/changelog/basil/2025-03-31/add-support-for-multiple-partial-payments-on-invoices), a list that needs an expand, because an invoice can have several payments. For a Payment Element client secret, Stripe documents `invoice.confirmation_secret.client_secret`, which also needs an expand. |
+
 ## What Refit verifies
 
 Before scanning, Refit checks the move against your recorded contracts:
