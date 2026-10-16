@@ -81,8 +81,8 @@ Dropping it lets the Dashboard decide, which can add Link, wallets, BNPL and asy
 
 All three Stripe sets were rerun from a pinned worktree with the full pipeline.
 
-- **Coverage.** The original 100 and held-out 50 completed. Docker was shut down before the fresh set finished, so 333 of its 381 repositories were measured. 40 never ran, and 8 failed only because the Docker daemon was gone; they are excluded.
-- **Validated fixes: 10 → 45** on the same repositories.
+- **Coverage.** All 531 repositories were measured with validation. Docker was shut down partway through the fresh set, so 48 of its repositories ran later, at `4fffbee`. The table below covers the first 333.
+- **Validated fixes: 10 → 51** on the same repositories (original 4 → 11, held-out 1 → 7, fresh 5 → 33).
 
 | | Original 100 | Held-out 50 | Fresh (333 measured) |
 |---|---|---|---|
@@ -95,14 +95,13 @@ All three Stripe sets were rerun from a pinned worktree with the full pipeline.
 | … validation regression: other type errors after the stripe-node 23 upgrade, caught and not proposed | 4 | 0 | 5 |
 | … other (baseline failing, review stop, no checks) | 0 | 0 | 7 |
 
-- **Every one of the 38 validated card-rule fixes was checked against its diff.** Each renames only the key on an exact `['card']` literal and moves the pin to `2026-09-30.endive`. Every TypeScript fix upgrades stripe-node to 23.0.0; the three JavaScript ones keep their package, as the gate allows.
+- **Every one of the 41 validated card-rule fixes was checked against its diff.** Each renames only the key on an exact `['card']` literal and moves the pin to `2026-09-30.endive`. Every TypeScript fix upgrades stripe-node to 23.0.0; the three JavaScript ones keep their package, as the gate allows.
 - **Three were also read in full by hand:** `pra9711/lexinote`, `sudeepmahato16/airbnb-clone` and `mahin67580/FoodieFrog`. In lexinote, only the invoice branch's `session.subscription` read moved.
-- **Evidence.** For 35 of the 38, `tsc` passed with no new errors, 14 of them with generated `stripe-mock` checks as well. The other 3 have no checks of their own, so only the generated `stripe-mock` checks ran.
-- **The other 48 fresh repositories were scanned without Docker.** Patches were proposed but not validated. 28 are affected:
-  - 18 get a deterministic patch, 14 of them through the card rule; all 14 diffs pass the same check;
-  - 9 still stop on `payment_method_types`;
-  - 1 has no deterministic rule.
-
-  Validated counts for these 48 need Docker and are not claimed.
+- **Evidence.** For 38 of the 41, `tsc` passed with no new errors, at least 14 of them with generated `stripe-mock` checks as well. The other 3 have no checks of their own, so only the generated `stripe-mock` checks ran.
+- **The other 48 fresh repositories** (run at `4fffbee`):
+  - 6 validated, 3 of them new card-rule fixes. The other 3 are the earlier hand-reviewed fixes, validated again.
+  - 9 still stop on `payment_method_types`.
+  - 10 were refused by validation preparation, 1 regression was caught, and 2 have no checks.
+  - 20 are not affected.
 - **No other outcome changed.** Every repository that was not stopped on `payment_method_types` has the same outcome as before, and no previously validated fix was lost.
 - **The rerun found one bug, fixed with a test before these numbers.** Validation's preflight requests no patch, so it had dropped the rename and refused 29 patches the run had proposed.
