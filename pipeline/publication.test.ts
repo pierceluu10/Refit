@@ -710,7 +710,7 @@ async function untestedReport(): Promise<Report> {
     patched: notRun,
     dependencyFailure: repositoryDependencyFailure(
       new PipelineInputError(
-        'package.json dependency requirements differ from the committed root lockfile. Update and commit the lockfile before preparation.',
+        'package.json dependencies differ from the committed package-lock.json: stripe is "11.0.0" in package.json but missing in the lockfile. Run npm install and commit the updated package-lock.json.',
       ),
     ),
   };

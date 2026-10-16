@@ -55,7 +55,7 @@ async function untested(status = 'untested') {
       patched: notRun,
       dependencyFailure: repositoryDependencyFailure(
         new PipelineInputError(
-          'Automatic preparation requires committed root package.json and package-lock.json, pnpm-lock.yaml or yarn.lock.',
+          'The repository commits package.json without a lockfile, so the dependency versions to verify are unknown. Run npm install, pnpm install or yarn install and commit the package-lock.json, pnpm-lock.yaml or yarn.lock it writes.',
         ),
       ),
     },

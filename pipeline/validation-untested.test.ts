@@ -58,7 +58,7 @@ async function options() {
 it('returns the patch untested on a repository-side preparation failure only when asked', async () => {
   const input = await options();
   const outOfSync = new PipelineInputError(
-    'package.json dependency requirements differ from the committed root lockfile. Update and commit the lockfile before preparation.',
+    'package.json dependencies differ from the committed package-lock.json: stripe is "11.0.0" in package.json but missing in the lockfile. Run npm install and commit the updated package-lock.json.',
   );
   vi.mocked(prepareDependencies).mockRejectedValue(outOfSync);
   await expect(validateMigration(input)).rejects.toBe(outOfSync);

@@ -44,7 +44,7 @@ it('classifies the lockfile refusals the repository owner can fix', () => {
   expect(
     repositoryDependencyFailure(
       new PipelineInputError(
-        'Automatic preparation requires committed root package.json and package-lock.json, pnpm-lock.yaml or yarn.lock.',
+        'The repository commits package.json without a lockfile, so the dependency versions to verify are unknown. Run npm install, pnpm install or yarn install and commit the package-lock.json, pnpm-lock.yaml or yarn.lock it writes.',
       ),
     ),
   ).toMatchObject({ reason: 'no-lockfile', action: expect.stringContaining('package-lock.json') });
@@ -76,7 +76,7 @@ it('leaves sandbox, network and unknown failures unclassified', () => {
     new DependencyPreparationError('Dependency preparation exceeded 300 seconds.'),
     new DependencyPreparationError('npm dependency preparation failed (1). npm error ENOSPC'),
     new PipelineInputError('Prepared dependency cache does not match its committed inputs.'),
-    new Error('package.json dependency requirements differ from the committed root lockfile.'),
+    new Error('package.json dependencies differ from the committed package-lock.json.'),
   ])
     expect(repositoryDependencyFailure(error)).toBeUndefined();
 });

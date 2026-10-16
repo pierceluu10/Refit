@@ -148,7 +148,7 @@ export class DependencyPreparationError extends PipelineInputError {
 const REPOSITORY_DEPENDENCY_FAILURES = [
   {
     reason: 'no-lockfile',
-    pattern: /^Automatic preparation requires committed root package\.json and package-lock\.json/,
+    pattern: /^The repository commits package\.json without a lockfile/,
     summary: 'the repository has no committed lockfile',
     action: () =>
       'Commit a lockfile (for npm, run `npm install` and commit `package-lock.json`), then rerun your checks on this branch.',
@@ -156,7 +156,7 @@ const REPOSITORY_DEPENDENCY_FAILURES = [
   {
     reason: 'lockfile-out-of-sync',
     pattern:
-      /dependency requirements differ from the committed root lockfile|^Workspaces must match the committed root lockfile|^Workspace names and versions must match their committed lockfile records|^pnpm lockfile importers must exactly match|^npm dependency preparation failed[\s\S]*\bin sync\b|ERR_PNPM_OUTDATED_LOCKFILE|Your lockfile needs to be updated/,
+      /differ from the committed package-lock\.json|^Workspaces must match the committed root lockfile|^Workspace names and versions must match their committed lockfile records|^pnpm lockfile importers must exactly match|^npm dependency preparation failed[\s\S]*\bin sync\b|ERR_PNPM_OUTDATED_LOCKFILE|Your lockfile needs to be updated/,
     summary: 'the committed lockfile is out of sync with package.json',
     action: (lockfile: string) =>
       `Update \`${lockfile}\` so it matches \`package.json\` (run your package manager's install), commit it, then rerun your checks on this branch.`,
@@ -164,7 +164,7 @@ const REPOSITORY_DEPENDENCY_FAILURES = [
   {
     reason: 'lockfile-integrity',
     pattern:
-      /^Every npm package requires a registry URL, version and SHA-256-or-stronger integrity|^Every pnpm package needs a registry name\/version and SHA-256-or-stronger integrity|^Every yarn\.lock entry must resolve an exact version to a public registry tarball/,
+      /^Every npm package requires a registry URL, version and SHA-256-or-stronger integrity|^package-lock\.json records .+ without a version, registry "resolved" URL and SHA-256-or-stronger "integrity"|^Every pnpm package needs a registry name\/version and SHA-256-or-stronger integrity|^Every yarn\.lock entry must resolve an exact version to a public registry tarball/,
     summary: 'lockfile entries have no registry integrity hash',
     action: (lockfile: string) =>
       `Regenerate \`${lockfile}\` from the public npm registry so every entry records its tarball URL and integrity hash, commit it, then rerun your checks on this branch.`,
