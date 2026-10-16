@@ -28,7 +28,7 @@ On rerun, validated Stripe fixes rose from **10 to 53** on the same 531 reposito
 
 - original 100: 4 → 11;
 - held-out 50: 1 → 7;
-- fresh 381: 5 → 35. `YunmeiYe/nextjs-ai-platform` counts as validated: it hit a dependency-cache lock held by a concurrent run of the same repositories, and validated in a rerun at `4fffbee` with no contention (the other 380 fresh results are from `6d02116`).
+- fresh 381: 5 → 35. `YunmeiYe/nextjs-ai-platform` counts as validated: it hit a dependency-cache lock held by a concurrent run of the same repositories, and validated when rerun alone at `6d02116`, the same commit as the other 380 fresh results.
 
 All 43 card-rule fixes were checked against their diffs. 40 passed `tsc` with no new errors, and 3 are covered only by generated `stripe-mock` checks. 10 patches regressed on other stripe-node 23 type errors; validation caught them, and none was proposed. No other outcome changed. The tables below predate the policy.
 
