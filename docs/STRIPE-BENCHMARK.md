@@ -193,6 +193,10 @@ To publish validated fixes as real draft PRs, add `--publish <github-org>` (requ
 
 The benchmark attaches the pinned Stripe changelog pages in [`benchmarks/stripe-changelog/`](benchmarks/stripe-changelog/) to AI patches for the changes each repository hits.
 
+## Fresh 381 repositories (October 16, 2026)
+
+A third set, [`2026-10-16-stripe-fresh-repos.json`](benchmarks/2026-10-16-stripe-fresh-repos.json), holds the 381 eligible repositories among the 400 most starred of 3,034 new candidates. None overlaps the 150 above. Its method, results and hand reviews are in [Benchmarks](BENCHMARKS.md#stripe), which also consolidates every set.
+
 ## Validation funnel on real repositories (October 15, 2026)
 
 Measured with `npm run benchmark:stripe -- --validate` on `main` after the version-tolerant webhook reads, the SDK package upgrade and generated `stripe-mock` checks, with deterministic fixes only (no AI). The benchmark now validates every affected repository with a root npm lockfile and `stripe` declared, not only those with a test script:

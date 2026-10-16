@@ -12,7 +12,7 @@ import { PipelineInputError } from './types.ts';
 
 const execute = promisify(execFile);
 const USAGE =
-  'Usage: npm run benchmark:shopify -- --root <benchmark-dir> --output <new-dir> [--validate] [--limit N] [--concurrency N]';
+  'Usage: npm run benchmark:shopify -- --root <benchmark-dir> --output <new-dir> [--list <frozen.json>] [--validate] [--limit N] [--concurrency N]';
 const PINNED = 'docs/benchmarks/2026-10-16-shopify-repos.json';
 // Default `npm init` script; it is not a check.
 const PLACEHOLDER_TEST = /no test specified/;
@@ -24,6 +24,7 @@ const { values } = parseArgs({
   options: {
     root: { type: 'string' },
     output: { type: 'string' },
+    list: { type: 'string' },
     validate: { type: 'boolean' },
     limit: { type: 'string' },
     concurrency: { type: 'string' },
@@ -32,7 +33,7 @@ const { values } = parseArgs({
 if (!values.root || !values.output) throw new PipelineInputError(USAGE);
 const root = resolve(values.root);
 const output = resolve(values.output);
-const pinned = JSON.parse(await readFile(PINNED, 'utf8')) as {
+const pinned = JSON.parse(await readFile(values.list ?? PINNED, 'utf8')) as {
   repos: { repo: string; stars: number; commit: string }[];
   schemas: { versions: { version: string }[] };
 };
@@ -241,7 +242,9 @@ await Promise.all(
   Array.from({ length: Math.min(concurrency, repos.length) }, async () => {
     while (next < repos.length) {
       const index = next++;
+      const started = Date.now();
       await benchmark(repos[index], index);
+      results[index].seconds = Math.round((Date.now() - started) / 1000);
       await writeFile(join(output, 'results.json'), `${JSON.stringify(results, null, 2)}\n`);
     }
   }),

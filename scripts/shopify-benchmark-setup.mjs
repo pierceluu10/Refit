@@ -11,14 +11,21 @@ const execute = promisify(execFile);
 const PINNED = 'docs/benchmarks/2026-10-16-shopify-repos.json';
 const GIT_TIMEOUT_MS = 300_000;
 const { values } = parseArgs({
-  options: { root: { type: 'string' }, limit: { type: 'string' }, help: { type: 'boolean' } },
+  options: {
+    root: { type: 'string' },
+    list: { type: 'string' },
+    limit: { type: 'string' },
+    help: { type: 'boolean' },
+  },
 });
 if (values.help || !values.root) {
-  console.log('Usage: node scripts/shopify-benchmark-setup.mjs --root <dir> [--limit N]');
+  console.log(
+    'Usage: node scripts/shopify-benchmark-setup.mjs --root <dir> [--list <frozen.json>] [--limit N]',
+  );
   process.exit(values.help ? 0 : 1);
 }
 const root = resolve(values.root);
-const pinned = JSON.parse(await readFile(PINNED, 'utf8'));
+const pinned = JSON.parse(await readFile(values.list ?? PINNED, 'utf8'));
 const repos = pinned.repos.slice(0, values.limit ? Number(values.limit) : undefined);
 await mkdir(join(root, 'snapshots'), { recursive: true });
 await mkdir(join(root, 'repos'), { recursive: true });

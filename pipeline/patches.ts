@@ -1,5 +1,5 @@
 import { createTwoFilesPatch } from 'diff';
-import type { Finding, Repository, SourceEdit } from './types.ts';
+import { PipelineInputError, type Finding, type Repository, type SourceEdit } from './types.ts';
 import { STRIPE, type ProviderAdapter } from './providers.ts';
 import type { OperationReplacement } from './provider-operation-replacements.ts';
 import type { RequestPropertyRename } from './provider-request-renames.ts';
@@ -58,6 +58,10 @@ export function renderPatch(repository: Repository, edits: SourceEdit[]) {
       .filter((edit) => edit.file === file.path)
       .sort((a, b) => b.start - a.start);
     if (!changes.length) continue;
+    if (file.encoding)
+      throw new PipelineInputError(
+        `${file.path} is UTF-16; Refit only edits UTF-8 source files. Migrate it manually.`,
+      );
     const updated = applySourceEdits(file.content, changes);
     const count = (content: string) => content.split('\n').length - Number(content.endsWith('\n'));
     const oldPath = JSON.stringify(`a/${file.path}`);

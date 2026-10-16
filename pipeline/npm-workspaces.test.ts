@@ -64,11 +64,21 @@ it('uses standard positive globs over committed manifest paths, excludes depende
   ).toEqual(['apps/api', 'packages/a', 'packages/b']);
 });
 
+it('reads the { packages } declaration the way npm does', () => {
+  expect(
+    npmWorkspaceDirectories({ ...manifest, workspaces: { packages: ['extensions/*'] } }, [
+      'extensions/theme/package.json',
+      'web/package.json',
+    ]),
+  ).toEqual(['extensions/theme']);
+});
+
 it.each([
   ['../outside/*'],
   ['/private/*'],
   ['!packages/a'],
-  { packages: ['packages/*'] },
+  { packages: ['packages/*'], nohoist: ['**'] },
+  { packages: ['../outside/*'] },
   ['packages/\n*'],
   [null],
 ])('rejects unsupported or escaping declarations before reading extra files: %j', (workspaces) => {

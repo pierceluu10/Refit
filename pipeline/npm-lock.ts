@@ -61,7 +61,12 @@ function dependencySources(value: Record<string, unknown>) {
 
 export function npmWorkspaceDirectories(manifest: Record<string, unknown>, paths: string[]) {
   if (manifest.workspaces === undefined) return [];
-  const patterns = manifest.workspaces;
+  // npm reads Yarn's `{ "packages": [...] }` form the same way (@npmcli/map-workspaces).
+  const declared = manifest.workspaces;
+  const patterns =
+    isObject(declared) && Object.keys(declared).join() === 'packages'
+      ? declared.packages
+      : declared;
   if (
     !Array.isArray(patterns) ||
     patterns.length > MAX_WORKSPACES ||
@@ -76,7 +81,7 @@ export function npmWorkspaceDirectories(manifest: Record<string, unknown>, paths
     )
   )
     throw new PipelineInputError(
-      'npm workspaces require at most 64 positive relative path/glob patterns. Negations, escaping paths and object declarations require a custom image.',
+      'npm workspaces require at most 64 positive relative path/glob patterns. Negations, escaping paths and object declarations other than { packages } require a custom image.',
     );
   const directories = paths
     .filter((path) => path.endsWith('/package.json'))

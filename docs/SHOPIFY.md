@@ -18,9 +18,9 @@ Only supported versions are published. Shopify serves a request for an unsupport
 ## What Refit reads
 
 - **Clients:** `admin.graphql(...)` from `@shopify/shopify-app-remix`, `-react-router` and `-express` (`authenticate.admin`, `unauthenticated.admin`); `createAdminApiClient(...).request(...)` from `@shopify/admin-api-client`; `new shopify.clients.Graphql(...).request/query(...)` from `@shopify/shopify-api`.
-- **Documents:** literals and constants in scope or imported from another module, `await import()` destructuring, `${FRAGMENT}` interpolation of constant fragments, ternaries between documents, and `{ query }` bodies. `#graphql` literals no call reaches are checked too.
+- **Documents:** literals and constants in scope or imported from another module (named or default exports, including Remix-style `./shopify.server` paths), `await import()` destructuring, `${FRAGMENT}` interpolation of constant fragments, ternaries between documents, and `{ query }` bodies. When the document is a parameter of a named helper (`adminQuery(admin, query)`), Refit reads the argument at every call site in the same file or through a named import, and a call site passing a runtime-built document stops at its own line. `#graphql` literals no call reaches are checked too.
 - **Pins:** `ApiVersion.<Month><YY>`, `apiVersion: 'YYYY-MM'` in files that use Shopify, `/admin/api/YYYY-MM/` URLs, and `LATEST_API_VERSION`, which the locked `@shopify/shopify-api` release fixes (the constant was removed in 12.0.0). Pins in `.graphqlrc.*` are codegen configuration: they are moved with the runtime pin but never count as a conflict.
-- **REST:** `admin.rest.*`, `shopify.clients.Rest` and `/admin/api/<version>/*.json` URLs.
+- **REST:** `admin.rest.*`, `shopify.clients.Rest`, `/admin/api/<version>/*.json` URLs, and versioned URLs with a resource path before a substitution (`/admin/api/2024-01/products/${id}.json`).
 
 ## The rule
 
@@ -60,4 +60,4 @@ This writes a `shopify` integration into `.refit.json` with `refit/shopify-befor
 - Admin GraphQL only. REST has no published versioned contract; `shopify-api-node` is detected but not migrated.
 - Validation proves a document is well-formed against the schema, not that the app handles every new behavior (rate limits, new error codes, changed defaults). Application checks remain the evidence for behavior.
 - Webhook subscriptions keep their own API version in `shopify.app.toml`; the draft PR points this out.
-- Documents built at runtime, passed through helper functions or stored in arrays are not read.
+- Documents built at runtime, stored in arrays, or passed to helpers that are called through callbacks, closures (`createRequest(admin)(query)`) or re-exports are not read.

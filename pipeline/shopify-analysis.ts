@@ -17,8 +17,12 @@ const GRAPHQL_MARKER = /^\s*#graphql\b/;
 const TEST_FILE = /(?:^|\/)(?:__tests__|tests?)\/|\.(?:test|spec)\.[cm]?[jt]sx?$/;
 const ADMIN_RECEIVER = /(?:^|\.)admin$/;
 const ADMIN_CLIENT_FACTORY = /^createAdminApiClient$|\.clients\.Graphql$|^GraphqlClient$/;
-const REST_RECEIVER = /(?:^|\.)admin\.rest\b|\brest\.resources\b|\.clients\.Rest$/;
-const REST_URL = /\/admin\/api\/(\d{4}-\d{2}|unstable)\/[\w/{}.$-]*\.json/;
+// `admin.rest.*`, `rest.resources.*`, `clients.Rest`, and REST resource classes (`shopify.rest.Product`).
+const REST_RECEIVER =
+  /(?:^|\.)admin\.rest\b|\brest\.resources\b|\.clients\.Rest$|(?:^|\.)rest\.[A-Z]\w*(?:\.|$)/;
+// A `.json` endpoint, or a resource path segment before a substitution (`products/${id}.json`).
+const REST_URL =
+  /\/admin\/api\/(\d{4}-\d{2}|unstable)\/(?:[\w/{}.$-]*\.json|(?!graphql\b)[\w-]+\/)/;
 const VERSION_URL = /\/admin\/api\/(\d{4}-\d{2})\//g;
 
 export interface DocumentSegment {
@@ -66,6 +70,12 @@ function isLiteral(node: ts.Node): node is Literal {
     ts.isStringLiteral(node) ||
     ts.isTemplateExpression(node)
   );
+}
+
+function isWithin(node: ts.Node, ancestor: ts.Node) {
+  for (let current: ts.Node | undefined = node; current; current = current.parent)
+    if (current === ancestor) return true;
+  return false;
 }
 
 function unwrap(node: ts.Expression): ts.Expression {
@@ -128,15 +138,19 @@ export function scanShopify(repository: Repository): ShopifyScan {
         for (const declaration of statement.declarationList.declarations)
           if (ts.isIdentifier(declaration.name) && declaration.initializer)
             local.set(declaration.name.text, declaration.initializer);
+      // `export default NAME` is read as the constant `default`.
+      if (ts.isExportAssignment(statement) && !statement.isExportEquals)
+        local.set('default', statement.expression);
       if (
         ts.isImportDeclaration(statement) &&
         ts.isStringLiteral(statement.moduleSpecifier) &&
-        statement.importClause?.namedBindings &&
-        ts.isNamedImports(statement.importClause.namedBindings)
+        statement.importClause
       ) {
         const target = resolution.resolve(statement.moduleSpecifier.text, absolute);
-        if (target)
-          for (const element of statement.importClause.namedBindings.elements)
+        const { name, namedBindings } = statement.importClause;
+        if (target && name) imported.set(name.text, { file: target, name: 'default' });
+        if (target && namedBindings && ts.isNamedImports(namedBindings))
+          for (const element of namedBindings.elements)
             imported.set(element.name.text, {
               file: target,
               name: (element.propertyName ?? element.name).text,
@@ -270,8 +284,66 @@ export function scanShopify(repository: Repository): ShopifyScan {
     }
     return undefined;
   };
+  // Calls whose callee is a plain identifier, per file, built on first use.
+  let identifierCalls: Map<string, ts.CallExpression[]> | undefined;
+  const callsIn = (file: string) => {
+    if (!identifierCalls) {
+      identifierCalls = new Map();
+      for (const absolute of sources.keys()) {
+        const calls: ts.CallExpression[] = [];
+        const visit = (node: ts.Node) => {
+          if (ts.isCallExpression(node) && ts.isIdentifier(node.expression)) calls.push(node);
+          ts.forEachChild(node, visit);
+        };
+        visit(sourceFile(absolute));
+        identifierCalls.set(absolute, calls);
+      }
+    }
+    return identifierCalls.get(file) ?? [];
+  };
+  // When a document is a parameter of a named helper (`fetchAll(admin, query)`), the arguments its
+  // callers pass in this file or through a named import. Undefined when there is no such caller.
+  const helperArguments = (identifier: ts.Identifier, file: string) => {
+    for (let scope: ts.Node | undefined = identifier.parent; scope; scope = scope.parent) {
+      if (!ts.isFunctionLike(scope)) continue;
+      const index = scope.parameters.findIndex(
+        (parameter) => ts.isIdentifier(parameter.name) && parameter.name.text === identifier.text,
+      );
+      if (index < 0 || scope.parameters[index].dotDotDotToken) continue;
+      const name =
+        ts.isFunctionDeclaration(scope) && scope.name
+          ? scope.name.text
+          : (ts.isArrowFunction(scope) || ts.isFunctionExpression(scope)) &&
+              ts.isVariableDeclaration(scope.parent) &&
+              ts.isIdentifier(scope.parent.name)
+            ? scope.parent.name.text
+            : undefined;
+      if (!name) return undefined;
+      const helper = scope;
+      const callers: { file: string; call: ts.CallExpression }[] = [];
+      for (const caller of sources.keys()) {
+        const names = new Set(
+          caller === file
+            ? [name]
+            : [...(imports.get(caller) ?? [])]
+                .filter(([, target]) => target.file === file && target.name === name)
+                .map(([local]) => local),
+        );
+        for (const call of callsIn(caller))
+          if (names.has((call.expression as ts.Identifier).text) && !isWithin(call, helper))
+            callers.push({ file: caller, call });
+      }
+      return callers.length ? { helper, index, callers } : undefined;
+    }
+    return undefined;
+  };
   // A document argument: a literal, or a constant naming one, possibly wrapped as { query }.
-  const documentArgument = (node: ts.Expression | undefined, file: string, call: ts.Node) => {
+  const documentArgument = (
+    node: ts.Expression | undefined,
+    file: string,
+    call: ts.Node,
+    helpers = new Set<ts.Node>(),
+  ): void => {
     if (!node) return;
     let value = unwrap(node);
     if (ts.isObjectLiteralExpression(value)) {
@@ -289,8 +361,8 @@ export function scanShopify(repository: Repository): ShopifyScan {
       value = unwrap(query.initializer);
     }
     if (ts.isConditionalExpression(value)) {
-      documentArgument(value.whenTrue, file, call);
-      documentArgument(value.whenFalse, file, call);
+      documentArgument(value.whenTrue, file, call, helpers);
+      documentArgument(value.whenFalse, file, call, helpers);
       return;
     }
     let owner = file;
@@ -299,9 +371,29 @@ export function scanShopify(repository: Repository): ShopifyScan {
       if (resolved) {
         value = resolved.node;
         owner = resolved.file;
+      } else {
+        const forwarded = helperArguments(value, file);
+        if (forwarded && !helpers.has(forwarded.helper)) {
+          for (const caller of forwarded.callers) {
+            const argument = caller.call.arguments[forwarded.index];
+            if (argument)
+              documentArgument(
+                argument,
+                caller.file,
+                caller.call,
+                new Set([...helpers, forwarded.helper]),
+              );
+            else
+              scan.unreadable.push({
+                ...location(caller.call),
+                reason: 'The helper call passes no GraphQL document.',
+              });
+          }
+          return;
+        }
       }
       // `const mutation = isCode ? CODE_MUTATION : AUTOMATIC_MUTATION`
-      if (ts.isConditionalExpression(value)) return documentArgument(value, owner, call);
+      if (ts.isConditionalExpression(value)) return documentArgument(value, owner, call, helpers);
     }
     if (isLiteral(value)) record(value, owner, true, call);
     else
@@ -348,6 +440,12 @@ export function scanShopify(repository: Repository): ShopifyScan {
         )
           scan.rest.push({ ...location(node), expression: node.expression.getText() });
       }
+      if (
+        ts.isCallExpression(node) &&
+        ts.isIdentifier(node.expression) &&
+        node.expression.text === 'createAdminRestApiClient'
+      )
+        scan.rest.push({ ...location(node), expression: node.expression.text });
       if (ts.isNewExpression(node) && REST_RECEIVER.test(node.expression.getText()))
         scan.rest.push({ ...location(node), expression: node.expression.getText() });
       if (

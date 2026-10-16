@@ -60,4 +60,4 @@ To see which API versions or models in a repository are about to be retired, run
 
 **Early access:** Stripe is the best-tested integration. Other providers need reviewed SDK mappings and migration rules. Installing the App also requires approved configuration and a running worker. AI and PR publication are explicit opt-ins; Refit never auto-merges. The website's workspace is an illustrative preview.
 
-See [current capabilities and verification](docs/READINESS.md), [architecture](docs/ARCHITECTURE.md), [class-client support](docs/CLASS-CLIENTS.md), [helper-client support](docs/HELPER-CLIENTS.md) and [pnpm preparation](docs/PNPM-WORKSPACES.md) for the exact boundaries.
+See [benchmarks on 781 real repositories](docs/BENCHMARKS.md), [current capabilities and verification](docs/READINESS.md), [architecture](docs/ARCHITECTURE.md), [class-client support](docs/CLASS-CLIENTS.md), [helper-client support](docs/HELPER-CLIENTS.md) and [pnpm preparation](docs/PNPM-WORKSPACES.md) for the exact boundaries.

@@ -21,7 +21,7 @@ import { PipelineInputError, type Repository } from './types.ts';
 
 const execute = promisify(execFile);
 const USAGE =
-  'Usage: npm run benchmark:stripe -- --root <benchmark-dir> --output <new-dir> [--env .env] [--ai] [--validate] [--limit N] [--concurrency N] [--publish <github-org> [--publish-unresolved]]';
+  'Usage: npm run benchmark:stripe -- --root <benchmark-dir> --output <new-dir> [--env .env] [--ai] [--validate] [--offset N] [--limit N] [--concurrency N] [--publish <github-org> [--publish-unresolved]]';
 // Default `npm init` script; it is not a check.
 const PLACEHOLDER_TEST = /no test specified/;
 const VALIDATION_TIMEOUT_MS = 20 * 60 * 1000;
@@ -55,6 +55,7 @@ const { values } = parseArgs({
     env: { type: 'string' },
     ai: { type: 'boolean' },
     validate: { type: 'boolean' },
+    offset: { type: 'string' },
     limit: { type: 'string' },
     concurrency: { type: 'string' },
     split: { type: 'string' },
@@ -79,6 +80,8 @@ const split = values.split
   : undefined;
 const selected = (JSON.parse(await readFile(join(root, 'selected.json'), 'utf8')) as Selected[])
   .filter((entry) => !split || split.has(entry.repo))
+  // --offset and --limit select a slice, so one list can be split across processes.
+  .slice(Number(values.offset ?? 0))
   .slice(0, values.limit ? Number(values.limit) : undefined);
 const specs = JSON.parse(await readFile(join(root, 'needed-specs.json'), 'utf8')) as Array<{
   version: string;
@@ -105,7 +108,6 @@ const message = (error: unknown) => (error instanceof Error ? error.message : St
 const results: Record<string, unknown>[] = [];
 
 async function benchmark(entry: Selected, index: number) {
-  const started = Date.now();
   const directory = join(root, 'repos', entry.repo.replace('/', '__'));
   const work = join(output, 'repos', entry.repo.replace('/', '__'));
   await mkdir(work, { recursive: true });
@@ -218,7 +220,8 @@ async function benchmark(entry: Selected, index: number) {
     return;
   }
   // The oasdiff comparison depends only on the contract pair; a failure applies to every
-  // repository on the same before version, so it is attempted once per version.
+  // repository on the same before version, so it is attempted once per version. A timeout depends
+  // on machine load, not the pair, so it is not reused.
   const failed = productionFailures.get(entry.before);
   if (failed) result.productionMode = { error: failed, reusedFromSameVersion: true };
   else
@@ -227,7 +230,7 @@ async function benchmark(entry: Selected, index: number) {
         await runPipeline({ ...inputs, providerConfig: adapterPath, fullDiff: true }),
       );
     } catch (error) {
-      productionFailures.set(entry.before, message(error));
+      if (!/time limit/.test(message(error))) productionFailures.set(entry.before, message(error));
       result.productionMode = { error: message(error) };
     }
   const full = result.fullAdapter as { confirmed: number; confirmedFields: string[] };
@@ -283,6 +286,7 @@ async function benchmark(entry: Selected, index: number) {
       `${JSON.stringify({ formatVersion: 1, repository: directory, apiVersion: entry.before, before, after, providerConfig: adapterPath, image: 'node:22-alpine', prepareDependencies: true, command, ...(result.checks === 'typecheck' ? { compareTypeErrors: true } : {}), ...(generatedChecks ? { generatedChecks } : {}) }, null, 2)}\n`,
     );
     const bundle = join(work, 'run');
+    const validationStarted = Date.now();
     try {
       await execute(
         process.execPath,
@@ -316,6 +320,7 @@ async function benchmark(entry: Selected, index: number) {
       await readFile(join(bundle, 'report.json'), 'utf8').catch(() => '{}'),
     );
     const generated = report.validation?.generated;
+    result.validationSeconds = Math.round((Date.now() - validationStarted) / 1000);
     result.workflow = {
       status: outcome.status ?? 'missing-manifest',
       stage: outcome.stage,
@@ -352,6 +357,7 @@ async function benchmark(entry: Selected, index: number) {
           }
         : {}),
       repairAttempts: report.validation?.repair?.requested ?? 0,
+      aiCostUsd: report.patch?.budget?.costUsd,
       diff: report.patch?.diff?.slice(0, 8000),
       pullRequest: existsSync(join(bundle, 'pull-request.md')),
     };
@@ -405,6 +411,7 @@ async function benchmark(entry: Selected, index: number) {
             : 'declined',
         generator: (patch as { generator?: string }).generator,
         reason: (patch as { reason?: string }).reason,
+        costUsd: (patch as { budget?: { costUsd?: number } }).budget?.costUsd,
         summary: patch.summary,
         diff: patch.diff?.slice(0, 4000),
       };
@@ -416,8 +423,6 @@ async function benchmark(entry: Selected, index: number) {
     }
     log(`AI ${String((result.ai as { outcome: string }).outcome)}`);
   }
-  result.seconds = Math.round((Date.now() - started) / 1000);
-  await writeFile(join(output, 'results.json'), `${JSON.stringify(results, null, 2)}\n`);
 }
 // Repositories are independent; each validation container may use up to 3 GiB, so keep this
 // within the Docker host's memory (2 on an 8 GiB host).
@@ -427,7 +432,11 @@ await Promise.all(
   Array.from({ length: Math.min(concurrency, selected.length) }, async () => {
     while (next < selected.length) {
       const index = next++;
+      // Timed here so early returns (not affected, unreadable) are measured too.
+      const started = Date.now();
       await benchmark(selected[index], index);
+      results[index].seconds = Math.round((Date.now() - started) / 1000);
+      await writeFile(join(output, 'results.json'), `${JSON.stringify(results, null, 2)}\n`);
     }
   }),
 );

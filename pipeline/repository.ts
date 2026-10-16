@@ -39,6 +39,18 @@ const DEPENDENCY_SECTIONS = [
   'peerDependencies',
 ];
 
+// TypeScript reads UTF-16 files that start with a byte-order mark (PowerShell writes generated
+// types that way). They are scanned as text but never edited.
+async function sourceFile(path: string, name: string, content: string) {
+  // A UTF-16 byte-order mark is not valid UTF-8, so it decodes to two replacement characters.
+  if (!content.startsWith('\uFFFD\uFFFD')) return { path: name, content };
+  const bytes = await readFile(path);
+  const littleEndian = bytes[0] === 0xff && bytes[1] === 0xfe;
+  if (!littleEndian && !(bytes[0] === 0xfe && bytes[1] === 0xff)) return { path: name, content };
+  const text = littleEndian ? bytes.subarray(2) : Buffer.from(bytes.subarray(2)).swap16();
+  return { path: name, content: text.toString('utf16le'), encoding: 'utf-16' as const };
+}
+
 export async function readRepository(
   directory: string,
   packageName = 'stripe',
@@ -116,7 +128,7 @@ export async function readRepository(
         continue;
       }
       if (entry.name !== 'package.json') {
-        repository.files.push({ path: name, content });
+        repository.files.push(await sourceFile(path, name, content));
         continue;
       }
       const manifest = parseObject(content, name);

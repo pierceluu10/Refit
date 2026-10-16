@@ -115,3 +115,12 @@ it('does not confuse a shadowing parameter with the imported client', () => {
   expect(result.findings[0].confidence).toBe('review');
   expect(result.edits).toEqual([]);
 });
+
+it('resolves a module whose name has a dotted suffix, like Remix `stripe.server.ts`', () => {
+  const result = analyze({
+    'billing.ts': consumer.replace("'./client.js'", "'./stripe.server'"),
+    'stripe.server.ts': client,
+  });
+  expect(result.findings).toMatchObject([{ file: 'billing.ts', confidence: 'confirmed' }]);
+  expect(result.edits).toHaveLength(1);
+});

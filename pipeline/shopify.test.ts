@@ -121,6 +121,7 @@ export async function loader({ request }) {
   const built = 'query { ' + request.field + ' }';
   await admin.graphql(built);
   await admin.rest.resources.Product.all({ session: {} });
+  await fetch(\`https://shop.myshopify.com/admin/api/2025-07/products/\${request.id}.json\`);
   return fetch('https://shop.myshopify.com/admin/api/2025-07/products.json');
 }
 `,
@@ -144,16 +145,55 @@ export const run = () => client.request(\`query { shop { name } }\`);
   const product = scan.documents.find((document) => document.file === 'app/queries.ts')!;
   expect(product.text).toContain('fragment ProductFields on Product { id title }');
   expect(scan.unreadable).toMatchObject([{ file: 'app/routes/product.ts', line: 12 }]);
-  expect(scan.rest.map((entry) => entry.line)).toEqual([13, 14]);
+  expect(scan.rest.map((entry) => entry.line)).toEqual([13, 14, 15]);
   expect(scan.versions.map((entry) => `${entry.kind}:${entry.value}:${entry.file}`).sort()).toEqual(
     [
       'enum:2025-01:app/shopify.server.ts',
       'enum:2025-07:.graphqlrc.ts',
       'string:2025-10:app/client.ts',
       'url:2025-07:app/routes/product.ts',
+      'url:2025-07:app/routes/product.ts',
     ],
   );
   expect(scan.unresolvedVersions).toMatchObject([{ file: 'app/latest.ts', line: 2 }]);
+});
+
+it('reads default-exported documents and documents passed through helper parameters', async () => {
+  const root = await directory({
+    'package.json': MANIFEST,
+    'app/graphql/ShopQuery.ts':
+      'const ShopQuery = `#graphql\n  query { shop { name } }`;\nexport default ShopQuery;\n',
+    'app/graphql.server.ts': `export async function adminQuery(admin, query, variables) {
+  const response = await admin.graphql(query, { variables });
+  return response.json();
+}
+export const paginate = async (admin, document, cursor) => {
+  const page = await admin.graphql(document, { variables: { cursor } });
+  return cursor ? paginate(admin, document, null) : page;
+};
+`,
+    'app/routes/shop.ts': `import ShopQuery from '../graphql/ShopQuery';
+import { adminQuery, paginate as pages } from '../graphql.server';
+export async function loader(admin, request) {
+  await adminQuery(admin, ShopQuery);
+  await pages(admin, \`query { product(id: "1") { id } }\`);
+  await adminQuery(admin, 'query { ' + request.field + ' }');
+  await adminQuery(admin);
+}
+`,
+  });
+  const scan = scanShopify(await readRepository(root, '@shopify/shopify-app-remix'));
+  expect(scan.adminCalls).toBe(2);
+  expect(scan.documents.map((document) => [document.file, document.text.trim()])).toEqual([
+    ['app/graphql/ShopQuery.ts', '#graphql\n  query { shop { name } }'],
+    ['app/routes/shop.ts', 'query { product(id: "1") { id } }'],
+  ]);
+  expect(scan.documents.every((document) => document.traced)).toBe(true);
+  // The runtime-built and missing arguments stop at the caller's line, not inside the helper.
+  expect(scan.unreadable.map((entry) => [entry.file, entry.line])).toEqual([
+    ['app/routes/shop.ts', 6],
+    ['app/routes/shop.ts', 7],
+  ]);
 });
 
 it('bumps a sunset pin the SDK can name when every document validates on the target contract', async () => {
@@ -347,4 +387,24 @@ it('resolves LATEST_API_VERSION from the locked SDK and treats untraced other-AP
     },
   ]);
   expect(report.patch.reason).toContain('ApiVersion.October26 first ships in 14.0.0');
+});
+
+it('counts REST resource classes and the Admin REST client factory as REST calls', async () => {
+  const root = await directory({
+    'package.json': MANIFEST,
+    'app/rest.ts': `import { createAdminRestApiClient } from '@shopify/admin-api-client';
+import { shopify } from './shopify.server';
+export const client = createAdminRestApiClient({ storeDomain: 'x', apiVersion: '2024-04', accessToken: 't' });
+export const collections = () => shopify.api.rest.CustomCollection.all({ session: {} });
+export const product = () => new shopify.rest.Product({ session: {} });
+export const restricted = () => shopify.restrictions.Product;
+`,
+    'app/shopify.server.ts': SERVER('January25'),
+  });
+  const scan = scanShopify(await readRepository(root, '@shopify/shopify-app-remix'));
+  expect(scan.rest.map((entry) => [entry.line, entry.expression])).toEqual([
+    [3, 'createAdminRestApiClient'],
+    [4, 'shopify.api.rest.CustomCollection.all'],
+    [5, 'shopify.rest.Product'],
+  ]);
 });
