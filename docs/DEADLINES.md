@@ -45,10 +45,12 @@ refit deadlines --repository /path/to/app --json
 
 Each exposure lists the deadline, days left, the replacement, the source and `file:line` evidence. It also lists what can happen next (see [the migration path](#the-migration-path)). Refit reads JavaScript and TypeScript source, `package.json` files, lockfiles and `.refit.json`, without running code. It matches:
 
-- **OpenAI:** a quoted string that equals a registry model ID exactly, such as `'gpt-4'`. `'gpt-4o'` does not match `gpt-4`, and a model named only in a comment does not count.
-- **Shopify:** `/admin/api/2025-10/` URLs and `ApiVersion.October25`. It also matches `apiVersion: '2025-10'`, but only in files that import a Shopify package or name `myshopify.com`, so a Stripe `apiVersion` is not mistaken for one.
+- **OpenAI:** a quoted string that equals a registry model ID exactly, such as `'gpt-4'`. `'gpt-4o'` does not match `gpt-4`. A string passed to a tokenizer (`encoding_for_model`) or a prefix or membership check (`startsWith`, `endsWith`, `includes`, `indexOf`) is not a pin.
+- **Shopify:** `/admin/api/2025-10` URLs, with or without a path after the version, and `ApiVersion.October25`. It also matches `apiVersion: '2025-10'`, but only in files that import a Shopify package or name `myshopify.com`, so a Stripe `apiVersion` is not mistaken for one.
 - **Meta Graph API:** `graph.facebook.com/v20.0/` URLs, and quoted `'v20.0'` strings in files that use the Graph API. It also reads `facebook-nodejs-business-sdk` from manifests and lockfiles, since SDK release 20.x targets v20.0 and a locked version wins over the declared range.
 - **Refit configuration:** an integration's `apiVersion` in `.refit.json` whose adapter covers one of these providers.
+
+Versions and models named only in comments do not count: each file is parsed and a match counts only inside a source token.
 
 ## Alerts from the service
 
@@ -79,6 +81,9 @@ A deadline never starts a migration by itself. Migrations start from contract ch
 
 - Only JavaScript and TypeScript source is scanned. Models named in environment files, YAML or other languages are not found. Values built at runtime are invisible.
 - Shopify package versions are not mapped to the API version they default to, and Shopify versions older than 2025-04 are not in the registry yet.
+- A version held in a constant or an environment-variable fallback, such as `SHOPIFY_API_VERSION = '2025-07'`, and the Meta JS SDK's `FB.init({ version })` are not read.
+- Model lists, pricing tables, tests and examples are reported like live calls. On real OpenAI repositories, most reported lines are of this kind; see the [deadline benchmark](DEADLINE-BENCHMARK.md).
+- A model ID sent to another provider's OpenAI-compatible endpoint matches the OpenAI deadline.
 - Evidence is capped at 20 matches per deadline, plus a count of the rest.
 - Issues are not closed automatically once the repository stops depending on a deadline.
 - The registry is maintained by hand from the provider pages listed above. Recheck it before relying on a date.

@@ -1,0 +1,1407 @@
+{
+  "formatVersion": 1,
+  "seed": "refit-deadlines-2026-10-15",
+  "searchedAt": "2026-10-16T03:01:23.689Z",
+  "filters": {
+    "archived": false,
+    "fork": false,
+    "pushedSince": "2024-01-01",
+    "maxSizeMb": 50,
+    "packageJson": true
+  },
+  "queries": [
+    {
+      "provider": "openai",
+      "query": "\"gpt-3.5-turbo\"",
+      "language": "TypeScript",
+      "hits": 100
+    },
+    {
+      "provider": "openai",
+      "query": "\"gpt-3.5-turbo\"",
+      "language": "JavaScript",
+      "hits": 100
+    },
+    {
+      "provider": "openai",
+      "query": "\"gpt-4-turbo\"",
+      "language": "TypeScript",
+      "hits": 100
+    },
+    {
+      "provider": "openai",
+      "query": "o1-mini",
+      "language": "TypeScript",
+      "hits": 100
+    },
+    {
+      "provider": "meta-graph",
+      "query": "graph.facebook.com/v18.0",
+      "language": "TypeScript",
+      "hits": 100
+    },
+    {
+      "provider": "meta-graph",
+      "query": "graph.facebook.com/v19.0",
+      "language": "JavaScript",
+      "hits": 100
+    },
+    {
+      "provider": "meta-graph",
+      "query": "graph.facebook.com/v20.0",
+      "language": "TypeScript",
+      "hits": 100
+    },
+    {
+      "provider": "shopify",
+      "query": "admin/api/2025-07",
+      "language": "TypeScript",
+      "hits": 100
+    },
+    {
+      "provider": "shopify",
+      "query": "admin/api/2025-10",
+      "language": "TypeScript",
+      "hits": 100
+    },
+    {
+      "provider": "shopify",
+      "query": "admin/api/2025-10",
+      "language": "JavaScript",
+      "hits": 80
+    }
+  ],
+  "frameRepos": {
+    "openai": 331,
+    "meta-graph": 274,
+    "shopify": 135
+  },
+  "repos": [
+    {
+      "provider": "openai",
+      "repo": "urvana/appscript-chatgpt",
+      "commit": "e5cef4e1c3128855b12e05ef9fceb429dc4ee6eb",
+      "stars": 22,
+      "pushedAt": "2025-05-30T15:08:01Z",
+      "sizeKb": 5381,
+      "hitPaths": [
+        "src/Code.ts"
+      ]
+    },
+    {
+      "provider": "openai",
+      "repo": "chinmaymk/aikit",
+      "commit": "ca79966e5636cf89f77ef0388366d82257c28db9",
+      "stars": 10,
+      "pushedAt": "2025-08-28T03:56:30Z",
+      "sizeKb": 742,
+      "hitPaths": [
+        "src/models.ts"
+      ]
+    },
+    {
+      "provider": "openai",
+      "repo": "arunpattnaik/damngood.tools",
+      "commit": "b0c65ebb0c84a7f8d60dd103fa4a85a1207ea870",
+      "stars": 19,
+      "pushedAt": "2024-02-17T14:08:55Z",
+      "sizeKb": 441,
+      "hitPaths": [
+        "lib/og.ts"
+      ]
+    },
+    {
+      "provider": "openai",
+      "repo": "VapiAI/example-server-serverless-vercel",
+      "commit": "9714ec14902158fd5e0e401cdd1ef70094b913ff",
+      "stars": 24,
+      "pushedAt": "2024-07-08T05:38:40Z",
+      "sizeKb": 172,
+      "hitPaths": [
+        "api/inbound.ts"
+      ]
+    },
+    {
+      "provider": "openai",
+      "repo": "codextde/textchecker",
+      "commit": "7b66d78e74379f9fc909f6d4a2d984cb50a5d088",
+      "stars": 50,
+      "pushedAt": "2026-02-02T08:41:49Z",
+      "sizeKb": 159,
+      "hitPaths": [
+        "src/types/index.ts"
+      ]
+    },
+    {
+      "provider": "openai",
+      "repo": "hervekom37/Ani-Code-CLI",
+      "commit": "07a4c0110a0a1edb5879ca73716cfad32b63b71b",
+      "stars": 19,
+      "pushedAt": "2025-09-05T05:16:50Z",
+      "sizeKb": 304,
+      "hitPaths": [
+        "src/utils/openai-models.ts"
+      ]
+    },
+    {
+      "provider": "openai",
+      "repo": "upstash/rag-chat",
+      "commit": "4c3f290908150b216cd19985a4c7c601ab78d22f",
+      "stars": 257,
+      "pushedAt": "2025-12-15T08:00:31Z",
+      "sizeKb": 3000,
+      "hitPaths": [
+        "src/models.ts",
+        "src/types.ts"
+      ]
+    },
+    {
+      "provider": "openai",
+      "repo": "kyegomez/Athena-for-Search",
+      "commit": "a591c264cba67e290032dab2c8bafda9d2362cc1",
+      "stars": 26,
+      "pushedAt": "2024-03-16T23:16:18Z",
+      "sizeKb": 5852,
+      "hitPaths": [
+        "types/index.ts"
+      ]
+    },
+    {
+      "provider": "openai",
+      "repo": "shouri123/Late-Meet",
+      "commit": "d2164445b24620ccf5aa6393e318efaaa3c530a8",
+      "stars": 45,
+      "pushedAt": "2026-10-10T03:05:19Z",
+      "sizeKb": 4415,
+      "hitPaths": [
+        "src/usageTracker.ts"
+      ]
+    },
+    {
+      "provider": "openai",
+      "repo": "iceener/ai",
+      "commit": "2f41f5e683b4c1054d35918accba9bfe99f16a26",
+      "stars": 221,
+      "pushedAt": "2025-05-09T23:07:34Z",
+      "sizeKb": 222,
+      "hitPaths": [
+        "src/config/llm.config.ts"
+      ]
+    },
+    {
+      "provider": "openai",
+      "repo": "arumie/obsidian-simple-prompt-plugin",
+      "commit": "d84e8cdf7a576f43d095ea52f3f4f0ed3f4227a1",
+      "stars": 15,
+      "pushedAt": "2024-06-16T07:44:32Z",
+      "sizeKb": 14608,
+      "hitPaths": [
+        "src/types.ts"
+      ]
+    },
+    {
+      "provider": "openai",
+      "repo": "heimoshuiyu/chatgpt-api-web",
+      "commit": "5d3cdf6c92fa9c71777aaa78b93b3702a1b91f38",
+      "stars": 35,
+      "pushedAt": "2025-11-21T10:07:56Z",
+      "sizeKb": 1643,
+      "hitPaths": [
+        "src/types/models.ts"
+      ]
+    },
+    {
+      "provider": "openai",
+      "repo": "AQComputerKing/protoforge",
+      "commit": "c3c79068fdd04079feadb4402e303adc2b947791",
+      "stars": 9,
+      "pushedAt": "2026-03-18T10:18:59Z",
+      "sizeKb": 2663,
+      "hitPaths": [
+        "src/services/models.ts",
+        "src/types/ai.ts"
+      ]
+    },
+    {
+      "provider": "openai",
+      "repo": "theswerd/ai-sql",
+      "commit": "63e563fc9d8e22bbf48596199a99dcbb9c1b0ade",
+      "stars": 40,
+      "pushedAt": "2025-01-03T22:16:11Z",
+      "sizeKb": 106,
+      "hitPaths": [
+        "example/src/mysql.ts",
+        "example/src/sqlite.ts"
+      ]
+    },
+    {
+      "provider": "openai",
+      "repo": "fayez-nazzal/TestGPT",
+      "commit": "c6aa358e03fe4b77094478768ec0730e856a4369",
+      "stars": 145,
+      "pushedAt": "2025-08-11T21:49:35Z",
+      "sizeKb": 1632,
+      "hitPaths": [
+        "src/utils.ts"
+      ]
+    },
+    {
+      "provider": "openai",
+      "repo": "PactInteractive/dbchat",
+      "commit": "9191e10a6b046fc82a10410beb5ae150ae9f222b",
+      "stars": 14,
+      "pushedAt": "2025-05-20T13:06:55Z",
+      "sizeKb": 24108,
+      "hitPaths": [
+        "shared.ts"
+      ]
+    },
+    {
+      "provider": "openai",
+      "repo": "joone/loz",
+      "commit": "b8e2c0924154e65cd6be7d30326f2f8f211d83b7",
+      "stars": 261,
+      "pushedAt": "2026-02-17T00:04:54Z",
+      "sizeKb": 1512,
+      "hitPaths": [
+        "src/config/index.ts"
+      ]
+    },
+    {
+      "provider": "openai",
+      "repo": "OptimizeAIHub/Playwright-Copilot",
+      "commit": "5d90090a86da21a8a88396a611c134f21a416a2c",
+      "stars": 34,
+      "pushedAt": "2026-09-28T08:04:31Z",
+      "sizeKb": 3674,
+      "hitPaths": [
+        "src/extension.ts",
+        "src/oldextension.ts"
+      ]
+    },
+    {
+      "provider": "openai",
+      "repo": "vual/ChatGPT-Next-Web-Pro",
+      "commit": "6e6ff15e90b14d9ae5cb420bb0e57445610eadd8",
+      "stars": 802,
+      "pushedAt": "2026-07-19T14:36:23Z",
+      "sizeKb": 14212,
+      "hitPaths": [
+        "app/constant.ts"
+      ]
+    },
+    {
+      "provider": "openai",
+      "repo": "rgarlik/autocoder",
+      "commit": "425a5f44e578980d7da14d31965aaaa9fc7d56ca",
+      "stars": 16,
+      "pushedAt": "2024-06-10T14:10:05Z",
+      "sizeKb": 291,
+      "hitPaths": [
+        "start.js"
+      ]
+    },
+    {
+      "provider": "openai",
+      "repo": "FerLRT/QuizCraft",
+      "commit": "4f7a0fbe453b35b95c69698340000fb49279d8fe",
+      "stars": 3,
+      "pushedAt": "2024-08-05T22:16:20Z",
+      "sizeKb": 28848,
+      "hitPaths": [
+        "src/lib/ia_utils.ts"
+      ]
+    },
+    {
+      "provider": "openai",
+      "repo": "zebbern/repolens",
+      "commit": "9d0a2ff046600ea633b40837a03d5895173ef8d0",
+      "stars": 19,
+      "pushedAt": "2026-08-27T21:32:54Z",
+      "sizeKb": 19918,
+      "hitPaths": [
+        "lib/ai/providers.ts",
+        "lib/ai/token-cost.ts"
+      ]
+    },
+    {
+      "provider": "openai",
+      "repo": "Danish-H/whatsapp-gpt",
+      "commit": "bb68937c90822a78674bd134d89379315309d2a2",
+      "stars": 10,
+      "pushedAt": "2024-02-21T06:09:34Z",
+      "sizeKb": 163,
+      "hitPaths": [
+        "ai.js"
+      ]
+    },
+    {
+      "provider": "openai",
+      "repo": "RiP3rQ/AI-Butler",
+      "commit": "4dadd4021c2d91bd742b122a45b2b26e86f4abc4",
+      "stars": 9,
+      "pushedAt": "2024-05-04T14:29:17Z",
+      "sizeKb": 3459,
+      "hitPaths": [
+        "lib/openai.ts"
+      ]
+    },
+    {
+      "provider": "openai",
+      "repo": "AidanTilgner/AutogenObsidianPlugin",
+      "commit": "45b7088de46a8e56374cbda457959df4ee98b6a8",
+      "stars": 16,
+      "pushedAt": "2024-02-20T06:06:01Z",
+      "sizeKb": 77,
+      "hitPaths": [
+        "main.ts"
+      ]
+    },
+    {
+      "provider": "openai",
+      "repo": "Ramtx/Bouno",
+      "commit": "fa74ff5064bae6fec32b2d564b85593274699672",
+      "stars": 172,
+      "pushedAt": "2026-02-13T18:10:19Z",
+      "sizeKb": 877,
+      "hitPaths": [
+        "src/agent/config.ts"
+      ]
+    },
+    {
+      "provider": "openai",
+      "repo": "TechNavii/LLM-Memory-Calculator",
+      "commit": "95ac00662fd4c573ecdddae84801aeb225367d7f",
+      "stars": 17,
+      "pushedAt": "2025-06-21T01:11:28Z",
+      "sizeKb": 112,
+      "hitPaths": [
+        "src/data/llmModels.ts"
+      ]
+    },
+    {
+      "provider": "openai",
+      "repo": "xavidop/genkitx-github",
+      "commit": "8d6e05729ad6f954181e5428837f571429133f9c",
+      "stars": 45,
+      "pushedAt": "2026-10-15T21:44:31Z",
+      "sizeKb": 2558,
+      "hitPaths": [
+        "src/index.ts"
+      ]
+    },
+    {
+      "provider": "openai",
+      "repo": "telekom/create-tsi",
+      "commit": "a5badfb4a537aa47e55c48fa470185b898129ab1",
+      "stars": 233,
+      "pushedAt": "2024-11-04T05:30:42Z",
+      "sizeKb": 4624,
+      "hitPaths": [
+        "questions.ts"
+      ]
+    },
+    {
+      "provider": "openai",
+      "repo": "fahd09/openharness",
+      "commit": "9f07d9643c0f1ee371f04be75f2447151832e1bb",
+      "stars": 7,
+      "pushedAt": "2026-03-06T14:49:58Z",
+      "sizeKb": 554,
+      "hitPaths": [
+        "src/core/models.ts"
+      ]
+    },
+    {
+      "provider": "openai",
+      "repo": "bayradion/rabbitmap",
+      "commit": "514fb7b11a64aea3976852a5b5869544fb46064b",
+      "stars": 62,
+      "pushedAt": "2026-02-04T11:05:27Z",
+      "sizeKb": 1099,
+      "hitPaths": [
+        "main.js",
+        "main.ts"
+      ]
+    },
+    {
+      "provider": "openai",
+      "repo": "lianginx/chatgpt-nuxt",
+      "commit": "46a03087c326f453d178bbe2e164688aad738f63",
+      "stars": 237,
+      "pushedAt": "2024-05-31T16:19:14Z",
+      "sizeKb": 17383,
+      "hitPaths": [
+        "stores/chat.ts"
+      ]
+    },
+    {
+      "provider": "openai",
+      "repo": "mbt1909432/Acontext-Agent-Playground",
+      "commit": "419a564fba17a3b972f12e57debbf2607edaa512",
+      "stars": 19,
+      "pushedAt": "2026-01-16T09:11:12Z",
+      "sizeKb": 3004,
+      "hitPaths": [
+        "lib/config.ts"
+      ]
+    },
+    {
+      "provider": "openai",
+      "repo": "crystalnyan/takemeds-bot",
+      "commit": "106ca8d5cb5f25f1d787d94c86ea34c54756c9f9",
+      "stars": 4,
+      "pushedAt": "2024-06-23T12:06:01Z",
+      "sizeKb": 122,
+      "hitPaths": [
+        "src/gpt.ts"
+      ]
+    },
+    {
+      "provider": "meta-graph",
+      "repo": "shreevalikushe/facebook-test",
+      "commit": "557c2b11d85e690fc99d08a155534fcbe5a02ae9",
+      "stars": 0,
+      "pushedAt": "2026-04-23T15:33:52Z",
+      "sizeKb": 1138,
+      "hitPaths": [
+        "src/api/hello.ts"
+      ]
+    },
+    {
+      "provider": "meta-graph",
+      "repo": "EzekielClervo/BOOSTING",
+      "commit": "684045359dee99ad3b7032563830381a019e7c5b",
+      "stars": 0,
+      "pushedAt": "2025-04-16T18:21:50Z",
+      "sizeKb": 15,
+      "hitPaths": [
+        "functions.js"
+      ]
+    },
+    {
+      "provider": "meta-graph",
+      "repo": "grimorio007-collab/private_Whatsapp",
+      "commit": "1b719d0cdbc31d4083927c64d266f33eb5318a9a",
+      "stars": 0,
+      "pushedAt": "2026-04-17T15:24:14Z",
+      "sizeKb": 14,
+      "hitPaths": [
+        "src/whatsapp.js"
+      ]
+    },
+    {
+      "provider": "meta-graph",
+      "repo": "stlafit02-dev/STLAF-Marketing-Planner",
+      "commit": "2cc685e9fb25c75e66021569afcbf78794963cd3",
+      "stars": 0,
+      "pushedAt": "2026-06-22T07:37:02Z",
+      "sizeKb": 2373,
+      "hitPaths": [
+        "api/meta-post.js"
+      ]
+    },
+    {
+      "provider": "meta-graph",
+      "repo": "Creativityliberty/Sirushasna",
+      "commit": "815f06f1e2514094ce71d147d1c1c22a49fb6b2c",
+      "stars": 0,
+      "pushedAt": "2025-05-15T11:29:13Z",
+      "sizeKb": 4,
+      "hitPaths": [
+        "index.js"
+      ]
+    },
+    {
+      "provider": "meta-graph",
+      "repo": "receevi/receevi",
+      "commit": "ed53ca1251762edf2f683a839d954ed82592d1bb",
+      "stars": 248,
+      "pushedAt": "2025-01-04T08:39:46Z",
+      "sizeKb": 2525,
+      "hitPaths": [
+        "app/api/sendMessage/route.ts"
+      ]
+    },
+    {
+      "provider": "meta-graph",
+      "repo": "parina004/MediPing",
+      "commit": "3dde5e74a5cfce14f23d38a353eb0389f4fbb473",
+      "stars": 0,
+      "pushedAt": "2026-05-05T17:27:36Z",
+      "sizeKb": 37,
+      "hitPaths": [
+        "lib/whatsapp.ts"
+      ]
+    },
+    {
+      "provider": "meta-graph",
+      "repo": "chauhan-varun/LunaAi",
+      "commit": "482d8516a3666c1c050d6446278d7babbacef141",
+      "stars": 12,
+      "pushedAt": "2025-11-08T07:03:59Z",
+      "sizeKb": 383,
+      "hitPaths": [
+        "lib/whatsapp/sendMessage.ts"
+      ]
+    },
+    {
+      "provider": "meta-graph",
+      "repo": "icekidtech/social-snap",
+      "commit": "cacd76375e7b6d4e8c064c6c50bf266d66e40809",
+      "stars": 0,
+      "pushedAt": "2026-05-04T00:00:14Z",
+      "sizeKb": 98,
+      "hitPaths": [
+        "src/fetchers/instagram.ts"
+      ]
+    },
+    {
+      "provider": "meta-graph",
+      "repo": "MasterH12/AIWhatsappReceptionist",
+      "commit": "64ef40c9a9e1571ef176280dbac96f1fc45e22a9",
+      "stars": 0,
+      "pushedAt": "2026-04-28T21:22:26Z",
+      "sizeKb": 26,
+      "hitPaths": [
+        "src/webhook.ts"
+      ]
+    },
+    {
+      "provider": "meta-graph",
+      "repo": "mchantosa/smooth-kitty",
+      "commit": "93e562caf132bdea959a699f123fcf3b2b566d01",
+      "stars": 0,
+      "pushedAt": "2024-05-26T17:22:53Z",
+      "sizeKb": 28593,
+      "hitPaths": [
+        "plugins/kv_oauth.ts"
+      ]
+    },
+    {
+      "provider": "meta-graph",
+      "repo": "manypost/manypost-app",
+      "commit": "81f96e51ee539200d4e97d876cdefdf1a05ef656",
+      "stars": 86,
+      "pushedAt": "2026-08-13T06:24:23Z",
+      "sizeKb": 6777,
+      "hitPaths": [
+        "packages/providers/src/shared/meta-graph.ts"
+      ]
+    },
+    {
+      "provider": "meta-graph",
+      "repo": "jeffprakash/watios",
+      "commit": "ff99262ca76dfa1be43a912d7aac56422200ff7a",
+      "stars": 3,
+      "pushedAt": "2024-09-09T09:31:55Z",
+      "sizeKb": 161,
+      "hitPaths": [
+        "src/whatsapp.js"
+      ]
+    },
+    {
+      "provider": "meta-graph",
+      "repo": "carlosechale/echale-dashboard",
+      "commit": "84121211683b7a024023096f4f30e40c401aa3cf",
+      "stars": 0,
+      "pushedAt": "2026-04-17T10:21:19Z",
+      "sizeKb": 282,
+      "hitPaths": [
+        "lib/meta.ts"
+      ]
+    },
+    {
+      "provider": "meta-graph",
+      "repo": "ericlyfan/auto_portfolio",
+      "commit": "5e46f524134d6b5d0206ef1f672f0a23ea9668fa",
+      "stars": 0,
+      "pushedAt": "2026-04-07T05:08:22Z",
+      "sizeKb": 312,
+      "hitPaths": [
+        "lib/instagram.ts"
+      ]
+    },
+    {
+      "provider": "meta-graph",
+      "repo": "ntoonie/stlaf_newsletter",
+      "commit": "88d12788589f0d2efa7cbb50901182f828f07e2c",
+      "stars": 0,
+      "pushedAt": "2026-07-23T03:36:34Z",
+      "sizeKb": 363,
+      "hitPaths": [
+        "api/meta-post.js"
+      ]
+    },
+    {
+      "provider": "meta-graph",
+      "repo": "AnkitPandeyIT/lorry",
+      "commit": "9878d6220cb15a223ca6b30e00f5d1bc82ccec85",
+      "stars": 0,
+      "pushedAt": "2025-08-05T13:19:55Z",
+      "sizeKb": 90,
+      "hitPaths": [
+        "sendExcel.js",
+        "sendPDF.js"
+      ]
+    },
+    {
+      "provider": "meta-graph",
+      "repo": "recscse/whatsapp-scheduler",
+      "commit": "8739a6e441a26818f7270b7d608116202646a174",
+      "stars": 0,
+      "pushedAt": "2026-01-10T15:22:04Z",
+      "sizeKb": 18,
+      "hitPaths": [
+        "src/whatsapp.js"
+      ]
+    },
+    {
+      "provider": "meta-graph",
+      "repo": "Xxsnakesz/GymSyncPro-NEW",
+      "commit": "122811cc0d3f850571f05dc98d9167bdecc1c90c",
+      "stars": 0,
+      "pushedAt": "2025-11-22T08:20:49Z",
+      "sizeKb": 21560,
+      "hitPaths": [
+        "server/whatsapp.ts"
+      ]
+    },
+    {
+      "provider": "meta-graph",
+      "repo": "phantomts/personal-brain-mcp",
+      "commit": "ef4bdec9d11c197be65142170646f98a80fbead7",
+      "stars": 4,
+      "pushedAt": "2026-08-25T19:12:57Z",
+      "sizeKb": 201,
+      "hitPaths": [
+        "src/inbound/whatsapp.ts"
+      ]
+    },
+    {
+      "provider": "meta-graph",
+      "repo": "Yousuf-Basir/sso-server",
+      "commit": "e2b522e62db369498a78adfed09b5d042ab55b31",
+      "stars": 0,
+      "pushedAt": "2025-01-11T07:43:57Z",
+      "sizeKb": 64,
+      "hitPaths": [
+        "lib/oauth.ts"
+      ]
+    },
+    {
+      "provider": "meta-graph",
+      "repo": "adilzhanshukenov/quiz-forma",
+      "commit": "dc98e0f496ed9ea3ce1a378d097438eadc10e25a",
+      "stars": 0,
+      "pushedAt": "2025-06-23T06:35:47Z",
+      "sizeKb": 5223,
+      "hitPaths": [
+        "api/facebook.ts"
+      ]
+    },
+    {
+      "provider": "meta-graph",
+      "repo": "Jobrythm/jobrythm-fullstack",
+      "commit": "7c50a32e3c64d01fc47d3b5ce067bc0597e5b4fa",
+      "stars": 6,
+      "pushedAt": "2026-04-28T00:30:40Z",
+      "sizeKb": 687,
+      "hitPaths": [
+        "src/routes/adminAds.ts"
+      ]
+    },
+    {
+      "provider": "meta-graph",
+      "repo": "kayuxx/amee",
+      "commit": "095d02635063701a385d6f096008fa25d2cc093b",
+      "stars": 0,
+      "pushedAt": "2024-09-30T20:36:15Z",
+      "sizeKb": 807,
+      "hitPaths": [
+        "src/oauth/providers/facebook.ts"
+      ]
+    },
+    {
+      "provider": "meta-graph",
+      "repo": "zak01Z/app-ch",
+      "commit": "444ba8288f23cb1ae00558e0da49db53f3df373d",
+      "stars": 0,
+      "pushedAt": "2025-06-25T09:44:17Z",
+      "sizeKb": 74,
+      "hitPaths": [
+        "lib/whatsapp.ts"
+      ]
+    },
+    {
+      "provider": "meta-graph",
+      "repo": "maplewing/nopicnic",
+      "commit": "98cda66439a21fce6fdbbc78f64dccde87fd2c98",
+      "stars": 0,
+      "pushedAt": "2026-10-15T16:28:11Z",
+      "sizeKb": 28003,
+      "hitPaths": [
+        "lib/metaCapi.js"
+      ]
+    },
+    {
+      "provider": "meta-graph",
+      "repo": "dogalyir/whatsapp-cloud-api-types",
+      "commit": "3ec34ea0be0196ff2babcf025454cc43840919d1",
+      "stars": 3,
+      "pushedAt": "2026-09-14T20:38:08Z",
+      "sizeKb": 229,
+      "hitPaths": [
+        "examples/subscriptions.ts"
+      ]
+    },
+    {
+      "provider": "meta-graph",
+      "repo": "khatrikrish630/new-fb-ai-agent",
+      "commit": "3186ebee0453dbaca046d12c13cdf3a49499564a",
+      "stars": 0,
+      "pushedAt": "2026-03-24T06:54:21Z",
+      "sizeKb": 29,
+      "hitPaths": [
+        "index.js"
+      ]
+    },
+    {
+      "provider": "meta-graph",
+      "repo": "LakshAgrawal28/CreatorOS",
+      "commit": "6eee911bd9aaf90e6d670dc0ff736a8a1678b394",
+      "stars": 0,
+      "pushedAt": "2026-06-21T11:01:56Z",
+      "sizeKb": 2270,
+      "hitPaths": [
+        "src/inngest/functions.ts",
+        "src/server/meta.ts"
+      ]
+    },
+    {
+      "provider": "meta-graph",
+      "repo": "moni-0712/Orena_Bot",
+      "commit": "a679ccd39add1009b815fe9c30b2c39de190a679",
+      "stars": 0,
+      "pushedAt": "2025-11-03T14:19:07Z",
+      "sizeKb": 26,
+      "hitPaths": [
+        "whatsapp.js"
+      ]
+    },
+    {
+      "provider": "meta-graph",
+      "repo": "integratedotdev/typescript-sdk",
+      "commit": "5b62426b7249c101a69e4817df3bd551ba5a922d",
+      "stars": 4,
+      "pushedAt": "2026-10-05T14:46:33Z",
+      "sizeKb": 3268,
+      "hitPaths": [
+        "src/integrations/facebook.ts"
+      ]
+    },
+    {
+      "provider": "meta-graph",
+      "repo": "thematters/matters-server",
+      "commit": "12adb2dfd346dff705a47bbc1439a6b94c5d3b50",
+      "stars": 77,
+      "pushedAt": "2026-10-09T03:46:35Z",
+      "sizeKb": 38359,
+      "hitPaths": [
+        "src/connectors/userService.ts"
+      ]
+    },
+    {
+      "provider": "meta-graph",
+      "repo": "savarkavi/instagram-profile-test",
+      "commit": "648dc68328e7ebf176aecefd4809ba581b78d58a",
+      "stars": 0,
+      "pushedAt": "2024-09-04T01:18:20Z",
+      "sizeKb": 79,
+      "hitPaths": [
+        "actions.ts"
+      ]
+    },
+    {
+      "provider": "shopify",
+      "repo": "cdolan04/gc-ai-demo",
+      "commit": "d3055d306b20c3cf4b3e9190950865589b3f89df",
+      "stars": 0,
+      "pushedAt": "2026-03-26T17:36:10Z",
+      "sizeKb": 276,
+      "hitPaths": [
+        "scripts/seed-store.ts"
+      ]
+    },
+    {
+      "provider": "shopify",
+      "repo": "vicky-prakhya/cart-transfrom-bundle-deploy",
+      "commit": "0b01666a5ee50ca23082d559e457c6fde58f6ccc",
+      "stars": 0,
+      "pushedAt": "2025-09-26T12:16:15Z",
+      "sizeKb": 198,
+      "hitPaths": [
+        "app/routes/api/private_access_tokens.ts"
+      ]
+    },
+    {
+      "provider": "shopify",
+      "repo": "devamitjha/next-pos",
+      "commit": "8030d360c20f9778c2734caa193b6f9d08ac744d",
+      "stars": 0,
+      "pushedAt": "2026-04-04T12:48:09Z",
+      "sizeKb": 778,
+      "hitPaths": [
+        "src/app/api/shopify/products/route.js",
+        "src/app/api/shopify/search/route.js"
+      ]
+    },
+    {
+      "provider": "shopify",
+      "repo": "abaziqendrim435-lang/rootx.app",
+      "commit": "3a38e98017736ade98134aa97e069d65de64715a",
+      "stars": 1,
+      "pushedAt": "2026-08-20T23:18:50Z",
+      "sizeKb": 4940,
+      "hitPaths": [
+        "app/api/shopify/oauth/callback/route.ts"
+      ]
+    },
+    {
+      "provider": "shopify",
+      "repo": "fahadazhar1/alchemy-stock-flow",
+      "commit": "e46cffff505242f94fc096a59b277c3820736b13",
+      "stars": 0,
+      "pushedAt": "2026-10-15T08:36:24Z",
+      "sizeKb": 3480,
+      "hitPaths": [
+        "supabase/functions/shopify-sync/index.ts"
+      ]
+    },
+    {
+      "provider": "shopify",
+      "repo": "toolstr/shopify-seeder",
+      "commit": "d9fb5941c475e9aa1e6948927c8e65d461983ec2",
+      "stars": 0,
+      "pushedAt": "2026-04-23T12:25:43Z",
+      "sizeKb": 29,
+      "hitPaths": [
+        "src/utils/api.ts"
+      ]
+    },
+    {
+      "provider": "shopify",
+      "repo": "laszloszabi1/draft-panel",
+      "commit": "9c84de0aefde8bb5783d61af558c18ffb3d5ef74",
+      "stars": 0,
+      "pushedAt": "2026-10-02T16:37:31Z",
+      "sizeKb": 2214,
+      "hitPaths": [
+        "generate.mjs"
+      ]
+    },
+    {
+      "provider": "shopify",
+      "repo": "ProofPulse7/push-eagle",
+      "commit": "f05edf632bb5e7359c578bb6e6cbb30bd0bc7e6c",
+      "stars": 0,
+      "pushedAt": "2026-10-07T09:15:38Z",
+      "sizeKb": 2594,
+      "hitPaths": [
+        "shopify-webpush-app/src/lib/server/gdpr/deliver-export.ts"
+      ]
+    },
+    {
+      "provider": "shopify",
+      "repo": "tunglam16402/shopify_store",
+      "commit": "8d47055e38e90b3cba6cc69d5a9fc59ddc4187fd",
+      "stars": 0,
+      "pushedAt": "2026-07-11T13:37:59Z",
+      "sizeKb": 2961,
+      "hitPaths": [
+        "shopify/admin-fetcher.ts"
+      ]
+    },
+    {
+      "provider": "shopify",
+      "repo": "Danykeidel03/nodeMailWsp",
+      "commit": "3b5dde9ff395080afc6939d9bf6ec946bef9a064",
+      "stars": 0,
+      "pushedAt": "2026-07-24T11:04:39Z",
+      "sizeKb": 359,
+      "hitPaths": [
+        "shopify.js"
+      ]
+    },
+    {
+      "provider": "shopify",
+      "repo": "intssere/SEO_ENGINE",
+      "commit": "018057f4a7887c33de0436c89604c6bbb9d85ad4",
+      "stars": 0,
+      "pushedAt": "2026-10-15T11:34:28Z",
+      "sizeKb": 8508,
+      "hitPaths": [
+        "artifacts/api-server/src/lib/pilot-runner.ts",
+        "artifacts/api-server/src/lib/shopify-write-foundation.ts",
+        "artifacts/api-server/src/lib/task53-store-v2.ts",
+        "artifacts/api-server/src/lib/task54-persistent-apply.ts"
+      ]
+    },
+    {
+      "provider": "shopify",
+      "repo": "harshb-14/xeno-harsh",
+      "commit": "d9a0a109d56856445c924374e2f64afe680f529d",
+      "stars": 0,
+      "pushedAt": "2025-09-24T17:51:29Z",
+      "sizeKb": 167,
+      "hitPaths": [
+        "backend/src/queue/processors.ts",
+        "backend/src/services/shopifyService.ts"
+      ]
+    },
+    {
+      "provider": "shopify",
+      "repo": "popuguy/PreorderApp",
+      "commit": "b083bb64287028f3b5a052fbc932364083ce01a6",
+      "stars": 0,
+      "pushedAt": "2026-05-08T16:24:32Z",
+      "sizeKb": 169,
+      "hitPaths": [
+        "api/products.js",
+        "lib/shopify.js",
+        "server/shopify.js"
+      ]
+    },
+    {
+      "provider": "shopify",
+      "repo": "devmtc-1/on-shopfront-sync",
+      "commit": "4c6fd6f9c5ce1e70efd27f9be74836b94b403309",
+      "stars": 0,
+      "pushedAt": "2025-12-12T04:17:40Z",
+      "sizeKb": 476,
+      "hitPaths": [
+        "app/routes/shopify-import.jsx"
+      ]
+    },
+    {
+      "provider": "shopify",
+      "repo": "prokopchuk-dmytro/bundle-ik",
+      "commit": "2e9a0ee534178143bfd2df084710c2ed299101f4",
+      "stars": 0,
+      "pushedAt": "2025-08-17T13:01:15Z",
+      "sizeKb": 246,
+      "hitPaths": [
+        "app/shopify.server.ts"
+      ]
+    },
+    {
+      "provider": "shopify",
+      "repo": "rakesh-om/Gyftr",
+      "commit": "b5105b8ed66a57e17a0021361b88518c7086236d",
+      "stars": 0,
+      "pushedAt": "2025-12-26T09:12:50Z",
+      "sizeKb": 440,
+      "hitPaths": [
+        "app/routes/graphql/getStorefrontAccessToken.js"
+      ]
+    },
+    {
+      "provider": "shopify",
+      "repo": "KrisMoralesZ/Next-Store",
+      "commit": "1e5b310b74ce65ecabd42207dc8489ae8de46e52",
+      "stars": 0,
+      "pushedAt": "2026-01-07T20:55:28Z",
+      "sizeKb": 1915,
+      "hitPaths": [
+        "src/services/Collections/request.ts",
+        "src/services/Products/request.ts"
+      ]
+    },
+    {
+      "provider": "shopify",
+      "repo": "swastik7805/Graph-QL",
+      "commit": "56658065b8d0c2f18e6d80f4c4c629939c788eb2",
+      "stars": 0,
+      "pushedAt": "2025-10-30T14:04:41Z",
+      "sizeKb": 10,
+      "hitPaths": [
+        "index.js"
+      ]
+    },
+    {
+      "provider": "shopify",
+      "repo": "Fadil369/brainSAIT-oid-system",
+      "commit": "4b597a8fc3b55db9f067e81adff27eb14760d2d8",
+      "stars": 0,
+      "pushedAt": "2026-09-20T04:51:52Z",
+      "sizeKb": 17916,
+      "hitPaths": [
+        "workers/oid-line/src/index.ts"
+      ]
+    },
+    {
+      "provider": "shopify",
+      "repo": "ozzyonfire/shopify-next-app",
+      "commit": "7ad59df1528d7295890013a148354b8d07d62eff",
+      "stars": 141,
+      "pushedAt": "2026-08-21T15:17:28Z",
+      "sizeKb": 50016,
+      "hitPaths": [
+        "web/app/hooks/useGraphQL.ts"
+      ]
+    },
+    {
+      "provider": "shopify",
+      "repo": "jcrowe85/meta-analytics",
+      "commit": "53844d89e13c695998aa68d710ba79838f6b4b76",
+      "stars": 0,
+      "pushedAt": "2025-10-21T09:31:40Z",
+      "sizeKb": 348,
+      "hitPaths": [
+        "webhook-handler.js"
+      ]
+    },
+    {
+      "provider": "shopify",
+      "repo": "Revoa-ux/revoa-app",
+      "commit": "a9f534051d7a7343027ab0be23c711189e0b4166",
+      "stars": 2,
+      "pushedAt": "2026-02-20T22:15:42Z",
+      "sizeKb": 3829,
+      "hitPaths": [
+        "netlify/functions/shopify-oauth.ts"
+      ]
+    },
+    {
+      "provider": "shopify",
+      "repo": "laxmiitalianelegance-max/unit",
+      "commit": "6650d148ca75ed2dee0b4b1ede135118a7b86d8e",
+      "stars": 0,
+      "pushedAt": "2026-08-30T08:55:09Z",
+      "sizeKb": 1511,
+      "hitPaths": [
+        "src/orchestrator.js"
+      ]
+    },
+    {
+      "provider": "shopify",
+      "repo": "Drixares/security-week",
+      "commit": "f4ef402749a749d294ebf6425a118188d0ccb1ad",
+      "stars": 0,
+      "pushedAt": "2025-10-24T14:47:59Z",
+      "sizeKb": 74,
+      "hitPaths": [
+        "src/utils/shopify.ts"
+      ]
+    },
+    {
+      "provider": "shopify",
+      "repo": "MK-XXXVII/holytea-inventory-sync",
+      "commit": "b17d6b13cc8997ac963c4a96cbbe4bebf9ea3bca",
+      "stars": 0,
+      "pushedAt": "2025-12-31T23:41:34Z",
+      "sizeKb": 69,
+      "hitPaths": [
+        "append-new-items.mjs",
+        "reconcile-available.mjs",
+        "reverse-sync.mjs",
+        "update-product-metadata.mjs"
+      ]
+    },
+    {
+      "provider": "shopify",
+      "repo": "realmstoriches/ShopifyIncomeHub",
+      "commit": "441dd8d7ce8373326152f8246f884f9f4b8a1262",
+      "stars": 0,
+      "pushedAt": "2025-10-16T06:49:13Z",
+      "sizeKb": 353,
+      "hitPaths": [
+        "archive/shopifyListener.js",
+        "lib/listener.js"
+      ]
+    },
+    {
+      "provider": "shopify",
+      "repo": "ADRIG-AI/shofipy-backend",
+      "commit": "34ebd0a687af72388ee82d21a21216f2eadfb0ea",
+      "stars": 0,
+      "pushedAt": "2026-04-13T07:43:26Z",
+      "sizeKb": 108,
+      "hitPaths": [
+        "controllers/shopify/billingController.js",
+        "controllers/shopify/syncController.js",
+        "controllers/shopify/verificationController.js"
+      ]
+    },
+    {
+      "provider": "shopify",
+      "repo": "Launchifyapp/auto-shopify-setup",
+      "commit": "b5cede6932f3e27a8a902bb7689fd612c690470d",
+      "stars": 0,
+      "pushedAt": "2026-06-10T13:26:13Z",
+      "sizeKb": 27240,
+      "hitPaths": [
+        "lib/batchUploadUniversal.ts",
+        "lib/pipelineBulkShopify.ts"
+      ]
+    },
+    {
+      "provider": "shopify",
+      "repo": "tuanminh9704/Internship-Vu-Tuan-Minh",
+      "commit": "fba756b0e09ce9b73748a9fb5a1854e5b84df5f4",
+      "stars": 0,
+      "pushedAt": "2025-06-20T12:12:25Z",
+      "sizeKb": 11873,
+      "hitPaths": [
+        "shopify/day-18/producct-remix-app/app/graphql/apolloClient.ts",
+        "shopify/day-19/remix-app-day-19/app/utils/fetchShopifyAdmin.ts"
+      ]
+    },
+    {
+      "provider": "shopify",
+      "repo": "amgst/Product-alert",
+      "commit": "0b53b7ea6675f0486e3d9089285ba20b2054b915",
+      "stars": 0,
+      "pushedAt": "2026-09-17T15:40:42Z",
+      "sizeKb": 178,
+      "hitPaths": [
+        "app/inventory.ts"
+      ]
+    },
+    {
+      "provider": "shopify",
+      "repo": "sanjeev744/smart-slidecart",
+      "commit": "65a4c562603f6d9731252f1ff276241ea649fa1c",
+      "stars": 1,
+      "pushedAt": "2026-08-14T12:32:31Z",
+      "sizeKb": 254,
+      "hitPaths": [
+        "app/models/addon-product.server.ts"
+      ]
+    },
+    {
+      "provider": "shopify",
+      "repo": "aamirbohra72/Test-CIP",
+      "commit": "d4dca4a9cabd5f8962ca71c7bbcd0d5fcf5e5b39",
+      "stars": 0,
+      "pushedAt": "2026-08-09T05:41:42Z",
+      "sizeKb": 6478,
+      "hitPaths": [
+        "centralized-inventory-processor-cicd-container/src/services/modules/shopify/shopify-auth-handlers.ts"
+      ]
+    },
+    {
+      "provider": "shopify",
+      "repo": "chamath-shanaka/heurista-demo",
+      "commit": "1f94a7f25008075c1b6a0f2db2a0970d459f1d02",
+      "stars": 0,
+      "pushedAt": "2025-11-11T09:43:42Z",
+      "sizeKb": 103,
+      "hitPaths": [
+        "app/api/shopify/callback/route.ts"
+      ]
+    }
+  ],
+  "rejected": [
+    {
+      "provider": "openai",
+      "repo": "lianshufeng/chatgpt_api_demo",
+      "reason": "pushed 2023-03-13"
+    },
+    {
+      "provider": "openai",
+      "repo": "kevinamiri/chatgpt-spreadsheet-example",
+      "reason": "pushed 2023-05-21"
+    },
+    {
+      "provider": "openai",
+      "repo": "ShadovvBeast/TalkGPT",
+      "reason": "pushed 2023-07-31"
+    },
+    {
+      "provider": "openai",
+      "repo": "k11q/WhatsappGPT",
+      "reason": "pushed 2023-04-03"
+    },
+    {
+      "provider": "openai",
+      "repo": "AkshayRana-Jaltas/The",
+      "reason": "no package.json"
+    },
+    {
+      "provider": "openai",
+      "repo": "subashrai02468/Javascript-chatGPT",
+      "reason": "no package.json"
+    },
+    {
+      "provider": "openai",
+      "repo": "eunomia-bpf/chatrepo",
+      "reason": "pushed 2023-03-08"
+    },
+    {
+      "provider": "openai",
+      "repo": "ezzcodeezzlife/fileGPT",
+      "reason": "pushed 2023-03-18"
+    },
+    {
+      "provider": "openai",
+      "repo": "sullyo/searchreddit",
+      "reason": "pushed 2023-04-04"
+    },
+    {
+      "provider": "openai",
+      "repo": "systemoutprintlnhelloworld/interactive-prompt-iterator",
+      "reason": "size 97 MB"
+    },
+    {
+      "provider": "openai",
+      "repo": "akinsokpah/akin-ai-backend",
+      "reason": "no package.json"
+    },
+    {
+      "provider": "openai",
+      "repo": "xiangsx/wechatgpt",
+      "reason": "pushed 2023-04-02"
+    },
+    {
+      "provider": "openai",
+      "repo": "olup/zod-chatgpt",
+      "reason": "pushed 2023-04-15"
+    },
+    {
+      "provider": "openai",
+      "repo": "wilsonf1996/index.html",
+      "reason": "no package.json"
+    },
+    {
+      "provider": "openai",
+      "repo": "0x0funky/TradeVoyage",
+      "reason": "size 82 MB"
+    },
+    {
+      "provider": "openai",
+      "repo": "aliyeysides/prisma-gpt",
+      "reason": "pushed 2023-07-01"
+    },
+    {
+      "provider": "openai",
+      "repo": "weaigc/gpt-web",
+      "reason": "pushed 2023-10-21"
+    },
+    {
+      "provider": "openai",
+      "repo": "didfodms/boseong-hongcha",
+      "reason": "pushed 2023-06-18"
+    },
+    {
+      "provider": "openai",
+      "repo": "scripting/chatGptHelloWorld",
+      "reason": "no package.json"
+    },
+    {
+      "provider": "meta-graph",
+      "repo": "spdewitt/night-sun-stables",
+      "reason": "size 192 MB"
+    },
+    {
+      "provider": "meta-graph",
+      "repo": "nathannremacle/aegis-solaire",
+      "reason": "size 140 MB"
+    },
+    {
+      "provider": "meta-graph",
+      "repo": "avig-apiiro/avig-go-tests",
+      "reason": "no package.json"
+    },
+    {
+      "provider": "meta-graph",
+      "repo": "ithiagosoares/Firebase",
+      "reason": "size 2016 MB"
+    },
+    {
+      "provider": "meta-graph",
+      "repo": "surabhiastrology/astro-landing",
+      "reason": "size 187 MB"
+    },
+    {
+      "provider": "meta-graph",
+      "repo": "GLO3112-classrooms/ugram-h2026-team-23",
+      "reason": "size 88 MB"
+    },
+    {
+      "provider": "meta-graph",
+      "repo": "OmarKhled/Tafakor",
+      "reason": "size 150 MB"
+    },
+    {
+      "provider": "meta-graph",
+      "repo": "superglue-ai/superglue",
+      "reason": "size 145 MB"
+    },
+    {
+      "provider": "shopify",
+      "repo": "deco-cx/apps",
+      "reason": "no package.json"
+    },
+    {
+      "provider": "shopify",
+      "repo": "asalastudio/madison-studio-cursor",
+      "reason": "size 92 MB"
+    },
+    {
+      "provider": "shopify",
+      "repo": "Adarsh-Dhar/chain-tap-polkadot",
+      "reason": "size 73 MB"
+    },
+    {
+      "provider": "shopify",
+      "repo": "annapurnakhakhra-cyber/Mega_Rocket",
+      "reason": "size 128 MB"
+    },
+    {
+      "provider": "shopify",
+      "repo": "aryamanrastogi111/agatsaone1",
+      "reason": "size 270 MB"
+    },
+    {
+      "provider": "shopify",
+      "repo": "aurasystemsai/aura-core-monolith",
+      "reason": "size 86 MB"
+    },
+    {
+      "provider": "shopify",
+      "repo": "GuetarniWalid/MyselfMonArt_Backend",
+      "reason": "size 310 MB"
+    },
+    {
+      "provider": "shopify",
+      "repo": "FlowCreations/legion-vault-nexus",
+      "reason": "size 117 MB"
+    },
+    {
+      "provider": "shopify",
+      "repo": "jamestuwairua77-cpu/bargain-drop-v2",
+      "reason": "size 1317 MB"
+    },
+    {
+      "provider": "shopify",
+      "repo": "thenextmovement/daniel-AI-stuff",
+      "reason": "size 438 MB"
+    },
+    {
+      "provider": "shopify",
+      "repo": "danievpoint/foquz-pop-landing-booster",
+      "reason": "size 100 MB"
+    },
+    {
+      "provider": "shopify",
+      "repo": "sujeeyoga/sisterstoragewireframe",
+      "reason": "size 137 MB"
+    },
+    {
+      "provider": "shopify",
+      "repo": "musical-basics/dreamplay-monorepo",
+      "reason": "size 145 MB"
+    }
+  ]
+}
