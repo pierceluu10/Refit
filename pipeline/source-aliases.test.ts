@@ -431,3 +431,63 @@ it('keeps cyclic configuration inheritance under review', () => {
   expect(result.edits).toEqual([]);
   expect(result.sourceWarnings.join(' ')).toContain('unverified');
 });
+
+it('resolves aliases through the referenced project of a solution tsconfig, as in the Vite template', async () => {
+  const root = await writeRepository({
+    'tsconfig.json':
+      '{"files":[],"references":[{"path":"./tsconfig.app.json"},{"path":"./tsconfig.node.json"}]}',
+    'tsconfig.app.json': JSON.stringify({
+      compilerOptions: { baseUrl: '.', paths: { '@/*': ['./src/*'] } },
+      include: ['src'],
+    }),
+    'tsconfig.node.json': '{"include":["vite.config.ts"]}',
+    'src/client.ts': client,
+    'src/history.ts': consumer,
+    'vite.config.ts': 'export default {};',
+    'eslint.config.js': 'export default [];',
+  });
+  const input = await readRepository(root);
+  expect(input.configurations?.map((file) => file.path)).toEqual([
+    'tsconfig.app.json',
+    'tsconfig.json',
+    'tsconfig.node.json',
+  ]);
+  const result = analyzeRepository(input, [removal]);
+  expect(result.sourceWarnings).toEqual([]);
+  expect(result.findings).toMatchObject([{ confidence: 'confirmed' }]);
+  expect(
+    result.apiVersionDeclarations.find((declaration) => declaration.kind === 'constructor'),
+  ).toMatchObject({ status: 'literal', value: '2022-08-01' });
+});
+
+it('keeps a source file claimed by several referenced projects under review', () => {
+  const { result } = analyze(
+    {},
+    {
+      'tsconfig.json': '{"files":[],"references":[{"path":"./a.json"},{"path":"./b.json"}]}',
+      'a.json': JSON.stringify({ ...JSON.parse(aliases), include: ['src/**/*.ts'] }),
+      'b.json': JSON.stringify({ ...JSON.parse(aliases), include: ['src'] }),
+    },
+  );
+  expect(result.findings).toMatchObject([{ confidence: 'review' }]);
+  expect(result.sourceWarnings.join(' ')).toContain('several referenced projects');
+});
+
+it('prefers a generated runtime module over its declaration and treats declaration-only targets as types', async () => {
+  const root = await writeRepository({
+    'tsconfig.json': JSON.stringify({
+      compilerOptions: { baseUrl: '.', paths: { '@/*': ['./src/*'] } },
+    }),
+    'src/client.ts': client,
+    'src/history.ts': `import { api } from '@/_generated/api';\nimport type { Doc } from '@/_generated/dataModel';\nimport shadow from '/images/shadow.png';\n${consumer.replace("import billing from '@/client';", "import billing from '@/client';\nexport const used = [api, shadow];")}`,
+    'src/_generated/api.js': 'export const api = {};',
+    'src/_generated/api.d.ts': 'export declare const api: object;',
+    'src/_generated/dataModel.d.ts': 'export type Doc = object;',
+  });
+  const result = analyzeRepository(await readRepository(root), [removal]);
+  expect(result.sourceWarnings).toEqual([]);
+  expect(result.findings).toMatchObject([{ confidence: 'confirmed' }]);
+  expect(
+    result.apiVersionDeclarations.find((declaration) => declaration.kind === 'constructor'),
+  ).toMatchObject({ status: 'literal', value: '2022-08-01' });
+});

@@ -1,4 +1,4 @@
-import { dirname, resolve } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import ts from 'typescript-compiler';
 import { isObject } from './specifications.ts';
 import type { Repository } from './types.ts';
@@ -16,6 +16,69 @@ export function configurationReferences(content: string) {
   return references.filter(
     (reference): reference is string =>
       typeof reference === 'string' && (reference.startsWith('./') || reference.startsWith('../')),
+  );
+}
+
+// Project references (`{"references": [{"path": "./tsconfig.app.json"}]}`) name a file or a
+// directory holding tsconfig.json.
+export function projectReferences(content: string) {
+  const parsed = ts.parseConfigFileTextToJson('tsconfig.json', content);
+  if (parsed.error || !isObject(parsed.config) || !Array.isArray(parsed.config.references))
+    return [];
+  return parsed.config.references
+    .map((reference) => (isObject(reference) ? reference.path : undefined))
+    .filter(
+      (path): path is string =>
+        typeof path === 'string' && (path.startsWith('./') || path.startsWith('../')),
+    );
+}
+
+export function configurationTarget(exists: (path: string) => boolean, path: string) {
+  return [path, `${path}.json`, join(path, 'tsconfig.json')].find(exists);
+}
+
+// A solution configuration (`"files": []` plus references, like Vite's template) compiles nothing
+// itself; each source file belongs to the referenced project that includes it.
+function solutionReferences(name: string, content: string) {
+  const parsed = ts.parseConfigFileTextToJson(name, content);
+  if (parsed.error || !isObject(parsed.config)) return undefined;
+  const { files, include, references } = parsed.config;
+  if (!Array.isArray(files) || files.length || include !== undefined || !Array.isArray(references))
+    return undefined;
+  const paths = projectReferences(content);
+  return paths.length === references.length ? paths : undefined;
+}
+
+// Matches TypeScript's include/exclude specs: `**` spans directories, `*` and `?` stay within one,
+// and a spec without wildcards names a file or a whole directory.
+function specPattern(directory: string, spec: string) {
+  const absolute = escapeRegExp(resolve(directory, spec));
+  if (!/[*?]/.test(spec)) return new RegExp(`^${absolute}(?:/.*)?$`);
+  const pattern = absolute
+    .replace(/\\\*\\\*\//g, '(?:[^/]+/)*')
+    .replace(/\\\*\\\*$/, '.*')
+    .replace(/\\\*/g, '[^/]*')
+    .replace(/\\\?/g, '[^/]');
+  return new RegExp(`^${pattern}$`);
+}
+
+function escapeRegExp(text: string) {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function includesFile(name: string, content: string, file: string) {
+  const parsed = ts.parseConfigFileTextToJson(name, content);
+  if (parsed.error || !isObject(parsed.config)) return false;
+  const directory = dirname(name);
+  const strings = (value: unknown) =>
+    Array.isArray(value) ? value.filter((entry): entry is string => typeof entry === 'string') : [];
+  const { files, include, exclude } = parsed.config;
+  if (strings(files).some((entry) => resolve(directory, entry) === file)) return true;
+  // TypeScript includes everything under the project when neither files nor include is set.
+  const includes = include === undefined && files === undefined ? ['**/*'] : strings(include);
+  return (
+    includes.some((spec) => specPattern(directory, spec).test(file)) &&
+    !strings(exclude).some((spec) => specPattern(directory, spec).test(file))
   );
 }
 
@@ -112,7 +175,30 @@ export function sourceConfigurationOptions(repository: Repository) {
         (name) => configurations.has(name),
       );
       if (config) {
-        options.set(resolve(repository.root, file.path), parse(config));
+        const path = resolve(repository.root, file.path);
+        const solution = solutionReferences(config, configurations.get(config)!.content);
+        if (!solution) options.set(path, parse(config));
+        else {
+          const owners = solution
+            .map((reference) =>
+              configurationTarget(
+                (name) => configurations.has(name),
+                resolve(directory, reference),
+              ),
+            )
+            .filter(
+              (name) =>
+                name !== undefined && includesFile(name, configurations.get(name)!.content, path),
+            );
+          // A file outside every referenced project compiles with default options, as in an editor.
+          if (owners.length <= 1) options.set(path, owners.length ? parse(owners[0]!) : {});
+          else {
+            warnings.add(
+              `${configurations.get(config)!.path}: ${file.path} belongs to several referenced projects; source alias resolution is unverified. Shared clients require review.`,
+            );
+            options.set(path, null);
+          }
+        }
         break;
       }
       if (directory === resolve(repository.root) || directory === dirname(directory)) break;

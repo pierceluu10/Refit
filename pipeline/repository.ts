@@ -1,7 +1,12 @@
 import { YARN_LOCKFILE, parseYarnLock } from './yarn-lock.ts';
 import { readdir, readFile, realpath, stat } from 'node:fs/promises';
 import { join, relative, resolve } from 'node:path';
-import { configurationReferences, SOURCE_CONFIGURATION_NAMES } from './source-configurations.ts';
+import {
+  configurationReferences,
+  configurationTarget,
+  projectReferences,
+  SOURCE_CONFIGURATION_NAMES,
+} from './source-configurations.ts';
 import { digest, isObject, parseObject, parseDocumentObject } from './specifications.ts';
 import { PipelineInputError, type Repository, type DependencyDeclaration } from './types.ts';
 import { PNPM_LOCKFILE, parsePnpmLock } from './pnpm-lock.ts';
@@ -143,10 +148,12 @@ export async function readRepository(
       throw new PipelineInputError('Source configuration exceeds repository scan limits.');
     const content = await readFile(path, 'utf8');
     configurations.push({ path: configurationPaths.get(path)!, content });
-    for (const reference of configurationReferences(content)) {
-      const target = resolve(path, '..', reference);
-      const candidate = configurationPaths.has(target) ? target : `${target}.json`;
-      if (configurationPaths.has(candidate)) pendingConfigurations.push(candidate);
+    for (const reference of [...configurationReferences(content), ...projectReferences(content)]) {
+      const candidate = configurationTarget(
+        (name) => configurationPaths.has(name),
+        resolve(path, '..', reference),
+      );
+      if (candidate) pendingConfigurations.push(candidate);
     }
   }
   if (configurations.length)
