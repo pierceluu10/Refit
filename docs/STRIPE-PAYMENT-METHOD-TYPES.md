@@ -81,7 +81,7 @@ Dropping it lets the Dashboard decide, which can add Link, wallets, BNPL and asy
 
 All three Stripe sets were rerun from a pinned worktree with the full pipeline, and every repository was measured. Docker was shut down partway through the fresh set; the 48 fresh repositories it had not reached were validated after a restart, at the same commit.
 
-**Validated fixes: 10 → 53** on the same 531 repositories. `YunmeiYe/nextjs-ai-platform` counts as validated: it hit a dependency-cache lock held by a concurrent run of the same repositories, and validated when rerun with no contention.
+**Validated fixes: 10 → 53** on the same 531 repositories. `YunmeiYe/nextjs-ai-platform` counts as validated: it hit a dependency-cache lock held by a concurrent run of the same repositories, and validated in a rerun at `4fffbee` with no contention (the other 380 fresh results are from `6d02116`).
 
 | | Original 100 | Held-out 50 | Fresh 381 |
 |---|---|---|---|
