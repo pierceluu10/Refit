@@ -42,7 +42,7 @@ function contract(version: string, fields: string[]) {
   };
 }
 
-async function run(files: Record<string, string>) {
+async function run(files: Record<string, string>, proposePatch = true) {
   const root = await mkdtemp(join(tmpdir(), 'refit-card-methods-'));
   directories.push(root);
   const repository = join(root, 'repository');
@@ -89,7 +89,7 @@ async function run(files: Record<string, string>) {
     after,
     providerConfig,
     apiVersion: '2026-08-26.dahlia',
-    proposePatch: true,
+    proposePatch,
   });
 }
 
@@ -182,4 +182,12 @@ it('tells the reviewer to keep cards enabled in the draft PR', async () => {
     'moves to `allowed_payment_method_types` under the owner-approved policy',
   );
   expect(description).toContain('confirm cards stay enabled in the Stripe Dashboard');
+});
+
+it('lets the validation preflight through without a patch request when the pin moves', async () => {
+  const report = await run({ 'checkout.js': checkout("['card']") }, false);
+  expect(report.patch).toMatchObject({ status: 'not-generated' });
+  expect(report.findings[0].requestParameter).toBeUndefined();
+  const unpinned = await run({ 'checkout.js': checkout("['card']", '{}') }, false);
+  expect(unpinned.findings[0].requestParameter).toBeDefined();
 });

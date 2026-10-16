@@ -185,10 +185,13 @@ async function runOpenApiPipeline(options: {
           }))
       : [];
   // The reviewed card-only rename is kept only with the target pin in the same patch and, for
-  // TypeScript, the stripe-node release whose types have allowed_payment_method_types.
+  // TypeScript, the stripe-node release whose types have allowed_payment_method_types. Without a
+  // patch request (validation preflight, scans) only the pin is checked: the registry lookup for the
+  // upgrade runs when the patch is generated, and a failed upgrade stops that run.
   const typescript = repository.files.some((file) => /\.(?:[cm]?ts|tsx)$/.test(file.path));
+  const patchRequested = Boolean(options.proposePatch || options.aiPatch);
   const cardUpgrade =
-    (options.proposePatch || options.aiPatch) &&
+    patchRequested &&
     analyzedEdits.some((edit) => edit.rule === CARD_PAYMENT_METHOD_RULE) &&
     versionEdits.length > 0 &&
     typescript &&
@@ -196,9 +199,8 @@ async function runOpenApiPipeline(options: {
       ? await stripePackageUpgrade(repository.root, targetVersion)
       : undefined;
   movedTo[CARD_PAYMENT_METHOD_RULE] =
-    Boolean(options.proposePatch || options.aiPatch) &&
     versionEdits.length > 0 &&
-    (!typescript || Boolean(cardUpgrade && 'upgrade' in cardUpgrade));
+    (!patchRequested || !typescript || Boolean(cardUpgrade && 'upgrade' in cardUpgrade));
   // The period helper reads either API version, so it does not depend on the version pin.
   const edits = analyzedEdits.filter((edit) => !isFieldMove(edit) || movedTo[edit.rule!]);
   const ruleEdits = edits.filter(isFieldMove);

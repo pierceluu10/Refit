@@ -1,6 +1,6 @@
 # Stripe `payment_method_types` in endive: proposed policy
 
-**Status: proposal for owner approval.** Until it is approved, the 2026-10-16 decision stands: every traced call that still sends `payment_method_types` stops for review, and Refit adds no automatic replacement.
+**Status: approved by the owner on 2026-10-16 and implemented for case A only.** Cases B and C keep stopping for review, and Refit never drops the parameter.
 
 ## The change
 
@@ -35,7 +35,7 @@ There are 222 call sites in 193 repositories. Every value is a literal array; no
 
 ## Proposal
 
-### Case A: replace `['card']` with `allowed_payment_method_types: ['card']` (recommended: approve)
+### Case A: replace `['card']` with `allowed_payment_method_types: ['card']` (approved)
 
 Refit would rename the property and keep the value. It would apply this only when all of these hold:
 
@@ -51,7 +51,7 @@ The draft PR would state, in its "please check" section, that the account must k
 | It unblocks the most repositories: 167 of 193 stop only on case A sites. | Whether wallets and Link look the same under the filter cannot be checked offline. Refit makes no live calls, and `stripe-mock` only checks that the request is accepted. |
 | It is deterministic, and its scope is one exact value. | Earlier, the AI made the same rename and Refit rejected it. That rejection was right for an unreviewed edit applied to any value. This policy is narrower and owner-approved, and the PR discloses it. |
 
-### Case B: card plus other methods (recommended: keep stopping)
+### Case B: card plus other methods (decided: keep stopping)
 
 The same rename would keep the methods listed. But dynamic eligibility can hide a listed method for some customers: PayPal, Cash App, BLIK, P24 and Boleto depend on the buyer's country, currency, amount and device. The static list showed them whenever the session was created. A merchant who lists PayPal by name relies on it being offered, so a silent change in which methods buyers see is a product decision.
 
@@ -62,20 +62,17 @@ The same rename would keep the methods listed. But dynamic eligibility can hide 
 
 Optional middle ground: rename case B too, but list it under "please check" with each method that may now be filtered. I recommend keeping the stop until a customer asks for it.
 
-### Case C: Terminal `card_present` (recommended: keep stopping)
+### Case C: Terminal `card_present` (decided: keep stopping)
 
 In-person payments depend on reader and location configuration that offline validation cannot see. 1 repository.
 
-### Dropping the parameter (recommended: reject as automatic)
+### Dropping the parameter (decided: never automatic)
 
 Dropping it lets the Dashboard decide, which can add Link, wallets, BNPL and async bank methods. Apps that grant access on `checkout.session.completed` without checking `payment_status` would then fulfill unpaid async payments. Of the 164 stopped repositories that handle `checkout.session.completed`, only 20 mention `payment_status` anywhere. Refit would offer this only as a review suggestion, never as an edit.
 
-## If approved
+## Implementation
 
-1. **Rule.** Add a deterministic Stripe rule next to `pipeline/request-removals.ts` for case A on the three operations. The generic request-rename rule cannot be used: it handles JSON request bodies and has no value condition, and Stripe uses form bodies.
-2. **Gates.** Apply it only together with the endive `apiVersion` bump, and for TypeScript, the SDK upgrade. Every other value keeps the current stop.
-3. **Tests.** Cover each value class above, mixed files (case A and case B in one repository still stop), and the PR disclosure text.
-4. **Benchmark.** Rerun the 531 Stripe repositories and report how many of the 167 reach validation and how many validate. Others will still stop on webhook gates, preparation or checks.
-5. **Records.** Record the new owner decision in `AGENTS.md`, and update [request migrations](REQUEST-MIGRATIONS.md) and readiness.
-
-Estimated effort: about half a day including tests, plus a 25-minute benchmark rerun.
+- **Rule.** `removedRequestParameters` (`pipeline/request-removals.ts`) marks the removal as having a reviewed replacement only for Stripe, only on the three operations, and only when the target contract has `allowed_payment_method_types`. The analyzer emits a rename edit only when the traced call is confirmed and the value is exactly an array literal holding the string `'card'`. `['card'] as const`, computed lists and every other value get no edit.
+- **Gates.** `runPipeline` keeps the edit only when a patch is requested and the same patch moves a literal `apiVersion` to the target. For a TypeScript project, the stripe-node upgrade must also succeed; today that means a root npm lockfile. Otherwise the edit is dropped and the run stops for review as before. A run still stops when any other site sends a value the rule does not cover.
+- **Disclosure.** The proposal carries a warning, and the draft PR lists the removed request field under breaking changes. A review line asks the reviewer to confirm cards stay enabled in the Dashboard or payment method configuration.
+- **Tests.** `pipeline/request-removals.test.ts` covers each value class, quoted keys and an unconfirmed client. `pipeline/card-payment-methods.test.ts` covers the end-to-end gates: no pin, a mixed card and PayPal repository, a TypeScript project without an upgradable package, and the PR text.
