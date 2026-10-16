@@ -16,7 +16,7 @@ import { hasErrorCode } from './state-files.ts';
 const RUN_DIRECTORY_PREFIX = 'refit-run-';
 
 const USAGE =
-  'Usage: refit run [--integration <id>] [--output <new-directory-outside-repository>]\n   or: refit run --config <run.json> [--repository <git-root>] [--output <new-directory>]\n   or: refit run --repository <clean-git-directory> --before <spec.json-or-yaml> (--after <spec.json-or-yaml> | --latest-stripe) --image <local-image> --command \'["npm","test"]\'\nOptional: [--env <.env>] [--quiet] [--human | --json] [--api-version <current-api-version>] [--api-version-policy operator-pin|source-verified] [--full-diff (requires oasdiff)] [--provider-config <adapter.json>] [--assess] [--ai-patch [--documentation-snapshot <saved-note.json> ...]] [--repair-attempts 0|1|2 (sends failed check output to OpenAI)] [--publish-draft --github owner/repository --base main [--github-app] [--publish-unresolved]]';
+  'Usage: refit run [--integration <id>] [--output <new-directory-outside-repository>]\n   or: refit run --config <run.json> [--repository <git-root>] [--output <new-directory>]\n   or: refit run --repository <clean-git-directory> --before <spec.json-or-yaml> (--after <spec.json-or-yaml> | --latest-stripe) --image <local-image> --command \'["npm","test"]\'\nOptional: [--env <.env>] [--quiet] [--human | --json] [--api-version <current-api-version>] [--api-version-policy operator-pin|source-verified] [--full-diff (requires oasdiff)] [--provider-config <adapter.json>] [--assess] [--ai-patch [--documentation-snapshot <saved-note.json> ...]] [--repair-attempts 0|1|2 (sends failed check output to OpenAI)] [--publish-unresolved] [--publish-draft --github owner/repository --base main [--github-app]]';
 
 try {
   const { values } = parseArgs({
@@ -92,13 +92,8 @@ try {
       values.command === undefined ? configuration?.command : parseCheckCommand(values.command);
     if (!repository || !before || !image || !command)
       throw new PipelineInputError(`Missing run inputs.\n${USAGE}`);
-    if (
-      !values['publish-draft'] &&
-      (values.github || values.base || values['github-app'] || values['publish-unresolved'])
-    )
-      throw new PipelineInputError(
-        '--github, --base, --github-app and --publish-unresolved require --publish-draft.',
-      );
+    if (!values['publish-draft'] && (values.github || values.base || values['github-app']))
+      throw new PipelineInputError('--github, --base and --github-app require --publish-draft.');
     const specificationOverride =
       values.after !== undefined || values['latest-stripe'] !== undefined;
     const result = await runWorkflow({
@@ -138,6 +133,8 @@ try {
             ...(values['publish-unresolved'] ? { allowUnresolved: true } : {}),
           }
         : undefined,
+      // Alone, it saves [Needs review] artifacts that a later publication can use.
+      ...(values['publish-unresolved'] ? { allowUnresolved: true } : {}),
       onProgress: values.quiet ? undefined : (message) => console.error(`[refit] ${message}`),
     });
     console.log(

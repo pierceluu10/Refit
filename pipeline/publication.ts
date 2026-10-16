@@ -8,7 +8,11 @@ import type { runPipeline } from './run.ts';
 import { INTEGRATION_MARKER, migrationIdentity } from './migration-identity.ts';
 import { unmappedBreakingChanges } from './openapi-diff.ts';
 import { apiVersionSourceBlocked } from './api-version.ts';
-import { migrationReviewReason } from './migration-review.ts';
+import {
+  migrationReviewReason,
+  REMOVED_REQUEST_PARAMETER_REVIEW_REASON,
+  withoutRequestParameters,
+} from './migration-review.ts';
 import { WEBHOOK_REVIEW_REASON } from './stripe-webhook-payloads.ts';
 
 const MAX_BODY_CHARACTERS = 60_000;
@@ -165,12 +169,39 @@ export async function findExistingMigration(
   };
 }
 
-// With --publish-unresolved, a draft may publish when the only blocker is the incoming webhook
-// API version, which code cannot prove. The PR says so and lists the changed handlers.
-export function webhookVersionWaiver(report: Report, allowUnresolved: boolean | undefined) {
+// With --publish-unresolved, a draft may publish as [Needs review] when exactly one of these blocks
+// it and nothing else does; the PR opens with what the owner must check or do:
+// - the incoming webhook API version, which code cannot prove (lists the changed handlers);
+// - traced calls that still send a removed request parameter, an owner decision (lists the calls);
+// - checks that could not run because dependency preparation failed for a repository-side reason
+//   (the patch is untested; names the reason and the fix).
+export function publicationWaiver(report: Report, allowUnresolved: boolean | undefined) {
+  if (!allowUnresolved) return undefined;
   const deterministic = report.patch.generator === 'deterministic';
-  if (!allowUnresolved || migrationReviewReason(report, deterministic) !== WEBHOOK_REVIEW_REASON)
-    return undefined;
+  const reason = migrationReviewReason(report, deterministic);
+  const targetVersion = report.apiVersion.after ?? 'the target API version';
+  if (report.validation.status === 'untested') {
+    const failure = report.validation.dependencyFailure;
+    if (reason || !failure || !deterministic) return undefined;
+    return { gate: 'dependency-preparation' as const, ...failure };
+  }
+  if (reason === REMOVED_REQUEST_PARAMETER_REVIEW_REASON) {
+    if (!deterministic || migrationReviewReason(withoutRequestParameters(report), deterministic))
+      return undefined;
+    return {
+      gate: 'removed-request-parameter' as const,
+      targetVersion,
+      calls: report.findings
+        .filter((finding) => finding.requestParameter)
+        .map((finding) => ({
+          file: finding.file,
+          line: finding.line,
+          call: finding.expression.slice(0, finding.expression.indexOf(' ')),
+          parameter: finding.requestParameter!.parameter,
+        })),
+    };
+  }
+  if (reason !== WEBHOOK_REVIEW_REASON) return undefined;
   const withoutWebhooks = report.findings.map(({ webhook: _webhook, ...finding }) => finding);
   if (migrationReviewReason({ ...report, findings: withoutWebhooks }, deterministic))
     return undefined;
@@ -181,7 +212,7 @@ export function webhookVersionWaiver(report: Report, allowUnresolved: boolean | 
   );
   return {
     gate: 'webhook-api-version' as const,
-    targetVersion: report.apiVersion.after ?? 'the target API version',
+    targetVersion,
     handlers: report.findings
       .filter((finding) => finding.webhook && changed.has(finding.file))
       .map((finding) => ({
@@ -198,8 +229,8 @@ export async function publishDraft(
 ) {
   const apiVersion = report.apiVersion;
   const reviewReason = migrationReviewReason(report, report.patch.generator === 'deterministic');
-  const webhookWaiver = webhookVersionWaiver(report, options.allowUnresolved);
-  if (reviewReason && !webhookWaiver) throw new PipelineInputError(reviewReason);
+  const waiver = publicationWaiver(report, options.allowUnresolved);
+  if (reviewReason && !waiver) throw new PipelineInputError(reviewReason);
   if (
     !apiVersion ||
     apiVersion.applicability !== 'matches-before' ||
@@ -208,7 +239,7 @@ export async function publishDraft(
     throw new PipelineInputError(
       `Draft publication is blocked. ${apiVersion?.reason ?? 'API-version evidence is missing.'}`,
     );
-  const artifacts = createReviewArtifacts(report, 'github', options.integration, webhookWaiver);
+  const artifacts = createReviewArtifacts(report, 'github', options.integration, waiver);
   if (
     unmappedBreakingChanges(
       report.specificationDiff,
@@ -223,7 +254,7 @@ export async function publishDraft(
       'Draft publication is blocked by unmapped breaking contract changes.',
     );
   if (
-    report.validation.status !== 'passed' ||
+    (report.validation.status !== 'passed' && waiver?.gate !== 'dependency-preparation') ||
     (report.patch.unresolvedFindings !== 0 && !options.allowUnresolved) ||
     !report.publicationFiles.length
   )

@@ -315,6 +315,8 @@ async function benchmark(entry: Selected, index: number) {
                 '1',
               ]
             : []),
+          // Saves [Needs review] artifacts for waivable stops so they can be published below.
+          ...(values['publish-unresolved'] ? ['--publish-unresolved'] : []),
           '--quiet',
           '--json',
         ],
@@ -372,7 +374,12 @@ async function benchmark(entry: Selected, index: number) {
       pullRequest: existsSync(join(bundle, 'pull-request.md')),
     };
     log(`workflow ${String((result.workflow as { status: string }).status)}`);
-    if (values.publish && report.validation?.status === 'passed')
+    // publishDraft decides which untested reports --publish-unresolved may publish.
+    if (
+      values.publish &&
+      (report.validation?.status === 'passed' ||
+        (values['publish-unresolved'] && report.validation?.status === 'untested'))
+    )
       try {
         const fork = await forkAtCommit(
           values.publish,

@@ -16,6 +16,14 @@ export interface RequestParameterRemoval {
   cardReplacement?: string;
 }
 
+// Why Refit leaves a removed parameter for the owner, shown in [Needs review] drafts.
+// Source: Stripe OpenAPI 2026-09-30.endive request bodies of POST /v1/checkout/sessions,
+// /v1/payment_intents and /v1/setup_intents, 2026-10-16.
+export const REMOVED_PARAMETER_NOTES: Record<string, string> = {
+  payment_method_types:
+    "Stripe's new `allowed_payment_method_types` is not a drop-in replacement: it filters the payment methods Stripe computes dynamically (from your Dashboard settings, currency and amount) instead of being the static list `payment_method_types` was, so swapping one for the other can change which payment methods customers are offered. Decide per call whether to drop the parameter and use dynamic payment methods, or move the list to `allowed_payment_method_types` and confirm the methods offered are still the ones you expect.",
+};
+
 export const CARD_PAYMENT_METHOD_RULE = 'stripe-card-allowed-payment-method-types';
 const CARD_REPLACEMENT = 'allowed_payment_method_types';
 const CARD_OPERATIONS = new Set(['PostCheckoutSessions', 'PostPaymentIntents', 'PostSetupIntents']);

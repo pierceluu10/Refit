@@ -1,4 +1,4 @@
-import { migrationReviewReason } from './migration-review.ts';
+import { migrationReviewReason, withoutRequestParameters } from './migration-review.ts';
 import type { AiOptions, AiUsage } from './ai-budget.ts';
 import { execFile } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
@@ -22,7 +22,7 @@ import { proposeAiPatch, TYPE_ERROR_CHANGE } from './ai-patches.ts';
 import { CARD_PAYMENT_METHOD_RULE, removedRequestParameters } from './request-removals.ts';
 import { gitEnvironment } from './git-environment.ts';
 import { readCommittedRepository } from './committed-repository.ts';
-import { prepareDependencies } from './dependency-preparation.ts';
+import { prepareDependencies, repositoryDependencyFailure } from './dependency-preparation.ts';
 import { inspectArtifactFile } from './verification.ts';
 import { analyzeRepository } from './analyzer.ts';
 import {
@@ -297,6 +297,11 @@ export async function validateMigration(options: {
   fullDiff?: boolean;
   repairAttempts?: number;
   generatedChecks?: GeneratedChecks;
+  // --publish-unresolved: see withoutRequestParameters.
+  leaveRequestParameters?: boolean;
+  // --publish-unresolved: a repository-side dependency preparation failure skips the checks and
+  // returns the deterministic patch as `untested` instead of throwing.
+  recordDependencyFailures?: boolean;
   onProgress?: (message: string) => void;
   signal?: AbortSignal;
 }) {
@@ -328,7 +333,14 @@ export async function validateMigration(options: {
   });
   if (apiVersionSourceBlocked(preflight.apiVersion))
     throw new PipelineInputError(`Validation is blocked. ${preflight.apiVersion.reason}`);
-  const reviewReason = migrationReviewReason(preflight, true, true, Boolean(options.aiPatch));
+  const reviewReason = migrationReviewReason(
+    options.leaveRequestParameters && !options.aiPatch
+      ? withoutRequestParameters(preflight)
+      : preflight,
+    true,
+    true,
+    Boolean(options.aiPatch),
+  );
   if (reviewReason) throw new PipelineInputError(reviewReason);
   const git = (args: string[]) =>
     command('git', ['-c', 'core.fsmonitor=false', '-C', repository, ...args]);
@@ -353,13 +365,24 @@ export async function validateMigration(options: {
     await command('tar', ['-xf', archive, '-C', baselineDirectory]);
     let dependencies: string | undefined;
     let environment: Record<string, unknown> | undefined;
-    if (options.prepareDependencies) {
-      const prepared = await prepareDependencies({
-        repository,
-        image,
-        signal: options.signal,
-        onProgress: options.onProgress,
-      });
+    let dependencyFailure: ReturnType<typeof repositoryDependencyFailure> = undefined;
+    let prepared: Awaited<ReturnType<typeof prepareDependencies>> | undefined;
+    if (options.prepareDependencies)
+      try {
+        prepared = await prepareDependencies({
+          repository,
+          image,
+          signal: options.signal,
+          onProgress: options.onProgress,
+        });
+      } catch (error) {
+        dependencyFailure = options.recordDependencyFailures
+          ? repositoryDependencyFailure(error)
+          : undefined;
+        if (!dependencyFailure) throw error;
+        options.onProgress?.(`Dependency preparation failed: ${dependencyFailure.summary}`);
+      }
+    if (prepared) {
       dependencies = join(root, 'dependencies.tar');
       await copyFile(prepared.archive, dependencies);
       const copied = await inspectArtifactFile(dependencies, validationProfile().archiveBytes);
@@ -373,13 +396,10 @@ export async function validateMigration(options: {
       environment = { ...prepared.environment, reused: prepared.reused };
     }
     options.signal?.throwIfAborted();
-    options.onProgress?.('Running baseline checks in offline Docker...');
-    const baselineRun = await containerCheck(
-      baselineDirectory,
-      image,
-      baselineCommand,
-      dependencies,
-    );
+    if (!dependencyFailure) options.onProgress?.('Running baseline checks in offline Docker...');
+    const baselineRun: CheckResult = dependencyFailure
+      ? { status: 'not-run', exitCode: null, stdout: '', stderr: '' }
+      : await containerCheck(baselineDirectory, image, baselineCommand, dependencies);
     const baseline = options.compareTypeErrors ? compareTypeCheck(baselineRun) : baselineRun;
     const compared = (check: CheckResult) =>
       options.compareTypeErrors ? compareTypeCheck(baselineRun, check) : check;
@@ -406,7 +426,10 @@ export async function validateMigration(options: {
       throw new PipelineInputError('Baseline specification changed during validation.');
     if (afterSpecification.hash !== report.snapshots.after)
       throw new PipelineInputError('Current specification changed during validation.');
-    if (!('diff' in report.patch) || (!report.patch.diff && baseline.status === 'passed'))
+    if (
+      !('diff' in report.patch) ||
+      (!report.patch.diff && (baseline.status === 'passed' || dependencyFailure))
+    )
       throw new PipelineInputError(
         'No supported patch proposal is available for this committed revision.',
       );
@@ -424,7 +447,7 @@ export async function validateMigration(options: {
       // preparation reads from a committed snapshot.
       let candidateDependencies = dependencies;
       let candidateEnvironment: Record<string, unknown> | undefined;
-      if (packageDiff(diff) && options.prepareDependencies) {
+      if (packageDiff(diff) && options.prepareDependencies && !dependencyFailure) {
         await command('git', ['init', '-q'], patchedDirectory);
         await command('git', ['add', '-A'], patchedDirectory);
         await command(
@@ -539,8 +562,11 @@ export async function validateMigration(options: {
         environment: candidateEnvironment,
       };
     };
+    // An untested patch is still applied, so its publication files come from the same candidate.
     const initialCandidate =
-      baseline.status === 'passed' ? await prepareCandidate(proposal.diff) : undefined;
+      baseline.status === 'passed' || dependencyFailure
+        ? await prepareCandidate(proposal.diff)
+        : undefined;
     let publicationFiles = initialCandidate?.publicationFiles ?? [];
     let candidateDirectory = initialCandidate?.directory;
     let candidateSources = initialCandidate?.sources;
@@ -549,8 +575,9 @@ export async function validateMigration(options: {
       report.patch.generator === 'deterministic' ? initialCandidate?.sources.files : undefined;
     let candidateDependencies = initialCandidate?.dependencies;
     let candidateEnvironment = initialCandidate?.environment;
-    if (initialCandidate) options.onProgress?.('Running patched checks in offline Docker...');
-    let patched: CheckResult = initialCandidate
+    const runPatched = initialCandidate && !dependencyFailure;
+    if (runPatched) options.onProgress?.('Running patched checks in offline Docker...');
+    let patched: CheckResult = runPatched
       ? compared(
           await containerCheck(
             initialCandidate.directory,
@@ -585,8 +612,9 @@ export async function validateMigration(options: {
     const repair: { limit: number; requested: number; stopReason: string; error: string | null } = {
       limit: repairLimit,
       requested: 0,
-      stopReason:
-        baseline.status === 'passed'
+      stopReason: dependencyFailure
+        ? 'dependencies-unavailable'
+        : baseline.status === 'passed'
           ? configuredEndpointProposal
             ? 'configured-endpoint-replacement'
             : configuredRequestProposal
@@ -755,18 +783,20 @@ export async function validateMigration(options: {
     const validationStatus =
       currentRevision !== revision || currentStatus
         ? 'stale'
-        : [baseline, patched, generated?.baseline, generated?.patched].some(
-              (check) => check?.status === 'error',
-            )
-          ? 'error'
-          : // A generated check with no runnable function is missing evidence, not a failure.
-            baseline.status !== 'passed' ||
-              (generated && !['passed', 'not-run'].includes(generated.baseline.status))
-            ? 'baseline-failed'
-            : patched.status !== 'passed' ||
-                (generated && !['passed', 'not-run'].includes(generated.patched.status))
-              ? 'regression'
-              : 'passed';
+        : dependencyFailure
+          ? 'untested'
+          : [baseline, patched, generated?.baseline, generated?.patched].some(
+                (check) => check?.status === 'error',
+              )
+            ? 'error'
+            : // A generated check with no runnable function is missing evidence, not a failure.
+              baseline.status !== 'passed' ||
+                (generated && !['passed', 'not-run'].includes(generated.baseline.status))
+              ? 'baseline-failed'
+              : patched.status !== 'passed' ||
+                  (generated && !['passed', 'not-run'].includes(generated.patched.status))
+                ? 'regression'
+                : 'passed';
     const reviewTypeErrors = options.compareTypeErrors
       ? introducedTypeErrors(baselineRun, patched)
           .filter(reviewTypeError)
@@ -777,6 +807,7 @@ export async function validateMigration(options: {
       revision,
       image,
       ...(environment ? { environment } : {}),
+      ...(dependencyFailure ? { dependencyFailure } : {}),
       ...(candidateEnvironment ? { patchedEnvironment: candidateEnvironment } : {}),
       command: options.command,
       baselineCommand,
