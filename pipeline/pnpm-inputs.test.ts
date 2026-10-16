@@ -293,3 +293,15 @@ it('reads pnpm 8 lockfile v6 with the same snapshot and integrity checks, instal
   current.manifest.packageManager = 'pnpm@8.15.9';
   expect(() => validate(current)).toThrow('cannot install this lockfile');
 });
+
+it('accepts release-age settings, which a frozen install never consults, only in their own shape', () => {
+  const sample = scenario();
+  sample.workspace.minimumReleaseAge = 1440;
+  sample.workspace.minimumReleaseAgeExclude = ['@types/react@19.2.17', '@stripe/*'];
+  expect(validate(sample).managerVersion).toBe('12.4.2');
+  sample.workspace.minimumReleaseAgeExclude = 'stripe';
+  expect(() => validate(sample)).toThrow('minimumReleaseAgeExclude');
+  sample.workspace.minimumReleaseAgeExclude = [];
+  sample.workspace.minimumReleaseAge = -1;
+  expect(() => validate(sample)).toThrow('minimumReleaseAge');
+});
