@@ -17,17 +17,17 @@ const metadata = JSON.parse(
 ) as { classes: Record<string, string> };
 const classSchemas = new Map(Object.entries(metadata.classes));
 
-// An explicit directory, else the stripe package the repository has installed.
-export function stripeTypesDirectory(repositoryRoot: string, explicit?: string) {
-  const directory = explicit ?? join(repositoryRoot, 'node_modules', 'stripe', 'types');
-  return existsSync(join(directory, 'index.d.ts')) ? directory : undefined;
+// An explicit stripe package directory, else the one the repository has installed.
+export function stripePackageDirectory(repositoryRoot: string, explicit?: string) {
+  const directory = explicit ?? join(repositoryRoot, 'node_modules', 'stripe');
+  return existsSync(join(directory, 'package.json')) ? directory : undefined;
 }
 
 export function addTypeEvidence(
   repository: Repository,
   changes: Removal[],
   findings: Finding[],
-  stripeTypes: string,
+  stripePackage: string,
 ) {
   const files = repository.files
     .map((file) => file.path)
@@ -38,7 +38,7 @@ export function addTypeEvidence(
     removed.set(change.property, (removed.get(change.property) ?? new Set()).add(change.schema));
   const reads = labelReads({
     repository: repository.root,
-    stripeTypes,
+    stripePackage,
     removed,
     classSchemas,
     files: files.map((path) => resolve(repository.root, path)),

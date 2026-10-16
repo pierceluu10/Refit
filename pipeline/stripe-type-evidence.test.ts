@@ -24,6 +24,10 @@ async function scan(source: string, installTypes: boolean) {
   await writeFile(join(root, 'billing.ts'), source);
   if (installTypes) {
     await mkdir(join(root, 'node_modules', 'stripe', 'types'), { recursive: true });
+    await writeFile(
+      join(root, 'node_modules', 'stripe', 'package.json'),
+      JSON.stringify({ name: 'stripe', types: 'types/index.d.ts' }),
+    );
     await writeFile(join(root, 'node_modules', 'stripe', 'types', 'index.d.ts'), TYPES);
   }
   return runPipeline({
