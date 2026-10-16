@@ -1,6 +1,6 @@
 # Refit: what works end to end
 
-_As of October 16, 2026 (Refit 0.36.0). Every number below comes from runs recorded in [the Stripe benchmark](STRIPE-BENCHMARK.md) and [readiness checkpoints](READINESS.md)._
+_As of October 16, 2026 (Refit 0.37.0). Every number below comes from runs recorded in [the Stripe benchmark](STRIPE-BENCHMARK.md), [the Shopify benchmark](SHOPIFY-BENCHMARK.md) and [readiness checkpoints](READINESS.md)._
 
 Refit is Dependabot for API changes. When a provider ships a new API version, Refit reads the old and new API contracts and finds the exact lines in a customer's code that break. It writes the migration, runs the repository's own checks in an offline sandbox, and opens a draft pull request for a human to review. It never merges.
 
@@ -41,7 +41,7 @@ Refit now catches the removed parameter statically and stops before any patch or
 
 ## What it does not do yet
 
-- **One provider is complete.** Stripe is end to end. OpenAI has a preview adapter. Shopify (a built-in adapter, contract-checked rules and a real-app benchmark) is in progress.
+- **Two providers are end to end.** Stripe, and Shopify Admin GraphQL (released in 0.37.0). OpenAI has a preview adapter. On 50 public Shopify apps frozen before any Shopify code existed, Refit read 443 GraphQL documents. It moved 1 app's pin with validation, found 6 already current for their SDK, and stopped 39 for review with exact reasons: 15 need an SDK upgrade, 7 use REST, 6 build queries at runtime, 6 set the version dynamically, and 5 have queries that already fail on every version Shopify serves, including two of Shopify's own sample apps. 31 apps pin a version Shopify no longer serves. A repeat run matched 50 of 50 outcomes. Most Shopify apps are limited by their framework's SDK, so automating that upgrade is the next lever.
 - **Deadline tracking alerts but does not migrate on its own.** `refit deadlines` matches pinned versions and models against 47 reviewed sunset entries (Shopify, Meta Graph API, OpenAI), and `refit serve --deadline-alerts` opens one GitHub issue per repository and deadline. It found Graph API v18.0 calls in `thematters/matters-server` and a model 7 days from shutdown in `embedelite/chat`. No live issue has been opened yet; the App first needs the Issues permission.
 - **Validation is bounded.** Passing checks show the code still typechecks or passes its tests, not that every runtime path works. The 5 published apps have no tests, so evidence is `tsc` plus hand review; generated mock checks could not reach their Convex handlers.
 - **Coverage gaps are explicit.** Repositories without an npm, pnpm or Yarn lockfile, dependency installs over 1 GiB, and failing baseline tests are refused rather than guessed at.
