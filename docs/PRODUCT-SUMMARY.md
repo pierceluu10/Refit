@@ -20,7 +20,7 @@ Stripe target: `2026-09-30.endive`. Three frozen Stripe sets: the original 100, 
 | | Stripe (531) | Shopify (250) |
 |---|---|---|
 | Repositories with confirmed breaking usage (Stripe) or Admin API usage (Shopify) | **234** | 216 |
-| Validated fixes | **10** (5 published as draft PRs) | **7** |
+| Validated fixes | **10** (all published as draft PRs on `refit-dev` forks) | **7** |
 | Hand-reviewed: correct / correct-partial / wrong | 8 / 2 / 0 | 7 / 0 / 0 |
 | Apps whose queries already fail on every version the provider serves | n/a | **28** |
 | Same outcome on a repeat run | 531 of 531 | 250 of 250 |

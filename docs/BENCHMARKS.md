@@ -50,7 +50,7 @@ The run used the full pipeline: deterministic rules, AI patches on `gpt-5.6-luna
 | … **validated** | **5** |
 
 - **Confirmed breaking reads:** 514 in 171 repositories. The most common are `subscription.current_period_end` (91 repositories), `invoice.subscription` (71) and `subscription.current_period_start` (22). Refit traced 2,165 of 4,216 likely Stripe SDK calls (51%).
-- **Validated fixes.** All 5 are deterministic and were reviewed by hand ([`fix-reviews.json`](benchmarks/fix-reviews.json)).
+- **Validated fixes.** All 5 are deterministic and were reviewed by hand ([`fix-reviews.json`](benchmarks/fix-reviews.json)). Each is published as a draft PR by Refit Agent on a fork in `refit-dev`; upstream repositories were not touched: [goal-reminder#1](https://github.com/refit-dev/goal-reminder/pull/1), [formail-app#1](https://github.com/refit-dev/formail-app/pull/1), [podvex#1](https://github.com/refit-dev/podvex/pull/1), [onellm-frontend#1](https://github.com/refit-dev/onellm-frontend/pull/1) and [vibe-stack#1](https://github.com/refit-dev/vibe-stack/pull/1).
   - **Correct:** `cdinnison/goal-reminder`, `seangray-dev/formail-app` and `tmachnacki/podvex`. Each moves the reads, bumps every pin and upgrades stripe-node to 23.0.0. In the Convex apps, only the invoice branch's `.subscription` read moves; the Checkout Session branch, whose field Stripe kept, is left alone.
   - **Correct-partial:** `vinroger/onellm-frontend` has no literal pin, so the version stays with the account. `profullstack/vibe-stack` uses pnpm, which the SDK upgrade does not support yet.
 - **The run found two Refit bugs, both fixed with tests.**
