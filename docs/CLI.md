@@ -124,6 +124,14 @@ refit stripe-check --repository /path/to/repo \
   --baseline /tmp/new-baseline.json --output /tmp/new-refit-check
 ```
 
+Shopify publishes its Admin API as a GraphQL schema per supported version. Save one with:
+
+```sh
+refit shopify-snapshot --version 2026-10 --output refit/shopify-after.json
+```
+
+It introspects Shopify's public documentation proxy: no store, credentials or store operation are involved, and only supported versions are published. Shopify runs use two such snapshots as `before` and `after`; see [Shopify](SHOPIFY.md).
+
 For another provider that publishes a public OpenAPI 3 document, capture a pinned baseline from its HTTPS URL or from a local JSON/YAML file:
 
 ```sh
