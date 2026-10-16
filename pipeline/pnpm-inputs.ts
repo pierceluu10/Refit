@@ -16,6 +16,10 @@ import {
 } from './npm-lock.ts';
 
 export const PNPM_WORKSPACE = 'pnpm-workspace.yaml';
+// Used when package.json does not pin pnpm; it is the final pnpm 9 release, which installs
+// lockfile version 9 without the pnpm 10 behavior changes.
+// Source: npm registry, pnpm versions, 2026-10-16.
+export const DEFAULT_PNPM_VERSION = '9.15.9';
 const MANAGER_PIN =
   /^pnpm@((?:9|10|11|12)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*))(?:\+sha512\.([a-f0-9]{128}))?$/;
 const CONFIGURATION_KEYS = new Set([
@@ -120,10 +124,14 @@ export function validatePnpmInputs(
     throw new PipelineInputError('pnpm preparation inputs exceed manifest or lockfile limits.');
   const manifest = parseObject(packageContent, 'package.json');
   const pin =
-    typeof manifest.packageManager === 'string' ? MANAGER_PIN.exec(manifest.packageManager) : null;
+    manifest.packageManager === undefined
+      ? ([`pnpm@${DEFAULT_PNPM_VERSION}`, DEFAULT_PNPM_VERSION] as const)
+      : typeof manifest.packageManager === 'string'
+        ? MANAGER_PIN.exec(manifest.packageManager)
+        : null;
   if (!pin)
     throw new PipelineInputError(
-      'pnpm preparation requires an exact packageManager pin for pnpm 9–12, optionally with a SHA-512 Corepack checksum.',
+      'pnpm preparation requires no packageManager or an exact pin for pnpm 9–12, optionally with a SHA-512 Corepack checksum.',
     );
   const workspace =
     workspaceContent === undefined ? {} : parseDocumentObject(workspaceContent, PNPM_WORKSPACE);
