@@ -142,3 +142,68 @@ it('ignores bodies without the parameter, other arguments and bodies it cannot s
   expect(result.findings).toEqual([]);
   expect(migrationReviewReason(result)).toBeUndefined();
 });
+
+const cardAfter = contract(['mode', 'allowed_payment_method_types'], ['email']);
+
+function analyzeCard(source: string) {
+  const repository: Repository = {
+    root: '/refit-request-removals',
+    files: [{ path: 'checkout.ts', content: `import Stripe from 'stripe';\n${source}` }],
+    dependencies: [],
+    lockfiles: [],
+    warnings: [],
+  };
+  return analyzeRepository(
+    repository,
+    [],
+    provider,
+    {},
+    [],
+    [],
+    [],
+    removedRequestParameters(provider, before, cardAfter),
+  );
+}
+
+it('offers the reviewed card-only replacement only for Stripe and when the target has it', () => {
+  expect(removedRequestParameters(provider, before, cardAfter)[0]).toMatchObject({
+    parameter: 'payment_method_types',
+    cardReplacement: 'allowed_payment_method_types',
+  });
+  expect(removedRequestParameters(provider, before, after)[0].cardReplacement).toBeUndefined();
+  expect(
+    removedRequestParameters({ ...provider, packageName: 'other' }, before, cardAfter)[0]
+      .cardReplacement,
+  ).toBeUndefined();
+});
+
+it('renames exactly the literal card list and leaves every other value to review', () => {
+  const result = analyzeCard(`const stripe = new Stripe('test');
+    const methods = ['card'];
+    export async function checkout() {
+      await stripe.checkout.sessions.create({ mode: 'payment', payment_method_types: ['card'] });
+      await stripe.checkout.sessions.create({ mode: 'payment', 'payment_method_types': ["card"] });
+      await stripe.checkout.sessions.create({ mode: 'payment', payment_method_types: ['card', 'paypal'] });
+      await stripe.checkout.sessions.create({ mode: 'payment', payment_method_types: ['card_present'] });
+      await stripe.checkout.sessions.create({ mode: 'payment', payment_method_types: methods });
+      await stripe.checkout.sessions.create({ mode: 'payment', payment_method_types: ['card'] as const });
+      await stripe.checkout.sessions.create({ mode: 'payment', payment_method_types: [] });
+    }`);
+  expect(
+    result.findings.map((finding) => [finding.line, Boolean(finding.requestParameter)]),
+  ).toEqual([5, 6, 7, 8, 9, 10, 11].map((line) => [line, true]));
+  expect(result.edits.map(({ replacement, rule }) => [replacement, rule])).toEqual([
+    ['allowed_payment_method_types', 'stripe-card-allowed-payment-method-types'],
+    ["'allowed_payment_method_types'", 'stripe-card-allowed-payment-method-types'],
+  ]);
+});
+
+it('does not rename the card list on a client that escapes or may be replaced', () => {
+  const result = analyzeCard(`const stripe = new Stripe('test');
+    stripe.checkout.sessions.create = replacement;
+    export async function checkout() {
+      await stripe.checkout.sessions.create({ payment_method_types: ['card'] });
+    }`);
+  expect(result.findings).toMatchObject([{ confidence: 'review' }]);
+  expect(result.edits).toEqual([]);
+});

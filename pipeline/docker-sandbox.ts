@@ -18,6 +18,8 @@ const VALIDATION_PROFILES = {
   '512m': { workspace: '512m', memory: '1g', archiveBytes: 256 * MIB },
   '1g': { workspace: '1g', memory: '2g', archiveBytes: 512 * MIB },
   '2g': { workspace: '2g', memory: '3g', archiveBytes: 1024 * MIB },
+  // Opt-in only: it raises the memory a container may claim on the Docker host.
+  '4g': { workspace: '4g', memory: '5g', archiveBytes: 2048 * MIB },
 } as const;
 
 export const MAX_VALIDATION_ARCHIVE_BYTES = Math.max(
@@ -31,6 +33,15 @@ export function validationProfile(value = process.env.REFIT_VALIDATION_WORKSPACE
       `REFIT_VALIDATION_WORKSPACE must be one of ${Object.keys(VALIDATION_PROFILES).join(', ')}.`,
     );
   return VALIDATION_PROFILES[name as keyof typeof VALIDATION_PROFILES];
+}
+
+// The installer holds the package cache and the unpacked tree, so a profile whose archive outgrows
+// the default installer workspace enlarges preparation to match.
+export function preparationProfile() {
+  const profile = validationProfile();
+  return profile.archiveBytes > 1024 * MIB
+    ? { workspace: profile.workspace, memory: profile.memory }
+    : { workspace: PREPARATION_WORKSPACE_SIZE, memory: PREPARATION_MEMORY };
 }
 
 export async function resolveDockerImage(image: string) {
@@ -70,7 +81,7 @@ export function dockerSandboxArguments(options: {
   command: string[];
   network: 'none' | 'bridge';
   dependencies?: string;
-  workspaceSize?: typeof PREPARATION_WORKSPACE_SIZE;
+  preparation?: ReturnType<typeof preparationProfile>;
   readOnlyMounts?: { source: string; target: string }[];
 }) {
   const mounts = options.readOnlyMounts ?? [];
@@ -100,11 +111,11 @@ export function dockerSandboxArguments(options: {
     '--pids-limit',
     '128',
     '--memory',
-    options.workspaceSize ? PREPARATION_MEMORY : validationProfile().memory,
+    (options.preparation ?? validationProfile()).memory,
     '--cpus',
     '1',
     '--tmpfs',
-    `/workspace:rw,exec,size=${options.workspaceSize ?? validationProfile().workspace},uid=65534,gid=65534,mode=0700`,
+    `/workspace:rw,exec,size=${(options.preparation ?? validationProfile()).workspace},uid=65534,gid=65534,mode=0700`,
     '--tmpfs',
     '/tmp:rw,noexec,size=64m,mode=1777',
     '--mount',

@@ -18,6 +18,9 @@ export interface Finding extends Location {
   confidence: 'confirmed' | 'review';
   reason: string;
   declaredType?: { schema?: string };
+  // Confirmed only because TypeScript's checker resolves the receiver to a Stripe type;
+  // `asserted` when a type assertion states that type. Stops automatic migration for review.
+  typeEvidence?: { receiverTypes: string[]; asserted?: true };
   classClient?: { origin: Location; stability: 'review' };
   helperClient?: { origin: Location; parameter: Location; stability: 'review' };
   // How a migrated subscription-period read handles subscriptions whose items have different
@@ -62,6 +65,7 @@ export interface SourceEdit {
     | 'stripe-subscription-periods-helper'
     | 'stripe-invoice-subscription-helper'
     | 'stripe-invoice-price-id-helper'
+    | 'stripe-card-allowed-payment-method-types'
     | 'stripe-api-version';
 }
 

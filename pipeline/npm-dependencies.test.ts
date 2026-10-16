@@ -19,6 +19,7 @@ import { DEPENDENCY_TREE_CHECK, prepareDependencies } from './dependency-prepara
 import {
   dockerSandboxArguments,
   removeDockerContainer,
+  preparationProfile,
   validationProfile,
 } from './docker-sandbox.ts';
 import { verifyArtifacts } from './verification.ts';
@@ -459,7 +460,12 @@ it('enlarges validation only through a known REFIT_VALIDATION_WORKSPACE profile'
     memory: '3g',
     archiveBytes: 1024 * 1024 * 1024,
   });
-  for (const value of ['4g', '512', 'large'])
+  expect(validationProfile('4g')).toEqual({
+    workspace: '4g',
+    memory: '5g',
+    archiveBytes: 2048 * 1024 * 1024,
+  });
+  for (const value of ['8g', '512', 'large'])
     expect(() => validationProfile(value), value).toThrow('REFIT_VALIDATION_WORKSPACE');
   const previous = process.env.REFIT_VALIDATION_WORKSPACE;
   process.env.REFIT_VALIDATION_WORKSPACE = '1g';
@@ -474,6 +480,21 @@ it('enlarges validation only through a known REFIT_VALIDATION_WORKSPACE profile'
     expect(args).toContain('/workspace:rw,exec,size=1g,uid=65534,gid=65534,mode=0700');
     expect(args[args.indexOf('--memory') + 1]).toBe('2g');
     expect(args[args.indexOf('--network') + 1]).toBe('none');
+    expect(preparationProfile()).toEqual({ workspace: '2g', memory: '3g' });
+    process.env.REFIT_VALIDATION_WORKSPACE = '4g';
+    expect(preparationProfile()).toEqual({ workspace: '4g', memory: '5g' });
+    const large = dockerSandboxArguments({
+      name: 'refit-check',
+      directory: '/input',
+      image: IMAGE,
+      command: ['npm', 'test'],
+      network: 'none',
+    });
+    expect(large).toContain('/workspace:rw,exec,size=4g,uid=65534,gid=65534,mode=0700');
+    expect(large[large.indexOf('--memory') + 1]).toBe('5g');
+    expect(large[large.indexOf('--network') + 1]).toBe('none');
+    for (const flag of ['--read-only', '--cap-drop', '--pids-limit', '--cpus'])
+      expect(large).toContain(flag);
   } finally {
     if (previous === undefined) delete process.env.REFIT_VALIDATION_WORKSPACE;
     else process.env.REFIT_VALIDATION_WORKSPACE = previous;

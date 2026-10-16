@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { DEFAULT_PNPM_VERSION, validatePnpmInputs } from './pnpm-inputs.ts';
+import { DEFAULT_PNPM_8_VERSION, DEFAULT_PNPM_VERSION, validatePnpmInputs } from './pnpm-inputs.ts';
 import { parsePnpmLock } from './pnpm-lock.ts';
 import { resolveLockedDependency } from './lockfiles.ts';
 
@@ -229,4 +229,67 @@ it('rejects aliases, duplicate keys, extra documents and a forged leading applic
     '---\n{"importers":{".":{"dependencies":{}}}}\n---\n{}',
   ])
     expect(() => parsePnpmLock(content)).toThrow();
+});
+it('reads pnpm 8 lockfile v6 with the same snapshot and integrity checks, installed only by pnpm 8', () => {
+  const sample = scenario();
+  delete sample.manifest.packageManager;
+  sample.manifest.dependencies = {
+    stripe: '10.17.0',
+    'react-dom': '18.2.0',
+    ms: 'npm:tiny-ms@1.0.0',
+  };
+  const lock = (): ObjectData => ({
+    lockfileVersion: '6.0',
+    settings: { autoInstallPeers: true, excludeLinksFromLockfile: false },
+    dependencies: {
+      stripe: { specifier: '10.17.0', version: '10.17.0' },
+      'react-dom': { specifier: '18.2.0', version: '18.2.0(react@18.2.0)' },
+      ms: { specifier: 'npm:tiny-ms@1.0.0', version: '/tiny-ms@1.0.0' },
+    },
+    packages: {
+      '/stripe@10.17.0': { resolution: { integrity: INTEGRITY }, dev: false },
+      '/react@18.2.0': { resolution: { integrity: INTEGRITY }, dev: false },
+      '/react-dom@18.2.0(react@18.2.0)': {
+        resolution: { integrity: INTEGRITY },
+        peerDependencies: { react: '^18.2.0' },
+        dependencies: { react: '18.2.0' },
+        dev: false,
+      },
+      '/tiny-ms@1.0.0': { resolution: { integrity: INTEGRITY }, dev: false },
+    },
+  });
+  sample.lock = lock();
+  expect(validate(sample)).toMatchObject({ managerVersion: DEFAULT_PNPM_8_VERSION, packages: 4 });
+  expect(
+    resolveLockedDependency(
+      { file: 'package.json', section: 'dependencies', version: '10.17.0' },
+      'stripe',
+      [{ file: 'pnpm-lock.yaml', content: parsePnpmLock(JSON.stringify(sample.lock)).document }],
+    ),
+  ).toMatchObject({ status: 'locked', version: '10.17.0' });
+  sample.manifest.packageManager = 'pnpm@8.15.4';
+  expect(validate(sample).managerVersion).toBe('8.15.4');
+  sample.manifest.packageManager = 'pnpm@12.4.2';
+  expect(() => validate(sample)).toThrow('lockfile v6 (pnpm 8)');
+  delete sample.manifest.packageManager;
+  sample.lock.packages['/tiny-ms@1.0.0'].resolution.integrity = 'sha1-unsafe';
+  expect(() => validate(sample)).toThrow('SHA-256-or-stronger');
+  sample.lock = lock();
+  delete sample.lock.packages['/react-dom@18.2.0(react@18.2.0)'];
+  sample.lock.packages['/react-dom@18.2.0'] = { resolution: { integrity: INTEGRITY } };
+  expect(() => validate(sample)).toThrow('peer-qualified snapshots');
+  sample.lock = lock();
+  sample.lock.packages['registry.npmjs.org/stripe/-/stripe-10.17.0.tgz'] = {
+    resolution: { tarball: 'https://registry.npmjs.org/stripe/-/stripe-10.17.0.tgz' },
+    name: 'stripe',
+    version: '10.17.0',
+  };
+  expect(() => validate(sample)).toThrow('registry name/version');
+  sample.lock = lock();
+  sample.lock.patchedDependencies = { stripe: { path: 'patches/stripe.patch' } };
+  expect(() => validate(sample)).toThrow('patches');
+  // pnpm 8 cannot read lockfile v9.
+  const current = scenario();
+  current.manifest.packageManager = 'pnpm@8.15.9';
+  expect(() => validate(current)).toThrow('cannot install this lockfile');
 });

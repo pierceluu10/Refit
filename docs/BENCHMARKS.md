@@ -20,6 +20,18 @@ Every number here comes from real public repositories, frozen before the run tha
 - **Outcomes are deterministic.** Repeat runs matched 381 of 381 fresh Stripe repositories, 200 of 200 fresh Shopify apps and 150 of 150 earlier Stripe repositories (publication aside). Since the `payment_method_types` stop, no outcome depends on AI sampling.
 - **AI was almost never needed:** **$0.02** across every Stripe run in this release. Deterministic rules made every validated fix.
 
+## After the card-only `payment_method_types` policy (October 16)
+
+The owner approved one replacement: an exact `payment_method_types: ['card']` becomes `allowed_payment_method_types: ['card']`, together with the endive pin and the stripe-node upgrade ([policy and results](STRIPE-PAYMENT-METHOD-TYPES.md)). Every other value still stops.
+
+On rerun, validated Stripe fixes rose from **10 to 45** on the same repositories:
+
+- original 100: 4 → 11;
+- held-out 50: 1 → 7;
+- fresh set: 2 → 27, on the 333 of 381 measured before Docker was shut down.
+
+All 38 new card-rule fixes were checked against their diffs. 35 passed `tsc` with no new errors, and 3 are covered only by generated `stripe-mock` checks. 9 patches regressed on other stripe-node 23 type errors; validation caught them, and none was proposed. The 48 fresh repositories not measured were then scanned without Docker. 18 of the 28 affected get a deterministic patch, 14 through the card rule, but none of those patches has been validated. No other outcome changed. The tables below predate the policy.
+
 ## Stripe
 
 ### Fresh 381 (October 16)
