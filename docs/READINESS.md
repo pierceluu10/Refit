@@ -19,7 +19,7 @@ The 50-repository held-out Stripe set ran end to end four times on `gpt-5.6-luna
 
 The AI price table now covers `gpt-5.6-luna` ($0.20/$0.02/$1.20 per million input/cached/output tokens) and dated snapshots. A response from a differently priced model keeps its reservation charged. Benchmarks run from a pinned worktree, and `scripts/stripe-benchmark-compare.mjs` reports per-repository agreement. See [the held-out run](STRIPE-BENCHMARK.md#held-out-run-on-gpt-56-luna-october-16-2026).
 
-Open owner decision: automatic handling of the removed `payment_method_types`. Checkout's `allowed_payment_method_types` filters dynamically eligible methods rather than listing them, and the intents have no replacement. Until a policy is chosen, those repositories stop for review.
+Owner decision: the removed `payment_method_types` keeps stopping for review. Checkout's `allowed_payment_method_types` filters dynamically eligible methods rather than listing them, and the intents have no replacement. The 10-draft review target was set aside; the 5 hand-reviewed drafts are the recorded result.
 
 ## October 16 checkpoint: callback clients and unpinned pnpm (0.35.0)
 
