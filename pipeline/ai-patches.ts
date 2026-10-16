@@ -263,6 +263,24 @@ function eventTypeLiterals(path: string, content: string) {
   return literals;
 }
 
+// Calls of the generated period helpers that pass a plan-item selector as their second argument.
+function periodItemChoices(content: string) {
+  const source = ts.createSourceFile('edit.ts', content, ts.ScriptTarget.Latest, true);
+  let count = 0;
+  const visit = (node: ts.Node) => {
+    if (ts.isCallExpression(node) && node.arguments.length > 1) {
+      const callee = ts.isPropertyAccessExpression(node.expression)
+        ? node.expression.name
+        : node.expression;
+      if (ts.isIdentifier(callee) && /^getSubscriptionPeriod(?:Start|End)$/.test(callee.text))
+        count++;
+    }
+    ts.forEachChild(node, visit);
+  };
+  ts.forEachChild(source, visit);
+  return count;
+}
+
 function text(value: unknown, maximum = MAX_TEXT): value is string {
   return typeof value === 'string' && value.trim().length > 0 && value.length <= maximum;
 }
@@ -479,6 +497,17 @@ export async function proposeAiPatch(
   if (changedEvents.length)
     throw new PipelineInputError(
       `AI patch changes webhook event type ${[...new Set(changedEvents)].map((name) => `'${name}'`).join(', ')}; event names stop for review.`,
+    );
+  // Choosing one subscription item when periods differ needs an operator-approved policy; the
+  // model must not supply its own, such as the first item.
+  if (
+    value.edits.some(
+      (edit) =>
+        periodItemChoices(String(edit.replacement)) > periodItemChoices(String(edit.original)),
+    )
+  )
+    throw new PipelineInputError(
+      'AI patch chooses a subscription item for the billing period; item selection needs a reviewed policy and stops for review.',
     );
   const substitutions = [
     ...findFieldSubstitutions(ruleBase, modified, changes, provider, schemaDefinitions, aiFiles),

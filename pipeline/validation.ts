@@ -360,7 +360,13 @@ export async function validateMigration(options: {
         maxBuffer: MAX_ARCHIVE_BYTES,
         env: gitEnvironment(),
       },
-    );
+    ).catch((error: unknown) => {
+      if ((error as { code?: unknown }).code === 'ERR_CHILD_PROCESS_STDIO_MAXBUFFER')
+        throw new PipelineInputError(
+          `Committed source exceeds the ${MAX_ARCHIVE_BYTES / 1024 / 1024} MiB validation archive limit.`,
+        );
+      throw error;
+    });
     await writeFile(archive, archiveResult.stdout);
     await command('tar', ['-xf', archive, '-C', baselineDirectory]);
     let dependencies: string | undefined;

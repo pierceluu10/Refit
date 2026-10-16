@@ -24,6 +24,10 @@ export const DEFAULT_PNPM_VERSION = '9.15.9';
 // v6 roots therefore install with the final pnpm 8 release, which no longer receives fixes.
 // Source: npm registry, pnpm versions (8.15.9 published 2024-07-17), 2026-10-16.
 export const DEFAULT_PNPM_8_VERSION = '8.15.9';
+// pnpm 9 rejects a pnpm-workspace.yaml without `packages`, which pnpm 10 accepts as a settings-only
+// file. Unpinned roots with such a file install with the final pnpm 10 release.
+// Source: npm registry, pnpm latest-10 dist-tag (10.34.7 published 2026-10-12), 2026-10-16.
+export const DEFAULT_PNPM_10_VERSION = '10.34.7';
 const MANAGER_PIN =
   /^pnpm@((?:8|9|10|11|12)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*))(?:\+sha512\.([a-f0-9]{128}))?$/;
 const CONFIGURATION_KEYS = new Set([
@@ -144,7 +148,16 @@ export function validatePnpmInputs(
   const manifest = parseObject(packageContent, 'package.json');
   const { document: lock, environment } = parsePnpmLock(lockContent);
   const v6 = lock.lockfileVersion === '6.0';
-  const fallback = v6 ? DEFAULT_PNPM_8_VERSION : DEFAULT_PNPM_VERSION;
+  const workspace =
+    workspaceContent === undefined ? {} : parseDocumentObject(workspaceContent, PNPM_WORKSPACE);
+  const settingsOnly =
+    workspaceContent !== undefined &&
+    !(Array.isArray(workspace.packages) && workspace.packages.length);
+  const fallback = v6
+    ? DEFAULT_PNPM_8_VERSION
+    : settingsOnly
+      ? DEFAULT_PNPM_10_VERSION
+      : DEFAULT_PNPM_VERSION;
   const pin =
     manifest.packageManager === undefined
       ? ([`pnpm@${fallback}`, fallback] as const)
@@ -161,8 +174,6 @@ export function validatePnpmInputs(
         ? `pnpm-lock.yaml is lockfile v6 (pnpm 8), but packageManager pins pnpm ${pin[1]}, which would migrate it. Run pnpm install with pnpm ${pin[1]} and commit the regenerated lockfile, or pin pnpm 8.`
         : `packageManager pins pnpm ${pin[1]}, which cannot install this lockfile. Pin pnpm 9–12, or remove the pin.`,
     );
-  const workspace =
-    workspaceContent === undefined ? {} : parseDocumentObject(workspaceContent, PNPM_WORKSPACE);
   const catalogs = configuration(workspace);
   if (manifest.pnpm !== undefined) {
     if (!isObject(manifest.pnpm))

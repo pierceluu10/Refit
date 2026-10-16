@@ -259,11 +259,12 @@ async function benchmark(entry: Selected, index: number) {
   const testScript: unknown = manifest.scripts?.test;
   const hasTests = typeof testScript === 'string' && !PLACEHOLDER_TEST.test(testScript);
   const typescript = existsSync(join(directory, 'tsconfig.json')) && Boolean(declared.typescript);
-  // Root npm or pnpm projects with stripe can be prepared for checks; others are proposal-only.
-  // Refit's own preparation refuses pnpm layouts it does not support, and that is recorded.
+  // Root npm, pnpm or Yarn projects with stripe can be prepared for checks; others are
+  // proposal-only. Refit's own preparation refuses layouts it does not support, and that is recorded.
   const pnpm = existsSync(join(directory, 'pnpm-lock.yaml'));
+  const yarn = existsSync(join(directory, 'yarn.lock'));
   const checkable =
-    (existsSync(join(directory, 'package-lock.json')) || pnpm) && Boolean(declared.stripe);
+    (existsSync(join(directory, 'package-lock.json')) || pnpm || yarn) && Boolean(declared.stripe);
   result.validatable = checkable && hasTests;
   result.checks = !checkable
     ? 'none'
@@ -285,7 +286,7 @@ async function benchmark(entry: Selected, index: number) {
     // Without tests, TypeScript repositories typecheck; compareTypeErrors fails the patched check
     // only on errors the patch introduced, which then go to AI repair.
     const command = hasTests
-      ? [pnpm ? 'pnpm' : 'npm', 'test']
+      ? [pnpm ? 'pnpm' : yarn ? 'yarn' : 'npm', 'test']
       : typescript
         ? ['npx', '--no-install', 'tsc', '--noEmit', '--pretty', 'false', '-p', '.']
         : // Refit refuses empty command arguments, so the no-op evaluates `0`.

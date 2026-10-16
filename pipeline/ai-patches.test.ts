@@ -544,6 +544,22 @@ it('stops a fix that renames a webhook event type for review', async () => {
   );
 });
 
+it('stops a fix that chooses a subscription item for the billing period', async () => {
+  const { repository, report, findings, findingId } = await typeErrorFixture();
+  const edit = (period: string) => ({
+    ...TRIAL_EDIT,
+    replacement: `metadata: { ...metadata, period: ${period} },`,
+    findingId,
+  });
+  respond([edit('getSubscriptionPeriodEnd(metadata, (items) => items[0])')]);
+  await expect(proposeAiPatch(repository, report.changes, findings, OPTIONS)).rejects.toThrow(
+    'AI patch chooses a subscription item for the billing period; item selection needs a reviewed policy and stops for review.',
+  );
+  respond([edit('getSubscriptionPeriodEnd(metadata)')]);
+  const proposal = await proposeAiPatch(repository, report.changes, findings, OPTIONS);
+  expect(proposal.diff).toContain('period: getSubscriptionPeriodEnd(metadata)');
+});
+
 it('repairs the failed candidate at its type-error positions and guards every AI edit since the rules', async () => {
   const previous = `// earlier repair\n${CHECKOUT}`;
   const { repository, report, findings, findingId } = await typeErrorFixture(previous);

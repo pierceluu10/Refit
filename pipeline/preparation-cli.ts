@@ -18,7 +18,7 @@ try {
   });
   if (values.help)
     console.log(
-      `${USAGE}\nInstalls committed npm, pnpm (pinned, or 9.15.9 when unpinned; 8.15.9 for lockfile v6) or Yarn 1 lockfile dependencies in restricted Docker with network access and lifecycle scripts disabled. No application source, credentials, .npmrc or repository commands are used during installation. Validation stays offline. Requires an already-installed image with Node, npm, sh and tar. Verified dependency bundles are cached outside Git repositories.`,
+      `${USAGE}\nInstalls committed npm, pnpm (pinned, or 9.15.9 when unpinned; 10.34.7 with a settings-only pnpm-workspace.yaml; 8.15.9 for lockfile v6) or Yarn 1 lockfile dependencies in restricted Docker with network access and lifecycle scripts disabled. No application source, credentials, .npmrc or repository commands are used during installation. Validation stays offline. Requires an already-installed image with Node, npm, sh and tar. Verified dependency bundles are cached outside Git repositories.`,
     );
   else {
     if (!values.repository || !values.image) throw new PipelineInputError(USAGE);

@@ -82,4 +82,14 @@ Yarn 2+ root projects are prepared when `package.json` pins an exact `yarn@2`–
 
 Scans and readiness also read a root `yarn.lock`, both Yarn 1 (`# yarn lockfile v1`) and Yarn 2+ (`__metadata`), to record the SDK version for the exact manifest range. A version is recorded only for a public registry resolution. Aliased, workspace, patched, git and local sources stay unknown. So does a repository that commits `yarn.lock` alongside another package-manager lockfile, or a `yarn.lock` the reader cannot parse.
 
+## stripe-node upgrade in a patch
+
+When a Stripe patch for a TypeScript project moves `apiVersion`, it also moves the root `stripe` dependency to the release for the target version, because older type definitions accept only their own version. Refit edits only `package.json` and the one root lockfile, with the registry's SHA-512 integrity, and refuses anything it cannot reproduce exactly; the patch then stops for review rather than shipping a pin the old types reject.
+
+- **npm:** lockfile versions 2 and 3, written with 2-space, 4-space or tab indentation and LF or CRLF line endings. The lockfile is rewritten in its own formatting.
+- **pnpm:** lockfile v9 whose text round-trips byte for byte through pnpm's formatting, with `stripe` locked only by the root importer. The snapshot carries the optional `@types/node` peer the root installs, as pnpm writes it, and records only the old `stripe` reached are removed. Lockfile v6 and multi-document lockfiles are refused.
+- **Yarn 1:** a root `yarn.lock` (LF line endings, no workspaces) whose `stripe` entry serves only the root declaration. The entry keeps the lockfile's registry host and SHA-1 fragment style; blocks only the old `stripe` reached are removed.
+
+Every manager refuses a release that adds dependencies or required peers, an installed optional peer outside the release's range (stripe-node 23 needs `@types/node >=20`), and a `package.json` that declares `stripe` more than once. A reset registry connection is retried twice. Validation then installs the patched lockfile frozen in Docker, so the package manager itself has the last word.
+
 Unsupported workspace layouts, explicit local/Git/URL dependencies, private registries, tracked `node_modules`, shrinkwrap files, bundled lock records, custom npm installation flags and packages requiring lifecycle builds use the existing custom-image path. A script-dependent package may install but fail its checks; Refit does not enable those scripts automatically. The supported preparation route is provider-independent, while SDK mapping, migration semantics and useful application checks still require verification.
