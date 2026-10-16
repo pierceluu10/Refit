@@ -108,6 +108,7 @@ it('packs only CLI runtime sources, fixtures, docs and exact runtime dependencie
   expect(Object.keys(result.dependencies).sort()).toEqual([
     'diff',
     'fast-xml-parser',
+    'graphql',
     'parse5',
     'tsx',
     'typescript-compiler',
