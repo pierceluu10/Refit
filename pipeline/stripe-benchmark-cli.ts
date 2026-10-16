@@ -275,7 +275,8 @@ async function benchmark(entry: Selected, index: number) {
       ? [pnpm ? 'pnpm' : 'npm', 'test']
       : typescript
         ? ['npx', '--no-install', 'tsc', '--noEmit', '--pretty', 'false', '-p', '.']
-        : ['node', '-e', ''];
+        : // Refit refuses empty command arguments, so the no-op evaluates `0`.
+          ['node', '-e', '0'];
     const config = join(work, 'run.json');
     await writeFile(
       config,
