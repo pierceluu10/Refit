@@ -1,5 +1,10 @@
 import { expect, it } from 'vitest';
-import { DEFAULT_PNPM_8_VERSION, DEFAULT_PNPM_VERSION, validatePnpmInputs } from './pnpm-inputs.ts';
+import {
+  DEFAULT_PNPM_10_VERSION,
+  DEFAULT_PNPM_8_VERSION,
+  DEFAULT_PNPM_VERSION,
+  validatePnpmInputs,
+} from './pnpm-inputs.ts';
 import { parsePnpmLock } from './pnpm-lock.ts';
 import { resolveLockedDependency } from './lockfiles.ts';
 
@@ -104,6 +109,14 @@ it('reads the application graph from the last document and binds the manager gra
   ).toBe('10.17.0');
   environment.importers['.'].configDependencies.plugin = { version: '1.0.0' };
   expect(() => validate(sample, environment)).toThrow('configuration dependencies');
+});
+it('installs an unpinned root with a settings-only workspace file with the final pnpm 10 release', () => {
+  const sample = scenario();
+  delete sample.manifest.packageManager;
+  sample.workspace = { ignoredBuiltDependencies: ['sharp'] };
+  expect(validate(sample)).toMatchObject({ managerVersion: DEFAULT_PNPM_10_VERSION });
+  sample.workspace = { packages: [], onlyBuiltDependencies: ['sharp'] };
+  expect(validate(sample)).toMatchObject({ managerVersion: DEFAULT_PNPM_10_VERSION });
 });
 it('installs an unpinned lockfile v9 root with the final pnpm 9 release, never a range', () => {
   const sample = scenario();
