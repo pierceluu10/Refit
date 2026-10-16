@@ -1,6 +1,6 @@
 {
   "name": "refit",
-  "version": "0.35.0",
+  "version": "0.36.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -25,7 +25,8 @@
     "benchmark:coverage": "tsx pipeline/sdk-coverage-cli.ts",
     "benchmark:stripe": "tsx pipeline/stripe-benchmark-cli.ts",
     "benchmark:stripe-labels": "tsx pipeline/stripe-ground-truth-cli.ts",
-    "benchmark:stripe-score": "tsx pipeline/stripe-benchmark-score.ts"
+    "benchmark:stripe-score": "tsx pipeline/stripe-benchmark-score.ts",
+    "deadlines:check": "node bin/refit.mjs deadlines --check-registry"
   },
   "dependencies": {
     "@fontsource-variable/geist": "^5.3.0",

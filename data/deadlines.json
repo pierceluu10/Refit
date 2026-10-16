@@ -1,0 +1,656 @@
+{
+  "formatVersion": 1,
+  "deadlines": [
+    {
+      "id": "shopify-admin-2025-04",
+      "provider": "shopify",
+      "kind": "api-version",
+      "versions": [
+        "2025-04"
+      ],
+      "date": "2026-04-16",
+      "summary": "Shopify API version 2025-04 stops being accessible at 15:00 UTC. Requests fall forward to the oldest accessible stable version.",
+      "replacement": "A supported stable version",
+      "source": "https://shopify.dev/docs/api/usage/versioning",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "id": "shopify-admin-2025-07",
+      "provider": "shopify",
+      "kind": "api-version",
+      "versions": [
+        "2025-07"
+      ],
+      "date": "2026-07-16",
+      "summary": "Shopify API version 2025-07 stops being accessible at 15:00 UTC. Requests fall forward to the oldest accessible stable version.",
+      "replacement": "A supported stable version",
+      "source": "https://shopify.dev/docs/api/usage/versioning",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "id": "shopify-admin-2025-10",
+      "provider": "shopify",
+      "kind": "api-version",
+      "versions": [
+        "2025-10"
+      ],
+      "date": "2026-10-16",
+      "summary": "Shopify API version 2025-10 stops being accessible at 15:00 UTC. Requests fall forward to the oldest accessible stable version.",
+      "replacement": "A supported stable version",
+      "source": "https://shopify.dev/docs/api/usage/versioning",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "id": "shopify-admin-2026-01",
+      "provider": "shopify",
+      "kind": "api-version",
+      "versions": [
+        "2026-01"
+      ],
+      "date": "2027-01-16",
+      "summary": "Shopify API version 2026-01 stops being accessible at 15:00 UTC. Requests fall forward to the oldest accessible stable version.",
+      "replacement": "A supported stable version",
+      "source": "https://shopify.dev/docs/api/usage/versioning",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "id": "shopify-admin-2026-04",
+      "provider": "shopify",
+      "kind": "api-version",
+      "versions": [
+        "2026-04"
+      ],
+      "date": "2027-04-16",
+      "summary": "Shopify API version 2026-04 stops being accessible at 15:00 UTC. Requests fall forward to the oldest accessible stable version.",
+      "replacement": "A supported stable version",
+      "source": "https://shopify.dev/docs/api/usage/versioning",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "id": "shopify-admin-2026-07",
+      "provider": "shopify",
+      "kind": "api-version",
+      "versions": [
+        "2026-07"
+      ],
+      "date": "2027-07-16",
+      "summary": "Shopify API version 2026-07 stops being accessible at 15:00 UTC. Requests fall forward to the oldest accessible stable version.",
+      "replacement": "A supported stable version",
+      "source": "https://shopify.dev/docs/api/usage/versioning",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "id": "shopify-admin-2026-10",
+      "provider": "shopify",
+      "kind": "api-version",
+      "versions": [
+        "2026-10"
+      ],
+      "date": "2027-10-16",
+      "summary": "Shopify API version 2026-10 stops being accessible at 15:00 UTC. Requests fall forward to the oldest accessible stable version.",
+      "replacement": "A supported stable version",
+      "source": "https://shopify.dev/docs/api/usage/versioning",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "id": "meta-graph-v13-0",
+      "provider": "meta-graph",
+      "kind": "api-version",
+      "versions": [
+        "v13.0"
+      ],
+      "date": "2024-05-28",
+      "summary": "Meta Graph API v13.0 stops being available on this date.",
+      "replacement": "A newer Graph API version",
+      "source": "https://developers.facebook.com/docs/graph-api/changelog",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "id": "meta-graph-v14-0",
+      "provider": "meta-graph",
+      "kind": "api-version",
+      "versions": [
+        "v14.0"
+      ],
+      "date": "2024-09-17",
+      "summary": "Meta Graph API v14.0 stops being available on this date.",
+      "replacement": "A newer Graph API version",
+      "source": "https://developers.facebook.com/docs/graph-api/changelog",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "id": "meta-graph-v15-0",
+      "provider": "meta-graph",
+      "kind": "api-version",
+      "versions": [
+        "v15.0"
+      ],
+      "date": "2024-11-20",
+      "summary": "Meta Graph API v15.0 stops being available on this date.",
+      "replacement": "A newer Graph API version",
+      "source": "https://developers.facebook.com/docs/graph-api/changelog",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "id": "meta-graph-v16-0",
+      "provider": "meta-graph",
+      "kind": "api-version",
+      "versions": [
+        "v16.0"
+      ],
+      "date": "2025-05-14",
+      "summary": "Meta Graph API v16.0 stops being available on this date.",
+      "replacement": "A newer Graph API version",
+      "source": "https://developers.facebook.com/docs/graph-api/changelog",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "id": "meta-graph-v17-0",
+      "provider": "meta-graph",
+      "kind": "api-version",
+      "versions": [
+        "v17.0"
+      ],
+      "date": "2025-09-12",
+      "summary": "Meta Graph API v17.0 stops being available on this date.",
+      "replacement": "A newer Graph API version",
+      "source": "https://developers.facebook.com/docs/graph-api/changelog",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "id": "meta-graph-v18-0",
+      "provider": "meta-graph",
+      "kind": "api-version",
+      "versions": [
+        "v18.0"
+      ],
+      "date": "2026-01-26",
+      "summary": "Meta Graph API v18.0 stops being available on this date.",
+      "replacement": "A newer Graph API version",
+      "source": "https://developers.facebook.com/docs/graph-api/changelog",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "id": "meta-graph-v19-0",
+      "provider": "meta-graph",
+      "kind": "api-version",
+      "versions": [
+        "v19.0"
+      ],
+      "date": "2026-05-21",
+      "summary": "Meta Graph API v19.0 stops being available on this date.",
+      "replacement": "A newer Graph API version",
+      "source": "https://developers.facebook.com/docs/graph-api/changelog",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "id": "meta-graph-v20-0",
+      "provider": "meta-graph",
+      "kind": "api-version",
+      "versions": [
+        "v20.0"
+      ],
+      "date": "2026-09-24",
+      "summary": "Meta Graph API v20.0 stops being available on this date.",
+      "replacement": "A newer Graph API version",
+      "source": "https://developers.facebook.com/docs/graph-api/changelog",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "id": "meta-graph-v21-0",
+      "provider": "meta-graph",
+      "kind": "api-version",
+      "versions": [
+        "v21.0"
+      ],
+      "date": "2027-01-21",
+      "summary": "Meta Graph API v21.0 stops being available on this date.",
+      "replacement": "A newer Graph API version",
+      "source": "https://developers.facebook.com/docs/graph-api/changelog",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "id": "meta-graph-v22-0",
+      "provider": "meta-graph",
+      "kind": "api-version",
+      "versions": [
+        "v22.0"
+      ],
+      "date": "2027-05-20",
+      "summary": "Meta Graph API v22.0 stops being available on this date.",
+      "replacement": "A newer Graph API version",
+      "source": "https://developers.facebook.com/docs/graph-api/changelog",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "id": "meta-graph-v23-0",
+      "provider": "meta-graph",
+      "kind": "api-version",
+      "versions": [
+        "v23.0"
+      ],
+      "date": "2027-10-08",
+      "summary": "Meta Graph API v23.0 stops being available on this date.",
+      "replacement": "A newer Graph API version",
+      "source": "https://developers.facebook.com/docs/graph-api/changelog",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "id": "meta-graph-v24-0",
+      "provider": "meta-graph",
+      "kind": "api-version",
+      "versions": [
+        "v24.0"
+      ],
+      "date": "2028-02-18",
+      "summary": "Meta Graph API v24.0 stops being available on this date.",
+      "replacement": "A newer Graph API version",
+      "source": "https://developers.facebook.com/docs/graph-api/changelog",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "id": "meta-graph-v25-0",
+      "provider": "meta-graph",
+      "kind": "api-version",
+      "versions": [
+        "v25.0"
+      ],
+      "date": "2028-07-29",
+      "summary": "Meta Graph API v25.0 stops being available on this date.",
+      "replacement": "A newer Graph API version",
+      "source": "https://developers.facebook.com/docs/graph-api/changelog",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "id": "openai-2025-07-14-gpt-4-5-preview",
+      "provider": "openai",
+      "kind": "model",
+      "versions": [
+        "gpt-4.5-preview"
+      ],
+      "date": "2025-07-14",
+      "summary": "OpenAI shuts down gpt-4.5-preview.",
+      "replacement": "gpt-4.1",
+      "source": "https://developers.openai.com/api/docs/deprecations",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "id": "openai-2025-07-28-o1-preview",
+      "provider": "openai",
+      "kind": "model",
+      "versions": [
+        "o1-preview"
+      ],
+      "date": "2025-07-28",
+      "summary": "OpenAI shuts down o1-preview.",
+      "replacement": "o3",
+      "source": "https://developers.openai.com/api/docs/deprecations",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "id": "openai-2025-10-27-o1-mini",
+      "provider": "openai",
+      "kind": "model",
+      "versions": [
+        "o1-mini"
+      ],
+      "date": "2025-10-27",
+      "summary": "OpenAI shuts down o1-mini.",
+      "replacement": "o4-mini",
+      "source": "https://developers.openai.com/api/docs/deprecations",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "id": "openai-2025-10-27-text-moderation-007",
+      "provider": "openai",
+      "kind": "model",
+      "versions": [
+        "text-moderation-007",
+        "text-moderation-stable",
+        "text-moderation-latest"
+      ],
+      "date": "2025-10-27",
+      "summary": "OpenAI shuts down text-moderation-007, text-moderation-stable, text-moderation-latest.",
+      "replacement": "omni-moderation",
+      "source": "https://developers.openai.com/api/docs/deprecations",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "id": "openai-2026-02-12-codex-mini-latest",
+      "provider": "openai",
+      "kind": "model",
+      "versions": [
+        "codex-mini-latest"
+      ],
+      "date": "2026-02-12",
+      "summary": "OpenAI shuts down codex-mini-latest.",
+      "replacement": "gpt-5-codex-mini",
+      "source": "https://developers.openai.com/api/docs/deprecations",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "id": "openai-2026-02-17-chatgpt-4o-latest",
+      "provider": "openai",
+      "kind": "model",
+      "versions": [
+        "chatgpt-4o-latest"
+      ],
+      "date": "2026-02-17",
+      "summary": "OpenAI shuts down chatgpt-4o-latest.",
+      "replacement": "gpt-5.1-chat-latest",
+      "source": "https://developers.openai.com/api/docs/deprecations",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "id": "openai-2026-03-26-gpt-4-0314",
+      "provider": "openai",
+      "kind": "model",
+      "versions": [
+        "gpt-4-0314",
+        "gpt-4-1106-preview",
+        "gpt-4-0125-preview",
+        "gpt-4-turbo-preview"
+      ],
+      "date": "2026-03-26",
+      "summary": "OpenAI shuts down gpt-4-0314, gpt-4-1106-preview, gpt-4-0125-preview, gpt-4-turbo-preview.",
+      "replacement": "gpt-5",
+      "source": "https://developers.openai.com/api/docs/deprecations",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "id": "openai-2026-05-07-gpt-4o-realtime-preview",
+      "provider": "openai",
+      "kind": "model",
+      "versions": [
+        "gpt-4o-realtime-preview",
+        "gpt-4o-mini-realtime-preview"
+      ],
+      "date": "2026-05-07",
+      "summary": "OpenAI shuts down gpt-4o-realtime-preview, gpt-4o-mini-realtime-preview.",
+      "replacement": "gpt-realtime-mini",
+      "source": "https://developers.openai.com/api/docs/deprecations",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "id": "openai-2026-05-07-gpt-4o-audio-preview",
+      "provider": "openai",
+      "kind": "model",
+      "versions": [
+        "gpt-4o-audio-preview",
+        "gpt-4o-mini-audio-preview"
+      ],
+      "date": "2026-05-07",
+      "summary": "OpenAI shuts down gpt-4o-audio-preview, gpt-4o-mini-audio-preview.",
+      "replacement": "gpt-audio-mini",
+      "source": "https://developers.openai.com/api/docs/deprecations",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "id": "openai-2026-05-12-dall-e-2",
+      "provider": "openai",
+      "kind": "model",
+      "versions": [
+        "dall-e-2",
+        "dall-e-3"
+      ],
+      "date": "2026-05-12",
+      "summary": "OpenAI shuts down dall-e-2, dall-e-3.",
+      "replacement": "gpt-image-2",
+      "source": "https://developers.openai.com/api/docs/deprecations",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "id": "openai-2026-07-23-gpt-5-chat-latest",
+      "provider": "openai",
+      "kind": "model",
+      "versions": [
+        "gpt-5-chat-latest",
+        "gpt-5-codex",
+        "gpt-5.1-codex",
+        "o3-deep-research",
+        "o4-mini-deep-research"
+      ],
+      "date": "2026-07-23",
+      "summary": "OpenAI shuts down gpt-5-chat-latest, gpt-5-codex, gpt-5.1-codex, o3-deep-research, o4-mini-deep-research.",
+      "replacement": "gpt-5.6-sol",
+      "source": "https://developers.openai.com/api/docs/deprecations",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "id": "openai-2026-07-23-gpt-5-1-codex-mini",
+      "provider": "openai",
+      "kind": "model",
+      "versions": [
+        "gpt-5.1-codex-mini",
+        "computer-use-preview"
+      ],
+      "date": "2026-07-23",
+      "summary": "OpenAI shuts down gpt-5.1-codex-mini, computer-use-preview.",
+      "replacement": "gpt-5.6-terra",
+      "source": "https://developers.openai.com/api/docs/deprecations",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "id": "openai-2026-08-10-gpt-5-2-chat-latest",
+      "provider": "openai",
+      "kind": "model",
+      "versions": [
+        "gpt-5.2-chat-latest",
+        "gpt-5.3-chat-latest"
+      ],
+      "date": "2026-08-10",
+      "summary": "OpenAI shuts down gpt-5.2-chat-latest, gpt-5.3-chat-latest.",
+      "replacement": "gpt-5.6-sol",
+      "source": "https://developers.openai.com/api/docs/deprecations",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "id": "openai-2026-09-28-gpt-3-5-turbo-instruct",
+      "provider": "openai",
+      "kind": "model",
+      "versions": [
+        "gpt-3.5-turbo-instruct",
+        "babbage-002",
+        "davinci-002",
+        "gpt-3.5-turbo-1106"
+      ],
+      "date": "2026-09-28",
+      "summary": "OpenAI shuts down gpt-3.5-turbo-instruct, babbage-002, davinci-002, gpt-3.5-turbo-1106.",
+      "replacement": "gpt-5.6-terra",
+      "source": "https://developers.openai.com/api/docs/deprecations",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "id": "openai-2026-10-23-gpt-3-5-turbo",
+      "provider": "openai",
+      "kind": "model",
+      "versions": [
+        "gpt-3.5-turbo",
+        "gpt-3.5-turbo-0125",
+        "o4-mini"
+      ],
+      "date": "2026-10-23",
+      "summary": "OpenAI shuts down gpt-3.5-turbo, gpt-3.5-turbo-0125, o4-mini.",
+      "replacement": "gpt-5.6-terra",
+      "source": "https://developers.openai.com/api/docs/deprecations",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "id": "openai-2026-10-23-gpt-4",
+      "provider": "openai",
+      "kind": "model",
+      "versions": [
+        "gpt-4",
+        "gpt-4-0613",
+        "gpt-4-turbo",
+        "gpt-4-turbo-2024-04-09",
+        "gpt-4o-2024-05-13",
+        "o1",
+        "o1-2024-12-17",
+        "o1-pro",
+        "o3-mini"
+      ],
+      "date": "2026-10-23",
+      "summary": "OpenAI shuts down gpt-4, gpt-4-0613, gpt-4-turbo, gpt-4-turbo-2024-04-09, gpt-4o-2024-05-13, o1, o1-2024-12-17, o1-pro, o3-mini.",
+      "replacement": "gpt-5.6-sol",
+      "source": "https://developers.openai.com/api/docs/deprecations",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "id": "openai-2026-10-23-gpt-4-1-nano",
+      "provider": "openai",
+      "kind": "model",
+      "versions": [
+        "gpt-4.1-nano",
+        "gpt-4.1-nano-2025-04-14"
+      ],
+      "date": "2026-10-23",
+      "summary": "OpenAI shuts down gpt-4.1-nano, gpt-4.1-nano-2025-04-14.",
+      "replacement": "gpt-5.6-luna",
+      "source": "https://developers.openai.com/api/docs/deprecations",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "id": "openai-2026-10-23-gpt-image-1",
+      "provider": "openai",
+      "kind": "model",
+      "versions": [
+        "gpt-image-1"
+      ],
+      "date": "2026-10-23",
+      "summary": "OpenAI shuts down gpt-image-1.",
+      "replacement": "gpt-image-2.5-sunburst",
+      "source": "https://developers.openai.com/api/docs/deprecations",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "id": "openai-2026-12-01-gpt-image-1-mini",
+      "provider": "openai",
+      "kind": "model",
+      "versions": [
+        "gpt-image-1-mini",
+        "gpt-image-1.5",
+        "chatgpt-image-latest"
+      ],
+      "date": "2026-12-01",
+      "summary": "OpenAI shuts down gpt-image-1-mini, gpt-image-1.5, chatgpt-image-latest.",
+      "replacement": "gpt-image-2.5-sunburst",
+      "source": "https://developers.openai.com/api/docs/deprecations",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "id": "openai-2026-12-11-gpt-5-2025-08-07",
+      "provider": "openai",
+      "kind": "model",
+      "versions": [
+        "gpt-5-2025-08-07",
+        "o3-2025-04-16",
+        "o3-pro-2025-06-10"
+      ],
+      "date": "2026-12-11",
+      "summary": "OpenAI shuts down gpt-5-2025-08-07, o3-2025-04-16, o3-pro-2025-06-10.",
+      "replacement": "gpt-5.6-sol",
+      "source": "https://developers.openai.com/api/docs/deprecations",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "id": "openai-2026-12-11-gpt-5-mini-2025-08-07",
+      "provider": "openai",
+      "kind": "model",
+      "versions": [
+        "gpt-5-mini-2025-08-07"
+      ],
+      "date": "2026-12-11",
+      "summary": "OpenAI shuts down gpt-5-mini-2025-08-07.",
+      "replacement": "gpt-5.6-terra",
+      "source": "https://developers.openai.com/api/docs/deprecations",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "id": "openai-2026-12-11-gpt-5-nano-2025-08-07",
+      "provider": "openai",
+      "kind": "model",
+      "versions": [
+        "gpt-5-nano-2025-08-07"
+      ],
+      "date": "2026-12-11",
+      "summary": "OpenAI shuts down gpt-5-nano-2025-08-07.",
+      "replacement": "gpt-5.6-luna",
+      "source": "https://developers.openai.com/api/docs/deprecations",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "id": "openai-2027-01-06-tts-1",
+      "provider": "openai",
+      "kind": "model",
+      "versions": [
+        "tts-1",
+        "tts-1-hd"
+      ],
+      "date": "2027-01-06",
+      "summary": "OpenAI shuts down tts-1, tts-1-hd.",
+      "replacement": "gpt-realtime-2.1-mini",
+      "source": "https://developers.openai.com/api/docs/deprecations",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "id": "openai-2027-01-14-gpt-4o-2024-08-06",
+      "provider": "openai",
+      "kind": "model",
+      "versions": [
+        "gpt-4o-2024-08-06",
+        "gpt-4o-2024-11-20",
+        "gpt-4o-mini-2024-07-18",
+        "gpt-4.1-2025-04-14",
+        "gpt-4.1-mini-2025-04-14"
+      ],
+      "date": "2027-01-14",
+      "summary": "OpenAI shuts down gpt-4o-2024-08-06, gpt-4o-2024-11-20, gpt-4o-mini-2024-07-18, gpt-4.1-2025-04-14, gpt-4.1-mini-2025-04-14.",
+      "replacement": "gpt-6-luna",
+      "source": "https://developers.openai.com/api/docs/deprecations",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "id": "openai-2027-02-26-whisper-1",
+      "provider": "openai",
+      "kind": "model",
+      "versions": [
+        "whisper-1",
+        "gpt-4o-transcribe",
+        "gpt-4o-mini-transcribe"
+      ],
+      "date": "2027-02-26",
+      "summary": "OpenAI shuts down whisper-1, gpt-4o-transcribe, gpt-4o-mini-transcribe.",
+      "replacement": "gpt-transcribe",
+      "source": "https://developers.openai.com/api/docs/deprecations",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "id": "openai-2027-04-01-gpt-5-1",
+      "provider": "openai",
+      "kind": "model",
+      "versions": [
+        "gpt-5.1",
+        "gpt-5.3-codex"
+      ],
+      "date": "2027-04-01",
+      "summary": "OpenAI shuts down gpt-5.1, gpt-5.3-codex.",
+      "replacement": "gpt-6-sol",
+      "source": "https://developers.openai.com/api/docs/deprecations",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "id": "openai-2027-04-01-gpt-5-4-nano",
+      "provider": "openai",
+      "kind": "model",
+      "versions": [
+        "gpt-5.4-nano"
+      ],
+      "date": "2027-04-01",
+      "summary": "OpenAI shuts down gpt-5.4-nano.",
+      "replacement": "gpt-6-luna",
+      "source": "https://developers.openai.com/api/docs/deprecations",
+      "checkedAt": "2026-10-15"
+    }
+  ]
+}

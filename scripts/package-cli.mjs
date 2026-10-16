@@ -46,7 +46,7 @@ else {
     }
     await writeFile(
       join(stage, 'package.json'),
-      `${JSON.stringify({ name: metadata.name, version: metadata.version, description: 'Local API migration agent with reviewable patches and isolated validation', private: true, type: 'module', engines: metadata.engines, bin: { refit: 'bin/refit.mjs' }, files: ['bin/', 'pipeline/', 'README.md', 'LICENSE', 'docs/', 'examples/', 'public/', '.env.example'], dependencies }, null, 2)}\n`,
+      `${JSON.stringify({ name: metadata.name, version: metadata.version, description: 'Local API migration agent with reviewable patches and isolated validation', private: true, type: 'module', engines: metadata.engines, bin: { refit: 'bin/refit.mjs' }, files: ['bin/', 'pipeline/', 'data/', 'README.md', 'LICENSE', 'docs/', 'examples/', 'public/', '.env.example'], dependencies }, null, 2)}\n`,
     );
     await mkdir(join(stage, 'bin'));
     await copyFile(join(root, 'bin/refit.mjs'), join(stage, 'bin/refit.mjs'));
@@ -64,6 +64,7 @@ else {
       recursive: true,
     });
     await cp(join(root, 'examples'), join(stage, 'examples'), { recursive: true });
+    await cp(join(root, 'data'), join(stage, 'data'), { recursive: true });
     await copyFile(join(root, 'README.md'), join(stage, 'README.md'));
     await copyFile(join(root, 'LICENSE'), join(stage, 'LICENSE'));
     await copyFile(join(root, '.env.example'), join(stage, '.env.example'));

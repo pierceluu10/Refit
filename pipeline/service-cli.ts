@@ -1,5 +1,6 @@
 import { parseArgs } from 'node:util';
 import { assessmentConfiguration } from './assessment.ts';
+import { DEFAULT_LEAD_DAYS, parseLeadDays } from './deadline-alerts.ts';
 import { githubAppConfiguration } from './github-app.ts';
 import { runLocalService, validateServiceSecret } from './local-service.ts';
 import { readServiceConfiguration } from './service-configuration.ts';
@@ -14,7 +15,7 @@ const REVIEW_STATUSES = new Set([
   'documentation-changed',
 ]);
 const USAGE =
-  'Usage: refit serve --config <service.json> --state <directory-outside-repository> [--port <number>] [--interval <seconds>] [--once] [--retry-target <id> ... --once] [--ai-patch --repair-attempts 0|1|2] [--publish-draft] [--json]';
+  'Usage: refit serve --config <service.json> --state <directory-outside-repository> [--port <number>] [--interval <seconds>] [--once] [--retry-target <id> ... --once] [--ai-patch --repair-attempts 0|1|2] [--publish-draft] [--deadline-alerts [--deadline-lead-days 90,30,7]] [--json]';
 
 try {
   const { values } = parseArgs({
@@ -28,13 +29,15 @@ try {
       'ai-patch': { type: 'boolean' },
       'repair-attempts': { type: 'string' },
       'publish-draft': { type: 'boolean' },
+      'deadline-alerts': { type: 'boolean' },
+      'deadline-lead-days': { type: 'string' },
       json: { type: 'boolean' },
       help: { type: 'boolean' },
     },
   });
   if (values.help)
     console.log(
-      `${USAGE}\nRuns on 127.0.0.1:8787 by default; signed webhooks use /github/webhook and authenticated status uses /status. Requires GITHUB_APP_ID, GITHUB_APP_PRIVATE_KEY_FILE, REFIT_WEBHOOK_SECRET and a different REFIT_SERVICE_TOKEN. Configured targets are confirmed through GitHub before execution. Installation webhooks wake or cancel their workers; other installed repositories are recorded without execution. --once polls all targets and closes the HTTP listener. --retry-target requires --once and polls only the named targets, permitting failed jobs one fresh attempt; successful jobs remain cached. Approval and access gates still apply. AI and draft PR publication require explicit opt-in.`,
+      `${USAGE}\nRuns on 127.0.0.1:8787 by default; signed webhooks use /github/webhook and authenticated status uses /status. Requires GITHUB_APP_ID, GITHUB_APP_PRIVATE_KEY_FILE, REFIT_WEBHOOK_SECRET and a different REFIT_SERVICE_TOKEN. Configured targets are confirmed through GitHub before execution. Installation webhooks wake or cancel their workers; other installed repositories are recorded without execution. --once polls all targets and closes the HTTP listener. --retry-target requires --once and polls only the named targets, permitting failed jobs one fresh attempt; successful jobs remain cached. Approval and access gates still apply. AI and draft PR publication require explicit opt-in. --deadline-alerts opens or updates one GitHub issue per enrolled repository and registry deadline at the lead times (default 90,30,7 days); it needs the App's Issues write permission.`,
     );
   else {
     if (!values.config || !values.state) throw new PipelineInputError(USAGE);
@@ -42,6 +45,16 @@ try {
       throw new PipelineInputError(
         '--retry-target requires --once to avoid repeated paid retries.',
       );
+    if (values['deadline-lead-days'] !== undefined && !values['deadline-alerts'])
+      throw new PipelineInputError('--deadline-lead-days requires --deadline-alerts.');
+    const deadlineAlerts = values['deadline-alerts']
+      ? {
+          leadDays:
+            values['deadline-lead-days'] === undefined
+              ? DEFAULT_LEAD_DAYS
+              : parseLeadDays(values['deadline-lead-days']),
+        }
+      : undefined;
     const app = githubAppConfiguration(process.env);
     const webhookSecret = validateServiceSecret(
       process.env.REFIT_WEBHOOK_SECRET,
@@ -70,6 +83,7 @@ try {
         aiPatch: assessmentConfiguration(values['ai-patch'], process.env),
         repairAttempts: Number(values['repair-attempts'] ?? 0),
         publishDraft: values['publish-draft'],
+        deadlineAlerts,
         signal: controller.signal,
         onReady: (url) => console.error(`[refit] Listening at ${url}; webhook: /github/webhook`),
         onProgress: (message) => console.error(`[refit] ${terminalText(message)}`),

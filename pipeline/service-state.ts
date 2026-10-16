@@ -38,6 +38,7 @@ export interface ServiceRegistry {
   installations: Record<string, InstallationState>;
   deliveries: Record<string, { hash: string; event: string; receivedAt: string }>;
   pullRequests?: Record<string, PullRequestState>;
+  deadlineAlerts?: Record<string, DeadlineAlertState>;
 }
 export interface PullRequestState {
   repository: string;
@@ -47,6 +48,18 @@ export interface PullRequestState {
   status: 'pending' | 'commented' | 'no-new-agents' | 'failed';
   suggested: string[];
   message: string | null;
+}
+
+// The last alert sent for one repository and registry deadline, keyed `owner/repo|deadline-id`.
+// `stage` is the tightest lead time notified (0 once the date passed), so each stage alerts once.
+export interface DeadlineAlertState {
+  repository: string;
+  deadline: string;
+  issue: number | null;
+  stage: number | null;
+  status: 'opened' | 'updated' | 'failed';
+  message: string | null;
+  checkedAt: string;
 }
 
 export async function openServiceStore(
@@ -98,6 +111,7 @@ export async function openServiceStore(
         !isObject(value.installations) ||
         !isObject(value.deliveries) ||
         (value.pullRequests !== undefined && !isObject(value.pullRequests)) ||
+        (value.deadlineAlerts !== undefined && !isObject(value.deadlineAlerts)) ||
         Object.keys(value.targets).sort().join(',') !==
           targets
             .map((target) => target.id)
@@ -131,6 +145,22 @@ export async function openServiceStore(
           typeof record.event !== 'string'
         )
           throw new PipelineInputError('Service delivery receipt is invalid.');
+      for (const record of Object.values(value.deadlineAlerts ?? {}))
+        if (
+          !isObject(record) ||
+          typeof record.repository !== 'string' ||
+          typeof record.deadline !== 'string' ||
+          !(
+            record.issue === null ||
+            (Number.isSafeInteger(record.issue) && Number(record.issue) > 0)
+          ) ||
+          !(
+            record.stage === null ||
+            (Number.isSafeInteger(record.stage) && Number(record.stage) >= 0)
+          ) ||
+          !['opened', 'updated', 'failed'].includes(String(record.status))
+        )
+          throw new PipelineInputError('Service deadline alert state is invalid.');
       for (const record of Object.values(value.installations))
         if (
           !isObject(record) ||
