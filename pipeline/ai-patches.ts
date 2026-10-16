@@ -73,7 +73,7 @@ Return zero edits when context is insufficient. API-version applicability is unk
 Do not assume the code is safe because a finding disappears. Human review remains required.`;
 export const TYPE_ERROR_CHANGE = 'type-error';
 const TYPE_ERROR_INSTRUCTIONS = `
-Findings with changeId "type-error" are TypeScript errors the migration introduced, usually because the upgraded SDK types changed; the reason holds the compiler message. Fix each in place so the code typechecks against the new SDK types while keeping its behavior: rename or remove parameters the new types dropped, match the new type shapes, and correct invalid literals. Never change a webhook event type string: an event name the new types reject is a review item, not a migration. Do not silence errors with any, as-casts to unrelated types or ts-ignore.`;
+Findings with changeId "type-error" are TypeScript errors the migration introduced, usually because the upgraded SDK types changed; the reason holds the compiler message. Fix each in place so the code typechecks against the new SDK types while keeping its behavior: rename or remove parameters the new types dropped, match the new type shapes, and correct invalid literals. Never change a webhook event type string: an event name the new types reject is a review item, not a migration. An edit citing a type-error finding must lie within the statement or member containing its reported position; when the cause is elsewhere, such as a type declared in another statement or file, leave that error and state it as an uncertainty. Keep values in the request objects they were sent in, such as metadata. Do not silence errors with any, as-casts to unrelated types or ts-ignore.`;
 const WEBHOOK_INSTRUCTIONS = `
 Findings with webhook evidence read a signed webhook payload; findings with declaredType evidence read a value known only from its Stripe type, which is often a webhook payload passed into a helper. A webhook payload is rendered in the webhook endpoint's own API version, which can be older or newer than the SDK's, so the same code receives both shapes. Each replacement for such a finding must work for both: read the removed field with Reflect.get(object, 'field_name') when it is present (old version), otherwise the new location (new version), and keep the original result when neither exists. Do not drop the old-shape read.`;
 const VENDOR_NOTE_INSTRUCTIONS = `
@@ -406,7 +406,7 @@ export async function proposeAiPatch(
     );
     if (!file || !finding)
       throw new PipelineInputError(
-        'AI patch references a file or confirmed finding outside its allowed scope.',
+        `AI patch references a file or confirmed finding outside its allowed scope: ${JSON.stringify(edit.file.slice(0, 200))}${file ? ' (cited finding is not in this file)' : ''}.`,
       );
     const start = file.content.indexOf(edit.original);
     if (start < 0 || file.content.indexOf(edit.original, start + 1) !== -1)
