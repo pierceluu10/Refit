@@ -24,6 +24,8 @@ export interface Finding extends Location {
   // periods: an item the code already selects, the configured price policy, or not at all.
   // A same-named read whose receiver Refit could not trace to a provider object.
   untraced?: true;
+  // Why this finding cannot be migrated automatically; any such finding stops the run for review.
+  contractReview?: string;
   // A request parameter the target contract removed, still sent in a traced SDK call body.
   requestParameter?: { operationId: string; parameter: string };
   subscriptionPeriod?: {

@@ -1,7 +1,7 @@
 import { existsSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
-import { AGENT_CATALOG } from './agent-catalog.ts';
+import { AGENT_CATALOG, builtInPackage } from './agent-catalog.ts';
 import { daysUntil, type DeadlineEntry, type DeadlineRegistry } from './deadline-registry.ts';
 import { readRepository } from './repository.ts';
 import { isObject, parseObject } from './specifications.ts';
@@ -173,7 +173,7 @@ export async function configuredIntegrations(directory: string): Promise<Configu
   ).filter(isObject);
   const result: ConfiguredIntegration[] = [];
   for (const integration of integrations) {
-    let packageName = 'stripe';
+    let packageName = builtInPackage(integration);
     if (typeof integration.providerConfig === 'string')
       try {
         const adapter = parseObject(

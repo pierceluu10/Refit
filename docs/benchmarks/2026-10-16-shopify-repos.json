@@ -1,0 +1,509 @@
+{
+  "frozenAt": "2026-10-16",
+  "purpose": "Real public Shopify apps for the Refit Shopify benchmark. Chosen and frozen before any Refit Shopify analysis existed or ran; none was inspected to tune Refit.",
+  "criteria": "GitHub code search (shopifyApp/shopifyApi/createAdminApiClient with apiVersion, admin.graphql with #graphql): 187 repositories. Kept: not a fork or archived, under 50 MB, pushed since 2024-01, and a Shopify SDK (@shopify/shopify-app-remix, -react-router, -express, @shopify/shopify-api or @shopify/admin-api-client) in the root package.json: 155. These are the 50 most starred, pinned at their default-branch HEAD on 2026-10-16.",
+  "target": "2026-10",
+  "schemas": {
+    "source": "https://shopify.dev/admin-graphql-direct-proxy/<version> (public documentation proxy; introspection with descriptions and deprecated input values, no store or credentials)",
+    "note": "Shopify serves requests for unsupported versions with the oldest supported version, so 2026-01 is the effective before contract for older pins.",
+    "versions": [
+      {
+        "version": "2026-01",
+        "sha256": "8257c80360a18fe3ba7020d4edeccc3065f26612f269bb988c60401c35e1ebcc"
+      },
+      {
+        "version": "2026-04",
+        "sha256": "2948548d64d4c370d4d4478717a8d322e115ec127dbac8974ca0a60d15da6298"
+      },
+      {
+        "version": "2026-07",
+        "sha256": "710be3ed9e7ad4175f334f977f048914c845c724f2298eb89e8a5708924ed5dd"
+      },
+      {
+        "version": "2026-10",
+        "sha256": "9e99798c2e590ef1e6edb0baf498fb8f66c9894de72b8403795d2d077ee8868b"
+      }
+    ]
+  },
+  "repos": [
+    {
+      "repo": "Shopify/shopify-app-template-react-router",
+      "stars": 200,
+      "commit": "48b841a7746e1b08d1e6d8793b1208f3096e41d0",
+      "pushedAt": "2026-10-12T14:43:31Z",
+      "sdk": {
+        "@shopify/shopify-app-react-router": "^3.0.1"
+      }
+    },
+    {
+      "repo": "Shopify/subscriptions-reference-app",
+      "stars": 163,
+      "commit": "575a825f9f38aca9b0a1880e0fac10121b572a1c",
+      "pushedAt": "2026-04-23T08:38:12Z",
+      "sdk": {
+        "@shopify/shopify-app-remix": "3.8.3",
+        "@shopify/shopify-api": "11.13.0",
+        "@shopify/admin-api-client": "1.1.0"
+      }
+    },
+    {
+      "repo": "Shopify/example-app--qr-code--remix",
+      "stars": 90,
+      "commit": "6ed425cab13f9e8d1e64dc23de0da6711531650c",
+      "pushedAt": "2026-04-07T03:27:39Z",
+      "sdk": {
+        "@shopify/shopify-app-react-router": "^1.1.0"
+      }
+    },
+    {
+      "repo": "Hujjat/wishlist-inspire-app",
+      "stars": 72,
+      "commit": "684f64f9d21ec1ef1e7ab7f1514a51056ad0ff40",
+      "pushedAt": "2024-02-05T22:41:19Z",
+      "sdk": {
+        "@shopify/shopify-app-remix": "^2.1.0",
+        "@shopify/shopify-api": "^8.0.2"
+      }
+    },
+    {
+      "repo": "gruntlord5/cloudflare-worker-shopifyd1",
+      "stars": 37,
+      "commit": "0c8b131fb3d7b4b2cda532347ec2031e93e22b4d",
+      "pushedAt": "2025-05-23T19:39:36Z",
+      "sdk": {
+        "@shopify/shopify-app-remix": "^3.8.2"
+      }
+    },
+    {
+      "repo": "celadonworks/pixiehog-app",
+      "stars": 34,
+      "commit": "31e9721c88452ed8cd43209d20822195cc1b6c6a",
+      "pushedAt": "2026-09-05T09:39:14Z",
+      "sdk": {
+        "@shopify/shopify-app-remix": "^3.4.0"
+      }
+    },
+    {
+      "repo": "alexandrosk/marketplace-app",
+      "stars": 24,
+      "commit": "4643023281797480c9ff805426ed6fbef096cd9c",
+      "pushedAt": "2024-03-28T13:19:41Z",
+      "sdk": {
+        "@shopify/shopify-app-remix": "^2.1.0",
+        "@shopify/shopify-api": "^8.1.1"
+      }
+    },
+    {
+      "repo": "vincaslt/remix-cf-pages-d1-drizzle-shopify-app",
+      "stars": 24,
+      "commit": "6558a4cfb32ae81f63809c8f7d06c906a6531298",
+      "pushedAt": "2024-01-04T15:49:03Z",
+      "sdk": {
+        "@shopify/shopify-app-remix": "^2.1.0",
+        "@shopify/shopify-api": "^8.0.2"
+      }
+    },
+    {
+      "repo": "aaronarrays/shopify-vercel-app",
+      "stars": 19,
+      "commit": "41ca20587779dfd0b07a4e184d8d1af69ccb466d",
+      "pushedAt": "2025-01-15T09:58:18Z",
+      "sdk": {
+        "@shopify/shopify-app-remix": "^3.4.0"
+      }
+    },
+    {
+      "repo": "intentionull/Shopify-RemixJS-Cloudflare-Workers-Template",
+      "stars": 18,
+      "commit": "811df94e7fd9d64ac7cc632284e39521ca48b609",
+      "pushedAt": "2024-05-09T08:39:06Z",
+      "sdk": {
+        "@shopify/shopify-app-remix": "^2.8.2",
+        "@shopify/shopify-api": "^10.0.0"
+      }
+    },
+    {
+      "repo": "IliasHad/shopify-app-template-remix-cloudflare-workers",
+      "stars": 16,
+      "commit": "23397cc062b5cf5e3175184f0b1b3212b30095ea",
+      "pushedAt": "2025-10-01T20:21:09Z",
+      "sdk": {
+        "@shopify/shopify-app-remix": "^3.4.0"
+      }
+    },
+    {
+      "repo": "marktiddy/Shopify-Remix-Billing-Demo",
+      "stars": 15,
+      "commit": "5b0a65f202a1f4a23e8806230433b4616382d0e3",
+      "pushedAt": "2024-05-06T11:59:25Z",
+      "sdk": {
+        "@shopify/shopify-app-remix": "^2.8.2",
+        "@shopify/shopify-api": "^10.0.0"
+      }
+    },
+    {
+      "repo": "Shopify/tutorial-discount-functions-with-remix",
+      "stars": 14,
+      "commit": "2baa29e5d021b77f09e53cdd02897142c72fc11e",
+      "pushedAt": "2025-11-21T13:55:57Z",
+      "sdk": {
+        "@shopify/shopify-app-remix": "^3.0.2"
+      }
+    },
+    {
+      "repo": "dan-gamble/cloudflare-workers-remix-shopify",
+      "stars": 13,
+      "commit": "9a6add645ad99900b15797385d41dedcb142425c",
+      "pushedAt": "2024-02-13T16:04:36Z",
+      "sdk": {
+        "@shopify/shopify-app-remix": "^2.4.0",
+        "@shopify/shopify-api": "^9.0.2",
+        "@shopify/admin-api-client": "^0.2.2"
+      }
+    },
+    {
+      "repo": "Stephnn0/shopify-email-marking-app-example",
+      "stars": 13,
+      "commit": "68d143b6f5cc6367bc15ea20c618d56563468522",
+      "pushedAt": "2024-01-19T05:22:00Z",
+      "sdk": {
+        "@shopify/shopify-app-remix": "^2.3.0",
+        "@shopify/shopify-api": "^9.0.1"
+      }
+    },
+    {
+      "repo": "gruntlord5/cloudflare-react-router7-shopify-d1",
+      "stars": 12,
+      "commit": "828ad7c9194e946ecaa8e474c54e6e0d03ea4ef5",
+      "pushedAt": "2025-08-23T00:28:04Z",
+      "sdk": {
+        "@shopify/shopify-app-react-router": "^0.1.1",
+        "@shopify/shopify-api": "^11.12.0"
+      }
+    },
+    {
+      "repo": "Stephnn0/remix-youtube-tutorial",
+      "stars": 11,
+      "commit": "05e0423e28b7b48b561cd9a80554238092ae8504",
+      "pushedAt": "2024-02-08T09:23:59Z",
+      "sdk": {
+        "@shopify/shopify-app-remix": "^2.1.0",
+        "@shopify/shopify-api": "^8.0.2"
+      }
+    },
+    {
+      "repo": "madeburo/GEO-AI-Shopify",
+      "stars": 10,
+      "commit": "317d32ac805bf38c1620a086afe187bb3d686c6a",
+      "pushedAt": "2026-03-07T11:33:51Z",
+      "sdk": {
+        "@shopify/shopify-app-remix": "^4.1.1"
+      }
+    },
+    {
+      "repo": "prowebcoder/shopify-app-tutorial",
+      "stars": 8,
+      "commit": "89141451b7ab618428f981d21efdb3a567c7f115",
+      "pushedAt": "2024-04-16T04:12:40Z",
+      "sdk": {
+        "@shopify/shopify-app-remix": "^2.5.0",
+        "@shopify/shopify-api": "^9.5.1"
+      }
+    },
+    {
+      "repo": "alexCevi/shopify-metaform-os",
+      "stars": 7,
+      "commit": "d90d327098f3bb62299ac2c949db127fb40fd78c",
+      "pushedAt": "2026-03-20T19:50:30Z",
+      "sdk": {
+        "@shopify/shopify-app-react-router": "^1.1.0"
+      }
+    },
+    {
+      "repo": "christianmittler/shopify-react-extension",
+      "stars": 6,
+      "commit": "f7c7ae3293393c1cb13774a6a808029944235003",
+      "pushedAt": "2024-08-05T08:00:13Z",
+      "sdk": {
+        "@shopify/shopify-app-remix": "^2.0.0"
+      }
+    },
+    {
+      "repo": "Lightspace-dev/shopify-remix-app-template",
+      "stars": 6,
+      "commit": "01fe63d736ccc49ede0d2c361c8b7a717ca5f9fa",
+      "pushedAt": "2025-03-14T18:29:51Z",
+      "sdk": {
+        "@shopify/shopify-app-remix": "3.7.1"
+      }
+    },
+    {
+      "repo": "edmondso006/shopify-remix-i18n-blog-post",
+      "stars": 5,
+      "commit": "43bc13ae699b4d419549efab80a2a3f105588f71",
+      "pushedAt": "2024-11-23T23:14:52Z",
+      "sdk": {
+        "@shopify/shopify-app-remix": "^3.4.0"
+      }
+    },
+    {
+      "repo": "hookdeck/shopify-festive-notifications",
+      "stars": 5,
+      "commit": "a250e19f2eac1a4ba34cc87409d88cacdf264c2d",
+      "pushedAt": "2025-12-18T12:42:06Z",
+      "sdk": {
+        "@shopify/shopify-app-remix": "^3.4.0"
+      }
+    },
+    {
+      "repo": "tomhooker/Post-Purchase-Extension",
+      "stars": 5,
+      "commit": "192041bdeabe25a0ea9ced2b9e6aa2385064ce1e",
+      "pushedAt": "2024-05-21T19:22:02Z",
+      "sdk": {
+        "@shopify/shopify-app-remix": "^2.1.0",
+        "@shopify/shopify-api": "^9.7.2"
+      }
+    },
+    {
+      "repo": "Hujjat/easy-product-recommendations",
+      "stars": 4,
+      "commit": "e59b2fc532234d762cb2117fb6d827b2968b0098",
+      "pushedAt": "2026-03-23T01:09:06Z",
+      "sdk": {
+        "@shopify/shopify-app-react-router": "^1.1.0"
+      }
+    },
+    {
+      "repo": "terza98/shopify-app-starter-workers-d1",
+      "stars": 4,
+      "commit": "11785cef6e8a415b3d6f0d42a333cf90acf48867",
+      "pushedAt": "2026-02-08T14:47:56Z",
+      "sdk": {
+        "@shopify/shopify-app-react-router": "^1.1.0"
+      }
+    },
+    {
+      "repo": "tuminfei/ic_nft_creater",
+      "stars": 4,
+      "commit": "fdce55dec54856afe212edf336921d41a09ceee2",
+      "pushedAt": "2024-04-08T00:38:34Z",
+      "sdk": {
+        "@shopify/shopify-app-remix": "^2.3.0",
+        "@shopify/shopify-api": "^9.0.1"
+      }
+    },
+    {
+      "repo": "angryred027/Remix-Shopify",
+      "stars": 3,
+      "commit": "a71b6b92d3cc21bfea1efd25732a4c763cc9b8d3",
+      "pushedAt": "2025-02-24T12:44:32Z",
+      "sdk": {
+        "@shopify/shopify-app-remix": "^3.0.1",
+        "@shopify/shopify-api": "^11.0.1"
+      }
+    },
+    {
+      "repo": "markusvoigt/market_discount_full_app",
+      "stars": 3,
+      "commit": "3b1c9211084da77f72c47f69f2118d6931ab0e75",
+      "pushedAt": "2026-03-15T13:35:34Z",
+      "sdk": {
+        "@shopify/shopify-app-remix": "3.8.2",
+        "@shopify/shopify-api": "11.12.0"
+      }
+    },
+    {
+      "repo": "Shopify/ai-agent-partner-sales-channel-template",
+      "stars": 3,
+      "commit": "1e71c916e9c4abb019bb763bdb5af5a9c64a0c38",
+      "pushedAt": "2026-09-29T18:07:00Z",
+      "sdk": {
+        "@shopify/shopify-app-react-router": "^1.1.1",
+        "@shopify/admin-api-client": "^1.1.2"
+      }
+    },
+    {
+      "repo": "Shopify/editions-dev-2024-workshop-customer-account",
+      "stars": 3,
+      "commit": "24b51d3dc82509f723b89e71a969de7e47170cd1",
+      "pushedAt": "2026-01-14T21:17:20Z",
+      "sdk": {
+        "@shopify/shopify-app-remix": "^3.0.0",
+        "@shopify/shopify-api": "^11.0.0"
+      }
+    },
+    {
+      "repo": "tungbinzzz/instagram-app-shopify",
+      "stars": 3,
+      "commit": "e1b0e4a05c0a4207a348625e4f0f81d18210e6f5",
+      "pushedAt": "2025-06-13T20:12:59Z",
+      "sdk": {
+        "@shopify/shopify-app-remix": "^3.4.0"
+      }
+    },
+    {
+      "repo": "Akmal1255553/startup1",
+      "stars": 2,
+      "commit": "063cfa8c658311156f1f7e7a3a8ccbdb6ea4d1f9",
+      "pushedAt": "2026-06-18T11:42:58Z",
+      "sdk": {
+        "@shopify/shopify-app-remix": "4.1.0"
+      }
+    },
+    {
+      "repo": "ar1579/AI_Product_Content_Generator",
+      "stars": 2,
+      "commit": "7aead4799e8daaab49cf6ae16d7cf3c7cb39db1b",
+      "pushedAt": "2025-10-07T20:17:18Z",
+      "sdk": {
+        "@shopify/shopify-app-react-router": "latest",
+        "@shopify/shopify-api": "latest",
+        "@shopify/shopify-app-express": "^6.0.0"
+      }
+    },
+    {
+      "repo": "arsalan-arshad/Ai-Agent-Shopify-App",
+      "stars": 2,
+      "commit": "62d2a839734aacd82d346ab2cb0b21e2dbb6d787",
+      "pushedAt": "2026-10-03T08:31:19Z",
+      "sdk": {
+        "@shopify/shopify-app-remix": "^6.0.1"
+      }
+    },
+    {
+      "repo": "aura-historia/shopify-app",
+      "stars": 2,
+      "commit": "0da78690c8ee22609eb81ee3be5a5de5f2f82b18",
+      "pushedAt": "2026-10-15T20:03:39Z",
+      "sdk": {
+        "@shopify/shopify-app-react-router": "^3.0.2"
+      }
+    },
+    {
+      "repo": "chandandadhekar/ListAI-V2",
+      "stars": 2,
+      "commit": "4918509b1a3bd7e1d6b99b838e43d70328b62145",
+      "pushedAt": "2024-10-23T17:46:29Z",
+      "sdk": {
+        "@shopify/shopify-app-remix": "^3.0.2"
+      }
+    },
+    {
+      "repo": "ersinkoc/CouponEngine",
+      "stars": 2,
+      "commit": "a2f4d5a0f1dbb7fad776d30e32eb4a44143cdb71",
+      "pushedAt": "2026-01-20T18:58:14Z",
+      "sdk": {
+        "@shopify/shopify-app-remix": "^4.1.0"
+      }
+    },
+    {
+      "repo": "Leilanigreer/lpc-product-manager",
+      "stars": 2,
+      "commit": "fd0627a0b6489148dfd2eacaf29817f370752543",
+      "pushedAt": "2026-09-16T17:34:21Z",
+      "sdk": {
+        "@shopify/shopify-app-remix": "^3.3.2",
+        "@shopify/admin-api-client": "^1.0.3"
+      }
+    },
+    {
+      "repo": "sachin21kumar/Infinite-bundler",
+      "stars": 2,
+      "commit": "97af7f111cc8ab4c54c77b3bc0e66831fc97dd2c",
+      "pushedAt": "2025-02-27T12:04:38Z",
+      "sdk": {
+        "@shopify/shopify-app-remix": "^3.4.0"
+      }
+    },
+    {
+      "repo": "samirjabib/shopify-apps-convex-template",
+      "stars": 2,
+      "commit": "acb8dcd6a42004298433286f69e8252570b5a95e",
+      "pushedAt": "2026-05-21T14:13:42Z",
+      "sdk": {
+        "@shopify/shopify-app-react-router": "^1.2.0"
+      }
+    },
+    {
+      "repo": "serebano/busymate-ai-connector-shopify",
+      "stars": 2,
+      "commit": "11cde8c19b017988c9b3609a3b9e405f665ca273",
+      "pushedAt": "2026-10-08T12:19:23Z",
+      "sdk": {
+        "@shopify/shopify-app-react-router": "2.1.0",
+        "@shopify/shopify-api": "14.0.1"
+      }
+    },
+    {
+      "repo": "Shopify/editions-dev-2k-variants",
+      "stars": 2,
+      "commit": "370b6811dd84a0874f0a5111c681525366dca135",
+      "pushedAt": "2024-06-14T14:56:18Z",
+      "sdk": {
+        "@shopify/shopify-app-remix": "^3.0.0",
+        "@shopify/shopify-api": "^11.0.0",
+        "@shopify/admin-api-client": "^1.0.0"
+      }
+    },
+    {
+      "repo": "tmtuan04/qr-code-product-remix",
+      "stars": 2,
+      "commit": "14bee1e1a601a10507a8a95412cac3a0757d0f1d",
+      "pushedAt": "2025-05-16T03:56:58Z",
+      "sdk": {
+        "@shopify/shopify-app-remix": "^3.7.0"
+      }
+    },
+    {
+      "repo": "Yespo-CDP/yespo-shopify",
+      "stars": 2,
+      "commit": "3eefb11a5e85e6a32079a70329da95dc74d73c1e",
+      "pushedAt": "2026-10-15T14:02:11Z",
+      "sdk": {
+        "@shopify/shopify-app-react-router": "^2.0.0"
+      }
+    },
+    {
+      "repo": "aargonlab/Self-Service-Returns",
+      "stars": 1,
+      "commit": "788a25a0379afadd9d0250759e0a84e8a8dd5805",
+      "pushedAt": "2026-06-11T12:50:53Z",
+      "sdk": {
+        "@shopify/shopify-app-remix": "^4.2.0",
+        "@shopify/shopify-api": "^13.0.0"
+      }
+    },
+    {
+      "repo": "AbsoluteWebServices/shopify-app-react-cf",
+      "stars": 1,
+      "commit": "96df4983927aecf4a3b7cc3da001ce557500f158",
+      "pushedAt": "2025-06-05T20:09:37Z",
+      "sdk": {
+        "@shopify/shopify-app-remix": "^3.8.0",
+        "@shopify/admin-api-client": "^1.0.0"
+      }
+    },
+    {
+      "repo": "alistairmartin/honey-birdette-checkout-amd",
+      "stars": 1,
+      "commit": "293d32151ae9d7aac3bf4ccae143470cf21ee79c",
+      "pushedAt": "2026-10-07T01:05:16Z",
+      "sdk": {
+        "@shopify/shopify-app-remix": "^4.2.0",
+        "@shopify/shopify-api": "^13.0.0"
+      }
+    },
+    {
+      "repo": "bloomreach/shopify-discovery-connector-v2",
+      "stars": 1,
+      "commit": "141b84aced67c74bb54b58f2b3e40db90f4c06dc",
+      "pushedAt": "2026-09-14T03:36:03Z",
+      "sdk": {
+        "@shopify/shopify-app-remix": "3.0.1",
+        "@shopify/shopify-api": "11.0.1"
+      }
+    }
+  ]
+}

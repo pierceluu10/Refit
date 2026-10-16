@@ -8,6 +8,15 @@ export const MAX_SPECIFICATION_BYTES = 64 * 1024 * 1024;
 export const STRIPE_SPECIFICATION_ROOT = 'https://raw.githubusercontent.com/stripe/openapi/';
 export const STRIPE_SPECIFICATION_PATH = 'openapi/spec3.json';
 export const COMMIT_REVISION = /^[a-f0-9]{40}$/;
+// Shopify publishes each supported Admin API version's schema through its documentation proxy.
+const SHOPIFY_SCHEMA_ROOT = 'https://shopify.dev/admin-graphql-direct-proxy/';
+const SHOPIFY_VERSION = /^\d{4}-(?:01|04|07|10)$/;
+
+export function shopifySchemaUrl(version: string) {
+  if (!SHOPIFY_VERSION.test(version))
+    throw new PipelineInputError('Shopify API version must be YYYY-01, -04, -07 or -10.');
+  return `${SHOPIFY_SCHEMA_ROOT}${version}`;
+}
 
 export interface Snapshot {
   formatVersion: 1;
@@ -113,6 +122,25 @@ export function parseSpecificationInput(content: string, path: string) {
     return {
       ...parseSpecification(value.content, path),
       provenance: { provider: value.provider, revision: value.revision, url: value.url },
+    };
+  }
+  if (value.kind === 'refit-graphql-snapshot') {
+    if (
+      value.formatVersion !== 1 ||
+      value.provider !== 'shopify' ||
+      typeof value.version !== 'string' ||
+      !SHOPIFY_VERSION.test(value.version) ||
+      typeof value.content !== 'string' ||
+      value.hash !== digest(value.content) ||
+      value.url !== shopifySchemaUrl(value.version)
+    )
+      throw new PipelineInputError(`${path}: invalid Shopify schema snapshot provenance or hash.`);
+    // The introspection result stays a string until the Shopify pipeline builds its schema.
+    return {
+      hash: value.hash,
+      schemas: {},
+      document: { info: { version: value.version }, graphqlIntrospection: value.content },
+      provenance: { provider: 'shopify', revision: value.version, url: value.url },
     };
   }
   return { ...parseSpecification(content, path), provenance: null };

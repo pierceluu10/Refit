@@ -41,10 +41,17 @@ export const AGENT_CATALOG: ProviderAgent[] = [
   {
     id: 'shopify',
     name: 'Shopify',
-    packages: ['@shopify/shopify-api', '@shopify/admin-api-client', 'shopify-api-node'],
+    packages: [
+      '@shopify/shopify-api',
+      '@shopify/admin-api-client',
+      '@shopify/shopify-app-remix',
+      '@shopify/shopify-app-react-router',
+      '@shopify/shopify-app-express',
+      'shopify-api-node',
+    ],
     hostnames: ['myshopify.com/admin/api'],
-    adapter: null,
-    guide: null,
+    adapter: { builtIn: 'shopify' },
+    guide: 'docs/SHOPIFY.md',
   },
   {
     id: 'meta-graph',
@@ -144,6 +151,15 @@ function configuredIds(configuration: Record<string, unknown> | undefined, v1Id:
   return [v1Id];
 }
 
+// The package a built-in integration (no providerConfig) covers. Shopify's built-in integration is
+// named `shopify` by `refit agents --add shopify`, and its contracts are Shopify schema snapshots.
+export function builtInPackage(integration: Record<string, unknown>) {
+  const shopify = [integration.id, integration.before, integration.after].some(
+    (value) => typeof value === 'string' && /shopify/i.test(value),
+  );
+  return shopify ? '@shopify/shopify-api' : 'stripe';
+}
+
 // The integration a v1 configuration already describes: its adapter ID or the built-in Stripe agent.
 export function v1IntegrationId(adapterId: string | undefined) {
   return adapterId ?? 'stripe';
@@ -204,7 +220,9 @@ export function addAgents(options: {
       `Save reviewed ${detection.agent.name} contracts at refit/${id}-before.json and refit/${id}-after.json` +
         (id === 'stripe'
           ? ' (refit stripe-snapshot --revision <sha> --output …).'
-          : ' (refit source-snapshot …).'),
+          : id === 'shopify'
+            ? ' (refit shopify-snapshot --version <pinned version, or 2026-01 if older> --output … and --version <target>).'
+            : ' (refit source-snapshot …).'),
     );
   }
   if (added.length)
