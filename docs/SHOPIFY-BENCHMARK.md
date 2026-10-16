@@ -60,12 +60,48 @@ The fixes:
 - **Documents for other Shopify APIs blocked runs.** Customer Account and Partner API documents, and fixtures in test files, are now noted instead.
 - **Two readable patterns were missed.** SDK copies nested under an app framework in `package-lock.json`, and a `const` chosen by a ternary of two documents, are now read.
 
+### Helper tracing (`21efc5a`)
+
+Refit now follows default-exported documents, Remix-style `./shopify.server` imports and documents passed as a helper's parameter (see [Shopify](SHOPIFY.md#what-refit-reads)). On the same 50 apps, traced Admin documents rose from 255 to **336** and unreadable documents fell from 55 to **27**. Every outcome stayed the same (50 of 50): Shopify's own `subscriptions-reference-app` is now fully read, and stops only because it pins `ApiVersion.Unstable`. The whole run took 22 seconds.
+
+## Fresh apps (200, October 16)
+
+The 200 apps in [`2026-10-16-shopify-fresh-repos.json`](benchmarks/2026-10-16-shopify-fresh-repos.json) were frozen before any run, and none of them was in the original 50 or the 10 development apps. A wider search covered 13 queries: Shopify SDK dependencies in `package.json`, `authenticate.admin`, `admin.graphql` with `#graphql`, `ApiVersion` with `shopifyApp`, `clients.Graphql` and `createAdminApiClient`. It returned 3,496 repositories. 2,139 met the same criteria as above, and the 200 most starred were pinned at HEAD (1 to 562 stars).
+
+| Outcome (Refit `5f94ab4`) | Apps |
+|---|---|
+| **Patched and validated** in offline Docker (2 with tests, 4 with `tsc`) | **6** |
+| Patched, no runnable checks (no npm lockfile or test script) | 5 |
+| Patched, baseline checks already fail | 1 |
+| Patched, repository refused for validation (tracked symbolic link) | 1 |
+| Already on `2026-10` | 1 |
+| Stopped: an SDK upgrade is needed to reach a supported version | 44 |
+| Stopped: REST Admin calls | 39 |
+| Stopped: a GraphQL document is built at runtime | 26 |
+| Stopped: a GraphQL document **already fails** on the version Shopify serves | **23** |
+| Stopped: the pin is dynamic, missing or set from configuration | 21 |
+| Stopped: a document does not parse, or two pins conflict | 3 |
+| No Admin API usage (Storefront, Functions, themes or extensions only) | 28 |
+| Repository exceeds Refit's scan limits | 2 |
+
+Refit found 677 Admin calls and 895 GraphQL documents, 628 of them traced to an Admin call. Per-app outcomes are in [`2026-10-16-shopify-fresh-results.json`](benchmarks/2026-10-16-shopify-fresh-results.json). Scanning all 200 took 134 seconds of CPU time on one machine; validation ran in Docker with concurrency 1, and no AI was used.
+
+- **13 apps were patched (6.5%), against 1 of the original 50.** All 13 diffs were read by hand. Each moves only Admin API version pins, to the newest version the locked SDK can name, in the runtime configuration and the matching `.graphqlrc` codegen file.
+- **23 apps (12%) send a query that fails today.** Each error was rechecked with graphql-js against the served schema. 11 are the old Remix template's `productVariantUpdate(input: ProductVariantInput)`, which no supported version has. Others select removed fields (`Product.publishedScope`, `ProductVariant.weight`, `Collection.onlineStoreUrl`), call removed mutations (`inventoryAdjustQuantity`, `orderAddNote`), select `productsCount` without its new subfields, or declare unused variables.
+- **The benchmark found four Refit bugs, each fixed with a test before the final run.** Three were REST calls that were not recognized, so the app's version was moved instead of stopping for review:
+  - a REST URL whose resource path comes before a substitution (`/admin/api/2021-10/products/${id}.json`);
+  - `createAdminRestApiClient(...)` from `@shopify/admin-api-client`;
+  - REST resource classes such as `shopify.rest.Product` and `shopify.api.rest.CustomCollection.all()`.
+
+  The fourth was preparation: npm workspaces declared as `{ "packages": [...] }`, the Shopify CLI template's form, were refused. npm reads that form the same way as an array, so `cornerstone-report/x-money-shopify` and `sahmsec/conversion-app` (63 tests) now validate. The REST fixes turned 3 wrongly patched apps into stops; none of them had validated. Between the first run (`d368c2a`) and the final one, 10 apps changed, each because of one of these fixes.
+
 ## Reproduce
 
 ```sh
 node scripts/shopify-benchmark-setup.mjs --root <dir>
 git worktree add --detach <worktree> <commit>   # run from a pinned checkout
 npm run benchmark:shopify -- --root <dir> --output <run> --validate --concurrency 2
+# fresh 200: add --list docs/benchmarks/2026-10-16-shopify-fresh-repos.json to both commands
 ```
 
 ## What this shows

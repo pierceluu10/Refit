@@ -99,6 +99,76 @@
         "upgradeComplete": "yes: apiVersion 2024-04-10 -> 2026-09-30.endive and stripe -> ^23.0.0; validated offline by tsc with no new type errors; generated stripe-mock checks found no runnable entry points (Convex handlers), so runtime behavior was not exercised.",
         "wouldMerge": "yes."
       }
+    },
+    {
+      "repo": "cdinnison/goal-reminder",
+      "pullRequest": null,
+      "reviewedAt": "2026-10-16",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: invoice.subscription moves to invoice.parent.subscription_details.subscription, as in the 2025-03-31.basil changelog, inside the invoice webhook branch.",
+        "bothVersions": "yes: the generated helper returns the old top-level field when present, so old-version payloads still work.",
+        "nothingUnrelated": "yes: three apiVersion pins, one read and the generated helper.",
+        "pleaseCheck": "none.",
+        "upgradeComplete": "yes: apiVersion 2023-10-16 to 2026-09-30.endive in all three clients, stripe 14.25.0 to 23.0.0; tsc reports no new errors.",
+        "wouldMerge": "yes."
+      }
+    },
+    {
+      "repo": "seangray-dev/formail-app",
+      "pullRequest": null,
+      "reviewedAt": "2026-10-16",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: both subscription.current_period_end reads move to the subscription item period, and the invoice.payment_succeeded branch's subscription read moves to parent.subscription_details. The checkout.session.completed read, whose field Stripe kept, is unchanged.",
+        "bothVersions": "yes: the generated helper returns the old top-level field when present, so old-version payloads still work.",
+        "nothingUnrelated": "yes.",
+        "pleaseCheck": "items[0] is used when items have different periods; the app reads one plan.",
+        "upgradeComplete": "yes: apiVersion and stripe 14.25.0 to 23.0.0; tsc reports no new errors.",
+        "wouldMerge": "yes."
+      }
+    },
+    {
+      "repo": "tmachnacki/podvex",
+      "pullRequest": null,
+      "reviewedAt": "2026-10-16",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: only the invoice.paid branch's subscription read moves; the checkout.session.completed read is unchanged.",
+        "bothVersions": "yes: the generated helper returns the old top-level field when present, so old-version payloads still work.",
+        "nothingUnrelated": "yes.",
+        "pleaseCheck": "none.",
+        "upgradeComplete": "yes: apiVersion and stripe 16.5.0 to 23.0.0; tsc reports no new errors.",
+        "wouldMerge": "yes."
+      }
+    },
+    {
+      "repo": "vinroger/onellm-frontend",
+      "pullRequest": null,
+      "reviewedAt": "2026-10-16",
+      "verdict": "correct-partial",
+      "checks": {
+        "rightReplacement": "yes: current_period_start and current_period_end move to the subscription item period.",
+        "bothVersions": "yes: the generated helper returns the old top-level field when present, so old-version payloads still work.",
+        "nothingUnrelated": "yes.",
+        "pleaseCheck": "none.",
+        "upgradeComplete": "no: the client has no literal apiVersion (the account default applies), so the version and the stripe package are not moved. The reads are tolerant of both versions.",
+        "wouldMerge": "yes, as forward-compatible preparation."
+      }
+    },
+    {
+      "repo": "profullstack/vibe-stack",
+      "pullRequest": null,
+      "reviewedAt": "2026-10-16",
+      "verdict": "correct-partial",
+      "checks": {
+        "rightReplacement": "yes: subscription.current_period_end moves to the subscription item period.",
+        "bothVersions": "yes: the generated helper returns the old top-level field when present, so old-version payloads still work.",
+        "nothingUnrelated": "yes: six apiVersion pins, one read and the generated helper.",
+        "pleaseCheck": "Three of the bumped pins are in bin/ scripts the tests do not exercise.",
+        "upgradeComplete": "partly: apiVersion moves to 2026-09-30.endive everywhere, but the stripe package is not upgraded because the project uses pnpm, which the SDK upgrade does not support yet. The project is JavaScript, so no type check catches the old package; its tests pass on both versions.",
+        "wouldMerge": "yes, after upgrading stripe by hand."
+      }
     }
   ]
 }

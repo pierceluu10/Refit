@@ -21,7 +21,7 @@ import { PipelineInputError, type Repository } from './types.ts';
 
 const execute = promisify(execFile);
 const USAGE =
-  'Usage: npm run benchmark:stripe -- --root <benchmark-dir> --output <new-dir> [--env .env] [--ai] [--validate] [--limit N] [--concurrency N] [--publish <github-org> [--publish-unresolved]]';
+  'Usage: npm run benchmark:stripe -- --root <benchmark-dir> --output <new-dir> [--env .env] [--ai] [--validate] [--offset N] [--limit N] [--concurrency N] [--publish <github-org> [--publish-unresolved]]';
 // Default `npm init` script; it is not a check.
 const PLACEHOLDER_TEST = /no test specified/;
 const VALIDATION_TIMEOUT_MS = 20 * 60 * 1000;
@@ -55,6 +55,7 @@ const { values } = parseArgs({
     env: { type: 'string' },
     ai: { type: 'boolean' },
     validate: { type: 'boolean' },
+    offset: { type: 'string' },
     limit: { type: 'string' },
     concurrency: { type: 'string' },
     split: { type: 'string' },
@@ -79,6 +80,8 @@ const split = values.split
   : undefined;
 const selected = (JSON.parse(await readFile(join(root, 'selected.json'), 'utf8')) as Selected[])
   .filter((entry) => !split || split.has(entry.repo))
+  // --offset and --limit select a slice, so one list can be split across processes.
+  .slice(Number(values.offset ?? 0))
   .slice(0, values.limit ? Number(values.limit) : undefined);
 const specs = JSON.parse(await readFile(join(root, 'needed-specs.json'), 'utf8')) as Array<{
   version: string;
@@ -217,7 +220,8 @@ async function benchmark(entry: Selected, index: number) {
     return;
   }
   // The oasdiff comparison depends only on the contract pair; a failure applies to every
-  // repository on the same before version, so it is attempted once per version.
+  // repository on the same before version, so it is attempted once per version. A timeout depends
+  // on machine load, not the pair, so it is not reused.
   const failed = productionFailures.get(entry.before);
   if (failed) result.productionMode = { error: failed, reusedFromSameVersion: true };
   else
@@ -226,7 +230,7 @@ async function benchmark(entry: Selected, index: number) {
         await runPipeline({ ...inputs, providerConfig: adapterPath, fullDiff: true }),
       );
     } catch (error) {
-      productionFailures.set(entry.before, message(error));
+      if (!/time limit/.test(message(error))) productionFailures.set(entry.before, message(error));
       result.productionMode = { error: message(error) };
     }
   const full = result.fullAdapter as { confirmed: number; confirmedFields: string[] };

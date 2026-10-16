@@ -33,6 +33,8 @@ The existing `watch`, enrollment and App service paths use the same preparation.
 
 Only committed root/workspace `package.json` files and the root `package-lock.json` enter the networked install container. Application source, `.env`, `.npmrc` and repository scripts are not copied or executed there. `npm ci` installs public locked dependencies with lifecycle scripts disabled.
 
+`workspaces` may be an array of up to 64 positive relative globs, or `{ "packages": [...] }` with no other keys, the form Shopify's app templates use; npm reads both the same way. Negations, escaping paths and other object declarations require a custom image.
+
 The validator compares each workspace's dependencies, name and version against its lockfile importer. Links must name and target declared committed workspaces. Installation checks the actual links and physical dependency directories before archiving root and nested `node_modules`. The archive contains dependencies and links; workspace source comes from the separate committed application snapshot during offline validation.
 
 Workspace manifest hashes are part of the cache identity and environment evidence. Even a script-only manifest change creates a new environment. Changed source alone need not reinstall dependencies. Verified repeat preparations reuse the cache. Recipe 3 separates these environments from older preparation bundles.
