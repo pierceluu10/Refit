@@ -33,6 +33,7 @@ else {
     for (const name of [
       'diff',
       'fast-xml-parser',
+      'graphql',
       'parse5',
       'tsx',
       'typescript-compiler',
