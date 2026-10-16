@@ -1,6 +1,6 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
-import { labelReads, SOURCE } from './stripe-ground-truth.ts';
+import { labelReads, SOURCE, stripeTypesEntry } from './stripe-ground-truth.ts';
 import type { Finding, Removal, Repository } from './types.ts';
 
 // Removed-field reads whose receiver TypeScript's checker resolves to a Stripe object, using the
@@ -20,7 +20,13 @@ const classSchemas = new Map(Object.entries(metadata.classes));
 // An explicit stripe package directory, else the one the repository has installed.
 export function stripePackageDirectory(repositoryRoot: string, explicit?: string) {
   const directory = explicit ?? join(repositoryRoot, 'node_modules', 'stripe');
-  return existsSync(join(directory, 'package.json')) ? directory : undefined;
+  if (!existsSync(join(directory, 'package.json'))) return undefined;
+  try {
+    const entry = stripeTypesEntry(directory);
+    return existsSync(entry.ambient ?? entry.module) ? directory : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 export function addTypeEvidence(
