@@ -187,6 +187,10 @@ npm run benchmark:stripe-score -- --results <new-dir>/results.json \
   --labels docs/benchmarks/2026-10-14-stripe-labels.json
 ```
 
+Each run also writes `summary.md`: totals, then one row per affected repository with its outcome, pull request link and stop reason.
+
+To publish validated fixes as real draft PRs, add `--publish <github-org>` (requires `--validate`). For each repository whose checks passed, Refit forks it into that organization with `GITHUB_TOKEN`, points a `refit-base` branch at the validated commit, and publishes the draft as the GitHub App (`GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY_FILE`). Upstream repositories are never changed. `--publish-unresolved` also publishes drafts that list unresolved findings. Publication uses the saved report; checks are not rerun.
+
 The benchmark attaches the pinned Stripe changelog pages in [`benchmarks/stripe-changelog/`](benchmarks/stripe-changelog/) to AI patches for the changes each repository hits.
 
 ## Validation funnel on real repositories (October 15, 2026)
