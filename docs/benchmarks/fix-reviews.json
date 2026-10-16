@@ -29,6 +29,76 @@
         "upgradeComplete": "no: apiVersion stays 2023-10-16 for the same unresolved-literal reason.",
         "wouldMerge": "yes for single-period subscriptions, which the app creates (one price per checkout)."
       }
+    },
+    {
+      "repo": "JoeBuildsStuff/full-stack-starter-kit",
+      "pullRequest": "https://github.com/refit-dev/full-stack-starter-kit/pull/1",
+      "reviewedAt": "2026-10-16",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: current_period_end moves to subscription items and invoice.subscription to parent.subscription_details.subscription, as in the basil changelog.",
+        "bothVersions": "yes: both helpers return the old top-level field when present, so old-version webhook payloads still work.",
+        "nothingUnrelated": "yes: the reads, one import, the generated helper, the apiVersion pin and the stripe package.",
+        "pleaseCheck": "none needed: the code already selects items.data[0], and the helper uses it when items have different periods.",
+        "upgradeComplete": "yes: apiVersion 2023-10-16 -> 2026-09-30.endive and stripe -> ^23.0.0; validated offline by tsc with no new type errors; generated stripe-mock checks found no runnable entry points (Convex handlers), so runtime behavior was not exercised.",
+        "wouldMerge": "yes."
+      }
+    },
+    {
+      "repo": "webdevcody/thumbnail-critique",
+      "pullRequest": "https://github.com/refit-dev/thumbnail-critique/pull/1",
+      "reviewedAt": "2026-10-16",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: current_period_end moves to subscription items and invoice.subscription to parent.subscription_details.subscription, as in the basil changelog.",
+        "bothVersions": "yes: both helpers return the old top-level field when present, so old-version webhook payloads still work.",
+        "nothingUnrelated": "yes: the reads, one import, the generated helper, the apiVersion pin and the stripe package.",
+        "pleaseCheck": "none needed: the code already selects items.data[0], and the helper uses it when items have different periods.",
+        "upgradeComplete": "yes: apiVersion 2023-10-16 -> 2026-09-30.endive and stripe -> ^23.0.0; validated offline by tsc with no new type errors; generated stripe-mock checks found no runnable entry points (Convex handlers), so runtime behavior was not exercised.",
+        "wouldMerge": "yes."
+      }
+    },
+    {
+      "repo": "vukrosic/nextjs14-chatgpt",
+      "pullRequest": "https://github.com/refit-dev/nextjs14-chatgpt/pull/1",
+      "reviewedAt": "2026-10-16",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: current_period_end moves to subscription items and invoice.subscription to parent.subscription_details.subscription, as in the basil changelog.",
+        "bothVersions": "yes: both helpers return the old top-level field when present, so old-version webhook payloads still work.",
+        "nothingUnrelated": "yes: the reads, one import, the generated helper, the apiVersion pin and the stripe package.",
+        "pleaseCheck": "real but unreachable here: subscriptions whose items have different periods return undefined and the PR flags both reads; checkout creates one price per subscription.",
+        "upgradeComplete": "yes: apiVersion 2023-10-16 -> 2026-09-30.endive and stripe -> ^23.0.0; validated offline by tsc with no new type errors; generated stripe-mock checks found no runnable entry points (Convex handlers), so runtime behavior was not exercised.",
+        "wouldMerge": "yes."
+      }
+    },
+    {
+      "repo": "vukrosic/setup-nextjs-convex-clerk-typescript-stripe-shadcn-tailwindcss-react",
+      "pullRequest": "https://github.com/refit-dev/setup-nextjs-convex-clerk-typescript-stripe-shadcn-tailwindcss-react/pull/2",
+      "reviewedAt": "2026-10-16",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: current_period_end moves to subscription items and invoice.subscription to parent.subscription_details.subscription, as in the basil changelog.",
+        "bothVersions": "yes: both helpers return the old top-level field when present, so old-version webhook payloads still work.",
+        "nothingUnrelated": "yes: the reads, one import, the generated helper, the apiVersion pin and the stripe package.",
+        "pleaseCheck": "real but unreachable here: subscriptions whose items have different periods return undefined and the PR flags both reads; checkout creates one price per subscription. Supersedes pull/1, which left apiVersion at 2023-10-16.",
+        "upgradeComplete": "yes: apiVersion 2023-10-16 -> 2026-09-30.endive and stripe -> ^23.0.0; validated offline by tsc with no new type errors; generated stripe-mock checks found no runnable entry points (Convex handlers), so runtime behavior was not exercised.",
+        "wouldMerge": "yes."
+      }
+    },
+    {
+      "repo": "projectplannerai/nextjs-clerk-convex-stripe-resend-template",
+      "pullRequest": "https://github.com/refit-dev/nextjs-clerk-convex-stripe-resend-template/pull/1",
+      "reviewedAt": "2026-10-16",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: current_period_end moves to subscription items and invoice.subscription to parent.subscription_details.subscription, as in the basil changelog.",
+        "bothVersions": "yes: both helpers return the old top-level field when present, so old-version webhook payloads still work.",
+        "nothingUnrelated": "yes: the reads, one import, the generated helper, the apiVersion pin and the stripe package.",
+        "pleaseCheck": "none needed: the code already selects items.data[0], and the helper uses it when items have different periods.",
+        "upgradeComplete": "yes: apiVersion 2024-04-10 -> 2026-09-30.endive and stripe -> ^23.0.0; validated offline by tsc with no new type errors; generated stripe-mock checks found no runnable entry points (Convex handlers), so runtime behavior was not exercised.",
+        "wouldMerge": "yes."
+      }
     }
   ]
 }

@@ -1,6 +1,6 @@
 # Refit implementation checkpoints
 
-## October 16 checkpoint: API deadline tracking (0.35.0)
+## October 16 checkpoint: API deadline tracking (0.36.0)
 
 `refit deadlines` matches the API versions and models a repository pins against a reviewed registry of provider sunset dates, with `file:line` evidence and no code executed. `data/deadlines.json` holds 47 entries, each checked on 2026-10-15 against its provider page: 7 Shopify Admin API versions, 13 Meta Graph API versions and 27 OpenAI shutdowns covering 67 model IDs. `npm run deadlines:check` validates the registry's shape and flags past-due entries and entries without a source. Unsourced entries are never matched or alerted. Matching reads Graph and Shopify URLs, Shopify's `ApiVersion` enum and pinned `apiVersion` strings (only in files that use Shopify), the `facebook-nodejs-business-sdk` version from manifests and lockfiles, exact quoted OpenAI model IDs, and `apiVersion` pins in `.refit.json`.
 
@@ -8,11 +8,24 @@
 
 The default suite passed **1,304 tests across 84 files**, with 78 environment-gated tests skipped, plus typecheck, formatting and build. New tests cover the registry check, UTC day counting, lead-time stages with a fixed clock, matching and lookalikes, `.refit.json` pins, agent status, and issue rendering and syncing. A signed-webhook service run against a mocked GitHub opens exactly one issue, ignores a same-stage poll, updates and comments at the 7-day stage, does not repeat after a restart, and never alerts an operator-workflow target. An invalid registry is logged and skipped without stopping the service. No live GitHub issue was opened and no provider API was called. On real public repositories, `thematters/matters-server` at `12adb2d` showed three Graph API v18.0 calls (retired 2026-01-26). `embedelite/chat` at `6479fbf` showed `gpt-4-turbo-preview`, `dall-e-3` and `gpt-3.5-turbo`, the last 7 days from shutdown. Outside the new files, this adds the issues token to `github-app.ts`, the two flags to `service-cli.ts` and `data/` to the CLI package.
 
-## October 16 checkpoint: callback clients and unpinned pnpm (unreleased)
+## October 16 checkpoint: held-out reliability on gpt-5.6-luna (0.35.0)
+
+The 50-repository held-out Stripe set ran end to end four times on `gpt-5.6-luna`: twice before fixes, twice after. Totals with the 100-repository set: **$0.059** of a fresh $5 ledger. Before the fixes, 17 repositories were affected and 4 validated, but all 4 AI-validated results across both runs silently replaced `payment_method_types` with `allowed_payment_method_types`, which the endive contract defines differently. One deterministic "validated" result was a latent break that the old SDK types hid. After the fixes:
+
+- **Removed request parameters stop for review** (#62). Refit compares each mapped operation's request body parameters across contracts and stops when a traced call still sends a removed one. `2026-09-30.endive` removed `payment_method_types` from Checkout Sessions, PaymentIntents and SetupIntents; 48 of the 63 affected repositories across both sets send it.
+- **apiVersion pins are verified in Vite and Convex projects** (#61): solution `tsconfig.json` references, generated `api.js`/`dataModel.d.ts`, rooted asset imports, and type annotations are no longer treated as client escapes. This closes the gap noted in the previous checkpoint.
+- **Outcomes are stable:** 50/50 held-out repositories had the same outcome in two runs on the same commit, against 48/50 before (the two differences were AI repairs of the parameter error).
+- **5 validated drafts were published** to `refit-dev` forks as Refit Agent, 1 held-out and 4 from the original set. All five were hand-reviewed `correct`, with the version pin and package upgraded. All five are deterministic and were validated by `tsc`; generated `stripe-mock` checks found no runnable entry points in their Convex handlers.
+
+The AI price table now covers `gpt-5.6-luna` ($0.20/$0.02/$1.20 per million input/cached/output tokens) and dated snapshots. A response from a differently priced model keeps its reservation charged. Benchmarks run from a pinned worktree, and `scripts/stripe-benchmark-compare.mjs` reports per-repository agreement. See [the held-out run](STRIPE-BENCHMARK.md#held-out-run-on-gpt-56-luna-october-16-2026).
+
+Open owner decision: automatic handling of the removed `payment_method_types`. Checkout's `allowed_payment_method_types` filters dynamically eligible methods rather than listing them, and the intents have no replacement. Until a policy is chosen, those repositories stop for review.
+
+## October 16 checkpoint: callback clients and unpinned pnpm (0.35.0)
 
 Stripe clients created inside a callback passed to another function, such as a Convex `action({ handler })`, now have their literal `apiVersion` verified, so their pins are bumped and the `stripe` package is upgraded. Before, every binding declared inside such a callback counted as exposed. On thumbnail-critique and both vukrosic repositories, fixes that already passed now also move the pin to `2026-09-30.endive` and `stripe` 14 to 23, still with no new type errors and no AI. Roots with a pnpm lockfile v9 and no `packageManager` field are prepared with pnpm 9.15.9 instead of rejected (17 benchmark and 3 held-out repositories). Solution-style `tsconfig.json` files with `references` still leave shared clients unverified (convex-saas).
 
-## October 15 checkpoint: invoice.subscription helper (unreleased)
+## October 15 checkpoint: invoice.subscription helper (0.35.0)
 
 Stripe `invoice.subscription` reads are migrated deterministically through `getInvoiceSubscription()` in the generated helper file, which reads either API version; before this, every such read went to AI. Reads stay for review when the code expands `subscription` or the adapter configures its own move. 11 of the 23 affected benchmark repositories read this field. On `vukrosic/setup-nextjs-convex-clerk-typescript-stripe-shadcn-tailwindcss-react`, AI produced a passing fix in 1 of 4 runs; the rule produced a passing deterministic fix with no AI, published as [a draft PR by refit-agent[bot] on a refit-dev fork](https://github.com/refit-dev/setup-nextjs-convex-clerk-typescript-stripe-shadcn-tailwindcss-react/pull/1). That repository has no tests: the evidence is the TypeScript check, with stripe-mock checks not run. See [Stripe subscription periods](STRIPE-SUBSCRIPTION-PERIODS.md#invoice-subscription-reads).
 
