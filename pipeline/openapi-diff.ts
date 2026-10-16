@@ -65,13 +65,34 @@ function responseRemovalLocation(change: Record<string, unknown>, before: object
 }
 
 const SUBSCHEMA = /^anyOf\[subschema #(\d+)(?:: [^\]]*)?\]$/;
+// The response property path and status in oasdiff 1.x texts. Other response changes name no
+// property path and keep blocking.
+const RESPONSE_PROPERTY_TEXTS: Record<string, RegExp> = {
+  'response-required-property-removed':
+    /^removed the required property `([^`]+)` from the response with the `([^`]+)` status$/,
+  'response-optional-property-removed':
+    /^removed the optional property `([^`]+)` from the response with the `([^`]+)` status$/,
+  'response-property-any-of-added':
+    /^added `[^`]+` to the `([^`]+)` response property `anyOf` list for the response status `([^`]+)`$/,
+  'response-property-became-nullable':
+    /^the response property `([^`]+)` became nullable for the status `([^`]+)`$/,
+  'response-property-became-optional':
+    /^the response property `([^`]+)` became optional for the status `([^`]+)`$/,
+  'response-property-max-length-unset':
+    /^the `([^`]+)` response property's maxLength was unset from `[^`]+` for the response status `([^`]+)`$/,
+  'response-property-max-length-increased':
+    /^the `([^`]+)` response property's maxLength was increased from `[^`]+` to `[^`]+` for the response status `([^`]+)`$/,
+  'response-property-type-changed':
+    /^the `([^`]+)` response's property `[^`]+` changed from `[^`]*` to `[^`]*` for status `([^`]+)`$/,
+};
 
-// Names the expandable fields whose expanded object a removed response property lies inside.
+// Names the expandable fields whose expanded object a changed response property lies inside.
 // Unexpanded responses return those fields as ID strings, so the property cannot appear unless a
 // request expands every one of them. Unresolvable paths name nothing and keep blocking.
 export function expansionLocation(change: Record<string, unknown>, before: object) {
+  const text = RESPONSE_PROPERTY_TEXTS[String(change.id)];
   if (
-    !RESPONSE_REMOVALS.has(String(change.id)) ||
+    !text ||
     typeof change.path !== 'string' ||
     typeof change.operation !== 'string' ||
     typeof change.text !== 'string' ||
@@ -79,9 +100,7 @@ export function expansionLocation(change: Record<string, unknown>, before: objec
     !isObject(before.paths)
   )
     return undefined;
-  const match = change.text.match(
-    /^removed the (?:required|optional) property `([^`]+)` from the response with the `([^`]+)` status$/,
-  );
+  const match = change.text.match(text);
   const item = before.paths[change.path];
   const operation = isObject(item) ? item[change.operation.toLowerCase()] : undefined;
   const responses = isObject(operation) ? operation.responses : undefined;

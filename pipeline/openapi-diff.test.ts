@@ -360,6 +360,53 @@ it('names the expandable fields a removed response property lies inside', () => 
     expect(expansionLocation(removal(property), EXPANDABLE_CONTRACT), property).toEqual(expected);
 });
 
+it('names the expansions of other response property changes from their oasdiff texts', () => {
+  const inside = 'customer/anyOf[subschema #2: Customer]/legacy';
+  const texts: [string, string][] = [
+    [
+      'response-property-any-of-added',
+      `added \`#/components/schemas/tax_id\` to the \`${inside}\` response property \`anyOf\` list for the response status \`200\``,
+    ],
+    [
+      'response-property-became-nullable',
+      `the response property \`${inside}\` became nullable for the status \`200\``,
+    ],
+    [
+      'response-property-became-optional',
+      `the response property \`${inside}\` became optional for the status \`200\``,
+    ],
+    [
+      'response-property-max-length-unset',
+      `the \`${inside}\` response property's maxLength was unset from \`5000\` for the response status \`200\``,
+    ],
+    [
+      'response-property-max-length-increased',
+      `the \`${inside}\` response property's maxLength was increased from \`500\` to \`1200\` for the response status \`200\``,
+    ],
+    [
+      'response-property-type-changed',
+      `the \`${inside}\` response's property \`type\` changed from \`string\` to \`any\` for status \`200\``,
+    ],
+  ];
+  for (const [id, text] of texts) {
+    const change = { ...removal(inside), id, text };
+    expect(expansionLocation(change, EXPANDABLE_CONTRACT), id).toEqual({
+      expansions: ['customer'],
+    });
+    // A direct field, an unknown status or an unrecognized text names no expansion.
+    for (const other of [text.replace(inside, 'paid'), text.replace('`200`', '`404`'), `${text}.`])
+      expect(expansionLocation({ ...change, text: other }, EXPANDABLE_CONTRACT), other).toBe(
+        undefined,
+      );
+  }
+  expect(
+    expansionLocation(
+      { ...removal(inside), id: 'response-property-enum-value-removed' },
+      EXPANDABLE_CONTRACT,
+    ),
+  ).toBeUndefined();
+});
+
 it('stops blocking on removals inside expansions only when no request expands them', () => {
   const diff = {
     engine: 'oasdiff',
