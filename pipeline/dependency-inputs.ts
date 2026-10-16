@@ -40,9 +40,17 @@ export async function readPreparationInputs(
   const pnpm = paths.includes(PNPM_LOCKFILE);
   const yarn = paths.includes(YARN_LOCKFILE);
   const lockfile = pnpm ? PNPM_LOCKFILE : yarn ? YARN_LOCKFILE : 'package-lock.json';
-  if (!paths.includes('package.json') || !paths.includes(lockfile))
+  if (!paths.includes('package.json')) {
+    const nested = paths.filter((path) =>
+      /^[^/]+\/(?:package-lock\.json|pnpm-lock\.yaml|yarn\.lock)$/.test(path),
+    );
     throw new PipelineInputError(
-      'Automatic preparation requires committed root package.json and package-lock.json, pnpm-lock.yaml or yarn.lock.',
+      `Automatic preparation reads dependencies only from the repository root, which has no committed package.json${nested.length ? ` (lockfiles exist in ${nested.slice(0, 3).join(', ')})` : ''}. Validate with a custom image, or commit a root package.json and lockfile.`,
+    );
+  }
+  if (!paths.includes(lockfile))
+    throw new PipelineInputError(
+      'The repository commits package.json without a lockfile, so the dependency versions to verify are unknown. Run npm install, pnpm install or yarn install and commit the package-lock.json, pnpm-lock.yaml or yarn.lock it writes.',
     );
   if (
     paths.includes('npm-shrinkwrap.json') ||
