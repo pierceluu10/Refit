@@ -18,7 +18,9 @@ const TEST_FILE = /(?:^|\/)(?:__tests__|tests?)\/|\.(?:test|spec)\.[cm]?[jt]sx?$
 const ADMIN_RECEIVER = /(?:^|\.)admin$/;
 const ADMIN_CLIENT_FACTORY = /^createAdminApiClient$|\.clients\.Graphql$|^GraphqlClient$/;
 const REST_RECEIVER = /(?:^|\.)admin\.rest\b|\brest\.resources\b|\.clients\.Rest$/;
-const REST_URL = /\/admin\/api\/(\d{4}-\d{2}|unstable)\/[\w/{}.$-]*\.json/;
+// A `.json` endpoint, or a resource path segment before a substitution (`products/${id}.json`).
+const REST_URL =
+  /\/admin\/api\/(\d{4}-\d{2}|unstable)\/(?:[\w/{}.$-]*\.json|(?!graphql\b)[\w-]+\/)/;
 const VERSION_URL = /\/admin\/api\/(\d{4}-\d{2})\//g;
 
 export interface DocumentSegment {

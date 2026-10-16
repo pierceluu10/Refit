@@ -121,6 +121,7 @@ export async function loader({ request }) {
   const built = 'query { ' + request.field + ' }';
   await admin.graphql(built);
   await admin.rest.resources.Product.all({ session: {} });
+  await fetch(\`https://shop.myshopify.com/admin/api/2025-07/products/\${request.id}.json\`);
   return fetch('https://shop.myshopify.com/admin/api/2025-07/products.json');
 }
 `,
@@ -144,12 +145,13 @@ export const run = () => client.request(\`query { shop { name } }\`);
   const product = scan.documents.find((document) => document.file === 'app/queries.ts')!;
   expect(product.text).toContain('fragment ProductFields on Product { id title }');
   expect(scan.unreadable).toMatchObject([{ file: 'app/routes/product.ts', line: 12 }]);
-  expect(scan.rest.map((entry) => entry.line)).toEqual([13, 14]);
+  expect(scan.rest.map((entry) => entry.line)).toEqual([13, 14, 15]);
   expect(scan.versions.map((entry) => `${entry.kind}:${entry.value}:${entry.file}`).sort()).toEqual(
     [
       'enum:2025-01:app/shopify.server.ts',
       'enum:2025-07:.graphqlrc.ts',
       'string:2025-10:app/client.ts',
+      'url:2025-07:app/routes/product.ts',
       'url:2025-07:app/routes/product.ts',
     ],
   );
