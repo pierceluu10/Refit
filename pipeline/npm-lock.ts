@@ -193,10 +193,16 @@ export function validateNpmLock(
             left.localeCompare(right),
           ),
         );
-      if (normalize(value[section]) !== normalize(record[section]))
-        throw new PipelineInputError(
-          `${file} dependency requirements differ from the committed root lockfile. Update and commit the lockfile before preparation.`,
+      if (normalize(value[section]) !== normalize(record[section])) {
+        const declared = isObject(value[section]) ? value[section] : {};
+        const recorded = isObject(record[section]) ? record[section] : {};
+        const name = [...new Set([...Object.keys(declared), ...Object.keys(recorded)])].find(
+          (name) => declared[name] !== recorded[name],
         );
+        throw new PipelineInputError(
+          `${file} ${section} differ from the committed package-lock.json${name ? `: ${name} is ${JSON.stringify(declared[name]) ?? 'missing'} in ${file} but ${JSON.stringify(recorded[name]) ?? 'missing'} in the lockfile` : ''}. Run npm install and commit the updated package-lock.json.`,
+        );
+      }
     }
   }
   matchingDeclarations(manifest, lock.packages[''], 'package.json');
@@ -238,18 +244,27 @@ export function validateNpmLock(
       workspaceLinks[path] = record.resolved as string;
       continue;
     }
-    if (
-      !dependencyPath ||
-      record.link ||
-      typeof record.version !== 'string' ||
-      !record.version.trim() ||
-      typeof record.resolved !== 'string' ||
-      !hasStrongIntegrity(record.integrity)
-    )
+    if (!dependencyPath || record.link)
       throw new PipelineInputError(
         'Every npm package requires a registry URL, version and SHA-256-or-stronger integrity; links and bundled records require a custom image.',
       );
-    assertRegistryTarball(record.resolved);
+    const unverified = (value: unknown) =>
+      isObject(value) &&
+      !value.link &&
+      (typeof value.version !== 'string' ||
+        !value.version.trim() ||
+        typeof value.resolved !== 'string' ||
+        !hasStrongIntegrity(value.integrity));
+    if (unverified(record)) {
+      const others =
+        Object.entries(lock.packages).filter(
+          ([other, value]) => other && !workspaces.has(other) && unverified(value),
+        ).length - 1;
+      throw new PipelineInputError(
+        `package-lock.json records ${path}${others ? ` and ${others} more packages` : ''} without a version, registry "resolved" URL and SHA-256-or-stronger "integrity", so Refit cannot verify what it would install. Reinstall against registry.npmjs.org so npm records them (delete node_modules and run npm install; if entries stay incomplete, regenerate package-lock.json) and commit the lockfile.`,
+      );
+    }
+    assertRegistryTarball(record.resolved as string);
   }
   return {
     packageHash: digest(packageContent),

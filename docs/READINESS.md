@@ -2,7 +2,7 @@
 
 ## October 16 checkpoint: unexpanded response changes (unreleased, after 0.38.0)
 
-The expansion gate from 0.25.0 now covers every response property change whose oasdiff text names a property path: removals, `any-of` additions, became-nullable, became-optional, `maxLength` unset or increased, and type changes. A change inside an expandable field's expanded object stops blocking `--full-diff` unless the repository expands that field. Any non-literal `expand` mention still keeps every such change blocking. Changes on the expandable field itself, direct fields, unrecognized texts and other change kinds still block. The 0.25.0 sign-off covered removals only, so this extension needs owner sign-off before release.
+The owner signed off on this gate change on 2026-10-16. The expansion gate from 0.25.0 now covers every response property change whose oasdiff text names a property path: removals, `any-of` additions, became-nullable, became-optional, `maxLength` unset or increased, and type changes. A change inside an expandable field's expanded object stops blocking `--full-diff` unless the repository expands that field. Any non-literal `expand` mention still keeps every such change blocking. Changes on the expandable field itself, direct fields, unrecognized texts and other change kinds still block. The 0.25.0 sign-off covered removals only, so this extension needs owner sign-off before release.
 
 Production-mode scans of 9 benchmark repositories against `2026-09-30.endive`, scan only, with each repository's generated adapter. Counts are blocking level-2/3 changes in the adapter contract / on the called operations:
 
@@ -21,6 +21,20 @@ Production-mode scans of 9 benchmark repositories against `2026-09-30.endive`, s
 Confirmed removed-field findings are identical in every repository, and every called operation still has an operation impact, so these runs still stop for review. What remains is direct: became-optional fields, `any-of` additions on the expandable fields themselves, error-response (`default`) changes and request-side changes.
 
 ## October 16 checkpoint: live-only deadline evidence (unreleased, after 0.38.0)
+
+## October 16 checkpoint: card-only `payment_method_types` replacement (0.39.0)
+
+Owner decision: Stripe endive's removed `payment_method_types` is replaced automatically only when the value is exactly the literal `['card']` on Checkout Session, PaymentIntent or SetupIntent creation. It becomes `allowed_payment_method_types: ['card']`, kept only when the same patch moves the `apiVersion` literal to the target and, for a TypeScript project, upgrades stripe-node. Every other value stops for review, and the parameter is never dropped. The draft PR asks the reviewer to confirm cards stay enabled, because the new field filters the dynamically eligible methods. See [the policy](STRIPE-PAYMENT-METHOD-TYPES.md).
+
+On the Stripe benchmarks, validated fixes rose from 10 to 45:
+
+- original 100: 4 → 11;
+- held-out 50: 1 → 7;
+- fresh 381: 2 → 27 on the 333 repositories measured before Docker was shut down. The remaining 48 were scanned without Docker: 18 of the 28 affected get a deterministic patch, 14 through the card rule. Those patches are unvalidated.
+
+All 38 new fixes were checked against their diffs, and three were read in full. 9 patches regressed on other stripe-node 23 type errors and were caught by validation. The rerun found that validation's preflight dropped the rename because it requests no patch. Without a patch request, Refit now checks only the pin, and the patch run enforces the upgrade.
+
+The default suite passed **1,339 tests across 87 files**, with 78 environment-gated tests skipped, plus typecheck and formatting.
 
 ## October 16 checkpoint: benchmarks on 781 real repositories (0.38.0)
 

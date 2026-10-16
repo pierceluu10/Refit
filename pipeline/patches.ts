@@ -3,7 +3,9 @@ import { PipelineInputError, type Finding, type Repository, type SourceEdit } fr
 import { STRIPE, type ProviderAdapter } from './providers.ts';
 import type { OperationReplacement } from './provider-operation-replacements.ts';
 import type { RequestPropertyRename } from './provider-request-renames.ts';
+import { CARD_PAYMENT_METHOD_RULE } from './request-removals.ts';
 import {
+  INVOICE_PRICE_ID_HELPER_RULE,
   INVOICE_SUBSCRIPTION_HELPER_RULE,
   SUBSCRIPTION_PERIOD_HELPER_RULE,
   SUBSCRIPTION_PERIOD_RULE,
@@ -14,10 +16,18 @@ const FIELD_MOVE_SOURCES: Partial<Record<NonNullable<SourceEdit['rule']>, string
     'https://docs.stripe.com/changelog/basil/2025-03-31/deprecate-subscription-current-period-start-and-end',
   [INVOICE_SUBSCRIPTION_HELPER_RULE]:
     'https://docs.stripe.com/changelog/basil/2025-03-31/adds-new-parent-field-to-invoicing-objects',
+  [INVOICE_PRICE_ID_HELPER_RULE]:
+    'https://docs.stripe.com/changelog/basil/2025-03-31/invoice-pricing-configurations',
 };
 
+export const CARD_PAYMENT_METHOD_WARNING =
+  "payment_method_types: ['card'] becomes allowed_payment_method_types: ['card'] under the owner-approved policy. In 2026-09-30.endive it filters the payment methods Stripe finds eligible instead of listing them, so keep cards enabled in the Stripe Dashboard or the payment method configuration this account uses.";
+
+// Rule edits that ride with the API version bump: field moves, and the reviewed card-only request rename.
 export function isFieldMove(edit: SourceEdit) {
-  return Boolean(edit.rule && FIELD_MOVE_SOURCES[edit.rule]);
+  return Boolean(
+    edit.rule && (FIELD_MOVE_SOURCES[edit.rule] || edit.rule === CARD_PAYMENT_METHOD_RULE),
+  );
 }
 
 // Whether a finding's source position lies inside one of the edits.
@@ -138,6 +148,8 @@ export function proposePatch(
   const usedEndpointReplacement = edits.some((edit) => replacementIds.has(edit.changeId));
   const usedSubscriptionPolicy = edits.some((edit) => edit.rule === SUBSCRIPTION_PERIOD_RULE);
   const fieldMoves = edits.filter(isFieldMove);
+  const reads = fieldMoves.filter((edit) => FIELD_MOVE_SOURCES[edit.rule!]);
+  const cardRename = fieldMoves.some((edit) => edit.rule === CARD_PAYMENT_METHOD_RULE);
   if (
     fieldMoves.length &&
     !usedSubscriptionPolicy &&
@@ -146,8 +158,11 @@ export function proposePatch(
   )
     return {
       generator: 'deterministic' as const,
-      summary:
-        'Move removed Stripe field reads to their documented new locations and update the pinned Stripe API version.',
+      summary: !cardRename
+        ? 'Move removed Stripe field reads to their documented new locations and update the pinned Stripe API version.'
+        : reads.length
+          ? "Move removed Stripe field reads to their documented new locations, replace payment_method_types: ['card'] with allowed_payment_method_types, and update the pinned Stripe API version."
+          : "Replace payment_method_types: ['card'] with allowed_payment_method_types and update the pinned Stripe API version.",
       status: 'proposed' as const,
       edits: edits.length,
       unresolvedFindings,
@@ -164,10 +179,18 @@ export function proposePatch(
               'Invoice subscriptions are read through a generated helper: the old invoice.subscription field when present (old-version events), otherwise invoice.parent.subscription_details.subscription. Webhook endpoints are not changed.',
             ]
           : []),
+        ...(fieldMoves.some((edit) => edit.rule === INVOICE_PRICE_ID_HELPER_RULE)
+          ? [
+              'Invoice line item and invoice item price IDs are read through a generated helper: the old price.id when present (old-version events), otherwise pricing.price_details.price when pricing.type is price_details. A missing price reads as undefined. Webhook endpoints are not changed.',
+            ]
+          : []),
+        ...(cardRename ? [CARD_PAYMENT_METHOD_WARNING] : []),
         'The stripe package is not upgraded. TypeScript projects may need the stripe package version matching the new API version before they typecheck.',
         'Patch contains source code. Review it for sensitive content before sharing.',
       ],
-      source: FIELD_MOVE_SOURCES[fieldMoves[0].rule!]!,
+      source: reads.length
+        ? FIELD_MOVE_SOURCES[reads[0].rule!]!
+        : 'docs/STRIPE-PAYMENT-METHOD-TYPES.md',
     };
   return {
     generator: 'deterministic' as const,

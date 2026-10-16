@@ -2,7 +2,12 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 import { findRemovedProperties, readSpecification } from './specifications.ts';
-import { labelReads, readJson, stripeClassSchemas } from './stripe-ground-truth.ts';
+import {
+  labelReads,
+  readJson,
+  stripeClassSchemas,
+  stripeParamOperations,
+} from './stripe-ground-truth.ts';
 import { PipelineInputError } from './types.ts';
 
 const { values } = parseArgs({
@@ -13,7 +18,7 @@ if (!values.root || !values.output)
     'Usage: npm run benchmark:stripe-labels -- --root <benchmark-dir> --output <new-dir> [--repo owner/name]',
   );
 const root = resolve(values.root);
-const split = readJson(join(root, 'split.json')) as { labelled: string[] };
+// Every repository with a recorded stripe SDK version is labelled.
 const sdk = readJson(join(root, 'labelled-sdk.json')) as unknown as Array<{
   repo: string;
   before: string;
@@ -24,37 +29,46 @@ const latest = specs
   .map((spec) => spec.version)
   .sort()
   .at(-1)!;
-const classSchemas = stripeClassSchemas(readJson(join(root, 'specs', `sdk-${latest}.json`)));
+const sdkSpec = readJson(join(root, 'specs', `sdk-${latest}.json`));
+const classSchemas = stripeClassSchemas(sdkSpec);
+const operations = stripeParamOperations(sdkSpec);
 const after = await readSpecification(join(root, 'specs', `${latest}.json`));
-const removedByVersion = new Map<string, Map<string, Set<string>>>();
+const contracts = new Map<
+  string,
+  { removed: Map<string, Set<string>>; document: Record<string, unknown> }
+>();
 await mkdir(values.output, { recursive: true });
 const summary: Record<string, unknown>[] = [];
-for (const repo of split.labelled.filter((name) => !values.repo || name === values.repo)) {
-  const entry = sdk.find((candidate) => candidate.repo === repo)!;
-  if (!removedByVersion.has(entry.before)) {
+for (const entry of sdk.filter((candidate) => !values.repo || candidate.repo === values.repo)) {
+  const repo = entry.repo;
+  if (!contracts.has(entry.before)) {
     const before = await readSpecification(join(root, 'specs', `${entry.before}.json`));
     const removed = new Map<string, Set<string>>();
     for (const change of findRemovedProperties(before.schemas, after.schemas))
       removed.set(change.property, (removed.get(change.property) ?? new Set()).add(change.schema));
-    removedByVersion.set(entry.before, removed);
+    contracts.set(entry.before, { removed, document: before.document });
   }
+  const contract = contracts.get(entry.before)!;
   const started = Date.now();
   const reads = labelReads({
     repository: join(root, 'repos', repo.replace('/', '__')),
-    stripeTypes: join(root, 'stripe-types', `stripe@${entry.version}`, 'package', 'types'),
-    removed: removedByVersion.get(entry.before)!,
+    stripePackage: join(root, 'stripe-types', `stripe@${entry.version}`, 'package'),
+    removed: contract.removed,
     classSchemas,
+    requests: { before: contract.document, after: after.document, operations },
   });
-  const count = (label: string) => reads.filter((read) => read.label === label).length;
+  const count = (label: string) =>
+    reads.filter((read) => !read.request && read.label === label).length;
   const row = {
     repo,
     before: entry.before,
     sdk: entry.version,
-    reads: reads.length,
+    reads: reads.filter((read) => !read.request).length,
     breaking: count('breaking'),
     stripeUnaffected: count('stripe-unaffected'),
     notStripe: count('not-stripe'),
     unknown: count('unknown'),
+    removedParameters: reads.filter((read) => read.request).length,
     seconds: Math.round((Date.now() - started) / 1000),
   };
   summary.push(row);

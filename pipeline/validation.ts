@@ -15,10 +15,11 @@ import {
   type ApiVersionPolicy,
 } from './api-version.ts';
 import { digest, readSpecification } from './specifications.ts';
-import { PipelineInputError } from './types.ts';
+import { PipelineInputError, type SourceEdit } from './types.ts';
 import { readRepository } from './repository.ts';
 import { validateCheckCommand, validateRepairAttempts } from './validation-options.ts';
 import { proposeAiPatch, TYPE_ERROR_CHANGE } from './ai-patches.ts';
+import { CARD_PAYMENT_METHOD_RULE, removedRequestParameters } from './request-removals.ts';
 import { gitEnvironment } from './git-environment.ts';
 import { readCommittedRepository } from './committed-repository.ts';
 import { prepareDependencies } from './dependency-preparation.ts';
@@ -102,6 +103,19 @@ function introducedTypeErrors(baseline: CheckResult, patched: CheckResult) {
   return typeErrors(patched).filter((error) => !before.has(error.key));
 }
 
+// Literal comparisons the upgraded types reject, usually misspelled webhook event names that never
+// matched, and the `never` narrowing they cause are application bugs to flag, not migration errors
+// to fix (owner decision, 2026-10-16).
+const REVIEW_TYPE_ERROR =
+  /^Type '"[^"]*"' is not comparable to type|^This comparison appears to be unintentional because the types '"[^"]*"'|on type 'never'\.$/;
+
+export function reviewTypeError(error: { message: string }) {
+  return REVIEW_TYPE_ERROR.test(error.message);
+}
+
+const formatTypeError = (error: ReturnType<typeof typeErrors>[number]) =>
+  `${error.file}(${error.line},${error.column}): error ${error.code}: ${error.message}`;
+
 export function compareTypeCheck(baseline: CheckResult, patched?: CheckResult): CheckResult {
   const check = patched ?? baseline;
   const errors = typeErrors(check);
@@ -113,7 +127,7 @@ export function compareTypeCheck(baseline: CheckResult, patched?: CheckResult): 
     ? {
         ...check,
         status: 'failed',
-        stdout: `Type errors this patch introduced:\n${introduced.map((error) => `${error.file}(${error.line},${error.column}): error ${error.code}: ${error.message}`).join('\n')}\n\n${check.stdout}`,
+        stdout: `Type errors this patch introduced:\n${introduced.map(formatTypeError).join('\n')}\n\n${check.stdout}`,
       }
     : { ...check, status: 'passed' };
 }
@@ -240,6 +254,28 @@ async function generatedStripeChecks(options: {
     claim:
       "Exported functions enclosing confirmed findings ran against stripe-mock serving each side's contract and fixtures. Placeholder fixtures check response shapes, not business data or application tests.",
   };
+}
+
+const mentions = (files: { content: string }[], name: string) =>
+  files.reduce(
+    (count, file) => count + (file.content.match(new RegExp(`\\b${name}\\b`, 'g'))?.length ?? 0),
+    0,
+  );
+
+// Removed request parameters a repair mentions fewer times than the original code does, less the
+// sites the approved card-only rule already renamed.
+export function droppedRequestParameters(
+  names: string[],
+  original: { content: string }[],
+  candidate: { content: string }[],
+  ruleEdits: SourceEdit[],
+) {
+  const renamed = ruleEdits.filter((edit) => edit.rule === CARD_PAYMENT_METHOD_RULE).length;
+  return names.filter(
+    (name) =>
+      mentions(candidate, name) <
+      mentions(original, name) - (name === 'payment_method_types' ? renamed : 0),
+  );
 }
 
 export async function validateMigration(options: {
@@ -497,6 +533,7 @@ export async function validateMigration(options: {
       }
       return {
         publicationFiles,
+        sources: patchedSources,
         directory: patchedDirectory,
         dependencies: candidateDependencies,
         environment: candidateEnvironment,
@@ -506,6 +543,10 @@ export async function validateMigration(options: {
       baseline.status === 'passed' ? await prepareCandidate(proposal.diff) : undefined;
     let publicationFiles = initialCandidate?.publicationFiles ?? [];
     let candidateDirectory = initialCandidate?.directory;
+    let candidateSources = initialCandidate?.sources;
+    // A deterministic proposal is the rules' output; AI repairs are guarded against it.
+    const ruleSources =
+      report.patch.generator === 'deterministic' ? initialCandidate?.sources.files : undefined;
     let candidateDependencies = initialCandidate?.dependencies;
     let candidateEnvironment = initialCandidate?.environment;
     if (initialCandidate) options.onProgress?.('Running patched checks in offline Docker...');
@@ -532,6 +573,15 @@ export async function validateMigration(options: {
         costUsd: 'budget' in proposal ? (proposal.budget?.costUsd ?? null) : null,
       });
     if (initialCandidate) recordAttempt();
+    const removedParameters = [
+      ...new Set(
+        removedRequestParameters(
+          report.adapter,
+          beforeSpecification.document,
+          afterSpecification.document,
+        ).map((removal) => removal.parameter),
+      ),
+    ];
     const repair: { limit: number; requested: number; stopReason: string; error: string | null } = {
       limit: repairLimit,
       requested: 0,
@@ -564,6 +614,14 @@ export async function validateMigration(options: {
         repair.stopReason = 'stale-repository';
         break;
       }
+      const introduced = options.compareTypeErrors
+        ? introducedTypeErrors(baselineRun, patched)
+        : [];
+      // Only review items remain: another round would have nothing it may fix.
+      if (introduced.length && introduced.every(reviewTypeError)) {
+        repair.stopReason = 'review-required';
+        break;
+      }
       repair.requested++;
       options.onProgress?.(
         `Patched checks failed. Requesting AI repair ${repair.requested} of ${repairLimit}...`,
@@ -575,20 +633,23 @@ export async function validateMigration(options: {
           report.changes,
           [
             ...report.findings,
-            // Introduced type errors become findings the repair may fix, wherever they are.
-            ...(options.compareTypeErrors
-              ? introducedTypeErrors(baselineRun, patched)
-                  .filter((error) => originalSources.files.some((file) => file.path === error.file))
-                  .map((error) => ({
-                    file: error.file,
-                    line: error.line,
-                    column: error.column,
-                    changeId: TYPE_ERROR_CHANGE,
-                    expression: error.code,
-                    confidence: 'confirmed' as const,
-                    reason: error.message,
-                  }))
-              : []),
+            // Introduced type errors, at their positions in the failed candidate, become findings
+            // the repair may fix, wherever they are.
+            ...introduced
+              .filter(
+                (error) =>
+                  !reviewTypeError(error) &&
+                  candidateSources?.files.some((file) => file.path === error.file),
+              )
+              .map((error) => ({
+                file: error.file,
+                line: error.line,
+                column: error.column,
+                changeId: TYPE_ERROR_CHANGE,
+                expression: error.code,
+                confidence: 'confirmed' as const,
+                reason: error.message,
+              })),
           ],
           options.aiPatch,
           report.adapter,
@@ -608,6 +669,9 @@ export async function validateMigration(options: {
           options.documentationSnapshots,
           afterSpecification.schemas,
           'ruleEdits' in report.patch ? report.patch.ruleEdits : [],
+          options.compareTypeErrors && candidateSources
+            ? { files: candidateSources.files, rules: ruleSources }
+            : undefined,
         );
         // The SDK upgrade is deterministic; repairs change only code and keep it.
         if (candidate.diff) candidate.diff += packageDiff(report.patch.diff);
@@ -620,6 +684,18 @@ export async function validateMigration(options: {
           break;
         }
         const preparedCandidate = await prepareCandidate(candidate.diff);
+        // A removed request parameter has no reviewed replacement; a repair must not drop it.
+        const dropped = droppedRequestParameters(
+          removedParameters,
+          originalSources.files,
+          preparedCandidate.sources.files,
+          ('ruleEdits' in report.patch ? report.patch.ruleEdits : undefined) ?? [],
+        );
+        if (dropped.length) {
+          repair.stopReason = 'review-required';
+          repair.error = `AI repair drops removed request parameter ${dropped.join(', ')}; it stops for review.`;
+          break;
+        }
         options.onProgress?.('Running repaired checks in offline Docker...');
         const check = compared(
           await containerCheck(
@@ -634,6 +710,7 @@ export async function validateMigration(options: {
         proposal = candidate;
         publicationFiles = preparedCandidate.publicationFiles;
         candidateDirectory = preparedCandidate.directory;
+        candidateSources = preparedCandidate.sources;
         patched = check;
         recordAttempt();
         repair.stopReason =
@@ -690,6 +767,11 @@ export async function validateMigration(options: {
                 (generated && !['passed', 'not-run'].includes(generated.patched.status))
               ? 'regression'
               : 'passed';
+    const reviewTypeErrors = options.compareTypeErrors
+      ? introducedTypeErrors(baselineRun, patched)
+          .filter(reviewTypeError)
+          .map(({ key, ...error }) => error)
+      : [];
     const validation = {
       status: validationStatus,
       revision,
@@ -706,6 +788,7 @@ export async function validateMigration(options: {
       ...(generated ? { generated } : {}),
       attempts,
       repair,
+      ...(reviewTypeErrors.length ? { reviewTypeErrors } : {}),
       limits: {
         timeoutMs: CHECK_TIMEOUT_MS,
         outputBytes: MAX_OUTPUT_BYTES,

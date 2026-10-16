@@ -269,7 +269,7 @@ it('checks committed npm inputs through the same preparation gate without instal
   expect(rejected.status).toBe('needs-attention');
   expect(rejected.checks.find((check) => check.id === 'dependencies')).toMatchObject({
     status: 'blocked',
-    detail: expect.stringContaining('differ from the committed root lockfile'),
+    detail: expect.stringContaining('differ from the committed package-lock.json'),
   });
 });
 

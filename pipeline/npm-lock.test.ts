@@ -61,6 +61,21 @@ it.each([
   ).toThrow();
 });
 
+it('names the unverified lockfile entries and how the owner can record them', () => {
+  const bare = { version: '1.0.0' };
+  expect(() =>
+    validateNpmLock(
+      JSON.stringify(manifest),
+      JSON.stringify({
+        ...lock,
+        packages: { ...lock.packages, 'node_modules/a': bare, 'node_modules/b': bare },
+      }),
+    ),
+  ).toThrow(
+    /records node_modules\/a and 1 more packages without .*delete node_modules and run npm install/,
+  );
+});
+
 it('refuses local dependencies, workspaces, unsupported locks and traversal without rejecting ordinary application scripts', () => {
   for (const source of [
     'file:../private',
@@ -98,7 +113,7 @@ it('requires matching root dependency declarations and rejects non-registry over
       JSON.stringify({ ...manifest, dependencies: { stripe: '11.0.0' } }),
       JSON.stringify(lock),
     ),
-  ).toThrow(/requirements differ/);
+  ).toThrow('stripe is "11.0.0" in package.json but "10.17.0" in the lockfile. Run npm install');
   expect(() =>
     validateNpmLock(
       JSON.stringify({
