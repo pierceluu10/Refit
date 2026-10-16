@@ -17,19 +17,21 @@ const { values } = parseArgs({
     root: { type: 'string' },
     limit: { type: 'string' },
     'held-out': { type: 'boolean' },
+    list: { type: 'string' },
     help: { type: 'boolean' },
   },
 });
 if (values.help || !values.root) {
   console.log(
-    'Usage: node scripts/stripe-benchmark-setup.mjs --root <dir> [--held-out] [--limit N]',
+    'Usage: node scripts/stripe-benchmark-setup.mjs --root <dir> [--held-out | --list <frozen.json>] [--limit N]',
   );
   process.exit(values.help ? 0 : 1);
 }
 const root = resolve(values.root);
-// --held-out builds the frozen held-out list instead; it has no labels, so every repository is held out.
-const pinned = JSON.parse(await readFile(values['held-out'] ? HELD_OUT : PINNED, 'utf8'));
-const labels = values['held-out']
+// --held-out or --list builds another frozen list; it has no labels, so every repository is held out.
+const list = values.list ?? (values['held-out'] ? HELD_OUT : undefined);
+const pinned = JSON.parse(await readFile(list ?? PINNED, 'utf8'));
+const labels = list
   ? { labelled: [], heldOut: pinned.repos.map((entry) => entry.repo) }
   : JSON.parse(await readFile(LABELS, 'utf8'));
 const repos = pinned.repos.slice(0, values.limit ? Number(values.limit) : undefined);

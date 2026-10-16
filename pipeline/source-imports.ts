@@ -19,14 +19,18 @@ function rootedAsset(name: string) {
 
 function sourceMatches(path: string, sources: ReadonlyMap<string, unknown>) {
   const extension = extname(path);
-  const candidates = extension
+  // `./shopify.server` or `./stripe.client` name a module whose dotted suffix is not an extension.
+  const candidates = SOURCE_EXTENSIONS.includes(extension)
     ? [
         path,
         ...(OUTPUT_EXTENSIONS[extension]
           ? [path.slice(0, -extension.length) + OUTPUT_EXTENSIONS[extension]]
           : []),
       ]
-    : SOURCE_EXTENSIONS.flatMap((suffix) => [path + suffix, resolve(path, `index${suffix}`)]);
+    : [
+        ...(extension ? [path] : []),
+        ...SOURCE_EXTENSIONS.flatMap((suffix) => [path + suffix, resolve(path, `index${suffix}`)]),
+      ];
   return candidates.filter((candidate) => sources.has(candidate));
 }
 

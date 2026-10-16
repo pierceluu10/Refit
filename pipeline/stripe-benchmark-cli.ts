@@ -105,7 +105,6 @@ const message = (error: unknown) => (error instanceof Error ? error.message : St
 const results: Record<string, unknown>[] = [];
 
 async function benchmark(entry: Selected, index: number) {
-  const started = Date.now();
   const directory = join(root, 'repos', entry.repo.replace('/', '__'));
   const work = join(output, 'repos', entry.repo.replace('/', '__'));
   await mkdir(work, { recursive: true });
@@ -283,6 +282,7 @@ async function benchmark(entry: Selected, index: number) {
       `${JSON.stringify({ formatVersion: 1, repository: directory, apiVersion: entry.before, before, after, providerConfig: adapterPath, image: 'node:22-alpine', prepareDependencies: true, command, ...(result.checks === 'typecheck' ? { compareTypeErrors: true } : {}), ...(generatedChecks ? { generatedChecks } : {}) }, null, 2)}\n`,
     );
     const bundle = join(work, 'run');
+    const validationStarted = Date.now();
     try {
       await execute(
         process.execPath,
@@ -316,6 +316,7 @@ async function benchmark(entry: Selected, index: number) {
       await readFile(join(bundle, 'report.json'), 'utf8').catch(() => '{}'),
     );
     const generated = report.validation?.generated;
+    result.validationSeconds = Math.round((Date.now() - validationStarted) / 1000);
     result.workflow = {
       status: outcome.status ?? 'missing-manifest',
       stage: outcome.stage,
@@ -352,6 +353,7 @@ async function benchmark(entry: Selected, index: number) {
           }
         : {}),
       repairAttempts: report.validation?.repair?.requested ?? 0,
+      aiCostUsd: report.patch?.budget?.costUsd,
       diff: report.patch?.diff?.slice(0, 8000),
       pullRequest: existsSync(join(bundle, 'pull-request.md')),
     };
@@ -405,6 +407,7 @@ async function benchmark(entry: Selected, index: number) {
             : 'declined',
         generator: (patch as { generator?: string }).generator,
         reason: (patch as { reason?: string }).reason,
+        costUsd: (patch as { budget?: { costUsd?: number } }).budget?.costUsd,
         summary: patch.summary,
         diff: patch.diff?.slice(0, 4000),
       };
@@ -416,8 +419,6 @@ async function benchmark(entry: Selected, index: number) {
     }
     log(`AI ${String((result.ai as { outcome: string }).outcome)}`);
   }
-  result.seconds = Math.round((Date.now() - started) / 1000);
-  await writeFile(join(output, 'results.json'), `${JSON.stringify(results, null, 2)}\n`);
 }
 // Repositories are independent; each validation container may use up to 3 GiB, so keep this
 // within the Docker host's memory (2 on an 8 GiB host).
@@ -427,7 +428,11 @@ await Promise.all(
   Array.from({ length: Math.min(concurrency, selected.length) }, async () => {
     while (next < selected.length) {
       const index = next++;
+      // Timed here so early returns (not affected, unreadable) are measured too.
+      const started = Date.now();
       await benchmark(selected[index], index);
+      results[index].seconds = Math.round((Date.now() - started) / 1000);
+      await writeFile(join(output, 'results.json'), `${JSON.stringify(results, null, 2)}\n`);
     }
   }),
 );

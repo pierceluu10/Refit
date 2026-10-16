@@ -156,6 +156,44 @@ export const run = () => client.request(\`query { shop { name } }\`);
   expect(scan.unresolvedVersions).toMatchObject([{ file: 'app/latest.ts', line: 2 }]);
 });
 
+it('reads default-exported documents and documents passed through helper parameters', async () => {
+  const root = await directory({
+    'package.json': MANIFEST,
+    'app/graphql/ShopQuery.ts':
+      'const ShopQuery = `#graphql\n  query { shop { name } }`;\nexport default ShopQuery;\n',
+    'app/graphql.server.ts': `export async function adminQuery(admin, query, variables) {
+  const response = await admin.graphql(query, { variables });
+  return response.json();
+}
+export const paginate = async (admin, document, cursor) => {
+  const page = await admin.graphql(document, { variables: { cursor } });
+  return cursor ? paginate(admin, document, null) : page;
+};
+`,
+    'app/routes/shop.ts': `import ShopQuery from '../graphql/ShopQuery';
+import { adminQuery, paginate as pages } from '../graphql.server';
+export async function loader(admin, request) {
+  await adminQuery(admin, ShopQuery);
+  await pages(admin, \`query { product(id: "1") { id } }\`);
+  await adminQuery(admin, 'query { ' + request.field + ' }');
+  await adminQuery(admin);
+}
+`,
+  });
+  const scan = scanShopify(await readRepository(root, '@shopify/shopify-app-remix'));
+  expect(scan.adminCalls).toBe(2);
+  expect(scan.documents.map((document) => [document.file, document.text.trim()])).toEqual([
+    ['app/graphql/ShopQuery.ts', '#graphql\n  query { shop { name } }'],
+    ['app/routes/shop.ts', 'query { product(id: "1") { id } }'],
+  ]);
+  expect(scan.documents.every((document) => document.traced)).toBe(true);
+  // The runtime-built and missing arguments stop at the caller's line, not inside the helper.
+  expect(scan.unreadable.map((entry) => [entry.file, entry.line])).toEqual([
+    ['app/routes/shop.ts', 6],
+    ['app/routes/shop.ts', 7],
+  ]);
+});
+
 it('bumps a sunset pin the SDK can name when every document validates on the target contract', async () => {
   const root = await directory({
     'package.json': MANIFEST,
