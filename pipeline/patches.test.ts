@@ -6,6 +6,7 @@ import { promisify } from 'node:util';
 import { runInNewContext } from 'node:vm';
 import ts from 'typescript-compiler';
 import { afterEach, expect, it } from 'vitest';
+import { compactPatch, renderPatch } from './patches.ts';
 import { runPipeline } from './run.ts';
 
 const execute = promisify(execFile);
@@ -110,4 +111,33 @@ it('supports missing final newlines and reports remaining unsupported findings',
   const patch = join(root, 'migration.patch');
   await writeFile(patch, report.patch.diff);
   await execute('git', ['apply', '--check', patch], { cwd: root });
+});
+
+it('compacts whole-file patches to the changed lines for repair evidence', () => {
+  const content = Array.from({ length: 40 }, (_, index) => `const line${index} = ${index};`).join(
+    '\n',
+  );
+  const start = content.indexOf('const line20');
+  const last = content.indexOf('const line39');
+  const diff = renderPatch(
+    { root: '/repo', files: [{ path: 'src/a.ts', content }] } as never,
+    [
+      { file: 'src/a.ts', start, end: start + 'const line20'.length, replacement: 'let line20' },
+      {
+        file: 'src/a.ts',
+        start: last,
+        end: last + 'const line39'.length,
+        replacement: 'let line39',
+      },
+      { file: 'src/new.ts', start: 0, end: 0, replacement: 'export {};\n' },
+    ] as never,
+  );
+  const compact = compactPatch(diff);
+  expect(compact).toContain('-const line20 = 20;');
+  expect(compact).toContain('+let line20 = 20;');
+  expect(compact).toContain(' const line17 = 17;');
+  expect(compact).not.toContain('line10');
+  expect(compact).toContain('+let line39 = 39;\n\\ No newline at end of file');
+  expect(compact).toContain('+export {};');
+  expect(compact.length).toBeLessThan(diff.length / 3);
 });

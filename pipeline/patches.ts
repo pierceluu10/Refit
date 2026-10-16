@@ -1,3 +1,4 @@
+import { createTwoFilesPatch } from 'diff';
 import type { Finding, Repository, SourceEdit } from './types.ts';
 import { STRIPE, type ProviderAdapter } from './providers.ts';
 import type { OperationReplacement } from './provider-operation-replacements.ts';
@@ -85,6 +86,33 @@ export function renderPatch(repository: Repository, edits: SourceEdit[]) {
     );
   }
   return patches.join('');
+}
+
+// A renderPatch diff with only changed lines and three lines of context, for AI repair evidence:
+// whole-file hunks repeat every edited file twice and overflow the input limit.
+export function compactPatch(diff: string) {
+  return diff
+    .split(/(?=^diff --git )/m)
+    .filter(Boolean)
+    .map((section) => {
+      const header = /^\+\+\+ ("b\/.+")$/m.exec(section);
+      if (!header) return section;
+      const body = section.slice(header.index + header[0].length + 1).split('\n');
+      const text = (prefix: string) => {
+        const values: string[] = [];
+        let terminated = true;
+        for (const [index, line] of body.entries())
+          if (line.startsWith(prefix)) values.push(line.slice(1));
+          else if (line.startsWith('\\ ') && body[index - 1]?.startsWith(prefix))
+            terminated = false;
+        return values.length ? `${values.join('\n')}${terminated ? '\n' : ''}` : '';
+      };
+      const path = JSON.parse(header[1]) as string;
+      return createTwoFilesPatch(path.replace(/^b\//, 'a/'), path, text('-'), text('+'), '', '', {
+        context: 3,
+      });
+    })
+    .join('');
 }
 
 export function proposePatch(
