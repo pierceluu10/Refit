@@ -43,6 +43,7 @@ import { addTypeEvidence, stripePackageDirectory } from './stripe-type-evidence.
 import {
   SUBSCRIPTION_PERIOD_HELPER_RULE,
   INVOICE_SUBSCRIPTION_HELPER_RULE,
+  INVOICE_PRICE_ID_HELPER_RULE,
   HELPER_RULES,
   SUBSCRIPTION_PERIOD_RULE,
   validateStripeSubscriptionPeriodContract,
@@ -168,6 +169,9 @@ async function runOpenApiPipeline(options: {
       'subscription_details',
       'subscription',
     ]),
+    [INVOICE_PRICE_ID_HELPER_RULE]: ['line_item', 'invoiceitem'].every((schema) =>
+      propertyExists(after.schemas, [schema, 'pricing', 'price_details', 'price']),
+    ),
   } as Record<string, boolean>;
   const targetVersion = isObject(after.document.info) ? after.document.info.version : undefined;
   const versionEdits =

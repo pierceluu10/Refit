@@ -5,6 +5,7 @@ import type { OperationReplacement } from './provider-operation-replacements.ts'
 import type { RequestPropertyRename } from './provider-request-renames.ts';
 import { CARD_PAYMENT_METHOD_RULE } from './request-removals.ts';
 import {
+  INVOICE_PRICE_ID_HELPER_RULE,
   INVOICE_SUBSCRIPTION_HELPER_RULE,
   SUBSCRIPTION_PERIOD_HELPER_RULE,
   SUBSCRIPTION_PERIOD_RULE,
@@ -15,6 +16,8 @@ const FIELD_MOVE_SOURCES: Partial<Record<NonNullable<SourceEdit['rule']>, string
     'https://docs.stripe.com/changelog/basil/2025-03-31/deprecate-subscription-current-period-start-and-end',
   [INVOICE_SUBSCRIPTION_HELPER_RULE]:
     'https://docs.stripe.com/changelog/basil/2025-03-31/adds-new-parent-field-to-invoicing-objects',
+  [INVOICE_PRICE_ID_HELPER_RULE]:
+    'https://docs.stripe.com/changelog/basil/2025-03-31/invoice-pricing-configurations',
 };
 
 export const CARD_PAYMENT_METHOD_WARNING =
@@ -174,6 +177,11 @@ export function proposePatch(
         ...(fieldMoves.some((edit) => edit.rule === INVOICE_SUBSCRIPTION_HELPER_RULE)
           ? [
               'Invoice subscriptions are read through a generated helper: the old invoice.subscription field when present (old-version events), otherwise invoice.parent.subscription_details.subscription. Webhook endpoints are not changed.',
+            ]
+          : []),
+        ...(fieldMoves.some((edit) => edit.rule === INVOICE_PRICE_ID_HELPER_RULE)
+          ? [
+              'Invoice line item and invoice item price IDs are read through a generated helper: the old price.id when present (old-version events), otherwise pricing.price_details.price when pricing.type is price_details. A missing price reads as undefined. Webhook endpoints are not changed.',
             ]
           : []),
         ...(cardRename ? [CARD_PAYMENT_METHOD_WARNING] : []),

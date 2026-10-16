@@ -28,8 +28,12 @@ import {
   INVOICE_SUBSCRIPTION_HELPER,
   INVOICE_SUBSCRIPTION_HELPER_RULE,
   invoiceSubscriptionHelperEdit,
+  INVOICE_PRICE_ID_HELPER,
+  INVOICE_PRICE_ID_HELPER_RULE,
+  invoicePriceIdHelperEdit,
   type PeriodRareCase,
 } from './stripe-subscription-periods.ts';
+import { STRIPE_MOVE_REVIEW } from './stripe-field-moves.ts';
 import {
   PipelineInputError,
   type Finding,
@@ -1105,6 +1109,17 @@ export function analyzeRepository(
       const edit = invoiceSubscriptionHelperEdit(node, location(node).file, change.id);
       if (edit && addEdit(edit)) return edit.rule;
     }
+    // `line.price.id` on invoice line items and invoice items: the ID moved under `pricing`.
+    if (
+      provider.packageName === STRIPE.packageName &&
+      (change.schema === 'line_item' || change.schema === 'invoiceitem') &&
+      change.property === 'price' &&
+      !propertyMoves.some((move) => move.schema === change.schema && move.removed === 'price') &&
+      (webhooks?.origin(receiver) || provenance === 'declared-type' || provenance === 'sdk')
+    ) {
+      const edit = invoicePriceIdHelperEdit(node, location(node).file, change.id);
+      if (edit && addEdit(edit)) return edit.rule;
+    }
     if (webhooks?.origin(receiver)) return;
     // A value known only from its Stripe.* type may be a webhook payload passed into a helper;
     // its shape follows the endpoint's version, so other rules report it but never edit it.
@@ -1407,6 +1422,15 @@ export function analyzeRepository(
       );
       const migration = confirmed ? propose(node, receiver, change) : undefined;
       if (property === undefined && !tracked) continue;
+      const file = location(node).file;
+      const moveReview =
+        confirmed &&
+        provider.packageName === STRIPE.packageName &&
+        !edits.some(
+          (edit) => edit.file === file && edit.start < node.getEnd() && node.getStart() < edit.end,
+        )
+          ? STRIPE_MOVE_REVIEW[`${change.schema}.${change.property}`]
+          : undefined;
       findings.push({
         ...location(node),
         changeId: change.id,
@@ -1436,7 +1460,8 @@ export function analyzeRepository(
           ? {
               webhook: {
                 ...(migration === SUBSCRIPTION_PERIOD_HELPER_RULE ||
-                migration === INVOICE_SUBSCRIPTION_HELPER_RULE
+                migration === INVOICE_SUBSCRIPTION_HELPER_RULE ||
+                migration === INVOICE_PRICE_ID_HELPER_RULE
                   ? { migration: { rule: migration } }
                   : {}),
                 schema: webhook.schema,
@@ -1447,7 +1472,7 @@ export function analyzeRepository(
             }
           : {}),
         reason:
-          declaredType && confirmed
+          (declaredType && confirmed
             ? `Removed ${schema}.${change.property} read on a value declared with a Stripe.* type.`
             : declaredType
               ? 'Declared Stripe type identifies this possible field usage, but the value may be mutated; inspect manually.'
@@ -1457,7 +1482,8 @@ export function analyzeRepository(
                   ? `Removed field read on a statically traced ${provider.id} ${schema} response.`
                   : uncertainMutation
                     ? 'Response or SDK client may be mutated or escape through an alias or call, or come from an optional SDK invocation; inspect manually.'
-                    : 'Receiver or property cannot be proven by the supported local analysis; inspect manually.',
+                    : 'Receiver or property cannot be proven by the supported local analysis; inspect manually.') +
+          (moveReview ? ` ${moveReview}` : ''),
       });
     }
   }
@@ -1566,7 +1592,11 @@ export function analyzeRepository(
   const kind = (['ts', 'esm', 'cjs'] as const)
     .map((candidate) => ({ candidate, count: kinds.filter((entry) => entry === candidate).length }))
     .sort((a, b) => b.count - a.count)[0]?.candidate;
-  const helperNames = [...Object.values(PERIOD_HELPERS), INVOICE_SUBSCRIPTION_HELPER] as string[];
+  const helperNames = [
+    ...Object.values(PERIOD_HELPERS),
+    INVOICE_SUBSCRIPTION_HELPER,
+    INVOICE_PRICE_ID_HELPER,
+  ] as string[];
   // Node16/NodeNext resolution requires explicit extensions on relative imports.
   const nodeModuleResolution = (repository.configurations ?? []).some((file) =>
     /"module(?:Resolution)?"\s*:\s*"node(?:16|next)"/i.test(file.content),
@@ -1593,9 +1623,13 @@ export function analyzeRepository(
     .filter((file) => edits.some((edit) => edit.file === file && HELPER_RULES.has(edit.rule!)));
   if (kind && helperFiles.length) {
     // The module and its imports carry the rule of the reads they serve.
-    const moduleRule = edits.some((edit) => edit.rule === SUBSCRIPTION_PERIOD_HELPER_RULE)
-      ? SUBSCRIPTION_PERIOD_HELPER_RULE
-      : INVOICE_SUBSCRIPTION_HELPER_RULE;
+    const moduleRule = (
+      [
+        SUBSCRIPTION_PERIOD_HELPER_RULE,
+        INVOICE_SUBSCRIPTION_HELPER_RULE,
+        INVOICE_PRICE_ID_HELPER_RULE,
+      ] as const
+    ).find((rule) => edits.some((edit) => edit.rule === rule))!;
     const directories = helperFiles.map((file) => posix.dirname(file).split('/'));
     const shared = directories[0].filter((segment, index) =>
       directories.every((directory) => directory[index] === segment),
