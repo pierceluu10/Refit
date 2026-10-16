@@ -73,6 +73,30 @@ Dropping it lets the Dashboard decide, which can add Link, wallets, BNPL and asy
 ## Implementation
 
 - **Rule.** `removedRequestParameters` (`pipeline/request-removals.ts`) marks the removal as having a reviewed replacement only for Stripe, only on the three operations, and only when the target contract has `allowed_payment_method_types`. The analyzer emits a rename edit only when the traced call is confirmed and the value is exactly an array literal holding the string `'card'`. `['card'] as const`, computed lists and every other value get no edit.
-- **Gates.** `runPipeline` keeps the edit only when a patch is requested and the same patch moves a literal `apiVersion` to the target. For a TypeScript project, the stripe-node upgrade must also succeed; today that means a root npm lockfile. Otherwise the edit is dropped and the run stops for review as before. A run still stops when any other site sends a value the rule does not cover.
+- **Gates.** `runPipeline` keeps the edit only when the same patch moves a literal `apiVersion` to the target. When a patch is generated for a TypeScript project, the stripe-node upgrade must also succeed; today that means a root npm lockfile. Otherwise the edit is dropped and the run stops for review as before. Validation's preflight and plain scans request no patch, so they check only the pin; the patch run then enforces the upgrade. A run still stops when any other site sends a value the rule does not cover.
 - **Disclosure.** The proposal carries a warning, and the draft PR lists the removed request field under breaking changes. A review line asks the reviewer to confirm cards stay enabled in the Dashboard or payment method configuration.
 - **Tests.** `pipeline/request-removals.test.ts` covers each value class, quoted keys and an unconfirmed client. `pipeline/card-payment-methods.test.ts` covers the end-to-end gates: no pin, a mixed card and PayPal repository, a TypeScript project without an upgradable package, and the PR text.
+
+## Results (Refit `6d02116`, October 16)
+
+All three Stripe sets were rerun from a pinned worktree with the full pipeline.
+
+- **Coverage.** The original 100 and held-out 50 completed. Docker was shut down before the fresh set finished, so 333 of its 381 repositories were measured. 40 never ran, and 8 failed only because the Docker daemon was gone; they are excluded.
+- **Validated fixes: 10 → 45** on the same repositories.
+
+| | Original 100 | Held-out 50 | Fresh (333 measured) |
+|---|---|---|---|
+| Validated before the policy | 4 | 1 | 2 |
+| **Validated with the policy** | **11** | **7** | **27** |
+| Stopped on `payment_method_types` before | 27 | 18 | 125 |
+| … still stopped (case B or C, no literal pin, or a TypeScript project whose SDK cannot be upgraded) | 12 | 8 | 60 |
+| … now validated | 7 | 6 | 25 |
+| … patch proposed, then refused by validation preparation (lockfile, archive size, pnpm settings) | 4 | 4 | 28 |
+| … validation regression: other type errors after the stripe-node 23 upgrade, caught and not proposed | 4 | 0 | 5 |
+| … other (baseline failing, review stop, no checks) | 0 | 0 | 7 |
+
+- **Every one of the 38 validated card-rule fixes was checked against its diff.** Each renames only the key on an exact `['card']` literal and moves the pin to `2026-09-30.endive`. Every TypeScript fix upgrades stripe-node to 23.0.0; the three JavaScript ones keep their package, as the gate allows.
+- **Three were also read in full by hand:** `pra9711/lexinote`, `sudeepmahato16/airbnb-clone` and `mahin67580/FoodieFrog`. In lexinote, only the invoice branch's `session.subscription` read moved.
+- **Evidence.** For 35 of the 38, `tsc` passed with no new errors, 14 of them with generated `stripe-mock` checks as well. The other 3 have no checks of their own, so only the generated `stripe-mock` checks ran.
+- **No other outcome changed.** Every repository that was not stopped on `payment_method_types` has the same outcome as before, and no previously validated fix was lost.
+- **The rerun found one bug, fixed with a test before these numbers.** Validation's preflight requests no patch, so it had dropped the rename and refused 29 patches the run had proposed.
