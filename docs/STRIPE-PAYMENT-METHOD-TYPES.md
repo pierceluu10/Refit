@@ -89,13 +89,13 @@ All three Stripe sets were rerun from a pinned worktree with the full pipeline, 
 | **Validated with the policy** | **11** | **7** | **35** |
 | Stopped on `payment_method_types` before | 27 | 18 | 148 |
 | … still stopped (case B or C, no literal pin, or a TypeScript project whose SDK cannot be upgraded) | 12 | 8 | 69 |
-| … now validated | 7 | 6 | 29 |
-| … patch proposed, then refused by validation preparation (lockfile, archive size, pnpm settings) | 4 | 4 | 36 |
+| … now validated | 7 | 6 | 30 |
+| … patch proposed, then refused by validation preparation (lockfile, archive size, pnpm settings) | 4 | 4 | 35 |
 | … validation regression: other type errors after the stripe-node 23 upgrade, caught and not proposed | 4 | 0 | 6 |
 | … other (baseline failing, review stop, no checks) | 0 | 0 | 8 |
 
 - **Every one of the 43 validated card-rule fixes was checked against its diff.** Each renames only the key on an exact `['card']` literal and moves the pin to `2026-09-30.endive`. Every TypeScript fix upgrades stripe-node to 23.0.0. The three JavaScript ones keep their package, as the gate allows.
 - **Three were also read in full by hand:** `pra9711/lexinote`, `sudeepmahato16/airbnb-clone` and `mahin67580/FoodieFrog`. In lexinote, only the invoice branch's `session.subscription` read moved.
-- **Evidence.** For 40 of the 43, `tsc` passed with no new errors, at least 16 of them with generated `stripe-mock` checks as well. The other 3 have no checks of their own, so only the generated `stripe-mock` checks ran.
+- **Evidence.** For 40 of the 43, `tsc` passed with no new errors, 17 of them with generated `stripe-mock` checks as well. The other 3 have no checks of their own, so only the generated `stripe-mock` checks ran.
 - **No other outcome changed.** Every repository that was not stopped on `payment_method_types` has the same outcome as before, and no previously validated fix was lost.
 - **The rerun found one bug, fixed with a test before these numbers.** Validation's preflight requests no patch, so it had dropped the rename and refused 29 patches the run had proposed.
