@@ -697,6 +697,7 @@ export async function validateMigration(options: {
       ...(candidateEnvironment ? { patchedEnvironment: candidateEnvironment } : {}),
       command: options.command,
       baselineCommand,
+      ...(options.compareTypeErrors ? { compareTypeErrors: true } : {}),
       archiveHash: digest(archiveResult.stdout),
       patchHash: digest(proposal.diff),
       baseline,

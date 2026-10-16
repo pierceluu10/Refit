@@ -235,7 +235,7 @@ export async function runWorkflow(options: {
         `Validation returned ${report.validation.status}; publication was not attempted.`,
         runId,
       );
-    if (report.patch.unresolvedFindings !== 0)
+    if (report.patch.unresolvedFindings !== 0 && !publication?.allowUnresolved)
       return await finish(
         'needs-review',
         'Checks passed but detected findings remain unresolved. Publication was not attempted.',

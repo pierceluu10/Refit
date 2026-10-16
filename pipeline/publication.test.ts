@@ -403,6 +403,22 @@ it('stops failed, inconsistent and unresolved evidence before making a network r
   expect(remote.fetch).not.toHaveBeenCalled();
 });
 
+it('publishes a passing draft with unresolved findings only when explicitly allowed, and says so', async () => {
+  const remote = github();
+  const value = await report();
+  value.patch.unresolvedFindings = 2;
+  expect(await publishDraft(value, { ...OPTIONS, allowUnresolved: true })).toMatchObject({
+    status: 'created',
+    draft: true,
+  });
+  const request = remote.calls.find((call) => call.method === 'POST' && call.path === '/pulls')!;
+  expect(request.body.body).toContain('2 confirmed reads of removed fields are still unmigrated.');
+  value.validation.status = value.patch.validation = 'regression';
+  await expect(publishDraft(value, { ...OPTIONS, allowUnresolved: true })).rejects.toThrow(
+    /passing baseline/,
+  );
+});
+
 it('blocks publication when application API-version applicability is unknown', async () => {
   const remote = github();
   const value = await report();

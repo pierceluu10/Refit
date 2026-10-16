@@ -231,8 +231,10 @@ export function createReviewArtifacts(
     );
   if (
     validation.status === 'passed' &&
+    // A compared typecheck passes with tsc's nonzero exit when the only errors predate the patch.
     [validation.baseline, validation.patched].some(
-      (check) => check.status !== 'passed' || check.exitCode !== 0,
+      (check) =>
+        check.status !== 'passed' || (check.exitCode !== 0 && !validation.compareTypeErrors),
     )
   )
     throw new PipelineInputError('Passing validation must include two successful check results.');
@@ -296,7 +298,6 @@ export function createReviewArtifacts(
   const selectedPeriods = [...periodReads('item-in-code'), ...periodReads('price-policy')];
   const generated = validation.generated;
   const sameCommand = validation.baselineCommand.join(' ') === validation.command.join(' ');
-  // One paragraph: what changed and why, the evidence and its limits, and what was left alone.
   const command = validation.command.join(' ');
   const typeChecked = /\btsc\b/.test(command);
   const migratedFields = (path: string) => [
@@ -331,6 +332,11 @@ export function createReviewArtifacts(
     ),
   ];
   const review = [
+    ...(patch.unresolvedFindings
+      ? [
+          `**${patch.unresolvedFindings} confirmed read${patch.unresolvedFindings === 1 ? '' : 's'} of removed fields ${patch.unresolvedFindings === 1 ? 'is' : 'are'} still unmigrated.** The checks passed without ${patch.unresolvedFindings === 1 ? 'it' : 'them'}; migrate ${patch.unresolvedFindings === 1 ? 'it' : 'them'} before merging, using the locations in Refit's run report.`,
+        ]
+      : []),
     ...reasons,
     ...(subscriptionPolicy
       ? [
