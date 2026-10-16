@@ -20,7 +20,7 @@ Your workflow must set `prepareDependencies: true`, name meaningful baseline/pat
 - For workspaces, committed `pnpm-workspace.yaml` and selected package manifests. Up to 64 positive relative package/glob patterns are supported. Names must be unique.
 - Public npm registry packages with exact locked snapshots and SHA-256-or-stronger integrity. Registry aliases can occur in the dependency graph; aliased SDK declarations remain unverified by the scanner.
 
-Default/named catalogs and explicit `workspace:*`, `workspace:^` or `workspace:~` links are supported. Catalog constraints must match their recorded resolutions, and links must target the selected workspace with the same package name. Registry overrides and supported boolean build settings are read, but **install scripts remain disabled** regardless of build approvals.
+Default/named catalogs and explicit `workspace:*`, `workspace:^` or `workspace:~` links are supported. Catalog constraints must match their recorded resolutions, and links must target the selected workspace with the same package name. Registry overrides and supported boolean build settings are read, but **install scripts remain disabled** regardless of build approvals. `minimumReleaseAge` (whole minutes) and `minimumReleaseAgeExclude` (a list of package patterns) are accepted: pnpm applies them only when it resolves new versions, and the frozen install fetches exactly the locked, integrity-checked snapshots.
 
 ## Installation and checks
 
