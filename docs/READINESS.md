@@ -1,12 +1,29 @@
 # Refit implementation checkpoints
 
-## October 16 checkpoint: deadline exposure benchmark (unreleased, after 0.36.0)
+## October 16 checkpoint: deadline exposure benchmark (unreleased, after 0.37.0)
 
 [The deadline benchmark](DEADLINE-BENCHMARK.md) scanned 100 active public JS/TS repositories from GitHub code search, balanced across OpenAI, Meta Graph API and Shopify, and hand-labelled 32 of them line by line. 28 of the 32 (88%, 95% CI 72–95%) pin a registry version or model in a live call path, 17 already past due. 15 of 34 OpenAI repositories send a model OpenAI shuts down on 2026-10-23. Refit flags every exposed labelled repository (28/28) at 90% repository precision. Line precision is 100% for Meta, 79% for Shopify and 14% for OpenAI, where model lists, tests and examples dominate. Labels are a single pass and have not been second-labelled.
 
 Matcher fixes from the benchmark: versions in comments no longer count, which the guide already promised (the file is parsed and only source tokens match). Tokenizer and prefix-check arguments are not pins. Shopify Admin URLs that end at the version match. No alert or registry gate changed. Known gaps: Shopify version constants and env-var fallbacks, `FB.init({ version })`, Shopify versions before 2025-04, and catalog entries reported like live calls.
 
-The default suite passed **1,305 tests across 84 files**, with 78 environment-gated tests skipped, plus typecheck, formatting and build.
+The default suite passed **1,312 tests across 85 files** (after merging 0.37.0), with 78 environment-gated tests skipped, plus typecheck, formatting and build.
+
+## October 16 checkpoint: Shopify as the second provider (0.37.0)
+
+Shopify Admin GraphQL is supported end to end with a built-in agent, and every migration is deterministic. `refit shopify-snapshot` saves a supported Admin API version's schema by introspecting Shopify's public documentation proxy, with no store or credentials, and pins it by SHA-256. Shopify runs take two such snapshots. Refit reads documents passed to `admin.graphql`, `createAdminApiClient().request` and `clients.Graphql().query`: literals, scoped and imported constants, constant fragments, ternaries and `#graphql` literals. It reads pins from the `ApiVersion` enum, `apiVersion` strings, `/admin/api/<version>/` URLs and `LATEST_API_VERSION`, which the locked SDK release fixes. Each document is validated against both schemas. Removed fields, arguments, enum values and types, selected fields that change type, already-failing documents, runtime-built documents, REST calls, and conflicting or dynamic pins stop for review at the exact line. Otherwise the rule moves every pin to the target. An enum pin moves only if the locked `@shopify/shopify-api` release defines the target member. `refit agents` now suggests and scaffolds the Shopify agent. See [Shopify](SHOPIFY.md).
+
+**Benchmark** ([details](SHOPIFY-BENCHMARK.md)): 50 public Shopify apps were frozen before any Shopify code existed. Refit found 320 Admin calls and 443 GraphQL documents. Outcomes:
+
+- 1 app patched and validated, 6 already current for their SDK, 2 with no Admin usage, 2 over the scan limit.
+- 39 apps stopped for review: 15 need an SDK upgrade to reach a supported version, 7 use REST, 6 build documents at runtime, 6 have dynamic pins, and 5 contain queries that fail on every version Shopify serves.
+- 31 apps pin a version Shopify no longer serves.
+- A second run on the same commit matched 50 of 50 outcomes.
+- The first run exposed three Refit bugs, fixed with tests: `LATEST_API_VERSION` resolution, documents from other Shopify APIs and test fixtures, and nested SDK locks.
+- No AI was used ($0).
+
+**Lab:** `~/Repos/refit-shopify-lab` (`@shopify/shopify-api` 14.0.1, `ApiVersion.January25`, simulated responses only) runs from detection and scaffold to a validated draft-PR-ready change: `ApiVersion.October26`, with `tsc` and tests passing on both versions in offline Docker. A `deliverySettings` query (removed in `2026-10`) stops for review at its line. One early lab test run sent two requests to the nonexistent store `lab.myshopify.com` with a fake token, because the SDK captures `fetch` at import. The tests now replace the SDK's fetch and fail on any unexpected request.
+
+The default suite passed **1,311 tests across 85 files**, with 78 environment-gated tests skipped.
 
 ## October 16 checkpoint: API deadline tracking (0.36.0)
 

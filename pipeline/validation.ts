@@ -7,6 +7,7 @@ import { tmpdir } from 'node:os';
 import { basename, join } from 'node:path';
 import { promisify } from 'node:util';
 import { runPipeline } from './run.ts';
+import { SHOPIFY, shopifyVersionDeclarations } from './shopify-pipeline.ts';
 import {
   apiVersionSourceBlocked,
   compareApiVersion,
@@ -429,11 +430,10 @@ export async function validateMigration(options: {
           );
       }
       const patchedSources = await readRepository(patchedDirectory, report.adapter.packageName);
-      const declarations = analyzeRepository(
-        patchedSources,
-        [],
-        report.adapter,
-      ).apiVersionDeclarations;
+      const shopify = report.provider === SHOPIFY.id;
+      const declarations = shopify
+        ? shopifyVersionDeclarations(patchedSources)
+        : analyzeRepository(patchedSources, [], report.adapter).apiVersionDeclarations;
       // Moving every literal pin to the target version is part of the migration, so the patched
       // code is checked against that version instead of the original one.
       const literals = declarations.filter((declaration) => declaration.status === 'literal');
@@ -445,7 +445,7 @@ export async function validateMigration(options: {
         (bumped ? report.apiVersion.after : report.apiVersion.application) ?? undefined,
         { info: { version: report.apiVersion.before } },
         { info: { version: report.apiVersion.after } },
-        { configured: Boolean(report.adapter.apiVersion), declarations },
+        { configured: shopify || Boolean(report.adapter.apiVersion), declarations },
         report.apiVersion.policy,
       );
       if (

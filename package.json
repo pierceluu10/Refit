@@ -1,6 +1,6 @@
 {
   "name": "refit",
-  "version": "0.36.0",
+  "version": "0.37.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -26,7 +26,8 @@
     "benchmark:stripe": "tsx pipeline/stripe-benchmark-cli.ts",
     "benchmark:stripe-labels": "tsx pipeline/stripe-ground-truth-cli.ts",
     "benchmark:stripe-score": "tsx pipeline/stripe-benchmark-score.ts",
-    "deadlines:check": "node bin/refit.mjs deadlines --check-registry"
+    "deadlines:check": "node bin/refit.mjs deadlines --check-registry",
+    "benchmark:shopify": "tsx pipeline/shopify-benchmark-cli.ts"
   },
   "dependencies": {
     "@fontsource-variable/geist": "^5.3.0",
@@ -34,6 +35,7 @@
     "@phosphor-icons/react": "^2.1.10",
     "diff": "^9.0.0",
     "fast-xml-parser": "^5.11.2",
+    "graphql": "16.14.2",
     "parse5": "^8.0.1",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",

@@ -19,7 +19,7 @@ Refit reads committed `package.json` declarations and the matching npm, pnpm or 
 | Stripe | `stripe`, `api.stripe.com`, `files.stripe.com`, `connect.stripe.com` | built-in |
 | OpenAI | `openai`, `api.openai.com` | `examples/openai.provider.json` (preview: extend it with `refit adapter-suggest`) |
 | Anthropic | `@anthropic-ai/sdk`, `api.anthropic.com` | none yet |
-| Shopify | `@shopify/shopify-api`, `@shopify/admin-api-client`, `shopify-api-node`, `myshopify.com/admin/api` | none yet |
+| Shopify | `@shopify/shopify-api`, `@shopify/admin-api-client`, `@shopify/shopify-app-remix`, `@shopify/shopify-app-react-router`, `@shopify/shopify-app-express`, `shopify-api-node`, `myshopify.com/admin/api` | built-in, Admin GraphQL ([Shopify](SHOPIFY.md)); `shopify-api-node` and REST calls are detected but not migrated |
 | Meta Graph API | `facebook-nodejs-business-sdk`, `graph.facebook.com` | none yet |
 | Twilio | `twilio`, `api.twilio.com` | none yet |
 | SendGrid | `@sendgrid/mail`, `@sendgrid/client`, `api.sendgrid.com` | none yet |
@@ -34,7 +34,7 @@ refit agents --add openai
 
 This writes an integration scaffold into `.refit.json`, converting a single-workflow file to the multi-integration format if needed. A file-based agent's adapter is copied into `refit/<id>.provider.json`. Only detected agents with a shipped adapter can be added, and an agent already configured under another adapter ID is not added twice.
 
-The scaffold names contract paths (`refit/<id>-before.json`, `refit/<id>-after.json`) and a check command, `npm test` when a real test script exists and otherwise `npm run build`. Save reviewed contracts with `refit stripe-snapshot` or `refit source-snapshot`, review the command, and run `refit doctor`. Nothing runs until the configuration is committed and approved with `refit enroll`. See [multiple integrations](MULTIPLE-INTEGRATIONS.md) and [App onboarding](APP-ONBOARDING.md).
+The scaffold names contract paths (`refit/<id>-before.json`, `refit/<id>-after.json`) and a check command, `npm test` when a real test script exists and otherwise `npm run build`. Save reviewed contracts with `refit stripe-snapshot`, `refit shopify-snapshot` or `refit source-snapshot`, review the command, and run `refit doctor`. Nothing runs until the configuration is committed and approved with `refit enroll`. See [multiple integrations](MULTIPLE-INTEGRATIONS.md) and [App onboarding](APP-ONBOARDING.md).
 
 ## Suggestions on pull requests
 

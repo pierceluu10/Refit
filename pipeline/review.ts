@@ -248,7 +248,15 @@ export function createReviewArtifacts(
       ? 'Stripe'
       : report.provider === 'openai'
         ? 'OpenAI'
-        : report.provider;
+        : report.provider === 'shopify'
+          ? 'Shopify'
+          : report.provider;
+  // Shopify runs move the pinned Admin API version after checking every traced GraphQL document.
+  const shopify =
+    report.provider === 'shopify'
+      ? (report as unknown as { shopify: { tracedDocuments: number; deprecated: string[] } })
+          .shopify
+      : undefined;
   const relevantChanges = affectedFields(report.changes, report.findings);
   const change = relevantChanges[0];
   const operationChanges = report.operationChanges ?? [];
@@ -274,10 +282,13 @@ export function createReviewArtifacts(
             ? 'restore payment history after charges removal'
             : `migrate removed ${change.schema}.${change.property} reads`
           : `migrate removed ${provider} API fields`;
-  const scope = (integration ?? report.adapter.packageName.split('/').pop()!).toLowerCase();
+  const versionTitle = shopify ? `upgrade Admin API to ${report.apiVersion.after}` : undefined;
+  const scope = (
+    integration ?? (shopify ? 'shopify' : report.adapter.packageName.split('/').pop()!)
+  ).toLowerCase();
   const needsReview = Boolean(webhookWaiver || patch.unresolvedFindings);
   const prefix = needsReview ? '[Needs review] ' : '';
-  const full = `${prefix}fix(${scope}): ${description}`;
+  const full = `${prefix}fix(${scope}): ${versionTitle ?? description}`;
   const title =
     full.length <= MAX_TITLE
       ? full
@@ -318,26 +329,40 @@ export function createReviewArtifacts(
   ];
   const keyChanges = fileChanges(patch.diff).map((file) => {
     const fields = migratedFields(file.path);
-    const what = !file.before
-      ? 'Adds the generated helper that reads the removed fields under either API version.'
-      : fields.length
-        ? `Migrates reads of ${summaryList(fields)} to the documented new locations.`
-        : `Updates ${plainText(provider)} API usage for the new contract.`;
+    const what = shopify
+      ? `Moves the pinned Admin API version to ${plainText(after)}.`
+      : !file.before
+        ? 'Adds the generated helper that reads the removed fields under either API version.'
+        : fields.length
+          ? `Migrates reads of ${summaryList(fields)} to the documented new locations.`
+          : `Updates ${plainText(provider)} API usage for the new contract.`;
     return `- ${code(file.path)}: ${what}`;
   });
-  const breaking = [
-    `Removes response fields ${changeSummary} in ${plainText(provider)} API ${after}.`,
-    ...replacements.map((entry) => `Replaces ${entry}.`),
-    ...requestChanges.map(
-      (entry) =>
-        `Renames request field ${code(entry.removed)} to ${code(entry.replacement)} in ${code(`${entry.resource}.${entry.method}`)}.`,
-    ),
-    ...operationChanges.map(
-      (entry) =>
-        `Retires ${code(`${entry.resource}.${entry.method}`)} in favor of ${code(`${entry.replacementResource}.${entry.replacementMethod}`)}.`,
-    ),
-  ];
+  const breaking = shopify
+    ? [
+        `Moves the Admin API version from ${plainText(report.apiVersion.application ?? 'the pinned version')} to ${after}. ${
+          shopify.tracedDocuments
+            ? `${shopify.tracedDocuments} traced GraphQL ${shopify.tracedDocuments === 1 ? 'document validates' : 'documents validate'} against the ${after} schema, and no selected field is removed or changes type.`
+            : "Refit found no Admin GraphQL documents in the app's own code; requests the Shopify SDK makes itself (authentication, billing) were not checked."
+        }`,
+      ]
+    : [
+        `Removes response fields ${changeSummary} in ${plainText(provider)} API ${after}.`,
+        ...replacements.map((entry) => `Replaces ${entry}.`),
+        ...requestChanges.map(
+          (entry) =>
+            `Renames request field ${code(entry.removed)} to ${code(entry.replacement)} in ${code(`${entry.resource}.${entry.method}`)}.`,
+        ),
+        ...operationChanges.map(
+          (entry) =>
+            `Retires ${code(`${entry.resource}.${entry.method}`)} in favor of ${code(`${entry.replacementResource}.${entry.replacementMethod}`)}.`,
+        ),
+      ];
   const review = [
+    ...(shopify?.deprecated ?? []).map(
+      (entry) =>
+        `Deprecated on ${after}, still served: ${code(entry.split(':')[0])}${plainText(entry.slice(entry.indexOf(':')))}`,
+    ),
     ...(patch.unresolvedFindings
       ? [
           `**${patch.unresolvedFindings} confirmed read${patch.unresolvedFindings === 1 ? '' : 's'} of removed fields ${patch.unresolvedFindings === 1 ? 'is' : 'are'} still unmigrated.** The checks passed without ${patch.unresolvedFindings === 1 ? 'it' : 'them'}; migrate ${patch.unresolvedFindings === 1 ? 'it' : 'them'} before merging, using the locations in Refit's run report.`,
@@ -385,7 +410,9 @@ export function createReviewArtifacts(
           ]
         : []),
       '## Overview',
-      `${plainText(provider)} API ${after} removes fields this code reads. ${ai ? `AI${model ? ` (${code(model)})` : ''}, checked by Refit,` : 'A deterministic Refit rule'} migrates ${usageCount} in ${fileCount} so the code keeps working after the upgrade.`,
+      shopify
+        ? `This app pins Shopify Admin API ${plainText(report.apiVersion.application ?? 'an older version')}. A deterministic Refit rule moves it to ${after} after checking every traced GraphQL document against the ${after} schema.`
+        : `${plainText(provider)} API ${after} removes fields this code reads. ${ai ? `AI${model ? ` (${code(model)})` : ''}, checked by Refit,` : 'A deterministic Refit rule'} migrates ${usageCount} in ${fileCount} so the code keeps working after the upgrade.`,
       '## API Impact & Spec Changes',
       [
         `- Breaking Changes: ${breaking.join(' ')}`,
@@ -405,7 +432,7 @@ export function createReviewArtifacts(
               : `${commandText(validation.baselineCommand)} passed on the original and ${commandText(validation.command)} on the migrated code in offline Docker.`
             : `**Validation did not pass (${validation.status}).**`
         }${generatedResult}`,
-        `- Linter & Static Analysis: ${typeChecked ? 'TypeScript type check is the test command above; ' : 'Not run; '}Refit rescanned the migrated code and ${patch.unresolvedFindings} confirmed read${patch.unresolvedFindings === 1 ? '' : 's'} of removed fields remain.`,
+        `- Linter & Static Analysis: ${typeChecked ? 'TypeScript type check is the test command above; ' : 'Not run; '}${shopify ? `Refit rescanned the migrated code and every runtime Admin API pin is on ${after}.` : `Refit rescanned the migrated code and ${patch.unresolvedFindings} confirmed read${patch.unresolvedFindings === 1 ? '' : 's'} of removed fields remain.`}`,
         '- Security Scans: Not run.',
       ].join('\n'),
       '## Related Telemetry',

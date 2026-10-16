@@ -3,7 +3,7 @@ import { existsSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
-import { addAgents, detectProviders, v1IntegrationId } from './agent-catalog.ts';
+import { addAgents, builtInPackage, detectProviders, v1IntegrationId } from './agent-catalog.ts';
 import { parseObject } from './specifications.ts';
 import { REPOSITORY_CONFIGURATION } from './workflow-configuration.ts';
 import { terminalText } from './workflow-presentation.ts';
@@ -57,7 +57,7 @@ try {
                 'Provider adapter',
               ).packageName,
             )
-          : 'stripe',
+          : builtInPackage(integration),
       );
     const configured = (agentPackages: string[]) =>
       agentPackages.some((name) => configuredPackages.has(name));
