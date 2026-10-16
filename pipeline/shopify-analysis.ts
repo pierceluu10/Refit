@@ -14,6 +14,7 @@ export const SHOPIFY_PACKAGES = [
 ];
 const SHOPIFY_IMPORT = /(?:from\s*|import\s*\(\s*|require\s*\(\s*)['"]@shopify\/[^'"]+['"]/;
 const GRAPHQL_MARKER = /^\s*#graphql\b/;
+const TEST_FILE = /(?:^|\/)(?:__tests__|tests?)\/|\.(?:test|spec)\.[cm]?[jt]sx?$/;
 const ADMIN_RECEIVER = /(?:^|\.)admin$/;
 const ADMIN_CLIENT_FACTORY = /^createAdminApiClient$|\.clients\.Graphql$|^GraphqlClient$/;
 const REST_RECEIVER = /(?:^|\.)admin\.rest\b|\brest\.resources\b|\.clients\.Rest$/;
@@ -206,7 +207,9 @@ export function scanShopify(repository: Repository): ShopifyScan {
     return { text, segments };
   };
   const documentLiterals = new Map<Literal, boolean>();
-  const record = (literal: Literal, file: string, traced: boolean, call?: ts.Node) => {
+  const record = (literal: Literal, file: string, reached: boolean, call?: ts.Node) => {
+    // Documents in tests go to mocked clients; they are fixtures, not Admin API usage.
+    const traced = reached && !TEST_FILE.test(pathOf.get(file) ?? '');
     if (documentLiterals.get(literal)) return;
     documentLiterals.set(literal, traced);
     const assembled = assemble(literal, file);

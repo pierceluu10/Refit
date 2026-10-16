@@ -322,6 +322,7 @@ it('resolves LATEST_API_VERSION from the locked SDK and treats untraced other-AP
       "import { shopifyApp, LATEST_API_VERSION } from '@shopify/shopify-app-remix/server';\nexport const shopify = shopifyApp({ apiVersion: LATEST_API_VERSION });\n",
     'extensions/account/query.ts':
       'export const Q = `#graphql\n  query { customer { emailAddress } }`;\n',
+    'test/admin.test.ts': 'export const run = (admin) => admin.graphql(`query { ok }`);\n',
   });
   const report = (await runPipeline({
     repository: root,
@@ -329,7 +330,10 @@ it('resolves LATEST_API_VERSION from the locked SDK and treats untraced other-AP
     proposePatch: true,
   })) as any;
   expect(report.shopify.sdkRelease).toBe('11.14.1');
-  expect(report.shopify.otherApiDocuments).toEqual(['extensions/account/query.ts:1']);
+  expect(report.shopify.otherApiDocuments).toEqual([
+    'extensions/account/query.ts:1',
+    'test/admin.test.ts:1',
+  ]);
   expect(report.apiVersion).toMatchObject({
     application: '2025-07',
     applicability: 'matches-before',
