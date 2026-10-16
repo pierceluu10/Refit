@@ -6,6 +6,9 @@ import { affectedFields } from './report-fields.ts';
 import { PipelineInputError, type Finding } from './types.ts';
 import type { validateMigration } from './validation.ts';
 import { INTEGRATION_MARKER, migrationIdentity } from './migration-identity.ts';
+import type { webhookVersionWaiver } from './publication.ts';
+
+type WebhookVersionWaiver = NonNullable<ReturnType<typeof webhookVersionWaiver>>;
 
 type ValidationReport = Awaited<ReturnType<typeof validateMigration>>;
 const MAX_SUMMARY_ITEMS = 5;
@@ -223,6 +226,7 @@ export function createReviewArtifacts(
   report: ValidationReport,
   destination: 'local' | 'github' = 'local',
   integration?: string,
+  webhookWaiver?: WebhookVersionWaiver,
 ) {
   const { validation, patch } = report;
   if (validation.patchHash !== digest(patch.diff) || patch.validation !== validation.status)
@@ -271,11 +275,13 @@ export function createReviewArtifacts(
             : `migrate removed ${change.schema}.${change.property} reads`
           : `migrate removed ${provider} API fields`;
   const scope = (integration ?? report.adapter.packageName.split('/').pop()!).toLowerCase();
-  const full = `fix(${scope}): ${description}`;
+  const needsReview = Boolean(webhookWaiver || patch.unresolvedFindings);
+  const prefix = needsReview ? '[Needs review] ' : '';
+  const full = `${prefix}fix(${scope}): ${description}`;
   const title =
     full.length <= MAX_TITLE
       ? full
-      : `fix(${scope}): migrate removed API fields`.slice(0, MAX_TITLE);
+      : `${prefix}fix(${scope}): migrate removed API fields`.slice(0, MAX_TITLE);
   const confirmedFindings = report.findings.filter((finding) => finding.confidence === 'confirmed');
   const affectedFiles = new Set(confirmedFindings.map((finding) => finding.file));
   const changes = summaryList([
@@ -366,6 +372,18 @@ export function createReviewArtifacts(
     : '';
   const body =
     [
+      ...(webhookWaiver
+        ? [
+            '## Webhook API version not verified',
+            `This patch changes webhook handlers. Stripe sends webhooks in the API version set on the webhook endpoint in the Stripe dashboard, which Refit can't see from code. Before merging, check the endpoint's API version in Dashboard > Developers > Webhooks and confirm it matches ${code(webhookWaiver.targetVersion)}, or update it when you deploy.`,
+            webhookWaiver.handlers
+              .map(
+                (handler) =>
+                  `- ${code(`${handler.file}:${handler.line}`)}${handler.eventTypes.length ? ` (${handler.eventTypes.map(code).join(', ')})` : ''}`,
+              )
+              .join('\n'),
+          ]
+        : []),
       '## Overview',
       `${plainText(provider)} API ${after} removes fields this code reads. ${ai ? `AI${model ? ` (${code(model)})` : ''}, checked by Refit,` : 'A deterministic Refit rule'} migrates ${usageCount} in ${fileCount} so the code keeps working after the upgrade.`,
       '## API Impact & Spec Changes',
@@ -405,7 +423,7 @@ export function createReviewArtifacts(
       `<!-- refit-evidence "runId": "${report.runId}", "patchHash": "${validation.patchHash}" -->`,
     ].join('\n\n') + '\n';
   const files = {
-    'report.json': `${JSON.stringify(report, null, 2)}\n`,
+    'report.json': `${JSON.stringify(webhookWaiver ? { ...report, waivedGates: [webhookWaiver] } : report, null, 2)}\n`,
     'migration.patch': patch.diff,
     'pull-request.md': body,
   };
@@ -413,6 +431,7 @@ export function createReviewArtifacts(
     formatVersion: 1,
     kind: 'refit-review-bundle',
     ...(integration ? { integration } : {}),
+    ...(webhookWaiver ? { waivedGates: [webhookWaiver.gate] } : {}),
     runId: report.runId,
     revision: validation.revision,
     title,

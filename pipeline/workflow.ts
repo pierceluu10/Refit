@@ -11,6 +11,7 @@ import {
   findExistingMigration,
   publishDraft,
   type publicationConfiguration,
+  webhookVersionWaiver,
 } from './publication.ts';
 import { createReviewArtifacts } from './review.ts';
 import { runPipeline } from './run.ts';
@@ -76,6 +77,8 @@ export async function runWorkflow(options: {
     await writeFile(join(directory, path), content, { flag: 'wx', mode: 0o600 });
     files.push({ path, sha256: digest(content), bytes: Buffer.byteLength(content) });
   };
+  // Gates --publish-unresolved waived for this run, recorded in the manifest.
+  const waivedGates: string[] = [];
   const finish = async (
     status: Status,
     reason: string,
@@ -90,6 +93,7 @@ export async function runWorkflow(options: {
       stage,
       reason,
       runId,
+      ...(waivedGates.length ? { waivedGates } : {}),
       baselineAdvanced: false,
       reviewRequired: true,
       files,
@@ -227,7 +231,9 @@ export async function runWorkflow(options: {
       signal: options.signal,
     });
     runId = report.runId;
-    const review = createReviewArtifacts(report, 'local', options.integration);
+    const webhookWaiver = webhookVersionWaiver(report, publication?.allowUnresolved);
+    if (webhookWaiver) waivedGates.push(webhookWaiver.gate);
+    const review = createReviewArtifacts(report, 'local', options.integration, webhookWaiver);
     for (const [path, content] of Object.entries(review.files)) await save(path, content);
     if (report.validation.status !== 'passed')
       return await finish(
