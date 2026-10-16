@@ -42,6 +42,10 @@ When `refit serve` receives a `pull_request` webhook (opened, reopened or synchr
 
 The comment uses a repository-scoped token with Contents read and Pull requests write. Subscribe the App to **Pull request** events; see [local service](LOCAL-SERVICE.md#receive-real-github-webhooks-through-https). The suggestion is advice only: no configuration is written, no worker starts and no code runs.
 
+## Deadlines
+
+`refit deadlines` uses the same catalog to say what happens next when a repository pins an API version or model that a provider is retiring. A configured integration runs the normal migration, an agent that exists can be added with `refit agents --add`, and a provider without an agent is reported as such. See [API deadlines](DEADLINES.md).
+
 ## Limits
 
 - Detection covers JavaScript and TypeScript repositories and the providers listed above. A provider used through a generic HTTP client without its hostname in source is not detected.

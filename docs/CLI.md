@@ -38,6 +38,8 @@ The same preparation supports pinned pnpm roots and bounded catalog/workspace la
 
 Run `refit agents` to detect the provider SDKs a repository uses and `refit agents --add <id>` to add a matching agent to `.refit.json`. See [provider agents](PROVIDER-AGENTS.md).
 
+Run `refit deadlines --repository /path/to/repo` to list the API versions and models a repository pins that a provider has scheduled to retire (Shopify Admin API, Meta Graph API and OpenAI models), with `file:line` evidence and days left. `--json` gives machine output. `refit deadlines --check-registry` validates the reviewed registry in `data/deadlines.json`. `refit serve --deadline-alerts` can also open one GitHub issue per enrolled repository and deadline; it is off by default. See [API deadlines](DEADLINES.md).
+
 Pass `--env .env` to any command to load environment variables explicitly, including with an installed `refit` executable. Existing environment values take precedence. Refit does not automatically load files from the scanned repository. Keep credentials outside committed configuration files.
 
 ```sh
