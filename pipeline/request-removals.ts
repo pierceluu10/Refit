@@ -12,6 +12,8 @@ export interface RequestParameterRemoval {
   parameter: string;
   // SDK methods take path parameters positionally before the body (`update(id, params)`).
   argumentIndex: number;
+  // An owner-approved replacement for exactly `['card']` (docs/STRIPE-PAYMENT-METHOD-TYPES.md).
+  cardReplacement?: string;
 }
 
 // Why Refit leaves a removed parameter for the owner, shown in [Needs review] drafts.
@@ -21,6 +23,10 @@ export const REMOVED_PARAMETER_NOTES: Record<string, string> = {
   payment_method_types:
     "Stripe's new `allowed_payment_method_types` is not a drop-in replacement: it filters the payment methods Stripe computes dynamically (from your Dashboard settings, currency and amount) instead of being the static list `payment_method_types` was, so swapping one for the other can change which payment methods customers are offered. Decide per call whether to drop the parameter and use dynamic payment methods, or move the list to `allowed_payment_method_types` and confirm the methods offered are still the ones you expect.",
 };
+
+export const CARD_PAYMENT_METHOD_RULE = 'stripe-card-allowed-payment-method-types';
+const CARD_REPLACEMENT = 'allowed_payment_method_types';
+const CARD_OPERATIONS = new Set(['PostCheckoutSessions', 'PostPaymentIntents', 'PostSetupIntents']);
 
 const MAX_REFERENCE_HOPS = 8;
 const PATH_PARAMETER = /\{[^}]+\}/g;
@@ -86,6 +92,12 @@ export function removedRequestParameters(
           operationId: mapping.operationId!,
           parameter,
           argumentIndex: source.path.match(PATH_PARAMETER)?.length ?? 0,
+          ...(provider.packageName === 'stripe' &&
+          parameter === 'payment_method_types' &&
+          CARD_OPERATIONS.has(mapping.operationId!) &&
+          current.has(CARD_REPLACEMENT)
+            ? { cardReplacement: CARD_REPLACEMENT }
+            : {}),
         });
   }
   return removals;

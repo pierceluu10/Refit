@@ -28,6 +28,12 @@ Stripe [moved `invoice.subscription` to `invoice.parent.subscription_details.sub
 
 Refit leaves the read for review when the code expands `subscription` anywhere, because the expand path moved too, or when the adapter configures its own `propertyMoves` entry for it.
 
+## Invoice price ID reads
+
+Stripe [replaced the `price` object on invoice line items and invoice items](https://docs.stripe.com/changelog/basil/2025-03-31/invoice-pricing-configurations) with `pricing`: "Instead of `invoice_item.price.id`, use `invoice_item.pricing.price_details.price` after verifying that `invoice_item.pricing.type` is `price_details`." The generated helper file also exports `getInvoicePriceId(line)`, and Refit rewrites `line.price.id` and `line.price?.id` on the same sources to call it. It returns the old `price.id` when the payload has `price`, otherwise the `pricing.price_details.price` ID (or the expanded Price's `id`) when `pricing.type` is `price_details`, otherwise `undefined`. Its TypeScript return type is `string | undefined` under old and new `stripe` types.
+
+Only the ID moves. Other reads of `price`, such as `line.price.nickname` or passing `line.price` on, need the full Price object, which the new location holds only when the code expands `pricing.price_details.price`; they stay for review. A `line.price.id` read on a line item without a price returned `undefined` with optional chaining and threw without it; the helper returns `undefined` in both cases.
+
 ## Approved configuration
 
 Use a provider adapter referenced by a checked-in `.refit.json` through its existing `providerConfig` field. The adapter's ID is distinct from the reserved built-in `stripe` ID; its package is `stripe`, so signed-event tracing still applies. Add:

@@ -20,8 +20,12 @@ export const PNPM_WORKSPACE = 'pnpm-workspace.yaml';
 // lockfile version 9 without the pnpm 10 behavior changes.
 // Source: npm registry, pnpm versions, 2026-10-16.
 export const DEFAULT_PNPM_VERSION = '9.15.9';
+// Lockfile v6 is pnpm 8's format; newer pnpm migrates it instead of installing it frozen. Unpinned
+// v6 roots therefore install with the final pnpm 8 release, which no longer receives fixes.
+// Source: npm registry, pnpm versions (8.15.9 published 2024-07-17), 2026-10-16.
+export const DEFAULT_PNPM_8_VERSION = '8.15.9';
 const MANAGER_PIN =
-  /^pnpm@((?:9|10|11|12)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*))(?:\+sha512\.([a-f0-9]{128}))?$/;
+  /^pnpm@((?:8|9|10|11|12)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*))(?:\+sha512\.([a-f0-9]{128}))?$/;
 const CONFIGURATION_KEYS = new Set([
   'packages',
   'catalog',
@@ -123,15 +127,24 @@ export function validatePnpmInputs(
   )
     throw new PipelineInputError('pnpm preparation inputs exceed manifest or lockfile limits.');
   const manifest = parseObject(packageContent, 'package.json');
+  const { document: lock, environment } = parsePnpmLock(lockContent);
+  const v6 = lock.lockfileVersion === '6.0';
+  const fallback = v6 ? DEFAULT_PNPM_8_VERSION : DEFAULT_PNPM_VERSION;
   const pin =
     manifest.packageManager === undefined
-      ? ([`pnpm@${DEFAULT_PNPM_VERSION}`, DEFAULT_PNPM_VERSION] as const)
+      ? ([`pnpm@${fallback}`, fallback] as const)
       : typeof manifest.packageManager === 'string'
         ? MANAGER_PIN.exec(manifest.packageManager)
         : null;
   if (!pin)
     throw new PipelineInputError(
-      'pnpm preparation requires no packageManager or an exact pin for pnpm 9–12, optionally with a SHA-512 Corepack checksum.',
+      'pnpm preparation requires no packageManager or an exact pin for pnpm 8–12, optionally with a SHA-512 Corepack checksum.',
+    );
+  if (v6 !== pin[1].startsWith('8.'))
+    throw new PipelineInputError(
+      v6
+        ? `pnpm-lock.yaml is lockfile v6 (pnpm 8), but packageManager pins pnpm ${pin[1]}, which would migrate it. Run pnpm install with pnpm ${pin[1]} and commit the regenerated lockfile, or pin pnpm 8.`
+        : `packageManager pins pnpm ${pin[1]}, which cannot install this lockfile. Pin pnpm 9–12, or remove the pin.`,
     );
   const workspace =
     workspaceContent === undefined ? {} : parseDocumentObject(workspaceContent, PNPM_WORKSPACE);
@@ -175,7 +188,6 @@ export function validatePnpmInputs(
     names.set(value.name, directory);
     manifests.set(directory, value);
   }
-  const { document: lock, environment } = parsePnpmLock(lockContent);
   const { packages, reference } = registryGraph(lock);
   let managerIntegrity = pin[2]
     ? `sha512-${Buffer.from(pin[2], 'hex').toString('base64')}`
@@ -338,14 +350,14 @@ function registryGraph(document: Record<string, unknown>) {
     configuration(document.settings);
   }
   if (
-    ![9, '9.0'].includes(document.lockfileVersion as string | number) ||
+    ![9, '9.0', '6.0'].includes(document.lockfileVersion as string | number) ||
     !isObject(document.importers) ||
     !isObject(document.packages ?? {}) ||
     !isObject(document.snapshots ?? {}) ||
     Object.keys((document.packages ?? {}) as object).length > MAX_PACKAGES
   )
     throw new PipelineInputError(
-      'Automatic pnpm preparation requires lockfile v9 with at most 20,000 registry package records.',
+      'Automatic pnpm preparation requires lockfile v6 or v9 with at most 20,000 registry package records.',
     );
   const packages = (document.packages ?? {}) as Record<string, unknown>;
   const snapshots = (document.snapshots ?? {}) as Record<string, unknown>;
