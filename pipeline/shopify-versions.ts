@@ -54,3 +54,26 @@ export function sdkHasEnumMember(release: string, member: string) {
   if (!since || !/^\d+\.\d+\.\d+/.test(release)) return false;
   return compareReleases(release, since) >= 0;
 }
+
+// The ApiVersion LATEST_API_VERSION names in each @shopify/shopify-api release that changed it, read
+// from the published package types on 2026-10-16. 12.0.0 removed the constant.
+const LATEST_SINCE: [string, string][] = [
+  ['7.0.0', 'April23'],
+  ['7.5.0', 'July23'],
+  ['8.0.2', 'October23'],
+  ['9.0.0', 'January24'],
+  ['9.7.0', 'April24'],
+  ['11.1.0', 'July24'],
+  ['11.5.0', 'October24'],
+  ['11.8.1', 'January25'],
+  ['11.12.0', 'April25'],
+  ['11.14.0', 'July25'],
+];
+const LATEST_REMOVED = '12.0.0';
+
+export function latestApiVersion(release: string) {
+  if (!/^\d+\.\d+\.\d+/.test(release) || compareReleases(release, LATEST_REMOVED) >= 0)
+    return undefined;
+  const entry = LATEST_SINCE.filter(([since]) => compareReleases(release, since) >= 0).at(-1);
+  return entry && versionFromEnum(entry[1]);
+}

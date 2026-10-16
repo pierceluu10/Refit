@@ -51,7 +51,8 @@ export interface ShopifyScan {
   unreadable: (Location & { reason: string })[];
   rest: (Location & { expression: string })[];
   versions: VersionDeclaration[];
-  unresolvedVersions: (Location & { reason: string })[];
+  // `latest` marks LATEST_API_VERSION, which the locked SDK release determines.
+  unresolvedVersions: (Location & { reason: string; latest?: true })[];
   adminCalls: number;
   shopifyFiles: string[];
 }
@@ -296,6 +297,8 @@ export function scanShopify(repository: Repository): ShopifyScan {
         value = resolved.node;
         owner = resolved.file;
       }
+      // `const mutation = isCode ? CODE_MUTATION : AUTOMATIC_MUTATION`
+      if (ts.isConditionalExpression(value)) return documentArgument(value, owner, call);
     }
     if (isLiteral(value)) record(value, owner, true, call);
     else
@@ -376,6 +379,7 @@ export function scanShopify(repository: Repository): ShopifyScan {
           ...location(node),
           reason:
             'LATEST_API_VERSION follows the installed Shopify package, so the version changes only with an SDK upgrade.',
+          latest: true,
         });
       if (
         shopify &&
@@ -399,8 +403,8 @@ export function scanShopify(repository: Repository): ShopifyScan {
               reason: `apiVersion ${value.getText()} is not a dated Admin API version.`,
             });
         } else if (
-          !ts.isPropertyAccessExpression(value) ||
-          value.expression.getText() !== 'ApiVersion'
+          (!ts.isPropertyAccessExpression(value) || value.expression.getText() !== 'ApiVersion') &&
+          !(ts.isIdentifier(value) && value.text === 'LATEST_API_VERSION')
         )
           scan.unresolvedVersions.push({
             ...location(value),

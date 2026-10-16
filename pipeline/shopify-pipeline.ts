@@ -26,7 +26,12 @@ import {
   type ShopifyScan,
 } from './shopify-analysis.ts';
 import { shopifySchema } from './shopify-schemas.ts';
-import { enumFromVersion, SHOPIFY_API_ENUM_SINCE, sdkHasEnumMember } from './shopify-versions.ts';
+import {
+  enumFromVersion,
+  latestApiVersion,
+  SHOPIFY_API_ENUM_SINCE,
+  sdkHasEnumMember,
+} from './shopify-versions.ts';
 import { digest, isObject } from './specifications.ts';
 import type { Finding, Repository, SourceEdit } from './types.ts';
 
@@ -72,13 +77,23 @@ export async function isShopifySnapshotFile(path: string) {
   }
 }
 
-async function lockedShopifyApi(root: string) {
+// The @shopify/shopify-api release a lockfile installs, including the copy nested under an app
+// framework package. Several different releases answer undefined rather than guessing.
+export async function lockedShopifyApi(root: string) {
   const path = join(root, 'package-lock.json');
   if (existsSync(path)) {
     const lock: unknown = JSON.parse(await readFile(path, 'utf8'));
     const packages = isObject(lock) && isObject(lock.packages) ? lock.packages : {};
-    const entry = packages['node_modules/@shopify/shopify-api'];
-    if (isObject(entry) && typeof entry.version === 'string') return entry.version;
+    const versions = new Set(
+      Object.entries(packages)
+        .filter(([key]) => key.endsWith('node_modules/@shopify/shopify-api'))
+        .map(([, entry]) => (isObject(entry) ? entry.version : undefined)),
+    );
+    if (versions.size === 1) {
+      const [version] = versions;
+      if (typeof version === 'string') return version;
+    }
+    if (versions.size) return undefined;
   }
   const pnpm = join(root, 'pnpm-lock.yaml');
   if (existsSync(pnpm)) {
@@ -108,6 +123,7 @@ async function lockedShopifyApi(root: string) {
 interface DocumentResult {
   findings: Finding[];
   deprecated: string[];
+  otherApi?: true;
 }
 
 function errorKey(error: GraphQLError) {
@@ -168,6 +184,10 @@ function checkDocument(
       ],
       deprecated: [],
     };
+  // A #graphql literal no Admin call reaches that fails on both schemas most likely targets another
+  // Shopify API (Storefront, Customer Account, Partner); it is noted, not treated as Admin usage.
+  if (!document.traced && beforeErrors.length && afterErrors.length)
+    return { findings: [], deprecated: [], otherApi: true };
   const beforeKeys = new Set(beforeErrors.map(errorKey));
   const findings: Finding[] = [];
   const report = (error: GraphQLError, already: boolean) => {
@@ -269,16 +289,42 @@ function versionFindings(
   const findings: Finding[] = [];
   const edits: SourceEdit[] = [];
   const runtime = scan.versions.filter((entry) => !CODEGEN_CONFIG.test(entry.file));
-  const declared = [...new Set(runtime.map((entry) => entry.value))];
+  const member = enumFromVersion(versions.after)!;
+  // LATEST_API_VERSION is fixed by the locked SDK release, so it counts as that release's pin.
+  const latest = sdkRelease ? latestApiVersion(sdkRelease) : undefined;
+  const declared = [
+    ...new Set([
+      ...runtime.map((entry) => entry.value),
+      ...(latest && scan.unresolvedVersions.some((entry) => entry.latest) ? [latest] : []),
+    ]),
+  ];
   for (const entry of scan.unresolvedVersions)
-    findings.push({
-      ...entry,
-      changeId: SHOPIFY_VERSION_RULE,
-      expression: 'apiVersion',
-      confidence: 'review',
-      reason: entry.reason,
-      contractReview: `The Shopify Admin API version is not a literal Refit can verify and bump: ${entry.reason}`,
-    });
+    findings.push(
+      entry.latest && latest
+        ? {
+            ...entry,
+            changeId: SHOPIFY_VERSION_RULE,
+            expression: `LATEST_API_VERSION (${latest} in @shopify/shopify-api ${sdkRelease})`,
+            confidence: 'confirmed',
+            reason:
+              latest < versions.before
+                ? `@shopify/shopify-api ${sdkRelease} resolves LATEST_API_VERSION to ${latest}, which Shopify no longer serves; requests already get ${versions.before}.`
+                : `@shopify/shopify-api ${sdkRelease} resolves LATEST_API_VERSION to ${latest}.`,
+            contractReview: `LATEST_API_VERSION is ${latest} in @shopify/shopify-api ${sdkRelease}, and only an SDK upgrade changes it. ${
+              sdkHasEnumMember(sdkRelease!, member)
+                ? `This SDK has ApiVersion.${member}; pin it explicitly to upgrade.`
+                : `ApiVersion.${member} first ships in ${SHOPIFY_API_ENUM_SINCE[member] ?? 'an unknown release'}, a separate, reviewed SDK upgrade.`
+            }`,
+          }
+        : {
+            ...entry,
+            changeId: SHOPIFY_VERSION_RULE,
+            expression: 'apiVersion',
+            confidence: 'review',
+            reason: entry.reason,
+            contractReview: `The Shopify Admin API version is not a literal Refit can verify and bump: ${entry.reason}`,
+          },
+    );
   if (declared.length > 1) {
     for (const entry of runtime)
       findings.push({
@@ -291,7 +337,6 @@ function versionFindings(
       });
     return { findings, edits, declared };
   }
-  const member = enumFromVersion(versions.after)!;
   const enumMissing =
     runtime.some((entry) => entry.kind === 'enum') &&
     !(sdkRelease && sdkHasEnumMember(sdkRelease, member));
@@ -370,10 +415,12 @@ export async function runShopifyPipeline(options: {
   const after = shopifySchema(String(options.after.document.graphqlIntrospection));
   const findings: Finding[] = [];
   const deprecated = new Set<string>();
+  const otherApi: AdminDocument[] = [];
   for (const document of scan.documents) {
     const result = checkDocument(document, before, after, versions);
     findings.push(...result.findings);
     for (const entry of result.deprecated) deprecated.add(entry);
+    if (result.otherApi) otherApi.push(document);
   }
   for (const entry of scan.unreadable)
     findings.push({
@@ -529,6 +576,7 @@ export async function runShopifyPipeline(options: {
       adminCalls: scan.adminCalls,
       unreadable: scan.unreadable.length,
       rest: scan.rest.length,
+      otherApiDocuments: otherApi.map((document) => `${document.file}:${document.line}`),
       deprecated: [...deprecated],
     },
     warnings: [

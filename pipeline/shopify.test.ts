@@ -7,7 +7,12 @@ import { addAgents, builtInPackage, detectProviders } from './agent-catalog.ts';
 import { runPipeline } from './run.ts';
 import { readRepository } from './repository.ts';
 import { scanShopify } from './shopify-analysis.ts';
-import { enumFromVersion, sdkHasEnumMember, versionFromEnum } from './shopify-versions.ts';
+import {
+  enumFromVersion,
+  latestApiVersion,
+  sdkHasEnumMember,
+  versionFromEnum,
+} from './shopify-versions.ts';
 import { digest, shopifySchemaUrl } from './specifications.ts';
 
 const roots: string[] = [];
@@ -111,6 +116,8 @@ export async function loader({ request }) {
   await admin.graphql(PRODUCT, { variables: { id: '1' } });
   await admin.graphql(SHOP);
   await admin.graphql(request.flag ? PRODUCT : SHOP);
+  const chosen = request.flag ? SHOP : PRODUCT;
+  await admin.graphql(chosen);
   const built = 'query { ' + request.field + ' }';
   await admin.graphql(built);
   await admin.rest.resources.Product.all({ session: {} });
@@ -128,7 +135,7 @@ export const run = () => client.request(\`query { shop { name } }\`);
       "import { LATEST_API_VERSION } from '@shopify/shopify-api';\nexport const version = LATEST_API_VERSION;\n",
   });
   const scan = scanShopify(await readRepository(root, '@shopify/shopify-app-remix'));
-  expect(scan.adminCalls).toBe(5);
+  expect(scan.adminCalls).toBe(6);
   expect(scan.documents.map((document) => [document.file, document.traced])).toEqual([
     ['app/client.ts', true],
     ['app/queries.ts', true],
@@ -136,8 +143,8 @@ export const run = () => client.request(\`query { shop { name } }\`);
   ]);
   const product = scan.documents.find((document) => document.file === 'app/queries.ts')!;
   expect(product.text).toContain('fragment ProductFields on Product { id title }');
-  expect(scan.unreadable).toMatchObject([{ file: 'app/routes/product.ts', line: 10 }]);
-  expect(scan.rest.map((entry) => entry.line)).toEqual([11, 12]);
+  expect(scan.unreadable).toMatchObject([{ file: 'app/routes/product.ts', line: 12 }]);
+  expect(scan.rest.map((entry) => entry.line)).toEqual([13, 14]);
   expect(scan.versions.map((entry) => `${entry.kind}:${entry.value}:${entry.file}`).sort()).toEqual(
     [
       'enum:2025-01:app/shopify.server.ts',
@@ -293,4 +300,47 @@ it('suggests the Shopify agent, scaffolds it with snapshot steps and then report
     builtInPackage((scaffold.configuration.integrations as Record<string, unknown>[])[0]),
   ).toBe('@shopify/shopify-api');
   expect(builtInPackage({ id: 'billing', before: './refit/stripe-before.json' })).toBe('stripe');
+});
+
+it('resolves LATEST_API_VERSION from the locked SDK and treats untraced other-API documents as notes', async () => {
+  expect(latestApiVersion('11.13.0')).toBe('2025-04');
+  expect(latestApiVersion('11.14.1')).toBe('2025-07');
+  expect(latestApiVersion('12.3.0')).toBeUndefined();
+  const root = await directory({
+    'package.json': MANIFEST,
+    // A copy nested under the app framework, as npm installs it when versions differ.
+    'package-lock.json': JSON.stringify({
+      lockfileVersion: 3,
+      packages: {
+        'node_modules/@shopify/shopify-app-remix': { version: '3.0.0' },
+        'node_modules/@shopify/shopify-app-remix/node_modules/@shopify/shopify-api': {
+          version: '11.14.1',
+        },
+      },
+    }),
+    'app/shopify.server.ts':
+      "import { shopifyApp, LATEST_API_VERSION } from '@shopify/shopify-app-remix/server';\nexport const shopify = shopifyApp({ apiVersion: LATEST_API_VERSION });\n",
+    'extensions/account/query.ts':
+      'export const Q = `#graphql\n  query { customer { emailAddress } }`;\n',
+  });
+  const report = (await runPipeline({
+    repository: root,
+    ...(await snapshots(root)),
+    proposePatch: true,
+  })) as any;
+  expect(report.shopify.sdkRelease).toBe('11.14.1');
+  expect(report.shopify.otherApiDocuments).toEqual(['extensions/account/query.ts:1']);
+  expect(report.apiVersion).toMatchObject({
+    application: '2025-07',
+    applicability: 'matches-before',
+  });
+  expect(report.findings).toMatchObject([
+    {
+      file: 'app/shopify.server.ts',
+      line: 2,
+      confidence: 'confirmed',
+      expression: 'LATEST_API_VERSION (2025-07 in @shopify/shopify-api 11.14.1)',
+    },
+  ]);
+  expect(report.patch.reason).toContain('ApiVersion.October26 first ships in 14.0.0');
 });
