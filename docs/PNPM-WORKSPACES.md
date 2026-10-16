@@ -14,7 +14,7 @@ Your workflow must set `prepareDependencies: true`, name meaningful baseline/pat
 
 ## Required inputs
 
-- A committed root `package.json` with an exact stable `packageManager` pin such as `pnpm@12.4.2`. An optional `+sha512.<hex>` Corepack checksum is verified.
+- A committed root `package.json` with an exact stable `packageManager` pin such as `pnpm@12.4.2`, or no `packageManager` at all, in which case Refit installs with pnpm 9.15.9, the final pnpm 9 release. A range such as `pnpm@^12` is rejected. An optional `+sha512.<hex>` Corepack checksum is verified.
 - A committed root `pnpm-lock.yaml` using lockfile v9. Single documents and pnpm's separate environment/application documents are read explicitly. [pnpm documents this format](https://pnpm.io/lockfile).
 - For workspaces, committed `pnpm-workspace.yaml` and selected package manifests. Up to 64 positive relative package/glob patterns are supported. Names must be unique.
 - Public npm registry packages with exact locked snapshots and SHA-256-or-stronger integrity. Registry aliases can occur in the dependency graph; aliased SDK declarations remain unverified by the scanner.

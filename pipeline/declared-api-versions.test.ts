@@ -208,3 +208,27 @@ it('still refuses a handler-local client that escapes through a call or a return
         });`).source.status,
     ).toBe('unknown');
 });
+
+it('trusts a client created inside a callback passed to an unknown function, but not one it leaks or mutates', () => {
+  const statuses = (source: string) =>
+    evidence(`${prefix}\nimport { action } from './server';\n${source}`)
+      .source.declarations.filter((entry) => entry.kind === 'constructor')
+      .map((entry) => entry.status);
+  // Convex-style handler: the client is local to the callback.
+  expect(
+    statuses(`export const pay = action({ handler: async () => {
+      const stripe = new Stripe('k', { apiVersion: '${ORIGINAL}' });
+      return (await stripe.paymentIntents.retrieve('id')).id;
+    } });`),
+  ).toEqual(['literal']);
+  // An outer client returned from the callback reaches the unknown caller.
+  expect(
+    statuses(`const stripe = new Stripe('k', { apiVersion: '${ORIGINAL}' });
+    export const pay = action({ handler: () => stripe });`),
+  ).toEqual(['unknown']);
+  // An outer client mutated inside the callback.
+  expect(
+    statuses(`const stripe = new Stripe('k', { apiVersion: '${ORIGINAL}' });
+    export const pay = action({ handler: () => { (stripe as any).config = {}; } });`),
+  ).toEqual(['unknown']);
+});

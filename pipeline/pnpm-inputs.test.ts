@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { validatePnpmInputs } from './pnpm-inputs.ts';
+import { DEFAULT_PNPM_VERSION, validatePnpmInputs } from './pnpm-inputs.ts';
 import { parsePnpmLock } from './pnpm-lock.ts';
 import { resolveLockedDependency } from './lockfiles.ts';
 
@@ -105,6 +105,14 @@ it('reads the application graph from the last document and binds the manager gra
   environment.importers['.'].configDependencies.plugin = { version: '1.0.0' };
   expect(() => validate(sample, environment)).toThrow('configuration dependencies');
 });
+it('installs an unpinned lockfile v9 root with the final pnpm 9 release, never a range', () => {
+  const sample = scenario();
+  delete sample.manifest.packageManager;
+  expect(validate(sample)).toMatchObject({ managerVersion: DEFAULT_PNPM_VERSION });
+  expect(validate(sample)).not.toHaveProperty('managerIntegrity');
+  // An environment document that records another manager still has to match the pin.
+  expect(() => validate(sample, manager())).toThrow('exact declared package manager');
+});
 it('checks manager environment versions, all package integrities and explicit Corepack checksums', () => {
   const sample = scenario(),
     environment = manager();
@@ -117,12 +125,6 @@ it('checks manager environment versions, all package integrities and explicit Co
   expect(() => validate(sample, environment)).toThrow('SHA-256-or-stronger');
 });
 it.each([
-  [
-    'missing manager',
-    (s: ReturnType<typeof scenario>) => {
-      delete s.manifest.packageManager;
-    },
-  ],
   [
     'manager range',
     (s: ReturnType<typeof scenario>) => {

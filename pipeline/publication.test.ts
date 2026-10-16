@@ -1,7 +1,13 @@
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { afterEach, expect, it, vi } from 'vitest';
-import { findExistingMigration, publicationConfiguration, publishDraft } from './publication.ts';
+import {
+  findExistingMigration,
+  publicationConfiguration,
+  publishDraft,
+  webhookVersionWaiver,
+} from './publication.ts';
+import { createReviewArtifacts } from './review.ts';
 import { migrationIdentity } from './migration-identity.ts';
 import { runPipeline } from './run.ts';
 import { digest } from './specifications.ts';
@@ -75,6 +81,53 @@ it('refuses webhook publication even with otherwise passing validation evidence'
   vi.stubGlobal('fetch', fetch);
   await expect(publishDraft(evidence, OPTIONS)).rejects.toThrow(/migration-policy/);
   expect(fetch).not.toHaveBeenCalled();
+});
+
+it('publishes a webhook-only review as a [Needs review] draft only with --publish-unresolved', async () => {
+  const webhookReport = async () => {
+    const evidence = await report();
+    evidence.findings[0].webhook = {
+      schema: 'payment_intent',
+      eventTypes: ['payment_intent.succeeded'],
+      origin: { file: 'webhook.ts', line: 1, column: 1 },
+      apiVersion: 'unverified',
+    };
+    return evidence;
+  };
+  const evidence = await webhookReport();
+  const finding = evidence.findings[0];
+  expect(webhookVersionWaiver(evidence, false)).toBeUndefined();
+  await expect(publishDraft(evidence, OPTIONS)).rejects.toThrow(/migration-policy/);
+
+  const remote = github();
+  const allowed = { ...OPTIONS, allowUnresolved: true };
+  expect(await publishDraft(evidence, allowed)).toMatchObject({ status: 'created', draft: true });
+  const request = remote.calls.find((call) => call.method === 'POST' && call.path === '/pulls')!;
+  expect(request.body.title).toMatch(/^\[Needs review\] /);
+  expect(request.body.body).toMatch(/^## Webhook API version not verified/);
+  expect(request.body.body).toContain('Dashboard > Developers > Webhooks');
+  expect(request.body.body).toContain(
+    `\`${finding.file}:${finding.line}\` (\`payment_intent.succeeded\`)`,
+  );
+  const local = createReviewArtifacts(
+    evidence,
+    'local',
+    undefined,
+    webhookVersionWaiver(evidence, true),
+  );
+  expect(JSON.parse(local.files['report.json']).waivedGates[0].gate).toBe('webhook-api-version');
+  expect(local.manifest).toMatchObject({ waivedGates: ['webhook-api-version'] });
+
+  // The waiver covers only the webhook version: any other review reason still refuses.
+  const skipped = await webhookReport();
+  skipped.skippedFiles = ['src/broken.ts'];
+  expect(webhookVersionWaiver(skipped, true)).toBeUndefined();
+  await expect(publishDraft(skipped, allowed)).rejects.toThrow(/migration-policy/);
+  const unknownVersion = await webhookReport();
+  unknownVersion.apiVersion.applicability = 'unknown';
+  await expect(publishDraft(unknownVersion, allowed)).rejects.toThrow(
+    /Draft publication is blocked/,
+  );
 });
 
 async function endpointReport(): Promise<Report> {

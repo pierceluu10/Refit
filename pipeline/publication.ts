@@ -9,6 +9,7 @@ import { INTEGRATION_MARKER, migrationIdentity } from './migration-identity.ts';
 import { unmappedBreakingChanges } from './openapi-diff.ts';
 import { apiVersionSourceBlocked } from './api-version.ts';
 import { migrationReviewReason } from './migration-review.ts';
+import { WEBHOOK_REVIEW_REASON } from './stripe-webhook-payloads.ts';
 
 const MAX_BODY_CHARACTERS = 60_000;
 const SHA = /^[a-f0-9]{40}$/;
@@ -164,13 +165,41 @@ export async function findExistingMigration(
   };
 }
 
+// With --publish-unresolved, a draft may publish when the only blocker is the incoming webhook
+// API version, which code cannot prove. The PR says so and lists the changed handlers.
+export function webhookVersionWaiver(report: Report, allowUnresolved: boolean | undefined) {
+  const deterministic = report.patch.generator === 'deterministic';
+  if (!allowUnresolved || migrationReviewReason(report, deterministic) !== WEBHOOK_REVIEW_REASON)
+    return undefined;
+  const withoutWebhooks = report.findings.map(({ webhook: _webhook, ...finding }) => finding);
+  if (migrationReviewReason({ ...report, findings: withoutWebhooks }, deterministic))
+    return undefined;
+  const changed = new Set(
+    [...report.patch.diff.matchAll(/^\+\+\+ ("b\/.+")$/gm)].map((match) =>
+      (JSON.parse(match[1]) as string).slice(2),
+    ),
+  );
+  return {
+    gate: 'webhook-api-version' as const,
+    targetVersion: report.apiVersion.after ?? 'the target API version',
+    handlers: report.findings
+      .filter((finding) => finding.webhook && changed.has(finding.file))
+      .map((finding) => ({
+        file: finding.file,
+        line: finding.line,
+        eventTypes: finding.webhook!.eventTypes,
+      })),
+  };
+}
+
 export async function publishDraft(
   report: Report,
   options: ReturnType<typeof publicationConfiguration>,
 ) {
   const apiVersion = report.apiVersion;
   const reviewReason = migrationReviewReason(report, report.patch.generator === 'deterministic');
-  if (reviewReason) throw new PipelineInputError(reviewReason);
+  const webhookWaiver = webhookVersionWaiver(report, options.allowUnresolved);
+  if (reviewReason && !webhookWaiver) throw new PipelineInputError(reviewReason);
   if (
     !apiVersion ||
     apiVersion.applicability !== 'matches-before' ||
@@ -179,7 +208,7 @@ export async function publishDraft(
     throw new PipelineInputError(
       `Draft publication is blocked. ${apiVersion?.reason ?? 'API-version evidence is missing.'}`,
     );
-  const artifacts = createReviewArtifacts(report, 'github', options.integration);
+  const artifacts = createReviewArtifacts(report, 'github', options.integration, webhookWaiver);
   if (
     unmappedBreakingChanges(
       report.specificationDiff,

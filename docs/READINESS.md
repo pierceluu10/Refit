@@ -1,5 +1,9 @@
 # Refit implementation checkpoints
 
+## October 16 checkpoint: callback clients and unpinned pnpm (unreleased)
+
+Stripe clients created inside a callback passed to another function, such as a Convex `action({ handler })`, now have their literal `apiVersion` verified, so their pins are bumped and the `stripe` package is upgraded. Before, every binding declared inside such a callback counted as exposed. On thumbnail-critique and both vukrosic repositories, fixes that already passed now also move the pin to `2026-09-30.endive` and `stripe` 14 to 23, still with no new type errors and no AI. Roots with a pnpm lockfile v9 and no `packageManager` field are prepared with pnpm 9.15.9 instead of rejected (17 benchmark and 3 held-out repositories). Solution-style `tsconfig.json` files with `references` still leave shared clients unverified (convex-saas).
+
 ## October 15 checkpoint: invoice.subscription helper (unreleased)
 
 Stripe `invoice.subscription` reads are migrated deterministically through `getInvoiceSubscription()` in the generated helper file, which reads either API version; before this, every such read went to AI. Reads stay for review when the code expands `subscription` or the adapter configures its own move. 11 of the 23 affected benchmark repositories read this field. On `vukrosic/setup-nextjs-convex-clerk-typescript-stripe-shadcn-tailwindcss-react`, AI produced a passing fix in 1 of 4 runs; the rule produced a passing deterministic fix with no AI, published as [a draft PR by refit-agent[bot] on a refit-dev fork](https://github.com/refit-dev/setup-nextjs-convex-clerk-typescript-stripe-shadcn-tailwindcss-react/pull/1). That repository has no tests: the evidence is the TypeScript check, with stripe-mock checks not run. See [Stripe subscription periods](STRIPE-SUBSCRIPTION-PERIODS.md#invoice-subscription-reads).
