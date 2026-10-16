@@ -6,7 +6,8 @@ import { parseArgs, promisify } from 'node:util';
 import { readRepository } from './repository.ts';
 import { runPipeline } from './run.ts';
 import { scanShopify, SHOPIFY_PACKAGES } from './shopify-analysis.ts';
-import { enumFromVersion, sdkHasEnumMember } from './shopify-versions.ts';
+import { lockedShopifyApi } from './shopify-pipeline.ts';
+import { enumFromVersion, latestApiVersion, sdkHasEnumMember } from './shopify-versions.ts';
 import { PipelineInputError } from './types.ts';
 
 const execute = promisify(execFile);
@@ -42,13 +43,6 @@ await mkdir(output);
 const message = (error: unknown) => (error instanceof Error ? error.message : String(error));
 const results: Record<string, unknown>[] = [];
 
-async function lockedShopifyApi(directory: string) {
-  const path = join(directory, 'package-lock.json');
-  if (!existsSync(path)) return undefined;
-  const lock = JSON.parse(await readFile(path, 'utf8'));
-  return lock.packages?.['node_modules/@shopify/shopify-api']?.version as string | undefined;
-}
-
 async function benchmark(entry: (typeof repos)[number], index: number) {
   const directory = join(root, 'repos', entry.repo.replace('/', '__'));
   const work = join(output, 'repos', entry.repo.replace('/', '__'));
@@ -74,12 +68,15 @@ async function benchmark(entry: (typeof repos)[number], index: number) {
     log('Refit cannot read repository');
     return;
   }
-  const pins = [
-    ...new Set(
-      scan.versions.filter((pin) => !CODEGEN_CONFIG.test(pin.file)).map((pin) => pin.value),
-    ),
-  ];
   const sdk = await lockedShopifyApi(directory);
+  const latest =
+    sdk && scan.unresolvedVersions.some((pin) => pin.latest) ? latestApiVersion(sdk) : undefined;
+  const pins = [
+    ...new Set([
+      ...scan.versions.filter((pin) => !CODEGEN_CONFIG.test(pin.file)).map((pin) => pin.value),
+      ...(latest ? [latest] : []),
+    ]),
+  ];
   const enumPinned = scan.versions.some(
     (pin) => pin.kind === 'enum' && !CODEGEN_CONFIG.test(pin.file),
   );
@@ -161,10 +158,9 @@ async function benchmark(entry: (typeof repos)[number], index: number) {
     };
     if (report.patch.diff) await writeFile(join(work, 'proposal.patch'), report.patch.diff);
     if (report.patch.status !== 'proposed') {
-      result.outcome =
-        after && after <= before && !report.findings.some((finding) => finding.contractReview)
-          ? 'current'
-          : 'stopped';
+      // Pinned to the newest schema Refit has: nothing to move, whatever else the scan reports.
+      result.outcome = pins.length === 1 && pins[0] >= versions.at(-1)! ? 'current' : 'stopped';
+      result.onNewestReachable = Boolean(after && pins.length === 1 && pins[0] >= after);
       log(`${result.outcome}: ${String(report.patch.reason).slice(0, 100)}`);
       return;
     }
