@@ -69,3 +69,9 @@ refit run --repository /tmp/refit-request-app \
 Both temporary paths must be new. The application remains unmigrated; only isolated validation copies receive the patch. The simulator checks exact body values, request IDs, a fixed version header and propagated errors. Response behavior is forced independently of that header, so this is migration conformance, not a verified provider rollout. The [fixture README](../pipeline/fixtures/request-renames/README.md) includes the expected original-code failure and a real OpenAI SDK test with a synthetic request-field rename.
 
 For monitoring, use the same approved workflow fields in `.refit.json` and point `after` at a committed current contract or configure a public source. [App onboarding](APP-ONBOARDING.md), [multiple integrations](MULTIPLE-INTEGRATIONS.md), dependency preparation and the shared spending ledger keep their existing behavior. Request-rule changes alter adapter approval and require reapproval. Baselines never advance automatically.
+
+## Removed request parameters
+
+Without any rule, Refit compares each mapped operation's top-level request body parameters in both contracts. A traced SDK call whose direct object-literal body still sends a removed parameter is a confirmed finding (`request-parameter:<operationId>.<parameter>`), and the run stops for review before any patch, AI request or publication: dropping or replacing a parameter changes what the request does, so a human chooses. Path parameters are positional before the body, so `customers.update(id, params)` is checked at argument 1. Bodies built elsewhere (variables, spreads) are not traced, and a parameter covered by an operator-authored rename is migrated by that rule instead.
+
+Example: Stripe `2026-09-30.endive` no longer accepts `payment_method_types` on `POST /v1/checkout/sessions`. Before this check, 4 of the 5 held-out validation regressions were patches whose upgraded SDK types rejected that parameter.

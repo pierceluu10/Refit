@@ -1,5 +1,6 @@
 import ts from 'typescript-compiler';
 import type { RequestPropertyRename } from './provider-request-renames.ts';
+import type { RequestParameterRemoval } from './request-removals.ts';
 
 function propertyName(name: ts.PropertyName) {
   return ts.isIdentifier(name) || ts.isStringLiteral(name) || ts.isNumericLiteral(name)
@@ -48,4 +49,19 @@ export function requestPropertyEdit(call: ts.CallExpression, rule: RequestProper
         ? JSON.stringify(rule.replacement)
         : rule.replacement,
   };
+}
+
+// The property sending a removed parameter in a direct object-literal SDK body. Bodies built
+// elsewhere are not traced, so absence is not proof the parameter is unused.
+export function removedParameterProperty(
+  call: ts.CallExpression,
+  removal: RequestParameterRemoval,
+) {
+  const argument = call.arguments[removal.argumentIndex];
+  if (!argument || !ts.isObjectLiteralExpression(argument)) return undefined;
+  return argument.properties.find(
+    (property) =>
+      (ts.isPropertyAssignment(property) || ts.isShorthandPropertyAssignment(property)) &&
+      propertyName(property.name) === removal.parameter,
+  );
 }
