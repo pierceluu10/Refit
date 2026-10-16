@@ -381,6 +381,11 @@ export function createReviewArtifacts(
         ]
       : []),
     ...reasons,
+    ...('reviewTypeErrors' in validation && validation.reviewTypeErrors?.length
+      ? [
+          `**The upgraded SDK types reject these comparisons, often misspelled webhook event names that never matched.** Refit does not change event names; fix them by hand: ${summaryList([...new Set(validation.reviewTypeErrors.map((error) => code(`${error.file}:${error.line}`)))])}.`,
+        ]
+      : []),
     ...(cardRename
       ? [
           `${code('allowed_payment_method_types')} filters the payment methods Stripe finds eligible instead of listing them. Before merging, confirm cards stay enabled in the Stripe Dashboard or the payment method configuration this account uses.`,

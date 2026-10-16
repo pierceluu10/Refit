@@ -6,6 +6,7 @@ import { CARD_PAYMENT_METHOD_WARNING } from './patches.ts';
 import { createReviewArtifacts } from './review.ts';
 import { runPipeline } from './run.ts';
 import { digest } from './specifications.ts';
+import { droppedRequestParameters } from './validation.ts';
 
 const directories: string[] = [];
 afterEach(async () => {
@@ -190,4 +191,37 @@ it('lets the validation preflight through without a patch request when the pin m
   expect(report.findings[0].requestParameter).toBeUndefined();
   const unpinned = await run({ 'checkout.js': checkout("['card']", '{}') }, false);
   expect(unpinned.findings[0].requestParameter).toBeDefined();
+});
+
+it('lets an AI repair keep the card-only renames without counting them as dropped parameters', () => {
+  const original = [
+    {
+      content:
+        "a({ payment_method_types: ['card'] }); b({ payment_method_types: ['card', 'paypal'] });",
+    },
+  ];
+  const renamed = [
+    {
+      content:
+        "a({ allowed_payment_method_types: ['card'] }); b({ payment_method_types: ['card', 'paypal'] });",
+    },
+  ];
+  const cardEdit = {
+    file: 'a.ts',
+    start: 0,
+    end: 1,
+    replacement: 'allowed_payment_method_types',
+    changeId: 'request-parameter:PostCheckoutSessions.payment_method_types',
+    rule: 'stripe-card-allowed-payment-method-types' as const,
+  };
+  expect(droppedRequestParameters(['payment_method_types'], original, renamed, [cardEdit])).toEqual(
+    [],
+  );
+  expect(droppedRequestParameters(['payment_method_types'], original, renamed, [])).toEqual([
+    'payment_method_types',
+  ]);
+  const dropsPaypal = [{ content: "a({ allowed_payment_method_types: ['card'] }); b({});" }];
+  expect(
+    droppedRequestParameters(['payment_method_types'], original, dropsPaypal, [cardEdit]),
+  ).toEqual(['payment_method_types']);
 });

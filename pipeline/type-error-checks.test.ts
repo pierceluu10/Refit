@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { compareTypeCheck, typeErrors, type CheckResult } from './validation.ts';
+import { compareTypeCheck, reviewTypeError, typeErrors, type CheckResult } from './validation.ts';
 
 const run = (exitCode: number, stdout: string): CheckResult => ({
   status: exitCode === 0 ? 'passed' : 'failed',
@@ -41,4 +41,19 @@ it('fails the patched check only on errors the patch introduced, listing them fi
     added,
   ]);
   expect(compareTypeCheck(baseline, run(0, '')).status).toBe('passed');
+});
+
+it('leaves rejected literal comparisons and their never narrowing for review, not repair', () => {
+  const errors = typeErrors(
+    run(
+      2,
+      [
+        `app/webhooks.ts(54,14): error TS2678: Type '"customer.subscription-created"' is not comparable to type '"product.created" | "customer.subscription.created"'.`,
+        `app/webhooks.ts(57,38): error TS2339: Property 'data' does not exist on type 'never'.`,
+        `app/webhooks.ts(60,9): error TS2367: This comparison appears to be unintentional because the types '"customer.subscription-created"' and '"product.created"' have no overlap.`,
+        added,
+      ].join('\n'),
+    ),
+  );
+  expect(errors.map(reviewTypeError)).toEqual([true, true, true, false]);
 });
