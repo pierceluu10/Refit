@@ -18,6 +18,7 @@ const PINNED = 'docs/benchmarks/2026-10-16-shopify-repos.json';
 const PLACEHOLDER_TEST = /no test specified/;
 const VALIDATION_TIMEOUT_MS = 20 * 60 * 1000;
 const CODEGEN_CONFIG = /(?:^|\/)\.graphqlrc\.[cm]?[jt]s$/;
+const SDK_LIMIT = /first ships in|LATEST_API_VERSION is/;
 
 const { values } = parseArgs({
   options: {
@@ -161,6 +162,16 @@ async function benchmark(entry: (typeof repos)[number], index: number) {
       // Pinned to the newest schema Refit has: nothing to move, whatever else the scan reports.
       result.outcome = pins.length === 1 && pins[0] >= versions.at(-1)! ? 'current' : 'stopped';
       result.onNewestReachable = Boolean(after && pins.length === 1 && pins[0] >= after);
+      // Already on the newest version the locked SDK can name, and nothing else stops it: moving
+      // further is an SDK upgrade, not a version bump.
+      if (
+        result.outcome === 'stopped' &&
+        result.onNewestReachable &&
+        report.findings.every(
+          (finding) => !finding.contractReview || SDK_LIMIT.test(finding.contractReview),
+        )
+      )
+        result.outcome = 'current-for-sdk';
       log(`${result.outcome}: ${String(report.patch.reason).slice(0, 100)}`);
       return;
     }
