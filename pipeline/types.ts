@@ -60,6 +60,7 @@ export interface SourceEdit {
     | 'stripe-subscription-periods-price-id'
     | 'stripe-subscription-periods-helper'
     | 'stripe-invoice-subscription-helper'
+    | 'stripe-card-allowed-payment-method-types'
     | 'stripe-api-version';
 }
 

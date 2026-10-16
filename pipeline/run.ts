@@ -14,7 +14,7 @@ import {
   validateProviderMappings,
 } from './providers.ts';
 import { validatePropertyRenames } from './provider-renames.ts';
-import { removedRequestParameters } from './request-removals.ts';
+import { CARD_PAYMENT_METHOD_RULE, removedRequestParameters } from './request-removals.ts';
 import {
   isShopifySnapshot,
   isShopifySnapshotFile,
@@ -184,6 +184,21 @@ async function runOpenApiPipeline(options: {
             rule: 'stripe-api-version' as const,
           }))
       : [];
+  // The reviewed card-only rename is kept only with the target pin in the same patch and, for
+  // TypeScript, the stripe-node release whose types have allowed_payment_method_types.
+  const typescript = repository.files.some((file) => /\.(?:[cm]?ts|tsx)$/.test(file.path));
+  const cardUpgrade =
+    (options.proposePatch || options.aiPatch) &&
+    analyzedEdits.some((edit) => edit.rule === CARD_PAYMENT_METHOD_RULE) &&
+    versionEdits.length > 0 &&
+    typescript &&
+    typeof targetVersion === 'string'
+      ? await stripePackageUpgrade(repository.root, targetVersion)
+      : undefined;
+  movedTo[CARD_PAYMENT_METHOD_RULE] =
+    Boolean(options.proposePatch || options.aiPatch) &&
+    versionEdits.length > 0 &&
+    (!typescript || Boolean(cardUpgrade && 'upgrade' in cardUpgrade));
   // The period helper reads either API version, so it does not depend on the version pin.
   const edits = analyzedEdits.filter((edit) => !isFieldMove(edit) || movedTo[edit.rule!]);
   const ruleEdits = edits.filter(isFieldMove);
@@ -197,6 +212,10 @@ async function runOpenApiPipeline(options: {
       if (HELPER_RULES.has(finding.webhook?.migration?.rule ?? ''))
         delete finding.webhook!.migration;
     }
+  // A removed request parameter the kept card-only rename covers no longer stops the run.
+  for (const finding of analysis.findings)
+    if (finding.requestParameter && editCovers(repository, edits, finding))
+      delete finding.requestParameter;
   if (specificationDiff && provider.packageName === STRIPE.packageName)
     specificationDiff.changes.push(
       ...switchedEnumAdditions(enumChecks, before.schemas, after.schemas),
@@ -364,10 +383,9 @@ async function runOpenApiPipeline(options: {
     patch.status === 'proposed' &&
     'generator' in patch &&
     (patch.generator === 'openai' || (ruleEdits.length > 0 && !configuredMigrationProposal));
-  const typescript = repository.files.some((file) => /\.(?:[cm]?ts|tsx)$/.test(file.path));
   const upgrade =
     bumpedVersion && typescript && typeof targetVersion === 'string'
-      ? await stripePackageUpgrade(repository.root, targetVersion)
+      ? (cardUpgrade ?? (await stripePackageUpgrade(repository.root, targetVersion)))
       : undefined;
   const upgradedPatch =
     upgrade && 'diff' in patch
