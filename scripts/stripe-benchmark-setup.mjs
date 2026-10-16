@@ -9,18 +9,29 @@ import { parseArgs, promisify } from 'node:util';
 const execute = promisify(execFile);
 const PINNED = 'docs/benchmarks/2026-10-14-stripe-repos.json';
 const LABELS = 'docs/benchmarks/2026-10-14-stripe-labels.json';
+const HELD_OUT = 'docs/benchmarks/2026-10-15-stripe-heldout-repos.json';
 const OPENAPI = 'https://raw.githubusercontent.com/stripe/openapi';
 const GIT_TIMEOUT_MS = 300_000;
 const { values } = parseArgs({
-  options: { root: { type: 'string' }, limit: { type: 'string' }, help: { type: 'boolean' } },
+  options: {
+    root: { type: 'string' },
+    limit: { type: 'string' },
+    'held-out': { type: 'boolean' },
+    help: { type: 'boolean' },
+  },
 });
 if (values.help || !values.root) {
-  console.log('Usage: node scripts/stripe-benchmark-setup.mjs --root <dir> [--limit N]');
+  console.log(
+    'Usage: node scripts/stripe-benchmark-setup.mjs --root <dir> [--held-out] [--limit N]',
+  );
   process.exit(values.help ? 0 : 1);
 }
 const root = resolve(values.root);
-const pinned = JSON.parse(await readFile(PINNED, 'utf8'));
-const labels = JSON.parse(await readFile(LABELS, 'utf8'));
+// --held-out builds the frozen held-out list instead; it has no labels, so every repository is held out.
+const pinned = JSON.parse(await readFile(values['held-out'] ? HELD_OUT : PINNED, 'utf8'));
+const labels = values['held-out']
+  ? { labelled: [], heldOut: pinned.repos.map((entry) => entry.repo) }
+  : JSON.parse(await readFile(LABELS, 'utf8'));
 const repos = pinned.repos.slice(0, values.limit ? Number(values.limit) : undefined);
 const latest = pinned.specs
   .map((spec) => spec.version)
