@@ -1,0 +1,2700 @@
+{
+ "run": "2026-10-16",
+ "refit": "84a4c3c",
+ "note": "Every call site that still sends payment_method_types, found by refit run on the 193 Stripe benchmark repositories that stop on it (fresh 148, original 27, held-out 18). Target 2026-09-30.endive.",
+ "sites": [
+  {
+   "set": "fresh",
+   "repo": "joschan21/contentport",
+   "file": "src/server/routers/stripe-router.ts",
+   "line": 57,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card",
+    "link"
+   ],
+   "mode": "'subscription'",
+   "currency": "'usd'"
+  },
+  {
+   "set": "fresh",
+   "repo": "zainulabedeen123/Best-Saas-Kit--V2",
+   "file": "src/lib/stripe.ts",
+   "line": 35,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "'payment'",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "samarbadriddin0v/notion-clone",
+   "file": "app/api/stripe/subscription/route.ts",
+   "line": 36,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "\"subscription\"",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "RicardoGEsteves/next-digital-marketplace",
+   "file": "src/trpc/payment-router.ts",
+   "line": 62,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card",
+    "paypal"
+   ],
+   "mode": "\"payment\"",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "thematters/matters-server",
+   "file": "src/connectors/stripe/index.ts",
+   "line": 165,
+   "operation": "PostSetupIntents",
+   "value": [
+    "card"
+   ],
+   "mode": null,
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "vignesh-gupta/digibee-marketplace",
+   "file": "src/trpc/payment-router.ts",
+   "line": 70,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "\"payment\"",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "kaorii-ako/Shiori-v1",
+   "file": "api/create-checkout-session.js",
+   "line": 34,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "'subscription'",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "adityayaduvanshi/Full-Stack-Music-Web-App",
+   "file": "app/api/create-checkout-session/route.ts",
+   "line": 24,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "'subscription'",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "nabarvn/documon",
+   "file": "src/trpc/index.ts",
+   "line": 73,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card",
+    "paypal"
+   ],
+   "mode": "\"subscription\"",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "Shivamrai15/Spotify-Clone",
+   "file": "app/api/create-checkout-session/route.js",
+   "line": 25,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "'subscription'",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "ANURAG-PATHAK/DigitalMali",
+   "file": "src/trpc/payment-router.ts",
+   "line": 70,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card",
+    "paypal"
+   ],
+   "mode": "'payment'",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "Hombre2014/Genius",
+   "file": "app/api/stripe/route.ts",
+   "line": 37,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "'subscription'",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "TechWithEmmaYT/Social-X-Clone-Course",
+   "file": "app/api/stripe/route.ts",
+   "line": 50,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "\"subscription\"",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "devczero/saas-pdf-analyzer-with-AI-codinzero",
+   "file": "lib/stripe.ts",
+   "line": 20,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "\"subscription\"",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "DarkInventor/QuotesAI",
+   "file": "app/api/users/stripe/route.ts",
+   "line": 38,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "\"subscription\"",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "DarkInventor/QuotesAI",
+   "file": "pages/api/checkout.ts",
+   "line": 173,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "\"subscription\"",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "KiranRevanna1/taxonomy",
+   "file": "pages/api/users/stripe.ts",
+   "line": 37,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "\"subscription\"",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "Drago-03/Neural-Nexus",
+   "file": "app/api/create-checkout-session/route.ts",
+   "line": 42,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "'payment'",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "Drago-03/Neural-Nexus",
+   "file": "app/api/create-subscription/route.ts",
+   "line": 64,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "'subscription'",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "duggal1/flux-io",
+   "file": "app/actions.ts",
+   "line": 134,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "\"subscription\"",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "Librum-Reader/Librum-Website",
+   "file": "app/api/create-checkout-session/route.js",
+   "line": 21,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card",
+    "link",
+    "paypal"
+   ],
+   "mode": "'subscription'",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "abhiya492/ticket-saas-app",
+   "file": "app/actions/createStripeCheckoutSession.ts",
+   "line": 65,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "\"payment\"",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "MuhammadTanveerAbbas/Clario-ai",
+   "file": "src/app/api/stripe/create-checkout/route.ts",
+   "line": 41,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "\"subscription\"",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "nirholas/memescope-monday",
+   "file": "app/api/payment/checkout/route.ts",
+   "line": 74,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "\"payment\"",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "SergeySharipov/ai-companion-saas",
+   "file": "app/api/stripe/route.ts",
+   "line": 36,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "\"subscription\"",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "SudoKMaar/leaf",
+   "file": "actions/user-subscription.ts",
+   "line": 27,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "\"subscription\"",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "CiphersLab/SaaSPilot",
+   "file": "actions/createStripeSession.ts",
+   "line": 37,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "'payment'",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "CiphersLab/SaaSPilot",
+   "file": "actions/createStripeSession.ts",
+   "line": 59,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "'payment'",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "habibjutt/nextjs_boilerplate",
+   "file": "actions/payments/create-checkout-session.ts",
+   "line": 68,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "\"subscription\"",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "DhavalDudheliya/DuoLingo_Clone",
+   "file": "actions/user-subscription.ts",
+   "line": 32,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "\"subscription\"",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "rohitt-gupta/readifyai",
+   "file": "src/trpc/index.ts",
+   "line": 93,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "'subscription'",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "Harries/startfast-free",
+   "file": "src/lib/stripe.ts",
+   "line": 17,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "'subscription'",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "anand-mukul/PDFNinja",
+   "file": "src/trpc/index.ts",
+   "line": 187,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card",
+    "paypal"
+   ],
+   "mode": "\"subscription\"",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "DeepRahangdale/Concierge-AI",
+   "file": "app/api/stripe/route.ts",
+   "line": 39,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "\"subscription\"",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "miljan-code/gpt-writer",
+   "file": "app/api/payment/route.ts",
+   "line": 24,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "'payment'",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "palashb01/DocuChat",
+   "file": "src/trpc/index.ts",
+   "line": 184,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "\"subscription\"",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "zero19124/next-ai-platform",
+   "file": "app/api/stripe/route.ts",
+   "line": 74,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "\"subscription\"",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "MikPoik/next13-ai-companion",
+   "file": "app/api/stripe/route.ts",
+   "line": 44,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "\"subscription\"",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "MikPoik/next13-ai-companion",
+   "file": "app/api/stripe/route.ts",
+   "line": 94,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "\"subscription\"",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "MikPoik/next13-ai-companion",
+   "file": "app/api/stripe-topup/route.ts",
+   "line": 68,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "\"payment\"",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "thangtran3112/next-marketplace",
+   "file": "src/trpc/payment-router.ts",
+   "line": 67,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "\"payment\"",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "JensenMPillay/pdfai",
+   "file": "src/trpc/procedures.ts",
+   "line": 81,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card",
+    "paypal"
+   ],
+   "mode": "\"subscription\"",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "szymontex/donata",
+   "file": "src/server.ts",
+   "line": 82,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "blik",
+    "card"
+   ],
+   "mode": "'payment'",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "chipsxp/AI-SaaS-Assistant",
+   "file": "app/api/stripe/route.ts",
+   "line": 38,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "\"subscription\"",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "devczero/microsaas-thumbnail-previewer",
+   "file": "lib/stripe.ts",
+   "line": 24,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "\"subscription\"",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "H-Dodamani/AetherAI",
+   "file": "app/api/stripe/route.ts",
+   "line": 37,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "\"subscription\"",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "Honey-Bagel/Milanote-Clone",
+   "file": "app/api/billing/setup-intent/route.ts",
+   "line": 39,
+   "operation": "PostSetupIntents",
+   "value": [
+    "card"
+   ],
+   "mode": null,
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "miazme/digitalhippo",
+   "file": "src/trpc/payment-router.ts",
+   "line": 64,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "'payment'",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "omar99elnemr/Docubot",
+   "file": "src/trpc/index.ts",
+   "line": 178,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "'subscription'",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "PedroPini/ScaleNext",
+   "file": "src/app/api/stripe/checkout-session/route.ts",
+   "line": 15,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "'subscription'",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "Rohit19060/stripe_hono",
+   "file": "src/routes/terminals.ts",
+   "line": 35,
+   "operation": "PostPaymentIntents",
+   "value": [
+    "card_present"
+   ],
+   "mode": null,
+   "currency": "'eur'"
+  },
+  {
+   "set": "fresh",
+   "repo": "YunmeiYe/nextjs-ai-platform",
+   "file": "app/api/stripe/route.ts",
+   "line": 36,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "\"subscription\"",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "Anuradha-Herath/Pinnacle",
+   "file": "app/api/checkout/route.tsx",
+   "line": 164,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "\"payment\"",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "Anuradha-Herath/Pinnacle",
+   "file": "app/api/orders/route.tsx",
+   "line": 282,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "\"payment\"",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "devczero/saas-pdf-analysis-dev",
+   "file": "lib/stripe.ts",
+   "line": 22,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "\"subscription\"",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "doganarif/build-it",
+   "file": "lib/stripe.js",
+   "line": 15,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "mode",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "drewsephski/get2cracked",
+   "file": "actions/generate-user-stripe.ts",
+   "line": 42,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "\"subscription\"",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "drewsephski/get2cracked",
+   "file": "app/api/create-checkout-session/route.ts",
+   "line": 21,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "\"subscription\"",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "enz0rd/quickurl",
+   "file": "src/app/api/subscription/create-checkout/route.ts",
+   "line": 64,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "'subscription'",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "jassibacha/AskPDF",
+   "file": "src/trpc/index.ts",
+   "line": 91,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "'subscription'",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "jeanchrinot/shipaisaas-starter",
+   "file": "lib/payments/stripe.ts",
+   "line": 26,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "\"subscription\"",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "jeanchrinot/shipaisaas-starter",
+   "file": "actions/generate-user-stripe.ts",
+   "line": 45,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "\"subscription\"",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "krishvsoni/Scrimble",
+   "file": "app/lib/stripe.ts",
+   "line": 22,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "\"subscription\"",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "krishvsoni/Scrimble",
+   "file": "lib/stripe.ts",
+   "line": 19,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "\"subscription\"",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "mouhamedanflosse/digitalHome",
+   "file": "src/trpc/payment-router.ts",
+   "line": 62,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card",
+    "cashapp"
+   ],
+   "mode": "\"payment\"",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "nhemnt/slackify",
+   "file": "pages/api/users/stripe.ts",
+   "line": 37,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "\"subscription\"",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "passion-27/QuotesAI",
+   "file": "app/api/users/stripe/route.ts",
+   "line": 38,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "\"subscription\"",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "passion-27/QuotesAI",
+   "file": "pages/api/checkout.ts",
+   "line": 173,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "\"subscription\"",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "shaoxuan0916/life-slice",
+   "file": "app/api/checkout/route.ts",
+   "line": 16,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "\"payment\"",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "Suhaib3100/online-compiler",
+   "file": "actions/generate-user-stripe.ts",
+   "line": 43,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "\"subscription\"",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "xhumaliosmani/ecomWatchUdemy1",
+   "file": "app/api/checkout/route.js",
+   "line": 122,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "\"payment\"",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "Alfredoeb9/ele",
+   "file": "src/app/_components/actions/actions.ts",
+   "line": 102,
+   "operation": "PostPaymentIntents",
+   "value": [
+    "card",
+    "us_bank_account"
+   ],
+   "mode": null,
+   "currency": "\"usd\""
+  },
+  {
+   "set": "fresh",
+   "repo": "Alfredoeb9/ele",
+   "file": "src/app/api/(stripe)/stripe-add-cash/route.ts",
+   "line": 72,
+   "operation": "PostPaymentIntents",
+   "value": [
+    "card"
+   ],
+   "mode": null,
+   "currency": "\"usd\""
+  },
+  {
+   "set": "fresh",
+   "repo": "Alfredoeb9/ele",
+   "file": "src/app/pricing/actions.ts",
+   "line": 28,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card",
+    "us_bank_account"
+   ],
+   "mode": "\"payment\"",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "Alfredoeb9/ele",
+   "file": "src/app/subscription/actions.ts",
+   "line": 24,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card",
+    "us_bank_account"
+   ],
+   "mode": "\"subscription\"",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "Anassarwar14/Chat-Nest-AI",
+   "file": "app/api/stripe/route.ts",
+   "line": 38,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "\"subscription\"",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "Ankit-Sharma1011/Quill",
+   "file": "src/trpc/index.ts",
+   "line": 200,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "\"subscription\"",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "avikalp987/lingo",
+   "file": "actions/user-subscription.ts",
+   "line": 34,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "\"subscription\"",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "avikalp987/quill",
+   "file": "src/trpc/index.ts",
+   "line": 170,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "\"subscription\"",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "DataRohit/Quill-Document-Chat",
+   "file": "src/trpc/index.ts",
+   "line": 184,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "\"subscription\"",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "Deepanshu0211/Rocart",
+   "file": "api/create-payment-intent.js",
+   "line": 55,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "\"payment\"",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "devczero/vid-analyzer-saas",
+   "file": "lib/stripe.ts",
+   "line": 20,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "\"subscription\"",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "Jose-Wernerson/Turbo-Gestor",
+   "file": "app/api/stripe/create-checkout-session/route.ts",
+   "line": 52,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "\"subscription\"",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "Joseyosei/Share-The-Link",
+   "file": "api/create-connected-account.ts",
+   "line": 42,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "\"payment\"",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "laxmanclo/multi-agent-kit",
+   "file": "lib/stripe.ts",
+   "line": 10,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "'subscription'",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "mageshyt/Nextjs-saas-starter",
+   "file": "app/(server)/api/(routes)/payments/create-checkout-session/route.ts",
+   "line": 34,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "\"subscription\"",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "mykha1129/AI-Agent",
+   "file": "src/app/api/stripe/buy-credits/route.ts",
+   "line": 26,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "'payment'",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "mykha1129/AI-Agent",
+   "file": "src/app/api/stripe/create-subscription/route.ts",
+   "line": 42,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "'subscription'",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "nicolas1102/dxter-shark",
+   "file": "src/trpc/payment-router.ts",
+   "line": 92,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "'payment'",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "oMiguelwnl/Borcelle_admin",
+   "file": "app/api/checkout/route.ts",
+   "line": 23,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "\"payment\"",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "pra9711/lexinote",
+   "file": "src/trpc/index.ts",
+   "line": 481,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "'subscription'",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "PramodLakmal/mern-vsms",
+   "file": "api/index.js",
+   "line": 103,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "\"payment\"",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "psykat1116/Planit",
+   "file": "actions/StripeRedirect/index.ts",
+   "line": 43,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "\"subscription\"",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "psykat1116/Spotify",
+   "file": "src/app/api/create-checkout-session/route.ts",
+   "line": 22,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "\"subscription\"",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "QwertyFusion/bookworm",
+   "file": "src/trpc/index.ts",
+   "line": 165,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card",
+    "paypal"
+   ],
+   "mode": "'subscription'",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "RafaelAquinodev/concurso-fsc-nft",
+   "file": "src/app/(protected)/upgrade/_actions/create-checkout/index.ts",
+   "line": 22,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "\"subscription\"",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "raumildhandhukia/inboxradarai",
+   "file": "lib/stripe.ts",
+   "line": 90,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "\"subscription\"",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "Sammindinventory/Saas-Gen-AI",
+   "file": "trpc/index.ts",
+   "line": 171,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card",
+    "paypal"
+   ],
+   "mode": "\"subscription\"",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "savka777/TiteL",
+   "file": "src/trpc/index.ts",
+   "line": 90,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "\"payment\"",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "shivamm-55/HippoSphere",
+   "file": "src/trpc/payment-router.ts",
+   "line": 70,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card",
+    "paypal"
+   ],
+   "mode": "'payment'",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "suzushi-tw/celestialpdf",
+   "file": "src/trpc/index.ts",
+   "line": 86,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "'subscription'",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "abhirupkumar/docwhisperer",
+   "file": "src/trpc/index.ts",
+   "line": 94,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "'subscription'",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "Addisu87/digital-marketplace",
+   "file": "trpc/payment-router.ts",
+   "line": 73,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "'payment'",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "afdon/music-app",
+   "file": "app/api/create-checkout-session/route.ts",
+   "line": 27,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "'subscription'",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "AlefeSk8/Spotify-Clone-Next.js",
+   "file": "app/api/create-checkout-session/route.ts",
+   "line": 29,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "'subscription'",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "bhaveshchhimwal/PopIn",
+   "file": "server/controllers/payments.js",
+   "line": 45,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "\"payment\"",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "bichsonnhat/cognito",
+   "file": "app/api/stripe/route.ts",
+   "line": 47,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "\"subscription\"",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "cookieMonsterDev/e-commerce-saas",
+   "file": "src/trpc/index.ts",
+   "line": 66,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card",
+    "paypal"
+   ],
+   "mode": "\"subscription\"",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "dheerajcl/Jynx2.0",
+   "file": "src/trpc/index.ts",
+   "line": 200,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "\"subscription\"",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "Divith123/Ninja-Drive",
+   "file": "app/api/subscription/route.ts",
+   "line": 38,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "'subscription'",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "Edjemoknine/CV-Builder",
+   "file": "app/api/subscriptions/route.js",
+   "line": 17,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "\"subscription\"",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "eka0789/evofuture",
+   "file": "lib/stripe.ts",
+   "line": 86,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "'subscription'",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "emman-tt/tilios-backend",
+   "file": "controller/payment/payment.js",
+   "line": 29,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "'payment'",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "ensarokumus/tldr-app",
+   "file": "src/trpc/index.ts",
+   "line": 191,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "\"subscription\"",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "ggallon/type-last",
+   "file": "app/api/users/stripe/route.ts",
+   "line": 37,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "\"subscription\"",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "gjlander/backend-lazypress",
+   "file": "routes/stripeRoutes.js",
+   "line": 33,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "\"payment\"",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "haimatrix99/quiz-me",
+   "file": "trpc/index.ts",
+   "line": 189,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card",
+    "paypal"
+   ],
+   "mode": "'subscription'",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "HarshKumarraghav/Infinidocs",
+   "file": "src/trpc/index.ts",
+   "line": 183,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "\"subscription\"",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "heyitsadityaa/ticketr",
+   "file": "actions/createStripeCheckoutSession.ts",
+   "line": 67,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "\"payment\"",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "heyzbh/scrapmatic-saas-app",
+   "file": "lib/stripe.ts",
+   "line": 38,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card",
+    "paypal"
+   ],
+   "mode": "\"payment\"",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "IncomeStreamSurfer/free-site-example",
+   "file": "convex/stripe.ts",
+   "line": 26,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "\"payment\"",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "jaykeraliya0/doc-query",
+   "file": "app/api/create-stripe-session/route.ts",
+   "line": 31,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "\"subscription\"",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "karljuhl/Club_Connect",
+   "file": "app/api/users/stripe/route.ts",
+   "line": 42,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "\"subscription\"",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "KPZ231/what-now-chaos",
+   "file": "src/app/api/checkout/route.js",
+   "line": 53,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "plan === 'lifetime' ? 'payment' : 'subscription'",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "kyyril/saas-noteapp",
+   "file": "lib/stripe.ts",
+   "line": 22,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "\"subscription\"",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "liamstamper/lamp-bot",
+   "file": "app/api/stripe/generate-checkout/route.ts",
+   "line": 65,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "\"subscription\"",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "LouisMbc/twitter-like",
+   "file": "src/app/api/stripe/checkout/route.ts",
+   "line": 33,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "'subscription'",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "LouisMbc/twitter-like",
+   "file": "src/services/stripe/stripe.ts",
+   "line": 50,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "'subscription'",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "mahin67580/FoodieFrog",
+   "file": "src/app/api/checkout/route.js",
+   "line": 47,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "'payment'",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "MayorEmpror/CARZ",
+   "file": "app/api/rentals/[id]/checkout-session/route.ts",
+   "line": 60,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "'payment'",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "MeldinRadoncic/TriboAI",
+   "file": "app/api/stripe/route.js",
+   "line": 42,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "\"subscription\"",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "miroshar-success/SaaS-CV-Creation",
+   "file": "trpc/index.ts",
+   "line": 72,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card",
+    "paypal"
+   ],
+   "mode": "'subscription'",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "monsterooo/nextjs-starter",
+   "file": "app/api/users/stripe/route.ts",
+   "line": 36,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "\"subscription\"",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "Neddie28/Spotify-Clone",
+   "file": "app/api/create-checkout-session/route.ts",
+   "line": 27,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "'subscription'",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "nishchay-veer/tunehub-next",
+   "file": "app/api/create-checkout-session/route.ts",
+   "line": 23,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "'subscription'",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "Princegupta101/SwiftScribe",
+   "file": "src/trpc/index.ts",
+   "line": 200,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "\"subscription\"",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "r0ld3x/DocTalk",
+   "file": "src/trpc/index.ts",
+   "line": 117,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card",
+    "paypal"
+   ],
+   "mode": "\"subscription\"",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "removisionscodefindersplatform-art/RemoVisions-Code-Finders-Platform",
+   "file": "server.js",
+   "line": 75,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "'subscription'",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "RescuePC/Donation-Link",
+   "file": "server.js",
+   "line": 13,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "'payment'",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "robharding/Quill",
+   "file": "src/trpc/index.ts",
+   "line": 167,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "\"subscription\"",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "Sarcovora/quill",
+   "file": "src/trpc/index.ts",
+   "line": 83,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card",
+    "paypal"
+   ],
+   "mode": "'subscription'",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "shagunmistry/FlowCraft",
+   "file": "src/app/api/checkout-session/route.ts",
+   "line": 40,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "'subscription'",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "Shefaul-22/AgriFlow",
+   "file": "src/app/api/checkout/route.ts",
+   "line": 25,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "\"payment\"",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "TN0123/Schematic",
+   "file": "src/app/api/stripe/create-checkout/route.ts",
+   "line": 77,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "\"subscription\"",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "ummarikar/boilerplate-club",
+   "file": "lib/stripe.ts",
+   "line": 26,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "\"subscription\"",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "ummarikar/boilerplate-club",
+   "file": "lib/stripe.ts",
+   "line": 48,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "\"payment\"",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "UNC-GDSC/Micro-SaaS-Starter-Kit",
+   "file": "lib/stripe.ts",
+   "line": 20,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "'subscription'",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "yassine-ahmed/MyBusinessWebsite",
+   "file": "convex/stripe.ts",
+   "line": 41,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "\"payment\"",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "Yudhishthirr/askmypdf",
+   "file": "src/trpc/index.ts",
+   "line": 128,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card",
+    "paypal"
+   ],
+   "mode": "'subscription'",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "yuens1002/artisan-roast",
+   "file": "app/api/admin/settings/stripe/route.ts",
+   "line": 89,
+   "operation": "PostPaymentIntents",
+   "value": [
+    "card"
+   ],
+   "mode": null,
+   "currency": "\"usd\""
+  },
+  {
+   "set": "fresh",
+   "repo": "4lbatr0s/jiro",
+   "file": "src/trpc/controller/index.ts",
+   "line": 105,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card",
+    "paypal"
+   ],
+   "mode": "'subscription'",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "4NDR3S-01/StyleHub",
+   "file": "src/app/api/stripe/checkout-session/route.ts",
+   "line": 77,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "'payment'",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "4NDR3S-01/StyleHub",
+   "file": "src/app/api/stripe/checkout-session.ts",
+   "line": 23,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "'payment'",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "AadityaShukla01/Simplex",
+   "file": "app/api/stripe/route.ts",
+   "line": 35,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "\"subscription\"",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "ABHINAVJINDAL26/VANTAGE-Golf-Charity-Platform",
+   "file": "src/app/api/stripe/checkout/route.ts",
+   "line": 31,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "\"subscription\"",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "adamhitzger/financehb",
+   "file": "actions/users.tsx",
+   "line": 841,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "\"subscription\"",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "adobetoby-maker/app.languagethreshold.com",
+   "file": "src/routes/api.create-checkout.ts",
+   "line": 38,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "\"subscription\"",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "adobetoby-maker/app.languagethreshold.com",
+   "file": "src/routes/api.module-request.ts",
+   "line": 104,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "\"payment\"",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "aionarae/amazon-beta",
+   "file": "server/schemas/resolvers.js",
+   "line": 77,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "'payment'",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "akn3107/whatsapp-store-creator",
+   "file": "lib/stripe.ts",
+   "line": 15,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "\"payment\"",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "AlphaAnimica/Backend-AlphaAnimica",
+   "file": "index-sqlite-backup.js",
+   "line": 1138,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "'payment'",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "AlphaAnimica/Backend-AlphaAnimica",
+   "file": "index-sqlite.js",
+   "line": 1138,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "'payment'",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "Amarnath0077/industrialstore-main",
+   "file": "api/create-checkout-session.js",
+   "line": 69,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "\"payment\"",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "Amarnath0077/industrialstore-main",
+   "file": "server.ts",
+   "line": 48,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "\"payment\"",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "AshimaSingh0610/SwiftScribe",
+   "file": "src/trpc/index.ts",
+   "line": 200,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "\"subscription\"",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "ASQUAREEE/intellico",
+   "file": "src/trpc/index.ts",
+   "line": 102,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card",
+    "paypal",
+    "us_bank_account"
+   ],
+   "mode": "\"subscription\"",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "Chivo1530/CHIVITO-AI-DEV",
+   "file": "lib/stripe.js",
+   "line": 31,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "'subscription'",
+   "currency": null
+  },
+  {
+   "set": "fresh",
+   "repo": "Chris-26-dev/ecommerce",
+   "file": "src/lib/actions/checkout.ts",
+   "line": 137,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "\"payment\"",
+   "currency": null
+  },
+  {
+   "set": "original",
+   "repo": "Kanba-co/kanba",
+   "file": "app/api/stripe/checkout/route.ts",
+   "line": 172,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "mode as 'payment' | 'subscription'",
+   "currency": null
+  },
+  {
+   "set": "original",
+   "repo": "get-convex/convex-saas",
+   "file": "convex/stripe.ts",
+   "line": 336,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "\"subscription\"",
+   "currency": null
+  },
+  {
+   "set": "original",
+   "repo": "nizzyabi/nizzy-starter",
+   "file": "app/api/checkout/route.ts",
+   "line": 32,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "'subscription'",
+   "currency": null
+  },
+  {
+   "set": "original",
+   "repo": "sudeepmahato16/airbnb-clone",
+   "file": "services/reservation.ts",
+   "line": 194,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "'payment'",
+   "currency": null
+  },
+  {
+   "set": "original",
+   "repo": "samarbadriddin0v/google-drive-clone",
+   "file": "app/api/subscription/route.ts",
+   "line": 38,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "'subscription'",
+   "currency": null
+  },
+  {
+   "set": "original",
+   "repo": "dalemoncayo/express-stripe",
+   "file": "app.js",
+   "line": 24,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "'payment'",
+   "currency": null
+  },
+  {
+   "set": "original",
+   "repo": "iggy-tech/product-hunt-clone-final",
+   "file": "lib/stripe.ts",
+   "line": 16,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "\"subscription\"",
+   "currency": null
+  },
+  {
+   "set": "original",
+   "repo": "mrwebwork/spotify",
+   "file": "app/api/create-checkout-session/route.ts",
+   "line": 31,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "'subscription'",
+   "currency": null
+  },
+  {
+   "set": "original",
+   "repo": "LucasKlemke/doctor-reborn",
+   "file": "app/(system)/api/create-checkout/route.ts",
+   "line": 18,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "boleto",
+    "card"
+   ],
+   "mode": "'payment'",
+   "currency": null
+  },
+  {
+   "set": "original",
+   "repo": "nicitaacom/19_spotify-clone",
+   "file": "app/api/create-checkout-session/route.ts",
+   "line": 23,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "\"subscription\"",
+   "currency": null
+  },
+  {
+   "set": "original",
+   "repo": "nicitaacom/19_spotify-clone",
+   "file": "app/api/playlists/checkout/route.ts",
+   "line": 93,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "\"payment\"",
+   "currency": null
+  },
+  {
+   "set": "original",
+   "repo": "Shivamrai15/Safari",
+   "file": "app/api/create-checkout-session/route.ts",
+   "line": 20,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "\"subscription\"",
+   "currency": null
+  },
+  {
+   "set": "original",
+   "repo": "ProgrammingHero1/bistro-boss-server-with-aggregate-part_8",
+   "file": "index.js",
+   "line": 206,
+   "operation": "PostPaymentIntents",
+   "value": [
+    "card"
+   ],
+   "mode": null,
+   "currency": "'usd'"
+  },
+  {
+   "set": "original",
+   "repo": "Miguel07Alm/text2question",
+   "file": "src/app/api/stripe/checkout-session/route.ts",
+   "line": 22,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "\"payment\"",
+   "currency": null
+  },
+  {
+   "set": "original",
+   "repo": "tejus05/quill",
+   "file": "src/trpc/index.ts",
+   "line": 103,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "'subscription'",
+   "currency": null
+  },
+  {
+   "set": "original",
+   "repo": "kpirabaharan/Spotify-Clone",
+   "file": "app/api/create-checkout-session/route.ts",
+   "line": 25,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "'subscription'",
+   "currency": null
+  },
+  {
+   "set": "original",
+   "repo": "mdalmamunit427/yoga-master-server",
+   "file": "index.js",
+   "line": 276,
+   "operation": "PostPaymentIntents",
+   "value": [
+    "card"
+   ],
+   "mode": null,
+   "currency": "'usd'"
+  },
+  {
+   "set": "original",
+   "repo": "ArhanAnsari/InspireGem",
+   "file": "actions/createCheckoutSession.ts",
+   "line": 68,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "\"subscription\"",
+   "currency": null
+  },
+  {
+   "set": "original",
+   "repo": "ArhanAnsari/InspireGem",
+   "file": "app/api/checkout/route.ts",
+   "line": 23,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "\"subscription\"",
+   "currency": null
+  },
+  {
+   "set": "original",
+   "repo": "deifos/picturemeai_nextjs",
+   "file": "app/api/stripe/create-checkout-session/route.ts",
+   "line": 72,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "'payment'",
+   "currency": null
+  },
+  {
+   "set": "original",
+   "repo": "phukon/clack",
+   "file": "src/actions/payments/createStripePayIntentSession.ts",
+   "line": 45,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "\"payment\"",
+   "currency": null
+  },
+  {
+   "set": "original",
+   "repo": "phukon/clack",
+   "file": "src/actions/payments/createStripeSession.ts",
+   "line": 46,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "\"payment\"",
+   "currency": null
+  },
+  {
+   "set": "original",
+   "repo": "boristenkes/shop.co",
+   "file": "features/orders/actions/create.ts",
+   "line": 90,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "'payment'",
+   "currency": null
+  },
+  {
+   "set": "original",
+   "repo": "Panda2Chan/ai-asmr",
+   "file": "src/lib/stripe.ts",
+   "line": 126,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "'subscription'",
+   "currency": null
+  },
+  {
+   "set": "original",
+   "repo": "Panda2Chan/ai-asmr",
+   "file": "src/lib/stripe.ts",
+   "line": 154,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "'payment'",
+   "currency": null
+  },
+  {
+   "set": "original",
+   "repo": "jeancdevx/duolingo-clone",
+   "file": "actions/user-subscription.ts",
+   "line": 32,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "'subscription'",
+   "currency": null
+  },
+  {
+   "set": "original",
+   "repo": "BrunoZielinski/next13-lms-platform",
+   "file": "app/api/courses/[courseId]/checkout/route.ts",
+   "line": 82,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "'payment'",
+   "currency": null
+  },
+  {
+   "set": "original",
+   "repo": "aviroopjana/PersonaVerse",
+   "file": "app/api/stripe/route.ts",
+   "line": 37,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "\"subscription\"",
+   "currency": null
+  },
+  {
+   "set": "original",
+   "repo": "cesarolvr/journeylog-app",
+   "file": "src/app/api/stripe/route.ts",
+   "line": 24,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "\"subscription\"",
+   "currency": null
+  },
+  {
+   "set": "original",
+   "repo": "Sasu8823/Hairdresser_matching_service-backend",
+   "file": "routes/stripe.js",
+   "line": 26,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "'payment'",
+   "currency": null
+  },
+  {
+   "set": "original",
+   "repo": "Sasu8823/Hairdresser_matching_service-backend",
+   "file": "index.js",
+   "line": 37,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "'payment'",
+   "currency": null
+  },
+  {
+   "set": "original",
+   "repo": "saidMounaim/tick-event",
+   "file": "app/api/checkout/route.ts",
+   "line": 12,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "\"payment\"",
+   "currency": null
+  },
+  {
+   "set": "held-out",
+   "repo": "Akash4510/ai-companion",
+   "file": "app/api/stripe/route.ts",
+   "line": 37,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "'subscription'",
+   "currency": null
+  },
+  {
+   "set": "held-out",
+   "repo": "ha346/AI-Saas-Platform",
+   "file": "app/api/stripe/route.ts",
+   "line": 37,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "\"subscription\"",
+   "currency": null
+  },
+  {
+   "set": "held-out",
+   "repo": "LucasKlemke/StudMed",
+   "file": "app/(auth)/api/webhook/stripe/route.ts",
+   "line": 24,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "'subscription'",
+   "currency": null
+  },
+  {
+   "set": "held-out",
+   "repo": "Shobhnik13/SynthAI",
+   "file": "app/api/stripe/route.ts",
+   "line": 35,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "'subscription'",
+   "currency": null
+  },
+  {
+   "set": "held-out",
+   "repo": "adrianhorning08/web-scraping-course-app",
+   "file": "server.js",
+   "line": 20,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "'payment'",
+   "currency": null
+  },
+  {
+   "set": "held-out",
+   "repo": "el-noir/Tempify",
+   "file": "src/lib/stripe.ts",
+   "line": 110,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "'payment'",
+   "currency": null
+  },
+  {
+   "set": "held-out",
+   "repo": "el-noir/Tempify",
+   "file": "src/app/api/checkout/route.ts",
+   "line": 57,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "\"payment\"",
+   "currency": null
+  },
+  {
+   "set": "held-out",
+   "repo": "abressiddique/AbresStore-Admin",
+   "file": "app/api/checkout/route.ts",
+   "line": 23,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "\"payment\"",
+   "currency": null
+  },
+  {
+   "set": "held-out",
+   "repo": "blefnk/all-in-one-nextjs-template",
+   "file": "src/server/actions/deprecated/stripe/createCheckoutSession.ts",
+   "line": 69,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "\"payment\"",
+   "currency": null
+  },
+  {
+   "set": "held-out",
+   "repo": "blefnk/all-in-one-nextjs-template",
+   "file": "src/server/actions/deprecated/stripe/manageSubscription.ts",
+   "line": 64,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "\"subscription\"",
+   "currency": null
+  },
+  {
+   "set": "held-out",
+   "repo": "blefnk/all-in-one-nextjs-template",
+   "file": "src/server/actions/stripe.ts",
+   "line": 360,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "\"subscription\"",
+   "currency": null
+  },
+  {
+   "set": "held-out",
+   "repo": "imran-farooq7/next-gen-ai-yt",
+   "file": "lib/actions.ts",
+   "line": 136,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "\"subscription\"",
+   "currency": null
+  },
+  {
+   "set": "held-out",
+   "repo": "manu14357/smartdoc",
+   "file": "src/trpc/index.ts",
+   "line": 76,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card",
+    "paypal"
+   ],
+   "mode": "\"subscription\"",
+   "currency": null
+  },
+  {
+   "set": "held-out",
+   "repo": "manfraio/stripe_elements_customized_card_form",
+   "file": "index.js",
+   "line": 44,
+   "operation": "PostPaymentIntents",
+   "value": [
+    "card"
+   ],
+   "mode": null,
+   "currency": "'usd'"
+  },
+  {
+   "set": "held-out",
+   "repo": "kalibani/HireFazz",
+   "file": "trpc/index.ts",
+   "line": 72,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card",
+    "paypal"
+   ],
+   "mode": "'subscription'",
+   "currency": null
+  },
+  {
+   "set": "held-out",
+   "repo": "Devanshjain2110/QueryPDF",
+   "file": "src/trpc/index.ts",
+   "line": 155,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "\"subscription\"",
+   "currency": null
+  },
+  {
+   "set": "held-out",
+   "repo": "utsavkrishnatra/pdf_answers",
+   "file": "src/trpc/index.ts",
+   "line": 93,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "'subscription'",
+   "currency": null
+  },
+  {
+   "set": "held-out",
+   "repo": "ryananhtuan-nguyen/quill",
+   "file": "src/trpc/index.ts",
+   "line": 76,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "'subscription'",
+   "currency": null
+  },
+  {
+   "set": "held-out",
+   "repo": "minhthuong031103/RealEstateBrokerageMarket",
+   "file": "src/app/api/stripe/checkout-session/mua-le/route.ts",
+   "line": 19,
+   "operation": "PostPaymentIntents",
+   "value": [
+    "card"
+   ],
+   "mode": null,
+   "currency": "'vnd'"
+  },
+  {
+   "set": "held-out",
+   "repo": "minhthuong031103/RealEstateBrokerageMarket",
+   "file": "src/app/api/stripe/checkout-session/route.ts",
+   "line": 36,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "'subscription'",
+   "currency": null
+  },
+  {
+   "set": "held-out",
+   "repo": "mwangimuringi/BlogNest",
+   "file": "app/actions.ts",
+   "line": 214,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "\"subscription\"",
+   "currency": null
+  },
+  {
+   "set": "held-out",
+   "repo": "Ankur123unsungDevloper/RegNote",
+   "file": "actions/stripe-redirect/index.ts",
+   "line": 56,
+   "operation": "PostCheckoutSessions",
+   "value": [
+    "card"
+   ],
+   "mode": "\"subscription\"",
+   "currency": null
+  }
+ ]
+}

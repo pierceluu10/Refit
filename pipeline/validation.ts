@@ -15,11 +15,11 @@ import {
   type ApiVersionPolicy,
 } from './api-version.ts';
 import { digest, readSpecification } from './specifications.ts';
-import { PipelineInputError } from './types.ts';
+import { PipelineInputError, type SourceEdit } from './types.ts';
 import { readRepository } from './repository.ts';
 import { validateCheckCommand, validateRepairAttempts } from './validation-options.ts';
 import { proposeAiPatch, TYPE_ERROR_CHANGE } from './ai-patches.ts';
-import { removedRequestParameters } from './request-removals.ts';
+import { CARD_PAYMENT_METHOD_RULE, removedRequestParameters } from './request-removals.ts';
 import { gitEnvironment } from './git-environment.ts';
 import { readCommittedRepository } from './committed-repository.ts';
 import { prepareDependencies } from './dependency-preparation.ts';
@@ -254,6 +254,28 @@ async function generatedStripeChecks(options: {
     claim:
       "Exported functions enclosing confirmed findings ran against stripe-mock serving each side's contract and fixtures. Placeholder fixtures check response shapes, not business data or application tests.",
   };
+}
+
+const mentions = (files: { content: string }[], name: string) =>
+  files.reduce(
+    (count, file) => count + (file.content.match(new RegExp(`\\b${name}\\b`, 'g'))?.length ?? 0),
+    0,
+  );
+
+// Removed request parameters a repair mentions fewer times than the original code does, less the
+// sites the approved card-only rule already renamed.
+export function droppedRequestParameters(
+  names: string[],
+  original: { content: string }[],
+  candidate: { content: string }[],
+  ruleEdits: SourceEdit[],
+) {
+  const renamed = ruleEdits.filter((edit) => edit.rule === CARD_PAYMENT_METHOD_RULE).length;
+  return names.filter(
+    (name) =>
+      mentions(candidate, name) <
+      mentions(original, name) - (name === 'payment_method_types' ? renamed : 0),
+  );
 }
 
 export async function validateMigration(options: {
@@ -560,12 +582,6 @@ export async function validateMigration(options: {
         ).map((removal) => removal.parameter),
       ),
     ];
-    const mentions = (files: { content: string }[], name: string) =>
-      files.reduce(
-        (count, file) =>
-          count + (file.content.match(new RegExp(`\\b${name}\\b`, 'g'))?.length ?? 0),
-        0,
-      );
     const repair: { limit: number; requested: number; stopReason: string; error: string | null } = {
       limit: repairLimit,
       requested: 0,
@@ -669,9 +685,11 @@ export async function validateMigration(options: {
         }
         const preparedCandidate = await prepareCandidate(candidate.diff);
         // A removed request parameter has no reviewed replacement; a repair must not drop it.
-        const dropped = removedParameters.filter(
-          (name) =>
-            mentions(preparedCandidate.sources.files, name) < mentions(originalSources.files, name),
+        const dropped = droppedRequestParameters(
+          removedParameters,
+          originalSources.files,
+          preparedCandidate.sources.files,
+          ('ruleEdits' in report.patch ? report.patch.ruleEdits : undefined) ?? [],
         );
         if (dropped.length) {
           repair.stopReason = 'review-required';

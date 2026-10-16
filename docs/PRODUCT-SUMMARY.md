@@ -1,6 +1,6 @@
 # Refit: what works end to end
 
-_As of October 16, 2026 (Refit 0.38.0). Every number below comes from runs recorded in [Benchmarks](BENCHMARKS.md), [the Stripe benchmark](STRIPE-BENCHMARK.md), [the Shopify benchmark](SHOPIFY-BENCHMARK.md) and [readiness checkpoints](READINESS.md)._
+_As of October 16, 2026 (Refit 0.39.0). Every number below comes from runs recorded in [Benchmarks](BENCHMARKS.md), [the Stripe benchmark](STRIPE-BENCHMARK.md), [the Shopify benchmark](SHOPIFY-BENCHMARK.md) and [readiness checkpoints](READINESS.md)._
 
 Refit is Dependabot for API changes. When a provider ships a new API version, Refit reads the old and new API contracts and finds the exact lines in a customer's code that break. It writes the migration, runs the repository's own checks in an offline sandbox, and opens a draft pull request for a human to review. It never merges.
 
@@ -20,7 +20,7 @@ Stripe target: `2026-09-30.endive`. Three frozen Stripe sets: the original 100, 
 | | Stripe (531) | Shopify (250) |
 |---|---|---|
 | Repositories with confirmed breaking usage (Stripe) or Admin API usage (Shopify) | **234** | 216 |
-| Validated fixes | **10** (all published as draft PRs on `refit-dev` forks) | **7** |
+| Validated fixes | **45** with the card-only policy (was 10; those 10 are published as draft PRs on `refit-dev` forks) | **7** |
 | Hand-reviewed: correct / correct-partial / wrong | 8 / 2 / 0 | 7 / 0 / 0 |
 | Apps whose queries already fail on every version the provider serves | n/a | **28** |
 | Same outcome on a repeat run | 531 of 531 | 250 of 250 |
@@ -37,7 +37,7 @@ Stripe endive removed `payment_method_types` from Checkout Sessions, PaymentInte
 - **The AI "fixed" it 4 times out of 4** by renaming it to `allowed_payment_method_types`. The typecheck passed, but the contract defines that field as a filter on dynamically eligible methods, not the same static list. Those PRs would have looked green and changed checkout behavior.
 - **One deterministic fix looked validated** because the old SDK types still accepted the parameter. The new API version would have rejected the request at runtime.
 
-Refit now catches the removed parameter statically and stops before any patch or AI request (148 fresh, 18 held-out and 27 original repositories). It never ships a plausible guess. Choosing a replacement is a product decision, so it goes to a human.
+Refit catches the removed parameter statically and stops before any patch or AI request. It never ships a plausible guess. Choosing a replacement is a product decision, so it went to a human. The owner approved one narrow case: an exact `['card']` becomes `allowed_payment_method_types: ['card']`. The rename ships only with the endive pin and the stripe-node upgrade, and the draft PR discloses the change in meaning. Validated Stripe fixes rose from 10 to 45. Every other value still stops ([policy](STRIPE-PAYMENT-METHOD-TYPES.md)).
 
 ## What it does not do yet
 
@@ -47,4 +47,4 @@ Refit now catches the removed parameter statically and stops before any patch or
 - **Coverage gaps are explicit.** Repositories without an npm, pnpm or Yarn lockfile, dependency installs over 1 GiB, and failing baseline tests are refused rather than guessed at.
 - **Hosting is not chosen.** Refit runs today as a CLI plus a self-hosted GitHub App worker (`refit serve`). Hosting and billing are not decided.
 
-Engineering: 1,330 tests passing (78 more gated on Docker and real SDKs), with conventional commits, CI on Node 22 and 24, and versioned pre-releases.
+Engineering: 1,339 tests passing (78 more gated on Docker and real SDKs), with conventional commits, CI on Node 22 and 24, and versioned pre-releases.

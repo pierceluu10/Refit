@@ -262,6 +262,13 @@ export function createReviewArtifacts(
   const operationChanges = report.operationChanges ?? [];
   const endpoint = operationChanges[0];
   const requestChanges = report.requestChanges ?? [];
+  // A removed payment_method_types finding with no remaining stop was migrated by the card-only rule.
+  const cardRename = report.findings.some(
+    (finding) =>
+      finding.changeId.endsWith('.payment_method_types') &&
+      finding.changeId.startsWith('request-parameter:') &&
+      !finding.requestParameter,
+  );
   const request = requestChanges[0];
   const subscriptionPolicy = report.findings.some((finding) => finding.webhook?.migration)
     ? report.adapter.stripeSubscriptionPeriods
@@ -353,6 +360,11 @@ export function createReviewArtifacts(
           (entry) =>
             `Renames request field ${code(entry.removed)} to ${code(entry.replacement)} in ${code(`${entry.resource}.${entry.method}`)}.`,
         ),
+        ...(cardRename
+          ? [
+              `Removes request field ${code('payment_method_types')}; ${code("['card']")} moves to ${code('allowed_payment_method_types')} under the owner-approved policy.`,
+            ]
+          : []),
         ...operationChanges.map(
           (entry) =>
             `Retires ${code(`${entry.resource}.${entry.method}`)} in favor of ${code(`${entry.replacementResource}.${entry.replacementMethod}`)}.`,
@@ -372,6 +384,11 @@ export function createReviewArtifacts(
     ...('reviewTypeErrors' in validation && validation.reviewTypeErrors?.length
       ? [
           `**The upgraded SDK types reject these comparisons, often misspelled webhook event names that never matched.** Refit does not change event names; fix them by hand: ${summaryList([...new Set(validation.reviewTypeErrors.map((error) => code(`${error.file}:${error.line}`)))])}.`,
+        ]
+      : []),
+    ...(cardRename
+      ? [
+          `${code('allowed_payment_method_types')} filters the payment methods Stripe finds eligible instead of listing them. Before merging, confirm cards stay enabled in the Stripe Dashboard or the payment method configuration this account uses.`,
         ]
       : []),
     ...(subscriptionPolicy

@@ -20,8 +20,7 @@ import {
   DOCKER_IMAGE_ID,
   dockerSandboxArguments,
   MAX_VALIDATION_ARCHIVE_BYTES,
-  PREPARATION_MEMORY,
-  PREPARATION_WORKSPACE_SIZE,
+  preparationProfile,
   validationProfile,
   removeDockerContainer,
   resolveDockerImage,
@@ -173,7 +172,7 @@ async function installDependencies(
         bytes += chunk.length;
         if (bytes > archiveBytes)
           throw new DependencyPreparationError(
-            `Dependency archive exceeds ${archiveBytes / 1024 / 1024} MiB. ${archiveBytes < MAX_VALIDATION_ARCHIVE_BYTES ? 'REFIT_VALIDATION_WORKSPACE can enlarge validation for larger trees.' : 'This exceeds the largest validation profile; use a custom validation image.'}`,
+            `Dependency archive exceeds ${archiveBytes / 1024 / 1024} MiB. ${archiveBytes < MAX_VALIDATION_ARCHIVE_BYTES ? 'An operator can set REFIT_VALIDATION_WORKSPACE=4g (up to a 2 GiB archive and 5 GiB container memory) for a larger tree.' : 'This exceeds the largest validation profile; use a custom validation image.'}`,
           );
         hash.update(chunk);
         yield chunk;
@@ -332,6 +331,7 @@ export async function prepareDependencies(options: {
     const staging = join(root, `staging-${randomUUID()}`);
     const input = await mkdtemp(join(tmpdir(), 'refit-npm-input-'));
     const name = `refit-dependencies-${randomUUID()}`;
+    const preparation = preparationProfile();
     try {
       await mkdir(staging, { mode: 0o700 });
       await chmod(input, 0o755);
@@ -364,7 +364,7 @@ export async function prepareDependencies(options: {
             ...workspaceContents.keys(),
           ],
           network: 'bridge',
-          workspaceSize: PREPARATION_WORKSPACE_SIZE,
+          preparation,
         }),
         join(staging, ARCHIVE),
         inputs,
@@ -394,8 +394,7 @@ export async function prepareDependencies(options: {
           lifecycleScripts: false,
           registry: 'https://registry.npmjs.org',
           timeoutMs: timeoutSeconds * 1000,
-          workspace: PREPARATION_WORKSPACE_SIZE,
-          memory: PREPARATION_MEMORY,
+          ...preparation,
         },
         validation: { network: 'none' },
       };
