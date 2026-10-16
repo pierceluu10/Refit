@@ -1,5 +1,13 @@
 # Refit implementation checkpoints
 
+## October 16 checkpoint: deadline exposure benchmark (unreleased, after 0.36.0)
+
+[The deadline benchmark](DEADLINE-BENCHMARK.md) scanned 100 active public JS/TS repositories from GitHub code search, balanced across OpenAI, Meta Graph API and Shopify, and hand-labelled 32 of them line by line. 28 of the 32 (88%, 95% CI 72–95%) pin a registry version or model in a live call path, 17 already past due. 15 of 34 OpenAI repositories send a model OpenAI shuts down on 2026-10-23. Refit flags every exposed labelled repository (28/28) at 90% repository precision. Line precision is 100% for Meta, 79% for Shopify and 14% for OpenAI, where model lists, tests and examples dominate. Labels are a single pass and have not been second-labelled.
+
+Matcher fixes from the benchmark: versions in comments no longer count, which the guide already promised (the file is parsed and only source tokens match). Tokenizer and prefix-check arguments are not pins. Shopify Admin URLs that end at the version match. No alert or registry gate changed. Known gaps: Shopify version constants and env-var fallbacks, `FB.init({ version })`, Shopify versions before 2025-04, and catalog entries reported like live calls.
+
+The default suite passed **1,305 tests across 84 files**, with 78 environment-gated tests skipped, plus typecheck, formatting and build.
+
 ## October 16 checkpoint: API deadline tracking (0.36.0)
 
 `refit deadlines` matches the API versions and models a repository pins against a reviewed registry of provider sunset dates, with `file:line` evidence and no code executed. `data/deadlines.json` holds 47 entries, each checked on 2026-10-15 against its provider page: 7 Shopify Admin API versions, 13 Meta Graph API versions and 27 OpenAI shutdowns covering 67 model IDs. `npm run deadlines:check` validates the registry's shape and flags past-due entries and entries without a source. Unsourced entries are never matched or alerted. Matching reads Graph and Shopify URLs, Shopify's `ApiVersion` enum and pinned `apiVersion` strings (only in files that use Shopify), the `facebook-nodejs-business-sdk` version from manifests and lockfiles, exact quoted OpenAI model IDs, and `apiVersion` pins in `.refit.json`.

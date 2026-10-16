@@ -71,7 +71,11 @@ Real signal exists. Meta and Shopify pins are nearly always live calls (98% and 
 - estimate recall from the raw strings;
 - add a second labeller.
 
+The full 100-repository run, the matcher fixes and before/after scores are in [DEADLINE-BENCHMARK.md](../DEADLINE-BENCHMARK.md).
+
 ## Reproduce
+
+The pilot figures came from the scripts at commit `8651b51`; later commits changed their options and labels format.
 
 ```sh
 node scripts/deadline-benchmark-sample.mjs --frame docs/benchmarks/2026-10-15-deadline-frame.json \
