@@ -241,6 +241,150 @@ it('refuses projects without an npm lockfile and registry failures', async () =>
   });
 });
 
+// pnpm 9 formatting: blank lines between entries, unpadded flow maps, single quotes.
+function pnpmLock(options: { typesNode?: string; version?: string; extraImporter?: boolean } = {}) {
+  const typesNode = options.typesNode;
+  return `lockfileVersion: '${options.version ?? '9.0'}'
+
+settings:
+  autoInstallPeers: true
+  excludeLinksFromLockfile: false
+
+importers:
+
+  .:
+    dependencies:
+      qs:
+        specifier: ^6.13.0
+        version: 6.13.0
+      stripe:
+        specifier: ^16.12.0
+        version: 16.12.0
+${
+  typesNode
+    ? `    devDependencies:
+      '@types/node':
+        specifier: ${typesNode}
+        version: ${typesNode}
+`
+    : ''
+}${
+    options.extraImporter
+      ? `
+  packages/api:
+    dependencies:
+      stripe:
+        specifier: ^16.12.0
+        version: 16.12.0
+`
+      : ''
+  }
+packages:
+
+  '@types/node@${typesNode ?? '20.11.5'}':
+    resolution: {integrity: ${INTEGRITY}}
+
+  es-errors@1.3.0:
+    resolution: {integrity: ${INTEGRITY}}
+    engines: {node: '>= 0.4'}
+
+  qs@6.13.0:
+    resolution: {integrity: ${INTEGRITY}}
+    engines: {node: '>=0.6'}
+
+  stripe@16.12.0:
+    resolution: {integrity: ${INTEGRITY}}
+    engines: {node: '>=12.*'}
+
+snapshots:
+
+  '@types/node@${typesNode ?? '20.11.5'}': {}
+
+  es-errors@1.3.0: {}
+
+  qs@6.13.0: {}
+
+  stripe@16.12.0:
+    dependencies:
+      '@types/node': ${typesNode ?? '20.11.5'}
+      es-errors: 1.3.0
+      qs: 6.13.0
+`;
+}
+
+async function pnpmProject(lock: string) {
+  const root = await mkdtemp(join(tmpdir(), 'refit-sdk-upgrade-pnpm-'));
+  roots.push(root);
+  await writeFile(
+    join(root, 'package.json'),
+    '{\n  "name": "app",\n  "dependencies": {\n    "qs": "^6.13.0",\n    "stripe": "^16.12.0"\n  }\n}\n',
+  );
+  await writeFile(join(root, 'pnpm-lock.yaml'), lock);
+  return root;
+}
+
+it('upgrades a pnpm lockfile the way pnpm writes it, qualifying the installed optional peer', async () => {
+  registry();
+  const result = await stripePackageUpgrade(
+    await pnpmProject(pnpmLock({ typesNode: '22.10.1' })),
+    '2026-09-30.endive',
+  );
+  if (!('upgrade' in result)) throw new Error(result.reason);
+  expect(result.upgrade).toMatchObject({ from: '16.12.0', to: TARGET });
+  const [manifest, lock] = result.upgrade.files;
+  expect(manifest.after).toContain(`"stripe": "^${TARGET}"`);
+  expect(lock.path).toBe('pnpm-lock.yaml');
+  // es-errors only served the old stripe; qs and @types/node are still root dependencies.
+  expect(lock.after).toBe(
+    pnpmLock({ typesNode: '22.10.1' })
+      .replace(
+        'specifier: ^16.12.0\n        version: 16.12.0',
+        `specifier: ^${TARGET}\n        version: ${TARGET}(@types/node@22.10.1)`,
+      )
+      .replace(
+        `  es-errors@1.3.0:\n    resolution: {integrity: ${INTEGRITY}}\n    engines: {node: '>= 0.4'}\n\n`,
+        '',
+      )
+      .replace(
+        `  stripe@16.12.0:\n    resolution: {integrity: ${INTEGRITY}}\n    engines: {node: '>=12.*'}\n`,
+        `  stripe@${TARGET}:\n    resolution: {integrity: ${INTEGRITY}}\n    engines: {node: '>=20'}\n    peerDependencies:\n      '@types/node': '>=20'\n    peerDependenciesMeta:\n      '@types/node':\n        optional: true\n`,
+      )
+      .replace('  es-errors@1.3.0: {}\n\n', '')
+      .replace(
+        "  stripe@16.12.0:\n    dependencies:\n      '@types/node': 22.10.1\n      es-errors: 1.3.0\n      qs: 6.13.0\n",
+        `  stripe@${TARGET}(@types/node@22.10.1):\n    optionalDependencies:\n      '@types/node': 22.10.1\n`,
+      ),
+  );
+});
+
+it('leaves an unused optional peer out of the pnpm snapshot and prunes what only stripe used', async () => {
+  registry();
+  const result = await stripePackageUpgrade(await pnpmProject(pnpmLock()), '2026-09-30.endive');
+  if (!('upgrade' in result)) throw new Error(result.reason);
+  const after = result.upgrade.files[1].after;
+  expect(after).toContain(`        version: ${TARGET}\n`);
+  expect(after).toContain(`  stripe@${TARGET}: {}\n`);
+  expect(after).not.toContain('es-errors');
+  expect(after).not.toContain('@types/node@20.11.5');
+  expect(after).toContain('  qs@6.13.0: {}');
+});
+
+it.each([
+  ['lockfile v6', pnpmLock({ version: '6.0' }), /Only pnpm lockfile version 9/],
+  ['non-pnpm formatting', pnpmLock().replace(/\{integrity: /g, '{ integrity: '), /pnpm formatting/],
+  ['a second importer', pnpmLock({ extraImporter: true }), /more than the root importer/],
+  [
+    'an optional peer below its range',
+    pnpmLock({ typesNode: '18.19.0' }),
+    /needs @types\/node >=20, which the lockfile does not provide/,
+  ],
+])('refuses a pnpm project with %s', async (_label, lock, reason) => {
+  registry();
+  expect(await stripePackageUpgrade(await pnpmProject(lock), '2026-09-30.endive')).toEqual({
+    reason: expect.stringMatching(reason),
+  });
+});
+
 it('splits a rendered patch into its code and dependency parts', () => {
   const code =
     'diff --git "a/src/a.ts" "b/src/a.ts"\n--- "a/src/a.ts"\n+++ "b/src/a.ts"\n@@ -1 +1 @@\n-a\n+b\n';
