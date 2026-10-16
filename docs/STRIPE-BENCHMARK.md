@@ -215,3 +215,53 @@ Generated `stripe-mock` checks run in addition, using pinned `stripe/openapi` fi
 The archive limit is what stops validation on real applications. Next.js apps routinely install more than 256 MiB, even though dependency preparation now has a 2 GiB workspace. Validation unpacks the archive into its 512 MiB workspace, so raising the archive limit also means raising the validation workspace and memory. The owner made the 2 GiB profile the default in 0.33.0; see [readiness](READINESS.md). Detection and patch generation are unaffected: production mode completed on 74 of 74 contract pairs.
 
 The end-to-end path does work when dependencies fit. A TypeScript app on stripe 16.12.0, using the real `2024-06-20` and `2026-09-30.endive` Stripe specifications, was patched with the moved read, the `apiVersion` bump and stripe 23.0.0. Both dependency sets were prepared in Docker, and `tsc` passed on the original and the patched code (workflow status `validated`). A gated test reproduces this.
+
+## Held-out run on gpt-5.6-luna (October 16, 2026)
+
+The 50 repositories in [`2026-10-15-stripe-heldout-repos.json`](benchmarks/2026-10-15-stripe-heldout-repos.json) were frozen before any run and never used to tune Refit. Every run below used the full pipeline: deterministic rules, AI patches and one AI repair on `gpt-5.6-luna` (OpenAI lists no `gpt-5.6-mini`; Luna is the smallest 5.6 model), and offline Docker validation with generated `stripe-mock` checks. The upgrade target is `2026-09-30.endive`. Each run executed from a pinned worktree, so edits in progress could not leak into its subprocesses. All four held-out runs plus the 100-repository run cost **$0.059** on a fresh $5 ledger.
+
+|                                                 | Before fixes (`8ecf63b`)  | After fixes (`e4692cc`)      |
+| ----------------------------------------------- | ------------------------- | ---------------------------- |
+| Affected (confirmed breaks)                     | 17                        | 23                           |
+| Validated                                       | 4 (2 deterministic, 2 AI) | 1 (deterministic, published) |
+| Validation regression                           | 5                         | 1                            |
+| Stopped for review: removed request parameter   | —                         | 16                           |
+| Baseline checks already failing                 | 1                         | 1                            |
+| Repository-side preparation errors              | 4                         | 1                            |
+| Benchmark error (no manifest)                   | 1                         | 0                            |
+| No lockfile Refit can prepare (bun or none)     | 2                         | 3                            |
+| Same outcome in a second run on the same commit | 48/50                     | 50/50                        |
+
+### What the failures were
+
+- **4 of 5 regressions** came from one change: `2026-09-30.endive` removed `payment_method_types` from Checkout Session, PaymentIntent and SetupIntent creation. Refit only diffed response fields, so it bumped the version and stripe-node, and the patched typecheck rejected the parameter. Refit now compares each mapped operation's request body parameters and stops for review when a traced call still sends a removed one (#62). That also explains the 6 newly affected repositories.
+- **All 4 AI "validated" results across both runs were wrong.** To fix that type error, the AI repair renamed the parameter to `allowed_payment_method_types` and called it the same-meaning property. The endive contract says it is a filter on dynamically eligible methods, unlike the static list it replaces. The typecheck could not see the difference. The new check stops before AI, so this no longer reaches a draft.
+- **One deterministic "validated" result was a latent break.** RegNote's patch bumped the version without upgrading stripe-node, so the old types accepted `payment_method_types`, which the new API version rejects at request time.
+- **Both run-to-run differences** before the fixes were AI repairs of that error passing in one run and failing in the other. After the check, no outcome depends on AI sampling.
+- **apiVersion pins left behind:** the two earlier hand reviews were `correct-partial` because Refit could not verify a literal `apiVersion`. The causes were Vite's solution `tsconfig.json`, Convex's generated `api.js`/`dataModel.d.ts`, and type annotations or handler functions counted as client escapes. All are fixed (#61), and every published draft below bumps the pin.
+- **The rest are repository-side and stay refused:** a lockfile out of sync with `package.json` (`piyush805/miro-clone`), npm entries without integrity, a lockfile with an unresolvable peer conflict, a dependency archive over 1 GiB, and failing baseline tests. The benchmark's no-op check for repositories without checks was an empty argument that Refit refuses; it now evaluates `0` (#63).
+
+### The original 100 on the same fixed commit
+
+40 affected; **4 validated drafts published**; 25 stopped on the removed request parameter; 5 repository-side errors; 5 without a JavaScript lockfile; 1 declared-type review. Across both sets, **48 of 63 affected repositories send `payment_method_types`** (41 of them reach the check; the rest have no preparable lockfile or fail preparation), so a reviewed policy for that one change decides most of the remaining automation.
+
+### Published drafts and hand review
+
+Every validated fix was published to a fork in `refit-dev` as Refit Agent. Upstream repositories were not touched. Each was reviewed with the [fix-review checklist](FIX-REVIEW.md), and all five are `correct`: right replacement, old-version payloads still handled, nothing unrelated, version and package upgraded. See [`fix-reviews.json`](benchmarks/fix-reviews.json). All five are deterministic. Validation was `tsc` with no new type errors; the generated `stripe-mock` checks found no runnable entry points in these Convex handlers, so runtime behavior was not exercised.
+
+| Repository                                                  | Draft PR                                                                                                                                                                                     |
+| ----------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| JoeBuildsStuff/full-stack-starter-kit (held-out)            | [refit-dev/full-stack-starter-kit#1](https://github.com/refit-dev/full-stack-starter-kit/pull/1)                                                                                             |
+| webdevcody/thumbnail-critique                               | [refit-dev/thumbnail-critique#1](https://github.com/refit-dev/thumbnail-critique/pull/1)                                                                                                     |
+| vukrosic/nextjs14-chatgpt                                   | [refit-dev/nextjs14-chatgpt#1](https://github.com/refit-dev/nextjs14-chatgpt/pull/1)                                                                                                         |
+| vukrosic/setup-nextjs-convex-clerk-…                        | [refit-dev/setup-nextjs-convex-clerk-typescript-stripe-shadcn-tailwindcss-react#2](https://github.com/refit-dev/setup-nextjs-convex-clerk-typescript-stripe-shadcn-tailwindcss-react/pull/2) |
+| projectplannerai/nextjs-clerk-convex-stripe-resend-template | [refit-dev/nextjs-clerk-convex-stripe-resend-template#1](https://github.com/refit-dev/nextjs-clerk-convex-stripe-resend-template/pull/1)                                                     |
+
+### Reproduce
+
+```sh
+node scripts/stripe-benchmark-setup.mjs --root <dir> --held-out
+git worktree add --detach <worktree> <commit>   # run from a pinned checkout
+OPENAI_MODEL=gpt-5.6-luna npm run benchmark:stripe -- --root <dir> --output <run> --env .env --ai --validate [--publish <org>]
+node scripts/stripe-benchmark-compare.mjs <run-a>/results.json <run-b>/results.json
+```
