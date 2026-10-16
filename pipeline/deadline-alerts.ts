@@ -117,6 +117,7 @@ export function deadlineBody(options: {
     '',
     ...exposure.evidence.map((item) => `- ${link(item.file, item.line)}: ${code(item.text)}`),
     ...(exposure.more ? [`- …and ${exposure.more} more matches.`] : []),
+    ...nonLiveNote(exposure),
     '',
     '### Migration',
     '',
@@ -124,6 +125,19 @@ export function deadlineBody(options: {
     '',
     `Refit updates this issue ${options.leadDays.join(', ')} days before the deadline and when it passes. It never changes code from an alert.`,
   ].join('\n');
+}
+
+// Matches outside live code never open or update an alert; the issue only counts them.
+function nonLiveNote(exposure: DeadlineExposure) {
+  const counts = new Map<string, number>();
+  for (const item of exposure.nonLive) counts.set(item.use, (counts.get(item.use) ?? 0) + 1);
+  const total = exposure.nonLive.length + exposure.nonLiveMore;
+  if (!total) return [];
+  const uses = [...counts].map(([use, count]) => `${count} ${use}`).join(', ');
+  return [
+    '',
+    `Not counted: ${total} ${total === 1 ? 'match' : 'matches'} outside live code (${uses}${exposure.nonLiveMore ? `, ${exposure.nonLiveMore} more` : ''}), such as model lists, tests, examples, comments and tokenizer calls. \`refit deadlines\` lists them.`,
+  ];
 }
 
 export function deadlineComment(exposure: DeadlineExposure) {

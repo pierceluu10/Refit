@@ -1,5 +1,20 @@
 # Refit implementation checkpoints
 
+## October 16 checkpoint: live-only deadline evidence (unreleased, after 0.37.0)
+
+`refit deadlines` now classifies every match by how the code uses it: live, catalog, test, comment, tokenizer or check. Catalogs are lists of three or more models, type positions, tables keyed or indexed by model, and `<option>` pickers. Tests and examples are recognized by path. Comparisons and `case` labels count as checks. Only live matches make a repository exposed, appear as evidence and open or update an issue alert. The CLI lists the rest, collapsed per use, plus deadlines named only outside live code. `--json` adds `use`, `nonLive`, `nonLiveMore` and a top-level `mentions` array without removing a field. Catalog, test and comparison rules apply to OpenAI only. Meta and Shopify matching is unchanged, except that comments are now listed as non-live instead of dropped. See [API deadlines](DEADLINES.md#live-and-non-live-evidence).
+
+Re-scored on the merged labels, with the same clones and script ([results](DEADLINE-BENCHMARK.md#live-only-evidence-october-16-2026)):
+
+- **OpenAI line precision:** 14% (19/133) → **83% (19/23)**. All lines: 41% → 91%.
+- **Repository recall:** stays **28/28**. OpenAI line recall stays 19/19.
+- **Repository precision:** 28/31 → **28/28**.
+- **The 2026-10-23 OpenAI flag:** 31 → 20 repositories at 75% precision, with all 15 exposed repositories still flagged.
+
+The 4 remaining OpenAI false lines are an alias map in a file nothing imports, which Refit cannot tell from the live copy without tracing imports. No alert, registry or approval gate was relaxed. Labels are still a single pass.
+
+The default suite passed **1,317 tests across 85 files**, with 78 environment-gated tests skipped, plus typecheck, formatting and build. New tests cover each classification, including lookalikes. Lookalikes that stay live include two-model lists, alias maps, settings objects, an `?? 'gpt-4'` fallback, single-member enums, and paths such as `contest/`, `attestation.ts` and `exampleData.ts`. They also cover the separate non-live cap, mention-only deadlines, alerts from live evidence only, and unchanged Meta and Shopify behavior.
+
 ## October 16 checkpoint: deadline exposure benchmark (unreleased, after 0.37.0)
 
 [The deadline benchmark](DEADLINE-BENCHMARK.md) scanned 100 active public JS/TS repositories from GitHub code search, balanced across OpenAI, Meta Graph API and Shopify, and hand-labelled 32 of them line by line. 28 of the 32 (88%, 95% CI 72–95%) pin a registry version or model in a live call path, 17 already past due. 15 of 34 OpenAI repositories send a model OpenAI shuts down on 2026-10-23. Refit flags every exposed labelled repository (28/28) at 90% repository precision. Line precision is 100% for Meta, 79% for Shopify and 14% for OpenAI, where model lists, tests and examples dominate. Labels are a single pass and have not been second-labelled.
