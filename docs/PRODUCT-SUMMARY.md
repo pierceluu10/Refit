@@ -20,7 +20,7 @@ Stripe target: `2026-09-30.endive`. Three frozen Stripe sets: the original 100, 
 | | Stripe (531) | Shopify (250) |
 |---|---|---|
 | Repositories with confirmed breaking usage (Stripe) or Admin API usage (Shopify) | **234** | 216 |
-| Validated fixes | **45** with the card-only policy (was 10; those 10 are published as draft PRs on `refit-dev` forks) | **7** |
+| Validated fixes | **52** with the card-only policy (was 10; those 10 are published as draft PRs on `refit-dev` forks) | **7** |
 | Hand-reviewed: correct / correct-partial / wrong | 8 / 2 / 0 | 7 / 0 / 0 |
 | Apps whose queries already fail on every version the provider serves | n/a | **28** |
 | Same outcome on a repeat run | 531 of 531 | 250 of 250 |
@@ -37,7 +37,7 @@ Stripe endive removed `payment_method_types` from Checkout Sessions, PaymentInte
 - **The AI "fixed" it 4 times out of 4** by renaming it to `allowed_payment_method_types`. The typecheck passed, but the contract defines that field as a filter on dynamically eligible methods, not the same static list. Those PRs would have looked green and changed checkout behavior.
 - **One deterministic fix looked validated** because the old SDK types still accepted the parameter. The new API version would have rejected the request at runtime.
 
-Refit catches the removed parameter statically and stops before any patch or AI request. It never ships a plausible guess. Choosing a replacement is a product decision, so it went to a human. The owner approved one narrow case: an exact `['card']` becomes `allowed_payment_method_types: ['card']`. The rename ships only with the endive pin and the stripe-node upgrade, and the draft PR discloses the change in meaning. Validated Stripe fixes rose from 10 to 45. Every other value still stops ([policy](STRIPE-PAYMENT-METHOD-TYPES.md)).
+Refit catches the removed parameter statically and stops before any patch or AI request. It never ships a plausible guess. Choosing a replacement is a product decision, so it went to a human. The owner approved one narrow case: an exact `['card']` becomes `allowed_payment_method_types: ['card']`. The rename ships only with the endive pin and the stripe-node upgrade, and the draft PR discloses the change in meaning. Validated Stripe fixes rose from 10 to 52. Every other value still stops ([policy](STRIPE-PAYMENT-METHOD-TYPES.md)).
 
 ## What it does not do yet
 
