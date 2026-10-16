@@ -20,6 +20,7 @@ const commands = new Map([
   ['doctor', 'readiness-cli.ts'],
   ['enroll', 'enrollment-cli.ts'],
   ['agents', 'agents-cli.ts'],
+  ['deadlines', 'deadlines-cli.ts'],
 ]);
 const usage = `Refit: reviewable API migrations
 
@@ -41,6 +42,7 @@ Usage: refit <command> [options]
   doctor           Inspect repository setup without running code or spending on AI
   enroll           Review and approve a checked-in repository workflow
   agents           Detect provider SDKs and add matching agents to .refit.json
+  deadlines        List pinned API versions and models with provider sunset dates
 
 Use refit <command> --help for command options.
 Use --env <path> to load credentials explicitly. Existing environment values take precedence.
