@@ -100,7 +100,7 @@ it('retains an uncertain request reservation across restarts instead of spending
 });
 
 it('bounds input tokens before a generation and rejects inconsistent provider usage', async () => {
-  const fetcher = vi.fn().mockResolvedValue(new Response(JSON.stringify({ input_tokens: 20000 })));
+  const fetcher = vi.fn().mockResolvedValue(new Response(JSON.stringify({ input_tokens: 40000 })));
   vi.stubGlobal('fetch', fetcher);
   await expect(
     requestStructuredOutput(REQUEST, { apiKey: 'key', model: MODEL, budget: await budget() }),
