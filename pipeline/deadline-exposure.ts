@@ -1,6 +1,7 @@
 import { existsSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
+import ts from 'typescript-compiler';
 import { AGENT_CATALOG } from './agent-catalog.ts';
 import { daysUntil, type DeadlineEntry, type DeadlineRegistry } from './deadline-registry.ts';
 import { readRepository } from './repository.ts';
@@ -43,24 +44,91 @@ function excerpt(line: string) {
   return text.length > MAX_EVIDENCE_TEXT ? `${text.slice(0, MAX_EVIDENCE_TEXT - 1)}…` : text;
 }
 
-// Pinned versions a source line names, per provider, with no code executed.
+// Pinned versions a source line names, per provider, with no code executed. `column` is where the
+// version starts in the line, so the caller can tell code from comments.
 function sourceMatches(line: string, shopifyFile: boolean, metaFile: boolean, models: Set<string>) {
-  const found: { provider: DeadlineEntry['provider']; version: string }[] = [];
-  for (const match of line.matchAll(/graph\.facebook\.com\/(v\d+\.\d+)\b/g))
-    found.push({ provider: 'meta-graph', version: match[1] });
+  const found: { provider: DeadlineEntry['provider']; version: string; column: number }[] = [];
+  const add = (
+    provider: DeadlineEntry['provider'],
+    version: string,
+    match: RegExpExecArray,
+    group: number,
+  ) => found.push({ provider, version, column: match.indices![group]![0] });
+  for (const match of line.matchAll(/graph\.facebook\.com\/(v\d+\.\d+)\b/dg))
+    add('meta-graph', match[1], match, 1);
   if (metaFile)
-    for (const match of line.matchAll(/(['"`])(v\d+\.\d+)\1/g))
-      found.push({ provider: 'meta-graph', version: match[2] });
-  for (const match of line.matchAll(/\/admin\/api\/(\d{4}-\d{2})\//g))
-    found.push({ provider: 'shopify', version: match[1] });
-  for (const match of line.matchAll(/\bApiVersion\.(January|April|July|October)(\d{2})\b/g))
-    found.push({ provider: 'shopify', version: `20${match[2]}-${QUARTER_MONTHS[match[1]]}` });
+    for (const match of line.matchAll(/(['"`])(v\d+\.\d+)\1/dg))
+      add('meta-graph', match[2], match, 2);
+  // The version may end the URL, as in an axios `baseURL`.
+  for (const match of line.matchAll(/\/admin\/api\/(\d{4}-\d{2})(?![\w.-])/dg))
+    add('shopify', match[1], match, 1);
+  for (const match of line.matchAll(/\bApiVersion\.(January|April|July|October)(\d{2})\b/dg))
+    found.push({
+      provider: 'shopify',
+      version: `20${match[2]}-${QUARTER_MONTHS[match[1]]}`,
+      column: match.indices![1]![0],
+    });
   if (shopifyFile)
-    for (const match of line.matchAll(/\bapiVersion\s*[:=]\s*(['"`])(\d{4}-(?:01|04|07|10))\1/g))
-      found.push({ provider: 'shopify', version: match[2] });
-  for (const match of line.matchAll(/(['"`])([a-z0-9][a-z0-9.-]*)\1/g))
-    if (models.has(match[2])) found.push({ provider: 'openai', version: match[2] });
+    for (const match of line.matchAll(/\bapiVersion\s*[:=]\s*(['"`])(\d{4}-(?:01|04|07|10))\1/dg))
+      add('shopify', match[2], match, 2);
+  for (const match of line.matchAll(/(['"`])([a-z0-9][a-z0-9.-]*)\1/dg))
+    if (models.has(match[2])) add('openai', match[2], match, 2);
   return found;
+}
+
+// Calls whose string argument names a model without selecting one: local tokenizers and prefix or
+// membership checks such as `model.startsWith('o1')`.
+const NON_PIN_CALLS = new Set([
+  'encoding_for_model',
+  'encodingForModel',
+  'startsWith',
+  'endsWith',
+  'includes',
+  'indexOf',
+]);
+
+// Offsets of the tokens in a source file where a pin can sit: identifiers, string and template
+// pieces and other leaf nodes. Comments are trivia between tokens, so a version found there has no
+// token. String arguments of NON_PIN_CALLS are left out.
+function pinTokens(path: string, content: string) {
+  const source = ts.createSourceFile(path, content, ts.ScriptTarget.Latest, true);
+  const ranges: [number, number][] = [];
+  const visit = (node: ts.Node) => {
+    let leaf = true;
+    ts.forEachChild(node, (child) => {
+      leaf = false;
+      visit(child);
+    });
+    if (!leaf) return;
+    const call = node.parent;
+    if (
+      ts.isStringLiteralLike(node) &&
+      call &&
+      ts.isCallExpression(call) &&
+      call.arguments.includes(node as ts.Expression)
+    ) {
+      const callee = ts.isPropertyAccessExpression(call.expression)
+        ? call.expression.name.text
+        : ts.isIdentifier(call.expression)
+          ? call.expression.text
+          : '';
+      if (NON_PIN_CALLS.has(callee)) return;
+    }
+    ranges.push([node.getStart(source), node.end]);
+  };
+  visit(source);
+  return (offset: number) => {
+    let low = 0;
+    let high = ranges.length - 1;
+    while (low <= high) {
+      const middle = (low + high) >> 1;
+      const [start, end] = ranges[middle];
+      if (offset < start) high = middle - 1;
+      else if (offset >= end) low = middle + 1;
+      else return true;
+    }
+    return false;
+  };
 }
 
 // The Graph API version an SDK release targets: facebook-nodejs-business-sdk majors track Graph
@@ -121,14 +189,21 @@ export async function findDeadlineExposures(
   for (const file of repository.files) {
     const shopifyFile = SHOPIFY_CONTEXT.some((name) => file.content.includes(name));
     const metaFile = META_CONTEXT.some((name) => file.content.includes(name));
-    for (const [index, line] of file.content.split('\n').entries())
-      for (const match of sourceMatches(line, shopifyFile, metaFile, models))
+    let inToken: ((offset: number) => boolean) | undefined;
+    let offset = 0;
+    for (const [index, line] of file.content.split('\n').entries()) {
+      for (const match of sourceMatches(line, shopifyFile, metaFile, models)) {
+        inToken ??= pinTokens(file.path, file.content);
+        if (!inToken(offset + match.column)) continue;
         record(match.provider, match.version, {
           file: file.path,
           line: index + 1,
           kind: 'source',
           text: excerpt(line),
         });
+      }
+      offset += line.length + 1;
+    }
   }
   for (const dependency of repository.dependencies) {
     const version = metaSdkVersion(dependency.version, dependency.lock.version);

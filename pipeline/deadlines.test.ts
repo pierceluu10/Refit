@@ -195,6 +195,42 @@ it('matches pinned versions and models with file:line evidence and ignores looka
   expect(evidence('meta-v21')).toEqual(['src/graph.ts:1 v21.0']);
 });
 
+// Noise found by the deadline benchmark (docs/DEADLINE-BENCHMARK.md) in real repositories.
+it('ignores pins in comments, tokenizers and prefix checks, and matches URLs ending at the version', async () => {
+  const root = await repository({
+    'src/ai.ts': [
+      '/**',
+      ' * @param model The model to use (e.g., "gpt-4").',
+      ' */',
+      "// const old = openai('gpt-4');",
+      "const encoder = encoding_for_model('gpt-4');",
+      "if (model.startsWith('gpt-4') || models.includes('gpt-4')) reason();",
+      "const chat = { model: 'gpt-4' }; // was 'gpt-4-0613'",
+      'const url = "https://example.com/api"; /* \'gpt-4-0613\' */',
+    ].join('\n'),
+    'src/graph.ts': [
+      "const FB = 'https://graph.facebook.com/'; // 'https://graph.facebook.com/v20.0'",
+      'const live = `https://graph.facebook.com/v21.0/${id}/media`;',
+    ].join('\n'),
+    'src/shop.ts': [
+      'export const api = axios.create({ baseURL: `https://${shop}/admin/api/2025-10` });',
+      '//   const url = `https://${shop}/admin/api/2026-01/orders.json`;',
+      "const later = '/admin/api/2026-01.5';",
+    ].join('\n'),
+  });
+  const exposures = await findDeadlineExposures(root, registry, NOW);
+  expect(
+    exposures.map((item) => [
+      item.deadline.id,
+      item.evidence.map((evidence) => `${evidence.file}:${evidence.line}`),
+    ]),
+  ).toEqual([
+    ['shopify-2025-10', ['src/shop.ts:1']],
+    ['openai-gpt-4', ['src/ai.ts:7']],
+    ['meta-v21', ['src/graph.ts:2']],
+  ]);
+});
+
 it('matches API versions pinned in .refit.json and reports how a migration can follow', async () => {
   const root = await repository({
     'package.json': { dependencies: { openai: '4.80.0' } },
