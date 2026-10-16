@@ -54,6 +54,8 @@ These basil removals have a new location, but no read of it behaves the same, so
 | `line_item.price`, `invoiceitem.price` | [Replaced by `pricing.price_details.price`](https://docs.stripe.com/changelog/basil/2025-03-31/invoice-pricing-configurations), which holds the price ID, not the Price object, unless the code expands it. |
 | `invoice.payment_intent` | [Replaced by `invoice.payments`](https://docs.stripe.com/changelog/basil/2025-03-31/add-support-for-multiple-partial-payments-on-invoices), a list that needs an expand, because an invoice can have several payments. For a Payment Element client secret, Stripe documents `invoice.confirmation_secret.client_secret`, which also needs an expand. |
 
+`line_item.price` and `invoiceitem.price` [moved to `pricing.price_details.price`](https://docs.stripe.com/changelog/basil/2025-03-31/invoice-pricing-configurations), which holds the price ID rather than the Price object, so it is not a configurable move. Built-in Stripe scans rewrite `line.price.id` through the generated `getInvoicePriceId()` helper, which reads either API version; see [invoice price ID reads](STRIPE-SUBSCRIPTION-PERIODS.md#invoice-price-id-reads). Other `price` reads stay for review.
+
 ## What Refit verifies
 
 Before scanning, Refit checks the move against your recorded contracts:
