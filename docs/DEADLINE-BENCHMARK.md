@@ -4,7 +4,7 @@ This measures how many active public JavaScript/TypeScript repositories depend o
 
 - **Sample:** 100 repositories drawn from GitHub code search, balanced across OpenAI, Meta Graph API and Shopify.
 - **Labels:** 32 repositories were hand-labelled line by line (274 lines). The OpenAI 2026-10-23 shutdown was judged for all 34 OpenAI repositories.
-- **Runs:** Refit `7bd59f8` (v0.36.0, "before") and the matcher fix in this change ("after").
+- **Runs:** Refit `7bd59f8` (v0.36.0, "before"), the matcher fix `be587f1` ("after"), and live-only evidence `0e911e5` ("classified", 2026-10-16; [results](#live-only-evidence-october-16-2026)). All three are scored against the same labels.
 - **Safety:** no repository code was installed or run, no vendor API was called, and no scanned repository was contacted.
 
 It extends the 20-repository [pilot](benchmarks/DEADLINE-PILOT.md), whose draw is the first 20 of these 100.
@@ -14,11 +14,12 @@ It extends the 20-repository [pilot](benchmarks/DEADLINE-PILOT.md), whose draw i
 - **Most of the active repositories these searches find are really exposed.** 28 of 32 labelled repositories (88%, 95% CI 72–95%) have a live call path that pins a registry version or model. 17 of the 28 are already past the date.
 - **OpenAI's 2026-10-23 shutdown:** 15 of the 34 sampled OpenAI repositories (44%, 29–61%) send one of the models OpenAI retires that day from a live call path. The models include `gpt-3.5-turbo`, `gpt-4`, `gpt-4-turbo`, `o1`, `o3-mini` and `o4-mini`.
 - **Refit finds the exposed repositories:**
-  - **Repository recall:** 28/28 (88–100%) after this change.
-  - **Repository precision:** 28/31 (75–97%).
-- **Line-level evidence is noisy for OpenAI:**
-  - **OpenAI:** only 14% of reported lines are live pins. The rest are mostly model lists, tests and examples.
-  - **Meta and Shopify:** 100% and 79% of reported lines are live pins.
+  - **Repository recall:** 28/28 (88–100%) after the matcher fix, and still 28/28 with live-only evidence.
+  - **Repository precision:** 28/31 (75–97%) after the matcher fix, then 28/28 (88–100%) with live-only evidence.
+- **Line-level evidence for OpenAI was noisy, and live-only evidence fixes most of it:**
+  - **OpenAI:** 14% of reported lines were live pins; the rest were mostly model lists, tests and examples. With those classified as non-live, it is 83% (19/23), and no live line is lost.
+  - **Meta and Shopify:** 100% and 79% of reported lines are live pins, unchanged.
+  - **The 2026-10-23 flag:** precision rises from 15/31 (48%) to 15/20 (75%), and all 15 exposed repositories are still flagged.
 
 ## Method
 
@@ -124,6 +125,47 @@ One flag is a `gpt-3.5-turbo` default sent to T-Systems' OpenAI-compatible endpo
 
 Lines past the 20-line evidence cap count as found when Refit reports their deadline: 15 Graph API calls in one repository.
 
+### Live-only evidence (October 16, 2026)
+
+Refit `0e911e5` classifies each match as live, catalog, test, comment, tokenizer or check ([how](DEADLINES.md#live-and-non-live-evidence)). Exposure and evidence count only live matches; the rest is listed separately. Same clones, labels and scoring script as above.
+
+| Labelled subset | Before (`7bd59f8`) | After (`be587f1`) | **Classified (`0e911e5`, 2026-10-16)** |
+|---|---|---|---|
+| Repository precision | 26/30, 87% (70–95) | 28/31, 90% (75–97) | **28/28, 100%** (88–100) |
+| Repository recall | 26/28, 93% (77–98) | 28/28, 100% (88–100) | **28/28, 100%** (88–100) |
+| Repository × deadline recall | 35/37, 95% (82–99) | 36/37, 97% (86–99.5) | 36/37, 97% (86–99.5) |
+| Line precision, all | 79/211, 37% (31–44) | 81/199, 41% (34–48) | **81/89, 91%** (83–95) |
+| Line precision, OpenAI | | 19/133, 14% (9–21) | **19/23, 83%** (63–93) |
+| Line precision, Meta | | 47/47, 100% (92–100) | 47/47, 100% (92–100) |
+| Line precision, Shopify | | 15/19, 79% (57–92) | 15/19, 79% (57–92) |
+| Line recall | 94/107, 88% (80–93) | 96/107, 90% (82–94) | 96/107, 90% (82–94) |
+| Line recall, OpenAI | | 19/19 (83–100) | 19/19 (83–100) |
+| Reported lines: live / option / test-docs / false-positive | 79 / 85 / 44 / 3 | 81 / 85 / 33 / 0 | 81 / 6 / 2 / 0 |
+| Flagged, all 100 | 94 | 97 | 87 |
+
+| OpenAI 2026-10-23, all 34 OpenAI repositories | After (`be587f1`) | **Classified (`0e911e5`)** |
+|---|---|---|
+| Flagged | 31 | 20 |
+| Live call path uses a 2026-10-23 model | 15 | 15 |
+| Exposed and flagged | 15/15 | **15/15** |
+| Flag precision | 15/31, 48% (32–65) | **15/20, 75%** (53–89) |
+
+- **No exposed repository is lost.** The 10 repositories that are no longer flagged are all OpenAI repositories without a live pin:
+  - 3 labelled: `chinmaymk/aikit`, `codextde/textchecker` and `upstash/rag-chat`.
+  - 7 unlabelled, judged not exposed on 2026-10-23: `theswerd/ai-sql`, `fayez-nazzal/TestGPT`, `PactInteractive/dbchat`, `OptimizeAIHub/Playwright-Copilot`, `zebbern/repolens`, `Ramtx/Bouno` and `bayradion/rabbitmap`.
+  - The unlabelled seven were judged only for 2026-10-23, so another of their deadlines could in principle be live. The judgement notes say they have only lists, examples, tests and tables.
+- **Every witness line is still live.** Each of the 9 unlabelled repositories judged exposed on 2026-10-23 still shows its witness line as live evidence.
+- **The 4 OpenAI lines still wrongly reported** are one alias map in `hervekom37/Ani-Code-CLI`'s `src/utils/openai-models.ts`, which nothing imports. The same map in `src/core/agent.ts` feeds the chat call and is labelled live, so only tracing imports could tell them apart. Alias maps' values stay live on purpose.
+- **What is non-live across all 100 repositories:**
+  - Inside exposures: 59 catalog, 25 check, 6 comment and 5 test matches are listed next to the live evidence.
+  - Named only outside live code: 80 deadlines in 24 repositories, now reported as `mentions`. They hold 174 catalog, 70 test, 15 comment, 6 check and 2 tokenizer listed matches; each deadline lists at most 20.
+- **Remaining 2026-10-23 false flags (5):**
+  - `vual/ChatGPT-Next-Web-Pro`: preset masks repeat one model, and a two-model `as const` list.
+  - `xavidop/genkitx-github`: a catalog built through `modelRef()` calls.
+  - `telekom/create-tsi`: the T-Systems endpoint.
+  - `fahd09/openharness`: an alias map.
+  - `AQComputerKing/protoforge`: a `.replace()` normalization.
+
 ## What the fix changed
 
 Covered by tests in `pipeline/deadlines.test.ts`:
@@ -138,8 +180,8 @@ One side effect: `shreevalikushe/facebook-test` was matched for Graph API v20.0 
 
 ## Remaining noise and gaps
 
-1. **Model catalogs: 85 of 199 reported lines, almost all OpenAI.** These are picker lists, type unions, pricing tables and SDK-wrapper catalogs. They name a dead model a user can still pick, so they are reported, not dropped. Separating them from live pins, for example as a separate evidence kind, is a product decision and is not made here.
-2. **Tests, examples and dev scripts: 33 lines.** They are still reported.
+1. **Model catalogs: 85 of 199 reported lines, almost all OpenAI.** These are picker lists, type unions, pricing tables and SDK-wrapper catalogs. They name a dead model a user can still pick, so they are reported, not dropped. *Resolved 2026-10-16:* they are now non-live evidence, still listed but no longer counted as exposure ([results](#live-only-evidence-october-16-2026)). 6 option lines remain, 4 of them OpenAI.
+2. **Tests, examples and dev scripts: 33 lines.** *Resolved 2026-10-16 for OpenAI:* tests and examples are non-live. The 2 remaining test-docs lines are Meta and Shopify, whose matching is unchanged.
 3. **Recall gaps:**
    - Shopify version constants and env-var fallbacks are not read, such as `SHOPIFY_API_VERSION = '2025-07'` and `process.env.SHOPIFY_ADMIN_API_VERSION || '2025-10'`. They cause 10 of the 11 missed live lines, 9 of them in one repository. Each of those repositories is still flagged through another line.
    - The Meta JS SDK's `FB.init({ version })` is not read.
@@ -163,6 +205,9 @@ node scripts/deadline-benchmark-setup.mjs --root <dir> --refit <before> --output
 node scripts/deadline-benchmark-setup.mjs --root <dir> --refit <after> --output after.json
 node scripts/deadline-benchmark-grep.mjs --root <dir>
 node scripts/deadline-benchmark-score.mjs --root <dir>
+# Live-only evidence: a third worktree at 0e911e5.
+node scripts/deadline-benchmark-setup.mjs --root <dir> --refit <classified> --output classified.json
+node scripts/deadline-benchmark-score.mjs --root <dir> --runs after,classified
 ```
 
 The draw itself:
@@ -182,6 +227,6 @@ With the saved frame and seed, this gives the same order. The repositories that 
 >
 > openai shuts down gpt-3.5-turbo, gpt-4, o1, o3-mini and a bunch more on oct 23. 15 of the 34 openai repos i sampled still send one of those from a live code path.
 >
-> refit caught all 28 exposed repos, but for openai only 14% of the lines it points at are real calls. the rest are model dropdowns, pricing tables and tests. fixed the comment and tokenizer false positives today, the dropdown problem is next.
+> refit caught all 28 exposed repos, but at first only 14% of the openai lines it pointed at were real calls. the rest were model dropdowns, pricing tables and tests. it now sorts those out and only counts live calls: 83% of openai lines are real, still 28 of 28 repos caught, and no false repo flags left in the labelled set.
 >
 > caveat: these are repos code search surfaces for those strings, mostly small projects, so it's not "x% of github". labels are one pass so far.

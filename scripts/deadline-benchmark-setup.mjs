@@ -69,6 +69,8 @@ for (const [index, entry] of pinned.repos.entries()) {
       commit: entry.commit,
       checkedAt: report.checkedAt,
       exposures: report.exposures,
+      // Deadlines named only outside live code; absent before Refit classified evidence.
+      mentions: report.mentions ?? [],
     });
   } catch (error) {
     failures.push({
