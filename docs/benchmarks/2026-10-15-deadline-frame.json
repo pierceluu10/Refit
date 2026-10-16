@@ -1,0 +1,3995 @@
+{
+ "searchedAt": "2026-10-16T03:01:23.689Z",
+ "queries": [
+  {
+   "provider": "openai",
+   "query": "\"gpt-3.5-turbo\"",
+   "language": "TypeScript",
+   "hits": [
+    {
+     "repo": "AutumnWhj/ChatGPT-wechat-bot",
+     "path": "src/chatgpt.ts"
+    },
+    {
+     "repo": "SawyerHood/tlbrowse",
+     "path": "ai/models.ts"
+    },
+    {
+     "repo": "abielzulio/chatgpt-raycast",
+     "path": "src/type.ts"
+    },
+    {
+     "repo": "jucasoliveira/terminalGPT",
+     "path": "src/utils.ts"
+    },
+    {
+     "repo": "rlancemartin/lex-gpt",
+     "path": "types/index.ts"
+    },
+    {
+     "repo": "mattvr/ShellGPT",
+     "path": "lib/prompts.ts"
+    },
+    {
+     "repo": "solderneer/obsidian-ai-tools",
+     "path": "src/search.ts"
+    },
+    {
+     "repo": "egoist/shell-ask",
+     "path": "src/models.ts"
+    },
+    {
+     "repo": "bhaskatripathi/Text2Diagram",
+     "path": "types/type.ts"
+    },
+    {
+     "repo": "cloudycotton/whiz",
+     "path": "src/utils.ts"
+    },
+    {
+     "repo": "GPTutor/gptutor-extension",
+     "path": "src/model.ts"
+    },
+    {
+     "repo": "upstash/rag-chat",
+     "path": "src/types.ts"
+    },
+    {
+     "repo": "ShadovvBeast/TalkGPT",
+     "path": "src/openai.ts"
+    },
+    {
+     "repo": "GPTutor/gptutor-extension",
+     "path": "src/openAi.ts"
+    },
+    {
+     "repo": "buxuku/ai-code-reviewer",
+     "path": "src/utils.ts"
+    },
+    {
+     "repo": "DevSamurai/food-gpt",
+     "path": "src/index.ts"
+    },
+    {
+     "repo": "upstash/rag-chat",
+     "path": "src/models.ts"
+    },
+    {
+     "repo": "rajeshdavidbabu/pdf-chat-ai-sdk",
+     "path": "src/lib/llm.ts"
+    },
+    {
+     "repo": "lianginx/chatgpt-nuxt",
+     "path": "stores/chat.ts"
+    },
+    {
+     "repo": "crybot/obsidian-flashcards-llm",
+     "path": "src/models.ts"
+    },
+    {
+     "repo": "TheOrcDev/orcish-ai-nextjs-framework",
+     "path": "lib/types.ts"
+    },
+    {
+     "repo": "cosmicoptima/loom",
+     "path": "main.ts"
+    },
+    {
+     "repo": "jcollingj/caret",
+     "path": "main.ts"
+    },
+    {
+     "repo": "jrhizor/elelem",
+     "path": "src/costs.ts"
+    },
+    {
+     "repo": "iceener/gpt-tools",
+     "path": "src/helper.ts"
+    },
+    {
+     "repo": "olup/zod-chatgpt",
+     "path": "src/utils.ts"
+    },
+    {
+     "repo": "Intellicode/writer",
+     "path": "src/ipc/ai.ts"
+    },
+    {
+     "repo": "mckaywrigley/the-network-state-gpt",
+     "path": "types/index.ts"
+    },
+    {
+     "repo": "jarylc/cf-workers-chatgpt-telegram-bot",
+     "path": "src/openai.ts"
+    },
+    {
+     "repo": "fayez-nazzal/TestGPT",
+     "path": "src/utils.ts"
+    },
+    {
+     "repo": "youngle316/power-chatgpt",
+     "path": "src/const.ts"
+    },
+    {
+     "repo": "kyegomez/Athena-for-Search",
+     "path": "types/index.ts"
+    },
+    {
+     "repo": "sabber-slt/twitter-analysor",
+     "path": "src/index.ts"
+    },
+    {
+     "repo": "aliyeysides/prisma-gpt",
+     "path": "src/index.ts"
+    },
+    {
+     "repo": "SawyerHood/develop.sh",
+     "path": "ai/models.ts"
+    },
+    {
+     "repo": "RauX333/fulltext-bookmark",
+     "path": "lib/chat.ts"
+    },
+    {
+     "repo": "batuhanbilginn/makr-ai",
+     "path": "atoms/chat.ts"
+    },
+    {
+     "repo": "telekom/create-tsi",
+     "path": "questions.ts"
+    },
+    {
+     "repo": "arumie/obsidian-medium-importer-plugin",
+     "path": "src/types.ts"
+    },
+    {
+     "repo": "ItzCrazyKns/Not-Devin",
+     "path": "index.ts"
+    },
+    {
+     "repo": "codyadam/system-prompt",
+     "path": "lib/ai.ts"
+    },
+    {
+     "repo": "jarylc/cf-workers-chatgpt-discord-bot",
+     "path": "src/openai.ts"
+    },
+    {
+     "repo": "avsavani/HubermanGPT",
+     "path": "types/index.ts"
+    },
+    {
+     "repo": "antoniosolismz/Obsidian-AI",
+     "path": "ChatGPT.ts"
+    },
+    {
+     "repo": "weaigc/gpt-web",
+     "path": "src/server.ts"
+    },
+    {
+     "repo": "gsidsid/ai-express",
+     "path": "src/admin.ts"
+    },
+    {
+     "repo": "abielzulio/flowchat",
+     "path": "utils.ts"
+    },
+    {
+     "repo": "replicate/replicate-support-bot",
+     "path": "src/brain.ts"
+    },
+    {
+     "repo": "TheOrcDev/orcish-openai-connector",
+     "path": "src/index.ts"
+    },
+    {
+     "repo": "KiritoCheng/openai-server",
+     "path": "src/api/ai.ts"
+    },
+    {
+     "repo": "nicepkg/poe2gpt",
+     "path": "src/config.ts"
+    },
+    {
+     "repo": "harmeetsingh11/RefactorMate",
+     "path": "index.ts"
+    },
+    {
+     "repo": "arumie/obsidian-simple-prompt-plugin",
+     "path": "src/types.ts"
+    },
+    {
+     "repo": "YossiSaadi/cursor-usage-vscode-extension",
+     "path": "src/models.ts"
+    },
+    {
+     "repo": "chokiproai/ChatGPT-Plugins",
+     "path": "app/utils.ts"
+    },
+    {
+     "repo": "arunpattnaik/damngood.tools",
+     "path": "lib/og.ts"
+    },
+    {
+     "repo": "wesbos/Syntax-AI-Transcripts",
+     "path": "gpt.ts"
+    },
+    {
+     "repo": "chokiproai/ChatGPT-Plugins",
+     "path": "app/constant.ts"
+    },
+    {
+     "repo": "andersrex/kindllm",
+     "path": "src/llm.ts"
+    },
+    {
+     "repo": "stonega/recos",
+     "path": "utils/api.ts"
+    },
+    {
+     "repo": "zclsx/terminal-chatbox",
+     "path": "src/bot.ts"
+    },
+    {
+     "repo": "iceener/personalized-gpt-4",
+     "path": "src/helpers.ts"
+    },
+    {
+     "repo": "thesupermegabuff/megabuff-cli",
+     "path": "src/models.ts"
+    },
+    {
+     "repo": "wesbos/Syntax-AI-Transcripts",
+     "path": "summarize.ts"
+    },
+    {
+     "repo": "mbt1909432/Acontext-Agent-Playground",
+     "path": "lib/config.ts"
+    },
+    {
+     "repo": "paco0x/vscode-ai-rename",
+     "path": "src/openai.ts"
+    },
+    {
+     "repo": "irbull/obsidian-ai-summary",
+     "path": "main.ts"
+    },
+    {
+     "repo": "load1n9/openai",
+     "path": "src/types.ts"
+    },
+    {
+     "repo": "zclsx/terminal-chatbox",
+     "path": "src/index.ts"
+    },
+    {
+     "repo": "RiP3rQ/AI-Butler",
+     "path": "lib/openai.ts"
+    },
+    {
+     "repo": "meetpateltech/convelyze",
+     "path": "lib/utils.ts"
+    },
+    {
+     "repo": "nohairblingbling/Interview-Assistant",
+     "path": "src/index.ts"
+    },
+    {
+     "repo": "sullyo/searchreddit",
+     "path": "types/index.ts"
+    },
+    {
+     "repo": "alanzchen/chatgpt-quick-actions",
+     "path": "src/util.ts"
+    },
+    {
+     "repo": "baobab-tech/llm-translator",
+     "path": "lib/ai/gpt.ts"
+    },
+    {
+     "repo": "rogeriochaves/llm-cost",
+     "path": "src/index.ts"
+    },
+    {
+     "repo": "iamlibie/unlimited-ai-platform",
+     "path": "prisma/seed.ts"
+    },
+    {
+     "repo": "BWurster/explain-selection-with-ai",
+     "path": "main.ts"
+    },
+    {
+     "repo": "walterjansma/gitmate",
+     "path": "src/openAI.ts"
+    },
+    {
+     "repo": "AkhilSharma90/FlowchartAI",
+     "path": "lib/atom.ts"
+    },
+    {
+     "repo": "itsharex/gptchat",
+     "path": "types/const.ts"
+    },
+    {
+     "repo": "reachbrt/VueAI",
+     "path": "db/seed.ts"
+    },
+    {
+     "repo": "VapiAI/example-server-serverless-vercel",
+     "path": "api/inbound.ts"
+    },
+    {
+     "repo": "LUK3D/glu-e",
+     "path": "src/core/ai.ts"
+    },
+    {
+     "repo": "impruthvi/ai-notes",
+     "path": "lib/openai.ts"
+    },
+    {
+     "repo": "iamhosen/ai-committer",
+     "path": "src/config.ts"
+    },
+    {
+     "repo": "ehsanghaffar/langchain-typescript",
+     "path": "src/index.ts"
+    },
+    {
+     "repo": "leegical/CrossWall",
+     "path": "docker/cn.ts"
+    },
+    {
+     "repo": "yisding/litllm",
+     "path": "index.ts"
+    },
+    {
+     "repo": "urvana/appscript-chatgpt",
+     "path": "src/Code.ts"
+    },
+    {
+     "repo": "llynxai/agents",
+     "path": "types.ts"
+    },
+    {
+     "repo": "OmarHedeya95/vc-copilot",
+     "path": "src/main.ts"
+    },
+    {
+     "repo": "AidanTilgner/AutogenObsidianPlugin",
+     "path": "main.ts"
+    },
+    {
+     "repo": "luisFilipePT/code-scope",
+     "path": "ai/index.ts"
+    },
+    {
+     "repo": "shibayu36/english-line-bot",
+     "path": "src/openai.ts"
+    },
+    {
+     "repo": "crystalnyan/takemeds-bot",
+     "path": "src/gpt.ts"
+    },
+    {
+     "repo": "anayatkhan1/GenieBlog",
+     "path": "app/action.ts"
+    },
+    {
+     "repo": "bryantanjw/lesswrong-gpt",
+     "path": "types/index.ts"
+    },
+    {
+     "repo": "zlenner/whatever",
+     "path": "src/gpt3.ts"
+    },
+    {
+     "repo": "just-be-dev/deno.run",
+     "path": "chat-gpt.ts"
+    }
+   ]
+  },
+  {
+   "provider": "openai",
+   "query": "\"gpt-3.5-turbo\"",
+   "language": "JavaScript",
+   "hits": [
+    {
+     "repo": "gnehs/subtitle-translator",
+     "path": "index.js"
+    },
+    {
+     "repo": "qunash/gpt-3_chrome_extension",
+     "path": "api.js"
+    },
+    {
+     "repo": "aseichter2007/ClipboardConqueror",
+     "path": "setup.js"
+    },
+    {
+     "repo": "MoritzLaurer/GPT-google-sheets",
+     "path": "GPT.gs"
+    },
+    {
+     "repo": "bmob/wechatapp-demo",
+     "path": "app.js"
+    },
+    {
+     "repo": "tobiasbueschel/search-gpt",
+     "path": "index.js"
+    },
+    {
+     "repo": "snwfdhmp/llm",
+     "path": "main.js"
+    },
+    {
+     "repo": "XaviaTeam/facebook-bot-chatgpt",
+     "path": "index.js"
+    },
+    {
+     "repo": "realrasengan/AIQA",
+     "path": "aiqa.js"
+    },
+    {
+     "repo": "IvanCampos/discord-ai",
+     "path": "index.js"
+    },
+    {
+     "repo": "leonvanzyl/langchain-js",
+     "path": "llm.js"
+    },
+    {
+     "repo": "YAV-AI/NodeJS-OpenAI-Function-Calling-Example",
+     "path": "index.js"
+    },
+    {
+     "repo": "emqx/openai-mqtt-nodejs",
+     "path": "index.js"
+    },
+    {
+     "repo": "lelehub/OpenAI-Proxy-Api",
+     "path": "app.js"
+    },
+    {
+     "repo": "eunomia-bpf/chatrepo",
+     "path": "app.js"
+    },
+    {
+     "repo": "clairelovesgravy/gpt-3.5-translator",
+     "path": "api.js"
+    },
+    {
+     "repo": "discountry/openai-telegram-bot",
+     "path": "turbo.js"
+    },
+    {
+     "repo": "SawyerHood/create-chat-gpt-plugin",
+     "path": "index.ts"
+    },
+    {
+     "repo": "kmizu/ChatGPT-BOT",
+     "path": "index.js"
+    },
+    {
+     "repo": "ezzcodeezzlife/fileGPT",
+     "path": "main.js"
+    },
+    {
+     "repo": "xiangsx/wechatgpt",
+     "path": "gpt.js"
+    },
+    {
+     "repo": "gptboss/experiments",
+     "path": "gpt4.js"
+    },
+    {
+     "repo": "adshao/chatgpt-code-review-action",
+     "path": "index.js"
+    },
+    {
+     "repo": "gptboss/experiments",
+     "path": "index.js"
+    },
+    {
+     "repo": "formulahendry/openai-examples",
+     "path": "chat.js"
+    },
+    {
+     "repo": "Danish-H/whatsapp-gpt",
+     "path": "ai.js"
+    },
+    {
+     "repo": "developersdigest/OpenAI-Web-Search-RAG-LLM-API-with-BUN.js",
+     "path": "index.js"
+    },
+    {
+     "repo": "moonsushistudio/chatemup",
+     "path": "index.js"
+    },
+    {
+     "repo": "nibukdk/GPT_Google_Sheets_Integration",
+     "path": "utils.js"
+    },
+    {
+     "repo": "Kevin8675/ChatGPT-Discord-Bot",
+     "path": "index.js"
+    },
+    {
+     "repo": "yxngrbree/prototypebot",
+     "path": "bot.js"
+    },
+    {
+     "repo": "enghamzasalem/whats-gpt-firebase",
+     "path": "index.js"
+    },
+    {
+     "repo": "geniusyinka/OPENAI-PDF-CHATBOT",
+     "path": "app.js"
+    },
+    {
+     "repo": "rgarlik/autocoder",
+     "path": "start.js"
+    },
+    {
+     "repo": "lianshufeng/chatgpt_api_demo",
+     "path": "main.js"
+    },
+    {
+     "repo": "suiGn/Lisa",
+     "path": "gpt.js"
+    },
+    {
+     "repo": "Murodbektuychiyev/CareerPath",
+     "path": "index.js"
+    },
+    {
+     "repo": "Adarshagupta/Trybookai",
+     "path": "sw.js"
+    },
+    {
+     "repo": "SidU/teams-chatgpt-js",
+     "path": "bot.js"
+    },
+    {
+     "repo": "crybot/obsidian-flashcards-llm",
+     "path": "main.js"
+    },
+    {
+     "repo": "theaniketraj/ChatGPT-Clone",
+     "path": "app.js"
+    },
+    {
+     "repo": "cmbitton/jarvis-ai-bot",
+     "path": "main.js"
+    },
+    {
+     "repo": "kshashikumar/mysql-gui",
+     "path": "cli.js"
+    },
+    {
+     "repo": "failfa-st/fail1",
+     "path": "base.js"
+    },
+    {
+     "repo": "adamwawrzynkowski/PROMPTR",
+     "path": "main.js"
+    },
+    {
+     "repo": "ittuann/obsidian-gpt-liteinquirer-plugin",
+     "path": "main.js"
+    },
+    {
+     "repo": "kj-huang/line-english-teacher",
+     "path": "app.js"
+    },
+    {
+     "repo": "ChristianAlexander/gpt-slack",
+     "path": "app.js"
+    },
+    {
+     "repo": "iamkhalid2/WhatsAppGPT",
+     "path": "index.js"
+    },
+    {
+     "repo": "noejunior299/innova-bot",
+     "path": "app.js"
+    },
+    {
+     "repo": "ubylabs/Chat-GPT3.5-API-Model",
+     "path": "app.js"
+    },
+    {
+     "repo": "isaksolheim/gesucht",
+     "path": "lib.js"
+    },
+    {
+     "repo": "bayradion/rabbitmap",
+     "path": "main.js"
+    },
+    {
+     "repo": "zazaji/obsidian-SenGener",
+     "path": "main.js"
+    },
+    {
+     "repo": "scripting/chatGptHelloWorld",
+     "path": "code.js"
+    },
+    {
+     "repo": "corabank/cora-gpt",
+     "path": "index.js"
+    },
+    {
+     "repo": "thrishank007/RoseGPT",
+     "path": "index.js"
+    },
+    {
+     "repo": "chanmyaemaung/chatbot",
+     "path": "index.js"
+    },
+    {
+     "repo": "pesarkhobeee/TabChi",
+     "path": "ai.js"
+    },
+    {
+     "repo": "Soham2912/ChatGPT-clone",
+     "path": "app.js"
+    },
+    {
+     "repo": "suvansh/CeLLM",
+     "path": "all.gs"
+    },
+    {
+     "repo": "OverRaddit/ZettelGPT",
+     "path": "main.js"
+    },
+    {
+     "repo": "13lack13lood/AI-Music-Recommendations-Backend",
+     "path": "index.js"
+    },
+    {
+     "repo": "k11q/WhatsappGPT",
+     "path": "index.js"
+    },
+    {
+     "repo": "poloclub/wordflow-doc",
+     "path": "Code.js"
+    },
+    {
+     "repo": "Lane-G-Smith/Discord-Bot-Job-Interview-Code-Buddy",
+     "path": "code.js"
+    },
+    {
+     "repo": "bramses/commonplace-bot",
+     "path": "bot.js"
+    },
+    {
+     "repo": "viniciuspereiras/zap",
+     "path": "app.js"
+    },
+    {
+     "repo": "AkshayRana-Jaltas/The",
+     "path": "a.js"
+    },
+    {
+     "repo": "leozinpvp/sla",
+     "path": "ai.js"
+    },
+    {
+     "repo": "nikiljos/livebook-ai-summarizer",
+     "path": "index.js"
+    },
+    {
+     "repo": "kevinamiri/chatgpt-spreadsheet-example",
+     "path": "Code.gs"
+    },
+    {
+     "repo": "Mukul1312/pr-commenter",
+     "path": "llm.js"
+    },
+    {
+     "repo": "jakeb1090/alpaca",
+     "path": "gpt.js"
+    },
+    {
+     "repo": "najzdev/chatgpt-Clone",
+     "path": "app.js"
+    },
+    {
+     "repo": "sherwinvishesh/CalmQuest",
+     "path": "app.js"
+    },
+    {
+     "repo": "jtrichWM/futureGazetteJS",
+     "path": "app.js"
+    },
+    {
+     "repo": "isaacsto/IT-Interface",
+     "path": "app.js"
+    },
+    {
+     "repo": "Amir2050/mia-webiew-chat",
+     "path": "mia.js"
+    },
+    {
+     "repo": "Poseyv12/ChatGPT_Clone",
+     "path": "app.js"
+    },
+    {
+     "repo": "Gosoki/AI-VRChatroom-Visualization",
+     "path": "gpt.js"
+    },
+    {
+     "repo": "sunirvelvet/Kinesiology-AI",
+     "path": "app.js"
+    },
+    {
+     "repo": "akinsokpah/akin-ai-backend",
+     "path": "ask.js"
+    },
+    {
+     "repo": "GauravN123/ChatGPT-clone",
+     "path": "app.js"
+    },
+    {
+     "repo": "AnkurRam2002/ChatGPT-Clone",
+     "path": "app.js"
+    },
+    {
+     "repo": "XCEL-dev/xcelmind-on-celo",
+     "path": "api.js"
+    },
+    {
+     "repo": "IzanagiWeb3/runnerGPT",
+     "path": "app.js"
+    },
+    {
+     "repo": "fabjan/asstant",
+     "path": "ai.mjs"
+    },
+    {
+     "repo": "Enriquefft/UtecBots",
+     "path": "tmp.js"
+    },
+    {
+     "repo": "cflynn36/nolimitGPT",
+     "path": "index.js"
+    },
+    {
+     "repo": "wilsonf1996/index.html",
+     "path": "api2.js"
+    },
+    {
+     "repo": "subashrai02468/Javascript-chatGPT",
+     "path": "app.js"
+    },
+    {
+     "repo": "allyelvis/ai-powered-chatbot-for-customer-service-",
+     "path": "main.js"
+    },
+    {
+     "repo": "ThomasSzentirmay/ChatGPT-Clone",
+     "path": "node.js"
+    },
+    {
+     "repo": "therabotica/therabotica-clean-chatbot",
+     "path": "chat.js"
+    },
+    {
+     "repo": "win3zz/Self-ChatGPT",
+     "path": "main.js"
+    },
+    {
+     "repo": "ahmedpanju/cold-email-line-writer",
+     "path": "index.js"
+    },
+    {
+     "repo": "hamed-saadallah/sfcc-companion",
+     "path": "index.js"
+    },
+    {
+     "repo": "didfodms/boseong-hongcha",
+     "path": "index.js"
+    },
+    {
+     "repo": "huaruic/agent-std",
+     "path": "index.js"
+    }
+   ]
+  },
+  {
+   "provider": "openai",
+   "query": "\"gpt-4-turbo\"",
+   "language": "TypeScript",
+   "hits": [
+    {
+     "repo": "SawyerHood/tlbrowse",
+     "path": "ai/models.ts"
+    },
+    {
+     "repo": "upstash/wikipedia-semantic-search",
+     "path": "src/lib/rag-chat.ts"
+    },
+    {
+     "repo": "run-llama/chat-llamaindex",
+     "path": "app/store/bot.ts"
+    },
+    {
+     "repo": "Scale3-Labs/langtrace",
+     "path": "lib/constants.ts"
+    },
+    {
+     "repo": "upstash/wikipedia-semantic-search",
+     "path": "src/lib/actions.ts"
+    },
+    {
+     "repo": "PipedreamHQ/mcp-chat",
+     "path": "lib/ai/providers.ts"
+    },
+    {
+     "repo": "egoist/shell-ask",
+     "path": "src/models.ts"
+    },
+    {
+     "repo": "Writesonic/GPTRouter",
+     "path": "src/constants.ts"
+    },
+    {
+     "repo": "mercoa-finance/llm-document-ocr",
+     "path": "src/index.ts"
+    },
+    {
+     "repo": "vual/ChatGPT-Next-Web-Pro",
+     "path": "app/constant.ts"
+    },
+    {
+     "repo": "akshat-OwO/syllabusx-client",
+     "path": "src/lib/schemas.ts"
+    },
+    {
+     "repo": "ShirleyRex/assertify.io",
+     "path": "lib/llm/types.ts"
+    },
+    {
+     "repo": "upstash/rag-chat",
+     "path": "src/models.ts"
+    },
+    {
+     "repo": "rsclaw-ai/rsclaw",
+     "path": "ui/app/constant.ts"
+    },
+    {
+     "repo": "crybot/obsidian-flashcards-llm",
+     "path": "src/models.ts"
+    },
+    {
+     "repo": "jcollingj/caret",
+     "path": "main.ts"
+    },
+    {
+     "repo": "jcollingj/caret",
+     "path": "settings.ts"
+    },
+    {
+     "repo": "TejasQ/idli",
+     "path": "util/getCommand.ts"
+    },
+    {
+     "repo": "theswerd/ai-sql",
+     "path": "example/src/mysql.ts"
+    },
+    {
+     "repo": "SawyerHood/develop.sh",
+     "path": "ai/models.ts"
+    },
+    {
+     "repo": "theswerd/ai-sql",
+     "path": "example/src/sqlite.ts"
+    },
+    {
+     "repo": "OptimizeAIHub/Playwright-Copilot",
+     "path": "src/extension.ts"
+    },
+    {
+     "repo": "arumie/obsidian-medium-importer-plugin",
+     "path": "src/types.ts"
+    },
+    {
+     "repo": "busiyiworld/fake-raycast-backend",
+     "path": "server/models.ts"
+    },
+    {
+     "repo": "OptimizeAIHub/Playwright-Copilot",
+     "path": "src/oldextension.ts"
+    },
+    {
+     "repo": "codyadam/system-prompt",
+     "path": "lib/ai.ts"
+    },
+    {
+     "repo": "chokiproai/ChatGPT-Plugins",
+     "path": "app/constant.ts"
+    },
+    {
+     "repo": "avsavani/HubermanGPT",
+     "path": "types/index.ts"
+    },
+    {
+     "repo": "chokiproai/ChatGPT-Plugins",
+     "path": "app/utils.ts"
+    },
+    {
+     "repo": "recallai/google-meet-meeting-bot",
+     "path": "src/models.ts"
+    },
+    {
+     "repo": "milisp/plux-agent-gui-mvp",
+     "path": "src/lib/data.ts"
+    },
+    {
+     "repo": "buszk/obsidian-ai-editor",
+     "path": "src/llm/openai_llm.ts"
+    },
+    {
+     "repo": "OmarHedeya95/vc-copilot",
+     "path": "src/modal.ts"
+    },
+    {
+     "repo": "arumie/obsidian-simple-prompt-plugin",
+     "path": "src/types.ts"
+    },
+    {
+     "repo": "joone/loz",
+     "path": "src/config/index.ts"
+    },
+    {
+     "repo": "akeybl/skynetbrowser",
+     "path": "src/globals.ts"
+    },
+    {
+     "repo": "littleCareless/dish-ai-commit",
+     "path": "src/ai/types.ts"
+    },
+    {
+     "repo": "elebitzero/openai-react-chat",
+     "path": "src/models/model.ts"
+    },
+    {
+     "repo": "ravenwits/obsidian-ai-summarize",
+     "path": "src/plugin/budget.ts"
+    },
+    {
+     "repo": "10bedicu/ayushma_fe",
+     "path": "src/types/project.ts"
+    },
+    {
+     "repo": "thesupermegabuff/megabuff-cli",
+     "path": "src/models.ts"
+    },
+    {
+     "repo": "zhijiewong/openharness",
+     "path": "src/harness/cost.ts"
+    },
+    {
+     "repo": "meetpateltech/convelyze",
+     "path": "lib/utils.ts"
+    },
+    {
+     "repo": "dorukozerr/kisuke.vim",
+     "path": "src/types/index.ts"
+    },
+    {
+     "repo": "SuiYunsy/NextWeb",
+     "path": "app/constant.ts"
+    },
+    {
+     "repo": "AQComputerKing/protoforge",
+     "path": "src/types/ai.ts"
+    },
+    {
+     "repo": "PaulKinlan/NotebookLM-Chrome",
+     "path": "src/types/config.ts"
+    },
+    {
+     "repo": "mggrim/scholarly-ideas",
+     "path": "src/lib/ai/config.ts"
+    },
+    {
+     "repo": "camballe/vidscript",
+     "path": "src/models.ts"
+    },
+    {
+     "repo": "swadhinbiswas/OpencodeHub",
+     "path": "src/lib/ai/openai.ts"
+    },
+    {
+     "repo": "hrishioa/dadeumi",
+     "path": "src/utils/constants.ts"
+    },
+    {
+     "repo": "alevidals/intolerantIA",
+     "path": "src/lib/schemas.ts"
+    },
+    {
+     "repo": "joshkotrous/tome",
+     "path": "core/ai/index.ts"
+    },
+    {
+     "repo": "longern/FlareAgent",
+     "path": "src/app/models.ts"
+    },
+    {
+     "repo": "yisding/litllm",
+     "path": "index.ts"
+    },
+    {
+     "repo": "trangiabach/chat-pdf",
+     "path": "lib/ai/models.ts"
+    },
+    {
+     "repo": "chriscarrollsmith/taskqueue-mcp",
+     "path": "src/client/cli.ts"
+    },
+    {
+     "repo": "OmarHedeya95/vc-copilot",
+     "path": "src/main.ts"
+    },
+    {
+     "repo": "cmblir/Myco",
+     "path": "app/src/lib/budget.ts"
+    },
+    {
+     "repo": "darylhcw/self-hosted-gpt",
+     "path": "src/constants.ts"
+    },
+    {
+     "repo": "xavidop/genkitx-github",
+     "path": "src/index.ts"
+    },
+    {
+     "repo": "yuanjua/chiken",
+     "path": "app/lib/utils.ts"
+    },
+    {
+     "repo": "fahd09/openharness",
+     "path": "src/core/models.ts"
+    },
+    {
+     "repo": "bryanlundberg/ai-world-data",
+     "path": "src/data/ai.ts"
+    },
+    {
+     "repo": "shouri123/Late-Meet",
+     "path": "src/usageTracker.ts"
+    },
+    {
+     "repo": "MoonWeSif/qadchat",
+     "path": "app/constant.ts"
+    },
+    {
+     "repo": "bryanlundberg/ai-world-data",
+     "path": "src/ts/Types.ts"
+    },
+    {
+     "repo": "app-vox/vox",
+     "path": "src/main/tray.ts"
+    },
+    {
+     "repo": "clementpoiret/ai-mentor",
+     "path": "src/ai/model.ts"
+    },
+    {
+     "repo": "clementpoiret/ai-mentor",
+     "path": "src/settings.ts"
+    },
+    {
+     "repo": "saidMounaim/resume-scan-AI",
+     "path": "inngest/functions.ts"
+    },
+    {
+     "repo": "z-zeechung/next-next-chat",
+     "path": "app/constant.ts"
+    },
+    {
+     "repo": "eraycc/Mix2API",
+     "path": "theold/main.ts"
+    },
+    {
+     "repo": "axiomhq/modeldb",
+     "path": "src/schema.ts"
+    },
+    {
+     "repo": "TheArchitectit/pi-mega-compact",
+     "path": "src/pricing.ts"
+    },
+    {
+     "repo": "ellmanalex/token-counter",
+     "path": "app/utils/groups.ts"
+    },
+    {
+     "repo": "DanielFGray/postgres.garden",
+     "path": "server/ai/registry.ts"
+    },
+    {
+     "repo": "bayradion/rabbitmap",
+     "path": "main.ts"
+    },
+    {
+     "repo": "Econify/generative-ts",
+     "path": "examples/index.ts"
+    },
+    {
+     "repo": "green-api/whatsapp-chatgpt-js",
+     "path": "src/types/index.ts"
+    },
+    {
+     "repo": "muzhi1991/obsidian-private-ai",
+     "path": "src/setting.ts"
+    },
+    {
+     "repo": "sshader/next-openai-app-with-convex",
+     "path": "convex/http.ts"
+    },
+    {
+     "repo": "deco-cx/apps",
+     "path": "decopilot-app/types.ts"
+    },
+    {
+     "repo": "NeatChat/NeatChat-Mini",
+     "path": "app/constant.ts"
+    },
+    {
+     "repo": "kevinelliott/agentpipe-web",
+     "path": "app/types/index.ts"
+    },
+    {
+     "repo": "adhabnr-ux/evalport",
+     "path": "cli/src/run/cost.ts"
+    },
+    {
+     "repo": "iamlibie/unlimited-ai-platform",
+     "path": "app/constant.ts"
+    },
+    {
+     "repo": "hypercycle-development/mosaic-companion",
+     "path": "src/types/ai.ts"
+    },
+    {
+     "repo": "wojciechkrol/alice-ai-raycast",
+     "path": "src/lib/OpenAI.ts"
+    },
+    {
+     "repo": "iamlibie/unlimited-ai-platform",
+     "path": "app/utils.ts"
+    },
+    {
+     "repo": "jaspermayone/obsidian-ai-tagger",
+     "path": "src/models/constants.ts"
+    },
+    {
+     "repo": "NeatChat/NeatChat-Mini",
+     "path": "app/utils.ts"
+    },
+    {
+     "repo": "iammatthias/obsidian-ai-tagger",
+     "path": "src/types.ts"
+    },
+    {
+     "repo": "iammatthias/obsidian-ai-excerpt-generator",
+     "path": "src/types.ts"
+    },
+    {
+     "repo": "TechNavii/LLM-Memory-Calculator",
+     "path": "src/data/llmModels.ts"
+    },
+    {
+     "repo": "zibuyu2015831/obsidian-copilot-chinese",
+     "path": "src/constants.ts"
+    },
+    {
+     "repo": "Dogtiti/ChatGPT-Next-Web-EarlyBird",
+     "path": "app/constant.ts"
+    },
+    {
+     "repo": "QiuYeDx/FusionKit",
+     "path": "src/constants/model.ts"
+    },
+    {
+     "repo": "EnesAkyuz/e4chat",
+     "path": "lib/models.ts"
+    },
+    {
+     "repo": "FerLRT/QuizCraft",
+     "path": "src/lib/ia_utils.ts"
+    }
+   ]
+  },
+  {
+   "provider": "openai",
+   "query": "o1-mini",
+   "language": "TypeScript",
+   "hits": [
+    {
+     "repo": "niieani/gpt-tokenizer",
+     "path": "src/model/o1-mini.ts"
+    },
+    {
+     "repo": "i-am-alice/3rd-devs",
+     "path": "context/OpenAIService.ts"
+    },
+    {
+     "repo": "Scale3-Labs/langtrace",
+     "path": "lib/constants.ts"
+    },
+    {
+     "repo": "i-am-alice/3rd-devs",
+     "path": "unstructured/app.ts"
+    },
+    {
+     "repo": "Scale3-Labs/langtrace",
+     "path": "lib/utils.ts"
+    },
+    {
+     "repo": "i-am-alice/3rd-devs",
+     "path": "todo/OpenAIService.ts"
+    },
+    {
+     "repo": "getomni-ai/benchmark",
+     "path": "src/models/registry.ts"
+    },
+    {
+     "repo": "egoist/shell-ask",
+     "path": "src/models.ts"
+    },
+    {
+     "repo": "iceener/ai",
+     "path": "src/config/llm.config.ts"
+    },
+    {
+     "repo": "jucasoliveira/terminalGPT",
+     "path": "src/utils.ts"
+    },
+    {
+     "repo": "i-am-alice/3rd-devs",
+     "path": "sync/OpenAIService.ts"
+    },
+    {
+     "repo": "i-am-alice/3rd-devs",
+     "path": "docs/OpenAIService.ts"
+    },
+    {
+     "repo": "i-am-alice/3rd-devs",
+     "path": "read/OpenAIService.ts"
+    },
+    {
+     "repo": "i-am-alice/3rd-devs",
+     "path": "tools/OpenAIService.ts"
+    },
+    {
+     "repo": "i-am-alice/3rd-devs",
+     "path": "events/OpenAIService.ts"
+    },
+    {
+     "repo": "bracesproul/site-rag",
+     "path": "src/constants.ts"
+    },
+    {
+     "repo": "i-am-alice/3rd-devs",
+     "path": "mindmap/OpenAIService.ts"
+    },
+    {
+     "repo": "run-llama/app-creator",
+     "path": "main.ts"
+    },
+    {
+     "repo": "Cainier/gpt-tokens",
+     "path": "src/pricing.ts"
+    },
+    {
+     "repo": "apify/actor-web-automation-agent",
+     "path": "src/openai.ts"
+    },
+    {
+     "repo": "vscode-reborn-ai/vscode-reborn-ai",
+     "path": "src/renderer/types.ts"
+    },
+    {
+     "repo": "vual/ChatGPT-Next-Web-Pro",
+     "path": "app/constant.ts"
+    },
+    {
+     "repo": "rsclaw-ai/rsclaw",
+     "path": "ui/app/constant.ts"
+    },
+    {
+     "repo": "niieani/gpt-tokenizer",
+     "path": "src/models.gen.ts"
+    },
+    {
+     "repo": "wjszxli/AiAllSupport",
+     "path": "src/config/models.ts"
+    },
+    {
+     "repo": "crybot/obsidian-flashcards-llm",
+     "path": "src/models.ts"
+    },
+    {
+     "repo": "tak-bro/aicommit2",
+     "path": "src/utils/openai.ts"
+    },
+    {
+     "repo": "jcollingj/caret",
+     "path": "main.ts"
+    },
+    {
+     "repo": "buszk/obsidian-ai-editor",
+     "path": "src/action.ts"
+    },
+    {
+     "repo": "Cainier/gpt-tokens",
+     "path": "src/index.ts"
+    },
+    {
+     "repo": "OptimizeAIHub/Playwright-Copilot",
+     "path": "src/extension.ts"
+    },
+    {
+     "repo": "nalaso/windai",
+     "path": "src/lib/modellist.ts"
+    },
+    {
+     "repo": "rubenmarcus/ralph-starter",
+     "path": "src/llm/providers.ts"
+    },
+    {
+     "repo": "adobe/aem-github-copilot",
+     "path": "src/utils/constants.ts"
+    },
+    {
+     "repo": "OptimizeAIHub/Playwright-Copilot",
+     "path": "src/oldextension.ts"
+    },
+    {
+     "repo": "token-js/token.js",
+     "path": "src/models.ts"
+    },
+    {
+     "repo": "buszk/obsidian-ai-editor",
+     "path": "src/llm/openai_llm.ts"
+    },
+    {
+     "repo": "CortexPrism/cortex",
+     "path": "src/llm/openai.ts"
+    },
+    {
+     "repo": "meetpateltech/convelyze",
+     "path": "lib/utils.ts"
+    },
+    {
+     "repo": "mzxrai/mcp-openai",
+     "path": "index.ts"
+    },
+    {
+     "repo": "AymericLeFeyer/bonap",
+     "path": "src/shared/types/llm.ts"
+    },
+    {
+     "repo": "littleCareless/dish-ai-commit",
+     "path": "src/ai/types.ts"
+    },
+    {
+     "repo": "0x0funky/TradeVoyage",
+     "path": "lib/ai_types.ts"
+    },
+    {
+     "repo": "elebitzero/openai-react-chat",
+     "path": "src/models/model.ts"
+    },
+    {
+     "repo": "iotexproject/quicksilver",
+     "path": "src/llm/llm-service.ts"
+    },
+    {
+     "repo": "codyadam/system-prompt",
+     "path": "lib/ai.ts"
+    },
+    {
+     "repo": "3ru/gpt-translate",
+     "path": "src/models.ts"
+    },
+    {
+     "repo": "systemoutprintlnhelloworld/interactive-prompt-iterator",
+     "path": "src/lib/store.ts"
+    },
+    {
+     "repo": "antonpk1/stackfish",
+     "path": "www/app/types/models.ts"
+    },
+    {
+     "repo": "laiso/ts-bench",
+     "path": "src/config/pricing.ts"
+    },
+    {
+     "repo": "chokiproai/ChatGPT-Plugins",
+     "path": "app/constant.ts"
+    },
+    {
+     "repo": "1653756334/claude-imitate",
+     "path": "src/app/lib/constant.ts"
+    },
+    {
+     "repo": "heimoshuiyu/chatgpt-api-web",
+     "path": "src/types/models.ts"
+    },
+    {
+     "repo": "hoangsonww/Forge-Agentic-Coding-CLI",
+     "path": "src/models/cost.ts"
+    },
+    {
+     "repo": "PactInteractive/dbchat",
+     "path": "shared.ts"
+    },
+    {
+     "repo": "emqx/emqx-dashboard5",
+     "path": "src/i18n/Flow.ts"
+    },
+    {
+     "repo": "pluveto/daan",
+     "path": "src/store/settings.ts"
+    },
+    {
+     "repo": "pinkpixel-dev/mindbridge-mcp",
+     "path": "src/providers/openai.ts"
+    },
+    {
+     "repo": "dahlia/yoyak",
+     "path": "src/models.ts"
+    },
+    {
+     "repo": "ai-learning-tools/obsidian-spaced-repetition-ai",
+     "path": "src/constants.ts"
+    },
+    {
+     "repo": "owliabot/owliabot",
+     "path": "src/agent/models.ts"
+    },
+    {
+     "repo": "joone/loz",
+     "path": "src/config/index.ts"
+    },
+    {
+     "repo": "Jacobinwwey/obsidian-NotEMD",
+     "path": "src/llmProviders.ts"
+    },
+    {
+     "repo": "yxw007/translate",
+     "path": "src/types/index.ts"
+    },
+    {
+     "repo": "AurelienStebe/Gladdis",
+     "path": "src/gladdis.ts"
+    },
+    {
+     "repo": "sindujaramaraj/app-developer-copilot",
+     "path": "src/service/types.ts"
+    },
+    {
+     "repo": "codextde/textchecker",
+     "path": "src/types/index.ts"
+    },
+    {
+     "repo": "pinkpixel-dev/mindbridge-mcp",
+     "path": "src/providers/index.ts"
+    },
+    {
+     "repo": "unelmacoin/unelma-code-translate",
+     "path": "types/types.ts"
+    },
+    {
+     "repo": "OpenPawz/openpawz",
+     "path": "src/state/index.ts"
+    },
+    {
+     "repo": "chinmaymk/aikit",
+     "path": "src/models.ts"
+    },
+    {
+     "repo": "sorrycc/mdcopilot",
+     "path": "src/summarizer/model.ts"
+    },
+    {
+     "repo": "mandarwagh9/embedist",
+     "path": "src/lib/ai-pricing.ts"
+    },
+    {
+     "repo": "AQComputerKing/protoforge",
+     "path": "src/types/ai.ts"
+    },
+    {
+     "repo": "oscampo/obsidian-neural-composer",
+     "path": "src/constants.ts"
+    },
+    {
+     "repo": "champaya/workflow-gpt",
+     "path": "utils/ai/model.ts"
+    },
+    {
+     "repo": "Signal-Execution-Labs/forex-trading-ai-agent",
+     "path": "src/providers/index.ts"
+    },
+    {
+     "repo": "hervekom37/Ani-Code-CLI",
+     "path": "src/utils/openai-models.ts"
+    },
+    {
+     "repo": "nivhanin/TerraChat",
+     "path": "frontend/src/types.ts"
+    },
+    {
+     "repo": "MoonWeSif/qadchat",
+     "path": "app/constant.ts"
+    },
+    {
+     "repo": "unelmacoin/unelma-code-translate",
+     "path": "utils/index.ts"
+    },
+    {
+     "repo": "whats2000/AgentLaboratoryWebUI",
+     "path": "src/config.ts"
+    },
+    {
+     "repo": "shivatmax/web3cli",
+     "path": "src/services/ai/models.ts"
+    },
+    {
+     "repo": "Ramtx/Bouno",
+     "path": "src/agent/config.ts"
+    },
+    {
+     "repo": "rockcat/HATS",
+     "path": "src/providers/pricing.ts"
+    },
+    {
+     "repo": "endernoke/vscode-cheerleader",
+     "path": "src/sidebar.ts"
+    },
+    {
+     "repo": "dabit3/agent-env",
+     "path": "src/schema.ts"
+    },
+    {
+     "repo": "zebbern/repolens",
+     "path": "lib/ai/token-cost.ts"
+    },
+    {
+     "repo": "rmadhuram/pcaisso-next",
+     "path": "src/lib/llms/models.ts"
+    },
+    {
+     "repo": "justinlietz93/Apex-CodeGenesis",
+     "path": "src/shared/api.ts"
+    },
+    {
+     "repo": "AQComputerKing/protoforge",
+     "path": "src/services/models.ts"
+    },
+    {
+     "repo": "niklasmh/ClaudeCAD",
+     "path": "app/types/llm.ts"
+    },
+    {
+     "repo": "pulgueta/PDFizado",
+     "path": "lib/plan-allowance.ts"
+    },
+    {
+     "repo": "zebbern/repolens",
+     "path": "lib/ai/providers.ts"
+    },
+    {
+     "repo": "LoadShine/sumism",
+     "path": "src/types.ts"
+    },
+    {
+     "repo": "AurelienStebe/Gladdis",
+     "path": "src/startup.ts"
+    },
+    {
+     "repo": "302ai/302_coder_generator",
+     "path": "app/actions/chat.ts"
+    },
+    {
+     "repo": "suwa-sh/mcp-codex-cli",
+     "path": "index.ts"
+    },
+    {
+     "repo": "paradite/llm-info",
+     "path": "src/model.ts"
+    },
+    {
+     "repo": "synapt-dev/codi",
+     "path": "src/pricing.ts"
+    }
+   ]
+  },
+  {
+   "provider": "meta-graph",
+   "query": "graph.facebook.com/v18.0",
+   "language": "TypeScript",
+   "hits": [
+    {
+     "repo": "superglue-ai/superglue",
+     "path": "packages/shared/templates.ts"
+    },
+    {
+     "repo": "CortexPrism/cortex",
+     "path": "src/channels/whatsapp.ts"
+    },
+    {
+     "repo": "Cesarjoquin/Marketing-Skills",
+     "path": "src/clis/meta-ads.ts"
+    },
+    {
+     "repo": "triggerdotdev/api-reference",
+     "path": "src/instagram.ts"
+    },
+    {
+     "repo": "OmarKhled/Tafakor",
+     "path": "pipe/publish.ts"
+    },
+    {
+     "repo": "yogendra-08/healthbridge_portal",
+     "path": "src/lib/whatsapp.ts"
+    },
+    {
+     "repo": "thematters/matters-server",
+     "path": "src/connectors/userService.ts"
+    },
+    {
+     "repo": "FreeOps-Tools/postpilot",
+     "path": "server/routes/auth.ts"
+    },
+    {
+     "repo": "mmarqueti/whatsapp-mcp",
+     "path": "src/whatsapp/client.ts"
+    },
+    {
+     "repo": "Rockstar100/commerce-insights-agent",
+     "path": "lib/testMetaAPI.ts"
+    },
+    {
+     "repo": "sanjipun/socialring",
+     "path": "src/lib/social-api.ts"
+    },
+    {
+     "repo": "SolutioneersInfotech/Bizwapp",
+     "path": "lib/api.ts"
+    },
+    {
+     "repo": "Techgethr/whatsappagent",
+     "path": "src/channels/waba.ts"
+    },
+    {
+     "repo": "abinashpanda/positive-mind-care-cms",
+     "path": "src/utils/whatsapp.ts"
+    },
+    {
+     "repo": "Rockstar100/commerce-insights-agent",
+     "path": "lib/metaAuth.ts"
+    },
+    {
+     "repo": "09liweis/RentalManagementPlatform",
+     "path": "utils/facebook-oauth.ts"
+    },
+    {
+     "repo": "dogalyir/whatsapp-cloud-api-types",
+     "path": "examples/subscriptions.ts"
+    },
+    {
+     "repo": "chauhan-varun/LunaAi",
+     "path": "lib/whatsapp/sendMessage.ts"
+    },
+    {
+     "repo": "warpy-ai/auth-sdk",
+     "path": "src/providers/facebook.ts"
+    },
+    {
+     "repo": "muhammadsaadgondal/SocialHub",
+     "path": "lib/fetchData.ts"
+    },
+    {
+     "repo": "5h4d0wn1k/social-media-automation-main",
+     "path": "src/lib/api/facebook.ts"
+    },
+    {
+     "repo": "arulagrawal/i_hate_voice_notes",
+     "path": "index.ts"
+    },
+    {
+     "repo": "integratedotdev/typescript-sdk",
+     "path": "src/integrations/facebook.ts"
+    },
+    {
+     "repo": "Hashino/whatsapp-ai-backend",
+     "path": "src/utils/config.ts"
+    },
+    {
+     "repo": "grwna/SalmanAid",
+     "path": "src/lib/whatsapp.ts"
+    },
+    {
+     "repo": "anantasharma510/InstaPoster-AI-Instagram-Automation",
+     "path": "lib/facebook-api.ts"
+    },
+    {
+     "repo": "hossainsolyman534-lang/Drop-Rate",
+     "path": "server.ts"
+    },
+    {
+     "repo": "rohityadava/Rohit-Kumar-Yadav",
+     "path": "server.ts"
+    },
+    {
+     "repo": "EGZeelie/StemGolf-VocalWave",
+     "path": "services/facebook.ts"
+    },
+    {
+     "repo": "PixelPro-Studios/dreamsnap",
+     "path": "src/lib/instagram.ts"
+    },
+    {
+     "repo": "anantasharma510/InstaPoster-AI-Instagram-Automation",
+     "path": "lib/instagram-api.ts"
+    },
+    {
+     "repo": "codeabode101/landing-page",
+     "path": "middleware.ts"
+    },
+    {
+     "repo": "stacksjs/ts-auth",
+     "path": "src/oauth/providers/facebook.ts"
+    },
+    {
+     "repo": "zecloud/sparkfront-ai-story-generator",
+     "path": "src/lib/env-config.ts"
+    },
+    {
+     "repo": "5h4d0wn1k/social-media-automation-main",
+     "path": "src/lib/api/instagram.ts"
+    },
+    {
+     "repo": "mchantosa/smooth-kitty",
+     "path": "plugins/kv_oauth.ts"
+    },
+    {
+     "repo": "avig-apiiro/avig-go-tests",
+     "path": "ts/sample.ts"
+    },
+    {
+     "repo": "Yousuf-Basir/sso-server",
+     "path": "lib/oauth.ts"
+    },
+    {
+     "repo": "babdikaarov/whatsappMyApp",
+     "path": "src/utils.ts"
+    },
+    {
+     "repo": "markvision-ai/markvision",
+     "path": "CLEAN_CODE.ts"
+    },
+    {
+     "repo": "armand0e/content-calendar-saas",
+     "path": "src/lib/oauth/config.ts"
+    },
+    {
+     "repo": "rafaelnovaes22/CarInsight",
+     "path": "src/check-config.ts"
+    },
+    {
+     "repo": "jschibelli/portfolio-os",
+     "path": "packages/lib/integrations/facebook.ts"
+    },
+    {
+     "repo": "brandonlacoste9-tech/Estateflow",
+     "path": "server.ts"
+    },
+    {
+     "repo": "tofaramususa/instagram-reels-automation",
+     "path": "get-user-id.ts"
+    },
+    {
+     "repo": "TANUJ-args/auto-socialize",
+     "path": "convex/http.ts"
+    },
+    {
+     "repo": "stationaryhj/web-story-nation",
+     "path": "types/login.ts"
+    },
+    {
+     "repo": "tofaramususa/instagram-reels-automation",
+     "path": "debug-token.ts"
+    },
+    {
+     "repo": "rprovine/tourism-hospitality-chatbot",
+     "path": "lib/channels/whatsapp.ts"
+    },
+    {
+     "repo": "kata-kas/rotaract",
+     "path": "lib/facebook.ts"
+    },
+    {
+     "repo": "MundoTango/Mundo-Tango",
+     "path": "scripts/get-scott-psid.ts"
+    },
+    {
+     "repo": "latimorelifelegacy25/The-final-hubby",
+     "path": "server.ts"
+    },
+    {
+     "repo": "Shivam2203/Cosmos",
+     "path": "src/lib/oauth/facebook.ts"
+    },
+    {
+     "repo": "icekidtech/social-snap",
+     "path": "src/fetchers/instagram.ts"
+    },
+    {
+     "repo": "zak01Z/app-ch",
+     "path": "lib/whatsapp.ts"
+    },
+    {
+     "repo": "tofaramususa/instagram-reels-automation",
+     "path": "extend-token.ts"
+    },
+    {
+     "repo": "MegaPDF/olx-clone",
+     "path": "config/oauth.ts"
+    },
+    {
+     "repo": "surabhiastrology/astro-landing",
+     "path": "lib/whatsapp.ts"
+    },
+    {
+     "repo": "ayishadigital44-star/restaurant-saas",
+     "path": "lib/whatsapp.ts"
+    },
+    {
+     "repo": "dlomaxw/casements",
+     "path": "lib/whatsapp.ts"
+    },
+    {
+     "repo": "EldonsLogic/Socialpulse",
+     "path": "refreshToken.ts"
+    },
+    {
+     "repo": "parina004/MediPing",
+     "path": "lib/whatsapp.ts"
+    },
+    {
+     "repo": "Adityashinde0101/recoverai",
+     "path": "lib/whatsapp.ts"
+    },
+    {
+     "repo": "felixgd/Logistic-center",
+     "path": "lib/whatsapp.ts"
+    },
+    {
+     "repo": "eventsystem7/wedding-rsvp-platform",
+     "path": "lib/whatsapp.ts"
+    },
+    {
+     "repo": "adilzhanshukenov/quiz-forma",
+     "path": "api/facebook.ts"
+    },
+    {
+     "repo": "RommelAgasa/azure-bot-framework-connect-ai",
+     "path": "src/facebook.ts"
+    },
+    {
+     "repo": "badrabdoph1/BadrDaawa",
+     "path": "lib/whatsapp.ts"
+    },
+    {
+     "repo": "rishabhhhh17/sentsparkle",
+     "path": "lib/meta.ts"
+    },
+    {
+     "repo": "Injamhossan/accessnest",
+     "path": "src/lib/facebook-capi.ts"
+    },
+    {
+     "repo": "reforia/influence-hub",
+     "path": "src/connectors/facebook.ts"
+    },
+    {
+     "repo": "rahulsteve/campzeoV1",
+     "path": "lib/instagram.ts"
+    },
+    {
+     "repo": "matheusmaiberg/sayleV5",
+     "path": "server/routes.ts"
+    },
+    {
+     "repo": "kkrkyurin/restaurant-marketing-test",
+     "path": "lib/meta-capi.ts"
+    },
+    {
+     "repo": "ericlyfan/auto_portfolio",
+     "path": "lib/instagram.ts"
+    },
+    {
+     "repo": "Emil0510/panelflo",
+     "path": "lib/whatsapp.ts"
+    },
+    {
+     "repo": "MuhammadBilalEllahi/NextsJs-E-commerce-template",
+     "path": "lib/utils/whatsappConfig.ts"
+    },
+    {
+     "repo": "izichtl/whatsapp-webhook-proxy",
+     "path": "src/router/whats-reciver.ts"
+    },
+    {
+     "repo": "leighton-tidwell/cbc",
+     "path": "utils/facebook.ts"
+    },
+    {
+     "repo": "marianoGarmendia/funny_agent_api",
+     "path": "glitch-example.ts"
+    },
+    {
+     "repo": "Miguel2604/InventiBot",
+     "path": "src/config/env.ts"
+    },
+    {
+     "repo": "rai-rmg/feedrail-api",
+     "path": "lib/rails/meta.ts"
+    },
+    {
+     "repo": "MasterH12/AIWhatsappReceptionist",
+     "path": "src/webhook.ts"
+    },
+    {
+     "repo": "alesso-m/Forkd",
+     "path": "utils/instagram.ts"
+    },
+    {
+     "repo": "rauchips/sophia-bot",
+     "path": "src/app.service.ts"
+    },
+    {
+     "repo": "MyReferRepos/ai-cms",
+     "path": "lib/facebook.ts"
+    },
+    {
+     "repo": "carlosechale/echale-dashboard",
+     "path": "lib/meta.ts"
+    },
+    {
+     "repo": "Sayan-01/persona",
+     "path": "src/lib/facebook.ts"
+    },
+    {
+     "repo": "mahavarvinayak/chatflow-ai",
+     "path": "src/convex/oauth.ts"
+    },
+    {
+     "repo": "anantasharma510/InstaPoster-AI-Instagram-Automation",
+     "path": "app/api/user/profile/route.ts"
+    },
+    {
+     "repo": "seanfederaldirectfunding-ui/PCS.com",
+     "path": "app/api/sync-channel/route.ts"
+    },
+    {
+     "repo": "Strahinja-Sretenovic/ai-chat-bot",
+     "path": "lib/meta-service.ts"
+    },
+    {
+     "repo": "c00p75/ballo-dashboard",
+     "path": "src/app/lib/meta.ts"
+    },
+    {
+     "repo": "GLO3112-classrooms/ugram-h2026-team-23",
+     "path": "lib/oauth-config.ts"
+    },
+    {
+     "repo": "chiragnagpal02/rooh",
+     "path": "src/lib/whatsapp.ts"
+    },
+    {
+     "repo": "carlosfernandescrypt/auto-reply-bot",
+     "path": "src/config/index.ts"
+    },
+    {
+     "repo": "wbew/butler-whatsapp",
+     "path": "src/lib/whatsapp.ts"
+    },
+    {
+     "repo": "glaive158/gym-management",
+     "path": "src/lib/whatsapp.ts"
+    },
+    {
+     "repo": "tofaramususa/instagram-reels-automation",
+     "path": "get-instagram-id.ts"
+    },
+    {
+     "repo": "kirtimaya/AaramSmartHomes",
+     "path": "src/lib/whatsapp.ts"
+    }
+   ]
+  },
+  {
+   "provider": "meta-graph",
+   "query": "graph.facebook.com/v19.0",
+   "language": "JavaScript",
+   "hits": [
+    {
+     "repo": "Useful-Scripts-Extension/useful-script",
+     "path": "scripts/fb_GLOBAL.js"
+    },
+    {
+     "repo": "RyanVerWey/ENVET",
+     "path": "scripts/fetch-fb-images.mjs"
+    },
+    {
+     "repo": "momohyusuf/Social-Media-Auto-Poster-with-AI",
+     "path": "configs/facebookConfig.js"
+    },
+    {
+     "repo": "jeffprakash/watios",
+     "path": "src/whatsapp.js"
+    },
+    {
+     "repo": "sonnpham24/facebook-automation",
+     "path": "server.js"
+    },
+    {
+     "repo": "SrivarsanK/AutoCatalog-Whatsapp",
+     "path": "whatsapp.js"
+    },
+    {
+     "repo": "KetanKumavat/Spendly",
+     "path": "backend/utils/whatsapp.js"
+    },
+    {
+     "repo": "rjravalll/instgram-media-post",
+     "path": "index.js"
+    },
+    {
+     "repo": "intelekta-lt/intelekta-ai-messenger",
+     "path": "routes/auth.js"
+    },
+    {
+     "repo": "spdewitt/night-sun-stables",
+     "path": "lib/facebook.js"
+    },
+    {
+     "repo": "Sanjayraj-k/Mock_Interview",
+     "path": "backend/node.js"
+    },
+    {
+     "repo": "abinesha312/mcp-unified",
+     "path": "src/Whatsapp.js"
+    },
+    {
+     "repo": "Goutham-kc/fih",
+     "path": "lib/whatsapp.js"
+    },
+    {
+     "repo": "jtaboracastejon/facebook-balance-bot",
+     "path": "fb.js"
+    },
+    {
+     "repo": "Saa-ops/Server",
+     "path": "hh.js"
+    },
+    {
+     "repo": "2005lakshya/meta_marketing",
+     "path": "app.js"
+    },
+    {
+     "repo": "ConcordDev/concord-cognitive-engine",
+     "path": "server/lib/messaging/adapters/whatsapp.js"
+    },
+    {
+     "repo": "promodeagro/promodeagro-ecommerce-api",
+     "path": "webhooks/merge.js"
+    },
+    {
+     "repo": "KacPr0/Max-fuel-prices",
+     "path": "publisher.js"
+    },
+    {
+     "repo": "GANGADHARAN26/metaWAAPA",
+     "path": "config/metaApi.js"
+    },
+    {
+     "repo": "bestwall2/facebok-live",
+     "path": "index.js"
+    },
+    {
+     "repo": "ab7022/Whatsapp-Chatbot",
+     "path": "index.js"
+    },
+    {
+     "repo": "Sachin68546/ads",
+     "path": "index.js"
+    },
+    {
+     "repo": "Creativityliberty/Sirushasna",
+     "path": "index.js"
+    },
+    {
+     "repo": "Julio100510/telegram-webhook",
+     "path": "index.js"
+    },
+    {
+     "repo": "AshutoshPaw/whatsappChat",
+     "path": "index.js"
+    },
+    {
+     "repo": "Tossengames/English-Post-",
+     "path": "post.mjs"
+    },
+    {
+     "repo": "midcco/sarai-cloudapi",
+     "path": "index.js"
+    },
+    {
+     "repo": "ugcclausanne/ugcc-site",
+     "path": "scripts/autopost.js"
+    },
+    {
+     "repo": "wondr-wclabs/instagra-ai-chatbot",
+     "path": "server.js"
+    },
+    {
+     "repo": "Dev093235/rudra-multi-convo",
+     "path": "server.js"
+    },
+    {
+     "repo": "Tololiver/socialhub",
+     "path": "server.js"
+    },
+    {
+     "repo": "Oreidasovas/API_wpp",
+     "path": "enviar.js"
+    },
+    {
+     "repo": "RC-Marcus-Vinicius/RC-Posty-backend-facebook",
+     "path": "server.js"
+    },
+    {
+     "repo": "Sharma44-C/kai-webhook",
+     "path": "server.js"
+    },
+    {
+     "repo": "rakshit1504/insurance-whatsapp-bot2",
+     "path": "server.js"
+    },
+    {
+     "repo": "MikeyTay1or/mikeys-dashboard-backend",
+     "path": "server.js"
+    },
+    {
+     "repo": "lyquangdieu2022az-maker/messenger",
+     "path": "index.js"
+    },
+    {
+     "repo": "esbanyoli65-web/kuwait-explorer-bot",
+     "path": "index.js"
+    },
+    {
+     "repo": "Cathriz/whatsapp-bot",
+     "path": "index.js"
+    },
+    {
+     "repo": "Sanjayraj-k/CyberSafety-AI",
+     "path": "backend/backup/wp.js"
+    },
+    {
+     "repo": "KLEats/KLEats-Backend",
+     "path": "Services/whatsapp.js"
+    },
+    {
+     "repo": "alexeller11/instagram-planner",
+     "path": "ai/auth.js"
+    },
+    {
+     "repo": "AnkitPandeyIT/lorry",
+     "path": "sendPDF.js"
+    },
+    {
+     "repo": "vinukj/Whatsapp-cloud-api",
+     "path": "index.js"
+    },
+    {
+     "repo": "markvision-ai/markvision",
+     "path": "run_node.js"
+    },
+    {
+     "repo": "HANORAAI-png/Hanora-AI",
+     "path": "lib/platforms/meta.js"
+    },
+    {
+     "repo": "M-Maaz-Sajjad/socialmedia-fblikes",
+     "path": "shehzad4.js"
+    },
+    {
+     "repo": "moni-0712/Orena_Bot",
+     "path": "whatsapp.js"
+    },
+    {
+     "repo": "nikiaprian/fbads",
+     "path": "src/App2.js"
+    },
+    {
+     "repo": "aldashevm-rgb/specto-bot",
+     "path": "whatsapp.js"
+    },
+    {
+     "repo": "S-AADITYA/discoverdesk",
+     "path": "api/meta.js"
+    },
+    {
+     "repo": "sanjay-m6/infinity-chat",
+     "path": "igClient.js"
+    },
+    {
+     "repo": "pepa667/luaink",
+     "path": "www/insta.js"
+    },
+    {
+     "repo": "diegoezc/prueba-bot",
+     "path": "server.js"
+    },
+    {
+     "repo": "naiimur-rahman/Messenger-bot",
+     "path": "setupMenu.js"
+    },
+    {
+     "repo": "Bangkopi8/griya-estetika-lead-system",
+     "path": "api/track.js"
+    },
+    {
+     "repo": "Paulo207/Social_Spark",
+     "path": "testToken.js"
+    },
+    {
+     "repo": "carrington-115/library-ms",
+     "path": "util/waba.js"
+    },
+    {
+     "repo": "saraplemos/yacht-scribe-ai-content",
+     "path": "scheduler.js"
+    },
+    {
+     "repo": "EzekielClervo/BOOSTING",
+     "path": "functions.js"
+    },
+    {
+     "repo": "AnkitPandeyIT/lorry",
+     "path": "sendExcel.js"
+    },
+    {
+     "repo": "Radical-Daniel/express-whatsapp-webhook",
+     "path": "index.js"
+    },
+    {
+     "repo": "RachNovo/Doodle-Dash",
+     "path": "src/app.js"
+    },
+    {
+     "repo": "Antony-Q/empowered-integration",
+     "path": "src/meta.js"
+    },
+    {
+     "repo": "smitjiwani/WhatsApp-cloud-api",
+     "path": "app/index.js"
+    },
+    {
+     "repo": "khatrikrish630/new-fb-ai-agent",
+     "path": "index.js"
+    },
+    {
+     "repo": "DeepBartaria/Petric-website",
+     "path": "api/capi.js"
+    },
+    {
+     "repo": "promodeagro/promodeagro-ecommerce-api",
+     "path": "webhooks/sendCatalog.js"
+    },
+    {
+     "repo": "speakerrepairssa/lovable-crm",
+     "path": "find-waba.mjs"
+    },
+    {
+     "repo": "razzaqinspires/ig-bot-webhook",
+     "path": "src/config.js"
+    },
+    {
+     "repo": "kevinniev/my-new-website",
+     "path": "lib/social.js"
+    },
+    {
+     "repo": "smlsoft/openclawminicrm",
+     "path": "proxy/index.js"
+    },
+    {
+     "repo": "muneeb1097m/skylinx",
+     "path": "api/capi.js"
+    },
+    {
+     "repo": "jonatha23456789/Hey-",
+     "path": "commands/mj.js"
+    },
+    {
+     "repo": "mick66145/vue3-quasar-client",
+     "path": "src/hooks/useFacebook.js"
+    },
+    {
+     "repo": "VuongDang1996/FacebookAutomation",
+     "path": "token-check.js"
+    },
+    {
+     "repo": "speakerrepairssa/lovable-crm",
+     "path": "find-waba2.mjs"
+    },
+    {
+     "repo": "maccuci/chatbot-faculdade",
+     "path": "src/webhook.js"
+    },
+    {
+     "repo": "ManasaSatya26/InstagramBot",
+     "path": "index.js"
+    },
+    {
+     "repo": "noepab/aigestion",
+     "path": "backend/check-fb-token.js"
+    },
+    {
+     "repo": "Siriomedia/avatargengioia",
+     "path": "config/index.js"
+    },
+    {
+     "repo": "nelsbnfr/ads-matrix-web",
+     "path": "api/pageview.js"
+    },
+    {
+     "repo": "D216-cloud/PioPost",
+     "path": "find-page-id.js"
+    },
+    {
+     "repo": "nkremy/mc-distribution-FINAL",
+     "path": "src/whatsapp.js"
+    },
+    {
+     "repo": "saraplemos/yacht-scribe-ai-content",
+     "path": "auth-server.cjs"
+    },
+    {
+     "repo": "23sarmiento78/noticesite",
+     "path": "instagramapi.js"
+    },
+    {
+     "repo": "viperroberto2-cmd/agencia-dashboard",
+     "path": "lib/facebook.js"
+    },
+    {
+     "repo": "novekai/immosync-app",
+     "path": "lib/facebook.js"
+    },
+    {
+     "repo": "maplewing/nopicnic",
+     "path": "lib/metaCapi.js"
+    },
+    {
+     "repo": "alexeller11/instagram-planner",
+     "path": "ai/instagram.js"
+    },
+    {
+     "repo": "recscse/whatsapp-scheduler",
+     "path": "src/whatsapp.js"
+    },
+    {
+     "repo": "grimorio007-collab/private_Whatsapp",
+     "path": "src/whatsapp.js"
+    },
+    {
+     "repo": "Nehmyabiruk/Photo-booking-website",
+     "path": "lib/whatsapp.js"
+    },
+    {
+     "repo": "Arturo202120/whatsapp-gemini-bot",
+     "path": "index.js"
+    },
+    {
+     "repo": "jonatha23456789/Hey-",
+     "path": "commands/edit.js"
+    },
+    {
+     "repo": "ArchitVishnoi2003/Chatbot_Admin_Portal",
+     "path": "api/templates.js"
+    },
+    {
+     "repo": "stlafit02-dev/STLAF-Marketing-Planner",
+     "path": "api/meta-post.js"
+    },
+    {
+     "repo": "ntoonie/stlaf_newsletter",
+     "path": "api/meta-post.js"
+    },
+    {
+     "repo": "RadithSandeepa/meta-business-integration-prototype",
+     "path": "backend/index.js"
+    }
+   ]
+  },
+  {
+   "provider": "meta-graph",
+   "query": "graph.facebook.com/v20.0",
+   "language": "TypeScript",
+   "hits": [
+    {
+     "repo": "receevi/receevi",
+     "path": "app/api/sendMessage/route.ts"
+    },
+    {
+     "repo": "vellum-ai/vellum-assistant",
+     "path": "assistant/src/messaging/providers/whatsapp/api.ts"
+    },
+    {
+     "repo": "melandlabs/opencontext",
+     "path": "packages/integrations/instagram/src/index.ts"
+    },
+    {
+     "repo": "jamalsoueidan/convex-whatsapp-superchat",
+     "path": "convex/flow.ts"
+    },
+    {
+     "repo": "jamalsoueidan/convex-whatsapp-superchat",
+     "path": "convex/whatsapp.ts"
+    },
+    {
+     "repo": "manypost/manypost-app",
+     "path": "packages/providers/src/shared/meta-graph.ts"
+    },
+    {
+     "repo": "nicobytes/open-stylo",
+     "path": "src/chatbot/index.ts"
+    },
+    {
+     "repo": "likecoin/likecoin-api-public",
+     "path": "src/util/fbq.ts"
+    },
+    {
+     "repo": "tomredman/raw-claude-project",
+     "path": "convex/facebook.ts"
+    },
+    {
+     "repo": "frbarbre/next-integrate",
+     "path": "src/providers/facebook.ts"
+    },
+    {
+     "repo": "FreemapSlovakia/freemap-v3-nodejs-backend",
+     "path": "src/routers/auth/loginWithFacebookHandler.ts"
+    },
+    {
+     "repo": "AgentsKit-io/agentskit",
+     "path": "packages/integrations/src/services/whatsapp/index.ts"
+    },
+    {
+     "repo": "NomaDamas/auto-hongmyungbo",
+     "path": "frontend/src/server/publishers.ts"
+    },
+    {
+     "repo": "jamalsoueidan/convex-whatsapp-superchat",
+     "path": "convex/data/media.ts"
+    },
+    {
+     "repo": "vishalgojha/social-flow",
+     "path": "socialclaw-core/src/engine/actions.ts"
+    },
+    {
+     "repo": "phantomts/personal-brain-mcp",
+     "path": "src/inbound/whatsapp.ts"
+    },
+    {
+     "repo": "AP3X-Dev/AG3NT",
+     "path": "community/whatsapp/src/lib/common/utils.ts"
+    },
+    {
+     "repo": "MaxL/FreiFahren",
+     "path": "packages/instagram_bot/src/auth.ts"
+    },
+    {
+     "repo": "Xtley001/AmplifyIT",
+     "path": "lib/whatsapp.ts"
+    },
+    {
+     "repo": "MaxL/FreiFahren",
+     "path": "packages/instagram_bot/src/instagram.ts"
+    },
+    {
+     "repo": "vipinsatlok/view-update",
+     "path": "data/facebook.ts"
+    },
+    {
+     "repo": "ybouane/OpenMolt.dev",
+     "path": "src/integrations/whatsapp.ts"
+    },
+    {
+     "repo": "Techabode/BrandqoAI",
+     "path": "backend/src/modules/whatsapp/whatsappApi.ts"
+    },
+    {
+     "repo": "LakshAgrawal28/CreatorOS",
+     "path": "src/server/meta.ts"
+    },
+    {
+     "repo": "Souvlaki42/diagoras-ikarias",
+     "path": "src/lib/actions.ts"
+    },
+    {
+     "repo": "isildur1-2020/meta-ads-archive-extractor",
+     "path": "src/config/axios.ts"
+    },
+    {
+     "repo": "CHIKOPERA/tataimali-whatsapp-rapydmoney-bot",
+     "path": "lib/wa.ts"
+    },
+    {
+     "repo": "vishalgojha/social-flow",
+     "path": "socialclaw-core/src/api/routes/credentials.ts"
+    },
+    {
+     "repo": "ybouane/OpenMolt.dev",
+     "path": "src/integrations/metaAds.ts"
+    },
+    {
+     "repo": "JasirBasheer/Dibolky",
+     "path": "backend/src/providers/meta/ads/auth.ts"
+    },
+    {
+     "repo": "JasirBasheer/Dibolky",
+     "path": "backend/src/providers/meta/ads/lead.ts"
+    },
+    {
+     "repo": "savarkavi/instagram-profile-test",
+     "path": "actions.ts"
+    },
+    {
+     "repo": "S-kkipie/brota",
+     "path": "src/lib/whatsapp.ts"
+    },
+    {
+     "repo": "metrix0/imenu",
+     "path": "app/api/meta/route.ts"
+    },
+    {
+     "repo": "JasirBasheer/Dibolky",
+     "path": "backend/src/providers/meta/ads/adset.ts"
+    },
+    {
+     "repo": "gitmachado/themis-aurora-g5",
+     "path": "ai/src/webhooks/send-message.ts"
+    },
+    {
+     "repo": "Arpit-Khandelwal/whatsapp-hono",
+     "path": "src/main.ts"
+    },
+    {
+     "repo": "ybouane/OpenMolt.dev",
+     "path": "src/integrations/instagram.ts"
+    },
+    {
+     "repo": "6aleatorio6/damas-online_backend",
+     "path": "src/oauth2/oauth2-providers.service.ts"
+    },
+    {
+     "repo": "shopsavvy/whatsapp-shopsavvy-bot",
+     "path": "src/whatsapp/client.ts"
+    },
+    {
+     "repo": "Shamim-97/friend-farmer",
+     "path": "src/lib/fb.ts"
+    },
+    {
+     "repo": "andriawanpranaditya/wbsitechl",
+     "path": "src/lib/wa.ts"
+    },
+    {
+     "repo": "JasirBasheer/Dibolky",
+     "path": "backend/src/providers/meta/ads/campaign.ts"
+    },
+    {
+     "repo": "ankitadas771/multi-tenant-AI-lead-automation",
+     "path": "src/services/whatsapp.ts"
+    },
+    {
+     "repo": "LakshAgrawal28/CreatorOS",
+     "path": "src/inngest/functions.ts"
+    },
+    {
+     "repo": "activeboxes/activeboxes",
+     "path": "packages/pieces/community/whatsapp/src/lib/actions/send-from-template.ts"
+    },
+    {
+     "repo": "farfan01-sketch/SUPER-TIENDA-TENAY",
+     "path": "lib/whatsapp.ts"
+    },
+    {
+     "repo": "WeeChong-Tan/SyncOps",
+     "path": "lib/whatsapp.ts"
+    },
+    {
+     "repo": "statef146-creator/whatsappchatbot",
+     "path": "lib/whatsapp.ts"
+    },
+    {
+     "repo": "mikeaurtaza-png/Clip-Dropper-Social",
+     "path": "lib/facebook.ts"
+    },
+    {
+     "repo": "Hariom2918/NYX",
+     "path": "lib/whatsapp.ts"
+    },
+    {
+     "repo": "Autokeysremapspro/autokeys-lab",
+     "path": "lib/whatsapp.ts"
+    },
+    {
+     "repo": "WorkiDigital/ecommerce-do-gestor",
+     "path": "src/lib/capi.ts"
+    },
+    {
+     "repo": "A-BMT02/aiugc",
+     "path": "lib/capi.ts"
+    },
+    {
+     "repo": "jkusseoni/cartrenew",
+     "path": "lib/whatsapp.ts"
+    },
+    {
+     "repo": "kenlck/wachat-web",
+     "path": "src/app/api/chat/route.ts"
+    },
+    {
+     "repo": "shreevalikushe/facebook-test",
+     "path": "src/api/hello.ts"
+    },
+    {
+     "repo": "Menephyl/brazukas_delivery",
+     "path": "client/src/lib/whatsapp.ts"
+    },
+    {
+     "repo": "estagiarioapi/api",
+     "path": "src/lib/axios.ts"
+    },
+    {
+     "repo": "benjaminromero5631/estetica-crm",
+     "path": "lib/meta-capi.ts"
+    },
+    {
+     "repo": "pbs002-s/BhashaBot",
+     "path": "lib/messenger.ts"
+    },
+    {
+     "repo": "Purujeet-git/AI-comment-analysis",
+     "path": "lib/instagram.ts"
+    },
+    {
+     "repo": "JasirBasheer/Dibolky",
+     "path": "backend/src/providers/meta/ads/ad-creative.ts"
+    },
+    {
+     "repo": "minar-kochi/minar-cruise",
+     "path": "src/lib/helpers/whatsapp.ts"
+    },
+    {
+     "repo": "Manuuell/Tooli-Chatbot",
+     "path": "scripts/enviarInvitacion.ts"
+    },
+    {
+     "repo": "Faithmanex/staycore-shortlet",
+     "path": "tools/turnover.ts"
+    },
+    {
+     "repo": "Mirxa27/arabclue-saas",
+     "path": "lib/meta/oauth.ts"
+    },
+    {
+     "repo": "Jobrythm/jobrythm-fullstack",
+     "path": "src/routes/adminAds.ts"
+    },
+    {
+     "repo": "stravigor/strav",
+     "path": "packages/signal/src/messaging/types.ts"
+    },
+    {
+     "repo": "renatoaragon/inventario-familiar",
+     "path": "lib/inventario/whatsapp.ts"
+    },
+    {
+     "repo": "Xxsnakesz/GymSyncPro-NEW",
+     "path": "server/whatsapp.ts"
+    },
+    {
+     "repo": "thanksduck/wa-otp",
+     "path": "src/lib/request.ts"
+    },
+    {
+     "repo": "rizvee/TrackIQ",
+     "path": "lib/meta/client.ts"
+    },
+    {
+     "repo": "nathannremacle/aegis-solaire",
+     "path": "lib/meta-capi.ts"
+    },
+    {
+     "repo": "medkira/saas-whatsapp",
+     "path": "src/actions/whatsapp.ts"
+    },
+    {
+     "repo": "ithiagosoares/Firebase",
+     "path": "src/lib/whatsapp.ts"
+    },
+    {
+     "repo": "rodolfoardaya/proyecto_nandubay",
+     "path": "src/lib/whatsapp.ts"
+    },
+    {
+     "repo": "soumyachk101/New-Bot",
+     "path": "src/config/index.ts"
+    },
+    {
+     "repo": "tajallisautomation-crypto/reliance-web-mvp",
+     "path": "src/lib/whatsapp.ts"
+    },
+    {
+     "repo": "White-D-coder/instadoc",
+     "path": "src/lib/meta-api.ts"
+    },
+    {
+     "repo": "yoosuf0806/Wristworkswebsite",
+     "path": "src/lib/whatsapp.ts"
+    },
+    {
+     "repo": "Vedtomer/playmakerz",
+     "path": "src/lib/whatsapp.ts"
+    },
+    {
+     "repo": "theooow/gwertable-backend",
+     "path": "src/lib/whatsapp.ts"
+    },
+    {
+     "repo": "FeMizo/Multi-Ecommerce",
+     "path": "src/lib/whatsapp.ts"
+    },
+    {
+     "repo": "PriyanshA0/MultiContent",
+     "path": "lib/socialAuth.ts"
+    },
+    {
+     "repo": "sskhekhaliya/ssk-personal-new-site",
+     "path": "src/lib/instagram.ts"
+    },
+    {
+     "repo": "Ethan7778/say-it-right",
+     "path": "src/lib/messenger.ts"
+    },
+    {
+     "repo": "joshDamian/onchain-buddy",
+     "path": "src/constants/env.ts"
+    },
+    {
+     "repo": "lachlanarford/cbba-inbox",
+     "path": "lib/channels/meta.ts"
+    },
+    {
+     "repo": "mfromawe/assistant-scheduler",
+     "path": "src/lib/messaging.ts"
+    },
+    {
+     "repo": "asilly-git/Automate-the-store",
+     "path": "lib/adapters/meta.ts"
+    },
+    {
+     "repo": "sunilblinkoninfra-cyber/Vrindaacrop-CRM",
+     "path": "lib/inbound/meta.ts"
+    },
+    {
+     "repo": "Juanees077/Gestor-de-Citas_sof",
+     "path": "lib/whatsapp.ts"
+    },
+    {
+     "repo": "Khalidbello/botsub",
+     "path": "src/bot/modules/send_message.ts"
+    },
+    {
+     "repo": "kayuxx/amee",
+     "path": "src/oauth/providers/facebook.ts"
+    },
+    {
+     "repo": "FranciscoDias87/gordoSalgados",
+     "path": "src/lib/whatsapp.ts"
+    },
+    {
+     "repo": "Jieunsse/Demosan_Meta",
+     "path": "lib/facebook-pages.ts"
+    },
+    {
+     "repo": "Jieunsse/Demosan_Meta",
+     "path": "lib/meta-ads-graph.ts"
+    },
+    {
+     "repo": "Design-Arena-Gens/agentic-bce47f61",
+     "path": "app/api/send/route.ts"
+    },
+    {
+     "repo": "NitinTyagi954/Smart-Library",
+     "path": "Backend/src/config/env.ts"
+    }
+   ]
+  },
+  {
+   "provider": "shopify",
+   "query": "admin/api/2025-07",
+   "language": "TypeScript",
+   "hits": [
+    {
+     "repo": "deco-cx/apps",
+     "path": "shopify-mcp/mod.ts"
+    },
+    {
+     "repo": "toolstr/shopify-seeder",
+     "path": "src/utils/api.ts"
+    },
+    {
+     "repo": "Fahad-Dezloper/Midland",
+     "path": "app/api/articles/route.ts"
+    },
+    {
+     "repo": "JohnsonChin1009/shopify-cron-garfish",
+     "path": "src/getOrderByName.ts"
+    },
+    {
+     "repo": "phillipmalboeuf/crows",
+     "path": "src/lib/clients/shopify.ts"
+    },
+    {
+     "repo": "JohnsonChin1009/shopify-cron-garfish",
+     "path": "src/index.ts"
+    },
+    {
+     "repo": "shand-j/vapourismV2",
+     "path": "app/lib/admin-client-internal.ts"
+    },
+    {
+     "repo": "PancerMaksym/next_shopify",
+     "path": "src/app/api/admin-request/route.ts"
+    },
+    {
+     "repo": "rohanr92/catalog-sync",
+     "path": "app/api/shopify/route.ts"
+    },
+    {
+     "repo": "harshb-14/xeno-harsh",
+     "path": "backend/src/services/shopifyService.ts"
+    },
+    {
+     "repo": "rohanr92/catalog-sync",
+     "path": "lib/shopify-upload.ts"
+    },
+    {
+     "repo": "sebahernandez/external-payments-bridge",
+     "path": "backend/src/webhook-handlers.ts"
+    },
+    {
+     "repo": "vicky-prakhya/cart-transfrom-bundle-deploy",
+     "path": "app/routes/api/private_access_tokens.ts"
+    },
+    {
+     "repo": "tm-fd/orders-tracker",
+     "path": "src/app/api/shopify/createOrder/route.ts"
+    },
+    {
+     "repo": "Harshthakur24/Shopify_Tenant_Dashboard",
+     "path": "src/app/api/shopify/cleanup/route.ts"
+    },
+    {
+     "repo": "prokopchuk-dmytro/bundle-ik",
+     "path": "app/shopify.server.ts"
+    },
+    {
+     "repo": "Rooftop-Twenty-Two/The-Parcel-Concierge",
+     "path": "src/lib/corporate/orders.ts"
+    },
+    {
+     "repo": "Adarsh-Dhar/chain-tap-polkadot",
+     "path": "app/api/checkout/discount/route.ts"
+    },
+    {
+     "repo": "Adarsh-Dhar/chain-tap-polkadot",
+     "path": "app/checkout/discount/route.ts"
+    },
+    {
+     "repo": "hkima1/nav",
+     "path": "influencer-platform-api/src/utils/shopifyClient.ts"
+    },
+    {
+     "repo": "mycahp/pleasant.photography",
+     "path": "src/netlify/functions/getShopifyProducts.ts"
+    },
+    {
+     "repo": "FlowCreations/legion-vault-nexus",
+     "path": "supabase/functions/create-shopify-discount/index.ts"
+    },
+    {
+     "repo": "YoussefHany1/ai-commerce-agent",
+     "path": "src/routes/oauth.spec.ts"
+    },
+    {
+     "repo": "Fahad-Dezloper/Midland",
+     "path": "app/api/(auth)/create-customer/route.ts"
+    },
+    {
+     "repo": "DevAkshay434/TopshopSEO",
+     "path": "server/routes/oauth.ts"
+    },
+    {
+     "repo": "Fahad-Dezloper/Midland",
+     "path": "lib/shopify/index.ts"
+    },
+    {
+     "repo": "amgst/Product-alert",
+     "path": "app/inventory.ts"
+    },
+    {
+     "repo": "mafehernandezecha-dot/memobrick",
+     "path": "os/server/sales.ts"
+    },
+    {
+     "repo": "estanixx/dcuero-pos",
+     "path": "lib/graphql/index.ts"
+    },
+    {
+     "repo": "DevAkshay434/TopshopSEO",
+     "path": "server/services/auth.ts"
+    },
+    {
+     "repo": "rohanr92/catalog-sync",
+     "path": "lib/inventory.ts"
+    },
+    {
+     "repo": "cracker17/rizehubhq",
+     "path": "apps/dashboard/src/lib/vaultPlatforms.ts"
+    },
+    {
+     "repo": "harshb-14/xeno-harsh",
+     "path": "backend/src/queue/processors.ts"
+    },
+    {
+     "repo": "FlowCreations/legion-vault-nexus",
+     "path": "supabase/functions/affiliate-register/index.ts"
+    },
+    {
+     "repo": "Harshthakur24/Shopify_Tenant_Dashboard",
+     "path": "src/app/api/shopify/products/route.ts"
+    },
+    {
+     "repo": "cracker17/rizehubhq",
+     "path": "apps/worker/src/vault/service.ts"
+    },
+    {
+     "repo": "DevAkshay434/TopshopSEO",
+     "path": "server/services/oauth.ts"
+    },
+    {
+     "repo": "sujeeyoga/sisterstoragewireframe",
+     "path": "supabase/functions/shopify-order-probe/index.ts"
+    },
+    {
+     "repo": "Asper-Beauty-Shop/generative-ai-for-bin",
+     "path": "supabase/functions/shopify-webhooks/index.ts"
+    },
+    {
+     "repo": "asperpharma/theoriginalmainstore",
+     "path": "supabase/functions/shopify-webhooks/index.ts"
+    },
+    {
+     "repo": "BoletaRotisseria/boletarotisseria",
+     "path": "supabase/functions/shopify-order-webhook/index.ts"
+    },
+    {
+     "repo": "ladridam/thinkviral-website",
+     "path": "src/lib/shopify-admin.server.ts"
+    },
+    {
+     "repo": "Revoa-ux/revoa-app",
+     "path": "netlify/functions/shopify-oauth.ts"
+    },
+    {
+     "repo": "cracker17/rizehubhq",
+     "path": "apps/worker/src/vault/guards.ts"
+    },
+    {
+     "repo": "bravo-stack/automize-preview-launch",
+     "path": "app/api/shopify/themes/route.ts"
+    },
+    {
+     "repo": "danievpoint/foquz-pop-landing-booster",
+     "path": "supabase/functions/get-orders-by-promo/index.ts"
+    },
+    {
+     "repo": "abaziqendrim435-lang/rootx.app",
+     "path": "app/api/shopify/oauth/callback/route.ts"
+    },
+    {
+     "repo": "sanjeev744/smart-slidecart",
+     "path": "app/models/addon-product.server.ts"
+    },
+    {
+     "repo": "sujeeyoga/sisterstoragewireframe",
+     "path": "supabase/functions/track-order/index.ts"
+    },
+    {
+     "repo": "cracker17/rizehubhq",
+     "path": "scripts/integration/lifecycle.mts"
+    },
+    {
+     "repo": "cracker17/rizehubhq",
+     "path": "apps/dashboard/src/lib/data/vaultDemo.ts"
+    },
+    {
+     "repo": "Aloha-Card-Shop/bolt-tradeinapp",
+     "path": "supabase/functions/shopify-sync-item/index.ts"
+    },
+    {
+     "repo": "nickmura/wongateway",
+     "path": "src/app/api/orders/update-status/route.ts"
+    },
+    {
+     "repo": "neoapollo18/glimpse-app",
+     "path": "app/lib/skin-analysis.server.ts"
+    },
+    {
+     "repo": "RAJLab17/gadgetflow-express",
+     "path": "supabase/functions/process-preorder/index.ts"
+    },
+    {
+     "repo": "neoapollo18/glimpse-app",
+     "path": "app/lib/recommendation-engine.server.ts"
+    },
+    {
+     "repo": "RAJLab17/gadgetflow-express",
+     "path": "supabase/functions/track-abandoned-cart/index.ts"
+    },
+    {
+     "repo": "DevAkshay434/TopshopSEO",
+     "path": "server/routes/media.ts"
+    },
+    {
+     "repo": "tuanminh9704/Internship-Vu-Tuan-Minh",
+     "path": "shopify/day-18/producct-remix-app/app/graphql/apolloClient.ts"
+    },
+    {
+     "repo": "aryamanrastogi111/agatsaone1",
+     "path": "supabase/functions/import-shopify-orders/index.ts"
+    },
+    {
+     "repo": "DevAkshay434/TopshopSEO",
+     "path": "server/services/billing.ts"
+    },
+    {
+     "repo": "ProofPulse7/push-eagle",
+     "path": "shopify-webpush-app/src/lib/server/gdpr/deliver-export.ts"
+    },
+    {
+     "repo": "tuanminh9704/Internship-Vu-Tuan-Minh",
+     "path": "shopify/day-19/remix-app-day-19/app/utils/fetchShopifyAdmin.ts"
+    },
+    {
+     "repo": "ProofPulse7/push-eagle-dashboard",
+     "path": "src/lib/server/gdpr/deliver-export.ts"
+    },
+    {
+     "repo": "adharsh277/martee",
+     "path": "src/app/api/orders/update-status/route.ts"
+    },
+    {
+     "repo": "DevAkshay434/TopshopSEO",
+     "path": "server/services/custom-scheduler.ts"
+    },
+    {
+     "repo": "FlowCreations/legion-vault-nexus",
+     "path": "supabase/functions/affiliate-attribute-conversion/index.ts"
+    },
+    {
+     "repo": "DevAkshay434/TopshopSEO",
+     "path": "server/routes.ts"
+    },
+    {
+     "repo": "cracker17/rizehubhq",
+     "path": "apps/dashboard/src/app/vault-actions.ts"
+    },
+    {
+     "repo": "Guilherme-Bisof/RIKON",
+     "path": "supabase/functions/create-payment/index.ts"
+    },
+    {
+     "repo": "orenhacham-lab/rankings-by-go-top",
+     "path": "lib/seed-scan/__qa__/seed-shopify.qa.ts"
+    },
+    {
+     "repo": "fahadazhar1/alchemy-stock-flow",
+     "path": "supabase/functions/shopify-sync/index.ts"
+    },
+    {
+     "repo": "juneof/juneof",
+     "path": "src/app/api/customer/exchange/route.ts"
+    },
+    {
+     "repo": "juneof/juneof",
+     "path": "src/app/api/customer/cancel-order/route.ts"
+    },
+    {
+     "repo": "Guilherme-Bisof/RIKON",
+     "path": "supabase/functions/mercadopago-webhook/index.ts"
+    },
+    {
+     "repo": "DevAkshay434/TopshopSEO",
+     "path": "server/services/shopify-scheduling-fix.ts"
+    },
+    {
+     "repo": "juneof/juneof",
+     "path": "src/app/api/customer/order-status/route.ts"
+    },
+    {
+     "repo": "oneseanlee/ryland",
+     "path": "supabase/functions/shopify-order-webhook/index.ts"
+    },
+    {
+     "repo": "entertainmentinnanetclout-cpu/Start-To-Up",
+     "path": "supabase/functions/website-studio-credentials/index.ts"
+    },
+    {
+     "repo": "Aloha-Card-Shop/bolt-tradeinapp",
+     "path": "supabase/functions/shopify-fetch-collection-products/index.ts"
+    },
+    {
+     "repo": "DevAkshay434/TopshopSEO",
+     "path": "server/services/shopify.ts"
+    },
+    {
+     "repo": "aamirbohra72/Follett-ReportModule",
+     "path": "src/services/modules/shopify/shopify-auth-handlers.ts"
+    },
+    {
+     "repo": "GuetarniWalid/MyselfMonArt_Backend",
+     "path": "app/Services/Shopify/Discount.ts"
+    },
+    {
+     "repo": "DevAkshay434/TopshopSEO",
+     "path": "server/services/graphql-shopify.ts"
+    },
+    {
+     "repo": "juneof/juneof",
+     "path": "src/app/api/customer/create-customer/route.ts"
+    },
+    {
+     "repo": "juneof/juneof",
+     "path": "src/app/api/customer/exchange-options/route.ts"
+    },
+    {
+     "repo": "juneof/juneof",
+     "path": "src/app/api/customer/express-interest/route.ts"
+    },
+    {
+     "repo": "juneof/juneof",
+     "path": "src/app/api/customer/order-exchanges/route.ts"
+    },
+    {
+     "repo": "aamirbohra72/Test-CIP",
+     "path": "centralized-inventory-processor-cicd-container/src/services/modules/shopify/shopify-auth-handlers.ts"
+    },
+    {
+     "repo": "Shopify/shopify-app-js",
+     "path": "packages/apps/shopify-api/rest/admin/__tests__/2025-07/blog.test.ts"
+    },
+    {
+     "repo": "Shopify/shopify-app-js",
+     "path": "packages/apps/shopify-api/rest/admin/__tests__/2025-07/page.test.ts"
+    },
+    {
+     "repo": "Shopify/shopify-app-js",
+     "path": "packages/apps/shopify-api/rest/admin/__tests__/2025-07/shop.test.ts"
+    },
+    {
+     "repo": "Shopify/shopify-app-js",
+     "path": "packages/apps/shopify-api/rest/admin/__tests__/2025-07/theme.test.ts"
+    },
+    {
+     "repo": "Shopify/shopify-app-js",
+     "path": "packages/apps/shopify-api/rest/admin/__tests__/2025-07/event.test.ts"
+    },
+    {
+     "repo": "Shopify/shopify-app-js",
+     "path": "packages/apps/shopify-api/rest/admin/__tests__/2025-07/policy.test.ts"
+    },
+    {
+     "repo": "Shopify/shopify-app-js",
+     "path": "packages/apps/shopify-api/rest/admin/__tests__/2025-07/comment.test.ts"
+    },
+    {
+     "repo": "Shopify/shopify-app-js",
+     "path": "packages/apps/shopify-api/rest/admin/__tests__/2025-07/balance.test.ts"
+    },
+    {
+     "repo": "Shopify/shopify-app-js",
+     "path": "packages/apps/shopify-api/rest/admin/__tests__/2025-07/webhook.test.ts"
+    },
+    {
+     "repo": "Shopify/shopify-app-js",
+     "path": "packages/apps/shopify-api/rest/admin/__tests__/2025-07/collect.test.ts"
+    },
+    {
+     "repo": "Shopify/shopify-app-js",
+     "path": "packages/apps/shopify-api/rest/admin/__tests__/2025-07/location.test.ts"
+    }
+   ]
+  },
+  {
+   "provider": "shopify",
+   "query": "admin/api/2025-10",
+   "language": "TypeScript",
+   "hits": [
+    {
+     "repo": "ozzyonfire/shopify-next-app",
+     "path": "web/app/hooks/useGraphQL.ts"
+    },
+    {
+     "repo": "TuanChill/Proxy-Backend-Shopify",
+     "path": "src/index.ts"
+    },
+    {
+     "repo": "Drixares/security-week",
+     "path": "src/utils/shopify.ts"
+    },
+    {
+     "repo": "AtriAhmed/product-genius",
+     "path": "lib/shopify-client.ts"
+    },
+    {
+     "repo": "khalidlotf-cell/followers-boost",
+     "path": "scripts/shopify-ping.ts"
+    },
+    {
+     "repo": "tunglam16402/shopify_store",
+     "path": "shopify/admin-fetcher.ts"
+    },
+    {
+     "repo": "Launchifyapp/auto-shopify-setup",
+     "path": "lib/pipelineBulkShopify.ts"
+    },
+    {
+     "repo": "TuanChill/Proxy-Backend-Shopify",
+     "path": "src/routes/shopifyProxy.ts"
+    },
+    {
+     "repo": "Launchifyapp/auto-shopify-setup",
+     "path": "lib/batchUploadUniversal.ts"
+    },
+    {
+     "repo": "Ulternae/NextJS-14",
+     "path": "src/services/shopify/urls.ts"
+    },
+    {
+     "repo": "KrisMoralesZ/Next-Store",
+     "path": "src/services/Products/request.ts"
+    },
+    {
+     "repo": "chamath-shanaka/heurista-demo",
+     "path": "app/api/shopify/callback/route.ts"
+    },
+    {
+     "repo": "Mobelaris-Moguls/shopify-translation-manager",
+     "path": "vite.config.ts"
+    },
+    {
+     "repo": "Sudarsanamg/preorder-extension",
+     "path": "app/graphql/queries/shop.ts"
+    },
+    {
+     "repo": "KrisMoralesZ/Next-Store",
+     "path": "src/services/Collections/request.ts"
+    },
+    {
+     "repo": "MarkMamrot/Maketoir",
+     "path": "src/lib/channels/shopifyReadiness.ts"
+    },
+    {
+     "repo": "Karnonson/ecom-product-optimizer",
+     "path": "backend/src/shopify/shopifyConfig.ts"
+    },
+    {
+     "repo": "HayatoShimada/85store",
+     "path": "lib/shopify.ts"
+    },
+    {
+     "repo": "Hedemo-N/Shopify-app-2",
+     "path": "pages/api/register-webhooks.ts"
+    },
+    {
+     "repo": "MarkMamrot/Maketoir",
+     "path": "src/app/api/shopify/connection/route.ts"
+    },
+    {
+     "repo": "GaddamSaikumar28/core_tattoos_test",
+     "path": "src/app/api/subscribe/route.ts"
+    },
+    {
+     "repo": "EPIRjewelry/asystent_epir_new",
+     "path": "workers/worker/src/mcp.ts"
+    },
+    {
+     "repo": "Penny520520/inventory-sync-service",
+     "path": "src/lib/shopify.ts"
+    },
+    {
+     "repo": "vpa-australia/ai-chat-mcp",
+     "path": "convex/chat.ts"
+    },
+    {
+     "repo": "Shanthan2307/scalpless",
+     "path": "scripts/shopify-setup.ts"
+    },
+    {
+     "repo": "Growth-Sheriff/upload-studio",
+     "path": "app/lib/flow.server.ts"
+    },
+    {
+     "repo": "Growth-Sheriff/upload-studio",
+     "path": "workers/flow.worker.ts"
+    },
+    {
+     "repo": "Adarsh-Dhar/chain-tap-polkadot",
+     "path": "app/api/shopify/graphql/route.ts"
+    },
+    {
+     "repo": "Maleklabbaci/fidali",
+     "path": "lib/shopify-client.ts"
+    },
+    {
+     "repo": "cdolan04/gc-ai-demo",
+     "path": "scripts/seed-store.ts"
+    },
+    {
+     "repo": "Adarsh-Dhar/chain-tap-polkadot",
+     "path": "app/api/save-wallet-metafield/route.ts"
+    },
+    {
+     "repo": "sarahliz0715/Tandril",
+     "path": "supabase/functions/shopify-auth-callback/index.ts"
+    },
+    {
+     "repo": "Fadil369/brainSAIT-oid-system",
+     "path": "workers/oid-line/src/index.ts"
+    },
+    {
+     "repo": "Growth-Sheriff/upload-studio",
+     "path": "app/lib/compatibilityTwin.server.ts"
+    },
+    {
+     "repo": "Zburgers/supr-kpi",
+     "path": "src/routes/credentials.ts"
+    },
+    {
+     "repo": "gabrieleserafini/inverto",
+     "path": "app/api/shopify/panel/coupons/create/route.ts"
+    },
+    {
+     "repo": "Adarsh-Dhar/chain-tap-polkadot",
+     "path": "app/api/orders/[confirmationId]/route.ts"
+    },
+    {
+     "repo": "yossy-jk/yos-website",
+     "path": "src/app/api/space-planner-products/route.ts"
+    },
+    {
+     "repo": "MarkMamrot/Maketoir",
+     "path": "src/services/ShopifyService.ts"
+    },
+    {
+     "repo": "riverart2000/shopify-ai-blog-system",
+     "path": "ai-blog-generator-app/app/lib/studio-assets.server.ts"
+    },
+    {
+     "repo": "MarkMamrot/Maketoir",
+     "path": "src/lib/channels/shopifyWebhookRegistration.ts"
+    },
+    {
+     "repo": "Hedemo-N/Shopify-app-2",
+     "path": "pages/api/auth/callback.ts"
+    },
+    {
+     "repo": "intssere/SEO_ENGINE",
+     "path": "artifacts/api-server/src/lib/task53-store-v2.ts"
+    },
+    {
+     "repo": "sarahliz0715/Tandril",
+     "path": "supabase/functions/shopify-billing/index.ts"
+    },
+    {
+     "repo": "Zburgers/supr-kpi",
+     "path": "src/controllers/credential.controller.ts"
+    },
+    {
+     "repo": "MarkMamrot/Maketoir",
+     "path": "e2e/live-monsterthreads/shopify-lifecycle.spec.ts"
+    },
+    {
+     "repo": "MarkMamrot/Maketoir",
+     "path": "src/lib/ims/shipping/shippingDispatch.ts"
+    },
+    {
+     "repo": "Adarsh-Dhar/chain-tap-polkadot",
+     "path": "app/api/orders/[confirmationId]/mint/route.ts"
+    },
+    {
+     "repo": "bfratello12-blip/client-dashboard-temp-sync",
+     "path": "app/api/shopify/debug/sales-channels/route.ts"
+    },
+    {
+     "repo": "KrisYarno/SelfHost-Inventory",
+     "path": "lib/external-orders/sync.ts"
+    },
+    {
+     "repo": "asalastudio/madison-studio-cursor",
+     "path": "supabase/functions/update-shopify-product/index.ts"
+    },
+    {
+     "repo": "sarahliz0715/Tandril",
+     "path": "supabase/functions/app-subscription-update/index.ts"
+    },
+    {
+     "repo": "intssere/SEO_ENGINE",
+     "path": "artifacts/api-server/src/lib/pilot-runner.ts"
+    },
+    {
+     "repo": "intssere/SEO_ENGINE",
+     "path": "artifacts/api-server/src/lib/task54-persistent-apply.ts"
+    },
+    {
+     "repo": "intssere/SEO_ENGINE",
+     "path": "artifacts/api-server/src/lib/shopify-write-foundation.ts"
+    },
+    {
+     "repo": "simonerok/pick-and-pack-shopify-app",
+     "path": "web/resources/js/_reference/api/shopify/orders/route.ts"
+    },
+    {
+     "repo": "Shopify/shopify-app-js",
+     "path": "packages/apps/shopify-api/rest/admin/__tests__/2025-10/shop.test.ts"
+    },
+    {
+     "repo": "Shopify/shopify-app-js",
+     "path": "packages/apps/shopify-api/rest/admin/__tests__/2025-10/blog.test.ts"
+    },
+    {
+     "repo": "Shopify/shopify-app-js",
+     "path": "packages/apps/shopify-api/rest/admin/__tests__/2025-10/page.test.ts"
+    },
+    {
+     "repo": "Shopify/shopify-app-js",
+     "path": "packages/apps/shopify-api/rest/admin/__tests__/2025-10/event.test.ts"
+    },
+    {
+     "repo": "Shopify/shopify-app-js",
+     "path": "packages/apps/shopify-api/rest/admin/__tests__/2025-10/theme.test.ts"
+    },
+    {
+     "repo": "Shopify/shopify-app-js",
+     "path": "packages/apps/shopify-api/rest/admin/__tests__/2025-10/policy.test.ts"
+    },
+    {
+     "repo": "Shopify/shopify-app-js",
+     "path": "packages/apps/shopify-api/rest/admin/__tests__/2025-10/balance.test.ts"
+    },
+    {
+     "repo": "Shopify/shopify-app-js",
+     "path": "packages/apps/shopify-api/rest/admin/__tests__/2025-10/collect.test.ts"
+    },
+    {
+     "repo": "Shopify/shopify-app-js",
+     "path": "packages/apps/shopify-api/rest/admin/__tests__/2025-10/webhook.test.ts"
+    },
+    {
+     "repo": "Shopify/shopify-app-js",
+     "path": "packages/apps/shopify-api/rest/admin/__tests__/2025-10/comment.test.ts"
+    },
+    {
+     "repo": "Shopify/shopify-app-js",
+     "path": "packages/apps/shopify-api/rest/admin/__tests__/2025-10/redirect.test.ts"
+    },
+    {
+     "repo": "Shopify/shopify-app-js",
+     "path": "packages/apps/shopify-api/rest/admin/__tests__/2025-10/currency.test.ts"
+    },
+    {
+     "repo": "Shopify/shopify-app-js",
+     "path": "packages/apps/shopify-api/rest/admin/__tests__/2025-10/province.test.ts"
+    },
+    {
+     "repo": "Shopify/shopify-app-js",
+     "path": "packages/apps/shopify-api/rest/admin/__tests__/2025-10/location.test.ts"
+    },
+    {
+     "repo": "Shopify/shopify-app-js",
+     "path": "packages/apps/shopify-api/rest/admin/__tests__/2025-10/gift_card.test.ts"
+    },
+    {
+     "repo": "Shopify/shopify-app-js",
+     "path": "packages/apps/shopify-api/rest/admin/__tests__/2025-10/asset.test.ts"
+    },
+    {
+     "repo": "Shopify/shopify-app-js",
+     "path": "packages/apps/shopify-api/rest/admin/__tests__/2025-10/script_tag.test.ts"
+    },
+    {
+     "repo": "Shopify/shopify-app-js",
+     "path": "packages/apps/shopify-api/rest/admin/__tests__/2025-10/price_rule.test.ts"
+    },
+    {
+     "repo": "Shopify/shopify-app-js",
+     "path": "packages/apps/shopify-api/rest/admin/__tests__/2025-10/order_risk.test.ts"
+    },
+    {
+     "repo": "Shopify/shopify-app-js",
+     "path": "packages/apps/shopify-api/rest/admin/__tests__/2025-10/transaction.test.ts"
+    },
+    {
+     "repo": "Shopify/shopify-app-js",
+     "path": "packages/apps/shopify-api/rest/admin/__tests__/2025-10/variant.test.ts"
+    },
+    {
+     "repo": "Shopify/shopify-app-js",
+     "path": "packages/apps/shopify-api/rest/admin/__tests__/2025-10/usage_charge.test.ts"
+    },
+    {
+     "repo": "Shopify/shopify-app-js",
+     "path": "packages/apps/shopify-api/rest/admin/__tests__/2025-10/country.test.ts"
+    },
+    {
+     "repo": "Shopify/shopify-app-js",
+     "path": "packages/apps/shopify-api/rest/admin/__tests__/2025-10/discount_code.test.ts"
+    },
+    {
+     "repo": "Shopify/shopify-app-js",
+     "path": "packages/apps/shopify-api/rest/admin/__tests__/2025-10/inventory_item.test.ts"
+    },
+    {
+     "repo": "Shopify/shopify-app-js",
+     "path": "packages/apps/shopify-api/rest/admin/__tests__/2025-10/marketing_event.test.ts"
+    },
+    {
+     "repo": "Shopify/shopify-app-js",
+     "path": "packages/apps/shopify-api/rest/admin/__tests__/2025-10/payment_gateway.test.ts"
+    },
+    {
+     "repo": "Shopify/shopify-app-js",
+     "path": "packages/apps/shopify-api/rest/admin/__tests__/2025-10/product_listing.test.ts"
+    },
+    {
+     "repo": "Shopify/shopify-app-js",
+     "path": "packages/apps/shopify-api/rest/admin/__tests__/2025-10/carrier_service.test.ts"
+    },
+    {
+     "repo": "Shopify/shopify-app-js",
+     "path": "packages/apps/shopify-api/rest/admin/__tests__/2025-10/inventory_level.test.ts"
+    },
+    {
+     "repo": "Shopify/shopify-app-js",
+     "path": "packages/apps/shopify-api/rest/admin/__tests__/2025-10/resource_feedback.test.ts"
+    },
+    {
+     "repo": "Shopify/shopify-app-js",
+     "path": "packages/apps/shopify-api/rest/admin/__tests__/2025-10/fulfillment_event.test.ts"
+    },
+    {
+     "repo": "Shopify/shopify-app-js",
+     "path": "packages/apps/shopify-api/rest/admin/__tests__/2025-10/collection_listing.test.ts"
+    },
+    {
+     "repo": "Shopify/shopify-app-js",
+     "path": "packages/apps/shopify-api/rest/admin/__tests__/2025-10/application_credit.test.ts"
+    },
+    {
+     "repo": "Shopify/shopify-app-js",
+     "path": "packages/apps/shopify-api/rest/admin/__tests__/2025-10/locations_for_move.test.ts"
+    },
+    {
+     "repo": "Shopify/shopify-app-js",
+     "path": "packages/apps/shopify-api/rest/admin/__tests__/2025-10/application_charge.test.ts"
+    },
+    {
+     "repo": "Shopify/shopify-app-js",
+     "path": "packages/apps/shopify-api/rest/admin/__tests__/2025-10/tender_transaction.test.ts"
+    },
+    {
+     "repo": "Shopify/shopify-app-js",
+     "path": "packages/apps/shopify-api/rest/admin/__tests__/2025-10/collection.test.ts"
+    },
+    {
+     "repo": "Shopify/shopify-app-js",
+     "path": "packages/apps/shopify-api/rest/admin/__tests__/2025-10/dispute.test.ts"
+    },
+    {
+     "repo": "Shopify/shopify-app-js",
+     "path": "packages/apps/shopify-api/rest/admin/__tests__/2025-10/deprecated_api_call.test.ts"
+    },
+    {
+     "repo": "Shopify/shopify-app-js",
+     "path": "packages/apps/shopify-api/rest/admin/__tests__/2025-10/fulfillment_service.test.ts"
+    },
+    {
+     "repo": "Shopify/shopify-app-js",
+     "path": "packages/apps/shopify-api/rest/admin/__tests__/2025-10/gift_card_adjustment.test.ts"
+    },
+    {
+     "repo": "Shopify/shopify-app-js",
+     "path": "packages/apps/shopify-api/rest/admin/__tests__/2025-10/apple_pay_certificate.test.ts"
+    },
+    {
+     "repo": "Shopify/shopify-app-js",
+     "path": "packages/apps/shopify-api/rest/admin/__tests__/2025-10/payout.test.ts"
+    }
+   ]
+  },
+  {
+   "provider": "shopify",
+   "query": "admin/api/2025-10",
+   "language": "JavaScript",
+   "hits": [
+    {
+     "repo": "realmstoriches/ShopifyIncomeHub",
+     "path": "lib/listener.js"
+    },
+    {
+     "repo": "popuguy/PreorderApp",
+     "path": "api/products.js"
+    },
+    {
+     "repo": "popuguy/PreorderApp",
+     "path": "server/shopify.js"
+    },
+    {
+     "repo": "Powai03/secureapi",
+     "path": "app/lib/shopify.js"
+    },
+    {
+     "repo": "lherrerabusiness-omnichannel/Shopify-Commit",
+     "path": "scripts/_check-shopify.js"
+    },
+    {
+     "repo": "realmstoriches/ShopifyIncomeHub",
+     "path": "archive/shopifyListener.js"
+    },
+    {
+     "repo": "popuguy/PreorderApp",
+     "path": "lib/shopify.js"
+    },
+    {
+     "repo": "lherrerabusiness-omnichannel/Shopify-Commit",
+     "path": "scripts/_check-locations.js"
+    },
+    {
+     "repo": "devmtc-1/on-shopfront-sync",
+     "path": "app/routes/shopify-import.jsx"
+    },
+    {
+     "repo": "Danykeidel03/nodeMailWsp",
+     "path": "shopify.js"
+    },
+    {
+     "repo": "CABoomer/BoomAR",
+     "path": "scripts/introspect-transaction.mjs"
+    },
+    {
+     "repo": "CABoomer/BoomAR",
+     "path": "scripts/inspect-shopify-schema.mjs"
+    },
+    {
+     "repo": "lherrerabusiness-omnichannel/Shopify-Commit",
+     "path": "scripts/_check-listing.js"
+    },
+    {
+     "repo": "devamitjha/next-pos",
+     "path": "src/app/api/shopify/products/route.js"
+    },
+    {
+     "repo": "alyhxn/bmbra",
+     "path": "server.js"
+    },
+    {
+     "repo": "CABoomer/BoomAR",
+     "path": "scripts/inspect-order-transactions.mjs"
+    },
+    {
+     "repo": "CABoomer/BoomAR",
+     "path": "scripts/introspect-transaction-kind.mjs"
+    },
+    {
+     "repo": "alyhxn/bmbra",
+     "path": "api/draft-orders.js"
+    },
+    {
+     "repo": "aurasystemsai/aura-core-monolith",
+     "path": "src/core/shopifyBillingService.js"
+    },
+    {
+     "repo": "annapurnakhakhra-cyber/Mega_Rocket",
+     "path": "src/app/api/wishlist/route.js"
+    },
+    {
+     "repo": "annapurnakhakhra-cyber/Mega_Rocket",
+     "path": "src/app/api/customer/route.js"
+    },
+    {
+     "repo": "annapurnakhakhra-cyber/Mega_Rocket",
+     "path": "src/lib/shopify.js"
+    },
+    {
+     "repo": "NewCityVapes/compare-db-tool",
+     "path": "lib/shopify.mjs"
+    },
+    {
+     "repo": "alyhxn/bmbra",
+     "path": "api/helpers/draftOrder.js"
+    },
+    {
+     "repo": "pieperz/shopify-mcp",
+     "path": "src/index.ts"
+    },
+    {
+     "repo": "magnolify/uia-rc",
+     "path": "functions/print-report-card.js"
+    },
+    {
+     "repo": "rakesh-om/Gyftr",
+     "path": "app/routes/graphql/getStorefrontAccessToken.js"
+    },
+    {
+     "repo": "jameskomo/docswatcher",
+     "path": "knowledge/fixtures/shopify-node-api-version/repo/src/shopify.js"
+    },
+    {
+     "repo": "alyhxn/bmbra",
+     "path": "api/create-draft-order.js"
+    },
+    {
+     "repo": "devamitjha/next-pos",
+     "path": "src/app/api/shopify/search/route.js"
+    },
+    {
+     "repo": "MK-XXXVII/holytea-inventory-sync",
+     "path": "reconcile-available.mjs"
+    },
+    {
+     "repo": "selim-mia/analyticsgtm",
+     "path": "server/shopify.js"
+    },
+    {
+     "repo": "MK-XXXVII/holytea-inventory-sync",
+     "path": "reverse-sync.mjs"
+    },
+    {
+     "repo": "laszloszabi1/draft-panel",
+     "path": "generate.mjs"
+    },
+    {
+     "repo": "joosn1/private-storefronts",
+     "path": "server.js"
+    },
+    {
+     "repo": "MK-XXXVII/holytea-inventory-sync",
+     "path": "append-new-items.mjs"
+    },
+    {
+     "repo": "junooncloud/simplebundles",
+     "path": "app/routes/api/create-bundle.jsx"
+    },
+    {
+     "repo": "drilon-searchmind/tracking-tracker-v2",
+     "path": "lib/shopifyApi.js"
+    },
+    {
+     "repo": "swastik7805/Graph-QL",
+     "path": "index.js"
+    },
+    {
+     "repo": "NewCityVapes/compare-db-tool",
+     "path": "scripts/fixImageAltText.mjs"
+    },
+    {
+     "repo": "sarahliz0715/Tandril",
+     "path": "api/shopify-sync-plan.js"
+    },
+    {
+     "repo": "DaniDeclares/admiring-star-8zkzvl",
+     "path": "scripts/shopifyRecoveryAdapters.mjs"
+    },
+    {
+     "repo": "jcrowe85/meta-analytics",
+     "path": "webhook-handler.js"
+    },
+    {
+     "repo": "LegnaDivad/shopify-goodbarber-sync",
+     "path": "src/services/shopifyAdmin.js"
+    },
+    {
+     "repo": "TorqueCoffee/torque-production-portal",
+     "path": "api/shopify-token.js"
+    },
+    {
+     "repo": "selim-mia/analyticsgtm",
+     "path": "server/index.js"
+    },
+    {
+     "repo": "annapurnakhakhra-cyber/Mega_Rocket",
+     "path": "src/app/api/orders/pending/route.js"
+    },
+    {
+     "repo": "MK-XXXVII/holytea-inventory-sync",
+     "path": "update-product-metadata.mjs"
+    },
+    {
+     "repo": "laxmiitalianelegance-max/unit",
+     "path": "src/orchestrator.js"
+    },
+    {
+     "repo": "heyjyoti4u/App-Auditor",
+     "path": "backend/server.js"
+    },
+    {
+     "repo": "NewCityVapes/compare-db-tool",
+     "path": "scripts/fixSeoDescriptions.mjs"
+    },
+    {
+     "repo": "aurasystemsai/aura-core-monolith",
+     "path": "src/routes/shopify-auth.js"
+    },
+    {
+     "repo": "tizeira/clara-shopify",
+     "path": "scripts/create-shop-metafield.mjs"
+    },
+    {
+     "repo": "infoannapurnakhakhra-source/annapurnakhakhra",
+     "path": "app/api/orders/create/route.js"
+    },
+    {
+     "repo": "ADRIG-AI/shofipy-backend",
+     "path": "controllers/shopify/syncController.js"
+    },
+    {
+     "repo": "erinpender-dev/staff-dashboard",
+     "path": "api/order.js"
+    },
+    {
+     "repo": "bhapris-glitch/layb",
+     "path": "apps/api/src/services/shopify/install.service.js"
+    },
+    {
+     "repo": "boolsson81/eudronecompany",
+     "path": "scripts/run-category-audit.mjs"
+    },
+    {
+     "repo": "erinpender-dev/staff-dashboard",
+     "path": "api/orders.js"
+    },
+    {
+     "repo": "Hardik2345/products_pipeline",
+     "path": "hourly_backfill.js"
+    },
+    {
+     "repo": "shopifyappscompany-gif/EdgeSideCart",
+     "path": "app/routes/api.validate-discount.jsx"
+    },
+    {
+     "repo": "imaouchi/Secure-API-Test",
+     "path": "src/controllers/productsController.js"
+    },
+    {
+     "repo": "MarkMamrot/Maketoir",
+     "path": "scripts/cutover-shopify-exact-webhooks.mjs"
+    },
+    {
+     "repo": "erinpender-dev/staff-dashboard",
+     "path": "api/order-details.js"
+    },
+    {
+     "repo": "whoeven99/BogdaApps",
+     "path": "bundleV2/scripts/ensure-bundle-offers-definition.mjs"
+    },
+    {
+     "repo": "lpenza/ecom-eti",
+     "path": "services/metaAdsAnalisisService.js"
+    },
+    {
+     "repo": "jamestuwairua77-cpu/bargain-drop-v2",
+     "path": "cj-sync-worker/index.js"
+    },
+    {
+     "repo": "whoeven99/BogdaApps",
+     "path": "bundleV2/scripts/force-refresh-storefront-offers-metafield.mjs"
+    },
+    {
+     "repo": "zhao-xuan/the-charme-edit-shopify-extension",
+     "path": "scripts/bind-phone-products-to-shopify-variants.mjs"
+    },
+    {
+     "repo": "hassan-31x/treasures-cron-2",
+     "path": "src/shopifyClient.js"
+    },
+    {
+     "repo": "aurasystemsai/aura-core-monolith",
+     "path": "src/tools/link-intersect-outreach/router.js"
+    },
+    {
+     "repo": "thenextmovement/daniel-AI-stuff",
+     "path": "workflows/billing-v2/build-workflows.mjs"
+    },
+    {
+     "repo": "jamestuwairua77-cpu/bargain-drop-v2",
+     "path": "functions/_sync-lib.js"
+    },
+    {
+     "repo": "ADRIG-AI/shofipy-backend",
+     "path": "controllers/shopify/billingController.js"
+    },
+    {
+     "repo": "musical-basics/dreamplay-monorepo",
+     "path": "scripts/migrate/07-shopify-reconcile.mjs"
+    },
+    {
+     "repo": "Hardik2345/products_pipeline",
+     "path": "products_sessions.pipeline.js"
+    },
+    {
+     "repo": "ADRIG-AI/shofipy-backend",
+     "path": "controllers/shopify/verificationController.js"
+    },
+    {
+     "repo": "musical-basics/dreamplay-monorepo",
+     "path": "scripts/migrate/09-backfill-buyer-order-details.mjs"
+    },
+    {
+     "repo": "aurasystemsai/aura-core-monolith",
+     "path": "scripts/live-shop-test.js"
+    },
+    {
+     "repo": "ONKRON/notification-shopify",
+     "path": "services/managerDashboard.test.js"
+    }
+   ]
+  }
+ ]
+}
