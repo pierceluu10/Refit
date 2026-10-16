@@ -65,7 +65,7 @@ const NPM_FORMATS = [2, 4, '\t'].flatMap((indent) =>
 );
 const PNPM_IMPORTER_SECTIONS = ['dependencies', 'devDependencies', 'optionalDependencies'];
 
-export const PACKAGE_FILES = ['package.json', 'package-lock.json', 'pnpm-lock.yaml'];
+export const PACKAGE_FILES = ['package.json', 'package-lock.json', 'pnpm-lock.yaml', 'yarn.lock'];
 
 function diffSections(diff: string) {
   return diff.split(/(?=^diff --git )/m).filter(Boolean);
@@ -101,6 +101,7 @@ interface Declaration {
 interface Release {
   tarball: string;
   integrity: string;
+  shasum?: string;
   license?: string;
   engines?: Record<string, unknown>;
   dependencies: Record<string, string>;
@@ -206,6 +207,9 @@ async function registryRelease(target: string): Promise<Release | Refusal> {
   return {
     tarball: dist.tarball as string,
     integrity: dist.integrity,
+    ...(typeof dist.shasum === 'string' && /^[a-f0-9]{40}$/.test(dist.shasum)
+      ? { shasum: dist.shasum }
+      : {}),
     license: typeof metadata.license === 'string' ? metadata.license : undefined,
     engines: isObject(metadata.engines) ? metadata.engines : undefined,
     dependencies,
@@ -238,8 +242,8 @@ function peerConflicts(
     : undefined;
 }
 
-// Moves a root npm or pnpm project's stripe dependency to the release for `apiVersion`, editing
-// only package.json and its lockfile. Anything unusual is refused with a reason, never guessed.
+// Moves a root npm, pnpm or Yarn 1 project's stripe dependency to the release for `apiVersion`,
+// editing only package.json and its lockfile. Anything unusual is refused with a reason, never guessed.
 export async function stripePackageUpgrade(
   root: string,
   apiVersion: string,
@@ -248,19 +252,20 @@ export async function stripePackageUpgrade(
   if (!target)
     return { reason: `No stripe-node release is recorded for API version ${apiVersion}.` };
   const read = (path: string) => readFile(join(root, path), 'utf8').catch(() => undefined);
-  const [manifestText, npmLock, pnpmLock] = await Promise.all([
+  const [manifestText, npmLock, pnpmLock, yarnLock] = await Promise.all([
     read('package.json'),
     read('package-lock.json'),
     read('pnpm-lock.yaml'),
+    read('yarn.lock'),
   ]);
-  if (manifestText === undefined || (npmLock === undefined) === (pnpmLock === undefined))
+  if (manifestText === undefined || [npmLock, pnpmLock, yarnLock].filter(Boolean).length !== 1)
     return {
       reason:
-        'Only root npm or pnpm projects with package.json and exactly one of package-lock.json or pnpm-lock.yaml are upgraded.',
+        'Only root npm, pnpm or Yarn 1 projects with package.json and exactly one of package-lock.json, pnpm-lock.yaml or yarn.lock are upgraded.',
     };
-  return npmLock !== undefined
-    ? npmUpgrade(target, manifestText, npmLock)
-    : pnpmUpgrade(target, manifestText, pnpmLock!);
+  if (npmLock !== undefined) return npmUpgrade(target, manifestText, npmLock);
+  if (pnpmLock !== undefined) return pnpmUpgrade(target, manifestText, pnpmLock);
+  return yarnUpgrade(target, manifestText, yarnLock!);
 }
 
 async function npmUpgrade(
@@ -499,6 +504,133 @@ async function pnpmUpgrade(
       files: [
         { path: 'package.json', before: manifestText, after: declared.rewrite(target) },
         { path: 'pnpm-lock.yaml', before: lockText, after: document.toString(PNPM_FORMAT) },
+      ],
+    },
+  };
+}
+
+interface YarnBlock {
+  descriptors: string[];
+  text: string;
+  dependencies: [string, string][];
+}
+
+const unquote = (value: string) => value.replace(/^"|"$/g, '');
+
+// Yarn 1 blocks: an unindented descriptor line, then two-space fields and four-space dependencies,
+// separated by one blank line. `body` is the file without its final newline.
+function yarnBlocks(body: string) {
+  const [header, ...chunks] = body.split(/\n\n(?=\S)/);
+  const blocks: YarnBlock[] = [];
+  for (const text of chunks) {
+    const [key, ...lines] = text.split('\n');
+    if (!key.endsWith(':') || key.startsWith('#')) return undefined;
+    const dependencies: [string, string][] = [];
+    let section = '';
+    for (const line of lines) {
+      if (/^ {2}\S/.test(line)) section = line.trim();
+      else if (['dependencies:', 'optionalDependencies:'].includes(section)) {
+        const match = /^ {4}("[^"]+"|\S+) ("[^"]+"|\S+)$/.exec(line);
+        if (!match) return undefined;
+        dependencies.push([unquote(match[1]), unquote(match[2])]);
+      }
+    }
+    blocks.push({ descriptors: key.slice(0, -1).split(/,\s*/).map(unquote), text, dependencies });
+  }
+  return { header, blocks };
+}
+
+// Blocks reachable from the root manifest's dependency declarations.
+function reachableBlocks(manifest: Record<string, unknown>, blocks: YarnBlock[]) {
+  const byDescriptor = new Map(
+    blocks.flatMap((block) => block.descriptors.map((descriptor) => [descriptor, block] as const)),
+  );
+  const seen = new Set<YarnBlock>();
+  const visit = (name: string, range: string) => {
+    const block = byDescriptor.get(`${name}@${range}`);
+    if (!block || seen.has(block)) return;
+    seen.add(block);
+    for (const [child, childRange] of block.dependencies) visit(child, childRange);
+  };
+  for (const section of ['dependencies', 'devDependencies', 'optionalDependencies']) {
+    const declared = manifest[section];
+    if (isObject(declared))
+      for (const [name, range] of Object.entries(declared))
+        if (typeof range === 'string') visit(name, range);
+  }
+  return seen;
+}
+
+const YARN_RESOLVED =
+  /^ {2}resolved "(https:\/\/registry\.(?:yarnpkg\.com|npmjs\.org))\/stripe\/-\/stripe-[^"#]+\.tgz(#[a-f0-9]{40})?"$/m;
+
+async function yarnUpgrade(
+  target: string,
+  manifestText: string,
+  lockText: string,
+): Promise<{ upgrade: PackageUpgrade } | Refusal> {
+  let manifest: unknown;
+  try {
+    manifest = JSON.parse(manifestText);
+  } catch {
+    return { reason: 'package.json is not valid JSON.' };
+  }
+  if (!isObject(manifest)) return { reason: 'package.json is not an object.' };
+  if (manifest.workspaces !== undefined)
+    return { reason: 'Yarn workspaces are not upgraded; regenerate the lockfile instead.' };
+  const declared = manifestDeclaration(manifest, manifestText);
+  if ('reason' in declared) return declared;
+  if (!/^# yarn lockfile v1$/m.test(lockText) || lockText.includes('\r'))
+    return { reason: 'Only Yarn 1 lockfiles with LF line endings are upgraded.' };
+  const newline = lockText.endsWith('\n') ? '\n' : '';
+  const parsed = yarnBlocks(lockText.slice(0, lockText.length - newline.length));
+  const render = (blocks: YarnBlock[]) =>
+    `${[parsed!.header, ...blocks.map((block) => block.text)].join('\n\n')}${newline}`;
+  if (!parsed || render(parsed.blocks) !== lockText)
+    return { reason: 'yarn.lock is not in Yarn 1 formatting.' };
+  const stripeBlocks = parsed.blocks.filter((block) =>
+    block.descriptors.some((descriptor) => descriptor.startsWith('stripe@')),
+  );
+  const block = stripeBlocks[0];
+  if (stripeBlocks.length !== 1 || block.descriptors.join() !== `stripe@${declared.spec}`)
+    return { reason: 'yarn.lock locks stripe for more than the root declaration.' };
+  const from = /^ {2}version "([^"]+)"$/m.exec(block.text)?.[1];
+  const resolved = YARN_RESOLVED.exec(block.text);
+  if (!from || !EXACT_PACKAGE_VERSION.test(from) || !resolved)
+    return { reason: 'yarn.lock does not lock stripe to a public registry version.' };
+  if (from === target) return { reason: `stripe ${target} is already locked.` };
+  if (!declared.unique) return { reason: 'package.json declares stripe more than once.' };
+  const release = await registryRelease(target);
+  if ('reason' in release) return release;
+  // Yarn 1 does not install peers, so only regular dependencies would need a fresh resolution.
+  const added = Object.keys(release.dependencies);
+  if (added.length) return dependencyChanges(target, added);
+  if (resolved[2] && !release.shasum)
+    return { reason: `The npm registry metadata for stripe ${target} has no SHA-1 checksum.` };
+  const newSpec = declared.newSpec(target);
+  const replacement: YarnBlock = {
+    descriptors: [`stripe@${newSpec}`],
+    dependencies: [],
+    text: [
+      block.text.startsWith('"') ? `"stripe@${newSpec}":` : `stripe@${newSpec}:`,
+      `  version "${target}"`,
+      `  resolved "${resolved[1]}/stripe/-/stripe-${target}.tgz${resolved[2] ? `#${release.shasum}` : ''}"`,
+      `  integrity ${release.integrity}`,
+    ].join('\n'),
+  };
+  const manifestAfter = declared.rewrite(target);
+  const before = reachableBlocks(manifest, parsed.blocks);
+  const updated = parsed.blocks.map((entry) => (entry === block ? replacement : entry));
+  const after = reachableBlocks(JSON.parse(manifestAfter) as Record<string, unknown>, updated);
+  // Drop only what the old stripe made reachable: blocks nothing else in the root graph uses.
+  const kept = updated.filter((entry) => after.has(entry) || !before.has(entry));
+  return {
+    upgrade: {
+      from,
+      to: target,
+      files: [
+        { path: 'package.json', before: manifestText, after: manifestAfter },
+        { path: 'yarn.lock', before: lockText, after: render(kept) },
       ],
     },
   };
