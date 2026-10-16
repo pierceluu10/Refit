@@ -86,7 +86,7 @@ export function migrationNote(provider: string, status: AgentStatus) {
   if (status.state === 'configured')
     return `Refit's ${status.integration ? `${code(status.integration)} integration` : 'configured integration'} covers ${name}. When ${name} publishes this change in the API contract Refit monitors, that integration's normal migration run handles it, with the same approval check, offline validation and draft pull request gates. See \`refit serve\` status for its result.`;
   if (status.state === 'available')
-    return `Refit has a ${name} agent. Add it with \`refit agents --add ${provider}\`, save reviewed contracts, then approve the configuration with \`refit enroll\`. Migrations then run through the normal approval, validation and draft pull request gates.`;
+    return `Refit has ${/^[aeiou]/i.test(name) ? 'an' : 'a'} ${name} agent. Add it with \`refit agents --add ${provider}\`, save reviewed contracts, then approve the configuration with \`refit enroll\`. Migrations then run through the normal approval, validation and draft pull request gates.`;
   return `Refit has no ${name} agent yet, so this alert cannot start a migration. Plan the upgrade with the provider's guide.`;
 }
 
