@@ -21,6 +21,7 @@ import {
   timing,
 } from './deadline-alerts.ts';
 import { agentStatus, configuredIntegrations, findDeadlineExposures } from './deadline-exposure.ts';
+import { applyDeadlineIgnores, readDeadlineIgnores } from './deadline-ignores.ts';
 import { loadDeadlineRegistry } from './deadline-registry.ts';
 import { standaloneStateDirectory, type GitHubCheckout } from './github-checkout.ts';
 import { requestGitHub } from './github.ts';
@@ -243,8 +244,26 @@ export async function runLocalService(options: {
             findDeadlineExposures(checkout.directory, registry, now),
             configuredIntegrations(checkout.directory),
           ]);
+          // A committed, valid ignore file accepts exposures until its entries expire. An invalid
+          // file accepts nothing, so a broken exception can never silence an alert.
+          let ignores: Awaited<ReturnType<typeof readDeadlineIgnores>>['entries'] = [];
+          try {
+            ignores = (await readDeadlineIgnores(checkout.directory, now)).entries;
+          } catch (error) {
+            if (!(error instanceof Error)) throw error;
+            options.onProgress?.(
+              `[${repository}] Deadline ignores not applied: ${error.name}: ${error.message}`,
+            );
+          }
+          const { decisions } = applyDeadlineIgnores(
+            exposures,
+            ignores,
+            new Set(registry.deadlines.map((entry) => entry.id)),
+            now,
+          );
           const known = (await store.read()).deadlineAlerts ?? {};
           const due = exposures
+            .filter((exposure) => !decisions.get(exposure.deadline.id)?.ignoredBy.length)
             .map((exposure) => ({
               exposure,
               key: `${repository}|${exposure.deadline.id}`,

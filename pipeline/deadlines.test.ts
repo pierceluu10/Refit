@@ -721,6 +721,65 @@ it('alerts enrolled repositories through signed-webhook polls at each lead time,
   expect(requests.some((item) => item.path.includes('example/operator'))).toBe(false);
 }, 30_000);
 
+it('lets a committed ignore file accept an alert, and never lets an invalid one silence it', async () => {
+  const ignoreFile = (reason: string) =>
+    JSON.stringify({
+      formatVersion: 1,
+      ignore: [{ deadline: 'openai-gpt-4', reason, until: '2026-11-30' }],
+    });
+  checkout.directory = await repository({
+    'package.json': { dependencies: { openai: '4.80.0' } },
+    'src/ai.ts': "export const model = 'gpt-4';\n",
+    '.refit-deadlines-ignore.json': ignoreFile('Swapping to gpt-5.6-sol in the next release.'),
+  });
+  const registryPath = join(await repository({}), 'registry.json');
+  await writeFile(registryPath, JSON.stringify(registry));
+  const approval = {
+    formatVersion: 1,
+    kind: 'refit-repository-approval',
+    repository: 'example/app',
+    base: 'main',
+    fingerprint: 'f'.repeat(64),
+    files: [],
+    reviewedRevision: REVISION,
+    approvedAt: '2026-10-01T00:00:00.000Z',
+  } as RepositoryApproval;
+  const run = async (onProgress?: (message: string) => void) => {
+    const state = await mkdtemp(join(tmpdir(), 'refit-deadline-ignore-'));
+    roots.push(state);
+    await runLocalService({
+      targets: [
+        { id: 'app', repository: 'example/app', base: 'main', documentationSources: [], approval },
+      ],
+      app: { appId: '123', privateKeyFile: 'unused' },
+      directory: state,
+      port: 0,
+      webhookSecret: 'webhook-secret-for-deadline-tests-1',
+      controlToken: 'control-token-for-deadline-tests-2',
+      // 3 days before the gpt-4 deadline: the 7-day stage is due.
+      now: () => new Date('2026-10-20T12:00:00Z'),
+      deadlineAlerts: { leadDays: [90, 30, 7], registry: registryPath },
+      once: true,
+      signal: new AbortController().signal,
+      onProgress,
+    });
+  };
+  await run();
+  expect(requests).toEqual([]);
+
+  await writeFile(join(checkout.directory, '.refit-deadlines-ignore.json'), ignoreFile(' '));
+  const progress: string[] = [];
+  await run((message) => progress.push(message));
+  expect(requests.map((item) => `${item.method} ${item.path}`)).toEqual([
+    'POST /repos/example/app/issues',
+  ]);
+  expect(
+    progress.some((message) =>
+      message.startsWith('[example/app] Deadline ignores not applied: PipelineInputError'),
+    ),
+  ).toBe(true);
+}, 30_000);
+
 it('renders the deadline issue with evidence, the replacement and the migration path', () => {
   const exposure = {
     deadline: registry.deadlines[0],

@@ -1,5 +1,22 @@
 # Refit implementation checkpoints
 
+## October 16 checkpoint: deadline checks in CI (unreleased)
+
+`refit deadlines --fail-within <days>` turns the deadline report into a CI check. It exits 2 when a live exposure is past due, due today or within the window, 0 when none is, and 1 on any error. The window is 0–3650 whole days. Without the flag the command only reports, as before. Only live evidence counts, so model lists, tests, examples and comments never fail a build. `docs/DEADLINES.md` has a GitHub Actions example that runs on pull requests and weekly.
+
+Known exposures can be accepted in a committed `.refit-deadlines-ignore.json`. Each entry names a registry deadline and must give a reason and an `until` date at most 365 days away; expired entries stop applying and are reported. Optional `paths` scope an entry to repository-relative directories or files, matched by whole path segments. An exposure is accepted only when every live match is covered, and path-scoped entries never accept a deadline with matches past the 20-item listing limit. Any problem rejects the whole file with exit 1: unknown fields, a missing reason, a bad or distant date, `..` or absolute paths, more than 100 entries, over 64 KiB, or a symbolic link or directory. Accepted exposures stay in the output with their reason, and unknown deadline IDs are flagged as likely typos. `--ignore-file` reads another file and errors if it is missing. `refit serve --deadline-alerts` honors a committed, valid ignore file; an invalid one is logged and accepts nothing, so it never silences an alert.
+
+The default suite passed **1,324 tests across 86 files**, with 78 environment-gated tests skipped, plus typecheck, formatting and build. New tests cover:
+
+- ignore validation, reporting every error at once;
+- file safety: symbolic links, directories, size and a missing explicit file;
+- coverage rules, including a sibling-folder lookalike, capped matches and the inclusive expiry day;
+- the window boundaries and argument parsing;
+- an end-to-end CLI run checking exit codes 0, 1 and 2 and the JSON `check` field;
+- a service run where a committed ignore suppresses an alert and an invalid one does not.
+
+Deliberately broken versions of the boundary, capped-match, expiry and path-segment rules, and removing the service filter, each fail a test. No provider was contacted.
+
 ## October 16 checkpoint: live-only deadline evidence (unreleased, after 0.37.0)
 
 `refit deadlines` now classifies every match by how the code uses it: live, catalog, test, comment, tokenizer or check. Catalogs are lists of three or more models, type positions, tables keyed or indexed by model, and `<option>` pickers. Tests and examples are recognized by path. Comparisons and `case` labels count as checks. Only live matches make a repository exposed, appear as evidence and open or update an issue alert. The CLI lists the rest, collapsed per use, plus deadlines named only outside live code. `--json` adds `use`, `nonLive`, `nonLiveMore` and a top-level `mentions` array without removing a field. Catalog, test and comparison rules apply to OpenAI only. Meta and Shopify matching is unchanged, except that comments are now listed as non-live instead of dropped. See [API deadlines](DEADLINES.md#live-and-non-live-evidence).
