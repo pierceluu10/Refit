@@ -26,7 +26,8 @@
     "benchmark:stripe": "tsx pipeline/stripe-benchmark-cli.ts",
     "benchmark:stripe-labels": "tsx pipeline/stripe-ground-truth-cli.ts",
     "benchmark:stripe-score": "tsx pipeline/stripe-benchmark-score.ts",
-    "deadlines:check": "node bin/refit.mjs deadlines --check-registry"
+    "deadlines:check": "node bin/refit.mjs deadlines --check-registry",
+    "benchmark:shopify": "tsx pipeline/shopify-benchmark-cli.ts"
   },
   "dependencies": {
     "@fontsource-variable/geist": "^5.3.0",
