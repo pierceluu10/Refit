@@ -15,7 +15,7 @@ import type { OperationReplacement } from './provider-operation-replacements.ts'
 import type { RequestPropertyRename } from './provider-request-renames.ts';
 import type { PropertyMove } from './provider-renames.ts';
 import { removedParameterProperty, requestPropertyEdit } from './request-migration.ts';
-import type { RequestParameterRemoval } from './request-removals.ts';
+import { CARD_PAYMENT_METHOD_RULE, type RequestParameterRemoval } from './request-removals.ts';
 import { StripeTypes } from './stripe-types.ts';
 import {
   subscriptionPeriodEdit,
@@ -864,6 +864,27 @@ export function analyzeRepository(
       const property = removedParameterProperty(node, removal);
       if (!property) continue;
       const confirmed = !unsafe.has(clientBinding(call.client)!) && !call.optional;
+      // Only the exact literal `['card']` has a reviewed replacement; run.ts keeps the edit only
+      // with the API version bump (and, for TypeScript, the SDK upgrade) in the same patch.
+      if (
+        confirmed &&
+        removal.cardReplacement &&
+        ts.isPropertyAssignment(property) &&
+        ts.isArrayLiteralExpression(property.initializer) &&
+        property.initializer.elements.length === 1 &&
+        ts.isStringLiteralLike(property.initializer.elements[0]) &&
+        property.initializer.elements[0].text === 'card'
+      ) {
+        const quote = ts.isStringLiteral(property.name) ? property.name.getText()[0] : '';
+        edits.push({
+          file: location(property).file,
+          start: property.name.getStart(),
+          end: property.name.getEnd(),
+          replacement: `${quote}${removal.cardReplacement}${quote}`,
+          changeId: removal.id,
+          rule: CARD_PAYMENT_METHOD_RULE,
+        });
+      }
       findings.push({
         ...location(property),
         changeId: removal.id,

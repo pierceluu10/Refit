@@ -1,5 +1,19 @@
 # Refit implementation checkpoints
 
+## October 16 checkpoint: card-only `payment_method_types` replacement (unreleased)
+
+Owner decision: Stripe endive's removed `payment_method_types` is replaced automatically only when the value is exactly the literal `['card']` on Checkout Session, PaymentIntent or SetupIntent creation. It becomes `allowed_payment_method_types: ['card']`, kept only when the same patch moves the `apiVersion` literal to the target and, for a TypeScript project, upgrades stripe-node. Every other value stops for review, and the parameter is never dropped. The draft PR asks the reviewer to confirm cards stay enabled, because the new field filters the dynamically eligible methods. See [the policy](STRIPE-PAYMENT-METHOD-TYPES.md).
+
+On the Stripe benchmarks, validated fixes rose from 10 to 45:
+
+- original 100: 4 → 11;
+- held-out 50: 1 → 7;
+- fresh 381: 2 → 27 on the 333 repositories measured before Docker was shut down. The remaining 48 are unmeasured.
+
+All 38 new fixes were checked against their diffs, and three were read in full. 9 patches regressed on other stripe-node 23 type errors and were caught by validation. The rerun found that validation's preflight dropped the rename because it requests no patch. Without a patch request, Refit now checks only the pin, and the patch run enforces the upgrade.
+
+The default suite passed **1,339 tests across 87 files**, with 78 environment-gated tests skipped, plus typecheck and formatting.
+
 ## October 16 checkpoint: benchmarks on 781 real repositories (0.38.0)
 
 [Benchmarks](BENCHMARKS.md) now consolidates every set. Two new frozen sets were run end to end at pinned commits, with no vendor API calls:

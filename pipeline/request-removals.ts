@@ -12,7 +12,13 @@ export interface RequestParameterRemoval {
   parameter: string;
   // SDK methods take path parameters positionally before the body (`update(id, params)`).
   argumentIndex: number;
+  // An owner-approved replacement for exactly `['card']` (docs/STRIPE-PAYMENT-METHOD-TYPES.md).
+  cardReplacement?: string;
 }
+
+export const CARD_PAYMENT_METHOD_RULE = 'stripe-card-allowed-payment-method-types';
+const CARD_REPLACEMENT = 'allowed_payment_method_types';
+const CARD_OPERATIONS = new Set(['PostCheckoutSessions', 'PostPaymentIntents', 'PostSetupIntents']);
 
 const MAX_REFERENCE_HOPS = 8;
 const PATH_PARAMETER = /\{[^}]+\}/g;
@@ -78,6 +84,12 @@ export function removedRequestParameters(
           operationId: mapping.operationId!,
           parameter,
           argumentIndex: source.path.match(PATH_PARAMETER)?.length ?? 0,
+          ...(provider.packageName === 'stripe' &&
+          parameter === 'payment_method_types' &&
+          CARD_OPERATIONS.has(mapping.operationId!) &&
+          current.has(CARD_REPLACEMENT)
+            ? { cardReplacement: CARD_REPLACEMENT }
+            : {}),
         });
   }
   return removals;
