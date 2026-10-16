@@ -102,7 +102,7 @@
     },
     {
       "repo": "cdinnison/goal-reminder",
-      "pullRequest": null,
+      "pullRequest": "https://github.com/refit-dev/goal-reminder/pull/1",
       "reviewedAt": "2026-10-16",
       "verdict": "correct",
       "checks": {
@@ -116,7 +116,7 @@
     },
     {
       "repo": "seangray-dev/formail-app",
-      "pullRequest": null,
+      "pullRequest": "https://github.com/refit-dev/formail-app/pull/1",
       "reviewedAt": "2026-10-16",
       "verdict": "correct",
       "checks": {
@@ -130,7 +130,7 @@
     },
     {
       "repo": "tmachnacki/podvex",
-      "pullRequest": null,
+      "pullRequest": "https://github.com/refit-dev/podvex/pull/1",
       "reviewedAt": "2026-10-16",
       "verdict": "correct",
       "checks": {
@@ -144,7 +144,7 @@
     },
     {
       "repo": "vinroger/onellm-frontend",
-      "pullRequest": null,
+      "pullRequest": "https://github.com/refit-dev/onellm-frontend/pull/1",
       "reviewedAt": "2026-10-16",
       "verdict": "correct-partial",
       "checks": {
@@ -158,7 +158,7 @@
     },
     {
       "repo": "profullstack/vibe-stack",
-      "pullRequest": null,
+      "pullRequest": "https://github.com/refit-dev/vibe-stack/pull/1",
       "reviewedAt": "2026-10-16",
       "verdict": "correct-partial",
       "checks": {
