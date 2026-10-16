@@ -7,6 +7,7 @@ import { runInNewContext } from 'node:vm';
 import ts from 'typescript-compiler';
 import { afterEach, expect, it } from 'vitest';
 import { compactPatch, renderPatch } from './patches.ts';
+import { readRepository } from './repository.ts';
 import { runPipeline } from './run.ts';
 
 const execute = promisify(execFile);
@@ -140,4 +141,32 @@ it('compacts whole-file patches to the changed lines for repair evidence', () =>
   expect(compact).toContain('+let line39 = 39;\n\\ No newline at end of file');
   expect(compact).toContain('+export {};');
   expect(compact.length).toBeLessThan(diff.length / 3);
+});
+
+it('scans UTF-16 files with a byte-order mark as text but refuses to edit them', async () => {
+  const root = await repository(`${prefix}\nexport const ok = 1;\n`);
+  const types = 'export type Json = string | number;\n';
+  await writeFile(
+    join(root, 'types_db.ts'),
+    Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from(types, 'utf16le')]),
+  );
+  await writeFile(
+    join(root, 'big_endian.ts'),
+    Buffer.concat([Buffer.from([0xfe, 0xff]), Buffer.from(types, 'utf16le').swap16()]),
+  );
+  const scanned = await readRepository(root, 'stripe');
+  const decoded = scanned.files.filter((file) => file.encoding === 'utf-16');
+  expect(decoded.map((file) => [file.path, file.content])).toEqual([
+    ['big_endian.ts', types],
+    ['types_db.ts', types],
+  ]);
+  expect(scanned.files.find((file) => file.path === 'billing.ts')?.encoding).toBeUndefined();
+  expect(() =>
+    renderPatch(scanned, [
+      { file: 'types_db.ts', start: 0, end: 6, replacement: 'export', changeId: 'change' },
+    ]),
+  ).toThrow(/UTF-16; Refit only edits UTF-8/);
+  expect((await runPipeline({ ...options, repository: root })).warnings.join('\n')).not.toContain(
+    'types_db.ts',
+  );
 });

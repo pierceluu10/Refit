@@ -65,7 +65,7 @@ export interface SourceEdit {
 
 export interface Repository {
   root: string;
-  files: { path: string; content: string }[];
+  files: { path: string; content: string; encoding?: 'utf-16' }[];
   configurations?: Repository['files'];
   excludedPaths?: string[];
   dependencies: (DependencyDeclaration & { lock: LockedDependency })[];
