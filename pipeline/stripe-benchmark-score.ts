@@ -120,11 +120,15 @@ export function repositoryOutcome(
       outcome: 'incorrect',
       reason: `workflow ${workflow.status}: ${workflow.error ?? workflow.reason ?? 'no reason'}`,
     };
-  const named = new Set(
-    findings.map((finding) => `${finding.file}\0${finding.line}\0${finding.property}`),
-  );
+  // Request-parameter findings name the call path: `checkout.sessions.create argument[0].payment_method_types`.
   const unnamed = breaking.filter(
-    (read) => !named.has(`${read.file}\0${read.line}\0${read.property}`),
+    (read) =>
+      !findings.some(
+        (finding) =>
+          finding.file === read.file &&
+          finding.line === read.line &&
+          (finding.property === read.property || finding.property.endsWith(`.${read.property}`)),
+      ),
   );
   if (unnamed.length)
     return { outcome: 'incorrect', reason: `no fix, and not reported: ${describe(unnamed)}` };

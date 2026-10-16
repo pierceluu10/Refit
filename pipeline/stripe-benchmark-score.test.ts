@@ -56,6 +56,12 @@ it('counts a stop as a correct review only when its findings name every break', 
     outcome: 'correct-review',
     reason: '[Needs review] patch naming every break',
   });
+  // Refit names a request parameter by its call path.
+  const sent = finding({
+    ...request,
+    property: 'checkout.sessions.create argument[0].payment_method_types',
+  });
+  expect(repositoryOutcome(broken, [finding(read), sent], stop).outcome).toBe('correct-review');
   expect(repositoryOutcome(broken, [finding(read)], undefined).outcome).toBe('incorrect');
   expect(
     repositoryOutcome(broken, [finding(read), finding(request)], {
