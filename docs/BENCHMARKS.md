@@ -24,13 +24,13 @@ Every number here comes from real public repositories, frozen before the run tha
 
 The owner approved one replacement: an exact `payment_method_types: ['card']` becomes `allowed_payment_method_types: ['card']`, together with the endive pin and the stripe-node upgrade ([policy and results](STRIPE-PAYMENT-METHOD-TYPES.md)). Every other value still stops.
 
-On rerun, validated Stripe fixes rose from **10 to 52** on the same 531 repositories:
+On rerun, validated Stripe fixes rose from **10 to 53** on the same 531 repositories:
 
 - original 100: 4 → 11;
 - held-out 50: 1 → 7;
-- fresh 381: 5 → 34.
+- fresh 381: 5 → 35. `YunmeiYe/nextjs-ai-platform` counts as validated: it hit a dependency-cache lock held by a concurrent run of the same repositories, and validated when rerun with no contention.
 
-All 42 card-rule fixes were checked against their diffs. 39 passed `tsc` with no new errors, and 3 are covered only by generated `stripe-mock` checks. 10 patches regressed on other stripe-node 23 type errors; validation caught them, and none was proposed. No other outcome changed. The tables below predate the policy.
+All 43 card-rule fixes were checked against their diffs. 40 passed `tsc` with no new errors, and 3 are covered only by generated `stripe-mock` checks. 10 patches regressed on other stripe-node 23 type errors; validation caught them, and none was proposed. No other outcome changed. The tables below predate the policy.
 
 ## Stripe
 

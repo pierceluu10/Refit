@@ -2,7 +2,7 @@
 
 ## October 16 checkpoint: fresh Stripe set complete and team PRs merged (unreleased, after 0.39.0)
 
-The 48 fresh Stripe repositories that Docker had not reached were validated at `6d02116`, the same commit as the other 333. All 381 are now measured: validated fixes went from 5 to 34 on the fresh set, and from 10 to 52 across all 531 Stripe repositories. All 42 card-rule fixes were checked against their diffs. See [the policy results](STRIPE-PAYMENT-METHOD-TYPES.md#results-refit-6d02116-october-16).
+The 48 fresh Stripe repositories that Docker had not reached were validated at `6d02116`, the same commit as the other 333. All 381 are now measured: validated fixes went from 5 to 35 on the fresh set, and from 10 to 53 across all 531 Stripe repositories. All 43 card-rule fixes were checked against their diffs. See [the policy results](STRIPE-PAYMENT-METHOD-TYPES.md#results-refit-6d02116-october-16).
 
 Otabek's open PRs were merged on the owner's instruction:
 
