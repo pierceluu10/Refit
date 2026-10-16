@@ -269,3 +269,17 @@ git worktree add --detach <worktree> <commit>   # run from a pinned checkout
 OPENAI_MODEL=gpt-5.6-luna npm run benchmark:stripe -- --root <dir> --output <run> --env .env --ai --validate [--publish <org>]
 node scripts/stripe-benchmark-compare.mjs <run-a>/results.json <run-b>/results.json
 ```
+
+## Type-resolved reads (October 16, 2026)
+
+When a repository's stripe type definitions are available (`node_modules/stripe`, or `--stripe-package <dir>` in the benchmark, where `<dir>/<owner__repo>` is that repository's stripe package directory), Refit runs the ground-truth oracle's TypeScript checker over the scanned files. A removed-field read whose receiver resolves to a Stripe object that loses the field becomes a confirmed finding with `typeEvidence` (`asserted` when a local `as` cast states the type, since casts can lie). Type evidence only confirms detection: any such finding stops automatic migration, AI and publication for review. Repositories with more than 2,000 source files are skipped.
+
+Scan-only, on `main` at `ddd2932` plus this change, stripe types fetched with `npm pack` at each labelled repository's SDK version:
+
+| Labelled set | Before | After |
+|---|---|---|
+| Confirmed recall | 95% (37/39) | **97% (38/39)** |
+| Confirmed precision | 41% (37/91) | 41% (38/92) |
+| Any-finding recall / precision | 100% / 6% (39/672) | 100% / 6% (39/672) |
+
+Of the 54 confirmed "false positives", 48 are removed `payment_method_types` request parameters, which the labels do not cover, and 6 are the disputed Checkout Session casts above; type evidence adds none. The remaining miss is in JavaScript (`vue-stripe-subscriptions`, `latest_invoice.payment_intent`), which the checker cannot type. Across all 100 repositories, with SDK versions approximated from lockfiles or the lower bound of the `package.json` range (91 resolved; 22 of 30 match the labelled versions): 41 → 44 affected repositories and 18 newly confirmed reads in 7 repositories, all `current_period_start`/`current_period_end` reads on subscriptions (spot-checked by hand). The labelled scan took 2m11s before and 4m17s after.

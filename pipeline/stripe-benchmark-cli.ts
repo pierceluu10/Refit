@@ -21,7 +21,7 @@ import { PipelineInputError, type Repository } from './types.ts';
 
 const execute = promisify(execFile);
 const USAGE =
-  'Usage: npm run benchmark:stripe -- --root <benchmark-dir> --output <new-dir> [--env .env] [--ai] [--validate] [--offset N] [--limit N] [--concurrency N] [--publish <github-org> [--publish-unresolved]]';
+  'Usage: npm run benchmark:stripe -- --root <benchmark-dir> --output <new-dir> [--env .env] [--ai] [--validate] [--offset N] [--limit N] [--concurrency N] [--stripe-package <dir>] [--publish <github-org> [--publish-unresolved]]';
 // Default `npm init` script; it is not a check.
 const PLACEHOLDER_TEST = /no test specified/;
 const VALIDATION_TIMEOUT_MS = 20 * 60 * 1000;
@@ -61,6 +61,8 @@ const { values } = parseArgs({
     split: { type: 'string' },
     publish: { type: 'string' },
     'publish-unresolved': { type: 'boolean' },
+    // <dir>/<owner__repo> is the `types` directory of the stripe package that repository uses.
+    'stripe-package': { type: 'string' },
   },
 });
 if (!values.root || !values.output) throw new PipelineInputError(USAGE);
@@ -156,7 +158,15 @@ async function benchmark(entry: Selected, index: number) {
   result.mappedMethods = mappedMethods;
   const adapterPath = join(work, 'adapter.json');
   await writeFile(adapterPath, `${JSON.stringify(adapter, null, 2)}\n`);
-  const inputs = { repository: directory, before, after, apiVersion: entry.before };
+  const inputs = {
+    repository: directory,
+    before,
+    after,
+    apiVersion: entry.before,
+    ...(values['stripe-package']
+      ? { stripePackage: join(resolve(values['stripe-package']), entry.repo.replace('/', '__')) }
+      : {}),
+  };
   const webhookFiles = new Set(
     repository.files
       .filter((file) => /webhooks\.constructEvent/.test(file.content))

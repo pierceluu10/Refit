@@ -8,7 +8,7 @@ import { isObject } from './specifications.ts';
 // receiver is. It never uses Refit's analyzer, so its labels can grade it.
 
 const SKIPPED = new Set(['node_modules', '.git', 'dist', 'build', '.next', 'coverage', '.turbo']);
-const SOURCE = /\.(?:[cm]?[jt]sx?)$/;
+export const SOURCE = /\.(?:[cm]?[jt]sx?)$/;
 
 export type OracleLabel = 'breaking' | 'stripe-unaffected' | 'not-stripe' | 'unknown';
 
@@ -22,6 +22,11 @@ export interface OracleRead {
   schemas: string[];
   // Set for a request parameter the call still sends: `POST /v1/checkout/sessions payment_method_types`.
   request?: string;
+  // Where the whole property access starts, which is where Refit's analyzer reports a read.
+  start: { line: number; column: number };
+  // A type assertion (`as`, `<T>`) in the receiver's local flow states its type. Casts can lie,
+  // for example an Invoice payload cast to Stripe.Checkout.Session.
+  asserted: boolean;
 }
 
 // `Stripe.Checkout.Session` → `checkout.session`, from x-stripeResource in Stripe's SDK spec.
@@ -181,6 +186,31 @@ function typeNames(
   return [name.replace(/^"[^"]+"\./, '')];
 }
 
+// shortcut: follows only the receiver's own variable initializers; a cast at a caller of a typed
+// parameter is not seen. Upgrade if callers' casts must be distinguished.
+function asserted(expression: ts.Expression, checker: ts.TypeChecker, depth = 0): boolean {
+  if (depth > 8) return false;
+  if (ts.isAsExpression(expression) || ts.isTypeAssertionExpression(expression)) return true;
+  if (
+    ts.isParenthesizedExpression(expression) ||
+    ts.isNonNullExpression(expression) ||
+    ts.isAwaitExpression(expression) ||
+    ts.isPropertyAccessExpression(expression) ||
+    ts.isElementAccessExpression(expression)
+  )
+    return asserted(expression.expression, checker, depth + 1);
+  if (!ts.isIdentifier(expression)) return false;
+  let declaration = checker.getSymbolAtLocation(expression)?.valueDeclaration;
+  while (declaration && ts.isBindingElement(declaration)) declaration = declaration.parent.parent;
+  return Boolean(
+    declaration &&
+    ts.isVariableDeclaration(declaration) &&
+    declaration.initializer &&
+    asserted(declaration.initializer, checker, depth + 1),
+  );
+}
+
+// `files` (absolute paths) restricts the check to files already read and bounded by the caller.
 export function labelReads(options: {
   repository: string;
   stripePackage: string;
@@ -192,8 +222,9 @@ export function labelReads(options: {
     after: Record<string, unknown>;
     operations: Map<string, { path: string; operation: string }>;
   };
+  files?: string[];
 }): OracleRead[] {
-  const files = sourceFiles(options.repository);
+  const files = options.files ?? sourceFiles(options.repository);
   // Monorepos keep a tsconfig per package; each file is checked with its nearest project so
   // that package path aliases resolve.
   const projects = new Map<string, string[]>();
@@ -255,6 +286,8 @@ function readsInProgram(
             file: relative(options.repository, path),
             line: position.line + 1,
             column: position.character + 1,
+            start: { line: position.line + 1, column: position.character + 1 },
+            asserted: false,
             property: name,
             label: 'breaking',
             receiverTypes: [],
@@ -336,6 +369,7 @@ function readsInProgram(
               ? 'stripe-unaffected'
               : 'not-stripe';
         const position = source.getLineAndCharacterOfPosition(node.name.getStart());
+        const start = source.getLineAndCharacterOfPosition(node.getStart());
         reads.push({
           file: relative(options.repository, path),
           line: position.line + 1,
@@ -344,6 +378,8 @@ function readsInProgram(
           label,
           receiverTypes,
           schemas,
+          start: { line: start.line + 1, column: start.character + 1 },
+          asserted: asserted(node.expression, checker),
         });
       }
       ts.forEachChild(node, visit);
