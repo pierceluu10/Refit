@@ -1,6 +1,43 @@
 # Refit implementation checkpoints
 
-## October 16 checkpoint: deadline checks in CI (unreleased)
+## October 16 checkpoint: benchmarks on 781 real repositories (0.38.0)
+
+[Benchmarks](BENCHMARKS.md) now consolidates every set. Two new frozen sets were run end to end at pinned commits, with no vendor API calls:
+
+- **381 fresh Stripe repositories**, from 6,363 code-search hits.
+  - 171 affected and 5 validated deterministic fixes, all hand-reviewed: 3 correct, 2 correct-partial.
+  - 148 stop on endive's removed `payment_method_types`; across all 531 Stripe repositories that is 193 of 234 affected (82%).
+  - A rerun at the final commit matched 381 of 381.
+- **200 fresh Shopify apps**, from 3,496 hits.
+  - 13 patched, 6 validated, and 23 with queries that fail on every version Shopify serves.
+  - A repeat matched 200 of 200.
+
+AI spend for every Stripe run in this release was $0.02 on a fresh $5 ledger.
+
+The benchmarks found bugs, each fixed with a test that fails without the fix:
+
+- **Dotted module names.** Imports like `./shopify.server` and `./stripe.server` (the Remix convention) now resolve; `.server` had been taken as a file extension.
+- **Shopify documents.** Refit now reads default-exported documents and documents passed as a named helper's parameter, at every call site. On the original 50 apps, traced Admin documents went from 255 to 336 and unreadable ones from 55 to 27, with no outcome changes. Shopify's own `subscriptions-reference-app` is now fully read.
+- **Shopify REST.** Three REST forms were missed, so a REST app's version could be moved. Template URLs with a resource path before a substitution, `createAdminRestApiClient`, and REST resource classes (`shopify.rest.Product`) now stop for review. 3 fresh apps had been wrongly patched; none had validated.
+- **npm `{ "packages": [...] }` workspaces.** This form, which Shopify's app template uses, is now prepared. npm reads it the same way as an array, and no other object form is accepted. Two apps now validate, one with 63 tests.
+- **UTF-16 source files** with a byte-order mark, such as Supabase types written by PowerShell, are decoded for scanning instead of stopping the repository as binary. Refit refuses to edit them.
+
+Benchmark tooling:
+
+- Both setup scripts and `benchmark:shopify` take `--list <frozen.json>`, and `benchmark:stripe` takes `--offset` to split a list across processes. Three processes ran the 381 repositories in 22 minutes.
+- Both benchmarks record seconds per repository; the Stripe benchmark also records validation time and AI cost.
+- An oasdiff timeout is no longer reused for every repository on the same API version. Under CPU load it had failed 47 production-mode comparisons that take 2–4 seconds normally. The 30-second limit is unchanged.
+
+`refit deadlines` was run, unlabelled, over both fresh sets:
+
+- 62 of 200 Shopify apps have a live exposure, 29 of them to `2025-10`, which is due today.
+- 51 of 381 Stripe apps send an OpenAI model retired on 2026-10-23.
+
+A trial that restricted analysis to files import-connected to SDK usage saved under 30% on a 1,605-file app. It was not kept, because every repository-wide safety check would need re-proving.
+
+The default suite passed **1,330 tests across 86 files**, with 78 environment-gated tests skipped, plus typecheck, formatting and build. No safety gate was relaxed.
+
+## October 16 checkpoint: deadline checks in CI (0.38.0)
 
 `refit deadlines --fail-within <days>` turns the deadline report into a CI check. It exits 2 when a live exposure is past due, due today or within the window, 0 when none is, and 1 on any error. The window is 0–3650 whole days. Without the flag the command only reports, as before. Only live evidence counts, so model lists, tests, examples and comments never fail a build. `docs/DEADLINES.md` has a GitHub Actions example that runs on pull requests and weekly.
 
@@ -17,7 +54,7 @@ The default suite passed **1,324 tests across 86 files**, with 78 environment-ga
 
 Deliberately broken versions of the boundary, capped-match, expiry and path-segment rules, and removing the service filter, each fail a test. No provider was contacted.
 
-## October 16 checkpoint: live-only deadline evidence (unreleased, after 0.37.0)
+## October 16 checkpoint: live-only deadline evidence (0.38.0)
 
 `refit deadlines` now classifies every match by how the code uses it: live, catalog, test, comment, tokenizer or check. Catalogs are lists of three or more models, type positions, tables keyed or indexed by model, and `<option>` pickers. Tests and examples are recognized by path. Comparisons and `case` labels count as checks. Only live matches make a repository exposed, appear as evidence and open or update an issue alert. The CLI lists the rest, collapsed per use, plus deadlines named only outside live code. `--json` adds `use`, `nonLive`, `nonLiveMore` and a top-level `mentions` array without removing a field. Catalog, test and comparison rules apply to OpenAI only. Meta and Shopify matching is unchanged, except that comments are now listed as non-live instead of dropped. See [API deadlines](DEADLINES.md#live-and-non-live-evidence).
 
@@ -32,7 +69,7 @@ The 4 remaining OpenAI false lines are an alias map in a file nothing imports, w
 
 The default suite passed **1,317 tests across 85 files**, with 78 environment-gated tests skipped, plus typecheck, formatting and build. New tests cover each classification, including lookalikes. Lookalikes that stay live include two-model lists, alias maps, settings objects, an `?? 'gpt-4'` fallback, single-member enums, and paths such as `contest/`, `attestation.ts` and `exampleData.ts`. They also cover the separate non-live cap, mention-only deadlines, alerts from live evidence only, and unchanged Meta and Shopify behavior.
 
-## October 16 checkpoint: deadline exposure benchmark (unreleased, after 0.37.0)
+## October 16 checkpoint: deadline exposure benchmark (0.38.0)
 
 [The deadline benchmark](DEADLINE-BENCHMARK.md) scanned 100 active public JS/TS repositories from GitHub code search, balanced across OpenAI, Meta Graph API and Shopify, and hand-labelled 32 of them line by line. 28 of the 32 (88%, 95% CI 72–95%) pin a registry version or model in a live call path, 17 already past due. 15 of 34 OpenAI repositories send a model OpenAI shuts down on 2026-10-23. Refit flags every exposed labelled repository (28/28) at 90% repository precision. Line precision is 100% for Meta, 79% for Shopify and 14% for OpenAI, where model lists, tests and examples dominate. Labels are a single pass and have not been second-labelled.
 

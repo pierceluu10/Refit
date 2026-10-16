@@ -6,25 +6,25 @@ Every number here comes from real public repositories, frozen before the run tha
 
 | Set | Repositories | Affected | Validated fixes | Main stop |
 |---|---|---|---|---|
-| Stripe, fresh (frozen 2026-10-16) | **381** | 171 (45%) | **5** | 146 send the `payment_method_types` parameter endive removed |
+| Stripe, fresh (frozen 2026-10-16) | **381** | 171 (45%) | **5** | 148 send the `payment_method_types` parameter endive removed |
 | Stripe, original | 100 | 40 | 4 | 27 send `payment_method_types` |
 | Stripe, held out | 50 | 23 | 1 | 18 send `payment_method_types` |
-| Shopify, fresh (frozen 2026-10-16) | **200** | 171 with Admin usage | **6** (13 patched) | 44 need an SDK upgrade, 39 use REST |
-| Shopify, original | 50 | 48 with Admin usage | 1 | 15 need an SDK upgrade |
+| Shopify, fresh (frozen 2026-10-16) | **200** | 170 with Admin usage | **6** (13 patched) | 44 need an SDK upgrade, 39 use REST |
+| Shopify, original | 50 | 46 with Admin usage | 1 | 15 need an SDK upgrade |
 | API deadlines, labelled | 100 (32 labelled) | 28 of 32 exposed | n/a | Detection only |
 | API deadlines, fresh sets | 581 | 127 exposed | n/a | Detection only |
 
-- **531 Stripe and 250 Shopify repositories in all; 16 validated fixes.** All 16 were reviewed by hand. None was wrong; 4 are partial: a version left for a person to move, or a package not upgraded.
-- **One owner decision now blocks most Stripe automation.** Of 234 affected Stripe repositories across the three sets, **191 (82%)** send `payment_method_types`, which `2026-09-30.endive` removed from Checkout Session, PaymentIntent and SetupIntent creation. Refit stops for review, as decided on 2026-10-16. A reviewed replacement policy would let Refit continue past this stop for those repositories.
+- **531 Stripe and 250 Shopify repositories in all; 17 validated fixes** (10 Stripe, 7 Shopify). All 17 were reviewed by hand. None was wrong. 2 are partial: one leaves the version for a person to move, and one does not upgrade the package.
+- **One owner decision now blocks most Stripe automation.** Of 234 affected Stripe repositories across the three sets, **193 (82%)** send `payment_method_types`, which `2026-09-30.endive` removed from Checkout Session, PaymentIntent and SetupIntent creation. Refit stops for review, as decided on 2026-10-16. A reviewed replacement policy would let Refit continue past this stop for those repositories.
 - **Real breakage is common and precise.** 23 of 200 fresh Shopify apps (12%) send a query that fails on every Admin API version Shopify serves today, each at an exact line. 51 of 381 fresh Stripe apps (13%) also send an OpenAI model that OpenAI retires on 2026-10-23.
-- **Outcomes are deterministic.** Repeat runs at the same commit matched 200 of 200 Shopify apps and 50 of 50 held-out Stripe repositories. Since the `payment_method_types` stop, no outcome depends on AI sampling.
-- **AI was almost never needed:** **$0.03** across every Stripe run in this release. Deterministic rules made every validated fix.
+- **Outcomes are deterministic.** Repeat runs matched 381 of 381 fresh Stripe repositories, 200 of 200 fresh Shopify apps and 150 of 150 earlier Stripe repositories (publication aside). Since the `payment_method_types` stop, no outcome depends on AI sampling.
+- **AI was almost never needed:** **$0.02** across every Stripe run in this release. Deterministic rules made every validated fix.
 
 ## Stripe
 
 ### Fresh 381 (October 16)
 
-[`2026-10-16-stripe-fresh-repos.json`](benchmarks/2026-10-16-stripe-fresh-repos.json) was frozen before any run.
+[`2026-10-16-stripe-fresh-repos.json`](benchmarks/2026-10-16-stripe-fresh-repos.json) was frozen before any run; per-repository outcomes are in [`2026-10-16-stripe-fresh-results.json`](benchmarks/2026-10-16-stripe-fresh-results.json).
 
 - **Search.** 13 GitHub code searches for stripe-node usage in TypeScript and JavaScript: constructors, imports, checkout, subscriptions, webhooks and invoices. They returned 6,363 repositories.
 - **Criteria.** After excluding the 150 used before, 3,034 met the [Stripe benchmark](STRIPE-BENCHMARK.md) criteria: not archived, under 50 MB, pushed since 2024, and `stripe` in the root `package.json`.
@@ -32,7 +32,7 @@ Every number here comes from real public repositories, frozen before the run tha
 - **API versions.** 266 come from a literal `apiVersion` and 115 from the locked SDK release. They span 30 API versions, from `2022-08-01` to `2026-08-26.dahlia`. The target is `2026-09-30.endive`.
 - **Contracts.** Each version's spec is pinned by `stripe/openapi` tag. Seven new tags were taken from each stripe-node release's `OPENAPI_VERSION`, and each spec's `info.version` was verified.
 
-The run used the full pipeline: deterministic rules, AI patches on `gpt-5.6-luna` behind a fresh $5 ledger, and offline Docker validation with generated `stripe-mock` checks. It ran from pinned worktrees (`61670ab`), split across processes.
+The run used the full pipeline: deterministic rules, AI patches on `gpt-5.6-luna` behind a fresh $5 ledger, and offline Docker validation with generated `stripe-mock` checks. The final run used pinned worktrees at `6733a99`, split across three processes. An earlier run at `61670ab` gave the same outcome for 381 of 381 repositories.
 
 | Outcome | Repositories |
 |---|---|
@@ -40,20 +40,23 @@ The run used the full pipeline: deterministic rules, AI patches on `gpt-5.6-luna
 | No mapped Stripe method, or no Stripe SDK call found | 77 |
 | Repository exceeds scan limits | 4 |
 | **Affected** | **171** |
-| … stopped: sends the removed `payment_method_types` request parameter | **146** |
-| … stopped: an invalid source file (UTF-16, a stray brace, an unescaped quote; each checked by hand) | 5 |
-| … stopped: declared Stripe types without traced provenance, or a conflicting SDK pin | 4 |
-| … repository refused for validation (tracked `node_modules`, oversized or invalid lockfile) | 4 |
+| … stopped: sends the removed `payment_method_types` request parameter | **148** |
+| … stopped: declared Stripe types without traced provenance, or a conflicting SDK pin | 5 |
+| … stopped: an invalid source file (a stray brace, an unescaped quote, an unterminated literal; each checked by hand) | 4 |
+| … repository refused for validation (tracked `node_modules`, a lockfile over 20,000 records) | 3 |
 | … AI evidence over the 64 KiB limit, or AI declined | 3 |
 | … proposed, no preparable checks | 2 |
-| … validation regression (caught; not proposed) | 1 |
+| … validation regression: an AI patch introduced type errors; caught, not proposed | 1 |
 | … **validated** | **5** |
 
 - **Confirmed breaking reads:** 514 in 171 repositories. The most common are `subscription.current_period_end` (91 repositories), `invoice.subscription` (71) and `subscription.current_period_start` (22). Refit traced 2,165 of 4,216 likely Stripe SDK calls (51%).
 - **Validated fixes.** All 5 are deterministic and were reviewed by hand ([`fix-reviews.json`](benchmarks/fix-reviews.json)).
   - **Correct:** `cdinnison/goal-reminder`, `seangray-dev/formail-app` and `tmachnacki/podvex`. Each moves the reads, bumps every pin and upgrades stripe-node to 23.0.0. In the Convex apps, only the invoice branch's `.subscription` read moves; the Checkout Session branch, whose field Stripe kept, is left alone.
   - **Correct-partial:** `vinroger/onellm-frontend` has no literal pin, so the version stays with the account. `profullstack/vibe-stack` uses pnpm, which the SDK upgrade does not support yet.
-- **Production mode.** The full oasdiff contract diff completed for 253 of 300. All 47 failures were timeouts under CPU load: four benchmark processes ran at a load average near 11. One timeout was also reused for every repository on the same API version. On a normal load, the same comparisons finish in 2–4 seconds. The benchmark no longer reuses a timeout, and the 30-second limit is unchanged, as the [plan](STRIPE-PLAN.md) records.
+- **The run found two Refit bugs, both fixed with tests.**
+  - Three repositories commit Supabase's generated `types_db.ts` as UTF-16, the way PowerShell writes it. TypeScript reads such files, but Refit treated them as binary and stopped the whole repository. Refit now decodes UTF-16 files that start with a byte-order mark and refuses to edit them. Those three now stop on `payment_method_types` instead.
+  - Imports like `./stripe.server`, the Remix convention, were not resolved, because `.server` looked like a file extension.
+- **Production mode** (the full oasdiff contract diff) completed for 300 of 300. In the first run, 47 timed out under CPU load: four benchmark processes ran at a load average near 11, and one timeout was reused for every repository on the same API version. On a normal load, the same comparisons finish in 2–4 seconds. The benchmark no longer reuses a timeout, and the 30-second limit is unchanged, as the [plan](STRIPE-PLAN.md) records.
 
 ### Original 100 and held-out 50 at the final commit
 
@@ -110,17 +113,17 @@ These counts are a lower bound for Shopify: the registry starts at `2025-04`, an
 
 | Measure | Result |
 |---|---|
-| Stripe benchmark, per repository (4 scans: coverage, shipped adapter, full adapter, full diff) | median **6 s**, p90 32 s, max 309 s |
+| Stripe benchmark, per repository (4 scans: coverage, shipped adapter, full adapter, full diff) | median **4 s**, p90 17 s, max 324 s |
 | Shopify benchmark, scanning 200 apps | **134 s** of CPU, 0.7 s per app |
 | `refit deadlines`, per repository | **0.4–0.5 s** (581 repositories in 259 s) |
 | `refit run` with Docker validation, cold dependency cache | 46 s (`x-money-shopify`, `tsc`) |
 | Same run, warm dependency cache | **22 s**: preparation reuses the archive keyed by lockfile hash |
-| AI spend, every Stripe run in this release (531 repositories, fresh ledger) | **$0.03** |
+| AI spend, every Stripe run in this release (531 repositories, fresh ledger) | **$0.02** |
 | AI spend per call | $0.002–0.006 on `gpt-5.6-luna` |
 
 - **Scanning time grows with repository size, not Stripe usage.** In `hackerai-tech/hackerai` (1,605 files), 88% of the time is TypeScript symbol resolution across files. Restricting analysis to files import-connected to SDK usage saved under 30%, because a Next.js app's files nearly all import one another. That change was not kept, since every repository-wide safety check would need re-proving.
-- **The Stripe benchmark scans serially in one process.** `--concurrency` only overlaps validation, so large lists are split with `--offset` and `--limit` across processes. Three processes cut the 381-repository run from about 90 to about 35 minutes.
-- **AI costs almost nothing because the gates stop before AI.** Of the 234 affected Stripe repositories, 191 stop on the removed request parameter before any model is asked. Most of the rest are fixed deterministically.
+- **The Stripe benchmark scans serially in one process.** `--concurrency` only overlaps validation, so large lists are split with `--offset` and `--limit` across processes. Three processes cut the 381-repository run from about 90 minutes to 22.
+- **AI costs almost nothing because the gates stop before AI.** Of the 234 affected Stripe repositories, 193 stop on the removed request parameter before any model is asked. Most of the rest are fixed deterministically.
 
 ## What these benchmarks do not show
 
