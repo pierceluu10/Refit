@@ -1,6 +1,6 @@
 # Refit: what works end to end
 
-_As of October 16, 2026 (Refit 0.35.0). Every number below comes from runs recorded in [the Stripe benchmark](STRIPE-BENCHMARK.md) and [readiness checkpoints](READINESS.md)._
+_As of October 16, 2026 (Refit 0.36.0). Every number below comes from runs recorded in [the Stripe benchmark](STRIPE-BENCHMARK.md) and [readiness checkpoints](READINESS.md)._
 
 Refit is Dependabot for API changes. When a provider ships a new API version, Refit reads the old and new API contracts and finds the exact lines in a customer's code that break. It writes the migration, runs the repository's own checks in an offline sandbox, and opens a draft pull request for a human to review. It never merges.
 
@@ -41,7 +41,8 @@ Refit now catches the removed parameter statically and stops before any patch or
 
 ## What it does not do yet
 
-- **One provider is complete.** Stripe is end to end. OpenAI has a preview adapter. Shopify (a built-in adapter, contract-checked rules and a real-app benchmark) and API deadline tracking (sunset dates and alerts) are in progress; neither has merged yet.
+- **One provider is complete.** Stripe is end to end. OpenAI has a preview adapter. Shopify (a built-in adapter, contract-checked rules and a real-app benchmark) is in progress.
+- **Deadline tracking alerts but does not migrate on its own.** `refit deadlines` matches pinned versions and models against 47 reviewed sunset entries (Shopify, Meta Graph API, OpenAI), and `refit serve --deadline-alerts` opens one GitHub issue per repository and deadline. It found Graph API v18.0 calls in `thematters/matters-server` and a model 7 days from shutdown in `embedelite/chat`. No live issue has been opened yet; the App first needs the Issues permission.
 - **Validation is bounded.** Passing checks show the code still typechecks or passes its tests, not that every runtime path works. The 5 published apps have no tests, so evidence is `tsc` plus hand review; generated mock checks could not reach their Convex handlers.
 - **Coverage gaps are explicit.** Repositories without an npm, pnpm or Yarn lockfile, dependency installs over 1 GiB, and failing baseline tests are refused rather than guessed at.
 - **Hosting is not chosen.** Refit runs today as a CLI plus a self-hosted GitHub App worker (`refit serve`). Hosting and billing are not decided.
