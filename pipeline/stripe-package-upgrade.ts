@@ -71,6 +71,18 @@ export interface PackageUpgrade {
   files: { path: string; before: string; after: string }[];
 }
 
+// Only the `>=X[.Y[.Z]]` form stripe-node uses; any other range counts as unsatisfied.
+function satisfiesMinimum(version: unknown, range: string) {
+  const minimum = /^>=\s*(\d+)(?:\.(\d+))?(?:\.(\d+))?$/.exec(range.trim());
+  const actual = typeof version === 'string' ? /^(\d+)\.(\d+)\.(\d+)/.exec(version) : null;
+  if (!minimum || !actual) return false;
+  for (let index = 1; index <= 3; index++) {
+    const difference = Number(actual[index]) - Number(minimum[index] ?? 0);
+    if (difference) return difference > 0;
+  }
+  return true;
+}
+
 function stringRecord(value: unknown): value is Record<string, string> {
   return isObject(value) && Object.values(value).every((entry) => typeof entry === 'string');
 }
@@ -168,6 +180,15 @@ export async function stripePackageUpgrade(
   if (missing.length || requiredPeers.length)
     return {
       reason: `stripe ${target} needs dependency changes (${[...missing.map(([name]) => name), ...requiredPeers].join(', ')}); regenerate the lockfile instead.`,
+    };
+  // npm ci still rejects an optional peer that is installed outside the range.
+  const conflicts = Object.entries(peers).filter(([name, range]) => {
+    const installed = packages[`node_modules/${name}`];
+    return isObject(installed) && !satisfiesMinimum(installed.version, range);
+  });
+  if (conflicts.length)
+    return {
+      reason: `stripe ${target} needs ${conflicts.map(([name, range]) => `${name} ${range}`).join(', ')}, which the lockfile does not provide; upgrade it first.`,
     };
   const optional = (value: Record<string, string>, key: string) =>
     Object.keys(value).length ? { [key]: value } : {};

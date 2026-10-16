@@ -45,6 +45,17 @@ function lockfile(spec = '^12.18.0', options: { dev?: boolean; qs?: boolean } = 
   };
 }
 
+function withTypesNode(version: string) {
+  const lock = lockfile();
+  (lock.packages as Record<string, unknown>)['node_modules/@types/node'] = {
+    version,
+    resolved: `https://registry.npmjs.org/@types/node/-/node-${version}.tgz`,
+    integrity: INTEGRITY,
+    dev: true,
+  };
+  return lock;
+}
+
 async function project(
   options: { spec?: string; dev?: boolean; lock?: unknown; raw?: string; manifest?: string } = {},
 ) {
@@ -118,6 +129,15 @@ it('replaces only the stripe declaration and lock entry with verified registry m
   expect(after.packages['node_modules/qs']).toEqual(lockfile().packages['node_modules/qs']);
 });
 
+it('accepts an installed optional peer inside its range', async () => {
+  registry();
+  const result = await stripePackageUpgrade(
+    await project({ lock: withTypesNode('20.11.5') }),
+    '2026-09-30.endive',
+  );
+  expect('upgrade' in result).toBe(true);
+});
+
 it('keeps exact and dev declarations as they were written', async () => {
   registry();
   const result = await stripePackageUpgrade(
@@ -174,6 +194,20 @@ it.each([
     { peerDependencies: { react: '>=18' }, peerDependenciesMeta: {} },
     undefined,
     /needs dependency changes \(react\)/,
+  ],
+  [
+    'an installed optional peer below its range',
+    { lock: withTypesNode('18.11.18') },
+    {},
+    undefined,
+    /needs @types\/node >=20, which the lockfile does not provide/,
+  ],
+  [
+    'an installed optional peer with an unsupported range',
+    { lock: withTypesNode('22.0.0') },
+    { peerDependencies: { '@types/node': '^20 || ^22' } },
+    undefined,
+    /needs @types\/node \^20 \|\| \^22/,
   ],
   [
     'a duplicate declaration',
