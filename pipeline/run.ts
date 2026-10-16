@@ -39,6 +39,7 @@ import {
 import { PipelineInputError } from './types.ts';
 import { digest, findRemovedProperties, isObject, readSpecification } from './specifications.ts';
 import { stripeAdapterFor } from './stripe-operations.ts';
+import { addTypeEvidence, stripePackageDirectory } from './stripe-type-evidence.ts';
 import {
   SUBSCRIPTION_PERIOD_HELPER_RULE,
   INVOICE_SUBSCRIPTION_HELPER_RULE,
@@ -71,6 +72,8 @@ async function runOpenApiPipeline(options: {
   requireApiVersionMatch?: boolean;
   fullDiff?: boolean;
   documentationSnapshots?: readonly string[];
+  // Stripe type definitions (a stripe package's `types` directory); defaults to the installed package.
+  stripePackage?: string;
   onProgress?: (message: string) => void;
 }) {
   const applicationApiVersion = validateApiVersion(options.apiVersion);
@@ -147,6 +150,11 @@ async function runOpenApiPipeline(options: {
     moves,
     parameterRemovals,
   );
+  const stripePackage =
+    provider.packageName === STRIPE.packageName
+      ? stripePackageDirectory(repository.root, options.stripePackage)
+      : undefined;
+  if (stripePackage) addTypeEvidence(repository, changes, analysis.findings, stripePackage);
   // Field moves apply only when the target contract has the documented new location.
   const itemPeriods =
     propertyExists(after.schemas, ['subscription', 'items']) &&
