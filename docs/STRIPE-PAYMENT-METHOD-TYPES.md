@@ -98,5 +98,11 @@ All three Stripe sets were rerun from a pinned worktree with the full pipeline.
 - **Every one of the 38 validated card-rule fixes was checked against its diff.** Each renames only the key on an exact `['card']` literal and moves the pin to `2026-09-30.endive`. Every TypeScript fix upgrades stripe-node to 23.0.0; the three JavaScript ones keep their package, as the gate allows.
 - **Three were also read in full by hand:** `pra9711/lexinote`, `sudeepmahato16/airbnb-clone` and `mahin67580/FoodieFrog`. In lexinote, only the invoice branch's `session.subscription` read moved.
 - **Evidence.** For 35 of the 38, `tsc` passed with no new errors, 14 of them with generated `stripe-mock` checks as well. The other 3 have no checks of their own, so only the generated `stripe-mock` checks ran.
+- **The other 48 fresh repositories were scanned without Docker.** Patches were proposed but not validated. 28 are affected:
+  - 18 get a deterministic patch, 14 of them through the card rule; all 14 diffs pass the same check;
+  - 9 still stop on `payment_method_types`;
+  - 1 has no deterministic rule.
+
+  Validated counts for these 48 need Docker and are not claimed.
 - **No other outcome changed.** Every repository that was not stopped on `payment_method_types` has the same outcome as before, and no previously validated fix was lost.
 - **The rerun found one bug, fixed with a test before these numbers.** Validation's preflight requests no patch, so it had dropped the rename and refused 29 patches the run had proposed.

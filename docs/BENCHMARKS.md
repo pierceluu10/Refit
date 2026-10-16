@@ -30,7 +30,7 @@ On rerun, validated Stripe fixes rose from **10 to 45** on the same repositories
 - held-out 50: 1 → 7;
 - fresh set: 2 → 27, on the 333 of 381 measured before Docker was shut down.
 
-All 38 new card-rule fixes were checked against their diffs. 35 passed `tsc` with no new errors, and 3 are covered only by generated `stripe-mock` checks. 9 patches regressed on other stripe-node 23 type errors; validation caught them, and none was proposed. No other outcome changed. The tables below predate the policy.
+All 38 new card-rule fixes were checked against their diffs. 35 passed `tsc` with no new errors, and 3 are covered only by generated `stripe-mock` checks. 9 patches regressed on other stripe-node 23 type errors; validation caught them, and none was proposed. The 48 fresh repositories not measured were then scanned without Docker. 18 of the 28 affected get a deterministic patch, 14 through the card rule, but none of those patches has been validated. No other outcome changed. The tables below predate the policy.
 
 ## Stripe
 
