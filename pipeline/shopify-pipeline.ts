@@ -14,7 +14,7 @@ import {
   type DocumentNode,
   type GraphQLSchema,
 } from 'graphql';
-import type { ApiVersionEvidence, ApiVersionPolicy } from './api-version.ts';
+import type { ApiVersionDeclaration, ApiVersionEvidence, ApiVersionPolicy } from './api-version.ts';
 import { renderPatch } from './patches.ts';
 import type { ProviderAdapter } from './providers.ts';
 import { readRepository } from './repository.ts';
@@ -178,7 +178,8 @@ function checkDocument(
     findings.push({
       ...where,
       changeId: `shopify-graphql:${digest(error.message).slice(0, 12)}`,
-      expression: error.message.slice(0, MAX_EVIDENCE_TEXT),
+      // graphql-js name suggestions are spelling matches, not documented replacements.
+      expression: error.message.replace(/ Did you mean .*$/, '').slice(0, MAX_EVIDENCE_TEXT),
       confidence,
       reason: already
         ? `This document already fails validation against the ${versions.before} contract, the oldest version this run covers.`
@@ -227,6 +228,37 @@ function checkDocument(
     );
   }
   return { findings, deprecated: [...new Set(deprecated)] };
+}
+
+// Runtime Admin API pins as API-version declarations; codegen configuration is not runtime.
+function versionDeclarations(scan: ShopifyScan): ApiVersionDeclaration[] {
+  return [
+    ...scan.versions
+      .filter((entry) => !CODEGEN_CONFIG.test(entry.file))
+      .map((entry) => ({
+        file: entry.file,
+        line: entry.line,
+        column: entry.column,
+        kind: 'constructor' as const,
+        value: entry.value,
+        status: 'literal' as const,
+        reason: `${entry.kind === 'enum' ? 'ApiVersion enum' : entry.kind === 'url' ? 'Admin API URL' : 'apiVersion string'} ${entry.text}`,
+      })),
+    ...scan.unresolvedVersions.map((entry) => ({
+      file: entry.file,
+      line: entry.line,
+      column: entry.column,
+      kind: 'constructor' as const,
+      value: null,
+      status: 'unknown' as const,
+      reason: entry.reason,
+    })),
+  ];
+}
+
+// Pins in a (patched) repository, for checking that a proposal moved every pin to the target.
+export function shopifyVersionDeclarations(repository: Repository) {
+  return versionDeclarations(scanShopify(repository));
 }
 
 function versionFindings(
@@ -393,17 +425,7 @@ export async function runShopifyPipeline(options: {
     source: {
       status:
         pins.declared.length === 1 ? 'verified' : pins.declared.length ? 'conflict' : 'unknown',
-      declarations: scan.versions
-        .filter((entry) => !CODEGEN_CONFIG.test(entry.file))
-        .map((entry) => ({
-          file: entry.file,
-          line: entry.line,
-          column: entry.column,
-          kind: 'constructor' as const,
-          value: entry.value,
-          status: 'literal' as const,
-          reason: `${entry.kind === 'enum' ? 'ApiVersion enum' : entry.kind === 'url' ? 'Admin API URL' : 'apiVersion string'} ${entry.text}`,
-        })),
+      declarations: versionDeclarations(scan),
       reason:
         pins.declared.length === 1
           ? `Every runtime declaration pins ${pins.declared[0]}.`
