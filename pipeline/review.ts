@@ -6,9 +6,10 @@ import { affectedFields } from './report-fields.ts';
 import { PipelineInputError, type Finding } from './types.ts';
 import type { validateMigration } from './validation.ts';
 import { INTEGRATION_MARKER, migrationIdentity } from './migration-identity.ts';
-import type { webhookVersionWaiver } from './publication.ts';
+import type { publicationWaiver } from './publication.ts';
+import { REMOVED_PARAMETER_NOTES } from './request-removals.ts';
 
-type WebhookVersionWaiver = NonNullable<ReturnType<typeof webhookVersionWaiver>>;
+type PublicationWaiver = NonNullable<ReturnType<typeof publicationWaiver>>;
 
 type ValidationReport = Awaited<ReturnType<typeof validateMigration>>;
 const MAX_SUMMARY_ITEMS = 5;
@@ -226,7 +227,7 @@ export function createReviewArtifacts(
   report: ValidationReport,
   destination: 'local' | 'github' = 'local',
   integration?: string,
-  webhookWaiver?: WebhookVersionWaiver,
+  waiver?: PublicationWaiver,
 ) {
   const { validation, patch } = report;
   if (validation.patchHash !== digest(patch.diff) || patch.validation !== validation.status)
@@ -286,7 +287,7 @@ export function createReviewArtifacts(
   const scope = (
     integration ?? (shopify ? 'shopify' : report.adapter.packageName.split('/').pop()!)
   ).toLowerCase();
-  const needsReview = Boolean(webhookWaiver || patch.unresolvedFindings);
+  const needsReview = Boolean(waiver || patch.unresolvedFindings);
   const prefix = needsReview ? '[Needs review] ' : '';
   const full = `${prefix}fix(${scope}): ${versionTitle ?? description}`;
   const title =
@@ -304,6 +305,11 @@ export function createReviewArtifacts(
   const usageCount = `${confirmedFindings.length} confirmed ${confirmedFindings.length === 1 ? 'usage' : 'usages'}`;
   const fileCount = `${affectedFiles.size} ${affectedFiles.size === 1 ? 'file' : 'files'}`;
   const after = plainText(report.apiVersion.after ?? 'the after contract');
+  // Calls that still send a removed request parameter are counted as unresolved; they get their
+  // own section, so the unmigrated-read counts below leave them out.
+  const parameterCalls = waiver?.gate === 'removed-request-parameter' ? waiver.calls : [];
+  const unresolvedReads = Math.max(0, patch.unresolvedFindings - parameterCalls.length);
+  const parameters = [...new Set(parameterCalls.map((call) => call.parameter))];
   const passed = validation.status === 'passed';
   const commandText = (value: readonly string[]) => code(value.join(' '));
   const ai = patch.generator === 'openai';
@@ -363,9 +369,9 @@ export function createReviewArtifacts(
       (entry) =>
         `Deprecated on ${after}, still served: ${code(entry.split(':')[0])}${plainText(entry.slice(entry.indexOf(':')))}`,
     ),
-    ...(patch.unresolvedFindings
+    ...(unresolvedReads
       ? [
-          `**${patch.unresolvedFindings} confirmed read${patch.unresolvedFindings === 1 ? '' : 's'} of removed fields ${patch.unresolvedFindings === 1 ? 'is' : 'are'} still unmigrated.** The checks passed without ${patch.unresolvedFindings === 1 ? 'it' : 'them'}; migrate ${patch.unresolvedFindings === 1 ? 'it' : 'them'} before merging, using the locations in Refit's run report.`,
+          `**${unresolvedReads} confirmed read${unresolvedReads === 1 ? '' : 's'} of removed fields ${unresolvedReads === 1 ? 'is' : 'are'} still unmigrated.** The checks passed without ${unresolvedReads === 1 ? 'it' : 'them'}; migrate ${unresolvedReads === 1 ? 'it' : 'them'} before merging, using the locations in Refit's run report.`,
         ]
       : []),
     ...reasons,
@@ -402,11 +408,36 @@ export function createReviewArtifacts(
     : '';
   const body =
     [
-      ...(webhookWaiver
+      ...(waiver?.gate === 'dependency-preparation'
+        ? [
+            '## Untested: checks did not run',
+            `**Refit did not run any checks on this patch.** Preparing the repository's dependencies failed because ${plainText(waiver.summary)}, so neither the original nor the patched code was built or tested. Nothing in this patch is verified.`,
+            `> ${plainText(waiver.message.length > MAX_QUOTE ? `${waiver.message.slice(0, MAX_QUOTE)}...` : waiver.message)}`,
+            `**What to do:** ${waiver.action} Don't merge until they pass.`,
+          ]
+        : []),
+      ...(waiver?.gate === 'removed-request-parameter'
+        ? [
+            '## Removed request parameters left for you',
+            `**Don't merge until you change the calls below.** ${plainText(provider)} API ${code(waiver.targetVersion)} no longer accepts ${summaryList(parameters.map(code))}, and this patch still sends ${parameterCalls.length === 1 ? 'it' : 'them'}, so ${parameterCalls.length === 1 ? 'this request fails' : 'these requests fail'} after the upgrade. Refit didn't change ${parameterCalls.length === 1 ? 'it' : 'them'}: dropping or replacing a request parameter changes what the request does, so that's your decision.`,
+            ...parameters.map(
+              (parameter) =>
+                REMOVED_PARAMETER_NOTES[parameter] ??
+                `No reviewed replacement for ${code(parameter)} exists. Check the ${plainText(provider)} changelog for ${code(waiver.targetVersion)}, then remove or replace it.`,
+            ),
+            parameterCalls
+              .map(
+                (call) =>
+                  `- ${code(`${call.file}:${call.line}`)}: ${code(call.call)} sends ${code(call.parameter)}`,
+              )
+              .join('\n'),
+          ]
+        : []),
+      ...(waiver?.gate === 'webhook-api-version'
         ? [
             '## Webhook API version not verified',
-            `This patch changes webhook handlers. Stripe sends webhooks in the API version set on the webhook endpoint in the Stripe dashboard, which Refit can't see from code. Before merging, check the endpoint's API version in Dashboard > Developers > Webhooks and confirm it matches ${code(webhookWaiver.targetVersion)}, or update it when you deploy.`,
-            webhookWaiver.handlers
+            `This patch changes webhook handlers. Stripe sends webhooks in the API version set on the webhook endpoint in the Stripe dashboard, which Refit can't see from code. Before merging, check the endpoint's API version in Dashboard > Developers > Webhooks and confirm it matches ${code(waiver.targetVersion)}, or update it when you deploy.`,
+            waiver.handlers
               .map(
                 (handler) =>
                   `- ${code(`${handler.file}:${handler.line}`)}${handler.eventTypes.length ? ` (${handler.eventTypes.map(code).join(', ')})` : ''}`,
@@ -435,9 +466,11 @@ export function createReviewArtifacts(
             ? sameCommand
               ? `${commandText(validation.command)} passed on the original and migrated code in offline Docker.`
               : `${commandText(validation.baselineCommand)} passed on the original and ${commandText(validation.command)} on the migrated code in offline Docker.`
-            : `**Validation did not pass (${validation.status}).**`
+            : waiver?.gate === 'dependency-preparation'
+              ? `**Not run: dependency preparation failed (${code(waiver.reason)}); this patch is untested.**`
+              : `**Validation did not pass (${validation.status}).**`
         }${generatedResult}`,
-        `- Linter & Static Analysis: ${typeChecked ? 'TypeScript type check is the test command above; ' : 'Not run; '}${shopify ? `Refit rescanned the migrated code and every runtime Admin API pin is on ${after}.` : `Refit rescanned the migrated code and ${patch.unresolvedFindings} confirmed read${patch.unresolvedFindings === 1 ? '' : 's'} of removed fields remain.`}`,
+        `- Linter & Static Analysis: ${typeChecked ? 'TypeScript type check is the test command above; ' : 'Not run; '}${shopify ? `Refit rescanned the migrated code and every runtime Admin API pin is on ${after}.` : `Refit rescanned the migrated code and ${unresolvedReads} confirmed read${unresolvedReads === 1 ? '' : 's'} of removed fields remain${parameterCalls.length ? `, plus ${parameterCalls.length} call${parameterCalls.length === 1 ? '' : 's'} sending a removed request parameter` : ''}.`}`,
         '- Security Scans: Not run.',
       ].join('\n'),
       '## Related Telemetry',
@@ -455,7 +488,7 @@ export function createReviewArtifacts(
       `<!-- refit-evidence "runId": "${report.runId}", "patchHash": "${validation.patchHash}" -->`,
     ].join('\n\n') + '\n';
   const files = {
-    'report.json': `${JSON.stringify(webhookWaiver ? { ...report, waivedGates: [webhookWaiver] } : report, null, 2)}\n`,
+    'report.json': `${JSON.stringify(waiver ? { ...report, waivedGates: [waiver] } : report, null, 2)}\n`,
     'migration.patch': patch.diff,
     'pull-request.md': body,
   };
@@ -463,7 +496,7 @@ export function createReviewArtifacts(
     formatVersion: 1,
     kind: 'refit-review-bundle',
     ...(integration ? { integration } : {}),
-    ...(webhookWaiver ? { waivedGates: [webhookWaiver.gate] } : {}),
+    ...(waiver ? { waivedGates: [waiver.gate] } : {}),
     runId: report.runId,
     revision: validation.revision,
     title,

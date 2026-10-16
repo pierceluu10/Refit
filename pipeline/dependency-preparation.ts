@@ -143,6 +143,58 @@ export class DependencyPreparationError extends PipelineInputError {
   override name = 'DependencyPreparationError';
 }
 
+// Preparation failures the repository owner fixes in the repository. Each pattern matches a
+// message Refit or the package manager raises; anything else (Docker, network, sandbox) is not one.
+const REPOSITORY_DEPENDENCY_FAILURES = [
+  {
+    reason: 'no-lockfile',
+    pattern: /^Automatic preparation requires committed root package\.json and package-lock\.json/,
+    summary: 'the repository has no committed lockfile',
+    action: () =>
+      'Commit a lockfile (for npm, run `npm install` and commit `package-lock.json`), then rerun your checks on this branch.',
+  },
+  {
+    reason: 'lockfile-out-of-sync',
+    pattern:
+      /dependency requirements differ from the committed root lockfile|^Workspaces must match the committed root lockfile|^Workspace names and versions must match their committed lockfile records|^pnpm lockfile importers must exactly match|^npm dependency preparation failed[\s\S]*\bin sync\b|ERR_PNPM_OUTDATED_LOCKFILE|Your lockfile needs to be updated/,
+    summary: 'the committed lockfile is out of sync with package.json',
+    action: (lockfile: string) =>
+      `Update \`${lockfile}\` so it matches \`package.json\` (run your package manager's install), commit it, then rerun your checks on this branch.`,
+  },
+  {
+    reason: 'lockfile-integrity',
+    pattern:
+      /^Every npm package requires a registry URL, version and SHA-256-or-stronger integrity|^Every pnpm package needs a registry name\/version and SHA-256-or-stronger integrity|^Every yarn\.lock entry must resolve an exact version to a public registry tarball/,
+    summary: 'lockfile entries have no registry integrity hash',
+    action: (lockfile: string) =>
+      `Regenerate \`${lockfile}\` from the public npm registry so every entry records its tarball URL and integrity hash, commit it, then rerun your checks on this branch.`,
+  },
+  {
+    reason: 'dependency-archive-limit',
+    pattern: /^Dependency archive exceeds \d+ MiB/,
+    summary: "the installed dependencies exceed Refit's validation sandbox limit",
+    action: () =>
+      "Run your own tests and type check on this branch before merging; Refit's sandbox could not hold this dependency tree.",
+  },
+] as const;
+
+export function repositoryDependencyFailure(error: unknown) {
+  if (!(error instanceof PipelineInputError)) return undefined;
+  const failure = REPOSITORY_DEPENDENCY_FAILURES.find((entry) => entry.pattern.test(error.message));
+  if (!failure) return undefined;
+  const lockfile = /pnpm/i.test(error.message)
+    ? 'pnpm-lock.yaml'
+    : /yarn/i.test(error.message)
+      ? 'yarn.lock'
+      : 'package-lock.json';
+  return {
+    reason: failure.reason,
+    summary: failure.summary,
+    action: failure.action(lockfile),
+    message: error.message,
+  };
+}
+
 async function installDependencies(
   argumentsList: string[],
   output: string,

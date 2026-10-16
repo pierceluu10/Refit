@@ -7,7 +7,7 @@ const DECLARED_TYPE_REVIEW_REASON =
   'Declared Stripe types identify possible usage but do not establish SDK or incoming-event provenance. Automatic migration, AI and publication require traced source evidence.';
 const TYPE_EVIDENCE_REVIEW_REASON =
   'TypeScript types confirm reads of removed Stripe fields that Refit could not trace to an SDK response or a narrowed webhook event. Types, and casts in particular, do not establish provenance; automatic migration, AI and publication require traced source evidence.';
-const REMOVED_REQUEST_PARAMETER_REVIEW_REASON =
+export const REMOVED_REQUEST_PARAMETER_REVIEW_REASON =
   'A traced SDK request sends a parameter the target API version removed. No reviewed replacement exists, and dropping or replacing it changes request behavior; automatic migration, AI and publication stop for review.';
 const SKIPPED_SOURCE_REVIEW_REASON =
   'Unparseable source files were skipped. Their API usage and mutations are unknown; automatic migration, AI and publication require a complete source scan.';
@@ -65,4 +65,13 @@ export function migrationReviewReason(
   )
     return DECLARED_TYPE_REVIEW_REASON;
   if (evidence.findings.some((finding) => finding.typeEvidence)) return TYPE_EVIDENCE_REVIEW_REASON;
+}
+
+// With --publish-unresolved, a deterministic migration proceeds around traced calls that still send
+// a removed request parameter: they stay unresolved and the draft lists them for the owner.
+export function withoutRequestParameters<T extends { findings: Finding[] }>(evidence: T): T {
+  return {
+    ...evidence,
+    findings: evidence.findings.filter((finding) => !finding.requestParameter),
+  };
 }

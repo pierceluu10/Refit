@@ -1,5 +1,5 @@
 import type { GeneratedChecks } from './generated-checks.ts';
-import { migrationReviewReason } from './migration-review.ts';
+import { migrationReviewReason, withoutRequestParameters } from './migration-review.ts';
 import type { AiOptions } from './ai-budget.ts';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
@@ -11,7 +11,7 @@ import {
   findExistingMigration,
   publishDraft,
   type publicationConfiguration,
-  webhookVersionWaiver,
+  publicationWaiver,
 } from './publication.ts';
 import { createReviewArtifacts } from './review.ts';
 import { runPipeline } from './run.ts';
@@ -57,6 +57,9 @@ export async function runWorkflow(options: {
   documentationSnapshots?: readonly string[];
   repairAttempts?: number;
   publication?: ReturnType<typeof publicationConfiguration>;
+  // --publish-unresolved without a publication target: continue past waivable stops and record
+  // the waiver in the local review artifacts, so the saved report can be published later.
+  allowUnresolved?: boolean;
   onProgress?: (message: string) => void;
   signal?: AbortSignal;
 }) {
@@ -70,6 +73,9 @@ export async function runWorkflow(options: {
         ...(options.integration ? { integration: options.integration } : {}),
       }
     : undefined;
+  const allowUnresolved = Boolean(options.allowUnresolved || publication?.allowUnresolved);
+  // Removed request parameters are left only by deterministic rules; AI never sees them.
+  const leaveRequestParameters = allowUnresolved && !options.aiPatch;
   const directory = await createArtifactDirectory(options.repository, options.output);
   const files: { path: string; sha256: string; bytes: number }[] = [];
   let stage: Stage = 'inputs';
@@ -149,10 +155,15 @@ export async function runWorkflow(options: {
     };
     stage = 'scan';
     options.onProgress?.('Scanning repository for affected API usage...');
-    const scan = await runPipeline({ ...inputs, proposePatch: true });
+    const scan = await runPipeline({ ...inputs, proposePatch: true, leaveRequestParameters });
     runId = scan.runId;
     await save('scan.json', `${JSON.stringify(scan, null, 2)}\n`);
-    const reviewReason = migrationReviewReason(scan, true, true, Boolean(options.aiPatch));
+    const reviewReason = migrationReviewReason(
+      leaveRequestParameters ? withoutRequestParameters(scan) : scan,
+      true,
+      true,
+      Boolean(options.aiPatch),
+    );
     if (reviewReason) return await finish('needs-review', reviewReason, runId);
     if (scan.apiVersion.applicability !== 'matches-before')
       return await finish('needs-review', scan.apiVersion.reason, runId);
@@ -227,18 +238,26 @@ export async function runWorkflow(options: {
       aiPatch: options.aiPatch,
       documentationSnapshots: options.documentationSnapshots,
       repairAttempts: options.repairAttempts,
+      leaveRequestParameters,
+      recordDependencyFailures: allowUnresolved,
       onProgress: options.onProgress,
       signal: options.signal,
     });
     runId = report.runId;
-    const webhookWaiver = webhookVersionWaiver(report, publication?.allowUnresolved);
-    if (webhookWaiver) waivedGates.push(webhookWaiver.gate);
-    const review = createReviewArtifacts(report, 'local', options.integration, webhookWaiver);
+    const waiver = publicationWaiver(report, allowUnresolved);
+    if (waiver) waivedGates.push(waiver.gate);
+    const review = createReviewArtifacts(report, 'local', options.integration, waiver);
     for (const [path, content] of Object.entries(review.files)) await save(path, content);
-    if (report.validation.status !== 'passed')
+    if (report.validation.status !== 'passed' && waiver?.gate !== 'dependency-preparation')
       return await finish(
         'validation-failed',
         `Validation returned ${report.validation.status}; publication was not attempted.`,
+        runId,
+      );
+    if (waiver && !publication)
+      return await finish(
+        'needs-review',
+        `Review artifacts are ready as a [Needs review] draft with the ${waiver.gate} gate waived; publication was not requested.`,
         runId,
       );
     if (report.patch.unresolvedFindings !== 0 && !publication?.allowUnresolved)
@@ -255,7 +274,11 @@ export async function runWorkflow(options: {
       );
     stage = 'publication';
     options.signal?.throwIfAborted();
-    options.onProgress?.('Checks passed. Publishing a GitHub draft PR...');
+    options.onProgress?.(
+      waiver?.gate === 'dependency-preparation'
+        ? 'Checks did not run. Publishing an untested [Needs review] GitHub draft PR...'
+        : 'Checks passed. Publishing a GitHub draft PR...',
+    );
     const published = await publishDraft(report, publication);
     await save('publication.json', `${JSON.stringify(published, null, 2)}\n`);
     return await finish(

@@ -1,4 +1,4 @@
-import { migrationReviewReason } from './migration-review.ts';
+import { migrationReviewReason, withoutRequestParameters } from './migration-review.ts';
 import type { AiOptions } from './ai-budget.ts';
 import { analyzeRepository } from './analyzer.ts';
 import { proposeAiPatch } from './ai-patches.ts';
@@ -72,8 +72,10 @@ async function runOpenApiPipeline(options: {
   requireApiVersionMatch?: boolean;
   fullDiff?: boolean;
   documentationSnapshots?: readonly string[];
-  // Stripe type definitions (a stripe package's `types` directory); defaults to the installed package.
+  // Stripe package directory for type evidence; defaults to the installed package.
   stripePackage?: string;
+  // Deterministic only: leave traced calls that send a removed request parameter unresolved.
+  leaveRequestParameters?: boolean;
   onProgress?: (message: string) => void;
 }) {
   const applicationApiVersion = validateApiVersion(options.apiVersion);
@@ -310,8 +312,11 @@ async function runOpenApiPipeline(options: {
         parameterRemovals,
       ).findings.filter((finding) => !finding.untraced).length
     : 0;
+  const reviewEvidence = { findings: analysis.findings, skippedFiles, adapter: provider };
   const reviewReason = migrationReviewReason(
-    { findings: analysis.findings, skippedFiles, adapter: provider },
+    options.leaveRequestParameters && !useAi
+      ? withoutRequestParameters(reviewEvidence)
+      : reviewEvidence,
     true,
     true,
     useAi,
