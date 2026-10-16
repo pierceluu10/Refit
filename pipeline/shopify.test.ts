@@ -388,3 +388,23 @@ it('resolves LATEST_API_VERSION from the locked SDK and treats untraced other-AP
   ]);
   expect(report.patch.reason).toContain('ApiVersion.October26 first ships in 14.0.0');
 });
+
+it('counts REST resource classes and the Admin REST client factory as REST calls', async () => {
+  const root = await directory({
+    'package.json': MANIFEST,
+    'app/rest.ts': `import { createAdminRestApiClient } from '@shopify/admin-api-client';
+import { shopify } from './shopify.server';
+export const client = createAdminRestApiClient({ storeDomain: 'x', apiVersion: '2024-04', accessToken: 't' });
+export const collections = () => shopify.api.rest.CustomCollection.all({ session: {} });
+export const product = () => new shopify.rest.Product({ session: {} });
+export const restricted = () => shopify.restrictions.Product;
+`,
+    'app/shopify.server.ts': SERVER('January25'),
+  });
+  const scan = scanShopify(await readRepository(root, '@shopify/shopify-app-remix'));
+  expect(scan.rest.map((entry) => [entry.line, entry.expression])).toEqual([
+    [3, 'createAdminRestApiClient'],
+    [4, 'shopify.api.rest.CustomCollection.all'],
+    [5, 'shopify.rest.Product'],
+  ]);
+});

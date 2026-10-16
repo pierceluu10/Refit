@@ -17,7 +17,9 @@ const GRAPHQL_MARKER = /^\s*#graphql\b/;
 const TEST_FILE = /(?:^|\/)(?:__tests__|tests?)\/|\.(?:test|spec)\.[cm]?[jt]sx?$/;
 const ADMIN_RECEIVER = /(?:^|\.)admin$/;
 const ADMIN_CLIENT_FACTORY = /^createAdminApiClient$|\.clients\.Graphql$|^GraphqlClient$/;
-const REST_RECEIVER = /(?:^|\.)admin\.rest\b|\brest\.resources\b|\.clients\.Rest$/;
+// `admin.rest.*`, `rest.resources.*`, `clients.Rest`, and REST resource classes (`shopify.rest.Product`).
+const REST_RECEIVER =
+  /(?:^|\.)admin\.rest\b|\brest\.resources\b|\.clients\.Rest$|(?:^|\.)rest\.[A-Z]\w*(?:\.|$)/;
 // A `.json` endpoint, or a resource path segment before a substitution (`products/${id}.json`).
 const REST_URL =
   /\/admin\/api\/(\d{4}-\d{2}|unstable)\/(?:[\w/{}.$-]*\.json|(?!graphql\b)[\w-]+\/)/;
@@ -438,6 +440,12 @@ export function scanShopify(repository: Repository): ShopifyScan {
         )
           scan.rest.push({ ...location(node), expression: node.expression.getText() });
       }
+      if (
+        ts.isCallExpression(node) &&
+        ts.isIdentifier(node.expression) &&
+        node.expression.text === 'createAdminRestApiClient'
+      )
+        scan.rest.push({ ...location(node), expression: node.expression.text });
       if (ts.isNewExpression(node) && REST_RECEIVER.test(node.expression.getText()))
         scan.rest.push({ ...location(node), expression: node.expression.getText() });
       if (
