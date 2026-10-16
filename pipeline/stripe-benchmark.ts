@@ -1,7 +1,7 @@
 import { analyzeRepository } from './analyzer.ts';
 import { STRIPE, type ProviderAdapter } from './providers.ts';
 import { isObject } from './specifications.ts';
-import type { Repository } from './types.ts';
+import { PipelineInputError, type Repository } from './types.ts';
 
 // Refit adapters accept at most 100 operations; Stripe exposes far more, so each repository
 // gets the operations its own traced calls use.
@@ -104,4 +104,96 @@ export function repositoryAdapter(repository: Repository, operations: StripeOper
     operations: used.slice(0, MAX_ADAPTER_OPERATIONS),
   };
   return { adapter, calledMethods: called.size, mappedMethods: used.length };
+}
+
+export const PUBLISH_BASE = 'refit-base';
+
+// One row per affected repository: outcome, pull request and the reason it stopped.
+export function summaryTable(entries: Record<string, unknown>[]) {
+  const rows = entries.filter(Boolean).map((entry) => {
+    const workflow = entry.workflow as Record<string, unknown> | undefined;
+    const publication = entry.publication as Record<string, unknown> | undefined;
+    const affected = Boolean((entry.fullAdapter as { confirmed?: number } | undefined)?.confirmed);
+    const outcome = publication?.url
+      ? 'pull request'
+      : String(workflow?.status ?? (affected ? 'affected' : 'not affected'));
+    const reason = String(publication?.error ?? workflow?.error ?? workflow?.reason ?? '')
+      .replace(/\s+/g, ' ')
+      .replace(/\|/g, '/')
+      .slice(0, 140);
+    return { repo: String(entry.repo), affected, outcome, url: publication?.url, reason };
+  });
+  const affected = rows.filter((row) => row.affected);
+  const count = (outcome: string) => affected.filter((row) => row.outcome === outcome).length;
+  const outcomes = [...new Set(affected.map((row) => row.outcome))].sort();
+  return [
+    '# Stripe benchmark summary',
+    '',
+    `Repositories: ${rows.length}. Affected: ${affected.length}. Pull requests: ${count('pull request')}.`,
+    '',
+    '| Outcome | Repositories |',
+    '|---|---|',
+    ...outcomes.map((outcome) => `| ${outcome} | ${count(outcome)} |`),
+    '',
+    '| Repository | Outcome | Pull request | Reason |',
+    '|---|---|---|---|',
+    ...affected.map(
+      (row) =>
+        `| ${row.repo} | ${row.outcome} | ${row.url ? `[link](${String(row.url)})` : ''} | ${row.reason} |`,
+    ),
+    '',
+  ].join('\n');
+}
+
+// Forks a benchmark repository into the organization, never touching the upstream repository,
+// and points `refit-base` at the commit that was validated. Uses the operator's GITHUB_TOKEN;
+// the pull request itself is published by the GitHub App.
+export async function forkAtCommit(
+  organization: string,
+  repository: string,
+  commit: string,
+  githubToken: string | undefined,
+  pollMs = 5000,
+) {
+  const token = githubToken?.trim();
+  if (!token) throw new PipelineInputError('--publish needs GITHUB_TOKEN to create forks.');
+  const github = async (method: string, path: string, body?: unknown) => {
+    const response = await fetch(`https://api.github.com${path}`, {
+      method,
+      headers: {
+        authorization: `Bearer ${token}`,
+        accept: 'application/vnd.github+json',
+        'x-github-api-version': '2022-11-28',
+      },
+      ...(body ? { body: JSON.stringify(body) } : {}),
+    });
+    return {
+      status: response.status,
+      body: (await response.json().catch(() => ({}))) as Record<string, unknown>,
+    };
+  };
+  const forked = await github('POST', `/repos/${repository}/forks`, {
+    organization,
+    default_branch_only: true,
+  });
+  const name = forked.body.full_name;
+  if (forked.status >= 300 || typeof name !== 'string' || !name.startsWith(`${organization}/`))
+    throw new PipelineInputError(`Fork of ${repository} failed: HTTP ${forked.status}.`);
+  // Forks are created asynchronously; wait until the validated commit is reachable.
+  for (let attempt = 0; ; attempt++) {
+    if ((await github('GET', `/repos/${name}/commits/${commit}`)).status === 200) break;
+    if (attempt === 24) throw new PipelineInputError(`Fork ${name} does not contain ${commit}.`);
+    await new Promise((done) => setTimeout(done, pollMs));
+  }
+  const created = await github('POST', `/repos/${name}/git/refs`, {
+    ref: `refs/heads/${PUBLISH_BASE}`,
+    sha: commit,
+  });
+  if (created.status !== 201) {
+    const existing = await github('GET', `/repos/${name}/git/ref/heads/${PUBLISH_BASE}`);
+    const target = existing.body.object as { sha?: string } | undefined;
+    if (target?.sha !== commit)
+      throw new PipelineInputError(`${name} already has ${PUBLISH_BASE} at another commit.`);
+  }
+  return name;
 }

@@ -7,13 +7,21 @@ import { assessmentConfiguration } from './assessment.ts';
 import { readRepository } from './repository.ts';
 import { runPipeline } from './run.ts';
 import { measureCoverage } from './sdk-coverage.ts';
-import { repositoryAdapter, stripeOperations } from './stripe-benchmark.ts';
+import {
+  forkAtCommit,
+  PUBLISH_BASE,
+  repositoryAdapter,
+  stripeOperations,
+  summaryTable,
+} from './stripe-benchmark.ts';
 import { FieldSubstitutionError } from './substitution-guard.ts';
+import { githubAppConfiguration } from './github-app.ts';
+import { publicationConfiguration, publishDraft } from './publication.ts';
 import { PipelineInputError, type Repository } from './types.ts';
 
 const execute = promisify(execFile);
 const USAGE =
-  'Usage: npm run benchmark:stripe -- --root <benchmark-dir> --output <new-dir> [--env .env] [--ai] [--validate] [--limit N] [--concurrency N]';
+  'Usage: npm run benchmark:stripe -- --root <benchmark-dir> --output <new-dir> [--env .env] [--ai] [--validate] [--limit N] [--concurrency N] [--publish <github-org> [--publish-unresolved]]';
 // Default `npm init` script; it is not a check.
 const PLACEHOLDER_TEST = /no test specified/;
 const VALIDATION_TIMEOUT_MS = 20 * 60 * 1000;
@@ -50,9 +58,13 @@ const { values } = parseArgs({
     limit: { type: 'string' },
     concurrency: { type: 'string' },
     split: { type: 'string' },
+    publish: { type: 'string' },
+    'publish-unresolved': { type: 'boolean' },
   },
 });
 if (!values.root || !values.output) throw new PipelineInputError(USAGE);
+if (values.publish && !values.validate)
+  throw new PipelineInputError('--publish needs --validate: only validated runs are published.');
 if (values.env) process.loadEnvFile(values.env);
 const root = resolve(values.root);
 const output = resolve(values.output);
@@ -343,6 +355,29 @@ async function benchmark(entry: Selected, index: number) {
       pullRequest: existsSync(join(bundle, 'pull-request.md')),
     };
     log(`workflow ${String((result.workflow as { status: string }).status)}`);
+    if (values.publish && report.validation?.status === 'passed')
+      try {
+        const fork = await forkAtCommit(
+          values.publish,
+          entry.repo,
+          entry.commit,
+          process.env.GITHUB_TOKEN,
+        );
+        const published = await publishDraft(report, {
+          ...publicationConfiguration(
+            fork,
+            PUBLISH_BASE,
+            undefined,
+            githubAppConfiguration(process.env),
+          ),
+          ...(values['publish-unresolved'] ? { allowUnresolved: true } : {}),
+        });
+        result.publication = published;
+        log(`published ${String((published as { url?: string }).url ?? published.status)}`);
+      } catch (error) {
+        result.publication = { status: 'error', error: message(error) };
+        log(`publication error: ${message(error)}`);
+      }
   } else if (!ai) {
     log(`affected (${full.confirmed} usages), AI not requested`);
     return;
@@ -396,4 +431,6 @@ await Promise.all(
   }),
 );
 await writeFile(join(output, 'results.json'), `${JSON.stringify(results, null, 2)}\n`);
+await writeFile(join(output, 'summary.md'), summaryTable(results));
 console.log(`Results: ${join(output, 'results.json')}`);
+console.log(`Summary: ${join(output, 'summary.md')}`);

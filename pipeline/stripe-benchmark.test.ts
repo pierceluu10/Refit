@@ -1,5 +1,5 @@
-import { expect, it } from 'vitest';
-import { stripeOperations } from './stripe-benchmark.ts';
+import { expect, it, vi } from 'vitest';
+import { forkAtCommit, stripeOperations, summaryTable } from './stripe-benchmark.ts';
 
 const ref = (schema: string) => ({ $ref: `#/components/schemas/${schema}` });
 const returns = (schema: unknown) => ({
@@ -84,4 +84,59 @@ it('maps stripe-node methods to the objects they return in the application contr
       operationId: 'Op',
     },
   ]);
+});
+
+it('forks into the organization and points refit-base at the validated commit', async () => {
+  const commit = 'a'.repeat(40);
+  const calls: string[] = [];
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (url: string, init: { method: string; body?: string }) => {
+      calls.push(`${init.method} ${url.replace('https://api.github.com', '')}`);
+      if (url.endsWith('/forks'))
+        return Response.json({ full_name: 'refit-dev/app' }, { status: 202 });
+      if (url.includes('/commits/'))
+        return new Response('{}', { status: calls.length > 2 ? 200 : 404 });
+      return Response.json({}, { status: 201 });
+    }),
+  );
+  try {
+    expect(await forkAtCommit('refit-dev', 'someone/app', commit, 'token', 0)).toBe(
+      'refit-dev/app',
+    );
+  } finally {
+    vi.unstubAllGlobals();
+  }
+  expect(calls).toEqual([
+    'POST /repos/someone/app/forks',
+    `GET /repos/refit-dev/app/commits/${commit}`,
+    `GET /repos/refit-dev/app/commits/${commit}`,
+    'POST /repos/refit-dev/app/git/refs',
+  ]);
+  await expect(forkAtCommit('refit-dev', 'someone/app', commit, undefined)).rejects.toThrow(
+    /GITHUB_TOKEN/,
+  );
+});
+
+it('summarizes affected repositories with their pull requests and stop reasons', () => {
+  const table = summaryTable([
+    {
+      repo: 'a/one',
+      fullAdapter: { confirmed: 2 },
+      workflow: { status: 'validated' },
+      publication: { url: 'https://github.com/refit-dev/one/pull/1' },
+    },
+    {
+      repo: 'b/two',
+      fullAdapter: { confirmed: 1 },
+      workflow: { status: 'error', error: 'too | big' },
+    },
+    { repo: 'c/three', fullAdapter: { confirmed: 0 } },
+  ]);
+  expect(table).toContain('Repositories: 3. Affected: 2. Pull requests: 1.');
+  expect(table).toContain(
+    '| a/one | pull request | [link](https://github.com/refit-dev/one/pull/1) |  |',
+  );
+  expect(table).toContain('| b/two | error |  | too / big |');
+  expect(table).not.toContain('c/three');
 });
