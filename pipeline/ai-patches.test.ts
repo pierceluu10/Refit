@@ -5,7 +5,7 @@ import { afterEach, expect, it, vi } from 'vitest';
 import { readRepository } from './repository.ts';
 import { runPipeline } from './run.ts';
 import { buildAssessmentEvidence } from './assessment.ts';
-import { proposeAiPatch } from './ai-patches.ts';
+import { proposeAiPatch, TYPE_ERROR_CHANGE } from './ai-patches.ts';
 import { digest } from './specifications.ts';
 import { MAX_INPUT_BYTES } from './openai.ts';
 import { FieldSubstitutionError } from './substitution-guard.ts';
@@ -458,4 +458,123 @@ it('accepts a different-typed added field when a vendor note documents the repla
     documentationSnapshots: [note.path],
   });
   expect(report.patch).toMatchObject({ status: 'proposed', edits: 1 });
+});
+
+const CHECKOUT = `import Stripe from 'stripe';
+const stripe = new Stripe('sk_test');
+export async function checkout(metadata: Record<string, string>) {
+  await stripe.checkout.sessions.create({
+    mode: 'subscription',
+    subscription_data: {
+      trial_from_plan: true,
+      metadata,
+    },
+  });
+  return 'done';
+}
+export function created(event: Stripe.Event) {
+  switch (event.type) {
+    case 'customer.subscription-created':
+      return true;
+  }
+  return false;
+}
+`;
+
+// A tsc error as validation reports it, at a position in `content` (the failed candidate's
+// checkout.ts); tsc points at `subscription_data`, not at the property it rejects.
+async function typeErrorFixture(content = CHECKOUT, search = 'subscription_data') {
+  const { repository, report } = await fixture();
+  repository.files.push({ path: 'checkout.ts', content: CHECKOUT });
+  const lines = content.split('\n');
+  const line = lines.findIndex((text) => text.includes(search));
+  const typeError = {
+    file: 'checkout.ts',
+    line: line + 1,
+    column: lines[line].indexOf(search) + 1,
+    changeId: TYPE_ERROR_CHANGE,
+    expression: 'TS2322',
+    confidence: 'confirmed' as const,
+    reason: "Type '{ trial_from_plan: true; }' is not assignable to type 'SubscriptionData'.",
+  };
+  const [findingId] = buildAssessmentEvidence(repository, report.changes, [typeError]).findings.map(
+    (finding) => finding.id,
+  );
+  return { repository, report, findings: [...report.findings, typeError], findingId };
+}
+
+const TRIAL_EDIT = {
+  file: 'checkout.ts',
+  original: 'trial_from_plan: true,\n      metadata,',
+  replacement: 'metadata,',
+};
+
+it('lets a type-error fix edit inside the statement enclosing the reported position', async () => {
+  const { repository, report, findings, findingId } = await typeErrorFixture();
+  respond([{ ...TRIAL_EDIT, findingId }]);
+  const proposal = await proposeAiPatch(repository, report.changes, findings, OPTIONS);
+  expect(proposal.diff).toContain('-      trial_from_plan: true,');
+});
+
+it('rejects a type-error fix outside the statement enclosing the reported position', async () => {
+  const { repository, report, findings, findingId } = await typeErrorFixture();
+  respond([
+    { file: 'checkout.ts', original: "return 'done';", replacement: "return 'ok';", findingId },
+  ]);
+  await expect(proposeAiPatch(repository, report.changes, findings, OPTIONS)).rejects.toThrow(
+    'AI replacement does not cover its cited finding location.',
+  );
+});
+
+it('stops a fix that renames a webhook event type for review', async () => {
+  const { repository, report, findings, findingId } = await typeErrorFixture(
+    CHECKOUT,
+    "case 'customer",
+  );
+  respond([
+    {
+      file: 'checkout.ts',
+      original: "case 'customer.subscription-created':",
+      replacement: "case 'customer.subscription.created':",
+      findingId,
+    },
+  ]);
+  await expect(proposeAiPatch(repository, report.changes, findings, OPTIONS)).rejects.toThrow(
+    "AI patch changes webhook event type 'customer.subscription-created'; event names stop for review.",
+  );
+});
+
+it('repairs the failed candidate at its type-error positions and guards every AI edit since the rules', async () => {
+  const previous = `// earlier repair\n${CHECKOUT}`;
+  const { repository, report, findings, findingId } = await typeErrorFixture(previous);
+  const repairRound = (content: string) =>
+    proposeAiPatch(
+      repository,
+      report.changes,
+      findings,
+      OPTIONS,
+      undefined,
+      {},
+      undefined,
+      undefined,
+      {},
+      [],
+      {
+        files: [
+          ...repository.files.filter((file) => file.path !== 'checkout.ts'),
+          { path: 'checkout.ts', content },
+        ],
+      },
+    );
+  respond([{ ...TRIAL_EDIT, findingId }]);
+  const proposal = await repairRound(previous);
+  expect(modelEvidence().body.input[0].content).toContain('// earlier repair');
+  expect(proposal.diff).toContain('+// earlier repair');
+  expect(proposal.diff).toContain('-      trial_from_plan: true,');
+
+  // An event name an earlier round changed is caught even when this round edits elsewhere.
+  respond([{ ...TRIAL_EDIT, findingId }]);
+  await expect(
+    repairRound(previous.replace('subscription-created', 'subscription.created')),
+  ).rejects.toThrow(/event names stop for review/);
 });
