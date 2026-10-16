@@ -369,6 +369,11 @@ export function createReviewArtifacts(
         ]
       : []),
     ...reasons,
+    ...('reviewTypeErrors' in validation && validation.reviewTypeErrors?.length
+      ? [
+          `**The upgraded SDK types reject these comparisons, often misspelled webhook event names that never matched.** Refit does not change event names; fix them by hand: ${summaryList([...new Set(validation.reviewTypeErrors.map((error) => code(`${error.file}:${error.line}`)))])}.`,
+        ]
+      : []),
     ...(subscriptionPolicy
       ? [
           `Selects subscription periods from the single item priced ${code(subscriptionPolicy.priceId)}, keyed on the signed event ${code('api_version')}.`,
