@@ -113,6 +113,9 @@ export function unsafeBindings(
   };
   const targets = (node: ts.Node, value = true) => {
     if (value && primitiveValue(node)) return;
+    // Passing a function exposes neither its locals nor its body: mutations and returns inside it
+    // are visited as nodes of their own, and its locals are unreachable from the callee.
+    if (ts.isFunctionExpression(node) || ts.isArrowFunction(node)) return;
     if (receiver(node) || references?.rootBinding(node)) taint(node);
     // Passing a call's result does not expose its callee or SDK client.
     else if (ts.isCallExpression(node) || ts.isNewExpression(node))
