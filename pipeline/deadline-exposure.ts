@@ -23,10 +23,24 @@ const SHOPIFY_CONTEXT = [
 ];
 const META_CONTEXT = [META_SDK, 'graph.facebook.com'];
 
+// How a match is used. Only `live` evidence makes a repository exposed or opens an alert; the
+// rest is listed separately so nothing is hidden:
+// - catalog: one entry in a model list (an array, enum or tuple naming three or more models), an
+//   HTML or JSX `<option>`, any type position, or a table keyed or indexed by model, such as
+//   pricing or context windows;
+// - test: test, spec, story, fixture and example files;
+// - comment: comments, which the parser keeps out of every source token;
+// - tokenizer: a local tokenizer argument, such as `encoding_for_model('gpt-4')`;
+// - check: a comparison or prefix check, such as `model.startsWith('o1')` or `case 'gpt-4':`.
+// Comments and the tokenizer and prefix calls apply to every provider; the rest apply to OpenAI
+// models only.
+export type DeadlineUse = 'live' | 'catalog' | 'test' | 'comment' | 'tokenizer' | 'check';
+
 export interface DeadlineEvidence {
   file: string;
   line: number;
   kind: 'source' | 'dependency' | 'refit-configuration';
+  use: DeadlineUse;
   version: string;
   text: string;
 }
@@ -34,9 +48,20 @@ export interface DeadlineEvidence {
 export interface DeadlineExposure {
   deadline: DeadlineEntry;
   days: number;
+  // Live evidence only.
   evidence: DeadlineEvidence[];
-  // Matches beyond the evidence limit, counted but not listed.
+  // Live matches beyond the evidence limit, counted but not listed.
   more: number;
+  // Matches that are not live, with their own limit and count.
+  nonLive: DeadlineEvidence[];
+  nonLiveMore: number;
+}
+
+// Deadlines found in a repository: exposures have live evidence; mentions are deadlines the
+// repository names only outside live code, with `evidence` empty.
+export interface DeadlineScan {
+  exposures: DeadlineExposure[];
+  mentions: DeadlineExposure[];
 }
 
 function excerpt(line: string) {
@@ -76,58 +101,157 @@ function sourceMatches(line: string, shopifyFile: boolean, metaFile: boolean, mo
   return found;
 }
 
-// Calls whose string argument names a model without selecting one: local tokenizers and prefix or
+// Calls whose string argument names a model without selecting one: local tokenizers, and prefix or
 // membership checks such as `model.startsWith('o1')`.
-const NON_PIN_CALLS = new Set([
-  'encoding_for_model',
-  'encodingForModel',
-  'startsWith',
-  'endsWith',
-  'includes',
-  'indexOf',
+const TOKENIZER_CALLS = new Set(['encoding_for_model', 'encodingForModel']);
+const CHECK_CALLS = new Set(['startsWith', 'endsWith', 'includes', 'indexOf']);
+const CHECK_OPERATORS = new Set([
+  ts.SyntaxKind.EqualsEqualsToken,
+  ts.SyntaxKind.EqualsEqualsEqualsToken,
+  ts.SyntaxKind.ExclamationEqualsToken,
+  ts.SyntaxKind.ExclamationEqualsEqualsToken,
 ]);
+// Test, spec, story, fixture and example files, by directory or name.
+const TEST_PATH =
+  /(?:^|\/)(?:__tests__|__mocks__|__fixtures__|tests?|specs?|e2e|cypress|fixtures?|examples?|stories)\/|\.(?:test|spec|e2e|stories|story)\.[cm]?[jt]sx?$/i;
+// Strings shaped like OpenAI model IDs, counted with registry models to recognize a model list.
+// Router IDs such as `openai/o1` count too.
+const OPENAI_MODEL =
+  /^(?:openai\/)?(?:gpt-|chatgpt-|o\d(?:-|$)|text-(?:davinci|curie|babbage|ada|embedding|moderation)-|(?:davinci|curie|babbage|ada)(?:-|$)|dall-e-|tts-|whisper-|codex-|computer-use-|omni-moderation-|sora-)/;
+const CATALOG_SIZE = 3;
+const OPTION_ELEMENT = /<option\b/i;
 
-// Offsets of the tokens in a source file where a pin can sit: identifiers, string and template
-// pieces and other leaf nodes. Comments are trivia between tokens, so a version found there has no
-// token. String arguments of NON_PIN_CALLS are left out.
-function pinTokens(path: string, content: string) {
+function isCollection(node: ts.Node) {
+  return (
+    ts.isArrayLiteralExpression(node) ||
+    ts.isUnionTypeNode(node) ||
+    ts.isTupleTypeNode(node) ||
+    ts.isEnumDeclaration(node)
+  );
+}
+
+// Nodes a literal climbs through while it is still part of the same list or table.
+function isLiteralStructure(node: ts.Node) {
+  return (
+    isCollection(node) ||
+    ts.isObjectLiteralExpression(node) ||
+    ts.isPropertyAssignment(node) ||
+    ts.isEnumMember(node) ||
+    ts.isLiteralTypeNode(node) ||
+    ts.isAsExpression(node) ||
+    ts.isSatisfiesExpression(node) ||
+    ts.isParenthesizedExpression(node) ||
+    ts.isTypeAssertionExpression(node)
+  );
+}
+
+function propertyKey(node: ts.Node) {
+  return (
+    node.parent &&
+    (ts.isPropertyAssignment(node.parent) ||
+      ts.isPropertySignature(node.parent) ||
+      ts.isPropertyDeclaration(node.parent) ||
+      ts.isMethodDeclaration(node.parent)) &&
+    node.parent.name === node
+  );
+}
+
+function calleeName(call: ts.CallExpression) {
+  return ts.isPropertyAccessExpression(call.expression)
+    ? call.expression.name.text
+    : ts.isIdentifier(call.expression)
+      ? call.expression.text
+      : '';
+}
+
+// How a string literal naming a model or version is used, from its place in the syntax tree.
+function literalUse(
+  node: ts.StringLiteralLike,
+  file: string,
+  openai: boolean,
+  isModel: (value: string) => boolean,
+): DeadlineUse {
+  const parent = node.parent;
+  if (ts.isCallExpression(parent) && parent.arguments.includes(node as ts.Expression)) {
+    const callee = calleeName(parent);
+    if (TOKENIZER_CALLS.has(callee)) return 'tokenizer';
+    if (CHECK_CALLS.has(callee)) return 'check';
+  }
+  if (!openai) return 'live';
+  if (ts.isBinaryExpression(parent) && CHECK_OPERATORS.has(parent.operatorToken.kind))
+    return 'check';
+  if (ts.isCaseClause(parent) && parent.expression === node) return 'check';
+  if (TEST_PATH.test(file)) return 'test';
+  // A model used as a property key or index names a table entry (a price, a context window); it
+  // is not what the code sends. So is everything inside that entry, such as its `id`. A key whose
+  // value is a plain string is an alias map, and the value is what the code sends.
+  if (propertyKey(node)) return 'catalog';
+  if (ts.isElementAccessExpression(parent) && parent.argumentExpression === node) return 'catalog';
+  for (let current: ts.Node = node; current.parent; current = current.parent) {
+    const up = current.parent;
+    if (ts.isTypeNode(up) && !ts.isLiteralTypeNode(up)) return 'catalog';
+    if (ts.isTypeAliasDeclaration(up) || ts.isInterfaceDeclaration(up)) return 'catalog';
+    if (!isLiteralStructure(up)) break;
+    if (
+      ts.isPropertyAssignment(up) &&
+      up.initializer === current &&
+      ts.isObjectLiteralExpression(current) &&
+      ts.isStringLiteralLike(up.name) &&
+      isModel(up.name.text)
+    )
+      return 'catalog';
+    if (isCollection(up) && countModels(up, isModel) >= CATALOG_SIZE) return 'catalog';
+  }
+  // A literal type, as in `model: 'gpt-4'` in an interface, never reaches a request.
+  if (ts.isLiteralTypeNode(parent)) return 'catalog';
+  return 'live';
+}
+
+function countModels(node: ts.Node, isModel: (value: string) => boolean) {
+  const found = new Set<string>();
+  const visit = (child: ts.Node) => {
+    if (ts.isStringLiteralLike(child) && isModel(child.text)) found.add(child.text);
+    ts.forEachChild(child, visit);
+  };
+  visit(node);
+  return found.size;
+}
+
+// Every token in a source file where a pin can sit, with how it is used: identifiers, string and
+// template pieces and other leaf nodes. Comments are trivia between tokens, so a version found
+// there has no token and is reported as a comment.
+function tokenUses(path: string, content: string, models: Set<string>) {
   const source = ts.createSourceFile(path, content, ts.ScriptTarget.Latest, true);
-  const ranges: [number, number][] = [];
+  const ranges: [number, number, ts.Node][] = [];
   const visit = (node: ts.Node) => {
     let leaf = true;
     ts.forEachChild(node, (child) => {
       leaf = false;
       visit(child);
     });
-    if (!leaf) return;
-    const call = node.parent;
-    if (
-      ts.isStringLiteralLike(node) &&
-      call &&
-      ts.isCallExpression(call) &&
-      call.arguments.includes(node as ts.Expression)
-    ) {
-      const callee = ts.isPropertyAccessExpression(call.expression)
-        ? call.expression.name.text
-        : ts.isIdentifier(call.expression)
-          ? call.expression.text
-          : '';
-      if (NON_PIN_CALLS.has(callee)) return;
-    }
-    ranges.push([node.getStart(source), node.end]);
+    if (leaf) ranges.push([node.getStart(source), node.end, node]);
   };
   visit(source);
-  return (offset: number) => {
+  const isModel = (value: string) => models.has(value) || OPENAI_MODEL.test(value);
+  return (offset: number, provider: DeadlineEntry['provider'], line: string): DeadlineUse => {
     let low = 0;
     let high = ranges.length - 1;
     while (low <= high) {
       const middle = (low + high) >> 1;
-      const [start, end] = ranges[middle];
+      const [start, end, node] = ranges[middle];
       if (offset < start) high = middle - 1;
       else if (offset >= end) low = middle + 1;
-      else return true;
+      else {
+        const use = ts.isStringLiteralLike(node)
+          ? literalUse(node, path, provider === 'openai', isModel)
+          : 'live';
+        // An HTML or JSX `<option>` is one choice in a picker.
+        return use === 'live' && provider === 'openai' && OPTION_ELEMENT.test(line)
+          ? 'catalog'
+          : use;
+      }
     }
-    return false;
+    return 'comment';
   };
 }
 
@@ -143,13 +267,14 @@ async function lineOf(root: string, file: string, needle: string) {
   return Math.max(1, lines.findIndex((line) => line.includes(needle)) + 1);
 }
 
-// Matches the versions and models a repository pins against the registry. Each exposure lists
-// file:line evidence; nothing is installed, executed or sent to a provider.
-export async function findDeadlineExposures(
+// Matches the versions and models a repository names against the registry and classifies each
+// match. Each deadline lists file:line evidence; nothing is installed, executed or sent to a
+// provider.
+export async function scanDeadlines(
   directory: string,
   registry: DeadlineRegistry,
   now: Date,
-): Promise<DeadlineExposure[]> {
+): Promise<DeadlineScan> {
   const root = resolve(directory);
   const byVersion = new Map<string, DeadlineEntry>();
   for (const entry of registry.deadlines)
@@ -159,7 +284,8 @@ export async function findDeadlineExposures(
       .filter((entry) => entry.provider === 'openai')
       .flatMap((entry) => entry.versions),
   );
-  const exposures = new Map<string, DeadlineExposure>();
+  const found = new Map<string, DeadlineExposure>();
+  const seen = new Set<string>();
   const record = (
     provider: string,
     version: string,
@@ -167,21 +293,21 @@ export async function findDeadlineExposures(
   ) => {
     const deadline = byVersion.get(`${provider}:${version}`);
     if (!deadline) return;
-    const exposure = exposures.get(deadline.id) ?? {
+    const exposure = found.get(deadline.id) ?? {
       deadline,
       days: daysUntil(deadline.date, now),
       evidence: [],
       more: 0,
+      nonLive: [],
+      nonLiveMore: 0,
     };
-    exposures.set(deadline.id, exposure);
-    if (
-      exposure.evidence.some(
-        (item) =>
-          item.file === evidence.file && item.line === evidence.line && item.version === version,
-      )
-    )
-      return;
-    if (exposure.evidence.length < MAX_EVIDENCE) exposure.evidence.push({ ...evidence, version });
+    found.set(deadline.id, exposure);
+    const key = `${evidence.use === 'live'}\t${evidence.file}\t${evidence.line}\t${version}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    if (evidence.use !== 'live') exposure.nonLive.push({ ...evidence, version });
+    else if (exposure.evidence.length < MAX_EVIDENCE)
+      exposure.evidence.push({ ...evidence, version });
     else exposure.more += 1;
   };
 
@@ -189,16 +315,16 @@ export async function findDeadlineExposures(
   for (const file of repository.files) {
     const shopifyFile = SHOPIFY_CONTEXT.some((name) => file.content.includes(name));
     const metaFile = META_CONTEXT.some((name) => file.content.includes(name));
-    let inToken: ((offset: number) => boolean) | undefined;
+    let useAt: ReturnType<typeof tokenUses> | undefined;
     let offset = 0;
     for (const [index, line] of file.content.split('\n').entries()) {
       for (const match of sourceMatches(line, shopifyFile, metaFile, models)) {
-        inToken ??= pinTokens(file.path, file.content);
-        if (!inToken(offset + match.column)) continue;
+        useAt ??= tokenUses(file.path, file.content, models);
         record(match.provider, match.version, {
           file: file.path,
           line: index + 1,
           kind: 'source',
+          use: useAt(offset + match.column, match.provider, line),
           text: excerpt(line),
         });
       }
@@ -212,6 +338,7 @@ export async function findDeadlineExposures(
         file: dependency.file,
         line: await lineOf(root, dependency.file, `"${META_SDK}"`),
         kind: 'dependency',
+        use: 'live',
         text: `${META_SDK} ${dependency.lock.version ?? dependency.version}${dependency.lock.version ? ` (locked in ${dependency.lock.file})` : ''} targets Graph API ${version}`,
       });
   }
@@ -220,12 +347,38 @@ export async function findDeadlineExposures(
       file: REPOSITORY_CONFIGURATION,
       line: pin.line,
       kind: 'refit-configuration',
+      use: 'live',
       text: `apiVersion "${pin.version}" in the ${pin.integration ?? 'repository'} integration`,
     });
-  return [...exposures.values()].sort(
+  const all = [...found.values()].sort(
     (a, b) =>
       a.deadline.date.localeCompare(b.deadline.date) || a.deadline.id.localeCompare(b.deadline.id),
   );
+  for (const exposure of all) {
+    // A line that also has a live match of the same version is listed once, as live. Non-live
+    // matches are capped after that, like live ones.
+    const live = new Set(
+      exposure.evidence.map((item) => `${item.file}:${item.line}:${item.version}`),
+    );
+    const rest = exposure.nonLive.filter(
+      (item) => !live.has(`${item.file}:${item.line}:${item.version}`),
+    );
+    exposure.nonLive = rest.slice(0, MAX_EVIDENCE);
+    exposure.nonLiveMore = rest.length - exposure.nonLive.length;
+  }
+  return {
+    exposures: all.filter((exposure) => exposure.evidence.length),
+    mentions: all.filter((exposure) => !exposure.evidence.length),
+  };
+}
+
+// Deadlines a repository is exposed to: only live evidence counts.
+export async function findDeadlineExposures(
+  directory: string,
+  registry: DeadlineRegistry,
+  now: Date,
+): Promise<DeadlineExposure[]> {
+  return (await scanDeadlines(directory, registry, now)).exposures;
 }
 
 interface ConfiguredIntegration {

@@ -11,7 +11,12 @@ import {
   parseLeadDays,
   syncDeadlineIssue,
 } from './deadline-alerts.ts';
-import { agentStatus, configuredIntegrations, findDeadlineExposures } from './deadline-exposure.ts';
+import {
+  agentStatus,
+  configuredIntegrations,
+  findDeadlineExposures,
+  scanDeadlines,
+} from './deadline-exposure.ts';
 import {
   checkDeadlineRegistry,
   daysUntil,
@@ -229,6 +234,190 @@ it('ignores pins in comments, tokenizers and prefix checks, and matches URLs end
     ['openai-gpt-4', ['src/ai.ts:7']],
     ['meta-v21', ['src/graph.ts:2']],
   ]);
+});
+
+// How each OpenAI match is used. Only live matches count toward exposure and alerts; the rest are
+// classified, not dropped.
+const classifying: DeadlineRegistry = {
+  formatVersion: 1,
+  deadlines: [
+    ...registry.deadlines,
+    entry({ id: 'openai-o1', provider: 'openai', versions: ['o1'], date: '2026-10-23' }),
+  ],
+};
+
+async function uses(files: Record<string, string>) {
+  const scan = await scanDeadlines(await repository(files), classifying, NOW);
+  const result: Record<string, string> = {};
+  for (const exposure of [...scan.exposures, ...scan.mentions])
+    for (const item of [...exposure.evidence, ...exposure.nonLive])
+      result[`${item.file}:${item.line} ${item.version}`] = item.use;
+  return { scan, result };
+}
+
+it('keeps live OpenAI calls live, including lookalikes of lists, tests and checks', async () => {
+  const { result } = await uses({
+    'src/chat.ts': [
+      "await openai.chat.completions.create({ model: 'gpt-4', messages });",
+      "const model = process.env.MODEL || 'gpt-4';",
+      "export enum Model { Default = 'gpt-4' }",
+      // Two models are not yet a list.
+      "const pair = ['gpt-4', 'gpt-4o'];",
+      // An alias map's string values are what the code sends.
+      "const aliases = { 'openai/gpt-4': 'gpt-4', 'gpt-4-0613': 'gpt-4-0613', four: 'gpt-4o' };",
+      // Several models as values of one request or settings object are not a table.
+      "const settings = { chat: 'gpt-4', fallback: 'gpt-4-0613', vision: 'gpt-4o' };",
+      "const picked = models.find((m) => m === input) ?? 'gpt-4';",
+    ].join('\n'),
+    // Paths that only look like tests or examples.
+    'src/contest/run.ts': "send({ model: 'gpt-4' });",
+    'src/attestation.ts': "send({ model: 'gpt-4' });",
+    'src/exampleData.ts': "send({ model: 'gpt-4' });",
+    'src/latest.ts': "send({ model: 'gpt-4' });",
+  });
+  expect(result).toEqual({
+    'src/chat.ts:1 gpt-4': 'live',
+    'src/chat.ts:2 gpt-4': 'live',
+    'src/chat.ts:3 gpt-4': 'live',
+    'src/chat.ts:4 gpt-4': 'live',
+    'src/chat.ts:5 gpt-4': 'live',
+    'src/chat.ts:5 gpt-4-0613': 'live',
+    'src/chat.ts:6 gpt-4': 'live',
+    'src/chat.ts:6 gpt-4-0613': 'live',
+    'src/chat.ts:7 gpt-4': 'live',
+    'src/contest/run.ts:1 gpt-4': 'live',
+    'src/attestation.ts:1 gpt-4': 'live',
+    'src/exampleData.ts:1 gpt-4': 'live',
+    'src/latest.ts:1 gpt-4': 'live',
+  });
+});
+
+it('classifies OpenAI model lists, type unions, tables and pickers as catalog', async () => {
+  const { result } = await uses({
+    'src/models.ts': [
+      "export const MODELS = ['gpt-4', 'gpt-4o', 'o3'] as const;",
+      'export type ChatModel =',
+      "  | 'gpt-4-0613'",
+      "  | 'gpt-4o';",
+      'export interface Options { model: "gpt-4" }',
+      'export const PRICES = {',
+      "  'gpt-4': { input: 30, output: 60 },",
+      "  'o1': { id: 'o1', context: 200_000 },",
+      '};',
+      'export const PICKER = [',
+      "  { id: 'gpt-4', label: 'GPT-4' },",
+      "  { id: 'openai/gpt-4o', label: 'GPT-4o' },",
+      "  { id: 'openai/o3', label: 'o3' },",
+      '];',
+      "export enum Known { A = 'gpt-4', B = 'gpt-4o', C = 'o3' }",
+      "const price = PRICES['gpt-4-0613'];",
+      'const html = `<option value="gpt-4">GPT-4</option>`;',
+    ].join('\n'),
+    'src/Picker.tsx': 'export const Pick = () => <option value="o1">o1</option>;',
+  });
+  expect(result).toEqual({
+    'src/models.ts:1 gpt-4': 'catalog',
+    'src/models.ts:3 gpt-4-0613': 'catalog',
+    'src/models.ts:5 gpt-4': 'catalog',
+    'src/models.ts:7 gpt-4': 'catalog',
+    'src/models.ts:8 o1': 'catalog',
+    'src/models.ts:11 gpt-4': 'catalog',
+    'src/models.ts:15 gpt-4': 'catalog',
+    'src/models.ts:16 gpt-4-0613': 'catalog',
+    'src/models.ts:17 gpt-4': 'catalog',
+    'src/Picker.tsx:1 o1': 'catalog',
+  });
+});
+
+it('classifies OpenAI tests, examples, comments, tokenizers and checks', async () => {
+  const call = "send({ model: 'gpt-4' });";
+  const { result } = await uses({
+    'src/models.test.ts': call,
+    'src/__tests__/chat.ts': call,
+    'test/chat.ts': call,
+    'examples/chat.ts': call,
+    'src/Picker.stories.tsx': call,
+    'fixtures/chat.ts': call,
+    'src/chat.ts': [
+      '/** @param model The model, such as "gpt-4". */',
+      "// send({ model: 'gpt-4-0613' });",
+      "const tokens = encoding_for_model('gpt-4');",
+      "const count = encodingForModel('gpt-4-0613');",
+      "if (model === 'gpt-4' || model.startsWith('o1')) reason();",
+      'switch (model) {',
+      "  case 'gpt-4-0613':",
+      '}',
+    ].join('\n'),
+  });
+  expect(result).toEqual({
+    'src/models.test.ts:1 gpt-4': 'test',
+    'src/__tests__/chat.ts:1 gpt-4': 'test',
+    'test/chat.ts:1 gpt-4': 'test',
+    'examples/chat.ts:1 gpt-4': 'test',
+    'src/Picker.stories.tsx:1 gpt-4': 'test',
+    'fixtures/chat.ts:1 gpt-4': 'test',
+    'src/chat.ts:1 gpt-4': 'comment',
+    'src/chat.ts:2 gpt-4-0613': 'comment',
+    'src/chat.ts:3 gpt-4': 'tokenizer',
+    'src/chat.ts:4 gpt-4-0613': 'tokenizer',
+    'src/chat.ts:5 gpt-4': 'check',
+    'src/chat.ts:5 o1': 'check',
+    'src/chat.ts:7 gpt-4-0613': 'check',
+  });
+});
+
+it('rests exposure on live evidence and keeps the rest as separate, capped non-live evidence', async () => {
+  const { scan } = await uses({
+    // o1 only appears in a list: a mention, not an exposure.
+    'src/models.ts': `export const MODELS = [${Array.from({ length: 25 }, (_, index) => `'gpt-4o-${index}'`).join(', ')}, 'o1', 'gpt-4'];`,
+    // A live and a commented match on one line count once, as live.
+    'src/chat.ts': "send({ model: 'gpt-4' }); // was 'gpt-4'",
+    'src/more.ts': [
+      'export const MORE = [',
+      ...Array.from({ length: 22 }, () => "'gpt-4-0613', 'gpt-4o', 'o3',"),
+      '];',
+    ].join('\n'),
+  });
+  expect(scan.exposures.map((item) => item.deadline.id)).toEqual(['openai-gpt-4']);
+  const [exposure] = scan.exposures;
+  expect(exposure.evidence.map((item) => `${item.file}:${item.line} ${item.use}`)).toEqual([
+    'src/chat.ts:1 live',
+  ]);
+  expect(exposure.nonLive).toHaveLength(20);
+  expect(exposure.nonLive.every((item) => item.use === 'catalog')).toBe(true);
+  expect(exposure.nonLiveMore).toBe(3);
+  expect(
+    scan.mentions.map((item) => [item.deadline.id, item.evidence, item.nonLive.length]),
+  ).toEqual([['openai-o1', [], 1]]);
+  // The service alerts from findDeadlineExposures, which never returns a mention.
+  expect(
+    await findDeadlineExposures(
+      await repository({ 'src/models.ts': "type M = 'o1';" }),
+      classifying,
+      NOW,
+    ),
+  ).toEqual([]);
+});
+
+it('leaves Meta and Shopify matching as it was, apart from listing comments', async () => {
+  const { result } = await uses({
+    'test/graph.ts': [
+      "const base = 'https://graph.facebook.com/v20.0/';",
+      "if (version === 'v21.0') upgrade();",
+      "// fetch('https://graph.facebook.com/v21.0/me')",
+    ].join('\n'),
+    'src/shop.ts': [
+      "import '@shopify/shopify-api';",
+      "export const VERSIONS = ['2025-10', '2026-01', '2025-07'].map((v) => `/admin/api/${v}`);",
+      "if (url.includes('/admin/api/2025-10/')) retry();",
+    ].join('\n'),
+  });
+  expect(result).toEqual({
+    'test/graph.ts:1 v20.0': 'live',
+    'test/graph.ts:2 v21.0': 'live',
+    'test/graph.ts:3 v21.0': 'comment',
+    'src/shop.ts:3 2025-10': 'check',
+  });
 });
 
 it('matches API versions pinned in .refit.json and reports how a migration can follow', async () => {
@@ -541,11 +730,21 @@ it('renders the deadline issue with evidence, the replacement and the migration 
         file: 'src/a b.ts',
         line: 3,
         kind: 'source' as const,
+        use: 'live' as const,
         version: 'gpt-4',
         text: 'model: `gpt-4`',
       },
     ],
     more: 2,
+    nonLive: (['catalog', 'catalog', 'test'] as const).map((use, index) => ({
+      file: `src/models.ts`,
+      line: index + 1,
+      kind: 'source' as const,
+      use,
+      version: 'gpt-4',
+      text: "'gpt-4',",
+    })),
+    nonLiveMore: 1,
   };
   expect(deadlineTitle(exposure)).toBe('OpenAI model gpt-4 passed its sunset on 2026-10-23');
   const body = deadlineBody({
@@ -559,5 +758,10 @@ it('renders the deadline issue with evidence, the replacement and the migration 
   expect(body).toContain('| Deadline | 2026-10-23 (passed 2 days ago) |');
   expect(body).toContain("- `src/a b.ts:3`: `model: 'gpt-4'`");
   expect(body).toContain('…and 2 more matches.');
+  // Non-live matches are counted, never listed as evidence or linked.
+  expect(body).toContain(
+    'Not counted: 4 matches outside live code (2 catalog, 1 test, 1 more), such as model lists',
+  );
+  expect(body).not.toContain('src/models.ts');
   expect(body).toContain('Refit has no OpenAI agent yet');
 });
