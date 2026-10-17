@@ -8,6 +8,7 @@ import { createSourceImportResolver } from './source-imports.ts';
 import { sourceBindings } from './source-modules.ts';
 import { sdkConstructors } from './sdk-constructors.ts';
 import { classClients } from './class-clients.ts';
+import { factoryClients } from './factory-clients.ts';
 import { helperClients } from './helper-clients.ts';
 import { stripeWebhookPayloads } from './stripe-webhook-payloads.ts';
 import { componentReference, isObject, resolvableComponentSchema } from './specifications.ts';
@@ -263,8 +264,11 @@ export function analyzeRepository(
   };
   const sdk = sdkConstructors({ nodes, checker, provider, symbol, external: resolution.external });
   let classBindings: ReturnType<typeof classClients> | undefined;
+  let factoryBindings: ReturnType<typeof factoryClients> | undefined;
   const clientBinding = (node: ts.Expression) =>
-    classBindings?.reference(node)?.binding ?? (ts.isIdentifier(node) ? symbol(node) : undefined);
+    classBindings?.reference(node)?.binding ??
+    factoryBindings?.call(node) ??
+    (ts.isIdentifier(node) ? symbol(node) : undefined);
   imports.push(...sdk.imports.map(location));
   function sdkAccess(expression: ts.Expression) {
     const properties: (ts.PropertyAccessExpression & { name: ts.Identifier })[] = [];
@@ -274,6 +278,9 @@ export function analyzeRepository(
       properties.push(current as ts.PropertyAccessExpression & { name: ts.Identifier });
       current = current.expression;
     }
+    // `stripe!` and `(stripe)` are compile-time only; the runtime receiver is the client itself.
+    while (ts.isNonNullExpression(current) || ts.isParenthesizedExpression(current))
+      current = current.expression;
     const binding = clientBinding(current);
     if (!binding || !clients.has(binding)) return;
     return { client: current, properties: properties.reverse() };
@@ -458,6 +465,7 @@ export function analyzeRepository(
       if (sdk.creation(node.expression)) clients.add(binding);
   }
   classBindings = classClients({ nodes, creation: sdk.creation, clients, symbol, checker });
+  factoryBindings = factoryClients({ nodes, clients, symbol, creation: sdk.creation });
   for (const declaration of declarations) {
     const binding = clientBinding(declaration.initializer);
     if (binding && clients.has(binding)) add(clients, declaration.name);
@@ -745,6 +753,7 @@ export function analyzeRepository(
       (field) => [field.initializer, field.binding] as const,
     ),
     ...helperBindings.creations,
+    ...factoryBindings.creations,
   ]) {
     const creation = sdk.creation(node);
     if (!binding || !creation) continue;
@@ -1730,6 +1739,7 @@ export function analyzeRepository(
           ? symbol(node.parent.name)
           : (classBindings!.creations.get(node) ??
             helperBindings.creations.get(node) ??
+            factoryBindings!.creations.get(node) ??
             (ts.isExportAssignment(node.parent)
               ? modules.inlineDefaults.get(node.parent)
               : undefined)),
