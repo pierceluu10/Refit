@@ -38,7 +38,12 @@ import {
 } from './generated-checks.ts';
 import { codeDiff, PACKAGE_FILES, packageDiff } from './stripe-package-upgrade.ts';
 import { compactPatch, renderPatch } from './patches.ts';
-import { crossesOpenEnums, OPEN_ENUM_RULE, openEnumRepair } from './stripe-open-enums.ts';
+import {
+  crossesOpenEnums,
+  OPEN_ENUM_REPAIR,
+  OPEN_ENUM_RULE,
+  openEnumRepair,
+} from './stripe-open-enums.ts';
 import { SUBSCRIPTION_PERIOD_RULE } from './stripe-subscription-periods.ts';
 import {
   dockerSandboxArguments,
@@ -683,7 +688,7 @@ export async function validateMigration(options: {
         candidateEnvironment = prepared.environment;
         patched = check;
         recordAttempt();
-        repair.stopReason = 'open-enum-repair';
+        repair.stopReason = OPEN_ENUM_REPAIR;
       }
     }
     while (
