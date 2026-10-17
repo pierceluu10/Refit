@@ -86,7 +86,7 @@ fs.appendFileSync(log,JSON.stringify({args,inputs,inputFiles})+'\\n');
 if(args[0]==='image'){console.log(${JSON.stringify(IMAGE)});process.exit(0)}
 if(args[0]==='rm')process.exit(0);
 if(process.env.REFIT_TEST_INSTALL_MODE==='wait'){setInterval(()=>{},1000)}
-else if(process.env.REFIT_TEST_INSTALL_MODE==='fail'){process.stderr.write('simulated npm failure\\n');process.exitCode=42}
+else if(process.env.REFIT_TEST_INSTALL_MODE==='fail'){process.stderr.write('REFIT_NODE_VERSION=v22.23.3\\nREFIT_NPM_VERSION=10.9.9\\nsimulated npm failure\\n');process.exitCode=42}
 else if(process.env.REFIT_TEST_INSTALL_MODE==='verbose'){process.stderr.write(Buffer.alloc(1024*1024+1,120));setInterval(()=>{},1000)}
 else {
  process.stderr.write('REFIT_NODE_VERSION=v22.23.3\\nREFIT_NPM_VERSION=10.9.9\\n');
@@ -219,7 +219,9 @@ it.each(['fail', 'verbose'])(
     const fixture = await setup();
     vi.stubEnv('REFIT_TEST_INSTALL_MODE', mode);
     await expect(prepareDependencies(fixture.options)).rejects.toThrow(
-      mode === 'fail' ? /simulated npm failure/ : /output exceeds 1 MiB/,
+      mode === 'fail'
+        ? /^npm dependency preparation failed \(42\)\. simulated npm failure\n$/
+        : /output exceeds 1 MiB/,
     );
     const [key] = await readdir(fixture.options.cacheDirectory);
     expect(await readdir(join(fixture.options.cacheDirectory, key))).toEqual([]);
