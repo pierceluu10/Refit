@@ -34,11 +34,32 @@ const stripe = require('./client.cjs');
 
 For another SDK, set `constructorCalls: true` in its reviewed provider adapter only when its constructor is documented to work without `new`. The default for custom adapters is false. The built-in Stripe adapter enables it. This setting describes initialization, not a migration rule; adding it alone does not create a new PR identity.
 
+## Client factories and lazy clients
+
+A client created behind a factory is traced when every value the factory can return is an SDK client or `null`:
+
+```ts
+let client: Stripe | null = null;
+export function getStripe() {
+  if (!process.env.STRIPE_SECRET_KEY) throw new Error('missing key');
+  client ??= new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2025-02-24.acacia' });
+  return client;
+}
+
+// Consumers, in any module:
+const stripe = getStripe();
+await getStripe().subscriptions.retrieve(id);
+```
+
+The factory may be a function declaration or a `const` arrow or function expression, with any parameters; it may throw. A module `let` holder counts only when every assignment to it is a client or `null`/`undefined` (`=`, `??=`, `||=`), and `return client ?? (client = new Stripe(...))` works too. `const stripe = key ? new Stripe(key) : null` is a client as well. Each constructor behind a factory declares that factory's API version, so a literal `apiVersion` is read and bumped as for a direct client. `stripe!.customers.create(...)` traces like `stripe.customers.create(...)`.
+
+A factory stays a review case when it is `async` or a generator, returns anything else on any path, is reassigned, or its holder is written any other way (destructuring, `++`, a non-client value).
+
 ## Boundaries
 
 Only scanned source files are resolved. Relative imports and supported repository `paths`/`baseUrl` mappings share the same graph. Exact paths, unique extensionless file/index paths and unambiguous `.js` → `.ts`, `.mjs` → `.mts` and `.cjs` → `.cts` paths are supported. Ambiguous source/output pairs are refused. See [configured aliases and runtime boundaries](SOURCE-ALIASES.md).
 
-Clients and constructor aliases must be immutable. Static CommonJS exports must be unambiguous top-level assignments to unshadowed globals; literal export objects may contain only supported identifier bindings. Namespace imports, re-exports, spreads, accessors, computed exports, changing the export object, shadowed or exposed loaders, unconfigured or unresolved aliases, dynamic imports and application factory wrappers remain review cases. Refit does not reproduce a bundler's module interop or a package's export map.
+Clients and constructor aliases must be immutable. Static CommonJS exports must be unambiguous top-level assignments to unshadowed globals; literal export objects may contain only supported identifier bindings. Namespace imports, re-exports, spreads, accessors, computed exports, changing the export object, shadowed or exposed loaders, unconfigured or unresolved aliases, dynamic imports and factory wrappers outside the shapes above remain review cases. Refit does not reproduce a bundler's module interop or a package's export map.
 
 A confirmed finding means the usage was traced under the recorded adapter, not that arbitrary application behavior is proven. Strict source-version policy still requires resolvable matching options. Checks must exercise the application's intended contracts.
 
