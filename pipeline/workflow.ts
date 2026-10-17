@@ -48,6 +48,7 @@ export async function runWorkflow(options: {
   prepareDependencies?: boolean;
   generatedChecks?: GeneratedChecks;
   compareTypeErrors?: boolean;
+  keepListedPaymentMethods?: boolean;
   providerConfig?: string;
   apiVersion?: string;
   apiVersionPolicy?: ApiVersionPolicy;
@@ -152,6 +153,7 @@ export async function runWorkflow(options: {
       apiVersion: options.apiVersion,
       apiVersionPolicy: options.apiVersionPolicy,
       fullDiff: options.fullDiff,
+      keepListedPaymentMethods: options.keepListedPaymentMethods,
     };
     stage = 'scan';
     options.onProgress?.('Scanning repository for affected API usage...');

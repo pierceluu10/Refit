@@ -2,7 +2,7 @@ import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, expect, it } from 'vitest';
-import { CARD_PAYMENT_METHOD_WARNING } from './patches.ts';
+import { CARD_PAYMENT_METHOD_WARNING, listedPaymentMethodWarning } from './patches.ts';
 import { createReviewArtifacts } from './review.ts';
 import { runPipeline } from './run.ts';
 import { digest } from './specifications.ts';
@@ -43,7 +43,11 @@ function contract(version: string, fields: string[]) {
   };
 }
 
-async function run(files: Record<string, string>, proposePatch = true) {
+async function run(
+  files: Record<string, string>,
+  proposePatch = true,
+  keepListedPaymentMethods = false,
+) {
   const root = await mkdtemp(join(tmpdir(), 'refit-card-methods-'));
   directories.push(root);
   const repository = join(root, 'repository');
@@ -91,6 +95,7 @@ async function run(files: Record<string, string>, proposePatch = true) {
     providerConfig,
     apiVersion: '2026-08-26.dahlia',
     proposePatch,
+    keepListedPaymentMethods,
   });
 }
 
@@ -224,4 +229,72 @@ it('lets an AI repair keep the card-only renames without counting them as droppe
   expect(
     droppedRequestParameters(['payment_method_types'], original, dropsPaypal, [cardEdit]),
   ).toEqual(['payment_method_types']);
+});
+
+it('keeps a listed card-plus-methods value only where the repository opted in', async () => {
+  const files = { 'checkout.js': checkout("['card', 'paypal']") };
+  expect((await run(files)).patch).toMatchObject({ status: 'not-generated' });
+  const report = await run(files, true, true);
+  expect(report.patch).toMatchObject({ status: 'proposed', generator: 'deterministic' });
+  if (!('diff' in report.patch)) throw new Error('Expected a patch');
+  expect(report.patch.diff).toContain(
+    "+export const checkout = () => stripe.checkout.sessions.create({ mode: 'subscription', allowed_payment_method_types: ['card', 'paypal'] });",
+  );
+  expect(report.patch.summary).toBe(
+    'Replace payment_method_types with allowed_payment_method_types and update the pinned Stripe API version.',
+  );
+  expect(report.patch.warnings).toContain(listedPaymentMethodWarning(['card', 'paypal']));
+  expect(report.patch.warnings).not.toContain(CARD_PAYMENT_METHOD_WARNING);
+  expect(listedPaymentMethodWarning(['card', 'paypal'])).toContain(
+    'so paypal may no longer be offered to some customers',
+  );
+  const check = { status: 'passed' as const, exitCode: 0, stdout: '', stderr: '' };
+  const description = createReviewArtifacts({
+    ...report,
+    publicationFiles: [{ path: 'checkout.js', mode: '100644', content: 'export {};' }],
+    patch: { ...report.patch, validation: 'passed' },
+    validation: {
+      status: 'passed',
+      revision: 'a'.repeat(40),
+      image: `sha256:${'b'.repeat(64)}`,
+      command: ['npm', 'test'],
+      baselineCommand: ['npm', 'test'],
+      archiveHash: 'c'.repeat(64),
+      patchHash: digest(report.patch.diff),
+      baseline: check,
+      patched: check,
+      limits: {
+        timeoutMs: 120_000,
+        outputBytes: 1024 * 1024,
+        network: 'none',
+        workspace: '512m' as const,
+        memory: '1g' as const,
+      },
+      publishable: true,
+      attempts: [],
+      repair: { limit: 0, requested: 0, stopReason: 'not-needed-or-disabled', error: null },
+      reason: 'Synthetic check results for artifact formatting tests.',
+    },
+  }).files['pull-request.md'];
+  expect(description).toContain(
+    'Moves `[card, paypal]` from `payment_method_types` to `allowed_payment_method_types`, because this repository set `stripePaymentMethodTypes: "keep-listed"`',
+  );
+  expect(description).toContain('so `paypal` may no longer be offered to some customers');
+});
+
+it.each([
+  ["['card_present']"],
+  ["['paypal']"],
+  ["['card', 'card']"],
+  ["['card', 'card_present']"],
+  ["[...methods, 'card']"],
+  ['methods'],
+])('keeps stopping on %s even where the repository opted in', async (methods) => {
+  const report = await run(
+    { 'checkout.js': `const methods = ['card'];\n${checkout(methods)}` },
+    true,
+    true,
+  );
+  expect(report.patch).toMatchObject({ status: 'not-generated' });
+  expect(report.findings.some((finding) => finding.requestParameter)).toBe(true);
 });

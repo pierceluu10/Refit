@@ -19,7 +19,7 @@ import { PipelineInputError, type SourceEdit } from './types.ts';
 import { readRepository } from './repository.ts';
 import { validateCheckCommand, validateRepairAttempts } from './validation-options.ts';
 import { proposeAiPatch, TYPE_ERROR_CHANGE } from './ai-patches.ts';
-import { CARD_PAYMENT_METHOD_RULE, removedRequestParameters } from './request-removals.ts';
+import { PAYMENT_METHOD_RENAME_RULES, removedRequestParameters } from './request-removals.ts';
 import { gitEnvironment } from './git-environment.ts';
 import { readCommittedRepository } from './committed-repository.ts';
 import { prepareDependencies, repositoryDependencyFailure } from './dependency-preparation.ts';
@@ -263,14 +263,16 @@ const mentions = (files: { content: string }[], name: string) =>
   );
 
 // Removed request parameters a repair mentions fewer times than the original code does, less the
-// sites the approved card-only rule already renamed.
+// sites the approved card rule (and an opted-in listed rename) already renamed.
 export function droppedRequestParameters(
   names: string[],
   original: { content: string }[],
   candidate: { content: string }[],
   ruleEdits: SourceEdit[],
 ) {
-  const renamed = ruleEdits.filter((edit) => edit.rule === CARD_PAYMENT_METHOD_RULE).length;
+  const renamed = ruleEdits.filter((edit) =>
+    PAYMENT_METHOD_RENAME_RULES.has(edit.rule ?? ''),
+  ).length;
   return names.filter(
     (name) =>
       mentions(candidate, name) <
@@ -299,6 +301,7 @@ export async function validateMigration(options: {
   generatedChecks?: GeneratedChecks;
   // --publish-unresolved: see withoutRequestParameters.
   leaveRequestParameters?: boolean;
+  keepListedPaymentMethods?: boolean;
   // --publish-unresolved: a repository-side dependency preparation failure skips the checks and
   // returns the deterministic patch as `untested` instead of throwing.
   recordDependencyFailures?: boolean;

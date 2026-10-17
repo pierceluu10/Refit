@@ -14,7 +14,12 @@ import {
   validateProviderMappings,
 } from './providers.ts';
 import { validatePropertyRenames } from './provider-renames.ts';
-import { CARD_PAYMENT_METHOD_RULE, removedRequestParameters } from './request-removals.ts';
+import {
+  CARD_PAYMENT_METHOD_RULE,
+  LISTED_PAYMENT_METHODS_RULE,
+  PAYMENT_METHOD_RENAME_RULES,
+  removedRequestParameters,
+} from './request-removals.ts';
 import {
   isShopifySnapshot,
   isShopifySnapshotFile,
@@ -77,6 +82,8 @@ async function runOpenApiPipeline(options: {
   stripePackage?: string;
   // Deterministic only: leave traced calls that send a removed request parameter unresolved.
   leaveRequestParameters?: boolean;
+  // The repository's opt-in to keep listed payment methods (`stripePaymentMethodTypes`).
+  keepListedPaymentMethods?: boolean;
   onProgress?: (message: string) => void;
 }) {
   const applicationApiVersion = validateApiVersion(options.apiVersion);
@@ -134,7 +141,9 @@ async function runOpenApiPipeline(options: {
       }
     : undefined;
   const requestRenames = validateRequestPropertyRenames(provider, before.document, after.document);
-  const parameterRemovals = removedRequestParameters(provider, before.document, after.document);
+  const parameterRemovals = removedRequestParameters(provider, before.document, after.document, {
+    keepListedPaymentMethods: options.keepListedPaymentMethods,
+  });
   const {
     edits: analyzedEdits,
     apiVersionDeclarations,
@@ -206,7 +215,7 @@ async function runOpenApiPipeline(options: {
   const patchRequested = Boolean(options.proposePatch || options.aiPatch);
   const cardUpgrade =
     patchRequested &&
-    analyzedEdits.some((edit) => edit.rule === CARD_PAYMENT_METHOD_RULE) &&
+    analyzedEdits.some((edit) => PAYMENT_METHOD_RENAME_RULES.has(edit.rule ?? '')) &&
     versionEdits.length > 0 &&
     typescript &&
     typeof targetVersion === 'string'
@@ -215,6 +224,7 @@ async function runOpenApiPipeline(options: {
   movedTo[CARD_PAYMENT_METHOD_RULE] =
     versionEdits.length > 0 &&
     (!patchRequested || !typescript || Boolean(cardUpgrade && 'upgrade' in cardUpgrade));
+  movedTo[LISTED_PAYMENT_METHODS_RULE] = movedTo[CARD_PAYMENT_METHOD_RULE];
   // The period helper reads either API version, so it does not depend on the version pin.
   const edits = analyzedEdits.filter((edit) => !isFieldMove(edit) || movedTo[edit.rule!]);
   const ruleEdits = edits.filter(isFieldMove);
