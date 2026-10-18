@@ -271,6 +271,15 @@ export function createReviewArtifacts(
       finding.changeId.startsWith('request-parameter:') &&
       !finding.requestParameter,
   );
+  // Lists of card plus other methods the repository opted to keep, as the patch writes them.
+  const listedMethods = [
+    ...new Set(
+      [...patch.diff.matchAll(/^\+.*allowed_payment_method_types['"]?\s*:\s*\[([^\]]*)\]/gm)]
+        .map((match) => [...match[1].matchAll(/['"]([^'"]+)['"]/g)].map((entry) => entry[1]))
+        .filter((methods) => methods.length > 1)
+        .map((methods) => methods.join(', ')),
+    ),
+  ];
   const request = requestChanges[0];
   const subscriptionPolicy = report.findings.some((finding) => finding.webhook?.migration)
     ? report.adapter.stripeSubscriptionPeriods
@@ -372,6 +381,10 @@ export function createReviewArtifacts(
               `Removes request field ${code('payment_method_types')}; ${code("['card']")} moves to ${code('allowed_payment_method_types')} under the owner-approved policy.`,
             ]
           : []),
+        ...listedMethods.map(
+          (methods) =>
+            `Moves ${code(`[${methods}]`)} from ${code('payment_method_types')} to ${code('allowed_payment_method_types')}, because this repository set ${code('stripePaymentMethodTypes: "keep-listed"')} in ${code('.refit.json')}.`,
+        ),
         ...operationChanges.map(
           (entry) =>
             `Retires ${code(`${entry.resource}.${entry.method}`)} in favor of ${code(`${entry.replacementResource}.${entry.replacementMethod}`)}.`,
@@ -403,6 +416,15 @@ export function createReviewArtifacts(
           `${code('allowed_payment_method_types')} filters the payment methods Stripe finds eligible instead of listing them. Before merging, confirm cards stay enabled in the Stripe Dashboard or the payment method configuration this account uses.`,
         ]
       : []),
+    ...listedMethods.map(
+      (methods) =>
+        `Stripe now filters ${code(`[${methods}]`)} by each buyer's eligibility (country, currency, amount, device), so ${summaryList(
+          methods
+            .split(', ')
+            .filter((method) => method !== 'card')
+            .map(code),
+        )} may no longer be offered to some customers. Before merging, confirm they still appear where you rely on them.`,
+    ),
     ...(subscriptionPolicy
       ? [
           `Selects subscription periods from the single item priced ${code(subscriptionPolicy.priceId)}, keyed on the signed event ${code('api_version')}.`,

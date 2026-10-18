@@ -67,6 +67,8 @@ const { values } = parseArgs({
     'publish-unresolved': { type: 'boolean' },
     // <dir>/<owner__repo> is the `types` directory of the stripe package that repository uses.
     'stripe-package': { type: 'string' },
+    // What-if runs: every repository opts in to keep listed payment methods.
+    'keep-listed-payment-methods': { type: 'boolean' },
   },
 });
 if (!values.root || !values.output) throw new PipelineInputError(USAGE);
@@ -170,6 +172,7 @@ async function benchmark(entry: Selected, index: number) {
     ...(values['stripe-package']
       ? { stripePackage: join(resolve(values['stripe-package']), entry.repo.replace('/', '__')) }
       : {}),
+    ...(values['keep-listed-payment-methods'] ? { keepListedPaymentMethods: true } : {}),
   };
   const webhookFiles = new Set(
     repository.files
@@ -298,7 +301,7 @@ async function benchmark(entry: Selected, index: number) {
     const config = join(work, 'run.json');
     await writeFile(
       config,
-      `${JSON.stringify({ formatVersion: 1, repository: directory, apiVersion: entry.before, before, after, providerConfig: adapterPath, image: 'node:22-alpine', prepareDependencies: true, command, ...(result.checks === 'typecheck' ? { compareTypeErrors: true } : {}), ...(generatedChecks ? { generatedChecks } : {}) }, null, 2)}\n`,
+      `${JSON.stringify({ formatVersion: 1, repository: directory, apiVersion: entry.before, before, after, providerConfig: adapterPath, image: 'node:22-alpine', prepareDependencies: true, command, ...(result.checks === 'typecheck' ? { compareTypeErrors: true } : {}), ...(generatedChecks ? { generatedChecks } : {}), ...(values['keep-listed-payment-methods'] ? { stripePaymentMethodTypes: 'keep-listed' } : {}) }, null, 2)}\n`,
     );
     const bundle = join(work, 'run');
     const validationStarted = Date.now();

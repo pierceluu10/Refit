@@ -146,6 +146,7 @@ async function watchLocalOnce(
           ? { generatedChecks: configuration.generatedChecks }
           : {}),
         ...(configuration.compareTypeErrors ? { compareTypeErrors: true } : {}),
+        ...(configuration.keepListedPaymentMethods ? { keepListedPaymentMethods: true } : {}),
         command: configuration.command,
         baselineCommand: configuration.baselineCommand,
         fullDiff: configuration.fullDiff,

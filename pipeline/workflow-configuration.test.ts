@@ -257,3 +257,19 @@ it('allows a checkout-free configuration but requires explicit App syncing befor
     code: 'ENOENT',
   });
 });
+
+it('accepts only the keep-listed payment method opt-in', async () => {
+  const { path, configuration } = await setup();
+  expect((await readWorkflowConfiguration(path)).keepListedPaymentMethods).toBeUndefined();
+  await writeFile(
+    path,
+    JSON.stringify({ ...configuration, stripePaymentMethodTypes: 'keep-listed' }),
+  );
+  expect((await readWorkflowConfiguration(path)).keepListedPaymentMethods).toBe(true);
+  for (const value of [true, 'drop', 'keep-listed ', null]) {
+    await writeFile(path, JSON.stringify({ ...configuration, stripePaymentMethodTypes: value }));
+    await expect(readWorkflowConfiguration(path)).rejects.toThrow(
+      'stripePaymentMethodTypes accepts only "keep-listed"',
+    );
+  }
+});

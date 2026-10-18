@@ -109,6 +109,7 @@ try {
       prepareDependencies: values['prepare-dependencies'] ?? configuration?.prepareDependencies,
       generatedChecks: configuration?.generatedChecks,
       compareTypeErrors: configuration?.compareTypeErrors,
+      keepListedPaymentMethods: configuration?.keepListedPaymentMethods,
       command,
       baselineCommand:
         values['baseline-command'] !== undefined

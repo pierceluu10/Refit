@@ -16,7 +16,11 @@ import type { OperationReplacement } from './provider-operation-replacements.ts'
 import type { RequestPropertyRename } from './provider-request-renames.ts';
 import type { PropertyMove } from './provider-renames.ts';
 import { removedParameterProperty, requestPropertyEdit } from './request-migration.ts';
-import { CARD_PAYMENT_METHOD_RULE, type RequestParameterRemoval } from './request-removals.ts';
+import {
+  CARD_PAYMENT_METHOD_RULE,
+  LISTED_PAYMENT_METHODS_RULE,
+  type RequestParameterRemoval,
+} from './request-removals.ts';
 import { StripeTypes } from './stripe-types.ts';
 import {
   subscriptionPeriodEdit,
@@ -877,17 +881,28 @@ export function analyzeRepository(
       const property = removedParameterProperty(node, removal);
       if (!property) continue;
       const confirmed = !unsafe.has(clientBinding(call.client)!) && !call.optional;
-      // Only the exact literal `['card']` has a reviewed replacement; run.ts keeps the edit only
-      // with the API version bump (and, for TypeScript, the SDK upgrade) in the same patch.
-      if (
-        confirmed &&
-        removal.cardReplacement &&
+      // Only the exact literal `['card']` has a reviewed replacement, and, where the repository
+      // opted in, a literal list of `card` plus other distinct methods (never `card_present`).
+      // run.ts keeps the edit only with the API version bump (and, for TypeScript, the SDK
+      // upgrade) in the same patch.
+      const methods =
         ts.isPropertyAssignment(property) &&
         ts.isArrayLiteralExpression(property.initializer) &&
-        property.initializer.elements.length === 1 &&
-        ts.isStringLiteralLike(property.initializer.elements[0]) &&
-        property.initializer.elements[0].text === 'card'
-      ) {
+        property.initializer.elements.every(ts.isStringLiteralLike)
+          ? property.initializer.elements.map((element) => (element as ts.StringLiteralLike).text)
+          : undefined;
+      const rule =
+        methods?.length === 1 && methods[0] === 'card'
+          ? CARD_PAYMENT_METHOD_RULE
+          : removal.keepListed &&
+              methods &&
+              methods.length > 1 &&
+              methods.includes('card') &&
+              !methods.includes('card_present') &&
+              new Set(methods).size === methods.length
+            ? LISTED_PAYMENT_METHODS_RULE
+            : undefined;
+      if (confirmed && removal.cardReplacement && rule && ts.isPropertyAssignment(property)) {
         const quote = ts.isStringLiteral(property.name) ? property.name.getText()[0] : '';
         edits.push({
           file: location(property).file,
@@ -895,7 +910,7 @@ export function analyzeRepository(
           end: property.name.getEnd(),
           replacement: `${quote}${removal.cardReplacement}${quote}`,
           changeId: removal.id,
-          rule: CARD_PAYMENT_METHOD_RULE,
+          rule,
         });
       }
       findings.push({

@@ -25,6 +25,7 @@ const CONFIGURATION_KEYS = new Set([
   'prepareDependencies',
   'compareTypeErrors',
   'generatedChecks',
+  'stripePaymentMethodTypes',
 ]);
 const GENERATED_CHECK_KEYS = 'afterFixtures,beforeFixtures,stripeMockImage';
 
@@ -136,6 +137,14 @@ function parseSingleWorkflowConfiguration(value: Record<string, unknown>, path: 
     throw new PipelineInputError('Run configuration prepareDependencies must be a boolean.');
   if (value.compareTypeErrors !== undefined && typeof value.compareTypeErrors !== 'boolean')
     throw new PipelineInputError('Run configuration compareTypeErrors must be a boolean.');
+  // The repository owner's opt-in to keep listed payment methods (docs/STRIPE-PAYMENT-METHOD-TYPES.md).
+  if (
+    value.stripePaymentMethodTypes !== undefined &&
+    value.stripePaymentMethodTypes !== 'keep-listed'
+  )
+    throw new PipelineInputError(
+      'Run configuration stripePaymentMethodTypes accepts only "keep-listed".',
+    );
   if ((value.after !== undefined) === Boolean(value.latestStripe))
     throw new PipelineInputError(
       'Run configuration requires exactly one of after or latestStripe.',
@@ -177,6 +186,7 @@ function parseSingleWorkflowConfiguration(value: Record<string, unknown>, path: 
     fullDiff: value.fullDiff as boolean | undefined,
     ...(value.prepareDependencies ? { prepareDependencies: true } : {}),
     ...(value.compareTypeErrors ? { compareTypeErrors: true } : {}),
+    ...(value.stripePaymentMethodTypes ? { keepListedPaymentMethods: true } : {}),
     ...(isObject(generated)
       ? {
           generatedChecks: {

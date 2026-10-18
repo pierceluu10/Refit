@@ -1,6 +1,6 @@
 # Stripe `payment_method_types` in endive: proposed policy
 
-**Status: approved by the owner on 2026-10-16 and implemented for case A only.** Cases B and C keep stopping for review, and Refit never drops the parameter.
+**Status: approved by the owner on 2026-10-16 and implemented for case A only.** Cases B and C keep stopping for review, and Refit never drops the parameter. A per-repository opt-in for case B is [proposed](#proposed-2026-10-17-a-repository-opt-in-for-case-b-awaiting-owner-sign-off) and awaits sign-off.
 
 ## The change
 
@@ -61,6 +61,18 @@ The same rename would keep the methods listed. But dynamic eligibility can hide 
 | Valid calls already proved these methods are activated and compatible. | Filtering by buyer is invisible in tests, typecheck and `stripe-mock`. |
 
 Optional middle ground: rename case B too, but list it under "please check" with each method that may now be filtered. I recommend keeping the stop until a customer asks for it.
+
+#### Proposed 2026-10-17: a repository opt-in for case B (awaiting owner sign-off)
+
+The default stays the decision above. A repository whose owner wants the middle ground asks for it in `.refit.json`:
+
+```json
+{ "stripePaymentMethodTypes": "keep-listed" }
+```
+
+Only the string `"keep-listed"` is accepted; any other value is a configuration error. With the opt-in, a literal list of distinct string methods that includes `card`, but not `card_present`, moves to `allowed_payment_method_types` with the same methods. Every case A gate applies unchanged: a confirmed traced call on one of the three operations, the endive pin moved in the same patch, the stripe-node upgrade for TypeScript, and no other stop. Case C, computed lists, spreads, duplicates and lists without `card` keep stopping. The patch warning and the draft PR name each non-card method and say it may no longer be offered to some buyers, by country, currency, amount or device. Refit still never drops the parameter or merges.
+
+In the 82 benchmark repositories still stopped on this parameter at `7238e46`, a source scan of the pinned clones found literal case B lists in 25: `['card', 'paypal']` in 19, and one each of `card` with `link`, `link`+`paypal`, `cashapp`, `us_bank_account`, `paypal`+`us_bank_account` and `boleto`. One repository sends `card_present` and one a computed value. The other 56 send only `['card']` and stop for other reasons: no literal pin, an SDK that could not be upgraded, or a call site Refit did not trace.
 
 ### Case C: Terminal `card_present` (decided: keep stopping)
 

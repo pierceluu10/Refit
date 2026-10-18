@@ -14,6 +14,9 @@ export interface RequestParameterRemoval {
   argumentIndex: number;
   // An owner-approved replacement for exactly `['card']` (docs/STRIPE-PAYMENT-METHOD-TYPES.md).
   cardReplacement?: string;
+  // The repository opted in (`stripePaymentMethodTypes: "keep-listed"`) to keep a literal list of
+  // `card` plus other methods under the replacement too.
+  keepListed?: boolean;
 }
 
 // Why Refit leaves a removed parameter for the owner, shown in [Needs review] drafts.
@@ -25,6 +28,12 @@ export const REMOVED_PARAMETER_NOTES: Record<string, string> = {
 };
 
 export const CARD_PAYMENT_METHOD_RULE = 'stripe-card-allowed-payment-method-types';
+export const LISTED_PAYMENT_METHODS_RULE = 'stripe-listed-allowed-payment-method-types';
+// Both renames ride with the endive pin and, for TypeScript, the stripe-node upgrade.
+export const PAYMENT_METHOD_RENAME_RULES = new Set<string>([
+  CARD_PAYMENT_METHOD_RULE,
+  LISTED_PAYMENT_METHODS_RULE,
+]);
 const CARD_REPLACEMENT = 'allowed_payment_method_types';
 const CARD_OPERATIONS = new Set(['PostCheckoutSessions', 'PostPaymentIntents', 'PostSetupIntents']);
 
@@ -65,6 +74,7 @@ export function removedRequestParameters(
   provider: ProviderAdapter,
   before: Record<string, unknown>,
   after: Record<string, unknown>,
+  options: { keepListedPaymentMethods?: boolean } = {},
 ): RequestParameterRemoval[] {
   const operations = (document: Record<string, unknown>) =>
     new Map(
@@ -96,7 +106,10 @@ export function removedRequestParameters(
           parameter === 'payment_method_types' &&
           CARD_OPERATIONS.has(mapping.operationId!) &&
           current.has(CARD_REPLACEMENT)
-            ? { cardReplacement: CARD_REPLACEMENT }
+            ? {
+                cardReplacement: CARD_REPLACEMENT,
+                ...(options.keepListedPaymentMethods ? { keepListed: true } : {}),
+              }
             : {}),
         });
   }
