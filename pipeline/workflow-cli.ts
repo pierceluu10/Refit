@@ -1,4 +1,5 @@
 import { parseArgs } from 'node:util';
+import { slackNotifier } from './slack.ts';
 import { randomUUID } from 'node:crypto';
 import { tmpdir } from 'node:os';
 import { basename, dirname, join, resolve } from 'node:path';
@@ -96,6 +97,7 @@ try {
       throw new PipelineInputError('--github, --base and --github-app require --publish-draft.');
     const specificationOverride =
       values.after !== undefined || values['latest-stripe'] !== undefined;
+    const slack = slackNotifier(process.env);
     const result = await runWorkflow({
       repository,
       integration: configuration?.integration,
@@ -135,6 +137,7 @@ try {
         : undefined,
       // Alone, it saves [Needs review] artifacts that a later publication can use.
       ...(values['publish-unresolved'] ? { allowUnresolved: true } : {}),
+      ...(slack ? { notify: { send: slack } } : {}),
       onProgress: values.quiet ? undefined : (message) => console.error(`[refit] ${message}`),
     });
     console.log(

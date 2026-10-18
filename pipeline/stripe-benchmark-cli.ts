@@ -19,6 +19,10 @@ import { githubAppConfiguration } from './github-app.ts';
 import { publicationConfiguration, publishDraft } from './publication.ts';
 import { PipelineInputError, type Repository } from './types.ts';
 
+// Benchmark runs never send Slack notices.
+const CHILD_ENV = { ...process.env };
+delete CHILD_ENV.REFIT_SLACK_WEBHOOK_URL;
+
 const execute = promisify(execFile);
 const USAGE =
   'Usage: npm run benchmark:stripe -- --root <benchmark-dir> --output <new-dir> [--env .env] [--ai] [--validate] [--offset N] [--limit N] [--concurrency N] [--stripe-package <dir>] [--publish <github-org> [--publish-unresolved]]';
@@ -321,7 +325,7 @@ async function benchmark(entry: Selected, index: number) {
           '--quiet',
           '--json',
         ],
-        { env: process.env, timeout: VALIDATION_TIMEOUT_MS, maxBuffer: 64 * 1024 * 1024 },
+        { env: CHILD_ENV, timeout: VALIDATION_TIMEOUT_MS, maxBuffer: 64 * 1024 * 1024 },
       );
     } catch {
       // Non-zero exits are recorded outcomes (needs-review, validation-failed, error).

@@ -1,4 +1,5 @@
 import { parseArgs } from 'node:util';
+import { slackNotifier } from './slack.ts';
 import { resolve } from 'node:path';
 import { setTimeout } from 'node:timers/promises';
 import { watchOnce } from './watch.ts';
@@ -100,6 +101,7 @@ try {
     )
       throw new PipelineInputError('Choose one specification source.');
     const configuration = await readWorkflowConfiguration(values.config, values.integration);
+    const slack = slackNotifier(process.env);
     const documentationSources = (values['documentation-source'] ?? []).map((entry) => {
       const separator = entry.indexOf('=');
       if (separator < 1)
@@ -129,6 +131,7 @@ try {
             configuration: {
               ...configuration,
               repository: values.repository ?? configuration.repository,
+              ...(slack ? { notify: { send: slack } } : {}),
               apiVersionPolicy:
                 values['api-version-policy'] === undefined
                   ? configuration.apiVersionPolicy

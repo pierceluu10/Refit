@@ -40,6 +40,8 @@ Run `refit agents` to detect the provider SDKs a repository uses and `refit agen
 
 Run `refit deadlines --repository /path/to/repo` to list the API versions and models a repository pins that a provider has scheduled to retire (Shopify Admin API, Meta Graph API and OpenAI models), with `file:line` evidence and days left. `--json` gives machine output. `--fail-within <days>` makes it a CI check that exits 2 when a live exposure is past due or within that many days, with reviewed, expiring exceptions in `.refit-deadlines-ignore.json`. `refit deadlines --check-registry` validates the reviewed registry in `data/deadlines.json`. `refit serve --deadline-alerts` can also open one GitHub issue per enrolled repository and deadline; it is off by default. See [API deadlines](DEADLINES.md).
 
+Set `REFIT_SLACK_WEBHOOK_URL` to post one Slack line when a validated draft PR is created, and an `[URGENT]` line for a regression, a publication that failed partway or a deadline alert 7 days or less before the date or after it. See [Slack notifications](SLACK.md).
+
 Pass `--env .env` to any command to load environment variables explicitly, including with an installed `refit` executable. Existing environment values take precedence. Refit does not automatically load files from the scanned repository. Keep credentials outside committed configuration files.
 
 ```sh

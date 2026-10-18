@@ -1,4 +1,5 @@
 import { parseArgs } from 'node:util';
+import { slackNotifier } from './slack.ts';
 import { assessmentConfiguration } from './assessment.ts';
 import { DEFAULT_LEAD_DAYS, parseLeadDays } from './deadline-alerts.ts';
 import { githubAppConfiguration } from './github-app.ts';
@@ -84,6 +85,7 @@ try {
         repairAttempts: Number(values['repair-attempts'] ?? 0),
         publishDraft: values['publish-draft'],
         deadlineAlerts,
+        notify: slackNotifier(process.env),
         signal: controller.signal,
         onReady: (url) => console.error(`[refit] Listening at ${url}; webhook: /github/webhook`),
         onProgress: (message) => console.error(`[refit] ${terminalText(message)}`),

@@ -1,4 +1,5 @@
 import { timingSafeEqual } from 'node:crypto';
+import { deadlineNotice, type SlackSend } from './slack.ts';
 import { mkdir, realpath } from 'node:fs/promises';
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { join, resolve } from 'node:path';
@@ -115,6 +116,7 @@ export async function runLocalService(options: {
   publishDraft?: boolean;
   // Off unless set: opens or updates one issue per enrolled repository and registry deadline.
   deadlineAlerts?: { leadDays: readonly number[]; registry?: string | URL };
+  notify?: SlackSend;
   now?: () => Date;
   signal: AbortSignal;
   onReady?: (url: string) => void;
@@ -288,6 +290,16 @@ export async function runLocalService(options: {
                   ...change,
                 };
               });
+            const notifyDeadline = async (issue: number | null) => {
+              const notice = deadlineNotice({
+                repository,
+                title: deadlineTitle(exposure),
+                stage,
+                timing: timing(exposure.days),
+                issue,
+              });
+              if (notice) await options.notify?.(notice);
+            };
             try {
               const result = await syncDeadlineIssue({
                 request: (method, path, body) => requestGitHub(token, method, path, body),
@@ -307,6 +319,7 @@ export async function runLocalService(options: {
               options.onProgress?.(
                 `[${repository}] Deadline ${exposure.deadline.id}: issue #${result.issue} ${result.action} (${timing(exposure.days)}).`,
               );
+              await notifyDeadline(result.issue);
             } catch (error) {
               if (!(error instanceof Error)) throw error;
               await save({
@@ -317,6 +330,7 @@ export async function runLocalService(options: {
               options.onProgress?.(
                 `[${repository}] Deadline ${exposure.deadline.id}: ${error.name}: ${error.message}`,
               );
+              await notifyDeadline(null);
             }
           }
         } catch (error) {
@@ -456,6 +470,7 @@ export async function runLocalService(options: {
               aiPatch: options.aiPatch,
               repairAttempts,
               publishDraft: options.publishDraft,
+              notify: options.notify,
               retry: retryTargets.has(target.id),
               stateDirectory: join(directory, 'targets', target.id),
               onProgress: (message) => options.onProgress?.(`[${target.id}] ${message}`),
