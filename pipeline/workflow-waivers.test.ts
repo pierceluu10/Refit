@@ -83,23 +83,49 @@ it('saves an untested patch as a [Needs review] draft only with --publish-unreso
   expect(body).toContain('the repository has no committed lockfile');
   expect(publishDraft).not.toHaveBeenCalled();
 
+  const send = vi.fn(async () => {});
   const published = await runWorkflow({
     ...inputs,
     output: await output(),
     publication: { repository: 'o/r', base: 'main', token: 'unused', allowUnresolved: true },
+    notify: { send },
   });
   expect(published.manifest).toMatchObject({ status: 'draft-created' });
   expect(publishDraft).toHaveBeenCalledOnce();
+  expect(send).toHaveBeenCalledExactlyOnceWith(
+    '✅ o/r: validated fix, draft PR ready https://github.com/o/r/pull/1',
+  );
 });
 
-it('never saves or publishes a regression, even with --publish-unresolved', async () => {
-  vi.mocked(validateMigration).mockResolvedValue(await untested('regression'));
+it('sends an [URGENT] notice when publication fails partway', async () => {
+  vi.mocked(validateMigration).mockResolvedValue(await untested());
+  vi.mocked(publishDraft).mockRejectedValueOnce(new Error('GitHub returned HTTP 502.'));
+  const send = vi.fn(async () => {});
   const result = await runWorkflow({
     ...inputs,
     output: await output(),
     publication: { repository: 'o/r', base: 'main', token: 'unused', allowUnresolved: true },
+    notify: { send },
+  });
+  expect(result.manifest).toMatchObject({ status: 'error', stage: 'publication' });
+  expect(send).toHaveBeenCalledExactlyOnceWith(
+    '🚨 [URGENT] o/r: publication failed partway (GitHub returned HTTP 502.); a remote branch or draft PR may remain, reconcile before retrying.',
+  );
+});
+
+it('never saves or publishes a regression, even with --publish-unresolved', async () => {
+  vi.mocked(validateMigration).mockResolvedValue(await untested('regression'));
+  const send = vi.fn(async () => {});
+  const result = await runWorkflow({
+    ...inputs,
+    output: await output(),
+    publication: { repository: 'o/r', base: 'main', token: 'unused', allowUnresolved: true },
+    notify: { send },
   });
   expect(result.manifest).toMatchObject({ status: 'validation-failed' });
   expect(result.manifest).not.toHaveProperty('waivedGates');
   expect(publishDraft).not.toHaveBeenCalled();
+  expect(send).toHaveBeenCalledExactlyOnceWith(
+    "🚨 [URGENT] o/r: the patch breaks the repository's own checks (regression); not published.",
+  );
 });

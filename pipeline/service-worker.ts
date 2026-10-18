@@ -5,6 +5,7 @@ import { publicationConfiguration } from './publication.ts';
 import { loadApprovedRepository } from './repository-enrollment.ts';
 import type { ServiceTarget } from './service-configuration.ts';
 import { PipelineInputError } from './types.ts';
+import type { SlackSend } from './slack.ts';
 import { watchOnce } from './watch.ts';
 import { join } from 'node:path';
 
@@ -17,6 +18,7 @@ export async function pollServiceTarget(options: {
   repairAttempts: number;
   publishDraft?: boolean;
   retry?: boolean;
+  notify?: SlackSend;
   onProgress?: (message: string) => void;
 }) {
   const { target } = options;
@@ -28,6 +30,7 @@ export async function pollServiceTarget(options: {
     publication: options.publishDraft
       ? publicationConfiguration(target.repository, target.base, undefined, options.app)
       : undefined,
+    ...(options.notify ? { notify: { send: options.notify, repository: target.repository } } : {}),
   };
   if (target.workflow)
     return watchOnce({
