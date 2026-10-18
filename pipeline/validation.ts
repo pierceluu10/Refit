@@ -37,7 +37,13 @@ import {
   type GeneratedChecks,
 } from './generated-checks.ts';
 import { codeDiff, PACKAGE_FILES, packageDiff } from './stripe-package-upgrade.ts';
-import { compactPatch } from './patches.ts';
+import { compactPatch, renderPatch } from './patches.ts';
+import {
+  crossesOpenEnums,
+  OPEN_ENUM_REPAIR,
+  OPEN_ENUM_RULE,
+  openEnumRepair,
+} from './stripe-open-enums.ts';
 import { SUBSCRIPTION_PERIOD_RULE } from './stripe-subscription-periods.ts';
 import {
   dockerSandboxArguments,
@@ -629,6 +635,62 @@ export async function validateMigration(options: {
           : 'baseline-failed',
       error: null,
     };
+    // stripe-node 22.4.0 widened open response enums with OtherString. Before any AI repair, a
+    // deterministic repair restores their known literals where the upgraded types reject them; it
+    // is kept only when every introduced error is that shape and the checks then pass.
+    const sdkUpgrade =
+      'sdkUpgrade' in report.patch
+        ? (report.patch.sdkUpgrade as { from?: string; to?: string } | undefined)
+        : undefined;
+    const openEnumFiles =
+      baseline.status === 'passed' &&
+      patched.status === 'failed' &&
+      options.compareTypeErrors &&
+      candidateSources &&
+      sdkUpgrade?.from &&
+      sdkUpgrade.to &&
+      crossesOpenEnums(sdkUpgrade.from, sdkUpgrade.to)
+        ? openEnumRepair(candidateSources.files, introducedTypeErrors(baselineRun, patched))
+        : undefined;
+    if (openEnumFiles?.length && candidateSources) {
+      const current = new Map(candidateSources.files.map((file) => [file.path, file.content]));
+      const diff =
+        proposal.diff +
+        renderPatch(
+          {
+            ...candidateSources,
+            files: openEnumFiles.map((file) => ({
+              path: file.path,
+              content: current.get(file.path)!,
+            })),
+          },
+          openEnumFiles.map((file) => ({
+            file: file.path,
+            start: 0,
+            end: current.get(file.path)!.length,
+            replacement: file.content,
+            changeId: OPEN_ENUM_RULE,
+          })),
+        );
+      options.onProgress?.(
+        'Restoring stripe-node open-enum literals; running checks in offline Docker...',
+      );
+      const prepared = await prepareCandidate(diff);
+      const check = compared(
+        await containerCheck(prepared.directory, image, options.command, prepared.dependencies),
+      );
+      if (check.status === 'passed') {
+        proposal = { ...proposal, diff };
+        publicationFiles = prepared.publicationFiles;
+        candidateDirectory = prepared.directory;
+        candidateSources = prepared.sources;
+        candidateDependencies = prepared.dependencies;
+        candidateEnvironment = prepared.environment;
+        patched = check;
+        recordAttempt();
+        repair.stopReason = OPEN_ENUM_REPAIR;
+      }
+    }
     while (
       baseline.status === 'passed' &&
       patched.status === 'failed' &&

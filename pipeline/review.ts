@@ -8,6 +8,7 @@ import type { validateMigration } from './validation.ts';
 import { INTEGRATION_MARKER, migrationIdentity } from './migration-identity.ts';
 import type { publicationWaiver } from './publication.ts';
 import { REMOVED_PARAMETER_NOTES } from './request-removals.ts';
+import { OPEN_ENUM_REPAIR } from './stripe-open-enums.ts';
 
 type PublicationWaiver = NonNullable<ReturnType<typeof publicationWaiver>>;
 
@@ -375,6 +376,11 @@ export function createReviewArtifacts(
           (entry) =>
             `Retires ${code(`${entry.resource}.${entry.method}`)} in favor of ${code(`${entry.replacementResource}.${entry.replacementMethod}`)}.`,
         ),
+        ...(validation.repair?.stopReason === OPEN_ENUM_REPAIR
+          ? [
+              `Restores the known values of the Stripe enums that stripe-node 22.4.0 widened with ${code('OtherString')}, using ${code('Extract<…>')} types where the upgraded types rejected this code. Runtime code is unchanged: a value Stripe adds later still reaches this code unchecked, as it did before the upgrade.`,
+            ]
+          : []),
       ];
   const review = [
     ...(shopify?.deprecated ?? []).map(

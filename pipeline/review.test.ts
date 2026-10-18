@@ -287,3 +287,13 @@ it('creates a private bundle and refuses to replace any existing bundle', async 
     expect((await stat(join(destination, 'report.json'))).mode & 0o777).toBe(0o600);
   }
 });
+
+it('says when the open-enum repair restored widened Stripe enum values', async () => {
+  const value = await report();
+  const plain = createReviewArtifacts(value).files['pull-request.md'];
+  expect(plain).not.toContain('OtherString');
+  value.validation.repair.stopReason = 'open-enum-repair';
+  expect(createReviewArtifacts(value).files['pull-request.md']).toContain(
+    'Restores the known values of the Stripe enums that stripe-node 22.4.0 widened with `OtherString`',
+  );
+});
