@@ -107,11 +107,59 @@ ${read('getStripe(false)')}`,
   expect(result.findings.filter((entry) => entry.confidence === 'confirmed')).toEqual([]);
 });
 
-it('does not trace an async factory', () => {
+it.each([
+  [
+    'an awaited async factory',
+    `export async function getStripe() { return new Stripe('key', ${options}); }`,
+  ],
+  [
+    'an async lazy holder that awaits its key',
+    `let client: Stripe | undefined;
+async function secret() { return 'key'; }
+export async function getStripe() {
+  if (!client) { const key = await secret(); client = new Stripe(key, ${options}); }
+  return client;
+}`,
+  ],
+  ['an async arrow factory', `export const getStripe = async () => new Stripe('key', ${options});`],
+])('traces %s with its literal version', (_name, factory) => {
+  const result = analyze({
+    'client.ts': `import Stripe from 'stripe';\n${factory}`,
+    'billing.ts': `import { getStripe } from './client.ts';
+export async function history() { const stripe = await getStripe(); const intent = await stripe.paymentIntents.retrieve('pi'); return intent.charges.data; }`,
+    'inline.ts': `import { getStripe } from './client.ts';\n${read('(await getStripe())')}`,
+  });
+  expect(result.findings).toMatchObject([
+    { file: 'billing.ts', confidence: 'confirmed' },
+    { file: 'inline.ts', confidence: 'confirmed' },
+  ]);
+  expect(result.apiVersionDeclarations.filter((entry) => entry.kind === 'constructor')).toEqual([
+    expect.objectContaining({ status: 'literal', value: ORIGINAL }),
+  ]);
+});
+
+it.each([
+  ['its promise is stored', `const pending = getStripe(); export { pending };`],
+  [
+    'its promise is passed on',
+    `export function later(use: (p: unknown) => void) { use(getStripe()); }`,
+  ],
+  ['it is called optionally', `export async function maybe() { return await getStripe?.(); }`],
+])('does not trace an async factory when %s', (_name, extra) => {
   const result = analyze({
     'billing.ts': `import Stripe from 'stripe';
 export async function getStripe() { return new Stripe('key', ${options}); }
+${extra}
 export async function history() { const intent = await (await getStripe()).paymentIntents.retrieve('pi'); return intent.charges.data; }`,
+  });
+  expect(result.findings.filter((entry) => entry.confidence === 'confirmed')).toEqual([]);
+});
+
+it('does not treat an unawaited async factory call as the client', () => {
+  const result = analyze({
+    'billing.ts': `import Stripe from 'stripe';
+export async function getStripe() { return new Stripe('key', ${options}); }
+export async function history() { const stripe: any = getStripe(); const intent = await stripe.paymentIntents.retrieve('pi'); return intent.charges.data; }`,
   });
   expect(result.findings.filter((entry) => entry.confidence === 'confirmed')).toEqual([]);
 });
