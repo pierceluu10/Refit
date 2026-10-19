@@ -53,7 +53,7 @@ await getStripe().subscriptions.retrieve(id);
 
 The factory may be a function declaration or a `const` arrow or function expression, with any parameters; it may throw. A module `let` holder counts only when every assignment to it is a client or `null`/`undefined` (`=`, `??=`, `||=`), and `return client ?? (client = new Stripe(...))` works too. `const stripe = key ? new Stripe(key) : null` is a client as well. Each constructor behind a factory declares that factory's API version, so a literal `apiVersion` is read and bumped as for a direct client. `stripe!.customers.create(...)` traces like `stripe.customers.create(...)`.
 
-A factory stays a review case when it is `async` or a generator, returns anything else on any path, is reassigned, or its holder is written any other way (destructuring, `++`, a non-client value).
+An `async` factory counts when every call to it is awaited at once (`const stripe = await getStripe()`, `(await getStripe()).customers.create(...)`), including one that awaits its key before filling a lazy holder. If any call stores, returns or passes the promise, or calls it optionally, the whole factory stays a review case. A factory also stays a review case when it is a generator, returns anything else on any path, is reassigned, or its holder is written any other way (destructuring, `++`, a non-client value).
 
 ## Boundaries
 
