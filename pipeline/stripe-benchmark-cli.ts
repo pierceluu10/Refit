@@ -19,10 +19,6 @@ import { githubAppConfiguration } from './github-app.ts';
 import { publicationConfiguration, publishDraft } from './publication.ts';
 import { PipelineInputError, type Repository } from './types.ts';
 
-// Benchmark runs never send Slack notices.
-const CHILD_ENV = { ...process.env };
-delete CHILD_ENV.REFIT_SLACK_WEBHOOK_URL;
-
 const execute = promisify(execFile);
 const USAGE =
   'Usage: npm run benchmark:stripe -- --root <benchmark-dir> --output <new-dir> [--env .env] [--ai] [--validate] [--offset N] [--limit N] [--concurrency N] [--stripe-package <dir>] [--publish <github-org> [--publish-unresolved]]';
@@ -75,6 +71,9 @@ if (!values.root || !values.output) throw new PipelineInputError(USAGE);
 if (values.publish && !values.validate)
   throw new PipelineInputError('--publish needs --validate: only validated runs are published.');
 if (values.env) process.loadEnvFile(values.env);
+// Copied after --env loads, so children get its keys. Benchmark runs never send Slack notices.
+const CHILD_ENV = { ...process.env };
+delete CHILD_ENV.REFIT_SLACK_WEBHOOK_URL;
 const root = resolve(values.root);
 const output = resolve(values.output);
 const ai = values.ai ? assessmentConfiguration(true, process.env)! : undefined;
