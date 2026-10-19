@@ -232,3 +232,42 @@ it('trusts a client created inside a callback passed to an unknown function, but
     export const pay = action({ handler: () => { (stripe as any).config = {}; } });`),
   ).toEqual(['unknown']);
 });
+
+it.each([
+  ['an object or undefined', '{ stripeAccount: account }', 'undefined', 'absent'],
+  [
+    'two objects without the option',
+    '{ stripeAccount: account }',
+    '{ idempotencyKey: key }',
+    'absent',
+  ],
+  ['a branch that sets the option', `{ apiVersion: '${CHANGED}' }`, 'undefined', 'unknown'],
+  ['a branch from a call', 'options()', 'undefined', 'unknown'],
+  ['a shadowed undefined', '{ stripeAccount: account }', 'undefined', 'unknown'],
+])('reads conditional request options choosing %s', (name, whenTrue, whenFalse, expected) => {
+  const shadow =
+    name === 'a shadowed undefined' ? 'const undefined = { apiVersion: account };\n' : '';
+  const repository: Repository = {
+    root: '/refit-version-fixture',
+    files: [
+      {
+        path: 'application.ts',
+        content: `${prefix}
+const stripe = new Stripe('key');
+declare const account: string | undefined;
+declare const key: string;
+declare function options(): object;
+export async function charge() {
+  ${shadow}return stripe.paymentIntents.create({ amount: 100 }, account ? ${whenTrue} : ${whenFalse});
+}`,
+      },
+    ],
+    dependencies: [],
+    lockfiles: [],
+    warnings: [],
+  };
+  const request = analyzeRepository(repository, [], STRIPE).apiVersionDeclarations.find(
+    (entry) => entry.kind === 'request',
+  );
+  expect(request?.status).toBe(expected === 'absent' ? 'inherited' : 'unknown');
+});

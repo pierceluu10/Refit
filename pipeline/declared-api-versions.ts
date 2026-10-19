@@ -82,6 +82,21 @@ export function declaredApiVersions(options: {
     path: string[],
     seen = new Set<ts.Symbol>(),
   ): PropertyResult {
+    // `account ? { stripeAccount: account } : undefined` sets nothing unless a branch does.
+    const current = unwrap(expression);
+    if (ts.isConditionalExpression(current)) {
+      const branches = [current.whenTrue, current.whenFalse].map((branch) => {
+        const value = unwrap(branch);
+        return ts.isIdentifier(value) &&
+          value.text === 'undefined' &&
+          !symbol(value)?.valueDeclaration
+          ? ({ status: 'absent' } as const)
+          : property(branch, path, seen);
+      });
+      return branches.every((branch) => branch.status === 'absent')
+        ? { status: 'absent' }
+        : { status: 'unknown' };
+    }
     const object = resolve(expression, seen);
     if (!object || !ts.isObjectLiteralExpression(object)) return { status: 'unknown' };
     const candidates = object.properties.filter((entry) => {
