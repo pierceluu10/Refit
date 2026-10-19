@@ -77,11 +77,28 @@ export function declaredApiVersions(options: {
     const value = resolve(declaration.initializer, new Set([...seen, binding]));
     return value && ts.isObjectLiteralExpression(value) && unsafe.has(binding) ? undefined : value;
   }
+  // The global `undefined`, not a local binding that shadows it.
+  function undefinedValue(expression: ts.Expression) {
+    const value = unwrap(expression);
+    return ts.isIdentifier(value) && value.text === 'undefined' && !symbol(value)?.valueDeclaration;
+  }
   function property(
     expression: ts.Expression,
     path: string[],
     seen = new Set<ts.Symbol>(),
   ): PropertyResult {
+    // `account ? { stripeAccount: account } : undefined` sets nothing unless a branch does.
+    const current = unwrap(expression);
+    if (ts.isConditionalExpression(current)) {
+      const branches = [current.whenTrue, current.whenFalse].map((branch) => {
+        return undefinedValue(branch)
+          ? ({ status: 'absent' } as const)
+          : property(branch, path, seen);
+      });
+      return branches.every((branch) => branch.status === 'absent')
+        ? { status: 'absent' }
+        : { status: 'unknown' };
+    }
     const object = resolve(expression, seen);
     if (!object || !ts.isObjectLiteralExpression(object)) return { status: 'unknown' };
     const candidates = object.properties.filter((entry) => {
@@ -110,7 +127,7 @@ export function declaredApiVersions(options: {
     value: string | null;
     node?: ts.Expression;
   } {
-    if (!expression) return { status: 'absent', value: null };
+    if (!expression || undefinedValue(expression)) return { status: 'absent', value: null };
     const result = property(expression, mapping!.property.split('.'));
     if (result.status !== 'present') return { status: result.status, value: null };
     const value = resolve(result.expression);
@@ -172,6 +189,7 @@ export function declaredApiVersions(options: {
           result.status === 'literal' && !uncertain
             ? 'Literal SDK constructor API-version option.'
             : 'Constructor version is absent or cannot be resolved through immutable local declarations.',
+        ...(result.status === 'absent' && !uncertain ? { absent: true as const } : {}),
       });
     }
     if (!ts.isCallExpression(node)) continue;

@@ -207,23 +207,42 @@ async function runOpenApiPipeline(options: {
             rule: 'stripe-api-version' as const,
           }))
       : [];
-  // The reviewed card-only rename is kept only with the target pin in the same patch and, for
-  // TypeScript, the stripe-node release whose types have allowed_payment_method_types. Without a
-  // patch request (validation preflight, scans) only the pin is checked: the registry lookup for the
-  // upgrade runs when the patch is generated, and a failed upgrade stops that run.
+  // Every client omits the version option and no request overrides it, so stripe-node 12+ sends
+  // the API version its release pins: upgrading the package is the version bump, in any language.
+  // `apiVersion: null` (the account default) is unknown, not absent, and never counts.
+  const constructors = apiVersionDeclarations.filter((entry) => entry.kind === 'constructor');
+  const sdkPinned =
+    provider.packageName === STRIPE.packageName &&
+    Boolean(applicationApiVersion) &&
+    typeof targetVersion === 'string' &&
+    targetVersion !== applicationApiVersion &&
+    constructors.length > 0 &&
+    constructors.every((entry) => entry.absent) &&
+    apiVersionDeclarations.every(
+      (entry) => entry.kind === 'constructor' || entry.status === 'inherited',
+    ) &&
+    !repository.files.some((file) => file.content.includes('setApiVersion'));
+  const bumpsVersion = versionEdits.length > 0 || sdkPinned;
   const typescript = repository.files.some((file) => /\.(?:[cm]?ts|tsx)$/.test(file.path));
+  // A client without the option follows the package's pin, so any such client needs the upgrade.
+  const upgradeRequired = typescript || constructors.some((entry) => entry.absent);
+  // The reviewed card-only rename is kept only with the target pin in the same patch and, for
+  // TypeScript or an SDK-pinned version, the stripe-node release whose types have
+  // allowed_payment_method_types. Without a patch request (validation preflight, scans) only the
+  // pin is checked: the registry lookup for the upgrade runs when the patch is generated, and a
+  // failed upgrade stops that run.
   const patchRequested = Boolean(options.proposePatch || options.aiPatch);
   const cardUpgrade =
     patchRequested &&
     analyzedEdits.some((edit) => PAYMENT_METHOD_RENAME_RULES.has(edit.rule ?? '')) &&
-    versionEdits.length > 0 &&
-    typescript &&
+    bumpsVersion &&
+    upgradeRequired &&
     typeof targetVersion === 'string'
       ? await stripePackageUpgrade(repository.root, targetVersion)
       : undefined;
   movedTo[CARD_PAYMENT_METHOD_RULE] =
-    versionEdits.length > 0 &&
-    (!patchRequested || !typescript || Boolean(cardUpgrade && 'upgrade' in cardUpgrade));
+    bumpsVersion &&
+    (!patchRequested || !upgradeRequired || Boolean(cardUpgrade && 'upgrade' in cardUpgrade));
   movedTo[LISTED_PAYMENT_METHODS_RULE] = movedTo[CARD_PAYMENT_METHOD_RULE];
   // The period helper reads either API version, so it does not depend on the version pin.
   const edits = analyzedEdits.filter((edit) => !isFieldMove(edit) || movedTo[edit.rule!]);
@@ -405,15 +424,16 @@ async function runOpenApiPipeline(options: {
               'This pipeline produces impact evidence. It does not modify repositories or execute their code.',
           };
   // TypeScript projects need the stripe-node release for the new API version: its apiVersion
-  // literal type and the moved fields' types. The upgrade is added only when the patch bumps the pin.
+  // literal type and the moved fields' types. An SDK-pinned version moves only with the upgrade.
+  // The upgrade is added only when the patch bumps the version.
   const bumpedVersion =
-    versionEdits.length > 0 &&
+    bumpsVersion &&
     'diff' in patch &&
     patch.status === 'proposed' &&
     'generator' in patch &&
     (patch.generator === 'openai' || (ruleEdits.length > 0 && !configuredMigrationProposal));
   const upgrade =
-    bumpedVersion && typescript && typeof targetVersion === 'string'
+    bumpedVersion && upgradeRequired && typeof targetVersion === 'string'
       ? (cardUpgrade ?? (await stripePackageUpgrade(repository.root, targetVersion)))
       : undefined;
   const upgradedPatch =

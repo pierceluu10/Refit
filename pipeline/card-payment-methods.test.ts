@@ -1,7 +1,7 @@
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { afterEach, expect, it } from 'vitest';
+import { afterEach, expect, it, vi } from 'vitest';
 import { CARD_PAYMENT_METHOD_WARNING, listedPaymentMethodWarning } from './patches.ts';
 import { createReviewArtifacts } from './review.ts';
 import { runPipeline } from './run.ts';
@@ -10,6 +10,7 @@ import { droppedRequestParameters } from './validation.ts';
 
 const directories: string[] = [];
 afterEach(async () => {
+  vi.unstubAllGlobals();
   await Promise.all(
     directories.splice(0).map((path) => rm(path, { recursive: true, force: true })),
   );
@@ -194,8 +195,93 @@ it('lets the validation preflight through without a patch request when the pin m
   const report = await run({ 'checkout.js': checkout("['card']") }, false);
   expect(report.patch).toMatchObject({ status: 'not-generated' });
   expect(report.findings[0].requestParameter).toBeUndefined();
-  const unpinned = await run({ 'checkout.js': checkout("['card']", '{}') }, false);
-  expect(unpinned.findings[0].requestParameter).toBeDefined();
+  // A client without the option follows the package's pin; the upgrade is checked with the patch.
+  const sdkPinned = await run({ 'checkout.js': checkout("['card']", '{}') }, false);
+  expect(sdkPinned.findings[0].requestParameter).toBeUndefined();
+  const accountDefault = await run(
+    { 'checkout.js': checkout("['card']", '{ apiVersion: null }') },
+    false,
+  );
+  expect(accountDefault.findings[0].requestParameter).toBeDefined();
+});
+
+// Shaped like an npm v3 lockfile on stripe-node 22 and the registry's stripe 23.0.0 metadata.
+const INTEGRITY = `sha512-${'A'.repeat(86)}==`;
+const npmProject = {
+  'package.json': `${JSON.stringify({ name: 'app', dependencies: { stripe: '^22.6.2' } }, null, 2)}\n`,
+  'package-lock.json': `${JSON.stringify(
+    {
+      name: 'app',
+      lockfileVersion: 3,
+      requires: true,
+      packages: {
+        '': { name: 'app', dependencies: { stripe: '^22.6.2' } },
+        'node_modules/stripe': {
+          version: '22.6.2',
+          resolved: 'https://registry.npmjs.org/stripe/-/stripe-22.6.2.tgz',
+          integrity: INTEGRITY,
+        },
+      },
+    },
+    null,
+    2,
+  )}\n`,
+};
+function registry() {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(
+      async () =>
+        new Response(
+          JSON.stringify({
+            name: 'stripe',
+            version: '23.0.0',
+            license: 'MIT',
+            dependencies: {},
+            engines: { node: '>=20' },
+            dist: {
+              tarball: 'https://registry.npmjs.org/stripe/-/stripe-23.0.0.tgz',
+              integrity: INTEGRITY,
+            },
+          }),
+        ),
+    ),
+  );
+}
+
+it('moves the card rename with the stripe-node upgrade when no client sets apiVersion', async () => {
+  registry();
+  const report = await run({ ...npmProject, 'checkout.js': checkout("['card']", '{}') });
+  expect(report.patch).toMatchObject({
+    status: 'proposed',
+    generator: 'deterministic',
+    sdkUpgrade: { from: '22.6.2', to: '23.0.0' },
+  });
+  if (!('diff' in report.patch)) throw new Error('Expected a patch');
+  expect(report.patch.diff).toContain('allowed_payment_method_types');
+  expect(report.patch.diff).toContain('"stripe": "^23.0.0"');
+  expect(report.patch.diff).not.toContain('apiVersion');
+  expect(report.findings[0].requestParameter).toBeUndefined();
+});
+
+it.each([
+  ['an account-default client', '{ apiVersion: null }', ''],
+  ['an old setApiVersion call', '{}', "stripe.setApiVersion('2026-08-26.dahlia');\n"],
+])('keeps stopping for review with %s', async (_case, options, extra) => {
+  registry();
+  const report = await run({ ...npmProject, 'checkout.js': checkout("['card']", options) + extra });
+  expect(report.patch).toMatchObject({ status: 'not-generated' });
+  expect(report.findings.some((finding) => finding.requestParameter)).toBe(true);
+});
+
+it('upgrades the package when a pinned and an unpinned client share a JavaScript project', async () => {
+  registry();
+  const report = await run({
+    ...npmProject,
+    'checkout.js': checkout("['card']"),
+    'other.js': checkout("['card']", '{}').replace('checkout =', 'other ='),
+  });
+  expect(report.patch).toMatchObject({ status: 'proposed', sdkUpgrade: { to: '23.0.0' } });
 });
 
 it('lets an AI repair keep the card-only renames without counting them as dropped parameters', () => {
