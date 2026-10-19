@@ -172,6 +172,7 @@ export function declaredApiVersions(options: {
           result.status === 'literal' && !uncertain
             ? 'Literal SDK constructor API-version option.'
             : 'Constructor version is absent or cannot be resolved through immutable local declarations.',
+        ...(result.status === 'absent' && !uncertain ? { absent: true as const } : {}),
       });
     }
     if (!ts.isCallExpression(node)) continue;

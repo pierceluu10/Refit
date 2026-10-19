@@ -12,6 +12,8 @@ export interface ApiVersionDeclaration extends Location {
   value: string | null;
   status: 'literal' | 'inherited' | 'unknown';
   reason: string;
+  // A safely traced constructor without the version option: stripe-node 12+ sends its own pin.
+  absent?: true;
 }
 
 export interface ApiVersionSource {
