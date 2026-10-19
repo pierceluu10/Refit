@@ -271,3 +271,25 @@ export async function charge() {
   );
   expect(request?.status).toBe(expected === 'absent' ? 'inherited' : 'unknown');
 });
+
+it('treats an undefined argument before the request options as no override', () => {
+  const repository: Repository = {
+    root: '/refit-version-fixture',
+    files: [
+      {
+        path: 'application.ts',
+        content: `${prefix}
+const stripe = new Stripe('key');
+export const charge = (id: string, account: string) =>
+  stripe.charges.retrieve(id, undefined, { stripeAccount: account });`,
+      },
+    ],
+    dependencies: [],
+    lockfiles: [],
+    warnings: [],
+  };
+  const requests = analyzeRepository(repository, [], STRIPE).apiVersionDeclarations.filter(
+    (entry) => entry.kind === 'request',
+  );
+  expect(requests.map((entry) => entry.status)).toEqual(['inherited']);
+});
