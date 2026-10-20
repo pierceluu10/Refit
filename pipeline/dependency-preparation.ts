@@ -169,6 +169,13 @@ const REPOSITORY_DEPENDENCY_FAILURES = [
       `Regenerate \`${lockfile}\` from the public npm registry so every entry records its tarball URL and integrity hash, commit it, then rerun your checks on this branch.`,
   },
   {
+    reason: 'peer-dependency-conflict',
+    pattern: /^npm dependency preparation failed[\s\S]*\bERESOLVE\b/,
+    summary: "npm rejects the committed lockfile's conflicting peer dependencies",
+    action: (lockfile: string) =>
+      `Resolve the peer dependency conflict npm reports (\`npm ci\` fails with ERESOLVE unless \`--legacy-peer-deps\` is set), commit the updated \`${lockfile}\`, then rerun your checks on this branch.`,
+  },
+  {
     reason: 'dependency-archive-limit',
     pattern: /^Dependency archive exceeds \d+ MiB/,
     summary: "the installed dependencies exceed Refit's validation sandbox limit",
@@ -250,6 +257,15 @@ async function installDependencies(
     if (timedOut)
       throw new DependencyPreparationError(
         `Dependency preparation exceeded ${timeoutSeconds} seconds. Set REFIT_DEPENDENCY_TIMEOUT_SECONDS (up to ${MAX_INSTALL_TIMEOUT_SECONDS}) for a larger dependency tree.`,
+      );
+    const { workspace } = preparationProfile();
+    if (result.code !== 0 && /\bENOSPC\b/.test(stderr))
+      throw new DependencyPreparationError(
+        `${inputs.manager} dependency preparation ran out of space in its ${workspace} workspace (ENOSPC).${
+          workspace === '4g'
+            ? ''
+            : " Yarn 1 also downloads other platforms' optional binaries. An operator can set REFIT_VALIDATION_WORKSPACE=4g (4 GiB workspace, 5 GiB container memory) on a host with memory to spare."
+        }`,
       );
     if (result.code !== 0)
       throw new DependencyPreparationError(
