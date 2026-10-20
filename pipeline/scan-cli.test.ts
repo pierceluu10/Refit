@@ -49,7 +49,8 @@ it('preserves full redirected JSON and saves it separately from a readable summa
   } finally {
     await rm(root, { recursive: true, force: true });
   }
-});
+  // Starts the CLI several times; shared CI runners can exceed the default 5s timeout.
+}, 30_000);
 
 it('refuses conflicting output formats before scanning', async () => {
   await expect(execute(process.execPath, [bin, 'scan', '--json', '--human'])).rejects.toMatchObject(

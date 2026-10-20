@@ -142,7 +142,8 @@ it('watches a committed root profile with an explicit local repository and dedup
     code: 1,
     stderr: expect.stringContaining('Choose a local --repository or --sync-github'),
   });
-});
+  // Starts the CLI several times; shared CI runners can exceed the default 5s timeout.
+}, 30_000);
 
 it.each([true, false])(
   'creates a fresh worker job for an endpoint removed after deprecation (configured replacement: %s)',
