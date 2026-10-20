@@ -87,6 +87,19 @@ const SENSITIVE_PARAMETERS: Record<string, Set<string>> = {
   ]),
   anthropic: new Set(['temperature', 'top_p', 'top_k']),
 };
+// Claude API model IDs such as `claude-opus-4-8` or `claude-haiku-4-5-20251001`.
+const CLAUDE_VERSIONED = /^claude-(?:opus|sonnet|haiku)-(\d+)(?:-(\d{1,2}))?(?:-\d{8})?$/;
+
+// Whether a replacement model is one on which Anthropic rejects non-default sampling parameters:
+// Claude 4.7 and later models, per the model deprecations page (2026-10-20). Unrecognized IDs are
+// treated as rejecting them, so the request stops for review.
+function rejectsSampling(provider: string, model: string) {
+  if (provider !== 'anthropic') return true;
+  const match = CLAUDE_VERSIONED.exec(model);
+  if (!match) return true;
+  const [major, minor] = [Number(match[1]), Number(match[2] ?? 0)];
+  return major > 4 || (major === 4 && minor >= 7);
+}
 const MODEL_ID = /^[a-z0-9][a-z0-9.-]*$/;
 const MAX_CHAIN = 8;
 
@@ -607,7 +620,8 @@ export async function proposeModelReplacements(
         .map((item) => (item.name ? propertyName(item.name) : undefined))
         .filter((name): name is string =>
           Boolean(name && SENSITIVE_PARAMETERS[request.provider].has(name)),
-        );
+        )
+        .filter(() => rejectsSampling(request.provider, resolved.to));
       const reason = !resolved.to
         ? 'The registry names no concrete replacement model ID.'
         : site.stop

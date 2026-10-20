@@ -436,3 +436,39 @@ it('stops when a helper that carries the model is passed around or spread into',
   ]);
   expect(proposal.stops[0].at).toEqual({ file: 'src/ai.ts', line: 3 });
 });
+
+// Anthropic rejects non-default temperature, top_p and top_k only on Claude 4.7 and later models,
+// so a swap to an earlier replacement keeps them.
+it('keeps Anthropic sampling parameters when the replacement predates Claude 4.7', async () => {
+  const root = await repository({
+    'src/ai.ts': [
+      "import Anthropic from '@anthropic-ai/sdk';",
+      'const anthropic = new Anthropic();',
+      "anthropic.messages.create({ model: 'claude-3-haiku-20240307', temperature: 0, max_tokens: 9, messages: [] });",
+      "anthropic.messages.create({ model: 'claude-3-opus-20240229', top_k: 5, max_tokens: 9, messages: [] });",
+    ].join('\n'),
+  });
+  const proposal = await proposeModelReplacements(
+    root,
+    {
+      formatVersion: 1,
+      deadlines: [
+        ...registry.deadlines,
+        entry({
+          id: 'anthropic-claude-3-haiku',
+          provider: 'anthropic',
+          versions: ['claude-3-haiku-20240307'],
+          date: '2026-04-20',
+          replacement: 'claude-haiku-4-5-20251001',
+        }),
+      ],
+    },
+    NOW,
+  );
+  expect(proposal.replacements.map((item) => [item.line, item.to])).toEqual([
+    [3, 'claude-haiku-4-5-20251001'],
+  ]);
+  expect(proposal.stops.map((item) => [item.line, item.reason])).toEqual([
+    [4, 'The request sets top_k, which claude-opus-4-8 may reject or treat differently.'],
+  ]);
+});
