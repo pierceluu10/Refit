@@ -39,6 +39,20 @@ export interface ServiceRegistry {
   deliveries: Record<string, { hash: string; event: string; receivedAt: string }>;
   pullRequests?: Record<string, PullRequestState>;
   deadlineAlerts?: Record<string, DeadlineAlertState>;
+  modelFixes?: Record<string, ModelFixState>;
+}
+
+// The last model replacement run for one enrolled repository, keyed `owner/repo`. A run is not
+// repeated for the same revision and patch, so checks are not rerun on every poll.
+export interface ModelFixState {
+  repository: string;
+  revision: string | null;
+  patchHash: string | null;
+  fixKey?: string | null;
+  status: string;
+  pullRequest: number | null;
+  message: string | null;
+  checkedAt: string;
 }
 export interface PullRequestState {
   repository: string;
@@ -112,6 +126,7 @@ export async function openServiceStore(
         !isObject(value.deliveries) ||
         (value.pullRequests !== undefined && !isObject(value.pullRequests)) ||
         (value.deadlineAlerts !== undefined && !isObject(value.deadlineAlerts)) ||
+        (value.modelFixes !== undefined && !isObject(value.modelFixes)) ||
         Object.keys(value.targets).sort().join(',') !==
           targets
             .map((target) => target.id)
@@ -161,6 +176,24 @@ export async function openServiceStore(
           !['opened', 'updated', 'failed'].includes(String(record.status))
         )
           throw new PipelineInputError('Service deadline alert state is invalid.');
+      for (const record of Object.values(value.modelFixes ?? {}))
+        if (
+          !isObject(record) ||
+          typeof record.repository !== 'string' ||
+          typeof record.status !== 'string' ||
+          !(record.revision === null || typeof record.revision === 'string') ||
+          !(record.patchHash === null || typeof record.patchHash === 'string') ||
+          !(
+            record.fixKey === undefined ||
+            record.fixKey === null ||
+            typeof record.fixKey === 'string'
+          ) ||
+          !(
+            record.pullRequest === null ||
+            (Number.isSafeInteger(record.pullRequest) && Number(record.pullRequest) > 0)
+          )
+        )
+          throw new PipelineInputError('Service model fix state is invalid.');
       for (const record of Object.values(value.installations))
         if (
           !isObject(record) ||
