@@ -108,6 +108,7 @@ export function syncAnthropicDeadlines(
   const changed: string[] = [];
   const updated = new Map<string, DeadlineEntry>();
   const appended: DeadlineEntry[] = [];
+  const matched = new Set<string>();
   for (const group of groups.values()) {
     const { date, replacement } = group[0];
     const models = [...new Set(group.map((row) => row.model))];
@@ -115,6 +116,13 @@ export function syncAnthropicDeadlines(
     const previous = existing.find((entry) =>
       models.some((model) => entry.versions.includes(model)),
     );
+    // One entry's models now on different dates or replacements: merging either group into it
+    // would move the other's models too, so a person splits the entry.
+    if (previous && matched.has(previous.id))
+      throw new PipelineInputError(
+        `Anthropic's page splits registry entry ${previous.id} across retirement dates or replacements; update it by hand.`,
+      );
+    if (previous) matched.add(previous.id);
     if (
       previous &&
       previous.date === date &&
