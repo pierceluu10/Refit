@@ -1,5 +1,15 @@
 # Refit implementation checkpoints
 
+## October 20 checkpoint: frozen OpenAI and Anthropic benchmarks (unreleased, after 0.39.0)
+
+`scripts/ai-sdk-select.mjs` froze 100 OpenAI and 50 Anthropic repositories: packages whose latest npm manifest declares the SDK in `dependencies`, with a GitHub repository, published since 2024-01, ranked by downloads. GitHub code search was unavailable, so this replaces the Shopify method's search step, and the sets are mostly libraries, not applications. `scripts/ai-model-benchmark.mjs` ran the deadline scan and, where a live exposure exists, the model replacement rule, capped at 2 minutes per command, from a pinned worktree at `f62bad2`. `pipeline/ai-model-validation-cli.ts` validated each proposal the way `refit serve --model-fixes` does. The Docker image was `node:22-alpine` plus this environment's proxy CA, for dependency installs only.
+
+- OpenAI: 47 of 100 repositories have a live exposure. 1 got a proposal, which is correct on hand review but too large to validate (over the 50 MiB archive limit). 1 more stopped for review, and 16 could not be scanned.
+- Anthropic: 17 of 50 have a live exposure. 1 got a proposal (6 sites), correct per the registry and validated with its `vitest` suite. 2 more stopped for review, and 17 could not be scanned. The validated script also sets extended thinking `budget_tokens`; whether `claude-sonnet-5-5` accepts it is unverified.
+- Also in this change: a swap to a pre-Claude-4.7 replacement keeps `temperature`, `top_p` and `top_k`, since Anthropic rejects them only on 4.7 and later. The rule skips analysis a repository cannot need.
+
+Most untraced exposures are catalog entries the scanner counts as live, or library defaults in class fields. On the progress checklist in [Provider goals](PROVIDER-GOALS.md#openai-and-anthropic-progress-checklist-2026-10-20) both providers are at 70%. The fix rate is far below the 70% target, and it needs an application set to be measured fairly.
+
 ## October 20 checkpoint: reviewed Meta Graph API change list (unreleased)
 
 `data/meta-graph-changes.json` now holds the Meta Graph API changelogs for v14.0 to v26.0, each read in full from developers.facebook.com on 2026-10-20 and marked `reviewed`, with 281 changes from the Graph API and Marketing API sections. Every change cites its page. The Instagram sections were checked against the Instagram Platform changelog's version-gated entries; they match except that from v14.0 the IG Media `video_title` field errors, which is recorded from that changelog. v13.0 stays `unread`: it matters only to pins older than any benchmark pin. Each version's note lists what the page holds that is not an entry: permission policy changes, error codes, transport changes, additions, and Certificate Transparency endpoints the page does not name.

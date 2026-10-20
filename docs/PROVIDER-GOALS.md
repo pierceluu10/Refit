@@ -223,6 +223,43 @@ Built-in agent, 531 benchmark repositories, **74 validated fixes of 234 affected
 
 ---
 
+## OpenAI and Anthropic: progress checklist (2026-10-20)
+
+Ten items per provider, taken from each goal's definition of done, worth 10% each.
+
+| # | Item | OpenAI | Anthropic |
+|---|---|---|---|
+| 1 | Catalog entry | Yes | Yes (`adapter: null`, see its blockers) |
+| 2 | Reviewed adapter for the calls real code makes | Yes (`chat.completions`, `responses`, `embeddings`) | Yes (`messages`) |
+| 3 | Deadline entries with `source` and `checkedAt` | Yes | Yes, kept current by `refit deadlines --sync anthropic` |
+| 4 | Deterministic replacement rule with named stops | Yes | Yes |
+| 5 | Automatic validated draft pull requests (`refit serve --model-fixes`) | Yes | Yes |
+| 6 | Frozen benchmark set | Yes, 100 repositories | Yes, 50 repositories |
+| 7 | Hand-labelled live pins | No | No |
+| 8 | At least 90% of labelled pins traced | No | No |
+| 9 | At least 70% of affected repositories with runnable checks validated | No: 0 of 47 exposed | No: 1 of 17 exposed |
+| 10 | No wrong fix on hand review | Yes: 1 of 1 | Yes: 6 of 6 sites, one parameter unverified |
+| | **Done** | **70%** | **70%** |
+
+Both sets came from npm search (`scripts/ai-sdk-select.mjs`), because GitHub code search was unavailable. npm returns published packages: mostly SDK wrappers, provider plugins and model catalogs, not applications. Results are in [`benchmarks/2026-10-20-openai-results.json`](benchmarks/2026-10-20-openai-results.json) and [`benchmarks/2026-10-20-anthropic-results.json`](benchmarks/2026-10-20-anthropic-results.json).
+
+| | OpenAI | Anthropic |
+|---|---|---|
+| Repositories | 100 | 50 |
+| Not scanned (over scan limits, or over the 2-minute cap) | 16 | 17 |
+| Live exposure to a registry deadline | 47 | 17 |
+| A replacement proposed | 1 | 1 (6 sites) |
+| Stopped for review with a reason | 1 | 2 |
+| Not traced | 45 | 14 |
+| Validated in offline Docker | 0 (the one candidate exceeds the 50 MiB archive limit) | 1 (`vitest` passed before and after) |
+
+Most untraced exposures are not requests an application makes. They are entries in model catalogs (`name: 'codex-mini-latest'` in model metadata, `versions: ['gpt-4.5-preview']`), which the deadline scanner still counts as live, or library defaults in class fields (`model = "gpt-3.5-turbo-instruct"`) that reach the request as `model: this.model`. In that order, the next work is:
+1. Classify object-shaped model catalogs as non-live.
+2. Follow `this.model` to a class field default.
+3. Rebuild the frozen sets from application repositories once GitHub code search is available.
+
+Item 9 cannot reach 70% on a set of libraries, so the fix-rate target needs an application set to measure against.
+
 ## Priority order
 
 | # | Provider | Reason |

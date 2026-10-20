@@ -1,0 +1,517 @@
+{
+  "formatVersion": 1,
+  "provider": "anthropic",
+  "sdk": "@anthropic-ai/sdk",
+  "selectedAt": "2026-10-20T17:07:33.944Z",
+  "method": "npm search for \"anthropic\", \"claude\", \"llm\", \"ai agent\", \"ai chat\", \"mcp\" (4 pages of 250); latest manifest declares @anthropic-ai/sdk in dependencies; github.com repository; published since 2024-01-01; vendor scopes excluded; ranked by monthly downloads; one entry per repository; frozen at HEAD from git ls-remote.",
+  "rejected": {
+    "vendor": 26,
+    "old": 4,
+    "noDependency": 1509,
+    "noRepository": 8,
+    "duplicate": 0,
+    "unreachable": 11
+  },
+  "repos": [
+    {
+      "provider": "anthropic",
+      "repo": "earendil-works/pi",
+      "commit": "396ecd7b8f3a146b8af98206d18df1bcc2c08f4e",
+      "package": "@earendil-works/pi-ai",
+      "version": "1.3.0",
+      "declared": "0.129.0",
+      "monthlyDownloads": 26780155,
+      "publishedAt": "2026-10-15T19:11:07.796Z"
+    },
+    {
+      "provider": "anthropic",
+      "repo": "langchain-ai/langchainjs",
+      "commit": "8ddd52cb71478ddd4e113000d3754e4f3c430776",
+      "package": "@langchain/anthropic",
+      "version": "1.5.12",
+      "declared": "^0.122.0",
+      "monthlyDownloads": 6111633,
+      "publishedAt": "2026-10-01T14:15:02.464Z"
+    },
+    {
+      "provider": "anthropic",
+      "repo": "promptfoo/promptfoo",
+      "commit": "3d6cdf20755e9058ef8625c5ca31989bfe51e79c",
+      "package": "promptfoo",
+      "version": "0.124.1",
+      "declared": "0.128.0",
+      "monthlyDownloads": 3343134,
+      "publishedAt": "2026-10-08T14:48:50.750Z"
+    },
+    {
+      "provider": "anthropic",
+      "repo": "TanStack/ai",
+      "commit": "d99f2c6c24f0773ffea24e14a5fa4dedf74bf9bd",
+      "package": "@tanstack/ai-anthropic",
+      "version": "0.22.1",
+      "declared": "^0.97.1",
+      "monthlyDownloads": 561770,
+      "publishedAt": "2026-10-19T16:17:38.435Z"
+    },
+    {
+      "provider": "anthropic",
+      "repo": "livekit/agents-js",
+      "commit": "f082f8f9c8dfd6fbf8963f9447d7e4e5c86562f7",
+      "package": "@livekit/agents-plugin-anthropic",
+      "version": "1.9.3",
+      "declared": "^0.33.1",
+      "monthlyDownloads": 295172,
+      "publishedAt": "2026-10-15T06:12:26.769Z"
+    },
+    {
+      "provider": "anthropic",
+      "repo": "paperclipai/paperclip",
+      "commit": "9ef434fe79c57d976b8b03b14c5242db270b8320",
+      "package": "paperclipai",
+      "version": "2026.1012.0",
+      "declared": "0.129.0",
+      "monthlyDownloads": 203151,
+      "publishedAt": "2026-10-12T20:59:34.312Z"
+    },
+    {
+      "provider": "anthropic",
+      "repo": "mclenhard/mcp-evals",
+      "commit": "97379638792b2b66bb3278493e2e495501ede39e",
+      "package": "mcp-evals",
+      "version": "2.0.1",
+      "declared": "^0.8.0",
+      "monthlyDownloads": 196192,
+      "publishedAt": "2025-06-28T16:02:02.022Z"
+    },
+    {
+      "provider": "anthropic",
+      "repo": "im4codes/imcodes",
+      "commit": "4ba7b242e47db0a63da72599cac36e51482aa39d",
+      "package": "imcodes",
+      "version": "2026.10.5860",
+      "declared": "^0.104.2",
+      "monthlyDownloads": 145467,
+      "publishedAt": "2026-10-20T06:16:43.480Z"
+    },
+    {
+      "provider": "anthropic",
+      "repo": "decocms/studio",
+      "commit": "c2257e6c980a86913eedd9d5fee31cb89883ff36",
+      "package": "decocms",
+      "version": "4.504.1",
+      "declared": "^0.105.0",
+      "monthlyDownloads": 110886,
+      "publishedAt": "2026-10-20T16:00:40.311Z"
+    },
+    {
+      "provider": "anthropic",
+      "repo": "nizos/tdd-guard",
+      "commit": "108992dcf7d7f8c90932e8a2cfe22c269f419bc3",
+      "package": "tdd-guard",
+      "version": "1.7.0",
+      "declared": "^0.92.0",
+      "monthlyDownloads": 92790,
+      "publishedAt": "2026-06-23T18:43:20.955Z"
+    },
+    {
+      "provider": "anthropic",
+      "repo": "grafana/agento11y",
+      "commit": "e9ed90ff72ee20d5dbf9db1a10c09d159f3fbc0f",
+      "package": "@grafana/agento11y",
+      "version": "0.14.0",
+      "declared": "^0.91.0",
+      "monthlyDownloads": 79165,
+      "publishedAt": "2026-10-15T19:59:13.373Z"
+    },
+    {
+      "provider": "anthropic",
+      "repo": "code-yeongyu/senpi",
+      "commit": "e0c0de1e4b554be671ac86424a65b80b1f88dba6",
+      "package": "@code-yeongyu/senpi-ai",
+      "version": "2026.10.19-2",
+      "declared": "0.127.0",
+      "monthlyDownloads": 71078,
+      "publishedAt": "2026-10-20T03:43:38.419Z"
+    },
+    {
+      "provider": "anthropic",
+      "repo": "genkit-ai/genkit",
+      "commit": "5f3e51164590d841f5a6f982bd537027c18202ae",
+      "package": "@genkit-ai/anthropic",
+      "version": "0.5.0",
+      "declared": "^0.97.1",
+      "monthlyDownloads": 65940,
+      "publishedAt": "2026-09-01T19:48:56.461Z"
+    },
+    {
+      "provider": "anthropic",
+      "repo": "affaan-m/agentshield",
+      "commit": "b0891303bdcd6037376a94263d45cfd2ff3dfb98",
+      "package": "ecc-agentshield",
+      "version": "1.6.0",
+      "declared": "^0.39.0",
+      "monthlyDownloads": 56937,
+      "publishedAt": "2026-09-10T12:51:22.445Z"
+    },
+    {
+      "provider": "anthropic",
+      "repo": "ctrf-io/ai-test-reporter",
+      "commit": "b6a5cd8ad801c434c76af2baaf3349bfd7cd8f0f",
+      "package": "ai-ctrf",
+      "version": "0.1.0",
+      "declared": "0.133.0",
+      "monthlyDownloads": 52648,
+      "publishedAt": "2026-10-11T11:16:46.600Z"
+    },
+    {
+      "provider": "anthropic",
+      "repo": "buzzni/happy",
+      "commit": "3b48b46a6aac30f86d82a7be9bd7fc8c1b8efd2e",
+      "package": "@buzzni/happy-cli",
+      "version": "1.1.10-aplus.349",
+      "declared": "0.96.0",
+      "monthlyDownloads": 47073,
+      "publishedAt": "2026-10-20T16:51:54.064Z"
+    },
+    {
+      "provider": "anthropic",
+      "repo": "f5-sales-demo/xcsh",
+      "commit": "3fc47cd286894e4a73e06fc0259ff98601b8a68f",
+      "package": "@f5-sales-demo/pi-ai",
+      "version": "23.9.5",
+      "declared": "0.124.0",
+      "monthlyDownloads": 33398,
+      "publishedAt": "2026-10-20T14:23:04.035Z"
+    },
+    {
+      "provider": "anthropic",
+      "repo": "bastani-inc/atomic",
+      "commit": "3680a8abe0b43a6c37485d3c8ab7c5d1bfedf21d",
+      "package": "@bastani/pi-ai",
+      "version": "0.9.39",
+      "declared": "0.129.0",
+      "monthlyDownloads": 28683,
+      "publishedAt": "2026-10-19T03:00:53.655Z"
+    },
+    {
+      "provider": "anthropic",
+      "repo": "Spitfire-Products/nexus-cortex",
+      "commit": "9fa45fbfc4cdfd528fb1157df69aa009603933c6",
+      "package": "@nexus-cortex/core",
+      "version": "4.129.0",
+      "declared": "^0.20.9",
+      "monthlyDownloads": 23431,
+      "publishedAt": "2026-10-19T21:32:17.236Z"
+    },
+    {
+      "provider": "anthropic",
+      "repo": "webgptorg/promptbook",
+      "commit": "ed2e60292434cfd0b3ace5019613b283407b8ee7",
+      "package": "@promptbook/anthropic-claude",
+      "version": "0.114.0-50",
+      "declared": "0.68.0",
+      "monthlyDownloads": 23319,
+      "publishedAt": "2026-10-06T21:04:22.012Z"
+    },
+    {
+      "provider": "anthropic",
+      "repo": "slopus/happy-agent",
+      "commit": "4b56828a49982d3afee1b9a4302c5a44f5096fa3",
+      "package": "@slopus/happy-providers",
+      "version": "0.0.48",
+      "declared": "0.110.0",
+      "monthlyDownloads": 21905,
+      "publishedAt": "2026-10-20T12:49:13.098Z"
+    },
+    {
+      "provider": "anthropic",
+      "repo": "eclipse-theia/theia",
+      "commit": "db2fbb65ca7e8b495c9deef7357861542e2ccf6d",
+      "package": "@theia/ai-anthropic",
+      "version": "1.76.0",
+      "declared": "^0.93.0",
+      "monthlyDownloads": 21299,
+      "publishedAt": "2026-09-24T12:59:59.864Z"
+    },
+    {
+      "provider": "anthropic",
+      "repo": "shibukazu/ccqa",
+      "commit": "0dd85ad91ef87e137d63d981012b5f4c335f4d3d",
+      "package": "ccqa",
+      "version": "1.60.6",
+      "declared": "^0.112.3",
+      "monthlyDownloads": 19698,
+      "publishedAt": "2026-10-20T04:14:34.640Z"
+    },
+    {
+      "provider": "anthropic",
+      "repo": "tickernelz/paperclip-pro",
+      "commit": "4e25c8365534c16b1b5869707145656b44762113",
+      "package": "@tickernelz/paperclip-pro",
+      "version": "2026.1018.0",
+      "declared": "0.129.0",
+      "monthlyDownloads": 19546,
+      "publishedAt": "2026-10-18T15:07:19.685Z"
+    },
+    {
+      "provider": "anthropic",
+      "repo": "receptron/graphai",
+      "commit": "ce6db6931e7a794cbcc1bbe3b1ad6c691c2daf4c",
+      "package": "@graphai/anthropic_agent",
+      "version": "2.1.0",
+      "declared": "^0.127.0",
+      "monthlyDownloads": 19439,
+      "publishedAt": "2026-09-21T23:58:13.706Z"
+    },
+    {
+      "provider": "anthropic",
+      "repo": "PostHog/posthog",
+      "commit": "fd2e8ba0a5498549ea30570b505a2d1039a5a37c",
+      "package": "@posthog/agent",
+      "version": "2.4.282",
+      "declared": "0.109.0",
+      "monthlyDownloads": 16452,
+      "publishedAt": "2026-10-20T14:12:35.864Z"
+    },
+    {
+      "provider": "anthropic",
+      "repo": "kodizm/acp",
+      "commit": "1ceb663801b4d0d260d26394ef1eab7aa850a6c9",
+      "package": "@kodizm/acp",
+      "version": "0.6.9",
+      "declared": ">=0.93.0",
+      "monthlyDownloads": 14903,
+      "publishedAt": "2026-09-23T16:55:07.091Z"
+    },
+    {
+      "provider": "anthropic",
+      "repo": "antra-tess/membrane",
+      "commit": "37718936b98b96d6a92c3ed4fa6517b52a06afdb",
+      "package": "@animalabs/membrane",
+      "version": "0.6.0",
+      "declared": "^0.52.0",
+      "monthlyDownloads": 13262,
+      "publishedAt": "2026-10-18T07:48:50.691Z"
+    },
+    {
+      "provider": "anthropic",
+      "repo": "BlockRunAI/blockrun-llm-ts",
+      "commit": "2ebd748cc1585b072cb1d41c3b8152e95bb656a7",
+      "package": "@blockrun/llm",
+      "version": "3.24.2",
+      "declared": "^0.123.0",
+      "monthlyDownloads": 13005,
+      "publishedAt": "2026-10-18T23:06:10.640Z"
+    },
+    {
+      "provider": "anthropic",
+      "repo": "thefalconry/talon",
+      "commit": "df64e78670ae6f8481f90c0c6f37f363265a8867",
+      "package": "talon-agent",
+      "version": "5.33.1",
+      "declared": "^0.104.1",
+      "monthlyDownloads": 12770,
+      "publishedAt": "2026-10-04T23:41:39.334Z"
+    },
+    {
+      "provider": "anthropic",
+      "repo": "thallylabs/thally",
+      "commit": "8481e41189d70b53434d2079614dc5e58f7f7e00",
+      "package": "@thallylabs/mcp",
+      "version": "0.10.119",
+      "declared": "^0.36.0",
+      "monthlyDownloads": 12687,
+      "publishedAt": "2026-10-19T19:11:14.955Z"
+    },
+    {
+      "provider": "anthropic",
+      "repo": "MemberJunction/MJ",
+      "commit": "52b9fd5c943ef69ba434061a86140c2bb8daaabc",
+      "package": "@memberjunction/ai-anthropic",
+      "version": "6.1.6",
+      "declared": "0.73.0",
+      "monthlyDownloads": 12332,
+      "publishedAt": "2026-10-16T19:47:23.282Z"
+    },
+    {
+      "provider": "anthropic",
+      "repo": "Zhivex/zhivex-ai-sdk",
+      "commit": "d17c14260284f637e352ae824fcaa0022035fc06",
+      "package": "@zhivex-ai/anthropic",
+      "version": "0.14.1",
+      "declared": "0.133.0",
+      "monthlyDownloads": 11849,
+      "publishedAt": "2026-10-13T16:19:44.418Z"
+    },
+    {
+      "provider": "anthropic",
+      "repo": "Yeachan-Heo/gajae-code",
+      "commit": "e9179a14cb19d0f34e0da199f10f89793ddac60a",
+      "package": "@gajae-code/ai",
+      "version": "0.18.12",
+      "declared": "^0.94.0",
+      "monthlyDownloads": 11287,
+      "publishedAt": "2026-10-16T15:43:56.649Z"
+    },
+    {
+      "provider": "anthropic",
+      "repo": "deepseek-ai/deepseek-harness",
+      "commit": "687f282e8625c6b8d11ff58211a90524be2e4317",
+      "package": "@deepseek-ai/dsh-subagent-claude-code",
+      "version": "0.0.1-rc.1",
+      "declared": "0.93.0",
+      "monthlyDownloads": 11223,
+      "publishedAt": "2026-08-10T19:36:32.815Z"
+    },
+    {
+      "provider": "anthropic",
+      "repo": "just-every/ensemble",
+      "commit": "505d8a963e71c14895a90f4da85ea4151b82705a",
+      "package": "@just-every/ensemble",
+      "version": "0.2.286",
+      "declared": "^0.111.0",
+      "monthlyDownloads": 10431,
+      "publishedAt": "2026-09-22T22:44:40.907Z"
+    },
+    {
+      "provider": "anthropic",
+      "repo": "xrkseek/XRK-harness",
+      "commit": "1d93c7ae63254ffc6a5848e7185dba8fb28bd374",
+      "package": "@xrkseek/harness",
+      "version": "0.6.10",
+      "declared": "0.129.0",
+      "monthlyDownloads": 9040,
+      "publishedAt": "2026-10-20T14:44:21.834Z"
+    },
+    {
+      "provider": "anthropic",
+      "repo": "pailat/adk-llm-bridge",
+      "commit": "476631174c8bfb301d40c55dbe8eb47daf7ff1f0",
+      "package": "adk-llm-bridge",
+      "version": "0.5.3",
+      "declared": "^0.78.0",
+      "monthlyDownloads": 8808,
+      "publishedAt": "2026-06-19T21:55:56.953Z"
+    },
+    {
+      "provider": "anthropic",
+      "repo": "plune-ai/cli",
+      "commit": "7c7833a95165ecd855dc3c719554441b07e18eac",
+      "package": "@plune-ai/cli",
+      "version": "0.27.0",
+      "declared": "^0.102.0",
+      "monthlyDownloads": 8703,
+      "publishedAt": "2026-10-18T14:56:07.364Z"
+    },
+    {
+      "provider": "anthropic",
+      "repo": "BloomLabsInc/genkit-plugins",
+      "commit": "11fdcf25a3b0dd29f0d26ca969845393ece7092c",
+      "package": "genkitx-anthropic",
+      "version": "0.30.0",
+      "declared": "^0.39.0",
+      "monthlyDownloads": 8191,
+      "publishedAt": "2026-01-22T18:56:57.061Z"
+    },
+    {
+      "provider": "anthropic",
+      "repo": "clbrge/mohdel",
+      "commit": "66f13ab0c4812a3aa29dae056d1190e3e3ca9ae8",
+      "package": "mohdel",
+      "version": "4.0.0",
+      "declared": "^0.135.0",
+      "monthlyDownloads": 7732,
+      "publishedAt": "2026-10-17T22:51:52.401Z"
+    },
+    {
+      "provider": "anthropic",
+      "repo": "nbonamy/multi-llm-ts",
+      "commit": "5d2605ebfa8931beb8d1b1d143c58c4f8c044117",
+      "package": "multi-llm-ts",
+      "version": "5.1.2",
+      "declared": "^0.67.0",
+      "monthlyDownloads": 7242,
+      "publishedAt": "2026-10-16T23:29:21.207Z"
+    },
+    {
+      "provider": "anthropic",
+      "repo": "vincemakes/kiso",
+      "commit": "69cb33ef2463883e41e5e2544c743017534aec73",
+      "package": "@vincemakes/kiso-provider-anthropic",
+      "version": "0.51.0",
+      "declared": "^0.115.0",
+      "monthlyDownloads": 6397,
+      "publishedAt": "2026-10-20T11:02:34.781Z"
+    },
+    {
+      "provider": "anthropic",
+      "repo": "jaybeyond/Sayknow_CLI",
+      "commit": "cf33646028218c93abc6735c7189f237ce178a1a",
+      "package": "@sayknow-cli/ai",
+      "version": "0.7.10",
+      "declared": "^0.94.0",
+      "monthlyDownloads": 6351,
+      "publishedAt": "2026-10-20T15:12:04.655Z"
+    },
+    {
+      "provider": "anthropic",
+      "repo": "goosewobbler/releasekit",
+      "commit": "c15c5433f9e58449a1cce1837937cf742ec8a33e",
+      "package": "@releasekit/notes",
+      "version": "0.41.2",
+      "declared": "^0.112.4",
+      "monthlyDownloads": 6040,
+      "publishedAt": "2026-07-21T02:00:00.347Z"
+    },
+    {
+      "provider": "anthropic",
+      "repo": "ZiggsAI/sdk",
+      "commit": "bda626dbfefb44360d5304a62f05ac27e82a3c0f",
+      "package": "@ziggs-ai/agent-sdk",
+      "version": "0.38.17",
+      "declared": "^0.110.0",
+      "monthlyDownloads": 5899,
+      "publishedAt": "2026-10-20T08:15:21.585Z"
+    },
+    {
+      "provider": "anthropic",
+      "repo": "BaseModelAI/base-context",
+      "commit": "23a97b5150fc9c1addc7fe57f2a13770db5e789f",
+      "package": "@ponythewhite/base-context-ai",
+      "version": "1.1.15",
+      "declared": "^0.91.1",
+      "monthlyDownloads": 5284,
+      "publishedAt": "2026-10-19T21:02:38.180Z"
+    },
+    {
+      "provider": "anthropic",
+      "repo": "Gahroot/ezcoder",
+      "commit": "926a9da7f5ee7d41ffd42af87bda4505dc963ef7",
+      "package": "@prestyj/ai",
+      "version": "5.32.0",
+      "declared": "^0.124.0",
+      "monthlyDownloads": 5194,
+      "publishedAt": "2026-10-15T13:29:56.722Z"
+    },
+    {
+      "provider": "anthropic",
+      "repo": "kenneth1003/claude-code-review",
+      "commit": "0f49ce8d77db082ebb493c8915983345e18924a1",
+      "package": "claude-code-review",
+      "version": "1.0.16",
+      "declared": "^0.56.0",
+      "monthlyDownloads": 5077,
+      "publishedAt": "2025-07-25T05:38:46.983Z"
+    },
+    {
+      "provider": "anthropic",
+      "repo": "token-js/token.js",
+      "commit": "7b9e20ab57bd5d31a5e8943f1dbad9fc287358de",
+      "package": "token.js",
+      "version": "0.7.1",
+      "declared": "0.24.3",
+      "monthlyDownloads": 4966,
+      "publishedAt": "2025-04-21T17:44:56.925Z"
+    }
+  ]
+}

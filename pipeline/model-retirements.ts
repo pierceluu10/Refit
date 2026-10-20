@@ -87,6 +87,19 @@ const SENSITIVE_PARAMETERS: Record<string, Set<string>> = {
   ]),
   anthropic: new Set(['temperature', 'top_p', 'top_k']),
 };
+// Claude API model IDs such as `claude-opus-4-8` or `claude-haiku-4-5-20251001`.
+const CLAUDE_VERSIONED = /^claude-(?:opus|sonnet|haiku)-(\d+)(?:-(\d{1,2}))?(?:-\d{8})?$/;
+
+// Whether a replacement model is one on which Anthropic rejects non-default sampling parameters:
+// Claude 4.7 and later models, per the model deprecations page (2026-10-20). Unrecognized IDs are
+// treated as rejecting them, so the request stops for review.
+function rejectsSampling(provider: string, model: string) {
+  if (provider !== 'anthropic') return true;
+  const match = CLAUDE_VERSIONED.exec(model);
+  if (!match) return true;
+  const [major, minor] = [Number(match[1]), Number(match[2] ?? 0)];
+  return major > 4 || (major === 4 && minor >= 7);
+}
 const MODEL_ID = /^[a-z0-9][a-z0-9.-]*$/;
 const MAX_CHAIN = 8;
 
@@ -161,6 +174,12 @@ function unwrap(expression: ts.Expression): ts.Expression {
   return expression;
 }
 
+function sdkImported(content: string, packageName: string) {
+  return [`'${packageName}'`, `"${packageName}"`, `'${packageName}/`, `"${packageName}/`].some(
+    (needle) => content.includes(needle),
+  );
+}
+
 // Raw HTTP requests to the official text-generation endpoints, with the request body sent through
 // `JSON.stringify`: `fetch(url, { body })`, Apps Script's `UrlFetchApp.fetch(url, { payload })`
 // and `axios.post(url, data)`.
@@ -219,21 +238,37 @@ function sourceProgram(repository: Repository) {
   };
   // Every use of each symbol in the repository: identifiers that are not its declaration name and
   // not part of an import or export.
-  const uses = new Map<ts.Symbol, ts.Identifier[]>();
-  for (const source of files) {
-    const visit = (node: ts.Node) => {
-      if (ts.isIdentifier(node) && !declarationName(node) && !moduleBinding(node)) {
-        const symbol = symbolOf(node);
-        if (symbol) uses.set(symbol, [...(uses.get(symbol) ?? []), node]);
+  // Built per name on first use: only constants and helpers a request reaches are looked up.
+  const byName = new Map<string, Map<ts.Symbol, ts.Identifier[]>>();
+  const usesOf = (symbol: ts.Symbol) => {
+    let uses = byName.get(symbol.name);
+    if (!uses) {
+      const found = new Map<ts.Symbol, ts.Identifier[]>();
+      for (const source of files) {
+        if (!source.text.includes(symbol.name)) continue;
+        const visit = (node: ts.Node) => {
+          if (
+            ts.isIdentifier(node) &&
+            node.text === symbol.name &&
+            !declarationName(node) &&
+            !moduleBinding(node)
+          ) {
+            const resolved = symbolOf(node);
+            if (resolved) found.set(resolved, [...(found.get(resolved) ?? []), node]);
+          }
+          ts.forEachChild(node, visit);
+        };
+        visit(source);
       }
-      ts.forEachChild(node, visit);
-    };
-    visit(source);
-  }
+      uses = found;
+      byName.set(symbol.name, uses);
+    }
+    return uses.get(symbol) ?? [];
+  };
   return {
     files,
     symbolOf,
-    usesOf: (symbol: ts.Symbol) => uses.get(symbol) ?? [],
+    usesOf,
     path: (node: ts.Node) => paths.get(node.getSourceFile().fileName)!,
     line: (node: ts.Node) =>
       node.getSourceFile().getLineAndCharacterOfPosition(node.getStart()).line + 1,
@@ -524,6 +559,19 @@ export async function proposeModelReplacements(
   )
     return empty;
   const repository = await readRepository(directory);
+  // A model can only be edited where its ID is written, so a repository that never quotes a
+  // retiring model of a provider needs no analysis for it.
+  const quoted = (provider: string) =>
+    [...(byProvider.get(provider)?.keys() ?? [])].some((model) =>
+      repository.files.some(
+        (file) =>
+          file.content.includes(`'${model}'`) ||
+          file.content.includes(`"${model}"`) ||
+          file.content.includes(`\`${model}\``),
+      ),
+    );
+  for (const provider of [...byProvider.keys()]) if (!quoted(provider)) byProvider.delete(provider);
+  if (!byProvider.size) return empty;
   const program = sourceProgram(repository);
   // Every request a model can be read from: traced SDK calls first, then raw HTTP requests.
   const requests: {
@@ -539,6 +587,18 @@ export async function proposeModelReplacements(
       tracer.adapter instanceof URL
         ? await readProviderAdapter(fileURLToPath(tracer.adapter))
         : tracer.adapter;
+    // The SDK must be imported somewhere, and a named-export client named, for any of its calls
+    // to be traced.
+    if (
+      !repository.files.some(
+        (file) =>
+          sdkImported(file.content, adapter.packageName) &&
+          (adapter.defaultImport ||
+            !adapter.namedExport ||
+            file.content.includes(adapter.namedExport)),
+      )
+    )
+      continue;
     const analysis = analyzeRepository(
       await readRepository(directory, adapter.packageName),
       [],
@@ -607,7 +667,8 @@ export async function proposeModelReplacements(
         .map((item) => (item.name ? propertyName(item.name) : undefined))
         .filter((name): name is string =>
           Boolean(name && SENSITIVE_PARAMETERS[request.provider].has(name)),
-        );
+        )
+        .filter(() => rejectsSampling(request.provider, resolved.to));
       const reason = !resolved.to
         ? 'The registry names no concrete replacement model ID.'
         : site.stop
