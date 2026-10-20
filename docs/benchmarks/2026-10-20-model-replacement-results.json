@@ -1,0 +1,313 @@
+{
+  "formatVersion": 1,
+  "ranAt": "2026-10-20",
+  "refitCommit": "the commit that adds this file",
+  "list": "docs/benchmarks/2026-10-16-deadline-repos.json (provider openai, 34 repositories)",
+  "note": "refit deadlines --propose-model-fixes at each pinned commit. Nothing was applied, installed or validated; no provider was contacted.",
+  "repos": [
+    {
+      "repo": "urvana/appscript-chatgpt",
+      "commit": "e5cef4e1c3128855b12e05ef9fceb429dc4ee6eb",
+      "liveOctober23": true,
+      "judgedExposed": "labelled",
+      "replacements": [],
+      "stops": []
+    },
+    {
+      "repo": "chinmaymk/aikit",
+      "commit": "ca79966e5636cf89f77ef0388366d82257c28db9",
+      "liveOctober23": false,
+      "judgedExposed": null,
+      "replacements": [],
+      "stops": []
+    },
+    {
+      "repo": "arunpattnaik/damngood.tools",
+      "commit": "b0c65ebb0c84a7f8d60dd103fa4a85a1207ea870",
+      "liveOctober23": true,
+      "judgedExposed": "labelled",
+      "replacements": [],
+      "stops": []
+    },
+    {
+      "repo": "VapiAI/example-server-serverless-vercel",
+      "commit": "9714ec14902158fd5e0e401cdd1ef70094b913ff",
+      "liveOctober23": true,
+      "judgedExposed": "labelled",
+      "replacements": [],
+      "stops": [
+        {
+          "file": "api/custom-llm/openai-advanced.ts",
+          "line": 61,
+          "call": "chat.completions.create",
+          "model": "gpt-3.5-turbo",
+          "reason": "The request spreads other options, which may set parameters the replacement rejects."
+        },
+        {
+          "file": "api/custom-llm/openai-sse.ts",
+          "line": 48,
+          "call": "chat.completions.create",
+          "model": "gpt-3.5-turbo",
+          "reason": "The request spreads other options, which may set parameters the replacement rejects."
+        }
+      ]
+    },
+    {
+      "repo": "codextde/textchecker",
+      "commit": "7b66d78e74379f9fc909f6d4a2d984cb50a5d088",
+      "liveOctober23": false,
+      "judgedExposed": null,
+      "replacements": [],
+      "stops": []
+    },
+    {
+      "repo": "hervekom37/Ani-Code-CLI",
+      "commit": "07a4c0110a0a1edb5879ca73716cfad32b63b71b",
+      "liveOctober23": true,
+      "judgedExposed": "labelled",
+      "replacements": [],
+      "stops": []
+    },
+    {
+      "repo": "upstash/rag-chat",
+      "commit": "4c3f290908150b216cd19985a4c7c601ab78d22f",
+      "liveOctober23": false,
+      "judgedExposed": null,
+      "replacements": [],
+      "stops": []
+    },
+    {
+      "repo": "kyegomez/Athena-for-Search",
+      "commit": "a591c264cba67e290032dab2c8bafda9d2362cc1",
+      "liveOctober23": true,
+      "judgedExposed": "labelled",
+      "replacements": [],
+      "stops": []
+    },
+    {
+      "repo": "shouri123/Late-Meet",
+      "commit": "d2164445b24620ccf5aa6393e318efaaa3c530a8",
+      "liveOctober23": false,
+      "judgedExposed": null,
+      "replacements": [],
+      "stops": []
+    },
+    {
+      "repo": "iceener/ai",
+      "commit": "2f41f5e683b4c1054d35918accba9bfe99f16a26",
+      "liveOctober23": false,
+      "judgedExposed": null,
+      "replacements": [],
+      "stops": []
+    },
+    {
+      "repo": "arumie/obsidian-simple-prompt-plugin",
+      "commit": "d84e8cdf7a576f43d095ea52f3f4f0ed3f4227a1",
+      "liveOctober23": true,
+      "judgedExposed": "labelled",
+      "replacements": [],
+      "stops": []
+    },
+    {
+      "repo": "heimoshuiyu/chatgpt-api-web",
+      "commit": "5d3cdf6c92fa9c71777aaa78b93b3702a1b91f38",
+      "liveOctober23": false,
+      "judgedExposed": false,
+      "replacements": [],
+      "stops": []
+    },
+    {
+      "repo": "AQComputerKing/protoforge",
+      "commit": "c3c79068fdd04079feadb4402e303adc2b947791",
+      "liveOctober23": true,
+      "judgedExposed": false,
+      "replacements": [],
+      "stops": []
+    },
+    {
+      "repo": "theswerd/ai-sql",
+      "commit": "63e563fc9d8e22bbf48596199a99dcbb9c1b0ade",
+      "liveOctober23": false,
+      "judgedExposed": false,
+      "replacements": [],
+      "stops": []
+    },
+    {
+      "repo": "fayez-nazzal/TestGPT",
+      "commit": "c6aa358e03fe4b77094478768ec0730e856a4369",
+      "liveOctober23": false,
+      "judgedExposed": false,
+      "replacements": [],
+      "stops": []
+    },
+    {
+      "repo": "PactInteractive/dbchat",
+      "commit": "9191e10a6b046fc82a10410beb5ae150ae9f222b",
+      "liveOctober23": false,
+      "judgedExposed": false,
+      "replacements": [],
+      "stops": []
+    },
+    {
+      "repo": "joone/loz",
+      "commit": "b8e2c0924154e65cd6be7d30326f2f8f211d83b7",
+      "liveOctober23": true,
+      "judgedExposed": true,
+      "replacements": [],
+      "stops": []
+    },
+    {
+      "repo": "OptimizeAIHub/Playwright-Copilot",
+      "commit": "5d90090a86da21a8a88396a611c134f21a416a2c",
+      "liveOctober23": false,
+      "judgedExposed": false,
+      "replacements": [],
+      "stops": []
+    },
+    {
+      "repo": "vual/ChatGPT-Next-Web-Pro",
+      "commit": "6e6ff15e90b14d9ae5cb420bb0e57445610eadd8",
+      "liveOctober23": true,
+      "judgedExposed": false,
+      "replacements": [],
+      "stops": []
+    },
+    {
+      "repo": "rgarlik/autocoder",
+      "commit": "425a5f44e578980d7da14d31965aaaa9fc7d56ca",
+      "liveOctober23": true,
+      "judgedExposed": true,
+      "replacements": [],
+      "stops": []
+    },
+    {
+      "repo": "FerLRT/QuizCraft",
+      "commit": "4f7a0fbe453b35b95c69698340000fb49279d8fe",
+      "liveOctober23": true,
+      "judgedExposed": true,
+      "replacements": [],
+      "stops": []
+    },
+    {
+      "repo": "zebbern/repolens",
+      "commit": "9d0a2ff046600ea633b40837a03d5895173ef8d0",
+      "liveOctober23": false,
+      "judgedExposed": false,
+      "replacements": [],
+      "stops": []
+    },
+    {
+      "repo": "Danish-H/whatsapp-gpt",
+      "commit": "bb68937c90822a78674bd134d89379315309d2a2",
+      "liveOctober23": true,
+      "judgedExposed": true,
+      "replacements": [],
+      "stops": []
+    },
+    {
+      "repo": "RiP3rQ/AI-Butler",
+      "commit": "4dadd4021c2d91bd742b122a45b2b26e86f4abc4",
+      "liveOctober23": true,
+      "judgedExposed": true,
+      "replacements": [
+        {
+          "file": "lib/openai.ts",
+          "line": 41,
+          "call": "chat.completions.create",
+          "from": "gpt-3.5-turbo",
+          "to": "gpt-5.6-terra",
+          "deadline": "openai-2026-10-23-gpt-3-5-turbo"
+        },
+        {
+          "file": "app/api/chat/route.ts",
+          "line": 50,
+          "call": "chat.completions.create",
+          "from": "gpt-3.5-turbo",
+          "to": "gpt-5.6-terra",
+          "deadline": "openai-2026-10-23-gpt-3-5-turbo"
+        }
+      ],
+      "stops": []
+    },
+    {
+      "repo": "AidanTilgner/AutogenObsidianPlugin",
+      "commit": "45b7088de46a8e56374cbda457959df4ee98b6a8",
+      "liveOctober23": true,
+      "judgedExposed": true,
+      "replacements": [],
+      "stops": []
+    },
+    {
+      "repo": "Ramtx/Bouno",
+      "commit": "fa74ff5064bae6fec32b2d564b85593274699672",
+      "liveOctober23": false,
+      "judgedExposed": false,
+      "replacements": [],
+      "stops": []
+    },
+    {
+      "repo": "TechNavii/LLM-Memory-Calculator",
+      "commit": "95ac00662fd4c573ecdddae84801aeb225367d7f",
+      "liveOctober23": false,
+      "judgedExposed": false,
+      "replacements": [],
+      "stops": []
+    },
+    {
+      "repo": "xavidop/genkitx-github",
+      "commit": "8d6e05729ad6f954181e5428837f571429133f9c",
+      "liveOctober23": true,
+      "judgedExposed": false,
+      "replacements": [],
+      "stops": []
+    },
+    {
+      "repo": "telekom/create-tsi",
+      "commit": "a5badfb4a537aa47e55c48fa470185b898129ab1",
+      "liveOctober23": true,
+      "judgedExposed": false,
+      "replacements": [],
+      "stops": []
+    },
+    {
+      "repo": "fahd09/openharness",
+      "commit": "9f07d9643c0f1ee371f04be75f2447151832e1bb",
+      "liveOctober23": true,
+      "judgedExposed": false,
+      "replacements": [],
+      "stops": []
+    },
+    {
+      "repo": "bayradion/rabbitmap",
+      "commit": "514fb7b11a64aea3976852a5b5869544fb46064b",
+      "liveOctober23": false,
+      "judgedExposed": false,
+      "replacements": [],
+      "stops": []
+    },
+    {
+      "repo": "lianginx/chatgpt-nuxt",
+      "commit": "46a03087c326f453d178bbe2e164688aad738f63",
+      "liveOctober23": true,
+      "judgedExposed": true,
+      "replacements": [],
+      "stops": []
+    },
+    {
+      "repo": "mbt1909432/Acontext-Agent-Playground",
+      "commit": "419a564fba17a3b972f12e57debbf2607edaa512",
+      "liveOctober23": true,
+      "judgedExposed": true,
+      "replacements": [],
+      "stops": []
+    },
+    {
+      "repo": "crystalnyan/takemeds-bot",
+      "commit": "106ca8d5cb5f25f1d787d94c86ea34c54756c9f9",
+      "liveOctober23": true,
+      "judgedExposed": true,
+      "replacements": [],
+      "stops": []
+    }
+  ]
+}

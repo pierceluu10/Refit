@@ -117,11 +117,11 @@ const CHECK_OPERATORS = new Set([
   ts.SyntaxKind.ExclamationEqualsEqualsToken,
 ]);
 // Test, spec, story, fixture and example files, by directory or name.
-const TEST_PATH =
+export const TEST_PATH =
   /(?:^|\/)(?:__tests__|__mocks__|__fixtures__|tests?|specs?|e2e|cypress|fixtures?|examples?|stories)\/|\.(?:test|spec|e2e|stories|story)\.[cm]?[jt]sx?$/i;
 // Providers whose deadlines retire models rather than API versions. Their matches get every use
 // class below; API-version providers get only comments, tokenizers and prefix checks.
-const MODEL_PROVIDERS = new Set<DeadlineEntry['provider']>(['openai', 'anthropic']);
+export const MODEL_PROVIDERS = new Set<DeadlineEntry['provider']>(['openai', 'anthropic']);
 // Strings shaped like OpenAI or Anthropic model IDs, counted with registry models to recognize a
 // model list, which often mixes providers. Router IDs such as `openai/o1` and
 // `anthropic/claude-3-opus` count too.

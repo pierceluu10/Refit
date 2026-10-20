@@ -159,13 +159,42 @@ A failed GitHub request is recorded in status and retried at the next lead time 
 
 Issue alerts need the App's **Issues: Read and write** permission. Add it under the App's permissions, then have each installation accept the update. The alert token is scoped to the repository with exactly Contents read and Issues write. It cannot push, open pull requests or comment on them.
 
+## Propose model replacements
+
+```sh
+refit deadlines --propose-model-fixes --repository /path/to/app
+refit deadlines --propose-model-fixes --output model.patch
+```
+
+For OpenAI and Anthropic models, Refit can propose the registry replacement as a patch. This is a review aid only: nothing is applied, installed, validated or published, and no provider is contacted. A replacement model changes behaviour, cost and limits, so whether Refit may make this edit automatically is an open owner decision (see [Provider goals](PROVIDER-GOALS.md#openai)).
+
+A replacement is proposed only when all of these hold:
+
+- The call is a traced SDK text-generation call: OpenAI `chat.completions.create`, `.parse` or `.stream` (also under `beta`), `responses.create`, `.parse` or `.stream`, or Anthropic `messages.create`, `.stream` or `.countTokens` (also under `beta`). Clients are traced like any adapter's, including class fields and imported clients, using `examples/openai.provider.json` and `examples/anthropic.provider.json`.
+- Its first argument is an object literal whose `model` is a string literal naming a registry model, or the default of a `??` or `||` fallback there, such as `process.env.MODEL ?? 'gpt-4'`.
+- The file is not a test, spec, story, fixture or example file.
+- The registry entry names a concrete model ID. When that replacement retires too, Refit follows the registry to a model that does not, for example `o1-mini` to `o4-mini` to `gpt-5.6-terra`.
+
+These cases stop for review and are listed with a reason, with no edit:
+
+- The request sets a parameter the replacement may reject: `temperature`, `top_p` or `top_k` for Anthropic (Anthropic returns a 400 for non-default values on Claude 4.7 and later models), and `temperature`, `top_p`, `max_tokens`, `presence_penalty`, `frequency_penalty`, `logit_bias`, `logprobs` or `top_logprobs` for OpenAI (support on its newer models is unverified).
+- The request spreads other options (`{ ...options, model: 'gpt-4' }`).
+- The model comes from a top-level constant in the same file, which may feed other code.
+- The registry has no concrete replacement.
+
+Embeddings, images, audio and moderation calls are never proposed, because their replacements change vector sizes, formats or parameters. A model sent through raw `fetch`, the openai v3 SDK (`createChatCompletion`), `openai-edge`, LangChain or the Vercel AI SDK, or passed through a helper's parameter, is not traced and stays an ordinary exposure.
+
+`--json` returns `replacements` (each with `file`, `line`, `call`, `from`, `to`, the deadline and `via`, the registry entries followed), `stops` (each with a `reason`) and `patch`.
+
+On the 34 OpenAI repositories of the [deadline benchmark](DEADLINE-BENCHMARK.md), 15 send a model retiring on 2026-10-23 from live code. The rule proposed 2 replacements in 1 of them and stopped for review in 1 (spread options); both proposals were read by hand and are the registry replacement in a plain request. The other 13 hold the model in the v3 SDK, `openai-edge`, constants, helper parameters, UI state or configuration. Results are in [`benchmarks/2026-10-20-model-replacement-results.json`](benchmarks/2026-10-20-model-replacement-results.json).
+
 ## The migration path
 
 Every alert and CLI result states one of three outcomes:
 
 - **Configured:** an integration in the repository's `.refit.json` covers the provider. When the provider publishes the change in the contract Refit monitors, that integration's normal migration run handles it.
-- **Agent available:** Refit ships an agent for the provider, currently OpenAI's preview adapter. The alert gives `refit agents --add <id>` and the enrollment steps.
-- **No agent yet:** currently Shopify and Meta. The alert says so and points to the provider's guide.
+- **Agent available:** Refit ships an agent for the provider, currently OpenAI's preview adapter and the built-in Shopify agent. The alert gives `refit agents --add <id>` and the enrollment steps.
+- **No agent yet:** currently Meta and Anthropic. The alert says so and points to the provider's guide. Anthropic's adapter exists for model replacement proposals, but it is not in the agent catalog because Anthropic publishes no contract that `refit run` could compare.
 
 A deadline never starts a migration by itself. Migrations start from contract changes, approved configuration and the existing gates.
 
