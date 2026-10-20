@@ -181,7 +181,7 @@ refit deadlines --propose-model-fixes --repository /path/to/app
 refit deadlines --propose-model-fixes --output model.patch
 ```
 
-For OpenAI and Anthropic models, Refit can propose the registry replacement as a patch. This is a review aid only: nothing is applied, installed, validated or published, and no provider is contacted. A replacement model changes behaviour, cost and limits, so whether Refit may make this edit automatically is an open owner decision (see [Provider goals](PROVIDER-GOALS.md#openai)).
+For OpenAI and Anthropic models, Refit can propose the registry replacement as a patch. From the CLI this is a review aid only: nothing is applied, installed, validated or published, and no provider is contacted. The service applies the same rule on its own, with validation and a draft pull request (see [Automatic model fixes](#automatic-model-fixes)).
 
 A replacement is proposed only when all of these hold:
 
@@ -215,6 +215,23 @@ On the 34 OpenAI repositories of the [deadline benchmark](DEADLINE-BENCHMARK.md)
 
 The other 9 hold the model in settings or UI defaults, a CLI option default, an alias map, a request to the app's own proxy, an Apps Script options variable, a Deno library or a configuration object. Results are in [`benchmarks/2026-10-20-model-replacement-results.json`](benchmarks/2026-10-20-model-replacement-results.json).
 
+## Automatic model fixes
+
+```sh
+refit serve --env .env --config service.json --state /path/outside/repo \
+  --model-fixes --publish-draft
+```
+
+With `--model-fixes`, the service maintains retiring OpenAI and Anthropic models in every **enrolled** repository without asking first: enrollment with `refit enroll` is the approval. It is off by default. After each poll, for each enrolled repository whose managed checkout synced:
+
+1. Refit applies the [model replacement rule](#propose-model-replacements) to the committed snapshot. Uses that stop for review are never edited.
+2. It runs the repository's approved check command (its `.refit.json` `image`, `command`, `baselineCommand`, `prepareDependencies` and `compareTypeErrors`) before and after the change, in the same offline Docker sandbox and limits as contract migrations.
+3. When both runs pass and `--publish-draft` is set, it opens a draft pull request as Refit Agent. The description lists each replacement with its deadline and registry source, the check results, every use left for review, and what the checks cannot show. Without `--publish-draft`, the run is recorded as `validated`.
+
+Refit never merges the pull request or marks it ready. A failing check publishes nothing. The outcome of each repository is saved in the service state under `modelFixes`, keyed by the replacements themselves (file, model and replacement). While their pull request stands, the same replacements are not validated or published again, even after new commits. A pull request a developer closes is not reopened for the same replacements. A new retiring model, or a registry change, starts a new run.
+
+The checks run without network access, so no request reaches OpenAI or Anthropic. A passing check does not show how the new model answers, what it costs, or whether it accepts every parameter; that is for the reviewer to try. Operator workflow targets are not changed.
+
 ## The migration path
 
 Every alert and CLI result states one of three outcomes:
@@ -223,7 +240,7 @@ Every alert and CLI result states one of three outcomes:
 - **Agent available:** Refit ships an agent for the provider, currently OpenAI's preview adapter and the built-in Shopify agent. The alert gives `refit agents --add <id>` and the enrollment steps.
 - **No agent yet:** currently Meta and Anthropic. The alert says so and points to the provider's guide. Anthropic's adapter exists for model replacement proposals, but it is not in the agent catalog because Anthropic publishes no contract that `refit run` could compare.
 
-A deadline never starts a migration by itself. Migrations start from contract changes, approved configuration and the existing gates.
+A deadline starts a code change only through [automatic model fixes](#automatic-model-fixes), which the service runs when `--model-fixes` is on. Every other migration starts from contract changes, approved configuration and the existing gates.
 
 ## Limits
 

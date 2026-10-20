@@ -34,6 +34,8 @@ import { withStateLock } from './state-files.ts';
 import { PipelineInputError } from './types.ts';
 import { validateRepairAttempts } from './validation-options.ts';
 import { pollServiceTarget } from './service-worker.ts';
+import { runModelFixes, type ModelFixChecks } from './model-fixes.ts';
+import { publicationConfiguration } from './publication.ts';
 import { RepositoryApprovalError } from './repository-enrollment.ts';
 
 const HOST = '127.0.0.1';
@@ -116,6 +118,10 @@ export async function runLocalService(options: {
   publishDraft?: boolean;
   // Off unless set: opens or updates one issue per enrolled repository and registry deadline.
   deadlineAlerts?: { leadDays: readonly number[]; registry?: string | URL };
+  // Off unless set: replaces retiring AI models in each enrolled repository, validates the change
+  // with its approved checks and, with publishDraft, opens a draft pull request. No per-change
+  // approval is asked; enrollment is the approval.
+  modelFixes?: { registry?: string | URL };
   notify?: SlackSend;
   now?: () => Date;
   signal: AbortSignal;
@@ -341,6 +347,81 @@ export async function runLocalService(options: {
         }
       }
     };
+    // Runs model replacements for each enrolled repository whose checkout synced in this poll. A
+    // revision and patch already handled are not validated again; a new base commit or a registry
+    // change starts a new run.
+    const fixModels = async (
+      checkouts: Map<string, GitHubCheckout>,
+      checks: Map<string, { checks: ModelFixChecks; base: string }>,
+    ) => {
+      if (!options.modelFixes || !checkouts.size) return;
+      const now = options.now?.() ?? new Date();
+      let registry: Awaited<ReturnType<typeof loadDeadlineRegistry>>;
+      try {
+        registry = await loadDeadlineRegistry(options.modelFixes.registry, now);
+      } catch (error) {
+        if (!(error instanceof Error)) throw error;
+        options.onProgress?.(`Model fixes skipped: ${error.name}: ${error.message}`);
+        return;
+      }
+      for (const [repository, checkout] of checkouts) {
+        const approved = checks.get(repository);
+        if (options.signal.aborted || !approved) continue;
+        const previous = (await store.read()).modelFixes?.[repository];
+        try {
+          const result = await runModelFixes({
+            repository: checkout.directory,
+            registry,
+            now,
+            checks: approved.checks,
+            publication: options.publishDraft
+              ? publicationConfiguration(repository, approved.base, undefined, options.app)
+              : undefined,
+            handled:
+              previous && previous.status !== 'failed'
+                ? {
+                    revision: previous.revision,
+                    fixKey: previous.fixKey ?? null,
+                    pullRequest: previous.pullRequest,
+                  }
+                : null,
+            signal: options.signal,
+            onProgress: (message) => options.onProgress?.(`[${repository}] ${message}`),
+          });
+          // Replacements already handled keep their recorded outcome.
+          if (result.skipped) continue;
+          await store.update((state) => {
+            (state.modelFixes ??= {})[repository] = {
+              repository,
+              revision: result.revision,
+              patchHash: result.patchHash,
+              fixKey: result.fixKey,
+              status: result.status,
+              pullRequest: result.pullRequest?.number ?? null,
+              message: result.reason,
+              checkedAt: now.toISOString(),
+            };
+          });
+          options.onProgress?.(`[${repository}] Model fixes ${result.status}: ${result.reason}`);
+        } catch (error) {
+          if (!(error instanceof Error)) throw error;
+          await store.update((state) => {
+            (state.modelFixes ??= {})[repository] = {
+              repository,
+              revision: checkout.revision,
+              patchHash: null,
+              status: 'failed',
+              pullRequest: null,
+              message: `${error.name}: ${error.message}`,
+              checkedAt: now.toISOString(),
+            };
+          });
+          options.onProgress?.(
+            `[${repository}] Model fixes failed: ${error.name}: ${error.message}`,
+          );
+        }
+      }
+    };
     const handlers = new Set<Promise<void>>();
     const server = createServer(
       { requestTimeout: REQUEST_TIMEOUT_MS, headersTimeout: HEADERS_TIMEOUT_MS },
@@ -409,6 +490,7 @@ export async function runLocalService(options: {
       do {
         requested = false;
         const checkouts = new Map<string, GitHubCheckout>();
+        const approvedChecks = new Map<string, { checks: ModelFixChecks; base: string }>();
         for (const target of pollingTargets) {
           if (options.signal.aborted) break;
           const controller = new AbortController();
@@ -511,11 +593,18 @@ export async function runLocalService(options: {
                     : 'Saved worker result reused; checks were not rerun.';
             });
             // Enrolled (approved) repositories expose their managed checkout for deadline matching.
-            if (target.approval && 'checkout' in result && !controller.signal.aborted)
+            if (target.approval && 'checkout' in result && !controller.signal.aborted) {
               checkouts.set(
                 target.repository.toLowerCase(),
                 (result as { checkout: GitHubCheckout }).checkout,
               );
+              // The first approved integration's checks validate model fixes.
+              if ('checks' in result && !approvedChecks.has(target.repository.toLowerCase()))
+                approvedChecks.set(target.repository.toLowerCase(), {
+                  checks: (result as { checks: ModelFixChecks }).checks,
+                  base: target.base,
+                });
+            }
             const record = (await store.read()).targets[target.id];
             options.onProgress?.(
               `[${target.id}] ${record.status}: ${record.message ?? 'Poll completed.'}${record.output ? ` Evidence: ${record.output}` : ''}`,
@@ -541,6 +630,7 @@ export async function runLocalService(options: {
         }
         await suggestPendingAgents();
         await alertDeadlines(checkouts);
+        await fixModels(checkouts, approvedChecks);
         if (options.once || options.signal.aborted) break;
         if (!requested) {
           waiting = new AbortController();

@@ -16,7 +16,7 @@ const REVIEW_STATUSES = new Set([
   'documentation-changed',
 ]);
 const USAGE =
-  'Usage: refit serve --config <service.json> --state <directory-outside-repository> [--port <number>] [--interval <seconds>] [--once] [--retry-target <id> ... --once] [--ai-patch --repair-attempts 0|1|2] [--publish-draft] [--deadline-alerts [--deadline-lead-days 90,30,7]] [--json]';
+  'Usage: refit serve --config <service.json> --state <directory-outside-repository> [--port <number>] [--interval <seconds>] [--once] [--retry-target <id> ... --once] [--ai-patch --repair-attempts 0|1|2] [--publish-draft] [--deadline-alerts [--deadline-lead-days 90,30,7]] [--model-fixes] [--json]';
 
 try {
   const { values } = parseArgs({
@@ -32,13 +32,14 @@ try {
       'publish-draft': { type: 'boolean' },
       'deadline-alerts': { type: 'boolean' },
       'deadline-lead-days': { type: 'string' },
+      'model-fixes': { type: 'boolean' },
       json: { type: 'boolean' },
       help: { type: 'boolean' },
     },
   });
   if (values.help)
     console.log(
-      `${USAGE}\nRuns on 127.0.0.1:8787 by default; signed webhooks use /github/webhook and authenticated status uses /status. Requires GITHUB_APP_ID, GITHUB_APP_PRIVATE_KEY_FILE, REFIT_WEBHOOK_SECRET and a different REFIT_SERVICE_TOKEN. Configured targets are confirmed through GitHub before execution. Installation webhooks wake or cancel their workers; other installed repositories are recorded without execution. --once polls all targets and closes the HTTP listener. --retry-target requires --once and polls only the named targets, permitting failed jobs one fresh attempt; successful jobs remain cached. Approval and access gates still apply. AI and draft PR publication require explicit opt-in. --deadline-alerts opens or updates one GitHub issue per enrolled repository and registry deadline at the lead times (default 90,30,7 days); it needs the App's Issues write permission.`,
+      `${USAGE}\nRuns on 127.0.0.1:8787 by default; signed webhooks use /github/webhook and authenticated status uses /status. Requires GITHUB_APP_ID, GITHUB_APP_PRIVATE_KEY_FILE, REFIT_WEBHOOK_SECRET and a different REFIT_SERVICE_TOKEN. Configured targets are confirmed through GitHub before execution. Installation webhooks wake or cancel their workers; other installed repositories are recorded without execution. --once polls all targets and closes the HTTP listener. --retry-target requires --once and polls only the named targets, permitting failed jobs one fresh attempt; successful jobs remain cached. Approval and access gates still apply. AI and draft PR publication require explicit opt-in. --deadline-alerts opens or updates one GitHub issue per enrolled repository and registry deadline at the lead times (default 90,30,7 days); it needs the App's Issues write permission. --model-fixes replaces retiring OpenAI and Anthropic models in each enrolled repository without asking first, validates the change with that repository's approved checks in offline Docker and, with --publish-draft, opens a draft pull request; Refit never merges it.`,
     );
   else {
     if (!values.config || !values.state) throw new PipelineInputError(USAGE);
@@ -85,6 +86,7 @@ try {
         repairAttempts: Number(values['repair-attempts'] ?? 0),
         publishDraft: values['publish-draft'],
         deadlineAlerts,
+        modelFixes: values['model-fixes'] ? {} : undefined,
         notify: slackNotifier(process.env),
         signal: controller.signal,
         onReady: (url) => console.error(`[refit] Listening at ${url}; webhook: /github/webhook`),

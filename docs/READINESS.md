@@ -5,6 +5,21 @@
 `refit deadlines --sync anthropic` reads Anthropic's model deprecations page and updates `data/deadlines.json`. It groups the page's tables into one entry per retirement date and replacement. Entries are matched by model, so a moved date updates in place, and unchanged entries keep their aliases and `checkedAt`. Nothing is deleted, an unparseable row fails the sync, and the result must pass the registry check before it is written. On the live page (20 retirements, 2026-10-20) it reports no change: the shipped entries match.
 
 A scheduled workflow, `.github/workflows/deadlines-sync.yml`, runs it daily and opens a pull request when the registry should change, so the registry stays current with a reviewer's merge as the only human step. Matching, CI checks, alerts and model replacements still read only the committed registry. OpenAI's page could not be reached from this environment, so its entries are still maintained by hand.
+## October 20 checkpoint: automatic model fixes in enrolled repositories (unreleased, after 0.39.0)
+
+`refit serve --model-fixes` (off by default) now maintains retiring OpenAI and Anthropic models without asking first. After each poll, for every enrolled repository:
+1. It applies the model replacement rule to the committed snapshot.
+2. It runs the repository's approved checks before and after the change, in the same offline Docker sandbox and limits as contract migrations, through a new `validateSourcePatch`.
+3. If both runs pass and `--publish-draft` is set, it opens a draft pull request. The branch, commit and pull request steps moved from `publishDraft` into a shared `publishFiles`, and contract publication behaves exactly as before.
+
+Refit never merges, and a failing check publishes nothing. Uses that stop for review are listed in the pull request, never edited. The service records each repository's outcome under `modelFixes`, keyed by the replacements themselves, so the same fixes are not revalidated or republished on every poll and a closed pull request is not reopened.
+
+Tests:
+- Mocked validation and publication test the workflow's decisions and the pull request description.
+- A service test checks that the feature is off by default, gets the approved checks, opens a pull request only with `--publish-draft`, and is deduplicated through state.
+- A `REFIT_DOCKER_IMAGE`-gated test ran real offline Docker (`node:22-alpine`): a passing check validated the replacement, and a check that depends on the old model failed it.
+
+The team asked for this on 2026-10-20. It changes the open replacement-policy decision, so it needs the owner's sign-off before release; it is not recorded in `AGENTS.md` until then.
 
 ## October 20 checkpoint: model replacements across files and raw HTTP (unreleased, after 0.39.0)
 

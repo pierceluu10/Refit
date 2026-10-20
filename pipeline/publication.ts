@@ -3,7 +3,7 @@ import { authenticateGitHubApp, type GitHubAppConfiguration } from './github-app
 import { createReviewArtifacts } from './review.ts';
 import { digest, isObject } from './specifications.ts';
 import { PipelineInputError } from './types.ts';
-import type { validateMigration } from './validation.ts';
+import type { PublicationFile, validateMigration } from './validation.ts';
 import type { runPipeline } from './run.ts';
 import { INTEGRATION_MARKER, migrationIdentity } from './migration-identity.ts';
 import { unmappedBreakingChanges } from './openapi-diff.ts';
@@ -261,10 +261,38 @@ export async function publishDraft(
     throw new PipelineInputError(
       'Draft publication requires passing baseline/patched checks, changed files and zero unresolved findings (or --publish-unresolved).',
     );
-  const revision = sha(report.validation.revision);
+  const body = artifacts.files['pull-request.md'];
+  return publishFiles(options, {
+    revision: report.validation.revision,
+    key: `${report.runId}:${report.validation.patchHash}`,
+    files: report.publicationFiles,
+    title: artifacts.manifest.title,
+    body,
+    message: `fix: migrate affected ${report.provider} API usage`,
+  });
+}
+
+// Publishes validated files as a commit on a Refit branch from the validated revision and opens a
+// draft pull request, reusing the branch and pull request when they already match. Refit never
+// marks the pull request ready or merges it.
+export async function publishFiles(
+  options: ReturnType<typeof publicationConfiguration>,
+  change: {
+    revision: string;
+    // Identifies the change, so a republished candidate reuses its branch.
+    key: string;
+    files: PublicationFile[];
+    title: string;
+    body: string;
+    message: string;
+  },
+) {
+  if (!change.files.length)
+    throw new PipelineInputError('Draft publication requires changed files.');
+  const revision = sha(change.revision);
   const { authentication, request } = await publicationSession(options);
   const identity = `${authentication ? `:app:${authentication.publisher.appId}` : ''}${options.integration ? `:integration:${options.integration}` : ''}`;
-  const branch = `refit/${digest(`${report.runId}:${report.validation.patchHash}${identity}`).slice(0, 32)}`;
+  const branch = `refit/${digest(`${change.key}${identity}`).slice(0, 32)}`;
   if (branch === options.base)
     throw new PipelineInputError('Migration branch cannot be the base branch.');
   const reference = async (name: string, optional = false) => {
@@ -287,7 +315,7 @@ export async function publishDraft(
   await checkBase();
   const baseCommit = object(await request('GET', `/git/commits/${revision}`));
   const baseTree = sha(object(baseCommit.tree).sha);
-  const body = artifacts.files['pull-request.md'];
+  const body = change.body;
   if (body.length > MAX_BODY_CHARACTERS)
     throw new PipelineInputError(
       'Draft description exceeds the publication size limit. Save a local review bundle instead.',
@@ -296,7 +324,7 @@ export async function publishDraft(
     object(
       await request('POST', '/git/trees', {
         base_tree: baseTree,
-        tree: report.publicationFiles.map((file) => ({ ...file, type: 'blob' })),
+        tree: change.files.map((file) => ({ ...file, type: 'blob' })),
       }),
     ).sha,
   );
@@ -305,7 +333,7 @@ export async function publishDraft(
     const commit = sha(
       object(
         await request('POST', '/git/commits', {
-          message: `fix: migrate affected ${report.provider} API usage`,
+          message: change.message,
           tree,
           parents: [revision],
           ...(authentication
@@ -355,7 +383,7 @@ export async function publishDraft(
     try {
       pull = object(
         await request('POST', '/pulls', {
-          title: artifacts.manifest.title,
+          title: change.title,
           body,
           head: branch,
           base: options.base,

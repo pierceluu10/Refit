@@ -73,7 +73,14 @@ export async function pollServiceTarget(options: {
         retry: options.retry,
         onProgress: options.onProgress,
       });
-      return { ...result, checkout };
+      // The approved checks, which model fixes reuse for this repository.
+      const { image, command, baselineCommand, prepareDependencies, compareTypeErrors } =
+        profile.workflow;
+      return {
+        ...result,
+        checkout,
+        checks: { image, command, baselineCommand, prepareDependencies, compareTypeErrors },
+      };
     },
   );
 }
