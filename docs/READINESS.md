@@ -1,5 +1,16 @@
 # Refit implementation checkpoints
 
+## October 20 checkpoint: model replacements across files and raw HTTP (unreleased, after 0.39.0)
+
+The model replacement rule now resolves names with the TypeScript checker over the repository's own sources, so it follows imports. It covers:
+- a constant or enum member that holds the model, even in another module, edited where it is declared when this request is its only use;
+- a helper function's model parameter, edited at its default and at each caller that passes a literal;
+- raw HTTP requests to the official text-generation endpoints (`fetch`, `UrlFetchApp.fetch`, `axios.post`).
+
+A constant used more than once, a helper passed as a value or called with spread arguments, and every earlier stop still stop for review. Each stop now gives `at`, the place the model is written.
+
+On the 15 exposed deadline-benchmark repositories, fixes stayed at 6 sites in 2 repositories, all correct on hand review. Repositories that stop for review with a reason went from 2 to 4, and silent misses from 11 to 9. 3 of the 4 stops are the sampling-parameter rule, so verifying which parameters the replacement models accept is now the main lever. See [the results](benchmarks/2026-10-20-model-replacement-results.json).
+
 ## October 20 checkpoint: wider model replacement coverage (unreleased, after 0.39.0)
 
 `refit deadlines --propose-model-fixes` now covers three more shapes found on the deadline benchmark:

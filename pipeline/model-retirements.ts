@@ -1,3 +1,4 @@
+import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import ts from 'typescript-compiler';
 import { analyzeRepository } from './analyzer.ts';
@@ -7,7 +8,8 @@ import { TEST_PATH } from './deadline-exposure.ts';
 import { renderPatch } from './patches.ts';
 import { readProviderAdapter, type ProviderAdapter } from './providers.ts';
 import { readRepository } from './repository.ts';
-import type { SourceEdit } from './types.ts';
+import { createSourceImportResolver } from './source-imports.ts';
+import type { Repository, SourceEdit } from './types.ts';
 
 // Text-generation calls whose `model` selects a chat or reasoning model. Embeddings, images, audio,
 // moderation and legacy completions are left out: their replacements change vector sizes, formats,
@@ -96,6 +98,9 @@ export interface ModelReplacement {
   file: string;
   line: number;
   call: string;
+  // Where the model string is edited: the call itself, a constant, an enum member, a parameter
+  // default or a helper's caller.
+  edited: { file: string; line: number };
   from: string;
   to: string;
   // Registry deadlines followed from `from` to `to`, when a replacement retires too.
@@ -108,6 +113,8 @@ export interface ModelReplacementStop {
   file: string;
   line: number;
   call: string;
+  // Where the model string is written.
+  at: { file: string; line: number };
   model: string;
   reason: string;
 }
@@ -143,66 +150,149 @@ function propertyName(name: ts.PropertyName) {
   return ts.isIdentifier(name) || ts.isStringLiteralLike(name) ? name.text : undefined;
 }
 
-// The `const NAME = …` declaration a reference resolves to, looked up through the enclosing
-// blocks of the same file. Anything else (parameters, `let`, imports) is not followed.
-function constDeclaration(from: ts.Node, name: string) {
-  for (let scope: ts.Node | undefined = from.parent; scope; scope = scope.parent) {
-    if (!ts.isBlock(scope) && !ts.isSourceFile(scope) && !ts.isModuleBlock(scope)) continue;
-    for (const statement of scope.statements)
-      if (ts.isVariableStatement(statement) && statement.declarationList.flags & ts.NodeFlags.Const)
-        for (const declaration of statement.declarationList.declarations)
-          if (
-            ts.isIdentifier(declaration.name) &&
-            declaration.name.text === name &&
-            declaration.initializer
-          )
-            return {
-              declaration,
-              initializer: unwrap(declaration.initializer),
-              exported: Boolean(
-                statement.modifiers?.some((item) => item.kind === ts.SyntaxKind.ExportKeyword),
-              ),
-            };
-  }
-  return undefined;
-}
-
 function unwrap(expression: ts.Expression): ts.Expression {
   while (
     ts.isAsExpression(expression) ||
     ts.isSatisfiesExpression(expression) ||
-    ts.isParenthesizedExpression(expression)
+    ts.isParenthesizedExpression(expression) ||
+    ts.isNonNullExpression(expression)
   )
     expression = expression.expression;
   return expression;
 }
 
-// Uses of a name in a file other than its declaration and property names. A const used once is
-// safe to edit where it is declared; one used more often may feed other code.
-function referenceCount(source: ts.SourceFile, name: string) {
-  let count = 0;
-  const visit = (node: ts.Node) => {
-    if (
-      ts.isIdentifier(node) &&
-      node.text === name &&
-      !(ts.isVariableDeclaration(node.parent) && node.parent.name === node) &&
-      !(ts.isPropertyAccessExpression(node.parent) && node.parent.name === node) &&
-      !(ts.isPropertyAssignment(node.parent) && node.parent.name === node)
-    )
-      count += 1;
-    ts.forEachChild(node, visit);
+// Raw HTTP requests to the official text-generation endpoints, with the request body sent through
+// `JSON.stringify`: `fetch(url, { body })`, Apps Script's `UrlFetchApp.fetch(url, { payload })`
+// and `axios.post(url, data)`.
+const RAW_ENDPOINTS: { provider: DeadlineEntry['provider']; pattern: RegExp }[] = [
+  {
+    provider: 'openai',
+    pattern: /api\.openai\.com\/v1\/(?:chat\/completions|responses)(?![\w/-])/,
+  },
+  { provider: 'anthropic', pattern: /api\.anthropic\.com\/v1\/messages(?![\w/-])/ },
+];
+
+// A TypeScript program over the repository's own sources, so references can be resolved across
+// files: imports, re-exported constants, enum members and helper functions.
+function sourceProgram(repository: Repository) {
+  const sources = new Map(
+    repository.files.map((file) => [resolve(repository.root, file.path), file.content]),
+  );
+  const resolution = createSourceImportResolver(repository, sources);
+  const options: ts.CompilerOptions = {
+    allowJs: true,
+    noLib: true,
+    target: ts.ScriptTarget.Latest,
   };
-  visit(source);
-  return count;
+  const host = ts.createCompilerHost(options);
+  host.fileExists = (name) => sources.has(name);
+  host.readFile = (name) => sources.get(name);
+  host.resolveModuleNames = (names, containingFile) =>
+    names.map((name) => {
+      const path = resolution.resolve(name, containingFile);
+      return path ? { resolvedFileName: path } : undefined;
+    });
+  host.getSourceFile = (name, languageVersion) => {
+    const content = sources.get(name);
+    return content === undefined
+      ? undefined
+      : ts.createSourceFile(name, content, languageVersion, true);
+  };
+  const program = ts.createProgram([...sources.keys()], options, host);
+  const checker = program.getTypeChecker();
+  const paths = new Map(
+    [...sources.keys()].map((path, index) => [path, repository.files[index].path]),
+  );
+  const files = program
+    .getSourceFiles()
+    .filter(
+      (source) => paths.has(source.fileName) && !program.getSyntacticDiagnostics(source).length,
+    );
+  const symbolOf = (node: ts.Node) => {
+    let symbol =
+      ts.isShorthandPropertyAssignment(node.parent) && node.parent.name === node
+        ? checker.getShorthandAssignmentValueSymbol(node.parent)
+        : checker.getSymbolAtLocation(node);
+    for (let depth = 0; symbol && symbol.flags & ts.SymbolFlags.Alias && depth < 8; depth += 1)
+      symbol = checker.getAliasedSymbol(symbol);
+    return symbol;
+  };
+  // Every use of each symbol in the repository: identifiers that are not its declaration name and
+  // not part of an import or export.
+  const uses = new Map<ts.Symbol, ts.Identifier[]>();
+  for (const source of files) {
+    const visit = (node: ts.Node) => {
+      if (ts.isIdentifier(node) && !declarationName(node) && !moduleBinding(node)) {
+        const symbol = symbolOf(node);
+        if (symbol) uses.set(symbol, [...(uses.get(symbol) ?? []), node]);
+      }
+      ts.forEachChild(node, visit);
+    };
+    visit(source);
+  }
+  return {
+    files,
+    symbolOf,
+    usesOf: (symbol: ts.Symbol) => uses.get(symbol) ?? [],
+    path: (node: ts.Node) => paths.get(node.getSourceFile().fileName)!,
+    line: (node: ts.Node) =>
+      node.getSourceFile().getLineAndCharacterOfPosition(node.getStart()).line + 1,
+    source: (path: string) => files.find((source) => paths.get(source.fileName) === path),
+  };
+}
+type SourceProgram = ReturnType<typeof sourceProgram>;
+
+function declarationName(node: ts.Identifier) {
+  const parent = node.parent;
+  return (
+    ((ts.isVariableDeclaration(parent) ||
+      ts.isFunctionDeclaration(parent) ||
+      ts.isFunctionExpression(parent) ||
+      ts.isParameter(parent) ||
+      ts.isEnumMember(parent) ||
+      ts.isEnumDeclaration(parent) ||
+      ts.isClassDeclaration(parent) ||
+      ts.isMethodDeclaration(parent) ||
+      ts.isPropertyDeclaration(parent) ||
+      ts.isPropertyAssignment(parent) ||
+      ts.isBindingElement(parent)) &&
+      parent.name === node) ||
+    (ts.isPropertyAccessExpression(parent) &&
+      parent.name === node &&
+      ts.isBinaryExpression(parent.parent) &&
+      parent.parent.left === parent &&
+      parent.parent.operatorToken.kind === ts.SyntaxKind.EqualsToken)
+  );
 }
 
-// A const declared once in the file, not exported, and used only at this one place.
-function usedOnce(source: ts.SourceFile, found: ReturnType<typeof constDeclaration>) {
-  return Boolean(
-    found &&
-    !found.exported &&
-    referenceCount(source, found.declaration.name.getText(source)) === 1,
-  );
+// Import and export bindings, including CommonJS `module.exports = { name }`, are not uses.
+function moduleBinding(node: ts.Identifier) {
+  if (
+    ts.isImportSpecifier(node.parent) ||
+    ts.isImportClause(node.parent) ||
+    ts.isNamespaceImport(node.parent) ||
+    ts.isImportEqualsDeclaration(node.parent) ||
+    ts.isExportSpecifier(node.parent) ||
+    ts.isExportAssignment(node.parent)
+  )
+    return true;
+  for (let current: ts.Node = node; current.parent; current = current.parent) {
+    const up = current.parent;
+    if (
+      ts.isBinaryExpression(up) &&
+      up.operatorToken.kind === ts.SyntaxKind.EqualsToken &&
+      up.right === current &&
+      /^(?:module\.)?exports\b/.test(up.left.getText())
+    )
+      return true;
+    if (
+      !ts.isObjectLiteralExpression(up) &&
+      !ts.isShorthandPropertyAssignment(up) &&
+      !ts.isPropertyAssignment(up)
+    )
+      return false;
+  }
+  return false;
 }
 
 // The traced call at an analyzer location: the call whose callee matches the traced expression.
@@ -224,32 +314,236 @@ function callAt(source: ts.SourceFile, line: number, column: number, expression:
   return found;
 }
 
-// Proposes replacing a retiring model ID with its registry replacement, only where the ID is a
-// literal `model` in a traced SDK call (or the default of an `??` or `||` fallback there), outside
-// tests. Anything less certain stops for review with a reason. Nothing is written, applied,
-// validated or sent to a provider: the proposal is a patch for a person to review.
+// A string literal behind a URL argument: inline, or a const declared with one.
+function urlText(program: SourceProgram, node: ts.Expression | undefined): string | undefined {
+  if (!node) return undefined;
+  const value = unwrap(node);
+  if (ts.isStringLiteralLike(value)) return value.text;
+  if (ts.isTemplateExpression(value)) return value.head.text;
+  if (ts.isIdentifier(value)) {
+    const declaration = program.symbolOf(value)?.valueDeclaration;
+    if (
+      declaration &&
+      ts.isVariableDeclaration(declaration) &&
+      declaration.initializer &&
+      ts.isVariableDeclarationList(declaration.parent) &&
+      declaration.parent.flags & ts.NodeFlags.Const
+    )
+      return urlText(program, declaration.initializer);
+  }
+  return undefined;
+}
+
+function objectProperty(object: ts.ObjectLiteralExpression, name: string) {
+  return object.properties.find(
+    (property): property is ts.PropertyAssignment | ts.ShorthandPropertyAssignment =>
+      (ts.isPropertyAssignment(property) || ts.isShorthandPropertyAssignment(property)) &&
+      propertyName(property.name) === name,
+  );
+}
+
+function propertyValue(property: ts.PropertyAssignment | ts.ShorthandPropertyAssignment) {
+  return unwrap(ts.isPropertyAssignment(property) ? property.initializer : property.name);
+}
+
+// The request body of a raw HTTP call to a text-generation endpoint, before `JSON.stringify`.
+function rawRequest(program: SourceProgram, call: ts.CallExpression) {
+  const callee = call.expression;
+  const name = ts.isIdentifier(callee)
+    ? callee.text
+    : ts.isPropertyAccessExpression(callee)
+      ? callee.name.text
+      : '';
+  if (name !== 'fetch' && name !== 'post') return undefined;
+  const url = urlText(program, call.arguments[0]);
+  const endpoint = url && RAW_ENDPOINTS.find((item) => item.pattern.test(url));
+  if (!endpoint) return undefined;
+  let body: ts.Expression | undefined;
+  if (name === 'post') body = call.arguments[1];
+  else {
+    const options = call.arguments[1] && unwrap(call.arguments[1]);
+    if (!options || !ts.isObjectLiteralExpression(options)) return undefined;
+    const property = objectProperty(options, 'body') ?? objectProperty(options, 'payload');
+    const value = property && propertyValue(property);
+    body =
+      value &&
+      ts.isCallExpression(value) &&
+      value.expression.getText() === 'JSON.stringify' &&
+      value.arguments.length === 1
+        ? value.arguments[0]
+        : undefined;
+  }
+  if (!body) return undefined;
+  const path = /\/v1\/[\w/]+/.exec(url)![0];
+  return { provider: endpoint.provider, body, call: `${name} ${path}` };
+}
+
+interface Site {
+  literal: ts.StringLiteralLike;
+  // Why the site cannot be edited from this call, when it cannot.
+  stop?: string;
+}
+
+// The request object a call sends: an object literal, or a const holding one that only this call
+// uses.
+function requestObject(program: SourceProgram, argument: ts.Expression | undefined) {
+  if (!argument) return undefined;
+  const value = unwrap(argument);
+  if (ts.isObjectLiteralExpression(value)) return { object: value };
+  if (!ts.isIdentifier(value)) return undefined;
+  const symbol = program.symbolOf(value);
+  const declaration = symbol?.valueDeclaration;
+  if (
+    !symbol ||
+    !declaration ||
+    !ts.isVariableDeclaration(declaration) ||
+    !declaration.initializer ||
+    !ts.isVariableDeclarationList(declaration.parent) ||
+    !(declaration.parent.flags & ts.NodeFlags.Const)
+  )
+    return undefined;
+  const object = unwrap(declaration.initializer);
+  if (!ts.isObjectLiteralExpression(object)) return undefined;
+  const uses = program.usesOf(symbol).length;
+  return uses === 1
+    ? { object }
+    : {
+        object,
+        shared: `The request object ${value.text} (${program.path(declaration)}:${program.line(declaration)}) is used ${uses} times; change its model by hand to`,
+      };
+}
+
+// Where the model a request sends is written, followed through constants, enum members (also in
+// other modules) and a helper function's parameter. A constant or member is edited where it is
+// declared only when this request is its single use; a parameter is edited at its default and at
+// each caller that passes a literal.
+function modelSites(program: SourceProgram, value: ts.Expression, depth = 0): Site[] {
+  if (depth > 4) return [];
+  if (ts.isStringLiteralLike(value)) return [{ literal: value }];
+  if (
+    ts.isBinaryExpression(value) &&
+    [ts.SyntaxKind.QuestionQuestionToken, ts.SyntaxKind.BarBarToken].includes(
+      value.operatorToken.kind,
+    )
+  )
+    return ts.isStringLiteralLike(unwrap(value.right))
+      ? [{ literal: unwrap(value.right) as ts.StringLiteralLike }]
+      : modelSites(program, unwrap(value.right), depth + 1);
+  const reference = ts.isPropertyAccessExpression(value) ? value.name : value;
+  if (!ts.isIdentifier(reference)) return [];
+  const symbol = program.symbolOf(reference);
+  const declaration = symbol?.valueDeclaration;
+  if (!symbol || !declaration) return [];
+  if (
+    (ts.isVariableDeclaration(declaration) &&
+      ts.isVariableDeclarationList(declaration.parent) &&
+      declaration.parent.flags & ts.NodeFlags.Const) ||
+    ts.isEnumMember(declaration)
+  ) {
+    const initializer = declaration.initializer && unwrap(declaration.initializer as ts.Expression);
+    if (!initializer || !ts.isStringLiteralLike(initializer)) return [];
+    const uses = program.usesOf(symbol).length;
+    const kind = ts.isEnumMember(declaration) ? 'enum member' : 'constant';
+    const at = `${program.path(initializer)}:${program.line(initializer)}`;
+    return [
+      {
+        literal: initializer,
+        ...(uses !== 1
+          ? {
+              stop: `The model comes from the ${kind} ${reference.text} (${at}), which is used ${uses} times; change it by hand to`,
+            }
+          : {}),
+      },
+    ];
+  }
+  if (ts.isParameter(declaration) && ts.isIdentifier(declaration.name)) {
+    const helper = declaration.parent;
+    const index = helper.parameters.indexOf(declaration);
+    const sites: Site[] = [];
+    if (declaration.initializer && ts.isStringLiteralLike(unwrap(declaration.initializer)))
+      sites.push({ literal: unwrap(declaration.initializer) as ts.StringLiteralLike });
+    const name =
+      ts.isFunctionDeclaration(helper) && helper.name
+        ? helper.name
+        : (ts.isFunctionExpression(helper) || ts.isArrowFunction(helper)) &&
+            ts.isVariableDeclaration(helper.parent) &&
+            ts.isIdentifier(helper.parent.name)
+          ? helper.parent.name
+          : undefined;
+    const helperSymbol = name && program.symbolOf(name);
+    if (!helperSymbol) return sites;
+    const helperName = `${name.text} (${program.path(name)}:${program.line(name)})`;
+    for (const use of program.usesOf(helperSymbol)) {
+      const callee =
+        ts.isPropertyAccessExpression(use.parent) && use.parent.name === use ? use.parent : use;
+      const call = callee.parent;
+      if (!ts.isCallExpression(call) || call.expression !== callee) {
+        // Passed as a value, the helper may be called with any model.
+        sites.forEach(
+          (site) =>
+            (site.stop ??= `The helper ${helperName} is also passed as a value; change its model by hand to`),
+        );
+        continue;
+      }
+      if (call.arguments.slice(0, index + 1).some((argument) => ts.isSpreadElement(argument))) {
+        sites.forEach(
+          (site) =>
+            (site.stop ??= `The helper ${helperName} is called with spread arguments; change its model by hand to`),
+        );
+        continue;
+      }
+      const argument = call.arguments[index] && unwrap(call.arguments[index]);
+      if (argument) sites.push(...modelSites(program, argument, depth + 1));
+    }
+    return sites;
+  }
+  return [];
+}
+
+// Proposes replacing a retiring model ID with its registry replacement where a traced SDK call, or a
+// raw HTTP request to an official text-generation endpoint, sends it as `model`, outside tests.
+// Anything less certain stops for review with a reason. Nothing is written, applied, validated or
+// sent to a provider: the proposal is a patch for a person to review.
 export async function proposeModelReplacements(
   directory: string,
   registry: DeadlineRegistry,
   now: Date,
 ): Promise<ModelReplacementProposal> {
-  const replacements: ModelReplacement[] = [];
-  const stops: ModelReplacementStop[] = [];
-  const edits: SourceEdit[] = [];
-  let patched: Awaited<ReturnType<typeof readRepository>> | undefined;
+  const byProvider = new Map<string, Map<string, DeadlineEntry>>();
+  for (const entry of registry.deadlines)
+    if (entry.kind === 'model') {
+      const models = byProvider.get(entry.provider) ?? new Map<string, DeadlineEntry>();
+      byProvider.set(entry.provider, models);
+      for (const version of entry.versions) models.set(version, entry);
+    }
+  const empty = { replacements: [], stops: [], patch: null };
+  if (
+    ![...byProvider.keys()].some((provider) =>
+      TRACERS.some((tracer) => tracer.provider === provider),
+    )
+  )
+    return empty;
+  const repository = await readRepository(directory);
+  const program = sourceProgram(repository);
+  // Every request a model can be read from: traced SDK calls first, then raw HTTP requests.
+  const requests: {
+    provider: DeadlineEntry['provider'];
+    call: string;
+    node: ts.CallExpression;
+    argument: ts.Expression | undefined;
+  }[] = [];
+  const seen = new Set<ts.Node>();
   for (const tracer of TRACERS) {
-    const { provider } = tracer;
-    const byModel = new Map<string, DeadlineEntry>();
-    for (const entry of registry.deadlines)
-      if (entry.provider === provider && entry.kind === 'model')
-        for (const version of entry.versions) byModel.set(version, entry);
-    if (!byModel.size) continue;
+    if (!byProvider.has(tracer.provider)) continue;
     const adapter =
       tracer.adapter instanceof URL
         ? await readProviderAdapter(fileURLToPath(tracer.adapter))
         : tracer.adapter;
-    const repository = await readRepository(directory, adapter.packageName);
-    const analysis = analyzeRepository(repository, [], adapter);
+    const analysis = analyzeRepository(
+      await readRepository(directory, adapter.packageName),
+      [],
+      adapter,
+    );
     const traced = [
       ...analysis.sdkCalls
         .map((sdk) => ({ ...sdk, call: `${sdk.resource}.${sdk.method}` }))
@@ -258,134 +552,126 @@ export async function proposeModelReplacements(
         .map((sdk) => ({ ...sdk, call: sdk.method }))
         .filter((sdk) => tracer.clientCalls?.has(sdk.call)),
     ];
-    const sources = new Map<string, ts.SourceFile>();
     for (const sdk of traced) {
-      const { call } = sdk;
-      const file = repository.files.find((item) => item.path === sdk.file);
-      if (!file) continue;
-      const source =
-        sources.get(file.path) ??
-        ts.createSourceFile(file.path, file.content, ts.ScriptTarget.Latest, true);
-      sources.set(file.path, source);
-      const node = callAt(source, sdk.line, sdk.column, sdk.expression);
-      const argument = node?.arguments[0] && unwrap(node.arguments[0]);
-      if (!node || !argument) continue;
-      // The request object: inline, or a const declared in scope, such as `const params = {…}`.
-      let request: ts.ObjectLiteralExpression | undefined;
-      let sharedRequest: string | undefined;
-      if (ts.isObjectLiteralExpression(argument)) request = argument;
-      else if (ts.isIdentifier(argument)) {
-        const found = constDeclaration(node, argument.text);
-        if (found && ts.isObjectLiteralExpression(found.initializer)) {
-          request = found.initializer;
-          if (!usedOnce(source, found)) sharedRequest = argument.text;
-        }
-      }
-      if (!request) continue;
-      const model = request.properties.find(
-        (property): property is ts.PropertyAssignment | ts.ShorthandPropertyAssignment =>
-          (ts.isPropertyAssignment(property) || ts.isShorthandPropertyAssignment(property)) &&
-          propertyName(property.name) === 'model',
-      );
-      if (!model) continue;
-      let literal: ts.StringLiteralLike | undefined;
-      let sharedConstant: string | undefined;
-      const value = unwrap(ts.isPropertyAssignment(model) ? model.initializer : model.name);
-      if (ts.isStringLiteralLike(value)) literal = value;
-      else if (
-        ts.isBinaryExpression(value) &&
-        [ts.SyntaxKind.QuestionQuestionToken, ts.SyntaxKind.BarBarToken].includes(
-          value.operatorToken.kind,
-        ) &&
-        ts.isStringLiteralLike(value.right)
-      )
-        literal = value.right;
-      else if (ts.isIdentifier(value)) {
-        const found = constDeclaration(value, value.text);
-        if (found && ts.isStringLiteralLike(found.initializer)) {
-          literal = found.initializer;
-          if (!usedOnce(source, found)) sharedConstant = value.text;
-        }
-      }
-      const entry = literal && byModel.get(literal.text);
-      if (!literal || !entry) continue;
-      const stop = (reason: string) =>
-        stops.push({
-          deadline: entry.id,
-          provider: entry.provider,
-          file: file.path,
-          line: sdk.line,
-          call,
-          model: literal.text,
-          reason,
-        });
-      if (TEST_PATH.test(file.path)) continue;
-      const resolved = finalReplacement(entry, byModel);
-      if (!resolved) {
-        stop('The registry names no concrete replacement model ID.');
-        continue;
-      }
-      const declaredAt = (node: ts.Node) =>
-        `${file.path}:${source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1}`;
-      if (sharedConstant) {
-        stop(
-          `The model comes from the constant ${sharedConstant} (${declaredAt(literal)}), which is exported or used elsewhere; change it by hand to ${resolved.to}.`,
-        );
-        continue;
-      }
-      if (sharedRequest) {
-        stop(
-          `The request object ${sharedRequest} (${declaredAt(request)}) is exported or used elsewhere; change its model by hand to ${resolved.to}.`,
-        );
-        continue;
-      }
-      if (request.properties.some((property) => ts.isSpreadAssignment(property))) {
-        stop(
-          'The request spreads other options, which may set parameters the replacement rejects.',
-        );
-        continue;
-      }
-      const sensitive = request.properties
-        .map((property) => (property.name ? propertyName(property.name) : undefined))
-        .filter((name): name is string =>
-          Boolean(name && SENSITIVE_PARAMETERS[provider].has(name)),
-        );
-      if (sensitive.length) {
-        stop(
-          `The request sets ${sensitive.join(', ')}, which ${resolved.to} may reject or treat differently.`,
-        );
-        continue;
-      }
-      const start = literal.getStart(source);
-      if (edits.some((edit) => edit.file === file.path && edit.start === start)) continue;
-      const quote = file.content[start];
-      edits.push({
-        file: file.path,
-        start,
-        end: literal.end,
-        replacement: `${quote}${resolved.to}${quote}`,
-        changeId: entry.id,
-        rule: 'model-retirement',
+      const source = program.source(sdk.file);
+      const node = source && callAt(source, sdk.line, sdk.column, sdk.expression);
+      if (!node || seen.has(node)) continue;
+      seen.add(node);
+      requests.push({
+        provider: tracer.provider,
+        call: sdk.call,
+        node,
+        argument: node.arguments[0],
       });
-      replacements.push({
-        deadline: entry.id,
-        provider: entry.provider,
-        date: entry.date,
-        days: daysUntil(entry.date, now),
-        file: file.path,
-        line: sdk.line,
-        call,
-        from: literal.text,
-        to: resolved.to,
-        via: resolved.via,
-      });
-      patched = repository;
     }
   }
-  // Both adapters read the same source files, so one repository renders every edit.
-  return {
-    replacements,
-    stops,
-    patch: patched && edits.length ? renderPatch(patched, edits) : null,
-  };
+  for (const source of program.files) {
+    const visit = (node: ts.Node) => {
+      if (ts.isCallExpression(node) && !seen.has(node)) {
+        const raw = rawRequest(program, node);
+        if (raw && byProvider.has(raw.provider)) {
+          seen.add(node);
+          requests.push({ provider: raw.provider, call: raw.call, node, argument: raw.body });
+        }
+      }
+      ts.forEachChild(node, visit);
+    };
+    visit(source);
+  }
+
+  // Each request's model sites with a decision. A site reached from several requests is edited
+  // only when every one of them allows it.
+  const decisions = new Map<
+    ts.StringLiteralLike,
+    {
+      entry: DeadlineEntry;
+      to: string;
+      via: string[];
+      reasons: string[];
+      requests: (typeof requests)[number][];
+    }
+  >();
+  const stops: ModelReplacementStop[] = [];
+  for (const request of requests) {
+    const models = byProvider.get(request.provider)!;
+    const file = program.path(request.node);
+    if (TEST_PATH.test(file)) continue;
+    const found = requestObject(program, request.argument);
+    const property = found && objectProperty(found.object, 'model');
+    if (!found || !property) continue;
+    for (const site of modelSites(program, propertyValue(property))) {
+      const entry = models.get(site.literal.text);
+      if (!entry || TEST_PATH.test(program.path(site.literal))) continue;
+      const resolved = finalReplacement(entry, models) ?? { to: '', via: [entry.id] };
+      const sensitive = found.object.properties
+        .map((item) => (item.name ? propertyName(item.name) : undefined))
+        .filter((name): name is string =>
+          Boolean(name && SENSITIVE_PARAMETERS[request.provider].has(name)),
+        );
+      const reason = !resolved.to
+        ? 'The registry names no concrete replacement model ID.'
+        : site.stop
+          ? `${site.stop} ${resolved.to}.`
+          : found.shared
+            ? `${found.shared} ${resolved.to}.`
+            : found.object.properties.some((item) => ts.isSpreadAssignment(item))
+              ? 'The request spreads other options, which may set parameters the replacement rejects.'
+              : sensitive.length
+                ? `The request sets ${sensitive.join(', ')}, which ${resolved.to} may reject or treat differently.`
+                : undefined;
+      const decision = decisions.get(site.literal) ?? {
+        entry,
+        ...resolved,
+        reasons: [],
+        requests: [],
+      };
+      decisions.set(site.literal, decision);
+      decision.requests.push(request);
+      decision.reasons.push(reason ?? '');
+    }
+  }
+
+  const replacements: ModelReplacement[] = [];
+  const edits: SourceEdit[] = [];
+  for (const [literal, decision] of decisions) {
+    const request = decision.requests[0];
+    const base = {
+      deadline: decision.entry.id,
+      provider: decision.entry.provider,
+      file: program.path(request.node),
+      line: program.line(request.node),
+      call: request.call,
+    };
+    const blocking = decision.reasons.find(Boolean);
+    if (blocking) {
+      stops.push({
+        ...base,
+        at: { file: program.path(literal), line: program.line(literal) },
+        model: literal.text,
+        reason: blocking,
+      });
+      continue;
+    }
+    const file = program.path(literal);
+    const start = literal.getStart();
+    const quote = literal.getSourceFile().text[start];
+    edits.push({
+      file,
+      start,
+      end: literal.end,
+      replacement: `${quote}${decision.to}${quote}`,
+      changeId: decision.entry.id,
+      rule: 'model-retirement',
+    });
+    replacements.push({
+      ...base,
+      date: decision.entry.date,
+      days: daysUntil(decision.entry.date, now),
+      edited: { file, line: program.line(literal) },
+      from: literal.text,
+      to: decision.to,
+      via: decision.via,
+    });
+  }
+  return { replacements, stops, patch: edits.length ? renderPatch(repository, edits) : null };
 }

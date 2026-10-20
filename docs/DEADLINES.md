@@ -171,8 +171,12 @@ For OpenAI and Anthropic models, Refit can propose the registry replacement as a
 A replacement is proposed only when all of these hold:
 
 - The call is a traced SDK text-generation call: OpenAI `chat.completions.create`, `.parse` or `.stream` (also under `beta`), `responses.create`, `.parse` or `.stream`, `createChatCompletion` on an openai v3 or `openai-edge` `OpenAIApi` client, or Anthropic `messages.create`, `.stream` or `.countTokens` (also under `beta`). Clients are traced like any adapter's, including class fields and imported clients, using `examples/openai.provider.json` and `examples/anthropic.provider.json`.
-- Its first argument is an object literal, or a `const` holding one that is declared in scope, not exported and used only by this call (`const params = { model: 'gpt-4', messages }`).
-- Its `model` is a string literal naming a registry model; the default of a `??` or `||` fallback there, such as `process.env.MODEL ?? 'gpt-4'`; or a `const` holding such a literal, declared in scope, not exported and used only here (`model: MODEL` or the shorthand `{ model }`). A constant is edited where it is declared.
+- Or the call is a raw HTTP request to `api.openai.com/v1/chat/completions`, `api.openai.com/v1/responses` or `api.anthropic.com/v1/messages`: `fetch(url, { body: JSON.stringify(request) })`, Apps Script's `UrlFetchApp.fetch(url, { payload: JSON.stringify(request) })` or `axios.post(url, request)`, with the URL written inline or in a `const`.
+- Its request is an object literal, or a `const` holding one that only this call uses (`const params = { model: 'gpt-4', messages }`).
+- Its `model` is a string literal naming a registry model, or one of these, followed through imports across files:
+  - the default of a `??` or `||` fallback, such as `process.env.MODEL ?? 'gpt-4'`;
+  - a `const` or enum member holding such a literal and used only by this request (`model: MODEL`, `{ model }`, `model: Model.Default`), edited where it is declared, even in another module;
+  - a parameter of the helper function that makes the call, such as `ask(messages, model = 'gpt-4')`. Its default and each caller that passes a literal (`ask(messages, 'o1-mini')`) are edited separately, each to its own replacement.
 - The file is not a test, spec, story, fixture or example file.
 - The registry entry names a concrete model ID. When that replacement retires too, Refit follows the registry to a model that does not, for example `o1-mini` to `o4-mini` to `gpt-5.6-terra`.
 
@@ -180,14 +184,21 @@ These cases stop for review and are listed with a reason, with no edit:
 
 - The request sets a parameter the replacement may reject: `temperature`, `top_p` or `top_k` for Anthropic (Anthropic returns a 400 for non-default values on Claude 4.7 and later models), and `temperature`, `top_p`, `max_tokens`, `presence_penalty`, `frequency_penalty`, `logit_bias`, `logprobs` or `top_logprobs` for OpenAI (support on its newer models is unverified).
 - The request spreads other options (`{ ...options, model: 'gpt-4' }`).
-- The model comes from a constant, or the request from a `const` object, that is exported or used more than once in the file, so it may feed other code.
+- The model comes from a constant or enum member, or the request from a `const` object, that is used more than once in the repository, so it may feed other code.
+- The helper carrying the model is passed around as a value, or called with spread arguments.
 - The registry has no concrete replacement.
 
-Embeddings, images, audio and moderation calls are never proposed, because their replacements change vector sizes, formats or parameters. Legacy completions (`completions.create`, v3 `createCompletion`) are never proposed either, because the replacements are chat models. A model sent through raw `fetch`, LangChain, the Vercel AI SDK or a Deno re-export, imported from another module, or passed through a helper's parameter, is not traced and stays an ordinary exposure.
+Embeddings, images, audio and moderation calls are never proposed, because their replacements change vector sizes, formats or parameters. Legacy completions (`completions.create`, v3 `createCompletion`) are never proposed either, because the replacements are chat models. A model sent through another host (such as the app's own proxy), LangChain, the Vercel AI SDK or a Deno re-export, or held in settings objects, UI state or CLI option defaults, is not traced and stays an ordinary exposure.
 
-`--json` returns `replacements` (each with `file`, `line`, `call`, `from`, `to`, the deadline and `via`, the registry entries followed), `stops` (each with a `reason`) and `patch`.
+`--json` returns `replacements` (each with the call's `file`, `line` and `call`, `edited`, the place the string changes, `from`, `to`, the deadline and `via`, the registry entries followed), `stops` (each with `at`, where the model is written, and a `reason`) and `patch`.
 
-On the 34 OpenAI repositories of the [deadline benchmark](DEADLINE-BENCHMARK.md), 15 send a model retiring on 2026-10-23 from live code. The rule proposed 6 replacements in 2 of them, 4 through the v3 SDK or `openai-edge`. It stopped for review in 2 more: one spreads options, and one reuses a request object that also sets `temperature`. Every proposal was read by hand, and each is the registry replacement in a plain request. The other 11 hold the model in exported constants, helper parameters, UI state, configuration, raw `fetch` or other libraries. Results are in [`benchmarks/2026-10-20-model-replacement-results.json`](benchmarks/2026-10-20-model-replacement-results.json).
+On the 34 OpenAI repositories of the [deadline benchmark](DEADLINE-BENCHMARK.md), 15 send a model retiring on 2026-10-23 from live code. The rule proposed 6 replacements in 2 of them, 4 through the v3 SDK or `openai-edge`. Every proposal was read by hand, and each is the registry replacement in a plain request. It stopped for review, with a reason, in 4 more:
+- a helper whose request sets `max_tokens`;
+- a raw `fetch` that sets `temperature`;
+- spread options;
+- a reused request object.
+
+The other 9 hold the model in settings or UI defaults, a CLI option default, an alias map, a request to the app's own proxy, an Apps Script options variable, a Deno library or a configuration object. Results are in [`benchmarks/2026-10-20-model-replacement-results.json`](benchmarks/2026-10-20-model-replacement-results.json).
 
 ## The migration path
 
