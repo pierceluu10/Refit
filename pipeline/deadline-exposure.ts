@@ -32,8 +32,8 @@ const META_CONTEXT = [META_SDK, 'graph.facebook.com'];
 // - comment: comments, which the parser keeps out of every source token;
 // - tokenizer: a local tokenizer argument, such as `encoding_for_model('gpt-4')`;
 // - check: a comparison or prefix check, such as `model.startsWith('o1')` or `case 'gpt-4':`.
-// Comments and the tokenizer and prefix calls apply to every provider; the rest apply to OpenAI
-// models only.
+// Comments and the tokenizer and prefix calls apply to every provider; the rest apply to model
+// providers (OpenAI and Anthropic) only.
 export type DeadlineUse = 'live' | 'catalog' | 'test' | 'comment' | 'tokenizer' | 'check';
 
 export interface DeadlineEvidence {
@@ -71,7 +71,12 @@ function excerpt(line: string) {
 
 // Pinned versions a source line names, per provider, with no code executed. `column` is where the
 // version starts in the line, so the caller can tell code from comments.
-function sourceMatches(line: string, shopifyFile: boolean, metaFile: boolean, models: Set<string>) {
+function sourceMatches(
+  line: string,
+  shopifyFile: boolean,
+  metaFile: boolean,
+  models: Map<string, DeadlineEntry['provider']>,
+) {
   const found: { provider: DeadlineEntry['provider']; version: string; column: number }[] = [];
   const add = (
     provider: DeadlineEntry['provider'],
@@ -97,7 +102,7 @@ function sourceMatches(line: string, shopifyFile: boolean, metaFile: boolean, mo
     for (const match of line.matchAll(/\bapiVersion\s*[:=]\s*(['"`])(\d{4}-(?:01|04|07|10))\1/dg))
       add('shopify', match[2], match, 2);
   for (const match of line.matchAll(/(['"`])([a-z0-9][a-z0-9.-]*)\1/dg))
-    if (models.has(match[2])) add('openai', match[2], match, 2);
+    if (models.has(match[2])) add(models.get(match[2])!, match[2], match, 2);
   return found;
 }
 
@@ -112,10 +117,15 @@ const CHECK_OPERATORS = new Set([
   ts.SyntaxKind.ExclamationEqualsEqualsToken,
 ]);
 // Test, spec, story, fixture and example files, by directory or name.
-const TEST_PATH =
+export const TEST_PATH =
   /(?:^|\/)(?:__tests__|__mocks__|__fixtures__|tests?|specs?|e2e|cypress|fixtures?|examples?|stories)\/|\.(?:test|spec|e2e|stories|story)\.[cm]?[jt]sx?$/i;
-// Strings shaped like OpenAI model IDs, counted with registry models to recognize a model list.
-// Router IDs such as `openai/o1` count too.
+// Providers whose deadlines retire models rather than API versions. Their matches get every use
+// class below; API-version providers get only comments, tokenizers and prefix checks.
+const MODEL_PROVIDERS = new Set<DeadlineEntry['provider']>(['openai', 'anthropic']);
+// Strings shaped like OpenAI or Anthropic model IDs, counted with registry models to recognize a
+// model list, which often mixes providers. Router IDs such as `openai/o1` and
+// `anthropic/claude-3-opus` count too.
+const ANTHROPIC_MODEL = /^(?:anthropic\/)?claude-/;
 const OPENAI_MODEL =
   /^(?:openai\/)?(?:gpt-|chatgpt-|o\d(?:-|$)|text-(?:davinci|curie|babbage|ada|embedding|moderation)-|(?:davinci|curie|babbage|ada)(?:-|$)|dall-e-|tts-|whisper-|codex-|computer-use-|omni-moderation-|sora-)/;
 const CATALOG_SIZE = 3;
@@ -168,7 +178,7 @@ function calleeName(call: ts.CallExpression) {
 function literalUse(
   node: ts.StringLiteralLike,
   file: string,
-  openai: boolean,
+  model: boolean,
   isModel: (value: string) => boolean,
 ): DeadlineUse {
   const parent = node.parent;
@@ -177,7 +187,7 @@ function literalUse(
     if (TOKENIZER_CALLS.has(callee)) return 'tokenizer';
     if (CHECK_CALLS.has(callee)) return 'check';
   }
-  if (!openai) return 'live';
+  if (!model) return 'live';
   if (ts.isBinaryExpression(parent) && CHECK_OPERATORS.has(parent.operatorToken.kind))
     return 'check';
   if (ts.isCaseClause(parent) && parent.expression === node) return 'check';
@@ -220,7 +230,7 @@ function countModels(node: ts.Node, isModel: (value: string) => boolean) {
 // Every token in a source file where a pin can sit, with how it is used: identifiers, string and
 // template pieces and other leaf nodes. Comments are trivia between tokens, so a version found
 // there has no token and is reported as a comment.
-function tokenUses(path: string, content: string, models: Set<string>) {
+function tokenUses(path: string, content: string, models: Map<string, unknown>) {
   const source = ts.createSourceFile(path, content, ts.ScriptTarget.Latest, true);
   const ranges: [number, number, ts.Node][] = [];
   const visit = (node: ts.Node) => {
@@ -232,7 +242,8 @@ function tokenUses(path: string, content: string, models: Set<string>) {
     if (leaf) ranges.push([node.getStart(source), node.end, node]);
   };
   visit(source);
-  const isModel = (value: string) => models.has(value) || OPENAI_MODEL.test(value);
+  const isModel = (value: string) =>
+    models.has(value) || OPENAI_MODEL.test(value) || ANTHROPIC_MODEL.test(value);
   return (offset: number, provider: DeadlineEntry['provider'], line: string): DeadlineUse => {
     let low = 0;
     let high = ranges.length - 1;
@@ -242,13 +253,10 @@ function tokenUses(path: string, content: string, models: Set<string>) {
       if (offset < start) high = middle - 1;
       else if (offset >= end) low = middle + 1;
       else {
-        const use = ts.isStringLiteralLike(node)
-          ? literalUse(node, path, provider === 'openai', isModel)
-          : 'live';
+        const model = MODEL_PROVIDERS.has(provider);
+        const use = ts.isStringLiteralLike(node) ? literalUse(node, path, model, isModel) : 'live';
         // An HTML or JSX `<option>` is one choice in a picker.
-        return use === 'live' && provider === 'openai' && OPTION_ELEMENT.test(line)
-          ? 'catalog'
-          : use;
+        return use === 'live' && model && OPTION_ELEMENT.test(line) ? 'catalog' : use;
       }
     }
     return 'comment';
@@ -279,10 +287,10 @@ export async function scanDeadlines(
   const byVersion = new Map<string, DeadlineEntry>();
   for (const entry of registry.deadlines)
     for (const version of entry.versions) byVersion.set(`${entry.provider}:${version}`, entry);
-  const models = new Set(
+  const models = new Map(
     registry.deadlines
-      .filter((entry) => entry.provider === 'openai')
-      .flatMap((entry) => entry.versions),
+      .filter((entry) => MODEL_PROVIDERS.has(entry.provider))
+      .flatMap((entry) => entry.versions.map((version) => [version, entry.provider] as const)),
   );
   const found = new Map<string, DeadlineExposure>();
   const seen = new Set<string>();

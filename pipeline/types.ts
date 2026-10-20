@@ -67,7 +67,8 @@ export interface SourceEdit {
     | 'stripe-invoice-price-id-helper'
     | 'stripe-card-allowed-payment-method-types'
     | 'stripe-listed-allowed-payment-method-types'
-    | 'stripe-api-version';
+    | 'stripe-api-version'
+    | 'model-retirement';
 }
 
 export interface Repository {

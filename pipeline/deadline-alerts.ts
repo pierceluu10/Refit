@@ -62,7 +62,7 @@ function subject(exposure: DeadlineExposure) {
   const listed = versions.slice(0, TITLE_VERSIONS).join(', ');
   const extra =
     versions.length > TITLE_VERSIONS ? ` and ${versions.length - TITLE_VERSIONS} more` : '';
-  if (deadline.provider === 'openai')
+  if (deadline.kind === 'model')
     return `${versions.length === 1 ? 'model' : 'models'} ${listed}${extra}`;
   if (deadline.provider === 'meta-graph') return `Graph API ${listed}`;
   return `API version ${listed}`;
