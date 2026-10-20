@@ -83,11 +83,18 @@ export function fieldNames(fields: string[]) {
 }
 
 // Whether a request path starts with a change's path. A runtime segment on either side (`{id}`)
-// may hold any node, so it matches any segment.
+// may hold any node, so it matches any segment. A change path that is one placeholder, such as
+// `/{offline-event-set-id}`, names a node type an opaque ID cannot reveal: it matches every request
+// to a single opaque node (a placeholder or a numeric ID), and never a longer path or a literal one
+// such as `/me`.
 function pathMatches(path: string, prefix: string) {
   const segments = path.split('/').filter(Boolean);
   const wanted = prefix.split('/').filter(Boolean);
   const runtime = (segment: string) => segment.includes('{');
+  // A literal numeric ID, or an ad account ID, is as opaque as a placeholder.
+  const opaque = (segment: string) => runtime(segment) || /^(act_)?\d+$/.test(segment);
+  if (wanted.length === 1 && runtime(wanted[0]))
+    return segments.length === 1 && opaque(segments[0]);
   return (
     wanted.length <= segments.length &&
     wanted.every(
@@ -116,13 +123,59 @@ export function changesUsedBy(call: GraphCall, changes: MetaGraphChange[]) {
         return fields.has(change.name!) || (call.method === 'GET' && call.fields?.length === 0);
       case 'metric-removed':
       case 'metric-changed':
-        return call.metrics?.includes(change.name!) ?? false;
+        // Changelogs print some metric names in capitals; requests use lowercase.
+        return (
+          call.metrics?.some((metric) => metric.toLowerCase() === change.name!.toLowerCase()) ??
+          false
+        );
       case 'parameter-removed':
       case 'parameter-changed':
         return call.parameters?.includes(change.name!) ?? false;
     }
     return true;
   });
+}
+
+// WhatsApp Business Platform and Messenger Platform publish their own changelogs, which the change
+// list does not cover, so a request that belongs to either stops any move of its version. A
+// request belongs to them by its edge, or by a parameter only their send APIs take.
+const SEPARATE_CHANGELOG_EDGES = new Set([
+  'messages',
+  'message_templates',
+  'phone_numbers',
+  'whatsapp_business_profile',
+  'register',
+  'deregister',
+  'request_code',
+  'verify_code',
+  'subscribed_apps',
+  'messenger_profile',
+  'conversations',
+  'pass_thread_control',
+  'take_thread_control',
+  'request_thread_control',
+  'release_thread_control',
+  'thread_owner',
+  'secondary_receivers',
+  'personas',
+  'message_attachments',
+  'custom_labels',
+  'nlp_configs',
+]);
+const SEPARATE_CHANGELOG_PARAMETERS = new Set([
+  'messaging_product',
+  'messaging_type',
+  'recipient',
+  'sender_action',
+]);
+
+function separateChangelog(call: GraphCall) {
+  return (call.edge !== null && SEPARATE_CHANGELOG_EDGES.has(call.edge)) ||
+    (call.parameters ?? []).some((name) => SEPARATE_CHANGELOG_PARAMETERS.has(name))
+    ? [
+        `${call.file}:${call.line}: WhatsApp Business Platform and Messenger Platform requests follow their own changelogs, which the change list does not cover`,
+      ]
+    : [];
 }
 
 // What a request leaves unknown, which stops any move of its version.
@@ -423,7 +476,7 @@ export async function proposeVersionMoves(
         });
       continue;
     }
-    const reasons = calls.flatMap(unknownParts);
+    const reasons = [...calls.flatMap(unknownParts), ...calls.flatMap(separateChangelog)];
     if (calls.every((call) => call.use === 'test'))
       reasons.push(`${file}:${line}: only tests and examples use this version`);
     const crossed = crossedBetween(from);

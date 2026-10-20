@@ -66,11 +66,26 @@ describe('the committed change list', () => {
     const report = checkMetaGraphChanges(value, NOW, registryVersions);
     expect(report.errors).toEqual([]);
     expect(report.missing).toEqual([]);
-    // No changelog page could be read when the list was written, so every version is unread and
-    // no change is recorded. Each unread version says why.
-    expect(report.unread).toHaveLength(value.versions.length);
-    expect(value.changes).toEqual([]);
-    for (const entry of value.versions) expect(entry.note).toMatch(/^Not read: /);
+    // v14.0 to v26.0 were read in full; v13.0 matters only to pins older than any benchmark pin.
+    expect(report.unread).toEqual(['v13.0']);
+    const reviewed = value.versions.filter(
+      (entry: { status: string }) => entry.status === 'reviewed',
+    );
+    expect(reviewed.map((entry: { version: string }) => entry.version)).toEqual(
+      Array.from({ length: 13 }, (_, index) => `v${14 + index}.0`),
+    );
+    for (const entry of reviewed) {
+      expect(entry.note).toMatch(/^Read in full on \d{4}-\d{2}-\d{2}/);
+      // The product changelogs the pages only link to are named as not covered.
+      expect(entry.note).toContain(
+        'WhatsApp Business Platform, WhatsApp Flows and Messenger Platform',
+      );
+    }
+    expect(value.changes.length).toBeGreaterThan(200);
+    for (const entry of value.changes)
+      expect(entry.source).toMatch(
+        /^https:\/\/developers\.facebook\.com\/docs\/(graph-api\/changelog\/version\d+\.0|instagram-platform\/changelog)$/,
+      );
     expect(await loadMetaGraphChanges(DEFAULT_META_GRAPH_CHANGES, NOW)).toMatchObject({
       provider: 'meta-graph',
     });

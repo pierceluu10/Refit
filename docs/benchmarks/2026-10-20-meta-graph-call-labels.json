@@ -1,6 +1,6 @@
 {
  "formatVersion": 1,
- "labeller": "Claude (Opus 5.5), single pass, each call read in context at the pinned commit; not yet second-labelled",
+ "labeller": "single AI-assisted pass, each call read in context at the pinned commit; not yet second-labelled",
  "refit": "refit meta-graph, branch claude/kind-cray-79s80x",
  "labelledAt": "2026-10-20",
  "list": "docs/benchmarks/2026-10-16-deadline-repos.json (provider meta-graph, 33 repositories)",

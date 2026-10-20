@@ -98,7 +98,15 @@ async function propose(files: Record<string, string>, list = changes(), target =
   return proposeVersionMoves(await repository(files), target, list, registry, NOW);
 }
 
-const SEND = `export const send = (to) =>
+const SEND = `export const send = (url) =>
+  fetch('https://graph.facebook.com/v18.0/123/photos', {
+    method: 'POST',
+    body: JSON.stringify({ url, published: true }),
+  });
+`;
+
+// A WhatsApp Cloud API send: WhatsApp publishes its own changelog, which the list does not cover.
+const WHATSAPP = `export const send = (to) =>
   fetch('https://graph.facebook.com/v18.0/123/messages', {
     method: 'POST',
     body: JSON.stringify({ messaging_product: 'whatsapp', to }),
@@ -116,11 +124,11 @@ describe('version moves', () => {
         from: 'v18.0',
         to: 'v25.0',
         crossed: ['v19.0', 'v20.0', 'v21.0', 'v22.0', 'v23.0', 'v24.0', 'v25.0'],
-        requests: [{ file: 'a.js', line: 2, method: 'POST', path: '/123/messages' }],
+        requests: [{ file: 'a.js', line: 2, method: 'POST', path: '/123/photos' }],
       },
     ]);
-    expect(proposal.patch).toContain("-  fetch('https://graph.facebook.com/v18.0/123/messages', {");
-    expect(proposal.patch).toContain("+  fetch('https://graph.facebook.com/v25.0/123/messages', {");
+    expect(proposal.patch).toContain("-  fetch('https://graph.facebook.com/v18.0/123/photos', {");
+    expect(proposal.patch).toContain("+  fetch('https://graph.facebook.com/v25.0/123/photos', {");
   });
 
   it('stops on every change a request uses between the two versions, and only those', async () => {
@@ -341,16 +349,84 @@ fetch('https://graph.facebook.com/v24.0/me?fields=id');`,
     );
   });
 
-  it('stops everywhere with the committed list, whose changelogs are all unread', async () => {
+  it('stops WhatsApp and Messenger requests, whose changelogs the list does not cover', async () => {
+    const reason = (line: number) =>
+      `a.js:${line}: WhatsApp Business Platform and Messenger Platform requests follow their own changelogs, which the change list does not cover`;
+    const whatsapp = await propose({ 'a.js': WHATSAPP });
+    expect(whatsapp.moves).toEqual([]);
+    expect(whatsapp.stops.map((stop) => stop.reasons)).toEqual([[reason(2)]]);
+    // By edge alone, and by a send parameter on an edge both share with other products.
+    const proposal = await propose({
+      'a.js': `fetch('https://graph.facebook.com/v18.0/1/message_templates?fields=id');
+fetch('https://graph.facebook.com/v18.0/1/media', { method: 'POST', body: JSON.stringify({ messaging_product: 'whatsapp', file }) });
+fetch('https://graph.facebook.com/v18.0/me/messages', { method: 'POST', body: JSON.stringify({ recipient, message }) });
+fetch('https://graph.facebook.com/v18.0/1/media', { method: 'POST', body: JSON.stringify({ image_url, caption }) });`,
+    });
+    expect(proposal.stops.map((stop) => [stop.line, stop.reasons])).toEqual([
+      [1, [reason(1)]],
+      [2, [reason(2)]],
+      [3, [reason(3)]],
+    ]);
+    // An Instagram container creation on the same edge moves.
+    expect(proposal.moves.map((move) => move.line)).toEqual([4]);
+  });
+
+  it('applies a whole-node change only to requests on a single opaque node', async () => {
+    const list = changes([
+      change({
+        id: 'node',
+        version: 'v20.0',
+        kind: 'endpoint-removed',
+        path: '/{offline-event-set-id}',
+      }),
+    ]);
+    const proposal = await propose(
+      {
+        'a.js': `fetch('https://graph.facebook.com/v18.0/123?fields=id');
+fetch('https://graph.facebook.com/v18.0/me?fields=id');
+fetch('https://graph.facebook.com/v18.0/123/photos?fields=id');
+fetch('https://graph.facebook.com/v18.0/oauth/access_token?client_id=1&client_secret=2&grant_type=client_credentials');`,
+      },
+      list,
+    );
+    expect(proposal.stops.map((stop) => [stop.line, stop.reasons])).toEqual([
+      [1, ['a.js:1: v20.0 endpoint-removed node: node changes.']],
+    ]);
+    expect(proposal.moves.map((move) => move.line)).toEqual([2, 3, 4]);
+  });
+
+  it('matches metric names regardless of case', async () => {
+    const list = changes([
+      change({ id: 'metric', version: 'v20.0', kind: 'metric-removed', name: 'TAPS_FORWARD' }),
+    ]);
+    const proposal = await propose(
+      { 'a.js': "fetch('https://graph.facebook.com/v18.0/1/insights?metric=taps_forward');" },
+      list,
+    );
+    expect(proposal.stops.map((stop) => stop.reasons)).toEqual([
+      ['a.js:1: v20.0 metric-removed metric: metric changes.'],
+    ]);
+  });
+
+  it('moves safe requests and stops the rest with concrete reasons under the committed list', async () => {
     const list = await loadMetaGraphChanges(DEFAULT_META_GRAPH_CHANGES, NOW);
     const proposal = await proposeVersionMoves(FIXTURE, 'v25.0', list, registry, NOW);
-    expect(proposal.moves).toEqual([]);
-    expect(proposal.patch).toBeNull();
+    const pinned = proposal.stops.filter((stop) => stop.from);
+    // Every changelog from v14.0 to v25.0 is reviewed, so no stop is for an unread changelog.
     expect(
-      proposal.stops
-        .filter((stop) => stop.from)
-        .every((stop) => stop.reasons.some((reason) => reason.includes('not reviewed'))),
+      pinned.every((stop) => !stop.reasons.some((reason) => reason.includes('not reviewed'))),
     ).toBe(true);
+    expect(pinned.every((stop) => stop.reasons.length > 0)).toBe(true);
+    // A Page photo post crosses no recorded change and no excluded product.
+    const photo = await proposeVersionMoves(
+      await repository({ 'a.js': SEND }),
+      'v25.0',
+      list,
+      registry,
+      NOW,
+    );
+    expect(photo.stops).toEqual([]);
+    expect(photo.moves.map((move) => [move.from, move.to])).toEqual([['v18.0', 'v25.0']]);
   });
 });
 
@@ -406,7 +482,7 @@ it('writes a patch for review from the CLI and leaves the repository unchanged',
   expect(stdout).toContain('Review only: nothing was applied or validated.');
   expect(stdout).toContain('a.js:2  v18.0 to v25.0');
   expect(stdout).toContain(`Patch written to ${patch}`);
-  expect(await readFile(patch, 'utf8')).toContain('graph.facebook.com/v25.0/123/messages');
+  expect(await readFile(patch, 'utf8')).toContain('graph.facebook.com/v25.0/123/photos');
   expect(await readFile(join(root, 'a.js'), 'utf8')).toBe(SEND);
   const json = await execute(process.execPath, [
     CLI,
@@ -418,9 +494,10 @@ it('writes a patch for review from the CLI and leaves the repository unchanged',
     root,
     '--json',
   ]);
+  // The committed list reviews v14.0 to v26.0, so the same photo post moves with it too.
   const report = JSON.parse(json.stdout);
-  expect(report.moves).toEqual([]);
-  expect(report.stops[0].reasons[0]).toMatch(/not reviewed in the Meta Graph API change list$/);
+  expect(report.stops).toEqual([]);
+  expect(report.moves.map((move: { line: number }) => move.line)).toEqual([2]);
   const missing = await execute(process.execPath, [
     CLI,
     'meta-graph',

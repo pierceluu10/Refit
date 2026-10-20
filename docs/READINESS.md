@@ -1,5 +1,27 @@
 # Refit implementation checkpoints
 
+## October 20 checkpoint: reviewed Meta Graph API change list (unreleased)
+
+`data/meta-graph-changes.json` now holds the Meta Graph API changelogs for v14.0 to v26.0, each read in full from developers.facebook.com on 2026-10-20 and marked `reviewed`, with 281 changes from the Graph API and Marketing API sections. Every change cites its page. The Instagram sections were checked against the Instagram Platform changelog's version-gated entries; they match except that from v14.0 the IG Media `video_title` field errors, which is recorded from that changelog. v13.0 stays `unread`: it matters only to pins older than any benchmark pin. Each version's note lists what the page holds that is not an entry: permission policy changes, error codes, transport changes, additions, and Certificate Transparency endpoints the page does not name.
+
+`refit meta-graph --propose-version-moves` gained three stricter rules:
+- **WhatsApp and Messenger.** Their changelogs are separate and not in the list, so their requests stop. This is decided by edge, such as `messages`, `message_templates` or `conversations`, or by a send parameter such as `messaging_product` or `recipient`.
+- **Node-wide changes.** A removal of a whole node type, such as `/{offline-event-set-id}` or the Instagram v1.0 nodes, stops requests to a single opaque node (a placeholder or numeric ID) and never matches a literal path such as `/me`. Before, a single-placeholder path matched every request.
+- **Metric names** compare regardless of case, since some pages print them in capitals.
+
+On the 33 Meta repositories of the deadline benchmark at target v25.0, the reviewed list proposes **35 moves in 13 repositories**. Before, there were 0 with every changelog unread; the hypothetical upper bound with empty changelogs is 100. Every moved request was checked by hand against the list: Instagram publishing and field-named reads, field-named ads insights, Page feed posts, Conversions API events and `/me`. 113 pins stop with named reasons:
+- 44 have unknown request parts;
+- 32 cross a node-wide change;
+- 26 are WhatsApp or Messenger;
+- 22 hit an edge change;
+- 21 hit a field change;
+- 17 are test-only;
+- 4 are in pins the move cannot edit safely.
+
+One v24.0 entry was first recorded as a removed `/search` endpoint. The page actually describes changed interest search results, so it is recorded as a change to the `type` parameter. The removed-endpoint form had stopped 128 pins through placeholder matching.
+
+The Meta tests passed (59). New tests cover the WhatsApp and Messenger guard by edge and by parameter, node-wide matching on opaque and numeric IDs but not literal paths, case-insensitive metrics, and a committed-list run where a Page photo post moves. The general fixture moved off a WhatsApp send, which the old tests had moved on Graph-only evidence. Deliberately removing the guard, the parameter signal, the node-only matching or the case folding each fails a test. No vendor API was called; only public documentation pages were read. Whether a hand-kept list is enough evidence for automatic edits is still an owner decision, and the moves remain review-only.
+
 ## October 20 checkpoint: self-maintaining Anthropic deadlines (unreleased, after 0.39.0)
 
 `refit deadlines --sync anthropic` reads Anthropic's model deprecations page and updates `data/deadlines.json`. It groups the page's tables into one entry per retirement date and replacement. Entries are matched by model, so a moved date updates in place, and unchanged entries keep their aliases and `checkedAt`. Nothing is deleted, an unparseable row fails the sync, and the result must pass the registry check before it is written. On the live page (20 retirements, 2026-10-20) it reports no change: the shipped entries match.

@@ -74,7 +74,7 @@ All 33 Meta repositories of the frozen [deadline benchmark](DEADLINE-BENCHMARK.m
 - **Where `fields` stays unknown (49):** 28 requests send options built at runtime (`FormData`, `URLSearchParams` filled in step by step, `qs.stringify`, spreads, objects changed after they are declared); 16 go through project helpers, 15 of them in `manypost/manypost-app`; 4 are OAuth token endpoints held in configuration for a library to call; 1 is a pagination loop that reassigns its URL.
 - **The business SDK is barely used here.** One repository declares it and only calls `FacebookAdsApi.init`. SDK mapping is covered by the fixture tests, not by this benchmark.
 
-The labels were made by Claude in one pass and have not been checked by a second labeller. To reproduce:
+The labels were made in a single AI-assisted pass and have not been checked by a second labeller. To reproduce:
 
 ```sh
 node scripts/meta-graph-benchmark.mjs --root <dir> --refit <pinned worktree>
@@ -140,13 +140,15 @@ It also lists the `unread` versions, since a version move across them must stop 
 
 ### What the list holds today
 
-**No changes yet, and every version is `unread`.** The list was started on 2026-10-20 from an environment that could not reach developers.facebook.com: the network proxy refused every connection. So it has 14 version records, v13.0 to v26.0, each marked `unread` with that reason, and no change entries.
+**v14.0 to v26.0 are `reviewed`, with 281 changes.** Each version's changelog page was read in full on 2026-10-20 from developers.facebook.com, the Graph API and Marketing API sections alike, and every removal or change that names an edge, field, metric, parameter or endpoint was recorded with the page as its `source`. Each version's `note` says what the page holds that is not an entry and why, such as permission policy changes, error codes, transport changes or additions.
 
-Search results show that changelog pages exist for v17.0, v19.0, v22.0 and v26.0, and those records cite them. The other versions cite the [versions index](https://developers.facebook.com/docs/graph-api/changelog/versions), because their own page addresses were not confirmed. Search summaries describe some removals, but they are not the pages themselves, so none was recorded.
+- **Instagram.** The newer pages have Instagram sections. They were checked against the version-gated entries of the [Instagram Platform changelog](https://developers.facebook.com/docs/instagram-platform/changelog), which match except for one: from v14.0 the IG Media `video_title` field returns an error. That entry cites the Instagram changelog. Its other entries apply to all versions, so they affect a request whatever version it pins and cannot make a move unsafe.
+- **WhatsApp and Messenger are not covered.** The pages only link to the WhatsApp Business Platform, WhatsApp Flows and Messenger Platform changelogs, which are dated rather than organized by Graph version. So a request that belongs to them always stops for review; see [the move conditions](#propose-version-moves-review-only).
+- **Node-wide changes.** Some changes remove a whole node type, such as `GET /{offline-event-set-id}` or the Instagram v1.0 nodes. An opaque ID cannot reveal its node type, so these are recorded as a single placeholder path, and they stop every request to a single opaque node (a placeholder or numeric ID) whose version range crosses them. They never match a literal path such as `/me`.
+- **v13.0 is `unread`.** Its changes matter only when moving a pin older than v13.0, and no benchmark repository pins one. Read it before moving such a pin.
+- **v26.0** has a record although the deadline registry, which lists sunsets only, does not list it.
 
-Search results also list a v26.0 page. v26.0 has a record here but is not in the deadline registry, which lists sunsets only.
-
-To fill the list, read each version's changelog page from a machine that can reach it, add every removal or change that names an edge, field, metric, parameter or endpoint, set the version to `reviewed` with the day you read it, and run `npm run meta-graph:check`. Start with the versions the benchmark repositories pin: v18.0, v19.0 and v20.0 move furthest.
+To update the list, read the new version's changelog page in full, add every removal or change that names an edge, field, metric, parameter or endpoint, set the version to `reviewed` with the day you read it, and run `npm run meta-graph:check`.
 
 ## Propose version moves (review only)
 
@@ -162,8 +164,9 @@ Refit can propose moving a pinned Graph API version to `--target`, as a patch fo
 A version is often written once and used by many requests: a base constant feeds every URL built from it. So moves are decided per **pin**, the place the version is written, and a pin moves only when every one of these holds:
 
 - **Every request through the pin is fully known:** a request call was traced, and its path, HTTP method, `fields`, `metric` values and parameters were all read. A request through a project helper, or one with options built at runtime, stops.
+- **No request belongs to WhatsApp or Messenger.** Their changelogs are not in the list. A request belongs to them by its edge (`messages`, `message_templates`, `phone_numbers`, `whatsapp_business_profile`, `subscribed_apps`, `conversations`, `messenger_profile`, the thread-control edges and the like) or by a parameter only their send APIs take (`messaging_product`, `messaging_type`, `recipient`, `sender_action`). So a WhatsApp media upload stops, while an Instagram container creation on the same `/media` edge does not.
 - **Every changelog crossed is reviewed.** That means each version after the current one up to and including the target. The versions checked are the change list's, the deadline registry's, and every whole major version in between, so a version missing from both lists still stops the move.
-- **No reviewed change between the two versions touches a request:** the request's edge, its path or an endpoint it is under, a field it requests (at any depth, so `posts{message}` names `posts` and `message`), a metric, or a parameter. A GET that names no `fields` receives the node's default fields, so any field change in range stops it. A change introduced by the version the code already uses does not count; it already applies.
+- **No reviewed change between the two versions touches a request:** the request's edge, its path or an endpoint it is under, a field it requests (at any depth, so `posts{message}` names `posts` and `message`), a metric (compared regardless of case, since some pages print metric names in capitals), or a parameter. A GET that names no `fields` receives the node's default fields, so any field change in range stops it. A node-wide change stops every request to a single opaque node. A change introduced by the version the code already uses does not count; it already applies.
 - **Changing the pin changes nothing else:**
   - The version is written once on that line, inside a string.
   - If a variable holds it, that variable is a `const` the file does not export.
@@ -180,10 +183,21 @@ The rule was run on the 33 Meta repositories of the [deadline benchmark](DEADLIN
 
 | Change list | Pins moved | Pins stopped | Requests without a pinned version |
 |---|---:|---:|---:|
-| As committed (every changelog unread) | **0** | 148 | 7 |
+| Every changelog unread (the list before this change) | 0 | 148 | 7 |
+| **Reviewed v14.0 to v26.0, 281 changes (committed)** | **35 (35 requests, 13 repositories)** | 113 | 7 |
 | Hypothetical: every version marked reviewed, with no changes | 100 (101 requests, 26 repositories) | 48 | 7 |
 
-- **With the committed list, every pin stops**, and every stop names the unreviewed changelogs. That is the honest result until someone reads Meta's pages.
+- **With the reviewed list, 35 pins move** in 13 repositories: 23 from v19.0, 8 from v18.0, 3 from v20.0 and 1 from v21.0. Every moved request was checked by hand against the list. They are Instagram content publishing (`/media`, `/media_publish`), Instagram media reads that name their fields, ads insights and `/me/adaccounts` reads that name their fields, Page feed posts, Conversions API events and `/me`. No version-gated change in range touches any of them, and none is a WhatsApp or Messenger request.
+- **Why the other 113 pins stop** (a pin can have several reasons):
+  - **44** have a request with an unknown part.
+  - **32** are crossed by a node-wide change (v20.0 offline event sets, v22.0 Instagram v1.0 nodes and recommendations, v24.0 custom audiences, custom conversions and Messenger lead templates) while a request goes to a single opaque node.
+  - **26** have a WhatsApp or Messenger request.
+  - **22** use an edge a recorded change removes or changes.
+  - **21** have a request a recorded field change touches, mostly a GET without `fields`, which any field change in range stops.
+  - **17** are used only by tests and examples.
+  - **4** hold the version in a `let`, an exported constant or another place the move cannot edit safely.
+  - **2** stop only because v22.0 removed the Instagram v1.0 `comments` edge, and the same edge name is used for Page post comments. The list cannot tell the two apart from the request, so it errs toward stopping.
+- **The hypothetical run is still the upper bound.** The gap from 100 to 35 is what Meta's real changes, the WhatsApp and Messenger guard and node-wide changes cost.
 - **The hypothetical run is an upper bound, not a result.** It shows how far the request-side conditions alone let moves go if every changelog in range were reviewed and listed nothing these requests use. It says nothing about what Meta actually changed. 100 of the 131 pins used by live code would move, mostly from v19.0 (59), v18.0 (21) and v20.0 (15). Each of the 100 hypothetical edits was checked: it changes exactly one line, and only the version text in it.
 - **The 31 live pins that stop in the hypothetical run:**
   - **31** have a request with an unknown part: project helpers, mostly in `manypost/manypost-app`, and options built from `FormData`, `URLSearchParams` filled in step by step, or objects changed after they are declared.
@@ -196,7 +210,7 @@ The rule was run on the 33 Meta repositories of the [deadline benchmark](DEADLIN
 
 The catalog entry for `meta-graph` keeps `adapter: null`. Request detection is one of the pieces a reviewed agent needs; these are still missing:
 
-1. **Change list entries.** The [format and validator](#the-per-version-change-list) exist, but no version's changelog has been read yet.
+1. **Product changelogs.** v14.0 to v26.0 are reviewed from the Graph API changelog pages, but the WhatsApp Business Platform and Messenger Platform changelogs are not, so their requests always stop.
 2. **An owner decision on the version-move rule.** The [review-only rule](#propose-version-moves-review-only) exists. Wiring it into `refit run`, validation and drafts waits on the decision about whether a hand-maintained change list is enough evidence for an automatic edit.
 3. **More coverage.** The browser SDK's `FB.init({ version })`, URLs whose host comes from configuration at runtime, and responses: the fields code reads from a response are not traced, so a request with no `fields` relies on the node's defaults.
 
@@ -208,4 +222,7 @@ The catalog entry for `meta-graph` keeps `adapter: null`. Request detection is o
 - A helper that adds `fields` or changes the version on its own is not seen. Fields written in a URL passed to a helper are reported as written.
 - The business SDK version is the first `facebook-nodejs-business-sdk` dependency Refit finds in the repository's manifests.
 - A base URL held in a `let` is not followed, so requests built from it are not found and nothing moves them.
+- Edge names are compared without node types. An edge removed from one node, such as the Instagram v1.0 `comments` edge, also stops requests to a different node's edge with the same name.
+- A node-wide change stops every request to a single opaque node in its range, because a placeholder or numeric ID does not reveal the node type.
+- Certificate Transparency endpoints were removed in v24.0, but the page names none of them, so the list cannot match them.
 - Version moves read only what the request sends. Which response fields the code reads afterwards is not traced, which is why a request that names no `fields` stops on any field change in range.
