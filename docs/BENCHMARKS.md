@@ -11,7 +11,7 @@ Every number here comes from real public repositories, frozen before the run tha
 | Stripe, fresh (frozen 2026-10-16) | **381** | 171 (45%) | **5** | 148 send the `payment_method_types` parameter endive removed |
 | Stripe, original | 100 | 40 | 4 | 27 send `payment_method_types` |
 | Stripe, held out | 50 | 23 | 1 | 18 send `payment_method_types` |
-| Shopify, fresh (frozen 2026-10-16) | **200** | 170 with Admin usage | **6** (13 patched) | 44 need an SDK upgrade, 39 use REST |
+| Shopify, fresh (frozen 2026-10-16) | **200** | 170 with Admin usage | **6** (13 patched) | 44 need an SDK upgrade, 32 use REST |
 | Shopify, original | 50 | 46 with Admin usage | 1 | 15 need an SDK upgrade |
 | API deadlines, labelled | 100 (32 labelled) | 28 of 32 exposed | n/a | Detection only |
 | API deadlines, fresh sets | 581 | 127 exposed | n/a | Detection only |
@@ -131,14 +131,14 @@ The 5 validated fixes are the 5 published, hand-reviewed drafts in the [Stripe b
 
 Shopify Admin GraphQL migrations are deterministic, and no AI is used. Details are in the [Shopify benchmark](SHOPIFY-BENCHMARK.md).
 
-| Refit `4a99c1e`, October 20 (validation counts from October 16) | Original 50 | Fresh 200 |
+| Refit `0b5480b`, October 20 (validation counts from October 16) | Original 50 | Fresh 200 |
 |---|---|---|
 | Patched (version pins moved; every document proven on the target) | 1 | **13** |
 | … validated in offline Docker | 1 | **6** |
 | Already current, or on the newest version the SDK can name | 6 | 1 |
 | Stopped: SDK upgrade needed | 15 | 44 |
-| Stopped: REST Admin calls | 8 | 39 |
-| Stopped: runtime-built or unfollowable document | 4 | 25 |
+| Stopped: REST Admin calls | 6 | 32 |
+| Stopped: runtime-built, unfollowable or raw GraphQL document | 6 | 32 |
 | Stopped: **query already fails on every served version** | 5 | **24** |
 | Stopped: dynamic, missing or conflicting pin | 7 | 22 |
 | Other (no Admin usage, unparseable document, over scan limits) | 4 | 32 |
@@ -147,6 +147,7 @@ Shopify Admin GraphQL migrations are deterministic, and no AI is used. Details a
 
 - **Helper tracing** raised traced documents on the original 50 from 255 to 336, and halved unreadable ones (55 → 27), with no outcome changes. It reads default exports, Remix `./shopify.server` imports and helper parameters.
 - **Callback and closure tracing** (October 20) follows helpers through callbacks, closure factories, re-exports and constant arrays: unread Admin calls fell from 90 to 76 across both sets, and one more already-broken query was found (`Shop.brand`, a Storefront-only field sent to Admin). The original column's REST and pin rows also include the fresh-set REST fixes made after its first run.
+- **REST calls are reported, not migrated** (October 20). Each REST Admin call carries its file, line, method and path or resource operation where the code states them: 114 of the 180 calls across both sets have both, 38 more have one of the two, and the other 28 are client constructions. 9 apps (2 original, 7 fresh) counted as REST only sent raw requests to `/admin/api/<version>/graphql.json`; they now stop as unread GraphQL documents, so the REST rows fell from 8 and 39 to 6 and 32.
 - **The fresh set found four bugs, each fixed with a test.** Three let REST calls through, so a REST app's version was moved: template URLs, `createAdminRestApiClient`, and REST resource classes. The fourth refused npm `{ "packages": [...] }` workspaces. The REST fixes stopped 3 wrongly patched apps, none of which had validated.
 - **The broken queries are real.** All 23 were rechecked with graphql-js against the served schema. 11 are the old Remix template's `productVariantUpdate(input: ProductVariantInput)`.
 - **Most apps are limited by their SDK.** `ApiVersion.October26` needs `@shopify/shopify-api` 14, and app frameworks pin older releases. That SDK upgrade is a major-version change, so Refit stops rather than performing it.
