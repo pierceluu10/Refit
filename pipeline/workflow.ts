@@ -4,7 +4,7 @@ import type { AiOptions } from './ai-budget.ts';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { readFile, writeFile } from 'node:fs/promises';
-import { join } from 'node:path';
+import { basename, join } from 'node:path';
 import { createArtifactDirectory } from './artifacts.ts';
 import { readProviderAdapter } from './providers.ts';
 import {
@@ -15,6 +15,7 @@ import {
 } from './publication.ts';
 import { createReviewArtifacts } from './review.ts';
 import { runPipeline } from './run.ts';
+import { type SlackSend, workflowNotice } from './slack.ts';
 import { discoverStripeRevision, encodeSnapshot, fetchStripeSnapshot } from './snapshots.ts';
 import { digest, readSpecification } from './specifications.ts';
 import { PipelineInputError } from './types.ts';
@@ -48,6 +49,7 @@ export async function runWorkflow(options: {
   prepareDependencies?: boolean;
   generatedChecks?: GeneratedChecks;
   compareTypeErrors?: boolean;
+  keepListedPaymentMethods?: boolean;
   providerConfig?: string;
   apiVersion?: string;
   apiVersionPolicy?: ApiVersionPolicy;
@@ -60,6 +62,9 @@ export async function runWorkflow(options: {
   // --publish-unresolved without a publication target: continue past waivable stops and record
   // the waiver in the local review artifacts, so the saved report can be published later.
   allowUnresolved?: boolean;
+  // Slack notices for a new validated draft PR and for [URGENT] outcomes; `repository` names the
+  // repository in the message when no publication target does.
+  notify?: { send: SlackSend; repository?: string };
   onProgress?: (message: string) => void;
   signal?: AbortSignal;
 }) {
@@ -111,9 +116,22 @@ export async function runWorkflow(options: {
     });
     options.onProgress?.(`${status}: ${error ? error.message : reason}`);
     options.onProgress?.(`Evidence: ${directory}`);
+    const notice =
+      options.notify &&
+      workflowNotice({
+        repository:
+          publication?.repository ?? options.notify.repository ?? basename(options.repository),
+        status,
+        stage,
+        reason,
+        validation,
+        error,
+      });
+    if (notice) await options.notify!.send(notice);
     return { directory, manifest };
   };
   let runId: string | null = null;
+  let validation: string | undefined;
   try {
     options.signal?.throwIfAborted();
     if (options.integration) options.onProgress?.(`Selected integration: ${options.integration}.`);
@@ -152,6 +170,7 @@ export async function runWorkflow(options: {
       apiVersion: options.apiVersion,
       apiVersionPolicy: options.apiVersionPolicy,
       fullDiff: options.fullDiff,
+      keepListedPaymentMethods: options.keepListedPaymentMethods,
     };
     stage = 'scan';
     options.onProgress?.('Scanning repository for affected API usage...');
@@ -244,6 +263,7 @@ export async function runWorkflow(options: {
       signal: options.signal,
     });
     runId = report.runId;
+    validation = report.validation.status;
     const waiver = publicationWaiver(report, allowUnresolved);
     if (waiver) waivedGates.push(waiver.gate);
     const review = createReviewArtifacts(report, 'local', options.integration, waiver);

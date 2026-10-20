@@ -38,15 +38,19 @@ export function configurationTarget(exists: (path: string) => boolean, path: str
 }
 
 // A solution configuration (`"files": []` plus references, like Vite's template) compiles nothing
-// itself; each source file belongs to the referenced project that includes it.
-function solutionReferences(name: string, content: string) {
+// itself; each source file belongs to the referenced project that includes it. A configuration
+// with its own sources and references also owns the files it includes. `paths` is null when a
+// reference is not a local path.
+function configurationProjects(name: string, content: string) {
   const parsed = ts.parseConfigFileTextToJson(name, content);
-  if (parsed.error || !isObject(parsed.config)) return undefined;
-  const { files, include, references } = parsed.config;
-  if (!Array.isArray(files) || files.length || include !== undefined || !Array.isArray(references))
+  if (parsed.error || !isObject(parsed.config) || parsed.config.references === undefined)
     return undefined;
+  const { files, include, references } = parsed.config;
   const paths = projectReferences(content);
-  return paths.length === references.length ? paths : undefined;
+  return {
+    solution: Array.isArray(files) && !files.length && include === undefined,
+    paths: Array.isArray(references) && paths.length === references.length ? paths : null,
+  };
 }
 
 // Matches TypeScript's include/exclude specs: `**` spans directories, `*` and `?` stay within one,
@@ -108,11 +112,8 @@ export function sourceConfigurationOptions(repository: Repository) {
         return;
       }
       const config = result.config;
-      if (
-        config.references !== undefined ||
-        (config.compilerOptions !== undefined && !isObject(config.compilerOptions))
-      )
-        invalid = true;
+      // References do not change resolution options; file membership is decided per source file.
+      if (config.compilerOptions !== undefined && !isObject(config.compilerOptions)) invalid = true;
       for (const reference of configurationReferences(file.content)) {
         const parent = resolve(dirname(name), reference);
         const target = configurations.has(parent) ? parent : `${parent}.json`;
@@ -176,22 +177,29 @@ export function sourceConfigurationOptions(repository: Repository) {
       );
       if (config) {
         const path = resolve(repository.root, file.path);
-        const solution = solutionReferences(config, configurations.get(config)!.content);
-        if (!solution) options.set(path, parse(config));
-        else {
-          const owners = solution
-            .map((reference) =>
-              configurationTarget(
-                (name) => configurations.has(name),
-                resolve(directory, reference),
-              ),
-            )
-            .filter(
-              (name) =>
-                name !== undefined && includesFile(name, configurations.get(name)!.content, path),
+        const content = configurations.get(config)!.content;
+        const projects = configurationProjects(config, content);
+        const targets = projects?.paths?.map((reference) =>
+          configurationTarget((name) => configurations.has(name), resolve(directory, reference)),
+        );
+        if (!projects) options.set(path, parse(config));
+        else if (!targets || targets.includes(undefined)) {
+          // A missing or non-local referenced project may be the one that compiles this file.
+          warnings.add(
+            `${configurations.get(config)!.path}: a referenced project is unavailable; source alias resolution is unverified. Shared clients require review.`,
+          );
+          options.set(path, null);
+        } else {
+          const owners = [...(projects.solution ? [] : [config]), ...(targets as string[])].filter(
+            (name) => includesFile(name, configurations.get(name)!.content, path),
+          );
+          // A file outside every project compiles with default options in an editor; a mixed
+          // configuration keeps the nearest-configuration rule used everywhere else.
+          if (owners.length <= 1)
+            options.set(
+              path,
+              owners.length ? parse(owners[0]!) : projects.solution ? {} : parse(config),
             );
-          // A file outside every referenced project compiles with default options, as in an editor.
-          if (owners.length <= 1) options.set(path, owners.length ? parse(owners[0]!) : {});
           else {
             warnings.add(
               `${configurations.get(config)!.path}: ${file.path} belongs to several referenced projects; source alias resolution is unverified. Shared clients require review.`,

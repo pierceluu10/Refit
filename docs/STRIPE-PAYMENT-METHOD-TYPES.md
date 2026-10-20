@@ -1,6 +1,6 @@
 # Stripe `payment_method_types` in endive: proposed policy
 
-**Status: approved by the owner on 2026-10-16 and implemented for case A only.** Cases B and C keep stopping for review, and Refit never drops the parameter.
+**Status: approved by the owner on 2026-10-16 and implemented for case A only.** Cases B and C keep stopping for review, and Refit never drops the parameter. A per-repository opt-in for case B is [proposed](#proposed-2026-10-17-a-repository-opt-in-for-case-b-awaiting-owner-sign-off) and awaits sign-off.
 
 ## The change
 
@@ -40,7 +40,7 @@ There are 222 call sites in 193 repositories. Every value is a literal array; no
 Refit would rename the property and keep the value. It would apply this only when all of these hold:
 
 - The value is exactly the literal `['card']`, on one of the three operations, in a traced SDK call.
-- The same patch moves the `apiVersion` pin to endive. For a TypeScript project, the patch must also upgrade `stripe` to a release whose types have the new property (23.0.0 or later). Otherwise, as in pnpm projects today, the call keeps stopping.
+- The same patch moves the API version to endive: the literal `apiVersion` pin, or, when no client sets `apiVersion` at all, the stripe-node upgrade itself, because stripe-node 12 and later sends the API version its release pins. `apiVersion: null` (the account default), a dynamic option and `setApiVersion` never count. For a TypeScript project, the patch must also upgrade `stripe` to a release whose types have the new property (23.0.0 or later). Otherwise, as in pnpm projects today, the call keeps stopping.
 - No other stop applies to the repository. A stop for webhooks, skipped files, declared types or other removed parameters still stops the run.
 
 The draft PR would state, in its "please check" section, that the account must keep cards enabled in the Dashboard or payment method configuration.
@@ -62,6 +62,18 @@ The same rename would keep the methods listed. But dynamic eligibility can hide 
 
 Optional middle ground: rename case B too, but list it under "please check" with each method that may now be filtered. I recommend keeping the stop until a customer asks for it.
 
+#### Proposed 2026-10-17: a repository opt-in for case B (awaiting owner sign-off)
+
+The default stays the decision above. A repository whose owner wants the middle ground asks for it in `.refit.json`:
+
+```json
+{ "stripePaymentMethodTypes": "keep-listed" }
+```
+
+Only the string `"keep-listed"` is accepted; any other value is a configuration error. With the opt-in, a literal list of distinct string methods that includes `card`, but not `card_present`, moves to `allowed_payment_method_types` with the same methods. Every case A gate applies unchanged: a confirmed traced call on one of the three operations, the endive pin moved in the same patch, the stripe-node upgrade for TypeScript, and no other stop. Case C, computed lists, spreads, duplicates and lists without `card` keep stopping. The patch warning and the draft PR name each non-card method and say it may no longer be offered to some buyers, by country, currency, amount or device. Refit still never drops the parameter or merges.
+
+In the 82 benchmark repositories still stopped on this parameter at `7238e46`, a source scan of the pinned clones found literal case B lists in 25: `['card', 'paypal']` in 19, and one each of `card` with `link`, `link`+`paypal`, `cashapp`, `us_bank_account`, `paypal`+`us_bank_account` and `boleto`. One repository sends `card_present` and one a computed value. The other 56 send only `['card']` and stop for other reasons: no literal pin, an SDK that could not be upgraded, or a call site Refit did not trace.
+
 ### Case C: Terminal `card_present` (decided: keep stopping)
 
 In-person payments depend on reader and location configuration that offline validation cannot see. 1 repository.
@@ -73,7 +85,7 @@ Dropping it lets the Dashboard decide, which can add Link, wallets, BNPL and asy
 ## Implementation
 
 - **Rule.** `removedRequestParameters` (`pipeline/request-removals.ts`) marks the removal as having a reviewed replacement only for Stripe, only on the three operations, and only when the target contract has `allowed_payment_method_types`. The analyzer emits a rename edit only when the traced call is confirmed and the value is exactly an array literal holding the string `'card'`. `['card'] as const`, computed lists and every other value get no edit.
-- **Gates.** `runPipeline` keeps the edit only when the same patch moves a literal `apiVersion` to the target. When a patch is generated for a TypeScript project, the stripe-node upgrade must also succeed; that needs a root npm, pnpm v9 or Yarn 1 lockfile ([supported projects](DEPENDENCIES.md#stripe-node-upgrade-in-a-patch)). Otherwise the edit is dropped and the run stops for review as before. Validation's preflight and plain scans request no patch, so they check only the pin; the patch run then enforces the upgrade. A run still stops when any other site sends a value the rule does not cover.
+- **Gates.** `runPipeline` keeps the edit only when the same patch moves a literal `apiVersion` to the target, or every traced client omits the option (no request override, no `setApiVersion`), so the package upgrade moves the version. When a patch is generated for a TypeScript project, or any client omits the option, the stripe-node upgrade must also succeed; that needs a root npm, pnpm v9 or Yarn 1 lockfile ([supported projects](DEPENDENCIES.md#stripe-node-upgrade-in-a-patch)). Otherwise the edit is dropped and the run stops for review as before. Validation's preflight and plain scans request no patch, so they check only the pin; the patch run then enforces the upgrade. A run still stops when any other site sends a value the rule does not cover.
 - **Disclosure.** The proposal carries a warning, and the draft PR lists the removed request field under breaking changes. A review line asks the reviewer to confirm cards stay enabled in the Dashboard or payment method configuration.
 - **Tests.** `pipeline/request-removals.test.ts` covers each value class, quoted keys and an unconfirmed client. `pipeline/card-payment-methods.test.ts` covers the end-to-end gates: no pin, a mixed card and PayPal repository, a TypeScript project without an upgradable package, and the PR text.
 

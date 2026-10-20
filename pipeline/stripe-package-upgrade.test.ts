@@ -409,7 +409,12 @@ it('leaves an unused optional peer out of the pnpm snapshot and prunes what only
 });
 
 it.each([
-  ['lockfile v6', pnpmLock({ version: '6.0' }), /Only pnpm lockfile version 9/],
+  [
+    'lockfile v6 with importers',
+    pnpmLock({ version: '6.0' }),
+    /single-project pnpm lockfile version 6/,
+  ],
+  ['pnpm 7 lockfile 5.4', pnpmLock({ version: '5.4' }), /Only pnpm lockfile versions 6 and 9/],
   ['non-pnpm formatting', pnpmLock().replace(/\{integrity: /g, '{ integrity: '), /pnpm formatting/],
   ['a second importer', pnpmLock({ extraImporter: true }), /more than the root importer/],
   [
@@ -706,3 +711,98 @@ it.skipIf(
   },
   900_000,
 );
+
+// pnpm 8 writes lockfile v6: root sections at the top level, `/name@version` records with `dev` flags.
+const V6_LOCK = `lockfileVersion: '6.0'
+
+settings:
+  autoInstallPeers: true
+  excludeLinksFromLockfile: false
+
+dependencies:
+  stripe:
+    specifier: ^14.0.0
+    version: 14.0.0
+
+devDependencies:
+  '@types/node':
+    specifier: ^20
+    version: 20.1.0
+  eslint:
+    specifier: ^8.0.0
+    version: 8.0.0
+
+packages:
+
+  /@types/node@20.1.0:
+    resolution: {integrity: ${INTEGRITY}}
+
+  /eslint@8.0.0:
+    resolution: {integrity: ${INTEGRITY}}
+    dependencies:
+      side-channel: 1.0.4
+    dev: true
+
+  /qs@6.11.2:
+    resolution: {integrity: ${INTEGRITY}}
+    dependencies:
+      side-channel: 1.0.4
+    dev: false
+
+  /side-channel@1.0.4:
+    resolution: {integrity: ${INTEGRITY}}
+
+  /stripe@14.0.0:
+    resolution: {integrity: ${INTEGRITY}}
+    engines: {node: '>=12.*'}
+    dependencies:
+      '@types/node': 20.1.0
+      qs: 6.11.2
+    dev: false
+`;
+
+async function v6Project(lock = V6_LOCK) {
+  const root = await mkdtemp(join(tmpdir(), 'refit-sdk-upgrade-v6-'));
+  roots.push(root);
+  await writeFile(
+    join(root, 'package.json'),
+    `{\n  "name": "app",\n  "dependencies": {\n    "stripe": "^14.0.0"\n  },\n  "devDependencies": {\n    "@types/node": "^20",\n    "eslint": "^8.0.0"\n  }\n}\n`,
+  );
+  await writeFile(join(root, 'pnpm-lock.yaml'), lock);
+  return root;
+}
+
+it('upgrades a pnpm 8 lockfile v6 the way pnpm 8 rewrites it', async () => {
+  registry();
+  const result = await stripePackageUpgrade(await v6Project(), '2026-09-30.endive');
+  if (!('upgrade' in result)) throw new Error(result.reason);
+  const lock = result.upgrade.files.find((file) => file.path === 'pnpm-lock.yaml')!.after;
+  expect(lock).toContain(
+    `  stripe:\n    specifier: ^${TARGET}\n    version: ${TARGET}(@types/node@20.1.0)\n`,
+  );
+  expect(lock).toContain(
+    `  /stripe@${TARGET}(@types/node@20.1.0):\n    resolution: {integrity: ${INTEGRITY}}\n    engines: {node: '>=20'}\n    peerDependencies:\n      '@types/node': '>=20'\n    peerDependenciesMeta:\n      '@types/node':\n        optional: true\n    dependencies:\n      '@types/node': 20.1.0\n    dev: false\n`,
+  );
+  // qs only served the old stripe; side-channel is now reached only from development.
+  expect(lock).not.toContain('/qs@');
+  expect(lock).toContain(
+    `  /side-channel@1.0.4:\n    resolution: {integrity: ${INTEGRITY}}\n    dev: true\n`,
+  );
+  expect(lock).toContain(`  /@types/node@20.1.0:\n    resolution: {integrity: ${INTEGRITY}}\n\n`);
+});
+
+it.each([
+  ['dev flags that do not match the graph', V6_LOCK.replace('    dev: true\n', '')],
+  [
+    'a dependency without a record',
+    V6_LOCK.replace(
+      '  /side-channel@1.0.4:\n    resolution: {integrity: ' + INTEGRITY + '}\n\n',
+      '',
+    ),
+  ],
+  ['a workspace', V6_LOCK.replace('settings:', 'importers:\n\n  .: {}\n\nsettings:')],
+])('refuses a lockfile v6 with %s', async (_case, lock) => {
+  registry();
+  const result = await stripePackageUpgrade(await v6Project(lock), '2026-09-30.endive');
+  expect(result).toMatchObject({ reason: expect.any(String) });
+});

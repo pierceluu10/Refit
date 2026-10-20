@@ -10,6 +10,10 @@ import { lockedShopifyApi } from './shopify-pipeline.ts';
 import { enumFromVersion, latestApiVersion, sdkHasEnumMember } from './shopify-versions.ts';
 import { PipelineInputError } from './types.ts';
 
+// Benchmark runs never send Slack notices.
+const CHILD_ENV = { ...process.env };
+delete CHILD_ENV.REFIT_SLACK_WEBHOOK_URL;
+
 const execute = promisify(execFile);
 const USAGE =
   'Usage: npm run benchmark:shopify -- --root <benchmark-dir> --output <new-dir> [--list <frozen.json>] [--validate] [--limit N] [--concurrency N]';
@@ -214,7 +218,7 @@ async function benchmark(entry: (typeof repos)[number], index: number) {
         '--quiet',
         '--json',
       ],
-      { env: process.env, timeout: VALIDATION_TIMEOUT_MS, maxBuffer: 64 * 1024 * 1024 },
+      { env: CHILD_ENV, timeout: VALIDATION_TIMEOUT_MS, maxBuffer: 64 * 1024 * 1024 },
     );
   } catch {
     // Non-zero exits are recorded outcomes (needs-review, validation-failed, error).

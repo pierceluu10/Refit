@@ -63,12 +63,17 @@ const { values } = parseArgs({
     'publish-unresolved': { type: 'boolean' },
     // <dir>/<owner__repo> is the `types` directory of the stripe package that repository uses.
     'stripe-package': { type: 'string' },
+    // What-if runs: every repository opts in to keep listed payment methods.
+    'keep-listed-payment-methods': { type: 'boolean' },
   },
 });
 if (!values.root || !values.output) throw new PipelineInputError(USAGE);
 if (values.publish && !values.validate)
   throw new PipelineInputError('--publish needs --validate: only validated runs are published.');
 if (values.env) process.loadEnvFile(values.env);
+// Copied after --env loads, so children get its keys. Benchmark runs never send Slack notices.
+const CHILD_ENV = { ...process.env };
+delete CHILD_ENV.REFIT_SLACK_WEBHOOK_URL;
 const root = resolve(values.root);
 const output = resolve(values.output);
 const ai = values.ai ? assessmentConfiguration(true, process.env)! : undefined;
@@ -166,6 +171,7 @@ async function benchmark(entry: Selected, index: number) {
     ...(values['stripe-package']
       ? { stripePackage: join(resolve(values['stripe-package']), entry.repo.replace('/', '__')) }
       : {}),
+    ...(values['keep-listed-payment-methods'] ? { keepListedPaymentMethods: true } : {}),
   };
   const webhookFiles = new Set(
     repository.files
@@ -294,7 +300,7 @@ async function benchmark(entry: Selected, index: number) {
     const config = join(work, 'run.json');
     await writeFile(
       config,
-      `${JSON.stringify({ formatVersion: 1, repository: directory, apiVersion: entry.before, before, after, providerConfig: adapterPath, image: 'node:22-alpine', prepareDependencies: true, command, ...(result.checks === 'typecheck' ? { compareTypeErrors: true } : {}), ...(generatedChecks ? { generatedChecks } : {}) }, null, 2)}\n`,
+      `${JSON.stringify({ formatVersion: 1, repository: directory, apiVersion: entry.before, before, after, providerConfig: adapterPath, image: 'node:22-alpine', prepareDependencies: true, command, ...(result.checks === 'typecheck' ? { compareTypeErrors: true } : {}), ...(generatedChecks ? { generatedChecks } : {}), ...(values['keep-listed-payment-methods'] ? { stripePaymentMethodTypes: 'keep-listed' } : {}) }, null, 2)}\n`,
     );
     const bundle = join(work, 'run');
     const validationStarted = Date.now();
@@ -321,7 +327,7 @@ async function benchmark(entry: Selected, index: number) {
           '--quiet',
           '--json',
         ],
-        { env: process.env, timeout: VALIDATION_TIMEOUT_MS, maxBuffer: 64 * 1024 * 1024 },
+        { env: CHILD_ENV, timeout: VALIDATION_TIMEOUT_MS, maxBuffer: 64 * 1024 * 1024 },
       );
     } catch {
       // Non-zero exits are recorded outcomes (needs-review, validation-failed, error).

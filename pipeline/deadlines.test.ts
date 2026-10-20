@@ -744,6 +744,7 @@ it('lets a committed ignore file accept an alert, and never lets an invalid one 
     reviewedRevision: REVISION,
     approvedAt: '2026-10-01T00:00:00.000Z',
   } as RepositoryApproval;
+  const notices: string[] = [];
   const run = async (onProgress?: (message: string) => void) => {
     const state = await mkdtemp(join(tmpdir(), 'refit-deadline-ignore-'));
     roots.push(state);
@@ -759,6 +760,7 @@ it('lets a committed ignore file accept an alert, and never lets an invalid one 
       // 3 days before the gpt-4 deadline: the 7-day stage is due.
       now: () => new Date('2026-10-20T12:00:00Z'),
       deadlineAlerts: { leadDays: [90, 30, 7], registry: registryPath },
+      notify: async (text) => void notices.push(text),
       once: true,
       signal: new AbortController().signal,
       onProgress,
@@ -766,12 +768,18 @@ it('lets a committed ignore file accept an alert, and never lets an invalid one 
   };
   await run();
   expect(requests).toEqual([]);
+  expect(notices).toEqual([]);
 
   await writeFile(join(checkout.directory, '.refit-deadlines-ignore.json'), ignoreFile(' '));
   const progress: string[] = [];
   await run((message) => progress.push(message));
   expect(requests.map((item) => `${item.method} ${item.path}`)).toEqual([
     'POST /repos/example/app/issues',
+  ]);
+  expect(notices).toEqual([
+    expect.stringMatching(
+      /^🚨 \[URGENT\] example\/app: OpenAI model gpt-4 reaches its sunset on 2026-10-23 \(3 days left\); https:\/\/github\.com\/example\/app\/issues\/\d+$/,
+    ),
   ]);
   expect(
     progress.some((message) =>

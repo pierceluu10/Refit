@@ -8,6 +8,7 @@ import { createSourceImportResolver } from './source-imports.ts';
 import { sourceBindings } from './source-modules.ts';
 import { sdkConstructors } from './sdk-constructors.ts';
 import { classClients } from './class-clients.ts';
+import { factoryClients } from './factory-clients.ts';
 import { helperClients } from './helper-clients.ts';
 import { stripeWebhookPayloads } from './stripe-webhook-payloads.ts';
 import { componentReference, isObject, resolvableComponentSchema } from './specifications.ts';
@@ -15,7 +16,11 @@ import type { OperationReplacement } from './provider-operation-replacements.ts'
 import type { RequestPropertyRename } from './provider-request-renames.ts';
 import type { PropertyMove } from './provider-renames.ts';
 import { removedParameterProperty, requestPropertyEdit } from './request-migration.ts';
-import { CARD_PAYMENT_METHOD_RULE, type RequestParameterRemoval } from './request-removals.ts';
+import {
+  CARD_PAYMENT_METHOD_RULE,
+  LISTED_PAYMENT_METHODS_RULE,
+  type RequestParameterRemoval,
+} from './request-removals.ts';
 import { StripeTypes } from './stripe-types.ts';
 import {
   subscriptionPeriodEdit,
@@ -263,8 +268,11 @@ export function analyzeRepository(
   };
   const sdk = sdkConstructors({ nodes, checker, provider, symbol, external: resolution.external });
   let classBindings: ReturnType<typeof classClients> | undefined;
+  let factoryBindings: ReturnType<typeof factoryClients> | undefined;
   const clientBinding = (node: ts.Expression) =>
-    classBindings?.reference(node)?.binding ?? (ts.isIdentifier(node) ? symbol(node) : undefined);
+    classBindings?.reference(node)?.binding ??
+    factoryBindings?.call(node) ??
+    (ts.isIdentifier(node) ? symbol(node) : undefined);
   imports.push(...sdk.imports.map(location));
   function sdkAccess(expression: ts.Expression) {
     const properties: (ts.PropertyAccessExpression & { name: ts.Identifier })[] = [];
@@ -274,6 +282,9 @@ export function analyzeRepository(
       properties.push(current as ts.PropertyAccessExpression & { name: ts.Identifier });
       current = current.expression;
     }
+    // `stripe!` and `(stripe)` are compile-time only; the runtime receiver is the client itself.
+    while (ts.isNonNullExpression(current) || ts.isParenthesizedExpression(current))
+      current = current.expression;
     const binding = clientBinding(current);
     if (!binding || !clients.has(binding)) return;
     return { client: current, properties: properties.reverse() };
@@ -458,6 +469,7 @@ export function analyzeRepository(
       if (sdk.creation(node.expression)) clients.add(binding);
   }
   classBindings = classClients({ nodes, creation: sdk.creation, clients, symbol, checker });
+  factoryBindings = factoryClients({ nodes, clients, symbol, creation: sdk.creation });
   for (const declaration of declarations) {
     const binding = clientBinding(declaration.initializer);
     if (binding && clients.has(binding)) add(clients, declaration.name);
@@ -745,6 +757,7 @@ export function analyzeRepository(
       (field) => [field.initializer, field.binding] as const,
     ),
     ...helperBindings.creations,
+    ...factoryBindings.creations,
   ]) {
     const creation = sdk.creation(node);
     if (!binding || !creation) continue;
@@ -868,17 +881,28 @@ export function analyzeRepository(
       const property = removedParameterProperty(node, removal);
       if (!property) continue;
       const confirmed = !unsafe.has(clientBinding(call.client)!) && !call.optional;
-      // Only the exact literal `['card']` has a reviewed replacement; run.ts keeps the edit only
-      // with the API version bump (and, for TypeScript, the SDK upgrade) in the same patch.
-      if (
-        confirmed &&
-        removal.cardReplacement &&
+      // Only the exact literal `['card']` has a reviewed replacement, and, where the repository
+      // opted in, a literal list of `card` plus other distinct methods (never `card_present`).
+      // run.ts keeps the edit only with the API version bump (and, for TypeScript, the SDK
+      // upgrade) in the same patch.
+      const methods =
         ts.isPropertyAssignment(property) &&
         ts.isArrayLiteralExpression(property.initializer) &&
-        property.initializer.elements.length === 1 &&
-        ts.isStringLiteralLike(property.initializer.elements[0]) &&
-        property.initializer.elements[0].text === 'card'
-      ) {
+        property.initializer.elements.every(ts.isStringLiteralLike)
+          ? property.initializer.elements.map((element) => (element as ts.StringLiteralLike).text)
+          : undefined;
+      const rule =
+        methods?.length === 1 && methods[0] === 'card'
+          ? CARD_PAYMENT_METHOD_RULE
+          : removal.keepListed &&
+              methods &&
+              methods.length > 1 &&
+              methods.includes('card') &&
+              !methods.includes('card_present') &&
+              new Set(methods).size === methods.length
+            ? LISTED_PAYMENT_METHODS_RULE
+            : undefined;
+      if (confirmed && removal.cardReplacement && rule && ts.isPropertyAssignment(property)) {
         const quote = ts.isStringLiteral(property.name) ? property.name.getText()[0] : '';
         edits.push({
           file: location(property).file,
@@ -886,7 +910,7 @@ export function analyzeRepository(
           end: property.name.getEnd(),
           replacement: `${quote}${removal.cardReplacement}${quote}`,
           changeId: removal.id,
-          rule: CARD_PAYMENT_METHOD_RULE,
+          rule,
         });
       }
       findings.push({
@@ -1730,6 +1754,7 @@ export function analyzeRepository(
           ? symbol(node.parent.name)
           : (classBindings!.creations.get(node) ??
             helperBindings.creations.get(node) ??
+            factoryBindings!.creations.get(node) ??
             (ts.isExportAssignment(node.parent)
               ? modules.inlineDefaults.get(node.parent)
               : undefined)),

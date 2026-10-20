@@ -460,6 +460,63 @@ it('resolves aliases through the referenced project of a solution tsconfig, as i
   ).toMatchObject({ status: 'literal', value: '2022-08-01' });
 });
 
+it('resolves aliases in a project that also references other projects', () => {
+  const { result } = analyze(
+    {},
+    {
+      'tsconfig.json': JSON.stringify({
+        ...JSON.parse(aliases),
+        include: ['src'],
+        references: [{ path: './packages/db' }],
+      }),
+      'packages/db/tsconfig.json': '{"include":["src"]}',
+    },
+  );
+  expect(result.sourceWarnings).toEqual([]);
+  expect(result.findings).toMatchObject([{ confidence: 'confirmed' }]);
+});
+
+it('uses the referenced project that includes a file under a mixed configuration', () => {
+  const { result } = analyze(
+    {},
+    {
+      'tsconfig.json': '{"include":["app"],"references":[{"path":"./tsconfig.src.json"}]}',
+      'tsconfig.src.json': JSON.stringify({ ...JSON.parse(aliases), include: ['src'] }),
+    },
+  );
+  expect(result.sourceWarnings).toEqual([]);
+  expect(result.findings).toMatchObject([{ confidence: 'confirmed' }]);
+});
+
+it.each([
+  '{"include":["src"],"references":[{"path":"./missing"}]}',
+  '{"include":["src"],"references":[{"path":"@vendor/project"}]}',
+  '{"include":["src"],"references":"./tsconfig.app.json"}',
+])(
+  'keeps a mixed configuration with an unavailable reference under review: %s',
+  (configuration) => {
+    const { result } = analyze({}, { 'tsconfig.json': configuration });
+    expect(result.findings).toMatchObject([{ confidence: 'review' }]);
+    expect(result.sourceWarnings.join(' ')).toContain('unverified');
+  },
+);
+
+it('keeps a file claimed by a mixed configuration and its referenced project under review', () => {
+  const { result } = analyze(
+    {},
+    {
+      'tsconfig.json': JSON.stringify({
+        ...JSON.parse(aliases),
+        include: ['src'],
+        references: [{ path: './tsconfig.other.json' }],
+      }),
+      'tsconfig.other.json': '{"include":["src/**/*.ts"]}',
+    },
+  );
+  expect(result.findings).toMatchObject([{ confidence: 'review' }]);
+  expect(result.sourceWarnings.join(' ')).toContain('several referenced projects');
+});
+
 it('keeps a source file claimed by several referenced projects under review', () => {
   const { result } = analyze(
     {},
