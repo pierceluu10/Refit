@@ -34,6 +34,12 @@ Stripe [replaced the `price` object on invoice line items and invoice items](htt
 
 Only the ID moves. Other reads of `price`, such as `line.price.nickname` or passing `line.price` on, need the full Price object, which the new location holds only when the code expands `pricing.price_details.price`; they stay for review. A `line.price.id` read on a line item without a price returned `undefined` with optional chaining and threw without it; the helper returns `undefined` in both cases.
 
+## Checkout Session shipping details
+
+Stripe [removed `checkout.session.shipping_details`](https://docs.stripe.com/changelog/basil/2025-03-31/checkout-session-remove-shipping-details) in the same release; the value is at `collected_information.shipping_details`, which [acacia added](https://docs.stripe.com/changelog/acacia/2025-02-24/checkout-sessions-collected-info). The generated helper file also exports `getCheckoutShippingDetails(session)`: the old field when present (old-version events), otherwise the new location, otherwise `null`. Refit rewrites traced, typed and signed-event reads of `session.shipping_details` to call it when the target contract has the new location.
+
+The new object holds only `address` and `name`, not the old Shipping object's `carrier`, `phone` and `tracking_number`, so a read of one of those three stays for review.
+
 ## Approved configuration
 
 Use a provider adapter referenced by a checked-in `.refit.json` through its existing `providerConfig` field. The adapter's ID is distinct from the reserved built-in `stripe` ID; its package is `stripe`, so signed-event tracing still applies. Add:

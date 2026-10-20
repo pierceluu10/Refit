@@ -103,9 +103,11 @@ it.skipIf(!DOCKER_IMAGE || !process.env.REFIT_OASDIFF)(
       'src/items.ts',
     ]);
     const body = await readFile(join(output, 'pull-request.md'), 'utf8');
-    expect(body).toContain('`items.retrieveLegacy` → `items.retrieve`');
-    expect(body).toContain('`GET /legacy/items/{id}`');
-    expect(body).toContain('`GET /items/{id}`');
+    expect(body).toContain(
+      'Retires `items.retrieveLegacy` (`GET /legacy/items/{id}`) in favor of `items.retrieve` (`GET /items/{id}`).',
+    );
+    expect(body).toContain('API 2 retires endpoints this code calls.');
+    expect(body).not.toContain('response fields');
     expect(await readFile(join(repository, 'src/items.ts'), 'utf8')).toBe(original);
     expect((await git(['status', '--porcelain'])).stdout).toBe('');
     expect(await verifyArtifacts(output)).toMatchObject({ status: 'integrity-verified' });
@@ -156,7 +158,7 @@ it.skipIf(!DOCKER_IMAGE || !process.env.REFIT_OASDIFF)(
     expect(report.validation.baseline.status).toBe('passed');
     expect(report.validation.patched.status).toBe('passed');
     expect(await readFile(join(options.output, 'pull-request.md'), 'utf8')).toContain(
-      'passed on the original and the migrated code',
+      'passed on the original and `node --experimental-strip-types simulator/check.mjs after 1` on the migrated code in offline Docker',
     );
     expect(fetcher).not.toHaveBeenCalled();
     expect((await git(['status', '--porcelain'])).stdout).toBe('');

@@ -69,6 +69,16 @@ it('classifies the lockfile refusals the repository owner can fix', () => {
       ),
     ),
   ).toMatchObject({ reason: 'dependency-archive-limit' });
+  expect(
+    repositoryDependencyFailure(
+      new DependencyPreparationError(
+        'npm dependency preparation failed (1). npm error code ERESOLVE\nnpm error ERESOLVE could not resolve\nnpm error Conflicting peer dependency: next@15.5.28',
+      ),
+    ),
+  ).toMatchObject({
+    reason: 'peer-dependency-conflict',
+    action: expect.stringContaining('commit the updated `package-lock.json`'),
+  });
 });
 
 it('leaves sandbox, network and unknown failures unclassified', () => {
