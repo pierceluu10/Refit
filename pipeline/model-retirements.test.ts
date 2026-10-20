@@ -171,7 +171,7 @@ it('stops for review where a swap could change the request, and skips what it ca
       "import Anthropic from '@anthropic-ai/sdk';",
       'const openai = new OpenAI();',
       'const anthropic = new Anthropic();',
-      "export const MODEL = 'gpt-4';",
+      "export const MODEL = 'gpt-4'; console.log(MODEL);",
       'export async function chat(messages: any[], options: object) {',
       "  await openai.chat.completions.create({ model: 'gpt-4', max_tokens: 100, messages });",
       "  await anthropic.messages.create({ model: 'claude-3-opus-20240229', temperature: 0.2, max_tokens: 9, messages });",
@@ -205,7 +205,7 @@ it('stops for review where a swap could change the request, and skips what it ca
     [
       10,
       'gpt-4',
-      'The model comes from the constant MODEL (src/ai.ts:5), which is exported or used elsewhere; change it by hand to gpt-5.6-sol.',
+      'The model comes from the constant MODEL (src/ai.ts:5), which is used 2 times; change it by hand to gpt-5.6-sol.',
     ],
     [11, 'gpt-prose', 'The registry names no concrete replacement model ID.'],
     [
@@ -292,7 +292,7 @@ it('follows v3 and openai-edge clients, request consts and model consts used onc
   expect(proposal.stops.map((item) => [`${item.file}:${item.line}`, item.reason])).toEqual([
     [
       'src/shared.ts:4',
-      'The request object request (src/shared.ts:3) is exported or used elsewhere; change its model by hand to gpt-5.6-sol.',
+      'The request object request (src/shared.ts:3) is used 2 times; change its model by hand to gpt-5.6-sol.',
     ],
     [
       'src/shared.ts:7',
@@ -311,4 +311,128 @@ it('follows v3 and openai-edge clients, request consts and model consts used onc
   expect(await readFile(join(root, 'src/v3.ts'), 'utf8')).toContain(
     "openai.createCompletion({ model: 'gpt-4', prompt: 'x' });",
   );
+});
+
+// Shapes left after the first two rounds on the deadline benchmark: models behind imports, enum
+// members and helper parameters, and raw HTTP requests to the official endpoints.
+it('follows imported constants, enum members, helper parameters and raw HTTP requests', async () => {
+  const root = await repository({
+    'src/models.ts': [
+      "export enum Model { Default = 'gpt-4' }",
+      "export const SUMMARY_MODEL = 'gpt-4';",
+      "export const LABEL_MODEL = 'gpt-4';",
+    ].join('\n'),
+    'src/client.ts': ["import OpenAI from 'openai';", 'export const openai = new OpenAI();'].join(
+      '\n',
+    ),
+    'src/chat.ts': [
+      "import { openai } from './client';",
+      "import { Model, SUMMARY_MODEL, LABEL_MODEL } from './models';",
+      'export const chat = (messages: any[]) =>',
+      '  openai.chat.completions.create({ model: Model.Default, messages });',
+      'export const summarize = (messages: any[]) =>',
+      '  openai.chat.completions.create({ model: SUMMARY_MODEL, messages });',
+      'export const label = (messages: any[]) =>',
+      '  openai.chat.completions.create({ model: LABEL_MODEL, messages });',
+      'export const LABEL = `Model: ${LABEL_MODEL}`;',
+    ].join('\n'),
+    // A CommonJS helper whose default and callers pass the model.
+    'lib/ai.js': [
+      "const { OpenAI } = require('openai');",
+      'const openai = new OpenAI();',
+      "const ask = async function (messages, model = 'gpt-4') {",
+      '  return openai.chat.completions.create({ model, messages });',
+      '};',
+      'module.exports = { ask };',
+    ].join('\n'),
+    'lib/commands.js': [
+      "const ai = require('./ai');",
+      'ai.ask([]);',
+      "ai.ask([], 'o1-mini');",
+      "ai.ask([], 'gpt-4o');",
+    ].join('\n'),
+    'src/raw.ts': [
+      "const URL = 'https://api.openai.com/v1/chat/completions';",
+      'export async function rawChat(prompt: string) {',
+      '  await fetch(URL, {',
+      "    method: 'POST',",
+      "    body: JSON.stringify({ model: 'gpt-4', messages: [{ role: 'user', content: prompt }] }),",
+      '  });',
+      "  await axios.post('https://api.anthropic.com/v1/messages', {",
+      "    model: 'claude-3-opus-20240229',",
+      '    max_tokens: 64,',
+      '    messages: [],',
+      '  });',
+      '  UrlFetchApp.fetch(`https://api.openai.com/v1/chat/completions`, {',
+      "    payload: JSON.stringify({ model: 'gpt-4', messages: [], temperature: 0 }),",
+      '  });',
+      // Another host, or another endpoint, is not proposed.
+      "  await fetch('https://proxy.example/v1/chat/completions', { body: JSON.stringify({ model: 'gpt-4' }) });",
+      "  await fetch('https://api.openai.com/v1/embeddings', { body: JSON.stringify({ model: 'gpt-4' }) });",
+      '}',
+    ].join('\n'),
+  });
+  const proposal = await proposeModelReplacements(root, registry, NOW);
+  expect(
+    proposal.replacements.map((item) => [
+      `${item.file}:${item.line}`,
+      item.call,
+      `${item.edited.file}:${item.edited.line}`,
+      item.from,
+      item.to,
+    ]),
+  ).toEqual([
+    ['lib/ai.js:4', 'chat.completions.create', 'lib/ai.js:3', 'gpt-4', 'gpt-5.6-sol'],
+    ['lib/ai.js:4', 'chat.completions.create', 'lib/commands.js:3', 'o1-mini', 'gpt-5.6-terra'],
+    ['src/chat.ts:4', 'chat.completions.create', 'src/models.ts:1', 'gpt-4', 'gpt-5.6-sol'],
+    ['src/chat.ts:6', 'chat.completions.create', 'src/models.ts:2', 'gpt-4', 'gpt-5.6-sol'],
+    ['src/raw.ts:3', 'fetch /v1/chat/completions', 'src/raw.ts:5', 'gpt-4', 'gpt-5.6-sol'],
+    [
+      'src/raw.ts:7',
+      'post /v1/messages',
+      'src/raw.ts:8',
+      'claude-3-opus-20240229',
+      'claude-opus-4-8',
+    ],
+  ]);
+  expect(proposal.stops.map((item) => [`${item.file}:${item.line}`, item.reason])).toEqual([
+    [
+      'src/chat.ts:8',
+      'The model comes from the constant LABEL_MODEL (src/models.ts:3), which is used 2 times; change it by hand to gpt-5.6-sol.',
+    ],
+    [
+      'src/raw.ts:12',
+      'The request sets temperature, which gpt-5.6-sol may reject or treat differently.',
+    ],
+  ]);
+  await execute('git', ['init', '-q', root]);
+  await writeFile(join(root, 'model.patch'), proposal.patch!);
+  await execute('git', ['-C', root, 'apply', 'model.patch']);
+  expect(await readFile(join(root, 'lib/commands.js'), 'utf8')).toBe(
+    [
+      "const ai = require('./ai');",
+      'ai.ask([]);',
+      "ai.ask([], 'gpt-5.6-terra');",
+      "ai.ask([], 'gpt-4o');",
+    ].join('\n'),
+  );
+});
+
+it('stops when a helper that carries the model is passed around or spread into', async () => {
+  const root = await repository({
+    'src/ai.ts': [
+      "import OpenAI from 'openai';",
+      'const openai = new OpenAI();',
+      "export function ask(messages: any[], model = 'gpt-4') {",
+      '  return openai.chat.completions.create({ model, messages });',
+      '}',
+      'export const handlers = [ask];',
+    ].join('\n'),
+  });
+  const proposal = await proposeModelReplacements(root, registry, NOW);
+  expect(proposal.replacements).toEqual([]);
+  expect(proposal.stops.map((item) => item.reason)).toEqual([
+    'The helper ask (src/ai.ts:3) is also passed as a value; change its model by hand to gpt-5.6-sol.',
+  ]);
+  expect(proposal.stops[0].at).toEqual({ file: 'src/ai.ts', line: 3 });
 });

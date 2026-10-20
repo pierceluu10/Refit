@@ -87,12 +87,12 @@ try {
         );
       for (const item of proposal.replacements)
         console.log(
-          `\n${terminalText(`${item.file}:${item.line}`)}  ${terminalText(item.call)}\n  Replace      ${terminalText(item.from)} with ${terminalText(item.to)}\n  Deadline     ${terminalText(item.via.join(' then '))} ${item.date} (${timing(item.days)})`,
+          `\n${terminalText(`${item.file}:${item.line}`)}  ${terminalText(item.call)}\n  Replace      ${terminalText(item.from)} with ${terminalText(item.to)} at ${terminalText(`${item.edited.file}:${item.edited.line}`)}\n  Deadline     ${terminalText(item.via.join(' then '))} ${item.date} (${timing(item.days)})`,
         );
       if (proposal.stops.length) console.log('\nStopped for review:');
       for (const item of proposal.stops)
         console.log(
-          `  ${terminalText(`${item.file}:${item.line}`)}  ${terminalText(item.model)}  ${terminalText(item.reason)}`,
+          `  ${terminalText(`${item.file}:${item.line}`)}  ${terminalText(item.model)} at ${terminalText(`${item.at.file}:${item.at.line}`)}  ${terminalText(item.reason)}`,
         );
       if (proposal.patch && values.output)
         console.log(`\nPatch written to ${terminalText(resolve(values.output))}`);
