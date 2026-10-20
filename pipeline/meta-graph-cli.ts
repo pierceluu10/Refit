@@ -1,21 +1,30 @@
+import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { parseArgs } from 'node:util';
+import { loadDeadlineRegistry } from './deadline-registry.ts';
 import { scanGraphCalls, type GraphCall } from './meta-graph-calls.ts';
+import { checkMetaGraphChanges, DEFAULT_META_GRAPH_CHANGES } from './meta-graph-changes.ts';
+import { parseObject } from './specifications.ts';
 import { terminalText } from './workflow-presentation.ts';
 
 const USAGE = `Usage: refit meta-graph [--repository <root>] [--json]
+       refit meta-graph --check-changes [--changes <path>] [--json]
 Lists the Meta Graph API requests a repository makes: raw graph.facebook.com calls through fetch, axios and helpers, and facebook-nodejs-business-sdk resource-class calls. Each shows file:line, the pinned version, the path and edge, and the requested fields and metrics where they are written literally. Values built at runtime are marked unknown, with the reason.
+--check-changes validates the reviewed per-version change list in data/meta-graph-changes.json, lists versions whose changelog was not read, and versions the deadline registry has that the list does not. It exits 1 on any error.
 Review only: nothing is changed, installed, run or sent to Meta.`;
 
 try {
   const { values } = parseArgs({
     options: {
       repository: { type: 'string' },
+      'check-changes': { type: 'boolean' },
+      changes: { type: 'string' },
       json: { type: 'boolean' },
       help: { type: 'boolean' },
     },
   });
   if (values.help) console.log(USAGE);
+  else if (values['check-changes']) await checkChanges(values.changes, values.json);
   else {
     const root = resolve(values.repository ?? '.');
     const scan = await scanGraphCalls(root);
@@ -83,4 +92,38 @@ function print(
       )}`,
     );
   }
+}
+
+async function checkChanges(path: string | undefined, json: boolean | undefined) {
+  const now = new Date();
+  const registry = await loadDeadlineRegistry(undefined, now);
+  const versions = registry.deadlines
+    .filter((entry) => entry.provider === 'meta-graph')
+    .flatMap((entry) => entry.versions);
+  const report = checkMetaGraphChanges(
+    parseObject(
+      await readFile(path ? resolve(path) : DEFAULT_META_GRAPH_CHANGES, 'utf8'),
+      'Meta Graph API change list',
+    ),
+    now,
+    versions,
+  );
+  if (json) console.log(JSON.stringify(report));
+  else {
+    console.log(
+      report.errors.length
+        ? 'Meta Graph API change list is invalid'
+        : 'Meta Graph API change list is valid',
+    );
+    for (const error of report.errors) console.log(`  error     ${terminalText(error)}`);
+    if (report.unread.length)
+      console.log(
+        `  unread    ${terminalText(report.unread.join(', '))} (a version move across these stops for review)`,
+      );
+    if (report.missing.length)
+      console.log(
+        `  missing   ${terminalText(report.missing.join(', '))} (in the deadline registry, not in the change list)`,
+      );
+  }
+  process.exitCode = report.errors.length ? 1 : 0;
 }

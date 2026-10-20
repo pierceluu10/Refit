@@ -83,11 +83,76 @@ node scripts/meta-graph-benchmark.mjs --root <dir> --score
 node scripts/meta-graph-benchmark.mjs --root . --score --results docs/benchmarks/2026-10-20-meta-graph-call-results.json
 ```
 
+## The per-version change list
+
+`data/meta-graph-changes.json` is a reviewed list of what each Graph API version removes or changes, kept by hand from Meta's changelog in the style of the [deadline registry](DEADLINES.md#the-registry). Meta publishes one changelog page per version, not a contract, so every record names the page it came from and the day someone read it.
+
+```json
+{
+  "formatVersion": 1,
+  "provider": "meta-graph",
+  "versions": [
+    {
+      "version": "v21.0",
+      "status": "reviewed",
+      "source": "https://developers.facebook.com/docs/graph-api/changelog/version21.0",
+      "checkedAt": "2026-10-20",
+      "note": null
+    }
+  ],
+  "changes": [
+    {
+      "id": "meta-graph-v21-0-page-example",
+      "version": "v21.0",
+      "kind": "field-removed",
+      "node": "Page",
+      "edge": null,
+      "path": null,
+      "name": "example_field",
+      "summary": "The example_field field on Page is removed.",
+      "source": "https://developers.facebook.com/docs/graph-api/changelog/version21.0#pages",
+      "checkedAt": "2026-10-20"
+    }
+  ]
+}
+```
+
+(The change above illustrates the format; it is not a real Meta change.)
+
+- **`versions`** has one record per Graph API version. `reviewed` means every removal or change on that version's changelog page that names an edge, field, metric, parameter or endpoint is in `changes`. `unread` means nobody could read the page, and `note` must say why. `checkedAt` is the day someone read the page, or tried to.
+- **`changes`** lists what a version introduces. A change applies to requests pinned to that version and every later one. `kind` is one of `endpoint-removed`, `edge-removed`, `edge-changed`, `field-removed`, `field-changed`, `metric-removed`, `metric-changed`, `parameter-removed` or `parameter-changed`. `edge` is the edge in `/{id}/<edge>`, `path` a root endpoint such as `/instagram_oembed`, `name` the field, metric or parameter, and `node` the node type as the changelog names it (`Page`, `IG Media`).
+
+Check it after every edit:
+
+```sh
+npm run meta-graph:check
+```
+
+This is the same as `refit meta-graph --check-changes`, and `--changes <path>` checks another file. The whole file is rejected, and the command exits 1, on any of these:
+
+- an unknown or missing field, a duplicate version or ID, or an invalid or future date;
+- a source that is not an `https://developers.facebook.com/` page;
+- a change whose version has no record, or whose version is not `reviewed`, since a change can only come from a page someone read;
+- a change that does not name what its kind needs, such as a field removal with no field name;
+- an `unread` version with no note.
+
+It also lists the `unread` versions, since a version move across them must stop for review, and any Meta version in the deadline registry that has no record. Nothing fetches Meta's pages or calls Meta's API.
+
+### What the list holds today
+
+**No changes yet, and every version is `unread`.** The list was started on 2026-10-20 from an environment that could not reach developers.facebook.com: the network proxy refused every connection. So it has 14 version records, v13.0 to v26.0, each marked `unread` with that reason, and no change entries.
+
+Search results show that changelog pages exist for v17.0, v19.0, v22.0 and v26.0, and those records cite them. The other versions cite the [versions index](https://developers.facebook.com/docs/graph-api/changelog/versions), because their own page addresses were not confirmed. Search summaries describe some removals, but they are not the pages themselves, so none was recorded.
+
+Search results also list a v26.0 page. v26.0 has a record here but is not in the deadline registry, which lists sunsets only.
+
+To fill the list, read each version's changelog page from a machine that can reach it, add every removal or change that names an edge, field, metric, parameter or endpoint, set the version to `reviewed` with the day you read it, and run `npm run meta-graph:check`. Start with the versions the benchmark repositories pin: v18.0, v19.0 and v20.0 move furthest.
+
 ## What a Meta agent still needs
 
 The catalog entry for `meta-graph` keeps `adapter: null`. Request detection is one of the pieces a reviewed agent needs; these are still missing:
 
-1. **A per-version change list.** Which edges, fields, metrics and endpoints each Graph API version removes or changes, from Meta's changelog, with sources. Meta publishes a changelog, not a contract.
+1. **Change list entries.** The [format and validator](#the-per-version-change-list) exist, but no version's changelog has been read yet.
 2. **A version-move rule.** Move a URL's version only when every edge and field the request uses is known and none changed between the two versions, and stop for review otherwise. Whether a hand-maintained change list is enough evidence for an automatic edit is an owner decision.
 3. **More coverage.** The browser SDK's `FB.init({ version })`, URLs whose host comes from configuration at runtime, and responses: the fields code reads from a response are not traced, so a request with no `fields` relies on the node's defaults.
 
