@@ -200,6 +200,10 @@ export function analyzeRepository(
     helperClient?: Finding['helperClient'];
   })[] = [];
   const sdkCallNodes = new Map<ts.Node, (typeof sdkCalls)[number]>();
+  // Methods called directly on a client, such as the openai v3 SDK's
+  // `openai.createChatCompletion(…)`. Listed for callers that read call arguments; no other
+  // analysis uses them.
+  const clientMethodCalls: (Location & { method: string; expression: string })[] = [];
   const clients = new Set<ts.Symbol>();
   const responses = new Map<ts.Symbol, string>();
   const arrayItems = new Map<ts.Symbol, string>();
@@ -670,6 +674,15 @@ export function analyzeRepository(
       };
       sdkCalls.push(evidence);
       sdkCallNodes.set(node, evidence);
+    }
+    if (!sdk && ts.isCallExpression(node)) {
+      const access = sdkAccess(node.expression);
+      if (access?.properties.length === 1)
+        clientMethodCalls.push({
+          ...location(node),
+          method: access.properties[0].name.text,
+          expression: `${access.client.getText()}.${access.properties[0].name.text}`,
+        });
     }
     const operation = responseCall(node);
     if (operation)
@@ -1739,6 +1752,7 @@ export function analyzeRepository(
     imports,
     calls,
     sdkCalls,
+    clientMethodCalls,
     expandedFields: [...expandedFields()].sort(),
     apiVersionDeclarations: declaredApiVersions({
       nodes,

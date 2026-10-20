@@ -170,8 +170,9 @@ For OpenAI and Anthropic models, Refit can propose the registry replacement as a
 
 A replacement is proposed only when all of these hold:
 
-- The call is a traced SDK text-generation call: OpenAI `chat.completions.create`, `.parse` or `.stream` (also under `beta`), `responses.create`, `.parse` or `.stream`, or Anthropic `messages.create`, `.stream` or `.countTokens` (also under `beta`). Clients are traced like any adapter's, including class fields and imported clients, using `examples/openai.provider.json` and `examples/anthropic.provider.json`.
-- Its first argument is an object literal whose `model` is a string literal naming a registry model, or the default of a `??` or `||` fallback there, such as `process.env.MODEL ?? 'gpt-4'`.
+- The call is a traced SDK text-generation call: OpenAI `chat.completions.create`, `.parse` or `.stream` (also under `beta`), `responses.create`, `.parse` or `.stream`, `createChatCompletion` on an openai v3 or `openai-edge` `OpenAIApi` client, or Anthropic `messages.create`, `.stream` or `.countTokens` (also under `beta`). Clients are traced like any adapter's, including class fields and imported clients, using `examples/openai.provider.json` and `examples/anthropic.provider.json`.
+- Its first argument is an object literal, or a `const` holding one that is declared in scope, not exported and used only by this call (`const params = { model: 'gpt-4', messages }`).
+- Its `model` is a string literal naming a registry model; the default of a `??` or `||` fallback there, such as `process.env.MODEL ?? 'gpt-4'`; or a `const` holding such a literal, declared in scope, not exported and used only here (`model: MODEL` or the shorthand `{ model }`). A constant is edited where it is declared.
 - The file is not a test, spec, story, fixture or example file.
 - The registry entry names a concrete model ID. When that replacement retires too, Refit follows the registry to a model that does not, for example `o1-mini` to `o4-mini` to `gpt-5.6-terra`.
 
@@ -179,14 +180,14 @@ These cases stop for review and are listed with a reason, with no edit:
 
 - The request sets a parameter the replacement may reject: `temperature`, `top_p` or `top_k` for Anthropic (Anthropic returns a 400 for non-default values on Claude 4.7 and later models), and `temperature`, `top_p`, `max_tokens`, `presence_penalty`, `frequency_penalty`, `logit_bias`, `logprobs` or `top_logprobs` for OpenAI (support on its newer models is unverified).
 - The request spreads other options (`{ ...options, model: 'gpt-4' }`).
-- The model comes from a top-level constant in the same file, which may feed other code.
+- The model comes from a constant, or the request from a `const` object, that is exported or used more than once in the file, so it may feed other code.
 - The registry has no concrete replacement.
 
-Embeddings, images, audio and moderation calls are never proposed, because their replacements change vector sizes, formats or parameters. A model sent through raw `fetch`, the openai v3 SDK (`createChatCompletion`), `openai-edge`, LangChain or the Vercel AI SDK, or passed through a helper's parameter, is not traced and stays an ordinary exposure.
+Embeddings, images, audio and moderation calls are never proposed, because their replacements change vector sizes, formats or parameters. Legacy completions (`completions.create`, v3 `createCompletion`) are never proposed either, because the replacements are chat models. A model sent through raw `fetch`, LangChain, the Vercel AI SDK or a Deno re-export, imported from another module, or passed through a helper's parameter, is not traced and stays an ordinary exposure.
 
 `--json` returns `replacements` (each with `file`, `line`, `call`, `from`, `to`, the deadline and `via`, the registry entries followed), `stops` (each with a `reason`) and `patch`.
 
-On the 34 OpenAI repositories of the [deadline benchmark](DEADLINE-BENCHMARK.md), 15 send a model retiring on 2026-10-23 from live code. The rule proposed 2 replacements in 1 of them and stopped for review in 1 (spread options); both proposals were read by hand and are the registry replacement in a plain request. The other 13 hold the model in the v3 SDK, `openai-edge`, constants, helper parameters, UI state or configuration. Results are in [`benchmarks/2026-10-20-model-replacement-results.json`](benchmarks/2026-10-20-model-replacement-results.json).
+On the 34 OpenAI repositories of the [deadline benchmark](DEADLINE-BENCHMARK.md), 15 send a model retiring on 2026-10-23 from live code. The rule proposed 6 replacements in 2 of them, 4 through the v3 SDK or `openai-edge`. It stopped for review in 2 more: one spreads options, and one reuses a request object that also sets `temperature`. Every proposal was read by hand, and each is the registry replacement in a plain request. The other 11 hold the model in exported constants, helper parameters, UI state, configuration, raw `fetch` or other libraries. Results are in [`benchmarks/2026-10-20-model-replacement-results.json`](benchmarks/2026-10-20-model-replacement-results.json).
 
 ## The migration path
 

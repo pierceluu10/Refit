@@ -151,6 +151,8 @@ async function runOpenApiPipeline(options: {
     sourceWarnings,
     skippedFiles,
     enumChecks,
+    // Only model replacement proposals read direct client-method calls; reports do not list them.
+    clientMethodCalls: _clientMethodCalls,
     ...analysis
   } = analyzeRepository(
     repository,
