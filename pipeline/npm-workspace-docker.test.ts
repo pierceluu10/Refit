@@ -324,7 +324,9 @@ it.skipIf(!IMAGE || !process.env.REFIT_NPM_PREPARE)(
     manifest.dependencies.stripe = '11.0.0';
     await writeFile(path, JSON.stringify(manifest));
     await sample.commit();
-    await expect(prepareDependencies(options)).rejects.toThrow(/requirements differ/);
+    await expect(prepareDependencies(options)).rejects.toThrow(
+      'stripe is "11.0.0" in packages/billing/package.json but "10.17.0" in the lockfile',
+    );
     await writeFile(
       join(sample.repository, '.refit.json'),
       JSON.stringify({
@@ -341,7 +343,7 @@ it.skipIf(!IMAGE || !process.env.REFIT_NPM_PREPARE)(
     const diagnosis = await inspectRepositoryReadiness({ repository: sample.repository });
     expect(diagnosis.checks.find((check) => check.id === 'dependencies')).toMatchObject({
       status: 'blocked',
-      detail: expect.stringContaining('requirements differ'),
+      detail: expect.stringContaining('differ from the committed package-lock.json'),
     });
   },
   120_000,

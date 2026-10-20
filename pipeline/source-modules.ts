@@ -102,7 +102,8 @@ export function sourceBindings(
         Boolean(declaration.parent.flags & ts.NodeFlags.Const) &&
         ts.isVariableStatement(declaration.parent.parent) &&
         ts.isSourceFile(declaration.parent.parent.parent)) ||
-        (ts.isFunctionDeclaration(declaration) && ts.isSourceFile(declaration.parent)))
+        ((ts.isFunctionDeclaration(declaration) || ts.isClassDeclaration(declaration)) &&
+          ts.isSourceFile(declaration.parent)))
       ? binding
       : undefined;
   };
@@ -123,12 +124,14 @@ export function sourceBindings(
   for (const node of nodes) {
     const file = node.getSourceFile().fileName;
     if (
-      (ts.isVariableStatement(node) || ts.isFunctionDeclaration(node)) &&
+      (ts.isVariableStatement(node) ||
+        ts.isFunctionDeclaration(node) ||
+        ts.isClassDeclaration(node)) &&
       ts.isSourceFile(node.parent) &&
       node.modifiers?.some((modifier) => modifier.kind === ts.SyntaxKind.ExportKeyword) &&
       !node.modifiers.some((modifier) => modifier.kind === ts.SyntaxKind.DefaultKeyword)
     ) {
-      const names = ts.isFunctionDeclaration(node)
+      const names = !ts.isVariableStatement(node)
         ? node.name
           ? [node.name]
           : []

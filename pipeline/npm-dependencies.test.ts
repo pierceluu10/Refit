@@ -186,8 +186,11 @@ it('honours only legacy-peer-deps from a committed .npmrc and keys the cache on 
   const relaxed = await prepareDependencies(fixture.options);
   expect(relaxed.directory).not.toBe(plain.directory);
   const [first, second] = (await fixture.calls()).filter((call) => call.args[0] === 'run');
-  expect(command(first)).not.toContain('--legacy-peer-deps');
-  expect(command(second)).toContain('--no-fund --legacy-peer-deps ');
+  expect(command(first)).toContain('REFIT_LEGACY_PEER_DEPS=1');
+  expect(command(second)).not.toContain('REFIT_LEGACY_PEER_DEPS=1');
+  expect(command(second)).toContain(
+    '--cache=/workspace/.npm-cache --legacy-peer-deps >&2; mkdir -p node_modules;',
+  );
   expect(command(second)).toContain('--registry=https://registry.npmjs.org');
   expect(second.inputs.sort()).toEqual(['package-lock.json', 'package.json']);
   expect(legacyPeerDeps('legacy-peer-deps=false\n#legacy-peer-deps=true')).toBe(false);

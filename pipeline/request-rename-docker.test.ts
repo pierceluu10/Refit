@@ -104,7 +104,7 @@ it.skipIf(!IMAGE || !process.env.REFIT_OASDIFF)(
       'src/items.ts',
     ]);
     expect(await readFile(join(result.directory, 'pull-request.md'), 'utf8')).toContain(
-      '`legacy_name` → `display_name`',
+      'Renames request field `legacy_name` to `display_name` in `items.create`.',
     );
     expect(await renderWorkflowResult(result)).toContain(
       'items.create argument[0]: legacy_name → display_name',

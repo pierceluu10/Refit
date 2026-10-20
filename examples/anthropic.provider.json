@@ -1,0 +1,7 @@
+{
+  "id": "anthropic",
+  "packageName": "@anthropic-ai/sdk",
+  "defaultImport": true,
+  "namedExport": "Anthropic",
+  "operations": [{ "resource": "messages", "method": "create", "schema": "Message" }]
+}

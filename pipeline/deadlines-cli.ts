@@ -1,4 +1,4 @@
-import { readFile } from 'node:fs/promises';
+import { readFile, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 import { migrationNote, timing } from './deadline-alerts.ts';
@@ -21,13 +21,16 @@ import {
   readDeadlineIgnores,
   type DeadlineIgnore,
 } from './deadline-ignores.ts';
+import { proposeModelReplacements } from './model-retirements.ts';
 import { parseObject } from './specifications.ts';
 import { terminalText } from './workflow-presentation.ts';
 
 const USAGE = `Usage: refit deadlines [--repository <root>] [--fail-within <days>] [--ignore-file <path>] [--registry <path>] [--json]
+       refit deadlines --propose-model-fixes [--repository <root>] [--output <patch>] [--registry <path>] [--json]
        refit deadlines --check-registry [--registry <path>] [--json]
 Lists API versions and models a repository pins that have a provider sunset date in the reviewed registry, with file:line evidence. Only live code counts; model lists, tests, examples, comments, tokenizers and checks are listed separately.
 --fail-within <days> exits 2 when a live exposure is past due or within that many days, for CI. Reviewed, expiring exceptions go in ${DEADLINE_IGNORE_FILE} at the repository root; --ignore-file reads another file. Exit 0 means the check passed, 1 an error (including an invalid ignore file).
+--propose-model-fixes proposes replacing retiring OpenAI and Anthropic model IDs with the registry replacement, only where the ID is a literal model in a traced SDK call, and lists every case that stops for review. It prints a patch, or writes it to --output; it never applies, validates or publishes it.
 --check-registry validates the registry and flags past-due entries and entries without a source. Nothing runs, installs or contacts a provider.`;
 
 try {
@@ -38,6 +41,8 @@ try {
       'check-registry': { type: 'boolean' },
       'fail-within': { type: 'string' },
       'ignore-file': { type: 'string' },
+      'propose-model-fixes': { type: 'boolean' },
+      output: { type: 'string' },
       json: { type: 'boolean' },
       help: { type: 'boolean' },
     },
@@ -64,6 +69,35 @@ try {
         );
     }
     process.exitCode = report.errors.length ? 1 : 0;
+  } else if (values['propose-model-fixes']) {
+    const root = resolve(values.repository ?? '.');
+    const registry = await loadDeadlineRegistry(registryPath, now);
+    const proposal = await proposeModelReplacements(root, registry, now);
+    if (values.output && proposal.patch) await writeFile(resolve(values.output), proposal.patch);
+    if (values.json)
+      console.log(JSON.stringify({ repository: root, checkedAt: now.toISOString(), ...proposal }));
+    else {
+      console.log(`Refit model replacements  ${terminalText(root)}`);
+      console.log(
+        'Review only: nothing was applied or validated. A replacement model changes behaviour, cost and limits; apply it on a branch and run your checks.',
+      );
+      if (!proposal.replacements.length && !proposal.stops.length)
+        console.log(
+          '\nNo traced OpenAI or Anthropic SDK call sends a retiring model as a literal.',
+        );
+      for (const item of proposal.replacements)
+        console.log(
+          `\n${terminalText(`${item.file}:${item.line}`)}  ${terminalText(item.call)}\n  Replace      ${terminalText(item.from)} with ${terminalText(item.to)}\n  Deadline     ${terminalText(item.via.join(' then '))} ${item.date} (${timing(item.days)})`,
+        );
+      if (proposal.stops.length) console.log('\nStopped for review:');
+      for (const item of proposal.stops)
+        console.log(
+          `  ${terminalText(`${item.file}:${item.line}`)}  ${terminalText(item.model)}  ${terminalText(item.reason)}`,
+        );
+      if (proposal.patch && values.output)
+        console.log(`\nPatch written to ${terminalText(resolve(values.output))}`);
+      else if (proposal.patch) console.log(`\n${proposal.patch}`);
+    }
   } else {
     // Parse the window first, so a typo fails before any scanning.
     const failWithin =

@@ -160,6 +160,11 @@ it('tells the reviewer to keep cards enabled in the draft PR', async () => {
   const check = { status: 'passed' as const, exitCode: 0, stdout: '', stderr: '' };
   const description = createReviewArtifacts({
     ...report,
+    // A full comparison also records removals this code never reads.
+    changes: [
+      ...report.changes,
+      { id: 'unread', schema: 'charge', property: 'legacy_field', pointer: '/charge/legacy_field' },
+    ],
     publicationFiles: [{ path: 'checkout.js', mode: '100644', content: 'export {};' }],
     patch: { ...report.patch, validation: 'passed' },
     validation: {
@@ -188,7 +193,17 @@ it('tells the reviewer to keep cards enabled in the draft PR', async () => {
   expect(description).toContain(
     'moves to `allowed_payment_method_types` under the owner-approved policy',
   );
+  expect(description).not.toContain('legacy_field');
   expect(description).toContain('confirm cards stay enabled in the Stripe Dashboard');
+  // The code sends the removed parameter; it reads no removed response field.
+  expect(description).toContain(
+    'Stripe API 2026-09-30.endive removes request fields this code sends.',
+  );
+  expect(description).toContain(
+    '- `checkout.js`: Sends `allowed_payment_method_types` in place of the removed `payment_method_types`.',
+  );
+  expect(description).not.toContain('response fields');
+  expect(description).not.toContain('Migrates reads');
 });
 
 it('lets the validation preflight through without a patch request when the pin moves', async () => {
@@ -383,4 +398,13 @@ it.each([
   );
   expect(report.patch).toMatchObject({ status: 'not-generated' });
   expect(report.findings.some((finding) => finding.requestParameter)).toBe(true);
+});
+
+it('keeps the stop when another client sets a version the patch cannot move', async () => {
+  const report = await run({
+    'pinned.js': checkout("['card']"),
+    'dynamic.js': checkout("['card']", '{ apiVersion: process.env.STRIPE_VERSION }'),
+  });
+  expect('diff' in report.patch && report.patch.diff).not.toContain('allowed_payment_method_types');
+  expect(report.findings.filter((finding) => finding.requestParameter)).toHaveLength(2);
 });

@@ -22,8 +22,28 @@ const REST_RECEIVER =
   /(?:^|\.)admin\.rest\b|\brest\.resources\b|\.clients\.Rest$|(?:^|\.)rest\.[A-Z]\w*(?:\.|$)/;
 // A `.json` endpoint, or a resource path segment before a substitution (`products/${id}.json`).
 const REST_URL =
-  /\/admin\/api\/(\d{4}-\d{2}|unstable)\/(?:[\w/{}.$-]*\.json|(?!graphql\b)[\w-]+\/)/;
+  /\/admin\/api\/(\d{4}-\d{2}|unstable)\/(?:(?!graphql\.json)[\w/{}.$-]*\.json|(?!graphql\b)[\w-]+\/)/;
+// The Admin GraphQL endpoint itself, requested without one of Shopify's clients.
+const GRAPHQL_URL = /\/admin\/api\/(?:\d{4}-\d{2}|unstable)\/graphql\.json/;
 const VERSION_URL = /\/admin\/api\/(\d{4}-\d{2})\//g;
+// Variables holding a REST Admin client: `new shopify.clients.Rest(...)` or `createAdminRestApiClient(...)`.
+const REST_CLIENT_FACTORY = /\.clients\.Rest$|^createAdminRestApiClient$/;
+const REST_VERBS: Record<string, string> = {
+  get: 'GET',
+  post: 'POST',
+  put: 'PUT',
+  patch: 'PATCH',
+  delete: 'DELETE',
+};
+// REST resource class operations whose HTTP method the SDK fixes; `save` depends on the record's id.
+const RESOURCE_METHODS: Record<string, string> = {
+  all: 'GET',
+  find: 'GET',
+  count: 'GET',
+  delete: 'DELETE',
+  save: 'POST or PUT',
+};
+const REST_PATH = /\/admin\/api\/(?:\d{4}-\d{2}|unstable)\/([^?#\s]+)/;
 
 export interface DocumentSegment {
   // Offsets in the assembled document text and the source text each piece came from.
@@ -54,7 +74,9 @@ export interface ShopifyScan {
   documents: AdminDocument[];
   // Admin calls whose document Refit could not read statically.
   unreadable: (Location & { reason: string })[];
-  rest: (Location & { expression: string })[];
+  // REST Admin usage, with the HTTP method, path (`{…}` marks a substitution) and resource class
+  // operation where the code states them. Review-only evidence: Refit never migrates REST calls.
+  rest: (Location & { expression: string; method?: string; path?: string; resource?: string })[];
   versions: VersionDeclaration[];
   // `latest` marks LATEST_API_VERSION, which the locked SDK release determines.
   unresolvedVersions: (Location & { reason: string; latest?: true })[];
@@ -72,10 +94,145 @@ function isLiteral(node: ts.Node): node is Literal {
   );
 }
 
-function isWithin(node: ts.Node, ancestor: ts.Node) {
-  for (let current: ts.Node | undefined = node; current; current = current.parent)
-    if (current === ancestor) return true;
-  return false;
+type FunctionNode = ts.FunctionDeclaration | ts.ArrowFunction | ts.FunctionExpression;
+
+function hasModifier(node: ts.Node, kind: ts.SyntaxKind) {
+  return (
+    ts.canHaveModifiers(node) &&
+    Boolean(ts.getModifiers(node)?.some((entry) => entry.kind === kind))
+  );
+}
+
+function boundNames(name: ts.BindingName): string[] {
+  return ts.isIdentifier(name)
+    ? [name.text]
+    : name.elements.flatMap((element) =>
+        ts.isOmittedExpression(element) ? [] : boundNames(element.name),
+      );
+}
+
+// The node that declares `name` directly in `scope`: a parameter, variable, function, class or
+// import binding. Scopes are functions, blocks, files, loops, case clauses and catch clauses.
+function declarationIn(scope: ts.Node, name: string): ts.Node | undefined {
+  if (ts.isFunctionLike(scope)) {
+    const parameter = scope.parameters.find((entry) => boundNames(entry.name).includes(name));
+    if (parameter) return parameter;
+    return ts.isFunctionExpression(scope) && scope.name?.text === name ? scope : undefined;
+  }
+  if (ts.isCatchClause(scope))
+    return scope.variableDeclaration && boundNames(scope.variableDeclaration.name).includes(name)
+      ? scope.variableDeclaration
+      : undefined;
+  if (ts.isForStatement(scope) || ts.isForOfStatement(scope) || ts.isForInStatement(scope)) {
+    const list = scope.initializer;
+    return list && ts.isVariableDeclarationList(list)
+      ? list.declarations.find((entry) => boundNames(entry.name).includes(name))
+      : undefined;
+  }
+  if (
+    !ts.isSourceFile(scope) &&
+    !ts.isBlock(scope) &&
+    !ts.isModuleBlock(scope) &&
+    !ts.isCaseClause(scope) &&
+    !ts.isDefaultClause(scope)
+  )
+    return undefined;
+  for (const statement of scope.statements) {
+    if (ts.isVariableStatement(statement)) {
+      const declaration = statement.declarationList.declarations.find((entry) =>
+        boundNames(entry.name).includes(name),
+      );
+      if (declaration) return declaration;
+    }
+    if (
+      (ts.isFunctionDeclaration(statement) ||
+        ts.isClassDeclaration(statement) ||
+        ts.isEnumDeclaration(statement)) &&
+      statement.name?.text === name
+    )
+      return statement;
+    if (ts.isImportDeclaration(statement) && statement.importClause) {
+      const { name: binding, namedBindings } = statement.importClause;
+      if (binding?.text === name) return binding;
+      if (namedBindings && ts.isNamespaceImport(namedBindings) && namedBindings.name.text === name)
+        return namedBindings.name;
+      if (namedBindings && ts.isNamedImports(namedBindings)) {
+        const element = namedBindings.elements.find((entry) => entry.name.text === name);
+        if (element) return element.name;
+      }
+    }
+  }
+  return undefined;
+}
+
+// The innermost scope declaring an identifier's name, and the declaring node.
+function declarationOf(identifier: ts.Identifier) {
+  for (let scope: ts.Node | undefined = identifier.parent; scope; scope = scope.parent) {
+    const node = declarationIn(scope, identifier.text);
+    if (node) return { scope, node };
+  }
+  return undefined;
+}
+
+// True when an identifier reads a value: not a declaration name, property name or type.
+function isValueReference(node: ts.Identifier) {
+  const parent = node.parent;
+  if (ts.isExportSpecifier(parent))
+    return !parent.parent.parent.moduleSpecifier && (parent.propertyName ?? parent.name) === node;
+  if (
+    ts.isImportClause(parent) ||
+    ts.isImportSpecifier(parent) ||
+    ts.isNamespaceImport(parent) ||
+    ts.isQualifiedName(parent) ||
+    ts.isLabeledStatement(parent) ||
+    ts.isBreakOrContinueStatement(parent) ||
+    (ts.isBindingElement(parent) && parent.propertyName === node) ||
+    ((ts.isPropertyAccessExpression(parent) ||
+      ts.isPropertyAssignment(parent) ||
+      ts.isMethodDeclaration(parent) ||
+      ts.isPropertyDeclaration(parent) ||
+      ts.isGetAccessorDeclaration(parent) ||
+      ts.isSetAccessorDeclaration(parent) ||
+      ts.isPropertySignature(parent) ||
+      ts.isMethodSignature(parent) ||
+      ts.isEnumMember(parent) ||
+      ts.isJsxAttribute(parent) ||
+      ts.isVariableDeclaration(parent) ||
+      ts.isParameter(parent) ||
+      ts.isBindingElement(parent) ||
+      ts.isFunctionDeclaration(parent) ||
+      ts.isFunctionExpression(parent) ||
+      ts.isClassDeclaration(parent) ||
+      ts.isClassExpression(parent) ||
+      ts.isInterfaceDeclaration(parent) ||
+      ts.isTypeAliasDeclaration(parent) ||
+      ts.isTypeParameterDeclaration(parent) ||
+      ts.isEnumDeclaration(parent)) &&
+      parent.name === node)
+  )
+    return false;
+  for (let current: ts.Node = parent; !ts.isSourceFile(current); current = current.parent) {
+    if (ts.isTypeNode(current)) return false;
+    if (ts.isStatement(current)) break;
+  }
+  return true;
+}
+
+// Identifiers in `scope` that read the binding `name` declares there, skipping shadowed names.
+function referencesIn(scope: ts.Node, name: string) {
+  const found: ts.Identifier[] = [];
+  const visit = (node: ts.Node) => {
+    if (
+      ts.isIdentifier(node) &&
+      node.text === name &&
+      isValueReference(node) &&
+      declarationOf(node)?.scope === scope
+    )
+      found.push(node);
+    ts.forEachChild(node, visit);
+  };
+  visit(scope);
+  return found;
 }
 
 function unwrap(node: ts.Expression): ts.Expression {
@@ -126,21 +283,45 @@ export function scanShopify(repository: Repository): ShopifyScan {
     adminCalls: 0,
     shopifyFiles: [],
   };
-  // Top-level `const NAME = <literal>` and the files importing names, per file.
+  // Per file: top-level `const NAME = <value>` and functions, import bindings, `export { a as b }`
+  // names (re-exported from another module or not), `export *` modules and namespace imports.
   const constants = new Map<string, Map<string, ts.Expression>>();
-  const imports = new Map<string, Map<string, { file: string; name: string }>>();
+  const functions = new Map<string, Map<string, FunctionNode>>();
+  const imports = new Map<
+    string,
+    Map<string, { file: string; name: string; node: ts.Identifier }>
+  >();
+  const exportNames = new Map<string, Map<string, { file: string; name: string }>>();
+  const starExports = new Map<string, string[]>();
+  const namespaces = new Map<string, { file: string; node: ts.Identifier }[]>();
   for (const absolute of sources.keys()) {
     const file = sourceFile(absolute);
     const local = new Map<string, ts.Expression>();
-    const imported = new Map<string, { file: string; name: string }>();
+    const named = new Map<string, FunctionNode>();
+    const imported = new Map<string, { file: string; name: string; node: ts.Identifier }>();
+    const exported = new Map<string, { file: string; name: string }>();
+    const stars: string[] = [];
+    const spaces: { file: string; node: ts.Identifier }[] = [];
     for (const statement of file.statements) {
       if (ts.isVariableStatement(statement) && statement.declarationList.flags & ts.NodeFlags.Const)
         for (const declaration of statement.declarationList.declarations)
-          if (ts.isIdentifier(declaration.name) && declaration.initializer)
+          if (ts.isIdentifier(declaration.name) && declaration.initializer) {
             local.set(declaration.name.text, declaration.initializer);
+            const value = unwrap(declaration.initializer);
+            if (ts.isArrowFunction(value) || ts.isFunctionExpression(value))
+              named.set(declaration.name.text, value);
+          }
+      if (ts.isFunctionDeclaration(statement) && statement.body) {
+        if (statement.name) named.set(statement.name.text, statement);
+        if (hasModifier(statement, ts.SyntaxKind.DefaultKeyword)) named.set('default', statement);
+      }
       // `export default NAME` is read as the constant `default`.
-      if (ts.isExportAssignment(statement) && !statement.isExportEquals)
+      if (ts.isExportAssignment(statement) && !statement.isExportEquals) {
         local.set('default', statement.expression);
+        const value = unwrap(statement.expression);
+        if (ts.isArrowFunction(value) || ts.isFunctionExpression(value))
+          named.set('default', value);
+      }
       if (
         ts.isImportDeclaration(statement) &&
         ts.isStringLiteral(statement.moduleSpecifier) &&
@@ -148,18 +329,68 @@ export function scanShopify(repository: Repository): ShopifyScan {
       ) {
         const target = resolution.resolve(statement.moduleSpecifier.text, absolute);
         const { name, namedBindings } = statement.importClause;
-        if (target && name) imported.set(name.text, { file: target, name: 'default' });
+        if (target && name) imported.set(name.text, { file: target, name: 'default', node: name });
         if (target && namedBindings && ts.isNamedImports(namedBindings))
           for (const element of namedBindings.elements)
             imported.set(element.name.text, {
+              file: target,
+              name: (element.propertyName ?? element.name).text,
+              node: element.name,
+            });
+        if (target && namedBindings && ts.isNamespaceImport(namedBindings))
+          spaces.push({ file: target, node: namedBindings.name });
+      }
+      if (ts.isExportDeclaration(statement) && !statement.isTypeOnly) {
+        const specifier = statement.moduleSpecifier;
+        const target =
+          specifier && ts.isStringLiteral(specifier)
+            ? resolution.resolve(specifier.text, absolute)
+            : absolute;
+        if (target && !statement.exportClause) stars.push(target);
+        if (target && statement.exportClause && ts.isNamedExports(statement.exportClause))
+          for (const element of statement.exportClause.elements)
+            exported.set(element.name.text, {
               file: target,
               name: (element.propertyName ?? element.name).text,
             });
       }
     }
     constants.set(absolute, local);
+    functions.set(absolute, named);
     imports.set(absolute, imported);
+    exportNames.set(absolute, exported);
+    starExports.set(absolute, stars);
+    namespaces.set(absolute, spaces);
   }
+  // The file and top-level name an export resolves to, through `export { a as b }`, re-exports,
+  // imported bindings and `export *` (only when exactly one module provides the name).
+  const exportTarget = (
+    file: string,
+    name: string,
+    seen = new Set<string>(),
+  ): { file: string; name: string } | undefined => {
+    const key = `${file}#${name}`;
+    if (seen.has(key) || !sources.has(file)) return undefined;
+    seen.add(key);
+    const local = (target: string) => {
+      const imported = imports.get(file)?.get(target);
+      return imported ? exportTarget(imported.file, imported.name, seen) : { file, name: target };
+    };
+    const named = exportNames.get(file)?.get(name);
+    if (named)
+      return named.file === file ? local(named.name) : exportTarget(named.file, named.name, seen);
+    if (
+      constants.get(file)?.has(name) ||
+      functions.get(file)?.has(name) ||
+      imports.get(file)?.has(name)
+    )
+      return local(name);
+    if (name === 'default') return undefined;
+    const found = (starExports.get(file) ?? [])
+      .map((module) => exportTarget(module, name, new Set(seen)))
+      .filter((target) => target !== undefined);
+    return found.length === 1 ? found[0] : undefined;
+  };
   const constant = (
     file: string,
     name: string,
@@ -174,9 +405,8 @@ export function scanShopify(repository: Repository): ShopifyScan {
       return ts.isIdentifier(value) ? constant(file, value.text, seen) : { file, node: value };
     }
     const imported = imports.get(file)?.get(name);
-    return imported && sources.has(imported.file)
-      ? constant(imported.file, imported.name, seen)
-      : undefined;
+    const target = imported && exportTarget(imported.file, imported.name);
+    return target ? constant(target.file, target.name, seen) : undefined;
   };
   // Assembles a literal into document text, inlining `${FRAGMENT}` constants. Any other
   // substitution makes the document unreadable.
@@ -220,6 +450,19 @@ export function scanShopify(repository: Repository): ShopifyScan {
     }
     return { text, segments };
   };
+  const unreadable = (node: ts.Node, reason: string) => {
+    const where = location(node);
+    if (
+      !scan.unreadable.some(
+        (entry) =>
+          entry.file === where.file &&
+          entry.line === where.line &&
+          entry.column === where.column &&
+          entry.reason === reason,
+      )
+    )
+      scan.unreadable.push({ ...where, reason });
+  };
   const documentLiterals = new Map<Literal, boolean>();
   const record = (literal: Literal, file: string, reached: boolean, call?: ts.Node) => {
     // Documents in tests go to mocked clients; they are fixtures, not Admin API usage.
@@ -228,7 +471,7 @@ export function scanShopify(repository: Repository): ShopifyScan {
     documentLiterals.set(literal, traced);
     const assembled = assemble(literal, file);
     if (typeof assembled === 'string') {
-      scan.unreadable.push({ ...location(call ?? literal), reason: assembled });
+      unreadable(call ?? literal, assembled);
       return;
     }
     const existing = scan.documents.findIndex(
@@ -276,73 +519,307 @@ export function scanShopify(repository: Repository): ShopifyScan {
                 ? source.arguments[0].text
                 : undefined;
             const target = specifier && resolution.resolve(specifier, file);
-            if (element && target && sources.has(target))
-              return constant(target, (element.propertyName ?? element.name).getText());
+            const exported =
+              element && target
+                ? exportTarget(target, (element.propertyName ?? element.name).getText())
+                : undefined;
+            if (exported) return constant(exported.file, exported.name);
           }
         }
       }
     }
     return undefined;
   };
-  // Calls whose callee is a plain identifier, per file, built on first use.
-  let identifierCalls: Map<string, ts.CallExpression[]> | undefined;
-  const callsIn = (file: string) => {
-    if (!identifierCalls) {
-      identifierCalls = new Map();
+  // Modules loaded with `import()` or `require()`, built on first use: their exports may be called
+  // in ways Refit does not follow.
+  let loads: { file: string; node: ts.CallExpression }[] | undefined;
+  const moduleLoads = () => {
+    if (!loads) {
+      const found: { file: string; node: ts.CallExpression }[] = [];
       for (const absolute of sources.keys()) {
-        const calls: ts.CallExpression[] = [];
         const visit = (node: ts.Node) => {
-          if (ts.isCallExpression(node) && ts.isIdentifier(node.expression)) calls.push(node);
+          if (
+            ts.isCallExpression(node) &&
+            (node.expression.kind === ts.SyntaxKind.ImportKeyword ||
+              (ts.isIdentifier(node.expression) && node.expression.text === 'require')) &&
+            node.arguments[0] &&
+            ts.isStringLiteral(node.arguments[0])
+          ) {
+            const target = resolution.resolve(node.arguments[0].text, absolute);
+            if (target) found.push({ file: target, node });
+          }
           ts.forEachChild(node, visit);
         };
         visit(sourceFile(absolute));
-        identifierCalls.set(absolute, calls);
       }
+      loads = found;
     }
-    return identifierCalls.get(file) ?? [];
+    return loads;
   };
-  // When a document is a parameter of a named helper (`fetchAll(admin, query)`), the arguments its
-  // callers pass in this file or through a named import. Undefined when there is no such caller.
-  const helperArguments = (identifier: ts.Identifier, file: string) => {
-    for (let scope: ts.Node | undefined = identifier.parent; scope; scope = scope.parent) {
-      if (!ts.isFunctionLike(scope)) continue;
-      const index = scope.parameters.findIndex(
-        (parameter) => ts.isIdentifier(parameter.name) && parameter.name.text === identifier.text,
-      );
-      if (index < 0 || scope.parameters[index].dotDotDotToken) continue;
-      const name =
-        ts.isFunctionDeclaration(scope) && scope.name
-          ? scope.name.text
-          : (ts.isArrowFunction(scope) || ts.isFunctionExpression(scope)) &&
-              ts.isVariableDeclaration(scope.parent) &&
-              ts.isIdentifier(scope.parent.name)
-            ? scope.parent.name.text
-            : undefined;
-      if (!name) return undefined;
-      const helper = scope;
-      const callers: { file: string; call: ts.CallExpression }[] = [];
-      for (const caller of sources.keys()) {
-        const names = new Set(
-          caller === file
-            ? [name]
-            : [...(imports.get(caller) ?? [])]
-                .filter(([, target]) => target.file === file && target.name === name)
-                .map(([local]) => local),
-        );
-        for (const call of callsIn(caller))
-          if (names.has((call.expression as ts.Identifier).text) && !isWithin(call, helper))
-            callers.push({ file: caller, call });
+  // The repository function a callee names: a function declaration, a `const` arrow or function
+  // expression (directly or through `const` aliases and imports), or a namespace import's export.
+  const calledFunction = (callee: ts.Expression): FunctionNode | undefined => {
+    const value = unwrap(callee);
+    if (ts.isArrowFunction(value) || ts.isFunctionExpression(value)) return value;
+    if (ts.isPropertyAccessExpression(value) && ts.isIdentifier(value.expression)) {
+      const binding = declarationOf(value.expression)?.node;
+      const space =
+        binding && ts.isNamespaceImport(binding.parent)
+          ? namespaces
+              .get(binding.getSourceFile().fileName)
+              ?.find((entry) => entry.node === binding)
+          : undefined;
+      const target = space && exportTarget(space.file, value.name.text);
+      return target && functions.get(target.file)?.get(target.name);
+    }
+    if (!ts.isIdentifier(value)) return undefined;
+    let binding = declarationOf(value)?.node;
+    for (let depth = 0; binding && depth < 8; depth++) {
+      if (ts.isFunctionDeclaration(binding)) return binding.body ? binding : undefined;
+      if (
+        ts.isVariableDeclaration(binding) &&
+        ts.isIdentifier(binding.name) &&
+        binding.parent.flags & ts.NodeFlags.Const &&
+        binding.initializer
+      ) {
+        const initializer = unwrap(binding.initializer);
+        if (ts.isArrowFunction(initializer) || ts.isFunctionExpression(initializer))
+          return initializer;
+        binding = ts.isIdentifier(initializer) ? declarationOf(initializer)?.node : undefined;
+        continue;
       }
-      return callers.length ? { helper, index, callers } : undefined;
+      if (
+        ts.isIdentifier(binding) &&
+        (ts.isImportClause(binding.parent) || ts.isImportSpecifier(binding.parent))
+      ) {
+        const imported = imports.get(binding.getSourceFile().fileName)?.get(binding.text);
+        const target = imported && exportTarget(imported.file, imported.name);
+        return target && functions.get(target.file)?.get(target.name);
+      }
+      return undefined;
     }
     return undefined;
   };
+  // Where a function value goes: every call that invokes it, and every use Refit cannot follow
+  // (stored in an object, passed to code outside the repository, reassigned, loaded dynamically).
+  // A use Refit cannot follow means some callers are unknown, so it stops for review.
+  type Flows = { calls: ts.CallExpression[]; escapes: { node: ts.Node; reason: string }[] };
+  const flowCache = new Map<ts.Node, Flows>();
+  const ESCAPE =
+    'A function that sends Admin GraphQL documents is used here in a way Refit cannot follow, so the documents it receives are not read.';
+  const functionFlows = (fn: ts.SignatureDeclaration): Flows => {
+    const cached = flowCache.get(fn);
+    if (cached) return cached;
+    const flows: Flows = { calls: [], escapes: [] };
+    flowCache.set(fn, {
+      calls: [],
+      escapes: [
+        {
+          node: fn,
+          reason: 'A function that sends Admin GraphQL documents is returned through itself.',
+        },
+      ],
+    });
+    const visited = new Set<ts.Node>();
+    const exportsSeen = new Set<string>();
+    const escape = (node: ts.Node, reason = ESCAPE) => {
+      flows.escapes.push({ node, reason });
+    };
+    const uses = (expression: ts.Node): void => {
+      let node = expression;
+      while (
+        ts.isParenthesizedExpression(node.parent) ||
+        ts.isAsExpression(node.parent) ||
+        ts.isSatisfiesExpression(node.parent) ||
+        ts.isNonNullExpression(node.parent) ||
+        ts.isTypeAssertionExpression(node.parent) ||
+        ts.isAwaitExpression(node.parent)
+      )
+        node = node.parent;
+      const parent = node.parent;
+      if (ts.isCallExpression(parent) && parent.expression === node) {
+        flows.calls.push(parent);
+        return;
+      }
+      if (ts.isCallExpression(parent) && parent.arguments.some((entry) => entry === node))
+        return passed(parent, parent.arguments.indexOf(node as ts.Expression));
+      if (
+        ts.isVariableDeclaration(parent) &&
+        parent.initializer === node &&
+        ts.isIdentifier(parent.name) &&
+        parent.parent.flags & ts.NodeFlags.Const
+      )
+        return bound(parent.name);
+      // Returned from a factory (`return (query) => admin.graphql(query)`): its callers get it.
+      if (ts.isReturnStatement(parent) || (ts.isArrowFunction(parent) && parent.body === node)) {
+        const factory = ts.isArrowFunction(parent)
+          ? parent
+          : ts.findAncestor(parent, (entry) => ts.isFunctionLike(entry));
+        if (
+          factory &&
+          (ts.isFunctionDeclaration(factory) ||
+            ts.isArrowFunction(factory) ||
+            ts.isFunctionExpression(factory))
+        ) {
+          const outer = functionFlows(factory);
+          for (const call of outer.calls) uses(call);
+          flows.escapes.push(...outer.escapes);
+          return;
+        }
+      }
+      if (ts.isExportAssignment(parent)) return exported(node.getSourceFile().fileName, 'default');
+      if (ts.isExportSpecifier(parent))
+        return exported(node.getSourceFile().fileName, parent.name.text);
+      escape(
+        node,
+        ts.isPropertyAssignment(parent) || ts.isShorthandPropertyAssignment(parent)
+          ? 'A function that sends Admin GraphQL documents is stored in an object here; Refit does not follow calls through object properties, so the documents it receives are not read.'
+          : ESCAPE,
+      );
+    };
+    // Passed as an argument: followed into the called function's parameter.
+    const passed = (call: ts.CallExpression, index: number) => {
+      const target = calledFunction(call.expression);
+      const parameter = target?.parameters[index];
+      if (
+        !parameter ||
+        parameter.dotDotDotToken ||
+        !ts.isIdentifier(parameter.name) ||
+        call.arguments.slice(0, index).some(ts.isSpreadElement)
+      )
+        return escape(
+          call.arguments[index],
+          `A function that sends Admin GraphQL documents is passed to ${call.expression.getText().slice(0, 80)}, which Refit cannot follow, so the documents it receives are not read.`,
+        );
+      bound(parameter.name);
+    };
+    const bound = (name: ts.Identifier) => {
+      if (visited.has(name)) return;
+      visited.add(name);
+      const binding = declarationOf(name);
+      if (!binding) return escape(name);
+      for (const reference of referencesIn(binding.scope, name.text)) uses(reference);
+      const statement = ts.isVariableDeclaration(name.parent)
+        ? name.parent.parent.parent
+        : name.parent;
+      if (hasModifier(statement, ts.SyntaxKind.ExportKeyword))
+        exported(
+          name.getSourceFile().fileName,
+          hasModifier(statement, ts.SyntaxKind.DefaultKeyword) ? 'default' : name.text,
+        );
+    };
+    // Exported: followed into every module that imports it, by name, namespace or re-export.
+    const exported = (file: string, name: string) => {
+      const target = exportTarget(file, name);
+      if (!target) return;
+      const key = `${target.file}#${target.name}`;
+      if (exportsSeen.has(key)) return;
+      exportsSeen.add(key);
+      const same = (module: string, exportName: string) => {
+        const resolved = exportTarget(module, exportName);
+        return resolved?.file === target.file && resolved.name === target.name;
+      };
+      for (const bindings of imports.values())
+        for (const binding of bindings.values())
+          if (same(binding.file, binding.name)) bound(binding.node);
+      for (const [importer, spaces] of namespaces)
+        for (const space of spaces) {
+          if (!same(space.file, name) && !same(space.file, target.name)) continue;
+          for (const reference of referencesIn(sourceFile(importer), space.node.text)) {
+            const access = reference.parent;
+            if (ts.isPropertyAccessExpression(access) && access.expression === reference) {
+              if (same(space.file, access.name.text)) uses(access);
+            } else escape(reference);
+          }
+        }
+      for (const load of moduleLoads())
+        if (same(load.file, name) || same(load.file, target.name))
+          escape(
+            load.node,
+            'A module defining a function that sends Admin GraphQL documents is loaded dynamically here, so Refit cannot follow its callers.',
+          );
+    };
+    if (ts.isFunctionDeclaration(fn) && fn.name) bound(fn.name);
+    else if (ts.isFunctionDeclaration(fn) && hasModifier(fn, ts.SyntaxKind.DefaultKeyword))
+      exported(fn.getSourceFile().fileName, 'default');
+    else if (ts.isArrowFunction(fn) || ts.isFunctionExpression(fn)) uses(fn);
+    // Methods, constructors and accessors: their callers need the receiver's type, so none are
+    // followed and the call that sends the document stops for review.
+    // Calls in tests are still checked (their documents count as fixtures), but tests that pass a
+    // helper to mocks and spies do not stop the run: those reach mocked clients.
+    const result = {
+      calls: [...new Set(flows.calls)],
+      escapes: flows.escapes.filter((entry) => !TEST_FILE.test(location(entry.node).file)),
+    };
+    flowCache.set(fn, result);
+    return result;
+  };
+  // The property a member access reads, when it is static: `.query`, `['query']` or `[0]`.
+  const memberName = (node: ts.PropertyAccessExpression | ts.ElementAccessExpression) =>
+    ts.isPropertyAccessExpression(node)
+      ? node.name.text
+      : ts.isStringLiteral(node.argumentExpression) || ts.isNumericLiteral(node.argumentExpression)
+        ? node.argumentExpression.text
+        : undefined;
+  // A static member of an object or array literal; undefined for spreads, methods and computed keys.
+  const memberOf = (container: ts.Expression, name: string): ts.Expression | undefined => {
+    const value = unwrap(container);
+    if (ts.isArrayLiteralExpression(value)) {
+      const index = Number(name);
+      return Number.isInteger(index) && !value.elements.slice(0, index + 1).some(ts.isSpreadElement)
+        ? value.elements[index]
+        : undefined;
+    }
+    if (!ts.isObjectLiteralExpression(value)) return undefined;
+    if (value.properties.some(ts.isSpreadAssignment)) return undefined;
+    const property = value.properties.find(
+      (entry) =>
+        (ts.isPropertyAssignment(entry) || ts.isShorthandPropertyAssignment(entry)) &&
+        !ts.isComputedPropertyName(entry.name) &&
+        entry.name.text === name,
+    );
+    return property && ts.isPropertyAssignment(property)
+      ? property.initializer
+      : property && ts.isShorthandPropertyAssignment(property)
+        ? property.name
+        : undefined;
+  };
+  // For a `const` loop variable of `for (... of <array>)`: the array's elements when it is a
+  // constant array literal without spreads, or no elements when Refit cannot list them.
+  const forOfElements = (identifier: ts.Identifier, file: string) => {
+    const declaration = declarationOf(identifier)?.node;
+    const loop = declaration?.parent.parent;
+    if (
+      !declaration ||
+      !ts.isVariableDeclaration(declaration) ||
+      !ts.isIdentifier(declaration.name) ||
+      !loop ||
+      !ts.isForOfStatement(loop) ||
+      !(declaration.parent.flags & ts.NodeFlags.Const)
+    )
+      return undefined;
+    let array = unwrap(loop.expression);
+    let owner = file;
+    if (ts.isIdentifier(array)) {
+      const resolved = scoped(array, file) ?? constant(file, array.text);
+      if (resolved) [array, owner] = [unwrap(resolved.node), resolved.file];
+    }
+    return {
+      file: owner,
+      elements:
+        ts.isArrayLiteralExpression(array) && !array.elements.some(ts.isSpreadElement)
+          ? [...array.elements]
+          : undefined,
+    };
+  };
   // A document argument: a literal, or a constant naming one, possibly wrapped as { query }.
+  // A document that is a parameter is read from every call of its function. `helpers` holds the
+  // function parameters already being followed, so recursion passing the same one is skipped.
   const documentArgument = (
     node: ts.Expression | undefined,
     file: string,
     call: ts.Node,
-    helpers = new Set<ts.Node>(),
+    helpers = new Set<string>(),
   ): void => {
     if (!node) return;
     let value = unwrap(node);
@@ -352,10 +829,7 @@ export function scanShopify(repository: Repository): ShopifyScan {
           ts.isPropertyAssignment(property) && property.name.getText() === 'query',
       );
       if (!query) {
-        scan.unreadable.push({
-          ...location(call),
-          reason: 'The request body has no static query.',
-        });
+        unreadable(call, 'The request body has no static query.');
         return;
       }
       value = unwrap(query.initializer);
@@ -365,30 +839,71 @@ export function scanShopify(repository: Repository): ShopifyScan {
       documentArgument(value.whenFalse, file, call, helpers);
       return;
     }
+    // Members of a constant object or array literal: `QUERIES.product`, `QUERIES[0]`, and the
+    // loop variable (or its property) of `for (const tier of TIERS)`, where every element is read.
+    const access =
+      (ts.isPropertyAccessExpression(value) || ts.isElementAccessExpression(value)) &&
+      ts.isIdentifier(value.expression)
+        ? value
+        : undefined;
+    const base = access ? (access.expression as ts.Identifier) : value;
+    const loop = ts.isIdentifier(base) ? forOfElements(base, file) : undefined;
+    const property = access && memberName(access);
+    if (loop) {
+      if (!loop.elements || (access && property === undefined))
+        return unreadable(
+          call,
+          'The document comes from an array Refit cannot read element by element.',
+        );
+      for (const element of loop.elements) {
+        const item = access ? memberOf(element, property!) : element;
+        if (item) documentArgument(item, loop.file, call, helpers);
+        else
+          unreadable(call, 'An element of the array the document comes from has no static query.');
+      }
+      return;
+    }
+    if (access && property !== undefined) {
+      const container = scoped(base as ts.Identifier, file) ?? constant(file, base.getText());
+      const item = container && memberOf(container.node, property);
+      if (item) return documentArgument(item, container.file, call, helpers);
+    }
     let owner = file;
     if (ts.isIdentifier(value)) {
       const resolved = scoped(value, file) ?? constant(file, value.text);
+      const parameter = resolved ? undefined : declarationOf(value)?.node;
       if (resolved) {
         value = resolved.node;
         owner = resolved.file;
-      } else {
-        const forwarded = helperArguments(value, file);
-        if (forwarded && !helpers.has(forwarded.helper)) {
-          for (const caller of forwarded.callers) {
-            const argument = caller.call.arguments[forwarded.index];
-            if (argument)
+      } else if (
+        parameter &&
+        ts.isParameter(parameter) &&
+        ts.isIdentifier(parameter.name) &&
+        !parameter.dotDotDotToken
+      ) {
+        const fn = parameter.parent;
+        const index = fn.parameters.indexOf(parameter);
+        const key = `${fn.getSourceFile().fileName}:${fn.pos}:${index}`;
+        if (helpers.has(key)) return;
+        const flows = functionFlows(fn);
+        if (flows.calls.length || flows.escapes.length) {
+          for (const invocation of flows.calls) {
+            const argument = invocation.arguments[index];
+            if (invocation.arguments.slice(0, index + 1).some(ts.isSpreadElement))
+              unreadable(
+                invocation,
+                'The call spreads its arguments, so Refit cannot tell which one is the GraphQL document.',
+              );
+            else if (argument)
               documentArgument(
                 argument,
-                caller.file,
-                caller.call,
-                new Set([...helpers, forwarded.helper]),
+                invocation.getSourceFile().fileName,
+                invocation,
+                new Set([...helpers, key]),
               );
-            else
-              scan.unreadable.push({
-                ...location(caller.call),
-                reason: 'The helper call passes no GraphQL document.',
-              });
+            else unreadable(invocation, 'The helper call passes no GraphQL document.');
           }
+          for (const entry of flows.escapes) unreadable(entry.node, entry.reason);
           return;
         }
       }
@@ -397,17 +912,113 @@ export function scanShopify(repository: Repository): ShopifyScan {
     }
     if (isLiteral(value)) record(value, owner, true, call);
     else
-      scan.unreadable.push({
-        ...location(call),
-        reason: 'The document is built at runtime; Refit only reads literal or constant documents.',
-      });
+      unreadable(
+        call,
+        'The document is built at runtime; Refit only reads literal or constant documents.',
+      );
+  };
+  // A literal's text with each substitution shown as `{name}` (or `{…}` when it is not a name).
+  const literalText = (literal: Literal) =>
+    ts.isTemplateExpression(literal)
+      ? literal.head.text +
+        literal.templateSpans
+          .map((span) => {
+            const text = span.expression.getText();
+            return `{${/^[\w$.]{1,40}$/.test(text) ? text : '…'}}${span.literal.text}`;
+          })
+          .join('')
+      : literal.text;
+  // The path a REST call names: a literal or constant, directly or as `{ path }`.
+  const restPath = (argument: ts.Expression | undefined, file: string) => {
+    let value = argument && unwrap(argument);
+    if (value && ts.isObjectLiteralExpression(value)) {
+      const path = memberOf(value, 'path');
+      value = path && unwrap(path);
+    }
+    if (value && ts.isIdentifier(value)) {
+      const resolved = scoped(value, file) ?? constant(file, value.text);
+      value = resolved && unwrap(resolved.node);
+    }
+    return value && isLiteral(value) ? literalText(value).replace(/^\//, '') : undefined;
+  };
+  // `admin.rest.get({ path })`, `client.post('products', ...)` and `shopify.rest.Product.all()`.
+  const restCall = (call: ts.CallExpression, file: string) => {
+    const callee = call.expression as ts.PropertyAccessExpression;
+    const operation = callee.name.text;
+    const resource = /(?:^|\.)(?:rest|resources)\.([A-Z]\w*)$/.exec(
+      callee.expression.getText(),
+    )?.[1];
+    if (resource)
+      return {
+        resource: `${resource}.${operation}`,
+        ...(RESOURCE_METHODS[operation] ? { method: RESOURCE_METHODS[operation] } : {}),
+      };
+    const method = REST_VERBS[operation];
+    const path = method ? restPath(call.arguments[0], file) : undefined;
+    return { ...(method ? { method } : {}), ...(path ? { path } : {}) };
+  };
+  // The HTTP method of a request whose URL is `node`: `fetch(url)` (GET), `fetch(url, { method })`
+  // with a literal method, or an HTTP verb call (`axios.post(url)`). Undefined otherwise.
+  const requestMethod = (node: ts.Node) => {
+    while (
+      ts.isParenthesizedExpression(node.parent) ||
+      ts.isAsExpression(node.parent) ||
+      ts.isNonNullExpression(node.parent)
+    )
+      node = node.parent;
+    const call = node.parent;
+    if (!ts.isCallExpression(call) || call.arguments[0] !== node) return undefined;
+    if (ts.isPropertyAccessExpression(call.expression) && REST_VERBS[call.expression.name.text])
+      return REST_VERBS[call.expression.name.text];
+    if (!/^(?:\w+\.)*fetch$/.test(call.expression.getText())) return undefined;
+    const options = call.arguments[1] && unwrap(call.arguments[1]);
+    if (!options) return 'GET';
+    if (!ts.isObjectLiteralExpression(options) || options.properties.some(ts.isSpreadAssignment))
+      return undefined;
+    const option = memberOf(options, 'method');
+    const value = option && unwrap(option);
+    return !option
+      ? 'GET'
+      : value && (ts.isStringLiteral(value) || ts.isNoSubstitutionTemplateLiteral(value))
+        ? value.text.toUpperCase()
+        : undefined;
+  };
+  // A versioned REST URL: its path, and the method when the URL is passed straight to `fetch`
+  // (from a literal `method` option, GET without one) or to an HTTP verb call (`axios.post(url)`).
+  const restUrl = (piece: ts.Node) => {
+    const literal = ts.isTemplateHead(piece)
+      ? piece.parent
+      : ts.isTemplateMiddle(piece) || ts.isTemplateTail(piece)
+        ? piece.parent.parent
+        : piece;
+    const path = REST_PATH.exec(literalText(literal as Literal))?.[1];
+    let node: ts.Node = literal;
+    while (
+      ts.isParenthesizedExpression(node.parent) ||
+      ts.isAsExpression(node.parent) ||
+      ts.isNonNullExpression(node.parent)
+    )
+      node = node.parent;
+    // `const url = ...; fetch(url)`: the method every use of the constant agrees on.
+    const declaration = node.parent;
+    const uses =
+      ts.isVariableDeclaration(declaration) &&
+      declaration.initializer === node &&
+      ts.isIdentifier(declaration.name) &&
+      declaration.parent.flags & ts.NodeFlags.Const
+        ? referencesIn(declarationOf(declaration.name)!.scope, declaration.name.text)
+        : [node];
+    const methods = new Set(uses.map(requestMethod));
+    const [method] = methods.size === 1 ? methods : [undefined];
+    return { ...(method ? { method } : {}), ...(path ? { path } : {}) };
   };
   for (const [absolute, content] of sources) {
     const file = sourceFile(absolute);
     const shopify = SHOPIFY_IMPORT.test(content);
     if (shopify) scan.shopifyFiles.push(pathOf.get(absolute)!);
-    // Identifiers bound to Admin GraphQL clients in this file.
+    // Identifiers bound to Admin GraphQL and REST clients in this file.
     const clients = new Set<string>();
+    const restClients = new Set<string>();
     const apiVersionImported = /\bApiVersion\b/.test(content) && shopify;
     const visit = (node: ts.Node) => {
       if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name) && node.initializer) {
@@ -415,6 +1026,7 @@ export function scanShopify(repository: Repository): ShopifyScan {
         const callee =
           ts.isCallExpression(value) || ts.isNewExpression(value) ? value.expression.getText() : '';
         if (ADMIN_CLIENT_FACTORY.test(callee)) clients.add(node.name.text);
+        if (REST_CLIENT_FACTORY.test(callee)) restClients.add(node.name.text);
       }
       if (ts.isCallExpression(node) && ts.isPropertyAccessExpression(node.expression)) {
         const method = node.expression.name.text;
@@ -438,7 +1050,17 @@ export function scanShopify(repository: Repository): ShopifyScan {
           !ts.isCallExpression(node.expression.expression) &&
           REST_RECEIVER.test(node.expression.getText())
         )
-          scan.rest.push({ ...location(node), expression: node.expression.getText() });
+          scan.rest.push({
+            ...location(node),
+            expression: node.expression.getText(),
+            ...restCall(node, absolute),
+          });
+        else if (REST_VERBS[method] && restClients.has(receiver))
+          scan.rest.push({
+            ...location(node),
+            expression: node.expression.getText(),
+            ...restCall(node, absolute),
+          });
       }
       if (
         ts.isCallExpression(node) &&
@@ -446,8 +1068,17 @@ export function scanShopify(repository: Repository): ShopifyScan {
         node.expression.text === 'createAdminRestApiClient'
       )
         scan.rest.push({ ...location(node), expression: node.expression.text });
-      if (ts.isNewExpression(node) && REST_RECEIVER.test(node.expression.getText()))
-        scan.rest.push({ ...location(node), expression: node.expression.getText() });
+      if (ts.isNewExpression(node) && REST_RECEIVER.test(node.expression.getText())) {
+        // `new shopify.rest.Product(...)` builds a record that `save()` sends.
+        const resource = /(?:^|\.)(?:rest|resources)\.([A-Z]\w*)$/.exec(
+          node.expression.getText(),
+        )?.[1];
+        scan.rest.push({
+          ...location(node),
+          expression: node.expression.getText(),
+          ...(resource ? { resource: `new ${resource}` } : {}),
+        });
+      }
       if (
         ts.isPropertyAccessExpression(node) &&
         ts.isIdentifier(node.expression) &&
@@ -520,8 +1151,19 @@ export function scanShopify(repository: Repository): ShopifyScan {
       ) {
         if (isLiteral(node) && GRAPHQL_MARKER.test(node.text))
           record(node, absolute, documentLiterals.get(node) ?? false);
+        if (GRAPHQL_URL.test(node.text)) {
+          scan.adminCalls++;
+          unreadable(
+            node,
+            'A raw request to the Admin GraphQL endpoint; Refit reads documents only from calls through Shopify clients.',
+          );
+        }
         if (REST_URL.test(node.text))
-          scan.rest.push({ ...location(node), expression: node.text.slice(0, 120) });
+          scan.rest.push({
+            ...location(node),
+            expression: node.text.slice(0, 120),
+            ...restUrl(node),
+          });
         for (const match of node.text.matchAll(VERSION_URL)) {
           const start = node.getStart() + 1 + match.index! + '/admin/api/'.length;
           scan.versions.push({

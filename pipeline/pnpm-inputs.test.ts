@@ -137,6 +137,14 @@ it('checks manager environment versions, all package integrities and explicit Co
   environment.packages['pnpm@12.4.2'].resolution.integrity = 'sha1-unsafe';
   expect(() => validate(sample, environment)).toThrow('SHA-256-or-stronger');
 });
+it('accepts a weaker Corepack checksum without treating it as verification', () => {
+  const sample = scenario();
+  sample.manifest.packageManager += '+sha1.' + 'c'.repeat(40);
+  expect(validate(sample)).toMatchObject({ managerVersion: '12.4.2' });
+  expect(validate(sample)).not.toHaveProperty('managerIntegrity');
+  sample.manifest.packageManager = 'pnpm@12.4.2+sha1.' + 'c'.repeat(39);
+  expect(() => validate(sample)).toThrow('exact pin');
+});
 it.each([
   [
     'manager range',

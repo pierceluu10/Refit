@@ -19,7 +19,10 @@ import {
 
 // Used when package.json does not pin Yarn 1; it is the final Yarn 1 release.
 export const DEFAULT_YARN_VERSION = '1.22.22';
-const MANAGER_PIN = /^yarn@(1\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*))(?:\+sha512\.([a-f0-9]{128}))?$/;
+// Only a sha512 Corepack checksum can be compared with registry integrity; a weaker one is ignored,
+// so that pin installs like an unhashed one, still verified by npm against the registry.
+const MANAGER_PIN =
+  /^yarn@(1\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*))(?:\+(?:sha512\.([a-f0-9]{128})|sha1\.[a-f0-9]{40}|sha224\.[a-f0-9]{56}|sha256\.[a-f0-9]{64}|sha384\.[a-f0-9]{96}))?$/;
 const INSTALLED_SECTIONS = ['dependencies', 'devDependencies', 'optionalDependencies'];
 
 function registryTarball(source: string | undefined) {
@@ -78,7 +81,7 @@ export function validateYarnInputs(
         : null;
   if (pin === null)
     throw new PipelineInputError(
-      'Yarn preparation supports an exact Yarn 1 packageManager pin, optionally with a SHA-512 Corepack checksum. Yarn 2+ requires a custom image.',
+      'Yarn preparation supports an exact Yarn 1 packageManager pin, optionally with a Corepack checksum. Yarn 2+ requires a custom image.',
     );
   if (!CLASSIC_HEADER.test(lockContent))
     throw new PipelineInputError(
@@ -151,7 +154,8 @@ export function validateYarnInputs(
 }
 
 export const YARN_RC = '.yarnrc.yml';
-const BERRY_PIN = /^yarn@([234]\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*))(?:\+sha512\.([a-f0-9]{128}))?$/;
+const BERRY_PIN =
+  /^yarn@([234]\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*))(?:\+(?:sha512\.([a-f0-9]{128})|sha1\.[a-f0-9]{40}|sha224\.[a-f0-9]{56}|sha256\.[a-f0-9]{64}|sha384\.[a-f0-9]{96}))?$/;
 const BERRY_RC_KEYS = new Set(['nodeLinker', 'enableTelemetry']);
 const BERRY_CHECKSUM = /^(?:\d+[a-z]\d*\/)?[a-f0-9]{128}$/;
 // Yarn's own compatibility patches ship in the verified Yarn bundle and wrap an npm package.
@@ -176,7 +180,7 @@ export function validateBerryInputs(
     typeof manifest.packageManager === 'string' ? BERRY_PIN.exec(manifest.packageManager) : null;
   if (!pin)
     throw new PipelineInputError(
-      'Yarn 2+ preparation requires an exact packageManager pin such as yarn@4.9.2, optionally with a Corepack SHA-512 checksum.',
+      'Yarn 2+ preparation requires an exact packageManager pin such as yarn@4.9.2, optionally with a Corepack checksum.',
     );
   if (manifest.workspaces !== undefined)
     throw new PipelineInputError('Yarn 2+ workspaces require a custom validation image.');

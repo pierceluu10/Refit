@@ -250,6 +250,15 @@ function checkDocument(
   return { findings, deprecated: [...new Set(deprecated)] };
 }
 
+// `GET products/{id}.json (fetch)`: the method and path or resource operation where known, then the
+// code that makes the call.
+function restLabel(entry: ShopifyScan['rest'][number]) {
+  const request = [entry.method, entry.path ?? entry.resource].filter(Boolean).join(' ');
+  return request && request !== entry.expression
+    ? `${request} (${entry.expression})`
+    : entry.expression;
+}
+
 // Runtime Admin API pins as API-version declarations; codegen configuration is not runtime.
 function versionDeclarations(scan: ShopifyScan): ApiVersionDeclaration[] {
   return [
@@ -429,13 +438,15 @@ export async function runShopifyPipeline(options: {
       expression: 'Admin GraphQL call',
       confidence: 'review',
       reason: entry.reason,
-      contractReview: `An Admin API call's GraphQL document is built at runtime, so Refit cannot prove it works on Admin API ${versions.after}.`,
+      contractReview: `Refit cannot read an Admin API call's GraphQL document statically, so it cannot prove it works on Admin API ${versions.after}.`,
     });
   for (const entry of scan.rest)
     findings.push({
-      ...entry,
+      file: entry.file,
+      line: entry.line,
+      column: entry.column,
       changeId: 'shopify-rest',
-      expression: entry.expression,
+      expression: restLabel(entry),
       confidence: 'review',
       reason: 'REST Admin API usage. Shopify publishes no versioned REST contract Refit can check.',
       contractReview:
@@ -576,6 +587,16 @@ export async function runShopifyPipeline(options: {
       adminCalls: scan.adminCalls,
       unreadable: scan.unreadable.length,
       rest: scan.rest.length,
+      // Each REST Admin call for review. Refit reports them and never rewrites them as GraphQL.
+      restCalls: scan.rest.map((entry) => ({
+        file: entry.file,
+        line: entry.line,
+        column: entry.column,
+        method: entry.method ?? null,
+        path: entry.path ?? null,
+        resource: entry.resource ?? null,
+        expression: entry.expression,
+      })),
       otherApiDocuments: otherApi.map((document) => `${document.file}:${document.line}`),
       deprecated: [...deprecated],
     },
@@ -587,7 +608,7 @@ export async function runShopifyPipeline(options: {
     assessment: { status: 'not-requested' as const },
     coverage: {
       specification: `Shopify Admin GraphQL schemas ${versions.before} and ${versions.after}, compared by introspection.`,
-      code: 'Admin GraphQL documents passed to admin.graphql, createAdminApiClient().request and clients.Graphql().query, resolved from literals, constants, imported constants and constant fragments, plus #graphql literals. ApiVersion enum members, apiVersion strings and /admin/api/<version>/ URLs are read as pins. Runtime-built documents, REST calls and unresolved pins stop for review.',
+      code: 'Admin GraphQL documents passed to admin.graphql, createAdminApiClient().request and clients.Graphql().query, resolved from literals, constants, imported and re-exported constants, constant fragments, constant arrays and objects, and helper parameters followed through every call, callback and closure factory, plus #graphql literals. ApiVersion enum members, apiVersion strings and /admin/api/<version>/ URLs are read as pins. Runtime-built documents, sending functions Refit cannot follow, REST calls and unresolved pins stop for review.',
       decision:
         'No finding is not proof of no impact: documents Refit cannot read and behavior that validation cannot see (semantics, rate limits, webhook payload versions) remain outside this check.',
     },

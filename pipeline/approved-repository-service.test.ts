@@ -245,7 +245,7 @@ it.skipIf(
       });
       const report = JSON.parse(await readFile(join(record.output!, 'report.json'), 'utf8'));
       expect(await readFile(join(record.output!, 'pull-request.md'), 'utf8')).toContain(
-        `**Integration:** \`${id}\``,
+        `<!-- refit-integration:${id} -->`,
       );
       expect(report.validation.baseline.status).toBe('passed');
       expect(report.validation.patched.status).toBe('passed');
