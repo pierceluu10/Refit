@@ -253,7 +253,10 @@ async function installDependencies(
       );
     if (result.code !== 0)
       throw new DependencyPreparationError(
-        `${inputs.manager} dependency preparation failed (${result.code ?? result.signal}). ${stderr.slice(-MAX_ERROR_CHARACTERS)}`,
+        // Refit's own version markers are left out so the installer's error leads the message.
+        `${inputs.manager} dependency preparation failed (${result.code ?? result.signal}). ${stderr
+          .replace(/^REFIT_[A-Z]+_VERSION=.*\n?/gm, '')
+          .slice(-MAX_ERROR_CHARACTERS)}`,
       );
     const nodeVersion = /^REFIT_NODE_VERSION=(v\d+\.\d+\.\d+)$/m.exec(stderr)?.[1];
     const npmVersion = /^REFIT_NPM_VERSION=(\d+\.\d+\.\d+)$/m.exec(stderr)?.[1];

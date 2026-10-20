@@ -124,3 +124,73 @@ it('requires matching root dependency declarations and rejects non-registry over
     ),
   ).toThrow(/overrides/);
 });
+
+// npm's own lockfile entry bundles its dependencies: they ship inside npm's verified tarball.
+const npmRecord = {
+  version: '10.9.2',
+  resolved: 'https://registry.npmjs.org/npm/-/npm-10.9.2.tgz',
+  integrity: STRONG_INTEGRITY,
+};
+const bundledLock = (packages: Record<string, unknown>) =>
+  JSON.stringify({
+    ...lock,
+    packages: {
+      '': { ...manifest, dependencies: { ...manifest.dependencies, npm: '10.9.2' } },
+      'node_modules/stripe': record,
+      'node_modules/npm': npmRecord,
+      ...packages,
+    },
+  });
+const bundledManifest = JSON.stringify({
+  ...manifest,
+  dependencies: { ...manifest.dependencies, npm: '10.9.2' },
+});
+
+it('accepts bundled records under a verified registry ancestor, including nested bundles', () => {
+  expect(() =>
+    validateNpmLock(
+      bundledManifest,
+      bundledLock({
+        'node_modules/npm/node_modules/@isaacs/cliui': { version: '8.0.2', inBundle: true },
+        'node_modules/npm/node_modules/@isaacs/cliui/node_modules/ansi-regex': {
+          version: '6.1.0',
+          inBundle: true,
+        },
+      }),
+    ),
+  ).not.toThrow();
+});
+
+it.each([
+  ['a top-level bundled record', { 'node_modules/cliui': { version: '8.0.2', inBundle: true } }],
+  [
+    'a bundled record without a version',
+    { 'node_modules/npm/node_modules/cliui': { inBundle: true } },
+  ],
+  [
+    'a bundled record with its own source',
+    {
+      'node_modules/npm/node_modules/cliui': {
+        version: '8.0.2',
+        inBundle: true,
+        resolved: 'https://private.example.com/cliui.tgz',
+      },
+    },
+  ],
+  [
+    'a bundled record under an unverified ancestor',
+    {
+      'node_modules/npm': { version: '10.9.2' },
+      'node_modules/npm/node_modules/cliui': { version: '8.0.2', inBundle: true },
+    },
+  ],
+  [
+    'a bundled record under a non-registry ancestor',
+    {
+      'node_modules/npm': { ...npmRecord, resolved: 'https://private.example.com/npm.tgz' },
+      'node_modules/npm/node_modules/cliui': { version: '8.0.2', inBundle: true },
+    },
+  ],
+])('rejects %s', (_name, packages) => {
+  expect(() => validateNpmLock(bundledManifest, bundledLock(packages))).toThrow();
+});

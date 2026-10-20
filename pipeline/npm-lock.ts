@@ -248,17 +248,46 @@ export function validateNpmLock(
       throw new PipelineInputError(
         'Every npm package requires a registry URL, version and SHA-256-or-stronger integrity; links and bundled records require a custom image.',
       );
-    const unverified = (value: unknown) =>
-      isObject(value) &&
-      !value.link &&
-      (typeof value.version !== 'string' ||
+    const verified = (value: Record<string, unknown>) =>
+      typeof value.version === 'string' &&
+      Boolean(value.version.trim()) &&
+      typeof value.resolved === 'string' &&
+      hasStrongIntegrity(value.integrity);
+    // A bundled package ships inside its nearest non-bundled ancestor's tarball, which npm checks
+    // against that ancestor's integrity; it has no source of its own. It is accepted only with a
+    // version, no source fields, and a verified registry ancestor.
+    const bundled = (path: string, value: Record<string, unknown>) => {
+      if (
+        value.inBundle !== true ||
+        typeof value.version !== 'string' ||
         !value.version.trim() ||
-        typeof value.resolved !== 'string' ||
-        !hasStrongIntegrity(value.integrity));
-    if (unverified(record)) {
+        'resolved' in value ||
+        'integrity' in value
+      )
+        return false;
+      let parent = path;
+      while (parent.lastIndexOf('/node_modules/') > 0) {
+        parent = parent.slice(0, parent.lastIndexOf('/node_modules/'));
+        const ancestor = (lock.packages as Record<string, unknown>)[parent];
+        if (!isObject(ancestor) || ancestor.link) return false;
+        if (ancestor.inBundle === true) continue;
+        if (!verified(ancestor)) return false;
+        try {
+          assertRegistryTarball(ancestor.resolved as string);
+        } catch {
+          return false;
+        }
+        return true;
+      }
+      return false;
+    };
+    if (bundled(path, record)) continue;
+    const unverified = (other: string, value: unknown) =>
+      isObject(value) && !value.link && !verified(value) && !bundled(other, value);
+    if (unverified(path, record)) {
       const others =
         Object.entries(lock.packages).filter(
-          ([other, value]) => other && !workspaces.has(other) && unverified(value),
+          ([other, value]) => other && !workspaces.has(other) && unverified(other, value),
         ).length - 1;
       throw new PipelineInputError(
         `package-lock.json records ${path}${others ? ` and ${others} more packages` : ''} without a version, registry "resolved" URL and SHA-256-or-stronger "integrity", so Refit cannot verify what it would install. Reinstall against registry.npmjs.org so npm records them (delete node_modules and run npm install; if entries stay incomplete, regenerate package-lock.json) and commit the lockfile.`,
