@@ -22,6 +22,7 @@ import {
   preparationProfile,
   validationProfile,
 } from './docker-sandbox.ts';
+import { legacyPeerDeps } from './dependency-inputs.ts';
 import { verifyArtifacts } from './verification.ts';
 import { runWorkflow } from './workflow.ts';
 
@@ -171,6 +172,27 @@ it(
   },
   NATIVE_PROCESS_TEST_TIMEOUT_MS,
 );
+
+it('honours only legacy-peer-deps from a committed .npmrc and keys the cache on it', async () => {
+  const fixture = await setup();
+  const command = (call: { args: string[] }) =>
+    call.args.find((argument) => argument.includes('npm ci --ignore-scripts'))!;
+  const plain = await prepareDependencies(fixture.options);
+  await writeFile(
+    join(fixture.repository, '.npmrc'),
+    'registry=http://127.0.0.1:1\n; comment\nlegacy-peer-deps = true\n',
+  );
+  await commit(fixture.repository);
+  const relaxed = await prepareDependencies(fixture.options);
+  expect(relaxed.directory).not.toBe(plain.directory);
+  const [first, second] = (await fixture.calls()).filter((call) => call.args[0] === 'run');
+  expect(command(first)).not.toContain('--legacy-peer-deps');
+  expect(command(second)).toContain('--no-fund --legacy-peer-deps ');
+  expect(command(second)).toContain('--registry=https://registry.npmjs.org');
+  expect(second.inputs.sort()).toEqual(['package-lock.json', 'package.json']);
+  expect(legacyPeerDeps('legacy-peer-deps=false\n#legacy-peer-deps=true')).toBe(false);
+  expect(legacyPeerDeps('legacy-peer-deps=true\r\n')).toBe(true);
+});
 
 it('invalidates dependencies when committed inputs or the immutable image change and refuses tampered cache bytes', async () => {
   const fixture = await setup();

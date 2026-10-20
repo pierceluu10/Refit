@@ -91,7 +91,7 @@ for (const name of Object.keys(links)) {
   if (!(await lstat(resolve(workspace, name))).isSymbolicLink()) throw new Error("Missing workspace dependency link");
 }
 `;
-function installCommand({ manager, managerVersion }: PreparationIdentity) {
+function installCommand({ manager, managerVersion, legacyPeerDeps }: PreparationIdentity) {
   return [
     'sh',
     '-c',
@@ -106,6 +106,7 @@ function installCommand({ manager, managerVersion }: PreparationIdentity) {
             ? YARN_INSTALL_COMMAND
             : YARN_BERRY_INSTALL_COMMAND
           : 'npm ci --ignore-scripts --include=dev --engine-strict --no-audit --no-fund ' +
+            (legacyPeerDeps ? '--legacy-peer-deps ' : '') +
             '--registry=https://registry.npmjs.org --cache=/workspace/.npm-cache >&2; ' +
             'mkdir -p node_modules; ') +
       `node --input-type=module -e '${DEPENDENCY_TREE_CHECK}' "$1"; shift; ` +
