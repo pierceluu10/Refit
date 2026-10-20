@@ -9,6 +9,8 @@ import { parseArgs, promisify } from 'node:util';
 
 const execute = promisify(execFile);
 const GIT_TIMEOUT_MS = 300_000;
+// Each Refit command gets this long per repository; a repository past it is reported as timed out.
+const SCAN_TIMEOUT_MS = 120_000;
 const { values } = parseArgs({
   options: {
     list: { type: 'string' },
@@ -54,10 +56,12 @@ async function refitJson(args) {
   try {
     const { stdout } = await execute(process.execPath, [refit, ...args, '--json'], {
       maxBuffer: 64 * 1024 * 1024,
-      timeout: GIT_TIMEOUT_MS,
+      timeout: SCAN_TIMEOUT_MS,
+      killSignal: 'SIGKILL',
     });
     return { result: JSON.parse(stdout) };
   } catch (error) {
+    if (error.killed) return { error: `timed out after ${SCAN_TIMEOUT_MS / 1000} s` };
     return {
       error: String(error.stderr || error.message)
         .trim()
@@ -117,6 +121,7 @@ const exposed = results.filter((item) => item.exposures?.length);
 const summary = {
   repositories: results.length,
   errors: results.filter((item) => item.error).length,
+  timedOut: results.filter((item) => item.error?.startsWith('timed out')).length,
   exposed: exposed.length,
   exposedWithReplacement: exposed.filter((item) => item.replacements.length).length,
   exposedStoppedOnly: exposed.filter((item) => !item.replacements.length && item.stops.length)
