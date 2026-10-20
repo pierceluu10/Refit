@@ -429,7 +429,7 @@ export async function runShopifyPipeline(options: {
       expression: 'Admin GraphQL call',
       confidence: 'review',
       reason: entry.reason,
-      contractReview: `An Admin API call's GraphQL document is built at runtime, so Refit cannot prove it works on Admin API ${versions.after}.`,
+      contractReview: `Refit cannot read an Admin API call's GraphQL document statically, so it cannot prove it works on Admin API ${versions.after}.`,
     });
   for (const entry of scan.rest)
     findings.push({
@@ -587,7 +587,7 @@ export async function runShopifyPipeline(options: {
     assessment: { status: 'not-requested' as const },
     coverage: {
       specification: `Shopify Admin GraphQL schemas ${versions.before} and ${versions.after}, compared by introspection.`,
-      code: 'Admin GraphQL documents passed to admin.graphql, createAdminApiClient().request and clients.Graphql().query, resolved from literals, constants, imported constants and constant fragments, plus #graphql literals. ApiVersion enum members, apiVersion strings and /admin/api/<version>/ URLs are read as pins. Runtime-built documents, REST calls and unresolved pins stop for review.',
+      code: 'Admin GraphQL documents passed to admin.graphql, createAdminApiClient().request and clients.Graphql().query, resolved from literals, constants, imported and re-exported constants, constant fragments, constant arrays and objects, and helper parameters followed through every call, callback and closure factory, plus #graphql literals. ApiVersion enum members, apiVersion strings and /admin/api/<version>/ URLs are read as pins. Runtime-built documents, sending functions Refit cannot follow, REST calls and unresolved pins stop for review.',
       decision:
         'No finding is not proof of no impact: documents Refit cannot read and behavior that validation cannot see (semantics, rate limits, webhook payload versions) remain outside this check.',
     },

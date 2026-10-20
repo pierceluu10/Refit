@@ -22,6 +22,7 @@ const commands = new Map([
   ['enroll', 'enrollment-cli.ts'],
   ['agents', 'agents-cli.ts'],
   ['deadlines', 'deadlines-cli.ts'],
+  ['meta-graph', 'meta-graph-cli.ts'],
 ]);
 const usage = `Refit: reviewable API migrations
 
@@ -45,6 +46,7 @@ Usage: refit <command> [options]
   enroll           Review and approve a checked-in repository workflow
   agents           Detect provider SDKs and add matching agents to .refit.json
   deadlines        List pinned API versions and models with provider sunset dates
+  meta-graph       List Meta Graph API requests with version, edge and fields (review only)
 
 Use refit <command> --help for command options.
 Use --env <path> to load credentials explicitly. Existing environment values take precedence.

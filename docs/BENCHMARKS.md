@@ -18,7 +18,7 @@ Every number here comes from real public repositories, frozen before the run tha
 
 - **531 Stripe and 250 Shopify repositories in all; 17 validated fixes** (10 Stripe, 7 Shopify). All 17 were reviewed by hand. None was wrong. 2 are partial: one leaves the version for a person to move, and one does not upgrade the package.
 - **One owner decision now blocks most Stripe automation.** Of 234 affected Stripe repositories across the three sets, **193 (82%)** send `payment_method_types`, which `2026-09-30.endive` removed from Checkout Session, PaymentIntent and SetupIntent creation. Refit stops for review, as decided on 2026-10-16. A reviewed replacement policy would let Refit continue past this stop for those repositories.
-- **Real breakage is common and precise.** 23 of 200 fresh Shopify apps (12%) send a query that fails on every Admin API version Shopify serves today, each at an exact line. 51 of 381 fresh Stripe apps (13%) also send an OpenAI model that OpenAI retires on 2026-10-23.
+- **Real breakage is common and precise.** 24 of 200 fresh Shopify apps (12%) send a query that fails on every Admin API version Shopify serves today, each at an exact line. 51 of 381 fresh Stripe apps (13%) also send an OpenAI model that OpenAI retires on 2026-10-23.
 - **Outcomes are deterministic.** Repeat runs matched 381 of 381 fresh Stripe repositories, 200 of 200 fresh Shopify apps and 150 of 150 earlier Stripe repositories (publication aside). Since the `payment_method_types` stop, no outcome depends on AI sampling.
 - **AI was almost never needed:** **$0.02** across every Stripe run in this release. Deterministic rules made every validated fix.
 
@@ -131,21 +131,22 @@ The 5 validated fixes are the 5 published, hand-reviewed drafts in the [Stripe b
 
 Shopify Admin GraphQL migrations are deterministic, and no AI is used. Details are in the [Shopify benchmark](SHOPIFY-BENCHMARK.md).
 
-| | Original 50 | Fresh 200 |
+| Refit `4a99c1e`, October 20 (validation counts from October 16) | Original 50 | Fresh 200 |
 |---|---|---|
 | Patched (version pins moved; every document proven on the target) | 1 | **13** |
 | … validated in offline Docker | 1 | **6** |
 | Already current, or on the newest version the SDK can name | 6 | 1 |
 | Stopped: SDK upgrade needed | 15 | 44 |
-| Stopped: REST Admin calls | 7 | 39 |
-| Stopped: runtime-built document | 6 | 26 |
-| Stopped: **query already fails on every served version** | 5 | **23** |
-| Stopped: dynamic, missing or conflicting pin | 6 | 22 |
+| Stopped: REST Admin calls | 8 | 39 |
+| Stopped: runtime-built or unfollowable document | 4 | 25 |
+| Stopped: **query already fails on every served version** | 5 | **24** |
+| Stopped: dynamic, missing or conflicting pin | 7 | 22 |
 | Other (no Admin usage, unparseable document, over scan limits) | 4 | 32 |
-| Traced Admin documents | 336 (was 255) | 628 |
+| Traced Admin documents | 350 (was 255, then 336) | 644 (was 628) |
 | Repeat run at the same commit | 50/50 | 200/200 |
 
 - **Helper tracing** raised traced documents on the original 50 from 255 to 336, and halved unreadable ones (55 → 27), with no outcome changes. It reads default exports, Remix `./shopify.server` imports and helper parameters.
+- **Callback and closure tracing** (October 20) follows helpers through callbacks, closure factories, re-exports and constant arrays: unread Admin calls fell from 90 to 76 across both sets, and one more already-broken query was found (`Shop.brand`, a Storefront-only field sent to Admin). The original column's REST and pin rows also include the fresh-set REST fixes made after its first run.
 - **The fresh set found four bugs, each fixed with a test.** Three let REST calls through, so a REST app's version was moved: template URLs, `createAdminRestApiClient`, and REST resource classes. The fourth refused npm `{ "packages": [...] }` workspaces. The REST fixes stopped 3 wrongly patched apps, none of which had validated.
 - **The broken queries are real.** All 23 were rechecked with graphql-js against the served schema. 11 are the old Remix template's `productVariantUpdate(input: ProductVariantInput)`.
 - **Most apps are limited by their SDK.** `ApiVersion.October26` needs `@shopify/shopify-api` 14, and app frameworks pin older releases. That SDK upgrade is a major-version change, so Refit stops rather than performing it.
@@ -164,6 +165,12 @@ The hand-labelled [deadline benchmark](DEADLINE-BENCHMARK.md) covers 100 reposit
 | Most common | `shopify-admin-2025-10` (29), `-2025-07` (15) | `gpt-3.5-turbo` (35), `gpt-4` (15) |
 
 These counts are a lower bound for Shopify: the registry starts at `2025-04`, and many apps pin older versions.
+
+## Meta Graph API requests (October 20)
+
+`refit meta-graph` was run over the 33 Meta repositories of the deadline benchmark, and each of the 162 requests it reports in live code was read in context ([labels](benchmarks/2026-10-20-meta-graph-call-labels.json), [results](benchmarks/2026-10-20-meta-graph-call-results.json)). All 162 are real Graph API requests or endpoints, and no reported version, path, edge, field, metric or method disagrees with the code. The version was read for 157 (the other 5 are unversioned), the path and edge for 158, and `fields` for 113. A request was found at 62 of the 63 live Graph pins labelled in the deadline benchmark; the miss is a browser `FB.init`. Labels are one reviewer's single pass. See [Meta Graph API](META-GRAPH.md#measured-on-the-deadline-benchmark).
+
+Review-only version moves to v25.0 on the same 33 repositories ([results](benchmarks/2026-10-20-meta-graph-move-results.json)): 0 proposed with the committed change list, because every changelog is unread; in a hypothetical run with every changelog marked reviewed and empty, 100 of the 131 live pins would move, each a one-line edit of the version text only.
 
 ## Speed and cost
 
