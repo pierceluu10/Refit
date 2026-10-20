@@ -559,7 +559,8 @@ it('refuses changed, linked, extra or incomplete cached input files without over
     }),
   ).rejects.toThrow('unexpected files');
   expect(await readFile(extra, 'utf8')).toBe('unexpected cache input');
-});
+  // Reloads the approved repository five times; loaded runners can exceed the default 5s timeout.
+}, 30_000);
 
 it('rejects tampered receipt identity/evidence and mismatched service repositories or branches', async () => {
   const sample = await setup();

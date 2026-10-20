@@ -167,4 +167,5 @@ it('executes selected CLI scans from outside the checkout without mixing provide
   await expect(readFile(join(root, 'missing/manifest.json'))).rejects.toMatchObject({
     code: 'ENOENT',
   });
-});
+  // Starts the CLI several times; loaded runners can exceed the default 5s timeout.
+}, 30_000);
