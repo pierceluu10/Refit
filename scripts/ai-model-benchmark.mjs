@@ -82,15 +82,14 @@ for (const [index, entry] of frozen.repos.entries()) {
     continue;
   }
   const deadlines = await refitJson(['deadlines', '--repository', directory]);
-  const proposal = await refitJson([
-    'deadlines',
-    '--propose-model-fixes',
-    '--repository',
-    directory,
-  ]);
   const live = (deadlines.result?.exposures ?? []).filter(
     (exposure) => exposure.deadline.provider === frozen.provider,
   );
+  // Only a repository with a live exposure can get a replacement, so the slower proposal runs
+  // only there.
+  const proposal = live.length
+    ? await refitJson(['deadlines', '--propose-model-fixes', '--repository', directory])
+    : { result: { replacements: [], stops: [] } };
   results.push({
     repo: entry.repo,
     commit: entry.commit,
