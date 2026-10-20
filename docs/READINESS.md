@@ -1,5 +1,16 @@
 # Refit implementation checkpoints
 
+## October 20 checkpoint: Shopify documents through callbacks, closures, re-exports and arrays (unreleased, after 0.39.0)
+
+Work toward the Shopify goal in [Provider goals](PROVIDER-GOALS.md#shopify), first item: read more GraphQL documents.
+
+- **Measured first.** Every Admin call with an unread document in the two frozen Shopify sets (250 apps, 90 calls) was classified by the pattern hiding it. Half are templates interpolating runtime values, which must stop. The largest readable group was helpers reached through callbacks, `const` arrows passed on and closure factories (6 apps, 18 calls), then helpers stored in objects, class and object methods, and constant arrays.
+- **Function values are followed.** When a document is a parameter of a function, Refit follows that function to every call: named helpers through named, namespace and re-exported imports (`export { a as b } from`, `export *` when exactly one module provides the name), callbacks passed into repository functions, `const` arrows and closures returned by factories. Constant arrays looped with `for … of` and members of constant objects are read element by element. Imported document constants follow re-exports too.
+- **No caller is guessed.** A use of a sending function that Refit cannot follow (stored in an object, passed to a package, reassigned, or in a module loaded with `import()`) now stops for review at that line. Before, callers that were not plain calls were silently skipped. Class and object methods still stop at the call that sends the document. Mocks and spies in test files do not stop the run; documents that tests pass are still checked as fixtures.
+- **Benchmark** (scan level, no Docker, no AI; [details](SHOPIFY-BENCHMARK.md#callback-closure-and-array-tracing-october-20)): traced documents 336 → 350 (original 50) and 628 → 644 (fresh 200); unread Admin calls 27 → 22 and 63 → 54. Two outcomes changed: `lpc-product-manager` is now fully read and stops on its SDK, and `glimpse-app` sends `Shop.brand`, a Storefront-only field, to the Admin API, now an already-failing query at its line. A second run matched 50/50 and 200/200. `shopify.dev` was blocked here, so the four schemas came from Shopify's `@shopify/dev-mcp` 1.17.0 package; they reproduced the published outcomes at `c262f8f`, apart from differences explained by later Refit fixes.
+
+The default suite ran 1,564 tests across 105 files with 78 environment-gated tests skipped; 1,484 passed. The two failures are the known subprocess CLI tests (`scan-cli`, `service-configuration`) hitting the 5-second timeout in this container; they pass with a 60-second timeout and fail the same way on `main`. Typecheck, formatting and build passed.
+
 ## October 20 checkpoint: Meta Graph API request detection (unreleased, after 0.39.0)
 
 First review-only step toward a Meta agent ([Provider goals](PROVIDER-GOALS.md#meta-graph-api), shared work items 4, 5 and 7). Nothing is edited, and the `meta-graph` catalog entry keeps `adapter: null`.
