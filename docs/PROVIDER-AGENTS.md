@@ -1,6 +1,6 @@
 # Provider agents
 
-A provider agent is a reviewed adapter for one API provider: which SDK it covers, how SDK calls map to API operations, and which migration rules apply. `refit agents` detects the providers a repository uses and suggests only the agents that match. Nothing activates on its own.
+A provider agent is a reviewed adapter for one API provider: which SDK it covers, how SDK calls map to API operations, and which migration rules apply. `refit agents` detects the providers a repository uses and suggests only the agents that match. Nothing activates on its own. The goal, status and priority of each provider agent are in [Provider goals](PROVIDER-GOALS.md).
 
 ## Detect providers
 
