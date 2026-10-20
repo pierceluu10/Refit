@@ -250,6 +250,15 @@ function checkDocument(
   return { findings, deprecated: [...new Set(deprecated)] };
 }
 
+// `GET products/{id}.json (fetch)`: the method and path or resource operation where known, then the
+// code that makes the call.
+function restLabel(entry: ShopifyScan['rest'][number]) {
+  const request = [entry.method, entry.path ?? entry.resource].filter(Boolean).join(' ');
+  return request && request !== entry.expression
+    ? `${request} (${entry.expression})`
+    : entry.expression;
+}
+
 // Runtime Admin API pins as API-version declarations; codegen configuration is not runtime.
 function versionDeclarations(scan: ShopifyScan): ApiVersionDeclaration[] {
   return [
@@ -433,9 +442,11 @@ export async function runShopifyPipeline(options: {
     });
   for (const entry of scan.rest)
     findings.push({
-      ...entry,
+      file: entry.file,
+      line: entry.line,
+      column: entry.column,
       changeId: 'shopify-rest',
-      expression: entry.expression,
+      expression: restLabel(entry),
       confidence: 'review',
       reason: 'REST Admin API usage. Shopify publishes no versioned REST contract Refit can check.',
       contractReview:
@@ -576,6 +587,16 @@ export async function runShopifyPipeline(options: {
       adminCalls: scan.adminCalls,
       unreadable: scan.unreadable.length,
       rest: scan.rest.length,
+      // Each REST Admin call for review. Refit reports them and never rewrites them as GraphQL.
+      restCalls: scan.rest.map((entry) => ({
+        file: entry.file,
+        line: entry.line,
+        column: entry.column,
+        method: entry.method ?? null,
+        path: entry.path ?? null,
+        resource: entry.resource ?? null,
+        expression: entry.expression,
+      })),
       otherApiDocuments: otherApi.map((document) => `${document.file}:${document.line}`),
       deprecated: [...deprecated],
     },

@@ -22,8 +22,28 @@ const REST_RECEIVER =
   /(?:^|\.)admin\.rest\b|\brest\.resources\b|\.clients\.Rest$|(?:^|\.)rest\.[A-Z]\w*(?:\.|$)/;
 // A `.json` endpoint, or a resource path segment before a substitution (`products/${id}.json`).
 const REST_URL =
-  /\/admin\/api\/(\d{4}-\d{2}|unstable)\/(?:[\w/{}.$-]*\.json|(?!graphql\b)[\w-]+\/)/;
+  /\/admin\/api\/(\d{4}-\d{2}|unstable)\/(?:(?!graphql\.json)[\w/{}.$-]*\.json|(?!graphql\b)[\w-]+\/)/;
+// The Admin GraphQL endpoint itself, requested without one of Shopify's clients.
+const GRAPHQL_URL = /\/admin\/api\/(?:\d{4}-\d{2}|unstable)\/graphql\.json/;
 const VERSION_URL = /\/admin\/api\/(\d{4}-\d{2})\//g;
+// Variables holding a REST Admin client: `new shopify.clients.Rest(...)` or `createAdminRestApiClient(...)`.
+const REST_CLIENT_FACTORY = /\.clients\.Rest$|^createAdminRestApiClient$/;
+const REST_VERBS: Record<string, string> = {
+  get: 'GET',
+  post: 'POST',
+  put: 'PUT',
+  patch: 'PATCH',
+  delete: 'DELETE',
+};
+// REST resource class operations whose HTTP method the SDK fixes; `save` depends on the record's id.
+const RESOURCE_METHODS: Record<string, string> = {
+  all: 'GET',
+  find: 'GET',
+  count: 'GET',
+  delete: 'DELETE',
+  save: 'POST or PUT',
+};
+const REST_PATH = /\/admin\/api\/(?:\d{4}-\d{2}|unstable)\/([^?#\s]+)/;
 
 export interface DocumentSegment {
   // Offsets in the assembled document text and the source text each piece came from.
@@ -54,7 +74,9 @@ export interface ShopifyScan {
   documents: AdminDocument[];
   // Admin calls whose document Refit could not read statically.
   unreadable: (Location & { reason: string })[];
-  rest: (Location & { expression: string })[];
+  // REST Admin usage, with the HTTP method, path (`{…}` marks a substitution) and resource class
+  // operation where the code states them. Review-only evidence: Refit never migrates REST calls.
+  rest: (Location & { expression: string; method?: string; path?: string; resource?: string })[];
   versions: VersionDeclaration[];
   // `latest` marks LATEST_API_VERSION, which the locked SDK release determines.
   unresolvedVersions: (Location & { reason: string; latest?: true })[];
@@ -895,12 +917,108 @@ export function scanShopify(repository: Repository): ShopifyScan {
         'The document is built at runtime; Refit only reads literal or constant documents.',
       );
   };
+  // A literal's text with each substitution shown as `{name}` (or `{…}` when it is not a name).
+  const literalText = (literal: Literal) =>
+    ts.isTemplateExpression(literal)
+      ? literal.head.text +
+        literal.templateSpans
+          .map((span) => {
+            const text = span.expression.getText();
+            return `{${/^[\w$.]{1,40}$/.test(text) ? text : '…'}}${span.literal.text}`;
+          })
+          .join('')
+      : literal.text;
+  // The path a REST call names: a literal or constant, directly or as `{ path }`.
+  const restPath = (argument: ts.Expression | undefined, file: string) => {
+    let value = argument && unwrap(argument);
+    if (value && ts.isObjectLiteralExpression(value)) {
+      const path = memberOf(value, 'path');
+      value = path && unwrap(path);
+    }
+    if (value && ts.isIdentifier(value)) {
+      const resolved = scoped(value, file) ?? constant(file, value.text);
+      value = resolved && unwrap(resolved.node);
+    }
+    return value && isLiteral(value) ? literalText(value).replace(/^\//, '') : undefined;
+  };
+  // `admin.rest.get({ path })`, `client.post('products', ...)` and `shopify.rest.Product.all()`.
+  const restCall = (call: ts.CallExpression, file: string) => {
+    const callee = call.expression as ts.PropertyAccessExpression;
+    const operation = callee.name.text;
+    const resource = /(?:^|\.)(?:rest|resources)\.([A-Z]\w*)$/.exec(
+      callee.expression.getText(),
+    )?.[1];
+    if (resource)
+      return {
+        resource: `${resource}.${operation}`,
+        ...(RESOURCE_METHODS[operation] ? { method: RESOURCE_METHODS[operation] } : {}),
+      };
+    const method = REST_VERBS[operation];
+    const path = method ? restPath(call.arguments[0], file) : undefined;
+    return { ...(method ? { method } : {}), ...(path ? { path } : {}) };
+  };
+  // The HTTP method of a request whose URL is `node`: `fetch(url)` (GET), `fetch(url, { method })`
+  // with a literal method, or an HTTP verb call (`axios.post(url)`). Undefined otherwise.
+  const requestMethod = (node: ts.Node) => {
+    while (
+      ts.isParenthesizedExpression(node.parent) ||
+      ts.isAsExpression(node.parent) ||
+      ts.isNonNullExpression(node.parent)
+    )
+      node = node.parent;
+    const call = node.parent;
+    if (!ts.isCallExpression(call) || call.arguments[0] !== node) return undefined;
+    if (ts.isPropertyAccessExpression(call.expression) && REST_VERBS[call.expression.name.text])
+      return REST_VERBS[call.expression.name.text];
+    if (!/^(?:\w+\.)*fetch$/.test(call.expression.getText())) return undefined;
+    const options = call.arguments[1] && unwrap(call.arguments[1]);
+    if (!options) return 'GET';
+    if (!ts.isObjectLiteralExpression(options) || options.properties.some(ts.isSpreadAssignment))
+      return undefined;
+    const option = memberOf(options, 'method');
+    const value = option && unwrap(option);
+    return !option
+      ? 'GET'
+      : value && (ts.isStringLiteral(value) || ts.isNoSubstitutionTemplateLiteral(value))
+        ? value.text.toUpperCase()
+        : undefined;
+  };
+  // A versioned REST URL: its path, and the method when the URL is passed straight to `fetch`
+  // (from a literal `method` option, GET without one) or to an HTTP verb call (`axios.post(url)`).
+  const restUrl = (piece: ts.Node) => {
+    const literal = ts.isTemplateHead(piece)
+      ? piece.parent
+      : ts.isTemplateMiddle(piece) || ts.isTemplateTail(piece)
+        ? piece.parent.parent
+        : piece;
+    const path = REST_PATH.exec(literalText(literal as Literal))?.[1];
+    let node: ts.Node = literal;
+    while (
+      ts.isParenthesizedExpression(node.parent) ||
+      ts.isAsExpression(node.parent) ||
+      ts.isNonNullExpression(node.parent)
+    )
+      node = node.parent;
+    // `const url = ...; fetch(url)`: the method every use of the constant agrees on.
+    const declaration = node.parent;
+    const uses =
+      ts.isVariableDeclaration(declaration) &&
+      declaration.initializer === node &&
+      ts.isIdentifier(declaration.name) &&
+      declaration.parent.flags & ts.NodeFlags.Const
+        ? referencesIn(declarationOf(declaration.name)!.scope, declaration.name.text)
+        : [node];
+    const methods = new Set(uses.map(requestMethod));
+    const [method] = methods.size === 1 ? methods : [undefined];
+    return { ...(method ? { method } : {}), ...(path ? { path } : {}) };
+  };
   for (const [absolute, content] of sources) {
     const file = sourceFile(absolute);
     const shopify = SHOPIFY_IMPORT.test(content);
     if (shopify) scan.shopifyFiles.push(pathOf.get(absolute)!);
-    // Identifiers bound to Admin GraphQL clients in this file.
+    // Identifiers bound to Admin GraphQL and REST clients in this file.
     const clients = new Set<string>();
+    const restClients = new Set<string>();
     const apiVersionImported = /\bApiVersion\b/.test(content) && shopify;
     const visit = (node: ts.Node) => {
       if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name) && node.initializer) {
@@ -908,6 +1026,7 @@ export function scanShopify(repository: Repository): ShopifyScan {
         const callee =
           ts.isCallExpression(value) || ts.isNewExpression(value) ? value.expression.getText() : '';
         if (ADMIN_CLIENT_FACTORY.test(callee)) clients.add(node.name.text);
+        if (REST_CLIENT_FACTORY.test(callee)) restClients.add(node.name.text);
       }
       if (ts.isCallExpression(node) && ts.isPropertyAccessExpression(node.expression)) {
         const method = node.expression.name.text;
@@ -931,7 +1050,17 @@ export function scanShopify(repository: Repository): ShopifyScan {
           !ts.isCallExpression(node.expression.expression) &&
           REST_RECEIVER.test(node.expression.getText())
         )
-          scan.rest.push({ ...location(node), expression: node.expression.getText() });
+          scan.rest.push({
+            ...location(node),
+            expression: node.expression.getText(),
+            ...restCall(node, absolute),
+          });
+        else if (REST_VERBS[method] && restClients.has(receiver))
+          scan.rest.push({
+            ...location(node),
+            expression: node.expression.getText(),
+            ...restCall(node, absolute),
+          });
       }
       if (
         ts.isCallExpression(node) &&
@@ -939,8 +1068,17 @@ export function scanShopify(repository: Repository): ShopifyScan {
         node.expression.text === 'createAdminRestApiClient'
       )
         scan.rest.push({ ...location(node), expression: node.expression.text });
-      if (ts.isNewExpression(node) && REST_RECEIVER.test(node.expression.getText()))
-        scan.rest.push({ ...location(node), expression: node.expression.getText() });
+      if (ts.isNewExpression(node) && REST_RECEIVER.test(node.expression.getText())) {
+        // `new shopify.rest.Product(...)` builds a record that `save()` sends.
+        const resource = /(?:^|\.)(?:rest|resources)\.([A-Z]\w*)$/.exec(
+          node.expression.getText(),
+        )?.[1];
+        scan.rest.push({
+          ...location(node),
+          expression: node.expression.getText(),
+          ...(resource ? { resource: `new ${resource}` } : {}),
+        });
+      }
       if (
         ts.isPropertyAccessExpression(node) &&
         ts.isIdentifier(node.expression) &&
@@ -1013,8 +1151,19 @@ export function scanShopify(repository: Repository): ShopifyScan {
       ) {
         if (isLiteral(node) && GRAPHQL_MARKER.test(node.text))
           record(node, absolute, documentLiterals.get(node) ?? false);
+        if (GRAPHQL_URL.test(node.text)) {
+          scan.adminCalls++;
+          unreadable(
+            node,
+            'A raw request to the Admin GraphQL endpoint; Refit reads documents only from calls through Shopify clients.',
+          );
+        }
         if (REST_URL.test(node.text))
-          scan.rest.push({ ...location(node), expression: node.text.slice(0, 120) });
+          scan.rest.push({
+            ...location(node),
+            expression: node.text.slice(0, 120),
+            ...restUrl(node),
+          });
         for (const match of node.text.matchAll(VERSION_URL)) {
           const start = node.getStart() + 1 + match.index! + '/admin/api/'.length;
           scan.versions.push({

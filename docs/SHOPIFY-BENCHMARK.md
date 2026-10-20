@@ -128,6 +128,28 @@ Two apps changed outcome, and no other app's outcome changed. Per-app before and
 
 Scanning the fresh 200 took the same CPU time as before (1 min 42 s). The schemas came from Shopify's own `@shopify/dev-mcp` 1.17.0 npm package (`dist/data/admin_2026-01.json` to `admin_2026-10.json`), because this environment could not reach `shopify.dev`. Their SHA-256 differs from the pinned introspection, so they were used only to compare runs with each other: at `c262f8f` they reproduced the published outcomes for 199 of 200 fresh apps (the other is the fragment stop, counted with runtime documents above) and 48 of 50 original apps (both differences come from Refit fixes made after the original run).
 
+## REST evidence (October 20)
+
+Before, each REST finding gave only the matching expression (`admin.rest.resources.Product.all`, or the first 120 characters of a URL). Now every REST Admin call is reported at its file and line with the HTTP method and the path or REST resource operation wherever the code states them, under `shopify.restCalls` in the report and in `refit scan`'s summary. Refit still never migrates them. Measured at `0b5480b` against `4a99c1e`, scan level:
+
+| | Original 50 | Fresh 200 |
+|---|---|---|
+| Apps with REST calls | 10 → 8 | 54 → 46 |
+| REST calls reported | 32 → 28 | 184 → 152 |
+| … raw `graphql.json` requests removed from REST | 4 (2 apps) | 56 (11 apps) |
+| … calls on REST client variables, newly reported one by one | 0 | 24 |
+| … with method and path (`GET products/{id}.json`) | 3 | 80 |
+| … resource operation with method (`Product.all`, GET) | 11 | 20 |
+| … new resource record (`new Metafield`, sent by `save()`) | 14 | 5 |
+| … path only, or method only | 0 | 19 |
+| … client construction, nothing else stated | 0 | 28 |
+| Stopped: REST Admin calls | 8 → **6** | 39 → **32** |
+| Same outcome on a second run | 50/50 | 200/200 |
+
+The drop is a fix. A URL to `/admin/api/<version>/graphql.json` matched the REST pattern, so 9 apps (`tomhooker/Post-Purchase-Extension`, `ersinkoc/CouponEngine`, `drizzle-team/tento`, `callobuzz/cob-shopify-mcp`, `evigauge-org/helix`, `CABlank/referrd-react-app-shopify`, `LazerTechnologies/shopify-app-development-course`, `Priyadharshini29-M/Combo-page-app`, `tahmidbintaslim/shopify-ucp`) were counted as REST while they only `POST` GraphQL documents with `fetch`. Refit does not read those documents, so each still stops, now as an unread Admin GraphQL document at the exact line. No other outcome changed.
+
+A random sample of 20 reported calls was checked by hand against the code: all 20 methods and paths or resource operations were right.
+
 ## Reproduce
 
 ```sh

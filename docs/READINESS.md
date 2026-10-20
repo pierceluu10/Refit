@@ -5,6 +5,16 @@
 Adapter mappings used to require a response schema with directly declared properties, so OpenAI's `Response`, an `allOf` of `ModelResponseProperties`, `ResponseProperties` and its own fields, could not be mapped. When a spec is loaded, a component that is an `allOf` of plain object schemas (references or inline objects, followed recursively) is now merged into one object schema with the union of their properties and required fields. This applies only to the schema map that analysis reads; the document oasdiff compares is unchanged. Parts with `anyOf`, `oneOf`, `not`, a discriminator or a non-object type, and parts that declare the same property differently, are left as they were.
 
 The OpenAI adapter now maps `responses.create` → `Response` (operation ID `createResponse`). In OpenAI's published document (info.version 2.3.0), 22 components merge, including `Response` with 37 properties. Stripe's current `spec3.json` has no component-level `allOf`, so Stripe results do not change. A test runs the shipped adapter on a trimmed contract with that `Response` shape and a simulated removal from `ResponseProperties`, which is reported at the property read.
+## October 20 checkpoint: Shopify REST Admin calls reported with method and path (unreleased, after 0.39.0)
+
+Second item of the Shopify goal in [Provider goals](PROVIDER-GOALS.md#shopify): report REST calls exactly, without migrating them.
+
+- **Each REST Admin call at its line.** REST findings and the new `shopify.restCalls` report field give file, line and column, the HTTP method and the path or resource operation wherever the code states them. Sources are `admin.rest.get({ path })` and calls on `shopify.clients.Rest` or `createAdminRestApiClient` client variables (newly reported call by call). Resource classes count too: `Product.all` is GET and `save` is POST or PUT. So do versioned URLs passed to `fetch` (a literal `method` option, GET without one) or to an HTTP verb call, directly or through a `const`. `refit scan` prints them. REST calls still stop for review, and REST-to-GraphQL migration stays an owner decision.
+- **Raw GraphQL requests are no longer REST.** URLs to `/admin/api/<version>/graphql.json` matched the REST pattern. They are Admin GraphQL calls whose documents Refit does not read, so they now stop as unread documents at their line. On the frozen sets this moved 9 apps from "REST" to "unread document"; none of them was or became patchable.
+- **Benchmark** (scan level; [details](SHOPIFY-BENCHMARK.md#rest-evidence-october-20)): REST calls 32 → 28 (original 50) and 184 → 152 (fresh 200). 114 of the 180 have both a method and a path or resource operation. Apps stopped on REST went from 8 to 6 and from 39 to 32. A second run matched 50/50 and 200/200.
+
+A random sample of 20 reported calls was right on hand review. The default suite ran 1,593 tests across 107 files with 78 environment-gated tests skipped; 1,513 passed, and the two failures are the known subprocess CLI timeouts (`scan-cli`, `service-configuration`) that fail the same way on `main` in this container. Typecheck, formatting and build passed.
+
 ## October 20 checkpoint: Shopify documents through callbacks, closures, re-exports and arrays (unreleased, after 0.39.0)
 
 Work toward the Shopify goal in [Provider goals](PROVIDER-GOALS.md#shopify), first item: read more GraphQL documents.
