@@ -28,7 +28,9 @@ That needs two things.
 - it stays quiet when nothing is affected, and opens an issue only for a stop that needs a person, with the decision spelled out;
 - hosted operation exists: customer sign-in, enrollment with approved checks, durable jobs and per-customer budgets ([remaining product work](AUTOMATION.md#remaining-product-work)).
 
-Where it stands (rerun of every set from `6d4f38a`, October 20): **102 of 231** affected repositories in the 531 validated (**44%**, up from 74 of 234 on [October 16](BENCHMARKS.md#stripe-node-upgrade-for-pnpm-and-yarn-and-the-active-teams-set-october-16)); original 15 of 37, held-out 12 of 21, fresh 75 of 173. Active teams: 1 of 22 affected validated, and 1,361 of 1,895 likely calls traced (72%, against 35%); only 4 repositories trace none, down from 32. The stops on the 531 (part 1), largest first, and what clears each:
+Where it stands (rerun of every set from `6d4f38a`, October 20): **102 of 231** affected repositories in the 531 validated (**44%**, up from 74 of 234 on [October 16](BENCHMARKS.md#stripe-node-upgrade-for-pnpm-and-yarn-and-the-active-teams-set-october-16)); original 15 of 37, held-out 12 of 21, fresh 75 of 173. Active teams: 1 of 22 affected validated, and 1,361 of 1,895 likely calls traced (72%, against 35%); only 4 repositories trace none, down from 32. Hand review of the 103 validated fixes (102 in the 531, 1 in active teams): 101 are deterministic; of the 2 AI fixes, `akn3107/whatsapp-store-creator` is correct and `oMiguelwnl/Borcelle_admin` is **wrong** (it reads the removed `checkout.session.shipping_details` twice through `Reflect.get` and never the new location). #116 replaces it with a deterministic rule and closes the guard gap that let it through.
+
+The stops on the 531 (part 1), largest first, and what clears each:
 
 | Stop | Repositories | Clears it |
 |---|---|---|
