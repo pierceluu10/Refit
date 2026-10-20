@@ -21,6 +21,23 @@ export function sdkConstructors(options: {
     while (ts.isParenthesizedExpression(node)) node = node.expression;
     return node;
   }
+  // `await import('stripe')` is the module namespace: its `default` or named export is the
+  // constructor, never the namespace itself.
+  function dynamicImport(node: ts.Node) {
+    while (ts.isParenthesizedExpression(node)) node = node.expression;
+    if (!ts.isAwaitExpression(node)) return false;
+    let call: ts.Expression = node.expression;
+    while (ts.isParenthesizedExpression(call)) call = call.expression;
+    return (
+      ts.isCallExpression(call) &&
+      call.expression.kind === ts.SyntaxKind.ImportKeyword &&
+      call.arguments.length === 1 &&
+      ts.isStringLiteral(call.arguments[0]) &&
+      call.arguments[0].text === provider.packageName
+    );
+  }
+  const vendorModule = (node: ts.Node) =>
+    staticRequire(node, checker) === provider.packageName || dynamicImport(node);
   function requiredConstructor(node: ts.Node) {
     if (ts.isParenthesizedExpression(node)) return requiredConstructor(node.expression);
     if (!vendor(node)) return false;
@@ -28,7 +45,7 @@ export function sdkConstructors(options: {
     if (
       !ts.isPropertyAccessExpression(node) ||
       node.questionDotToken ||
-      staticRequire(node.expression, checker) !== provider.packageName
+      !vendorModule(node.expression)
     )
       return false;
     return (
@@ -62,7 +79,7 @@ export function sdkConstructors(options: {
       imports.push(node);
       if (vendor(node) && provider.defaultImport) add(node.name);
     }
-    if (staticRequire(node, checker) === provider.packageName) imports.push(node);
+    if (vendorModule(node)) imports.push(node);
     if (
       !ts.isVariableDeclaration(node) ||
       !node.initializer ||
@@ -71,11 +88,7 @@ export function sdkConstructors(options: {
     )
       continue;
     if (ts.isIdentifier(node.name) && requiredConstructor(node.initializer)) add(node.name);
-    if (
-      ts.isObjectBindingPattern(node.name) &&
-      staticRequire(node.initializer, checker) === provider.packageName &&
-      vendor(node)
-    )
+    if (ts.isObjectBindingPattern(node.name) && vendorModule(node.initializer) && vendor(node))
       for (const entry of node.name.elements) {
         const key = entry.propertyName ?? entry.name;
         if (

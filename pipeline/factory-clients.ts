@@ -1,14 +1,15 @@
 import ts from 'typescript-compiler';
 
 type Creation = ts.NewExpression | ts.CallExpression;
-type Factory = ts.FunctionDeclaration | ts.FunctionExpression | ts.ArrowFunction;
+type Factory =
+  ts.FunctionDeclaration | ts.FunctionExpression | ts.ArrowFunction | ts.MethodDeclaration;
 // 'client': every non-null value the expression can produce is an SDK client; 'null': it only
 // produces null or undefined; undefined: anything else.
 type Value = 'client' | 'null' | undefined;
 
-// Clients created behind a factory: a function whose every return is a client (or null), a
-// module `let` holder that is only ever assigned clients (`_stripe ??= new Stripe(key)`), or a
-// constant like `key ? new Stripe(key) : null`. An async factory counts only when every call to it
+// Clients created behind a factory: a function or static method whose every return is a client
+// (or null), a module `let` or static property holder that is only ever assigned clients
+// (`_stripe ??= new Stripe(key)`), or a constant like `key ? new Stripe(key) : null`. An async factory counts only when every call to it
 // is awaited at once. Any other write to the holder or the factory, a generator, or a return of
 // anything else leaves the client untraced.
 export function factoryClients(options: {
@@ -22,7 +23,7 @@ export function factoryClients(options: {
   const holders = new Set<ts.Symbol>();
   const creations = new Map<ts.Node, ts.Symbol>();
   const candidateFactories = new Map<ts.Symbol, Factory>();
-  const candidateHolders = new Map<ts.Symbol, ts.VariableDeclaration>();
+  const candidateHolders = new Map<ts.Symbol, ts.VariableDeclaration | ts.PropertyDeclaration>();
   const conditionals: (ts.VariableDeclaration & {
     name: ts.Identifier;
     initializer: ts.Expression;
@@ -56,6 +57,17 @@ export function factoryClients(options: {
       ts.SyntaxKind.QuestionQuestionEqualsToken,
       ts.SyntaxKind.BarBarEqualsToken,
     ].includes(node.operatorToken.kind);
+  const isStatic = (node: ts.MethodDeclaration | ts.PropertyDeclaration) =>
+    Boolean(node.modifiers?.some((modifier) => modifier.kind === ts.SyntaxKind.StaticKeyword));
+  // `Class.member` names a static holder or factory the way a bare identifier names a module one.
+  const reference = (expression: ts.Expression) =>
+    ts.isIdentifier(expression)
+      ? symbol(expression)
+      : ts.isPropertyAccessExpression(expression) &&
+          !expression.questionDotToken &&
+          ts.isIdentifier(expression.name)
+        ? symbol(expression.name)
+        : undefined;
   const combine = (values: Value[]): Value =>
     values.includes(undefined) ? undefined : values.includes('client') ? 'client' : 'null';
 
@@ -65,9 +77,7 @@ export function factoryClients(options: {
     const awaited = ts.isAwaitExpression(outer);
     const value = ts.isAwaitExpression(outer) ? unwrap(outer.expression) : outer;
     if (!ts.isCallExpression(value) || value.questionDotToken) return;
-    const callee = unwrap(value.expression);
-    if (!ts.isIdentifier(callee)) return;
-    const binding = symbol(callee);
+    const binding = reference(unwrap(value.expression));
     if (!binding || !factories.has(binding)) return;
     return awaited || !asyncFactories.has(binding) ? binding : undefined;
   }
@@ -79,8 +89,8 @@ export function factoryClients(options: {
       return 'client';
     }
     if (nullish(current)) return 'null';
-    if (ts.isIdentifier(current)) {
-      const binding = symbol(current);
+    if (ts.isIdentifier(current) || ts.isPropertyAccessExpression(current)) {
+      const binding = reference(current);
       return binding && (holders.has(binding) || clients.has(binding)) ? 'client' : undefined;
     }
     if (factoryCall(current)) return 'client';
@@ -93,8 +103,8 @@ export function factoryClients(options: {
       )
     )
       return combine([value(current.left, found), value(current.right, found)]);
-    if (assignment(current) && replacing(current) && ts.isIdentifier(current.left)) {
-      const binding = symbol(current.left);
+    if (assignment(current) && replacing(current)) {
+      const binding = reference(current.left);
       return binding && holders.has(binding) ? value(current.right, found) : undefined;
     }
     return undefined;
@@ -115,6 +125,20 @@ export function factoryClients(options: {
     if (ts.isFunctionDeclaration(node) && node.name && node.body && !node.asteriskToken) {
       const binding = symbol(node.name);
       if (binding) candidateFactories.set(binding, node);
+    }
+    if (
+      ts.isMethodDeclaration(node) &&
+      isStatic(node) &&
+      ts.isIdentifier(node.name) &&
+      node.body &&
+      !node.asteriskToken
+    ) {
+      const binding = symbol(node.name);
+      if (binding) candidateFactories.set(binding, node);
+    }
+    if (ts.isPropertyDeclaration(node) && isStatic(node) && ts.isIdentifier(node.name)) {
+      const binding = symbol(node.name);
+      if (binding) candidateHolders.set(binding, node);
     }
     if (!ts.isVariableDeclaration(node) || !ts.isIdentifier(node.name)) continue;
     const list = node.parent;
@@ -147,8 +171,7 @@ export function factoryClients(options: {
   // A promise from an async factory that is not awaited at once could carry the client anywhere.
   for (const node of nodes) {
     if (!ts.isCallExpression(node)) continue;
-    const callee = unwrap(node.expression);
-    const binding = ts.isIdentifier(callee) ? symbol(callee) : undefined;
+    const binding = reference(unwrap(node.expression));
     if (!binding || !asyncFactories.has(binding)) continue;
     let parent = node.parent;
     while (ts.isParenthesizedExpression(parent)) parent = parent.parent;
@@ -161,6 +184,13 @@ export function factoryClients(options: {
     if (!binding || !(candidateHolders.has(binding) || candidateFactories.has(binding))) continue;
     let child: ts.Node = node;
     let parent = node.parent;
+    // shortcut: element access (`Class['client'] = x`) has no identifier, so such a write goes
+    // unseen; upgrade if static holders written that way show up.
+    if (ts.isPropertyAccessExpression(parent) && parent.name === node) {
+      child = parent;
+      parent = parent.parent;
+    }
+    const target = child;
     while (
       ts.isParenthesizedExpression(parent) ||
       ts.isArrayLiteralExpression(parent) ||
@@ -174,7 +204,7 @@ export function factoryClients(options: {
       parent = parent.parent;
     }
     if (assignment(parent) && parent.left === child) {
-      if (child === node && replacing(parent))
+      if (child === target && replacing(parent))
         writes.set(binding, [...(writes.get(binding) ?? []), parent.right]);
       else rejected.add(binding);
     } else if (
@@ -234,7 +264,7 @@ export function factoryClients(options: {
       const holderValues = [entry];
       for (let index = 0; index < holderValues.length; index++) {
         const current = unwrap(holderValues[index]);
-        const holder = ts.isIdentifier(current) ? symbol(current) : undefined;
+        const holder = reference(current);
         if (holder && holders.has(holder))
           for (const write of [
             candidateHolders.get(holder)!.initializer,

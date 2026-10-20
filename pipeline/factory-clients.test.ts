@@ -163,3 +163,90 @@ export async function history() { const stripe: any = getStripe(); const intent 
   });
   expect(result.findings.filter((entry) => entry.confidence === 'confirmed')).toEqual([]);
 });
+
+it.each([
+  ['a destructured default', `const { default: Sdk } = await import('stripe');`],
+  ['a default property', `const Sdk = (await import('stripe')).default;`],
+  ['the named export', `const { Stripe: Sdk } = await import('stripe');`],
+])('traces an async factory that loads the SDK with %s', (_name, load) => {
+  const result = analyze({
+    'client.ts': `import type Stripe from 'stripe';
+let client: Stripe | null = null;
+export async function getStripe() {
+  if (!client) {
+    ${load}
+    client = new Sdk('key', ${options});
+  }
+  return client;
+}`,
+    'billing.ts': `import { getStripe } from './client.ts';\nconst stripe = await getStripe();\n${read('stripe')}`,
+  });
+  expect(result.findings).toMatchObject([{ file: 'billing.ts', confidence: 'confirmed' }]);
+  expect(result.apiVersionDeclarations.filter((entry) => entry.kind === 'constructor')).toEqual([
+    expect.objectContaining({ status: 'literal', value: ORIGINAL }),
+  ]);
+});
+
+it('does not treat the dynamically imported module namespace as the constructor', () => {
+  const result = analyze({
+    'billing.ts': `export async function history() {
+  const Sdk = await import('stripe');
+  const stripe = new (Sdk as any)('key');
+  const intent = await stripe.paymentIntents.retrieve('pi');
+  return intent.charges.data;
+}`,
+  });
+  expect(result.findings.filter((entry) => entry.confidence === 'confirmed')).toEqual([]);
+});
+
+it.each([
+  [
+    'the class name',
+    `export class Payments {
+  private static client: Stripe | null = null;
+  static get(): Stripe {
+    if (!Payments.client) Payments.client = new Stripe('key', ${options});
+    return Payments.client;
+  }
+}`,
+  ],
+  [
+    'this',
+    `export class Payments {
+  static #unused = 0;
+  private static client?: Stripe;
+  static get() {
+    this.client ??= new Stripe('key', ${options});
+    return this.client;
+  }
+}`,
+  ],
+])('traces a static getter whose holder is written through %s', (_name, factory) => {
+  const result = analyze({
+    'client.ts': `import Stripe from 'stripe';\n${factory}`,
+    'billing.ts': `import { Payments } from './client.ts';\n${read('Payments.get()')}`,
+  });
+  expect(result.findings).toMatchObject([{ file: 'billing.ts', confidence: 'confirmed' }]);
+  expect(result.apiVersionDeclarations.filter((entry) => entry.kind === 'constructor')).toEqual([
+    expect.objectContaining({ status: 'literal', value: ORIGINAL }),
+  ]);
+});
+
+it.each([
+  ['its holder is assigned another value', 'Payments.client = {} as Stripe;'],
+  ['the method is replaced', 'Payments.get = () => ({}) as Stripe;'],
+])('does not trace a static getter when %s', (_name, write) => {
+  const result = analyze({
+    'client.ts': `import Stripe from 'stripe';
+export class Payments {
+  static client: Stripe | null = null;
+  static get(): Stripe {
+    if (!Payments.client) Payments.client = new Stripe('key', ${options});
+    return Payments.client;
+  }
+}
+${write}`,
+    'billing.ts': `import { Payments } from './client.ts';\n${read('Payments.get()')}`,
+  });
+  expect(result.findings.filter((entry) => entry.confidence === 'confirmed')).toEqual([]);
+});
