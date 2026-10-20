@@ -36,6 +36,9 @@ import {
   INVOICE_PRICE_ID_HELPER,
   INVOICE_PRICE_ID_HELPER_RULE,
   invoicePriceIdHelperEdit,
+  CHECKOUT_SHIPPING_HELPER,
+  CHECKOUT_SHIPPING_HELPER_RULE,
+  checkoutShippingHelperEdit,
   type PeriodRareCase,
 } from './stripe-subscription-periods.ts';
 import { STRIPE_MOVE_REVIEW } from './stripe-field-moves.ts';
@@ -1151,6 +1154,19 @@ export function analyzeRepository(
       const edit = invoicePriceIdHelperEdit(node, location(node).file, change.id);
       if (edit && addEdit(edit)) return edit.rule;
     }
+    // Checkout Session shipping details moved under `collected_information`.
+    if (
+      provider.packageName === STRIPE.packageName &&
+      change.schema === 'checkout.session' &&
+      change.property === 'shipping_details' &&
+      !propertyMoves.some(
+        (move) => move.schema === 'checkout.session' && move.removed === 'shipping_details',
+      ) &&
+      (webhooks?.origin(receiver) || provenance === 'declared-type' || provenance === 'sdk')
+    ) {
+      const edit = checkoutShippingHelperEdit(node, location(node).file, change.id);
+      if (edit && addEdit(edit)) return edit.rule;
+    }
     if (webhooks?.origin(receiver)) return;
     // A value known only from its Stripe.* type may be a webhook payload passed into a helper;
     // its shape follows the endpoint's version, so other rules report it but never edit it.
@@ -1492,7 +1508,8 @@ export function analyzeRepository(
               webhook: {
                 ...(migration === SUBSCRIPTION_PERIOD_HELPER_RULE ||
                 migration === INVOICE_SUBSCRIPTION_HELPER_RULE ||
-                migration === INVOICE_PRICE_ID_HELPER_RULE
+                migration === INVOICE_PRICE_ID_HELPER_RULE ||
+                migration === CHECKOUT_SHIPPING_HELPER_RULE
                   ? { migration: { rule: migration } }
                   : {}),
                 schema: webhook.schema,
@@ -1627,6 +1644,7 @@ export function analyzeRepository(
     ...Object.values(PERIOD_HELPERS),
     INVOICE_SUBSCRIPTION_HELPER,
     INVOICE_PRICE_ID_HELPER,
+    CHECKOUT_SHIPPING_HELPER,
   ] as string[];
   // Node16/NodeNext resolution requires explicit extensions on relative imports.
   const nodeModuleResolution = (repository.configurations ?? []).some((file) =>
@@ -1659,6 +1677,7 @@ export function analyzeRepository(
         SUBSCRIPTION_PERIOD_HELPER_RULE,
         INVOICE_SUBSCRIPTION_HELPER_RULE,
         INVOICE_PRICE_ID_HELPER_RULE,
+        CHECKOUT_SHIPPING_HELPER_RULE,
       ] as const
     ).find((rule) => edits.some((edit) => edit.rule === rule))!;
     const directories = helperFiles.map((file) => posix.dirname(file).split('/'));
