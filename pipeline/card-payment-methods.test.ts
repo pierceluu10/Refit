@@ -399,3 +399,12 @@ it.each([
   expect(report.patch).toMatchObject({ status: 'not-generated' });
   expect(report.findings.some((finding) => finding.requestParameter)).toBe(true);
 });
+
+it('keeps the stop when another client sets a version the patch cannot move', async () => {
+  const report = await run({
+    'pinned.js': checkout("['card']"),
+    'dynamic.js': checkout("['card']", '{ apiVersion: process.env.STRIPE_VERSION }'),
+  });
+  expect('diff' in report.patch && report.patch.diff).not.toContain('allowed_payment_method_types');
+  expect(report.findings.filter((finding) => finding.requestParameter)).toHaveLength(2);
+});

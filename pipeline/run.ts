@@ -240,8 +240,15 @@ async function runOpenApiPipeline(options: {
     typeof targetVersion === 'string'
       ? await stripePackageUpgrade(repository.root, targetVersion)
       : undefined;
+  // Every client that may send the renamed field must reach the target version: a dynamic or
+  // unresolved pin can keep one on the version that rejects allowed_payment_method_types. A
+  // client without the option moves with the stripe-node upgrade.
+  const everyPinMoves = apiVersionDeclarations.every(
+    (entry) => entry.status !== 'unknown' || (entry.kind === 'constructor' && entry.absent),
+  );
   movedTo[CARD_PAYMENT_METHOD_RULE] =
     bumpsVersion &&
+    everyPinMoves &&
     (!patchRequested || !upgradeRequired || Boolean(cardUpgrade && 'upgrade' in cardUpgrade));
   movedTo[LISTED_PAYMENT_METHODS_RULE] = movedTo[CARD_PAYMENT_METHOD_RULE];
   // The period helper reads either API version, so it does not depend on the version pin.
