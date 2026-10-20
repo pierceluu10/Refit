@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, expect, it, vi } from 'vitest';
@@ -491,6 +491,12 @@ it('keeps unmigrated webhook reads at review without AI, before networked or exe
 
 it('sends unmigrated webhook reads to AI with version-tolerant instructions', async () => {
   const { repository, beforePath, afterPath } = await webhookOnlyRepository();
+  // The new version moves the period to an added field, which the version-tolerant read must use.
+  const before = JSON.parse(await readFile(beforePath, 'utf8'));
+  const after = JSON.parse(await readFile(afterPath, 'utf8'));
+  after.components.schemas.subscription.properties.period_end =
+    before.components.schemas.subscription.properties.current_period_end;
+  await writeFile(afterPath, JSON.stringify(after));
   let request: { instructions: string; input: { content: string }[] } | undefined;
   vi.stubGlobal(
     'fetch',
@@ -518,7 +524,7 @@ it('sends unmigrated webhook reads to AI with version-tolerant instructions', as
                         findingId: evidence.findings[0].id,
                         original: 'return subscription.current_period_end;',
                         replacement:
-                          "return Reflect.get(subscription, 'current_period_end') ?? null;",
+                          "return Reflect.get(subscription, 'current_period_end') ?? subscription.period_end;",
                       },
                     ],
                   }),

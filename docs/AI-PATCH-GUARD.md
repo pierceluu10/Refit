@@ -133,6 +133,8 @@ Reject an AI patch that newly reads an **added** field of the affected response 
 
 Reject an AI patch if an edited file still reads a removed field **and the patch introduces no read of an added field**. For example `(model.owned_by ?? '').toLowerCase()` hides the break instead of migrating it.
 
+The analyzer does not trace string-key reads, so rule 5 also checks them directly (October 20). On lines the model wrote, a `Reflect.get(object, 'removed_field')` is rejected when the original code read that field and the enclosing expression reads nothing else from `object`. A version-tolerant webhook read, as the AI instructions ask for, passes: `Reflect.get(session, 'shipping_details') ?? session.collected_information?.shipping_details`, even split across lines. This rule was added after `oMiguelwnl/Borcelle_admin` validated with `Reflect.get(session, "shipping_details") ?? Reflect.get(session, "shipping_details")`, which never reads the new location.
+
 A backward-compatible fallback that reads the new field first is allowed, for example `(file.file_name ?? file.filename).toLowerCase()`. A recorded correct fix does exactly this, and an earlier, broader version of this rule would have blocked it. The rule reuses the rescan `proposeAiPatch()` already runs. It applies only to AI patches; deterministic rules keep their current `unresolvedFindings` reporting.
 
 ### Expected impact on the recorded guard run

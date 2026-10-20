@@ -441,6 +441,30 @@ it('rejects a pure fallback that keeps reading the removed field', async () => {
   );
 });
 
+it('rejects a fallback that reads the removed field through Reflect.get', async () => {
+  const { inputs, edit } = await openaiInputs();
+  respond([
+    edit("String(Reflect.get(model, 'owned_by') ?? Reflect.get(model, 'owned_by')).toLowerCase()"),
+  ]);
+  await expect(runPipeline({ ...inputs, aiPatch: OPTIONS })).rejects.toThrow(
+    'AI replacement still reads removed field Model.owned_by by string key in models.js:5 without reading any added field.',
+  );
+});
+
+it('accepts a version-tolerant string-key read split across lines', async () => {
+  const { inputs, edit } = await openaiInputs();
+  respond([edit("String(Reflect.get(model, 'owned_by') ??\n    model.owner_name).toLowerCase()")]);
+  const report = await runPipeline({ ...inputs, aiPatch: OPTIONS });
+  expect(report.patch).toMatchObject({ status: 'proposed', edits: 1 });
+});
+
+it('accepts a string-key fallback next to a read of the added field', async () => {
+  const { inputs, edit } = await openaiInputs();
+  respond([edit("String(model.owner_name ?? Reflect.get(model, 'owned_by')).toLowerCase()")]);
+  const report = await runPipeline({ ...inputs, aiPatch: OPTIONS });
+  expect(report.patch).toMatchObject({ status: 'proposed', edits: 1 });
+});
+
 it('accepts a backward-compatible fallback that reads the added field first', async () => {
   const { inputs, edit } = await openaiInputs();
   respond([edit('(model.owner_name ?? model.owned_by).toLowerCase()')]);

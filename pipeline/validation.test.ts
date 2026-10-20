@@ -129,15 +129,17 @@ it.skipIf(!IMAGE).each(['preserve', 'conflict', 'dynamic'] as const)(
       "new Stripe('test', { apiVersion: '2022-08-01' })",
     );
     const root = await repository(true, original);
-    const migrated = original.replace(
+    // The model edits the rule-patched code, whose apiVersion literal is already the target.
+    const bumped = original.replace("apiVersion: '2022-08-01'", "apiVersion: '2022-11-15'");
+    const migrated = bumped.replace(
       'intent.charges.data',
       '(await stripe.charges.list({ payment_intent: intent.id })).data',
     );
     const replacement =
       versionChange === 'conflict'
-        ? migrated.replace("apiVersion: '2022-08-01'", "apiVersion: '2022-11-15'")
+        ? migrated.replace("apiVersion: '2022-11-15'", "apiVersion: '2023-10-16'")
         : versionChange === 'dynamic'
-          ? migrated.replace("apiVersion: '2022-08-01'", 'apiVersion: process.env.RUNTIME_VERSION')
+          ? migrated.replace("apiVersion: '2022-11-15'", 'apiVersion: process.env.RUNTIME_VERSION')
           : migrated;
     vi.stubGlobal(
       'fetch',
@@ -161,7 +163,7 @@ it.skipIf(!IMAGE).each(['preserve', 'conflict', 'dynamic'] as const)(
                       edits: [
                         {
                           file: 'billing.js',
-                          original,
+                          original: bumped,
                           replacement,
                           findingId: input.findings[0].id,
                         },
@@ -476,7 +478,9 @@ it.skipIf(!IMAGE)(
     }
     const report = JSON.parse(await readFile(join(bundle, 'report.json'), 'utf8'));
     expect(await readFile(join(bundle, 'migration.patch'), 'utf8')).toBe(report.patch.diff);
-    expect(await readFile(join(bundle, 'pull-request.md'), 'utf8')).toContain('Human review');
+    expect(await readFile(join(bundle, 'pull-request.md'), 'utf8')).toContain(
+      'Publication: Local review artifact; Refit has not pushed a branch or opened a pull request.',
+    );
     expect(report.validation.status).toBe('passed');
     expect(report.validation.baseline.stdout).toContain('charge history passed');
     expect(report.validation.patched.stdout).toContain('charge history passed');
