@@ -1,15 +1,22 @@
-import { readFile } from 'node:fs/promises';
+import { readFile, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 import { loadDeadlineRegistry } from './deadline-registry.ts';
 import { scanGraphCalls, type GraphCall } from './meta-graph-calls.ts';
-import { checkMetaGraphChanges, DEFAULT_META_GRAPH_CHANGES } from './meta-graph-changes.ts';
+import {
+  checkMetaGraphChanges,
+  DEFAULT_META_GRAPH_CHANGES,
+  loadMetaGraphChanges,
+} from './meta-graph-changes.ts';
+import { proposeVersionMoves } from './meta-graph-moves.ts';
 import { parseObject } from './specifications.ts';
 import { terminalText } from './workflow-presentation.ts';
 
 const USAGE = `Usage: refit meta-graph [--repository <root>] [--json]
+       refit meta-graph --propose-version-moves --target <version> [--repository <root>] [--output <patch>] [--changes <path>] [--json]
        refit meta-graph --check-changes [--changes <path>] [--json]
 Lists the Meta Graph API requests a repository makes: raw graph.facebook.com calls through fetch, axios and helpers, and facebook-nodejs-business-sdk resource-class calls. Each shows file:line, the pinned version, the path and edge, and the requested fields and metrics where they are written literally. Values built at runtime are marked unknown, with the reason.
+--propose-version-moves proposes moving each pinned Graph API version to --target only where every request through it is fully known and every changelog crossed is reviewed and lists nothing those requests use; every other pin stops for review with the exact reasons. It prints a patch, or writes it to --output; it never applies, validates or publishes it.
 --check-changes validates the reviewed per-version change list in data/meta-graph-changes.json, lists versions whose changelog was not read, and versions the deadline registry has that the list does not. It exits 1 on any error.
 Review only: nothing is changed, installed, run or sent to Meta.`;
 
@@ -18,6 +25,9 @@ try {
     options: {
       repository: { type: 'string' },
       'check-changes': { type: 'boolean' },
+      'propose-version-moves': { type: 'boolean' },
+      target: { type: 'string' },
+      output: { type: 'string' },
       changes: { type: 'string' },
       json: { type: 'boolean' },
       help: { type: 'boolean' },
@@ -25,6 +35,14 @@ try {
   });
   if (values.help) console.log(USAGE);
   else if (values['check-changes']) await checkChanges(values.changes, values.json);
+  else if (values['propose-version-moves'])
+    await proposeMoves(
+      resolve(values.repository ?? '.'),
+      values.target,
+      values.changes,
+      values.output,
+      values.json,
+    );
   else {
     const root = resolve(values.repository ?? '.');
     const scan = await scanGraphCalls(root);
@@ -126,4 +144,49 @@ async function checkChanges(path: string | undefined, json: boolean | undefined)
       );
   }
   process.exitCode = report.errors.length ? 1 : 0;
+}
+
+async function proposeMoves(
+  root: string,
+  target: string | undefined,
+  changesPath: string | undefined,
+  output: string | undefined,
+  json: boolean | undefined,
+) {
+  if (!target) throw new TypeError('--propose-version-moves requires --target, such as v24.0.');
+  const now = new Date();
+  const changes = await loadMetaGraphChanges(
+    changesPath ? resolve(changesPath) : DEFAULT_META_GRAPH_CHANGES,
+    now,
+  );
+  const registry = await loadDeadlineRegistry(undefined, now);
+  const proposal = await proposeVersionMoves(root, target, changes, registry, now);
+  if (output && proposal.patch) await writeFile(resolve(output), proposal.patch);
+  if (json) {
+    console.log(JSON.stringify({ repository: root, checkedAt: now.toISOString(), ...proposal }));
+    return;
+  }
+  console.log(
+    `Refit Meta Graph API version moves to ${terminalText(target)}  ${terminalText(root)}`,
+  );
+  console.log(
+    'Review only: nothing was applied or validated. Whether a hand-kept change list is enough evidence for an automatic edit is an owner decision; apply a move on a branch and run your checks.',
+  );
+  if (!proposal.moves.length && !proposal.stops.length)
+    console.log('\nNo request pins a Graph API version older than the target.');
+  for (const move of proposal.moves)
+    console.log(
+      `\n${terminalText(`${move.file}:${move.line}`)}  ${move.from} to ${move.to}\n  Crosses      ${terminalText(move.crossed.join(', '))}\n  Requests     ${terminalText(move.requests.map((item) => `${item.file}:${item.line}`).join(' '))}`,
+    );
+  if (proposal.stops.length) console.log('\nStopped for review:');
+  for (const stop of proposal.stops) {
+    console.log(
+      `\n  ${stop.file ? terminalText(`${stop.file}:${stop.line}  ${stop.from}`) : 'No pinned version'}  (${stop.requests.length} ${stop.requests.length === 1 ? 'request' : 'requests'})`,
+    );
+    for (const reason of stop.reasons) console.log(`    ${terminalText(reason)}`);
+  }
+  if (proposal.current.length)
+    console.log(`\n${proposal.current.length} requests already use ${terminalText(target)}.`);
+  if (proposal.patch && output) console.log(`\nPatch written to ${terminalText(resolve(output))}`);
+  else if (proposal.patch) console.log(`\n${proposal.patch}`);
 }
