@@ -190,7 +190,7 @@ One side effect: `shreevalikushe/facebook-test` was matched for Graph API v20.0 
 
 ## Limits
 
-- The labels were made by Claude in one pass and have not been checked by a second labeller. Furqan is the intended second labeller. Until then, treat the labels as one reviewer's reading.
+- The labels were made in a single AI-assisted pass and have not been checked by a second labeller. Furqan is the intended second labeller. Until then, treat the labels as one reviewer's reading.
 - The frame is code-search hits for common strings. These rates do not generalize to all repositories, and they likely overstate exposure compared with a random sample of active repositories.
 - Recall is measured against a deliberately loose string search, not against the full set of runtime values. Pins in non-JS files are out of scope for both.
 - 32 labelled repositories give wide per-provider intervals. Small cells, such as Shopify line recall, are dominated by single repositories.

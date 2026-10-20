@@ -1,6 +1,6 @@
 {
  "formatVersion": 1,
- "labeller": "Claude (Opus 5.5), single pass; not yet second-labelled",
+ "labeller": "single AI-assisted pass; not yet second-labelled",
  "categories": {
   "live": "real pin in a live call path",
   "option": "one entry in a model list, type union or config that a caller may pick",
