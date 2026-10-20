@@ -1,6 +1,6 @@
 # Provider goals
 
-One goal per API provider, shaped like [the Stripe goal](STRIPE-PLAN.md#definition-of-done): a frozen benchmark of real public repositories, a share of affected repositories that end in a validated fix, zero wrong fixes on hand review, and every remaining stop named as an owner decision. Written 2026-10-20 from the files cited in each section. Nothing here claims support that [READINESS.md](READINESS.md) does not record.
+One goal per API provider, shaped like [the Stripe goal](STRIPE-PLAN.md#definition-of-done): a frozen benchmark of real public repositories, a share of affected repositories that end in a validated fix, zero wrong fixes on hand review, and every remaining stop named as an owner decision. Written 2026-10-20 from the files cited in each section. Nothing here claims support that [READINESS.md](READINESS.md) does not record. Doing the same outside TypeScript and JavaScript is covered in [Language goals](LANGUAGE-GOALS.md).
 
 Rules that apply to every provider, from [AGENTS.md](../AGENTS.md):
 
