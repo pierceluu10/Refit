@@ -138,3 +138,29 @@ it('leaves the shipped registry unchanged against the page it was written from',
   expect([sync.added, sync.changed, sync.missing]).toEqual([[], [], []]);
   expect(sync.registry).toEqual(registry);
 });
+
+it('stops when the page splits one registry entry across retirement dates', () => {
+  const registry: DeadlineRegistry = {
+    formatVersion: 1,
+    deadlines: [
+      {
+        id: 'anthropic-2025-07-21-claude-2.0',
+        provider: 'anthropic',
+        kind: 'model',
+        versions: ['claude-2.0', 'claude-2.1'],
+        date: '2025-07-21',
+        summary: 'Claude 2.',
+        replacement: 'claude-opus-4-8',
+        source: ANTHROPIC_DEPRECATIONS,
+        checkedAt: '2026-10-20',
+      },
+    ],
+  };
+  const page = PAGE.replace('| July 21, 2025   | `claude-2.1`', '| August 4, 2025  | `claude-2.1`');
+  expect(page).not.toBe(PAGE);
+  expect(() =>
+    syncAnthropicDeadlines(registry, parseAnthropicDeprecations(page), '2026-10-21'),
+  ).toThrow(
+    "Anthropic's page splits registry entry anthropic-2025-07-21-claude-2.0 across retirement dates or replacements; update it by hand.",
+  );
+});
