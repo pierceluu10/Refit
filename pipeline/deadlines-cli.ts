@@ -12,6 +12,7 @@ import {
   checkDeadlineRegistry,
   DEFAULT_DEADLINE_REGISTRY,
   loadDeadlineRegistry,
+  type DeadlineRegistry,
 } from './deadline-registry.ts';
 import {
   applyDeadlineIgnores,
@@ -22,15 +23,22 @@ import {
   type DeadlineIgnore,
 } from './deadline-ignores.ts';
 import { proposeModelReplacements } from './model-retirements.ts';
+import {
+  ANTHROPIC_DEPRECATIONS,
+  parseAnthropicDeprecations,
+  syncAnthropicDeadlines,
+} from './deadline-sync.ts';
 import { parseObject } from './specifications.ts';
 import { terminalText } from './workflow-presentation.ts';
 
 const USAGE = `Usage: refit deadlines [--repository <root>] [--fail-within <days>] [--ignore-file <path>] [--registry <path>] [--json]
        refit deadlines --propose-model-fixes [--repository <root>] [--output <patch>] [--registry <path>] [--json]
        refit deadlines --check-registry [--registry <path>] [--json]
+       refit deadlines --sync anthropic [--registry <path>] [--write] [--json]
 Lists API versions and models a repository pins that have a provider sunset date in the reviewed registry, with file:line evidence. Only live code counts; model lists, tests, examples, comments, tokenizers and checks are listed separately.
 --fail-within <days> exits 2 when a live exposure is past due or within that many days, for CI. Reviewed, expiring exceptions go in ${DEADLINE_IGNORE_FILE} at the repository root; --ignore-file reads another file. Exit 0 means the check passed, 1 an error (including an invalid ignore file).
 --propose-model-fixes proposes replacing retiring OpenAI and Anthropic model IDs with the registry replacement, only where the ID is a literal model in a traced SDK call, and lists every case that stops for review. It prints a patch, or writes it to --output; it never applies, validates or publishes it.
+--sync anthropic reads Anthropic's model deprecations page and lists registry entries to add or update; --write saves them. It never deletes an entry. A scheduled workflow runs it and opens a pull request for review.
 --check-registry validates the registry and flags past-due entries and entries without a source. Nothing runs, installs or contacts a provider.`;
 
 try {
@@ -42,6 +50,8 @@ try {
       'fail-within': { type: 'string' },
       'ignore-file': { type: 'string' },
       'propose-model-fixes': { type: 'boolean' },
+      sync: { type: 'string' },
+      write: { type: 'boolean' },
       output: { type: 'string' },
       json: { type: 'boolean' },
       help: { type: 'boolean' },
@@ -50,7 +60,50 @@ try {
   const now = new Date();
   const registryPath = values.registry ? resolve(values.registry) : DEFAULT_DEADLINE_REGISTRY;
   if (values.help) console.log(USAGE);
-  else if (values['check-registry']) {
+  else if (values.sync !== undefined) {
+    if (values.sync !== 'anthropic')
+      throw new Error('--sync supports anthropic; other providers are maintained by hand.');
+    const path = values.registry ? resolve(values.registry) : DEFAULT_DEADLINE_REGISTRY;
+    const registry = parseObject(await readFile(path, 'utf8'), 'Deadline registry');
+    const response = await fetch(`${ANTHROPIC_DEPRECATIONS}.md`);
+    if (!response.ok)
+      throw new Error(`${ANTHROPIC_DEPRECATIONS}.md answered HTTP ${response.status}.`);
+    const rows = parseAnthropicDeprecations(await response.text());
+    const today = now.toISOString().slice(0, 10);
+    const current = checkDeadlineRegistry(registry, now);
+    if (current.errors.length)
+      throw new Error(`Deadline registry is invalid: ${current.errors.slice(0, 5).join(' ')}`);
+    const sync = syncAnthropicDeadlines(registry as unknown as DeadlineRegistry, rows, today);
+    const report = checkDeadlineRegistry(sync.registry, now);
+    if (report.errors.length)
+      throw new Error(`Synced registry would be invalid: ${report.errors.slice(0, 5).join(' ')}`);
+    const write = values.write && (sync.added.length > 0 || sync.changed.length > 0);
+    if (write) await writeFile(path, `${JSON.stringify(sync.registry, null, 2)}\n`);
+    if (values.json)
+      console.log(
+        JSON.stringify({
+          source: ANTHROPIC_DEPRECATIONS,
+          rows: rows.length,
+          added: sync.added,
+          changed: sync.changed,
+          missing: sync.missing,
+          written: Boolean(write),
+        }),
+      );
+    else {
+      console.log(
+        `Anthropic deprecations  ${rows.length} retirements on ${ANTHROPIC_DEPRECATIONS}`,
+      );
+      for (const id of sync.added) console.log(`  add      ${terminalText(id)}`);
+      for (const id of sync.changed) console.log(`  update   ${terminalText(id)}`);
+      for (const id of sync.missing)
+        console.log(`  missing  ${terminalText(id)} (no longer on the page; kept for review)`);
+      if (!sync.added.length && !sync.changed.length)
+        console.log('  The registry already matches the page.');
+      else if (write) console.log(`Written to ${terminalText(String(path))}`);
+      else console.log('Run with --write to save these changes.');
+    }
+  } else if (values['check-registry']) {
     const report = checkDeadlineRegistry(
       parseObject(await readFile(registryPath, 'utf8'), 'Deadline registry'),
       now,
