@@ -1,5 +1,11 @@
 # Refit implementation checkpoints
 
+## October 20 checkpoint: `allOf` response schemas and OpenAI `responses.create` (unreleased, after 0.39.0)
+
+Adapter mappings used to require a response schema with directly declared properties, so OpenAI's `Response`, an `allOf` of `ModelResponseProperties`, `ResponseProperties` and its own fields, could not be mapped. When a spec is loaded, a component that is an `allOf` of plain object schemas (references or inline objects, followed recursively) is now merged into one object schema with the union of their properties and required fields. This applies only to the schema map that analysis reads; the document oasdiff compares is unchanged. Parts with `anyOf`, `oneOf`, `not`, a discriminator or a non-object type, and parts that declare the same property differently, are left as they were.
+
+The OpenAI adapter now maps `responses.create` → `Response` (operation ID `createResponse`). In OpenAI's published document (info.version 2.3.0), 22 components merge, including `Response` with 37 properties. Stripe's current `spec3.json` has no component-level `allOf`, so Stripe results do not change. A test runs the shipped adapter on a trimmed contract with that `Response` shape and a simulated removal from `ResponseProperties`, which is reported at the property read.
+
 ## October 20 checkpoint: Stripe pipeline hardening (unreleased, after 0.39.0)
 
 Three owner decisions (2026-10-20) are recorded below: untraced reads count as unresolved, npm `ERESOLVE` is retried with `--legacy-peer-deps`, and strict forwarding Proxy exports are traced. No other gate was relaxed. Benchmarks were not rerun; the reasons below come from the October 16 results and from parsing the affected repositories' committed files.
