@@ -1,6 +1,6 @@
 {
  "formatVersion": 1,
- "labeller": "Claude (Opus 5.5), single pass, read in context; not yet second-labelled",
+ "labeller": "single AI-assisted pass, read in context; not yet second-labelled",
  "labelledRepos": [
   "urvana/appscript-chatgpt",
   "chinmaymk/aikit",

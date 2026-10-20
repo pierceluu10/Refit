@@ -16,7 +16,7 @@ A 20-repository pilot, run before deciding on a full benchmark. It asks two ques
   - **test-docs:** tests, examples, comments or dev scripts;
   - **false-positive:** the string does not select a provider version or model.
 
-  Labels are in [`2026-10-15-deadline-pilot-labels.json`](2026-10-15-deadline-pilot-labels.json). Claude did them in one pass, and they have not been second-labelled. Each repository's search-hit files were also grepped by hand for pins that Refit missed.
+  Labels are in [`2026-10-15-deadline-pilot-labels.json`](2026-10-15-deadline-pilot-labels.json). They were made in a single AI-assisted pass and have not been second-labelled. Each repository's search-hit files were also grepped by hand for pins that Refit missed.
 
 Intervals are 95% Wilson. The estimand is **the share of active repositories found by these searches**, not of all JS/TS repositories. Code search ranks by best match and returns at most 100 hits per query, so the frame is not a uniform sample of GitHub.
 
