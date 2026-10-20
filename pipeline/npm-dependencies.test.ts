@@ -466,6 +466,7 @@ it('runs validation containers on the default 2 GiB workspace and 3 GiB memory, 
   expect(args).toContain('/workspace:rw,exec,size=2g,uid=65534,gid=65534,mode=0700');
   expect(args[args.indexOf('--memory') + 1]).toBe('3g');
   expect(args[args.indexOf('--network') + 1]).toBe('none');
+  expect(args[args.indexOf('--env') + 1]).toBe('CI=true');
 });
 
 it('enlarges validation only through a known REFIT_VALIDATION_WORKSPACE profile', () => {
