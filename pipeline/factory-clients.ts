@@ -8,8 +8,9 @@ type Value = 'client' | 'null' | undefined;
 
 // Clients created behind a factory: a function whose every return is a client (or null), a
 // module `let` holder that is only ever assigned clients (`_stripe ??= new Stripe(key)`), or a
-// constant like `key ? new Stripe(key) : null`. Any other write to the holder or the factory, a
-// generator or an async factory, or a return of anything else leaves the client untraced.
+// constant like `key ? new Stripe(key) : null`. An async factory counts only when every call to it
+// is awaited at once. Any other write to the holder or the factory, a generator, or a return of
+// anything else leaves the client untraced.
 export function factoryClients(options: {
   nodes: ts.Node[];
   clients: Set<ts.Symbol>;
@@ -28,6 +29,7 @@ export function factoryClients(options: {
   })[] = [];
   const writes = new Map<ts.Symbol, ts.Expression[]>();
   const rejected = new Set<ts.Symbol>();
+  const asyncFactories = new Set<ts.Symbol>();
 
   function unwrap(expression: ts.Expression): ts.Expression {
     if (
@@ -57,13 +59,17 @@ export function factoryClients(options: {
   const combine = (values: Value[]): Value =>
     values.includes(undefined) ? undefined : values.includes('client') ? 'client' : 'null';
 
+  // An async factory's call is a promise; only `await factory()` is the client.
   function factoryCall(expression: ts.Expression) {
-    const value = unwrap(expression);
+    const outer = unwrap(expression);
+    const awaited = ts.isAwaitExpression(outer);
+    const value = ts.isAwaitExpression(outer) ? unwrap(outer.expression) : outer;
     if (!ts.isCallExpression(value) || value.questionDotToken) return;
     const callee = unwrap(value.expression);
     if (!ts.isIdentifier(callee)) return;
     const binding = symbol(callee);
-    return binding && factories.has(binding) ? binding : undefined;
+    if (!binding || !factories.has(binding)) return;
+    return awaited || !asyncFactories.has(binding) ? binding : undefined;
   }
   function value(expression: ts.Expression, found: Creation[] = []): Value {
     const current = unwrap(expression);
@@ -137,7 +143,17 @@ export function factoryClients(options: {
   }
   for (const [binding, factory] of candidateFactories)
     if (factory.modifiers?.some((modifier) => modifier.kind === ts.SyntaxKind.AsyncKeyword))
-      rejected.add(binding);
+      asyncFactories.add(binding);
+  // A promise from an async factory that is not awaited at once could carry the client anywhere.
+  for (const node of nodes) {
+    if (!ts.isCallExpression(node)) continue;
+    const callee = unwrap(node.expression);
+    const binding = ts.isIdentifier(callee) ? symbol(callee) : undefined;
+    if (!binding || !asyncFactories.has(binding)) continue;
+    let parent = node.parent;
+    while (ts.isParenthesizedExpression(parent)) parent = parent.parent;
+    if (node.questionDotToken || !ts.isAwaitExpression(parent)) rejected.add(binding);
+  }
   // Holders and factories may only be written by a plain replacement of the whole binding.
   for (const node of nodes) {
     if (!ts.isIdentifier(node)) continue;
