@@ -1,0 +1,8 @@
+{
+  "name": "meta-graph-fixture",
+  "private": true,
+  "dependencies": {
+    "axios": "^1.7.0",
+    "facebook-nodejs-business-sdk": "^20.0.2"
+  }
+}
