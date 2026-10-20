@@ -15,17 +15,16 @@ The Stripe agent is finished when a rerun of every frozen set (the 531 Stripe re
 - **0** wrong fixes on hand review of every validated fix;
 - every remaining stop is a named, documented owner decision, not an unbuilt feature.
 
-Where it stands ([October 16 numbers](BENCHMARKS.md#stripe-node-upgrade-for-pnpm-and-yarn-and-the-active-teams-set-october-16)): **74 of 234** affected repositories validated (32%). The stops, largest first, and what clears each:
+Where it stands (rerun of every set from `6d4f38a`, October 20): **102 of 231** affected repositories in the 531 validated (**44%**, up from 74 of 234 on [October 16](BENCHMARKS.md#stripe-node-upgrade-for-pnpm-and-yarn-and-the-active-teams-set-october-16)); original 15 of 37, held-out 12 of 21, fresh 75 of 173. Active teams: 1 of 22 affected validated, and 1,361 of 1,895 likely calls traced (72%, against 35%); only 4 repositories trace none, down from 32. The stops on the 531, largest first, and what clears each:
 
-| Stop                                                                             | Repositories | Clears it                                                                                                          |
-| -------------------------------------------------------------------------------- | ------------ | ------------------------------------------------------------------------------------------------------------------ |
-| `payment_method_types` outside the card rule                                     | 82           | Owner-reviewed replacement policy for other values (the listed-methods opt-in, #104, needs per-repository config)  |
-| Refused at validation preparation                                                | 38           | Dependency preparation for the refused shapes (registry URLs, tracked `node_modules`, conflicting lockfiles, size) |
-| Regression caught by validation                                                  | 12           | Open-enum literal restore (#101), merged after the run; rerun to confirm                                           |
-| Other (declared types, invalid source, no checks, AI declined, failing baseline) | 28           | Triage per repository                                                                                              |
-| Active teams: no traced Stripe call                                              | 32           | Client factories and lazy holders (#103, async factories), merged after the run; rerun to confirm                  |
+| Stop | Repositories | Clears it |
+|---|---|---|
+| Refused at validation preparation | 54 | Largest buildable group: npm `ERESOLVE` peer conflicts (7), tracked symlinks or submodules (6). The rest are sandbox limits (dependency archive over 1 GiB: 7; source over 50 MiB: 4) or correct refusals (non-registry, patched or unverifiable sources) |
+| `payment_method_types` outside the card rule | 49 | Owner-reviewed replacement policy for other values (the listed-methods opt-in, #104, needs per-repository config) |
+| Other review stops | 15 | Declared types without SDK or event proof (6), unparseable source (3), checks pass with findings unresolved (3), conflicting declared API versions (3) |
+| Validation failed | 11 | 9 regressions, 6 of them forks of the Supabase subscription starter (`libs/supabaseAdmin.ts`) that the open-enum restore (#101) still misses; 2 failing baselines; 1 validation error |
 
-Next steps, in order: rerun every set from a pinned worktree of current `main` and refresh this table; take the policy question to the owner; then build the largest stop that needs no decision. Phase 5 (real draft PRs on forks) closes it out.
+Next steps, in order: take the policy question to the owner; then build the largest stop that needs no decision. Phase 5 (real draft PRs on forks) closes it out.
 
 ## Definition of done
 
