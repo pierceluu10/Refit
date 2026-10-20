@@ -1,5 +1,16 @@
 # Refit implementation checkpoints
 
+## October 20 checkpoint: Stripe pipeline hardening (unreleased, after 0.39.0)
+
+No owner decision or gate changed. Benchmarks were not rerun; the reasons below come from the October 16 results and from parsing the affected repositories' committed files.
+
+- **Tracked symbolic links are accepted when every one resolves inside the repository**, following links in its target. Absolute, escaping or looping links still refuse validation, and profile inputs must still be regular files. This was the refusal for four fresh Stripe repositories. `git apply` already refuses a patch that writes through a link or over one.
+- **Byte order marks.** A `package.json` with a BOM, which npm accepts, refused the whole scan as invalid JSON. A script whose shebang follows a BOM was unparseable, which fails the scan when it imports Stripe. Both are read now; patched manifests keep the BOM. Of the eight repositories stopped by unparseable files, one had this cause; the other seven contain genuinely broken files and still stop for review.
+- **Draft PR descriptions say what the code uses.** A card-rule draft (most validated Stripe fixes) said the API "removes fields this code reads", listed "response fields the API usages recorded in the technical evidence" and described the rename as migrated reads. Under `--full-diff` it could also list removals the code never reads. The overview, breaking changes and key changes now name only removed fields the code reads, removed request fields it sends and retired endpoints it calls, with the endpoints' paths.
+- **Docker-gated tests** for the demo, subscription periods, validation, workspaces, endpoint and request migrations were updated to the current patch and PR template; they had fallen behind because the default suite skips them.
+
+The default suite passed **1,452 tests across 96 files** (78 gated tests skipped), plus typecheck, formatting and build. With `REFIT_DOCKER_IMAGE=node:22-alpine REFIT_NPM_PREPARE=1 REFIT_STRIPE_SDK=1 REFIT_OPENAI_SDK=1 REFIT_OASDIFF=1`, **1,526 passed** and 4 skipped (external billing repository and package-install gates). All simulated; no live provider or model was called.
+
 ## October 16 checkpoint: stripe-node upgrade for pnpm and Yarn 1, and an active-teams set (unreleased, after 0.39.0)
 
 **Validated Stripe fixes went from 53 to 74 on the same 531 repositories** (fresh 35 → 52, original 11 → 13, held-out 7 → 9), with no owner decision changed. Every new fix comes from making an existing deterministic fix installable:
