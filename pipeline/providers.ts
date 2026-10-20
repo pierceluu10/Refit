@@ -64,7 +64,7 @@ export function validateProviderMappings(
   for (const operation of provider.operations) {
     if (resolvableComponentSchema(schemas, operation.schema)) continue;
     throw new PipelineInputError(
-      `Provider operation ${operation.resource}.${operation.method} maps to schema "${operation.schema}", which is missing or unsupported in the before specification. Map it to a local component object schema with directly declared properties.`,
+      `Provider operation ${operation.resource}.${operation.method} maps to schema "${operation.schema}", which is missing or unsupported in the before specification. Map it to a local component object schema with directly declared properties, or an allOf of such schemas.`,
     );
   }
 }

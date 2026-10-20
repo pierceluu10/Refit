@@ -17,7 +17,7 @@ Refit reads committed `package.json` declarations and the matching npm, pnpm or 
 | Provider | Detected from | Agent |
 |---|---|---|
 | Stripe | `stripe`, `api.stripe.com`, `files.stripe.com`, `connect.stripe.com` | built-in |
-| OpenAI | `openai`, `api.openai.com` | `examples/openai.provider.json` (preview: `models.retrieve`, `chat.completions.create` and `embeddings.create`, with the response schemas and operation IDs of OpenAI's published OpenAPI document; extend it with `refit adapter-suggest`) |
+| OpenAI | `openai`, `api.openai.com` | `examples/openai.provider.json` (preview: `models.retrieve`, `chat.completions.create`, `responses.create` and `embeddings.create`, with the response schemas and operation IDs of OpenAI's published OpenAPI document; extend it with `refit adapter-suggest`) |
 | Anthropic | `@anthropic-ai/sdk`, `api.anthropic.com` | none yet; `examples/anthropic.provider.json` traces `messages` calls for [model replacement proposals](DEADLINES.md#propose-model-replacements), but Anthropic publishes no contract for `refit run` |
 | Shopify | `@shopify/shopify-api`, `@shopify/admin-api-client`, `@shopify/shopify-app-remix`, `@shopify/shopify-app-react-router`, `@shopify/shopify-app-express`, `shopify-api-node`, `myshopify.com/admin/api` | built-in, Admin GraphQL ([Shopify](SHOPIFY.md)); `shopify-api-node` and REST calls are detected but not migrated |
 | Meta Graph API | `facebook-nodejs-business-sdk`, `graph.facebook.com` | none yet |
