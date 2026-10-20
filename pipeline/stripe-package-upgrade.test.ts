@@ -483,6 +483,22 @@ it('upgrades a Yarn 1 lockfile and prunes the blocks only the old stripe used', 
   );
 });
 
+it('upgrades a package.json that starts with a byte order mark and keeps the mark', async () => {
+  registry({
+    dist: {
+      tarball: `https://registry.npmjs.org/stripe/-/stripe-${TARGET}.tgz`,
+      integrity: INTEGRITY,
+      shasum: 'b'.repeat(40),
+    },
+  });
+  const manifest = '\uFEFF{\n  "dependencies": {\n    "stripe": "^12.18.0"\n  }\n}\n';
+  for (const root of [await project({ manifest }), await yarnProject(yarnLock(), manifest)]) {
+    const result = await stripePackageUpgrade(root, '2026-09-30.endive');
+    if (!('upgrade' in result)) throw new Error(result.reason);
+    expect(result.upgrade.files[0].after).toBe(manifest.replace('^12.18.0', `^${TARGET}`));
+  }
+});
+
 it('keeps blocks the root still uses after a Yarn 1 upgrade', async () => {
   registry({
     dist: {

@@ -1,4 +1,4 @@
-import { cp, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { cp, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { afterEach, expect, it } from 'vitest';
@@ -25,4 +25,29 @@ it('scans the rest of a repository when one file cannot be parsed, and reports i
       /^Skipped unparseable file; its API usage was not scanned\. broken\.ts: /,
     ),
   );
+});
+
+it('reads a manifest and a shebang script that start with a byte order mark', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'refit-skip-'));
+  roots.push(root);
+  await cp(resolve('pipeline/fixtures/repository'), root, { recursive: true });
+  const manifest = join(root, 'package.json');
+  await writeFile(manifest, `\uFEFF${await readFile(manifest, 'utf8')}`);
+  await writeFile(
+    join(root, 'seed.mjs'),
+    "\uFEFF#!/usr/bin/env node\nimport Stripe from 'stripe';\nconst stripe = new Stripe('sk_test');\nconst intent = await stripe.paymentIntents.retrieve('pi_1');\nconsole.log(intent.charges.data);\n",
+  );
+  const report = await runPipeline({
+    repository: root,
+    before: resolve('pipeline/fixtures/before.json'),
+    after: resolve('pipeline/fixtures/after.json'),
+  });
+  expect(report.repository.dependencies[0]).toMatchObject({
+    file: 'package.json',
+    version: '^10.0.0',
+  });
+  expect(report.warnings.filter((warning) => warning.includes('unparseable'))).toEqual([]);
+  expect(
+    report.findings.filter((finding) => finding.file === 'seed.mjs').map((finding) => finding.line),
+  ).toEqual([5]);
 });

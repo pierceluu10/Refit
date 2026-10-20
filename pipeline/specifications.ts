@@ -66,10 +66,15 @@ export function resolvableComponentSchema(schemas: Record<string, unknown>, name
   return undefined;
 }
 
+// npm and Node ignore a leading byte order mark in JSON files, which Windows editors write.
+export function parseJson(content: string): unknown {
+  return JSON.parse(content.replace(/^\uFEFF/, ''));
+}
+
 export function parseObject(content: string, label: string): JsonObject {
   let parsed: unknown;
   try {
-    parsed = JSON.parse(content);
+    parsed = parseJson(content);
   } catch (cause) {
     throw new PipelineInputError(`${label} is not valid JSON.`, { cause });
   }

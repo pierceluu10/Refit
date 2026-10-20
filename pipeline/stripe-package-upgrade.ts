@@ -7,7 +7,7 @@ import {
   SpecificationUnavailableError,
 } from './network.ts';
 import { EXACT_PACKAGE_VERSION } from './npm-lock.ts';
-import { isObject } from './specifications.ts';
+import { isObject, parseJson } from './specifications.ts';
 
 // Latest stripe-node release pinned to each API version.
 // Source: stripe-node release tags (VERSION with API_VERSION / OPENAPI_VERSION), as mapped for the
@@ -275,8 +275,8 @@ async function npmUpgrade(
 ): Promise<{ upgrade: PackageUpgrade } | Refusal> {
   let manifest: unknown, lock: unknown;
   try {
-    manifest = JSON.parse(manifestText);
-    lock = JSON.parse(lockText);
+    manifest = parseJson(manifestText);
+    lock = parseJson(lockText);
   } catch {
     return { reason: 'package.json or package-lock.json is not valid JSON.' };
   }
@@ -399,7 +399,7 @@ async function pnpmUpgrade(
 ): Promise<{ upgrade: PackageUpgrade } | Refusal> {
   let manifest: unknown;
   try {
-    manifest = JSON.parse(manifestText);
+    manifest = parseJson(manifestText);
   } catch {
     return { reason: 'package.json is not valid JSON.' };
   }
@@ -762,7 +762,7 @@ async function yarnUpgrade(
 ): Promise<{ upgrade: PackageUpgrade } | Refusal> {
   let manifest: unknown;
   try {
-    manifest = JSON.parse(manifestText);
+    manifest = parseJson(manifestText);
   } catch {
     return { reason: 'package.json is not valid JSON.' };
   }
@@ -812,7 +812,7 @@ async function yarnUpgrade(
   const manifestAfter = declared.rewrite(target);
   const before = reachableBlocks(manifest, parsed.blocks);
   const updated = parsed.blocks.map((entry) => (entry === block ? replacement : entry));
-  const after = reachableBlocks(JSON.parse(manifestAfter) as Record<string, unknown>, updated);
+  const after = reachableBlocks(parseJson(manifestAfter) as Record<string, unknown>, updated);
   // Drop only what the old stripe made reachable: blocks nothing else in the root graph uses.
   const kept = updated.filter((entry) => after.has(entry) || !before.has(entry));
   return {

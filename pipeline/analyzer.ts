@@ -135,9 +135,16 @@ function numericArrayIndex(expression: ts.Expression) {
   return Number.isSafeInteger(index) && index >= 0;
 }
 
+// Node runs a script whose shebang follows a byte order mark, and tsc strips the mark when it
+// reads a file, but the parser accepts a shebang only at offset 0. A comment of the same length
+// keeps every offset that edits use.
+function parseableText(content: string) {
+  return content.startsWith('\uFEFF#!') ? `\uFEFF//${content.slice(3)}` : content;
+}
+
 // Syntax errors in one source file; analyzeRepository skips such files instead of failing.
 export function syntaxErrors(path: string, content: string) {
-  const source = ts.createSourceFile(path, content, ts.ScriptTarget.Latest, true);
+  const source = ts.createSourceFile(path, parseableText(content), ts.ScriptTarget.Latest, true);
   const program = ts.createProgram(
     [path],
     { allowJs: true, noLib: true },
@@ -186,7 +193,7 @@ export function analyzeRepository(
     const content = sources.get(name);
     return content === undefined
       ? undefined
-      : ts.createSourceFile(name, content, languageVersion, true);
+      : ts.createSourceFile(name, parseableText(content), languageVersion, true);
   };
   const program = ts.createProgram([...sources.keys()], options, host);
   const checker = program.getTypeChecker();
