@@ -1,5 +1,17 @@
 # Refit implementation checkpoints
 
+## October 20 checkpoint: wider model replacement coverage (unreleased, after 0.39.0)
+
+`refit deadlines --propose-model-fixes` now covers three more shapes found on the deadline benchmark:
+
+- `createChatCompletion` on an openai v3 or `openai-edge` `OpenAIApi` client. The analyzer lists such direct client-method calls separately, and no other analysis reads them.
+- A request object held in a `const`.
+- A model `const` used by one call. Such a constant is edited where it is declared.
+
+A `const` that is exported or used more than once stops for review, as before. Legacy completions are still never proposed.
+
+On the 15 exposed OpenAI deadline-benchmark repositories, proposals went from 2 sites in 1 repository to 6 sites in 2, all correct on hand review. Stops with a reason went from 1 repository to 2. See [the results](benchmarks/2026-10-20-model-replacement-results.json).
+
 ## October 20 checkpoint: `allOf` response schemas and OpenAI `responses.create` (unreleased, after 0.39.0)
 
 Adapter mappings used to require a response schema with directly declared properties, so OpenAI's `Response`, an `allOf` of `ModelResponseProperties`, `ResponseProperties` and its own fields, could not be mapped. When a spec is loaded, a component that is an `allOf` of plain object schemas (references or inline objects, followed recursively) is now merged into one object schema with the union of their properties and required fields. This applies only to the schema map that analysis reads; the document oasdiff compares is unchanged. Parts with `anyOf`, `oneOf`, `not`, a discriminator or a non-object type, and parts that declare the same property differently, are left as they were.

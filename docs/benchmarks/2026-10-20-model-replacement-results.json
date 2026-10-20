@@ -3,7 +3,7 @@
   "ranAt": "2026-10-20",
   "refitCommit": "the commit that adds this file",
   "list": "docs/benchmarks/2026-10-16-deadline-repos.json (provider openai, 34 repositories)",
-  "note": "refit deadlines --propose-model-fixes at each pinned commit. Nothing was applied, installed or validated; no provider was contacted.",
+  "note": "refit deadlines --propose-model-fixes at each pinned commit, after v3 SDK, openai-edge, request-const and single-use model-const tracing. Nothing was applied, installed or validated; no provider was contacted. Every replacement was read by hand.",
   "repos": [
     {
       "repo": "urvana/appscript-chatgpt",
@@ -26,7 +26,24 @@
       "commit": "b0c65ebb0c84a7f8d60dd103fa4a85a1207ea870",
       "liveOctober23": true,
       "judgedExposed": "labelled",
-      "replacements": [],
+      "replacements": [
+        {
+          "file": "lib/og.ts",
+          "line": 5,
+          "call": "createChatCompletion",
+          "from": "gpt-3.5-turbo",
+          "to": "gpt-5.6-terra",
+          "deadline": "openai-2026-10-23-gpt-3-5-turbo"
+        },
+        {
+          "file": "lib/privacy.ts",
+          "line": 87,
+          "call": "createChatCompletion",
+          "from": "gpt-3.5-turbo",
+          "to": "gpt-5.6-terra",
+          "deadline": "openai-2026-10-23-gpt-3-5-turbo"
+        }
+      ],
       "stops": []
     },
     {
@@ -38,7 +55,21 @@
       "stops": [
         {
           "file": "api/custom-llm/openai-advanced.ts",
+          "line": 44,
+          "call": "chat.completions.create",
+          "model": "gpt-3.5-turbo",
+          "reason": "The request spreads other options, which may set parameters the replacement rejects."
+        },
+        {
+          "file": "api/custom-llm/openai-advanced.ts",
           "line": 61,
+          "call": "chat.completions.create",
+          "model": "gpt-3.5-turbo",
+          "reason": "The request spreads other options, which may set parameters the replacement rejects."
+        },
+        {
+          "file": "api/custom-llm/openai-sse.ts",
+          "line": 30,
           "call": "chat.completions.create",
           "model": "gpt-3.5-turbo",
           "reason": "The request spreads other options, which may set parameters the replacement rejects."
@@ -225,6 +256,22 @@
           "from": "gpt-3.5-turbo",
           "to": "gpt-5.6-terra",
           "deadline": "openai-2026-10-23-gpt-3-5-turbo"
+        },
+        {
+          "file": "app/api/journal/completion/route.ts",
+          "line": 14,
+          "call": "createChatCompletion",
+          "from": "gpt-3.5-turbo",
+          "to": "gpt-5.6-terra",
+          "deadline": "openai-2026-10-23-gpt-3-5-turbo"
+        },
+        {
+          "file": "app/api/pdfs/message/route.ts",
+          "line": 70,
+          "call": "createChatCompletion",
+          "from": "gpt-3.5-turbo",
+          "to": "gpt-5.6-terra",
+          "deadline": "openai-2026-10-23-gpt-3-5-turbo"
         }
       ],
       "stops": []
@@ -299,7 +346,22 @@
       "liveOctober23": true,
       "judgedExposed": true,
       "replacements": [],
-      "stops": []
+      "stops": [
+        {
+          "file": "lib/openai-client.ts",
+          "line": 278,
+          "call": "chat.completions.create",
+          "model": "gpt-3.5-turbo",
+          "reason": "The request object completionParams (lib/openai-client.ts:265) is exported or used elsewhere; change its model by hand to gpt-5.6-terra."
+        },
+        {
+          "file": "lib/openai-client.ts",
+          "line": 430,
+          "call": "chat.completions.create",
+          "model": "gpt-3.5-turbo",
+          "reason": "The request object completionParams (lib/openai-client.ts:416) is exported or used elsewhere; change its model by hand to gpt-5.6-terra."
+        }
+      ]
     },
     {
       "repo": "crystalnyan/takemeds-bot",

@@ -5,18 +5,13 @@ import type { DeadlineEntry, DeadlineRegistry } from './deadline-registry.ts';
 import { daysUntil } from './deadline-registry.ts';
 import { TEST_PATH } from './deadline-exposure.ts';
 import { renderPatch } from './patches.ts';
-import { readProviderAdapter } from './providers.ts';
+import { readProviderAdapter, type ProviderAdapter } from './providers.ts';
 import { readRepository } from './repository.ts';
 import type { SourceEdit } from './types.ts';
 
-// Adapters whose SDK calls carry a model argument. The Anthropic adapter is not in the agent
-// catalog yet (Anthropic publishes no contract for `refit run`), but it traces the same calls.
-const MODEL_ADAPTERS: Record<string, URL> = {
-  openai: new URL('../examples/openai.provider.json', import.meta.url),
-  anthropic: new URL('../examples/anthropic.provider.json', import.meta.url),
-};
-// Text-generation calls whose `model` selects a chat or reasoning model. Embeddings, images, audio
-// and moderation are left out: their replacements change vector sizes, formats or parameters.
+// Text-generation calls whose `model` selects a chat or reasoning model. Embeddings, images, audio,
+// moderation and legacy completions are left out: their replacements change vector sizes, formats,
+// endpoints or parameters.
 const MODEL_CALLS: Record<string, Set<string>> = {
   openai: new Set([
     'chat.completions.create',
@@ -37,6 +32,42 @@ const MODEL_CALLS: Record<string, Set<string>> = {
     'beta.messages.countTokens',
   ]),
 };
+
+// The OpenAI v3 SDK and openai-edge, which keeps its API: methods on an `OpenAIApi` client.
+function legacyOpenAi(packageName: string): ProviderAdapter {
+  return {
+    id: 'openai',
+    packageName,
+    defaultImport: false,
+    namedExport: 'OpenAIApi',
+    operations: [],
+  };
+}
+
+// How each provider's model-bearing calls are traced. The Anthropic adapter is not in the agent
+// catalog yet (Anthropic publishes no contract for `refit run`), but it traces the same calls.
+const TRACERS: {
+  provider: DeadlineEntry['provider'];
+  adapter: URL | ProviderAdapter;
+  resourceCalls?: Set<string>;
+  clientCalls?: Set<string>;
+}[] = [
+  {
+    provider: 'openai',
+    adapter: new URL('../examples/openai.provider.json', import.meta.url),
+    resourceCalls: MODEL_CALLS.openai,
+  },
+  ...['openai', 'openai-edge'].map((packageName) => ({
+    provider: 'openai' as const,
+    adapter: legacyOpenAi(packageName),
+    clientCalls: new Set(['createChatCompletion']),
+  })),
+  {
+    provider: 'anthropic',
+    adapter: new URL('../examples/anthropic.provider.json', import.meta.url),
+    resourceCalls: MODEL_CALLS.anthropic,
+  },
+];
 // Request parameters a newer model may reject or treat differently. Anthropic returns a 400 for
 // non-default temperature, top_p and top_k on Claude 4.7 and later models (Anthropic model
 // deprecations page, 2026-10-20). OpenAI reasoning models' support for the sampling and length
@@ -112,20 +143,66 @@ function propertyName(name: ts.PropertyName) {
   return ts.isIdentifier(name) || ts.isStringLiteralLike(name) ? name.text : undefined;
 }
 
-// A top-level `const NAME = 'literal'` in the same file, the one indirection a model argument
-// commonly has. It is reported, never edited.
-function constantLiteral(source: ts.SourceFile, name: string) {
-  for (const statement of source.statements)
-    if (ts.isVariableStatement(statement) && statement.declarationList.flags & ts.NodeFlags.Const)
-      for (const declaration of statement.declarationList.declarations)
-        if (
-          ts.isIdentifier(declaration.name) &&
-          declaration.name.text === name &&
-          declaration.initializer &&
-          ts.isStringLiteralLike(declaration.initializer)
-        )
-          return declaration.initializer;
+// The `const NAME = …` declaration a reference resolves to, looked up through the enclosing
+// blocks of the same file. Anything else (parameters, `let`, imports) is not followed.
+function constDeclaration(from: ts.Node, name: string) {
+  for (let scope: ts.Node | undefined = from.parent; scope; scope = scope.parent) {
+    if (!ts.isBlock(scope) && !ts.isSourceFile(scope) && !ts.isModuleBlock(scope)) continue;
+    for (const statement of scope.statements)
+      if (ts.isVariableStatement(statement) && statement.declarationList.flags & ts.NodeFlags.Const)
+        for (const declaration of statement.declarationList.declarations)
+          if (
+            ts.isIdentifier(declaration.name) &&
+            declaration.name.text === name &&
+            declaration.initializer
+          )
+            return {
+              declaration,
+              initializer: unwrap(declaration.initializer),
+              exported: Boolean(
+                statement.modifiers?.some((item) => item.kind === ts.SyntaxKind.ExportKeyword),
+              ),
+            };
+  }
   return undefined;
+}
+
+function unwrap(expression: ts.Expression): ts.Expression {
+  while (
+    ts.isAsExpression(expression) ||
+    ts.isSatisfiesExpression(expression) ||
+    ts.isParenthesizedExpression(expression)
+  )
+    expression = expression.expression;
+  return expression;
+}
+
+// Uses of a name in a file other than its declaration and property names. A const used once is
+// safe to edit where it is declared; one used more often may feed other code.
+function referenceCount(source: ts.SourceFile, name: string) {
+  let count = 0;
+  const visit = (node: ts.Node) => {
+    if (
+      ts.isIdentifier(node) &&
+      node.text === name &&
+      !(ts.isVariableDeclaration(node.parent) && node.parent.name === node) &&
+      !(ts.isPropertyAccessExpression(node.parent) && node.parent.name === node) &&
+      !(ts.isPropertyAssignment(node.parent) && node.parent.name === node)
+    )
+      count += 1;
+    ts.forEachChild(node, visit);
+  };
+  visit(source);
+  return count;
+}
+
+// A const declared once in the file, not exported, and used only at this one place.
+function usedOnce(source: ts.SourceFile, found: ReturnType<typeof constDeclaration>) {
+  return Boolean(
+    found &&
+    !found.exported &&
+    referenceCount(source, found.declaration.name.getText(source)) === 1,
+  );
 }
 
 // The traced call at an analyzer location: the call whose callee matches the traced expression.
@@ -160,19 +237,30 @@ export async function proposeModelReplacements(
   const stops: ModelReplacementStop[] = [];
   const edits: SourceEdit[] = [];
   let patched: Awaited<ReturnType<typeof readRepository>> | undefined;
-  for (const [provider, adapterPath] of Object.entries(MODEL_ADAPTERS)) {
+  for (const tracer of TRACERS) {
+    const { provider } = tracer;
     const byModel = new Map<string, DeadlineEntry>();
     for (const entry of registry.deadlines)
       if (entry.provider === provider && entry.kind === 'model')
         for (const version of entry.versions) byModel.set(version, entry);
     if (!byModel.size) continue;
-    const adapter = await readProviderAdapter(fileURLToPath(adapterPath));
+    const adapter =
+      tracer.adapter instanceof URL
+        ? await readProviderAdapter(fileURLToPath(tracer.adapter))
+        : tracer.adapter;
     const repository = await readRepository(directory, adapter.packageName);
-    const { sdkCalls } = analyzeRepository(repository, [], adapter);
+    const analysis = analyzeRepository(repository, [], adapter);
+    const traced = [
+      ...analysis.sdkCalls
+        .map((sdk) => ({ ...sdk, call: `${sdk.resource}.${sdk.method}` }))
+        .filter((sdk) => tracer.resourceCalls?.has(sdk.call)),
+      ...analysis.clientMethodCalls
+        .map((sdk) => ({ ...sdk, call: sdk.method }))
+        .filter((sdk) => tracer.clientCalls?.has(sdk.call)),
+    ];
     const sources = new Map<string, ts.SourceFile>();
-    for (const sdk of sdkCalls) {
-      const call = `${sdk.resource}.${sdk.method}`;
-      if (!MODEL_CALLS[provider].has(call)) continue;
+    for (const sdk of traced) {
+      const { call } = sdk;
       const file = repository.files.find((item) => item.path === sdk.file);
       if (!file) continue;
       const source =
@@ -180,8 +268,20 @@ export async function proposeModelReplacements(
         ts.createSourceFile(file.path, file.content, ts.ScriptTarget.Latest, true);
       sources.set(file.path, source);
       const node = callAt(source, sdk.line, sdk.column, sdk.expression);
-      const request = node?.arguments[0];
-      if (!request || !ts.isObjectLiteralExpression(request)) continue;
+      const argument = node?.arguments[0] && unwrap(node.arguments[0]);
+      if (!node || !argument) continue;
+      // The request object: inline, or a const declared in scope, such as `const params = {…}`.
+      let request: ts.ObjectLiteralExpression | undefined;
+      let sharedRequest: string | undefined;
+      if (ts.isObjectLiteralExpression(argument)) request = argument;
+      else if (ts.isIdentifier(argument)) {
+        const found = constDeclaration(node, argument.text);
+        if (found && ts.isObjectLiteralExpression(found.initializer)) {
+          request = found.initializer;
+          if (!usedOnce(source, found)) sharedRequest = argument.text;
+        }
+      }
+      if (!request) continue;
       const model = request.properties.find(
         (property): property is ts.PropertyAssignment | ts.ShorthandPropertyAssignment =>
           (ts.isPropertyAssignment(property) || ts.isShorthandPropertyAssignment(property)) &&
@@ -189,8 +289,8 @@ export async function proposeModelReplacements(
       );
       if (!model) continue;
       let literal: ts.StringLiteralLike | undefined;
-      let constant: string | undefined;
-      const value = ts.isPropertyAssignment(model) ? model.initializer : model.name;
+      let sharedConstant: string | undefined;
+      const value = unwrap(ts.isPropertyAssignment(model) ? model.initializer : model.name);
       if (ts.isStringLiteralLike(value)) literal = value;
       else if (
         ts.isBinaryExpression(value) &&
@@ -201,8 +301,11 @@ export async function proposeModelReplacements(
       )
         literal = value.right;
       else if (ts.isIdentifier(value)) {
-        literal = constantLiteral(source, value.text);
-        constant = value.text;
+        const found = constDeclaration(value, value.text);
+        if (found && ts.isStringLiteralLike(found.initializer)) {
+          literal = found.initializer;
+          if (!usedOnce(source, found)) sharedConstant = value.text;
+        }
       }
       const entry = literal && byModel.get(literal.text);
       if (!literal || !entry) continue;
@@ -222,10 +325,17 @@ export async function proposeModelReplacements(
         stop('The registry names no concrete replacement model ID.');
         continue;
       }
-      if (constant) {
-        const line = source.getLineAndCharacterOfPosition(literal.getStart(source)).line + 1;
+      const declaredAt = (node: ts.Node) =>
+        `${file.path}:${source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1}`;
+      if (sharedConstant) {
         stop(
-          `The model comes from the constant ${constant} (${file.path}:${line}), which may feed other code; change it by hand to ${resolved.to}.`,
+          `The model comes from the constant ${sharedConstant} (${declaredAt(literal)}), which is exported or used elsewhere; change it by hand to ${resolved.to}.`,
+        );
+        continue;
+      }
+      if (sharedRequest) {
+        stop(
+          `The request object ${sharedRequest} (${declaredAt(request)}) is exported or used elsewhere; change its model by hand to ${resolved.to}.`,
         );
         continue;
       }
