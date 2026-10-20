@@ -3,5 +3,24 @@
   "packageName": "openai",
   "defaultImport": true,
   "namedExport": "OpenAI",
-  "operations": [{ "resource": "models", "method": "retrieve", "schema": "Model" }]
+  "operations": [
+    {
+      "resource": "models",
+      "method": "retrieve",
+      "schema": "Model",
+      "operationId": "retrieveModel"
+    },
+    {
+      "resource": "chat.completions",
+      "method": "create",
+      "schema": "CreateChatCompletionResponse",
+      "operationId": "createChatCompletion"
+    },
+    {
+      "resource": "embeddings",
+      "method": "create",
+      "schema": "CreateEmbeddingResponse",
+      "operationId": "createEmbedding"
+    }
+  ]
 }

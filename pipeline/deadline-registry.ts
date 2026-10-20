@@ -5,7 +5,7 @@ import { PipelineInputError } from './types.ts';
 export const DEFAULT_DEADLINE_REGISTRY = new URL('../data/deadlines.json', import.meta.url);
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 const ENTRY_ID = /^[a-z0-9][a-z0-9-]{0,95}$/;
-const PROVIDERS = new Set(['shopify', 'meta-graph', 'openai']);
+const PROVIDERS = new Set(['shopify', 'meta-graph', 'openai', 'anthropic']);
 const KINDS = new Set(['api-version', 'model']);
 const ENTRY_KEYS = [
   'id',
@@ -24,7 +24,7 @@ const MILLISECONDS_PER_DAY = 86_400_000;
 // page it came from and the day a person last checked that page.
 export interface DeadlineEntry {
   id: string;
-  provider: 'shopify' | 'meta-graph' | 'openai';
+  provider: 'shopify' | 'meta-graph' | 'openai' | 'anthropic';
   kind: 'api-version' | 'model';
   versions: string[];
   date: string;
