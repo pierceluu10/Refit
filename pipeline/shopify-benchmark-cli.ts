@@ -104,6 +104,13 @@ async function benchmark(entry: (typeof repos)[number], index: number) {
     tracedDocuments: scan.documents.filter((document) => document.traced).length,
     unreadable: scan.unreadable.length,
     rest: scan.rest.length,
+    restCalls: scan.rest.map((call) => ({
+      file: call.file,
+      line: call.line,
+      method: call.method ?? null,
+      path: call.path ?? null,
+      resource: call.resource ?? null,
+    })),
     pins,
     pinKinds: [...new Set(scan.versions.map((pin) => pin.kind))],
     unresolvedPins: scan.unresolvedVersions.length,
