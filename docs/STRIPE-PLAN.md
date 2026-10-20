@@ -22,7 +22,7 @@ Where it stands (rerun of every set from `6d4f38a`, October 20): **102 of 231** 
 | Refused at validation preparation | 54 | Largest buildable group: npm `ERESOLVE` peer conflicts (7), tracked symlinks or submodules (6). The rest are sandbox limits (dependency archive over 1 GiB: 7; source over 50 MiB: 4) or correct refusals (non-registry, patched or unverifiable sources) |
 | `payment_method_types` outside the card rule | 49 | Owner-reviewed replacement policy for other values (the listed-methods opt-in, #104, needs per-repository config) |
 | Other review stops | 15 | Declared types without SDK or event proof (6), unparseable source (3), checks pass with findings unresolved (3), conflicting declared API versions (3) |
-| Validation failed | 11 | 9 regressions, 6 of them forks of the Supabase subscription starter (`libs/supabaseAdmin.ts`) that the open-enum restore (#101) still misses; 2 failing baselines; 1 validation error |
+| Validation failed | 11 | 9 regressions, 2 failing baselines. Six regressions are forks of the Supabase subscription starter; their type errors come from a large stripe-node jump (widened `OtherString` enums used as index types or stored in narrow database types, removed fields such as `Charge.dispute` and `trial_from_plan`, and webhook `event.type` typos the closed event union now rejects), which the open-enum restore (#101) does not cover. One (`iggy-tech/product-hunt-clone-final`) still reads `subscription.current_period_end` after the patch, a missed typed read |
 
 Next steps, in order: take the policy question to the owner; then build the largest stop that needs no decision. Phase 5 (real draft PRs on forks) closes it out.
 
