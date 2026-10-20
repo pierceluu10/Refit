@@ -21,6 +21,22 @@ Work toward the Shopify goal in [Provider goals](PROVIDER-GOALS.md#shopify), fir
 
 The default suite ran 1,564 tests across 105 files with 78 environment-gated tests skipped; 1,484 passed. The two failures are the known subprocess CLI tests (`scan-cli`, `service-configuration`) hitting the 5-second timeout in this container; they pass with a 60-second timeout and fail the same way on `main`. Typecheck, formatting and build passed.
 
+## October 20 checkpoint: review-only Meta Graph API version moves (unreleased, after 0.39.0)
+
+Third review-only step toward a Meta agent (shared work item 4 in [Provider goals](PROVIDER-GOALS.md)). Nothing is applied, and the rule is not wired into `refit run`, validation or drafts. Whether a hand-kept change list is enough evidence for an automatic edit is an open owner decision.
+
+- **`refit meta-graph --propose-version-moves --target <version>`** proposes moving each place a Graph API version is written (a pin), as a patch for review, only when all of these hold:
+  - every request through the pin is fully known;
+  - every changelog crossed is `reviewed`;
+  - no reviewed change touches a request's edge, path, fields (a GET with no `fields` counts as using all of them), metrics or parameters;
+  - changing the pin changes nothing else: it is a file-local `const` whose every use the scan follows.
+
+  Everything else stops, listing each reason with its location. Business SDK requests and test-only pins always stop. See [version moves](META-GRAPH.md#propose-version-moves-review-only).
+- **Measured on the 33 Meta repositories, target v25.0.** With the committed change list, 0 moves: all 148 pins stop on unread changelogs. In a hypothetical run with every changelog marked reviewed and empty, an upper bound and not evidence about Meta, 100 of the 131 live pins would move. Each of those edits changes one line, and only its version text. The 31 live pins that stop there have helper requests or runtime options (31), a `let` (3) or an exported constant (1); some have more than one.
+- **Scanner fix.** A property with the same name as a variable, as `url` in `data.url`, is no longer treated as a use of that variable. The request benchmark's results are unchanged.
+
+The default suite ran 1,587 tests across 100 files, with 78 environment-gated tests skipped; 1,497 passed, including 17 new tests. The other 12 are subprocess CLI tests that time out (11) or race on a temporary file (1, `service-configuration`) in this container, as on `main` here. Typecheck, formatting and build passed.
+
 ## October 20 checkpoint: Meta Graph API change list format (unreleased, after 0.39.0)
 
 Second review-only step toward a Meta agent (shared work item 5 in [Provider goals](PROVIDER-GOALS.md)).

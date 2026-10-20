@@ -148,12 +148,56 @@ Search results also list a v26.0 page. v26.0 has a record here but is not in the
 
 To fill the list, read each version's changelog page from a machine that can reach it, add every removal or change that names an edge, field, metric, parameter or endpoint, set the version to `reviewed` with the day you read it, and run `npm run meta-graph:check`. Start with the versions the benchmark repositories pin: v18.0, v19.0 and v20.0 move furthest.
 
+## Propose version moves (review only)
+
+```sh
+refit meta-graph --propose-version-moves --target v25.0 --repository /path/to/app
+refit meta-graph --propose-version-moves --target v25.0 --output graph.patch
+```
+
+Refit can propose moving a pinned Graph API version to `--target`, as a patch for review, following the pattern of [model replacement proposals](DEADLINES.md#propose-model-replacements). Nothing is applied, installed, validated or published, and nothing is sent to Meta. This is not part of `refit run`, validation or draft pull requests.
+
+> **Owner decision.** Whether a hand-maintained change list is enough evidence for Refit to edit a version automatically is an open owner decision. Until it is made, a version move exists only as this review-only patch.
+
+A version is often written once and used by many requests: a base constant feeds every URL built from it. So moves are decided per **pin**, the place the version is written, and a pin moves only when every one of these holds:
+
+- **Every request through the pin is fully known:** a request call was traced, and its path, HTTP method, `fields`, `metric` values and parameters were all read. A request through a project helper, or one with options built at runtime, stops.
+- **Every changelog crossed is reviewed.** That means each version after the current one up to and including the target. The versions checked are the change list's, the deadline registry's, and every whole major version in between, so a version missing from both lists still stops the move.
+- **No reviewed change between the two versions touches a request:** the request's edge, its path or an endpoint it is under, a field it requests (at any depth, so `posts{message}` names `posts` and `message`), a metric, or a parameter. A GET that names no `fields` receives the node's default fields, so any field change in range stops it. A change introduced by the version the code already uses does not count; it already applies.
+- **Changing the pin changes nothing else:**
+  - The version is written once on that line, inside a string.
+  - If a variable holds it, that variable is a `const` the file does not export.
+  - Every use of the variable is one the request scan follows: the start of a URL, the version segment of a URL, a call argument, `{ url }` in a request config, or a file-local `const` alias whose uses qualify too. `axios.create({ baseURL: GRAPH })` or `FB.init({ version: VERSION })` stops the move.
+- **The target is valid:** it has a record in the change list, and the deadline registry does not show it retired. Otherwise the command exits 1.
+
+Business SDK requests always stop, because their version follows the `facebook-nodejs-business-sdk` package and a package upgrade is not proposed. So do pins used only by tests and examples, and requests whose URL names no version or builds it at runtime. Every stop lists each reason with its `file:line`.
+
+`--json` returns `moves` (each with the pin, `from`, `to`, the versions `crossed` and its requests), `stops` (each with `reasons`), `current` (requests already on the target) and `patch`.
+
+### Measured on the deadline benchmark
+
+The rule was run on the 33 Meta repositories of the [deadline benchmark](DEADLINE-BENCHMARK.md) with target v25.0, the newest version in the deadline registry ([results](benchmarks/2026-10-20-meta-graph-move-results.json)):
+
+| Change list | Pins moved | Pins stopped | Requests without a pinned version |
+|---|---:|---:|---:|
+| As committed (every changelog unread) | **0** | 148 | 7 |
+| Hypothetical: every version marked reviewed, with no changes | 100 (101 requests, 26 repositories) | 48 | 7 |
+
+- **With the committed list, every pin stops**, and every stop names the unreviewed changelogs. That is the honest result until someone reads Meta's pages.
+- **The hypothetical run is an upper bound, not a result.** It shows how far the request-side conditions alone let moves go if every changelog in range were reviewed and listed nothing these requests use. It says nothing about what Meta actually changed. 100 of the 131 pins used by live code would move, mostly from v19.0 (59), v18.0 (21) and v20.0 (15). Each of the 100 hypothetical edits was checked: it changes exactly one line, and only the version text in it.
+- **The 31 live pins that stop in the hypothetical run:**
+  - **31** have a request with an unknown part: project helpers, mostly in `manypost/manypost-app`, and options built from `FormData`, `URLSearchParams` filled in step by step, or objects changed after they are declared.
+  - **3** hold the version in a `let`; two of them are a `let endpoint` in `stlafit02-dev/STLAF-Marketing-Planner`.
+  - **1** is in an exported constant.
+  - A pin can have more than one reason, so the counts overlap.
+  - The other 17 stopped pins are used only by tests and examples.
+
 ## What a Meta agent still needs
 
 The catalog entry for `meta-graph` keeps `adapter: null`. Request detection is one of the pieces a reviewed agent needs; these are still missing:
 
 1. **Change list entries.** The [format and validator](#the-per-version-change-list) exist, but no version's changelog has been read yet.
-2. **A version-move rule.** Move a URL's version only when every edge and field the request uses is known and none changed between the two versions, and stop for review otherwise. Whether a hand-maintained change list is enough evidence for an automatic edit is an owner decision.
+2. **An owner decision on the version-move rule.** The [review-only rule](#propose-version-moves-review-only) exists. Wiring it into `refit run`, validation and drafts waits on the decision about whether a hand-maintained change list is enough evidence for an automatic edit.
 3. **More coverage.** The browser SDK's `FB.init({ version })`, URLs whose host comes from configuration at runtime, and responses: the fields code reads from a response are not traced, so a request with no `fields` relies on the node's defaults.
 
 ## Limits
@@ -163,3 +207,5 @@ The catalog entry for `meta-graph` keeps `adapter: null`. Request detection is o
 - `axios` is recognized by its call shape (`axios.get`, `http.post`, `client.delete`, …) on a receiver whose name mentions axios, http, client, api or instance; other clients are reported as helpers.
 - A helper that adds `fields` or changes the version on its own is not seen. Fields written in a URL passed to a helper are reported as written.
 - The business SDK version is the first `facebook-nodejs-business-sdk` dependency Refit finds in the repository's manifests.
+- A base URL held in a `let` is not followed, so requests built from it are not found and nothing moves them.
+- Version moves read only what the request sends. Which response fields the code reads afterwards is not traced, which is why a request that names no `fields` stops on any field change in range.
