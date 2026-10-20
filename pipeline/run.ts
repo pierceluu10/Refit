@@ -49,6 +49,7 @@ import {
   SUBSCRIPTION_PERIOD_HELPER_RULE,
   INVOICE_SUBSCRIPTION_HELPER_RULE,
   INVOICE_PRICE_ID_HELPER_RULE,
+  CHECKOUT_SHIPPING_HELPER_RULE,
   HELPER_RULES,
   SUBSCRIPTION_PERIOD_RULE,
   validateStripeSubscriptionPeriodContract,
@@ -183,6 +184,11 @@ async function runOpenApiPipeline(options: {
     [INVOICE_PRICE_ID_HELPER_RULE]: ['line_item', 'invoiceitem'].every((schema) =>
       propertyExists(after.schemas, [schema, 'pricing', 'price_details', 'price']),
     ),
+    [CHECKOUT_SHIPPING_HELPER_RULE]: propertyExists(after.schemas, [
+      'checkout.session',
+      'collected_information',
+      'shipping_details',
+    ]),
   } as Record<string, boolean>;
   const targetVersion = isObject(after.document.info) ? after.document.info.version : undefined;
   const versionEdits =
