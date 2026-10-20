@@ -49,6 +49,7 @@ import {
   SUBSCRIPTION_PERIOD_HELPER_RULE,
   INVOICE_SUBSCRIPTION_HELPER_RULE,
   INVOICE_PRICE_ID_HELPER_RULE,
+  CHECKOUT_SHIPPING_HELPER_RULE,
   HELPER_RULES,
   SUBSCRIPTION_PERIOD_RULE,
   validateStripeSubscriptionPeriodContract,
@@ -183,6 +184,11 @@ async function runOpenApiPipeline(options: {
     [INVOICE_PRICE_ID_HELPER_RULE]: ['line_item', 'invoiceitem'].every((schema) =>
       propertyExists(after.schemas, [schema, 'pricing', 'price_details', 'price']),
     ),
+    [CHECKOUT_SHIPPING_HELPER_RULE]: propertyExists(after.schemas, [
+      'checkout.session',
+      'collected_information',
+      'shipping_details',
+    ]),
   } as Record<string, boolean>;
   const targetVersion = isObject(after.document.info) ? after.document.info.version : undefined;
   const versionEdits =
@@ -240,8 +246,15 @@ async function runOpenApiPipeline(options: {
     typeof targetVersion === 'string'
       ? await stripePackageUpgrade(repository.root, targetVersion)
       : undefined;
+  // Every client that may send the renamed field must reach the target version: a dynamic or
+  // unresolved pin can keep one on the version that rejects allowed_payment_method_types. A
+  // client without the option moves with the stripe-node upgrade.
+  const everyPinMoves = apiVersionDeclarations.every(
+    (entry) => entry.status !== 'unknown' || (entry.kind === 'constructor' && entry.absent),
+  );
   movedTo[CARD_PAYMENT_METHOD_RULE] =
     bumpsVersion &&
+    everyPinMoves &&
     (!patchRequested || !upgradeRequired || Boolean(cardUpgrade && 'upgrade' in cardUpgrade));
   movedTo[LISTED_PAYMENT_METHODS_RULE] = movedTo[CARD_PAYMENT_METHOD_RULE];
   // The period helper reads either API version, so it does not depend on the version pin.
@@ -364,7 +377,8 @@ async function runOpenApiPipeline(options: {
         requestRenames,
         moves,
         parameterRemovals,
-      ).findings.filter((finding) => !finding.untraced).length
+        // Untraced reads stay unresolved (owner decision, 2026-10-20): the draft needs review.
+      ).findings.length
     : 0;
   const reviewEvidence = { findings: analysis.findings, skippedFiles, adapter: provider };
   const reviewReason = migrationReviewReason(

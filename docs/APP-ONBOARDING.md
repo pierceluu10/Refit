@@ -6,7 +6,7 @@ An installed repository can own its root `.refit.json`. Refit fetches the App-au
 
 ## Review the committed configuration
 
-Commit `.refit.json`, its before contract and its provider adapter when needed. Paths must refer to committed regular files inside the repository. Parent paths, absolute paths, `.git`, tracked symlinks and submodules are unsupported. The profile cannot select another repository. Its API-version pin must match the before contract. Declared SDK versions must not conflict. Optional `apiVersionPolicy: "source-verified"` also requires supported source declarations to resolve; see [API-version policies](API-VERSIONS.md). Application declarations are rechecked even when approved configuration inputs are unchanged. Live Stripe discovery requires a pinned baseline; other providers can use an explicitly configured public HTTPS source in the service target.
+Commit `.refit.json`, its before contract and its provider adapter when needed. Paths must refer to committed regular files inside the repository. Parent paths, absolute paths, `.git`, symlinked profile inputs and submodules are unsupported. The profile cannot select another repository. Its API-version pin must match the before contract. Declared SDK versions must not conflict. Optional `apiVersionPolicy: "source-verified"` also requires supported source declarations to resolve; see [API-version policies](API-VERSIONS.md). Application declarations are rechecked even when approved configuration inputs are unchanged. Live Stripe discovery requires a pinned baseline; other providers can use an explicitly configured public HTTPS source in the service target.
 
 Run the [readiness check](REPOSITORY-SETUP.md), then inspect the exact committed profile:
 

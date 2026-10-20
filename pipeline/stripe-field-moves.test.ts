@@ -96,6 +96,25 @@ function schemas(after: boolean, moved = true): Record<string, unknown> {
       properties: { price: { anyOf: [string, ref('price')] }, product: string },
     },
     price: { type: 'object', properties: { id: string, nickname: { ...string, nullable: true } } },
+    'checkout.session': {
+      type: 'object',
+      properties: {
+        id: string,
+        ...(after ? {} : { shipping_details: { anyOf: [ref('shipping')], nullable: true } }),
+        ...(!after || moved
+          ? { collected_information: { anyOf: [ref('collected_information')], nullable: true } }
+          : {}),
+      },
+    },
+    collected_information: {
+      type: 'object',
+      properties: { shipping_details: { anyOf: [ref('address_details')], nullable: true } },
+    },
+    shipping: {
+      type: 'object',
+      properties: { address: string, carrier: string, name: string, phone: string },
+    },
+    address_details: { type: 'object', properties: { address: string, name: string } },
   };
 }
 
@@ -106,6 +125,7 @@ const provider = {
     { resource: 'subscriptions', method: 'retrieve', schema: 'subscription' },
     { resource: 'invoices', method: 'retrieve', schema: 'invoice' },
     { resource: 'invoiceItems', method: 'retrieve', schema: 'invoiceitem' },
+    { resource: 'checkout.sessions', method: 'retrieve', schema: 'checkout.session' },
   ],
 };
 const header = `import Stripe from 'stripe';\nconst stripe = new Stripe('sk', { apiVersion: '2024-06-20' });\n`;
@@ -309,11 +329,14 @@ it('generates a TypeScript helper that compiles strictly without Stripe types', 
     ['/check/helper.ts', subscriptionPeriodHelperModule('ts')],
     [
       '/check/use.ts',
-      `import { getSubscriptionPeriodEnd, getInvoicePriceId } from './helper';
+      `import { getSubscriptionPeriodEnd, getInvoicePriceId, getCheckoutShippingDetails } from './helper';
 const subscription = { items: { data: [{ price: { id: 'p' }, current_period_end: 1 }] } };
 export const ends: number = getSubscriptionPeriodEnd(subscription, (items) => items.find((item) => item.price?.id === 'p'));
 export const first: number = getSubscriptionPeriodEnd(subscription, (items) => items[0]);
 export const price: string | undefined = getInvoicePriceId({ pricing: null });
+const moved = { collected_information: { shipping_details: { address: 'a', name: 'n' } } };
+export const shipping: { address: string; name: string } | null = getCheckoutShippingDetails(moved);
+export const legacy: { carrier: string } = getCheckoutShippingDetails({ shipping_details: { carrier: 'c' } });
 `,
     ],
   ]);
@@ -690,5 +713,43 @@ it('reads a webhook line item price ID through the helper for either version', a
 
 it('does not move line item prices when the target contract lacks pricing details', async () => {
   const report = await run(priceReads, false);
+  expect(report.patch).toMatchObject({ status: 'unsupported', edits: 0 });
+});
+
+const shippingReads = `export async function shipping(id: string) {
+  const session = await stripe.checkout.sessions.retrieve(id);
+  return [session.shipping_details, session.shipping_details?.address, session.shipping_details?.carrier];
+}`;
+
+it('reads Checkout Session shipping details through the generated helper', async () => {
+  const report = await run(shippingReads);
+  expect(report.patch).toMatchObject({ status: 'proposed', unresolvedFindings: 1 });
+  const diff = 'diff' in report.patch ? report.patch.diff : '';
+  expect(diff).toContain(
+    '+  return [(getCheckoutShippingDetails(session)), (getCheckoutShippingDetails(session))?.address, session.shipping_details?.carrier];',
+  );
+  expect(diff).toContain(
+    "+import { getCheckoutShippingDetails } from './stripe-subscription-period';",
+  );
+  expect(report.patch).toMatchObject({
+    warnings: expect.arrayContaining([
+      expect.stringContaining('collected_information.shipping_details'),
+    ]),
+  });
+  const { getCheckoutShippingDetails } = new Function(
+    'module',
+    `${subscriptionPeriodHelperModule('cjs')}; return module.exports;`,
+  )({});
+  const address = { address: { city: 'Toronto' }, name: 'Ada' };
+  expect(getCheckoutShippingDetails({ shipping_details: address })).toBe(address);
+  expect(getCheckoutShippingDetails({ shipping_details: null })).toBeNull();
+  expect(getCheckoutShippingDetails({ collected_information: { shipping_details: address } })).toBe(
+    address,
+  );
+  expect(getCheckoutShippingDetails({ collected_information: null })).toBeNull();
+});
+
+it('does not move Checkout Session shipping details when the target contract lacks the new location', async () => {
+  const report = await run(shippingReads, false);
   expect(report.patch).toMatchObject({ status: 'unsupported', edits: 0 });
 });

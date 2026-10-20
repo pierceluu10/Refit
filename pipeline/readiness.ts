@@ -134,7 +134,7 @@ export async function inspectRepositoryReadiness(options: {
     inspectCheck(
       'repository',
       'Committed repository',
-      'Use the Git repository root with a committed HEAD and clean git status, including untracked files; tracked symlinks and submodules are unsupported.',
+      'Use the Git repository root with a committed HEAD and clean git status, including untracked files; submodules and symlinks that resolve outside the repository are unsupported.',
       () => readCommittedRepository(repository),
     ),
     inspectCheck(

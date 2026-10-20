@@ -162,6 +162,12 @@ export function findUnsafeReplacements(
   const before = analyzeRepository(original, addedFields, provider, afterSchemas).findings;
   const after = analyzeRepository(modified, addedFields, provider, afterSchemas).findings;
   const remaining = analyzeRepository(modified, changes, provider, beforeSchemas).findings;
+  // Removed fields the original code reads; the model must not keep reading only them by string key.
+  const migrated = new Set(
+    analyzeRepository(original, changes, provider, beforeSchemas)
+      .findings.filter((finding) => finding.confidence === 'confirmed')
+      .map((finding) => finding.changeId),
+  );
   const violations: FieldSubstitution[] = [];
   for (const file of editedFiles) {
     const introduced = addedFields.filter(
@@ -222,7 +228,81 @@ export function findUnsafeReplacements(
         line: leftover.line,
         message: `AI replacement still reads removed field ${change.schema}.${change.property} in ${file}:${leftover.line} without reading any added field. A fallback on a removed field hides the break instead of migrating it.`,
       });
+    } else if (!leftover && !introduced.length) {
+      const content = modified.files.find((candidate) => candidate.path === file)?.content ?? '';
+      for (const change of changes.filter((candidate) => migrated.has(candidate.id))) {
+        const line = onlyReflectRead(content, change.property, (number) => {
+          const text = modifiedLines[number - 1]?.trim();
+          return text !== undefined && !originalLines.has(text);
+        });
+        if (line === undefined) continue;
+        violations.push({
+          kind: 'fallback',
+          schema: change.schema,
+          property: change.property,
+          removed: [change.property],
+          file,
+          line,
+          message: `AI replacement still reads removed field ${change.schema}.${change.property} by string key in ${file}:${line} without reading any added field. A fallback on a removed field hides the break instead of migrating it.`,
+        });
+        break;
+      }
     }
   }
   return violations;
+}
+
+const unwrap = (expression: ts.Expression): ts.Expression =>
+  ts.isParenthesizedExpression(expression) ||
+  ts.isAsExpression(expression) ||
+  ts.isNonNullExpression(expression) ||
+  ts.isTypeAssertionExpression(expression)
+    ? unwrap(expression.expression)
+    : expression;
+
+// The line of a model-written `Reflect.get(object, 'removed')` whose enclosing expression reads
+// nothing else from `object`. A version-tolerant read must also read the new location; the analyzer
+// does not trace string-key reads, so `Reflect.get(o, 'f') ?? Reflect.get(o, 'f')` would pass.
+function onlyReflectRead(content: string, property: string, written: (line: number) => boolean) {
+  const source = ts.createSourceFile('guard.ts', content, ts.ScriptTarget.Latest, true);
+  let found: number | undefined;
+  const reflected = (node: ts.Node): node is ts.CallExpression =>
+    ts.isCallExpression(node) &&
+    node.expression.getText(source) === 'Reflect.get' &&
+    node.arguments.length >= 2;
+  const visit = (node: ts.Node) => {
+    if (found !== undefined) return;
+    if (
+      reflected(node) &&
+      ts.isStringLiteralLike(node.arguments[1]) &&
+      node.arguments[1].text === property &&
+      written(source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1)
+    ) {
+      const receiver = unwrap(node.arguments[0]).getText(source);
+      let scope: ts.Node = node;
+      while (ts.isExpression(scope.parent) && !ts.isCallExpression(scope.parent))
+        scope = scope.parent;
+      let other = false;
+      const reads = (child: ts.Node) => {
+        if (other) return;
+        if (
+          ts.isPropertyAccessExpression(child) &&
+          unwrap(child.expression).getText(source) === receiver
+        )
+          other = true;
+        else if (
+          reflected(child) &&
+          unwrap(child.arguments[0]).getText(source) === receiver &&
+          !(ts.isStringLiteralLike(child.arguments[1]) && child.arguments[1].text === property)
+        )
+          other = true;
+        else ts.forEachChild(child, reads);
+      };
+      reads(scope);
+      if (!other) found = source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1;
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(source);
+  return found;
 }
