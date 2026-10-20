@@ -219,6 +219,22 @@ function renderReportRows(report: Record<string, unknown> | undefined, existingP
       if (sources.length) rows.push(`Sources     ${summaryList(sources)}`);
     }
   }
+  if (report && isObject(report.shopify) && Array.isArray(report.shopify.restCalls)) {
+    const calls = report.shopify.restCalls.filter(
+      (call): call is Record<string, unknown> =>
+        isObject(call) && typeof call.file === 'string' && typeof call.line === 'number',
+    );
+    if (calls.length)
+      rows.push(
+        `REST        ${calls.length} REST Admin ${calls.length === 1 ? 'call' : 'calls'} for review, not migrated: ${summaryList(
+          calls.map((call) =>
+            terminalText(
+              `${[call.method, call.path ?? call.resource].filter((value) => typeof value === 'string').join(' ') || 'call'} at ${call.file}:${call.line}`,
+            ),
+          ),
+        )}`,
+      );
+  }
   if (
     report &&
     isObject(report.patch) &&

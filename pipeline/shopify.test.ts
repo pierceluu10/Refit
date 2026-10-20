@@ -7,6 +7,7 @@ import { addAgents, builtInPackage, detectProviders } from './agent-catalog.ts';
 import { runPipeline } from './run.ts';
 import { readRepository } from './repository.ts';
 import { scanShopify } from './shopify-analysis.ts';
+import { renderScanResult } from './workflow-presentation.ts';
 import {
   enumFromVersion,
   latestApiVersion,
@@ -621,4 +622,91 @@ it('keeps shadowed names apart and stops when a sending function is reassigned',
     [10, 'A function that sends Admin GraphQL documents is used here i'],
     [13, 'A function that sends Admin GraphQL documents is used here i'],
   ]);
+});
+
+it('reports each REST Admin call with its method and path where the code states them', async () => {
+  const root = await directory({
+    'package.json': MANIFEST,
+    'package-lock.json': LOCK('14.0.1'),
+    'app/shopify.server.ts': SERVER('January26'),
+    'app/rest.ts': `import axios from 'axios';
+import { createAdminRestApiClient } from '@shopify/admin-api-client';
+import { shopify } from './shopify.server';
+const METAFIELDS = 'metafields.json';
+export async function sync(admin, session, shop, id, verb, url) {
+  await admin.rest.get({ path: 'products/count' });
+  await admin.rest.post({ path: \`products/\${id}/metafields\`, data: {} });
+  const client = new shopify.clients.Rest({ session });
+  await client.put({ path: METAFIELDS, data: {} });
+  await client.delete({ path: url });
+  const plain = createAdminRestApiClient({ storeDomain: shop, apiVersion: '2026-01', accessToken: 't' });
+  await plain.get('products/1.json');
+  await shopify.rest.Product.all({ session });
+  await shopify.rest.Order.cancel({ session });
+  await fetch(\`https://\${shop}/admin/api/2026-01/products/\${id}.json\`, { method: 'PUT', body: '{}' });
+  await fetch(\`https://\${shop}/admin/api/2026-01/orders.json?status=any\`);
+  await axios.post('https://x.myshopify.com/admin/api/2026-01/orders.json', {});
+  const customers = \`https://\${shop}/admin/api/2026-01/customers.json\`;
+  await fetch(customers, { method: verb });
+  const shopUrl = \`https://\${shop}/admin/api/2026-01/shop.json\`;
+  await fetch(shopUrl);
+  const record = new shopify.rest.Product({ session });
+  await fetch(\`https://\${shop}/admin/api/2026-01/graphql.json\`, { method: 'POST', body: '{}' });
+}
+`,
+  });
+  const scan = scanShopify(await readRepository(root, '@shopify/shopify-app-remix'));
+  expect(
+    scan.rest.map((entry) => [entry.line, entry.method, entry.path ?? entry.resource]),
+  ).toEqual([
+    [6, 'GET', 'products/count'],
+    [7, 'POST', 'products/{id}/metafields'],
+    [8, undefined, undefined],
+    [9, 'PUT', 'metafields.json'],
+    [10, 'DELETE', undefined],
+    [11, undefined, undefined],
+    [12, 'GET', 'products/1.json'],
+    [13, 'GET', 'Product.all'],
+    [14, undefined, 'Order.cancel'],
+    [15, 'PUT', 'products/{id}.json'],
+    [16, 'GET', 'orders.json'],
+    [17, 'POST', 'orders.json'],
+    [18, undefined, 'customers.json'],
+    [20, 'GET', 'shop.json'],
+    [22, undefined, 'new Product'],
+  ]);
+  // A raw request to the GraphQL endpoint is not REST; its document is unread, so it stops.
+  expect(scan.unreadable).toMatchObject([{ file: 'app/rest.ts', line: 23 }]);
+  const report = (await runPipeline({
+    repository: root,
+    ...(await snapshots(root)),
+    proposePatch: true,
+  })) as any;
+  expect(report.patch.status).toBe('not-generated');
+  expect(report.patch.reason).toContain('cannot read an Admin API call');
+  expect(
+    report.findings.some((finding: any) => finding.contractReview?.includes('REST Admin API')),
+  ).toBe(true);
+  expect(report.shopify.restCalls[1]).toEqual({
+    file: 'app/rest.ts',
+    line: 7,
+    column: 9,
+    method: 'POST',
+    path: 'products/{id}/metafields',
+    resource: null,
+    expression: 'admin.rest.post',
+  });
+  expect(
+    report.findings
+      .filter((finding: any) => finding.changeId === 'shopify-rest')
+      .map((finding: any) => finding.expression)
+      .slice(0, 3),
+  ).toEqual([
+    'GET products/count (admin.rest.get)',
+    'POST products/{id}/metafields (admin.rest.post)',
+    'shopify.clients.Rest',
+  ]);
+  expect(renderScanResult(report)).toContain(
+    'REST        15 REST Admin calls for review, not migrated: GET products/count at app/rest.ts:6, POST products/{id}/metafields at app/rest.ts:7, call at app/rest.ts:8, and 12 more',
+  );
 });
