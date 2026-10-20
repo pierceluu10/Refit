@@ -129,6 +129,9 @@ export function dockerSandboxArguments(options: {
     ]),
     '--workdir',
     '/workspace',
+    // Test runners such as vitest and jest default to watch mode without CI and never exit.
+    '--env',
+    'CI=true',
     '--entrypoint',
     '/bin/sh',
     options.image,

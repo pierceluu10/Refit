@@ -31,6 +31,7 @@ export interface PreparationIdentity {
   workspaceHashes?: Record<string, string>;
   workspaceLinks?: Record<string, string>;
   workspaceOptionalLinks?: Record<string, string>;
+  legacyPeerDeps?: true;
 }
 
 export async function readPreparationInputs(
@@ -135,7 +136,14 @@ export async function readPreparationInputs(
     );
   const inputs: PreparationIdentity = pnpm
     ? validatePnpmInputs(packageContent, lockContent, workspaceContent, workspaceContents)
-    : { ...validateNpmLock(packageContent, lockContent, workspaceContents), manager: 'npm' };
+    : {
+        ...validateNpmLock(packageContent, lockContent, workspaceContents),
+        manager: 'npm',
+        ...(paths.includes('.npmrc') &&
+        legacyPeerDeps(await readCommittedFile(snapshot, '.npmrc', MAX_PACKAGE_BYTES))
+          ? { legacyPeerDeps: true as const }
+          : {}),
+      };
   const files = new Map([
     ['package.json', packageContent],
     [lockfile, lockContent],
@@ -149,4 +157,11 @@ export async function readPreparationInputs(
     workspaceContents,
     inputs,
   };
+}
+
+// The committed .npmrc stays out of the install, so it cannot change the registry or credentials.
+// Only legacy-peer-deps is honoured: it relaxes peer checks for a lockfile the owner generated
+// with it, and every package is still installed from that lockfile with its integrity.
+export function legacyPeerDeps(npmrc: string) {
+  return npmrc.split(/\r?\n/).some((line) => /^\s*legacy-peer-deps\s*=\s*true\s*$/.test(line));
 }

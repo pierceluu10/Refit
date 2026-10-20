@@ -12,7 +12,11 @@ A `const` that is exported or used more than once stops for review, as before. L
 
 On the 15 exposed OpenAI deadline-benchmark repositories, proposals went from 2 sites in 1 repository to 6 sites in 2, all correct on hand review. Stops with a reason went from 1 repository to 2. See [the results](benchmarks/2026-10-20-model-replacement-results.json).
 
-`responses.create` is still unmapped in the OpenAI adapter. Its `Response` schema is an `allOf`, and supporting `allOf` would change how every adapter, including Stripe's, resolves response schemas. That needs its own reviewed change.
+## October 20 checkpoint: `allOf` response schemas and OpenAI `responses.create` (unreleased, after 0.39.0)
+
+Adapter mappings used to require a response schema with directly declared properties, so OpenAI's `Response`, an `allOf` of `ModelResponseProperties`, `ResponseProperties` and its own fields, could not be mapped. When a spec is loaded, a component that is an `allOf` of plain object schemas (references or inline objects, followed recursively) is now merged into one object schema with the union of their properties and required fields. This applies only to the schema map that analysis reads; the document oasdiff compares is unchanged. Parts with `anyOf`, `oneOf`, `not`, a discriminator or a non-object type, and parts that declare the same property differently, are left as they were.
+
+The OpenAI adapter now maps `responses.create` → `Response` (operation ID `createResponse`). In OpenAI's published document (info.version 2.3.0), 22 components merge, including `Response` with 37 properties. Stripe's current `spec3.json` has no component-level `allOf`, so Stripe results do not change. A test runs the shipped adapter on a trimmed contract with that `Response` shape and a simulated removal from `ResponseProperties`, which is reported at the property read.
 
 ## October 20 checkpoint: Stripe pipeline hardening (unreleased, after 0.39.0)
 

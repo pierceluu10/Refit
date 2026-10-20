@@ -95,7 +95,7 @@ for (const name of Object.keys(links)) {
   if (!(await lstat(resolve(workspace, name))).isSymbolicLink()) throw new Error("Missing workspace dependency link");
 }
 `;
-function installCommand({ manager, managerVersion }: PreparationIdentity) {
+function installCommand({ manager, managerVersion, legacyPeerDeps }: PreparationIdentity) {
   return [
     'sh',
     '-c',
@@ -109,12 +109,15 @@ function installCommand({ manager, managerVersion }: PreparationIdentity) {
           ? managerVersion?.startsWith('1.')
             ? YARN_INSTALL_COMMAND
             : YARN_BERRY_INSTALL_COMMAND
-          : // A peer dependency conflict (ERESOLVE) is retried once with the same exact lockfile
-            // and --legacy-peer-deps (owner decision, 2026-10-20); the marker records it.
-            `if ${NPM_CI} > /workspace/.refit-npm-ci.log 2>&1; then cat /workspace/.refit-npm-ci.log >&2; ` +
-            "elif grep -Eq '^npm (ERR!|error) code ERESOLVE$' /workspace/.refit-npm-ci.log; then " +
-            `printf "${LEGACY_PEER_DEPS_MARKER}\\n" >&2; ${NPM_CI} --legacy-peer-deps >&2; cat /workspace/.refit-npm-ci.log >&2; ` +
-            'else cat /workspace/.refit-npm-ci.log >&2; exit 1; fi; ' +
+          : (legacyPeerDeps
+              ? // The repository's own .npmrc asks for it, so there is nothing to retry.
+                `${NPM_CI} --legacy-peer-deps >&2; `
+              : // A peer dependency conflict (ERESOLVE) is retried once with the same exact lockfile
+                // and --legacy-peer-deps (owner decision, 2026-10-20); the marker records it.
+                `if ${NPM_CI} > /workspace/.refit-npm-ci.log 2>&1; then cat /workspace/.refit-npm-ci.log >&2; ` +
+                "elif grep -Eq '^npm (ERR!|error) code ERESOLVE$' /workspace/.refit-npm-ci.log; then " +
+                `printf "${LEGACY_PEER_DEPS_MARKER}\\n" >&2; ${NPM_CI} --legacy-peer-deps >&2; cat /workspace/.refit-npm-ci.log >&2; ` +
+                'else cat /workspace/.refit-npm-ci.log >&2; exit 1; fi; ') +
             'mkdir -p node_modules; ') +
       `node --input-type=module -e '${DEPENDENCY_TREE_CHECK}' "$1"; shift; ` +
       'printf "node_modules\\n" > /workspace/.refit-dependency-paths; ' +

@@ -66,6 +66,79 @@ export function resolvableComponentSchema(schemas: Record<string, unknown>, name
   return undefined;
 }
 
+const COMPOSITION_KEYS = ['allOf', 'anyOf', 'oneOf', 'not', 'discriminator'];
+const MAX_ALL_OF_DEPTH = 8;
+
+// The properties and required list of an object schema, following references and plain `allOf`
+// compositions. Undefined when any part is not a plain object schema, or when two parts declare the
+// same property differently.
+function objectParts(
+  schemas: Record<string, unknown>,
+  schema: unknown,
+  depth: number,
+): { properties: Record<string, unknown>; required: string[] } | undefined {
+  if (depth > MAX_ALL_OF_DEPTH || !isObject(schema)) return undefined;
+  const referenced = componentReference(schema.$ref);
+  if (referenced) return objectParts(schemas, schemas[referenced], depth + 1);
+  if (COMPOSITION_KEYS.some((key) => key !== 'allOf' && key in schema)) return undefined;
+  if (schema.type !== undefined && schema.type !== 'object') return undefined;
+  const parts = [
+    ...(Array.isArray(schema.allOf) ? schema.allOf : []),
+    ...(isObject(schema.properties)
+      ? [{ properties: schema.properties, required: schema.required }]
+      : []),
+  ];
+  if (!parts.length) return undefined;
+  const properties: Record<string, unknown> = {};
+  const required = new Set<string>();
+  for (const part of parts) {
+    const resolved =
+      isObject(part) &&
+      isObject(part.properties) &&
+      !('allOf' in part) &&
+      !componentReference(part.$ref)
+        ? COMPOSITION_KEYS.some((key) => key in part) ||
+          (part.type !== undefined && part.type !== 'object')
+          ? undefined
+          : {
+              properties: part.properties,
+              required: Array.isArray(part.required)
+                ? part.required.filter((item): item is string => typeof item === 'string')
+                : [],
+            }
+        : objectParts(schemas, part, depth + 1);
+    if (!resolved) return undefined;
+    for (const [name, definition] of Object.entries(resolved.properties)) {
+      if (name in properties && JSON.stringify(properties[name]) !== JSON.stringify(definition))
+        return undefined;
+      properties[name] = definition;
+    }
+    for (const name of resolved.required) required.add(name);
+  }
+  return { properties, required: [...required] };
+}
+
+// Component schemas with each `allOf` of plain object schemas merged into one object schema, so an
+// adapter can map a response such as OpenAI's `Response`. Other compositions are left as they are,
+// and the source document is not changed.
+export function flattenAllOfSchemas(schemas: Record<string, unknown>) {
+  let flattened: Record<string, unknown> | undefined;
+  for (const [name, definition] of Object.entries(schemas)) {
+    if (!isObject(definition) || !Array.isArray(definition.allOf)) continue;
+    const merged = objectParts(schemas, definition, 0);
+    if (!merged) continue;
+    const { allOf: _allOf, ...rest } = definition;
+    flattened ??= { ...schemas };
+    flattened[name] = {
+      ...rest,
+      type: 'object',
+      properties: merged.properties,
+      ...(merged.required.length ? { required: merged.required } : {}),
+    };
+  }
+  return flattened ?? schemas;
+}
+
 // npm and Node ignore a leading byte order mark in JSON files, which Windows editors write.
 export function parseJson(content: string): unknown {
   return JSON.parse(content.replace(/^\uFEFF/, ''));
@@ -165,7 +238,10 @@ export function parseSpecification(content: string, label: string) {
   }
   return {
     hash: digest(content),
-    schemas: isObject(components) && isObject(components.schemas) ? components.schemas : {},
+    schemas:
+      isObject(components) && isObject(components.schemas)
+        ? flattenAllOfSchemas(components.schemas)
+        : {},
     document,
   };
 }
