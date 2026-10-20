@@ -14,11 +14,13 @@ export const SUBSCRIPTION_PERIOD_RULE = 'stripe-subscription-periods-price-id';
 export const SUBSCRIPTION_PERIOD_HELPER_RULE = 'stripe-subscription-periods-helper';
 export const INVOICE_SUBSCRIPTION_HELPER_RULE = 'stripe-invoice-subscription-helper';
 export const INVOICE_PRICE_ID_HELPER_RULE = 'stripe-invoice-price-id-helper';
+export const CHECKOUT_SHIPPING_HELPER_RULE = 'stripe-checkout-shipping-details-helper';
 // Rules whose edits call the generated helper module.
 export const HELPER_RULES = new Set<string>([
   SUBSCRIPTION_PERIOD_HELPER_RULE,
   INVOICE_SUBSCRIPTION_HELPER_RULE,
   INVOICE_PRICE_ID_HELPER_RULE,
+  CHECKOUT_SHIPPING_HELPER_RULE,
 ]);
 const BEFORE_VERSION = '2025-02-24.acacia';
 const AFTER_VERSION = '2025-03-31.basil';
@@ -360,6 +362,9 @@ export const PERIOD_HELPERS = {
 } as const;
 export const INVOICE_SUBSCRIPTION_HELPER = 'getInvoiceSubscription';
 export const INVOICE_PRICE_ID_HELPER = 'getInvoicePriceId';
+export const CHECKOUT_SHIPPING_HELPER = 'getCheckoutShippingDetails';
+// Fields of the old Shipping object that the new checkout address details no longer carry.
+const DROPPED_SHIPPING_FIELDS = new Set(['carrier', 'phone', 'tracking_number']);
 export type PeriodRareCase = 'item-in-code' | 'price-policy' | 'flagged';
 
 // Replaces a period read with the generated helper; `plan` selects the item for subscriptions whose
@@ -420,6 +425,27 @@ export function invoicePriceIdHelperEdit(node: ts.Node, file: string, changeId: 
     (line) => `${INVOICE_PRICE_ID_HELPER}(${line})`,
   );
   return edit && { ...edit, end: read.getEnd() };
+}
+
+// Replaces a Checkout Session `shipping_details` read, which moved to
+// `collected_information.shipping_details`. Its new object holds only `address` and `name`, so a
+// read of `carrier`, `phone` or `tracking_number` stays with review.
+export function checkoutShippingHelperEdit(node: ts.Node, file: string, changeId: string) {
+  if (!ts.isPropertyAccessExpression(node) || node.name.text !== 'shipping_details') return;
+  const read = node.parent;
+  if (
+    ts.isPropertyAccessExpression(read) &&
+    read.expression === node &&
+    DROPPED_SHIPPING_FIELDS.has(read.name.text)
+  )
+    return;
+  return movedReadEdit(
+    node,
+    file,
+    changeId,
+    CHECKOUT_SHIPPING_HELPER_RULE,
+    (session) => `${CHECKOUT_SHIPPING_HELPER}(${session})`,
+  );
 }
 
 const HELPER_BODY = (typed: boolean) => {
@@ -504,5 +530,28 @@ ${exported}function getInvoicePriceId(line${t(': object')})${t(': string | undef
   const id${t(': unknown')} = price && typeof price === 'object' ? Reflect.get(price, 'id') : price;
   return typeof id === 'string' ? id : undefined;
 }
-${kind === 'cjs' ? '\nmodule.exports = { getSubscriptionPeriodStart, getSubscriptionPeriodEnd, getInvoiceSubscription, getInvoicePriceId };\n' : ''}`;
+
+${
+  typed
+    ? `// Typed like the removed field under old stripe types, like the new location under new ones.
+type CheckoutShippingDetails<T> = T extends { shipping_details: infer S }
+  ? S
+  : T extends { collected_information: infer C }
+    ? NonNullable<C> extends { shipping_details: infer S }
+      ? S | null
+      : null
+    : null;
+
+`
+    : ''
+}// The old top-level field when present (old-version payloads), otherwise
+// collected_information.shipping_details, which holds only address and name.
+${exported}function getCheckoutShippingDetails${typed ? '<T extends object>(session: T): CheckoutShippingDetails<T>' : '(session)'} {
+  const legacy${t(': unknown')} = Reflect.get(session, 'shipping_details');
+  const collected${t(': unknown')} = Reflect.get(session, 'collected_information');
+  const moved${t(': unknown')} =
+    collected && typeof collected === 'object' ? Reflect.get(collected, 'shipping_details') : undefined;
+  return (legacy !== undefined ? legacy : (moved ?? null))${typed ? ' as CheckoutShippingDetails<T>' : ''};
+}
+${kind === 'cjs' ? '\nmodule.exports = { getSubscriptionPeriodStart, getSubscriptionPeriodEnd, getInvoiceSubscription, getInvoicePriceId, getCheckoutShippingDetails };\n' : ''}`;
 }

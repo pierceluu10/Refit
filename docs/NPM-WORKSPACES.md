@@ -47,7 +47,7 @@ Workspace manifest hashes are part of the cache identity and environment evidenc
 - Public registry packages and implicit workspace links selected by npm. Ordinary version ranges such as `"@example/shared": "*"` can refer to a declared workspace.
 - Root and workspace dependency versions can differ; nested dependency directories are retained.
 
-Negative patterns, object workspace declarations, nested workspace declarations, workspace `bin` entries, bundled dependencies, explicit `file:`, `link:` or `workspace:` protocols, Git/URL/private dependencies, tracked dependency directories, tracked symlinks and submodules require the custom-image path. Packages that require install/build scripts also need a prepared custom image. Refit does not enable those scripts automatically. pnpm and Yarn lockfiles are outside this npm feature.
+Negative patterns, object workspace declarations, nested workspace declarations, workspace `bin` entries, bundled dependencies, explicit `file:`, `link:` or `workspace:` protocols, Git/URL/private dependencies, tracked dependency directories, symlinks that resolve outside the repository and submodules require the custom-image path. Packages that require install/build scripts also need a prepared custom image. Refit does not enable those scripts automatically. pnpm and Yarn lockfiles are outside this npm feature.
 
 ## Offline conformance example
 

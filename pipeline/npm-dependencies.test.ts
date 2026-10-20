@@ -22,6 +22,7 @@ import {
   preparationProfile,
   validationProfile,
 } from './docker-sandbox.ts';
+import { legacyPeerDeps } from './dependency-inputs.ts';
 import { verifyArtifacts } from './verification.ts';
 import { runWorkflow } from './workflow.ts';
 
@@ -171,6 +172,30 @@ it(
   },
   NATIVE_PROCESS_TEST_TIMEOUT_MS,
 );
+
+it('honours only legacy-peer-deps from a committed .npmrc and keys the cache on it', async () => {
+  const fixture = await setup();
+  const command = (call: { args: string[] }) =>
+    call.args.find((argument) => argument.includes('npm ci --ignore-scripts'))!;
+  const plain = await prepareDependencies(fixture.options);
+  await writeFile(
+    join(fixture.repository, '.npmrc'),
+    'registry=http://127.0.0.1:1\n; comment\nlegacy-peer-deps = true\n',
+  );
+  await commit(fixture.repository);
+  const relaxed = await prepareDependencies(fixture.options);
+  expect(relaxed.directory).not.toBe(plain.directory);
+  const [first, second] = (await fixture.calls()).filter((call) => call.args[0] === 'run');
+  expect(command(first)).toContain('REFIT_LEGACY_PEER_DEPS=1');
+  expect(command(second)).not.toContain('REFIT_LEGACY_PEER_DEPS=1');
+  expect(command(second)).toContain(
+    '--cache=/workspace/.npm-cache --legacy-peer-deps >&2; mkdir -p node_modules;',
+  );
+  expect(command(second)).toContain('--registry=https://registry.npmjs.org');
+  expect(second.inputs.sort()).toEqual(['package-lock.json', 'package.json']);
+  expect(legacyPeerDeps('legacy-peer-deps=false\n#legacy-peer-deps=true')).toBe(false);
+  expect(legacyPeerDeps('legacy-peer-deps=true\r\n')).toBe(true);
+});
 
 it('invalidates dependencies when committed inputs or the immutable image change and refuses tampered cache bytes', async () => {
   const fixture = await setup();
@@ -444,6 +469,7 @@ it('runs validation containers on the default 2 GiB workspace and 3 GiB memory, 
   expect(args).toContain('/workspace:rw,exec,size=2g,uid=65534,gid=65534,mode=0700');
   expect(args[args.indexOf('--memory') + 1]).toBe('3g');
   expect(args[args.indexOf('--network') + 1]).toBe('none');
+  expect(args[args.indexOf('--env') + 1]).toBe('CI=true');
 });
 
 it('enlarges validation only through a known REFIT_VALIDATION_WORKSPACE profile', () => {

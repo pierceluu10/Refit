@@ -169,7 +169,8 @@ it('exposes service help and refuses missing authentication or invalid schedulin
       env: { ...environment, REFIT_WEBHOOK_SECRET: 'webhook-secret-for-cli-tests-12345' },
     }),
   ).rejects.toMatchObject({ code: 1, stderr: expect.stringContaining('30–86400') });
-});
+  // Starts the CLI several times; shared CI runners can exceed the default 5s timeout.
+}, 30_000);
 
 it.each([
   { ids: ['billing'], once: false, message: '--retry-target requires --once' },

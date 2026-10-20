@@ -1,5 +1,15 @@
 import { execFile } from 'node:child_process';
-import { cp, mkdtemp, readFile, realpath, rm, stat, symlink, writeFile } from 'node:fs/promises';
+import {
+  cp,
+  mkdir,
+  mkdtemp,
+  readFile,
+  realpath,
+  rm,
+  stat,
+  symlink,
+  writeFile,
+} from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { promisify } from 'node:util';
@@ -12,7 +22,11 @@ import {
   RepositoryApprovalError,
 } from './repository-enrollment.ts';
 import { readServiceConfiguration } from './service-configuration.ts';
-import { readCommittedFile, readCommittedRepository } from './committed-repository.ts';
+import {
+  linkStaysInside,
+  readCommittedFile,
+  readCommittedRepository,
+} from './committed-repository.ts';
 
 const execute = promisify(execFile);
 const roots: string[] = [];
@@ -464,6 +478,40 @@ it('bounds immutable Git blob reads and rejects unsupported text before parser u
   await expect(
     readCommittedFile(await readCommittedRepository(sample.repository), 'binary.dat', 100),
   ).rejects.toThrow('supported UTF-8');
+});
+
+it('accepts tracked symbolic links only when they resolve inside the repository', async () => {
+  const sample = await setup();
+  await mkdir(join(sample.repository, 'public', 'icons'), { recursive: true });
+  await symlink('../before.json', join(sample.repository, 'public', 'contract.json'));
+  await symlink('icons', join(sample.repository, 'public', 'images'));
+  await symlink('missing.png', join(sample.repository, 'public', 'icons', 'logo.png'));
+  await commit(sample.repository);
+  const snapshot = await readCommittedRepository(sample.repository);
+  await expect(readCommittedFile(snapshot, 'public/contract.json', 1000)).rejects.toThrow(
+    'not a committed regular file',
+  );
+  await symlink('../../..', join(sample.repository, 'public', 'icons', 'up'));
+  await commit(sample.repository);
+  await expect(readCommittedRepository(sample.repository)).rejects.toThrow(
+    'public/icons/up does not',
+  );
+});
+
+it('resolves chained links before deciding whether a link escapes', () => {
+  const links = new Map([
+    ['app/root', '..'],
+    ['app/escape', 'root/..'],
+    ['app/inside', 'root/app'],
+    ['absolute', '/etc/passwd'],
+    ['loop', 'loop'],
+  ]);
+  expect(linkStaysInside('app/root', links)).toBe(true);
+  // Read as text, root/.. is app; through the link it is the repository's parent.
+  expect(linkStaysInside('app/escape', links)).toBe(false);
+  expect(linkStaysInside('app/inside', links)).toBe(true);
+  expect(linkStaysInside('absolute', links)).toBe(false);
+  expect(linkStaysInside('loop', links)).toBe(false);
 });
 
 it('refuses changed, linked, extra or incomplete cached input files without overwriting them', async () => {
