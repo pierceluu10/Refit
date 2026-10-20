@@ -135,11 +135,11 @@ Built-in agent, 531 benchmark repositories, **74 validated fixes of 234 affected
 | Fresh | 200 | 170 | 6 (13 patched) | 44 need an SDK upgrade, 39 use REST |
 | Original | 50 | 46 | 1 | 15 need an SDK upgrade |
 
-23 of 200 fresh apps send a query that fails on every served version, each at an exact line. Repeat runs matched 200 of 200. Deadline registry: 7 Admin versions, 2025-04 to 2026-10 (source: data/deadlines.json).
+24 of 200 fresh apps send a query that fails on every served version, each at an exact line (23 before callback tracing, 2026-10-20). Repeat runs matched 200 of 200. Deadline registry: 7 Admin versions, 2025-04 to 2026-10 (source: data/deadlines.json).
 
 **What breaks for its users.** Quarterly dated versions, each supported for a year; an unsupported pin "falls forward" to the oldest supported version (source: docs/SHOPIFY.md, citing `https://shopify.dev/docs/api/usage/versioning`). Removed fields, arguments, enum values and types per version are provable from the schema. REST Admin calls have no published versioned contract (source: docs/SHOPIFY.md). The REST API's deprecation in favour of GraphQL: unverified: check the date and scope. `ApiVersion.October26` needs `@shopify/shopify-api` 14 (source: docs/SHOPIFY.md).
 
-**SDK patterns to trace.** Already read: `admin.graphql(...)` from the Remix, React Router and Express packages, `createAdminApiClient(...).request(...)`, `shopify.clients.Graphql(...).request/query(...)`, and pins as `ApiVersion.<Month><YY>`, `apiVersion: 'YYYY-MM'`, versioned URLs and `LATEST_API_VERSION` (source: docs/SHOPIFY.md). Not read: documents built at runtime, arrays, closures, re-exports; `shopify-api-node`; REST calls (source: docs/SHOPIFY.md, limits).
+**SDK patterns to trace.** Already read: `admin.graphql(...)` from the Remix, React Router and Express packages, `createAdminApiClient(...).request(...)`, `shopify.clients.Graphql(...).request/query(...)`, and pins as `ApiVersion.<Month><YY>`, `apiVersion: 'YYYY-MM'`, versioned URLs and `LATEST_API_VERSION`; documents passed through helpers, callbacks, closure factories, re-exports, constant arrays and objects (2026-10-20) (source: docs/SHOPIFY.md). Not read: documents built at runtime, documents sent through class or object methods; `shopify-api-node`; REST calls (source: docs/SHOPIFY.md, limits).
 
 **Definition of done.** Measured on the frozen fresh 200 (`docs/benchmarks/2026-10-16-shopify-repos.json` and `-fresh-repos.json`):
 
@@ -151,7 +151,7 @@ Built-in agent, 531 benchmark repositories, **74 validated fixes of 234 affected
 | Wrong fixes on hand review | 0 of 7 | 0 |
 | Repeat-run agreement | 200/200 | 200/200 |
 
-**Milestones.** 1. Catalog entry exists. 2. Adapter exists. 3. Rules: an `@shopify/shopify-api` major upgrade in the same patch as the pin move, modelled on the stripe-node upgrade in [DEPENDENCIES.md](DEPENDENCIES.md#stripe-node-upgrade-in-a-patch), if the owner allows a major bump; helper and closure document tracing. 4. Deadline entries exist; add versions older than 2025-04 so older pins are reported. 5. Set is frozen. 6. Rerun and publish.
+**Milestones.** 1. Catalog entry exists. 2. Adapter exists. 3. Rules: an `@shopify/shopify-api` major upgrade in the same patch as the pin move, modelled on the stripe-node upgrade in [DEPENDENCIES.md](DEPENDENCIES.md#stripe-node-upgrade-in-a-patch), if the owner allows a major bump; helper and closure document tracing (done 2026-10-20: traced documents 964 → 994 and unread Admin calls 90 → 76 across both frozen sets, one more already-broken query found; source: docs/SHOPIFY-BENCHMARK.md). 4. Deadline entries exist; add versions older than 2025-04 so older pins are reported. 5. Set is frozen. 6. Rerun and publish.
 
 **Blockers and owner decisions.** A major SDK upgrade is a policy call (Stripe's upgrade was allowed as a minor-to-major bump only with the version literal). REST-to-GraphQL rewriting changes request and response shapes and is not a pin move; it needs an explicit decision and probably stays review-only. The target version is the newest the locked SDK can name, not always `2026-10` (source: docs/BENCHMARKS.md). The lab uses simulated responses only.
 
