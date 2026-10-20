@@ -1,5 +1,10 @@
 # Refit implementation checkpoints
 
+## October 20 checkpoint: self-maintaining Anthropic deadlines (unreleased, after 0.39.0)
+
+`refit deadlines --sync anthropic` reads Anthropic's model deprecations page and updates `data/deadlines.json`. It groups the page's tables into one entry per retirement date and replacement. Entries are matched by model, so a moved date updates in place, and unchanged entries keep their aliases and `checkedAt`. Nothing is deleted, an unparseable row fails the sync, and the result must pass the registry check before it is written. On the live page (20 retirements, 2026-10-20) it reports no change: the shipped entries match.
+
+A scheduled workflow, `.github/workflows/deadlines-sync.yml`, runs it daily and opens a pull request when the registry should change, so the registry stays current with a reviewer's merge as the only human step. Matching, CI checks, alerts and model replacements still read only the committed registry. OpenAI's page could not be reached from this environment, so its entries are still maintained by hand.
 ## October 20 checkpoint: automatic model fixes in enrolled repositories (unreleased, after 0.39.0)
 
 `refit serve --model-fixes` (off by default) now maintains retiring OpenAI and Anthropic models without asking first. After each poll, for every enrolled repository:
