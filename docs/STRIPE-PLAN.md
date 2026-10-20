@@ -9,13 +9,26 @@ That's although at least **31** of them read a field (`subscription.current_peri
 
 ## Goal: finish the Stripe agent (set October 20, 2026)
 
-The Stripe agent is finished when a rerun of every frozen set (the 531 Stripe repositories and the 66 active-teams repositories) from one pinned commit on `main` shows:
+**North star:** a team installs Refit once, and it keeps every Stripe API they use working, release after release, without anyone having to watch Stripe. Refit finds each change that affects them, fixes it, proves the fix, and hands over a draft PR that is ready to merge. It asks a person only for real decisions. Refit still never merges on its own (see `AGENTS.md`); "worry-free" means the review is the only work left.
+
+That needs two things.
+
+**1. The fixes are right.** A rerun of every frozen set (the 531 Stripe repositories and the 66 active-teams repositories) from one pinned commit on `main` shows:
 
 - **≥ 70%** of affected repositories with runnable checks end in a validated fix;
 - **0** wrong fixes on hand review of every validated fix;
 - every remaining stop is a named, documented owner decision, not an unbuilt feature.
 
-Where it stands (rerun of every set from `6d4f38a`, October 20): **102 of 231** affected repositories in the 531 validated (**44%**, up from 74 of 234 on [October 16](BENCHMARKS.md#stripe-node-upgrade-for-pnpm-and-yarn-and-the-active-teams-set-october-16)); original 15 of 37, held-out 12 of 21, fresh 75 of 173. Active teams: 1 of 22 affected validated, and 1,361 of 1,895 likely calls traced (72%, against 35%); only 4 repositories trace none, down from 32. The stops on the 531, largest first, and what clears each:
+**2. It runs unattended.** On a real enrolled repository, across two consecutive Stripe API releases, with no one touching Refit:
+
+- the worker notices each release and opens one validated draft PR per affected integration;
+- after that PR merges, it moves its own baseline to the new version and keeps watching. Today it does not: [a new baseline and state directory are chosen by hand](AUTOMATION.md#use-a-real-upstream-source) after every migration;
+- a multi-year version jump does not stall on contract changes the code never reads ([open decision 5](#open-decisions));
+- it covers every Stripe surface the repository uses: SDK calls, webhook handlers and API-version pins today; direct `api.stripe.com` HTTP calls are only detected as Stripe usage, not traced or migrated;
+- it stays quiet when nothing is affected, and opens an issue only for a stop that needs a person, with the decision spelled out;
+- hosted operation exists: customer sign-in, enrollment with approved checks, durable jobs and per-customer budgets ([remaining product work](AUTOMATION.md#remaining-product-work)).
+
+Where it stands (rerun of every set from `6d4f38a`, October 20): **102 of 231** affected repositories in the 531 validated (**44%**, up from 74 of 234 on [October 16](BENCHMARKS.md#stripe-node-upgrade-for-pnpm-and-yarn-and-the-active-teams-set-october-16)); original 15 of 37, held-out 12 of 21, fresh 75 of 173. Active teams: 1 of 22 affected validated, and 1,361 of 1,895 likely calls traced (72%, against 35%); only 4 repositories trace none, down from 32. The stops on the 531 (part 1), largest first, and what clears each:
 
 | Stop | Repositories | Clears it |
 |---|---|---|
@@ -24,7 +37,7 @@ Where it stands (rerun of every set from `6d4f38a`, October 20): **102 of 231** 
 | Other review stops | 15 | Declared types without SDK or event proof (6), unparseable source (3), checks pass with findings unresolved (3), conflicting declared API versions (3) |
 | Validation failed | 11 | 9 regressions, 2 failing baselines. Six regressions are forks of the Supabase subscription starter; their type errors come from a large stripe-node jump (widened `OtherString` enums used as index types or stored in narrow database types, removed fields such as `Charge.dispute` and `trial_from_plan`, and webhook `event.type` typos the closed event union now rejects), which the open-enum restore (#101) does not cover. One (`iggy-tech/product-hunt-clone-final`) still reads `subscription.current_period_end` after the patch, a missed typed read |
 
-Next steps, in order: take the policy question to the owner; then build the largest stop that needs no decision. Phase 5 (real draft PRs on forks) closes it out.
+Next steps, in order: build the largest part-1 stop that needs no decision; build baseline advancement after a merged PR (part 2's biggest gap, since without it nothing runs past one upgrade); take the policy question to the owner. Phase 5 (real draft PRs on forks) closes it out.
 
 ## Definition of done
 
