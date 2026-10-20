@@ -7,6 +7,26 @@ Refit's initial target is Stripe integrations in TypeScript/JavaScript GitHub re
 
 That's although at least **31** of them read a field (`subscription.current_period_end`) that Stripe removed. This plan closes that gap and defines what "excellent" means in numbers.
 
+## Goal: finish the Stripe agent (set October 20, 2026)
+
+The Stripe agent is finished when a rerun of every frozen set (the 531 Stripe repositories and the 66 active-teams repositories) from one pinned commit on `main` shows:
+
+- **≥ 70%** of affected repositories with runnable checks end in a validated fix;
+- **0** wrong fixes on hand review of every validated fix;
+- every remaining stop is a named, documented owner decision, not an unbuilt feature.
+
+Where it stands ([October 16 numbers](BENCHMARKS.md#stripe-node-upgrade-for-pnpm-and-yarn-and-the-active-teams-set-october-16)): **74 of 234** affected repositories validated (32%). The stops, largest first, and what clears each:
+
+| Stop                                                                             | Repositories | Clears it                                                                                                          |
+| -------------------------------------------------------------------------------- | ------------ | ------------------------------------------------------------------------------------------------------------------ |
+| `payment_method_types` outside the card rule                                     | 82           | Owner-reviewed replacement policy for other values (the listed-methods opt-in, #104, needs per-repository config)  |
+| Refused at validation preparation                                                | 38           | Dependency preparation for the refused shapes (registry URLs, tracked `node_modules`, conflicting lockfiles, size) |
+| Regression caught by validation                                                  | 12           | Open-enum literal restore (#101), merged after the run; rerun to confirm                                           |
+| Other (declared types, invalid source, no checks, AI declined, failing baseline) | 28           | Triage per repository                                                                                              |
+| Active teams: no traced Stripe call                                              | 32           | Client factories and lazy holders (#103, async factories), merged after the run; rerun to confirm                  |
+
+Next steps, in order: rerun every set from a pinned worktree of current `main` and refresh this table; take the policy question to the owner; then build the largest stop that needs no decision. Phase 5 (real draft PRs on forks) closes it out.
+
 ## Definition of done
 
 Measured on the frozen 100-repository benchmark (`docs/benchmarks/2026-10-14-stripe-repos.json`), plus a hand-labelled ground truth (phase 0):
