@@ -8,7 +8,7 @@ import { createSourceImportResolver } from './source-imports.ts';
 import { sourceBindings } from './source-modules.ts';
 import { sdkConstructors } from './sdk-constructors.ts';
 import { classClients } from './class-clients.ts';
-import { factoryClients } from './factory-clients.ts';
+import { factoryClients, proxyClient } from './factory-clients.ts';
 import { helperClients } from './helper-clients.ts';
 import { stripeWebhookPayloads } from './stripe-webhook-payloads.ts';
 import { componentReference, isObject, resolvableComponentSchema } from './specifications.ts';
@@ -478,7 +478,7 @@ export function analyzeRepository(
   classBindings = classClients({ nodes, creation: sdk.creation, clients, symbol, checker });
   factoryBindings = factoryClients({ nodes, clients, symbol, creation: sdk.creation });
   for (const declaration of declarations) {
-    const binding = clientBinding(declaration.initializer);
+    const binding = clientBinding(proxyClient(declaration.initializer) ?? declaration.initializer);
     if (binding && clients.has(binding)) add(clients, declaration.name);
   }
   const helperBindings = helperClients({

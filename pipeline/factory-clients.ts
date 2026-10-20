@@ -1,5 +1,68 @@
 import ts from 'typescript-compiler';
 
+// `new Proxy(target, { get: (_, key) => client[key] })`, or the same with `Reflect.get(client, key)`,
+// forwards every read to `client`; returns that expression. Any other trap or trap body is not one.
+export function proxyClient(expression: ts.Expression): ts.Expression | undefined {
+  const unwrap = (node: ts.Expression): ts.Expression =>
+    ts.isParenthesizedExpression(node) ||
+    ts.isAsExpression(node) ||
+    ts.isTypeAssertionExpression(node) ||
+    ts.isNonNullExpression(node) ||
+    ts.isSatisfiesExpression(node)
+      ? unwrap(node.expression)
+      : node;
+  const proxy = unwrap(expression);
+  if (
+    !ts.isNewExpression(proxy) ||
+    !ts.isIdentifier(proxy.expression) ||
+    proxy.expression.text !== 'Proxy' ||
+    proxy.arguments?.length !== 2
+  )
+    return;
+  const handler = unwrap(proxy.arguments[1]);
+  if (!ts.isObjectLiteralExpression(handler) || handler.properties.length !== 1) return;
+  const [trap] = handler.properties;
+  const get =
+    ts.isMethodDeclaration(trap) && !trap.asteriskToken
+      ? trap
+      : ts.isPropertyAssignment(trap) &&
+          (ts.isArrowFunction(unwrap(trap.initializer)) ||
+            ts.isFunctionExpression(unwrap(trap.initializer)))
+        ? (unwrap(trap.initializer) as ts.ArrowFunction | ts.FunctionExpression)
+        : undefined;
+  if (!get || !trap.name || !ts.isIdentifier(trap.name) || trap.name.text !== 'get') return;
+  if (get.modifiers?.some((modifier) => modifier.kind === ts.SyntaxKind.AsyncKeyword)) return;
+  const key = get.parameters[1]?.name;
+  if (!key || !ts.isIdentifier(key) || !get.body) return;
+  const body = ts.isBlock(get.body)
+    ? get.body.statements.length === 1 &&
+      ts.isReturnStatement(get.body.statements[0]) &&
+      get.body.statements[0].expression
+    : get.body;
+  if (!body) return;
+  const read = unwrap(body);
+  const isKey = (node: ts.Expression) => {
+    const current = unwrap(node);
+    return ts.isIdentifier(current) && current.text === key.text;
+  };
+  if (
+    ts.isElementAccessExpression(read) &&
+    !read.questionDotToken &&
+    isKey(read.argumentExpression)
+  )
+    return unwrap(read.expression);
+  if (
+    ts.isCallExpression(read) &&
+    ts.isPropertyAccessExpression(read.expression) &&
+    ts.isIdentifier(read.expression.expression) &&
+    read.expression.expression.text === 'Reflect' &&
+    read.expression.name.text === 'get' &&
+    read.arguments.length === 2 &&
+    isKey(read.arguments[1])
+  )
+    return unwrap(read.arguments[0]);
+}
+
 type Creation = ts.NewExpression | ts.CallExpression;
 type Factory =
   ts.FunctionDeclaration | ts.FunctionExpression | ts.ArrowFunction | ts.MethodDeclaration;

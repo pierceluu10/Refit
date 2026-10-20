@@ -250,3 +250,38 @@ ${write}`,
   });
   expect(result.findings.filter((entry) => entry.confidence === 'confirmed')).toEqual([]);
 });
+
+const lazy = `let instance: Stripe | null = null;
+function getStripe(): Stripe { instance ??= new Stripe('key', ${options}); return instance; }`;
+
+it.each([
+  ['a Reflect.get method trap', 'get(_target, key) { return Reflect.get(getStripe(), key); }'],
+  ['an element-access arrow trap', 'get: (_target, key) => getStripe()[key as keyof Stripe]'],
+  [
+    'a function trap over a constant client',
+    'get: function (_target, key) { return (base as any)[key]; }',
+  ],
+])('traces a Proxy export that forwards every read through %s', (_name, trap) => {
+  const result = analyze({
+    'client.ts': `import Stripe from 'stripe';\n${lazy}\nconst base = new Stripe('key', ${options});\nexport const stripe = new Proxy({} as Stripe, { ${trap} });`,
+    'billing.ts': `import { stripe } from './client.ts';\n${read('stripe')}`,
+  });
+  expect(result.findings).toMatchObject([{ file: 'billing.ts', confidence: 'confirmed' }]);
+});
+
+it.each([
+  ['another trap', 'get: (_t, key) => getStripe()[key], set: () => true'],
+  ['a different key', "get: (_t, key) => getStripe()['customers']"],
+  [
+    'a trap that binds methods',
+    'get(_t, key) { const value = getStripe()[key]; return typeof value === "function" ? value.bind(getStripe()) : value; }',
+  ],
+  ['a Reflect.get receiver', 'get: (_t, key, receiver) => Reflect.get(getStripe(), key, receiver)'],
+  ['a target that is not a client', 'get: (_t, key) => ({} as any)[key]'],
+])('leaves a Proxy export untraced with %s', (_name, trap) => {
+  const result = analyze({
+    'client.ts': `import Stripe from 'stripe';\n${lazy}\nexport const stripe = new Proxy({} as Stripe, { ${trap} });`,
+    'billing.ts': `import { stripe } from './client.ts';\n${read('stripe')}`,
+  });
+  expect(result.findings.filter((entry) => entry.confidence === 'confirmed')).toEqual([]);
+});
