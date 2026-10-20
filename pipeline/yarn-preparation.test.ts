@@ -34,6 +34,12 @@ it('accepts a generated Yarn 1 lockfile and pins the manager version', async () 
     classic,
   );
   expect(pinned).toMatchObject({ managerVersion: '1.22.19', managerIntegrity: /^sha512-/ });
+  const weak = validateYarnInputs(
+    JSON.stringify({ ...manifest, packageManager: `yarn@1.22.19+sha1.${'a'.repeat(40)}` }),
+    classic,
+  );
+  expect(weak).toMatchObject({ managerVersion: '1.22.19' });
+  expect(weak).not.toHaveProperty('managerIntegrity');
 });
 
 it('refuses Yarn inputs that need a custom image', async () => {
