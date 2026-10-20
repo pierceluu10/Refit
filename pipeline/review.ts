@@ -328,10 +328,14 @@ export function createReviewArtifacts(
   const usageCount = `${confirmedFindings.length} confirmed ${confirmedFindings.length === 1 ? 'usage' : 'usages'}`;
   const fileCount = `${affectedFiles.size} ${affectedFiles.size === 1 ? 'file' : 'files'}`;
   const after = plainText(report.apiVersion.after ?? 'the after contract');
-  // Calls that still send a removed request parameter are counted as unresolved; they get their
-  // own section, so the unmigrated-read counts below leave them out.
+  // Calls that still send a removed request parameter and untraced reads (no rule edits them) are
+  // counted as unresolved; each gets its own line, so the confirmed count below leaves them out.
   const parameterCalls = waiver?.gate === 'removed-request-parameter' ? waiver.calls : [];
-  const unresolvedReads = Math.max(0, patch.unresolvedFindings - parameterCalls.length);
+  const untracedReads = report.findings.filter((finding) => finding.untraced).length;
+  const unresolvedReads = Math.max(
+    0,
+    patch.unresolvedFindings - parameterCalls.length - untracedReads,
+  );
   const parameters = [...new Set(parameterCalls.map((call) => call.parameter))];
   const passed = validation.status === 'passed';
   const commandText = (value: readonly string[]) => code(value.join(' '));
@@ -540,7 +544,7 @@ export function createReviewArtifacts(
               ? `**Not run: dependency preparation failed (${code(waiver.reason)}); this patch is untested.**`
               : `**Validation did not pass (${validation.status}).**`
         }${generatedResult}`,
-        `- Linter & Static Analysis: ${typeChecked ? 'TypeScript type check is the test command above; ' : 'Not run; '}${shopify ? `Refit rescanned the migrated code and every runtime Admin API pin is on ${after}.` : `Refit rescanned the migrated code and ${unresolvedReads} confirmed usage${unresolvedReads === 1 ? '' : 's'} of the breaking changes remain${parameterCalls.length ? `, plus ${parameterCalls.length} call${parameterCalls.length === 1 ? '' : 's'} sending a removed request parameter` : ''}.`}`,
+        `- Linter & Static Analysis: ${typeChecked ? 'TypeScript type check is the test command above; ' : 'Not run; '}${shopify ? `Refit rescanned the migrated code and every runtime Admin API pin is on ${after}.` : `Refit rescanned the migrated code and ${unresolvedReads} confirmed usage${unresolvedReads === 1 ? '' : 's'} of the breaking changes remain${parameterCalls.length ? `, plus ${parameterCalls.length} call${parameterCalls.length === 1 ? '' : 's'} sending a removed request parameter` : ''}${untracedReads ? `, plus ${untracedReads} untraced read${untracedReads === 1 ? '' : 's'} of removed field names` : ''}.`}`,
         '- Security Scans: Not run.',
       ].join('\n'),
       '## Related Telemetry',

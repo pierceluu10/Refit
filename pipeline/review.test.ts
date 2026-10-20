@@ -297,3 +297,24 @@ it('says when the open-enum repair restored widened Stripe enum values', async (
     'Restores the known values of the Stripe enums that stripe-node 22.4.0 widened with `OtherString`',
   );
 });
+
+it('marks a draft with an untraced read for review and keeps it out of the confirmed count', async () => {
+  const value = await report();
+  value.findings.push({
+    ...value.findings[0],
+    file: 'legacy.ts',
+    confidence: 'review',
+    untraced: true,
+  });
+  value.patch.unresolvedFindings = 1;
+  const artifacts = createReviewArtifacts(value);
+  expect(artifacts.manifest.title).toMatch(/^\[Needs review\] /);
+  const body = artifacts.files['pull-request.md'];
+  expect(body).toContain(
+    '0 confirmed usages of the breaking changes remain, plus 1 untraced read of removed field names.',
+  );
+  expect(body).toContain(
+    'Leaves 1 untraced read of removed field names unchanged for manual review',
+  );
+  expect(body).not.toContain('still unmigrated');
+});

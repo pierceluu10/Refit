@@ -371,7 +371,8 @@ async function runOpenApiPipeline(options: {
         requestRenames,
         moves,
         parameterRemovals,
-      ).findings.filter((finding) => !finding.untraced).length
+        // Untraced reads stay unresolved (owner decision, 2026-10-20): the draft needs review.
+      ).findings.length
     : 0;
   const reviewEvidence = { findings: analysis.findings, skippedFiles, adapter: provider };
   const reviewReason = migrationReviewReason(
