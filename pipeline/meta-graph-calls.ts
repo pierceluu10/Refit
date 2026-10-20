@@ -117,7 +117,7 @@ function lineOf(source: ts.SourceFile, node: ts.Node) {
   return source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1;
 }
 
-function unwrap(node: ts.Expression): ts.Expression {
+export function unwrap(node: ts.Expression): ts.Expression {
   let current = node;
   while (
     ts.isParenthesizedExpression(current) ||
@@ -214,7 +214,7 @@ function binds(binding: ts.BindingName, name: string): boolean {
 // file that declares it. No type checker runs, so this follows names only. A closer binding the
 // value cannot be read from (a parameter, a destructured name, a loop or catch variable) shadows
 // outer declarations, and the result is undefined.
-function findDeclaration(name: string, from: ts.Node): ts.VariableDeclaration | undefined {
+export function findDeclaration(name: string, from: ts.Node): ts.VariableDeclaration | undefined {
   for (let scope: ts.Node | undefined = from; scope; scope = scope.parent) {
     if (ts.isFunctionLike(scope) && scope.parameters.some((item) => binds(item.name, name)))
       return undefined;
@@ -247,7 +247,30 @@ function findDeclaration(name: string, from: ts.Node): ts.VariableDeclaration | 
   return undefined;
 }
 
-function isConst(declaration: ts.VariableDeclaration) {
+// Whether an identifier refers to a variable, rather than naming a property or member, as `url`
+// does in `data.url` or `{ url: x }`.
+export function isReference(node: ts.Identifier) {
+  const parent = node.parent;
+  if (ts.isPropertyAccessExpression(parent) || ts.isJsxAttribute(parent))
+    return parent.name !== node;
+  if (ts.isQualifiedName(parent)) return parent.right !== node;
+  if (
+    ts.isPropertyAssignment(parent) ||
+    ts.isPropertyDeclaration(parent) ||
+    ts.isPropertySignature(parent) ||
+    ts.isMethodDeclaration(parent) ||
+    ts.isMethodSignature(parent) ||
+    ts.isGetAccessor(parent) ||
+    ts.isSetAccessor(parent) ||
+    ts.isEnumMember(parent)
+  )
+    return parent.name !== node;
+  if (ts.isBindingElement(parent) || ts.isImportSpecifier(parent) || ts.isExportSpecifier(parent))
+    return parent.propertyName !== node;
+  return true;
+}
+
+export function isConst(declaration: ts.VariableDeclaration) {
   return (
     ts.isVariableDeclarationList(declaration.parent) &&
     (declaration.parent.flags & ts.NodeFlags.Const) !== 0
@@ -268,6 +291,7 @@ function constantValue(identifier: ts.Identifier): ts.Expression | undefined {
     if (
       ts.isIdentifier(child) &&
       child.text === identifier.text &&
+      isReference(child) &&
       child !== declaration.name &&
       findDeclaration(child.text, child) === declaration
     ) {
@@ -601,6 +625,7 @@ function extendedElsewhere(declaration: ts.VariableDeclaration) {
     if (
       ts.isIdentifier(child) &&
       child.text === name &&
+      isReference(child) &&
       child !== declaration.name &&
       (ts.isTemplateSpan(child.parent) ||
         (ts.isBinaryExpression(child.parent) &&
@@ -645,6 +670,7 @@ function consumers(node: ts.Expression): { call: ts.CallExpression; argument: nu
       if (
         ts.isIdentifier(child) &&
         child.text === name &&
+        isReference(child) &&
         child !== parent.name &&
         findDeclaration(name, child) === parent
       ) {
@@ -769,7 +795,7 @@ function sourceOf(path: string, content: string) {
   return ts.createSourceFile(path, content, ts.ScriptTarget.Latest, true);
 }
 
-function graphString(node: ts.Node): node is ts.StringLiteralLike {
+export function graphString(node: ts.Node): node is ts.StringLiteralLike {
   return ts.isStringLiteralLike(node) && HOST.test(node.text);
 }
 
@@ -831,7 +857,7 @@ function requiredModule(expression: ts.Expression) {
     : undefined;
 }
 
-function exported(declaration: ts.VariableDeclaration) {
+export function exported(declaration: ts.VariableDeclaration) {
   const statement = declaration.parent.parent;
   return (
     ts.isVariableStatement(statement) &&
