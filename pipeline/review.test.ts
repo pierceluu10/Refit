@@ -318,3 +318,12 @@ it('marks a draft with an untraced read for review and keeps it out of the confi
   );
   expect(body).not.toContain('still unmigrated');
 });
+
+it('says when npm installed the committed lockfile with --legacy-peer-deps', async () => {
+  const value = await report();
+  expect(createReviewArtifacts(value).files['pull-request.md']).not.toContain('legacy-peer-deps');
+  value.validation.environment = { installation: { legacyPeerDeps: true } };
+  expect(createReviewArtifacts(value).files['pull-request.md']).toContain(
+    "- Dependency Installation: `npm ci` rejected the committed lockfile's peer dependencies (ERESOLVE), so Refit installed the same lockfile with `--legacy-peer-deps`.",
+  );
+});

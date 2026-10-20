@@ -338,6 +338,11 @@ export function createReviewArtifacts(
   );
   const parameters = [...new Set(parameterCalls.map((call) => call.parameter))];
   const passed = validation.status === 'passed';
+  const legacyPeerDeps = [validation.environment, validation.patchedEnvironment].some(
+    (environment) =>
+      (environment?.installation as { legacyPeerDeps?: unknown } | undefined)?.legacyPeerDeps ===
+      true,
+  );
   const commandText = (value: readonly string[]) => code(value.join(' '));
   const ai = patch.generator === 'openai';
   const model = 'model' in patch && typeof patch.model === 'string' ? patch.model : undefined;
@@ -544,6 +549,11 @@ export function createReviewArtifacts(
               ? `**Not run: dependency preparation failed (${code(waiver.reason)}); this patch is untested.**`
               : `**Validation did not pass (${validation.status}).**`
         }${generatedResult}`,
+        ...(legacyPeerDeps
+          ? [
+              "- Dependency Installation: `npm ci` rejected the committed lockfile's peer dependencies (ERESOLVE), so Refit installed the same lockfile with `--legacy-peer-deps`. Check that your own install uses the same setting.",
+            ]
+          : []),
         `- Linter & Static Analysis: ${typeChecked ? 'TypeScript type check is the test command above; ' : 'Not run; '}${shopify ? `Refit rescanned the migrated code and every runtime Admin API pin is on ${after}.` : `Refit rescanned the migrated code and ${unresolvedReads} confirmed usage${unresolvedReads === 1 ? '' : 's'} of the breaking changes remain${parameterCalls.length ? `, plus ${parameterCalls.length} call${parameterCalls.length === 1 ? '' : 's'} sending a removed request parameter` : ''}${untracedReads ? `, plus ${untracedReads} untraced read${untracedReads === 1 ? '' : 's'} of removed field names` : ''}.`}`,
         '- Security Scans: Not run.',
       ].join('\n'),
