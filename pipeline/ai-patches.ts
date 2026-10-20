@@ -570,8 +570,8 @@ export async function proposeAiPatch(
     edits: edits.length + deterministicEdits.length,
     ...(deterministicEdits.length ? { ruleEdits: deterministicEdits } : {}),
     migratedWebhookFindings,
-    // Reads Refit could not trace to a provider object are listed for review, not counted.
-    unresolvedFindings: remaining.findings.filter((finding) => !finding.untraced).length,
+    // Reads Refit could not trace to a provider object stay unresolved, so the draft needs review.
+    unresolvedFindings: remaining.findings.length,
     diff: renderPatch(original, merged),
     validation: 'not-run',
     warnings: [

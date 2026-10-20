@@ -348,7 +348,7 @@ it('publishes a configured endpoint replacement as a readable draft through the 
   const request = remote.calls.find((call) => call.method === 'POST' && call.path === '/pulls')!;
   expect(request.body.title).toBe('fix(catalog): replace retired items.retrieveLegacy calls');
   expect(request.body.body).toContain(
-    'Retires `items.retrieveLegacy` in favor of `items.retrieve`.',
+    'Retires `items.retrieveLegacy` (`GET /legacy/items/{id}`) in favor of `items.retrieve` (`GET /items/{id}`).',
   );
   expect(remote.calls.find((call) => call.path === '/git/trees')?.body.tree).toEqual(
     value.publicationFiles.map((file) => ({ ...file, type: 'blob' })),
@@ -468,7 +468,9 @@ it('publishes a passing draft with unresolved findings only when explicitly allo
     draft: true,
   });
   const request = remote.calls.find((call) => call.method === 'POST' && call.path === '/pulls')!;
-  expect(request.body.body).toContain('2 confirmed reads of removed fields are still unmigrated.');
+  expect(request.body.body).toContain(
+    '2 confirmed usages of the breaking changes are still unmigrated.',
+  );
   value.validation.status = value.patch.validation = 'regression';
   await expect(publishDraft(value, { ...OPTIONS, allowUnresolved: true })).rejects.toThrow(
     /passing baseline/,

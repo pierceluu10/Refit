@@ -38,7 +38,11 @@ import { hasErrorCode, withStateLock, writeState } from './state-files.ts';
 import { PipelineInputError } from './types.ts';
 import { verifyArtifacts } from './verification.ts';
 
-const RECIPE_VERSION = 4;
+const RECIPE_VERSION = 5;
+const LEGACY_PEER_DEPS_MARKER = 'REFIT_LEGACY_PEER_DEPS=1';
+const NPM_CI =
+  'npm ci --ignore-scripts --include=dev --engine-strict --no-audit --no-fund ' +
+  '--registry=https://registry.npmjs.org --cache=/workspace/.npm-cache';
 const DEFAULT_INSTALL_TIMEOUT_SECONDS = 300;
 const MIN_INSTALL_TIMEOUT_SECONDS = 60;
 const MAX_INSTALL_TIMEOUT_SECONDS = 1800;
@@ -105,8 +109,12 @@ function installCommand({ manager, managerVersion }: PreparationIdentity) {
           ? managerVersion?.startsWith('1.')
             ? YARN_INSTALL_COMMAND
             : YARN_BERRY_INSTALL_COMMAND
-          : 'npm ci --ignore-scripts --include=dev --engine-strict --no-audit --no-fund ' +
-            '--registry=https://registry.npmjs.org --cache=/workspace/.npm-cache >&2; ' +
+          : // A peer dependency conflict (ERESOLVE) is retried once with the same exact lockfile
+            // and --legacy-peer-deps (owner decision, 2026-10-20); the marker records it.
+            `if ${NPM_CI} > /workspace/.refit-npm-ci.log 2>&1; then cat /workspace/.refit-npm-ci.log >&2; ` +
+            "elif grep -Eq '^npm (ERR!|error) code ERESOLVE$' /workspace/.refit-npm-ci.log; then " +
+            `printf "${LEGACY_PEER_DEPS_MARKER}\\n" >&2; ${NPM_CI} --legacy-peer-deps >&2; cat /workspace/.refit-npm-ci.log >&2; ` +
+            'else cat /workspace/.refit-npm-ci.log >&2; exit 1; fi; ' +
             'mkdir -p node_modules; ') +
       `node --input-type=module -e '${DEPENDENCY_TREE_CHECK}' "$1"; shift; ` +
       'printf "node_modules\\n" > /workspace/.refit-dependency-paths; ' +
@@ -167,6 +175,13 @@ const REPOSITORY_DEPENDENCY_FAILURES = [
     summary: 'lockfile entries have no registry integrity hash',
     action: (lockfile: string) =>
       `Regenerate \`${lockfile}\` from the public npm registry so every entry records its tarball URL and integrity hash, commit it, then rerun your checks on this branch.`,
+  },
+  {
+    reason: 'peer-dependency-conflict',
+    pattern: /^npm dependency preparation failed[\s\S]*\bERESOLVE\b/,
+    summary: "npm rejects the committed lockfile's conflicting peer dependencies",
+    action: (lockfile: string) =>
+      `Resolve the peer dependency conflict npm reports (\`npm ci\` fails with ERESOLVE even with \`--legacy-peer-deps\`), commit the updated \`${lockfile}\`, then rerun your checks on this branch.`,
   },
   {
     reason: 'dependency-archive-limit',
@@ -251,11 +266,20 @@ async function installDependencies(
       throw new DependencyPreparationError(
         `Dependency preparation exceeded ${timeoutSeconds} seconds. Set REFIT_DEPENDENCY_TIMEOUT_SECONDS (up to ${MAX_INSTALL_TIMEOUT_SECONDS}) for a larger dependency tree.`,
       );
+    const { workspace } = preparationProfile();
+    if (result.code !== 0 && /\bENOSPC\b/.test(stderr))
+      throw new DependencyPreparationError(
+        `${inputs.manager} dependency preparation ran out of space in its ${workspace} workspace (ENOSPC).${
+          workspace === '4g'
+            ? ''
+            : " Yarn 1 also downloads other platforms' optional binaries. An operator can set REFIT_VALIDATION_WORKSPACE=4g (4 GiB workspace, 5 GiB container memory) on a host with memory to spare."
+        }`,
+      );
     if (result.code !== 0)
       throw new DependencyPreparationError(
         // Refit's own version markers are left out so the installer's error leads the message.
         `${inputs.manager} dependency preparation failed (${result.code ?? result.signal}). ${stderr
-          .replace(/^REFIT_[A-Z]+_VERSION=.*\n?/gm, '')
+          .replace(/^REFIT_[A-Z_]+=.*\n?/gm, '')
           .slice(-MAX_ERROR_CHARACTERS)}`,
       );
     const nodeVersion = /^REFIT_NODE_VERSION=(v\d+\.\d+\.\d+)$/m.exec(stderr)?.[1];
@@ -277,6 +301,7 @@ async function installDependencies(
     return {
       bytes,
       sha256: hash.digest('hex'),
+      legacyPeerDeps: stderr.split('\n').includes(LEGACY_PEER_DEPS_MARKER),
       stderr,
       nodeVersion,
       npmVersion,
@@ -447,6 +472,7 @@ export async function prepareDependencies(options: {
         installation: {
           network: 'bridge',
           lifecycleScripts: false,
+          ...(result.legacyPeerDeps ? { legacyPeerDeps: true } : {}),
           registry: 'https://registry.npmjs.org',
           timeoutMs: timeoutSeconds * 1000,
           ...preparation,

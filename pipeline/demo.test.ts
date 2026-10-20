@@ -69,7 +69,7 @@ it.skipIf(!image || !process.env.REFIT_STRIPE_SDK)(
         files: 6,
       });
       expect(await readFile(join(output, 'migration/pull-request.md'), 'utf8')).toContain(
-        'baselineCommand',
+        '`node contract.mjs ./billing.js before` passed on the original and `node contract.mjs ./billing.js after` on the migrated code',
       );
       await expect(execute(process.execPath, command, { cwd: root })).rejects.toMatchObject({
         code: 1,
