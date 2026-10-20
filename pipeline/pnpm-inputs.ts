@@ -28,8 +28,10 @@ export const DEFAULT_PNPM_8_VERSION = '8.15.9';
 // file. Unpinned roots with such a file install with the final pnpm 10 release.
 // Source: npm registry, pnpm latest-10 dist-tag (10.34.7 published 2026-10-12), 2026-10-16.
 export const DEFAULT_PNPM_10_VERSION = '10.34.7';
+// Only a sha512 Corepack checksum can be compared with registry integrity; a weaker one is ignored,
+// so that pin installs like an unhashed one, still verified by npm against the registry.
 const MANAGER_PIN =
-  /^pnpm@((?:8|9|10|11|12)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*))(?:\+sha512\.([a-f0-9]{128}))?$/;
+  /^pnpm@((?:8|9|10|11|12)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*))(?:\+(?:sha512\.([a-f0-9]{128})|sha1\.[a-f0-9]{40}|sha224\.[a-f0-9]{56}|sha256\.[a-f0-9]{64}|sha384\.[a-f0-9]{96}))?$/;
 const CONFIGURATION_KEYS = new Set([
   'packages',
   'catalog',
@@ -166,7 +168,7 @@ export function validatePnpmInputs(
         : null;
   if (!pin)
     throw new PipelineInputError(
-      'pnpm preparation requires no packageManager or an exact pin for pnpm 8–12, optionally with a SHA-512 Corepack checksum.',
+      'pnpm preparation requires no packageManager or an exact pin for pnpm 8–12, optionally with a Corepack checksum.',
     );
   if (v6 !== pin[1].startsWith('8.'))
     throw new PipelineInputError(

@@ -408,3 +408,217 @@ export const restricted = () => shopify.restrictions.Product;
     [5, 'shopify.rest.Product'],
   ]);
 });
+
+it('follows documents through callbacks, closure factories, re-exports and namespace imports', async () => {
+  const root = await directory({
+    'package.json': MANIFEST,
+    'app/queries/shop.ts': 'export const SHOP = `#graphql\n  query Shop { shop { name } }`;\n',
+    'app/queries/product.ts':
+      'const PRODUCT = `#graphql\n  query Product { product(id: "1") { id } }`;\nexport { PRODUCT as PRODUCT_QUERY };\n',
+    'app/queries/index.ts':
+      "export * from './shop';\nexport { PRODUCT_QUERY as PRODUCT } from './product';\n",
+    'app/lib/collections.server.ts': `import { SHOP, PRODUCT } from '../queries';
+export async function fetchShop(graphql) {
+  const response = await graphql(SHOP, { variables: {} });
+  return response.json();
+}
+export async function fetchProduct(run) {
+  return run(PRODUCT);
+}
+`,
+    'app/lib/request.server.ts': `export function createRequest(admin) {
+  return async (query, variables) => {
+    const response = await admin.graphql(query, { variables });
+    return response.json();
+  };
+}
+export const adminQuery = async (admin, query) => admin.graphql(query);
+`,
+    'app/lib/index.ts': "export * from './request.server';\n",
+    'app/routes/app.ts': `import { authenticate } from '../shopify.server';
+import { fetchShop, fetchProduct } from '../lib/collections.server';
+import { createRequest } from '../lib';
+import * as api from '../lib/request.server';
+export const loader = async ({ request }) => {
+  const { admin } = await authenticate.admin(request);
+  await fetchShop((query, options) => admin.graphql(query, options));
+  const graphql = (query, options) => admin.graphql(query, options);
+  await fetchShop(graphql);
+  const run = createRequest(admin);
+  await fetchProduct(run);
+  await createRequest(admin)(\`query Direct { shop { name } }\`);
+  return api.adminQuery(admin, \`query Namespaced { shop { name } }\`);
+};
+`,
+  });
+  const scan = scanShopify(await readRepository(root, '@shopify/shopify-app-remix'));
+  expect(scan.unreadable).toEqual([]);
+  expect(scan.documents.map((document) => [document.file, document.line, document.traced])).toEqual(
+    [
+      ['app/queries/product.ts', 1, true],
+      ['app/queries/shop.ts', 1, true],
+      ['app/routes/app.ts', 12, true],
+      ['app/routes/app.ts', 13, true],
+    ],
+  );
+});
+
+it('stops at the line where a function sending documents leaves what Refit can follow', async () => {
+  const root = await directory({
+    'package.json': MANIFEST,
+    'app/lib/helpers.server.ts': `export async function runQuery(admin, query) {
+  const response = await admin.graphql(query);
+  return query.length > 1000 ? runQuery(admin, query) : response;
+}
+export async function loadLater(admin) {
+  const { runQuery: run } = await import('./helpers.server');
+  return run;
+}
+`,
+    'app/routes/app.ts': `import { pRetry } from 'p-retry';
+import { runQuery } from '../lib/helpers.server';
+export async function loader(admin, build) {
+  await runQuery(admin, \`query { shop { name } }\`);
+  const graphql = (query) => admin.graphql(query);
+  await build({ admin: graphql });
+  await pRetry((query) => admin.graphql(query));
+}
+class Service {
+  constructor(admin) { this.admin = admin; }
+  query(query) { return this.admin.graphql(query); }
+}
+export const service = Service;
+`,
+    'app/routes/app.test.ts': `import { runQuery } from '../lib/helpers.server';
+import { vi } from 'vitest';
+vi.fn(runQuery);
+await runQuery({}, \`query Fixture { shop { name } }\`);
+`,
+  });
+  const scan = scanShopify(await readRepository(root, '@shopify/shopify-app-remix'));
+  expect(scan.documents.map((document) => [document.file, document.line, document.traced])).toEqual(
+    [
+      ['app/routes/app.test.ts', 4, false],
+      ['app/routes/app.ts', 4, true],
+    ],
+  );
+  // The recursive call passes the same parameter and the test's spy reaches a mocked client; neither
+  // stops, and the test's document is checked as a fixture. The dynamic import, the object
+  // property, the third-party callee and the method stop.
+  expect(scan.unreadable.map((entry) => [entry.file, entry.line, entry.reason])).toEqual([
+    [
+      'app/lib/helpers.server.ts',
+      6,
+      'A module defining a function that sends Admin GraphQL documents is loaded dynamically here, so Refit cannot follow its callers.',
+    ],
+    [
+      'app/routes/app.ts',
+      6,
+      'A function that sends Admin GraphQL documents is stored in an object here; Refit does not follow calls through object properties, so the documents it receives are not read.',
+    ],
+    [
+      'app/routes/app.ts',
+      7,
+      'A function that sends Admin GraphQL documents is passed to pRetry, which Refit cannot follow, so the documents it receives are not read.',
+    ],
+    [
+      'app/routes/app.ts',
+      11,
+      'The document is built at runtime; Refit only reads literal or constant documents.',
+    ],
+  ]);
+});
+
+it('reads every element of a constant document array and members of constant objects', async () => {
+  const root = await directory({
+    'package.json': MANIFEST,
+    'app/queries.ts': `export const QUERIES = {
+  shop: \`#graphql
+  query Shop { shop { name } }\`,
+};
+export const TIERS = [
+  { name: 'primary', query: \`query Primary { shop { name } }\` },
+  { name: 'fallback', query: \`query Fallback { product(id: "1") { id } }\` },
+] as const;
+`,
+    'app/routes/app.ts': `import { QUERIES, TIERS } from '../queries';
+export async function loader(admin, extra) {
+  await admin.graphql(QUERIES.shop);
+  for (const tier of TIERS) await admin.graphql(tier.query);
+  for (const document of [\`query One { shop { name } }\`]) await admin.graphql(document);
+  for (const document of [...extra]) await admin.graphql(document);
+  for (const tier of [{ name: 'x' }]) await admin.graphql(tier.query);
+  await admin.graphql(QUERIES.missing);
+}
+`,
+  });
+  const scan = scanShopify(await readRepository(root, '@shopify/shopify-app-remix'));
+  expect(scan.documents.map((document) => [document.file, document.line, document.traced])).toEqual(
+    [
+      ['app/queries.ts', 2, true],
+      ['app/queries.ts', 6, true],
+      ['app/queries.ts', 7, true],
+      ['app/routes/app.ts', 5, true],
+    ],
+  );
+  expect(scan.unreadable.map((entry) => [entry.line, entry.reason])).toEqual([
+    [6, 'The document comes from an array Refit cannot read element by element.'],
+    [7, 'An element of the array the document comes from has no static query.'],
+    [8, 'The document is built at runtime; Refit only reads literal or constant documents.'],
+  ]);
+});
+
+it('checks a document sent through a callback as Admin usage, not as another API', async () => {
+  const root = await directory({
+    'package.json': MANIFEST,
+    'package-lock.json': LOCK('14.0.1'),
+    'app/shopify.server.ts': SERVER('January26'),
+    'app/lib/brand.server.ts': `const BRAND = \`#graphql
+  query { shop { name brand } }\`;
+export const brand = (graphql) => graphql(BRAND);
+`,
+    'app/routes/app.ts': `import { brand } from '../lib/brand.server';
+export const loader = (admin) => brand((query) => admin.graphql(query));
+`,
+  });
+  const report = (await runPipeline({
+    repository: root,
+    ...(await snapshots(root)),
+    proposePatch: true,
+  })) as any;
+  expect(report.shopify.otherApiDocuments).toEqual([]);
+  expect(report.patch.status).toBe('not-generated');
+  expect(report.patch.reason).toContain('already fails on Admin API 2026-01');
+  expect(
+    report.findings.find((finding: any) => finding.changeId.startsWith('shopify-graphql:')),
+  ).toMatchObject({ file: 'app/lib/brand.server.ts', line: 2, confidence: 'confirmed' });
+});
+
+it('keeps shadowed names apart and stops when a sending function is reassigned', async () => {
+  const root = await directory({
+    'package.json': MANIFEST,
+    'app/routes/app.ts': `export async function loader(admin, other) {
+  const graphql = (query) => admin.graphql(query);
+  const inner = (graphql) => graphql('not a document');
+  inner(other);
+  await graphql(\`query Outer { shop { name } }\`);
+  {
+    const graphql = other;
+    graphql('also not a document');
+  }
+  let send = (query) => admin.graphql(query);
+  send = other;
+  const wrapped = (query) => admin.graphql(query);
+  other.handler = wrapped;
+}
+`,
+  });
+  const scan = scanShopify(await readRepository(root, '@shopify/shopify-app-remix'));
+  expect(scan.documents.map((document) => document.text)).toEqual([
+    'query Outer { shop { name } }',
+  ]);
+  expect(scan.unreadable.map((entry) => [entry.line, entry.reason.slice(0, 60)])).toEqual([
+    [10, 'A function that sends Admin GraphQL documents is used here i'],
+    [13, 'A function that sends Admin GraphQL documents is used here i'],
+  ]);
+});

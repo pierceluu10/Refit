@@ -8,7 +8,7 @@ import { readRepository } from './repository.ts';
 import { isObject, parseObject } from './specifications.ts';
 import { REPOSITORY_CONFIGURATION } from './workflow-configuration.ts';
 
-const META_SDK = 'facebook-nodejs-business-sdk';
+export const META_SDK = 'facebook-nodejs-business-sdk';
 const MAX_EVIDENCE = 20;
 const MAX_EVIDENCE_TEXT = 160;
 const QUARTER_MONTHS: Record<string, string> = {
@@ -265,7 +265,7 @@ function tokenUses(path: string, content: string, models: Map<string, unknown>) 
 
 // The Graph API version an SDK release targets: facebook-nodejs-business-sdk majors track Graph
 // API versions (20.x calls v20.0). A locked version wins over the declared range.
-function metaSdkVersion(declared: string, locked: string | null) {
+export function metaSdkVersion(declared: string, locked: string | null) {
   const major = /^\D*(\d+)\./.exec(locked ?? declared)?.[1];
   return major ? `v${major}.0` : undefined;
 }

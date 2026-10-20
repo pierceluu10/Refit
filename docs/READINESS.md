@@ -40,6 +40,54 @@ A `const` that is exported or used more than once stops for review, as before. L
 On the 15 exposed OpenAI deadline-benchmark repositories, proposals went from 2 sites in 1 repository to 6 sites in 2, all correct on hand review. Stops with a reason went from 1 repository to 2. See [the results](benchmarks/2026-10-20-model-replacement-results.json).
 
 `responses.create` is still unmapped in the OpenAI adapter. Its `Response` schema is an `allOf`, and supporting `allOf` would change how every adapter, including Stripe's, resolves response schemas. That needs its own reviewed change.
+## October 20 checkpoint: Shopify documents through callbacks, closures, re-exports and arrays (unreleased, after 0.39.0)
+
+Work toward the Shopify goal in [Provider goals](PROVIDER-GOALS.md#shopify), first item: read more GraphQL documents.
+
+- **Measured first.** Every Admin call with an unread document in the two frozen Shopify sets (250 apps, 90 calls) was classified by the pattern hiding it. Half are templates interpolating runtime values, which must stop. The largest readable group was helpers reached through callbacks, `const` arrows passed on and closure factories (6 apps, 18 calls), then helpers stored in objects, class and object methods, and constant arrays.
+- **Function values are followed.** When a document is a parameter of a function, Refit follows that function to every call: named helpers through named, namespace and re-exported imports (`export { a as b } from`, `export *` when exactly one module provides the name), callbacks passed into repository functions, `const` arrows and closures returned by factories. Constant arrays looped with `for … of` and members of constant objects are read element by element. Imported document constants follow re-exports too.
+- **No caller is guessed.** A use of a sending function that Refit cannot follow (stored in an object, passed to a package, reassigned, or in a module loaded with `import()`) now stops for review at that line. Before, callers that were not plain calls were silently skipped. Class and object methods still stop at the call that sends the document. Mocks and spies in test files do not stop the run; documents that tests pass are still checked as fixtures.
+- **Benchmark** (scan level, no Docker, no AI; [details](SHOPIFY-BENCHMARK.md#callback-closure-and-array-tracing-october-20)): traced documents 336 → 350 (original 50) and 628 → 644 (fresh 200); unread Admin calls 27 → 22 and 63 → 54. Two outcomes changed: `lpc-product-manager` is now fully read and stops on its SDK, and `glimpse-app` sends `Shop.brand`, a Storefront-only field, to the Admin API, now an already-failing query at its line. A second run matched 50/50 and 200/200. `shopify.dev` was blocked here, so the four schemas came from Shopify's `@shopify/dev-mcp` 1.17.0 package; they reproduced the published outcomes at `c262f8f`, apart from differences explained by later Refit fixes.
+
+The default suite ran 1,564 tests across 105 files with 78 environment-gated tests skipped; 1,484 passed. The two failures are the known subprocess CLI tests (`scan-cli`, `service-configuration`) hitting the 5-second timeout in this container; they pass with a 60-second timeout and fail the same way on `main`. Typecheck, formatting and build passed.
+
+## October 20 checkpoint: review-only Meta Graph API version moves (unreleased, after 0.39.0)
+
+Third review-only step toward a Meta agent (shared work item 4 in [Provider goals](PROVIDER-GOALS.md)). Nothing is applied, and the rule is not wired into `refit run`, validation or drafts. Whether a hand-kept change list is enough evidence for an automatic edit is an open owner decision.
+
+- **`refit meta-graph --propose-version-moves --target <version>`** proposes moving each place a Graph API version is written (a pin), as a patch for review, only when all of these hold:
+  - every request through the pin is fully known;
+  - every changelog crossed is `reviewed`;
+  - no reviewed change touches a request's edge, path, fields (a GET with no `fields` counts as using all of them), metrics or parameters;
+  - changing the pin changes nothing else: it is a file-local `const` whose every use the scan follows.
+
+  Everything else stops, listing each reason with its location. Business SDK requests and test-only pins always stop. See [version moves](META-GRAPH.md#propose-version-moves-review-only).
+- **Measured on the 33 Meta repositories, target v25.0.** With the committed change list, 0 moves: all 148 pins stop on unread changelogs. In a hypothetical run with every changelog marked reviewed and empty, an upper bound and not evidence about Meta, 100 of the 131 live pins would move. Each of those edits changes one line, and only its version text. The 31 live pins that stop there have helper requests or runtime options (31), a `let` (3) or an exported constant (1); some have more than one.
+- **Scanner fix.** A property with the same name as a variable, as `url` in `data.url`, is no longer treated as a use of that variable. The request benchmark's results are unchanged.
+
+The default suite ran 1,587 tests across 100 files, with 78 environment-gated tests skipped; 1,497 passed, including 17 new tests. The other 12 are subprocess CLI tests that time out (11) or race on a temporary file (1, `service-configuration`) in this container, as on `main` here. Typecheck, formatting and build passed.
+
+## October 20 checkpoint: Meta Graph API change list format (unreleased, after 0.39.0)
+
+Second review-only step toward a Meta agent (shared work item 5 in [Provider goals](PROVIDER-GOALS.md)).
+
+- **`data/meta-graph-changes.json`** is a hand-kept list of what each Graph API version removes or changes: endpoints, edges, fields, insights metrics and parameters. Every change needs a developers.facebook.com `source`, a `checkedAt` date, and a version whose changelog page is marked `reviewed`. See [the change list](META-GRAPH.md#the-per-version-change-list).
+- **`npm run meta-graph:check`** (`refit meta-graph --check-changes`) rejects the whole file on any error: unknown or missing fields, duplicates, bad or future dates, sources outside Meta's documentation, and changes from unread pages. It also lists unread versions and Meta versions in the deadline registry that have no record.
+- **No changes are recorded.** developers.facebook.com could not be reached from this environment: the proxy refused every connection. The file holds 14 `unread` version records, v13.0 to v26.0, each saying so. Search results confirmed the page addresses for v17.0, v19.0, v22.0, v26.0 and the versions index, and were not used as evidence of any change. Nothing reads this list yet.
+
+The default suite ran 1,570 tests across 99 files, with 78 environment-gated tests skipped; 1,479 passed, including 11 new tests. The other 13 are the subprocess CLI tests that hit the 5-second test timeout in this container, as on `main` here. Typecheck, formatting and build passed.
+
+## October 20 checkpoint: Meta Graph API request detection (unreleased, after 0.39.0)
+
+First review-only step toward a Meta agent ([Provider goals](PROVIDER-GOALS.md#meta-graph-api), shared work items 4, 5 and 7). Nothing is edited, and the `meta-graph` catalog entry keeps `adapter: null`.
+
+- **`refit meta-graph`** lists the Graph API requests a repository makes, with `file:line`, method, pinned version and where it is written, path and edge, and the literal `fields` and insights `metric` values. It reads raw `graph.facebook.com` URLs passed to `fetch`, `axios` and project helpers, including base constants imported from other files and URLs kept in a `const`, and `facebook-nodejs-business-sdk` resource-class calls. Anything built at runtime is reported as unknown with the reason: spread or mutated options, `FormData`, helper options, runtime versions and edges, reassigned pagination URLs. See [Meta Graph API](META-GRAPH.md).
+- **Business SDK edges.** `data/meta-business-sdk-edges.json` maps the 648 generated method names of facebook-nodejs-business-sdk 24.0.1 to their Graph API edges, built by `scripts/meta-business-sdk-edges.mjs` from the SDK's source text. The SDK was downloaded with `npm pack --ignore-scripts`; nothing was installed or run.
+- **Measured on the 33 Meta repositories of the deadline benchmark.** 162 requests in live code, all real, and every reported value matched the code on hand review (one line-break bug in a multi-line URL was found while labelling and fixed first). The version was read for 157, the path and edge for 158 and `fields` for 113. A request was found at 62 of the 63 labelled live Graph pins; the miss is the browser SDK's `FB.init`. Labels are one reviewer's single pass.
+
+Not done here: a per-version change list from Meta's changelog and a version-move proposal. Meta's documentation host could not be reached from this environment, so no change entries were written.
+
+The default suite ran 1,559 tests across 98 files, with 78 environment-gated tests skipped; 1,471 passed, including 28 new tests. The other 10 are subprocess CLI tests (`first-run`, `pipeline`, `scan-cli`, `service-configuration`, `watch`, `workflow`, `workflow-integrations`) that hit the 5-second test timeout in this container; the same tests fail the same way on `main` here, and they pass with `--testTimeout=120000`. Typecheck, formatting and build passed.
 
 ## October 20 checkpoint: Anthropic deadlines and review-only model replacements (unreleased, after 0.39.0)
 
