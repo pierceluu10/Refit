@@ -21,6 +21,16 @@ Work toward the Shopify goal in [Provider goals](PROVIDER-GOALS.md#shopify), fir
 
 The default suite ran 1,564 tests across 105 files with 78 environment-gated tests skipped; 1,484 passed. The two failures are the known subprocess CLI tests (`scan-cli`, `service-configuration`) hitting the 5-second timeout in this container; they pass with a 60-second timeout and fail the same way on `main`. Typecheck, formatting and build passed.
 
+## October 20 checkpoint: Meta Graph API change list format (unreleased, after 0.39.0)
+
+Second review-only step toward a Meta agent (shared work item 5 in [Provider goals](PROVIDER-GOALS.md)).
+
+- **`data/meta-graph-changes.json`** is a hand-kept list of what each Graph API version removes or changes: endpoints, edges, fields, insights metrics and parameters. Every change needs a developers.facebook.com `source`, a `checkedAt` date, and a version whose changelog page is marked `reviewed`. See [the change list](META-GRAPH.md#the-per-version-change-list).
+- **`npm run meta-graph:check`** (`refit meta-graph --check-changes`) rejects the whole file on any error: unknown or missing fields, duplicates, bad or future dates, sources outside Meta's documentation, and changes from unread pages. It also lists unread versions and Meta versions in the deadline registry that have no record.
+- **No changes are recorded.** developers.facebook.com could not be reached from this environment: the proxy refused every connection. The file holds 14 `unread` version records, v13.0 to v26.0, each saying so. Search results confirmed the page addresses for v17.0, v19.0, v22.0, v26.0 and the versions index, and were not used as evidence of any change. Nothing reads this list yet.
+
+The default suite ran 1,570 tests across 99 files, with 78 environment-gated tests skipped; 1,479 passed, including 11 new tests. The other 13 are the subprocess CLI tests that hit the 5-second test timeout in this container, as on `main` here. Typecheck, formatting and build passed.
+
 ## October 20 checkpoint: Meta Graph API request detection (unreleased, after 0.39.0)
 
 First review-only step toward a Meta agent ([Provider goals](PROVIDER-GOALS.md#meta-graph-api), shared work items 4, 5 and 7). Nothing is edited, and the `meta-graph` catalog entry keeps `adapter: null`.
