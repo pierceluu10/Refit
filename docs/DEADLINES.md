@@ -20,13 +20,14 @@ Providers retire API versions and models on published dates. Refit keeps a revie
 }
 ```
 
-It starts with three providers, checked on 2026-10-15 against their own documentation:
+It covers four providers, each checked against its own documentation:
 
 | Provider | Covers | Source |
 |---|---|---|
-| Shopify | Admin API versions 2025-04 to 2026-10 and when each stops being accessible | [API versioning](https://shopify.dev/docs/api/usage/versioning) |
-| Meta | Graph API v13.0 to v25.0 and when each stops being available | [Graph API changelog](https://developers.facebook.com/docs/graph-api/changelog) |
-| OpenAI | Model shutdowns from July 2025 to April 2027 | [Deprecations](https://developers.openai.com/api/docs/deprecations) |
+| Shopify | Admin API versions 2025-04 to 2026-10 and when each stops being accessible, checked 2026-10-15 | [API versioning](https://shopify.dev/docs/api/usage/versioning) |
+| Meta | Graph API v13.0 to v25.0 and when each stops being available, checked 2026-10-15 | [Graph API changelog](https://developers.facebook.com/docs/graph-api/changelog) |
+| OpenAI | Model shutdowns from July 2025 to April 2027, checked 2026-10-15 | [Deprecations](https://developers.openai.com/api/docs/deprecations) |
+| Anthropic | Claude API model retirements from November 2024 to November 2026, checked 2026-10-20 | [Model deprecations](https://platform.claude.com/docs/en/about-claude/model-deprecations) |
 
 Past-due entries stay in the registry on purpose: a repository still pinning a retired version is the most urgent case. To change the registry, edit the file from the provider's page, set `checkedAt` to the day you checked, and run:
 
@@ -46,6 +47,7 @@ refit deadlines --repository /path/to/app --json
 Each exposure lists the deadline, days left, the replacement, the source and `file:line` evidence from live code. It also lists what can happen next (see [the migration path](#the-migration-path)). Refit reads JavaScript and TypeScript source, `package.json` files, lockfiles and `.refit.json`, without running code. It matches:
 
 - **OpenAI:** a quoted string that equals a registry model ID exactly, such as `'gpt-4'`. `'gpt-4o'` does not match `gpt-4`. A string passed to a tokenizer (`encoding_for_model`) or a prefix or membership check (`startsWith`, `endsWith`, `includes`, `indexOf`) is not a pin. Model lists, tests and other uses are classified [below](#live-and-non-live-evidence).
+- **Anthropic:** a quoted string that equals a Claude API model ID in the registry exactly, such as `'claude-3-7-sonnet-20250219'`, with the same use classes as OpenAI. The registry lists the dated IDs from Anthropic's page plus the `claude-sonnet-4-5` alias, which Anthropic documents as pointing to the retiring snapshot. Amazon Bedrock IDs (`anthropic.claude-…-v1:0`) and Google Cloud IDs (`claude-…@20250929`) do not match: those platforms set their own retirement dates.
 - **Shopify:** `/admin/api/2025-10` URLs, with or without a path after the version, and `ApiVersion.October25`. It also matches `apiVersion: '2025-10'`, but only in files that import a Shopify package or name `myshopify.com`, so a Stripe `apiVersion` is not mistaken for one.
 - **Meta Graph API:** `graph.facebook.com/v20.0/` URLs, and quoted `'v20.0'` strings in files that use the Graph API. It also reads `facebook-nodejs-business-sdk` from manifests and lockfiles, since SDK release 20.x targets v20.0 and a locked version wins over the declared range.
 - **Refit configuration:** an integration's `apiVersion` in `.refit.json` whose adapter covers one of these providers.
@@ -57,9 +59,9 @@ Each match is classified by how the code uses it. Only **live** matches make a r
 | Use | What it covers | Providers |
 |---|---|---|
 | `live` | The default: a call argument, a default or env-var fallback, a constant, an alias map's value | all |
-| `catalog` | One entry in a list naming three or more models (an array, enum or tuple, counting `openai/`-prefixed IDs); any type position, such as a union or `model: 'gpt-4'` in an interface; a table keyed or indexed by model, such as `PRICES['gpt-4']` or `{ 'gpt-4': { input: 30 } }`, and everything inside that entry; an HTML or JSX `<option>` | OpenAI |
-| `test` | Test, spec, story, fixture and example files: `*.test.*`, `*.spec.*`, `*.stories.*`, and `test/`, `tests/`, `__tests__/`, `spec/`, `e2e/`, `cypress/`, `fixtures/`, `examples/` directories | OpenAI |
-| `check` | A comparison, `case 'gpt-4':`, or a prefix or membership call (`startsWith`, `endsWith`, `includes`, `indexOf`) | comparisons: OpenAI; calls: all |
+| `catalog` | One entry in a list naming three or more models (an array, enum or tuple, counting OpenAI- and Claude-shaped IDs, with or without an `openai/` or `anthropic/` prefix); any type position, such as a union or `model: 'gpt-4'` in an interface; a table keyed or indexed by model, such as `PRICES['gpt-4']` or `{ 'gpt-4': { input: 30 } }`, and everything inside that entry; an HTML or JSX `<option>` | OpenAI, Anthropic |
+| `test` | Test, spec, story, fixture and example files: `*.test.*`, `*.spec.*`, `*.stories.*`, and `test/`, `tests/`, `__tests__/`, `spec/`, `e2e/`, `cypress/`, `fixtures/`, `examples/` directories | OpenAI, Anthropic |
+| `check` | A comparison, `case 'gpt-4':`, or a prefix or membership call (`startsWith`, `endsWith`, `includes`, `indexOf`) | comparisons: OpenAI, Anthropic; calls: all |
 | `tokenizer` | An argument of `encoding_for_model` or `encodingForModel` | all |
 | `comment` | Comments, including JSDoc and commented-out code. Each file is parsed, and anything outside a source token is a comment | all |
 
@@ -174,7 +176,8 @@ A deadline never starts a migration by itself. Migrations start from contract ch
 - A version held in a constant or an environment-variable fallback, such as `SHOPIFY_API_VERSION = '2025-07'`, and the Meta JS SDK's `FB.init({ version })` are not read.
 - Live is the default, so some catalogs still count as live. These include lists of one or two models, preset data that repeats one model, catalogs built through function calls such as `modelRef({ … })`, and alias maps or code nobody imports. Code is not traced, so an unused file counts like a used one. On the [benchmark](DEADLINE-BENCHMARK.md), 4 of 23 reported OpenAI lines are of this kind.
 - A match counts as a test or an example from its path alone. A live pin kept under `examples/` or `fixtures/` is listed as non-live.
-- A model ID sent to another provider's OpenAI-compatible endpoint matches the OpenAI deadline.
+- A model ID sent to another provider's OpenAI-compatible endpoint matches the OpenAI deadline. A Claude API model ID sent through Claude Platform on AWS or Microsoft Foundry matches the Anthropic deadline, which Anthropic's page says applies there too.
+- Anthropic's page lists dated model IDs. Aliases of models that are already retired, such as `claude-3-5-sonnet-latest`, are not in the registry, because no current Anthropic page documents them; only `claude-sonnet-4-5` is.
 - Evidence is capped at 20 live and 20 non-live matches per deadline, plus a count of the rest.
 - Issues are not closed automatically once the repository stops depending on a deadline.
 - `--fail-within` checks only what Refit can see; the limits above apply. A passing check does not prove the repository uses no retiring version or model.

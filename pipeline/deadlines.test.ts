@@ -366,6 +366,73 @@ it('classifies OpenAI tests, examples, comments, tokenizers and checks', async (
   });
 });
 
+// Anthropic retires models like OpenAI, so its matches get the same use classes. Only exact
+// Claude API IDs match: Bedrock and Google Cloud IDs follow the partner's own schedule.
+it('matches and classifies Anthropic model IDs like OpenAI ones', async () => {
+  const anthropic: DeadlineRegistry = {
+    formatVersion: 1,
+    deadlines: [
+      ...classifying.deadlines,
+      entry({
+        id: 'anthropic-sonnet-4-5',
+        provider: 'anthropic',
+        kind: 'model',
+        versions: ['claude-sonnet-4-5-20250929', 'claude-sonnet-4-5'],
+        date: '2026-11-30',
+        replacement: 'claude-sonnet-5-5',
+      }),
+      entry({
+        id: 'anthropic-claude-2',
+        provider: 'anthropic',
+        kind: 'model',
+        versions: ['claude-2.1'],
+        date: '2025-07-21',
+      }),
+    ],
+  };
+  const scan = await scanDeadlines(
+    await repository({
+      'src/claude.ts': [
+        "import Anthropic from '@anthropic-ai/sdk';",
+        "await client.messages.create({ model: 'claude-sonnet-4-5', max_tokens: 1024, messages });",
+        "const fallback = process.env.CLAUDE_MODEL ?? 'claude-sonnet-4-5-20250929';",
+        "const legacy = { model: 'claude-2.1' };",
+        // Mixed-provider pickers are catalogs.
+        "export const MODELS = ['claude-sonnet-4-5', 'gpt-4o', 'anthropic/claude-3-opus'];",
+        "if (model === 'claude-2.1') reason();",
+        "// model: 'claude-sonnet-4-5-20250929'",
+        // Partner IDs and other dated snapshots are not Claude API pins.
+        "const bedrock = 'anthropic.claude-sonnet-4-5-20250929-v1:0';",
+        "const vertex = 'claude-sonnet-4-5@20250929';",
+        "const newer = 'claude-sonnet-4-5-20991231';",
+      ].join('\n'),
+      'src/claude.test.ts': "send({ model: 'claude-sonnet-4-5' });",
+    }),
+    anthropic,
+    NOW,
+  );
+  const result: Record<string, string> = {};
+  for (const exposure of [...scan.exposures, ...scan.mentions])
+    for (const item of [...exposure.evidence, ...exposure.nonLive])
+      result[`${item.file}:${item.line} ${item.version}`] = item.use;
+  expect(result).toEqual({
+    'src/claude.ts:2 claude-sonnet-4-5': 'live',
+    'src/claude.ts:3 claude-sonnet-4-5-20250929': 'live',
+    'src/claude.ts:4 claude-2.1': 'live',
+    'src/claude.ts:5 claude-sonnet-4-5': 'catalog',
+    'src/claude.ts:6 claude-2.1': 'check',
+    'src/claude.ts:7 claude-sonnet-4-5-20250929': 'comment',
+    'src/claude.test.ts:1 claude-sonnet-4-5': 'test',
+  });
+  expect(scan.exposures.map((item) => [item.deadline.id, item.deadline.provider])).toEqual([
+    ['anthropic-claude-2', 'anthropic'],
+    ['anthropic-sonnet-4-5', 'anthropic'],
+  ]);
+  expect(deadlineTitle(scan.exposures[1])).toBe(
+    'Anthropic models claude-sonnet-4-5, claude-sonnet-4-5-20250929 reaches its sunset on 2026-11-30',
+  );
+});
+
 it('rests exposure on live evidence and keeps the rest as separate, capped non-live evidence', async () => {
   const { scan } = await uses({
     // o1 only appears in a list: a mention, not an exposure.
@@ -508,7 +575,7 @@ it('keeps the shipped registry valid and sourced', async () => {
   expect(report.errors).toEqual([]);
   expect(report.missingSource).toEqual([]);
   expect(new Set(shipped.deadlines.map((item) => item.provider))).toEqual(
-    new Set(['shopify', 'meta-graph', 'openai']),
+    new Set(['shopify', 'meta-graph', 'openai', 'anthropic']),
   );
 });
 
