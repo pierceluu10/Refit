@@ -193,6 +193,105 @@ async function containerCheck(
   }
 }
 
+// Archives the committed revision under `root` and extracts it as the baseline directory.
+async function extractSnapshot(repository: string, revision: string, root: string) {
+  const archive = join(root, 'source.tar');
+  const archiveResult = await execute(
+    'git',
+    ['-C', repository, 'archive', '--format=tar', revision],
+    {
+      encoding: 'buffer',
+      timeout: PROCESS_TIMEOUT_MS,
+      maxBuffer: MAX_ARCHIVE_BYTES,
+      env: gitEnvironment(),
+    },
+  ).catch((error: unknown) => {
+    if ((error as { code?: unknown }).code === 'ERR_CHILD_PROCESS_STDIO_MAXBUFFER')
+      throw new PipelineInputError(
+        `Committed source exceeds the ${MAX_ARCHIVE_BYTES / 1024 / 1024} MiB validation archive limit.`,
+      );
+    throw error;
+  });
+  await writeFile(archive, archiveResult.stdout);
+  const baselineDirectory = join(root, 'baseline');
+  await mkdir(baselineDirectory);
+  await command('tar', ['-xf', archive, '-C', baselineDirectory]);
+  return { archive, archiveHash: digest(archiveResult.stdout), baselineDirectory };
+}
+
+async function applyPatch(archive: string, directory: string, patch: string, diff: string) {
+  await command('tar', ['-xf', archive, '-C', directory]);
+  await writeFile(patch, diff);
+  await command('git', ['apply', '--check', patch], directory);
+  await command('git', ['apply', patch], directory);
+}
+
+// Returns the mode of a committed file whose archived content still matches its Git blob.
+function committedMode(entries: readonly string[], path: string, content: string) {
+  const entry = entries.find((item) => item.slice(item.indexOf('\t') + 1) === path);
+  const metadata = entry?.slice(0, entry.indexOf('\t')).split(' ');
+  const blob = createHash('sha1')
+    .update(`blob ${Buffer.byteLength(content)}\0`)
+    .update(content)
+    .digest('hex');
+  if (!metadata || metadata[2] !== blob)
+    throw new PipelineInputError('Archived source does not match the committed Git blob.');
+  return metadata[0] as PublicationFile['mode'];
+}
+
+// Copies prepared dependencies into the validation snapshot and returns their environment.
+async function snapshotDependencies(
+  prepared: Awaited<ReturnType<typeof prepareDependencies>>,
+  destination: string,
+) {
+  await copyFile(prepared.archive, destination);
+  const copied = await inspectArtifactFile(destination, validationProfile().archiveBytes);
+  if (
+    copied.sha256 !== prepared.environment.archiveHash ||
+    copied.bytes !== prepared.environment.archiveBytes
+  )
+    throw new PipelineInputError(
+      'Prepared dependencies changed while creating the validation snapshot.',
+    );
+  return { ...prepared.environment, reused: prepared.reused };
+}
+
+function typeCheckComparison(baselineRun: CheckResult, compareTypeErrors?: boolean) {
+  return {
+    baseline: compareTypeErrors ? compareTypeCheck(baselineRun) : baselineRun,
+    compared: (check: CheckResult) =>
+      compareTypeErrors ? compareTypeCheck(baselineRun, check) : check,
+  };
+}
+
+// A generated check with no runnable function is missing evidence, not a failure.
+const generatedFailed = (check?: CheckResult) =>
+  check !== undefined && !['passed', 'not-run'].includes(check.status);
+
+function checkStatus(
+  baseline: CheckResult,
+  patched: CheckResult,
+  generated?: { baseline: CheckResult; patched: CheckResult },
+) {
+  return [baseline, patched, generated?.baseline, generated?.patched].some(
+    (check) => check?.status === 'error',
+  )
+    ? ('error' as const)
+    : baseline.status !== 'passed' || generatedFailed(generated?.baseline)
+      ? ('baseline-failed' as const)
+      : patched.status !== 'passed' || generatedFailed(generated?.patched)
+        ? ('regression' as const)
+        : ('passed' as const);
+}
+
+const validationLimits = () => ({
+  timeoutMs: CHECK_TIMEOUT_MS,
+  outputBytes: MAX_OUTPUT_BYTES,
+  network: 'none',
+  workspace: validationProfile().workspace,
+  memory: validationProfile().memory,
+});
+
 // Runs the enclosing exported functions of confirmed findings against stripe-mock serving each
 // side's pinned contract and fixtures, inside the same offline sandbox as configured checks.
 async function generatedStripeChecks(options: {
@@ -357,27 +456,11 @@ export async function validateMigration(options: {
   const image = await resolveDockerImage(options.image);
   const root = await mkdtemp(join(tmpdir(), 'refit-validation-'));
   try {
-    const baselineDirectory = join(root, 'baseline');
-    await mkdir(baselineDirectory);
-    const archive = join(root, 'source.tar');
-    const archiveResult = await execute(
-      'git',
-      ['-C', repository, 'archive', '--format=tar', revision],
-      {
-        encoding: 'buffer',
-        timeout: PROCESS_TIMEOUT_MS,
-        maxBuffer: MAX_ARCHIVE_BYTES,
-        env: gitEnvironment(),
-      },
-    ).catch((error: unknown) => {
-      if ((error as { code?: unknown }).code === 'ERR_CHILD_PROCESS_STDIO_MAXBUFFER')
-        throw new PipelineInputError(
-          `Committed source exceeds the ${MAX_ARCHIVE_BYTES / 1024 / 1024} MiB validation archive limit.`,
-        );
-      throw error;
-    });
-    await writeFile(archive, archiveResult.stdout);
-    await command('tar', ['-xf', archive, '-C', baselineDirectory]);
+    const { archive, archiveHash, baselineDirectory } = await extractSnapshot(
+      repository,
+      revision,
+      root,
+    );
     let dependencies: string | undefined;
     let environment: Record<string, unknown> | undefined;
     let dependencyFailure: ReturnType<typeof repositoryDependencyFailure> = undefined;
@@ -399,25 +482,14 @@ export async function validateMigration(options: {
       }
     if (prepared) {
       dependencies = join(root, 'dependencies.tar');
-      await copyFile(prepared.archive, dependencies);
-      const copied = await inspectArtifactFile(dependencies, validationProfile().archiveBytes);
-      if (
-        copied.sha256 !== prepared.environment.archiveHash ||
-        copied.bytes !== prepared.environment.archiveBytes
-      )
-        throw new PipelineInputError(
-          'Prepared dependencies changed while creating the validation snapshot.',
-        );
-      environment = { ...prepared.environment, reused: prepared.reused };
+      environment = await snapshotDependencies(prepared, dependencies);
     }
     options.signal?.throwIfAborted();
     if (!dependencyFailure) options.onProgress?.('Running baseline checks in offline Docker...');
     const baselineRun: CheckResult = dependencyFailure
       ? { status: 'not-run', exitCode: null, stdout: '', stderr: '' }
       : await containerCheck(baselineDirectory, image, baselineCommand, dependencies);
-    const baseline = options.compareTypeErrors ? compareTypeCheck(baselineRun) : baselineRun;
-    const compared = (check: CheckResult) =>
-      options.compareTypeErrors ? compareTypeCheck(baselineRun, check) : check;
+    const { baseline, compared } = typeCheckComparison(baselineRun, options.compareTypeErrors);
     options.signal?.throwIfAborted();
     const report = await runPipeline({
       ...options,
@@ -453,11 +525,7 @@ export async function validateMigration(options: {
     const prepareCandidate = async (diff: string) => {
       // Reusing a removed bind-mount path can expose a stale directory in Docker Desktop.
       const patchedDirectory = await mkdtemp(join(root, 'candidate-'));
-      await command('tar', ['-xf', archive, '-C', patchedDirectory]);
-      const patch = join(root, 'migration.patch');
-      await writeFile(patch, diff);
-      await command('git', ['apply', '--check', patch], patchedDirectory);
-      await command('git', ['apply', patch], patchedDirectory);
+      await applyPatch(archive, patchedDirectory, join(root, 'migration.patch'), diff);
       // An SDK upgrade in the patch needs dependencies prepared from the patched lockfile, which
       // preparation reads from a committed snapshot.
       let candidateDependencies = dependencies;
@@ -488,20 +556,8 @@ export async function validateMigration(options: {
           onProgress: options.onProgress,
         });
         await rm(join(patchedDirectory, '.git'), { recursive: true, force: true });
-        candidateEnvironment = { ...prepared.environment, reused: prepared.reused };
         candidateDependencies = join(root, `${basename(patchedDirectory)}-dependencies.tar`);
-        await copyFile(prepared.archive, candidateDependencies);
-        const copied = await inspectArtifactFile(
-          candidateDependencies,
-          validationProfile().archiveBytes,
-        );
-        if (
-          copied.sha256 !== prepared.environment.archiveHash ||
-          copied.bytes !== prepared.environment.archiveBytes
-        )
-          throw new PipelineInputError(
-            'Prepared dependencies changed while creating the validation snapshot.',
-          );
+        candidateEnvironment = await snapshotDependencies(prepared, candidateDependencies);
       }
       const patchedSources = await readRepository(patchedDirectory, report.adapter.packageName);
       const shopify = report.provider === SHOPIFY.id;
@@ -555,17 +611,9 @@ export async function validateMigration(options: {
           continue;
         }
         if (!original || original.content === file.content) continue;
-        const entry = entries.find((entry) => entry.slice(entry.indexOf('\t') + 1) === file.path);
-        const metadata = entry?.slice(0, entry.indexOf('\t')).split(' ');
-        const originalBlob = createHash('sha1')
-          .update(`blob ${Buffer.byteLength(original.content)}\0`)
-          .update(original.content)
-          .digest('hex');
-        if (!metadata || metadata[2] !== originalBlob)
-          throw new PipelineInputError('Archived source does not match the committed Git blob.');
         publicationFiles.push({
           path: file.path,
-          mode: metadata[0] as PublicationFile['mode'],
+          mode: committedMode(entries, file.path, original.content),
           content: file.content,
         });
       }
@@ -856,18 +904,7 @@ export async function validateMigration(options: {
         ? 'stale'
         : dependencyFailure
           ? 'untested'
-          : [baseline, patched, generated?.baseline, generated?.patched].some(
-                (check) => check?.status === 'error',
-              )
-            ? 'error'
-            : // A generated check with no runnable function is missing evidence, not a failure.
-              baseline.status !== 'passed' ||
-                (generated && !['passed', 'not-run'].includes(generated.baseline.status))
-              ? 'baseline-failed'
-              : patched.status !== 'passed' ||
-                  (generated && !['passed', 'not-run'].includes(generated.patched.status))
-                ? 'regression'
-                : 'passed';
+          : checkStatus(baseline, patched, generated);
     const reviewTypeErrors = options.compareTypeErrors
       ? introducedTypeErrors(baselineRun, patched)
           .filter(reviewTypeError)
@@ -883,7 +920,7 @@ export async function validateMigration(options: {
       command: options.command,
       baselineCommand,
       ...(options.compareTypeErrors ? { compareTypeErrors: true } : {}),
-      archiveHash: digest(archiveResult.stdout),
+      archiveHash,
       patchHash: digest(proposal.diff),
       baseline,
       patched,
@@ -891,13 +928,7 @@ export async function validateMigration(options: {
       attempts,
       repair,
       ...(reviewTypeErrors.length ? { reviewTypeErrors } : {}),
-      limits: {
-        timeoutMs: CHECK_TIMEOUT_MS,
-        outputBytes: MAX_OUTPUT_BYTES,
-        network: 'none',
-        workspace: validationProfile().workspace,
-        memory: validationProfile().memory,
-      },
+      limits: validationLimits(),
       publishable: false,
       reason:
         'Validation records check results only. Draft publication requires an explicit GitHub target and passing checks; migration semantics require human review.',
@@ -937,27 +968,11 @@ export async function validateSourcePatch(options: {
   const image = await resolveDockerImage(options.image);
   const root = await mkdtemp(join(tmpdir(), 'refit-source-patch-'));
   try {
-    const archive = join(root, 'source.tar');
-    const archiveResult = await execute(
-      'git',
-      ['-C', snapshot.directory, 'archive', '--format=tar', revision],
-      {
-        encoding: 'buffer',
-        timeout: PROCESS_TIMEOUT_MS,
-        maxBuffer: MAX_ARCHIVE_BYTES,
-        env: gitEnvironment(),
-      },
-    ).catch((error: unknown) => {
-      if ((error as { code?: unknown }).code === 'ERR_CHILD_PROCESS_STDIO_MAXBUFFER')
-        throw new PipelineInputError(
-          `Committed source exceeds the ${MAX_ARCHIVE_BYTES / 1024 / 1024} MiB validation archive limit.`,
-        );
-      throw error;
-    });
-    await writeFile(archive, archiveResult.stdout);
-    const baselineDirectory = join(root, 'baseline');
-    await mkdir(baselineDirectory);
-    await command('tar', ['-xf', archive, '-C', baselineDirectory]);
+    const { archive, archiveHash, baselineDirectory } = await extractSnapshot(
+      snapshot.directory,
+      revision,
+      root,
+    );
     const diff = await options.propose(baselineDirectory);
     if (!diff) return { status: 'no-patch' as const, revision };
     if (options.skip?.(revision, digest(diff)))
@@ -965,11 +980,7 @@ export async function validateSourcePatch(options: {
     options.signal?.throwIfAborted();
     const candidateDirectory = join(root, 'candidate');
     await mkdir(candidateDirectory);
-    await command('tar', ['-xf', archive, '-C', candidateDirectory]);
-    const patch = join(root, 'source.patch');
-    await writeFile(patch, diff);
-    await command('git', ['apply', '--check', patch], candidateDirectory);
-    await command('git', ['apply', patch], candidateDirectory);
+    await applyPatch(archive, candidateDirectory, join(root, 'source.patch'), diff);
     // Only committed text files the patch changed are published, each checked against its blob.
     const [original, changed] = await Promise.all([
       readRepository(baselineDirectory),
@@ -979,17 +990,9 @@ export async function validateSourcePatch(options: {
     for (const file of changed.files) {
       const before = original.files.find((source) => source.path === file.path);
       if (!before || before.content === file.content) continue;
-      const entry = entries.find((item) => item.slice(item.indexOf('\t') + 1) === file.path);
-      const metadata = entry?.slice(0, entry.indexOf('\t')).split(' ');
-      const blob = createHash('sha1')
-        .update(`blob ${Buffer.byteLength(before.content)}\0`)
-        .update(before.content)
-        .digest('hex');
-      if (!metadata || metadata[2] !== blob)
-        throw new PipelineInputError('Archived source does not match the committed Git blob.');
       publicationFiles.push({
         path: file.path,
-        mode: metadata[0] as PublicationFile['mode'],
+        mode: committedMode(entries, file.path, before.content),
         content: file.content,
       });
     }
@@ -1005,16 +1008,7 @@ export async function validateSourcePatch(options: {
         onProgress: options.onProgress,
       });
       dependencies = join(root, 'dependencies.tar');
-      await copyFile(prepared.archive, dependencies);
-      const copied = await inspectArtifactFile(dependencies, validationProfile().archiveBytes);
-      if (
-        copied.sha256 !== prepared.environment.archiveHash ||
-        copied.bytes !== prepared.environment.archiveBytes
-      )
-        throw new PipelineInputError(
-          'Prepared dependencies changed while creating the validation snapshot.',
-        );
-      environment = { ...prepared.environment, reused: prepared.reused };
+      environment = await snapshotDependencies(prepared, dependencies);
     }
     options.signal?.throwIfAborted();
     options.onProgress?.('Running baseline checks in offline Docker...');
@@ -1024,42 +1018,29 @@ export async function validateSourcePatch(options: {
       baselineCommand,
       dependencies,
     );
-    const baseline = options.compareTypeErrors ? compareTypeCheck(baselineRun) : baselineRun;
+    const { baseline, compared } = typeCheckComparison(baselineRun, options.compareTypeErrors);
     let patched: CheckResult = { status: 'not-run', exitCode: null, stdout: '', stderr: '' };
     if (baseline.status === 'passed') {
       options.signal?.throwIfAborted();
       options.onProgress?.('Running patched checks in offline Docker...');
-      const run = await containerCheck(candidateDirectory, image, options.command, dependencies);
-      patched = options.compareTypeErrors ? compareTypeCheck(baselineRun, run) : run;
+      patched = compared(
+        await containerCheck(candidateDirectory, image, options.command, dependencies),
+      );
     }
-    const status =
-      baseline.status === 'error' || patched.status === 'error'
-        ? ('error' as const)
-        : baseline.status !== 'passed'
-          ? ('baseline-failed' as const)
-          : patched.status !== 'passed'
-            ? ('regression' as const)
-            : ('passed' as const);
     return {
-      status,
+      status: checkStatus(baseline, patched),
       revision,
       image,
       ...(environment ? { environment } : {}),
       command: options.command,
       baselineCommand,
-      archiveHash: digest(archiveResult.stdout),
+      archiveHash,
       diff,
       patchHash: digest(diff),
       baseline,
       patched,
       publicationFiles,
-      limits: {
-        timeoutMs: CHECK_TIMEOUT_MS,
-        outputBytes: MAX_OUTPUT_BYTES,
-        network: 'none',
-        workspace: validationProfile().workspace,
-        memory: validationProfile().memory,
-      },
+      limits: validationLimits(),
     };
   } finally {
     await rm(root, { recursive: true, force: true });
