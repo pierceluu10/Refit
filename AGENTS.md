@@ -32,6 +32,7 @@ Build toward a reliable agent for many API providers, with separate integrations
 - Check SDK dependency preparation: [Dependencies](docs/DEPENDENCIES.md), [npm workspaces](docs/NPM-WORKSPACES.md), and [pnpm workspaces](docs/PNPM-WORKSPACES.md).
 - Detect provider SDKs and add agents: [Provider agents](docs/PROVIDER-AGENTS.md).
 - Goals for each API provider: [Provider goals](docs/PROVIDER-GOALS.md).
+- Goals for each programming language: [Language goals](docs/LANGUAGE-GOALS.md).
 - See CLI commands and requirements: [CLI guide](docs/CLI.md).
 
 The guides explain onboarding a repository into Refit. This file explains how coding agents should contribute to Refit itself.
