@@ -132,14 +132,14 @@ Built-in agent, 531 benchmark repositories, **74 validated fixes of 234 affected
 
 | Set | Repositories | With Admin usage | Validated fixes | Main stops |
 |---|---|---|---|---|
-| Fresh | 200 | 170 | 6 (13 patched) | 44 need an SDK upgrade, 39 use REST |
+| Fresh | 200 | 170 | 6 (13 patched) | 44 need an SDK upgrade, 32 use REST (39 before 7 raw GraphQL requests were told apart, 2026-10-20) |
 | Original | 50 | 46 | 1 | 15 need an SDK upgrade |
 
 24 of 200 fresh apps send a query that fails on every served version, each at an exact line (23 before callback tracing, 2026-10-20). Repeat runs matched 200 of 200. Deadline registry: 7 Admin versions, 2025-04 to 2026-10 (source: data/deadlines.json).
 
 **What breaks for its users.** Quarterly dated versions, each supported for a year; an unsupported pin "falls forward" to the oldest supported version (source: docs/SHOPIFY.md, citing `https://shopify.dev/docs/api/usage/versioning`). Removed fields, arguments, enum values and types per version are provable from the schema. REST Admin calls have no published versioned contract (source: docs/SHOPIFY.md). The REST API's deprecation in favour of GraphQL: unverified: check the date and scope. `ApiVersion.October26` needs `@shopify/shopify-api` 14 (source: docs/SHOPIFY.md).
 
-**SDK patterns to trace.** Already read: `admin.graphql(...)` from the Remix, React Router and Express packages, `createAdminApiClient(...).request(...)`, `shopify.clients.Graphql(...).request/query(...)`, and pins as `ApiVersion.<Month><YY>`, `apiVersion: 'YYYY-MM'`, versioned URLs and `LATEST_API_VERSION`; documents passed through helpers, callbacks, closure factories, re-exports, constant arrays and objects (2026-10-20) (source: docs/SHOPIFY.md). Not read: documents built at runtime, documents sent through class or object methods; `shopify-api-node`; REST calls (source: docs/SHOPIFY.md, limits).
+**SDK patterns to trace.** Already read: `admin.graphql(...)` from the Remix, React Router and Express packages, `createAdminApiClient(...).request(...)`, `shopify.clients.Graphql(...).request/query(...)`, and pins as `ApiVersion.<Month><YY>`, `apiVersion: 'YYYY-MM'`, versioned URLs and `LATEST_API_VERSION`; documents passed through helpers, callbacks, closure factories, re-exports, constant arrays and objects (2026-10-20) (source: docs/SHOPIFY.md). REST calls are reported with file, line, method and path where knowable (2026-10-20), never migrated. Not read: documents built at runtime, documents sent through class or object methods, raw `graphql.json` requests; `shopify-api-node` (source: docs/SHOPIFY.md, limits).
 
 **Definition of done.** Measured on the frozen fresh 200 (`docs/benchmarks/2026-10-16-shopify-repos.json` and `-fresh-repos.json`):
 
@@ -147,7 +147,7 @@ Built-in agent, 531 benchmark repositories, **74 validated fixes of 234 affected
 |---|---|---|
 | Admin apps ending in a validated version move | 6 of 170 | ≥ 70% of those with runnable checks, once the SDK-upgrade decision is made |
 | Apps stopped on "SDK upgrade needed" | 44 | 0 without a named decision |
-| Apps stopped on REST | 39 | each reported with the exact REST calls; migration only under an owner-approved rule |
+| Apps stopped on REST | 32, each REST call reported at its line with method and path where knowable (2026-10-20) | each reported with the exact REST calls; migration only under an owner-approved rule |
 | Wrong fixes on hand review | 0 of 7 | 0 |
 | Repeat-run agreement | 200/200 | 200/200 |
 
@@ -250,5 +250,5 @@ Capabilities several providers need, in the order the priorities above reach the
 4. **Versioned-URL pin moves** (Meta, Shopify REST, Salesforce, Google): one rule that moves a version segment in a URL or a `version` option when the per-version change list proves nothing the code touches changed. Needs a contract shape for "list of removals per version" that is not OpenAPI. Meta has a review-only, Graph-specific version (`pipeline/meta-graph-moves.ts`, 2026-10-20); it is not wired into `refit run`.
 5. **Non-OpenAPI change sources** (Meta changelog, Google Discovery, Slack method notices): a reader per shape, or a hand-maintained JSON list like `data/deadlines.json`, with an owner decision on whether a hand list is evidence enough for an edit. Meta has the hand-maintained list's format and validator (`data/meta-graph-changes.json`, 2026-10-20), but no entries yet.
 6. **SDK major and package replacement in the same patch** (Shopify 14, PayPal, Gemini): generalise the stripe-node lockfile upgrade so a pin move and its required SDK bump ship together, behind an owner policy per provider.
-7. **REST-to-SDK and raw-HTTP detection** (Shopify, Meta, PayPal, Cloudflare): report raw calls by hostname and path with the exact line, as the catalog's hostname evidence already does, before any migration of them is considered. Meta has it (`refit meta-graph`, 2026-10-20, review only); its URL reading in `pipeline/meta-graph-calls.ts` is Graph-specific so far.
+7. **REST-to-SDK and raw-HTTP detection** (Shopify, Meta, PayPal, Cloudflare): report raw calls by hostname and path with the exact line, as the catalog's hostname evidence already does, before any migration of them is considered. Meta has it (`refit meta-graph`, 2026-10-20, review only); its URL reading in `pipeline/meta-graph-calls.ts` is Graph-specific so far. Shopify has it for REST Admin calls (`shopify.restCalls` in the report, 2026-10-20, review only).
 8. **`adapter-suggest` runs** (PayPal, Cloudflare, Slack, OpenAI): each spends budget and needs hand review; batch them under one approved budget.
