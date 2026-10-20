@@ -259,18 +259,27 @@ export function createReviewArtifacts(
       ? (report as unknown as { shopify: { tracedDocuments: number; deprecated: string[] } })
           .shopify
       : undefined;
-  const relevantChanges = affectedFields(report.changes, report.findings);
-  const change = relevantChanges[0];
+  // Only removed response fields a finding reads; request renames, endpoint replacements and the
+  // card rule cite their own change IDs, so they never count as reads.
+  const readChanges = report.changes.filter((entry) =>
+    report.findings.some((finding) => finding.changeId === entry.id),
+  );
+  const change = readChanges[0];
   const operationChanges = report.operationChanges ?? [];
   const endpoint = operationChanges[0];
   const requestChanges = report.requestChanges ?? [];
   // A removed payment_method_types finding with no remaining stop was migrated by the card-only rule.
-  const cardRename = report.findings.some(
-    (finding) =>
-      finding.changeId.endsWith('.payment_method_types') &&
-      finding.changeId.startsWith('request-parameter:') &&
-      !finding.requestParameter,
+  const cardFiles = new Set(
+    report.findings
+      .filter(
+        (finding) =>
+          finding.changeId.endsWith('.payment_method_types') &&
+          finding.changeId.startsWith('request-parameter:') &&
+          !finding.requestParameter,
+      )
+      .map((finding) => finding.file),
   );
+  const cardRename = cardFiles.size > 0;
   // Lists of card plus other methods the repository opted to keep, as the patch writes them.
   const listedMethods = [
     ...new Set(
@@ -286,20 +295,19 @@ export function createReviewArtifacts(
     : undefined;
   const description = subscriptionPolicy
     ? 'preserve subscription periods after item-level billing'
-    : request &&
-        requestChanges.length === 1 &&
-        !operationChanges.length &&
-        relevantChanges.length === 1
+    : request && requestChanges.length === 1 && !operationChanges.length && !readChanges.length
       ? `update ${request.resource}.${request.method} after ${request.removed} removal`
-      : endpoint && operationChanges.length === 1 && !relevantChanges.length
+      : endpoint && operationChanges.length === 1 && !readChanges.length
         ? `replace retired ${endpoint.resource}.${endpoint.method} calls`
-        : change && relevantChanges.length === 1
-          ? provider === 'Stripe' &&
-            change.schema === 'payment_intent' &&
-            change.property === 'charges'
-            ? 'restore payment history after charges removal'
-            : `migrate removed ${change.schema}.${change.property} reads`
-          : `migrate removed ${provider} API fields`;
+        : cardRename && !readChanges.length
+          ? 'move payment_method_types to allowed_payment_method_types'
+          : change && readChanges.length === 1
+            ? provider === 'Stripe' &&
+              change.schema === 'payment_intent' &&
+              change.property === 'charges'
+              ? 'restore payment history after charges removal'
+              : `migrate removed ${change.schema}.${change.property} reads`
+            : `migrate removed ${provider} API fields`;
   const versionTitle = shopify ? `upgrade Admin API to ${report.apiVersion.after}` : undefined;
   const scope = (
     integration ?? (shopify ? 'shopify' : report.adapter.packageName.split('/').pop()!)
@@ -313,21 +321,28 @@ export function createReviewArtifacts(
       : `${prefix}fix(${scope}): migrate removed API fields`.slice(0, MAX_TITLE);
   const confirmedFindings = report.findings.filter((finding) => finding.confidence === 'confirmed');
   const affectedFiles = new Set(confirmedFindings.map((finding) => finding.file));
-  const changes = summaryList([
-    ...relevantChanges.map((entry) => code(`${entry.schema}.${entry.property}`)),
-    ...operationChanges.map((entry) => code(`${entry.httpMethod} ${entry.path}`)),
-  ]);
-  const changeSummary = changes || 'the API usages recorded in the technical evidence';
+  const changes = summaryList(
+    readChanges.map((entry) => code(`${entry.schema}.${entry.property}`)),
+  );
   const { reasons, replacements } = replacementReasons(report);
   const usageCount = `${confirmedFindings.length} confirmed ${confirmedFindings.length === 1 ? 'usage' : 'usages'}`;
   const fileCount = `${affectedFiles.size} ${affectedFiles.size === 1 ? 'file' : 'files'}`;
   const after = plainText(report.apiVersion.after ?? 'the after contract');
-  // Calls that still send a removed request parameter are counted as unresolved; they get their
-  // own section, so the unmigrated-read counts below leave them out.
+  // Calls that still send a removed request parameter and untraced reads (no rule edits them) are
+  // counted as unresolved; each gets its own line, so the confirmed count below leaves them out.
   const parameterCalls = waiver?.gate === 'removed-request-parameter' ? waiver.calls : [];
-  const unresolvedReads = Math.max(0, patch.unresolvedFindings - parameterCalls.length);
+  const untracedReads = report.findings.filter((finding) => finding.untraced).length;
+  const unresolvedReads = Math.max(
+    0,
+    patch.unresolvedFindings - parameterCalls.length - untracedReads,
+  );
   const parameters = [...new Set(parameterCalls.map((call) => call.parameter))];
   const passed = validation.status === 'passed';
+  const legacyPeerDeps = [validation.environment, validation.patchedEnvironment].some(
+    (environment) =>
+      (environment?.installation as { legacyPeerDeps?: unknown } | undefined)?.legacyPeerDeps ===
+      true,
+  );
   const commandText = (value: readonly string[]) => code(value.join(' '));
   const ai = patch.generator === 'openai';
   const model = 'model' in patch && typeof patch.model === 'string' ? patch.model : undefined;
@@ -344,9 +359,9 @@ export function createReviewArtifacts(
     ...new Set(
       confirmedFindings
         .filter((finding) => finding.file === path && !finding.untraced)
-        .map((finding) => {
-          const entry = report.changes.find((candidate) => candidate.id === finding.changeId);
-          return code(entry ? `${entry.schema}.${entry.property}` : finding.expression);
+        .flatMap((finding) => {
+          const entry = readChanges.find((candidate) => candidate.id === finding.changeId);
+          return entry ? [code(`${entry.schema}.${entry.property}`)] : [];
         }),
     ),
   ];
@@ -356,9 +371,16 @@ export function createReviewArtifacts(
       ? `Moves the pinned Admin API version to ${plainText(after)}.`
       : !file.before
         ? 'Adds the generated helper that reads the removed fields under either API version.'
-        : fields.length
-          ? `Migrates reads of ${summaryList(fields)} to the documented new locations.`
-          : `Updates ${plainText(provider)} API usage for the new contract.`;
+        : [
+            ...(fields.length
+              ? [`Migrates reads of ${summaryList(fields)} to the documented new locations.`]
+              : []),
+            ...(cardFiles.has(file.path)
+              ? [
+                  `Sends ${code('allowed_payment_method_types')} in place of the removed ${code('payment_method_types')}.`,
+                ]
+              : []),
+          ].join(' ') || `Updates ${plainText(provider)} API usage for the new contract.`;
     return `- ${code(file.path)}: ${what}`;
   });
   const breaking = shopify
@@ -370,7 +392,9 @@ export function createReviewArtifacts(
         }`,
       ]
     : [
-        `Removes response fields ${changeSummary} in ${plainText(provider)} API ${after}.`,
+        ...(readChanges.length
+          ? [`Removes response fields ${changes} in ${plainText(provider)} API ${after}.`]
+          : []),
         ...replacements.map((entry) => `Replaces ${entry}.`),
         ...requestChanges.map(
           (entry) =>
@@ -387,7 +411,8 @@ export function createReviewArtifacts(
         ),
         ...operationChanges.map(
           (entry) =>
-            `Retires ${code(`${entry.resource}.${entry.method}`)} in favor of ${code(`${entry.replacementResource}.${entry.replacementMethod}`)}.`,
+            // A configured replacement keeps the HTTP method; its contract signature must match.
+            `Retires ${code(`${entry.resource}.${entry.method}`)} (${code(`${entry.httpMethod} ${entry.path}`)}) in favor of ${code(`${entry.replacementResource}.${entry.replacementMethod}`)} (${code(`${entry.httpMethod} ${entry.replacementPath}`)}).`,
         ),
         ...(validation.repair?.stopReason === OPEN_ENUM_REPAIR
           ? [
@@ -395,6 +420,15 @@ export function createReviewArtifacts(
             ]
           : []),
       ];
+  const overviewCauses = [
+    ...(readChanges.length ? ['removes fields this code reads'] : []),
+    ...(cardRename || listedMethods.length || requestChanges.some((entry) => entry.usages.length)
+      ? ['removes request fields this code sends']
+      : []),
+    ...(operationChanges.some((entry) => entry.usages.length)
+      ? ['retires endpoints this code calls']
+      : []),
+  ];
   const review = [
     ...(shopify?.deprecated ?? []).map(
       (entry) =>
@@ -402,7 +436,7 @@ export function createReviewArtifacts(
     ),
     ...(unresolvedReads
       ? [
-          `**${unresolvedReads} confirmed read${unresolvedReads === 1 ? '' : 's'} of removed fields ${unresolvedReads === 1 ? 'is' : 'are'} still unmigrated.** The checks passed without ${unresolvedReads === 1 ? 'it' : 'them'}; migrate ${unresolvedReads === 1 ? 'it' : 'them'} before merging, using the locations in Refit's run report.`,
+          `**${unresolvedReads} confirmed usage${unresolvedReads === 1 ? '' : 's'} of the breaking changes ${unresolvedReads === 1 ? 'is' : 'are'} still unmigrated.** The checks passed without ${unresolvedReads === 1 ? 'it' : 'them'}; migrate ${unresolvedReads === 1 ? 'it' : 'them'} before merging, using the locations in Refit's run report.`,
         ]
       : []),
     ...reasons,
@@ -493,10 +527,10 @@ export function createReviewArtifacts(
       '## Overview',
       shopify
         ? `This app pins Shopify Admin API ${plainText(report.apiVersion.application ?? 'an older version')}. A deterministic Refit rule moves it to ${after} after checking every traced GraphQL document against the ${after} schema.`
-        : `${plainText(provider)} API ${after} removes fields this code reads. ${ai ? `AI${model ? ` (${code(model)})` : ''}, checked by Refit,` : 'A deterministic Refit rule'} migrates ${usageCount} in ${fileCount} so the code keeps working after the upgrade.`,
+        : `${plainText(provider)} API ${after} ${overviewCauses.length ? overviewCauses.join(' and ') : 'changes API usage this code relies on'}. ${ai ? `AI${model ? ` (${code(model)})` : ''}, checked by Refit,` : 'A deterministic Refit rule'} migrates ${usageCount} in ${fileCount} so the code keeps working after the upgrade.`,
       '## API Impact & Spec Changes',
       [
-        `- Breaking Changes: ${breaking.join(' ')}`,
+        `- Breaking Changes: ${breaking.join(' ') || 'Recorded in the technical evidence.'}`,
         '- Database Migrations: None.',
         '- Environment Variables: None.',
       ].join('\n'),
@@ -515,7 +549,12 @@ export function createReviewArtifacts(
               ? `**Not run: dependency preparation failed (${code(waiver.reason)}); this patch is untested.**`
               : `**Validation did not pass (${validation.status}).**`
         }${generatedResult}`,
-        `- Linter & Static Analysis: ${typeChecked ? 'TypeScript type check is the test command above; ' : 'Not run; '}${shopify ? `Refit rescanned the migrated code and every runtime Admin API pin is on ${after}.` : `Refit rescanned the migrated code and ${unresolvedReads} confirmed read${unresolvedReads === 1 ? '' : 's'} of removed fields remain${parameterCalls.length ? `, plus ${parameterCalls.length} call${parameterCalls.length === 1 ? '' : 's'} sending a removed request parameter` : ''}.`}`,
+        ...(legacyPeerDeps
+          ? [
+              "- Dependency Installation: `npm ci` rejected the committed lockfile's peer dependencies (ERESOLVE), so Refit installed the same lockfile with `--legacy-peer-deps`. Check that your own install uses the same setting.",
+            ]
+          : []),
+        `- Linter & Static Analysis: ${typeChecked ? 'TypeScript type check is the test command above; ' : 'Not run; '}${shopify ? `Refit rescanned the migrated code and every runtime Admin API pin is on ${after}.` : `Refit rescanned the migrated code and ${unresolvedReads} confirmed usage${unresolvedReads === 1 ? '' : 's'} of the breaking changes remain${parameterCalls.length ? `, plus ${parameterCalls.length} call${parameterCalls.length === 1 ? '' : 's'} sending a removed request parameter` : ''}${untracedReads ? `, plus ${untracedReads} untraced read${untracedReads === 1 ? '' : 's'} of removed field names` : ''}.`}`,
         '- Security Scans: Not run.',
       ].join('\n'),
       '## Related Telemetry',

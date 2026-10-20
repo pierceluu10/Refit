@@ -8,7 +8,7 @@ import { createSourceImportResolver } from './source-imports.ts';
 import { sourceBindings } from './source-modules.ts';
 import { sdkConstructors } from './sdk-constructors.ts';
 import { classClients } from './class-clients.ts';
-import { factoryClients } from './factory-clients.ts';
+import { factoryClients, proxyClient } from './factory-clients.ts';
 import { helperClients } from './helper-clients.ts';
 import { stripeWebhookPayloads } from './stripe-webhook-payloads.ts';
 import { componentReference, isObject, resolvableComponentSchema } from './specifications.ts';
@@ -36,6 +36,9 @@ import {
   INVOICE_PRICE_ID_HELPER,
   INVOICE_PRICE_ID_HELPER_RULE,
   invoicePriceIdHelperEdit,
+  CHECKOUT_SHIPPING_HELPER,
+  CHECKOUT_SHIPPING_HELPER_RULE,
+  checkoutShippingHelperEdit,
   type PeriodRareCase,
 } from './stripe-subscription-periods.ts';
 import { STRIPE_MOVE_REVIEW } from './stripe-field-moves.ts';
@@ -135,9 +138,16 @@ function numericArrayIndex(expression: ts.Expression) {
   return Number.isSafeInteger(index) && index >= 0;
 }
 
+// Node runs a script whose shebang follows a byte order mark, and tsc strips the mark when it
+// reads a file, but the parser accepts a shebang only at offset 0. A comment of the same length
+// keeps every offset that edits use.
+function parseableText(content: string) {
+  return content.startsWith('\uFEFF#!') ? `\uFEFF//${content.slice(3)}` : content;
+}
+
 // Syntax errors in one source file; analyzeRepository skips such files instead of failing.
 export function syntaxErrors(path: string, content: string) {
-  const source = ts.createSourceFile(path, content, ts.ScriptTarget.Latest, true);
+  const source = ts.createSourceFile(path, parseableText(content), ts.ScriptTarget.Latest, true);
   const program = ts.createProgram(
     [path],
     { allowJs: true, noLib: true },
@@ -186,7 +196,7 @@ export function analyzeRepository(
     const content = sources.get(name);
     return content === undefined
       ? undefined
-      : ts.createSourceFile(name, content, languageVersion, true);
+      : ts.createSourceFile(name, parseableText(content), languageVersion, true);
   };
   const program = ts.createProgram([...sources.keys()], options, host);
   const checker = program.getTypeChecker();
@@ -475,7 +485,7 @@ export function analyzeRepository(
   classBindings = classClients({ nodes, creation: sdk.creation, clients, symbol, checker });
   factoryBindings = factoryClients({ nodes, clients, symbol, creation: sdk.creation });
   for (const declaration of declarations) {
-    const binding = clientBinding(declaration.initializer);
+    const binding = clientBinding(proxyClient(declaration.initializer) ?? declaration.initializer);
     if (binding && clients.has(binding)) add(clients, declaration.name);
   }
   const helperBindings = helperClients({
@@ -1157,6 +1167,19 @@ export function analyzeRepository(
       const edit = invoicePriceIdHelperEdit(node, location(node).file, change.id);
       if (edit && addEdit(edit)) return edit.rule;
     }
+    // Checkout Session shipping details moved under `collected_information`.
+    if (
+      provider.packageName === STRIPE.packageName &&
+      change.schema === 'checkout.session' &&
+      change.property === 'shipping_details' &&
+      !propertyMoves.some(
+        (move) => move.schema === 'checkout.session' && move.removed === 'shipping_details',
+      ) &&
+      (webhooks?.origin(receiver) || provenance === 'declared-type' || provenance === 'sdk')
+    ) {
+      const edit = checkoutShippingHelperEdit(node, location(node).file, change.id);
+      if (edit && addEdit(edit)) return edit.rule;
+    }
     if (webhooks?.origin(receiver)) return;
     // A value known only from its Stripe.* type may be a webhook payload passed into a helper;
     // its shape follows the endpoint's version, so other rules report it but never edit it.
@@ -1498,7 +1521,8 @@ export function analyzeRepository(
               webhook: {
                 ...(migration === SUBSCRIPTION_PERIOD_HELPER_RULE ||
                 migration === INVOICE_SUBSCRIPTION_HELPER_RULE ||
-                migration === INVOICE_PRICE_ID_HELPER_RULE
+                migration === INVOICE_PRICE_ID_HELPER_RULE ||
+                migration === CHECKOUT_SHIPPING_HELPER_RULE
                   ? { migration: { rule: migration } }
                   : {}),
                 schema: webhook.schema,
@@ -1633,6 +1657,7 @@ export function analyzeRepository(
     ...Object.values(PERIOD_HELPERS),
     INVOICE_SUBSCRIPTION_HELPER,
     INVOICE_PRICE_ID_HELPER,
+    CHECKOUT_SHIPPING_HELPER,
   ] as string[];
   // Node16/NodeNext resolution requires explicit extensions on relative imports.
   const nodeModuleResolution = (repository.configurations ?? []).some((file) =>
@@ -1665,6 +1690,7 @@ export function analyzeRepository(
         SUBSCRIPTION_PERIOD_HELPER_RULE,
         INVOICE_SUBSCRIPTION_HELPER_RULE,
         INVOICE_PRICE_ID_HELPER_RULE,
+        CHECKOUT_SHIPPING_HELPER_RULE,
       ] as const
     ).find((rule) => edits.some((edit) => edit.rule === rule))!;
     const directories = helperFiles.map((file) => posix.dirname(file).split('/'));

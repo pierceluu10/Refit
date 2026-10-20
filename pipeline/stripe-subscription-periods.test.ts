@@ -372,8 +372,9 @@ it
         'entitlements.js',
       ]);
       const review = await readFile(join(result.directory, 'pull-request.md'), 'utf8');
-      expect(review).toContain('select exactly one item whose price ID is `price_primary`');
-      expect(review).toContain('checks signed `event.api_version` at runtime');
+      expect(review).toContain(
+        'Selects subscription periods from the single item priced `price_primary`, keyed on the signed event `api_version`.',
+      );
       expect((await verifyArtifacts(result.directory)).status).toBe('integrity-verified');
       if (checks === 'passed') {
         const worker = {

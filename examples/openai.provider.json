@@ -17,6 +17,12 @@
       "operationId": "createChatCompletion"
     },
     {
+      "resource": "responses",
+      "method": "create",
+      "schema": "Response",
+      "operationId": "createResponse"
+    },
+    {
       "resource": "embeddings",
       "method": "create",
       "schema": "CreateEmbeddingResponse",

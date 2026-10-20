@@ -10,6 +10,7 @@ import {
 } from './request-removals.ts';
 import {
   INVOICE_PRICE_ID_HELPER_RULE,
+  CHECKOUT_SHIPPING_HELPER_RULE,
   INVOICE_SUBSCRIPTION_HELPER_RULE,
   SUBSCRIPTION_PERIOD_HELPER_RULE,
   SUBSCRIPTION_PERIOD_RULE,
@@ -22,6 +23,8 @@ const FIELD_MOVE_SOURCES: Partial<Record<NonNullable<SourceEdit['rule']>, string
     'https://docs.stripe.com/changelog/basil/2025-03-31/adds-new-parent-field-to-invoicing-objects',
   [INVOICE_PRICE_ID_HELPER_RULE]:
     'https://docs.stripe.com/changelog/basil/2025-03-31/invoice-pricing-configurations',
+  [CHECKOUT_SHIPPING_HELPER_RULE]:
+    'https://docs.stripe.com/changelog/basil/2025-03-31/checkout-session-remove-shipping-details',
 };
 
 export const CARD_PAYMENT_METHOD_WARNING =
@@ -211,6 +214,11 @@ export function proposePatch(
         ...(fieldMoves.some((edit) => edit.rule === INVOICE_PRICE_ID_HELPER_RULE)
           ? [
               'Invoice line item and invoice item price IDs are read through a generated helper: the old price.id when present (old-version events), otherwise pricing.price_details.price when pricing.type is price_details. A missing price reads as undefined. Webhook endpoints are not changed.',
+            ]
+          : []),
+        ...(fieldMoves.some((edit) => edit.rule === CHECKOUT_SHIPPING_HELPER_RULE)
+          ? [
+              'Checkout Session shipping details are read through a generated helper: the old shipping_details field when present (old-version events), otherwise collected_information.shipping_details. The new object holds only address and name; reads of carrier, phone or tracking_number are left for review. Webhook endpoints are not changed.',
             ]
           : []),
         ...(fieldMoves.some((edit) => edit.rule === CARD_PAYMENT_METHOD_RULE)
