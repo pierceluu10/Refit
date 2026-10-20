@@ -21,7 +21,7 @@ Each layer, the file that owns it, and whether it depends on the language.
 | Provider detection | Matches catalog package names in manifests and lockfiles, and API hostnames in source | `pipeline/agent-catalog.ts` | Package names are npm names; hostname scan is neutral |
 | Contracts | OpenAPI snapshots and `oasdiff`; Shopify GraphQL introspection snapshots | `pipeline/specifications.ts`, `pipeline/shopify-*.ts` | No |
 | Adapter | SDK identity (`packageName`, `defaultImport`, `namedExport`) and `resource.method → schema` mappings | `examples/*.provider.json`, built-in Stripe | Identity is JS-module shaped; the operation map is neutral |
-| Analyzer | TypeScript compiler symbols trace clients, aliases, class fields, helpers, factories, webhooks, mutations and escapes; produces `sdkCalls` with file, line, resource path, method and provenance | `pipeline/analyzer.ts` and 22 other modules that import the TypeScript compiler (`class-clients`, `helper-clients`, `factory-clients`, `mutations`, `source-modules`, `stripe-*`, …) | Entirely |
+| Analyzer | TypeScript compiler symbols trace clients, aliases, class fields, helpers, factories, webhooks, mutations and escapes; produces `sdkCalls` with file, line, resource path, method and provenance | `pipeline/analyzer.ts` and 27 other modules that import the TypeScript compiler (`class-clients`, `helper-clients`, `factory-clients`, `mutations`, `source-modules`, `stripe-*`, …) | Entirely |
 | Deterministic rules | Property renames and moves, request renames, endpoint replacements, Stripe period and card rules; each edits TypeScript AST nodes | `pipeline/request-migration.ts`, `pipeline/stripe-field-moves.ts`, `pipeline/history-migration.ts`, … | Entirely: rules are written against TS nodes |
 | AI patches | Model returns exact text replacements inside confirmed files; a guard rescans with the analyzer and rejects edits outside scope | `pipeline/ai-patches.ts`, `pipeline/substitution-guard.ts`, `pipeline/patch-context.ts` | Prompting is neutral; the guard and rescan are TS |
 | Dependency preparation | Installs the committed npm, pnpm or Yarn lockfile in a restricted container, cached by lockfile hash; upgrades `stripe` in the patch | `pipeline/dependency-preparation.ts`, `pipeline/manager-install.ts` | Entirely: npm ecosystem |
@@ -187,7 +187,7 @@ The go/no-go gate for every language is a **tracing benchmark first**, the way [
 | # | Language | Reason |
 |---|---|---|
 | 1 | Python | Every AI provider's main SDK; the OpenAI shutdown and Anthropic goal apply directly; the deadline registry already has the models |
-| 2 | Go | Static types make tracing and precision cheap; official SDKs for Stripe, OpenAI and Anthropic; Refit already ships a Go binary |
+| 2 | Go | Static types make tracing and precision cheap; official SDKs for Stripe, OpenAI and Anthropic; Refit already runs a Go binary (`oasdiff`) |
 | 3 | Java and Kotlin | Static types; the enterprise population that pays for maintenance; heavy builds are the cost |
 | 4 | Ruby | Large Stripe and Shopify population, but dynamic; depends on decision 3 |
 | 5 | PHP | Large Stripe population, but dynamic and often untested; depends on decision 3 |
