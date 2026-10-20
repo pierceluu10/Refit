@@ -8,7 +8,7 @@ Second item of the Shopify goal in [Provider goals](PROVIDER-GOALS.md#shopify): 
 - **Raw GraphQL requests are no longer REST.** URLs to `/admin/api/<version>/graphql.json` matched the REST pattern. They are Admin GraphQL calls whose documents Refit does not read, so they now stop as unread documents at their line. On the frozen sets this moved 9 apps from "REST" to "unread document"; none of them was or became patchable.
 - **Benchmark** (scan level; [details](SHOPIFY-BENCHMARK.md#rest-evidence-october-20)): REST calls 32 → 28 (original 50) and 184 → 152 (fresh 200). 114 of the 180 have both a method and a path or resource operation. Apps stopped on REST went from 8 to 6 and from 39 to 32. A second run matched 50/50 and 200/200.
 
-A random sample of 20 reported calls was right on hand review. The default suite ran 1,565 tests across 105 files with 78 environment-gated tests skipped; 1,485 passed, and the two failures are the known subprocess CLI timeouts (`scan-cli`, `service-configuration`) that fail the same way on `main` in this container. Typecheck, formatting and build passed.
+A random sample of 20 reported calls was right on hand review. The default suite ran 1,593 tests across 107 files with 78 environment-gated tests skipped; 1,513 passed, and the two failures are the known subprocess CLI timeouts (`scan-cli`, `service-configuration`) that fail the same way on `main` in this container. Typecheck, formatting and build passed.
 
 ## October 20 checkpoint: Shopify documents through callbacks, closures, re-exports and arrays (unreleased, after 0.39.0)
 
