@@ -20,7 +20,7 @@ Refit reads committed `package.json` declarations and the matching npm, pnpm or 
 | OpenAI | `openai`, `api.openai.com` | `examples/openai.provider.json` (preview: `models.retrieve`, `chat.completions.create` and `embeddings.create`, with the response schemas and operation IDs of OpenAI's published OpenAPI document; extend it with `refit adapter-suggest`) |
 | Anthropic | `@anthropic-ai/sdk`, `api.anthropic.com` | none yet; `examples/anthropic.provider.json` traces `messages` calls for [model replacement proposals](DEADLINES.md#propose-model-replacements), but Anthropic publishes no contract for `refit run` |
 | Shopify | `@shopify/shopify-api`, `@shopify/admin-api-client`, `@shopify/shopify-app-remix`, `@shopify/shopify-app-react-router`, `@shopify/shopify-app-express`, `shopify-api-node`, `myshopify.com/admin/api` | built-in, Admin GraphQL ([Shopify](SHOPIFY.md)); `shopify-api-node` and REST calls are detected but not migrated |
-| Meta Graph API | `facebook-nodejs-business-sdk`, `graph.facebook.com` | none yet |
+| Meta Graph API | `facebook-nodejs-business-sdk`, `graph.facebook.com` | none yet; `refit meta-graph` lists Graph API requests with their version, edge and fields for review ([Meta Graph API](META-GRAPH.md)) |
 | Twilio | `twilio`, `api.twilio.com` | none yet |
 | SendGrid | `@sendgrid/mail`, `@sendgrid/client`, `api.sendgrid.com` | none yet |
 | Resend | `resend`, `api.resend.com` | none yet |

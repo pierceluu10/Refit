@@ -1,5 +1,17 @@
 # Refit implementation checkpoints
 
+## October 20 checkpoint: Meta Graph API request detection (unreleased, after 0.39.0)
+
+First review-only step toward a Meta agent ([Provider goals](PROVIDER-GOALS.md#meta-graph-api), shared work items 4, 5 and 7). Nothing is edited, and the `meta-graph` catalog entry keeps `adapter: null`.
+
+- **`refit meta-graph`** lists the Graph API requests a repository makes, with `file:line`, method, pinned version and where it is written, path and edge, and the literal `fields` and insights `metric` values. It reads raw `graph.facebook.com` URLs passed to `fetch`, `axios` and project helpers, including base constants imported from other files and URLs kept in a `const`, and `facebook-nodejs-business-sdk` resource-class calls. Anything built at runtime is reported as unknown with the reason: spread or mutated options, `FormData`, helper options, runtime versions and edges, reassigned pagination URLs. See [Meta Graph API](META-GRAPH.md).
+- **Business SDK edges.** `data/meta-business-sdk-edges.json` maps the 648 generated method names of facebook-nodejs-business-sdk 24.0.1 to their Graph API edges, built by `scripts/meta-business-sdk-edges.mjs` from the SDK's source text. The SDK was downloaded with `npm pack --ignore-scripts`; nothing was installed or run.
+- **Measured on the 33 Meta repositories of the deadline benchmark.** 162 requests in live code, all real, and every reported value matched the code on hand review (one line-break bug in a multi-line URL was found while labelling and fixed first). The version was read for 157, the path and edge for 158 and `fields` for 113. A request was found at 62 of the 63 labelled live Graph pins; the miss is the browser SDK's `FB.init`. Labels are one reviewer's single pass.
+
+Not done here: a per-version change list from Meta's changelog and a version-move proposal. Meta's documentation host could not be reached from this environment, so no change entries were written.
+
+The default suite ran 1,559 tests across 98 files, with 78 environment-gated tests skipped; 1,471 passed, including 28 new tests. The other 10 are subprocess CLI tests (`first-run`, `pipeline`, `scan-cli`, `service-configuration`, `watch`, `workflow`, `workflow-integrations`) that hit the 5-second test timeout in this container; the same tests fail the same way on `main` here, and they pass with `--testTimeout=120000`. Typecheck, formatting and build passed.
+
 ## October 20 checkpoint: Anthropic deadlines and review-only model replacements (unreleased, after 0.39.0)
 
 Work toward the OpenAI and Anthropic goals in [Provider goals](PROVIDER-GOALS.md):
