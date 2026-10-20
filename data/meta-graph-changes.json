@@ -1,0 +1,105 @@
+{
+  "formatVersion": 1,
+  "provider": "meta-graph",
+  "versions": [
+    {
+      "version": "v13.0",
+      "status": "unread",
+      "source": "https://developers.facebook.com/docs/graph-api/changelog/versions",
+      "checkedAt": "2026-10-20",
+      "note": "Not read: developers.facebook.com could not be reached from the environment that wrote this record (the network proxy refused the connection on 2026-10-20). The address of this version's own changelog page was not confirmed, so the source is the versions index, which search results do list. No changes are recorded."
+    },
+    {
+      "version": "v14.0",
+      "status": "unread",
+      "source": "https://developers.facebook.com/docs/graph-api/changelog/versions",
+      "checkedAt": "2026-10-20",
+      "note": "Not read: developers.facebook.com could not be reached from the environment that wrote this record (the network proxy refused the connection on 2026-10-20). The address of this version's own changelog page was not confirmed, so the source is the versions index, which search results do list. No changes are recorded."
+    },
+    {
+      "version": "v15.0",
+      "status": "unread",
+      "source": "https://developers.facebook.com/docs/graph-api/changelog/versions",
+      "checkedAt": "2026-10-20",
+      "note": "Not read: developers.facebook.com could not be reached from the environment that wrote this record (the network proxy refused the connection on 2026-10-20). The address of this version's own changelog page was not confirmed, so the source is the versions index, which search results do list. No changes are recorded."
+    },
+    {
+      "version": "v16.0",
+      "status": "unread",
+      "source": "https://developers.facebook.com/docs/graph-api/changelog/versions",
+      "checkedAt": "2026-10-20",
+      "note": "Not read: developers.facebook.com could not be reached from the environment that wrote this record (the network proxy refused the connection on 2026-10-20). The address of this version's own changelog page was not confirmed, so the source is the versions index, which search results do list. No changes are recorded."
+    },
+    {
+      "version": "v17.0",
+      "status": "unread",
+      "source": "https://developers.facebook.com/docs/graph-api/changelog/version17.0",
+      "checkedAt": "2026-10-20",
+      "note": "Not read: developers.facebook.com could not be reached from the environment that wrote this record (the network proxy refused the connection on 2026-10-20). Search results list this page, but search summaries are not evidence, so no changes are recorded."
+    },
+    {
+      "version": "v18.0",
+      "status": "unread",
+      "source": "https://developers.facebook.com/docs/graph-api/changelog/versions",
+      "checkedAt": "2026-10-20",
+      "note": "Not read: developers.facebook.com could not be reached from the environment that wrote this record (the network proxy refused the connection on 2026-10-20). The address of this version's own changelog page was not confirmed, so the source is the versions index, which search results do list. No changes are recorded."
+    },
+    {
+      "version": "v19.0",
+      "status": "unread",
+      "source": "https://developers.facebook.com/docs/graph-api/changelog/version19.0",
+      "checkedAt": "2026-10-20",
+      "note": "Not read: developers.facebook.com could not be reached from the environment that wrote this record (the network proxy refused the connection on 2026-10-20). Search results list this page, but search summaries are not evidence, so no changes are recorded."
+    },
+    {
+      "version": "v20.0",
+      "status": "unread",
+      "source": "https://developers.facebook.com/docs/graph-api/changelog/versions",
+      "checkedAt": "2026-10-20",
+      "note": "Not read: developers.facebook.com could not be reached from the environment that wrote this record (the network proxy refused the connection on 2026-10-20). The address of this version's own changelog page was not confirmed, so the source is the versions index, which search results do list. No changes are recorded."
+    },
+    {
+      "version": "v21.0",
+      "status": "unread",
+      "source": "https://developers.facebook.com/docs/graph-api/changelog/versions",
+      "checkedAt": "2026-10-20",
+      "note": "Not read: developers.facebook.com could not be reached from the environment that wrote this record (the network proxy refused the connection on 2026-10-20). The address of this version's own changelog page was not confirmed, so the source is the versions index, which search results do list. No changes are recorded."
+    },
+    {
+      "version": "v22.0",
+      "status": "unread",
+      "source": "https://developers.facebook.com/docs/graph-api/changelog/version22.0",
+      "checkedAt": "2026-10-20",
+      "note": "Not read: developers.facebook.com could not be reached from the environment that wrote this record (the network proxy refused the connection on 2026-10-20). Search results list this page, but search summaries are not evidence, so no changes are recorded."
+    },
+    {
+      "version": "v23.0",
+      "status": "unread",
+      "source": "https://developers.facebook.com/docs/graph-api/changelog/versions",
+      "checkedAt": "2026-10-20",
+      "note": "Not read: developers.facebook.com could not be reached from the environment that wrote this record (the network proxy refused the connection on 2026-10-20). The address of this version's own changelog page was not confirmed, so the source is the versions index, which search results do list. No changes are recorded."
+    },
+    {
+      "version": "v24.0",
+      "status": "unread",
+      "source": "https://developers.facebook.com/docs/graph-api/changelog/versions",
+      "checkedAt": "2026-10-20",
+      "note": "Not read: developers.facebook.com could not be reached from the environment that wrote this record (the network proxy refused the connection on 2026-10-20). The address of this version's own changelog page was not confirmed, so the source is the versions index, which search results do list. No changes are recorded."
+    },
+    {
+      "version": "v25.0",
+      "status": "unread",
+      "source": "https://developers.facebook.com/docs/graph-api/changelog/versions",
+      "checkedAt": "2026-10-20",
+      "note": "Not read: developers.facebook.com could not be reached from the environment that wrote this record (the network proxy refused the connection on 2026-10-20). The address of this version's own changelog page was not confirmed, so the source is the versions index, which search results do list. No changes are recorded."
+    },
+    {
+      "version": "v26.0",
+      "status": "unread",
+      "source": "https://developers.facebook.com/docs/graph-api/changelog/version26.0",
+      "checkedAt": "2026-10-20",
+      "note": "Not read: developers.facebook.com could not be reached from the environment that wrote this record (the network proxy refused the connection on 2026-10-20). Search results list this page, but search summaries are not evidence, so no changes are recorded."
+    }
+  ],
+  "changes": []
+}

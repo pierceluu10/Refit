@@ -95,6 +95,39 @@ Refit found 677 Admin calls and 895 GraphQL documents, 628 of them traced to an 
 
   The fourth was preparation: npm workspaces declared as `{ "packages": [...] }`, the Shopify CLI template's form, were refused. npm reads that form the same way as an array, so `cornerstone-report/x-money-shopify` and `sahmsec/conversion-app` (63 tests) now validate. The REST fixes turned 3 wrongly patched apps into stops; none of them had validated. Between the first run (`d368c2a`) and the final one, 10 apps changed, each because of one of these fixes.
 
+## Callback, closure and array tracing (October 20)
+
+Before changing tracing, every Admin call whose document Refit could not read was classified by the pattern hiding it, on both frozen sets (250 apps, Refit `c262f8f`). Scan-level runs only: no Docker validation, no AI, no store.
+
+| Pattern hiding the document | Apps | Unread calls before | After (`4a99c1e`) |
+|---|---|---|---|
+| Template literal interpolating a runtime value (ID, cursor, filter) | 22 | 45 | 45, still stops: correct |
+| Helper reached through a callback, a `const` arrow passed on, or a closure factory | 6 | 18 | 0; 5 stop where the function later leaves Refit's reach |
+| Helper stored as an object property | 3 | 3 | 3, now stop at the property line |
+| Document built by a function call (`queryForProducts(params)`) | 5 | 10 | 10, still stops |
+| Class or object method parameter | 4 | 5 | 5, still stops (needs the receiver's type) |
+| Member of a constant array or object (`for (const tier of TIERS)`) | 2 | 2 | 1 |
+| Other (destructured or reassignable bindings, unresolved names) | 7 | 7 | 7 |
+
+The first and the builder rows are real runtime documents and must stop. The tracing change follows a function value from the call that sends the document to every call of that function: named helpers through named, namespace and re-exported imports (`export { a as b } from`, `export *`), callbacks passed into repository functions, `const` arrows and closures returned by factories, plus constant arrays and object members. A use it cannot follow stops at that use's line instead of leaving callers unseen.
+
+| Measure | Original 50 before | after | Fresh 200 before | after |
+|---|---|---|---|---|
+| Traced Admin documents | 336 | **350** | 628 | **644** |
+| Admin calls with an unread document | 27 | **22** | 63 | **54** |
+| Stopped: runtime-built or unfollowable document | 5 | 4 | 26 | 25 |
+| Stopped: query already fails | 5 | 5 | 23 | **24** |
+| Stopped: SDK upgrade needed | 14 | 15 | 44 | 44 |
+| Patched | 1 | 1 | 13 | 13 |
+| Same outcome on a second run at `4a99c1e` | | 50/50 | | 200/200 |
+
+Two apps changed outcome, and no other app's outcome changed. Per-app before and after values are in [`2026-10-20-shopify-tracing-results.json`](benchmarks/2026-10-20-shopify-tracing-results.json).
+
+- **`Leilanigreer/lpc-product-manager`** passes `(query, options) => admin.graphql(query, options)` into `fetchCreationCollections`. All 61 documents are now read and valid; the app stops only because `ApiVersion.October26` needs a newer `@shopify/shopify-api`.
+- **`neoapollo18/glimpse-app`** wraps `admin.graphql` in a callback that reaches `extractFromBrandApi`, which sends `shop { brand { … } }`. `Shop.brand` exists only in the Storefront API, so the query fails on every Admin version. Before, the literal was untraced and noted as another Shopify API.
+
+Scanning the fresh 200 took the same CPU time as before (1 min 42 s). The schemas came from Shopify's own `@shopify/dev-mcp` 1.17.0 npm package (`dist/data/admin_2026-01.json` to `admin_2026-10.json`), because this environment could not reach `shopify.dev`. Their SHA-256 differs from the pinned introspection, so they were used only to compare runs with each other: at `c262f8f` they reproduced the published outcomes for 199 of 200 fresh apps (the other is the fragment stop, counted with runtime documents above) and 48 of 50 original apps (both differences come from Refit fixes made after the original run).
+
 ## Reproduce
 
 ```sh
@@ -106,4 +139,4 @@ npm run benchmark:shopify -- --root <dir> --output <run> --validate --concurrenc
 
 ## What this shows
 
-Refit's contract check is precise. Every stop names a file and line, and the five already-broken apps are true breakage. But one benchmark app was moved automatically: real Shopify apps mostly sit behind their framework's SDK, so the version they can reach is limited by `@shopify/shopify-api`, not by the Admin API. Automating that SDK upgrade, and reading documents passed through helpers, would move the most apps.
+Refit's contract check is precise. Every stop names a file and line, and the five already-broken apps are true breakage. But one benchmark app was moved automatically: real Shopify apps mostly sit behind their framework's SDK, so the version they can reach is limited by `@shopify/shopify-api`, not by the Admin API. Automating that SDK upgrade would move the most apps. Reading documents passed through helpers, callbacks and closures (October 20) found one more broken query but moved no app to a patch: the apps it fully reads stop next on their SDK.
