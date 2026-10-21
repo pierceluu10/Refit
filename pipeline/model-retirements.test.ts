@@ -1619,3 +1619,59 @@ it('stops for mixins, class expressions, aliased bases and accessor models (WR-0
     ]).toEqual([label, [...rows].sort()]);
   }
 });
+
+it('follows default-exported literals and objects and string-literal element access (WR-04, iteration 2)', async () => {
+  const root = await repository({
+    'src/default-string.ts': "export default 'gpt-4';",
+    'src/default-object.ts': "export default { chat: 'o1-mini' };",
+    'src/chat.ts': [
+      ...HEAD,
+      "import model from './default-string';",
+      "import models from './default-object';",
+      `export const a = () => ${send('model')}`,
+      `export const b = () => ${send('models.chat')}`,
+    ].join('\n'),
+    'src/table.ts': [
+      ...HEAD,
+      "const MODELS = { fast: 'gpt-4', slow: { id: 'o1-mini' } } as const;",
+      `export const a = () => ${send("MODELS['fast']")}`,
+      `export const b = () => ${send("MODELS['slow']['id']")}`,
+    ].join('\n'),
+  });
+  const proposal = await proposeModelReplacements(root, registry, NOW);
+  expect(proposal.stops).toEqual([]);
+  expect(edited(proposal)).toEqual([
+    'src/default-object.ts:1 o1-mini',
+    'src/default-string.ts:1 gpt-4',
+    'src/table.ts:3 gpt-4',
+    'src/table.ts:3 o1-mini',
+  ]);
+
+  // A second use of a default-exported literal is not a request, so it stops.
+  const shared = await repository({
+    'src/default-string.ts': "export default 'gpt-4';",
+    'src/chat.ts': [
+      ...HEAD,
+      "import model from './default-string';",
+      `export const a = () => ${send('model')}`,
+      'console.log(model);',
+    ].join('\n'),
+  });
+  const held = await proposeModelReplacements(shared, registry, NOW);
+  expect(held.replacements).toEqual([]);
+  expect(held.stops).toHaveLength(1);
+
+  // Still untraced and silent, and listed under Limits in docs/DEADLINES.md.
+  const untraced = await repository({
+    'src/a.ts': [
+      ...HEAD,
+      "let model = 'gpt-4';",
+      `export const a = () => ${send('model')}`,
+      "const MODELS = { fast: 'gpt-4' } as const;",
+      "export const key = (k: 'fast') => " + send('MODELS[k]'),
+      "export const each = ['gpt-4'].forEach((m) => " + send('m') + ');',
+    ].join('\n'),
+  });
+  const silent = await proposeModelReplacements(untraced, registry, NOW);
+  expect([silent.replacements, silent.stops]).toEqual([[], []]);
+});

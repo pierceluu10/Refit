@@ -994,6 +994,31 @@ function valuesOf(
       return declarationValues(program, symbol, declaration, value.name, true, next, keys);
     return valuesOf(program, value.expression, next, [value.name.text, ...keys]);
   }
+  // `MODELS['fast']`: a string-literal key reads the member like `MODELS.fast`. A computed key is
+  // not traced.
+  if (ts.isElementAccessExpression(value)) {
+    const key = value.argumentExpression && unwrap(value.argumentExpression);
+    if (!key || !ts.isStringLiteralLike(key)) return [];
+    const symbol = program.symbolOf(key);
+    const declaration = symbol && (symbol.valueDeclaration ?? symbol.declarations?.[0]);
+    // An enum member or class field: its uses are identifiers, so the key never counts as one
+    // and the shared-use check stops.
+    if (
+      symbol &&
+      declaration &&
+      (ts.isEnumMember(declaration) || ts.isPropertyDeclaration(declaration))
+    )
+      return declarationValues(
+        program,
+        symbol,
+        declaration,
+        key as unknown as ts.MemberName,
+        true,
+        next,
+        keys,
+      );
+    return valuesOf(program, value.expression, next, [key.text, ...keys]);
+  }
   if (!ts.isIdentifier(value)) return [];
   const symbol = program.symbolOf(value);
   const declaration = symbol?.valueDeclaration;
@@ -1019,13 +1044,18 @@ function declarationValues(
     name: reference.text,
     at: where(program, node),
   });
+  const defaultExport =
+    ts.isExportAssignment(declaration) && !declaration.isExportEquals ? declaration : undefined;
   if (
     (ts.isVariableDeclaration(declaration) &&
       ts.isVariableDeclarationList(declaration.parent) &&
       declaration.parent.flags & ts.NodeFlags.Const) ||
-    ts.isEnumMember(declaration)
+    ts.isEnumMember(declaration) ||
+    defaultExport
   ) {
-    const initializer = declaration.initializer;
+    const initializer = defaultExport
+      ? defaultExport.expression
+      : (declaration as ts.VariableDeclaration | ts.EnumMember).initializer;
     if (!initializer) return [];
     return cached(trace, declaration, keys, () =>
       through(
