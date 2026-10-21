@@ -1366,7 +1366,7 @@ it('stops on overridden methods, subclass fields and super(...) arguments instea
   expect(proposal.replacements).toEqual([]);
   expect(proposal.patch).toBeNull();
   const stop = (what: string, to: string) =>
-    `${what} is declared or overridden in another class, so the model cannot be traced through class inheritance; change it by hand to ${to}.`;
+    `${what} is declared or overridden in another class, is an accessor, or sits in a class tree the tracer cannot fully resolve, so the model cannot be traced through class inheritance; change it by hand to ${to}.`;
   const rows = proposal.stops.map((item) => [item.file, item.at.line, item.model, item.reason]);
   expect(rows.sort()).toEqual(
     [
@@ -1502,4 +1502,120 @@ it('stops when the declaring module is loaded in a way the tracer cannot follow 
   expect(edited(await proposeModelReplacements(followed, registry, NOW))).toEqual([
     'src/models.ts:1 gpt-4',
   ]);
+});
+
+it('stops for mixins, class expressions, aliased bases and accessor models (WR-02, iteration 2)', async () => {
+  const stop = (what: string, to: string) =>
+    `${what} is declared or overridden in another class, is an accessor, or sits in a class tree the tracer cannot fully resolve, so the model cannot be traced through class inheritance; change it by hand to ${to}.`;
+  const cases: Record<
+    string,
+    { files: Record<string, string>; rows: [string, number, string, string][] }
+  > = {
+    mixin: {
+      files: {
+        'src/a.ts': [
+          ...HEAD,
+          'const Mix = (B: any) => class extends B {};',
+          'class A {',
+          "  model = 'gpt-4';",
+          `  run() { return ${send('this.model')} }`,
+          '}',
+          "class B2 extends Mix(A) { model = 'o1-mini'; }",
+        ].join('\n'),
+      },
+      rows: [
+        ['src/a.ts', 5, 'gpt-4', stop('The field model', 'gpt-5.6-sol')],
+        ['src/a.ts', 8, 'o1-mini', stop('The field model', 'gpt-5.6-terra')],
+      ],
+    },
+    'class expression': {
+      files: {
+        'src/a.ts': [
+          ...HEAD,
+          'const A = class {',
+          "  model = 'gpt-4';",
+          `  run() { return ${send('this.model')} }`,
+          '};',
+          "class B extends A { model = 'o1-mini'; }",
+        ].join('\n'),
+      },
+      rows: [
+        ['src/a.ts', 4, 'gpt-4', stop('The field model', 'gpt-5.6-sol')],
+        ['src/a.ts', 7, 'o1-mini', stop('The field model', 'gpt-5.6-terra')],
+      ],
+    },
+    'aliased base': {
+      files: {
+        'src/a.ts': [
+          ...HEAD,
+          'class A {',
+          "  model = 'gpt-4';",
+          `  run() { return ${send('this.model')} }`,
+          '}',
+          'const Base = A;',
+          "class B extends Base { model = 'o1-mini'; }",
+        ].join('\n'),
+      },
+      rows: [
+        ['src/a.ts', 4, 'gpt-4', stop('The field model', 'gpt-5.6-sol')],
+        ['src/a.ts', 8, 'o1-mini', stop('The field model', 'gpt-5.6-terra')],
+      ],
+    },
+    getter: {
+      files: {
+        'src/a.ts': [
+          ...HEAD,
+          'class A {',
+          "  get model() { return 'gpt-4'; }",
+          `  run() { return ${send('this.model')} }`,
+          '}',
+        ].join('\n'),
+      },
+      rows: [['src/a.ts', 4, 'gpt-4', stop('The accessor model', 'gpt-5.6-sol')]],
+    },
+    'abstract getter': {
+      files: {
+        'src/a.ts': [
+          ...HEAD,
+          'abstract class A {',
+          '  abstract get model(): string;',
+          `  run() { return ${send('this.model')} }`,
+          '}',
+          "class B extends A { get model() { return 'gpt-4'; } }",
+        ].join('\n'),
+      },
+      rows: [['src/a.ts', 7, 'gpt-4', stop('The accessor model', 'gpt-5.6-sol')]],
+    },
+    'object getter': {
+      files: {
+        'src/a.ts': [
+          ...HEAD,
+          "const config = { get model() { return 'gpt-4'; } };",
+          `export const a = () => ${send('config.model')}`,
+        ].join('\n'),
+      },
+      rows: [['src/a.ts', 3, 'gpt-4', stop('The accessor model', 'gpt-5.6-sol')]],
+    },
+    setter: {
+      files: {
+        'src/a.ts': [
+          ...HEAD,
+          'class A {',
+          "  model = 'gpt-4';",
+          '  set model(value: string) { console.log(value); }',
+          `  run() { return ${send('this.model')} }`,
+          '}',
+        ].join('\n'),
+      },
+      rows: [['src/a.ts', 4, 'gpt-4', stop('The field model', 'gpt-5.6-sol')]],
+    },
+  };
+  for (const [label, { files, rows }] of Object.entries(cases)) {
+    const proposal = await proposeModelReplacements(await repository(files), registry, NOW);
+    expect([label, proposal.replacements]).toEqual([label, []]);
+    expect([
+      label,
+      proposal.stops.map((item) => [item.file, item.at.line, item.model, item.reason]).sort(),
+    ]).toEqual([label, [...rows].sort()]);
+  }
 });

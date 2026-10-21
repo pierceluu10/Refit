@@ -376,6 +376,10 @@ function sourceProgram(repository: Repository) {
   };
   // Every class in the repository with the class it extends, when that resolves to one.
   let classList: Map<ts.ClassLikeDeclaration, ts.ClassLikeDeclaration | undefined> | undefined;
+  // Whether some class extends something that is neither a class declaration nor an external
+  // name: a mixin call, a class expression, an aliased or computed base. Any class may be its base.
+  const unknownClasses = new Set<ts.ClassLikeDeclaration>();
+  let unknownBase = false;
   const classes = () => {
     if (!classList) {
       const list = new Map<ts.ClassLikeDeclaration, ts.ClassLikeDeclaration | undefined>();
@@ -385,15 +389,30 @@ function sourceProgram(repository: Repository) {
           const base = node.heritageClauses?.find(
             (clause) => clause.token === ts.SyntaxKind.ExtendsKeyword,
           )?.types[0]?.expression;
-          const target = base && symbolOf(ts.isPropertyAccessExpression(base) ? base.name : base);
+          const name = base && (ts.isPropertyAccessExpression(base) ? base.name : base);
+          const target = name && ts.isIdentifier(name) ? symbolOf(name) : undefined;
           const declaration = target?.valueDeclaration;
-          list.set(node, declaration && ts.isClassLike(declaration) ? declaration : undefined);
+          const resolved = declaration && ts.isClassLike(declaration) ? declaration : undefined;
+          list.set(node, resolved);
+          // A name that resolves to no declaration is a global or an uninstalled package.
+          if (
+            base &&
+            !resolved &&
+            (!name || !ts.isIdentifier(name) || target?.declarations?.length)
+          ) {
+            unknownBase = true;
+            unknownClasses.add(node);
+          }
         }
         ts.forEachChild(node, visit);
       };
       for (const source of files) visit(source);
     }
     return classList;
+  };
+  const unknownBases = () => {
+    classes();
+    return unknownBase;
   };
   const topClass = (cls: ts.ClassLikeDeclaration) => {
     let top = cls;
@@ -407,11 +426,14 @@ function sourceProgram(repository: Repository) {
   // Every other class in the same inheritance tree: ancestors, descendants and siblings.
   const relatives = (cls: ts.ClassLikeDeclaration) => {
     const top = topClass(cls);
-    return [...classes().keys()].filter((item) => item !== cls && topClass(item) === top);
+    return [...classes().keys()].filter(
+      (item) => item !== cls && (topClass(item) === top || unknownClasses.has(item)),
+    );
   };
   // The classes that extend `cls`, directly or not.
   const subclasses = (cls: ts.ClassLikeDeclaration) =>
     relatives(cls).filter((item) => {
+      if (unknownClasses.has(item)) return true;
       for (let up = classes().get(item), depth = 0; up && depth < MAX_CHAIN; depth += 1) {
         if (up === cls) return true;
         up = classes().get(up);
@@ -545,6 +567,7 @@ function sourceProgram(repository: Repository) {
     assignmentsOf,
     relatives,
     subclasses,
+    unknownBases,
     opaque,
     path: (node: ts.Node) => paths.get(node.getSourceFile().fileName)!,
     line: (node: ts.Node) =>
@@ -946,6 +969,17 @@ function valuesOf(
   if (ts.isPropertyAccessExpression(value)) {
     const symbol = program.symbolOf(value.name);
     const declaration = symbol && (symbol.valueDeclaration ?? symbol.declarations?.[0]);
+    // A getter or setter: whatever its getters (and those it overrides) return is stopped on.
+    const accessors = symbol?.declarations?.filter(ts.isAccessor) ?? [];
+    if (accessors.length) {
+      const owner = { ...next, ctx: undefined };
+      const found = [...accessors, ...accessors.flatMap((item) => relatedMembers(program, item))]
+        .filter(ts.isGetAccessorDeclaration)
+        .flatMap((getter) => returnsOf(getter))
+        .flatMap((returned) => valuesOf(program, returned, owner, keys));
+      for (const terminal of found) terminal.stop ??= inherited(`The accessor ${value.name.text}`);
+      return found;
+    }
     // A member with a declaration of its own (enum member, class field, a module's exported
     // constant); anything else is a property of whatever the owner holds.
     if (
@@ -1040,12 +1074,18 @@ function declarationValues(
       if (ts.isPropertyDeclaration(other) && other.initializer)
         found.push(...valuesOf(program, other.initializer, owner, keys));
       if (ts.isParameter(other)) found.push(...parameterValues(program, other, owner, keys));
+      if (ts.isGetAccessorDeclaration(other))
+        for (const returned of returnsOf(other))
+          found.push(...valuesOf(program, returned, owner, keys));
       const otherName = (other as ts.NamedDeclaration).name;
       const otherSymbol = otherName && program.symbolOf(otherName);
       for (const assigned of otherSymbol ? program.assignmentsOf(otherSymbol) : [])
         found.push(...valuesOf(program, assigned, owner, keys));
     }
-    if (related.length)
+    const inClass = ts.isParameter(declaration)
+      ? ts.isClassLike(declaration.parent.parent)
+      : ts.isClassLike(declaration.parent);
+    if (related.length || (inClass && program.unknownBases()))
       for (const terminal of found) terminal.stop ??= inherited(`The field ${reference.text}`);
     return through(pass('field', declaration), found);
   });
@@ -1165,6 +1205,7 @@ function parameterValues(
   }
   // A subclass passes its own arguments up through `super(...)`, or inherits this constructor and
   // is built with `new Subclass(...)` (WR-02).
+  if (constructed && program.unknownBases()) stopped ??= inherited(`The class ${name.text}`);
   if (constructed)
     for (const subclass of program.subclasses(fn.parent)) {
       stopped ??= inherited(`The class ${name.text}`);
@@ -1194,16 +1235,22 @@ function relatedMembers(program: SourceProgram, declaration: ts.Declaration) {
   const name =
     ts.isParameter(declaration) && ts.isIdentifier(declaration.name)
       ? declaration.name.text
-      : (ts.isMethodDeclaration(declaration) || ts.isPropertyDeclaration(declaration)) &&
+      : (ts.isMethodDeclaration(declaration) ||
+            ts.isPropertyDeclaration(declaration) ||
+            ts.isAccessor(declaration)) &&
           !ts.isPrivateIdentifier(declaration.name)
         ? propertyName(declaration.name)
         : undefined;
   if (!name || !ts.isClassLike(owner)) return [];
   const found: ts.Declaration[] = [];
-  for (const cls of program.relatives(owner))
+  // The class itself too: a getter or setter beside the field, or an overload of the method.
+  for (const cls of [owner, ...program.relatives(owner)])
     for (const member of cls.members) {
+      if (member === declaration) continue;
       if (
-        (ts.isMethodDeclaration(member) || ts.isPropertyDeclaration(member)) &&
+        (ts.isMethodDeclaration(member) ||
+          ts.isPropertyDeclaration(member) ||
+          ts.isAccessor(member)) &&
         !ts.isPrivateIdentifier(member.name) &&
         propertyName(member.name) === name
       )
@@ -1211,6 +1258,7 @@ function relatedMembers(program: SourceProgram, declaration: ts.Declaration) {
       else if (ts.isConstructorDeclaration(member))
         for (const parameter of member.parameters)
           if (
+            parameter !== declaration &&
             ts.isParameterPropertyDeclaration(parameter, member) &&
             ts.isIdentifier(parameter.name) &&
             parameter.name.text === name
@@ -1221,7 +1269,7 @@ function relatedMembers(program: SourceProgram, declaration: ts.Declaration) {
 }
 
 const inherited = (what: string) =>
-  `${what} is declared or overridden in another class, so the model cannot be traced through class inheritance; change it by hand to`;
+  `${what} is declared or overridden in another class, is an accessor, or sits in a class tree the tracer cannot fully resolve, so the model cannot be traced through class inheritance; change it by hand to`;
 
 // The function a member holds: a method, or a property initialized with one.
 function memberFunction(member: ts.Declaration) {
@@ -1276,11 +1324,13 @@ function callValues(
     : trace.ctx;
   // The override, or the abstract declaration's implementation, may be what runs.
   const related = ts.isMethodDeclaration(fn) ? relatedMembers(program, fn) : [];
+  const treeUnknown =
+    ts.isMethodDeclaration(fn) && ts.isClassLike(fn.parent) && program.unknownBases();
   const run = () => {
     const found = [fn, ...related.map(memberFunction)]
       .flatMap((item) => (item ? returnsOf(item) : []))
       .flatMap((returned) => valuesOf(program, returned, { ...trace, ctx }, keys));
-    if (related.length)
+    if (related.length || treeUnknown)
       for (const terminal of found) terminal.stop ??= inherited(`The method ${name.text}`);
     // A literal passed in as an argument belongs to this call only, not to the function.
     const own = found.filter((terminal) => !(bound && terminal.via?.delete(ctx!)));
