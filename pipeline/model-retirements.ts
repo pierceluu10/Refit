@@ -53,11 +53,20 @@ const TRACERS: {
   adapter: URL | ProviderAdapter;
   resourceCalls?: Set<string>;
   clientCalls?: Set<string>;
+  // The client is not the provider's own endpoint, so its requests only ever stop for review.
+  custom?: boolean;
 }[] = [
   {
     provider: 'openai',
     adapter: new URL('../examples/openai.provider.json', import.meta.url),
     resourceCalls: MODEL_CALLS.openai,
+  },
+  {
+    // `model` on an Azure client is a deployment name (WR-04).
+    provider: 'openai',
+    adapter: { ...legacyOpenAi('openai'), namedExport: 'AzureOpenAI' },
+    resourceCalls: MODEL_CALLS.openai,
+    custom: true,
   },
   ...['openai', 'openai-edge'].map((packageName) => ({
     provider: 'openai' as const,
@@ -1045,6 +1054,30 @@ function modelSites(program: SourceProgram, value: ts.Expression) {
   return { sites: [...sites.values()], cut: trace.cut.by };
 }
 
+const ENDPOINT_OPTIONS = new Set(['baseURL', 'baseUrl', 'basePath']);
+
+// Whether any client in the repository is an `AzureOpenAI` client or is constructed with a custom
+// base URL. Which client sends a request is not traced, so one such client puts every SDK request
+// in doubt: the model may name another provider's model or a deployment (WR-04).
+function customEndpoint(program: SourceProgram) {
+  let found = false;
+  const optionIn = (node: ts.Node): boolean =>
+    ((ts.isPropertyAssignment(node) || ts.isShorthandPropertyAssignment(node)) &&
+      ENDPOINT_OPTIONS.has(propertyName(node.name) ?? '')) ||
+    ts.forEachChild(node, optionIn) === true;
+  const visit = (node: ts.Node) => {
+    if (found) return;
+    if (
+      (ts.isIdentifier(node) && node.text === 'AzureOpenAI') ||
+      (ts.isNewExpression(node) && (node.arguments ?? []).some(optionIn))
+    )
+      found = true;
+    else ts.forEachChild(node, visit);
+  };
+  for (const source of program.files) visit(source);
+  return found;
+}
+
 const SWEEP_CAP = 20_000;
 
 // After a limit cut a request's trace: every string literal that can reach `start` by the same
@@ -1192,6 +1225,10 @@ export async function proposeModelReplacements(
     argument: ts.Expression | undefined;
     // Text-generation calls Refit edits; every other traced call only stops for review.
     text: boolean;
+    // A call on an SDK client, as opposed to a raw HTTP request to an official host.
+    sdk: boolean;
+    // A call on an Azure client.
+    custom: boolean;
   }[] = [];
   const seen = new Set<ts.Node>();
   for (const tracer of TRACERS) {
@@ -1241,6 +1278,8 @@ export async function proposeModelReplacements(
         node,
         argument: node.arguments[0],
         text: sdk.text,
+        sdk: true,
+        custom: Boolean(tracer.custom),
       });
     }
   }
@@ -1256,6 +1295,8 @@ export async function proposeModelReplacements(
             node,
             argument: raw.body,
             text: raw.text,
+            sdk: false,
+            custom: false,
           });
         }
       }
@@ -1297,6 +1338,8 @@ export async function proposeModelReplacements(
     for (const site of trace.sites) for (const pass of site.passes) reached.add(pass.use);
     traced.push({ request, found, value, trace });
   }
+  let custom: boolean | undefined;
+  const endpoint = () => (custom ??= customEndpoint(program));
   for (const { request, found, value, trace } of traced) {
     const models = byProvider.get(request.provider)!;
     // A trace a limit cut cannot prove every source and use, so no literal it reaches is edited.
@@ -1314,6 +1357,7 @@ export async function proposeModelReplacements(
           ? `work budget of ${MAX_STEPS.toLocaleString('en-US')} steps`
           : `depth limit of ${MAX_DEPTH}`
       }, so not every source and use could be checked; change it by hand to`;
+    const customUrl = request.custom || (request.sdk && endpoint());
     for (const site of sites) {
       const entry = models.get(site.literal.text);
       if (!entry || TEST_PATH.test(program.path(site.literal))) continue;
@@ -1332,17 +1376,19 @@ export async function proposeModelReplacements(
           // any call outside the text allow-list, such as beta.assistants.create (D-11, D-16).
           !request.text
           ? `\`${request.call}\` is not a call Refit edits; ${resolved.to} may change formats or parameters; change it by hand to ${resolved.to}.`
-          : limit
-            ? `${limit} ${resolved.to}.`
-            : stop
-              ? `${stop} ${resolved.to}.`
-              : found.shared
-                ? `${found.shared} ${resolved.to}.`
-                : found.object.properties.some((item) => ts.isSpreadAssignment(item))
-                  ? 'The request spreads other options, which may set parameters the replacement rejects.'
-                  : sensitive.length
-                    ? `The request sets ${sensitive.join(', ')}, which ${resolved.to} may reject or treat differently.`
-                    : undefined;
+          : customUrl
+            ? `The client sets a custom base URL, so the model may name another provider's model or a deployment; change it by hand to ${resolved.to}.`
+            : limit
+              ? `${limit} ${resolved.to}.`
+              : stop
+                ? `${stop} ${resolved.to}.`
+                : found.shared
+                  ? `${found.shared} ${resolved.to}.`
+                  : found.object.properties.some((item) => ts.isSpreadAssignment(item))
+                    ? 'The request spreads other options, which may set parameters the replacement rejects.'
+                    : sensitive.length
+                      ? `The request sets ${sensitive.join(', ')}, which ${resolved.to} may reject or treat differently.`
+                      : undefined;
       const decision = decisions.get(site.literal) ?? {
         entry,
         ...resolved,

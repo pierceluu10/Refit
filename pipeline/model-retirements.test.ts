@@ -1271,3 +1271,49 @@ it('stops when another read of the parameter an edited default or caller literal
     ],
   ]);
 });
+
+it('stops instead of editing when a client sets a custom base URL or is an Azure client (WR-04)', async () => {
+  const reason =
+    "The client sets a custom base URL, so the model may name another provider's model or a deployment; change it by hand to gpt-5.6-sol.";
+  const root = await repository({
+    'src/proxy.ts': [
+      ...HEAD.slice(0, 1),
+      "const openai = new OpenAI({ baseURL: 'https://my-proxy.example/v1' });",
+      `export const a = () => ${send("'gpt-4'")}`,
+    ].join('\n'),
+    'src/azure.ts': [
+      "import { AzureOpenAI } from 'openai';",
+      'const client = new AzureOpenAI({ endpoint: process.env.AZURE_ENDPOINT, apiVersion: "2024-10-21" });',
+      "export const a = () => client.chat.completions.create({ model: 'gpt-4', messages: [] });",
+    ].join('\n'),
+  });
+  const proposal = await proposeModelReplacements(root, registry, NOW);
+  expect(proposal.replacements).toEqual([]);
+  expect(proposal.patch).toBeNull();
+  expect(proposal.stops.map((item) => [item.file, item.model, item.reason]).sort()).toEqual([
+    ['src/azure.ts', 'gpt-4', reason],
+    ['src/proxy.ts', 'gpt-4', reason],
+  ]);
+
+  // Without a base URL or an Azure client the same request is edited, and a raw request to the
+  // official host is not held back by a custom client elsewhere.
+  const plain = await repository({
+    'src/a.ts': [...HEAD, `export const a = () => ${send("'gpt-4'")}`].join('\n'),
+    'src/raw.ts':
+      "fetch('https://api.openai.com/v1/responses', { method: 'POST', body: JSON.stringify({ model: 'o1-mini', input: 'x' }) });",
+  });
+  expect(edited(await proposeModelReplacements(plain, registry, NOW))).toEqual([
+    'src/a.ts:3 gpt-4',
+    'src/raw.ts:1 o1-mini',
+  ]);
+  const mixed = await repository({
+    'src/a.ts': [...HEAD, `export const a = () => ${send("'gpt-4'")}`].join('\n'),
+    'src/proxy.ts':
+      "import OpenAI from 'openai'; export const other = new OpenAI({ baseUrl: 'https://x.example' });",
+    'src/raw.ts':
+      "fetch('https://api.openai.com/v1/responses', { method: 'POST', body: JSON.stringify({ model: 'o1-mini', input: 'x' }) });",
+  });
+  const held = await proposeModelReplacements(mixed, registry, NOW);
+  expect(edited(held)).toEqual(['src/raw.ts:1 o1-mini']);
+  expect(held.stops.map((item) => [item.file, item.reason])).toEqual([['src/a.ts', reason]]);
+});
