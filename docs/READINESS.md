@@ -1,5 +1,24 @@
 # Refit implementation checkpoints
 
+## October 21 checkpoint: model catalog precision and build output (unreleased, after 0.39.0)
+
+- **Catalogs.** For OpenAI, Anthropic and Gemini, the deadline scan now lists more catalog shapes as non-live:
+  - model-keyed entries behind `satisfies` or `as`;
+  - model records: an `id` or `name` beside a metadata field such as `contextWindow`, `max_output_tokens`, `pricing` or `owned_by`;
+  - genkit-style `versions: [...]` lists;
+  - constant-case objects naming three or more models.
+
+  A request's `model` never counts as a record name, and mixed-case settings objects stay live.
+
+- **Measured.** Read-only scans of the 184 checkouts behind the frozen sets (100 OpenAI, 50 Anthropic and the 34-repository deadline set):
+  - OpenAI and Anthropic live lines fell from 1,170 to 630.
+  - Repositories with a live line fell from 87 to 84.
+  - Every dropped line was read by hand: model records and cards, generated model tables, `versions` lists, enum-like objects and one minified bundle.
+  - All 19 hand-labelled live model lines in the deadline set stay live. The 4 labelled options still counted as live are alias-map values, which stay live on purpose.
+- **Build output.** The model replacement rule never proposes an edit in build output committed with the sources: `out/`, `ts-out/`, `*.min.js`, `*.bundle.js`, or JavaScript whose TypeScript source sits beside it or in a sibling `src/`. This narrows where edits land; it does not widen which uses are replaced.
+
+Tests: `pipeline/deadlines.test.ts` adds the new catalog shapes, and the live lookalikes they must not catch. `pipeline/model-retirements.test.ts` adds compiled copies beside their sources.
+
 ## October 21 checkpoint: Gemini detection, report only (unreleased, after 0.39.0)
 
 Gemini is in the agent catalog with `adapter: null`: packages `@google/genai` and `@google/generative-ai`, hostname `generativelanguage.googleapis.com`, which is the default host in the published code of both SDKs. Every fact recorded in [Provider goals](PROVIDER-GOALS.md#gemini) was read on 2026-10-21 from an official source: the two SDK READMEs on GitHub, the npm registry and the published package code. Google's model and deprecation pages on ai.google.dev were refused by this environment's network policy, so **no Gemini model retirement date is in the registry**, and there is no `refit deadlines --sync gemini`: a parser could not be written against a page nobody could read.

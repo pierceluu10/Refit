@@ -180,6 +180,30 @@ function sdkImported(content: string, packageName: string) {
   );
 }
 
+// Build output committed with the sources: `out/` and `ts-out/` directories, minified bundles, and
+// JavaScript whose TypeScript source sits beside it or in a sibling `src/` directory. A proposal
+// there would be overwritten by the next build. `dist/`, `build/` and `.next/` are never read.
+const OUTPUT_DIRECTORY = /(?:^|\/)(?:out|ts-out)\//;
+const BUNDLE = /\.(?:min|bundle)\.[cm]?js$/;
+
+function compiledOutput(path: string, paths: Set<string>) {
+  if (OUTPUT_DIRECTORY.test(path) || BUNDLE.test(path)) return true;
+  const script = /^(.*)\.([cm]?)jsx?$/.exec(path);
+  if (!script) return false;
+  const parts = script[1].split('/');
+  const stems = [
+    script[1],
+    ...parts.flatMap((part, index) =>
+      part === 'lib'
+        ? [[...parts.slice(0, index), 'src', ...parts.slice(index + 1)].join('/')]
+        : [],
+    ),
+  ];
+  return stems.some((stem) =>
+    ['ts', 'tsx'].some((extension) => paths.has(`${stem}.${script[2]}${extension}`)),
+  );
+}
+
 // Raw HTTP requests to the official text-generation endpoints, with the request body sent through
 // `JSON.stringify`: `fetch(url, { body })`, Apps Script's `UrlFetchApp.fetch(url, { payload })`
 // and `axios.post(url, data)`.
@@ -536,9 +560,9 @@ function modelSites(program: SourceProgram, value: ts.Expression, depth = 0): Si
 }
 
 // Proposes replacing a retiring model ID with its registry replacement where a traced SDK call, or a
-// raw HTTP request to an official text-generation endpoint, sends it as `model`, outside tests.
-// Anything less certain stops for review with a reason. Nothing is written, applied, validated or
-// sent to a provider: the proposal is a patch for a person to review.
+// raw HTTP request to an official text-generation endpoint, sends it as `model`, outside tests and
+// build output. Anything less certain stops for review with a reason. Nothing is written, applied,
+// validated or sent to a provider: the proposal is a patch for a person to review.
 export async function proposeModelReplacements(
   directory: string,
   registry: DeadlineRegistry,
@@ -653,16 +677,18 @@ export async function proposeModelReplacements(
     }
   >();
   const stops: ModelReplacementStop[] = [];
+  const paths = new Set(repository.files.map((item) => item.path));
+  const skipped = (file: string) => TEST_PATH.test(file) || compiledOutput(file, paths);
   for (const request of requests) {
     const models = byProvider.get(request.provider)!;
     const file = program.path(request.node);
-    if (TEST_PATH.test(file)) continue;
+    if (skipped(file)) continue;
     const found = requestObject(program, request.argument);
     const property = found && objectProperty(found.object, 'model');
     if (!found || !property) continue;
     for (const site of modelSites(program, propertyValue(property))) {
       const entry = models.get(site.literal.text);
-      if (!entry || TEST_PATH.test(program.path(site.literal))) continue;
+      if (!entry || skipped(program.path(site.literal))) continue;
       const resolved = finalReplacement(entry, models) ?? { to: '', via: [entry.id] };
       const sensitive = found.object.properties
         .map((item) => (item.name ? propertyName(item.name) : undefined))
