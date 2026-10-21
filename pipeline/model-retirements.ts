@@ -557,6 +557,113 @@ function sourceProgram(repository: Repository) {
   const opaque = (source: ts.SourceFile) =>
     opaqueIndex().all || opaqueIndex().paths.has(source.fileName);
   const usesOf = (symbol: ts.Symbol) => indexOf(symbol).uses.get(symbol) ?? [];
+  // The reference to a container: the identifier, or `ns.Name` when it is read through a namespace.
+  const referenceOf = (use: ts.MemberName): ts.Node =>
+    ts.isPropertyAccessExpression(use.parent) && use.parent.name === use ? use.parent : use;
+  // `X.member` or `X['member']` that is only read: not assigned, deleted or incremented.
+  const plainRead = (reference: ts.Node) => {
+    const access = reference.parent;
+    if (!(
+      (ts.isPropertyAccessExpression(access) && access.expression === reference) ||
+      (ts.isElementAccessExpression(access) &&
+        access.expression === reference &&
+        access.argumentExpression &&
+        ts.isStringLiteralLike(unwrap(access.argumentExpression)))
+    ))
+      return false;
+    const writer = access.parent;
+    return !(
+      (ts.isBinaryExpression(writer) &&
+        writer.left === access &&
+        writer.operatorToken.kind >= ts.SyntaxKind.FirstAssignment &&
+        writer.operatorToken.kind <= ts.SyntaxKind.LastAssignment) ||
+      (ts.isDeleteExpression(writer) && writer.expression === access) ||
+      ((ts.isPrefixUnaryExpression(writer) || ts.isPostfixUnaryExpression(writer)) &&
+        (writer.operator === ts.SyntaxKind.PlusPlusToken ||
+          writer.operator === ts.SyntaxKind.MinusMinusToken))
+    );
+  };
+  // Whether every reference to a symbol is a plain read of one of its members.
+  const onlyMemberReads = (symbol: ts.Symbol | undefined) =>
+    Boolean(symbol) && usesOf(symbol!).every((use) => inType(use) || plainRead(referenceOf(use)));
+  // A `new C(...)` whose instance is only read through `.member`: directly, or through a variable
+  // every use of which does the same.
+  const instanceReadOnly = (created: ts.NewExpression) => {
+    const holder = created.parent;
+    // Built and dropped: nothing reads it.
+    if (ts.isExpressionStatement(holder)) return true;
+    if (
+      ts.isVariableDeclaration(holder) &&
+      holder.initializer === created &&
+      ts.isIdentifier(holder.name)
+    )
+      return onlyMemberReads(symbolOf(holder.name));
+    return plainRead(created);
+  };
+  const containers = new Map<ts.Node, boolean>();
+  // Whether an enum, or the class a field belongs to (with its subclasses), is used as a whole
+  // somewhere: `Object.values(E)`, `const X = E`, `E[k]`, a spread or destructuring, `this` passed
+  // along, an instance handed on. Reads of a member and `this.member` are not. Unsure means yes.
+  const containerEscape = (
+    declaration: ts.Declaration | undefined,
+  ): 'enum' | 'class' | undefined => {
+    if (!declaration) return undefined;
+    if (ts.isEnumMember(declaration)) {
+      const key = declaration.parent;
+      let escaped = containers.get(key);
+      if (escaped === undefined) {
+        escaped = !onlyMemberReads(symbolOf(key.name));
+        containers.set(key, escaped);
+      }
+      return escaped ? 'enum' : undefined;
+    }
+    const owner = ts.isParameter(declaration) ? declaration.parent.parent : declaration.parent;
+    if (
+      !ts.isClassLike(owner) ||
+      !(ts.isPropertyDeclaration(declaration) || ts.isParameter(declaration))
+    )
+      return undefined;
+    let escaped = containers.get(owner);
+    if (escaped === undefined) {
+      escaped = [owner, ...subclasses(owner)].some((cls) => {
+        if (!cls.name) return true;
+        const bound = symbolOf(cls.name);
+        if (!bound) return true;
+        let thisEscapes = false;
+        const visit = (node: ts.Node) => {
+          if (node.kind === ts.SyntaxKind.ThisKeyword) {
+            const parent = node.parent;
+            if (!(
+              (ts.isPropertyAccessExpression(parent) && parent.expression === node) ||
+              (ts.isElementAccessExpression(parent) &&
+                parent.expression === node &&
+                parent.argumentExpression &&
+                ts.isStringLiteralLike(unwrap(parent.argumentExpression)))
+            ))
+              thisEscapes = true;
+          }
+          ts.forEachChild(node, visit);
+        };
+        for (const member of cls.members) visit(member);
+        return (
+          thisEscapes ||
+          usesOf(bound).some((use) => {
+            if (inType(use)) return false;
+            const reference = referenceOf(use);
+            const parent = reference.parent;
+            if (ts.isNewExpression(parent) && parent.expression === reference)
+              return !instanceReadOnly(parent);
+            if (ts.isExpressionWithTypeArguments(parent) && ts.isHeritageClause(parent.parent))
+              return false;
+            return !plainRead(reference);
+          })
+        );
+      });
+      containers.set(owner, escaped);
+    }
+    return escaped ? 'class' : undefined;
+  };
+
   // The right-hand side of every `x.name = value` in the repository, for a field's symbol.
   const assignmentsOf = (symbol: ts.Symbol) => indexOf(symbol).assigns.get(symbol) ?? [];
   return {
@@ -569,6 +676,7 @@ function sourceProgram(repository: Repository) {
     subclasses,
     unknownBases,
     opaque,
+    containerEscape,
     path: (node: ts.Node) => paths.get(node.getSourceFile().fileName)!,
     line: (node: ts.Node) =>
       node.getSourceFile().getLineAndCharacterOfPosition(node.getStart()).line + 1,
@@ -891,6 +999,12 @@ function sharedUse(program: SourceProgram, passes: Pass[], reached: Set<ts.Node>
   for (const pass of [...passes].reverse()) {
     if (program.opaque(pass.node.getSourceFile()))
       return 'The module that declares this model is also loaded dynamically or through a namespace the tracer cannot follow; change it by hand to';
+    const whole =
+      pass.kind === 'enum member' || pass.kind === 'field'
+        ? program.containerEscape(pass.symbol.valueDeclaration ?? pass.symbol.declarations?.[0])
+        : undefined;
+    if (whole)
+      return `The model comes from the ${pass.kind} ${pass.name} (${pass.at}), and its ${whole} is also used as a whole, so a change shows up elsewhere; change it by hand to`;
     const all = program.usesOf(pass.symbol);
     const uses = all.filter(
       (use) =>
@@ -961,6 +1075,12 @@ function valuesOf(
       ...valuesOf(program, value.left, next, keys),
       ...valuesOf(program, value.right, next, keys),
     ];
+  // `flag && 'gpt-4'`: the right side is the model when the flag holds.
+  if (
+    ts.isBinaryExpression(value) &&
+    value.operatorToken.kind === ts.SyntaxKind.AmpersandAmpersandToken
+  )
+    return valuesOf(program, value.right, next, keys);
   if (ts.isObjectLiteralExpression(value)) {
     const property = keys[0] ? objectProperty(value, keys[0]) : undefined;
     return property ? valuesOf(program, propertyValue(property), next, keys.slice(1)) : [];
@@ -1115,6 +1235,24 @@ function declarationValues(
     const inClass = ts.isParameter(declaration)
       ? ts.isClassLike(declaration.parent.parent)
       : ts.isClassLike(declaration.parent);
+    // An object member or static field assigned anywhere, or an instance field assigned through
+    // another receiver than `this`, may be overwritten before a request reads it.
+    const staticMember =
+      ts.isPropertyDeclaration(declaration) &&
+      declaration.modifiers?.some((item) => item.kind === ts.SyntaxKind.StaticKeyword);
+    const overwritten = assignments.some(
+      (assigned) =>
+        ts.isPropertyAssignment(declaration) ||
+        staticMember ||
+        !(
+          ts.isBinaryExpression(assigned.parent) &&
+          ts.isPropertyAccessExpression(assigned.parent.left) &&
+          assigned.parent.left.expression.kind === ts.SyntaxKind.ThisKeyword
+        ),
+    );
+    if (overwritten)
+      for (const terminal of found)
+        terminal.stop ??= `The ${reference.text} member is also assigned to elsewhere, so a request may send another value; change it by hand to`;
     if (related.length || (inClass && program.unknownBases()))
       for (const terminal of found) terminal.stop ??= inherited(`The field ${reference.text}`);
     return through(pass('field', declaration), found);

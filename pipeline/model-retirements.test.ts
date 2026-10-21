@@ -1675,3 +1675,199 @@ it('follows default-exported literals and objects and string-literal element acc
   const silent = await proposeModelReplacements(untraced, registry, NOW);
   expect([silent.replacements, silent.stops]).toEqual([[], []]);
 });
+
+it('stops when an enum, class or object holding the model is read as a whole or written to (iteration 3)', async () => {
+  const whole = (kind: string, name: string, at: string) =>
+    `The model comes from the ${kind} ${name} (${at}), and its ${kind === 'enum member' ? 'enum' : 'class'} is also used as a whole, so a change shows up elsewhere; change it by hand to gpt-5.6-sol.`;
+  const overwritten = (name: string) =>
+    `The ${name} member is also assigned to elsewhere, so a request may send another value; change it by hand to gpt-5.6-sol.`;
+  const enumUse = (use: string) => ({
+    'src/a.ts': [
+      ...HEAD,
+      "enum E { A = 'gpt-4', B = 'o1-mini' }",
+      use,
+      `export const a = () => ${send('E.A')}`,
+    ].join('\n'),
+  });
+  const classUse = (use: string) => ({
+    'src/a.ts': [
+      ...HEAD,
+      'class C {',
+      "  m = 'gpt-4';",
+      `  go() { return ${send('this.m')} }`,
+      '}',
+      use,
+    ].join('\n'),
+  });
+  const wholeCases: [string, Record<string, string>, string][] = [
+    [
+      'Object.values(E)',
+      enumUse('export const v = Object.values(E);'),
+      whole('enum member', 'A', 'src/a.ts:3'),
+    ],
+    ['const X = E', enumUse('export const X = E;'), whole('enum member', 'A', 'src/a.ts:3')],
+    [
+      'E[k]',
+      enumUse('export const f = (k: string) => (E as any)[k];'),
+      whole('enum member', 'A', 'src/a.ts:3'),
+    ],
+    [
+      'for in E',
+      enumUse('for (const k in E) console.log(k);'),
+      whole('enum member', 'A', 'src/a.ts:3'),
+    ],
+    [
+      'enum in another file',
+      {
+        'src/e.ts': "export enum E { A = 'gpt-4' }",
+        'src/a.ts': [
+          ...HEAD,
+          "import { E } from './e';",
+          `export const a = () => ${send('E.A')}`,
+        ].join('\n'),
+        'src/b.ts': "import { E } from './e'; export const v = Object.values(E);",
+      },
+      whole('enum member', 'A', 'src/e.ts:1'),
+    ],
+    [
+      'destructured instance',
+      classUse('export const { m } = new C();'),
+      whole('field', 'm', 'src/a.ts:4'),
+    ],
+    [
+      'Object.entries(instance)',
+      classUse('const c = new C(); export const e = Object.entries(c);'),
+      whole('field', 'm', 'src/a.ts:4'),
+    ],
+    [
+      'JSON.stringify(instance)',
+      classUse('export const j = JSON.stringify(new C());'),
+      whole('field', 'm', 'src/a.ts:4'),
+    ],
+    [
+      'instance passed on',
+      classUse('const c = new C(); console.log(c);'),
+      whole('field', 'm', 'src/a.ts:4'),
+    ],
+    ['class as a value', classUse('export const k = [C];'), whole('field', 'm', 'src/a.ts:4')],
+    [
+      'this as a value',
+      {
+        'src/a.ts': [
+          ...HEAD,
+          'class C {',
+          "  m = 'gpt-4';",
+          `  go() { console.log(Object.keys(this)); return ${send('this.m')} }`,
+          '}',
+        ].join('\n'),
+      },
+      whole('field', 'm', 'src/a.ts:4'),
+    ],
+    [
+      'static field written',
+      {
+        'src/a.ts': [
+          ...HEAD,
+          'class C { static M = "gpt-4"; }',
+          "C.M = 'other';",
+          `export const a = () => ${send('C.M')}`,
+        ].join('\n'),
+      },
+      overwritten('M'),
+    ],
+    [
+      'object member assigned',
+      {
+        'src/a.ts': [
+          ...HEAD,
+          "const o = { M: 'gpt-4' };",
+          "o.M = 'other';",
+          `export const a = () => ${send('o.M')}`,
+        ].join('\n'),
+      },
+      overwritten('M'),
+    ],
+  ];
+  for (const [label, files, reason] of wholeCases) {
+    const proposal = await proposeModelReplacements(await repository(files), registry, NOW);
+    expect([label, proposal.replacements]).toEqual([label, []]);
+    expect([
+      label,
+      proposal.stops.map((item) => item.reason).filter((item) => item === reason).length > 0,
+    ]).toEqual([label, true]);
+  }
+  // Writes to a const object that never reach the member-assignment path still stop.
+  for (const write of ["o['M'] = 'other';", 'Object.assign(o, { M: "other" });', 'delete o.M;']) {
+    const proposal = await proposeModelReplacements(
+      await repository({
+        'src/a.ts': [
+          ...HEAD,
+          "const o: any = { M: 'gpt-4' };",
+          write,
+          `export const a = () => ${send('o.M')}`,
+        ].join('\n'),
+      }),
+      registry,
+      NOW,
+    );
+    expect([write, proposal.replacements]).toEqual([write, []]);
+    expect([write, proposal.stops.length]).toEqual([write, 1]);
+  }
+  // Plain member reads, an instance read through `.member` and `this.member` stay edits.
+  const plain = await repository({
+    'src/a.ts': [
+      ...HEAD,
+      "enum E { A = 'gpt-4' }",
+      'type K = keyof typeof E;',
+      `export const a = () => ${send('E.A')}`,
+    ].join('\n'),
+    'src/c.ts': [
+      ...HEAD,
+      'class C {',
+      "  m = 'o1-mini';",
+      `  go() { return ${send('this.m')} }`,
+      '}',
+      'const c = new C(); c.go(); new C().go();',
+    ].join('\n'),
+  });
+  expect(edited(await proposeModelReplacements(plain, registry, NOW))).toEqual([
+    'src/a.ts:3 gpt-4',
+    'src/c.ts:4 o1-mini',
+  ]);
+});
+
+it('follows the right side of && and keeps the other shapes untraced (iteration 3)', async () => {
+  const root = await repository({
+    'src/a.ts': [
+      ...HEAD,
+      'declare const flag: boolean;',
+      `export const a = () => ${send("flag && 'gpt-4'")}`,
+    ].join('\n'),
+  });
+  expect(edited(await proposeModelReplacements(root, registry, NOW))).toEqual(['src/a.ts:4 gpt-4']);
+  // Silent and listed under Limits in docs/DEADLINES.md.
+  const shapes: Record<string, string[]> = {
+    'numeric index': ["const L = ['gpt-4'];", send('L[0]')],
+    'array destructuring': ["const [A] = ['gpt-4'];", send('A')],
+    'rest parameter': [
+      'function ask(...args: string[]) {',
+      `  return ${send('args[0]')}`,
+      '}',
+      "ask('gpt-4');",
+    ],
+    arguments: ['function ask() {', `  return ${send('arguments[0]')}`, '}', "ask('gpt-4');"],
+    'this in an object method': ["const o = { m: 'gpt-4', go() { " + send('this.m') + ' } };'],
+    'spread from a const object': [
+      "const base = { model: 'gpt-4' };",
+      'openai.chat.completions.create({ ...base, messages: [] });',
+    ],
+  };
+  for (const [label, lines] of Object.entries(shapes)) {
+    const proposal = await proposeModelReplacements(
+      await repository({ 'src/a.ts': [...HEAD, ...lines].join('\n') }),
+      registry,
+      NOW,
+    );
+    expect([label, proposal.replacements, proposal.stops]).toEqual([label, [], []]);
+  }
+});
