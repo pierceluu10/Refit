@@ -1,14 +1,5 @@
 import { useLayoutEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
-import {
-  ASCII_EVERY,
-  onBeat,
-  SPIN_DEGREES,
-  SPIN_EASE,
-  SPIN_END_MS,
-  SPIN_START_MS,
-  SWAP_MS,
-} from '../beat';
 
 // Each half of the Refit mark is a 19-unit bracket, 7 units thick, drawn on a
 // grid whose cells match a monospace character (0.6em wide, 1.2em tall).
@@ -18,21 +9,21 @@ const THICKNESS = 7 / 19;
 const RAMP = ' .:-=+*#%@';
 const ENTRANCE_DELAY_MS = 450;
 const ENTRANCE_MS = 1000;
-// Where on screen (as a share of its height) the headline's middle must rise
-// to for the scroll-linked reveal to finish.
-const REVEAL_DONE = 0.55;
-// Share of the swap spent flying in, spinning, and flying out.
-const MEET = SPIN_START_MS / SWAP_MS;
-const DEPART = SPIN_END_MS / SWAP_MS;
-const SPIN_STEPS = 84;
+const ENTRANCE_EASE = 'cubic-bezier(0.65, 0, 0.35, 1)';
 // Characters flicker until this long before a bracket locks into place.
 const SETTLE_MS = 450;
 const FLICKER_MS = 45;
-const EASE = SPIN_EASE;
+// After the intro the brackets stay put, but about two thirds of their characters stay alive: a
+// few at a time step to a neighbouring glyph on the ramp (`#` to `%`, `*` to `+`) and back. The
+// rest never change, so the mark keeps its shape.
+const ALIVE_SHARE = 2 / 3;
+const SHIMMER_EVERY_MS = 90;
+const SHIMMER_SHARE = 0.08;
+const SHIMMER_HOLD_MS = [300, 750] as const;
 
 type Cell = { char: string; reveal: number };
 type Point = { x: number; y: number };
-type Layout = { start: Point; end: Point; startSlot: Point; endSlot: Point; center: Point };
+type Layout = { start: Point; end: Point; startSlot: Point; endSlot: Point };
 
 function noise(a: number, b: number) {
   return ((((a * 73856093) ^ (b * 19349663)) >>> 0) % 1000) / 1000;
@@ -66,8 +57,8 @@ function buildStartBracket() {
   return cells;
 }
 
-// The end bracket is the start bracket turned half a turn, cell for cell, so a
-// bracket that spins across the headline lands looking like the other one.
+// The end bracket is the start bracket turned half a turn, cell for cell, so the two mirror
+// each other about the headline.
 const startCells = buildStartBracket();
 const endCells = startCells.map((line) => [...line].reverse()).reverse();
 
@@ -87,12 +78,8 @@ function render(cells: Cell[][], progress: number) {
 
 const settled = { start: render(startCells, 1), end: render(endCells, 1) };
 
-function easeInOut(t: number) {
-  return t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2;
-}
-
-function move(x: number, y: number, turn = 0) {
-  return `translate(${x}px, ${y}px) rotate(${turn}deg)`;
+function move(x: number, y: number) {
+  return `translate(${x}px, ${y}px)`;
 }
 
 // Places the brackets on opposite corners of the whole headline block (the
@@ -127,8 +114,8 @@ function place(frame: HTMLElement, start: HTMLElement, end: HTMLElement): Layout
   const layout = {
     start: { x: left - inner - gap, y: top - inner - gap },
     end: { x: right + inner + gap - size, y: bottom + inner + gap - size },
-    center: { x: (left + right) / 2, y: (top + bottom) / 2 },
   };
+  const center = { x: (left + right) / 2, y: (top + bottom) / 2 };
   start.style.left = `${layout.start.x}px`;
   start.style.top = `${layout.start.y}px`;
   end.style.left = `${layout.end.x}px`;
@@ -137,8 +124,8 @@ function place(frame: HTMLElement, start: HTMLElement, end: HTMLElement): Layout
   // Where each bracket sits when the two lock together as the 28-unit mark,
   // centered on the headline.
   const unit = size / 19;
-  const markX = layout.center.x - 14 * unit;
-  const markY = layout.center.y - 14 * unit;
+  const markX = center.x - 14 * unit;
+  const markY = center.y - 14 * unit;
   return {
     ...layout,
     startSlot: { x: markX, y: markY + unit },
@@ -146,41 +133,37 @@ function place(frame: HTMLElement, start: HTMLElement, end: HTMLElement): Layout
   };
 }
 
-// Flies a bracket into its slot in the assembled mark, spins the whole mark
-// about its center, then flies out to the opposite corner.
-function swapFrames(home: Point, slot: Point, away: Point, center: Point, size: number) {
-  const half = size / 2;
-  const frames: Keyframe[] = [{ offset: 0, transform: move(0, 0), easing: EASE }];
-  for (let step = 0; step <= SPIN_STEPS; step++) {
-    const turn = SPIN_DEGREES * easeInOut(step / SPIN_STEPS);
-    const radians = (turn * Math.PI) / 180;
-    const dx = slot.x + half - center.x;
-    const dy = slot.y + half - center.y;
-    const x = center.x + dx * Math.cos(radians) - dy * Math.sin(radians) - half;
-    const y = center.y + dx * Math.sin(radians) + dy * Math.cos(radians) - half;
-    frames.push({
-      offset: MEET + ((DEPART - MEET) * step) / SPIN_STEPS,
-      transform: move(x - home.x, y - home.y, turn),
-      easing: step === SPIN_STEPS ? EASE : 'linear',
-    });
-  }
-  frames.push({ offset: 1, transform: move(away.x - home.x, away.y - home.y, SPIN_DEGREES) });
-  return frames;
+// The cells of a bracket that shimmer: a fixed two thirds of the drawn ones, chosen by noise so
+// the choice is the same on every load.
+function aliveCells(cells: Cell[][], salt: number) {
+  return cells.flatMap((line, row) =>
+    line.flatMap((cell, column) =>
+      cell.char !== ' ' && noise(row + salt, column * 7 + 3) < ALIVE_SHARE ? [[row, column]] : [],
+    ),
+  );
+}
+const alive = { start: aliveCells(startCells, 11), end: aliveCells(endCells, 29) };
+
+// A bracket with some cells shown as a neighbouring glyph on the ramp.
+function renderShimmer(cells: Cell[][], swapped: Map<string, string>) {
+  return cells
+    .map((line, row) =>
+      line.map((cell, column) => swapped.get(`${row}:${column}`) ?? cell.char).join(''),
+    )
+    .join('\n');
 }
 
-// Wraps a headline whose lines are spans. In the hero ("intro"), the two
-// halves start assembled as the Refit mark behind the text on load, flickering,
-// then glide out to frame it; every third beat they meet in the middle, spin
-// with the workflow map's Refit node, and trade corners. Elsewhere ("reveal"),
-// scrolling the headline into view flies them in from the top-left and
-// bottom-right corners of its section, and scrolling back up sends them away.
-export function AsciiBrackets({
-  children,
-  mode = 'intro',
-}: {
-  children: ReactNode;
-  mode?: 'intro' | 'reveal';
-}) {
+function neighbour(char: string) {
+  const index = RAMP.indexOf(char);
+  const step = index <= 1 ? 1 : index >= RAMP.length - 1 ? -1 : Math.random() < 0.5 ? -1 : 1;
+  return RAMP[index + step];
+}
+
+// Wraps a headline whose lines are spans. On load the two halves of the Refit mark start
+// assembled behind the text, flickering, then glide out to frame it and stay there. Afterwards a
+// few of their characters at a time switch to a neighbouring glyph and back, so the mark looks
+// alive without moving.
+export function AsciiBrackets({ children }: { children: ReactNode }) {
   const frame = useRef<HTMLDivElement>(null);
   const start = useRef<HTMLPreElement>(null);
   const end = useRef<HTMLPreElement>(null);
@@ -193,6 +176,7 @@ export function AsciiBrackets({
     let layout = place(box, a, b);
     const running: Animation[] = [];
     let request = 0;
+    let shimmer = 0;
 
     const relayout = () => {
       const before = layout;
@@ -213,86 +197,14 @@ export function AsciiBrackets({
     resized?.observe(box);
 
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    let stopBeat = () => {};
     let visible = true;
     const observer = new IntersectionObserver(([entry]) => (visible = entry.isIntersecting));
-    let stopScroll = () => {};
-    const canAnimate = layout && !reduced && a.animate;
-    // Scrambles every character until shortly before `duration` ends, then
-    // lets them settle into the bracket as it locks into place.
-    const flicker = (duration: number) => {
-      cancelAnimationFrame(request);
-      const began = performance.now();
-      let shown = 0;
-      const tick = (now: number) => {
-        const elapsed = now - began;
-        const progress = Math.max(0, elapsed - (duration - SETTLE_MS)) / SETTLE_MS;
-        if (progress >= 1) return setText(settled);
-        if (now - shown >= FLICKER_MS) {
-          shown = now;
-          setText({ start: render(startCells, progress), end: render(endCells, progress) });
-        }
-        request = requestAnimationFrame(tick);
-      };
-      request = requestAnimationFrame(tick);
-    };
-
-    if (canAnimate && mode === 'reveal') {
-      // Tied to scroll, so it plays backwards on the way up. Nothing has
-      // started while the headline's middle is below the screen; the brackets
-      // are locked in once it rises past REVEAL_DONE of the screen height.
-      let frameRequest = 0;
-      let shown = 0;
-      const update = () => {
-        frameRequest = 0;
-        if (!layout) return;
-        const rect = box.getBoundingClientRect();
-        const height = window.innerHeight;
-        const middle = rect.top + rect.height / 2;
-        const progress = Math.min(1, Math.max(0, (height - middle) / (height * (1 - REVEAL_DONE))));
-        const eased = 1 - (1 - progress) ** 3;
-        const size = a.offsetWidth;
-        // Each bracket starts tucked into its corner of the surrounding section.
-        const section = (box.closest('section') ?? box.parentElement!).getBoundingClientRect();
-        const startX = section.left - (rect.left + layout.start.x);
-        const startY = section.top - (rect.top + layout.start.y);
-        const endX = section.right - (rect.left + layout.end.x + size);
-        const endY = section.bottom - (rect.top + layout.end.y + size);
-        a.style.transform = move(startX * (1 - eased), startY * (1 - eased));
-        b.style.transform = move(endX * (1 - eased), endY * (1 - eased));
-        // They start faint and reach full black as they lock.
-        a.style.opacity = b.style.opacity = String(0.15 + 0.85 * eased);
-        // Characters flicker while the brackets move and settle as they lock.
-        const now = performance.now();
-        if (progress >= 1) setText(settled);
-        else if (now - shown >= FLICKER_MS) {
-          shown = now;
-          setText({ start: render(startCells, progress), end: render(endCells, progress) });
-        }
-      };
-      const schedule = () => {
-        if (!frameRequest) frameRequest = requestAnimationFrame(update);
-      };
-      update();
-      window.addEventListener('scroll', schedule, { passive: true });
-      window.addEventListener('resize', schedule);
-      stopScroll = () => {
-        cancelAnimationFrame(frameRequest);
-        window.removeEventListener('scroll', schedule);
-        window.removeEventListener('resize', schedule);
-        a.style.transform = '';
-        b.style.transform = '';
-        a.style.opacity = '';
-        b.style.opacity = '';
-      };
-    }
-
-    if (canAnimate && mode === 'intro') {
-      const { start: home, startSlot, endSlot, end: away } = layout!;
+    if (layout && !reduced && a.animate) {
+      const { start: home, startSlot, endSlot, end: away } = layout;
       const entrance = {
         duration: ENTRANCE_MS,
         delay: ENTRANCE_DELAY_MS,
-        easing: EASE,
+        easing: ENTRANCE_EASE,
         fill: 'backwards' as const,
       };
       running.push(
@@ -308,31 +220,64 @@ export function AsciiBrackets({
           entrance,
         ),
       );
-      flicker(ENTRANCE_DELAY_MS + ENTRANCE_MS);
 
+      // Scrambles every character until shortly before the intro ends, then lets them settle
+      // into the bracket as it locks into place.
+      const duration = ENTRANCE_DELAY_MS + ENTRANCE_MS;
+      const began = performance.now();
+      let shown = 0;
+      const tick = (now: number) => {
+        const progress = Math.max(0, now - began - (duration - SETTLE_MS)) / SETTLE_MS;
+        if (progress >= 1) return setText(settled);
+        if (now - shown >= FLICKER_MS) {
+          shown = now;
+          setText({ start: render(startCells, progress), end: render(endCells, progress) });
+        }
+        request = requestAnimationFrame(tick);
+      };
+      request = requestAnimationFrame(tick);
+
+      // Then the shimmer: each tick some alive cells take a neighbouring glyph for a moment.
       observer.observe(box);
-      stopBeat = onBeat((beat) => {
-        if (beat % ASCII_EVERY !== 0 || !visible || document.hidden || !layout) return;
-        const size = a.offsetWidth;
-        const { start, end, startSlot, endSlot, center } = layout;
-        running.push(
-          a.animate(swapFrames(start, startSlot, end, center, size), { duration: SWAP_MS }),
-          b.animate(swapFrames(end, endSlot, start, center, size), { duration: SWAP_MS }),
-        );
-        flicker(SWAP_MS);
-      });
+      const swapped = { start: new Map<string, string>(), end: new Map<string, string>() };
+      const until = new Map<string, number>();
+      shimmer = window.setTimeout(function step() {
+        shimmer = window.setTimeout(step, SHIMMER_EVERY_MS);
+        if (!visible || document.hidden) return;
+        const now = performance.now();
+        for (const half of ['start', 'end'] as const) {
+          const cells = half === 'start' ? startCells : endCells;
+          for (const [key, time] of until)
+            if (key.startsWith(half) && time <= now) {
+              swapped[half].delete(key.slice(half.length + 1));
+              until.delete(key);
+            }
+          const count = Math.max(1, Math.round(alive[half].length * SHIMMER_SHARE));
+          for (let index = 0; index < count; index++) {
+            const [row, column] = alive[half][Math.floor(Math.random() * alive[half].length)];
+            const key = `${row}:${column}`;
+            if (swapped[half].has(key)) continue;
+            swapped[half].set(key, neighbour(cells[row][column].char));
+            const [shortest, longest] = SHIMMER_HOLD_MS;
+            until.set(`${half}:${key}`, now + shortest + Math.random() * (longest - shortest));
+          }
+        }
+        setText({
+          start: renderShimmer(startCells, swapped.start),
+          end: renderShimmer(endCells, swapped.end),
+        });
+      }, duration + 300);
     }
 
     // Cancelling lets a re-run measure the brackets where they actually sit.
     return () => {
       resized?.disconnect();
-      stopScroll();
-      stopBeat();
       observer.disconnect();
       cancelAnimationFrame(request);
+      window.clearTimeout(shimmer);
       for (const animation of running) animation.cancel();
     };
-  }, [mode]);
+  }, []);
 
   return (
     <div className="ascii-frame" ref={frame}>

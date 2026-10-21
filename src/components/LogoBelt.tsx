@@ -1,46 +1,39 @@
-import { Plus } from '@phosphor-icons/react';
-import { apiLogos } from '../apiLogos';
 import { waitlistApis } from '../waitlist';
 import { BrandLogo } from './BrandLogo';
 
-type LogoBeltProps = {
-  selected: string[];
-  onToggle: (id: string) => void;
-};
+// The providers Refit is built for, shown as a belt that drifts left to right. It only shows
+// them; nothing in it can be selected.
+const providers = waitlistApis.filter((api) => api.id !== 'other');
 
-// The belt scrolls two identical copies so it can loop without a seam. Only
-// the first copy is announced and reachable by keyboard; both respond to clicks.
-export function LogoBelt({ selected, onToggle }: LogoBeltProps) {
+// The belt scrolls two identical copies so it can loop without a seam. Only the first is
+// announced to screen readers.
+export function LogoBelt() {
   return (
-    <div className="logo-belt">
-      <div className="logo-track">
-        <BeltCopy selected={selected} onToggle={onToggle} />
-        <BeltCopy selected={selected} onToggle={onToggle} hidden />
+    <div className="compatible">
+      <p id="compatible-title">Compatible with</p>
+      <div className="logo-belt">
+        <div className="logo-track">
+          <BeltCopy />
+          <BeltCopy hidden />
+        </div>
       </div>
     </div>
   );
 }
 
-function BeltCopy({ selected, onToggle, hidden = false }: LogoBeltProps & { hidden?: boolean }) {
+function BeltCopy({ hidden = false }: { hidden?: boolean }) {
   return (
-    <div className="logo-group" aria-hidden={hidden || undefined}>
-      {waitlistApis.map((api) => (
-        <button
-          type="button"
-          className="logo-chip"
-          key={api.id}
-          aria-pressed={selected.includes(api.id)}
-          tabIndex={hidden ? -1 : undefined}
-          onClick={() => onToggle(api.id)}
-        >
-          {api.id in apiLogos ? (
-            <BrandLogo id={api.id} />
-          ) : (
-            <Plus weight="bold" aria-hidden="true" />
-          )}
+    <ul
+      className="logo-group"
+      aria-hidden={hidden || undefined}
+      aria-labelledby={hidden ? undefined : 'compatible-title'}
+    >
+      {providers.map((api) => (
+        <li className="logo-chip" key={api.id}>
+          <BrandLogo id={api.id} />
           {api.label}
-        </button>
+        </li>
       ))}
-    </div>
+    </ul>
   );
 }

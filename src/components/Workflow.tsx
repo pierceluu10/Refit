@@ -234,12 +234,16 @@ export function StageContent({
   );
 }
 
+// `map` shows the pipeline map above the window; the waitlist page places the map in its hero
+// instead.
 export function Workflow({
   expanded = false,
   scenario = 'affected',
+  map = true,
 }: {
   expanded?: boolean;
   scenario?: Scenario;
+  map?: boolean;
 }) {
   const [stage, setStage] = useState(expanded ? 0 : 1);
   const reducedMotion = useReducedMotion();
@@ -283,7 +287,7 @@ export function Workflow({
 
   return (
     <div className={`workflow ${expanded ? 'workflow-expanded' : ''}`} ref={container}>
-      {!expanded && <WorkflowMap active={visible && foreground && !reducedMotion} />}
+      {!expanded && map && <WorkflowMap active={visible && foreground && !reducedMotion} />}
       <div className="workflow-window">
         <div className="window-bar">
           <div className="window-dots" aria-hidden="true">

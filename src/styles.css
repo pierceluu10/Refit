@@ -318,6 +318,95 @@ pre {
   margin: 32px auto 0;
   max-width: 1050px;
 }
+/* The waitlist page's product preview. Where the hero fits one screen, ScrollStage pins the hero
+   and lifts the preview over it as the visitor scrolls; elsewhere it sits below in normal flow. */
+.scroll-stage-preview {
+  max-width: 1130px;
+  margin: 48px auto 0;
+  padding: 0 40px 96px;
+}
+.demo-label {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 12px;
+  margin-bottom: 14px;
+}
+.demo-badge {
+  align-self: center;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--blue);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+}
+.demo-label h2 {
+  font-size: 20px;
+  letter-spacing: -0.02em;
+}
+.demo-label p {
+  color: var(--muted);
+  font-size: 14px;
+}
+.scroll-stage-cue {
+  display: none;
+}
+@media (min-width: 900px) and (min-height: 640px) and (prefers-reduced-motion: no-preference) {
+  /* The cue sits where the map's caption would. */
+  .scroll-stage-hero .map-caption {
+    display: none;
+  }
+  .scroll-stage-cue {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    display: block;
+    transform: translateX(-50%);
+  }
+  .scroll-stage-cue a {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--surface);
+    color: var(--muted);
+    font-size: 13px;
+    box-shadow: 0 8px 20px -14px #00184a59;
+  }
+  .scroll-stage-cue svg {
+    width: 14px;
+    height: 14px;
+    animation: cue-nudge 1.6s var(--ease-out) infinite;
+  }
+  .scroll-stage {
+    height: calc(100vh * (1 + var(--stage-travel)));
+  }
+  .scroll-stage-view {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow: hidden;
+  }
+  .scroll-stage-hero {
+    transform-origin: 50% 30%;
+    will-change: transform, opacity;
+  }
+  .scroll-stage-preview {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    width: min(1050px, calc(100% - 128px));
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    transform: translate(-50%, 100vh) scale(0.86);
+    transform-origin: 50% 0;
+    will-change: transform;
+  }
+}
 .workflow-map {
   height: 162px;
   position: relative;
@@ -1544,6 +1633,10 @@ pre {
   }
 }
 @media (max-width: 640px) {
+  .scroll-stage-preview {
+    margin-top: 40px;
+    padding: 0 18px 72px;
+  }
   .content-width,
   .header-inner,
   .site-footer {
@@ -2028,21 +2121,14 @@ pre {
   opacity: 0.7;
   cursor: progress;
 }
-.waitlist-apis {
-  margin: 26px 0 0;
-  padding: 0;
-  border: 0;
-  min-width: 0;
+.compatible {
+  max-width: 1050px;
+  margin: 22px auto 0;
 }
-.waitlist-apis legend {
-  margin: 0 auto 10px;
-  padding: 0;
+.compatible > p {
+  margin-bottom: 10px;
   color: var(--muted);
   font-size: 13px;
-}
-.waitlist-apis legend span {
-  margin-left: 4px;
-  font-weight: 550;
 }
 .logo-belt {
   overflow: hidden;
@@ -2054,55 +2140,32 @@ pre {
   width: max-content;
   animation: belt-scroll 48s linear infinite;
 }
-.logo-belt:has(:focus-visible) .logo-track {
-  animation-play-state: paused;
-}
 .logo-group {
+  margin: 0;
+  padding: 0;
+  list-style: none;
   display: flex;
   gap: 8px;
   padding-right: 8px;
 }
-/* Unselected logos sit bare on the page; the pill only appears once picked.
-   The border is always there (transparent) so selecting never shifts layout. */
+/* Each provider is its logo and name, display only. */
 .logo-chip {
   display: inline-flex;
   align-items: center;
   gap: 11px;
   height: 54px;
   padding: 0 20px;
-  border: 1px solid transparent;
-  border-radius: 999px;
-  background: transparent;
   color: var(--ink);
   font-size: 18px;
   font-weight: 550;
   letter-spacing: -0.01em;
   white-space: nowrap;
   user-select: none;
-  transition:
-    color var(--fast) ease,
-    background-color var(--fast) ease,
-    border-color var(--fast) ease,
-    transform var(--fast) var(--ease-out);
 }
 .logo-chip svg,
 .logo-chip img {
   width: 26px;
   height: 26px;
-}
-.logo-chip > svg {
-  color: var(--muted);
-}
-.logo-chip:active {
-  transform: scale(0.97);
-}
-.logo-chip:focus-visible {
-  outline-offset: 2px;
-}
-.logo-chip[aria-pressed='true'] {
-  border-color: var(--blue);
-  background: var(--blue-tint);
-  color: var(--blue);
 }
 .waitlist-error {
   min-height: 20px;
@@ -2133,16 +2196,30 @@ pre {
   display: inline-block;
   isolation: isolate;
 }
+/* Room for the lower bracket, which reaches below the headline, above the paragraph. */
+.hero .ascii-frame {
+  margin-bottom: 42px;
+}
 .ascii-bracket {
   position: absolute;
   top: 0;
   left: 0;
   z-index: -1;
   margin: 0;
-  font: 8px/1.2 var(--mono);
+  font: 9px/1.2 var(--mono);
   color: var(--blue);
   pointer-events: none;
   user-select: none;
+}
+@keyframes cue-nudge {
+  0%,
+  60%,
+  100% {
+    transform: translateY(0);
+  }
+  30% {
+    transform: translateY(3px);
+  }
 }
 @keyframes belt-scroll {
   from {
@@ -2150,11 +2227,6 @@ pre {
   }
   to {
     transform: translateX(0);
-  }
-}
-@media (hover: hover) and (pointer: fine) {
-  .logo-chip[aria-pressed='false']:hover {
-    color: var(--blue);
   }
 }
 @media (max-width: 640px) {
@@ -2179,7 +2251,7 @@ pre {
     height: 22px;
   }
   .ascii-bracket {
-    font-size: 4.5px;
+    font-size: 5.5px;
   }
   .hero .ascii-frame {
     margin-bottom: 14px;
@@ -2195,9 +2267,6 @@ pre {
   .provider-symbol,
   .map-endpoint .provider-source {
     animation: none;
-  }
-  .logo-chip:active {
-    transform: none;
   }
   .logo-belt {
     mask-image: none;

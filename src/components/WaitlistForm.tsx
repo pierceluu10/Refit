@@ -3,19 +3,11 @@ import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { joinWaitlist } from '../waitlist';
 import type { WaitlistResult } from '../waitlist';
-import { LogoBelt } from './LogoBelt';
 
 export function WaitlistForm() {
   const [sending, setSending] = useState(false);
   const [result, setResult] = useState<WaitlistResult | null>(null);
   const [error, setError] = useState('');
-  const [apis, setApis] = useState<string[]>([]);
-
-  function toggleApi(id: string) {
-    setApis((current) =>
-      current.includes(id) ? current.filter((api) => api !== id) : [...current, id],
-    );
-  }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -23,7 +15,7 @@ export function WaitlistForm() {
     setSending(true);
     setError('');
     try {
-      setResult(await joinWaitlist(String(data.get('email')), apis));
+      setResult(await joinWaitlist(String(data.get('email')), []));
     } catch (failure) {
       setError((failure as Error).message);
     } finally {
@@ -63,12 +55,6 @@ export function WaitlistForm() {
           {sending ? 'Joining…' : 'Join the waitlist'} <ArrowRight />
         </button>
       </div>
-      <fieldset className="waitlist-apis">
-        <legend>
-          Which APIs do you integrate? <span>Optional</span>
-        </legend>
-        <LogoBelt selected={apis} onToggle={toggleApi} />
-      </fieldset>
       <p className="waitlist-error" role="alert">
         {error}
       </p>

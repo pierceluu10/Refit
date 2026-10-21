@@ -1,13 +1,13 @@
 import { GitPullRequest } from '@phosphor-icons/react';
 import { useEffect, useRef, useState } from 'react';
-import { onBeat, SPIN_DEGREES, SPIN_END_MS, SPIN_START_MS, SWAP_MS } from '../beat';
+import type { RefObject } from 'react';
+import { onBeat, SPIN_END_MS, SPIN_START_MS, SWAP_MS } from '../beat';
 import { Mark } from './Brand';
 import { BrandLogo } from './BrandLogo';
 
 const TAIL_DOTS = 14;
 // Distance between tail dots, in the SVG's 960 × 160 units.
 const TAIL_SPACING = 4;
-const SPIN_STEPS = 84;
 
 // Illustrative sources, one per cycle, for the providers on the logo belt.
 const providers = [
@@ -41,12 +41,33 @@ function timeToCover(fraction: number) {
   return high;
 }
 
-// The map above the walkthrough runs on every beat, back to back. A blue
-// signal with a tail reaches Refit as the spin starts, the Refit node spins
-// (with the hero's ASCII mark on every third beat), and the signal carries on
-// to the draft pull request. As it lands, the API change card moves to the
-// next provider, whose signal leaves on the next beat.
-export function WorkflowMap({ active }: { active: boolean }) {
+// Whether the map should animate: on screen, in a visible tab, and motion allowed.
+function useActive(root: RefObject<HTMLDivElement | null>) {
+  const [visible, setVisible] = useState(false);
+  const [foreground, setForeground] = useState(!document.hidden);
+  const [reduced] = useState(() => window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  useEffect(() => {
+    const observer = new IntersectionObserver(([entry]) => setVisible(entry.isIntersecting));
+    if (root.current) observer.observe(root.current);
+    const update = () => setForeground(!document.hidden);
+    document.addEventListener('visibilitychange', update);
+    return () => {
+      observer.disconnect();
+      document.removeEventListener('visibilitychange', update);
+    };
+  }, [root]);
+  return visible && foreground && !reduced;
+}
+
+// The pipeline map runs on every beat, back to back. A blue signal with a tail
+// reaches Refit, the Refit node glows while it works (as the hero's ASCII mark
+// spins on every third beat), and the signal carries on to the draft pull
+// request. As it lands, the API change card moves to the next provider, whose
+// signal leaves on the next beat. Without `active` it decides for itself.
+export function WorkflowMap({ active: given }: { active?: boolean }) {
+  const root = useRef<HTMLDivElement>(null);
+  const own = useActive(root);
+  const active = given ?? own;
   const incoming = useRef<SVGPathElement>(null);
   const outgoing = useRef<SVGPathElement>(null);
   const engine = useRef<HTMLDivElement>(null);
@@ -112,18 +133,17 @@ export function WorkflowMap({ active }: { active: boolean }) {
 
     const stop = onBeat(() => {
       travel(incoming.current!, dotsIn, SPIN_START_MS, () => {});
-      // The same eased angle per step as the ASCII mark, started in the same
-      // frame with a delay rather than from a timer, so the two turn as one.
-      const frames = Array.from({ length: SPIN_STEPS + 1 }, (_, step) => {
-        const t = step / SPIN_STEPS;
-        const scale = 1 + 0.08 * Math.sin(Math.PI * t);
-        return { transform: `rotate(${SPIN_DEGREES * easeInOut(t)}deg) scale(${scale})` };
-      });
+      // The node holds still and glows while the signal is inside it, started in
+      // the same frame with a delay so it lines up with the hero's ASCII spin.
       animations.push(
-        engine.current!.animate(frames, {
-          duration: SPIN_END_MS - SPIN_START_MS,
-          delay: SPIN_START_MS,
-        }),
+        engine.current!.animate(
+          [
+            { boxShadow: '0 0 0 0 #0048d800' },
+            { boxShadow: '0 0 0 10px #0048d826', offset: 0.5 },
+            { boxShadow: '0 0 0 0 #0048d800' },
+          ],
+          { duration: SPIN_END_MS - SPIN_START_MS, delay: SPIN_START_MS, easing: 'ease-in-out' },
+        ),
       );
       later(SPIN_END_MS, () =>
         travel(outgoing.current!, dotsOut, SWAP_MS - SPIN_END_MS, () => {
@@ -148,7 +168,7 @@ export function WorkflowMap({ active }: { active: boolean }) {
   }, [active]);
 
   return (
-    <div className="workflow-map" aria-hidden="true">
+    <div className="workflow-map" aria-hidden="true" ref={root}>
       <svg className="workflow-lines" viewBox="0 0 960 160" preserveAspectRatio="none">
         <path ref={incoming} d="M205 80H365Q385 80 385 60V55Q385 35 405 35H450" />
         <path ref={outgoing} d="M510 35H555Q575 35 575 55V60Q575 80 595 80H755" />
