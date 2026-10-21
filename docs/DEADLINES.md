@@ -206,6 +206,7 @@ These cases stop for review and are listed with a reason, with no edit:
 
 - The request sets a parameter the replacement may reject: `temperature`, `top_p` or `top_k` for Anthropic (Anthropic returns a 400 for non-default values on Claude 4.7 and later models), and `temperature`, `top_p`, `max_tokens`, `presence_penalty`, `frequency_penalty`, `logit_bias`, `logprobs` or `top_logprobs` for OpenAI (support on its newer models is unverified).
 - The request spreads other options (`{ ...options, model: 'gpt-4' }`).
+- The request sets a computed property name (`['temperature']: 0.5`, `[KEY]: 5`), which may be a sampling or length parameter the name check cannot see.
 - The model comes from a constant or enum member, or the request from a `const` object, that is used more than once in the repository, so it may feed other code.
 - The helper carrying the model is passed around as a value, or called with spread arguments.
 - The model comes from a class property read as `this.model`: its field initializer, constructor parameter default or an assignment such as `this.model = options.model ?? 'gpt-4'`. The stop names where the model is written. Class properties are reported, not edited: editing them would widen which uses `--model-fixes` replaces, which needs an owner decision first.
