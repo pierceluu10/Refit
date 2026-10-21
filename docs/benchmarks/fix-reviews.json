@@ -183,6 +183,20 @@
         "upgradeComplete": "yes: stripe-node 22.2.2 to 23.0.0 and the pin to 2026-09-30.endive.",
         "wouldMerge": "yes, after confirming cards stay enabled and running the app's checkout once in test mode."
       }
+    },
+    {
+      "repo": "amahmood-pci/pci-update",
+      "pullRequest": "https://github.com/refit-dev/pci-update/pull/1",
+      "reviewedAt": "2026-10-21",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: the one Checkout Session creation sends exactly ['card'], which the owner-approved card rule moves to allowed_payment_method_types.",
+        "bothVersions": "not needed: the client sets no apiVersion, so stripe-node 23 sends its own pinned endive version, and the upgrade ships in the same patch.",
+        "nothingUnrelated": "yes: one parameter, the stripe dependency and its lockfile entry.",
+        "pleaseCheck": "allowed_payment_method_types filters the methods Stripe finds eligible, so cards must stay enabled for the account. The untraced read left unchanged, session.payment_intent in api/stripe-webhook.js, is a Checkout Session field endive keeps, so it needs no change. The check is tsc --noEmit over JavaScript with allowJs; the generated stripe-mock check could not run the handler alone, so no Stripe request was exercised.",
+        "upgradeComplete": "yes: stripe-node 17.7.0 to 23.0.0.",
+        "wouldMerge": "yes, after confirming cards stay enabled and running checkout once in test mode."
+      }
     }
   ]
 }
