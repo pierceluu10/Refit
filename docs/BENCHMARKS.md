@@ -184,6 +184,18 @@ Review-only version moves to v25.0 on the same 33 repositories ([results](benchm
 
 See [PayPal](PAYPAL.md#measured-on-a-frozen-set).
 
+## AI model applications (October 21)
+
+Two sets of real applications were frozen on 2026-10-21 with `scripts/ai-app-select.mjs`: **100** repositories that declare `openai` ([list](benchmarks/2026-10-21-openai-app-repos.json)) and **50** that declare `@anthropic-ai/sdk` ([list](benchmarks/2026-10-21-anthropic-app-repos.json)). Neither set fell short of its target. 9 repositories are in both sets. Each file records the queries, the run date, every filter, the sort order, the pool size and, per repository, the pinned commit and why it qualified.
+
+- **Source.** GitHub code search through `gh api`: root `package.json` files split by exclusive size ranges, plus source files that import the SDK split by path. Candidates are ordered by stars within that retrievable pool, not across GitHub, then checked in that order until the target passed. The pool held 8,990 OpenAI and 4,807 Anthropic repositories after deduplication.
+- **Filters.** Not a fork or archived; the frozen commit is dated on or after 2025-10-21; the root manifest, or one `apps/*` or `packages/*` manifest, declares the SDK in `dependencies`; the manifest looks like an application; a non-test source file imports the SDK and makes a model call; the tree is inside Refit's scan limits; the name and topics do not look like an SDK, wrapper or framework; the repository is in no other frozen list.
+- **Runnable checks.** 95 of the 100 OpenAI and 45 of the 50 Anthropic entries have a `test`, `typecheck` or `build` script (`hasChecks`), so later results can be reported for those alone.
+- **No exposure filter.** Selection never looked at which models a repository uses, so the traced and fixed fractions measured on these sets are not biased by it.
+- **Reproducibility.** Rerunning the script against the same cache rewrites both files byte for byte. That shows cache replay only: the code-search index moves, so a fresh search is not expected to reproduce the lists, and the frozen files are the record.
+
+The 2026-10-20 npm sets, [OpenAI](benchmarks/2026-10-20-openai-repos.json) and [Anthropic](benchmarks/2026-10-20-anthropic-repos.json), are kept unchanged as library baselines: npm search returns published packages, mostly SDK wrappers, not applications. No tracing or fix numbers exist for the new sets yet; a later phase measures them.
+
 ## Speed and cost
 
 | Measure | Result |
@@ -217,4 +229,8 @@ OPENAI_MODEL=gpt-5.6-luna npm run benchmark:stripe -- --root <dir> --output <run
 npm run benchmark:shopify -- --root <dir> --list <list> --output <run> --validate
 node scripts/stripe-benchmark-compare.mjs <run-a>/results.json <run-b>/results.json
 node scripts/paypal-benchmark.mjs --root <dir> --refit <worktree> --list docs/benchmarks/2026-10-21-paypal-repos.json
+node scripts/ai-app-select.mjs --provider openai --work <cache> --root <checkouts> --output <openai-list.json>
+node scripts/ai-app-select.mjs --provider anthropic --work <cache> --root <checkouts> --output <anthropic-list.json>
 ```
+
+The two selector commands need a `gh` login. A rerun against the moving code-search index is not expected to match the committed lists; they are the record.
