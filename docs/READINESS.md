@@ -6,7 +6,7 @@ The model-replacement rule can now continue past a sampling or length stop where
 
 - **Table.** `data/model-parameters.json` holds sourced entries, each with an official `source`, a `checkedAt` date and, for defaults, a `defaultSource`. `npm run model-parameters:check` rejects the whole file on any error, and a table that fails to load stops model fixes.
 - **What continues.** Only a literal `temperature: 1` on a `claude-sonnet-5-5` replacement. Each parameter is verified separately.
-- **What keeps stopping.** All OpenAI sampling and length parameters, `top_p` on any Anthropic model, `top_k`, Claude Opus 4.8 replacements, renamed parameters (never rewritten), and non-literal values. Replacements with no entry behave as before.
+- **What keeps stopping.** On replacements with a table entry, every parameter the table does not prove, renamed parameters (never rewritten), non-literal values and computed property names. Replacements without an entry keep the earlier heuristic: Claude 4.7-and-later replacements (such as Opus 4.8) stop on `temperature`, `top_p` and `top_k`, earlier ones such as `claude-haiku-4-5-20251001` continue, and every OpenAI replacement stops on its sensitive parameters.
 - **Review.** The repository owner reviews the decision and the stop sentences on the phase PR.
 
 Evidence is fixture tests and the pages read; no live provider was called. Measured fix rates come in a later phase.
