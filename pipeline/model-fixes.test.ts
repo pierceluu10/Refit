@@ -179,3 +179,30 @@ it('never publishes a replacement whose checks fail, and stops when nothing is s
     await runModelFixes({ repository: root, registry, now: NOW, checks: CHECKS }),
   ).toMatchObject({ status: 'validated' });
 });
+
+it('edits a parameterised call only when a table entry proves the literal', async () => {
+  const root = await repository({ 'src/ai.ts': SOURCE });
+  const source = 'https://developers.openai.com/api/docs/models';
+  const parameters = {
+    formatVersion: 1 as const,
+    models: [
+      {
+        provider: 'openai' as const,
+        model: 'gpt-5.6-sol',
+        parameters: { temperature: { accepts: 'any' as const, min: 0, max: 2 } },
+        source,
+        checkedAt: '2026-10-20',
+      },
+    ],
+  };
+  const without = await runModelFixes({ repository: root, registry, now: NOW, checks: CHECKS });
+  expect(without.replacements.map((item) => item.line)).toEqual([3]);
+  const withTable = await runModelFixes({
+    repository: root,
+    registry,
+    parameters,
+    now: NOW,
+    checks: CHECKS,
+  });
+  expect(withTable.replacements.map((item) => item.line)).toEqual([3, 4]);
+});

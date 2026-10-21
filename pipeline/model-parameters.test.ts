@@ -7,6 +7,8 @@ import { expect, it } from 'vitest';
 import {
   checkModelParameters,
   loadModelParameters,
+  parameterReason,
+  parameterVerdict,
   type ModelParameterEntry,
 } from './model-parameters.ts';
 import { PipelineInputError } from './types.ts';
@@ -138,4 +140,41 @@ it('exits non-zero on the command line for a future checkedAt', async () => {
   } finally {
     await rm(directory, { recursive: true, force: true });
   }
+});
+
+const verdictTable = {
+  formatVersion: 1,
+  models: [
+    {
+      provider: 'openai',
+      model: 'm',
+      parameters: {
+        temperature: { accepts: 'any', min: 0, max: 2 },
+        top_p: { accepts: 'default-only', default: 1 },
+        top_logprobs: { accepts: 'none' },
+        max_tokens: { accepts: 'none', renamedTo: 'max_completion_tokens' },
+      },
+      source: OVERVIEW,
+      defaultSource: OVERVIEW,
+      checkedAt: '2026-10-21',
+    },
+  ],
+} as const;
+
+it('gives every parameterVerdict outcome and a sentence ending in the by-hand instruction', () => {
+  const verdict = (name: string, value: number | undefined, model = 'm') =>
+    parameterVerdict(verdictTable as never, 'openai', model, name, value);
+  expect(verdict('temperature', 1)).toEqual({ ok: true });
+  expect(verdict('temperature', -0.5)).toMatchObject({ why: 'out-of-range' });
+  expect(verdict('top_p', 0.5)).toMatchObject({ why: 'non-default' });
+  expect(verdict('top_logprobs', 1)).toMatchObject({ why: 'not-accepted' });
+  expect(verdict('max_tokens', 1)).toMatchObject({ why: 'renamed' });
+  expect(verdict('temperature', undefined)).toMatchObject({ why: 'not-numeric' });
+  expect(verdict('presence_penalty', 0)).toMatchObject({ why: 'unproven' });
+  expect(verdict('temperature', 1, 'other')).toMatchObject({ why: 'unproven' });
+  for (const name of ['__proto__', 'constructor', 'toString'])
+    expect(verdict(name, 1)).toMatchObject({ why: 'unproven' });
+  const bad = verdict('top_p', 0.5);
+  if (bad.ok) throw new Error('expected a stop');
+  expect(parameterReason('top_p', 0.5, 'm', bad)).toMatch(/; change it by hand to m\.$/);
 });
