@@ -1489,9 +1489,11 @@ it('stops every SDK request when any file mentions a custom endpoint, in any sha
       [['src/a.ts', reason]],
     ]);
   }
-  // A compiler `baseUrl` and files in node_modules do not count.
+  // A compiler `baseUrl`, files in node_modules, and words that only contain `base`
+  // (`firebase_url`, `DATABASE_URL`, `databasePath`) do not count.
   const quiet = await repository({
     'src/a.ts': [...HEAD, request].join('\n'),
+    'src/storage.ts': 'export const firebase_url = process.env.DATABASE_URL ?? databasePath;',
     'tsconfig.json': '{"compilerOptions":{"baseUrl":"."}}',
     'node_modules/pkg/config.json': '{"baseURL":"x"}',
   });
