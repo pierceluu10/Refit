@@ -439,6 +439,10 @@ it('classifies model IDs inside longer plain strings as prose, but keeps templat
     ['gpt-4', `export const Q = 'OPENAI_MODEL="gpt-4"\\n';`, 'live'],
     ['gpt-4', `export const R = '{"model_id": "gpt-4", "x": 1}';`, 'live'],
     ['gpt-4', `export const S = 'run -m "gpt-4" now';`, 'live'],
+    // JSON text is data: a retiring ID anywhere in it stays live (D-18).
+    ['gpt-4', `export const U = '{"model": "x", "fallback": "gpt-4"}';`, 'live'],
+    ['gpt-4', `export const V = '{"list": ["gpt-4"]}';`, 'live'],
+    ['gpt-4', `export const W = JSON.parse('{"engine":"gpt-4"}');`, 'live'],
     // A key word that is not directly before the ID stays prose.
     ['gpt-4', `export const T = 'The model_id field says "gpt-4" here';`, 'comment'],
     // Template pieces (head, middle, tail) and concatenated strings can build the value sent.

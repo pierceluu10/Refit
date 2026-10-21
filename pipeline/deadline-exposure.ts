@@ -239,13 +239,20 @@ const MODEL_KEYS = [
   /(?:^|[^A-Z0-9_])[A-Z0-9_]*MODEL["'\s]*$/,
 ];
 
+// A string that starts with `{` or `[`, or holds a quoted key such as `"engine":`.
+const DATA_TEXT = /^\s*[{[]|["'][\w.-]+["']\s*:/;
+
 // Whether a model ID quoted inside a plain string is prose (a description, an error message,
 // embedded markdown) and not what the code sends. The ID alone as the string is a request, so is
 // config text that sets a model key or flag right before it, and so is a string joined to other text.
 // `before` is the string's own source text up to the ID's opening quote.
 function isProse(node: ts.StringLiteralLike, version: string, before: string) {
   return (
-    node.text !== version && !MODEL_KEYS.some((key) => key.test(before)) && !concatenated(node)
+    node.text !== version &&
+    !MODEL_KEYS.some((key) => key.test(before)) &&
+    // A string that looks like JSON or holds a quoted key is data, whatever precedes the ID.
+    !DATA_TEXT.test(node.text) &&
+    !concatenated(node)
   );
 }
 
