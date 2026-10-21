@@ -180,6 +180,30 @@ function sdkImported(content: string, packageName: string) {
   );
 }
 
+// Build output committed with the sources: `out/` and `ts-out/` directories, minified bundles, and
+// JavaScript whose TypeScript source sits beside it or in a sibling `src/` directory. A proposal
+// there would be overwritten by the next build. `dist/`, `build/` and `.next/` are never read.
+const OUTPUT_DIRECTORY = /(?:^|\/)(?:out|ts-out)\//;
+const BUNDLE = /\.(?:min|bundle)\.[cm]?js$/;
+
+function compiledOutput(path: string, paths: Set<string>) {
+  if (OUTPUT_DIRECTORY.test(path) || BUNDLE.test(path)) return true;
+  const script = /^(.*)\.([cm]?)jsx?$/.exec(path);
+  if (!script) return false;
+  const parts = script[1].split('/');
+  const stems = [
+    script[1],
+    ...parts.flatMap((part, index) =>
+      part === 'lib'
+        ? [[...parts.slice(0, index), 'src', ...parts.slice(index + 1)].join('/')]
+        : [],
+    ),
+  ];
+  return stems.some((stem) =>
+    ['ts', 'tsx'].some((extension) => paths.has(`${stem}.${script[2]}${extension}`)),
+  );
+}
+
 // Raw HTTP requests to the official text-generation endpoints, with the request body sent through
 // `JSON.stringify`: `fetch(url, { body })`, Apps Script's `UrlFetchApp.fetch(url, { payload })`
 // and `axios.post(url, data)`.
@@ -237,38 +261,45 @@ function sourceProgram(repository: Repository) {
     return symbol;
   };
   // Every use of each symbol in the repository: identifiers that are not its declaration name and
-  // not part of an import or export.
+  // not part of an import or export. Assignments to a property, such as
+  // `this.model = options.model ?? 'gpt-4'`, are kept apart as writes.
   // Built per name on first use: only constants and helpers a request reaches are looked up.
-  const byName = new Map<string, Map<ts.Symbol, ts.Identifier[]>>();
-  const usesOf = (symbol: ts.Symbol) => {
-    let uses = byName.get(symbol.name);
-    if (!uses) {
-      const found = new Map<ts.Symbol, ts.Identifier[]>();
+  const byName = new Map<
+    string,
+    { reads: Map<ts.Symbol, ts.Identifier[]>; writes: Map<ts.Symbol, ts.Expression[]> }
+  >();
+  const references = (symbol: ts.Symbol) => {
+    let found = byName.get(symbol.name);
+    if (!found) {
+      const reads = new Map<ts.Symbol, ts.Identifier[]>();
+      const writes = new Map<ts.Symbol, ts.Expression[]>();
       for (const source of files) {
         if (!source.text.includes(symbol.name)) continue;
         const visit = (node: ts.Node) => {
-          if (
-            ts.isIdentifier(node) &&
-            node.text === symbol.name &&
-            !declarationName(node) &&
-            !moduleBinding(node)
-          ) {
-            const resolved = symbolOf(node);
-            if (resolved) found.set(resolved, [...(found.get(resolved) ?? []), node]);
+          if (ts.isIdentifier(node) && node.text === symbol.name) {
+            const assigned = propertyAssignment(node);
+            if (assigned) {
+              const resolved = symbolOf(node);
+              if (resolved) writes.set(resolved, [...(writes.get(resolved) ?? []), assigned]);
+            } else if (!declarationName(node) && !moduleBinding(node)) {
+              const resolved = symbolOf(node);
+              if (resolved) reads.set(resolved, [...(reads.get(resolved) ?? []), node]);
+            }
           }
           ts.forEachChild(node, visit);
         };
         visit(source);
       }
-      uses = found;
-      byName.set(symbol.name, uses);
+      found = { reads, writes };
+      byName.set(symbol.name, found);
     }
-    return uses.get(symbol) ?? [];
+    return found;
   };
   return {
     files,
     symbolOf,
-    usesOf,
+    usesOf: (symbol: ts.Symbol) => references(symbol).reads.get(symbol) ?? [],
+    writesOf: (symbol: ts.Symbol) => references(symbol).writes.get(symbol) ?? [],
     path: (node: ts.Node) => paths.get(node.getSourceFile().fileName)!,
     line: (node: ts.Node) =>
       node.getSourceFile().getLineAndCharacterOfPosition(node.getStart()).line + 1,
@@ -300,6 +331,18 @@ function declarationName(node: ts.Identifier) {
   );
 }
 
+// The value assigned when a property name is the target of `object.name = value`.
+function propertyAssignment(node: ts.Identifier) {
+  const access = node.parent;
+  return ts.isPropertyAccessExpression(access) &&
+    access.name === node &&
+    ts.isBinaryExpression(access.parent) &&
+    access.parent.left === access &&
+    access.parent.operatorToken.kind === ts.SyntaxKind.EqualsToken
+    ? access.parent.right
+    : undefined;
+}
+
 // Import and export bindings, including CommonJS `module.exports = { name }`, are not uses.
 function moduleBinding(node: ts.Identifier) {
   if (
@@ -327,6 +370,31 @@ function moduleBinding(node: ts.Identifier) {
     )
       return false;
   }
+  return false;
+}
+
+// A property of a class: a field, a constructor parameter property or, in JavaScript, a
+// `this.name = value` assignment. Object literal properties are not followed.
+function classProperty(symbol: ts.Symbol) {
+  return (
+    Boolean(symbol.flags & ts.SymbolFlags.Property) &&
+    Boolean(symbol.declarations?.length) &&
+    symbol.declarations!.every(
+      (item) =>
+        ts.isPropertyDeclaration(item) ||
+        (ts.isParameter(item) && ts.isConstructorDeclaration(item.parent)) ||
+        ((ts.isPropertyAccessExpression(item) || ts.isBinaryExpression(item)) &&
+          inClassMethod(item)),
+    )
+  );
+}
+
+// Whether `this` at a node is a class instance: the nearest function that binds `this` is a
+// constructor, method or accessor.
+function inClassMethod(node: ts.Node) {
+  for (let current = node.parent; current; current = current.parent)
+    if (ts.isFunctionLike(current) && !ts.isArrowFunction(current))
+      return ts.isClassLike(current.parent);
   return false;
 }
 
@@ -469,6 +537,30 @@ function modelSites(program: SourceProgram, value: ts.Expression, depth = 0): Si
   const symbol = program.symbolOf(reference);
   const declaration = symbol?.valueDeclaration;
   if (!symbol || !declaration) return [];
+  if (ts.isPropertyAccessExpression(value) && classProperty(symbol)) {
+    // A class property, such as `model: this.model`: followed to its initializer, a constructor
+    // parameter default and every assignment, and reported for review. It is never edited:
+    // replacing a property's value widens which uses `--model-fixes` changes, which needs an owner
+    // decision first (#120).
+    const values = [
+      ...(symbol.declarations ?? []).flatMap((item) =>
+        (ts.isPropertyDeclaration(item) || ts.isParameter(item)) && item.initializer
+          ? [item.initializer]
+          : [],
+      ),
+      ...program.writesOf(symbol),
+    ];
+    const sites = values.flatMap((item) => modelSites(program, unwrap(item), depth + 1));
+    const reads = program.usesOf(symbol).length;
+    const at = `${program.path(declaration)}:${program.line(declaration)}`;
+    const why =
+      reads === 1 ? 'class properties are reported, not edited' : `it is read ${reads} times`;
+    sites.forEach(
+      (site) =>
+        (site.stop ??= `The model comes from the property ${reference.text} (${at}); ${why}. Change it by hand to`),
+    );
+    return sites;
+  }
   if (
     (ts.isVariableDeclaration(declaration) &&
       ts.isVariableDeclarationList(declaration.parent) &&
@@ -536,9 +628,9 @@ function modelSites(program: SourceProgram, value: ts.Expression, depth = 0): Si
 }
 
 // Proposes replacing a retiring model ID with its registry replacement where a traced SDK call, or a
-// raw HTTP request to an official text-generation endpoint, sends it as `model`, outside tests.
-// Anything less certain stops for review with a reason. Nothing is written, applied, validated or
-// sent to a provider: the proposal is a patch for a person to review.
+// raw HTTP request to an official text-generation endpoint, sends it as `model`, outside tests and
+// build output. Anything less certain stops for review with a reason. Nothing is written, applied,
+// validated or sent to a provider: the proposal is a patch for a person to review.
 export async function proposeModelReplacements(
   directory: string,
   registry: DeadlineRegistry,
@@ -653,16 +745,18 @@ export async function proposeModelReplacements(
     }
   >();
   const stops: ModelReplacementStop[] = [];
+  const paths = new Set(repository.files.map((item) => item.path));
+  const skipped = (file: string) => TEST_PATH.test(file) || compiledOutput(file, paths);
   for (const request of requests) {
     const models = byProvider.get(request.provider)!;
     const file = program.path(request.node);
-    if (TEST_PATH.test(file)) continue;
+    if (skipped(file)) continue;
     const found = requestObject(program, request.argument);
     const property = found && objectProperty(found.object, 'model');
     if (!found || !property) continue;
     for (const site of modelSites(program, propertyValue(property))) {
       const entry = models.get(site.literal.text);
-      if (!entry || TEST_PATH.test(program.path(site.literal))) continue;
+      if (!entry || skipped(program.path(site.literal))) continue;
       const resolved = finalReplacement(entry, models) ?? { to: '', via: [entry.id] };
       const sensitive = found.object.properties
         .map((item) => (item.name ? propertyName(item.name) : undefined))

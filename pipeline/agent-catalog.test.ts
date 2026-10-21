@@ -189,3 +189,35 @@ it('writes added agents through the CLI without duplicating an agent configured 
     parseWorkflowConfigurations(JSON.stringify(written), join(root, '.refit.json')).workflows,
   ).toHaveLength(2);
 }, 30_000);
+
+it('detects both Gemini SDKs and the Gemini API host, with no agent to add', async () => {
+  const root = await repository({
+    'package.json': JSON.stringify({
+      name: 'app',
+      dependencies: { '@google/genai': '2.30.0', '@google/generative-ai': '^0.21.0' },
+    }),
+    'src/rest.ts':
+      "const url = 'https://generativelanguage.googleapis.com/v1beta/models/x:generateContent';\n",
+  });
+  const detections = await detectProviders(root);
+  expect(
+    detections.map((entry) => [
+      entry.agent.id,
+      entry.agent.adapter,
+      entry.packages.map((item) => `${item.name} ${item.version}`),
+      entry.hostnames.map((item) => `${item.file}:${item.line}`),
+    ]),
+  ).toEqual([
+    ['gemini', null, ['@google/genai 2.30.0', '@google/generative-ai ^0.21.0'], ['src/rest.ts:1']],
+  ]);
+  expect(() =>
+    addAgents({
+      configuration: undefined,
+      v1Id: 'stripe',
+      detections,
+      ids: ['gemini'],
+      testScript: true,
+      lockfile: true,
+    }),
+  ).toThrow('no Gemini agent');
+});

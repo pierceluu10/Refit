@@ -285,3 +285,42 @@ it.each([
   });
   expect(result.findings.filter((entry) => entry.confidence === 'confirmed')).toEqual([]);
 });
+
+it.each([
+  [
+    'a destructured import',
+    `const { getStripe } = await import('./client.ts');\n  const stripe = getStripe();`,
+  ],
+  [
+    'a renamed destructured import',
+    `const { getStripe: load } = await import('./client.ts');\n  const stripe = load();`,
+  ],
+  ['a property of the import', `const stripe = (await import('./client.ts')).getStripe();`],
+])('traces a lazy factory loaded with %s', (_name, load) => {
+  const result = analyze({
+    'client.ts': `import Stripe from 'stripe';
+let client: Stripe | null = null;
+export function getStripe(): Stripe { if (!client) client = new Stripe('key', ${options}); return client; }`,
+    'billing.ts': `export async function history() {
+  ${load}
+  const intent = await stripe.paymentIntents.retrieve('pi');
+  return intent.charges.data;
+}`,
+  });
+  expect(result.findings).toMatchObject([{ file: 'billing.ts', confidence: 'confirmed' }]);
+});
+
+it('does not trace a dynamically imported factory bound with let', () => {
+  const result = analyze({
+    'client.ts': `import Stripe from 'stripe';
+export function getStripe(): Stripe { return new Stripe('key', ${options}); }`,
+    'billing.ts': `export async function history() {
+  let { getStripe } = await import('./client.ts');
+  getStripe = () => ({}) as any;
+  const stripe = getStripe();
+  const intent = await stripe.paymentIntents.retrieve('pi');
+  return intent.charges.data;
+}`,
+  });
+  expect(result.findings.filter((entry) => entry.confidence === 'confirmed')).toEqual([]);
+});

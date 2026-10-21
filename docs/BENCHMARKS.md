@@ -2,7 +2,9 @@
 
 Every number here comes from real public repositories, frozen before the run that measured them, scanned at a pinned commit, and checked against the providers' real published contracts. No vendor API was called, no scanned repository was contacted, and validation ran each repository's own checks in offline Docker. Detailed method and per-repository results are linked from each section.
 
-**Latest (October 16, unreleased):** validated Stripe fixes rose from 53 to **74** on the same 531 repositories after the stripe-node upgrade gained pnpm and Yarn 1, and a new active-teams set (66 repositories) shows that client factories, not fix logic, limit Refit on current code. See [the section below](#stripe-node-upgrade-for-pnpm-and-yarn-and-the-active-teams-set-october-16).
+**Latest (October 21):** on the 40 affected repositories Refit did not fix, a sandboxed Codex agent (`gpt-5.6-sol`) got 8 patches through Refit's validation; 1 was correct, and 7 silently dropped `payment_method_types`. See [the comparison](#a-coding-agent-on-the-repositories-refit-did-not-fix-october-21).
+
+**October 16 (unreleased):** validated Stripe fixes rose from 53 to **74** on the same 531 repositories after the stripe-node upgrade gained pnpm and Yarn 1, and a new active-teams set (66 repositories) shows that client factories, not fix logic, limit Refit on current code. See [the section below](#stripe-node-upgrade-for-pnpm-and-yarn-and-the-active-teams-set-october-16).
 
 ## Summary (Refit 0.38.0)
 
@@ -21,6 +23,37 @@ Every number here comes from real public repositories, frozen before the run tha
 - **Real breakage is common and precise.** 24 of 200 fresh Shopify apps (12%) send a query that fails on every Admin API version Shopify serves today, each at an exact line. 51 of 381 fresh Stripe apps (13%) also send an OpenAI model that OpenAI retires on 2026-10-23.
 - **Outcomes are deterministic.** Repeat runs matched 381 of 381 fresh Stripe repositories, 200 of 200 fresh Shopify apps and 150 of 150 earlier Stripe repositories (publication aside). Since the `payment_method_types` stop, no outcome depends on AI sampling.
 - **AI was almost never needed:** **$0.02** across every Stripe run in this release. Deterministic rules made every validated fix.
+
+## A coding agent on the repositories Refit did not fix (October 21)
+
+Question: where Refit stopped, does a model-driven agent fix the break instead? The comparison took every affected Stripe repository that Refit did not validate on the October 20 rerun: 21 from the active-teams set, 10 original and 9 held out, 40 in all. On each pinned checkout, OpenAI's Codex CLI (`gpt-5.6-sol`, sandboxed with no network) was told to "upgrade to 2026-09-30.endive". It was given the contract diff Refit computed and the matching Stripe changelog pages. Every patch then went through Refit's own offline validation, with Refit's stripe-node upgrade added and the agent's package-file edits reverted. Every patch that passed was read in full. [Per-repository results and diffs](benchmarks/2026-10-21-agent-comparison-results.json); the harness is [`agent-comparison-cli.ts`](../pipeline/agent-comparison-cli.ts).
+
+The agent is not Claude. The local Claude CLI login was invalid, so the run used the OpenAI key already in `.env`. `--agent claude` reruns it after `claude auth login`.
+
+| Outcome | Repositories |
+|---|---|
+| Refused at dependency preparation (same gate as Refit; agent not run) | 23 |
+| Agent patched, then preparation refused (first pass, before the preflight) | 2 |
+| Repository's own checks fail or cannot run unpatched | 5 |
+| Regression caught by validation | 2 |
+| **Passed validation** | **8** |
+| … **correct** | **1** |
+| … wrong | 7 |
+
+- **Every wrong patch fails the same way: it deletes `payment_method_types`.** It deleted the parameter in 14 of its 17 patches and replaced it once. `sammorrispb/nextgen-academy` became `allowed_payment_method_types: ['card']`, which is the owner's card rule and the one correct patch. Deleting the parameter typechecks and passes tests, but Stripe then offers dynamic payment methods, so a card-only checkout changes behaviour silently. In `geallenboy/ai-saas-template` it also deleted a computed list the caller chose. Refit stops on exactly this.
+- **Apart from that parameter, the agent's edits were right.** In all 7 wrong patches, the response-field moves were correct, as were the pins:
+  - `current_period_*` reads moved to the first subscription item;
+  - `invoice.subscription` reads moved to `parent.subscription_details`;
+  - `shipping_details` reads moved to `collected_information`.
+
+  These went past four of Refit's stops: two type-check regressions (`Kanba-co/kanba`, `iggy-tech/product-hunt-clone-final`), one unresolved `shipping_details` finding (`abressiddique/AbresStore-Admin`) and one validation error (`utsavkrishnatra/pdf_answers`). Deterministic rules for those cases would have produced the same edits without the parameter risk.
+- **The environment limits both approaches equally.** 25 of 40 never reached validation because the repository's dependencies cannot be prepared offline (pnpm settings, private registries, size). A model does not change that.
+- **Cost: $6.45** for 17 agent runs plus one debug run, under a $20 cap. That is $0.16–1.25 per repository, with a median of 39 s. Refit's AI spend across all 531 repositories was $0.07.
+- **Caveats.**
+  - The brief gave the contract diff but not the owner's card policy. An agent told the policy might replace the parameter instead of deleting it.
+  - Codex could run shell commands offline; dependencies were not installed for it.
+  - Generated `stripe-mock` checks were not run for agent patches.
+  - Correctness is one reviewer's reading.
 
 ## stripe-node upgrade for pnpm and Yarn, and the active-teams set (October 16)
 
@@ -62,7 +95,19 @@ The fresh set skews toward old, idle code: 38% pin a 2022–2023 API version, an
 | Over scan limits | 1 |
 
 - **Active code breaks less.** 17% are affected, against 45% of the fresh set, because recent pins are closer to the target. The breaking reads are the same ones: `subscription.current_period_end` (5), `invoice.subscription` (4), `subscription.current_period_start` (3).
-- **Tracing is the gap.** In 32 repositories Refit found 518 likely Stripe SDK calls and traced none; overall it traced 661 of 1,895 (35%, against 51% on the fresh set). At least 18 of the 32 create the client in a lazy factory, `getStripe()` assigning a module-level `let` on first use, which Refit does not follow. Until it does, "not affected" here means little.
+- **Tracing is the gap.** In 32 repositories Refit found 518 likely Stripe SDK calls and traced none; overall it traced 661 of 1,895 (35%, against 51% on the fresh set). At least 18 of the 32 create the client in a lazy factory, `getStripe()` assigning a module-level `let` on first use, which Refit does not follow. Until it does, "not affected" here means little. (Factory tracing landed on October 17; see [the rescan](#lazy-stripe-clients-on-the-active-teams-set-october-21).)
+
+## Lazy Stripe clients on the active-teams set (October 21)
+
+The October 16 run traced no calls in 32 of the 66 active-team repositories, and at least 18 of them use a lazy `getStripe()` factory. Factory tracing landed on October 17, after that run. To see what was left, the 10 of those 32 with the most likely Stripe calls were rescanned at their frozen commits with `npm run benchmark:coverage`. It reads source only: no install, no Docker, no model call.
+
+| | Traced of 355 likely calls | Repositories at zero |
+|---|---|---|
+| October 16 run (0.38.0) | 0 | 10 |
+| `main` at `b67ff09` | 247 (70%) | 0 |
+| Plus dynamically imported factories | **280 (79%)** | 0 |
+
+Most remaining factory misses were a factory loaded with `await import()`, which the analyzer could not follow (`const { getStripe } = await import('@/lib/stripe')`, `(await import('./stripeClient')).getStripeClient()`). Following them added 33 calls in 4 repositories; `joannachen-c/design-meetup-web` went from 15/24 to 24/24. Still untraced: a per-organization cache with expiry (`meetingmindsexperts/ea-sys`, 13 calls), injectable overrides (`options.stripe || getStripe()`), destructured clients and parameters. These are coverage numbers, not fixes: nothing was validated, and the other 56 repositories were not rescanned.
 
 ## After the card-only `payment_method_types` policy (October 16)
 
@@ -172,6 +217,30 @@ These counts are a lower bound for Shopify: the registry starts at `2025-04`, an
 `refit meta-graph` was run over the 33 Meta repositories of the deadline benchmark, and each of the 162 requests it reports in live code was read in context ([labels](benchmarks/2026-10-20-meta-graph-call-labels.json), [results](benchmarks/2026-10-20-meta-graph-call-results.json)). All 162 are real Graph API requests or endpoints, and no reported version, path, edge, field, metric or method disagrees with the code. The version was read for 157 (the other 5 are unversioned), the path and edge for 158, and `fields` for 113. A request was found at 62 of the 63 live Graph pins labelled in the deadline benchmark; the miss is a browser `FB.init`. Labels are one reviewer's single pass. See [Meta Graph API](META-GRAPH.md#measured-on-the-deadline-benchmark).
 
 Review-only version moves to v25.0 on the same 33 repositories ([results](benchmarks/2026-10-20-meta-graph-move-results.json)): 0 proposed with the committed change list, because every changelog is unread; in a hypothetical run with every changelog marked reviewed and empty, 100 of the 131 live pins would move, each a one-line edit of the version text only.
+
+## Gemini (October 21)
+
+50 repositories frozen by `scripts/ai-sdk-select.mjs --provider gemini` ([list](benchmarks/2026-10-21-gemini-repos.json)): npm packages whose latest manifest declares `@google/genai` (44) or `@google/generative-ai` (6) in `dependencies`. As with the OpenAI and Anthropic sets, GitHub code search was unavailable, so **these are almost all libraries**: provider plugins, agent frameworks, model routers and MCP servers, not applications. Seven are forks or copies of one coding-agent codebase (`earendil-works/pi` and its derivatives). `scripts/gemini-benchmark.mjs` ran `refit deadlines` at each frozen commit, from the working tree at `40a8e2a` with no pipeline changes during the run ([results](benchmarks/2026-10-21-gemini-results.json)). Files were read only; nothing was installed or run, and no Google endpoint was contacted.
+
+| | Result |
+|---|---|
+| Not scanned (over the 50 MiB or 128-configuration scan limits) | 6 |
+| Declare the old `@google/generative-ai` | 6, all scanned |
+| Exposed to its end of support (2025-11-30) | **6 of 6**: 7 live manifest lines and 1 in `examples/`, listed as test; all 8 are real declarations on hand review (one is a `devDependencies` entry) |
+| Exposed to a Gemini model retirement | none possible: the registry has no Gemini model dates |
+
+**Classification census.** The registry has no Gemini model dates, so each repository was scanned a second time against a throwaway registry that lists every quoted `gemini-*` string in its source under a placeholder date. It measures how the matcher classifies Gemini IDs, not exposure:
+
+| Use | Matches |
+|---|---|
+| live | 505 in 39 repositories |
+| catalog | 779 |
+| test | 3,180 |
+| check | 180 |
+| comment | 152 |
+| beyond the 20-per-ID evidence cap, not listed | 1,448 |
+
+Only 74 of the 505 live matches sit in a file that imports either Gemini SDK; libraries keep model IDs in defaults, configuration and provider tables that reach the SDK through their own layers. The first two live matches of each repository (72) were read in context ([review](benchmarks/2026-10-21-gemini-live-review.json)): 5 are not model IDs (a package import, format tags, a gate name, a Chrome built-in model) and matched only because the census lists every `gemini-*` string. Of the other 67, **50 (75%) are live pins**, close to OpenAI's 83% line precision. The 17 others are object-shaped and generated model catalogs (7), test code under paths the rules do not know, `system_test/` and `__testfixtures__/` (4), help or documentation strings (2), a validator, a two-entry list, an `includes()` receiver and a template string in a `.test.ts` file. The last one comes from a classification gap for every provider: only plain string tokens get the test class, so a model in a template string in a test file counts as live. It is reported, not changed, because fixing it lowers live counts for OpenAI and Anthropic too. The review is one reviewer's single AI-assisted pass, not a labelled set.
 
 ## PayPal requests (October 21)
 

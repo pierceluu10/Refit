@@ -4,7 +4,7 @@
   "provider": "openai",
   "ranAt": "2026-10-21T09:46:35.891Z",
   "note": "refit deadlines and refit deadlines --propose-model-fixes at each frozen commit; files read only. Exposure counts live evidence for this provider only. Scans ran three or four at a time on 4 cores with nothing else running.",
-  "refitTree": "24cf764 (catalog precision, class properties, build output) with 34a55ac (shared analyzer program) applied; pinned worktree",
+  "refitTree": "24cf764 (catalog precision, class property edits, build output) with 34a55ac (shared analyzer program) applied; pinned worktree. No proposal came from a class property, so the results match the report-only rule that merged.",
   "summary": {
     "repositories": 100,
     "errors": 14,

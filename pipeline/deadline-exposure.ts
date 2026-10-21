@@ -25,9 +25,10 @@ const META_CONTEXT = [META_SDK, 'graph.facebook.com'];
 
 // How a match is used. Only `live` evidence makes a repository exposed or opens an alert; the
 // rest is listed separately so nothing is hidden:
-// - catalog: one entry in a model list (an array, enum or tuple naming three or more models), an
-//   HTML or JSX `<option>`, any type position, or a table keyed or indexed by model, such as
-//   pricing or context windows;
+// - catalog: one entry in a model list (an array, enum, tuple or constant-case object naming three
+//   or more models), an HTML or JSX `<option>`, any type position, a table keyed or indexed by
+//   model, such as pricing or context windows, a model record's `id` or `name` beside a metadata
+//   field such as `contextWindow`, or a model reference's `versions` list;
 // - test: test, spec, story, fixture and example files;
 // - comment: comments, which the parser keeps out of every source token;
 // - tokenizer: a local tokenizer argument, such as `encoding_for_model('gpt-4')`;
@@ -103,6 +104,11 @@ function sourceMatches(
       add('shopify', match[2], match, 2);
   for (const match of line.matchAll(/(['"`])([a-z0-9][a-z0-9.-]*)\1/dg))
     if (models.has(match[2])) add(models.get(match[2])!, match[2], match, 2);
+  // Both Gemini SDKs send `models/gemini-2.0-flash` and `gemini-2.0-flash` to the Gemini API as the
+  // same model: @google/generative-ai prefixes a name without a slash, and @google/genai's
+  // `tModel` does the same, so the prefixed form names the registry model too.
+  for (const match of line.matchAll(/(['"`])models\/([a-z0-9][a-z0-9.-]*)\1/dg))
+    if (models.get(match[2]) === 'gemini') add('gemini', match[2], match, 2);
   return found;
 }
 
@@ -121,15 +127,39 @@ export const TEST_PATH =
   /(?:^|\/)(?:__tests__|__mocks__|__fixtures__|tests?|specs?|e2e|cypress|fixtures?|examples?|stories)\/|\.(?:test|spec|e2e|stories|story)\.[cm]?[jt]sx?$/i;
 // Providers whose deadlines retire models rather than API versions. Their matches get every use
 // class below; API-version providers get only comments, tokenizers and prefix checks.
-const MODEL_PROVIDERS = new Set<DeadlineEntry['provider']>(['openai', 'anthropic']);
+const MODEL_PROVIDERS = new Set<DeadlineEntry['provider']>(['openai', 'anthropic', 'gemini']);
 // Strings shaped like OpenAI or Anthropic model IDs, counted with registry models to recognize a
 // model list, which often mixes providers. Router IDs such as `openai/o1` and
-// `anthropic/claude-3-opus` count too.
+// `anthropic/claude-3-opus` count too. Gemini-shaped IDs count only when the match being
+// classified is a Gemini model, so OpenAI and Anthropic classification is unchanged.
 const ANTHROPIC_MODEL = /^(?:anthropic\/)?claude-/;
+const GEMINI_MODEL = /^(?:google\/|models\/)?gemini-/;
 const OPENAI_MODEL =
   /^(?:openai\/)?(?:gpt-|chatgpt-|o\d(?:-|$)|text-(?:davinci|curie|babbage|ada|embedding|moderation)-|(?:davinci|curie|babbage|ada)(?:-|$)|dall-e-|tts-|whisper-|codex-|computer-use-|omni-moderation-|sora-)/;
 const CATALOG_SIZE = 3;
 const OPTION_ELEMENT = /<option\b/i;
+// Fields of a model metadata record, such as `{ id: 'gpt-4', contextWindow: 8192 }`. None of them
+// is a request parameter, so an object that has one describes a model rather than calling it.
+const MODEL_METADATA = new Set([
+  'contextWindow',
+  'context_window',
+  'contextLength',
+  'context_length',
+  'maxOutputTokens',
+  'max_output_tokens',
+  'maxInputTokens',
+  'max_input_tokens',
+  'inputTokenLimit',
+  'outputTokenLimit',
+  'knowledgeCutoff',
+  'knowledge_cutoff',
+  'pricing',
+  'cost',
+  'owned_by',
+]);
+// The names of a model record's identifying field.
+const RECORD_NAME = new Set(['id', 'name']);
+const CONSTANT_KEY = /^[A-Z][A-Z0-9_]*$/;
 
 function isCollection(node: ts.Node) {
   return (
@@ -152,6 +182,45 @@ function isLiteralStructure(node: ts.Node) {
     ts.isSatisfiesExpression(node) ||
     ts.isParenthesizedExpression(node) ||
     ts.isTypeAssertionExpression(node)
+  );
+}
+
+function keyText(name: ts.PropertyName | undefined) {
+  return name && (ts.isIdentifier(name) || ts.isStringLiteralLike(name)) ? name.text : undefined;
+}
+
+function stripped(node: ts.Node) {
+  while (
+    ts.isAsExpression(node) ||
+    ts.isSatisfiesExpression(node) ||
+    ts.isParenthesizedExpression(node) ||
+    ts.isTypeAssertionExpression(node)
+  )
+    node = node.expression;
+  return node;
+}
+
+// A model record, such as `{ id: 'gpt-4', contextWindow: 8192 }`: the literal is its `id` or
+// `name`, beside a metadata field.
+function modelRecord(node: ts.Node) {
+  const property = node.parent;
+  return (
+    ts.isPropertyAssignment(property) &&
+    property.initializer === node &&
+    RECORD_NAME.has(keyText(property.name) ?? '') &&
+    ts.isObjectLiteralExpression(property.parent) &&
+    property.parent.properties.some((item) => MODEL_METADATA.has(keyText(item.name) ?? ''))
+  );
+}
+
+// An object used like an enum: constant-case keys, such as `{ GPT_4: 'gpt-4', O3: 'o3' }`.
+function constantObject(node: ts.Node): node is ts.ObjectLiteralExpression {
+  return (
+    ts.isObjectLiteralExpression(node) &&
+    node.properties.length > 0 &&
+    node.properties.every(
+      (item) => ts.isPropertyAssignment(item) && CONSTANT_KEY.test(keyText(item.name) ?? ''),
+    )
   );
 }
 
@@ -197,6 +266,14 @@ function literalUse(
   // value is a plain string is an alias map, and the value is what the code sends.
   if (propertyKey(node)) return 'catalog';
   if (ts.isElementAccessExpression(parent) && parent.argumentExpression === node) return 'catalog';
+  if (modelRecord(node)) return 'catalog';
+  // The versions a model reference accepts, as in genkit's `versions: ['gpt-4o-2024-05-13']`.
+  if (
+    ts.isArrayLiteralExpression(parent) &&
+    ts.isPropertyAssignment(parent.parent) &&
+    keyText(parent.parent.name) === 'versions'
+  )
+    return 'catalog';
   for (let current: ts.Node = node; current.parent; current = current.parent) {
     const up = current.parent;
     if (ts.isTypeNode(up) && !ts.isLiteralTypeNode(up)) return 'catalog';
@@ -205,12 +282,13 @@ function literalUse(
     if (
       ts.isPropertyAssignment(up) &&
       up.initializer === current &&
-      ts.isObjectLiteralExpression(current) &&
+      ts.isObjectLiteralExpression(stripped(current)) &&
       ts.isStringLiteralLike(up.name) &&
       isModel(up.name.text)
     )
       return 'catalog';
-    if (isCollection(up) && countModels(up, isModel) >= CATALOG_SIZE) return 'catalog';
+    if ((isCollection(up) || constantObject(up)) && countModels(up, isModel) >= CATALOG_SIZE)
+      return 'catalog';
   }
   // A literal type, as in `model: 'gpt-4'` in an interface, never reaches a request.
   if (ts.isLiteralTypeNode(parent)) return 'catalog';
@@ -244,6 +322,7 @@ function tokenUses(path: string, content: string, models: Map<string, unknown>) 
   visit(source);
   const isModel = (value: string) =>
     models.has(value) || OPENAI_MODEL.test(value) || ANTHROPIC_MODEL.test(value);
+  const isGeminiListModel = (value: string) => isModel(value) || GEMINI_MODEL.test(value);
   return (offset: number, provider: DeadlineEntry['provider'], line: string): DeadlineUse => {
     let low = 0;
     let high = ranges.length - 1;
@@ -254,7 +333,9 @@ function tokenUses(path: string, content: string, models: Map<string, unknown>) 
       else if (offset >= end) low = middle + 1;
       else {
         const model = MODEL_PROVIDERS.has(provider);
-        const use = ts.isStringLiteralLike(node) ? literalUse(node, path, model, isModel) : 'live';
+        const use = ts.isStringLiteralLike(node)
+          ? literalUse(node, path, model, provider === 'gemini' ? isGeminiListModel : isModel)
+          : 'live';
         // An HTML or JSX `<option>` is one choice in a picker.
         return use === 'live' && model && OPTION_ELEMENT.test(line) ? 'catalog' : use;
       }
@@ -289,7 +370,7 @@ export async function scanDeadlines(
     for (const version of entry.versions) byVersion.set(`${entry.provider}:${version}`, entry);
   const models = new Map(
     registry.deadlines
-      .filter((entry) => MODEL_PROVIDERS.has(entry.provider))
+      .filter((entry) => entry.kind === 'model' && MODEL_PROVIDERS.has(entry.provider))
       .flatMap((entry) => entry.versions.map((version) => [version, entry.provider] as const)),
   );
   const found = new Map<string, DeadlineExposure>();
@@ -350,6 +431,21 @@ export async function scanDeadlines(
         text: `${META_SDK} ${dependency.lock.version ?? dependency.version}${dependency.lock.version ? ` (locked in ${dependency.lock.file})` : ''} targets Graph API ${version}`,
       });
   }
+  // A package whose support ended: each manifest that declares it. A repository whose source never
+  // names the package is not read a second time. Manifests in test and example paths are not live.
+  for (const entry of registry.deadlines)
+    if (entry.kind === 'sdk')
+      for (const name of entry.versions) {
+        if (!repository.files.some((file) => file.content.includes(name))) continue;
+        for (const dependency of (await readRepository(root, name)).dependencies)
+          record(entry.provider, name, {
+            file: dependency.file,
+            line: await lineOf(root, dependency.file, `"${name}"`),
+            kind: 'dependency',
+            use: TEST_PATH.test(dependency.file) ? 'test' : 'live',
+            text: `${name} ${dependency.lock.version ?? dependency.version}${dependency.lock.version ? ` (locked in ${dependency.lock.file})` : ''} is declared in ${dependency.section}`,
+          });
+      }
   for (const pin of await configuredApiVersions(root))
     record(pin.provider, pin.version, {
       file: REPOSITORY_CONFIGURATION,

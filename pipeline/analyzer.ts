@@ -288,7 +288,8 @@ export function analyzeRepository(
   }
   const modules = sourceBindings(nodes, checker, resolution.resolve);
   const canonical = modules.canonical;
-  const symbol = (node: ts.Node) => canonical(checker.getSymbolAtLocation(node));
+  const symbol = (node: ts.Node) =>
+    modules.member(node) ?? canonical(checker.getSymbolAtLocation(node));
   const stripeTypes =
     provider.packageName === STRIPE.packageName
       ? new StripeTypes(nodes, symbol, schemaDefinitions, provider.packageName)

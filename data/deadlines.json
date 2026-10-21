@@ -816,6 +816,19 @@
       "replacement": "claude-sonnet-5-5",
       "source": "https://platform.claude.com/docs/en/about-claude/model-deprecations",
       "checkedAt": "2026-10-20"
+    },
+    {
+      "id": "gemini-2025-11-30-google-generative-ai",
+      "provider": "gemini",
+      "kind": "sdk",
+      "versions": [
+        "@google/generative-ai"
+      ],
+      "date": "2025-11-30",
+      "summary": "Google ends all support for the @google/generative-ai package, including bug fixes, on 2025-11-30 and recommends @google/genai, whose call shapes differ. Google does not say that requests through the old package stop working. The README in its last npm release (0.24.1) gave 2025-08-31; the repository README now gives 2025-11-30.",
+      "replacement": "@google/genai",
+      "source": "https://github.com/google-gemini/deprecated-generative-ai-js/blob/main/README.md",
+      "checkedAt": "2026-10-21"
     }
   ]
 }
