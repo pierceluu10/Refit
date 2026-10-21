@@ -22,12 +22,12 @@ Providers retire API versions and models on published dates. Refit keeps a revie
 
 It covers four providers, each checked against its own documentation:
 
-| Provider | Covers | Source |
-|---|---|---|
-| Shopify | Admin API versions 2025-04 to 2026-10 and when each stops being accessible, checked 2026-10-15 | [API versioning](https://shopify.dev/docs/api/usage/versioning) |
-| Meta | Graph API v13.0 to v25.0 and when each stops being available, checked 2026-10-15 | [Graph API changelog](https://developers.facebook.com/docs/graph-api/changelog) |
-| OpenAI | Model shutdowns from July 2025 to April 2027, checked 2026-10-15 | [Deprecations](https://developers.openai.com/api/docs/deprecations) |
-| Anthropic | Claude API model retirements from November 2024 to November 2026, checked 2026-10-20 | [Model deprecations](https://platform.claude.com/docs/en/about-claude/model-deprecations) |
+| Provider  | Covers                                                                                         | Source                                                                                    |
+| --------- | ---------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| Shopify   | Admin API versions 2025-04 to 2026-10 and when each stops being accessible, checked 2026-10-15 | [API versioning](https://shopify.dev/docs/api/usage/versioning)                           |
+| Meta      | Graph API v13.0 to v25.0 and when each stops being available, checked 2026-10-15               | [Graph API changelog](https://developers.facebook.com/docs/graph-api/changelog)           |
+| OpenAI    | Model shutdowns from July 2025 to April 2027, checked 2026-10-15                               | [Deprecations](https://developers.openai.com/api/docs/deprecations)                       |
+| Anthropic | Claude API model retirements from November 2024 to November 2026, checked 2026-10-20           | [Model deprecations](https://platform.claude.com/docs/en/about-claude/model-deprecations) |
 
 Past-due entries stay in the registry on purpose: a repository still pinning a retired version is the most urgent case. To change the registry, edit the file from the provider's page, set `checkedAt` to the day you checked, and run:
 
@@ -71,14 +71,14 @@ Each exposure lists the deadline, days left, the replacement, the source and `fi
 
 Each match is classified by how the code uses it. Only **live** matches make a repository exposed, appear as its evidence and open or update an alert. Everything else is still shown, separately, so nothing is hidden:
 
-| Use | What it covers | Providers |
-|---|---|---|
-| `live` | The default: a call argument, a default or env-var fallback, a constant, an alias map's value | all |
-| `catalog` | One entry in a list naming three or more models (an array, enum or tuple, counting OpenAI- and Claude-shaped IDs, with or without an `openai/` or `anthropic/` prefix); any type position, such as a union or `model: 'gpt-4'` in an interface; a table keyed or indexed by model, such as `PRICES['gpt-4']` or `{ 'gpt-4': { input: 30 } }`, and everything inside that entry; an HTML or JSX `<option>` | OpenAI, Anthropic |
-| `test` | Test, spec, story, fixture and example files: `*.test.*`, `*.spec.*`, `*.stories.*`, and `test/`, `tests/`, `__tests__/`, `spec/`, `e2e/`, `cypress/`, `fixtures/`, `examples/` directories | OpenAI, Anthropic |
-| `check` | A comparison, `case 'gpt-4':`, or a prefix or membership call (`startsWith`, `endsWith`, `includes`, `indexOf`) | comparisons: OpenAI, Anthropic; calls: all |
-| `tokenizer` | An argument of `encoding_for_model` or `encodingForModel` | all |
-| `comment` | Comments, including JSDoc and commented-out code. Each file is parsed, and anything outside a source token is a comment | all |
+| Use         | What it covers                                                                                                                                                                                                                                                                                                                                                                                            | Providers                                  |
+| ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ |
+| `live`      | The default: a call argument, a default or env-var fallback, a constant, an alias map's value                                                                                                                                                                                                                                                                                                             | all                                        |
+| `catalog`   | One entry in a list naming three or more models (an array, enum or tuple, counting OpenAI- and Claude-shaped IDs, with or without an `openai/` or `anthropic/` prefix); any type position, such as a union or `model: 'gpt-4'` in an interface; a table keyed or indexed by model, such as `PRICES['gpt-4']` or `{ 'gpt-4': { input: 30 } }`, and everything inside that entry; an HTML or JSX `<option>` | OpenAI, Anthropic                          |
+| `test`      | Test, spec, story, fixture and example files: `*.test.*`, `*.spec.*`, `*.stories.*`, and `test/`, `tests/`, `__tests__/`, `spec/`, `e2e/`, `cypress/`, `fixtures/`, `examples/` directories                                                                                                                                                                                                               | OpenAI, Anthropic                          |
+| `check`     | A comparison, `case 'gpt-4':`, or a prefix or membership call (`startsWith`, `endsWith`, `includes`, `indexOf`)                                                                                                                                                                                                                                                                                           | comparisons: OpenAI, Anthropic; calls: all |
+| `tokenizer` | An argument of `encoding_for_model` or `encodingForModel`                                                                                                                                                                                                                                                                                                                                                 | all                                        |
+| `comment`   | Comments, including JSDoc and commented-out code. Each file is parsed, and anything outside a source token is a comment                                                                                                                                                                                                                                                                                   | all                                        |
 
 Meta and Shopify matches are classified only as comments, tokenizer arguments and prefix checks. Those were dropped before and are now listed as non-live; nothing else about Meta and Shopify matching changed. On the [benchmark](DEADLINE-BENCHMARK.md) their reported lines were already 100% and 79% live.
 
@@ -207,13 +207,14 @@ Embeddings, images, audio and moderation calls are never proposed, because their
 
 `--json` returns `replacements` (each with the call's `file`, `line` and `call`, `edited`, the place the string changes, `from`, `to`, the deadline and `via`, the registry entries followed), `stops` (each with `at`, where the model is written, and a `reason`) and `patch`.
 
-On the 34 OpenAI repositories of the [deadline benchmark](DEADLINE-BENCHMARK.md), 15 send a model retiring on 2026-10-23 from live code. The rule proposed 6 replacements in 2 of them, 4 through the v3 SDK or `openai-edge`. Every proposal was read by hand, and each is the registry replacement in a plain request. It stopped for review, with a reason, in 4 more:
+On the 34 OpenAI repositories of the [deadline benchmark](DEADLINE-BENCHMARK.md), 22 send a registry model from live code (2026-10-21 run, with the registry as of that day). The rule proposed 6 replacements in 2 of them, 4 through the v3 SDK or `openai-edge`. Every proposal was read by hand, and each is the registry replacement in a plain request. It stopped for review, with a reason, in 4 more:
+
 - a helper whose request sets `max_tokens`;
 - a raw `fetch` that sets `temperature`;
 - spread options;
 - a reused request object.
 
-The other 9 hold the model in settings or UI defaults, a CLI option default, an alias map, a request to the app's own proxy, an Apps Script options variable, a Deno library or a configuration object. Results are in [`benchmarks/2026-10-20-model-replacement-results.json`](benchmarks/2026-10-20-model-replacement-results.json).
+The other 16 hold the model in settings or UI defaults, a CLI option default, an alias map, a request to the app's own proxy, an Apps Script options variable, a Deno library or a configuration object, or name only non-text models. Results are in [`benchmarks/2026-10-21-model-replacement-results.json`](benchmarks/2026-10-21-model-replacement-results.json); the 2026-10-20 run is in [`benchmarks/2026-10-20-model-replacement-results.json`](benchmarks/2026-10-20-model-replacement-results.json).
 
 ## Automatic model fixes
 

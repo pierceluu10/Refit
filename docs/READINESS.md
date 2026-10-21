@@ -1,5 +1,27 @@
 # Refit implementation checkpoints
 
+## October 21 checkpoint: OpenAI and Anthropic benchmarks re-measured (unreleased, after 0.39.0)
+
+Both frozen AI SDK sets and the 34-application deadline set were run again. The worktree was pinned at the catalog precision, `this.model` and build-output change, with the shared analyzer program applied, and nothing else was running.
+
+- **OpenAI** (100 repositories):
+  - 45 exposed (47 before), with 1 proposal and 1 stop;
+  - 14 not fully scanned (16 before);
+  - the one proposal is still correct on hand review and still over the 50 MiB validation archive limit.
+- **Anthropic** (50): 16 exposed (17 before), with 1 proposal (6 sites, validated again: `vitest` passed before and after) and 2 stops; 15 not fully scanned (17 before).
+- **Deadline set** (34 applications):
+  - 22 exposed, with 2 proposals (6 sites, correct on hand review) and 4 stops;
+  - neither proposal validated: one needs a custom image, and the other's build fails offline before the change;
+  - 7 of the 19 labelled live lines reach an edit or a stop.
+- **Why fixes did not move.** Live lines fell from 1,170 to 630, but almost all of the removed lines sat in repositories that also send a model some other way. Of 43 untraced OpenAI exposures:
+  - 10 are non-text models only, which the rule never replaces;
+  - 7 are timeouts;
+  - 26 pass the model through a library's wrappers.
+
+  The frozen sets are libraries from npm search. An application set needs GitHub code search.
+
+Validation used `node:22-alpine` with the build environment's proxy CA added, for the benchmark only. Results: `docs/benchmarks/2026-10-21-{openai,anthropic,model-replacement}-results.json`, each with the run's validation and hand review. The checklist is in [Provider goals](PROVIDER-GOALS.md#openai-and-anthropic-progress-checklist-2026-10-21): 70% for both providers, unchanged.
+
 ## October 21 checkpoint: review-only PayPal request detection (unreleased, after 0.39.0)
 
 `refit paypal` lists the PayPal REST requests a repository makes. It reads three shapes: `@paypal/checkout-server-sdk` request classes sent with `client.execute`, `@paypal/paypal-server-sdk` controller calls, and raw `fetch` and `axios` calls to `api-m.paypal.com`, `api-m.sandbox.paypal.com`, `api.paypal.com` and `api.sandbox.paypal.com`. For each it gives `file:line`, method and path, and the matching operation in PayPal's published OpenAPI documents. It also gives the newest server SDK method that makes the same request, and notes requests, hosts and SDK methods the documents or the declared release do not have. It is review only: nothing is edited, installed, run or sent to PayPal, and it proposes no SDK replacement. The catalog entry stays at `adapter: null`, and no gate, default or stop changed. See [PayPal](PAYPAL.md).
@@ -20,18 +42,20 @@ Tests: `pipeline/paypal-calls.test.ts` (20) covers each old-SDK binding form, `e
 - Anthropic: 17 of 50 have a live exposure. 1 got a proposal (6 sites), correct per the registry and validated with its `vitest` suite. 2 more stopped for review, and 17 could not be scanned. The validated script also sets extended thinking `budget_tokens`; whether `claude-sonnet-5-5` accepts it is unverified.
 - Also in this change: a swap to a pre-Claude-4.7 replacement keeps `temperature`, `top_p` and `top_k`, since Anthropic rejects them only on 4.7 and later. The rule skips analysis a repository cannot need.
 
-Most untraced exposures are catalog entries the scanner counts as live, or library defaults in class fields. On the progress checklist in [Provider goals](PROVIDER-GOALS.md#openai-and-anthropic-progress-checklist-2026-10-20) both providers are at 70%. The fix rate is far below the 70% target, and it needs an application set to be measured fairly.
+Most untraced exposures are catalog entries the scanner counts as live, or library defaults in class fields. On the progress checklist in [Provider goals](PROVIDER-GOALS.md#openai-and-anthropic-progress-checklist-2026-10-21) both providers were at 70%. The fix rate is far below the 70% target, and it needs an application set to be measured fairly.
 
 ## October 20 checkpoint: reviewed Meta Graph API change list (unreleased)
 
 `data/meta-graph-changes.json` now holds the Meta Graph API changelogs for v14.0 to v26.0, each read in full from developers.facebook.com on 2026-10-20 and marked `reviewed`, with 281 changes from the Graph API and Marketing API sections. Every change cites its page. The Instagram sections were checked against the Instagram Platform changelog's version-gated entries; they match except that from v14.0 the IG Media `video_title` field errors, which is recorded from that changelog. v13.0 stays `unread`: it matters only to pins older than any benchmark pin. Each version's note lists what the page holds that is not an entry: permission policy changes, error codes, transport changes, additions, and Certificate Transparency endpoints the page does not name.
 
 `refit meta-graph --propose-version-moves` gained three stricter rules:
+
 - **WhatsApp and Messenger.** Their changelogs are separate and not in the list, so their requests stop. This is decided by edge, such as `messages`, `message_templates` or `conversations`, or by a send parameter such as `messaging_product` or `recipient`.
 - **Node-wide changes.** A removal of a whole node type, such as `/{offline-event-set-id}` or the Instagram v1.0 nodes, stops requests to a single opaque node (a placeholder or numeric ID) and never matches a literal path such as `/me`. Before, a single-placeholder path matched every request.
 - **Metric names** compare regardless of case, since some pages print them in capitals.
 
 On the 33 Meta repositories of the deadline benchmark at target v25.0, the reviewed list proposes **35 moves in 13 repositories**. Before, there were 0 with every changelog unread; the hypothetical upper bound with empty changelogs is 100. Every moved request was checked by hand against the list: Instagram publishing and field-named reads, field-named ads insights, Page feed posts, Conversions API events and `/me`. 113 pins stop with named reasons:
+
 - 44 have unknown request parts;
 - 32 cross a node-wide change;
 - 26 are WhatsApp or Messenger;
@@ -49,9 +73,11 @@ The Meta tests passed (59). New tests cover the WhatsApp and Messenger guard by 
 `refit deadlines --sync anthropic` reads Anthropic's model deprecations page and updates `data/deadlines.json`. It groups the page's tables into one entry per retirement date and replacement. Entries are matched by model, so a moved date updates in place, and unchanged entries keep their aliases and `checkedAt`. Nothing is deleted, an unparseable row fails the sync, and the result must pass the registry check before it is written. On the live page (20 retirements, 2026-10-20) it reports no change: the shipped entries match.
 
 A scheduled workflow, `.github/workflows/deadlines-sync.yml`, runs it daily and opens a pull request when the registry should change, so the registry stays current with a reviewer's merge as the only human step. Matching, CI checks, alerts and model replacements still read only the committed registry. OpenAI's page could not be reached from this environment, so its entries are still maintained by hand.
+
 ## October 20 checkpoint: automatic model fixes in enrolled repositories (unreleased, after 0.39.0)
 
 `refit serve --model-fixes` (off by default) now maintains retiring OpenAI and Anthropic models without asking first. After each poll, for every enrolled repository:
+
 1. It applies the model replacement rule to the committed snapshot.
 2. It runs the repository's approved checks before and after the change, in the same offline Docker sandbox and limits as contract migrations, through a new `validateSourcePatch`.
 3. If both runs pass and `--publish-draft` is set, it opens a draft pull request. The branch, commit and pull request steps moved from `publishDraft` into a shared `publishFiles`, and contract publication behaves exactly as before.
@@ -59,6 +85,7 @@ A scheduled workflow, `.github/workflows/deadlines-sync.yml`, runs it daily and 
 Refit never merges, and a failing check publishes nothing. Uses that stop for review are listed in the pull request, never edited. The service records each repository's outcome under `modelFixes`, keyed by the replacements themselves, so the same fixes are not revalidated or republished on every poll and a closed pull request is not reopened.
 
 Tests:
+
 - Mocked validation and publication test the workflow's decisions and the pull request description.
 - A service test checks that the feature is off by default, gets the approved checks, opens a pull request only with `--publish-draft`, and is deduplicated through state.
 - A `REFIT_DOCKER_IMAGE`-gated test ran real offline Docker (`node:22-alpine`): a passing check validated the replacement, and a check that depends on the old model failed it.
@@ -68,6 +95,7 @@ The team asked for this on 2026-10-20. It changes the open replacement-policy de
 ## October 20 checkpoint: model replacements across files and raw HTTP (unreleased, after 0.39.0)
 
 The model replacement rule now resolves names with the TypeScript checker over the repository's own sources, so it follows imports. It covers:
+
 - a constant or enum member that holds the model, even in another module, edited where it is declared when this request is its only use;
 - a helper function's model parameter, edited at its default and at each caller that passes a literal;
 - raw HTTP requests to the official text-generation endpoints (`fetch`, `UrlFetchApp.fetch`, `axios.post`).
@@ -140,6 +168,7 @@ Third review-only step toward a Meta agent (shared work item 4 in [Provider goal
   - changing the pin changes nothing else: it is a file-local `const` whose every use the scan follows.
 
   Everything else stops, listing each reason with its location. Business SDK requests and test-only pins always stop. See [version moves](META-GRAPH.md#propose-version-moves-review-only).
+
 - **Measured on the 33 Meta repositories, target v25.0.** With the committed change list, 0 moves: all 148 pins stop on unread changelogs. In a hypothetical run with every changelog marked reviewed and empty, an upper bound and not evidence about Meta, 100 of the 131 live pins would move. Each of those edits changes one line, and only its version text. The 31 live pins that stop there have helper requests or runtime options (31), a `let` (3) or an exported constant (1); some have more than one.
 - **Scanner fix.** A property with the same name as a variable, as `url` in `data.url`, is no longer treated as a use of that variable. The request benchmark's results are unchanged.
 
@@ -218,17 +247,17 @@ The owner signed off on this gate change on 2026-10-16. The expansion gate from 
 
 Production-mode scans of 9 benchmark repositories against `2026-09-30.endive`, scan only, with each repository's generated adapter. Counts are blocking level-2/3 changes in the adapter contract / on the called operations:
 
-| Repository | Before version | No expansion gate | Removals only (0.25.0) | All response changes |
-| --- | --- | --- | --- | --- |
-| odota/core | 2022-11-15 | 2,441 / 1,303 | 1,998 / 1,064 | 161 / 75 |
-| Kanba-co/kanba | 2023-10-16 | 2,084 / 701 | 1,463 / 494 | 104 / 41 |
-| different-ai/embedbase | 2022-11-15 | 2,696 / 836 | 2,207 / 686 | 184 / 62 |
-| get-convex/convex-saas | 2024-06-20 | 3,148 / 1,077 | 2,301 / 788 | 292 / 107 |
-| pretzelai/stripe-no-webhooks | 2023-10-16 | 1,928 / 741 | 1,364 / 526 | 269 / 117 |
-| dalemoncayo/express-stripe | 2024-04-10 | 1,994 / 670 | 1,460 / 492 | 59 / 25 |
-| csuermann/virtual-smart-home | 2023-08-16 | 886 / 247 | 662 / 183 | 181 / 51 |
-| steven-tey/extrapolate | 2024-04-10 | 2,255 / 782 | 1,660 / 577 | 115 / 50 |
-| benlamiro/ShipGenAI | 2023-10-16 | 1,805 / 607 | 1,259 / 425 | 56 / 24 |
+| Repository                   | Before version | No expansion gate | Removals only (0.25.0) | All response changes |
+| ---------------------------- | -------------- | ----------------- | ---------------------- | -------------------- |
+| odota/core                   | 2022-11-15     | 2,441 / 1,303     | 1,998 / 1,064          | 161 / 75             |
+| Kanba-co/kanba               | 2023-10-16     | 2,084 / 701       | 1,463 / 494            | 104 / 41             |
+| different-ai/embedbase       | 2022-11-15     | 2,696 / 836       | 2,207 / 686            | 184 / 62             |
+| get-convex/convex-saas       | 2024-06-20     | 3,148 / 1,077     | 2,301 / 788            | 292 / 107            |
+| pretzelai/stripe-no-webhooks | 2023-10-16     | 1,928 / 741       | 1,364 / 526            | 269 / 117            |
+| dalemoncayo/express-stripe   | 2024-04-10     | 1,994 / 670       | 1,460 / 492            | 59 / 25              |
+| csuermann/virtual-smart-home | 2023-08-16     | 886 / 247         | 662 / 183              | 181 / 51             |
+| steven-tey/extrapolate       | 2024-04-10     | 2,255 / 782       | 1,660 / 577            | 115 / 50             |
+| benlamiro/ShipGenAI          | 2023-10-16     | 1,805 / 607       | 1,259 / 425            | 56 / 24              |
 
 Confirmed removed-field findings are identical in every repository, and every called operation still has an operation impact, so these runs still stop for review. What remains is direct: became-optional fields, `any-of` additions on the expandable fields themselves, error-response (`default`) changes and request-side changes.
 
@@ -383,15 +412,15 @@ The default suite passed **1,273 tests across 81 files**, with 78 environment-ga
 
 The benchmark was re-run with validation on v0.33.0 defaults: no `REFIT_VALIDATION_WORKSPACE` override and no AI. It matches the earlier explicit `2g` run:
 
-| Outcome | Repositories |
-|---|---|
-| Affected | 23 |
-| Pass every check (stop only on other unresolved findings) | 3 |
-| Fail their own baseline | 8 |
-| Exceed the 1 GiB archive | 3 |
-| Lockfile integrity or sync problems | 2 |
-| No deterministic rule (AI off) | 1 |
-| Declared-type evidence | 1 |
+| Outcome                                                   | Repositories |
+| --------------------------------------------------------- | ------------ |
+| Affected                                                  | 23           |
+| Pass every check (stop only on other unresolved findings) | 3            |
+| Fail their own baseline                                   | 8            |
+| Exceed the 1 GiB archive                                  | 3            |
+| Lockfile integrity or sync problems                       | 2            |
+| No deterministic rule (AI off)                            | 1            |
+| Declared-type evidence                                    | 1            |
 
 The archive-limit error no longer suggests a larger profile when the default is already the largest. It points to a custom validation image instead.
 
@@ -406,6 +435,7 @@ The default suite passed **1,266 tests across 79 files**, with 78 environment-ga
 Operators can opt into a larger offline validation profile with `REFIT_VALIDATION_WORKSPACE`: `1g` or `2g`. Each raises the workspace, memory and dependency archive limit together, and network stays disabled. The default is unchanged at 512 MiB and 1 GiB, with a 256 MiB archive. Evidence verification now accepts archives up to the largest profile. Its old 256 MiB cap had rejected every archive the larger profile produced.
 
 Benchmark validation without AI, under the `2g` profile, compared with the default:
+
 - 11 more of the 23 affected repositories reach their checks.
 - 3 pass every check: `mrwebwork/spotify`, `Shivamrai15/Safari` and `kpirabaharan/Spotify-Clone`. They stop for review only on other unresolved findings.
 - 8 fail their own baseline (typecheck) before any patch.
@@ -414,6 +444,7 @@ Benchmark validation without AI, under the `2g` profile, compared with the defau
 Generated checks now transpile TypeScript with the bundled compiler. The real repositories' type-only imports (`import { Price } from '@/types'`) had failed under Node's type stripping. Their `manageSubscriptionStatusChange` helpers now load, and stop at creating a Supabase client without application environment. They are correctly excluded as not runnable in isolation, and no regressions are reported.
 
 After merging the AI-first work, the default suite passed **1,266 tests across 79 files**, with 78 environment-gated tests skipped; three CLI tests that time out under full-suite load pass when run alone. A new test reproduces the type-only import failure and fails without the compiler hook. The local Stripe lab validates end to end with six generated functions.
+
 ## October 15 checkpoint: AI handles what rules don't (0.32.0)
 
 With `--ai-patch`, every confirmed finding no deterministic rule covers goes to the AI patcher, including webhook payload reads. Rules apply first; the model receives the rule-patched code and only the findings left, and the final diff contains both. For webhook payloads and `Stripe.*`-typed values, the model is told that payloads can arrive in older or newer API versions and must read the old field through `Reflect.get` when present, otherwise the new location. Webhook reads it rewrites are marked `ai-version-tolerant` and count as migrated. Without AI, unmigrated webhook reads keep the previous gate.
@@ -424,14 +455,14 @@ The AI patch guard now counts only traced reads, and its fallback rule looks onl
 
 On the 100-repository Stripe benchmark with `--ai`, proposals only (validation is still blocked by the sandbox archive limit):
 
-| | Before | After (final run) |
-|---|---|---|
-| Repositories where the model was called | 2 | 11 |
-| Fixed by rules alone | 11 | 10 |
-| Fixed with AI edits | 0 | 4 |
-| Model declined (said the evidence was insufficient) | 1 | 6 |
-| Errors or guard rejections | 8 | 1 |
-| Blocked before AI (skipped files, declared-type mutation) | 2 | 2 |
+|                                                           | Before | After (final run) |
+| --------------------------------------------------------- | ------ | ----------------- |
+| Repositories where the model was called                   | 2      | 11                |
+| Fixed by rules alone                                      | 11     | 10                |
+| Fixed with AI edits                                       | 0      | 4                 |
+| Model declined (said the evidence was insufficient)       | 1      | 6                 |
+| Errors or guard rejections                                | 8      | 1                 |
+| Blocked before AI (skipped files, declared-type mutation) | 2      | 2                 |
 
 The model is non-deterministic: across the three runs after the guard fixes it fixed 3 or 4 of the 11, with different repositories each time. Of four AI patches reviewed by hand, three read the subscription correctly for both old and new payloads. One handled only new-version payloads, because the read was a `Stripe.Invoice`-typed helper parameter; the version-tolerant instruction now covers typed values too. The whole investigation spent $0.38 of AI budget.
 
@@ -462,6 +493,7 @@ After merging the webhook and package-upgrade work, the default suite passed **1
 Without a configured price policy, `current_period_start/end` reads on signed webhook payloads and `Stripe.Subscription`-typed values become version-tolerant: the old subscription-level field when present, otherwise the widest item period, and `undefined` when items carry none. Old-version events behave as before, so the endpoint version can change separately. A configured price-ID policy still takes precedence. Webhook reads no rule migrates no longer block patch generation or validation when other confirmed work exists. They stay unresolved, AI never receives them, and publication still refuses them. Doctor passes migrated webhook reads and still blocks activation on unmigrated ones. This needs Pierce's sign-off on the incoming-version design.
 
 The default suite passed **1,238 tests across 78 files**, with 77 environment-gated tests skipped, plus typecheck and formatting. Gated separately: the oasdiff suite passed 10 of 10 (`REFIT_OASDIFF=1`), and the Stripe subscription-period and webhook SDK/Docker suites passed 27 of 27 with actual stripe-node 17.7.0 and 19.1.0. Old-version signed deliveries return 200 after the patch. Upgrading the `stripe` package in patches is not part of this checkpoint, so TypeScript projects on older types still need it. No live Stripe request or model request was used.
+
 ## October 15 checkpoint: generated Stripe checks (0.29.0)
 
 Workflows can opt into `generatedChecks`. Refit then calls the exported functions around confirmed findings, with placeholder IDs, against Stripe's official stripe-mock serving the before and after releases' published contracts and fixtures. stripe-mock runs inside the normal validation container on loopback. A Node preload redirects the Stripe SDK's `api.stripe.com` requests to it, so validation stays at `--network none` with no certificate changes. Both runs must complete for validation to pass. Uncovered usages, hashes and the image ID are recorded, and the PR names the functions called and states that placeholder data checks shapes, not behavior. See [generated checks](GENERATED-CHECKS.md).
@@ -477,6 +509,7 @@ At the owner's request, dependency preparation now gets a 2 GiB writable workspa
 The default suite passed **1,231 tests across 77 files**, with 77 environment-gated tests skipped, plus build, typecheck and formatting. New assertions check that preparation runs with 2 GiB and 3 GiB and validation with 512 MiB and 1 GiB.
 
 Re-testing the large benchmark repositories with a 900-second deadline:
+
 - `backmesh/backmesh` (Yarn 1) now installs completely, then stops because its archive exceeds 256 MiB.
 - `alanagoyal/branded` (npm) also passes the space limit and stops at the archive limit.
 - `starwidesolutions/b2b-ecommerce-saaskit-` still fills the 2 GiB workspace, because Yarn 1 keeps both its cache and a copied tree.
@@ -516,6 +549,7 @@ On the Stripe benchmark's five yarn repositories, read without running applicati
 After merging the self-maintaining Stripe work below, the default suite passed **1,208 tests across 75 files**, with 74 environment-gated tests skipped, plus build, typecheck and formatting. A test checks the shipped adapter against excerpts of the real Stripe schemas and migrates all six moves, including line items read through `invoice.lines.data`.
 
 The local lab at `/Users/pierceluu/Repos/refit-stripe-lab` used this adapter with the actual `stripe` 17.7.0 SDK. `refit run` migrated eight usages across invoices, quotes, line items and invoice items. The original passed simulated acacia responses and the migration passed simulated basil responses in offline Docker; the original fails against basil. Evidence is at `/Users/pierceluu/.refit/evaluations/basil-moves-six-2026-10-15`. The responses were simulated, and no AI or live Stripe call was used. Nullability follows the recorded contract, not observed responses.
+
 ## October 15 checkpoint: self-maintaining Stripe detection and field moves (0.24.0)
 
 Read confirmation now follows mutations, not escapes. Traced SDK responses, signed webhook payloads and values with a resolved `Stripe.*` type stay confirmed when they are passed to functions, returned, stored or aliased. Property writes, `delete`, `++`/`--`, mutating array methods, `Object.assign`-style statics, methods called on the binding itself, rebinding a client and method replacement through a re-exported module still downgrade a read. Declared Stripe types now confirm and no longer stop automation unless the value is mutated. This supersedes the 0.17.0 statement that declared types are review hints. Repository-wide alias doubt from imports that may resolve to unscanned declaration files no longer downgrades reads. Request renames, endpoint replacements and the price-ID webhook rule keep the earlier escape analysis for their edits. The repository-wide webhook gate is unchanged.
@@ -624,8 +658,6 @@ Retained installed CLI and worker evidence is at `/Users/pierceluu/.refit/evalua
 
 The feature was committed and pushed on `codex/configured-source-aliases`, merged into main, and installed globally as 0.15.0 without npm registry publication or co-author trailers. Project references, package/outside extends and bundler-specific resolution remain unsupported. Static alias resolution does not independently prove runtime mapping; application checks must exercise it.
 
-
-
 ## October 14 checkpoint: npm workspace preparation (0.14.0)
 
 Refit prepares supported npm workspace repositories from committed root/workspace manifests and the root lockfile. Positive relative glob arrays select at most 64 named packages. Importer requirements, names, versions and workspace link targets are checked before installation. The networked Docker input remains manifest-only with lifecycle scripts disabled; actual links and root/nested dependency directories are checked before archiving. Workspace source comes from the separate committed application snapshot during offline validation. Cache identity includes workspace manifest hashes, and recipe 3 separates older environments. The existing prepare/run/watch/doctor/enrollment/service paths reuse this implementation. See [workspace setup and boundaries](NPM-WORKSPACES.md).
@@ -635,7 +667,6 @@ The fully gated suite passed **1,000 tests across 64 files with no skips**. A sy
 Retained CLI evidence at `/Users/pierceluu/.refit/evaluations/npm-workspaces-2026-10-14` observes a committed simulated historical contract change, finds two history reads, validates the workspace patch, verifies evidence and reuses the next poll. From outside the checkout, the installed 0.14.0 prepare command reports two committed workspace manifests and reuses the verified environment; a fresh installed run passes both before/after contracts and TypeScript. The application stays clean and unmigrated.
 
 A fresh installed GitHub App service also fetched the approved independent billing demo at `cfa192fd2bab995da81bf7f95ea97e0b0ea5f676`. Recipe 3 prepared its ordinary root dependencies, and 14 baseline tests, both 14-test patched contracts and TypeScript passed in offline Docker. Evidence integrity passed. Its state is `/Users/pierceluu/.refit/evaluations/stripe-service-0.14-2026-10-14`. App access/Git transport were live; billing responses were simulated. This slice used no paid AI calls and created no new PR. Negative patterns, object/nested workspace declarations, workspace bins, non-registry dependency protocols and other package-manager locks remain outside automatic npm preparation.
-
 
 ## October 14 checkpoint: CommonJS and default-exported SDK clients (0.13.0)
 

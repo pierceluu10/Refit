@@ -11,15 +11,15 @@ Rules that apply to every provider, from [AGENTS.md](../AGENTS.md):
 
 ## How to read a goal
 
-| Part | Meaning |
-|---|---|
-| Status today | What the repository records: catalog entry, adapter type, benchmark numbers, with the file |
-| What breaks | How the provider versions and retires things, and where the official change sources are |
-| SDK patterns | The official JS/TS packages and the call shapes the analyzer must trace |
-| Definition of done | Measured on a frozen set; the same four measures for every provider |
-| Milestones | Catalog entry → reviewed adapter → deterministic rules → deadline entries → frozen benchmark → validated fixes |
-| Blockers | What needs the owner |
-| Effort | S (days), M (a release or two), L (several releases, or a new contract format) |
+| Part               | Meaning                                                                                                        |
+| ------------------ | -------------------------------------------------------------------------------------------------------------- |
+| Status today       | What the repository records: catalog entry, adapter type, benchmark numbers, with the file                     |
+| What breaks        | How the provider versions and retires things, and where the official change sources are                        |
+| SDK patterns       | The official JS/TS packages and the call shapes the analyzer must trace                                        |
+| Definition of done | Measured on a frozen set; the same four measures for every provider                                            |
+| Milestones         | Catalog entry → reviewed adapter → deterministic rules → deadline entries → frozen benchmark → validated fixes |
+| Blockers           | What needs the owner                                                                                           |
+| Effort             | S (days), M (a release or two), L (several releases, or a new contract format)                                 |
 
 The frozen set for a new provider follows the Shopify method ([SHOPIFY-BENCHMARK.md](SHOPIFY-BENCHMARK.md#method)): GitHub code search for the SDK, no forks or archived repositories, under 50 MB, pushed since 2024-01, the SDK declared in the root `package.json`, the most-starred kept, frozen with commits before any provider code is written. Sizes below are targets, not runs.
 
@@ -33,13 +33,13 @@ Built-in agent, 531 benchmark repositories, **74 validated fixes of 234 affected
 
 **Status today.** In the catalog with a file adapter, `examples/openai.provider.json`, which maps `models.retrieve` → `Model`, `chat.completions.create` → `CreateChatCompletionResponse`, `responses.create` → `Response` and `embeddings.create` → `CreateEmbeddingResponse`, each with its operation ID, checked against OpenAI's published OpenAPI document (`openai/openai-openapi`, info.version 2.3.0) on 2026-10-20. `Response` is an `allOf`, which Refit merges into one object schema when the spec is loaded (source: pipeline/specifications.ts). A review-only model replacement proposal exists: `refit deadlines --propose-model-fixes` (source: docs/DEADLINES.md#propose-model-replacements, 2026-10-20). READINESS calls it a preview adapter; the OpenAI fixtures test invented renames, not announced changes (source: docs/READINESS.md, "provider detection and agent catalog"; pipeline/fixtures/openai/README.md). Numbers:
 
-| Measure | Value | Source |
-|---|---|---|
-| Deadline registry entries | 27 shutdowns, 67 model IDs, checked 2026-10-15 | data/deadlines.json |
-| Fresh Stripe repositories sending a model retired 2026-10-23 | 51 of 381 | docs/BENCHMARKS.md, 2026-10-16 |
-| Labelled deadline repositories with a live 2026-10-23 model | 15 of 34 | docs/DEADLINE-BENCHMARK.md, 2026-10-16 |
-| OpenAI line precision, live-only evidence | 83% (19/23) | docs/READINESS.md, "live-only deadline evidence" |
-| Likely SDK calls traced on the 15-repository coverage set | 38 → 172 of 187 after class clients | docs/SDK-COVERAGE.md; docs/READINESS.md, 0.19.0 |
+| Measure                                                             | Value                                                                                  | Source                                                    |
+| ------------------------------------------------------------------- | -------------------------------------------------------------------------------------- | --------------------------------------------------------- |
+| Deadline registry entries                                           | 27 shutdowns, 67 model IDs, checked 2026-10-15                                         | data/deadlines.json                                       |
+| Fresh Stripe repositories sending a model retired 2026-10-23        | 51 of 381                                                                              | docs/BENCHMARKS.md, 2026-10-16                            |
+| Labelled deadline repositories with a live 2026-10-23 model         | 15 of 34                                                                               | docs/DEADLINE-BENCHMARK.md, 2026-10-16                    |
+| OpenAI line precision, live-only evidence                           | 83% (19/23)                                                                            | docs/READINESS.md, "live-only deadline evidence"          |
+| Likely SDK calls traced on the 15-repository coverage set           | 38 → 172 of 187 after class clients                                                    | docs/SDK-COVERAGE.md; docs/READINESS.md, 0.19.0           |
 | Exposed deadline-benchmark repositories with a proposed replacement | 2 of 15 (6 sites, all correct on hand review), 4 more stopped for review with a reason | docs/benchmarks/2026-10-20-model-replacement-results.json |
 
 **What breaks for its users.** Model shutdowns on published dates: a retired model stops serving requests (source: docs/DEADLINE-BENCHMARK.md). The registry source is `https://developers.openai.com/api/docs/deprecations` (source: data/deadlines.json). There is no dated API version to pin; `apiVersion: "1"` in the fixtures is a simulated contract, not an OpenAI release (source: docs/MULTIPLE-INTEGRATIONS.md). SDK major versions and endpoint migrations (Chat Completions → Responses): unverified: check. Machine-readable spec: an OpenAPI document for the public API, unverified: check. Refit's own AI calls use the Responses endpoint (source: pipeline/openai.ts).
@@ -48,13 +48,13 @@ Built-in agent, 531 benchmark repositories, **74 validated fixes of 234 affected
 
 **Definition of done.**
 
-| Measure | Target |
-|---|---|
-| Frozen set | 100 repositories declaring `openai`, selected as above; 30 hand-labelled for live model pins and the correct replacement |
-| Live model pins traced to a call argument | ≥ 90% of labelled pins |
-| Affected repositories (live pin of a registry model) ending in a validated fix | ≥ 70% of those with runnable checks |
-| Wrong fixes on hand review of every validated fix | 0 |
-| Remaining stops | each a named owner decision (replacement model policy, catalogs, env fallbacks) |
+| Measure                                                                        | Target                                                                                                                   |
+| ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------ |
+| Frozen set                                                                     | 100 repositories declaring `openai`, selected as above; 30 hand-labelled for live model pins and the correct replacement |
+| Live model pins traced to a call argument                                      | ≥ 90% of labelled pins                                                                                                   |
+| Affected repositories (live pin of a registry model) ending in a validated fix | ≥ 70% of those with runnable checks                                                                                      |
+| Wrong fixes on hand review of every validated fix                              | 0                                                                                                                        |
+| Remaining stops                                                                | each a named owner decision (replacement model policy, catalogs, env fallbacks)                                          |
 
 **Milestones.** 1. Catalog entry exists. 2. **Done 2026-10-20:** the adapter maps `chat.completions.create`, `responses.create` and `embeddings.create`, written by hand from the published OpenAPI document, so no `adapter-suggest` budget was spent. 3. **Review-only rule done 2026-10-20:** `refit deadlines --propose-model-fixes` replaces a live literal model ID with the registry `replacement` (followed while it retires too), only in a traced text-generation call's `model` or a `??`/`||` default there, never in catalogs, tests or comparisons, and stops for review on sampling and length parameters, spread options and constants. `refit serve --model-fixes` applies it through validation and drafts in enrolled repositories (owner decision below); it is not part of `refit run`. Coverage since then: v3 SDK and `openai-edge` `createChatCompletion`, request objects held in a `const`, and model constants used by one call. Then cross-module constants and enum members, helper parameters with their callers, and raw HTTP requests to the official endpoints. Of the 15 exposed repositories, 9 now stop silently. Most of them hold the model in settings objects, UI state or CLI option defaults, which a person has to review. On this set the sampling-parameter stop is now the main limit: 3 of the 4 stopped repositories set `temperature` or `max_tokens`. Verifying which parameters the replacement models accept would turn those into fixes. 4. Deadline entries already exist; keep `checkedAt` current. 5. Freeze the 100-repository set and labels (needs a GitHub code search token; this session had none). 6. Run the fix benchmark with validation; publish per-repository results like the Stripe sets.
 
@@ -130,10 +130,10 @@ Built-in agent, 531 benchmark repositories, **74 validated fixes of 234 affected
 
 **Status today.** Built-in agent, Admin GraphQL only, contracts as introspection snapshots (source: docs/SHOPIFY.md; pipeline/agent-catalog.ts). Numbers (source: docs/BENCHMARKS.md, 2026-10-16):
 
-| Set | Repositories | With Admin usage | Validated fixes | Main stops |
-|---|---|---|---|---|
-| Fresh | 200 | 170 | 6 (13 patched) | 44 need an SDK upgrade, 32 use REST (39 before 7 raw GraphQL requests were told apart, 2026-10-20) |
-| Original | 50 | 46 | 1 | 15 need an SDK upgrade |
+| Set      | Repositories | With Admin usage | Validated fixes | Main stops                                                                                         |
+| -------- | ------------ | ---------------- | --------------- | -------------------------------------------------------------------------------------------------- |
+| Fresh    | 200          | 170              | 6 (13 patched)  | 44 need an SDK upgrade, 32 use REST (39 before 7 raw GraphQL requests were told apart, 2026-10-20) |
+| Original | 50           | 46               | 1               | 15 need an SDK upgrade                                                                             |
 
 24 of 200 fresh apps send a query that fails on every served version, each at an exact line (23 before callback tracing, 2026-10-20). Repeat runs matched 200 of 200. Deadline registry: 7 Admin versions, 2025-04 to 2026-10 (source: data/deadlines.json).
 
@@ -143,13 +143,13 @@ Built-in agent, 531 benchmark repositories, **74 validated fixes of 234 affected
 
 **Definition of done.** Measured on the frozen fresh 200 (`docs/benchmarks/2026-10-16-shopify-repos.json` and `-fresh-repos.json`):
 
-| Measure | Today | Target |
-|---|---|---|
-| Admin apps ending in a validated version move | 6 of 170 | ≥ 70% of those with runnable checks, once the SDK-upgrade decision is made |
-| Apps stopped on "SDK upgrade needed" | 44 | 0 without a named decision |
-| Apps stopped on REST | 32, each REST call reported at its line with method and path where knowable (2026-10-20) | each reported with the exact REST calls; migration only under an owner-approved rule |
-| Wrong fixes on hand review | 0 of 7 | 0 |
-| Repeat-run agreement | 200/200 | 200/200 |
+| Measure                                       | Today                                                                                    | Target                                                                               |
+| --------------------------------------------- | ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| Admin apps ending in a validated version move | 6 of 170                                                                                 | ≥ 70% of those with runnable checks, once the SDK-upgrade decision is made           |
+| Apps stopped on "SDK upgrade needed"          | 44                                                                                       | 0 without a named decision                                                           |
+| Apps stopped on REST                          | 32, each REST call reported at its line with method and path where knowable (2026-10-20) | each reported with the exact REST calls; migration only under an owner-approved rule |
+| Wrong fixes on hand review                    | 0 of 7                                                                                   | 0                                                                                    |
+| Repeat-run agreement                          | 200/200                                                                                  | 200/200                                                                              |
 
 **Milestones.** 1. Catalog entry exists. 2. Adapter exists. 3. Rules: an `@shopify/shopify-api` major upgrade in the same patch as the pin move, modelled on the stripe-node upgrade in [DEPENDENCIES.md](DEPENDENCIES.md#stripe-node-upgrade-in-a-patch), if the owner allows a major bump; helper and closure document tracing (done 2026-10-20: traced documents 964 → 994 and unread Admin calls 90 → 76 across both frozen sets, one more already-broken query found; source: docs/SHOPIFY-BENCHMARK.md). 4. Deadline entries exist; add versions older than 2025-04 so older pins are reported. 5. Set is frozen. 6. Rerun and publish.
 
@@ -210,6 +210,7 @@ Built-in agent, 531 benchmark repositories, **74 validated fixes of 234 affected
 **Status today.** In the catalog with `adapter: null`, packages `@paypal/paypal-server-sdk` and `@paypal/checkout-server-sdk`, hostnames `api-m.paypal.com` and `api-m.sandbox.paypal.com` (source: pipeline/agent-catalog.ts). Request detection (review only, 2026-10-21): `refit paypal` lists old-SDK request classes, new-SDK controller calls and raw REST calls with method, path, the published operation and the new-SDK method that makes the same request (source: docs/PAYPAL.md). The request map `data/paypal-requests.json` is generated from the packages' own sources and PayPal's published OpenAPI documents. On a frozen set of 22 repositories it reported 90 live requests, all correct on hand review, and traced 82 of 92 real SDK call lines in scanned repositories (89%) by a text heuristic (source: docs/PAYPAL.md#measured-on-a-frozen-set). No deadline entries.
 
 **What breaks for its users.** Facts checked 2026-10-21:
+
 - **Old SDK deprecated.** Every `@paypal/checkout-server-sdk` release (1.0.0-RC3-SNAPSHOT to 1.0.3; the last published 2021-09-21) carries npm's notice "Package no longer supported. The author suggests using the @paypal/paypal-server-sdk package instead" ([registry](https://registry.npmjs.org/@paypal%2fcheckout-server-sdk)). The date of the deprecation is not in the registry metadata. Whether the old package still works against PayPal's API: unverified, since nothing was called. Its GitHub repository, `paypal/Checkout-NodeJS-SDK`, could not be read (`raw.githubusercontent.com` answered 404 and `git clone` asked for credentials).
 - **No call shape is shared.** The old SDK sends request objects through `client.execute(request)`; the new one has controller methods. The new SDK renamed every controller method in 0.7.0 (2025-03-20): `ordersCreate` became `createOrder`, from its 0.6.1 and 0.7.0 tarballs. Its [CHANGELOG](https://github.com/paypal/PayPal-TypeScript-Server-SDK/blob/b02a9b9c8f53418d6278928fa41b174803037277/CHANGELOG.md) covers 1.0.0 to 2.4.0, and 2.0.0 lists "several model renames" as breaking. Latest release 2.5.0 (2026-08-21).
 - **Hosts.** The old SDK calls `api.paypal.com` and `api.sandbox.paypal.com`. The new SDK and every published OpenAPI document name `api-m.paypal.com` and `api-m.sandbox.paypal.com`. Whether the `api.` hosts are still served: unverified.
@@ -217,6 +218,7 @@ Built-in agent, 531 benchmark repositories, **74 validated fixes of 234 affected
 - **Versioning.** Paths carry `/v1`, `/v2` or `/v3` per API in both the documents and the SDKs. Per-API deprecation dates, PayPal's REST versioning policy and official release notes: unverified. `developer.paypal.com` is blocked by this environment's network policy, so none of its pages could be read.
 
 **SDK patterns to trace.** Shapes confirmed against the packages (source: docs/PAYPAL.md):
+
 - **Old.** `new paypal.core.SandboxEnvironment(clientId, clientSecret)`, `new paypal.core.PayPalHttpClient(environment)`, then `client.execute(new paypal.orders.OrdersCreateRequest())` with `request.requestBody({...})`. This is the README of `@paypal/checkout-server-sdk` 1.0.3 on npm.
 - **New.** `new Client({ clientCredentialsAuthCredentials: { oAuthClientId, oAuthClientSecret }, environment: Environment.Sandbox })` (README of `@paypal/paypal-server-sdk` 2.5.0), then `new OrdersController(client)` and `ordersController.createOrder({ body })` ([doc/controllers/orders.md](https://github.com/paypal/PayPal-TypeScript-Server-SDK/blob/2.5.0/doc/controllers/orders.md)).
 - **Raw.** `fetch` and `axios` to `https://api-m.paypal.com/v2/checkout/orders`, often through a live-or-sandbox conditional base.
@@ -225,6 +227,7 @@ Built-in agent, 531 benchmark repositories, **74 validated fixes of 234 affected
 **Definition of done.** Frozen set of 50 repositories declaring either package; npm search found 22 on 2026-10-21, so a larger set needs GitHub code search. Targets: ≥ 90% of likely SDK calls traced; ≥ 70% of affected repositories with runnable checks validated; 0 wrong fixes; the package replacement is a named owner decision until a rule covers it.
 
 **Milestones.**
+
 1. Catalog entry exists.
 2. Review-only request detection exists (`refit paypal`, 2026-10-21). An adapter for the new SDK's controllers can be written by hand from `data/paypal-requests.json` and the published documents, without `adapter-suggest` spend. Not done: each response-schema mapping still needs checking against the document.
 3. Rules for removals and renames the diff proves. The SDK replacement stays review-only.
@@ -238,80 +241,101 @@ Built-in agent, 531 benchmark repositories, **74 validated fixes of 234 affected
 
 ---
 
-## OpenAI and Anthropic: progress checklist (2026-10-20)
+## OpenAI and Anthropic: progress checklist (2026-10-21)
 
 Ten items per provider, taken from each goal's definition of done, worth 10% each.
 
-| # | Item | OpenAI | Anthropic |
-|---|---|---|---|
-| 1 | Catalog entry | Yes | Yes (`adapter: null`, see its blockers) |
-| 2 | Reviewed adapter for the calls real code makes | Yes (`chat.completions`, `responses`, `embeddings`) | Yes (`messages`) |
-| 3 | Deadline entries with `source` and `checkedAt` | Yes | Yes, kept current by `refit deadlines --sync anthropic` |
-| 4 | Deterministic replacement rule with named stops | Yes | Yes |
-| 5 | Automatic validated draft pull requests (`refit serve --model-fixes`) | Yes | Yes |
-| 6 | Frozen benchmark set | Yes, 100 repositories | Yes, 50 repositories |
-| 7 | Hand-labelled live pins | No | No |
-| 8 | At least 90% of labelled pins traced | No | No |
-| 9 | At least 70% of affected repositories with runnable checks validated | No: 0 of 47 exposed | No: 1 of 17 exposed |
-| 10 | No wrong fix on hand review | Yes: 1 of 1 | Yes: 6 of 6 sites, one parameter unverified |
-| | **Done** | **70%** | **70%** |
+| #   | Item                                                                  | OpenAI                                                                      | Anthropic                                               |
+| --- | --------------------------------------------------------------------- | --------------------------------------------------------------------------- | ------------------------------------------------------- |
+| 1   | Catalog entry                                                         | Yes                                                                         | Yes (`adapter: null`, see its blockers)                 |
+| 2   | Reviewed adapter for the calls real code makes                        | Yes (`chat.completions`, `responses`, `embeddings`)                         | Yes (`messages`)                                        |
+| 3   | Deadline entries with `source` and `checkedAt`                        | Yes                                                                         | Yes, kept current by `refit deadlines --sync anthropic` |
+| 4   | Deterministic replacement rule with named stops                       | Yes                                                                         | Yes                                                     |
+| 5   | Automatic validated draft pull requests (`refit serve --model-fixes`) | Yes                                                                         | Yes                                                     |
+| 6   | Frozen benchmark set                                                  | Yes, 100 repositories                                                       | Yes, 50 repositories                                    |
+| 7   | Hand-labelled live pins                                               | No (only the 34-application deadline set has labels)                        | No                                                      |
+| 8   | At least 90% of labelled pins traced                                  | No: 7 of 19 labelled live lines on the deadline set reach an edit or a stop | No                                                      |
+| 9   | At least 70% of affected repositories with runnable checks validated  | No: 0 of 45 exposed                                                         | No: 1 of 16 exposed                                     |
+| 10  | No wrong fix on hand review                                           | Yes: 1 of 1                                                                 | Yes: 6 of 6 sites, one parameter unverified             |
+|     | **Done**                                                              | **70%**                                                                     | **70%**                                                 |
 
-Both sets came from npm search (`scripts/ai-sdk-select.mjs`), because GitHub code search was unavailable. npm returns published packages: mostly SDK wrappers, provider plugins and model catalogs, not applications. Results are in [`benchmarks/2026-10-20-openai-results.json`](benchmarks/2026-10-20-openai-results.json) and [`benchmarks/2026-10-20-anthropic-results.json`](benchmarks/2026-10-20-anthropic-results.json).
+Both sets came from npm search (`scripts/ai-sdk-select.mjs`), because GitHub code search was unavailable. npm returns published packages: mostly SDK wrappers, provider plugins and model catalogs, not applications.
 
-| | OpenAI | Anthropic |
-|---|---|---|
-| Repositories | 100 | 50 |
-| Not scanned (over scan limits, or over the 2-minute cap) | 16 | 17 |
-| Live exposure to a registry deadline | 47 | 17 |
-| A replacement proposed | 1 | 1 (6 sites) |
-| Stopped for review with a reason | 1 | 2 |
-| Not traced | 45 | 14 |
-| Validated in offline Docker | 0 (the one candidate exceeds the 50 MiB archive limit) | 1 (`vitest` passed before and after) |
+The 2026-10-21 run used a pinned worktree with catalog precision, `this.model` tracing, build-output skipping and the shared analyzer program. Results are in [`benchmarks/2026-10-21-openai-results.json`](benchmarks/2026-10-21-openai-results.json) and [`benchmarks/2026-10-21-anthropic-results.json`](benchmarks/2026-10-21-anthropic-results.json). The 2026-10-20 run is kept for comparison.
 
-Most untraced exposures are not requests an application makes. They are entries in model catalogs (`name: 'codex-mini-latest'` in model metadata, `versions: ['gpt-4.5-preview']`), which the deadline scanner still counts as live, or library defaults in class fields (`model = "gpt-3.5-turbo-instruct"`) that reach the request as `model: this.model`. In that order, the next work is:
-1. Classify object-shaped model catalogs as non-live.
-2. Follow `this.model` to a class field default.
-3. Rebuild the frozen sets from application repositories once GitHub code search is available.
+|                                                          | OpenAI 10-20 | OpenAI 10-21                                           | Anthropic 10-20 | Anthropic 10-21                      |
+| -------------------------------------------------------- | ------------ | ------------------------------------------------------ | --------------- | ------------------------------------ |
+| Repositories                                             | 100          | 100                                                    | 50              | 50                                   |
+| Not scanned (over scan limits, or over the 2-minute cap) | 16           | 14                                                     | 17              | 15                                   |
+| Live exposure to a registry deadline                     | 47           | 45                                                     | 17              | 16                                   |
+| A replacement proposed                                   | 1            | 1                                                      | 1 (6 sites)     | 1 (6 sites)                          |
+| Stopped for review with a reason                         | 1            | 1                                                      | 2               | 2                                    |
+| Not traced                                               | 45           | 43                                                     | 14              | 13                                   |
+| Validated in offline Docker                              | 0            | 0 (the one candidate exceeds the 50 MiB archive limit) | 1               | 1 (`vitest` passed before and after) |
 
-Item 9 cannot reach 70% on a set of libraries, so the fix-rate target needs an application set to measure against.
+Live lines (both providers, all 184 checkouts including the deadline set) fell from 1,170 to 630. On the frozen sets that removed exposure only where a repository's sole live lines were catalog entries, so the fix counts did not move. The 43 untraced OpenAI exposures, by kind:
+
+- 10 name only non-text models (DALL·E, Whisper, TTS, `gpt-image`, transcription), which the rule never replaces.
+- 7 hit the 2-minute cap.
+- 26 send the model through a library's own wrapper: option spreads, `invocationParams()`, framework model references such as genkit's `modelRef`, getters such as `getDefaultModel()`, or a request to another host.
+
+The 13 untraced Anthropic exposures are 6 timeouts and 7 of the same wrapper kind.
+
+On the 34-application [deadline set](DEADLINE-BENCHMARK.md), 22 repositories are exposed. Of those, 2 get proposals (6 sites, each correct on hand review) and 4 stop for review. Of the 19 labelled live lines, 7 are reached:
+
+- 2 are edits.
+- 5 stop for spread options or sampling parameters.
+- Of the 12 missed, 3 are non-text or legacy-completion models. The rest are settings defaults, map lookups and an Apps Script helper chain that also sets `temperature`.
+
+Neither deadline-set proposal validated:
+
+- `damngood.tools` needs a custom validation image, because its tracked dependencies or lockfiles can't be prepared.
+- `AI-Butler`'s own `npm run build` fails offline before any change.
+
+Items 8 and 9 cannot reach their targets on sets of libraries, where models pass through wrappers by design. Next:
+
+1. Rebuild the frozen sets from application repositories once GitHub code search is available.
+2. Label live pins on them.
+3. Revisit the sampling-parameter stop (an owner decision): it accounts for most stops on applications.
 
 ## PayPal: progress checklist (2026-10-21)
 
 The same ten items as the OpenAI and Anthropic checklist, worth 10% each.
 
-| # | Item | PayPal |
-|---|---|---|
-| 1 | Catalog entry | Yes (`adapter: null`) |
-| 2 | Reviewed adapter for the calls real code makes | No. Request map only: `data/paypal-requests.json`, review-only `refit paypal` |
-| 3 | Deadline entries with `source` and `checkedAt` | No. No dated end of support found on a page readable from here |
-| 4 | Deterministic replacement rule with named stops | No. The SDK replacement is an owner decision |
-| 5 | Automatic validated draft pull requests | No |
-| 6 | Frozen benchmark set | Partial: 22 of 50 repositories (npm search found no more) |
-| 7 | Hand-labelled live requests | Partial: all 90 reported requests reviewed; missed calls are counted by a text heuristic, not labels |
-| 8 | At least 90% of likely SDK calls traced | No: 82 of 92 (89%) in scanned repositories |
-| 9 | At least 70% of affected repositories with runnable checks validated | No: no fix is proposed |
-| 10 | No wrong fix on hand review | n/a: no fix is proposed |
-| | **Done** | **10%** |
+| #   | Item                                                                 | PayPal                                                                                               |
+| --- | -------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| 1   | Catalog entry                                                        | Yes (`adapter: null`)                                                                                |
+| 2   | Reviewed adapter for the calls real code makes                       | No. Request map only: `data/paypal-requests.json`, review-only `refit paypal`                        |
+| 3   | Deadline entries with `source` and `checkedAt`                       | No. No dated end of support found on a page readable from here                                       |
+| 4   | Deterministic replacement rule with named stops                      | No. The SDK replacement is an owner decision                                                         |
+| 5   | Automatic validated draft pull requests                              | No                                                                                                   |
+| 6   | Frozen benchmark set                                                 | Partial: 22 of 50 repositories (npm search found no more)                                            |
+| 7   | Hand-labelled live requests                                          | Partial: all 90 reported requests reviewed; missed calls are counted by a text heuristic, not labels |
+| 8   | At least 90% of likely SDK calls traced                              | No: 82 of 92 (89%) in scanned repositories                                                           |
+| 9   | At least 70% of affected repositories with runnable checks validated | No: no fix is proposed                                                                               |
+| 10  | No wrong fix on hand review                                          | n/a: no fix is proposed                                                                              |
+|     | **Done**                                                             | **10%**                                                                                              |
 
 Partial items count as not done. Also done, outside the ten: the facts in [What breaks](#paypal) were checked against the npm registry, both packages' sources and PayPal's published OpenAPI documents. Next, in order:
+
 1. Trace controllers returned from getters and axios instances with a PayPal `baseURL`, the two misses on the set.
 2. Hand-write a new-SDK adapter from the request map, checking each response schema against the published documents.
 3. Rebuild the set from application repositories once GitHub code search is available.
 
 ## Priority order
 
-| # | Provider | Reason |
-|---|---|---|
-| 1 | Shopify | Built-in agent and a 200-app frozen set exist; one owner decision (SDK major upgrade) unblocks up to 44 apps |
-| 2 | OpenAI | Adapter and registry exist; 51 of 381 fresh Stripe repositories hit a shutdown on 2026-10-23, three days from this writing |
-| 3 | Anthropic | Same SDK shape and the same retirement rule as OpenAI; already in the coverage set; cheapest second AI provider |
-| 4 | Meta Graph | Registry exists and matched at 100% line precision; all labelled repositories are past due, so the pain is real; but raw-URL migration is new work |
-| 5 | PayPal | In the catalog, a deprecated SDK forces real migrations, PayPal publishes OpenAPI documents (checked 2026-10-21), and review-only detection exists |
-| 6 | Gemini | Reuses the retirement rule; the SDK replacement is the only new piece |
-| 7 | Slack | Common in app code with named method sunsets; a spec may exist (unverified) |
-| 8 | Cloudflare | Likely OpenAPI and a `client.resource.method` SDK, but no evidence yet of how often it breaks users |
-| 9 | Google | Largest surface and a non-OpenAPI contract format; needs an architecture decision first |
-| 10 | Salesforce | Community SDK, breakage inside SOQL strings, few public repositories |
+| #   | Provider   | Reason                                                                                                                                             |
+| --- | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Shopify    | Built-in agent and a 200-app frozen set exist; one owner decision (SDK major upgrade) unblocks up to 44 apps                                       |
+| 2   | OpenAI     | Adapter and registry exist; 51 of 381 fresh Stripe repositories hit a shutdown on 2026-10-23, three days from this writing                         |
+| 3   | Anthropic  | Same SDK shape and the same retirement rule as OpenAI; already in the coverage set; cheapest second AI provider                                    |
+| 4   | Meta Graph | Registry exists and matched at 100% line precision; all labelled repositories are past due, so the pain is real; but raw-URL migration is new work |
+| 5   | PayPal     | In the catalog, a deprecated SDK forces real migrations, PayPal publishes OpenAPI documents (checked 2026-10-21), and review-only detection exists |
+| 6   | Gemini     | Reuses the retirement rule; the SDK replacement is the only new piece                                                                              |
+| 7   | Slack      | Common in app code with named method sunsets; a spec may exist (unverified)                                                                        |
+| 8   | Cloudflare | Likely OpenAPI and a `client.resource.method` SDK, but no evidence yet of how often it breaks users                                                |
+| 9   | Google     | Largest surface and a non-OpenAPI contract format; needs an architecture decision first                                                            |
+| 10  | Salesforce | Community SDK, breakage inside SOQL strings, few public repositories                                                                               |
 
 The order weighs reuse of existing work, how common the SDK is in public repositories, how often the provider breaks users, and whether a machine-readable contract exists. Counts of how common each SDK is come only from Refit's own sets for Stripe, Shopify, OpenAI, Anthropic and Meta; for the others the ranking is a judgement to confirm with a code search before freezing a set.
 

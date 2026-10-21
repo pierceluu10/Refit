@@ -1,0 +1,738 @@
+{
+  "formatVersion": 1,
+  "list": "docs/benchmarks/2026-10-16-deadline-repos.json (provider openai)",
+  "provider": "openai",
+  "ranAt": "2026-10-21T09:52:06.890Z",
+  "note": "refit deadlines and refit deadlines --propose-model-fixes at each frozen commit; files read only. Exposure counts live evidence for this provider only. Scans ran three or four at a time on 4 cores with nothing else running.",
+  "refitTree": "24cf764 (catalog precision, class properties, build output) with 34a55ac (shared analyzer program) applied; pinned worktree",
+  "summary": {
+    "repositories": 34,
+    "errors": 0,
+    "timedOut": 0,
+    "exposed": 22,
+    "exposedWithReplacement": 2,
+    "exposedStoppedOnly": 4,
+    "exposedSilent": 16,
+    "replacements": 6,
+    "stops": 10
+  },
+  "results": [
+    {
+      "repo": "urvana/appscript-chatgpt",
+      "commit": "e5cef4e1c3128855b12e05ef9fceb429dc4ee6eb",
+      "exposures": [
+        {
+          "deadline": "openai-2026-10-23-gpt-3-5-turbo",
+          "date": "2026-10-23",
+          "evidence": ["src/Code.ts:185"]
+        }
+      ],
+      "replacements": [],
+      "stops": []
+    },
+    {
+      "repo": "chinmaymk/aikit",
+      "commit": "ca79966e5636cf89f77ef0388366d82257c28db9",
+      "exposures": [],
+      "replacements": [],
+      "stops": []
+    },
+    {
+      "repo": "arunpattnaik/damngood.tools",
+      "commit": "b0c65ebb0c84a7f8d60dd103fa4a85a1207ea870",
+      "exposures": [
+        {
+          "deadline": "openai-2026-10-23-gpt-3-5-turbo",
+          "date": "2026-10-23",
+          "evidence": ["lib/og.ts:6", "lib/privacy.ts:88"]
+        }
+      ],
+      "replacements": [
+        {
+          "file": "lib/og.ts",
+          "line": 5,
+          "call": "createChatCompletion",
+          "edited": {
+            "file": "lib/og.ts",
+            "line": 6
+          },
+          "from": "gpt-3.5-turbo",
+          "to": "gpt-5.6-terra",
+          "deadline": "openai-2026-10-23-gpt-3-5-turbo"
+        },
+        {
+          "file": "lib/privacy.ts",
+          "line": 87,
+          "call": "createChatCompletion",
+          "edited": {
+            "file": "lib/privacy.ts",
+            "line": 88
+          },
+          "from": "gpt-3.5-turbo",
+          "to": "gpt-5.6-terra",
+          "deadline": "openai-2026-10-23-gpt-3-5-turbo"
+        }
+      ],
+      "stops": []
+    },
+    {
+      "repo": "VapiAI/example-server-serverless-vercel",
+      "commit": "9714ec14902158fd5e0e401cdd1ef70094b913ff",
+      "exposures": [
+        {
+          "deadline": "openai-2026-09-28-gpt-3-5-turbo-instruct",
+          "date": "2026-09-28",
+          "evidence": ["api/custom-llm/openai-advanced.ts:28"]
+        },
+        {
+          "deadline": "openai-2026-10-23-gpt-3-5-turbo",
+          "date": "2026-10-23",
+          "evidence": [
+            "api/custom-llm/openai-advanced.ts:45",
+            "api/custom-llm/openai-advanced.ts:62",
+            "api/custom-llm/openai-sse.ts:31",
+            "api/custom-llm/openai-sse.ts:49",
+            "api/inbound.ts:25",
+            "api/webhook/.assistantRequest.ts:28"
+          ]
+        }
+      ],
+      "replacements": [],
+      "stops": [
+        {
+          "file": "api/custom-llm/openai-advanced.ts",
+          "line": 44,
+          "call": "chat.completions.create",
+          "at": {
+            "file": "api/custom-llm/openai-advanced.ts",
+            "line": 45
+          },
+          "model": "gpt-3.5-turbo",
+          "reason": "The request spreads other options, which may set parameters the replacement rejects."
+        },
+        {
+          "file": "api/custom-llm/openai-advanced.ts",
+          "line": 61,
+          "call": "chat.completions.create",
+          "at": {
+            "file": "api/custom-llm/openai-advanced.ts",
+            "line": 62
+          },
+          "model": "gpt-3.5-turbo",
+          "reason": "The request spreads other options, which may set parameters the replacement rejects."
+        },
+        {
+          "file": "api/custom-llm/openai-sse.ts",
+          "line": 30,
+          "call": "chat.completions.create",
+          "at": {
+            "file": "api/custom-llm/openai-sse.ts",
+            "line": 31
+          },
+          "model": "gpt-3.5-turbo",
+          "reason": "The request spreads other options, which may set parameters the replacement rejects."
+        },
+        {
+          "file": "api/custom-llm/openai-sse.ts",
+          "line": 48,
+          "call": "chat.completions.create",
+          "at": {
+            "file": "api/custom-llm/openai-sse.ts",
+            "line": 49
+          },
+          "model": "gpt-3.5-turbo",
+          "reason": "The request spreads other options, which may set parameters the replacement rejects."
+        }
+      ]
+    },
+    {
+      "repo": "codextde/textchecker",
+      "commit": "7b66d78e74379f9fc909f6d4a2d984cb50a5d088",
+      "exposures": [],
+      "replacements": [],
+      "stops": []
+    },
+    {
+      "repo": "hervekom37/Ani-Code-CLI",
+      "commit": "07a4c0110a0a1edb5879ca73716cfad32b63b71b",
+      "exposures": [
+        {
+          "deadline": "openai-2026-07-23-gpt-5-chat-latest",
+          "date": "2026-07-23",
+          "evidence": [
+            "src/core/agent.ts:490",
+            "src/core/agent.ts:492",
+            "src/core/agent.ts:500",
+            "src/utils/openai-models.ts:23",
+            "src/utils/openai-models.ts:25"
+          ]
+        },
+        {
+          "deadline": "openai-2026-10-23-gpt-4",
+          "date": "2026-10-23",
+          "evidence": [
+            "src/core/agent.ts:497",
+            "src/core/agent.ts:498",
+            "src/utils/openai-models.ts:30",
+            "src/utils/openai-models.ts:31"
+          ]
+        }
+      ],
+      "replacements": [],
+      "stops": []
+    },
+    {
+      "repo": "upstash/rag-chat",
+      "commit": "4c3f290908150b216cd19985a4c7c601ab78d22f",
+      "exposures": [],
+      "replacements": [],
+      "stops": []
+    },
+    {
+      "repo": "kyegomez/Athena-for-Search",
+      "commit": "a591c264cba67e290032dab2c8bafda9d2362cc1",
+      "exposures": [
+        {
+          "deadline": "openai-2026-10-23-gpt-3-5-turbo",
+          "date": "2026-10-23",
+          "evidence": ["types/index.ts:2"]
+        }
+      ],
+      "replacements": [],
+      "stops": [
+        {
+          "file": "utils/answer.ts",
+          "line": 17,
+          "call": "fetch /v1/chat/completions",
+          "at": {
+            "file": "types/index.ts",
+            "line": 2
+          },
+          "model": "gpt-3.5-turbo",
+          "reason": "The request sets max_tokens, temperature, which gpt-5.6-terra may reject or treat differently."
+        }
+      ]
+    },
+    {
+      "repo": "shouri123/Late-Meet",
+      "commit": "d2164445b24620ccf5aa6393e318efaaa3c530a8",
+      "exposures": [
+        {
+          "deadline": "openai-2027-02-26-whisper-1",
+          "date": "2027-02-26",
+          "evidence": ["src/config.ts:11"]
+        }
+      ],
+      "replacements": [],
+      "stops": []
+    },
+    {
+      "repo": "iceener/ai",
+      "commit": "2f41f5e683b4c1054d35918accba9bfe99f16a26",
+      "exposures": [
+        {
+          "deadline": "openai-2027-02-26-whisper-1",
+          "date": "2027-02-26",
+          "evidence": ["src/services/common/llm.service.ts:168"]
+        }
+      ],
+      "replacements": [],
+      "stops": []
+    },
+    {
+      "repo": "arumie/obsidian-simple-prompt-plugin",
+      "commit": "d84e8cdf7a576f43d095ea52f3f4f0ed3f4227a1",
+      "exposures": [
+        {
+          "deadline": "openai-2026-10-23-gpt-3-5-turbo",
+          "date": "2026-10-23",
+          "evidence": ["src/constants.ts:194"]
+        }
+      ],
+      "replacements": [],
+      "stops": []
+    },
+    {
+      "repo": "heimoshuiyu/chatgpt-api-web",
+      "commit": "5d3cdf6c92fa9c71777aaa78b93b3702a1b91f38",
+      "exposures": [
+        {
+          "deadline": "openai-2026-05-12-dall-e-2",
+          "date": "2026-05-12",
+          "evidence": ["src/components/ImageGenDrawer.tsx:34"]
+        },
+        {
+          "deadline": "openai-2027-01-06-tts-1",
+          "date": "2027-01-06",
+          "evidence": ["src/types/newChatstore.ts:88"]
+        },
+        {
+          "deadline": "openai-2027-02-26-whisper-1",
+          "date": "2027-02-26",
+          "evidence": ["src/components/WhisperButton.tsx:102", "src/utils/audioRecorder.ts:64"]
+        }
+      ],
+      "replacements": [],
+      "stops": []
+    },
+    {
+      "repo": "AQComputerKing/protoforge",
+      "commit": "c3c79068fdd04079feadb4402e303adc2b947791",
+      "exposures": [
+        {
+          "deadline": "openai-2026-10-23-gpt-4",
+          "date": "2026-10-23",
+          "evidence": ["src/services/models.ts:48"]
+        }
+      ],
+      "replacements": [],
+      "stops": []
+    },
+    {
+      "repo": "theswerd/ai-sql",
+      "commit": "63e563fc9d8e22bbf48596199a99dcbb9c1b0ade",
+      "exposures": [],
+      "replacements": [],
+      "stops": []
+    },
+    {
+      "repo": "fayez-nazzal/TestGPT",
+      "commit": "c6aa358e03fe4b77094478768ec0730e856a4369",
+      "exposures": [],
+      "replacements": [],
+      "stops": []
+    },
+    {
+      "repo": "PactInteractive/dbchat",
+      "commit": "9191e10a6b046fc82a10410beb5ae150ae9f222b",
+      "exposures": [],
+      "replacements": [],
+      "stops": []
+    },
+    {
+      "repo": "joone/loz",
+      "commit": "b8e2c0924154e65cd6be7d30326f2f8f211d83b7",
+      "exposures": [
+        {
+          "deadline": "openai-2026-10-23-gpt-3-5-turbo",
+          "date": "2026-10-23",
+          "evidence": ["src/config/index.ts:6", "src/llm/test.ts:26"]
+        }
+      ],
+      "replacements": [],
+      "stops": []
+    },
+    {
+      "repo": "OptimizeAIHub/Playwright-Copilot",
+      "commit": "5d90090a86da21a8a88396a611c134f21a416a2c",
+      "exposures": [],
+      "replacements": [],
+      "stops": []
+    },
+    {
+      "repo": "vual/ChatGPT-Next-Web-Pro",
+      "commit": "6e6ff15e90b14d9ae5cb420bb0e57445610eadd8",
+      "exposures": [
+        {
+          "deadline": "openai-2026-10-23-gpt-3-5-turbo",
+          "date": "2026-10-23",
+          "evidence": [
+            "app/client/api.ts:33",
+            "app/masks/cn.ts:36",
+            "app/masks/cn.ts:62",
+            "app/masks/cn.ts:88",
+            "app/masks/cn.ts:114",
+            "app/masks/cn.ts:140",
+            "app/masks/cn.ts:166",
+            "app/masks/cn.ts:192",
+            "app/masks/cn.ts:218",
+            "app/masks/cn.ts:250",
+            "app/masks/cn.ts:276",
+            "app/masks/cn.ts:309",
+            "app/masks/cn.ts:342",
+            "app/masks/cn.ts:400",
+            "app/masks/en.ts:89",
+            "app/masks/tw.ts:36",
+            "app/masks/tw.ts:62",
+            "app/masks/tw.ts:88",
+            "app/masks/tw.ts:114",
+            "app/masks/tw.ts:140"
+          ]
+        },
+        {
+          "deadline": "openai-2026-10-23-gpt-4",
+          "date": "2026-10-23",
+          "evidence": [
+            "app/client/api.ts:33",
+            "app/masks/cn.ts:432",
+            "app/masks/en.ts:17",
+            "app/masks/en.ts:63",
+            "app/masks/en.ts:121",
+            "app/masks/tw.ts:432"
+          ]
+        },
+        {
+          "deadline": "openai-2027-01-06-tts-1",
+          "date": "2027-01-06",
+          "evidence": [
+            "app/client/api.ts:34",
+            "app/client/api.ts:34",
+            "app/constant.ts:490",
+            "app/constant.ts:492",
+            "app/constant.ts:492"
+          ]
+        },
+        {
+          "deadline": "openai-2027-02-26-whisper-1",
+          "date": "2027-02-26",
+          "evidence": [
+            "app/components/chat.tsx:2215",
+            "app/components/realtime-chat/realtime-chat.tsx:79"
+          ]
+        }
+      ],
+      "replacements": [],
+      "stops": []
+    },
+    {
+      "repo": "rgarlik/autocoder",
+      "commit": "425a5f44e578980d7da14d31965aaaa9fc7d56ca",
+      "exposures": [
+        {
+          "deadline": "openai-2026-10-23-gpt-3-5-turbo",
+          "date": "2026-10-23",
+          "evidence": ["start.js:25"]
+        }
+      ],
+      "replacements": [],
+      "stops": []
+    },
+    {
+      "repo": "FerLRT/QuizCraft",
+      "commit": "4f7a0fbe453b35b95c69698340000fb49279d8fe",
+      "exposures": [
+        {
+          "deadline": "openai-2026-10-23-gpt-4",
+          "date": "2026-10-23",
+          "evidence": ["src/app/page.tsx:21"]
+        }
+      ],
+      "replacements": [],
+      "stops": []
+    },
+    {
+      "repo": "zebbern/repolens",
+      "commit": "9d0a2ff046600ea633b40837a03d5895173ef8d0",
+      "exposures": [],
+      "replacements": [],
+      "stops": []
+    },
+    {
+      "repo": "Danish-H/whatsapp-gpt",
+      "commit": "bb68937c90822a78674bd134d89379315309d2a2",
+      "exposures": [
+        {
+          "deadline": "openai-2026-10-23-gpt-3-5-turbo",
+          "date": "2026-10-23",
+          "evidence": ["ai.js:11", "commands/dm.js:37"]
+        },
+        {
+          "deadline": "openai-2026-10-23-gpt-4",
+          "date": "2026-10-23",
+          "evidence": ["commands/gpt4.js:24"]
+        },
+        {
+          "deadline": "openai-2027-02-26-whisper-1",
+          "date": "2027-02-26",
+          "evidence": ["commands/transcribe.js:34"]
+        }
+      ],
+      "replacements": [],
+      "stops": [
+        {
+          "file": "ai.js",
+          "line": 14,
+          "call": "createChatCompletion",
+          "at": {
+            "file": "ai.js",
+            "line": 11
+          },
+          "model": "gpt-3.5-turbo",
+          "reason": "The request sets max_tokens, which gpt-5.6-terra may reject or treat differently."
+        },
+        {
+          "file": "ai.js",
+          "line": 14,
+          "call": "createChatCompletion",
+          "at": {
+            "file": "commands/dm.js",
+            "line": 37
+          },
+          "model": "gpt-3.5-turbo",
+          "reason": "The request sets max_tokens, which gpt-5.6-terra may reject or treat differently."
+        },
+        {
+          "file": "ai.js",
+          "line": 14,
+          "call": "createChatCompletion",
+          "at": {
+            "file": "commands/gpt4.js",
+            "line": 24
+          },
+          "model": "gpt-4",
+          "reason": "The request sets max_tokens, which gpt-5.6-sol may reject or treat differently."
+        }
+      ]
+    },
+    {
+      "repo": "RiP3rQ/AI-Butler",
+      "commit": "4dadd4021c2d91bd742b122a45b2b26e86f4abc4",
+      "exposures": [
+        {
+          "deadline": "openai-2026-09-28-gpt-3-5-turbo-instruct",
+          "date": "2026-09-28",
+          "evidence": ["app/api/chatgpt/chat/[chatId]/route.ts:41", "lib/chatgpt.ts:9"]
+        },
+        {
+          "deadline": "openai-2026-10-23-gpt-3-5-turbo",
+          "date": "2026-10-23",
+          "evidence": [
+            "app/api/chat/route.ts:51",
+            "app/api/journal/completion/route.ts:15",
+            "app/api/pdfs/message/route.ts:71",
+            "lib/openai.ts:42",
+            "lib/openai.ts:124",
+            "lib/openai.ts:135",
+            "lib/openai.ts:154"
+          ]
+        }
+      ],
+      "replacements": [
+        {
+          "file": "lib/openai.ts",
+          "line": 41,
+          "call": "chat.completions.create",
+          "edited": {
+            "file": "lib/openai.ts",
+            "line": 42
+          },
+          "from": "gpt-3.5-turbo",
+          "to": "gpt-5.6-terra",
+          "deadline": "openai-2026-10-23-gpt-3-5-turbo"
+        },
+        {
+          "file": "app/api/chat/route.ts",
+          "line": 50,
+          "call": "chat.completions.create",
+          "edited": {
+            "file": "app/api/chat/route.ts",
+            "line": 51
+          },
+          "from": "gpt-3.5-turbo",
+          "to": "gpt-5.6-terra",
+          "deadline": "openai-2026-10-23-gpt-3-5-turbo"
+        },
+        {
+          "file": "app/api/journal/completion/route.ts",
+          "line": 14,
+          "call": "createChatCompletion",
+          "edited": {
+            "file": "app/api/journal/completion/route.ts",
+            "line": 15
+          },
+          "from": "gpt-3.5-turbo",
+          "to": "gpt-5.6-terra",
+          "deadline": "openai-2026-10-23-gpt-3-5-turbo"
+        },
+        {
+          "file": "app/api/pdfs/message/route.ts",
+          "line": 70,
+          "call": "createChatCompletion",
+          "edited": {
+            "file": "app/api/pdfs/message/route.ts",
+            "line": 71
+          },
+          "from": "gpt-3.5-turbo",
+          "to": "gpt-5.6-terra",
+          "deadline": "openai-2026-10-23-gpt-3-5-turbo"
+        }
+      ],
+      "stops": []
+    },
+    {
+      "repo": "AidanTilgner/AutogenObsidianPlugin",
+      "commit": "45b7088de46a8e56374cbda457959df4ee98b6a8",
+      "exposures": [
+        {
+          "deadline": "openai-2026-10-23-gpt-3-5-turbo",
+          "date": "2026-10-23",
+          "evidence": ["main.ts:30", "main.ts:344"]
+        },
+        {
+          "deadline": "openai-2026-10-23-gpt-4",
+          "date": "2026-10-23",
+          "evidence": ["main.ts:360"]
+        }
+      ],
+      "replacements": [],
+      "stops": []
+    },
+    {
+      "repo": "Ramtx/Bouno",
+      "commit": "fa74ff5064bae6fec32b2d564b85593274699672",
+      "exposures": [],
+      "replacements": [],
+      "stops": []
+    },
+    {
+      "repo": "TechNavii/LLM-Memory-Calculator",
+      "commit": "95ac00662fd4c573ecdddae84801aeb225367d7f",
+      "exposures": [],
+      "replacements": [],
+      "stops": []
+    },
+    {
+      "repo": "xavidop/genkitx-github",
+      "commit": "8d6e05729ad6f954181e5428837f571429133f9c",
+      "exposures": [],
+      "replacements": [],
+      "stops": []
+    },
+    {
+      "repo": "telekom/create-tsi",
+      "commit": "a5badfb4a537aa47e55c48fa470185b898129ab1",
+      "exposures": [
+        {
+          "deadline": "openai-2026-10-23-gpt-3-5-turbo",
+          "date": "2026-10-23",
+          "evidence": [
+            "helpers/env-variables.ts:125",
+            "helpers/env-variables.ts:215",
+            "questions.ts:81",
+            "templates/types/streaming/express/src/controllers/chat-request.controller.ts:40",
+            "templates/types/streaming/express/src/controllers/chat.controller.ts:42",
+            "templates/types/streaming/nextjs/app/api/chat/route.ts:49"
+          ]
+        }
+      ],
+      "replacements": [],
+      "stops": []
+    },
+    {
+      "repo": "fahd09/openharness",
+      "commit": "9f07d9643c0f1ee371f04be75f2447151832e1bb",
+      "exposures": [
+        {
+          "deadline": "openai-2026-10-23-gpt-4",
+          "date": "2026-10-23",
+          "evidence": ["src/core/models.ts:14"]
+        }
+      ],
+      "replacements": [],
+      "stops": []
+    },
+    {
+      "repo": "bayradion/rabbitmap",
+      "commit": "514fb7b11a64aea3976852a5b5869544fb46064b",
+      "exposures": [],
+      "replacements": [],
+      "stops": []
+    },
+    {
+      "repo": "lianginx/chatgpt-nuxt",
+      "commit": "46a03087c326f453d178bbe2e164688aad738f63",
+      "exposures": [
+        {
+          "deadline": "openai-2026-10-23-gpt-3-5-turbo",
+          "date": "2026-10-23",
+          "evidence": ["stores/chat.ts:266", "stores/chat.ts:377"]
+        }
+      ],
+      "replacements": [],
+      "stops": []
+    },
+    {
+      "repo": "mbt1909432/Acontext-Agent-Playground",
+      "commit": "419a564fba17a3b972f12e57debbf2607edaa512",
+      "exposures": [
+        {
+          "deadline": "openai-2026-10-23-gpt-3-5-turbo",
+          "date": "2026-10-23",
+          "evidence": ["lib/config.ts:30", "lib/openai-client.ts:266", "lib/openai-client.ts:417"]
+        }
+      ],
+      "replacements": [],
+      "stops": [
+        {
+          "file": "lib/openai-client.ts",
+          "line": 278,
+          "call": "chat.completions.create",
+          "at": {
+            "file": "lib/openai-client.ts",
+            "line": 266
+          },
+          "model": "gpt-3.5-turbo",
+          "reason": "The request object completionParams (lib/openai-client.ts:265) is used 3 times; change its model by hand to gpt-5.6-terra."
+        },
+        {
+          "file": "lib/openai-client.ts",
+          "line": 430,
+          "call": "chat.completions.create",
+          "at": {
+            "file": "lib/openai-client.ts",
+            "line": 417
+          },
+          "model": "gpt-3.5-turbo",
+          "reason": "The request object completionParams (lib/openai-client.ts:416) is used 3 times; change its model by hand to gpt-5.6-terra."
+        }
+      ]
+    },
+    {
+      "repo": "crystalnyan/takemeds-bot",
+      "commit": "106ca8d5cb5f25f1d787d94c86ea34c54756c9f9",
+      "exposures": [
+        {
+          "deadline": "openai-2026-10-23-gpt-3-5-turbo",
+          "date": "2026-10-23",
+          "evidence": ["src/gpt.ts:7"]
+        }
+      ],
+      "replacements": [],
+      "stops": []
+    }
+  ],
+  "validation": {
+    "image": "node:22-alpine plus the build environment proxy CA (benchmark only, no Refit change)",
+    "results": [
+      {
+        "repo": "arunpattnaik/damngood.tools",
+        "command": ["npm", "run", "build"],
+        "prepareDependencies": true,
+        "status": "error",
+        "reason": "PipelineInputError: Tracked node_modules, conflicting lockfiles, shrinkwrap or pnpm hooks require a custom validation image."
+      },
+      {
+        "repo": "RiP3rQ/AI-Butler",
+        "command": ["npm", "run", "build"],
+        "prepareDependencies": true,
+        "status": "validation-failed",
+        "reason": "Validation returned baseline-failed; publication was not attempted.",
+        "replacements": 4
+      }
+    ]
+  },
+  "handReview": [
+    {
+      "repo": "arunpattnaik/damngood.tools",
+      "sites": 2,
+      "verdict": "correct per registry",
+      "note": "gpt-3.5-turbo to gpt-5.6-terra in plain v3 createChatCompletion requests."
+    },
+    {
+      "repo": "RiP3rQ/AI-Butler",
+      "sites": 4,
+      "verdict": "correct per registry",
+      "note": "gpt-3.5-turbo to gpt-5.6-terra in plain chat.completions.create and v3 createChatCompletion requests."
+    }
+  ]
+}
