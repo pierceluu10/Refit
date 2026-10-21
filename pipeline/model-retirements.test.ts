@@ -591,11 +591,8 @@ it('stops non-text OpenAI and Anthropic calls with a named reason and never edit
       ],
       ['src/raw.ts:3', 'fetch /v1/embeddings', NON_TEXT('fetch /v1/embeddings', 'gpt-5.6-sol')],
       ['src/raw.ts:4', 'post /v1/complete', NON_TEXT('post /v1/complete', 'claude-opus-4-8')],
-      [
-        'src/shared.ts:4',
-        'chat.completions.create',
-        'The model comes from the constant MODEL (src/shared.ts:3), which is used 2 times; change it by hand to gpt-5.6-sol.',
-      ],
+      // Both uses are requests, so D-09 no longer stops on the use count; the embeddings call does.
+      ['src/shared.ts:4', 'chat.completions.create', NON_TEXT('embeddings.create', 'gpt-5.6-sol')],
       ['src/v3.ts:3', 'createCompletion', NON_TEXT('createCompletion', 'gpt-5.6-sol')],
     ].sort(),
   );
@@ -926,4 +923,83 @@ it('still traces a descriptor-keyed model the scan classifies as catalog', async
   const proposal = await proposeModelReplacements(root, registry, NOW);
   expect(proposal.stops).toEqual([]);
   expect(edited(proposal)).toEqual(['src/catalog.ts:3 gpt-4']);
+});
+
+it('edits a shared source only when every use is a traced request that allows it', async () => {
+  const root = await repository({
+    // Two requests share a constant, and two share a const object: one edit each.
+    'src/shared.ts': [
+      ...HEAD,
+      "const MODEL = 'gpt-4';",
+      "const MODELS = { GPT4: 'o1-mini' } as const;",
+      'type Known = (typeof MODELS)[keyof typeof MODELS];',
+      `export const a = () => ${send('MODEL')}`,
+      'export const b = () => openai.responses.create({ model: MODEL, input: "x" });',
+      `export const c = () => ${send('MODELS.GPT4')}`,
+      'export const d = () => openai.responses.create({ model: MODELS.GPT4, input: "x" });',
+    ].join('\n'),
+  });
+  const shared = await proposeModelReplacements(root, registry, NOW);
+  expect(shared.stops).toEqual([]);
+  expect(edited(shared)).toEqual(['src/shared.ts:3 gpt-4', 'src/shared.ts:4 o1-mini']);
+
+  const used = (kind: string, name: string, at: string, times: number) =>
+    `The model comes from the ${kind} ${name} (${at}), which is used ${times} times; change it by hand to gpt-5.6-sol.`;
+  const stopped = await repository({
+    'src/log.ts': [
+      ...HEAD,
+      "const MODEL = 'gpt-4';",
+      'console.log(MODEL);',
+      `export const a = () => ${send('MODEL')}`,
+    ].join('\n'),
+    'src/compare.ts': [
+      ...HEAD,
+      'export class C {',
+      "  private model = 'gpt-4';",
+      "  is() { return this.model === 'x'; }",
+      `  ask() { return ${send('this.model')} }`,
+      '}',
+    ].join('\n'),
+    'src/values.ts': [
+      ...HEAD,
+      "const MODELS = { GPT4: 'gpt-4' } as const;",
+      'export const all = Object.values(MODELS);',
+      `export const a = () => ${send('MODELS.GPT4')}`,
+    ].join('\n'),
+    'src/temperature.ts': [
+      ...HEAD,
+      "const MODEL = 'gpt-4';",
+      `export const a = () => ${send('MODEL')}`,
+      'export const b = () => openai.responses.create({ model: MODEL, temperature: 0.2, input: "x" });',
+    ].join('\n'),
+    'src/in-test.ts': [
+      ...HEAD,
+      "export const MODEL = 'gpt-4';",
+      `export const a = () => ${send('MODEL')}`,
+    ].join('\n'),
+    'src/in-test.test.ts': [...HEAD, "import { MODEL } from './in-test';", `${send('MODEL')}`].join(
+      '\n',
+    ),
+    // A type position (`typeof MODEL`) is not a use.
+    'src/type-use.ts': [
+      ...HEAD,
+      "export const MODEL = 'o1-mini';",
+      'export type Known = typeof MODEL;',
+      `export const a = () => ${send('MODEL')}`,
+    ].join('\n'),
+  });
+  const proposal = await proposeModelReplacements(stopped, registry, NOW);
+  expect(proposal.stops.map((item) => [item.file, item.reason]).sort()).toEqual(
+    [
+      ['src/compare.ts', used('field', 'model', 'src/compare.ts:4', 2)],
+      ['src/in-test.ts', used('constant', 'MODEL', 'src/in-test.ts:3', 2)],
+      ['src/log.ts', used('constant', 'MODEL', 'src/log.ts:3', 2)],
+      [
+        'src/temperature.ts',
+        'The request sets temperature, which gpt-5.6-sol may reject or treat differently.',
+      ],
+      ['src/values.ts', used('constant', 'MODELS', 'src/values.ts:3', 2)],
+    ].sort(),
+  );
+  expect(edited(proposal)).toEqual(['src/type-use.ts:3 o1-mini']);
 });

@@ -500,6 +500,8 @@ function rawRequest(program: SourceProgram, call: ts.CallExpression) {
 interface Pass {
   symbol: ts.Symbol;
   node: ts.Node;
+  // The identifier that read the symbol, one of its uses.
+  use: ts.MemberName;
   kind: 'constant' | 'enum member' | 'field' | 'function';
   name: string;
   at: string;
@@ -588,14 +590,36 @@ function cached(trace: Trace, key: ts.Node, keys: string[], compute: () => Termi
   return found.map(copyTerminal);
 }
 
-function through(program: SourceProgram, pass: Pass, terminals: Terminal[]) {
-  const uses = program.usesOf(pass.symbol).length;
-  for (const terminal of terminals) {
-    terminal.passes.unshift(pass);
-    if (uses !== 1)
-      terminal.stop ??= `The model comes from the ${pass.kind} ${pass.name} (${pass.at}), which is used ${uses} times; change it by hand to`;
-  }
+function through(pass: Pass, terminals: Terminal[]) {
+  for (const terminal of terminals) terminal.passes.unshift(pass);
   return terminals;
+}
+
+// A type position (`typeof MODELS`, a type reference) does not use a value; `extends X` does.
+function inType(node: ts.Node) {
+  for (let up = node.parent; up; up = up.parent) {
+    if (
+      ts.isExpressionWithTypeArguments(up) &&
+      ts.isHeritageClause(up.parent) &&
+      up.parent.token === ts.SyntaxKind.ExtendsKeyword &&
+      ts.isClassLike(up.parent.parent)
+    )
+      return false;
+    if (ts.isTypeNode(up)) return true;
+  }
+  return false;
+}
+
+// The existing shared-source sentence, when some use of a symbol the model passed through is not
+// a request this proposal reaches (D-09). `passes` run outermost first; the innermost reports.
+function sharedUse(program: SourceProgram, passes: Pass[], reached: Set<ts.Node>) {
+  for (const pass of [...passes].reverse()) {
+    const all = program.usesOf(pass.symbol);
+    const uses = all.filter((use) => !inType(use));
+    if (!uses.includes(pass.use) || uses.some((use) => !reached.has(use)))
+      return `The model comes from the ${pass.kind} ${pass.name} (${pass.at}), which is used ${all.length} times; change it by hand to`;
+  }
+  return undefined;
 }
 
 function returnsOf(fn: ts.FunctionLikeDeclaration) {
@@ -693,6 +717,7 @@ function declarationValues(
   const pass = (kind: Pass['kind'], node: ts.Node): Pass => ({
     symbol,
     node,
+    use: reference,
     kind,
     name: reference.text,
     at: where(program, node),
@@ -707,7 +732,6 @@ function declarationValues(
     if (!initializer) return [];
     return cached(trace, declaration, keys, () =>
       through(
-        program,
         pass(ts.isEnumMember(declaration) ? 'enum member' : 'constant', unwrap(initializer)),
         valuesOf(program, initializer, trace, keys),
       ),
@@ -736,7 +760,7 @@ function declarationValues(
     if (ts.isParameter(declaration))
       found.push(...parameterValues(program, declaration, owner, keys));
     for (const assigned of assignments) found.push(...valuesOf(program, assigned, owner, keys));
-    return through(program, pass('field', declaration), found);
+    return through(pass('field', declaration), found);
   });
 }
 
@@ -884,25 +908,30 @@ function callValues(
     const pass: Pass = {
       symbol,
       node: fn,
+      use: name,
       kind: 'function',
       name: name.text,
       at: where(program, name),
     };
-    through(program, pass, own);
+    through(pass, own);
     return found;
   };
   return bound ? run() : cached(trace, fn, keys, run);
 }
 
 // Where the model a request sends is written, followed through constants, enum and object
-// members (also in other modules), class fields, fallbacks, returned values and parameters. A
-// source shared with other uses stops for review. `cut` says whether a limit ended a path.
+// members (also in other modules), class fields, fallbacks, returned values and parameters, with
+// the references each literal passed through. `cut` says whether a limit ended a path.
 function modelSites(program: SourceProgram, value: ts.Expression) {
   const trace: Trace = { depth: 0, budget: { left: MAX_STEPS }, memo: new Map(), cut: {} };
   const sites = new Map<ts.StringLiteralLike, Site>();
   for (const { via: _via, ...site } of valuesOf(program, value, trace)) {
     const known = sites.get(site.literal);
-    if (!known || (!known.stop && site.stop)) sites.set(site.literal, site);
+    if (!known) sites.set(site.literal, site);
+    else {
+      known.stop ??= site.stop;
+      known.passes = [...known.passes, ...site.passes];
+    }
   }
   return { sites: [...sites.values()], cut: trace.cut.by };
 }
@@ -1038,14 +1067,27 @@ export async function proposeModelReplacements(
     }
   >();
   const stops: ModelReplacementStop[] = [];
+  // First pass: every reference a non-test request's model passes through, whatever the literal
+  // and whether or not the request itself allows an edit. A shared source is edited only when all
+  // of its uses are in this set (D-09).
+  const reached = new Set<ts.Node>();
+  const traced: {
+    request: (typeof requests)[number];
+    found: NonNullable<ReturnType<typeof requestObject>>;
+    trace: ReturnType<typeof modelSites>;
+  }[] = [];
   for (const request of requests) {
-    const models = byProvider.get(request.provider)!;
-    const file = program.path(request.node);
-    if (TEST_PATH.test(file)) continue;
+    if (TEST_PATH.test(program.path(request.node))) continue;
     const found = requestObject(program, request.argument);
     const property = found && objectProperty(found.object, 'model');
     if (!found || !property) continue;
-    for (const site of modelSites(program, propertyValue(property)).sites) {
+    const trace = modelSites(program, propertyValue(property));
+    for (const site of trace.sites) for (const pass of site.passes) reached.add(pass.use);
+    traced.push({ request, found, trace });
+  }
+  for (const { request, found, trace } of traced) {
+    const models = byProvider.get(request.provider)!;
+    for (const site of trace.sites) {
       const entry = models.get(site.literal.text);
       if (!entry || TEST_PATH.test(program.path(site.literal))) continue;
       const resolved = finalReplacement(entry, models) ?? { to: '', via: [entry.id] };
@@ -1055,6 +1097,7 @@ export async function proposeModelReplacements(
           Boolean(name && SENSITIVE_PARAMETERS[request.provider].has(name)),
         )
         .filter(() => rejectsSampling(request.provider, resolved.to));
+      const stop = site.stop ?? sharedUse(program, site.passes, reached);
       const reason = !resolved.to
         ? 'The registry names no concrete replacement model ID.'
         : // Images, audio, embeddings, moderation and legacy completions change formats, vector
@@ -1062,8 +1105,8 @@ export async function proposeModelReplacements(
           // any call outside the text allow-list, such as beta.assistants.create (D-11, D-16).
           !request.text
           ? `\`${request.call}\` is not a call Refit edits; ${resolved.to} may change formats or parameters; change it by hand to ${resolved.to}.`
-          : site.stop
-            ? `${site.stop} ${resolved.to}.`
+          : stop
+            ? `${stop} ${resolved.to}.`
             : found.shared
               ? `${found.shared} ${resolved.to}.`
               : found.object.properties.some((item) => ts.isSpreadAssignment(item))
