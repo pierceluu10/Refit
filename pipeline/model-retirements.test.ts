@@ -746,3 +746,184 @@ it('follows class fields, this assignments and constructor parameters to their l
     "private model = 'gpt-5.6-sol';",
   );
 });
+
+const HEAD = ["import OpenAI from 'openai';", 'const openai = new OpenAI();'];
+const send = (model: string) =>
+  `openai.chat.completions.create({ model: ${model}, messages: [] });`;
+
+it('follows this assignments, constructor parameters and private fields from every writer', async () => {
+  const root = await repository({
+    // The default and the caller literal are edited separately.
+    'src/b.ts': [
+      ...HEAD,
+      'export class B {',
+      "  constructor(private model = 'o1-mini') {}",
+      `  ask() { return ${send('this.model')} }`,
+      '}',
+      "new B('gpt-4');",
+    ].join('\n'),
+    'src/c.ts': [
+      ...HEAD,
+      'export class C {',
+      '  private model: string;',
+      '  constructor(opts: any) {',
+      "    this.model = opts.model ?? 'gpt-4';",
+      '  }',
+      `  ask() { return ${send('this.model')} }`,
+      '}',
+      "new C({ model: 'o1-mini' });",
+    ].join('\n'),
+    // `new D()` has no argument: the default is what runs.
+    'src/d.ts': [
+      ...HEAD,
+      'export class D {',
+      "  constructor(private model = 'gpt-4') {}",
+      `  ask() { return ${send('this.model')} }`,
+      '}',
+      'new D();',
+    ].join('\n'),
+    'src/e.js': [
+      ...HEAD,
+      'export class E {',
+      '  constructor(opts) {',
+      '    this.model = opts.model || "gpt-4";',
+      '  }',
+      '  reset() { this.model = "o1-mini"; }',
+      `  ask() { return ${send('this.model')} }`,
+      '}',
+    ].join('\n'),
+    'src/f.ts': [
+      ...HEAD,
+      'export class F {',
+      "  #model = 'gpt-4';",
+      `  ask() { return ${send('this.#model')} }`,
+      '}',
+    ].join('\n'),
+    'src/g.ts': [
+      ...HEAD,
+      'export class G {',
+      '  private options: any;',
+      '  constructor(options: any) { this.options = options; }',
+      `  ask() { return ${send('this.options.model')} }`,
+      '}',
+      "new G({ model: 'gpt-4' });",
+    ].join('\n'),
+  });
+  const proposal = await proposeModelReplacements(root, registry, NOW);
+  expect(proposal.stops).toEqual([]);
+  expect(edited(proposal)).toEqual([
+    'src/b.ts:4 o1-mini',
+    'src/b.ts:7 gpt-4',
+    'src/c.ts:10 o1-mini',
+    'src/c.ts:6 gpt-4',
+    'src/d.ts:4 gpt-4',
+    'src/e.js:5 gpt-4',
+    'src/e.js:7 o1-mini',
+    'src/f.ts:4 gpt-4',
+    'src/g.ts:8 gpt-4',
+  ]);
+});
+
+it('follows const object members, env fallbacks, conditionals, returned literals and destructuring defaults', async () => {
+  const root = await repository({
+    'src/members.ts': [
+      ...HEAD,
+      "const MODELS = { GPT4: 'gpt-4', FAST: 'o1-mini' } as const;",
+      "const config = { model: 'gpt-4' };",
+      "enum Model { Default = 'o1-mini' }",
+      `export const a = () => ${send('MODELS.GPT4')}`,
+      `export const b = () => ${send('config.model')}`,
+      `export const c = () => ${send('Model.Default')}`,
+    ].join('\n'),
+    'src/fallbacks.ts': [
+      ...HEAD,
+      "const ENV_MODEL = process.env.MODEL ?? 'gpt-4';",
+      "const PICKED = process.argv.length ? 'gpt-4' : 'o1-mini';",
+      `export const a = () => ${send('ENV_MODEL')}`,
+      `export const b = () => ${send('PICKED')}`,
+    ].join('\n'),
+    'src/returns.ts': [
+      ...HEAD,
+      "function getModel() { return 'gpt-4'; }",
+      'export class R {',
+      "  getDefaultModel() { return 'o1-mini'; }",
+      `  ask() { return ${send('this.getDefaultModel()')} }`,
+      '}',
+      `export const a = () => ${send('getModel()')}`,
+    ].join('\n'),
+    'src/destructuring.ts': [
+      ...HEAD,
+      `function run({ model = 'gpt-4' }) { return ${send('model')} }`,
+      "run({ model: 'o1-mini' });",
+      `export function fromVariable(opts: any) { const { model = 'o1-mini' } = opts; return ${send('model')} }`,
+      `function viaOptions(opts: any) { return ${send("opts.model ?? 'o1-mini'")} }`,
+      "viaOptions({ model: 'gpt-4' });",
+    ].join('\n'),
+  });
+  const proposal = await proposeModelReplacements(root, registry, NOW);
+  expect(proposal.stops).toEqual([]);
+  expect(edited(proposal)).toEqual([
+    'src/destructuring.ts:3 gpt-4',
+    'src/destructuring.ts:4 o1-mini',
+    'src/destructuring.ts:5 o1-mini',
+    'src/destructuring.ts:6 o1-mini',
+    'src/destructuring.ts:7 gpt-4',
+    'src/fallbacks.ts:3 gpt-4',
+    'src/fallbacks.ts:4 gpt-4',
+    'src/fallbacks.ts:4 o1-mini',
+    'src/members.ts:3 gpt-4',
+    'src/members.ts:4 gpt-4',
+    'src/members.ts:5 o1-mini',
+    'src/returns.ts:3 gpt-4',
+    'src/returns.ts:5 o1-mini',
+  ]);
+});
+
+it('follows constants imported from another module', async () => {
+  const root = await repository({
+    'src/models.ts': "export const MODEL = 'gpt-4';",
+    'src/chat.ts': [
+      ...HEAD,
+      "import { MODEL } from './models';",
+      `export const a = () => ${send('MODEL')}`,
+    ].join('\n'),
+    'lib/models.js': "const MODEL = 'o1-mini';\nmodule.exports = { MODEL };",
+    'lib/chat.js': [
+      "const { OpenAI } = require('openai');",
+      "const { MODEL } = require('./models');",
+      'const openai = new OpenAI();',
+      `exports.a = () => ${send('MODEL')}`,
+    ].join('\n'),
+  });
+  const proposal = await proposeModelReplacements(root, registry, NOW);
+  expect(proposal.stops).toEqual([]);
+  expect(edited(proposal)).toEqual(['lib/models.js:1 o1-mini', 'src/models.ts:1 gpt-4']);
+});
+
+it('keeps a call-context argument to the call that passes it', async () => {
+  const root = await repository({
+    'src/pick.ts': [
+      ...HEAD,
+      'function pick(m: string) { return m; }',
+      'declare function encodingForModel(m: string): unknown;',
+      `export const a = () => ${send("pick('gpt-4')")}`,
+      "export const b = () => encodingForModel(pick('o1-mini'));",
+    ].join('\n'),
+  });
+  const proposal = await proposeModelReplacements(root, registry, NOW);
+  expect(proposal.stops).toEqual([]);
+  expect(edited(proposal)).toEqual(['src/pick.ts:5 gpt-4']);
+});
+
+it('still traces a descriptor-keyed model the scan classifies as catalog', async () => {
+  const root = await repository({
+    'src/catalog.ts': [
+      ...HEAD,
+      "const MODEL = { id: 'gpt-4', label: 'GPT-4' };",
+      `export const a = () => ${send('MODEL.id')}`,
+    ].join('\n'),
+  });
+  const proposal = await proposeModelReplacements(root, registry, NOW);
+  expect(proposal.stops).toEqual([]);
+  expect(edited(proposal)).toEqual(['src/catalog.ts:3 gpt-4']);
+});
