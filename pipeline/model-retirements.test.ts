@@ -472,3 +472,108 @@ it('keeps Anthropic sampling parameters when the replacement predates Claude 4.7
     [4, 'The request sets top_k, which claude-opus-4-8 may reject or treat differently.'],
   ]);
 });
+
+it('follows class properties to their initializers and assignments when the request reads them once', async () => {
+  const root = await repository({
+    'src/chat.ts': [
+      "import OpenAI from 'openai';",
+      'export class Chat {',
+      '  private client = new OpenAI();',
+      "  model = 'gpt-4';",
+      '  ask(messages: any[]) {',
+      '    return this.client.chat.completions.create({ model: this.model, messages });',
+      '  }',
+      '}',
+    ].join('\n'),
+    'src/summary.ts': [
+      "import OpenAI from 'openai';",
+      'export class Summary {',
+      '  private client = new OpenAI();',
+      '  constructor(private readonly model: string = "o1-mini") {}',
+      '  run(messages: any[]) {',
+      '    return this.client.chat.completions.create({ model: this.model, messages });',
+      '  }',
+      '}',
+    ].join('\n'),
+    // JavaScript declares the property by assigning it in the constructor.
+    'src/agent.js': [
+      "const { OpenAI } = require('openai');",
+      'class Agent {',
+      '  constructor(options) {',
+      '    this.client = new OpenAI();',
+      "    this.model = options.model || 'gpt-4';",
+      '  }',
+      '  ask(messages) {',
+      '    return this.client.chat.completions.create({ model: this.model, messages });',
+      '  }',
+      '}',
+      'module.exports = { Agent };',
+    ].join('\n'),
+    // Read again to price the request, so it stops for review.
+    'src/priced.ts': [
+      "import OpenAI from 'openai';",
+      'const PRICES: Record<string, number> = {};',
+      'export class Priced {',
+      '  private client = new OpenAI();',
+      '  private model: string;',
+      '  constructor(model?: string) {',
+      "    this.model = model ?? 'gpt-4';",
+      '  }',
+      '  ask(messages: any[]) {',
+      '    return this.client.chat.completions.create({ model: this.model, messages });',
+      '  }',
+      '  cost() {',
+      '    return PRICES[this.model];',
+      '  }',
+      '}',
+    ].join('\n'),
+  });
+  const proposal = await proposeModelReplacements(root, registry, NOW);
+  expect(
+    proposal.replacements.map((item) => [item.file, item.line, item.edited, item.from, item.to]),
+  ).toEqual([
+    ['src/agent.js', 8, { file: 'src/agent.js', line: 5 }, 'gpt-4', 'gpt-5.6-sol'],
+    ['src/chat.ts', 6, { file: 'src/chat.ts', line: 4 }, 'gpt-4', 'gpt-5.6-sol'],
+    ['src/summary.ts', 6, { file: 'src/summary.ts', line: 4 }, 'o1-mini', 'gpt-5.6-terra'],
+  ]);
+  expect(proposal.stops.map((item) => [item.file, item.at, item.reason])).toEqual([
+    [
+      'src/priced.ts',
+      { file: 'src/priced.ts', line: 7 },
+      'The model comes from the property model (src/priced.ts:5), which is read 2 times; change it by hand to gpt-5.6-sol.',
+    ],
+  ]);
+  expect(proposal.patch).toContain("+  model = 'gpt-5.6-sol';");
+  expect(proposal.patch).toContain(
+    '+  constructor(private readonly model: string = "gpt-5.6-terra") {}',
+  );
+});
+
+it('never proposes edits in build output committed beside the sources', async () => {
+  const request = [
+    "import OpenAI from 'openai';",
+    'const openai = new OpenAI();',
+    "export const ask = () => openai.chat.completions.create({ model: 'gpt-4', messages: [] });",
+  ].join('\n');
+  const compiled = [
+    "const { OpenAI } = require('openai');",
+    'const openai = new OpenAI();',
+    "exports.ask = () => openai.chat.completions.create({ model: 'gpt-4', messages: [] });",
+  ].join('\n');
+  const root = await repository({
+    'packages/agent/src/ask.ts': request,
+    'packages/agent/lib/ask.js': compiled,
+    'src/inline.ts': request,
+    'src/inline.js': compiled,
+    'ts-out/ask.js': compiled,
+    'public/app.min.js': compiled,
+    // JavaScript with no TypeScript source is the source.
+    'lib/only.js': compiled,
+  });
+  const proposal = await proposeModelReplacements(root, registry, NOW);
+  expect(proposal.replacements.map((item) => item.file)).toEqual([
+    'lib/only.js',
+    'packages/agent/src/ask.ts',
+    'src/inline.ts',
+  ]);
+});
