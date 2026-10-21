@@ -1,5 +1,18 @@
 # Refit implementation checkpoints
 
+## October 21 checkpoint: no silent model exposures, and more Anthropic requests traced (unreleased, after 0.39.0)
+
+`refit deadlines --propose-model-fixes` now gives every live OpenAI and Anthropic model match an outcome, and traces more requests:
+
+- **Unresolved.** A live model ID that no traced request sends is listed under `unresolved` (`--json`) or "Not sent by a traced request", with its replacement and where it is written: an object value, a variable, a class field, a return or a call argument, or that no file imports the SDK at all. These are never edited.
+- **Fallback constants.** A model constant whose value ends in a fallback, such as `const model = config.model || 'claude-3-5-haiku-20241022'`, is followed to that literal, under the existing single-use rule; a shared one stops for review.
+- **Header-detected requests.** A `fetch` to any URL that sets `anthropic-version` inline and sends `model` and `messages` is an Anthropic Messages API request.
+- **Catch-all `paths`.** A bare import under a `"*": ["*"]` mapping is the installed package when no mapped target is a scanned source, as TypeScript resolves it. This applies to every provider's analysis, including `refit run`.
+- **Unreadable configurations.** Calls found only by trusting an SDK import under a `tsconfig.json` or `jsconfig.json` Refit cannot read (for example one extending a generated `.svelte-kit/tsconfig.json`) stop for review and are never edited.
+- **Catalogs.** The deadline scan lists a model's per-platform ID record (with a Bedrock or Vertex AI form) and members of a `new Set([...])` or keys of a `new Map([...])` as catalog.
+
+`--model-fixes` edits only what `replacements` lists, so it edits nothing new beyond the fallback literal and header-detected requests that pass every existing stop. On the application sets, exposed repositories with no outcome went from 19 to 0 for Anthropic and 22 to 1 for OpenAI, and Anthropic proposals from 4 to 6 repositories, read only with no validation ([benchmarks](BENCHMARKS.md#model-fixes-on-the-application-sets-october-21)). Tests: `pipeline/model-retirements.test.ts` and `pipeline/deadlines.test.ts`.
+
 ## October 21 checkpoint: computed request keys stop model fixes (unreleased, after 0.39.0)
 
 A traced request with a computed property name, such as `['temperature']: 0.5` or `[KEY]: 5`, now stops for review instead of being edited. The sampling-parameter check reads only plain names, so a computed one could hide a parameter the replacement rejects. This change only adds a stop. Tests: `pipeline/model-retirements.test.ts` covers string, template and variable keys for OpenAI and Anthropic, beside a plain request that is still edited.
