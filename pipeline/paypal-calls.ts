@@ -816,11 +816,11 @@ function urlRecords(
     const known = base || reassigned ? null : path;
     const reviewed = review(data, method, known);
     const servers = [...data.specification.hosts].sort().join(' and ');
-    for (const host of url.hosts)
-      if (!data.specification.hosts.has(host))
-        reviewed.notes.unshift(
-          `${host} is not a server in PayPal's published OpenAPI documents, which list ${servers}`,
-        );
+    const unlisted = url.hosts.filter((host) => !data.specification.hosts.has(host));
+    if (unlisted.length)
+      reviewed.notes.unshift(
+        `${unlisted.join(' and ')} ${unlisted.length === 1 ? 'is not a server' : 'are not servers'} in PayPal's published OpenAPI documents, which list ${servers}`,
+      );
     return {
       kind: 'url' as const,
       file: file.path,

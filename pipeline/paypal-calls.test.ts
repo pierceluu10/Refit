@@ -359,6 +359,21 @@ describe('raw PayPal REST calls', () => {
     ]);
   });
 
+  it('names every unlisted host in one note', async () => {
+    const found = await calls({
+      'src/disputes.ts': `const BASE = process.env.LIVE ? 'https://api.paypal.com' : 'https://api.sandbox.paypal.com';
+export const dispute = (id: string) => fetch(\`\${BASE}/v1/customer/disputes/\${id}\`);
+`,
+    });
+    expect(at(found, 'src/disputes.ts', 2)).toMatchObject({
+      hosts: ['api.paypal.com', 'api.sandbox.paypal.com'],
+      operation: { document: 'customer_disputes_v1.json', operationId: 'disputes.get' },
+      notes: [
+        "api.paypal.com and api.sandbox.paypal.com are not servers in PayPal's published OpenAPI documents, which list api-m.paypal.com and api-m.sandbox.paypal.com",
+      ],
+    });
+  });
+
   it('says what it could not read', async () => {
     const found = await calls(RAW);
     expect(at(found, 'src/raw.ts', 10).unknown).toEqual([
