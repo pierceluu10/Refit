@@ -1075,7 +1075,7 @@
   flex-direction: column;
 }
 /* Outranks `.waitlist-theme > *`, which positions every direct child relatively. */
-.variant-launch > .ascii-field {
+.variant-launch > .particle-field {
   position: fixed;
   inset: 0;
   z-index: -1;
@@ -1106,6 +1106,56 @@
     }
   }
 }
+/* Split-flap stage boards: the number on blue tiles, the stage name on ink tiles. The rail
+   markers shrink to nodes, since the number moved into the card. */
+.progression-flap .progression-marker {
+  top: 32px;
+  left: -50px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+.progression-board {
+  display: flex;
+  gap: 10px;
+}
+.split-flap {
+  display: inline-flex;
+  gap: 3px;
+  perspective: 300px;
+}
+.flap {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 28px;
+  border-radius: 4px;
+  color: #fff;
+  background: linear-gradient(#1c2638 50%, var(--ink) 50%);
+  font: 500 14px var(--mono);
+}
+/* The hinge between the two halves of the flap. */
+.flap::after {
+  content: '';
+  position: absolute;
+  inset: 50% 0 auto;
+  border-top: 1px solid #00000080;
+}
+.flap[data-blank] {
+  background: var(--soft);
+}
+.flap[data-blank]::after {
+  border-color: transparent;
+}
+.flap-char {
+  display: block;
+  backface-visibility: hidden;
+}
+.flap-number .flap {
+  background: linear-gradient(#1958e0 50%, var(--blue) 50%);
+}
+
 @keyframes enter-from-left {
   from {
     opacity: 0;
@@ -1157,7 +1207,7 @@
 .launch-close {
   position: relative;
   overflow: hidden;
-  padding: 128px 24px 0;
+  padding: 128px 24px 56px;
   color: #fff;
   background: var(--blue);
   text-align: center;
@@ -1195,7 +1245,7 @@
 }
 .launch-logo {
   width: min(1392px, 100%);
-  margin: 88px auto -1vw;
+  margin: 88px auto 0;
   color: #ffffff6b;
 }
 .launch-logo .ascii-wordmark-lens {
@@ -1216,6 +1266,17 @@
   }
 }
 @media (max-width: 640px) {
+  .progression-board {
+    gap: 6px;
+  }
+  .split-flap {
+    gap: 2px;
+  }
+  .flap {
+    width: 16px;
+    height: 23px;
+    font-size: 12px;
+  }
   .variant {
     --page: calc(100% - 32px);
   }

@@ -1,8 +1,9 @@
-import { render, screen } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 import { App } from '../App';
 import { AgentDemo } from '../components/AgentDemo';
+import { SplitFlap } from '../components/SplitFlap';
 
 describe('waitlist variants', () => {
   it.each([
@@ -50,5 +51,25 @@ describe('agent demo', () => {
     expect(container.querySelector('.agent-pr')).toHaveAttribute('data-open', 'true');
     expect(container.querySelector('.agent-cursor')).toHaveAttribute('data-hidden', 'true');
     expect(screen.queryByRole('button', { name: /demo/ })).toBeNull();
+  });
+});
+
+describe('split-flap', () => {
+  it('flips the blank tiles through random characters and lands on the text in order', () => {
+    vi.mocked(window.matchMedia).mockImplementation(
+      (query: string) => ({ matches: false, media: query }) as MediaQueryList,
+    );
+    vi.useFakeTimers();
+    const { container } = render(<SplitFlap text="02 REVIEW" />);
+    const tiles = () =>
+      [...container.querySelectorAll('.flap-char')].map((tile) => tile.textContent);
+    expect(tiles().join('')).toBe('');
+    act(() => vi.advanceTimersByTime(70 * 6));
+    expect(tiles()[0]).toBe('0');
+    expect(tiles()[8]).not.toBe('');
+    act(() => vi.advanceTimersByTime(70 * 20));
+    expect(tiles().join('')).toBe('02REVIEW');
+    expect(screen.getByText('02 REVIEW')).toHaveClass('sr-only');
+    vi.useRealTimers();
   });
 });

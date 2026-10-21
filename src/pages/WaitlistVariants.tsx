@@ -1,6 +1,6 @@
 import { ArrowUpRight } from '@phosphor-icons/react';
 import { AgentDemo } from '../components/AgentDemo';
-import { AsciiField } from '../components/AsciiField';
+import { ParticleField } from '../components/ParticleField';
 import { AsciiWordmark } from '../components/AsciiWordmark';
 import { Header } from '../components/Layout';
 import { Progression } from '../components/Progression';
@@ -133,7 +133,7 @@ export function WaitlistSplit() {
 export function WaitlistLaunch() {
   return (
     <div className="waitlist-theme variant variant-launch">
-      <AsciiField />
+      <ParticleField />
       <div className="launch-top">
         <Header minimal action={false} />
         <main id="main-content">
@@ -163,7 +163,7 @@ export function WaitlistLaunch() {
           <h2 id="launch-steps">What Refit Agent does when an API moves.</h2>
           <p>Breaking changes first. Anything ambiguous stops for a person.</p>
         </div>
-        <Progression layout="rail" />
+        <Progression layout="rail" flap />
       </section>
       <section className="launch-close" aria-labelledby="launch-close">
         <h2 id="launch-close">Be ready for the next breaking change.</h2>

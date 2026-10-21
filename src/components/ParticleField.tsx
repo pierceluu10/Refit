@@ -1,18 +1,24 @@
 import { useEffect, useRef } from 'react';
 
-const CELL = 16;
-const FONT = '500 11px "Geist Mono Variable", monospace';
-const GLYPHS = ['.', ':', '+', 'o', '*'];
+const CELL = 14;
 const FRAME_MS = 1000 / 24;
+// Dot radius by density, lightest first; the third size is drawn as a ring.
+const RADII = [0.9, 1.3, 2, 2.2];
+const RING = 2;
 // Rows the stream pattern spans before it repeats down the page, about one screen.
 const ROW_SPAN = 56;
 // The level every cell has outside a stream, so a sparse dusting covers the whole page.
-const DUST = 0.14;
-// Streams fade out this close to anything marked `data-field-avoid`, so text stays clean.
-const CLEARANCE = 44;
+const DUST = 0.12;
+// Streams thin out from FADE_END down to nothing at FADE_START pixels from anything marked
+// `data-field-avoid`, along an edge roughened by up to FADE_JITTER pixels so it never runs straight.
+const FADE_START = 8;
+const FADE_END = 120;
+const FADE_JITTER = 56;
 const LENS_RADIUS = 150;
-const BASE = '146, 162, 190';
+const BASE = '160, 174, 198';
+const TINT = '96, 140, 230';
 const ACCENT = '0, 72, 216';
+const OPACITY = 0.5;
 
 function hash(x: number, y: number) {
   return ((((x * 73856093) ^ (y * 19349663)) >>> 0) % 10007) / 10007;
@@ -47,12 +53,11 @@ function density(column: number, row: number, columns: number, t: number) {
   return Math.max(smoothstep(0.2, 1, left), smoothstep(0.25, 1, right), DUST);
 }
 
-// A field of ASCII glyphs behind the page, in the spirit of a plotter's dot screen: diagonal
-// streams of characters part around the elements in the same container marked
-// `data-field-avoid`, twinkle, and turn blue around a fine pointer. The canvas is fixed to the
-// viewport but its cells are anchored to the page, so the field scrolls with the content.
-// Decorative; it holds still under reduced motion.
-export function AsciiField() {
+// A dot screen behind the page: diagonal streams of dots and rings fade out around the elements
+// in the same container marked `data-field-avoid`, twinkle, and turn blue around a fine pointer.
+// The canvas is fixed to the viewport but its cells are anchored to the page, so the field
+// scrolls with the content. Decorative; it holds still under reduced motion.
+export function ParticleField() {
   const canvas = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -73,9 +78,7 @@ export function AsciiField() {
       element.width = Math.round(box.width * ratio);
       element.height = Math.round(box.height * ratio);
       context.setTransform(ratio, 0, 0, ratio, 0, 0);
-      context.font = FONT;
-      context.textAlign = 'center';
-      context.textBaseline = 'middle';
+      context.lineWidth = 1;
     };
 
     const draw = (t: number) => {
@@ -108,7 +111,8 @@ export function AsciiField() {
             const dy = Math.max(box.top - cy, 0, cy - box.bottom);
             gap = Math.min(gap, Math.hypot(dx, dy));
           }
-          const mask = smoothstep(0, CLEARANCE, gap);
+          const jitter = (noise(column * 0.35, page * 0.35) - 0.5) * FADE_JITTER;
+          const mask = smoothstep(FADE_START, FADE_END, gap + jitter);
           let level = density(column, page, columns, t) * mask;
           // Dither: a cell shows only when its level clears its own threshold, so streams
           // break up into scattered glyphs at their edges.
@@ -117,16 +121,24 @@ export function AsciiField() {
           level = Math.min(1, level + lens * 0.35 * mask);
           if (level < threshold * 0.55 + 0.08) continue;
           const twinkle = 0.65 + 0.35 * Math.sin(t * 1.6 + threshold * 40);
-          const glyph = GLYPHS[Math.min(GLYPHS.length - 1, Math.floor(level * GLYPHS.length))];
-          const accent = threshold > 0.93 || lens > 0.2;
-          const alpha = (accent ? 0.55 : 0.5) * twinkle * Math.min(1, level * 1.6 + lens);
-          context.fillStyle = `rgba(${accent ? ACCENT : BASE}, ${alpha.toFixed(3)})`;
-          context.fillText(glyph, cx, cy);
+          const size = Math.min(RADII.length - 1, Math.floor(level * RADII.length));
+          const color =
+            threshold > 0.97 || lens > 0.4 ? ACCENT : threshold > 0.88 || lens > 0.15 ? TINT : BASE;
+          const alpha = OPACITY * twinkle * Math.min(1, level * 1.6 + lens);
+          context.beginPath();
+          context.arc(cx, cy, RADII[size], 0, Math.PI * 2);
+          if (size === RING) {
+            context.strokeStyle = `rgba(${color}, ${alpha.toFixed(3)})`;
+            context.stroke();
+          } else {
+            context.fillStyle = `rgba(${color}, ${alpha.toFixed(3)})`;
+            context.fill();
+          }
         }
       }
     };
 
-    // Scrolling redraws on the next frame, so the glyphs move in step with the content.
+    // Scrolling redraws on the next frame, so the dots move in step with the content.
     const tick = (now: number) => {
       frame = requestAnimationFrame(tick);
       if (document.hidden || (!scrolled && now - last < FRAME_MS)) return;
@@ -170,5 +182,5 @@ export function AsciiField() {
     };
   }, []);
 
-  return <canvas ref={canvas} className="ascii-field" aria-hidden="true" />;
+  return <canvas ref={canvas} className="particle-field" aria-hidden="true" />;
 }
