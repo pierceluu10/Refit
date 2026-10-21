@@ -12,7 +12,7 @@ The OpenAI and Anthropic agents score 70% on the ten-item checklist in `docs/PRO
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Live exposure and tracing** - Catalogs stop counting as live; indirect model sources trace to the call argument
+- [x] **Phase 1: Live exposure and tracing** - Catalogs stop counting as live; indirect model sources trace to the call argument (completed 2026-10-21)
 - [ ] **Phase 2: Sourced parameter stops** - Provider-page table lets the rule continue past sampling and length stops it can prove are safe
 - [ ] **Phase 3: Application benchmark sets** - Frozen OpenAI (100) and Anthropic (50) application sets from GitHub code search, with labelled live pins
 - [ ] **Phase 4: Measurement and readiness** - Pinned-worktree benchmark on the new sets, reviewed fixes, and docs updated with the measured numbers
@@ -30,7 +30,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   4. A raw `fetch` or `axios` request to `api.openai.com` or `api.anthropic.com` with a literal `model` in the body is reported at its exact line and gets the same proposal and stops as an SDK call
   5. A model ID quoted inside a plain prose string (not a template with substitutions or a concatenation), and a model-keyed map entry wrapped in `satisfies`, are reported as non-live; an env-fallback constant, a function returning a literal and a destructuring default resolve to the literal; image, audio, embedding, moderation and legacy-completion calls stop with a named reason
   6. `npm test`, typecheck and formatting pass. Gated suite results are reported separately from the default count.
-**Plans**: 5/5 plans executed
+**Plans**: 5/5 plans complete
 
 Plans:
 **Wave 1**
@@ -86,7 +86,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4. Phases 1, 2 and 3 do not d
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Live exposure and tracing | 5/5 | In Progress | - |
+| 1. Live exposure and tracing | 5/5 | Complete    | 2026-10-21 |
 | 2. Sourced parameter stops | 0/TBD | Not started | - |
 | 3. Application benchmark sets | 0/TBD | Not started | - |
 | 4. Measurement and readiness | 0/TBD | Not started | - |
