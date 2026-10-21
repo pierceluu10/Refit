@@ -8401,7 +8401,7 @@
           "live": false,
           "via": null,
           "replacement": "claude-opus-4-8",
-          "notes": "firstParty ID in ALL_MODEL_CONFIGS, which feeds getModelStrings and is used as the request model",
+          "notes": "Second right on live: the key is read only for cost lookup and Bedrock profile matching, never as a request model; matching is a comparison.",
           "reason": "comparison"
         },
         {
@@ -9234,7 +9234,7 @@
           "live": true,
           "via": "wrapper:@office-ai/aioncli-core",
           "replacement": "claude-sonnet-5-5",
-          "notes": "Fallback model list offered in the picker when listing Anthropic models fails; a chosen entry is sent as the request model."
+          "notes": "Neither: live agreed, but a chosen Anthropic model runs in the agent built on the aioncli-core package with Anthropic auth, not a direct SDK call."
         },
         {
           "file": "src/process/bridge/modelBridge.ts",
@@ -9273,7 +9273,7 @@
           "live": true,
           "via": "wrapper:@office-ai/aioncli-core",
           "replacement": "claude-haiku-4-5-20251001",
-          "notes": "Fallback model list offered in the picker when listing Anthropic models fails; a chosen entry is sent as the request model."
+          "notes": "Neither: live agreed, but a chosen Anthropic model runs in the agent built on the aioncli-core package with Anthropic auth, not a direct SDK call."
         },
         {
           "file": "src/process/bridge/modelBridge.ts",
@@ -11417,7 +11417,7 @@
           "live": false,
           "via": null,
           "replacement": "claude-sonnet-5-5",
-          "notes": "First-party ID in model config, selected by provider in modelStrings and used as the request model via the Anthropic SDK.",
+          "notes": "Second right: this model key is only matched for display names, cost tiers and Bedrock profile search; no default or picker sends it.",
           "reason": "comparison"
         },
         {
@@ -21093,7 +21093,7 @@
           "live": false,
           "via": null,
           "replacement": "claude-opus-4-8",
-          "notes": "firstParty id in model config table, resolved to model of Anthropic SDK messages request",
+          "notes": "Second right: this model key is only matched for display names, cost tiers and Bedrock profile search; no default or picker sends it.",
           "reason": "comparison"
         },
         {
@@ -26107,7 +26107,7 @@
           "live": false,
           "via": null,
           "replacement": "claude-sonnet-5-5",
-          "notes": "firstParty ID in model config, mapped via modelStrings and used as model of Anthropic API requests",
+          "notes": "Second right: this model key is only matched for display names, cost tiers and Bedrock profile search; no default or picker sends it.",
           "reason": "comparison"
         },
         {
@@ -64192,7 +64192,7 @@
           "live": true,
           "via": "sdk-text",
           "replacement": "gpt-5.6-terra",
-          "notes": "provider card model catalog entry for display and discovery lists, not read into a request"
+          "notes": "Second right: in the default client-only edition the enabled provider card models are the selectable chat list, sent through the OpenAI runtime."
         },
         {
           "file": "src/config/modelProviders/openai.ts",
