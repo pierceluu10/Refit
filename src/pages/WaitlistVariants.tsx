@@ -133,8 +133,8 @@ export function WaitlistSplit() {
 export function WaitlistLaunch() {
   return (
     <div className="waitlist-theme variant variant-launch">
+      <AsciiField />
       <div className="launch-top">
-        <AsciiField />
         <Header minimal action={false} />
         <main id="main-content">
           <section className="split-hero launch-hero" id="waitlist">
@@ -159,7 +159,7 @@ export function WaitlistLaunch() {
         </main>
       </div>
       <section className="split-steps" aria-labelledby="launch-steps">
-        <div className="split-steps-heading">
+        <div className="split-steps-heading" data-field-avoid>
           <h2 id="launch-steps">What Refit Agent does when an API moves.</h2>
           <p>Breaking changes first. Anything ambiguous stops for a person.</p>
         </div>

@@ -23,7 +23,7 @@ export function Progression({ layout }: { layout: 'ladder' | 'track' | 'rail' })
             <span className="progression-marker" aria-hidden="true">
               {String(index + 1).padStart(2, '0')}
             </span>
-            <div className="progression-card">
+            <div className="progression-card" data-field-avoid>
               <span className="progression-tag">{stage.short}</span>
               <h3>{stage.title}</h3>
               <p>{stage.description}</p>

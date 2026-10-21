@@ -4,6 +4,10 @@ const CELL = 16;
 const FONT = '500 11px "Geist Mono Variable", monospace';
 const GLYPHS = ['.', ':', '+', 'o', '*'];
 const FRAME_MS = 1000 / 24;
+// Rows the stream pattern spans before it repeats down the page, about one screen.
+const ROW_SPAN = 56;
+// The level every cell has outside a stream, so a sparse dusting covers the whole page.
+const DUST = 0.14;
 // Streams fade out this close to anything marked `data-field-avoid`, so text stays clean.
 const CLEARANCE = 44;
 const LENS_RADIUS = 150;
@@ -32,25 +36,22 @@ function smoothstep(from: number, to: number, value: number) {
   return t * t * (3 - 2 * t);
 }
 
-// How strongly a cell belongs to a stream at time `t` (seconds), from 0 to 1. Streams run
-// diagonally down from the upper corners and drift slowly along their own direction.
-function density(column: number, row: number, columns: number, rows: number, t: number) {
+// How strongly a cell belongs to a stream at time `t` (seconds), from 0 to 1. `row` counts from
+// the top of the page. Two sets of streams cross diagonally and drift along their own direction.
+function density(column: number, row: number, columns: number, t: number) {
   const x = column / columns;
-  const y = row / rows;
+  const y = row / ROW_SPAN;
   const warp = noise(column * 0.12 + t * 0.05, row * 0.12) * 2.4;
   const left = Math.sin((x * 1.1 + y * 0.9) * 9 - t * 0.35 + warp);
   const right = Math.sin(((1 - x) * 1.2 + y * 0.8) * 8 - t * 0.3 + warp + 1.7);
-  const stream = Math.max(
-    smoothstep(0.3, 1, left) * (1.15 - x),
-    smoothstep(0.35, 1, right) * (x + 0.15),
-  );
-  return Math.min(1, stream) * (1 - smoothstep(0.7, 1, y));
+  return Math.max(smoothstep(0.2, 1, left), smoothstep(0.25, 1, right), DUST);
 }
 
-// A field of ASCII glyphs behind the hero, in the spirit of a plotter's dot screen: diagonal
-// streams of characters flow in from the upper corners, part around the elements in the same
-// container marked `data-field-avoid`, twinkle, and turn blue around a fine pointer. Decorative;
-// it pauses offscreen and holds still under reduced motion.
+// A field of ASCII glyphs behind the page, in the spirit of a plotter's dot screen: diagonal
+// streams of characters part around the elements in the same container marked
+// `data-field-avoid`, twinkle, and turn blue around a fine pointer. The canvas is fixed to the
+// viewport but its cells are anchored to the page, so the field scrolls with the content.
+// Decorative; it holds still under reduced motion.
 export function AsciiField() {
   const canvas = useRef<HTMLCanvasElement>(null);
 
@@ -63,7 +64,7 @@ export function AsciiField() {
     let size = { width: 0, height: 0 };
     let frame = 0;
     let last = 0;
-    let visible = true;
+    let scrolled = false;
 
     const resize = () => {
       const box = element.getBoundingClientRect();
@@ -81,7 +82,9 @@ export function AsciiField() {
       const { width, height } = size;
       context.clearRect(0, 0, width, height);
       const columns = Math.ceil(width / CELL);
-      const rows = Math.ceil(height / CELL);
+      const rows = Math.ceil(height / CELL) + 1;
+      const offset = window.scrollY % CELL;
+      const first = Math.floor(window.scrollY / CELL);
       const origin = element.getBoundingClientRect();
       const avoid = [
         ...element.parentElement!.querySelectorAll<HTMLElement>('[data-field-avoid]'),
@@ -97,7 +100,8 @@ export function AsciiField() {
       for (let row = 0; row < rows; row++) {
         for (let column = 0; column < columns; column++) {
           const cx = column * CELL + CELL / 2;
-          const cy = row * CELL + CELL / 2;
+          const cy = row * CELL - offset + CELL / 2;
+          const page = first + row;
           let gap = Infinity;
           for (const box of avoid) {
             const dx = Math.max(box.left - cx, 0, cx - box.right);
@@ -105,10 +109,10 @@ export function AsciiField() {
             gap = Math.min(gap, Math.hypot(dx, dy));
           }
           const mask = smoothstep(0, CLEARANCE, gap);
-          let level = density(column, row, columns, rows, t) * mask;
+          let level = density(column, page, columns, t) * mask;
           // Dither: a cell shows only when its level clears its own threshold, so streams
           // break up into scattered glyphs at their edges.
-          const threshold = hash(column + 17, row + 31);
+          const threshold = hash(column + 17, page + 31);
           const lens = Math.max(0, 1 - Math.hypot(cx - pointer.x, cy - pointer.y) / LENS_RADIUS);
           level = Math.min(1, level + lens * 0.35 * mask);
           if (level < threshold * 0.55 + 0.08) continue;
@@ -122,11 +126,17 @@ export function AsciiField() {
       }
     };
 
+    // Scrolling redraws on the next frame, so the glyphs move in step with the content.
     const tick = (now: number) => {
       frame = requestAnimationFrame(tick);
-      if (!visible || document.hidden || now - last < FRAME_MS) return;
+      if (document.hidden || (!scrolled && now - last < FRAME_MS)) return;
       last = now;
+      scrolled = false;
       draw(now / 1000);
+    };
+    const scroll = () => {
+      if (reduced) draw(0);
+      else scrolled = true;
     };
 
     const track = (event: PointerEvent) => {
@@ -142,17 +152,19 @@ export function AsciiField() {
       if (reduced) draw(0);
     });
     resized.observe(element);
+    window.addEventListener('scroll', scroll, { passive: true });
     if (reduced) {
       draw(0);
-      return () => resized.disconnect();
+      return () => {
+        resized.disconnect();
+        window.removeEventListener('scroll', scroll);
+      };
     }
-    const observer = new IntersectionObserver(([entry]) => (visible = entry.isIntersecting));
-    observer.observe(element);
     window.addEventListener('pointermove', track, { passive: true });
     frame = requestAnimationFrame(tick);
     return () => {
       resized.disconnect();
-      observer.disconnect();
+      window.removeEventListener('scroll', scroll);
       window.removeEventListener('pointermove', track);
       cancelAnimationFrame(frame);
     };

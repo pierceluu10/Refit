@@ -1059,12 +1059,24 @@
 
 /* v4: Launch -------------------------------------------------------------------------------- */
 
-.launch-top {
+.variant-launch {
   position: relative;
   isolation: isolate;
 }
-.ascii-field {
-  position: absolute;
+/* The hero fills the first screen; the field fills the space its content leaves. */
+.launch-top {
+  display: flex;
+  flex-direction: column;
+  min-height: 100svh;
+}
+.launch-top main {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+}
+/* Outranks `.waitlist-theme > *`, which positions every direct child relatively. */
+.variant-launch > .ascii-field {
+  position: fixed;
   inset: 0;
   z-index: -1;
   width: 100%;
@@ -1072,12 +1084,39 @@
   pointer-events: none;
 }
 .launch-hero {
+  flex: 1;
   grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
   gap: 64px;
-  padding: 40px 0 48px;
+  padding: 40px 0 56px;
 }
 .variant-launch .split-steps {
-  padding-top: 72px;
+  padding-top: 128px;
+}
+/* The heading slides in from the left and each stage from the right as they scroll into view. */
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .variant-launch .split-steps-heading,
+    .variant-launch .progression-card {
+      animation: enter-from-left var(--ease-out) both;
+      animation-timeline: view();
+      animation-range: entry 10% entry 100%;
+    }
+    .variant-launch .progression-card {
+      animation-name: enter-from-right;
+    }
+  }
+}
+@keyframes enter-from-left {
+  from {
+    opacity: 0;
+    translate: -96px 0;
+  }
+}
+@keyframes enter-from-right {
+  from {
+    opacity: 0;
+    translate: 96px 0;
+  }
 }
 .launch-hero h1 {
   font-size: clamp(42px, 4.4vw, 62px);
