@@ -24,7 +24,7 @@
 
 ### Rule (replacement stops)
 
-- [ ] **RULE-01**: A provider-parameter table (`source`, `checkedAt`) records, per replacement model, which sampling and length parameters it accepts, read from the official OpenAI and Anthropic model pages
+- [x] **RULE-01**: A provider-parameter table (`source`, `checkedAt`) records, per replacement model, which sampling and length parameters it accepts, read from the official OpenAI and Anthropic model pages
 - [ ] **RULE-02**: The replacement rule proceeds past `temperature`/`top_p`/`top_k`/`max_tokens` stops only when the table shows the replacement accepts that parameter with that value; every other case keeps stopping with a named reason
 - [ ] **RULE-03**: The owner decision for RULE-02 is recorded in AGENTS.md and the relevant guide, and tests cover both an allowed and a still-stopped parameter for each provider
 
@@ -72,7 +72,7 @@
 | TRAC-06 | Phase 1 | Complete |
 | TRAC-07 | Phase 1 | Complete |
 | EXPO-03 | Phase 1 | Complete |
-| RULE-01 | Phase 2 | Pending |
+| RULE-01 | Phase 2 | Complete |
 | RULE-02 | Phase 2 | Pending |
 | RULE-03 | Phase 2 | Pending |
 | BENCH-01 | Phase 3 | Pending |

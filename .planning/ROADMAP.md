@@ -55,11 +55,11 @@ Plans:
   2. `refit deadlines --propose-model-fixes` proposes a fix for a call whose parameter and value the table allows, and still stops with a named reason when the parameter or value is not proven
   3. Tests cover one allowed and one still-stopped parameter for each provider
   4. AGENTS.md and the relevant guide record the owner decision for this narrower stop, with its scope and date
-**Plans**: 2 plans
+**Plans**: 1/2 plans executed
 
 Plans:
 **Wave 1**
-- [ ] 02-01-PLAN.md — Sourced parameter table, strict validator, `--check-parameters` / `model-parameters:check` (RULE-01)
+- [x] 02-01-PLAN.md — Sourced parameter table, strict validator, `--check-parameters` / `model-parameters:check` (RULE-01)
 
 **Wave 2** *(blocked on Wave 1 completion)*
 - [ ] 02-02-PLAN.md — Table-driven parameter stops, caller wiring, per-provider tests, decision record and docs (RULE-02, RULE-03)
@@ -94,6 +94,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4. Phases 1, 2 and 3 do not d
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Live exposure and tracing | 5/5 | Complete    | 2026-10-21 |
-| 2. Sourced parameter stops | 0/2 | Not started | - |
+| 2. Sourced parameter stops | 1/2 | In Progress | - |
 | 3. Application benchmark sets | 0/TBD | Not started | - |
 | 4. Measurement and readiness | 0/TBD | Not started | - |
