@@ -75,7 +75,12 @@ export function declaredApiVersions(options: {
     )
       return undefined;
     const value = resolve(declaration.initializer, new Set([...seen, binding]));
-    return value && ts.isObjectLiteralExpression(value) && unsafe.has(binding) ? undefined : value;
+    return value &&
+      ts.isObjectLiteralExpression(value) &&
+      unsafe.has(binding) &&
+      !onlyCopied(binding, declaration)
+      ? undefined
+      : value;
   }
   // The global `undefined`, not a local binding that shadows it.
   function undefinedValue(expression: ts.Expression) {
@@ -102,7 +107,9 @@ export function declaredApiVersions(options: {
     const object = resolve(expression, seen);
     if (!object || !ts.isObjectLiteralExpression(object)) return { status: 'unknown' };
     const candidates = object.properties.filter((entry) => {
-      if (ts.isSpreadAssignment(entry) || ts.isComputedPropertyName(entry.name)) return true;
+      if (ts.isSpreadAssignment(entry))
+        return spreadProperty(entry.expression, path, seen).status !== 'absent';
+      if (ts.isComputedPropertyName(entry.name)) return true;
       return (
         entry.name &&
         (ts.isIdentifier(entry.name) || ts.isStringLiteral(entry.name)) &&
@@ -121,6 +128,107 @@ export function declaredApiVersions(options: {
     return path.length === 1
       ? { status: 'present', expression: value }
       : property(value, path.slice(1), seen);
+  }
+  // `{ ...price(plan), proration_behavior }`: a spread of a const object, or of a call to a
+  // local function whose every return is an object literal, adds only the keys spelled out.
+  function spreadProperty(
+    expression: ts.Expression,
+    path: string[],
+    seen: Set<ts.Symbol>,
+  ): PropertyResult {
+    let current = unwrap(expression);
+    if (ts.isIdentifier(current)) {
+      const binding = symbol(current);
+      const declaration = binding?.valueDeclaration;
+      if (
+        binding &&
+        !seen.has(binding) &&
+        declaration &&
+        ts.isVariableDeclaration(declaration) &&
+        declaration.initializer &&
+        ts.isVariableDeclarationList(declaration.parent) &&
+        declaration.parent.flags & ts.NodeFlags.Const &&
+        ts.isCallExpression(unwrap(declaration.initializer)) &&
+        onlyCopied(binding, declaration)
+      ) {
+        seen = new Set([...seen, binding]);
+        current = unwrap(declaration.initializer);
+      }
+    }
+    if (!ts.isCallExpression(current)) return property(current, path, seen);
+    const callee = unwrap(current.expression);
+    const binding = ts.isIdentifier(callee) ? symbol(callee) : undefined;
+    const returned = binding && !seen.has(binding) ? returnedValues(binding) : undefined;
+    if (!returned) return { status: 'unknown' };
+    const inner = new Set([...seen, binding!]);
+    return returned.every((value) => property(value, path, inner).status === 'absent')
+      ? { status: 'absent' }
+      : { status: 'unknown' };
+  }
+  // A value only ever copied by spreads or passed directly to SDK calls, which copy their
+  // arguments (`{ ...params }` in stripe-node), cannot gain a key after its declaration.
+  function onlyCopied(binding: ts.Symbol, declaration: ts.VariableDeclaration) {
+    const statement = declaration.parent.parent;
+    if (
+      ts.isVariableStatement(statement) &&
+      statement.modifiers?.some((modifier) => modifier.kind === ts.SyntaxKind.ExportKeyword)
+    )
+      return false;
+    let copied = true;
+    const visit = (node: ts.Node): void => {
+      if (
+        ts.isIdentifier(node) &&
+        node !== declaration.name &&
+        symbol(node) === binding &&
+        !ts.isSpreadAssignment(node.parent) &&
+        !(
+          ts.isCallExpression(node.parent) &&
+          node.parent.arguments.includes(node) &&
+          options.sdkCall(node.parent)
+        )
+      )
+        copied = false;
+      else ts.forEachChild(node, visit);
+    };
+    visit(declaration.getSourceFile());
+    return copied;
+  }
+  // Every value a plain synchronous local function returns, or undefined when one is implicit.
+  function returnedValues(binding: ts.Symbol): ts.Expression[] | undefined {
+    const declaration = binding.valueDeclaration;
+    const initializer =
+      declaration &&
+      ts.isVariableDeclaration(declaration) &&
+      ts.isVariableDeclarationList(declaration.parent) &&
+      declaration.parent.flags & ts.NodeFlags.Const
+        ? declaration.initializer && unwrap(declaration.initializer)
+        : undefined;
+    const fn =
+      declaration && ts.isFunctionDeclaration(declaration)
+        ? declaration
+        : initializer && (ts.isArrowFunction(initializer) || ts.isFunctionExpression(initializer))
+          ? initializer
+          : undefined;
+    if (
+      !fn?.body ||
+      fn.asteriskToken ||
+      fn.modifiers?.some((modifier) => modifier.kind === ts.SyntaxKind.AsyncKeyword) ||
+      unsafe.has(binding)
+    )
+      return undefined;
+    if (!ts.isBlock(fn.body)) return [fn.body];
+    const values: ts.Expression[] = [];
+    let implicit = false;
+    const visit = (node: ts.Node): void => {
+      if (ts.isFunctionLike(node)) return;
+      if (ts.isReturnStatement(node)) {
+        if (node.expression) values.push(node.expression);
+        else implicit = true;
+      }
+      ts.forEachChild(node, visit);
+    };
+    ts.forEachChild(fn.body, visit);
+    return implicit || !values.length ? undefined : values;
   }
   function version(expression: ts.Expression | undefined): {
     status: 'absent' | 'unknown' | 'literal';
