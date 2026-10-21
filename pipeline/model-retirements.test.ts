@@ -1669,7 +1669,7 @@ it('follows default-exported literals and objects and string-literal element acc
       `export const a = () => ${send('model')}`,
       "const MODELS = { fast: 'gpt-4' } as const;",
       "export const key = (k: 'fast') => " + send('MODELS[k]'),
-      "export const each = ['gpt-4'].forEach((m) => " + send('m') + ');',
+      "export const each = ['gpt-4'].forEach((m) => { " + send('m') + ' });',
     ].join('\n'),
   });
   const silent = await proposeModelReplacements(untraced, registry, NOW);
