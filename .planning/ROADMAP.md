@@ -28,9 +28,23 @@ Decimal phases appear between their surrounding integers in numeric order.
   2. Deadline reports and benchmark results files show catalog matches in a separate count, so totals can still be compared with the 2026-10-20 results
   3. Fixtures that use `model: this.model` (field initializer and constructor default), a constant imported from another module, an enum or `as const` member, and a helper parameter all resolve to the literal model ID. A helper parameter reports each caller site.
   4. A raw `fetch` or `axios` request to `api.openai.com` or `api.anthropic.com` with a literal `model` in the body is reported at its exact line and gets the same proposal and stops as an SDK call
-  5. A model ID quoted inside prose, and a model-keyed map entry wrapped in `satisfies`, are reported as non-live; an env-fallback constant, a function returning a literal and a destructuring default resolve to the literal; image, audio, embedding, moderation and legacy-completion calls stop with a named reason
+  5. A model ID quoted inside a plain prose string (not a template with substitutions or a concatenation), and a model-keyed map entry wrapped in `satisfies`, are reported as non-live; an env-fallback constant, a function returning a literal and a destructuring default resolve to the literal; image, audio, embedding, moderation and legacy-completion calls stop with a named reason
   6. `npm test`, typecheck and formatting pass. Gated suite results are reported separately from the default count.
-**Plans**: TBD
+**Plans**: 5 plans
+
+Plans:
+**Wave 1**
+- [ ] 01-01-PLAN.md — Scan: satisfies-wrapped maps, descriptor keys and plain-string prose are non-live; exact non-live counts by use in CLI and a tested benchmark summary (wave 1)
+- [ ] 01-02-PLAN.md — Non-text SDK and raw calls stop with a named reason; raw fetch/axios shapes, including axios request-config forms, traced and tested (wave 1)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+- [ ] 01-03-PLAN.md — Memoized resolver core: fields, members, fallbacks, returns, destructuring, imports (wave 2)
+
+**Wave 3** *(blocked on Wave 2 completion)*
+- [ ] 01-04-PLAN.md — D-09 every-use check (own commit), helper/method/default-export callers, D-17 fixes, never-silent limit stop (wave 3)
+
+**Wave 4** *(blocked on Wave 3 completion)*
+- [ ] 01-05-PLAN.md — AGENTS.md D-14 decision, docs/DEADLINES.md, READINESS checkpoint, PROJECT.md, full verification (wave 4)
 
 ### Phase 2: Sourced parameter stops
 **Goal**: The replacement rule continues past a `temperature`/`top_p`/`top_k`/`max_tokens` stop only when an official provider page proves the replacement model accepts that parameter and value. Every other case keeps stopping with a named reason.

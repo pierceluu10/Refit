@@ -594,19 +594,19 @@ The repository intentionally uses the compiler API from `typescript-compiler` (5
 | A5 | Yield figures from 50 npm-sourced, library-heavy repositories predict little about application repositories | Real-world validation | Phase 3/4 application sets could behave very differently |
 | A6 | The Docker daemon stays available for the gated run | Test strategy | Gated verification skipped; report as such |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **Request discovery is off under an unverified `tsconfig`; should model tracing relax it?**
+1. **Request discovery is off under an unverified `tsconfig`; should model tracing relax it?** **RESOLVED: D-13 (gate unchanged; blocked pins count as untraced) in 01-CONTEXT.md.**
    - What we know: the CONTEXT's first example (langchainjs `private model = "dall-e-3"`) sits under a `tsconfig` that extends an npm package; `source-configurations.ts:154-167` marks it unverified and `sdk-constructors.ts:13` then ignores the SDK import. `proposeModelReplacements` discards `sourceWarnings`, so the result is silence, not a stop. 12 of 59 pairs (10 repositories) have no recognized calls and an unverified-`tsconfig` warning, but relaxing the gate for the tracer reveals requests in only two of those repositories (langchainjs, nuxt-chatgpt) and one more stop (`dalle.ts`). Heuristic caveat: the warning can come from an unrelated package's `tsconfig`, so "gated" is an upper bound.
    - What's unclear: whether the owner will accept an import being treated as the official SDK when alias resolution cannot be verified (AGENTS.md forbids relaxing a stop without a decision).
    - Recommendation: do not change the gate in Phase 1; ask the owner before Phase 4; until then Phase 4 must list gate-blocked pins as untraced with that reason. Do not emit stops for them, because a stop that names no request would count as "traced" under D-12.
-2. **Record D-09 and the new traced shapes in AGENTS.md.** Add a dated bullet next to the #120 decision and update the `.planning/PROJECT.md` Key Decisions row; confirm with the owner (A1).
-3. **`value` as a descriptor key / UI option arrays** (2 promptfoo lines): leave as is, or add `value` only when the same object has `label`.
-4. **D-11 breadth.** Add the OpenAI v3 request-object methods (`createCompletion`, `createEmbedding`, `createEdit`, `createModeration`) and/or a catch-all stop for any traced call outside `MODEL_CALLS` whose request has `model`.
-5. **Request objects built elsewhere** (25% of discovered requests, for example `let params = buildParams(...)`): out of D-06..D-12; D-10 says "does not rewrite". Decide whether a follow-up belongs in this phase or Phase 4's untraced list.
-6. **Client shapes the analyzer does not recognize** (`let client = new OpenAI()`, factories returning the client, typed-parameter clients, DI): 15 pairs. Same question as 5.
-7. **Benchmark timeouts.** `SCAN_TIMEOUT_MS = 120_000` (script line 13) is exceeded by the analyzer alone on a few repositories. Phase 4 should record "timed out" and "crashed" as their own buckets and consider a longer timeout.
-8. **Default-exported classes and functions** (Pitfall 7): fix or document.
+2. **Record D-09 and the new traced shapes in AGENTS.md.** Add a dated bullet next to the #120 decision and update the `.planning/PROJECT.md` Key Decisions row; confirm with the owner (A1). **RESOLVED: D-14 in 01-CONTEXT.md.**
+3. **`value` as a descriptor key / UI option arrays** (2 promptfoo lines): leave as is, or add `value` only when the same object has `label`. **RESOLVED: D-15 (no) in 01-CONTEXT.md.**
+4. **D-11 breadth.** Add the OpenAI v3 request-object methods (`createCompletion`, `createEmbedding`, `createEdit`, `createModeration`) and/or a catch-all stop for any traced call outside `MODEL_CALLS` whose request has `model`. **RESOLVED: D-16 (catch-all stop) in 01-CONTEXT.md.**
+5. **Request objects built elsewhere** (25% of discovered requests, for example `let params = buildParams(...)`): out of D-06..D-12; D-10 says "does not rewrite". Decide whether a follow-up belongs in this phase or Phase 4's untraced list. **RESOLVED: D-19 (Phase 4 measures; decimal phase if short) in 01-CONTEXT.md.**
+6. **Client shapes the analyzer does not recognize** (`let client = new OpenAI()`, factories returning the client, typed-parameter clients, DI): 15 pairs. Same question as 5. **RESOLVED: D-19 in 01-CONTEXT.md.**
+7. **Benchmark timeouts.** `SCAN_TIMEOUT_MS = 120_000` (script line 13) is exceeded by the analyzer alone on a few repositories. Phase 4 should record "timed out" and "crashed" as their own buckets and consider a longer timeout. **RESOLVED: D-19 (Phase 4) in 01-CONTEXT.md.**
+8. **Default-exported classes and functions** (Pitfall 7): fix or document. **RESOLVED: D-17 (fix with regression test) in 01-CONTEXT.md.**
 
 ## Environment Availability
 

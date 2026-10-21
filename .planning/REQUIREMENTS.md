@@ -8,7 +8,7 @@
 ### Exposure (what counts as live)
 
 - [ ] **EXPO-01**: Deadline scan classifies object-shaped model catalogs (model metadata objects, `versions: [...]` lists, model option arrays) as non-live, with a test per shape
-- [ ] **EXPO-03**: A model ID quoted inside a longer string (descriptions, error messages, embedded docs) is not live, and a model-keyed map entry stays a catalog when its object is wrapped in `satisfies`/`as`
+- [ ] **EXPO-03**: A model ID quoted inside a longer plain string or no-substitution template (descriptions, error messages, embedded docs) is not live (template pieces with substitutions and concatenation operands stay live, D-20), and a model-keyed map entry stays a catalog when its object is wrapped in `satisfies`/`as`
 - [ ] **EXPO-02**: Reports and benchmark results show catalog matches separately from live exposures, so counts stay comparable to the 2026-10-20 runs
 
 ### Tracing (live pin → call argument)
