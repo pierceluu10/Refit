@@ -80,7 +80,7 @@ const results: BenchmarkRepository[] = [
   },
 ];
 
-it('keeps every 2026-10-20 summary key and value, and adds mentionedOnly', () => {
+it('keeps every 2026-10-20 summary key and value, and adds mentionedOnly and exposedErrored', () => {
   expect(benchmarkSummary(results)).toEqual({
     repositories: 8,
     errors: 3,
@@ -88,10 +88,12 @@ it('keeps every 2026-10-20 summary key and value, and adds mentionedOnly', () =>
     exposed: 4,
     exposedWithReplacement: 1,
     exposedStoppedOnly: 1,
-    exposedSilent: 2,
+    // The timed-out exposed repository is not silent: it is counted as errored.
+    exposedSilent: 1,
     replacements: 1,
     stops: 3,
     mentionedOnly: 1,
+    exposedErrored: 1,
   });
   // The earlier keys keep their order, and the new one follows them.
   expect(Object.keys(benchmarkSummary(results))).toEqual([
@@ -105,6 +107,7 @@ it('keeps every 2026-10-20 summary key and value, and adds mentionedOnly', () =>
     'replacements',
     'stops',
     'mentionedOnly',
+    'exposedErrored',
   ]);
 });
 
@@ -120,5 +123,6 @@ it('summarizes an empty run as zeros', () => {
     replacements: 0,
     stops: 0,
     mentionedOnly: 0,
+    exposedErrored: 0,
   });
 });

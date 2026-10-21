@@ -41,6 +41,7 @@ export interface BenchmarkSummary {
   replacements: number;
   stops: number;
   mentionedOnly: number;
+  exposedErrored: number;
 }
 
 export function repositoryNonLive(

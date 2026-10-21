@@ -18,7 +18,8 @@ export function repositoryNonLive(result, provider) {
 
 // The 2026-10-20 keys keep their meaning. `mentionedOnly` counts repositories that name a deadline
 // model only outside live code: no live exposure, some non-live match and no error, since a failed
-// scan says nothing about what the repository contains.
+// scan says nothing about what the repository contains. `exposedSilent` leaves out errored
+// repositories, which `exposedErrored` counts instead.
 export function benchmarkSummary(results) {
   const exposed = results.filter((item) => item.exposures?.length);
   return {
@@ -29,11 +30,15 @@ export function benchmarkSummary(results) {
     exposedWithReplacement: exposed.filter((item) => item.replacements.length).length,
     exposedStoppedOnly: exposed.filter((item) => !item.replacements.length && item.stops.length)
       .length,
-    exposedSilent: exposed.filter((item) => !item.replacements.length && !item.stops.length).length,
+    exposedSilent: exposed.filter(
+      (item) => !item.error && !item.replacements.length && !item.stops.length,
+    ).length,
     replacements: results.reduce((total, item) => total + (item.replacements?.length ?? 0), 0),
     stops: results.reduce((total, item) => total + (item.stops?.length ?? 0), 0),
     mentionedOnly: results.filter(
       (item) => !item.error && !item.exposures?.length && item.nonLiveTotal > 0,
     ).length,
+    // Exposed repositories whose proposal step failed: they are neither silent nor handled.
+    exposedErrored: exposed.filter((item) => item.error).length,
   };
 }
