@@ -1,5 +1,27 @@
 # Refit implementation checkpoints
 
+## October 21 checkpoint: OpenAI and Anthropic benchmarks re-measured (unreleased, after 0.39.0)
+
+Both frozen AI SDK sets and the 34-application deadline set were run again, from a worktree pinned at main `72386c2`. That is after #137 (class properties reported, not edited), #138 (shared analyzer program) and #143 (catalog precision and build output). Scans ran three or four at a time with nothing else running. Four repositories that hit the 2-minute cap only under that load were re-run alone with the same cap. An earlier run on a tree that still edited class properties gave the same counts. The one difference: a policy-synth stop now names the class property `llmModel` instead of the sampling parameters.
+
+- **OpenAI** (100 repositories):
+  - 45 exposed (47 before), with 1 proposal and 1 stop;
+  - 14 not fully scanned (16 before);
+  - the one proposal is still correct on hand review and still over the 50 MiB validation archive limit.
+- **Anthropic** (50): 16 exposed (17 before), with 1 proposal (6 sites, validated again: `vitest` passed before and after) and 2 stops; 15 not fully scanned (17 before).
+- **Deadline set** (34 applications):
+  - 22 exposed, with 2 proposals (6 sites, correct on hand review) and 4 stops;
+  - neither proposal validated: one needs a custom image, and the other's build fails offline before the change;
+  - 7 of the 19 labelled live lines reach an edit or a stop.
+- **Why fixes did not move.** Live lines fell from 1,170 to 630, but almost all of the removed lines sat in repositories that also send a model some other way. Of 43 untraced OpenAI exposures:
+  - 10 are non-text models only, which the rule never replaces;
+  - 7 are timeouts;
+  - 26 pass the model through a library's wrappers.
+
+  The frozen sets are libraries from npm search. An application set needs GitHub code search.
+
+Validation used `node:22-alpine` with the build environment's proxy CA added, for the benchmark only. Results: `docs/benchmarks/2026-10-21-{openai,anthropic,model-replacement}-results.json`, each with the run's validation and hand review. The checklist is in [Provider goals](PROVIDER-GOALS.md#openai-and-anthropic-progress-checklist-2026-10-21): 70% for both providers, unchanged.
+
 ## October 21 checkpoint: new model-fix stops, prose and traced indirect sources (unreleased, after 0.39.0)
 
 This change only adds stops: `refit deadlines --propose-model-fixes` and `refit serve --model-fixes` edit nothing they did not edit before. See [Deadlines](DEADLINES.md#propose-model-replacements).
@@ -96,7 +118,7 @@ Tests: `pipeline/paypal-calls.test.ts` (20) covers each old-SDK binding form, `e
 - Anthropic: 17 of 50 have a live exposure. 1 got a proposal (6 sites), correct per the registry and validated with its `vitest` suite. 2 more stopped for review, and 17 could not be scanned. The validated script also sets extended thinking `budget_tokens`; whether `claude-sonnet-5-5` accepts it is unverified.
 - Also in this change: a swap to a pre-Claude-4.7 replacement keeps `temperature`, `top_p` and `top_k`, since Anthropic rejects them only on 4.7 and later. The rule skips analysis a repository cannot need.
 
-Most untraced exposures are catalog entries the scanner counts as live, or library defaults in class fields. On the progress checklist in [Provider goals](PROVIDER-GOALS.md#openai-and-anthropic-progress-checklist-2026-10-20) both providers are at 70%. The fix rate is far below the 70% target, and it needs an application set to be measured fairly.
+Most untraced exposures are catalog entries the scanner counts as live, or library defaults in class fields. On the progress checklist in [Provider goals](PROVIDER-GOALS.md#openai-and-anthropic-progress-checklist-2026-10-21) both providers were at 70%. The fix rate is far below the 70% target, and it needs an application set to be measured fairly.
 
 ## October 20 checkpoint: reviewed Meta Graph API change list (unreleased)
 
