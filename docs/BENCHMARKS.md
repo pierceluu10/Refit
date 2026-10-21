@@ -173,6 +173,17 @@ These counts are a lower bound for Shopify: the registry starts at `2025-04`, an
 
 Review-only version moves to v25.0 on the same 33 repositories ([results](benchmarks/2026-10-20-meta-graph-move-results.json)): 0 proposed with the committed change list, because every changelog is unread; in a hypothetical run with every changelog marked reviewed and empty, 100 of the 131 live pins would move, each a one-line edit of the version text only.
 
+## PayPal requests (October 21)
+
+`refit paypal` (review only) was run over a frozen set of **22** repositories from a pinned worktree at `1ec93a8` ([list](benchmarks/2026-10-21-paypal-repos.json), [results](benchmarks/2026-10-21-paypal-results.json)). Each repository's npm package declares `@paypal/checkout-server-sdk` or `@paypal/paypal-server-sdk`. npm search found only 22 such repositories, not the 50 the goal asks for, and **the set is libraries and plugins, not applications.**
+
+- **Scan.** 17 were scanned and 5 exceeded the scan limits. 11 scanned repositories make a live PayPal request.
+- **Requests.** 90 were reported: 82 `@paypal/paypal-server-sdk` controller calls and 8 raw REST calls. On hand review against each source line, all 90 are real requests with the right method and path. 83 match an operation in PayPal's published OpenAPI documents.
+- **Tracing.** A text heuristic counted 116 lines that look like SDK calls; 82 were traced. Of the 34 left, 15 are in the over-limit repositories, 9 are a plugin's own wrapper with SDK-like method names, and 10 are real misses through a controller getter in another file. That is 82 of 92 real call lines in scanned repositories (89%).
+- **Old SDK.** No `@paypal/checkout-server-sdk` request was in a scanned repository. Scanning only the PayPal package directory of the 3 over-limit repositories traced all 15 of their call lines, 12 of them old-SDK requests ([supplement](benchmarks/2026-10-21-paypal-subdirectory-results.json)). These are not counted above.
+
+See [PayPal](PAYPAL.md#measured-on-a-frozen-set).
+
 ## Speed and cost
 
 | Measure | Result |
@@ -205,4 +216,5 @@ git worktree add --detach <worktree> <commit>    # always run from a pinned chec
 OPENAI_MODEL=gpt-5.6-luna npm run benchmark:stripe -- --root <dir> --output <run> --env .env --ai --validate [--offset N --limit N]
 npm run benchmark:shopify -- --root <dir> --list <list> --output <run> --validate
 node scripts/stripe-benchmark-compare.mjs <run-a>/results.json <run-b>/results.json
+node scripts/paypal-benchmark.mjs --root <dir> --refit <worktree> --list docs/benchmarks/2026-10-21-paypal-repos.json
 ```
