@@ -820,6 +820,22 @@ function bindingValues(
   return found;
 }
 
+// The name callers use for a function-like declaration: its own, the constant holding it, or the
+// class a constructor belongs to.
+function callableName(fn: ts.SignatureDeclaration) {
+  return ts.isConstructorDeclaration(fn)
+    ? fn.parent.name
+    : ts.isFunctionDeclaration(fn) && fn.name
+      ? fn.name
+      : (ts.isFunctionExpression(fn) || ts.isArrowFunction(fn)) &&
+          ts.isVariableDeclaration(fn.parent) &&
+          ts.isIdentifier(fn.parent.name)
+        ? fn.parent.name
+        : ts.isMethodDeclaration(fn) && !ts.isComputedPropertyName(fn.name)
+          ? fn.name
+          : undefined;
+}
+
 // A parameter holds the argument of the call being followed; otherwise its default and the
 // argument of every caller.
 function parameterValues(
@@ -845,17 +861,7 @@ function parameterValues(
   const fn = parameter.parent;
   const index = fn.parameters.indexOf(parameter);
   const constructed = ts.isConstructorDeclaration(fn);
-  const name = constructed
-    ? fn.parent.name
-    : ts.isFunctionDeclaration(fn) && fn.name
-      ? fn.name
-      : (ts.isFunctionExpression(fn) || ts.isArrowFunction(fn)) &&
-          ts.isVariableDeclaration(fn.parent) &&
-          ts.isIdentifier(fn.parent.name)
-        ? fn.parent.name
-        : ts.isMethodDeclaration(fn) && !ts.isComputedPropertyName(fn.name)
-          ? fn.name
-          : undefined;
+  const name = callableName(fn);
   const symbol = name && program.symbolOf(name);
   if (!name || !symbol) return found;
   const helperName = `${name.text} (${where(program, name)})`;
@@ -962,6 +968,107 @@ function modelSites(program: SourceProgram, value: ts.Expression) {
     }
   }
   return { sites: [...sites.values()], cut: trace.cut.by };
+}
+
+const SWEEP_CAP = 20_000;
+
+// After a limit cut a request's trace: every string literal that can reach `start` by the same
+// references as `valuesOf`, ignoring which call or property it came through. Each declaration is
+// entered once and at most SWEEP_CAP expressions are visited, so it ends on any input. It finds a
+// superset of the precise trace; the caller only ever stops on what it returns.
+function sweepLiterals(
+  program: SourceProgram,
+  start: ts.Expression,
+  wanted: (text: string) => boolean,
+) {
+  const found = new Set<ts.StringLiteralLike>();
+  const entered = new Set<ts.Node>();
+  const queue: ts.Node[] = [start];
+  const enter = (node: ts.Node | undefined) => {
+    if (node && !entered.has(node)) {
+      entered.add(node);
+      queue.push(node);
+    }
+  };
+  const symbols = new Set<ts.Symbol>();
+  const declared = (symbol: ts.Symbol) => {
+    if (symbols.has(symbol)) return;
+    symbols.add(symbol);
+    for (const declaration of symbol.declarations ?? []) {
+      if (ts.isParameter(declaration)) {
+        enter(declaration.initializer);
+        argumentsOf(declaration);
+      } else if (ts.isBindingElement(declaration)) {
+        let node: ts.Node = declaration;
+        while (ts.isBindingElement(node)) {
+          enter(node.initializer);
+          node = node.parent.parent;
+        }
+        if (ts.isParameter(node)) argumentsOf(node);
+        else if (ts.isVariableDeclaration(node)) enter(node.initializer);
+      } else if ('initializer' in declaration) {
+        enter((declaration as { initializer?: ts.Expression }).initializer);
+      }
+    }
+    for (const assigned of program.assignmentsOf(symbol)) enter(assigned);
+  };
+  // The argument every caller passes for a parameter.
+  const argumentsOf = (parameter: ts.ParameterDeclaration) => {
+    const fn = parameter.parent;
+    const name = callableName(fn);
+    const symbol = name && program.symbolOf(name);
+    if (!symbol) return;
+    const index = fn.parameters.indexOf(parameter);
+    for (const use of program.usesOf(symbol)) {
+      const callee =
+        ts.isPropertyAccessExpression(use.parent) && use.parent.name === use ? use.parent : use;
+      const call = callee.parent;
+      if (
+        (ts.isCallExpression(call) ||
+          (ts.isConstructorDeclaration(fn) && ts.isNewExpression(call))) &&
+        call.expression === callee
+      )
+        enter(call.arguments?.[index]);
+    }
+  };
+  for (let visited = 0; queue.length && visited < SWEEP_CAP; visited += 1) {
+    const value = unwrap(queue.pop() as ts.Expression);
+    if (ts.isStringLiteralLike(value)) {
+      if (wanted(value.text)) found.add(value);
+    } else if (ts.isAwaitExpression(value)) enter(value.expression);
+    else if (ts.isConditionalExpression(value)) {
+      enter(value.whenTrue);
+      enter(value.whenFalse);
+    } else if (ts.isBinaryExpression(value)) {
+      enter(value.left);
+      enter(value.right);
+    } else if (ts.isObjectLiteralExpression(value)) {
+      for (const item of value.properties) {
+        if (ts.isPropertyAssignment(item)) enter(item.initializer);
+        else if (ts.isShorthandPropertyAssignment(item)) enter(item.name);
+      }
+    } else if (ts.isCallExpression(value)) {
+      const callee = unwrap(value.expression);
+      const name = ts.isPropertyAccessExpression(callee) ? callee.name : callee;
+      const symbol =
+        (ts.isIdentifier(name) || ts.isPrivateIdentifier(name)) && program.symbolOf(name);
+      for (const declaration of (symbol && symbol.declarations) || []) {
+        const fn = ts.isVariableDeclaration(declaration)
+          ? declaration.initializer && unwrap(declaration.initializer)
+          : declaration;
+        if (fn && ts.isFunctionLike(fn))
+          for (const returned of returnsOf(fn as ts.FunctionLikeDeclaration)) enter(returned);
+      }
+    } else if (ts.isPropertyAccessExpression(value)) {
+      const symbol = program.symbolOf(value.name);
+      if (symbol?.declarations?.length) declared(symbol);
+      enter(value.expression);
+    } else if (ts.isIdentifier(value)) {
+      const symbol = program.symbolOf(value);
+      if (symbol) declared(symbol);
+    }
+  }
+  return [...found];
 }
 
 // Proposes replacing a retiring model ID with its registry replacement where a traced SDK call, or a
@@ -1102,6 +1209,7 @@ export async function proposeModelReplacements(
   const traced: {
     request: (typeof requests)[number];
     found: NonNullable<ReturnType<typeof requestObject>>;
+    value: ts.Expression;
     trace: ReturnType<typeof modelSites>;
   }[] = [];
   for (const request of requests) {
@@ -1109,13 +1217,29 @@ export async function proposeModelReplacements(
     const found = requestObject(program, request.argument);
     const property = found && objectProperty(found.object, 'model');
     if (!found || !property) continue;
-    const trace = modelSites(program, propertyValue(property));
+    const value = propertyValue(property);
+    const trace = modelSites(program, value);
     for (const site of trace.sites) for (const pass of site.passes) reached.add(pass.use);
-    traced.push({ request, found, trace });
+    traced.push({ request, found, value, trace });
   }
-  for (const { request, found, trace } of traced) {
+  for (const { request, found, value, trace } of traced) {
     const models = byProvider.get(request.provider)!;
-    for (const site of trace.sites) {
+    // A trace a limit cut cannot prove every source and use, so no literal it reaches is edited.
+    // The literals a bounded sweep adds stop too.
+    const sites: Site[] = [...trace.sites];
+    if (trace.cut) {
+      const known = new Set(sites.map((site) => site.literal));
+      for (const literal of sweepLiterals(program, value, (text) => models.has(text)))
+        if (!known.has(literal)) sites.push({ literal, passes: [] });
+    }
+    const limit =
+      trace.cut &&
+      `Tracing this model stopped at the ${
+        trace.cut === 'budget'
+          ? `work budget of ${MAX_STEPS.toLocaleString('en-US')} steps`
+          : `depth limit of ${MAX_DEPTH}`
+      }, so not every source and use could be checked; change it by hand to`;
+    for (const site of sites) {
       const entry = models.get(site.literal.text);
       if (!entry || TEST_PATH.test(program.path(site.literal))) continue;
       const resolved = finalReplacement(entry, models) ?? { to: '', via: [entry.id] };
@@ -1133,15 +1257,17 @@ export async function proposeModelReplacements(
           // any call outside the text allow-list, such as beta.assistants.create (D-11, D-16).
           !request.text
           ? `\`${request.call}\` is not a call Refit edits; ${resolved.to} may change formats or parameters; change it by hand to ${resolved.to}.`
-          : stop
-            ? `${stop} ${resolved.to}.`
-            : found.shared
-              ? `${found.shared} ${resolved.to}.`
-              : found.object.properties.some((item) => ts.isSpreadAssignment(item))
-                ? 'The request spreads other options, which may set parameters the replacement rejects.'
-                : sensitive.length
-                  ? `The request sets ${sensitive.join(', ')}, which ${resolved.to} may reject or treat differently.`
-                  : undefined;
+          : limit
+            ? `${limit} ${resolved.to}.`
+            : stop
+              ? `${stop} ${resolved.to}.`
+              : found.shared
+                ? `${found.shared} ${resolved.to}.`
+                : found.object.properties.some((item) => ts.isSpreadAssignment(item))
+                  ? 'The request spreads other options, which may set parameters the replacement rejects.'
+                  : sensitive.length
+                    ? `The request sets ${sensitive.join(', ')}, which ${resolved.to} may reject or treat differently.`
+                    : undefined;
       const decision = decisions.get(site.literal) ?? {
         entry,
         ...resolved,

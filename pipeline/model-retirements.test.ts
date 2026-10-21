@@ -1083,3 +1083,79 @@ it('applies by-value helper stops regardless of file order', async () => {
   );
   expect(results[1]).toEqual(results[0]);
 });
+
+it('stops with the limit named when tracing is cut by the work budget or depth', async () => {
+  const limit = (what: string) =>
+    `Tracing this model stopped at the ${what}, so not every source and use could be checked; change it by hand to gpt-5.6-sol.`;
+  const fanOut = await repository({
+    'src/ask.ts': [...HEAD, `export function ask(model: string) { return ${send('model')} }`].join(
+      '\n',
+    ),
+    // More callers than the work budget allows the precise trace to follow.
+    'src/callers.ts': [
+      "import { ask } from './ask';",
+      ...Array.from({ length: 2500 }, () => "ask('gpt-4');"),
+    ].join('\n'),
+  });
+  const wide = await proposeModelReplacements(fanOut, registry, NOW);
+  expect(wide.replacements).toEqual([]);
+  expect(wide.patch).toBeNull();
+  expect(wide.stops).toHaveLength(2500);
+  expect(new Set(wide.stops.map((item) => item.reason))).toEqual(
+    new Set([limit('work budget of 2,000 steps')]),
+  );
+  expect(new Set(wide.stops.map((item) => `${item.at.file}:${item.at.line}`)).size).toBe(2500);
+
+  const deep = await repository({
+    'src/chain.ts': [
+      ...HEAD,
+      ...Array.from({ length: 11 }, (_, index) => `const A${index} = A${index + 1};`),
+      "const A11 = 'gpt-4';",
+      `export const a = () => ${send('A0')}`,
+    ].join('\n'),
+  });
+  const chain = await proposeModelReplacements(deep, registry, NOW);
+  expect(chain.replacements).toEqual([]);
+  expect(chain.patch).toBeNull();
+  expect(chain.stops.map((item) => [item.at.line, item.model, item.reason])).toEqual([
+    [14, 'gpt-4', limit('depth limit of 10')],
+  ]);
+
+  // Cut, but nothing retiring to name: silent (documented limit).
+  const quiet = await repository({
+    'src/chain.ts': [
+      ...HEAD,
+      ...Array.from({ length: 11 }, (_, index) => `const A${index} = A${index + 1};`),
+      "const A11 = 'gpt-5.6-sol';",
+      `export const a = () => ${send('A0')}`,
+    ].join('\n'),
+  });
+  const silent = await proposeModelReplacements(quiet, registry, NOW);
+  expect([silent.replacements, silent.stops]).toEqual([[], []]);
+});
+
+it('stops tracing within the work budget on self-referencing assignments', async () => {
+  const root = await repository({
+    'src/dalle.ts': [
+      ...HEAD,
+      'export class Dalle {',
+      "  model = 'gpt-4';",
+      '  constructor(fields?: any) {',
+      '    this.model = fields?.model ?? fields?.modelName ?? this.model;',
+      '  }',
+      `  ask() { return ${send('this.model')} }`,
+      '}',
+    ].join('\n'),
+  });
+  const first = await proposeModelReplacements(root, registry, NOW);
+  // The field's own read inside the assignment is a use no request reaches, so it stops.
+  expect(first.replacements).toEqual([]);
+  expect(first.stops.map((item) => [item.at.line, item.model, item.reason])).toEqual([
+    [
+      4,
+      'gpt-4',
+      'The model comes from the field model (src/dalle.ts:4), which is used 2 times; change it by hand to gpt-5.6-sol.',
+    ],
+  ]);
+  expect(await proposeModelReplacements(root, registry, NOW)).toEqual(first);
+});
