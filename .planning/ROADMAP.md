@@ -30,7 +30,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   4. A raw `fetch` or `axios` request to `api.openai.com` or `api.anthropic.com` with a literal `model` in the body is reported at its exact line and gets the same proposal and stops as an SDK call
   5. A model ID quoted inside a plain prose string (not a template with substitutions or a concatenation), and a model-keyed map entry wrapped in `satisfies`, are reported as non-live; an env-fallback constant, a function returning a literal and a destructuring default resolve to the literal; image, audio, embedding, moderation and legacy-completion calls stop with a named reason
   6. `npm test`, typecheck and formatting pass. Gated suite results are reported separately from the default count.
-**Plans**: 4/5 plans executed
+**Plans**: 5/5 plans executed
 
 Plans:
 **Wave 1**
@@ -44,7 +44,7 @@ Plans:
 - [x] 01-04-PLAN.md — D-09 every-use check (own commit), helper/method/default-export callers, D-17 fixes, never-silent limit stop (wave 3)
 
 **Wave 4** *(blocked on Wave 3 completion)*
-- [ ] 01-05-PLAN.md — AGENTS.md D-14 decision, docs/DEADLINES.md, READINESS checkpoint, PROJECT.md, full verification (wave 4)
+- [x] 01-05-PLAN.md — AGENTS.md D-14 decision, docs/DEADLINES.md, READINESS checkpoint, PROJECT.md, full verification (wave 4)
 
 ### Phase 2: Sourced parameter stops
 **Goal**: The replacement rule continues past a `temperature`/`top_p`/`top_k`/`max_tokens` stop only when an official provider page proves the replacement model accepts that parameter and value. Every other case keeps stopping with a named reason.
@@ -86,7 +86,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4. Phases 1, 2 and 3 do not d
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Live exposure and tracing | 4/5 | In Progress | - |
+| 1. Live exposure and tracing | 5/5 | In Progress | - |
 | 2. Sourced parameter stops | 0/TBD | Not started | - |
 | 3. Application benchmark sets | 0/TBD | Not started | - |
 | 4. Measurement and readiness | 0/TBD | Not started | - |

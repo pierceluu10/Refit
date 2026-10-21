@@ -7,9 +7,9 @@
 
 ### Exposure (what counts as live)
 
-- [ ] **EXPO-01**: Deadline scan classifies object-shaped model catalogs (model metadata objects, `versions: [...]` lists, model option arrays) as non-live, with a test per shape
-- [ ] **EXPO-03**: A model ID quoted inside a longer plain string or no-substitution template (descriptions, error messages, embedded docs) is not live (template pieces with substitutions and concatenation operands stay live, D-20), and a model-keyed map entry stays a catalog when its object is wrapped in `satisfies`/`as`
-- [ ] **EXPO-02**: Reports and benchmark results show catalog matches separately from live exposures, so counts stay comparable to the 2026-10-20 runs
+- [x] **EXPO-01**: Deadline scan classifies object-shaped model catalogs (model metadata objects, `versions: [...]` lists, model option arrays) as non-live, with a test per shape
+- [x] **EXPO-03**: A model ID quoted inside a longer plain string or no-substitution template (descriptions, error messages, embedded docs) is not live (template pieces with substitutions and concatenation operands stay live, D-20), and a model-keyed map entry stays a catalog when its object is wrapped in `satisfies`/`as`
+- [x] **EXPO-02**: Reports and benchmark results show catalog matches separately from live exposures, so counts stay comparable to the 2026-10-20 runs
 
 ### Tracing (live pin → call argument)
 
@@ -62,8 +62,8 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| EXPO-01 | Phase 1 | Pending |
-| EXPO-02 | Phase 1 | Pending |
+| EXPO-01 | Phase 1 | Complete |
+| EXPO-02 | Phase 1 | Complete |
 | TRAC-01 | Phase 1 | Complete |
 | TRAC-02 | Phase 1 | Complete |
 | TRAC-03 | Phase 1 | Complete |
@@ -71,7 +71,7 @@
 | TRAC-05 | Phase 1 | Complete |
 | TRAC-06 | Phase 1 | Complete |
 | TRAC-07 | Phase 1 | Complete |
-| EXPO-03 | Phase 1 | Pending |
+| EXPO-03 | Phase 1 | Complete |
 | RULE-01 | Phase 2 | Pending |
 | RULE-02 | Phase 2 | Pending |
 | RULE-03 | Phase 2 | Pending |
