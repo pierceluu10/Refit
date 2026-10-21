@@ -717,3 +717,32 @@ it('traces axios request-config calls and axios.create instances like axios.post
   );
   expect(await readFile(join(root, 'src/other.ts'), 'utf8')).not.toContain('gpt-5.6-sol');
 });
+
+const edited = (proposal: Awaited<ReturnType<typeof proposeModelReplacements>>) =>
+  proposal.replacements
+    .map((item) => `${item.edited.file}:${item.edited.line} ${item.from}`)
+    .sort();
+
+it('follows class fields, this assignments and constructor parameters to their literals', async () => {
+  const root = await repository({
+    'src/chat.ts': [
+      "import OpenAI from 'openai';",
+      'const openai = new OpenAI();',
+      'export class Chat {',
+      "  private model = 'gpt-4';",
+      '  ask() {',
+      '    return openai.chat.completions.create({ model: this.model, messages: [] });',
+      '  }',
+      '}',
+    ].join('\n'),
+  });
+  const proposal = await proposeModelReplacements(root, registry, NOW);
+  expect(proposal.stops).toEqual([]);
+  expect(edited(proposal)).toEqual(['src/chat.ts:4 gpt-4']);
+  await execute('git', ['init', '-q', root]);
+  await writeFile(join(root, 'model.patch'), proposal.patch!);
+  await execute('git', ['-C', root, 'apply', 'model.patch']);
+  expect(await readFile(join(root, 'src/chat.ts'), 'utf8')).toContain(
+    "private model = 'gpt-5.6-sol';",
+  );
+});

@@ -252,37 +252,51 @@ function sourceProgram(repository: Repository) {
   // Every use of each symbol in the repository: identifiers that are not its declaration name and
   // not part of an import or export.
   // Built per name on first use: only constants and helpers a request reaches are looked up.
-  const byName = new Map<string, Map<ts.Symbol, ts.Identifier[]>>();
-  const usesOf = (symbol: ts.Symbol) => {
-    let uses = byName.get(symbol.name);
-    if (!uses) {
-      const found = new Map<ts.Symbol, ts.Identifier[]>();
+  const byName = new Map<
+    string,
+    { uses: Map<ts.Symbol, ts.MemberName[]>; assigns: Map<ts.Symbol, ts.Expression[]> }
+  >();
+  // A private field's symbol is named `__#1@#model`; its identifier text is `#model`.
+  const indexOf = (symbol: ts.Symbol) => {
+    const name = symbol.name.replace(/^__#\d+@/, '');
+    let index = byName.get(name);
+    if (!index) {
+      index = { uses: new Map(), assigns: new Map() };
       for (const source of files) {
-        if (!source.text.includes(symbol.name)) continue;
+        if (!source.text.includes(name)) continue;
         const visit = (node: ts.Node) => {
-          if (
-            ts.isIdentifier(node) &&
-            node.text === symbol.name &&
-            !declarationName(node) &&
-            !moduleBinding(node)
-          ) {
-            const resolved = symbolOf(node);
-            if (resolved) found.set(resolved, [...(found.get(resolved) ?? []), node]);
+          if ((ts.isIdentifier(node) || ts.isPrivateIdentifier(node)) && node.text === name) {
+            const assignment = assignmentTarget(node);
+            const resolved =
+              assignment ||
+              (!declarationName(node) && !(ts.isIdentifier(node) && moduleBinding(node)))
+                ? symbolOf(node)
+                : undefined;
+            if (resolved && assignment)
+              index!.assigns.set(resolved, [
+                ...(index!.assigns.get(resolved) ?? []),
+                assignment.right,
+              ]);
+            else if (resolved)
+              index!.uses.set(resolved, [...(index!.uses.get(resolved) ?? []), node]);
           }
           ts.forEachChild(node, visit);
         };
         visit(source);
       }
-      uses = found;
-      byName.set(symbol.name, uses);
+      byName.set(name, index);
     }
-    return uses.get(symbol) ?? [];
+    return index;
   };
+  const usesOf = (symbol: ts.Symbol) => indexOf(symbol).uses.get(symbol) ?? [];
+  // The right-hand side of every `x.name = value` in the repository, for a field's symbol.
+  const assignmentsOf = (symbol: ts.Symbol) => indexOf(symbol).assigns.get(symbol) ?? [];
   return {
     files,
     symbolOf,
     bindingOf,
     usesOf,
+    assignmentsOf,
     path: (node: ts.Node) => paths.get(node.getSourceFile().fileName)!,
     line: (node: ts.Node) =>
       node.getSourceFile().getLineAndCharacterOfPosition(node.getStart()).line + 1,
@@ -291,7 +305,19 @@ function sourceProgram(repository: Repository) {
 }
 type SourceProgram = ReturnType<typeof sourceProgram>;
 
-function declarationName(node: ts.Identifier) {
+// `x.name = value` where `node` is the name: the assignment.
+function assignmentTarget(node: ts.MemberName) {
+  const parent = node.parent;
+  return ts.isPropertyAccessExpression(parent) &&
+    parent.name === node &&
+    ts.isBinaryExpression(parent.parent) &&
+    parent.parent.left === parent &&
+    parent.parent.operatorToken.kind === ts.SyntaxKind.EqualsToken
+    ? parent.parent
+    : undefined;
+}
+
+function declarationName(node: ts.MemberName) {
   const parent = node.parent;
   return (
     ((ts.isVariableDeclaration(parent) ||
@@ -306,11 +332,7 @@ function declarationName(node: ts.Identifier) {
       ts.isPropertyAssignment(parent) ||
       ts.isBindingElement(parent)) &&
       parent.name === node) ||
-    (ts.isPropertyAccessExpression(parent) &&
-      parent.name === node &&
-      ts.isBinaryExpression(parent.parent) &&
-      parent.parent.left === parent &&
-      parent.parent.operatorToken.kind === ts.SyntaxKind.EqualsToken)
+    Boolean(assignmentTarget(node))
   );
 }
 
@@ -474,8 +496,18 @@ function rawRequest(program: SourceProgram, call: ts.CallExpression) {
   return { provider: endpoint.provider, body, call: `${label} ${path}`, text: endpoint.text };
 }
 
+// A reference a literal was reached through, kept for the shared-use rule and the limit stops.
+interface Pass {
+  symbol: ts.Symbol;
+  node: ts.Node;
+  kind: 'constant' | 'enum member' | 'field' | 'function';
+  name: string;
+  at: string;
+}
+
 interface Site {
   literal: ts.StringLiteralLike;
+  passes: Pass[];
   // Why the site cannot be edited from this call, when it cannot.
   stop?: string;
 }
@@ -509,91 +541,370 @@ function requestObject(program: SourceProgram, argument: ts.Expression | undefin
       };
 }
 
-// Where the model a request sends is written, followed through constants, enum members (also in
-// other modules) and a helper function's parameter. A constant or member is edited where it is
-// declared only when this request is its single use; a parameter is edited at its default and at
-// each caller that passes a literal.
-function modelSites(program: SourceProgram, value: ts.Expression, depth = 0): Site[] {
-  if (depth > 4) return [];
-  if (ts.isStringLiteralLike(value)) return [{ literal: value }];
+// The arguments a followed call binds to its function's parameters. `null` marks an argument that
+// cannot be known (after a spread); `undefined` a missing one, which leaves the default.
+interface CallContext {
+  params: Map<ts.ParameterDeclaration, ts.Expression | null | undefined>;
+  parent?: CallContext;
+}
+
+// `via` lists the call contexts whose arguments the literal was reached through.
+interface Terminal extends Site {
+  via?: Set<CallContext>;
+}
+
+interface Trace {
+  depth: number;
+  // Shared by the whole request: remaining steps, and results by declaration.
+  budget: { left: number };
+  memo: Map<ts.Node, Map<string, Terminal[]>>;
+  ctx?: CallContext;
+  // Set when the depth or work limit stopped a path, so it is known not to be fully followed.
+  cut: { by?: 'depth' | 'budget' };
+}
+
+const MAX_DEPTH = 10;
+const MAX_STEPS = 2000;
+
+const copyTerminal = (terminal: Terminal): Terminal => ({
+  ...terminal,
+  passes: [...terminal.passes],
+  via: terminal.via && new Set(terminal.via),
+});
+
+// A result by declaration, computed once per request. Not used inside a followed call, where
+// parameters mean that call's arguments.
+function cached(trace: Trace, key: ts.Node, keys: string[], compute: () => Terminal[]) {
+  if (trace.ctx) return compute();
+  const byKeys = trace.memo.get(key) ?? new Map<string, Terminal[]>();
+  trace.memo.set(key, byKeys);
+  const id = keys.join('.');
+  let found = byKeys.get(id);
+  if (!found) {
+    byKeys.set(id, []);
+    found = compute();
+    byKeys.set(id, found);
+  }
+  return found.map(copyTerminal);
+}
+
+function through(program: SourceProgram, pass: Pass, terminals: Terminal[]) {
+  const uses = program.usesOf(pass.symbol).length;
+  for (const terminal of terminals) {
+    terminal.passes.unshift(pass);
+    if (uses !== 1)
+      terminal.stop ??= `The model comes from the ${pass.kind} ${pass.name} (${pass.at}), which is used ${uses} times; change it by hand to`;
+  }
+  return terminals;
+}
+
+function returnsOf(fn: ts.FunctionLikeDeclaration) {
+  if (!fn.body) return [];
+  if (!ts.isBlock(fn.body)) return [fn.body];
+  const found: ts.Expression[] = [];
+  const visit = (node: ts.Node) => {
+    if (ts.isReturnStatement(node)) {
+      if (node.expression) found.push(node.expression);
+      return;
+    }
+    if (!ts.isFunctionLike(node) && !ts.isClassLike(node)) ts.forEachChild(node, visit);
+  };
+  visit(fn.body);
+  return found;
+}
+
+const where = (program: SourceProgram, node: ts.Node) =>
+  `${program.path(node)}:${program.line(node)}`;
+
+// The literals an expression can hold, with `keys` as the property path still to read from it.
+function valuesOf(
+  program: SourceProgram,
+  expression: ts.Expression,
+  trace: Trace,
+  keys: string[] = [],
+): Terminal[] {
+  if (trace.depth > MAX_DEPTH) {
+    trace.cut.by ??= 'depth';
+    return [];
+  }
+  if (trace.budget.left <= 0) {
+    trace.cut.by = 'budget';
+    return [];
+  }
+  trace.budget.left -= 1;
+  const next = { ...trace, depth: trace.depth + 1 };
+  const value = unwrap(expression);
+  if (ts.isStringLiteralLike(value)) return keys.length ? [] : [{ literal: value, passes: [] }];
+  if (ts.isAwaitExpression(value)) return valuesOf(program, value.expression, next, keys);
+  if (ts.isConditionalExpression(value))
+    return [
+      ...valuesOf(program, value.whenTrue, next, keys),
+      ...valuesOf(program, value.whenFalse, next, keys),
+    ];
   if (
     ts.isBinaryExpression(value) &&
     [ts.SyntaxKind.QuestionQuestionToken, ts.SyntaxKind.BarBarToken].includes(
       value.operatorToken.kind,
     )
   )
-    return ts.isStringLiteralLike(unwrap(value.right))
-      ? [{ literal: unwrap(value.right) as ts.StringLiteralLike }]
-      : modelSites(program, unwrap(value.right), depth + 1);
-  const reference = ts.isPropertyAccessExpression(value) ? value.name : value;
-  if (!ts.isIdentifier(reference)) return [];
-  const symbol = program.symbolOf(reference);
+    return [
+      ...valuesOf(program, value.left, next, keys),
+      ...valuesOf(program, value.right, next, keys),
+    ];
+  if (ts.isObjectLiteralExpression(value)) {
+    const property = keys[0] ? objectProperty(value, keys[0]) : undefined;
+    return property ? valuesOf(program, propertyValue(property), next, keys.slice(1)) : [];
+  }
+  if (ts.isCallExpression(value)) return callValues(program, value, next, keys);
+  if (ts.isPropertyAccessExpression(value)) {
+    const symbol = program.symbolOf(value.name);
+    const declaration = symbol && (symbol.valueDeclaration ?? symbol.declarations?.[0]);
+    // A member with a declaration of its own (enum member, class field, a module's exported
+    // constant); anything else is a property of whatever the owner holds.
+    if (
+      symbol &&
+      declaration &&
+      (ts.isEnumMember(declaration) ||
+        ts.isVariableDeclaration(declaration) ||
+        ts.isPropertyDeclaration(declaration) ||
+        (ts.isParameter(declaration) && ts.isConstructorDeclaration(declaration.parent)) ||
+        program.assignmentsOf(symbol).length)
+    )
+      return declarationValues(program, symbol, declaration, value.name, true, next, keys);
+    return valuesOf(program, value.expression, next, [value.name.text, ...keys]);
+  }
+  if (!ts.isIdentifier(value)) return [];
+  const symbol = program.symbolOf(value);
   const declaration = symbol?.valueDeclaration;
-  if (!symbol || !declaration) return [];
+  return symbol && declaration
+    ? declarationValues(program, symbol, declaration, value, false, next, keys)
+    : [];
+}
+
+function declarationValues(
+  program: SourceProgram,
+  symbol: ts.Symbol,
+  declaration: ts.Declaration,
+  reference: ts.MemberName,
+  member: boolean,
+  trace: Trace,
+  keys: string[],
+): Terminal[] {
+  const pass = (kind: Pass['kind'], node: ts.Node): Pass => ({
+    symbol,
+    node,
+    kind,
+    name: reference.text,
+    at: where(program, node),
+  });
   if (
     (ts.isVariableDeclaration(declaration) &&
       ts.isVariableDeclarationList(declaration.parent) &&
       declaration.parent.flags & ts.NodeFlags.Const) ||
     ts.isEnumMember(declaration)
   ) {
-    const initializer = declaration.initializer && unwrap(declaration.initializer as ts.Expression);
-    if (!initializer || !ts.isStringLiteralLike(initializer)) return [];
-    const uses = program.usesOf(symbol).length;
-    const kind = ts.isEnumMember(declaration) ? 'enum member' : 'constant';
-    const at = `${program.path(initializer)}:${program.line(initializer)}`;
-    return [
-      {
-        literal: initializer,
-        ...(uses !== 1
-          ? {
-              stop: `The model comes from the ${kind} ${reference.text} (${at}), which is used ${uses} times; change it by hand to`,
-            }
-          : {}),
-      },
-    ];
+    const initializer = declaration.initializer;
+    if (!initializer) return [];
+    return cached(trace, declaration, keys, () =>
+      through(
+        program,
+        pass(ts.isEnumMember(declaration) ? 'enum member' : 'constant', unwrap(initializer)),
+        valuesOf(program, initializer, trace, keys),
+      ),
+    );
   }
-  if (ts.isParameter(declaration) && ts.isIdentifier(declaration.name)) {
-    const helper = declaration.parent;
-    const index = helper.parameters.indexOf(declaration);
-    const sites: Site[] = [];
-    if (declaration.initializer && ts.isStringLiteralLike(unwrap(declaration.initializer)))
-      sites.push({ literal: unwrap(declaration.initializer) as ts.StringLiteralLike });
-    const name =
-      ts.isFunctionDeclaration(helper) && helper.name
-        ? helper.name
-        : (ts.isFunctionExpression(helper) || ts.isArrowFunction(helper)) &&
-            ts.isVariableDeclaration(helper.parent) &&
-            ts.isIdentifier(helper.parent.name)
-          ? helper.parent.name
+  if (ts.isBindingElement(declaration)) return bindingValues(program, declaration, trace, keys);
+  if (ts.isParameter(declaration) && !member)
+    return parameterValues(program, declaration, trace, keys);
+  // A field: its initializer, a constructor parameter property and every `this.name = value`.
+  const assignments = program.assignmentsOf(symbol);
+  if (
+    !ts.isPropertyDeclaration(declaration) &&
+    !ts.isPropertyAssignment(declaration) &&
+    !ts.isParameter(declaration) &&
+    !assignments.length
+  )
+    return [];
+  const owner = { ...trace, ctx: undefined };
+  return cached(owner, declaration, keys, () => {
+    const found: Terminal[] = [];
+    if (
+      (ts.isPropertyDeclaration(declaration) || ts.isPropertyAssignment(declaration)) &&
+      declaration.initializer
+    )
+      found.push(...valuesOf(program, declaration.initializer, owner, keys));
+    if (ts.isParameter(declaration))
+      found.push(...parameterValues(program, declaration, owner, keys));
+    for (const assigned of assignments) found.push(...valuesOf(program, assigned, owner, keys));
+    return through(program, pass('field', declaration), found);
+  });
+}
+
+// `{ model = 'gpt-4' }` and `{ options: { model } }`: the default, and the property of whatever
+// the pattern destructures.
+function bindingValues(
+  program: SourceProgram,
+  element: ts.BindingElement,
+  trace: Trace,
+  keys: string[],
+): Terminal[] {
+  const found: Terminal[] = [];
+  let tail = keys;
+  let node: ts.Node = element;
+  while (ts.isBindingElement(node)) {
+    const name = node.propertyName ?? node.name;
+    if (
+      !ts.isObjectBindingPattern(node.parent) ||
+      !(ts.isIdentifier(name) || ts.isStringLiteralLike(name))
+    )
+      return found;
+    if (node.initializer) found.push(...valuesOf(program, node.initializer, trace, tail));
+    tail = [name.text, ...tail];
+    node = node.parent.parent;
+  }
+  if (ts.isParameter(node)) found.push(...parameterValues(program, node, trace, tail));
+  else if (ts.isVariableDeclaration(node) && node.initializer)
+    found.push(...valuesOf(program, node.initializer, trace, tail));
+  return found;
+}
+
+// A parameter holds the argument of the call being followed; otherwise its default and the
+// argument of every caller.
+function parameterValues(
+  program: SourceProgram,
+  parameter: ts.ParameterDeclaration,
+  trace: Trace,
+  keys: string[],
+): Terminal[] {
+  for (let ctx = trace.ctx; ctx; ctx = ctx.parent) {
+    if (!ctx.params.has(parameter)) continue;
+    const argument = ctx.params.get(parameter);
+    if (argument === null) return [];
+    if (!argument)
+      return parameter.initializer ? valuesOf(program, parameter.initializer, trace, keys) : [];
+    const bound = ctx;
+    return valuesOf(program, argument, { ...trace, ctx: ctx.parent }, keys).map((terminal) => ({
+      ...terminal,
+      via: new Set([...(terminal.via ?? []), bound]),
+    }));
+  }
+  const found: Terminal[] = [];
+  if (parameter.initializer) found.push(...valuesOf(program, parameter.initializer, trace, keys));
+  const fn = parameter.parent;
+  const index = fn.parameters.indexOf(parameter);
+  const constructed = ts.isConstructorDeclaration(fn);
+  const name = constructed
+    ? fn.parent.name
+    : ts.isFunctionDeclaration(fn) && fn.name
+      ? fn.name
+      : (ts.isFunctionExpression(fn) || ts.isArrowFunction(fn)) &&
+          ts.isVariableDeclaration(fn.parent) &&
+          ts.isIdentifier(fn.parent.name)
+        ? fn.parent.name
+        : ts.isMethodDeclaration(fn) && !ts.isComputedPropertyName(fn.name)
+          ? fn.name
           : undefined;
-    const helperSymbol = name && program.symbolOf(name);
-    if (!helperSymbol) return sites;
-    const helperName = `${name.text} (${program.path(name)}:${program.line(name)})`;
-    for (const use of program.usesOf(helperSymbol)) {
-      const callee =
-        ts.isPropertyAccessExpression(use.parent) && use.parent.name === use ? use.parent : use;
-      const call = callee.parent;
-      if (!ts.isCallExpression(call) || call.expression !== callee) {
-        // Passed as a value, the helper may be called with any model.
-        sites.forEach(
-          (site) =>
-            (site.stop ??= `The helper ${helperName} is also passed as a value; change its model by hand to`),
-        );
-        continue;
-      }
-      if (call.arguments.slice(0, index + 1).some((argument) => ts.isSpreadElement(argument))) {
-        sites.forEach(
-          (site) =>
-            (site.stop ??= `The helper ${helperName} is called with spread arguments; change its model by hand to`),
-        );
-        continue;
-      }
-      const argument = call.arguments[index] && unwrap(call.arguments[index]);
-      if (argument) sites.push(...modelSites(program, argument, depth + 1));
+  const symbol = name && program.symbolOf(name);
+  if (!name || !symbol) return found;
+  const helperName = `${name.text} (${where(program, name)})`;
+  const callers = { ...trace, ctx: undefined };
+  const stopAll = (reason: string) => found.forEach((site) => (site.stop ??= reason));
+  for (const use of program.usesOf(symbol)) {
+    if (ts.isTypeReferenceNode(use.parent)) continue;
+    const callee =
+      ts.isPropertyAccessExpression(use.parent) && use.parent.name === use ? use.parent : use;
+    const call = callee.parent;
+    if (
+      !(ts.isCallExpression(call) || (constructed && ts.isNewExpression(call))) ||
+      call.expression !== callee
+    ) {
+      // Passed as a value, the helper may be called with any model.
+      stopAll(`The helper ${helperName} is also passed as a value; change its model by hand to`);
+      continue;
     }
-    return sites;
+    const args = call.arguments ?? [];
+    if (args.slice(0, index + 1).some((argument) => ts.isSpreadElement(argument))) {
+      stopAll(
+        `The helper ${helperName} is called with spread arguments; change its model by hand to`,
+      );
+      continue;
+    }
+    if (args[index]) found.push(...valuesOf(program, args[index], callers, keys));
   }
-  return [];
+  return found;
+}
+
+// A call resolves through the `return` statements of the function it calls.
+function callValues(
+  program: SourceProgram,
+  call: ts.CallExpression,
+  trace: Trace,
+  keys: string[],
+): Terminal[] {
+  const callee = unwrap(call.expression);
+  const name = ts.isPropertyAccessExpression(callee) ? callee.name : callee;
+  if (!ts.isIdentifier(name) && !ts.isPrivateIdentifier(name)) return [];
+  const symbol = program.symbolOf(name);
+  const declaration = symbol?.valueDeclaration;
+  const initializer =
+    declaration &&
+    ts.isVariableDeclaration(declaration) &&
+    ts.isVariableDeclarationList(declaration.parent) &&
+    declaration.parent.flags & ts.NodeFlags.Const &&
+    declaration.initializer
+      ? unwrap(declaration.initializer)
+      : undefined;
+  const fn =
+    declaration && (ts.isFunctionDeclaration(declaration) || ts.isMethodDeclaration(declaration))
+      ? declaration
+      : initializer && (ts.isArrowFunction(initializer) || ts.isFunctionExpression(initializer))
+        ? initializer
+        : undefined;
+  if (!symbol || !fn) return [];
+  const bound = fn.parameters.length > 0;
+  const ctx: CallContext | undefined = bound
+    ? {
+        params: new Map(
+          fn.parameters.map((parameter, index) => [
+            parameter,
+            call.arguments.slice(0, index + 1).some((argument) => ts.isSpreadElement(argument))
+              ? null
+              : call.arguments[index],
+          ]),
+        ),
+        parent: trace.ctx,
+      }
+    : trace.ctx;
+  const run = () => {
+    const found = returnsOf(fn).flatMap((returned) =>
+      valuesOf(program, returned, { ...trace, ctx }, keys),
+    );
+    // A literal passed in as an argument belongs to this call only, not to the function.
+    const own = found.filter((terminal) => !(bound && terminal.via?.delete(ctx!)));
+    const pass: Pass = {
+      symbol,
+      node: fn,
+      kind: 'function',
+      name: name.text,
+      at: where(program, name),
+    };
+    through(program, pass, own);
+    return found;
+  };
+  return bound ? run() : cached(trace, fn, keys, run);
+}
+
+// Where the model a request sends is written, followed through constants, enum and object
+// members (also in other modules), class fields, fallbacks, returned values and parameters. A
+// source shared with other uses stops for review. `cut` says whether a limit ended a path.
+function modelSites(program: SourceProgram, value: ts.Expression) {
+  const trace: Trace = { depth: 0, budget: { left: MAX_STEPS }, memo: new Map(), cut: {} };
+  const sites = new Map<ts.StringLiteralLike, Site>();
+  for (const { via: _via, ...site } of valuesOf(program, value, trace)) {
+    const known = sites.get(site.literal);
+    if (!known || (!known.stop && site.stop)) sites.set(site.literal, site);
+  }
+  return { sites: [...sites.values()], cut: trace.cut.by };
 }
 
 // Proposes replacing a retiring model ID with its registry replacement where a traced SDK call, or a
@@ -734,7 +1045,7 @@ export async function proposeModelReplacements(
     const found = requestObject(program, request.argument);
     const property = found && objectProperty(found.object, 'model');
     if (!found || !property) continue;
-    for (const site of modelSites(program, propertyValue(property))) {
+    for (const site of modelSites(program, propertyValue(property)).sites) {
       const entry = models.get(site.literal.text);
       if (!entry || TEST_PATH.test(program.path(site.literal))) continue;
       const resolved = finalReplacement(entry, models) ?? { to: '', via: [entry.id] };
