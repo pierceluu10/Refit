@@ -237,6 +237,52 @@ it('resolves every shipped Anthropic retirement to a model that is not retiring'
   for (const item of proposal.replacements) expect(retiring.has(item.to)).toBe(false);
 });
 
+// Gemini is report only: replacing a Gemini model, or the old SDK with the new one, is an owner
+// decision, so neither the CLI proposal nor `refit serve --model-fixes` (which uses it) edits them.
+it('never proposes Gemini model or SDK replacements', async () => {
+  const gemini: DeadlineRegistry = {
+    formatVersion: 1,
+    deadlines: [
+      ...registry.deadlines,
+      entry({
+        id: 'gemini-flash',
+        provider: 'gemini',
+        versions: ['gemini-1.5-flash'],
+        replacement: 'gemini-2.0-flash',
+      }),
+      entry({
+        id: 'gemini-old-sdk',
+        provider: 'gemini',
+        kind: 'sdk',
+        versions: ['@google/generative-ai'],
+        replacement: '@google/genai',
+      }),
+    ],
+  };
+  const root = await repository({
+    'package.json': JSON.stringify({
+      name: 'app',
+      dependencies: {
+        '@google/genai': '2.30.0',
+        '@google/generative-ai': '0.24.1',
+        openai: '4.80.0',
+      },
+    }),
+    'src/gemini.ts': [
+      "import { GoogleGenAI } from '@google/genai';",
+      "import { GoogleGenerativeAI } from '@google/generative-ai';",
+      'const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });',
+      "await ai.models.generateContent({ model: 'gemini-1.5-flash', contents: 'Hi' });",
+      "new GoogleGenerativeAI(key).getGenerativeModel({ model: 'gemini-1.5-flash' });",
+    ].join('\n'),
+  });
+  expect(await proposeModelReplacements(root, gemini, NOW)).toEqual({
+    replacements: [],
+    stops: [],
+    patch: null,
+  });
+});
+
 // Shapes found on the deadline benchmark: the openai v3 SDK and openai-edge, request objects held in
 // a const, and a model const used by one call.
 it('follows v3 and openai-edge clients, request consts and model consts used once', async () => {
@@ -473,7 +519,7 @@ it('keeps Anthropic sampling parameters when the replacement predates Claude 4.7
   ]);
 });
 
-it('follows class properties to their initializers and assignments when the request reads them once', async () => {
+it('reports class property models at their initializers and assignments without editing them', async () => {
   const root = await repository({
     'src/chat.ts': [
       "import OpenAI from 'openai';",
@@ -529,24 +575,40 @@ it('follows class properties to their initializers and assignments when the requ
     ].join('\n'),
   });
   const proposal = await proposeModelReplacements(root, registry, NOW);
+  // Until an owner decision covers class properties, each one is reported with where its model is
+  // written, and none is edited.
+  expect(proposal.replacements).toEqual([]);
+  expect(proposal.patch).toBeNull();
   expect(
-    proposal.replacements.map((item) => [item.file, item.line, item.edited, item.from, item.to]),
+    proposal.stops
+      .map((item) => [item.file, item.at, item.model, item.reason])
+      .sort((x, y) => String(x[0]).localeCompare(String(y[0]))),
   ).toEqual([
-    ['src/agent.js', 8, { file: 'src/agent.js', line: 5 }, 'gpt-4', 'gpt-5.6-sol'],
-    ['src/chat.ts', 6, { file: 'src/chat.ts', line: 4 }, 'gpt-4', 'gpt-5.6-sol'],
-    ['src/summary.ts', 6, { file: 'src/summary.ts', line: 4 }, 'o1-mini', 'gpt-5.6-terra'],
-  ]);
-  expect(proposal.stops.map((item) => [item.file, item.at, item.reason])).toEqual([
+    [
+      'src/agent.js',
+      { file: 'src/agent.js', line: 5 },
+      'gpt-4',
+      'The model comes from the property model (src/agent.js:5); class properties are reported, not edited. Change it by hand to gpt-5.6-sol.',
+    ],
+    [
+      'src/chat.ts',
+      { file: 'src/chat.ts', line: 4 },
+      'gpt-4',
+      'The model comes from the property model (src/chat.ts:4); class properties are reported, not edited. Change it by hand to gpt-5.6-sol.',
+    ],
     [
       'src/priced.ts',
       { file: 'src/priced.ts', line: 7 },
-      'The model comes from the property model (src/priced.ts:5), which is read 2 times; change it by hand to gpt-5.6-sol.',
+      'gpt-4',
+      'The model comes from the property model (src/priced.ts:5); it is read 2 times. Change it by hand to gpt-5.6-sol.',
+    ],
+    [
+      'src/summary.ts',
+      { file: 'src/summary.ts', line: 4 },
+      'o1-mini',
+      'The model comes from the property model (src/summary.ts:4); class properties are reported, not edited. Change it by hand to gpt-5.6-terra.',
     ],
   ]);
-  expect(proposal.patch).toContain("+  model = 'gpt-5.6-sol';");
-  expect(proposal.patch).toContain(
-    '+  constructor(private readonly model: string = "gpt-5.6-terra") {}',
-  );
 });
 
 it('never proposes edits in build output committed beside the sources', async () => {

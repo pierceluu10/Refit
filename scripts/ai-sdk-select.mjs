@@ -1,5 +1,6 @@
 // Selects a frozen benchmark of public GitHub repositories that ship an npm package declaring the
-// OpenAI or Anthropic SDK as a runtime dependency. GitHub code search is unavailable to Refit's
+// OpenAI, Anthropic or Gemini SDK as a runtime dependency (for Gemini, either @google/genai or the
+// older @google/generative-ai). GitHub code search is unavailable to Refit's
 // benchmark environment, so candidates come from npm search instead: each package's latest
 // manifest must list the SDK in `dependencies`, link a github.com repository and have been published
 // since 2024-01. Repositories are ranked by monthly downloads, deduplicated, and frozen at the
@@ -24,6 +25,11 @@ const PROVIDERS = {
     queries: ['anthropic', 'claude', 'llm', 'ai agent', 'ai chat', 'mcp'],
     vendorScopes: ['@anthropic-ai/'],
   },
+  gemini: {
+    sdks: ['@google/genai', '@google/generative-ai'],
+    queries: ['gemini', 'google ai', 'genai', 'llm', 'ai agent', 'ai chat'],
+    vendorScopes: ['@google/'],
+  },
 };
 
 const { values } = parseArgs({
@@ -37,11 +43,12 @@ const { values } = parseArgs({
 const provider = PROVIDERS[values.provider ?? ''];
 if (values.help || !provider || !values.count || !values.output) {
   console.log(
-    'Usage: node scripts/ai-sdk-select.mjs --provider openai|anthropic --count N --output <frozen.json>',
+    'Usage: node scripts/ai-sdk-select.mjs --provider openai|anthropic|gemini --count N --output <frozen.json>',
   );
   process.exit(values.help ? 0 : 1);
 }
 const count = Number(values.count);
+const sdks = provider.sdks ?? [provider.sdk];
 
 async function json(url) {
   for (let attempt = 0; ; attempt += 1) {
@@ -101,7 +108,8 @@ for (const candidate of ranked) {
     continue;
   }
   const manifest = await json(`${REGISTRY}/${candidate.name.replace('/', '%2F')}/latest`);
-  const declared = manifest?.dependencies?.[provider.sdk];
+  const sdk = sdks.find((name) => manifest?.dependencies?.[name]);
+  const declared = sdk && manifest.dependencies[sdk];
   if (!declared) {
     rejected.noDependency += 1;
     continue;
@@ -138,6 +146,7 @@ for (const candidate of ranked) {
     commit,
     package: candidate.name,
     version: manifest.version,
+    ...(provider.sdks ? { sdk } : {}),
     declared,
     monthlyDownloads: candidate.downloads,
     publishedAt: candidate.date,
@@ -151,9 +160,9 @@ await writeFile(
     {
       formatVersion: 1,
       provider: values.provider,
-      sdk: provider.sdk,
+      ...(provider.sdks ? { sdks: provider.sdks } : { sdk: provider.sdk }),
       selectedAt: new Date().toISOString(),
-      method: `npm search for ${provider.queries.map((query) => JSON.stringify(query)).join(', ')} (${PAGES} pages of ${PAGE_SIZE}); latest manifest declares ${provider.sdk} in dependencies; github.com repository; published since ${PUBLISHED_SINCE}; vendor scopes excluded; ranked by monthly downloads; one entry per repository; frozen at HEAD from git ls-remote.`,
+      method: `npm search for ${provider.queries.map((query) => JSON.stringify(query)).join(', ')} (${PAGES} pages of ${PAGE_SIZE}); latest manifest declares ${sdks.join(' or ')} in dependencies; github.com repository; published since ${PUBLISHED_SINCE}; vendor scopes excluded; ranked by monthly downloads; one entry per repository; frozen at HEAD from git ls-remote.`,
       rejected,
       repos: selected,
     },

@@ -539,8 +539,9 @@ function modelSites(program: SourceProgram, value: ts.Expression, depth = 0): Si
   if (!symbol || !declaration) return [];
   if (ts.isPropertyAccessExpression(value) && classProperty(symbol)) {
     // A class property, such as `model: this.model`: followed to its initializer, a constructor
-    // parameter default and every assignment. It is edited there only when this request is its
-    // single read; other reads may compare it, price it or log it.
+    // parameter default and every assignment, and reported for review. It is never edited:
+    // replacing a property's value widens which uses `--model-fixes` changes, which needs an owner
+    // decision first (#120).
     const values = [
       ...(symbol.declarations ?? []).flatMap((item) =>
         (ts.isPropertyDeclaration(item) || ts.isParameter(item)) && item.initializer
@@ -551,13 +552,13 @@ function modelSites(program: SourceProgram, value: ts.Expression, depth = 0): Si
     ];
     const sites = values.flatMap((item) => modelSites(program, unwrap(item), depth + 1));
     const reads = program.usesOf(symbol).length;
-    if (reads !== 1) {
-      const at = `${program.path(declaration)}:${program.line(declaration)}`;
-      sites.forEach(
-        (site) =>
-          (site.stop ??= `The model comes from the property ${reference.text} (${at}), which is read ${reads} times; change it by hand to`),
-      );
-    }
+    const at = `${program.path(declaration)}:${program.line(declaration)}`;
+    const why =
+      reads === 1 ? 'class properties are reported, not edited' : `it is read ${reads} times`;
+    sites.forEach(
+      (site) =>
+        (site.stop ??= `The model comes from the property ${reference.text} (${at}); ${why}. Change it by hand to`),
+    );
     return sites;
   }
   if (

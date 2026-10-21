@@ -1,31 +1,47 @@
 # Refit implementation checkpoints
 
-## October 21 checkpoint: model catalog precision, class properties and build output (unreleased, after 0.39.0)
+## October 21 checkpoint: class property models reported for review (unreleased, after 0.39.0)
 
-- **Catalogs.** The deadline scan lists more catalog shapes as non-live, for OpenAI and Anthropic:
+`refit deadlines --propose-model-fixes` and `refit serve --model-fixes` now trace a request's `model: this.model` to where the class sets it:
+
+- the field initializer;
+- a constructor parameter default;
+- each assignment, including JavaScript's `this.model = options.model || 'gpt-4'`.
+
+Each such site is listed as a stop with its location and replacement, and is never edited. Editing class properties would widen which uses are replaced, so it waits on an owner decision (#120).
+
+Tests: `pipeline/model-retirements.test.ts` covers class fields, constructor parameter properties, JavaScript constructor assignments and a property read twice. All are stops, with no patch.
+
+## October 21 checkpoint: model catalog precision and build output (unreleased, after 0.39.0)
+
+- **Catalogs.** For OpenAI, Anthropic and Gemini, the deadline scan now lists more catalog shapes as non-live:
   - model-keyed entries behind `satisfies` or `as`;
-  - model records, meaning an `id` or `name` beside a metadata field such as `contextWindow`, `max_output_tokens`, `pricing` or `owned_by`;
+  - model records: an `id` or `name` beside a metadata field such as `contextWindow`, `max_output_tokens`, `pricing` or `owned_by`;
   - genkit-style `versions: [...]` lists;
   - constant-case objects naming three or more models.
 
   A request's `model` never counts as a record name, and mixed-case settings objects stay live.
 
-- **Measured.** These are read-only scans of the 184 checkouts behind the frozen sets (100 OpenAI, 50 Anthropic and the 34-repository deadline set):
-  - OpenAI and Anthropic live lines fell from 1,170 to 630, and repositories with a live line from 87 to 84.
-  - Every dropped line was read: model records and cards, generated model tables, `versions` lists, enum-like objects and one minified bundle.
-  - Of the 19 hand-labelled live model lines in the deadline set, all 19 stay live. The 4 labelled options still counted as live are alias-map values, which stay live on purpose.
-- **`this.model`.** The model replacement rule follows a class property read as `this.model` to:
-  - its field initializer;
-  - a constructor parameter default;
-  - each assignment to it, including JavaScript's `this.model = options.model || 'gpt-4'`.
+- **Measured.** Read-only scans of the 184 checkouts behind the frozen sets (100 OpenAI, 50 Anthropic and the 34-repository deadline set):
+  - OpenAI and Anthropic live lines fell from 1,170 to 630.
+  - Repositories with a live line fell from 87 to 84.
+  - Every dropped line was read by hand: model records and cards, generated model tables, `versions` lists, enum-like objects and one minified bundle.
+  - All 19 hand-labelled live model lines in the deadline set stay live. The 4 labelled options still counted as live are alias-map values, which stay live on purpose.
+- **Build output.** The model replacement rule never proposes an edit in build output committed with the sources: `out/`, `ts-out/`, `*.min.js`, `*.bundle.js`, or JavaScript whose TypeScript source sits beside it or in a sibling `src/`. This narrows where edits land; it does not widen which uses are replaced.
 
-  It edits there only when the request is the property's single read; otherwise it stops for review with the property's location.
+Tests: `pipeline/deadlines.test.ts` adds the new catalog shapes, and the live lookalikes they must not catch. `pipeline/model-retirements.test.ts` adds compiled copies beside their sources.
 
-- **Build output.** No proposal lands in build output committed with the sources: `out/`, `ts-out/`, `*.min.js`, `*.bundle.js`, or JavaScript whose TypeScript source sits beside it or in a sibling `src/`.
+## October 21 checkpoint: Gemini detection, report only (unreleased, after 0.39.0)
 
-Fix rates on the frozen benchmarks are re-measured separately.
+Gemini is in the agent catalog with `adapter: null`: packages `@google/genai` and `@google/generative-ai`, hostname `generativelanguage.googleapis.com`, which is the default host in the published code of both SDKs. Every fact recorded in [Provider goals](PROVIDER-GOALS.md#gemini) was read on 2026-10-21 from an official source: the two SDK READMEs on GitHub, the npm registry and the published package code. Google's model and deprecation pages on ai.google.dev were refused by this environment's network policy, so **no Gemini model retirement date is in the registry**, and there is no `refit deadlines --sync gemini`: a parser could not be written against a page nobody could read.
 
-Tests: `pipeline/deadlines.test.ts` adds the new catalog shapes and the live lookalikes they must not catch. `pipeline/model-retirements.test.ts` adds class fields, constructor parameter properties, JavaScript constructor assignments, a property read twice, and compiled copies beside their sources.
+- **Registry.** It accepts the `gemini` provider and a new `sdk` kind, whose `versions` are npm package names and whose date is an end of support. One entry: `@google/generative-ai`, support ended 2025-11-30 per its repository README, replacement `@google/genai`. The README in the package's last npm release gave 2025-08-31; the summary records both, and that Google does not say requests through it stop working. `npm run deadlines:check` passes.
+- **Matching.** A declared `sdk` package is live evidence at its manifest line, read only when some source file names the package; manifests in test or example paths are `test`. Gemini model IDs get the OpenAI and Anthropic use classes, and `models/<id>` matches `<id>`, as both SDKs treat them as the same model. Gemini-shaped IDs count toward a model list only when classifying a Gemini match, so OpenAI and Anthropic classification is unchanged.
+- **Report only.** `refit deadlines --propose-model-fixes` and `refit serve --model-fixes` never edit Gemini code, even when an entry names a replacement; a test pins this. Widening replacements to Gemini, and the old-to-new SDK swap, are owner decisions.
+- **Benchmark.** 50 repositories frozen from npm search, almost all libraries. All 6 that declare the old package are flagged, with 8 manifest lines correct on hand review. A census against every `gemini-*` string found live Gemini IDs in 39 repositories; in a 72-match sample, 50 of the 67 model IDs are real live pins (75%). See [Benchmarks](BENCHMARKS.md#gemini-october-21).
+- **Found, not changed.** A model in a template string inside a test file counts as live for every provider, because only plain string tokens get the test class. Fixing it would lower OpenAI and Anthropic live counts, which `--fail-within` and alerts rest on, so it is left for a decision.
+
+What changes for users: `refit deadlines --fail-within` now exits 2 for a repository that declares and imports `@google/generative-ai`, and with `--deadline-alerts` an enrolled repository like that gets an issue. Nothing edits code. No Google API was called and no credential was used. Gemini is at 20% on its [progress checklist](PROVIDER-GOALS.md#gemini-progress-checklist-2026-10-21).
 
 ## October 21 checkpoint: faster model replacement analysis and steadier tests (unreleased, after 0.39.0)
 

@@ -5,8 +5,8 @@ import { PipelineInputError } from './types.ts';
 export const DEFAULT_DEADLINE_REGISTRY = new URL('../data/deadlines.json', import.meta.url);
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 const ENTRY_ID = /^[a-z0-9][a-z0-9-]{0,95}$/;
-const PROVIDERS = new Set(['shopify', 'meta-graph', 'openai', 'anthropic']);
-const KINDS = new Set(['api-version', 'model']);
+const PROVIDERS = new Set(['shopify', 'meta-graph', 'openai', 'anthropic', 'gemini']);
+const KINDS = new Set(['api-version', 'model', 'sdk']);
 const ENTRY_KEYS = [
   'id',
   'provider',
@@ -20,12 +20,13 @@ const ENTRY_KEYS = [
 ];
 const MILLISECONDS_PER_DAY = 86_400_000;
 
-// One reviewed sunset: the date a provider stops serving these API versions or models, with the
+// One reviewed sunset: the date a provider stops serving these API versions or models, or ends
+// support for these SDK packages (`kind: 'sdk'`, whose versions are npm package names), with the
 // page it came from and the day a person last checked that page.
 export interface DeadlineEntry {
   id: string;
-  provider: 'shopify' | 'meta-graph' | 'openai' | 'anthropic';
-  kind: 'api-version' | 'model';
+  provider: 'shopify' | 'meta-graph' | 'openai' | 'anthropic' | 'gemini';
+  kind: 'api-version' | 'model' | 'sdk';
   versions: string[];
   date: string;
   summary: string;
@@ -78,7 +79,8 @@ export function checkDeadlineRegistry(value: unknown, now: Date) {
     else ids.add(entry.id);
     if (!PROVIDERS.has(String(entry.provider)))
       errors.push(`${label}: provider must be one of ${[...PROVIDERS].join(', ')}.`);
-    if (!KINDS.has(String(entry.kind))) errors.push(`${label}: kind must be api-version or model.`);
+    if (!KINDS.has(String(entry.kind)))
+      errors.push(`${label}: kind must be api-version, model or sdk.`);
     if (
       !Array.isArray(entry.versions) ||
       !entry.versions.length ||

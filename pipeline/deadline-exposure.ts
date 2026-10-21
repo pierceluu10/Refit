@@ -104,6 +104,11 @@ function sourceMatches(
       add('shopify', match[2], match, 2);
   for (const match of line.matchAll(/(['"`])([a-z0-9][a-z0-9.-]*)\1/dg))
     if (models.has(match[2])) add(models.get(match[2])!, match[2], match, 2);
+  // Both Gemini SDKs send `models/gemini-2.0-flash` and `gemini-2.0-flash` to the Gemini API as the
+  // same model: @google/generative-ai prefixes a name without a slash, and @google/genai's
+  // `tModel` does the same, so the prefixed form names the registry model too.
+  for (const match of line.matchAll(/(['"`])models\/([a-z0-9][a-z0-9.-]*)\1/dg))
+    if (models.get(match[2]) === 'gemini') add('gemini', match[2], match, 2);
   return found;
 }
 
@@ -122,11 +127,13 @@ export const TEST_PATH =
   /(?:^|\/)(?:__tests__|__mocks__|__fixtures__|tests?|specs?|e2e|cypress|fixtures?|examples?|stories)\/|\.(?:test|spec|e2e|stories|story)\.[cm]?[jt]sx?$/i;
 // Providers whose deadlines retire models rather than API versions. Their matches get every use
 // class below; API-version providers get only comments, tokenizers and prefix checks.
-const MODEL_PROVIDERS = new Set<DeadlineEntry['provider']>(['openai', 'anthropic']);
+const MODEL_PROVIDERS = new Set<DeadlineEntry['provider']>(['openai', 'anthropic', 'gemini']);
 // Strings shaped like OpenAI or Anthropic model IDs, counted with registry models to recognize a
 // model list, which often mixes providers. Router IDs such as `openai/o1` and
-// `anthropic/claude-3-opus` count too.
+// `anthropic/claude-3-opus` count too. Gemini-shaped IDs count only when the match being
+// classified is a Gemini model, so OpenAI and Anthropic classification is unchanged.
 const ANTHROPIC_MODEL = /^(?:anthropic\/)?claude-/;
+const GEMINI_MODEL = /^(?:google\/|models\/)?gemini-/;
 const OPENAI_MODEL =
   /^(?:openai\/)?(?:gpt-|chatgpt-|o\d(?:-|$)|text-(?:davinci|curie|babbage|ada|embedding|moderation)-|(?:davinci|curie|babbage|ada)(?:-|$)|dall-e-|tts-|whisper-|codex-|computer-use-|omni-moderation-|sora-)/;
 const CATALOG_SIZE = 3;
@@ -315,6 +322,7 @@ function tokenUses(path: string, content: string, models: Map<string, unknown>) 
   visit(source);
   const isModel = (value: string) =>
     models.has(value) || OPENAI_MODEL.test(value) || ANTHROPIC_MODEL.test(value);
+  const isGeminiListModel = (value: string) => isModel(value) || GEMINI_MODEL.test(value);
   return (offset: number, provider: DeadlineEntry['provider'], line: string): DeadlineUse => {
     let low = 0;
     let high = ranges.length - 1;
@@ -325,7 +333,9 @@ function tokenUses(path: string, content: string, models: Map<string, unknown>) 
       else if (offset >= end) low = middle + 1;
       else {
         const model = MODEL_PROVIDERS.has(provider);
-        const use = ts.isStringLiteralLike(node) ? literalUse(node, path, model, isModel) : 'live';
+        const use = ts.isStringLiteralLike(node)
+          ? literalUse(node, path, model, provider === 'gemini' ? isGeminiListModel : isModel)
+          : 'live';
         // An HTML or JSX `<option>` is one choice in a picker.
         return use === 'live' && model && OPTION_ELEMENT.test(line) ? 'catalog' : use;
       }
@@ -360,7 +370,7 @@ export async function scanDeadlines(
     for (const version of entry.versions) byVersion.set(`${entry.provider}:${version}`, entry);
   const models = new Map(
     registry.deadlines
-      .filter((entry) => MODEL_PROVIDERS.has(entry.provider))
+      .filter((entry) => entry.kind === 'model' && MODEL_PROVIDERS.has(entry.provider))
       .flatMap((entry) => entry.versions.map((version) => [version, entry.provider] as const)),
   );
   const found = new Map<string, DeadlineExposure>();
@@ -421,6 +431,21 @@ export async function scanDeadlines(
         text: `${META_SDK} ${dependency.lock.version ?? dependency.version}${dependency.lock.version ? ` (locked in ${dependency.lock.file})` : ''} targets Graph API ${version}`,
       });
   }
+  // A package whose support ended: each manifest that declares it. A repository whose source never
+  // names the package is not read a second time. Manifests in test and example paths are not live.
+  for (const entry of registry.deadlines)
+    if (entry.kind === 'sdk')
+      for (const name of entry.versions) {
+        if (!repository.files.some((file) => file.content.includes(name))) continue;
+        for (const dependency of (await readRepository(root, name)).dependencies)
+          record(entry.provider, name, {
+            file: dependency.file,
+            line: await lineOf(root, dependency.file, `"${name}"`),
+            kind: 'dependency',
+            use: TEST_PATH.test(dependency.file) ? 'test' : 'live',
+            text: `${name} ${dependency.lock.version ?? dependency.version}${dependency.lock.version ? ` (locked in ${dependency.lock.file})` : ''} is declared in ${dependency.section}`,
+          });
+      }
   for (const pin of await configuredApiVersions(root))
     record(pin.provider, pin.version, {
       file: REPOSITORY_CONFIGURATION,
