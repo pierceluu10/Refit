@@ -22,13 +22,14 @@ Decimal phases appear between their surrounding integers in numeric order.
 ### Phase 1: Live exposure and tracing
 **Goal**: A retiring model ID that reaches an OpenAI or Anthropic request, directly or through common indirection, is traced to the exact call argument, and catalog entries no longer count as live exposure
 **Depends on**: Nothing (first phase)
-**Requirements**: EXPO-01, EXPO-02, TRAC-01, TRAC-02, TRAC-03, TRAC-04, TRAC-05
+**Requirements**: EXPO-01, EXPO-02, EXPO-03, TRAC-01, TRAC-02, TRAC-03, TRAC-04, TRAC-05, TRAC-06, TRAC-07
 **Success Criteria** (what must be TRUE):
   1. Running the deadline scan on fixtures of model metadata objects, `versions: [...]` lists and model option arrays reports them as catalog matches, not live exposures, and each shape has a passing test
   2. Deadline reports and benchmark results files show catalog matches in a separate count, so totals can still be compared with the 2026-10-20 results
   3. Fixtures that use `model: this.model` (field initializer and constructor default), a constant imported from another module, an enum or `as const` member, and a helper parameter all resolve to the literal model ID. A helper parameter reports each caller site.
   4. A raw `fetch` or `axios` request to `api.openai.com` or `api.anthropic.com` with a literal `model` in the body is reported at its exact line and gets the same proposal and stops as an SDK call
-  5. `npm test`, typecheck and formatting pass. Gated suite results are reported separately from the default count.
+  5. A model ID quoted inside prose, and a model-keyed map entry wrapped in `satisfies`, are reported as non-live; an env-fallback constant, a function returning a literal and a destructuring default resolve to the literal; image, audio, embedding, moderation and legacy-completion calls stop with a named reason
+  6. `npm test`, typecheck and formatting pass. Gated suite results are reported separately from the default count.
 **Plans**: TBD
 
 ### Phase 2: Sourced parameter stops
