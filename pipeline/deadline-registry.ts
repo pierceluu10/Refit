@@ -40,7 +40,7 @@ export interface DeadlineRegistry {
   deadlines: DeadlineEntry[];
 }
 
-function validDate(value: unknown): value is string {
+export function validDate(value: unknown): value is string {
   if (typeof value !== 'string' || !ISO_DATE.test(value)) return false;
   return new Date(`${value}T00:00:00Z`).toISOString().startsWith(value);
 }
