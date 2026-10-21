@@ -23,7 +23,7 @@ progress:
 See: .planning/PROJECT.md (updated 2026-10-21)
 
 **Core value:** A retiring model ID in real application code is traced to the exact call and replaced with a validated, never-wrong draft fix, or stopped with a named reason.
-**Current focus:** Phase 01 — Live exposure and tracing
+**Current focus:** Phase 2 — Sourced parameter stops
 
 ## Current Position
 
@@ -81,7 +81,9 @@ None yet.
 
 ### Blockers/Concerns
 
-- Phase 2 needs an owner decision recorded in AGENTS.md before the stop is relaxed (RULE-03)
+- [Phase 2] Needs an owner decision recorded in AGENTS.md before the stop is relaxed (RULE-03)
+- [Phase 1] D-09 and widened tracing are pending the repository owner's review on the Phase 1 PR
+- [Phase 4] Phase 1 conservative stops may lower the BENCH-05 fix rate; measure before relaxing anything
 - Phase 4 thresholds (90% traced, 70% validated) may not be met; the shortfall must be reported, not rounded up
 
 ## Deferred Items

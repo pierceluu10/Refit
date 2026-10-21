@@ -19,12 +19,12 @@ A retiring model ID in real application code is traced to the exact call and rep
 - ✓ Validated draft PRs via `refit serve --model-fixes` — existing
 - ✓ Frozen npm-sourced sets: OpenAI 100, Anthropic 50 — existing (`docs/benchmarks/2026-10-20-*-results.json`)
 - ✓ No wrong fix on hand review: OpenAI 1/1, Anthropic 6/6 — existing
+- ✓ Catalogs, descriptor keys, `versions` lists and prose mentions are non-live, with exact non-live counts — Phase 1
+- ✓ Tracing through class fields, object members, env fallbacks, returned literals, destructuring, helpers, renamed imports and axios config forms — Phase 1
+- ✓ Non-text calls, custom base URLs, Azure clients, class inheritance and whole-container uses stop with named reasons instead of editing — Phase 1
 
 ### Active
 
-- [ ] Object-shaped model catalogs (metadata lists, `versions: [...]`) are classified non-live, so exposure counts only requests
-- [ ] `model: this.model` is traced to the class field default (and constructor default) that feeds it
-- [ ] Wider tracing: cross-module constants, enum members, helper parameters with their callers, raw `fetch` to `api.openai.com` / `api.anthropic.com`
 - [ ] Sampling and length parameter stops are lifted only where the provider's model page proves the replacement accepts the parameter (recorded with `source` and `checkedAt`)
 - [ ] New frozen application sets from GitHub code search: 100 OpenAI, 50 Anthropic; npm sets kept as library baselines
 - [ ] Live pins on the new sets labelled (single AI-assisted pass, documented as such)
@@ -69,6 +69,7 @@ A retiring model ID in real application code is traced to the exact call and rep
 | A shared constant/field/helper is editable only when every use is a traced request that allows the edit | Precision improvement found in Phase 1 scouting; every use is checked, so no safety gate is relaxed | Implemented in Phase 1 (2026-10-21); pending owner review on the phase PR |
 | Tracer follows class fields, const object members, fallbacks, returned literals, destructuring defaults and options objects; non-text calls stop | Phase 1 scouting of the 2026-10-20 silent exposures; recorded in AGENTS.md (D-14) | Implemented in Phase 1 (2026-10-21); pending owner review on the phase PR |
 | Wrapper libraries (AI SDK, LangChain, Genkit) deferred; labels record `via: wrapper` pins to measure them | Keeps the milestone on the official SDKs the agents cover while measuring the gap honestly | — Pending |
+| Repository-wide conservative stops (module escape, endpoint text, inheritance, whole-container reads) instead of shape-by-shape fixes | Three review rounds kept finding new wrong-edit shapes; blanket stops guarantee zero wrong edits at some fix-rate cost | ✓ Good (Phase 1 review converged) |
 | Skipped codebase mapping | AGENTS.md, READINESS.md and PROVIDER-GOALS.md already document the architecture | — Pending |
 
 ## Evolution
@@ -89,4 +90,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-10-21 after initialization*
+*Last updated: 2026-10-21 after Phase 1*
