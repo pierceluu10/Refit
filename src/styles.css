@@ -388,7 +388,7 @@ pre {
   width: 24px;
   height: 24px;
 }
-.provider-symbol svg {
+.provider-symbol img {
   width: 22px;
   height: 22px;
 }
@@ -862,18 +862,18 @@ pre {
   border-left: 1px solid var(--border);
 }
 .process-number {
-  font: 11px var(--mono);
+  font: 13px var(--mono);
   color: var(--blue);
 }
 .process-grid h3 {
-  font-size: 17px;
+  font-size: 21px;
   font-weight: 550;
   margin-top: 21px;
   letter-spacing: -0.02em;
 }
 .process-grid p {
   margin-top: 13px;
-  font-size: 13px;
+  font-size: 15.5px;
   color: var(--muted);
   line-height: 1.7;
 }
@@ -881,7 +881,7 @@ pre {
   display: flex;
   align-items: center;
   gap: 6px;
-  font: 8px var(--mono);
+  font: 11px var(--mono);
   color: var(--muted);
   margin-top: 24px;
   white-space: nowrap;
@@ -1452,7 +1452,7 @@ pre {
     padding-left: 18px;
   }
   .process-artifact {
-    font-size: 7px;
+    font-size: 10px;
   }
 }
 @media (max-width: 900px) {
@@ -1511,7 +1511,7 @@ pre {
     padding-left: 0;
   }
   .process-artifact {
-    font-size: 9px;
+    font-size: 11px;
   }
   .control-inner,
   .review-section {
@@ -1633,7 +1633,7 @@ pre {
   .map-endpoint > svg {
     width: 18px;
   }
-  .provider-symbol svg {
+  .provider-symbol img {
     width: 18px;
     height: 18px;
   }
@@ -1842,14 +1842,14 @@ pre {
     padding-left: 0;
   }
   .process-grid h3 {
-    font-size: 15px;
+    font-size: 19px;
     margin-top: 16px;
   }
   .process-grid p {
-    font-size: 12px;
+    font-size: 14.5px;
   }
   .process-artifact {
-    font-size: 7px;
+    font-size: 10px;
     white-space: normal;
     line-height: 1.6;
   }
@@ -2085,11 +2085,12 @@ pre {
     border-color var(--fast) ease,
     transform var(--fast) var(--ease-out);
 }
-.logo-chip svg {
+.logo-chip svg,
+.logo-chip img {
   width: 26px;
   height: 26px;
 }
-.logo-chip > svg:not([fill]) {
+.logo-chip > svg {
   color: var(--muted);
 }
 .logo-chip:active {
@@ -2125,9 +2126,9 @@ pre {
   color: #fff;
   background: var(--blue);
 }
-/* The headline sits inside the two halves of the ASCII Refit mark;
-   AsciiBrackets.tsx places them against the text's corners. */
-.hero-title {
+/* A headline inside the two halves of the ASCII Refit mark; AsciiBrackets.tsx
+   places them against the text's corners. */
+.ascii-frame {
   position: relative;
   display: inline-block;
   isolation: isolate;
@@ -2172,15 +2173,19 @@ pre {
     padding: 0 16px;
     font-size: 16px;
   }
-  .logo-chip svg {
+  .logo-chip svg,
+  .logo-chip img {
     width: 22px;
     height: 22px;
   }
   .ascii-bracket {
     font-size: 4.5px;
   }
-  .hero-title {
+  .hero .ascii-frame {
     margin-bottom: 14px;
+  }
+  .waitlist-theme .closing-section h2 {
+    font-size: min(calc((100vw - 72px) / 13.5), 35px);
   }
   .waitlist-theme .hero h1 {
     font-size: min(calc((100vw - 80px) / 9), 62px);
@@ -2212,9 +2217,10 @@ pre {
 }
 
 /* The waitlist page: white with a royal-blue accent, pill actions, a faint
-   blue dot grid behind the hero and one blue closing band. */
+   blue dot grid behind the hero. */
 .waitlist-theme {
-  overflow-x: clip;
+  /* Clips the closing brackets while they fly in from the screen's corners. */
+  overflow: clip;
   --ink: #0b1220;
   --muted: #5a6476;
   --border: #e2e7ef;
@@ -2246,11 +2252,30 @@ pre {
 }
 /* Both lines start at the same edge so the ASCII brackets hug the first and
    last words equally; the block itself stays centered. */
-.waitlist-theme .hero-title h1 {
+.waitlist-theme .ascii-frame > :is(h1, h2) {
   text-align: left;
 }
-.waitlist-theme .hero h1 span {
+.waitlist-theme .ascii-frame > :is(h1, h2) > span {
+  display: block;
   white-space: nowrap;
+}
+.closing-section .ascii-bracket {
+  font-size: 7.5px;
+  color: var(--ink);
+}
+/* Its own centered row between the logo and the button. */
+.closing-section .ascii-frame {
+  display: block;
+  width: fit-content;
+  margin-inline: auto;
+}
+@media (max-width: 640px) {
+  .closing-section .ascii-bracket {
+    font-size: 4px;
+  }
+  .closing-section .ascii-frame {
+    margin-bottom: 40px;
+  }
 }
 .waitlist-theme .button {
   border-radius: 999px;
@@ -2266,24 +2291,15 @@ pre {
     0 8px 18px -10px #0048d8b3;
 }
 .waitlist-theme .closing-section {
-  --ink: #fff;
-  --muted: #c4d9ff;
-  --blue: #fff;
-  border-top: 0;
-  color: var(--ink);
-  background: #0048d8;
+  background: var(--canvas);
 }
-.waitlist-theme .closing-section .button-primary {
-  color: #0048d8;
+.waitlist-theme .closing-section h2 {
+  color: var(--blue);
 }
 @media (hover: hover) and (pointer: fine) {
   .waitlist-theme .button-primary:hover,
   .waitlist-theme .button-dark:hover {
     background: #003cb5;
     border-color: #003cb5;
-  }
-  .waitlist-theme .closing-section .button-primary:hover {
-    background: #e3ecff;
-    border-color: #e3ecff;
   }
 }

@@ -18,6 +18,9 @@ const THICKNESS = 7 / 19;
 const RAMP = ' .:-=+*#%@';
 const ENTRANCE_DELAY_MS = 450;
 const ENTRANCE_MS = 1000;
+// Where on screen (as a share of its height) the headline's middle must rise
+// to for the scroll-linked reveal to finish.
+const REVEAL_DONE = 0.55;
 // Share of the swap spent flying in, spinning, and flying out.
 const MEET = SPIN_START_MS / SWAP_MS;
 const DEPART = SPIN_END_MS / SWAP_MS;
@@ -95,7 +98,7 @@ function move(x: number, y: number, turn = 0) {
 // Places the brackets on opposite corners of the whole headline block (the
 // widest line sets the sides), so they mirror each other about its center.
 function place(frame: HTMLElement, start: HTMLElement, end: HTMLElement): Layout | null {
-  const lines = [...frame.querySelectorAll<HTMLElement>('h1 > span')];
+  const lines = [...frame.querySelectorAll<HTMLElement>(':scope > :is(h1, h2) > span')];
   if (lines.length === 0 || !document.createRange().getClientRects) return null;
   const box = frame.getBoundingClientRect();
   const range = document.createRange();
@@ -165,11 +168,19 @@ function swapFrames(home: Point, slot: Point, away: Point, center: Point, size: 
   return frames;
 }
 
-// Wraps the headline. On load the two halves start assembled as the Refit
-// mark behind the text, flickering, then glide out to frame it. Every third
-// beat they meet in the middle, spin with the workflow map's Refit node, and
-// trade corners.
-export function AsciiBrackets({ children }: { children: ReactNode }) {
+// Wraps a headline whose lines are spans. In the hero ("intro"), the two
+// halves start assembled as the Refit mark behind the text on load, flickering,
+// then glide out to frame it; every third beat they meet in the middle, spin
+// with the workflow map's Refit node, and trade corners. Elsewhere ("reveal"),
+// scrolling the headline into view flies them in from the top-left and
+// bottom-right corners of its section, and scrolling back up sends them away.
+export function AsciiBrackets({
+  children,
+  mode = 'intro',
+}: {
+  children: ReactNode;
+  mode?: 'intro' | 'reveal';
+}) {
   const frame = useRef<HTMLDivElement>(null);
   const start = useRef<HTMLPreElement>(null);
   const end = useRef<HTMLPreElement>(null);
@@ -205,27 +216,79 @@ export function AsciiBrackets({ children }: { children: ReactNode }) {
     let stopBeat = () => {};
     let visible = true;
     const observer = new IntersectionObserver(([entry]) => (visible = entry.isIntersecting));
-    if (layout && !reduced && a.animate) {
-      // Scrambles every character until shortly before `duration` ends, then
-      // lets them settle into the bracket as it locks into place.
-      const flicker = (duration: number) => {
-        cancelAnimationFrame(request);
-        const began = performance.now();
-        let shown = 0;
-        const tick = (now: number) => {
-          const elapsed = now - began;
-          const progress = Math.max(0, elapsed - (duration - SETTLE_MS)) / SETTLE_MS;
-          if (progress >= 1) return setText(settled);
-          if (now - shown >= FLICKER_MS) {
-            shown = now;
-            setText({ start: render(startCells, progress), end: render(endCells, progress) });
-          }
-          request = requestAnimationFrame(tick);
-        };
+    let stopScroll = () => {};
+    const canAnimate = layout && !reduced && a.animate;
+    // Scrambles every character until shortly before `duration` ends, then
+    // lets them settle into the bracket as it locks into place.
+    const flicker = (duration: number) => {
+      cancelAnimationFrame(request);
+      const began = performance.now();
+      let shown = 0;
+      const tick = (now: number) => {
+        const elapsed = now - began;
+        const progress = Math.max(0, elapsed - (duration - SETTLE_MS)) / SETTLE_MS;
+        if (progress >= 1) return setText(settled);
+        if (now - shown >= FLICKER_MS) {
+          shown = now;
+          setText({ start: render(startCells, progress), end: render(endCells, progress) });
+        }
         request = requestAnimationFrame(tick);
       };
+      request = requestAnimationFrame(tick);
+    };
 
-      const { start: home, startSlot, endSlot, end: away } = layout;
+    if (canAnimate && mode === 'reveal') {
+      // Tied to scroll, so it plays backwards on the way up. Nothing has
+      // started while the headline's middle is below the screen; the brackets
+      // are locked in once it rises past REVEAL_DONE of the screen height.
+      let frameRequest = 0;
+      let shown = 0;
+      const update = () => {
+        frameRequest = 0;
+        if (!layout) return;
+        const rect = box.getBoundingClientRect();
+        const height = window.innerHeight;
+        const middle = rect.top + rect.height / 2;
+        const progress = Math.min(1, Math.max(0, (height - middle) / (height * (1 - REVEAL_DONE))));
+        const eased = 1 - (1 - progress) ** 3;
+        const size = a.offsetWidth;
+        // Each bracket starts tucked into its corner of the surrounding section.
+        const section = (box.closest('section') ?? box.parentElement!).getBoundingClientRect();
+        const startX = section.left - (rect.left + layout.start.x);
+        const startY = section.top - (rect.top + layout.start.y);
+        const endX = section.right - (rect.left + layout.end.x + size);
+        const endY = section.bottom - (rect.top + layout.end.y + size);
+        a.style.transform = move(startX * (1 - eased), startY * (1 - eased));
+        b.style.transform = move(endX * (1 - eased), endY * (1 - eased));
+        // They start faint and reach full black as they lock.
+        a.style.opacity = b.style.opacity = String(0.15 + 0.85 * eased);
+        // Characters flicker while the brackets move and settle as they lock.
+        const now = performance.now();
+        if (progress >= 1) setText(settled);
+        else if (now - shown >= FLICKER_MS) {
+          shown = now;
+          setText({ start: render(startCells, progress), end: render(endCells, progress) });
+        }
+      };
+      const schedule = () => {
+        if (!frameRequest) frameRequest = requestAnimationFrame(update);
+      };
+      update();
+      window.addEventListener('scroll', schedule, { passive: true });
+      window.addEventListener('resize', schedule);
+      stopScroll = () => {
+        cancelAnimationFrame(frameRequest);
+        window.removeEventListener('scroll', schedule);
+        window.removeEventListener('resize', schedule);
+        a.style.transform = '';
+        b.style.transform = '';
+        a.style.opacity = '';
+        b.style.opacity = '';
+      };
+    }
+
+    if (canAnimate && mode === 'intro') {
+      const { start: home, startSlot, endSlot, end: away } = layout!;
       const entrance = {
         duration: ENTRANCE_MS,
         delay: ENTRANCE_DELAY_MS,
@@ -263,15 +326,16 @@ export function AsciiBrackets({ children }: { children: ReactNode }) {
     // Cancelling lets a re-run measure the brackets where they actually sit.
     return () => {
       resized?.disconnect();
+      stopScroll();
       stopBeat();
       observer.disconnect();
       cancelAnimationFrame(request);
       for (const animation of running) animation.cancel();
     };
-  }, []);
+  }, [mode]);
 
   return (
-    <div className="hero-title" ref={frame}>
+    <div className="ascii-frame" ref={frame}>
       <pre className="ascii-bracket" ref={start} aria-hidden="true">
         {text.start}
       </pre>

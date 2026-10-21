@@ -60,11 +60,12 @@ export function Waitlist() {
         <section className="closing-section">
           <div className="closing-rule" />
           <Brand />
-          <h2>
-            Be first in line
-            <br />
-            for the next API change.
-          </h2>
+          <AsciiBrackets mode="reveal">
+            <h2>
+              <span>Sign up for the world’s first</span>
+              <span>self-maintaining API agents.</span>
+            </h2>
+          </AsciiBrackets>
           <a className="button button-primary" href="#waitlist">
             Join the waitlist <ArrowRight />
           </a>
