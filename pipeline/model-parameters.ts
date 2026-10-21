@@ -200,7 +200,8 @@ export function parameterVerdict(
   )
     return { ok: false, why: 'out-of-range', spec };
   // Anything not proven above, including an unrecognized spec, stops.
-  if (spec.accepts !== 'any') return { ok: false, why: 'unproven', spec };
+  if (spec.accepts !== 'any' && spec.accepts !== 'default-only')
+    return { ok: false, why: 'unproven', spec };
   return { ok: true };
 }
 
