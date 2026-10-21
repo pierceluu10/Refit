@@ -4,15 +4,23 @@ import {
   SCAN_LIMITS,
   SIZE_BUCKETS,
   appShape,
+  candidateFile,
   compareCandidates,
   declaresSdk,
   detectModelCall,
   excludedName,
+  findCandidates,
+  followReplacement,
+  isGenerated,
+  languageOf,
+  modelPattern,
+  packBatches,
   frozenListNames,
   scanLimitsFromTree,
   shallowCheckout,
   validRepoName,
   validSha,
+  validateLabels,
   validWorkspaceManifest,
 } from '../scripts/ai-app-helpers.mjs';
 
@@ -197,4 +205,137 @@ it('splits search into size buckets that never overlap or touch', () => {
       .sort((a, b) => a[0] - b[0]);
     for (let i = 1; i < ranges.length; i += 1) expect(ranges[i][0]).toBe(ranges[i - 1][1] + 1);
   }
+});
+
+const registry = {
+  deadlines: [
+    {
+      id: 'a',
+      provider: 'openai',
+      kind: 'model',
+      versions: ['gpt-4-turbo', 'gpt-4-turbo-2024-04-09'],
+      replacement: 'gpt-5',
+    },
+    {
+      id: 'b',
+      provider: 'openai',
+      kind: 'model',
+      versions: ['gpt-4.5-preview'],
+      replacement: 'gpt-4.1',
+    },
+    { id: 'c', provider: 'openai', kind: 'model', versions: ['gpt-4.1'], replacement: 'gpt-5.6' },
+    {
+      id: 'd',
+      provider: 'anthropic',
+      kind: 'model',
+      versions: ['claude-2.1'],
+      replacement: 'claude-x',
+    },
+  ],
+};
+
+it('matches whole quoted registry IDs of one provider, longest first', () => {
+  const pattern = modelPattern(registry, 'openai');
+  const text = `a("gpt-4-turbo-2024-04-09", 'gpt-4-turbo') \`gpt-4-turbo\` "gpt-4o" "gpt-4-turbo-x" gpt-4-turbo "claude-2.1"`;
+  expect(findCandidates(text, pattern).map((c) => c.model)).toEqual([
+    'gpt-4-turbo-2024-04-09',
+    'gpt-4-turbo',
+    'gpt-4-turbo',
+  ]);
+  expect(findCandidates('x = "claude-2.1"', modelPattern(registry, 'openai'))).toEqual([]);
+});
+
+it('reports 1-based line and column, two on one line included', () => {
+  const pattern = modelPattern(registry, 'openai');
+  expect(findCandidates('\n  ["gpt-4-turbo", "gpt-4-turbo"]', pattern)).toEqual([
+    { line: 2, column: 5, model: 'gpt-4-turbo' },
+    { line: 2, column: 20, model: 'gpt-4-turbo' },
+  ]);
+});
+
+it('applies the file exclusions and keeps other text files', () => {
+  const text = new TextEncoder().encode('x');
+  for (const path of [
+    'node_modules/a.js',
+    'a/.git/b',
+    'package-lock.json',
+    'x/yarn.lock',
+    'bun.lockb',
+  ])
+    expect(candidateFile(path, text), path).toBe(false);
+  expect(candidateFile('a.js', new Uint8Array(2 * 1024 * 1024 + 1))).toBe(false);
+  expect(candidateFile('a.bin', new Uint8Array([65, 0, 66]))).toBe(false);
+  for (const path of ['a.json', 'c.yaml', '.env.local', 'a.py', 'dist/app.js'])
+    expect(candidateFile(path, text), path).toBe(true);
+});
+
+it('maps languages and generated paths', () => {
+  expect(
+    ['a.tsx', 'a.mjs', 'a.py', 'a.json', 'a.yml', '.env.local', 'a.mdx', 'a.toml'].map(languageOf),
+  ).toEqual(['typescript', 'javascript', 'python', 'json', 'yaml', 'env', 'markdown', 'other']);
+  expect(['dist/a.js', 'x/build/a.js', '.next/a', 'out/a', 'a/b.min.js'].every(isGenerated)).toBe(
+    true,
+  );
+  expect(isGenerated('src/dist.js')).toBe(false);
+});
+
+it('follows replacement chains and throws on a cycle', () => {
+  expect(followReplacement(registry, 'gpt-4.5-preview')).toBe('gpt-5.6');
+  expect(followReplacement(registry, 'gpt-4-turbo')).toBe('gpt-5');
+  const loop = {
+    deadlines: [
+      { id: 'a', provider: 'openai', kind: 'model', versions: ['m1'], replacement: 'm2' },
+      { id: 'b', provider: 'openai', kind: 'model', versions: ['m2'], replacement: 'm1' },
+    ],
+  };
+  expect(() => followReplacement(loop, 'm1')).toThrow(/cycle/);
+});
+
+it('packs whole groups up to the limit', () => {
+  const g = (n: number) => Array.from({ length: n }, () => n);
+  const batches = packBatches([g(30), g(20), g(50), g(5)], 40);
+  expect(batches.map((b) => b.length)).toEqual([30, 20, 50, 5]);
+  expect(packBatches([g(10), g(20), g(15)], 40).map((b) => b.length)).toEqual([30, 15]);
+});
+
+const candidate = {
+  repo: 'o/r',
+  provider: 'openai',
+  file: 'a.ts',
+  line: 3,
+  column: 5,
+  model: 'gpt-4-turbo',
+  replacement: 'gpt-5',
+};
+const good = {
+  ...candidate,
+  live: true,
+  via: 'sdk-text',
+  notes: 'default model passed to the SDK',
+};
+
+it('validates labels', () => {
+  const run = (label: Record<string, unknown> | null, extra: Record<string, unknown>[] = []) =>
+    validateLabels([candidate], label ? [label, ...extra] : extra, [
+      'const secret = "gpt-4-turbo";',
+    ]).map((e) => e.kind);
+  expect(run(good)).toEqual([]);
+  expect(run({ ...good, via: 'wrapper:@ai-sdk/openai' })).toEqual([]);
+  expect(run({ ...good, live: false, via: null, reason: 'test' })).toEqual([]);
+  expect(run(null)).toEqual(['missing']);
+  expect(run(good, [good])).toContain('duplicate');
+  expect(run(good, [{ ...good, line: 9 }])).toContain('extra');
+  expect(run({ ...good, color: 1 })).toContain('unknown-key:color');
+  expect(run({ ...good, live: 'yes' })).toContain('live');
+  expect(run({ ...good, via: 'magic' })).toContain('via');
+  expect(run({ ...good, via: 'wrapper:Bad Name' })).toContain('via');
+  expect(run({ ...good, live: false, via: 'sdk-text', reason: 'test' })).toContain('via-not-null');
+  expect(run({ ...good, live: false, via: null })).toContain('reason');
+  expect(run({ ...good, live: false, via: null, reason: 'nope' })).toContain('reason');
+  expect(run({ ...good, reason: 'test' })).toContain('reason-present');
+  expect(run({ ...good, replacement: 'gpt-4.1' })).toContain('replacement');
+  for (const notes of ['', 'a\nb', 'x'.repeat(161), 'uses const secret = "gpt-4-turbo"; here'])
+    expect(run({ ...good, notes }), notes).toContain(
+      notes.includes('secret') ? 'notes-source-text' : 'notes',
+    );
 });

@@ -41,3 +41,50 @@ export function compareCandidates(
 export function frozenListNames(json: unknown): string[];
 export function checkoutDirectory(root: string, repo: string): string;
 export function shallowCheckout(root: string, repo: string, sha: string): Promise<string>;
+
+export const CANDIDATE_LOCKFILES: Set<string>;
+export const MAX_CANDIDATE_BYTES: number;
+export const VIA: string[];
+export const REASONS: string[];
+export const LABEL_KEYS: string[];
+export const COMMITTED_KEYS: string[];
+export const LANGUAGE_RULES: Record<string, string>;
+
+export interface Registry {
+  deadlines: {
+    id: string;
+    provider: string;
+    kind: string;
+    versions: string[];
+    replacement?: string;
+  }[];
+}
+export interface ModelPattern {
+  regex: RegExp;
+  byId: Map<string, { deadline: string }>;
+}
+export interface LabelCandidate {
+  repo: string;
+  provider: string;
+  file: string;
+  line: number;
+  column: number;
+  model: string;
+  replacement: string;
+  [field: string]: unknown;
+}
+export function modelPattern(registry: Registry, provider: string): ModelPattern;
+export function findCandidates(
+  text: string,
+  pattern: ModelPattern,
+): { line: number; column: number; model: string }[];
+export function candidateFile(path: string, bytes: Uint8Array): boolean;
+export function languageOf(path: string): string;
+export function isGenerated(path: string): boolean;
+export function followReplacement(registry: Registry, id: string): string;
+export function packBatches<T>(groups: T[][], max: number): T[][];
+export function validateLabels(
+  candidates: LabelCandidate[],
+  labels: Record<string, unknown>[],
+  contextLines?: string[],
+): { key: string; kind: string }[];

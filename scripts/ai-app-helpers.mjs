@@ -172,3 +172,194 @@ export async function shallowCheckout(root, repo, sha) {
   }
   return directory;
 }
+
+// Label pass (scripts/ai-app-label-candidates.mjs, scripts/ai-app-labels.mjs). An independent text
+// search for quoted exact registry model IDs; nothing here imports Refit's scanner or tracer.
+export const CANDIDATE_LOCKFILES = new Set([
+  'package-lock.json',
+  'npm-shrinkwrap.json',
+  'pnpm-lock.yaml',
+  'yarn.lock',
+  'bun.lock',
+  'bun.lockb',
+]);
+export const MAX_CANDIDATE_BYTES = 2 * 1024 * 1024;
+export const VIA = ['sdk-text', 'sdk-non-text', 'raw-http', 'other'];
+export const REASONS = [
+  'catalog',
+  'test',
+  'comment',
+  'comparison',
+  'doc',
+  'prompt-text',
+  'unused',
+  'other-endpoint',
+  'other',
+];
+export const LABEL_KEYS = [
+  'repo',
+  'provider',
+  'file',
+  'line',
+  'column',
+  'model',
+  'live',
+  'via',
+  'reason',
+  'replacement',
+  'notes',
+];
+export const COMMITTED_KEYS = [
+  'file',
+  'line',
+  'column',
+  'model',
+  'deadline',
+  'language',
+  'generated',
+  'live',
+  'via',
+  'reason',
+  'replacement',
+  'notes',
+];
+const NPM_PACKAGE = /^(?:@[a-z0-9][a-z0-9._~-]*\/)?[a-z0-9][a-z0-9._~-]*$/;
+const escapeRegex = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+// Every versions[] ID of the provider's model entries, longest first, inside matching quotes.
+export function modelPattern(registry, provider) {
+  const byId = new Map();
+  for (const entry of registry.deadlines)
+    if (entry.kind === 'model' && entry.provider === provider)
+      for (const id of entry.versions) byId.set(id, { deadline: entry.id });
+  const ids = [...byId.keys()].sort((a, b) => b.length - a.length || (a < b ? -1 : 1));
+  return { regex: new RegExp(`(["'\`])(${ids.map(escapeRegex).join('|')})\\1`, 'g'), byId };
+}
+
+// 1-based line and column of the model ID itself (not the opening quote).
+export function findCandidates(text, pattern) {
+  const found = [];
+  text.split(/\r?\n/).forEach((lineText, index) => {
+    for (const match of lineText.matchAll(pattern.regex))
+      found.push({ line: index + 1, column: match.index + 2, model: match[2] });
+  });
+  return found;
+}
+
+export function candidateFile(path, bytes) {
+  const segments = path.split('/');
+  if (segments.some((s) => s === 'node_modules' || s === '.git')) return false;
+  if (CANDIDATE_LOCKFILES.has(segments.at(-1))) return false;
+  if (bytes.length > MAX_CANDIDATE_BYTES) return false;
+  return !bytes.subarray(0, 8000).includes(0);
+}
+
+const LANGUAGES = {
+  ts: 'typescript',
+  tsx: 'typescript',
+  mts: 'typescript',
+  cts: 'typescript',
+  js: 'javascript',
+  jsx: 'javascript',
+  mjs: 'javascript',
+  cjs: 'javascript',
+  py: 'python',
+  json: 'json',
+  yaml: 'yaml',
+  yml: 'yaml',
+  md: 'markdown',
+  mdx: 'markdown',
+};
+export const LANGUAGE_RULES = { ...LANGUAGES, '.env*': 'env' };
+
+export function languageOf(path) {
+  const name = path.split('/').at(-1);
+  if (name.startsWith('.env')) return 'env';
+  const dot = name.lastIndexOf('.');
+  return (dot > 0 && LANGUAGES[name.slice(dot + 1).toLowerCase()]) || 'other';
+}
+
+export function isGenerated(path) {
+  const segments = path.split('/');
+  return (
+    segments.slice(0, -1).some((s) => ['dist', 'build', '.next', 'out'].includes(s)) ||
+    segments.at(-1).endsWith('.min.js')
+  );
+}
+
+// The registry replacement of id, followed while the target is itself a retiring model.
+export function followReplacement(registry, id) {
+  const entryFor = (model) =>
+    registry.deadlines.find((e) => e.kind === 'model' && e.versions.includes(model));
+  const visited = new Set([id]);
+  let entry = entryFor(id);
+  if (!entry) throw new Error(`${id} is not a registry model.`);
+  let target = entry.replacement;
+  while ((entry = entryFor(target))) {
+    if (visited.has(target)) throw new Error(`Replacement cycle at ${target}.`);
+    visited.add(target);
+    target = entry.replacement;
+  }
+  return target;
+}
+
+// Whole (repo, provider) groups in order, at most max candidates a batch; an oversized group is alone.
+export function packBatches(groups, max) {
+  const batches = [];
+  let current = [];
+  let size = 0;
+  for (const group of groups) {
+    if (current.length && size + group.length > max) {
+      batches.push(current);
+      current = [];
+      size = 0;
+    }
+    current.push(...group);
+    size += group.length;
+  }
+  if (current.length) batches.push(current);
+  return batches;
+}
+
+const labelId = (x) => [x.repo, x.provider, x.file, x.line, x.column, x.model].join('\u0000');
+
+// Errors name the candidate and the kind of problem, never source text.
+export function validateLabels(candidates, labels, contextLines = []) {
+  const errors = [];
+  const wanted = new Map(candidates.map((c, i) => [labelId(c), { c, line: contextLines[i] }]));
+  const seen = new Set();
+  const allowed = new Set(LABEL_KEYS);
+  for (const label of labels) {
+    const id = labelId(label);
+    const where = `${label.file}:${label.line}:${label.column}`;
+    const fail = (kind) => errors.push({ key: where, kind });
+    if (!wanted.has(id)) {
+      fail('extra');
+      continue;
+    }
+    if (seen.has(id)) fail('duplicate');
+    seen.add(id);
+    const { c, line } = wanted.get(id);
+    for (const key of Object.keys(label)) if (!allowed.has(key)) fail(`unknown-key:${key}`);
+    if (typeof label.live !== 'boolean') fail('live');
+    else if (label.live) {
+      const via = label.via;
+      const wrapper = typeof via === 'string' && via.startsWith('wrapper:');
+      if (!(VIA.includes(via) || (wrapper && NPM_PACKAGE.test(via.slice(8))))) fail('via');
+      if ('reason' in label) fail('reason-present');
+    } else {
+      if (label.via !== null) fail('via-not-null');
+      if (!REASONS.includes(label.reason)) fail('reason');
+    }
+    if (label.replacement !== c.replacement) fail('replacement');
+    const notes = label.notes;
+    if (typeof notes !== 'string' || !notes.trim() || /[\r\n]/.test(notes) || notes.length > 160)
+      fail('notes');
+    else if (typeof line === 'string' && line.trim().length >= 3 && notes.includes(line.trim()))
+      fail('notes-source-text');
+  }
+  for (const id of wanted.keys())
+    if (!seen.has(id))
+      errors.push({ key: id.split('\u0000').slice(2, 5).join(':'), kind: 'missing' });
+  return errors;
+}
