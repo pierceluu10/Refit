@@ -1,5 +1,15 @@
 # Refit implementation checkpoints
 
+## October 21 checkpoint: live exposure and model tracing (unreleased, after 0.39.0)
+
+`refit deadlines` no longer counts model catalogs and prose as live exposure, and the model-replacement rule follows more indirect model sources. Decision recorded in AGENTS.md, pending the repository owner's review on the phase PR. See [Deadlines](DEADLINES.md).
+
+- **Catalog and prose.** Model-keyed map entries wrapped in `satisfies` or `as`, descriptor keys (`id`, `name`, `displayName`, `label`, `title`, `slug`), `versions` arrays, and model IDs inside longer plain strings are non-live for OpenAI and Anthropic. `model` keys stay live. `--json` adds `nonLiveCounts`.
+- **Tracing.** Class fields, `const` object members, fallbacks, returned literals, destructuring defaults, options objects, and method and default-export callers are followed. A shared source is edited only when every use is a traced request that allows it. A trace cut by the depth limit or work budget stops with the limit named. The tsconfig alias gate is unchanged.
+- **Non-text calls.** Traced SDK calls and raw requests to non-text OpenAI endpoints and Anthropic `/v1/complete` stop with a named reason and are never edited. In `refit serve --model-fixes` such a repository moves from `no-change` to `needs-review`.
+
+Evidence is fixture tests only; no live provider was contacted. Measured tracing and fix rates come with Phase 4's application benchmark.
+
 ## October 21 checkpoint: review-only PayPal request detection (unreleased, after 0.39.0)
 
 `refit paypal` lists the PayPal REST requests a repository makes. It reads three shapes: `@paypal/checkout-server-sdk` request classes sent with `client.execute`, `@paypal/paypal-server-sdk` controller calls, and raw `fetch` and `axios` calls to `api-m.paypal.com`, `api-m.sandbox.paypal.com`, `api.paypal.com` and `api.sandbox.paypal.com`. For each it gives `file:line`, method and path, and the matching operation in PayPal's published OpenAPI documents. It also gives the newest server SDK method that makes the same request, and notes requests, hosts and SDK methods the documents or the declared release do not have. It is review only: nothing is edited, installed, run or sent to PayPal, and it proposes no SDK replacement. The catalog entry stays at `adapter: null`, and no gate, default or stop changed. See [PayPal](PAYPAL.md).

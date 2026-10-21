@@ -74,20 +74,21 @@ Each match is classified by how the code uses it. Only **live** matches make a r
 | Use | What it covers | Providers |
 |---|---|---|
 | `live` | The default: a call argument, a default or env-var fallback, a constant, an alias map's value | all |
-| `catalog` | One entry in a list naming three or more models (an array, enum or tuple, counting OpenAI- and Claude-shaped IDs, with or without an `openai/` or `anthropic/` prefix); any type position, such as a union or `model: 'gpt-4'` in an interface; a table keyed or indexed by model, such as `PRICES['gpt-4']` or `{ 'gpt-4': { input: 30 } }`, and everything inside that entry; an HTML or JSX `<option>` | OpenAI, Anthropic |
+| `catalog` | One entry in a list naming three or more models (an array, enum or tuple, counting OpenAI- and Claude-shaped IDs, with or without an `openai/` or `anthropic/` prefix); any type position, such as a union or `model: 'gpt-4'` in an interface; a table keyed or indexed by model, such as `PRICES['gpt-4']` or `{ 'gpt-4': { input: 30 } }`, and everything inside that entry; an HTML or JSX `<option>`; an entry of a map keyed by model that is wrapped in `satisfies`, `as`, a `<T>` assertion, parentheses or `!`; the values of `id`, `name`, `displayName`, `label`, `title` and `slug` keys, and every element of a `versions: [...]` array. `model`, `modelName`, `modelId`, `version`, `default` and `value` stay live | OpenAI, Anthropic |
 | `test` | Test, spec, story, fixture and example files: `*.test.*`, `*.spec.*`, `*.stories.*`, and `test/`, `tests/`, `__tests__/`, `spec/`, `e2e/`, `cypress/`, `fixtures/`, `examples/` directories | OpenAI, Anthropic |
 | `check` | A comparison, `case 'gpt-4':`, or a prefix or membership call (`startsWith`, `endsWith`, `includes`, `indexOf`) | comparisons: OpenAI, Anthropic; calls: all |
 | `tokenizer` | An argument of `encoding_for_model` or `encodingForModel` | all |
-| `comment` | Comments, including JSDoc and commented-out code. Each file is parsed, and anything outside a source token is a comment | all |
+| `comment` | Comments, including JSDoc and commented-out code. Each file is parsed, and anything outside a source token is a comment. For OpenAI and Anthropic, a model ID quoted inside a longer plain string (a description, an error message, embedded markdown) is also a comment. Template literals with substitutions, concatenated pieces, JSX text, and text that sets a `model` key, such as embedded JSON, stay live | all |
 
 Meta and Shopify matches are classified only as comments, tokenizer arguments and prefix checks. Those were dropped before and are now listed as non-live; nothing else about Meta and Shopify matching changed. On the [benchmark](DEADLINE-BENCHMARK.md) their reported lines were already 100% and 79% live.
 
-The terminal output lists live evidence first, then one collapsed `Not live` line per use with each file's line numbers. A deadline the repository names only outside live code is not an exposure; it is listed at the end under "Named only outside live code".
+The terminal output lists live evidence first, then one collapsed `Not live` line per use, with the count for that use and each file's line numbers. A deadline the repository names only outside live code is not an exposure; it is listed at the end under "Named only outside live code".
 
 `--json` keeps every earlier field and adds new ones:
 
 - Each exposure's `evidence` holds only live matches, and `more` counts live matches past the limit.
-- `nonLive` and `nonLiveMore` hold the other matches.
+- `nonLive` and `nonLiveMore` hold the other matches. `nonLiveCounts` gives the exact number of non-live matches per use, taken before the 20-item cap.
+- The benchmark script's results add `nonLive` (counts by use), `nonLiveTotal` and `mentionedOnly`, and keep the 2026-10-20 keys.
 - Every evidence item has a `use`.
 - A top-level `mentions` array lists deadlines with no live match, in the same shape with an empty `evidence`.
 - Each exposure has `ignored` (the [ignore entries](#accept-an-exposure-for-a-while) that accept it, or `null`) and `ignoreNote` (why an ignore for that deadline did not apply, or `null`).
@@ -186,12 +187,15 @@ For OpenAI and Anthropic models, Refit can propose the registry replacement as a
 A replacement is proposed only when all of these hold:
 
 - The call is a traced SDK text-generation call: OpenAI `chat.completions.create`, `.parse` or `.stream` (also under `beta`), `responses.create`, `.parse` or `.stream`, `createChatCompletion` on an openai v3 or `openai-edge` `OpenAIApi` client, or Anthropic `messages.create`, `.stream` or `.countTokens` (also under `beta`). Clients are traced like any adapter's, including class fields and imported clients, using `examples/openai.provider.json` and `examples/anthropic.provider.json`.
-- Or the call is a raw HTTP request to `api.openai.com/v1/chat/completions`, `api.openai.com/v1/responses` or `api.anthropic.com/v1/messages`: `fetch(url, { body: JSON.stringify(request) })`, Apps Script's `UrlFetchApp.fetch(url, { payload: JSON.stringify(request) })` or `axios.post(url, request)`, with the URL written inline or in a `const`.
+- Or the call is a raw HTTP request to `api.openai.com/v1/chat/completions`, `api.openai.com/v1/responses` or `api.anthropic.com/v1/messages`: `fetch(url, { body: JSON.stringify(request) })`, Apps Script's `UrlFetchApp.fetch(url, { payload: JSON.stringify(request) })` or `axios.post(url, request)`, or the request-config forms `axios({ url, data })`, `axios.request({ url, data })` and the same calls on an `axios.create(...)` instance, with the URL written inline or in a `const`.
 - Its request is an object literal, or a `const` holding one that only this call uses (`const params = { model: 'gpt-4', messages }`).
 - Its `model` is a string literal naming a registry model, or one of these, followed through imports across files:
   - the default of a `??` or `||` fallback, such as `process.env.MODEL ?? 'gpt-4'`;
   - a `const` or enum member holding such a literal and used only by this request (`model: MODEL`, `{ model }`, `model: Model.Default`), edited where it is declared, even in another module;
   - a class field: an initializer (`model = 'gpt-4'`), `this.model = …` assignments, or a constructor parameter followed to the literal its `new` callers pass, even in another module;
+  - a `const` object member, with or without `as const` (`CONFIG.model`), and a function or method that returns a literal (`getModel()`), a conditional (`cond ? 'gpt-4' : x`), or an env fallback on either side;
+  - a destructuring default (`const { model = 'gpt-4' } = options`) and a default or literal on an options-object parameter (`ask({ model })`);
+  - the callers of a method or constructor, and of a default-exported helper in another file;
   - a parameter of the helper function that makes the call, such as `ask(messages, model = 'gpt-4')`. Its default and each caller that passes a literal (`ask(messages, 'o1-mini')`) are edited separately, each to its own replacement.
 - The file is not a test, spec, story, fixture or example file.
 - The registry entry names a concrete model ID. When that replacement retires too, Refit follows the registry to a model that does not, for example `o1-mini` to `o4-mini` to `gpt-5.6-terra`.
@@ -200,11 +204,13 @@ These cases stop for review and are listed with a reason, with no edit:
 
 - The request sets a parameter the replacement may reject: `temperature`, `top_p` or `top_k` for Anthropic (Anthropic returns a 400 for non-default values on Claude 4.7 and later models), and `temperature`, `top_p`, `max_tokens`, `presence_penalty`, `frequency_penalty`, `logit_bias`, `logprobs` or `top_logprobs` for OpenAI (support on its newer models is unverified).
 - The request spreads other options (`{ ...options, model: 'gpt-4' }`).
-- The model comes from a constant or enum member, or the request from a `const` object, that is used more than once in the repository, so it may feed other code.
+- The model comes from a constant, enum or object member, field or helper, or the request from a `const` object, that has a use the trace does not reach as a request that allows the edit (a log line, a comparison, `Object.values`, a test file, another request that stops). When every use is a traced request that allows the edit, it is edited once where it is declared.
+- The call is not a text-generation call (see below).
+- A trace was cut by the depth limit of 10 or the work budget of 2,000 steps. Every retiring model the cut hid and a bounded follow-up can find stops, and the reason names the limit: "Tracing this model stopped at the work budget of 2,000 steps (or depth limit of 10), so not every source and use could be checked; change it by hand to <to>."
 - The helper carrying the model is passed around as a value, or called with spread arguments.
 - The registry has no concrete replacement.
 
-Embeddings, images, audio and moderation calls are never proposed, because their replacements change vector sizes, formats or parameters. Legacy completions (`completions.create`, v3 `createCompletion`) are never proposed either, because the replacements are chat models. A model sent through another host (such as the app's own proxy), LangChain, the Vercel AI SDK or a Deno re-export, or held in settings objects, UI state or CLI option defaults, is not traced and stays an ordinary exposure.
+Every traced SDK call outside the text-generation list stops with a named reason and is not edited: "`<call>` is not a call Refit edits; <to> may change formats or parameters; change it by hand to <to>." This covers images, audio, embeddings, moderations, legacy completions (`completions.create`, v3 `createCompletion`), v3 methods other than `createChatCompletion`, assistants and others. Raw JSON-body requests to the matching OpenAI endpoints (images, audio speech, embeddings, moderations, completions) and to Anthropic's `POST /v1/complete` stop the same way. Multipart bodies are not read. A call that sends no `model` object stays silent. In `refit serve --model-fixes`, a repository whose only retiring uses are in such calls now moves from `no-change` to `needs-review`. A model sent through another host (such as the app's own proxy), LangChain, the Vercel AI SDK or a Deno re-export, or held in settings objects, UI state or CLI option defaults, is not traced and stays an ordinary exposure.
 
 `--json` returns `replacements` (each with the call's `file`, `line` and `call`, `edited`, the place the string changes, `from`, `to`, the deadline and `via`, the registry entries followed), `stops` (each with `at`, where the model is written, and a `reason`) and `patch`.
 
@@ -248,10 +254,14 @@ A deadline starts a code change only through [automatic model fixes](#automatic-
 - Only JavaScript and TypeScript source is scanned. Models named in environment files, YAML or other languages are not found. Values built at runtime are invisible.
 - Shopify package versions are not mapped to the API version they default to, and Shopify versions older than 2025-04 are not in the registry yet.
 - A version held in a constant or an environment-variable fallback, such as `SHOPIFY_API_VERSION = '2025-07'`, and the Meta JS SDK's `FB.init({ version })` are not read.
-- Live is the default, so some catalogs still count as live. These include lists of one or two models, preset data that repeats one model, catalogs built through function calls such as `modelRef({ … })`, and alias maps or code nobody imports. Code is not traced, so an unused file counts like a used one. On the [benchmark](DEADLINE-BENCHMARK.md), 4 of 23 reported OpenAI lines are of this kind.
+- Live is the default, so some catalogs still count as live. These include lists of one or two models, preset data that repeats one model, catalogs built through function calls that pass a model as a bare string (the descriptor keys inside `modelRef({ … })` are catalog, but an array passed to a call, such as `modelsWithCost(['gpt-4'], …)`, stays live), and alias maps or code nobody imports. Code is not traced, so an unused file counts like a used one. On the [benchmark](DEADLINE-BENCHMARK.md), 4 of 23 reported OpenAI lines are of this kind.
 - A match counts as a test or an example from its path alone. A live pin kept under `examples/` or `fixtures/` is listed as non-live.
 - A model ID sent to another provider's OpenAI-compatible endpoint matches the OpenAI deadline. A Claude API model ID sent through Claude Platform on AWS or Microsoft Foundry matches the Anthropic deadline, which Anthropic's page says applies there too.
 - Anthropic's page lists dated model IDs. Aliases of models that are already retired, such as `claude-3-5-sonnet-latest`, are not in the registry, because no current Anthropic page documents them; only `claude-sonnet-4-5` is.
+- Files under a `tsconfig` whose path aliases cannot be verified get no traced requests and no stop.
+- Not traced: request objects built by functions; clients the analyzer does not recognize (`let` clients, factories, typed parameters, dependency injection); `let` model variables, getters and computed access such as `MODELS[key]`; CommonJS namespace members (`exports.MODEL`); URLs built from a base constant in a template; a field read through `{ ...this }` or destructuring of `this`; anonymous `export default function () {}` callers; and `got` and other HTTP libraries besides `fetch`, axios and `UrlFetchApp`.
+- A non-call use of a class (`Chat.create()`, `extends Chat`) stops that class's constructor-default site, conservatively.
+- A trace cut by a limit reports nothing when the bounded follow-up finds no retiring model to name or reaches its 20,000-expression cap. The follow-up ignores property keys, so it can stop on a retiring model in a sibling property of the same object, but it never edits.
 - Evidence is capped at 20 live and 20 non-live matches per deadline, plus a count of the rest.
 - Issues are not closed automatically once the repository stops depending on a deadline.
 - `--fail-within` checks only what Refit can see; the limits above apply. A passing check does not prove the repository uses no retiring version or model.
