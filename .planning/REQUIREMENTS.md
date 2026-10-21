@@ -58,12 +58,29 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
+| EXPO-01 | Phase 1 | Pending |
+| EXPO-02 | Phase 1 | Pending |
+| TRAC-01 | Phase 1 | Pending |
+| TRAC-02 | Phase 1 | Pending |
+| TRAC-03 | Phase 1 | Pending |
+| TRAC-04 | Phase 1 | Pending |
+| TRAC-05 | Phase 1 | Pending |
+| RULE-01 | Phase 2 | Pending |
+| RULE-02 | Phase 2 | Pending |
+| RULE-03 | Phase 2 | Pending |
+| BENCH-01 | Phase 3 | Pending |
+| BENCH-02 | Phase 3 | Pending |
+| BENCH-03 | Phase 4 | Pending |
+| BENCH-04 | Phase 4 | Pending |
+| BENCH-05 | Phase 4 | Pending |
+| BENCH-06 | Phase 4 | Pending |
+| DOCS-01 | Phase 4 | Pending |
 
 **Coverage:**
 - v1 requirements: 17 total
-- Mapped to phases: 0
-- Unmapped: 17 ⚠️
+- Mapped to phases: 17
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-10-21*
-*Last updated: 2026-10-21 after initial definition*
+*Last updated: 2026-10-21 after roadmap creation*
