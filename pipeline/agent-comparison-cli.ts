@@ -12,6 +12,7 @@ import { stripePackageUpgrade, PACKAGE_FILES } from './stripe-package-upgrade.ts
 import { PipelineInputError } from './types.ts';
 import { usageCostUsd } from './ai-budget.ts';
 import { validateSourcePatch } from './validation.ts';
+import { prepareDependencies } from './dependency-preparation.ts';
 
 // Gives a headless coding agent each repository Refit did not validate, with the contract diff
 // Refit computed, then puts the agent's patch through Refit's offline validation. Neither agent has
@@ -23,6 +24,7 @@ const AGENT_TOOLS = 'Read,Edit,Write,Glob,Grep';
 const DEFAULT_MODELS = { claude: 'claude-sonnet-5-5', codex: 'gpt-5.6-sol' };
 const DEFAULT_RUN_BUDGET_USD = 2;
 const DEFAULT_MAX_TURNS = 60;
+const IMAGE = 'node:22-alpine';
 const AGENT_TIMEOUT_MS = 30 * 60 * 1000;
 const CHANGELOG = resolve('docs/benchmarks/stripe-changelog');
 const ZERO_USAGE = {
@@ -314,6 +316,18 @@ for (const [index, entry] of selection.entries()) {
   result.checks = configuration.compareTypeErrors ? 'typecheck' : configuration.command.join(' ');
   // Generated stripe-mock checks run only inside Refit's own migration workflow.
   result.generatedChecksSkipped = Boolean(configuration.generatedChecks);
+  // Validation prepares the same committed dependencies, so a refusal here would refuse any patch;
+  // the agent is not paid for. The prepared environment is cached for validation.
+  try {
+    await prepareDependencies({ repository: configuration.repository, image: IMAGE });
+  } catch (error) {
+    if (!(error instanceof PipelineInputError)) throw error;
+    result.preparation = { status: 'refused', reason: message(error).slice(0, 600) };
+    result.agent = { status: 'not-run', reason: 'Dependency preparation refused.' };
+    log('preparation refused; agent not run');
+    await save();
+    continue;
+  }
   const work = await mkdtemp(join(tmpdir(), 'refit-agent-'));
   try {
     const contract = await brief(configuration);
@@ -367,7 +381,7 @@ for (const [index, entry] of selection.entries()) {
     const validation = await validateSourcePatch({
       repository: configuration.repository,
       propose: async () => diff,
-      image: 'node:22-alpine',
+      image: IMAGE,
       command: configuration.command,
       prepareDependencies: true,
       compareTypeErrors: configuration.compareTypeErrors,
