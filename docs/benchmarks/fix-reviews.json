@@ -197,6 +197,20 @@
         "upgradeComplete": "yes: stripe-node 17.7.0 to 23.0.0.",
         "wouldMerge": "yes, after confirming cards stay enabled and running checkout once in test mode."
       }
+    },
+    {
+      "repo": "beindigital-products/wedillybird",
+      "pullRequest": "https://github.com/refit-dev/wedillybird/pull/1",
+      "reviewedAt": "2026-10-21",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: all four Checkout Session creations in lib/payments/drivers/stripe.ts send exactly ['card'], which the owner-approved card rule moves to allowed_payment_method_types.",
+        "bothVersions": "not needed: the client sets no apiVersion, so stripe-node 23 sends its own endive version, and the upgrade ships in the same patch.",
+        "nothingUnrelated": "yes: four parameters, the stripe dependency and its pnpm lockfile entry.",
+        "pleaseCheck": "allowed_payment_method_types filters the methods Stripe finds eligible, so cards must stay enabled for the account. The 8 untraced reads left unchanged are .description on the app's own inputs (payment links, budgets), not Stripe objects. The full vitest suite does not finish within the 120-second check limit, so the operator ran the 8 Stripe-related unit test files instead; they passed on both versions. The generated stripe-mock check did not run.",
+        "upgradeComplete": "yes: stripe-node 22.x to 23.0.0.",
+        "wouldMerge": "yes, after confirming cards stay enabled and running checkout once in test mode."
+      }
     }
   ]
 }
