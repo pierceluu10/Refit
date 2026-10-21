@@ -1,5 +1,9 @@
 # Refit implementation checkpoints
 
+## October 21 checkpoint: computed request keys stop model fixes (unreleased, after 0.39.0)
+
+A traced request with a computed property name, such as `['temperature']: 0.5` or `[KEY]: 5`, now stops for review instead of being edited. The sampling-parameter check reads only plain names, so a computed one could hide a parameter the replacement rejects. This change only adds a stop. Tests: `pipeline/model-retirements.test.ts` covers string, template and variable keys for OpenAI and Anthropic, beside a plain request that is still edited.
+
 ## October 21 checkpoint: class property models reported for review (unreleased, after 0.39.0)
 
 `refit deadlines --propose-model-fixes` and `refit serve --model-fixes` now trace a request's `model: this.model` to where the class sets it:
@@ -12,12 +16,12 @@ Each such site is listed as a stop with its location and replacement, and is nev
 
 Tests: `pipeline/model-retirements.test.ts` covers class fields, constructor parameter properties, JavaScript constructor assignments and a property read twice. All are stops, with no patch.
 
-
 ## October 21 checkpoint: dynamically imported Stripe client factories (unreleased, after 0.39.0)
 
 A client factory loaded with `await import()` is now followed the way a static import is: `const { getStripe } = await import('./stripe')`, a renamed entry, and `(await import('./stripe')).getStripe()`. The analyzer's type checker runs without lib types, so it could not type a dynamic import; the binding is now made from syntax, like `const { x } = require(...)`. Only `const` destructuring links, only to a stable ESM export (a function, class or top-level `const`), and the factory itself must still pass every existing factory rule. A `let` binding stays untraced; a test pins it.
 
 On the 10 active-team repositories with the most calls that traced nothing on October 16, traced calls went from 247 to 280 of 355, read from source with no Docker ([benchmarks](BENCHMARKS.md#lazy-stripe-clients-on-the-active-teams-set-october-21)). Most of the gap the October 16 run reported had already closed with factory tracing on October 17; this measures what was left. No migration was run or validated for this change.
+
 ## October 21 checkpoint: model catalog precision and build output (unreleased, after 0.39.0)
 
 - **Catalogs.** For OpenAI, Anthropic and Gemini, the deadline scan now lists more catalog shapes as non-live:
