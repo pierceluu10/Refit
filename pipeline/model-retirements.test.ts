@@ -600,3 +600,120 @@ it('stops non-text OpenAI and Anthropic calls with a named reason and never edit
     ].sort(),
   );
 });
+
+it('reports raw fetch and axios requests to the official hosts at the exact line', async () => {
+  const root = await repository({
+    'src/raw.ts': [
+      'export async function raw(messages: any[], input: string) {',
+      "  await axios.post('https://api.openai.com/v1/chat/completions', { model: 'gpt-4', messages });",
+      "  const request = { model: 'gpt-4', messages };",
+      "  await fetch('https://api.openai.com/v1/chat/completions', { body: JSON.stringify(request) });",
+      "  await fetch('https://api.anthropic.com/v1/messages', {",
+      '    method: "POST",',
+      '    body: JSON.stringify({',
+      '      max_tokens: 9,',
+      "      model: 'claude-3-opus-20240229',",
+      '      messages,',
+      '    }),',
+      '  });',
+      '  const http = axios.create();',
+      "  await http.post('https://api.openai.com/v1/responses', { model: process.env.M ?? 'gpt-4', input });",
+      // Another host and an untraced library: nothing.
+      "  await got.post('https://api.openai.com/v1/chat/completions', { json: { model: 'gpt-4' } });",
+      '}',
+    ].join('\n'),
+    'src/anthropic.ts': [
+      "await fetch('https://api.anthropic.com/v1/messages', {",
+      "  body: JSON.stringify({ model: 'claude-3-opus-20240229', temperature: 0.2, max_tokens: 9 }),",
+      '});',
+    ].join('\n'),
+  });
+  const proposal = await proposeModelReplacements(root, registry, NOW);
+  expect(
+    proposal.replacements.map((item) => [
+      `${item.file}:${item.line}`,
+      item.call,
+      `${item.edited.file}:${item.edited.line}`,
+      item.to,
+    ]),
+  ).toEqual([
+    ['src/raw.ts:2', 'post /v1/chat/completions', 'src/raw.ts:2', 'gpt-5.6-sol'],
+    ['src/raw.ts:4', 'fetch /v1/chat/completions', 'src/raw.ts:3', 'gpt-5.6-sol'],
+    ['src/raw.ts:5', 'fetch /v1/messages', 'src/raw.ts:9', 'claude-opus-4-8'],
+    ['src/raw.ts:14', 'post /v1/responses', 'src/raw.ts:14', 'gpt-5.6-sol'],
+  ]);
+  expect(proposal.stops.map((item) => [`${item.file}:${item.line}`, item.reason])).toEqual([
+    [
+      'src/anthropic.ts:1',
+      'The request sets temperature, which claude-opus-4-8 may reject or treat differently.',
+    ],
+  ]);
+  await execute('git', ['init', '-q', root]);
+  await writeFile(join(root, 'model.patch'), proposal.patch!);
+  await execute('git', ['-C', root, 'apply', 'model.patch']);
+  const raw = await readFile(join(root, 'src/raw.ts'), 'utf8');
+  expect(raw).toContain("model: 'gpt-5.6-sol', messages });");
+  expect(raw).toContain("model: 'claude-opus-4-8',");
+  expect(raw).toContain("process.env.M ?? 'gpt-5.6-sol'");
+  expect(raw).toContain(
+    "got.post('https://api.openai.com/v1/chat/completions', { json: { model: 'gpt-4' } })",
+  );
+});
+
+it('traces axios request-config calls and axios.create instances like axios.post', async () => {
+  const root = await repository({
+    'src/default.ts': [
+      "import axios from 'axios';",
+      'export async function direct(messages: any[]) {',
+      '  await axios({',
+      "    method: 'post',",
+      "    url: 'https://api.openai.com/v1/chat/completions',",
+      "    data: { model: 'gpt-4', messages },",
+      '  });',
+      '  await axios.request({',
+      "    url: 'https://api.anthropic.com/v1/messages',",
+      "    data: { model: 'claude-3-opus-20240229', max_tokens: 9, messages },",
+      '  });',
+      '}',
+    ].join('\n'),
+    'src/instance.js': [
+      "const axios = require('axios');",
+      'const http = axios.create({ timeout: 1000 });',
+      'async function viaInstance(messages, input) {',
+      "  await http({ url: 'https://api.openai.com/v1/chat/completions', data: { model: 'gpt-4', messages } });",
+      "  await http.request({ url: 'https://api.openai.com/v1/responses', data: { model: 'gpt-4', input } });",
+      '}',
+    ].join('\n'),
+    'src/other.ts': [
+      // Another host, and functions that only share the names: nothing.
+      "import axios from 'axios';",
+      "axios({ url: 'https://proxy.example/v1/chat/completions', data: { model: 'gpt-4' } });",
+      'function request(config: any) {}',
+      "request({ url: 'https://api.openai.com/v1/chat/completions', data: { model: 'gpt-4' } });",
+      'const client = { request(config: any) {} };',
+      "client.request({ url: 'https://api.openai.com/v1/chat/completions', data: { model: 'gpt-4' } });",
+    ].join('\n'),
+  });
+  const proposal = await proposeModelReplacements(root, registry, NOW);
+  expect(proposal.stops).toEqual([]);
+  expect(
+    proposal.replacements.map((item) => [
+      `${item.file}:${item.line}`,
+      item.call,
+      `${item.edited.file}:${item.edited.line}`,
+      item.to,
+    ]),
+  ).toEqual([
+    ['src/default.ts:3', 'axios /v1/chat/completions', 'src/default.ts:6', 'gpt-5.6-sol'],
+    ['src/default.ts:8', 'request /v1/messages', 'src/default.ts:10', 'claude-opus-4-8'],
+    ['src/instance.js:4', 'axios /v1/chat/completions', 'src/instance.js:4', 'gpt-5.6-sol'],
+    ['src/instance.js:5', 'request /v1/responses', 'src/instance.js:5', 'gpt-5.6-sol'],
+  ]);
+  await execute('git', ['init', '-q', root]);
+  await writeFile(join(root, 'model.patch'), proposal.patch!);
+  await execute('git', ['-C', root, 'apply', 'model.patch']);
+  expect(await readFile(join(root, 'src/default.ts'), 'utf8')).toContain(
+    "data: { model: 'gpt-5.6-sol', messages },",
+  );
+  expect(await readFile(join(root, 'src/other.ts'), 'utf8')).not.toContain('gpt-5.6-sol');
+});
