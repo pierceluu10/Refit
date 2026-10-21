@@ -518,3 +518,32 @@ it('keeps Anthropic sampling parameters when the replacement predates Claude 4.7
     [4, 'The request sets top_k, which claude-opus-4-8 may reject or treat differently.'],
   ]);
 });
+
+it('never proposes edits in build output committed beside the sources', async () => {
+  const request = [
+    "import OpenAI from 'openai';",
+    'const openai = new OpenAI();',
+    "export const ask = () => openai.chat.completions.create({ model: 'gpt-4', messages: [] });",
+  ].join('\n');
+  const compiled = [
+    "const { OpenAI } = require('openai');",
+    'const openai = new OpenAI();',
+    "exports.ask = () => openai.chat.completions.create({ model: 'gpt-4', messages: [] });",
+  ].join('\n');
+  const root = await repository({
+    'packages/agent/src/ask.ts': request,
+    'packages/agent/lib/ask.js': compiled,
+    'src/inline.ts': request,
+    'src/inline.js': compiled,
+    'ts-out/ask.js': compiled,
+    'public/app.min.js': compiled,
+    // JavaScript with no TypeScript source is the source.
+    'lib/only.js': compiled,
+  });
+  const proposal = await proposeModelReplacements(root, registry, NOW);
+  expect(proposal.replacements.map((item) => item.file)).toEqual([
+    'lib/only.js',
+    'packages/agent/src/ask.ts',
+    'src/inline.ts',
+  ]);
+});

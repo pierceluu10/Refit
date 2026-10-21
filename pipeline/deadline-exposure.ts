@@ -25,9 +25,10 @@ const META_CONTEXT = [META_SDK, 'graph.facebook.com'];
 
 // How a match is used. Only `live` evidence makes a repository exposed or opens an alert; the
 // rest is listed separately so nothing is hidden:
-// - catalog: one entry in a model list (an array, enum or tuple naming three or more models), an
-//   HTML or JSX `<option>`, any type position, or a table keyed or indexed by model, such as
-//   pricing or context windows;
+// - catalog: one entry in a model list (an array, enum, tuple or constant-case object naming three
+//   or more models), an HTML or JSX `<option>`, any type position, a table keyed or indexed by
+//   model, such as pricing or context windows, a model record's `id` or `name` beside a metadata
+//   field such as `contextWindow`, or a model reference's `versions` list;
 // - test: test, spec, story, fixture and example files;
 // - comment: comments, which the parser keeps out of every source token;
 // - tokenizer: a local tokenizer argument, such as `encoding_for_model('gpt-4')`;
@@ -137,6 +138,28 @@ const OPENAI_MODEL =
   /^(?:openai\/)?(?:gpt-|chatgpt-|o\d(?:-|$)|text-(?:davinci|curie|babbage|ada|embedding|moderation)-|(?:davinci|curie|babbage|ada)(?:-|$)|dall-e-|tts-|whisper-|codex-|computer-use-|omni-moderation-|sora-)/;
 const CATALOG_SIZE = 3;
 const OPTION_ELEMENT = /<option\b/i;
+// Fields of a model metadata record, such as `{ id: 'gpt-4', contextWindow: 8192 }`. None of them
+// is a request parameter, so an object that has one describes a model rather than calling it.
+const MODEL_METADATA = new Set([
+  'contextWindow',
+  'context_window',
+  'contextLength',
+  'context_length',
+  'maxOutputTokens',
+  'max_output_tokens',
+  'maxInputTokens',
+  'max_input_tokens',
+  'inputTokenLimit',
+  'outputTokenLimit',
+  'knowledgeCutoff',
+  'knowledge_cutoff',
+  'pricing',
+  'cost',
+  'owned_by',
+]);
+// The names of a model record's identifying field.
+const RECORD_NAME = new Set(['id', 'name']);
+const CONSTANT_KEY = /^[A-Z][A-Z0-9_]*$/;
 
 function isCollection(node: ts.Node) {
   return (
@@ -159,6 +182,45 @@ function isLiteralStructure(node: ts.Node) {
     ts.isSatisfiesExpression(node) ||
     ts.isParenthesizedExpression(node) ||
     ts.isTypeAssertionExpression(node)
+  );
+}
+
+function keyText(name: ts.PropertyName | undefined) {
+  return name && (ts.isIdentifier(name) || ts.isStringLiteralLike(name)) ? name.text : undefined;
+}
+
+function stripped(node: ts.Node) {
+  while (
+    ts.isAsExpression(node) ||
+    ts.isSatisfiesExpression(node) ||
+    ts.isParenthesizedExpression(node) ||
+    ts.isTypeAssertionExpression(node)
+  )
+    node = node.expression;
+  return node;
+}
+
+// A model record, such as `{ id: 'gpt-4', contextWindow: 8192 }`: the literal is its `id` or
+// `name`, beside a metadata field.
+function modelRecord(node: ts.Node) {
+  const property = node.parent;
+  return (
+    ts.isPropertyAssignment(property) &&
+    property.initializer === node &&
+    RECORD_NAME.has(keyText(property.name) ?? '') &&
+    ts.isObjectLiteralExpression(property.parent) &&
+    property.parent.properties.some((item) => MODEL_METADATA.has(keyText(item.name) ?? ''))
+  );
+}
+
+// An object used like an enum: constant-case keys, such as `{ GPT_4: 'gpt-4', O3: 'o3' }`.
+function constantObject(node: ts.Node): node is ts.ObjectLiteralExpression {
+  return (
+    ts.isObjectLiteralExpression(node) &&
+    node.properties.length > 0 &&
+    node.properties.every(
+      (item) => ts.isPropertyAssignment(item) && CONSTANT_KEY.test(keyText(item.name) ?? ''),
+    )
   );
 }
 
@@ -204,6 +266,14 @@ function literalUse(
   // value is a plain string is an alias map, and the value is what the code sends.
   if (propertyKey(node)) return 'catalog';
   if (ts.isElementAccessExpression(parent) && parent.argumentExpression === node) return 'catalog';
+  if (modelRecord(node)) return 'catalog';
+  // The versions a model reference accepts, as in genkit's `versions: ['gpt-4o-2024-05-13']`.
+  if (
+    ts.isArrayLiteralExpression(parent) &&
+    ts.isPropertyAssignment(parent.parent) &&
+    keyText(parent.parent.name) === 'versions'
+  )
+    return 'catalog';
   for (let current: ts.Node = node; current.parent; current = current.parent) {
     const up = current.parent;
     if (ts.isTypeNode(up) && !ts.isLiteralTypeNode(up)) return 'catalog';
@@ -212,12 +282,13 @@ function literalUse(
     if (
       ts.isPropertyAssignment(up) &&
       up.initializer === current &&
-      ts.isObjectLiteralExpression(current) &&
+      ts.isObjectLiteralExpression(stripped(current)) &&
       ts.isStringLiteralLike(up.name) &&
       isModel(up.name.text)
     )
       return 'catalog';
-    if (isCollection(up) && countModels(up, isModel) >= CATALOG_SIZE) return 'catalog';
+    if ((isCollection(up) || constantObject(up)) && countModels(up, isModel) >= CATALOG_SIZE)
+      return 'catalog';
   }
   // A literal type, as in `model: 'gpt-4'` in an interface, never reaches a request.
   if (ts.isLiteralTypeNode(parent)) return 'catalog';

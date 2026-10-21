@@ -329,6 +329,38 @@ it('classifies OpenAI model lists, type unions, tables and pickers as catalog', 
   });
 });
 
+it('classifies model records, versions lists and constant objects as catalog', async () => {
+  const { result } = await uses({
+    'src/models.ts': [
+      // Entries keyed by model, also behind `satisfies`.
+      'export const MODELS = {',
+      "  'gpt-4': { id: 'gpt-4', contextWindow: 8192 } satisfies Model,",
+      '};',
+      "const O1 = { name: 'o1', context_window: 200_000, max_output_tokens: 100_000 };",
+      "const listed = { id: 'gpt-4-0613', object: 'model', owned_by: 'system' };",
+      "const ref = modelRef({ name: 'openai/gpt-4', info: { versions: ['gpt-4-0613'] } });",
+      "export const OPENAI = { GPT_4: 'gpt-4', GPT_4O: 'gpt-4o', O3: 'o3' };",
+      // Requests and settings stay live: `model` is no record name and these keys are not
+      // constant case.
+      "send({ model: 'gpt-4', max_output_tokens: 100 });",
+      "const record = { id: 'gpt-4', label: 'GPT-4' };",
+      "const defaults = { CHAT: 'gpt-4', fast: 'gpt-4o', O3: 'o3' };",
+      "const few = { GPT_4: 'gpt-4', GPT_4O: 'gpt-4o' };",
+    ].join('\n'),
+  });
+  expect(result).toEqual({
+    'src/models.ts:2 gpt-4': 'catalog',
+    'src/models.ts:4 o1': 'catalog',
+    'src/models.ts:5 gpt-4-0613': 'catalog',
+    'src/models.ts:6 gpt-4-0613': 'catalog',
+    'src/models.ts:7 gpt-4': 'catalog',
+    'src/models.ts:8 gpt-4': 'live',
+    'src/models.ts:9 gpt-4': 'live',
+    'src/models.ts:10 gpt-4': 'live',
+    'src/models.ts:11 gpt-4': 'live',
+  });
+});
+
 it('classifies OpenAI tests, examples, comments, tokenizers and checks', async () => {
   const call = "send({ model: 'gpt-4' });";
   const { result } = await uses({
