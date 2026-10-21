@@ -256,6 +256,43 @@ async function snapshotDependencies(
   return { ...prepared.environment, reused: prepared.reused };
 }
 
+// A patch that changes package files needs dependencies prepared from the patched lockfile, which
+// preparation reads from a committed snapshot of the candidate.
+async function prepareCandidateDependencies(
+  candidateDirectory: string,
+  root: string,
+  image: string,
+  options: { signal?: AbortSignal; onProgress?: (message: string) => void },
+) {
+  await command('git', ['init', '-q'], candidateDirectory);
+  await command('git', ['add', '-A'], candidateDirectory);
+  await command(
+    'git',
+    [
+      '-c',
+      'user.name=Refit',
+      '-c',
+      'user.email=refit@localhost',
+      '-c',
+      'commit.gpgsign=false',
+      'commit',
+      '-q',
+      '-m',
+      'Refit migration candidate',
+    ],
+    candidateDirectory,
+  );
+  const prepared = await prepareDependencies({
+    repository: candidateDirectory,
+    image,
+    signal: options.signal,
+    onProgress: options.onProgress,
+  });
+  await rm(join(candidateDirectory, '.git'), { recursive: true, force: true });
+  const dependencies = join(root, `${basename(candidateDirectory)}-dependencies.tar`);
+  return { dependencies, environment: await snapshotDependencies(prepared, dependencies) };
+}
+
 function typeCheckComparison(baselineRun: CheckResult, compareTypeErrors?: boolean) {
   return {
     baseline: compareTypeErrors ? compareTypeCheck(baselineRun) : baselineRun,
@@ -530,35 +567,9 @@ export async function validateMigration(options: {
       // preparation reads from a committed snapshot.
       let candidateDependencies = dependencies;
       let candidateEnvironment: Record<string, unknown> | undefined;
-      if (packageDiff(diff) && options.prepareDependencies && !dependencyFailure) {
-        await command('git', ['init', '-q'], patchedDirectory);
-        await command('git', ['add', '-A'], patchedDirectory);
-        await command(
-          'git',
-          [
-            '-c',
-            'user.name=Refit',
-            '-c',
-            'user.email=refit@localhost',
-            '-c',
-            'commit.gpgsign=false',
-            'commit',
-            '-q',
-            '-m',
-            'Refit migration candidate',
-          ],
-          patchedDirectory,
-        );
-        const prepared = await prepareDependencies({
-          repository: patchedDirectory,
-          image,
-          signal: options.signal,
-          onProgress: options.onProgress,
-        });
-        await rm(join(patchedDirectory, '.git'), { recursive: true, force: true });
-        candidateDependencies = join(root, `${basename(patchedDirectory)}-dependencies.tar`);
-        candidateEnvironment = await snapshotDependencies(prepared, candidateDependencies);
-      }
+      if (packageDiff(diff) && options.prepareDependencies && !dependencyFailure)
+        ({ dependencies: candidateDependencies, environment: candidateEnvironment } =
+          await prepareCandidateDependencies(patchedDirectory, root, image, options));
       const patchedSources = await readRepository(patchedDirectory, report.adapter.packageName);
       const shopify = report.provider === SHOPIFY.id;
       const declarations = shopify
@@ -1020,11 +1031,16 @@ export async function validateSourcePatch(options: {
     );
     const { baseline, compared } = typeCheckComparison(baselineRun, options.compareTypeErrors);
     let patched: CheckResult = { status: 'not-run', exitCode: null, stdout: '', stderr: '' };
+    let candidateEnvironment: Record<string, unknown> | undefined;
     if (baseline.status === 'passed') {
       options.signal?.throwIfAborted();
+      let candidateDependencies = dependencies;
+      if (options.prepareDependencies && packageDiff(diff))
+        ({ dependencies: candidateDependencies, environment: candidateEnvironment } =
+          await prepareCandidateDependencies(candidateDirectory, root, image, options));
       options.onProgress?.('Running patched checks in offline Docker...');
       patched = compared(
-        await containerCheck(candidateDirectory, image, options.command, dependencies),
+        await containerCheck(candidateDirectory, image, options.command, candidateDependencies),
       );
     }
     return {
@@ -1032,6 +1048,7 @@ export async function validateSourcePatch(options: {
       revision,
       image,
       ...(environment ? { environment } : {}),
+      ...(candidateEnvironment ? { candidateEnvironment } : {}),
       command: options.command,
       baselineCommand,
       archiveHash,

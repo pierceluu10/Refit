@@ -70,8 +70,13 @@ export const PACKAGE_FILES = ['package.json', 'package-lock.json', 'pnpm-lock.ya
 function diffSections(diff: string) {
   return diff.split(/(?=^diff --git )/m).filter(Boolean);
 }
+// Refit renders quoted paths; `git diff` leaves plain ones unquoted.
 const touchesPackage = (section: string) =>
-  PACKAGE_FILES.some((path) => section.startsWith(`diff --git "a/${path}" "b/${path}"`));
+  PACKAGE_FILES.some(
+    (path) =>
+      section.startsWith(`diff --git "a/${path}" "b/${path}"`) ||
+      section.startsWith(`diff --git a/${path} b/${path}\n`),
+  );
 
 // The dependency part of a rendered patch (root package.json and its lockfile).
 export function packageDiff(diff: string) {

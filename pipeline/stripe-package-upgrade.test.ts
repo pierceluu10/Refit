@@ -552,6 +552,18 @@ it('splits a rendered patch into its code and dependency parts', () => {
   expect(packageDiff(code)).toBe('');
 });
 
+it('splits a git diff, whose plain paths are unquoted, into its code and dependency parts', () => {
+  const code =
+    'diff --git a/src/a.ts b/src/a.ts\n--- a/src/a.ts\n+++ b/src/a.ts\n@@ -1 +1 @@\n-a\n+b\n';
+  const lock =
+    'diff --git a/package-lock.json b/package-lock.json\n--- a/package-lock.json\n+++ b/package-lock.json\n@@ -1 +1 @@\n-x\n+y\n';
+  // A file whose name only starts with a package file's name is code.
+  const lookalike =
+    'diff --git a/package.json.bak b/package.json.bak\n--- a/package.json.bak\n+++ b/package.json.bak\n@@ -1 +1 @@\n-x\n+y\n';
+  expect(packageDiff(code + lock + lookalike)).toBe(lock);
+  expect(codeDiff(code + lock + lookalike)).toBe(code + lookalike);
+});
+
 const SUBSCRIPTION = (after: boolean) => ({
   openapi: '3.0.3',
   info: { title: 'Simulated Stripe contract', version: after ? '2026-09-30.endive' : '2024-06-20' },
