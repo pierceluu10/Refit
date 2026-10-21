@@ -1,5 +1,20 @@
 # Refit implementation checkpoints
 
+## October 21 checkpoint: model fixes through indirect sources (unreleased, after 0.39.0)
+
+Owner decision, 2026-10-21 (D-06 to D-08, approved on #140): `refit deadlines --propose-model-fixes` and `refit serve --model-fixes` now edit the literal a request reaches through:
+
+- in-file class fields (initializers, `this.x =` assignments, constructor defaults and `new` callers' literals);
+- enum and `const` object members;
+- env fallbacks, `??`, `||` and conditionals;
+- returned literals, destructuring defaults and options-object parameters;
+- imported constants;
+- axios request configs.
+
+Before, these sources were traced and reported as stops. Each is edited only when the request is its single use. Shared sources (D-09) stay stops until the application benchmark measures the wrong-edit rate. Every stop from the previous checkpoint still applies.
+
+Tests: `pipeline/model-retirements.test.ts` covers each source with edits, and keeps the stop for a field read twice.
+
 ## October 21 checkpoint: new model-fix stops, prose and traced indirect sources (unreleased, after 0.39.0)
 
 This change only adds stops: `refit deadlines --propose-model-fixes` and `refit serve --model-fixes` edit nothing they did not edit before. See [Deadlines](DEADLINES.md#propose-model-replacements).

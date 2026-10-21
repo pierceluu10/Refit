@@ -201,7 +201,7 @@ A replacement is proposed only when all of these hold:
   - a `const` or enum member holding such a literal and used only by this request (`model: MODEL`, `{ model }`, `model: Model.Default`), edited where it is declared, even in another module;
   - a parameter of the helper function that makes the call, such as `ask(messages, model = 'gpt-4')`. Its default and each caller that passes a literal (`ask(messages, 'o1-mini')`) are edited separately, each to its own replacement.
 
-The rule also traces the sources below. Until the owner decision on editing them (D-06 to D-08) lands, a model reached only through one of them stops for review, and the reason says where it comes from: "The model reaches this request through the class field `model` (src/chat.ts:4), which Refit reports but does not edit yet; change it by hand to gpt-5.6-sol." A request in the axios request-config form stops the same way.
+It also follows these sources, and edits the literal where it is written (owner decision, 2026-10-21, D-06 to D-08). Each is edited only when the request is its single use, like a constant:
 
 - a class field: an initializer (`model = 'gpt-4'`), `this.model = …` assignments, or a constructor parameter followed to the literal its `new` callers pass, even in another module;
 - a `const` object member, with or without `as const` (`CONFIG.model`, `CONFIG['model']`), a default-exported literal (`export default 'gpt-4'`) or object (`export default { chat: 'gpt-4' }`), and a function or method that returns a literal (`getModel()`), a conditional (`cond ? 'gpt-4' : x`), or an env fallback on either side;
