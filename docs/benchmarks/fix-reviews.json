@@ -225,6 +225,20 @@
         "upgradeComplete": "no: the stripe-node upgrade is refused by the @types/node gate.",
         "wouldMerge": "no, not until the Checkout call is changed by hand."
       }
+    },
+    {
+      "repo": "YosraGhanmi/BrainTrain-",
+      "pullRequest": "https://github.com/refit-dev/BrainTrain-/pull/1",
+      "reviewedAt": "2026-10-21",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: the one Checkout Session creation in lib/payments/actions.ts sends exactly ['card'], which the owner-approved card rule moves to allowed_payment_method_types.",
+        "bothVersions": "not needed: the cached client's apiVersion literal moves from 2026-08-26.dahlia to 2026-09-30.endive in the same patch, as the card rule requires.",
+        "nothingUnrelated": "yes: one parameter, one apiVersion literal, the stripe dependency and its lockfile entry.",
+        "pleaseCheck": "Untested: 279 lockfile entries have no integrity hash, so Refit refused to install dependencies and no check ran. Run the app's checks and checkout once in test mode, and confirm cards stay enabled for the account.",
+        "upgradeComplete": "yes: stripe-node 22.6.2 to 23.0.0.",
+        "wouldMerge": "yes, after its checks pass locally and checkout is tried once in test mode."
+      }
     }
   ]
 }
