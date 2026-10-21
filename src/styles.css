@@ -220,15 +220,13 @@ pre {
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  color: var(--blue);
+  color: var(--ink);
   font-size: 27px;
   letter-spacing: -0.055em;
   font-weight: 620;
 }
-.brand-mark {
-  width: 32px;
-  height: 32px;
-  flex-shrink: 0;
+.brand .refit-mark {
+  color: var(--blue);
 }
 .refit-mark {
   display: inline-block;

@@ -1195,8 +1195,54 @@
   inset: 22px -40px;
   border-block: 1px dashed var(--rail);
 }
+/* A drafting sheet: a 12px grid with a heavier line every fourth square, lit from the top left,
+   with rulers along the top and left gutters that tick on the grid lines and an origin ring
+   where they meet. */
 .launch-demo .blueprint-frame {
-  padding: 22px 22px 12px;
+  --tick: #ffffffb3;
+  --line: #ffffff26;
+  --fine: #ffffff0f;
+  position: relative;
+  padding: 30px 30px 14px;
+  background-image:
+    radial-gradient(circle at 12px 12px, transparent 3px, var(--tick) 3px 4px, transparent 4.5px),
+    radial-gradient(120% 90% at 0% 0%, #ffffff2e, transparent 60%),
+    linear-gradient(var(--line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--line) 1px, transparent 1px),
+    linear-gradient(var(--fine) 1px, transparent 1px),
+    linear-gradient(90deg, var(--fine) 1px, transparent 1px);
+  background-size:
+    100% 100%,
+    100% 100%,
+    48px 48px,
+    48px 48px,
+    12px 12px,
+    12px 12px;
+}
+.launch-demo .blueprint-frame::before,
+.launch-demo .blueprint-frame::after {
+  content: '';
+  position: absolute;
+  pointer-events: none;
+}
+/* Both rulers start 24px in, on a grid line, so a major tick lands every 48px from the edge. */
+.launch-demo .blueprint-frame::before {
+  top: 0;
+  right: 24px;
+  left: 24px;
+  height: 10px;
+  background:
+    linear-gradient(90deg, var(--tick) 1px, transparent 1px) 24px 0 / 48px 10px repeat-x,
+    linear-gradient(90deg, #ffffff66 1px, transparent 1px) 0 0 / 12px 5px repeat-x;
+}
+.launch-demo .blueprint-frame::after {
+  top: 24px;
+  bottom: 24px;
+  left: 0;
+  width: 10px;
+  background:
+    linear-gradient(var(--tick) 1px, transparent 1px) 0 24px / 10px 48px repeat-y,
+    linear-gradient(#ffffff66 1px, transparent 1px) 0 0 / 5px 12px repeat-y;
 }
 .launch-close {
   position: relative;
@@ -1260,6 +1306,9 @@
   }
 }
 @media (max-width: 640px) {
+  .launch-demo .blueprint-frame {
+    padding: 20px 14px 8px 18px;
+  }
   .progression-board {
     gap: 6px;
   }

@@ -17,14 +17,10 @@ export function Mark({ className = '' }: { className?: string }) {
   );
 }
 
-// The favicon itself, a blue tile with the white brackets, beside the name.
 export function Brand() {
   return (
     <Link className="brand" to="/" aria-label="Refit home">
-      <svg className="brand-mark" viewBox="0 0 40 40" aria-hidden="true">
-        <rect width="40" height="40" rx="10" fill="currentColor" />
-        <path d={MARK_PATH} fill="#fff" />
-      </svg>
+      <Mark />
       <span>Refit</span>
     </Link>
   );
