@@ -1,4 +1,5 @@
 import type { DeadlineRegistry } from './deadline-registry.ts';
+import { EMPTY_MODEL_PARAMETERS, type ModelParameterTable } from './model-parameters.ts';
 import { digest } from './specifications.ts';
 import {
   proposeModelReplacements,
@@ -138,6 +139,7 @@ export function modelFixBody(options: {
 export async function runModelFixes(options: {
   repository: string;
   registry: DeadlineRegistry;
+  parameters?: ModelParameterTable;
   now: Date;
   checks: ModelFixChecks;
   publication?: ReturnType<typeof publicationConfiguration>;
@@ -154,7 +156,12 @@ export async function runModelFixes(options: {
     signal: options.signal,
     onProgress: options.onProgress,
     propose: async (directory) => {
-      proposal = await proposeModelReplacements(directory, options.registry, options.now);
+      proposal = await proposeModelReplacements(
+        directory,
+        options.registry,
+        options.now,
+        options.parameters ?? EMPTY_MODEL_PARAMETERS,
+      );
       return proposal.patch;
     },
     skip: (revision) => {

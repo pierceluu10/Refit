@@ -7,6 +7,7 @@ import { readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { parseArgs } from 'node:util';
 import { loadDeadlineRegistry } from './deadline-registry.ts';
+import { loadModelParameters } from './model-parameters.ts';
 import { runModelFixes } from './model-fixes.ts';
 
 const LOCKFILES = ['package-lock.json', 'pnpm-lock.yaml', 'yarn.lock'];
@@ -28,6 +29,7 @@ if (values.help || !values.results || !values.root || !values.image || !values.o
 const benchmark = JSON.parse(await readFile(values.results, 'utf8'));
 const now = new Date();
 const registry = await loadDeadlineRegistry(undefined, now);
+const parameters = await loadModelParameters(undefined, now);
 
 async function checks(directory: string) {
   const manifest = JSON.parse(await readFile(join(directory, 'package.json'), 'utf8'));
@@ -59,6 +61,7 @@ for (const entry of benchmark.results.filter(
     const result = await runModelFixes({
       repository: directory,
       registry,
+      parameters,
       now,
       checks: { image: values.image, command, prepareDependencies },
       onProgress: (message) => console.error(`  ${message}`),

@@ -169,3 +169,60 @@ export async function loadModelParameters(
     );
   return value as unknown as ModelParameterTable;
 }
+
+export type ParameterVerdict =
+  | { ok: true }
+  | {
+      ok: false;
+      why: 'unproven' | 'not-numeric' | 'not-accepted' | 'renamed' | 'non-default' | 'out-of-range';
+      spec?: ParameterSpec;
+    };
+
+// Whether the table proves `model` accepts `name` set to the literal `value` (undefined: not a numeric literal).
+export function parameterVerdict(
+  table: ModelParameterTable,
+  provider: string,
+  model: string,
+  name: string,
+  value: number | undefined,
+): ParameterVerdict {
+  const entry = table.models.find((item) => item.provider === provider && item.model === model);
+  if (!entry || !Object.hasOwn(entry.parameters, name)) return { ok: false, why: 'unproven' };
+  const spec = entry.parameters[name];
+  if (value === undefined) return { ok: false, why: 'not-numeric', spec };
+  if (spec.accepts === 'none')
+    return { ok: false, why: spec.renamedTo ? 'renamed' : 'not-accepted', spec };
+  if (spec.accepts === 'default-only' && value !== spec.default)
+    return { ok: false, why: 'non-default', spec };
+  if (
+    spec.accepts === 'any' &&
+    ((spec.min !== undefined && value < spec.min) || (spec.max !== undefined && value > spec.max))
+  )
+    return { ok: false, why: 'out-of-range', spec };
+  return { ok: true };
+}
+
+export function parameterReason(
+  name: string,
+  value: number | undefined,
+  to: string,
+  verdict: Extract<ParameterVerdict, { ok: false }>,
+) {
+  const v = value === undefined ? '' : ` ${value}`;
+  const spec = verdict.spec;
+  const end = `; change it by hand to ${to}.`;
+  switch (verdict.why) {
+    case 'unproven':
+      return `The request sets ${name}${v}, which no official page read for ${to} proves it accepts${end}`;
+    case 'not-numeric':
+      return `The request sets ${name} to a value that is not a numeric literal, so it cannot be checked against what ${to} accepts${end}`;
+    case 'not-accepted':
+      return `The request sets ${name}${v}, which ${to} does not accept${end}`;
+    case 'renamed':
+      return `The request sets ${name}${v}, which ${to} does not accept; it takes ${spec?.renamedTo} instead, and Refit does not rename parameters${end}`;
+    case 'non-default':
+      return `The request sets ${name}${v}, which ${to} accepts only at ${spec?.default} (non-default value)${end}`;
+    case 'out-of-range':
+      return `The request sets ${name}${v}, outside the ${spec?.min ?? 'any'} to ${spec?.max ?? 'any'} range ${to} accepts${end}`;
+  }
+}

@@ -23,7 +23,11 @@ import {
   readDeadlineIgnores,
   type DeadlineIgnore,
 } from './deadline-ignores.ts';
-import { checkModelParameters, DEFAULT_MODEL_PARAMETERS } from './model-parameters.ts';
+import {
+  checkModelParameters,
+  DEFAULT_MODEL_PARAMETERS,
+  loadModelParameters,
+} from './model-parameters.ts';
 import { proposeModelReplacements } from './model-retirements.ts';
 import {
   ANTHROPIC_DEPRECATIONS,
@@ -34,7 +38,7 @@ import { parseObject } from './specifications.ts';
 import { terminalText } from './workflow-presentation.ts';
 
 const USAGE = `Usage: refit deadlines [--repository <root>] [--fail-within <days>] [--ignore-file <path>] [--registry <path>] [--json]
-       refit deadlines --propose-model-fixes [--repository <root>] [--output <patch>] [--registry <path>] [--json]
+       refit deadlines --propose-model-fixes [--repository <root>] [--output <patch>] [--registry <path>] [--parameters <path>] [--json]
        refit deadlines --check-registry [--registry <path>] [--json]
        refit deadlines --check-parameters [--parameters <path>] [--json]
        refit deadlines --sync anthropic [--registry <path>] [--write] [--json]
@@ -146,7 +150,11 @@ try {
   } else if (values['propose-model-fixes']) {
     const root = resolve(values.repository ?? '.');
     const registry = await loadDeadlineRegistry(registryPath, now);
-    const proposal = await proposeModelReplacements(root, registry, now);
+    const parameters = await loadModelParameters(
+      values.parameters ? resolve(values.parameters) : DEFAULT_MODEL_PARAMETERS,
+      now,
+    );
+    const proposal = await proposeModelReplacements(root, registry, now, parameters);
     if (values.output && proposal.patch) await writeFile(resolve(values.output), proposal.patch);
     if (values.json)
       console.log(JSON.stringify({ repository: root, checkedAt: now.toISOString(), ...proposal }));
