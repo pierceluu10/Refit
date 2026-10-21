@@ -72,11 +72,11 @@ Plans:
   1. A selection script built on GitHub code search reproduces a frozen list of 100 OpenAI and 50 Anthropic application repositories under `docs/benchmarks/`, with the query, date and pinned commits recorded
   2. The 2026-10-20 npm sets stay unchanged and are labelled as library baselines
   3. A labels file records every live model pin in the new sets with file, line and correct replacement, and states that it comes from a single AI-assisted pass, not hand labelling
-**Plans**: 3 plans
+**Plans**: 1/3 plans executed
 
 Plans:
 **Wave 1**
-- [ ] 03-01-PLAN.md — Code-search selector, helper tests, frozen OpenAI/Anthropic application lists, library-baseline note (BENCH-01)
+- [x] 03-01-PLAN.md — Code-search selector, helper tests, frozen OpenAI/Anthropic application lists, library-baseline note (BENCH-01)
 
 **Wave 2** *(blocked on Wave 1 completion)*
 - [ ] 03-02-PLAN.md — Independent quoted-ID candidate grep, single AI-assisted label pass, merge/validate, labels file (BENCH-02)
@@ -105,5 +105,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4. Phases 1, 2 and 3 do not d
 |-------|----------------|--------|-----------|
 | 1. Live exposure and tracing | 5/5 | Complete    | 2026-10-21 |
 | 2. Sourced parameter stops | 2/2 | In Progress | - |
-| 3. Application benchmark sets | 0/3 | Planned | - |
+| 3. Application benchmark sets | 1/3 | In Progress | - |
 | 4. Measurement and readiness | 0/TBD | Not started | - |

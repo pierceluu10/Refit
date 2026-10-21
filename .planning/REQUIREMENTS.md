@@ -30,7 +30,7 @@
 
 ### Benchmark
 
-- [ ] **BENCH-01**: A new frozen set of 100 OpenAI application repositories and 50 Anthropic application repositories is built from GitHub code search with a documented, reproducible selection script; npm sets are kept as library baselines
+- [x] **BENCH-01**: A new frozen set of 100 OpenAI application repositories and 50 Anthropic application repositories is built from GitHub code search with a documented, reproducible selection script; npm sets are kept as library baselines
 - [ ] **BENCH-02**: Every live model pin on the new sets is labelled in a single AI-assisted pass with file, line and correct replacement, and documented as AI-assisted
 - [ ] **BENCH-03**: Benchmark runs from a pinned worktree report, per provider, labelled pins traced, affected repositories, validated fixes and stops with reasons, published as `docs/benchmarks/` results files
 - [ ] **BENCH-04**: ≥ 90% of labelled live pins are traced to a call argument, per provider
@@ -75,7 +75,7 @@
 | RULE-01 | Phase 2 | Complete |
 | RULE-02 | Phase 2 | Complete |
 | RULE-03 | Phase 2 | Complete |
-| BENCH-01 | Phase 3 | Pending |
+| BENCH-01 | Phase 3 | Complete |
 | BENCH-02 | Phase 3 | Pending |
 | BENCH-03 | Phase 4 | Pending |
 | BENCH-04 | Phase 4 | Pending |
