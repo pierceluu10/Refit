@@ -39,8 +39,13 @@ Today `pipeline/model-retirements.ts` stops every OpenAI request that sets `temp
 - **D-11:** GPT-6 replacements get no table entry, because acceptance depends on `reasoning_effort: none`, which the table cannot express. Those requests keep stopping.
 - **D-12:** One `source` per entry. Where a fact needs two pages, split it into separate entries or use the stricter page. Sources are never merged.
 - **D-13:** `proposeModelReplacements` takes the table as an optional argument that defaults to an empty table, so library callers and existing tests are unchanged. `refit deadlines --propose-model-fixes` and `refit serve --model-fixes` load the shipped `data/model-parameters.json`.
-- **D-14:** The decision text (AGENTS.md, DEADLINES.md) states plainly that on the official pages read on 2026-10-21, only Anthropic literal `temperature: 1` and `top_p >= 0.99` (Claude 4.7-and-later replacements) and the Haiku 4.5 parameters continue. OpenAI requests that set sampling or length parameters keep stopping, because no OpenAI page states support. `o3` `max_tokens` gets a renamed-parameter stop reason.
+- **D-14 (superseded in part by D-16 and D-19, which govern):** The decision text (AGENTS.md, DEADLINES.md) states plainly that on the official pages read on 2026-10-21, only Anthropic literal `temperature: 1` and `top_p >= 0.99` (Claude 4.7-and-later replacements) and the Haiku 4.5 parameters continue. OpenAI requests that set sampling or length parameters keep stopping, because no OpenAI page states support. `o3` `max_tokens` gets a renamed-parameter stop reason.
 - **D-15:** Numeric values: only a signed numeric literal written directly in the request counts. Constants, shorthand properties, string numerals and expressions stop with "not a numeric literal".
+
+- **D-16 (plan check, 2026-10-21):** No `top_p` entry for any Anthropic model. Official pages conflict (the Messages reference says `>= 0.99` is accepted; the Sonnet 5.5 overview and the deprecations page say a non-default value returns 400), and the stricter page governs.
+- **D-17:** A cited page must name the model. Only `claude-sonnet-5-5` gets an entry: `temperature` is `default-only` with default 1, sourced from the Sonnet 5.5 overview. The entry has an extra `defaultSource` field for the official page that states the default value, which the validator requires when a `default` is given. `claude-opus-4-8` has no entry and keeps stopping.
+- **D-18:** No Haiku 4.5 entry. Legacy behaviour for pre-4.7 replacements is preserved byte-for-byte.
+- **D-19:** Renamed parameters apply to OpenAI only (`o3` `max_tokens`). Each parameter is verified separately. On shipped data, only a literal `temperature: 1` on a `claude-sonnet-5-5` replacement continues; everything else keeps stopping.
 
 ### Claude's Discretion
 - How the table is loaded and cached, and whether `refit serve --model-fixes` and `refit deadlines --propose-model-fixes` share one loader. Both must use the table.
