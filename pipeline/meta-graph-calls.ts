@@ -104,16 +104,16 @@ export function loadSdkEdges(path: string | URL = META_BUSINESS_SDK_EDGES): Prom
 }
 
 // A URL expression flattened into literal text and runtime pieces, in order.
-type Part = { text: string; node: ts.Node } | { expression: ts.Expression };
+export type Part = { text: string; node: ts.Node } | { expression: ts.Expression };
 
-function excerpt(source: ts.SourceFile, node: ts.Node) {
+export function excerpt(source: ts.SourceFile, node: ts.Node) {
   const line = source.getLineAndCharacterOfPosition(node.getStart(source)).line;
   const starts = source.getLineStarts();
   const text = source.text.slice(starts[line], starts[line + 1] ?? source.text.length).trim();
   return text.length > MAX_TEXT ? `${text.slice(0, MAX_TEXT - 1)}…` : text;
 }
 
-function lineOf(source: ts.SourceFile, node: ts.Node) {
+export function lineOf(source: ts.SourceFile, node: ts.Node) {
   return source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1;
 }
 
@@ -131,7 +131,7 @@ export function unwrap(node: ts.Expression): ts.Expression {
 }
 
 // The parts of a string literal, template or `+` concatenation.
-function partsOf(node: ts.Expression): Part[] {
+export function partsOf(node: ts.Expression): Part[] {
   const expression = unwrap(node);
   if (ts.isStringLiteralLike(expression)) return [{ text: expression.text, node: expression }];
   if (ts.isTemplateExpression(expression)) {
@@ -148,14 +148,14 @@ function partsOf(node: ts.Expression): Part[] {
   return [{ expression }];
 }
 
-function expressionName(expression: ts.Expression) {
+export function expressionName(expression: ts.Expression) {
   const node = unwrap(expression);
   if (ts.isIdentifier(node)) return node.text;
   if (ts.isPropertyAccessExpression(node)) return node.getText().replace(/\s+/g, '');
   return node.getText().replace(/\s+/g, ' ').slice(0, 40);
 }
 
-function propertyName(name: ts.PropertyName | ts.BindingName | undefined) {
+export function propertyName(name: ts.PropertyName | ts.BindingName | undefined) {
   if (!name) return undefined;
   if (ts.isIdentifier(name) || ts.isStringLiteralLike(name) || ts.isNumericLiteral(name))
     return name.text;
@@ -281,7 +281,7 @@ const MUTATORS = new Set(['set', 'append', 'delete', 'push', 'unshift', 'splice'
 
 // The initializer of a `const` that nothing changes afterwards: no `params.set(...)`,
 // `list.push(...)`, `options.key = ...` or `Object.assign(options, ...)` anywhere it is visible.
-function constantValue(identifier: ts.Identifier): ts.Expression | undefined {
+export function constantValue(identifier: ts.Identifier): ts.Expression | undefined {
   const declaration = findDeclaration(identifier.text, identifier);
   if (!declaration?.initializer || !isConst(declaration)) return undefined;
   const scope = ts.findAncestor(declaration, (item) => ts.isBlock(item) || ts.isSourceFile(item));
@@ -334,7 +334,7 @@ function runtimeValue(node: ts.Expression, label: string) {
 }
 
 // A string held in a `const` that is a literal, such as `const VERSION = 'v19.0'`.
-function constantString(expression: ts.Expression) {
+export function constantString(expression: ts.Expression) {
   const node = unwrap(expression);
   if (ts.isStringLiteralLike(node)) return { value: node.text, node };
   if (!ts.isIdentifier(node)) return undefined;
@@ -592,7 +592,7 @@ function parseUrl(parts: Part[], pinNode: ts.Node, fromConstant: boolean): Parse
 }
 
 // The name of a `let` or `var` that is assigned again after its declaration.
-function reassignedName(declaration: ts.VariableDeclaration) {
+export function reassignedName(declaration: ts.VariableDeclaration) {
   if (!ts.isIdentifier(declaration.name) || isConst(declaration)) return undefined;
   const name = declaration.name.text;
   const scope = ts.findAncestor(declaration, (item) => ts.isBlock(item) || ts.isSourceFile(item));
@@ -615,7 +615,7 @@ function reassignedName(declaration: ts.VariableDeclaration) {
 }
 
 // Whether a variable holding a URL is extended into a longer URL, as in `url + '?' + params`.
-function extendedElsewhere(declaration: ts.VariableDeclaration) {
+export function extendedElsewhere(declaration: ts.VariableDeclaration) {
   if (!ts.isIdentifier(declaration.name)) return false;
   const name = declaration.name.text;
   const scope = ts.findAncestor(declaration, (item) => ts.isBlock(item) || ts.isSourceFile(item));
@@ -640,7 +640,7 @@ function extendedElsewhere(declaration: ts.VariableDeclaration) {
 }
 
 // How a Graph URL reaches a request: the calls it is passed to, directly or through a variable.
-function consumers(node: ts.Expression): { call: ts.CallExpression; argument: number }[] {
+export function consumers(node: ts.Expression): { call: ts.CallExpression; argument: number }[] {
   let current: ts.Node = node;
   while (
     current.parent &&
@@ -691,11 +691,11 @@ function consumers(node: ts.Expression): { call: ts.CallExpression; argument: nu
   return [];
 }
 
-function calleeText(call: ts.CallExpression) {
+export function calleeText(call: ts.CallExpression) {
   return call.expression.getText().replace(/\s+/g, '');
 }
 
-function httpMethod(value: string | undefined): GraphCall['method'] {
+export function httpMethod(value: string | undefined): GraphCall['method'] {
   const method = value?.toUpperCase();
   return method === 'GET' ||
     method === 'POST' ||
@@ -706,7 +706,7 @@ function httpMethod(value: string | undefined): GraphCall['method'] {
     : null;
 }
 
-function objectProperty(object: ts.ObjectLiteralExpression, name: string) {
+export function objectProperty(object: ts.ObjectLiteralExpression, name: string) {
   for (const property of object.properties)
     if (propertyName(property.name) === name) {
       if (ts.isPropertyAssignment(property)) return property.initializer;
@@ -791,7 +791,7 @@ interface Base {
   declaration: ts.VariableDeclaration;
 }
 
-function sourceOf(path: string, content: string) {
+export function sourceOf(path: string, content: string) {
   return ts.createSourceFile(path, content, ts.ScriptTarget.Latest, true);
 }
 
@@ -801,7 +801,7 @@ export function graphString(node: ts.Node): node is ts.StringLiteralLike {
 
 // Resolves a relative import to a scanned file: `./meta-graph`, `./meta-graph.js` for a `.ts`
 // source, or a directory index.
-function resolveImport(from: string, specifier: string, files: Set<string>) {
+export function resolveImport(from: string, specifier: string, files: Set<string>) {
   if (!specifier.startsWith('.')) return undefined;
   const target = posix.normalize(posix.join(posix.dirname(from), specifier));
   const stem = target.replace(/\.(?:[cm]?js|jsx)$/, '');
@@ -817,7 +817,7 @@ function resolveImport(from: string, specifier: string, files: Set<string>) {
 
 // Local names bound by imports of another module's export: `import { GRAPH_BASE as B }` and
 // `const { GRAPH_BASE } = require('./graph')`.
-function importedNames(source: ts.SourceFile) {
+export function importedNames(source: ts.SourceFile) {
   const names = new Map<string, { specifier: string; name: string }>();
   for (const statement of source.statements) {
     if (
@@ -846,7 +846,7 @@ function importedNames(source: ts.SourceFile) {
   return names;
 }
 
-function requiredModule(expression: ts.Expression) {
+export function requiredModule(expression: ts.Expression) {
   const node = unwrap(expression);
   return ts.isCallExpression(node) &&
     ts.isIdentifier(node.expression) &&
@@ -1041,7 +1041,7 @@ function urlCalls(
 }
 
 // The outermost node of a URL expression: not itself a piece of a larger template or concatenation.
-function isUrlRoot(node: ts.Node) {
+export function isUrlRoot(node: ts.Node) {
   if (!(
     ts.isStringLiteralLike(node) ||
     ts.isTemplateExpression(node) ||
