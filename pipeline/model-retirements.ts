@@ -373,6 +373,50 @@ function sourceProgram(repository: Repository) {
     }
     return index;
   };
+  // Every class in the repository with the class it extends, when that resolves to one.
+  let classList: Map<ts.ClassLikeDeclaration, ts.ClassLikeDeclaration | undefined> | undefined;
+  const classes = () => {
+    if (!classList) {
+      const list = new Map<ts.ClassLikeDeclaration, ts.ClassLikeDeclaration | undefined>();
+      classList = list;
+      const visit = (node: ts.Node) => {
+        if (ts.isClassLike(node)) {
+          const base = node.heritageClauses?.find(
+            (clause) => clause.token === ts.SyntaxKind.ExtendsKeyword,
+          )?.types[0]?.expression;
+          const target = base && symbolOf(ts.isPropertyAccessExpression(base) ? base.name : base);
+          const declaration = target?.valueDeclaration;
+          list.set(node, declaration && ts.isClassLike(declaration) ? declaration : undefined);
+        }
+        ts.forEachChild(node, visit);
+      };
+      for (const source of files) visit(source);
+    }
+    return classList;
+  };
+  const topClass = (cls: ts.ClassLikeDeclaration) => {
+    let top = cls;
+    for (let depth = 0; depth < MAX_CHAIN; depth += 1) {
+      const base = classes().get(top);
+      if (!base) break;
+      top = base;
+    }
+    return top;
+  };
+  // Every other class in the same inheritance tree: ancestors, descendants and siblings.
+  const relatives = (cls: ts.ClassLikeDeclaration) => {
+    const top = topClass(cls);
+    return [...classes().keys()].filter((item) => item !== cls && topClass(item) === top);
+  };
+  // The classes that extend `cls`, directly or not.
+  const subclasses = (cls: ts.ClassLikeDeclaration) =>
+    relatives(cls).filter((item) => {
+      for (let up = classes().get(item), depth = 0; up && depth < MAX_CHAIN; depth += 1) {
+        if (up === cls) return true;
+        up = classes().get(up);
+      }
+      return false;
+    });
   const usesOf = (symbol: ts.Symbol) => indexOf(symbol).uses.get(symbol) ?? [];
   // The right-hand side of every `x.name = value` in the repository, for a field's symbol.
   const assignmentsOf = (symbol: ts.Symbol) => indexOf(symbol).assigns.get(symbol) ?? [];
@@ -382,6 +426,8 @@ function sourceProgram(repository: Repository) {
     bindingOf,
     usesOf,
     assignmentsOf,
+    relatives,
+    subclasses,
     path: (node: ts.Node) => paths.get(node.getSourceFile().fileName)!,
     line: (node: ts.Node) =>
       node.getSourceFile().getLineAndCharacterOfPosition(node.getStart()).line + 1,
@@ -865,6 +911,22 @@ function declarationValues(
     if (ts.isParameter(declaration))
       found.push(...parameterValues(program, declaration, owner, keys));
     for (const assigned of assignments) found.push(...valuesOf(program, assigned, owner, keys));
+    // A base field and its overrides: every one may be what a request reads.
+    const related =
+      ts.isPropertyDeclaration(declaration) || ts.isParameter(declaration)
+        ? relatedMembers(program, declaration)
+        : [];
+    for (const other of related) {
+      if (ts.isPropertyDeclaration(other) && other.initializer)
+        found.push(...valuesOf(program, other.initializer, owner, keys));
+      if (ts.isParameter(other)) found.push(...parameterValues(program, other, owner, keys));
+      const otherName = (other as ts.NamedDeclaration).name;
+      const otherSymbol = otherName && program.symbolOf(otherName);
+      for (const assigned of otherSymbol ? program.assignmentsOf(otherSymbol) : [])
+        found.push(...valuesOf(program, assigned, owner, keys));
+    }
+    if (related.length)
+      for (const terminal of found) terminal.stop ??= inherited(`The field ${reference.text}`);
     return through(pass('field', declaration), found);
   });
 }
@@ -952,8 +1014,22 @@ function parameterValues(
   const callers = { ...trace, ctx: undefined };
   // Applied to every terminal after the loop, so the result does not depend on the order of uses.
   let stopped: string | undefined;
+  const take = (args: readonly ts.Expression[]) => {
+    if (args.slice(0, index + 1).some((argument) => ts.isSpreadElement(argument))) {
+      stopped ??= `The helper ${helperName} is called with spread arguments; change its model by hand to`;
+      return;
+    }
+    if (args[index]) found.push(...valuesOf(program, args[index], callers, keys));
+  };
   for (const use of program.usesOf(symbol)) {
     if (ts.isTypeReferenceNode(use.parent)) continue;
+    // `extends Name`: the subclasses are followed below.
+    if (
+      ts.isExpressionWithTypeArguments(use.parent) &&
+      ts.isHeritageClause(use.parent.parent) &&
+      use.parent.parent.token === ts.SyntaxKind.ExtendsKeyword
+    )
+      continue;
     const callee =
       ts.isPropertyAccessExpression(use.parent) && use.parent.name === use ? use.parent : use;
     const call = callee.parent;
@@ -965,15 +1041,76 @@ function parameterValues(
       stopped ??= `The helper ${helperName} is also passed as a value; change its model by hand to`;
       continue;
     }
-    const args = call.arguments ?? [];
-    if (args.slice(0, index + 1).some((argument) => ts.isSpreadElement(argument))) {
-      stopped ??= `The helper ${helperName} is called with spread arguments; change its model by hand to`;
-      continue;
-    }
-    if (args[index]) found.push(...valuesOf(program, args[index], callers, keys));
+    take(call.arguments ?? []);
   }
+  // A subclass passes its own arguments up through `super(...)`, or inherits this constructor and
+  // is built with `new Subclass(...)` (WR-02).
+  if (constructed)
+    for (const subclass of program.subclasses(fn.parent)) {
+      stopped ??= inherited(`The class ${name.text}`);
+      const constructor = subclass.members.find(ts.isConstructorDeclaration);
+      if (constructor?.body) {
+        const visit = (node: ts.Node) => {
+          if (ts.isCallExpression(node) && node.expression.kind === ts.SyntaxKind.SuperKeyword)
+            take(node.arguments);
+          if (!ts.isClassLike(node)) ts.forEachChild(node, visit);
+        };
+        visit(constructor.body);
+      } else {
+        const own = subclass.name && program.symbolOf(subclass.name);
+        for (const use of own ? program.usesOf(own) : [])
+          if (ts.isNewExpression(use.parent) && use.parent.expression === use)
+            take(use.parent.arguments ?? []);
+      }
+    }
   if (stopped) for (const site of found) site.stop ??= stopped;
   return found;
+}
+
+// Members of the same name in the other classes of an inheritance tree: what an override, an
+// abstract declaration or a base field can send instead of the member a request resolves to (WR-02).
+function relatedMembers(program: SourceProgram, declaration: ts.Declaration) {
+  const owner = ts.isParameter(declaration) ? declaration.parent.parent : declaration.parent;
+  const name =
+    ts.isParameter(declaration) && ts.isIdentifier(declaration.name)
+      ? declaration.name.text
+      : (ts.isMethodDeclaration(declaration) || ts.isPropertyDeclaration(declaration)) &&
+          !ts.isPrivateIdentifier(declaration.name)
+        ? propertyName(declaration.name)
+        : undefined;
+  if (!name || !ts.isClassLike(owner)) return [];
+  const found: ts.Declaration[] = [];
+  for (const cls of program.relatives(owner))
+    for (const member of cls.members) {
+      if (
+        (ts.isMethodDeclaration(member) || ts.isPropertyDeclaration(member)) &&
+        !ts.isPrivateIdentifier(member.name) &&
+        propertyName(member.name) === name
+      )
+        found.push(member);
+      else if (ts.isConstructorDeclaration(member))
+        for (const parameter of member.parameters)
+          if (
+            ts.isParameterPropertyDeclaration(parameter, member) &&
+            ts.isIdentifier(parameter.name) &&
+            parameter.name.text === name
+          )
+            found.push(parameter);
+    }
+  return found;
+}
+
+const inherited = (what: string) =>
+  `${what} is declared or overridden in another class, so the model cannot be traced through class inheritance; change it by hand to`;
+
+// The function a member holds: a method, or a property initialized with one.
+function memberFunction(member: ts.Declaration) {
+  if (ts.isMethodDeclaration(member)) return member;
+  const initializer =
+    ts.isPropertyDeclaration(member) && member.initializer && unwrap(member.initializer);
+  return initializer && (ts.isArrowFunction(initializer) || ts.isFunctionExpression(initializer))
+    ? initializer
+    : undefined;
 }
 
 // A call resolves through the `return` statements of the function it calls.
@@ -1017,10 +1154,14 @@ function callValues(
         parent: trace.ctx,
       }
     : trace.ctx;
+  // The override, or the abstract declaration's implementation, may be what runs.
+  const related = ts.isMethodDeclaration(fn) ? relatedMembers(program, fn) : [];
   const run = () => {
-    const found = returnsOf(fn).flatMap((returned) =>
-      valuesOf(program, returned, { ...trace, ctx }, keys),
-    );
+    const found = [fn, ...related.map(memberFunction)]
+      .flatMap((item) => (item ? returnsOf(item) : []))
+      .flatMap((returned) => valuesOf(program, returned, { ...trace, ctx }, keys));
+    if (related.length)
+      for (const terminal of found) terminal.stop ??= inherited(`The method ${name.text}`);
     // A literal passed in as an argument belongs to this call only, not to the function.
     const own = found.filter((terminal) => !(bound && terminal.via?.delete(ctx!)));
     const pass: Pass = {

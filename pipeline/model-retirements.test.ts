@@ -1317,3 +1317,66 @@ it('stops instead of editing when a client sets a custom base URL or is an Azure
   expect(edited(held)).toEqual(['src/raw.ts:1 o1-mini']);
   expect(held.stops.map((item) => [item.file, item.reason])).toEqual([['src/a.ts', reason]]);
 });
+
+it('stops on overridden methods, subclass fields and super(...) arguments instead of dropping them (WR-02)', async () => {
+  const root = await repository({
+    'src/abstract.ts': [
+      ...HEAD,
+      'abstract class Base {',
+      '  abstract getModel(): string;',
+      `  run() { return ${send('this.getModel()')} }`,
+      '}',
+      "class Impl extends Base { getModel() { return 'gpt-4'; } }",
+    ].join('\n'),
+    'src/field.ts': [
+      ...HEAD,
+      'class Base {',
+      "  model = 'o1-mini';",
+      `  run() { return ${send('this.model')} }`,
+      '}',
+      "class Impl extends Base { model = 'gpt-4'; }",
+    ].join('\n'),
+    'src/super.ts': [
+      ...HEAD,
+      'class Base {',
+      '  constructor(private model: string) {}',
+      `  run() { return ${send('this.model')} }`,
+      '}',
+      "class Impl extends Base { constructor() { super('gpt-4'); } }",
+    ].join('\n'),
+    'src/inherited-constructor.ts': [
+      ...HEAD,
+      'class Base {',
+      '  constructor(private model: string) {}',
+      `  run() { return ${send('this.model')} }`,
+      '}',
+      'class Impl extends Base {}',
+      "new Impl('gpt-4');",
+    ].join('\n'),
+    'src/override-method.ts': [
+      ...HEAD,
+      'class Base {',
+      "  getModel() { return 'o1-mini'; }",
+      `  run() { return ${send('this.getModel()')} }`,
+      '}',
+      "class Impl extends Base { getModel() { return 'gpt-4'; } }",
+    ].join('\n'),
+  });
+  const proposal = await proposeModelReplacements(root, registry, NOW);
+  expect(proposal.replacements).toEqual([]);
+  expect(proposal.patch).toBeNull();
+  const stop = (what: string, to: string) =>
+    `${what} is declared or overridden in another class, so the model cannot be traced through class inheritance; change it by hand to ${to}.`;
+  const rows = proposal.stops.map((item) => [item.file, item.at.line, item.model, item.reason]);
+  expect(rows.sort()).toEqual(
+    [
+      ['src/abstract.ts', 7, 'gpt-4', stop('The method getModel', 'gpt-5.6-sol')],
+      ['src/field.ts', 4, 'o1-mini', stop('The field model', 'gpt-5.6-terra')],
+      ['src/field.ts', 7, 'gpt-4', stop('The field model', 'gpt-5.6-sol')],
+      ['src/inherited-constructor.ts', 8, 'gpt-4', stop('The class Base', 'gpt-5.6-sol')],
+      ['src/override-method.ts', 4, 'o1-mini', stop('The method getModel', 'gpt-5.6-terra')],
+      ['src/override-method.ts', 7, 'gpt-4', stop('The method getModel', 'gpt-5.6-sol')],
+      ['src/super.ts', 7, 'gpt-4', stop('The class Base', 'gpt-5.6-sol')],
+    ].sort(),
+  );
+});
