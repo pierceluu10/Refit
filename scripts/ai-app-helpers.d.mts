@@ -39,6 +39,7 @@ export function compareCandidates(
   b: { repo: string; stars: number },
 ): number;
 export function frozenListNames(json: unknown): string[];
+export function classifyGhError(stderr: string): 'retry' | 'skip' | 'fatal';
 export function checkoutDirectory(root: string, repo: string): string;
 export function shallowCheckout(root: string, repo: string, sha: string): Promise<string>;
 

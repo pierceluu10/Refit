@@ -15,6 +15,7 @@ import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs, promisify } from 'node:util';
 import {
+  classifyGhError,
   EXCLUDED_DIRECTORIES,
   EXCLUDED_NAME,
   SCAN_LIMITS,
@@ -104,13 +105,14 @@ async function gh(args) {
           // fall through to the retry logic
         }
       }
-      if (/\b(403|429|502|503)\b|rate limit|secondary/i.test(stderr) && attempt < 5) {
+      const kind = classifyGhError(stderr);
+      if (kind === 'retry' && attempt < 5) {
         const wait = 60 * 2 ** attempt;
         log(`GitHub rate limit or server error; retrying in ${wait}s`);
         await pause(wait * 1000);
         continue;
       }
-      throw new Error(`gh api failed: ${reason}`);
+      throw Object.assign(new Error(`gh api failed: ${reason}`), { skip: kind === 'skip' });
     }
   }
 }
@@ -118,6 +120,8 @@ async function gh(args) {
 async function cached(path, compute) {
   if (existsSync(path)) return JSON.parse(await readFile(path, 'utf8'));
   const value = await compute();
+  // A failed checkout may be a network blip; the next run tries the repository again.
+  if (value.verdict === 'checkoutFailed') return value;
   await writeFile(path, `${JSON.stringify(value, null, 2)}\n`);
   return value;
 }
@@ -296,6 +300,16 @@ async function findModelCall(directory) {
 
 // 7. Lazy checks in rank order. Each verdict is cached per repository.
 async function check(candidate) {
+  try {
+    return await checkRepository(candidate);
+  } catch (error) {
+    if (!error.skip) throw error;
+    log(`skipping ${candidate.repo}: ${error.message}`);
+    return { verdict: 'unreachable' };
+  }
+}
+
+async function checkRepository(candidate) {
   const tree = await gh([`repos/${candidate.repo}/git/trees/${candidate.commit}?recursive=1`]);
   if (scanLimitsFromTree(tree)) return { verdict: 'scanLimits' };
   const paths = tree.tree.filter((entry) => entry.type === 'blob').map((entry) => entry.path);

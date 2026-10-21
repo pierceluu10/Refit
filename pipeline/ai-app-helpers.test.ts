@@ -1,4 +1,9 @@
-import { readFileSync } from 'node:fs';
+import { execFile } from 'node:child_process';
+import { existsSync, readFileSync } from 'node:fs';
+import { mkdir, mkdtemp, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { promisify } from 'node:util';
 import { expect, it } from 'vitest';
 import {
   SCAN_LIMITS,
@@ -19,12 +24,15 @@ import {
   agreement,
   frozenListNames,
   scanLimitsFromTree,
+  classifyGhError,
   shallowCheckout,
   validRepoName,
   validSha,
   validateLabels,
   validWorkspaceManifest,
 } from '../scripts/ai-app-helpers.mjs';
+
+const execFileAsync = promisify(execFile);
 
 const blob = (path: string, size = 10) => ({ path, type: 'blob', size });
 
@@ -47,6 +55,43 @@ it('refuses to check out an invalid name or SHA before spawning git', async () =
   await expect(shallowCheckout('/nonexistent-root', 'a/b', 'HEAD')).rejects.toThrow(
     /Invalid commit/,
   );
+});
+
+it('classifies gh failures: retry rate limits, skip missing repos, fail fast on a permanent 403', () => {
+  expect(classifyGhError('gh: API rate limit exceeded (HTTP 403)')).toBe('retry');
+  expect(classifyGhError('gh: You have exceeded a secondary rate limit (HTTP 403)')).toBe('retry');
+  expect(classifyGhError('gh: Bad Gateway (HTTP 502)')).toBe('retry');
+  expect(classifyGhError('gh: Repository access blocked (HTTP 403)')).toBe('fatal');
+  for (const code of [404, 409, 451]) expect(classifyGhError(`gh: x (HTTP ${code})`)).toBe('skip');
+  expect(classifyGhError('gh: something else')).toBe('fatal');
+});
+
+it('refetches a checkout whose HEAD is not the expected SHA instead of reusing it', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'ai-app-checkout-'));
+  try {
+    const directory = join(root, 'o__r');
+    await mkdir(directory);
+    const git = (...args: string[]) => execFileAsync('git', ['-C', directory, ...args]);
+    await git('init', '-q');
+    await git(
+      '-c',
+      'user.name=t',
+      '-c',
+      'user.email=t@t',
+      'commit',
+      '-q',
+      '--allow-empty',
+      '-m',
+      'x',
+    );
+    const head = (await git('rev-parse', 'HEAD')).stdout.trim();
+    await expect(shallowCheckout(root, 'o/r', head)).resolves.toBe(directory);
+    // A different SHA drops the stale checkout; the fetch of a made-up repository then fails.
+    await expect(shallowCheckout(root, 'o/r', 'b'.repeat(40))).rejects.toThrow();
+    expect(existsSync(directory)).toBe(false);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
 });
 
 it('accepts one-level apps and packages manifests only', () => {

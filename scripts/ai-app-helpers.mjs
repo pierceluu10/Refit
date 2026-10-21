@@ -146,6 +146,14 @@ export function frozenListNames(json) {
   return [...names];
 }
 
+// 'retry' only for rate limits and server errors; 'skip' for a repository that is gone, empty or
+// legally blocked; everything else, including a permanent 403, is 'fatal' with no waiting.
+export function classifyGhError(stderr) {
+  if (/rate limit|secondary|abuse|\b(429|502|503|504)\b/i.test(stderr)) return 'retry';
+  if (/\b(404|409|451)\b/.test(stderr)) return 'skip';
+  return 'fatal';
+}
+
 export function checkoutDirectory(root, repo) {
   return join(resolve(root), repo.replace('/', '__'));
 }
@@ -155,7 +163,14 @@ export async function shallowCheckout(root, repo, sha) {
   if (!validRepoName(repo)) throw new Error('Invalid repository name.');
   if (!validSha(sha)) throw new Error('Invalid commit SHA.');
   const directory = checkoutDirectory(root, repo);
-  if (existsSync(join(directory, '.git'))) return directory;
+  if (existsSync(join(directory, '.git'))) {
+    const head = await execute('git', ['-C', directory, 'rev-parse', 'HEAD']).then(
+      (r) => r.stdout.trim(),
+      () => '',
+    );
+    if (head === sha) return directory;
+    await rm(directory, { recursive: true, force: true });
+  }
   const env = { ...process.env, GIT_TERMINAL_PROMPT: '0', GIT_LFS_SKIP_SMUDGE: '1' };
   await mkdir(resolve(root), { recursive: true });
   try {
