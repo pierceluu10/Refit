@@ -17,6 +17,10 @@ This change only adds stops: `refit deadlines --propose-model-fixes` and `refit 
 
 Tests: `pipeline/model-retirements.test.ts` runs the resolver cases with indirect edits enabled and pins the default, in which indirect sites stop. `pipeline/deadlines.test.ts` covers the prose rule; `pipeline/ai-model-benchmark-summary.test.ts` covers the summary keys. Evidence is fixture tests only; no live provider was contacted.
 
+## October 21 checkpoint: computed request keys stop model fixes (unreleased, after 0.39.0)
+
+A traced request with a computed property name, such as `['temperature']: 0.5` or `[KEY]: 5`, now stops for review instead of being edited. The sampling-parameter check reads only plain names, so a computed one could hide a parameter the replacement rejects. This change only adds a stop. Tests: `pipeline/model-retirements.test.ts` covers string, template and variable keys for OpenAI and Anthropic, beside a plain request that is still edited.
+
 ## October 21 checkpoint: class property models reported for review (unreleased, after 0.39.0)
 
 `refit deadlines --propose-model-fixes` and `refit serve --model-fixes` now trace a request's `model: this.model` to where the class sets it:

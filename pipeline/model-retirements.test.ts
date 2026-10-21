@@ -2108,3 +2108,29 @@ it('reports indirect model sources without editing them by default', async () =>
   expect(enabled.stops).toEqual([]);
   expect(edited(enabled)).toHaveLength(9);
 });
+
+it('stops on a computed property name in a request, which may hide a sampling parameter', async () => {
+  const root = await repository({
+    'src/ai.ts': [
+      "import OpenAI from 'openai';",
+      "import Anthropic from '@anthropic-ai/sdk';",
+      'const openai = new OpenAI();',
+      'const anthropic = new Anthropic();',
+      "const KEY = 'max_tokens';",
+      "openai.chat.completions.create({ model: 'gpt-4', ['max_tokens']: 5, messages: [] });",
+      "openai.chat.completions.create({ model: 'gpt-4', [KEY]: 5, messages: [] });",
+      "anthropic.messages.create({ model: 'claude-3-opus-20240229', [`top_k`]: 5, max_tokens: 9, messages: [] });",
+      // A plain request with the same model is still edited.
+      "openai.chat.completions.create({ model: 'gpt-4', messages: [] });",
+    ].join('\n'),
+  });
+  const proposal = await proposeModelReplacements(root, registry, NOW);
+  const computed = (to: string) =>
+    `The request sets a computed property, which may be a parameter the replacement rejects; change it by hand to ${to}.`;
+  expect(proposal.stops.map((item) => [item.line, item.reason])).toEqual([
+    [6, computed('gpt-5.6-sol')],
+    [7, computed('gpt-5.6-sol')],
+    [8, computed('claude-opus-4-8')],
+  ]);
+  expect(proposal.replacements.map((item) => item.line)).toEqual([9]);
+});
