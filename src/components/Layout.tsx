@@ -95,6 +95,9 @@ export function PagePosition() {
     else window.scrollTo(0, 0);
     const titlesByPath: Record<string, string> = {
       '/': 'Refit: Keep your integrations current',
+      '/v1': 'Refit: Keep your integrations current',
+      '/v2': 'Refit: Keep your integrations current',
+      '/v3': 'Refit: Keep your integrations current',
       '/demo': 'Refit: Interactive workflow',
       '/docs': 'Refit: Documentation',
     };

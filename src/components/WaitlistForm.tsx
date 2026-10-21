@@ -1,5 +1,5 @@
 import { ArrowRight, Check } from '@phosphor-icons/react';
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import type { FormEvent } from 'react';
 import { joinWaitlist } from '../waitlist';
 import type { WaitlistResult } from '../waitlist';
@@ -8,6 +8,8 @@ export function WaitlistForm() {
   const [sending, setSending] = useState(false);
   const [result, setResult] = useState<WaitlistResult | null>(null);
   const [error, setError] = useState('');
+  // A page can hold more than one form, so each input gets its own id.
+  const inputId = useId();
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -39,11 +41,11 @@ export function WaitlistForm() {
   return (
     <form className="waitlist-form" onSubmit={submit}>
       <div className="waitlist-field">
-        <label className="sr-only" htmlFor="waitlist-email">
+        <label className="sr-only" htmlFor={inputId}>
           Work email
         </label>
         <input
-          id="waitlist-email"
+          id={inputId}
           name="email"
           type="email"
           required
