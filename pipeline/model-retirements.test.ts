@@ -2064,6 +2064,30 @@ it.each([
     '...options, temperature: 0.7',
     'The request spreads other options, which may set parameters the replacement rejects.',
   ],
+  [
+    'a computed string key',
+    SONNET,
+    "['temperature']: 0.5",
+    'The request sets a computed property, which may be a parameter the replacement rejects; change it by hand to claude-sonnet-5-5.',
+  ],
+  [
+    'a computed template key',
+    SONNET,
+    '[`top_k`]: 5',
+    'The request sets a computed property, which may be a parameter the replacement rejects; change it by hand to claude-sonnet-5-5.',
+  ],
+  [
+    'a computed OpenAI key',
+    GPT,
+    "['max_tokens']: 5",
+    'The request sets a computed property, which may be a parameter the replacement rejects; change it by hand to gpt-5.6-sol.',
+  ],
+  [
+    'a computed variable key',
+    GPT,
+    '[T]: 5',
+    'The request sets a computed property, which may be a parameter the replacement rejects; change it by hand to gpt-5.6-sol.',
+  ],
 ])('parameter table: stops for %s', async (_name, args, extra, reason) => {
   const proposal = await propose(args, extra);
   expect(proposal.replacements).toEqual([]);
@@ -2083,4 +2107,17 @@ it("parameter table: keeps today's behavior for replacements with no entry", asy
   expect(nano.stops).toEqual(
     stopped('The request sets temperature, which gpt-5.6-luna may reject or treat differently.'),
   );
+});
+
+it('stops on a computed property name for replacements with no entry too', async () => {
+  const computed = (to: string) =>
+    stopped(
+      `The request sets a computed property, which may be a parameter the replacement rejects; change it by hand to ${to}.`,
+    );
+  const haiku = await propose(['anthropic', 'claude-3-haiku-20240307'], "['temperature']: 0");
+  expect(haiku.replacements).toEqual([]);
+  expect(haiku.stops).toEqual(computed('claude-haiku-4-5-20251001'));
+  const nano = await propose(['openai', 'gpt-4.1-nano'], "['max_tokens']: 5");
+  expect(nano.replacements).toEqual([]);
+  expect(nano.stops).toEqual(computed('gpt-5.6-luna'));
 });

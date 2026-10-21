@@ -1868,17 +1868,15 @@ export async function proposeModelReplacements(
       const tabled = parameters.models.some(
         (item) => item.provider === request.provider && item.model === resolved.to,
       );
-      const sensitiveProperties = found.object.properties.filter(
-        (item) =>
-          item.name && MODEL_PARAMETER_NAMES[request.provider].has(propertyName(item.name) ?? ''),
-      );
-      const sensitive = sensitiveProperties
-        .map((item) => propertyName(item.name!))
-        .filter((name): name is string => Boolean(name))
-        .filter(() => tabled || rejectsSampling(request.provider, resolved.to));
+      const sensitiveProperties = found.object.properties.flatMap((item) => {
+        const name = item.name && propertyName(item.name);
+        return name && MODEL_PARAMETER_NAMES[request.provider].has(name) ? [{ item, name }] : [];
+      });
+      const sensitive = rejectsSampling(request.provider, resolved.to)
+        ? sensitiveProperties.map(({ name }) => name)
+        : [];
       const tableReasons = tabled
-        ? sensitiveProperties.flatMap((item) => {
-            const name = propertyName(item.name!)!;
+        ? sensitiveProperties.flatMap(({ item, name }) => {
             const value = ts.isPropertyAssignment(item)
               ? numericLiteral(item.initializer)
               : undefined;
@@ -1910,11 +1908,15 @@ export async function proposeModelReplacements(
                   ? `${found.shared} ${resolved.to}.`
                   : found.object.properties.some((item) => ts.isSpreadAssignment(item))
                     ? 'The request spreads other options, which may set parameters the replacement rejects.'
-                    : tabled
-                      ? tableReasons.join(' ') || undefined
-                      : sensitive.length
-                        ? `The request sets ${sensitive.join(', ')}, which ${resolved.to} may reject or treat differently.`
-                        : undefined;
+                    : found.object.properties.some(
+                          (item) => item.name && ts.isComputedPropertyName(item.name),
+                        )
+                      ? `The request sets a computed property, which may be a parameter the replacement rejects; change it by hand to ${resolved.to}.`
+                      : tabled
+                        ? tableReasons.join(' ') || undefined
+                        : sensitive.length
+                          ? `The request sets ${sensitive.join(', ')}, which ${resolved.to} may reject or treat differently.`
+                          : undefined;
       const decision = decisions.get(site.literal) ?? {
         entry,
         ...resolved,
