@@ -173,6 +173,30 @@ These counts are a lower bound for Shopify: the registry starts at `2025-04`, an
 
 Review-only version moves to v25.0 on the same 33 repositories ([results](benchmarks/2026-10-20-meta-graph-move-results.json)): 0 proposed with the committed change list, because every changelog is unread; in a hypothetical run with every changelog marked reviewed and empty, 100 of the 131 live pins would move, each a one-line edit of the version text only.
 
+## Gemini (October 21)
+
+50 repositories frozen by `scripts/ai-sdk-select.mjs --provider gemini` ([list](benchmarks/2026-10-21-gemini-repos.json)): npm packages whose latest manifest declares `@google/genai` (44) or `@google/generative-ai` (6) in `dependencies`. As with the OpenAI and Anthropic sets, GitHub code search was unavailable, so **these are almost all libraries**: provider plugins, agent frameworks, model routers and MCP servers, not applications. Seven are forks or copies of one coding-agent codebase (`earendil-works/pi` and its derivatives). `scripts/gemini-benchmark.mjs` ran `refit deadlines` at each frozen commit, from the working tree at `40a8e2a` with no pipeline changes during the run ([results](benchmarks/2026-10-21-gemini-results.json)). Files were read only; nothing was installed or run, and no Google endpoint was contacted.
+
+| | Result |
+|---|---|
+| Not scanned (over the 50 MiB or 128-configuration scan limits) | 6 |
+| Declare the old `@google/generative-ai` | 6, all scanned |
+| Exposed to its end of support (2025-11-30) | **6 of 6**: 7 live manifest lines and 1 in `examples/`, listed as test; all 8 are real declarations on hand review (one is a `devDependencies` entry) |
+| Exposed to a Gemini model retirement | none possible: the registry has no Gemini model dates |
+
+**Classification census.** The registry has no Gemini model dates, so each repository was scanned a second time against a throwaway registry that lists every quoted `gemini-*` string in its source under a placeholder date. It measures how the matcher classifies Gemini IDs, not exposure:
+
+| Use | Matches |
+|---|---|
+| live | 505 in 39 repositories |
+| catalog | 779 |
+| test | 3,180 |
+| check | 180 |
+| comment | 152 |
+| beyond the 20-per-ID evidence cap, not listed | 1,448 |
+
+Only 74 of the 505 live matches sit in a file that imports either Gemini SDK; libraries keep model IDs in defaults, configuration and provider tables that reach the SDK through their own layers. The first two live matches of each repository (72) were read in context ([review](benchmarks/2026-10-21-gemini-live-review.json)): 5 are not model IDs (a package import, format tags, a gate name, a Chrome built-in model) and matched only because the census lists every `gemini-*` string. Of the other 67, **50 (75%) are live pins**, close to OpenAI's 83% line precision. The 17 others are object-shaped and generated model catalogs (7), test code under paths the rules do not know, `system_test/` and `__testfixtures__/` (4), help or documentation strings (2), a validator, a two-entry list, an `includes()` receiver and a template string in a `.test.ts` file. The last one comes from a classification gap for every provider: only plain string tokens get the test class, so a model in a template string in a test file counts as live. It is reported, not changed, because fixing it lowers live counts for OpenAI and Anthropic too. The review is one reviewer's single AI-assisted pass, not a labelled set.
+
 ## PayPal requests (October 21)
 
 `refit paypal` (review only) was run over a frozen set of **22** repositories from a pinned worktree at `1ec93a8` ([list](benchmarks/2026-10-21-paypal-repos.json), [results](benchmarks/2026-10-21-paypal-results.json)). Each repository's npm package declares `@paypal/checkout-server-sdk` or `@paypal/paypal-server-sdk`. npm search found only 22 such repositories, not the 50 the goal asks for, and **the set is libraries and plugins, not applications.**

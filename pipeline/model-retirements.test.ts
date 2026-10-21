@@ -237,6 +237,52 @@ it('resolves every shipped Anthropic retirement to a model that is not retiring'
   for (const item of proposal.replacements) expect(retiring.has(item.to)).toBe(false);
 });
 
+// Gemini is report only: replacing a Gemini model, or the old SDK with the new one, is an owner
+// decision, so neither the CLI proposal nor `refit serve --model-fixes` (which uses it) edits them.
+it('never proposes Gemini model or SDK replacements', async () => {
+  const gemini: DeadlineRegistry = {
+    formatVersion: 1,
+    deadlines: [
+      ...registry.deadlines,
+      entry({
+        id: 'gemini-flash',
+        provider: 'gemini',
+        versions: ['gemini-1.5-flash'],
+        replacement: 'gemini-2.0-flash',
+      }),
+      entry({
+        id: 'gemini-old-sdk',
+        provider: 'gemini',
+        kind: 'sdk',
+        versions: ['@google/generative-ai'],
+        replacement: '@google/genai',
+      }),
+    ],
+  };
+  const root = await repository({
+    'package.json': JSON.stringify({
+      name: 'app',
+      dependencies: {
+        '@google/genai': '2.30.0',
+        '@google/generative-ai': '0.24.1',
+        openai: '4.80.0',
+      },
+    }),
+    'src/gemini.ts': [
+      "import { GoogleGenAI } from '@google/genai';",
+      "import { GoogleGenerativeAI } from '@google/generative-ai';",
+      'const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });',
+      "await ai.models.generateContent({ model: 'gemini-1.5-flash', contents: 'Hi' });",
+      "new GoogleGenerativeAI(key).getGenerativeModel({ model: 'gemini-1.5-flash' });",
+    ].join('\n'),
+  });
+  expect(await proposeModelReplacements(root, gemini, NOW)).toEqual({
+    replacements: [],
+    stops: [],
+    patch: null,
+  });
+});
+
 // Shapes found on the deadline benchmark: the openai v3 SDK and openai-edge, request objects held in
 // a const, and a model const used by one call.
 it('follows v3 and openai-edge clients, request consts and model consts used once', async () => {
