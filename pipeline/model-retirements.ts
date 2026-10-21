@@ -1715,95 +1715,6 @@ function sweepLiterals(
   return [...found];
 }
 
-// The model sites the rule edited before indirect sources were traced: string literals in the
-// request, a `??` or `||` default, a constant or enum member holding a literal, and a helper
-// parameter's default and its callers' literals. A site maps to its stop, or `undefined` when it
-// could be edited. Until indirect edits are enabled (an owner decision on D-06 to D-08), a site the
-// new resolver reaches that this function does not allow stops for review instead.
-function directSites(
-  program: SourceProgram,
-  value: ts.Expression,
-  depth = 0,
-  sites = new Map<ts.StringLiteralLike, string | undefined>(),
-) {
-  const add = (literal: ts.StringLiteralLike, stop?: string) =>
-    sites.set(literal, sites.has(literal) ? (sites.get(literal) ?? stop) : stop);
-  if (depth > 4) return sites;
-  if (ts.isStringLiteralLike(value)) return (add(value), sites);
-  if (
-    ts.isBinaryExpression(value) &&
-    [ts.SyntaxKind.QuestionQuestionToken, ts.SyntaxKind.BarBarToken].includes(
-      value.operatorToken.kind,
-    )
-  )
-    return directSites(program, unwrap(value.right), depth + 1, sites);
-  const reference = ts.isPropertyAccessExpression(value) ? value.name : value;
-  if (!ts.isIdentifier(reference)) return sites;
-  const symbol = program.symbolOf(reference);
-  const declaration = symbol?.valueDeclaration;
-  if (!symbol || !declaration) return sites;
-  if (
-    (ts.isVariableDeclaration(declaration) &&
-      ts.isVariableDeclarationList(declaration.parent) &&
-      declaration.parent.flags & ts.NodeFlags.Const) ||
-    ts.isEnumMember(declaration)
-  ) {
-    const initializer = declaration.initializer && unwrap(declaration.initializer as ts.Expression);
-    if (!initializer || !ts.isStringLiteralLike(initializer)) return sites;
-    const uses = program.usesOf(symbol).length;
-    return (add(initializer, uses !== 1 ? 'used more than once' : undefined), sites);
-  }
-  // A parameter read by name; `this.model` from a constructor parameter property is a class field.
-  if (ts.isParameter(declaration) && ts.isIdentifier(declaration.name) && reference === value) {
-    const helper = declaration.parent;
-    const index = helper.parameters.indexOf(declaration);
-    const own: ts.StringLiteralLike[] = [];
-    if (declaration.initializer && ts.isStringLiteralLike(unwrap(declaration.initializer)))
-      own.push(unwrap(declaration.initializer) as ts.StringLiteralLike);
-    const name =
-      ts.isFunctionDeclaration(helper) && helper.name
-        ? helper.name
-        : (ts.isFunctionExpression(helper) || ts.isArrowFunction(helper)) &&
-            ts.isVariableDeclaration(helper.parent) &&
-            ts.isIdentifier(helper.parent.name)
-          ? helper.parent.name
-          : undefined;
-    const helperSymbol = name && program.symbolOf(name);
-    let stop: string | undefined;
-    if (helperSymbol)
-      for (const use of program.usesOf(helperSymbol)) {
-        const callee =
-          ts.isPropertyAccessExpression(use.parent) && use.parent.name === use ? use.parent : use;
-        const call = callee.parent;
-        if (
-          !ts.isCallExpression(call) ||
-          call.expression !== callee ||
-          call.arguments.slice(0, index + 1).some((argument) => ts.isSpreadElement(argument))
-        ) {
-          stop = 'passed as a value or spread into';
-          continue;
-        }
-        const argument = call.arguments[index] && unwrap(call.arguments[index]);
-        if (argument) directSites(program, argument, depth + 1, sites);
-      }
-    for (const literal of own) add(literal, stop);
-  }
-  return sites;
-}
-
-// How a site the new resolver reached, but the direct rule does not edit, gets its model.
-function indirectSource(site: Site) {
-  const pass = site.passes[0];
-  if (!pass) return 'a conditional, fallback or computed value';
-  if (pass.kind === 'field') return `the class field ${pass.name} (${pass.at})`;
-  if (pass.kind === 'function') return `the value returned by ${pass.name} (${pass.at})`;
-  if (pass.keys?.length)
-    return pass.kind === 'constant'
-      ? `the object member ${pass.name}.${pass.keys.join('.')} (${pass.at})`
-      : `the property ${pass.keys.join('.')} of the parameter ${pass.name} (${pass.at})`;
-  return `the computed ${pass.kind} ${pass.name} (${pass.at})`;
-}
-
 // Proposes replacing a retiring model ID with its registry replacement where a traced SDK call, or a
 // raw HTTP request to an official text-generation endpoint, sends it as `model`, outside tests and
 // build output. Anything less certain stops for review with a reason. Nothing is written, applied,
@@ -1812,9 +1723,6 @@ export async function proposeModelReplacements(
   directory: string,
   registry: DeadlineRegistry,
   now: Date,
-  // Edit what the resolver reaches through class fields, object members and computed initializers
-  // (D-06 to D-08). Off until the owner decision lands; until then those sites stop for review.
-  { indirect = false }: { indirect?: boolean } = {},
 ): Promise<ModelReplacementProposal> {
   const byProvider = new Map<string, Map<string, DeadlineEntry>>();
   for (const entry of registry.deadlines)
@@ -1990,13 +1898,6 @@ export async function proposeModelReplacements(
           : `depth limit of ${MAX_DEPTH}`
       }, so not every source and use could be checked; change it by hand to`;
     const customUrl = request.custom || (request.sdk && endpointSet);
-    // axios request configs (`axios({ url, data })`, `axios.request`) are new request shapes, so
-    // they are reported, not edited, until indirect edits are enabled.
-    const direct = indirect
-      ? undefined
-      : /^(?:axios|request) /.test(request.call)
-        ? new Map<ts.StringLiteralLike, string | undefined>()
-        : directSites(program, value);
     for (const site of sites) {
       const entry = models.get(site.literal.text);
       if (!entry || skipped(program.path(site.literal))) continue;
@@ -2021,23 +1922,19 @@ export async function proposeModelReplacements(
               ? `${limit} ${resolved.to}.`
               : stop
                 ? `${stop} ${resolved.to}.`
-                : direct && (!direct.has(site.literal) || direct.get(site.literal))
-                  ? /^(?:axios|request) /.test(request.call)
-                    ? `\`${request.call}\` is an axios request config, which Refit reports but does not edit yet; change it by hand to ${resolved.to}.`
-                    : `The model reaches this request through ${indirectSource(site)}, which Refit reports but does not edit yet; change it by hand to ${resolved.to}.`
-                  : found.shared
-                    ? `${found.shared} ${resolved.to}.`
-                    : found.object.properties.some((item) => ts.isSpreadAssignment(item))
-                      ? 'The request spreads other options, which may set parameters the replacement rejects.'
-                      : // A computed name such as `['temperature']: 0.5` or `[KEY]: 5` may be a
-                        // sampling or length parameter the name check cannot see.
-                        found.object.properties.some(
-                            (item) => item.name && ts.isComputedPropertyName(item.name),
-                          )
-                        ? `The request sets a computed property, which may be a parameter the replacement rejects; change it by hand to ${resolved.to}.`
-                        : sensitive.length
-                          ? `The request sets ${sensitive.join(', ')}, which ${resolved.to} may reject or treat differently.`
-                          : undefined;
+                : found.shared
+                  ? `${found.shared} ${resolved.to}.`
+                  : found.object.properties.some((item) => ts.isSpreadAssignment(item))
+                    ? 'The request spreads other options, which may set parameters the replacement rejects.'
+                    : // A computed name such as `['temperature']: 0.5` or `[KEY]: 5` may be a
+                      // sampling or length parameter the name check cannot see.
+                      found.object.properties.some(
+                          (item) => item.name && ts.isComputedPropertyName(item.name),
+                        )
+                      ? `The request sets a computed property, which may be a parameter the replacement rejects; change it by hand to ${resolved.to}.`
+                      : sensitive.length
+                        ? `The request sets ${sensitive.join(', ')}, which ${resolved.to} may reject or treat differently.`
+                        : undefined;
       const decision = decisions.get(site.literal) ?? {
         entry,
         ...resolved,

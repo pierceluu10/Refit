@@ -9,12 +9,7 @@ import {
   type DeadlineEntry,
   type DeadlineRegistry,
 } from './deadline-registry.ts';
-import { proposeModelReplacements as proposeDirect } from './model-retirements.ts';
-
-// Most cases exercise the full resolver, with indirect edits (D-06 to D-08) enabled. The default,
-// which reports indirect sites without editing them, is pinned by its own tests below.
-const proposeModelReplacements: typeof proposeDirect = (directory, registry, now, options) =>
-  proposeDirect(directory, registry, now, { indirect: true, ...options });
+import { proposeModelReplacements } from './model-retirements.ts';
 
 const execute = promisify(execFile);
 const roots: string[] = [];
@@ -1931,7 +1926,7 @@ it('follows the right side of && and keeps the other shapes untraced', async () 
     expect([label, proposal.replacements, proposal.stops]).toEqual([label, [], []]);
   }
 });
-it('reports class property models at their initializers and assignments without editing them', async () => {
+it('edits class property models at their initializers and assignments when the request reads them once', async () => {
   const root = await repository({
     'src/chat.ts': [
       "import OpenAI from 'openai';",
@@ -1986,39 +1981,20 @@ it('reports class property models at their initializers and assignments without 
       '}',
     ].join('\n'),
   });
-  const proposal = await proposeDirect(root, registry, NOW);
-  // Until an owner decision covers class properties, each one is reported with where its model is
-  // written, and none is edited.
-  expect(proposal.replacements).toEqual([]);
-  expect(proposal.patch).toBeNull();
-  expect(
-    proposal.stops
-      .map((item) => [item.file, item.at, item.model, item.reason])
-      .sort((x, y) => String(x[0]).localeCompare(String(y[0]))),
-  ).toEqual([
-    [
-      'src/agent.js',
-      { file: 'src/agent.js', line: 5 },
-      'gpt-4',
-      'The model reaches this request through the class field model (src/agent.js:5), which Refit reports but does not edit yet; change it by hand to gpt-5.6-sol.',
-    ],
-    [
-      'src/chat.ts',
-      { file: 'src/chat.ts', line: 4 },
-      'gpt-4',
-      'The model reaches this request through the class field model (src/chat.ts:4), which Refit reports but does not edit yet; change it by hand to gpt-5.6-sol.',
-    ],
+  const proposal = await proposeModelReplacements(root, registry, NOW);
+  // A field read once by the request is edited where its model is written; one read again to
+  // price the request stops (owner decision, 2026-10-21, D-06).
+  expect(edited(proposal)).toEqual([
+    'src/agent.js:5 gpt-4',
+    'src/chat.ts:4 gpt-4',
+    'src/summary.ts:4 o1-mini',
+  ]);
+  expect(proposal.stops.map((item) => [item.file, item.at, item.model, item.reason])).toEqual([
     [
       'src/priced.ts',
       { file: 'src/priced.ts', line: 7 },
       'gpt-4',
       'The model comes from the field model (src/priced.ts:5), which is used 2 times; change it by hand to gpt-5.6-sol.',
-    ],
-    [
-      'src/summary.ts',
-      { file: 'src/summary.ts', line: 4 },
-      'o1-mini',
-      'The model reaches this request through the class field model (src/summary.ts:4), which Refit reports but does not edit yet; change it by hand to gpt-5.6-terra.',
     ],
   ]);
 });
@@ -2052,11 +2028,9 @@ it('never proposes edits in build output committed beside the sources', async ()
   ]);
 });
 
-// Until the owner decision on indirect edits (D-06 to D-08) lands, the default proposal edits only
-// what the rule edited before: literals, `??` and `||` defaults, constants and enum members used
-// once, and helper parameter defaults and callers' literals. Every other site the resolver reaches
-// stops with where the model comes from.
-it('reports indirect model sources without editing them by default', async () => {
+// Class fields, object members, computed initializers, returned literals and axios request
+// configs are edited where the model is written (owner decision, 2026-10-21, D-06 to D-08).
+it('edits indirect model sources where the model is written', async () => {
   const root = await repository({
     'src/direct.ts': [
       ...HEAD,
@@ -2080,30 +2054,6 @@ it('reports indirect model sources without editing them by default', async () =>
       "export const g = () => axios({ url: 'https://api.openai.com/v1/chat/completions', data: { model: 'gpt-4', messages: [] } });",
     ].join('\n'),
   });
-  const reported = await proposeDirect(root, registry, NOW);
-  expect(edited(reported)).toEqual([
-    'src/direct.ts:3 gpt-4',
-    'src/direct.ts:4 o1-mini',
-    'src/direct.ts:5 gpt-4',
-  ]);
-  const later = (source: string, to = 'gpt-5.6-sol') =>
-    `The model reaches this request through ${source}, which Refit reports but does not edit yet; change it by hand to ${to}.`;
-  expect(
-    reported.stops.map((item) => [`${item.at.file}:${item.at.line}`, item.reason]).sort(),
-  ).toEqual(
-    [
-      [
-        'src/axios.ts:2',
-        '`axios /v1/chat/completions` is an axios request config, which Refit reports but does not edit yet; change it by hand to gpt-5.6-sol.',
-      ],
-      ['src/indirect.ts:3', later('the object member MODELS.fast (src/indirect.ts:3)')],
-      ['src/indirect.ts:4', later('the computed constant COMPUTED (src/indirect.ts:4)')],
-      ['src/indirect.ts:5', later('the value returned by pick (src/indirect.ts:8)')],
-      ['src/indirect.ts:9', later('a conditional, fallback or computed value')],
-      ['src/indirect.ts:9', later('a conditional, fallback or computed value', 'gpt-5.6-terra')],
-    ].sort(),
-  );
-  // With indirect edits enabled, every one of them is edited.
   const enabled = await proposeModelReplacements(root, registry, NOW);
   expect(enabled.stops).toEqual([]);
   expect(edited(enabled)).toHaveLength(9);
