@@ -24,7 +24,7 @@ Refit reads committed `package.json` declarations and the matching npm, pnpm or 
 | Twilio | `twilio`, `api.twilio.com` | none yet |
 | SendGrid | `@sendgrid/mail`, `@sendgrid/client`, `api.sendgrid.com` | none yet |
 | Resend | `resend`, `api.resend.com` | none yet |
-| PayPal | `@paypal/paypal-server-sdk`, `@paypal/checkout-server-sdk`, `api-m.paypal.com`, `api-m.sandbox.paypal.com` | none yet |
+| PayPal | `@paypal/paypal-server-sdk`, `@paypal/checkout-server-sdk`, `api-m.paypal.com`, `api-m.sandbox.paypal.com` | none yet; `refit paypal` lists PayPal REST requests with their method, path and published operation for review ([PayPal](PAYPAL.md)) |
 
 ## Add an agent
 

@@ -207,17 +207,32 @@ Built-in agent, 531 benchmark repositories, **74 validated fixes of 234 affected
 
 ## PayPal
 
-**Status today.** In the catalog with `adapter: null`, packages `@paypal/paypal-server-sdk` and `@paypal/checkout-server-sdk`, hostnames `api-m.paypal.com` and `api-m.sandbox.paypal.com` (source: pipeline/agent-catalog.ts). No deadline entries, benchmark or fixture.
+**Status today.** In the catalog with `adapter: null`, packages `@paypal/paypal-server-sdk` and `@paypal/checkout-server-sdk`, hostnames `api-m.paypal.com` and `api-m.sandbox.paypal.com` (source: pipeline/agent-catalog.ts). Request detection (review only, 2026-10-21): `refit paypal` lists old-SDK request classes, new-SDK controller calls and raw REST calls with method, path, the published operation and the new-SDK method that makes the same request (source: docs/PAYPAL.md). The request map `data/paypal-requests.json` is generated from the packages' own sources and PayPal's published OpenAPI documents. On a frozen set of 22 repositories it reported 90 live requests, all correct on hand review, and traced 82 of 92 real SDK call lines in scanned repositories (89%) by a text heuristic (source: docs/PAYPAL.md#measured-on-a-frozen-set). No deadline entries.
 
-**What breaks for its users.** `@paypal/checkout-server-sdk` is deprecated in favour of `@paypal/paypal-server-sdk`, with different client and request classes: unverified: check the date and whether the old package still works. REST APIs are versioned by path (`/v1`, `/v2`) with per-API deprecations: unverified: check. Machine-readable spec: PayPal publishes OpenAPI documents for its REST APIs: unverified: check the repository and coverage. Official release notes: unverified: check.
+**What breaks for its users.** Facts checked 2026-10-21:
+- **Old SDK deprecated.** Every `@paypal/checkout-server-sdk` release (1.0.0-RC3-SNAPSHOT to 1.0.3; the last published 2021-09-21) carries npm's notice "Package no longer supported. The author suggests using the @paypal/paypal-server-sdk package instead" ([registry](https://registry.npmjs.org/@paypal%2fcheckout-server-sdk)). The date of the deprecation is not in the registry metadata. Whether the old package still works against PayPal's API: unverified, since nothing was called. Its GitHub repository, `paypal/Checkout-NodeJS-SDK`, could not be read (`raw.githubusercontent.com` answered 404 and `git clone` asked for credentials).
+- **No call shape is shared.** The old SDK sends request objects through `client.execute(request)`; the new one has controller methods. The new SDK renamed every controller method in 0.7.0 (2025-03-20): `ordersCreate` became `createOrder`, from its 0.6.1 and 0.7.0 tarballs. Its [CHANGELOG](https://github.com/paypal/PayPal-TypeScript-Server-SDK/blob/b02a9b9c8f53418d6278928fa41b174803037277/CHANGELOG.md) covers 1.0.0 to 2.4.0, and 2.0.0 lists "several model renames" as breaking. Latest release 2.5.0 (2026-08-21).
+- **Hosts.** The old SDK calls `api.paypal.com` and `api.sandbox.paypal.com`. The new SDK and every published OpenAPI document name `api-m.paypal.com` and `api-m.sandbox.paypal.com`. Whether the `api.` hosts are still served: unverified.
+- **Machine-readable spec: yes.** [paypal/paypal-rest-api-specifications](https://github.com/paypal/paypal-rest-api-specifications) publishes 13 OpenAPI 3.0 documents (Orders v2, Payments v2, Subscriptions v1, Payment Method Tokens v3, Transaction Search v1, Disputes, Invoicing, Webhooks, Payouts and others), last commit `90e8041` on 2026-04-07. No operation in them is marked `deprecated`. They do not cover `/v1/oauth2/token`, `/v1/identity/*` or `GET /v1/billing/subscriptions`, though the new SDK calls two of those.
+- **Versioning.** Paths carry `/v1`, `/v2` or `/v3` per API in both the documents and the SDKs. Per-API deprecation dates, PayPal's REST versioning policy and official release notes: unverified. `developer.paypal.com` is blocked by this environment's network policy, so none of its pages could be read.
 
-**SDK patterns to trace.** Old: `new paypal.core.PayPalHttpClient(environment)`, `client.execute(new paypal.orders.OrdersCreateRequest())`. New: `new Client({ clientCredentialsAuthCredentials, environment })`, `new OrdersController(client).createOrder({ body })`. Raw `fetch` to `api-m.paypal.com/v2/checkout/orders`. Shapes from memory: unverified: check both READMEs.
+**SDK patterns to trace.** Shapes confirmed against the packages (source: docs/PAYPAL.md):
+- **Old.** `new paypal.core.SandboxEnvironment(clientId, clientSecret)`, `new paypal.core.PayPalHttpClient(environment)`, then `client.execute(new paypal.orders.OrdersCreateRequest())` with `request.requestBody({...})`. This is the README of `@paypal/checkout-server-sdk` 1.0.3 on npm.
+- **New.** `new Client({ clientCredentialsAuthCredentials: { oAuthClientId, oAuthClientSecret }, environment: Environment.Sandbox })` (README of `@paypal/paypal-server-sdk` 2.5.0), then `new OrdersController(client)` and `ordersController.createOrder({ body })` ([doc/controllers/orders.md](https://github.com/paypal/PayPal-TypeScript-Server-SDK/blob/2.5.0/doc/controllers/orders.md)).
+- **Raw.** `fetch` and `axios` to `https://api-m.paypal.com/v2/checkout/orders`, often through a live-or-sandbox conditional base.
+- **Not traced yet.** Controllers returned from another file's getter, and axios instances created with a PayPal `baseURL`.
 
-**Definition of done.** Frozen set of 50 repositories declaring either package. Targets: ≥ 90% of likely SDK calls traced; ≥ 70% of affected repositories with runnable checks validated; 0 wrong fixes; the package replacement is a named owner decision until a rule covers it.
+**Definition of done.** Frozen set of 50 repositories declaring either package; npm search found 22 on 2026-10-21, so a larger set needs GitHub code search. Targets: ≥ 90% of likely SDK calls traced; ≥ 70% of affected repositories with runnable checks validated; 0 wrong fixes; the package replacement is a named owner decision until a rule covers it.
 
-**Milestones.** 1. Catalog entry exists. 2. Adapter for the new SDK's controllers from the OpenAPI document via `adapter-suggest`, hand reviewed; the old SDK's `execute(request)` shape needs a new tracing pattern. 3. Rules for removals and renames the diff proves; the SDK replacement review-only. 4. Deadline entries for the old SDK's end of support and any API retirement. 5. Freeze 50. 6. Run and publish.
+**Milestones.**
+1. Catalog entry exists.
+2. Review-only request detection exists (`refit paypal`, 2026-10-21). An adapter for the new SDK's controllers can be written by hand from `data/paypal-requests.json` and the published documents, without `adapter-suggest` spend. Not done: each response-schema mapping still needs checking against the document.
+3. Rules for removals and renames the diff proves. The SDK replacement stays review-only.
+4. Deadline entries for the old SDK's end of support and any API retirement, once a PayPal page with a date can be read.
+5. Freeze 50 (22 frozen).
+6. Run and publish (done for the 22, detection only).
 
-**Blockers and owner decisions.** Package replacement policy. `adapter-suggest` spend. Sandbox credentials are never used; validation stays offline with simulated responses, as for Stripe.
+**Blockers and owner decisions.** Package replacement policy: whether the old-to-new SDK swap, or the new SDK's 0.6 to 0.7 rename, is ever automatic. `adapter-suggest` spend, if a hand-written adapter is not preferred. Sandbox credentials are never used; validation stays offline with simulated responses, as for Stripe. Network access to `developer.paypal.com`, to verify deprecation dates and release notes.
 
 **Effort: M.**
 
@@ -260,6 +275,29 @@ Most untraced exposures are not requests an application makes. They are entries 
 
 Item 9 cannot reach 70% on a set of libraries, so the fix-rate target needs an application set to measure against.
 
+## PayPal: progress checklist (2026-10-21)
+
+The same ten items as the OpenAI and Anthropic checklist, worth 10% each.
+
+| # | Item | PayPal |
+|---|---|---|
+| 1 | Catalog entry | Yes (`adapter: null`) |
+| 2 | Reviewed adapter for the calls real code makes | No. Request map only: `data/paypal-requests.json`, review-only `refit paypal` |
+| 3 | Deadline entries with `source` and `checkedAt` | No. No dated end of support found on a page readable from here |
+| 4 | Deterministic replacement rule with named stops | No. The SDK replacement is an owner decision |
+| 5 | Automatic validated draft pull requests | No |
+| 6 | Frozen benchmark set | Partial: 22 of 50 repositories (npm search found no more) |
+| 7 | Hand-labelled live requests | Partial: all 90 reported requests reviewed; missed calls are counted by a text heuristic, not labels |
+| 8 | At least 90% of likely SDK calls traced | No: 82 of 92 (89%) in scanned repositories |
+| 9 | At least 70% of affected repositories with runnable checks validated | No: no fix is proposed |
+| 10 | No wrong fix on hand review | n/a: no fix is proposed |
+| | **Done** | **10%** |
+
+Partial items count as not done. Also done, outside the ten: the facts in [What breaks](#paypal) were checked against the npm registry, both packages' sources and PayPal's published OpenAPI documents. Next, in order:
+1. Trace controllers returned from getters and axios instances with a PayPal `baseURL`, the two misses on the set.
+2. Hand-write a new-SDK adapter from the request map, checking each response schema against the published documents.
+3. Rebuild the set from application repositories once GitHub code search is available.
+
 ## Priority order
 
 | # | Provider | Reason |
@@ -268,7 +306,7 @@ Item 9 cannot reach 70% on a set of libraries, so the fix-rate target needs an a
 | 2 | OpenAI | Adapter and registry exist; 51 of 381 fresh Stripe repositories hit a shutdown on 2026-10-23, three days from this writing |
 | 3 | Anthropic | Same SDK shape and the same retirement rule as OpenAI; already in the coverage set; cheapest second AI provider |
 | 4 | Meta Graph | Registry exists and matched at 100% line precision; all labelled repositories are past due, so the pain is real; but raw-URL migration is new work |
-| 5 | PayPal | In the catalog, a deprecated SDK forces real migrations, and an OpenAPI document likely exists (unverified) |
+| 5 | PayPal | In the catalog, a deprecated SDK forces real migrations, PayPal publishes OpenAPI documents (checked 2026-10-21), and review-only detection exists |
 | 6 | Gemini | Reuses the retirement rule; the SDK replacement is the only new piece |
 | 7 | Slack | Common in app code with named method sunsets; a spec may exist (unverified) |
 | 8 | Cloudflare | Likely OpenAPI and a `client.resource.method` SDK, but no evidence yet of how often it breaks users |
@@ -287,5 +325,5 @@ Capabilities several providers need, in the order the priorities above reach the
 4. **Versioned-URL pin moves** (Meta, Shopify REST, Salesforce, Google): one rule that moves a version segment in a URL or a `version` option when the per-version change list proves nothing the code touches changed. Needs a contract shape for "list of removals per version" that is not OpenAPI. Meta has a review-only, Graph-specific version (`pipeline/meta-graph-moves.ts`, 2026-10-20); it is not wired into `refit run`.
 5. **Non-OpenAPI change sources** (Meta changelog, Google Discovery, Slack method notices): a reader per shape, or a hand-maintained JSON list like `data/deadlines.json`, with an owner decision on whether a hand list is evidence enough for an edit. Meta has the hand-maintained list (`data/meta-graph-changes.json`), reviewed for v14.0 to v26.0 with 281 changes on 2026-10-20; WhatsApp and Messenger changelogs are not covered yet.
 6. **SDK major and package replacement in the same patch** (Shopify 14, PayPal, Gemini): generalise the stripe-node lockfile upgrade so a pin move and its required SDK bump ship together, behind an owner policy per provider.
-7. **REST-to-SDK and raw-HTTP detection** (Shopify, Meta, PayPal, Cloudflare): report raw calls by hostname and path with the exact line, as the catalog's hostname evidence already does, before any migration of them is considered. Meta has it (`refit meta-graph`, 2026-10-20, review only); its URL reading in `pipeline/meta-graph-calls.ts` is Graph-specific so far. Shopify has it for REST Admin calls (`shopify.restCalls` in the report, 2026-10-20, review only).
+7. **REST-to-SDK and raw-HTTP detection** (Shopify, Meta, PayPal, Cloudflare): report raw calls by hostname and path with the exact line, as the catalog's hostname evidence already does, before any migration of them is considered. Meta has it (`refit meta-graph`, 2026-10-20, review only); its URL reading in `pipeline/meta-graph-calls.ts` is Graph-specific so far. Shopify has it for REST Admin calls (`shopify.restCalls` in the report, 2026-10-20, review only). PayPal has it for its REST hosts (`refit paypal`, 2026-10-21, review only), matched to the published OpenAPI documents.
 8. **`adapter-suggest` runs** (PayPal, Cloudflare, Slack, OpenAI): each spends budget and needs hand review; batch them under one approved budget.

@@ -1,0 +1,377 @@
+{
+  "formatVersion": 1,
+  "note": "Supplement: the package directory holding the PayPal code in three frozen repositories that exceed the whole-repository scan limits. Not counted in the frozen-set totals.",
+  "refit": "1ec93a8",
+  "checkedAt": "2026-10-21T08:21:08.603Z",
+  "results": [
+    {
+      "repo": "sourcefuse/loopback4-microservice-catalog",
+      "commit": "04e4dab2b3f19d20284c6de32d2f05a8caa81d07",
+      "directory": "services/payment-service",
+      "packages": [
+        {
+          "name": "@paypal/checkout-server-sdk",
+          "file": "package.json",
+          "declared": "^1.0.3",
+          "locked": null,
+          "deprecated": "Package no longer supported. The author suggests using the @paypal/paypal-server-sdk package instead: https://www.npmjs.com/package/@paypal/paypal-server-sdk. Contact Support at https://www.npmjs.com/support for more info."
+        }
+      ],
+      "calls": [
+        {
+          "kind": "checkout-sdk",
+          "file": "src/providers/paypal/paypal-provider.service.ts",
+          "line": 80,
+          "use": "live",
+          "request": "orders.OrdersCreateRequest",
+          "client": "this.client.execute",
+          "method": "POST",
+          "hosts": [],
+          "path": "/v2/checkout/orders",
+          "operation": {
+            "document": "checkout_orders_v2.json",
+            "operationId": "orders.create"
+          },
+          "counterpart": [
+            "OrdersController.createOrder"
+          ],
+          "notes": [],
+          "unknown": [],
+          "text": "const request = new paypal.orders.OrdersCreateRequest();"
+        },
+        {
+          "kind": "checkout-sdk",
+          "file": "src/providers/paypal/paypal-provider.service.ts",
+          "line": 150,
+          "use": "live",
+          "request": "orders.OrdersCaptureRequest",
+          "client": "this.client.execute",
+          "method": "POST",
+          "hosts": [],
+          "path": "/v2/checkout/orders/{order_id}/capture",
+          "operation": {
+            "document": "checkout_orders_v2.json",
+            "operationId": "orders.capture"
+          },
+          "counterpart": [
+            "OrdersController.captureOrder"
+          ],
+          "notes": [],
+          "unknown": [],
+          "text": "const request = new paypal.orders.OrdersCaptureRequest("
+        },
+        {
+          "kind": "checkout-sdk",
+          "file": "src/providers/paypal/paypal-provider.service.ts",
+          "line": 195,
+          "use": "live",
+          "request": "payments.CapturesRefundRequest",
+          "client": "this.client.execute",
+          "method": "POST",
+          "hosts": [],
+          "path": "/v2/payments/captures/{capture_id}/refund",
+          "operation": {
+            "document": "payments_payment_v2.json",
+            "operationId": "captures.refund"
+          },
+          "counterpart": [
+            "PaymentsController.refundCapturedPayment"
+          ],
+          "notes": [],
+          "unknown": [],
+          "text": "const request = new paypal.payments.CapturesRefundRequest(paymentId);"
+        }
+      ]
+    },
+    {
+      "repo": "zelavis/zelavis",
+      "commit": "610818dc690ba5bf37b7bd80ba1085e4f1c450c4",
+      "directory": "zelavis-services/ecommerce/plugins/paypal",
+      "packages": [
+        {
+          "name": "@paypal/paypal-server-sdk",
+          "file": "package.json",
+          "declared": "^2.5.0",
+          "locked": null,
+          "deprecated": null
+        }
+      ],
+      "calls": [
+        {
+          "kind": "server-sdk",
+          "file": "src/paypal-service.ts",
+          "line": 493,
+          "use": "live",
+          "request": "OrdersController.createOrder",
+          "client": "OrdersController.createOrder",
+          "method": "POST",
+          "hosts": [],
+          "path": "/v2/checkout/orders",
+          "operation": {
+            "document": "checkout_orders_v2.json",
+            "operationId": "orders.create"
+          },
+          "counterpart": [
+            "OrdersController.createOrder"
+          ],
+          "notes": [],
+          "unknown": [
+            "no locked or exact @paypal/paypal-server-sdk version, so whether the release defines `createOrder` is not checked"
+          ],
+          "text": "const response = await orders.createOrder({"
+        },
+        {
+          "kind": "server-sdk",
+          "file": "src/paypal-service.ts",
+          "line": 508,
+          "use": "live",
+          "request": "OrdersController.captureOrder",
+          "client": "OrdersController.captureOrder",
+          "method": "POST",
+          "hosts": [],
+          "path": "/v2/checkout/orders/{id}/capture",
+          "operation": {
+            "document": "checkout_orders_v2.json",
+            "operationId": "orders.capture"
+          },
+          "counterpart": [
+            "OrdersController.captureOrder"
+          ],
+          "notes": [],
+          "unknown": [
+            "no locked or exact @paypal/paypal-server-sdk version, so whether the release defines `captureOrder` is not checked"
+          ],
+          "text": "const response = await orders.captureOrder({"
+        },
+        {
+          "kind": "server-sdk",
+          "file": "src/paypal-service.ts",
+          "line": 531,
+          "use": "live",
+          "request": "PaymentsController.refundCapturedPayment",
+          "client": "PaymentsController.refundCapturedPayment",
+          "method": "POST",
+          "hosts": [],
+          "path": "/v2/payments/captures/{captureId}/refund",
+          "operation": {
+            "document": "payments_payment_v2.json",
+            "operationId": "captures.refund"
+          },
+          "counterpart": [
+            "PaymentsController.refundCapturedPayment"
+          ],
+          "notes": [],
+          "unknown": [
+            "no locked or exact @paypal/paypal-server-sdk version, so whether the release defines `refundCapturedPayment` is not checked"
+          ],
+          "text": "const response = await payments.refundCapturedPayment({"
+        }
+      ]
+    },
+    {
+      "repo": "zakariaelas/medusa",
+      "commit": "f655ce171ca008ea7032ba1999cbf6f4625f912d",
+      "directory": "packages/medusa-payment-paypal",
+      "packages": [
+        {
+          "name": "@paypal/checkout-server-sdk",
+          "file": "package.json",
+          "declared": "^1.0.2",
+          "locked": null,
+          "deprecated": "Package no longer supported. The author suggests using the @paypal/paypal-server-sdk package instead: https://www.npmjs.com/package/@paypal/paypal-server-sdk. Contact Support at https://www.npmjs.com/support for more info."
+        }
+      ],
+      "calls": [
+        {
+          "kind": "checkout-sdk",
+          "file": "src/services/paypal-provider.js",
+          "line": 99,
+          "use": "live",
+          "request": "orders.OrdersCreateRequest",
+          "client": "this.paypal_.execute",
+          "method": "POST",
+          "hosts": [],
+          "path": "/v2/checkout/orders",
+          "operation": {
+            "document": "checkout_orders_v2.json",
+            "operationId": "orders.create"
+          },
+          "counterpart": [
+            "OrdersController.createOrder"
+          ],
+          "notes": [],
+          "unknown": [],
+          "text": "const request = new PayPal.orders.OrdersCreateRequest()"
+        },
+        {
+          "kind": "checkout-sdk",
+          "file": "src/services/paypal-provider.js",
+          "line": 131,
+          "use": "live",
+          "request": "orders.OrdersGetRequest",
+          "client": "this.paypal_.execute",
+          "method": "GET",
+          "hosts": [],
+          "path": "/v2/checkout/orders/{order_id}",
+          "operation": {
+            "document": "checkout_orders_v2.json",
+            "operationId": "orders.get"
+          },
+          "counterpart": [
+            "OrdersController.getOrder"
+          ],
+          "notes": [],
+          "unknown": [],
+          "text": "const request = new PayPal.orders.OrdersGetRequest(data.id)"
+        },
+        {
+          "kind": "checkout-sdk",
+          "file": "src/services/paypal-provider.js",
+          "line": 197,
+          "use": "live",
+          "request": "orders.OrdersPatchRequest",
+          "client": "this.paypal_.execute",
+          "method": "PATCH",
+          "hosts": [],
+          "path": "/v2/checkout/orders/{order_id}",
+          "operation": {
+            "document": "checkout_orders_v2.json",
+            "operationId": "orders.patch"
+          },
+          "counterpart": [
+            "OrdersController.patchOrder"
+          ],
+          "notes": [],
+          "unknown": [],
+          "text": "const request = new PayPal.orders.OrdersPatchRequest(sessionData.id)"
+        },
+        {
+          "kind": "checkout-sdk",
+          "file": "src/services/paypal-provider.js",
+          "line": 240,
+          "use": "live",
+          "request": "payments.AuthorizationsCaptureRequest",
+          "client": "this.paypal_.execute",
+          "method": "POST",
+          "hosts": [],
+          "path": "/v2/payments/authorizations/{authorization_id}/capture",
+          "operation": {
+            "document": "payments_payment_v2.json",
+            "operationId": "authorizations.capture"
+          },
+          "counterpart": [
+            "PaymentsController.captureAuthorizedPayment"
+          ],
+          "notes": [],
+          "unknown": [],
+          "text": "const request = new PayPal.payments.AuthorizationsCaptureRequest(id)"
+        },
+        {
+          "kind": "checkout-sdk",
+          "file": "src/services/paypal-provider.js",
+          "line": 264,
+          "use": "live",
+          "request": "payments.CapturesRefundRequest",
+          "client": "this.paypal_.execute",
+          "method": "POST",
+          "hosts": [],
+          "path": "/v2/payments/captures/{capture_id}/refund",
+          "operation": {
+            "document": "payments_payment_v2.json",
+            "operationId": "captures.refund"
+          },
+          "counterpart": [
+            "PaymentsController.refundCapturedPayment"
+          ],
+          "notes": [],
+          "unknown": [],
+          "text": "const request = new PayPal.payments.CapturesRefundRequest(payId)"
+        },
+        {
+          "kind": "checkout-sdk",
+          "file": "src/services/paypal-provider.js",
+          "line": 303,
+          "use": "live",
+          "request": "payments.CapturesRefundRequest",
+          "client": "this.paypal_.execute",
+          "method": "POST",
+          "hosts": [],
+          "path": "/v2/payments/captures/{capture_id}/refund",
+          "operation": {
+            "document": "payments_payment_v2.json",
+            "operationId": "captures.refund"
+          },
+          "counterpart": [
+            "PaymentsController.refundCapturedPayment"
+          ],
+          "notes": [],
+          "unknown": [],
+          "text": "const request = new PayPal.payments.CapturesRefundRequest(payId)"
+        },
+        {
+          "kind": "checkout-sdk",
+          "file": "src/services/paypal-provider.js",
+          "line": 307,
+          "use": "live",
+          "request": "payments.AuthorizationsVoidRequest",
+          "client": "this.paypal_.execute",
+          "method": "POST",
+          "hosts": [],
+          "path": "/v2/payments/authorizations/{authorization_id}/void",
+          "operation": {
+            "document": "payments_payment_v2.json",
+            "operationId": "authorizations.void"
+          },
+          "counterpart": [
+            "PaymentsController.voidPayment"
+          ],
+          "notes": [],
+          "unknown": [],
+          "text": "const request = new PayPal.payments.AuthorizationsVoidRequest(id)"
+        },
+        {
+          "kind": "checkout-sdk",
+          "file": "src/services/paypal-provider.js",
+          "line": 327,
+          "use": "live",
+          "request": "orders.OrdersGetRequest",
+          "client": "this.paypal_.execute",
+          "method": "GET",
+          "hosts": [],
+          "path": "/v2/checkout/orders/{order_id}",
+          "operation": {
+            "document": "checkout_orders_v2.json",
+            "operationId": "orders.get"
+          },
+          "counterpart": [
+            "OrdersController.getOrder"
+          ],
+          "notes": [],
+          "unknown": [],
+          "text": "const orderReq = new PayPal.orders.OrdersGetRequest(orderId)"
+        },
+        {
+          "kind": "checkout-sdk",
+          "file": "src/services/paypal-provider.js",
+          "line": 341,
+          "use": "live",
+          "request": "payments.AuthorizationsGetRequest",
+          "client": "this.paypal_.execute",
+          "method": "GET",
+          "hosts": [],
+          "path": "/v2/payments/authorizations/{authorization_id}",
+          "operation": {
+            "document": "payments_payment_v2.json",
+            "operationId": "authorizations.get"
+          },
+          "counterpart": [
+            "PaymentsController.getAuthorizedPayment"
+          ],
+          "notes": [],
+          "unknown": [],
+          "text": "const authReq = new PayPal.payments.AuthorizationsGetRequest(id)"
+        }
+      ]
+    }
+  ]
+}
