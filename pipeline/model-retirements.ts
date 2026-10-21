@@ -578,9 +578,12 @@ interface Pass {
   node: ts.Node;
   // The identifier that read the symbol, one of its uses.
   use: ts.MemberName;
-  kind: 'constant' | 'enum member' | 'field' | 'function';
+  kind: 'constant' | 'enum member' | 'field' | 'function' | 'parameter' | 'binding';
   name: string;
   at: string;
+  // For a parameter or binding: the property path read from it. A read of another property does
+  // not change the model.
+  keys?: string[];
 }
 
 interface Site {
@@ -691,7 +694,16 @@ function inType(node: ts.Node) {
 function sharedUse(program: SourceProgram, passes: Pass[], reached: Set<ts.Node>) {
   for (const pass of [...passes].reverse()) {
     const all = program.usesOf(pass.symbol);
-    const uses = all.filter((use) => !inType(use));
+    const uses = all.filter(
+      (use) =>
+        !inType(use) &&
+        !(
+          pass.keys?.length &&
+          ts.isPropertyAccessExpression(use.parent) &&
+          use.parent.expression === use &&
+          use.parent.name.text !== pass.keys[0]
+        ),
+    );
     if (!uses.includes(pass.use) || uses.some((use) => !reached.has(use)))
       return `The model comes from the ${pass.kind} ${pass.name} (${pass.at}), which is used ${all.length} times; change it by hand to`;
   }
@@ -813,9 +825,17 @@ function declarationValues(
       ),
     );
   }
-  if (ts.isBindingElement(declaration)) return bindingValues(program, declaration, trace, keys);
+  // Every other read of a parameter or binding must be a request too (WR-01).
+  if (ts.isBindingElement(declaration))
+    return through(
+      { ...pass(ts.isParameter(root(declaration)) ? 'parameter' : 'binding', declaration), keys },
+      bindingValues(program, declaration, trace, keys),
+    );
   if (ts.isParameter(declaration) && !member)
-    return parameterValues(program, declaration, trace, keys);
+    return through(
+      { ...pass('parameter', declaration), keys },
+      parameterValues(program, declaration, trace, keys),
+    );
   // A field: its initializer, a constructor parameter property and every `this.name = value`.
   const assignments = program.assignmentsOf(symbol);
   if (
@@ -838,6 +858,13 @@ function declarationValues(
     for (const assigned of assignments) found.push(...valuesOf(program, assigned, owner, keys));
     return through(pass('field', declaration), found);
   });
+}
+
+// The parameter or variable declaration a binding pattern belongs to.
+function root(element: ts.BindingElement) {
+  let node: ts.Node = element;
+  while (ts.isBindingElement(node)) node = node.parent.parent;
+  return node;
 }
 
 // `{ model = 'gpt-4' }` and `{ options: { model } }`: the default, and the property of whatever

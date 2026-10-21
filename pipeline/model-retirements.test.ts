@@ -1203,3 +1203,71 @@ it('counts uses written under another name before editing a shared constant (CR-
     ]);
   }
 });
+
+it('stops when another read of the parameter an edited default or caller literal feeds is not a request (WR-01)', async () => {
+  const root = await repository({
+    'src/default.ts': [
+      ...HEAD,
+      "export function ask(m: string, model = 'gpt-4') {",
+      "  if (model === 'gpt-4') console.log('legacy');",
+      '  return openai.chat.completions.create({ model, messages: [] });',
+      '}',
+    ].join('\n'),
+    'src/caller.ts': [
+      ...HEAD,
+      'export function ask(model: string) {',
+      "  if (model === 'gpt-4') console.log('legacy');",
+      '  return openai.chat.completions.create({ model, messages: [] });',
+      '}',
+      "ask('gpt-4');",
+    ].join('\n'),
+    'src/destructured.ts': [
+      ...HEAD,
+      "export function ask({ model = 'gpt-4', label }: { model?: string; label?: string }) {",
+      '  console.log(model);',
+      '  return openai.chat.completions.create({ model, messages: [] });',
+      '}',
+    ].join('\n'),
+    // Reading another property of an options object does not change the model.
+    'src/options.ts': [
+      ...HEAD,
+      'export function ask(options: { model?: string; label?: string }) {',
+      '  console.log(options.label);',
+      '  return openai.chat.completions.create({ model: options.model, messages: [] });',
+      '}',
+      "ask({ model: 'o1-mini', label: 'x' });",
+    ].join('\n'),
+    'src/leaked.ts': [
+      ...HEAD,
+      'export function ask(options: { model?: string }) {',
+      '  console.log(options);',
+      '  return openai.chat.completions.create({ model: options.model, messages: [] });',
+      '}',
+      "ask({ model: 'gpt-4' });",
+    ].join('\n'),
+  });
+  const proposal = await proposeModelReplacements(root, registry, NOW);
+  expect(edited(proposal)).toEqual(['src/options.ts:7 o1-mini']);
+  expect(proposal.stops.map((item) => [item.file, item.at.line, item.reason]).sort()).toEqual([
+    [
+      'src/caller.ts',
+      7,
+      'The model comes from the parameter model (src/caller.ts:3), which is used 2 times; change it by hand to gpt-5.6-sol.',
+    ],
+    [
+      'src/default.ts',
+      3,
+      'The model comes from the parameter model (src/default.ts:3), which is used 2 times; change it by hand to gpt-5.6-sol.',
+    ],
+    [
+      'src/destructured.ts',
+      3,
+      'The model comes from the parameter model (src/destructured.ts:3), which is used 2 times; change it by hand to gpt-5.6-sol.',
+    ],
+    [
+      'src/leaked.ts',
+      7,
+      'The model comes from the parameter options (src/leaked.ts:3), which is used 2 times; change it by hand to gpt-5.6-sol.',
+    ],
+  ]);
+});
