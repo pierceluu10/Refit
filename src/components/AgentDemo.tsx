@@ -286,7 +286,6 @@ export function AgentDemo({ tone = 'light' }: { tone?: 'light' | 'dark' }) {
               attached
             </li>
           </ul>
-          <span className="agent-pr-foot">Waiting for your review. Refit never merges.</span>
         </div>
 
         <div
@@ -303,7 +302,6 @@ export function AgentDemo({ tone = 'light' }: { tone?: 'light' | 'dark' }) {
         </div>
       </div>
       <div className="agent-meta">
-        <span>Illustrative example</span>
         {!reduced && (
           <button
             type="button"

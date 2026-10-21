@@ -1,12 +1,13 @@
 import { useEffect, useRef } from 'react';
 import type { CSSProperties, PointerEvent } from 'react';
+import { MARK_BOX, MARK_PATH } from './Brand';
 
 const RAMP = ' .:-=+*#%@';
 // A cell is one monospace character: 0.6em wide, 1em tall at line-height 1.
 const CELL_WIDTH = 6;
 const CELL_HEIGHT = 10;
 const SAMPLE_FONT = '600 200px "Geist Variable"';
-const WORD = 'refit';
+const WORD = 'Refit';
 const DECODE_MS = 1100;
 const FLICKER_MS = 50;
 const SHIMMER_EVERY_MS = 110;
@@ -17,22 +18,23 @@ function noise(a: number, b: number) {
   return ((((a * 73856093) ^ (b * 19349663)) >>> 0) % 1000) / 1000;
 }
 
-// Draws the Refit mark (two 19-unit brackets, 7 units thick, on a 28-unit square), optionally
-// followed by the wordmark, then samples the ink in each character cell.
+// Draws the Refit mark (the favicon's two brackets), optionally followed by the wordmark, then
+// samples the ink in each character cell.
 function rasterize(columns: number, withWord: boolean) {
   const probe = document.createElement('canvas').getContext('2d');
   if (!probe) return null;
   probe.font = SAMPLE_FONT;
   const metrics = probe.measureText(WORD);
   const ascent = metrics.actualBoundingBoxAscent;
+  // With the word, the mark is as tall as its tallest letter.
   const mark = withWord ? ascent : 200;
+  const markWidth = (mark * MARK_BOX.width) / MARK_BOX.height;
   const gap = mark * 0.32;
   const wordWidth = withWord ? metrics.actualBoundingBoxLeft + metrics.actualBoundingBoxRight : 0;
-  const naturalWidth = mark + (withWord ? gap + wordWidth : 0);
+  const naturalWidth = markWidth + (withWord ? gap + wordWidth : 0);
 
   const width = columns * CELL_WIDTH;
   const scale = width / naturalWidth;
-  // Lowercase marks are as tall as the ascenders, so the mark keeps the same height.
   const rows = Math.ceil((mark * scale) / CELL_HEIGHT);
   const canvas = document.createElement('canvas');
   canvas.width = width;
@@ -41,16 +43,15 @@ function rasterize(columns: number, withWord: boolean) {
   context.scale(scale, scale);
   context.fillStyle = '#000';
 
-  const unit = mark / 28;
-  const bar = 7 * unit;
-  const side = 19 * unit;
-  context.fillRect(0, unit, side, bar);
-  context.fillRect(0, unit, bar, side);
-  context.fillRect(9 * unit, 27 * unit - bar, side, bar);
-  context.fillRect(28 * unit - bar, 8 * unit, bar, side);
+  const unit = mark / MARK_BOX.height;
+  context.save();
+  context.scale(unit, unit);
+  context.translate(-MARK_BOX.x, -MARK_BOX.y);
+  context.fill(new Path2D(MARK_PATH));
+  context.restore();
   if (withWord) {
     context.font = SAMPLE_FONT;
-    context.fillText(WORD, mark + gap + metrics.actualBoundingBoxLeft, ascent);
+    context.fillText(WORD, markWidth + gap + metrics.actualBoundingBoxLeft, ascent);
   }
 
   const pixels = context.getImageData(0, 0, canvas.width, canvas.height).data;

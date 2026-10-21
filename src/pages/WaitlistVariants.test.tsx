@@ -20,7 +20,7 @@ describe('waitlist variants', () => {
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(headline);
     const emails = screen.getAllByLabelText('Work email');
     expect(new Set(emails.map((input) => input.id)).size).toBe(emails.length);
-    expect(screen.getByText('Illustrative example')).toBeVisible();
+    expect(screen.getByText(/^Illustrative example\./).tagName).toBe('FIGCAPTION');
     expect(
       screen.getAllByRole('listitem').map((step) => step.querySelector('h3')?.textContent),
     ).toEqual(expect.arrayContaining(['Detect the change', 'Your review. Your merge.']));

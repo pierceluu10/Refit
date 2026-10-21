@@ -421,12 +421,6 @@
 .agent-demo-dark .agent-pr li svg {
   color: #6fdc9f;
 }
-.agent-pr-foot {
-  display: block;
-  margin-top: 12px;
-  color: var(--demo-muted);
-  font: 11.5px var(--mono);
-}
 .agent-cursor {
   position: absolute;
   top: 0;
@@ -481,7 +475,7 @@
 .agent-meta {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   margin-top: 12px;
   color: var(--muted);
   font: 11.5px var(--mono);
