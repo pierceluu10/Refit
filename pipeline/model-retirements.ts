@@ -256,16 +256,44 @@ function sourceProgram(repository: Repository) {
     string,
     { uses: Map<ts.Symbol, ts.MemberName[]>; assigns: Map<ts.Symbol, ts.Expression[]> }
   >();
+  // A default export's symbol is named `default`, while its uses are written with the local name
+  // it is declared under or imported as.
+  let defaultNames: Set<string> | undefined;
+  const defaultImports = () => {
+    if (!defaultNames) {
+      defaultNames = new Set();
+      for (const source of files)
+        for (const statement of source.statements)
+          if (ts.isImportDeclaration(statement) && statement.importClause?.name)
+            defaultNames.add(statement.importClause.name.text);
+    }
+    return defaultNames;
+  };
   // A private field's symbol is named `__#1@#model`; its identifier text is `#model`.
   const indexOf = (symbol: ts.Symbol) => {
     const name = symbol.name.replace(/^__#\d+@/, '');
     let index = byName.get(name);
     if (!index) {
       index = { uses: new Map(), assigns: new Map() };
+      const names =
+        name === 'default'
+          ? new Set([
+              ...defaultImports(),
+              ...files.flatMap((source) =>
+                source.statements.flatMap((statement) =>
+                  (ts.isFunctionDeclaration(statement) || ts.isClassDeclaration(statement)) &&
+                  statement.name &&
+                  statement.modifiers?.some((item) => item.kind === ts.SyntaxKind.DefaultKeyword)
+                    ? [statement.name.text]
+                    : [],
+                ),
+              ),
+            ])
+          : new Set([name]);
       for (const source of files) {
-        if (!source.text.includes(name)) continue;
+        if (![...names].some((item) => source.text.includes(item))) continue;
         const visit = (node: ts.Node) => {
-          if ((ts.isIdentifier(node) || ts.isPrivateIdentifier(node)) && node.text === name) {
+          if ((ts.isIdentifier(node) || ts.isPrivateIdentifier(node)) && names.has(node.text)) {
             const assignment = assignmentTarget(node);
             const resolved =
               assignment ||
@@ -832,7 +860,8 @@ function parameterValues(
   if (!name || !symbol) return found;
   const helperName = `${name.text} (${where(program, name)})`;
   const callers = { ...trace, ctx: undefined };
-  const stopAll = (reason: string) => found.forEach((site) => (site.stop ??= reason));
+  // Applied to every terminal after the loop, so the result does not depend on the order of uses.
+  let stopped: string | undefined;
   for (const use of program.usesOf(symbol)) {
     if (ts.isTypeReferenceNode(use.parent)) continue;
     const callee =
@@ -843,18 +872,17 @@ function parameterValues(
       call.expression !== callee
     ) {
       // Passed as a value, the helper may be called with any model.
-      stopAll(`The helper ${helperName} is also passed as a value; change its model by hand to`);
+      stopped ??= `The helper ${helperName} is also passed as a value; change its model by hand to`;
       continue;
     }
     const args = call.arguments ?? [];
     if (args.slice(0, index + 1).some((argument) => ts.isSpreadElement(argument))) {
-      stopAll(
-        `The helper ${helperName} is called with spread arguments; change its model by hand to`,
-      );
+      stopped ??= `The helper ${helperName} is called with spread arguments; change its model by hand to`;
       continue;
     }
     if (args[index]) found.push(...valuesOf(program, args[index], callers, keys));
   }
+  if (stopped) for (const site of found) site.stop ??= stopped;
   return found;
 }
 

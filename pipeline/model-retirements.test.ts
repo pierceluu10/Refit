@@ -1003,3 +1003,83 @@ it('edits a shared source only when every use is a traced request that allows it
   );
   expect(edited(proposal)).toEqual(['src/type-use.ts:3 o1-mini']);
 });
+
+it('follows helper and method parameters to every caller site, including default exports', async () => {
+  const root = await repository({
+    // Two caller literals on one line, and a method called through `this`.
+    'src/ask.ts': [
+      ...HEAD,
+      `export function ask(messages: any[], model = 'gpt-4') { return ${send('model')} }`,
+      "ask([], 'o1-mini'); ask([], 'gpt-4');",
+      'export class Runner {',
+      `  run(model = 'gpt-4') { return ${send('model')} }`,
+      "  go() { return this.run('o1-mini'); }",
+      '}',
+    ].join('\n'),
+    // No callers: only the default.
+    'src/lonely.ts': [
+      ...HEAD,
+      `export function lonely(model = 'gpt-4') { return ${send('model')} }`,
+    ].join('\n'),
+    'src/default-fn.ts': [
+      ...HEAD,
+      `export default function renamed(m: any[], model = 'gpt-4') { return ${send('model')} }`,
+    ].join('\n'),
+    'src/use-default-fn.ts': ["import ask from './default-fn';", "ask([], 'o1-mini');"].join('\n'),
+    'src/default-class.ts': [
+      ...HEAD,
+      'export default class Chat {',
+      "  constructor(private model = 'gpt-4') {}",
+      `  ask() { return ${send('this.model')} }`,
+      '}',
+    ].join('\n'),
+    'src/use-default-class.ts': [
+      "import Chat from './default-class';",
+      "new Chat('o1-mini');",
+    ].join('\n'),
+  });
+  const proposal = await proposeModelReplacements(root, registry, NOW);
+  expect(proposal.stops).toEqual([]);
+  expect(edited(proposal)).toEqual([
+    'src/ask.ts:3 gpt-4',
+    'src/ask.ts:4 gpt-4',
+    'src/ask.ts:4 o1-mini',
+    'src/ask.ts:6 gpt-4',
+    'src/ask.ts:7 o1-mini',
+    'src/default-class.ts:4 gpt-4',
+    'src/default-fn.ts:3 gpt-4',
+    'src/lonely.ts:3 gpt-4',
+    'src/use-default-class.ts:2 o1-mini',
+    'src/use-default-fn.ts:2 o1-mini',
+  ]);
+  // Both literals on one line are edited and the patch applies.
+  await execute('git', ['init', '-q', root]);
+  await writeFile(join(root, 'model.patch'), proposal.patch!);
+  await execute('git', ['-C', root, 'apply', 'model.patch']);
+  expect(await readFile(join(root, 'src/ask.ts'), 'utf8')).toContain(
+    "ask([], 'gpt-5.6-terra'); ask([], 'gpt-5.6-sol');",
+  );
+});
+
+it('applies by-value helper stops regardless of file order', async () => {
+  // The by-value use sits before the caller in one layout and after it in the other.
+  const ask = `export function ask(messages: any[], model = 'gpt-4') { return ${send('model')} }`;
+  const layouts = [
+    [ask, 'export const handlers = [ask];', "ask([], 'o1-mini');"],
+    [ask, "ask([], 'o1-mini');", 'export const handlers = [ask];'],
+  ];
+  const results: string[][] = [];
+  for (const lines of layouts) {
+    const root = await repository({ 'src/ask.ts': [...HEAD, ...lines].join('\n') });
+    const proposal = await proposeModelReplacements(root, registry, NOW);
+    expect(proposal.replacements).toEqual([]);
+    expect(proposal.patch).toBeNull();
+    results.push(proposal.stops.map((item) => `${item.model} ${item.reason}`).sort());
+  }
+  const stop = (model: string, to: string) =>
+    `${model} The helper ask (src/ask.ts:3) is also passed as a value; change its model by hand to ${to}.`;
+  expect(results[0]).toEqual(
+    [stop('gpt-4', 'gpt-5.6-sol'), stop('o1-mini', 'gpt-5.6-terra')].sort(),
+  );
+  expect(results[1]).toEqual(results[0]);
+});
