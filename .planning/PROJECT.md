@@ -63,7 +63,7 @@ A retiring model ID in real application code is traced to the exact call and rep
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
 | Labels are a single AI-assisted pass | User choice 2026-10-21; matches the Meta label precedent | — Pending |
-| Parameter stops lift only with a provider page proving the replacement accepts the parameter | Owner delegated the call 2026-10-21; keeps the never-wrong bar while unblocking most stops | — Pending |
+| Parameter stops lift only with a provider page proving the replacement accepts the parameter | Owner delegated the call 2026-10-21; keeps the never-wrong bar while unblocking most stops | Implemented in Phase 2 (2026-10-21); pending owner review on the phase PR |
 | New application sets from GitHub code search; npm sets kept as library baselines | Fix-rate target needs applications; keeping old sets preserves comparable history | — Pending |
 | Deterministic only, no paid AI calls in the benchmark | The rule makes no AI calls; spend would not change the score | — Pending |
 | A shared constant/field/helper is editable only when every use is a traced request that allows the edit | Precision improvement found in Phase 1 scouting; every use is checked, so no safety gate is relaxed | Implemented in Phase 1 (2026-10-21); pending owner review on the phase PR |

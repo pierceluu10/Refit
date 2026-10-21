@@ -1,5 +1,16 @@
 # Refit implementation checkpoints
 
+## October 21 checkpoint: sourced parameter stops (unreleased, after 0.39.0)
+
+The model-replacement rule can now continue past a sampling or length stop where an official page read by a person proves the replacement accepts that parameter with that literal value. Decision recorded in AGENTS.md, pending the repository owner's review on the phase PR.
+
+- **Table.** `data/model-parameters.json` holds sourced entries, each with an official `source`, a `checkedAt` date and, for defaults, a `defaultSource`. `npm run model-parameters:check` rejects the whole file on any error, and a table that fails to load stops model fixes.
+- **What continues.** Only a literal `temperature: 1` on a `claude-sonnet-5-5` replacement. Each parameter is verified separately.
+- **What keeps stopping.** All OpenAI sampling and length parameters, `top_p` on any Anthropic model, `top_k`, Claude Opus 4.8 replacements, renamed parameters (never rewritten), and non-literal values. Replacements with no entry behave as before.
+- **Review.** The repository owner reviews the decision and the stop sentences on the phase PR.
+
+Evidence is fixture tests and the pages read; no live provider was called. Measured fix rates come in a later phase.
+
 ## October 21 checkpoint: live exposure and model tracing (unreleased, after 0.39.0)
 
 `refit deadlines` no longer counts model catalogs and prose as live exposure, and the model-replacement rule follows more indirect model sources. Decision recorded in AGENTS.md, pending the repository owner's review on the phase PR. See [Deadlines](DEADLINES.md).
