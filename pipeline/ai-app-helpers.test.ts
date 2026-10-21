@@ -342,6 +342,16 @@ it('validates labels', () => {
     );
 });
 
+it('rejects label identity fields of the wrong type and non-object labels', () => {
+  const run = (label: unknown) =>
+    validateLabels([candidate], [label as Record<string, unknown>], ['x']).map((e) => e.kind);
+  expect(run({ ...good, line: '3' })).toContain('identity-type');
+  expect(run({ ...good, column: '5' })).toContain('identity-type');
+  expect(run({ ...good, file: 1 })).toContain('identity-type');
+  expect(run({ ...good, model: ['gpt-4-turbo'] })).toContain('identity-type');
+  expect(run(null)).toContain('label-shape');
+});
+
 it('seededSample is deterministic, sorted-input independent and ceil-sized', () => {
   const keys = Array.from({ length: 100 }, (_, i) => `k${i}`);
   const a = seededSample(keys, 7, 0.1);

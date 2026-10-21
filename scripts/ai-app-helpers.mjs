@@ -330,9 +330,24 @@ export function validateLabels(candidates, labels, contextLines = []) {
   const seen = new Set();
   const allowed = new Set(LABEL_KEYS);
   for (const label of labels) {
+    if (label === null || typeof label !== 'object' || Array.isArray(label)) {
+      errors.push({ key: 'non-object', kind: 'label-shape' });
+      continue;
+    }
     const id = labelId(label);
     const where = `${label.file}:${label.line}:${label.column}`;
     const fail = (kind) => errors.push({ key: where, kind });
+    const typed =
+      typeof label.repo === 'string' &&
+      typeof label.provider === 'string' &&
+      typeof label.file === 'string' &&
+      typeof label.model === 'string' &&
+      Number.isInteger(label.line) &&
+      Number.isInteger(label.column);
+    if (!typed) {
+      fail('identity-type');
+      continue;
+    }
     if (!wanted.has(id)) {
       fail('extra');
       continue;

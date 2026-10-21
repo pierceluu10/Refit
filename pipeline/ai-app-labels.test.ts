@@ -307,3 +307,20 @@ it('refuses to merge when a candidate lacks exactly one label', async () => {
   expect(result.stderr).toContain('label/candidate mismatch');
   await expect(readFile(out)).rejects.toThrow();
 });
+
+it('takes identity fields from the candidate, never from the label', async () => {
+  const out = join(dir, 'identity.json');
+  const batch = JSON.parse(await readFile(join(dir, 'labels', 'batch-01.json'), 'utf8'));
+  const labels = JSON.parse(await readFile(join(dir, 'labels', 'labels-01.json'), 'utf8'));
+  labels.labels[0].line = String(labels.labels[0].line);
+  const bad = join(dir, 'identity-batches');
+  await mkdir(bad, { recursive: true });
+  await writeFile(join(bad, 'batch-01.json'), JSON.stringify(batch));
+  await writeFile(join(bad, 'labels-01.json'), JSON.stringify(labels));
+  const args = mergeArgs(out);
+  args[3] = bad;
+  const result = await node(labelsScript, args);
+  expect(result.code).toBe(1);
+  expect(result.stderr).toContain('identity-type');
+  await expect(readFile(out)).rejects.toThrow();
+});

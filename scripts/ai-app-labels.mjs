@@ -278,7 +278,7 @@ const repos = candidates.repos.map((entry) => ({
   provider: entry.provider,
   commit: entry.commit,
   labels: entry.candidates.map((candidate) => {
-    const merged = { ...candidate, ...labelByKey.get(key(candidate)) };
+    const merged = { ...labelByKey.get(key(candidate)), ...candidate };
     return Object.fromEntries(COMMITTED_KEYS.filter((k) => k in merged).map((k) => [k, merged[k]]));
   }),
 }));
