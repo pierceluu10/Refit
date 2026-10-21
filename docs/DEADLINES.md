@@ -1,6 +1,6 @@
 # API deadlines
 
-Providers retire API versions and models on published dates. Refit keeps a reviewed registry of those dates, finds where a repository pins an affected version or model, and can alert the repository before the date. Alerts are advice: they never change code. A migration still runs only through the normal flow, with the same approval, validation and draft pull request gates.
+Providers retire API versions and models, and end support for SDK packages, on published dates. Refit keeps a reviewed registry of those dates, finds where a repository pins an affected version or model or declares an affected package, and can alert the repository before the date. Alerts are advice: they never change code. A migration still runs only through the normal flow, with the same approval, validation and draft pull request gates.
 
 ## The registry
 
@@ -20,7 +20,7 @@ Providers retire API versions and models on published dates. Refit keeps a revie
 }
 ```
 
-It covers four providers, each checked against its own documentation:
+It covers five providers, each checked against its own documentation:
 
 | Provider | Covers | Source |
 |---|---|---|
@@ -28,6 +28,9 @@ It covers four providers, each checked against its own documentation:
 | Meta | Graph API v13.0 to v25.0 and when each stops being available, checked 2026-10-15 | [Graph API changelog](https://developers.facebook.com/docs/graph-api/changelog) |
 | OpenAI | Model shutdowns from July 2025 to April 2027, checked 2026-10-15 | [Deprecations](https://developers.openai.com/api/docs/deprecations) |
 | Anthropic | Claude API model retirements from November 2024 to November 2026, checked 2026-10-20 | [Model deprecations](https://platform.claude.com/docs/en/about-claude/model-deprecations) |
+| Gemini | Only the end of support for the old `@google/generative-ai` package, 2025-11-30, checked 2026-10-21. No Gemini model dates yet: Google's deprecations page on ai.google.dev could not be reached from Refit's build environment, and no date is entered from memory | [deprecated-generative-ai-js README](https://github.com/google-gemini/deprecated-generative-ai-js/blob/main/README.md) |
+
+An entry's `kind` is `api-version`, `model` or `sdk`. An `sdk` entry lists npm package names in `versions`: the date is when the provider ends support for those packages, not when its API stops answering, and its summary says which.
 
 Past-due entries stay in the registry on purpose: a repository still pinning a retired version is the most urgent case. To change the registry, edit the file from the provider's page, set `checkedAt` to the day you checked, and run:
 
@@ -50,7 +53,7 @@ The sync groups the page's rows by retirement date and replacement, one registry
 
 The repository's `Deadline registry sync` workflow (`.github/workflows/deadlines-sync.yml`) runs the sync every day and opens a pull request when the registry should change, unless a sync pull request is already open. Nothing is merged automatically. It needs **Allow GitHub Actions to create and approve pull requests** enabled in the repository's Actions settings. A pull request opened with the workflow's token does not start CI by itself, so push a commit or re-run CI on it before merging.
 
-Other providers' entries are still maintained by hand: OpenAI's deprecations page could not be read from Refit's build environment, and Shopify and Meta publish prose, not tables.
+Other providers' entries are still maintained by hand: OpenAI's deprecations page could not be read from Refit's build environment, and Shopify and Meta publish prose, not tables. There is no Gemini sync: its page could not be read either, so a parser could not be written against its real layout.
 
 ## Check a repository
 
@@ -63,6 +66,8 @@ Each exposure lists the deadline, days left, the replacement, the source and `fi
 
 - **OpenAI:** a quoted string that equals a registry model ID exactly, such as `'gpt-4'`. `'gpt-4o'` does not match `gpt-4`. A string passed to a tokenizer (`encoding_for_model`) or a prefix or membership check (`startsWith`, `endsWith`, `includes`, `indexOf`) is not a pin. Model lists, tests and other uses are classified [below](#live-and-non-live-evidence).
 - **Anthropic:** a quoted string that equals a Claude API model ID in the registry exactly, such as `'claude-3-7-sonnet-20250219'`, with the same use classes as OpenAI. The registry lists the dated IDs from Anthropic's page plus the `claude-sonnet-4-5` alias, which Anthropic documents as pointing to the retiring snapshot. Amazon Bedrock IDs (`anthropic.claude-…-v1:0`) and Google Cloud IDs (`claude-…@20250929`) do not match: those platforms set their own retirement dates.
+- **Gemini:** a quoted string that equals a Gemini API model ID in the registry exactly, such as `'gemini-1.5-flash'`, or the same ID after `models/`, which both Gemini SDKs send as the same model. It has the same use classes as OpenAI. This covers both SDK shapes, `ai.models.generateContent({ model })` on `@google/genai` and `genAI.getGenerativeModel({ model })` on `@google/generative-ai`, and any other place the ID is written. Router IDs (`google/gemini-…`), Vertex AI resource names (`publishers/google/models/gemini-…`) and other snapshots do not match. The registry has no Gemini model entries yet, so this matcher finds nothing with the shipped registry until someone adds dated entries from Google's page.
+- **SDK end of support:** a `package.json` that declares a registry `sdk` package, such as `@google/generative-ai`, in any dependency section, read only when some source file names the package. Its line in the manifest is the evidence, with the locked version. A manifest in a test or example path is listed as `test`.
 - **Shopify:** `/admin/api/2025-10` URLs, with or without a path after the version, and `ApiVersion.October25`. It also matches `apiVersion: '2025-10'`, but only in files that import a Shopify package or name `myshopify.com`, so a Stripe `apiVersion` is not mistaken for one.
 - **Meta Graph API:** `graph.facebook.com/v20.0/` URLs, and quoted `'v20.0'` strings in files that use the Graph API. It also reads `facebook-nodejs-business-sdk` from manifests and lockfiles, since SDK release 20.x targets v20.0 and a locked version wins over the declared range.
 - **Refit configuration:** an integration's `apiVersion` in `.refit.json` whose adapter covers one of these providers.
@@ -74,11 +79,13 @@ Each match is classified by how the code uses it. Only **live** matches make a r
 | Use | What it covers | Providers |
 |---|---|---|
 | `live` | The default: a call argument, a default or env-var fallback, a constant, an alias map's value | all |
-| `catalog` | One entry in a list naming three or more models (an array, enum or tuple, counting OpenAI- and Claude-shaped IDs, with or without an `openai/` or `anthropic/` prefix); any type position, such as a union or `model: 'gpt-4'` in an interface; a table keyed or indexed by model, such as `PRICES['gpt-4']` or `{ 'gpt-4': { input: 30 } }`, and everything inside that entry; an HTML or JSX `<option>` | OpenAI, Anthropic |
-| `test` | Test, spec, story, fixture and example files: `*.test.*`, `*.spec.*`, `*.stories.*`, and `test/`, `tests/`, `__tests__/`, `spec/`, `e2e/`, `cypress/`, `fixtures/`, `examples/` directories | OpenAI, Anthropic |
-| `check` | A comparison, `case 'gpt-4':`, or a prefix or membership call (`startsWith`, `endsWith`, `includes`, `indexOf`) | comparisons: OpenAI, Anthropic; calls: all |
+| `catalog` | One entry in a list naming three or more models (an array, enum or tuple, counting OpenAI- and Claude-shaped IDs, with or without an `openai/` or `anthropic/` prefix, and for a Gemini match also Gemini-shaped IDs); any type position, such as a union or `model: 'gpt-4'` in an interface; a table keyed or indexed by model, such as `PRICES['gpt-4']` or `{ 'gpt-4': { input: 30 } }`, and everything inside that entry; an HTML or JSX `<option>` | OpenAI, Anthropic, Gemini |
+| `test` | Test, spec, story, fixture and example files: `*.test.*`, `*.spec.*`, `*.stories.*`, and `test/`, `tests/`, `__tests__/`, `spec/`, `e2e/`, `cypress/`, `fixtures/`, `examples/` directories | OpenAI, Anthropic, Gemini, SDK manifests |
+| `check` | A comparison, `case 'gpt-4':`, or a prefix or membership call (`startsWith`, `endsWith`, `includes`, `indexOf`) | comparisons: OpenAI, Anthropic, Gemini; calls: all |
 | `tokenizer` | An argument of `encoding_for_model` or `encodingForModel` | all |
 | `comment` | Comments, including JSDoc and commented-out code. Each file is parsed, and anything outside a source token is a comment | all |
+
+Gemini-shaped IDs count toward a list only when the match being classified is a Gemini model, so a list of two OpenAI models and one Gemini model still leaves the OpenAI matches live, as before.
 
 Meta and Shopify matches are classified only as comments, tokenizer arguments and prefix checks. Those were dropped before and are now listed as non-live; nothing else about Meta and Shopify matching changed. On the [benchmark](DEADLINE-BENCHMARK.md) their reported lines were already 100% and 79% live.
 
@@ -181,7 +188,7 @@ refit deadlines --propose-model-fixes --repository /path/to/app
 refit deadlines --propose-model-fixes --output model.patch
 ```
 
-For OpenAI and Anthropic models, Refit can propose the registry replacement as a patch. From the CLI this is a review aid only: nothing is applied, installed, validated or published, and no provider is contacted. The service applies the same rule on its own, with validation and a draft pull request (see [Automatic model fixes](#automatic-model-fixes)).
+For OpenAI and Anthropic models, Refit can propose the registry replacement as a patch. Gemini models and the old Gemini SDK are never proposed, even when an entry names a replacement: widening replacements to a new provider, and swapping `@google/generative-ai` for `@google/genai`, whose call shapes differ, are owner decisions. From the CLI this is a review aid only: nothing is applied, installed, validated or published, and no provider is contacted. The service applies the same rule on its own, with validation and a draft pull request (see [Automatic model fixes](#automatic-model-fixes)).
 
 A replacement is proposed only when all of these hold:
 
@@ -222,7 +229,7 @@ refit serve --env .env --config service.json --state /path/outside/repo \
   --model-fixes --publish-draft
 ```
 
-With `--model-fixes`, the service maintains retiring OpenAI and Anthropic models in every **enrolled** repository without asking first: enrollment with `refit enroll` is the approval. It is off by default. After each poll, for each enrolled repository whose managed checkout synced:
+With `--model-fixes`, the service maintains retiring OpenAI and Anthropic models in every **enrolled** repository without asking first (never Gemini; see above): enrollment with `refit enroll` is the approval. It is off by default. After each poll, for each enrolled repository whose managed checkout synced:
 
 1. Refit applies the [model replacement rule](#propose-model-replacements) to the committed snapshot. Uses that stop for review are never edited.
 2. It runs the repository's approved check command (its `.refit.json` `image`, `command`, `baselineCommand`, `prepareDependencies` and `compareTypeErrors`) before and after the change, in the same offline Docker sandbox and limits as contract migrations.
@@ -238,7 +245,7 @@ Every alert and CLI result states one of three outcomes:
 
 - **Configured:** an integration in the repository's `.refit.json` covers the provider. When the provider publishes the change in the contract Refit monitors, that integration's normal migration run handles it.
 - **Agent available:** Refit ships an agent for the provider, currently OpenAI's preview adapter and the built-in Shopify agent. The alert gives `refit agents --add <id>` and the enrollment steps.
-- **No agent yet:** currently Meta and Anthropic. The alert says so and points to the provider's guide. Anthropic's adapter exists for model replacement proposals, but it is not in the agent catalog because Anthropic publishes no contract that `refit run` could compare.
+- **No agent yet:** currently Meta, Anthropic and Gemini. The alert says so and points to the provider's guide. Anthropic's adapter exists for model replacement proposals, but it is not in the agent catalog because Anthropic publishes no contract that `refit run` could compare.
 
 A deadline starts a code change only through [automatic model fixes](#automatic-model-fixes), which the service runs when `--model-fixes` is on. Every other migration starts from contract changes, approved configuration and the existing gates.
 
@@ -250,6 +257,8 @@ A deadline starts a code change only through [automatic model fixes](#automatic-
 - Live is the default, so some catalogs still count as live. These include lists of one or two models, preset data that repeats one model, catalogs built through function calls such as `modelRef({ … })`, and alias maps or code nobody imports. Code is not traced, so an unused file counts like a used one. On the [benchmark](DEADLINE-BENCHMARK.md), 4 of 23 reported OpenAI lines are of this kind.
 - A match counts as a test or an example from its path alone. A live pin kept under `examples/` or `fixtures/` is listed as non-live.
 - A model ID sent to another provider's OpenAI-compatible endpoint matches the OpenAI deadline. A Claude API model ID sent through Claude Platform on AWS or Microsoft Foundry matches the Anthropic deadline, which Anthropic's page says applies there too.
+- Gemini model retirements are not in the registry, because Google's page could not be read from Refit's build environment. A Gemini model ID sent through Vertex AI (`@google/genai` with `enterprise: true` or `vertexai: true`) would match the same Gemini API entry once one exists, although Google Cloud may set its own dates there (unverified).
+- An `sdk` entry matches a declared package only when some source file names it; a package that is declared but never imported is not reported.
 - Anthropic's page lists dated model IDs. Aliases of models that are already retired, such as `claude-3-5-sonnet-latest`, are not in the registry, because no current Anthropic page documents them; only `claude-sonnet-4-5` is.
 - Evidence is capped at 20 live and 20 non-live matches per deadline, plus a count of the rest.
 - Issues are not closed automatically once the repository stops depending on a deadline.

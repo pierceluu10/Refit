@@ -159,17 +159,38 @@ Built-in agent, 531 benchmark repositories, **74 validated fixes of 234 affected
 
 ## Gemini
 
-**Status today.** Not in the catalog; not started. The only mention is a repository name in the deadline search frame (source: grep, 2026-10-20).
+**Status today.** In the catalog with `adapter: null`, packages `@google/genai` and `@google/generative-ai`, hostname `generativelanguage.googleapis.com` (source: pipeline/agent-catalog.ts, 2026-10-21). One deadline entry: the old package's end of support on 2025-11-30, `kind: "sdk"`, matched against manifests that declare it (source: data/deadlines.json). Gemini model IDs get the OpenAI and Anthropic use classes, including the `models/` prefix, but the registry has **no Gemini model entries**, because Google's deprecations page could not be read (below). `refit deadlines --propose-model-fixes` and `refit serve --model-fixes` never edit Gemini code (pipeline/model-retirements.test.ts). Benchmark: 50 frozen repositories, BENCH_STATUS
 
-**What breaks for its users.** Model retirements with dates, like OpenAI's: unverified: check the official page. The SDK was replaced: `@google/generative-ai` superseded by `@google/genai`, with a support end date: unverified: check. API versions `v1` and `v1beta` in the client options: unverified: check. Machine-readable spec: unverified: check. Changelog: unverified: check.
+**Facts checked 2026-10-21.** Each from an official source read on that day; nothing below comes from memory or a search summary.
 
-**SDK patterns to trace.** Package `@google/genai`: `new GoogleGenAI({ apiKey })`, `ai.models.generateContent({ model, contents })`. Older package `@google/generative-ai`: `new GoogleGenerativeAI(key).getGenerativeModel({ model }).generateContent(...)`. Both are from memory: unverified: check the SDK READMEs. The Vertex AI path uses the same new package with different auth: unverified: check.
+| Fact | Source |
+|---|---|
+| `@google/generative-ai` is legacy: "critical bug fixes only", and "All support for this repository (including bug fixes) will permanently end on **November 30, 2025**"; Google recommends `@google/genai` | [deprecated-generative-ai-js README](https://github.com/google-gemini/deprecated-generative-ai-js/blob/main/README.md), main branch, read through raw.githubusercontent.com |
+| The README shipped in that package's last npm release, 0.24.1 (published 2025-04-29), gave **August 31st, 2025** instead; the npm manifest has no `deprecated` flag | npm registry, `@google/generative-ai` 0.24.1 tarball and manifest |
+| Neither README says requests through the old package stop working; only support ends | both READMEs above |
+| Old shape: `const genAI = new GoogleGenerativeAI(process.env.API_KEY); const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" }); await model.generateContent(...)` | `@google/generative-ai` 0.24.0 README (npm tarball, published 2025-03-07), the last release before the deprecation notice replaced the README; 0.21.0 to 0.23.0 show the same lines |
+| New shape: `import { GoogleGenAI } from '@google/genai'; const ai = new GoogleGenAI({ apiKey }); await ai.models.generateContent({ model, contents })`, also `generateContentStream`, `ai.chats` and `ai.interactions.create({ model, input })` | [js-genai README](https://github.com/googleapis/js-genai/blob/main/README.md) and the `@google/genai` 2.30.0 README (published 2026-10-15) |
+| Both SDKs default to `https://generativelanguage.googleapis.com` and API version `v1beta`; `@google/genai` takes `apiVersion` (`v1`, `v1alpha`) in the client options, the old SDK in `requestOptions.apiVersion` | published code: `@google/generative-ai` 0.24.1 `dist/index.js` (`DEFAULT_BASE_URL`, `DEFAULT_API_VERSION`), `@google/genai` 2.30.0 `dist/node/index.mjs`; README "API Selection" |
+| Both SDKs send `gemini-x` and `models/gemini-x` to the Gemini API as the same model (the old SDK prefixes a name without a slash; `@google/genai`'s `tModel` does the same) | same published code |
+| The same package also targets Vertex AI ("Gemini Enterprise Agent Platform" in the README) with `enterprise: true, project, location`; the code also accepts `vertexai: true` and calls `{location}-aiplatform.googleapis.com` | `@google/genai` 2.30.0 README and `dist/node/index.mjs` |
+| `@google/genai` 3.0.0 will change automatic function calling, remove `LiveConnectConfig.generation_config`, `GenerationConfigThinkingConfig` and some `generate_videos` arguments, and need Node.js 22; the README says to pin `< 3.0.0` to avoid it | js-genai README warning |
+
+**Still unverified: check.** Gemini model retirement dates and replacements, the models list, the changelog and the old-to-new migration guide are on ai.google.dev, which this environment's network policy refused (HTTP 403 from the proxy) on 2026-10-21. A machine-readable contract for the Gemini API, and whether Vertex AI uses the Gemini API's retirement dates, are unverified too.
+
+**What breaks for its users.** Model retirements with dates, like OpenAI's (unverified until Google's page is read). The SDK replacement: support for `@google/generative-ai` ended on 2025-11-30, and `@google/genai` has different call shapes, so moving is a code change, not a version bump. A major `@google/genai` 3.0.0 with named removals is announced in its README.
+
+**SDK patterns to trace.** As in the table: `ai.models.generateContent({ model, contents })` and `generateContentStream` on `@google/genai`; `new GoogleGenerativeAI(key).getGenerativeModel({ model }).generateContent(...)` on the old package. The `model` value is where a retiring ID lives in both. BENCH_PATTERNS
 
 **Definition of done.** Frozen set of 50 repositories declaring either package. Targets as for OpenAI: ≥ 90% of labelled live model pins traced; ≥ 70% of affected repositories with runnable checks validated; 0 wrong fixes; every stop an owner decision, including the SDK replacement.
 
-**Milestones.** 1. Catalog entry with `adapter: null`, both packages, hostname `generativelanguage.googleapis.com` (unverified: check). 2. File adapter for `models.generateContent` and `getGenerativeModel(...).generateContent`. 3. Reuse the model-retirement rule; the SDK swap stays review-only unless the owner approves a package-replacement rule. 4. Deadline entries with source and `checkedAt`. 5. Freeze 50. 6. Run and publish.
+**Milestones.** 1. **Done 2026-10-21:** catalog entry with `adapter: null`, both packages and the hostname read from the published SDK code. 2. File adapter for `models.generateContent` and `getGenerativeModel(...).generateContent`: not started; it needs a contract source, which is unverified. 3. Reuse the model-retirement rule: not started, and an owner decision (below); the SDK swap stays review-only unless the owner approves a package-replacement rule. 4. **Partly done 2026-10-21:** the old SDK's end of support is in the registry with `source` and `checkedAt`, and the matcher classifies Gemini model IDs; model retirement entries wait for someone to read Google's deprecations page, and a `refit deadlines --sync gemini` waits for the same page. 5. **Done 2026-10-21:** 50 repositories frozen in `docs/benchmarks/2026-10-21-gemini-repos.json`. 6. **Run 2026-10-21** with the shipped registry and a classification census ([BENCHMARKS.md](BENCHMARKS.md#gemini-october-21)); no fix rate can be measured until model dates exist and the owner decides on replacements.
 
-**Blockers and owner decisions.** Whether a package replacement (old SDK → new SDK, different call shapes) is ever automatic. Replacement model policy. No Google credential needed.
+**Blockers and owner decisions.**
+- Whether Gemini model replacements join `refit deadlines --propose-model-fixes` and `refit serve --model-fixes`. Owner decision #120 covers OpenAI and Anthropic only; Gemini stays report only until then.
+- Whether a package replacement (old SDK → new SDK, different call shapes) is ever automatic. It stays report only.
+- Whether an SDK end-of-support date belongs in the registry. Added here on the task's instruction as `kind: "sdk"`; it makes `refit deadlines --fail-within` exit 2 for a repository that declares and imports `@google/generative-ai`, and an enrolled repository with `--deadline-alerts` gets an issue, although Google has not said the old package stops working.
+- Someone with access to ai.google.dev must read the deprecations page before any Gemini model date enters the registry.
+- No Google credential is needed for any step.
 
 **Effort: M.** Shares the retirement rule with OpenAI and Anthropic; the SDK swap is the new part.
 
