@@ -132,13 +132,14 @@ async function rereadMerge() {
   }
   file.counts = summarize(file.repos);
   const addition =
-    ' A seeded random 10% of candidates was re-read by a separate fresh-context agent that saw only the sampled candidates and the rules, never the first labels; agreement and adjudications are in `reread`.';
+    ' A seeded random 10% of candidates was re-read by a separate fresh-context agent for each of 4 contiguous slices of the sample, each seeing only its slice of sampled candidates and the rules, never the first labels; agreement and adjudications are in `reread`.';
   if (!file.method.includes(addition)) file.method += addition;
   file.reread = {
     seed: sample.seed,
     fraction: sample.fraction,
     sampleSize: sample.sampleSize,
-    reader: 'separate fresh-context agent given only the sample and the labelling rules',
+    reader:
+      'separate fresh-context agents (4, one per slice) given only the sample and the labelling rules',
     rereadSha256,
     agreement: { live: result.live, via: result.via },
     disagreements,

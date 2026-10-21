@@ -1,6 +1,6 @@
 {
   "formatVersion": 1,
-  "method": "An independent grep (scripts/ai-app-label-candidates.mjs) for quoted exact registry model IDs, then one AI-assisted reading pass: fresh-context labelling agents, one per batch of at most 40 candidates, each reading only its batch and the code it points to. Not hand labelling.",
+  "method": "An independent grep (scripts/ai-app-label-candidates.mjs) for quoted exact registry model IDs, then one AI-assisted reading pass: fresh-context labelling agents, one per batch of at most 40 candidates, each reading only its batch and the code it points to. Not hand labelling. A seeded random 10% of candidates was re-read by a separate fresh-context agent for each of 4 contiguous slices of the sample, each seeing only its slice of sampled candidates and the rules, never the first labels; agreement and adjudications are in `reread`.",
   "labelledAt": "2026-10-21",
   "lists": [
     "docs/benchmarks/2026-10-21-openai-app-repos.json",
@@ -54,9 +54,9 @@
   "counts": {
     "repositories": 150,
     "candidates": 4679,
-    "live": 377,
-    "notLive": 4302,
-    "liveJsTs": 373,
+    "live": 374,
+    "notLive": 4305,
+    "liveJsTs": 370,
     "byLanguage": {
       "javascript": 148,
       "typescript": 2428,
@@ -70,14 +70,14 @@
     "byVia": {
       "sdk-non-text": 58,
       "raw-http": 17,
-      "other": 22,
-      "sdk-text": 261,
-      "wrapper:*": 19
+      "other": 20,
+      "sdk-text": 258,
+      "wrapper:*": 21
     },
     "byReason": {
       "test": 1805,
-      "catalog": 1603,
-      "comparison": 213,
+      "catalog": 1602,
+      "comparison": 217,
       "other": 43,
       "comment": 125,
       "doc": 376,
@@ -86,7 +86,3999 @@
       "unused": 12
     }
   },
-  "reread": null,
+  "reread": {
+    "seed": 20261021,
+    "fraction": 0.1,
+    "sampleSize": 468,
+    "reader": "separate fresh-context agents (4, one per slice) given only the sample and the labelling rules",
+    "rereadSha256": "bb4d954098985b0c0cd6bcf80025f0c3bde7e2fe64718f9aef82acdc270a4858",
+    "agreement": {
+      "live": {
+        "agree": 460,
+        "total": 468
+      },
+      "via": {
+        "agree": 456,
+        "total": 468
+      }
+    },
+    "disagreements": [
+      {
+        "key": "OpenCoworkAI/open-cowork|openai|src/shared/api-model-presets.ts|155|8|o4-mini",
+        "first": {
+          "live": true,
+          "via": "wrapper:@mariozechner/pi-coding-agent",
+          "reason": null
+        },
+        "second": {
+          "live": true,
+          "via": "wrapper:@mariozechner/pi-ai",
+          "reason": null
+        },
+        "final": {
+          "live": true,
+          "via": "wrapper:@mariozechner/pi-coding-agent",
+          "reason": null
+        },
+        "note": "First right: the chosen preset drives the main chat session built by the pi coding agent package; pi-ai is only its lower layer."
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|src/config/modelProviders/openai.ts|43|12|o1-mini",
+        "first": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        },
+        "second": {
+          "live": true,
+          "via": "sdk-text",
+          "reason": null
+        },
+        "final": {
+          "live": true,
+          "via": "sdk-text",
+          "reason": null
+        },
+        "note": "Second right: in the default client-only edition the enabled provider card models are the selectable chat list, sent through the OpenAI runtime."
+      },
+      {
+        "key": "FerroxLabs/wayland|anthropic|src/process/bridge/modelBridge.ts|593|12|claude-sonnet-4-20250514",
+        "first": {
+          "live": true,
+          "via": "other",
+          "reason": null
+        },
+        "second": {
+          "live": true,
+          "via": "sdk-text",
+          "reason": null
+        },
+        "final": {
+          "live": true,
+          "via": "wrapper:@office-ai/aioncli-core",
+          "reason": null
+        },
+        "note": "Neither: live agreed, but a chosen Anthropic model runs in the agent built on the aioncli-core package with Anthropic auth, not a direct SDK call."
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|src/app/[variants]/(main)/settings/tts/features/const.tsx|12|56|tts-1",
+        "first": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        },
+        "second": {
+          "live": true,
+          "via": "wrapper:@lobehub/tts",
+          "reason": null
+        },
+        "final": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        },
+        "note": "First right: this position is the option's display label; the separate value field on the next line is what the TTS request uses."
+      },
+      {
+        "key": "FerroxLabs/wayland|anthropic|src/process/bridge/modelBridge.ts|596|12|claude-3-haiku-20240307",
+        "first": {
+          "live": true,
+          "via": "other",
+          "reason": null
+        },
+        "second": {
+          "live": true,
+          "via": "sdk-text",
+          "reason": null
+        },
+        "final": {
+          "live": true,
+          "via": "wrapper:@office-ai/aioncli-core",
+          "reason": null
+        },
+        "note": "Neither: live agreed, but a chosen Anthropic model runs in the agent built on the aioncli-core package with Anthropic auth, not a direct SDK call."
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|src/app/[variants]/(main)/painting/@palette/features/PaletteModules/OpenAI.tsx|105|34|dall-e-2",
+        "first": {
+          "live": true,
+          "via": "sdk-non-text",
+          "reason": null
+        },
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "other-endpoint"
+        },
+        "final": {
+          "live": true,
+          "via": "sdk-non-text",
+          "reason": null
+        },
+        "note": "First right: the OpenAI platform option sets the painting model, sent to the openai text-to-image runtime, not a third-party platform."
+      },
+      {
+        "key": "OpenAisec/Miko|anthropic|src/utils/model/configs.ts|54|17|claude-sonnet-4-5-20250929",
+        "first": {
+          "live": false,
+          "via": null,
+          "reason": "other-endpoint"
+        },
+        "second": {
+          "live": true,
+          "via": "sdk-text",
+          "reason": null
+        },
+        "final": {
+          "live": false,
+          "via": null,
+          "reason": "other-endpoint"
+        },
+        "note": "First right: this is the azureOpenAI field, used only when the Azure provider is selected and then sent to Azure, not the first-party field."
+      },
+      {
+        "key": "andforce/Openclaude|anthropic|src/utils/model/configs.ts|52|16|claude-opus-4-20250514",
+        "first": {
+          "live": true,
+          "via": "sdk-text",
+          "reason": null
+        },
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "comparison"
+        },
+        "final": {
+          "live": false,
+          "via": null,
+          "reason": "comparison"
+        },
+        "note": "Second right: this model key is only matched for display names, cost tiers and Bedrock profile search; no default or picker sends it."
+      },
+      {
+        "key": "DdogezD/claudium|anthropic|src/utils/model/configs.ts|52|16|claude-opus-4-20250514",
+        "first": {
+          "live": true,
+          "via": "sdk-text",
+          "reason": null
+        },
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "unused"
+        },
+        "final": {
+          "live": false,
+          "via": null,
+          "reason": "comparison"
+        },
+        "note": "Second right on live: the key is read only for cost lookup and Bedrock profile matching, never as a request model; matching is a comparison."
+      },
+      {
+        "key": "kill136/claudecode|anthropic|src/utils/model/configs.ts|10|16|claude-3-7-sonnet-20250219",
+        "first": {
+          "live": true,
+          "via": "sdk-text",
+          "reason": null
+        },
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "comparison"
+        },
+        "final": {
+          "live": false,
+          "via": null,
+          "reason": "comparison"
+        },
+        "note": "Second right: this model key is only matched for display names, cost tiers and Bedrock profile search; no default or picker sends it."
+      },
+      {
+        "key": "JrCx7scC/claude-code-source|anthropic|src/utils/model/configs.ts|17|16|claude-3-5-sonnet-20241022",
+        "first": {
+          "live": true,
+          "via": "sdk-text",
+          "reason": null
+        },
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "comparison"
+        },
+        "final": {
+          "live": false,
+          "via": null,
+          "reason": "comparison"
+        },
+        "note": "Second right: this model key is only matched for display names, cost tiers and Bedrock profile search; no default or picker sends it."
+      },
+      {
+        "key": "OpenCoworkAI/open-cowork|openai|src/shared/api-model-presets.ts|71|14|gpt-5.3-codex",
+        "first": {
+          "live": true,
+          "via": "wrapper:@mariozechner/pi-coding-agent",
+          "reason": null
+        },
+        "second": {
+          "live": true,
+          "via": "wrapper:@mariozechner/pi-ai",
+          "reason": null
+        },
+        "final": {
+          "live": true,
+          "via": "wrapper:@mariozechner/pi-coding-agent",
+          "reason": null
+        },
+        "note": "First right: the chosen preset drives the main chat session built by the pi coding agent package; pi-ai is only its lower layer."
+      }
+    ],
+    "sample": [
+      {
+        "key": "FerroxLabs/wayland|anthropic|tests/unit/renderer/composerMenu/ConnectorsFlyout.dom.test.tsx|118|20|claude-sonnet-4-5",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|locales/pl-PL/models.json|2579|4|o1-preview",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "ananddtyagi/Sora-Studio|openai|image_gen.md|483|12|gpt-image-1",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "doc"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|packages/model-bank/src/aiModels/azureai.ts|65|19|o4-mini",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "other-endpoint"
+        }
+      },
+      {
+        "key": "pdovhomilja/nextcrm-app|openai|__tests__/crm/auto-task.test.ts|39|39|o1",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|packages/model-runtime/src/core/RouterRuntime/createRuntime.test.ts|39|23|gpt-4",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "JrCx7scC/claude-code-source|anthropic|src/utils/model/configs.ts|45|16|claude-sonnet-4-5-20250929",
+        "second": {
+          "live": true,
+          "via": "sdk-text",
+          "reason": null
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|locales/zh-CN/models.json|1835|4|gpt-image-1-mini",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|packages/model-runtime/src/providers/openai/__snapshots__/index.test.ts.snap|387|12|babbage-002",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|packages/database/src/models/__tests__/session.test.ts|136|62|gpt-4",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|packages/model-runtime/src/core/openaiCompatibleFactory/createImage.test.ts|582|17|dall-e-2",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "pdovhomilja/nextcrm-app|openai|docs/superpowers/plans/2026-10-11-odoo-connector-orders-out.md|1349|41|o1",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "doc"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|packages/model-runtime/src/providers/azureOpenai/index.test.ts|426|40|gpt-image-1",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|locales/zh-CN/models.json|776|4|chatgpt-4o-latest",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|locales/fr-FR/models.json|1775|4|gpt-4o-audio-preview",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "LocalRouter/LocalRouter|openai|src-tauri/tests/audio_endpoint_tests.rs|207|23|tts-1",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "AnyVM-Tech/AnyGPT|openai|apps/api/dev/routermodels.json|1|94310|o1-preview",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "FerroxLabs/wayland|anthropic|tests/unit/process/utils/workflowLaunchTargetResolver.test.ts|50|14|claude-sonnet-4-5",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "CHARM-BDF/charmonator|openai|docs/configuration.md|187|54|gpt-3.5-turbo",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "doc"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|locales/pt-BR/models.json|2588|4|o3-2025-04-16",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|locales/fr-FR/models.json|3200|4|tts-1",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|packages/context-engine/src/providers/__tests__/SystemRoleInjector.test.ts|29|17|gpt-4",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|anthropic|locales/en-US/models.json|785|4|claude-3-5-haiku-20241022",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "ananddtyagi/Sora-Studio|openai|image_gen.md|460|11|gpt-image-1",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "doc"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|anthropic|locales/fr-FR/models.json|806|4|claude-3-opus-20240229",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|locales/pl-PL/models.json|1742|4|gpt-4-turbo-2024-04-09",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "JrCx7scC/claude-code-source|anthropic|deps/@anthropic-ai/sdk/resources/messages/messages.mjs|109|6|claude-instant-1.1",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "AnyVM-Tech/AnyGPT|openai|apps/api/dev/fetchPricing.ts|352|4|gpt-image-1.5",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|locales/en-US/models.json|2582|4|o1-pro",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "LocalRouter/LocalRouter|openai|crates/lr-server/src/routes/audio.rs|1343|48|tts-1",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|locales/en-US/models.json|2573|4|o1",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|locales/en-US/models.json|1739|4|gpt-4-turbo",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "AnyVM-Tech/AnyGPT|openai|apps/api/dev/testSetup.ts|248|36|gpt-3.5-turbo",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "seongsu-kang/tycono|anthropic|packages/server/src/api/dist/api/src/routes/execute.js|792|69|claude-sonnet-4-5",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "pdovhomilja/nextcrm-app|openai|__tests__/orders/service.test.ts|107|82|o1",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "MisonL/visual-journal|openai|src/components/workbench-pro-dock-panels.tsx|19|73|gpt-image-1",
+        "second": {
+          "live": true,
+          "via": "sdk-non-text",
+          "reason": null
+        }
+      },
+      {
+        "key": "anxelswanz/astraea-agent|anthropic|src/api/pricing.ts|44|4|claude-sonnet-4-5",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "OpenAisec/Miko|anthropic|src/utils/model/configs.ts|46|17|claude-sonnet-4-20250514",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "other-endpoint"
+        }
+      },
+      {
+        "key": "ananddtyagi/Sora-Studio|openai|image_gen.md|1111|11|gpt-image-1",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "doc"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|locales/ru-RU/models.json|1721|4|gpt-4",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|packages/model-runtime/src/providers/openai/fixtures/openai-models.json|81|12|gpt-3.5-turbo-instruct",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|packages/database/src/repositories/aiInfra/index.test.ts|267|16|gpt-4",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|packages/model-bank/src/aiModels/openai.ts|1071|10|gpt-5.4-nano",
+        "second": {
+          "live": true,
+          "via": "sdk-text",
+          "reason": null
+        }
+      },
+      {
+        "key": "LocalRouter/LocalRouter|openai|crates/lr-monitor/src/store.rs|541|41|gpt-4",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "LocalRouter/LocalRouter|openai|plan/2026-01-14-ENDPOINTS.md|629|13|gpt-4-turbo",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "doc"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|src/store/image/slices/generationBatch/reducer.test.ts|463|17|dall-e-3",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|locales/en-US/models.json|869|4|codex-mini-latest",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|locales/ru-RU/models.json|2603|4|o4-mini",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|locales/fr-FR/models.json|1832|4|gpt-image-1",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|packages/model-bank/src/aiModels/azureai.ts|207|19|o1",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "other-endpoint"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|locales/pl-PL/models.json|1712|4|gpt-3.5-turbo-instruct",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|anthropic|locales/pt-BR/models.json|794|4|claude-3-5-sonnet-20241022",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|anthropic|locales/zh-CN/models.json|791|4|claude-3-5-sonnet-20240620",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|packages/model-runtime/src/core/openaiCompatibleFactory/createImage.test.ts|633|17|dall-e-3",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|locales/nl-NL/models.json|1796|4|gpt-4o-realtime-preview",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|src/config/modelProviders/higress.ts|878|12|gpt-3.5-turbo",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "other-endpoint"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|locales/tr-TR/models.json|974|4|dall-e-3",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|packages/model-runtime/src/core/streams/openai/responsesStream.test.ts|736|26|gpt-4",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|locales/tr-TR/models.json|1721|4|gpt-4",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|packages/model-runtime/src/providers/infiniai/index.test.ts|13|15|gpt-3.5-turbo",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|src/services/chat/chat.test.ts|854|19|gpt-3.5-turbo-1106",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|anthropic|locales/fa-IR/models.json|806|4|claude-3-opus-20240229",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|src/utils/server/parseModels.test.ts|472|30|gpt-4",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "pdovhomilja/nextcrm-app|openai|lib/authz/__tests__/scopes-crm-filter-ids.test.ts|128|9|o1",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|locales/pt-BR/models.json|1712|4|gpt-3.5-turbo-instruct",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|locales/zh-TW/models.json|1775|4|gpt-4o-audio-preview",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "Doriandarko/kimi-2-6-code|anthropic|src/utils/model/bedrock.ts|220|7|claude-sonnet-4-5-20250929",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "comment"
+        }
+      },
+      {
+        "key": "AnyVM-Tech/AnyGPT|openai|apps/api/dev/fetchPricing.ts|365|4|computer-use-preview",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "OpenCoworkAI/open-cowork|openai|src/shared/api-model-presets.ts|155|8|o4-mini",
+        "second": {
+          "live": true,
+          "via": "wrapper:@mariozechner/pi-ai",
+          "reason": null
+        }
+      },
+      {
+        "key": "AnyVM-Tech/AnyGPT|openai|apps/api/pricing.json|608|6|gpt-image-1",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "kill136/claudecode|anthropic|src/utils/model/bedrock.ts|220|7|claude-sonnet-4-5-20250929",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "comment"
+        }
+      },
+      {
+        "key": "AnyVM-Tech/AnyGPT|openai|apps/api/dev/routermodels.json|1|591748|gpt-4",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "LocalRouter/LocalRouter|openai|plan/2026-01-14-WEB_SERVER_IMPLEMENTATION.md|338|86|gpt-4",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "doc"
+        }
+      },
+      {
+        "key": "LocalRouter/LocalRouter|openai|crates/lr-mcp/src/protocol.rs|1188|21|gpt-4",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|src/migrations/FromV1ToV2/fixtures/output-v2.json|130|23|gpt-3.5-turbo",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "LocalRouter/LocalRouter|openai|website/src/components/demo/mockData.ts|1013|12|o1-preview",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "wyh0626/claude-code-local|anthropic|src/services/api/errors.ts|1199|16|claude-sonnet-4-20250514",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "comparison"
+        }
+      },
+      {
+        "key": "FerroxLabs/wayland|anthropic|tests/unit/modelContextLimits.test.ts|74|36|claude-3-haiku-20240307",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|packages/model-bank/src/aiModels/azureai.ts|150|10|gpt-4.5-preview",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "other-endpoint"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|src/store/painting/action.ts|731|70|dall-e-3",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "comparison"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|packages/model-bank/src/aiModels/openai.ts|2178|10|gpt-3.5-turbo",
+        "second": {
+          "live": true,
+          "via": "sdk-text",
+          "reason": null
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|packages/database/src/repositories/aiInfra/index.test.ts|522|51|gpt-4",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "FerroxLabs/wayland|anthropic|src/process/resources/skills-library/bodies/skills/ai-machine-learning/prompt-engineer/SKILL.md|149|12|claude-sonnet-4-20250514",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "doc"
+        }
+      },
+      {
+        "key": "pdovhomilja/nextcrm-app|openai|docs/superpowers/plans/2026-10-18-oxo-erp-connector.md|1898|52|o1",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "doc"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|src/store/agent/slices/chat/action.test.ts|176|84|gpt-4",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "beatrix-ha/beatrix|anthropic|server/anthropic.ts|36|6|claude-3-sonnet-20240229",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "pdovhomilja/nextcrm-app|openai|plugins/odoo-connector/__tests__/review-fixes-orders.test.ts|61|33|o1",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "dashersw/double-agent|openai|src/augments/cost-tracker.ts|32|4|gpt-5-codex",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|anthropic|locales/zh-CN/models.json|809|4|claude-3-sonnet-20240229",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "fazxes/Claude-code|anthropic|stubs/downloads/claude-agent-sdk/sdk.mjs|45|6732|claude-instant-1.1",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "LocalRouter/LocalRouter|openai|crates/lr-providers/src/features/openai_reasoning.rs|100|57|o1",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "pdovhomilja/nextcrm-app|openai|plugins/odoo-connector/__tests__/orders-out.test.ts|52|35|o1",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|packages/model-runtime/src/providers/github/index.test.ts|133|36|o3-mini",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|locales/zh-CN/models.json|971|4|dall-e-2",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "CHARM-BDF/charmonator|openai|scripts/generate-example-config.js|52|17|gpt-3.5-turbo",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "doc"
+        }
+      },
+      {
+        "key": "AnyVM-Tech/AnyGPT|openai|apps/api/dev/routermodels.json|1|418714|gpt-4-turbo-preview",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "LocalRouter/LocalRouter|openai|src-tauri/tests/metrics_storage_tests.rs|378|17|gpt-4",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "LocalRouter/LocalRouter|openai|plan/2026-01-14-ENDPOINTS.md|159|86|gpt-4",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "doc"
+        }
+      },
+      {
+        "key": "pdovhomilja/nextcrm-app|openai|lib/plugins/__tests__/data-api-orders.test.ts|93|53|o1",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "LocalRouter/LocalRouter|openai|plan/2026-01-14-ENDPOINTS.md|460|57|gpt-4-turbo",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "doc"
+        }
+      },
+      {
+        "key": "Doriandarko/kimi-2-6-code|anthropic|src/migrations/migrateSonnet45ToSonnet46.ts|40|16|claude-sonnet-4-5-20250929",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "comparison"
+        }
+      },
+      {
+        "key": "LocalRouter/LocalRouter|openai|src-tauri/tests/metrics_tauri_commands_tests.rs|220|17|gpt-4",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|packages/context-engine/src/tools/__tests__/ToolsEngine.test.ts|789|67|gpt-4",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|locales/tr-TR/models.json|1781|4|gpt-4o-mini-audio-preview",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|locales/pl-PL/models.json|1784|4|gpt-4o-mini-realtime-preview",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "fazxes/Claude-code|anthropic|stubs/downloads/claude-agent-sdk/bridge.mjs|79|1450|claude-opus-4-20250514",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "wyh0626/claude-code-local|anthropic|src/utils/model/modelOptions.ts|393|25|claude-sonnet-4-5",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "comparison"
+        }
+      },
+      {
+        "key": "Charlie85270/Dorothy|anthropic|electron/services/telegram-bot.ts|816|12|claude-3-5-haiku-20241022",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|anthropic|locales/fr-FR/models.json|785|4|claude-3-5-haiku-20241022",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|packages/model-runtime/src/const/models.ts|4|4|o1-mini",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "comparison"
+        }
+      },
+      {
+        "key": "pdovhomilja/nextcrm-app|openai|__tests__/orders/workflow.test.ts|106|39|o1",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "LocalRouter/LocalRouter|openai|crates/lr-providers/src/features/logprobs.rs|301|53|gpt-3.5-turbo",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|locales/fa-IR/models.json|1730|4|gpt-4-1106-preview",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "AnyVM-Tech/AnyGPT|openai|apps/api/pricing.json|213|6|o1",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|packages/context-engine/src/tools/__tests__/ToolsEngine.test.ts|1002|19|gpt-4",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "AnyVM-Tech/AnyGPT|openai|apps/api/pricing.json|313|6|gpt-4.1-mini-2025-04-14",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|anthropic|packages/model-runtime/src/providers/anthropic/generateObject.test.ts|422|15|claude-3-5-sonnet-20241022",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|src/services/chat/chat.test.ts|660|19|gpt-3.5-turbo-1106",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "pdovhomilja/nextcrm-app|openai|docs/superpowers/plans/2026-10-10-account-protection-orders.md|472|26|o1",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "other"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|src/helpers/toolEngineering/index.test.ts|141|17|gpt-4",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|src/helpers/toolEngineering/index.test.ts|186|53|gpt-3.5-turbo",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|locales/tr-TR/models.json|1745|4|gpt-4-turbo-preview",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "AnyVM-Tech/AnyGPT|openai|apps/api/pricing.json|3008|6|gpt-4-0314",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "LocalRouter/LocalRouter|openai|crates/lr-providers/src/openai.rs|178|16|o1-mini",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "comment"
+        }
+      },
+      {
+        "key": "pdovhomilja/nextcrm-app|openai|__tests__/crm/opportunity-table-schema.test.ts|4|8|o1",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "other"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|locales/it-IT/models.json|968|4|computer-use-preview",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|src/server/services/agent/index.test.ts|38|36|gpt-4",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|anthropic|locales/ko-KR/models.json|779|4|claude-2.0",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "AnyVM-Tech/AnyGPT|openai|apps/api/dev/testWs.ts|49|15|gpt-3.5-turbo",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "LeafYeeXYZ/PsychPen|openai|src/components/data/ConfigAI.tsx|264|45|gpt-5.1",
+        "second": {
+          "live": true,
+          "via": "sdk-text",
+          "reason": null
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|src/config/modelProviders/higress.ts|775|12|gpt-4o-2024-08-06",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "other-endpoint"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|locales/fa-IR/models.json|1835|4|gpt-image-1-mini",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|packages/database/src/models/__tests__/session.test.ts|536|74|gpt-3.5-turbo",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|packages/model-bank/src/aiModels/azure.ts|954|10|o4-mini",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "other-endpoint"
+        }
+      },
+      {
+        "key": "LocalRouter/LocalRouter|openai|src-tauri/tests/audio_endpoint_tests.rs|317|23|tts-1",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "fazxes/Claude-code|anthropic|stubs/downloads/claude-agent-sdk/bridge.mjs|103|1410|claude-3-7-sonnet-20250219",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "LocalRouter/LocalRouter|openai|crates/lr-providers/src/features/structured_outputs.rs|14|17|gpt-4",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "doc"
+        }
+      },
+      {
+        "key": "LocalRouter/LocalRouter|openai|crates/lr-providers/src/features/logprobs.rs|481|21|gpt-4",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|locales/ko-KR/models.json|1814|4|gpt-5-chat-latest",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "LocalRouter/LocalRouter|openai|src-tauri/tests/metrics_tauri_commands_tests.rs|230|10|gpt-4",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "TaGoat/claude_code_cli|anthropic|src/utils/model/configs.ts|59|16|claude-opus-4-1-20250805",
+        "second": {
+          "live": true,
+          "via": "sdk-text",
+          "reason": null
+        }
+      },
+      {
+        "key": "LocalRouter/LocalRouter|openai|src-tauri/tests/feature_adapter_integration_tests.rs|859|11|gpt-3.5-turbo",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "pdovhomilja/nextcrm-app|openai|lib/plugins/__tests__/data-api-orders.test.ts|58|35|o1",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "other"
+        }
+      },
+      {
+        "key": "pdovhomilja/nextcrm-app|openai|plugins/oxo-erp-connector/__tests__/orders-status.test.ts|34|58|o1",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "other"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|src/utils/server/__snapshots__/parseModels.test.ts.snap|145|12|gpt-4-turbo-2024-04-09",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|src/config/modelProviders/openai.ts|43|12|o1-mini",
+        "second": {
+          "live": true,
+          "via": "sdk-text",
+          "reason": null
+        }
+      },
+      {
+        "key": "JrCx7scC/claude-code-source|anthropic|src/migrations/migrateLegacyOpusToCurrent.ts|41|16|claude-opus-4-1-20250805",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "comparison"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|packages/model-bank/src/aiModels/aihubmix.ts|1610|10|gpt-5.1-codex",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "other-endpoint"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|src/server/routers/lambda/config/__snapshots__/index.test.ts.snap|9|6|gpt-4-0125-preview",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "AnyVM-Tech/AnyGPT|openai|apps/api/models.json|1940|14|gpt-4-turbo-2024-04-09",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "Jay-Bosco/GoofishCredentialsBot|openai|src/services/ai.service.ts|216|39|gpt-3.5-turbo",
+        "second": {
+          "live": true,
+          "via": "sdk-text",
+          "reason": null
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|packages/model-runtime/src/core/RouterRuntime/createRuntime.test.ts|335|23|gpt-4",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|locales/es-ES/models.json|1784|4|gpt-4o-mini-realtime-preview",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "LocalRouter/LocalRouter|openai|src-tauri/tests/audio_endpoint_tests.rs|818|17|tts-1",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|anthropic|locales/pl-PL/models.json|821|4|claude-opus-4-20250514",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "utter-one/bonsai|openai|tests/integration/live/conversationRunner.test.ts|465|52|gpt-4",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|packages/database/src/models/__tests__/session.test.ts|311|42|gpt-3.5-turbo",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "pdovhomilja/nextcrm-app|openai|__tests__/orders/service.test.ts|87|123|o1",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "other"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|src/migrations/FromV5ToV6/fixtures/from-v1-to-v6-output.json|73|23|gpt-3.5-turbo",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "pdovhomilja/nextcrm-app|openai|__tests__/orders/workflow.test.ts|70|41|o1",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "other"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|src/migrations/FromV3ToV4/fixtures/openrouter-output-v4.json|73|34|whisper-1",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "masnwilliams/better404|openai|src/app/api/v1/recommendations/route.ts|68|55|gpt-4.1-nano",
+        "second": {
+          "live": true,
+          "via": "sdk-text",
+          "reason": null
+        }
+      },
+      {
+        "key": "LocalRouter/LocalRouter|openai|plan/2026-01-14-WEB_SERVER_IMPLEMENTATION.md|468|15|gpt-4",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "doc"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|anthropic|packages/model-bank/src/aiModels/cometapi.ts|152|10|claude-opus-4-1-20250805",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "other-endpoint"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|packages/database/src/repositories/aiInfra/index.test.ts|320|16|gpt-4",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|locales/en-US/models.json|1784|4|gpt-4o-mini-realtime-preview",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "fazxes/Claude-code|anthropic|stubs/downloads/claude-agent-sdk/sdk.mjs|45|6659|claude-1.3",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "pdovhomilja/nextcrm-app|openai|docs/superpowers/plans/2026-10-10-orders.md|1312|27|o1",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "other"
+        }
+      },
+      {
+        "key": "FerroxLabs/wayland|anthropic|src/process/bridge/modelBridge.ts|593|12|claude-sonnet-4-20250514",
+        "second": {
+          "live": true,
+          "via": "sdk-text",
+          "reason": null
+        }
+      },
+      {
+        "key": "fazxes/Claude-code|anthropic|stubs/downloads/claude-agent-sdk/browser-sdk.js|43|1078|claude-instant-1.1",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "LocalRouter/LocalRouter|openai|crates/lr-server/src/routes/audio.rs|1417|34|tts-1",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "LocalRouter/LocalRouter|openai|crates/lr-server/src/routes/completions.rs|1561|41|gpt-4",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "Doriandarko/kimi-2-6-code|anthropic|src/utils/model/model.ts|233|54|claude-3-7-sonnet-20250219",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "comment"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|locales/it-IT/models.json|2603|4|o4-mini",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "pdovhomilja/nextcrm-app|openai|plugins/odoo-connector/__tests__/review-fixes-minors.test.ts|60|40|o1",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "other"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|src/migrations/FromV3ToV4/fixtures/openai-input-v3.json|58|23|gpt-3.5-turbo",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|packages/const/src/models.ts|17|4|o3-pro-2025-06-10",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "comment"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|src/app/[variants]/(main)/settings/tts/features/const.tsx|12|56|tts-1",
+        "second": {
+          "live": true,
+          "via": "wrapper:@lobehub/tts",
+          "reason": null
+        }
+      },
+      {
+        "key": "AnyVM-Tech/AnyGPT|openai|apps/api/pricing.json|622|6|gpt-image-1.5",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "FerroxLabs/wayland|anthropic|src/process/bridge/modelBridge.ts|596|12|claude-3-haiku-20240307",
+        "second": {
+          "live": true,
+          "via": "sdk-text",
+          "reason": null
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|src/database/_deprecated/core/migrations/migrateSettingsToUser/fixtures/output.json|38|12|gpt-3.5-turbo-1106",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "LocalRouter/LocalRouter|openai|crates/lr-mcp/src/gateway/access_control.rs|513|51|gpt-3.5-turbo",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "JrCx7scC/claude-code-source|anthropic|deps/@anthropic-ai/sdk/resources/messages/messages.mjs|107|6|claude-1.3",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|locales/zh-TW/models.json|2573|4|o1",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "FerroxLabs/wayland|anthropic|tests/unit/renderer/guidModelSelector.dom.test.tsx|474|9|claude-sonnet-4-5",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|locales/ko-KR/models.json|869|4|codex-mini-latest",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "FerroxLabs/wayland|anthropic|tests/unit/fuigo/byokProviders.test.ts|82|22|claude-sonnet-4-5",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|src/store/image/slices/generationBatch/action.test.ts|156|19|dall-e-3",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|packages/model-runtime/src/providers/cometapi/index.test.ts|172|17|gpt-3.5-turbo",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|packages/model-runtime/src/core/RouterRuntime/createRuntime.test.ts|373|33|dall-e-3",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "OpenCoworkAI/open-cowork|openai|src/tests/renderer/model-cycle.test.ts|178|8|o4-mini",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "FerroxLabs/wayland|anthropic|src/renderer/utils/model/modelContextLimits.ts|50|53|claude-opus-4-20250514",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "comment"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|locales/bg-BG/models.json|1796|4|gpt-4o-realtime-preview",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|packages/model-bank/src/aiModels/openai.ts|2356|10|whisper-1",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "pdovhomilja/nextcrm-app|openai|docs/superpowers/plans/2026-10-10-orders.md|842|38|o1",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "other"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|src/database/_deprecated/core/migrations/migrateSettingsToUser/fixtures/input.json|9|17|gpt-3.5-turbo-1106",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|locales/it-IT/models.json|1724|4|gpt-4-0125-preview",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|locales/pt-BR/models.json|1772|4|gpt-4o-2024-11-20",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|packages/model-runtime/src/providers/openai/fixtures/openai-models.json|105|12|dall-e-3",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|packages/const/src/models.ts|32|4|o3-pro-2025-06-10",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "comparison"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|locales/en-US/models.json|3248|4|whisper-1",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|locales/pt-BR/models.json|1784|4|gpt-4o-mini-realtime-preview",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "LocalRouter/LocalRouter|openai|plan/2026-01-20-TOOL-CALLING-IMPLEMENTATION.md|137|13|gpt-4",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "doc"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|src/database/_deprecated/core/migrations/migrateSettingsToUser/type.ts|73|16|whisper-1",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "other"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|locales/fr-FR/models.json|2603|4|o4-mini",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "kill136/claudecode|anthropic|src/utils/model/model.ts|276|53|claude-3-5-haiku-20241022",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "comment"
+        }
+      },
+      {
+        "key": "pdovhomilja/nextcrm-app|openai|plugins/odoo-connector/__tests__/orders-out.test.ts|98|39|o1",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "other"
+        }
+      },
+      {
+        "key": "pdovhomilja/nextcrm-app|openai|__tests__/mcp/crm-account-linking.test.ts|36|40|o1",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "other"
+        }
+      },
+      {
+        "key": "kill136/claudecode|anthropic|src/tools/AgentTool/built-in/statuslineSetup.ts|42|54|claude-3-5-sonnet-20241022",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "prompt-text"
+        }
+      },
+      {
+        "key": "Jay-Bosco/GoofishCredentialsBot|openai|src/services/ai.service.ts|133|39|gpt-3.5-turbo",
+        "second": {
+          "live": true,
+          "via": "sdk-text",
+          "reason": null
+        }
+      },
+      {
+        "key": "beatrix-ha/beatrix|openai|server/openai.ts|29|35|gpt-4-turbo",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "unused"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|locales/ru-RU/models.json|3248|4|whisper-1",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|src/store/user/slices/modelList/action.test.ts|89|54|gpt-4-turbo-2024-04-09",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|packages/context-engine/src/processors/__tests__/PlaceholderVariables.test.ts|287|19|gpt-4",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "pdovhomilja/nextcrm-app|openai|lib/plugins/__tests__/data-api-orders.test.ts|55|53|o1",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "other"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|anthropic|packages/const/src/models.ts|67|4|claude-sonnet-4-5-20250929",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "comparison"
+        }
+      },
+      {
+        "key": "pdovhomilja/nextcrm-app|openai|docs/superpowers/plans/2026-10-10-orders.md|1328|35|o1",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "other"
+        }
+      },
+      {
+        "key": "AnyVM-Tech/AnyGPT|openai|apps/api/models.json|1595|14|gpt-4",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|anthropic|locales/tr-TR/models.json|830|4|claude-sonnet-4-5-20250929",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|packages/database/src/models/__tests__/message.test.ts|2278|40|gpt-4",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "ananddtyagi/Sora-Studio|openai|image_gen.md|132|13|gpt-image-1",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "doc"
+        }
+      },
+      {
+        "key": "JrCx7scC/claude-code-source|anthropic|src/skills/bundled/claude-api/shared/models.md|94|24|claude-3-5-sonnet-20240620",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "doc"
+        }
+      },
+      {
+        "key": "JaleelB/readium-x|openai|app/article/actions/translate.ts|50|19|gpt-3.5-turbo",
+        "second": {
+          "live": true,
+          "via": "sdk-text",
+          "reason": null
+        }
+      },
+      {
+        "key": "kill136/claudecode|anthropic|src/utils/model/configs.ts|45|16|claude-sonnet-4-5-20250929",
+        "second": {
+          "live": true,
+          "via": "sdk-text",
+          "reason": null
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|locales/fa-IR/models.json|2579|4|o1-preview",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "LocalRouter/LocalRouter|openai|crates/lr-catalog/src/matcher.rs|207|29|gpt-4",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|anthropic|locales/vi-VN/models.json|794|4|claude-3-5-sonnet-20241022",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|src/services/chat/contextEngineering.test.ts|199|15|gpt-4",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|locales/bg-BG/models.json|3248|4|whisper-1",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|anthropic|packages/model-runtime/src/providers/anthropic/index.test.ts|98|19|claude-3-haiku-20240307",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "JrCx7scC/claude-code-source|anthropic|src/utils/model/bedrock.ts|220|7|claude-sonnet-4-5-20250929",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "comment"
+        }
+      },
+      {
+        "key": "LocalRouter/LocalRouter|openai|crates/lr-server/src/routes/audio.rs|1331|52|tts-1",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|locales/nl-NL/models.json|3248|4|whisper-1",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "pdovhomilja/nextcrm-app|openai|__tests__/crm/auto-task.test.ts|49|54|o1",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "other"
+        }
+      },
+      {
+        "key": "kill136/claudecode|anthropic|src/utils/model/configs.ts|103|77|claude-sonnet-4-5-20250929",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "comment"
+        }
+      },
+      {
+        "key": "AnyVM-Tech/AnyGPT|openai|apps/api/routes/models.ts|296|6|gpt-3.5-turbo",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|locales/ar/models.json|2609|4|o4-mini-deep-research",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|locales/en-US/models.json|1760|4|gpt-4.5-preview",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "kill136/claudecode|anthropic|src/utils/model/model.ts|213|54|claude-3-7-sonnet-20250219",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "comment"
+        }
+      },
+      {
+        "key": "LocalRouter/LocalRouter|openai|src-tauri/tests/metrics_integration_tests.rs|448|14|gpt-3.5-turbo",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|src/migrations/FromV1ToV2/migrations.test.ts|115|36|gpt-3.5-turbo",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|anthropic|locales/ru-RU/models.json|803|4|claude-3-haiku-20240307",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "pdovhomilja/nextcrm-app|openai|__tests__/orders/service.test.ts|125|27|o1",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "LocalRouter/LocalRouter|openai|plan/2026-01-17-FEATURE_ADAPTERS.md|764|13|gpt-4",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "doc"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|src/migrations/FromV3ToV4/fixtures/ollama-input-v3.json|66|61|gpt-4",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|locales/de-DE/models.json|1808|4|gpt-4o-transcribe",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "pdovhomilja/nextcrm-app|openai|__tests__/orders/workflow.test.ts|122|41|o1",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "AnyVM-Tech/AnyGPT|openai|apps/api/models.json|1752|14|gpt-3.5-turbo-instruct",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|anthropic|locales/bg-BG/models.json|803|4|claude-3-haiku-20240307",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "DdogezD/claudium|anthropic|src/utils/model/configs.ts|24|16|claude-3-5-haiku-20241022",
+        "second": {
+          "live": true,
+          "via": "sdk-text",
+          "reason": null
+        }
+      },
+      {
+        "key": "txl16095/MiniClaude|anthropic|src/utils/model/modelOptions.ts|432|25|claude-sonnet-4-5",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "comparison"
+        }
+      },
+      {
+        "key": "seongsu-kang/tycono|anthropic|packages/server/src/api/src/engine/llm-adapter.ts|89|62|claude-sonnet-4-20250514",
+        "second": {
+          "live": true,
+          "via": "sdk-text",
+          "reason": null
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|packages/model-runtime/src/providers/azureai/index.test.ts|70|17|gpt-4",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "hyunwookshin/iodine|openai|server/src/routes/meeting.ts|25|40|gpt-4o-realtime-preview",
+        "second": {
+          "live": true,
+          "via": "raw-http",
+          "reason": null
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|packages/model-runtime/src/core/openaiCompatibleFactory/nonStreamToStream.test.ts|323|17|gpt-3.5-turbo",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|locales/de-DE/models.json|1712|4|gpt-3.5-turbo-instruct",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|packages/agent-runtime/src/core/__tests__/UsageCounter.test.ts|304|17|gpt-4",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|packages/model-bank/src/aiModels/azureai.ts|130|10|gpt-4.1-nano",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "other-endpoint"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|locales/it-IT/models.json|1757|4|gpt-4.1-nano",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|locales/vi-VN/models.json|2603|4|o4-mini",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|locales/bg-BG/models.json|1727|4|gpt-4-0613",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|packages/database/src/repositories/aiInfra/index.test.ts|772|16|gpt-4",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|locales/es-ES/models.json|968|4|computer-use-preview",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "fazxes/Claude-code|anthropic|stubs/downloads/claude-agent-sdk/sdk.mjs|47|1005|claude-1.3",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|src/app/[variants]/(main)/painting/@palette/features/PaletteModules/OpenAI.tsx|105|34|dall-e-2",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "other-endpoint"
+        }
+      },
+      {
+        "key": "andforce/Openclaude|anthropic|src/migrations/migrateSonnet45ToSonnet46.ts|40|16|claude-sonnet-4-5-20250929",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "comparison"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|locales/vi-VN/models.json|1709|4|gpt-3.5-turbo-1106",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "pdovhomilja/nextcrm-app|openai|plugins/odoo-connector/__tests__/review-fixes-minors.test.ts|12|89|o1",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|locales/fr-FR/models.json|2576|4|o1-mini",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|packages/database/src/models/__tests__/session.test.ts|465|27|gpt-4",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "LocalRouter/LocalRouter|openai|crates/lr-providers/src/features/openai_reasoning.rs|101|58|gpt-4",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|locales/bg-BG/models.json|1775|4|gpt-4o-audio-preview",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|locales/tr-TR/models.json|1775|4|gpt-4o-audio-preview",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "wk42worldworld/cybercode|anthropic|src/utils/envUtils.ts|289|5|claude-sonnet-4-5",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "comparison"
+        }
+      },
+      {
+        "key": "DdogezD/claudium|anthropic|src/utils/model/configs.ts|103|77|claude-sonnet-4-5-20250929",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "comment"
+        }
+      },
+      {
+        "key": "fazxes/Claude-code|anthropic|stubs/@anthropic-ai/sdk/resources/messages/messages.mjs|114|6|claude-2.1",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|packages/model-runtime/src/core/openaiCompatibleFactory/index.test.ts|1159|19|dall-e-3",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "OpenAisec/Miko|anthropic|src/utils/model/configs.ts|54|17|claude-sonnet-4-5-20250929",
+        "second": {
+          "live": true,
+          "via": "sdk-text",
+          "reason": null
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|locales/es-ES/models.json|1745|4|gpt-4-turbo-preview",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|anthropic|src/migrations/FromV5ToV6/fixtures/session-input-v5.json|45|21|claude-3-sonnet-20240229",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|anthropic|packages/model-runtime/src/providers/anthropic/index.test.ts|125|17|claude-3-7-sonnet-20250219",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|docs/usage/agents/model.mdx|93|76|o1",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "doc"
+        }
+      },
+      {
+        "key": "Koifman/LUMEN|anthropic|src/lib/llm/providers/anthropic.ts|219|8|claude-sonnet-4-5",
+        "second": {
+          "live": true,
+          "via": "sdk-text",
+          "reason": null
+        }
+      },
+      {
+        "key": "LocalRouter/LocalRouter|openai|crates/lr-providers/src/features/json_mode.rs|224|54|gpt-4",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "pdovhomilja/nextcrm-app|openai|docs/superpowers/plans/2026-10-10-orders.md|852|76|o1",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "doc"
+        }
+      },
+      {
+        "key": "LocalRouter/LocalRouter|openai|crates/lr-config/src/types.rs|5656|55|gpt-4",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "OpenCoworkAI/open-cowork|openai|tests/config-store-env.test.ts|161|15|gpt-5.3-codex",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|packages/model-bank/src/aiModels/openai.ts|1636|10|o3-deep-research",
+        "second": {
+          "live": true,
+          "via": "sdk-text",
+          "reason": null
+        }
+      },
+      {
+        "key": "DdogezD/claudium|anthropic|src/utils/commitAttribution.ts|161|49|claude-sonnet-4-5",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "other"
+        }
+      },
+      {
+        "key": "AnyVM-Tech/AnyGPT|openai|apps/api/models.json|2759|14|gpt-5-chat-latest",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "AnyVM-Tech/AnyGPT|openai|apps/api/routes/openai.ts|8187|10|tts-1",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "LocalRouter/LocalRouter|openai|crates/lr-providers/src/features/structured_outputs.rs|631|56|o1-preview",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|locales/pt-BR/models.json|1790|4|gpt-4o-mini-transcribe",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|locales/es-ES/models.json|2573|4|o1",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|packages/database/src/repositories/aiInfra/index.test.ts|885|51|gpt-4",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "FerroxLabs/wayland|anthropic|tests/unit/GuidModelSelector.dom.test.tsx|84|20|claude-sonnet-4-5",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "LocalRouter/LocalRouter|openai|crates/lr-providers/src/features/structured_outputs.rs|583|21|gpt-4",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "v-fidelusaleksander/prompt-action|openai|__tests__/ai.test.ts|39|15|gpt-4",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "pdovhomilja/nextcrm-app|openai|actions/crm/__tests__/get-contacts-by-opportunityId-scope.test.ts|68|39|o1",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|packages/model-bank/src/aiModels/ai302.ts|85|10|o4-mini",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "other-endpoint"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|locales/ar/models.json|1727|4|gpt-4-0613",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|locales/ru-RU/models.json|3200|4|tts-1",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "LocalRouter/LocalRouter|openai|crates/lr-providers/src/openai.rs|1888|58|gpt-3.5-turbo",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|locales/vi-VN/models.json|1712|4|gpt-3.5-turbo-instruct",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "LocalRouter/LocalRouter|openai|src-tauri/tests/router_strategy_tests.rs|912|73|gpt-4",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "comment"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|src/store/aiInfra/slices/aiProvider/__tests__/action.test.ts|97|14|dall-e-3",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "AnyVM-Tech/AnyGPT|openai|apps/api/pricing.json|22|6|gpt-4",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "JrCx7scC/claude-code-source|anthropic|deps/@anthropic-ai/sdk/resources/beta/messages/messages.mjs|22|6|claude-2.0",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "utter-one/bonsai|anthropic|src/services/providers/ProviderCatalogService.ts|11748|18|claude-sonnet-4-5",
+        "second": {
+          "live": true,
+          "via": "sdk-text",
+          "reason": null
+        }
+      },
+      {
+        "key": "wk42worldworld/cybercode|anthropic|src/utils/model/configs.ts|10|16|claude-3-7-sonnet-20250219",
+        "second": {
+          "live": true,
+          "via": "sdk-text",
+          "reason": null
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|locales/vi-VN/models.json|1760|4|gpt-4.5-preview",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "prime-radiant-inc/gauntlet|anthropic|test/models/anthropic.test.ts|153|37|claude-3-5-haiku-20241022",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|packages/model-runtime/src/providers/openai/__snapshots__/index.test.ts.snap|62|12|dall-e-2",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "pdovhomilja/nextcrm-app|openai|docs/superpowers/plans/2026-10-10-orders.md|1959|83|o1",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "doc"
+        }
+      },
+      {
+        "key": "AnyVM-Tech/AnyGPT|openai|apps/api/models.json|2663|14|gpt-4.1-nano",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "fazxes/Claude-code|anthropic|stubs/downloads/claude-agent-sdk/browser-sdk.js|41|6984|claude-2.0",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|packages/model-runtime/src/core/streams/openai/responsesStream.test.ts|135|19|o4-mini",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "LocalRouter/LocalRouter|openai|crates/lr-server/src/types.rs|734|25|gpt-4",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "doc"
+        }
+      },
+      {
+        "key": "wyh0626/claude-code-local|anthropic|src/utils/envUtils.ts|163|5|claude-sonnet-4-5",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "comparison"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|packages/model-runtime/src/providers/vercelaigateway/index.test.ts|122|17|o1-preview",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|packages/context-engine/src/tools/__tests__/ToolsEngine.test.ts|821|19|gpt-4",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "fazxes/Claude-code|anthropic|stubs/downloads/claude-agent-sdk/sdk.mjs|47|1509|claude-3-5-haiku-20241022",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "pdovhomilja/nextcrm-app|openai|docs/superpowers/plans/2026-10-11-odoo-connector-orders-out.md|1128|37|o1",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "doc"
+        }
+      },
+      {
+        "key": "OpenAisec/Miko|anthropic|src/utils/envUtils.ts|157|5|claude-sonnet-4-5",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "comparison"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|locales/it-IT/models.json|1781|4|gpt-4o-mini-audio-preview",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|src/migrations/FromV6ToV7/fixtures/output-v7-from-v1.json|109|23|gpt-3.5-turbo",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "pdovhomilja/nextcrm-app|openai|plugins/odoo-connector/__tests__/orders-failures.test.ts|62|37|o1",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "JaleelB/readium-x|openai|components/tts-button.tsx|132|49|tts-1",
+        "second": {
+          "live": true,
+          "via": "sdk-non-text",
+          "reason": null
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|anthropic|locales/en-US/models.json|803|4|claude-3-haiku-20240307",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "pdovhomilja/nextcrm-app|openai|plugins/odoo-connector/__tests__/review-fixes-minors.test.ts|65|35|o1",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "AnyVM-Tech/AnyGPT|openai|apps/api/models.json|1664|14|gpt-5.4-nano",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "yiichuan/oddeNova|openai|src/services/llm-config.ts|70|101|gpt-5.1",
+        "second": {
+          "live": true,
+          "via": "sdk-text",
+          "reason": null
+        }
+      },
+      {
+        "key": "pdovhomilja/nextcrm-app|openai|actions/crm/opportunities/__tests__/approval.test.ts|97|27|o1",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "pdovhomilja/nextcrm-app|openai|docs/superpowers/plans/2026-10-11-odoo-connector-orders-out.md|777|35|o1",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "doc"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|src/database/_deprecated/core/migrations/migrateSettingsToUser/fixtures/input.json|37|10|gpt-4",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "AnyVM-Tech/AnyGPT|openai|apps/api/dev/fetchPricing.ts|346|4|tts-1-hd",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|packages/model-bank/src/aiModels/azure.ts|1052|10|o3-mini",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "other-endpoint"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|packages/model-runtime/src/utils/modelParse.test.ts|190|16|gpt-4",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|packages/database/src/repositories/aiInfra/index.test.ts|580|14|gpt-4",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|packages/model-runtime/src/providers/openai/index.test.ts|428|47|o4-mini",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "fazxes/Claude-code|anthropic|src/utils/model/model.ts|594|27|claude-sonnet-4-5",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "comparison"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|locales/pt-BR/models.json|1745|4|gpt-4-turbo-preview",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|locales/ja-JP/models.json|1775|4|gpt-4o-audio-preview",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "AnyVM-Tech/AnyGPT|openai|apps/api/dev/fetchPricing.ts|312|4|o3-pro-2025-06-10",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "AnyVM-Tech/AnyGPT|openai|apps/api/models.json|1792|14|gpt-3.5-turbo-1106",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|packages/model-runtime/src/core/openaiCompatibleFactory/index.test.ts|1458|19|dall-e-3",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|anthropic|packages/model-runtime/src/providers/anthropic/index.test.ts|597|19|claude-3-haiku-20240307",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "DdogezD/claudium|anthropic|src/utils/model/model.ts|178|53|claude-3-5-haiku-20241022",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "comment"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|packages/model-bank/src/aiModels/azure.ts|743|10|gpt-5.1",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "other-endpoint"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|locales/ja-JP/models.json|1790|4|gpt-4o-mini-transcribe",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "LocalRouter/LocalRouter|openai|crates/lr-server/src/routes/audio.rs|1574|21|tts-1",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|packages/database/src/repositories/dataImporter/deprecated/__tests__/fixtures/messages.json|507|21|gpt-3.5-turbo",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|packages/model-bank/src/aiModels/openai.ts|1920|10|gpt-4o-2024-11-20",
+        "second": {
+          "live": true,
+          "via": "sdk-text",
+          "reason": null
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|packages/database/src/repositories/aiInfra/index.test.ts|980|16|gpt-4",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|packages/context-engine/src/tools/__tests__/ToolsEngine.test.ts|730|19|gpt-4",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "AnyVM-Tech/AnyGPT|openai|apps/api/dev/fetchPricing.ts|355|4|chatgpt-image-latest",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|packages/model-bank/src/aiModels/azure.ts|1163|24|gpt-4-turbo",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "other-endpoint"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|anthropic|locales/pt-BR/models.json|797|4|claude-3-7-sonnet-20250219",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|locales/pt-BR/models.json|974|4|dall-e-3",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "andforce/Openclaude|anthropic|src/utils/model/configs.ts|52|16|claude-opus-4-20250514",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "comparison"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|locales/bg-BG/models.json|1772|4|gpt-4o-2024-11-20",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|locales/bg-BG/models.json|2603|4|o4-mini",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|src/config/modelProviders/higress.ts|925|24|gpt-4-turbo",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "other-endpoint"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|locales/ja-JP/models.json|1760|4|gpt-4.5-preview",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|locales/pl-PL/models.json|869|4|codex-mini-latest",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|packages/model-runtime/src/providers/openai/__snapshots__/index.test.ts.snap|25|21|davinci-002",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|src/store/agent/slices/chat/action.test.ts|192|42|gpt-3.5-turbo",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "ShinChven/remix-studio|openai|agent/image-format-passthrough.md|102|11|gpt-image-1",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "doc"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|packages/model-runtime/src/core/openaiCompatibleFactory/nonStreamToStream.test.ts|499|17|gpt-4o-realtime-preview",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "pdovhomilja/nextcrm-app|openai|docs/superpowers/plans/2026-10-10-orders.md|1291|41|o1",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "doc"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|locales/de-DE/models.json|1790|4|gpt-4o-mini-transcribe",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|locales/pt-BR/models.json|968|4|computer-use-preview",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "Charlie85270/Dorothy|anthropic|src/app/usage/page.tsx|51|4|claude-sonnet-4-5",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "chenqinggang001/claude-code-build|anthropic|src/utils/model/bedrock.ts|220|7|claude-sonnet-4-5-20250929",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "comment"
+        }
+      },
+      {
+        "key": "kill136/claudecode|anthropic|src/utils/model/bedrock.ts|246|70|claude-sonnet-4-5-20250929",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "comment"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|locales/it-IT/models.json|869|4|codex-mini-latest",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "zer0-A1/Emineon|openai|src/lib/openai.ts|235|17|gpt-3.5-turbo",
+        "second": {
+          "live": true,
+          "via": "sdk-text",
+          "reason": null
+        }
+      },
+      {
+        "key": "backenly/backenly|openai|lib/ai/cost-tracker.ts|52|4|gpt-3.5-turbo",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|locales/vi-VN/models.json|2576|4|o1-mini",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|locales/vi-VN/models.json|1814|4|gpt-5-chat-latest",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|packages/context-engine/src/tools/__tests__/ToolsEngine.test.ts|1010|19|gpt-3.5-turbo",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|src/migrations/FromV4ToV5/fixtures/function-output-v5.json|8|23|gpt-3.5-turbo",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|src/app/[variants]/(main)/settings/tts/features/const.tsx|24|13|whisper-1",
+        "second": {
+          "live": true,
+          "via": "wrapper:@lobehub/tts",
+          "reason": null
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|locales/tr-TR/models.json|1712|4|gpt-3.5-turbo-instruct",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|docs/self-hosting/environment-variables/model-provider.zh-CN.mdx|63|167|gpt-3.5-turbo",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "doc"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|packages/agent-runtime/src/core/__tests__/UsageCounter.test.ts|74|17|gpt-4",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|anthropic|packages/model-runtime/src/core/usageConverters/utils/computeChatCost.test.ts|438|50|claude-sonnet-4-20250514",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "pdovhomilja/nextcrm-app|openai|plugins/odoo-connector/__tests__/review-fixes-minors.test.ts|82|35|o1",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|packages/model-runtime/src/providers/azureOpenai/index.test.ts|449|17|gpt-image-1",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|packages/database/src/repositories/aiInfra/index.test.ts|1331|18|gpt-4",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|packages/database/src/repositories/aiInfra/index.test.ts|1064|51|gpt-4",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "pdovhomilja/nextcrm-app|openai|plugins/odoo-connector/__tests__/review-fixes-orders.test.ts|19|38|o1",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|locales/tr-TR/models.json|1784|4|gpt-4o-mini-realtime-preview",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|packages/model-runtime/src/core/openaiCompatibleFactory/index.test.ts|1352|19|dall-e-3",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "DdogezD/claudium|anthropic|src/utils/model/configs.ts|52|16|claude-opus-4-20250514",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "unused"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|locales/fa-IR/models.json|2588|4|o3-2025-04-16",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "AnyVM-Tech/AnyGPT|openai|apps/api/dev/fetchPricing.ts|293|4|gpt-5.1-codex-mini",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "LocalRouter/LocalRouter|openai|crates/lr-monitoring/src/logger.rs|562|14|gpt-4",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "LocalRouter/LocalRouter|openai|plan/2026-01-17-CHAT_UNIFICATION.md|124|35|gpt-4",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "doc"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|packages/model-bank/src/aiModels/ai302.ts|83|19|o4-mini",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "other-endpoint"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|packages/database/src/repositories/aiInfra/index.test.ts|641|14|gpt-4",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|packages/database/src/models/__tests__/session.test.ts|492|32|gpt-3.5-turbo",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "LocalRouter/LocalRouter|openai|src-tauri/tests/metrics_integration_tests.rs|449|14|gpt-4",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "kill136/claudecode|anthropic|src/utils/model/configs.ts|10|16|claude-3-7-sonnet-20250219",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "comparison"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|locales/ja-JP/models.json|968|4|computer-use-preview",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|anthropic|packages/model-runtime/src/providers/anthropic/index.test.ts|663|19|claude-3-haiku-20240307",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|packages/database/src/models/__tests__/session.test.ts|920|17|gpt-4",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|anthropic|locales/tr-TR/models.json|779|4|claude-2.0",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "LocalRouter/LocalRouter|openai|src-tauri/tests/metrics_tauri_commands_tests.rs|297|17|gpt-4",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "LocalRouter/LocalRouter|openai|crates/lr-server/src/routes/chat.rs|2343|21|gpt-4",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "pdovhomilja/nextcrm-app|openai|lib/crm/calendar/__tests__/match.test.ts|44|36|o1",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|locales/de-DE/models.json|2603|4|o4-mini",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "LocalRouter/LocalRouter|openai|crates/lr-server/src/types.rs|324|19|gpt-4",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "doc"
+        }
+      },
+      {
+        "key": "utter-one/bonsai|openai|tests/integration/live/conversationRunner.test.ts|222|52|gpt-4",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "AnyVM-Tech/AnyGPT|openai|apps/api/pricing.json|147|6|gpt-4o-2024-08-06",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|locales/vi-VN/models.json|1724|4|gpt-4-0125-preview",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|anthropic|locales/de-DE/models.json|824|4|claude-sonnet-4-20250514",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|packages/context-engine/src/providers/__tests__/SystemRoleInjector.test.ts|61|17|gpt-4",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|locales/it-IT/models.json|1772|4|gpt-4o-2024-11-20",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|packages/model-bank/src/aiModels/openai.ts|2213|10|gpt-3.5-turbo-1106",
+        "second": {
+          "live": true,
+          "via": "sdk-text",
+          "reason": null
+        }
+      },
+      {
+        "key": "pdovhomilja/nextcrm-app|openai|plugins/oxo-erp-connector/__tests__/orders-out.test.ts|108|49|o1",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "fazxes/Claude-code|anthropic|stubs/downloads/claude-agent-sdk/sdk.mjs|47|1209|claude-3-sonnet-20240229",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "comparison"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|packages/model-runtime/src/providers/github/index.ts|38|29|o1",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "comparison"
+        }
+      },
+      {
+        "key": "utter-one/bonsai|openai|tests/e2e/projectProviderUsage.test.ts|164|21|gpt-4",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "TaGoat/claude_code_cli|anthropic|src/utils/model/bedrock.ts|246|32|claude-sonnet-4-5-20250929",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "comment"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|src/config/modelProviders/higress.ts|930|12|gpt-4",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "other-endpoint"
+        }
+      },
+      {
+        "key": "pdovhomilja/nextcrm-app|openai|plugins/odoo-connector/__tests__/review-fixes-orders.test.ts|75|33|o1",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|anthropic|locales/de-DE/models.json|815|4|claude-opus-4-1-20250805",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|anthropic|src/config/modelProviders/anthropic.ts|98|16|claude-3-haiku-20240307",
+        "second": {
+          "live": true,
+          "via": "sdk-text",
+          "reason": null
+        }
+      },
+      {
+        "key": "LocalRouter/LocalRouter|openai|src/views/try-it-out/llm-tab/images-panel.tsx|67|61|dall-e-3",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "comparison"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|packages/database/src/repositories/aiInfra/index.test.ts|958|51|gpt-4",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|packages/agent-runtime/src/core/__tests__/UsageCounter.test.ts|272|17|gpt-4",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|locales/en-US/models.json|2600|4|o3-pro-2025-06-10",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "inbrainfun/inbrain|anthropic|test/brainstorm/judges-maxtokens.test.ts|65|39|claude-3-5-haiku-20241022",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "dashersw/double-agent|openai|src/augments/cost-tracker.ts|52|4|o1-mini",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|locales/de-DE/models.json|1772|4|gpt-4o-2024-11-20",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "OpenAisec/Miko|anthropic|src/utils/model/model.ts|630|27|claude-sonnet-4-5",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "comparison"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|src/store/discover/slices/model/action.test.ts|151|32|gpt-4",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|anthropic|packages/model-bank/src/aiModels/aihubmix.ts|2561|10|claude-3-5-haiku-20241022",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "other-endpoint"
+        }
+      },
+      {
+        "key": "AnyVM-Tech/AnyGPT|openai|apps/api/models.json|4048|14|o3-deep-research",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|anthropic|packages/model-runtime/src/core/parameterResolver.test.ts|258|64|claude-sonnet-4-5-20250929",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|locales/de-DE/models.json|3248|4|whisper-1",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "pdovhomilja/nextcrm-app|openai|docs/superpowers/plans/2026-10-18-oxo-erp-connector.md|1666|49|o1",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "doc"
+        }
+      },
+      {
+        "key": "v-fidelusaleksander/prompt-action|openai|__tests__/ai.test.ts|197|15|gpt-4",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|locales/it-IT/models.json|1721|4|gpt-4",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|locales/pl-PL/models.json|3200|4|tts-1",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "OpenAisec/Miko|anthropic|src/migrations/migrateLegacyOpusToCurrent.ts|40|16|claude-opus-4-20250514",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "comparison"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|packages/model-bank/src/aiModels/aihubmix.ts|1926|10|o3-deep-research",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "other-endpoint"
+        }
+      },
+      {
+        "key": "utter-one/bonsai|openai|tests/integration/live/conversationRunner.test.ts|399|52|gpt-4",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|packages/database/src/repositories/aiInfra/index.test.ts|1016|16|gpt-4",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "ananddtyagi/Sora-Studio|openai|image_gen.md|735|12|gpt-image-1",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "doc"
+        }
+      },
+      {
+        "key": "JrCx7scC/claude-code-source|anthropic|src/utils/model/configs.ts|17|16|claude-3-5-sonnet-20241022",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "comparison"
+        }
+      },
+      {
+        "key": "JrCx7scC/claude-code-source|anthropic|src/skills/bundled/claude-api/shared/models.md|95|24|claude-3-sonnet-20240229",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "doc"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|locales/ja-JP/models.json|2579|4|o1-preview",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|packages/model-runtime/src/core/ModelRuntime.test.ts|462|17|tts-1",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "LocalRouter/LocalRouter|openai|plan/2026-01-17-OPENAPI_SPEC.md|177|19|gpt-4",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "doc"
+        }
+      },
+      {
+        "key": "LocalRouter/LocalRouter|openai|src-tauri/tests/router_strategy_tests.rs|822|40|gpt-4",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "bpluo/image-atelier|openai|src/lib/image-settings.ts|13|6|gpt-image-1-mini",
+        "second": {
+          "live": true,
+          "via": "sdk-non-text",
+          "reason": null
+        }
+      },
+      {
+        "key": "AnyVM-Tech/AnyGPT|openai|apps/api/dev/testSetup.ts|252|36|gpt-3.5-turbo",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "LocalRouter/LocalRouter|openai|crates/lr-monitor/src/store.rs|705|25|gpt-4",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "LocalRouter/LocalRouter|openai|crates/lr-mcp/src/gateway/firewall.rs|1603|37|gpt-4",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|anthropic|packages/model-bank/src/aiModels/ai302.ts|43|10|claude-3-7-sonnet-20250219",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "other-endpoint"
+        }
+      },
+      {
+        "key": "LocalRouter/LocalRouter|openai|crates/lr-providers/src/openai.rs|311|61|gpt-4-1106-preview",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|packages/model-runtime/src/core/openaiCompatibleFactory/index.test.ts|1382|19|dall-e-3",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|anthropic|locales/ar/models.json|803|4|claude-3-haiku-20240307",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "catalog"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|src/database/_deprecated/core/migrations/migrateSettingsToUser/fixtures/output.json|42|12|gpt-4-0125-preview",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "test"
+        }
+      },
+      {
+        "key": "vual/lobe-chat-pro|openai|src/config/modelProviders/higress.ts|886|12|gpt-3.5-turbo-0125",
+        "second": {
+          "live": false,
+          "via": null,
+          "reason": "other-endpoint"
+        }
+      },
+      {
+        "key": "OpenCoworkAI/open-cowork|openai|src/shared/api-model-presets.ts|71|14|gpt-5.3-codex",
+        "second": {
+          "live": true,
+          "via": "wrapper:@mariozechner/pi-ai",
+          "reason": null
+        }
+      }
+    ]
+  },
   "repos": [
     {
       "repo": "3cqs-coder/SymBot",
@@ -4406,10 +8398,11 @@
           "deadline": "anthropic-2026-06-15-claude-opus-4",
           "language": "typescript",
           "generated": false,
-          "live": true,
-          "via": "sdk-text",
+          "live": false,
+          "via": null,
           "replacement": "claude-opus-4-8",
-          "notes": "firstParty ID in ALL_MODEL_CONFIGS, which feeds getModelStrings and is used as the request model"
+          "notes": "firstParty ID in ALL_MODEL_CONFIGS, which feeds getModelStrings and is used as the request model",
+          "reason": "comparison"
         },
         {
           "file": "src/utils/model/configs.ts",
@@ -5239,7 +9232,7 @@
           "language": "typescript",
           "generated": false,
           "live": true,
-          "via": "other",
+          "via": "wrapper:@office-ai/aioncli-core",
           "replacement": "claude-sonnet-5-5",
           "notes": "Fallback model list offered in the picker when listing Anthropic models fails; a chosen entry is sent as the request model."
         },
@@ -5278,7 +9271,7 @@
           "language": "typescript",
           "generated": false,
           "live": true,
-          "via": "other",
+          "via": "wrapper:@office-ai/aioncli-core",
           "replacement": "claude-haiku-4-5-20251001",
           "notes": "Fallback model list offered in the picker when listing Anthropic models fails; a chosen entry is sent as the request model."
         },
@@ -7421,10 +11414,11 @@
           "deadline": "anthropic-2025-10-28-claude-3-5-sonnet",
           "language": "typescript",
           "generated": false,
-          "live": true,
-          "via": "sdk-text",
+          "live": false,
+          "via": null,
           "replacement": "claude-sonnet-5-5",
-          "notes": "First-party ID in model config, selected by provider in modelStrings and used as the request model via the Anthropic SDK."
+          "notes": "First-party ID in model config, selected by provider in modelStrings and used as the request model via the Anthropic SDK.",
+          "reason": "comparison"
         },
         {
           "file": "src/utils/model/configs.ts",
@@ -15079,9 +19073,9 @@
           "generated": false,
           "live": false,
           "via": null,
-          "reason": "other-endpoint",
           "replacement": "claude-sonnet-5-5",
-          "notes": "azureOpenAI provider ID in model config, sent to Azure endpoint not OpenAI or Anthropic"
+          "notes": "azureOpenAI provider ID in model config, sent to Azure endpoint not OpenAI or Anthropic",
+          "reason": "other-endpoint"
         },
         {
           "file": "src/utils/model/configs.ts",
@@ -17096,10 +21090,11 @@
           "deadline": "anthropic-2026-06-15-claude-opus-4",
           "language": "typescript",
           "generated": false,
-          "live": true,
-          "via": "sdk-text",
+          "live": false,
+          "via": null,
           "replacement": "claude-opus-4-8",
-          "notes": "firstParty id in model config table, resolved to model of Anthropic SDK messages request"
+          "notes": "firstParty id in model config table, resolved to model of Anthropic SDK messages request",
+          "reason": "comparison"
         },
         {
           "file": "src/utils/model/configs.ts",
@@ -22109,10 +26104,11 @@
           "deadline": "anthropic-2026-02-19-claude-3-7-sonnet",
           "language": "typescript",
           "generated": false,
-          "live": true,
-          "via": "sdk-text",
+          "live": false,
+          "via": null,
           "replacement": "claude-sonnet-5-5",
-          "notes": "firstParty ID in model config, mapped via modelStrings and used as model of Anthropic API requests"
+          "notes": "firstParty ID in model config, mapped via modelStrings and used as model of Anthropic API requests",
+          "reason": "comparison"
         },
         {
           "file": "src/utils/model/configs.ts",
@@ -59694,9 +63690,9 @@
           "generated": false,
           "live": false,
           "via": null,
-          "reason": "catalog",
           "replacement": "gpt-realtime-2.1-mini",
-          "notes": "option label text in TTS/STT select"
+          "notes": "option label text in TTS/STT select",
+          "reason": "catalog"
         },
         {
           "file": "src/app/[variants]/(main)/settings/tts/features/const.tsx",
@@ -60193,9 +64189,8 @@
           "deadline": "openai-2025-10-27-o1-mini",
           "language": "typescript",
           "generated": false,
-          "live": false,
-          "via": null,
-          "reason": "catalog",
+          "live": true,
+          "via": "sdk-text",
           "replacement": "gpt-5.6-terra",
           "notes": "provider card model catalog entry for display and discovery lists, not read into a request"
         },
