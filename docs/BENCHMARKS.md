@@ -196,6 +196,8 @@ Two sets of real applications were frozen on 2026-10-21 with `scripts/ai-app-sel
 
 The 2026-10-20 npm sets, [OpenAI](benchmarks/2026-10-20-openai-repos.json) and [Anthropic](benchmarks/2026-10-20-anthropic-repos.json), are kept unchanged as library baselines: npm search returns published packages, mostly SDK wrappers, not applications. No tracing or fix numbers exist for the new sets yet; a later phase measures them.
 
+An independent grep for quoted exact registry model IDs found **4,679** candidate locations in the 150 repositories ([labels](benchmarks/2026-10-21-ai-app-labels.json)): 2,428 in TypeScript, 148 in JavaScript, 1 in Python and the rest in JSON, Markdown, YAML and other files, with 11 in generated files. **377** are live (the ID reaches a request), 373 of them JS/TS. By `via`: 261 `sdk-text`, 58 `sdk-non-text`, 19 `wrapper:*`, 17 `raw-http` and 22 `other`; the current tracers do not follow `wrapper:*`, `raw-http` or `other` (wrapper tracers are deferred). The main non-live reasons are tests (1,805), catalogs (1,603), docs (376) and comparisons (213). The labels come from one AI-assisted reading pass by fresh-context labelling agents, one per batch, not hand labelling; some agents labelled groups of obviously uniform candidates (locale catalogs, test fixtures) by file after spot checks. A 10% independent re-read follows (plan 03-03). Aliases the registry does not name are out of scope. Phase 4 reports BENCH-04 over JS/TS live pins as the headline, the languages Refit's agents cover, and over all live pins as a secondary number.
+
 ## Speed and cost
 
 | Measure | Result |
