@@ -1,7 +1,9 @@
+import { execFile } from 'node:child_process';
 import { createHmac, randomUUID } from 'node:crypto';
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
+import { promisify } from 'node:util';
 import { afterEach, expect, it, vi } from 'vitest';
 import {
   alertDue,
@@ -329,6 +331,35 @@ it('classifies OpenAI model lists, type unions, tables and pickers as catalog', 
   });
 });
 
+it('classifies model-keyed map entries wrapped in satisfies, as, parentheses or assertions as catalog', async () => {
+  // The inner key is `model`, not a descriptor key, so only the wrapper unwrap can make these catalog.
+  const value = "{ model: 'gpt-4', fallback: 'gpt-4-0613', context: 8192 }";
+  const { result } = await uses({
+    'src/map.ts': [
+      `export const A = { 'gpt-4': ${value} satisfies Model<'x'> };`,
+      `export const B = { 'gpt-4': ${value} as const };`,
+      `export const C = { 'gpt-4': (${value}) };`,
+      `export const D = { 'gpt-4': <Model>${value} };`,
+      `export const E = { 'gpt-4': ${value} as const satisfies Model<'x'> };`,
+      // A key that is not a model names a request, not a table entry.
+      "export const F = { chat: { model: 'gpt-4' } satisfies Model };",
+    ].join('\n'),
+  });
+  expect(result).toEqual({
+    'src/map.ts:1 gpt-4': 'catalog',
+    'src/map.ts:1 gpt-4-0613': 'catalog',
+    'src/map.ts:2 gpt-4': 'catalog',
+    'src/map.ts:2 gpt-4-0613': 'catalog',
+    'src/map.ts:3 gpt-4': 'catalog',
+    'src/map.ts:3 gpt-4-0613': 'catalog',
+    'src/map.ts:4 gpt-4': 'catalog',
+    'src/map.ts:4 gpt-4-0613': 'catalog',
+    'src/map.ts:5 gpt-4': 'catalog',
+    'src/map.ts:5 gpt-4-0613': 'catalog',
+    'src/map.ts:6 gpt-4': 'live',
+  });
+});
+
 it('classifies OpenAI tests, examples, comments, tokenizers and checks', async () => {
   const call = "send({ model: 'gpt-4' });";
   const { result } = await uses({
@@ -464,6 +495,84 @@ it('rests exposure on live evidence and keeps the rest as separate, capped non-l
       NOW,
     ),
   ).toEqual([]);
+});
+
+it('counts every non-live match by use before the evidence cap', async () => {
+  const { scan } = await uses({
+    // 25 catalog matches on separate lines, past the limit of 20 listed matches.
+    'src/models.ts': Array.from(
+      { length: 25 },
+      (_, index) => `export const LIST${index} = ['gpt-4', 'gpt-4o', 'o3'];`,
+    ).join('\n'),
+    'src/chat.ts': "send({ model: 'gpt-4' });",
+    'src/chat.test.ts': "send({ model: 'gpt-4' });",
+    'src/note.ts': "// send({ model: 'gpt-4' });",
+    // o1 only appears in a list: a mention, not an exposure.
+    'src/o1.ts': "export const LIST = ['o1', 'gpt-4o', 'o3'];",
+  });
+  const [exposure] = scan.exposures;
+  expect(exposure.deadline.id).toBe('openai-gpt-4');
+  expect(exposure.nonLive).toHaveLength(20);
+  expect(exposure.nonLiveMore).toBe(7);
+  expect(exposure.nonLiveCounts).toEqual({ catalog: 25, test: 1, comment: 1 });
+  expect(scan.mentions.map((item) => [item.deadline.id, item.nonLiveCounts])).toEqual([
+    ['openai-o1', { catalog: 1 }],
+  ]);
+  for (const item of [...scan.exposures, ...scan.mentions])
+    expect(item.nonLiveCounts).toBeDefined();
+
+  // No non-live match is an empty object, not a missing field; no match at all is no entry.
+  const live = await scanDeadlines(
+    await repository({ 'src/live.ts': "send({ model: 'gpt-4' });" }),
+    classifying,
+    NOW,
+  );
+  expect(live.exposures.map((item) => item.nonLiveCounts)).toEqual([{}]);
+  const none = await scanDeadlines(
+    await repository({ 'src/ok.ts': "send({ model: 'gpt-5' });" }),
+    classifying,
+    NOW,
+  );
+  expect(none).toEqual({ exposures: [], mentions: [] });
+});
+
+it('classifies each of two matches on one line, and a live match hides non-live ones of its own version', async () => {
+  const { scan, result } = await uses({
+    'src/line.ts': "if (model === 'gpt-4') send({ model: 'gpt-4-0613' }); // was 'gpt-4-0613'",
+  });
+  expect(result).toEqual({ 'src/line.ts:1 gpt-4': 'check', 'src/line.ts:1 gpt-4-0613': 'live' });
+  expect(scan.exposures.map((item) => item.nonLiveCounts)).toEqual([{ check: 1 }]);
+});
+
+it('prints the exact non-live count for each use on the terminal', async () => {
+  const registryRoot = await repository({ 'registry.json': classifying });
+  // Files are read in name order, so the 25 catalog lines fill the 20 listed places and the comment
+  // in c.ts is counted but not listed.
+  const root = await repository({
+    'src/a.ts': Array.from(
+      { length: 25 },
+      (_, index) => `export const LIST${index} = ['gpt-4', 'gpt-4o', 'o3'];`,
+    ).join('\n'),
+    'src/b.ts': "send({ model: 'gpt-4' });",
+    'src/c.ts': "// send({ model: 'gpt-4' });",
+    'src/o1.ts': "export const LIST = ['o1', 'gpt-4o', 'o3'];",
+  });
+  const { stdout } = await promisify(execFile)(process.execPath, [
+    resolve('bin/refit.mjs'),
+    'deadlines',
+    '--repository',
+    root,
+    '--registry',
+    join(registryRoot, 'registry.json'),
+  ]);
+  // One line per use: the label, the use, its exact count, then the places that are listed. The
+  // count stays exact past the limit, and a use with no listed place still gets a line.
+  expect(stdout).toMatch(/Not live\s+catalog\s+25\s+src\/a\.ts:1,2,3/);
+  expect(stdout).toMatch(/^\s+comment\s+1$/m);
+  expect(stdout).toMatch(/^\s+…and 6 more$/m);
+  expect(stdout).toMatch(
+    /Named only outside live code[\s\S]*Not live\s+catalog\s+1\s+src\/o1\.ts:1/,
+  );
 });
 
 it('leaves Meta and Shopify matching as it was, apart from listing comments', async () => {

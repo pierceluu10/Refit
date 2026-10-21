@@ -55,6 +55,9 @@ export interface DeadlineExposure {
   // Matches that are not live, with their own limit and count.
   nonLive: DeadlineEvidence[];
   nonLiveMore: number;
+  // The exact number of non-live matches by use, counted before the limit above. Always set by the
+  // scan, and optional only so a hand-built exposure need not repeat it.
+  nonLiveCounts?: Partial<Record<DeadlineUse, number>>;
 }
 
 // Deadlines found in a repository: exposures have live evidence; mentions are deadlines the
@@ -155,6 +158,20 @@ function isLiteralStructure(node: ts.Node) {
   );
 }
 
+// The expression under any `as`, `satisfies`, parentheses, `<T>` assertion or `!`, which change
+// its type and not its value.
+function unwrapDown(node: ts.Node) {
+  while (
+    ts.isAsExpression(node) ||
+    ts.isSatisfiesExpression(node) ||
+    ts.isParenthesizedExpression(node) ||
+    ts.isTypeAssertionExpression(node) ||
+    ts.isNonNullExpression(node)
+  )
+    node = node.expression;
+  return node;
+}
+
 function propertyKey(node: ts.Node) {
   return (
     node.parent &&
@@ -205,7 +222,7 @@ function literalUse(
     if (
       ts.isPropertyAssignment(up) &&
       up.initializer === current &&
-      ts.isObjectLiteralExpression(current) &&
+      ts.isObjectLiteralExpression(unwrapDown(current)) &&
       ts.isStringLiteralLike(up.name) &&
       isModel(up.name.text)
     )
@@ -371,6 +388,9 @@ export async function scanDeadlines(
     const rest = exposure.nonLive.filter(
       (item) => !live.has(`${item.file}:${item.line}:${item.version}`),
     );
+    const counts: Partial<Record<DeadlineUse, number>> = {};
+    for (const item of rest) counts[item.use] = (counts[item.use] ?? 0) + 1;
+    exposure.nonLiveCounts = counts;
     exposure.nonLive = rest.slice(0, MAX_EVIDENCE);
     exposure.nonLiveMore = rest.length - exposure.nonLive.length;
   }
