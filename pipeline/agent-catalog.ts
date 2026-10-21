@@ -38,6 +38,17 @@ export const AGENT_CATALOG: ProviderAgent[] = [
     adapter: null,
     guide: null,
   },
+  // Both npm packages and the default Gemini Developer API host of each, read from the published
+  // @google/genai 2.30.0 and @google/generative-ai 0.24.1 code on 2026-10-21. Vertex AI hosts are
+  // left out: Google Cloud sets its own model dates there.
+  {
+    id: 'gemini',
+    name: 'Gemini',
+    packages: ['@google/genai', '@google/generative-ai'],
+    hostnames: ['generativelanguage.googleapis.com'],
+    adapter: null,
+    guide: null,
+  },
   {
     id: 'shopify',
     name: 'Shopify',

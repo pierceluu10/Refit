@@ -433,6 +433,136 @@ it('matches and classifies Anthropic model IDs like OpenAI ones', async () => {
   );
 });
 
+// Gemini entries for tests only: the model IDs are from the SDK READMEs, the dates are invented.
+const gemini: DeadlineRegistry = {
+  formatVersion: 1,
+  deadlines: [
+    ...classifying.deadlines,
+    entry({
+      id: 'gemini-flash',
+      provider: 'gemini',
+      kind: 'model',
+      versions: ['gemini-1.5-flash'],
+      date: '2026-11-30',
+    }),
+    entry({
+      id: 'gemini-pro',
+      provider: 'gemini',
+      kind: 'model',
+      versions: ['gemini-1.5-pro'],
+      date: '2026-09-24',
+    }),
+    entry({
+      id: 'gemini-old-sdk',
+      provider: 'gemini',
+      kind: 'sdk',
+      versions: ['@google/generative-ai'],
+      date: '2025-11-30',
+      replacement: '@google/genai',
+    }),
+  ],
+};
+
+async function geminiUses(files: Record<string, unknown>) {
+  const scan = await scanDeadlines(await repository(files), gemini, NOW);
+  const result: Record<string, string> = {};
+  for (const exposure of [...scan.exposures, ...scan.mentions])
+    for (const item of [...exposure.evidence, ...exposure.nonLive])
+      result[`${item.file}:${item.line} ${item.version}`] = `${item.kind} ${item.use}`;
+  return { scan, result };
+}
+
+it('matches Gemini model pins in both SDK shapes with the OpenAI use classes', async () => {
+  expect(checkDeadlineRegistry(gemini, NOW).errors).toEqual([]);
+  const { scan, result } = await geminiUses({
+    // The call shapes in the @google/genai and @google/generative-ai READMEs.
+    'src/genai.ts': [
+      "import { GoogleGenAI } from '@google/genai';",
+      'const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });',
+      "await ai.models.generateContent({ model: 'gemini-1.5-flash', contents: 'Why?' });",
+      "await ai.models.generateContentStream({ model: 'models/gemini-1.5-pro', contents });",
+      "export const MODELS = ['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-flash-latest'];",
+      "export const MIXED = ['gemini-1.5-pro', 'gpt-4o', 'claude-sonnet-4-5'];",
+      "if (model === 'gemini-1.5-pro') legacy();",
+      "// model: 'gemini-1.5-flash'",
+      // Router, Vertex AI resource and other snapshot IDs are not Gemini API pins.
+      "const routed = 'google/gemini-1.5-flash';",
+      "const vertex = 'publishers/google/models/gemini-1.5-flash';",
+      "const snapshot = 'gemini-1.5-flash-002';",
+    ].join('\n'),
+    'src/legacy.js': [
+      "const { GoogleGenerativeAI } = require('@google/generative-ai');",
+      'const genAI = new GoogleGenerativeAI(process.env.API_KEY);',
+      "const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });",
+    ].join('\n'),
+    'src/legacy.test.js': "genAI.getGenerativeModel({ model: 'gemini-1.5-pro' });",
+    // Gemini-shaped IDs do not turn a pair of OpenAI models into a list.
+    'src/openai.ts': "const pair = ['gpt-4', 'gpt-4o', 'gemini-2.0-flash'];",
+  });
+  expect(result).toEqual({
+    'src/genai.ts:3 gemini-1.5-flash': 'source live',
+    'src/genai.ts:4 gemini-1.5-pro': 'source live',
+    'src/genai.ts:5 gemini-1.5-flash': 'source catalog',
+    'src/genai.ts:6 gemini-1.5-pro': 'source catalog',
+    'src/genai.ts:7 gemini-1.5-pro': 'source check',
+    'src/genai.ts:8 gemini-1.5-flash': 'source comment',
+    'src/legacy.js:3 gemini-1.5-flash': 'source live',
+    'src/legacy.test.js:1 gemini-1.5-pro': 'source test',
+    'src/openai.ts:1 gpt-4': 'source live',
+  });
+  expect(scan.exposures.map((item) => item.deadline.id)).toEqual([
+    'gemini-pro',
+    'openai-gpt-4',
+    'gemini-flash',
+  ]);
+  expect(deadlineTitle(scan.exposures[2])).toBe(
+    'Gemini model gemini-1.5-flash reaches its sunset on 2026-11-30',
+  );
+  expect(agentStatus('gemini', [])).toEqual({ state: 'none' });
+});
+
+it('reports a declared SDK package whose support ended, outside tests and examples', async () => {
+  const legacy = "const { GoogleGenerativeAI } = require('@google/generative-ai');";
+  const { scan, result } = await geminiUses({
+    'package.json': { name: 'app', dependencies: { '@google/generative-ai': '^0.21.0' } },
+    'package-lock.json': {
+      lockfileVersion: 3,
+      packages: {
+        '': { dependencies: { '@google/generative-ai': '^0.21.0' } },
+        'node_modules/@google/generative-ai': { version: '0.21.0' },
+      },
+    },
+    'examples/demo/package.json': {
+      name: 'demo',
+      dependencies: { '@google/generative-ai': '0.24.1' },
+    },
+    'src/legacy.js': legacy,
+  });
+  expect(result).toEqual({
+    'package.json:4 @google/generative-ai': 'dependency live',
+    'examples/demo/package.json:4 @google/generative-ai': 'dependency test',
+  });
+  const [exposure] = scan.exposures;
+  expect(exposure.deadline.id).toBe('gemini-old-sdk');
+  expect(exposure.days).toBeLessThan(0);
+  expect(exposure.evidence[0].text).toBe(
+    '@google/generative-ai 0.21.0 (locked in package-lock.json) is declared in dependencies',
+  );
+  expect(deadlineTitle(exposure)).toBe(
+    'Gemini package @google/generative-ai passed its sunset on 2025-11-30',
+  );
+  // A manifest whose package no source file names is not read a second time, and the new SDK is
+  // not the old one.
+  const unused = await geminiUses({
+    'package.json': {
+      name: 'app',
+      dependencies: { '@google/generative-ai': '0.24.1', '@google/genai': '2.30.0' },
+    },
+    'src/genai.ts': "import { GoogleGenAI } from '@google/genai';",
+  });
+  expect(unused.result).toEqual({});
+});
+
 it('rests exposure on live evidence and keeps the rest as separate, capped non-live evidence', async () => {
   const { scan } = await uses({
     // o1 only appears in a list: a mention, not an exposure.
@@ -575,7 +705,7 @@ it('keeps the shipped registry valid and sourced', async () => {
   expect(report.errors).toEqual([]);
   expect(report.missingSource).toEqual([]);
   expect(new Set(shipped.deadlines.map((item) => item.provider))).toEqual(
-    new Set(['shopify', 'meta-graph', 'openai', 'anthropic']),
+    new Set(['shopify', 'meta-graph', 'openai', 'anthropic', 'gemini']),
   );
 });
 

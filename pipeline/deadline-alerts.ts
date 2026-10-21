@@ -64,6 +64,8 @@ function subject(exposure: DeadlineExposure) {
     versions.length > TITLE_VERSIONS ? ` and ${versions.length - TITLE_VERSIONS} more` : '';
   if (deadline.kind === 'model')
     return `${versions.length === 1 ? 'model' : 'models'} ${listed}${extra}`;
+  if (deadline.kind === 'sdk')
+    return `${versions.length === 1 ? 'package' : 'packages'} ${listed}${extra}`;
   if (deadline.provider === 'meta-graph') return `Graph API ${listed}`;
   return `API version ${listed}`;
 }
