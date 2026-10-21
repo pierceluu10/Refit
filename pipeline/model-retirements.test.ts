@@ -1159,3 +1159,47 @@ it('stops tracing within the work budget on self-referencing assignments', async
   ]);
   expect(await proposeModelReplacements(root, registry, NOW)).toEqual(first);
 });
+
+it('counts uses written under another name before editing a shared constant (CR-01)', async () => {
+  const reason =
+    'The model comes from the constant MODEL (src/c.ts:1), which is used 2 times; change it by hand to gpt-5.6-sol.';
+  const cases: Record<string, Record<string, string>> = {
+    'renamed import': {
+      'src/b.ts': [
+        "import { MODEL as LEGACY } from './c';",
+        "if (LEGACY === 'gpt-4') console.log(1);",
+        "export const label = 'Using ' + LEGACY;",
+      ].join('\n'),
+    },
+    'renamed re-export': {
+      'src/index.ts': "export { MODEL as DEFAULT_MODEL } from './c';",
+      'src/b.ts': [
+        "import { DEFAULT_MODEL } from './index';",
+        "export const label = 'Using ' + DEFAULT_MODEL;",
+      ].join('\n'),
+    },
+    'export default X under another name': {
+      'src/c.ts': ["export const MODEL = 'gpt-4';", 'export default MODEL;'].join('\n'),
+      'src/b.ts': ["import Chosen from './c';", "export const label = 'Using ' + Chosen;"].join(
+        '\n',
+      ),
+    },
+  };
+  for (const [label, extra] of Object.entries(cases)) {
+    const root = await repository({
+      'src/c.ts': "export const MODEL = 'gpt-4';",
+      'src/a.ts': [
+        ...HEAD,
+        "import { MODEL } from './c';",
+        `export const a = () => ${send('MODEL')}`,
+      ].join('\n'),
+      ...extra,
+    });
+    const proposal = await proposeModelReplacements(root, registry, NOW);
+    expect([label, proposal.replacements]).toEqual([label, []]);
+    expect([label, proposal.stops.map((item) => item.reason)]).toEqual([
+      label,
+      [reason.replace('2 times', label === 'renamed import' ? '3 times' : '2 times')],
+    ]);
+  }
+});

@@ -269,7 +269,44 @@ function sourceProgram(repository: Repository) {
     }
     return defaultNames;
   };
-  // A private field's symbol is named `__#1@#model`; its identifier text is `#model`.
+  // Every `import { a as b }` and `export { a as b }`: a use of `a` can be written as `b`, and
+  // again under a third name in the next module (CR-01).
+  let renames: [string, string][] | undefined;
+  const renamed = () => {
+    if (!renames) {
+      renames = [];
+      for (const source of files)
+        for (const statement of source.statements) {
+          const bindings = ts.isImportDeclaration(statement)
+            ? statement.importClause?.namedBindings
+            : ts.isExportDeclaration(statement)
+              ? statement.exportClause
+              : undefined;
+          if (bindings && (ts.isNamedImports(bindings) || ts.isNamedExports(bindings)))
+            for (const item of bindings.elements)
+              if (item.propertyName) renames.push([item.propertyName.text, item.name.text]);
+        }
+    }
+    return renames;
+  };
+  // `export default X` makes X reachable under whatever name a module imports its default as.
+  let defaultsExported: Set<string> | undefined;
+  const exportedAsDefault = () => {
+    if (!defaultsExported) {
+      defaultsExported = new Set();
+      for (const source of files)
+        for (const statement of source.statements)
+          if (
+            ts.isExportAssignment(statement) &&
+            !statement.isExportEquals &&
+            ts.isIdentifier(statement.expression)
+          )
+            defaultsExported.add(statement.expression.text);
+    }
+    return defaultsExported;
+  };
+  // A private field's symbol is named `__#1@#model`; its identifier text is `#model`. Uses are
+  // attributed by symbol, so a use under another local name counts as long as its name is scanned.
   const indexOf = (symbol: ts.Symbol) => {
     const name = symbol.name.replace(/^__#\d+@/, '');
     let index = byName.get(name);
@@ -290,6 +327,17 @@ function sourceProgram(repository: Repository) {
               ),
             ])
           : new Set([name]);
+      for (let grown = true; grown;) {
+        const before = names.size;
+        for (const [from, to] of renamed()) {
+          if (names.has(from) || (name === 'default' && from === 'default')) names.add(to);
+          if (to === 'default' && names.has(from))
+            for (const item of defaultImports()) names.add(item);
+        }
+        for (const item of exportedAsDefault())
+          if (names.has(item)) for (const local of defaultImports()) names.add(local);
+        grown = names.size > before;
+      }
       for (const source of files) {
         if (![...names].some((item) => source.text.includes(item))) continue;
         const visit = (node: ts.Node) => {
