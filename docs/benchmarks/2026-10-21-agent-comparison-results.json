@@ -1,0 +1,1146 @@
+{
+  "formatVersion": 1,
+  "ranAt": "2026-10-21",
+  "harness": "pipeline/agent-comparison-cli.ts on feat/agent-comparison; Refit outcomes from the October 20 rerun at 6d4f38a",
+  "agent": {
+    "cli": "codex exec (OpenAI Codex CLI)",
+    "model": "gpt-5.6-sol",
+    "sandbox": "workspace-write, no network",
+    "task": "upgrade to 2026-09-30.endive, given the contract diff Refit computed (changed fields, removed request parameters, local Stripe changelog pages)",
+    "note": "Not Claude: the local Claude CLI login was invalid, so the run used the OpenAI key in the repository's .env. Package and lock files the agent edited were reverted, and Refit's stripe-node upgrade was applied to every patch, as Refit does."
+  },
+  "selection": "Every affected Stripe repository (fullAdapter.confirmed > 0) that Refit did not validate on the October 20 rerun, from the active-teams (21), original (10) and held-out (9) frozen sets; 40 in all. Ordered with Refit's preparation refusals last.",
+  "validation": "validateSourcePatch: the repository's approved checks in offline node:22-alpine Docker, baseline then patched, new type errors only. Generated stripe-mock checks were not run for agent patches.",
+  "review": "Every patch that passed was read in full. Dropping payment_method_types counts as wrong: Stripe then offers dynamic payment methods, which the owner's 2026-10-16 policy rules out.",
+  "budgetUsd": 20,
+  "spendUsd": {
+    "recordedAgentRuns": 6.28,
+    "debugRunGpt56Terra": 0.17,
+    "total": 6.45,
+    "note": "Sum of each run's priced usage. One debug run hung on stdin and recorded no usage."
+  },
+  "repos": [
+    {
+      "set": "active",
+      "repo": "inventashif/hackerai",
+      "refit": {
+        "status": "needs-review",
+        "stage": "scan",
+        "reason": "A traced SDK request sends a parameter the target API version removed. No reviewed replacement exists, and dropping or replacing it changes request behavior; automatic migration, AI and publication stop for review.",
+        "checks": "tests",
+        "validation": null,
+        "patch": null
+      },
+      "checks": "pnpm test",
+      "preparation": {
+        "status": "refused",
+        "reason": "Unsupported pnpm settings require a custom validation image; hooks, patches, alternate stores, runtimes and registries are not loaded automatically."
+      },
+      "agent": {
+        "status": "patched",
+        "turns": 12,
+        "seconds": 42,
+        "costUsd": 0.248372401,
+        "usage": {
+          "inputTokens": 212746,
+          "cachedInputTokens": 180831,
+          "cacheWriteInputTokens": 31888,
+          "outputTokens": 2419,
+          "reasoningTokens": 787
+        },
+        "summary": "- Removed obsolete `payment_method_types` from both extra-usage Checkout session calls.\n- Found no removed response-field reads or literal Stripe `apiVersion` values.\n- `git diff --check` passes. Dependencies were unavailable, so tests weren’t run.\n- Human decision: ensure Stripe’s dashboard payment-method configuration remains card-only if that restriction is required.",
+        "diff": "diff --git a/convex/extraUsageActions.ts b/convex/extraUsageActions.ts\nindex e5581b7..30bbf2f 100644\n--- a/convex/extraUsageActions.ts\n+++ b/convex/extraUsageActions.ts\n@@ -542,7 +542,6 @@ export const createPurchaseSession = action({\n       const session = await stripe.checkout.sessions.create({\n         customer: stripeCustomerId,\n         mode: \"payment\",\n-        payment_method_types: [\"card\"],\n         line_items: [\n           {\n             price_data: {\ndiff --git a/convex/teamExtraUsageActions.ts b/convex/teamExtraUsageActions.ts\nindex 75aede7..5714235 100644\n--- a/convex/teamExtraUsageActions.ts\n+++ b/convex/teamExtraUsageActions.ts\n@@ -343,7 +343,6 @@ export const createTeamPurchaseSession = action({\n       const session = await stripe.checkout.sessions.create({\n         customer: stripeCustomerId,\n         mode: \"payment\",\n-        payment_method_types: [\"card\"],\n         line_items: [\n           {\n             price_data: {\n"
+      },
+      "note": "Agent ran in the first pass, before the free preparation preflight existed; its patch could not be validated.",
+      "sdkUpgrade": {
+        "from": "22.4.0",
+        "to": "23.0.0"
+      }
+    },
+    {
+      "set": "active",
+      "repo": "kondax-com/Bocker",
+      "refit": {
+        "status": "needs-review",
+        "stage": "scan",
+        "reason": "A traced SDK request sends a parameter the target API version removed. No reviewed replacement exists, and dropping or replacing it changes request behavior; automatic migration, AI and publication stop for review.",
+        "checks": "tests",
+        "validation": null,
+        "patch": null
+      },
+      "checks": "pnpm test",
+      "preparation": {
+        "status": "refused",
+        "reason": "Unsupported pnpm settings require a custom validation image; hooks, patches, alternate stores, runtimes and registries are not loaded automatically."
+      },
+      "agent": {
+        "status": "patched",
+        "turns": 29,
+        "seconds": 172,
+        "costUsd": 1.247108,
+        "usage": {
+          "inputTokens": 1746566,
+          "cachedInputTokens": 1660460,
+          "cacheWriteInputTokens": 86028,
+          "outputTokens": 11925,
+          "reasoningTokens": 2700
+        },
+        "summary": "Upgraded Stripe integration to `2026-09-30.endive`:\n\n- Migrated coupons to `discounts` and `discount.source.coupon`.\n- Removed Checkout `payment_method_types`.\n- Migrated invoice fields to `parent`, `pricing`, and `taxes`.\n- Read billing periods from subscription items.\n- Updated invoice subscription/price helpers, previews, webhooks, and tests.\n- Updated the subscription preview UI.\n\nValidation: `git diff --check` passed. Tests weren’t run because dependencies are not installed. No decisions remain.",
+        "diff": "diff --git a/app/[locale]/(dashboard)/dashboard/subscription/_components/PreviewDialog.tsx b/app/[locale]/(dashboard)/dashboard/subscription/_components/PreviewDialog.tsx\nindex d12af2f..314e78c 100644\n--- a/app/[locale]/(dashboard)/dashboard/subscription/_components/PreviewDialog.tsx\n+++ b/app/[locale]/(dashboard)/dashboard/subscription/_components/PreviewDialog.tsx\n@@ -145,11 +145,12 @@ export default function PreviewDialog({\n   const nextPaymentInfo = useMemo(() => {\n     if (!previewData) return null\n     const subItem = previewData.previewInvoice.lines.data.find(\n-      (item) => !item.proration && item.type === 'subscription'\n+      (item) =>\n+        item.parent?.type === 'subscription_item_details' &&\n+        !item.parent.subscription_item_details?.proration\n     )\n     if (!subItem) return null\n-    // @ts-expect-error 年払いの場合 amount が plan 内にある\n-    const amount = subItem?.plan?.amount || 0\n+    const amount = Number(subItem.pricing?.unit_amount_decimal ?? 0)\n     return `${t('preview.nextPayment')}: ¥${amount.toLocaleString()}/${\n       billingPeriod === 'month' ? t('perMonth') : t('perYear')\n     }`\ndiff --git a/convex/tenant/referral/action.ts b/convex/tenant/referral/action.ts\nindex 09f084a..5555c21 100644\n--- a/convex/tenant/referral/action.ts\n+++ b/convex/tenant/referral/action.ts\n@@ -184,7 +184,7 @@ export const applyReferralDiscount = internalAction({\n               continue\n             }\n             await stripe.subscriptions.update(subscription.stripe_subscription_id, {\n-              coupon: coupon.id,\n+              discounts: [{ coupon: coupon.id }],\n             })\n \n             // 割引適用後に紹介数を減らす（冪等性対応）\n@@ -413,7 +413,7 @@ export const cronApplyReferralDiscount = internalAction({\n               continue\n             }\n             await stripe.subscriptions.update(subscription.stripe_subscription_id, {\n-              coupon: coupon.id,\n+              discounts: [{ coupon: coupon.id }],\n             })\n \n             // 割引適用後に紹介数を減らす（冪等性対応）\ndiff --git a/convex/tenant/subscription/action.ts b/convex/tenant/subscription/action.ts\nindex c81e847..4ef5dcc 100644\n--- a/convex/tenant/subscription/action.ts\n+++ b/convex/tenant/subscription/action.ts\n@@ -67,7 +67,6 @@ export const createSubscriptionSession = action({\n       // Stripe Checkout Sessionを作成\n       const session = await stripe.checkout.sessions.create({\n         mode: 'subscription',\n-        payment_method_types: ['card'],\n         customer: args.stripe_customer_id,\n         line_items: [{ price: args.price_id, quantity: 1 }],\n         success_url: successUrl,\n@@ -213,7 +212,6 @@ async function createTrialPreview(\n     amount_remaining: price.unit_amount,\n     amount_shipping: 0,\n     application: null,\n-    application_fee_amount: null,\n     attempt_count: 0,\n     attempted: false,\n     auto_advance: true,\n@@ -223,7 +221,6 @@ async function createTrialPreview(\n       status: null,\n     },\n     billing_reason: 'subscription_update',\n-    charge: null,\n     collection_method: 'charge_automatically',\n     created: Math.floor(Date.now() / 1000),\n     currency: price.currency,\n@@ -239,7 +236,6 @@ async function createTrialPreview(\n     default_source: null,\n     default_tax_rates: [],\n     description: null,\n-    discount: null,\n     discounts: [],\n     due_date: null,\n     effective_at: trialEnd,\n@@ -260,50 +256,34 @@ async function createTrialPreview(\n           id: `il_preview_${Date.now()}`,\n           object: 'line_item' as const,\n           amount: price.unit_amount,\n-          amount_excluding_tax: price.unit_amount,\n           currency: price.currency,\n           description: price.nickname || 'サブスクリプション',\n           discount_amounts: [],\n           discountable: true,\n           discounts: [],\n-          invoice: null,\n           livemode: false,\n           metadata: {},\n           period: {\n             end: trialEnd + (price.recurring?.interval === 'year' ? 365 * 24 * 60 * 60 : 30 * 24 * 60 * 60),\n             start: trialEnd,\n           },\n-          plan: null,\n-          price: {\n-            id: price.id,\n-            object: 'price' as const,\n-            active: price.active,\n-            billing_scheme: price.billing_scheme,\n-            created: price.created,\n-            currency: price.currency,\n-            custom_unit_amount: null,\n-            livemode: price.livemode,\n-            lookup_key: price.lookup_key,\n-            metadata: price.metadata,\n-            nickname: price.nickname,\n-            product: price.product,\n-            recurring: price.recurring,\n-            tax_behavior: price.tax_behavior,\n-            tiers_mode: price.tiers_mode,\n-            transform_quantity: price.transform_quantity,\n-            type: price.type,\n-            unit_amount: price.unit_amount,\n+          parent: {\n+            type: 'subscription_item_details' as const,\n+            subscription_item_details: {\n+              invoice_item: null,\n+              proration: false,\n+              proration_details: null,\n+              subscription: subscriptionId,\n+              subscription_item: subscription.items.data[0]?.id,\n+            },\n+          },\n+          pricing: {\n+            type: 'price_details' as const,\n+            price_details: { price: price.id, product: price.product },\n             unit_amount_decimal: price.unit_amount_decimal,\n           },\n-          proration: false,\n-          proration_details: null,\n           quantity: 1,\n-          subscription: subscriptionId,\n-          subscription_item: subscription.items.data[0]?.id,\n-          tax_amounts: [],\n-          tax_rates: [],\n-          type: 'subscription' as const,\n-          unit_amount_excluding_tax: price.unit_amount_decimal,\n+          taxes: [],\n         },\n       ],\n       has_more: false,\n@@ -314,9 +294,6 @@ async function createTrialPreview(\n     next_payment_attempt: trialEnd,\n     number: null,\n     on_behalf_of: null,\n-    paid: false,\n-    paid_out_of_band: false,\n-    payment_intent: null,\n     payment_settings: {\n       default_mandate: null,\n       payment_method_options: null,\n@@ -326,12 +303,10 @@ async function createTrialPreview(\n     period_start: Math.floor(Date.now() / 1000),\n     post_payment_credit_notes_amount: 0,\n     pre_payment_credit_notes_amount: 0,\n-    quote: null,\n     receipt_number: null,\n     rendering: null,\n     rendering_options: null,\n     shipping_cost: null,\n-    shipping_details: null,\n     starting_balance: 0,\n     statement_descriptor: null,\n     status: 'draft' as const,\n@@ -341,20 +316,21 @@ async function createTrialPreview(\n       paid_at: null,\n       voided_at: null,\n     },\n-    subscription: subscriptionId,\n-    subscription_details: {\n-      metadata: {},\n+    parent: {\n+      type: 'subscription_details' as const,\n+      subscription_details: {\n+        metadata: {},\n+        subscription: subscriptionId,\n+        subscription_proration_date: null,\n+      },\n     },\n-    subscription_proration_date: null,\n     subtotal: price.unit_amount,\n     subtotal_excluding_tax: price.unit_amount,\n-    tax: 0,\n     test_clock: null,\n     total: price.unit_amount,\n     total_discount_amounts: [],\n     total_excluding_tax: price.unit_amount,\n-    total_tax_amounts: [],\n-    transfer_data: null,\n+    total_taxes: [],\n     webhooks_delivered_at: null,\n   };\n \n@@ -644,8 +620,8 @@ export const confirmSubscriptionUpdate = action({\n         tenant_id: args.tenant_id,\n         stripe_customer_id: updatedSubscription.customer as string,\n         plan_name: getPlanNameFromPriceId(updatedSubscription.items.data[0]?.price?.id),\n-        current_period_start: updatedSubscription.current_period_start,\n-        current_period_end: updatedSubscription.current_period_end,\n+        current_period_start: updatedSubscription.items.data[0]!.current_period_start,\n+        current_period_end: updatedSubscription.items.data[0]!.current_period_end,\n         status: updatedSubscription.status,\n       })\n \n@@ -669,4 +645,4 @@ export const confirmSubscriptionUpdate = action({\n       });\n     }\n   },\n-});\n\\ No newline at end of file\n+});\ndiff --git a/services/stripe/constants.ts b/services/stripe/constants.ts\nindex 9a3be8c..4d6d221 100644\n--- a/services/stripe/constants.ts\n+++ b/services/stripe/constants.ts\n@@ -1,2 +1,2 @@\n // API\n-export const STRIPE_API_VERSION = '2025-02-24.acacia';\n+export const STRIPE_API_VERSION = '2026-09-30.endive';\ndiff --git a/services/stripe/discounts.ts b/services/stripe/discounts.ts\nnew file mode 100644\nindex 0000000..b759d6d\n--- /dev/null\n+++ b/services/stripe/discounts.ts\n@@ -0,0 +1,22 @@\n+import type Stripe from 'stripe'\n+\n+type DiscountWithSource = {\n+  source?: {\n+    type?: string\n+    coupon?: string | Stripe.Coupon | null\n+  } | null\n+}\n+\n+export function getSubscriptionCoupon(subscription: Stripe.Subscription): Stripe.Coupon | null {\n+  const discounts = (subscription as unknown as { discounts?: unknown[] | null }).discounts ?? []\n+\n+  for (const discount of discounts) {\n+    if (!discount || typeof discount === 'string') continue\n+    const source = (discount as DiscountWithSource).source\n+    if (source?.type === 'coupon' && source.coupon && typeof source.coupon !== 'string') {\n+      return source.coupon\n+    }\n+  }\n+\n+  return null\n+}\ndiff --git a/services/stripe/repositories/StripeConnectRepository.ts b/services/stripe/repositories/StripeConnectRepository.ts\nindex e26f4cc..0bc6d8c 100644\n--- a/services/stripe/repositories/StripeConnectRepository.ts\n+++ b/services/stripe/repositories/StripeConnectRepository.ts\n@@ -9,6 +9,7 @@ import { ERROR_STATUS_CODE, ERROR_SEVERITY } from '@/lib/errors/constants';\n import { BASE_URL } from '@/lib/constants';\n import { determineAccountStatus } from '../../webhook/stripe/handlers.connect';\n import { getEnv } from '@/lib/env-config';\n+import { getSubscriptionCoupon } from '@/services/stripe/discounts';\n /**\n  * Stripe Connect APIを扱うリポジトリクラス\n  */\n@@ -268,7 +269,6 @@ export class StripeConnectRepository {\n         org_id,\n       };\n       const sessionCreateParams: Stripe.Checkout.SessionCreateParams = {\n-        payment_method_types: ['card'],\n         line_items: line_items,\n         mode: 'payment',\n         success_url: success_url,\n@@ -312,13 +312,16 @@ export class StripeConnectRepository {\n   ): Promise<StripeResult<{ verificationResult: { before: number; after: number; discountApplied: boolean; couponId: string } }>> {\n     try {\n       // 1. 割引適用前のサブスクリプション情報を取得\n-      const subscriptionBefore = await this.stripe.subscriptions.retrieve(stripeSubscriptionId);\n+      const subscriptionBefore = await this.stripe.subscriptions.retrieve(stripeSubscriptionId, {\n+        expand: ['discounts.source.coupon'],\n+      });\n       const amountBefore = subscriptionBefore.items.data.reduce((sum, item) => sum + (item.price.unit_amount || 0), 0);\n \n       // 既に割引が適用されている場合はスキップ\n-      if (subscriptionBefore.discount) {\n+      const existingCoupon = getSubscriptionCoupon(subscriptionBefore);\n+      if (existingCoupon) {\n         console.log(\n-          `[applyDiscount] 既存クーポンが存在するためスキップ: sub=${stripeSubscriptionId}, coupon=${subscriptionBefore.discount.coupon.id}`\n+          `[applyDiscount] 既存クーポンが存在するためスキップ: sub=${stripeSubscriptionId}, coupon=${existingCoupon.id}`\n         );\n         return {\n           success: true,\n@@ -327,7 +330,7 @@ export class StripeConnectRepository {\n               before: amountBefore / 100,\n               after: amountBefore / 100,\n               discountApplied: false,\n-              couponId: subscriptionBefore.discount.coupon.id,\n+              couponId: existingCoupon.id,\n             },\n           },\n         };\n@@ -335,11 +338,13 @@ export class StripeConnectRepository {\n \n       // 2. クーポンをサブスクリプションに適用\n       await this.stripe.subscriptions.update(stripeSubscriptionId, {\n-        coupon: couponId,\n+        discounts: [{ coupon: couponId }],\n       });\n \n       // 3. 適用後のサブスクリプション情報を取得\n-      const subscriptionAfter = await this.stripe.subscriptions.retrieve(stripeSubscriptionId);\n+      const subscriptionAfter = await this.stripe.subscriptions.retrieve(stripeSubscriptionId, {\n+        expand: ['discounts.source.coupon'],\n+      });\n \n       // 4. 割引適用検証\n       const verificationResult = this.verifyDiscountApplication(subscriptionBefore, subscriptionAfter, couponId);\n@@ -371,15 +376,15 @@ export class StripeConnectRepository {\n   ): { before: number; after: number; discountApplied: boolean } {\n     const amountBefore = subscriptionBefore.items.data.reduce((sum, item) => sum + (item.price.unit_amount || 0), 0);\n \n-    const discountInfo = subscriptionAfter.discount;\n-    const isDiscountApplied = !!discountInfo && discountInfo.coupon.id === couponId;\n+    const coupon = getSubscriptionCoupon(subscriptionAfter);\n+    const isDiscountApplied = coupon?.id === couponId;\n \n     // 割引後金額 = 適用前 – amount_off または percent_off\n     let amountAfterYen = amountBefore;\n-    if (discountInfo?.coupon.amount_off) {\n-      amountAfterYen = amountBefore - discountInfo.coupon.amount_off;\n-    } else if (discountInfo?.coupon.percent_off) {\n-      amountAfterYen = Math.round(amountBefore * (1 - discountInfo.coupon.percent_off / 100));\n+    if (coupon?.amount_off) {\n+      amountAfterYen = amountBefore - coupon.amount_off;\n+    } else if (coupon?.percent_off) {\n+      amountAfterYen = Math.round(amountBefore * (1 - coupon.percent_off / 100));\n     }\n     const amountAfter = amountAfterYen;\n \ndiff --git a/services/stripe/repositories/StripeSubscriptionRepository.ts b/services/stripe/repositories/StripeSubscriptionRepository.ts\nindex 42c41f9..6ce5d85 100644\n--- a/services/stripe/repositories/StripeSubscriptionRepository.ts\n+++ b/services/stripe/repositories/StripeSubscriptionRepository.ts\n@@ -7,6 +7,7 @@ import { ERROR_STATUS_CODE, ERROR_SEVERITY } from '@/lib/errors/constants';\n import { SystemError } from '@/lib/errors/custom_errors';\n import { randomUUID } from 'crypto';\n import { getEnv } from '@/lib/env-config';\n+import { getSubscriptionCoupon } from '@/services/stripe/discounts';\n \n /**\n  * Stripe Subscription APIを扱うリポジトリクラス\n@@ -160,9 +161,10 @@ export class StripeSubscriptionRepository {\n       const amountBefore = subscriptionBefore.items.data[0]?.price?.unit_amount || 0;\n \n       // 既に割引が適用されている場合はスキップ\n-      if (subscriptionBefore.discount) {\n+      const existingCoupon = getSubscriptionCoupon(subscriptionBefore);\n+      if (existingCoupon) {\n         console.log(\n-          `[applyDiscount] 既存クーポンが存在するためスキップ: sub=${stripeSubscriptionId}, coupon=${subscriptionBefore.discount.coupon.id}`\n+          `[applyDiscount] 既存クーポンが存在するためスキップ: sub=${stripeSubscriptionId}, coupon=${existingCoupon.id}`\n         );\n         return {\n           success: true,\n@@ -171,7 +173,7 @@ export class StripeSubscriptionRepository {\n               before: amountBefore / 100,\n               after: amountBefore / 100,\n               discountApplied: false,\n-              couponId: subscriptionBefore.discount.coupon.id,\n+              couponId: existingCoupon.id,\n             },\n           },\n         };\n@@ -188,7 +190,7 @@ export class StripeSubscriptionRepository {\n \n       // 5. サブスクリプションにクーポンを適用\n       await this.stripe.subscriptions.update(stripeSubscriptionId, {\n-        coupon: coupon.id,\n+        discounts: [{ coupon: coupon.id }],\n       });\n \n       // 6. 割引適用後の検証\n@@ -294,7 +296,9 @@ export class StripeSubscriptionRepository {\n    */\n   private async getSubscriptionSafely(subscriptionId: string): Promise<Stripe.Subscription> {\n     try {\n-      const subscription = await this.stripe.subscriptions.retrieve(subscriptionId);\n+      const subscription = await this.stripe.subscriptions.retrieve(subscriptionId, {\n+        expand: ['discounts.source.coupon'],\n+      });\n       \n       if (!subscription) {\n         throw new SystemError(\n@@ -375,17 +379,17 @@ export class StripeSubscriptionRepository {\n   ): Promise<{ before: number; after: number; discountApplied: boolean }> {\n     // 割引適用後のサブスクリプション情報を取得\n     const subscriptionAfter = await this.getSubscriptionSafely(subscriptionId);\n-    const discountInfo = subscriptionAfter.discount;\n-    const isDiscountApplied = !!discountInfo && discountInfo.coupon.id === couponId;\n+    const coupon = getSubscriptionCoupon(subscriptionAfter);\n+    const isDiscountApplied = coupon?.id === couponId;\n \n     // 割引後金額を計算（最小通貨単位）\n     let calculatedAmountAfterInSmallestUnit = amountBefore;\n-    if (discountInfo?.coupon.amount_off) {\n+    if (coupon?.amount_off) {\n       // amount_off は最小通貨単位\n-      calculatedAmountAfterInSmallestUnit = amountBefore - discountInfo.coupon.amount_off;\n-    } else if (discountInfo?.coupon.percent_off) {\n+      calculatedAmountAfterInSmallestUnit = amountBefore - coupon.amount_off;\n+    } else if (coupon?.percent_off) {\n       calculatedAmountAfterInSmallestUnit = Math.round(\n-        amountBefore * (1 - discountInfo.coupon.percent_off / 100)\n+        amountBefore * (1 - coupon.percent_off / 100)\n       );\n     }\n \n@@ -449,4 +453,4 @@ export class StripeSubscriptionRepository {\n     return '予期しないエラーが発生しました。管理者にお問い合わせください。';\n   }\n \n-}\n\\ No newline at end of file\n+}\ndiff --git a/services/webhook/stripe/StripeWebhookProcessor.ts b/services/webhook/stripe/StripeWebhookProcessor.ts\nindex 0fc0785..5364038 100644\n--- a/services/webhook/stripe/StripeWebhookProcessor.ts\n+++ b/services/webhook/stripe/StripeWebhookProcessor.ts\n@@ -6,6 +6,7 @@ import { WebhookMetricsCollector } from '@/services/webhook/metrics';\n import { api } from '@/convex/_generated/api'; // Convex依存用\n import { retryOperation } from '@/lib/utils'; // リトライ依存用\n import { STRIPE_API_VERSION } from '@/services/stripe/constants';\n+import { getInvoiceSubscriptionId } from './subscriptionSync';\n import { getEnv } from '@/lib/env-config';\n \n import { handleAccountUpdated, handleAccountExternalAccountDeleted, handleCapabilityUpdated } from './handlers.connect';\n@@ -114,11 +115,11 @@ export class StripeWebhookProcessor extends WebhookProcessor {\n     }\n     if(evt.type === 'invoice.payment_failed'){\n       stripeCustomerId = evt.data.object.customer as string;\n-      stripeSubscriptionId = evt.data.object.subscription as string;\n+      stripeSubscriptionId = getInvoiceSubscriptionId(evt.data.object);\n     }\n     if(evt.type === 'invoice.payment_succeeded'){\n       stripeCustomerId = evt.data.object.customer as string;\n-      stripeSubscriptionId = evt.data.object.subscription as string;\n+      stripeSubscriptionId = getInvoiceSubscriptionId(evt.data.object);\n     }\n \n     // Stripe Connect\n@@ -224,4 +225,4 @@ export class StripeWebhookProcessor extends WebhookProcessor {\n       throw error;\n     }\n   }\n-}\n\\ No newline at end of file\n+}\ndiff --git a/services/webhook/stripe/handlers.subscription.test.ts b/services/webhook/stripe/handlers.subscription.test.ts\nindex b7f0360..87c9775 100644\n--- a/services/webhook/stripe/handlers.subscription.test.ts\n+++ b/services/webhook/stripe/handlers.subscription.test.ts\n@@ -32,8 +32,6 @@ function makeDeps(overrides: {\n     object: 'subscription',\n     status: 'active',\n     customer: 'cus_test',\n-    current_period_start: 1_760_000_000,\n-    current_period_end: 1_762_592_000,\n     metadata: {},\n     items: {\n       object: 'list',\n@@ -41,6 +39,8 @@ function makeDeps(overrides: {\n         {\n           id: 'si_1',\n           object: 'subscription_item',\n+          current_period_start: 1_760_000_000,\n+          current_period_end: 1_762_592_000,\n           price: {\n             id: 'price_test_mock_pro_monthly',\n             object: 'price',\n@@ -82,7 +82,10 @@ function makeInvoiceEvent(overrides: Partial<Stripe.Invoice> = {}): Stripe.Invoi\n         id: 'in_1',\n         object: 'invoice',\n         customer: 'cus_test',\n-        subscription: 'sub_new',\n+        parent: {\n+          type: 'subscription_details',\n+          subscription_details: { subscription: 'sub_new' },\n+        },\n         billing_reason: 'subscription_cycle',\n         metadata: {},\n         lines: {\n@@ -91,13 +94,21 @@ function makeInvoiceEvent(overrides: Partial<Stripe.Invoice> = {}): Stripe.Invoi\n             // 再決済時の Invoice: 先頭行が日割り（proration）で Price がプランと異なるケース\n             {\n               id: 'il_proration',\n-              proration: true,\n-              price: {\n-                id: 'price_test_mock_lite_monthly',\n-                object: 'price',\n-                type: 'recurring',\n-                product: 'prod_test_mock_lite',\n-                recurring: { interval: 'month' },\n+              parent: {\n+                type: 'subscription_item_details',\n+                subscription_item_details: { proration: true },\n+              },\n+              pricing: {\n+                type: 'price_details',\n+                price_details: {\n+                  price: {\n+                    id: 'price_test_mock_lite_monthly',\n+                    object: 'price',\n+                    type: 'recurring',\n+                    product: 'prod_test_mock_lite',\n+                    recurring: { interval: 'month' },\n+                  },\n+                },\n               },\n               period: { start: 1_700_000_000, end: 1_700_000_001 },\n             },\ndiff --git a/services/webhook/stripe/handlers.subscription.ts b/services/webhook/stripe/handlers.subscription.ts\nindex b14b3f0..db60283 100644\n--- a/services/webhook/stripe/handlers.subscription.ts\n+++ b/services/webhook/stripe/handlers.subscription.ts\n@@ -7,6 +7,7 @@ import { Id } from '@/convex/_generated/dataModel'\n import {\n   buildSubscriptionUpsertArgs,\n   findSubscriptionInvoiceLine,\n+  getInvoiceLinePrice,\n   getInvoiceSubscriptionId,\n } from './subscriptionSync'\n \n@@ -313,7 +314,7 @@ export async function handleInvoicePaymentSucceeded(\n         subscription,\n         tenant_id,\n         stripe_customer_id: evt.data.object.customer as string,\n-        fallbackPrice: invoiceLine?.price,\n+        fallbackPrice: invoiceLine ? getInvoiceLinePrice(invoiceLine) : null,\n       });\n \n       if (upsertArgs.plan_name === 'UNKNOWN') {\n@@ -447,7 +448,7 @@ export async function handleInvoicePaymentFailed(\n             subscription,\n             tenant_id,\n             stripe_customer_id: evt.data.object.customer as string,\n-            fallbackPrice: invoiceLine?.price,\n+            fallbackPrice: invoiceLine ? getInvoiceLinePrice(invoiceLine) : null,\n           })\n         )\n       );\ndiff --git a/services/webhook/stripe/subscriptionSync.test.ts b/services/webhook/stripe/subscriptionSync.test.ts\nindex 8c6a290..820e038 100644\n--- a/services/webhook/stripe/subscriptionSync.test.ts\n+++ b/services/webhook/stripe/subscriptionSync.test.ts\n@@ -26,14 +26,14 @@ function makeSubscription(overrides: Partial<Stripe.Subscription> = {}): Stripe.\n     object: 'subscription',\n     status: 'active',\n     customer: 'cus_test',\n-    current_period_start: 1_750_000_000,\n-    current_period_end: 1_752_592_000,\n     items: {\n       object: 'list',\n       data: [\n         {\n           id: 'si_1',\n           object: 'subscription_item',\n+          current_period_start: 1_750_000_000,\n+          current_period_end: 1_752_592_000,\n           price: makePrice(),\n           plan: { interval: 'month' } as Stripe.Plan,\n         } as Stripe.SubscriptionItem,\n@@ -145,18 +145,26 @@ describe('buildSubscriptionUpsertArgs', () => {\n describe('findSubscriptionInvoiceLine', () => {\n   const recurringLine = {\n     id: 'il_plan',\n-    price: makePrice(),\n-    proration: false,\n+    pricing: { type: 'price_details', price_details: { price: makePrice() } },\n+    parent: { type: 'subscription_item_details', subscription_item_details: { proration: false } },\n   } as unknown as Stripe.InvoiceLineItem\n   const prorationLine = {\n     id: 'il_proration',\n-    price: makePrice({ id: 'price_test_mock_lite_monthly' }),\n-    proration: true,\n+    pricing: {\n+      type: 'price_details',\n+      price_details: { price: makePrice({ id: 'price_test_mock_lite_monthly' }) },\n+    },\n+    parent: { type: 'subscription_item_details', subscription_item_details: { proration: true } },\n   } as unknown as Stripe.InvoiceLineItem\n   const oneOffLine = {\n     id: 'il_one_off',\n-    price: makePrice({ id: 'price_one_off', type: 'one_time', recurring: null }),\n-    proration: false,\n+    pricing: {\n+      type: 'price_details',\n+      price_details: {\n+        price: makePrice({ id: 'price_one_off', type: 'one_time', recurring: null }),\n+      },\n+    },\n+    parent: { type: 'invoice_item_details' },\n   } as unknown as Stripe.InvoiceLineItem\n \n   it('先頭行が日割り・単発項目でも定期課金の行を返す', () => {\n@@ -183,8 +191,15 @@ describe('findSubscriptionInvoiceLine', () => {\n \n describe('getInvoiceSubscriptionId', () => {\n   it('文字列 / 展開オブジェクト / null を扱える', () => {\n-    expect(getInvoiceSubscriptionId({ subscription: 'sub_1' })).toBe('sub_1')\n-    expect(getInvoiceSubscriptionId({ subscription: { id: 'sub_2' } as Stripe.Subscription })).toBe('sub_2')\n-    expect(getInvoiceSubscriptionId({ subscription: null })).toBeNull()\n+    expect(getInvoiceSubscriptionId({\n+      parent: { type: 'subscription_details', subscription_details: { subscription: 'sub_1' } },\n+    })).toBe('sub_1')\n+    expect(getInvoiceSubscriptionId({\n+      parent: {\n+        type: 'subscription_details',\n+        subscription_details: { subscription: { id: 'sub_2' } as Stripe.Subscription },\n+      },\n+    })).toBe('sub_2')\n+    expect(getInvoiceSubscriptionId({ parent: null })).toBeNull()\n   })\n })\ndiff --git a/services/webhook/stripe/subscriptionSync.ts b/services/webhook/stripe/subscriptionSync.ts\nindex 89822ab..7248ec7 100644\n--- a/services/webhook/stripe/subscriptionSync.ts\n+++ b/services/webhook/stripe/subscriptionSync.ts\n@@ -18,6 +18,23 @@ export interface SubscriptionUpsertArgs {\n   current_period_end: number;\n }\n \n+type InvoiceLineWithPricing = {\n+  pricing?: {\n+    type?: string\n+    price_details?: { price?: string | Stripe.Price | null } | null\n+  } | null\n+  parent?: {\n+    type?: string\n+    subscription_item_details?: { proration?: boolean | null } | null\n+  } | null\n+}\n+\n+export function getInvoiceLinePrice(line: Stripe.InvoiceLineItem): Stripe.Price | null {\n+  const pricing = (line as unknown as InvoiceLineWithPricing).pricing\n+  const price = pricing?.type === 'price_details' ? pricing.price_details?.price : null\n+  return price && typeof price !== 'string' ? price : null\n+}\n+\n /**\n  * Invoice の明細行から「サブスクリプション本体（定期課金）」の行を探す。\n  *\n@@ -31,9 +48,13 @@ export function findSubscriptionInvoiceLine(\n ): Stripe.InvoiceLineItem | undefined {\n   const lines = invoice.lines?.data ?? [];\n   return (\n-    lines.find((line) => line.price?.type === 'recurring' && !line.proration) ??\n-    lines.find((line) => line.price?.type === 'recurring') ??\n-    lines.find((line) => !!line.price)\n+    lines.find((line) => {\n+      const price = getInvoiceLinePrice(line)\n+      const details = (line as unknown as InvoiceLineWithPricing).parent?.subscription_item_details\n+      return price?.type === 'recurring' && !details?.proration\n+    }) ??\n+    lines.find((line) => getInvoiceLinePrice(line)?.type === 'recurring') ??\n+    lines.find((line) => !!getInvoiceLinePrice(line))\n   );\n }\n \n@@ -42,7 +63,7 @@ export function findSubscriptionInvoiceLine(\n  *\n  * Invoice の明細行ではなく Subscription オブジェクトを使う理由:\n  *   - Subscription.items が「現在契約中の Price」を常に表す\n- *   - current_period_start / end も Subscription 側が正\n+ *   - current_period_start / end も Subscription Item 側が正\n  *   - Invoice 行は proration や割引などで先頭行がプランでない場合がある\n  *\n  * Subscription 側で Price が解決できなかった場合のみ、フォールバックとして\n@@ -57,6 +78,9 @@ export function buildSubscriptionUpsertArgs(params: {\n   const { subscription, tenant_id, stripe_customer_id, fallbackPrice } = params;\n \n   const item = subscription.items?.data?.[0];\n+  if (!item) {\n+    throw new Error(`Subscription has no items: ${subscription.id}`)\n+  }\n   const primaryPrice: Stripe.Price | null | undefined = item?.price;\n \n   let plan_name = resolvePlanNameFromStripePrice(primaryPrice);\n@@ -87,8 +111,8 @@ export function buildSubscriptionUpsertArgs(params: {\n     price_id: price?.id ?? fallbackPrice?.id ?? '',\n     plan_name,\n     billing_period: interval as BillingPeriod,\n-    current_period_start: subscription.current_period_start,\n-    current_period_end: subscription.current_period_end,\n+    current_period_start: item.current_period_start,\n+    current_period_end: item.current_period_end,\n   };\n }\n \n@@ -96,9 +120,17 @@ export function buildSubscriptionUpsertArgs(params: {\n  * Invoice が紐づく Subscription ID を取り出す（文字列 / 展開オブジェクト両対応）\n  */\n export function getInvoiceSubscriptionId(\n-  invoice: Pick<Stripe.Invoice, 'subscription'>\n+  invoice: unknown\n ): string | null {\n-  const sub = invoice.subscription;\n+  const parent = (invoice as unknown as {\n+    parent?: {\n+      type?: string\n+      subscription_details?: { subscription?: string | Stripe.Subscription | null } | null\n+    } | null\n+  }).parent\n+  const sub = parent?.type === 'subscription_details'\n+    ? parent.subscription_details?.subscription\n+    : null\n   if (!sub) return null;\n   return typeof sub === 'string' ? sub : sub.id;\n }\n"
+      },
+      "note": "Agent ran in the first pass, before the free preparation preflight existed; its patch could not be validated.",
+      "sdkUpgrade": {
+        "from": "17.7.0",
+        "to": "23.0.0"
+      }
+    },
+    {
+      "set": "active",
+      "repo": "qesmsep/noir-crm-dashboard",
+      "refit": {
+        "status": "needs-review",
+        "stage": "scan",
+        "reason": "A traced SDK request sends a parameter the target API version removed. No reviewed replacement exists, and dropping or replacing it changes request behavior; automatic migration, AI and publication stop for review.",
+        "checks": "tests",
+        "validation": null,
+        "patch": null
+      },
+      "checks": "npm test",
+      "preparation": {
+        "status": "refused",
+        "reason": "Validation does not accept submodules."
+      },
+      "agent": {
+        "status": "not-run"
+      }
+    },
+    {
+      "set": "active",
+      "repo": "beindigital-products/wedillybird",
+      "refit": {
+        "status": "validation-failed",
+        "stage": "validation",
+        "reason": "Validation returned error; publication was not attempted.",
+        "checks": "tests",
+        "validation": "error",
+        "patch": "proposed"
+      },
+      "checks": "pnpm test",
+      "agent": {
+        "status": "patched",
+        "turns": 12,
+        "seconds": 39,
+        "costUsd": 0.2792008,
+        "usage": {
+          "inputTokens": 227598,
+          "cachedInputTokens": 188842,
+          "cacheWriteInputTokens": 38732,
+          "outputTokens": 2432,
+          "reasoningTokens": 842
+        },
+        "summary": "Updated [stripe.ts](/private/var/folders/jw/9by6lv3x4yzd8n3q43txpzb40000gn/T/refit-agent-SxXFWV/checkout/lib/payments/drivers/stripe.ts):\n\n- Removed `payment_method_types` from four Checkout Session calls, enabling Stripe’s replacement dynamic selection.\n- No removed response fields or literal `apiVersion` settings were present.\n- No decisions left open.\n\n`git diff --check` passes. Tests couldn’t run because dependencies are not installed.",
+        "diff": "diff --git a/lib/payments/drivers/stripe.ts b/lib/payments/drivers/stripe.ts\nindex 6fcc594..8a69619 100644\n--- a/lib/payments/drivers/stripe.ts\n+++ b/lib/payments/drivers/stripe.ts\n@@ -87,7 +87,6 @@ export const stripeDriver: PaymentDriver = {\n \n     const session = await stripe.checkout.sessions.create({\n       mode: 'payment',\n-      payment_method_types: ['card'],\n       line_items: [lineItem],\n       success_url: appendSessionIdParam(input.successUrl),\n       cancel_url: input.cancelUrl,\n@@ -236,7 +235,6 @@ export async function createSubscriptionCheckout(\n   const currency = input.currency ?? 'EUR';\n   const session = await stripe.checkout.sessions.create({\n     mode: 'subscription',\n-    payment_method_types: ['card'],\n     line_items: [{ quantity: 1, price: priceIdForTier(input.tier, billing, currency) }],\n     success_url: appendSessionIdParam(input.successUrl),\n     cancel_url: input.cancelUrl,\n@@ -344,7 +342,6 @@ export async function createPaygCheckout(input: PaygCheckoutInput): Promise<Chec\n \n   const session = await stripe.checkout.sessions.create({\n     mode: 'payment',\n-    payment_method_types: ['card'],\n     line_items: [{ quantity: 1, price: priceId }],\n     success_url: appendSessionIdParam(input.successUrl),\n     cancel_url: input.cancelUrl,\n@@ -422,7 +419,6 @@ export async function createPostEventUpsellCheckout(\n \n   const session = await stripe.checkout.sessions.create({\n     mode: 'payment',\n-    payment_method_types: ['card'],\n     line_items: [lineItem],\n     success_url: appendSessionIdParam(input.successUrl),\n     cancel_url: input.cancelUrl,\n"
+      },
+      "sdkUpgrade": {
+        "from": "22.1.0",
+        "to": "23.0.0"
+      },
+      "validation": {
+        "status": "error",
+        "baseline": "error",
+        "patched": "not-run",
+        "baselineCause": "The unpatched checkout's pnpm test did not finish inside the check deadline; Refit's own run hit the same error."
+      }
+    },
+    {
+      "set": "active",
+      "repo": "Bizgojo/drivetimetales",
+      "refit": {
+        "status": "needs-review",
+        "stage": "scan",
+        "reason": "Unparseable source files were skipped. Their API usage and mutations are unknown; automatic migration, AI and publication require a complete source scan.",
+        "checks": "typecheck",
+        "validation": null,
+        "patch": null
+      },
+      "checks": "typecheck",
+      "agent": {
+        "status": "patched",
+        "turns": 18,
+        "seconds": 72,
+        "costUsd": 0.561406,
+        "usage": {
+          "inputTokens": 590307,
+          "cachedInputTokens": 527545,
+          "cacheWriteInputTokens": 62726,
+          "outputTokens": 4967,
+          "reasoningTokens": 997
+        },
+        "summary": "Upgraded Stripe integration to `2026-09-30.endive`:\n\n- Updated all API-version literals and direct REST headers.\n- Removed unsupported `payment_method_types`.\n- Migrated subscription periods to subscription-item fields.\n- Migrated invoice subscription reads to `invoice.parent.subscription_details`.\n- Left package/lockfiles unchanged.\n- `git diff --check` passes; dependencies were unavailable, so no build ran.\n\nManual: update Stripe’s webhook endpoint/API version in Workbench. Restore point: `9cb92abc9adad2b383441a6e215c01d0ee1af29c`.",
+        "diff": "diff --git a/app/api/admin/payments/route.ts b/app/api/admin/payments/route.ts\nindex 0d05dd4..73b65ea 100644\n--- a/app/api/admin/payments/route.ts\n+++ b/app/api/admin/payments/route.ts\n@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js';\n import Stripe from 'stripe';\n \n const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {\n-  apiVersion: '2023-10-16',\n+  apiVersion: '2026-09-30.endive',\n });\n \n const supabaseAdmin = createClient(\ndiff --git a/app/api/admin/refund/route.ts b/app/api/admin/refund/route.ts\nindex 7803870..cd4b7b3 100644\n--- a/app/api/admin/refund/route.ts\n+++ b/app/api/admin/refund/route.ts\n@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js';\n import Stripe from 'stripe';\n \n const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {\n-  apiVersion: '2023-10-16',\n+  apiVersion: '2026-09-30.endive',\n });\n \n const supabaseAdmin = createClient(\ndiff --git a/app/api/checkout/route.ts b/app/api/checkout/route.ts\nindex 7b6b2ab..290b031 100644\n--- a/app/api/checkout/route.ts\n+++ b/app/api/checkout/route.ts\n@@ -5,7 +5,7 @@ import { normalizeEmail } from '@/lib/email'\n import { GO_BASE_TRIAL_DAYS } from '@/lib/landing'\n import { ANNUAL_PRICE_LABEL, MONTHLY_PRICE_LABEL, TRIAL_DAYS } from '@/lib/pricing'\n \n-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2023-10-16' })\n+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2026-09-30.endive' })\n \n const supabase = createClient(\n   process.env.NEXT_PUBLIC_SUPABASE_URL!,\n@@ -212,7 +212,6 @@ export async function POST(req: NextRequest) {\n     console.log('[checkout] baseUrl:', baseUrl)\n     const session = await stripe.checkout.sessions.create({\n       customer: customerId,\n-      payment_method_types: ['card'],\n       // CARD-ON-FILE-001 (2026-10-05, Marc GO): card-on-file is now the STANDARD\n       // for every signup funnel. 'always' forces Stripe Checkout to capture a\n       // payment method even though the subscription starts in a trial — without\ndiff --git a/app/api/create-setup-intent/route.ts b/app/api/create-setup-intent/route.ts\nindex 1a33d6d..e56a95a 100644\n--- a/app/api/create-setup-intent/route.ts\n+++ b/app/api/create-setup-intent/route.ts\n@@ -3,7 +3,7 @@ import Stripe from 'stripe';\n import { createClient } from '@supabase/supabase-js';\n \n const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {\n-  apiVersion: '2023-10-16',\n+  apiVersion: '2026-09-30.endive',\n });\n \n const supabaseAdmin = createClient(\n@@ -56,7 +56,6 @@ export async function POST(request: NextRequest) {\n     // Create a SetupIntent to save a card\n     const setupIntent = await stripe.setupIntents.create({\n       customer: customerId,\n-      payment_method_types: ['card'],\n       usage: 'off_session', // Allow charging when customer is not present\n     });\n \ndiff --git a/app/api/quick-purchase/route.ts b/app/api/quick-purchase/route.ts\nindex 6f0d10e..1e2b29d 100644\n--- a/app/api/quick-purchase/route.ts\n+++ b/app/api/quick-purchase/route.ts\n@@ -3,7 +3,7 @@ import Stripe from 'stripe';\n import { createClient } from '@supabase/supabase-js';\n \n const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {\n-  apiVersion: '2023-10-16',\n+  apiVersion: '2026-09-30.endive',\n });\n \n const supabaseAdmin = createClient(\ndiff --git a/app/api/subscription/change/route.ts b/app/api/subscription/change/route.ts\nindex f59a9c4..7243426 100644\n--- a/app/api/subscription/change/route.ts\n+++ b/app/api/subscription/change/route.ts\n@@ -3,7 +3,7 @@ import Stripe from 'stripe'\n import { createClient } from '@supabase/supabase-js'\n \n const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {\n-  apiVersion: '2023-10-16',\n+  apiVersion: '2026-09-30.endive',\n })\n \n const supabase = createClient(\n@@ -63,7 +63,6 @@ export async function POST(request: NextRequest) {\n       // Create a new checkout session\n       const session = await stripe.checkout.sessions.create({\n         customer: stripe_customer_id || undefined,\n-        payment_method_types: ['card'],\n         line_items: [{ price: newPriceId, quantity: 1 }],\n         mode: 'subscription',\n         success_url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://drivetimetales.vercel.app'}/manage-subscription?success=true`,\ndiff --git a/app/api/subscription/price/route.ts b/app/api/subscription/price/route.ts\nindex 5ac0c74..080323a 100644\n--- a/app/api/subscription/price/route.ts\n+++ b/app/api/subscription/price/route.ts\n@@ -6,7 +6,7 @@\n import { NextResponse } from 'next/server'\n import Stripe from 'stripe'\n \n-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2023-10-16' })\n+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2026-09-30.endive' })\n \n const FOUNDING_LIMIT = parseInt(process.env.ET_FOUNDING_MEMBER_LIMIT || '500')\n const FOUNDING_PRICE_ID = process.env.STRIPE_PRICE_FOUNDING_MEMBER!\ndiff --git a/app/api/user/cancel-subscription/route.ts b/app/api/user/cancel-subscription/route.ts\nindex 703ad5b..85888ed 100644\n--- a/app/api/user/cancel-subscription/route.ts\n+++ b/app/api/user/cancel-subscription/route.ts\n@@ -4,7 +4,7 @@ import Stripe from 'stripe';\n import { resolveCancelledAt } from '@/lib/cancelState';\n \n const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {\n-  apiVersion: '2023-10-16',\n+  apiVersion: '2026-09-30.endive',\n });\n \n const supabaseAdmin = createClient(\n@@ -39,6 +39,11 @@ export async function POST(request: NextRequest) {\n     const subscription = await stripe.subscriptions.update(user.stripe_subscription_id, {\n       cancel_at_period_end: true,\n     });\n+    const currentPeriodEnd = subscription.items.data[0]?.current_period_end\n+\n+    if (!currentPeriodEnd) {\n+      throw new Error('Stripe subscription has no current billing period');\n+    }\n \n     // Update user in database.\n     // CANCEL-STATE-001: record cancelled_at as soon as Stripe confirms the\n@@ -50,7 +55,7 @@ export async function POST(request: NextRequest) {\n       .from('users')\n       .update({\n         subscription_status: 'cancelling',\n-        subscription_ends_at: new Date(subscription.current_period_end * 1000).toISOString(),\n+        subscription_ends_at: new Date(currentPeriodEnd * 1000).toISOString(),\n         cancelled_at: cancelledAt,\n       })\n       .eq('id', userId);\n@@ -63,7 +68,7 @@ export async function POST(request: NextRequest) {\n \n     return NextResponse.json({ \n       success: true,\n-      endsAt: subscription.current_period_end \n+      endsAt: currentPeriodEnd\n     });\n \n   } catch (error) {\ndiff --git a/app/api/user/portal/route.ts b/app/api/user/portal/route.ts\nindex 93f5f58..75c84a1 100644\n--- a/app/api/user/portal/route.ts\n+++ b/app/api/user/portal/route.ts\n@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'\n import Stripe from 'stripe'\n import { createClient } from '@supabase/supabase-js'\n \n-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2023-10-16' })\n+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2026-09-30.endive' })\n \n const supabase = createClient(\n   process.env.NEXT_PUBLIC_SUPABASE_URL!,\ndiff --git a/app/api/webhook/route.ts b/app/api/webhook/route.ts\nindex 881c3d1..0d98eb1 100644\n--- a/app/api/webhook/route.ts\n+++ b/app/api/webhook/route.ts\n@@ -10,7 +10,7 @@ import { ANNUAL_PRICE_LABEL, MONTHLY_PRICE_LABEL, TRIAL_DAYS } from '@/lib/prici\n import { resolveCancelledAt } from '@/lib/cancelState'\n import { renderTrialEndingReminderEmail } from '@/lib/emails/retentionTemplates'\n \n-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2023-10-16' })\n+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2026-09-30.endive' })\n \n const supabase = createClient(\n   process.env.NEXT_PUBLIC_SUPABASE_URL!,\n@@ -33,6 +33,17 @@ function getBillingCycle(subscription: Stripe.Subscription): 'annual' | 'monthly\n   }\n }\n \n+function getCurrentPeriodEnd(subscription: Stripe.Subscription): number | null {\n+  return subscription.items.data[0]?.current_period_end ?? null\n+}\n+\n+function getInvoiceSubscriptionId(invoice: Stripe.Invoice): string | null {\n+  const parent = invoice.parent\n+  if (parent?.type !== 'subscription_details') return null\n+  const subscription = parent.subscription_details?.subscription\n+  return typeof subscription === 'string' ? subscription : subscription?.id ?? null\n+}\n+\n function getPlanName(isFoundingMember: boolean): string {\n   return planFields(isFoundingMember).plan\n }\n@@ -80,8 +91,9 @@ export async function POST(request: NextRequest) {\n \n         const isFoundingMember = subscription.metadata?.isFoundingMember === 'true'\n         const planName = getPlanName(isFoundingMember)\n-        const periodEnd = subscription.current_period_end\n-          ? new Date(subscription.current_period_end * 1000).toISOString()\n+        const currentPeriodEnd = getCurrentPeriodEnd(subscription)\n+        const periodEnd = currentPeriodEnd\n+          ? new Date(currentPeriodEnd * 1000).toISOString()\n           : null\n \n         console.log(`[webhook] checkout completed — user ${userId}, plan: ${planName}`)\n@@ -163,15 +175,18 @@ export async function POST(request: NextRequest) {\n     // ─── Invoice paid (renewal) ───────────────────────────────────────────────\n     case 'invoice.paid': {\n       const invoice = event.data.object as Stripe.Invoice\n-      if (!invoice.subscription) break\n+      const subscriptionId = getInvoiceSubscriptionId(invoice)\n+      if (!subscriptionId) break\n \n-      const subscription = await stripe.subscriptions.retrieve(invoice.subscription as string)\n+      const subscription = await stripe.subscriptions.retrieve(subscriptionId)\n       const userId = subscription.metadata?.userId || subscription.metadata?.user_id\n       if (!userId) break\n \n       const isFoundingMember = subscription.metadata?.isFoundingMember === 'true'\n       const planName = getPlanName(isFoundingMember)\n-      const periodEnd = new Date(subscription.current_period_end * 1000).toISOString()\n+      const currentPeriodEnd = getCurrentPeriodEnd(subscription)\n+      if (!currentPeriodEnd) break\n+      const periodEnd = new Date(currentPeriodEnd * 1000).toISOString()\n \n       console.log(`[webhook] invoice paid — user ${userId}, plan: ${planName}, renews until ${periodEnd}`)\n \n@@ -289,7 +304,9 @@ export async function POST(request: NextRequest) {\n       // lib/webhookGuards.isAccessPreservingStatus.\n       const keepsAccess = isAccessPreservingStatus(status)\n       const isPastDue = status === 'past_due'\n-      const periodEnd = new Date(subscription.current_period_end * 1000).toISOString()\n+      const currentPeriodEnd = getCurrentPeriodEnd(subscription)\n+      if (!currentPeriodEnd) break\n+      const periodEnd = new Date(currentPeriodEnd * 1000).toISOString()\n \n       console.log(`[webhook] subscription updated — user ${userId}, status: ${status}, plan: ${planName}, keepsAccess: ${keepsAccess}`)\n \n@@ -342,9 +359,10 @@ export async function POST(request: NextRequest) {\n     // ─── Payment failed ───────────────────────────────────────────────────────\n     case 'invoice.payment_failed': {\n       const invoice = event.data.object as Stripe.Invoice\n-      if (!invoice.subscription) break\n+      const subscriptionId = getInvoiceSubscriptionId(invoice)\n+      if (!subscriptionId) break\n \n-      const subscription = await stripe.subscriptions.retrieve(invoice.subscription as string)\n+      const subscription = await stripe.subscriptions.retrieve(subscriptionId)\n       const userId = subscription.metadata?.userId || subscription.metadata?.user_id\n       if (!userId) break\n \ndiff --git a/lib/stripe-fm.ts b/lib/stripe-fm.ts\nindex 44f0c23..a13770e 100644\n--- a/lib/stripe-fm.ts\n+++ b/lib/stripe-fm.ts\n@@ -1,6 +1,12 @@\n import Stripe from 'stripe'\n \n-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2023-10-16' })\n+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2026-09-30.endive' })\n+\n+function getCurrentPeriodEnd(subscription: Stripe.Subscription): number {\n+  const currentPeriodEnd = subscription.items.data[0]?.current_period_end\n+  if (!currentPeriodEnd) throw new Error(`Stripe subscription ${subscription.id} has no current billing period`)\n+  return currentPeriodEnd\n+}\n \n const FM_MONTHLY_PRICE_ID = process.env.STRIPE_PRICE_FOUNDING_MEMBER!\n const FM_LIMIT = parseInt(process.env.ET_FOUNDING_MEMBER_LIMIT || '500')\n@@ -66,7 +72,7 @@ export async function getFMSubscribers(limit = 100): Promise<FMSubscriber[]> {\n     customerId: typeof subscription.customer === 'string' ? subscription.customer : subscription.customer.id,\n     subscriptionId: subscription.id,\n     status: subscription.status,\n-    currentPeriodEnd: new Date(subscription.current_period_end * 1000),\n+    currentPeriodEnd: new Date(getCurrentPeriodEnd(subscription) * 1000),\n     createdAt: new Date(subscription.created * 1000),\n   }))\n }\ndiff --git a/lib/stripe.ts b/lib/stripe.ts\nindex 4485b5a..c10e35f 100644\n--- a/lib/stripe.ts\n+++ b/lib/stripe.ts\n@@ -2,7 +2,7 @@ import Stripe from 'stripe';\n \n // Server-side Stripe client\n export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {\n-  apiVersion: '2023-10-16',\n+  apiVersion: '2026-09-30.endive',\n });\n \n // Product IDs - these should match your Stripe dashboard\n@@ -78,7 +78,6 @@ export async function createSubscriptionCheckout(\n ) {\n   const session = await stripe.checkout.sessions.create({\n     customer: customerId,\n-    payment_method_types: ['card'],\n     line_items: [\n       {\n         price: priceId,\n@@ -106,7 +105,6 @@ export async function createCreditPackCheckout(\n ) {\n   const session = await stripe.checkout.sessions.create({\n     customer: customerId,\n-    payment_method_types: ['card'],\n     line_items: [\n       {\n         price: priceId,\ndiff --git a/scripts/cfo-report/stripe.ts b/scripts/cfo-report/stripe.ts\nindex 9ec8557..30b89e8 100644\n--- a/scripts/cfo-report/stripe.ts\n+++ b/scripts/cfo-report/stripe.ts\n@@ -30,6 +30,7 @@ async function stripeGet(path: string): Promise<unknown> {\n     headers: {\n       Authorization: `Bearer ${secretKey}`,\n       'Content-Type': 'application/x-www-form-urlencoded',\n+      'Stripe-Version': '2026-09-30.endive',\n     },\n     cache: 'no-store',\n   })\n"
+      },
+      "sdkUpgrade": {
+        "from": "14.25.0",
+        "to": "23.0.0"
+      },
+      "validation": {
+        "status": "passed",
+        "baseline": "passed",
+        "patched": "passed"
+      },
+      "review": {
+        "verdict": "wrong",
+        "reason": "Drops payment_method_types: ['card'] from three Checkout Session creations and one SetupIntent, which switches them to dynamic payment methods and can change what customers are offered. Refit's approved rule turns exactly ['card'] into allowed_payment_method_types: ['card']. The other edits are right: subscription periods move to items.data[0], invoice.subscription to parent.subscription_details, and all 13 literal pins move to endive. It also pins a raw-fetch report script to endive, which nobody asked for."
+      }
+    },
+    {
+      "set": "active",
+      "repo": "brandbite/brandbite",
+      "refit": {
+        "status": "needs-review",
+        "stage": "scan",
+        "reason": "A traced SDK request sends a parameter the target API version removed. No reviewed replacement exists, and dropping or replacing it changes request behavior; automatic migration, AI and publication stop for review.",
+        "checks": "tests",
+        "validation": null,
+        "patch": null
+      },
+      "checks": "npm test",
+      "preparation": {
+        "status": "refused",
+        "reason": "package.json dependencies differ from the committed package-lock.json: pdfjs-dist is \"4.10.38\" in package.json but \"^4.10.38\" in the lockfile. Run npm install and commit the updated package-lock.json."
+      },
+      "agent": {
+        "status": "not-run"
+      }
+    },
+    {
+      "set": "active",
+      "repo": "Dvargas005/node-hub",
+      "refit": {
+        "status": "needs-review",
+        "stage": "scan",
+        "reason": "Affected SDK usage flows through a helper whose callers, client origins or mutations require review. Automatic migration, AI and publication require stable helper-client provenance.",
+        "checks": "typecheck",
+        "validation": null,
+        "patch": null
+      },
+      "checks": "typecheck",
+      "agent": {
+        "status": "patched",
+        "turns": 9,
+        "seconds": 24,
+        "costUsd": 0.1577428,
+        "usage": {
+          "inputTokens": 123522,
+          "cachedInputTokens": 102607,
+          "cacheWriteInputTokens": 20894,
+          "outputTokens": 1652,
+          "reasoningTokens": 399
+        },
+        "summary": "Updated Stripe for `2026-09-30.endive`:\n\n- Updated both literal `apiVersion` values.\n- Removed unsupported `payment_method_types` from Checkout setup.\n- Confirmed no removed response fields are read.\n- `git diff --check` passes. Tests weren’t run because dependencies are unavailable.\n\nNothing left for human decision.",
+        "diff": "diff --git a/scripts/setup-seo-addons.ts b/scripts/setup-seo-addons.ts\nindex b6c105d..9785e14 100644\n--- a/scripts/setup-seo-addons.ts\n+++ b/scripts/setup-seo-addons.ts\n@@ -37,7 +37,7 @@ const INCLUDED: Record<string, string> = {\n async function main() {\n   const key = process.env.STRIPE_SECRET_KEY || \"\";\n   if (!key) throw new Error(\"STRIPE_SECRET_KEY is not set\");\n-  const stripe = new Stripe(key, { apiVersion: \"2026-03-25.dahlia\" });\n+  const stripe = new Stripe(key, { apiVersion: \"2026-09-30.endive\" });\n   const host = (process.env.DATABASE_URL || \"\").replace(/.*@/, \"\").split(\"/\")[0];\n   console.log(`=== Stripe ${key.startsWith(\"sk_live_\") ? \"LIVE\" : \"TEST\"} | DB ${host || \"(unset)\"} | ${APPLY ? \"APPLY\" : \"DRY RUN\"} ===`);\n \ndiff --git a/src/app/api/admin/clients/[id]/payment-link/route.ts b/src/app/api/admin/clients/[id]/payment-link/route.ts\nindex 32a57cc..0511781 100644\n--- a/src/app/api/admin/clients/[id]/payment-link/route.ts\n+++ b/src/app/api/admin/clients/[id]/payment-link/route.ts\n@@ -94,7 +94,6 @@ export async function POST(\n       const checkout = await stripe.checkout.sessions.create({\n         mode: \"setup\",\n         customer: customerId!,\n-        payment_method_types: [\"card\"],\n         success_url: `${returnUrl}?card=success`,\n         cancel_url: `${returnUrl}?card=canceled`,\n         metadata: { userId: client.id, initiatedBy: session.user.id, purpose: \"admin_card_setup\" },\ndiff --git a/src/lib/stripe.ts b/src/lib/stripe.ts\nindex 5feb229..dafa76f 100644\n--- a/src/lib/stripe.ts\n+++ b/src/lib/stripe.ts\n@@ -13,7 +13,7 @@ export function getStripe() {\n       return null;\n     }\n     _stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {\n-      apiVersion: \"2026-03-25.dahlia\",\n+      apiVersion: \"2026-09-30.endive\",\n       typescript: true,\n     });\n   }\n"
+      },
+      "sdkUpgrade": {
+        "from": "21.0.1",
+        "to": "23.0.0"
+      },
+      "validation": {
+        "status": "passed",
+        "baseline": "passed",
+        "patched": "passed"
+      },
+      "review": {
+        "verdict": "wrong",
+        "reason": "Drops payment_method_types: ['card'] from a setup-mode Checkout Session whose purpose is admin_card_setup, so non-card methods can appear in a card-only flow. Both pins move correctly; the summary says nothing is left for a person to decide."
+      }
+    },
+    {
+      "set": "active",
+      "repo": "EngMajdSayedTaha/reelspy",
+      "refit": {
+        "status": "needs-review",
+        "stage": "scan",
+        "reason": "Affected SDK usage flows through a helper whose callers, client origins or mutations require review. Automatic migration, AI and publication require stable helper-client provenance.",
+        "checks": "tests",
+        "validation": null,
+        "patch": null
+      },
+      "checks": "npm test",
+      "preparation": {
+        "status": "refused",
+        "reason": "Dependency archive exceeds 1024 MiB. An operator can set REFIT_VALIDATION_WORKSPACE=4g (up to a 2 GiB archive and 5 GiB container memory) for a larger tree."
+      },
+      "agent": {
+        "status": "not-run"
+      }
+    },
+    {
+      "set": "active",
+      "repo": "Evolvededen/niore-platform",
+      "refit": {
+        "status": "needs-review",
+        "stage": "scan",
+        "reason": "Unparseable source files were skipped. Their API usage and mutations are unknown; automatic migration, AI and publication require a complete source scan.",
+        "checks": "tests",
+        "validation": null,
+        "patch": null
+      },
+      "checks": "pnpm test",
+      "preparation": {
+        "status": "refused",
+        "reason": "Dependency archive exceeds 1024 MiB. An operator can set REFIT_VALIDATION_WORKSPACE=4g (up to a 2 GiB archive and 5 GiB container memory) for a larger tree."
+      },
+      "agent": {
+        "status": "not-run"
+      }
+    },
+    {
+      "set": "active",
+      "repo": "JiantaoFu/insightly",
+      "refit": {
+        "status": "needs-review",
+        "stage": "scan",
+        "reason": "A traced SDK request sends a parameter the target API version removed. No reviewed replacement exists, and dropping or replacing it changes request behavior; automatic migration, AI and publication stop for review.",
+        "checks": "tests",
+        "validation": null,
+        "patch": null
+      },
+      "checks": "npm test",
+      "agent": {
+        "status": "patched",
+        "turns": 10,
+        "seconds": 31,
+        "costUsd": 0.333026,
+        "usage": {
+          "inputTokens": 287915,
+          "cachedInputTokens": 241215,
+          "cacheWriteInputTokens": 46679,
+          "outputTokens": 2487,
+          "reasoningTokens": 595
+        },
+        "summary": "Updated [server/index.js](/private/var/folders/jw/9by6lv3x4yzd8n3q43txpzb40000gn/T/refit-agent-7WSV4y/checkout/server/index.js):\n\n- Set Stripe API version to `2026-09-30.endive`.\n- Read subscription periods from the first subscription item.\n- Read invoice subscriptions through `invoice.parent.subscription_details`.\n- Removed obsolete Checkout `payment_method_types` parameters.\n- Left package and lockfiles unchanged.\n\n`node --check` passed. Lint/tests couldn’t run because dependencies aren’t installed. No decisions remain.",
+        "diff": "diff --git a/server/index.js b/server/index.js\nindex 5ef4fcf..1f3b945 100644\n--- a/server/index.js\n+++ b/server/index.js\n@@ -44,7 +44,7 @@ const stripeSecretKey = process.env.NODE_ENV === 'production'\n   : process.env.STRIPE_TEST_SECRET_KEY;\n \n const stripe = stripeSecretKey\n-  ? new Stripe(stripeSecretKey, { apiVersion: '2023-10-16' })\n+  ? new Stripe(stripeSecretKey, { apiVersion: '2026-09-30.endive' })\n   : null;\n \n const backendUrl = process.env.NODE_ENV === 'production' ? process.env.API_BASE_URL : 'http://localhost:3000';\n@@ -80,6 +80,7 @@ app.post('/stripe-webhook', express.raw({type: 'application/json'}), async (req,\n     try {\n       const subscription = await stripe.subscriptions.retrieve(subscriptionId);\n       const customerId = subscription.customer;\n+      const subscriptionItem = subscription.items.data[0];\n \n       const { data: user, error: userError } = await supabase\n         .from('users')\n@@ -96,9 +97,9 @@ app.post('/stripe-webhook', express.raw({type: 'application/json'}), async (req,\n         user_id: user.id,\n         stripe_customer_id: customerId,\n         stripe_subscription_id: subscription.id,\n-        stripe_price_id: subscription.items.data[0].price.id,\n+        stripe_price_id: subscriptionItem.price.id,\n         stripe_subscription_status: subscription.status,\n-        stripe_current_period_end: new Date(subscription.current_period_end * 1000),\n+        stripe_current_period_end: new Date(subscriptionItem.current_period_end * 1000),\n       };\n \n       // Handle scheduled cancellation\n@@ -108,7 +109,7 @@ app.post('/stripe-webhook', express.raw({type: 'application/json'}), async (req,\n           .from('user_subscriptions')\n           .update({\n             stripe_subscription_status: 'scheduled_for_cancellation',\n-            stripe_current_period_end: new Date(subscription.current_period_end * 1000),\n+            stripe_current_period_end: new Date(subscriptionItem.current_period_end * 1000),\n           })\n           .eq('stripe_subscription_id', subscription.id);\n         if (updateError) {\n@@ -125,7 +126,7 @@ app.post('/stripe-webhook', express.raw({type: 'application/json'}), async (req,\n           .from('user_subscriptions')\n           .update({\n             stripe_subscription_status: subscription.status,\n-            stripe_current_period_end: new Date(subscription.current_period_end * 1000),\n+            stripe_current_period_end: new Date(subscriptionItem.current_period_end * 1000),\n           })\n           .eq('stripe_subscription_id', subscription.id);\n         if (updateError) {\n@@ -148,7 +149,7 @@ app.post('/stripe-webhook', express.raw({type: 'application/json'}), async (req,\n         }\n         // Update user credits based on subscription status\n         if (subscription.status === 'active' || subscription.status === 'trialing') {\n-          const priceId = subscription.items.data[0].price.id;\n+          const priceId = subscriptionItem.price.id;\n           const proPriceId = process.env.STRIPE_PRO_PRICE_ID;\n           const unlimitedPriceId = process.env.STRIPE_UNLIMITED_PRICE_ID;\n \n@@ -185,9 +186,15 @@ app.post('/stripe-webhook', express.raw({type: 'application/json'}), async (req,\n     }\n     case 'invoice.payment_succeeded': {\n       const invoice = event.data.object;\n-      if (invoice.billing_reason === 'subscription_cycle' && invoice.subscription) {\n-        console.log(`✅ Handling invoice.payment_succeeded for subscription: ${invoice.subscription}`);\n-        await manageSubscriptionChange(invoice.subscription);\n+      const invoiceSubscription = invoice.parent?.type === 'subscription_details'\n+        ? invoice.parent.subscription_details?.subscription\n+        : null;\n+      if (invoice.billing_reason === 'subscription_cycle' && invoiceSubscription) {\n+        const subscriptionId = typeof invoiceSubscription === 'string'\n+          ? invoiceSubscription\n+          : invoiceSubscription.id;\n+        console.log(`✅ Handling invoice.payment_succeeded for subscription: ${subscriptionId}`);\n+        await manageSubscriptionChange(subscriptionId);\n       }\n       break;\n     }\n@@ -2986,7 +2993,6 @@ app.post('/create-checkout-session', verifyToken, async (req, res) => {\n   }\n   try {\n     const session = await stripe.checkout.sessions.create({\n-      payment_method_types: ['card'],\n       line_items: [{\n         price_data: {\n           currency: 'usd',\n@@ -3102,7 +3108,6 @@ app.post('/create-subscription-session', verifyToken, async (req, res) => {\n     }\n \n     const sessionParams = {\n-      payment_method_types: ['card'],\n       mode: 'subscription',\n       customer: customerId,\n       line_items: [{\n"
+      },
+      "sdkUpgrade": {
+        "skipped": "stripe 23.0.0 needs @types/node >=20, which the lockfile does not provide; upgrade it first."
+      },
+      "validation": {
+        "status": "baseline-failed",
+        "baseline": "failed",
+        "patched": "not-run"
+      }
+    },
+    {
+      "set": "active",
+      "repo": "MeiyuTech/AET-App",
+      "refit": {
+        "status": "needs-review",
+        "stage": "scan",
+        "reason": "A traced SDK request sends a parameter the target API version removed. No reviewed replacement exists, and dropping or replacing it changes request behavior; automatic migration, AI and publication stop for review.",
+        "checks": "tests",
+        "validation": null,
+        "patch": null
+      },
+      "checks": "npm test",
+      "preparation": {
+        "status": "refused",
+        "reason": "Dependency archive exceeds 1024 MiB. An operator can set REFIT_VALIDATION_WORKSPACE=4g (up to a 2 GiB archive and 5 GiB container memory) for a larger tree."
+      },
+      "agent": {
+        "status": "not-run"
+      }
+    },
+    {
+      "set": "active",
+      "repo": "Nag-Software/proanbud2",
+      "refit": {
+        "status": "needs-review",
+        "stage": "scan",
+        "reason": "A traced SDK request sends a parameter the target API version removed. No reviewed replacement exists, and dropping or replacing it changes request behavior; automatic migration, AI and publication stop for review.",
+        "checks": "tests",
+        "validation": null,
+        "patch": null
+      },
+      "checks": "pnpm test",
+      "preparation": {
+        "status": "refused",
+        "reason": "Dependency archive exceeds 1024 MiB. An operator can set REFIT_VALIDATION_WORKSPACE=4g (up to a 2 GiB archive and 5 GiB container memory) for a larger tree."
+      },
+      "agent": {
+        "status": "not-run"
+      }
+    },
+    {
+      "set": "active",
+      "repo": "RISHIE2006/Signl",
+      "refit": {
+        "status": "validation-failed",
+        "stage": "validation",
+        "reason": "Validation returned baseline-failed; publication was not attempted.",
+        "checks": "tests",
+        "validation": "baseline-failed",
+        "patch": "proposed"
+      },
+      "checks": "npm test",
+      "agent": {
+        "status": "patched",
+        "turns": 8,
+        "seconds": 25,
+        "costUsd": 0.1588216,
+        "usage": {
+          "inputTokens": 108418,
+          "cachedInputTokens": 84664,
+          "cacheWriteInputTokens": 23736,
+          "outputTokens": 1497,
+          "reasoningTokens": 552
+        },
+        "summary": "- Updated Stripe `apiVersion` to `2026-09-30.endive`.\n- Removed unsupported `payment_method_types`; Checkout now uses Stripe’s configured payment methods.\n- No removed response fields were read.\n- Syntax and diff checks pass. No decisions remain.",
+        "diff": "diff --git a/app/api/stripe/checkout/route.js b/app/api/stripe/checkout/route.js\nindex 62a4d10..edf01f1 100644\n--- a/app/api/stripe/checkout/route.js\n+++ b/app/api/stripe/checkout/route.js\n@@ -36,7 +36,6 @@ export async function POST(request) {\n     const session = await stripe.checkout.sessions.create({\n       mode: 'subscription',\n       customer: customerId,\n-      payment_method_types: ['card'],\n       line_items: [{ price: planConfig.priceId, quantity: 1 }],\n       success_url: `${request.headers.get('origin')}/billing?success=true&plan=${plan}`,\n       cancel_url: `${request.headers.get('origin')}/billing?canceled=true`,\ndiff --git a/src/lib/stripe.js b/src/lib/stripe.js\nindex c685cb2..493294a 100644\n--- a/src/lib/stripe.js\n+++ b/src/lib/stripe.js\n@@ -6,7 +6,7 @@ let stripeInstance = null;\n export function getStripe() {\n   if (!stripeKey) return null;\n   if (stripeInstance) return stripeInstance;\n-  stripeInstance = new Stripe(stripeKey, { apiVersion: '2025-03-31.basil' });\n+  stripeInstance = new Stripe(stripeKey, { apiVersion: '2026-09-30.endive' });\n   return stripeInstance;\n }\n \n"
+      },
+      "sdkUpgrade": {
+        "from": "22.2.2",
+        "to": "23.0.0"
+      },
+      "validation": {
+        "status": "baseline-failed",
+        "baseline": "failed",
+        "patched": "not-run"
+      }
+    },
+    {
+      "set": "active",
+      "repo": "sammorrispb/nextgen-academy",
+      "refit": {
+        "status": "needs-review",
+        "stage": "scan",
+        "reason": "A traced SDK request sends a parameter the target API version removed. No reviewed replacement exists, and dropping or replacing it changes request behavior; automatic migration, AI and publication stop for review.",
+        "checks": "typecheck",
+        "validation": null,
+        "patch": null
+      },
+      "checks": "typecheck",
+      "agent": {
+        "status": "patched",
+        "turns": 12,
+        "seconds": 35,
+        "costUsd": 0.244976401,
+        "usage": {
+          "inputTokens": 217926,
+          "cachedInputTokens": 184391,
+          "cacheWriteInputTokens": 33508,
+          "outputTokens": 1854,
+          "reasoningTokens": 588
+        },
+        "summary": "Updated the Checkout Session request to use Endive’s `allowed_payment_method_types: [\"card\"]`, preserving card-only behavior.\n\nNo removed response fields or literal `apiVersion` settings were present. No decisions remain. Tests were unavailable because dependencies aren’t installed.",
+        "diff": "diff --git a/src/app/api/commit/start-checkout/route.ts b/src/app/api/commit/start-checkout/route.ts\nindex fd2e218..bf8b9f5 100644\n--- a/src/app/api/commit/start-checkout/route.ts\n+++ b/src/app/api/commit/start-checkout/route.ts\n@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {\n   const checkout = await stripe.checkout.sessions.create({\n     mode: \"setup\",\n     customer: customer.id,\n-    payment_method_types: [\"card\"],\n+    allowed_payment_method_types: [\"card\"],\n     metadata: {\n       nga_parent_email: payload.parentEmail,\n       nga_child_first_name: payload.childFirstName,\n"
+      },
+      "sdkUpgrade": {
+        "from": "22.1.0",
+        "to": "23.0.0"
+      },
+      "validation": {
+        "status": "passed",
+        "baseline": "passed",
+        "patched": "passed"
+      },
+      "review": {
+        "verdict": "correct",
+        "reason": "Rewrites payment_method_types: ['card'] to allowed_payment_method_types: ['card'] on a setup-mode Checkout Session, as Refit's approved card rule does. The version is SDK-pinned, so the stripe-node 22 to 23 upgrade moves it. No removed response field is read. Refit stopped this repository for review on the same parameter."
+      }
+    },
+    {
+      "set": "active",
+      "repo": "TAIRED1/hackerai",
+      "refit": {
+        "status": "needs-review",
+        "stage": "scan",
+        "reason": "A traced SDK request sends a parameter the target API version removed. No reviewed replacement exists, and dropping or replacing it changes request behavior; automatic migration, AI and publication stop for review.",
+        "checks": "tests",
+        "validation": null,
+        "patch": null
+      },
+      "checks": "pnpm test",
+      "preparation": {
+        "status": "refused",
+        "reason": "Unsupported pnpm settings require a custom validation image; hooks, patches, alternate stores, runtimes and registries are not loaded automatically."
+      },
+      "agent": {
+        "status": "not-run"
+      }
+    },
+    {
+      "set": "active",
+      "repo": "User10-stab/meri-beauty",
+      "refit": {
+        "status": "needs-review",
+        "stage": "scan",
+        "reason": "A traced SDK request sends a parameter the target API version removed. No reviewed replacement exists, and dropping or replacing it changes request behavior; automatic migration, AI and publication stop for review.",
+        "checks": "tests",
+        "validation": null,
+        "patch": null
+      },
+      "checks": "npm test",
+      "preparation": {
+        "status": "refused",
+        "reason": "npm dependency preparation failed (1). npm warn ERESOLVE overriding peer dependency\nnpm warn While resolving: vite@8.2.1\nnpm warn Found: @types/node@20.17.6\nnpm warn node_modules/@types/node\nnpm warn   dev @types/node@\"20.17.6\" from the root project\nnpm warn   4 more (@types/node-fetch, jest-worker, stripe, vitest)\nnpm warn\nnpm warn Could not resolve dependency:\nnpm warn peerOptional @types/node@\"^20.19.0 || >=22.12.0\" from vite@8.2.1\nnpm warn node_modules/vitest/node_modules/vite\nnpm warn   vite@\"^6.0.0 || ^7.0.0 || ^8.0.0\" from vitest@4.1.10\nnpm warn   node_modules/vitest\nnpm warn   1 more ("
+      },
+      "agent": {
+        "status": "not-run"
+      }
+    },
+    {
+      "set": "held-out",
+      "repo": "Shobhnik13/SynthAI",
+      "refit": {
+        "status": "needs-review",
+        "stage": "scan",
+        "reason": "A traced SDK request sends a parameter the target API version removed. No reviewed replacement exists, and dropping or replacing it changes request behavior; automatic migration, AI and publication stop for review.",
+        "checks": "generated-only",
+        "validation": null,
+        "patch": null
+      },
+      "checks": "node -e 0",
+      "preparation": {
+        "status": "refused",
+        "reason": "Every npm package requires a registry URL, version and SHA-256-or-stronger integrity; links and bundled records require a custom image."
+      },
+      "agent": {
+        "status": "not-run"
+      }
+    },
+    {
+      "set": "held-out",
+      "repo": "abressiddique/AbresStore-Admin",
+      "refit": {
+        "status": "needs-review",
+        "stage": "validation",
+        "reason": "Checks passed but detected findings remain unresolved. Publication was not attempted.",
+        "checks": "typecheck",
+        "validation": "passed",
+        "patch": "proposed"
+      },
+      "checks": "typecheck",
+      "agent": {
+        "status": "patched",
+        "turns": 10,
+        "seconds": 30,
+        "costUsd": 0.3007736,
+        "usage": {
+          "inputTokens": 273974,
+          "cachedInputTokens": 229384,
+          "cacheWriteInputTokens": 44569,
+          "outputTokens": 1533,
+          "reasoningTokens": 191
+        },
+        "summary": "Upgraded Stripe integration:\n\n- Set API version to `2026-09-30.endive`.\n- Removed unsupported `payment_method_types`.\n- Migrated shipping address reads to `collected_information.shipping_details`.\n- Left package files unchanged.\n- `git diff --check` passes; lint unavailable because dependencies aren’t installed.\n\nNo decisions remain.",
+        "diff": "diff --git a/app/api/checkout/route.ts b/app/api/checkout/route.ts\nindex 3413be6..40db91f 100644\n--- a/app/api/checkout/route.ts\n+++ b/app/api/checkout/route.ts\n@@ -20,7 +20,6 @@ export async function POST(req: NextRequest) {\n     }\n \n     const session = await stripe.checkout.sessions.create({\n-      payment_method_types: [\"card\"],\n       mode: \"payment\",\n       shipping_address_collection: {\n         allowed_countries: [\"IN\"], // Update to allowed countries as per your need\ndiff --git a/app/api/webhooks/route.ts b/app/api/webhooks/route.ts\nindex 54d5d33..448651a 100644\n--- a/app/api/webhooks/route.ts\n+++ b/app/api/webhooks/route.ts\n@@ -25,11 +25,11 @@ export const POST = async (req: NextRequest) => {\n       }\n \n       const shippingAddress = {\n-        street: session?.shipping_details?.address?.line1,\n-        city: session?.shipping_details?.address?.city,\n-        state: session?.shipping_details?.address?.state,\n-        postalCode: session?.shipping_details?.address?.postal_code,\n-        country: session?.shipping_details?.address?.country,\n+        street: session?.collected_information?.shipping_details?.address?.line1,\n+        city: session?.collected_information?.shipping_details?.address?.city,\n+        state: session?.collected_information?.shipping_details?.address?.state,\n+        postalCode: session?.collected_information?.shipping_details?.address?.postal_code,\n+        country: session?.collected_information?.shipping_details?.address?.country,\n       }\n \n       const retrieveSession = await stripe.checkout.sessions.retrieve(\n@@ -79,4 +79,4 @@ export const POST = async (req: NextRequest) => {\n     console.log(\"[webhooks_POST]\", err)\n     return new NextResponse(\"Failed to create the order\", { status: 500 })\n   }\n-}\n\\ No newline at end of file\n+}\ndiff --git a/lib/stripe.ts b/lib/stripe.ts\nindex b556345..d1f84e3 100644\n--- a/lib/stripe.ts\n+++ b/lib/stripe.ts\n@@ -1,6 +1,6 @@\n import Stripe from \"stripe\";\n \n export const stripe = new Stripe(process.env.NEXT_PUBLIC_STRIPE_SECRET_KEY!, {\n-  apiVersion: '2023-10-16',\n+  apiVersion: \"2026-09-30.endive\",\n   typescript: true,\n-});\n\\ No newline at end of file\n+});\n"
+      },
+      "sdkUpgrade": {
+        "from": "14.19.0",
+        "to": "23.0.0"
+      },
+      "validation": {
+        "status": "passed",
+        "baseline": "passed",
+        "patched": "passed"
+      },
+      "review": {
+        "verdict": "wrong",
+        "reason": "Correctly moves the webhook's checkout.session shipping_details reads to collected_information.shipping_details, which Refit left unresolved. But it drops payment_method_types: ['card'] from Checkout Session creation, switching it to dynamic payment methods. Refit's approved rule replaces exactly ['card'] with allowed_payment_method_types: ['card']."
+      }
+    },
+    {
+      "set": "held-out",
+      "repo": "Sanjdcool/ApanStack-Newsletter",
+      "refit": {
+        "status": "validation-failed",
+        "stage": "validation",
+        "reason": "Validation returned baseline-failed; publication was not attempted.",
+        "checks": "tests",
+        "validation": "baseline-failed",
+        "patch": "unsupported"
+      },
+      "checks": "npm test",
+      "agent": {
+        "status": "patched",
+        "turns": 9,
+        "seconds": 42,
+        "costUsd": 0.3626836,
+        "usage": {
+          "inputTokens": 309971,
+          "cachedInputTokens": 258239,
+          "cacheWriteInputTokens": 51711,
+          "outputTokens": 2623,
+          "reasoningTokens": 541
+        },
+        "summary": "Upgraded Stripe integration to `2026-09-30.endive`:\n\n- Replaced `invoice.subscription` reads with `invoice.parent.subscription_details.subscription`.\n- Changed expansion from `latest_invoice.payment_intent` to `latest_invoice.confirmation_secret`.\n- Updated webhook test fixtures to the new Invoice schema.\n- Confirmed no removed request parameters remain.\n\nTypeScript/tests weren’t run because dependencies are not installed. No decisions left for manual review.",
+        "diff": "diff --git a/app/api/webhooks/stripe/route.ts b/app/api/webhooks/stripe/route.ts\nindex 26ed5f5..47a0e0f 100644\n--- a/app/api/webhooks/stripe/route.ts\n+++ b/app/api/webhooks/stripe/route.ts\n@@ -262,7 +262,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {\n  */\n async function handleInvoicePaid(invoice: Stripe.Invoice) {\n   const customerId = invoice.customer as string | null;\n-  const subscriptionId = invoice.subscription as string | null;\n+  const subscriptionId = subscriptionIdFromInvoice(invoice);\n   if (!customerId || !subscriptionId) return;\n \n   // Ensure the creator's tier is current\n@@ -286,7 +286,7 @@ async function handleInvoicePaid(invoice: Stripe.Invoice) {\n  * Stripe will retry per its retry schedule; we downgrade on final deletion.\n  */\n async function handleInvoicePaymentFailed(invoice: Stripe.Invoice) {\n-  const subscriptionId = invoice.subscription as string | null;\n+  const subscriptionId = subscriptionIdFromInvoice(invoice);\n   if (!subscriptionId) return;\n \n   // Mark subscriber record so the UI can surface a \"payment issue\" banner\n@@ -355,6 +355,14 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {\n // Helpers\n // ═══════════════════════════════════════════════════════════════════════════════\n \n+/** Extract the generating subscription from the Invoice parent relationship. */\n+function subscriptionIdFromInvoice(invoice: Stripe.Invoice): string | null {\n+  if (invoice.parent?.type !== \"subscription_details\") return null;\n+\n+  const subscription = invoice.parent.subscription_details?.subscription;\n+  return typeof subscription === \"string\" ? subscription : subscription?.id ?? null;\n+}\n+\n /** Map a Stripe price ID to our SubscriptionTier enum. */\n function tierFromPriceId(priceId: string): \"FREE\" | \"PRO\" | \"BUSINESS\" {\n   const proIds = [\ndiff --git a/lib/stripe.ts b/lib/stripe.ts\nindex 383160b..5111507 100644\n--- a/lib/stripe.ts\n+++ b/lib/stripe.ts\n@@ -1,7 +1,7 @@\n ﻿import Stripe from 'stripe'\n \n export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {\n-  apiVersion: '2025-02-24.acacia',\n+  apiVersion: '2026-09-30.endive',\n   typescript: true,\n })\n \n@@ -22,7 +22,7 @@ export async function createSubscription(\n     items: [{ price: priceId }],\n     trial_period_days: trialDays,\n     payment_behavior: 'default_incomplete',\n-    expand: ['latest_invoice.payment_intent'],\n+    expand: ['latest_invoice.confirmation_secret'],\n   })\n }\n \n@@ -76,4 +76,3 @@ export async function createPortalSession(\n     return_url: returnUrl,\n   })\n }\n-\ndiff --git a/tests/integration/b02-stripe-webhook-sweep.test.ts b/tests/integration/b02-stripe-webhook-sweep.test.ts\nindex 32fe7c0..5a5034f 100644\n--- a/tests/integration/b02-stripe-webhook-sweep.test.ts\n+++ b/tests/integration/b02-stripe-webhook-sweep.test.ts\n@@ -141,7 +141,10 @@ describe(\"B02 T1.6 - Stripe webhook sweep\", () => {\n         type: \"invoice.paid\",\n         object: {\n           customer: \"cus_t16_creator_001\",\n-          subscription: \"sub_t16_creator_001\",\n+          parent: {\n+            type: \"subscription_details\",\n+            subscription_details: { subscription: \"sub_t16_creator_001\" },\n+          },\n         },\n       },\n       {\n@@ -149,7 +152,10 @@ describe(\"B02 T1.6 - Stripe webhook sweep\", () => {\n         type: \"invoice.payment_failed\",\n         object: {\n           customer: \"cus_t16_creator_001\",\n-          subscription: \"sub_t16_creator_001\",\n+          parent: {\n+            type: \"subscription_details\",\n+            subscription_details: { subscription: \"sub_t16_creator_001\" },\n+          },\n         },\n       },\n       {\n@@ -196,4 +202,3 @@ describe(\"B02 T1.6 - Stripe webhook sweep\", () => {\n     }\n   });\n });\n-\ndiff --git a/tests/integration/stripe-webhook.test.ts b/tests/integration/stripe-webhook.test.ts\nindex 66dfcae..6fc1cb6 100644\n--- a/tests/integration/stripe-webhook.test.ts\n+++ b/tests/integration/stripe-webhook.test.ts\n@@ -295,7 +295,10 @@ describe(\"POST /api/webhooks/stripe\", () => {\n     mockConstructEvent.mockReturnValueOnce(\n       fakeEvent(\"evt_inv_paid_001\", \"invoice.paid\", {\n         customer: \"cus_inv_001\",\n-        subscription: \"sub_inv_001\",\n+        parent: {\n+          type: \"subscription_details\",\n+          subscription_details: { subscription: \"sub_inv_001\" },\n+        },\n       })\n     );\n \n"
+      },
+      "sdkUpgrade": {
+        "from": "17.7.0",
+        "to": "23.0.0"
+      },
+      "validation": {
+        "status": "baseline-failed",
+        "baseline": "failed",
+        "patched": "not-run"
+      }
+    },
+    {
+      "set": "held-out",
+      "repo": "manu14357/smartdoc",
+      "refit": {
+        "status": "needs-review",
+        "stage": "scan",
+        "reason": "A traced SDK request sends a parameter the target API version removed. No reviewed replacement exists, and dropping or replacing it changes request behavior; automatic migration, AI and publication stop for review.",
+        "checks": "typecheck",
+        "validation": null,
+        "patch": null
+      },
+      "checks": "typecheck",
+      "preparation": {
+        "status": "refused",
+        "reason": "Dependency archive exceeds 1024 MiB. An operator can set REFIT_VALIDATION_WORKSPACE=4g (up to a 2 GiB archive and 5 GiB container memory) for a larger tree."
+      },
+      "agent": {
+        "status": "not-run"
+      }
+    },
+    {
+      "set": "held-out",
+      "repo": "kalibani/HireFazz",
+      "refit": {
+        "status": "needs-review",
+        "stage": "scan",
+        "reason": "A traced SDK request sends a parameter the target API version removed. No reviewed replacement exists, and dropping or replacing it changes request behavior; automatic migration, AI and publication stop for review.",
+        "checks": "typecheck",
+        "validation": null,
+        "patch": null
+      },
+      "checks": "typecheck",
+      "preparation": {
+        "status": "refused",
+        "reason": "Dependency archive exceeds 1024 MiB. An operator can set REFIT_VALIDATION_WORKSPACE=4g (up to a 2 GiB archive and 5 GiB container memory) for a larger tree."
+      },
+      "agent": {
+        "status": "not-run"
+      }
+    },
+    {
+      "set": "original",
+      "repo": "Kanba-co/kanba",
+      "refit": {
+        "status": "validation-failed",
+        "stage": "validation",
+        "reason": "Validation returned regression; publication was not attempted.",
+        "checks": "typecheck",
+        "validation": "regression",
+        "patch": "proposed"
+      },
+      "checks": "typecheck",
+      "agent": {
+        "status": "patched",
+        "turns": 11,
+        "seconds": 39,
+        "costUsd": 0.3387988,
+        "usage": {
+          "inputTokens": 314652,
+          "cachedInputTokens": 270697,
+          "cacheWriteInputTokens": 43931,
+          "outputTokens": 2735,
+          "reasoningTokens": 592
+        },
+        "summary": "Upgraded Stripe integration to `2026-09-30.endive`:\n\n- Updated the literal API version.\n- Removed deprecated Checkout `payment_method_types`.\n- Migrated invoice subscription checks to `invoice.parent.subscription_details`.\n- Read billing periods from subscription items.\n- Left package and lockfiles unchanged.\n\nStatic compatibility and diff checks passed. Dependencies were unavailable, so runtime/type tests were not run. Stripe’s webhook/API version must still be upgraded externally in Workbench.",
+        "diff": "diff --git a/app/api/stripe/checkout/route.ts b/app/api/stripe/checkout/route.ts\nindex 6fcafbd..9910f54 100644\n--- a/app/api/stripe/checkout/route.ts\n+++ b/app/api/stripe/checkout/route.ts\n@@ -169,7 +169,6 @@ export async function POST(request: NextRequest) {\n     \n     const session = await stripe.checkout.sessions.create({\n       customer: customerId,\n-      payment_method_types: ['card'],\n       allow_promotion_codes: true,\n       line_items: [\n         {\n@@ -210,4 +209,4 @@ export async function OPTIONS() {\n       'Access-Control-Allow-Headers': 'Content-Type, Authorization',\n     },\n   });\n-}\n\\ No newline at end of file\n+}\ndiff --git a/app/api/stripe/webhook/route.ts b/app/api/stripe/webhook/route.ts\nindex e8c01d9..31578e8 100644\n--- a/app/api/stripe/webhook/route.ts\n+++ b/app/api/stripe/webhook/route.ts\n@@ -159,7 +159,10 @@ async function handleSubscriptionChange(subscription: Stripe.Subscription) {\n async function handleInvoicePaymentSucceeded(invoice: Stripe.Invoice) {\n   console.log(`✅ Invoice payment succeeded: ${invoice.id}`);\n   \n-  if (invoice.subscription) {\n+  if (\n+    invoice.parent?.type === 'subscription_details' &&\n+    invoice.parent.subscription_details?.subscription\n+  ) {\n     const customerId = invoice.customer as string;\n     await syncCustomerFromStripe(customerId);\n   }\n@@ -168,7 +171,10 @@ async function handleInvoicePaymentSucceeded(invoice: Stripe.Invoice) {\n async function handleInvoicePaymentFailed(invoice: Stripe.Invoice) {\n   console.log(`❌ Invoice payment failed: ${invoice.id}`);\n   \n-  if (invoice.subscription) {\n+  if (\n+    invoice.parent?.type === 'subscription_details' &&\n+    invoice.parent.subscription_details?.subscription\n+  ) {\n     const customerId = invoice.customer as string;\n     await syncCustomerFromStripe(customerId);\n   }\n@@ -216,15 +222,16 @@ async function syncCustomerFromStripe(customerId: string) {\n \n     // Process the most recent subscription\n     const subscription = subscriptions.data[0];\n+    const subscriptionItem = subscription.items.data[0];\n     console.log(`📋 Processing subscription ${subscription.id} with status: ${subscription.status}`);\n \n     // Update subscription record\n     const subscriptionData: any = {\n       customer_id: customerId,\n       subscription_id: subscription.id,\n-      price_id: subscription.items.data[0].price.id,\n-      current_period_start: subscription.current_period_start,\n-      current_period_end: subscription.current_period_end,\n+      price_id: subscriptionItem.price.id,\n+      current_period_start: subscriptionItem.current_period_start,\n+      current_period_end: subscriptionItem.current_period_end,\n       cancel_at_period_end: subscription.cancel_at_period_end,\n       status: subscription.status,\n     };\n@@ -308,4 +315,4 @@ export async function OPTIONS() {\n       'Access-Control-Allow-Headers': 'Content-Type, Stripe-Signature',\n     },\n   });\n-}\n\\ No newline at end of file\n+}\ndiff --git a/lib/stripe.ts b/lib/stripe.ts\nindex be3eb1d..4838e33 100644\n--- a/lib/stripe.ts\n+++ b/lib/stripe.ts\n@@ -1,7 +1,7 @@\n import Stripe from 'stripe';\n \n export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {\n-  apiVersion: '2023-10-16',\n+  apiVersion: '2026-09-30.endive',\n   typescript: true,\n });\n \n@@ -15,4 +15,4 @@ export const getURL = () => {\n   // Make sure to include a trailing `/`.\n   url = url.charAt(url.length - 1) === '/' ? url : `${url}/`;\n   return url;\n-};\n\\ No newline at end of file\n+};\n"
+      },
+      "sdkUpgrade": {
+        "from": "14.25.0",
+        "to": "23.0.0"
+      },
+      "validation": {
+        "status": "passed",
+        "baseline": "passed",
+        "patched": "passed"
+      },
+      "review": {
+        "verdict": "wrong",
+        "reason": "The invoice.subscription checks move to invoice.parent.subscription_details, and the subscription period reads move to the first item, which is the repository's own price choice. All of it typechecks, where Refit's patch regressed. But it drops payment_method_types: ['card'] from Checkout Session creation, switching it to dynamic payment methods."
+      }
+    },
+    {
+      "set": "original",
+      "repo": "ItusiAI/Open-Magiviz",
+      "refit": {
+        "status": "needs-review",
+        "stage": "scan",
+        "reason": "A traced SDK request sends a parameter the target API version removed. No reviewed replacement exists, and dropping or replacing it changes request behavior; automatic migration, AI and publication stop for review.",
+        "checks": "typecheck",
+        "validation": null,
+        "patch": null
+      },
+      "checks": "typecheck",
+      "preparation": {
+        "status": "refused",
+        "reason": "Tracked node_modules, conflicting lockfiles, shrinkwrap or pnpm hooks require a custom validation image."
+      },
+      "agent": {
+        "status": "not-run"
+      }
+    },
+    {
+      "set": "original",
+      "repo": "pretzelai/stripe-no-webhooks",
+      "refit": {
+        "status": "needs-review",
+        "stage": "scan",
+        "reason": "Declared Stripe types identify possible usage but do not establish SDK or incoming-event provenance. Automatic migration, AI and publication require traced source evidence.",
+        "checks": "tests",
+        "validation": null,
+        "patch": null
+      },
+      "checks": "npm test",
+      "agent": {
+        "status": "patched",
+        "turns": 16,
+        "seconds": 87,
+        "costUsd": 0.6367912,
+        "usage": {
+          "inputTokens": 703493,
+          "cachedInputTokens": 637828,
+          "cacheWriteInputTokens": 65626,
+          "outputTokens": 5950,
+          "reasoningTokens": 1734
+        },
+        "summary": "Upgraded Stripe compatibility to `2026-09-30.endive`:\n\n- Replaced invoice `subscription` reads with `invoice.parent.subscription_details`.\n- Replaced invoice `payment_intent` reads with `invoice.payments`.\n- Moved subscription billing periods to subscription items, including database queries.\n- Updated the literal `apiVersion` example.\n- Left package and lockfiles untouched.\n\nTests weren’t run because dependencies are not installed. A person still needs to upgrade Stripe’s webhook/account API version in Workbench.",
+        "diff": "diff --git a/src/credits/topup.ts b/src/credits/topup.ts\nindex 542f26c..1d8c220 100644\n--- a/src/credits/topup.ts\n+++ b/src/credits/topup.ts\n@@ -976,12 +976,20 @@ export function createTopUpHandler(deps: {\n           ? invoice.customer\n           : invoice.customer?.id;\n \n-      if (customerId && invoice.payment_intent) {\n+      const invoicePayment = invoice.payments?.data.find(\n+        ({ payment }) => payment.type === \"payment_intent\"\n+      );\n+      const invoicePaymentIntent =\n+        invoicePayment?.payment.type === \"payment_intent\"\n+          ? invoicePayment.payment.payment_intent\n+          : undefined;\n+\n+      if (customerId && invoicePaymentIntent) {\n         try {\n           const paymentIntentId =\n-            typeof invoice.payment_intent === \"string\"\n-              ? invoice.payment_intent\n-              : invoice.payment_intent.id;\n+            typeof invoicePaymentIntent === \"string\"\n+              ? invoicePaymentIntent\n+              : invoicePaymentIntent.id;\n           const paymentIntent =\n             await stripe.paymentIntents.retrieve(paymentIntentId);\n \ndiff --git a/src/handlers/billing.ts b/src/handlers/billing.ts\nindex 7bbf313..3b17c75 100644\n--- a/src/handlers/billing.ts\n+++ b/src/handlers/billing.ts\n@@ -58,7 +58,7 @@ async function getSubscriptionForUser(\n     `SELECT id, status, items\n      FROM ${schema}.subscriptions\n      WHERE customer = $1 AND status IN ('active', 'trialing')\n-     ORDER BY current_period_end DESC\n+     ORDER BY (items->'data'->0->>'current_period_end')::bigint DESC\n      LIMIT 1`,\n     [customerId]\n   );\n@@ -68,7 +68,7 @@ async function getSubscriptionForUser(\n       `SELECT id, status, items\n        FROM ${schema}.subscriptions\n        WHERE customer = $1\n-       ORDER BY current_period_end DESC\n+       ORDER BY (items->'data'->0->>'current_period_end')::bigint DESC\n        LIMIT 1`,\n       [customerId]\n     );\ndiff --git a/src/handlers/checkout.ts b/src/handlers/checkout.ts\nindex 130364a..c636bbc 100644\n--- a/src/handlers/checkout.ts\n+++ b/src/handlers/checkout.ts\n@@ -204,7 +204,7 @@ export async function handleCheckout(\n             },\n           });\n \n-          const periodEnd = currentSub.current_period_end;\n+          const periodEnd = currentSub.items.data[0]?.current_period_end;\n           return successResponse(\n             request,\n             {\ndiff --git a/src/handlers/webhook.ts b/src/handlers/webhook.ts\nindex 8bc19db..f35c15a 100644\n--- a/src/handlers/webhook.ts\n+++ b/src/handlers/webhook.ts\n@@ -427,16 +427,10 @@ async function handleEvent(\n         break;\n       }\n \n-      // Handle both old and new Stripe API versions\n-      // Old: invoice.subscription\n-      // New (2025-12-15+): invoice.parent?.subscription_details?.subscription\n       const subscriptionId =\n-        invoice.subscription ??\n-        (\n-          invoice as unknown as {\n-            parent?: { subscription_details?: { subscription?: string } };\n-          }\n-        ).parent?.subscription_details?.subscription;\n+        invoice.parent?.type === \"subscription_details\"\n+          ? invoice.parent.subscription_details.subscription\n+          : undefined;\n \n       // Handle subscription renewals\n       if (invoice.billing_reason === \"subscription_cycle\" && subscriptionId) {\n@@ -550,7 +544,10 @@ async function handleEvent(\n       const invoice = event.data.object as Stripe.Invoice;\n \n       // Only handle subscription invoices (not top-ups or other invoice types)\n-      const subscriptionId = invoice.subscription;\n+      const subscriptionId =\n+        invoice.parent?.type === \"subscription_details\"\n+          ? invoice.parent.subscription_details.subscription\n+          : undefined;\n       if (!subscriptionId || !invoice.customer) break;\n \n       // Look up userId from our mapping table\n@@ -573,11 +570,18 @@ async function handleEvent(\n       // Get decline code from payment intent\n       let declineCode: string | undefined;\n       let failureMessage: string | undefined;\n-      if (invoice.payment_intent) {\n+      const invoicePayment = invoice.payments?.data.find(\n+        ({ payment }) => payment.type === \"payment_intent\"\n+      );\n+      const invoicePaymentIntent =\n+        invoicePayment?.payment.type === \"payment_intent\"\n+          ? invoicePayment.payment.payment_intent\n+          : undefined;\n+      if (invoicePaymentIntent) {\n         const piId =\n-          typeof invoice.payment_intent === \"string\"\n-            ? invoice.payment_intent\n-            : invoice.payment_intent.id;\n+          typeof invoicePaymentIntent === \"string\"\n+            ? invoicePaymentIntent\n+            : invoicePaymentIntent.id;\n         try {\n           const pi = await ctx.stripe.paymentIntents.retrieve(piId);\n           declineCode = pi.last_payment_error?.decline_code ?? undefined;\ndiff --git a/src/stripe-proxy.ts b/src/stripe-proxy.ts\nindex bdf680f..d4d1e1d 100644\n--- a/src/stripe-proxy.ts\n+++ b/src/stripe-proxy.ts\n@@ -461,7 +461,7 @@ class StripeProxy {\n    * @example\n    * // Exact same as official Stripe SDK\n    * const stripe = new Stripe('sk_test_...');\n-   * const stripe = new Stripe('sk_test_...', { apiVersion: '2023-10-16' });\n+   * const stripe = new Stripe('sk_test_...', { apiVersion: '2026-09-30.endive' });\n    *\n    * // Bonus: auto-read from env\n    * const stripe = new Stripe(); // reads STRIPE_SECRET_KEY\ndiff --git a/src/subscriptions.ts b/src/subscriptions.ts\nindex f5d272a..58abfce 100644\n--- a/src/subscriptions.ts\n+++ b/src/subscriptions.ts\n@@ -42,11 +42,11 @@ interface SubscriptionRow {\n   id: string;\n   status: SubscriptionStatus;\n   customer: string;\n-  current_period_start: number;\n-  current_period_end: number;\n   cancel_at_period_end: boolean;\n   items: {\n     data: Array<{\n+      current_period_start: number;\n+      current_period_end: number;\n       price: {\n         id: string;\n       };\n@@ -84,8 +84,10 @@ export function createSubscriptionsApi(deps: {\n       id: row.id,\n       status: row.status,\n       plan: plan ? { ...plan, priceId } : null,\n-      currentPeriodStart: new Date(row.current_period_start * 1000),\n-      currentPeriodEnd: new Date(row.current_period_end * 1000),\n+      currentPeriodStart: new Date(\n+        row.items.data[0].current_period_start * 1000\n+      ),\n+      currentPeriodEnd: new Date(row.items.data[0].current_period_end * 1000),\n       cancelAtPeriodEnd: row.cancel_at_period_end,\n     };\n   }\n@@ -122,11 +124,10 @@ export function createSubscriptionsApi(deps: {\n \n     // First try to get active/trialing subscription\n     let result = await pool.query<SubscriptionRow>(\n-      `SELECT id, status, customer, current_period_start, current_period_end,\n-              cancel_at_period_end, items\n+      `SELECT id, status, customer, cancel_at_period_end, items\n        FROM ${schema}.subscriptions\n        WHERE customer = $1 AND status IN ('active', 'trialing')\n-       ORDER BY current_period_end DESC\n+       ORDER BY (items->'data'->0->>'current_period_end')::bigint DESC\n        LIMIT 1`,\n       [customerId]\n     );\n@@ -134,11 +135,10 @@ export function createSubscriptionsApi(deps: {\n     // If no active subscription, get most recent one\n     if (result.rows.length === 0) {\n       result = await pool.query<SubscriptionRow>(\n-        `SELECT id, status, customer, current_period_start, current_period_end,\n-                cancel_at_period_end, items\n+        `SELECT id, status, customer, cancel_at_period_end, items\n          FROM ${schema}.subscriptions\n          WHERE customer = $1\n-         ORDER BY current_period_end DESC\n+         ORDER BY (items->'data'->0->>'current_period_end')::bigint DESC\n          LIMIT 1`,\n         [customerId]\n       );\n@@ -160,11 +160,10 @@ export function createSubscriptionsApi(deps: {\n     if (!customerId) return [];\n \n     const result = await pool.query<SubscriptionRow>(\n-      `SELECT id, status, customer, current_period_start, current_period_end,\n-              cancel_at_period_end, items\n+      `SELECT id, status, customer, cancel_at_period_end, items\n        FROM ${schema}.subscriptions\n        WHERE customer = $1\n-       ORDER BY current_period_end DESC`,\n+       ORDER BY (items->'data'->0->>'current_period_end')::bigint DESC`,\n       [customerId]\n     );\n \ndiff --git a/src/usage/index.ts b/src/usage/index.ts\nindex c539666..8933ff6 100644\n--- a/src/usage/index.ts\n+++ b/src/usage/index.ts\n@@ -69,11 +69,15 @@ async function getActiveSubscriptionFromDb(\n   const result = await dbPool.query<{\n     id: string;\n     status: string;\n-    current_period_start: number;\n-    current_period_end: number;\n-    items: { data: Array<{ price: { id: string } }> };\n+    items: {\n+      data: Array<{\n+        current_period_start: number;\n+        current_period_end: number;\n+        price: { id: string };\n+      }>;\n+    };\n   }>(\n-    `SELECT id, status, current_period_start, current_period_end, items\n+    `SELECT id, status, items\n      FROM ${dbSchema}.subscriptions\n      WHERE customer = $1 AND status IN ('active', 'trialing')\n      ORDER BY created DESC\n@@ -84,13 +88,14 @@ async function getActiveSubscriptionFromDb(\n   if (result.rows.length === 0) return null;\n \n   const row = result.rows[0];\n-  const priceId = row.items?.data?.[0]?.price?.id;\n+  const subscriptionItem = row.items?.data?.[0];\n+  const priceId = subscriptionItem?.price?.id;\n \n   return {\n     id: row.id,\n     status: row.status,\n-    currentPeriodStart: row.current_period_start,\n-    currentPeriodEnd: row.current_period_end,\n+    currentPeriodStart: subscriptionItem.current_period_start,\n+    currentPeriodEnd: subscriptionItem.current_period_end,\n     priceId: priceId || \"\",\n   };\n }\ndiff --git a/src/wallet/topup.ts b/src/wallet/topup.ts\nindex c8ca9ee..23a047e 100644\n--- a/src/wallet/topup.ts\n+++ b/src/wallet/topup.ts\n@@ -965,12 +965,20 @@ export function createWalletTopUpHandler(deps: {\n         typeof invoice.customer === \"string\" ? invoice.customer : invoice.customer?.id;\n       const userId = invoice.metadata?.user_id;\n \n-      if (customerId && invoice.payment_intent) {\n+      const invoicePayment = invoice.payments?.data.find(\n+        ({ payment }) => payment.type === \"payment_intent\"\n+      );\n+      const invoicePaymentIntent =\n+        invoicePayment?.payment.type === \"payment_intent\"\n+          ? invoicePayment.payment.payment_intent\n+          : undefined;\n+\n+      if (customerId && invoicePaymentIntent) {\n         try {\n           const paymentIntentId =\n-            typeof invoice.payment_intent === \"string\"\n-              ? invoice.payment_intent\n-              : invoice.payment_intent.id;\n+            typeof invoicePaymentIntent === \"string\"\n+              ? invoicePaymentIntent\n+              : invoicePaymentIntent.id;\n           const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);\n \n           if (paymentIntent.payment_method) {\n"
+      },
+      "sdkUpgrade": {
+        "from": "17.7.0",
+        "to": "23.0.0"
+      },
+      "validation": {
+        "status": "error",
+        "baseline": "error",
+        "patched": "not-run",
+        "baselineCause": "npm test runs bun, which the node:22-alpine image does not have."
+      }
+    },
+    {
+      "set": "original",
+      "repo": "brendansudol/punchlines-ai",
+      "refit": {
+        "status": "validation-failed",
+        "stage": "validation",
+        "reason": "Validation returned regression; publication was not attempted.",
+        "checks": "typecheck",
+        "validation": "regression",
+        "patch": "proposed"
+      },
+      "checks": "typecheck",
+      "agent": {
+        "status": "patched",
+        "turns": 10,
+        "seconds": 24,
+        "costUsd": 0.2826024,
+        "usage": {
+          "inputTokens": 258801,
+          "cachedInputTokens": 219106,
+          "cacheWriteInputTokens": 39674,
+          "outputTokens": 1809,
+          "reasoningTokens": 316
+        },
+        "summary": "Upgraded Stripe integration:\n\n- Set `apiVersion` to `2026-09-30.endive`.\n- Removed unsupported Checkout `payment_method_types`.\n- Read billing periods from the first subscription item.\n- Added validation for subscriptions without items.\n- Left package and lockfiles unchanged.\n\nValidation: `git diff --check` passed. Dependencies weren’t installed, so TypeScript checks couldn’t run. No decisions remain.",
+        "diff": "diff --git a/app/api/create-checkout-session/route.ts b/app/api/create-checkout-session/route.ts\nindex bac7d05..74733da 100644\n--- a/app/api/create-checkout-session/route.ts\n+++ b/app/api/create-checkout-session/route.ts\n@@ -38,7 +38,6 @@ function getSessionCreateParams(\n   const homeUrl = getURL();\n \n   return {\n-    payment_method_types: ['card'],\n     billing_address_collection: 'required',\n     customer,\n     customer_update: { address: 'auto' },\ndiff --git a/lib/stripe.ts b/lib/stripe.ts\nindex bafef9a..2da1c71 100644\n--- a/lib/stripe.ts\n+++ b/lib/stripe.ts\n@@ -17,7 +17,7 @@ export const stripe = new Stripe(\n   process.env.STRIPE_SECRET_KEY_LIVE ?? process.env.STRIPE_SECRET_KEY ?? '',\n   {\n     // https://github.com/stripe/stripe-node#configuration\n-    apiVersion: '2022-11-15',\n+    apiVersion: '2026-09-30.endive',\n     // Register this as an official Stripe plugin.\n     // https://stripe.com/docs/building-plugins#setappinfo\n     appInfo: {\ndiff --git a/lib/supabase-admin.ts b/lib/supabase-admin.ts\nindex ab481fa..c429ee8 100644\n--- a/lib/supabase-admin.ts\n+++ b/lib/supabase-admin.ts\n@@ -151,6 +151,10 @@ const manageSubscriptionStatusChange = async (\n   const subscription = await stripe.subscriptions.retrieve(subscriptionId, {\n     expand: ['default_payment_method']\n   });\n+  const subscriptionItem = subscription.items.data[0];\n+  if (!subscriptionItem) {\n+    throw new Error(`Subscription ${subscription.id} has no items`);\n+  }\n   // Upsert the latest status of the subscription object.\n   const subscriptionData: Database['public']['Tables']['subscriptions']['Insert'] =\n     {\n@@ -158,7 +162,7 @@ const manageSubscriptionStatusChange = async (\n       user_id: uuid,\n       metadata: subscription.metadata,\n       status: subscription.status,\n-      price_id: subscription.items.data[0].price.id,\n+      price_id: subscriptionItem.price.id,\n       //TODO check quantity on subscription\n       // @ts-ignore\n       quantity: subscription.quantity,\n@@ -170,10 +174,10 @@ const manageSubscriptionStatusChange = async (\n         ? toDateTime(subscription.canceled_at).toISOString()\n         : null,\n       current_period_start: toDateTime(\n-        subscription.current_period_start\n+        subscriptionItem.current_period_start\n       ).toISOString(),\n       current_period_end: toDateTime(\n-        subscription.current_period_end\n+        subscriptionItem.current_period_end\n       ).toISOString(),\n       created: toDateTime(subscription.created).toISOString(),\n       ended_at: subscription.ended_at\n"
+      },
+      "sdkUpgrade": {
+        "from": "12.7.0",
+        "to": "23.0.0"
+      },
+      "validation": {
+        "status": "regression",
+        "baseline": "passed",
+        "patched": "failed"
+      }
+    },
+    {
+      "set": "original",
+      "repo": "iggy-tech/product-hunt-clone-final",
+      "refit": {
+        "status": "validation-failed",
+        "stage": "validation",
+        "reason": "Validation returned regression; publication was not attempted.",
+        "checks": "typecheck",
+        "validation": "regression",
+        "patch": "proposed"
+      },
+      "checks": "typecheck",
+      "agent": {
+        "status": "patched",
+        "turns": 8,
+        "seconds": 22,
+        "costUsd": 0.251932401,
+        "usage": {
+          "inputTokens": 213452,
+          "cachedInputTokens": 175671,
+          "cacheWriteInputTokens": 37763,
+          "outputTokens": 1527,
+          "reasoningTokens": 302
+        },
+        "summary": "Upgraded Stripe compatibility:\n\n- Set API version to `2026-09-30.endive`.\n- Removed unsupported Checkout `payment_method_types`.\n- Read billing period end from the subscription item.\n- Added a missing subscription-item guard.\n\n`git diff --check` passes. Dependencies were unavailable, so lint/type checks couldn’t run. No decisions remain.",
+        "diff": "diff --git a/app/api/stripe/route.ts b/app/api/stripe/route.ts\nindex 34624ad..2a24b0a 100644\n--- a/app/api/stripe/route.ts\n+++ b/app/api/stripe/route.ts\n@@ -5,7 +5,7 @@ import Stripe from \"stripe\";\n import { db } from \"@/lib/db\";\n \n const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {\n-  apiVersion: \"2024-04-10\",\n+  apiVersion: \"2026-09-30.endive\",\n });\n const webhookSigningSecret = process.env\n   .STRIPE_WEBHOOK_SIGNING_SECRET as string;\ndiff --git a/lib/stripe.ts b/lib/stripe.ts\nindex 6809cdd..a1b9937 100644\n--- a/lib/stripe.ts\n+++ b/lib/stripe.ts\n@@ -13,7 +13,6 @@ export const createCheckoutSession = async ({ email }: { email: string }) => {\n   try {\n     const session = await stripe.checkout.sessions.create({\n       customer_email: email,\n-      payment_method_types: [\"card\"],\n       line_items: [\n         {\n           price: priceId,\n@@ -110,7 +109,13 @@ export const getNextPaymentDetails = async () => {\n \n     const subscription = subscriptions.data[0];\n \n-    const nextPaymentDate = new Date(subscription.current_period_end * 1000); // Convert timestamp to Date\n+    const subscriptionItem = subscription.items.data[0];\n+\n+    if (!subscriptionItem) {\n+      throw new Error(\"Subscription item not found\");\n+    }\n+\n+    const nextPaymentDate = new Date(subscriptionItem.current_period_end * 1000); // Convert timestamp to Date\n     \n     // Format date to MM/DD/YYYY\n     const formattedNextPaymentDate = nextPaymentDate.toLocaleDateString('en-US', {\n@@ -119,7 +124,7 @@ export const getNextPaymentDetails = async () => {\n       year: 'numeric'\n     });\n \n-    const priceId = subscription.items.data[0].price.id;\n+    const priceId = subscriptionItem.price.id;\n     const price = await stripe.prices.retrieve(priceId);\n \n     if (!price || !price.unit_amount || !price.currency) {\n@@ -135,4 +140,4 @@ export const getNextPaymentDetails = async () => {\n     console.error(\"Error fetching payment details:\", error);\n     return null;\n   }\n-};\n\\ No newline at end of file\n+};\n"
+      },
+      "sdkUpgrade": {
+        "from": "15.8.0",
+        "to": "23.0.0"
+      },
+      "validation": {
+        "status": "passed",
+        "baseline": "passed",
+        "patched": "passed"
+      },
+      "review": {
+        "verdict": "wrong",
+        "reason": "Moves the subscription period read to the first item and pins the route's client to endive, all of which typechecks where Refit's patch regressed. But it drops payment_method_types: ['card'] from Checkout Session creation, switching it to dynamic payment methods."
+      }
+    },
+    {
+      "set": "original",
+      "repo": "mrwebwork/spotify",
+      "refit": {
+        "status": "validation-failed",
+        "stage": "validation",
+        "reason": "Validation returned regression; publication was not attempted.",
+        "checks": "typecheck",
+        "validation": "regression",
+        "patch": "proposed"
+      },
+      "checks": "typecheck",
+      "agent": {
+        "status": "patched",
+        "turns": 10,
+        "seconds": 26,
+        "costUsd": 0.2780592,
+        "usage": {
+          "inputTokens": 244618,
+          "cachedInputTokens": 205798,
+          "cacheWriteInputTokens": 38799,
+          "outputTokens": 2023,
+          "reasoningTokens": 392
+        },
+        "summary": "Upgraded Stripe integration to `2026-09-30.endive`:\n\n- Updated the API version literal.\n- Removed unsupported Checkout `payment_method_types`.\n- Read subscription billing periods from the first subscription item.\n- Added validation for subscriptions without items.\n- Left package and lockfiles unchanged.\n\n`git diff --check` passes. Dependencies are absent, so lint/type-check could not run. No decisions remain.",
+        "diff": "diff --git a/app/api/create-checkout-session/route.ts b/app/api/create-checkout-session/route.ts\nindex 52bc4d5..ecca53c 100644\n--- a/app/api/create-checkout-session/route.ts\n+++ b/app/api/create-checkout-session/route.ts\n@@ -28,7 +28,6 @@ export async function POST(request: Request) {\n     });\n \n     const session = await stripe.checkout.sessions.create({\n-      payment_method_types: ['card'],\n       billing_address_collection: 'required',\n       customer,\n       line_items: [\ndiff --git a/libs/stripe.ts b/libs/stripe.ts\nindex b896e61..334ae69 100644\n--- a/libs/stripe.ts\n+++ b/libs/stripe.ts\n@@ -2,7 +2,7 @@ import Stripe from 'stripe';\n \n //* Initialize Stripe instance with secret key from environment variables\n export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? '', {\n-  apiVersion: '2022-11-15',\n+  apiVersion: '2026-09-30.endive',\n   appInfo: {\n     name: 'Spotify Clone Application',\n     version: '0.1.0',\ndiff --git a/libs/supabaseAdmin.ts b/libs/supabaseAdmin.ts\nindex e25e5c1..bd4c206 100644\n--- a/libs/supabaseAdmin.ts\n+++ b/libs/supabaseAdmin.ts\n@@ -133,6 +133,10 @@ const manageSubscriptionStatusChange = async (\n   const subscription = await stripe.subscriptions.retrieve(subscriptionId, {\n     expand: ['default_payment_method'],\n   });\n+  const subscriptionItem = subscription.items.data[0];\n+  if (!subscriptionItem) {\n+    throw new Error(`No items found for Stripe subscription: ${subscriptionId}`);\n+  }\n   // Upsert the latest status of the subscription object.\n   const subscriptionData: Database['public']['Tables']['subscriptions']['Insert'] = {\n     id: subscription.id,\n@@ -140,7 +144,7 @@ const manageSubscriptionStatusChange = async (\n     metadata: subscription.metadata,\n     // @ts-ignore\n     status: subscription.status,\n-    price_id: subscription.items.data[0].price.id,\n+    price_id: subscriptionItem.price.id,\n     // @ts-ignore\n     quantity: subscription.quantity,\n     cancel_at_period_end: subscription.cancel_at_period_end,\n@@ -148,8 +152,8 @@ const manageSubscriptionStatusChange = async (\n     canceled_at: subscription.canceled_at\n       ? toDateTime(subscription.canceled_at).toISOString()\n       : null,\n-    current_period_start: toDateTime(subscription.current_period_start).toISOString(),\n-    current_period_end: toDateTime(subscription.current_period_end).toISOString(),\n+    current_period_start: toDateTime(subscriptionItem.current_period_start).toISOString(),\n+    current_period_end: toDateTime(subscriptionItem.current_period_end).toISOString(),\n     created: toDateTime(subscription.created).toISOString(),\n     ended_at: subscription.ended_at ? toDateTime(subscription.ended_at).toISOString() : null,\n     trial_start: subscription.trial_start\n"
+      },
+      "sdkUpgrade": {
+        "from": "12.9.0",
+        "to": "23.0.0"
+      },
+      "validation": {
+        "status": "regression",
+        "baseline": "passed",
+        "patched": "failed"
+      }
+    },
+    {
+      "set": "original",
+      "repo": "geallenboy/ai-saas-template",
+      "refit": {
+        "status": "needs-review",
+        "stage": "scan",
+        "reason": "A traced SDK request sends a parameter the target API version removed. No reviewed replacement exists, and dropping or replacing it changes request behavior; automatic migration, AI and publication stop for review.",
+        "checks": "tests",
+        "validation": null,
+        "patch": null
+      },
+      "checks": "pnpm test",
+      "agent": {
+        "status": "patched",
+        "turns": 12,
+        "seconds": 48,
+        "costUsd": 0.2762872,
+        "usage": {
+          "inputTokens": 222135,
+          "cachedInputTokens": 186148,
+          "cacheWriteInputTokens": 35963,
+          "outputTokens": 2894,
+          "reasoningTokens": 972
+        },
+        "summary": "- Updated all Stripe `apiVersion` literals to `2026-09-30.endive`.\n- Removed unsupported `payment_method_types` from both Checkout calls; Stripe now uses configured eligible methods.\n- No removed response fields were read by the repository.\n- No human decisions remain.\n- `git diff --check` passed; dependency checks were unavailable because `node_modules` is absent.",
+        "diff": "diff --git a/src/app/api/payments/create-checkout-session/route.ts b/src/app/api/payments/create-checkout-session/route.ts\nindex e10bdc8..e02f836 100644\n--- a/src/app/api/payments/create-checkout-session/route.ts\n+++ b/src/app/api/payments/create-checkout-session/route.ts\n@@ -175,7 +175,6 @@ export async function POST(req: NextRequest) {\n     console.log('🚀 创建Stripe checkout session...')\n     const session = await stripe.checkout.sessions.create({\n       customer: customerId,\n-      payment_method_types: ['card'],\n       line_items: [\n         {\n           price: priceId,\ndiff --git a/src/content/docs/architecture.mdx b/src/content/docs/architecture.mdx\nindex c9082ea..b07f628 100644\n--- a/src/content/docs/architecture.mdx\n+++ b/src/content/docs/architecture.mdx\n@@ -336,7 +336,7 @@ graph LR\n import Stripe from 'stripe'\n \n export const stripe = new Stripe(env.STRIPE_SECRET_KEY, {\n-  apiVersion: '2023-10-16',\n+  apiVersion: '2026-09-30.endive',\n })\n \n // 订阅创建\ndiff --git a/src/content/docs/development/configuration.mdx b/src/content/docs/development/configuration.mdx\nindex a9d37e9..49fc312 100644\n--- a/src/content/docs/development/configuration.mdx\n+++ b/src/content/docs/development/configuration.mdx\n@@ -433,7 +433,7 @@ export const stripeConfig = {\n   webhookSecret: env.STRIPE_WEBHOOK_SECRET!,\n   \n   // API 版本\n-  apiVersion: '2023-10-16' as Stripe.LatestApiVersion,\n+  apiVersion: '2026-09-30.endive' as Stripe.LatestApiVersion,\n   \n   // 货币配置\n   currency: 'usd',\ndiff --git a/src/content/docs/features/payment-billing.mdx b/src/content/docs/features/payment-billing.mdx\nindex d07f17d..ea11b47 100644\n--- a/src/content/docs/features/payment-billing.mdx\n+++ b/src/content/docs/features/payment-billing.mdx\n@@ -62,7 +62,7 @@ import Stripe from 'stripe'\n import { env } from '@/env'\n \n export const stripe = new Stripe(env.STRIPE_SECRET_KEY, {\n-  apiVersion: '2023-10-16',\n+  apiVersion: '2026-09-30.endive',\n   typescript: true,\n })\n \ndiff --git a/src/lib/stripe.ts b/src/lib/stripe.ts\nindex dd3b7af..fd48abc 100644\n--- a/src/lib/stripe.ts\n+++ b/src/lib/stripe.ts\n@@ -4,7 +4,7 @@ import { logger } from '@/lib/logger'\n \n // 初始化Stripe客户端\n export const stripe = new Stripe(env.STRIPE_SECRET_KEY, {\n-  apiVersion: '2026-03-25.dahlia',\n+  apiVersion: '2026-09-30.endive',\n   typescript: true,\n   appInfo: {\n     name: 'AI SaaS Template',\ndiff --git a/src/server/routers/payments.ts b/src/server/routers/payments.ts\nindex 4268206..6cee045 100644\n--- a/src/server/routers/payments.ts\n+++ b/src/server/routers/payments.ts\n@@ -363,7 +363,6 @@ export const paymentsRouter = createTRPCRouter({\n       // 创建一次性付款的checkout session\n       const sessionConfig: any = {\n         customer: customerId,\n-        payment_method_types: paymentMethods,\n         line_items: [\n           {\n             price: priceId,\n"
+      },
+      "sdkUpgrade": {
+        "from": "22.0.2",
+        "to": "23.0.0"
+      },
+      "validation": {
+        "status": "passed",
+        "baseline": "passed",
+        "patched": "passed"
+      },
+      "review": {
+        "verdict": "wrong",
+        "reason": "Drops payment_method_types: ['card'] from Checkout Session creation and drops the computed payment_method_types: paymentMethods from the one-time checkout in the tRPC router, so the caller's chosen methods are silently ignored. The client pin moves to endive; it also rewrites code samples in three .mdx docs. Refit stopped this repository for review on the same parameter."
+      }
+    },
+    {
+      "set": "active",
+      "repo": "CRONANANI/EzanaFinance3",
+      "refit": {
+        "status": "error",
+        "stage": "validation",
+        "reason": "Workflow failed during validation. Completed artifacts are retained. Publication errors can leave a remote branch or PR; reconcile before retrying.",
+        "checks": "tests",
+        "validation": null,
+        "patch": null
+      },
+      "checks": "npm test",
+      "preparation": {
+        "status": "refused",
+        "reason": "Dependency archive exceeds 1024 MiB. An operator can set REFIT_VALIDATION_WORKSPACE=4g (up to a 2 GiB archive and 5 GiB container memory) for a larger tree."
+      },
+      "agent": {
+        "status": "not-run"
+      }
+    },
+    {
+      "set": "active",
+      "repo": "Mangu-Commerce/madcaptees",
+      "refit": {
+        "status": "error",
+        "stage": "validation",
+        "reason": "Workflow failed during validation. Completed artifacts are retained. Publication errors can leave a remote branch or PR; reconcile before retrying.",
+        "checks": "typecheck",
+        "validation": null,
+        "patch": null
+      },
+      "checks": "typecheck",
+      "preparation": {
+        "status": "refused",
+        "reason": "Package tarballs must use public registry.npmjs.org HTTPS URLs without credentials or parameters."
+      },
+      "agent": {
+        "status": "not-run"
+      }
+    },
+    {
+      "set": "active",
+      "repo": "muhallimir/ampertalent",
+      "refit": {
+        "status": "error",
+        "stage": "validation",
+        "reason": "Workflow failed during validation. Completed artifacts are retained. Publication errors can leave a remote branch or PR; reconcile before retrying.",
+        "checks": "tests",
+        "validation": null,
+        "patch": null
+      },
+      "checks": "npm test",
+      "preparation": {
+        "status": "refused",
+        "reason": "npm dependency preparation failed (1). npm error code EUSAGE\nnpm error\nnpm error `npm ci` can only install packages when your package.json and package-lock.json or npm-shrinkwrap.json are in sync. Please update your lock file with `npm install` before continuing.\nnpm error\nnpm error Missing: webpack@5.112.0 from lock file\nnpm error Missing: @webassemblyjs/ast@1.14.1 from lock file\nnpm error Missing: @webassemblyjs/wasm-edit@1.14.1 from lock file\nnpm error Missing: @webassemblyjs/wasm-parser@1.14.1 from lock file\nnpm error Missing: chrome-trace-event@1.0.4 from lock file\nnpm error Missing: enha"
+      },
+      "agent": {
+        "status": "not-run"
+      }
+    },
+    {
+      "set": "active",
+      "repo": "RaulRicco/CashBack",
+      "refit": {
+        "status": "error",
+        "stage": "validation",
+        "reason": "Workflow failed during validation. Completed artifacts are retained. Publication errors can leave a remote branch or PR; reconcile before retrying.",
+        "checks": "generated-only",
+        "validation": null,
+        "patch": null
+      },
+      "checks": "node -e 0",
+      "preparation": {
+        "status": "refused",
+        "reason": "Tracked node_modules, conflicting lockfiles, shrinkwrap or pnpm hooks require a custom validation image."
+      },
+      "agent": {
+        "status": "not-run"
+      }
+    },
+    {
+      "set": "active",
+      "repo": "YosraGhanmi/BrainTrain-",
+      "refit": {
+        "status": "error",
+        "stage": "validation",
+        "reason": "Workflow failed during validation. Completed artifacts are retained. Publication errors can leave a remote branch or PR; reconcile before retrying.",
+        "checks": "typecheck",
+        "validation": null,
+        "patch": null
+      },
+      "checks": "typecheck",
+      "preparation": {
+        "status": "refused",
+        "reason": "package-lock.json records node_modules/@alloc/quick-lru and 278 more packages without a version, registry \"resolved\" URL and SHA-256-or-stronger \"integrity\", so Refit cannot verify what it would install. Reinstall against registry.npmjs.org so npm records them (delete node_modules and run npm install; if entries stay incomplete, regenerate package-lock.json) and commit the lockfile."
+      },
+      "agent": {
+        "status": "not-run"
+      }
+    },
+    {
+      "set": "held-out",
+      "repo": "LucasKlemke/StudMed",
+      "refit": {
+        "status": "error",
+        "stage": "validation",
+        "reason": "Workflow failed during validation. Completed artifacts are retained. Publication errors can leave a remote branch or PR; reconcile before retrying.",
+        "checks": "typecheck",
+        "validation": null,
+        "patch": null
+      },
+      "checks": "typecheck",
+      "preparation": {
+        "status": "refused",
+        "reason": "pnpm declarations must use public registry, configured catalogs or explicit local workspaces."
+      },
+      "agent": {
+        "status": "not-run"
+      }
+    },
+    {
+      "set": "held-out",
+      "repo": "piyush805/miro-clone",
+      "refit": {
+        "status": "error",
+        "stage": "validation",
+        "reason": "Workflow failed during validation. Completed artifacts are retained. Publication errors can leave a remote branch or PR; reconcile before retrying.",
+        "checks": "typecheck",
+        "validation": null,
+        "patch": null
+      },
+      "checks": "typecheck",
+      "preparation": {
+        "status": "refused",
+        "reason": "package.json dependencies differ from the committed package-lock.json: stripe is \"^16.7.0\" in package.json but missing in the lockfile. Run npm install and commit the updated package-lock.json."
+      },
+      "agent": {
+        "status": "not-run"
+      }
+    },
+    {
+      "set": "held-out",
+      "repo": "utsavkrishnatra/pdf_answers",
+      "refit": {
+        "status": "error",
+        "stage": "validation",
+        "reason": "Workflow failed during validation. Completed artifacts are retained. Publication errors can leave a remote branch or PR; reconcile before retrying.",
+        "checks": "typecheck",
+        "validation": null,
+        "patch": null
+      },
+      "checks": "typecheck",
+      "agent": {
+        "status": "patched",
+        "turns": 11,
+        "seconds": 37,
+        "costUsd": 0.3229736,
+        "usage": {
+          "inputTokens": 294420,
+          "cachedInputTokens": 253974,
+          "cacheWriteInputTokens": 40422,
+          "outputTokens": 2980,
+          "reasoningTokens": 889
+        },
+        "summary": "Upgraded Stripe integration:\n\n- Set API version to `2026-09-30.endive`.\n- Removed unsupported Checkout `payment_method_types`.\n- Migrated subscription period reads to subscription items.\n- Migrated invoice subscription lookup to `invoice.parent.subscription_details`.\n- Audited for stale removed-field usages; none remain.\n- `git diff --check` passes. Tests weren’t run because dependencies aren’t installed.\n\nNo decisions left for manual follow-up.",
+        "diff": "diff --git a/src/app/api/webhooks/stripe/route.ts b/src/app/api/webhooks/stripe/route.ts\nindex 6b4c2f8..a1322ca 100644\n--- a/src/app/api/webhooks/stripe/route.ts\n+++ b/src/app/api/webhooks/stripe/route.ts\n@@ -3,6 +3,19 @@ import { stripe } from '@/lib/stripe'\n import { headers } from 'next/headers'\n import type Stripe from 'stripe'\n \n+function getSubscriptionPeriodEnd(subscription: Stripe.Subscription) {\n+  return subscription.items.data[0]?.current_period_end\n+}\n+\n+function getInvoiceSubscriptionId(invoice: Stripe.Invoice) {\n+  if (invoice.parent?.type !== 'subscription_details') return null\n+\n+  const subscription = invoice.parent.subscription_details.subscription\n+  if (!subscription) return null\n+\n+  return typeof subscription === 'string' ? subscription : subscription.id\n+}\n+\n export async function POST(request: Request) {\n   const body = await request.text()\n   const signature = headers().get('Stripe-Signature') ?? ''\n@@ -24,20 +37,21 @@ export async function POST(request: Request) {\n     )\n   }\n \n-  const session = event.data\n-    .object as Stripe.Checkout.Session\n-\n-  if (!session?.metadata?.userId) {\n-    return new Response(null, {\n-      status: 200,\n-    })\n-  }\n-\n   if (event.type === 'checkout.session.completed') {\n+    const session = event.data.object\n+    if (!session.metadata?.userId || !session.subscription) {\n+      return new Response(null, { status: 200 })\n+    }\n+\n     const subscription =\n       await stripe.subscriptions.retrieve(\n-        session.subscription as string\n+        typeof session.subscription === 'string'\n+          ? session.subscription\n+          : session.subscription.id\n       )\n+    const currentPeriodEnd = getSubscriptionPeriodEnd(subscription)\n+\n+    if (!currentPeriodEnd) return new Response(null, { status: 200 })\n \n     await db.user.update({\n       where: {\n@@ -48,18 +62,28 @@ export async function POST(request: Request) {\n         stripeCustomerId: subscription.customer as string,\n         stripePriceId: subscription.items.data[0]?.price.id,\n         stripeCurrentPeriodEnd: new Date(\n-          subscription.current_period_end * 1000\n+          currentPeriodEnd * 1000\n         ),\n       },\n     })\n   }\n \n   if (event.type === 'invoice.payment_succeeded') {\n+    const invoice = event.data.object\n+    const subscriptionId = getInvoiceSubscriptionId(invoice)\n+\n+    if (!invoice.metadata?.userId || !subscriptionId) {\n+      return new Response(null, { status: 200 })\n+    }\n+\n     // Retrieve the subscription details from Stripe.\n     const subscription =\n       await stripe.subscriptions.retrieve(\n-        session.subscription as string\n+        subscriptionId\n       )\n+    const currentPeriodEnd = getSubscriptionPeriodEnd(subscription)\n+\n+    if (!currentPeriodEnd) return new Response(null, { status: 200 })\n \n     await db.user.update({\n       where: {\n@@ -68,11 +92,11 @@ export async function POST(request: Request) {\n       data: {\n         stripePriceId: subscription.items.data[0]?.price.id,\n         stripeCurrentPeriodEnd: new Date(\n-          subscription.current_period_end * 1000\n+          currentPeriodEnd * 1000\n         ),\n       },\n     })\n   }\n \n   return new Response(null, { status: 200 })\n-}\n\\ No newline at end of file\n+}\ndiff --git a/src/lib/stripe.ts b/src/lib/stripe.ts\nindex 20998c4..760cefb 100644\n--- a/src/lib/stripe.ts\n+++ b/src/lib/stripe.ts\n@@ -4,7 +4,7 @@ import { getKindeServerSession } from '@kinde-oss/kinde-auth-nextjs/server'\n import Stripe from 'stripe'\n \n export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? '', {\n-  apiVersion: '2023-08-16',\n+  apiVersion: '2026-09-30.endive',\n   typescript: true,\n })\n \n@@ -62,4 +62,4 @@ export async function getUserSubscriptionPlan() {\n     isSubscribed,\n     isCanceled,\n   }\n-}\n\\ No newline at end of file\n+}\ndiff --git a/src/trpc/index.ts b/src/trpc/index.ts\nindex eab6989..04765e3 100644\n--- a/src/trpc/index.ts\n+++ b/src/trpc/index.ts\n@@ -90,7 +90,6 @@ export const appRouter = router({\n         await stripe.checkout.sessions.create({\n           success_url: billingUrl,\n           cancel_url: billingUrl,\n-          payment_method_types: ['card'],\n           mode: 'subscription',\n           billing_address_collection: 'auto',\n           line_items: [\n@@ -217,4 +216,4 @@ export const appRouter = router({\n     }),\n })\n \n-export type AppRouter = typeof appRouter\n\\ No newline at end of file\n+export type AppRouter = typeof appRouter\n"
+      },
+      "sdkUpgrade": {
+        "from": "15.10.0",
+        "to": "23.0.0"
+      },
+      "validation": {
+        "status": "passed",
+        "baseline": "passed",
+        "patched": "passed"
+      },
+      "review": {
+        "verdict": "wrong",
+        "reason": "The webhook rewrite is right and keeps behaviour: it narrows the event per type, reads invoice.parent.subscription_details.subscription instead of invoice.subscription, and reads the period end from the first item. The client pin moves to endive. But it drops payment_method_types: ['card'] from the subscription Checkout Session, switching it to dynamic payment methods."
+      }
+    },
+    {
+      "set": "held-out",
+      "repo": "zjx-artcc/website",
+      "refit": {
+        "status": "error",
+        "stage": "validation",
+        "reason": "Workflow failed during validation. Completed artifacts are retained. Publication errors can leave a remote branch or PR; reconcile before retrying.",
+        "checks": "typecheck",
+        "validation": null,
+        "patch": null
+      },
+      "checks": "typecheck",
+      "preparation": {
+        "status": "refused",
+        "reason": "Dependency archive exceeds 1024 MiB. An operator can set REFIT_VALIDATION_WORKSPACE=4g (up to a 2 GiB archive and 5 GiB container memory) for a larger tree."
+      },
+      "agent": {
+        "status": "not-run"
+      }
+    },
+    {
+      "set": "original",
+      "repo": "odota/core",
+      "refit": {
+        "status": "error",
+        "stage": "validation",
+        "reason": "Workflow failed during validation. Completed artifacts are retained. Publication errors can leave a remote branch or PR; reconcile before retrying.",
+        "checks": "tests",
+        "validation": null,
+        "patch": null
+      },
+      "checks": "npm test",
+      "preparation": {
+        "status": "refused",
+        "reason": "package-lock.json records node_modules/@apidevtools/openapi-schemas and 125 more packages without a version, registry \"resolved\" URL and SHA-256-or-stronger \"integrity\", so Refit cannot verify what it would install. Reinstall against registry.npmjs.org so npm records them (delete node_modules and run npm install; if entries stay incomplete, regenerate package-lock.json) and commit the lockfile."
+      },
+      "agent": {
+        "status": "not-run"
+      }
+    },
+    {
+      "set": "original",
+      "repo": "nizzyabi/nizzy-starter",
+      "refit": {
+        "status": "error",
+        "stage": "validation",
+        "reason": "Workflow failed during validation. Completed artifacts are retained. Publication errors can leave a remote branch or PR; reconcile before retrying.",
+        "checks": "typecheck",
+        "validation": null,
+        "patch": null
+      },
+      "checks": "typecheck",
+      "preparation": {
+        "status": "refused",
+        "reason": "Dependency archive exceeds 1024 MiB. An operator can set REFIT_VALIDATION_WORKSPACE=4g (up to a 2 GiB archive and 5 GiB container memory) for a larger tree."
+      },
+      "agent": {
+        "status": "not-run"
+      }
+    },
+    {
+      "set": "original",
+      "repo": "alanagoyal/branded",
+      "refit": {
+        "status": "error",
+        "stage": "validation",
+        "reason": "Workflow failed during validation. Completed artifacts are retained. Publication errors can leave a remote branch or PR; reconcile before retrying.",
+        "checks": "tests",
+        "validation": null,
+        "patch": null
+      },
+      "checks": "npm test",
+      "preparation": {
+        "status": "refused",
+        "reason": "Dependency archive exceeds 1024 MiB. An operator can set REFIT_VALIDATION_WORKSPACE=4g (up to a 2 GiB archive and 5 GiB container memory) for a larger tree."
+      },
+      "agent": {
+        "status": "not-run"
+      }
+    }
+  ]
+}

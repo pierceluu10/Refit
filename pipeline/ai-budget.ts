@@ -10,10 +10,13 @@ const TOKENS_PER_MILLION = 1_000_000;
 const DEFAULT_BUDGET_USD = 1;
 const MAX_BUDGET_USD = 1000;
 // Standard short-context text-token prices per million, from official OpenAI documentation
-// (gpt-5.4-mini verified 2026-10-12, gpt-5.6-luna 2026-10-15). OpenAI bills cache writes as input.
+// (gpt-5.4-mini verified 2026-10-12, gpt-5.6-luna 2026-10-15, gpt-5.6-terra and gpt-5.6-sol 2026-10-21 at
+// https://developers.openai.com/api/docs/pricing). OpenAI bills cache writes as input.
 const MODEL_PRICES: Record<string, AiPrices> = {
   'gpt-5.4-mini': { input: 0.75, cachedInput: 0.075, cacheWrite: 0.75, output: 4.5 },
   'gpt-5.6-luna': { input: 0.2, cachedInput: 0.02, cacheWrite: 0.2, output: 1.2 },
+  'gpt-5.6-terra': { input: 2, cachedInput: 0.2, cacheWrite: 2, output: 12 },
+  'gpt-5.6-sol': { input: 4, cachedInput: 0.4, cacheWrite: 4, output: 20 },
 };
 // Responses report a dated snapshot of the configured model, such as gpt-5.4-mini-2026-03-17.
 const SNAPSHOT = /-\d{4}-\d{2}-\d{2}$/;
@@ -122,6 +125,24 @@ export function responseUsage(value: unknown): AiUsage | null {
   };
 }
 
+function usageCostNano(usage: AiUsage, prices: AiPrices) {
+  return Math.ceil(
+    (((usage.inputTokens - usage.cachedInputTokens - usage.cacheWriteInputTokens) * prices.input +
+      usage.cachedInputTokens * prices.cachedInput +
+      usage.cacheWriteInputTokens * prices.cacheWrite +
+      usage.outputTokens * prices.output) *
+      NANO_USD_PER_USD) /
+      TOKENS_PER_MILLION,
+  );
+}
+
+// The cost of usage reported outside Refit's own requests, such as a coding agent's run.
+export function usageCostUsd(model: string, usage: AiUsage) {
+  const prices = builtInPrices(model);
+  if (!prices) throw new PipelineInputError(`No verified token prices for ${model}.`);
+  return usageCostNano(usage, prices) / NANO_USD_PER_USD;
+}
+
 function pricesFor(model: string, budget: AiBudget) {
   const prices = budget.prices ?? builtInPrices(model);
   if (!prices)
@@ -193,14 +214,7 @@ export async function reserveAiBudget(
       throw new PipelineInputError(
         'OpenAI returned an unpriced model or one priced differently from the configured model; the request reservation remains in the budget.',
       );
-    const costNano = Math.ceil(
-      (((usage.inputTokens - usage.cachedInputTokens - usage.cacheWriteInputTokens) * prices.input +
-        usage.cachedInputTokens * prices.cachedInput +
-        usage.cacheWriteInputTokens * prices.cacheWrite +
-        usage.outputTokens * prices.output) *
-        NANO_USD_PER_USD) /
-        TOKENS_PER_MILLION,
-    );
+    const costNano = usageCostNano(usage, prices);
     return withStateLock(budget.directory, 'budget', async () => {
       const state = await load();
       if (state.reservations[id] !== maximumNano)

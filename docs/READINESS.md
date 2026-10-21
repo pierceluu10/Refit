@@ -5,6 +5,24 @@
 A client factory loaded with `await import()` is now followed the way a static import is: `const { getStripe } = await import('./stripe')`, a renamed entry, and `(await import('./stripe')).getStripe()`. The analyzer's type checker runs without lib types, so it could not type a dynamic import; the binding is now made from syntax, like `const { x } = require(...)`. Only `const` destructuring links, only to a stable ESM export (a function, class or top-level `const`), and the factory itself must still pass every existing factory rule. A `let` binding stays untraced; a test pins it.
 
 On the 10 active-team repositories with the most calls that traced nothing on October 16, traced calls went from 247 to 280 of 355, read from source with no Docker ([benchmarks](BENCHMARKS.md#lazy-stripe-clients-on-the-active-teams-set-october-21)). Most of the gap the October 16 run reported had already closed with factory tracing on October 17; this measures what was left. No migration was run or validated for this change.
+## October 21 checkpoint: model catalog precision and build output (unreleased, after 0.39.0)
+
+- **Catalogs.** For OpenAI, Anthropic and Gemini, the deadline scan now lists more catalog shapes as non-live:
+  - model-keyed entries behind `satisfies` or `as`;
+  - model records: an `id` or `name` beside a metadata field such as `contextWindow`, `max_output_tokens`, `pricing` or `owned_by`;
+  - genkit-style `versions: [...]` lists;
+  - constant-case objects naming three or more models.
+
+  A request's `model` never counts as a record name, and mixed-case settings objects stay live.
+
+- **Measured.** Read-only scans of the 184 checkouts behind the frozen sets (100 OpenAI, 50 Anthropic and the 34-repository deadline set):
+  - OpenAI and Anthropic live lines fell from 1,170 to 630.
+  - Repositories with a live line fell from 87 to 84.
+  - Every dropped line was read by hand: model records and cards, generated model tables, `versions` lists, enum-like objects and one minified bundle.
+  - All 19 hand-labelled live model lines in the deadline set stay live. The 4 labelled options still counted as live are alias-map values, which stay live on purpose.
+- **Build output.** The model replacement rule never proposes an edit in build output committed with the sources: `out/`, `ts-out/`, `*.min.js`, `*.bundle.js`, or JavaScript whose TypeScript source sits beside it or in a sibling `src/`. This narrows where edits land; it does not widen which uses are replaced.
+
+Tests: `pipeline/deadlines.test.ts` adds the new catalog shapes, and the live lookalikes they must not catch. `pipeline/model-retirements.test.ts` adds compiled copies beside their sources.
 
 ## October 21 checkpoint: Gemini detection, report only (unreleased, after 0.39.0)
 
