@@ -22,6 +22,12 @@ Both frozen AI SDK sets and the 34-application deadline set were run again. The 
 
 Validation used `node:22-alpine` with the build environment's proxy CA added, for the benchmark only. Results: `docs/benchmarks/2026-10-21-{openai,anthropic,model-replacement}-results.json`, each with the run's validation and hand review. The checklist is in [Provider goals](PROVIDER-GOALS.md#openai-and-anthropic-progress-checklist-2026-10-21): 70% for both providers, unchanged.
 
+## October 21 checkpoint: faster model replacement analysis and steadier tests (unreleased, after 0.39.0)
+
+- **Shared program.** Analyses of the same repository snapshot now share one TypeScript program and type checker. That covers the OpenAI, openai v3, `openai-edge` and Anthropic tracers of `refit deadlines --propose-model-fixes` and `refit serve --model-fixes`. On `earendil-works/pi` (1,677 source files), a proposal took 176 s before and 121 s after, measured back to back under the same concurrent load. Results are unchanged; a test compares shared and separate reads.
+- **Pruning measured, not adopted.** Analyzing only the files that reach an SDK import or name a traced call kept 1,408 of pi's 1,677 files and gave identical calls, but saved only 15–20%.
+- **Tests.** The `pipeline` test project now defaults to a 30 s timeout. Many of its tests start the CLI as a subprocess or run the compiler, and on a loaded machine more than ten of them exceeded vitest's 5 s default. With the new default the whole suite passes with no `--testTimeout` flag, under the same load.
+
 ## October 21 checkpoint: review-only PayPal request detection (unreleased, after 0.39.0)
 
 `refit paypal` lists the PayPal REST requests a repository makes. It reads three shapes: `@paypal/checkout-server-sdk` request classes sent with `client.execute`, `@paypal/paypal-server-sdk` controller calls, and raw `fetch` and `axios` calls to `api-m.paypal.com`, `api-m.sandbox.paypal.com`, `api.paypal.com` and `api.sandbox.paypal.com`. For each it gives `file:line`, method and path, and the matching operation in PayPal's published OpenAPI documents. It also gives the newest server SDK method that makes the same request, and notes requests, hosts and SDK methods the documents or the declared release do not have. It is review only: nothing is edited, installed, run or sent to PayPal, and it proposes no SDK replacement. The catalog entry stays at `adapter: null`, and no gate, default or stop changed. See [PayPal](PAYPAL.md).
