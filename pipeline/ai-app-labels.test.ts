@@ -291,3 +291,19 @@ it('re-reads a seeded sample: agreement, adjudication, regenerated labels, and t
   expect(file.method).toContain('separate fresh-context agent');
   expect(file.method).toContain('Not hand labelling');
 });
+
+it('refuses to merge when a candidate lacks exactly one label', async () => {
+  const out = join(dir, 'unlabelled.json');
+  const candidatesPath = join(dir, 'labels', 'candidates.json');
+  const candidates = JSON.parse(await readFile(candidatesPath, 'utf8'));
+  const extra = { ...candidates.repos[1].candidates[0], line: 99 };
+  candidates.repos[1].candidates.push(extra);
+  const skewed = join(dir, 'skewed-candidates.json');
+  await writeFile(skewed, JSON.stringify(candidates));
+  const args = mergeArgs(out);
+  args[1] = skewed;
+  const result = await node(labelsScript, args);
+  expect(result.code).toBe(1);
+  expect(result.stderr).toContain('label/candidate mismatch');
+  await expect(readFile(out)).rejects.toThrow();
+});

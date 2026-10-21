@@ -221,6 +221,7 @@ if (missing.length) {
 
 const read = async (name) => JSON.parse(await readFile(join(values.batches, name), 'utf8'));
 const labelByKey = new Map();
+const labelCounts = new Map();
 const key = (x) => [x.repo, x.provider, x.file, x.line, x.column, x.model].join('\u0000');
 let invalid = false;
 for (const nn of numbers) {
@@ -250,13 +251,27 @@ for (const nn of numbers) {
     invalid = true;
     continue;
   }
-  for (const label of labels) labelByKey.set(key(label), label);
+  for (const label of labels) {
+    const k = key(label);
+    labelCounts.set(k, (labelCounts.get(k) ?? 0) + 1);
+    labelByKey.set(k, label);
+  }
 }
 if (invalid) process.exit(1);
 
 const candidates = await read2(values.candidates);
 async function read2(path) {
   return JSON.parse(await readFile(path, 'utf8'));
+}
+// Every candidate needs exactly one label and every label a candidate; otherwise write nothing.
+const candidateKeys = new Set(candidates.repos.flatMap((r) => r.candidates.map(key)));
+const unlabelled = [...candidateKeys].filter((k) => labelCounts.get(k) !== 1);
+const stray = [...labelCounts.keys()].filter((k) => !candidateKeys.has(k));
+if (unlabelled.length || stray.length) {
+  console.error(
+    `label/candidate mismatch: ${unlabelled.length} candidates without exactly one label, ${stray.length} labels without a candidate`,
+  );
+  process.exit(1);
 }
 const repos = candidates.repos.map((entry) => ({
   repo: entry.repo,
