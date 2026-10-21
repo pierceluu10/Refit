@@ -8,7 +8,7 @@ import { Workflow } from '../components/Workflow';
 
 export function Waitlist() {
   return (
-    <>
+    <div className="blue-theme">
       <Header />
       <main id="main-content">
         <section className="hero" id="waitlist">
@@ -69,6 +69,6 @@ export function Waitlist() {
         </section>
       </main>
       <Footer />
-    </>
+    </div>
   );
 }

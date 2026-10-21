@@ -1,13 +1,21 @@
 import { ArrowRight, Check } from '@phosphor-icons/react';
 import { useState } from 'react';
 import type { FormEvent } from 'react';
-import { joinWaitlist, waitlistApis } from '../waitlist';
+import { joinWaitlist } from '../waitlist';
 import type { WaitlistResult } from '../waitlist';
+import { LogoBelt } from './LogoBelt';
 
 export function WaitlistForm() {
   const [sending, setSending] = useState(false);
   const [result, setResult] = useState<WaitlistResult | null>(null);
   const [error, setError] = useState('');
+  const [apis, setApis] = useState<string[]>([]);
+
+  function toggleApi(id: string) {
+    setApis((current) =>
+      current.includes(id) ? current.filter((api) => api !== id) : [...current, id],
+    );
+  }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -15,7 +23,7 @@ export function WaitlistForm() {
     setSending(true);
     setError('');
     try {
-      setResult(await joinWaitlist(String(data.get('email')), data.getAll('apis').map(String)));
+      setResult(await joinWaitlist(String(data.get('email')), apis));
     } catch (failure) {
       setError((failure as Error).message);
     } finally {
@@ -59,14 +67,7 @@ export function WaitlistForm() {
         <legend>
           Which APIs do you integrate? <span>Optional</span>
         </legend>
-        <div>
-          {waitlistApis.map((api) => (
-            <label className="waitlist-chip" key={api.id}>
-              <input type="checkbox" name="apis" value={api.id} />
-              {api.label}
-            </label>
-          ))}
-        </div>
+        <LogoBelt selected={apis} onToggle={toggleApi} />
       </fieldset>
       <p className="waitlist-error" role="alert">
         {error}

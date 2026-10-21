@@ -1,9 +1,18 @@
+// Listed in the order the logo belt shows them. Supabase's waitlist table
+// checks every id, so a new entry also needs a migration.
 export const waitlistApis = [
   { id: 'stripe', label: 'Stripe' },
   { id: 'openai', label: 'OpenAI' },
   { id: 'anthropic', label: 'Anthropic' },
   { id: 'twilio', label: 'Twilio' },
   { id: 'shopify', label: 'Shopify' },
+  { id: 'meta', label: 'Meta' },
+  { id: 'gemini', label: 'Gemini' },
+  { id: 'google', label: 'Google' },
+  { id: 'slack', label: 'Slack' },
+  { id: 'paypal', label: 'PayPal' },
+  { id: 'salesforce', label: 'Salesforce' },
+  { id: 'cloudflare', label: 'Cloudflare' },
   { id: 'other', label: 'Other' },
 ] as const;
 

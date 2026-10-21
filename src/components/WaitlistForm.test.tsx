@@ -5,7 +5,7 @@ import { WaitlistForm } from './WaitlistForm';
 function submit(email: string, ...apis: string[]) {
   render(<WaitlistForm />);
   fireEvent.change(screen.getByLabelText('Work email'), { target: { value: email } });
-  for (const api of apis) fireEvent.click(screen.getByLabelText(api));
+  for (const api of apis) fireEvent.click(screen.getByRole('button', { name: api }));
   fireEvent.click(screen.getByRole('button', { name: /Join the waitlist/ }));
 }
 
@@ -30,6 +30,32 @@ describe('waitlist form', () => {
       Prefer: 'return=minimal',
     });
     expect(JSON.parse(init.body)).toEqual({ email: 'dev@example.com', apis: ['stripe', 'openai'] });
+  });
+
+  it('toggles a logo on and off and keeps both belt copies in step', async () => {
+    vi.stubEnv('VITE_SUPABASE_URL', 'https://example.supabase.co');
+    vi.stubEnv('VITE_SUPABASE_PUBLISHABLE_KEY', 'sb_publishable_test');
+    const fetch = vi.fn().mockResolvedValue(new Response(null, { status: 201 }));
+    vi.stubGlobal('fetch', fetch);
+    const { container } = render(<WaitlistForm />);
+    const meta = screen.getByRole('button', { name: 'Meta' });
+    const copies = container.querySelectorAll('.logo-group');
+    const hiddenMeta = [...copies[1].querySelectorAll('button')].find(
+      (button) => button.textContent === 'Meta',
+    )!;
+    expect(copies[1]).toHaveAttribute('aria-hidden', 'true');
+    expect(hiddenMeta).toHaveAttribute('tabindex', '-1');
+
+    fireEvent.click(hiddenMeta);
+    expect(meta).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.click(screen.getByRole('button', { name: 'Shopify' }));
+    fireEvent.click(meta);
+    expect(hiddenMeta).toHaveAttribute('aria-pressed', 'false');
+
+    fireEvent.change(screen.getByLabelText('Work email'), { target: { value: 'dev@example.com' } });
+    fireEvent.click(screen.getByRole('button', { name: /Join the waitlist/ }));
+    await screen.findByText(/You’re on the list/);
+    expect(JSON.parse(fetch.mock.calls[0][1].body).apis).toEqual(['shopify']);
   });
 
   it('treats a duplicate email as already joined', async () => {

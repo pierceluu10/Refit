@@ -1973,32 +1973,39 @@ pre {
     opacity: 0;
   }
 }
-.waitlist-form,
+.waitlist-form {
+  max-width: 1050px;
+  margin: 32px auto 0;
+}
+.waitlist-field,
+.waitlist-error,
 .waitlist-done {
   max-width: 470px;
-  margin: 32px auto 0;
+  margin-inline: auto;
+}
+.waitlist-done {
+  margin-top: 32px;
 }
 .waitlist-field {
   display: flex;
   gap: 6px;
   padding: 5px;
   border: 1px solid var(--border);
-  border-radius: 10px;
-  background: var(--surface);
-  box-shadow: 0 10px 24px -18px #18254266;
+  border-radius: 999px;
+  background: #ffffff14;
   transition:
     border-color var(--fast) ease,
     box-shadow var(--fast) ease;
 }
 .waitlist-field:focus-within {
-  border-color: #a9bff2;
-  box-shadow: 0 0 0 4px var(--blue-tint);
+  border-color: #fff;
+  box-shadow: 0 0 0 4px #ffffff26;
 }
 .waitlist-field input {
   flex: 1;
   min-width: 0;
   border: 0;
-  padding: 0 12px;
+  padding: 0 18px;
   background: transparent;
   color: var(--ink);
   font-size: 14px;
@@ -2006,48 +2013,63 @@ pre {
   outline: none;
 }
 .waitlist-field input::placeholder {
-  color: var(--muted);
+  color: #dbe7ff;
 }
 .waitlist-field .button {
   min-height: 42px;
-  padding: 10px 16px;
-  border-radius: 6px;
+  padding: 10px 18px;
 }
 .waitlist-field .button:disabled {
   opacity: 0.7;
   cursor: progress;
 }
 .waitlist-apis {
-  margin: 20px 0 0;
+  margin: 26px 0 0;
   padding: 0;
   border: 0;
+  min-width: 0;
 }
 .waitlist-apis legend {
-  margin: 0 auto 10px;
+  margin: 0 auto 12px;
   padding: 0;
   color: var(--muted);
-  font-size: 12px;
+  font-size: 13px;
 }
 .waitlist-apis legend span {
   margin-left: 4px;
-  color: var(--muted);
   font-weight: 550;
 }
-.waitlist-apis > div {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 6px;
+.logo-belt {
+  overflow: hidden;
+  padding-block: 6px;
+  mask-image: linear-gradient(to right, transparent, #000 12%, #000 88%, transparent);
 }
-.waitlist-chip {
-  position: relative;
-  padding: 5px 12px;
+.logo-track {
+  display: flex;
+  width: max-content;
+  animation: belt-scroll 48s linear infinite;
+}
+.logo-belt:has(:focus-visible) .logo-track {
+  animation-play-state: paused;
+}
+.logo-group {
+  display: flex;
+  gap: 10px;
+  padding-right: 10px;
+}
+.logo-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  height: 42px;
+  padding: 0 18px 0 15px;
   border: 1px solid var(--border);
   border-radius: 999px;
-  background: var(--surface);
+  background: #ffffff0d;
   color: var(--muted);
-  font-size: 12px;
-  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
   user-select: none;
   transition:
     color var(--fast) ease,
@@ -2055,27 +2077,24 @@ pre {
     border-color var(--fast) ease,
     transform var(--fast) var(--ease-out);
 }
-.waitlist-chip:active {
+.logo-chip svg {
+  fill: currentColor;
+}
+.logo-chip:active {
   transform: scale(0.97);
 }
-.waitlist-chip input {
-  position: absolute;
-  opacity: 0;
-  pointer-events: none;
-}
-.waitlist-chip:has(input:checked) {
-  border-color: #bccdf5;
-  background: var(--blue-tint);
-  color: var(--blue);
-}
-.waitlist-chip:has(input:focus-visible) {
-  outline: 2px solid var(--blue);
+.logo-chip:focus-visible {
   outline-offset: 2px;
+}
+.logo-chip[aria-pressed='true'] {
+  border-color: #fff;
+  background: #fff;
+  color: var(--blue-deep);
 }
 .waitlist-error {
   min-height: 20px;
   margin-top: 12px;
-  color: var(--negative);
+  color: #ffd6db;
   font-size: 12px;
 }
 .waitlist-done {
@@ -2085,26 +2104,153 @@ pre {
   gap: 10px;
   padding: 15px 18px;
   border: 1px solid var(--border);
-  border-radius: 10px;
-  background: var(--surface);
+  border-radius: 999px;
+  background: #ffffff14;
   font-size: 14px;
   animation: text-enter var(--entrance) var(--ease-out) both;
 }
+.waitlist-done .sheet-check {
+  color: var(--blue-deep);
+  background: #fff;
+}
+@keyframes belt-scroll {
+  from {
+    transform: translateX(-50%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
 @media (hover: hover) and (pointer: fine) {
-  .waitlist-chip:hover {
-    color: var(--ink);
+  .logo-chip[aria-pressed='false']:hover {
+    color: #fff;
+    border-color: #ffffff66;
+    background: #ffffff1a;
   }
 }
 @media (max-width: 640px) {
   .waitlist-field {
     flex-direction: column;
+    border-radius: 14px;
   }
   .waitlist-field input {
     min-height: 44px;
   }
+  .waitlist-done {
+    border-radius: 14px;
+  }
+  .logo-chip {
+    height: 38px;
+    font-size: 13px;
+  }
 }
 @media (prefers-reduced-motion: reduce) {
-  .waitlist-chip:active {
+  .logo-chip:active {
     transform: none;
+  }
+  .logo-belt {
+    mask-image: none;
+  }
+  .logo-track {
+    width: auto;
+    animation: none;
+  }
+  .logo-group {
+    flex-wrap: wrap;
+    justify-content: center;
+    padding: 0;
+  }
+  .logo-group[aria-hidden] {
+    display: none;
+  }
+}
+
+/* The waitlist page uses the royal-blue marketing palette. Product surfaces
+   inside it (the workflow preview) keep the light tokens. */
+:root:has(.blue-theme) {
+  background: #0048d8;
+}
+.blue-theme {
+  --canvas: #0048d8;
+  --ink: #fff;
+  --muted: #c4d9ff;
+  --border: #ffffff38;
+  --blue: #fff;
+  --blue-deep: #0048d8;
+  position: relative;
+  min-height: 100vh;
+  color: var(--ink);
+  background: var(--canvas);
+}
+.blue-theme::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  height: 820px;
+  background-image: radial-gradient(circle at 1px 1px, #ffffff3d 1px, transparent 0);
+  background-size: 24px 24px;
+  mask-image: radial-gradient(ellipse 60% 70% at 50% 0%, #000 25%, transparent 75%);
+  pointer-events: none;
+}
+.blue-theme > * {
+  position: relative;
+}
+.blue-theme ::selection {
+  color: var(--blue-deep);
+  background: #fff;
+}
+.blue-theme .workflow-window,
+.blue-theme .map-endpoint {
+  --canvas: #f9fafb;
+  --ink: #171b24;
+  --muted: #606775;
+  --border: #e1e5eb;
+  --blue: #235bdf;
+  color: var(--ink);
+}
+.blue-theme .workflow-window {
+  border-color: #fff;
+  box-shadow: 0 30px 60px -30px #001a5ccc;
+}
+.blue-theme .map-endpoint {
+  border-color: #fff;
+  box-shadow: 0 12px 28px -16px #001a5ccc;
+}
+.blue-theme .workflow-lines {
+  stroke: #ffffff59;
+}
+.blue-theme .engine-node {
+  color: var(--blue-deep);
+  box-shadow: 0 12px 28px -12px #001a5ccc;
+}
+.blue-theme .process-artifact > span {
+  border-color: #ffffff80;
+}
+.blue-theme .button {
+  border-radius: 999px;
+}
+.blue-theme .button-primary,
+.blue-theme .button-dark {
+  color: var(--blue-deep);
+  background: #fff;
+  border-color: #fff;
+  box-shadow:
+    0 1px 2px #00184a33,
+    0 8px 20px -10px #00184a99;
+}
+.blue-theme .closing-section {
+  border-top: 0;
+  background: #003db8;
+}
+@media (hover: hover) and (pointer: fine) {
+  .blue-theme .button-primary:hover,
+  .blue-theme .button-dark:hover {
+    background: #e3ecff;
+    box-shadow:
+      0 1px 2px #00184a33,
+      0 10px 24px -10px #00184acc;
+  }
+  .blue-theme .text-link:hover {
+    color: var(--muted);
   }
 }

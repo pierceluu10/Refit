@@ -6,6 +6,7 @@ The home page is in waitlist mode: a signup form, the interactive demo and a sho
 
 1. Create a Supabase project.
 2. In the SQL editor, run [`supabase/migrations/20261015000000_waitlist.sql`](../supabase/migrations/20261015000000_waitlist.sql). It creates `public.waitlist` with row-level security. Browsers can insert an email and the APIs they picked, and nothing else. They cannot read, update or delete rows.
+   Then run every later file in that folder in name order. [`20261020000000_waitlist_more_apis.sql`](../supabase/migrations/20261020000000_waitlist_more_apis.sql) widens the allowed API ids to match the logo belt; without it, signups that pick a newer logo fail.
 3. Copy the project URL and the **publishable** key (Project Settings → API Keys) into `.env.local`:
 
    ```sh
