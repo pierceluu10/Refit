@@ -169,6 +169,20 @@
         "upgradeComplete": "partly: apiVersion moves to 2026-09-30.endive everywhere, but the stripe package is not upgraded because the project uses pnpm, which the SDK upgrade does not support yet. The project is JavaScript, so no type check catches the old package; its tests pass on both versions.",
         "wouldMerge": "yes, after upgrading stripe by hand."
       }
+    },
+    {
+      "repo": "RISHIE2006/Signl",
+      "pullRequest": "https://github.com/refit-dev/Signl/pull/1",
+      "reviewedAt": "2026-10-21",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: the one Checkout Session creation sends exactly ['card'], which the owner-approved card rule moves to allowed_payment_method_types.",
+        "bothVersions": "not needed: the rename ships with the apiVersion move to 2026-09-30.endive in the same patch, as the card rule requires; the full contract diff from 2025-03-31.basil found no other read or request the code makes.",
+        "nothingUnrelated": "yes: one parameter, one apiVersion literal, the stripe dependency and its lockfile entry.",
+        "pleaseCheck": "allowed_payment_method_types filters the methods Stripe finds eligible, so cards must stay enabled for the account. The checks are weak: npm test needs better-sqlite3's native binding, which the offline image does not build, so the operator ran npm run lint; the generated stripe-mock check could not load the route alone (@clerk/nextjs under plain Node). No Stripe request was exercised.",
+        "upgradeComplete": "yes: stripe-node 22.2.2 to 23.0.0 and the pin to 2026-09-30.endive.",
+        "wouldMerge": "yes, after confirming cards stay enabled and running the app's checkout once in test mode."
+      }
     }
   ]
 }
