@@ -23,7 +23,7 @@ progress:
 See: .planning/PROJECT.md (updated 2026-10-21)
 
 **Core value:** A retiring model ID in real application code is traced to the exact call and replaced with a validated, never-wrong draft fix, or stopped with a named reason.
-**Current focus:** Phase 03 — Application benchmark sets
+**Current focus:** Phase 4 — Measurement and readiness
 
 ## Current Position
 
