@@ -1,17 +1,21 @@
 # Refit implementation checkpoints
 
-## October 21 checkpoint: no silent model exposures, and more Anthropic requests traced (unreleased, after 0.39.0)
+## October 21 checkpoint: new model-fix stops, prose and traced indirect sources (unreleased, after 0.39.0)
 
-`refit deadlines --propose-model-fixes` now gives every live OpenAI and Anthropic model match an outcome, and traces more requests:
+This change only adds stops: `refit deadlines --propose-model-fixes` and `refit serve --model-fixes` edit nothing they did not edit before. See [Deadlines](DEADLINES.md#propose-model-replacements).
 
-- **Unresolved.** A live model ID that no traced request sends is listed under `unresolved` (`--json`) or "Not sent by a traced request", with its replacement and where it is written: an object value, a variable, a class field, a return or a call argument, or that no file imports the SDK at all. These are never edited.
-- **Fallback constants.** A model constant whose value ends in a fallback, such as `const model = config.model || 'claude-3-5-haiku-20241022'`, is followed to that literal, under the existing single-use rule; a shared one stops for review.
-- **Header-detected requests.** A `fetch` to any URL that sets `anthropic-version` inline and sends `model` and `messages` is an Anthropic Messages API request.
-- **Catch-all `paths`.** A bare import under a `"*": ["*"]` mapping is the installed package when no mapped target is a scanned source, as TypeScript resolves it. This applies to every provider's analysis, including `refit run`.
-- **Unreadable configurations.** Calls found only by trusting an SDK import under a `tsconfig.json` or `jsconfig.json` Refit cannot read (for example one extending a generated `.svelte-kit/tsconfig.json`) stop for review and are never edited.
-- **Catalogs.** The deadline scan lists a model's per-platform ID record (with a Bedrock or Vertex AI form) and members of a `new Set([...])` or keys of a `new Map([...])` as catalog.
+- **Prose.** A model ID quoted inside a longer plain string with spaces (a description, an error message, embedded markdown) is a `comment`, not live (D-20, approved by the owner on 2026-10-21). Template pieces with substitutions, `+` operands, JSX text, JSON-shaped strings and text that sets a model key, flag or env name right before the ID stay live.
+- **Non-text calls.** Every traced OpenAI or Anthropic call outside text generation, and raw requests to the non-text endpoints and Anthropic `/v1/complete`, stop with a named reason and are never edited. In `refit serve --model-fixes` a repository whose only retiring uses are such calls ends as `needs-review` instead of `no-change`.
+- **New stops.** These stop with a named reason:
+  - a custom endpoint anywhere in the repository (`baseURL`, `OPENAI_BASE_URL`, `withOptions(`, `AzureOpenAI`, in source or `.env*`, JSON or YAML);
+  - a module loaded by `import()`, `require()`, a glob, `export *` or an opaque namespace;
+  - class inheritance the tracer cannot resolve;
+  - an enum, class or object read as a whole or written to;
+  - a trace cut by the depth limit (10) or the work budget (2,000 steps).
+- **Indirect sources, reported.** The rule now traces class fields, `const` object members, computed initializers, returned literals, destructuring defaults, options-object parameters and axios request configs. A model reached only through one of them stops and names its source. Editing them (D-06 to D-08) comes with a separate change carrying the owner decision. Shared sources (D-09) stay stops, counted per member for objects and enums.
+- **Counts.** Every exposure and mention carries exact `nonLiveCounts` by use. The AI benchmark summary gains `nonLive`, `nonLiveTotal`, `mentionedOnly` and `exposedErrored`, and errored repositories are no longer counted in `exposedSilent`.
 
-`--model-fixes` edits only what `replacements` lists, so it edits nothing new beyond the fallback literal and header-detected requests that pass every existing stop. On the application sets, exposed repositories with no outcome went from 19 to 0 for Anthropic and 22 to 1 for OpenAI, and Anthropic proposals from 4 to 6 repositories, read only with no validation ([benchmarks](BENCHMARKS.md#model-fixes-on-the-application-sets-october-21)). Tests: `pipeline/model-retirements.test.ts` and `pipeline/deadlines.test.ts`.
+Tests: `pipeline/model-retirements.test.ts` runs the resolver cases with indirect edits enabled and pins the default, in which indirect sites stop. `pipeline/deadlines.test.ts` covers the prose rule; `pipeline/ai-model-benchmark-summary.test.ts` covers the summary keys. Evidence is fixture tests only; no live provider was contacted.
 
 ## October 21 checkpoint: computed request keys stop model fixes (unreleased, after 0.39.0)
 

@@ -1,7 +1,9 @@
+import { execFile } from 'node:child_process';
 import { createHmac, randomUUID } from 'node:crypto';
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
+import { promisify } from 'node:util';
 import { afterEach, expect, it, vi } from 'vitest';
 import {
   alertDue,
@@ -243,6 +245,19 @@ const classifying: DeadlineRegistry = {
   deadlines: [
     ...registry.deadlines,
     entry({ id: 'openai-o1', provider: 'openai', versions: ['o1'], date: '2026-10-23' }),
+    entry({
+      id: 'openai-dall-e-3',
+      provider: 'openai',
+      versions: ['dall-e-3'],
+      date: '2026-10-23',
+    }),
+    entry({
+      id: 'anthropic-claude-3-opus',
+      provider: 'anthropic',
+      kind: 'model',
+      versions: ['claude-3-opus-20240229'],
+      date: '2026-11-30',
+    }),
   ],
 };
 
@@ -327,6 +342,143 @@ it('classifies OpenAI model lists, type unions, tables and pickers as catalog', 
     'src/models.ts:17 gpt-4': 'catalog',
     'src/Picker.tsx:1 o1': 'catalog',
   });
+});
+
+it('classifies model-keyed map entries wrapped in satisfies, as, parentheses or assertions as catalog', async () => {
+  // The inner key is `model`, not a descriptor key, so only the wrapper unwrap can make these catalog.
+  const value = "{ model: 'gpt-4', fallback: 'gpt-4-0613', context: 8192 }";
+  const { result } = await uses({
+    'src/map.ts': [
+      `export const A = { 'gpt-4': ${value} satisfies Model<'x'> };`,
+      `export const B = { 'gpt-4': ${value} as const };`,
+      `export const C = { 'gpt-4': (${value}) };`,
+      `export const D = { 'gpt-4': <Model>${value} };`,
+      `export const E = { 'gpt-4': ${value} as const satisfies Model<'x'> };`,
+      // A key that is not a model names a request, not a table entry.
+      "export const F = { chat: { model: 'gpt-4' } satisfies Model };",
+    ].join('\n'),
+  });
+  expect(result).toEqual({
+    'src/map.ts:1 gpt-4': 'catalog',
+    'src/map.ts:1 gpt-4-0613': 'catalog',
+    'src/map.ts:2 gpt-4': 'catalog',
+    'src/map.ts:2 gpt-4-0613': 'catalog',
+    'src/map.ts:3 gpt-4': 'catalog',
+    'src/map.ts:3 gpt-4-0613': 'catalog',
+    'src/map.ts:4 gpt-4': 'catalog',
+    'src/map.ts:4 gpt-4-0613': 'catalog',
+    'src/map.ts:5 gpt-4': 'catalog',
+    'src/map.ts:5 gpt-4-0613': 'catalog',
+    'src/map.ts:6 gpt-4': 'live',
+  });
+});
+
+it('classifies model records and versions arrays as catalog and keeps request and descriptor keys live', async () => {
+  // [model, source line, use]. Each line holds one match, so each line is its own result.
+  const cases: [string, string, string][] = [
+    ['gpt-4', "export const A = { name: 'gpt-4', context_window: 8192 };", 'catalog'],
+    // An `id` or `name` counts as a catalog entry only beside a metadata field (#143), so a bare
+    // descriptor may still be what a wrapper sends.
+    ['gpt-4', "export const B = openAIModelRef({ name: 'gpt-4', info });", 'live'],
+    ['gpt-4', "export const C = { id: 'gpt-4', displayName: 'GPT-4' };", 'live'],
+    ['gpt-4', "export const D = { label: 'gpt-4' };", 'live'],
+    ['gpt-4', "export const E = { title: 'gpt-4' };", 'live'],
+    ['gpt-4', "export const F = { slug: 'gpt-4' };", 'live'],
+    ['gpt-4', "export const G = { versions: ['gpt-4'] };", 'catalog'],
+    ['gpt-4', "export const H = { versions: ['gpt-4', 'o1-mini'] as const };", 'catalog'],
+    [
+      'claude-3-opus-20240229',
+      "export const I = createClaudeModelConfig({ id: 'claude-3-opus-20240229', displayName });",
+      'live',
+    ],
+    // Wrappers send these keys to the provider.
+    ['gpt-4', "export const J = { model: 'gpt-4' };", 'live'],
+    ['gpt-4', "export const K = { modelName: 'gpt-4' };", 'live'],
+    ['gpt-4', "export const L = { modelId: 'gpt-4' };", 'live'],
+    ['gpt-4', "export const M = { version: 'gpt-4' };", 'live'],
+    ['gpt-4', "export const N = { default: 'gpt-4' };", 'live'],
+    // A picker's `value` is what the picker sets, so it is not a descriptor key.
+    ['gpt-4', "export const O = { value: 'gpt-4', label: 'GPT-4' };", 'live'],
+    // Only an array lists versions, and only a whole value is a descriptor.
+    ['gpt-4', "export const P = { versions: 'gpt-4' };", 'live'],
+    ['gpt-4', "export const Q = { id: flag ? 'gpt-4' : 'o1-mini' };", 'live'],
+  ];
+  const { result } = await uses({
+    'src/models.ts': cases.map(([, line]) => line).join('\n'),
+    // Every element of a versions array is an entry, not only the first.
+    'src/versions.ts': "export const R = { versions: ['gpt-4', 'gpt-4-0613'] };",
+  });
+  expect(result).toEqual({
+    ...Object.fromEntries(
+      cases.map(([model, , use], index) => [`src/models.ts:${index + 1} ${model}`, use]),
+    ),
+    'src/versions.ts:1 gpt-4': 'catalog',
+    'src/versions.ts:1 gpt-4-0613': 'catalog',
+  });
+});
+
+it('classifies model IDs inside longer plain strings as prose, but keeps templates, concatenations and JSON model keys live', async () => {
+  // [model, source line, use]
+  const cases: [string, string, string][] = [
+    ['dall-e-3', `export const A = 'Image model to use (e.g. "dall-e-3")';`, 'comment'],
+    ['gpt-4', `export const B = 'Model "gpt-4" is deprecated';`, 'comment'],
+    ['gpt-4', 'export const C = `Model "gpt-4" only`;', 'comment'],
+    [
+      'claude-3-opus-20240229',
+      `export const D = 'Claude model ("claude-3-opus-20240229")';`,
+      'comment',
+    ],
+    // The word "model" earlier in the text is not a key set just before the ID.
+    ['gpt-4', `export const E = 'The model setting: use "gpt-4" here';`, 'comment'],
+    // Exactly the model ID is what the code sends.
+    ['gpt-4', "export const F = 'gpt-4';", 'live'],
+    // JSON and config text that sets a model key can be sent as it is.
+    ['gpt-4', `export const G = '{"model":"gpt-4","messages":[]}';`, 'live'],
+    ['gpt-4', 'export const H = `{ "model": "gpt-4" }`;', 'live'],
+    ['gpt-4', `export const I = '{"modelName": "gpt-4"}';`, 'live'],
+    // A CLI flag, an upper-case environment variable and a snake-case key.
+    ['gpt-4', `export const P = execSync('codex --model "gpt-4" run');`, 'live'],
+    ['gpt-4', `export const Q = 'OPENAI_MODEL="gpt-4"\\n';`, 'live'],
+    ['gpt-4', `export const R = '{"model_id": "gpt-4", "x": 1}';`, 'live'],
+    ['gpt-4', `export const S = 'run -m "gpt-4" now';`, 'live'],
+    // JSON text is data: a retiring ID anywhere in it stays live (D-18).
+    ['gpt-4', `export const U = '{"model": "x", "fallback": "gpt-4"}';`, 'live'],
+    ['gpt-4', `export const V = '{"list": ["gpt-4"]}';`, 'live'],
+    ['gpt-4', `export const W = JSON.parse('{"engine":"gpt-4"}');`, 'live'],
+    // A key word that is not directly before the ID stays prose.
+    ['gpt-4', `export const T = 'The model_id field says "gpt-4" here';`, 'comment'],
+    // Template pieces (head, middle, tail) and concatenated strings can build the value sent.
+    ['gpt-4', 'export const J = `Model "gpt-4" only for ${user}`;', 'live'],
+    ['gpt-4', 'export const K = `For ${user} the model "gpt-4" or ${other}`;', 'live'],
+    ['gpt-4', 'export const L = `For ${user} only "gpt-4"`;', 'live'],
+    ['gpt-4', `export const M = 'Model "gpt-4" ' + suffix;`, 'live'],
+    ['gpt-4', `export const N = ('Model "gpt-4" ') + suffix;`, 'live'],
+    ['gpt-4', `message += 'Model "gpt-4" ';`, 'live'],
+  ];
+  const { result } = await uses({
+    // The last line is never prose, and the prose rule adds no match of its own.
+    'src/prose.ts': [...cases.map(([, line]) => line), 'export const O = `gpt-4-${suffix}`;'].join(
+      '\n',
+    ),
+    'src/Note.tsx': 'export const Note = () => <p>Uses "gpt-4"</p>;',
+    // Meta and Shopify matches in strings are classified as before, including a descriptor key.
+    'src/graph.ts': [
+      "export const url = 'https://graph.facebook.com/v21.0/me';",
+      "export const api = { name: 'v21.0' };",
+    ].join('\n'),
+    'src/shop.ts': "fetch('https://example.myshopify.com/admin/api/2025-10/orders.json');",
+  });
+  const { [`src/prose.ts:${cases.length + 1} gpt-4`]: unmatched, ...rest } = result;
+  expect(rest).toEqual({
+    ...Object.fromEntries(
+      cases.map(([model, , use], index) => [`src/prose.ts:${index + 1} ${model}`, use]),
+    ),
+    'src/Note.tsx:1 gpt-4': 'live',
+    'src/graph.ts:1 v21.0': 'live',
+    'src/graph.ts:2 v21.0': 'live',
+    'src/shop.ts:1 2025-10': 'live',
+  });
+  expect([undefined, 'live']).toContain(unmatched);
 });
 
 it('classifies model records, versions lists and constant objects as catalog', async () => {
@@ -679,6 +831,84 @@ it('rests exposure on live evidence and keeps the rest as separate, capped non-l
       NOW,
     ),
   ).toEqual([]);
+});
+
+it('counts every non-live match by use before the evidence cap', async () => {
+  const { scan } = await uses({
+    // 25 catalog matches on separate lines, past the limit of 20 listed matches.
+    'src/models.ts': Array.from(
+      { length: 25 },
+      (_, index) => `export const LIST${index} = ['gpt-4', 'gpt-4o', 'o3'];`,
+    ).join('\n'),
+    'src/chat.ts': "send({ model: 'gpt-4' });",
+    'src/chat.test.ts': "send({ model: 'gpt-4' });",
+    'src/note.ts': "// send({ model: 'gpt-4' });",
+    // o1 only appears in a list: a mention, not an exposure.
+    'src/o1.ts': "export const LIST = ['o1', 'gpt-4o', 'o3'];",
+  });
+  const [exposure] = scan.exposures;
+  expect(exposure.deadline.id).toBe('openai-gpt-4');
+  expect(exposure.nonLive).toHaveLength(20);
+  expect(exposure.nonLiveMore).toBe(7);
+  expect(exposure.nonLiveCounts).toEqual({ catalog: 25, test: 1, comment: 1 });
+  expect(scan.mentions.map((item) => [item.deadline.id, item.nonLiveCounts])).toEqual([
+    ['openai-o1', { catalog: 1 }],
+  ]);
+  for (const item of [...scan.exposures, ...scan.mentions])
+    expect(item.nonLiveCounts).toBeDefined();
+
+  // No non-live match is an empty object, not a missing field; no match at all is no entry.
+  const live = await scanDeadlines(
+    await repository({ 'src/live.ts': "send({ model: 'gpt-4' });" }),
+    classifying,
+    NOW,
+  );
+  expect(live.exposures.map((item) => item.nonLiveCounts)).toEqual([{}]);
+  const none = await scanDeadlines(
+    await repository({ 'src/ok.ts': "send({ model: 'gpt-5' });" }),
+    classifying,
+    NOW,
+  );
+  expect(none).toEqual({ exposures: [], mentions: [] });
+});
+
+it('classifies each of two matches on one line, and a live match hides non-live ones of its own version', async () => {
+  const { scan, result } = await uses({
+    'src/line.ts': "if (model === 'gpt-4') send({ model: 'gpt-4-0613' }); // was 'gpt-4-0613'",
+  });
+  expect(result).toEqual({ 'src/line.ts:1 gpt-4': 'check', 'src/line.ts:1 gpt-4-0613': 'live' });
+  expect(scan.exposures.map((item) => item.nonLiveCounts)).toEqual([{ check: 1 }]);
+});
+
+it('prints the exact non-live count for each use on the terminal', async () => {
+  const registryRoot = await repository({ 'registry.json': classifying });
+  // Files are read in name order, so the 25 catalog lines fill the 20 listed places and the comment
+  // in c.ts is counted but not listed.
+  const root = await repository({
+    'src/a.ts': Array.from(
+      { length: 25 },
+      (_, index) => `export const LIST${index} = ['gpt-4', 'gpt-4o', 'o3'];`,
+    ).join('\n'),
+    'src/b.ts': "send({ model: 'gpt-4' });",
+    'src/c.ts': "// send({ model: 'gpt-4' });",
+    'src/o1.ts': "export const LIST = ['o1', 'gpt-4o', 'o3'];",
+  });
+  const { stdout } = await promisify(execFile)(process.execPath, [
+    resolve('bin/refit.mjs'),
+    'deadlines',
+    '--repository',
+    root,
+    '--registry',
+    join(registryRoot, 'registry.json'),
+  ]);
+  // One line per use: the label, the use, its exact count, then the places that are listed. The
+  // count stays exact past the limit, and a use with no listed place still gets a line.
+  expect(stdout).toMatch(/Not live\s+catalog\s+25\s+src\/a\.ts:1,2,3/);
+  expect(stdout).toMatch(/^\s+comment\s+1$/m);
+  expect(stdout).toMatch(/^\s+…and 6 more$/m);
+  expect(stdout).toMatch(
+    /Named only outside live code[\s\S]*Not live\s+catalog\s+1\s+src\/o1\.ts:1/,
+  );
 });
 
 it('leaves Meta and Shopify matching as it was, apart from listing comments', async () => {

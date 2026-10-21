@@ -7,6 +7,7 @@ import {
   configuredIntegrations,
   scanDeadlines,
   type DeadlineEvidence,
+  type DeadlineUse,
 } from './deadline-exposure.ts';
 import {
   checkDeadlineRegistry,
@@ -208,6 +209,7 @@ try {
         more,
         nonLive,
         nonLiveMore,
+        nonLiveCounts,
         agent,
         ignored,
         ignoreNote,
@@ -228,14 +230,14 @@ try {
         for (const item of evidence)
           console.log(`  ${terminalText(`${item.file}:${item.line}`)}  ${terminalText(item.text)}`);
         if (more) console.log(`  …and ${more} more matches`);
-        printNonLive(nonLive, nonLiveMore);
+        printNonLive(nonLive, nonLiveMore, nonLiveCounts);
         console.log(`  Migration    ${terminalText(migrationNote(deadline.provider, agent))}`);
       }
       if (scan.mentions.length) {
         console.log('\nNamed only outside live code (not counted as exposure):');
-        for (const { deadline, days, nonLive, nonLiveMore } of scan.mentions) {
+        for (const { deadline, days, nonLive, nonLiveMore, nonLiveCounts } of scan.mentions) {
           console.log(`\n${terminalText(deadline.summary)} ${deadline.date} (${timing(days)})`);
-          printNonLive(nonLive, nonLiveMore);
+          printNonLive(nonLive, nonLiveMore, nonLiveCounts);
         }
       }
       printIgnoreWarnings(ignores.file, expired, unknown);
@@ -288,19 +290,31 @@ function printIgnoreWarnings(
     );
 }
 
-// Non-live matches, collapsed to one line per use with each file's line numbers.
-function printNonLive(items: DeadlineEvidence[], more: number) {
+// Non-live matches, collapsed to one line per use: the exact count, then each listed file's line
+// numbers. A use whose matches all fall past the listing limit still gets a line with its count.
+function printNonLive(
+  items: DeadlineEvidence[],
+  more: number,
+  counts: Partial<Record<DeadlineUse, number>> = {},
+) {
   if (!items.length) return;
-  const uses = new Map<string, Map<string, number[]>>();
+  const uses = new Map<DeadlineUse, Map<string, number[]>>();
   for (const item of items) {
     const files = uses.get(item.use) ?? new Map<string, number[]>();
     uses.set(item.use, files);
     files.set(item.file, [...(files.get(item.file) ?? []), item.line]);
   }
+  for (const use of Object.keys(counts) as DeadlineUse[])
+    if (!uses.has(use)) uses.set(use, new Map());
+  const total = (use: DeadlineUse, files: Map<string, number[]>) =>
+    counts[use] ?? [...files.values()].reduce((sum, lines) => sum + lines.length, 0);
+  const width = Math.max(...[...uses].map(([use, files]) => String(total(use, files)).length));
   let label = 'Not live';
   for (const [use, files] of uses) {
     const places = [...files].map(([file, lines]) => `${file}:${lines.join(',')}`).join(' ');
-    console.log(`  ${label.padEnd(11)}  ${use.padEnd(9)}  ${terminalText(places)}`);
+    console.log(
+      `  ${label.padEnd(11)}  ${use.padEnd(9)}  ${String(total(use, files)).padStart(width)}${places ? `  ${terminalText(places)}` : ''}`,
+    );
     label = '';
   }
   if (more) console.log(`  ${''.padEnd(11)}  …and ${more} more`);
