@@ -244,7 +244,9 @@ const MODEL_KEYS = [
 // config text that sets a model key or flag right before it, and so is a string joined to other text.
 // `before` is the string's own source text up to the ID's opening quote.
 function isProse(node: ts.StringLiteralLike, version: string, before: string) {
-  return node.text !== version && !MODEL_KEYS.some((key) => key.test(before)) && !concatenated(node);
+  return (
+    node.text !== version && !MODEL_KEYS.some((key) => key.test(before)) && !concatenated(node)
+  );
 }
 
 function propertyKey(node: ts.Node) {
