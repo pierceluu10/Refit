@@ -2,7 +2,9 @@
 
 Every number here comes from real public repositories, frozen before the run that measured them, scanned at a pinned commit, and checked against the providers' real published contracts. No vendor API was called, no scanned repository was contacted, and validation ran each repository's own checks in offline Docker. Detailed method and per-repository results are linked from each section.
 
-**Latest (October 16, unreleased):** validated Stripe fixes rose from 53 to **74** on the same 531 repositories after the stripe-node upgrade gained pnpm and Yarn 1, and a new active-teams set (66 repositories) shows that client factories, not fix logic, limit Refit on current code. See [the section below](#stripe-node-upgrade-for-pnpm-and-yarn-and-the-active-teams-set-october-16).
+**Latest (October 21):** on the 40 affected repositories Refit did not fix, a sandboxed Codex agent (`gpt-5.6-sol`) got 8 patches through Refit's validation; 1 was correct, and 7 silently dropped `payment_method_types`. See [the comparison](#a-coding-agent-on-the-repositories-refit-did-not-fix-october-21).
+
+**October 16 (unreleased):** validated Stripe fixes rose from 53 to **74** on the same 531 repositories after the stripe-node upgrade gained pnpm and Yarn 1, and a new active-teams set (66 repositories) shows that client factories, not fix logic, limit Refit on current code. See [the section below](#stripe-node-upgrade-for-pnpm-and-yarn-and-the-active-teams-set-october-16).
 
 ## Summary (Refit 0.38.0)
 
@@ -21,6 +23,37 @@ Every number here comes from real public repositories, frozen before the run tha
 - **Real breakage is common and precise.** 24 of 200 fresh Shopify apps (12%) send a query that fails on every Admin API version Shopify serves today, each at an exact line. 51 of 381 fresh Stripe apps (13%) also send an OpenAI model that OpenAI retires on 2026-10-23.
 - **Outcomes are deterministic.** Repeat runs matched 381 of 381 fresh Stripe repositories, 200 of 200 fresh Shopify apps and 150 of 150 earlier Stripe repositories (publication aside). Since the `payment_method_types` stop, no outcome depends on AI sampling.
 - **AI was almost never needed:** **$0.02** across every Stripe run in this release. Deterministic rules made every validated fix.
+
+## A coding agent on the repositories Refit did not fix (October 21)
+
+Question: where Refit stopped, does a model-driven agent fix the break instead? The comparison took every affected Stripe repository that Refit did not validate on the October 20 rerun: 21 from the active-teams set, 10 original and 9 held out, 40 in all. On each pinned checkout, OpenAI's Codex CLI (`gpt-5.6-sol`, sandboxed with no network) was told to "upgrade to 2026-09-30.endive". It was given the contract diff Refit computed and the matching Stripe changelog pages. Every patch then went through Refit's own offline validation, with Refit's stripe-node upgrade added and the agent's package-file edits reverted. Every patch that passed was read in full. [Per-repository results and diffs](benchmarks/2026-10-21-agent-comparison-results.json); the harness is [`agent-comparison-cli.ts`](../pipeline/agent-comparison-cli.ts).
+
+The agent is not Claude. The local Claude CLI login was invalid, so the run used the OpenAI key already in `.env`. `--agent claude` reruns it after `claude auth login`.
+
+| Outcome | Repositories |
+|---|---|
+| Refused at dependency preparation (same gate as Refit; agent not run) | 23 |
+| Agent patched, then preparation refused (first pass, before the preflight) | 2 |
+| Repository's own checks fail or cannot run unpatched | 5 |
+| Regression caught by validation | 2 |
+| **Passed validation** | **8** |
+| … **correct** | **1** |
+| … wrong | 7 |
+
+- **Every wrong patch fails the same way: it deletes `payment_method_types`.** It deleted the parameter in 14 of its 17 patches and replaced it once. `sammorrispb/nextgen-academy` became `allowed_payment_method_types: ['card']`, which is the owner's card rule and the one correct patch. Deleting the parameter typechecks and passes tests, but Stripe then offers dynamic payment methods, so a card-only checkout changes behaviour silently. In `geallenboy/ai-saas-template` it also deleted a computed list the caller chose. Refit stops on exactly this.
+- **Apart from that parameter, the agent's edits were right.** In all 7 wrong patches, the response-field moves were correct, as were the pins:
+  - `current_period_*` reads moved to the first subscription item;
+  - `invoice.subscription` reads moved to `parent.subscription_details`;
+  - `shipping_details` reads moved to `collected_information`.
+
+  These went past four of Refit's stops: two type-check regressions (`Kanba-co/kanba`, `iggy-tech/product-hunt-clone-final`), one unresolved `shipping_details` finding (`abressiddique/AbresStore-Admin`) and one validation error (`utsavkrishnatra/pdf_answers`). Deterministic rules for those cases would have produced the same edits without the parameter risk.
+- **The environment limits both approaches equally.** 25 of 40 never reached validation because the repository's dependencies cannot be prepared offline (pnpm settings, private registries, size). A model does not change that.
+- **Cost: $6.45** for 17 agent runs plus one debug run, under a $20 cap. That is $0.16–1.25 per repository, with a median of 39 s. Refit's AI spend across all 531 repositories was $0.07.
+- **Caveats.**
+  - The brief gave the contract diff but not the owner's card policy. An agent told the policy might replace the parameter instead of deleting it.
+  - Codex could run shell commands offline; dependencies were not installed for it.
+  - Generated `stripe-mock` checks were not run for agent patches.
+  - Correctness is one reviewer's reading.
 
 ## stripe-node upgrade for pnpm and Yarn, and the active-teams set (October 16)
 
