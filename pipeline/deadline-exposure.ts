@@ -26,10 +26,12 @@ const META_CONTEXT = [META_SDK, 'graph.facebook.com'];
 // How a match is used. Only `live` evidence makes a repository exposed or opens an alert; the
 // rest is listed separately so nothing is hidden:
 // - catalog: one entry in a model list (an array, enum or tuple naming three or more models), an
-//   HTML or JSX `<option>`, any type position, or a table keyed or indexed by model, such as
-//   pricing or context windows;
+//   HTML or JSX `<option>`, any type position, a table keyed or indexed by model, such as pricing
+//   or context windows, or a model's own entry: the value of an `id`, `name`, `displayName`,
+//   `label`, `title` or `slug` key, or an element of a `versions` array;
 // - test: test, spec, story, fixture and example files;
-// - comment: comments, which the parser keeps out of every source token;
+// - comment: comments, which the parser keeps out of every source token, and, for model providers
+//   only, a model ID quoted inside a longer plain string, such as a description or an error message;
 // - tokenizer: a local tokenizer argument, such as `encoding_for_model('gpt-4')`;
 // - check: a comparison or prefix check, such as `model.startsWith('o1')` or `case 'gpt-4':`.
 // Comments and the tokenizer and prefix calls apply to every provider; the rest apply to model
@@ -133,6 +135,10 @@ const OPENAI_MODEL =
   /^(?:openai\/)?(?:gpt-|chatgpt-|o\d(?:-|$)|text-(?:davinci|curie|babbage|ada|embedding|moderation)-|(?:davinci|curie|babbage|ada)(?:-|$)|dall-e-|tts-|whisper-|codex-|computer-use-|omni-moderation-|sora-)/;
 const CATALOG_SIZE = 3;
 const OPTION_ELEMENT = /<option\b/i;
+// Keys that name a model in a catalog entry or a model reference. A request to OpenAI or Anthropic
+// selects its model with `model`, so these keys are not what the code sends. `model`, `modelName`,
+// `modelId`, `version`, `default` and `value` stay live: wrappers and pickers send them.
+const DESCRIPTOR_KEYS = new Set(['id', 'name', 'displayName', 'label', 'title', 'slug']);
 
 function isCollection(node: ts.Node) {
   return (
@@ -158,18 +164,80 @@ function isLiteralStructure(node: ts.Node) {
   );
 }
 
-// The expression under any `as`, `satisfies`, parentheses, `<T>` assertion or `!`, which change
-// its type and not its value.
-function unwrapDown(node: ts.Node) {
-  while (
+// `as`, `satisfies`, parentheses, a `<T>` assertion and `!` change an expression's type, not its
+// value.
+function isTypeWrapper(
+  node: ts.Node,
+): node is
+  | ts.AsExpression
+  | ts.SatisfiesExpression
+  | ts.ParenthesizedExpression
+  | ts.TypeAssertion
+  | ts.NonNullExpression {
+  return (
     ts.isAsExpression(node) ||
     ts.isSatisfiesExpression(node) ||
     ts.isParenthesizedExpression(node) ||
     ts.isTypeAssertionExpression(node) ||
     ts.isNonNullExpression(node)
-  )
-    node = node.expression;
+  );
+}
+
+// The expression under those wrappers.
+function unwrapDown(node: ts.Node) {
+  while (isTypeWrapper(node)) node = node.expression;
   return node;
+}
+
+// The outermost wrapper around an expression, or the expression itself.
+function unwrapUp(node: ts.Node) {
+  while (node.parent && isTypeWrapper(node.parent)) node = node.parent;
+  return node;
+}
+
+function assignedName(property: ts.PropertyAssignment) {
+  return ts.isIdentifier(property.name) || ts.isStringLiteralLike(property.name)
+    ? property.name.text
+    : undefined;
+}
+
+// A model ID that is the value of a descriptor key, or an element of a `versions` array, is an entry
+// in a catalog of models and not a request.
+function descriptor(node: ts.Node) {
+  const value = unwrapUp(node);
+  const holder = value.parent;
+  if (ts.isPropertyAssignment(holder) && holder.initializer === value) {
+    const key = assignedName(holder);
+    return key !== undefined && DESCRIPTOR_KEYS.has(key);
+  }
+  if (!ts.isArrayLiteralExpression(holder)) return false;
+  const list = unwrapUp(holder);
+  return (
+    ts.isPropertyAssignment(list.parent) &&
+    list.parent.initializer === list &&
+    assignedName(list.parent) === 'versions'
+  );
+}
+
+// A string joined to other text with `+` or `+=` may build the value the code sends.
+function concatenated(node: ts.Node) {
+  const parent = unwrapUp(node).parent;
+  return (
+    ts.isBinaryExpression(parent) &&
+    (parent.operatorToken.kind === ts.SyntaxKind.PlusToken ||
+      parent.operatorToken.kind === ts.SyntaxKind.PlusEqualsToken)
+  );
+}
+
+// Text that sets a model key just before a match, as in the JSON `{"model": "gpt-4"}`.
+const MODEL_KEY = /\bmodel(?:Id|Name)?["'\s]*[:=]\s*$/i;
+
+// Whether a model ID quoted inside a plain string is prose (a description, an error message,
+// embedded markdown) and not what the code sends. The ID alone as the string is a request, so is
+// config text that sets a model key right before it, and so is a string joined to other text.
+// `before` is the string's own source text up to the ID's opening quote.
+function isProse(node: ts.StringLiteralLike, version: string, before: string) {
+  return node.text !== version && !MODEL_KEY.test(before) && !concatenated(node);
 }
 
 function propertyKey(node: ts.Node) {
@@ -214,6 +282,7 @@ function literalUse(
   // value is a plain string is an alias map, and the value is what the code sends.
   if (propertyKey(node)) return 'catalog';
   if (ts.isElementAccessExpression(parent) && parent.argumentExpression === node) return 'catalog';
+  if (descriptor(node)) return 'catalog';
   for (let current: ts.Node = node; current.parent; current = current.parent) {
     const up = current.parent;
     if (ts.isTypeNode(up) && !ts.isLiteralTypeNode(up)) return 'catalog';
@@ -261,7 +330,12 @@ function tokenUses(path: string, content: string, models: Map<string, unknown>) 
   visit(source);
   const isModel = (value: string) =>
     models.has(value) || OPENAI_MODEL.test(value) || ANTHROPIC_MODEL.test(value);
-  return (offset: number, provider: DeadlineEntry['provider'], line: string): DeadlineUse => {
+  return (
+    offset: number,
+    provider: DeadlineEntry['provider'],
+    line: string,
+    version: string,
+  ): DeadlineUse => {
     let low = 0;
     let high = ranges.length - 1;
     while (low <= high) {
@@ -272,8 +346,13 @@ function tokenUses(path: string, content: string, models: Map<string, unknown>) 
       else {
         const model = MODEL_PROVIDERS.has(provider);
         const use = ts.isStringLiteralLike(node) ? literalUse(node, path, model, isModel) : 'live';
+        if (use !== 'live' || !model) return use;
         // An HTML or JSX `<option>` is one choice in a picker.
-        return use === 'live' && model && OPTION_ELEMENT.test(line) ? 'catalog' : use;
+        if (OPTION_ELEMENT.test(line)) return 'catalog';
+        // Prose comes last: it only reclassifies a match that is live so far. Template pieces and
+        // JSX text never get here as strings, so they stay live.
+        const before = content.slice(Math.max(start, offset - 41), offset - 1);
+        return ts.isStringLiteralLike(node) && isProse(node, version, before) ? 'comment' : use;
       }
     }
     return 'comment';
@@ -349,7 +428,7 @@ export async function scanDeadlines(
           file: file.path,
           line: index + 1,
           kind: 'source',
-          use: useAt(offset + match.column, match.provider, line),
+          use: useAt(offset + match.column, match.provider, line, match.version),
           text: excerpt(line),
         });
       }
