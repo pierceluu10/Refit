@@ -3,16 +3,16 @@ gsd_state_version: "1.0"
 current_phase: 01
 current_phase_name: Live exposure and tracing
 status: executing
-stopped_at: Roadmap created, awaiting approval
-last_updated: "2026-10-21T11:17:18.866Z"
+stopped_at: Completed 01-01-PLAN.md
+last_updated: "2026-10-21T11:39:37.233Z"
 last_activity: 2026-10-21
 last_activity_desc: Phase 01 execution started
-state_head: 77b913062199058b0a4ee6889f031630c6d59f39
+state_head: 38e5d2c7d8f19239ec8f0e5ad71a6afce5793b9e
 progress:
   total_phases: 4
   completed_phases: 0
   total_plans: 5
-  completed_plans: 0
+  completed_plans: 1
   percent: 0
 ---
 
@@ -28,8 +28,8 @@ See: .planning/PROJECT.md (updated 2026-10-21)
 ## Current Position
 
 Phase: 01 (Live exposure and tracing) — EXECUTING
-Plan: 1 of 5
-Status: Executing Phase 01
+Plan: 2 of 5
+Status: Ready to execute
 Last activity: 2026-10-21 — Phase 01 execution started
 
 Progress: [░░░░░░░░░░] 0%
@@ -52,6 +52,11 @@ Progress: [░░░░░░░░░░] 0%
 - Trend: -
 
 *Updated after each plan completion*
+**Per-Plan Metrics:**
+
+| Plan | Duration | Tasks | Files |
+|------|----------|-------|-------|
+| Phase 01 P01 | 20 min | 3 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -62,6 +67,10 @@ Recent decisions affecting current work:
 
 - [Roadmap]: Phases 1–3 are independent; Phase 4 measures all of them and comes last
 - [Roadmap]: Phase 3 labels must not be derived from the new tracer's output
+- [Phase 01]: [01-01]: nonLiveCounts counts distinct file:line:version non-live entries by use (the unit of nonLive and nonLiveMore), after a live match of the same version on a line hides the non-live ones
+- [Phase 01]: [01-01]: refit deadlines prints a count line for every use that has a count, even when all its matches fall past the 20-item listing limit
+- [Phase 01]: [01-01]: += operands are treated as concatenation like +, so a model ID in them stays live (conservative extension of D-20)
+- [Phase 01]: [01-01]: mentionedOnly excludes errored repositories; benchmarkSummary keeps the script nine summary keys in order and appends mentionedOnly
 
 ### Pending Todos
 
@@ -80,6 +89,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-10-21
-Stopped at: Roadmap created, awaiting approval
+Last session: 2026-10-21T11:39:37.220Z
+Stopped at: Completed 01-01-PLAN.md
 Resume file: None
