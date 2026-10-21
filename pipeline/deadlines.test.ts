@@ -434,6 +434,13 @@ it('classifies model IDs inside longer plain strings as prose, but keeps templat
     ['gpt-4', `export const G = '{"model":"gpt-4","messages":[]}';`, 'live'],
     ['gpt-4', 'export const H = `{ "model": "gpt-4" }`;', 'live'],
     ['gpt-4', `export const I = '{"modelName": "gpt-4"}';`, 'live'],
+    // A CLI flag, an upper-case environment variable and a snake-case key (WR-03).
+    ['gpt-4', `export const P = execSync('codex --model "gpt-4" run');`, 'live'],
+    ['gpt-4', `export const Q = 'OPENAI_MODEL="gpt-4"\\n';`, 'live'],
+    ['gpt-4', `export const R = '{"model_id": "gpt-4", "x": 1}';`, 'live'],
+    ['gpt-4', `export const S = 'run -m "gpt-4" now';`, 'live'],
+    // A key word that is not directly before the ID stays prose.
+    ['gpt-4', `export const T = 'The model_id field says "gpt-4" here';`, 'comment'],
     // Template pieces (head, middle, tail) and concatenated strings can build the value sent.
     ['gpt-4', 'export const J = `Model "gpt-4" only for ${user}`;', 'live'],
     ['gpt-4', 'export const K = `For ${user} the model "gpt-4" or ${other}`;', 'live'],

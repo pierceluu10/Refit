@@ -229,15 +229,22 @@ function concatenated(node: ts.Node) {
   );
 }
 
-// Text that sets a model key just before a match, as in the JSON `{"model": "gpt-4"}`.
-const MODEL_KEY = /\bmodel(?:Id|Name)?["'\s]*[:=]\s*$/i;
+// Text that sets a model right before a match: a key (`{"model": "gpt-4"}`, `model_id`, `modelName`,
+// `OPENAI_MODEL=`) followed by `:` or `=`, a CLI flag (`--model gpt-4`, `-m gpt-4`), or an
+// upper-case `...MODEL` name. `before` stops one character short of the ID, so a flag's trailing
+// space or an opening quote is already cut.
+const MODEL_KEYS = [
+  /(?:^|[^a-z0-9_-])[a-z0-9_-]*model(?:[_-]?(?:id|name))?["'\s]*[:=]\s*$/i,
+  /(?:^|\s)(?:--[a-z-]*model(?:[_-]?(?:id|name))?|-m)["'=\s]*$/i,
+  /(?:^|[^A-Z0-9_])[A-Z0-9_]*MODEL["'\s]*$/,
+];
 
 // Whether a model ID quoted inside a plain string is prose (a description, an error message,
 // embedded markdown) and not what the code sends. The ID alone as the string is a request, so is
-// config text that sets a model key right before it, and so is a string joined to other text.
+// config text that sets a model key or flag right before it, and so is a string joined to other text.
 // `before` is the string's own source text up to the ID's opening quote.
 function isProse(node: ts.StringLiteralLike, version: string, before: string) {
-  return node.text !== version && !MODEL_KEY.test(before) && !concatenated(node);
+  return node.text !== version && !MODEL_KEYS.some((key) => key.test(before)) && !concatenated(node);
 }
 
 function propertyKey(node: ts.Node) {
