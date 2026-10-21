@@ -288,6 +288,10 @@ it('re-reads a seeded sample: agreement, adjudication, regenerated labels, and t
     final: { live: false, reason: 'test' },
   });
   expect(file.counts).toMatchObject({ candidates: 4, live: 3, notLive: 1 });
+  const changed = file.repos[1].labels.find(
+    (l: { file: string; line: number }) => l.file === first.file && l.line === first.line,
+  );
+  expect(changed).toMatchObject({ live: false, reason: 'test', notes: 'second reading was right' });
   expect(file.method).toContain('separate fresh-context agent');
   expect(file.method).toContain('Not hand labelling');
 });

@@ -6,7 +6,13 @@ import { readdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { parseArgs } from 'node:util';
 import { createHash } from 'node:crypto';
-import { COMMITTED_KEYS, agreement, seededSample, validateLabels } from './ai-app-helpers.mjs';
+import {
+  COMMITTED_KEYS,
+  agreement,
+  noteLeaksCode,
+  seededSample,
+  validateLabels,
+} from './ai-app-helpers.mjs';
 
 const { values } = parseArgs({
   options: {
@@ -112,7 +118,8 @@ async function rereadMerge() {
       typeof note !== 'string' ||
       !note.trim() ||
       /[\r\n]/.test(note) ||
-      note.length > 160
+      note.length > 160 ||
+      noteLeaksCode(note, sampleById.get(id).context)
     ) {
       console.error(`invalid adjudication: ${k}`);
       process.exit(1);
@@ -122,6 +129,8 @@ async function rereadMerge() {
     label.via = adjudicated.via;
     delete label.reason;
     if (!label.live) label.reason = adjudicated.reason;
+    // A changed verdict must not keep the first reader's contradicting notes.
+    if (JSON.stringify(first) !== JSON.stringify(brief(label))) label.notes = note;
     disagreements.push({
       key: k,
       first,
