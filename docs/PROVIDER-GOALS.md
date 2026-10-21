@@ -159,7 +159,7 @@ Built-in agent, 531 benchmark repositories, **74 validated fixes of 234 affected
 
 ## Gemini
 
-**Status today.** In the catalog with `adapter: null`, packages `@google/genai` and `@google/generative-ai`, hostname `generativelanguage.googleapis.com` (source: pipeline/agent-catalog.ts, 2026-10-21). One deadline entry: the old package's end of support on 2025-11-30, `kind: "sdk"`, matched against manifests that declare it (source: data/deadlines.json). Gemini model IDs get the OpenAI and Anthropic use classes, including the `models/` prefix, but the registry has **no Gemini model entries**, because Google's deprecations page could not be read (below). `refit deadlines --propose-model-fixes` and `refit serve --model-fixes` never edit Gemini code (pipeline/model-retirements.test.ts). Benchmark: 50 frozen repositories, BENCH_STATUS
+**Status today.** In the catalog with `adapter: null`, packages `@google/genai` and `@google/generative-ai`, hostname `generativelanguage.googleapis.com` (source: pipeline/agent-catalog.ts, 2026-10-21). One deadline entry: the old package's end of support on 2025-11-30, `kind: "sdk"`, matched against manifests that declare it (source: data/deadlines.json). Gemini model IDs get the OpenAI and Anthropic use classes, including the `models/` prefix, but the registry has **no Gemini model entries**, because Google's deprecations page could not be read (below). `refit deadlines --propose-model-fixes` and `refit serve --model-fixes` never edit Gemini code (pipeline/model-retirements.test.ts). Benchmark: 50 frozen repositories, mostly libraries; all 6 that declare the old package are flagged for its end of support, and a classification census found live Gemini model IDs in 39, with 75% of a 67-pin sample being real live pins (source: docs/BENCHMARKS.md#gemini-october-21).
 
 **Facts checked 2026-10-21.** Each from an official source read on that day; nothing below comes from memory or a search summary.
 
@@ -179,7 +179,7 @@ Built-in agent, 531 benchmark repositories, **74 validated fixes of 234 affected
 
 **What breaks for its users.** Model retirements with dates, like OpenAI's (unverified until Google's page is read). The SDK replacement: support for `@google/generative-ai` ended on 2025-11-30, and `@google/genai` has different call shapes, so moving is a code change, not a version bump. A major `@google/genai` 3.0.0 with named removals is announced in its README.
 
-**SDK patterns to trace.** As in the table: `ai.models.generateContent({ model, contents })` and `generateContentStream` on `@google/genai`; `new GoogleGenerativeAI(key).getGenerativeModel({ model }).generateContent(...)` on the old package. The `model` value is where a retiring ID lives in both. BENCH_PATTERNS
+**SDK patterns to trace.** As in the table: `ai.models.generateContent({ model, contents })` and `generateContentStream` on `@google/genai`; `new GoogleGenerativeAI(key).getGenerativeModel({ model }).generateContent(...)` on the old package. The `model` value is where a retiring ID lives in both. On the benchmark, only 74 of 505 live Gemini IDs sit in a file that imports either SDK: libraries hold them in defaults, configuration, alias maps and provider tables, as OpenAI libraries do.
 
 **Definition of done.** Frozen set of 50 repositories declaring either package. Targets as for OpenAI: ≥ 90% of labelled live model pins traced; ≥ 70% of affected repositories with runnable checks validated; 0 wrong fixes; every stop an owner decision, including the SDK replacement.
 
@@ -281,6 +281,26 @@ Most untraced exposures are not requests an application makes. They are entries 
 
 Item 9 cannot reach 70% on a set of libraries, so the fix-rate target needs an application set to measure against.
 
+## Gemini: progress checklist (2026-10-21)
+
+The same ten items as the OpenAI and Anthropic checklist.
+
+| # | Item | Gemini |
+|---|---|---|
+| 1 | Catalog entry | Yes (`adapter: null`) |
+| 2 | Reviewed adapter for the calls real code makes | No: needs a contract source, unverified |
+| 3 | Deadline entries with `source` and `checkedAt` | Partly: the old SDK's end of support only; model dates wait for Google's page to be read. Not counted |
+| 4 | Deterministic replacement rule with named stops | No: owner decision (Gemini is report only) |
+| 5 | Automatic validated draft pull requests (`refit serve --model-fixes`) | No: owner decision #120 covers OpenAI and Anthropic only |
+| 6 | Frozen benchmark set | Yes, 50 repositories |
+| 7 | Hand-labelled live pins | No: a 72-match sample was reviewed, not labelled |
+| 8 | At least 90% of labelled pins traced | No |
+| 9 | At least 70% of affected repositories with runnable checks validated | No: nothing is affected until model dates exist |
+| 10 | No wrong fix on hand review | Not applicable: no fixes. Not counted |
+| | **Done** | **20%** |
+
+The next work, in order: read Google's deprecations page from an environment that can reach ai.google.dev and enter the dated retirements; then a `refit deadlines --sync gemini` against that page's real layout; then the owner decisions on replacements and the SDK swap.
+
 ## Priority order
 
 | # | Provider | Reason |
@@ -303,7 +323,7 @@ The order weighs reuse of existing work, how common the SDK is in public reposit
 Capabilities several providers need, in the order the priorities above reach them:
 
 1. **Model-retirement rule** (OpenAI, Anthropic, Gemini): review-only proposals exist for OpenAI and Anthropic (`refit deadlines --propose-model-fixes`, 2026-10-20). `refit serve --model-fixes` applies them through validation and drafts in enrolled repositories (owner decision, 2026-10-20).
-2. **Deadline registry entries** for Gemini, PayPal, Slack, Cloudflare, Google and Salesforce, each with a verified `source` and `checkedAt`, and matcher rules per provider (today OpenAI and Anthropic have catalog, test and comparison classes).
+2. **Deadline registry entries** for Gemini, PayPal, Slack, Cloudflare, Google and Salesforce, each with a verified `source` and `checkedAt`, and matcher rules per provider (today OpenAI, Anthropic and Gemini have catalog, test and comparison classes). Gemini has the old SDK's end of support (2026-10-21); its model dates are unverified.
 3. **Factory and lazy clients** (every provider): the active-teams set shows `getStripe()`-style factories as the main tracing gap (source: docs/READINESS.md, 2026-10-16). Fixing it once lifts every adapter.
 4. **Versioned-URL pin moves** (Meta, Shopify REST, Salesforce, Google): one rule that moves a version segment in a URL or a `version` option when the per-version change list proves nothing the code touches changed. Needs a contract shape for "list of removals per version" that is not OpenAPI. Meta has a review-only, Graph-specific version (`pipeline/meta-graph-moves.ts`, 2026-10-20); it is not wired into `refit run`.
 5. **Non-OpenAPI change sources** (Meta changelog, Google Discovery, Slack method notices): a reader per shape, or a hand-maintained JSON list like `data/deadlines.json`, with an owner decision on whether a hand list is evidence enough for an edit. Meta has the hand-maintained list (`data/meta-graph-changes.json`), reviewed for v14.0 to v26.0 with 281 changes on 2026-10-20; WhatsApp and Messenger changelogs are not covered yet.
