@@ -66,7 +66,8 @@ A retiring model ID in real application code is traced to the exact call and rep
 | Parameter stops lift only with a provider page proving the replacement accepts the parameter | Owner delegated the call 2026-10-21; keeps the never-wrong bar while unblocking most stops | — Pending |
 | New application sets from GitHub code search; npm sets kept as library baselines | Fix-rate target needs applications; keeping old sets preserves comparable history | — Pending |
 | Deterministic only, no paid AI calls in the benchmark | The rule makes no AI calls; spend would not change the score | — Pending |
-| A shared constant/field/helper is editable only when every use is a traced request that allows the edit | Precision improvement found in Phase 1 scouting; every use is checked, so no safety gate is relaxed | — Pending |
+| A shared constant/field/helper is editable only when every use is a traced request that allows the edit | Precision improvement found in Phase 1 scouting; every use is checked, so no safety gate is relaxed | Implemented in Phase 1 (2026-10-21); pending owner review on the phase PR |
+| Tracer follows class fields, const object members, fallbacks, returned literals, destructuring defaults and options objects; non-text calls stop | Phase 1 scouting of the 2026-10-20 silent exposures; recorded in AGENTS.md (D-14) | Implemented in Phase 1 (2026-10-21); pending owner review on the phase PR |
 | Wrapper libraries (AI SDK, LangChain, Genkit) deferred; labels record `via: wrapper` pins to measure them | Keeps the milestone on the official SDKs the agents cover while measuring the gap honestly | — Pending |
 | Skipped codebase mapping | AGENTS.md, READINESS.md and PROVIDER-GOALS.md already document the architecture | — Pending |
 

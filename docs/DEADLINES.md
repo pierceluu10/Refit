@@ -191,6 +191,7 @@ A replacement is proposed only when all of these hold:
 - Its `model` is a string literal naming a registry model, or one of these, followed through imports across files:
   - the default of a `??` or `||` fallback, such as `process.env.MODEL ?? 'gpt-4'`;
   - a `const` or enum member holding such a literal and used only by this request (`model: MODEL`, `{ model }`, `model: Model.Default`), edited where it is declared, even in another module;
+  - a class field: an initializer (`model = 'gpt-4'`), `this.model = …` assignments, or a constructor parameter followed to the literal its `new` callers pass, even in another module;
   - a parameter of the helper function that makes the call, such as `ask(messages, model = 'gpt-4')`. Its default and each caller that passes a literal (`ask(messages, 'o1-mini')`) are edited separately, each to its own replacement.
 - The file is not a test, spec, story, fixture or example file.
 - The registry entry names a concrete model ID. When that replacement retires too, Refit follows the registry to a model that does not, for example `o1-mini` to `o4-mini` to `gpt-5.6-terra`.
