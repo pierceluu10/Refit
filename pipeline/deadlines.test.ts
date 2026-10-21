@@ -401,12 +401,18 @@ it('classifies descriptor keys and versions arrays as catalog and keeps request 
     ['gpt-4', "export const P = { versions: 'gpt-4' };", 'live'],
     ['gpt-4', "export const Q = { id: flag ? 'gpt-4' : 'o1-mini' };", 'live'],
   ];
-  const { result } = await uses({ 'src/models.ts': cases.map(([, line]) => line).join('\n') });
-  expect(result).toEqual(
-    Object.fromEntries(
+  const { result } = await uses({
+    'src/models.ts': cases.map(([, line]) => line).join('\n'),
+    // Every element of a versions array is an entry, not only the first.
+    'src/versions.ts': "export const R = { versions: ['gpt-4', 'gpt-4-0613'] };",
+  });
+  expect(result).toEqual({
+    ...Object.fromEntries(
       cases.map(([model, , use], index) => [`src/models.ts:${index + 1} ${model}`, use]),
     ),
-  );
+    'src/versions.ts:1 gpt-4': 'catalog',
+    'src/versions.ts:1 gpt-4-0613': 'catalog',
+  });
 });
 
 it('classifies model IDs inside longer plain strings as prose, but keeps templates, concatenations and JSON model keys live', async () => {
@@ -415,22 +421,30 @@ it('classifies model IDs inside longer plain strings as prose, but keeps templat
     ['dall-e-3', `export const A = 'Image model to use (e.g. "dall-e-3")';`, 'comment'],
     ['gpt-4', `export const B = 'Model "gpt-4" is deprecated';`, 'comment'],
     ['gpt-4', 'export const C = `Model "gpt-4" only`;', 'comment'],
+    [
+      'claude-3-opus-20240229',
+      `export const D = 'Claude model ("claude-3-opus-20240229")';`,
+      'comment',
+    ],
     // The word "model" earlier in the text is not a key set just before the ID.
-    ['gpt-4', `export const D = 'The model setting: use "gpt-4" here';`, 'comment'],
+    ['gpt-4', `export const E = 'The model setting: use "gpt-4" here';`, 'comment'],
     // Exactly the model ID is what the code sends.
-    ['gpt-4', "export const E = 'gpt-4';", 'live'],
+    ['gpt-4', "export const F = 'gpt-4';", 'live'],
     // JSON and config text that sets a model key can be sent as it is.
-    ['gpt-4', `export const F = '{"model":"gpt-4","messages":[]}';`, 'live'],
-    ['gpt-4', 'export const G = `{ "model": "gpt-4" }`;', 'live'],
-    ['gpt-4', `export const H = '{"modelName": "gpt-4"}';`, 'live'],
-    // Template pieces and concatenated strings can build the value that is sent.
-    ['gpt-4', 'export const I = `Model "gpt-4" only for ${user}`;', 'live'],
-    ['gpt-4', `export const J = 'Model "gpt-4" ' + suffix;`, 'live'],
-    ['gpt-4', `export const K = ('Model "gpt-4" ') + suffix;`, 'live'],
+    ['gpt-4', `export const G = '{"model":"gpt-4","messages":[]}';`, 'live'],
+    ['gpt-4', 'export const H = `{ "model": "gpt-4" }`;', 'live'],
+    ['gpt-4', `export const I = '{"modelName": "gpt-4"}';`, 'live'],
+    // Template pieces (head, middle, tail) and concatenated strings can build the value sent.
+    ['gpt-4', 'export const J = `Model "gpt-4" only for ${user}`;', 'live'],
+    ['gpt-4', 'export const K = `For ${user} the model "gpt-4" or ${other}`;', 'live'],
+    ['gpt-4', 'export const L = `For ${user} only "gpt-4"`;', 'live'],
+    ['gpt-4', `export const M = 'Model "gpt-4" ' + suffix;`, 'live'],
+    ['gpt-4', `export const N = ('Model "gpt-4" ') + suffix;`, 'live'],
     ['gpt-4', `message += 'Model "gpt-4" ';`, 'live'],
   ];
   const { result } = await uses({
-    'src/prose.ts': [...cases.map(([, line]) => line), 'export const M = `gpt-4-${suffix}`;'].join(
+    // The last line is never prose, and the prose rule adds no match of its own.
+    'src/prose.ts': [...cases.map(([, line]) => line), 'export const O = `gpt-4-${suffix}`;'].join(
       '\n',
     ),
     'src/Note.tsx': 'export const Note = () => <p>Uses "gpt-4"</p>;',
@@ -441,7 +455,7 @@ it('classifies model IDs inside longer plain strings as prose, but keeps templat
     ].join('\n'),
     'src/shop.ts': "fetch('https://example.myshopify.com/admin/api/2025-10/orders.json');",
   });
-  const { 'src/prose.ts:13 gpt-4': unmatched, ...rest } = result;
+  const { [`src/prose.ts:${cases.length + 1} gpt-4`]: unmatched, ...rest } = result;
   expect(rest).toEqual({
     ...Object.fromEntries(
       cases.map(([model, , use], index) => [`src/prose.ts:${index + 1} ${model}`, use]),
@@ -451,7 +465,6 @@ it('classifies model IDs inside longer plain strings as prose, but keeps templat
     'src/graph.ts:2 v21.0': 'live',
     'src/shop.ts:1 2025-10': 'live',
   });
-  // A template with a substitution is never prose, and the rule adds no match of its own.
   expect([undefined, 'live']).toContain(unmatched);
 });
 
