@@ -2,6 +2,9 @@ import { cp, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { afterEach, expect, it } from 'vitest';
+import { analyzeRepository } from './analyzer.ts';
+import { readProviderAdapter } from './providers.ts';
+import { readRepository } from './repository.ts';
 import { runPipeline } from './run.ts';
 
 const roots: string[] = [];
@@ -74,4 +77,40 @@ it('counts an untraced read of a removed field as unresolved, so the draft needs
     { file: 'legacy.ts', confidence: 'review', untraced: true },
   ]);
   expect(report.patch).toMatchObject({ status: 'proposed', unresolvedFindings: 1 });
+});
+
+it('gives the same analysis when adapters share one snapshot as when each reads its own', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'refit-skip-'));
+  roots.push(root);
+  await writeFile(
+    join(root, 'package.json'),
+    JSON.stringify({ dependencies: { openai: '4.80.0', '@anthropic-ai/sdk': '0.40.0' } }),
+  );
+  await writeFile(
+    join(root, 'ai.ts'),
+    [
+      "import OpenAI from 'openai';",
+      "import Anthropic from '@anthropic-ai/sdk';",
+      'const openai = new OpenAI();',
+      'const anthropic = new Anthropic();',
+      "openai.chat.completions.create({ model: 'gpt-4', messages: [] });",
+      "anthropic.messages.create({ model: 'claude-3-opus-20240229', max_tokens: 9, messages: [] });",
+    ].join('\n'),
+  );
+  const adapters = await Promise.all(
+    ['openai', 'anthropic'].map((name) => readProviderAdapter(`examples/${name}.provider.json`)),
+  );
+  const calls = (analysis: ReturnType<typeof analyzeRepository>) =>
+    analysis.sdkCalls.map((call) => `${call.line}:${call.resource}.${call.method}`);
+  const shared = await readRepository(root);
+  const together = adapters.map((adapter) =>
+    calls(analyzeRepository({ ...shared, files: shared.files }, [], adapter)),
+  );
+  const apart = await Promise.all(
+    adapters.map(async (adapter) =>
+      calls(analyzeRepository(await readRepository(root, adapter.packageName), [], adapter)),
+    ),
+  );
+  expect(together).toEqual([['5:chat.completions.create'], ['6:messages.create']]);
+  expect(together).toEqual(apart);
 });
