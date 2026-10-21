@@ -35,6 +35,13 @@ Today `pipeline/model-retirements.ts` stops every OpenAI request that sets `temp
 ### Tests
 - **D-10:** Each provider has at least one test where the parameter is allowed and the request is edited, and one where it still stops: an out-of-range value, a non-default value, an unproven parameter, a non-literal value, and a renamed parameter. Validator tests cover each rejection reason. The tests use a small fixture table, so they never depend on the live data file's contents.
 
+### Resolutions after research (2026-10-21)
+- **D-11:** GPT-6 replacements get no table entry, because acceptance depends on `reasoning_effort: none`, which the table cannot express. Those requests keep stopping.
+- **D-12:** One `source` per entry. Where a fact needs two pages, split it into separate entries or use the stricter page. Sources are never merged.
+- **D-13:** `proposeModelReplacements` takes the table as an optional argument that defaults to an empty table, so library callers and existing tests are unchanged. `refit deadlines --propose-model-fixes` and `refit serve --model-fixes` load the shipped `data/model-parameters.json`.
+- **D-14:** The decision text (AGENTS.md, DEADLINES.md) states plainly that on the official pages read on 2026-10-21, only Anthropic literal `temperature: 1` and `top_p >= 0.99` (Claude 4.7-and-later replacements) and the Haiku 4.5 parameters continue. OpenAI requests that set sampling or length parameters keep stopping, because no OpenAI page states support. `o3` `max_tokens` gets a renamed-parameter stop reason.
+- **D-15:** Numeric values: only a signed numeric literal written directly in the request counts. Constants, shorthand properties, string numerals and expressions stop with "not a numeric literal".
+
 ### Claude's Discretion
 - How the table is loaded and cached, and whether `refit serve --model-fixes` and `refit deadlines --propose-model-fixes` share one loader. Both must use the table.
 - Exact JSON field names, if research shows a cleaner shape. The semantics in D-01..D-08 still apply.
