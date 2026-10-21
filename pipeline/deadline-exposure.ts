@@ -30,7 +30,8 @@ const META_CONTEXT = [META_SDK, 'graph.facebook.com'];
 //   model, such as pricing or context windows, a model record's `id` or `name` beside a metadata
 //   field such as `contextWindow`, or a model reference's `versions` list;
 // - test: test, spec, story, fixture and example files;
-// - comment: comments, which the parser keeps out of every source token;
+// - comment: comments, which the parser keeps out of every source token, and, for model providers
+//   only, a model ID quoted inside a longer plain string, such as a description or an error message;
 // - tokenizer: a local tokenizer argument, such as `encoding_for_model('gpt-4')`;
 // - check: a comparison or prefix check, such as `model.startsWith('o1')` or `case 'gpt-4':`.
 // Comments and the tokenizer and prefix calls apply to every provider; the rest apply to model
@@ -56,6 +57,9 @@ export interface DeadlineExposure {
   // Matches that are not live, with their own limit and count.
   nonLive: DeadlineEvidence[];
   nonLiveMore: number;
+  // The exact number of non-live matches by use, counted before the limit above. Always set by the
+  // scan, and optional only so a hand-built exposure need not repeat it.
+  nonLiveCounts?: Partial<Record<DeadlineUse, number>>;
 }
 
 // Deadlines found in a repository: exposures have live evidence; mentions are deadlines the
@@ -224,6 +228,70 @@ function constantObject(node: ts.Node): node is ts.ObjectLiteralExpression {
   );
 }
 
+// `as`, `satisfies`, parentheses, a `<T>` assertion and `!` change an expression's type, not its
+// value.
+function isTypeWrapper(
+  node: ts.Node,
+): node is
+  | ts.AsExpression
+  | ts.SatisfiesExpression
+  | ts.ParenthesizedExpression
+  | ts.TypeAssertion
+  | ts.NonNullExpression {
+  return (
+    ts.isAsExpression(node) ||
+    ts.isSatisfiesExpression(node) ||
+    ts.isParenthesizedExpression(node) ||
+    ts.isTypeAssertionExpression(node) ||
+    ts.isNonNullExpression(node)
+  );
+}
+
+// The outermost wrapper around an expression, or the expression itself.
+function unwrapUp(node: ts.Node) {
+  while (node.parent && isTypeWrapper(node.parent)) node = node.parent;
+  return node;
+}
+
+// A string joined to other text with `+` or `+=` may build the value the code sends.
+function concatenated(node: ts.Node) {
+  const parent = unwrapUp(node).parent;
+  return (
+    ts.isBinaryExpression(parent) &&
+    (parent.operatorToken.kind === ts.SyntaxKind.PlusToken ||
+      parent.operatorToken.kind === ts.SyntaxKind.PlusEqualsToken)
+  );
+}
+
+// Text that sets a model right before a match: a key (`{"model": "gpt-4"}`, `model_id`, `modelName`,
+// `OPENAI_MODEL=`) followed by `:` or `=`, a CLI flag (`--model gpt-4`, `-m gpt-4`), or an
+// upper-case `...MODEL` name. `before` stops one character short of the ID, so a flag's trailing
+// space or an opening quote is already cut.
+const MODEL_KEYS = [
+  /(?:^|[^a-z0-9_-])[a-z0-9_-]*model(?:[_-]?(?:id|name))?["'\s]*[:=]\s*$/i,
+  /(?:^|\s)(?:--[a-z-]*model(?:[_-]?(?:id|name))?|-m)["'=\s]*$/i,
+  /(?:^|[^A-Z0-9_])[A-Z0-9_]*MODEL["'\s]*$/,
+];
+
+// A string that starts with `{` or `[`, or holds a quoted key such as `"engine":`.
+const DATA_TEXT = /^\s*[{[]|["'][\w.-]+["']\s*:/;
+
+// Whether a model ID quoted inside a plain string is prose (a description, an error message,
+// embedded markdown) and not what the code sends. The ID alone as the string is a request, so is
+// config text that sets a model key or flag right before it, and so is a string joined to other text.
+// `before` is the string's own source text up to the ID's opening quote.
+function isProse(node: ts.StringLiteralLike, version: string, before: string) {
+  return (
+    node.text !== version &&
+    // Prose has words around the ID; a path-like value such as `models/gemini-1.5-pro` does not.
+    /\s/.test(node.text) &&
+    !MODEL_KEYS.some((key) => key.test(before)) &&
+    // A string that looks like JSON or holds a quoted key is data, whatever precedes the ID.
+    !DATA_TEXT.test(node.text) &&
+    !concatenated(node)
+  );
+}
+
 function propertyKey(node: ts.Node) {
   return (
     node.parent &&
@@ -270,8 +338,8 @@ function literalUse(
   // The versions a model reference accepts, as in genkit's `versions: ['gpt-4o-2024-05-13']`.
   if (
     ts.isArrayLiteralExpression(parent) &&
-    ts.isPropertyAssignment(parent.parent) &&
-    keyText(parent.parent.name) === 'versions'
+    ts.isPropertyAssignment(unwrapUp(parent).parent) &&
+    keyText((unwrapUp(parent).parent as ts.PropertyAssignment).name) === 'versions'
   )
     return 'catalog';
   for (let current: ts.Node = node; current.parent; current = current.parent) {
@@ -323,7 +391,12 @@ function tokenUses(path: string, content: string, models: Map<string, unknown>) 
   const isModel = (value: string) =>
     models.has(value) || OPENAI_MODEL.test(value) || ANTHROPIC_MODEL.test(value);
   const isGeminiListModel = (value: string) => isModel(value) || GEMINI_MODEL.test(value);
-  return (offset: number, provider: DeadlineEntry['provider'], line: string): DeadlineUse => {
+  return (
+    offset: number,
+    provider: DeadlineEntry['provider'],
+    line: string,
+    version: string,
+  ): DeadlineUse => {
     let low = 0;
     let high = ranges.length - 1;
     while (low <= high) {
@@ -336,8 +409,13 @@ function tokenUses(path: string, content: string, models: Map<string, unknown>) 
         const use = ts.isStringLiteralLike(node)
           ? literalUse(node, path, model, provider === 'gemini' ? isGeminiListModel : isModel)
           : 'live';
+        if (use !== 'live' || !model) return use;
         // An HTML or JSX `<option>` is one choice in a picker.
-        return use === 'live' && model && OPTION_ELEMENT.test(line) ? 'catalog' : use;
+        if (OPTION_ELEMENT.test(line)) return 'catalog';
+        // Prose comes last: it only reclassifies a match that is live so far. Template pieces and
+        // JSX text never get here as strings, so they stay live.
+        const before = content.slice(Math.max(start, offset - 41), offset - 1);
+        return ts.isStringLiteralLike(node) && isProse(node, version, before) ? 'comment' : use;
       }
     }
     return 'comment';
@@ -413,7 +491,7 @@ export async function scanDeadlines(
           file: file.path,
           line: index + 1,
           kind: 'source',
-          use: useAt(offset + match.column, match.provider, line),
+          use: useAt(offset + match.column, match.provider, line, match.version),
           text: excerpt(line),
         });
       }
@@ -467,6 +545,9 @@ export async function scanDeadlines(
     const rest = exposure.nonLive.filter(
       (item) => !live.has(`${item.file}:${item.line}:${item.version}`),
     );
+    const counts: Partial<Record<DeadlineUse, number>> = {};
+    for (const item of rest) counts[item.use] = (counts[item.use] ?? 0) + 1;
+    exposure.nonLiveCounts = counts;
     exposure.nonLive = rest.slice(0, MAX_EVIDENCE);
     exposure.nonLiveMore = rest.length - exposure.nonLive.length;
   }

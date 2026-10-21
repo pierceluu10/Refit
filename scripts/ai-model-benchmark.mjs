@@ -6,6 +6,7 @@ import { existsSync } from 'node:fs';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { parseArgs, promisify } from 'node:util';
+import { benchmarkSummary, repositoryNonLive } from './ai-model-benchmark-summary.mjs';
 
 const execute = promisify(execFile);
 const GIT_TIMEOUT_MS = 300_000;
@@ -113,22 +114,11 @@ for (const [index, entry] of frozen.repos.entries()) {
     stops: (proposal.result?.stops ?? [])
       .filter((item) => item.provider === frozen.provider)
       .map(({ file, line, call, at, model, reason }) => ({ file, line, call, at, model, reason })),
+    ...repositoryNonLive(deadlines.result, frozen.provider),
   });
 }
 
-const exposed = results.filter((item) => item.exposures?.length);
-const summary = {
-  repositories: results.length,
-  errors: results.filter((item) => item.error).length,
-  timedOut: results.filter((item) => item.error?.startsWith('timed out')).length,
-  exposed: exposed.length,
-  exposedWithReplacement: exposed.filter((item) => item.replacements.length).length,
-  exposedStoppedOnly: exposed.filter((item) => !item.replacements.length && item.stops.length)
-    .length,
-  exposedSilent: exposed.filter((item) => !item.replacements.length && !item.stops.length).length,
-  replacements: results.reduce((total, item) => total + (item.replacements?.length ?? 0), 0),
-  stops: results.reduce((total, item) => total + (item.stops?.length ?? 0), 0),
-};
+const summary = benchmarkSummary(results);
 await writeFile(
   values.output,
   `${JSON.stringify(

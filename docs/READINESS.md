@@ -1,5 +1,22 @@
 # Refit implementation checkpoints
 
+## October 21 checkpoint: new model-fix stops, prose and traced indirect sources (unreleased, after 0.39.0)
+
+This change only adds stops: `refit deadlines --propose-model-fixes` and `refit serve --model-fixes` edit nothing they did not edit before. See [Deadlines](DEADLINES.md#propose-model-replacements).
+
+- **Prose.** A model ID quoted inside a longer plain string with spaces (a description, an error message, embedded markdown) is a `comment`, not live (D-20, approved by the owner on 2026-10-21). Template pieces with substitutions, `+` operands, JSX text, JSON-shaped strings and text that sets a model key, flag or env name right before the ID stay live.
+- **Non-text calls.** Every traced OpenAI or Anthropic call outside text generation, and raw requests to the non-text endpoints and Anthropic `/v1/complete`, stop with a named reason and are never edited. In `refit serve --model-fixes` a repository whose only retiring uses are such calls ends as `needs-review` instead of `no-change`.
+- **New stops.** These stop with a named reason:
+  - a custom endpoint anywhere in the repository (`baseURL`, `OPENAI_BASE_URL`, `withOptions(`, `AzureOpenAI`, in source or `.env*`, JSON or YAML);
+  - a module loaded by `import()`, `require()`, a glob, `export *` or an opaque namespace;
+  - class inheritance the tracer cannot resolve;
+  - an enum, class or object read as a whole or written to;
+  - a trace cut by the depth limit (10) or the work budget (2,000 steps).
+- **Indirect sources, reported.** The rule now traces class fields, `const` object members, computed initializers, returned literals, destructuring defaults, options-object parameters and axios request configs. A model reached only through one of them stops and names its source. Editing them (D-06 to D-08) comes with a separate change carrying the owner decision. Shared sources (D-09) stay stops, counted per member for objects and enums.
+- **Counts.** Every exposure and mention carries exact `nonLiveCounts` by use. The AI benchmark summary gains `nonLive`, `nonLiveTotal`, `mentionedOnly` and `exposedErrored`, and errored repositories are no longer counted in `exposedSilent`.
+
+Tests: `pipeline/model-retirements.test.ts` runs the resolver cases with indirect edits enabled and pins the default, in which indirect sites stop. `pipeline/deadlines.test.ts` covers the prose rule; `pipeline/ai-model-benchmark-summary.test.ts` covers the summary keys. Evidence is fixture tests only; no live provider was contacted.
+
 ## October 21 checkpoint: class property models reported for review (unreleased, after 0.39.0)
 
 `refit deadlines --propose-model-fixes` and `refit serve --model-fixes` now trace a request's `model: this.model` to where the class sets it:
@@ -12,12 +29,12 @@ Each such site is listed as a stop with its location and replacement, and is nev
 
 Tests: `pipeline/model-retirements.test.ts` covers class fields, constructor parameter properties, JavaScript constructor assignments and a property read twice. All are stops, with no patch.
 
-
 ## October 21 checkpoint: dynamically imported Stripe client factories (unreleased, after 0.39.0)
 
 A client factory loaded with `await import()` is now followed the way a static import is: `const { getStripe } = await import('./stripe')`, a renamed entry, and `(await import('./stripe')).getStripe()`. The analyzer's type checker runs without lib types, so it could not type a dynamic import; the binding is now made from syntax, like `const { x } = require(...)`. Only `const` destructuring links, only to a stable ESM export (a function, class or top-level `const`), and the factory itself must still pass every existing factory rule. A `let` binding stays untraced; a test pins it.
 
 On the 10 active-team repositories with the most calls that traced nothing on October 16, traced calls went from 247 to 280 of 355, read from source with no Docker ([benchmarks](BENCHMARKS.md#lazy-stripe-clients-on-the-active-teams-set-october-21)). Most of the gap the October 16 run reported had already closed with factory tracing on October 17; this measures what was left. No migration was run or validated for this change.
+
 ## October 21 checkpoint: model catalog precision and build output (unreleased, after 0.39.0)
 
 - **Catalogs.** For OpenAI, Anthropic and Gemini, the deadline scan now lists more catalog shapes as non-live:

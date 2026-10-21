@@ -9,7 +9,12 @@ import {
   type DeadlineEntry,
   type DeadlineRegistry,
 } from './deadline-registry.ts';
-import { proposeModelReplacements } from './model-retirements.ts';
+import { proposeModelReplacements as proposeDirect } from './model-retirements.ts';
+
+// Most cases exercise the full resolver, with indirect edits (D-06 to D-08) enabled. The default,
+// which reports indirect sites without editing them, is pinned by its own tests below.
+const proposeModelReplacements: typeof proposeDirect = (directory, registry, now, options) =>
+  proposeDirect(directory, registry, now, { indirect: true, ...options });
 
 const execute = promisify(execFile);
 const roots: string[] = [];
@@ -178,7 +183,7 @@ it('stops for review where a swap could change the request, and skips what it ca
       "  await openai.chat.completions.create({ ...options, model: 'gpt-4', messages });",
       '  await openai.chat.completions.create({ model: MODEL, messages });',
       "  await openai.chat.completions.create({ model: 'gpt-prose', messages });",
-      // Not a text-generation call, not the SDK, and not a retiring model: no proposal.
+      // Not a text-generation call: it stops for review. Not the SDK, or not a retiring model: nothing.
       "  await openai.embeddings.create({ model: 'gpt-4', input: 'x' });",
       "  await fetch('https://api.openai.com', { body: JSON.stringify({ model: 'gpt-4' }) });",
       "  await openai.chat.completions.create({ model: 'gpt-4o', messages });",
@@ -208,6 +213,11 @@ it('stops for review where a swap could change the request, and skips what it ca
       'The model comes from the constant MODEL (src/ai.ts:5), which is used 2 times; change it by hand to gpt-5.6-sol.',
     ],
     [11, 'gpt-prose', 'The registry names no concrete replacement model ID.'],
+    [
+      12,
+      'gpt-4',
+      '`embeddings.create` is not a call Refit edits; gpt-5.6-sol may change formats or parameters; change it by hand to gpt-5.6-sol.',
+    ],
     [
       8,
       'claude-3-opus-20240229',
@@ -297,7 +307,7 @@ it('follows v3 and openai-edge clients, request consts and model consts used onc
       'export async function ask(content: string) {',
       "  return openai.createChatCompletion({ model: 'gpt-4', messages: [{ role: 'user', content }] });",
       '}',
-      // Legacy completions and other methods are not proposed.
+      // Legacy completions and other methods stop for review.
       "openai.createCompletion({ model: 'gpt-4', prompt: 'x' });",
     ].join('\n'),
     'src/uses.ts': [
@@ -336,6 +346,10 @@ it('follows v3 and openai-edge clients, request consts and model consts used onc
     ['src/edge.ts:5', 'createChatCompletion', 'gpt-5.6-sol'],
   ]);
   expect(proposal.stops.map((item) => [`${item.file}:${item.line}`, item.reason])).toEqual([
+    [
+      'src/v3.ts:6',
+      '`createCompletion` is not a call Refit edits; gpt-5.6-sol may change formats or parameters; change it by hand to gpt-5.6-sol.',
+    ],
     [
       'src/shared.ts:4',
       'The request object request (src/shared.ts:3) is used 2 times; change its model by hand to gpt-5.6-sol.',
@@ -389,10 +403,10 @@ it('follows imported constants, enum members, helper parameters and raw HTTP req
       "const ask = async function (messages, model = 'gpt-4') {",
       '  return openai.chat.completions.create({ model, messages });',
       '};',
-      'module.exports = { ask };',
+      'export { ask };',
     ].join('\n'),
     'lib/commands.js': [
-      "const ai = require('./ai');",
+      "import * as ai from './ai';",
       'ai.ask([]);',
       "ai.ask([], 'o1-mini');",
       "ai.ask([], 'gpt-4o');",
@@ -412,7 +426,7 @@ it('follows imported constants, enum members, helper parameters and raw HTTP req
       '  UrlFetchApp.fetch(`https://api.openai.com/v1/chat/completions`, {',
       "    payload: JSON.stringify({ model: 'gpt-4', messages: [], temperature: 0 }),",
       '  });',
-      // Another host, or another endpoint, is not proposed.
+      // Another host is not proposed; another official endpoint stops for review.
       "  await fetch('https://proxy.example/v1/chat/completions', { body: JSON.stringify({ model: 'gpt-4' }) });",
       "  await fetch('https://api.openai.com/v1/embeddings', { body: JSON.stringify({ model: 'gpt-4' }) });",
       '}',
@@ -450,13 +464,17 @@ it('follows imported constants, enum members, helper parameters and raw HTTP req
       'src/raw.ts:12',
       'The request sets temperature, which gpt-5.6-sol may reject or treat differently.',
     ],
+    [
+      'src/raw.ts:16',
+      '`fetch /v1/embeddings` is not a call Refit edits; gpt-5.6-sol may change formats or parameters; change it by hand to gpt-5.6-sol.',
+    ],
   ]);
   await execute('git', ['init', '-q', root]);
   await writeFile(join(root, 'model.patch'), proposal.patch!);
   await execute('git', ['-C', root, 'apply', 'model.patch']);
   expect(await readFile(join(root, 'lib/commands.js'), 'utf8')).toBe(
     [
-      "const ai = require('./ai');",
+      "import * as ai from './ai';",
       'ai.ask([]);',
       "ai.ask([], 'gpt-5.6-terra');",
       "ai.ask([], 'gpt-4o');",
@@ -519,6 +537,1398 @@ it('keeps Anthropic sampling parameters when the replacement predates Claude 4.7
   ]);
 });
 
+const NON_TEXT = (call: string, to: string) =>
+  `\`${call}\` is not a call Refit edits; ${to} may change formats or parameters; change it by hand to ${to}.`;
+const nonTextRegistry: DeadlineRegistry = {
+  ...registry,
+  deadlines: [
+    ...registry.deadlines,
+    entry({
+      id: 'openai-dall-e-3',
+      provider: 'openai',
+      versions: ['dall-e-3'],
+      replacement: 'gpt-image-2',
+    }),
+    entry({
+      id: 'openai-tts-1',
+      provider: 'openai',
+      versions: ['tts-1'],
+      replacement: 'gpt-4o-mini-tts',
+    }),
+    entry({
+      id: 'openai-whisper-1',
+      provider: 'openai',
+      versions: ['whisper-1'],
+      replacement: 'gpt-4o-transcribe',
+    }),
+  ],
+};
+
+it('stops non-text OpenAI and Anthropic calls with a named reason and never edits them', async () => {
+  const root = await repository({
+    'package.json': JSON.stringify({
+      name: 'app',
+      dependencies: { openai: '4.80.0', '@anthropic-ai/sdk': '0.40.0', 'openai-edge': '1.2.2' },
+    }),
+    'src/ai.ts': [
+      "import OpenAI from 'openai';",
+      "import Anthropic from '@anthropic-ai/sdk';",
+      'const openai = new OpenAI();',
+      'const anthropic = new Anthropic();',
+      'export async function all(prompt: string) {',
+      "  await openai.images.generate({ model: 'dall-e-3', prompt });",
+      "  await openai.images.edit({ model: 'dall-e-3', prompt });",
+      "  await openai.audio.speech.create({ model: 'tts-1', input: prompt, voice: 'alloy' });",
+      "  await openai.audio.transcriptions.create({ model: 'whisper-1', file: prompt });",
+      "  await openai.embeddings.create({ model: 'gpt-4', input: prompt });",
+      "  await openai.moderations.create({ model: 'gpt-4', input: prompt });",
+      "  await openai.completions.create({ model: 'gpt-4', prompt });",
+      "  await openai.beta.assistants.create({ model: 'gpt-4' });",
+      "  await anthropic.completions.create({ model: 'claude-3-opus-20240229', prompt, max_tokens_to_sample: 9 });",
+      // No model, and a lookup by name: nothing to report.
+      '  await openai.embeddings.create({ input: prompt });',
+      "  await openai.models.retrieve('gpt-4');",
+      '}',
+    ].join('\n'),
+    'src/v3.ts': [
+      "import { Configuration, OpenAIApi } from 'openai-edge';",
+      'const api = new OpenAIApi(new Configuration({ apiKey: process.env.KEY }));',
+      "api.createCompletion({ model: 'gpt-4', prompt: 'x' });",
+    ].join('\n'),
+    // One literal reaches a text call and an embeddings call: the merged decision stops.
+    'src/shared.ts': [
+      "import OpenAI from 'openai';",
+      'const openai = new OpenAI();',
+      "const MODEL = 'gpt-4';",
+      'openai.chat.completions.create({ model: MODEL, messages: [] });',
+      'openai.embeddings.create({ model: MODEL, input: "x" });',
+    ].join('\n'),
+    'src/raw.ts': [
+      'export async function raw(key: string) {',
+      "  await fetch('https://api.openai.com/v1/images/generations', { body: JSON.stringify({ model: 'dall-e-3' }) });",
+      "  await fetch('https://api.openai.com/v1/embeddings', { body: JSON.stringify({ model: 'gpt-4' }) });",
+      "  await axios.post('https://api.anthropic.com/v1/complete', { model: 'claude-3-opus-20240229', prompt: key });",
+      // Multipart body, lookalike endpoints and a request without a model: nothing.
+      "  formData.append('model', 'whisper-1');",
+      "  await fetch('https://api.anthropic.com/v1/completed', { body: JSON.stringify({ model: 'claude-3-opus-20240229' }) });",
+      "  await fetch('https://api.openai.com/v1/embeddings-x', { body: JSON.stringify({ model: 'gpt-4' }) });",
+      "  await fetch('https://api.openai.com/v1/embeddings', { body: JSON.stringify({ input: key }) });",
+      '}',
+    ].join('\n'),
+  });
+  const proposal = await proposeModelReplacements(root, nonTextRegistry, NOW);
+  expect(proposal.replacements).toEqual([]);
+  expect(proposal.patch).toBeNull();
+  const stops = proposal.stops.map((item) => [`${item.file}:${item.line}`, item.call, item.reason]);
+  expect(stops.sort()).toEqual(
+    [
+      ['src/ai.ts:10', 'embeddings.create', NON_TEXT('embeddings.create', 'gpt-5.6-sol')],
+      ['src/ai.ts:11', 'moderations.create', NON_TEXT('moderations.create', 'gpt-5.6-sol')],
+      ['src/ai.ts:12', 'completions.create', NON_TEXT('completions.create', 'gpt-5.6-sol')],
+      ['src/ai.ts:13', 'beta.assistants.create', NON_TEXT('beta.assistants.create', 'gpt-5.6-sol')],
+      ['src/ai.ts:14', 'completions.create', NON_TEXT('completions.create', 'claude-opus-4-8')],
+      ['src/ai.ts:6', 'images.generate', NON_TEXT('images.generate', 'gpt-image-2')],
+      ['src/ai.ts:7', 'images.edit', NON_TEXT('images.edit', 'gpt-image-2')],
+      ['src/ai.ts:8', 'audio.speech.create', NON_TEXT('audio.speech.create', 'gpt-4o-mini-tts')],
+      [
+        'src/ai.ts:9',
+        'audio.transcriptions.create',
+        NON_TEXT('audio.transcriptions.create', 'gpt-4o-transcribe'),
+      ],
+      [
+        'src/raw.ts:2',
+        'fetch /v1/images/generations',
+        NON_TEXT('fetch /v1/images/generations', 'gpt-image-2'),
+      ],
+      ['src/raw.ts:3', 'fetch /v1/embeddings', NON_TEXT('fetch /v1/embeddings', 'gpt-5.6-sol')],
+      ['src/raw.ts:4', 'post /v1/complete', NON_TEXT('post /v1/complete', 'claude-opus-4-8')],
+      // The constant is shared, so it stops on the use count (D-09 is on hold).
+      [
+        'src/shared.ts:4',
+        'chat.completions.create',
+        'The model comes from the constant MODEL (src/shared.ts:3), which is used 2 times; change it by hand to gpt-5.6-sol.',
+      ],
+      ['src/v3.ts:3', 'createCompletion', NON_TEXT('createCompletion', 'gpt-5.6-sol')],
+    ].sort(),
+  );
+});
+
+it('reports raw fetch and axios requests to the official hosts at the exact line', async () => {
+  const root = await repository({
+    'src/raw.ts': [
+      'export async function raw(messages: any[], input: string) {',
+      "  await axios.post('https://api.openai.com/v1/chat/completions', { model: 'gpt-4', messages });",
+      "  const request = { model: 'gpt-4', messages };",
+      "  await fetch('https://api.openai.com/v1/chat/completions', { body: JSON.stringify(request) });",
+      "  await fetch('https://api.anthropic.com/v1/messages', {",
+      '    method: "POST",',
+      '    body: JSON.stringify({',
+      '      max_tokens: 9,',
+      "      model: 'claude-3-opus-20240229',",
+      '      messages,',
+      '    }),',
+      '  });',
+      '  const http = axios.create();',
+      "  await http.post('https://api.openai.com/v1/responses', { model: process.env.M ?? 'gpt-4', input });",
+      // Another host and an untraced library: nothing.
+      "  await got.post('https://api.openai.com/v1/chat/completions', { json: { model: 'gpt-4' } });",
+      '}',
+    ].join('\n'),
+    'src/anthropic.ts': [
+      "await fetch('https://api.anthropic.com/v1/messages', {",
+      "  body: JSON.stringify({ model: 'claude-3-opus-20240229', temperature: 0.2, max_tokens: 9 }),",
+      '});',
+    ].join('\n'),
+  });
+  const proposal = await proposeModelReplacements(root, registry, NOW);
+  expect(
+    proposal.replacements.map((item) => [
+      `${item.file}:${item.line}`,
+      item.call,
+      `${item.edited.file}:${item.edited.line}`,
+      item.to,
+    ]),
+  ).toEqual([
+    ['src/raw.ts:2', 'post /v1/chat/completions', 'src/raw.ts:2', 'gpt-5.6-sol'],
+    ['src/raw.ts:4', 'fetch /v1/chat/completions', 'src/raw.ts:3', 'gpt-5.6-sol'],
+    ['src/raw.ts:5', 'fetch /v1/messages', 'src/raw.ts:9', 'claude-opus-4-8'],
+    ['src/raw.ts:14', 'post /v1/responses', 'src/raw.ts:14', 'gpt-5.6-sol'],
+  ]);
+  expect(proposal.stops.map((item) => [`${item.file}:${item.line}`, item.reason])).toEqual([
+    [
+      'src/anthropic.ts:1',
+      'The request sets temperature, which claude-opus-4-8 may reject or treat differently.',
+    ],
+  ]);
+  await execute('git', ['init', '-q', root]);
+  await writeFile(join(root, 'model.patch'), proposal.patch!);
+  await execute('git', ['-C', root, 'apply', 'model.patch']);
+  const raw = await readFile(join(root, 'src/raw.ts'), 'utf8');
+  expect(raw).toContain("model: 'gpt-5.6-sol', messages });");
+  expect(raw).toContain("model: 'claude-opus-4-8',");
+  expect(raw).toContain("process.env.M ?? 'gpt-5.6-sol'");
+  expect(raw).toContain(
+    "got.post('https://api.openai.com/v1/chat/completions', { json: { model: 'gpt-4' } })",
+  );
+});
+
+it('traces axios request-config calls and axios.create instances like axios.post', async () => {
+  const root = await repository({
+    'src/default.ts': [
+      "import axios from 'axios';",
+      'export async function direct(messages: any[]) {',
+      '  await axios({',
+      "    method: 'post',",
+      "    url: 'https://api.openai.com/v1/chat/completions',",
+      "    data: { model: 'gpt-4', messages },",
+      '  });',
+      '  await axios.request({',
+      "    url: 'https://api.anthropic.com/v1/messages',",
+      "    data: { model: 'claude-3-opus-20240229', max_tokens: 9, messages },",
+      '  });',
+      '}',
+    ].join('\n'),
+    'src/instance.js': [
+      "const axios = require('axios');",
+      'const http = axios.create({ timeout: 1000 });',
+      'async function viaInstance(messages, input) {',
+      "  await http({ url: 'https://api.openai.com/v1/chat/completions', data: { model: 'gpt-4', messages } });",
+      "  await http.request({ url: 'https://api.openai.com/v1/responses', data: { model: 'gpt-4', input } });",
+      '}',
+    ].join('\n'),
+    'src/other.ts': [
+      // Another host, and functions that only share the names: nothing.
+      "import axios from 'axios';",
+      "axios({ url: 'https://proxy.example/v1/chat/completions', data: { model: 'gpt-4' } });",
+      'function request(config: any) {}',
+      "request({ url: 'https://api.openai.com/v1/chat/completions', data: { model: 'gpt-4' } });",
+      'const client = { request(config: any) {} };',
+      "client.request({ url: 'https://api.openai.com/v1/chat/completions', data: { model: 'gpt-4' } });",
+    ].join('\n'),
+  });
+  const proposal = await proposeModelReplacements(root, registry, NOW);
+  expect(proposal.stops).toEqual([]);
+  expect(
+    proposal.replacements.map((item) => [
+      `${item.file}:${item.line}`,
+      item.call,
+      `${item.edited.file}:${item.edited.line}`,
+      item.to,
+    ]),
+  ).toEqual([
+    ['src/default.ts:3', 'axios /v1/chat/completions', 'src/default.ts:6', 'gpt-5.6-sol'],
+    ['src/default.ts:8', 'request /v1/messages', 'src/default.ts:10', 'claude-opus-4-8'],
+    ['src/instance.js:4', 'axios /v1/chat/completions', 'src/instance.js:4', 'gpt-5.6-sol'],
+    ['src/instance.js:5', 'request /v1/responses', 'src/instance.js:5', 'gpt-5.6-sol'],
+  ]);
+  await execute('git', ['init', '-q', root]);
+  await writeFile(join(root, 'model.patch'), proposal.patch!);
+  await execute('git', ['-C', root, 'apply', 'model.patch']);
+  expect(await readFile(join(root, 'src/default.ts'), 'utf8')).toContain(
+    "data: { model: 'gpt-5.6-sol', messages },",
+  );
+  expect(await readFile(join(root, 'src/other.ts'), 'utf8')).not.toContain('gpt-5.6-sol');
+});
+
+const edited = (proposal: Awaited<ReturnType<typeof proposeModelReplacements>>) =>
+  proposal.replacements
+    .map((item) => `${item.edited.file}:${item.edited.line} ${item.from}`)
+    .sort();
+
+it('follows class fields, this assignments and constructor parameters to their literals', async () => {
+  const root = await repository({
+    'src/chat.ts': [
+      "import OpenAI from 'openai';",
+      'const openai = new OpenAI();',
+      'export class Chat {',
+      "  private model = 'gpt-4';",
+      '  ask() {',
+      '    return openai.chat.completions.create({ model: this.model, messages: [] });',
+      '  }',
+      '}',
+    ].join('\n'),
+  });
+  const proposal = await proposeModelReplacements(root, registry, NOW);
+  expect(proposal.stops).toEqual([]);
+  expect(edited(proposal)).toEqual(['src/chat.ts:4 gpt-4']);
+  await execute('git', ['init', '-q', root]);
+  await writeFile(join(root, 'model.patch'), proposal.patch!);
+  await execute('git', ['-C', root, 'apply', 'model.patch']);
+  expect(await readFile(join(root, 'src/chat.ts'), 'utf8')).toContain(
+    "private model = 'gpt-5.6-sol';",
+  );
+});
+
+const HEAD = ["import OpenAI from 'openai';", 'const openai = new OpenAI();'];
+const send = (model: string) =>
+  `openai.chat.completions.create({ model: ${model}, messages: [] });`;
+
+it('follows this assignments, constructor parameters and private fields from every writer', async () => {
+  const root = await repository({
+    // The default and the caller literal are edited separately.
+    'src/b.ts': [
+      ...HEAD,
+      'export class B {',
+      "  constructor(private model = 'o1-mini') {}",
+      `  ask() { return ${send('this.model')} }`,
+      '}',
+      "new B('gpt-4');",
+    ].join('\n'),
+    'src/c.ts': [
+      ...HEAD,
+      'export class C {',
+      '  private model: string;',
+      '  constructor(opts: any) {',
+      "    this.model = opts.model ?? 'gpt-4';",
+      '  }',
+      `  ask() { return ${send('this.model')} }`,
+      '}',
+      "new C({ model: 'o1-mini' });",
+    ].join('\n'),
+    // `new D()` has no argument: the default is what runs.
+    'src/d.ts': [
+      ...HEAD,
+      'export class D {',
+      "  constructor(private model = 'gpt-4') {}",
+      `  ask() { return ${send('this.model')} }`,
+      '}',
+      'new D();',
+    ].join('\n'),
+    'src/e.js': [
+      ...HEAD,
+      'export class E {',
+      '  constructor(opts) {',
+      '    this.model = opts.model || "gpt-4";',
+      '  }',
+      '  reset() { this.model = "o1-mini"; }',
+      `  ask() { return ${send('this.model')} }`,
+      '}',
+    ].join('\n'),
+    'src/f.ts': [
+      ...HEAD,
+      'export class F {',
+      "  #model = 'gpt-4';",
+      `  ask() { return ${send('this.#model')} }`,
+      '}',
+    ].join('\n'),
+    'src/g.ts': [
+      ...HEAD,
+      'export class G {',
+      '  private options: any;',
+      '  constructor(options: any) { this.options = options; }',
+      `  ask() { return ${send('this.options.model')} }`,
+      '}',
+      "new G({ model: 'gpt-4' });",
+    ].join('\n'),
+  });
+  const proposal = await proposeModelReplacements(root, registry, NOW);
+  expect(proposal.stops).toEqual([]);
+  expect(edited(proposal)).toEqual([
+    'src/b.ts:4 o1-mini',
+    'src/b.ts:7 gpt-4',
+    'src/c.ts:10 o1-mini',
+    'src/c.ts:6 gpt-4',
+    'src/d.ts:4 gpt-4',
+    'src/e.js:5 gpt-4',
+    'src/e.js:7 o1-mini',
+    'src/f.ts:4 gpt-4',
+    'src/g.ts:8 gpt-4',
+  ]);
+});
+
+it('follows const object members, env fallbacks, conditionals, returned literals and destructuring defaults', async () => {
+  const root = await repository({
+    'src/members.ts': [
+      ...HEAD,
+      "const MODELS = { GPT4: 'gpt-4', FAST: 'o1-mini' } as const;",
+      "const config = { model: 'gpt-4' };",
+      "enum Model { Default = 'o1-mini' }",
+      `export const a = () => ${send('MODELS.GPT4')}`,
+      `export const b = () => ${send('config.model')}`,
+      `export const c = () => ${send('Model.Default')}`,
+    ].join('\n'),
+    'src/fallbacks.ts': [
+      ...HEAD,
+      "const ENV_MODEL = process.env.MODEL ?? 'gpt-4';",
+      "const PICKED = process.argv.length ? 'gpt-4' : 'o1-mini';",
+      `export const a = () => ${send('ENV_MODEL')}`,
+      `export const b = () => ${send('PICKED')}`,
+    ].join('\n'),
+    'src/returns.ts': [
+      ...HEAD,
+      "function getModel() { return 'gpt-4'; }",
+      'export class R {',
+      "  getDefaultModel() { return 'o1-mini'; }",
+      `  ask() { return ${send('this.getDefaultModel()')} }`,
+      '}',
+      `export const a = () => ${send('getModel()')}`,
+    ].join('\n'),
+    'src/destructuring.ts': [
+      ...HEAD,
+      `function run({ model = 'gpt-4' }) { return ${send('model')} }`,
+      "run({ model: 'o1-mini' });",
+      `export function fromVariable(opts: any) { const { model = 'o1-mini' } = opts; return ${send('model')} }`,
+      `function viaOptions(opts: any) { return ${send("opts.model ?? 'o1-mini'")} }`,
+      "viaOptions({ model: 'gpt-4' });",
+    ].join('\n'),
+  });
+  const proposal = await proposeModelReplacements(root, registry, NOW);
+  expect(proposal.stops).toEqual([]);
+  expect(edited(proposal)).toEqual([
+    'src/destructuring.ts:3 gpt-4',
+    'src/destructuring.ts:4 o1-mini',
+    'src/destructuring.ts:5 o1-mini',
+    'src/destructuring.ts:6 o1-mini',
+    'src/destructuring.ts:7 gpt-4',
+    'src/fallbacks.ts:3 gpt-4',
+    'src/fallbacks.ts:4 gpt-4',
+    'src/fallbacks.ts:4 o1-mini',
+    'src/members.ts:3 gpt-4',
+    'src/members.ts:4 gpt-4',
+    'src/members.ts:5 o1-mini',
+    'src/returns.ts:3 gpt-4',
+    'src/returns.ts:5 o1-mini',
+  ]);
+});
+
+it('follows constants imported from another module', async () => {
+  const root = await repository({
+    'src/models.ts': "export const MODEL = 'gpt-4';",
+    'src/chat.ts': [
+      ...HEAD,
+      "import { MODEL } from './models';",
+      `export const a = () => ${send('MODEL')}`,
+    ].join('\n'),
+    'app/models.js': "export const MODEL = 'o1-mini';",
+    'app/chat.js': [
+      "const { OpenAI } = require('openai');",
+      "import { MODEL } from './models';",
+      'const openai = new OpenAI();',
+      `export const a = () => ${send('MODEL')}`,
+    ].join('\n'),
+  });
+  const proposal = await proposeModelReplacements(root, registry, NOW);
+  expect(proposal.stops).toEqual([]);
+  expect(edited(proposal)).toEqual(['app/models.js:1 o1-mini', 'src/models.ts:1 gpt-4']);
+});
+
+it('keeps a call-context argument to the call that passes it', async () => {
+  const root = await repository({
+    'src/pick.ts': [
+      ...HEAD,
+      'function pick(m: string) { return m; }',
+      'declare function encodingForModel(m: string): unknown;',
+      `export const a = () => ${send("pick('gpt-4')")}`,
+      "export const b = () => encodingForModel(pick('o1-mini'));",
+    ].join('\n'),
+  });
+  const proposal = await proposeModelReplacements(root, registry, NOW);
+  expect(proposal.stops).toEqual([]);
+  expect(edited(proposal)).toEqual(['src/pick.ts:5 gpt-4']);
+});
+
+it('still traces a descriptor-keyed model the scan classifies as catalog', async () => {
+  const root = await repository({
+    'src/catalog.ts': [
+      ...HEAD,
+      "const MODEL = { id: 'gpt-4', label: 'GPT-4' };",
+      `export const a = () => ${send('MODEL.id')}`,
+    ].join('\n'),
+  });
+  const proposal = await proposeModelReplacements(root, registry, NOW);
+  expect(proposal.stops).toEqual([]);
+  expect(edited(proposal)).toEqual(['src/catalog.ts:3 gpt-4']);
+});
+
+it('stops on a shared source even when every use is a traced request (D-09 on hold)', async () => {
+  const root = await repository({
+    // Two requests share a constant, and two share a const object member. Editing a shared source
+    // waits on an owner decision, so both stop.
+    'src/shared.ts': [
+      ...HEAD,
+      "const MODEL = 'gpt-4';",
+      "const MODELS = { GPT4: 'o1-mini' } as const;",
+      'type Known = (typeof MODELS)[keyof typeof MODELS];',
+      `export const a = () => ${send('MODEL')}`,
+      'export const b = () => openai.responses.create({ model: MODEL, input: "x" });',
+      `export const c = () => ${send('MODELS.GPT4')}`,
+      'export const d = () => openai.responses.create({ model: MODELS.GPT4, input: "x" });',
+    ].join('\n'),
+  });
+  const used = (kind: string, name: string, at: string, times: number, to = 'gpt-5.6-sol') =>
+    `The model comes from the ${kind} ${name} (${at}), which is used ${times} times; change it by hand to ${to}.`;
+  const shared = await proposeModelReplacements(root, registry, NOW);
+  expect(edited(shared)).toEqual([]);
+  expect([...new Set(shared.stops.map((item) => item.reason))].sort()).toEqual(
+    [
+      used('constant', 'MODEL', 'src/shared.ts:3', 2),
+      used('constant', 'MODELS', 'src/shared.ts:4', 4, 'gpt-5.6-terra'),
+    ].sort(),
+  );
+
+  const stopped = await repository({
+    'src/log.ts': [
+      ...HEAD,
+      "const MODEL = 'gpt-4';",
+      'console.log(MODEL);',
+      `export const a = () => ${send('MODEL')}`,
+    ].join('\n'),
+    'src/compare.ts': [
+      ...HEAD,
+      'export class C {',
+      "  private model = 'gpt-4';",
+      "  is() { return this.model === 'x'; }",
+      `  ask() { return ${send('this.model')} }`,
+      '}',
+    ].join('\n'),
+    'src/values.ts': [
+      ...HEAD,
+      "const MODELS = { GPT4: 'gpt-4' } as const;",
+      'export const all = Object.values(MODELS);',
+      `export const a = () => ${send('MODELS.GPT4')}`,
+    ].join('\n'),
+    'src/temperature.ts': [
+      ...HEAD,
+      "const MODEL = 'gpt-4';",
+      `export const a = () => ${send('MODEL')}`,
+      'export const b = () => openai.responses.create({ model: MODEL, temperature: 0.2, input: "x" });',
+    ].join('\n'),
+    'src/in-test.ts': [
+      ...HEAD,
+      "export const MODEL = 'gpt-4';",
+      `export const a = () => ${send('MODEL')}`,
+    ].join('\n'),
+    'src/in-test.test.ts': [...HEAD, "import { MODEL } from './in-test';", `${send('MODEL')}`].join(
+      '\n',
+    ),
+    // A type position (`typeof MODEL`) is not a use.
+    'src/type-use.ts': [
+      ...HEAD,
+      "export const MODEL = 'o1-mini';",
+      'export type Known = typeof MODEL;',
+      `export const a = () => ${send('MODEL')}`,
+    ].join('\n'),
+  });
+  const proposal = await proposeModelReplacements(stopped, registry, NOW);
+  expect(proposal.stops.map((item) => [item.file, item.reason]).sort()).toEqual(
+    [
+      ['src/compare.ts', used('field', 'model', 'src/compare.ts:4', 2)],
+      ['src/in-test.ts', used('constant', 'MODEL', 'src/in-test.ts:3', 2)],
+      ['src/log.ts', used('constant', 'MODEL', 'src/log.ts:3', 2)],
+      ['src/temperature.ts', used('constant', 'MODEL', 'src/temperature.ts:3', 2)],
+      ['src/values.ts', used('constant', 'MODELS', 'src/values.ts:3', 2)],
+    ].sort(),
+  );
+  expect(edited(proposal)).toEqual(['src/type-use.ts:3 o1-mini']);
+});
+
+it('follows helper and method parameters to every caller site, including default exports', async () => {
+  const root = await repository({
+    // Two caller literals on one line, and a method called through `this`.
+    'src/ask.ts': [
+      ...HEAD,
+      `export function ask(messages: any[], model = 'gpt-4') { return ${send('model')} }`,
+      "ask([], 'o1-mini'); ask([], 'gpt-4');",
+      'export class Runner {',
+      `  run(model = 'gpt-4') { return ${send('model')} }`,
+      "  go() { return this.run('o1-mini'); }",
+      '}',
+    ].join('\n'),
+    // No callers: only the default.
+    'src/lonely.ts': [
+      ...HEAD,
+      `export function lonely(model = 'gpt-4') { return ${send('model')} }`,
+    ].join('\n'),
+    'src/default-fn.ts': [
+      ...HEAD,
+      `export default function renamed(m: any[], model = 'gpt-4') { return ${send('model')} }`,
+    ].join('\n'),
+    'src/use-default-fn.ts': ["import ask from './default-fn';", "ask([], 'o1-mini');"].join('\n'),
+    'src/default-class.ts': [
+      ...HEAD,
+      'export default class Chat {',
+      "  constructor(private model = 'gpt-4') {}",
+      `  ask() { return ${send('this.model')} }`,
+      '}',
+    ].join('\n'),
+    'src/use-default-class.ts': [
+      "import Chat from './default-class';",
+      "new Chat('o1-mini');",
+    ].join('\n'),
+  });
+  const proposal = await proposeModelReplacements(root, registry, NOW);
+  expect(proposal.stops).toEqual([]);
+  expect(edited(proposal)).toEqual([
+    'src/ask.ts:3 gpt-4',
+    'src/ask.ts:4 gpt-4',
+    'src/ask.ts:4 o1-mini',
+    'src/ask.ts:6 gpt-4',
+    'src/ask.ts:7 o1-mini',
+    'src/default-class.ts:4 gpt-4',
+    'src/default-fn.ts:3 gpt-4',
+    'src/lonely.ts:3 gpt-4',
+    'src/use-default-class.ts:2 o1-mini',
+    'src/use-default-fn.ts:2 o1-mini',
+  ]);
+  // Both literals on one line are edited and the patch applies.
+  await execute('git', ['init', '-q', root]);
+  await writeFile(join(root, 'model.patch'), proposal.patch!);
+  await execute('git', ['-C', root, 'apply', 'model.patch']);
+  expect(await readFile(join(root, 'src/ask.ts'), 'utf8')).toContain(
+    "ask([], 'gpt-5.6-terra'); ask([], 'gpt-5.6-sol');",
+  );
+});
+
+it('applies by-value helper stops regardless of file order', async () => {
+  // The by-value use sits before the caller in one layout and after it in the other.
+  const ask = `export function ask(messages: any[], model = 'gpt-4') { return ${send('model')} }`;
+  const layouts = [
+    [ask, 'export const handlers = [ask];', "ask([], 'o1-mini');"],
+    [ask, "ask([], 'o1-mini');", 'export const handlers = [ask];'],
+  ];
+  const results: string[][] = [];
+  for (const lines of layouts) {
+    const root = await repository({ 'src/ask.ts': [...HEAD, ...lines].join('\n') });
+    const proposal = await proposeModelReplacements(root, registry, NOW);
+    expect(proposal.replacements).toEqual([]);
+    expect(proposal.patch).toBeNull();
+    results.push(proposal.stops.map((item) => `${item.model} ${item.reason}`).sort());
+  }
+  const stop = (model: string, to: string) =>
+    `${model} The helper ask (src/ask.ts:3) is also passed as a value; change its model by hand to ${to}.`;
+  expect(results[0]).toEqual(
+    [stop('gpt-4', 'gpt-5.6-sol'), stop('o1-mini', 'gpt-5.6-terra')].sort(),
+  );
+  expect(results[1]).toEqual(results[0]);
+});
+
+it('stops with the limit named when tracing is cut by the work budget or depth', async () => {
+  const limit = (what: string) =>
+    `Tracing this model stopped at the ${what}, so not every source and use could be checked; change it by hand to gpt-5.6-sol.`;
+  const fanOut = await repository({
+    'src/ask.ts': [...HEAD, `export function ask(model: string) { return ${send('model')} }`].join(
+      '\n',
+    ),
+    // More callers than the work budget allows the precise trace to follow.
+    'src/callers.ts': [
+      "import { ask } from './ask';",
+      ...Array.from({ length: 2500 }, () => "ask('gpt-4');"),
+    ].join('\n'),
+  });
+  const wide = await proposeModelReplacements(fanOut, registry, NOW);
+  expect(wide.replacements).toEqual([]);
+  expect(wide.patch).toBeNull();
+  expect(wide.stops).toHaveLength(2500);
+  expect(new Set(wide.stops.map((item) => item.reason))).toEqual(
+    new Set([limit('work budget of 2,000 steps')]),
+  );
+  expect(new Set(wide.stops.map((item) => `${item.at.file}:${item.at.line}`)).size).toBe(2500);
+
+  const deep = await repository({
+    'src/chain.ts': [
+      ...HEAD,
+      ...Array.from({ length: 11 }, (_, index) => `const A${index} = A${index + 1};`),
+      "const A11 = 'gpt-4';",
+      `export const a = () => ${send('A0')}`,
+    ].join('\n'),
+  });
+  const chain = await proposeModelReplacements(deep, registry, NOW);
+  expect(chain.replacements).toEqual([]);
+  expect(chain.patch).toBeNull();
+  expect(chain.stops.map((item) => [item.at.line, item.model, item.reason])).toEqual([
+    [14, 'gpt-4', limit('depth limit of 10')],
+  ]);
+
+  // Cut, but nothing retiring to name: silent (documented limit).
+  const quiet = await repository({
+    'src/chain.ts': [
+      ...HEAD,
+      ...Array.from({ length: 11 }, (_, index) => `const A${index} = A${index + 1};`),
+      "const A11 = 'gpt-5.6-sol';",
+      `export const a = () => ${send('A0')}`,
+    ].join('\n'),
+  });
+  const silent = await proposeModelReplacements(quiet, registry, NOW);
+  expect([silent.replacements, silent.stops]).toEqual([[], []]);
+});
+
+it('stops tracing within the work budget on self-referencing assignments', async () => {
+  const root = await repository({
+    'src/dalle.ts': [
+      ...HEAD,
+      'export class Dalle {',
+      "  model = 'gpt-4';",
+      '  constructor(fields?: any) {',
+      '    this.model = fields?.model ?? fields?.modelName ?? this.model;',
+      '  }',
+      `  ask() { return ${send('this.model')} }`,
+      '}',
+    ].join('\n'),
+  });
+  const first = await proposeModelReplacements(root, registry, NOW);
+  // The field's own read inside the assignment is a use no request reaches, so it stops.
+  expect(first.replacements).toEqual([]);
+  expect(first.stops.map((item) => [item.at.line, item.model, item.reason])).toEqual([
+    [
+      4,
+      'gpt-4',
+      'The model comes from the field model (src/dalle.ts:4), which is used 2 times; change it by hand to gpt-5.6-sol.',
+    ],
+  ]);
+  expect(await proposeModelReplacements(root, registry, NOW)).toEqual(first);
+});
+
+it('counts uses written under another name before editing a shared constant', async () => {
+  const reason =
+    'The model comes from the constant MODEL (src/c.ts:1), which is used 2 times; change it by hand to gpt-5.6-sol.';
+  const cases: Record<string, Record<string, string>> = {
+    'renamed import': {
+      'src/b.ts': [
+        "import { MODEL as LEGACY } from './c';",
+        "if (LEGACY === 'gpt-4') console.log(1);",
+        "export const label = 'Using ' + LEGACY;",
+      ].join('\n'),
+    },
+    'renamed re-export': {
+      'src/index.ts': "export { MODEL as DEFAULT_MODEL } from './c';",
+      'src/b.ts': [
+        "import { DEFAULT_MODEL } from './index';",
+        "export const label = 'Using ' + DEFAULT_MODEL;",
+      ].join('\n'),
+    },
+    'export default X under another name': {
+      'src/c.ts': ["export const MODEL = 'gpt-4';", 'export default MODEL;'].join('\n'),
+      'src/b.ts': ["import Chosen from './c';", "export const label = 'Using ' + Chosen;"].join(
+        '\n',
+      ),
+    },
+  };
+  for (const [label, extra] of Object.entries(cases)) {
+    const root = await repository({
+      'src/c.ts': "export const MODEL = 'gpt-4';",
+      'src/a.ts': [
+        ...HEAD,
+        "import { MODEL } from './c';",
+        `export const a = () => ${send('MODEL')}`,
+      ].join('\n'),
+      ...extra,
+    });
+    const proposal = await proposeModelReplacements(root, registry, NOW);
+    expect([label, proposal.replacements]).toEqual([label, []]);
+    expect([label, proposal.stops.map((item) => item.reason)]).toEqual([
+      label,
+      [reason.replace('2 times', label === 'renamed import' ? '3 times' : '2 times')],
+    ]);
+  }
+});
+
+it('stops when another read of the parameter an edited default or caller literal feeds is not a request', async () => {
+  const root = await repository({
+    'src/default.ts': [
+      ...HEAD,
+      "export function ask(m: string, model = 'gpt-4') {",
+      "  if (model === 'gpt-4') console.log('legacy');",
+      '  return openai.chat.completions.create({ model, messages: [] });',
+      '}',
+    ].join('\n'),
+    'src/caller.ts': [
+      ...HEAD,
+      'export function ask(model: string) {',
+      "  if (model === 'gpt-4') console.log('legacy');",
+      '  return openai.chat.completions.create({ model, messages: [] });',
+      '}',
+      "ask('gpt-4');",
+    ].join('\n'),
+    'src/destructured.ts': [
+      ...HEAD,
+      "export function ask({ model = 'gpt-4', label }: { model?: string; label?: string }) {",
+      '  console.log(model);',
+      '  return openai.chat.completions.create({ model, messages: [] });',
+      '}',
+    ].join('\n'),
+    // Reading another property of an options object does not change the model.
+    'src/options.ts': [
+      ...HEAD,
+      'export function ask(options: { model?: string; label?: string }) {',
+      '  console.log(options.label);',
+      '  return openai.chat.completions.create({ model: options.model, messages: [] });',
+      '}',
+      "ask({ model: 'o1-mini', label: 'x' });",
+    ].join('\n'),
+    'src/leaked.ts': [
+      ...HEAD,
+      'export function ask(options: { model?: string }) {',
+      '  console.log(options);',
+      '  return openai.chat.completions.create({ model: options.model, messages: [] });',
+      '}',
+      "ask({ model: 'gpt-4' });",
+    ].join('\n'),
+  });
+  const proposal = await proposeModelReplacements(root, registry, NOW);
+  expect(edited(proposal)).toEqual(['src/options.ts:7 o1-mini']);
+  expect(proposal.stops.map((item) => [item.file, item.at.line, item.reason]).sort()).toEqual([
+    [
+      'src/caller.ts',
+      7,
+      'The model comes from the parameter model (src/caller.ts:3), which is used 2 times; change it by hand to gpt-5.6-sol.',
+    ],
+    [
+      'src/default.ts',
+      3,
+      'The model comes from the parameter model (src/default.ts:3), which is used 2 times; change it by hand to gpt-5.6-sol.',
+    ],
+    [
+      'src/destructured.ts',
+      3,
+      'The model comes from the parameter model (src/destructured.ts:3), which is used 2 times; change it by hand to gpt-5.6-sol.',
+    ],
+    [
+      'src/leaked.ts',
+      7,
+      'The model comes from the parameter options (src/leaked.ts:3), which is used 2 times; change it by hand to gpt-5.6-sol.',
+    ],
+  ]);
+});
+
+it('stops instead of editing when a client sets a custom base URL or is an Azure client', async () => {
+  const reason =
+    "The client sets a custom base URL, so the model may name another provider's model or a deployment; change it by hand to gpt-5.6-sol.";
+  const root = await repository({
+    'src/proxy.ts': [
+      ...HEAD.slice(0, 1),
+      "const openai = new OpenAI({ baseURL: 'https://my-proxy.example/v1' });",
+      `export const a = () => ${send("'gpt-4'")}`,
+    ].join('\n'),
+    'src/azure.ts': [
+      "import { AzureOpenAI } from 'openai';",
+      'const client = new AzureOpenAI({ endpoint: process.env.AZURE_ENDPOINT, apiVersion: "2024-10-21" });',
+      "export const a = () => client.chat.completions.create({ model: 'gpt-4', messages: [] });",
+    ].join('\n'),
+  });
+  const proposal = await proposeModelReplacements(root, registry, NOW);
+  expect(proposal.replacements).toEqual([]);
+  expect(proposal.patch).toBeNull();
+  expect(proposal.stops.map((item) => [item.file, item.model, item.reason]).sort()).toEqual([
+    ['src/azure.ts', 'gpt-4', reason],
+    ['src/proxy.ts', 'gpt-4', reason],
+  ]);
+
+  // Without a base URL or an Azure client the same request is edited, and a raw request to the
+  // official host is not held back by a custom client elsewhere.
+  const plain = await repository({
+    'src/a.ts': [...HEAD, `export const a = () => ${send("'gpt-4'")}`].join('\n'),
+    'src/raw.ts':
+      "fetch('https://api.openai.com/v1/responses', { method: 'POST', body: JSON.stringify({ model: 'o1-mini', input: 'x' }) });",
+  });
+  expect(edited(await proposeModelReplacements(plain, registry, NOW))).toEqual([
+    'src/a.ts:3 gpt-4',
+    'src/raw.ts:1 o1-mini',
+  ]);
+  const mixed = await repository({
+    'src/a.ts': [...HEAD, `export const a = () => ${send("'gpt-4'")}`].join('\n'),
+    'src/proxy.ts':
+      "import OpenAI from 'openai'; export const other = new OpenAI({ baseUrl: 'https://x.example' });",
+    'src/raw.ts':
+      "fetch('https://api.openai.com/v1/responses', { method: 'POST', body: JSON.stringify({ model: 'o1-mini', input: 'x' }) });",
+  });
+  const held = await proposeModelReplacements(mixed, registry, NOW);
+  expect(edited(held)).toEqual(['src/raw.ts:1 o1-mini']);
+  expect(held.stops.map((item) => [item.file, item.reason])).toEqual([['src/a.ts', reason]]);
+});
+
+it('stops on overridden methods, subclass fields and super(...) arguments instead of dropping them', async () => {
+  const root = await repository({
+    'src/abstract.ts': [
+      ...HEAD,
+      'abstract class Base {',
+      '  abstract getModel(): string;',
+      `  run() { return ${send('this.getModel()')} }`,
+      '}',
+      "class Impl extends Base { getModel() { return 'gpt-4'; } }",
+    ].join('\n'),
+    'src/field.ts': [
+      ...HEAD,
+      'class Base {',
+      "  model = 'o1-mini';",
+      `  run() { return ${send('this.model')} }`,
+      '}',
+      "class Impl extends Base { model = 'gpt-4'; }",
+    ].join('\n'),
+    'src/super.ts': [
+      ...HEAD,
+      'class Base {',
+      '  constructor(private model: string) {}',
+      `  run() { return ${send('this.model')} }`,
+      '}',
+      "class Impl extends Base { constructor() { super('gpt-4'); } }",
+    ].join('\n'),
+    'src/inherited-constructor.ts': [
+      ...HEAD,
+      'class Base {',
+      '  constructor(private model: string) {}',
+      `  run() { return ${send('this.model')} }`,
+      '}',
+      'class Impl extends Base {}',
+      "new Impl('gpt-4');",
+    ].join('\n'),
+    'src/override-method.ts': [
+      ...HEAD,
+      'class Base {',
+      "  getModel() { return 'o1-mini'; }",
+      `  run() { return ${send('this.getModel()')} }`,
+      '}',
+      "class Impl extends Base { getModel() { return 'gpt-4'; } }",
+    ].join('\n'),
+  });
+  const proposal = await proposeModelReplacements(root, registry, NOW);
+  expect(proposal.replacements).toEqual([]);
+  expect(proposal.patch).toBeNull();
+  const stop = (what: string, to: string) =>
+    `${what} is declared or overridden in another class, is an accessor, or sits in a class tree the tracer cannot fully resolve, so the model cannot be traced through class inheritance; change it by hand to ${to}.`;
+  const rows = proposal.stops.map((item) => [item.file, item.at.line, item.model, item.reason]);
+  expect(rows.sort()).toEqual(
+    [
+      ['src/abstract.ts', 7, 'gpt-4', stop('The method getModel', 'gpt-5.6-sol')],
+      ['src/field.ts', 4, 'o1-mini', stop('The field model', 'gpt-5.6-terra')],
+      ['src/field.ts', 7, 'gpt-4', stop('The field model', 'gpt-5.6-sol')],
+      ['src/inherited-constructor.ts', 8, 'gpt-4', stop('The class Base', 'gpt-5.6-sol')],
+      ['src/override-method.ts', 4, 'o1-mini', stop('The method getModel', 'gpt-5.6-terra')],
+      ['src/override-method.ts', 7, 'gpt-4', stop('The method getModel', 'gpt-5.6-sol')],
+      ['src/super.ts', 7, 'gpt-4', stop('The class Base', 'gpt-5.6-sol')],
+    ].sort(),
+  );
+});
+
+it('stops every SDK request when any file mentions a custom endpoint, in any shape', async () => {
+  const reason =
+    "The client sets a custom base URL, so the model may name another provider's model or a deployment; change it by hand to gpt-5.6-sol.";
+  const request = `export const a = () => ${send("'gpt-4'")}`;
+  const variants: Record<string, Record<string, string>> = {
+    'options object': {
+      'src/client.ts': [
+        "import OpenAI from 'openai';",
+        "const opts = { baseURL: 'http://localhost:11434/v1' };",
+        'export const other = new OpenAI(opts);',
+      ].join('\n'),
+    },
+    spread: {
+      'src/client.ts': [
+        "import OpenAI from 'openai';",
+        "const base = { baseURL: 'http://x' };",
+        'export const other = new OpenAI({ ...base, apiKey: "k" });',
+      ].join('\n'),
+    },
+    assignment: {
+      'src/client.ts': [
+        "import OpenAI from 'openai';",
+        'const c = new OpenAI();',
+        "c.baseURL = 'http://x';",
+      ].join('\n'),
+    },
+    withOptions: {
+      'src/client.ts': [
+        "import OpenAI from 'openai';",
+        'export const c = new OpenAI().withOptions({ timeout: 5 });',
+      ].join('\n'),
+    },
+    'process.env variable': {
+      'src/client.ts': 'export const url = process.env.OPENAI_BASE_URL;',
+    },
+    '.env file': { '.env': 'OPENAI_BASE_URL=http://localhost:11434/v1\n' },
+    'config yaml': { 'deploy/config.yml': 'openai_api_base: http://x\n' },
+  };
+  for (const [label, extra] of Object.entries(variants)) {
+    const root = await repository({
+      'src/a.ts': [...HEAD, request].join('\n'),
+      ...extra,
+    });
+    const proposal = await proposeModelReplacements(root, registry, NOW);
+    expect([label, proposal.replacements]).toEqual([label, []]);
+    expect([label, proposal.stops.map((item) => [item.file, item.reason])]).toEqual([
+      label,
+      [['src/a.ts', reason]],
+    ]);
+  }
+  // A compiler `baseUrl` and files in node_modules do not count.
+  const quiet = await repository({
+    'src/a.ts': [...HEAD, request].join('\n'),
+    'tsconfig.json': '{"compilerOptions":{"baseUrl":"."}}',
+    'node_modules/pkg/config.json': '{"baseURL":"x"}',
+  });
+  expect(edited(await proposeModelReplacements(quiet, registry, NOW))).toEqual([
+    'src/a.ts:3 gpt-4',
+  ]);
+});
+
+it('stops when the declaring module is loaded in a way the tracer cannot follow', async () => {
+  const reason =
+    'The module that declares this model is also loaded dynamically or through a namespace the tracer cannot follow; change it by hand to gpt-5.6-sol.';
+  const embed = (model: string) => `c.embeddings.create({ model: ${model}, input: 'x' })`;
+  const loaders: Record<string, Record<string, string>> = {
+    'dynamic import': {
+      'src/b.ts': `const c: any = {}; export const f = async () => { const m = await import('./models'); ${embed('m.MODEL')}; };`,
+    },
+    'dynamic import then': {
+      'src/b.js': `const c = {}; import('./models.js').then((m) => ${embed('m.MODEL')});`,
+    },
+    'TypeScript require': {
+      'src/b.ts': `declare const require: any; const c: any = {}; const m = require('./models'); ${embed('m.MODEL')};`,
+    },
+    'JavaScript require': {
+      'src/b.js': `const c = {}; const m = require('./models'); ${embed('m.MODEL')};`,
+    },
+    'computed namespace key': {
+      'src/b.ts': `import * as m from './models'; const c: any = {}; const k = 'MODEL'; ${embed('(m as any)[k]')};`,
+    },
+    'namespace passed along': {
+      'src/b.ts': "import * as m from './models'; export const all = Object.values(m);",
+    },
+    'export star': { 'src/b.ts': "export * from './models';" },
+    'glob import': { 'src/b.ts': "export const all = import.meta.glob('./*.ts');" },
+    'unreadable specifier': {
+      'src/b.ts': 'export const load = (name: string) => import(name);',
+    },
+    'barrel namespace': {
+      'src/index.ts': "export { MODEL } from './models';",
+      'src/b.ts':
+        "import * as m from './index'; export const k = (key: string) => (m as any)[key];",
+    },
+  };
+  for (const [label, extra] of Object.entries(loaders)) {
+    const root = await repository({
+      'src/models.ts': "export const MODEL = 'gpt-4';",
+      'src/a.ts': [
+        ...HEAD,
+        "import { MODEL } from './models';",
+        `export const a = () => ${send('MODEL')}`,
+      ].join('\n'),
+      ...extra,
+    });
+    const proposal = await proposeModelReplacements(root, registry, NOW);
+    expect([label, proposal.replacements]).toEqual([label, []]);
+    expect([label, proposal.stops.map((item) => item.reason)]).toEqual([label, [reason]]);
+  }
+  // A namespace read only as `ns.NAME` is followed, so a shared constant is still edited.
+  const followed = await repository({
+    'src/models.ts': "export const MODEL = 'gpt-4';",
+    'src/a.ts': [
+      ...HEAD,
+      "import * as m from './models';",
+      `export const a = () => ${send('m.MODEL')}`,
+    ].join('\n'),
+  });
+  expect(edited(await proposeModelReplacements(followed, registry, NOW))).toEqual([
+    'src/models.ts:1 gpt-4',
+  ]);
+});
+
+it('stops for mixins, class expressions, aliased bases and accessor models', async () => {
+  const stop = (what: string, to: string) =>
+    `${what} is declared or overridden in another class, is an accessor, or sits in a class tree the tracer cannot fully resolve, so the model cannot be traced through class inheritance; change it by hand to ${to}.`;
+  const cases: Record<
+    string,
+    { files: Record<string, string>; rows: [string, number, string, string][] }
+  > = {
+    mixin: {
+      files: {
+        'src/a.ts': [
+          ...HEAD,
+          'const Mix = (B: any) => class extends B {};',
+          'class A {',
+          "  model = 'gpt-4';",
+          `  run() { return ${send('this.model')} }`,
+          '}',
+          "class B2 extends Mix(A) { model = 'o1-mini'; }",
+        ].join('\n'),
+      },
+      rows: [
+        ['src/a.ts', 5, 'gpt-4', stop('The field model', 'gpt-5.6-sol')],
+        ['src/a.ts', 8, 'o1-mini', stop('The field model', 'gpt-5.6-terra')],
+      ],
+    },
+    'class expression': {
+      files: {
+        'src/a.ts': [
+          ...HEAD,
+          'const A = class {',
+          "  model = 'gpt-4';",
+          `  run() { return ${send('this.model')} }`,
+          '};',
+          "class B extends A { model = 'o1-mini'; }",
+        ].join('\n'),
+      },
+      rows: [
+        ['src/a.ts', 4, 'gpt-4', stop('The field model', 'gpt-5.6-sol')],
+        ['src/a.ts', 7, 'o1-mini', stop('The field model', 'gpt-5.6-terra')],
+      ],
+    },
+    'aliased base': {
+      files: {
+        'src/a.ts': [
+          ...HEAD,
+          'class A {',
+          "  model = 'gpt-4';",
+          `  run() { return ${send('this.model')} }`,
+          '}',
+          'const Base = A;',
+          "class B extends Base { model = 'o1-mini'; }",
+        ].join('\n'),
+      },
+      rows: [
+        ['src/a.ts', 4, 'gpt-4', stop('The field model', 'gpt-5.6-sol')],
+        ['src/a.ts', 8, 'o1-mini', stop('The field model', 'gpt-5.6-terra')],
+      ],
+    },
+    getter: {
+      files: {
+        'src/a.ts': [
+          ...HEAD,
+          'class A {',
+          "  get model() { return 'gpt-4'; }",
+          `  run() { return ${send('this.model')} }`,
+          '}',
+        ].join('\n'),
+      },
+      rows: [['src/a.ts', 4, 'gpt-4', stop('The accessor model', 'gpt-5.6-sol')]],
+    },
+    'abstract getter': {
+      files: {
+        'src/a.ts': [
+          ...HEAD,
+          'abstract class A {',
+          '  abstract get model(): string;',
+          `  run() { return ${send('this.model')} }`,
+          '}',
+          "class B extends A { get model() { return 'gpt-4'; } }",
+        ].join('\n'),
+      },
+      rows: [['src/a.ts', 7, 'gpt-4', stop('The accessor model', 'gpt-5.6-sol')]],
+    },
+    'object getter': {
+      files: {
+        'src/a.ts': [
+          ...HEAD,
+          "const config = { get model() { return 'gpt-4'; } };",
+          `export const a = () => ${send('config.model')}`,
+        ].join('\n'),
+      },
+      rows: [['src/a.ts', 3, 'gpt-4', stop('The accessor model', 'gpt-5.6-sol')]],
+    },
+    setter: {
+      files: {
+        'src/a.ts': [
+          ...HEAD,
+          'class A {',
+          "  model = 'gpt-4';",
+          '  set model(value: string) { console.log(value); }',
+          `  run() { return ${send('this.model')} }`,
+          '}',
+        ].join('\n'),
+      },
+      rows: [['src/a.ts', 4, 'gpt-4', stop('The field model', 'gpt-5.6-sol')]],
+    },
+  };
+  for (const [label, { files, rows }] of Object.entries(cases)) {
+    const proposal = await proposeModelReplacements(await repository(files), registry, NOW);
+    expect([label, proposal.replacements]).toEqual([label, []]);
+    expect([
+      label,
+      proposal.stops.map((item) => [item.file, item.at.line, item.model, item.reason]).sort(),
+    ]).toEqual([label, [...rows].sort()]);
+  }
+});
+
+it('follows default-exported literals and objects and string-literal element access', async () => {
+  const root = await repository({
+    'src/default-string.ts': "export default 'gpt-4';",
+    'src/default-object.ts': "export default { chat: 'o1-mini' };",
+    'src/chat.ts': [
+      ...HEAD,
+      "import model from './default-string';",
+      "import models from './default-object';",
+      `export const a = () => ${send('model')}`,
+      `export const b = () => ${send('models.chat')}`,
+    ].join('\n'),
+    'src/table.ts': [
+      ...HEAD,
+      "const MODELS = { fast: 'gpt-4', slow: { id: 'o1-mini' } } as const;",
+      `export const a = () => ${send("MODELS['fast']")}`,
+      `export const b = () => ${send("MODELS['slow']['id']")}`,
+    ].join('\n'),
+  });
+  const proposal = await proposeModelReplacements(root, registry, NOW);
+  expect(proposal.stops).toEqual([]);
+  expect(edited(proposal)).toEqual([
+    'src/default-object.ts:1 o1-mini',
+    'src/default-string.ts:1 gpt-4',
+    'src/table.ts:3 gpt-4',
+    'src/table.ts:3 o1-mini',
+  ]);
+
+  // A second use of a default-exported literal is not a request, so it stops.
+  const shared = await repository({
+    'src/default-string.ts': "export default 'gpt-4';",
+    'src/chat.ts': [
+      ...HEAD,
+      "import model from './default-string';",
+      `export const a = () => ${send('model')}`,
+      'console.log(model);',
+    ].join('\n'),
+  });
+  const held = await proposeModelReplacements(shared, registry, NOW);
+  expect(held.replacements).toEqual([]);
+  expect(held.stops).toHaveLength(1);
+
+  // Still untraced and silent, and listed under Limits in docs/DEADLINES.md.
+  const untraced = await repository({
+    'src/a.ts': [
+      ...HEAD,
+      "let model = 'gpt-4';",
+      `export const a = () => ${send('model')}`,
+      "const MODELS = { fast: 'gpt-4' } as const;",
+      "export const key = (k: 'fast') => " + send('MODELS[k]'),
+      "export const each = ['gpt-4'].forEach((m) => { " + send('m') + ' });',
+    ].join('\n'),
+  });
+  const silent = await proposeModelReplacements(untraced, registry, NOW);
+  expect([silent.replacements, silent.stops]).toEqual([[], []]);
+});
+
+it('stops when an enum, class or object holding the model is read as a whole or written to', async () => {
+  const whole = (kind: string, name: string, at: string) =>
+    `The model comes from the ${kind} ${name} (${at}), and its ${kind === 'enum member' ? 'enum' : 'class'} is also used as a whole, so a change shows up elsewhere; change it by hand to gpt-5.6-sol.`;
+  const overwritten = (name: string) =>
+    `The ${name} member is also assigned to elsewhere, so a request may send another value; change it by hand to gpt-5.6-sol.`;
+  const enumUse = (use: string) => ({
+    'src/a.ts': [
+      ...HEAD,
+      "enum E { A = 'gpt-4', B = 'o1-mini' }",
+      use,
+      `export const a = () => ${send('E.A')}`,
+    ].join('\n'),
+  });
+  const classUse = (use: string) => ({
+    'src/a.ts': [
+      ...HEAD,
+      'class C {',
+      "  m = 'gpt-4';",
+      `  go() { return ${send('this.m')} }`,
+      '}',
+      use,
+    ].join('\n'),
+  });
+  const wholeCases: [string, Record<string, string>, string][] = [
+    [
+      'Object.values(E)',
+      enumUse('export const v = Object.values(E);'),
+      whole('enum member', 'A', 'src/a.ts:3'),
+    ],
+    ['const X = E', enumUse('export const X = E;'), whole('enum member', 'A', 'src/a.ts:3')],
+    [
+      'E[k]',
+      enumUse('export const f = (k: string) => (E as any)[k];'),
+      whole('enum member', 'A', 'src/a.ts:3'),
+    ],
+    [
+      'for in E',
+      enumUse('for (const k in E) console.log(k);'),
+      whole('enum member', 'A', 'src/a.ts:3'),
+    ],
+    [
+      'enum in another file',
+      {
+        'src/e.ts': "export enum E { A = 'gpt-4' }",
+        'src/a.ts': [
+          ...HEAD,
+          "import { E } from './e';",
+          `export const a = () => ${send('E.A')}`,
+        ].join('\n'),
+        'src/b.ts': "import { E } from './e'; export const v = Object.values(E);",
+      },
+      whole('enum member', 'A', 'src/e.ts:1'),
+    ],
+    [
+      'destructured instance',
+      classUse('export const { m } = new C();'),
+      whole('field', 'm', 'src/a.ts:4'),
+    ],
+    [
+      'Object.entries(instance)',
+      classUse('const c = new C(); export const e = Object.entries(c);'),
+      whole('field', 'm', 'src/a.ts:4'),
+    ],
+    [
+      'JSON.stringify(instance)',
+      classUse('export const j = JSON.stringify(new C());'),
+      whole('field', 'm', 'src/a.ts:4'),
+    ],
+    [
+      'instance passed on',
+      classUse('const c = new C(); console.log(c);'),
+      whole('field', 'm', 'src/a.ts:4'),
+    ],
+    ['class as a value', classUse('export const k = [C];'), whole('field', 'm', 'src/a.ts:4')],
+    [
+      'this as a value',
+      {
+        'src/a.ts': [
+          ...HEAD,
+          'class C {',
+          "  m = 'gpt-4';",
+          `  go() { console.log(Object.keys(this)); return ${send('this.m')} }`,
+          '}',
+        ].join('\n'),
+      },
+      whole('field', 'm', 'src/a.ts:4'),
+    ],
+    [
+      'static field written',
+      {
+        'src/a.ts': [
+          ...HEAD,
+          'class C { static M = "gpt-4"; }',
+          "C.M = 'other';",
+          `export const a = () => ${send('C.M')}`,
+        ].join('\n'),
+      },
+      overwritten('M'),
+    ],
+    [
+      'object member assigned',
+      {
+        'src/a.ts': [
+          ...HEAD,
+          "const o = { M: 'gpt-4' };",
+          "o.M = 'other';",
+          `export const a = () => ${send('o.M')}`,
+        ].join('\n'),
+      },
+      overwritten('M'),
+    ],
+  ];
+  for (const [label, files, reason] of wholeCases) {
+    const proposal = await proposeModelReplacements(await repository(files), registry, NOW);
+    expect([label, proposal.replacements]).toEqual([label, []]);
+    expect([
+      label,
+      proposal.stops.map((item) => item.reason).filter((item) => item === reason).length > 0,
+    ]).toEqual([label, true]);
+  }
+  // Writes to a const object that never reach the member-assignment path still stop.
+  for (const write of ["o['M'] = 'other';", 'Object.assign(o, { M: "other" });', 'delete o.M;']) {
+    const proposal = await proposeModelReplacements(
+      await repository({
+        'src/a.ts': [
+          ...HEAD,
+          "const o: any = { M: 'gpt-4' };",
+          write,
+          `export const a = () => ${send('o.M')}`,
+        ].join('\n'),
+      }),
+      registry,
+      NOW,
+    );
+    expect([write, proposal.replacements]).toEqual([write, []]);
+    expect([write, proposal.stops.length]).toEqual([write, 1]);
+  }
+  // Plain member reads, an instance read through `.member` and `this.member` stay edits.
+  const plain = await repository({
+    'src/a.ts': [
+      ...HEAD,
+      "enum E { A = 'gpt-4' }",
+      'type K = keyof typeof E;',
+      `export const a = () => ${send('E.A')}`,
+    ].join('\n'),
+    'src/c.ts': [
+      ...HEAD,
+      'class C {',
+      "  m = 'o1-mini';",
+      `  go() { return ${send('this.m')} }`,
+      '}',
+      'const c = new C(); c.go(); new C().go();',
+    ].join('\n'),
+  });
+  expect(edited(await proposeModelReplacements(plain, registry, NOW))).toEqual([
+    'src/a.ts:3 gpt-4',
+    'src/c.ts:4 o1-mini',
+  ]);
+});
+
+it('follows the right side of && and keeps the other shapes untraced', async () => {
+  const root = await repository({
+    'src/a.ts': [
+      ...HEAD,
+      'declare const flag: boolean;',
+      `export const a = () => ${send("flag && 'gpt-4'")}`,
+    ].join('\n'),
+  });
+  expect(edited(await proposeModelReplacements(root, registry, NOW))).toEqual(['src/a.ts:4 gpt-4']);
+  // Silent and listed under Limits in docs/DEADLINES.md.
+  const shapes: Record<string, string[]> = {
+    'numeric index': ["const L = ['gpt-4'];", send('L[0]')],
+    'array destructuring': ["const [A] = ['gpt-4'];", send('A')],
+    'rest parameter': [
+      'function ask(...args: string[]) {',
+      `  return ${send('args[0]')}`,
+      '}',
+      "ask('gpt-4');",
+    ],
+    arguments: ['function ask() {', `  return ${send('arguments[0]')}`, '}', "ask('gpt-4');"],
+    'this in an object method': ["const o = { m: 'gpt-4', go() { " + send('this.m') + ' } };'],
+    'spread from a const object': [
+      "const base = { model: 'gpt-4' };",
+      'openai.chat.completions.create({ ...base, messages: [] });',
+    ],
+  };
+  for (const [label, lines] of Object.entries(shapes)) {
+    const proposal = await proposeModelReplacements(
+      await repository({ 'src/a.ts': [...HEAD, ...lines].join('\n') }),
+      registry,
+      NOW,
+    );
+    expect([label, proposal.replacements, proposal.stops]).toEqual([label, [], []]);
+  }
+});
 it('reports class property models at their initializers and assignments without editing them', async () => {
   const root = await repository({
     'src/chat.ts': [
@@ -574,7 +1984,7 @@ it('reports class property models at their initializers and assignments without 
       '}',
     ].join('\n'),
   });
-  const proposal = await proposeModelReplacements(root, registry, NOW);
+  const proposal = await proposeDirect(root, registry, NOW);
   // Until an owner decision covers class properties, each one is reported with where its model is
   // written, and none is edited.
   expect(proposal.replacements).toEqual([]);
@@ -588,25 +1998,25 @@ it('reports class property models at their initializers and assignments without 
       'src/agent.js',
       { file: 'src/agent.js', line: 5 },
       'gpt-4',
-      'The model comes from the property model (src/agent.js:5); class properties are reported, not edited. Change it by hand to gpt-5.6-sol.',
+      'The model reaches this request through the class field model (src/agent.js:5), which Refit reports but does not edit yet; change it by hand to gpt-5.6-sol.',
     ],
     [
       'src/chat.ts',
       { file: 'src/chat.ts', line: 4 },
       'gpt-4',
-      'The model comes from the property model (src/chat.ts:4); class properties are reported, not edited. Change it by hand to gpt-5.6-sol.',
+      'The model reaches this request through the class field model (src/chat.ts:4), which Refit reports but does not edit yet; change it by hand to gpt-5.6-sol.',
     ],
     [
       'src/priced.ts',
       { file: 'src/priced.ts', line: 7 },
       'gpt-4',
-      'The model comes from the property model (src/priced.ts:5); it is read 2 times. Change it by hand to gpt-5.6-sol.',
+      'The model comes from the field model (src/priced.ts:5), which is used 2 times; change it by hand to gpt-5.6-sol.',
     ],
     [
       'src/summary.ts',
       { file: 'src/summary.ts', line: 4 },
       'o1-mini',
-      'The model comes from the property model (src/summary.ts:4); class properties are reported, not edited. Change it by hand to gpt-5.6-terra.',
+      'The model reaches this request through the class field model (src/summary.ts:4), which Refit reports but does not edit yet; change it by hand to gpt-5.6-terra.',
     ],
   ]);
 });
@@ -638,4 +2048,61 @@ it('never proposes edits in build output committed beside the sources', async ()
     'packages/agent/src/ask.ts',
     'src/inline.ts',
   ]);
+});
+
+// Until the owner decision on indirect edits (D-06 to D-08) lands, the default proposal edits only
+// what the rule edited before: literals, `??` and `||` defaults, constants and enum members used
+// once, and helper parameter defaults and callers' literals. Every other site the resolver reaches
+// stops with where the model comes from.
+it('reports indirect model sources without editing them by default', async () => {
+  const root = await repository({
+    'src/direct.ts': [
+      ...HEAD,
+      "const MODEL = 'gpt-4';",
+      "export function ask(model = 'o1-mini') { return openai.chat.completions.create({ model, messages: [] }); }",
+      `export const a = () => ${send("process.env.MODEL ?? 'gpt-4'")}`,
+      `export const b = () => ${send('MODEL')}`,
+    ].join('\n'),
+    'src/indirect.ts': [
+      ...HEAD,
+      "const MODELS = { fast: 'gpt-4' } as const;",
+      "const COMPUTED = process.env.MODEL ?? 'gpt-4';",
+      "function pick() { return 'gpt-4'; }",
+      `export const c = () => ${send('MODELS.fast')}`,
+      `export const d = () => ${send('COMPUTED')}`,
+      `export const e = () => ${send('pick()')}`,
+      `export const f = (x: boolean) => ${send("x ? 'gpt-4' : 'o1-mini'")}`,
+    ].join('\n'),
+    'src/axios.ts': [
+      "import axios from 'axios';",
+      "export const g = () => axios({ url: 'https://api.openai.com/v1/chat/completions', data: { model: 'gpt-4', messages: [] } });",
+    ].join('\n'),
+  });
+  const reported = await proposeDirect(root, registry, NOW);
+  expect(edited(reported)).toEqual([
+    'src/direct.ts:3 gpt-4',
+    'src/direct.ts:4 o1-mini',
+    'src/direct.ts:5 gpt-4',
+  ]);
+  const later = (source: string, to = 'gpt-5.6-sol') =>
+    `The model reaches this request through ${source}, which Refit reports but does not edit yet; change it by hand to ${to}.`;
+  expect(
+    reported.stops.map((item) => [`${item.at.file}:${item.at.line}`, item.reason]).sort(),
+  ).toEqual(
+    [
+      [
+        'src/axios.ts:2',
+        '`axios /v1/chat/completions` is an axios request config, which Refit reports but does not edit yet; change it by hand to gpt-5.6-sol.',
+      ],
+      ['src/indirect.ts:3', later('the object member MODELS.fast (src/indirect.ts:3)')],
+      ['src/indirect.ts:4', later('the computed constant COMPUTED (src/indirect.ts:4)')],
+      ['src/indirect.ts:5', later('the value returned by pick (src/indirect.ts:8)')],
+      ['src/indirect.ts:9', later('a conditional, fallback or computed value')],
+      ['src/indirect.ts:9', later('a conditional, fallback or computed value', 'gpt-5.6-terra')],
+    ].sort(),
+  );
+  // With indirect edits enabled, every one of them is edited.
+  const enabled = await proposeModelReplacements(root, registry, NOW);
+  expect(enabled.stops).toEqual([]);
+  expect(edited(enabled)).toHaveLength(9);
 });
