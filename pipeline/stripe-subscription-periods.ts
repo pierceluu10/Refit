@@ -390,6 +390,7 @@ export function subscriptionPeriodHelperEdit(
 // Replaces an `invoice.subscription` read, which moved to `parent.subscription_details.subscription`.
 export function invoiceSubscriptionHelperEdit(node: ts.Node, file: string, changeId: string) {
   if (!ts.isPropertyAccessExpression(node) || node.name.text !== 'subscription') return;
+  if (typeofGuarded(node)) return;
   return movedReadEdit(
     node,
     file,
@@ -397,6 +398,29 @@ export function invoiceSubscriptionHelperEdit(node: ts.Node, file: string, chang
     INVOICE_SUBSCRIPTION_HELPER_RULE,
     (invoice) => `${INVOICE_SUBSCRIPTION_HELPER}(${invoice})`,
   );
+}
+
+// `typeof invoice.subscription === 'string' ? invoice.subscription : invoice.subscription.id`
+// narrows the field for the reads it guards; separate helper calls would not be narrowed, so the
+// patched code would not compile. Every read of that expression in the guard's scope stays with review.
+// shortcut: truthiness guards (`if (!invoice.subscription) return`) also stop narrowing under
+// strictNullChecks; the repository's type check catches those, so they are still rewritten.
+function typeofGuarded(read: ts.PropertyAccessExpression) {
+  const text = read.getText();
+  let scope: ts.Node = read;
+  while (!ts.isFunctionLike(scope) && !ts.isSourceFile(scope)) scope = scope.parent;
+  const unwrap = (node: ts.Expression): ts.Expression =>
+    ts.isParenthesizedExpression(node) || ts.isNonNullExpression(node)
+      ? unwrap(node.expression)
+      : node;
+  let found = false;
+  const visit = (node: ts.Node) => {
+    if (found) return;
+    if (ts.isTypeOfExpression(node) && unwrap(node.expression).getText() === text) found = true;
+    else ts.forEachChild(node, visit);
+  };
+  visit(scope);
+  return found;
 }
 
 // Replaces a `line.price.id` read on an invoice line item or invoice item: the Price object moved to

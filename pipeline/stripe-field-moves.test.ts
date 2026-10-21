@@ -405,6 +405,19 @@ it('reads a webhook invoice.subscription through the generated helper for either
   expect(getInvoiceSubscription({ parent: null })).toBeNull();
 });
 
+it('leaves invoice.subscription unchanged where typeof narrows it', async () => {
+  const report = await run(
+    mixed.replace(
+      'return invoice.subscription;',
+      "return typeof invoice.subscription === 'string' ? invoice.subscription : invoice.subscription?.id;",
+    ),
+  );
+  expect(report.patch).toMatchObject({ status: 'proposed', unresolvedFindings: 3 });
+  const diff = 'diff' in report.patch ? report.patch.diff : '';
+  expect(diff).toContain('getSubscriptionPeriodEnd(subscription)');
+  expect(diff).not.toContain('getInvoiceSubscription(invoice)');
+});
+
 it('leaves invoice.subscription unresolved when it is expanded', async () => {
   const report = await run(
     `${mixed}
