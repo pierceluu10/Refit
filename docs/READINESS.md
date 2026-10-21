@@ -22,6 +22,10 @@ Both frozen AI SDK sets and the 34-application deadline set were run again, from
 
 Validation used `node:22-alpine` with the build environment's proxy CA added, for the benchmark only. Results: `docs/benchmarks/2026-10-21-{openai,anthropic,model-replacement}-results.json`, each with the run's validation and hand review. The checklist is in [Provider goals](PROVIDER-GOALS.md#openai-and-anthropic-progress-checklist-2026-10-21): 70% for both providers, unchanged.
 
+## October 21 checkpoint: computed request keys stop model fixes (unreleased, after 0.39.0)
+
+A traced request with a computed property name, such as `['temperature']: 0.5` or `[KEY]: 5`, now stops for review instead of being edited. The sampling-parameter check reads only plain names, so a computed one could hide a parameter the replacement rejects. This change only adds a stop. Tests: `pipeline/model-retirements.test.ts` covers string, template and variable keys for OpenAI and Anthropic, beside a plain request that is still edited.
+
 ## October 21 checkpoint: class property models reported for review (unreleased, after 0.39.0)
 
 `refit deadlines --propose-model-fixes` and `refit serve --model-fixes` now trace a request's `model: this.model` to where the class sets it:
