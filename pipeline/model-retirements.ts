@@ -418,6 +418,122 @@ function sourceProgram(repository: Repository) {
       }
       return false;
     });
+  // Modules some code loads in a way the tracer cannot follow: `import()`, `require()`, a glob
+  // import, `export *`, or a namespace used for anything but `ns.name` (a computed key, a
+  // destructuring, a pass-along). Every export of such a module has unknown uses, and so does
+  // every module it re-exports. A load whose specifier cannot be read makes every module opaque.
+  let opaqueModules: { all: boolean; paths: Set<string> } | undefined;
+  const opaqueIndex = () => {
+    if (opaqueModules) return opaqueModules;
+    const found = { all: false, paths: new Set<string>() };
+    opaqueModules = found;
+    const edges: [string, string][] = [];
+    const target = (specifier: ts.Expression | undefined, from: ts.SourceFile) => {
+      if (!specifier || !ts.isStringLiteralLike(specifier)) return undefined;
+      return resolution.resolve(specifier.text, from.fileName) ?? undefined;
+    };
+    const load = (specifier: ts.Expression | undefined, from: ts.SourceFile) => {
+      if (!specifier || !ts.isStringLiteralLike(specifier)) found.all = true;
+      else {
+        const path = target(specifier, from);
+        if (path) found.paths.add(path);
+      }
+    };
+    for (const source of files) {
+      // Local names this file imports by static `import`, with the module each comes from.
+      const imported = new Map<string, string>();
+      for (const statement of source.statements) {
+        if (ts.isImportDeclaration(statement)) {
+          const path = target(statement.moduleSpecifier, source);
+          const clause = statement.importClause;
+          if (path && clause) {
+            if (clause.name) imported.set(clause.name.text, path);
+            const bindings = clause.namedBindings;
+            if (bindings && ts.isNamespaceImport(bindings)) {
+              imported.set(bindings.name.text, path);
+              // Any identifier of that name, so a shadowing one only blocks more.
+              const visit = (node: ts.Node) => {
+                if (
+                  ts.isIdentifier(node) &&
+                  node.text === bindings.name.text &&
+                  node !== bindings.name
+                ) {
+                  const parent = node.parent;
+                  if (
+                    !(ts.isPropertyAccessExpression(parent) && parent.expression === node) &&
+                    !ts.isQualifiedName(parent)
+                  )
+                    found.paths.add(path);
+                }
+                ts.forEachChild(node, visit);
+              };
+              visit(source);
+            } else if (bindings)
+              for (const item of bindings.elements) imported.set(item.name.text, path);
+          }
+        } else if (ts.isExportDeclaration(statement) && statement.moduleSpecifier) {
+          const path = target(statement.moduleSpecifier, source);
+          if (path) {
+            // `export *` and `export * as ns` hide which name is used.
+            if (!statement.exportClause || ts.isNamespaceExport(statement.exportClause))
+              found.paths.add(path);
+            edges.push([source.fileName, path]);
+          }
+        } else if (
+          ts.isImportEqualsDeclaration(statement) &&
+          ts.isExternalModuleReference(statement.moduleReference)
+        )
+          load(statement.moduleReference.expression, source);
+      }
+      const visit = (node: ts.Node) => {
+        if (ts.isCallExpression(node)) {
+          const callee = node.expression;
+          if (
+            callee.kind === ts.SyntaxKind.ImportKeyword ||
+            (ts.isIdentifier(callee) && callee.text === 'require')
+          )
+            load(node.arguments[0], source);
+          else if (
+            ts.isPropertyAccessExpression(callee) &&
+            ((ts.isMetaProperty(callee.expression) && callee.name.text.startsWith('glob')) ||
+              (ts.isIdentifier(callee.expression) &&
+                callee.expression.text === 'require' &&
+                callee.name.text === 'context'))
+          )
+            found.all = true;
+        }
+        ts.forEachChild(node, visit);
+      };
+      visit(source);
+      // A name imported from a module and exported again makes that module reachable through this
+      // one.
+      for (const statement of source.statements) {
+        const names =
+          ts.isExportDeclaration(statement) && !statement.moduleSpecifier && statement.exportClause
+            ? ts.isNamedExports(statement.exportClause)
+              ? statement.exportClause.elements.map((item) => (item.propertyName ?? item.name).text)
+              : []
+            : ts.isExportAssignment(statement) && ts.isIdentifier(statement.expression)
+              ? [statement.expression.text]
+              : [];
+        for (const name of names) {
+          const path = imported.get(name);
+          if (path) edges.push([source.fileName, path]);
+        }
+      }
+    }
+    for (let grown = true; grown;) {
+      grown = false;
+      for (const [from, to] of edges)
+        if (found.paths.has(from) && !found.paths.has(to)) {
+          found.paths.add(to);
+          grown = true;
+        }
+    }
+    return found;
+  };
+  const opaque = (source: ts.SourceFile) =>
+    opaqueIndex().all || opaqueIndex().paths.has(source.fileName);
   const usesOf = (symbol: ts.Symbol) => indexOf(symbol).uses.get(symbol) ?? [];
   // The right-hand side of every `x.name = value` in the repository, for a field's symbol.
   const assignmentsOf = (symbol: ts.Symbol) => indexOf(symbol).assigns.get(symbol) ?? [];
@@ -429,6 +545,7 @@ function sourceProgram(repository: Repository) {
     assignmentsOf,
     relatives,
     subclasses,
+    opaque,
     path: (node: ts.Node) => paths.get(node.getSourceFile().fileName)!,
     line: (node: ts.Node) =>
       node.getSourceFile().getLineAndCharacterOfPosition(node.getStart()).line + 1,
@@ -749,6 +866,8 @@ function inType(node: ts.Node) {
 // a request this proposal reaches (D-09). `passes` run outermost first; the innermost reports.
 function sharedUse(program: SourceProgram, passes: Pass[], reached: Set<ts.Node>) {
   for (const pass of [...passes].reverse()) {
+    if (program.opaque(pass.node.getSourceFile()))
+      return 'The module that declares this model is also loaded dynamically or through a namespace the tracer cannot follow; change it by hand to';
     const all = program.usesOf(pass.symbol);
     const uses = all.filter(
       (use) =>

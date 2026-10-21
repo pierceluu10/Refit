@@ -352,10 +352,10 @@ it('follows imported constants, enum members, helper parameters and raw HTTP req
       "const ask = async function (messages, model = 'gpt-4') {",
       '  return openai.chat.completions.create({ model, messages });',
       '};',
-      'module.exports = { ask };',
+      'export { ask };',
     ].join('\n'),
     'lib/commands.js': [
-      "const ai = require('./ai');",
+      "import * as ai from './ai';",
       'ai.ask([]);',
       "ai.ask([], 'o1-mini');",
       "ai.ask([], 'gpt-4o');",
@@ -423,7 +423,7 @@ it('follows imported constants, enum members, helper parameters and raw HTTP req
   await execute('git', ['-C', root, 'apply', 'model.patch']);
   expect(await readFile(join(root, 'lib/commands.js'), 'utf8')).toBe(
     [
-      "const ai = require('./ai');",
+      "import * as ai from './ai';",
       'ai.ask([]);',
       "ai.ask([], 'gpt-5.6-terra');",
       "ai.ask([], 'gpt-4o');",
@@ -884,12 +884,12 @@ it('follows constants imported from another module', async () => {
       "import { MODEL } from './models';",
       `export const a = () => ${send('MODEL')}`,
     ].join('\n'),
-    'lib/models.js': "const MODEL = 'o1-mini';\nmodule.exports = { MODEL };",
+    'lib/models.js': "export const MODEL = 'o1-mini';",
     'lib/chat.js': [
       "const { OpenAI } = require('openai');",
-      "const { MODEL } = require('./models');",
+      "import { MODEL } from './models';",
       'const openai = new OpenAI();',
-      `exports.a = () => ${send('MODEL')}`,
+      `export const a = () => ${send('MODEL')}`,
     ].join('\n'),
   });
   const proposal = await proposeModelReplacements(root, registry, NOW);
@@ -1439,5 +1439,67 @@ it('stops every SDK request when any file mentions a custom endpoint, in any sha
   });
   expect(edited(await proposeModelReplacements(quiet, registry, NOW))).toEqual([
     'src/a.ts:3 gpt-4',
+  ]);
+});
+
+it('stops when the declaring module is loaded in a way the tracer cannot follow (CR-01, iteration 2)', async () => {
+  const reason =
+    'The module that declares this model is also loaded dynamically or through a namespace the tracer cannot follow; change it by hand to gpt-5.6-sol.';
+  const embed = (model: string) => `c.embeddings.create({ model: ${model}, input: 'x' })`;
+  const loaders: Record<string, Record<string, string>> = {
+    'dynamic import': {
+      'src/b.ts': `const c: any = {}; export const f = async () => { const m = await import('./models'); ${embed('m.MODEL')}; };`,
+    },
+    'dynamic import then': {
+      'src/b.js': `const c = {}; import('./models.js').then((m) => ${embed('m.MODEL')});`,
+    },
+    'TypeScript require': {
+      'src/b.ts': `declare const require: any; const c: any = {}; const m = require('./models'); ${embed('m.MODEL')};`,
+    },
+    'JavaScript require': {
+      'src/b.js': `const c = {}; const m = require('./models'); ${embed('m.MODEL')};`,
+    },
+    'computed namespace key': {
+      'src/b.ts': `import * as m from './models'; const c: any = {}; const k = 'MODEL'; ${embed('(m as any)[k]')};`,
+    },
+    'namespace passed along': {
+      'src/b.ts': "import * as m from './models'; export const all = Object.values(m);",
+    },
+    'export star': { 'src/b.ts': "export * from './models';" },
+    'glob import': { 'src/b.ts': "export const all = import.meta.glob('./*.ts');" },
+    'unreadable specifier': {
+      'src/b.ts': 'export const load = (name: string) => import(name);',
+    },
+    'barrel namespace': {
+      'src/index.ts': "export { MODEL } from './models';",
+      'src/b.ts':
+        "import * as m from './index'; export const k = (key: string) => (m as any)[key];",
+    },
+  };
+  for (const [label, extra] of Object.entries(loaders)) {
+    const root = await repository({
+      'src/models.ts': "export const MODEL = 'gpt-4';",
+      'src/a.ts': [
+        ...HEAD,
+        "import { MODEL } from './models';",
+        `export const a = () => ${send('MODEL')}`,
+      ].join('\n'),
+      ...extra,
+    });
+    const proposal = await proposeModelReplacements(root, registry, NOW);
+    expect([label, proposal.replacements]).toEqual([label, []]);
+    expect([label, proposal.stops.map((item) => item.reason)]).toEqual([label, [reason]]);
+  }
+  // A namespace read only as `ns.NAME` is followed, so a shared constant is still edited.
+  const followed = await repository({
+    'src/models.ts': "export const MODEL = 'gpt-4';",
+    'src/a.ts': [
+      ...HEAD,
+      "import * as m from './models';",
+      `export const a = () => ${send('m.MODEL')}`,
+    ].join('\n'),
+  });
+  expect(edited(await proposeModelReplacements(followed, registry, NOW))).toEqual([
+    'src/models.ts:1 gpt-4',
   ]);
 });
