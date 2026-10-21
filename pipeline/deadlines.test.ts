@@ -245,6 +245,19 @@ const classifying: DeadlineRegistry = {
   deadlines: [
     ...registry.deadlines,
     entry({ id: 'openai-o1', provider: 'openai', versions: ['o1'], date: '2026-10-23' }),
+    entry({
+      id: 'openai-dall-e-3',
+      provider: 'openai',
+      versions: ['dall-e-3'],
+      date: '2026-10-23',
+    }),
+    entry({
+      id: 'anthropic-claude-3-opus',
+      provider: 'anthropic',
+      kind: 'model',
+      versions: ['claude-3-opus-20240229'],
+      date: '2026-11-30',
+    }),
   ],
 };
 
@@ -358,6 +371,88 @@ it('classifies model-keyed map entries wrapped in satisfies, as, parentheses or 
     'src/map.ts:5 gpt-4-0613': 'catalog',
     'src/map.ts:6 gpt-4': 'live',
   });
+});
+
+it('classifies descriptor keys and versions arrays as catalog and keeps request keys live', async () => {
+  // [model, source line, use]. Each line holds one match, so each line is its own result.
+  const cases: [string, string, string][] = [
+    ['gpt-4', "export const A = { name: 'gpt-4', context_window: 8192 };", 'catalog'],
+    ['gpt-4', "export const B = openAIModelRef({ name: 'gpt-4', info });", 'catalog'],
+    ['gpt-4', "export const C = { id: 'gpt-4', displayName: 'GPT-4' };", 'catalog'],
+    ['gpt-4', "export const D = { label: 'gpt-4' };", 'catalog'],
+    ['gpt-4', "export const E = { title: 'gpt-4' };", 'catalog'],
+    ['gpt-4', "export const F = { slug: 'gpt-4' };", 'catalog'],
+    ['gpt-4', "export const G = { versions: ['gpt-4'] };", 'catalog'],
+    ['gpt-4', "export const H = { versions: ['gpt-4', 'o1-mini'] as const };", 'catalog'],
+    [
+      'claude-3-opus-20240229',
+      "export const I = createClaudeModelConfig({ id: 'claude-3-opus-20240229', displayName });",
+      'catalog',
+    ],
+    // Wrappers send these keys to the provider.
+    ['gpt-4', "export const J = { model: 'gpt-4' };", 'live'],
+    ['gpt-4', "export const K = { modelName: 'gpt-4' };", 'live'],
+    ['gpt-4', "export const L = { modelId: 'gpt-4' };", 'live'],
+    ['gpt-4', "export const M = { version: 'gpt-4' };", 'live'],
+    ['gpt-4', "export const N = { default: 'gpt-4' };", 'live'],
+    // A picker's `value` is what the picker sets, so it is not a descriptor key.
+    ['gpt-4', "export const O = { value: 'gpt-4', label: 'GPT-4' };", 'live'],
+    // Only an array lists versions, and only a whole value is a descriptor.
+    ['gpt-4', "export const P = { versions: 'gpt-4' };", 'live'],
+    ['gpt-4', "export const Q = { id: flag ? 'gpt-4' : 'o1-mini' };", 'live'],
+  ];
+  const { result } = await uses({ 'src/models.ts': cases.map(([, line]) => line).join('\n') });
+  expect(result).toEqual(
+    Object.fromEntries(
+      cases.map(([model, , use], index) => [`src/models.ts:${index + 1} ${model}`, use]),
+    ),
+  );
+});
+
+it('classifies model IDs inside longer plain strings as prose, but keeps templates, concatenations and JSON model keys live', async () => {
+  // [model, source line, use]
+  const cases: [string, string, string][] = [
+    ['dall-e-3', `export const A = 'Image model to use (e.g. "dall-e-3")';`, 'comment'],
+    ['gpt-4', `export const B = 'Model "gpt-4" is deprecated';`, 'comment'],
+    ['gpt-4', 'export const C = `Model "gpt-4" only`;', 'comment'],
+    // The word "model" earlier in the text is not a key set just before the ID.
+    ['gpt-4', `export const D = 'The model setting: use "gpt-4" here';`, 'comment'],
+    // Exactly the model ID is what the code sends.
+    ['gpt-4', "export const E = 'gpt-4';", 'live'],
+    // JSON and config text that sets a model key can be sent as it is.
+    ['gpt-4', `export const F = '{"model":"gpt-4","messages":[]}';`, 'live'],
+    ['gpt-4', 'export const G = `{ "model": "gpt-4" }`;', 'live'],
+    ['gpt-4', `export const H = '{"modelName": "gpt-4"}';`, 'live'],
+    // Template pieces and concatenated strings can build the value that is sent.
+    ['gpt-4', 'export const I = `Model "gpt-4" only for ${user}`;', 'live'],
+    ['gpt-4', `export const J = 'Model "gpt-4" ' + suffix;`, 'live'],
+    ['gpt-4', `export const K = ('Model "gpt-4" ') + suffix;`, 'live'],
+    ['gpt-4', `message += 'Model "gpt-4" ';`, 'live'],
+  ];
+  const { result } = await uses({
+    'src/prose.ts': [...cases.map(([, line]) => line), 'export const M = `gpt-4-${suffix}`;'].join(
+      '\n',
+    ),
+    'src/Note.tsx': 'export const Note = () => <p>Uses "gpt-4"</p>;',
+    // Meta and Shopify matches in strings are classified as before, including a descriptor key.
+    'src/graph.ts': [
+      "export const url = 'https://graph.facebook.com/v21.0/me';",
+      "export const api = { name: 'v21.0' };",
+    ].join('\n'),
+    'src/shop.ts': "fetch('https://example.myshopify.com/admin/api/2025-10/orders.json');",
+  });
+  const { 'src/prose.ts:13 gpt-4': unmatched, ...rest } = result;
+  expect(rest).toEqual({
+    ...Object.fromEntries(
+      cases.map(([model, , use], index) => [`src/prose.ts:${index + 1} ${model}`, use]),
+    ),
+    'src/Note.tsx:1 gpt-4': 'live',
+    'src/graph.ts:1 v21.0': 'live',
+    'src/graph.ts:2 v21.0': 'live',
+    'src/shop.ts:1 2025-10': 'live',
+  });
+  // A template with a substitution is never prose, and the rule adds no match of its own.
+  expect([undefined, 'live']).toContain(unmatched);
 });
 
 it('classifies OpenAI tests, examples, comments, tokenizers and checks', async () => {
