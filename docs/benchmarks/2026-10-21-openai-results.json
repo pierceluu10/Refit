@@ -2,9 +2,9 @@
   "formatVersion": 1,
   "list": "docs/benchmarks/2026-10-20-openai-repos.json",
   "provider": "openai",
-  "ranAt": "2026-10-21T09:46:35.891Z",
-  "note": "refit deadlines and refit deadlines --propose-model-fixes at each frozen commit; files read only. Exposure counts live evidence for this provider only. Scans ran three or four at a time on 4 cores with nothing else running.",
-  "refitTree": "24cf764 (catalog precision, class property edits, build output) with 34a55ac (shared analyzer program) applied; pinned worktree. No proposal came from a class property, so the results match the report-only rule that merged.",
+  "ranAt": "2026-10-21T17:51:37.392Z",
+  "note": "refit deadlines and refit deadlines --propose-model-fixes at each frozen commit; files read only. Exposure counts live evidence for this provider only. Three repositories that hit the 2-minute cap under four parallel scans (langchain-ai/langchainjs, webgptorg/promptbook, aantich/oneringai) were re-run alone with the same cap. Scans ran three or four at a time on 4 cores with nothing else running.",
+  "refitTree": "main at 72386c2 (after #137, #138 and #143); pinned worktree.",
   "summary": {
     "repositories": 100,
     "errors": 14,
@@ -1740,7 +1740,7 @@
             "line": 29
           },
           "model": "gpt-4-0125-preview",
-          "reason": "The request sets max_tokens, temperature, which gpt-5 may reject or treat differently."
+          "reason": "The model comes from the property llmModel (projects/smarterCrowdsourcing/webApi/src/base/chat/baseChatBot.ts:29); class properties are reported, not edited. Change it by hand to gpt-5."
         },
         {
           "file": "projects/smarterCrowdsourcing/webApi/src/ltp/crtCreateNodes.ts",

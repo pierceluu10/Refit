@@ -283,7 +283,7 @@ Ten items per provider, taken from each goal's definition of done, worth 10% eac
 
 Both sets came from npm search (`scripts/ai-sdk-select.mjs`), because GitHub code search was unavailable. npm returns published packages: mostly SDK wrappers, provider plugins and model catalogs, not applications.
 
-The 2026-10-21 run used a pinned worktree with catalog precision, build-output skipping and the shared analyzer program. That tree still edited class properties reached through `this.model`; no proposal came from one, so the numbers hold for the report-only rule on main. Results are in [`benchmarks/2026-10-21-openai-results.json`](benchmarks/2026-10-21-openai-results.json) and [`benchmarks/2026-10-21-anthropic-results.json`](benchmarks/2026-10-21-anthropic-results.json). The 2026-10-20 run is kept for comparison.
+The 2026-10-21 run used a worktree pinned at main `72386c2`, with catalog precision, build-output skipping, the shared analyzer program and class properties reported rather than edited. Results are in [`benchmarks/2026-10-21-openai-results.json`](benchmarks/2026-10-21-openai-results.json) and [`benchmarks/2026-10-21-anthropic-results.json`](benchmarks/2026-10-21-anthropic-results.json). The 2026-10-20 run is kept for comparison.
 
 |                                                          | OpenAI 10-20 | OpenAI 10-21                                           | Anthropic 10-20 | Anthropic 10-21                      |
 | -------------------------------------------------------- | ------------ | ------------------------------------------------------ | --------------- | ------------------------------------ |

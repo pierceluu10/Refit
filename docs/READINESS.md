@@ -2,7 +2,7 @@
 
 ## October 21 checkpoint: OpenAI and Anthropic benchmarks re-measured (unreleased, after 0.39.0)
 
-Both frozen AI SDK sets and the 34-application deadline set were run again. The worktree was pinned at the catalog precision and build-output change, with the shared analyzer program applied, and nothing else was running. That tree still edited class properties reached through `this.model`; none of the proposals came from one, so the numbers also hold for the report-only rule that merged.
+Both frozen AI SDK sets and the 34-application deadline set were run again, from a worktree pinned at main `72386c2`. That is after #137 (class properties reported, not edited), #138 (shared analyzer program) and #143 (catalog precision and build output). Scans ran three or four at a time with nothing else running. Four repositories that hit the 2-minute cap only under that load were re-run alone with the same cap. An earlier run on a tree that still edited class properties gave the same counts. The one difference: a policy-synth stop now names the class property `llmModel` instead of the sampling parameters.
 
 - **OpenAI** (100 repositories):
   - 45 exposed (47 before), with 1 proposal and 1 stop;
