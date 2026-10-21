@@ -13,13 +13,13 @@
 
 ### Tracing (live pin → call argument)
 
-- [ ] **TRAC-01**: `model: this.model` in a traced OpenAI or Anthropic call resolves to the class field initializer or constructor parameter default that sets it
-- [ ] **TRAC-02**: A model constant exported from one module and used in a traced call in another resolves to its literal
-- [ ] **TRAC-03**: An enum member or `as const` object member used as `model` resolves to its literal
+- [x] **TRAC-01**: `model: this.model` in a traced OpenAI or Anthropic call resolves to the class field initializer or constructor parameter default that sets it
+- [x] **TRAC-02**: A model constant exported from one module and used in a traced call in another resolves to its literal
+- [x] **TRAC-03**: An enum member or `as const` object member used as `model` resolves to its literal
 - [ ] **TRAC-04**: A helper function's `model` parameter used in a traced call resolves to the literal its callers pass (each caller site reported)
 - [x] **TRAC-05**: Raw `fetch`/`axios` requests to `api.openai.com` and `api.anthropic.com` with a literal `model` in the body are reported at the exact line and eligible for the same replacement rule
 
-- [ ] **TRAC-06**: A `const` whose initializer is an env fallback (`process.env.X ?? 'gpt-4'`), a function whose body returns a literal, and a destructuring default (`{ model = 'gpt-4' } = options`) resolve to the literal they hold
+- [x] **TRAC-06**: A `const` whose initializer is an env fallback (`process.env.X ?? 'gpt-4'`), a function whose body returns a literal, and a destructuring default (`{ model = 'gpt-4' } = options`) resolve to the literal they hold
 - [x] **TRAC-07**: Non-text OpenAI and Anthropic model calls (images, audio, embeddings, moderation, legacy completions) are traced and stop with a named reason instead of staying silent
 
 ### Rule (replacement stops)
@@ -64,12 +64,12 @@
 |-------------|-------|--------|
 | EXPO-01 | Phase 1 | Pending |
 | EXPO-02 | Phase 1 | Pending |
-| TRAC-01 | Phase 1 | Pending |
-| TRAC-02 | Phase 1 | Pending |
-| TRAC-03 | Phase 1 | Pending |
+| TRAC-01 | Phase 1 | Complete |
+| TRAC-02 | Phase 1 | Complete |
+| TRAC-03 | Phase 1 | Complete |
 | TRAC-04 | Phase 1 | Pending |
 | TRAC-05 | Phase 1 | Complete |
-| TRAC-06 | Phase 1 | Pending |
+| TRAC-06 | Phase 1 | Complete |
 | TRAC-07 | Phase 1 | Complete |
 | EXPO-03 | Phase 1 | Pending |
 | RULE-01 | Phase 2 | Pending |

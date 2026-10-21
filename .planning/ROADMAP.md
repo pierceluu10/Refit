@@ -30,7 +30,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   4. A raw `fetch` or `axios` request to `api.openai.com` or `api.anthropic.com` with a literal `model` in the body is reported at its exact line and gets the same proposal and stops as an SDK call
   5. A model ID quoted inside a plain prose string (not a template with substitutions or a concatenation), and a model-keyed map entry wrapped in `satisfies`, are reported as non-live; an env-fallback constant, a function returning a literal and a destructuring default resolve to the literal; image, audio, embedding, moderation and legacy-completion calls stop with a named reason
   6. `npm test`, typecheck and formatting pass. Gated suite results are reported separately from the default count.
-**Plans**: 2/5 plans executed
+**Plans**: 3/5 plans executed
 
 Plans:
 **Wave 1**
@@ -38,7 +38,7 @@ Plans:
 - [x] 01-02-PLAN.md — Non-text SDK and raw calls stop with a named reason; raw fetch/axios shapes, including axios request-config forms, traced and tested (wave 1)
 
 **Wave 2** *(blocked on Wave 1 completion)*
-- [ ] 01-03-PLAN.md — Memoized resolver core: fields, members, fallbacks, returns, destructuring, imports (wave 2)
+- [x] 01-03-PLAN.md — Memoized resolver core: fields, members, fallbacks, returns, destructuring, imports (wave 2)
 
 **Wave 3** *(blocked on Wave 2 completion)*
 - [ ] 01-04-PLAN.md — D-09 every-use check (own commit), helper/method/default-export callers, D-17 fixes, never-silent limit stop (wave 3)
@@ -86,7 +86,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4. Phases 1, 2 and 3 do not d
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Live exposure and tracing | 2/5 | In Progress | - |
+| 1. Live exposure and tracing | 3/5 | In Progress | - |
 | 2. Sourced parameter stops | 0/TBD | Not started | - |
 | 3. Application benchmark sets | 0/TBD | Not started | - |
 | 4. Measurement and readiness | 0/TBD | Not started | - |
