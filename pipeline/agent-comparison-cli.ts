@@ -229,7 +229,9 @@ for (const [index, entry] of selection.entries()) {
       .split('\n')
       .filter((path) => PACKAGE_FILES.includes(path));
     if (touchedPackages.length) await git(checkout, ['checkout', '--', ...touchedPackages]);
-    const agentDiff = await git(checkout, ['diff']);
+    // Staged, so files the agent created are part of the patch.
+    await git(checkout, ['add', '-A']);
+    const agentDiff = await git(checkout, ['diff', '--cached']);
     result.agent = {
       status: agent.is_error ? 'error' : agentDiff ? 'patched' : 'no-change',
       stop: agent.subtype,
@@ -255,7 +257,8 @@ for (const [index, entry] of selection.entries()) {
         await writeFile(join(checkout, file.path), file.after);
       result.sdkUpgrade = { from: upgrade.upgrade.from, to: upgrade.upgrade.to };
     } else result.sdkUpgrade = { skipped: upgrade.reason };
-    const diff = await git(checkout, ['diff']);
+    await git(checkout, ['add', '-A']);
+    const diff = await git(checkout, ['diff', '--cached']);
     await writeFile(join(output, `${slug}.patch`), diff);
     const validation = await validateSourcePatch({
       repository: configuration.repository,
