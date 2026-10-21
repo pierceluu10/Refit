@@ -83,7 +83,7 @@ function checkSpec(name: string, spec: unknown, label: string, errors: string[])
   ownKeys(spec, ['accepts', 'default', 'min', 'max', 'renamedTo'], at, errors);
   const has = (key: string) => Object.hasOwn(spec, key);
   const finite = (key: string) => Number.isFinite(spec[key]);
-  if (!['any', 'default-only', 'none'].includes(String(spec.accepts)))
+  if (spec.accepts !== 'any' && spec.accepts !== 'default-only' && spec.accepts !== 'none')
     errors.push(`${at}: accepts must be any, default-only or none.`);
   if (spec.accepts === 'default-only' ? !finite('default') : has('default'))
     errors.push(`${at}: default must be a finite number, and only with default-only.`);
@@ -122,13 +122,13 @@ export function checkModelParameters(value: unknown, now: Date) {
       label,
       errors,
     );
-    const provider = String(entry.provider);
+    const provider = typeof entry.provider === 'string' ? entry.provider : '';
     const names = Object.hasOwn(MODEL_PARAMETER_NAMES, provider)
       ? MODEL_PARAMETER_NAMES[provider]
       : undefined;
     if (!names) errors.push(`${label}: unknown provider.`);
-    if (typeof entry.model !== 'string' || !entry.model.trim())
-      errors.push(`${label}: model is required.`);
+    if (typeof entry.model !== 'string' || !entry.model || entry.model !== entry.model.trim())
+      errors.push(`${label}: model must be a non-empty string without surrounding whitespace.`);
     else if (seen.has(`${provider}:${entry.model}`)) errors.push(`${label}: duplicate model.`);
     else seen.add(`${provider}:${entry.model}`);
     if (!officialUrl(entry.source))
@@ -199,6 +199,8 @@ export function parameterVerdict(
     ((spec.min !== undefined && value < spec.min) || (spec.max !== undefined && value > spec.max))
   )
     return { ok: false, why: 'out-of-range', spec };
+  // Anything not proven above, including an unrecognized spec, stops.
+  if (spec.accepts !== 'any') return { ok: false, why: 'unproven', spec };
   return { ok: true };
 }
 

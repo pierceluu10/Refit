@@ -58,6 +58,11 @@ const rejected: [string, unknown][] = [
   ['top_k under openai', openai({ top_k: { accepts: 'none' } })],
   ['max_tokens under anthropic', edit((e) => (e.parameters = { max_tokens: { accepts: 'none' } }))],
   ['bad accepts', edit((e) => (e.parameters.top_k.accepts = 'some'))],
+  ['array accepts', edit((e) => (e.parameters.top_k.accepts = ['none']))],
+  ['number accepts', edit((e) => (e.parameters.top_k.accepts = 1))],
+  ['object accepts', edit((e) => (e.parameters.top_k.accepts = { toString: () => 'none' }))],
+  ['array provider', edit((e) => (e.provider = ['anthropic']))],
+  ['padded model', edit((e) => (e.model = ' claude-sonnet-5-5 '))],
   ['default-only without default', edit((e) => delete e.parameters.temperature.default)],
   ['non-numeric default', edit((e) => (e.parameters.temperature.default = 'x'))],
   ['default on any', edit((e) => (e.parameters.top_k = { accepts: 'any', default: 1 }))],
@@ -177,4 +182,15 @@ it('gives every parameterVerdict outcome and a sentence ending in the by-hand in
   const bad = verdict('top_p', 0.5);
   if (bad.ok) throw new Error('expected a stop');
   expect(parameterReason('top_p', 0.5, 'm', bad)).toMatch(/; change it by hand to m\.$/);
+});
+
+it('stops on an unrecognized spec instead of proving the value', () => {
+  const bad = table(valid());
+  (bad.models[0] as ModelParameterEntry).parameters.top_k = { accepts: ['none'] } as never;
+  expect(
+    parameterVerdict(bad as never, 'anthropic', 'claude-sonnet-5-5', 'top_k', 5),
+  ).toMatchObject({
+    ok: false,
+    why: 'unproven',
+  });
 });
