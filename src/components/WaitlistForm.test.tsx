@@ -1,6 +1,5 @@
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { LogoBelt } from './LogoBelt';
 import { WaitlistForm } from './WaitlistForm';
 
 function submit(email: string) {
@@ -54,32 +53,5 @@ describe('waitlist form', () => {
     vi.stubEnv('VITE_SUPABASE_PUBLISHABLE_KEY', '');
     submit('dev@example.com');
     expect(await screen.findByRole('alert')).toHaveTextContent('isn’t connected yet');
-  });
-});
-
-describe('compatible providers', () => {
-  it('lists each provider once for screen readers and offers nothing to select', () => {
-    const { container } = render(<LogoBelt />);
-    const list = screen.getByRole('list', { name: 'Compatible with' });
-    expect(
-      within(list)
-        .getAllByRole('listitem')
-        .map((item) => item.textContent),
-    ).toEqual([
-      'Stripe',
-      'OpenAI',
-      'Anthropic',
-      'Twilio',
-      'Shopify',
-      'Meta',
-      'Gemini',
-      'Google',
-      'Slack',
-      'PayPal',
-      'Salesforce',
-      'Cloudflare',
-    ]);
-    expect(container.querySelectorAll('button, input, a')).toHaveLength(0);
-    expect(container.querySelectorAll('.logo-group')[1]).toHaveAttribute('aria-hidden', 'true');
   });
 });

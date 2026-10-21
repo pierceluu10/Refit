@@ -9,7 +9,7 @@ const TAIL_DOTS = 14;
 // Distance between tail dots, in the SVG's 960 × 160 units.
 const TAIL_SPACING = 4;
 
-// Illustrative sources, one per cycle, for the providers on the logo belt.
+// Illustrative sources, one per cycle, for the providers Refit is built for.
 const providers = [
   { id: 'stripe', source: 'stripe / openapi' },
   { id: 'openai', source: 'openai / openapi' },

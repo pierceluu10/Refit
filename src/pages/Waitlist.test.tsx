@@ -5,20 +5,18 @@ import { App } from '../App';
 import { AgentDemo } from '../components/AgentDemo';
 import { SplitFlap } from '../components/SplitFlap';
 
-describe('waitlist variants', () => {
-  it.each([
-    ['/v1', 'APIs change. Your code keeps up.'],
-    ['/v2', 'The API changed. Your PR is ready.'],
-    ['/v3', 'Stop chasing API changelogs.'],
-    ['/v4', 'Stop chasing API changelogs.'],
-  ])('%s renders its headline, signup and labelled demo', (path, headline) => {
+describe('waitlist page', () => {
+  it('renders the headline, both signups and the labelled demo', () => {
     render(
-      <MemoryRouter initialEntries={[path]}>
+      <MemoryRouter initialEntries={['/']}>
         <App />
       </MemoryRouter>,
     );
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(headline);
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(
+      'Stop chasing API changelogs.',
+    );
     const emails = screen.getAllByLabelText('Work email');
+    expect(emails).toHaveLength(2);
     expect(new Set(emails.map((input) => input.id)).size).toBe(emails.length);
     expect(screen.getByText(/^Illustrative example\./).tagName).toBe('FIGCAPTION');
     expect(

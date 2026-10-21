@@ -95,7 +95,7 @@ function typed(time: number, from: number, perKey: number) {
 // An illustrative run of Refit Agent: its cursor moves to the Stripe call a provider change
 // breaks, rewrites it, runs the repository's checks and opens a draft pull request. It loops
 // while on screen, pauses on request, and shows the finished state under reduced motion.
-export function AgentDemo({ tone = 'light' }: { tone?: 'light' | 'dark' }) {
+export function AgentDemo() {
   const root = useRef<HTMLElement>(null);
   const targets = {
     version: useRef<HTMLSpanElement>(null),
@@ -165,11 +165,7 @@ export function AgentDemo({ tone = 'light' }: { tone?: 'light' | 'dark' }) {
   const hidden = reduced || time < AT.show || time >= AT.fade;
 
   return (
-    <figure
-      ref={root}
-      className={`agent-demo agent-demo-${tone}`}
-      data-fading={time >= AT.fade || undefined}
-    >
+    <figure ref={root} className="agent-demo" data-fading={time >= AT.fade || undefined}>
       <figcaption className="sr-only">
         Illustrative example. Stripe API {NEW_VERSION} removes PaymentIntent.charges. Refit Agent
         updates the API version in src/billing/payments.ts, replaces the charges lookup with

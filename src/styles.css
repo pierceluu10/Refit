@@ -302,95 +302,6 @@ pre {
   margin: 32px auto 0;
   max-width: 1050px;
 }
-/* The waitlist page's product preview. Where the hero fits one screen, ScrollStage pins the hero
-   and lifts the preview over it as the visitor scrolls; elsewhere it sits below in normal flow. */
-.scroll-stage-preview {
-  max-width: 1130px;
-  margin: 48px auto 0;
-  padding: 0 40px 96px;
-}
-.demo-label {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 6px 12px;
-  margin-bottom: 14px;
-}
-.demo-badge {
-  align-self: center;
-  padding: 3px 10px;
-  border-radius: 999px;
-  background: var(--blue);
-  color: #fff;
-  font-size: 12px;
-  font-weight: 600;
-}
-.demo-label h2 {
-  font-size: 20px;
-  letter-spacing: -0.02em;
-}
-.demo-label p {
-  color: var(--muted);
-  font-size: 14px;
-}
-.scroll-stage-cue {
-  display: none;
-}
-@media (min-width: 900px) and (min-height: 640px) and (prefers-reduced-motion: no-preference) {
-  /* The cue sits where the map's caption would. */
-  .scroll-stage-hero .map-caption {
-    display: none;
-  }
-  .scroll-stage-cue {
-    position: absolute;
-    bottom: 20px;
-    left: 50%;
-    display: block;
-    transform: translateX(-50%);
-  }
-  .scroll-stage-cue a {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 8px 16px;
-    border: 1px solid var(--border);
-    border-radius: 999px;
-    background: var(--surface);
-    color: var(--muted);
-    font-size: 13px;
-    box-shadow: 0 8px 20px -14px #00184a59;
-  }
-  .scroll-stage-cue svg {
-    width: 14px;
-    height: 14px;
-    animation: cue-nudge 1.6s var(--ease-out) infinite;
-  }
-  .scroll-stage {
-    height: calc(100vh * (1 + var(--stage-travel)));
-  }
-  .scroll-stage-view {
-    position: sticky;
-    top: 0;
-    height: 100vh;
-    overflow: hidden;
-  }
-  .scroll-stage-hero {
-    transform-origin: 50% 30%;
-    will-change: transform, opacity;
-  }
-  .scroll-stage-preview {
-    position: absolute;
-    top: 0;
-    left: 50%;
-    width: min(1050px, calc(100% - 128px));
-    max-width: none;
-    margin: 0;
-    padding: 0;
-    transform: translate(-50%, 100vh) scale(0.86);
-    transform-origin: 50% 0;
-    will-change: transform;
-  }
-}
 .workflow-map {
   height: 162px;
   position: relative;
@@ -1617,10 +1528,6 @@ pre {
   }
 }
 @media (max-width: 640px) {
-  .scroll-stage-preview {
-    margin-top: 40px;
-    padding: 0 18px 72px;
-  }
   .content-width,
   .header-inner,
   .site-footer {
@@ -2105,52 +2012,6 @@ pre {
   opacity: 0.7;
   cursor: progress;
 }
-.compatible {
-  max-width: 1050px;
-  margin: 22px auto 0;
-}
-.compatible > p {
-  margin-bottom: 10px;
-  color: var(--muted);
-  font-size: 13px;
-}
-.logo-belt {
-  overflow: hidden;
-  padding-block: 6px;
-  mask-image: linear-gradient(to right, transparent, #000 12%, #000 88%, transparent);
-}
-.logo-track {
-  display: flex;
-  width: max-content;
-  animation: belt-scroll 48s linear infinite;
-}
-.logo-group {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  display: flex;
-  gap: 8px;
-  padding-right: 8px;
-}
-/* Each provider is its logo and name, display only. */
-.logo-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 11px;
-  height: 54px;
-  padding: 0 20px;
-  color: var(--ink);
-  font-size: 18px;
-  font-weight: 550;
-  letter-spacing: -0.01em;
-  white-space: nowrap;
-  user-select: none;
-}
-.logo-chip svg,
-.logo-chip img {
-  width: 26px;
-  height: 26px;
-}
 .waitlist-error {
   min-height: 20px;
   margin-top: 12px;
@@ -2173,46 +2034,6 @@ pre {
   color: #fff;
   background: var(--blue);
 }
-/* A headline inside the two halves of the ASCII Refit mark; AsciiBrackets.tsx
-   places them against the text's corners. */
-.ascii-frame {
-  position: relative;
-  display: inline-block;
-  isolation: isolate;
-}
-/* Room for the lower bracket, which reaches below the headline, above the paragraph. */
-.hero .ascii-frame {
-  margin-bottom: 42px;
-}
-.ascii-bracket {
-  position: absolute;
-  top: 0;
-  left: 0;
-  z-index: -1;
-  margin: 0;
-  font: 9px/1.2 var(--mono);
-  color: var(--blue);
-  pointer-events: none;
-  user-select: none;
-}
-@keyframes cue-nudge {
-  0%,
-  60%,
-  100% {
-    transform: translateY(0);
-  }
-  30% {
-    transform: translateY(3px);
-  }
-}
-@keyframes belt-scroll {
-  from {
-    transform: translateX(-50%);
-  }
-  to {
-    transform: translateX(0);
-  }
-}
 @media (max-width: 640px) {
   .waitlist-field {
     flex-direction: column;
@@ -2224,55 +2045,17 @@ pre {
   .waitlist-done {
     border-radius: 14px;
   }
-  .logo-chip {
-    height: 46px;
-    padding: 0 16px;
-    font-size: 16px;
-  }
-  .logo-chip svg,
-  .logo-chip img {
-    width: 22px;
-    height: 22px;
-  }
-  .ascii-bracket {
-    font-size: 5.5px;
-  }
-  .hero .ascii-frame {
-    margin-bottom: 14px;
-  }
-  .waitlist-theme .closing-section h2 {
-    font-size: min(calc((100vw - 72px) / 13.5), 35px);
-  }
-  .waitlist-theme .hero h1 {
-    font-size: min(calc((100vw - 80px) / 9), 62px);
-  }
 }
 @media (prefers-reduced-motion: reduce) {
   .provider-symbol,
   .map-endpoint .provider-source {
     animation: none;
   }
-  .logo-belt {
-    mask-image: none;
-  }
-  .logo-track {
-    width: auto;
-    animation: none;
-  }
-  .logo-group {
-    flex-wrap: wrap;
-    justify-content: center;
-    padding: 0;
-  }
-  .logo-group[aria-hidden] {
-    display: none;
-  }
 }
 
-/* The waitlist page: white with a royal-blue accent, pill actions, a faint
-   blue dot grid behind the hero. */
+/* The waitlist page: white with a royal-blue accent and pill actions. */
 .waitlist-theme {
-  /* Clips the closing brackets while they fly in from the screen's corners. */
+  /* Clips the demo's guide rules where they run past the screen's edge. */
   overflow: clip;
   --ink: #0b1220;
   --muted: #5a6476;
@@ -2284,51 +2067,11 @@ pre {
   min-height: 100vh;
   background: var(--canvas);
 }
-.waitlist-theme::before {
-  content: '';
-  position: absolute;
-  inset: 0 0 auto;
-  height: 820px;
-  background-image: radial-gradient(circle at 1px 1px, #0048d833 1px, transparent 0);
-  background-size: 24px 24px;
-  mask-image: radial-gradient(ellipse 60% 70% at 50% 0%, #000 20%, transparent 75%);
-  pointer-events: none;
-}
 .waitlist-theme > * {
   position: relative;
 }
 .waitlist-theme .site-header {
   background: transparent;
-}
-.waitlist-theme .hero h1 span:last-child {
-  color: var(--blue);
-}
-/* Both lines start at the same edge so the ASCII brackets hug the first and
-   last words equally; the block itself stays centered. */
-.waitlist-theme .ascii-frame > :is(h1, h2) {
-  text-align: left;
-}
-.waitlist-theme .ascii-frame > :is(h1, h2) > span {
-  display: block;
-  white-space: nowrap;
-}
-.closing-section .ascii-bracket {
-  font-size: 7.5px;
-  color: var(--ink);
-}
-/* Its own centered row between the logo and the button. */
-.closing-section .ascii-frame {
-  display: block;
-  width: fit-content;
-  margin-inline: auto;
-}
-@media (max-width: 640px) {
-  .closing-section .ascii-bracket {
-    font-size: 4px;
-  }
-  .closing-section .ascii-frame {
-    margin-bottom: 40px;
-  }
 }
 .waitlist-theme .button {
   border-radius: 999px;
@@ -2342,12 +2085,6 @@ pre {
     inset 0 1px 0 #ffffff33,
     0 1px 2px #00184a33,
     0 8px 18px -10px #0048d8b3;
-}
-.waitlist-theme .closing-section {
-  background: var(--canvas);
-}
-.waitlist-theme .closing-section h2 {
-  color: var(--blue);
 }
 @media (hover: hover) and (pointer: fine) {
   .waitlist-theme .button-primary:hover,

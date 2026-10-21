@@ -4,14 +4,8 @@ import { Link, NavLink, useLocation } from 'react-router-dom';
 import { PROJECT_URL } from '../data';
 import { Brand } from './Brand';
 
-// `minimal` is the waitlist page's header: the brand and one call to action, no navigation.
-export function Header({
-  minimal = false,
-  action = true,
-}: {
-  minimal?: boolean;
-  action?: boolean;
-}) {
+// `minimal` is the waitlist page's header: just the brand, no navigation.
+export function Header({ minimal = false }: { minimal?: boolean }) {
   const [open, setOpen] = useState(false);
   const location = useLocation();
   useEffect(() => setOpen(false), [location]);
@@ -20,11 +14,6 @@ export function Header({
       <header className="site-header">
         <div className="header-inner">
           <Brand />
-          {action && (
-            <a className="button button-small button-dark" href="#waitlist">
-              Join the waitlist <ArrowRight />
-            </a>
-          )}
         </div>
       </header>
     );
@@ -103,10 +92,6 @@ export function PagePosition() {
     else window.scrollTo(0, 0);
     const titlesByPath: Record<string, string> = {
       '/': 'Refit: Keep your integrations current',
-      '/v1': 'Refit: Keep your integrations current',
-      '/v2': 'Refit: Keep your integrations current',
-      '/v3': 'Refit: Keep your integrations current',
-      '/v4': 'Refit: Keep your integrations current',
       '/demo': 'Refit: Interactive workflow',
       '/docs': 'Refit: Documentation',
     };

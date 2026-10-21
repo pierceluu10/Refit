@@ -1,20 +1,19 @@
-/* Waitlist directions at /v1, /v2 and /v3. They share the waitlist theme's tokens: white, royal
-   blue, Geist, pill actions. */
+/* The waitlist page. It builds on the waitlist theme's tokens: white, royal blue, Geist, pill
+   actions. */
 
-.variant {
+.launch {
   --rail: #c3cddd;
   --soft: #f4f7fc;
   --page: min(1160px, 100% - 48px);
   --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  position: relative;
+  isolation: isolate;
 }
-.variant::before {
-  display: none;
-}
-.variant h1 {
+.launch h1 {
   font-weight: 500;
   letter-spacing: -0.045em;
 }
-.variant h2 {
+.launch h2 {
   font-size: clamp(30px, 3.6vw, 44px);
   line-height: 1.1;
 }
@@ -107,21 +106,6 @@
   min-width: 0;
   text-align: left;
 }
-.agent-demo-dark {
-  --demo-bg: #0e1422;
-  --demo-line: #222c3f;
-  --demo-text: #d9e0ec;
-  --demo-muted: #6a7488;
-  --demo-keyword: #8fb1ff;
-  --demo-string: #f0b48a;
-  --demo-notice: #13214a;
-  --demo-notice-text: #bcd0ff;
-  --demo-removed: #ff6b7d1c;
-  --demo-added: #4fd18b1c;
-  --demo-changed: #8fb1ff12;
-  --demo-selection: #8fb1ff3d;
-  --demo-card: #151d2e;
-}
 .agent-stage {
   position: relative;
   overflow: hidden;
@@ -213,9 +197,6 @@
   color: var(--blue);
   transform: scale(0.46);
 }
-.agent-demo-dark .agent-notice .refit-mark {
-  color: #8fb1ff;
-}
 .agent-notice code {
   font-size: 12px;
 }
@@ -260,12 +241,6 @@
 }
 .agent-line[data-state='added'] .agent-gutter {
   color: var(--positive);
-}
-.agent-demo-dark .agent-line[data-state='removed'] .agent-gutter {
-  color: #ff8f9c;
-}
-.agent-demo-dark .agent-line[data-state='added'] .agent-gutter {
-  color: #6fdc9f;
 }
 .token-keyword {
   color: var(--demo-keyword);
@@ -323,9 +298,6 @@
 }
 .agent-check[data-state='passed'] svg {
   color: var(--positive);
-}
-.agent-demo-dark .agent-check[data-state='passed'] svg {
-  color: #6fdc9f;
 }
 .agent-pr {
   position: absolute;
@@ -418,9 +390,6 @@
 .agent-pr li svg {
   color: var(--positive);
 }
-.agent-demo-dark .agent-pr li svg {
-  color: #6fdc9f;
-}
 .agent-cursor {
   position: absolute;
   top: 0;
@@ -432,9 +401,6 @@
   transition:
     transform 820ms var(--ease-in-out),
     opacity 200ms ease;
-}
-.agent-demo-dark .agent-cursor {
-  color: #5b8cff;
 }
 .agent-cursor svg {
   display: block;
@@ -463,9 +429,6 @@
   font-size: 11.5px;
   font-weight: 500;
   white-space: nowrap;
-}
-.agent-demo-dark .agent-tag {
-  background: #3d73f5;
 }
 /* Near the right edge the name tag hangs to the left of the pointer. */
 .agent-cursor[data-flip] .agent-tag {
@@ -519,7 +482,7 @@
   }
 }
 
-/* Progression: a vertical rail by default, a ladder or a track on wide screens -------------- */
+/* Progression: the stages down a dashed rail ------------------------------------------------ */
 
 .progression {
   position: relative;
@@ -548,32 +511,20 @@
 }
 .progression-marker {
   position: absolute;
-  top: 22px;
-  left: -60px;
+  top: 32px;
+  left: -50px;
   z-index: 1;
-  display: grid;
-  place-items: center;
-  width: 32px;
-  height: 32px;
+  width: 12px;
+  height: 12px;
   border: 1px solid var(--blue);
-  border-radius: 9px;
-  color: #fff;
+  border-radius: 50%;
   background: var(--blue);
-  font: 500 11px var(--mono);
 }
 .progression-card {
   padding: 22px 24px 24px;
   border: 1px solid var(--border);
   border-radius: 14px;
   background: var(--surface);
-}
-.progression-tag {
-  display: inline-block;
-  padding: 3px 9px;
-  border-radius: 999px;
-  color: var(--blue);
-  background: var(--blue-tint);
-  font: 500 11px var(--mono);
 }
 .progression-card h3 {
   margin-top: 14px;
@@ -599,78 +550,6 @@
   white-space: pre-wrap;
 }
 
-@media (min-width: 761px) {
-  .progression-ladder ol {
-    gap: 0;
-    padding: 0;
-  }
-  .progression-ladder .progression-line {
-    top: 0;
-    bottom: 0;
-    left: 50%;
-  }
-  .progression-ladder .progression-step {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    column-gap: 96px;
-  }
-  .progression-ladder .progression-step + .progression-step {
-    margin-top: -56px;
-  }
-  .progression-ladder .progression-step:nth-child(even) .progression-card {
-    grid-column: 2;
-  }
-  .progression-ladder .progression-marker {
-    top: 28px;
-    left: calc(50% - 16px);
-  }
-  /* A dashed stub from the rail to the card it belongs to. */
-  .progression-ladder .progression-step::before {
-    content: '';
-    position: absolute;
-    top: 44px;
-    left: calc(50% - 48px);
-    width: 48px;
-    border-top: 1.5px dashed var(--rail);
-  }
-  .progression-ladder .progression-step:nth-child(even)::before {
-    left: 50%;
-  }
-
-  .progression-track {
-    view-timeline: --track block;
-  }
-  .progression-track ol {
-    grid-template-columns: repeat(4, 1fr);
-    gap: 16px;
-    padding: 0;
-  }
-  /* From the first marker to the last: the last column starts at 75% - 12px of the 16px gaps. */
-  .progression-track .progression-line {
-    top: 15px;
-    right: calc(25% - 28px);
-    bottom: auto;
-    left: 16px;
-    border-top: 1.5px dashed var(--rail);
-    border-left: 0;
-  }
-  .progression-track .progression-line > span {
-    inset: -1.5px 0 auto;
-    border-top: 1.5px dashed var(--blue);
-    border-left: 0;
-  }
-  .progression-track .progression-step {
-    padding-top: 56px;
-  }
-  .progression-track .progression-marker {
-    top: 0;
-    left: 0;
-  }
-  .progression-track .progression-card {
-    height: 100%;
-  }
-}
-
 /* The rail fills down to the middle of the screen and each marker lights as it crosses it.
    Elsewhere everything shows as already reached. */
 @supports (animation-timeline: view()) {
@@ -687,31 +566,6 @@
     }
   }
 }
-@supports (animation-timeline: view()) {
-  @media (prefers-reduced-motion: no-preference) and (min-width: 761px) {
-    .progression-track .progression-line > span {
-      animation-name: rail-fill-across;
-      animation-timeline: --track;
-      animation-range: cover 30% cover 54%;
-    }
-    .progression-track .progression-marker {
-      animation-timeline: --track;
-      animation-range: cover calc(30% + var(--step) * 8%) cover calc(30.1% + var(--step) * 8%);
-    }
-    .progression-track .progression-step:nth-child(1) {
-      --step: 0;
-    }
-    .progression-track .progression-step:nth-child(2) {
-      --step: 1;
-    }
-    .progression-track .progression-step:nth-child(3) {
-      --step: 2;
-    }
-    .progression-track .progression-step:nth-child(4) {
-      --step: 3;
-    }
-  }
-}
 @keyframes rail-fill {
   from {
     clip-path: inset(0 0 100% 0);
@@ -720,343 +574,19 @@
     clip-path: inset(0);
   }
 }
-@keyframes rail-fill-across {
-  from {
-    clip-path: inset(0 100% 0 0);
-  }
-  to {
-    clip-path: inset(0);
-  }
-}
 @keyframes marker-on {
   from {
     border-color: var(--rail);
-    color: var(--muted);
     background: var(--surface);
   }
   to {
     border-color: var(--blue);
-    color: #fff;
     background: var(--blue);
   }
 }
 
-/* Shared sections ---------------------------------------------------------------------------- */
+/* Page layout -------------------------------------------------------------------------------- */
 
-.variant-steps {
-  width: var(--page);
-  margin: 0 auto;
-  padding: 140px 0 40px;
-}
-.variant-steps > h2 {
-  max-width: 16ch;
-  margin: 0 auto 72px;
-  text-align: center;
-}
-.variant-close {
-  width: var(--page);
-  margin: 0 auto;
-  padding: 120px 0 140px;
-  text-align: center;
-}
-.variant-close .ascii-wordmark {
-  width: 120px;
-  margin: 0 auto 36px;
-  color: var(--blue);
-}
-.variant-close .ascii-wordmark-lens {
-  color: var(--ink);
-}
-.variant-close h2 {
-  max-width: 18ch;
-  margin-inline: auto;
-}
-.variant-close .waitlist-form {
-  margin-top: 28px;
-}
-.variant-footer {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px 24px;
-  width: var(--page);
-  margin: 0 auto;
-  padding: 28px 0;
-  border-top: 1px solid var(--border);
-  color: var(--muted);
-  font-size: 13px;
-}
-.variant-footer a {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  color: var(--ink);
-}
-.variant-footer a svg {
-  width: 12px;
-  height: 12px;
-}
-
-/* v1: Blueprint ------------------------------------------------------------------------------ */
-
-.blueprint-hero {
-  width: var(--page);
-  margin: 0 auto;
-  padding: 56px 0 0;
-  text-align: center;
-}
-.blueprint-logo {
-  width: min(760px, 100%);
-  margin: 0 auto 40px;
-}
-.blueprint-hero h1 {
-  font-size: clamp(42px, 5.4vw, 72px);
-  line-height: 1.04;
-}
-.blueprint-hero h1 span {
-  display: inline-block;
-  animation: text-enter var(--entrance) var(--ease-out) both;
-}
-.blueprint-hero h1 span:last-child {
-  color: var(--blue);
-  animation-delay: 60ms;
-}
-.blueprint-hero > p {
-  max-width: 54ch;
-  margin: 20px auto 0;
-  color: var(--muted);
-  font-size: 17px;
-}
-.blueprint-hero .waitlist-form {
-  margin-top: 30px;
-}
-.blueprint-demo {
-  width: min(980px, 100% - 32px);
-  margin: 56px auto 0;
-}
-/* A blue mat printed with ASCII dots around the editor, like a plotted blueprint. */
-.blueprint-frame {
-  padding: 28px 28px 14px;
-  border-radius: 22px;
-  background-color: var(--blue);
-  background-image: radial-gradient(circle at 1.5px 1.5px, #ffffff38 1.2px, transparent 0);
-  background-size: 12px 12px;
-  box-shadow:
-    inset 0 1px 0 #ffffff40,
-    0 40px 80px -40px #0048d8aa;
-}
-.blueprint-frame .agent-stage {
-  border-color: #00256f;
-}
-.blueprint-frame .agent-meta {
-  color: #dbe6ff;
-}
-.blueprint-frame .agent-toggle {
-  border-color: #ffffff4d;
-  color: #fff;
-  background: #ffffff1f;
-}
-
-/* v2: Cobalt --------------------------------------------------------------------------------- */
-
-.cobalt-band {
-  position: relative;
-  overflow: hidden;
-  color: #fff;
-  background: var(--blue);
-}
-.cobalt-band::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background-image: radial-gradient(circle at 1px 1px, #ffffff1f 1px, transparent 0);
-  background-size: 22px 22px;
-  mask-image: linear-gradient(#000, transparent 70%);
-  pointer-events: none;
-}
-.cobalt-band .site-header {
-  position: relative;
-  border-color: #ffffff26;
-}
-.cobalt-band .brand {
-  color: #fff;
-}
-.cobalt-band .site-header .button {
-  color: var(--blue);
-  background: #fff;
-  border-color: #fff;
-  box-shadow: 0 8px 18px -10px #00184a99;
-}
-.cobalt-hero {
-  position: relative;
-  display: grid;
-  grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
-  gap: 64px;
-  align-items: center;
-  width: var(--page);
-  margin: 0 auto;
-  padding: 72px 0 56px;
-}
-.cobalt-copy h1 {
-  font-size: clamp(40px, 4.4vw, 62px);
-  font-weight: 400;
-  line-height: 1.04;
-  letter-spacing: -0.05em;
-}
-.cobalt-copy h1 span {
-  display: block;
-  animation: text-enter var(--entrance) var(--ease-out) both;
-}
-.cobalt-copy h1 span:last-child {
-  color: #b9cdff;
-  animation-delay: 60ms;
-}
-.cobalt-copy > p {
-  max-width: 44ch;
-  margin-top: 22px;
-  color: #d8e3ff;
-  font-size: 17px;
-}
-.cobalt-copy .waitlist-form {
-  margin-top: 30px;
-}
-.cobalt-copy .waitlist-field {
-  margin-inline: 0;
-  border-color: #ffffff59;
-  box-shadow: 0 18px 30px -20px #00184acc;
-}
-.cobalt-copy .waitlist-field .button {
-  color: #fff;
-  background: var(--ink);
-  border-color: var(--ink);
-  box-shadow: none;
-}
-.cobalt-copy :is(.waitlist-error, .waitlist-done) {
-  margin-inline: 0;
-  color: #fff;
-}
-.cobalt-hero .agent-stage {
-  border-color: #0a2a78;
-  box-shadow:
-    0 2px 4px #00184a33,
-    0 50px 90px -30px #000b2acc;
-}
-.cobalt-hero .agent-meta {
-  color: #c7d6ff;
-}
-.cobalt-hero .agent-toggle {
-  border-color: #ffffff4d;
-  color: #fff;
-  background: #ffffff1f;
-}
-.cobalt-logo {
-  width: calc(100% - 48px);
-  margin: 24px auto -1.6vw;
-  color: #ffffff3d;
-}
-.cobalt-logo .ascii-wordmark-lens {
-  color: #fff;
-}
-.cobalt-steps > h2 {
-  max-width: 20ch;
-}
-
-/* v3: Split ---------------------------------------------------------------------------------- */
-
-.split-hero {
-  display: grid;
-  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
-  gap: 72px;
-  align-items: center;
-  width: var(--page);
-  margin: 0 auto;
-  padding: 64px 0 32px;
-}
-.split-mark {
-  width: 168px;
-  margin-bottom: 36px;
-  color: var(--blue);
-}
-.split-mark .ascii-wordmark-lens {
-  color: var(--ink);
-}
-.split-copy h1 {
-  font-size: clamp(42px, 5vw, 68px);
-  line-height: 1.02;
-  animation: text-enter var(--entrance) var(--ease-out) both;
-}
-.split-copy > p {
-  max-width: 42ch;
-  margin-top: 22px;
-  color: var(--muted);
-  font-size: 17px;
-}
-.split-copy .waitlist-form {
-  margin-top: 30px;
-}
-.split-copy :is(.waitlist-field, .waitlist-error, .waitlist-done) {
-  margin-inline: 0;
-}
-/* Agnost-style frame: the demo sits in a dashed box whose rules run past its corners. */
-.split-demo {
-  position: relative;
-  padding: 32px;
-  border: 1.5px dashed var(--rail);
-  border-radius: 4px;
-  background: var(--soft);
-}
-.split-demo::before,
-.split-demo::after {
-  content: '';
-  position: absolute;
-  pointer-events: none;
-}
-.split-demo::before {
-  inset: -24px 32px;
-  border-inline: 1px dashed var(--rail);
-}
-.split-demo::after {
-  inset: 32px -24px;
-  border-block: 1px dashed var(--rail);
-}
-.split-steps {
-  display: grid;
-  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
-  gap: 72px;
-  width: var(--page);
-  margin: 0 auto;
-  padding: 160px 0 120px;
-}
-.split-steps-heading {
-  position: sticky;
-  top: 120px;
-  align-self: start;
-}
-.split-steps-heading p {
-  max-width: 36ch;
-  margin-top: 16px;
-  color: var(--muted);
-  font-size: 16px;
-}
-.split-foot {
-  overflow: hidden;
-}
-.split-logo {
-  width: calc(100% - 48px);
-  margin: 16px auto -9vw;
-  color: var(--blue);
-}
-.split-logo .ascii-wordmark-lens {
-  color: var(--ink);
-}
-
-/* v4: Launch -------------------------------------------------------------------------------- */
-
-.variant-launch {
-  position: relative;
-  isolation: isolate;
-}
 /* The hero fills the first screen; the field fills the space its content leaves. */
 .launch-top {
   display: flex;
@@ -1069,7 +599,7 @@
   flex-direction: column;
 }
 /* Outranks `.waitlist-theme > *`, which positions every direct child relatively. */
-.variant-launch > .particle-field {
+.launch > .particle-field {
   position: fixed;
   inset: 0;
   z-index: -1;
@@ -1078,37 +608,177 @@
   pointer-events: none;
 }
 .launch-hero {
+  display: grid;
   flex: 1;
   grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
   gap: 64px;
+  align-items: center;
+  width: var(--page);
+  margin: 0 auto;
   padding: 40px 0 56px;
 }
-.variant-launch .split-steps {
-  padding-top: 128px;
+/* Only as wide as the mark, so the field flows right up to it. */
+.launch-copy > div:first-child {
+  width: fit-content;
+  margin-bottom: 36px;
+}
+.launch-mark {
+  width: 168px;
+  color: var(--blue);
+}
+.launch-mark .ascii-wordmark-lens {
+  color: var(--ink);
+}
+.launch-copy h1 {
+  font-size: clamp(42px, 4.4vw, 62px);
+  line-height: 1.02;
+  animation: text-enter var(--entrance) var(--ease-out) both;
+}
+.launch-copy > p {
+  max-width: 34ch;
+  margin-top: 22px;
+  color: var(--muted);
+  font-size: 17px;
+}
+.launch-copy .waitlist-form {
+  margin-top: 30px;
+}
+.launch-copy :is(.waitlist-field, .waitlist-error, .waitlist-done) {
+  margin-inline: 0;
+}
+
+/* Agnost-style rules run past the blue frame's corners. */
+.launch-demo {
+  position: relative;
+}
+.launch-demo::before,
+.launch-demo::after {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  pointer-events: none;
+}
+.launch-demo::before {
+  inset: -40px 22px;
+  border-inline: 1px dashed var(--rail);
+}
+.launch-demo::after {
+  inset: 22px -40px;
+  border-block: 1px dashed var(--rail);
+}
+/* A drafting sheet: a 12px grid with a heavier line every fourth square, lit from the top left,
+   with rulers along the top and left gutters that tick on the grid lines and an origin ring
+   where they meet. */
+.launch-frame {
+  --tick: #ffffffb3;
+  --line: #ffffff26;
+  --fine: #ffffff0f;
+  position: relative;
+  padding: 30px 30px 14px;
+  border-radius: 22px;
+  background-color: var(--blue);
+  background-image:
+    radial-gradient(circle at 12px 12px, transparent 3px, var(--tick) 3px 4px, transparent 4.5px),
+    radial-gradient(120% 90% at 0% 0%, #ffffff2e, transparent 60%),
+    linear-gradient(var(--line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--line) 1px, transparent 1px),
+    linear-gradient(var(--fine) 1px, transparent 1px),
+    linear-gradient(90deg, var(--fine) 1px, transparent 1px);
+  background-size:
+    100% 100%,
+    100% 100%,
+    48px 48px,
+    48px 48px,
+    12px 12px,
+    12px 12px;
+  box-shadow:
+    inset 0 1px 0 #ffffff40,
+    0 40px 80px -40px #0048d8aa;
+}
+.launch-frame::before,
+.launch-frame::after {
+  content: '';
+  position: absolute;
+  pointer-events: none;
+}
+/* Both rulers start 24px in, on a grid line, so a major tick lands every 48px from the edge. */
+.launch-frame::before {
+  top: 0;
+  right: 24px;
+  left: 24px;
+  height: 10px;
+  background:
+    linear-gradient(90deg, var(--tick) 1px, transparent 1px) 24px 0 / 48px 10px repeat-x,
+    linear-gradient(90deg, #ffffff66 1px, transparent 1px) 0 0 / 12px 5px repeat-x;
+}
+.launch-frame::after {
+  top: 24px;
+  bottom: 24px;
+  left: 0;
+  width: 10px;
+  background:
+    linear-gradient(var(--tick) 1px, transparent 1px) 0 24px / 10px 48px repeat-y,
+    linear-gradient(#ffffff66 1px, transparent 1px) 0 0 / 5px 12px repeat-y;
+}
+.launch-frame .agent-stage {
+  border-color: #00256f;
+}
+.launch-frame .agent-meta {
+  color: #dbe6ff;
+}
+.launch-frame .agent-toggle {
+  border-color: #ffffff4d;
+  color: #fff;
+  background: #ffffff1f;
+}
+
+.launch-steps {
+  display: grid;
+  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+  gap: 72px;
+  width: var(--page);
+  margin: 0 auto;
+  padding: 128px 0 120px;
+}
+.launch-steps-heading {
+  position: sticky;
+  top: 120px;
+  align-self: start;
+}
+.launch-steps-heading p {
+  max-width: 36ch;
+  margin-top: 16px;
+  color: var(--muted);
+  font-size: 16px;
 }
 /* The heading slides in from the left and each stage from the right as they scroll into view. */
 @supports (animation-timeline: view()) {
   @media (prefers-reduced-motion: no-preference) {
-    .variant-launch .split-steps-heading,
-    .variant-launch .progression-card {
+    .launch-steps-heading,
+    .launch .progression-card {
       animation: enter-from-left var(--ease-out) both;
       animation-timeline: view();
       animation-range: entry 10% entry 100%;
     }
-    .variant-launch .progression-card {
+    .launch .progression-card {
       animation-name: enter-from-right;
     }
   }
 }
-/* Split-flap stage boards: the number on blue tiles, the stage name on ink tiles. The rail
-   markers shrink to nodes, since the number moved into the card. */
-.progression-flap .progression-marker {
-  top: 32px;
-  left: -50px;
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
+@keyframes enter-from-left {
+  from {
+    opacity: 0;
+    translate: -96px 0;
+  }
 }
+@keyframes enter-from-right {
+  from {
+    opacity: 0;
+    translate: 96px 0;
+  }
+}
+
+/* Split-flap stage boards: the number on blue tiles, the stage name on ink tiles. */
 .progression-board {
   display: flex;
   gap: 10px;
@@ -1150,100 +820,6 @@
   background: linear-gradient(#1958e0 50%, var(--blue) 50%);
 }
 
-@keyframes enter-from-left {
-  from {
-    opacity: 0;
-    translate: -96px 0;
-  }
-}
-@keyframes enter-from-right {
-  from {
-    opacity: 0;
-    translate: 96px 0;
-  }
-}
-.launch-hero h1 {
-  font-size: clamp(42px, 4.4vw, 62px);
-}
-/* Only as wide as the mark, so the field flows right up to it. */
-.launch-hero .split-copy > div:first-child {
-  width: fit-content;
-  margin-bottom: 36px;
-}
-.launch-hero .split-mark {
-  margin-bottom: 0;
-}
-.launch-hero .split-copy > p {
-  max-width: 34ch;
-}
-/* Agnost-style rules run past the blue frame's corners. */
-.launch-demo {
-  position: relative;
-}
-.launch-demo::before,
-.launch-demo::after {
-  content: '';
-  position: absolute;
-  z-index: -1;
-  pointer-events: none;
-}
-.launch-demo::before {
-  inset: -40px 22px;
-  border-inline: 1px dashed var(--rail);
-}
-.launch-demo::after {
-  inset: 22px -40px;
-  border-block: 1px dashed var(--rail);
-}
-/* A drafting sheet: a 12px grid with a heavier line every fourth square, lit from the top left,
-   with rulers along the top and left gutters that tick on the grid lines and an origin ring
-   where they meet. */
-.launch-demo .blueprint-frame {
-  --tick: #ffffffb3;
-  --line: #ffffff26;
-  --fine: #ffffff0f;
-  position: relative;
-  padding: 30px 30px 14px;
-  background-image:
-    radial-gradient(circle at 12px 12px, transparent 3px, var(--tick) 3px 4px, transparent 4.5px),
-    radial-gradient(120% 90% at 0% 0%, #ffffff2e, transparent 60%),
-    linear-gradient(var(--line) 1px, transparent 1px),
-    linear-gradient(90deg, var(--line) 1px, transparent 1px),
-    linear-gradient(var(--fine) 1px, transparent 1px),
-    linear-gradient(90deg, var(--fine) 1px, transparent 1px);
-  background-size:
-    100% 100%,
-    100% 100%,
-    48px 48px,
-    48px 48px,
-    12px 12px,
-    12px 12px;
-}
-.launch-demo .blueprint-frame::before,
-.launch-demo .blueprint-frame::after {
-  content: '';
-  position: absolute;
-  pointer-events: none;
-}
-/* Both rulers start 24px in, on a grid line, so a major tick lands every 48px from the edge. */
-.launch-demo .blueprint-frame::before {
-  top: 0;
-  right: 24px;
-  left: 24px;
-  height: 10px;
-  background:
-    linear-gradient(90deg, var(--tick) 1px, transparent 1px) 24px 0 / 48px 10px repeat-x,
-    linear-gradient(90deg, #ffffff66 1px, transparent 1px) 0 0 / 12px 5px repeat-x;
-}
-.launch-demo .blueprint-frame::after {
-  top: 24px;
-  bottom: 24px;
-  left: 0;
-  width: 10px;
-  background:
-    linear-gradient(var(--tick) 1px, transparent 1px) 0 24px / 10px 48px repeat-y,
-    linear-gradient(#ffffff66 1px, transparent 1px) 0 0 / 5px 12px repeat-y;
-}
 .launch-close {
   position: relative;
   overflow: hidden;
@@ -1295,19 +871,29 @@
 /* Small screens ------------------------------------------------------------------------------ */
 
 @media (max-width: 900px) {
-  .cobalt-hero,
-  .split-hero,
-  .split-steps {
+  .launch-hero,
+  .launch-steps {
     grid-template-columns: minmax(0, 1fr);
     gap: 48px;
   }
-  .split-steps-heading {
+  .launch-steps-heading {
     position: static;
   }
 }
 @media (max-width: 640px) {
-  .launch-demo .blueprint-frame {
+  .launch {
+    --page: calc(100% - 32px);
+  }
+  .launch-hero {
+    padding-top: 36px;
+  }
+  .launch-frame {
     padding: 20px 14px 8px 18px;
+    border-radius: 16px;
+  }
+  .launch-demo::before,
+  .launch-demo::after {
+    display: none;
   }
   .progression-board {
     gap: 6px;
@@ -1319,30 +905,6 @@
     width: 16px;
     height: 23px;
     font-size: 12px;
-  }
-  .variant {
-    --page: calc(100% - 32px);
-  }
-  .blueprint-hero,
-  .cobalt-hero,
-  .split-hero {
-    padding-top: 36px;
-  }
-  .blueprint-logo {
-    margin-bottom: 28px;
-  }
-  .blueprint-frame {
-    padding: 12px 12px 8px;
-    border-radius: 16px;
-  }
-  .split-demo {
-    padding: 14px;
-  }
-  .split-demo::before,
-  .split-demo::after,
-  .launch-demo::before,
-  .launch-demo::after {
-    display: none;
   }
   .agent-file {
     overflow: hidden;
@@ -1356,22 +918,14 @@
     right: 10px;
     bottom: 50px;
   }
-  .variant-steps,
-  .split-steps {
+  .launch-steps {
     padding-top: 96px;
-  }
-  .variant-steps > h2 {
-    margin-bottom: 48px;
-    text-align: left;
-    margin-left: 0;
   }
 }
 @media (prefers-reduced-motion: reduce) {
   .agent-line[data-state='added'],
   .agent-check[data-state='running'] svg,
-  .blueprint-hero h1 span,
-  .cobalt-copy h1 span,
-  .split-copy h1,
+  .launch-copy h1,
   .ascii-wordmark-glint .ascii-wordmark-lens {
     animation: none;
   }

@@ -1,61 +1,53 @@
-import { ArrowDown } from '@phosphor-icons/react';
-import { AsciiBrackets } from '../components/AsciiBrackets';
+import { AgentDemo } from '../components/AgentDemo';
+import { AsciiWordmark } from '../components/AsciiWordmark';
 import { Header } from '../components/Layout';
-import { LogoBelt } from '../components/LogoBelt';
-import { ScrollStage } from '../components/ScrollStage';
+import { ParticleField } from '../components/ParticleField';
+import { Progression } from '../components/Progression';
 import { WaitlistForm } from '../components/WaitlistForm';
-import { Workflow } from '../components/Workflow';
-import { WorkflowMap } from '../components/WorkflowMap';
+import './waitlist.css';
 
-// The waitlist page is one screen: the hero with the signup and the pipeline map. A scroll plays
-// the labelled demo up over it instead of moving the page down.
+// The waitlist page: a split hero with the signup beside the Refit Agent demo on a drafting
+// sheet, the stages on a rail, and a blue band with the glinting ASCII logo to close.
 export function Waitlist() {
   return (
-    <div className="waitlist-theme">
-      <ScrollStage
-        hero={
-          <>
-            <Header minimal />
-            <main id="main-content">
-              <section className="hero" id="waitlist">
-                <div className="hero-copy">
-                  <AsciiBrackets>
-                    <h1>
-                      <span>APIs change.</span>
-                      <span>Your code keeps up.</span>
-                    </h1>
-                  </AsciiBrackets>
-                  <p>
-                    Refit turns upstream API changes into reviewed pull requests.
-                    <br className="desktop-break" /> It finds the affected code, prepares the fix
-                    and runs your checks before you review.
-                  </p>
-                  <WaitlistForm />
-                  <LogoBelt />
-                </div>
-                <div className="hero-product">
-                  <WorkflowMap />
-                </div>
-              </section>
-            </main>
-          </>
-        }
-        cue={
-          <a href="#demo">
-            Scroll to see the demo <ArrowDown />
-          </a>
-        }
-        preview={
-          <section id="demo" aria-labelledby="demo-title">
-            <div className="demo-label">
-              <span className="demo-badge">Demo</span>
-              <h2 id="demo-title">See how Refit handles one API change</h2>
-              <p>Illustrative example. Click any stage.</p>
+    <div className="waitlist-theme launch">
+      <ParticleField />
+      <div className="launch-top">
+        <Header minimal />
+        <main id="main-content">
+          <section className="launch-hero" id="waitlist">
+            <div className="launch-copy">
+              <div data-field-avoid>
+                <AsciiWordmark columns={44} word={false} className="launch-mark" />
+              </div>
+              <h1 data-field-avoid>Stop chasing API changelogs.</h1>
+              <p data-field-avoid>
+                When an API changes, Refit finds what breaks and drafts the fix as a pull request.
+              </p>
+              <div data-field-avoid>
+                <WaitlistForm />
+              </div>
             </div>
-            <Workflow map={false} />
+            <div className="launch-demo" data-field-avoid>
+              <div className="launch-frame">
+                <AgentDemo />
+              </div>
+            </div>
           </section>
-        }
-      />
+        </main>
+      </div>
+      <section className="launch-steps" aria-labelledby="steps-title">
+        <div className="launch-steps-heading" data-field-avoid>
+          <h2 id="steps-title">What Refit Agent does when an API moves.</h2>
+          <p>Breaking changes first. Anything ambiguous stops for a person.</p>
+        </div>
+        <Progression />
+      </section>
+      <section className="launch-close" aria-labelledby="close-title">
+        <h2 id="close-title">Be ready for the next breaking change.</h2>
+        <WaitlistForm />
+        <AsciiWordmark columns={150} glint className="launch-logo" />
+      </section>
     </div>
   );
 }

@@ -9,37 +9,24 @@ const evidence: Record<(typeof stages)[number]['id'], string[]> = {
   review: ['Draft pull request', 'Waiting for your review'],
 };
 
-// The four stages on a dashed rail that fills as the page scrolls past it. `layout` picks the
-// shape: a zigzag ladder, a horizontal track, or a rail down the left edge. `flap` moves each
-// stage's number and name onto split-flap tiles in its card. Browsers without scroll-driven
-// animations, and reduced motion, show the rail already filled.
-export function Progression({
-  layout,
-  flap = false,
-}: {
-  layout: 'ladder' | 'track' | 'rail';
-  flap?: boolean;
-}) {
+// The four stages on a dashed rail that fills as the page scrolls past it, each stage's number
+// and name on split-flap tiles in its card. Browsers without scroll-driven animations, and
+// reduced motion, show the rail already filled.
+export function Progression() {
   return (
-    <div className={`progression progression-${layout} ${flap ? 'progression-flap' : ''}`}>
+    <div className="progression">
       <span className="progression-line" aria-hidden="true">
         <span />
       </span>
       <ol>
         {stages.map((stage, index) => (
           <li key={stage.id} className="progression-step">
-            <span className="progression-marker" aria-hidden="true">
-              {!flap && String(index + 1).padStart(2, '0')}
-            </span>
+            <span className="progression-marker" aria-hidden="true" />
             <div className="progression-card" data-field-avoid>
-              {flap ? (
-                <span className="progression-board">
-                  <SplitFlap text={String(index + 1).padStart(2, '0')} className="flap-number" />
-                  <SplitFlap text={stage.short.toUpperCase()} />
-                </span>
-              ) : (
-                <span className="progression-tag">{stage.short}</span>
-              )}
+              <span className="progression-board">
+                <SplitFlap text={String(index + 1).padStart(2, '0')} className="flap-number" />
+                <SplitFlap text={stage.short.toUpperCase()} />
+              </span>
               <h3>{stage.title}</h3>
               <p>{stage.description}</p>
               <pre className="progression-evidence">{evidence[stage.id].join('\n')}</pre>
