@@ -14,7 +14,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Live exposure and tracing** - Catalogs stop counting as live; indirect model sources trace to the call argument (completed 2026-10-21)
 - [x] **Phase 2: Sourced parameter stops** - Provider-page table lets the rule continue past sampling and length stops it can prove are safe (completed 2026-10-21)
-- [ ] **Phase 3: Application benchmark sets** - Frozen OpenAI (100) and Anthropic (50) application sets from GitHub code search, with labelled live pins
+- [x] **Phase 3: Application benchmark sets** - Frozen OpenAI (100) and Anthropic (50) application sets from GitHub code search, with labelled live pins (completed 2026-10-21)
 - [ ] **Phase 4: Measurement and readiness** - Pinned-worktree benchmark on the new sets, reviewed fixes, and docs updated with the measured numbers
 
 ## Phase Details
@@ -72,7 +72,7 @@ Plans:
   1. A selection script built on GitHub code search reproduces a frozen list of 100 OpenAI and 50 Anthropic application repositories under `docs/benchmarks/`, with the query, date and pinned commits recorded
   2. The 2026-10-20 npm sets stay unchanged and are labelled as library baselines
   3. A labels file records every live model pin in the new sets with file, line and correct replacement, and states that it comes from a single AI-assisted pass, not hand labelling
-**Plans**: 3/3 plans executed
+**Plans**: 3/3 plans complete
 
 Plans:
 **Wave 1**
@@ -105,5 +105,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4. Phases 1, 2 and 3 do not d
 |-------|----------------|--------|-----------|
 | 1. Live exposure and tracing | 5/5 | Complete    | 2026-10-21 |
 | 2. Sourced parameter stops | 2/2 | Complete    | 2026-10-21 |
-| 3. Application benchmark sets | 3/3 | In Progress | - |
+| 3. Application benchmark sets | 3/3 | Complete    | 2026-10-21 |
 | 4. Measurement and readiness | 0/TBD | Not started | - |
