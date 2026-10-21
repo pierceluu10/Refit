@@ -321,6 +321,26 @@ export function packBatches(groups, max) {
   return batches;
 }
 
+const CODE_FRAGMENT = /[`{}<>]|=>|==|\$\{|\w\(|\w\.\w+\(/;
+const LEAK_WINDOW = 20;
+
+// A note must be plain prose: no code-like fragment and no 20+ character run copied from the
+// matched line or its neighbours. A context entry is the line itself or { before, line, after }.
+export function noteLeaksCode(notes, context) {
+  if (CODE_FRAGMENT.test(notes)) return true;
+  const entries = typeof context === 'string' ? { line: context } : (context ?? {});
+  const lines = [entries.line, ...(entries.before ?? []), ...(entries.after ?? [])]
+    .filter((l) => typeof l === 'string')
+    .map((l) => l.trim());
+  if (typeof entries.line === 'string' && entries.line.trim().length >= 3)
+    if (notes.includes(entries.line.trim())) return true;
+  return lines.some((l) => {
+    for (let i = 0; i + LEAK_WINDOW <= l.length; i++)
+      if (notes.includes(l.slice(i, i + LEAK_WINDOW))) return true;
+    return false;
+  });
+}
+
 const labelId = (x) => [x.repo, x.provider, x.file, x.line, x.column, x.model].join('\u0000');
 
 // Errors name the candidate and the kind of problem, never source text.
@@ -370,8 +390,7 @@ export function validateLabels(candidates, labels, contextLines = []) {
     const notes = label.notes;
     if (typeof notes !== 'string' || !notes.trim() || /[\r\n]/.test(notes) || notes.length > 160)
       fail('notes');
-    else if (typeof line === 'string' && line.trim().length >= 3 && notes.includes(line.trim()))
-      fail('notes-source-text');
+    else if (noteLeaksCode(notes, line)) fail('notes-source-text');
   }
   for (const id of wanted.keys())
     if (!seen.has(id))

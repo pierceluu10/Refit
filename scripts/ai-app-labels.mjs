@@ -73,7 +73,7 @@ async function rereadMerge() {
   const errors = validateLabels(
     sample.candidates,
     second,
-    sample.candidates.map((c) => c.context.line),
+    sample.candidates.map((c) => c.context),
   );
   if (errors.length) {
     console.error(`invalid re-read: ${errors.length} errors`);
@@ -239,7 +239,7 @@ for (const nn of numbers) {
   const errors = validateLabels(
     batch.candidates,
     labels,
-    batch.candidates.map((c) => c.context.line),
+    batch.candidates.map((c) => c.context),
   );
   if (errors.length) {
     console.error(

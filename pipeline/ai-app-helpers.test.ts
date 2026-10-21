@@ -342,6 +342,23 @@ it('validates labels', () => {
     );
 });
 
+it('rejects notes that quote code, a context line, or a neighbouring line', () => {
+  const context = {
+    before: ['const endpoint = "https://api.example.com/v1";'],
+    line: 'const secret = "gpt-4-turbo";',
+    after: ['await client.chat.completions.create(options);'],
+  };
+  const kinds = (notes: string) =>
+    validateLabels([candidate], [{ ...good, notes }], [context]).map((e) => e.kind);
+  expect(kinds('default model for the chat route')).toEqual([]);
+  expect(kinds('the value `gpt-4-turbo` is sent')).toEqual(['notes-source-text']);
+  expect(kinds('picked from { a: 1 } options')).toEqual(['notes-source-text']);
+  expect(kinds('calls create(options) with it')).toEqual(['notes-source-text']);
+  expect(kinds('uses https://api.example.com/v1 as base')).toEqual(['notes-source-text']);
+  expect(kinds('passed to client.chat.completions here')).toEqual(['notes-source-text']);
+  expect(kinds('read from endpoint settings')).toEqual([]);
+});
+
 it('rejects label identity fields of the wrong type and non-object labels', () => {
   const run = (label: unknown) =>
     validateLabels([candidate], [label as Record<string, unknown>], ['x']).map((e) => e.kind);

@@ -86,8 +86,12 @@ export function packBatches<T>(groups: T[][], max: number): T[][];
 export function validateLabels(
   candidates: LabelCandidate[],
   labels: Record<string, unknown>[],
-  contextLines?: string[],
+  contextLines?: (string | { before?: string[]; line?: string; after?: string[] })[],
 ): { key: string; kind: string }[];
+export function noteLeaksCode(
+  notes: string,
+  context?: string | { before?: string[]; line?: string; after?: string[] },
+): boolean;
 export function seededSample(keys: string[], seed: number, fraction: number): string[];
 export function agreement(
   first: Record<string, unknown>[],
