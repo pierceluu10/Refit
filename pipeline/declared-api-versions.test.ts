@@ -293,3 +293,49 @@ export const charge = (id: string, account: string) =>
   );
   expect(requests.map((entry) => entry.status)).toEqual(['inherited']);
 });
+
+it.each([
+  [
+    'instanceof on an error class',
+    'export const known = (error: unknown) => error instanceof Stripe.errors.StripeError;',
+  ],
+  [
+    'a conditional on an error class',
+    "export function message(error: unknown) { const text = error instanceof Stripe.errors.StripeError ? error.message : 'failed'; return text; }",
+  ],
+  ['an identity comparison', 'export const same = (value: unknown) => value === Stripe;'],
+])('keeps a client without a version option absent after %s', (_name, use) => {
+  const repository: Repository = {
+    root: '/refit-version-fixture',
+    files: [
+      {
+        path: 'application.ts',
+        content: `${prefix}\nexport const stripe = new Stripe('key');\n${use}`,
+      },
+    ],
+    dependencies: [],
+    lockfiles: [],
+    warnings: [],
+  };
+  const declarations = analyzeRepository(repository, [], STRIPE).apiVersionDeclarations;
+  expect(declarations.find((entry) => entry.kind === 'constructor')).toMatchObject({
+    absent: true,
+  });
+});
+
+it('still treats a client whose constructor escapes into a call as uncertain', () => {
+  const repository: Repository = {
+    root: '/refit-version-fixture',
+    files: [
+      {
+        path: 'application.ts',
+        content: `${prefix}\nexport const stripe = new Stripe('key');\nexport const wrapped = wrap(Stripe.errors);`,
+      },
+    ],
+    dependencies: [],
+    lockfiles: [],
+    warnings: [],
+  };
+  const declarations = analyzeRepository(repository, [], STRIPE).apiVersionDeclarations;
+  expect(declarations.find((entry) => entry.kind === 'constructor')?.absent).toBeUndefined();
+});
