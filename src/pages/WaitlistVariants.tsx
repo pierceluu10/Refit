@@ -1,5 +1,6 @@
 import { ArrowUpRight } from '@phosphor-icons/react';
 import { AgentDemo } from '../components/AgentDemo';
+import { AsciiField } from '../components/AsciiField';
 import { AsciiWordmark } from '../components/AsciiWordmark';
 import { Header } from '../components/Layout';
 import { Progression } from '../components/Progression';
@@ -7,8 +8,8 @@ import { WaitlistForm } from '../components/WaitlistForm';
 import { PROJECT_URL } from '../data';
 import './variants.css';
 
-// Three waitlist directions under review at /v1, /v2 and /v3. Each pairs the ASCII logo, the
-// Refit Agent demo and the stage progression differently.
+// Waitlist directions under review at /v1 to /v4. Each pairs the ASCII logo, the
+// Refit Agent demo and the stage progression differently; /v4 combines the preferred parts.
 
 const summary =
   'Refit watches the APIs you depend on, finds the code a change breaks, and opens a draft pull request for your review.';
@@ -123,6 +124,53 @@ export function WaitlistSplit() {
         <VariantFooter />
         <AsciiWordmark columns={140} className="split-logo" />
       </div>
+    </div>
+  );
+}
+
+// The combination: v3's split hero and stage rail on a white page with an ASCII field behind it,
+// v1's blue frame around the demo, and v2's giant ASCII logo, now glinting, closing the page.
+export function WaitlistLaunch() {
+  return (
+    <div className="waitlist-theme variant variant-launch">
+      <div className="launch-top">
+        <AsciiField />
+        <Header minimal />
+        <main id="main-content">
+          <section className="split-hero launch-hero" id="waitlist">
+            <div className="split-copy">
+              <div data-field-avoid>
+                <AsciiWordmark columns={44} word={false} className="split-mark" />
+              </div>
+              <h1 data-field-avoid>Stop chasing API changelogs.</h1>
+              <p data-field-avoid>
+                When an API changes, Refit finds what breaks and drafts the fix as a pull request.
+              </p>
+              <div data-field-avoid>
+                <WaitlistForm />
+              </div>
+            </div>
+            <div className="launch-demo" data-field-avoid>
+              <div className="blueprint-frame">
+                <AgentDemo />
+              </div>
+            </div>
+          </section>
+        </main>
+      </div>
+      <section className="split-steps" aria-labelledby="launch-steps">
+        <div className="split-steps-heading">
+          <h2 id="launch-steps">What Refit Agent does when an API moves.</h2>
+          <p>Breaking changes first. Anything ambiguous stops for a person.</p>
+        </div>
+        <Progression layout="rail" />
+      </section>
+      <section className="launch-close" aria-labelledby="launch-close">
+        <h2 id="launch-close">Be ready for the next breaking change.</h2>
+        <WaitlistForm />
+        <AsciiWordmark columns={150} glint className="launch-logo" />
+      </section>
+      <VariantFooter />
     </div>
   );
 }

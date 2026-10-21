@@ -4,7 +4,12 @@ import { PagePosition } from './components/Layout';
 import { Demo } from './pages/Demo';
 import { Docs } from './pages/Docs';
 import { Waitlist } from './pages/Waitlist';
-import { WaitlistBlueprint, WaitlistCobalt, WaitlistSplit } from './pages/WaitlistVariants';
+import {
+  WaitlistBlueprint,
+  WaitlistCobalt,
+  WaitlistLaunch,
+  WaitlistSplit,
+} from './pages/WaitlistVariants';
 import { Workspace } from './pages/Workspace';
 
 export function App() {
@@ -19,6 +24,7 @@ export function App() {
         <Route path="/v1" element={<WaitlistBlueprint />} />
         <Route path="/v2" element={<WaitlistCobalt />} />
         <Route path="/v3" element={<WaitlistSplit />} />
+        <Route path="/v4" element={<WaitlistLaunch />} />
         <Route path="/demo" element={<Demo />} />
         <Route path="/docs" element={<Docs />} />
         <Route path="/app/*" element={<Workspace />} />

@@ -9,6 +9,7 @@ describe('waitlist variants', () => {
     ['/v1', 'APIs change. Your code keeps up.'],
     ['/v2', 'The API changed. Your PR is ready.'],
     ['/v3', 'Stop chasing API changelogs.'],
+    ['/v4', 'Stop chasing API changelogs.'],
   ])('%s renders its headline, signup and labelled demo', (path, headline) => {
     render(
       <MemoryRouter initialEntries={[path]}>

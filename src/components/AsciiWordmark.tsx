@@ -88,16 +88,19 @@ function neighbour(char: string) {
   return RAMP[index + step];
 }
 
-// The Refit logo drawn in ASCII from the real Geist wordmark. It decodes from noise on load, a few
-// characters keep stepping to a neighbouring glyph, and on a fine pointer a blue lens follows the
-// cursor across it. `columns` sets the resolution; CSS sets the size.
+// The Refit logo drawn in ASCII from the real Geist wordmark. It decodes from noise when it first
+// scrolls into view, a few characters keep stepping to a neighbouring glyph, and on a fine pointer
+// a lens in the accent color follows the cursor across it. `glint` also sweeps a band of that
+// color across it on a loop. `columns` sets the resolution; CSS sets the size.
 export function AsciiWordmark({
   columns,
   word = true,
+  glint = false,
   className = '',
 }: {
   columns: number;
   word?: boolean;
+  glint?: boolean;
   className?: string;
 }) {
   const root = useRef<HTMLDivElement>(null);
@@ -105,38 +108,31 @@ export function AsciiWordmark({
   const lens = useRef<HTMLPreElement>(null);
 
   useEffect(() => {
-    let cells: string[][] | null = null;
     let frame = 0;
     let shimmer = 0;
     let cancelled = false;
-    let visible = true;
-    const observer = new IntersectionObserver(([entry]) => (visible = entry.isIntersecting));
+    let visible = false;
+    let settled: string[][] | null = null;
+    let begun = false;
 
     const show = (text: string) => {
       base.current!.textContent = text;
       lens.current!.textContent = text;
     };
 
-    const start = () => {
-      if (cancelled) return;
-      cells = rasterize(columns, word);
-      if (!cells) return;
-      const settled = cells;
-      root.current!.style.setProperty('--rows', String(settled.length));
-      show(join(settled));
-      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-
+    const begin = (cells: string[][]) => {
+      begun = true;
       // Decode: each cell scrambles until a sweep from the left passes it.
       const began = performance.now();
       let shown = 0;
       const decode = (now: number) => {
         const progress = (now - began) / DECODE_MS;
-        if (progress >= 1) return show(join(settled));
+        if (progress >= 1) return show(join(cells));
         if (now - shown >= FLICKER_MS) {
           shown = now;
           show(
             join(
-              settled.map((line, row) =>
+              cells.map((line, row) =>
                 line.map((char, column) =>
                   char === ' ' || column / line.length + noise(row, column) * 0.25 < progress
                     ? char
@@ -150,11 +146,10 @@ export function AsciiWordmark({
       };
       frame = requestAnimationFrame(decode);
 
-      const drawn = settled.flatMap((line, row) =>
+      const drawn = cells.flatMap((line, row) =>
         line.flatMap((char, column) => (char === ' ' ? [] : [[row, column] as const])),
       );
       const swapped = new Map<string, { char: string; until: number }>();
-      observer.observe(root.current!);
       shimmer = window.setTimeout(function step() {
         shimmer = window.setTimeout(step, SHIMMER_EVERY_MS);
         if (!visible || document.hidden) return;
@@ -163,18 +158,34 @@ export function AsciiWordmark({
         for (let index = 0; index < Math.ceil(drawn.length * SHIMMER_SHARE); index++) {
           const [row, column] = drawn[Math.floor(Math.random() * drawn.length)];
           swapped.set(`${row}:${column}`, {
-            char: neighbour(settled[row][column]),
+            char: neighbour(cells[row][column]),
             until: now + SHIMMER_HOLD_MS * (0.5 + Math.random()),
           });
         }
         show(
           join(
-            settled.map((line, row) =>
+            cells.map((line, row) =>
               line.map((char, column) => swapped.get(`${row}:${column}`)?.char ?? char),
             ),
           ),
         );
       }, DECODE_MS + 200);
+    };
+
+    const observer = new IntersectionObserver(([entry]) => {
+      visible = entry.isIntersecting;
+      if (visible && settled && !begun) begin(settled);
+    });
+
+    const start = () => {
+      if (cancelled) return;
+      settled = rasterize(columns, word);
+      if (!settled) return;
+      root.current!.style.setProperty('--rows', String(settled.length));
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return show(join(settled));
+      // Blank cells hold the logo's size until it first scrolls into view, then it decodes.
+      show(join(settled.map((line) => line.map(() => ' '))));
+      observer.observe(root.current!);
     };
 
     // The sample needs Geist itself, not the fallback font. jsdom has no font loading.
@@ -197,7 +208,7 @@ export function AsciiWordmark({
   return (
     <div
       ref={root}
-      className={`ascii-wordmark ${className}`}
+      className={`ascii-wordmark ${glint ? 'ascii-wordmark-glint' : ''} ${className}`}
       style={{ '--columns': columns } as CSSProperties}
       role="img"
       aria-label="Refit"

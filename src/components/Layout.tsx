@@ -98,6 +98,7 @@ export function PagePosition() {
       '/v1': 'Refit: Keep your integrations current',
       '/v2': 'Refit: Keep your integrations current',
       '/v3': 'Refit: Keep your integrations current',
+      '/v4': 'Refit: Keep your integrations current',
       '/demo': 'Refit: Interactive workflow',
       '/docs': 'Refit: Documentation',
     };

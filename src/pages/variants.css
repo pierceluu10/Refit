@@ -55,6 +55,37 @@
   }
 }
 
+/* A band of the accent color sweeps across the logo on a loop, through the same layer the
+   pointer lens uses. Mask layers add, so both show at once. */
+.ascii-wordmark-glint .ascii-wordmark-lens {
+  opacity: 1;
+  mask-image:
+    radial-gradient(
+      circle 120px at var(--x, -200px) var(--y, -200px),
+      #000 0%,
+      #0008 45%,
+      transparent 100%
+    ),
+    linear-gradient(105deg, transparent 44%, #000 50%, transparent 56%);
+  mask-size:
+    100% 100%,
+    300% 100%;
+  mask-repeat: no-repeat;
+  animation: wordmark-glint 7s linear infinite;
+}
+@keyframes wordmark-glint {
+  from {
+    mask-position:
+      0 0,
+      100% 0;
+  }
+  to {
+    mask-position:
+      0 0,
+      0% 0;
+  }
+}
+
 /* Agent demo ------------------------------------------------------------------------------- */
 
 .agent-demo {
@@ -1026,6 +1057,112 @@
   color: var(--ink);
 }
 
+/* v4: Launch -------------------------------------------------------------------------------- */
+
+.launch-top {
+  position: relative;
+  isolation: isolate;
+}
+.ascii-field {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+.launch-hero {
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  gap: 64px;
+  padding: 72px 0 96px;
+}
+.launch-hero h1 {
+  font-size: clamp(42px, 4.4vw, 62px);
+}
+/* Only as wide as the mark, so the field flows right up to it. */
+.launch-hero .split-copy > div:first-child {
+  width: fit-content;
+  margin-bottom: 36px;
+}
+.launch-hero .split-mark {
+  margin-bottom: 0;
+}
+.launch-hero .split-copy > p {
+  max-width: 34ch;
+}
+/* Agnost-style rules run past the blue frame's corners. */
+.launch-demo {
+  position: relative;
+}
+.launch-demo::before,
+.launch-demo::after {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  pointer-events: none;
+}
+.launch-demo::before {
+  inset: -40px 22px;
+  border-inline: 1px dashed var(--rail);
+}
+.launch-demo::after {
+  inset: 22px -40px;
+  border-block: 1px dashed var(--rail);
+}
+.launch-demo .blueprint-frame {
+  padding: 22px 22px 12px;
+}
+.launch-close {
+  position: relative;
+  overflow: hidden;
+  padding: 128px 24px 0;
+  color: #fff;
+  background: var(--blue);
+  text-align: center;
+}
+.launch-close::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(circle at 1px 1px, #ffffff1f 1px, transparent 0);
+  background-size: 22px 22px;
+  mask-image: linear-gradient(#000, transparent 60%);
+  pointer-events: none;
+}
+.launch-close h2 {
+  position: relative;
+  max-width: 18ch;
+  margin-inline: auto;
+}
+.launch-close .waitlist-form {
+  position: relative;
+  margin-top: 30px;
+}
+.launch-close .waitlist-field {
+  border-color: #ffffff59;
+  box-shadow: 0 18px 30px -20px #00184acc;
+}
+.launch-close .waitlist-field .button {
+  color: #fff;
+  background: var(--ink);
+  border-color: var(--ink);
+  box-shadow: none;
+}
+.launch-close :is(.waitlist-error, .waitlist-done) {
+  color: #fff;
+}
+.launch-logo {
+  width: min(1392px, 100%);
+  margin: 88px auto -1vw;
+  color: #ffffff6b;
+}
+.launch-logo .ascii-wordmark-lens {
+  color: #fff;
+}
+.variant-launch .variant-footer {
+  border-top: 0;
+}
+
 /* Small screens ------------------------------------------------------------------------------ */
 
 @media (max-width: 900px) {
@@ -1059,7 +1196,9 @@
     padding: 14px;
   }
   .split-demo::before,
-  .split-demo::after {
+  .split-demo::after,
+  .launch-demo::before,
+  .launch-demo::after {
     display: none;
   }
   .agent-file {
@@ -1089,7 +1228,8 @@
   .agent-check[data-state='running'] svg,
   .blueprint-hero h1 span,
   .cobalt-copy h1 span,
-  .split-copy h1 {
+  .split-copy h1,
+  .ascii-wordmark-glint .ascii-wordmark-lens {
     animation: none;
   }
   .agent-pr {
