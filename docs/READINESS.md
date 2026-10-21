@@ -1,5 +1,11 @@
 # Refit implementation checkpoints
 
+## October 21 checkpoint: dynamically imported Stripe client factories (unreleased, after 0.39.0)
+
+A client factory loaded with `await import()` is now followed the way a static import is: `const { getStripe } = await import('./stripe')`, a renamed entry, and `(await import('./stripe')).getStripe()`. The analyzer's type checker runs without lib types, so it could not type a dynamic import; the binding is now made from syntax, like `const { x } = require(...)`. Only `const` destructuring links, only to a stable ESM export (a function, class or top-level `const`), and the factory itself must still pass every existing factory rule. A `let` binding stays untraced; a test pins it.
+
+On the 10 active-team repositories with the most calls that traced nothing on October 16, traced calls went from 247 to 280 of 355, read from source with no Docker ([benchmarks](BENCHMARKS.md#lazy-stripe-clients-on-the-active-teams-set-october-21)). Most of the gap the October 16 run reported had already closed with factory tracing on October 17; this measures what was left. No migration was run or validated for this change.
+
 ## October 21 checkpoint: Gemini detection, report only (unreleased, after 0.39.0)
 
 Gemini is in the agent catalog with `adapter: null`: packages `@google/genai` and `@google/generative-ai`, hostname `generativelanguage.googleapis.com`, which is the default host in the published code of both SDKs. Every fact recorded in [Provider goals](PROVIDER-GOALS.md#gemini) was read on 2026-10-21 from an official source: the two SDK READMEs on GitHub, the npm registry and the published package code. Google's model and deprecation pages on ai.google.dev were refused by this environment's network policy, so **no Gemini model retirement date is in the registry**, and there is no `refit deadlines --sync gemini`: a parser could not be written against a page nobody could read.

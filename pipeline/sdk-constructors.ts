@@ -1,6 +1,6 @@
 import ts from 'typescript-compiler';
 import type { ProviderAdapter } from './providers.ts';
-import { staticRequire } from './source-modules.ts';
+import { dynamicImport, staticRequire } from './source-modules.ts';
 
 export function sdkConstructors(options: {
   nodes: ts.Node[];
@@ -21,23 +21,9 @@ export function sdkConstructors(options: {
     while (ts.isParenthesizedExpression(node)) node = node.expression;
     return node;
   }
-  // `await import('stripe')` is the module namespace: its `default` or named export is the
-  // constructor, never the namespace itself.
-  function dynamicImport(node: ts.Node) {
-    while (ts.isParenthesizedExpression(node)) node = node.expression;
-    if (!ts.isAwaitExpression(node)) return false;
-    let call: ts.Expression = node.expression;
-    while (ts.isParenthesizedExpression(call)) call = call.expression;
-    return (
-      ts.isCallExpression(call) &&
-      call.expression.kind === ts.SyntaxKind.ImportKeyword &&
-      call.arguments.length === 1 &&
-      ts.isStringLiteral(call.arguments[0]) &&
-      call.arguments[0].text === provider.packageName
-    );
-  }
   const vendorModule = (node: ts.Node) =>
-    staticRequire(node, checker) === provider.packageName || dynamicImport(node);
+    staticRequire(node, checker) === provider.packageName ||
+    dynamicImport(node) === provider.packageName;
   function requiredConstructor(node: ts.Node) {
     if (ts.isParenthesizedExpression(node)) return requiredConstructor(node.expression);
     if (!vendor(node)) return false;

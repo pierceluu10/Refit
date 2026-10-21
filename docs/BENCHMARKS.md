@@ -62,7 +62,19 @@ The fresh set skews toward old, idle code: 38% pin a 2022–2023 API version, an
 | Over scan limits | 1 |
 
 - **Active code breaks less.** 17% are affected, against 45% of the fresh set, because recent pins are closer to the target. The breaking reads are the same ones: `subscription.current_period_end` (5), `invoice.subscription` (4), `subscription.current_period_start` (3).
-- **Tracing is the gap.** In 32 repositories Refit found 518 likely Stripe SDK calls and traced none; overall it traced 661 of 1,895 (35%, against 51% on the fresh set). At least 18 of the 32 create the client in a lazy factory, `getStripe()` assigning a module-level `let` on first use, which Refit does not follow. Until it does, "not affected" here means little.
+- **Tracing is the gap.** In 32 repositories Refit found 518 likely Stripe SDK calls and traced none; overall it traced 661 of 1,895 (35%, against 51% on the fresh set). At least 18 of the 32 create the client in a lazy factory, `getStripe()` assigning a module-level `let` on first use, which Refit does not follow. Until it does, "not affected" here means little. (Factory tracing landed on October 17; see [the rescan](#lazy-stripe-clients-on-the-active-teams-set-october-21).)
+
+## Lazy Stripe clients on the active-teams set (October 21)
+
+The October 16 run traced no calls in 32 of the 66 active-team repositories, and at least 18 of them use a lazy `getStripe()` factory. Factory tracing landed on October 17, after that run. To see what was left, the 10 of those 32 with the most likely Stripe calls were rescanned at their frozen commits with `npm run benchmark:coverage`. It reads source only: no install, no Docker, no model call.
+
+| | Traced of 355 likely calls | Repositories at zero |
+|---|---|---|
+| October 16 run (0.38.0) | 0 | 10 |
+| `main` at `b67ff09` | 247 (70%) | 0 |
+| Plus dynamically imported factories | **280 (79%)** | 0 |
+
+Most remaining factory misses were a factory loaded with `await import()`, which the analyzer could not follow (`const { getStripe } = await import('@/lib/stripe')`, `(await import('./stripeClient')).getStripeClient()`). Following them added 33 calls in 4 repositories; `joannachen-c/design-meetup-web` went from 15/24 to 24/24. Still untraced: a per-organization cache with expiry (`meetingmindsexperts/ea-sys`, 13 calls), injectable overrides (`options.stripe || getStripe()`), destructured clients and parameters. These are coverage numbers, not fixes: nothing was validated, and the other 56 repositories were not rescanned.
 
 ## After the card-only `payment_method_types` policy (October 16)
 

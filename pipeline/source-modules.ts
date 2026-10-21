@@ -54,6 +54,20 @@ export function staticRequire(node: ts.Node, checker?: ts.TypeChecker) {
     : undefined;
 }
 
+// `await import('name')`, with any parentheses, is the module namespace.
+export function dynamicImport(node: ts.Node) {
+  while (ts.isParenthesizedExpression(node)) node = node.expression;
+  if (!ts.isAwaitExpression(node)) return;
+  let call: ts.Expression = node.expression;
+  while (ts.isParenthesizedExpression(call)) call = call.expression;
+  return ts.isCallExpression(call) &&
+    call.expression.kind === ts.SyntaxKind.ImportKeyword &&
+    call.arguments.length === 1 &&
+    ts.isStringLiteral(call.arguments[0])
+    ? call.arguments[0].text
+    : undefined;
+}
+
 export function sourceModuleReferences(source: ts.SourceFile) {
   const names = new Set<string>();
   function visit(node: ts.Node) {
@@ -338,6 +352,38 @@ export function sourceBindings(
     )
       escapingSources.add(file);
   }
+  // The checker has no lib types, so it cannot follow `await import()`; bind its ESM exports
+  // the way static imports are bound. Only stable exports link, so an unknown name stays local.
+  const members = new Map<ts.Node, ts.Symbol>();
+  const esmExport = (file: string, name: string) =>
+    formats.get(file) === 'esm' && !escapingSources.has(file)
+      ? exports.get(file)?.get(name)
+      : undefined;
+  for (const node of nodes) {
+    const name = dynamicImport(node);
+    const file = name && resolveImport(name, node.getSourceFile().fileName);
+    if (!file) continue;
+    let parent = node.parent;
+    while (ts.isParenthesizedExpression(parent)) parent = parent.parent;
+    if (ts.isPropertyAccessExpression(parent) && !parent.questionDotToken) {
+      const target = esmExport(file, parent.name.text);
+      if (target) members.set(parent.name, target);
+    } else if (
+      ts.isVariableDeclaration(parent) &&
+      ts.isObjectBindingPattern(parent.name) &&
+      ts.isVariableDeclarationList(parent.parent) &&
+      parent.parent.flags & ts.NodeFlags.Const
+    ) {
+      for (const entry of parent.name.elements) {
+        const key = entry.propertyName ?? entry.name;
+        if (!ts.isIdentifier(entry.name) || entry.initializer || entry.dotDotDotToken) continue;
+        if (!ts.isIdentifier(key) && !ts.isStringLiteral(key)) continue;
+        const target = esmExport(file, key.text);
+        const local = symbol(entry.name);
+        if (target && local) aliases.set(local, target);
+      }
+    }
+  }
   const canonical = (binding: ts.Symbol | undefined): ts.Symbol | undefined => {
     const seen = new Set<ts.Symbol>();
     while (binding && aliases.has(binding) && !seen.has(binding)) {
@@ -348,6 +394,7 @@ export function sourceBindings(
   };
   return {
     canonical,
+    member: (node: ts.Node) => members.get(node),
     safeNodes,
     inlineDefaults,
     escapingSources,
