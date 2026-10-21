@@ -211,6 +211,20 @@
         "upgradeComplete": "yes: stripe-node 22 to 23.0.0.",
         "wouldMerge": "yes, after confirming cards stay enabled and running one checkout in test mode."
       }
+    },
+    {
+      "repo": "JiantaoFu/insightly",
+      "pullRequest": "https://github.com/refit-dev/insightly/pull/1",
+      "reviewedAt": "2026-10-21",
+      "verdict": "incomplete",
+      "checks": {
+        "rightReplacement": "partly: current_period_end reads go through the item helper and invoice.subscription through parent.subscription_details, both correct; payment_method_types: ['card'] at server/index.js:2989 is left in place under the #88 waiver because stripe-node cannot be upgraded (@types/node 18 in the lockfile).",
+        "bothVersions": "yes: the helpers read the legacy field first, then the endive location.",
+        "nothingUnrelated": "yes: the pin, three period reads, three invoice.subscription reads and one new helper file.",
+        "pleaseCheck": "Do not merge as-is: with the endive pin, the Checkout Session creation still sends payment_method_types and fails. The 10 untraced reads left unchanged are .description on the app's own objects. The full mocha run reaches the network, so the operator ran npm run test:server; it passed on both.",
+        "upgradeComplete": "no: the stripe-node upgrade is refused by the @types/node gate.",
+        "wouldMerge": "no, not until the Checkout call is changed by hand."
+      }
     }
   ]
 }
