@@ -2,7 +2,12 @@ import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, expect, it, vi } from 'vitest';
-import { aiBudgetConfiguration, reserveAiBudget, responseUsage } from './ai-budget.ts';
+import {
+  aiBudgetConfiguration,
+  reserveAiBudget,
+  responseUsage,
+  usageCostUsd,
+} from './ai-budget.ts';
 import { requestStructuredOutput } from './openai.ts';
 
 const roots: string[] = [];
@@ -147,4 +152,18 @@ it('prices gpt-5.6-luna and its dated snapshots, and refuses a response from a d
   expect((await settle(usage, 'gpt-5.6-luna-2026-09-24')).costUsd).toBeCloseTo(0.00023);
   const mismatched = await reserveAiBudget(configuration, 'gpt-5.6-luna', 1000, 4096);
   await expect(mismatched(usage, 'gpt-5.4-mini-2026-03-17')).rejects.toThrow(/unpriced model/);
+});
+
+it('prices reported usage with cached input and cache writes at their own rates', () => {
+  // gpt-5.6-terra: $2 input, $0.20 cached input, $2 cache write, $12 output per million tokens.
+  const usage = {
+    inputTokens: 1_000_000,
+    cachedInputTokens: 500_000,
+    cacheWriteInputTokens: 100_000,
+    outputTokens: 100_000,
+    reasoningTokens: 40_000,
+  };
+  expect(usageCostUsd('gpt-5.6-terra', usage)).toBeCloseTo(0.8 + 0.1 + 0.2 + 1.2, 9);
+  expect(usageCostUsd('gpt-5.6-terra-2026-10-01', usage)).toBeCloseTo(2.3, 9);
+  expect(() => usageCostUsd('gpt-unpriced', usage)).toThrow(/No verified token prices/);
 });

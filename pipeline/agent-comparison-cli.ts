@@ -10,20 +10,28 @@ import { runPipeline } from './run.ts';
 import { readSpecification } from './specifications.ts';
 import { stripePackageUpgrade, PACKAGE_FILES } from './stripe-package-upgrade.ts';
 import { PipelineInputError } from './types.ts';
+import { usageCostUsd } from './ai-budget.ts';
 import { validateSourcePatch } from './validation.ts';
 
 // Gives a headless coding agent each repository Refit did not validate, with the contract diff
-// Refit computed, then puts the agent's patch through Refit's offline validation. Agents only
-// read and edit files: no shell, no network.
+// Refit computed, then puts the agent's patch through Refit's offline validation. Neither agent has
+// network access: Claude Code only reads and edits files; Codex also runs commands in its sandbox.
 const execute = promisify(execFile);
 const USAGE =
-  'Usage: tsx pipeline/agent-comparison-cli.ts --selection <selection.json> --output <new-dir> --budget <usd> [--model <id>] [--run-budget <usd>] [--max-turns N]';
+  'Usage: tsx pipeline/agent-comparison-cli.ts --selection <selection.json> --output <new-dir> --budget <usd> [--agent claude|codex] [--model <id>] [--run-budget <usd>] [--max-turns N] [--env .env]';
 const AGENT_TOOLS = 'Read,Edit,Write,Glob,Grep';
-const DEFAULT_MODEL = 'claude-sonnet-5-5';
+const DEFAULT_MODELS = { claude: 'claude-sonnet-5-5', codex: 'gpt-5.6-sol' };
 const DEFAULT_RUN_BUDGET_USD = 2;
 const DEFAULT_MAX_TURNS = 60;
 const AGENT_TIMEOUT_MS = 30 * 60 * 1000;
 const CHANGELOG = resolve('docs/benchmarks/stripe-changelog');
+const ZERO_USAGE = {
+  inputTokens: 0,
+  cachedInputTokens: 0,
+  cacheWriteInputTokens: 0,
+  outputTokens: 0,
+  reasoningTokens: 0,
+};
 
 interface Selection {
   set: string;
@@ -50,7 +58,9 @@ const { values } = parseArgs({
     selection: { type: 'string' },
     output: { type: 'string' },
     budget: { type: 'string' },
+    agent: { type: 'string' },
     model: { type: 'string' },
+    env: { type: 'string' },
     'run-budget': { type: 'string' },
     'max-turns': { type: 'string' },
   },
@@ -60,7 +70,15 @@ const budget = Number(values.budget);
 const runBudget = Number(values['run-budget'] ?? DEFAULT_RUN_BUDGET_USD);
 if (!(budget > 0) || !(runBudget > 0))
   throw new PipelineInputError('--budget and --run-budget must be positive dollar amounts.');
-const model = values.model ?? DEFAULT_MODEL;
+const agentName = values.agent ?? 'claude';
+if (agentName !== 'claude' && agentName !== 'codex')
+  throw new PipelineInputError('--agent must be claude or codex.');
+const model = values.model ?? DEFAULT_MODELS[agentName];
+// Codex reports usage only when a run ends, so a run starts only while a whole run budget remains.
+if (values.env) process.loadEnvFile(values.env);
+if (agentName === 'codex' && !process.env.OPENAI_API_KEY)
+  throw new PipelineInputError('--agent codex needs OPENAI_API_KEY, for example from --env.');
+if (agentName === 'codex') usageCostUsd(model, ZERO_USAGE);
 const output = resolve(values.output);
 const selection = JSON.parse(await readFile(values.selection, 'utf8')) as Selection[];
 const changelog = (
@@ -127,7 +145,10 @@ const PROMPT = (contract: string) =>
     '- Edit the code so it works against the target API version: move reads of removed fields to where Stripe now returns that data, replace removed request parameters, and set every literal Stripe `apiVersion` to the target.',
     '- Change only what the upgrade needs. Keep behavior the same.',
     '- Do not edit package.json or lockfiles: dependencies cannot be installed here. The stripe package is upgraded to the release for the target version for you after your edits.',
-    '- You cannot run commands. When you are done, reply with a short summary of each change, and of anything you left for a person to decide.',
+    agentName === 'claude'
+      ? '- You cannot run commands.'
+      : '- Commands run without network access, and dependencies are not installed.',
+    '- When you are done, reply with a short summary of each change, and of anything you left for a person to decide.',
   ].join('\n');
 
 interface AgentResult {
@@ -136,16 +157,97 @@ interface AgentResult {
   subtype?: string;
   total_cost_usd?: number;
   num_turns?: number;
+  usage?: typeof ZERO_USAGE;
 }
 
-async function runAgent(directory: string, prompt: string, limit: number): Promise<AgentResult> {
-  // A clean environment, so the child uses the user's own Claude Code login and no host session.
-  const environment = {
-    HOME: process.env.HOME!,
-    PATH: process.env.PATH!,
-    USER: process.env.USER ?? '',
-    TMPDIR: process.env.TMPDIR ?? tmpdir(),
+// `codex exec --json` events, one per line.
+interface CodexEvent {
+  type: string;
+  usage?: {
+    input_tokens?: number;
+    cached_input_tokens?: number;
+    cache_write_input_tokens?: number;
+    output_tokens?: number;
+    reasoning_output_tokens?: number;
   };
+  item?: { type?: string; text?: string };
+  error?: { message?: string };
+  message?: string;
+}
+
+// A clean environment, so the child uses no host session, user configuration or other credentials.
+const baseEnvironment = () => ({
+  HOME: process.env.HOME!,
+  PATH: process.env.PATH!,
+  USER: process.env.USER ?? '',
+  TMPDIR: process.env.TMPDIR ?? tmpdir(),
+});
+
+async function runCodex(directory: string, prompt: string): Promise<AgentResult> {
+  const home = await mkdtemp(join(tmpdir(), 'refit-codex-home-'));
+  try {
+    const run = execute(
+      'codex',
+      [
+        'exec',
+        '--ignore-user-config',
+        '--ignore-rules',
+        '--skip-git-repo-check',
+        '--ephemeral',
+        '--sandbox',
+        'workspace-write',
+        '--model',
+        model,
+        '--json',
+        prompt,
+      ],
+      {
+        cwd: directory,
+        env: { ...baseEnvironment(), CODEX_HOME: home, CODEX_API_KEY: process.env.OPENAI_API_KEY! },
+        timeout: AGENT_TIMEOUT_MS,
+        maxBuffer: 256 * 1024 * 1024,
+      },
+    );
+    // `codex exec` also reads a prompt from stdin and waits until it closes.
+    run.child.stdin?.end();
+    const { stdout } = await run.catch((error: { stdout?: string }) => {
+      if (error.stdout) return { stdout: error.stdout };
+      throw error;
+    });
+    const events = stdout
+      .split('\n')
+      .filter((line) => line.startsWith('{'))
+      .map((line) => JSON.parse(line) as CodexEvent);
+    const usage = events
+      .filter((event) => event.type === 'turn.completed')
+      .reduce<typeof ZERO_USAGE>(
+        (total, event) => ({
+          inputTokens: total.inputTokens + (event.usage?.input_tokens ?? 0),
+          cachedInputTokens: total.cachedInputTokens + (event.usage?.cached_input_tokens ?? 0),
+          cacheWriteInputTokens:
+            total.cacheWriteInputTokens + (event.usage?.cache_write_input_tokens ?? 0),
+          outputTokens: total.outputTokens + (event.usage?.output_tokens ?? 0),
+          reasoningTokens: total.reasoningTokens + (event.usage?.reasoning_output_tokens ?? 0),
+        }),
+        ZERO_USAGE,
+      );
+    const failure = events.find((event) => event.type === 'turn.failed' || event.type === 'error');
+    return {
+      result: events.filter((event) => event.item?.type === 'agent_message').at(-1)?.item?.text,
+      is_error: Boolean(failure),
+      subtype: failure
+        ? String(failure.error?.message ?? failure.message ?? failure.type)
+        : 'success',
+      total_cost_usd: usageCostUsd(model, usage),
+      num_turns: events.filter((event) => event.type === 'item.completed').length,
+      usage,
+    };
+  } finally {
+    await rm(home, { recursive: true, force: true });
+  }
+}
+
+async function runClaude(directory: string, prompt: string, limit: number): Promise<AgentResult> {
   const { stdout } = await execute(
     'claude',
     [
@@ -170,7 +272,7 @@ async function runAgent(directory: string, prompt: string, limit: number): Promi
     ],
     {
       cwd: directory,
-      env: environment,
+      env: baseEnvironment(),
       timeout: AGENT_TIMEOUT_MS,
       maxBuffer: 64 * 1024 * 1024,
     },
@@ -196,7 +298,7 @@ for (const [index, entry] of selection.entries()) {
   results.push(result);
   const save = () =>
     writeFile(join(output, 'results.json'), `${JSON.stringify(results, null, 2)}\n`);
-  if (spent >= budget) {
+  if (spent >= budget || (agentName === 'codex' && spent + runBudget > budget)) {
     result.agent = { status: 'not-run', reason: `Budget of $${budget} reached.` };
     log('budget reached');
     await save();
@@ -219,10 +321,10 @@ for (const [index, entry] of selection.entries()) {
     const checkout = join(work, 'checkout');
     await execute('git', ['clone', '-q', '--shared', configuration.repository, checkout]);
     const started = Date.now();
-    const agent = await runAgent(
-      checkout,
-      PROMPT(contract.text),
-      Math.min(runBudget, budget - spent),
+    const agent = await (
+      agentName === 'codex'
+        ? runCodex(checkout, PROMPT(contract.text))
+        : runClaude(checkout, PROMPT(contract.text), Math.min(runBudget, budget - spent))
     ).catch((error: unknown): AgentResult => ({ is_error: true, result: message(error) }));
     spent += agent.total_cost_usd ?? 0;
     const touchedPackages = (await git(checkout, ['diff', '--name-only']))
@@ -236,7 +338,9 @@ for (const [index, entry] of selection.entries()) {
       status: agent.is_error ? 'error' : agentDiff ? 'patched' : 'no-change',
       stop: agent.subtype,
       turns: agent.num_turns,
+      model,
       costUsd: agent.total_cost_usd ?? 0,
+      ...(agent.usage ? { usage: agent.usage } : {}),
       seconds: Math.round((Date.now() - started) / 1000),
       summary: agent.result,
       revertedPackageEdits: touchedPackages,
