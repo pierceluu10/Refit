@@ -1,4 +1,5 @@
-import { resolve } from 'node:path';
+import { readdir, readFile, stat } from 'node:fs/promises';
+import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import ts from 'typescript-compiler';
 import { analyzeRepository } from './analyzer.ts';
@@ -1195,28 +1196,43 @@ function modelSites(program: SourceProgram, value: ts.Expression) {
   return { sites: [...sites.values()], cut: trace.cut.by };
 }
 
-const ENDPOINT_OPTIONS = new Set(['baseURL', 'baseUrl', 'basePath']);
+// Text that points a client at another endpoint: a base URL option or variable, `withOptions`, or
+// an Azure client (WR-01). Matched case-insensitively anywhere, so a const options object, a
+// spread, an assignment and an environment variable need no tracing.
+const ENDPOINT_TEXT = /base_?url|basepath|openai_api_base|withoptions\(|azureopenai/i;
+const CONFIG_FILE = /^\.env(?:\..*)?$|\.env$|\.(?:json|ya?ml)$/i;
+// Compiler and lockfile settings that never configure a client.
+const NOT_CONFIG =
+  /^(?:[jt]sconfig[\w.-]*\.json|package-lock\.json|npm-shrinkwrap\.json|pnpm-lock\.yaml)$/i;
+const MAX_CONFIG_FILES = 5000;
+const MAX_CONFIG_BYTES = 1024 * 1024;
 
-// Whether any client in the repository is an `AzureOpenAI` client or is constructed with a custom
-// base URL. Which client sends a request is not traced, so one such client puts every SDK request
-// in doubt: the model may name another provider's model or a deployment (WR-04).
-function customEndpoint(program: SourceProgram) {
-  let found = false;
-  const optionIn = (node: ts.Node): boolean =>
-    ((ts.isPropertyAssignment(node) || ts.isShorthandPropertyAssignment(node)) &&
-      ENDPOINT_OPTIONS.has(propertyName(node.name) ?? '')) ||
-    ts.forEachChild(node, optionIn) === true;
-  const visit = (node: ts.Node) => {
-    if (found) return;
-    if (
-      (ts.isIdentifier(node) && node.text === 'AzureOpenAI') ||
-      (ts.isNewExpression(node) && (node.arguments ?? []).some(optionIn))
-    )
-      found = true;
-    else ts.forEachChild(node, visit);
+// Whether any source or configuration file (`.env*`, JSON, YAML, outside node_modules) in the
+// repository mentions a custom endpoint. Which client sends a request is not traced, so one match
+// puts every SDK request in doubt: the model may name another provider's model or a deployment.
+// An unreadable or oversized file, or too many files, counts as a match.
+async function customEndpoint(directory: string, repository: Repository) {
+  if (repository.files.some((file) => ENDPOINT_TEXT.test(file.content))) return true;
+  let count = 0;
+  const visit = async (path: string): Promise<boolean> => {
+    for (const entry of await readdir(path, { withFileTypes: true })) {
+      const full = join(path, entry.name);
+      if (entry.isDirectory()) {
+        if (entry.name !== 'node_modules' && entry.name !== '.git' && (await visit(full)))
+          return true;
+      } else if (entry.isFile() && CONFIG_FILE.test(entry.name) && !NOT_CONFIG.test(entry.name)) {
+        count += 1;
+        if (count > MAX_CONFIG_FILES || (await stat(full)).size > MAX_CONFIG_BYTES) return true;
+        if (ENDPOINT_TEXT.test(await readFile(full, 'utf8'))) return true;
+      }
+    }
+    return false;
   };
-  for (const source of program.files) visit(source);
-  return found;
+  try {
+    return await visit(directory);
+  } catch {
+    return true;
+  }
 }
 
 const SWEEP_CAP = 20_000;
@@ -1479,8 +1495,9 @@ export async function proposeModelReplacements(
     for (const site of trace.sites) for (const pass of site.passes) reached.add(pass.use);
     traced.push({ request, found, value, trace });
   }
-  let custom: boolean | undefined;
-  const endpoint = () => (custom ??= customEndpoint(program));
+  const endpointSet = requests.some((request) => request.sdk && !request.custom)
+    ? await customEndpoint(directory, repository)
+    : false;
   for (const { request, found, value, trace } of traced) {
     const models = byProvider.get(request.provider)!;
     // A trace a limit cut cannot prove every source and use, so no literal it reaches is edited.
@@ -1498,7 +1515,7 @@ export async function proposeModelReplacements(
           ? `work budget of ${MAX_STEPS.toLocaleString('en-US')} steps`
           : `depth limit of ${MAX_DEPTH}`
       }, so not every source and use could be checked; change it by hand to`;
-    const customUrl = request.custom || (request.sdk && endpoint());
+    const customUrl = request.custom || (request.sdk && endpointSet);
     for (const site of sites) {
       const entry = models.get(site.literal.text);
       if (!entry || TEST_PATH.test(program.path(site.literal))) continue;

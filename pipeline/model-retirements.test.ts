@@ -1380,3 +1380,64 @@ it('stops on overridden methods, subclass fields and super(...) arguments instea
     ].sort(),
   );
 });
+
+it('stops every SDK request when any file mentions a custom endpoint, in any shape (WR-01, iteration 2)', async () => {
+  const reason =
+    "The client sets a custom base URL, so the model may name another provider's model or a deployment; change it by hand to gpt-5.6-sol.";
+  const request = `export const a = () => ${send("'gpt-4'")}`;
+  const variants: Record<string, Record<string, string>> = {
+    'options object': {
+      'src/client.ts': [
+        "import OpenAI from 'openai';",
+        "const opts = { baseURL: 'http://localhost:11434/v1' };",
+        'export const other = new OpenAI(opts);',
+      ].join('\n'),
+    },
+    spread: {
+      'src/client.ts': [
+        "import OpenAI from 'openai';",
+        "const base = { baseURL: 'http://x' };",
+        'export const other = new OpenAI({ ...base, apiKey: "k" });',
+      ].join('\n'),
+    },
+    assignment: {
+      'src/client.ts': [
+        "import OpenAI from 'openai';",
+        'const c = new OpenAI();',
+        "c.baseURL = 'http://x';",
+      ].join('\n'),
+    },
+    withOptions: {
+      'src/client.ts': [
+        "import OpenAI from 'openai';",
+        'export const c = new OpenAI().withOptions({ timeout: 5 });',
+      ].join('\n'),
+    },
+    'process.env variable': {
+      'src/client.ts': 'export const url = process.env.OPENAI_BASE_URL;',
+    },
+    '.env file': { '.env': 'OPENAI_BASE_URL=http://localhost:11434/v1\n' },
+    'config yaml': { 'deploy/config.yml': 'openai_api_base: http://x\n' },
+  };
+  for (const [label, extra] of Object.entries(variants)) {
+    const root = await repository({
+      'src/a.ts': [...HEAD, request].join('\n'),
+      ...extra,
+    });
+    const proposal = await proposeModelReplacements(root, registry, NOW);
+    expect([label, proposal.replacements]).toEqual([label, []]);
+    expect([label, proposal.stops.map((item) => [item.file, item.reason])]).toEqual([
+      label,
+      [['src/a.ts', reason]],
+    ]);
+  }
+  // A compiler `baseUrl` and files in node_modules do not count.
+  const quiet = await repository({
+    'src/a.ts': [...HEAD, request].join('\n'),
+    'tsconfig.json': '{"compilerOptions":{"baseUrl":"."}}',
+    'node_modules/pkg/config.json': '{"baseURL":"x"}',
+  });
+  expect(edited(await proposeModelReplacements(quiet, registry, NOW))).toEqual([
+    'src/a.ts:3 gpt-4',
+  ]);
+});
