@@ -1,0 +1,1594 @@
+{
+  "formatVersion": 1,
+  "generatedBy": "scripts/paypal-requests.mjs",
+  "checkedAt": "2026-10-21",
+  "checkout": {
+    "package": "@paypal/checkout-server-sdk",
+    "version": "1.0.3",
+    "deprecated": "Package no longer supported. The author suggests using the @paypal/paypal-server-sdk package instead: https://www.npmjs.com/package/@paypal/paypal-server-sdk. Contact Support at https://www.npmjs.com/support for more info.",
+    "source": "https://registry.npmjs.org/@paypal%2Fcheckout-server-sdk",
+    "requests": {
+      "core": {
+        "AccessTokenRequest": {
+          "method": "POST",
+          "path": "/v1/oauth2/token"
+        },
+        "RefreshTokenRequest": {
+          "method": "POST",
+          "path": "/v1/identity/openidconnect/tokenservice"
+        }
+      },
+      "orders": {
+        "OrdersAuthorizeRequest": {
+          "method": "POST",
+          "path": "/v2/checkout/orders/{order_id}/authorize"
+        },
+        "OrdersCaptureRequest": {
+          "method": "POST",
+          "path": "/v2/checkout/orders/{order_id}/capture"
+        },
+        "OrdersCreateRequest": {
+          "method": "POST",
+          "path": "/v2/checkout/orders"
+        },
+        "OrdersGetRequest": {
+          "method": "GET",
+          "path": "/v2/checkout/orders/{order_id}"
+        },
+        "OrdersPatchRequest": {
+          "method": "PATCH",
+          "path": "/v2/checkout/orders/{order_id}"
+        },
+        "OrdersValidateRequest": {
+          "method": "POST",
+          "path": "/v2/checkout/orders/{order_id}/validate-payment-method"
+        }
+      },
+      "payments": {
+        "AuthorizationsCaptureRequest": {
+          "method": "POST",
+          "path": "/v2/payments/authorizations/{authorization_id}/capture"
+        },
+        "AuthorizationsGetRequest": {
+          "method": "GET",
+          "path": "/v2/payments/authorizations/{authorization_id}"
+        },
+        "AuthorizationsReauthorizeRequest": {
+          "method": "POST",
+          "path": "/v2/payments/authorizations/{authorization_id}/reauthorize"
+        },
+        "AuthorizationsVoidRequest": {
+          "method": "POST",
+          "path": "/v2/payments/authorizations/{authorization_id}/void"
+        },
+        "CapturesGetRequest": {
+          "method": "GET",
+          "path": "/v2/payments/captures/{capture_id}"
+        },
+        "CapturesRefundRequest": {
+          "method": "POST",
+          "path": "/v2/payments/captures/{capture_id}/refund"
+        },
+        "RefundsGetRequest": {
+          "method": "GET",
+          "path": "/v2/payments/refunds/{refund_id}"
+        }
+      }
+    }
+  },
+  "server": {
+    "package": "@paypal/paypal-server-sdk",
+    "source": "https://registry.npmjs.org/@paypal%2Fpaypal-server-sdk",
+    "releases": [
+      "0.5.1",
+      "0.5.2",
+      "0.6.0",
+      "0.6.1",
+      "0.7.0",
+      "1.0.0",
+      "1.1.0",
+      "2.0.0",
+      "2.1.0",
+      "2.2.0",
+      "2.3.0",
+      "2.4.0",
+      "2.5.0"
+    ],
+    "controllers": {
+      "OAuthAuthorizationController": {
+        "requestToken": {
+          "method": "POST",
+          "path": "/v1/oauth2/token",
+          "releases": [
+            "0.5.1",
+            "0.5.2",
+            "0.6.0",
+            "0.6.1",
+            "0.7.0",
+            "1.0.0",
+            "1.1.0",
+            "2.0.0",
+            "2.1.0",
+            "2.2.0",
+            "2.3.0",
+            "2.4.0",
+            "2.5.0"
+          ]
+        }
+      },
+      "OrdersController": {
+        "authorizeOrder": {
+          "method": "POST",
+          "path": "/v2/checkout/orders/{id}/authorize",
+          "releases": [
+            "0.7.0",
+            "1.0.0",
+            "1.1.0",
+            "2.0.0",
+            "2.1.0",
+            "2.2.0",
+            "2.3.0",
+            "2.4.0",
+            "2.5.0"
+          ]
+        },
+        "captureOrder": {
+          "method": "POST",
+          "path": "/v2/checkout/orders/{id}/capture",
+          "releases": [
+            "0.7.0",
+            "1.0.0",
+            "1.1.0",
+            "2.0.0",
+            "2.1.0",
+            "2.2.0",
+            "2.3.0",
+            "2.4.0",
+            "2.5.0"
+          ]
+        },
+        "confirmOrder": {
+          "method": "POST",
+          "path": "/v2/checkout/orders/{id}/confirm-payment-source",
+          "releases": [
+            "0.7.0",
+            "1.0.0",
+            "1.1.0",
+            "2.0.0",
+            "2.1.0",
+            "2.2.0",
+            "2.3.0",
+            "2.4.0",
+            "2.5.0"
+          ]
+        },
+        "createOrder": {
+          "method": "POST",
+          "path": "/v2/checkout/orders",
+          "releases": [
+            "0.7.0",
+            "1.0.0",
+            "1.1.0",
+            "2.0.0",
+            "2.1.0",
+            "2.2.0",
+            "2.3.0",
+            "2.4.0",
+            "2.5.0"
+          ]
+        },
+        "createOrderTracking": {
+          "method": "POST",
+          "path": "/v2/checkout/orders/{id}/track",
+          "releases": [
+            "0.7.0",
+            "1.0.0",
+            "1.1.0",
+            "2.0.0",
+            "2.1.0",
+            "2.2.0",
+            "2.3.0",
+            "2.4.0",
+            "2.5.0"
+          ]
+        },
+        "getOrder": {
+          "method": "GET",
+          "path": "/v2/checkout/orders/{id}",
+          "releases": [
+            "0.7.0",
+            "1.0.0",
+            "1.1.0",
+            "2.0.0",
+            "2.1.0",
+            "2.2.0",
+            "2.3.0",
+            "2.4.0",
+            "2.5.0"
+          ]
+        },
+        "ordersAuthorize": {
+          "method": "POST",
+          "path": "/v2/checkout/orders/{id}/authorize",
+          "releases": [
+            "0.5.1",
+            "0.5.2",
+            "0.6.0",
+            "0.6.1"
+          ]
+        },
+        "ordersCapture": {
+          "method": "POST",
+          "path": "/v2/checkout/orders/{id}/capture",
+          "releases": [
+            "0.5.1",
+            "0.5.2",
+            "0.6.0",
+            "0.6.1"
+          ]
+        },
+        "ordersConfirm": {
+          "method": "POST",
+          "path": "/v2/checkout/orders/{id}/confirm-payment-source",
+          "releases": [
+            "0.5.1",
+            "0.5.2",
+            "0.6.0",
+            "0.6.1"
+          ]
+        },
+        "ordersCreate": {
+          "method": "POST",
+          "path": "/v2/checkout/orders",
+          "releases": [
+            "0.5.1",
+            "0.5.2",
+            "0.6.0",
+            "0.6.1"
+          ]
+        },
+        "ordersGet": {
+          "method": "GET",
+          "path": "/v2/checkout/orders/{id}",
+          "releases": [
+            "0.5.1",
+            "0.5.2",
+            "0.6.0",
+            "0.6.1"
+          ]
+        },
+        "ordersPatch": {
+          "method": "PATCH",
+          "path": "/v2/checkout/orders/{id}",
+          "releases": [
+            "0.5.1",
+            "0.5.2",
+            "0.6.0",
+            "0.6.1"
+          ]
+        },
+        "ordersTrackCreate": {
+          "method": "POST",
+          "path": "/v2/checkout/orders/{id}/track",
+          "releases": [
+            "0.5.1",
+            "0.5.2",
+            "0.6.0",
+            "0.6.1"
+          ]
+        },
+        "ordersTrackersPatch": {
+          "method": "PATCH",
+          "path": "/v2/checkout/orders/{id}/trackers/{trackerId}",
+          "releases": [
+            "0.5.1",
+            "0.5.2",
+            "0.6.0",
+            "0.6.1"
+          ]
+        },
+        "patchOrder": {
+          "method": "PATCH",
+          "path": "/v2/checkout/orders/{id}",
+          "releases": [
+            "0.7.0",
+            "1.0.0",
+            "1.1.0",
+            "2.0.0",
+            "2.1.0",
+            "2.2.0",
+            "2.3.0",
+            "2.4.0",
+            "2.5.0"
+          ]
+        },
+        "updateOrderTracking": {
+          "method": "PATCH",
+          "path": "/v2/checkout/orders/{id}/trackers/{trackerId}",
+          "releases": [
+            "0.7.0",
+            "1.0.0",
+            "1.1.0",
+            "2.0.0",
+            "2.1.0",
+            "2.2.0",
+            "2.3.0",
+            "2.4.0",
+            "2.5.0"
+          ]
+        }
+      },
+      "PaymentsController": {
+        "authorizationsCapture": {
+          "method": "POST",
+          "path": "/v2/payments/authorizations/{authorizationId}/capture",
+          "releases": [
+            "0.5.1",
+            "0.5.2",
+            "0.6.0",
+            "0.6.1"
+          ]
+        },
+        "authorizationsGet": {
+          "method": "GET",
+          "path": "/v2/payments/authorizations/{authorizationId}",
+          "releases": [
+            "0.5.1",
+            "0.5.2",
+            "0.6.0",
+            "0.6.1"
+          ]
+        },
+        "authorizationsReauthorize": {
+          "method": "POST",
+          "path": "/v2/payments/authorizations/{authorizationId}/reauthorize",
+          "releases": [
+            "0.5.1",
+            "0.5.2",
+            "0.6.0",
+            "0.6.1"
+          ]
+        },
+        "authorizationsVoid": {
+          "method": "POST",
+          "path": "/v2/payments/authorizations/{authorizationId}/void",
+          "releases": [
+            "0.5.1",
+            "0.5.2",
+            "0.6.0",
+            "0.6.1"
+          ]
+        },
+        "captureAuthorizedPayment": {
+          "method": "POST",
+          "path": "/v2/payments/authorizations/{authorizationId}/capture",
+          "releases": [
+            "0.7.0",
+            "1.0.0",
+            "1.1.0",
+            "2.0.0",
+            "2.1.0",
+            "2.2.0",
+            "2.3.0",
+            "2.4.0",
+            "2.5.0"
+          ]
+        },
+        "capturesGet": {
+          "method": "GET",
+          "path": "/v2/payments/captures/{captureId}",
+          "releases": [
+            "0.5.1",
+            "0.5.2",
+            "0.6.0",
+            "0.6.1"
+          ]
+        },
+        "capturesRefund": {
+          "method": "POST",
+          "path": "/v2/payments/captures/{captureId}/refund",
+          "releases": [
+            "0.5.1",
+            "0.5.2",
+            "0.6.0",
+            "0.6.1"
+          ]
+        },
+        "getAuthorizedPayment": {
+          "method": "GET",
+          "path": "/v2/payments/authorizations/{authorizationId}",
+          "releases": [
+            "0.7.0",
+            "1.0.0",
+            "1.1.0",
+            "2.0.0",
+            "2.1.0",
+            "2.2.0",
+            "2.3.0",
+            "2.4.0",
+            "2.5.0"
+          ]
+        },
+        "getCapturedPayment": {
+          "method": "GET",
+          "path": "/v2/payments/captures/{captureId}",
+          "releases": [
+            "0.7.0",
+            "1.0.0",
+            "1.1.0",
+            "2.0.0",
+            "2.1.0",
+            "2.2.0",
+            "2.3.0",
+            "2.4.0",
+            "2.5.0"
+          ]
+        },
+        "getRefund": {
+          "method": "GET",
+          "path": "/v2/payments/refunds/{refundId}",
+          "releases": [
+            "0.7.0",
+            "1.0.0",
+            "1.1.0",
+            "2.0.0",
+            "2.1.0",
+            "2.2.0",
+            "2.3.0",
+            "2.4.0",
+            "2.5.0"
+          ]
+        },
+        "reauthorizePayment": {
+          "method": "POST",
+          "path": "/v2/payments/authorizations/{authorizationId}/reauthorize",
+          "releases": [
+            "0.7.0",
+            "1.0.0",
+            "1.1.0",
+            "2.0.0",
+            "2.1.0",
+            "2.2.0",
+            "2.3.0",
+            "2.4.0",
+            "2.5.0"
+          ]
+        },
+        "refundCapturedPayment": {
+          "method": "POST",
+          "path": "/v2/payments/captures/{captureId}/refund",
+          "releases": [
+            "0.7.0",
+            "1.0.0",
+            "1.1.0",
+            "2.0.0",
+            "2.1.0",
+            "2.2.0",
+            "2.3.0",
+            "2.4.0",
+            "2.5.0"
+          ]
+        },
+        "refundsGet": {
+          "method": "GET",
+          "path": "/v2/payments/refunds/{refundId}",
+          "releases": [
+            "0.5.1",
+            "0.5.2",
+            "0.6.0",
+            "0.6.1"
+          ]
+        },
+        "voidPayment": {
+          "method": "POST",
+          "path": "/v2/payments/authorizations/{authorizationId}/void",
+          "releases": [
+            "0.7.0",
+            "1.0.0",
+            "1.1.0",
+            "2.0.0",
+            "2.1.0",
+            "2.2.0",
+            "2.3.0",
+            "2.4.0",
+            "2.5.0"
+          ]
+        }
+      },
+      "SubscriptionsController": {
+        "activateBillingPlan": {
+          "method": "POST",
+          "path": "/v1/billing/plans/{id}/activate",
+          "releases": [
+            "2.0.0",
+            "2.1.0",
+            "2.2.0",
+            "2.3.0",
+            "2.4.0",
+            "2.5.0"
+          ]
+        },
+        "activateSubscription": {
+          "method": "POST",
+          "path": "/v1/billing/subscriptions/{id}/activate",
+          "releases": [
+            "2.0.0",
+            "2.1.0",
+            "2.2.0",
+            "2.3.0",
+            "2.4.0",
+            "2.5.0"
+          ]
+        },
+        "cancelSubscription": {
+          "method": "POST",
+          "path": "/v1/billing/subscriptions/{id}/cancel",
+          "releases": [
+            "2.0.0",
+            "2.1.0",
+            "2.2.0",
+            "2.3.0",
+            "2.4.0",
+            "2.5.0"
+          ]
+        },
+        "captureSubscription": {
+          "method": "POST",
+          "path": "/v1/billing/subscriptions/{id}/capture",
+          "releases": [
+            "2.0.0",
+            "2.1.0",
+            "2.2.0",
+            "2.3.0",
+            "2.4.0",
+            "2.5.0"
+          ]
+        },
+        "createBillingPlan": {
+          "method": "POST",
+          "path": "/v1/billing/plans",
+          "releases": [
+            "2.0.0",
+            "2.1.0",
+            "2.2.0",
+            "2.3.0",
+            "2.4.0",
+            "2.5.0"
+          ]
+        },
+        "createSubscription": {
+          "method": "POST",
+          "path": "/v1/billing/subscriptions",
+          "releases": [
+            "2.0.0",
+            "2.1.0",
+            "2.2.0",
+            "2.3.0",
+            "2.4.0",
+            "2.5.0"
+          ]
+        },
+        "deactivateBillingPlan": {
+          "method": "POST",
+          "path": "/v1/billing/plans/{id}/deactivate",
+          "releases": [
+            "2.0.0",
+            "2.1.0",
+            "2.2.0",
+            "2.3.0",
+            "2.4.0",
+            "2.5.0"
+          ]
+        },
+        "getBillingPlan": {
+          "method": "GET",
+          "path": "/v1/billing/plans/{id}",
+          "releases": [
+            "2.0.0",
+            "2.1.0",
+            "2.2.0",
+            "2.3.0",
+            "2.4.0",
+            "2.5.0"
+          ]
+        },
+        "getSubscription": {
+          "method": "GET",
+          "path": "/v1/billing/subscriptions/{id}",
+          "releases": [
+            "2.0.0",
+            "2.1.0",
+            "2.2.0",
+            "2.3.0",
+            "2.4.0",
+            "2.5.0"
+          ]
+        },
+        "listBillingPlans": {
+          "method": "GET",
+          "path": "/v1/billing/plans",
+          "releases": [
+            "2.0.0",
+            "2.1.0",
+            "2.2.0",
+            "2.3.0",
+            "2.4.0",
+            "2.5.0"
+          ]
+        },
+        "listSubscriptions": {
+          "method": "GET",
+          "path": "/v1/billing/subscriptions",
+          "releases": [
+            "2.0.0",
+            "2.1.0",
+            "2.2.0",
+            "2.3.0",
+            "2.4.0",
+            "2.5.0"
+          ]
+        },
+        "listSubscriptionTransactions": {
+          "method": "GET",
+          "path": "/v1/billing/subscriptions/{id}/transactions",
+          "releases": [
+            "2.0.0",
+            "2.1.0",
+            "2.2.0",
+            "2.3.0",
+            "2.4.0",
+            "2.5.0"
+          ]
+        },
+        "patchBillingPlan": {
+          "method": "PATCH",
+          "path": "/v1/billing/plans/{id}",
+          "releases": [
+            "2.0.0",
+            "2.1.0",
+            "2.2.0",
+            "2.3.0",
+            "2.4.0",
+            "2.5.0"
+          ]
+        },
+        "patchSubscription": {
+          "method": "PATCH",
+          "path": "/v1/billing/subscriptions/{id}",
+          "releases": [
+            "2.0.0",
+            "2.1.0",
+            "2.2.0",
+            "2.3.0",
+            "2.4.0",
+            "2.5.0"
+          ]
+        },
+        "reviseSubscription": {
+          "method": "POST",
+          "path": "/v1/billing/subscriptions/{id}/revise",
+          "releases": [
+            "2.0.0",
+            "2.1.0",
+            "2.2.0",
+            "2.3.0",
+            "2.4.0",
+            "2.5.0"
+          ]
+        },
+        "suspendSubscription": {
+          "method": "POST",
+          "path": "/v1/billing/subscriptions/{id}/suspend",
+          "releases": [
+            "2.0.0",
+            "2.1.0",
+            "2.2.0",
+            "2.3.0",
+            "2.4.0",
+            "2.5.0"
+          ]
+        },
+        "updateBillingPlanPricingSchemes": {
+          "method": "POST",
+          "path": "/v1/billing/plans/{id}/update-pricing-schemes",
+          "releases": [
+            "2.0.0",
+            "2.1.0",
+            "2.2.0",
+            "2.3.0",
+            "2.4.0",
+            "2.5.0"
+          ]
+        }
+      },
+      "TransactionSearchController": {
+        "searchBalances": {
+          "method": "GET",
+          "path": "/v1/reporting/balances",
+          "releases": [
+            "2.0.0",
+            "2.1.0",
+            "2.2.0",
+            "2.3.0",
+            "2.4.0",
+            "2.5.0"
+          ]
+        },
+        "searchTransactions": {
+          "method": "GET",
+          "path": "/v1/reporting/transactions",
+          "releases": [
+            "2.0.0",
+            "2.1.0",
+            "2.2.0",
+            "2.3.0",
+            "2.4.0",
+            "2.5.0"
+          ]
+        }
+      },
+      "VaultController": {
+        "createPaymentToken": {
+          "method": "POST",
+          "path": "/v3/vault/payment-tokens",
+          "releases": [
+            "0.7.0",
+            "1.0.0",
+            "1.1.0",
+            "2.0.0",
+            "2.1.0",
+            "2.2.0",
+            "2.3.0",
+            "2.4.0",
+            "2.5.0"
+          ]
+        },
+        "createSetupToken": {
+          "method": "POST",
+          "path": "/v3/vault/setup-tokens",
+          "releases": [
+            "0.7.0",
+            "1.0.0",
+            "1.1.0",
+            "2.0.0",
+            "2.1.0",
+            "2.2.0",
+            "2.3.0",
+            "2.4.0",
+            "2.5.0"
+          ]
+        },
+        "customerPaymentTokensGet": {
+          "method": "GET",
+          "path": "/v3/vault/payment-tokens",
+          "releases": [
+            "0.5.1",
+            "0.5.2",
+            "0.6.0",
+            "0.6.1"
+          ]
+        },
+        "deletePaymentToken": {
+          "method": "DELETE",
+          "path": "/v3/vault/payment-tokens/{id}",
+          "releases": [
+            "0.7.0",
+            "1.0.0",
+            "1.1.0",
+            "2.0.0",
+            "2.1.0",
+            "2.2.0",
+            "2.3.0",
+            "2.4.0",
+            "2.5.0"
+          ]
+        },
+        "getPaymentToken": {
+          "method": "GET",
+          "path": "/v3/vault/payment-tokens/{id}",
+          "releases": [
+            "0.7.0",
+            "1.0.0",
+            "1.1.0",
+            "2.0.0",
+            "2.1.0",
+            "2.2.0",
+            "2.3.0",
+            "2.4.0",
+            "2.5.0"
+          ]
+        },
+        "getSetupToken": {
+          "method": "GET",
+          "path": "/v3/vault/setup-tokens/{id}",
+          "releases": [
+            "0.7.0",
+            "1.0.0",
+            "1.1.0",
+            "2.0.0",
+            "2.1.0",
+            "2.2.0",
+            "2.3.0",
+            "2.4.0",
+            "2.5.0"
+          ]
+        },
+        "listCustomerPaymentTokens": {
+          "method": "GET",
+          "path": "/v3/vault/payment-tokens",
+          "releases": [
+            "0.7.0",
+            "1.0.0",
+            "1.1.0",
+            "2.0.0",
+            "2.1.0",
+            "2.2.0",
+            "2.3.0",
+            "2.4.0",
+            "2.5.0"
+          ]
+        },
+        "paymentTokensCreate": {
+          "method": "POST",
+          "path": "/v3/vault/payment-tokens",
+          "releases": [
+            "0.5.1",
+            "0.5.2",
+            "0.6.0",
+            "0.6.1"
+          ]
+        },
+        "paymentTokensDelete": {
+          "method": "DELETE",
+          "path": "/v3/vault/payment-tokens/{id}",
+          "releases": [
+            "0.5.1",
+            "0.5.2",
+            "0.6.0",
+            "0.6.1"
+          ]
+        },
+        "paymentTokensGet": {
+          "method": "GET",
+          "path": "/v3/vault/payment-tokens/{id}",
+          "releases": [
+            "0.5.1",
+            "0.5.2",
+            "0.6.0",
+            "0.6.1"
+          ]
+        },
+        "setupTokensCreate": {
+          "method": "POST",
+          "path": "/v3/vault/setup-tokens",
+          "releases": [
+            "0.5.1",
+            "0.5.2",
+            "0.6.0",
+            "0.6.1"
+          ]
+        },
+        "setupTokensGet": {
+          "method": "GET",
+          "path": "/v3/vault/setup-tokens/{id}",
+          "releases": [
+            "0.5.1",
+            "0.5.2",
+            "0.6.0",
+            "0.6.1"
+          ]
+        }
+      }
+    }
+  },
+  "specification": {
+    "repository": "https://github.com/paypal/paypal-rest-api-specifications",
+    "commit": "90e8041ffe02d80c452d2b476bedd59a8d219bdc",
+    "committedAt": "2026-04-07T15:49:49-07:00",
+    "documents": {
+      "billing_subscriptions_v1.json": {
+        "title": "Subscriptions",
+        "version": "1.8",
+        "servers": [
+          "https://api-m.sandbox.paypal.com",
+          "https://api-m.paypal.com"
+        ],
+        "operations": [
+          {
+            "method": "POST",
+            "path": "/v1/billing/plans",
+            "operationId": "plans.create"
+          },
+          {
+            "method": "GET",
+            "path": "/v1/billing/plans",
+            "operationId": "plans.list"
+          },
+          {
+            "method": "GET",
+            "path": "/v1/billing/plans/{id}",
+            "operationId": "plans.get"
+          },
+          {
+            "method": "PATCH",
+            "path": "/v1/billing/plans/{id}",
+            "operationId": "plans.patch"
+          },
+          {
+            "method": "POST",
+            "path": "/v1/billing/plans/{id}/activate",
+            "operationId": "plans.activate"
+          },
+          {
+            "method": "POST",
+            "path": "/v1/billing/plans/{id}/deactivate",
+            "operationId": "plans.deactivate"
+          },
+          {
+            "method": "POST",
+            "path": "/v1/billing/plans/{id}/update-pricing-schemes",
+            "operationId": "plans.update-pricing-schemes"
+          },
+          {
+            "method": "POST",
+            "path": "/v1/billing/subscriptions",
+            "operationId": "subscriptions.create"
+          },
+          {
+            "method": "GET",
+            "path": "/v1/billing/subscriptions/{id}",
+            "operationId": "subscriptions.get"
+          },
+          {
+            "method": "PATCH",
+            "path": "/v1/billing/subscriptions/{id}",
+            "operationId": "subscriptions.patch"
+          },
+          {
+            "method": "POST",
+            "path": "/v1/billing/subscriptions/{id}/revise",
+            "operationId": "subscriptions.revise"
+          },
+          {
+            "method": "POST",
+            "path": "/v1/billing/subscriptions/{id}/suspend",
+            "operationId": "subscriptions.suspend"
+          },
+          {
+            "method": "POST",
+            "path": "/v1/billing/subscriptions/{id}/cancel",
+            "operationId": "subscriptions.cancel"
+          },
+          {
+            "method": "POST",
+            "path": "/v1/billing/subscriptions/{id}/activate",
+            "operationId": "subscriptions.activate"
+          },
+          {
+            "method": "POST",
+            "path": "/v1/billing/subscriptions/{id}/capture",
+            "operationId": "subscriptions.capture"
+          },
+          {
+            "method": "GET",
+            "path": "/v1/billing/subscriptions/{id}/transactions",
+            "operationId": "subscriptions.transactions"
+          }
+        ]
+      },
+      "catalogs_products_v1.json": {
+        "title": "Catalog Products",
+        "version": "1.0",
+        "servers": [
+          "https://api-m.sandbox.paypal.com",
+          "https://api-m.paypal.com"
+        ],
+        "operations": [
+          {
+            "method": "POST",
+            "path": "/v1/catalogs/products",
+            "operationId": "products.create"
+          },
+          {
+            "method": "GET",
+            "path": "/v1/catalogs/products",
+            "operationId": "products.list"
+          },
+          {
+            "method": "GET",
+            "path": "/v1/catalogs/products/{product_id}",
+            "operationId": "products.get"
+          },
+          {
+            "method": "PATCH",
+            "path": "/v1/catalogs/products/{product_id}",
+            "operationId": "products.patch"
+          }
+        ]
+      },
+      "checkout_orders_v2.json": {
+        "title": "Orders",
+        "version": "2.32",
+        "servers": [
+          "https://api-m.paypal.com"
+        ],
+        "operations": [
+          {
+            "method": "POST",
+            "path": "/v2/checkout/orders",
+            "operationId": "orders.create"
+          },
+          {
+            "method": "GET",
+            "path": "/v2/checkout/orders/{id}",
+            "operationId": "orders.get"
+          },
+          {
+            "method": "PATCH",
+            "path": "/v2/checkout/orders/{id}",
+            "operationId": "orders.patch"
+          },
+          {
+            "method": "POST",
+            "path": "/v2/checkout/orders/{id}/confirm-payment-source",
+            "operationId": "orders.confirm"
+          },
+          {
+            "method": "POST",
+            "path": "/v2/checkout/orders/{id}/authorize",
+            "operationId": "orders.authorize"
+          },
+          {
+            "method": "POST",
+            "path": "/v2/checkout/orders/{id}/capture",
+            "operationId": "orders.capture"
+          },
+          {
+            "method": "POST",
+            "path": "/v2/checkout/orders/{id}/track",
+            "operationId": "orders.track.create"
+          },
+          {
+            "method": "PATCH",
+            "path": "/v2/checkout/orders/{id}/trackers/{tracker_id}",
+            "operationId": "orders.trackers.patch"
+          },
+          {
+            "method": "POST",
+            "path": "/v2/checkout/orders/order-update-callback",
+            "operationId": "server.callback"
+          }
+        ]
+      },
+      "customer_disputes_v1.json": {
+        "title": "Disputes",
+        "version": "1.11",
+        "servers": [
+          "https://api-m.sandbox.paypal.com",
+          "https://api-m.paypal.com"
+        ],
+        "operations": [
+          {
+            "method": "GET",
+            "path": "/v1/customer/disputes",
+            "operationId": "disputes.list"
+          },
+          {
+            "method": "GET",
+            "path": "/v1/customer/disputes/{id}",
+            "operationId": "disputes.get"
+          },
+          {
+            "method": "PATCH",
+            "path": "/v1/customer/disputes/{id}",
+            "operationId": "disputes.patch"
+          },
+          {
+            "method": "POST",
+            "path": "/v1/customer/disputes/{id}/provide-evidence",
+            "operationId": "disputes.provide-evidence"
+          },
+          {
+            "method": "POST",
+            "path": "/v1/customer/disputes/{id}/appeal",
+            "operationId": "disputes.appeal"
+          },
+          {
+            "method": "POST",
+            "path": "/v1/customer/disputes/{id}/accept-claim",
+            "operationId": "disputes.accept-claim"
+          },
+          {
+            "method": "POST",
+            "path": "/v1/customer/disputes/{id}/adjudicate",
+            "operationId": "disputes.adjudicate"
+          },
+          {
+            "method": "POST",
+            "path": "/v1/customer/disputes/{id}/require-evidence",
+            "operationId": "disputes.require-evidence"
+          },
+          {
+            "method": "POST",
+            "path": "/v1/customer/disputes/{id}/escalate",
+            "operationId": "disputes.escalate"
+          },
+          {
+            "method": "POST",
+            "path": "/v1/customer/disputes/{id}/send-message",
+            "operationId": "disputes.send-message"
+          },
+          {
+            "method": "POST",
+            "path": "/v1/customer/disputes/{id}/make-offer",
+            "operationId": "disputes.make-offer"
+          },
+          {
+            "method": "POST",
+            "path": "/v1/customer/disputes/{id}/accept-offer",
+            "operationId": "disputes.accept-offer"
+          },
+          {
+            "method": "POST",
+            "path": "/v1/customer/disputes/{id}/deny-offer",
+            "operationId": "disputes.deny-offer"
+          },
+          {
+            "method": "POST",
+            "path": "/v1/customer/disputes/{id}/acknowledge-return-item",
+            "operationId": "disputes.acknowledge-return-item"
+          },
+          {
+            "method": "POST",
+            "path": "/v1/customer/disputes/{id}/provide-supporting-info",
+            "operationId": "disputes.provide-supporting-info"
+          }
+        ]
+      },
+      "customer_partner_referrals_v2.json": {
+        "title": "Partner Referrals",
+        "version": "2.5",
+        "servers": [
+          "https://api-m.sandbox.paypal.com",
+          "https://api-m.paypal.com"
+        ],
+        "operations": [
+          {
+            "method": "POST",
+            "path": "/v2/customer/partner-referrals",
+            "operationId": "partner-referrals.create"
+          },
+          {
+            "method": "GET",
+            "path": "/v2/customer/partner-referrals/{partner_referral_id}",
+            "operationId": "partner-referrals.read"
+          }
+        ]
+      },
+      "invoicing_v2.json": {
+        "title": "Invoices",
+        "version": "2.6",
+        "servers": [
+          "https://api-m.sandbox.paypal.com",
+          "https://api-m.paypal.com"
+        ],
+        "operations": [
+          {
+            "method": "POST",
+            "path": "/v2/invoicing/invoices",
+            "operationId": "invoices.create"
+          },
+          {
+            "method": "GET",
+            "path": "/v2/invoicing/invoices",
+            "operationId": "invoices.list"
+          },
+          {
+            "method": "POST",
+            "path": "/v2/invoicing/invoices/{invoice_id}/send",
+            "operationId": "invoices.send"
+          },
+          {
+            "method": "POST",
+            "path": "/v2/invoicing/invoices/{invoice_id}/remind",
+            "operationId": "invoices.remind"
+          },
+          {
+            "method": "POST",
+            "path": "/v2/invoicing/invoices/{invoice_id}/cancel",
+            "operationId": "invoices.cancel"
+          },
+          {
+            "method": "POST",
+            "path": "/v2/invoicing/invoices/{invoice_id}/payments",
+            "operationId": "invoices.payments"
+          },
+          {
+            "method": "DELETE",
+            "path": "/v2/invoicing/invoices/{invoice_id}/payments/{transaction_id}",
+            "operationId": "invoices.payments-delete"
+          },
+          {
+            "method": "POST",
+            "path": "/v2/invoicing/invoices/{invoice_id}/refunds",
+            "operationId": "invoices.refunds"
+          },
+          {
+            "method": "DELETE",
+            "path": "/v2/invoicing/invoices/{invoice_id}/refunds/{transaction_id}",
+            "operationId": "invoices.refunds-delete"
+          },
+          {
+            "method": "POST",
+            "path": "/v2/invoicing/invoices/{invoice_id}/generate-qr-code",
+            "operationId": "invoices.generate-qr-code"
+          },
+          {
+            "method": "POST",
+            "path": "/v2/invoicing/generate-next-invoice-number",
+            "operationId": "invoicing.generate-next-invoice-number"
+          },
+          {
+            "method": "GET",
+            "path": "/v2/invoicing/invoices/{invoice_id}",
+            "operationId": "invoices.get"
+          },
+          {
+            "method": "PUT",
+            "path": "/v2/invoicing/invoices/{invoice_id}",
+            "operationId": "invoices.update"
+          },
+          {
+            "method": "DELETE",
+            "path": "/v2/invoicing/invoices/{invoice_id}",
+            "operationId": "invoices.delete"
+          },
+          {
+            "method": "POST",
+            "path": "/v2/invoicing/search-invoices",
+            "operationId": "invoices.search-invoices"
+          },
+          {
+            "method": "GET",
+            "path": "/v2/invoicing/templates",
+            "operationId": "templates.list"
+          },
+          {
+            "method": "POST",
+            "path": "/v2/invoicing/templates",
+            "operationId": "templates.create"
+          },
+          {
+            "method": "GET",
+            "path": "/v2/invoicing/templates/{template_id}",
+            "operationId": "templates.get"
+          },
+          {
+            "method": "PUT",
+            "path": "/v2/invoicing/templates/{template_id}",
+            "operationId": "templates.update"
+          },
+          {
+            "method": "DELETE",
+            "path": "/v2/invoicing/templates/{template_id}",
+            "operationId": "templates.delete"
+          },
+          {
+            "method": "GET",
+            "path": "/v2/invoicing/accounting-sync/merchant/connections",
+            "operationId": "connections.get"
+          },
+          {
+            "method": "GET",
+            "path": "/v2/invoicing/accounting-sync/invoices/{id}/connections",
+            "operationId": "invoice_connection_details.get"
+          }
+        ]
+      },
+      "notifications_webhooks_v1.json": {
+        "title": "Webhooks Management",
+        "version": "1.11",
+        "servers": [
+          "https://api-m.sandbox.paypal.com",
+          "https://api-m.paypal.com"
+        ],
+        "operations": [
+          {
+            "method": "POST",
+            "path": "/v1/notifications/webhooks",
+            "operationId": "webhooks.post"
+          },
+          {
+            "method": "GET",
+            "path": "/v1/notifications/webhooks",
+            "operationId": "webhooks.list"
+          },
+          {
+            "method": "GET",
+            "path": "/v1/notifications/webhooks/{webhook_id}",
+            "operationId": "webhooks.get"
+          },
+          {
+            "method": "PATCH",
+            "path": "/v1/notifications/webhooks/{webhook_id}",
+            "operationId": "webhooks.update"
+          },
+          {
+            "method": "DELETE",
+            "path": "/v1/notifications/webhooks/{webhook_id}",
+            "operationId": "webhooks.delete"
+          },
+          {
+            "method": "GET",
+            "path": "/v1/notifications/webhooks/{webhook_id}/event-types",
+            "operationId": "event-types.list"
+          },
+          {
+            "method": "POST",
+            "path": "/v1/notifications/webhooks-lookup",
+            "operationId": "webhooks-lookup.post"
+          },
+          {
+            "method": "GET",
+            "path": "/v1/notifications/webhooks-lookup",
+            "operationId": "webhooks-lookup.list"
+          },
+          {
+            "method": "GET",
+            "path": "/v1/notifications/webhooks-lookup/{webhook_lookup_id}",
+            "operationId": "webhooks-lookup.get"
+          },
+          {
+            "method": "DELETE",
+            "path": "/v1/notifications/webhooks-lookup/{webhook_lookup_id}",
+            "operationId": "webhooks-lookup.delete"
+          },
+          {
+            "method": "POST",
+            "path": "/v1/notifications/verify-webhook-signature",
+            "operationId": "verify-webhook-signature.post"
+          },
+          {
+            "method": "GET",
+            "path": "/v1/notifications/webhooks-event-types",
+            "operationId": "webhooks-event-types.list"
+          },
+          {
+            "method": "GET",
+            "path": "/v1/notifications/webhooks-events",
+            "operationId": "webhooks-events.list"
+          },
+          {
+            "method": "GET",
+            "path": "/v1/notifications/webhooks-events/{event_id}",
+            "operationId": "webhooks-events.get"
+          },
+          {
+            "method": "POST",
+            "path": "/v1/notifications/webhooks-events/{event_id}/resend",
+            "operationId": "webhooks-events.resend"
+          },
+          {
+            "method": "POST",
+            "path": "/v1/notifications/simulate-event",
+            "operationId": "simulate-event.post"
+          }
+        ]
+      },
+      "payment-experience_web_experience_profiles_v1.json": {
+        "title": "Payment Experience Web Profiles",
+        "version": "1.3",
+        "servers": [
+          "https://api-m.sandbox.paypal.com",
+          "https://api-m.paypal.com"
+        ],
+        "operations": [
+          {
+            "method": "POST",
+            "path": "/v1/payment-experience/web-profiles",
+            "operationId": "web-profile.create"
+          },
+          {
+            "method": "GET",
+            "path": "/v1/payment-experience/web-profiles",
+            "operationId": "web-profile.get-list"
+          },
+          {
+            "method": "PUT",
+            "path": "/v1/payment-experience/web-profiles/{id}",
+            "operationId": "web-profile.update"
+          },
+          {
+            "method": "PATCH",
+            "path": "/v1/payment-experience/web-profiles/{id}",
+            "operationId": "web-profile.partial-update"
+          },
+          {
+            "method": "GET",
+            "path": "/v1/payment-experience/web-profiles/{id}",
+            "operationId": "web-profile.get"
+          },
+          {
+            "method": "DELETE",
+            "path": "/v1/payment-experience/web-profiles/{id}",
+            "operationId": "web-profile.delete"
+          }
+        ]
+      },
+      "payments_payment_v2.json": {
+        "title": "Payments",
+        "version": "2.12",
+        "servers": [
+          "https://api-m.paypal.com"
+        ],
+        "operations": [
+          {
+            "method": "GET",
+            "path": "/v2/payments/authorizations/{authorization_id}",
+            "operationId": "authorizations.get"
+          },
+          {
+            "method": "POST",
+            "path": "/v2/payments/authorizations/{authorization_id}/capture",
+            "operationId": "authorizations.capture"
+          },
+          {
+            "method": "POST",
+            "path": "/v2/payments/authorizations/{authorization_id}/reauthorize",
+            "operationId": "authorizations.reauthorize"
+          },
+          {
+            "method": "POST",
+            "path": "/v2/payments/authorizations/{authorization_id}/void",
+            "operationId": "authorizations.void"
+          },
+          {
+            "method": "GET",
+            "path": "/v2/payments/captures/{capture_id}",
+            "operationId": "captures.get"
+          },
+          {
+            "method": "POST",
+            "path": "/v2/payments/captures/{capture_id}/refund",
+            "operationId": "captures.refund"
+          },
+          {
+            "method": "POST",
+            "path": "/v2/payments/find-eligible-methods",
+            "operationId": "find.eligible.methods"
+          },
+          {
+            "method": "GET",
+            "path": "/v2/payments/refunds/{refund_id}",
+            "operationId": "refunds.get"
+          }
+        ]
+      },
+      "payments_payouts_batch_v1.json": {
+        "title": "Payouts",
+        "version": "1.9",
+        "servers": [
+          "https://api-m.sandbox.paypal.com",
+          "https://api-m.paypal.com"
+        ],
+        "operations": [
+          {
+            "method": "POST",
+            "path": "/v1/payments/payouts",
+            "operationId": "payouts.post"
+          },
+          {
+            "method": "GET",
+            "path": "/v1/payments/payouts/{id}",
+            "operationId": "payouts.get"
+          },
+          {
+            "method": "GET",
+            "path": "/v1/payments/payouts-item/{payout_item_id}",
+            "operationId": "payouts-item.get"
+          },
+          {
+            "method": "POST",
+            "path": "/v1/payments/payouts-item/{payout_item_id}/cancel",
+            "operationId": "payouts-item.cancel"
+          }
+        ]
+      },
+      "reporting_transactions_v1.json": {
+        "title": "Transaction Search",
+        "version": "1.9",
+        "servers": [
+          "https://api-m.sandbox.paypal.com",
+          "https://api-m.paypal.com"
+        ],
+        "operations": [
+          {
+            "method": "GET",
+            "path": "/v1/reporting/transactions",
+            "operationId": "search.get"
+          },
+          {
+            "method": "GET",
+            "path": "/v1/reporting/balances",
+            "operationId": "balances.get"
+          }
+        ]
+      },
+      "shipping_shipment_tracking_v1.json": {
+        "title": "Shipment Tracking",
+        "version": "1.9",
+        "servers": [
+          "https://api-m.sandbox.paypal.com",
+          "https://api-m.paypal.com"
+        ],
+        "operations": [
+          {
+            "method": "POST",
+            "path": "/v1/shipping/trackers-batch",
+            "operationId": "trackers-batch.post"
+          },
+          {
+            "method": "POST",
+            "path": "/v1/shipping/trackers",
+            "operationId": "trackers.post"
+          },
+          {
+            "method": "GET",
+            "path": "/v1/shipping/trackers",
+            "operationId": "trackers-batch.get"
+          },
+          {
+            "method": "PUT",
+            "path": "/v1/shipping/trackers/{id}",
+            "operationId": "trackers.put"
+          },
+          {
+            "method": "GET",
+            "path": "/v1/shipping/trackers/{id}",
+            "operationId": "trackers.get"
+          }
+        ]
+      },
+      "vault_payment_tokens_v3.json": {
+        "title": "Payment Method Tokens",
+        "version": "3.4",
+        "servers": [
+          "https://api-m.sandbox.paypal.com",
+          "https://api-m.paypal.com"
+        ],
+        "operations": [
+          {
+            "method": "POST",
+            "path": "/v3/vault/payment-tokens",
+            "operationId": "payment-tokens.create"
+          },
+          {
+            "method": "GET",
+            "path": "/v3/vault/payment-tokens",
+            "operationId": "customer.payment-tokens.get"
+          },
+          {
+            "method": "GET",
+            "path": "/v3/vault/payment-tokens/{id}",
+            "operationId": "payment-tokens.get"
+          },
+          {
+            "method": "DELETE",
+            "path": "/v3/vault/payment-tokens/{id}",
+            "operationId": "payment-tokens.delete"
+          },
+          {
+            "method": "POST",
+            "path": "/v3/vault/setup-tokens",
+            "operationId": "setup-tokens.create"
+          },
+          {
+            "method": "GET",
+            "path": "/v3/vault/setup-tokens/{id}",
+            "operationId": "setup-tokens.get"
+          }
+        ]
+      }
+    }
+  }
+}
