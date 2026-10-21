@@ -1,5 +1,14 @@
 import { useLayoutEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
+import {
+  ASCII_EVERY,
+  onBeat,
+  SPIN_DEGREES,
+  SPIN_EASE,
+  SPIN_END_MS,
+  SPIN_START_MS,
+  SWAP_MS,
+} from '../beat';
 
 // Each half of the Refit mark is a 19-unit bracket, 7 units thick, drawn on a
 // grid whose cells match a monospace character (0.6em wide, 1.2em tall).
@@ -9,18 +18,14 @@ const THICKNESS = 7 / 19;
 const RAMP = ' .:-=+*#%@';
 const ENTRANCE_DELAY_MS = 450;
 const ENTRANCE_MS = 1000;
-const SWAP_EVERY_MS = 10000;
-const SWAP_MS = 4200;
 // Share of the swap spent flying in, spinning, and flying out.
-const MEET = 0.2;
-const DEPART = 0.8;
-// Three full turns plus the half turn that sends each bracket to the other side.
-const SPIN_DEGREES = 1260;
+const MEET = SPIN_START_MS / SWAP_MS;
+const DEPART = SPIN_END_MS / SWAP_MS;
 const SPIN_STEPS = 84;
 // Characters flicker until this long before a bracket locks into place.
 const SETTLE_MS = 450;
 const FLICKER_MS = 45;
-const EASE = 'cubic-bezier(0.65, 0, 0.35, 1)';
+const EASE = SPIN_EASE;
 
 type Cell = { char: string; reveal: number };
 type Point = { x: number; y: number };
@@ -161,8 +166,9 @@ function swapFrames(home: Point, slot: Point, away: Point, center: Point, size: 
 }
 
 // Wraps the headline. On load the two halves start assembled as the Refit
-// mark behind the text, flickering, then glide out to frame it. Every ten
-// seconds they meet in the middle, spin, and trade corners.
+// mark behind the text, flickering, then glide out to frame it. Every third
+// beat they meet in the middle, spin with the workflow map's Refit node, and
+// trade corners.
 export function AsciiBrackets({ children }: { children: ReactNode }) {
   const frame = useRef<HTMLDivElement>(null);
   const start = useRef<HTMLPreElement>(null);
@@ -196,7 +202,7 @@ export function AsciiBrackets({ children }: { children: ReactNode }) {
     resized?.observe(box);
 
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    let timer = 0;
+    let stopBeat = () => {};
     let visible = true;
     const observer = new IntersectionObserver(([entry]) => (visible = entry.isIntersecting));
     if (layout && !reduced && a.animate) {
@@ -242,8 +248,8 @@ export function AsciiBrackets({ children }: { children: ReactNode }) {
       flicker(ENTRANCE_DELAY_MS + ENTRANCE_MS);
 
       observer.observe(box);
-      timer = window.setInterval(() => {
-        if (!visible || document.hidden || !layout) return;
+      stopBeat = onBeat((beat) => {
+        if (beat % ASCII_EVERY !== 0 || !visible || document.hidden || !layout) return;
         const size = a.offsetWidth;
         const { start, end, startSlot, endSlot, center } = layout;
         running.push(
@@ -251,13 +257,13 @@ export function AsciiBrackets({ children }: { children: ReactNode }) {
           b.animate(swapFrames(end, endSlot, start, center, size), { duration: SWAP_MS }),
         );
         flicker(SWAP_MS);
-      }, SWAP_EVERY_MS);
+      });
     }
 
     // Cancelling lets a re-run measure the brackets where they actually sit.
     return () => {
       resized?.disconnect();
-      window.clearInterval(timer);
+      stopBeat();
       observer.disconnect();
       cancelAnimationFrame(request);
       for (const animation of running) animation.cancel();

@@ -1,50 +1,92 @@
 import { GitPullRequest } from '@phosphor-icons/react';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { onBeat, SPIN_DEGREES, SPIN_END_MS, SPIN_START_MS, SWAP_MS } from '../beat';
 import { Mark } from './Brand';
+import { BrandLogo } from './BrandLogo';
 
-const PULSE_EVERY_MS = 10000;
-const FIRST_PULSE_MS = 1200;
-const TRAVEL_MS = 1100;
-const SPIN_MS = 750;
 const TAIL_DOTS = 14;
 // Distance between tail dots, in the SVG's 960 × 160 units.
 const TAIL_SPACING = 4;
-const EASE = 'cubic-bezier(0.65, 0, 0.35, 1)';
+const SPIN_STEPS = 84;
+
+// Illustrative sources, one per cycle, for the providers on the logo belt.
+const providers = [
+  { id: 'stripe', source: 'stripe / openapi' },
+  { id: 'openai', source: 'openai / openapi' },
+  { id: 'anthropic', source: 'anthropic / changelog' },
+  { id: 'twilio', source: 'twilio / openapi' },
+  { id: 'shopify', source: 'shopify / graphql' },
+  { id: 'meta', source: 'meta / graph api' },
+  { id: 'gemini', source: 'gemini / changelog' },
+  { id: 'google', source: 'google / discovery' },
+  { id: 'slack', source: 'slack / changelog' },
+  { id: 'paypal', source: 'paypal / openapi' },
+  { id: 'salesforce', source: 'salesforce / release notes' },
+  { id: 'cloudflare', source: 'cloudflare / openapi' },
+];
 
 function easeInOut(t: number) {
   return t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2;
 }
 
-// The map above the walkthrough. Every ten seconds a blue signal with a tail
-// runs from the API change into Refit, the Refit node spins, and the signal
-// carries on to the draft pull request.
+// The share of the trip at which an eased head covers `fraction` of the way.
+function timeToCover(fraction: number) {
+  let low = 0;
+  let high = 1;
+  for (let i = 0; i < 20; i++) {
+    const middle = (low + high) / 2;
+    if (easeInOut(middle) < fraction) low = middle;
+    else high = middle;
+  }
+  return high;
+}
+
+// The map above the walkthrough runs on every beat, back to back. A blue
+// signal with a tail reaches Refit as the spin starts, the Refit node spins
+// (with the hero's ASCII mark on every third beat), and the signal carries on
+// to the draft pull request. As it lands, the API change card moves to the
+// next provider, whose signal leaves on the next beat.
 export function WorkflowMap({ active }: { active: boolean }) {
   const incoming = useRef<SVGPathElement>(null);
   const outgoing = useRef<SVGPathElement>(null);
   const engine = useRef<HTMLDivElement>(null);
   const output = useRef<HTMLDivElement>(null);
-  const signal = useRef<HTMLDivElement>(null);
+  // Two sets of dots, so one signal's tail can drain into the pull request
+  // while the next one is already leaving the API change.
+  const signalIn = useRef<HTMLDivElement>(null);
+  const signalOut = useRef<HTMLDivElement>(null);
+  const [current, setCurrent] = useState(0);
+  const provider = providers[current];
 
   useEffect(() => {
     const path = incoming.current!;
     if (!active || typeof path.getTotalLength !== 'function' || !engine.current!.animate) return;
-    const dots = [...signal.current!.children] as HTMLElement[];
+    const dotsIn = [...signalIn.current!.children] as HTMLElement[];
+    const dotsOut = [...signalOut.current!.children] as HTMLElement[];
     const animations: Animation[] = [];
+    const timeouts: number[] = [];
     let stopped = false;
-    let timeout = 0;
+    const later = (delay: number, run: () => void) => timeouts.push(window.setTimeout(run, delay));
 
     // Moves the head along the path and lets the tail follow it in, so the
-    // last dot disappears into the node rather than stopping short. `arrive`
-    // fires the moment the head reaches the end.
-    const travel = (route: SVGPathElement, arrive: () => void) => {
+    // last dot disappears into the node rather than stopping short. The trip
+    // is paced so the head reaches the end `arriveAfter` ms from now, when
+    // `arrive` fires.
+    const travel = (
+      route: SVGPathElement,
+      dots: HTMLElement[],
+      arriveAfter: number,
+      arrive: () => void,
+    ) => {
       const svg = route.ownerSVGElement!;
       const length = route.getTotalLength();
       const distance = length + TAIL_DOTS * TAIL_SPACING;
+      const duration = arriveAfter / timeToCover(length / distance);
       const began = performance.now();
       let arrived = false;
       const tick = (now: number) => {
         if (stopped) return;
-        const t = Math.min(1, (now - began) / TRAVEL_MS);
+        const t = Math.min(1, (now - began) / duration);
         const head = easeInOut(t) * distance;
         const scaleX = svg.clientWidth / 960;
         const scaleY = svg.clientHeight / 160;
@@ -68,36 +110,40 @@ export function WorkflowMap({ active }: { active: boolean }) {
       requestAnimationFrame(tick);
     };
 
-    const pulse = () => {
-      travel(incoming.current!, () => {
-        const spin = engine.current!.animate(
-          [
-            { transform: 'rotate(0) scale(1)' },
-            { transform: 'rotate(180deg) scale(1.08)' },
-            { transform: 'rotate(360deg) scale(1)' },
-          ],
-          { duration: SPIN_MS, easing: EASE },
-        );
-        animations.push(spin);
-        spin.onfinish = () =>
-          travel(outgoing.current!, () => {
-            animations.push(
-              output.current!.animate(
-                [{ borderColor: '#0048d8', boxShadow: '0 0 0 4px #0048d81f' }, {}],
-                { duration: 900, easing: 'ease-out' },
-              ),
-            );
-          });
+    const stop = onBeat(() => {
+      travel(incoming.current!, dotsIn, SPIN_START_MS, () => {});
+      // The same eased angle per step as the ASCII mark, started in the same
+      // frame with a delay rather than from a timer, so the two turn as one.
+      const frames = Array.from({ length: SPIN_STEPS + 1 }, (_, step) => {
+        const t = step / SPIN_STEPS;
+        const scale = 1 + 0.08 * Math.sin(Math.PI * t);
+        return { transform: `rotate(${SPIN_DEGREES * easeInOut(t)}deg) scale(${scale})` };
       });
-      timeout = window.setTimeout(pulse, PULSE_EVERY_MS);
-    };
-    timeout = window.setTimeout(pulse, FIRST_PULSE_MS);
+      animations.push(
+        engine.current!.animate(frames, {
+          duration: SPIN_END_MS - SPIN_START_MS,
+          delay: SPIN_START_MS,
+        }),
+      );
+      later(SPIN_END_MS, () =>
+        travel(outgoing.current!, dotsOut, SWAP_MS - SPIN_END_MS, () => {
+          animations.push(
+            output.current!.animate(
+              [{ borderColor: '#0048d8', boxShadow: '0 0 0 4px #0048d81f' }, {}],
+              { duration: 900, easing: 'ease-out' },
+            ),
+          );
+          setCurrent((index) => (index + 1) % providers.length);
+        }),
+      );
+    });
 
     return () => {
       stopped = true;
-      window.clearTimeout(timeout);
+      stop();
+      for (const timeout of timeouts) window.clearTimeout(timeout);
       for (const animation of animations) animation.cancel();
-      for (const dot of dots) dot.style.opacity = '0';
+      for (const dot of [...dotsIn, ...dotsOut]) dot.style.opacity = '0';
     };
   }, [active]);
 
@@ -107,18 +153,23 @@ export function WorkflowMap({ active }: { active: boolean }) {
         <path ref={incoming} d="M205 80H365Q385 80 385 60V55Q385 35 405 35H450" />
         <path ref={outgoing} d="M510 35H555Q575 35 575 55V60Q575 80 595 80H755" />
       </svg>
-      <div className="map-signal" ref={signal}>
-        {Array.from({ length: TAIL_DOTS }, (_, index) => (
-          <span key={index} />
-        ))}
-      </div>
+      {[signalIn, signalOut].map((layer, which) => (
+        <div className="map-signal" ref={layer} key={which}>
+          {Array.from({ length: TAIL_DOTS }, (_, index) => (
+            <span key={index} />
+          ))}
+        </div>
+      ))}
       <div className="map-endpoint map-source">
-        <div className="provider-symbol">S</div>
+        <div className="provider-symbol" key={provider.id}>
+          <BrandLogo id={provider.id} />
+        </div>
         <div>
           <strong>API change</strong>
-          <span>stripe / openapi</span>
+          <span className="provider-source" key={provider.id}>
+            {provider.source}
+          </span>
         </div>
-        <span className="map-dot" />
       </div>
       <div className="map-center">
         <div className="engine-node" ref={engine}>

@@ -367,7 +367,7 @@ pre {
   font-size: 12px;
   font-weight: 550;
 }
-.map-endpoint span:not(.map-dot) {
+.map-endpoint span {
   font: 10px var(--mono);
   display: block;
   color: var(--muted);
@@ -383,17 +383,25 @@ pre {
   color: #6b7490;
 }
 .provider-symbol {
-  font-size: 23px;
-  font-weight: 750;
-  color: #6063d4;
-  font-style: italic;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
 }
-.map-dot {
-  width: 5px;
-  height: 5px;
-  background: var(--blue);
-  border-radius: 50%;
-  margin-left: 15px;
+.provider-symbol svg {
+  width: 22px;
+  height: 22px;
+}
+/* The API change card swaps to the next provider on every beat. */
+.provider-symbol,
+.map-endpoint .provider-source {
+  animation: provider-swap var(--standard) var(--ease-out) both;
+}
+@keyframes provider-swap {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
 }
 .map-center {
   position: absolute;
@@ -1613,7 +1621,7 @@ pre {
   .map-endpoint strong {
     font-size: 9px;
   }
-  .map-endpoint span:not(.map-dot) {
+  .map-endpoint span {
     display: none;
   }
   .map-source {
@@ -1625,11 +1633,9 @@ pre {
   .map-endpoint > svg {
     width: 18px;
   }
-  .provider-symbol {
-    font-size: 17px;
-  }
-  .map-dot {
-    display: none;
+  .provider-symbol svg {
+    width: 18px;
+    height: 18px;
   }
   .engine-node {
     width: 48px;
@@ -2181,6 +2187,10 @@ pre {
   }
 }
 @media (prefers-reduced-motion: reduce) {
+  .provider-symbol,
+  .map-endpoint .provider-source {
+    animation: none;
+  }
   .logo-chip:active {
     transform: none;
   }

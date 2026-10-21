@@ -1,6 +1,7 @@
 import { Plus } from '@phosphor-icons/react';
 import { apiLogos } from '../apiLogos';
 import { waitlistApis } from '../waitlist';
+import { BrandLogo } from './BrandLogo';
 
 type LogoBeltProps = {
   selected: string[];
@@ -33,9 +34,7 @@ function BeltCopy({ selected, onToggle, hidden = false }: LogoBeltProps & { hidd
           onClick={() => onToggle(api.id)}
         >
           {api.id in apiLogos ? (
-            <svg viewBox="0 0 24 24" fill={apiLogos[api.id].color} aria-hidden="true">
-              <path d={apiLogos[api.id].path} />
-            </svg>
+            <BrandLogo id={api.id} />
           ) : (
             <Plus weight="bold" aria-hidden="true" />
           )}
