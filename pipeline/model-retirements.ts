@@ -180,15 +180,26 @@ function sdkImported(content: string, packageName: string) {
   );
 }
 
-// Raw HTTP requests to the official text-generation endpoints, with the request body sent through
-// `JSON.stringify`: `fetch(url, { body })`, Apps Script's `UrlFetchApp.fetch(url, { payload })`
-// and `axios.post(url, data)`.
-const RAW_ENDPOINTS: { provider: DeadlineEntry['provider']; pattern: RegExp }[] = [
+// Raw HTTP requests to the official endpoints, with the request body sent through `JSON.stringify`:
+// `fetch(url, { body })`, Apps Script's `UrlFetchApp.fetch(url, { payload })`, `axios.post(url, data)`
+// and axios request configs. Only the text-generation endpoints are edited (`text`); the others stop
+// for review. Only JSON-body endpoints are listed: multipart ones never reach this rule.
+// Source: openai/openai-openapi openapi.yaml, info.version 2.3.0, read 2026-10-21; Anthropic
+// platform.claude.com completions page, "POST /v1/complete" (deprecated), checked 2026-10-21.
+const RAW_ENDPOINTS: { provider: DeadlineEntry['provider']; pattern: RegExp; text: boolean }[] = [
   {
     provider: 'openai',
     pattern: /api\.openai\.com\/v1\/(?:chat\/completions|responses)(?![\w/-])/,
+    text: true,
   },
-  { provider: 'anthropic', pattern: /api\.anthropic\.com\/v1\/messages(?![\w/-])/ },
+  {
+    provider: 'openai',
+    pattern:
+      /api\.openai\.com\/v1\/(?:images\/generations|images\/edits|audio\/speech|embeddings|moderations|completions)(?![\w/-])/,
+    text: false,
+  },
+  { provider: 'anthropic', pattern: /api\.anthropic\.com\/v1\/messages(?![\w/-])/, text: true },
+  { provider: 'anthropic', pattern: /api\.anthropic\.com\/v1\/complete(?![\w/-])/, text: false },
 ];
 
 // A TypeScript program over the repository's own sources, so references can be resolved across
@@ -236,6 +247,8 @@ function sourceProgram(repository: Repository) {
       symbol = checker.getAliasedSymbol(symbol);
     return symbol;
   };
+  // The symbol as written, without following imports (an uninstalled package resolves to nothing).
+  const bindingOf = (node: ts.Node) => checker.getSymbolAtLocation(node);
   // Every use of each symbol in the repository: identifiers that are not its declaration name and
   // not part of an import or export.
   // Built per name on first use: only constants and helpers a request reaches are looked up.
@@ -268,6 +281,7 @@ function sourceProgram(repository: Repository) {
   return {
     files,
     symbolOf,
+    bindingOf,
     usesOf,
     path: (node: ts.Node) => paths.get(node.getSourceFile().fileName)!,
     line: (node: ts.Node) =>
@@ -381,7 +395,38 @@ function propertyValue(property: ts.PropertyAssignment | ts.ShorthandPropertyAss
   return unwrap(ts.isPropertyAssignment(property) ? property.initializer : property.name);
 }
 
-// The request body of a raw HTTP call to a text-generation endpoint, before `JSON.stringify`.
+// Whether an expression is the `axios` module or an `axios.create(...)` instance: the default
+// import, `require('axios')`, or a const initialized with either.
+function axiosBinding(program: SourceProgram, node: ts.Expression, depth = 0): boolean {
+  if (depth > 4) return false;
+  const value = unwrap(node);
+  if (ts.isCallExpression(value)) {
+    const callee = value.expression;
+    if (ts.isIdentifier(callee) && callee.text === 'require')
+      return value.arguments.length === 1 && urlText(program, value.arguments[0]) === 'axios';
+    return (
+      ts.isPropertyAccessExpression(callee) &&
+      callee.name.text === 'create' &&
+      axiosBinding(program, callee.expression, depth + 1)
+    );
+  }
+  if (!ts.isIdentifier(value)) return false;
+  const declaration = program.bindingOf(value)?.declarations?.[0];
+  if (declaration && ts.isImportClause(declaration))
+    return (
+      declaration.name !== undefined &&
+      ts.isStringLiteral(declaration.parent.moduleSpecifier) &&
+      declaration.parent.moduleSpecifier.text === 'axios'
+    );
+  return Boolean(
+    declaration &&
+    ts.isVariableDeclaration(declaration) &&
+    declaration.initializer &&
+    axiosBinding(program, declaration.initializer, depth + 1),
+  );
+}
+
+// The request body of a raw HTTP call to an official endpoint, before `JSON.stringify`.
 function rawRequest(program: SourceProgram, call: ts.CallExpression) {
   const callee = call.expression;
   const name = ts.isIdentifier(callee)
@@ -389,28 +434,44 @@ function rawRequest(program: SourceProgram, call: ts.CallExpression) {
     : ts.isPropertyAccessExpression(callee)
       ? callee.name.text
       : '';
-  if (name !== 'fetch' && name !== 'post') return undefined;
-  const url = urlText(program, call.arguments[0]);
+  // `axios({ url, data })` and `axios.request({ url, data })`, also on an `axios.create` instance.
+  const config =
+    (ts.isIdentifier(callee) && axiosBinding(program, callee)) ||
+    (ts.isPropertyAccessExpression(callee) &&
+      name === 'request' &&
+      axiosBinding(program, callee.expression));
+  if (!config && name !== 'fetch' && name !== 'post') return undefined;
+  const options = call.arguments[config ? 0 : 1] && unwrap(call.arguments[config ? 0 : 1]);
+  const configUrl =
+    config && options && ts.isObjectLiteralExpression(options)
+      ? objectProperty(options, 'url')
+      : undefined;
+  const url = urlText(program, config ? configUrl && propertyValue(configUrl) : call.arguments[0]);
   const endpoint = url && RAW_ENDPOINTS.find((item) => item.pattern.test(url));
   if (!endpoint) return undefined;
   let body: ts.Expression | undefined;
-  if (name === 'post') body = call.arguments[1];
+  if (name === 'post' && !config) body = call.arguments[1];
   else {
-    const options = call.arguments[1] && unwrap(call.arguments[1]);
     if (!options || !ts.isObjectLiteralExpression(options)) return undefined;
-    const property = objectProperty(options, 'body') ?? objectProperty(options, 'payload');
+    const property = config
+      ? objectProperty(options, 'data')
+      : (objectProperty(options, 'body') ?? objectProperty(options, 'payload'));
     const value = property && propertyValue(property);
+    // axios sends an object as JSON; fetch and UrlFetchApp need the `JSON.stringify` call.
     body =
       value &&
       ts.isCallExpression(value) &&
       value.expression.getText() === 'JSON.stringify' &&
       value.arguments.length === 1
         ? value.arguments[0]
-        : undefined;
+        : config
+          ? value
+          : undefined;
   }
   if (!body) return undefined;
   const path = /\/v1\/[\w/]+/.exec(url)![0];
-  return { provider: endpoint.provider, body, call: `${name} ${path}` };
+  const label = config ? (name === 'request' ? 'request' : 'axios') : name;
+  return { provider: endpoint.provider, body, call: `${label} ${path}`, text: endpoint.text };
 }
 
 interface Site {
@@ -579,6 +640,8 @@ export async function proposeModelReplacements(
     call: string;
     node: ts.CallExpression;
     argument: ts.Expression | undefined;
+    // Text-generation calls Refit edits; every other traced call only stops for review.
+    text: boolean;
   }[] = [];
   const seen = new Set<ts.Node>();
   for (const tracer of TRACERS) {
@@ -604,13 +667,18 @@ export async function proposeModelReplacements(
       [],
       adapter,
     );
+    // Every traced call is kept: one outside the text allow-list stops for review (D-16), so a
+    // retiring model in an image, audio, embeddings or legacy completions call is never silent.
     const traced = [
-      ...analysis.sdkCalls
-        .map((sdk) => ({ ...sdk, call: `${sdk.resource}.${sdk.method}` }))
-        .filter((sdk) => tracer.resourceCalls?.has(sdk.call)),
-      ...analysis.clientMethodCalls
-        .map((sdk) => ({ ...sdk, call: sdk.method }))
-        .filter((sdk) => tracer.clientCalls?.has(sdk.call)),
+      ...(tracer.resourceCalls ? analysis.sdkCalls : []).map((sdk) => {
+        const call = `${sdk.resource}.${sdk.method}`;
+        return { ...sdk, call, text: tracer.resourceCalls!.has(call) };
+      }),
+      ...(tracer.clientCalls ? analysis.clientMethodCalls : []).map((sdk) => ({
+        ...sdk,
+        call: sdk.method,
+        text: tracer.clientCalls!.has(sdk.method),
+      })),
     ];
     for (const sdk of traced) {
       const source = program.source(sdk.file);
@@ -622,6 +690,7 @@ export async function proposeModelReplacements(
         call: sdk.call,
         node,
         argument: node.arguments[0],
+        text: sdk.text,
       });
     }
   }
@@ -631,7 +700,13 @@ export async function proposeModelReplacements(
         const raw = rawRequest(program, node);
         if (raw && byProvider.has(raw.provider)) {
           seen.add(node);
-          requests.push({ provider: raw.provider, call: raw.call, node, argument: raw.body });
+          requests.push({
+            provider: raw.provider,
+            call: raw.call,
+            node,
+            argument: raw.body,
+            text: raw.text,
+          });
         }
       }
       ts.forEachChild(node, visit);
@@ -671,15 +746,20 @@ export async function proposeModelReplacements(
         .filter(() => rejectsSampling(request.provider, resolved.to));
       const reason = !resolved.to
         ? 'The registry names no concrete replacement model ID.'
-        : site.stop
-          ? `${site.stop} ${resolved.to}.`
-          : found.shared
-            ? `${found.shared} ${resolved.to}.`
-            : found.object.properties.some((item) => ts.isSpreadAssignment(item))
-              ? 'The request spreads other options, which may set parameters the replacement rejects.'
-              : sensitive.length
-                ? `The request sets ${sensitive.join(', ')}, which ${resolved.to} may reject or treat differently.`
-                : undefined;
+        : // Images, audio, embeddings, moderation and legacy completions change formats, vector
+          // sizes or parameters with the model, so they are never edited. The wording is accurate for
+          // any call outside the text allow-list, such as beta.assistants.create (D-11, D-16).
+          !request.text
+          ? `\`${request.call}\` is not a call Refit edits; ${resolved.to} may change formats or parameters; change it by hand to ${resolved.to}.`
+          : site.stop
+            ? `${site.stop} ${resolved.to}.`
+            : found.shared
+              ? `${found.shared} ${resolved.to}.`
+              : found.object.properties.some((item) => ts.isSpreadAssignment(item))
+                ? 'The request spreads other options, which may set parameters the replacement rejects.'
+                : sensitive.length
+                  ? `The request sets ${sensitive.join(', ')}, which ${resolved.to} may reject or treat differently.`
+                  : undefined;
       const decision = decisions.get(site.literal) ?? {
         entry,
         ...resolved,

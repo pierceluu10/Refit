@@ -178,7 +178,7 @@ it('stops for review where a swap could change the request, and skips what it ca
       "  await openai.chat.completions.create({ ...options, model: 'gpt-4', messages });",
       '  await openai.chat.completions.create({ model: MODEL, messages });',
       "  await openai.chat.completions.create({ model: 'gpt-prose', messages });",
-      // Not a text-generation call, not the SDK, and not a retiring model: no proposal.
+      // Not a text-generation call: it stops for review. Not the SDK, or not a retiring model: nothing.
       "  await openai.embeddings.create({ model: 'gpt-4', input: 'x' });",
       "  await fetch('https://api.openai.com', { body: JSON.stringify({ model: 'gpt-4' }) });",
       "  await openai.chat.completions.create({ model: 'gpt-4o', messages });",
@@ -208,6 +208,11 @@ it('stops for review where a swap could change the request, and skips what it ca
       'The model comes from the constant MODEL (src/ai.ts:5), which is used 2 times; change it by hand to gpt-5.6-sol.',
     ],
     [11, 'gpt-prose', 'The registry names no concrete replacement model ID.'],
+    [
+      12,
+      'gpt-4',
+      '`embeddings.create` is not a call Refit edits; gpt-5.6-sol may change formats or parameters; change it by hand to gpt-5.6-sol.',
+    ],
     [
       8,
       'claude-3-opus-20240229',
@@ -251,7 +256,7 @@ it('follows v3 and openai-edge clients, request consts and model consts used onc
       'export async function ask(content: string) {',
       "  return openai.createChatCompletion({ model: 'gpt-4', messages: [{ role: 'user', content }] });",
       '}',
-      // Legacy completions and other methods are not proposed.
+      // Legacy completions and other methods stop for review.
       "openai.createCompletion({ model: 'gpt-4', prompt: 'x' });",
     ].join('\n'),
     'src/uses.ts': [
@@ -290,6 +295,10 @@ it('follows v3 and openai-edge clients, request consts and model consts used onc
     ['src/edge.ts:5', 'createChatCompletion', 'gpt-5.6-sol'],
   ]);
   expect(proposal.stops.map((item) => [`${item.file}:${item.line}`, item.reason])).toEqual([
+    [
+      'src/v3.ts:6',
+      '`createCompletion` is not a call Refit edits; gpt-5.6-sol may change formats or parameters; change it by hand to gpt-5.6-sol.',
+    ],
     [
       'src/shared.ts:4',
       'The request object request (src/shared.ts:3) is used 2 times; change its model by hand to gpt-5.6-sol.',
@@ -366,7 +375,7 @@ it('follows imported constants, enum members, helper parameters and raw HTTP req
       '  UrlFetchApp.fetch(`https://api.openai.com/v1/chat/completions`, {',
       "    payload: JSON.stringify({ model: 'gpt-4', messages: [], temperature: 0 }),",
       '  });',
-      // Another host, or another endpoint, is not proposed.
+      // Another host is not proposed; another official endpoint stops for review.
       "  await fetch('https://proxy.example/v1/chat/completions', { body: JSON.stringify({ model: 'gpt-4' }) });",
       "  await fetch('https://api.openai.com/v1/embeddings', { body: JSON.stringify({ model: 'gpt-4' }) });",
       '}',
@@ -403,6 +412,10 @@ it('follows imported constants, enum members, helper parameters and raw HTTP req
     [
       'src/raw.ts:12',
       'The request sets temperature, which gpt-5.6-sol may reject or treat differently.',
+    ],
+    [
+      'src/raw.ts:16',
+      '`fetch /v1/embeddings` is not a call Refit edits; gpt-5.6-sol may change formats or parameters; change it by hand to gpt-5.6-sol.',
     ],
   ]);
   await execute('git', ['init', '-q', root]);
@@ -471,4 +484,119 @@ it('keeps Anthropic sampling parameters when the replacement predates Claude 4.7
   expect(proposal.stops.map((item) => [item.line, item.reason])).toEqual([
     [4, 'The request sets top_k, which claude-opus-4-8 may reject or treat differently.'],
   ]);
+});
+
+const NON_TEXT = (call: string, to: string) =>
+  `\`${call}\` is not a call Refit edits; ${to} may change formats or parameters; change it by hand to ${to}.`;
+const nonTextRegistry: DeadlineRegistry = {
+  ...registry,
+  deadlines: [
+    ...registry.deadlines,
+    entry({
+      id: 'openai-dall-e-3',
+      provider: 'openai',
+      versions: ['dall-e-3'],
+      replacement: 'gpt-image-2',
+    }),
+    entry({
+      id: 'openai-tts-1',
+      provider: 'openai',
+      versions: ['tts-1'],
+      replacement: 'gpt-4o-mini-tts',
+    }),
+    entry({
+      id: 'openai-whisper-1',
+      provider: 'openai',
+      versions: ['whisper-1'],
+      replacement: 'gpt-4o-transcribe',
+    }),
+  ],
+};
+
+it('stops non-text OpenAI and Anthropic calls with a named reason and never edits them', async () => {
+  const root = await repository({
+    'package.json': JSON.stringify({
+      name: 'app',
+      dependencies: { openai: '4.80.0', '@anthropic-ai/sdk': '0.40.0', 'openai-edge': '1.2.2' },
+    }),
+    'src/ai.ts': [
+      "import OpenAI from 'openai';",
+      "import Anthropic from '@anthropic-ai/sdk';",
+      'const openai = new OpenAI();',
+      'const anthropic = new Anthropic();',
+      'export async function all(prompt: string) {',
+      "  await openai.images.generate({ model: 'dall-e-3', prompt });",
+      "  await openai.images.edit({ model: 'dall-e-3', prompt });",
+      "  await openai.audio.speech.create({ model: 'tts-1', input: prompt, voice: 'alloy' });",
+      "  await openai.audio.transcriptions.create({ model: 'whisper-1', file: prompt });",
+      "  await openai.embeddings.create({ model: 'gpt-4', input: prompt });",
+      "  await openai.moderations.create({ model: 'gpt-4', input: prompt });",
+      "  await openai.completions.create({ model: 'gpt-4', prompt });",
+      "  await openai.beta.assistants.create({ model: 'gpt-4' });",
+      "  await anthropic.completions.create({ model: 'claude-3-opus-20240229', prompt, max_tokens_to_sample: 9 });",
+      // No model, and a lookup by name: nothing to report.
+      '  await openai.embeddings.create({ input: prompt });',
+      "  await openai.models.retrieve('gpt-4');",
+      '}',
+    ].join('\n'),
+    'src/v3.ts': [
+      "import { Configuration, OpenAIApi } from 'openai-edge';",
+      'const api = new OpenAIApi(new Configuration({ apiKey: process.env.KEY }));',
+      "api.createCompletion({ model: 'gpt-4', prompt: 'x' });",
+    ].join('\n'),
+    // One literal reaches a text call and an embeddings call: the merged decision stops.
+    'src/shared.ts': [
+      "import OpenAI from 'openai';",
+      'const openai = new OpenAI();',
+      "const MODEL = 'gpt-4';",
+      'openai.chat.completions.create({ model: MODEL, messages: [] });',
+      'openai.embeddings.create({ model: MODEL, input: "x" });',
+    ].join('\n'),
+    'src/raw.ts': [
+      'export async function raw(key: string) {',
+      "  await fetch('https://api.openai.com/v1/images/generations', { body: JSON.stringify({ model: 'dall-e-3' }) });",
+      "  await fetch('https://api.openai.com/v1/embeddings', { body: JSON.stringify({ model: 'gpt-4' }) });",
+      "  await axios.post('https://api.anthropic.com/v1/complete', { model: 'claude-3-opus-20240229', prompt: key });",
+      // Multipart body, lookalike endpoints and a request without a model: nothing.
+      "  formData.append('model', 'whisper-1');",
+      "  await fetch('https://api.anthropic.com/v1/completed', { body: JSON.stringify({ model: 'claude-3-opus-20240229' }) });",
+      "  await fetch('https://api.openai.com/v1/embeddings-x', { body: JSON.stringify({ model: 'gpt-4' }) });",
+      "  await fetch('https://api.openai.com/v1/embeddings', { body: JSON.stringify({ input: key }) });",
+      '}',
+    ].join('\n'),
+  });
+  const proposal = await proposeModelReplacements(root, nonTextRegistry, NOW);
+  expect(proposal.replacements).toEqual([]);
+  expect(proposal.patch).toBeNull();
+  const stops = proposal.stops.map((item) => [`${item.file}:${item.line}`, item.call, item.reason]);
+  expect(stops.sort()).toEqual(
+    [
+      ['src/ai.ts:10', 'embeddings.create', NON_TEXT('embeddings.create', 'gpt-5.6-sol')],
+      ['src/ai.ts:11', 'moderations.create', NON_TEXT('moderations.create', 'gpt-5.6-sol')],
+      ['src/ai.ts:12', 'completions.create', NON_TEXT('completions.create', 'gpt-5.6-sol')],
+      ['src/ai.ts:13', 'beta.assistants.create', NON_TEXT('beta.assistants.create', 'gpt-5.6-sol')],
+      ['src/ai.ts:14', 'completions.create', NON_TEXT('completions.create', 'claude-opus-4-8')],
+      ['src/ai.ts:6', 'images.generate', NON_TEXT('images.generate', 'gpt-image-2')],
+      ['src/ai.ts:7', 'images.edit', NON_TEXT('images.edit', 'gpt-image-2')],
+      ['src/ai.ts:8', 'audio.speech.create', NON_TEXT('audio.speech.create', 'gpt-4o-mini-tts')],
+      [
+        'src/ai.ts:9',
+        'audio.transcriptions.create',
+        NON_TEXT('audio.transcriptions.create', 'gpt-4o-transcribe'),
+      ],
+      [
+        'src/raw.ts:2',
+        'fetch /v1/images/generations',
+        NON_TEXT('fetch /v1/images/generations', 'gpt-image-2'),
+      ],
+      ['src/raw.ts:3', 'fetch /v1/embeddings', NON_TEXT('fetch /v1/embeddings', 'gpt-5.6-sol')],
+      ['src/raw.ts:4', 'post /v1/complete', NON_TEXT('post /v1/complete', 'claude-opus-4-8')],
+      [
+        'src/shared.ts:4',
+        'chat.completions.create',
+        'The model comes from the constant MODEL (src/shared.ts:3), which is used 2 times; change it by hand to gpt-5.6-sol.',
+      ],
+      ['src/v3.ts:3', 'createCompletion', NON_TEXT('createCompletion', 'gpt-5.6-sol')],
+    ].sort(),
+  );
 });
