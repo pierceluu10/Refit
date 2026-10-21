@@ -1,6 +1,8 @@
-import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { execFile } from 'node:child_process';
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
+import { promisify } from 'node:util';
 import { expect, it } from 'vitest';
 import {
   checkModelParameters,
@@ -89,6 +91,50 @@ it('rejects the whole file when one entry is bad', async () => {
     const bad = { ...valid(), model: 'other', source: 'https://developers.openai.com.evil.test/x' };
     await writeFile(path, JSON.stringify(table(valid(), bad)));
     await expect(loadModelParameters(path, NOW)).rejects.toBeInstanceOf(PipelineInputError);
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
+it('keeps the shipped parameter table valid and sourced', async () => {
+  const now = new Date();
+  const table = await loadModelParameters(undefined, now);
+  const raw = JSON.parse(await readFile(resolve('data/model-parameters.json'), 'utf8'));
+  expect(checkModelParameters(raw, now).errors).toEqual([]);
+  expect(
+    table.models.filter(
+      (entry) => entry.provider === 'anthropic' && Object.hasOwn(entry.parameters, 'top_p'),
+    ),
+  ).toEqual([]);
+});
+
+it('names only final replacements from the deadline registry', async () => {
+  const table = await loadModelParameters();
+  const { deadlines } = JSON.parse(await readFile(resolve('data/deadlines.json'), 'utf8'));
+  const models = deadlines.filter((item: { kind: string }) => item.kind === 'model');
+  for (const { provider, model } of table.models) {
+    const same = models.filter((item: { provider: string }) => item.provider === provider);
+    expect(same.some((item: { replacement: string }) => item.replacement === model)).toBe(true);
+    expect(same.some((item: { versions: string[] }) => item.versions.includes(model))).toBe(false);
+  }
+});
+
+it('exits non-zero on the command line for a future checkedAt', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'refit-parameters-'));
+  try {
+    const path = join(directory, 'table.json');
+    await writeFile(path, JSON.stringify(table({ ...valid(), checkedAt: '2999-01-01' })));
+    const run = promisify(execFile)(process.execPath, [
+      resolve('bin/refit.mjs'),
+      'deadlines',
+      '--check-parameters',
+      '--parameters',
+      path,
+    ]);
+    await expect(run).rejects.toMatchObject({
+      code: 1,
+      stdout: expect.stringContaining('Model parameter table is invalid'),
+    });
   } finally {
     await rm(directory, { recursive: true, force: true });
   }
