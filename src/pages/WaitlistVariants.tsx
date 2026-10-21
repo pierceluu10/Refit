@@ -135,7 +135,7 @@ export function WaitlistLaunch() {
     <div className="waitlist-theme variant variant-launch">
       <div className="launch-top">
         <AsciiField />
-        <Header minimal />
+        <Header minimal action={false} />
         <main id="main-content">
           <section className="split-hero launch-hero" id="waitlist">
             <div className="split-copy">
@@ -170,7 +170,6 @@ export function WaitlistLaunch() {
         <WaitlistForm />
         <AsciiWordmark columns={150} glint className="launch-logo" />
       </section>
-      <VariantFooter />
     </div>
   );
 }

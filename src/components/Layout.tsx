@@ -5,7 +5,13 @@ import { PROJECT_URL } from '../data';
 import { Brand } from './Brand';
 
 // `minimal` is the waitlist page's header: the brand and one call to action, no navigation.
-export function Header({ minimal = false }: { minimal?: boolean }) {
+export function Header({
+  minimal = false,
+  action = true,
+}: {
+  minimal?: boolean;
+  action?: boolean;
+}) {
   const [open, setOpen] = useState(false);
   const location = useLocation();
   useEffect(() => setOpen(false), [location]);
@@ -14,9 +20,11 @@ export function Header({ minimal = false }: { minimal?: boolean }) {
       <header className="site-header">
         <div className="header-inner">
           <Brand />
-          <a className="button button-small button-dark" href="#waitlist">
-            Join the waitlist <ArrowRight />
-          </a>
+          {action && (
+            <a className="button button-small button-dark" href="#waitlist">
+              Join the waitlist <ArrowRight />
+            </a>
+          )}
         </div>
       </header>
     );
