@@ -2,7 +2,7 @@
 
 Every number here comes from real public repositories, frozen before the run that measured them, scanned at a pinned commit, and checked against the providers' real published contracts. No vendor API was called, no scanned repository was contacted, and validation ran each repository's own checks in offline Docker. Detailed method and per-repository results are linked from each section.
 
-**Latest (October 21):** the active-teams set has its first validated fix, published as a draft PR: [refit-dev/Signl#1](https://github.com/refit-dev/Signl/pull/1). With factory tracing, 21 of the 66 active-team repositories are affected, against 11 on October 16; see [the full rescan](#full-rescan-of-the-active-teams-set-october-21).
+**Latest (October 21):** the active-teams set has its first validated fix, published as a draft PR: [refit-dev/Signl#1](https://github.com/refit-dev/Signl/pull/1). A second, [refit-dev/pci-update#1](https://github.com/refit-dev/pci-update/pull/1), passed its checks and is published as a `[Needs review]` draft because one read is untraced. With factory tracing, 21 of the 66 active-team repositories are affected, against 11 on October 16; see [the full rescan](#full-rescan-of-the-active-teams-set-october-21).
 
 **Also October 21:** on the 40 affected repositories Refit did not fix, a sandboxed Codex agent (`gpt-5.6-sol`) got 8 patches through Refit's validation; 1 was correct, and 7 silently dropped `payment_method_types`. See [the comparison](#a-coding-agent-on-the-repositories-refit-did-not-fix-october-21).
 
@@ -113,7 +113,7 @@ Most remaining factory misses were a factory loaded with `await import()`, which
 
 ## Full rescan of the active-teams set (October 21)
 
-All 66 active-team repositories were rescanned at their frozen commits from a pinned worktree of `fix/comparison-escape` (`cc426fe`: `main` plus [#151](https://github.com/pierceluu10/Refit/pull/151)), read-only with `npm run benchmark:stripe` and no `--validate`. Affected candidates were then validated in offline Docker (`node:22-alpine`, dependencies installed with lifecycle scripts off, checks with no network).
+All 66 active-team repositories were rescanned at their frozen commits from a pinned worktree of `fix/comparison-escape` (`cc426fe`: `main` plus [#151](https://github.com/pierceluu10/Refit/pull/151)), read-only with `npm run benchmark:stripe` and no `--validate`. Every affected repository was then run through the workflow with `--validate` (5 while #151 was unmerged, the other 16 from `main` at `5482423`), in offline Docker (`node:22-alpine`, dependencies installed with lifecycle scripts off, checks with no network).
 
 | Outcome | October 16 | October 21 |
 |---|---|---|
@@ -121,17 +121,23 @@ All 66 active-team repositories were rescanned at their frozen commits from a pi
 | No mapped Stripe SDK call found | 32 | 4 |
 | Not affected | 22 | 40 |
 | **Affected** | **11** | **21** |
-| … stopped: untraced or unprovable reads of removed fields | | 14 |
-| … stopped: `payment_method_types` the card rule cannot handle | | 2 |
-| … stopped: client API version declaration uncertain | | 1 |
-| … refused at validation preparation | | 3 |
+| … stopped: sends a removed request parameter | | 10 |
+| … refused or failed at dependency preparation | | 4 |
+| … stopped: committed source over the 50 MiB validation archive | | 2 |
+| … checks passed, untraced read left unchanged: `[Needs review]` draft | | 1 |
+| … checks did not finish | | 1 |
+| … stopped: unparseable source files | | 1 |
+| … stopped: helper client needs review | | 1 |
 | … **validated** | 0 | **1** |
 | Unreadable | 1 | 1 |
 
 - **First fix.** `RISHIE2006/Signl` (Next.js, npm) sends `payment_method_types: ['card']` on Checkout Session creation and pins `2025-03-31.basil`. The deterministic card rule renamed it to `allowed_payment_method_types`, moved the pin to `2026-09-30.endive` and upgraded stripe-node 22.2.2 to 23.0.0: four one-line changes, reviewed by hand ([`fix-reviews.json`](benchmarks/fix-reviews.json)). It is published as a draft PR by Refit Agent on a fork in `refit-dev`; the upstream repository was not touched.
 - **Weak checks on that fix.** The benchmark picks `npm test`, but both of Signl's tests import `better-sqlite3`, whose native binding is never built (lifecycle scripts are off and the image has no compiler), so the original code failed. Neither test touches Stripe. The fix was validated with `npm run lint` instead, chosen by the operator, as an approved `.refit.json` check would be. Refit's generated stripe-mock check could not load the route alone (`@clerk/nextjs` fails under plain Node), so no Stripe request was exercised. The PR says both.
-- **`payment_method_types` is no longer the main stop here.** Two affected repositories stop on it. `brandbite/brandbite` sends `['card']`, but the card rule does not apply because its client's API version cannot be moved. `User10-stab/meri-beauty` also sends `['card', 'bancontact']`, the listed case awaiting the owner's decision on the opt-in in [`STRIPE-PAYMENT-METHOD-TYPES.md`](STRIPE-PAYMENT-METHOD-TYPES.md). The main stop is now reads Refit cannot prove (14 repositories, from 1 to 502 review findings each).
-- **Preparation refusals are deliberate.** `inventashif/hackerai` patches dependencies with pnpm `patchedDependencies`, `Mangu-Commerce/madcaptees` installs non-npmjs tarball URLs, and `YosraGhanmi/BrainTrain-` has 279 lockfile entries without integrity. hackerai's patch generates only with #151, which stops `error instanceof Stripe.errors.StripeError` from marking the client as escaped.
+- **`payment_method_types` is still the first stop.** 10 affected repositories stop on a removed request parameter. 5 send only `['card']`, but a client's API version cannot be moved: a `lazy()` Proxy wrapper (`Evolvededen/niore-platform`), a client passed to a helper or held in a class field (`kondax-com/Bocker`), a resource cast through `as unknown as` (`brandbite/brandbite`), a spread into request arguments that stripe-node could read as options (`Dvargas005/node-hub`), and a Proxy with `.bind` (`TAIRED1/hackerai`). `JiantaoFu/insightly` sends `['card']` with a movable pin, but stripe-node 23 needs `@types/node >=20` and its lockfile has 18. 3 send card plus other methods (`MeiyuTech/AET-App`, `qesmsep/noir-crm-dashboard`, `User10-stab/meri-beauty`), the listed case awaiting the owner's decision on the opt-in in [`STRIPE-PAYMENT-METHOD-TYPES.md`](STRIPE-PAYMENT-METHOD-TYPES.md); meri-beauty also replaces `stripe.checkout.sessions.create` on its client. `Nag-Software/proanbud2` sends `coupon` to `promotionCodes.create`, which has no reviewed replacement.
+- **Untraced reads stand behind most of them.** 15 of the 20 unfixed repositories have at least one same-named read Refit could not trace to a Stripe object (from 1 to 502). Under the owner decision of 2026-10-21 these do not block publication: they count as unresolved, so a patch whose checks pass is published only with `--publish-unresolved`, as a `[Needs review]` draft that lists each read as left unchanged. `amahmood-pci/pci-update` is the one such patch: its `tsc` check passed before and after, and its one untraced read is `session.payment_intent` in its webhook, a Checkout Session field endive keeps, so leaving it was right. It is published as [refit-dev/pci-update#1](https://github.com/refit-dev/pci-update/pull/1) and reviewed by hand ([`fix-reviews.json`](benchmarks/fix-reviews.json)).
+- **Rerun with `--publish-unresolved`.** The 20 unfixed repositories were rerun with `--validate --publish-unresolved` from `main` plus [#155](https://github.com/pierceluu10/Refit/pull/155) (unmerged). pci-update is the only new patch that passed its checks. `muhallimir/ampertalent` (233 unresolved) and `YosraGhanmi/BrainTrain-` now produce `[Needs review]` artifacts under the #88 dependency waiver, but their checks never ran, so they are untested and were not published. `JiantaoFu/insightly` now produces a patch, but its own checks fail on the original code.
+- **Preparation and size.** `inventashif/hackerai` patches dependencies with pnpm `patchedDependencies`, `Mangu-Commerce/madcaptees` installs non-npmjs tarball URLs and `YosraGhanmi/BrainTrain-` has 279 lockfile entries without integrity: deliberate refusals. `muhallimir/ampertalent`'s `package.json` and lockfile disagree, so `npm ci` fails. `CRONANANI/EzanaFinance3` and `RaulRicco/CashBack` commit more than 50 MiB of source. hackerai's patch generates only with #151, which stops `error instanceof Stripe.errors.StripeError` from marking the client as escaped.
+- **The rest.** `beindigital-products/wedillybird`'s `npm test` ended with no exit code on the original code; the check limit is 120 seconds on one CPU, and the suite was still running when it stopped. `Bizgojo/drivetimetales` commits files that do not parse (`lib/belleGenerator.ts` and two scratch `.mjs` files). `EngMajdSayedTaha/reelspy` routes affected calls through a helper whose client needs review.
 - **Not affected means no traced read.** The 9 repositories whose version could move and that had no review stop were also run with `--validate`. All 9 stopped as not affected before validation: endive removes fields their code never reads, so Refit proposes nothing.
 
 ## After the card-only `payment_method_types` policy (October 16)
