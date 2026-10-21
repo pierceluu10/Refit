@@ -1571,8 +1571,14 @@ function modelSites(program: SourceProgram, value: ts.Expression) {
 
 // Text that points a client at another endpoint: a base URL option or variable, `withOptions`, or
 // an Azure client. Matched case-insensitively anywhere, so a const options object, a
-// spread, an assignment and an environment variable need no tracing.
-const ENDPOINT_TEXT = /base_?url|basepath|openai_api_base|withoptions\(|azureopenai/i;
+// spread, an assignment and an environment variable need no tracing. `base` must start a word
+// (`baseURL`, `OPENAI_BASE_URL`) or a camel-case part (`apiBaseUrl`), so `firebase_url` and
+// `databasePath` do not count.
+const ENDPOINT_WORDS = /(?<![a-z0-9])base_?(?:url|path)|openai_api_base|withoptions\(|azureopenai/i;
+const ENDPOINT_CAMEL = /[a-z0-9]Base(?:Url|URL|Path)/;
+const ENDPOINT_TEXT = {
+  test: (text: string) => ENDPOINT_WORDS.test(text) || ENDPOINT_CAMEL.test(text),
+};
 const CONFIG_FILE = /^\.env(?:\..*)?$|\.env$|\.(?:json|ya?ml)$/i;
 // Compiler and lockfile settings that never configure a client.
 const NOT_CONFIG =
