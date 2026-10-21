@@ -164,16 +164,36 @@ export function syntaxErrors(path: string, content: string) {
     .map((diagnostic) => ts.flattenDiagnosticMessageText(diagnostic.messageText, '\n'));
 }
 
-export function analyzeRepository(
-  repository: Repository,
-  changes: Removal[],
-  provider: ProviderAdapter = STRIPE,
-  schemaDefinitions: Record<string, unknown> = {},
-  operationReplacements: OperationReplacement[] = [],
-  requestPropertyRenames: RequestPropertyRename[] = [],
-  propertyMoves: PropertyMove[] = [],
-  requestParameterRemovals: RequestParameterRemoval[] = [],
-) {
+// The compiler program over a repository's sources. Analyses of the same snapshot (the same `files`
+// array, with the same paths and contents), such as one per SDK adapter, share it, so the type
+// checker binds the files once and keeps what it has resolved.
+const programs = new WeakMap<
+  Repository['files'],
+  { root: string; files: [string, string][]; built: ReturnType<typeof buildAnalysisProgram> }
+>();
+
+function analysisProgram(repository: Repository) {
+  const cached = programs.get(repository.files);
+  if (
+    cached &&
+    cached.root === repository.root &&
+    cached.files.length === repository.files.length &&
+    cached.files.every(
+      ([path, content], index) =>
+        repository.files[index].path === path && repository.files[index].content === content,
+    )
+  )
+    return cached.built;
+  const built = buildAnalysisProgram(repository);
+  programs.set(repository.files, {
+    root: repository.root,
+    files: repository.files.map((file) => [file.path, file.content]),
+    built,
+  });
+  return built;
+}
+
+function buildAnalysisProgram(repository: Repository) {
   const sources = new Map(
     repository.files.map((file) => [resolve(repository.root, file.path), file.content]),
   );
@@ -199,7 +219,20 @@ export function analyzeRepository(
       : ts.createSourceFile(name, parseableText(content), languageVersion, true);
   };
   const program = ts.createProgram([...sources.keys()], options, host);
-  const checker = program.getTypeChecker();
+  return { sources, resolution, program, checker: program.getTypeChecker() };
+}
+
+export function analyzeRepository(
+  repository: Repository,
+  changes: Removal[],
+  provider: ProviderAdapter = STRIPE,
+  schemaDefinitions: Record<string, unknown> = {},
+  operationReplacements: OperationReplacement[] = [],
+  requestPropertyRenames: RequestPropertyRename[] = [],
+  propertyMoves: PropertyMove[] = [],
+  requestParameterRemovals: RequestParameterRemoval[] = [],
+) {
+  const { sources, resolution, program, checker } = analysisProgram(repository);
   const findings: Finding[] = [];
   const imports: Location[] = [];
   const calls: (Location & { method: string })[] = [];

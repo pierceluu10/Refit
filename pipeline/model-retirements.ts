@@ -690,8 +690,9 @@ export async function proposeModelReplacements(
       )
     )
       continue;
+    // The same files for every tracer, so the analyses share one compiler program.
     const analysis = analyzeRepository(
-      await readRepository(directory, adapter.packageName),
+      { ...(await readRepository(directory, adapter.packageName)), files: repository.files },
       [],
       adapter,
     );
