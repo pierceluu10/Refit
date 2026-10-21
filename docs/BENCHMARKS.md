@@ -253,6 +253,20 @@ Only 74 of the 505 live matches sit in a file that imports either Gemini SDK; li
 
 See [PayPal](PAYPAL.md#measured-on-a-frozen-set).
 
+## AI model applications (October 21)
+
+Two sets of real applications were frozen on 2026-10-21 with `scripts/ai-app-select.mjs`: **100** repositories that declare `openai` ([list](benchmarks/2026-10-21-openai-app-repos.json)) and **50** that declare `@anthropic-ai/sdk` ([list](benchmarks/2026-10-21-anthropic-app-repos.json)). Neither set fell short of its target. 9 repositories are in both sets. Each file records the queries, the run date, every filter, the sort order, the pool size and, per repository, the pinned commit and why it qualified.
+
+- **Source.** GitHub code search through `gh api`: root `package.json` files split by exclusive size ranges, plus source files that import the SDK split by path. Candidates are ordered by stars within that retrievable pool, not across GitHub, then checked in that order until the target passed. The pool held 8,990 OpenAI and 4,807 Anthropic repositories after deduplication.
+- **Filters.** Not a fork or archived; the frozen commit is dated on or after 2025-10-21; the root manifest, or one `apps/*` or `packages/*` manifest, declares the SDK in `dependencies`; the manifest looks like an application; a non-test source file imports the SDK and makes a model call; the tree is inside Refit's scan limits; the name and topics do not look like an SDK, wrapper or framework; the repository is in no other frozen list.
+- **Runnable checks.** 95 of the 100 OpenAI and 45 of the 50 Anthropic entries have a `test`, `typecheck` or `build` script (`hasChecks`), so later results can be reported for those alone.
+- **No exposure filter.** Selection never looked at which models a repository uses, so the traced and fixed fractions measured on these sets are not biased by it.
+- **Reproducibility.** Rerunning the script against the same cache rewrites both files byte for byte. That shows cache replay only: the code-search index moves, so a fresh search is not expected to reproduce the lists, and the frozen files are the record.
+
+The 2026-10-20 npm sets, [OpenAI](benchmarks/2026-10-20-openai-repos.json) and [Anthropic](benchmarks/2026-10-20-anthropic-repos.json), are kept unchanged as library baselines: npm search returns published packages, mostly SDK wrappers, not applications. No tracing or fix numbers exist for the new sets yet.
+
+An independent grep for quoted exact registry model IDs found **4,679** candidate locations in the 150 repositories ([labels](benchmarks/2026-10-21-ai-app-labels.json)): 2,428 in TypeScript, 148 in JavaScript, 1 in Python and the rest in JSON, Markdown, YAML and other files, with 11 in generated files. **374** are live (the ID reaches a request), 370 of them JS/TS. By `via`: 258 `sdk-text`, 58 `sdk-non-text`, 21 `wrapper:*`, 17 `raw-http` and 20 `other`; the current tracers do not follow `wrapper:*`, `raw-http` or `other` (wrapper tracers are deferred). The main non-live reasons are tests (1,805), catalogs (1,602), docs (376) and comparisons (217). The labels come from one AI-assisted reading pass by fresh-context labelling agents, one per batch, not hand labelling; some agents labelled groups of obviously uniform candidates (locale catalogs, test fixtures) by file after spot checks. A seeded random 10% (468 of 4,679 candidates, seed 20261021) was re-read by separate fresh-context agents, one per slice of the sample, that never saw the first labels: `live` agreed on 460 of 468 and `via` on 456 of 468; on the 38 candidates either pass called live, `live` agreed on 30 and `via` on 26. The 12 disagreements were adjudicated by reading the code again, and 7 labels changed (the counts above include them). Aliases the registry does not name are out of scope. The tracing measurement on these sets reports JS/TS live pins as the headline, the languages Refit's agents cover, and all live pins as a secondary number.
+
 ## Speed and cost
 
 | Measure | Result |
@@ -286,4 +300,8 @@ OPENAI_MODEL=gpt-5.6-luna npm run benchmark:stripe -- --root <dir> --output <run
 npm run benchmark:shopify -- --root <dir> --list <list> --output <run> --validate
 node scripts/stripe-benchmark-compare.mjs <run-a>/results.json <run-b>/results.json
 node scripts/paypal-benchmark.mjs --root <dir> --refit <worktree> --list docs/benchmarks/2026-10-21-paypal-repos.json
+node scripts/ai-app-select.mjs --provider openai --work <cache> --root <checkouts> --output <openai-list.json>
+node scripts/ai-app-select.mjs --provider anthropic --work <cache> --root <checkouts> --output <anthropic-list.json>
 ```
+
+The two selector commands need a `gh` login. A rerun against the moving code-search index is not expected to match the committed lists; they are the record.

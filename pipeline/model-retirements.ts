@@ -1926,9 +1926,15 @@ export async function proposeModelReplacements(
                   ? `${found.shared} ${resolved.to}.`
                   : found.object.properties.some((item) => ts.isSpreadAssignment(item))
                     ? 'The request spreads other options, which may set parameters the replacement rejects.'
-                    : sensitive.length
-                      ? `The request sets ${sensitive.join(', ')}, which ${resolved.to} may reject or treat differently.`
-                      : undefined;
+                    : // A computed name such as `['temperature']: 0.5` or `[KEY]: 5` may be a
+                      // sampling or length parameter the name check cannot see.
+                      found.object.properties.some(
+                          (item) => item.name && ts.isComputedPropertyName(item.name),
+                        )
+                      ? `The request sets a computed property, which may be a parameter the replacement rejects; change it by hand to ${resolved.to}.`
+                      : sensitive.length
+                        ? `The request sets ${sensitive.join(', ')}, which ${resolved.to} may reject or treat differently.`
+                        : undefined;
       const decision = decisions.get(site.literal) ?? {
         entry,
         ...resolved,
