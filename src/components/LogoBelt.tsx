@@ -33,8 +33,8 @@ function BeltCopy({ selected, onToggle, hidden = false }: LogoBeltProps & { hidd
           onClick={() => onToggle(api.id)}
         >
           {api.id in apiLogos ? (
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d={apiLogos[api.id]} />
+            <svg viewBox="0 0 24 24" fill={apiLogos[api.id].color} aria-hidden="true">
+              <path d={apiLogos[api.id].path} />
             </svg>
           ) : (
             <Plus weight="bold" aria-hidden="true" />

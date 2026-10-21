@@ -15,8 +15,8 @@ colors:
   negative: '#ad3e49'
   warning: '#8b570f'
   marketing-blue: '#0048d8'
-  marketing-deep: '#003db8'
-  marketing-secondary-text: '#c4d9ff'
+  marketing-blue-hover: '#003cb5'
+  marketing-blue-tint: '#edf3ff'
 typography:
   display:
     fontFamily: 'Geist Variable, sans-serif'
@@ -72,7 +72,7 @@ Screenpipe, Nango, and Prized (for the waitlist page's blue palette) are UI/UX r
 
 ## Colors
 
-The waitlist page is royal blue (`marketing-blue`) with white type, `marketing-secondary-text` for supporting copy, a faded white dot grid behind the hero, and a deeper blue closing band. It's scoped by the `.blue-theme` wrapper, which swaps the tokens; the workflow preview inside it switches back to the light tokens so it reads as a real product surface.
+The waitlist page is white with royal blue (`marketing-blue`) as the accent: the second headline line, pill actions, the faint dot grid behind the hero, selected logos, and one blue closing band with white type. It's scoped by the `.waitlist-theme` wrapper, which swaps the tokens.
 
 Docs, the demo, and the workspace keep light neutral surfaces, near-black typography, and one blue brand accent. Dark code panels establish readable contrast. Green, amber, and red have semantic status roles and always accompany text or icons. Color is never the only status signal.
 
@@ -100,9 +100,11 @@ Controls use 5–6px radii, content panels 7–10px, and the hero engine 16px. C
 
 ## Components
 
-Primary actions use blue, secondary actions a bordered white surface, and workspace entry uses near-black. On the blue waitlist page, actions are white pills with blue text and the email field is a translucent pill.
+Primary actions use blue, secondary actions a bordered white surface, and workspace entry uses near-black. On the waitlist page, actions are blue pills (white pills inside the blue closing band) and the email field is a white pill. The headline is framed by an ASCII-art Refit mark generated from the same geometry as the CSS mark. The headline's two lines are left-aligned inside a centered block (and kept to one line each on phones), so the brackets sit on opposite corners of the block, hug the first and last words by the same gap, and mirror each other about its center. On load the mark sits assembled behind the headline, its characters flickering, then the brackets glide apart (1000ms, ease-in-out) and settle as they lock into the corners. Every 10 seconds, while the hero is on screen, they fly to the center, lock together as the mark, spin three and a half turns, and fly out to trade corners (4200ms), flickering the whole way until they land. The end bracket is the start bracket turned 180° cell for cell, so the swap lands seamlessly. Under reduced motion the brackets simply sit in the corners.
 
-The logo belt drifts left to right at a slow, constant speed (48s per loop) so people can click a moving logo. Each logo is a toggle button (`aria-pressed`): selected ones become white pills with a blue mark, and the belt keeps moving either way. It pauses only while a keyboard user is focused inside it; reduced motion stops it and wraps the logos into static rows. Brand marks come from Simple Icons (CC0) and only label the API choices. Fine-pointer hover changes surface color. Presses scale to 0.97; reduced-motion preferences remove the scale. Focus outlines are visible and use the brand color.
+The logo belt drifts left to right at a slow, constant speed (48s per loop) so people can click a moving logo. Each logo is a toggle button (`aria-pressed`) showing the brand's own mark color and name with no container; selecting one adds a blue-tinted pill with a blue border, and the belt keeps moving either way. It pauses only while a keyboard user is focused inside it; reduced motion stops it and wraps the logos into static rows. Brand marks come from Simple Icons (CC0) and only label the API choices. Fine-pointer hover changes surface color. Presses scale to 0.97; reduced-motion preferences remove the scale. Focus outlines are visible and use the brand color.
+
+Above the walkthrough, every 10 seconds while it's on screen, a blue signal with a tapering tail runs from the API change into the Refit node (1100ms), the node spins a full turn the moment it arrives (750ms), and the signal carries on to the draft pull request, whose border flashes blue on arrival. Reduced motion turns it off.
 
 The workflow supports manual stages, autoplay once, pause, and replay. Manual selection pauses playback. Step dwell is 2200ms; offscreen and backgrounded walkthroughs stop advancing. Reduced motion disables autoplay and spatial motion. Hero text has a single 600ms entrance with a 60ms line stagger. Interactive durations are 160ms or 220ms with `cubic-bezier(0.23, 1, 0.32, 1)` for entrances.
 

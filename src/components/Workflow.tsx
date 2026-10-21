@@ -15,11 +15,10 @@ import {
   WarningCircle,
 } from '@phosphor-icons/react';
 import { useEffect, useRef, useState } from 'react';
-import type { CSSProperties } from 'react';
 import { Link } from 'react-router-dom';
 import { stages, STEP_DURATION } from '../data';
 import type { Scenario } from '../data';
-import { Mark } from './Brand';
+import { WorkflowMap } from './WorkflowMap';
 
 export function useReducedMotion() {
   const [reduced, setReduced] = useState(
@@ -284,41 +283,7 @@ export function Workflow({
 
   return (
     <div className={`workflow ${expanded ? 'workflow-expanded' : ''}`} ref={container}>
-      {!expanded && (
-        <div
-          className={`workflow-map ${playing && visible && foreground ? 'is-playing' : ''}`}
-          style={{ '--step-duration': `${STEP_DURATION}ms` } as CSSProperties}
-          aria-hidden="true"
-        >
-          <svg className="workflow-lines" viewBox="0 0 960 160" preserveAspectRatio="none">
-            <path d="M205 80H365Q385 80 385 60V55Q385 35 405 35H450" />
-            <path d="M510 35H555Q575 35 575 55V60Q575 80 595 80H755" />
-            <path className="signal-line" d="M205 80H365Q385 80 385 60V55Q385 35 405 35H450" />
-          </svg>
-          <div className="map-endpoint map-source">
-            <div className="provider-symbol">S</div>
-            <div>
-              <strong>API change</strong>
-              <span>stripe / openapi</span>
-            </div>
-            <span className="map-dot" />
-          </div>
-          <div className="map-center">
-            <div className="engine-node">
-              <Mark />
-            </div>
-            <span>refit</span>
-          </div>
-          <div className="map-endpoint map-output">
-            <GitPullRequest size={24} />
-            <div>
-              <strong>Draft pull request</strong>
-              <span>Ready for your review</span>
-            </div>
-          </div>
-          <div className="map-caption">From upstream change to downstream fix.</div>
-        </div>
-      )}
+      {!expanded && <WorkflowMap active={visible && foreground && !reducedMotion} />}
       <div className="workflow-window">
         <div className="window-bar">
           <div className="window-dots" aria-hidden="true">

@@ -1,6 +1,7 @@
 import { ArrowRight } from '@phosphor-icons/react';
 import { Link } from 'react-router-dom';
 import { stages } from '../data';
+import { AsciiBrackets } from '../components/AsciiBrackets';
 import { Brand } from '../components/Brand';
 import { Footer, Header } from '../components/Layout';
 import { WaitlistForm } from '../components/WaitlistForm';
@@ -8,15 +9,17 @@ import { Workflow } from '../components/Workflow';
 
 export function Waitlist() {
   return (
-    <div className="blue-theme">
+    <div className="waitlist-theme">
       <Header />
       <main id="main-content">
         <section className="hero" id="waitlist">
           <div className="hero-copy">
-            <h1>
-              <span>APIs change.</span>
-              <span>Your code keeps up.</span>
-            </h1>
+            <AsciiBrackets>
+              <h1>
+                <span>APIs change.</span>
+                <span>Your code keeps up.</span>
+              </h1>
+            </AsciiBrackets>
             <p>
               Refit turns upstream API changes into reviewed pull requests.
               <br className="desktop-break" /> It finds the affected code, prepares the fix and runs
