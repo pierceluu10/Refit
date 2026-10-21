@@ -13,7 +13,7 @@ The OpenAI and Anthropic agents score 70% on the ten-item checklist in `docs/PRO
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Live exposure and tracing** - Catalogs stop counting as live; indirect model sources trace to the call argument (completed 2026-10-21)
-- [ ] **Phase 2: Sourced parameter stops** - Provider-page table lets the rule continue past sampling and length stops it can prove are safe
+- [x] **Phase 2: Sourced parameter stops** - Provider-page table lets the rule continue past sampling and length stops it can prove are safe (completed 2026-10-21)
 - [ ] **Phase 3: Application benchmark sets** - Frozen OpenAI (100) and Anthropic (50) application sets from GitHub code search, with labelled live pins
 - [ ] **Phase 4: Measurement and readiness** - Pinned-worktree benchmark on the new sets, reviewed fixes, and docs updated with the measured numbers
 
@@ -55,7 +55,7 @@ Plans:
   2. `refit deadlines --propose-model-fixes` proposes a fix for a call whose parameter and value the table allows, and still stops with a named reason when the parameter or value is not proven
   3. Tests cover one allowed and one still-stopped parameter for each provider
   4. AGENTS.md and the relevant guide record the owner decision for this narrower stop, with its scope and date
-**Plans**: 2/2 plans executed
+**Plans**: 2/2 plans complete
 
 Plans:
 **Wave 1**
@@ -104,6 +104,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4. Phases 1, 2 and 3 do not d
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Live exposure and tracing | 5/5 | Complete    | 2026-10-21 |
-| 2. Sourced parameter stops | 2/2 | In Progress | - |
+| 2. Sourced parameter stops | 2/2 | Complete    | 2026-10-21 |
 | 3. Application benchmark sets | 0/3 | Planned | - |
 | 4. Measurement and readiness | 0/TBD | Not started | - |

@@ -22,10 +22,10 @@ A retiring model ID in real application code is traced to the exact call and rep
 - ✓ Catalogs, descriptor keys, `versions` lists and prose mentions are non-live, with exact non-live counts — Phase 1
 - ✓ Tracing through class fields, object members, env fallbacks, returned literals, destructuring, helpers, renamed imports and axios config forms — Phase 1
 - ✓ Non-text calls, custom base URLs, Azure clients, class inheritance and whole-container uses stop with named reasons instead of editing — Phase 1
+- ✓ Sourced parameter table (`data/model-parameters.json`, strict validator); a stop lifts only where an official page proves the parameter and literal value — Phase 2 (only Sonnet 5.5 `temperature: 1` on shipped data)
 
 ### Active
 
-- [ ] Sampling and length parameter stops are lifted only where the provider's model page proves the replacement accepts the parameter (recorded with `source` and `checkedAt`)
 - [ ] New frozen application sets from GitHub code search: 100 OpenAI, 50 Anthropic; npm sets kept as library baselines
 - [ ] Live pins on the new sets labelled (single AI-assisted pass, documented as such)
 - [ ] ≥ 90% of labelled live pins traced to a call argument, per provider
@@ -90,4 +90,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-10-21 after Phase 1*
+*Last updated: 2026-10-21 after Phase 2*
