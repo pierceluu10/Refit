@@ -5,7 +5,8 @@ import { existsSync } from 'node:fs';
 import { readdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { parseArgs } from 'node:util';
-import { COMMITTED_KEYS, validateLabels } from './ai-app-helpers.mjs';
+import { createHash } from 'node:crypto';
+import { COMMITTED_KEYS, agreement, seededSample, validateLabels } from './ai-app-helpers.mjs';
 
 const { values } = parseArgs({
   options: {
@@ -13,9 +14,186 @@ const { values } = parseArgs({
     batches: { type: 'string' },
     output: { type: 'string' },
     'labelled-at': { type: 'string' },
+    'reread-sample': { type: 'boolean' },
+    'reread-merge': { type: 'boolean' },
+    seed: { type: 'string' },
+    fraction: { type: 'string' },
+    labels: { type: 'string' },
+    sample: { type: 'string' },
+    reread: { type: 'string' },
+    adjudications: { type: 'string' },
     help: { type: 'boolean' },
   },
 });
+const readJson = async (path) => JSON.parse(await readFile(path, 'utf8'));
+const idOf = (x) => [x.repo, x.provider, x.file, x.line, x.column, x.model].join('\u0000');
+const shown = (x) => idOf(x).replaceAll('\u0000', '|');
+const batchContexts = async (dir) => {
+  const byId = new Map();
+  for (const f of (await readdir(dir)).filter((n) => /^batch-\d\d\.json$/.test(n)))
+    for (const c of (await readJson(join(dir, f))).candidates) byId.set(idOf(c), c);
+  return byId;
+};
+
+// Draws the sample from candidate keys alone; the batch files carry context and no labels.
+async function rereadSample() {
+  const seed = Number(values.seed);
+  const fraction = Number(values.fraction);
+  if (!values.candidates || !values.batches || !values.output) return usage(1);
+  if (!Number.isInteger(seed) || !(fraction > 0 && fraction <= 1)) return usage(1);
+  const candidates = await readJson(values.candidates);
+  const keys = candidates.repos.flatMap((r) => r.candidates.map(idOf));
+  const contexts = await batchContexts(values.batches);
+  const picked = seededSample(keys, seed, fraction);
+  const sample = {
+    formatVersion: 1,
+    seed,
+    fraction,
+    sampleSize: picked.length,
+    candidates: picked.map((k) => contexts.get(k)),
+  };
+  if (sample.candidates.some((c) => !c))
+    throw new Error('a sampled candidate has no batch context');
+  await writeFile(values.output, `${JSON.stringify(sample, null, 2)}\n`);
+  console.log(`sample ${picked.length} of ${keys.length}`);
+}
+
+// Compares the frozen re-read with the first labels, applies adjudications, regenerates the file.
+async function rereadMerge() {
+  for (const k of ['candidates', 'batches', 'labels', 'sample', 'reread', 'output'])
+    if (!values[k]) return usage(1);
+  if (!existsSync(values.reread)) {
+    console.error('missing re-read file');
+    process.exit(3);
+  }
+  const bytes = await readFile(values.reread);
+  const rereadSha256 = createHash('sha256').update(bytes).digest('hex');
+  const second = JSON.parse(bytes.toString('utf8')).labels;
+  const sample = await readJson(values.sample);
+  const errors = validateLabels(
+    sample.candidates,
+    second,
+    sample.candidates.map((c) => c.context.line),
+  );
+  if (errors.length) {
+    console.error(`invalid re-read: ${errors.length} errors`);
+    for (const e of errors.slice(0, 20)) console.error(`  ${e.key}: ${e.kind}`);
+    process.exit(1);
+  }
+  const file = await readJson(values.labels);
+  const firstFlat = file.repos.flatMap((r) =>
+    r.labels.map((l) => ({ ...l, repo: r.repo, provider: r.provider })),
+  );
+  const firstLabels = file.repos.flatMap((r) => r.labels);
+  const labelFor = new Map(firstFlat.map((l, i) => [idOf(l), firstLabels[i]]));
+  const result = agreement(firstFlat, second);
+  const adjudications = new Map(
+    values.adjudications ? (await readJson(values.adjudications)).map((a) => [a.key, a]) : [],
+  );
+  const unresolved = result.disagreements.filter((k) => !adjudications.has(k));
+  if (unresolved.length) {
+    console.error(`unadjudicated disagreements:\n${unresolved.map((k) => `  ${k}`).join('\n')}`);
+    process.exit(2);
+  }
+  const brief = (l) => ({ live: l.live, via: l.via, reason: l.reason ?? null });
+  const secondById = new Map(second.map((l) => [idOf(l), l]));
+  const sampleById = new Map(sample.candidates.map((c) => [idOf(c), c]));
+  const disagreements = [];
+  for (const k of result.disagreements) {
+    const { final, note } = adjudications.get(k);
+    const id = k.replaceAll('|', '\u0000');
+    const label = labelFor.get(id);
+    const adjudicated = { ...secondById.get(id), live: final.live, via: final.via ?? null };
+    delete adjudicated.reason;
+    if (!final.live) adjudicated.reason = final.reason;
+    const bad = validateLabels([sampleById.get(id)], [adjudicated]);
+    if (
+      bad.length ||
+      typeof note !== 'string' ||
+      !note.trim() ||
+      /[\r\n]/.test(note) ||
+      note.length > 160
+    ) {
+      console.error(`invalid adjudication: ${k}`);
+      process.exit(1);
+    }
+    const first = brief(label);
+    label.live = adjudicated.live;
+    label.via = adjudicated.via;
+    delete label.reason;
+    if (!label.live) label.reason = adjudicated.reason;
+    disagreements.push({
+      key: k,
+      first,
+      second: brief(secondById.get(id)),
+      final: brief(label),
+      note,
+    });
+  }
+  file.counts = summarize(file.repos);
+  const addition =
+    ' A seeded random 10% of candidates was re-read by a separate fresh-context agent that saw only the sampled candidates and the rules, never the first labels; agreement and adjudications are in `reread`.';
+  if (!file.method.includes(addition)) file.method += addition;
+  file.reread = {
+    seed: sample.seed,
+    fraction: sample.fraction,
+    sampleSize: sample.sampleSize,
+    reader: 'separate fresh-context agent given only the sample and the labelling rules',
+    rereadSha256,
+    agreement: { live: result.live, via: result.via },
+    disagreements,
+    sample: second.map((l) => ({ key: shown(l), second: brief(l) })),
+  };
+  await writeFile(values.output, `${JSON.stringify(file, null, 2)}\n`);
+  console.log(JSON.stringify(file.reread.agreement));
+}
+
+function summarize(repos) {
+  const counts = { byLanguage: {}, byVia: {}, byReason: {} };
+  let candidates = 0;
+  let live = 0;
+  let liveJsTs = 0;
+  let generated = 0;
+  const bump = (map, name) => (map[name] = (map[name] ?? 0) + 1);
+  for (const r of repos)
+    for (const l of r.labels) {
+      candidates++;
+      bump(counts.byLanguage, l.language);
+      if (l.generated) generated++;
+      if (l.live) {
+        live++;
+        if (['typescript', 'javascript'].includes(l.language)) liveJsTs++;
+        bump(counts.byVia, l.via.startsWith('wrapper:') ? 'wrapper:*' : l.via);
+      } else bump(counts.byReason, l.reason);
+    }
+  return {
+    repositories: repos.length,
+    candidates,
+    live,
+    notLive: candidates - live,
+    liveJsTs,
+    byLanguage: counts.byLanguage,
+    generated,
+    byVia: counts.byVia,
+    byReason: counts.byReason,
+  };
+}
+
+function usage(code) {
+  console.log(
+    'Usage: node scripts/ai-app-labels.mjs --candidates <candidates.json> --batches <dir> --output <labels.json> --labelled-at <YYYY-MM-DD>\n   or: --reread-sample --candidates --batches --seed <int> --fraction <0..1> --output <sample.json>\n   or: --reread-merge --candidates --batches --labels --sample --reread [--adjudications] --output',
+  );
+  process.exit(code);
+}
+
+if (values['reread-sample']) {
+  await rereadSample();
+  process.exit(0);
+}
+if (values['reread-merge']) {
+  await rereadMerge();
+  process.exit(0);
+}
 if (
   values.help ||
   !values.candidates ||
@@ -23,10 +201,7 @@ if (
   !values.output ||
   !values['labelled-at']
 ) {
-  console.log(
-    'Usage: node scripts/ai-app-labels.mjs --candidates <candidates.json> --batches <dir> --output <labels.json> --labelled-at <YYYY-MM-DD>',
-  );
-  process.exit(values.help ? 0 : 1);
+  usage(values.help ? 0 : 1);
 }
 if (!/^\d{4}-\d{2}-\d{2}$/.test(values['labelled-at'])) {
   console.error('--labelled-at must be YYYY-MM-DD.');
@@ -82,31 +257,13 @@ const candidates = await read2(values.candidates);
 async function read2(path) {
   return JSON.parse(await readFile(path, 'utf8'));
 }
-const counts = { byLanguage: {}, byVia: {}, byReason: {} };
-let candidateTotal = 0;
-let live = 0;
-let liveJsTs = 0;
-let generated = 0;
-const bump = (map, name) => (map[name] = (map[name] ?? 0) + 1);
 const repos = candidates.repos.map((entry) => ({
   repo: entry.repo,
   provider: entry.provider,
   commit: entry.commit,
   labels: entry.candidates.map((candidate) => {
-    const label = labelByKey.get(key(candidate));
-    const merged = { ...candidate, ...label };
-    const committed = Object.fromEntries(
-      COMMITTED_KEYS.filter((k) => k in merged).map((k) => [k, merged[k]]),
-    );
-    candidateTotal++;
-    bump(counts.byLanguage, committed.language);
-    if (committed.generated) generated++;
-    if (committed.live) {
-      live++;
-      if (['typescript', 'javascript'].includes(committed.language)) liveJsTs++;
-      bump(counts.byVia, committed.via.startsWith('wrapper:') ? 'wrapper:*' : committed.via);
-    } else bump(counts.byReason, committed.reason);
-    return committed;
+    const merged = { ...candidate, ...labelByKey.get(key(candidate)) };
+    return Object.fromEntries(COMMITTED_KEYS.filter((k) => k in merged).map((k) => [k, merged[k]]));
   }),
 }));
 
@@ -121,17 +278,7 @@ const output = {
     ...candidates.scope,
     included: `${candidates.scope.included}; registry IDs only; aliases the registry does not name, such as gpt-4o, are out of scope`,
   },
-  counts: {
-    repositories: repos.length,
-    candidates: candidateTotal,
-    live,
-    notLive: candidateTotal - live,
-    liveJsTs,
-    byLanguage: counts.byLanguage,
-    generated,
-    byVia: counts.byVia,
-    byReason: counts.byReason,
-  },
+  counts: summarize(repos),
   reread: null,
   repos,
 };

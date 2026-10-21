@@ -88,3 +88,12 @@ export function validateLabels(
   labels: Record<string, unknown>[],
   contextLines?: string[],
 ): { key: string; kind: string }[];
+export function seededSample(keys: string[], seed: number, fraction: number): string[];
+export function agreement(
+  first: Record<string, unknown>[],
+  second: Record<string, unknown>[],
+): {
+  live: { agree: number; total: number };
+  via: { agree: number; total: number };
+  disagreements: string[];
+};

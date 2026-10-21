@@ -195,3 +195,99 @@ it('runs candidates -> batches -> labels -> labels file, and rejects bad or miss
   ]);
   expect(file.method).toContain('Not hand labelling');
 });
+
+it('re-reads a seeded sample: agreement, adjudication, regenerated labels, and the exit codes', async () => {
+  const out = join(dir, 'merged.json');
+  const sample = join(dir, 'sample.json');
+  const drawn = await node(labelsScript, [
+    '--reread-sample',
+    '--candidates',
+    join(dir, 'labels', 'candidates.json'),
+    '--batches',
+    join(dir, 'labels'),
+    '--seed',
+    '5',
+    '--fraction',
+    '0.5',
+    '--output',
+    sample,
+  ]);
+  expect(drawn.code, drawn.stderr).toBe(0);
+  const drawnFile = JSON.parse(await readFile(sample, 'utf8'));
+  expect(drawnFile).toMatchObject({ formatVersion: 1, seed: 5, fraction: 0.5, sampleSize: 2 });
+  for (const c of drawnFile.candidates) {
+    expect(c.context).toBeDefined();
+    expect(c).not.toHaveProperty('live');
+    expect(c).not.toHaveProperty('notes');
+  }
+
+  const second = drawnFile.candidates.map((c: Record<string, unknown>, i: number) => ({
+    repo: c.repo,
+    provider: c.provider,
+    file: c.file,
+    line: c.line,
+    column: c.column,
+    model: c.model,
+    live: i !== 0,
+    ...(i === 0 ? { reason: 'test' } : { via: 'sdk-text' }),
+    ...(i === 0 ? { via: null } : {}),
+    replacement: 'gpt-5',
+    notes: 'second reading',
+  }));
+  const reread = join(dir, 'reread.json');
+  const mergeReread = (extra: string[]) =>
+    node(labelsScript, [
+      '--reread-merge',
+      '--candidates',
+      join(dir, 'labels', 'candidates.json'),
+      '--batches',
+      join(dir, 'labels'),
+      '--labels',
+      out,
+      '--sample',
+      sample,
+      '--reread',
+      reread,
+      '--output',
+      join(dir, 'final.json'),
+      ...extra,
+    ]);
+  expect((await mergeReread([])).code).toBe(3);
+
+  await writeFile(reread, JSON.stringify({ labels: second }));
+  const open = await mergeReread([]);
+  expect(open.code).toBe(2);
+  expect(open.stderr).toContain('unadjudicated');
+  await expect(readFile(join(dir, 'final.json'))).rejects.toThrow();
+
+  const first = second[0];
+  const key = [first.repo, first.provider, first.file, first.line, first.column, first.model].join(
+    '|',
+  );
+  const adjudications = join(dir, 'adjudications.json');
+  await writeFile(
+    adjudications,
+    JSON.stringify([
+      { key, final: { live: false, via: null, reason: 'test' }, note: 'second reading was right' },
+    ]),
+  );
+  const done = await mergeReread(['--adjudications', adjudications]);
+  expect(done.code, done.stderr).toBe(0);
+  const file = JSON.parse(await readFile(join(dir, 'final.json'), 'utf8'));
+  expect(file.reread).toMatchObject({
+    seed: 5,
+    sampleSize: 2,
+    agreement: { live: { agree: 1, total: 2 }, via: { agree: 1, total: 2 } },
+  });
+  expect(file.reread.rereadSha256).toMatch(/^[0-9a-f]{64}$/);
+  expect(file.reread.disagreements).toHaveLength(1);
+  expect(file.reread.disagreements[0]).toMatchObject({
+    key,
+    first: { live: true, via: 'sdk-text' },
+    second: { live: false, reason: 'test' },
+    final: { live: false, reason: 'test' },
+  });
+  expect(file.counts).toMatchObject({ candidates: 4, live: 3, notLive: 1 });
+  expect(file.method).toContain('separate fresh-context agent');
+  expect(file.method).toContain('Not hand labelling');
+});

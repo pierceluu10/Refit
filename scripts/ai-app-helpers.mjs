@@ -363,3 +363,37 @@ export function validateLabels(candidates, labels, contextLines = []) {
       errors.push({ key: id.split('\u0000').slice(2, 5).join(':'), kind: 'missing' });
   return errors;
 }
+
+// Deterministic sample of ceil(fraction x n) keys: sort, then mulberry32-driven Fisher-Yates.
+export function seededSample(keys, seed, fraction) {
+  const pool = [...keys].sort();
+  let a = seed >>> 0;
+  const next = () => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+  for (let i = pool.length - 1; i > 0; i--) {
+    const j = Math.floor(next() * (i + 1));
+    [pool[i], pool[j]] = [pool[j], pool[i]];
+  }
+  return pool.slice(0, Math.ceil(fraction * pool.length));
+}
+
+// Agreement of the second labels with the first on live and via, over the second's keys.
+export function agreement(first, second) {
+  const firstById = new Map(first.map((l) => [labelId(l), l]));
+  const out = { live: { agree: 0, total: 0 }, via: { agree: 0, total: 0 }, disagreements: [] };
+  for (const l of second) {
+    const f = firstById.get(labelId(l));
+    out.live.total++;
+    out.via.total++;
+    if (f.live === l.live) out.live.agree++;
+    if (f.via === l.via) out.via.agree++;
+    if (f.live !== l.live || f.via !== l.via)
+      out.disagreements.push([l.repo, l.provider, l.file, l.line, l.column, l.model].join('|'));
+  }
+  return out;
+}

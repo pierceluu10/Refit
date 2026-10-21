@@ -15,6 +15,8 @@ import {
   languageOf,
   modelPattern,
   packBatches,
+  seededSample,
+  agreement,
   frozenListNames,
   scanLimitsFromTree,
   shallowCheckout,
@@ -338,4 +340,34 @@ it('validates labels', () => {
     expect(run({ ...good, notes }), notes).toContain(
       notes.includes('secret') ? 'notes-source-text' : 'notes',
     );
+});
+
+it('seededSample is deterministic, sorted-input independent and ceil-sized', () => {
+  const keys = Array.from({ length: 100 }, (_, i) => `k${i}`);
+  const a = seededSample(keys, 7, 0.1);
+  expect(a).toHaveLength(10);
+  expect(seededSample([...keys].reverse(), 7, 0.1)).toEqual(a);
+  expect(seededSample(keys, 8, 0.1)).not.toEqual(a);
+  expect(seededSample(keys.slice(0, 11), 7, 0.1)).toHaveLength(2);
+  expect(seededSample([], 7, 0.1)).toEqual([]);
+});
+
+it('agreement counts live and via and lists disagreeing keys', () => {
+  const l = (line: number, live: boolean, via: string | null) => ({
+    repo: 'o/r',
+    provider: 'openai',
+    file: 'a.ts',
+    line,
+    column: 1,
+    model: 'm',
+    live,
+    via,
+  });
+  const result = agreement(
+    [l(1, true, 'sdk-text'), l(2, false, null), l(3, true, 'sdk-text')],
+    [l(1, true, 'sdk-text'), l(2, false, null), l(3, true, 'raw-http')],
+  );
+  expect(result.live).toEqual({ agree: 3, total: 3 });
+  expect(result.via).toEqual({ agree: 2, total: 3 });
+  expect(result.disagreements).toEqual(['o/r|openai|a.ts|3|1|m']);
 });
