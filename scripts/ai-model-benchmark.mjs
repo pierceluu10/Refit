@@ -89,7 +89,7 @@ for (const [index, entry] of frozen.repos.entries()) {
   // only there.
   const proposal = live.length
     ? await refitJson(['deadlines', '--propose-model-fixes', '--repository', directory])
-    : { result: { replacements: [], stops: [] } };
+    : { result: { replacements: [], stops: [], unresolved: [] } };
   results.push({
     repo: entry.repo,
     commit: entry.commit,
@@ -113,6 +113,9 @@ for (const [index, entry] of frozen.repos.entries()) {
     stops: (proposal.result?.stops ?? [])
       .filter((item) => item.provider === frozen.provider)
       .map(({ file, line, call, at, model, reason }) => ({ file, line, call, at, model, reason })),
+    unresolved: (proposal.result?.unresolved ?? [])
+      .filter((item) => item.provider === frozen.provider)
+      .map(({ file, line, model, to, reason }) => ({ file, line, model, to, reason })),
   });
 }
 
@@ -125,9 +128,17 @@ const summary = {
   exposedWithReplacement: exposed.filter((item) => item.replacements.length).length,
   exposedStoppedOnly: exposed.filter((item) => !item.replacements.length && item.stops.length)
     .length,
-  exposedSilent: exposed.filter((item) => !item.replacements.length && !item.stops.length).length,
+  // Exposed with neither a replacement nor a stop, but every live match explained.
+  exposedUnresolvedOnly: exposed.filter(
+    (item) => !item.replacements.length && !item.stops.length && item.unresolved.length,
+  ).length,
+  // Exposed with no outcome at all; the proposal should leave none.
+  exposedSilent: exposed.filter(
+    (item) => !item.replacements.length && !item.stops.length && !item.unresolved.length,
+  ).length,
   replacements: results.reduce((total, item) => total + (item.replacements?.length ?? 0), 0),
   stops: results.reduce((total, item) => total + (item.stops?.length ?? 0), 0),
+  unresolved: results.reduce((total, item) => total + (item.unresolved?.length ?? 0), 0),
 };
 await writeFile(
   values.output,

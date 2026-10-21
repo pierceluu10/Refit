@@ -28,7 +28,9 @@ const META_CONTEXT = [META_SDK, 'graph.facebook.com'];
 // - catalog: one entry in a model list (an array, enum, tuple or constant-case object naming three
 //   or more models), an HTML or JSX `<option>`, any type position, a table keyed or indexed by
 //   model, such as pricing or context windows, a model record's `id` or `name` beside a metadata
-//   field such as `contextWindow`, or a model reference's `versions` list;
+//   field such as `contextWindow`, a model reference's `versions` list, one model's IDs on several
+//   platforms (`{ firstParty: 'claude-…', bedrock: 'anthropic.claude-…', vertex: 'claude-…@…' }`),
+//   or a membership collection (`new Set([...])`, the keys of `new Map([...])`) of any size;
 // - test: test, spec, story, fixture and example files;
 // - comment: comments, which the parser keeps out of every source token;
 // - tokenizer: a local tokenizer argument, such as `encoding_for_model('gpt-4')`;
@@ -137,6 +139,10 @@ const GEMINI_MODEL = /^(?:google\/|models\/)?gemini-/;
 const OPENAI_MODEL =
   /^(?:openai\/)?(?:gpt-|chatgpt-|o\d(?:-|$)|text-(?:davinci|curie|babbage|ada|embedding|moderation)-|(?:davinci|curie|babbage|ada)(?:-|$)|dall-e-|tts-|whisper-|codex-|computer-use-|omni-moderation-|sora-)/;
 const CATALOG_SIZE = 3;
+// Cloud-platform forms of a Claude model ID: Bedrock (`anthropic.claude-…`, optionally with a region
+// prefix such as `us.`) and Vertex AI (`claude-…@20250514`).
+const PLATFORM_MODEL = /^(?:[a-z]{2,4}\.)?anthropic\.claude-|^claude-[\w.-]+@\d{8}$/;
+const MEMBERSHIP_COLLECTIONS = new Set(['Set', 'Map', 'WeakSet', 'WeakMap']);
 const OPTION_ELEMENT = /<option\b/i;
 // Fields of a model metadata record, such as `{ id: 'gpt-4', contextWindow: 8192 }`. None of them
 // is a request parameter, so an object that has one describes a model rather than calling it.
@@ -213,6 +219,43 @@ function modelRecord(node: ts.Node) {
   );
 }
 
+// One model's IDs across platforms: an object with two or more model-shaped string values, at least
+// one of them a Bedrock or Vertex AI form. It lists where a model is available; the code picks one
+// entry elsewhere.
+function platformVariants(node: ts.Node, isModel: (value: string) => boolean) {
+  const property = node.parent;
+  if (!ts.isPropertyAssignment(property) || property.initializer !== node) return false;
+  const values = property.parent.properties.flatMap((item) => {
+    if (!ts.isPropertyAssignment(item)) return [];
+    const value = stripped(item.initializer);
+    return ts.isStringLiteralLike(value) ? [value.text] : [];
+  });
+  return (
+    values.some((value) => PLATFORM_MODEL.test(value)) &&
+    values.filter((value) => isModel(value) || PLATFORM_MODEL.test(value)).length >= 2
+  );
+}
+
+// A list handed to `new Set(...)` or `new Map(...)`: membership or lookup, as in
+// `new Set(['claude-3-opus', 'claude-3-haiku']).has(model)`. In a Map it is an entry's key.
+function membershipEntry(node: ts.Node) {
+  let list = node.parent;
+  if (
+    ts.isArrayLiteralExpression(list) &&
+    list.elements[0] === node &&
+    ts.isArrayLiteralExpression(list.parent)
+  )
+    list = list.parent;
+  const owner = list.parent;
+  return (
+    ts.isArrayLiteralExpression(list) &&
+    ts.isNewExpression(owner) &&
+    owner.arguments?.[0] === list &&
+    ts.isIdentifier(owner.expression) &&
+    MEMBERSHIP_COLLECTIONS.has(owner.expression.text)
+  );
+}
+
 // An object used like an enum: constant-case keys, such as `{ GPT_4: 'gpt-4', O3: 'o3' }`.
 function constantObject(node: ts.Node): node is ts.ObjectLiteralExpression {
   return (
@@ -267,6 +310,7 @@ function literalUse(
   if (propertyKey(node)) return 'catalog';
   if (ts.isElementAccessExpression(parent) && parent.argumentExpression === node) return 'catalog';
   if (modelRecord(node)) return 'catalog';
+  if (platformVariants(node, isModel) || membershipEntry(node)) return 'catalog';
   // The versions a model reference accepts, as in genkit's `versions: ['gpt-4o-2024-05-13']`.
   if (
     ts.isArrayLiteralExpression(parent) &&
