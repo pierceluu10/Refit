@@ -35,6 +35,15 @@ Evidence base: the 2026-10-20 npm-set runs left 45 OpenAI and 14 Anthropic expos
 ### Definition used for measurement
 - D-12: A labelled live pin is "traced" when its file and line appear as a replacement's `edited` location or a stop's `at` location in `refit deadlines --propose-model-fixes --json`. Phase 4 measures BENCH-04 with this definition. Stops count as traced; only fixes count toward BENCH-05.
 
+### Resolutions after research (2026-10-21)
+- D-13: The tsconfig alias gate is unchanged in Phase 1. Pins it blocks count as untraced and are reported as such.
+- D-14: D-06..D-09 widen which uses are traced and replaced. Record this in AGENTS.md as a dated decision (2026-10-21, made by Otabek Alimov with Claude's recommendation, pending the repository owner's review on the phase PR) next to the #120 model-fixes note, and in PROJECT.md Key Decisions.
+- D-15: `value` is not a descriptor key. Picker `{ value, label }` objects stay as today.
+- D-16 (D-11 breadth): every traced OpenAI or Anthropic SDK call outside `MODEL_CALLS` that sends a retiring model stops with a named reason (catch-all). Do not list only certain non-text methods. The Anthropic legacy raw endpoint is `POST /v1/complete`.
+- D-17: Default-exported classes and functions get their callers followed (bug fix). Stop propagation for by-value helper uses must not depend on file order (bug fix). Both get a regression test.
+- D-18: D-03's prose rule keeps a string that contains a `"model":` JSON key as live, so config embedded in JSON strings is not hidden.
+- D-19: Request objects built by functions, unrecognized client shapes (`let client`, factories, typed parameters, DI) and benchmark timeouts are not in Phase 1. Phase 4 measures them on the application sets. If BENCH-04 falls short, a decimal phase is inserted for the largest measured gap.
+
 ### Claude's Discretion
 - Exact helper names, recursion depth limits (current `depth > 4`) and how to share the uses-count logic.
 - Whether to re-run `refit deadlines` on the already-fetched silent repositories as a smoke check during verification. That check is informative only; Phase 4 is the measurement.
