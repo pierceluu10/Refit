@@ -519,6 +519,98 @@ it('keeps Anthropic sampling parameters when the replacement predates Claude 4.7
   ]);
 });
 
+it('reports class property models at their initializers and assignments without editing them', async () => {
+  const root = await repository({
+    'src/chat.ts': [
+      "import OpenAI from 'openai';",
+      'export class Chat {',
+      '  private client = new OpenAI();',
+      "  model = 'gpt-4';",
+      '  ask(messages: any[]) {',
+      '    return this.client.chat.completions.create({ model: this.model, messages });',
+      '  }',
+      '}',
+    ].join('\n'),
+    'src/summary.ts': [
+      "import OpenAI from 'openai';",
+      'export class Summary {',
+      '  private client = new OpenAI();',
+      '  constructor(private readonly model: string = "o1-mini") {}',
+      '  run(messages: any[]) {',
+      '    return this.client.chat.completions.create({ model: this.model, messages });',
+      '  }',
+      '}',
+    ].join('\n'),
+    // JavaScript declares the property by assigning it in the constructor.
+    'src/agent.js': [
+      "const { OpenAI } = require('openai');",
+      'class Agent {',
+      '  constructor(options) {',
+      '    this.client = new OpenAI();',
+      "    this.model = options.model || 'gpt-4';",
+      '  }',
+      '  ask(messages) {',
+      '    return this.client.chat.completions.create({ model: this.model, messages });',
+      '  }',
+      '}',
+      'module.exports = { Agent };',
+    ].join('\n'),
+    // Read again to price the request, so it stops for review.
+    'src/priced.ts': [
+      "import OpenAI from 'openai';",
+      'const PRICES: Record<string, number> = {};',
+      'export class Priced {',
+      '  private client = new OpenAI();',
+      '  private model: string;',
+      '  constructor(model?: string) {',
+      "    this.model = model ?? 'gpt-4';",
+      '  }',
+      '  ask(messages: any[]) {',
+      '    return this.client.chat.completions.create({ model: this.model, messages });',
+      '  }',
+      '  cost() {',
+      '    return PRICES[this.model];',
+      '  }',
+      '}',
+    ].join('\n'),
+  });
+  const proposal = await proposeModelReplacements(root, registry, NOW);
+  // Until an owner decision covers class properties, each one is reported with where its model is
+  // written, and none is edited.
+  expect(proposal.replacements).toEqual([]);
+  expect(proposal.patch).toBeNull();
+  expect(
+    proposal.stops
+      .map((item) => [item.file, item.at, item.model, item.reason])
+      .sort((x, y) => String(x[0]).localeCompare(String(y[0]))),
+  ).toEqual([
+    [
+      'src/agent.js',
+      { file: 'src/agent.js', line: 5 },
+      'gpt-4',
+      'The model comes from the property model (src/agent.js:5); class properties are reported, not edited. Change it by hand to gpt-5.6-sol.',
+    ],
+    [
+      'src/chat.ts',
+      { file: 'src/chat.ts', line: 4 },
+      'gpt-4',
+      'The model comes from the property model (src/chat.ts:4); class properties are reported, not edited. Change it by hand to gpt-5.6-sol.',
+    ],
+    [
+      'src/priced.ts',
+      { file: 'src/priced.ts', line: 7 },
+      'gpt-4',
+      'The model comes from the property model (src/priced.ts:5); it is read 2 times. Change it by hand to gpt-5.6-sol.',
+    ],
+    [
+      'src/summary.ts',
+      { file: 'src/summary.ts', line: 4 },
+      'o1-mini',
+      'The model comes from the property model (src/summary.ts:4); class properties are reported, not edited. Change it by hand to gpt-5.6-terra.',
+    ],
+  ]);
+});
+
 it('never proposes edits in build output committed beside the sources', async () => {
   const request = [
     "import OpenAI from 'openai';",

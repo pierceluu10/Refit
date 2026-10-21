@@ -1,5 +1,18 @@
 # Refit implementation checkpoints
 
+## October 21 checkpoint: class property models reported for review (unreleased, after 0.39.0)
+
+`refit deadlines --propose-model-fixes` and `refit serve --model-fixes` now trace a request's `model: this.model` to where the class sets it:
+
+- the field initializer;
+- a constructor parameter default;
+- each assignment, including JavaScript's `this.model = options.model || 'gpt-4'`.
+
+Each such site is listed as a stop with its location and replacement, and is never edited. Editing class properties would widen which uses are replaced, so it waits on an owner decision (#120).
+
+Tests: `pipeline/model-retirements.test.ts` covers class fields, constructor parameter properties, JavaScript constructor assignments and a property read twice. All are stops, with no patch.
+
+
 ## October 21 checkpoint: dynamically imported Stripe client factories (unreleased, after 0.39.0)
 
 A client factory loaded with `await import()` is now followed the way a static import is: `const { getStripe } = await import('./stripe')`, a renamed entry, and `(await import('./stripe')).getStripe()`. The analyzer's type checker runs without lib types, so it could not type a dynamic import; the binding is now made from syntax, like `const { x } = require(...)`. Only `const` destructuring links, only to a stable ESM export (a function, class or top-level `const`), and the factory itself must still pass every existing factory rule. A `let` binding stays untraced; a test pins it.

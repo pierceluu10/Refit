@@ -208,6 +208,7 @@ These cases stop for review and are listed with a reason, with no edit:
 - The request spreads other options (`{ ...options, model: 'gpt-4' }`).
 - The model comes from a constant or enum member, or the request from a `const` object, that is used more than once in the repository, so it may feed other code.
 - The helper carrying the model is passed around as a value, or called with spread arguments.
+- The model comes from a class property read as `this.model`: its field initializer, constructor parameter default or an assignment such as `this.model = options.model ?? 'gpt-4'`. The stop names where the model is written. Class properties are reported, not edited: editing them would widen which uses `--model-fixes` replaces, which needs an owner decision first.
 - The registry has no concrete replacement.
 
 Embeddings, images, audio and moderation calls are never proposed, because their replacements change vector sizes, formats or parameters. Legacy completions (`completions.create`, v3 `createCompletion`) are never proposed either, because the replacements are chat models. A model sent through another host (such as the app's own proxy), LangChain, the Vercel AI SDK or a Deno re-export, or held in settings objects, UI state or CLI option defaults, is not traced and stays an ordinary exposure.
