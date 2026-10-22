@@ -1,4 +1,4 @@
-import { readdir, readFile } from 'node:fs/promises';
+import { lstat, readdir, readFile } from 'node:fs/promises';
 import { join, posix, relative } from 'node:path';
 import { parse as parseYaml } from 'yaml';
 import { parseToml, TomlError, type TomlTable } from './package-manifests-toml.ts';
@@ -90,7 +90,14 @@ export function globMatcher(patterns: string[]) {
     !exclude.some((pattern) => posix.matchesGlob(directory, pattern));
 }
 
+// The repository reader's per-file limit (pipeline/repository.ts).
+const MAX_FILE_BYTES = 2 * 1024 * 1024;
+
+// A regular file's text; symlinks, which may point outside the repository, and files over the
+// limit read as missing.
 async function readText(path: string) {
+  const info = await lstat(path).catch(() => undefined);
+  if (!info?.isFile() || info.size > MAX_FILE_BYTES) return undefined;
   return readFile(path, 'utf8').catch(() => undefined);
 }
 
@@ -224,7 +231,10 @@ export async function readWorkspaceLayout(root: string): Promise<WorkspaceLayout
   const found = new Map<string, WorkspacePackage>();
   let entries = 0;
   async function visit(directory: string): Promise<void> {
-    const children = await readdir(directory, { withFileTypes: true }).catch(() => []);
+    // Sorted so the manifest that names a package does not depend on the file system's order.
+    const children = (await readdir(directory, { withFileTypes: true }).catch(() => [])).sort(
+      (a, b) => a.name.localeCompare(b.name),
+    );
     for (const child of children) {
       if ((entries += 1) > MAX_ENTRIES) return;
       if (child.isSymbolicLink()) continue;

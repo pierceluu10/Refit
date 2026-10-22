@@ -23,7 +23,7 @@ const NOW = new Date('2026-10-22T00:00:00Z');
 const labels = JSON.parse(await readFile(values.labels, 'utf8'));
 const registry = await loadDeadlineRegistry();
 const { stdout: refitCommit } = await execute('git', ['rev-parse', 'HEAD']);
-const { stdout: dirty } = await execute('git', ['status', '--porcelain', '--', 'pipeline']);
+const { stdout: dirty } = await execute('git', ['status', '--porcelain']);
 const results = [];
 for (const entry of labels.repositories) {
   const directory = join(
@@ -62,7 +62,7 @@ for (const entry of labels.repositories) {
           kind: 'deadline',
           provider: exposure.deadline.provider,
           file: item.file,
-          live: item.use === 'live',
+          live: item.use === 'live' && !item.excluded,
           workspace: item.workspace?.path ?? null,
           excluded: item.excluded ?? null,
         });
@@ -92,6 +92,6 @@ const all = scoreAttribution(
 );
 await writeFile(
   values.output,
-  `${JSON.stringify({ formatVersion: 1, refitCommit: refitCommit.trim(), pipelineDirty: Boolean(dirty.trim()), now: NOW.toISOString(), score: all, results }, null, 2)}\n`,
+  `${JSON.stringify({ formatVersion: 1, refitCommit: refitCommit.trim(), dirty: Boolean(dirty.trim()), now: NOW.toISOString(), score: all, results }, null, 2)}\n`,
 );
 console.log(JSON.stringify(all));

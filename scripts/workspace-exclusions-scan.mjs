@@ -22,7 +22,7 @@ const NOW = new Date('2026-10-22T00:00:00Z');
 const listing = JSON.parse(await readFile(values.list, 'utf8'));
 const registry = await loadDeadlineRegistry();
 const { stdout: refitCommit } = await execute('git', ['rev-parse', 'HEAD']);
-const { stdout: dirty } = await execute('git', ['status', '--porcelain', '--', 'pipeline']);
+const { stdout: dirty } = await execute('git', ['status', '--porcelain']);
 const repositories = [];
 for (const entry of listing.results.filter((item) => item.monorepo)) {
   const directory = join(
@@ -56,8 +56,7 @@ for (const entry of listing.results.filter((item) => item.monorepo)) {
     const scan = await scanDeadlines(directory, registry, NOW);
     for (const exposure of [...scan.exposures, ...scan.mentions])
       for (const item of [...exposure.evidence, ...exposure.nonLive])
-        if (item.use === 'live' || item.use === 'excluded')
-          add('deadline', exposure.deadline.provider, item, item.use === 'live');
+        if (item.use === 'live') add('deadline', exposure.deadline.provider, item, !item.excluded);
   } catch (error) {
     result.error = String(error.message).split('\n')[0];
   }
@@ -74,7 +73,7 @@ await writeFile(
     {
       formatVersion: 1,
       refitCommit: refitCommit.trim(),
-      pipelineDirty: Boolean(dirty.trim()),
+      dirty: Boolean(dirty.trim()),
       now: NOW.toISOString(),
       repositories: repositories.length,
       errors: repositories.filter((item) => item.error).length,

@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -147,6 +147,27 @@ describe('exclusions', () => {
 });
 
 describe('attribution in detectProviders and scanDeadlines', () => {
+  it('does not read a nested lockfile through a symlink', async () => {
+    const outside = await repository({
+      'package-lock.json': JSON.stringify({
+        lockfileVersion: 3,
+        packages: { 'node_modules/stripe': { version: '14.25.0' } },
+      }),
+    });
+    const root = await repository({
+      'package.json': manifest('root'),
+      'tools/billing/package.json': manifest('billing', { dependencies: { stripe: '^14.0.0' } }),
+    });
+    await symlink(
+      join(outside, 'package-lock.json'),
+      join(root, 'tools/billing/package-lock.json'),
+    );
+    const [stripe] = await detectProviders(root);
+    expect(stripe.packages.map((item) => [item.file, item.locked])).toEqual([
+      ['tools/billing/package.json', null],
+    ]);
+  });
+
   it('attributes detections to their package, flags excluded paths and reads nested lockfiles', async () => {
     const root = await repository({
       'package.json': manifest('root', { workspaces: ['apps/*'] }),
@@ -192,7 +213,7 @@ describe('attribution in detectProviders and scanDeadlines', () => {
     ]);
   });
 
-  it('keeps an excluded deadline match out of live evidence, with its reason and package', async () => {
+  it('keeps an excluded deadline match live, with its reason and package', async () => {
     const root = await repository({
       'package.json': manifest('root', { workspaces: ['apps/*'] }),
       'apps/api/package.json': manifest('api'),
@@ -204,13 +225,13 @@ describe('attribution in detectProviders and scanDeadlines', () => {
     const exposure = [...scan.exposures, ...scan.mentions].find((item) =>
       item.deadline.versions.includes('gpt-4.5-preview'),
     )!;
-    expect(exposure.evidence.map((item) => [item.file, item.use, item.workspace?.name])).toEqual([
-      ['apps/api/src/chat.ts', 'live', 'api'],
-    ]);
     expect(
-      exposure.nonLive.map((item) => [item.file, item.use, item.excluded, item.workspace]),
-    ).toEqual([['docs/snippets/chat.ts', 'excluded', 'docs-site', { path: '.', name: 'root' }]]);
-    expect(exposure.nonLiveCounts).toEqual({ excluded: 1 });
+      exposure.evidence.map((item) => [item.file, item.use, item.excluded, item.workspace?.name]),
+    ).toEqual([
+      ['apps/api/src/chat.ts', 'live', null, 'api'],
+      ['docs/snippets/chat.ts', 'live', 'docs-site', 'root'],
+    ]);
+    expect(exposure.nonLive).toEqual([]);
   });
 });
 

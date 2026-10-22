@@ -57,10 +57,7 @@ const META_CONTEXT = [META_SDK, 'graph.facebook.com'];
 // - check: a comparison or prefix check, such as `model.startsWith('o1')` or `case 'gpt-4':`.
 // Comments and the tokenizer and prefix calls apply to every provider; the rest apply to model
 // providers (OpenAI and Anthropic) only.
-// `excluded` is a match that would be live but sits on a path outside the product (an example, a
-// docs site, vendored code or build output; pipeline/workspace-attribution.ts).
-export type DeadlineUse =
-  'live' | 'catalog' | 'test' | 'comment' | 'tokenizer' | 'check' | 'excluded';
+export type DeadlineUse = 'live' | 'catalog' | 'test' | 'comment' | 'tokenizer' | 'check';
 
 export interface DeadlineEvidence {
   file: string;
@@ -539,12 +536,8 @@ export async function scanDeadlines(
   ) => {
     const deadline = entry ?? byVersion.get(`${provider}:${version}`);
     if (!deadline) return;
-    const place = placeFinding(layout, evidence.file);
-    evidence = {
-      ...evidence,
-      ...place,
-      use: place.excluded && evidence.use === 'live' ? 'excluded' : evidence.use,
-    };
+    // The place is reported only: a live match on an excluded path stays live (owner decision).
+    evidence = { ...evidence, ...placeFinding(layout, evidence.file) };
     const exposure = found.get(deadline.id) ?? {
       deadline,
       days: daysUntil(deadline.date, now),
