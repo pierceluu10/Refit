@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Messaging API detection results",
-  "description": "Written by scripts/messaging-benchmark.mjs: the providers, SDK declarations and deprecated calls `refit messaging` lists per repository of a frozen list, with scripts/messaging-score.mjs's score against the labels. `refit` was recorded by hand for these runs. A repository that could not be scanned has `error`.",
+  "description": "Written by scripts/messaging-benchmark.mjs: the providers, SDK declarations and deprecated calls `refit messaging` lists per repository of a frozen list, with scripts/messaging-score.mjs's score against the labels. `refit` was recorded by hand for the 2026-10-22 runs; later runs write `refit.commit` and `refit.dirty` themselves. A repository that could not be scanned has `error`.",
   "type": "object",
   "required": ["formatVersion", "list", "checkedAt", "summary", "results"],
   "properties": {
@@ -15,6 +15,7 @@
       "required": ["commit"],
       "properties": {
         "commit": { "$ref": "common.schema.json#/$defs/shortCommit" },
+        "dirty": { "type": "boolean" },
         "note": { "type": "string" }
       }
     },

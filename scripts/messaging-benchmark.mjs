@@ -116,10 +116,14 @@ const summary = {
     ]),
   ),
 };
+// The Refit commit and whether its worktree was dirty, recorded by the run instead of by hand.
+const { stdout: refitCommit } = await execute('git', ['rev-parse', '--short', 'HEAD']);
+const { stdout: dirty } = await execute('git', ['status', '--porcelain']);
 const output = {
   formatVersion: 1,
   list: values.list,
   checkedAt: new Date().toISOString(),
+  refit: { commit: refitCommit.trim(), dirty: Boolean(dirty.trim()) },
   summary,
   results,
 };
