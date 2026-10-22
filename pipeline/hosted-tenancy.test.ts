@@ -306,7 +306,8 @@ it.skipIf(!DATABASE)(
         }),
       }),
     ]);
-    expect(authenticateGitHubRead).toHaveBeenCalledOnce();
+    // One read for the job and one for the inventory backfilled once the account is allowed.
+    expect(authenticateGitHubRead).toHaveBeenCalledTimes(2);
   },
   30_000,
 );
