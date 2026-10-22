@@ -179,7 +179,9 @@ it('refuses bind-mount paths that would split the mount specification', () => {
 it('removes only labelled sandbox containers whose deadline has passed', async () => {
   const root = await temporaryDirectory('refit-sandbox-reaper-');
   const log = join(root, 'calls.jsonl');
-  const [expired, live, malformed] = ['a', 'b', 'c'].map((letter) => letter.repeat(64));
+  const [expired, live, malformed, racing] = ['a', 'b', 'c', 'd'].map((letter) =>
+    letter.repeat(64),
+  );
   await mkdir(join(root, 'bin'));
   await writeFile(
     join(root, 'bin', 'docker'),
@@ -187,13 +189,18 @@ it('removes only labelled sandbox containers whose deadline has passed', async (
 const fs = require('node:fs');
 const args = process.argv.slice(2);
 fs.appendFileSync(${JSON.stringify(log)}, JSON.stringify(args) + '\\n');
+if (args[0] === 'rm' && args[2] === ${JSON.stringify(racing)}) {
+  process.stderr.write('Error response from daemon: removal of container ' + args[2] + ' is already in progress\\n');
+  process.exit(1);
+}
 if (args[0] === 'ps')
-  process.stdout.write(${JSON.stringify(`${expired} ${NOW - 1}\n${live} ${NOW + 60_000}\n${malformed} soon\n\n`)});
+  process.stdout.write(${JSON.stringify(`${expired} ${NOW - 1}\n${live} ${NOW + 60_000}\n${malformed} soon\n${racing} ${NOW - 5}\n\n`)});
 `,
   );
   await chmod(join(root, 'bin', 'docker'), 0o755);
   vi.stubEnv('PATH', join(root, 'bin') + delimiter + process.env.PATH);
-  expect(await removeExpiredSandboxContainers(NOW)).toEqual([expired]);
+  // A container another Refit process is already removing counts as removed.
+  expect(await removeExpiredSandboxContainers(NOW)).toEqual([expired, racing]);
   const calls = (await readFile(log, 'utf8'))
     .trim()
     .split('\n')
@@ -209,6 +216,7 @@ if (args[0] === 'ps')
       `{{.ID}} {{.Label "${SANDBOX_EXPIRY_LABEL}"}}`,
     ],
     ['rm', '--force', expired],
+    ['rm', '--force', racing],
   ]);
 });
 

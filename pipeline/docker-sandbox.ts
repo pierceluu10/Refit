@@ -96,7 +96,8 @@ export async function removeDockerContainer(name: string) {
       !(error instanceof Error) ||
       !('stderr' in error) ||
       typeof error.stderr !== 'string' ||
-      !error.stderr.includes('No such container')
+      // Another Refit process may be removing the same expired container.
+      !/No such container|removal of container \S+ is already in progress/.test(error.stderr)
     )
       throw error;
   }
