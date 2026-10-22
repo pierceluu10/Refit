@@ -71,7 +71,9 @@ export function stopReasons(results) {
   const kinds = new Map();
   for (const item of results) {
     if (!item.exposures?.length) continue;
-    for (const kind of new Set((item.stops ?? []).map((stop) => stopReasonKind(stop.reason)))) {
+    for (const kind of new Set(
+      (item.stops ?? []).map((stop) => stopReasonKind(stop.reason ?? '')),
+    )) {
       const counts = kinds.get(kind) ?? { reason: kind, repositories: 0, blocked: 0 };
       kinds.set(kind, counts);
       counts.repositories += 1;

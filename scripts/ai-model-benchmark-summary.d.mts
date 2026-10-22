@@ -25,7 +25,7 @@ export interface BenchmarkRepository {
   error?: string;
   exposures?: unknown[];
   replacements?: unknown[];
-  stops?: { reason: string }[];
+  stops?: { reason?: string }[];
   unresolved?: unknown[];
   nonLive?: Record<string, number>;
   nonLiveTotal?: number;

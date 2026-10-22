@@ -1362,7 +1362,11 @@ it('stops instead of editing when a client sets a custom base URL or is an Azure
   expect(proposal.patch).toBeNull();
   expect(proposal.stops.map((item) => [item.file, item.model, item.reason]).sort()).toEqual([
     ['src/azure.ts', 'gpt-4', reason],
-    ['src/proxy.ts', 'gpt-4', reason],
+    [
+      'src/proxy.ts',
+      'gpt-4',
+      "The client sets `baseURL` (src/proxy.ts:2), so the model may name another provider's model or a deployment; change it by hand to gpt-5.6-sol.",
+    ],
   ]);
 
   // Without a base URL or an Azure client the same request is edited, and a raw request to the
@@ -1385,7 +1389,12 @@ it('stops instead of editing when a client sets a custom base URL or is an Azure
   });
   const held = await proposeModelReplacements(mixed, registry, NOW);
   expect(edited(held)).toEqual(['src/raw.ts:1 o1-mini']);
-  expect(held.stops.map((item) => [item.file, item.reason])).toEqual([['src/a.ts', reason]]);
+  expect(held.stops.map((item) => [item.file, item.reason])).toEqual([
+    [
+      'src/a.ts',
+      "The repository mentions a custom endpoint (src/proxy.ts:1), but this request's client (src/a.ts:2) sets none; editing it waits on an owner decision on endpoint tracing; change it by hand to gpt-5.6-sol.",
+    ],
+  ]);
 });
 
 it('stops on overridden methods, subclass fields and super(...) arguments instead of dropping them', async () => {
@@ -1496,9 +1505,25 @@ it('stops every SDK request when any file mentions a custom endpoint, in any sha
     });
     const proposal = await proposeModelReplacements(root, registry, NOW);
     expect([label, proposal.replacements]).toEqual([label, []]);
+    // Where only another client's constructor sets the endpoint, the stop says so; with the
+    // endpoint-tracing option (off by default, pending an owner decision) the request is edited.
+    const elsewhere = ['options object', 'spread'].includes(label);
     expect([label, proposal.stops.map((item) => [item.file, item.reason])]).toEqual([
       label,
-      [['src/a.ts', reason]],
+      [
+        [
+          'src/a.ts',
+          elsewhere
+            ? "The repository mentions a custom endpoint (src/client.ts:2), but this request's client (src/a.ts:2) sets none; editing it waits on an owner decision on endpoint tracing; change it by hand to gpt-5.6-sol."
+            : reason,
+        ],
+      ],
+    ]);
+    const traced = await proposeModelReplacements(root, registry, NOW, { endpoints: true });
+    expect([label, traced.replacements.length, traced.stops.length]).toEqual([
+      label,
+      elsewhere ? 1 : 0,
+      elsewhere ? 0 : 1,
     ]);
   }
   // A compiler `baseUrl`, files in node_modules, and words that only contain `base`
@@ -2553,4 +2578,48 @@ it('lists requests on clients it cannot trace to the SDK constructor', async () 
     [14, reason('this.client')],
   ]);
   expect(proposal.unresolved).toMatchObject([{ file: 'src/store.ts', line: 3 }]);
+});
+
+// The custom-endpoint stop names the request's own client where its constructor shows one, and
+// keeps the repository-wide wording where the client cannot be followed.
+it("ties the custom-endpoint stop to the request's own client where it can", async () => {
+  const create = "chat.completions.create({ model: 'gpt-4', messages: [] })";
+  const root = await repository({
+    'src/field.ts': [
+      "import OpenAI from 'openai';",
+      'export class Chat {',
+      "  client = new OpenAI({ apiKey: 'k', baseURL: 'https://router.example/v1' });",
+      `  ask() { return this.client.${create}; }`,
+      '}',
+    ].join('\n'),
+    'src/fetch.ts': [
+      "import OpenAI from 'openai';",
+      'const traced = new OpenAI({ fetch: globalThis.fetch });',
+      `export const ask = () => traced.${create};`,
+    ].join('\n'),
+    'src/helper.ts': [
+      "import OpenAI from 'openai';",
+      'const helped = new OpenAI();',
+      `const run = (client: OpenAI) => client.${create};`,
+      'export const ask = () => run(helped);',
+    ].join('\n'),
+  });
+  for (const endpoints of [false, true]) {
+    const proposal = await proposeModelReplacements(root, registry, NOW, { endpoints });
+    expect(proposal.replacements).toEqual([]);
+    expect(proposal.stops.map((item) => [item.file, item.reason]).sort()).toEqual([
+      [
+        'src/fetch.ts',
+        "The client sets `fetch` (src/fetch.ts:2), so the model may name another provider's model or a deployment; change it by hand to gpt-5.6-sol.",
+      ],
+      [
+        'src/field.ts',
+        "The client sets `baseURL` (src/field.ts:3), so the model may name another provider's model or a deployment; change it by hand to gpt-5.6-sol.",
+      ],
+      [
+        'src/helper.ts',
+        "The client sets a custom base URL, so the model may name another provider's model or a deployment; change it by hand to gpt-5.6-sol.",
+      ],
+    ]);
+  }
 });

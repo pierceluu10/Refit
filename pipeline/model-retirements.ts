@@ -1,5 +1,5 @@
 import { readdir, readFile, stat } from 'node:fs/promises';
-import { join, resolve } from 'node:path';
+import { join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import ts from 'typescript-compiler';
 import { analyzeRepository } from './analyzer.ts';
@@ -1697,12 +1697,29 @@ const NOT_CONFIG =
 const MAX_CONFIG_FILES = 5000;
 const MAX_CONFIG_BYTES = 1024 * 1024;
 
+// Text that sets the endpoint of every client, whatever its constructor options: the environment
+// variables the SDKs read, `withOptions`, an Azure client, and an assignment such as
+// `client.baseURL = …`, which may write to any client.
+const SDK_WIDE_ENDPOINT =
+  /openai_base_url|anthropic_base_url|openai_api_base|withoptions\(|azureopenai|\.\s*\w*base_?(?:url|path)\s*=(?!=)/i;
+
 // Whether any source or configuration file (`.env*`, JSON, YAML, outside node_modules) in the
-// repository mentions a custom endpoint. Which client sends a request is not traced, so one match
-// puts every SDK request in doubt: the model may name another provider's model or a deployment.
-// An unreadable or oversized file, or too many files, counts as a match.
+// repository mentions a custom endpoint: the first match, as `file:line`, and whether any match
+// sets every client's endpoint. One match puts every SDK request in doubt unless the request's own
+// client is shown to set none. An unreadable or oversized file, or too many files, counts as a
+// match that sets every client's.
 async function customEndpoint(directory: string, repository: Repository) {
-  if (repository.files.some((file) => ENDPOINT_TEXT.test(file.content))) return true;
+  let first: string | undefined;
+  let everyClient = false;
+  const read = (path: string, content: string) => {
+    if (!ENDPOINT_TEXT.test(content)) return;
+    if (!first) {
+      const index = content.split('\n').findIndex((line) => ENDPOINT_TEXT.test(line));
+      first = `${path}:${index + 1}`;
+    }
+    everyClient ||= SDK_WIDE_ENDPOINT.test(content);
+  };
+  for (const file of repository.files) read(file.path, file.content);
   let count = 0;
   const visit = async (path: string): Promise<boolean> => {
     for (const entry of await readdir(path, { withFileTypes: true })) {
@@ -1713,16 +1730,85 @@ async function customEndpoint(directory: string, repository: Repository) {
       } else if (entry.isFile() && CONFIG_FILE.test(entry.name) && !NOT_CONFIG.test(entry.name)) {
         count += 1;
         if (count > MAX_CONFIG_FILES || (await stat(full)).size > MAX_CONFIG_BYTES) return true;
-        if (ENDPOINT_TEXT.test(await readFile(full, 'utf8'))) return true;
+        read(relative(directory, full), await readFile(full, 'utf8'));
       }
     }
     return false;
   };
   try {
-    return await visit(directory);
+    if (await visit(directory)) return { at: first, everyClient: true };
   } catch {
-    return true;
+    return { at: first, everyClient: true };
   }
+  return first ? { at: first, everyClient } : undefined;
+}
+
+// Constructor options that change where a client sends requests, or that Refit cannot read.
+const ENDPOINT_OPTIONS = new Set(['fetch', 'defaultQuery', 'defaultHeaders']);
+
+// Where the client a traced SDK request is made on was constructed: every `new` expression it can
+// come from, through `const` variables, class fields (initializers and `this.x = …` assignments)
+// and object members. Undefined when any source cannot be followed (a `let` variable, a parameter,
+// a function's result).
+function clientConstructions(program: SourceProgram, call: ts.CallExpression, segments: number) {
+  let receiver: ts.Expression = call.expression;
+  for (let index = 0; index < segments; index += 1) {
+    if (!ts.isPropertyAccessExpression(receiver)) return undefined;
+    receiver = receiver.expression;
+  }
+  const found: ts.NewExpression[] = [];
+  const follow = (expression: ts.Expression, depth: number): boolean => {
+    const value = unwrap(ts.isNonNullExpression(expression) ? expression.expression : expression);
+    if (ts.isNewExpression(value)) return Boolean(found.push(value));
+    const name = ts.isIdentifier(value)
+      ? value
+      : ts.isPropertyAccessExpression(value)
+        ? value.name
+        : undefined;
+    const symbol = name && depth < 4 ? program.symbolOf(name) : undefined;
+    const declarations = symbol?.declarations ?? [];
+    if (!symbol || !declarations.length) return false;
+    const sources: ts.Expression[] = [];
+    for (const declaration of declarations) {
+      if (
+        ts.isVariableDeclaration(declaration) &&
+        declaration.initializer &&
+        ts.isVariableDeclarationList(declaration.parent) &&
+        declaration.parent.flags & ts.NodeFlags.Const
+      )
+        sources.push(declaration.initializer);
+      else if (
+        (ts.isPropertyDeclaration(declaration) || ts.isPropertyAssignment(declaration)) &&
+        declaration.initializer
+      )
+        sources.push(declaration.initializer);
+      else if (!ts.isPropertyDeclaration(declaration)) return false;
+    }
+    if (ts.isPropertyAccessExpression(value)) sources.push(...program.assignmentsOf(symbol));
+    return sources.length > 0 && sources.every((source) => follow(source, depth + 1));
+  };
+  return follow(receiver, 0) ? found : undefined;
+}
+
+// What a request's client constructors say about its endpoint: `custom` names an option that sets
+// one, `official` a constructor that sets none, with only literal options. Undefined when unknown.
+function clientEndpoint(program: SourceProgram, call: ts.CallExpression, segments: number) {
+  const constructions = clientConstructions(program, call, segments);
+  if (!constructions?.length) return undefined;
+  for (const construction of constructions) {
+    const options = construction.arguments?.[0] && unwrap(construction.arguments[0]);
+    if (!options) continue;
+    if (!ts.isObjectLiteralExpression(options) || (construction.arguments?.length ?? 0) > 1)
+      return undefined;
+    for (const property of options.properties) {
+      const name = property.name && propertyName(property.name);
+      if (!name || ts.isSpreadAssignment(property)) return undefined;
+      if (ENDPOINT_TEXT.test(name) || ENDPOINT_OPTIONS.has(name))
+        return { custom: `${program.path(property)}:${program.line(property)}`, option: name };
+    }
+  }
+  const first = constructions[0];
+  return { official: `${program.path(first)}:${program.line(first)}` };
 }
 
 const SWEEP_CAP = 20_000;
@@ -1944,7 +2030,10 @@ export async function proposeModelReplacements(
     // initializers (D-06 to D-08). Off until the owner decision lands; until then those sites stop.
     indirect = false,
     reportOnly = REPORT_ONLY_SOURCES,
-  }: { indirect?: boolean; reportOnly?: ReportOnlySource[] } = {},
+    // Edit requests whose own client sets no endpoint although the repository mentions one
+    // elsewhere. Off until an owner decision; until then they stop with where the mention is.
+    endpoints = false,
+  }: { indirect?: boolean; reportOnly?: ReportOnlySource[]; endpoints?: boolean } = {},
 ): Promise<ModelReplacementProposal> {
   const byProvider = new Map<string, Map<string, DeadlineEntry>>();
   for (const entry of registry.deadlines)
@@ -2203,7 +2292,14 @@ export async function proposeModelReplacements(
           ? `work budget of ${MAX_STEPS.toLocaleString('en-US')} steps`
           : `depth limit of ${MAX_DEPTH}`
       }, so not every source and use could be checked; change it by hand to`;
-    const customUrl = request.custom || (request.sdk && endpointSet);
+    // For an SDK request: what its own client's constructor says about the endpoint.
+    const client =
+      request.sdk && !request.custom && endpointSet
+        ? clientEndpoint(program, request.node, request.call.split('.').length)
+        : undefined;
+    const customUrl =
+      request.custom ||
+      (request.sdk && endpointSet && !(endpoints && client?.official && !endpointSet.everyClient));
     // axios request configs (`axios({ url, data })`, `axios.request`) are new request shapes, so
     // they are reported, not edited, until indirect edits are enabled.
     const direct = indirect
@@ -2244,7 +2340,11 @@ export async function proposeModelReplacements(
                     ? `\`${request.call}\` is not a call Refit edits; ${resolved.to} may change formats or parameters; change it by hand to ${resolved.to}.`
                     : customUrl
                       ? request.sdk
-                        ? `The client sets a custom base URL, so the model may name another provider's model or a deployment; change it by hand to ${resolved.to}.`
+                        ? client?.custom
+                          ? `The client sets \`${client.option}\` (${client.custom}), so the model may name another provider's model or a deployment; change it by hand to ${resolved.to}.`
+                          : client?.official && endpointSet && !endpointSet.everyClient
+                            ? `The repository mentions a custom endpoint (${endpointSet.at}), but this request's client (${client.official}) sets none; editing it waits on an owner decision on endpoint tracing; change it by hand to ${resolved.to}.`
+                            : `The client sets a custom base URL, so the model may name another provider's model or a deployment; change it by hand to ${resolved.to}.`
                         : `The request goes to a host other than the official API, so the model may name another provider's model or a deployment; change it by hand to ${resolved.to}.`
                       : from
                         ? `The request takes its model from the options it spreads (\`...${from}\`), which Refit reports but does not edit; change it by hand to ${resolved.to}.`
