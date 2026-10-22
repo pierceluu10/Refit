@@ -34,7 +34,7 @@ An entry's `kind` is `api-version`, `model` or `sdk`. An `sdk` entry lists npm p
 
 Some entries are **report only**: `refit deadlines` lists them, marked `Report only`, but they never fail `--fail-within` and never open a `--deadline-alerts` issue (owner decision, 2026-10-22). That covers:
 
-- an entry with `"derivedDate": true`, whose date the provider never announced as a shutdown, such as one taken from a release date or an OpenAPI `eol` field. Its summary says where the date comes from;
+- an entry with `"derivedDate": true`, whose date the provider never announced as a shutdown, such as one taken from a release date or an OpenAPI `eol` field. Its summary says where the date comes from. `refit deadlines` labels it as an estimate ("the provider has not announced this date"). For example, `twilio-node-below-6-2026-04-20` is Refit's estimate: Twilio has announced no end-of-support date for twilio-node 5.x, so the date comes from its support policy (only the current major is supported) and the 6.0.0 release date. Its summary says so, and that Refit watches for the official date: like every entry, its sources are re-checked at least every 30 days (`npm run deadlines:check` lists entries checked longer ago), and an announced date replaces the estimate and drops `derivedDate` (owner decision, 2026-10-22);
 - every entry whose `kind` is `method`, `endpoint`, `field` or `feature`.
 
 Past-due entries stay in the registry on purpose: a repository still pinning a retired version is the most urgent case. To change the registry, edit the file from the provider's page, set `checkedAt` to the day you checked, and run:
@@ -141,7 +141,7 @@ refit deadlines --fail-within 30
 
 With `--fail-within <days>`, the command exits **2** when the repository has a live exposure whose deadline has passed, is today or is within that many days. It exits **0** when there is none, and **1** on any error. `0` fails only on past-due deadlines and today; the maximum is 3650. Without the flag, `refit deadlines` only reports and always exits 0 unless it hits an error.
 
-Only live evidence counts, and report-only deadlines (see [The registry](#the-registry)) never fail it. A model named in a list, a test, an example or a comment never fails a build. The output ends with the result, and on failure it lists each failing deadline with its date and days left.
+Only live evidence counts, and report-only deadlines (see [The registry](#the-registry)) never fail it. A model named in a list, a test, an example or a comment never fails a build. The output ends with the result, and on failure it lists each failing deadline with its date and days left. A deadline that has already passed also gets its source, what to upgrade to and what Refit can do ([below](#past-due-deadlines)).
 
 Run it on pull requests to block new uses, and on a schedule so a quiet repository still notices an approaching date:
 
@@ -162,6 +162,35 @@ jobs:
       - run: npm install --global ./refit-X.Y.Z.tgz # the CLI archive from a Refit release
       - run: refit deadlines --fail-within 30
 ```
+
+### Past-due deadlines
+
+Owner decision, 2026-10-22: a deadline that has already passed **keeps failing** `--fail-within`. Report-only deadlines, including derived and estimated dates, still never fail. On failure, each passed deadline gets these lines:
+
+```
+  algolia-javascript-client-v4  2026-08-14 (passed 69 days ago)
+    Passed       on 2026-08-14; this deadline is already in effect
+    Source       https://changelog.algolia.com/label/80880
+    Upgrade to   algoliasearch 5 (the upgrade guide covers the removed initIndex pattern)
+    Action       Refit reports this, and the upgrade is manual.
+```
+
+`Action` offers a draft pull request only where Refit has a fixer:
+- an OpenAI or Anthropic model with a concrete registry replacement: `refit serve --model-fixes`, for models written as a literal in a traced SDK call;
+- an API version of a provider with a Refit agent (Stripe, Shopify), through that agent's migration run.
+
+Every other deadline says the upgrade is manual.
+
+**Allow named past-due deadlines:** `--allow-past-due <id>`, repeatable or comma-separated, with `--fail-within`:
+
+```sh
+refit deadlines --fail-within 30 --allow-past-due algolia-javascript-client-v4
+```
+
+- It turns the named deadlines into warnings, only when they have already passed. They are still printed, with `Warning: … allowed by --allow-past-due` and the lines above, and `--json` lists them in `check.allowed`.
+- It never applies to a deadline that has not passed yet, including one due today: such a deadline still fails inside the window, and the command notes that the flag did not apply.
+- An ID that is not in the registry is an error (exit 1), so a typo never silences anything. Without `--fail-within` the flag is an error too.
+- For an exception with a reason and an expiry, use the ignore file below instead.
 
 ### Accept an exposure for a while
 

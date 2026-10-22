@@ -527,6 +527,140 @@ export const AGENT_CATALOG: ProviderAgent[] = [
     adapter: null,
     guide: null,
   },
+  // Data and productivity APIs (FG3): npm package names read from the npm registry and API hosts
+  // from each provider's API reference, 2026-10-22. Detection only; no adapter.
+  {
+    id: 'google-maps',
+    name: 'Google Maps Platform',
+    packages: [
+      '@googlemaps/google-maps-services-js',
+      '@googlemaps/js-api-loader',
+      '@react-google-maps/api',
+      '@vis.gl/react-google-maps',
+    ],
+    hostnames: ['maps.googleapis.com', 'places.googleapis.com', 'routes.googleapis.com'],
+    adapter: null,
+    guide: null,
+  },
+  {
+    id: 'mapbox',
+    name: 'Mapbox',
+    packages: ['mapbox-gl', '@mapbox/mapbox-sdk', '@mapbox/search-js-react'],
+    hostnames: ['api.mapbox.com'],
+    adapter: null,
+    guide: null,
+  },
+  {
+    id: 'algolia',
+    name: 'Algolia',
+    packages: [
+      'algoliasearch',
+      '@algolia/client-search',
+      'instantsearch.js',
+      'react-instantsearch',
+    ],
+    // Subdomains only (`<app>-dsn.algolia.net`): the bare domain names no API request.
+    hostnames: ['.algolia.net', '.algolianet.com'],
+    adapter: null,
+    guide: null,
+  },
+  {
+    id: 'hubspot',
+    name: 'HubSpot',
+    packages: ['@hubspot/api-client'],
+    hostnames: ['api.hubapi.com', 'api.hubspot.com'],
+    adapter: null,
+    guide: null,
+  },
+  {
+    id: 'intercom',
+    name: 'Intercom',
+    packages: ['intercom-client'],
+    hostnames: ['api.intercom.io'],
+    adapter: null,
+    guide: null,
+  },
+  {
+    id: 'mailchimp',
+    name: 'Mailchimp',
+    packages: ['@mailchimp/mailchimp_marketing', '@mailchimp/mailchimp_transactional'],
+    hostnames: ['api.mailchimp.com', 'mandrillapp.com'],
+    adapter: null,
+    guide: null,
+  },
+  {
+    id: 'zoom',
+    name: 'Zoom',
+    packages: ['@zoom/meetingsdk', '@zoom/videosdk', '@zoomus/websdk'],
+    hostnames: ['api.zoom.us'],
+    adapter: null,
+    guide: null,
+  },
+  {
+    id: 'dropbox',
+    name: 'Dropbox',
+    packages: ['dropbox'],
+    hostnames: ['api.dropboxapi.com', 'content.dropboxapi.com'],
+    adapter: null,
+    guide: null,
+  },
+  {
+    id: 'notion',
+    name: 'Notion',
+    packages: ['@notionhq/client'],
+    hostnames: ['api.notion.com'],
+    adapter: null,
+    guide: null,
+  },
+  {
+    id: 'airtable',
+    name: 'Airtable',
+    packages: ['airtable'],
+    hostnames: ['api.airtable.com'],
+    adapter: null,
+    guide: null,
+  },
+  {
+    id: 'segment',
+    name: 'Segment',
+    packages: ['@segment/analytics-node', '@segment/analytics-next', 'analytics-node'],
+    hostnames: ['api.segment.io'],
+    adapter: null,
+    guide: null,
+  },
+  {
+    id: 'sentry',
+    name: 'Sentry',
+    packages: ['@sentry/node', '@sentry/browser', '@sentry/react', '@sentry/nextjs', 'raven-js'],
+    // Sentry's web API is /api/0/; ingest URLs (`o1.ingest.sentry.io/api/<project>/envelope`) are SDK traffic.
+    hostnames: ['sentry.io/api/0/'],
+    adapter: null,
+    guide: null,
+  },
+  {
+    id: 'discord',
+    name: 'Discord',
+    packages: ['discord.js', 'discord-api-types'],
+    hostnames: ['discord.com/api', 'discordapp.com/api'],
+    adapter: null,
+    guide: null,
+  },
+  {
+    id: 'contentful',
+    name: 'Contentful',
+    packages: ['contentful', 'contentful-management'],
+    hostnames: ['cdn.contentful.com', 'api.contentful.com', 'preview.contentful.com'],
+    adapter: null,
+    guide: null,
+  },
+  {
+    id: 'cloudinary',
+    name: 'Cloudinary',
+    packages: ['cloudinary', '@cloudinary/url-gen', '@cloudinary/react'],
+    hostnames: ['api.cloudinary.com'],
+    adapter: null,
+    guide: null,
+  },
   // AWS SDK for JavaScript v2, whose support ended on 2025-09-08 (data/deadlines.json). No hostname:
   // amazonaws.com also appears in S3 asset URLs and CSP lists that use no SDK. v3's per-service
   // @aws-sdk/client-* packages are listed by scanCloudSdkClients (pipeline/cloud-sdk-clients.ts)
@@ -568,6 +702,10 @@ export interface AgentDetection {
   hostnames: ({ file: string; line: number; hostname: string } & Partial<FindingPlace>)[];
   // API versions the code pins for providers that version their API by header, option or path.
   apiVersions?: ApiVersionPin[];
+  // Requests the code sends to the provider's hosts through an HTTP client (fetch, axios, got, ky,
+  // undici, node:http(s), superagent), from pipeline/api-hosts.ts: tests, docs, assets and
+  // allowlists are left out, which `hostnames` does not do.
+  requests: { host: string; file: string; line: number; client: string }[];
 }
 
 // A hostname in a line, not as the start of a longer name: `.supabase.co` is in
@@ -622,6 +760,11 @@ export async function detectProviders(directory: string): Promise<AgentDetection
   const repository: Repository = await readRepository(directory);
   const declared = await declaredPackageNames(directory);
   const pins = repositoryApiVersionPins(repository);
+  // Loaded when needed: api-hosts.ts reads this catalog, and deadline-exposure.ts reads it when
+  // loaded, so a static import would be a cycle.
+  const { detectApiHosts } = await import('./api-hosts.ts');
+  // It throws only where readRepository above already would, or on a malformed shipped host list.
+  const apiHosts = await detectApiHosts(directory, { repository });
   for (const agent of AGENT_CATALOG) {
     const packages: AgentDetection['packages'] = [];
     for (const name of agent.packages) {
@@ -638,11 +781,17 @@ export async function detectProviders(directory: string): Promise<AgentDetection
     packages.push(...ecosystemPackages(agent, inventory));
     const hostnames = hostnameEvidence(repository, agent);
     const apiVersions = pins.filter((pin) => pin.provider === agent.id);
-    if (packages.length || hostnames.length || apiVersions.length)
+    const requests = apiHosts.hosts
+      .filter((host) => host.provider?.id === agent.id)
+      .flatMap((host) =>
+        host.calls.map(({ file, line, client }) => ({ host: host.host, file, line, client })),
+      );
+    if (packages.length || hostnames.length || apiVersions.length || requests.length)
       detections.push({
         agent,
         packages: packages.map((item) => ({ ...item, ...placeFinding(layout, item.file) })),
         hostnames: hostnames.map((item) => ({ ...item, ...placeFinding(layout, item.file) })),
+        requests,
         ...(apiVersions.length ? { apiVersions } : {}),
       });
   }

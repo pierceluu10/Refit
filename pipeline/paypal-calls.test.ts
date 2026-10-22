@@ -386,6 +386,264 @@ export const dispute = (id: string) => fetch(\`\${BASE}/v1/customer/disputes/\${
   });
 });
 
+const SERVER_MANIFEST = { dependencies: { '@paypal/paypal-server-sdk': '2.5.0' } };
+
+describe('PayPal bases from the environment, tables and functions', () => {
+  const sites = (found: PayPalCall[]) =>
+    found.map(
+      (call) => `${call.file}:${call.line} ${call.method} ${call.path} ${call.hosts.join('|')}`,
+    );
+
+  it('reads an environment variable with a host default, and says it can replace the host', async () => {
+    const found = await calls({
+      'lib/paypal.js': `const PAYPAL_API_BASE = process.env.PAYPAL_API_BASE || 'https://api-m.paypal.com';
+async function token() {
+  const response = await fetch(\`\${PAYPAL_API_BASE}/v1/oauth2/token\`, { method: 'POST' });
+  return response.json();
+}
+`,
+    });
+    expect(sites(found)).toEqual(['lib/paypal.js:3 POST /v1/oauth2/token api-m.paypal.com']);
+    expect(found[0].notes).toContain(
+      'the host is api-m.paypal.com unless `process.env.PAYPAL_API_BASE` replaces it at runtime',
+    );
+  });
+
+  it('reads `??`, string methods that keep the host, and object tables of hosts', async () => {
+    const found = await calls({
+      'a.ts': `const ONE = (process.env.A ?? 'https://api-m.sandbox.paypal.com').replace(/\\/+$/, '');
+const HOSTS = { sandbox: 'https://api-m.sandbox.paypal.com', live: 'https://api-m.paypal.com' };
+const config = { paypal: { api: 'https://api-m.paypal.com' } };
+fetch(\`\${ONE}/v2/checkout/orders\`, { method: 'POST' });
+fetch(\`\${HOSTS[mode]}/v2/checkout/orders/\${id}\`);
+fetch(\`\${HOSTS.live}/v2/payments/captures/\${id}/refund\`, { method: 'POST' });
+`,
+    });
+    expect(sites(found)).toEqual([
+      'a.ts:4 POST /v2/checkout/orders api-m.sandbox.paypal.com',
+      'a.ts:5 GET /v2/checkout/orders/{id} api-m.sandbox.paypal.com|api-m.paypal.com',
+      'a.ts:6 POST /v2/payments/captures/{id}/refund api-m.paypal.com',
+    ]);
+  });
+
+  it('does not read a runtime key into a table where some member is not a PayPal host', async () => {
+    const found = await calls({
+      'a.ts': `const BASES = { paypal: 'https://api-m.paypal.com', other: 'https://api.example.com' };
+fetch(\`\${BASES[provider]}/v2/checkout/orders\`, { method: 'POST' });
+`,
+    });
+    expect(sites(found)).toEqual([]);
+  });
+
+  it('reads a base returned by a function in the same file, a method of the class, or another file', async () => {
+    const found = await calls({
+      'src/lib/paypal.ts': `export function getPayPalBaseUrl(): string {
+  return process.env.PAYPAL_ENV === 'live' ? 'https://api-m.paypal.com' : 'https://api-m.sandbox.paypal.com';
+}
+`,
+      'src/app/create.ts': `import { getPayPalBaseUrl } from '@/lib/paypal';
+const baseUrl = getPayPalBaseUrl();
+await fetch(\`\${baseUrl}/v2/checkout/orders\`, { method: 'POST' });
+await fetch(\`\${getPayPalBaseUrl()}/v2/checkout/orders/\${id}\`);
+`,
+      'src/same.js': `const api = (mode) => (mode === 'live' ? 'https://api-m.paypal.com' : 'https://api-m.sandbox.paypal.com');
+fetch(\`\${api(mode)}/v1/notifications/webhooks\`, { method: 'POST' });
+`,
+      'src/handler.ts': `class Handler {
+  getBase(step) { return this.sub(step.baseUrl) || 'https://api-m.paypal.com'; }
+  async create(step) {
+    const baseUrl = this.getBase(step);
+    return axios.post(\`\${baseUrl}/v2/checkout/orders\`, {});
+  }
+}
+`,
+    });
+    expect(sites(found)).toEqual([
+      'src/app/create.ts:3 POST /v2/checkout/orders api-m.paypal.com|api-m.sandbox.paypal.com',
+      'src/app/create.ts:4 GET /v2/checkout/orders/{id} api-m.paypal.com|api-m.sandbox.paypal.com',
+      'src/handler.ts:5 POST /v2/checkout/orders api-m.paypal.com',
+      'src/same.js:2 POST /v1/notifications/webhooks api-m.paypal.com|api-m.sandbox.paypal.com',
+    ]);
+  });
+
+  it('reads the one base a function returns past an early guard, and none from two', async () => {
+    const found = await calls({
+      'a.ts': `function base() {
+  if (!process.env.PAYPAL_CLIENT_ID) return null;
+  if (process.env.PAYPAL_ENV === 'live') {
+    return 'https://api-m.paypal.com';
+  }
+  throw new Error('live only');
+}
+function either(live) {
+  if (live) return 'https://api-m.paypal.com';
+  return 'https://api.example.com';
+}
+fetch(\`\${base()}/v2/checkout/orders\`);
+fetch(\`\${either(true)}/v2/payments/captures\`);
+`,
+    });
+    expect(sites(found)).toEqual(['a.ts:12 GET /v2/checkout/orders api-m.paypal.com']);
+  });
+
+  it('does not take a function that returns something else, or a host-looking string that is not PayPal', async () => {
+    expect(
+      await calls({
+        'a.ts': `function base() { return process.env.API_URL; }
+function other() { return 'https://api.example.com'; }
+fetch(\`\${base()}/v2/checkout/orders\`);
+fetch(\`\${other()}/v2/checkout/orders\`);
+`,
+      }),
+    ).toEqual([]);
+  });
+
+  it('names an encoded path piece by its argument, not by encodeURIComponent', async () => {
+    const found = await calls({
+      'a.js': `fetch(\`https://api-m.paypal.com/v1/billing/subscriptions/\${encodeURIComponent(subscriptionId)}\`);\n`,
+    });
+    expect(found[0].path).toBe('/v1/billing/subscriptions/{subscriptionId}');
+  });
+});
+
+describe('axios instances with a PayPal baseURL', () => {
+  it('reports requests sent through an instance in a variable or a class property', async () => {
+    const found = await calls({
+      'a.js': `const axios = require('axios');
+const BASE = process.env.PAYPAL_API || 'https://api-m.sandbox.paypal.com';
+const paypal = axios.create({ baseURL: BASE, timeout: 5000 });
+class Api {
+  constructor() { this.http = axios.create({ baseURL: \`\${BASE}/v2\` }); }
+  create() { return this.http.post('/checkout/orders', {}); }
+}
+async function capture(id) { return paypal.post(\`/v2/checkout/orders/\${id}/capture\`); }
+async function token() { return paypal.post('/v1/oauth2/token'); }
+async function show(id) { return paypal.get('/v2/checkout/orders/' + id); }
+`,
+    });
+    expect(
+      found.map((call) => `${call.line} ${call.method} ${call.path} via ${call.client}`),
+    ).toEqual([
+      '6 POST /v2/checkout/orders via this.http.post',
+      '8 POST /v2/checkout/orders/{id}/capture via paypal.post',
+      '9 POST /v1/oauth2/token via paypal.post',
+      '10 GET /v2/checkout/orders/{id} via paypal.get',
+    ]);
+    expect(found[0].operation).toMatchObject({ operationId: 'orders.create' });
+  });
+
+  it('does not report the baseURL again once requests were traced, or an instance of another API', async () => {
+    const found = await calls({
+      'a.js': `import axios from 'axios';
+const client = axios.create({ baseURL: 'https://api-m.paypal.com/v2' });
+const other = axios.create({ baseURL: 'https://api.example.com' });
+client.get('/checkout/orders/1');
+other.get('/checkout/orders/1');
+`,
+    });
+    expect(found.map((call) => `${call.line} ${call.path}`)).toEqual(['4 /v2/checkout/orders/1']);
+  });
+
+  it('still reports a PayPal baseURL that no traced request uses', async () => {
+    const found = await calls({
+      'a.js': `import axios from 'axios';\nexport const client = axios.create({ baseURL: 'https://api-m.paypal.com/v2' });\n`,
+    });
+    expect(found).toHaveLength(1);
+    expect(found[0].unknown).toContain('no request call was traced for this URL');
+  });
+});
+
+describe('controllers passed between files', () => {
+  it('follows an exported getter that returns an object of controllers, through an alias import', async () => {
+    const found = await calls(
+      {
+        'src/libs/paypal.ts': `import { Client, OrdersController, SubscriptionsController } from '@paypal/paypal-server-sdk';
+interface Controllers { orders: OrdersController; subscriptions: SubscriptionsController }
+let controllers: Controllers | null = null;
+export function getPaypal(): Controllers | null {
+  if (!controllers) {
+    const client = new Client({});
+    controllers = {
+      orders: new OrdersController(client),
+      subscriptions: new SubscriptionsController(client),
+    };
+  }
+  return controllers;
+}
+`,
+        'src/app/api/checkout/route.ts': `import { CheckoutPaymentIntent } from '@paypal/paypal-server-sdk';
+import { getPaypal } from '@/libs/paypal';
+export async function POST() {
+  const paypal = getPaypal();
+  if (!paypal) return;
+  const { result } = await paypal.orders.createOrder({ body: { intent: CheckoutPaymentIntent.Capture } });
+  await paypal.subscriptions.cancelSubscription({ id: '1' });
+}
+`,
+        'src/app/api/other.ts': `import { getPaypal } from '@/libs/paypal';
+const order = await getPaypal()!.orders.getOrder({ id: '1' });
+`,
+      },
+      SERVER_MANIFEST,
+    );
+    expect(found.map((call) => `${call.file}:${call.line} ${call.request}`)).toEqual([
+      'src/app/api/checkout/route.ts:6 OrdersController.createOrder',
+      'src/app/api/checkout/route.ts:7 SubscriptionsController.cancelSubscription',
+      'src/app/api/other.ts:2 OrdersController.getOrder',
+    ]);
+  });
+
+  it('follows an exported controller constant and a default-exported getter', async () => {
+    const found = await calls(
+      {
+        'lib/orders.js': `const { OrdersController, Client } = require('@paypal/paypal-server-sdk');
+const orders = new OrdersController(new Client({}));
+module.exports = { orders };
+module.exports.get = () => orders;
+`,
+        'lib/payments.js': `import { PaymentsController, Client } from '@paypal/paypal-server-sdk';
+let payments;
+export default function getPayments() {
+  payments ??= new PaymentsController(new Client({}));
+  return payments;
+}
+`,
+        'routes/a.js': `const { orders } = require('../lib/orders');
+orders.createOrder({});
+`,
+        'routes/b.js': `import getPayments from '../lib/payments';
+await getPayments().capturesGet({ captureId: '1' });
+const p = getPayments();
+await p.capturesGet({ captureId: '2' });
+`,
+      },
+      SERVER_MANIFEST,
+    );
+    expect(found.map((call) => `${call.file}:${call.line} ${call.request}`)).toEqual([
+      'routes/a.js:2 OrdersController.createOrder',
+      'routes/b.js:2 PaymentsController.capturesGet',
+      'routes/b.js:4 PaymentsController.capturesGet',
+    ]);
+  });
+
+  it('does not follow a controller out of a function whose result is not one', async () => {
+    const found = await calls(
+      {
+        'lib/paypal.ts': `import { OrdersController } from '@paypal/paypal-server-sdk';
+export function name() { return 'orders'; }
+export const unused = new OrdersController(client);
+`,
+        'a.ts': `import { name } from './lib/paypal';
+const x = name();
+x.createOrder({});
+`,
+      },
+      SERVER_MANIFEST,
+    );
+    expect(found).toEqual([]);
+  });
+});
+
 describe('the recorded PayPal requests', () => {
   it('maps every newest-release controller method to a published operation except the known gaps', async () => {
     const data = await loadPayPalRequests();

@@ -117,6 +117,7 @@ try {
         packages: detection.packages,
         hostnames: detection.hostnames,
         ...(detection.apiVersions ? { apiVersions: detection.apiVersions } : {}),
+        requests: detection.requests,
       })),
       added: result?.added ?? [],
       nextSteps: result?.nextSteps ?? [],
