@@ -105,3 +105,32 @@ it('summarizes API impact, proposed edits and offline checks for interactive CLI
   expect(review).toContain('Sources     src/webhook.ts');
   expect(review).not.toContain('\u001b');
 });
+
+it('shows the validation runtime and why it differs from the configured image', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'refit-presentation-test-'));
+  directories.push(directory);
+  const runtime = {
+    configured: 'node:22-alpine',
+    image: 'node:20-alpine',
+    nodeVersion: '20.20.2',
+    declarations: [{ source: '.nvmrc', value: '20' }],
+    reason: '.nvmrc "20" excludes the configured node:22-alpine; node:20-alpine satisfies it.',
+  };
+  const write = (value: typeof runtime) =>
+    writeFile(
+      join(directory, 'report.json'),
+      JSON.stringify({ validation: { status: 'passed', runtime: value } }),
+    );
+  const result = {
+    directory,
+    manifest: { files: [{ path: 'report.json' }], status: 'validated', reason: '', error: null },
+  } as unknown as Parameters<typeof renderWorkflowResult>[0];
+  await write(runtime);
+  expect(await renderWorkflowResult(result)).toContain(
+    'Runtime     node:20-alpine (Node.js 20.20.2); configured node:22-alpine. .nvmrc "20" excludes the configured node:22-alpine; node:20-alpine satisfies it.',
+  );
+  await write({ ...runtime, image: 'node:22-alpine', nodeVersion: '22.23.3', reason: 'Kept.' });
+  const kept = await renderWorkflowResult(result);
+  expect(kept).toContain('Runtime     node:22-alpine (Node.js 22.23.3)\n');
+  expect(kept).not.toContain('Kept.');
+});
