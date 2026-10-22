@@ -50,7 +50,7 @@ it.skipIf(!DATABASE)(
   async () => {
     const pool = await database();
     const store = await openHostedStore(pool, tenancy(['example']));
-    const inventories = await openInventoryStore(pool, LIMITS);
+    const inventories = openInventoryStore(pool, LIMITS);
     await install(store, 1, 'example', ['example/one', 'example/two', 'example/three']);
     expect(await install(store, 2, 'customer', ['customer/app'])).toMatchObject({
       status: 'not-allowed',
