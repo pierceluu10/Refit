@@ -157,6 +157,10 @@
       "format": "ai-model-results",
       "predates": ["/harness", "/results/*/outcomeClass"]
     },
+    "2026-10-22-paypal-results.json": {
+      "format": "paypal-results",
+      "predates": []
+    },
     "2026-10-22-slack-baseline-results.json": {
       "format": "slack-results",
       "predates": []

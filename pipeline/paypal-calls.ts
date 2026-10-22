@@ -924,10 +924,13 @@ function baseHosts(
       const member = objectProperty(table, key);
       return member && again(member);
     }
-    const hosts = table.properties.flatMap((property) =>
-      ts.isPropertyAssignment(property) ? (again(property.initializer) ?? []) : [],
+    // A runtime key may pick any member, so every member must be a PayPal host, as for conditionals.
+    const members = table.properties.map((property) =>
+      ts.isPropertyAssignment(property) ? again(property.initializer) : undefined,
     );
-    return hosts.length ? [...new Set(hosts)] : undefined;
+    return members.length && members.every(Boolean)
+      ? [...new Set(members.flatMap((hosts) => hosts!))]
+      : undefined;
   }
   return undefined;
 }

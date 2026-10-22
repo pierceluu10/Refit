@@ -426,6 +426,15 @@ fetch(\`\${HOSTS.live}/v2/payments/captures/\${id}/refund\`, { method: 'POST' })
     ]);
   });
 
+  it('does not read a runtime key into a table where some member is not a PayPal host', async () => {
+    const found = await calls({
+      'a.ts': `const BASES = { paypal: 'https://api-m.paypal.com', other: 'https://api.example.com' };
+fetch(\`\${BASES[provider]}/v2/checkout/orders\`, { method: 'POST' });
+`,
+    });
+    expect(sites(found)).toEqual([]);
+  });
+
   it('reads a base returned by a function in the same file, a method of the class, or another file', async () => {
     const found = await calls({
       'src/lib/paypal.ts': `export function getPayPalBaseUrl(): string {
