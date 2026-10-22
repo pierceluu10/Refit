@@ -289,6 +289,7 @@ it('never proposes Gemini model or SDK replacements', async () => {
   expect(await proposeModelReplacements(root, gemini, NOW)).toEqual({
     replacements: [],
     stops: [],
+    unresolved: [],
     patch: null,
   });
 });
@@ -2133,4 +2134,200 @@ it('stops on a computed property name in a request, which may hide a sampling pa
     [8, computed('claude-opus-4-8')],
   ]);
   expect(proposal.replacements.map((item) => item.line)).toEqual([9]);
+});
+
+// Shapes from the 2026-10-21 Anthropic application benchmark: a model constant with an environment
+// or config fallback, a raw fetch to a configurable base URL, a tsconfig extending a generated file,
+// and model IDs that no traced request sends.
+it('replaces the fallback literal of a model constant used once', async () => {
+  const root = await repository({
+    'src/agent.ts': [
+      "import Anthropic from '@anthropic-ai/sdk';",
+      'const client = new Anthropic();',
+      'export async function run(messages: Anthropic.MessageParam[]) {',
+      "  const model = process.env.AGENT_MODEL ?? 'claude-3-opus-20240229';",
+      '  return client.messages.create({ model, max_tokens: 64, messages });',
+      '}',
+    ].join('\n'),
+    'src/shared.ts': [
+      "import Anthropic from '@anthropic-ai/sdk';",
+      'const client = new Anthropic();',
+      "export const MODEL = process.env.MODEL_ID || process.env.ANTHROPIC_MODEL || 'claude-3-opus-20240229';",
+      'export const first = () => client.messages.create({ model: MODEL, max_tokens: 8, messages: [] });',
+      'export const second = () => client.messages.create({ model: MODEL, max_tokens: 8, messages: [] });',
+    ].join('\n'),
+  });
+  const proposal = await proposeModelReplacements(root, registry, NOW);
+  expect(proposal.replacements).toMatchObject([
+    {
+      file: 'src/agent.ts',
+      edited: { file: 'src/agent.ts', line: 4 },
+      from: 'claude-3-opus-20240229',
+      to: 'claude-opus-4-8',
+    },
+  ]);
+  expect(proposal.patch).toContain(
+    "+  const model = process.env.AGENT_MODEL ?? 'claude-opus-4-8';",
+  );
+  expect(proposal.stops).toMatchObject([
+    {
+      at: { file: 'src/shared.ts', line: 3 },
+      reason:
+        'The model comes from the constant MODEL (src/shared.ts:3), which is used 2 times; change it by hand to claude-opus-4-8.',
+    },
+  ]);
+  expect(proposal.unresolved).toEqual([]);
+});
+
+// Its URL is not the official host, so it is a custom endpoint and stops rather than being edited.
+it('stops on a fetch that sets anthropic-version to another host', async () => {
+  const root = await repository({
+    'src/probe.ts': [
+      'export async function probe(endpoint: { url: string }, apiKey: string) {',
+      '  return fetch(endpoint.url, {',
+      "    method: 'POST',",
+      "    headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },",
+      "    body: JSON.stringify({ model: 'claude-3-opus-20240229', max_tokens: 1, messages: [] }),",
+      '  });',
+      '}',
+      // Without `messages` the body is not a Messages API request.
+      'export async function other(url: string) {',
+      '  return fetch(url, {',
+      "    headers: { 'anthropic-version': '2023-06-01' },",
+      "    body: JSON.stringify({ model: 'claude-3-opus-20240229' }),",
+      '  });',
+      '}',
+    ].join('\n'),
+  });
+  const proposal = await proposeModelReplacements(root, registry, NOW);
+  expect(proposal.replacements).toEqual([]);
+  expect(proposal.patch).toBeNull();
+  expect(proposal.stops).toMatchObject([
+    {
+      file: 'src/probe.ts',
+      line: 2,
+      call: 'fetch with anthropic-version',
+      at: { file: 'src/probe.ts', line: 5 },
+      reason:
+        "The request goes to a host other than the official API, so the model may name another provider's model or a deployment; change it by hand to claude-opus-4-8.",
+    },
+  ]);
+  expect(proposal.unresolved).toMatchObject([
+    { file: 'src/probe.ts', line: 11, model: 'claude-3-opus-20240229', to: 'claude-opus-4-8' },
+  ]);
+});
+
+it('stops for review when the SDK import sits under an unreadable tsconfig', async () => {
+  const root = await repository({
+    // SvelteKit generates this base file; it is not in a fresh checkout.
+    'tsconfig.json': JSON.stringify({
+      extends: './.svelte-kit/tsconfig.json',
+      compilerOptions: { strict: true },
+    }),
+    'src/lib/server/claude.ts': [
+      "import Anthropic from '@anthropic-ai/sdk';",
+      'let client: Anthropic | null = null;',
+      'function getClient(): Anthropic {',
+      '  if (!client) client = new Anthropic();',
+      '  return client;',
+      '}',
+      'export async function ask(content: string) {',
+      '  const claude = getClient();',
+      "  return claude.messages.create({ model: 'claude-3-opus-20240229', max_tokens: 64, messages: [{ role: 'user', content }] });",
+      '}',
+    ].join('\n'),
+  });
+  const proposal = await proposeModelReplacements(root, registry, NOW);
+  expect(proposal.replacements).toEqual([]);
+  expect(proposal.patch).toBeNull();
+  expect(proposal.stops).toMatchObject([
+    {
+      file: 'src/lib/server/claude.ts',
+      line: 9,
+      call: 'messages.create',
+      reason: expect.stringContaining('cannot be fully read'),
+    },
+  ]);
+  expect(proposal.unresolved).toEqual([]);
+});
+
+it('explains every live model ID that no traced request sends', async () => {
+  const withSdk = await repository({
+    'src/config.ts': [
+      "export const converter = { defaultModel: 'claude-3-opus-20240229', retries: 2 };",
+      "export const fallback = process.env.MODEL ?? 'claude-3-opus-20240229';",
+    ].join('\n'),
+    'src/client.ts': [
+      "import Anthropic from '@anthropic-ai/sdk';",
+      'export const anthropic = new Anthropic();',
+    ].join('\n'),
+  });
+  const explained = await proposeModelReplacements(withSdk, registry, NOW);
+  expect(explained.replacements).toEqual([]);
+  expect(explained.stops).toEqual([]);
+  expect(explained.unresolved).toEqual([
+    {
+      deadline: 'anthropic-claude-3-opus',
+      provider: 'anthropic',
+      file: 'src/config.ts',
+      line: 1,
+      model: 'claude-3-opus-20240229',
+      to: 'claude-opus-4-8',
+      reason:
+        'No traced request sends it as its model; it is the `defaultModel` value of an object. Check where it is used and change it by hand if it reaches the API.',
+    },
+    expect.objectContaining({
+      line: 2,
+      reason: expect.stringContaining('it is assigned to `fallback`'),
+    }),
+  ]);
+
+  const withoutSdk = await repository({
+    'package.json': JSON.stringify({ name: 'app', dependencies: { '@ai-sdk/anthropic': '1.0.0' } }),
+    'src/model.ts': [
+      "import { anthropic } from '@ai-sdk/anthropic';",
+      "export const model = anthropic('claude-3-opus-20240229');",
+    ].join('\n'),
+  });
+  expect((await proposeModelReplacements(withoutSdk, registry, NOW)).unresolved).toMatchObject([
+    {
+      file: 'src/model.ts',
+      line: 2,
+      reason: expect.stringMatching(
+        /^No file imports `@anthropic-ai\/sdk`, so the model may reach the API through another library or a wrapper \(it is passed to anthropic\(\)\)\./,
+      ),
+    },
+  ]);
+});
+
+// A catch-all `paths` entry, common in older Node backends, maps every bare name to `baseUrl` and
+// falls back to node_modules, so the SDK package is still the SDK unless a source file shadows it.
+it('treats the SDK as the package under a catch-all paths entry unless a source shadows it', async () => {
+  const files = {
+    'server/tsconfig.json': JSON.stringify({
+      compilerOptions: { baseUrl: '../', paths: { '*': ['*'], 'src/*': ['src/*'] } },
+    }),
+    'server/src/summarize.ts': [
+      "import Anthropic from '@anthropic-ai/sdk';",
+      'const anthropic = new Anthropic();',
+      'export const summarize = (content: string) =>',
+      "  anthropic.messages.create({ model: 'claude-3-opus-20240229', max_tokens: 64, messages: [{ role: 'user', content }] });",
+    ].join('\n'),
+  };
+  const package_ = await proposeModelReplacements(await repository(files), registry, NOW);
+  expect(package_.replacements).toMatchObject([
+    { file: 'server/src/summarize.ts', line: 4, to: 'claude-opus-4-8' },
+  ]);
+
+  const shadowed = await proposeModelReplacements(
+    await repository({
+      ...files,
+      '@anthropic-ai/sdk.ts': 'export default class Anthropic { messages = { create() {} }; }',
+    }),
+    registry,
+    NOW,
+  );
+  expect(shadowed.replacements).toEqual([]);
+  expect(shadowed.patch).toBeNull();
+  expect(shadowed.unresolved).toMatchObject([{ file: 'server/src/summarize.ts', line: 4 }]);
 });
