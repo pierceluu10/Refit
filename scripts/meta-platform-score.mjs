@@ -68,8 +68,10 @@ export function scoreMetaPlatform(labels, results) {
         misses.push({ repo: label.repo, line: name, error: 'moved' });
       }
     }
+    // A guarded request in a test or example is still a WhatsApp or Messenger request; only live
+    // requests the labels leave out count against the guard.
     for (const key of result.guarded)
-      if (!claimed.has(key)) {
+      if (result.calls.includes(key) && !claimed.has(key)) {
         tally.falseGuards += 1;
         misses.push({ repo: label.repo, line: key, error: 'guarded, not labelled' });
       }

@@ -47,8 +47,9 @@ it('scores found, guarded and moved requests, and counts guards no label names',
       repos: [
         {
           repo: 'a/one',
-          calls: ['src/wa.ts:47', 'src/wa.ts:60'],
-          guarded: ['src/wa.ts:47', 'src/x.ts:1'],
+          calls: ['src/wa.ts:47', 'src/wa.ts:60', 'src/x.ts:1'],
+          // test/wa.test.ts:3 is guarded but not a live call, so it does not count.
+          guarded: ['src/wa.ts:47', 'src/x.ts:1', 'test/wa.test.ts:3'],
           moved: ['src/wa.ts:60'],
         },
         { repo: 'b/two', calls: [], guarded: [], moved: [], error: 'scan limits' },
