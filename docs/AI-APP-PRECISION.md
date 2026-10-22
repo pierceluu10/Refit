@@ -4,6 +4,8 @@ This document measures how well Refit's model-retirement detection finds the pla
 
 The detection measured is `refit deadlines --json`: its live exposures, and the evidence file and line of each. The run is static: no Docker, no install, no repository code run, no model request.
 
+`main` already held Refit's output for all 150 repositories (`2026-10-21-openai-app-results.json`, `2026-10-21-anthropic-app-results.json`) and earlier AI-assisted labels. The scripts here do not read them; whether the labeller read them was not recorded.
+
 - Labels: [`benchmarks/2026-10-22-ai-app-model-sites.json`](benchmarks/2026-10-22-ai-app-model-sites.json), beside the frozen lists.
 - Scripts:
   - `scripts/ai-app-precision.mjs`: sample, candidate search, detection run and score.
@@ -110,7 +112,7 @@ The labels were made by the AI agent (Claude) running this lane, not by a human,
 - OpenAI sample (40 repositories, 34 with a site): 179 sites. 91 send to OpenAI (23 of them registry models), 13 to Anthropic (5 registry), 50 to Gemini (none registry) and 25 to a compatible host.
 - Anthropic sample (25 repositories, all with a site): 129 sites. 69 send to Anthropic (18 registry), 36 to OpenAI (5 registry), 20 to Gemini (none registry) and 4 to a compatible host.
 - Six OpenAI-sample repositories have no site: `Dregen-Yor/auto-invoice`, `LangChat/langchat-slides`, `LeafYeeXYZ/PsychPen`, `LocalRouter/LocalRouter`, `Wing900/ManimCat` and `mcaupybugs/minimal-n8n`. Each takes its model from the user or from a router's configuration.
-- Only 51 of the 257 non-compatible sites name a model that `data/deadlines.json` lists. That is the ceiling on what model-retirement detection can report. The registry recall below is scored over those 51 sites, and the all-site recall over all 257.
+- Only 51 of the 257 non-compatible sites (counted per set; 47 distinct) name a model that `data/deadlines.json` lists. That is the ceiling on what model-retirement detection can report. The registry recall below is scored over those 51 sites, and the all-site recall over all 257.
 
 ### Negative files
 
@@ -193,7 +195,7 @@ Keep going: the 79 repositories outside the sample were then labelled the same w
 - 211 SDK calls, 17 wrapper calls, 15 raw HTTP requests and 437 indirect sites;
 - 62 of the sites go to compatible hosts.
 
-The negative files are the sample's 60. Detection ran from the clean `af3f5e4`. Results: [`benchmarks/2026-10-22-ai-app-model-site-results-all.json`](benchmarks/2026-10-22-ai-app-model-site-results-all.json); score: [`benchmarks/2026-10-22-ai-app-model-site-score-all.json`](benchmarks/2026-10-22-ai-app-model-site-score-all.json).
+The negative files are the sample's 60. Detection ran from the clean `af3f5e4`. Results: [`benchmarks/2026-10-22-ai-app-model-site-all-results.json`](benchmarks/2026-10-22-ai-app-model-site-all-results.json); score: [`benchmarks/2026-10-22-ai-app-model-site-score-all.json`](benchmarks/2026-10-22-ai-app-model-site-score-all.json).
 
 | Set                                             | Precision                  | Registry recall           | All-site recall            |
 | ----------------------------------------------- | -------------------------- | ------------------------- | -------------------------- |
@@ -201,6 +203,7 @@ The negative files are the sample's 60. Detection ran from the clean `af3f5e4`. 
 | Anthropic (50 repositories)                     | 32.1% (42/131), 24.7–40.5% | 77.8% (42/54), 65.1–86.8% | 15.5% (42/271), 11.7–20.3% |
 | Anthropic without the 12 Claude Code forks (38) | 71.2% (42/59), 58.6–81.2%  | 95.5% (42/44), 84.9–98.7% |                            |
 
+- **Not fully blind.** The 62 sample repositories in this table carry the 12 label corrections made after reading Refit's output (`b642b81`). Only the 79 remaining repositories are blind. Scored on those 79 alone, as rescored from the committed results and labels during review: OpenAI 76.7% (46/60) precision and 95.8% (46/48) registry recall; Anthropic 33.3% (21/63) and 77.8% (21/27).
 - Reading every new report in the remainder found no labelling miss, so no correction was needed.
 - The remainder holds six more Claude Code forks. With them, the twelve forks account for 72 of the Anthropic set's 89 false positives and 10 of its 12 misses, and for none of its true positives.
 - `txl16095/MiniClaude` keeps one model per config object (`{ firstParty: '…' }`). Refit reports every one of those objects as live, which adds 8 false positives that the four-platform tables do not have.
