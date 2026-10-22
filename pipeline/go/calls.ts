@@ -90,6 +90,9 @@ type Context = {
   files: Map<string, GoFile>;
   tree: (path: string) => Tree | undefined;
   constants: Map<string, string>;
+  // Package-level lookups by directory and name, which every use repeats.
+  packageBindings?: Map<string, Binding[]>;
+  fieldClients?: Map<string, Client | null>;
 };
 
 const field = (node: Node, name: string) => node.childForFieldName(name) ?? undefined;
@@ -134,8 +137,12 @@ function importOf(path: string): Import | undefined {
 
 // Every import of a file by local name, with Go's default name: the last path element, or the
 // module's package name for a module root with a major suffix.
+const IMPORTS = new WeakMap<Tree, Map<string, Import>>();
 function imports(root: Node) {
+  const cached = IMPORTS.get(root.tree);
+  if (cached) return cached;
   const found = new Map<string, Import>();
+  IMPORTS.set(root.tree, found);
   for (const spec of root.descendantsOfType('import_spec')) {
     if (!spec) continue;
     const path = goString(field(spec, 'path')!);
@@ -186,6 +193,10 @@ function bindings(context: Context, file: string, use: Node, name: string): Bind
     if (found.length) return found;
   }
   const directory = posix.dirname(file);
+  context.packageBindings ??= new Map();
+  const key = `${directory}\t${name}`;
+  const cached = context.packageBindings.get(key);
+  if (cached) return cached;
   const found: Binding[] = [];
   for (const path of context.files.keys()) {
     if (posix.dirname(path) !== directory) continue;
@@ -193,6 +204,7 @@ function bindings(context: Context, file: string, use: Node, name: string): Bind
     for (const node of root?.descendantsOfType(['var_spec', 'const_spec']) ?? [])
       if (node && !enclosingFunction(node)) found.push(...declared(node, name, path));
   }
+  context.packageBindings.set(key, found);
   return found;
 }
 
@@ -283,6 +295,18 @@ function resolveClient(context: Context, file: string, node: Node, depth = 0): C
     // `s.client` where a struct in the package declares `client` with an SDK client type.
     const name = field(node, 'field')!.text;
     const directory = posix.dirname(file);
+    context.fieldClients ??= new Map();
+    const key = `${directory}\t${name}`;
+    if (context.fieldClients.has(key)) return context.fieldClients.get(key) ?? undefined;
+    const found = fieldClient(context, directory, name);
+    context.fieldClients.set(key, found ?? null);
+    return found;
+  }
+  return undefined;
+}
+
+function fieldClient(context: Context, directory: string, name: string): Client | undefined {
+  {
     let client: Client | undefined;
     for (const path of context.files.keys()) {
       if (posix.dirname(path) !== directory) continue;
@@ -300,7 +324,6 @@ function resolveClient(context: Context, file: string, node: Node, depth = 0): C
     }
     return client;
   }
-  return undefined;
 }
 
 // The `Model` a params value sets, and the other field names it sets.
@@ -469,19 +492,14 @@ function chain(node: Node) {
 
 function traceCalls(context: Context): SdkCallRecord[] {
   const records: SdkCallRecord[] = [];
-  for (const [path, file] of context.files) {
-    if (!GO_SDKS.some((sdk) => file.content.includes(sdk.module))) {
-      // Clients can also come from another file of the package; check the directory once.
-      const directory = posix.dirname(path);
-      if (
-        ![...context.files].some(
-          ([other, item]) =>
-            posix.dirname(other) === directory &&
-            GO_SDKS.some((sdk) => item.content.includes(sdk.module)),
-        )
-      )
-        continue;
-    }
+  const sdkDirectories = new Set(
+    [...context.files]
+      .filter(([, file]) => GO_SDKS.some((sdk) => file.content.includes(sdk.module)))
+      .map(([path]) => posix.dirname(path)),
+  );
+  for (const path of context.files.keys()) {
+    // Clients can also come from another file of the package.
+    if (!sdkDirectories.has(posix.dirname(path))) continue;
     const root = context.tree(path)?.rootNode;
     if (!root) continue;
     const fileImports = imports(root);
