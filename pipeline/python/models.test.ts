@@ -236,6 +236,7 @@ def ask(model: str = "gpt-4"):
     client.chat.completions.create(model=model, messages=[])
 
 ask(model="o1")
+ask()
 Bot("o3")
 client.chat.completions.create(model=MODEL, messages=[])
 client.chat.completions.create(model=DEFAULT_MODEL, messages=[])
@@ -248,16 +249,76 @@ client.chat.completions.create(model=settings.model_name, messages=[])
 `,
       }),
     ).toEqual([
-      'app.py:23 openai chat.completions.create constructor <- gpt-4@app.py:17 (class field `self.model`) <- gpt-4o@app.py:19 (parameter default `model`) <- o3@app.py:29 (argument for `model`)',
+      'app.py:23 openai chat.completions.create constructor <- gpt-4@app.py:17 (class field `self.model`) <- o3@app.py:30 (argument for `model`)',
       'app.py:26 openai chat.completions.create constructor <- gpt-4@app.py:25 (parameter default `model`) <- o1@app.py:28 (argument for `model`)',
-      'app.py:30 openai chat.completions.create constructor <- gpt-4@app.py:8 (constant `MODEL`)',
-      'app.py:31 openai chat.completions.create constructor <- gpt-4@config.py:2 (environment default (OPENAI_MODEL))',
+      'app.py:31 openai chat.completions.create constructor <- gpt-4@app.py:8 (constant `MODEL`)',
       'app.py:32 openai chat.completions.create constructor <- gpt-4@config.py:2 (environment default (OPENAI_MODEL))',
-      'app.py:33 openai chat.completions.create constructor <- gpt-4@app.py:33 (literal) stop: The model is read from the environment variable M with no default.',
-      'app.py:34 openai chat.completions.create constructor <- gpt-4@app.py:34 (environment default (M))',
-      'app.py:35 openai chat.completions.create constructor <- gpt-4@app.py:35 (literal) <- gpt-4o@app.py:35 (literal)',
-      'app.py:36 openai chat.completions.create constructor <- gpt-4@app.py:9 (entry `smart`)',
-      'app.py:37 openai chat.completions.create constructor <- gpt-4-turbo@app.py:12 (class field `settings.model_name`)',
+      'app.py:33 openai chat.completions.create constructor <- gpt-4@config.py:2 (environment default (OPENAI_MODEL))',
+      'app.py:34 openai chat.completions.create constructor <- gpt-4@app.py:34 (literal) stop: The model is read from the environment variable M with no default.',
+      'app.py:35 openai chat.completions.create constructor <- gpt-4@app.py:35 (environment default (M))',
+      'app.py:36 openai chat.completions.create constructor <- gpt-4@app.py:36 (literal) <- gpt-4o@app.py:36 (literal)',
+      'app.py:37 openai chat.completions.create constructor <- gpt-4@app.py:9 (entry `smart`)',
+      'app.py:38 openai chat.completions.create constructor <- gpt-4-turbo@app.py:12 (class field `settings.model_name`)',
+    ]);
+  });
+
+  it('follows client factories, client defaults, mapping and command-line defaults', async () => {
+    expect(
+      await traced({
+        'app.py': `import argparse
+from openai import OpenAI, AsyncOpenAI
+
+def get_client(fast=False):
+    if fast:
+        return AsyncOpenAI()
+    return OpenAI()
+
+def maybe_client():
+    return None
+
+shared = OpenAI()
+
+def summarize(text, client=shared, model="gpt-4"):
+    return client.chat.completions.create(model=model, messages=[])
+
+def run(config):
+    client = get_client()
+    client.chat.completions.create(model=config.get("model", "gpt-4o"), messages=[])
+
+def overwrite(model="gpt-4"):
+    model = "o1"
+    get_client().chat.completions.create(model=model, messages=[])
+
+class Service:
+    def _client(self):
+        return OpenAI()
+
+    def model(self):
+        return "o3"
+
+    def run(self):
+        self._client().chat.completions.create(model=self.model(), messages=[])
+
+parser = argparse.ArgumentParser()
+parser.add_argument("--model", default="gpt-4o-mini")
+parser.add_argument("--judge-model", dest="judge")
+args = parser.parse_args()
+shared.chat.completions.create(model=args.model, messages=[])
+shared.chat.completions.create(model=args.judge, messages=[])
+CONFIG = {"model": "gpt-4.1"}
+shared.chat.completions.create(model=CONFIG.get("model"), messages=[])
+shared.chat.completions.create(model="", messages=[])
+`,
+      }),
+    ).toEqual([
+      'app.py:15 openai chat.completions.create constructor <- gpt-4@app.py:14 (parameter default `model`)',
+      'app.py:19 openai chat.completions.create constructor <- gpt-4o@app.py:19 (default of `config.get("model")`)',
+      'app.py:23 openai chat.completions.create constructor <- o1@app.py:22 (constant `model`)',
+      'app.py:33 openai chat.completions.create constructor <- o3@app.py:30 (literal)',
+      'app.py:39 openai chat.completions.create constructor <- gpt-4o-mini@app.py:36 (command-line default (--model))',
+      'app.py:40 openai chat.completions.create constructor stop: The model comes from the command-line option for `judge`, which has no default.',
+      'app.py:42 openai chat.completions.create constructor <- gpt-4.1@app.py:41 (entry `model`)',
+      'app.py:43 openai chat.completions.create constructor',
     ]);
   });
 

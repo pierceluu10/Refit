@@ -308,9 +308,36 @@ function scopesOf(node: Node): Node[] {
 function lookup(node: Node, name: string): Binding[] {
   for (const scope of scopesOf(node)) {
     const found = bindingsIn(scope, name);
-    if (found.length) return found;
+    if (found.length)
+      return scope.type === 'function_definition' ? reaching(scope, node, found) : found;
   }
   return [];
+}
+
+// In a function, an assignment that is a statement of the body itself, before the use, replaces
+// every earlier binding: `model = MODEL_NAME` at the top of a function hides the parameter.
+function reaching(scope: Node, use: Node, found: Binding[]) {
+  const body = field(scope, 'body');
+  let cut: Node | undefined;
+  for (const binding of found) {
+    if (binding.kind !== 'value' && binding.kind !== 'unknown') continue;
+    const statement =
+      binding.node.parent?.type === 'assignment' ? binding.node.parent.parent : binding.node.parent;
+    if (
+      statement?.parent?.id === body?.id &&
+      statement!.endIndex <= use.startIndex &&
+      (!cut || statement!.startIndex > cut.startIndex)
+    )
+      cut = statement!;
+  }
+  return cut
+    ? found.filter(
+        (binding) =>
+          binding.kind !== 'parameter' &&
+          'node' in binding &&
+          binding.node.startIndex >= cut!.startIndex,
+      )
+    : found;
 }
 
 // The file a module name refers to, from the importing file: relative imports from its directory,
@@ -414,7 +441,17 @@ function resolveClient(context: Context, file: string, node: Node, depth = 0): C
         client && { ...client, custom: client.custom ?? customEndpoint(node, client.sdk, null) }
       );
     }
-    return undefined;
+    // A function in the repository that returns a client on every path that returns one.
+    const returned = returnedValues(context, file, callee);
+    if (!returned) return undefined;
+    let client: Client | undefined;
+    for (const value of returned) {
+      if (value.node.type === 'none') continue;
+      const found = resolveClient(context, value.file, value.node, depth + 1);
+      if (!found) return undefined;
+      client ??= found;
+    }
+    return client;
   }
   if (node.type === 'identifier') {
     const reference = sdkReference(context, file, node);
@@ -461,7 +498,10 @@ function clientFromBindings(
       found = resolveClient(context, file, binding.node, depth + 1);
     } else if (binding.kind === 'parameter') {
       const type = field(binding.node, 'type');
-      found = type && annotatedClient(context, file, type, binding.node);
+      const fallback = field(binding.node, 'value');
+      found = type
+        ? annotatedClient(context, file, type, binding.node)
+        : fallback && resolveClient(context, file, fallback, depth + 1);
     } else if (binding.kind === 'import') {
       const module = binding.name
         ? moduleFile(context, file, binding.module, binding.level)
@@ -617,6 +657,8 @@ function traceValue(
   const next = (target: Node, how: string, where = file) =>
     traceValue(context, where, target, how, depth + 1, seen);
   const value = stringValue(node);
+  // An empty string names no model.
+  if (value === '') return { literals: [], stop: null };
   if (value !== undefined) return { literals: [{ ...site(file, node), value, via }], stop: null };
   switch (node.type) {
     case 'string':
@@ -675,6 +717,8 @@ function traceValue(
             seen,
             'class field',
           );
+        const argument = argparseDefault(context, file, object, name, depth, seen);
+        if (argument) return argument;
       }
       return stop(`The model comes from \`${text(node)}\`, which Refit cannot trace.`);
     }
@@ -690,6 +734,28 @@ function traceValue(
               `The model is read from the environment variable ${environment.name} with no default.`,
             );
       }
+      // `config.get("model", "gpt-4o")`: the default, and the entry when the mapping is a literal.
+      const callee = field(node, 'function')!;
+      const { keywords } = keywordArguments(node);
+      const positional = (field(node, 'arguments')?.namedChildren ?? []).filter(
+        (item): item is Node =>
+          Boolean(item) && item!.type !== 'keyword_argument' && item!.type !== 'comment',
+      );
+      const fallback = positional[1] ?? keywords.get('default');
+      const entry = positional[0] && stringValue(unwrap(positional[0]));
+      if (callee.type === 'attribute' && field(callee, 'attribute')!.text === 'get' && entry) {
+        const table = field(callee, 'object')!;
+        const values = [
+          dictionaryEntries(context, file, table, entry, depth, seen) ?? {
+            literals: [],
+            stop: null,
+          },
+        ];
+        if (fallback) values.push(next(fallback, `default of \`${text(callee)}("${entry}")\``));
+        return merge(values);
+      }
+      const factory = returnedValues(context, file, callee);
+      if (factory) return merge(factory.map((value) => next(value.node, via, value.file)));
       return stop(`The model comes from \`${text(node)}\`, which Refit cannot trace.`);
     }
     case 'subscript': {
@@ -791,11 +857,6 @@ function traceParameter(
       stop: `The model comes from the field \`${name}\`, which has no value.`,
     };
   const values: TracedValue[] = [];
-  const fallback = field(binding.node, 'value');
-  if (fallback && fallback.type !== 'none')
-    values.push(
-      traceValue(context, file, fallback, `parameter default \`${name}\``, depth + 1, seen),
-    );
   const parameters = (field(owner, 'parameters')?.namedChildren ?? []).filter(
     (item): item is Node => Boolean(item),
   );
@@ -808,6 +869,9 @@ function traceParameter(
   const offset = method ? 1 : 0;
   const tree = context.tree(file);
   let unknown = false;
+  // The default is sent when no caller in the file is found, or one leaves the argument out.
+  let callers = 0;
+  let omitted = false;
   for (const call of tree?.rootNode.descendantsOfType('call') ?? []) {
     if (!call) continue;
     const target = field(call, 'function')!;
@@ -831,10 +895,17 @@ function traceParameter(
       (position - offset >= 0 && positional[position - offset]?.type !== 'list_splat'
         ? positional[position - offset]
         : undefined);
+    callers += 1;
     if (argument)
       values.push(traceValue(context, file, argument, `argument for \`${name}\``, depth + 1, seen));
     else if (splats.length || positional.some((item) => item.type === 'list_splat')) unknown = true;
+    else omitted = true;
   }
+  const fallback = field(binding.node, 'value');
+  if (fallback && fallback.type !== 'none' && (!callers || omitted))
+    values.unshift(
+      traceValue(context, file, fallback, `parameter default \`${name}\``, depth + 1, seen),
+    );
   if (unknown)
     values.push({
       literals: [],
@@ -962,6 +1033,105 @@ function spreadOptions(
   if (splat.type === 'call' && field(splat, 'function')?.text === 'dict') {
     const { keywords, splats, positional } = keywordArguments(splat);
     return splats.length || positional ? undefined : keywords;
+  }
+  return undefined;
+}
+
+// The values a function in the repository returns, by the callee that calls it: a function in
+// the same file or imported from a repository module, or a method called on `self`.
+function returnedValues(
+  context: Context,
+  file: string,
+  callee: Node,
+): { node: Node; file: string }[] | undefined {
+  callee = unwrap(callee);
+  let definition: { node: Node; file: string } | undefined;
+  if (callee.type === 'identifier') {
+    const bindings = lookup(callee, callee.text);
+    const [binding] = bindings;
+    if (bindings.length !== 1) return undefined;
+    if (binding.kind === 'definition' && binding.node.type === 'function_definition')
+      definition = { node: binding.node, file };
+    else if (binding.kind === 'import' && binding.name) {
+      const module = moduleFile(context, file, binding.module, binding.level);
+      const tree = module && context.tree(module);
+      const found = tree ? bindingsIn(tree.rootNode, binding.name) : [];
+      if (
+        module &&
+        found.length === 1 &&
+        found[0].kind === 'definition' &&
+        found[0].node.type === 'function_definition'
+      )
+        definition = { node: found[0].node, file: module };
+    }
+  } else if (callee.type === 'attribute') {
+    const object = unwrap(field(callee, 'object')!);
+    const owner = object.type === 'identifier' ? classOfSelf(object) : undefined;
+    const name = field(callee, 'attribute')!.text;
+    const method = field(owner ?? callee, 'body')
+      ?.namedChildren.map((item) =>
+        item?.type === 'decorated_definition' ? field(item, 'definition') : item,
+      )
+      .find((item) => item?.type === 'function_definition' && field(item, 'name')?.text === name);
+    if (owner && method) definition = { node: method, file };
+  }
+  if (!definition) return undefined;
+  const values: { node: Node; file: string }[] = [];
+  const visit = (node: Node) => {
+    for (const child of node.namedChildren) {
+      if (!child || SCOPES.has(child.type) || child.type === 'decorated_definition') continue;
+      if (child.type === 'return_statement') {
+        const value = child.namedChild(0);
+        if (!value) return void values.push({ node: child, file: definition!.file });
+        values.push({ node: value, file: definition!.file });
+      } else visit(child);
+    }
+  };
+  const body = field(definition.node, 'body');
+  if (body) visit(body);
+  return values.length ? values : undefined;
+}
+
+// `args.model` from `argparse`: the default of the option whose destination is `model`, when the
+// file defines it with `add_argument`.
+function argparseDefault(
+  context: Context,
+  file: string,
+  object: Node,
+  name: string,
+  depth: number,
+  seen: Set<string>,
+): TracedValue | undefined {
+  const bindings = lookup(object, object.text);
+  const parsed = bindings.every(
+    (binding) =>
+      binding.kind === 'parameter' ||
+      (binding.kind === 'value' &&
+        binding.node.type === 'call' &&
+        /\.parse(?:_known)?_args$/.test(field(binding.node, 'function')!.text)),
+  );
+  if (!bindings.length || !parsed) return undefined;
+  for (const call of context.tree(file)?.rootNode.descendantsOfType('call') ?? []) {
+    const callee = call && field(call, 'function');
+    if (callee?.type !== 'attribute' || field(callee, 'attribute')!.text !== 'add_argument')
+      continue;
+    const { keywords } = keywordArguments(call!);
+    const flags = (field(call!, 'arguments')?.namedChildren ?? [])
+      .map((item) => (item ? stringValue(item) : undefined))
+      .filter((item): item is string => item !== undefined);
+    const destination =
+      (keywords.get('dest') && stringValue(keywords.get('dest')!)) ??
+      (flags.find((flag) => flag.startsWith('--')) ?? flags[0] ?? '')
+        .replace(/^-+/, '')
+        .replaceAll('-', '_');
+    if (destination !== name) continue;
+    const fallback = keywords.get('default');
+    return fallback
+      ? traceValue(context, file, fallback, `command-line default (--${name})`, depth + 1, seen)
+      : {
+          literals: [],
+          stop: `The model comes from the command-line option for \`${name}\`, which has no default.`,
+        };
   }
   return undefined;
 }
