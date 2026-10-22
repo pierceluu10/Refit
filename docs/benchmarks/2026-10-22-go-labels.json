@@ -6,7 +6,7 @@
   "scope": {
     "files": "Go files tracked by git outside vendor, testdata, test, example and sample directories and _test.go files",
     "calls": "every call that sends a request through stripe-go (client methods and resource package functions such as customer.New; not webhook.ConstructEvent), openai-go or anthropic-sdk-go, at the line where the call starts, whether or not Refit can prove the client",
-    "sent": "a line where a model the call can send is written: a string literal, or an SDK model constant (the line of , ); defaults and config defaults that reach the call count; catalogs, pricing tables and the repository's own constant tables do not",
+    "sent": "a line where a model the call can send is written: a string literal, or an SDK model constant (the line of `openai.ChatModelGPT4o` or `anthropic.ModelClaude...`); defaults and config defaults that reach the call count; catalogs, pricing tables and the repository's own constant tables do not",
     "ambiguous": "paths that could not be settled by reading; not scored"
   },
   "repos": [
