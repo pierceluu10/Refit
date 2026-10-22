@@ -69,6 +69,23 @@ describe('list-B catalog entries', () => {
     },
   );
 
+  it('reports requests sent to the host through an HTTP client, but not other mentions', async () => {
+    const root = await repository({
+      'package.json': JSON.stringify({ name: 'app' }),
+      'src/a.ts': `await fetch('https://api.mapbox.com/geocoding/v5/mapbox.places/x.json');\n`,
+      'src/b.ts': `const csp = ['api.mapbox.com'];\nconst css = 'https://api.mapbox.com/mapbox-gl-js/v3/mapbox-gl.css';\n`,
+      'test/c.test.ts': `fetch('https://api.mapbox.com/x');\n`,
+      'src/d.ts': `await fetch('https://abc-dsn.algolia.net/1/indexes/x/query');\n`,
+    });
+    const found = await detectProviders(root);
+    const mapbox = found.find((item) => item.agent.id === 'mapbox')!;
+    expect(mapbox.requests).toEqual([
+      { host: 'api.mapbox.com', file: 'src/a.ts', line: 1, client: 'fetch' },
+    ]);
+    expect(mapbox.hostnames.map((item) => item.file)).toContain('test/c.test.ts');
+    expect(found.find((item) => item.agent.id === 'algolia')!.requests).toHaveLength(1);
+  });
+
   it('does not detect a provider from an unrelated package', async () => {
     const root = await repository({ 'package.json': manifest({ express: '^4.0.0' }) });
     expect(await detectProviders(root)).toEqual([]);

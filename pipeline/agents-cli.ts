@@ -99,6 +99,7 @@ try {
           Boolean(result?.added.includes(detection.agent.id)),
         packages: detection.packages,
         hostnames: detection.hostnames,
+        requests: detection.requests,
       })),
       added: result?.added ?? [],
       nextSteps: result?.nextSteps ?? [],

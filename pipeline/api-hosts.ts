@@ -157,7 +157,12 @@ function matchesEntry(host: string, entry: string) {
 // The provider a host belongs to: a catalog agent first, then the host list.
 export function providerOf(host: string, list: ApiHostEntry[]): ApiHost['provider'] {
   for (const agent of AGENT_CATALOG)
-    if (agent.hostnames.some((name) => matchesEntry(host, hostOf(name))))
+    // A catalog hostname also covers its subdomains: `abc-dsn.algolia.net` is Algolia.
+    if (
+      agent.hostnames.some(
+        (name) => matchesEntry(host, hostOf(name)) || host.endsWith(`.${hostOf(name)}`),
+      )
+    )
       return { id: agent.id, name: agent.name, origin: 'catalog' };
   const match = list.find((entry) => matchesEntry(host, entry.host));
   return match

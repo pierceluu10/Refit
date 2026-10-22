@@ -232,7 +232,7 @@ export const AGENT_CATALOG: ProviderAgent[] = [
     id: 'cloudinary',
     name: 'Cloudinary',
     packages: ['cloudinary', '@cloudinary/url-gen', '@cloudinary/react'],
-    hostnames: ['api.cloudinary.com', 'res.cloudinary.com'],
+    hostnames: ['api.cloudinary.com'],
     adapter: null,
     guide: null,
   },
@@ -244,6 +244,10 @@ export interface AgentDetection {
   agent: ProviderAgent;
   packages: { file: string; name: string; version: string; locked: string | null }[];
   hostnames: { file: string; line: number; hostname: string }[];
+  // Requests the code sends to the provider's hosts through an HTTP client (fetch, axios, got, ky,
+  // undici, node:http(s), superagent), from pipeline/api-hosts.ts: tests, docs, assets and
+  // allowlists are left out, which `hostnames` does not do.
+  requests: { host: string; file: string; line: number; client: string }[];
 }
 
 function hostnameEvidence(repository: Repository, agent: ProviderAgent) {
@@ -260,6 +264,10 @@ function hostnameEvidence(repository: Repository, agent: ProviderAgent) {
 // source, without running repository code or contacting any provider.
 export async function detectProviders(directory: string): Promise<AgentDetection[]> {
   const detections: AgentDetection[] = [];
+  // Loaded when needed: api-hosts.ts reads this catalog, and deadline-exposure.ts reads it when
+  // loaded, so a static import would be a cycle.
+  const { detectApiHosts } = await import('./api-hosts.ts');
+  const apiHosts = await detectApiHosts(directory);
   for (const agent of AGENT_CATALOG) {
     const packages: AgentDetection['packages'] = [];
     let repository: Repository | undefined;
@@ -276,7 +284,13 @@ export async function detectProviders(directory: string): Promise<AgentDetection
         });
     }
     const hostnames = hostnameEvidence(repository!, agent);
-    if (packages.length || hostnames.length) detections.push({ agent, packages, hostnames });
+    const requests = apiHosts.hosts
+      .filter((host) => host.provider?.id === agent.id)
+      .flatMap((host) =>
+        host.calls.map(({ file, line, client }) => ({ host: host.host, file, line, client })),
+      );
+    if (packages.length || hostnames.length || requests.length)
+      detections.push({ agent, packages, hostnames, requests });
   }
   return detections;
 }
