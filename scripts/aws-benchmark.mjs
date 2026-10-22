@@ -1,9 +1,9 @@
 // Runs benchmark shards on EC2 instances that terminate themselves. Uses the AWS CLI with the
 // caller's AWS_PROFILE and AWS_REGION. See docs/AWS-BENCHMARKS.md.
 import { execFile } from 'node:child_process';
-import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join, resolve } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { parseArgs, promisify } from 'node:util';
 import {
   RUN_ID,
@@ -195,10 +195,10 @@ async function setup() {
   );
 }
 
+// A run's instances, or every active instance in the account when no run is given.
 async function instances(run) {
   const filters = ['--filters', `Name=instance-state-name,Values=${ACTIVE_STATES.join(',')}`];
   if (run) filters.push(`Name=tag:${TAG},Values=${run}`);
-  else filters.push(`Name=tag-key,Values=${TAG}`);
   const { Reservations } = await aws('ec2', 'describe-instances', ...filters);
   return Reservations.flatMap((reservation) => reservation.Instances);
 }
@@ -244,7 +244,8 @@ async function launch(values, command) {
 
   const market = values.market ?? 'spot';
   if (!(market in VCPU_QUOTAS)) throw new Error('--market must be spot or on-demand.');
-  // Every running benchmark shard, from any agent, counts against the chosen vCPU quota.
+  // Every active instance of the same market counts against its vCPU quota, including ones other
+  // people launched by hand.
   const [active, perInstance, quota] = await Promise.all([
     instances(),
     vcpus(instanceType),
@@ -257,10 +258,12 @@ async function launch(values, command) {
       VCPU_QUOTAS[market],
     ),
   ]);
-  const used = (await Promise.all(active.map((instance) => vcpus(instance.InstanceType)))).reduce(
-    (sum, count) => sum + count,
-    0,
+  const sameMarket = active.filter(
+    (instance) => (instance.InstanceLifecycle === 'spot') === (market === 'spot'),
   );
+  const used = (
+    await Promise.all(sameMarket.map((instance) => vcpus(instance.InstanceType)))
+  ).reduce((sum, count) => sum + count, 0);
   const needed = perInstance * slices.length;
   if (used + needed > quota.Quota.Value)
     throw new Error(
@@ -383,6 +386,28 @@ async function deleteEnv(run) {
   await aws('s3', 'rm', `s3://${await bucket()}/runs/${run}/env`, '--only-show-errors');
 }
 
+const SHARD_RESULTS = /^shard-\d+\/out\/(.*results\.json)$/;
+
+// Concatenates each shard's results.json arrays into merged/<same path>, so compare scripts read
+// one file per run.
+async function mergeResults(directory) {
+  const groups = new Map();
+  for (const path of await readdir(directory, { recursive: true })) {
+    const match = SHARD_RESULTS.exec(path.replaceAll('\\', '/'));
+    if (match) groups.set(match[1], [...(groups.get(match[1]) ?? []), path]);
+  }
+  for (const [relative, paths] of groups) {
+    const parts = await Promise.all(
+      paths.sort().map(async (path) => JSON.parse(await readFile(join(directory, path), 'utf8'))),
+    );
+    if (!parts.every(Array.isArray)) continue;
+    const target = join(directory, 'merged', relative);
+    await mkdir(dirname(target), { recursive: true });
+    await writeFile(target, `${JSON.stringify(parts.flat(), null, 2)}\n`);
+    console.log(`Merged ${paths.length} shard(s) into ${target}`);
+  }
+}
+
 async function collect(run, to) {
   if (!to) throw new Error('collect needs --to <dir>.');
   await aws(
@@ -397,6 +422,7 @@ async function collect(run, to) {
     '--only-show-errors',
   );
   await deleteEnv(run);
+  await mergeResults(resolve(to));
   const active = await instances(run);
   console.log(
     `Downloaded ${run} to ${resolve(to)}.${active.length ? ` ${active.length} shard(s) still running.` : ''}`,

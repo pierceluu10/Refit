@@ -34,8 +34,18 @@ Build toward a reliable agent for many API providers, with separate integrations
 - Goals for each API provider: [Provider goals](docs/PROVIDER-GOALS.md).
 - Goals for each programming language: [Language goals](docs/LANGUAGE-GOALS.md).
 - See CLI commands and requirements: [CLI guide](docs/CLI.md).
+- Run benchmarks on EC2 instead of a laptop: [AWS benchmarks](docs/AWS-BENCHMARKS.md).
 
 The guides explain onboarding a repository into Refit. This file explains how coding agents should contribute to Refit itself.
+
+## Working in parallel
+
+Several agents build and benchmark at once. To keep out of each other's way:
+
+- One branch and one `git worktree` per task (`git worktree add -b feat/<name> ../Refit-<name> origin/main`). Never edit another agent's worktree or switch its branch. Run `npm ci` in a new worktree before tests.
+- Benchmarks run on AWS with `node scripts/aws-benchmark.mjs` (profile `refit`, region `us-east-2`; the owner signs in with `aws login`, agents never handle credentials). Use a unique `--run <benchmark>-<date>-<agent>` id, pin `--commit`, keep `--hours` as low as the run needs, and always `collect` or `stop` the run when done. `launch` counts every agent's running shards against the account's vCPU quota and refuses to exceed it; wait rather than raising quotas or limits yourself.
+- The AWS project has a $20 monthly spend limit and is on the free plan (on-demand only). Ask before a run that needs more than the free on-demand quota (16 vCPUs, two `c7i.2xlarge`) or more than three hours, and before any `--ai` run, which also spends the OpenAI budget.
+- Record benchmark outcomes in `docs/BENCHMARKS.md` with the run id, commit and command, as for local runs.
 
 ## Release and verification notes
 
