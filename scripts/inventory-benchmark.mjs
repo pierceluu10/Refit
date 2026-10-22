@@ -73,17 +73,23 @@ const DETECTORS = {
         provider: item.provider.id,
         files: files((item.calls ?? []).map((c) => `${c.file}:${c.line}`)),
       })),
-  // AWS and Azure SDK clients; the SDK id starts with the provider.
+  // Live AWS and Azure SDK clients; the SDK id starts with the provider.
   'cloud-sdk': (json) =>
-    (json.clients ?? []).map((item) => ({
-      provider: item.sdk.startsWith('azure') ? 'azure' : 'aws',
-      files: [`${item.file}:${item.line}`],
-    })),
-  // Slack Web API and webhook calls.
-  slack: (json) =>
-    (json.calls ?? []).length
-      ? [{ provider: 'slack', files: files(json.calls.map((c) => `${c.file}:${c.line}`)) }]
-      : [],
+    (json.clients ?? [])
+      .filter((item) => item.use !== 'test')
+      .map((item) => ({
+        provider: item.sdk.startsWith('azure') ? 'azure' : 'aws',
+        files: [`${item.file}:${item.line}`],
+      })),
+  // Live Slack Web API calls, incoming webhooks and RTM connections.
+  slack: (json) => {
+    const live = [...(json.calls ?? []), ...(json.webhooks ?? []), ...(json.rtm ?? [])].filter(
+      (item) => item.use !== 'test',
+    );
+    return live.length
+      ? [{ provider: 'slack', files: files(live.map((c) => `${c.file}:${c.line}`)) }]
+      : [];
+  },
 };
 const list = await read(values.list);
 const labels = await read(values.labels);
