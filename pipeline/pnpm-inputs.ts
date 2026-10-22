@@ -12,6 +12,7 @@ import {
   MAX_PACKAGE_BYTES,
   MAX_PACKAGES,
   NPM_PACKAGE_NAME,
+  REGISTRY_PACKAGE_NAME,
   npmWorkspaceDirectories,
 } from './npm-lock.ts';
 
@@ -81,7 +82,7 @@ function configuration(value: Record<string, unknown>) {
       value[key] !== undefined &&
       (!Array.isArray(value[key]) ||
         !(value[key] as unknown[]).every(
-          (name) => typeof name === 'string' && NPM_PACKAGE_NAME.test(name),
+          (name) => typeof name === 'string' && REGISTRY_PACKAGE_NAME.test(name),
         ))
     )
       throw new PipelineInputError(`pnpm ${key} must contain package names.`);
@@ -113,7 +114,7 @@ function configuration(value: Record<string, unknown>) {
       !isObject(entries) ||
       Object.entries(entries).some(
         ([name, source]) =>
-          !NPM_PACKAGE_NAME.test(name) ||
+          !REGISTRY_PACKAGE_NAME.test(name) ||
           !isRegistrySource(source) ||
           source.startsWith('catalog:'),
       )
@@ -284,7 +285,7 @@ export function validatePnpmInputs(
         throw new PipelineInputError(`pnpm ${section} must be an object.`);
       for (const [name, source] of Object.entries(declarations))
         if (
-          !NPM_PACKAGE_NAME.test(name) ||
+          !REGISTRY_PACKAGE_NAME.test(name) ||
           typeof source !== 'string' ||
           (!source.startsWith('workspace:') &&
             !source.startsWith('catalog:') &&
@@ -396,7 +397,7 @@ function registryGraph(document: Record<string, unknown>) {
     const key = EXACT_PACKAGE_VERSION.test(base) ? `${name}@${base}` : base;
     const split = key.lastIndexOf('@');
     if (
-      !NPM_PACKAGE_NAME.test(key.slice(0, split)) ||
+      !REGISTRY_PACKAGE_NAME.test(key.slice(0, split)) ||
       !EXACT_PACKAGE_VERSION.test(key.slice(split + 1)) ||
       !Object.hasOwn(packages, key) ||
       !Object.hasOwn(snapshots, `${key}${version.slice(base.length)}`)
@@ -408,7 +409,7 @@ function registryGraph(document: Record<string, unknown>) {
   for (const [key, value] of Object.entries(packages)) {
     const split = key.lastIndexOf('@');
     if (
-      !NPM_PACKAGE_NAME.test(key.slice(0, split)) ||
+      !REGISTRY_PACKAGE_NAME.test(key.slice(0, split)) ||
       !EXACT_PACKAGE_VERSION.test(key.slice(split + 1)) ||
       !isObject(value) ||
       !isObject(value.resolution) ||
