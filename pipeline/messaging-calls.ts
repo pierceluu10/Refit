@@ -64,8 +64,9 @@ export interface MessagingPackage {
   locked: string | null;
   // npm's notice for a retired package (`sendgrid`, `mailgun-js`).
   deprecated: string | null;
-  // The registry deadline this declaration falls under, such as twilio below 6.0.0.
-  deadline: { id: string; date: string } | null;
+  // The registry deadline this declaration falls under, such as twilio below 6.0.0. `estimate`
+  // is set when the provider never announced the date (the entry's `derivedDate`).
+  deadline: { id: string; date: string; estimate: boolean } | null;
 }
 
 export interface MessagingScan {
@@ -317,7 +318,9 @@ export async function scanMessagingCalls(
         declared: item.version,
         locked: item.locked,
         deprecated: data.retired.get(item.name) ?? null,
-        deadline: entry ? { id: entry.id, date: entry.date } : null,
+        deadline: entry
+          ? { id: entry.id, date: entry.date, estimate: entry.derivedDate === true }
+          : null,
       });
     }
   const repository = await readRepository(root, 'twilio');

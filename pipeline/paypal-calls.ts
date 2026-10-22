@@ -489,14 +489,24 @@ function checkoutRecord(
 
 // `new OrdersController(client).createOrder(...)`, a variable or class property holding a
 // controller, and namespace forms such as `sdk.OrdersController`.
-function serverCalls(
-  file: FileContext,
-  data: PayPalRequests,
-  version: string | null,
-): PayPalCall[] {
+// What an expression holds for the server SDK: a controller, an object of them
+// (`{ orders: new OrdersController(client) }`), or a function that returns one.
+type Shape = { controller: string } | { props: Map<string, Shape> } | { returns: Shape };
+
+const MAX_SHAPE_DEPTH = 6;
+// `x = …`, `x ??= …` and `x ||= …` all leave the controller in `x`.
+const ASSIGNS = new Set([
+  ts.SyntaxKind.EqualsToken,
+  ts.SyntaxKind.QuestionQuestionEqualsToken,
+  ts.SyntaxKind.BarBarEqualsToken,
+]);
+
+// Follows controllers the way a file hands them around: constructed in place, held in variables,
+// class properties and object properties, and returned by functions. Controllers exported from
+// one file reach another through `imported`, keyed by local name.
+function shapeResolver(file: FileContext, data: PayPalRequests, imported: Map<string, Shape>) {
   const { source } = file;
   const { namespaces, named } = moduleBindings(source, PAYPAL_SERVER_SDK);
-  if (!namespaces.size && !named.size) return [];
   const controllerOf = (expression: ts.Expression): string | undefined => {
     const node = unwrap(expression);
     if (ts.isIdentifier(node)) {
@@ -512,66 +522,220 @@ function serverCalls(
       return node.name.text;
     return undefined;
   };
-  const constructed = (expression: ts.Expression | undefined) => {
-    const node = expression && unwrap(expression);
-    return node && ts.isNewExpression(node) ? controllerOf(node.expression) : undefined;
-  };
   // Controllers held in variables (by declaration) and in class properties (by class and name).
-  const variables = new Map<ts.VariableDeclaration, string>();
-  const properties = new Map<ts.ClassLikeDeclaration, Map<string, string>>();
-  const setProperty = (node: ts.Node, name: string, controller: string) => {
+  const variables = new Map<ts.VariableDeclaration, Shape>();
+  const properties = new Map<ts.ClassLikeDeclaration, Map<string, Shape>>();
+  const strip = (expression: ts.Expression): ts.Expression => {
+    const node = unwrap(expression);
+    return ts.isAwaitExpression(node) ? strip(node.expression) : node;
+  };
+  const shapeOf = (expression: ts.Expression | undefined, depth = 0): Shape | undefined => {
+    const node = expression && strip(expression);
+    if (!node || depth > MAX_SHAPE_DEPTH) return undefined;
+    const again = (inner: ts.Expression | undefined) => shapeOf(inner, depth + 1);
+    if (ts.isNewExpression(node)) {
+      const controller = controllerOf(node.expression);
+      return controller ? { controller } : undefined;
+    }
+    if (ts.isObjectLiteralExpression(node)) {
+      const props = new Map<string, Shape>();
+      for (const property of node.properties) {
+        const name = propertyName(property.name);
+        const value = ts.isPropertyAssignment(property)
+          ? again(property.initializer)
+          : ts.isShorthandPropertyAssignment(property)
+            ? again(property.name)
+            : undefined;
+        if (name && value) props.set(name, value);
+      }
+      return props.size ? { props } : undefined;
+    }
+    if (ts.isIdentifier(node)) {
+      const declaration = findDeclaration(node.text, node);
+      if (!declaration) return imported.get(node.text);
+      return (
+        variables.get(declaration) ??
+        (isConst(declaration) ? again(declaration.initializer) : undefined)
+      );
+    }
+    if (ts.isPropertyAccessExpression(node)) {
+      if (node.expression.kind === ts.SyntaxKind.ThisKeyword) {
+        const owner = ts.findAncestor(node, ts.isClassLike);
+        return owner ? properties.get(owner)?.get(node.name.text) : undefined;
+      }
+      const base = again(node.expression);
+      return base && 'props' in base ? base.props.get(node.name.text) : undefined;
+    }
+    if (ts.isCallExpression(node) && ts.isIdentifier(node.expression)) {
+      const name = node.expression.text;
+      if (!findDeclaration(name, node)) {
+        const found = imported.get(name);
+        if (found && 'returns' in found) return found.returns;
+      }
+      const body = returnOfFunction(name, source);
+      return body ? again(body) : undefined;
+    }
+    if (ts.isConditionalExpression(node)) return again(node.whenTrue) ?? again(node.whenFalse);
+    if (
+      ts.isBinaryExpression(node) &&
+      (node.operatorToken.kind === ts.SyntaxKind.BarBarToken ||
+        node.operatorToken.kind === ts.SyntaxKind.QuestionQuestionToken)
+    )
+      return again(node.left) ?? again(node.right);
+    return undefined;
+  };
+  const setProperty = (node: ts.Node, name: string, shape: Shape) => {
     const owner = ts.findAncestor(node, ts.isClassLike);
     if (!owner) return;
-    const map = properties.get(owner) ?? new Map<string, string>();
+    const map = properties.get(owner) ?? new Map<string, Shape>();
     properties.set(owner, map);
-    map.set(name, controller);
+    map.set(name, shape);
   };
   const collect = (node: ts.Node) => {
     if (ts.isVariableDeclaration(node)) {
-      const controller = constructed(node.initializer);
-      if (controller) variables.set(node, controller);
+      const shape = shapeOf(node.initializer);
+      if (shape) variables.set(node, shape);
     }
     if (ts.isPropertyDeclaration(node)) {
-      const controller = constructed(node.initializer);
+      const shape = shapeOf(node.initializer);
       const name = propertyName(node.name);
-      if (controller && name) setProperty(node, name, controller);
+      if (shape && name) setProperty(node, name, shape);
     }
-    if (ts.isBinaryExpression(node) && node.operatorToken.kind === ts.SyntaxKind.EqualsToken) {
-      const controller = constructed(node.right);
+    if (ts.isBinaryExpression(node) && ASSIGNS.has(node.operatorToken.kind)) {
+      const shape = shapeOf(node.right);
       const left = unwrap(node.left);
-      if (controller && ts.isIdentifier(left)) {
+      if (shape && ts.isIdentifier(left)) {
         const declaration = findDeclaration(left.text, node);
-        if (declaration) variables.set(declaration, controller);
+        if (declaration) variables.set(declaration, shape);
       }
       if (
-        controller &&
+        shape &&
         ts.isPropertyAccessExpression(left) &&
         left.expression.kind === ts.SyntaxKind.ThisKeyword
       )
-        setProperty(node, left.name.text, controller);
+        setProperty(node, left.name.text, shape);
     }
     ts.forEachChild(node, collect);
   };
+  // Twice, so a variable set from another set later in the file is found.
   collect(source);
-  const receiverOf = (expression: ts.Expression): string | undefined => {
-    const node = unwrap(expression);
-    if (ts.isNewExpression(node)) return controllerOf(node.expression);
-    if (ts.isIdentifier(node)) {
-      const declaration = findDeclaration(node.text, node);
-      return declaration ? variables.get(declaration) : undefined;
+  collect(source);
+  const hasBindings = namespaces.size > 0 || named.size > 0;
+  // Top-level exports of this file: `export const x`, `export function f()`, `export default …`,
+  // `module.exports.x =` and `exports.x =`.
+  const exports = () => {
+    const found = new Map<string, Shape>();
+    const exportedFunction = (name: string, body: ts.ConciseBody | undefined) => {
+      const returned = body && returnedBy(body);
+      const shape = returned && shapeOf(returned);
+      if (shape) found.set(name, { returns: shape });
+    };
+    for (const statement of source.statements) {
+      const modifiers = ts.canHaveModifiers(statement) ? ts.getModifiers(statement) : undefined;
+      const exportedName = modifiers?.some(
+        (modifier) => modifier.kind === ts.SyntaxKind.ExportKeyword,
+      );
+      const isDefault = modifiers?.some(
+        (modifier) => modifier.kind === ts.SyntaxKind.DefaultKeyword,
+      );
+      if (ts.isVariableStatement(statement) && exportedName)
+        for (const declaration of statement.declarationList.declarations) {
+          if (!ts.isIdentifier(declaration.name)) continue;
+          const value = declaration.initializer && unwrap(declaration.initializer);
+          if (value && (ts.isArrowFunction(value) || ts.isFunctionExpression(value)))
+            exportedFunction(declaration.name.text, value.body);
+          else {
+            const shape = variables.get(declaration);
+            if (shape) found.set(declaration.name.text, shape);
+          }
+        }
+      if (ts.isFunctionDeclaration(statement) && exportedName)
+        exportedFunction(
+          isDefault ? 'default' : (statement.name?.text ?? 'default'),
+          statement.body,
+        );
+      if (ts.isExportAssignment(statement)) {
+        const value = unwrap(statement.expression);
+        if (ts.isArrowFunction(value) || ts.isFunctionExpression(value))
+          exportedFunction('default', value.body);
+        else {
+          const shape = shapeOf(value);
+          if (shape) found.set('default', shape);
+        }
+      }
+      if (ts.isExpressionStatement(statement) && ts.isBinaryExpression(statement.expression)) {
+        const { left, right, operatorToken } = statement.expression;
+        const target = left.getText().replace(/\s+/g, '');
+        const name = /^(?:module\.)?exports\.(\w+)$/.exec(target)?.[1];
+        if (operatorToken.kind === ts.SyntaxKind.EqualsToken && name) {
+          const value = unwrap(right);
+          if (ts.isArrowFunction(value) || ts.isFunctionExpression(value))
+            exportedFunction(name, value.body);
+          else {
+            const shape = shapeOf(value);
+            if (shape) found.set(name, shape);
+          }
+        }
+      }
     }
-    if (ts.isPropertyAccessExpression(node) && node.expression.kind === ts.SyntaxKind.ThisKeyword) {
-      const owner = ts.findAncestor(node, ts.isClassLike);
-      return owner ? properties.get(owner)?.get(node.name.text) : undefined;
+    // Functions exported by name only: `export { getPaypal }`, `module.exports = { getPaypal }`.
+    const named = (name: string, local: string) => {
+      const body = returnOfFunction(local, source);
+      const returned = body && shapeOf(body);
+      if (returned && !found.has(name)) found.set(name, { returns: returned });
+      const declaration = findDeclaration(local, source);
+      const held = declaration && variables.get(declaration);
+      if (held && !found.has(name)) found.set(name, held);
+    };
+    for (const statement of source.statements) {
+      if (
+        ts.isExportDeclaration(statement) &&
+        !statement.moduleSpecifier &&
+        statement.exportClause &&
+        ts.isNamedExports(statement.exportClause)
+      )
+        for (const element of statement.exportClause.elements)
+          named(element.name.text, (element.propertyName ?? element.name).text);
+      if (ts.isExpressionStatement(statement) && ts.isBinaryExpression(statement.expression)) {
+        const { left, right } = statement.expression;
+        const value = unwrap(right);
+        if (left.getText() === 'module.exports' && ts.isObjectLiteralExpression(value))
+          for (const property of value.properties) {
+            const name = propertyName(property.name);
+            const local = ts.isShorthandPropertyAssignment(property)
+              ? property.name.text
+              : ts.isPropertyAssignment(property) && ts.isIdentifier(property.initializer)
+                ? property.initializer.text
+                : undefined;
+            if (name && local) named(name, local);
+          }
+      }
     }
-    return undefined;
+    return found;
   };
+  return { shapeOf, hasBindings, exports };
+}
+
+// `new OrdersController(client).createOrder(...)`, a variable, class property or object property
+// holding a controller, a function that returns one (also from another file), and namespace forms
+// such as `sdk.OrdersController`.
+function serverCalls(
+  file: FileContext,
+  data: PayPalRequests,
+  version: string | null,
+  imported: Map<string, Shape>,
+): PayPalCall[] {
+  const { source } = file;
+  const { shapeOf, hasBindings } = shapeResolver(file, data, imported);
+  if (!hasBindings && !imported.size) return [];
   const calls: PayPalCall[] = [];
   const visit = (node: ts.Node) => {
     if (ts.isCallExpression(node) && ts.isPropertyAccessExpression(node.expression)) {
-      const controller = receiverOf(node.expression.expression);
-      if (controller)
-        calls.push(serverRecord(file, node, controller, node.expression.name.text, data, version));
+      const receiver = shapeOf(node.expression.expression);
+      if (receiver && 'controller' in receiver)
+        calls.push(
+          serverRecord(file, node, receiver.controller, node.expression.name.text, data, version),
+        );
     }
     ts.forEachChild(node, visit);
   };
@@ -635,24 +799,152 @@ function serverRecord(
 interface PayPalUrl {
   hosts: string[];
   parts: Part[];
+  // Environment variables or other expressions that may replace the host at runtime.
+  overrides: string[];
 }
 
 interface Base {
   hosts: string[];
-  declaration: ts.VariableDeclaration;
+  // The exported constant, which is reported through the URLs built from it; none for a function.
+  declaration?: ts.VariableDeclaration;
+  // Whether the import is called, as in `getBaseUrl()`.
+  call?: boolean;
+  overrides?: string[];
 }
 
-// A base expression holding only hosts: a host literal, or a conditional whose branches are.
-function baseHosts(expression: ts.Expression): string[] | undefined {
+// The expression a function returns: an arrow's body, or the last `return` of its block.
+// What a function body returns: its one non-null return, at any depth outside nested functions,
+// so a guard such as `if (!key) return null;` does not hide it. Two different returns are not one
+// base, so they give nothing.
+function returnedBy(body: ts.ConciseBody): ts.Expression | undefined {
+  if (!ts.isBlock(body)) return body;
+  const found: ts.Expression[] = [];
+  const visit = (node: ts.Node) => {
+    if (ts.isFunctionLike(node) || ts.isClassLike(node)) return;
+    if (ts.isReturnStatement(node) && node.expression) {
+      const value = unwrap(node.expression);
+      if (
+        value.kind !== ts.SyntaxKind.NullKeyword &&
+        !(ts.isIdentifier(value) && value.text === 'undefined')
+      )
+        found.push(node.expression);
+    }
+    ts.forEachChild(node, visit);
+  };
+  ts.forEachChild(body, visit);
+  return found.length === 1 ? found[0] : undefined;
+}
+
+// What a top-level `function name()` or `const name = () =>` in a file returns.
+function returnOfFunction(name: string, source: ts.SourceFile): ts.Expression | undefined {
+  for (const statement of source.statements) {
+    if (ts.isFunctionDeclaration(statement) && statement.name?.text === name && statement.body)
+      return returnedBy(statement.body);
+    if (ts.isVariableStatement(statement))
+      for (const declaration of statement.declarationList.declarations) {
+        const value = declaration.initializer && unwrap(declaration.initializer);
+        if (
+          ts.isIdentifier(declaration.name) &&
+          declaration.name.text === name &&
+          value &&
+          (ts.isArrowFunction(value) || ts.isFunctionExpression(value))
+        )
+          return returnedBy(value.body);
+      }
+  }
+  return undefined;
+}
+
+const KEEPS_HOST = new Set(['replace', 'replaceAll', 'trim', 'trimEnd', 'toString', 'toLowerCase']);
+const MAX_BASE_DEPTH = 5;
+
+// A base expression holding only hosts: a host literal, a conditional whose branches are, an
+// environment variable with a host default (`process.env.X || 'https://…'`, whose left side is
+// added to `overrides`), a constant or never-reassigned variable, a member of a constant object
+// of hosts (`BASES.live`, `BASES[mode]`), a string method that keeps the host (`.replace(…)`), and
+// a call to a function in the same file that returns one of these.
+function baseHosts(
+  expression: ts.Expression,
+  overrides: string[] = [],
+  depth = 0,
+): string[] | undefined {
   const node = unwrap(expression);
+  if (depth > MAX_BASE_DEPTH) return undefined;
+  const again = (inner: ts.Expression) => baseHosts(inner, overrides, depth + 1);
   if (ts.isStringLiteralLike(node)) {
     const match = HOST.exec(node.text);
     return match && node.text.replace(HOST, '').replace(/\/+$/, '') === '' ? [match[1]] : undefined;
   }
   if (ts.isConditionalExpression(node)) {
-    const left = baseHosts(node.whenTrue);
-    const right = baseHosts(node.whenFalse);
+    const left = again(node.whenTrue);
+    const right = again(node.whenFalse);
     return left && right ? [...new Set([...left, ...right])] : undefined;
+  }
+  if (
+    ts.isBinaryExpression(node) &&
+    (node.operatorToken.kind === ts.SyntaxKind.BarBarToken ||
+      node.operatorToken.kind === ts.SyntaxKind.QuestionQuestionToken)
+  ) {
+    const left = again(node.left);
+    const right = again(node.right);
+    if (left && right) return [...new Set([...left, ...right])];
+    const hosts = left ?? right;
+    if (hosts) overrides.push(expressionName(left ? node.right : node.left));
+    return hosts;
+  }
+  if (
+    ts.isCallExpression(node) &&
+    ts.isPropertyAccessExpression(node.expression) &&
+    KEEPS_HOST.has(node.expression.name.text)
+  )
+    return again(node.expression.expression);
+  // `this.getBase()` where the enclosing class defines the method.
+  if (
+    ts.isCallExpression(node) &&
+    ts.isPropertyAccessExpression(node.expression) &&
+    node.expression.expression.kind === ts.SyntaxKind.ThisKeyword
+  ) {
+    const owner = ts.findAncestor(node, ts.isClassLike);
+    const method = owner?.members.find(
+      (member): member is ts.MethodDeclaration =>
+        ts.isMethodDeclaration(member) &&
+        propertyName(member.name) === (node.expression as ts.PropertyAccessExpression).name.text,
+    );
+    const body = method?.body && returnedBy(method.body);
+    return body && again(body);
+  }
+  if (ts.isCallExpression(node) && ts.isIdentifier(node.expression)) {
+    const body = returnOfFunction(node.expression.text, node.getSourceFile());
+    return body && again(body);
+  }
+  if (ts.isIdentifier(node)) {
+    const declaration = findDeclaration(node.text, node);
+    return declaration?.initializer && (isConst(declaration) || !reassignedName(declaration))
+      ? again(declaration.initializer)
+      : undefined;
+  }
+  if (ts.isPropertyAccessExpression(node) || ts.isElementAccessExpression(node)) {
+    const owner = unwrap(node.expression);
+    const declaration = ts.isIdentifier(owner) ? findDeclaration(owner.text, owner) : undefined;
+    const table =
+      declaration?.initializer && isConst(declaration) && unwrap(declaration.initializer);
+    if (!table || !ts.isObjectLiteralExpression(table)) return undefined;
+    if (ts.isPropertyAccessExpression(node)) {
+      const member = objectProperty(table, node.name.text);
+      return member && again(member);
+    }
+    const key = node.argumentExpression && constantString(node.argumentExpression)?.value;
+    if (key !== undefined) {
+      const member = objectProperty(table, key);
+      return member && again(member);
+    }
+    // A runtime key may pick any member, so every member must be a PayPal host, as for conditionals.
+    const members = table.properties.map((property) =>
+      ts.isPropertyAssignment(property) ? again(property.initializer) : undefined,
+    );
+    return members.length && members.every(Boolean)
+      ? [...new Set(members.flatMap((hosts) => hosts!))]
+      : undefined;
   }
   return undefined;
 }
@@ -671,20 +963,45 @@ function paypalUrl(
       ? {
           hosts: [match[1]],
           parts: [{ text: first.text.replace(HOST, ''), node: first.node }, ...rest],
+          overrides: [],
         }
       : undefined;
   }
   const node = unwrap(first.expression);
-  const conditional = baseHosts(node);
-  if (conditional) return { hosts: conditional, parts: rest };
+  const overrides: string[] = [];
+  const conditional = baseHosts(node, overrides);
+  if (conditional) return { hosts: conditional, parts: rest, overrides };
+  if (ts.isCallExpression(node) && ts.isIdentifier(node.expression)) {
+    const base = !findDeclaration(node.expression.text, node)
+      ? imports.get(node.expression.text)
+      : undefined;
+    return base?.call
+      ? { hosts: base.hosts, parts: rest, overrides: base.overrides ?? [] }
+      : undefined;
+  }
   if (!ts.isIdentifier(node)) return undefined;
   const declaration = findDeclaration(node.text, node);
   if (declaration?.initializer && isConst(declaration)) {
     const inner = paypalUrl(declaration.initializer, imports, depth + 1);
-    return inner && { hosts: inner.hosts, parts: [...inner.parts, ...rest] };
+    return (
+      inner && { hosts: inner.hosts, parts: [...inner.parts, ...rest], overrides: inner.overrides }
+    );
   }
   const base = !declaration ? imports.get(node.text) : undefined;
-  return base && { hosts: base.hosts, parts: rest };
+  return base && !base.call
+    ? { hosts: base.hosts, parts: rest, overrides: base.overrides ?? [] }
+    : undefined;
+}
+
+// A runtime path piece's name; `encodeURIComponent(subscriptionId)` is named by its argument.
+function pieceName(expression: ts.Expression) {
+  const call = unwrap(expression);
+  return ts.isCallExpression(call) &&
+    ts.isIdentifier(call.expression) &&
+    /^(?:encodeURI(?:Component)?|String|Number)$/.test(call.expression.text) &&
+    call.arguments[0]
+    ? expressionName(call.arguments[0])
+    : expressionName(expression);
 }
 
 // The path a URL's parts after the host spell, with runtime pieces named in braces.
@@ -708,14 +1025,14 @@ function urlPath(parts: Part[], unknown: string[]): string | null {
     if (!segment.length) continue;
     const [only] = segment;
     if (segment.length === 1 && 'expression' in only) {
-      const name = expressionName(only.expression);
+      const name = pieceName(only.expression);
       // `${base}${path}` or `/v2/${resource}`: the rest of the path is chosen at runtime.
       if (index === 0 || PATH_NAME.test(name) || path === '' || /^\/v\d+$/.test(path)) {
         unknown.push(`path is built at runtime from \`${name}\``);
         return null;
       }
     }
-    path += `/${segment.map((part) => ('text' in part ? part.text : `{${expressionName(part.expression)}}`)).join('')}`;
+    path += `/${segment.map((part) => ('text' in part ? part.text : `{${pieceName(part.expression)}}`)).join('')}`;
   }
   return path || null;
 }
@@ -759,9 +1076,11 @@ function urlCalls(
   imports: Map<string, Base>,
   imported: Set<ts.VariableDeclaration>,
   data: PayPalRequests,
+  covered: Set<ts.Node>,
 ): PayPalCall[] {
   const calls: PayPalCall[] = [];
   const visit = (node: ts.Node) => {
+    if (covered.has(node)) return;
     if (ts.isExpression(node) && isUrlRoot(node)) {
       const url = paypalUrl(node, imports);
       if (url) {
@@ -813,29 +1132,173 @@ function urlRecords(
     } else unknown.push('no request call was traced for this URL');
     if (reassigned)
       unknown.push(`\`${reassigned}\` is reassigned, so the request may use another URL`);
-    const known = base || reassigned ? null : path;
-    const reviewed = review(data, method, known);
-    const servers = [...data.specification.hosts].sort().join(' and ');
-    const unlisted = url.hosts.filter((host) => !data.specification.hosts.has(host));
-    if (unlisted.length)
-      reviewed.notes.unshift(
-        `${unlisted.join(' and ')} ${unlisted.length === 1 ? 'is not a server' : 'are not servers'} in PayPal's published OpenAPI documents, which list ${servers}`,
-      );
-    return {
-      kind: 'url' as const,
-      file: file.path,
-      line: lineOf(file.source, anchor),
-      use: file.use,
-      request: null,
-      client,
+    return urlCall(
+      file,
+      anchor,
+      url,
+      base || reassigned ? null : path,
       method,
-      hosts: url.hosts,
-      path: known,
-      ...reviewed,
-      unknown: [...new Set(unknown)],
-      text: excerpt(file.source, anchor),
-    };
+      client,
+      unknown,
+      data,
+    );
   });
+}
+
+// One raw PayPal request: where it is made, the host it reaches, and what the published OpenAPI
+// documents say about the method and path.
+function urlCall(
+  file: FileContext,
+  anchor: ts.Node,
+  url: Pick<PayPalUrl, 'hosts' | 'overrides'>,
+  path: string | null,
+  method: Method | null,
+  client: string | null,
+  unknown: string[],
+  data: PayPalRequests,
+): PayPalCall {
+  const reviewed = review(data, method, path);
+  const servers = [...data.specification.hosts].sort().join(' and ');
+  if (url.overrides.length)
+    reviewed.notes.push(
+      `the host is ${url.hosts.join(' or ')} unless \`${url.overrides.join('`, `')}\` replaces it at runtime`,
+    );
+  const unlisted = url.hosts.filter((host) => !data.specification.hosts.has(host));
+  if (unlisted.length)
+    reviewed.notes.unshift(
+      `${unlisted.join(' and ')} ${unlisted.length === 1 ? 'is not a server' : 'are not servers'} in PayPal's published OpenAPI documents, which list ${servers}`,
+    );
+  return {
+    kind: 'url' as const,
+    file: file.path,
+    line: lineOf(file.source, anchor),
+    use: file.use,
+    request: null,
+    client,
+    method,
+    hosts: url.hosts,
+    path,
+    ...reviewed,
+    unknown: [...new Set(unknown)],
+    text: excerpt(file.source, anchor),
+  };
+}
+
+// An axios instance made with a PayPal `baseURL`, and the requests sent through it:
+// `const paypal = axios.create({ baseURL: PAYPAL_API }); paypal.post('/v2/checkout/orders')`.
+// Instances are held in variables or class properties. `covered` lists the `baseURL` values that
+// at least one request was traced from, so they are not reported again as bare URLs.
+function instanceCalls(
+  file: FileContext,
+  imports: Map<string, Base>,
+  data: PayPalRequests,
+): { calls: PayPalCall[]; covered: Set<ts.Node> } {
+  const { source } = file;
+  const axiosNames = moduleBindings(source, 'axios').namespaces;
+  const variables = new Map<ts.VariableDeclaration, { url: PayPalUrl; base: ts.Expression }>();
+  const properties = new Map<
+    ts.ClassLikeDeclaration,
+    Map<string, { url: PayPalUrl; base: ts.Expression }>
+  >();
+  const made = (expression: ts.Expression | undefined) => {
+    const node = expression && unwrap(expression);
+    if (!node || !ts.isCallExpression(node) || !ts.isPropertyAccessExpression(node.expression))
+      return undefined;
+    const receiver = node.expression.expression;
+    if (
+      node.expression.name.text !== 'create' ||
+      !ts.isIdentifier(receiver) ||
+      !(axiosNames.has(receiver.text) || /^axios$/i.test(receiver.text))
+    )
+      return undefined;
+    const options = node.arguments[0] && unwrap(node.arguments[0]);
+    const base =
+      options && ts.isObjectLiteralExpression(options) && objectProperty(options, 'baseURL');
+    const url = base ? paypalUrl(base, imports) : undefined;
+    return url && base ? { url, base } : undefined;
+  };
+  const collect = (node: ts.Node) => {
+    if (ts.isVariableDeclaration(node)) {
+      const found = made(node.initializer);
+      if (found) variables.set(node, found);
+    }
+    if (ts.isPropertyDeclaration(node)) {
+      const found = made(node.initializer);
+      const name = propertyName(node.name);
+      const owner = ts.findAncestor(node, ts.isClassLike);
+      if (found && name && owner) {
+        const map = properties.get(owner) ?? new Map();
+        properties.set(owner, map);
+        map.set(name, found);
+      }
+    }
+    if (ts.isBinaryExpression(node) && node.operatorToken.kind === ts.SyntaxKind.EqualsToken) {
+      const found = made(node.right);
+      const left = unwrap(node.left);
+      const owner = ts.findAncestor(node, ts.isClassLike);
+      if (found && ts.isIdentifier(left)) {
+        const declaration = findDeclaration(left.text, node);
+        if (declaration) variables.set(declaration, found);
+      }
+      if (
+        found &&
+        owner &&
+        ts.isPropertyAccessExpression(left) &&
+        left.expression.kind === ts.SyntaxKind.ThisKeyword
+      ) {
+        const map = properties.get(owner) ?? new Map();
+        properties.set(owner, map);
+        map.set(left.name.text, found);
+      }
+    }
+    ts.forEachChild(node, collect);
+  };
+  collect(source);
+  const calls: PayPalCall[] = [];
+  const covered = new Set<ts.Node>();
+  if (!variables.size && !properties.size) return { calls, covered };
+  const instanceOf = (expression: ts.Expression) => {
+    const node = unwrap(expression);
+    if (ts.isIdentifier(node)) {
+      const declaration = findDeclaration(node.text, node);
+      return declaration ? variables.get(declaration) : undefined;
+    }
+    if (ts.isPropertyAccessExpression(node) && node.expression.kind === ts.SyntaxKind.ThisKeyword) {
+      const owner = ts.findAncestor(node, ts.isClassLike);
+      return owner ? properties.get(owner)?.get(node.name.text) : undefined;
+    }
+    return undefined;
+  };
+  const visit = (node: ts.Node) => {
+    if (
+      ts.isCallExpression(node) &&
+      ts.isPropertyAccessExpression(node.expression) &&
+      AXIOS_METHODS.has(node.expression.name.text) &&
+      node.arguments[0]
+    ) {
+      const instance = instanceOf(node.expression.expression);
+      if (instance) {
+        covered.add(instance.base);
+        const unknown: string[] = [];
+        const path = urlPath([...instance.url.parts, ...partsOf(node.arguments[0])], unknown);
+        calls.push(
+          urlCall(
+            file,
+            node,
+            instance.url,
+            path,
+            httpMethod(node.expression.name.text),
+            calleeText(node),
+            unknown,
+            data,
+          ),
+        );
+      }
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(source);
+  return { calls, covered };
 }
 
 function hasHost(content: string) {
@@ -847,6 +1310,17 @@ function exactVersion(item: PayPalPackage | undefined) {
   if (!item) return null;
   if (item.locked) return item.locked;
   return /^\d+\.\d+\.\d+$/.test(item.declared) ? item.declared : null;
+}
+
+// Resolves a relative import, or an `@/x` or `~/x` alias of the repository's `src`, `app` or root
+// folder (the usual `paths` entries; tsconfig is not read), to a scanned file.
+function resolveModule(from: string, specifier: string, files: Set<string>) {
+  const relative = resolveImport(from, specifier, files);
+  if (relative || !/^[@~]\//.test(specifier)) return relative;
+  for (const base of ['src', 'app', '.'])
+    for (const found of [resolveImport(`${base}/_`, `./${specifier.slice(2)}`, files)])
+      if (found) return found;
+  return undefined;
 }
 
 // Lists every PayPal REST request a repository makes, with what is known about it.
@@ -878,21 +1352,44 @@ export async function scanPayPalCalls(
     }
     return found;
   };
-  // Exported PayPal base constants per file, and their imports per file.
+  // Exported PayPal base constants and base-returning functions per file, and their imports per file.
   const exportedBases = new Map<string, Map<string, Base>>();
+  const addBase = (path: string, name: string, base: Base) => {
+    const bases = exportedBases.get(path) ?? new Map<string, Base>();
+    exportedBases.set(path, bases);
+    bases.set(name, base);
+  };
   for (const file of repository.files) {
     if (!hasHost(file.content)) continue;
     const { source } = context(file.path, file.content);
-    for (const statement of source.statements)
+    for (const statement of source.statements) {
       if (ts.isVariableStatement(statement))
         for (const declaration of statement.declarationList.declarations) {
-          const hosts = declaration.initializer && baseHosts(declaration.initializer);
-          if (ts.isIdentifier(declaration.name) && hosts && exported(declaration)) {
-            const bases = exportedBases.get(file.path) ?? new Map<string, Base>();
-            exportedBases.set(file.path, bases);
-            bases.set(declaration.name.text, { hosts, declaration });
+          if (!ts.isIdentifier(declaration.name) || !exported(declaration)) continue;
+          const value = declaration.initializer && unwrap(declaration.initializer);
+          if (value && (ts.isArrowFunction(value) || ts.isFunctionExpression(value))) {
+            const overrides: string[] = [];
+            const body = returnedBy(value.body);
+            const hosts = body && baseHosts(body, overrides);
+            if (hosts) addBase(file.path, declaration.name.text, { hosts, call: true, overrides });
+            continue;
           }
+          const overrides: string[] = [];
+          const hosts = declaration.initializer && baseHosts(declaration.initializer, overrides);
+          if (hosts) addBase(file.path, declaration.name.text, { hosts, declaration, overrides });
         }
+      if (
+        ts.isFunctionDeclaration(statement) &&
+        statement.name &&
+        statement.body &&
+        statement.modifiers?.some((modifier) => modifier.kind === ts.SyntaxKind.ExportKeyword)
+      ) {
+        const overrides: string[] = [];
+        const body = returnedBy(statement.body);
+        const hosts = body && baseHosts(body, overrides);
+        if (hosts) addBase(file.path, statement.name.text, { hosts, call: true, overrides });
+      }
+    }
   }
   const importsByFile = new Map<string, Map<string, Base>>();
   const imported = new Set<ts.VariableDeclaration>();
@@ -901,13 +1398,46 @@ export async function scanPayPalCalls(
       if (!/import|require/.test(file.content)) continue;
       const { source } = context(file.path, file.content);
       for (const [local, binding] of importedNames(source)) {
-        const target = resolveImport(file.path, binding.specifier, files);
+        const target = resolveModule(file.path, binding.specifier, files);
         const base = target && exportedBases.get(target)?.get(binding.name);
         if (!base) continue;
         const imports = importsByFile.get(file.path) ?? new Map<string, Base>();
         importsByFile.set(file.path, imports);
         imports.set(local, base);
-        imported.add(base.declaration);
+        if (base.declaration) imported.add(base.declaration);
+      }
+    }
+  // Controllers and controller-returning functions exported by files that import the server SDK,
+  // and the names other files import them as.
+  const exportedShapes = new Map<string, Map<string, Shape>>();
+  for (const file of serverRepository.files) {
+    if (!file.content.includes(PAYPAL_SERVER_SDK)) continue;
+    const found = shapeResolver(context(file.path, file.content), data, new Map()).exports();
+    if (found.size) exportedShapes.set(file.path, found);
+  }
+  const shapesByFile = new Map<string, Map<string, Shape>>();
+  if (exportedShapes.size)
+    for (const file of repository.files) {
+      if (!/import|require/.test(file.content)) continue;
+      const { source } = context(file.path, file.content);
+      const wanted = new Map<string, { specifier: string; name: string }>(importedNames(source));
+      for (const statement of source.statements)
+        if (
+          ts.isImportDeclaration(statement) &&
+          ts.isStringLiteral(statement.moduleSpecifier) &&
+          statement.importClause?.name
+        )
+          wanted.set(statement.importClause.name.text, {
+            specifier: statement.moduleSpecifier.text,
+            name: 'default',
+          });
+      for (const [local, binding] of wanted) {
+        const target = resolveModule(file.path, binding.specifier, files);
+        const shape = target && exportedShapes.get(target)?.get(binding.name);
+        if (!shape) continue;
+        const shapes = shapesByFile.get(file.path) ?? new Map<string, Shape>();
+        shapesByFile.set(file.path, shapes);
+        shapes.set(local, shape);
       }
     }
   const version = exactVersion(packages.find((item) => item.name === PAYPAL_SERVER_SDK));
@@ -916,12 +1446,19 @@ export async function scanPayPalCalls(
     const imports = importsByFile.get(file.path) ?? new Map<string, Base>();
     const urlFile = hasHost(file.content) || imports.size > 0;
     const checkoutFile = file.content.includes(PAYPAL_CHECKOUT_SDK);
-    const serverFile = file.content.includes(PAYPAL_SERVER_SDK);
+    const shapes = shapesByFile.get(file.path) ?? new Map<string, Shape>();
+    const serverFile = file.content.includes(PAYPAL_SERVER_SDK) || shapes.size > 0;
     if (!urlFile && !checkoutFile && !serverFile) continue;
     const current = context(file.path, file.content);
-    if (urlFile) calls.push(...urlCalls(current, imports, imported, data));
+    if (urlFile) {
+      const instances = instanceCalls(current, imports, data);
+      calls.push(
+        ...instances.calls,
+        ...urlCalls(current, imports, imported, data, instances.covered),
+      );
+    }
     if (checkoutFile) calls.push(...checkoutCalls(current, data));
-    if (serverFile) calls.push(...serverCalls(current, data, version));
+    if (serverFile) calls.push(...serverCalls(current, data, version, shapes));
   }
   calls.sort((a, b) => a.file.localeCompare(b.file) || a.line - b.line);
   const { repository: source, commit, committedAt } = data.specification;

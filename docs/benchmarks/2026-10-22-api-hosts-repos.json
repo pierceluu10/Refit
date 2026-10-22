@@ -1,0 +1,394 @@
+{
+  "formatVersion": 1,
+  "selectedAt": "2026-10-22T08:05:41.659Z",
+  "method": "GitHub repository search (gh api search/repositories, sort=stars, top 3 per query) for every topic in [nextjs, express, discord-bot, telegram-bot, saas, chatbot, dashboard, react-native, nestjs, slack-bot, web3, weather, ecommerce, cli] and language in [TypeScript, JavaScript] with the qualifiers \"stars:30..3000 pushed:>=2025-10-21 fork:false archived:false size:<30000\"; results interleaved across queries and deduplicated; kept when the default-branch HEAD (git ls-remote) has a root package.json and a JS/TS source file; first 60 kept.",
+  "queries": [
+    {
+      "q": "topic:nextjs language:TypeScript stars:30..3000 pushed:>=2025-10-21 fork:false archived:false size:<30000",
+      "repos": ["codse/animata", "mengjian-github/openclaw101", "zenstackhq/zenstack"]
+    },
+    {
+      "q": "topic:nextjs language:JavaScript stars:30..3000 pushed:>=2025-10-21 fork:false archived:false size:<30000",
+      "repos": ["aralroca/next-translate", "craftzdog/craftzdog-homepage", "Sly777/ran"]
+    },
+    {
+      "q": "topic:express language:TypeScript stars:30..3000 pushed:>=2025-10-21 fork:false archived:false size:<30000",
+      "repos": ["jsynowiec/node-typescript-boilerplate", "golevelup/nestjs", "tsrpc/tsrpc"]
+    },
+    {
+      "q": "topic:express language:JavaScript stars:30..3000 pushed:>=2025-10-21 fork:false archived:false size:<30000",
+      "repos": ["kartikk221/hyper-express", "expressjs/generator", "janoside/btc-rpc-explorer"]
+    },
+    {
+      "q": "topic:discord-bot language:TypeScript stars:30..3000 pushed:>=2025-10-21 fork:false archived:false size:<30000",
+      "repos": ["wanikua/danghuangshang", "stegripe/rawon", "aiko-chan-ai/DiscordBotClient"]
+    },
+    {
+      "q": "topic:discord-bot language:JavaScript stars:30..3000 pushed:>=2025-10-21 fork:false archived:false size:<30000",
+      "repos": ["discord-tickets/bot", "umutxyp/MusicBot", "CorwinDev/Discord-Bot"]
+    },
+    {
+      "q": "topic:telegram-bot language:TypeScript stars:30..3000 pushed:>=2025-10-21 fork:false archived:false size:<30000",
+      "repos": ["alsk1992/CloddsBot", "xvirobotics/metabot", "1inch/shieldy"]
+    },
+    {
+      "q": "topic:telegram-bot language:JavaScript stars:30..3000 pushed:>=2025-10-21 fork:false archived:false size:<30000",
+      "repos": [
+        "backmeupplz/voicy",
+        "thedevs-network/the-guard-bot",
+        "cvzi/telegram-bot-cloudflare"
+      ]
+    },
+    {
+      "q": "topic:saas language:TypeScript stars:30..3000 pushed:>=2025-10-21 fork:false archived:false size:<30000",
+      "repos": ["zenstackhq/zenstack", "graphile/starter", "revokslab/ShipFree"]
+    },
+    {
+      "q": "topic:saas language:JavaScript stars:30..3000 pushed:>=2025-10-21 fork:false archived:false size:<30000",
+      "repos": ["miroslavpejic85/mirotalkwebrtc", "novabennett95/tiktok-bot", "benlamiro/ShipGenAI"]
+    },
+    {
+      "q": "topic:chatbot language:TypeScript stars:30..3000 pushed:>=2025-10-21 fork:false archived:false size:<30000",
+      "repos": ["pingcap/autoflow", "op7418/Claude-to-IM-skill", "hahahumble/speechgpt"]
+    },
+    {
+      "q": "topic:chatbot language:JavaScript stars:30..3000 pushed:>=2025-10-21 fork:false archived:false size:<30000",
+      "repos": ["Derpyu520/qq-bridge", "tmijs/tmi.js", "winkjs/wink-nlp"]
+    },
+    {
+      "q": "topic:dashboard language:TypeScript stars:30..3000 pushed:>=2025-10-21 fork:false archived:false size:<30000",
+      "repos": [
+        "simonlin1212/Vibe-Research",
+        "TailAdmin/free-nextjs-admin-dashboard",
+        "kubewall/kubewall"
+      ]
+    },
+    {
+      "q": "topic:dashboard language:JavaScript stars:30..3000 pushed:>=2025-10-21 fork:false archived:false size:<30000",
+      "repos": ["dockpeek/dockpeek", "dwainscheeren/dwains-lovelace-dashboard", "vizzuhq/vizzu-lib"]
+    },
+    {
+      "q": "topic:react-native language:TypeScript stars:30..3000 pushed:>=2025-10-21 fork:false archived:false size:<30000",
+      "repos": [
+        "jpudysz/react-native-unistyles",
+        "gre/react-native-view-shot",
+        "BlackHatDevX/openspot-music-app"
+      ]
+    },
+    {
+      "q": "topic:react-native language:JavaScript stars:30..3000 pushed:>=2025-10-21 fork:false archived:false size:<30000",
+      "repos": [
+        "react-native-datetimepicker/datetimepicker",
+        "infinitered/apisauce",
+        "junedomingo/react-native-rename"
+      ]
+    },
+    {
+      "q": "topic:nestjs language:TypeScript stars:30..3000 pushed:>=2025-10-21 fork:false archived:false size:<30000",
+      "repos": ["juicycleff/ultimate-backend", "golevelup/nestjs", "stephenh/ts-proto"]
+    },
+    {
+      "q": "topic:nestjs language:JavaScript stars:30..3000 pushed:>=2025-10-21 fork:false archived:false size:<30000",
+      "repos": ["taozhi1010/nest-admin", "nestjs/javascript-starter", "shakilhasan/sabil"]
+    },
+    {
+      "q": "topic:slack-bot language:TypeScript stars:30..3000 pushed:>=2025-10-21 fork:false archived:false size:<30000",
+      "repos": [
+        "ravsamhq/notify-slack-action",
+        "slack-edge/slack-edge",
+        "ominiverdi/opencode-chat-bridge"
+      ]
+    },
+    {
+      "q": "topic:slack-bot language:JavaScript stars:30..3000 pushed:>=2025-10-21 fork:false archived:false size:<30000",
+      "repos": ["lmammino/norrisbot", "impulsoteam/atena", "KarryViber/Orb"]
+    },
+    {
+      "q": "topic:web3 language:TypeScript stars:30..3000 pushed:>=2025-10-21 fork:false archived:false size:<30000",
+      "repos": ["dmotz/trystero", "rango-exchange/rango-sdk", "solana-foundation/program-examples"]
+    },
+    {
+      "q": "topic:web3 language:JavaScript stars:30..3000 pushed:>=2025-10-21 fork:false archived:false size:<30000",
+      "repos": ["pashov/skills", "pubkey/eth-crypto", "alchemyplatform/create-web3-dapp"]
+    },
+    {
+      "q": "topic:weather language:TypeScript stars:30..3000 pushed:>=2025-10-21 fork:false archived:false size:<30000",
+      "repos": [
+        "jpettitt/weather-radar-card",
+        "decompil3d/lovelace-hourly-weather",
+        "troinine/ha-weather-forecast-card"
+      ]
+    },
+    {
+      "q": "topic:weather language:JavaScript stars:30..3000 pushed:>=2025-10-21 fork:false archived:false size:<30000",
+      "repos": ["fthux/quietweather", "mlamberts78/weather-chart-card", "djdevil/AlertTicker-Card"]
+    },
+    {
+      "q": "topic:ecommerce language:TypeScript stars:30..3000 pushed:>=2025-10-21 fork:false archived:false size:<30000",
+      "repos": ["saleor/storefront", "w3bdesign/nextjs-woocommerce", "bighadj22/codflow"]
+    },
+    {
+      "q": "topic:ecommerce language:JavaScript stars:30..3000 pushed:>=2025-10-21 fork:false archived:false size:<30000",
+      "repos": [
+        "aimeos/aimeos-headless",
+        "shamahoque/mern-marketplace",
+        "RafaelGoulartB/next-ecommerce"
+      ]
+    },
+    {
+      "q": "topic:cli language:TypeScript stars:30..3000 pushed:>=2025-10-21 fork:false archived:false size:<30000",
+      "repos": ["react-native-community/cli", "dzhng/jevgrep", "agentrhq/webcmd"]
+    },
+    {
+      "q": "topic:cli language:JavaScript stars:30..3000 pushed:>=2025-10-21 fork:false archived:false size:<30000",
+      "repos": ["junedomingo/react-native-rename", "sequelize/cli", "klaudiosinani/qoa"]
+    }
+  ],
+  "rejected": {
+    "noPackageJson": 10,
+    "noSource": 0,
+    "unreachable": 0
+  },
+  "repos": [
+    {
+      "repo": "codse/animata",
+      "commit": "e7478b835a3b5c4153e71f60666634e91bb38813"
+    },
+    {
+      "repo": "aralroca/next-translate",
+      "commit": "8dcfa2ee862442040b4491611fe1ecb948092b3b"
+    },
+    {
+      "repo": "jsynowiec/node-typescript-boilerplate",
+      "commit": "8b27c174543eedf5d83e1038adc1664dc53ed9c0"
+    },
+    {
+      "repo": "kartikk221/hyper-express",
+      "commit": "04ea6b4118606ba2cdc486299a81c7c81c1edc08"
+    },
+    {
+      "repo": "wanikua/danghuangshang",
+      "commit": "acea185a9a1abb1788206fddc9c52a2693afaa39"
+    },
+    {
+      "repo": "discord-tickets/bot",
+      "commit": "ca555b6a71140bf8c2bcf109646aca1bd3f5b287"
+    },
+    {
+      "repo": "alsk1992/CloddsBot",
+      "commit": "c930628c47a4a745f497e29035a3b64622f97cc7"
+    },
+    {
+      "repo": "backmeupplz/voicy",
+      "commit": "51427adf0cf2a2b8333ee5ade846eb10163b644e"
+    },
+    {
+      "repo": "zenstackhq/zenstack",
+      "commit": "2c81cbd89f07de0dc64250bdcc811926f4ba12f7"
+    },
+    {
+      "repo": "miroslavpejic85/mirotalkwebrtc",
+      "commit": "737f7b1c8ef8a79638bf5c0289f01921807d1caa"
+    },
+    {
+      "repo": "Derpyu520/qq-bridge",
+      "commit": "a56164e70a0521a7829138a42eee76066fde2b8b"
+    },
+    {
+      "repo": "dockpeek/dockpeek",
+      "commit": "d506f3ac6d9570cc8bb5d72db09005f1bf83620a"
+    },
+    {
+      "repo": "jpudysz/react-native-unistyles",
+      "commit": "26aee10810e2354f5b9d9b8f74b4a290fb8a8460"
+    },
+    {
+      "repo": "react-native-datetimepicker/datetimepicker",
+      "commit": "2afd1f98c4ec648885dc7be66467daf9d063942f"
+    },
+    {
+      "repo": "juicycleff/ultimate-backend",
+      "commit": "0ae62a4b894c0e46baf75228ec88fae98f6abe06"
+    },
+    {
+      "repo": "ravsamhq/notify-slack-action",
+      "commit": "7c9f9aac57b83835edc1177fdf84142e979d05b9"
+    },
+    {
+      "repo": "lmammino/norrisbot",
+      "commit": "f983ca313443ef02ba25d08ac20b96a29fd11574"
+    },
+    {
+      "repo": "dmotz/trystero",
+      "commit": "acef9ddc15528f3d5476b64023c4c8d21ff8d5c9"
+    },
+    {
+      "repo": "jpettitt/weather-radar-card",
+      "commit": "0b0c479074c84541954715f3d53a927c1c8a8e87"
+    },
+    {
+      "repo": "saleor/storefront",
+      "commit": "a6e357a575c6e694e1aa5e5def4a1783dd223117"
+    },
+    {
+      "repo": "aimeos/aimeos-headless",
+      "commit": "69350c285f4d353970600bf6f744fde3c01028c1"
+    },
+    {
+      "repo": "react-native-community/cli",
+      "commit": "f4c4ef37ccf98e0205d4a8bc5d9f40f24f1120fd"
+    },
+    {
+      "repo": "junedomingo/react-native-rename",
+      "commit": "3563c146d422988ce042225cf94ef40f7bbc5ece"
+    },
+    {
+      "repo": "mengjian-github/openclaw101",
+      "commit": "b09052ecaac357a3753276e763c1668e5a15888f"
+    },
+    {
+      "repo": "craftzdog/craftzdog-homepage",
+      "commit": "ada0276d9ff6242597521a8c96a77c7058c74e4f"
+    },
+    {
+      "repo": "golevelup/nestjs",
+      "commit": "503972ed78192ced08d8d5b16fa3f99ab6210736"
+    },
+    {
+      "repo": "expressjs/generator",
+      "commit": "a1f384101a59cbade670e09b4d6f267c0759e9f1"
+    },
+    {
+      "repo": "stegripe/rawon",
+      "commit": "0a6d8506e0aa156bc4fb881bcf0663c4132fa80b"
+    },
+    {
+      "repo": "umutxyp/MusicBot",
+      "commit": "bf396aa48887333c2fc8f199221b16f0eeef1b2c"
+    },
+    {
+      "repo": "xvirobotics/metabot",
+      "commit": "916637eccb68fd79a0850a02dff390580cedce4a"
+    },
+    {
+      "repo": "thedevs-network/the-guard-bot",
+      "commit": "1576d1b106469d4e4383cd6b8d41f8bf1f1af4de"
+    },
+    {
+      "repo": "graphile/starter",
+      "commit": "5f377879c06cf26b36946d23a31d885abc82dfc6"
+    },
+    {
+      "repo": "novabennett95/tiktok-bot",
+      "commit": "ac02ec5998b301f546525467c74bf838e90ac02f"
+    },
+    {
+      "repo": "op7418/Claude-to-IM-skill",
+      "commit": "536908f5e9bd65a151ca4cb4b08d3fedc1a43b4d"
+    },
+    {
+      "repo": "tmijs/tmi.js",
+      "commit": "7b273652ed5a295803df0ecff0d9f9d5bff42c67"
+    },
+    {
+      "repo": "TailAdmin/free-nextjs-admin-dashboard",
+      "commit": "4fba02489c93171220c13cd2b44cc0161ff6d2a1"
+    },
+    {
+      "repo": "gre/react-native-view-shot",
+      "commit": "6f55765632bb2ddc9ce554cacd9096ea246bd97f"
+    },
+    {
+      "repo": "infinitered/apisauce",
+      "commit": "ac2dc65338b706091c8fbb6c0f645ad6a3718148"
+    },
+    {
+      "repo": "nestjs/javascript-starter",
+      "commit": "9ab99dbb9563048ac668f58a7671b11efad81114"
+    },
+    {
+      "repo": "slack-edge/slack-edge",
+      "commit": "24d0731f3fc83d239ddd6b54bb09e8e9ebea5ff9"
+    },
+    {
+      "repo": "impulsoteam/atena",
+      "commit": "c94b72c604249bdb39d1f36a737e721cc3f4343e"
+    },
+    {
+      "repo": "rango-exchange/rango-sdk",
+      "commit": "bf6c62bf8847f0865081672acd0450cfa7e89334"
+    },
+    {
+      "repo": "pubkey/eth-crypto",
+      "commit": "38bfebb653309b0b94d689be3cccd485c7504e87"
+    },
+    {
+      "repo": "decompil3d/lovelace-hourly-weather",
+      "commit": "9f2bbb14dcaa4d06f95739dabb6024d37ba66c87"
+    },
+    {
+      "repo": "mlamberts78/weather-chart-card",
+      "commit": "4a74db149c3fb01b0967df28b58090bfcee68753"
+    },
+    {
+      "repo": "w3bdesign/nextjs-woocommerce",
+      "commit": "dfaba177b2edf327a503fa69939bfa18e03ec77b"
+    },
+    {
+      "repo": "shamahoque/mern-marketplace",
+      "commit": "bf3fc45e7782b13dcaefdae8939c621a3c9a65e3"
+    },
+    {
+      "repo": "dzhng/jevgrep",
+      "commit": "28cf384d444e1f4bf5571142ec32357cb84973ae"
+    },
+    {
+      "repo": "sequelize/cli",
+      "commit": "679054aea251572ac7f6fa152f5d9eff9dbbbe9c"
+    },
+    {
+      "repo": "Sly777/ran",
+      "commit": "9879d908d2a8f79b4cd1d23910db62960a99fef8"
+    },
+    {
+      "repo": "tsrpc/tsrpc",
+      "commit": "16330c47f33933214b1209d4d3ac71f5e2bf24ea"
+    },
+    {
+      "repo": "janoside/btc-rpc-explorer",
+      "commit": "26e282a06e87b645c6e0687e2503d26d1e623dea"
+    },
+    {
+      "repo": "aiko-chan-ai/DiscordBotClient",
+      "commit": "919bd693e4d78508ccb740c6408ededc1b48cb22"
+    },
+    {
+      "repo": "CorwinDev/Discord-Bot",
+      "commit": "cab811eda178a8677f9beeea2ff23109606c3ce5"
+    },
+    {
+      "repo": "1inch/shieldy",
+      "commit": "579cb1faf82ed6b31011f8198c73449eb70c262f"
+    },
+    {
+      "repo": "revokslab/ShipFree",
+      "commit": "3b72a6f985e4e6781f02f9dd4c7fe3895b32c4eb"
+    },
+    {
+      "repo": "hahahumble/speechgpt",
+      "commit": "daa4d49203c5c59ff23bd682d6f474789137e002"
+    },
+    {
+      "repo": "winkjs/wink-nlp",
+      "commit": "c2fa2f1554a64de12dd76421cb6199ded1b6b062"
+    },
+    {
+      "repo": "vizzuhq/vizzu-lib",
+      "commit": "d81a7e9abf32830093c7b37101dc89898c700f7c"
+    },
+    {
+      "repo": "stephenh/ts-proto",
+      "commit": "1b195c06af8cd399b0fe21a453780ddee2cec37b"
+    }
+  ]
+}

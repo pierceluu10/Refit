@@ -316,3 +316,22 @@ it('prints the report of a local repository from the command line', async () => 
     stderr: expect.stringContaining('--format must be markdown or json.'),
   });
 });
+
+it('lists matches outside application code apart, as not counted', async () => {
+  const { report } = await fixture('nothing-found');
+  const markdown = renderReport({
+    ...report,
+    outside: [
+      {
+        id: 'openai-2026-07-14-gpt-4-5-preview',
+        file: 'examples/chat.ts',
+        line: 3,
+        version: 'gpt-4.5-preview',
+        reason: 'example',
+      },
+    ],
+  });
+  expect(markdown).toContain(
+    'Also found outside application code (not counted):\n\n- `examples/chat.ts:3` (example): `gpt-4.5-preview` for `openai-2026-07-14-gpt-4-5-preview`',
+  );
+});

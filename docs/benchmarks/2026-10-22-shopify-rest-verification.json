@@ -1,0 +1,1112 @@
+{
+  "formatVersion": 1,
+  "generatedBy": "scripts/shopify-rest-verify.mjs",
+  "checkedAt": "2026-10-22",
+  "supportedVersions": [
+    "2026-01",
+    "2026-04",
+    "2026-07",
+    "2026-10"
+  ],
+  "summary": {
+    "confirmed": 6,
+    "confirmed-earlier": 7,
+    "not-in-current-reference": 10,
+    "contradicted": 7
+  },
+  "endpoints": [
+    {
+      "resource": "Fulfillment",
+      "method": "POST",
+      "path": "orders/<order_id>/fulfillments.json",
+      "sdkRemovedIn": "2022-07",
+      "status": "confirmed",
+      "removedIn": "2022-07",
+      "source": "https://shopify.dev/docs/api/release-notes/previous-versions/2022-07",
+      "archived": "https://web.archive.org/web/20250615032224/https://shopify.dev/docs/api/release-notes/previous-versions/2022-07",
+      "says": "Lists the five order-based paths (orders/{order_id}/fulfillments.json, …/{fulfillment_id}.json and its complete, open and cancel actions) as removed from the Fulfillment resource as of 2022-07. The GET forms are still documented, so only the writes are removed.",
+      "reference": [
+        {
+          "version": "2026-01",
+          "page": "https://shopify.dev/docs/api/admin-rest/2026-01/resources/fulfillment.md",
+          "sha256": "0b224e87d92ebad4fca2525883139d7fbbaecad951f74045feb30735c49a0d21",
+          "documented": false
+        },
+        {
+          "version": "2026-04",
+          "page": "https://shopify.dev/docs/api/admin-rest/2026-04/resources/fulfillment.md",
+          "sha256": "f9338b516669f09aed5e9403c70fd9755e6cc843e9ff66cbcbefde7f5299f789",
+          "documented": false
+        },
+        {
+          "version": "2026-07",
+          "page": "https://shopify.dev/docs/api/admin-rest/2026-07/resources/fulfillment.md",
+          "sha256": "9631ffb5f70c4ac9c400bbc3d36e725576c5155d7de1f5a77d5a1288f0a1811b",
+          "documented": false
+        },
+        {
+          "version": "2026-10",
+          "page": "https://shopify.dev/docs/api/admin-rest/2026-10/resources/fulfillment.md",
+          "sha256": "1a84f30c141bdc424e4a30c76342d0b8bc5b1800884c6594ff2dcbdfd6c74d0e",
+          "documented": false
+        }
+      ],
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "resource": "Fulfillment",
+      "method": "PUT",
+      "path": "orders/<order_id>/fulfillments/<id>.json",
+      "sdkRemovedIn": "2022-07",
+      "status": "confirmed",
+      "removedIn": "2022-07",
+      "source": "https://shopify.dev/docs/api/release-notes/previous-versions/2022-07",
+      "archived": "https://web.archive.org/web/20250615032224/https://shopify.dev/docs/api/release-notes/previous-versions/2022-07",
+      "says": "Lists the five order-based paths (orders/{order_id}/fulfillments.json, …/{fulfillment_id}.json and its complete, open and cancel actions) as removed from the Fulfillment resource as of 2022-07. The GET forms are still documented, so only the writes are removed.",
+      "reference": [
+        {
+          "version": "2026-01",
+          "page": "https://shopify.dev/docs/api/admin-rest/2026-01/resources/fulfillment.md",
+          "sha256": "0b224e87d92ebad4fca2525883139d7fbbaecad951f74045feb30735c49a0d21",
+          "documented": false
+        },
+        {
+          "version": "2026-04",
+          "page": "https://shopify.dev/docs/api/admin-rest/2026-04/resources/fulfillment.md",
+          "sha256": "f9338b516669f09aed5e9403c70fd9755e6cc843e9ff66cbcbefde7f5299f789",
+          "documented": false
+        },
+        {
+          "version": "2026-07",
+          "page": "https://shopify.dev/docs/api/admin-rest/2026-07/resources/fulfillment.md",
+          "sha256": "9631ffb5f70c4ac9c400bbc3d36e725576c5155d7de1f5a77d5a1288f0a1811b",
+          "documented": false
+        },
+        {
+          "version": "2026-10",
+          "page": "https://shopify.dev/docs/api/admin-rest/2026-10/resources/fulfillment.md",
+          "sha256": "1a84f30c141bdc424e4a30c76342d0b8bc5b1800884c6594ff2dcbdfd6c74d0e",
+          "documented": false
+        }
+      ],
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "resource": "Fulfillment",
+      "method": "POST",
+      "path": "orders/<order_id>/fulfillments/<id>/cancel.json",
+      "sdkRemovedIn": "2022-07",
+      "status": "confirmed",
+      "removedIn": "2022-07",
+      "source": "https://shopify.dev/docs/api/release-notes/previous-versions/2022-07",
+      "archived": "https://web.archive.org/web/20250615032224/https://shopify.dev/docs/api/release-notes/previous-versions/2022-07",
+      "says": "Lists the five order-based paths (orders/{order_id}/fulfillments.json, …/{fulfillment_id}.json and its complete, open and cancel actions) as removed from the Fulfillment resource as of 2022-07. The GET forms are still documented, so only the writes are removed.",
+      "reference": [
+        {
+          "version": "2026-01",
+          "page": "https://shopify.dev/docs/api/admin-rest/2026-01/resources/fulfillment.md",
+          "sha256": "0b224e87d92ebad4fca2525883139d7fbbaecad951f74045feb30735c49a0d21",
+          "documented": false
+        },
+        {
+          "version": "2026-04",
+          "page": "https://shopify.dev/docs/api/admin-rest/2026-04/resources/fulfillment.md",
+          "sha256": "f9338b516669f09aed5e9403c70fd9755e6cc843e9ff66cbcbefde7f5299f789",
+          "documented": false
+        },
+        {
+          "version": "2026-07",
+          "page": "https://shopify.dev/docs/api/admin-rest/2026-07/resources/fulfillment.md",
+          "sha256": "9631ffb5f70c4ac9c400bbc3d36e725576c5155d7de1f5a77d5a1288f0a1811b",
+          "documented": false
+        },
+        {
+          "version": "2026-10",
+          "page": "https://shopify.dev/docs/api/admin-rest/2026-10/resources/fulfillment.md",
+          "sha256": "1a84f30c141bdc424e4a30c76342d0b8bc5b1800884c6594ff2dcbdfd6c74d0e",
+          "documented": false
+        }
+      ],
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "resource": "Fulfillment",
+      "method": "POST",
+      "path": "orders/<order_id>/fulfillments/<id>/complete.json",
+      "sdkRemovedIn": "2022-07",
+      "status": "confirmed",
+      "removedIn": "2022-07",
+      "source": "https://shopify.dev/docs/api/release-notes/previous-versions/2022-07",
+      "archived": "https://web.archive.org/web/20250615032224/https://shopify.dev/docs/api/release-notes/previous-versions/2022-07",
+      "says": "Lists the five order-based paths (orders/{order_id}/fulfillments.json, …/{fulfillment_id}.json and its complete, open and cancel actions) as removed from the Fulfillment resource as of 2022-07. The GET forms are still documented, so only the writes are removed.",
+      "reference": [
+        {
+          "version": "2026-01",
+          "page": "https://shopify.dev/docs/api/admin-rest/2026-01/resources/fulfillment.md",
+          "sha256": "0b224e87d92ebad4fca2525883139d7fbbaecad951f74045feb30735c49a0d21",
+          "documented": false
+        },
+        {
+          "version": "2026-04",
+          "page": "https://shopify.dev/docs/api/admin-rest/2026-04/resources/fulfillment.md",
+          "sha256": "f9338b516669f09aed5e9403c70fd9755e6cc843e9ff66cbcbefde7f5299f789",
+          "documented": false
+        },
+        {
+          "version": "2026-07",
+          "page": "https://shopify.dev/docs/api/admin-rest/2026-07/resources/fulfillment.md",
+          "sha256": "9631ffb5f70c4ac9c400bbc3d36e725576c5155d7de1f5a77d5a1288f0a1811b",
+          "documented": false
+        },
+        {
+          "version": "2026-10",
+          "page": "https://shopify.dev/docs/api/admin-rest/2026-10/resources/fulfillment.md",
+          "sha256": "1a84f30c141bdc424e4a30c76342d0b8bc5b1800884c6594ff2dcbdfd6c74d0e",
+          "documented": false
+        }
+      ],
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "resource": "Fulfillment",
+      "method": "POST",
+      "path": "orders/<order_id>/fulfillments/<id>/open.json",
+      "sdkRemovedIn": "2022-07",
+      "status": "confirmed",
+      "removedIn": "2022-07",
+      "source": "https://shopify.dev/docs/api/release-notes/previous-versions/2022-07",
+      "archived": "https://web.archive.org/web/20250615032224/https://shopify.dev/docs/api/release-notes/previous-versions/2022-07",
+      "says": "Lists the five order-based paths (orders/{order_id}/fulfillments.json, …/{fulfillment_id}.json and its complete, open and cancel actions) as removed from the Fulfillment resource as of 2022-07. The GET forms are still documented, so only the writes are removed.",
+      "reference": [
+        {
+          "version": "2026-01",
+          "page": "https://shopify.dev/docs/api/admin-rest/2026-01/resources/fulfillment.md",
+          "sha256": "0b224e87d92ebad4fca2525883139d7fbbaecad951f74045feb30735c49a0d21",
+          "documented": false
+        },
+        {
+          "version": "2026-04",
+          "page": "https://shopify.dev/docs/api/admin-rest/2026-04/resources/fulfillment.md",
+          "sha256": "f9338b516669f09aed5e9403c70fd9755e6cc843e9ff66cbcbefde7f5299f789",
+          "documented": false
+        },
+        {
+          "version": "2026-07",
+          "page": "https://shopify.dev/docs/api/admin-rest/2026-07/resources/fulfillment.md",
+          "sha256": "9631ffb5f70c4ac9c400bbc3d36e725576c5155d7de1f5a77d5a1288f0a1811b",
+          "documented": false
+        },
+        {
+          "version": "2026-10",
+          "page": "https://shopify.dev/docs/api/admin-rest/2026-10/resources/fulfillment.md",
+          "sha256": "1a84f30c141bdc424e4a30c76342d0b8bc5b1800884c6594ff2dcbdfd6c74d0e",
+          "documented": false
+        }
+      ],
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "resource": "AndroidPayKey",
+      "method": "POST",
+      "path": "android_pay_keys.json",
+      "sdkRemovedIn": "2023-01",
+      "status": "not-in-current-reference",
+      "source": "https://shopify.dev/docs/api/admin-rest/2026-10",
+      "reference": [
+        {
+          "version": "2026-01",
+          "page": null,
+          "sha256": null,
+          "documented": false
+        },
+        {
+          "version": "2026-04",
+          "page": null,
+          "sha256": null,
+          "documented": false
+        },
+        {
+          "version": "2026-07",
+          "page": null,
+          "sha256": null,
+          "documented": false
+        },
+        {
+          "version": "2026-10",
+          "page": null,
+          "sha256": null,
+          "documented": false
+        }
+      ],
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "resource": "AndroidPayKey",
+      "method": "DELETE",
+      "path": "android_pay_keys/<id>.json",
+      "sdkRemovedIn": "2023-01",
+      "status": "not-in-current-reference",
+      "source": "https://shopify.dev/docs/api/admin-rest/2026-10",
+      "reference": [
+        {
+          "version": "2026-01",
+          "page": null,
+          "sha256": null,
+          "documented": false
+        },
+        {
+          "version": "2026-04",
+          "page": null,
+          "sha256": null,
+          "documented": false
+        },
+        {
+          "version": "2026-07",
+          "page": null,
+          "sha256": null,
+          "documented": false
+        },
+        {
+          "version": "2026-10",
+          "page": null,
+          "sha256": null,
+          "documented": false
+        }
+      ],
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "resource": "AndroidPayKey",
+      "method": "GET",
+      "path": "android_pay_keys/<id>.json",
+      "sdkRemovedIn": "2023-01",
+      "status": "not-in-current-reference",
+      "source": "https://shopify.dev/docs/api/admin-rest/2026-10",
+      "reference": [
+        {
+          "version": "2026-01",
+          "page": null,
+          "sha256": null,
+          "documented": false
+        },
+        {
+          "version": "2026-04",
+          "page": null,
+          "sha256": null,
+          "documented": false
+        },
+        {
+          "version": "2026-07",
+          "page": null,
+          "sha256": null,
+          "documented": false
+        },
+        {
+          "version": "2026-10",
+          "page": null,
+          "sha256": null,
+          "documented": false
+        }
+      ],
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "resource": "ApplicationCredit",
+      "method": "POST",
+      "path": "application_credits.json",
+      "sdkRemovedIn": "2023-07",
+      "status": "confirmed",
+      "removedIn": "2023-07",
+      "source": "https://shopify.dev/docs/api/release-notes/previous-versions/2023-07",
+      "archived": "https://web.archive.org/web/20250713060211/https://shopify.dev/docs/api/release-notes/previous-versions/2023-07",
+      "says": "Creating app credits through the Admin API (REST POST application_credits.json) is deprecated as of 2023-07, replaced by the Partner API appCreditCreate mutation.",
+      "reference": [
+        {
+          "version": "2026-01",
+          "page": "https://shopify.dev/docs/api/admin-rest/2026-01/resources/applicationcredit.md",
+          "sha256": "0c2e9431a714226a17495e17bbe1f9864d1b282c5559676fd5418195aacacfea",
+          "documented": false
+        },
+        {
+          "version": "2026-04",
+          "page": "https://shopify.dev/docs/api/admin-rest/2026-04/resources/applicationcredit.md",
+          "sha256": "fa72b80db60cac875507a0d2940a0f451a09940c2f4e7956aac95eda6966a580",
+          "documented": false
+        },
+        {
+          "version": "2026-07",
+          "page": "https://shopify.dev/docs/api/admin-rest/2026-07/resources/applicationcredit.md",
+          "sha256": "ef73304a76ac8c2be3a83fdd32f6f112640cfde0464ee4d793c4c89fd303da05",
+          "documented": false
+        },
+        {
+          "version": "2026-10",
+          "page": "https://shopify.dev/docs/api/admin-rest/2026-10/resources/applicationcredit.md",
+          "sha256": "8363a2bba792987b2d993e8ce8ad56f018057452ca9bc245d6578b5b25455b29",
+          "documented": false
+        }
+      ],
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "resource": "CustomerSavedSearch",
+      "method": "GET",
+      "path": "customer_saved_searches.json",
+      "sdkRemovedIn": "2023-10",
+      "status": "confirmed-earlier",
+      "removedIn": "2022-04",
+      "source": "https://shopify.dev/docs/api/release-notes/2022-04",
+      "archived": "https://web.archive.org/web/20230331001851/https://shopify.dev/docs/api/release-notes/2022-04",
+      "says": "Lists search, count, create, destroy, index, show and update as removed from the CustomerSavedSearch resource in 2022-04, replaced by customer segments. The SDK kept generating the resource until 2023-07.",
+      "reference": [
+        {
+          "version": "2026-01",
+          "page": null,
+          "sha256": null,
+          "documented": false
+        },
+        {
+          "version": "2026-04",
+          "page": null,
+          "sha256": null,
+          "documented": false
+        },
+        {
+          "version": "2026-07",
+          "page": null,
+          "sha256": null,
+          "documented": false
+        },
+        {
+          "version": "2026-10",
+          "page": null,
+          "sha256": null,
+          "documented": false
+        }
+      ],
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "resource": "CustomerSavedSearch",
+      "method": "POST",
+      "path": "customer_saved_searches.json",
+      "sdkRemovedIn": "2023-10",
+      "status": "confirmed-earlier",
+      "removedIn": "2022-04",
+      "source": "https://shopify.dev/docs/api/release-notes/2022-04",
+      "archived": "https://web.archive.org/web/20230331001851/https://shopify.dev/docs/api/release-notes/2022-04",
+      "says": "Lists search, count, create, destroy, index, show and update as removed from the CustomerSavedSearch resource in 2022-04, replaced by customer segments. The SDK kept generating the resource until 2023-07.",
+      "reference": [
+        {
+          "version": "2026-01",
+          "page": null,
+          "sha256": null,
+          "documented": false
+        },
+        {
+          "version": "2026-04",
+          "page": null,
+          "sha256": null,
+          "documented": false
+        },
+        {
+          "version": "2026-07",
+          "page": null,
+          "sha256": null,
+          "documented": false
+        },
+        {
+          "version": "2026-10",
+          "page": null,
+          "sha256": null,
+          "documented": false
+        }
+      ],
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "resource": "CustomerSavedSearch",
+      "method": "DELETE",
+      "path": "customer_saved_searches/<id>.json",
+      "sdkRemovedIn": "2023-10",
+      "status": "confirmed-earlier",
+      "removedIn": "2022-04",
+      "source": "https://shopify.dev/docs/api/release-notes/2022-04",
+      "archived": "https://web.archive.org/web/20230331001851/https://shopify.dev/docs/api/release-notes/2022-04",
+      "says": "Lists search, count, create, destroy, index, show and update as removed from the CustomerSavedSearch resource in 2022-04, replaced by customer segments. The SDK kept generating the resource until 2023-07.",
+      "reference": [
+        {
+          "version": "2026-01",
+          "page": null,
+          "sha256": null,
+          "documented": false
+        },
+        {
+          "version": "2026-04",
+          "page": null,
+          "sha256": null,
+          "documented": false
+        },
+        {
+          "version": "2026-07",
+          "page": null,
+          "sha256": null,
+          "documented": false
+        },
+        {
+          "version": "2026-10",
+          "page": null,
+          "sha256": null,
+          "documented": false
+        }
+      ],
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "resource": "CustomerSavedSearch",
+      "method": "GET",
+      "path": "customer_saved_searches/<id>.json",
+      "sdkRemovedIn": "2023-10",
+      "status": "confirmed-earlier",
+      "removedIn": "2022-04",
+      "source": "https://shopify.dev/docs/api/release-notes/2022-04",
+      "archived": "https://web.archive.org/web/20230331001851/https://shopify.dev/docs/api/release-notes/2022-04",
+      "says": "Lists search, count, create, destroy, index, show and update as removed from the CustomerSavedSearch resource in 2022-04, replaced by customer segments. The SDK kept generating the resource until 2023-07.",
+      "reference": [
+        {
+          "version": "2026-01",
+          "page": null,
+          "sha256": null,
+          "documented": false
+        },
+        {
+          "version": "2026-04",
+          "page": null,
+          "sha256": null,
+          "documented": false
+        },
+        {
+          "version": "2026-07",
+          "page": null,
+          "sha256": null,
+          "documented": false
+        },
+        {
+          "version": "2026-10",
+          "page": null,
+          "sha256": null,
+          "documented": false
+        }
+      ],
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "resource": "CustomerSavedSearch",
+      "method": "PUT",
+      "path": "customer_saved_searches/<id>.json",
+      "sdkRemovedIn": "2023-10",
+      "status": "confirmed-earlier",
+      "removedIn": "2022-04",
+      "source": "https://shopify.dev/docs/api/release-notes/2022-04",
+      "archived": "https://web.archive.org/web/20230331001851/https://shopify.dev/docs/api/release-notes/2022-04",
+      "says": "Lists search, count, create, destroy, index, show and update as removed from the CustomerSavedSearch resource in 2022-04, replaced by customer segments. The SDK kept generating the resource until 2023-07.",
+      "reference": [
+        {
+          "version": "2026-01",
+          "page": null,
+          "sha256": null,
+          "documented": false
+        },
+        {
+          "version": "2026-04",
+          "page": null,
+          "sha256": null,
+          "documented": false
+        },
+        {
+          "version": "2026-07",
+          "page": null,
+          "sha256": null,
+          "documented": false
+        },
+        {
+          "version": "2026-10",
+          "page": null,
+          "sha256": null,
+          "documented": false
+        }
+      ],
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "resource": "CustomerSavedSearch",
+      "method": "GET",
+      "path": "customer_saved_searches/<id>/customers.json",
+      "sdkRemovedIn": "2023-10",
+      "status": "confirmed-earlier",
+      "removedIn": "2022-04",
+      "source": "https://shopify.dev/docs/api/release-notes/2022-04",
+      "archived": "https://web.archive.org/web/20230331001851/https://shopify.dev/docs/api/release-notes/2022-04",
+      "says": "Lists search, count, create, destroy, index, show and update as removed from the CustomerSavedSearch resource in 2022-04, replaced by customer segments. The SDK kept generating the resource until 2023-07.",
+      "reference": [
+        {
+          "version": "2026-01",
+          "page": null,
+          "sha256": null,
+          "documented": false
+        },
+        {
+          "version": "2026-04",
+          "page": null,
+          "sha256": null,
+          "documented": false
+        },
+        {
+          "version": "2026-07",
+          "page": null,
+          "sha256": null,
+          "documented": false
+        },
+        {
+          "version": "2026-10",
+          "page": null,
+          "sha256": null,
+          "documented": false
+        }
+      ],
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "resource": "CustomerSavedSearch",
+      "method": "GET",
+      "path": "customer_saved_searches/count.json",
+      "sdkRemovedIn": "2023-10",
+      "status": "confirmed-earlier",
+      "removedIn": "2022-04",
+      "source": "https://shopify.dev/docs/api/release-notes/2022-04",
+      "archived": "https://web.archive.org/web/20230331001851/https://shopify.dev/docs/api/release-notes/2022-04",
+      "says": "Lists search, count, create, destroy, index, show and update as removed from the CustomerSavedSearch resource in 2022-04, replaced by customer segments. The SDK kept generating the resource until 2023-07.",
+      "reference": [
+        {
+          "version": "2026-01",
+          "page": null,
+          "sha256": null,
+          "documented": false
+        },
+        {
+          "version": "2026-04",
+          "page": null,
+          "sha256": null,
+          "documented": false
+        },
+        {
+          "version": "2026-07",
+          "page": null,
+          "sha256": null,
+          "documented": false
+        },
+        {
+          "version": "2026-10",
+          "page": null,
+          "sha256": null,
+          "documented": false
+        }
+      ],
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "resource": "Report",
+      "method": "GET",
+      "path": "reports.json",
+      "sdkRemovedIn": "2024-04",
+      "status": "not-in-current-reference",
+      "source": "https://shopify.dev/docs/api/admin-rest/2026-10",
+      "reference": [
+        {
+          "version": "2026-01",
+          "page": null,
+          "sha256": null,
+          "documented": false
+        },
+        {
+          "version": "2026-04",
+          "page": null,
+          "sha256": null,
+          "documented": false
+        },
+        {
+          "version": "2026-07",
+          "page": null,
+          "sha256": null,
+          "documented": false
+        },
+        {
+          "version": "2026-10",
+          "page": null,
+          "sha256": null,
+          "documented": false
+        }
+      ],
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "resource": "Report",
+      "method": "POST",
+      "path": "reports.json",
+      "sdkRemovedIn": "2024-04",
+      "status": "not-in-current-reference",
+      "source": "https://shopify.dev/docs/api/admin-rest/2026-10",
+      "reference": [
+        {
+          "version": "2026-01",
+          "page": null,
+          "sha256": null,
+          "documented": false
+        },
+        {
+          "version": "2026-04",
+          "page": null,
+          "sha256": null,
+          "documented": false
+        },
+        {
+          "version": "2026-07",
+          "page": null,
+          "sha256": null,
+          "documented": false
+        },
+        {
+          "version": "2026-10",
+          "page": null,
+          "sha256": null,
+          "documented": false
+        }
+      ],
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "resource": "Report",
+      "method": "DELETE",
+      "path": "reports/<id>.json",
+      "sdkRemovedIn": "2024-04",
+      "status": "not-in-current-reference",
+      "source": "https://shopify.dev/docs/api/admin-rest/2026-10",
+      "reference": [
+        {
+          "version": "2026-01",
+          "page": null,
+          "sha256": null,
+          "documented": false
+        },
+        {
+          "version": "2026-04",
+          "page": null,
+          "sha256": null,
+          "documented": false
+        },
+        {
+          "version": "2026-07",
+          "page": null,
+          "sha256": null,
+          "documented": false
+        },
+        {
+          "version": "2026-10",
+          "page": null,
+          "sha256": null,
+          "documented": false
+        }
+      ],
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "resource": "Report",
+      "method": "GET",
+      "path": "reports/<id>.json",
+      "sdkRemovedIn": "2024-04",
+      "status": "not-in-current-reference",
+      "source": "https://shopify.dev/docs/api/admin-rest/2026-10",
+      "reference": [
+        {
+          "version": "2026-01",
+          "page": null,
+          "sha256": null,
+          "documented": false
+        },
+        {
+          "version": "2026-04",
+          "page": null,
+          "sha256": null,
+          "documented": false
+        },
+        {
+          "version": "2026-07",
+          "page": null,
+          "sha256": null,
+          "documented": false
+        },
+        {
+          "version": "2026-10",
+          "page": null,
+          "sha256": null,
+          "documented": false
+        }
+      ],
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "resource": "Report",
+      "method": "PUT",
+      "path": "reports/<id>.json",
+      "sdkRemovedIn": "2024-04",
+      "status": "not-in-current-reference",
+      "source": "https://shopify.dev/docs/api/admin-rest/2026-10",
+      "reference": [
+        {
+          "version": "2026-01",
+          "page": null,
+          "sha256": null,
+          "documented": false
+        },
+        {
+          "version": "2026-04",
+          "page": null,
+          "sha256": null,
+          "documented": false
+        },
+        {
+          "version": "2026-07",
+          "page": null,
+          "sha256": null,
+          "documented": false
+        },
+        {
+          "version": "2026-10",
+          "page": null,
+          "sha256": null,
+          "documented": false
+        }
+      ],
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "resource": "Payment",
+      "method": "GET",
+      "path": "checkouts/<checkout_id>/payments.json",
+      "sdkRemovedIn": "2025-01",
+      "status": "not-in-current-reference",
+      "source": "https://shopify.dev/changelog/posts/checkout-apis-will-be-shut-down-april-1-2025",
+      "archived": "https://web.archive.org/web/20250614141519/https://shopify.dev/docs/api/release-notes/previous-versions/2024-04",
+      "says": "The REST Checkout endpoints, which checkouts/{token}/payments belongs to, were deprecated (2024-04 release notes) and shut off on 2025-04-01 (changelog). Neither names 2025-01 or these two endpoints.",
+      "reference": [
+        {
+          "version": "2026-01",
+          "page": "https://shopify.dev/docs/api/admin-rest/2026-01/resources/payment.md",
+          "sha256": "710b5b8d7ee5be310ad86410b37edc621ee160f2473ab56290de8f178102d9ba",
+          "documented": false
+        },
+        {
+          "version": "2026-04",
+          "page": "https://shopify.dev/docs/api/admin-rest/2026-04/resources/payment.md",
+          "sha256": "7a7171eb83d33e402408bf6fd4680e182e7842197585c5196bae9c64563b095f",
+          "documented": false
+        },
+        {
+          "version": "2026-07",
+          "page": null,
+          "sha256": null,
+          "documented": false
+        },
+        {
+          "version": "2026-10",
+          "page": null,
+          "sha256": null,
+          "documented": false
+        }
+      ],
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "resource": "Payment",
+      "method": "GET",
+      "path": "checkouts/<checkout_id>/payments/count.json",
+      "sdkRemovedIn": "2025-01",
+      "status": "not-in-current-reference",
+      "source": "https://shopify.dev/changelog/posts/checkout-apis-will-be-shut-down-april-1-2025",
+      "archived": "https://web.archive.org/web/20250614141519/https://shopify.dev/docs/api/release-notes/previous-versions/2024-04",
+      "says": "The REST Checkout endpoints, which checkouts/{token}/payments belongs to, were deprecated (2024-04 release notes) and shut off on 2025-04-01 (changelog). Neither names 2025-01 or these two endpoints.",
+      "reference": [
+        {
+          "version": "2026-01",
+          "page": "https://shopify.dev/docs/api/admin-rest/2026-01/resources/payment.md",
+          "sha256": "710b5b8d7ee5be310ad86410b37edc621ee160f2473ab56290de8f178102d9ba",
+          "documented": false
+        },
+        {
+          "version": "2026-04",
+          "page": "https://shopify.dev/docs/api/admin-rest/2026-04/resources/payment.md",
+          "sha256": "7a7171eb83d33e402408bf6fd4680e182e7842197585c5196bae9c64563b095f",
+          "documented": false
+        },
+        {
+          "version": "2026-07",
+          "page": null,
+          "sha256": null,
+          "documented": false
+        },
+        {
+          "version": "2026-10",
+          "page": null,
+          "sha256": null,
+          "documented": false
+        }
+      ],
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "resource": "CustomerAddress",
+      "method": "GET",
+      "path": "customers/<customer_id>/addresses.json",
+      "sdkRemovedIn": "2025-07",
+      "status": "contradicted",
+      "source": "https://shopify.dev/docs/api/admin-rest/2026-01/resources/customer-address.md",
+      "reference": [
+        {
+          "version": "2026-01",
+          "page": "https://shopify.dev/docs/api/admin-rest/2026-01/resources/customer-address.md",
+          "sha256": "6de18629f978305a29fb42f1ac6bc539094d651fb6526079e90d49033fa915ac",
+          "documented": true
+        },
+        {
+          "version": "2026-04",
+          "page": "https://shopify.dev/docs/api/admin-rest/2026-04/resources/customer-address.md",
+          "sha256": "b4c8754f3b468c3d4a9af26b35b76bea380a338d34e6cf18fa3f4bf734c0b25a",
+          "documented": true
+        },
+        {
+          "version": "2026-07",
+          "page": "https://shopify.dev/docs/api/admin-rest/2026-07/resources/customer-address.md",
+          "sha256": "8c634cae044e18e0766bb9cef1a22558cf6e5e6fc192f667cdf66a5d35044e9c",
+          "documented": true
+        },
+        {
+          "version": "2026-10",
+          "page": "https://shopify.dev/docs/api/admin-rest/2026-10/resources/customer-address.md",
+          "sha256": "dfc0b4dddca02a84a48bb59d34e1dac392e5464cfa47cb0a8fed46e66783f360",
+          "documented": true
+        }
+      ],
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "resource": "CustomerAddress",
+      "method": "POST",
+      "path": "customers/<customer_id>/addresses.json",
+      "sdkRemovedIn": "2025-07",
+      "status": "contradicted",
+      "source": "https://shopify.dev/docs/api/admin-rest/2026-01/resources/customer-address.md",
+      "reference": [
+        {
+          "version": "2026-01",
+          "page": "https://shopify.dev/docs/api/admin-rest/2026-01/resources/customer-address.md",
+          "sha256": "6de18629f978305a29fb42f1ac6bc539094d651fb6526079e90d49033fa915ac",
+          "documented": true
+        },
+        {
+          "version": "2026-04",
+          "page": "https://shopify.dev/docs/api/admin-rest/2026-04/resources/customer-address.md",
+          "sha256": "b4c8754f3b468c3d4a9af26b35b76bea380a338d34e6cf18fa3f4bf734c0b25a",
+          "documented": true
+        },
+        {
+          "version": "2026-07",
+          "page": "https://shopify.dev/docs/api/admin-rest/2026-07/resources/customer-address.md",
+          "sha256": "8c634cae044e18e0766bb9cef1a22558cf6e5e6fc192f667cdf66a5d35044e9c",
+          "documented": true
+        },
+        {
+          "version": "2026-10",
+          "page": "https://shopify.dev/docs/api/admin-rest/2026-10/resources/customer-address.md",
+          "sha256": "dfc0b4dddca02a84a48bb59d34e1dac392e5464cfa47cb0a8fed46e66783f360",
+          "documented": true
+        }
+      ],
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "resource": "CustomerAddress",
+      "method": "DELETE",
+      "path": "customers/<customer_id>/addresses/<id>.json",
+      "sdkRemovedIn": "2025-07",
+      "status": "contradicted",
+      "source": "https://shopify.dev/docs/api/admin-rest/2026-01/resources/customer-address.md",
+      "reference": [
+        {
+          "version": "2026-01",
+          "page": "https://shopify.dev/docs/api/admin-rest/2026-01/resources/customer-address.md",
+          "sha256": "6de18629f978305a29fb42f1ac6bc539094d651fb6526079e90d49033fa915ac",
+          "documented": true
+        },
+        {
+          "version": "2026-04",
+          "page": "https://shopify.dev/docs/api/admin-rest/2026-04/resources/customer-address.md",
+          "sha256": "b4c8754f3b468c3d4a9af26b35b76bea380a338d34e6cf18fa3f4bf734c0b25a",
+          "documented": true
+        },
+        {
+          "version": "2026-07",
+          "page": "https://shopify.dev/docs/api/admin-rest/2026-07/resources/customer-address.md",
+          "sha256": "8c634cae044e18e0766bb9cef1a22558cf6e5e6fc192f667cdf66a5d35044e9c",
+          "documented": true
+        },
+        {
+          "version": "2026-10",
+          "page": "https://shopify.dev/docs/api/admin-rest/2026-10/resources/customer-address.md",
+          "sha256": "dfc0b4dddca02a84a48bb59d34e1dac392e5464cfa47cb0a8fed46e66783f360",
+          "documented": true
+        }
+      ],
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "resource": "CustomerAddress",
+      "method": "GET",
+      "path": "customers/<customer_id>/addresses/<id>.json",
+      "sdkRemovedIn": "2025-07",
+      "status": "contradicted",
+      "source": "https://shopify.dev/docs/api/admin-rest/2026-01/resources/customer-address.md",
+      "reference": [
+        {
+          "version": "2026-01",
+          "page": "https://shopify.dev/docs/api/admin-rest/2026-01/resources/customer-address.md",
+          "sha256": "6de18629f978305a29fb42f1ac6bc539094d651fb6526079e90d49033fa915ac",
+          "documented": true
+        },
+        {
+          "version": "2026-04",
+          "page": "https://shopify.dev/docs/api/admin-rest/2026-04/resources/customer-address.md",
+          "sha256": "b4c8754f3b468c3d4a9af26b35b76bea380a338d34e6cf18fa3f4bf734c0b25a",
+          "documented": true
+        },
+        {
+          "version": "2026-07",
+          "page": "https://shopify.dev/docs/api/admin-rest/2026-07/resources/customer-address.md",
+          "sha256": "8c634cae044e18e0766bb9cef1a22558cf6e5e6fc192f667cdf66a5d35044e9c",
+          "documented": true
+        },
+        {
+          "version": "2026-10",
+          "page": "https://shopify.dev/docs/api/admin-rest/2026-10/resources/customer-address.md",
+          "sha256": "dfc0b4dddca02a84a48bb59d34e1dac392e5464cfa47cb0a8fed46e66783f360",
+          "documented": true
+        }
+      ],
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "resource": "CustomerAddress",
+      "method": "PUT",
+      "path": "customers/<customer_id>/addresses/<id>.json",
+      "sdkRemovedIn": "2025-07",
+      "status": "contradicted",
+      "source": "https://shopify.dev/docs/api/admin-rest/2026-01/resources/customer-address.md",
+      "reference": [
+        {
+          "version": "2026-01",
+          "page": "https://shopify.dev/docs/api/admin-rest/2026-01/resources/customer-address.md",
+          "sha256": "6de18629f978305a29fb42f1ac6bc539094d651fb6526079e90d49033fa915ac",
+          "documented": true
+        },
+        {
+          "version": "2026-04",
+          "page": "https://shopify.dev/docs/api/admin-rest/2026-04/resources/customer-address.md",
+          "sha256": "b4c8754f3b468c3d4a9af26b35b76bea380a338d34e6cf18fa3f4bf734c0b25a",
+          "documented": true
+        },
+        {
+          "version": "2026-07",
+          "page": "https://shopify.dev/docs/api/admin-rest/2026-07/resources/customer-address.md",
+          "sha256": "8c634cae044e18e0766bb9cef1a22558cf6e5e6fc192f667cdf66a5d35044e9c",
+          "documented": true
+        },
+        {
+          "version": "2026-10",
+          "page": "https://shopify.dev/docs/api/admin-rest/2026-10/resources/customer-address.md",
+          "sha256": "dfc0b4dddca02a84a48bb59d34e1dac392e5464cfa47cb0a8fed46e66783f360",
+          "documented": true
+        }
+      ],
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "resource": "CustomerAddress",
+      "method": "PUT",
+      "path": "customers/<customer_id>/addresses/<id>/default.json",
+      "sdkRemovedIn": "2025-07",
+      "status": "contradicted",
+      "source": "https://shopify.dev/docs/api/admin-rest/2026-01/resources/customer-address.md",
+      "reference": [
+        {
+          "version": "2026-01",
+          "page": "https://shopify.dev/docs/api/admin-rest/2026-01/resources/customer-address.md",
+          "sha256": "6de18629f978305a29fb42f1ac6bc539094d651fb6526079e90d49033fa915ac",
+          "documented": true
+        },
+        {
+          "version": "2026-04",
+          "page": "https://shopify.dev/docs/api/admin-rest/2026-04/resources/customer-address.md",
+          "sha256": "b4c8754f3b468c3d4a9af26b35b76bea380a338d34e6cf18fa3f4bf734c0b25a",
+          "documented": true
+        },
+        {
+          "version": "2026-07",
+          "page": "https://shopify.dev/docs/api/admin-rest/2026-07/resources/customer-address.md",
+          "sha256": "8c634cae044e18e0766bb9cef1a22558cf6e5e6fc192f667cdf66a5d35044e9c",
+          "documented": true
+        },
+        {
+          "version": "2026-10",
+          "page": "https://shopify.dev/docs/api/admin-rest/2026-10/resources/customer-address.md",
+          "sha256": "dfc0b4dddca02a84a48bb59d34e1dac392e5464cfa47cb0a8fed46e66783f360",
+          "documented": true
+        }
+      ],
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "resource": "CustomerAddress",
+      "method": "PUT",
+      "path": "customers/<customer_id>/addresses/set.json",
+      "sdkRemovedIn": "2025-07",
+      "status": "contradicted",
+      "source": "https://shopify.dev/docs/api/admin-rest/2026-01/resources/customer-address.md",
+      "reference": [
+        {
+          "version": "2026-01",
+          "page": "https://shopify.dev/docs/api/admin-rest/2026-01/resources/customer-address.md",
+          "sha256": "6de18629f978305a29fb42f1ac6bc539094d651fb6526079e90d49033fa915ac",
+          "documented": true
+        },
+        {
+          "version": "2026-04",
+          "page": "https://shopify.dev/docs/api/admin-rest/2026-04/resources/customer-address.md",
+          "sha256": "b4c8754f3b468c3d4a9af26b35b76bea380a338d34e6cf18fa3f4bf734c0b25a",
+          "documented": true
+        },
+        {
+          "version": "2026-07",
+          "page": "https://shopify.dev/docs/api/admin-rest/2026-07/resources/customer-address.md",
+          "sha256": "8c634cae044e18e0766bb9cef1a22558cf6e5e6fc192f667cdf66a5d35044e9c",
+          "documented": true
+        },
+        {
+          "version": "2026-10",
+          "page": "https://shopify.dev/docs/api/admin-rest/2026-10/resources/customer-address.md",
+          "sha256": "dfc0b4dddca02a84a48bb59d34e1dac392e5464cfa47cb0a8fed46e66783f360",
+          "documented": true
+        }
+      ],
+      "checkedAt": "2026-10-22"
+    }
+  ]
+}

@@ -20,12 +20,14 @@ Lane FP10. Before: Gemini was 20% on its checklist in [Provider goals](PROVIDER-
 
 Set: `docs/benchmarks/2026-10-21-gemini-repos.json` (50 repositories, unchanged). Labels: `docs/benchmarks/2026-10-22-gemini-labels.json`, 20 repositories (seeded order, at most 60 candidate lines each; two larger ones skipped), 395 candidate lines: 60 sent (38 through a Google SDK), 321 not sent, 14 ambiguous. They were committed before either run below. Run: `node scripts/gemini-benchmark.mjs --list … --root … --output …`; score: `npx tsx pipeline/gemini-labels.ts --labels … --results …` (tested in `pipeline/gemini-labels.test.ts`). Results at f067ac1: `docs/benchmarks/2026-10-22-gemini-results.json`.
 
-| Measure (17 labelled repositories Refit can scan)       | Before (main 7b2c86a)   | After (f067ac1) |
+| Measure (17 labelled repositories Refit can scan)       | Before (main 7b2c86a)\* | After (f067ac1) |
 | ------------------------------------------------------- | ----------------------- | --------------- |
 | Matcher live class, precision                           | 34/59 (57.6%)           | 34/59 (57.6%)   |
 | Matcher live class, recall                              | 34/39 (87.2%)           | 34/39 (87.2%)   |
 | Pins sent through a Google SDK reached by a traced call | 0/35 (no Gemini tracer) | 13/35 (37.1%)   |
 | Traced sites that are labelled sent                     | none                    | 13/14 (92.9%)   |
+
+\* Not a separate run. The matcher is unchanged by #214, so its before figures are the after run's; there was no Gemini tracer before.
 
 | Whole set (50 repositories, shipped registry) | Before                          | After                               |
 | --------------------------------------------- | ------------------------------- | ----------------------------------- |
