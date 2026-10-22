@@ -228,6 +228,11 @@ describe('clients Refit cannot resolve', () => {
           '  }',
           '}',
         ].join('\n'),
+        'lib/find.js': [
+          'export default async (octokit, owner) => {',
+          "  return octokit.graphql('{ viewer { login } }');",
+          '};',
+        ].join('\n'),
         'src/other.ts': [
           'export function run(thing: { rest: { repos: { get(): void } } }) {',
           '  thing.rest.repos.get();',
@@ -239,6 +244,7 @@ describe('clients Refit cannot resolve', () => {
     );
     expect(at(calls, 'lib/publish.js', 3).route).toBe('POST /repos/{owner}/{repo}/releases');
     expect(at(calls, 'lib/publish.js', 6).kind).toBe('graphql');
+    expect(at(calls, 'lib/find.js', 2).kind).toBe('graphql');
     expect(at(calls, 'lib/publish.js', 7).route).toBe('GET /repos/{owner}/{repo}/labels');
     expect(at(calls, 'src/driver.js', 6).method).toBe('issues.createComment');
     expect(at(calls, 'src/driver.js', 7).method).toBe('repos.listCommentsForCommit');

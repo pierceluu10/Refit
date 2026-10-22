@@ -1227,8 +1227,10 @@ function exportsOf(source: ts.SourceFile) {
 
 const PACKAGE_TEXT = /['"](?:octokit|@octokit\/[\w-]+|@actions\/github|probot)['"]/;
 // Files that use a client without importing a GitHub package: a class passed in under an Octokit
-// name, or `.rest.<scope>.<method>` calls.
-const CLIENT_TEXT = /\bnew\s+(?:[A-Z]\w*)?Octokit\b|\.rest\.\w+\.\w+\s*\(/;
+// name, `.rest.<scope>.<method>` calls, or `octokit.request`, `graphql` and `paginate` on a
+// client passed in.
+const CLIENT_TEXT =
+  /\bnew\s+(?:[A-Z]\w*)?Octokit\b|\.rest\.\w+\.\w+\s*\(|\boctokit\.(?:request|graphql|paginate)\s*\(/;
 
 function scanFiles(repository: Repository, data: GitHubApiData) {
   const calls: GitHubCall[] = [];
