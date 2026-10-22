@@ -33,13 +33,14 @@ const { values } = parseArgs({
     root: { type: 'string' },
     results: { type: 'string' },
     score: { type: 'string' },
+    aliases: { type: 'string' },
     'allow-dirty': { type: 'boolean' },
     help: { type: 'boolean' },
   },
 });
 if (values.help || !values.results) {
   console.log(
-    'Usage: node scripts/inventory-benchmark.mjs --results <results.json> [--root <checkouts>] [--refit <checkout>] [--score <score.json>] [--list <frozen.json>] [--labels <labels.json>] [--allow-dirty]\nWith --root it runs detection and writes --results; without it, it rescores --results.',
+    'Usage: node scripts/inventory-benchmark.mjs --results <results.json> [--root <checkouts>] [--refit <checkout>] [--score <score.json>] [--aliases <aliases.json>] [--list <frozen.json>] [--labels <labels.json>] [--allow-dirty]\nWith --root it runs detection and writes --results; without it, it rescores --results.',
   );
   process.exit(values.help ? 0 : 1);
 }
@@ -191,7 +192,13 @@ if (values.root) {
 }
 
 const results = await read(values.results);
-const score = { refit: results.refit, ...scoreInventory(labels, results) };
+// A detector's provider id that names the same provider as a label id under another spelling
+// (`{"mistral-ai": "mistral"}`). The map is recorded with the score.
+const aliases = values.aliases ? await read(values.aliases) : {};
+for (const repo of results.repos)
+  for (const detection of repo.detections)
+    detection.provider = aliases[detection.provider] ?? detection.provider;
+const score = { refit: results.refit, aliases, ...scoreInventory(labels, results) };
 if (values.score) await writeFile(resolve(values.score), `${JSON.stringify(score, null, 2)}\n`);
 const line = (name, tally) =>
   `${name.padEnd(26)} precision ${tally.precision.rate ?? '-'}% (${tally.truePositives}/${tally.truePositives + tally.falsePositives})  recall ${tally.recall.rate ?? '-'}% (${tally.truePositives}/${tally.truePositives + tally.falseNegatives})`;
