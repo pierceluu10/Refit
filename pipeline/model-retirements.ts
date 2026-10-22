@@ -56,6 +56,9 @@ const TRACERS: {
   clientCalls?: Set<string>;
   // The client is not the provider's own endpoint, so its requests only ever stop for review.
   custom?: boolean;
+  // A cloud platform's client for the provider's models, whose model IDs and retirement dates are
+  // the platform's own. Its requests only ever stop for review.
+  platform?: string;
 }[] = [
   {
     provider: 'openai',
@@ -79,7 +82,43 @@ const TRACERS: {
     adapter: new URL('../examples/anthropic.provider.json', import.meta.url),
     resourceCalls: MODEL_CALLS.anthropic,
   },
+  ...[
+    ['@anthropic-ai/bedrock-sdk', 'AnthropicBedrock', 'Amazon Bedrock'],
+    ['@anthropic-ai/vertex-sdk', 'AnthropicVertex', 'Google Cloud Vertex AI'],
+  ].map(([packageName, namedExport, platform]) => ({
+    provider: 'anthropic' as const,
+    adapter: { id: 'anthropic', packageName, defaultImport: true, namedExport, operations: [] },
+    resourceCalls: MODEL_CALLS.anthropic,
+    platform,
+  })),
 ];
+
+// The Claude API model ID inside a dated Amazon Bedrock ID (`us.anthropic.claude-3-5-haiku-20241022-v1:0`)
+// or Google Cloud Vertex AI ID (`claude-3-5-sonnet-v2@20241022`), with the platform's name.
+const BEDROCK_ID = /^(?:[a-z]{2,6}\.)?anthropic\.(claude-[a-z0-9.-]+?)-v\d+(?::\d+)?$/;
+const VERTEX_ID = /^(claude-[a-z0-9.-]+?)(?:-v\d+)?@(\d{8})$/;
+const PLATFORM_ID =
+  /(?:[a-z]{2,6}\.)?anthropic\.claude-[a-z0-9.-]+?-v\d+(?::\d+)?|claude-[a-z0-9.-]+@\d{8}/g;
+function platformModel(text: string) {
+  const bedrock = BEDROCK_ID.exec(text);
+  if (bedrock) return { id: bedrock[1], platform: 'Amazon Bedrock' };
+  const vertex = VERTEX_ID.exec(text);
+  if (vertex) return { id: `${vertex[1]}-${vertex[2]}`, platform: 'Google Cloud Vertex AI' };
+  return undefined;
+}
+
+// Messages API calls that are not plain requests: the SDK's tool runner, which sends
+// `messages.create` in a loop, and the retired `beta.tools` and `beta.promptCaching` paths of
+// SDK versions before 0.30. Their model is reported, but editing them is not decided (#120).
+const MESSAGE_HELPERS = new Set([
+  'beta.messages.toolRunner',
+  'beta.tools.messages.create',
+  'beta.tools.messages.stream',
+  'beta.promptCaching.messages.create',
+  'beta.promptCaching.messages.stream',
+]);
+// Message Batches calls, whose model is in each entry's `params`.
+const BATCH_CALLS = new Set(['messages.batches.create', 'beta.messages.batches.create']);
 // Request parameters a newer model may reject or treat differently. Anthropic returns a 400 for
 // non-default temperature, top_p and top_k on Claude 4.7 and later models (Anthropic model
 // deprecations page, 2026-10-20). OpenAI reasoning models' support for the sampling and length
@@ -1895,7 +1934,14 @@ export async function proposeModelReplacements(
           file.content.includes(`"${model}"`) ||
           file.content.includes(`\`${model}\``),
       ),
-    );
+    ) ||
+    (provider === 'anthropic' &&
+      repository.files.some((file) =>
+        [...file.content.matchAll(PLATFORM_ID)].some((match) => {
+          const id = platformModel(match[0])?.id;
+          return id !== undefined && byProvider.get(provider)!.has(id);
+        }),
+      ));
   for (const provider of [...byProvider.keys()]) if (!quoted(provider)) byProvider.delete(provider);
   if (!byProvider.size) return empty;
   const program = sourceProgram(repository);
@@ -1913,6 +1959,8 @@ export async function proposeModelReplacements(
     custom: boolean;
     // Traced only by trusting an SDK import under an unreadable tsconfig or jsconfig.
     unverified?: boolean;
+    // A cloud platform's client, such as Claude on Amazon Bedrock.
+    platform?: string;
   }[] = [];
   const seen = new Set<ts.Node>();
   // Providers whose SDK the repository imports, so their requests can be traced at all.
@@ -1984,6 +2032,7 @@ export async function proposeModelReplacements(
         sdk: true,
         custom: Boolean(tracer.custom),
         unverified: !confirmed.has(callKey(sdk)),
+        platform: tracer.platform,
       });
     }
   }
@@ -2031,30 +2080,57 @@ export async function proposeModelReplacements(
     found: NonNullable<ReturnType<typeof requestObject>>;
     value: ts.Expression;
     trace: ReturnType<typeof modelSites>;
+    // Where the model is read from other than the request's own `model`: options it spreads, or
+    // one entry of a Message Batches request.
+    from?: string;
   }[] = [];
   const paths = new Set(repository.files.map((item) => item.path));
   const skipped = (file: string) => TEST_PATH.test(file) || compiledOutput(file, paths);
   for (const request of requests) {
     if (skipped(program.path(request.node))) continue;
     const found = requestObject(program, request.argument);
-    const property = found && objectProperty(found.object, 'model');
-    if (!found || !property) continue;
-    const value = propertyValue(property);
-    const trace = modelSites(program, value);
-    for (const site of trace.sites) for (const pass of site.passes) reached.add(pass.use);
-    traced.push({ request, found, value, trace });
+    if (!found) continue;
+    // A request without its own `model` may take it from options it spreads, or, for a Message
+    // Batches request, from each entry's `params`. Both are reported, never edited.
+    const sources: { object: ts.ObjectLiteralExpression; from?: string }[] = [found];
+    if (BATCH_CALLS.has(request.call)) {
+      const entries = objectProperty(found.object, 'requests');
+      const list = entries && unwrap(propertyValue(entries));
+      if (list && ts.isArrayLiteralExpression(list))
+        for (const element of list.elements) {
+          const item = unwrap(element);
+          const params = ts.isObjectLiteralExpression(item) && objectProperty(item, 'params');
+          const object = params && requestObject(program, propertyValue(params));
+          if (object) sources.push({ object: object.object, from: 'batch' });
+        }
+    } else if (!objectProperty(found.object, 'model'))
+      for (const item of found.object.properties)
+        if (ts.isSpreadAssignment(item)) {
+          const object = requestObject(program, item.expression);
+          if (object) sources.push({ object: object.object, from: item.expression.getText() });
+        }
+    for (const { object, from } of sources) {
+      const property = objectProperty(object, 'model');
+      if (!property) continue;
+      const value = propertyValue(property);
+      const trace = modelSites(program, value);
+      for (const site of trace.sites) for (const pass of site.passes) reached.add(pass.use);
+      traced.push({ request, found, value, trace, from });
+    }
   }
   const endpointSet = requests.some((request) => request.sdk && !request.custom)
     ? await customEndpoint(directory, repository)
     : false;
-  for (const { request, found, value, trace } of traced) {
+  for (const { request, found, value, trace, from } of traced) {
     const models = byProvider.get(request.provider)!;
     // A trace a limit cut cannot prove every source and use, so no literal it reaches is edited.
     // The literals a bounded sweep adds stop too.
     const sites: Site[] = [...trace.sites];
     if (trace.cut) {
       const known = new Set(sites.map((site) => site.literal));
-      for (const literal of sweepLiterals(program, value, (text) => models.has(text)))
+      for (const literal of sweepLiterals(program, value, (text) =>
+        models.has(platformModel(text)?.id ?? text),
+      ))
         if (!known.has(literal)) sites.push({ literal, passes: [] });
     }
     const limit =
@@ -2073,8 +2149,11 @@ export async function proposeModelReplacements(
         ? new Map<ts.StringLiteralLike, string | undefined>()
         : directSites(program, value);
     for (const site of sites) {
-      const entry = models.get(site.literal.text);
+      const onPlatform =
+        request.provider === 'anthropic' ? platformModel(site.literal.text) : undefined;
+      const entry = models.get(onPlatform?.id ?? site.literal.text);
       if (!entry || skipped(program.path(site.literal))) continue;
+      const platform = request.platform ?? onPlatform?.platform;
       const resolved = finalReplacement(entry, models) ?? { to: '', via: [entry.id] };
       const sensitive = found.object.properties
         .map((item) => (item.name ? propertyName(item.name) : undefined))
@@ -2085,38 +2164,46 @@ export async function proposeModelReplacements(
       const stop = site.stop ?? sharedUse(program, site.passes, reached);
       const reason = !resolved.to
         ? 'The registry names no concrete replacement model ID.'
-        : request.unverified
-          ? `The tsconfig.json or jsconfig.json for the SDK import cannot be fully read (it may extend a generated file that is not checked in), so Refit cannot confirm the import is the SDK; change its model by hand to ${resolved.to}.`
-          : // Images, audio, embeddings, moderation and legacy completions change formats, vector
-            // sizes or parameters with the model, so they are never edited. The wording is accurate for
-            // any call outside the text allow-list, such as beta.assistants.create (D-11, D-16).
-            !request.text
-            ? `\`${request.call}\` is not a call Refit edits; ${resolved.to} may change formats or parameters; change it by hand to ${resolved.to}.`
-            : customUrl
-              ? request.sdk
-                ? `The client sets a custom base URL, so the model may name another provider's model or a deployment; change it by hand to ${resolved.to}.`
-                : `The request goes to a host other than the official API, so the model may name another provider's model or a deployment; change it by hand to ${resolved.to}.`
-              : limit
-                ? `${limit} ${resolved.to}.`
-                : stop
-                  ? `${stop} ${resolved.to}.`
-                  : direct && (!direct.has(site.literal) || direct.get(site.literal))
-                    ? /^(?:axios|request) /.test(request.call)
-                      ? `\`${request.call}\` is an axios request config, which Refit reports but does not edit yet; change it by hand to ${resolved.to}.`
-                      : `The model reaches this request through ${indirectSource(site)}, which Refit reports but does not edit yet; change it by hand to ${resolved.to}.`
-                    : found.shared
-                      ? `${found.shared} ${resolved.to}.`
-                      : found.object.properties.some((item) => ts.isSpreadAssignment(item))
-                        ? 'The request spreads other options, which may set parameters the replacement rejects.'
-                        : // A computed name such as `['temperature']: 0.5` or `[KEY]: 5` may be a
-                          // sampling or length parameter the name check cannot see.
-                          found.object.properties.some(
-                              (item) => item.name && ts.isComputedPropertyName(item.name),
-                            )
-                          ? `The request sets a computed property, which may be a parameter the replacement rejects; change it by hand to ${resolved.to}.`
-                          : sensitive.length
-                            ? `The request sets ${sensitive.join(', ')}, which ${resolved.to} may reject or treat differently.`
-                            : undefined;
+        : platform
+          ? `${request.platform ? `The client is Claude on ${platform}` : `\`${site.literal.text}\` is a model ID for ${platform}`}, where model IDs and retirement dates are ${platform}'s, not the Claude API's (the Claude API retires ${onPlatform?.id ?? site.literal.text} on ${entry.date}); check ${platform}'s model lifecycle and change it by hand to its ID for ${resolved.to}.`
+          : request.unverified
+            ? `The tsconfig.json or jsconfig.json for the SDK import cannot be fully read (it may extend a generated file that is not checked in), so Refit cannot confirm the import is the SDK; change its model by hand to ${resolved.to}.`
+            : MESSAGE_HELPERS.has(request.call)
+              ? `\`${request.call}\` is a Messages API helper or retired beta path, which Refit reports but does not edit; change it by hand to ${resolved.to}.`
+              : from === 'batch'
+                ? `\`${request.call}\` is a Message Batches request, which Refit reports but does not edit; change it by hand to ${resolved.to}.`
+                : // Images, audio, embeddings, moderation and legacy completions change formats, vector
+                  // sizes or parameters with the model, so they are never edited. The wording is accurate for
+                  // any call outside the text allow-list, such as beta.assistants.create (D-11, D-16).
+                  !request.text
+                  ? `\`${request.call}\` is not a call Refit edits; ${resolved.to} may change formats or parameters; change it by hand to ${resolved.to}.`
+                  : customUrl
+                    ? request.sdk
+                      ? `The client sets a custom base URL, so the model may name another provider's model or a deployment; change it by hand to ${resolved.to}.`
+                      : `The request goes to a host other than the official API, so the model may name another provider's model or a deployment; change it by hand to ${resolved.to}.`
+                    : from
+                      ? `The request takes its model from the options it spreads (\`...${from}\`), which Refit reports but does not edit; change it by hand to ${resolved.to}.`
+                      : limit
+                        ? `${limit} ${resolved.to}.`
+                        : stop
+                          ? `${stop} ${resolved.to}.`
+                          : direct && (!direct.has(site.literal) || direct.get(site.literal))
+                            ? /^(?:axios|request) /.test(request.call)
+                              ? `\`${request.call}\` is an axios request config, which Refit reports but does not edit yet; change it by hand to ${resolved.to}.`
+                              : `The model reaches this request through ${indirectSource(site)}, which Refit reports but does not edit yet; change it by hand to ${resolved.to}.`
+                            : found.shared
+                              ? `${found.shared} ${resolved.to}.`
+                              : found.object.properties.some((item) => ts.isSpreadAssignment(item))
+                                ? 'The request spreads other options, which may set parameters the replacement rejects.'
+                                : // A computed name such as `['temperature']: 0.5` or `[KEY]: 5` may be a
+                                  // sampling or length parameter the name check cannot see.
+                                  found.object.properties.some(
+                                      (item) => item.name && ts.isComputedPropertyName(item.name),
+                                    )
+                                  ? `The request sets a computed property, which may be a parameter the replacement rejects; change it by hand to ${resolved.to}.`
+                                  : sensitive.length
+                                    ? `The request sets ${sensitive.join(', ')}, which ${resolved.to} may reject or treat differently.`
+                                    : undefined;
       const decision = decisions.get(site.literal) ?? {
         entry,
         ...resolved,
@@ -2206,7 +2293,7 @@ export async function proposeModelReplacements(
 
 const SDK_PACKAGES: Record<string, string> = {
   openai: '`openai` or `openai-edge`',
-  anthropic: '`@anthropic-ai/sdk`',
+  anthropic: '`@anthropic-ai/sdk`, `@anthropic-ai/bedrock-sdk` or `@anthropic-ai/vertex-sdk`',
 };
 
 // Why a live model ID is not sent by any traced request, from where it is written.

@@ -183,7 +183,8 @@ it('stops for review where a swap could change the request, and skips what it ca
       "  await openai.chat.completions.create({ ...options, model: 'gpt-4', messages });",
       '  await openai.chat.completions.create({ model: MODEL, messages });',
       "  await openai.chat.completions.create({ model: 'gpt-prose', messages });",
-      // Not a text-generation call: it stops for review. Not the SDK, or not a retiring model: nothing.
+      // Not a text-generation call, or an Amazon Bedrock ID: it stops for review. Not the SDK, or
+      // not a retiring model: nothing.
       "  await openai.embeddings.create({ model: 'gpt-4', input: 'x' });",
       "  await fetch('https://api.openai.com', { body: JSON.stringify({ model: 'gpt-4' }) });",
       "  await openai.chat.completions.create({ model: 'gpt-4o', messages });",
@@ -222,6 +223,11 @@ it('stops for review where a swap could change the request, and skips what it ca
       8,
       'claude-3-opus-20240229',
       'The request sets temperature, which claude-opus-4-8 may reject or treat differently.',
+    ],
+    [
+      15,
+      'anthropic.claude-3-opus-20240229-v1:0',
+      "`anthropic.claude-3-opus-20240229-v1:0` is a model ID for Amazon Bedrock, where model IDs and retirement dates are Amazon Bedrock's, not the Claude API's (the Claude API retires claude-3-opus-20240229 on 2026-01-05); check Amazon Bedrock's model lifecycle and change it by hand to its ID for claude-opus-4-8.",
     ],
   ]);
 });
@@ -1918,10 +1924,6 @@ it('follows the right side of && and keeps the other shapes untraced', async () 
     ],
     arguments: ['function ask() {', `  return ${send('arguments[0]')}`, '}', "ask('gpt-4');"],
     'this in an object method': ["const o = { m: 'gpt-4', go() { " + send('this.m') + ' } };'],
-    'spread from a const object': [
-      "const base = { model: 'gpt-4' };",
-      'openai.chat.completions.create({ ...base, messages: [] });',
-    ],
   };
   for (const [label, lines] of Object.entries(shapes)) {
     const proposal = await proposeModelReplacements(
@@ -1931,6 +1933,26 @@ it('follows the right side of && and keeps the other shapes untraced', async () 
     );
     expect([label, proposal.replacements, proposal.stops]).toEqual([label, [], []]);
   }
+  // A model spread in from a `const` object is reported, not edited.
+  const spread = await proposeModelReplacements(
+    await repository({
+      'src/a.ts': [
+        ...HEAD,
+        "const base = { model: 'gpt-4' };",
+        'openai.chat.completions.create({ ...base, messages: [] });',
+      ].join('\n'),
+    }),
+    registry,
+    NOW,
+  );
+  expect(spread.replacements).toEqual([]);
+  expect(spread.stops).toMatchObject([
+    {
+      model: 'gpt-4',
+      reason:
+        'The request takes its model from the options it spreads (`...base`), which Refit reports but does not edit; change it by hand to gpt-5.6-sol.',
+    },
+  ]);
 });
 it('reports class property models at their initializers and assignments without editing them', async () => {
   const root = await repository({
@@ -2294,7 +2316,7 @@ it('explains every live model ID that no traced request sends', async () => {
       file: 'src/model.ts',
       line: 2,
       reason: expect.stringMatching(
-        /^No file imports `@anthropic-ai\/sdk`, so the model may reach the API through another library or a wrapper \(it is passed to anthropic\(\)\)\./,
+        /^No file imports `@anthropic-ai\/sdk`, `@anthropic-ai\/bedrock-sdk` or `@anthropic-ai\/vertex-sdk`, so the model may reach the API through another library or a wrapper \(it is passed to anthropic\(\)\)\./,
       ),
     },
   ]);
@@ -2330,4 +2352,134 @@ it('treats the SDK as the package under a catch-all paths entry unless a source 
   expect(shadowed.replacements).toEqual([]);
   expect(shadowed.patch).toBeNull();
   expect(shadowed.unresolved).toMatchObject([{ file: 'server/src/summarize.ts', line: 4 }]);
+});
+
+// Messages API shapes real applications use: streaming, beta.messages and a tool-use loop are
+// plain requests and are edited; the rest are reported with why they are not.
+it('edits streaming, beta and tool-loop Messages requests and stops on helpers, batches and spreads', async () => {
+  const root = await repository({
+    'src/chat.ts': [
+      "import Anthropic from '@anthropic-ai/sdk';",
+      'const anthropic = new Anthropic();',
+      'export async function chat(messages: any[], tools: any[]) {',
+      "  const stream = await anthropic.messages.create({ model: 'claude-3-opus-20240229', max_tokens: 9, messages, stream: true });",
+      '  for await (const event of stream) console.log(event);',
+      "  await anthropic.messages.stream({ model: 'claude-3-opus-20240229', max_tokens: 9, messages }).on('text', console.log).finalMessage();",
+      "  await anthropic.beta.messages.create({ model: 'claude-3-opus-20240229', max_tokens: 9, messages, betas: ['x'] });",
+      "  anthropic.beta.messages.stream({ model: 'claude-3-opus-20240229', max_tokens: 9, messages });",
+      '  while (true) {',
+      "    const response = await anthropic.messages.create({ model: 'claude-3-opus-20240229', max_tokens: 9, tools, messages });",
+      "    if (response.stop_reason !== 'tool_use') return response;",
+      "    messages.push({ role: 'assistant', content: response.content });",
+      '  }',
+      '}',
+    ].join('\n'),
+    'src/other.ts': [
+      "import Anthropic from '@anthropic-ai/sdk';",
+      'const anthropic = new Anthropic();',
+      'export async function other(messages: any[], tools: any[]) {',
+      "  await anthropic.beta.messages.toolRunner({ model: 'claude-3-opus-20240229', max_tokens: 9, tools, messages });",
+      "  await anthropic.beta.tools.messages.create({ model: 'claude-3-opus-20240229', max_tokens: 9, tools, messages });",
+      '  await anthropic.messages.batches.create({',
+      "    requests: [{ custom_id: 'a', params: { model: 'claude-3-opus-20240229', max_tokens: 9, messages } }],",
+      '  });',
+      "  const params = { model: 'claude-3-opus-20240229', max_tokens: 9, tools };",
+      '  await anthropic.messages.create({ ...params, messages });',
+      '}',
+    ].join('\n'),
+  });
+  const proposal = await proposeModelReplacements(root, registry, NOW);
+  expect(proposal.replacements.map((item) => [item.file, item.line, item.call])).toEqual([
+    ['src/chat.ts', 4, 'messages.create'],
+    ['src/chat.ts', 6, 'messages.stream'],
+    ['src/chat.ts', 7, 'beta.messages.create'],
+    ['src/chat.ts', 8, 'beta.messages.stream'],
+    ['src/chat.ts', 10, 'messages.create'],
+  ]);
+  expect(proposal.stops.map((item) => [item.at.line, item.call, item.reason])).toEqual([
+    [
+      4,
+      'beta.messages.toolRunner',
+      '`beta.messages.toolRunner` is a Messages API helper or retired beta path, which Refit reports but does not edit; change it by hand to claude-opus-4-8.',
+    ],
+    [
+      5,
+      'beta.tools.messages.create',
+      '`beta.tools.messages.create` is a Messages API helper or retired beta path, which Refit reports but does not edit; change it by hand to claude-opus-4-8.',
+    ],
+    [
+      7,
+      'messages.batches.create',
+      '`messages.batches.create` is a Message Batches request, which Refit reports but does not edit; change it by hand to claude-opus-4-8.',
+    ],
+    [
+      9,
+      'messages.create',
+      'The request takes its model from the options it spreads (`...params`), which Refit reports but does not edit; change it by hand to claude-opus-4-8.',
+    ],
+  ]);
+  expect(proposal.unresolved).toEqual([]);
+});
+
+// Claude on Amazon Bedrock and Google Cloud Vertex AI keeps its own model IDs and retirement
+// dates, so its requests are reported with the Claude API model they name and never edited.
+it('stops on Bedrock and Vertex AI clients and on platform model IDs', async () => {
+  const root = await repository({
+    'package.json': JSON.stringify({
+      name: 'app',
+      dependencies: {
+        '@anthropic-ai/sdk': '0.40.0',
+        '@anthropic-ai/bedrock-sdk': '0.12.0',
+        '@anthropic-ai/vertex-sdk': '0.6.0',
+      },
+    }),
+    'src/bedrock.ts': [
+      "import { AnthropicBedrock } from '@anthropic-ai/bedrock-sdk';",
+      'const bedrock = new AnthropicBedrock();',
+      'export const ask = (messages: any[]) =>',
+      "  bedrock.messages.create({ model: 'us.anthropic.claude-3-opus-20240229-v1:0', max_tokens: 9, messages });",
+    ].join('\n'),
+    'src/vertex.ts': [
+      "import AnthropicVertex from '@anthropic-ai/vertex-sdk';",
+      "const vertex = new AnthropicVertex({ region: 'us-east5', projectId: 'p' });",
+      'export const ask = (messages: any[]) =>',
+      "  vertex.messages.stream({ model: 'claude-3-opus@20240229', max_tokens: 9, messages });",
+      'export const plain = (messages: any[]) =>',
+      "  vertex.messages.create({ model: 'claude-3-opus-20240229', max_tokens: 9, messages });",
+    ].join('\n'),
+    // A Bedrock ID on the Claude API client (a gateway, say) stops too; the next model is not.
+    'src/api.ts': [
+      "import Anthropic from '@anthropic-ai/sdk';",
+      'const anthropic = new Anthropic();',
+      'export const ask = (messages: any[]) =>',
+      "  anthropic.messages.create({ model: 'anthropic.claude-3-opus-20240229-v1:0', max_tokens: 9, messages });",
+      'export const keep = (messages: any[]) =>',
+      "  anthropic.messages.create({ model: 'anthropic.claude-opus-4-8-v1:0', max_tokens: 9, messages });",
+    ].join('\n'),
+  });
+  const proposal = await proposeModelReplacements(root, registry, NOW);
+  expect(proposal.replacements).toEqual([]);
+  expect(proposal.patch).toBeNull();
+  const bedrock =
+    "where model IDs and retirement dates are Amazon Bedrock's, not the Claude API's (the Claude API retires claude-3-opus-20240229 on 2026-01-05); check Amazon Bedrock's model lifecycle and change it by hand to its ID for claude-opus-4-8.";
+  const vertex =
+    "The client is Claude on Google Cloud Vertex AI, where model IDs and retirement dates are Google Cloud Vertex AI's, not the Claude API's (the Claude API retires claude-3-opus-20240229 on 2026-01-05); check Google Cloud Vertex AI's model lifecycle and change it by hand to its ID for claude-opus-4-8.";
+  expect(
+    proposal.stops
+      .map((item) => [item.file, item.model, item.reason])
+      .sort((a, b) => a[0].localeCompare(b[0])),
+  ).toEqual([
+    [
+      'src/api.ts',
+      'anthropic.claude-3-opus-20240229-v1:0',
+      `\`anthropic.claude-3-opus-20240229-v1:0\` is a model ID for Amazon Bedrock, ${bedrock}`,
+    ],
+    [
+      'src/bedrock.ts',
+      'us.anthropic.claude-3-opus-20240229-v1:0',
+      `The client is Claude on Amazon Bedrock, ${bedrock}`,
+    ],
+    ['src/vertex.ts', 'claude-3-opus@20240229', vertex],
+    ['src/vertex.ts', 'claude-3-opus-20240229', vertex],
+  ]);
 });
