@@ -6,6 +6,7 @@ import { runHostedService } from './hosted-service.ts';
 import { openHostedStore } from './hosted-store.ts';
 import { hostedTenancy } from './hosted-tenancy.ts';
 import { openInventoryStore } from './inventory-store.ts';
+import { hostedAlerts } from './monitoring.ts';
 import { validateServiceSecret } from './local-service.ts';
 import { readRepositoryApproval } from './repository-enrollment.ts';
 import { PipelineInputError } from './types.ts';
@@ -22,7 +23,8 @@ Requires REFIT_DATABASE_URL (PostgreSQL). serve also requires GITHUB_APP_ID, GIT
 approve stores a receipt made by refit enroll. Installing the App on an approved repository enrolls it: the worker runs refit doctor, then scans and validates with the approved checks, and stores a job receipt. Installed repositories without an approval never run. Removing the repository or the installation cancels its targets and stops running jobs. --publish-draft opens draft PRs as Refit Agent; Refit never merges.
 retry queues one fresh attempt for an enrolled target, permitting a cached failed job to run again; successful jobs remain cached. Approval and access gates still apply.
 accounts lists every recorded installation, whether the serving worker allowed it, and today's usage against the caps. Run it with the worker's REFIT_HOSTED_ACCOUNTS (or REFIT_HOSTED_OWNER) and cap settings.
-inventory queues a read-only inventory of a repository installed by an allowed account, approved or not, and prints the stored one as JSON. The running worker takes it within its polling interval; an unchanged revision is not scanned again. Installing the App queues one for every repository it can read.`;
+inventory queues a read-only inventory of a repository installed by an allowed account, approved or not, and prints the stored one as JSON. The running worker takes it within its polling interval; an unchanged revision is not scanned again. Installing the App queues one for every repository it can read.
+REFIT_HOSTED_ALERTS=1 (off by default) makes serve monitor every inventoried repository: it takes a new inventory after a default-branch push, a registry change or 24 hours (at most once per 10 minutes), and opens or updates one GitHub issue per repository and deadline 90, 30 and 7 days before it and when it passes. It needs the App's Issues write permission, and push re-scans need the App's push event.`;
 
 function database() {
   const connectionString = process.env.REFIT_DATABASE_URL;
@@ -136,6 +138,7 @@ try {
         webhookSecret,
         controlToken,
         tenancy: hostedTenancy(process.env),
+        alerts: hostedAlerts(process.env) ?? undefined,
         aiPatch: assessmentConfiguration(values['ai-patch'], process.env),
         repairAttempts: Number(values['repair-attempts'] ?? 0),
         publishDraft: values['publish-draft'],

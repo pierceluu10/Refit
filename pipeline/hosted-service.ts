@@ -21,6 +21,13 @@ import {
 } from './inventory.ts';
 import { openInventoryStore, type InventoryClaim } from './inventory-store.ts';
 import {
+  requestRescans,
+  sendDeadlineAlerts,
+  upcomingDeadlines,
+  type HostedAlerts,
+} from './monitoring.ts';
+import { openMonitoringStore } from './monitoring-store.ts';
+import {
   authorized,
   DEFAULT_SERVICE_PORT,
   requestBody,
@@ -59,6 +66,12 @@ export async function runHostedService(options: {
   aiPatch?: AiOptions;
   repairAttempts?: number;
   publishDraft?: boolean;
+  // Off by default: re-scans inventories on push, registry change and age, and opens or updates
+  // deadline issues at the lead times. Needs the App's Issues write permission.
+  alerts?: HostedAlerts;
+  // The deadline registry file, by default the bundled one.
+  registry?: string | URL;
+  now?: () => Date;
   host?: string;
   port?: number;
   intervalSeconds?: number;
@@ -99,6 +112,8 @@ export async function runHostedService(options: {
       `Allowed accounts ${options.tenancy.accounts.join(', ')}: enrolled ${allowed.enrolled.length}, cancelled ${allowed.cancelled.length} targets.`,
     );
   const inventories = await openInventoryStore(options.database, options.tenancy.limits);
+  const monitoring = await openMonitoringStore(options.database);
+  const now = () => options.now?.() ?? new Date();
   const running = new Map<number, AbortController>();
   let waiting: AbortController | undefined;
   let requested = false;
@@ -202,7 +217,7 @@ export async function runHostedService(options: {
       options.onProgress?.(`[inventory ${claimed.repository}] ${message}`);
     const started = Date.now();
     try {
-      const registry = await loadDeadlineRegistry();
+      const registry = await loadDeadlineRegistry(options.registry, now());
       const result = await refreshInventory({
         app: options.app,
         directory: join(directory, 'inventory', randomUUID()),
@@ -210,6 +225,7 @@ export async function runHostedService(options: {
         repository: claimed.repository,
         registry,
         previous: claimed.previous,
+        now: now(),
         signal: options.signal,
         onProgress: progress,
       });
@@ -234,6 +250,17 @@ export async function runHostedService(options: {
     }
   };
 
+  // A registry that does not load skips monitoring for this pass, as it does locally.
+  const monitoringRegistry = async () => {
+    try {
+      return await loadDeadlineRegistry(options.registry, now());
+    } catch (error) {
+      if (!(error instanceof Error)) throw error;
+      options.onProgress?.(`Deadline monitoring skipped: ${error.name}: ${error.message}`);
+      return null;
+    }
+  };
+
   const handlers = new Set<Promise<void>>();
   const server = createServer(
     { requestTimeout: REQUEST_TIMEOUT_MS, headersTimeout: HEADERS_TIMEOUT_MS },
@@ -252,6 +279,10 @@ export async function runHostedService(options: {
               ...row,
               summary: inventory && inventorySummary(inventory),
             })),
+            monitoring: {
+              alerts: Boolean(options.alerts),
+              installations: await upcomingDeadlines(monitoring, now()),
+            },
           });
           return;
         }
@@ -277,7 +308,11 @@ export async function runHostedService(options: {
                 change.added.map((repository) => repository.name),
               )
             : 0;
-        if (receipt.enrolled.length || inventoried) wake();
+        const pushed =
+          options.alerts && receipt.status === 'accepted' && change.kind === 'push'
+            ? await monitoring.pushed(change.installation, change.repository, now())
+            : false;
+        if (receipt.enrolled.length || inventoried || pushed) wake();
         respond(response, 202, {
           delivery: id,
           status: receipt.status,
@@ -322,6 +357,14 @@ export async function runHostedService(options: {
       requested = false;
       await store.enqueueDue(interval);
       await inventories.requestMissing();
+      const registry = options.alerts && (await monitoringRegistry());
+      if (registry) {
+        const due = await requestRescans({ monitoring, inventories, registry, now: now() });
+        for (const item of due)
+          options.onProgress?.(
+            `[monitoring ${item.repository}] Inventory requested (${item.reason}).`,
+          );
+      }
       // Inventories are short and read-only, so a queued one goes before the next validation job.
       while (!options.signal.aborted) {
         const inventory = await inventories.claim(
@@ -336,6 +379,16 @@ export async function runHostedService(options: {
         if (!claimed) break;
         await runJob(claimed.job, claimed.target, claimed.retry);
       }
+      if (registry && options.alerts && !options.signal.aborted)
+        await sendDeadlineAlerts({
+          app: options.app,
+          monitoring,
+          registry,
+          now: now(),
+          leadDays: options.alerts.leadDays,
+          signal: options.signal,
+          onProgress: options.onProgress,
+        });
       if (options.signal.aborted || requested) continue;
       waiting = new AbortController();
       try {
