@@ -60,6 +60,19 @@ Following the original Reproduce section, `scripts/deadline-benchmark-setup.mjs`
 
 The original scorer counts today's 3 new Anthropic lines in labelled repositories as unlabelled. That makes its line precision read 81/92. They are scored below with their own labels.
 
+### False positives and misses on the labelled 32, today
+
+These are the same lines October 16 reported. The matcher changes since then touched none of them.
+
+- **8 lines reported as live that are not live:**
+  - 4 entries of an unused model map in `hervekom37/Ani-Code-CLI` `src/utils/openai-models.ts` (lines 23, 25, 30, 31). The same map in `src/core/agent.ts` is live, so only tracing imports could tell them apart.
+  - The GraphQL codegen config `.graphqlrc.ts:11` in `cdolan04/gc-ai-demo` and in `ProofPulse7/push-eagle`.
+  - Two lines of a store seeding script (`cdolan04/gc-ai-demo` `scripts/seed-store.ts:27`, `:501`). Shopify gets no `test` class.
+- **11 missed live lines:**
+  - 10 are Shopify Admin API versions held in constants or env-var fallbacks, which Refit does not read. They are 9 in `ProofPulse7/push-eagle` (`shopify-billing.server.ts:147` and eight more) and `abaziqendrim435-lang/rootx.app` `lib/shopify-api.ts:211`.
+  - The 11th is the Meta JS SDK's `FB.init` version in `shreevalikushe/facebook-test` `src/Facebook.tsx:14`.
+  - Each of those repositories is still flagged through another line. The `FB.init` miss is also the one (repository, deadline) miss.
+
 ### Every change since October 16
 
 | Change | Repositories |
