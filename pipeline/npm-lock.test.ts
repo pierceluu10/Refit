@@ -194,3 +194,22 @@ it.each([
 ])('rejects %s', (_name, packages) => {
   expect(() => validateNpmLock(bundledManifest, bundledLock(packages))).toThrow();
 });
+
+it("accepts an empty range in a published package's declarations, which npm reads as any version", () => {
+  // habibjutt/nextjs_boilerplate locks @tabler/icons-react 3.36.1 (docs/PREPARATION-FAILURES.md).
+  const packages = {
+    ...lock.packages,
+    'node_modules/stripe': { ...record, dependencies: { 'stripe-types': '' } },
+  };
+  expect(
+    validateNpmLock(JSON.stringify(manifest), JSON.stringify({ ...lock, packages })),
+  ).toMatchObject({ packages: 1 });
+  // The repository's own package.json still names an exact registry range.
+  const declared = { ...manifest, dependencies: { stripe: '' } };
+  expect(() =>
+    validateNpmLock(
+      JSON.stringify(declared),
+      JSON.stringify({ ...lock, packages: { ...lock.packages, '': declared } }),
+    ),
+  ).toThrow('package.json declares stripe as "".');
+});

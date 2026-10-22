@@ -49,13 +49,16 @@ export function isRegistrySource(source: unknown): source is string {
   );
 }
 
-function dependencySources(value: Record<string, unknown>, file: string) {
+// A published package's own declarations reach the lockfile as its record's dependencies. npm reads
+// an empty range there as "*" (@tabler/icons-react 3.36.1 declares "@tabler/icons": ""), and the
+// lockfile still pins what it installs.
+function dependencySources(value: Record<string, unknown>, file: string, published = false) {
   for (const section of DEPENDENCY_SECTIONS) {
     const dependencies = value[section];
     if (dependencies === undefined) continue;
     if (!isObject(dependencies)) throw new PipelineInputError(`npm ${section} must be an object.`);
     for (const [name, source] of Object.entries(dependencies))
-      if (!isRegistrySource(source))
+      if (!(published && source === '') && !isRegistrySource(source))
         throw new PipelineInputError(
           `Automatic preparation supports public npm registry dependencies only; ${file} declares ${name} as ${JSON.stringify(source)}. Local, Git and URL dependencies require a custom image.`,
         );
@@ -232,7 +235,11 @@ export function validateNpmLock(
   for (const [path, record] of Object.entries(lock.packages)) {
     if (!isObject(record))
       throw new PipelineInputError('npm lockfile package records must be objects.');
-    dependencySources(record, path ? `package-lock.json record ${path}` : 'package-lock.json');
+    dependencySources(
+      record,
+      path ? `package-lock.json record ${path}` : 'package-lock.json',
+      path.startsWith('node_modules/') || path.includes('/node_modules/'),
+    );
     if (!path) continue;
     if (workspaces.has(path)) continue;
     const dependencyPath =
