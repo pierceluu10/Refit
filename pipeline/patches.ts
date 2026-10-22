@@ -11,10 +11,22 @@ import {
 import {
   INVOICE_PRICE_ID_HELPER_RULE,
   CHECKOUT_SHIPPING_HELPER_RULE,
+  COUPON_ID_HELPER_RULE,
   INVOICE_SUBSCRIPTION_HELPER_RULE,
+  PRODUCT_FEATURES_HELPER_RULE,
   SUBSCRIPTION_PERIOD_HELPER_RULE,
   SUBSCRIPTION_PERIOD_RULE,
 } from './stripe-subscription-periods.ts';
+import {
+  REQUEST_MOVE_RULES,
+  REQUEST_MOVE_SOURCES,
+  REQUEST_MOVE_WARNINGS,
+} from './stripe-request-moves.ts';
+import {
+  INVOICE_PREVIEW_RULE,
+  INVOICE_PREVIEW_SOURCE,
+  INVOICE_PREVIEW_WARNING,
+} from './stripe-invoice-preview.ts';
 
 const FIELD_MOVE_SOURCES: Partial<Record<NonNullable<SourceEdit['rule']>, string>> = {
   [SUBSCRIPTION_PERIOD_HELPER_RULE]:
@@ -25,6 +37,10 @@ const FIELD_MOVE_SOURCES: Partial<Record<NonNullable<SourceEdit['rule']>, string
     'https://docs.stripe.com/changelog/basil/2025-03-31/invoice-pricing-configurations',
   [CHECKOUT_SHIPPING_HELPER_RULE]:
     'https://docs.stripe.com/changelog/basil/2025-03-31/checkout-session-remove-shipping-details',
+  [COUPON_ID_HELPER_RULE]:
+    'https://docs.stripe.com/changelog/clover/2025-09-30/add-discount-source-property',
+  [PRODUCT_FEATURES_HELPER_RULE]:
+    'https://docs.stripe.com/changelog/2024-04-10/renames-features-attribute-product-object',
 };
 
 export const CARD_PAYMENT_METHOD_WARNING =
@@ -41,10 +57,15 @@ export function listedPaymentMethodWarning(methods: string[]) {
   return `payment_method_types: [${methods.map((method) => `'${method}'`).join(', ')}] becomes allowed_payment_method_types with the same methods, because this repository set stripePaymentMethodTypes: "keep-listed" in .refit.json. In 2026-09-30.endive the list filters the payment methods Stripe finds eligible for each buyer instead of listing them, so ${others.join(', ')} may no longer be offered to some customers (by country, currency, amount or device). Check that ${others.length === 1 ? 'it is' : 'they are'} still offered where you rely on ${others.length === 1 ? 'it' : 'them'}, and keep every listed method enabled in the Stripe Dashboard or payment method configuration.`;
 }
 
-// Rule edits that ride with the API version bump: field moves, and the reviewed payment method renames.
+// Rule edits that ride with the API version bump: field moves, the reviewed payment method
+// renames and the reviewed request parameter moves.
 export function isFieldMove(edit: SourceEdit) {
   return Boolean(
-    edit.rule && (FIELD_MOVE_SOURCES[edit.rule] || PAYMENT_METHOD_RENAME_RULES.has(edit.rule)),
+    edit.rule &&
+    (FIELD_MOVE_SOURCES[edit.rule] ||
+      PAYMENT_METHOD_RENAME_RULES.has(edit.rule) ||
+      REQUEST_MOVE_RULES.has(edit.rule) ||
+      edit.rule === INVOICE_PREVIEW_RULE),
   );
 }
 
@@ -77,6 +98,24 @@ export function applySourceEdits(content: string, edits: SourceEdit[]) {
   for (const edit of [...edits].sort((a, b) => b.start - a.start))
     updated = updated.slice(0, edit.start) + edit.replacement + updated.slice(edit.end);
   return updated;
+}
+
+// A patch replacing whole files, such as package.json and its lockfile in an SDK upgrade.
+export function renderFileReplacements(
+  repository: Repository,
+  files: { path: string; before: string; after: string }[],
+  changeId: string,
+) {
+  return renderPatch(
+    { ...repository, files: files.map((file) => ({ path: file.path, content: file.before })) },
+    files.map((file) => ({
+      file: file.path,
+      start: 0,
+      end: file.before.length,
+      replacement: file.after,
+      changeId,
+    })),
+  );
 }
 
 export function renderPatch(repository: Repository, edits: SourceEdit[]) {
@@ -168,6 +207,23 @@ export function proposePatch(
   const fieldMoves = edits.filter(isFieldMove);
   const reads = fieldMoves.filter((edit) => FIELD_MOVE_SOURCES[edit.rule!]);
   const cardRename = fieldMoves.some((edit) => PAYMENT_METHOD_RENAME_RULES.has(edit.rule!));
+  const requestMoves = [
+    ...new Set(
+      fieldMoves.filter((edit) => REQUEST_MOVE_RULES.has(edit.rule!)).map((edit) => edit.rule!),
+    ),
+  ];
+  const preview = fieldMoves.some((edit) => edit.rule === INVOICE_PREVIEW_RULE);
+  // Request-side rules, with the reads and renames that share their patch.
+  const requestSummary = [
+    preview ? 'replace the removed upcoming invoice call with invoices.createPreview' : '',
+    requestMoves.length
+      ? 'move removed Stripe request parameters to their documented replacements'
+      : '',
+    reads.length ? 'move removed field reads to their documented new locations' : '',
+    cardRename ? 'replace payment_method_types with allowed_payment_method_types' : '',
+  ]
+    .filter(Boolean)
+    .join(', ');
   const listedWarnings = [
     ...new Set(
       fieldMoves
@@ -190,11 +246,14 @@ export function proposePatch(
   )
     return {
       generator: 'deterministic' as const,
-      summary: !cardRename
-        ? 'Move removed Stripe field reads to their documented new locations and update the pinned Stripe API version.'
-        : reads.length
-          ? `Move removed Stripe field reads to their documented new locations, replace ${listedWarnings.length ? 'payment_method_types' : "payment_method_types: ['card']"} with allowed_payment_method_types, and update the pinned Stripe API version.`
-          : `Replace ${listedWarnings.length ? 'payment_method_types' : "payment_method_types: ['card']"} with allowed_payment_method_types and update the pinned Stripe API version.`,
+      summary:
+        requestMoves.length || preview
+          ? `${requestSummary[0].toUpperCase()}${requestSummary.slice(1)} and update the pinned Stripe API version.`
+          : !cardRename
+            ? 'Move removed Stripe field reads to their documented new locations and update the pinned Stripe API version.'
+            : reads.length
+              ? `Move removed Stripe field reads to their documented new locations, replace ${listedWarnings.length ? 'payment_method_types' : "payment_method_types: ['card']"} with allowed_payment_method_types, and update the pinned Stripe API version.`
+              : `Replace ${listedWarnings.length ? 'payment_method_types' : "payment_method_types: ['card']"} with allowed_payment_method_types and update the pinned Stripe API version.`,
       status: 'proposed' as const,
       edits: edits.length,
       unresolvedFindings,
@@ -221,16 +280,32 @@ export function proposePatch(
               'Checkout Session shipping details are read through a generated helper: the old shipping_details field when present (old-version events), otherwise collected_information.shipping_details. The new object holds only address and name; reads of carrier, phone or tracking_number are left for review. Webhook endpoints are not changed.',
             ]
           : []),
+        ...(fieldMoves.some((edit) => edit.rule === PRODUCT_FEATURES_HELPER_RULE)
+          ? [
+              'Product features are read through a generated helper: the old features list when present (old-version events), otherwise marketing_features, the same list under its new name. Webhook endpoints are not changed.',
+            ]
+          : []),
+        ...(fieldMoves.some((edit) => edit.rule === COUPON_ID_HELPER_RULE)
+          ? [
+              'Coupon IDs of promotion codes and discounts are read through a generated helper: the old coupon.id when present (old-version events), otherwise promotion.coupon or source.coupon when its type is coupon, an ID unless expanded. A missing coupon reads as undefined. Webhook endpoints are not changed.',
+            ]
+          : []),
         ...(fieldMoves.some((edit) => edit.rule === CARD_PAYMENT_METHOD_RULE)
           ? [CARD_PAYMENT_METHOD_WARNING]
           : []),
         ...listedWarnings,
+        ...requestMoves.map((rule) => REQUEST_MOVE_WARNINGS[rule]),
+        ...(preview ? [INVOICE_PREVIEW_WARNING] : []),
         'The stripe package is not upgraded. TypeScript projects may need the stripe package version matching the new API version before they typecheck.',
         'Patch contains source code. Review it for sensitive content before sharing.',
       ],
       source: reads.length
         ? FIELD_MOVE_SOURCES[reads[0].rule!]!
-        : 'docs/STRIPE-PAYMENT-METHOD-TYPES.md',
+        : requestMoves.length
+          ? REQUEST_MOVE_SOURCES[requestMoves[0]]
+          : preview
+            ? INVOICE_PREVIEW_SOURCE
+            : 'docs/STRIPE-PAYMENT-METHOD-TYPES.md',
     };
   return {
     generator: 'deterministic' as const,

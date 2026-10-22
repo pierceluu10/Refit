@@ -146,12 +146,6 @@ it('validates documentation monitors before the worker starts', async () => {
 it('exposes service help and refuses missing authentication or invalid scheduling before creating state', async () => {
   const { root, path, target } = await setup();
   await writeFile(path, JSON.stringify({ formatVersion: 1, targets: [target] }));
-  expect((await execute(process.execPath, [bin, 'serve', '--help'])).stdout).toContain(
-    '/github/webhook',
-  );
-  expect((await execute(process.execPath, [bin, 'watch', '--help'])).stdout).toContain(
-    '--documentation-source',
-  );
   const arguments_ = [bin, 'serve', '--config', path, '--state', join(root, 'state'), '--once'];
   const environment = {
     ...process.env,
@@ -160,15 +154,22 @@ it('exposes service help and refuses missing authentication or invalid schedulin
     REFIT_WEBHOOK_SECRET: '',
     REFIT_SERVICE_TOKEN: 'different-control-secret-for-tests-123',
   };
-  await expect(execute(process.execPath, arguments_, { env: environment })).rejects.toMatchObject({
-    code: 1,
-    stderr: expect.stringContaining('REFIT_WEBHOOK_SECRET'),
-  });
-  await expect(
-    execute(process.execPath, [...arguments_, '--interval', '1'], {
-      env: { ...environment, REFIT_WEBHOOK_SECRET: 'webhook-secret-for-cli-tests-12345' },
+  // The four runs are independent, so they start together; each CLI start costs about 0.3 s.
+  const [serve, watch] = await Promise.all([
+    execute(process.execPath, [bin, 'serve', '--help']),
+    execute(process.execPath, [bin, 'watch', '--help']),
+    expect(execute(process.execPath, arguments_, { env: environment })).rejects.toMatchObject({
+      code: 1,
+      stderr: expect.stringContaining('REFIT_WEBHOOK_SECRET'),
     }),
-  ).rejects.toMatchObject({ code: 1, stderr: expect.stringContaining('30–86400') });
+    expect(
+      execute(process.execPath, [...arguments_, '--interval', '1'], {
+        env: { ...environment, REFIT_WEBHOOK_SECRET: 'webhook-secret-for-cli-tests-12345' },
+      }),
+    ).rejects.toMatchObject({ code: 1, stderr: expect.stringContaining('30–86400') }),
+  ]);
+  expect(serve.stdout).toContain('/github/webhook');
+  expect(watch.stdout).toContain('--documentation-source');
   // Starts the CLI several times; shared CI runners can exceed the default 5s timeout.
 }, 30_000);
 
