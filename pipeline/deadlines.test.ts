@@ -1125,6 +1125,8 @@ it('keeps the shipped registry valid and sourced', async () => {
       'braintree',
       'coinbase-commerce',
       'easypost',
+      'aws',
+      'azure',
     ]),
   );
 });
