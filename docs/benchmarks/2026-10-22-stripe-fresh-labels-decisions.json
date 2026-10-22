@@ -3751,6 +3751,24 @@
    "label": "breaking",
    "field": "line_item.price",
    "note": "invoice.lines.data[0] cast to a hand-written type; the invoice line item loses price"
+  },
+  {
+   "repo": "aresjinwoo94-cpu/EliteVault",
+   "file": "scripts/sync-stripe-plan.mjs",
+   "line": 157,
+   "column": 40,
+   "property": "current_period_start",
+   "label": "excluded",
+   "note": "fallback after the subscription item field, so the code works on both versions; ambiguous whether this counts as a break"
+  },
+  {
+   "repo": "aresjinwoo94-cpu/EliteVault",
+   "file": "scripts/sync-stripe-plan.mjs",
+   "line": 159,
+   "column": 38,
+   "property": "current_period_end",
+   "label": "excluded",
+   "note": "fallback after the subscription item field, so the code works on both versions; ambiguous whether this counts as a break"
   }
  ]
 }

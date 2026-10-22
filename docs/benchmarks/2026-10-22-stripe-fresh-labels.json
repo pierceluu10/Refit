@@ -42830,8 +42830,8 @@
    "sdk": "17.7.0",
    "sdkSource": "package-lock.json",
    "verdict": "broken",
-   "reason": "6 breaking reads, 2 removed request parameters",
-   "breaking": 6,
+   "reason": "4 breaking reads, 2 removed request parameters",
+   "breaking": 4,
    "reads": [
     {
      "file": "ai/providers/anthropic.ts",
@@ -44199,9 +44199,9 @@
      "line": 157,
      "column": 40,
      "property": "current_period_start",
-     "label": "breaking",
-     "source": "oracle",
-     "field": "subscription.current_period_start"
+     "label": "excluded",
+     "source": "manual",
+     "note": "fallback after the subscription item field, so the code works on both versions; ambiguous whether this counts as a break (oracle: breaking)"
     },
     {
      "file": "scripts/sync-stripe-plan.mjs",
@@ -44216,9 +44216,9 @@
      "line": 159,
      "column": 38,
      "property": "current_period_end",
-     "label": "breaking",
-     "source": "oracle",
-     "field": "subscription.current_period_end"
+     "label": "excluded",
+     "source": "manual",
+     "note": "fallback after the subscription item field, so the code works on both versions; ambiguous whether this counts as a break (oracle: breaking)"
     },
     {
      "file": "scripts/verify-stripe-live.mjs",
