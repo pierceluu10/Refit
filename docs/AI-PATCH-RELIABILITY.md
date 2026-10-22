@@ -21,7 +21,7 @@ Each change has unit tests in the files named.
 
 | Commit  | Change                                                                                                                                                                                                                                      | Tests                                         |
 | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------- |
-| 690c2c8 | AI requests reserved 4,096 output tokens, and a repair on Kanba-co/kanba ran out while reasoning. The reservation is now 25,000, OpenAI's documented reservation for reasoning models, and an incomplete response names its reason.         | `openai.test.ts`, `ai-budget.test.ts`         |
+| 690c2c8 | AI requests reserved 4,096 output tokens, and a repair on Kanba-co/kanba returned an incomplete response. The reservation is now 25,000, OpenAI's documented reservation for reasoning models, and an incomplete response names its reason.         | `openai.test.ts`, `ai-budget.test.ts`         |
 | 72562ff | After a mechanical edit rejection (an edit that does not apply or does not cover its finding), the model gets one corrected request that names the rejection, inside the same budget.                                                       | `ai-patches.test.ts`, `ai-patch-eval.test.ts` |
 | 4fbf988 | Before an AI repair, the open-enum types the deterministic patch narrowed are restored. The model is then asked only about the errors that remain.                                                                                          | `stripe-open-enums.test.ts`, `review.test.ts` |
 | e4882da | An AI fix that reads the billing period from a subscription item it picks itself stops for review. Choosing the item needs a reviewed policy.                                                                                               | `ai-patches.test.ts`                          |
@@ -33,14 +33,14 @@ Each change has unit tests in the files named.
 
 Both runs used the same cases, model, runner and offline Docker image.
 
-- **Before** ran Refit at ee4305b (main plus the frozen list); **after** ran at 89e4df1, which includes every change above except 29dbeba and 001fa3e. The scores below come from the scorer at 001fa3e.
+- **Before** ran Refit at ee4305b (main plus the frozen list); **after** ran at 89e4df1, which includes every change above except 29dbeba and 001fa3e. The scores below come from the scorer at 001fa3e and are committed as [`2026-10-22-ai-patch-results.json`](benchmarks/2026-10-22-ai-patch-results.json) (both runs; home directories replaced with `<home>`).
 - **The after run is incomplete.** The machine's disk filled at about 08:53 UTC on 2026-10-22, mostly from other agents' work. Case 8 failed copying its dependency cache (`ENOSPC`) and case 9 failed extracting its archive. Docker Desktop then crashed at 08:58 and was still not responding at 15:10 UTC.
   - Cases 8 to 22 and the billing demo therefore have no valid after result. Docker is shared, so it was not restarted. See Blocked below.
   - The comparison covers cases 0 to 7, where both runs completed.
 
 | Case                               | Before                                                     | After (89e4df1)                                                                    |
 | ---------------------------------- | ---------------------------------------------------------- | ---------------------------------------------------------------------------------- |
-| Kanba-co/kanba                     | error: the repair's response ran out of output tokens      | review-stop: the repair chose a subscription item for the billing period (e4882da) |
+| Kanba-co/kanba                     | error: the repair's response was incomplete or invalid     | review-stop: the repair chose a subscription item for the billing period (e4882da) |
 | iggy-tech/product-hunt-clone-final | pass, 1 repair, $0.0016 (labelled **partial**)             | review-stop: the repair chose a subscription item (e4882da)                        |
 | mrwebwork/spotify                  | input-rejected: the repair did not cover its cited finding | review-stop before AI: the upgraded types reject `trial_from_plan` (50429c7)       |
 | nicitaacom/19_spotify-clone        | regression after 1 repair, $0.0074                         | review-stop before AI: `trial_from_plan` (50429c7)                                 |
@@ -49,12 +49,12 @@ Both runs used the same cases, model, runner and offline Docker image.
 | abressiddique/AbresStore-Admin     | not reached (findings left for review)                     | not reached (same)                                                                 |
 | samarbadriddin0v/notion-clone      | not reached (findings left for review)                     | not reached (same)                                                                 |
 
-On cases 0 to 7:
+On cases 0 to 7 (costs as the workflow bundles record them; the after repairs that stopped for review recorded none, and their spend appears only in the budget ledger below):
 
-| Run    | Pass        | Regression | Guard or input rejection | Error | Review stop | Model cost       |
+| Run    | Pass        | Regression | Guard or input rejection | Error | Review stop | Cost in bundles  |
 | ------ | ----------- | ---------- | ------------------------ | ----- | ----------- | ---------------- |
 | Before | 1 (partial) | 1          | 2                        | 1     | 0           | $0.0090 recorded |
-| After  | 0           | 0          | 0                        | 0     | 5           | $0.0050 ledger   |
+| After  | 0           | 0          | 0                        | 0     | 5           | $0 recorded      |
 
 In short, every case that reached AI now ends in a named stop for review, not a regression, an error or a rejected edit. No case gained a pass. The one before pass, iggy-tech, was only partial: the model picked the subscription item itself. With 001fa3e, Kanba-co/kanba and iggy-tech should stop before the model call. That needs a rerun in Docker to confirm and has not been measured.
 
@@ -73,7 +73,7 @@ The full before run (24 cases) gave 3 passes, 1 regression, 1 guard rejection, 5
 
 1. **Request property the upgraded types reject** (`trial_from_plan`; 3 of 8): now a deterministic stop (50429c7). A replacement rule needs an owner decision on what to send instead.
 2. **The model chooses a subscription item for the billing period** (2 of 8): now a deterministic stop, both after the model answers (e4882da) and before a repair is requested (001fa3e). A rule needs an owner decision on item selection.
-3. **AI replacement does not cover its cited finding** (5 of 24 before): three were the `trial_from_plan` cases above. adityayaduvanshi, afdon and AlefeSk8 were not measured after (Blocked); 72562ff gives such cases one corrected request.
+3. **AI replacement does not cover its cited finding** (5 of 24 before): two (mrwebwork, kpirabaharan) were `trial_from_plan` cases above. adityayaduvanshi, afdon and AlefeSk8 were not measured after (Blocked); 72562ff gives such cases one corrected request.
 4. **AI evidence limit** (cyberdreadx; 64 KiB): unchanged, and correctly stops.
 5. **Guard rejection** (brendansudol; a pre-existing field substituted for a removed one): the guard is working as intended.
 
