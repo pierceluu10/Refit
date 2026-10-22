@@ -38,7 +38,7 @@ const USAGE = `Usage: refit deadlines [--repository <root>] [--fail-within <days
        refit deadlines --sync anthropic [--registry <path>] [--write] [--json]
 Lists API versions and models a repository pins, and SDK packages it declares, that have a provider sunset or end-of-support date in the reviewed registry, with file:line evidence. Only live code counts; model lists, tests, examples, comments, tokenizers and checks are listed separately.
 --fail-within <days> exits 2 when a live exposure is past due or within that many days, for CI. Reviewed, expiring exceptions go in ${DEADLINE_IGNORE_FILE} at the repository root; --ignore-file reads another file. Exit 0 means the check passed, 1 an error (including an invalid ignore file).
---propose-model-fixes proposes replacing retiring OpenAI and Anthropic model IDs with the registry replacement, only where the ID is a literal model in a traced SDK call, and lists every case that stops for review. It prints a patch, or writes it to --output; it never applies, validates or publishes it.
+--propose-model-fixes proposes replacing retiring OpenAI and Anthropic model IDs with the registry replacement, only where the ID is a literal model in a traced SDK call, lists every case that stops for review, and lists every other live model ID with why no traced request sends it. It prints a patch, or writes it to --output; it never applies, validates or publishes it.
 --sync anthropic reads Anthropic's model deprecations page and lists registry entries to add or update; --write saves them. It never deletes an entry. A scheduled workflow runs it and opens a pull request for review.
 --check-registry validates the registry and flags past-due entries and entries without a source. Nothing runs, installs or contacts a provider.`;
 
@@ -147,6 +147,11 @@ try {
       for (const item of proposal.stops)
         console.log(
           `  ${terminalText(`${item.file}:${item.line}`)}  ${terminalText(item.model)} at ${terminalText(`${item.at.file}:${item.at.line}`)}  ${terminalText(item.reason)}`,
+        );
+      if (proposal.unresolved.length) console.log('\nNot sent by a traced request:');
+      for (const item of proposal.unresolved)
+        console.log(
+          `  ${terminalText(`${item.file}:${item.line}`)}  ${terminalText(item.model)}${item.to ? ` (replacement ${terminalText(item.to)})` : ''}  ${terminalText(item.reason)}`,
         );
       if (proposal.patch && values.output)
         console.log(`\nPatch written to ${terminalText(resolve(values.output))}`);

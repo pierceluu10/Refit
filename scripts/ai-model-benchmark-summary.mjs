@@ -40,5 +40,16 @@ export function benchmarkSummary(results) {
     ).length,
     // Exposed repositories whose proposal step failed: they are neither silent nor handled.
     exposedErrored: exposed.filter((item) => item.error).length,
+    // Silent ones whose every live match is listed as unresolved, with where it is written, and
+    // those left with no outcome at all. Results from before `unresolved` have none.
+    exposedUnresolvedOnly: exposed.filter(
+      (item) =>
+        !item.error && !item.replacements.length && !item.stops.length && item.unresolved?.length,
+    ).length,
+    exposedUnexplained: exposed.filter(
+      (item) =>
+        !item.error && !item.replacements.length && !item.stops.length && !item.unresolved?.length,
+    ).length,
+    unresolved: results.reduce((total, item) => total + (item.unresolved?.length ?? 0), 0),
   };
 }

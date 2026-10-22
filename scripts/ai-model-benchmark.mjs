@@ -90,7 +90,7 @@ for (const [index, entry] of frozen.repos.entries()) {
   // only there.
   const proposal = live.length
     ? await refitJson(['deadlines', '--propose-model-fixes', '--repository', directory])
-    : { result: { replacements: [], stops: [] } };
+    : { result: { replacements: [], stops: [], unresolved: [] } };
   results.push({
     repo: entry.repo,
     commit: entry.commit,
@@ -114,6 +114,9 @@ for (const [index, entry] of frozen.repos.entries()) {
     stops: (proposal.result?.stops ?? [])
       .filter((item) => item.provider === frozen.provider)
       .map(({ file, line, call, at, model, reason }) => ({ file, line, call, at, model, reason })),
+    unresolved: (proposal.result?.unresolved ?? [])
+      .filter((item) => item.provider === frozen.provider)
+      .map(({ file, line, model, to, reason }) => ({ file, line, model, to, reason })),
     ...repositoryNonLive(deadlines.result, frozen.provider),
   });
 }
