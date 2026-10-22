@@ -190,6 +190,10 @@ export function validateBerryInputs(
   )
     throw new PipelineInputError('Yarn preparation inputs exceed manifest or lockfile limits.');
   const manifest = parseObject(packageContent, 'package.json');
+  if (typeof manifest.packageManager === 'string' && YARN_1_PIN.test(manifest.packageManager))
+    throw new PipelineInputError(
+      `packageManager pins ${manifest.packageManager}, but ${YARN_LOCKFILE} is a Yarn 2+ lockfile. Pin the Yarn release that wrote the lockfile, or regenerate it with Yarn 1.`,
+    );
   const rc = rcContent === undefined ? {} : parseDocumentObject(rcContent, YARN_RC);
   if (rc.plugins !== undefined)
     throw new PipelineInputError(
@@ -207,10 +211,6 @@ export function validateBerryInputs(
   if (unsupported.length)
     throw new PipelineInputError(
       `${YARN_RC} sets ${unsupported.join(', ')}, which Refit does not apply; validating with them requires a custom image.`,
-    );
-  if (typeof manifest.packageManager === 'string' && YARN_1_PIN.test(manifest.packageManager))
-    throw new PipelineInputError(
-      `packageManager pins ${manifest.packageManager}, but ${YARN_LOCKFILE} is a Yarn 2+ lockfile. Pin the Yarn release that wrote the lockfile, or regenerate it with Yarn 1.`,
     );
   const pin =
     typeof manifest.packageManager === 'string' ? BERRY_PIN.exec(manifest.packageManager) : null;
