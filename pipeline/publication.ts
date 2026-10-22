@@ -268,7 +268,7 @@ export async function publishDraft(
     files: report.publicationFiles,
     title: artifacts.manifest.title,
     body,
-    message: `fix: migrate affected ${report.provider} API usage`,
+    message: artifacts.commitMessage,
   });
 }
 

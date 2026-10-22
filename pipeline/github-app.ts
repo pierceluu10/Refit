@@ -1,6 +1,6 @@
 import { createPrivateKey, sign } from 'node:crypto';
 import { readFile, stat } from 'node:fs/promises';
-import { requestGitHub } from './github.ts';
+import { GitHubRequestError, requestGitHub } from './github.ts';
 import { isObject } from './specifications.ts';
 import { PipelineInputError } from './types.ts';
 
@@ -9,6 +9,8 @@ const JWT_CLOCK_SKEW_SECONDS = 60;
 const JWT_LIFETIME_SECONDS = 9 * 60;
 const MILLISECONDS_PER_SECOND = 1000;
 const APP_SLUG = /^[a-z0-9][a-z0-9-]*$/;
+const ACCOUNT_LOGIN = /^[A-Za-z0-9][A-Za-z0-9-]{0,38}$/;
+const NOT_FOUND = 404;
 
 export type GitHubAppConfiguration =
   | { appId: string; privateKeyFile: string }
@@ -31,11 +33,8 @@ export function githubAppConfiguration(environment: NodeJS.ProcessEnv): GitHubAp
   return { appId, privateKeyFile };
 }
 
-async function installationAccess(
-  configuration: GitHubAppConfiguration,
-  repository: string,
-  permissions: { contents: 'read' | 'write'; pull_requests?: 'write'; issues?: 'write' },
-) {
+// A short-lived JWT that authenticates as the App itself, not as one of its installations.
+async function appJwt(configuration: GitHubAppConfiguration) {
   if (!('privateKeyFile' in configuration))
     throw new PipelineInputError(
       'A job machine holds only a read-only installation token; this step needs the GitHub App private key.',
@@ -60,7 +59,15 @@ async function installationAccess(
     exp: now + JWT_LIFETIME_SECONDS,
     iss: configuration.appId,
   })}`;
-  const jwt = `${unsigned}.${sign('RSA-SHA256', Buffer.from(unsigned), key).toString('base64url')}`;
+  return `${unsigned}.${sign('RSA-SHA256', Buffer.from(unsigned), key).toString('base64url')}`;
+}
+
+async function installationAccess(
+  configuration: GitHubAppConfiguration,
+  repository: string,
+  permissions: { contents: 'read' | 'write'; pull_requests?: 'write'; issues?: 'write' },
+) {
+  const jwt = await appJwt(configuration);
   const app = await requestGitHub(jwt, 'GET', '/app');
   if (
     !isObject(app) ||
@@ -160,7 +167,7 @@ export async function authenticateGitHubIssues(
     contents: 'read',
     issues: 'write',
   });
-  return { token: access.token };
+  return { token: access.token, login: `${access.app.slug}[bot]` };
 }
 
 export async function authenticateGitHubApp(
@@ -185,5 +192,43 @@ export async function authenticateGitHubApp(
     token,
     author: { name: app.name, email: `${bot.id}+${login}@users.noreply.github.com` },
     publisher: { kind: 'github-app' as const, appId: app.id, name: app.name, login },
+  };
+}
+
+// One installation of this App as GitHub records it, or null when GitHub knows no such
+// installation of it.
+export async function appInstallation(configuration: GitHubAppConfiguration, id: number) {
+  let installation: unknown;
+  try {
+    installation = await requestGitHub(
+      await appJwt(configuration),
+      'GET',
+      `/app/installations/${id}`,
+    );
+  } catch (error) {
+    if (error instanceof GitHubRequestError && error.status === NOT_FOUND) return null;
+    throw error;
+  }
+  if (
+    !isObject(installation) ||
+    installation.id !== id ||
+    installation.app_id !== Number(configuration.appId) ||
+    !isObject(installation.account) ||
+    typeof installation.account.login !== 'string' ||
+    !ACCOUNT_LOGIN.test(installation.account.login) ||
+    (installation.account.type !== 'User' && installation.account.type !== 'Organization') ||
+    typeof installation.created_at !== 'string' ||
+    !Number.isFinite(Date.parse(installation.created_at)) ||
+    typeof installation.updated_at !== 'string' ||
+    !Number.isFinite(Date.parse(installation.updated_at))
+  )
+    throw new PipelineInputError('GitHub returned an installation that does not match this App.');
+  return {
+    id,
+    account: installation.account.login,
+    accountType: installation.account.type,
+    createdAt: installation.created_at,
+    updatedAt: installation.updated_at,
+    suspended: installation.suspended_at !== null && installation.suspended_at !== undefined,
   };
 }

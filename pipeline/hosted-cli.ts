@@ -19,9 +19,11 @@ import {
 } from './hosted-ops.ts';
 import { runHostedService } from './hosted-service.ts';
 import { openHostedStore } from './hosted-store.ts';
+import { hostedContact } from './hosted-setup.ts';
 import { hostedTenancy } from './hosted-tenancy.ts';
 import { openInventoryStore } from './inventory-store.ts';
 import { hostedAlerts } from './monitoring.ts';
+import { hostedReports } from './report-issues.ts';
 import { validateServiceSecret } from './local-service.ts';
 import { readRepositoryApproval } from './repository-enrollment.ts';
 import { PipelineInputError } from './types.ts';
@@ -46,13 +48,16 @@ approve stores a receipt made by refit enroll. Installing the App on an approved
 retry queues one fresh attempt for an enrolled target, permitting a cached failed job to run again; successful jobs remain cached. Approval and access gates still apply.
 migrate applies pending schema migrations, which serve also does on start; --dry-run lists them without applying anything. serve keeps running through PostgreSQL outages. With --purge-uninstalled it deletes an uninstalled installation's targets, jobs and evidence ${UNINSTALL_GRACE_DAYS} days after the uninstall; without it, nothing is deleted.
 With REFIT_HOSTED_APPROVAL_ISSUES=1, serve opens one issue on each installed repository of an allowed account that has no approval, showing what refit enroll shows (or a proposed .refit.json), and handles /refit approve <fingerprint-prefix> and /refit revoke comments from users with the admin or maintain role. It needs the App's Issues permission and issue_comment event.
+REFIT_HOSTED_LIFECYCLE=1 (off by default) follows repository renames, transfers and archiving and account renames, and stops a target GitHub no longer serves or whose name now belongs to another repository. Approvals never follow a rename or transfer. Renames and transfers need the App's repository event.
 accounts lists every recorded installation, whether the serving worker allowed it, and today's usage against the caps. Run it with the worker's REFIT_HOSTED_ACCOUNTS (or REFIT_HOSTED_OWNER) and cap settings.
 inventory queues a read-only inventory of a repository installed by an allowed account, approved or not, and prints the stored one as JSON. The running worker takes it within its polling interval; an unchanged revision is not scanned again. Installing the App queues one for every repository it can read.
 --job-machines runs each job on its own Fly Machine in REFIT_JOB_APP, a separate Fly app with no secrets, using FLY_API_TOKEN for that app, REFIT_JOB_IMAGE (default FLY_IMAGE_REF), REFIT_JOB_REGION (default FLY_REGION) and the validation images in REFIT_HOSTED_IMAGES. It cannot be combined with --ai-patch or --publish-draft. job runs on such a machine: it reads REFIT_JOB_URL, REFIT_JOB_ID and REFIT_JOB_SECRET, runs that one job and reports to the control process.
 jobs lists the newest ${JOBS_SHOWN} matching jobs. receipt prints one job's stored receipt and, on the machine that holds the evidence volume, its evidence files. targets lists each target's state, last job and last stored receipt. These commands only read PostgreSQL.
 health checks PostgreSQL, the Refit tables, the Docker daemon and every image in REFIT_HOSTED_IMAGES, and exits 1 if any check fails.
-REFIT_HOSTED_ALERTS=1 (off by default) makes serve monitor every inventoried repository: it takes a new inventory after a default-branch push, a registry change or 24 hours (at most once per 10 minutes), and opens or updates one GitHub issue per repository and deadline 90, 30 and 7 days before it and when it passes. REFIT_HOSTED_ALERT_DIGEST=1 adds a weekly digest issue per repository listing every exposed deadline. It needs the App's Issues write permission, and push re-scans need the App's push event.
-serve logs one JSON object per line to stderr with secrets redacted. With REFIT_SLACK_WEBHOOK_URL set it posts the same notices as refit serve, plus each failed job at most once per target per hour.`;
+REFIT_HOSTED_ALERTS=1 (off by default) makes serve monitor every approved, inventoried repository: it takes a new inventory after a default-branch push, a registry change or 24 hours (at most once per 10 minutes), and opens or updates one GitHub issue per repository and deadline 90, 30 and 7 days before it and when it passes. REFIT_HOSTED_ALERT_DIGEST=1 adds a weekly digest issue per repository listing every exposed deadline. It needs the App's Issues write permission, and push re-scans need the App's push event.
+REFIT_HOSTED_REPORTS=1 (off by default) makes serve keep one issue per approved, inventoried repository with its \`refit report\`: integrations, deadlines, AI model calls and the next step. It re-scans like REFIT_HOSTED_ALERTS and rewrites the issue only when the report changes, at most once per change. It needs the App's Issues write permission.
+serve logs one JSON object per line to stderr with secrets redacted. With REFIT_SLACK_WEBHOOK_URL set it posts the same notices as refit serve, plus each failed job at most once per target per hour.
+serve also answers GET /github/setup (the App's Setup URL), /github/uninstalled and /.well-known/security.txt. REFIT_HOSTED_CONTACT, a mailto: or https: URI, is shown for data deletion and served as the security.txt contact.`;
 
 function jobMachines(environment: NodeJS.ProcessEnv) {
   const app = environment.REFIT_JOB_APP?.trim();
@@ -347,12 +352,15 @@ try {
         controlToken,
         tenancy: hostedTenancy(process.env),
         alerts: hostedAlerts(process.env) ?? undefined,
+        reports: hostedReports(process.env),
         aiPatch: assessmentConfiguration(values['ai-patch'], process.env),
         repairAttempts: Number(values['repair-attempts'] ?? 0),
         publishDraft: values['publish-draft'],
+        contact: hostedContact(process.env.REFIT_HOSTED_CONTACT),
         jobMachines: values['job-machines'] ? jobMachines(process.env) : undefined,
         purgeUninstalled: values['purge-uninstalled'],
         approvalIssues: process.env.REFIT_HOSTED_APPROVAL_ISSUES === '1',
+        lifecycle: process.env.REFIT_HOSTED_LIFECYCLE === '1',
         notify,
         redact,
         host: values.host,

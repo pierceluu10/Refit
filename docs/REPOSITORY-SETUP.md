@@ -19,8 +19,8 @@ For a collection in one `.refit.json`, add `--integration <id>` to inspect one i
 For the independent Stripe billing demo, use the existing operator workflow:
 
 ```sh
-cd /Users/pierceluu/Repos/Refit
-refit doctor --repository /Users/pierceluu/Repos/refit-billing-demo \
+cd ~/Repos/Refit
+refit doctor --repository ~/Repos/refit-billing-demo \
   --config examples/billing-demo.npm.refit.json
 ```
 

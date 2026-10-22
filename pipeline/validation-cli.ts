@@ -8,6 +8,7 @@ import { publicationConfiguration, publishDraft } from './publication.ts';
 import { parseCheckCommand } from './validation-options.ts';
 import { githubAppConfiguration } from './github-app.ts';
 import { validateApiVersionPolicy } from './api-version.ts';
+import { cliErrorMessage } from './cli-errors.ts';
 
 const USAGE =
   'Usage: refit validate --repository <clean-git-directory> --before <spec.json> --after <spec.json> [--api-version <current-api-version>] [--api-version-policy operator-pin|source-verified] [--provider-config <adapter.json>] --image <local-image> --command \'["npm","test"]\' [--output <new-report.json> | --bundle <new-directory>] [--assess (sends selected source context to OpenAI)] [--ai-patch (sends affected source files to OpenAI)] [--repair-attempts 0|1|2 (sends failed check output to OpenAI)] [--publish-draft --github owner/repository --base main (uses GITHUB_TOKEN or --github-app)]';
@@ -93,6 +94,6 @@ try {
   }
 } catch (error) {
   if (!(error instanceof Error)) throw error;
-  console.error(`${error.name}: ${error.message}`);
+  console.error(cliErrorMessage(error, 'validate'));
   process.exitCode = 1;
 }

@@ -1,6 +1,7 @@
 import { writeFile } from 'node:fs/promises';
 import { parseArgs } from 'node:util';
 import { fetchShopifySnapshot } from './shopify-schemas.ts';
+import { cliErrorMessage } from './cli-errors.ts';
 
 const USAGE =
   'Usage: refit shopify-snapshot --version <YYYY-MM> --output <new-snapshot.json>\nDownloads one supported Shopify Admin API version schema from the public documentation proxy. No store, credentials or store operation are involved.';
@@ -36,6 +37,6 @@ try {
   }
 } catch (error) {
   if (!(error instanceof Error)) throw error;
-  console.error(`${error.name}: ${error.message}`);
+  console.error(cliErrorMessage(error, 'shopify-snapshot'));
   process.exitCode = 1;
 }

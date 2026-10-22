@@ -62,6 +62,8 @@ it('keeps every hosted log path and the failed-job notice JSON and free of secre
     allow: vi.fn(async () => ({ enrolled: [], cancelled: [] })),
     enqueueDue: vi.fn(async () => 0),
     claim: vi.fn(async () => fake.claims.shift() ?? null),
+    // The repository keeps its GitHub ID, so nothing is retired.
+    retire: vi.fn(async () => false),
     // Lease renewal fails while job 2 runs, which must abort it.
     renew: vi.fn(async () => {
       throw new Error(`connection to ${SECRETS.REFIT_DATABASE_URL} terminated`);

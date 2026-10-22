@@ -1,0 +1,299 @@
+{
+  "source": {
+    "list": "docs/benchmarks/2026-10-21-openai-app-repos.json",
+    "repository": "rohitg00/manim-video-generator",
+    "commit": "9c41982e620bf9dbaac6553197eb2dfafbef90f2",
+    "refit": "2f5cdf18e540f6e32ff857eead5a71c4432e94d8",
+    "scannedAt": "2026-10-22T12:00:00.000Z"
+  },
+  "inventory": {
+    "formatVersion": 1,
+    "providers": [
+      {
+        "id": "openai",
+        "name": "OpenAI",
+        "agent": true,
+        "packages": [
+          {
+            "file": "package.json",
+            "name": "openai",
+            "version": "^4.50.0",
+            "locked": "4.104.0"
+          }
+        ],
+        "hostnames": []
+      },
+      {
+        "id": "anthropic",
+        "name": "Anthropic",
+        "agent": false,
+        "packages": [
+          {
+            "file": "package.json",
+            "name": "@anthropic-ai/sdk",
+            "version": "^0.71.2",
+            "locked": "0.71.2"
+          }
+        ],
+        "hostnames": []
+      },
+      {
+        "id": "gemini",
+        "name": "Gemini",
+        "agent": false,
+        "packages": [
+          {
+            "file": "package.json",
+            "name": "@google/generative-ai",
+            "version": "^0.21.0",
+            "locked": "0.21.0"
+          }
+        ],
+        "hostnames": []
+      }
+    ],
+    "integrations": [],
+    "apiVersions": [],
+    "deadlines": {
+      "exposures": [
+        {
+          "deadline": {
+            "id": "gemini-2025-11-30-google-generative-ai",
+            "provider": "gemini",
+            "kind": "sdk",
+            "versions": ["@google/generative-ai"],
+            "date": "2025-11-30",
+            "summary": "Google ends all support for the @google/generative-ai package, including bug fixes, on 2025-11-30 and recommends @google/genai, whose call shapes differ. Google does not say that requests through the old package stop working. The README in its last npm release (0.24.1) gave 2025-08-31; the repository README now gives 2025-11-30.",
+            "replacement": "@google/genai",
+            "source": "https://github.com/google-gemini/deprecated-generative-ai-js/blob/main/README.md",
+            "checkedAt": "2026-10-21"
+          },
+          "days": -326,
+          "evidence": [
+            {
+              "file": "package.json",
+              "line": 15,
+              "kind": "dependency",
+              "use": "live",
+              "version": "@google/generative-ai"
+            }
+          ],
+          "more": 0,
+          "nonLive": [],
+          "nonLiveMore": 0,
+          "nonLiveCounts": {}
+        },
+        {
+          "deadline": {
+            "id": "anthropic-2026-06-15-claude-sonnet-4",
+            "provider": "anthropic",
+            "kind": "model",
+            "versions": ["claude-sonnet-4-20250514"],
+            "date": "2026-06-15",
+            "summary": "Anthropic retires claude-sonnet-4-20250514 on the Claude API; requests to a retired model fail.",
+            "replacement": "claude-sonnet-5-5",
+            "source": "https://platform.claude.com/docs/en/about-claude/model-deprecations",
+            "checkedAt": "2026-10-20"
+          },
+          "days": -129,
+          "evidence": [
+            {
+              "file": "src/vision/providers/anthropic-vision.ts",
+              "line": 40,
+              "kind": "source",
+              "use": "live",
+              "version": "claude-sonnet-4-20250514"
+            }
+          ],
+          "more": 0,
+          "nonLive": [],
+          "nonLiveMore": 0,
+          "nonLiveCounts": {}
+        },
+        {
+          "deadline": {
+            "id": "openai-2026-10-23-gpt-4-1-nano",
+            "provider": "openai",
+            "kind": "model",
+            "versions": ["gpt-4.1-nano", "gpt-4.1-nano-2025-04-14"],
+            "date": "2026-10-23",
+            "summary": "OpenAI shuts down gpt-4.1-nano, gpt-4.1-nano-2025-04-14.",
+            "replacement": "gpt-5.6-luna",
+            "source": "https://developers.openai.com/api/docs/deprecations",
+            "checkedAt": "2026-10-15"
+          },
+          "days": 1,
+          "evidence": [
+            {
+              "file": "src/agents/math-enricher.step.ts",
+              "line": 29,
+              "kind": "source",
+              "use": "live",
+              "version": "gpt-4.1-nano"
+            },
+            {
+              "file": "src/agents/narrative-composer.step.ts",
+              "line": 19,
+              "kind": "source",
+              "use": "live",
+              "version": "gpt-4.1-nano"
+            },
+            {
+              "file": "src/agents/prerequisite-explorer.step.ts",
+              "line": 19,
+              "kind": "source",
+              "use": "live",
+              "version": "gpt-4.1-nano"
+            },
+            {
+              "file": "src/agents/visual-designer.step.ts",
+              "line": 23,
+              "kind": "source",
+              "use": "live",
+              "version": "gpt-4.1-nano"
+            },
+            {
+              "file": "src/api/refine.step.ts",
+              "line": 92,
+              "kind": "source",
+              "use": "live",
+              "version": "gpt-4.1-nano"
+            },
+            {
+              "file": "src/services/nlu-classifier.ts",
+              "line": 21,
+              "kind": "source",
+              "use": "live",
+              "version": "gpt-4.1-nano"
+            },
+            {
+              "file": "src/services/openai-client.ts",
+              "line": 10,
+              "kind": "source",
+              "use": "live",
+              "version": "gpt-4.1-nano"
+            },
+            {
+              "file": "src/services/prompt-engine.ts",
+              "line": 17,
+              "kind": "source",
+              "use": "live",
+              "version": "gpt-4.1-nano"
+            }
+          ],
+          "more": 0,
+          "nonLive": [],
+          "nonLiveMore": 0,
+          "nonLiveCounts": {}
+        },
+        {
+          "deadline": {
+            "id": "anthropic-2026-11-30-claude-sonnet-4-5",
+            "provider": "anthropic",
+            "kind": "model",
+            "versions": ["claude-sonnet-4-5-20250929", "claude-sonnet-4-5"],
+            "date": "2026-11-30",
+            "summary": "Anthropic retires claude-sonnet-4-5-20250929 on the Claude API; requests to a retired model fail. The claude-sonnet-4-5 alias resolves to that snapshot (Claude Sonnet 4.5 model page).",
+            "replacement": "claude-sonnet-5-5",
+            "source": "https://platform.claude.com/docs/en/about-claude/model-deprecations",
+            "checkedAt": "2026-10-20"
+          },
+          "days": 39,
+          "evidence": [
+            {
+              "file": "src/providers/anthropic-provider.ts",
+              "line": 13,
+              "kind": "source",
+              "use": "live",
+              "version": "claude-sonnet-4-5-20250929"
+            }
+          ],
+          "more": 0,
+          "nonLive": [],
+          "nonLiveMore": 0,
+          "nonLiveCounts": {}
+        }
+      ],
+      "mentions": []
+    },
+    "ignores": {
+      "file": null,
+      "entries": [],
+      "error": null
+    },
+    "models": [
+      {
+        "provider": "openai",
+        "file": "src/providers/deepseek-provider.ts",
+        "line": 57,
+        "call": "chat.completions.create",
+        "model": null,
+        "test": false
+      },
+      {
+        "provider": "openai",
+        "file": "src/providers/deepseek-provider.ts",
+        "line": 79,
+        "call": "chat.completions.create",
+        "model": null,
+        "test": false
+      },
+      {
+        "provider": "openai",
+        "file": "src/providers/deepseek-provider.ts",
+        "line": 124,
+        "call": "chat.completions.create",
+        "model": null,
+        "test": false
+      },
+      {
+        "provider": "openai",
+        "file": "src/providers/openai-provider.ts",
+        "line": 57,
+        "call": "chat.completions.create",
+        "model": null,
+        "test": false
+      },
+      {
+        "provider": "openai",
+        "file": "src/providers/openai-provider.ts",
+        "line": 79,
+        "call": "chat.completions.create",
+        "model": null,
+        "test": false
+      },
+      {
+        "provider": "openai",
+        "file": "src/providers/openai-provider.ts",
+        "line": 123,
+        "call": "chat.completions.create",
+        "model": null,
+        "test": false
+      },
+      {
+        "provider": "anthropic",
+        "file": "src/providers/anthropic-provider.ts",
+        "line": 56,
+        "call": "messages.create",
+        "model": null,
+        "test": false
+      },
+      {
+        "provider": "anthropic",
+        "file": "src/providers/anthropic-provider.ts",
+        "line": 76,
+        "call": "messages.create",
+        "model": null,
+        "test": false
+      },
+      {
+        "provider": "anthropic",
+        "file": "src/providers/anthropic-provider.ts",
+        "line": 118,
+        "call": "messages.create",
+        "model": null,
+        "test": false
+      }
+    ]
+  }
+}
