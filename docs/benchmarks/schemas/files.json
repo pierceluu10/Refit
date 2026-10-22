@@ -101,8 +101,28 @@
       "format": "paypal-subdirectory-results",
       "predates": []
     },
+    "2026-10-22-anthropic-app-results.json": {
+      "format": "ai-model-results",
+      "predates": ["/harness", "/results/*/outcomeClass"]
+    },
     "2026-10-22-inventory-sample-results.json": {
       "format": "inventory-sample-results",
+      "predates": []
+    },
+    "2026-10-22-openai-app-results.json": {
+      "format": "ai-model-results",
+      "predates": ["/harness", "/results/*/outcomeClass"]
+    },
+    "2026-10-22-slack-baseline-results.json": {
+      "format": "slack-results",
+      "predates": []
+    },
+    "2026-10-22-slack-heldout-blind-results.json": {
+      "format": "slack-results",
+      "predates": []
+    },
+    "2026-10-22-slack-results.json": {
+      "format": "slack-results",
       "predates": []
     }
   }

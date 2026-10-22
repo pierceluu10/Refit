@@ -13,6 +13,8 @@ import {
   checkDeadlineRegistry,
   DEFAULT_DEADLINE_REGISTRY,
   loadDeadlineRegistry,
+  reportOnly,
+  type DeadlineEntry,
   type DeadlineRegistry,
 } from './deadline-registry.ts';
 import {
@@ -37,7 +39,7 @@ const USAGE = `Usage: refit deadlines [--repository <root>] [--fail-within <days
        refit deadlines --check-registry [--registry <path>] [--json]
        refit deadlines --sync anthropic [--registry <path>] [--write] [--json]
 Lists API versions and models a repository pins, and SDK packages it declares, that have a provider sunset or end-of-support date in the reviewed registry, with file:line evidence. Only live code counts; model lists, tests, examples, comments, tokenizers and checks are listed separately.
---fail-within <days> exits 2 when a live exposure is past due or within that many days, for CI. Reviewed, expiring exceptions go in ${DEADLINE_IGNORE_FILE} at the repository root; --ignore-file reads another file. Exit 0 means the check passed, 1 an error (including an invalid ignore file).
+--fail-within <days> exits 2 when a live exposure is past due or within that many days, for CI. Report-only deadlines (a derived date, or kind method, endpoint, field or feature) are listed but never fail it. Reviewed, expiring exceptions go in ${DEADLINE_IGNORE_FILE} at the repository root; --ignore-file reads another file. Exit 0 means the check passed, 1 an error (including an invalid ignore file).
 --propose-model-fixes proposes replacing retiring OpenAI and Anthropic model IDs with the registry replacement, only where the ID is a literal model in a traced SDK call, lists every case that stops for review, and lists every other live model ID with why no traced request sends it. It prints a patch, or writes it to --output; it never applies, validates or publishes it.
 --sync anthropic reads Anthropic's model deprecations page and lists registry entries to add or update; --write saves them. It never deletes an entry. A scheduled workflow runs it and opens a pull request for review.
 --check-registry validates the registry and flags past-due entries and entries without a source. Nothing runs, installs or contacts a provider.`;
@@ -179,6 +181,7 @@ try {
       return {
         ...exposure,
         agent: agentStatus(exposure.deadline.provider, integrations),
+        reportOnly: reportOnly(exposure.deadline),
         ignored: decision?.ignoredBy.length ? decision.ignoredBy : null,
         ignoreNote: decision?.note ?? null,
       };
@@ -222,6 +225,7 @@ try {
             `  Ignored      until ${entry.until}${entry.paths ? ` in ${terminalText(entry.paths.join(', '))}` : ''}: ${terminalText(entry.reason)}`,
           );
         if (ignoreNote) console.log(`  Not ignored  ${terminalText(ignoreNote)}`);
+        if (reportOnly(deadline)) console.log(`  Report only  ${reportOnlyReason(deadline)}`);
         if (deadline.replacement)
           console.log(`  Replacement  ${terminalText(deadline.replacement)}`);
         console.log(
@@ -270,6 +274,13 @@ try {
   if (!(error instanceof Error)) throw error;
   console.error(`${error.name}: ${terminalText(error.message)}`);
   process.exitCode = 1;
+}
+
+function reportOnlyReason(deadline: DeadlineEntry) {
+  const why = deadline.derivedDate
+    ? 'the provider announced no shutdown; this date is derived'
+    : `${deadline.kind} deadlines are report only`;
+  return `${why}, so it never fails --fail-within or opens an alert`;
 }
 
 // Ignores that no longer apply, so a stale exception file gets noticed.

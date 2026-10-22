@@ -7,7 +7,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs, promisify } from 'node:util';
-import { benchmarkSummary, repositoryNonLive } from './ai-model-benchmark-summary.mjs';
+import { benchmarkSummary, repositoryNonLive, stopReasons } from './ai-model-benchmark-summary.mjs';
 import {
   checkoutError,
   classifyRow,
@@ -155,6 +155,7 @@ const document = () => ({
   note: 'refit deadlines and refit deadlines --propose-model-fixes at each frozen commit; files read only. Exposure counts live evidence for this provider only.',
   harness,
   summary: benchmarkSummary(results),
+  stopReasons: stopReasons(results),
   results,
 });
 for (const [index, entry] of frozen.repos.entries()) {
