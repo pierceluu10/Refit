@@ -176,6 +176,14 @@
       "format": "inventory-sample-results",
       "predates": []
     },
+    "2026-10-22-messaging-results.json": {
+      "format": "messaging-results",
+      "predates": []
+    },
+    "2026-10-22-messaging-targeted-results.json": {
+      "format": "messaging-results",
+      "predates": []
+    },
     "2026-10-22-meta-platform-results.json": {
       "format": "meta-platform-results",
       "predates": []

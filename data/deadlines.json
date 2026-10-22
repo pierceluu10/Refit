@@ -2108,6 +2108,20 @@
       "replacement": "gemini-embedding-2",
       "source": "https://ai.google.dev/gemini-api/docs/deprecations",
       "checkedAt": "2026-10-22"
+    },
+    {
+      "id": "twilio-node-below-6-2026-04-20",
+      "provider": "twilio",
+      "kind": "sdk",
+      "versions": [
+        "twilio@<6.0.0"
+      ],
+      "date": "2026-04-20",
+      "summary": "twilio-node 5.x and older get no more features, bug fixes or security updates once 6.0.0 is current: Twilio supports only the current major version of twilio-node (VERSIONS.md, https://github.com/twilio/twilio-node/blob/main/VERSIONS.md). 2026-04-20 is the 6.0.0 release date in UPGRADE.md, not a date Twilio gives for the end of 5.x support. Twilio says 6.x has no breaking API changes but needs Node.js 20 or newer. Twilio does not say that requests through older versions stop working.",
+      "replacement": "twilio 6.x",
+      "source": "https://github.com/twilio/twilio-node/blob/main/UPGRADE.md",
+      "checkedAt": "2026-10-22",
+      "derivedDate": true
     }
   ]
 }
