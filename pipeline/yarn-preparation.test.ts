@@ -10,7 +10,7 @@ import { readCommittedRepository } from './committed-repository.ts';
 import { readPreparationInputs } from './dependency-inputs.ts';
 import { installTimeoutSeconds, prepareDependencies } from './dependency-preparation.ts';
 import { dockerSandboxArguments, removeDockerContainer } from './docker-sandbox.ts';
-import { YARN_SKIP_PLATFORM_PACKAGES } from './manager-install.ts';
+import { YARN_BERRY_INSTALL_COMMAND, YARN_SKIP_PLATFORM_PACKAGES } from './manager-install.ts';
 import { DEFAULT_YARN_VERSION, validateBerryInputs, validateYarnInputs } from './yarn-inputs.ts';
 
 const execute = promisify(execFile);
@@ -604,6 +604,10 @@ it('accepts platform-specific Yarn packages without checksums and installs none 
       BERRY_RC,
     ),
   ).toThrow('Every Yarn 2+ lock entry must resolve an exact npm version with a checksum');
+  // Yarn 2+ builds package zips in the temporary directory; the sandbox's /tmp holds 64 MiB.
+  expect(YARN_BERRY_INSTALL_COMMAND).toMatch(
+    /^mkdir -p \/workspace\/\.yarn-tmp; export TMPDIR=\/workspace\/\.yarn-tmp /,
+  );
   expect(YARN_SKIP_PLATFORM_PACKAGES).toBe(
     "printf 'supportedArchitectures:\\n  os: [refit-none]\\n  cpu: [refit-none]\\n  libc: [refit-none]\\n' > /workspace/.yarnrc.yml; ",
   );

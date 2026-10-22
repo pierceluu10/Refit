@@ -51,9 +51,11 @@ export const YARN_INSTALL_COMMAND =
   'mkdir -p node_modules; mv /workspace/.refit-tools node_modules/.refit-tools; ';
 
 // Yarn 2+ is configured only through environment variables: the node-modules linker, no scripts,
-// a private cache and an immutable lockfile. Repository rc files never reach the installer.
+// a private cache and an immutable lockfile. Repository rc files never reach the installer. Yarn
+// builds each package's zip in the temporary directory, which the sandbox's /tmp is too small for.
 export const YARN_BERRY_INSTALL_COMMAND =
-  'export COREPACK_ENABLE_NETWORK=0 CI=true HOME=/workspace/.home YARN_IGNORE_PATH=1 ' +
+  'mkdir -p /workspace/.yarn-tmp; export TMPDIR=/workspace/.yarn-tmp ' +
+  'COREPACK_ENABLE_NETWORK=0 CI=true HOME=/workspace/.home YARN_IGNORE_PATH=1 ' +
   'YARN_NODE_LINKER=node-modules YARN_ENABLE_SCRIPTS=0 YARN_ENABLE_TELEMETRY=0 ' +
   'YARN_ENABLE_GLOBAL_CACHE=0 YARN_CACHE_FOLDER=/workspace/.yarn-cache ' +
   'YARN_NPM_REGISTRY_SERVER=https://registry.npmjs.org YARN_ENABLE_IMMUTABLE_INSTALLS=1; ' +
