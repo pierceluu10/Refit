@@ -1,8 +1,8 @@
 {
   "formatVersion": 1,
-  "refit": "af075483289b5679fc62441bdcfa96b66ec8939d",
+  "refit": "5bec50d0a79be3bc120b92801c897cf93c39ed25",
   "dirty": false,
-  "scannedAt": "2026-10-22T09:16:25.424Z",
+  "scannedAt": "2026-10-22T09:23:48.364Z",
   "results": [
     {
       "repo": "burdas/TaxiPeralta2024",
@@ -14,7 +14,8 @@
           "packages": [
             "@googlemaps/js-api-loader@^1.16.8"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -29,7 +30,8 @@
           "packages": [
             "@googlemaps/js-api-loader@2.0.2"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -50,7 +52,8 @@
           "packages": [
             "@googlemaps/js-api-loader@2.0.2"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -65,7 +68,8 @@
           "packages": [
             "@googlemaps/js-api-loader@1.16.8"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -80,7 +84,8 @@
           "packages": [
             "@googlemaps/js-api-loader@^1.16.10"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -95,7 +100,8 @@
           "packages": [
             "@googlemaps/js-api-loader@^1.16.8"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -110,7 +116,8 @@
           "packages": [
             "@googlemaps/js-api-loader@2.0.2"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -125,7 +132,8 @@
           "packages": [
             "@googlemaps/js-api-loader@^1.16.2"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -141,7 +149,8 @@
             "@googlemaps/js-api-loader@2.0.2",
             "@react-google-maps/api@2.20.7"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         },
         {
           "id": "cloudinary",
@@ -149,6 +158,10 @@
           "hostnames": [
             "src/front/pages/public-pages/ProfilePage.jsx:30 api.cloudinary.com",
             "src/front/services/ImagesServices.js:13 api.cloudinary.com"
+          ],
+          "requests": [
+            "src/front/pages/public-pages/ProfilePage.jsx:30 api.cloudinary.com fetch",
+            "src/front/services/ImagesServices.js:13 api.cloudinary.com fetch"
           ]
         }
       ],
@@ -167,7 +180,8 @@
           "hostnames": [
             "components/farmerDashboard/VoiceChat.tsx:10 generativelanguage.googleapis.com",
             "lib/multimodal-live-client.ts:64 generativelanguage.googleapis.com"
-          ]
+          ],
+          "requests": []
         },
         {
           "id": "google-maps",
@@ -177,6 +191,9 @@
           ],
           "hostnames": [
             "components/soilTestingRegistration/GoogleMap.tsx:88 routes.googleapis.com"
+          ],
+          "requests": [
+            "components/soilTestingRegistration/GoogleMap.tsx:90 routes.googleapis.com fetch"
           ]
         },
         {
@@ -187,6 +204,9 @@
           ],
           "hostnames": [
             "components/soilAgent/TestResultsComponent.tsx:144 api.cloudinary.com"
+          ],
+          "requests": [
+            "components/soilAgent/TestResultsComponent.tsx:144 api.cloudinary.com fetch"
           ]
         }
       ],
@@ -214,7 +234,8 @@
           "packages": [
             "@googlemaps/js-api-loader@1.16.6"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -229,7 +250,8 @@
           "packages": [
             "@googlemaps/js-api-loader@1.16.10"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -244,14 +266,16 @@
           "packages": [
             "stripe@17.1.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         },
         {
           "id": "resend",
           "packages": [
             "resend@4.0.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         },
         {
           "id": "google-maps",
@@ -259,14 +283,16 @@
             "@googlemaps/js-api-loader@1.16.8",
             "@react-google-maps/api@2.20.3"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         },
         {
           "id": "mapbox",
           "packages": [
             "mapbox-gl@3.8.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -287,7 +313,8 @@
             "packages/veda-ui/src/components/common/map/controls/map-options/basemap.ts:27 api.mapbox.com",
             "packages/veda-ui/src/components/common/map/controls/map-options/basemap.ts:33 api.mapbox.com",
             "packages/veda-ui/src/components/common/map/controls/map-options/basemap.ts:39 api.mapbox.com"
-          ]
+          ],
+          "requests": []
         }
       ],
       "exposures": []
@@ -304,6 +331,9 @@
           ],
           "hostnames": [
             "bin2/match-ids.ts:11 api.mapbox.com"
+          ],
+          "requests": [
+            "bin2/match-ids.ts:14 api.mapbox.com axios"
           ]
         }
       ],
@@ -320,7 +350,8 @@
             "mapbox-gl@^3.15.0",
             "@mapbox/mapbox-sdk@^0.16.2"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -335,7 +366,8 @@
           "packages": [
             "mapbox-gl@2.7.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -354,7 +386,8 @@
             "src/map/mapbox-style-switcher.tsx:23 api.mapbox.com",
             "src/map/mapbox-style-switcher.tsx:24 api.mapbox.com",
             "src/map/mapbox-style-switcher.tsx:36 api.mapbox.com"
-          ]
+          ],
+          "requests": []
         }
       ],
       "exposures": []
@@ -369,7 +402,8 @@
           "packages": [
             "mapbox-gl@1.13.2"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -387,7 +421,8 @@
           "hostnames": [
             "src/utilities.tsx:166 api.mapbox.com",
             "src/utilities.tsx:197 api.mapbox.com"
-          ]
+          ],
+          "requests": []
         }
       ],
       "exposures": []
@@ -402,14 +437,16 @@
           "packages": [
             "mapbox-gl@3.17.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         },
         {
           "id": "airtable",
           "packages": [],
           "hostnames": [
             "src/lib/airtable.ts:7 api.airtable.com"
-          ]
+          ],
+          "requests": []
         }
       ],
       "exposures": []
@@ -424,7 +461,8 @@
           "packages": [
             "mapbox-gl@^3.7.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -439,7 +477,8 @@
           "packages": [
             "mapbox-gl@3.11.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -454,7 +493,8 @@
           "packages": [
             "mapbox-gl@3.18.1"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -469,7 +509,8 @@
           "packages": [
             "mapbox-gl@3.18.1"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -484,7 +525,8 @@
           "packages": [
             "mapbox-gl@^3.16.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -501,7 +543,8 @@
           ],
           "hostnames": [
             "config/nuxt/head.js:17 api.mapbox.com"
-          ]
+          ],
+          "requests": []
         }
       ],
       "exposures": []
@@ -517,7 +560,8 @@
             "algoliasearch@4.20.0",
             "instantsearch.js@4.56.9"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": [
@@ -546,7 +590,8 @@
             "@algolia/client-search@^5.34.1",
             "instantsearch.js@^4.79.2"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -562,14 +607,16 @@
             "algoliasearch@4.25.2",
             "instantsearch.js@4.80.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         },
         {
           "id": "sentry",
           "packages": [
             "@sentry/browser@8.55.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": [
@@ -596,7 +643,8 @@
           "packages": [
             "algoliasearch@^5.43.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -613,7 +661,8 @@
             "@algolia/client-search@4.19.1",
             "instantsearch.js@4.56.8"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": [
@@ -640,7 +689,8 @@
           "packages": [
             "algoliasearch@4.24.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": [
@@ -667,7 +717,8 @@
           "packages": [
             "algoliasearch@4.12.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": [
@@ -695,7 +746,8 @@
             "algoliasearch@4.22.1",
             "@algolia/client-search@4.22.1"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -710,7 +762,8 @@
           "packages": [
             "algoliasearch@3.32.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": [
@@ -737,7 +790,8 @@
           "packages": [
             "algoliasearch@4.17.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": [
@@ -770,7 +824,8 @@
           "packages": [
             "algoliasearch@4.4.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": [
@@ -797,7 +852,8 @@
           "packages": [
             "algoliasearch@4.27.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": [
@@ -824,21 +880,24 @@
           "packages": [
             "openai@6.48.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         },
         {
           "id": "algolia",
           "packages": [
             "algoliasearch@5.56.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         },
         {
           "id": "sentry",
           "packages": [
             "@sentry/nextjs@10.66.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": [
@@ -882,7 +941,8 @@
           "packages": [
             "@hubspot/api-client@11.1.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -897,7 +957,8 @@
           "packages": [
             "@hubspot/api-client@13.4.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -912,7 +973,8 @@
           "packages": [
             "twilio@^4.20.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         },
         {
           "id": "sendgrid",
@@ -920,21 +982,24 @@
             "@sendgrid/mail@^8.1.0",
             "@sendgrid/client@^8.1.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         },
         {
           "id": "hubspot",
           "packages": [
             "@hubspot/api-client@^13.1.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         },
         {
           "id": "airtable",
           "packages": [
             "airtable@^0.12.2"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -949,7 +1014,8 @@
           "packages": [
             "@hubspot/api-client@12.1.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -964,7 +1030,8 @@
           "packages": [
             "@hubspot/api-client@8.5.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -979,7 +1046,8 @@
           "packages": [
             "@hubspot/api-client@12.1.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -996,7 +1064,8 @@
           ],
           "hostnames": [
             "src/tools/workflows.ts:5 api.hubapi.com"
-          ]
+          ],
+          "requests": []
         }
       ],
       "exposures": []
@@ -1011,7 +1080,8 @@
           "packages": [
             "@hubspot/api-client@^12.0.1"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -1026,7 +1096,8 @@
           "packages": [
             "@hubspot/api-client@13.5.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -1041,7 +1112,8 @@
           "packages": [
             "@hubspot/api-client@13.5.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -1058,7 +1130,8 @@
           ],
           "hostnames": [
             "lib/connectionChecks.js:253 api.openai.com"
-          ]
+          ],
+          "requests": []
         },
         {
           "id": "anthropic",
@@ -1067,7 +1140,8 @@
             "lib/connectionChecks.js:274 api.anthropic.com",
             "services/aiChat.js:87 api.anthropic.com",
             "test/connection-checks.test.js:258 api.anthropic.com"
-          ]
+          ],
+          "requests": []
         },
         {
           "id": "gemini",
@@ -1075,7 +1149,8 @@
           "hostnames": [
             "lib/connectionChecks.js:299 generativelanguage.googleapis.com",
             "services/aiChat.js:89 generativelanguage.googleapis.com"
-          ]
+          ],
+          "requests": []
         },
         {
           "id": "hubspot",
@@ -1085,7 +1160,8 @@
           "hostnames": [
             "lib/connectionChecks.js:206 api.hubapi.com",
             "lib/connectionChecks.js:207 api.hubapi.com"
-          ]
+          ],
+          "requests": []
         }
       ],
       "exposures": [
@@ -1112,6 +1188,9 @@
           "packages": [],
           "hostnames": [
             "src/adapters/facebook.ts:32 graph.facebook.com"
+          ],
+          "requests": [
+            "src/adapters/facebook.ts:32 graph.facebook.com axios"
           ]
         },
         {
@@ -1119,14 +1198,16 @@
           "packages": [
             "@hubspot/api-client@13.4.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         },
         {
           "id": "notion",
           "packages": [
             "@notionhq/client@5.4.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": [
@@ -1153,7 +1234,8 @@
           "packages": [
             "@sendgrid/mail@^7.7.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         },
         {
           "id": "hubspot",
@@ -1161,7 +1243,8 @@
             "@hubspot/api-client@^11.1.0",
             "@hubspot/api-client@11.2.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -1176,20 +1259,25 @@
           "packages": [
             "stripe@22.3.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         },
         {
           "id": "gemini",
           "packages": [
             "@google/genai@2.13.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         },
         {
           "id": "meta-graph",
           "packages": [],
           "hostnames": [
             "src/util/fbq.ts:60 graph.facebook.com"
+          ],
+          "requests": [
+            "src/util/fbq.ts:60 graph.facebook.com axios"
           ]
         },
         {
@@ -1197,14 +1285,16 @@
           "packages": [
             "intercom-client@6.4.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         },
         {
           "id": "airtable",
           "packages": [
             "airtable@0.12.2"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": [
@@ -1231,7 +1321,8 @@
           "packages": [
             "intercom-client@6.4.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         },
         {
           "id": "sentry",
@@ -1239,7 +1330,8 @@
             "@sentry/node@7.120.4",
             "@sentry/react@7.120.4"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -1254,7 +1346,8 @@
           "packages": [
             "intercom-client@^2.10.4"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -1269,14 +1362,16 @@
           "packages": [
             "@google/generative-ai@0.21.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         },
         {
           "id": "intercom",
           "packages": [
             "intercom-client@3.2.1"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": [
@@ -1303,13 +1398,17 @@
           "packages": [
             "intercom-client@7.0.3"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         },
         {
           "id": "mailchimp",
           "packages": [],
           "hostnames": [
             "src/lib/mailchimp.ts:47 api.mailchimp.com"
+          ],
+          "requests": [
+            "src/lib/mailchimp.ts:47 us8.api.mailchimp.com fetch"
           ]
         },
         {
@@ -1317,7 +1416,8 @@
           "packages": [
             "@sentry/nextjs@10.34.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         },
         {
           "id": "cloudinary",
@@ -1327,6 +1427,10 @@
           "hostnames": [
             "ckEditor/obj/ckEditor/src/cloudinary.js:32 api.cloudinary.com",
             "ckEditor/src/cloudinary.ts:61 api.cloudinary.com"
+          ],
+          "requests": [
+            "ckEditor/obj/ckEditor/src/cloudinary.js:32 api.cloudinary.com fetch",
+            "ckEditor/src/cloudinary.ts:61 api.cloudinary.com fetch"
           ]
         }
       ],
@@ -1342,6 +1446,9 @@
           "packages": [],
           "hostnames": [
             "server/api/payouts.js:17 api.stripe.com"
+          ],
+          "requests": [
+            "server/api/payouts.js:22 api.stripe.com fetch"
           ]
         },
         {
@@ -1349,14 +1456,16 @@
           "packages": [
             "@anthropic-ai/sdk@^0.81.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         },
         {
           "id": "twilio",
           "packages": [
             "twilio@^5.3.5"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         },
         {
           "id": "google-maps",
@@ -1367,6 +1476,9 @@
             "server/csp.js:47 places.googleapis.com",
             "server/csp.js:98 maps.googleapis.com",
             "server/csp.js:125 maps.googleapis.com"
+          ],
+          "requests": [
+            "server/api/geocode.js:45 maps.googleapis.com fetch"
           ]
         },
         {
@@ -1378,14 +1490,16 @@
             "public/static/scripts/mapbox/mapbox-sdk.min.js:4 api.mapbox.com",
             "server/csp.js:49 api.mapbox.com",
             "server/csp.js:97 api.mapbox.com"
-          ]
+          ],
+          "requests": []
         },
         {
           "id": "intercom",
           "packages": [
             "intercom-client@^6.1.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         },
         {
           "id": "sentry",
@@ -1393,7 +1507,8 @@
             "@sentry/node@^8.55.0",
             "@sentry/browser@^8.55.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -1408,21 +1523,24 @@
           "packages": [
             "stripe@^17.7.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         },
         {
           "id": "openai",
           "packages": [
             "openai@3.3.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         },
         {
           "id": "resend",
           "packages": [
             "resend@3.5.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         },
         {
           "id": "hubspot",
@@ -1433,6 +1551,13 @@
             "src/integration/hubspot/service.js:112 api.hubapi.com",
             "src/integration/hubspot/service.js:130 api.hubapi.com",
             "src/integration/hubspot/service.js:170 api.hubapi.com"
+          ],
+          "requests": [
+            "src/integration/hubspot/service.js:26 api.hubapi.com axios",
+            "src/integration/hubspot/service.js:88 api.hubapi.com axios",
+            "src/integration/hubspot/service.js:112 api.hubapi.com axios",
+            "src/integration/hubspot/service.js:130 api.hubapi.com axios",
+            "src/integration/hubspot/service.js:170 api.hubapi.com axios"
           ]
         },
         {
@@ -1446,6 +1571,11 @@
             "src/intercom/intercom.service.js:415 api.intercom.io",
             "src/intercom/intercom.service.js:434 api.intercom.io",
             "src/intercom/intercom.service.js:529 api.intercom.io"
+          ],
+          "requests": [
+            "src/intercom/intercom.service.js:288 api.intercom.io fetch",
+            "src/intercom/intercom.service.js:415 api.intercom.io axios",
+            "src/intercom/intercom.service.js:529 api.intercom.io fetch"
           ]
         },
         {
@@ -1453,7 +1583,8 @@
           "packages": [
             "@sentry/node@^10.34.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": [
@@ -1480,70 +1611,80 @@
           "packages": [
             "stripe@^18.5.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         },
         {
           "id": "openai",
           "packages": [
             "openai@6.29.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         },
         {
           "id": "anthropic",
           "packages": [
             "@anthropic-ai/sdk@0.72.1"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         },
         {
           "id": "gemini",
           "packages": [
             "@google/generative-ai@0.21.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         },
         {
           "id": "twilio",
           "packages": [
             "twilio@5.13.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         },
         {
           "id": "google-maps",
           "packages": [
             "@googlemaps/js-api-loader@^1.16.8"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         },
         {
           "id": "hubspot",
           "packages": [
             "@hubspot/api-client@13.5.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         },
         {
           "id": "intercom",
           "packages": [
             "intercom-client@7.0.3"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         },
         {
           "id": "mailchimp",
           "packages": [
             "@mailchimp/mailchimp_marketing@3.0.80"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         },
         {
           "id": "notion",
           "packages": [
             "@notionhq/client@5.20.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": [
@@ -1570,7 +1711,8 @@
           "packages": [
             "@mailchimp/mailchimp_marketing@3.0.80"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -1588,7 +1730,8 @@
           "hostnames": [
             "src/pages/api/newsletter/mailchimp.ts:53 api.mailchimp.com",
             "src/pages/api/newsletter/mailchimp.ts:71 api.mailchimp.com"
-          ]
+          ],
+          "requests": []
         }
       ],
       "exposures": []
@@ -1603,28 +1746,32 @@
           "packages": [
             "twilio@3.84.1"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         },
         {
           "id": "resend",
           "packages": [
             "resend@6.9.2"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         },
         {
           "id": "mailchimp",
           "packages": [
             "@mailchimp/mailchimp_marketing@3.0.80"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         },
         {
           "id": "sentry",
           "packages": [
             "@sentry/node@10.46.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -1639,7 +1786,8 @@
           "packages": [
             "@mailchimp/mailchimp_marketing@3.0.72"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -1654,21 +1802,24 @@
           "packages": [
             "stripe@17.7.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         },
         {
           "id": "openai",
           "packages": [
             "openai@4.104.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         },
         {
           "id": "mailchimp",
           "packages": [
             "@mailchimp/mailchimp_marketing@3.0.80"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -1683,7 +1834,8 @@
           "packages": [
             "@mailchimp/mailchimp_marketing@^3.0.58"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -1698,7 +1850,8 @@
           "packages": [
             "@mailchimp/mailchimp_marketing@3.0.72"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -1713,7 +1866,8 @@
           "packages": [
             "@mailchimp/mailchimp_marketing@3.0.80"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -1728,14 +1882,16 @@
           "packages": [
             "@mailchimp/mailchimp_marketing@3.0.80"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         },
         {
           "id": "sentry",
           "packages": [
             "@sentry/node@9.35.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -1753,7 +1909,8 @@
           ],
           "hostnames": [
             "src/lib/newsletter/providers/mailchimp.tsx:54 api.mailchimp.com"
-          ]
+          ],
+          "requests": []
         },
         {
           "id": "cloudinary",
@@ -1762,6 +1919,9 @@
           ],
           "hostnames": [
             "src/components/Dropzone/UploadProviders/cloudinary.ts:33 api.cloudinary.com"
+          ],
+          "requests": [
+            "src/components/Dropzone/UploadProviders/cloudinary.ts:45 api.cloudinary.com fetch"
           ]
         }
       ],
@@ -1789,7 +1949,8 @@
           "packages": [
             "@mailchimp/mailchimp_marketing@3.0.80"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         },
         {
           "id": "notion",
@@ -1802,6 +1963,13 @@
             "services/Notion/CreatePage/handler.ts:2 api.notion.com",
             "services/Notion/IntrospectToken/handler.ts:24 api.notion.com",
             "services/Notion/QueryDatabase/handler.ts:2 api.notion.com"
+          ],
+          "requests": [
+            "services/Notion/CreateDatabase/handler.ts:122 api.notion.com fetch",
+            "services/Notion/CreatePage/handler.ts:315 api.notion.com fetch",
+            "services/Notion/IntrospectToken/handler.ts:24 api.notion.com fetch",
+            "services/Notion/QueryDatabase/handler.ts:188 api.notion.com fetch",
+            "services/Notion/RetrieveDatabase/handler.ts:152 api.notion.com fetch"
           ]
         },
         {
@@ -1813,6 +1981,13 @@
             "services/Airtable/CreateComment/handler.ts:58 api.airtable.com",
             "services/Airtable/CreateField/handler.ts:42 api.airtable.com",
             "services/Airtable/CreateRecord/handler.ts:51 api.airtable.com"
+          ],
+          "requests": [
+            "services/Airtable/CreateBase/handler.ts:50 api.airtable.com fetch",
+            "services/Airtable/CreateComment/handler.ts:65 api.airtable.com fetch",
+            "services/Airtable/CreateField/handler.ts:69 api.airtable.com fetch",
+            "services/Airtable/CreateRecord/handler.ts:51 api.airtable.com fetch",
+            "services/Airtable/CreateRecords/handler.ts:94 api.airtable.com fetch"
           ]
         }
       ],
@@ -1828,7 +2003,8 @@
           "packages": [
             "@mailchimp/mailchimp_marketing@3.0.72"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -1843,7 +2019,8 @@
           "packages": [
             "@mailchimp/mailchimp_marketing@^3.0.80"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -1858,14 +2035,16 @@
           "packages": [
             "stripe@14.25.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         },
         {
           "id": "mailchimp",
           "packages": [
             "@mailchimp/mailchimp_marketing@3.0.80"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -1880,14 +2059,16 @@
           "packages": [
             "openai@^6.22.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         },
         {
           "id": "zoom",
           "packages": [
             "@zoom/meetingsdk@^5.1.2"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": [
@@ -1914,21 +2095,24 @@
           "packages": [
             "stripe@20.4.1"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         },
         {
           "id": "resend",
           "packages": [
             "resend@6.12.3"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         },
         {
           "id": "zoom",
           "packages": [
             "@zoom/meetingsdk@5.1.4"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -1943,14 +2127,16 @@
           "packages": [
             "openai@6.18.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         },
         {
           "id": "gemini",
           "packages": [
             "@google/generative-ai@0.24.1"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         },
         {
           "id": "zoom",
@@ -1959,6 +2145,11 @@
           ],
           "hostnames": [
             "lib/zoom.ts:9 api.zoom.us"
+          ],
+          "requests": [
+            "lib/zoom.ts:86 api.zoom.us axios",
+            "lib/zoom.ts:122 api.zoom.us axios",
+            "lib/zoom.ts:146 api.zoom.us axios"
           ]
         }
       ],
@@ -1974,7 +2165,8 @@
           "packages": [
             "@zoom/meetingsdk@3.8.5"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": [
@@ -2001,7 +2193,8 @@
           "packages": [
             "@zoom/meetingsdk@3.13.1"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": [
@@ -2028,7 +2221,8 @@
           "packages": [
             "@zoom/meetingsdk@^4.1.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -2043,14 +2237,16 @@
           "packages": [
             "openai@4.104.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         },
         {
           "id": "zoom",
           "packages": [
             "@zoom/meetingsdk@3.13.2"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -2067,6 +2263,9 @@
           ],
           "hostnames": [
             "server.js:74 api.zoom.us"
+          ],
+          "requests": [
+            "server.js:74 api.zoom.us fetch"
           ]
         }
       ],
@@ -2094,7 +2293,8 @@
           "packages": [
             "@zoom/meetingsdk@4.0.7"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -2112,6 +2312,10 @@
           "hostnames": [
             "app/api/coach-mode/zoom/callback/route.ts:276 api.zoom.us",
             "app/api/coach-mode/zoom/meeting/route.ts:61 api.zoom.us"
+          ],
+          "requests": [
+            "app/api/coach-mode/zoom/callback/route.ts:276 api.zoom.us fetch",
+            "app/api/coach-mode/zoom/meeting/route.ts:61 api.zoom.us fetch"
           ]
         }
       ],
@@ -2139,7 +2343,8 @@
           "packages": [
             "@zoom/meetingsdk@5.1.2"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -2154,7 +2359,8 @@
           "packages": [
             "@zoom/meetingsdk@5.1.4"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": [
@@ -2181,7 +2387,8 @@
           "packages": [
             "@google/generative-ai@0.24.1"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         },
         {
           "id": "zoom",
@@ -2190,6 +2397,11 @@
           ],
           "hostnames": [
             "src/lib/zoomApiService.ts:43 api.zoom.us"
+          ],
+          "requests": [
+            "src/lib/zoomApiService.ts:125 api.zoom.us fetch",
+            "src/lib/zoomApiService.ts:159 api.zoom.us fetch",
+            "src/lib/zoomApiService.ts:182 api.zoom.us fetch"
           ]
         },
         {
@@ -2200,6 +2412,9 @@
           ],
           "hostnames": [
             "src/lib/cloudinary.ts:37 api.cloudinary.com"
+          ],
+          "requests": [
+            "src/lib/cloudinary.ts:37 api.cloudinary.com fetch"
           ]
         }
       ],
@@ -2238,7 +2453,8 @@
           "packages": [
             "@zoom/meetingsdk@5.0.4"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -2253,7 +2469,8 @@
           "packages": [
             "dropbox@10.34.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -2268,7 +2485,8 @@
           "packages": [
             "dropbox@4.0.30"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -2283,7 +2501,8 @@
           "packages": [
             "dropbox@^9.6.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -2298,7 +2517,8 @@
           "packages": [
             "dropbox@10.34.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -2313,7 +2533,8 @@
           "packages": [
             "dropbox@^10.34.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -2328,7 +2549,8 @@
           "packages": [
             "dropbox@10.34.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -2343,7 +2565,8 @@
           "packages": [
             "dropbox@10.34.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -2364,14 +2587,16 @@
           "packages": [
             "stripe@17.7.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         },
         {
           "id": "openai",
           "packages": [
             "openai@4.104.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         },
         {
           "id": "dropbox",
@@ -2384,6 +2609,11 @@
             "fileProcessors/connectors/dropbox.ts:81 api.dropboxapi.com",
             "fileProcessors/connectors/dropbox.ts:133 content.dropboxapi.com",
             "mocks/handlers.ts:9 content.dropboxapi.com"
+          ],
+          "requests": [
+            "DataSource/Dropbox/DropboxPicker/dropbox-picker.context.tsx:59 api.dropboxapi.com fetch",
+            "fileProcessors/connectors/dropbox.ts:81 api.dropboxapi.com fetch",
+            "fileProcessors/connectors/dropbox.ts:133 content.dropboxapi.com fetch"
           ]
         }
       ],
@@ -2399,7 +2629,8 @@
           "packages": [
             "dropbox@4.0.16"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -2414,7 +2645,8 @@
           "packages": [
             "@google/generative-ai@0.24.1"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         },
         {
           "id": "paypal",
@@ -2425,6 +2657,13 @@
             "lib/donations.ts:51 api-m.paypal.com",
             "lib/donations.ts:52 api-m.sandbox.paypal.com",
             "lib/paypal.ts:5 api-m.paypal.com"
+          ],
+          "requests": [
+            "app/api/donations/paypal/capture/route.ts:34 api-m.paypal.com fetch",
+            "lib/donations.ts:50 api-m.paypal.com fetch",
+            "lib/paypal.ts:27 api-m.paypal.com fetch",
+            "lib/paypal.ts:59 api-m.paypal.com fetch",
+            "lib/paypal.ts:104 api-m.paypal.com fetch"
           ]
         },
         {
@@ -2432,7 +2671,8 @@
           "packages": [
             "dropbox@10.34.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": [
@@ -2459,14 +2699,16 @@
           "packages": [
             "resend@6.0.2"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         },
         {
           "id": "dropbox",
           "packages": [
             "dropbox@10.34.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -2483,6 +2725,9 @@
           ],
           "hostnames": [
             "src/dropbox/client.ts:136 api.dropboxapi.com"
+          ],
+          "requests": [
+            "src/dropbox/client.ts:136 api.dropboxapi.com axios"
           ]
         }
       ],
@@ -2503,6 +2748,13 @@
             "netlify/functions/dropbox-new-storage.js:10 content.dropboxapi.com",
             "netlify/functions/dropbox-storage.js:9 content.dropboxapi.com",
             "netlify/functions/dropbox-storage.js:10 content.dropboxapi.com"
+          ],
+          "requests": [
+            "netlify/functions/dropbox-new-storage.js:67 content.dropboxapi.com fetch",
+            "netlify/functions/dropbox-new-storage.js:163 content.dropboxapi.com fetch",
+            "netlify/functions/dropbox-new-storage.js:242 content.dropboxapi.com fetch",
+            "netlify/functions/dropbox-new-storage.js:349 content.dropboxapi.com fetch",
+            "netlify/functions/dropbox-storage.js:67 content.dropboxapi.com fetch"
           ]
         }
       ],
@@ -2518,7 +2770,8 @@
           "packages": [
             "@notionhq/client@3.1.2"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -2534,6 +2787,10 @@
           "hostnames": [
             "src/lib/memory/embeddings.ts:221 api.openai.com",
             "src/lib/providers/adapters/reasoning-openai.ts:10 api.openai.com"
+          ],
+          "requests": [
+            "src/lib/memory/embeddings.ts:221 api.openai.com fetch",
+            "src/lib/providers/adapters/reasoning-openai.ts:32 api.openai.com fetch"
           ]
         },
         {
@@ -2543,6 +2800,9 @@
           ],
           "hostnames": [
             "src/lib/diagnostics/doctor.ts:630 api.anthropic.com"
+          ],
+          "requests": [
+            "src/lib/diagnostics/doctor.ts:630 api.anthropic.com fetch"
           ]
         },
         {
@@ -2553,6 +2813,10 @@
           "hostnames": [
             "src/lib/diagnostics/doctor.ts:726 api.notion.com",
             "src/lib/providers/builtin/notion-provider.ts:27 api.notion.com"
+          ],
+          "requests": [
+            "src/lib/diagnostics/doctor.ts:726 api.notion.com fetch",
+            "src/lib/providers/builtin/notion-provider.ts:27 api.notion.com fetch"
           ]
         }
       ],
@@ -2580,7 +2844,8 @@
           "packages": [
             "@notionhq/client@5.4.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -2595,7 +2860,8 @@
           "packages": [
             "@notionhq/client@0.4.11"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -2610,7 +2876,8 @@
           "packages": [
             "@notionhq/client@0.2.2"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -2628,6 +2895,12 @@
             "search.js:229 api.openai.com",
             "search.js:263 api.openai.com",
             "validation-utils.js:21 api.openai.com"
+          ],
+          "requests": [
+            "kb-generator.js:426 api.openai.com fetch",
+            "search.js:229 api.openai.com fetch",
+            "search.js:263 api.openai.com fetch",
+            "validation-utils.js:21 api.openai.com fetch"
           ]
         },
         {
@@ -2635,7 +2908,8 @@
           "packages": [
             "@notionhq/client@5.3.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -2652,6 +2926,9 @@
           ],
           "hostnames": [
             "scripts/write-update-notes.ts:8 api.notion.com"
+          ],
+          "requests": [
+            "scripts/write-update-notes.ts:136 api.notion.com fetch"
           ]
         }
       ],
@@ -2667,14 +2944,16 @@
           "packages": [
             "@anthropic-ai/sdk@0.40.1"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         },
         {
           "id": "notion",
           "packages": [
             "@notionhq/client@2.3.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -2689,7 +2968,8 @@
           "packages": [
             "@notionhq/client@5.22.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -2704,7 +2984,8 @@
           "packages": [
             "@notionhq/client@2.2.13"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -2722,6 +3003,9 @@
           "hostnames": [
             "scripts/list_models.ts:30 generativelanguage.googleapis.com",
             "scripts/list_models.ts:32 generativelanguage.googleapis.com"
+          ],
+          "requests": [
+            "scripts/list_models.ts:32 generativelanguage.googleapis.com fetch"
           ]
         },
         {
@@ -2735,6 +3019,13 @@
             "src/notion/client.ts:195 api.notion.com",
             "src/notion/client.ts:222 api.notion.com",
             "src/notion/client.ts:253 api.notion.com"
+          ],
+          "requests": [
+            "src/notion/client.ts:109 api.notion.com client",
+            "src/notion/client.ts:165 api.notion.com client",
+            "src/notion/client.ts:195 api.notion.com client",
+            "src/notion/client.ts:222 api.notion.com client",
+            "src/notion/client.ts:253 api.notion.com client"
           ]
         }
       ],
@@ -2768,6 +3059,12 @@
             "src/_data/blogs.js:33 api.notion.com",
             "src/_data/demos.js:10 api.notion.com",
             "src/_helpers/fetchNotionBlocks.js:10 api.notion.com"
+          ],
+          "requests": [
+            "notion-backup.js:27 api.notion.com fetch",
+            "src/_data/arts.js:31 api.notion.com client",
+            "src/_data/blogs.js:33 api.notion.com client",
+            "src/_data/demos.js:10 api.notion.com client"
           ]
         }
       ],
@@ -2783,7 +3080,8 @@
           "packages": [
             "@notionhq/client@2.1.1"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -2798,7 +3096,8 @@
           "packages": [
             "@notionhq/client@2.2.5"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -2813,7 +3112,8 @@
           "packages": [
             "airtable@^0.8.1"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -2830,6 +3130,9 @@
           ],
           "hostnames": [
             "src/getAirtableTsTable.ts:58 api.airtable.com"
+          ],
+          "requests": [
+            "src/getAirtableTsTable.ts:68 api.airtable.com fetch"
           ]
         }
       ],
@@ -2845,7 +3148,8 @@
           "packages": [
             "airtable@0.12.2"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -2862,6 +3166,9 @@
           ],
           "hostnames": [
             "src/shared/logging.js:35 api.airtable.com"
+          ],
+          "requests": [
+            "src/shared/logging.js:35 api.airtable.com fetch"
           ]
         }
       ],
@@ -2877,7 +3184,8 @@
           "packages": [
             "airtable@0.12.2"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -2892,7 +3200,8 @@
           "packages": [
             "airtable@0.12.2"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -2908,6 +3217,10 @@
           "hostnames": [
             "script/searchAddress.js:20 maps.googleapis.com",
             "script/searchAddress.js:27 maps.googleapis.com"
+          ],
+          "requests": [
+            "script/searchAddress.js:21 maps.googleapis.com fetch",
+            "script/searchAddress.js:28 maps.googleapis.com fetch"
           ]
         },
         {
@@ -2915,7 +3228,8 @@
           "packages": [
             "airtable@0.12.2"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -2930,7 +3244,8 @@
           "packages": [
             "airtable@0.11.6"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -2945,7 +3260,8 @@
           "packages": [
             "airtable@0.12.2"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -2960,7 +3276,8 @@
           "packages": [
             "airtable@0.12.2"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -2975,7 +3292,8 @@
           "packages": [
             "airtable@^0.7.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -2990,7 +3308,8 @@
           "packages": [
             "airtable@^0.11.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -3007,7 +3326,8 @@
           ],
           "hostnames": [
             "src/utils/airtable_fns.ts:4 api.airtable.com"
-          ]
+          ],
+          "requests": []
         }
       ],
       "exposures": []
@@ -3026,6 +3346,10 @@
             "tests/lib-coffee-stores.spec.ts:32 api.mapbox.com",
             "tests/lib-coffee-stores.spec.ts:62 api.mapbox.com",
             "tests/lib-coffee-stores.spec.ts:104 api.mapbox.com"
+          ],
+          "requests": [
+            "lib/coffee-stores.ts:59 api.mapbox.com fetch",
+            "lib/coffee-stores.ts:78 api.mapbox.com fetch"
           ]
         },
         {
@@ -3033,7 +3357,8 @@
           "packages": [
             "airtable@0.12.2"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -3048,28 +3373,32 @@
           "packages": [
             "openai@6.38.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         },
         {
           "id": "algolia",
           "packages": [
             "algoliasearch@5.52.1"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         },
         {
           "id": "segment",
           "packages": [
             "@segment/analytics-node@2.3.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         },
         {
           "id": "sentry",
           "packages": [
             "@sentry/node@10.53.1"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -3090,14 +3419,16 @@
           "packages": [
             "@segment/analytics-node@2.2.1"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         },
         {
           "id": "sentry",
           "packages": [
             "@sentry/node@9.19.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -3118,7 +3449,8 @@
           "packages": [
             "@segment/analytics-node@2.2.1"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -3133,7 +3465,8 @@
           "packages": [
             "@segment/analytics-node@1.3.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -3148,7 +3481,8 @@
           "packages": [
             "@segment/analytics-node@2.3.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -3169,14 +3503,16 @@
           "packages": [
             "@segment/analytics-node@3.0.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         },
         {
           "id": "sentry",
           "packages": [
             "@sentry/node@7.100.1"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         },
         {
           "id": "contentful",
@@ -3190,7 +3526,8 @@
             "src/engine/client/index.ts:91 api.contentful.com",
             "src/engine/client/index.ts:92 cdn.contentful.com",
             "src/engine/client/index.ts:106 api.contentful.com"
-          ]
+          ],
+          "requests": []
         }
       ],
       "exposures": []
@@ -3211,7 +3548,8 @@
           "packages": [
             "@segment/analytics-node@2.3.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -3226,14 +3564,16 @@
           "packages": [
             "@segment/analytics-node@0.0.1-rc.3"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         },
         {
           "id": "sentry",
           "packages": [
             "@sentry/browser@6.19.7"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -3250,7 +3590,8 @@
           ],
           "hostnames": [
             "src/common/telemetry.ts:49 api.segment.io"
-          ]
+          ],
+          "requests": []
         }
       ],
       "exposures": []
@@ -3265,7 +3606,8 @@
           "packages": [
             "@segment/analytics-node@2.1.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -3280,28 +3622,32 @@
           "packages": [
             "stripe@8.222.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         },
         {
           "id": "twilio",
           "packages": [
             "twilio@3.84.1"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         },
         {
           "id": "segment",
           "packages": [
             "analytics-node@6.2.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         },
         {
           "id": "sentry",
           "packages": [
             "@sentry/node@7.120.4"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -3316,7 +3662,8 @@
           "packages": [
             "@sentry/node@8.34.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -3331,7 +3678,8 @@
           "packages": [
             "@sentry/node@7.107.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -3348,6 +3696,9 @@
           ],
           "hostnames": [
             "src/openai/openai.service.ts:182 api.openai.com"
+          ],
+          "requests": [
+            "src/openai/openai.service.ts:182 api.openai.com axios"
           ]
         },
         {
@@ -3355,14 +3706,16 @@
           "packages": [
             "@sendgrid/mail@7.7.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         },
         {
           "id": "sentry",
           "packages": [
             "@sentry/node@7.43.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": [
@@ -3413,14 +3766,16 @@
           "packages": [
             "stripe@8.175.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         },
         {
           "id": "sentry",
           "packages": [
             "@sentry/node@5.30.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -3435,7 +3790,8 @@
           "packages": [
             "@sentry/node@7.16.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -3451,7 +3807,8 @@
             "@sentry/node@6.19.7",
             "@sentry/browser@6.19.7"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -3466,7 +3823,8 @@
           "packages": [
             "@sentry/node@7.37.2"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -3481,7 +3839,8 @@
           "packages": [
             "@sentry/node@5.7.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -3496,7 +3855,8 @@
           "packages": [
             "@sentry/node@5.11.1"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -3511,7 +3871,8 @@
           "packages": [
             "@sentry/node@7.120.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -3538,7 +3899,8 @@
           "packages": [
             "@sentry/node@7.120.4"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -3553,7 +3915,8 @@
           "packages": [
             "discord.js@14.25.1"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -3568,6 +3931,9 @@
           "packages": [],
           "hostnames": [
             "src/events/message/messageCreate.js:226 api.openai.com"
+          ],
+          "requests": [
+            "src/events/message/messageCreate.js:226 api.openai.com fetch"
           ]
         },
         {
@@ -3579,6 +3945,11 @@
             "src/commands/guild/inviteinfo.js:17 discord.com/api",
             "src/commands/images/banner.js:7 discord.com/api",
             "src/handlers/functions/functions.js:197 discord.com/api"
+          ],
+          "requests": [
+            "src/commands/guild/inviteinfo.js:17 discord.com axios",
+            "src/commands/images/banner.js:7 discord.com axios",
+            "src/handlers/functions/functions.js:197 discord.com fetch"
           ]
         }
       ],
@@ -3594,7 +3965,8 @@
           "packages": [
             "discord.js@14.27.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -3609,7 +3981,8 @@
           "packages": [
             "discord.js@14.25.1"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -3624,7 +3997,8 @@
           "packages": [
             "discord.js@^14.27.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -3642,7 +4016,8 @@
           "hostnames": [
             "src-functional/bot-loop.ts:11 discord.com/api",
             "src-functional/bot-loop.ts:312 discord.com/api"
-          ]
+          ],
+          "requests": []
         }
       ],
       "exposures": []
@@ -3661,6 +4036,10 @@
             "server.js:308 discordapp.com/api",
             "server.js:320 discordapp.com/api",
             "www/js/script.js:539 discordapp.com/api"
+          ],
+          "requests": [
+            "server.js:308 discordapp.com fetch",
+            "server.js:320 discordapp.com fetch"
           ]
         }
       ],
@@ -3676,14 +4055,16 @@
           "packages": [],
           "hostnames": [
             "tests/integration/agent-runner.test.ts:33 api.anthropic.com"
-          ]
+          ],
+          "requests": []
         },
         {
           "id": "discord",
           "packages": [
             "discord.js@14.25.1"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": [
@@ -3716,7 +4097,8 @@
           "packages": [
             "discord.js@14.18.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -3731,7 +4113,8 @@
           "packages": [
             "discord.js@^14.16.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": [
@@ -3810,7 +4193,8 @@
           "packages": [
             "discord.js@14.21.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -3825,7 +4209,8 @@
           "packages": [
             "discord.js@^14.25.1"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -3840,7 +4225,8 @@
           "packages": [
             "discord.js@^14.25.1"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -3855,7 +4241,8 @@
           "packages": [
             "discord.js@^11.4.2"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -3870,35 +4257,40 @@
           "packages": [
             "openai@4.104.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         },
         {
           "id": "gemini",
           "packages": [
             "@google/generative-ai@0.2.1"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         },
         {
           "id": "resend",
           "packages": [
             "resend@4.8.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         },
         {
           "id": "discord",
           "packages": [
             "discord-api-types@0.37.120"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         },
         {
           "id": "contentful",
           "packages": [
             "contentful@11.12.2"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": [
@@ -3931,7 +4323,8 @@
           "packages": [
             "contentful@10.0.0-beta-v10.8"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -3946,7 +4339,8 @@
           "packages": [
             "contentful@10.6.14"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -3961,14 +4355,16 @@
           "packages": [
             "stripe@18.5.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         },
         {
           "id": "contentful",
           "packages": [
             "contentful@10.15.1"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": [
@@ -3995,7 +4391,8 @@
           "packages": [
             "contentful@11.2.5"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -4011,7 +4408,8 @@
             "contentful@7.10.0",
             "contentful-management@5.11.3"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -4026,14 +4424,16 @@
           "packages": [
             "openai@4.78.1"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         },
         {
           "id": "contentful",
           "packages": [
             "contentful@11.4.3"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": [
@@ -4060,7 +4460,8 @@
           "packages": [
             "contentful@^11.5.15"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -4075,7 +4476,8 @@
           "packages": [
             "contentful@11.7.6"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -4090,7 +4492,8 @@
           "packages": [
             "contentful@8.5.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -4105,7 +4508,8 @@
           "packages": [
             "contentful@11.12.1"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -4121,7 +4525,8 @@
             "contentful@8.3.5",
             "contentful-management@7.19.1"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -4136,7 +4541,8 @@
           "packages": [
             "algoliasearch@4.27.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         },
         {
           "id": "contentful",
@@ -4146,7 +4552,8 @@
           "hostnames": [
             "nuxt.config.ts:148 cdn.contentful.com",
             "plugins/contentful.js:45 preview.contentful.com"
-          ]
+          ],
+          "requests": []
         }
       ],
       "exposures": [
@@ -4173,7 +4580,8 @@
           "packages": [
             "contentful@10.14.1"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -4190,6 +4598,9 @@
           ],
           "hostnames": [
             "src/lib/gemini.ts:280 generativelanguage.googleapis.com"
+          ],
+          "requests": [
+            "src/lib/gemini.ts:299 generativelanguage.googleapis.com fetch"
           ]
         },
         {
@@ -4197,14 +4608,16 @@
           "packages": [
             "resend@6.5.2"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         },
         {
           "id": "cloudinary",
           "packages": [
             "cloudinary@2.8.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": [
@@ -4231,14 +4644,16 @@
           "packages": [
             "openai@6.48.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         },
         {
           "id": "cloudinary",
           "packages": [
             "cloudinary@2.10.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -4253,7 +4668,8 @@
           "packages": [
             "cloudinary@2.10.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -4268,7 +4684,8 @@
           "packages": [
             "cloudinary@1.41.3"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -4283,14 +4700,16 @@
           "packages": [
             "@mapbox/mapbox-sdk@0.16.2"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         },
         {
           "id": "cloudinary",
           "packages": [
             "cloudinary@1.41.3"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -4311,7 +4730,8 @@
           "packages": [
             "cloudinary@2.9.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -4326,7 +4746,8 @@
           "packages": [
             "cloudinary@2.8.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -4341,14 +4762,16 @@
           "packages": [
             "resend@4.8.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         },
         {
           "id": "cloudinary",
           "packages": [
             "cloudinary@1.41.3"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -4363,28 +4786,32 @@
           "packages": [
             "stripe@22.1.1"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         },
         {
           "id": "openai",
           "packages": [
             "openai@6.33.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         },
         {
           "id": "gemini",
           "packages": [
             "@google/generative-ai@0.24.1"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         },
         {
           "id": "cloudinary",
           "packages": [
             "cloudinary@2.8.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -4399,7 +4826,8 @@
           "packages": [
             "cloudinary@2.10.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -4414,7 +4842,8 @@
           "packages": [
             "cloudinary@2.10.0"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -4429,7 +4858,8 @@
           "packages": [
             "cloudinary@^2.5.1"
           ],
-          "hostnames": []
+          "hostnames": [],
+          "requests": []
         }
       ],
       "exposures": []
@@ -4446,6 +4876,9 @@
           ],
           "hostnames": [
             "src/hooks/use-mapbox/useMapbox.tsx:9 api.mapbox.com"
+          ],
+          "requests": [
+            "src/hooks/use-mapbox/useMapbox.tsx:9 api.mapbox.com axios"
           ]
         },
         {
@@ -4455,7 +4888,8 @@
           ],
           "hostnames": [
             "src/server/trpc/router/image-upload.ts:21 api.cloudinary.com"
-          ]
+          ],
+          "requests": []
         }
       ],
       "exposures": []
@@ -4476,7 +4910,8 @@
           "packages": [],
           "hostnames": [
             "runtime/api-server/src/workspace-app-host-lint.ts:45 api.stripe.com"
-          ]
+          ],
+          "requests": []
         },
         {
           "id": "openai",
@@ -4489,7 +4924,8 @@
             "runtime/api-server/src/agent-runtime-config.test.ts:451 api.openai.com",
             "runtime/api-server/src/agent-runtime-config.test.ts:1177 api.openai.com",
             "runtime/api-server/src/agent-runtime-config.test.ts:1228 api.openai.com"
-          ]
+          ],
+          "requests": []
         },
         {
           "id": "anthropic",
@@ -4500,7 +4936,8 @@
             "runtime/api-server/src/agent-runtime-config.test.ts:1367 api.anthropic.com",
             "runtime/api-server/src/agent-runtime-config.test.ts:1382 api.anthropic.com",
             "runtime/api-server/src/agent-runtime-config.test.ts:1425 api.anthropic.com"
-          ]
+          ],
+          "requests": []
         },
         {
           "id": "gemini",
@@ -4511,28 +4948,32 @@
             "runtime/api-server/src/agent-runtime-config.test.ts:1498 generativelanguage.googleapis.com",
             "runtime/api-server/src/agent-runtime-config.test.ts:1514 generativelanguage.googleapis.com",
             "runtime/api-server/src/agent-runtime-config.test.ts:1559 generativelanguage.googleapis.com"
-          ]
+          ],
+          "requests": []
         },
         {
           "id": "hubspot",
           "packages": [],
           "hostnames": [
             "runtime/api-server/src/workspace-app-host-lint.ts:44 api.hubspot.com"
-          ]
+          ],
+          "requests": []
         },
         {
           "id": "intercom",
           "packages": [],
           "hostnames": [
             "runtime/api-server/src/workspace-app-host-lint.ts:50 api.intercom.io"
-          ]
+          ],
+          "requests": []
         },
         {
           "id": "mailchimp",
           "packages": [],
           "hostnames": [
             "runtime/api-server/src/workspace-app-host-lint.ts:48 api.mailchimp.com"
-          ]
+          ],
+          "requests": []
         },
         {
           "id": "notion",
@@ -4540,7 +4981,8 @@
           "hostnames": [
             "apps/desktop/electron/main.ts:11479 api.notion.com",
             "runtime/api-server/src/workspace-app-host-lint.ts:40 api.notion.com"
-          ]
+          ],
+          "requests": []
         },
         {
           "id": "discord",
@@ -4551,6 +4993,9 @@
           "hostnames": [
             "runtime/api-server/src/workspace-app-host-lint.ts:37 discord.com/api",
             "runtime/channel-gateway/src/connectors/discord.ts:36 discord.com/api"
+          ],
+          "requests": [
+            "runtime/channel-gateway/src/connectors/discord.ts:411 discord.com fetch"
           ]
         }
       ],
@@ -4568,14 +5013,16 @@
             "benchmarks/src/ai/model.ts:139 api.openai.com",
             "src/connectors/extraction/content_extractor.ts:114 api.openai.com",
             "src/core/embeddings/environment.ts:52 api.openai.com"
-          ]
+          ],
+          "requests": []
         },
         {
           "id": "anthropic",
           "packages": [],
           "hostnames": [
             "benchmarks/src/ai/model.ts:166 api.anthropic.com"
-          ]
+          ],
+          "requests": []
         },
         {
           "id": "gemini",
@@ -4583,14 +5030,16 @@
           "hostnames": [
             "benchmarks/src/ai/model.ts:187 generativelanguage.googleapis.com",
             "src/core/embeddings/environment.ts:55 generativelanguage.googleapis.com"
-          ]
+          ],
+          "requests": []
         },
         {
           "id": "intercom",
           "packages": [],
           "hostnames": [
             "src/connectors/service_catalog.ts:66 api.intercom.io"
-          ]
+          ],
+          "requests": []
         },
         {
           "id": "notion",
@@ -4599,7 +5048,8 @@
             "src/connectors/cloud/cloud_transports.ts:193 api.notion.com",
             "src/connectors/cloud/cloud_transports.ts:203 api.notion.com",
             "src/connectors/cloud/cloud_transports.ts:218 api.notion.com"
-          ]
+          ],
+          "requests": []
         }
       ],
       "exposures": [
@@ -4626,7 +5076,8 @@
           "packages": [],
           "hostnames": [
             "src/@awesome-cordova-plugins/plugins/intercom/index.ts:110 api.intercom.io"
-          ]
+          ],
+          "requests": []
         }
       ],
       "exposures": []

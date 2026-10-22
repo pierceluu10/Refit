@@ -219,3 +219,31 @@ describe('the shipped registry', () => {
     }
   });
 });
+
+describe('the committed sample and labels', () => {
+  it('has at least ten repositories for each provider and 40 hand-read hostname lines', async () => {
+    const { readFile } = await import('node:fs/promises');
+    const sample = JSON.parse(
+      await readFile(
+        new URL('../docs/benchmarks/2026-10-22-data-apis-repos.json', import.meta.url),
+        'utf8',
+      ),
+    );
+    const counts = new Map<string, number>();
+    for (const entry of sample.repos)
+      counts.set(entry.provider, (counts.get(entry.provider) ?? 0) + 1);
+    expect(counts.size).toBe(15);
+    for (const [provider, count] of counts) expect(count, provider).toBeGreaterThanOrEqual(10);
+    expect(sample.repos.length).toBeGreaterThanOrEqual(150);
+    const labels = JSON.parse(
+      await readFile(
+        new URL('../docs/benchmarks/2026-10-22-data-apis-labels.json', import.meta.url),
+        'utf8',
+      ),
+    );
+    expect(labels.hostnameLines).toHaveLength(40);
+    expect(
+      labels.hostnameLines.filter((item: { label: string }) => item.label === 'correct'),
+    ).toHaveLength(22);
+  });
+});
