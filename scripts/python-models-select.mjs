@@ -9,7 +9,11 @@ import { readdir, readFile, writeFile } from 'node:fs/promises';
 import { parseArgs, promisify } from 'node:util';
 
 const execute = promisify(execFile);
-const QUERIES = [
+const LANGCHAIN_QUERIES = [
+  '"from langchain_openai import ChatOpenAI" language:Python',
+  '"from langchain_anthropic import ChatAnthropic" language:Python',
+];
+const SDK_QUERIES = [
   '"from openai import OpenAI" language:Python',
   '"from openai import AsyncOpenAI" language:Python',
   '"from anthropic import Anthropic" language:Python',
@@ -30,20 +34,26 @@ const VENDORS = new Set([
   'google-gemini',
   'googleapis',
   'googlecloudplatform',
+  'langchain-ai',
 ]);
 
 const { values } = parseArgs({
   options: {
     count: { type: 'string' },
+    // Select repositories using LangChain's ChatOpenAI or ChatAnthropic instead of the SDKs.
+    langchain: { type: 'boolean' },
     output: { type: 'string' },
     help: { type: 'boolean' },
   },
 });
 if (values.help || !values.count || !values.output) {
-  console.log('Usage: node scripts/python-models-select.mjs --count N --output <frozen.json>');
+  console.log(
+    'Usage: node scripts/python-models-select.mjs --count N --output <frozen.json> [--langchain]',
+  );
   process.exit(values.help ? 0 : 1);
 }
 const count = Number(values.count);
+const QUERIES = values.langchain ? LANGCHAIN_QUERIES : SDK_QUERIES;
 
 async function gh(args) {
   const { stdout } = await execute('gh', args, { maxBuffer: 64 * 1024 * 1024 });
@@ -53,7 +63,7 @@ async function gh(args) {
 // Repositories already frozen in another benchmark, so sets stay independent.
 const frozen = new Set();
 for (const name of await readdir('docs/benchmarks'))
-  if (name.endsWith('-repos.json'))
+  if (name.endsWith('-repos.json') && `docs/benchmarks/${name}` !== values.output)
     for (const entry of JSON.parse(await readFile(`docs/benchmarks/${name}`, 'utf8')).repos ?? [])
       if (typeof entry.repo === 'string') frozen.add(entry.repo.toLowerCase());
 
@@ -136,7 +146,9 @@ await writeFile(
     {
       formatVersion: 1,
       language: 'python',
-      sdks: ['openai', 'anthropic', 'google-genai'],
+      sdks: values.langchain
+        ? ['langchain-openai', 'langchain-anthropic']
+        : ['openai', 'anthropic', 'google-genai'],
       selectedAt: new Date().toISOString(),
       method: `GitHub code search through gh api (queries below, ${PAGES} pages of ${PAGE_SIZE}), pool deduplicated by lower-cased full_name; vendor organizations (${[...VENDORS].join(', ')}) and repositories in other frozen lists removed; metadata through GraphQL; forks, archived repositories, repositories last pushed before ${PUSHED_SINCE} and repositories over ${MAX_DISK_KB / 1024} MB removed; ranked by stars, top ${count}; frozen at the default branch head. Retiring models are never consulted.`,
       queries,
