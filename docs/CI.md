@@ -70,7 +70,7 @@ mkdir "$out/smoke" && npm install --prefix "$out/smoke" --ignore-scripts --no-au
 REFIT_PACKAGE_INSTALL=1 .github/scripts/run-gated.sh REFIT_PACKAGE_INSTALL
 ```
 
-Lint the workflows with [actionlint](https://github.com/rhysd/actionlint) before pushing a change to them.
+Before pushing a change to them, lint the workflows with [actionlint](https://github.com/rhysd/actionlint) and the scripts with [ShellCheck](https://github.com/koalaman/shellcheck); actionlint also runs ShellCheck on each `run:` block when it is installed.
 
 ## Tests that leave something behind
 

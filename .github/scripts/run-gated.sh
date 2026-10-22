@@ -3,14 +3,16 @@
 # test is picked up without editing the workflow. The variables themselves come from the job.
 # Usage: run-gated.sh REFIT_DOCKER_IMAGE [REFIT_NPM_PREPARE ...]
 set -euo pipefail
+variables="$*"
 pattern="process\.env\.($(IFS='|'; echo "$*"))([^A-Z_]|$)"
 files="$(grep -lE "$pattern" pipeline/*.test.ts || true)"
 if [ -z "$files" ]; then
-  echo "No test file reads $*." >&2
+  echo "No test file reads $variables." >&2
   exit 1
 fi
-echo "Test files reading $*:"
-echo "$files" | sed 's/^/  /'
 # Test file names have no spaces, so word splitting is safe here.
 # shellcheck disable=SC2086
-npx vitest run $files
+set -- $files
+echo "Test files reading $variables:"
+printf '  %s\n' "$@"
+npx vitest run "$@"
