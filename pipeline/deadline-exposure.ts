@@ -166,6 +166,16 @@ const MODEL_PROVIDERS = new Set<DeadlineEntry['provider']>(['openai', 'anthropic
 // classified is a Gemini model, so OpenAI and Anthropic classification is unchanged.
 export const ANTHROPIC_MODEL = /^(?:anthropic\/)?claude-/;
 export const GEMINI_MODEL = /^(?:google\/|models\/)?gemini-/;
+
+// What counts as a model ID when deciding whether a list of them is a catalog, for a match of
+// `provider`: Gemini IDs count only in Gemini lists, so a mixed list is classified alike in
+// TypeScript and Python.
+export function listModel(models: { has(value: string): boolean }) {
+  const isModel = (value: string) =>
+    models.has(value) || OPENAI_MODEL.test(value) || ANTHROPIC_MODEL.test(value);
+  const isGeminiListModel = (value: string) => isModel(value) || GEMINI_MODEL.test(value);
+  return (provider: string) => (provider === 'gemini' ? isGeminiListModel : isModel);
+}
 export const OPENAI_MODEL =
   /^(?:openai\/)?(?:gpt-|chatgpt-|o\d(?:-|$)|text-(?:davinci|curie|babbage|ada|embedding|moderation)-|(?:davinci|curie|babbage|ada)(?:-|$)|dall-e-|tts-|whisper-|codex-|computer-use-|omni-moderation-|sora-)/;
 const CATALOG_SIZE = 3;
@@ -458,9 +468,7 @@ function tokenUses(path: string, content: string, models: Map<string, unknown>) 
     if (leaf) ranges.push([node.getStart(source), node.end, node]);
   };
   visit(source);
-  const isModel = (value: string) =>
-    models.has(value) || OPENAI_MODEL.test(value) || ANTHROPIC_MODEL.test(value);
-  const isGeminiListModel = (value: string) => isModel(value) || GEMINI_MODEL.test(value);
+  const isModel = listModel(models);
   return (
     offset: number,
     provider: DeadlineEntry['provider'],
@@ -477,7 +485,7 @@ function tokenUses(path: string, content: string, models: Map<string, unknown>) 
       else {
         const model = MODEL_PROVIDERS.has(provider);
         const use = ts.isStringLiteralLike(node)
-          ? literalUse(node, path, model, provider === 'gemini' ? isGeminiListModel : isModel)
+          ? literalUse(node, path, model, isModel(provider))
           : 'live';
         if (use !== 'live' || !model) return use;
         // An HTML or JSX `<option>` is one choice in a picker.
@@ -599,15 +607,7 @@ export async function scanDeadlines(
   }
   // Python files: quoted registry models only, classified like the TypeScript matches above.
   const python = models.size ? await readPythonFiles(root) : [];
-  for (const match of await pythonModelMatches(
-    python,
-    models,
-    (value) =>
-      models.has(value) ||
-      OPENAI_MODEL.test(value) ||
-      ANTHROPIC_MODEL.test(value) ||
-      GEMINI_MODEL.test(value),
-  ))
+  for (const match of await pythonModelMatches(python, models, listModel(models)))
     record(match.provider, match.version, {
       file: match.file,
       line: match.line,

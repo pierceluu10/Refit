@@ -708,13 +708,19 @@ function traceValue(
     case 'binary_operator':
       return stop(`The model is built from \`${text(node)}\`, which Refit cannot trace.`);
     case 'boolean_operator':
-    case 'conditional_expression':
+    case 'conditional_expression': {
+      // `os.getenv("M") or "gpt-4"` has a default, as `getenv("M", "gpt-4")` and TypeScript's `||`.
+      const left = node.type === 'boolean_operator' && unwrap(field(node, 'left')!);
+      const read = left && field(node, 'operator')?.type === 'or' && environmentRead(left);
+      if (read && !read.fallback)
+        return next(field(node, 'right')!, `environment default (${read.name})`);
       return merge(
         node.namedChildren
           .filter((child): child is Node => Boolean(child))
           .filter((_, index) => node.type === 'boolean_operator' || index !== 1)
           .map((child) => next(child, via)),
       );
+    }
     case 'identifier':
       return traceBindings(context, file, node, lookup(node, node.text), node.text, depth, seen);
     case 'attribute': {
@@ -961,7 +967,8 @@ function traceParameter(
   // The default is sent when no caller is found, or one leaves the argument out.
   let callers = 0;
   let omitted = false;
-  for (const { call, where } of callersOf(context, file, method ?? owner, callee)) {
+  const sites = callersOf(context, file, method ?? owner, callee);
+  for (const { call, where } of sites.found) {
     const argument = argumentOf(call);
     callers += 1;
     if (argument)
@@ -985,6 +992,11 @@ function traceParameter(
       literals: [],
       stop: `A caller passes \`${name}\` through unpacked arguments, which Refit cannot trace.`,
     });
+  if (sites.unproven.length)
+    values.push({
+      literals: [],
+      stop: `\`${callee}\` is also called in ${sites.unproven.slice(0, 3).join(', ')}, on an object Refit cannot tie to this class, so \`${name}\` may be passed there.`,
+    });
   if (!values.length)
     values.push({
       literals: [],
@@ -995,8 +1007,11 @@ function traceParameter(
 
 // Calls to a function or class by name: every call in its own file, and calls in other files that
 // import it from that file (by name or through the module), when it is defined at module level.
+// `unproven` lists method calls in other files on an object Refit cannot tie to this class, such as
+// `agent.run(...)` on an instance: they may pass the parameter, so the trace is not complete.
 function callersOf(context: Context, file: string, definition: Node, name: string) {
   const found: { call: Node; where: string }[] = [];
+  const unproven: string[] = [];
   let top: Node | null = definition.parent;
   if (top?.type === 'decorated_definition') top = top.parent;
   const moduleLevel = top?.type === 'module';
@@ -1023,12 +1038,14 @@ function callersOf(context: Context, file: string, definition: Node, name: strin
                   moduleFile(context, path, binding.module, binding.level) === file,
               )
             : object?.type === 'identifier' && importedModule(context, path, object) === file;
+        if (!imported && object && definition.type === 'class_definition')
+          unproven.push(`${path}:${call.startPosition.row + 1}`);
         if (!imported) continue;
       }
       found.push({ call, where: path });
     }
   }
-  return found;
+  return { found, unproven };
 }
 
 // `os.getenv("NAME", default)`, `os.environ.get("NAME", default)` and `os.environ["NAME"]`.

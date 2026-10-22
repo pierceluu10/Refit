@@ -2,9 +2,13 @@ import { readdir, readFile, stat } from 'node:fs/promises';
 import { join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Language, Parser, type Node, type Tree } from 'web-tree-sitter';
+import { PipelineInputError } from '../types.ts';
 
 // tree-sitter-python@0.25.0's published tree-sitter-python.wasm, copied as is: the package itself
-// runs a native build on install (docs/ARCHITECTURE.md, "Other languages").
+// runs a native build on install (docs/ARCHITECTURE.md, "Other languages"). Source:
+// https://registry.npmjs.org/tree-sitter-python/-/tree-sitter-python-0.25.0.tgz, integrity
+// sha512-eCmJx6zQa35GxaCtQD+wXHOhYqBxEL+bp71W/s3fcDMu06MrtzkVXR437dRrCrbrDbyLuUDJpAgycs7ncngLXw==;
+// package/tree-sitter-python.wasm in that tarball has GRAMMAR_SHA256 (checked 2026-10-22).
 export const GRAMMAR = fileURLToPath(new URL('./tree-sitter-python.wasm', import.meta.url));
 export const GRAMMAR_SHA256 = '16108b50df4ee9a30168794252ab55e7c93bfc5765d7fa0aa3e335752c515f47';
 
@@ -35,8 +39,8 @@ export interface PythonFile {
 }
 
 // Python sources under a repository, in path order. Symbolic links, virtual environments and build
-// output are skipped. shortcut: files past the 2 MiB, 10,000-file and 50 MiB limits are left out
-// silently rather than failing the TypeScript scan they run beside; report them if a set hits it.
+// output are skipped. Past the 2 MiB, 10,000-file or 50 MiB limit it throws, as readRepository does,
+// rather than leaving files out unreported.
 export async function readPythonFiles(root: string): Promise<PythonFile[]> {
   const files: PythonFile[] = [];
   let total = 0;
@@ -47,10 +51,13 @@ export async function readPythonFiles(root: string): Promise<PythonFile[]> {
     for (const entry of entries) {
       const path = join(directory, entry.name);
       if (entry.isDirectory() && !EXCLUDED_DIRECTORIES.has(entry.name)) await visit(path);
-      if (!entry.isFile() || !entry.name.endsWith('.py') || files.length >= MAX_FILES) continue;
+      if (!entry.isFile() || !entry.name.endsWith('.py')) continue;
       const size = (await stat(path)).size;
-      if (size > MAX_FILE_BYTES || total + size > MAX_TOTAL_BYTES) continue;
       total += size;
+      if (size > MAX_FILE_BYTES || total > MAX_TOTAL_BYTES || files.length >= MAX_FILES)
+        throw new PipelineInputError(
+          'Python sources exceed scan limits (10,000 files, 2 MiB per file, 50 MiB total).',
+        );
       files.push({
         path: relative(root, path).split('\\').join('/'),
         content: await readFile(path, 'utf8'),
@@ -70,18 +77,18 @@ async function load() {
   return result;
 }
 
-// Hands `use` a getter that parses each file once, on first use; every tree is freed afterwards,
-// since tree-sitter trees live in WebAssembly memory.
+// Hands `use` a getter that parses each file once, on first use; every tree is freed once `use`
+// has finished (awaited when it is async), since tree-sitter trees live in WebAssembly memory.
 export async function withPythonTrees<T>(
   files: PythonFile[],
-  use: (tree: (path: string) => Tree | undefined) => T,
+  use: (tree: (path: string) => Tree | undefined) => T | Promise<T>,
 ): Promise<T> {
   parser ??= load();
   const instance = await parser;
   const contents = new Map(files.map((file) => [file.path, file.content]));
   const trees = new Map<string, Tree | undefined>();
   try {
-    return use((path) => {
+    return await use((path) => {
       if (!trees.has(path)) {
         const content = contents.get(path);
         trees.set(path, content === undefined ? undefined : (instance.parse(content) ?? undefined));

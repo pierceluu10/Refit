@@ -1,4 +1,4 @@
-import { ANTHROPIC_MODEL, GEMINI_MODEL, OPENAI_MODEL } from '../deadline-exposure.ts';
+import { listModel } from '../deadline-exposure.ts';
 import type { DeadlineEntry, DeadlineRegistry } from '../deadline-registry.ts';
 import type { ModelReplacementStop, ModelReplacementUnresolved } from '../model-retirements.ts';
 import { isTextCall, PYTHON_SDKS, PYTHON_TEST_PATH, traceFiles } from './models.ts';
@@ -93,15 +93,7 @@ export async function pythonModelReports(
   );
   const check = 'Check where it is used and change it by hand if it reaches the API.';
   const unresolved: ModelReplacementUnresolved[] = [];
-  const matches = await pythonModelMatches(
-    files,
-    all,
-    (value) =>
-      all.has(value) ||
-      OPENAI_MODEL.test(value) ||
-      ANTHROPIC_MODEL.test(value) ||
-      GEMINI_MODEL.test(value),
-  );
+  const matches = await pythonModelMatches(files, all, listModel(all));
   for (const match of matches) {
     if (match.use !== 'live' || covered.has(`${match.file}:${match.line}`)) continue;
     covered.add(`${match.file}:${match.line}`);

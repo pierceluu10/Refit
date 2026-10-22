@@ -230,7 +230,8 @@ function holder(string: Node) {
 export async function pythonModelMatches(
   files: PythonFile[],
   models: Map<string, string>,
-  isModel: (value: string) => boolean,
+  // The model test for a list holding a match of the given provider (`listModel`).
+  isModel: (provider: string) => (value: string) => boolean,
 ): Promise<PythonModelMatch[]> {
   const candidates = files.filter((file) =>
     [...models.keys()].some(
@@ -259,7 +260,9 @@ export async function pythonModelMatches(
           let node: Node | null = root.descendantForIndex(offset + column);
           while (node && node.type !== 'string' && node.type !== 'comment') node = node.parent;
           const use =
-            node?.type === 'string' ? literalUse(node, file.path, version, isModel) : 'comment';
+            node?.type === 'string'
+              ? literalUse(node, file.path, version, isModel(models.get(version)!))
+              : 'comment';
           matches.push({
             file: file.path,
             line: index + 1,
