@@ -281,6 +281,342 @@
       },
       "monthlyDownloads": 7,
       "publishedAt": "2022-06-27T13:34:18.719Z"
+    },
+    {
+      "provider": "paypal",
+      "repo": "daytimedrinkingclub/shipstation",
+      "commit": "c64d95e9215a2bc270756e2fe5494ea555865c00",
+      "package": null,
+      "version": null,
+      "declared": {
+        "@paypal/checkout-server-sdk": "^1.0.3"
+      },
+      "monthlyDownloads": null,
+      "publishedAt": null,
+      "source": "code-search",
+      "found": "\"api-m.paypal.com\" language:JavaScript",
+      "stars": 92,
+      "pushedAt": "2025-08-25T19:17:27Z"
+    },
+    {
+      "provider": "paypal",
+      "repo": "recabasic/tfc-plex",
+      "commit": "2bf7274713985a0508198352d69da28b2d199ecb",
+      "package": null,
+      "version": null,
+      "declared": {
+        "@paypal/checkout-server-sdk": "^1.0.3"
+      },
+      "monthlyDownloads": null,
+      "publishedAt": null,
+      "source": "code-search",
+      "found": "\"@paypal/checkout-server-sdk\" filename:package.json path:/",
+      "stars": 59,
+      "pushedAt": "2025-07-05T01:03:32Z"
+    },
+    {
+      "provider": "paypal",
+      "repo": "cboard-org/cboard-api",
+      "commit": "2a1cd543d0db4c79db60e263521a2ec8c09d45c3",
+      "package": null,
+      "version": null,
+      "declared": {},
+      "monthlyDownloads": null,
+      "publishedAt": null,
+      "source": "code-search",
+      "found": "\"api-m.paypal.com\" language:JavaScript",
+      "stars": 13,
+      "pushedAt": "2026-10-20T18:25:06Z"
+    },
+    {
+      "provider": "paypal",
+      "repo": "kerkkoh/simple-clothing-store",
+      "commit": "860f621e0235054b5ffd7a5229a85f317557abcb",
+      "package": null,
+      "version": null,
+      "declared": {
+        "@paypal/checkout-server-sdk": "^1.0.2"
+      },
+      "monthlyDownloads": null,
+      "publishedAt": null,
+      "source": "code-search",
+      "found": "\"@paypal/checkout-server-sdk\" filename:package.json path:/",
+      "stars": 73,
+      "pushedAt": "2026-05-08T23:49:20Z"
+    },
+    {
+      "provider": "paypal",
+      "repo": "youedd/react-native-paypal-web-payments",
+      "commit": "585c56132fd7f34cf162bc217c573b6b84154808",
+      "package": null,
+      "version": null,
+      "declared": {},
+      "monthlyDownloads": null,
+      "publishedAt": null,
+      "source": "code-search",
+      "found": "\"api-m.sandbox.paypal.com\" language:JavaScript",
+      "stars": 9,
+      "pushedAt": "2026-02-14T15:57:29Z"
+    },
+    {
+      "provider": "paypal",
+      "repo": "fazt/nextjs-payments",
+      "commit": "41a379fc9fe608a1cdbd6895f0289a3d82c28249",
+      "package": null,
+      "version": null,
+      "declared": {
+        "@paypal/paypal-server-sdk": "^2.5.0"
+      },
+      "monthlyDownloads": null,
+      "publishedAt": null,
+      "source": "code-search",
+      "found": "\"@paypal/paypal-server-sdk\" filename:package.json path:/",
+      "stars": 9,
+      "pushedAt": "2026-10-11T22:19:47Z"
+    },
+    {
+      "provider": "paypal",
+      "repo": "unredacted/freesocks-control-plane",
+      "commit": "a82dfd1505d937f92218e3359832cf053947d283",
+      "package": null,
+      "version": null,
+      "declared": {},
+      "monthlyDownloads": null,
+      "publishedAt": null,
+      "source": "code-search",
+      "found": "\"api-m.paypal.com\" language:TypeScript",
+      "stars": 275,
+      "pushedAt": "2026-10-22T09:26:09Z"
+    },
+    {
+      "provider": "paypal",
+      "repo": "melo-maniac-29/webly.io",
+      "commit": "ba7d4128d09f6f60561420fe6b79a55a779a62fb",
+      "package": null,
+      "version": null,
+      "declared": {
+        "@paypal/checkout-server-sdk": "^1.0.3",
+        "@paypal/paypal-server-sdk": "0.6.0"
+      },
+      "monthlyDownloads": null,
+      "publishedAt": null,
+      "source": "code-search",
+      "found": "\"@paypal/paypal-server-sdk\" filename:package.json path:/",
+      "stars": 4,
+      "pushedAt": "2025-08-05T17:47:43Z"
+    },
+    {
+      "provider": "paypal",
+      "repo": "Dyan-Dev/loopi",
+      "commit": "c61515e14d09d9f6dc4ec97c719c6ce5bcc3acd4",
+      "package": null,
+      "version": null,
+      "declared": {},
+      "monthlyDownloads": null,
+      "publishedAt": null,
+      "source": "code-search",
+      "found": "\"api-m.paypal.com\" language:TypeScript",
+      "stars": 197,
+      "pushedAt": "2026-06-09T18:05:05Z"
+    },
+    {
+      "provider": "paypal",
+      "repo": "Sin-Estres-dev/Strezless",
+      "commit": "fd12b5be81b68ae11aa88cf88c6e4d1e99223fb8",
+      "package": null,
+      "version": null,
+      "declared": {
+        "@paypal/paypal-server-sdk": "^1.0.0"
+      },
+      "monthlyDownloads": null,
+      "publishedAt": null,
+      "source": "code-search",
+      "found": "\"@paypal/paypal-server-sdk\" filename:package.json path:/",
+      "stars": 3,
+      "pushedAt": "2026-07-17T06:17:43Z"
+    },
+    {
+      "provider": "paypal",
+      "repo": "shreyashpatel5506/githubanalyzer",
+      "commit": "29240250fcb307fe436f5e7f4315aca050e64363",
+      "package": null,
+      "version": null,
+      "declared": {},
+      "monthlyDownloads": null,
+      "publishedAt": null,
+      "source": "code-search",
+      "found": "\"api-m.paypal.com\" language:TypeScript",
+      "stars": 15,
+      "pushedAt": "2026-07-21T12:42:28Z"
+    },
+    {
+      "provider": "paypal",
+      "repo": "freifunkMUC/mastodon-paywall",
+      "commit": "3ae4522d5766818a494ccc621a550c3a44d62e19",
+      "package": null,
+      "version": null,
+      "declared": {},
+      "monthlyDownloads": null,
+      "publishedAt": null,
+      "source": "code-search",
+      "found": "\"api-m.paypal.com\" language:JavaScript",
+      "stars": 0,
+      "pushedAt": "2026-10-01T07:17:38Z"
+    },
+    {
+      "provider": "paypal",
+      "repo": "open-template-hub/payment-server-template",
+      "commit": "de2a69d047c789961b665ad872f44ac5c86d5ac9",
+      "package": null,
+      "version": null,
+      "declared": {
+        "@paypal/checkout-server-sdk": "^1.0.3"
+      },
+      "monthlyDownloads": null,
+      "publishedAt": null,
+      "source": "code-search",
+      "found": "\"@paypal/checkout-server-sdk\" filename:package.json path:/",
+      "stars": 17,
+      "pushedAt": "2026-10-19T09:30:56Z"
+    },
+    {
+      "provider": "paypal",
+      "repo": "flancer64/teq-agave-paypal",
+      "commit": "7a2facefbe658efba0d910d6bb82fdb72cf2f2f2",
+      "package": null,
+      "version": null,
+      "declared": {
+        "@paypal/paypal-server-sdk": "^0.6.1"
+      },
+      "monthlyDownloads": null,
+      "publishedAt": null,
+      "source": "code-search",
+      "found": "\"@paypal/paypal-server-sdk\" filename:package.json path:/",
+      "stars": 0,
+      "pushedAt": "2025-06-26T07:09:24Z"
+    },
+    {
+      "provider": "paypal",
+      "repo": "Mutesa-Cedric/paypal-listen",
+      "commit": "64e53cc2ebfcdc53c06abb8e45e21611ff962f16",
+      "package": null,
+      "version": null,
+      "declared": {},
+      "monthlyDownloads": null,
+      "publishedAt": null,
+      "source": "code-search",
+      "found": "\"api-m.paypal.com\" language:TypeScript",
+      "stars": 6,
+      "pushedAt": "2026-01-24T16:35:07Z"
+    },
+    {
+      "provider": "paypal",
+      "repo": "AndrewUru/ai-saas",
+      "commit": "3d65c54d93886137edfe6e25b178588af0538775",
+      "package": null,
+      "version": null,
+      "declared": {},
+      "monthlyDownloads": null,
+      "publishedAt": null,
+      "source": "code-search",
+      "found": "\"api-m.paypal.com\" language:TypeScript",
+      "stars": 7,
+      "pushedAt": "2026-10-21T18:27:10Z"
+    },
+    {
+      "provider": "paypal",
+      "repo": "ksom10/YachtingEveryday",
+      "commit": "3bd8f641e66a4e5751d24534710817d3facd27ad",
+      "package": null,
+      "version": null,
+      "declared": {},
+      "monthlyDownloads": null,
+      "publishedAt": null,
+      "source": "code-search",
+      "found": "\"api-m.sandbox.paypal.com\" language:JavaScript",
+      "stars": 0,
+      "pushedAt": "2025-04-23T17:21:03Z"
+    },
+    {
+      "provider": "paypal",
+      "repo": "irzix/whmjs-core",
+      "commit": "e62ccef39b99c7cb79c5f4d8ac8fe21fa9dc4af0",
+      "package": null,
+      "version": null,
+      "declared": {
+        "@paypal/paypal-server-sdk": "^2.2.0"
+      },
+      "monthlyDownloads": null,
+      "publishedAt": null,
+      "source": "code-search",
+      "found": "\"@paypal/paypal-server-sdk\" filename:package.json path:/",
+      "stars": 12,
+      "pushedAt": "2026-09-08T12:35:37Z"
+    },
+    {
+      "provider": "paypal",
+      "repo": "heyvishusri/proshop-v2",
+      "commit": "3de625986c8b5f80c7e17d1fffde8e5ff1703a29",
+      "package": null,
+      "version": null,
+      "declared": {},
+      "monthlyDownloads": null,
+      "publishedAt": null,
+      "source": "code-search",
+      "found": "\"api-m.paypal.com\" language:JavaScript",
+      "stars": 3,
+      "pushedAt": "2026-01-02T17:13:28Z"
+    },
+    {
+      "provider": "paypal",
+      "repo": "QuangNV23062004/test-monorepo-microservices",
+      "commit": "abf04b7753b821c38132e0d6b2d761dfcab3e576",
+      "package": null,
+      "version": null,
+      "declared": {
+        "@paypal/checkout-server-sdk": "^1.0.3",
+        "@paypal/paypal-server-sdk": "^1.1.0"
+      },
+      "monthlyDownloads": null,
+      "publishedAt": null,
+      "source": "code-search",
+      "found": "\"@paypal/paypal-server-sdk\" filename:package.json path:/",
+      "stars": 2,
+      "pushedAt": "2025-08-31T13:44:27Z"
+    }
+  ],
+  "extensions": [
+    {
+      "at": "2026-10-22T09:31:26.289Z",
+      "method": "GitHub code search (gh api search/code, first 100 results of each query), queries interleaved; kept when not a fork or archived, pushed on or after 2024-10-21, under 60000 KB, not a paypal* repository, and the HEAD package.json declares a PayPal server SDK or a JS/TS source file names a PayPal REST host.",
+      "queries": [
+        {
+          "q": "\"@paypal/paypal-server-sdk\" filename:package.json path:/",
+          "results": 100
+        },
+        {
+          "q": "\"@paypal/checkout-server-sdk\" filename:package.json path:/",
+          "results": 100
+        },
+        {
+          "q": "\"api-m.paypal.com\" language:TypeScript",
+          "results": 100
+        },
+        {
+          "q": "\"api-m.sandbox.paypal.com\" language:JavaScript",
+          "results": 100
+        },
+        {
+          "q": "\"api-m.paypal.com\" language:JavaScript",
+          "results": 100
+        }
+      ],
+      "rejected": {
+        "old": 17,
+        "large": 10,
+        "no SDK or host at HEAD": 1
+      },
+      "added": 20
     }
   ]
 }

@@ -55,6 +55,21 @@ const AZURE_CLIENT =
 const AZURE_CONTEXT = /azure/i;
 const AZURE_API_VERSION = '\\d{4}-\\d{2}-\\d{2}(?:-preview)?';
 const DEPLOYMENT_KEY = '[A-Za-z_]*[Dd]eployment(?:Name|Id|_name|_id)?';
+// `apiVersion: '2024-02-15-preview'` on a client, `'api-version': '…'` in query options, or
+// `api-version=` in a REST URL (`v1` is Azure's unversioned v1 API). Compiled once, not per line.
+const API_VERSION_OPTION = new RegExp(
+  `(?:\\b(?:apiVersion|api_version|[A-Za-z_]*API_VERSION)\\b|['"]api-version['"])[^'"\`\\n]{0,40}(['"\`])(${AZURE_API_VERSION})\\1`,
+  'g',
+);
+const API_VERSION_QUERY = new RegExp(`[?&]api-version=(${AZURE_API_VERSION}|v1)\\b`, 'g');
+const deploymentAssignment = (keys: string) =>
+  new RegExp(
+    `\\b${keys}\\s*:\\s*(?:(['"\`])([\\w.-]{1,64})\\1|([A-Za-z_$][\\w$.]*(?:\\[['"]\\w+['"]\\])?)\\s*[,}])`,
+    'g',
+  );
+// An Azure client's request `model` names a deployment too; elsewhere only deployment keys do.
+const DEPLOYMENT_ASSIGNMENT = deploymentAssignment(DEPLOYMENT_KEY);
+const CLIENT_DEPLOYMENT_ASSIGNMENT = deploymentAssignment(`(?:${DEPLOYMENT_KEY}|model)`);
 
 const OPENROUTER_CONTEXT = /openrouter/i;
 // OpenRouter's model namespaces (its own `openrouter/auto` router included). A provider/model
@@ -190,27 +205,14 @@ export function detectModelHosts(repository: Pick<Repository, 'files'>): ModelHo
           stop: 'azure-deployment-name',
         });
       };
-      // `apiVersion: '2024-02-15-preview'` on a client, `'api-version': '…'` in query options, or
-      // `api-version=` in a REST URL (`v1` is Azure's unversioned v1 API).
-      for (const match of line.matchAll(
-        new RegExp(
-          `(?:\\b(?:apiVersion|api_version|[A-Za-z_]*API_VERSION)\\b|['"]api-version['"])[^'"\`\\n]{0,40}(['"\`])(${AZURE_API_VERSION})\\1`,
-          'g',
-        ),
-      ))
+      for (const match of line.matchAll(API_VERSION_OPTION))
         apiVersion(match[2], match.index! + match[0].lastIndexOf(match[2]) + 1);
-      for (const match of line.matchAll(
-        new RegExp(`[?&]api-version=(${AZURE_API_VERSION}|v1)\\b`, 'g'),
-      ))
+      for (const match of line.matchAll(API_VERSION_QUERY))
         apiVersion(match[1], match.index! + match[0].indexOf(match[1]) + 1);
       // Deployments: a key that says deployment, the `model` an Azure client's request sends
       // (Azure routes it to a deployment of that name), a REST path segment, or an env value.
-      const keys = azureClient ? `(?:${DEPLOYMENT_KEY}|model)` : DEPLOYMENT_KEY;
       for (const match of line.matchAll(
-        new RegExp(
-          `\\b${keys}\\s*:\\s*(?:(['"\`])([\\w.-]{1,64})\\1|([A-Za-z_$][\\w$.]*(?:\\[['"]\\w+['"]\\])?)\\s*[,}])`,
-          'g',
-        ),
+        azureClient ? CLIENT_DEPLOYMENT_ASSIGNMENT : DEPLOYMENT_ASSIGNMENT,
       ))
         deployment(match[2] ?? match[3], match.index! + match[0].indexOf(match[2] ?? match[3]) + 1);
       for (const match of line.matchAll(
@@ -244,7 +246,9 @@ const HOST_NAMES: Record<ModelHost, string> = {
 
 // The registry entries host sites reach. An OpenRouter ID whose upstream part is exactly a registry
 // model of that provider (`openai/gpt-4.5-preview`) matches that model's entry: OpenRouter forwards
-// a dated ID unchanged. Bedrock and Azure sites match only entries the registry keeps for that
+// a dated ID unchanged. An undated alias (`openai/gpt-4`) matches the alias's entry too, so a
+// retiring alias is not missed; its site keeps the `openrouter-alias` stop, because OpenRouter may
+// resolve the alias to a snapshot whose date differs. Bedrock and Azure sites match only entries the registry keeps for that
 // host itself (provider `bedrock` or `azure-openai`), never the provider's own API date, because
 // the clouds retire models on their own schedules.
 export function hostDeadlineMatches(

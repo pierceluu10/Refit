@@ -371,7 +371,7 @@ function printPastDue(deadline: DeadlineEntry, agent: AgentStatus) {
 
 function reportOnlyReason(deadline: DeadlineEntry) {
   const why = deadline.derivedDate
-    ? 'the provider announced no shutdown; this date is derived'
+    ? 'the provider has not announced this date; it is an estimate, see the summary'
     : `${deadline.kind} deadlines are report only`;
   return `${why}, so it never fails --fail-within or opens an alert`;
 }
