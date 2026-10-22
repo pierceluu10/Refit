@@ -1,0 +1,35 @@
+{
+  "formatVersion": 1,
+  "repository": "Hujjat/wishlist-inspire-app",
+  "revision": "684f64f9d21ec1ef1e7ab7f1514a51056ad0ff40",
+  "date": "2026-10-22",
+  "integrations": [
+    {
+      "provider": "shopify",
+      "name": "Shopify",
+      "packages": [
+        {
+          "file": "package.json",
+          "name": "@shopify/shopify-api",
+          "declared": "^8.0.2",
+          "locked": null
+        },
+        {
+          "file": "package.json",
+          "name": "@shopify/shopify-app-remix",
+          "declared": "^2.1.0",
+          "locked": null
+        }
+      ],
+      "configured": false,
+      "integration": null,
+      "capability": "migrate",
+      "apiVersions": []
+    }
+  ],
+  "deadlines": [],
+  "mentions": [],
+  "models": [],
+  "untracked": [],
+  "next": "Add the Shopify agent with `refit agents --add shopify` and approve the repository, so Refit can propose migrations for its breaking changes."
+}

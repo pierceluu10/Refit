@@ -1,0 +1,146 @@
+{
+  "source": {
+    "list": "docs/benchmarks/2026-10-21-anthropic-app-repos.json",
+    "repository": "yayasoumah/pocket-server",
+    "commit": "10854b5ebc2055346c57bf000f86222da1d953fe",
+    "refit": "2f5cdf18e540f6e32ff857eead5a71c4432e94d8",
+    "scannedAt": "2026-10-22T12:00:00.000Z"
+  },
+  "inventory": {
+    "formatVersion": 1,
+    "providers": [
+      {
+        "id": "openai",
+        "name": "OpenAI",
+        "agent": true,
+        "packages": [
+          {
+            "file": "package.json",
+            "name": "openai",
+            "version": "^5.19.1",
+            "locked": "5.19.1"
+          }
+        ],
+        "hostnames": []
+      },
+      {
+        "id": "anthropic",
+        "name": "Anthropic",
+        "agent": false,
+        "packages": [
+          {
+            "file": "package.json",
+            "name": "@anthropic-ai/sdk",
+            "version": "^0.67.0",
+            "locked": "0.67.0"
+          }
+        ],
+        "hostnames": []
+      }
+    ],
+    "integrations": [],
+    "apiVersions": [],
+    "deadlines": {
+      "exposures": [
+        {
+          "deadline": {
+            "id": "anthropic-2026-06-15-claude-sonnet-4",
+            "provider": "anthropic",
+            "kind": "model",
+            "versions": ["claude-sonnet-4-20250514"],
+            "date": "2026-06-15",
+            "summary": "Anthropic retires claude-sonnet-4-20250514 on the Claude API; requests to a retired model fail.",
+            "replacement": "claude-sonnet-5-5",
+            "source": "https://platform.claude.com/docs/en/about-claude/model-deprecations",
+            "checkedAt": "2026-10-20"
+          },
+          "days": -129,
+          "evidence": [
+            {
+              "file": "src/agent/anthropic/streaming.ts",
+              "line": 127,
+              "kind": "source",
+              "use": "live",
+              "version": "claude-sonnet-4-20250514"
+            },
+            {
+              "file": "src/agent/providers/anthropic/adapter.ts",
+              "line": 45,
+              "kind": "source",
+              "use": "live",
+              "version": "claude-sonnet-4-20250514"
+            }
+          ],
+          "more": 0,
+          "nonLive": [],
+          "nonLiveMore": 0,
+          "nonLiveCounts": {}
+        },
+        {
+          "deadline": {
+            "id": "anthropic-2026-11-30-claude-sonnet-4-5",
+            "provider": "anthropic",
+            "kind": "model",
+            "versions": ["claude-sonnet-4-5-20250929", "claude-sonnet-4-5"],
+            "date": "2026-11-30",
+            "summary": "Anthropic retires claude-sonnet-4-5-20250929 on the Claude API; requests to a retired model fail. The claude-sonnet-4-5 alias resolves to that snapshot (Claude Sonnet 4.5 model page).",
+            "replacement": "claude-sonnet-5-5",
+            "source": "https://platform.claude.com/docs/en/about-claude/model-deprecations",
+            "checkedAt": "2026-10-20"
+          },
+          "days": 39,
+          "evidence": [
+            {
+              "file": "src/agent/anthropic/anthropic.ts",
+              "line": 80,
+              "kind": "source",
+              "use": "live",
+              "version": "claude-sonnet-4-5"
+            },
+            {
+              "file": "src/agent/anthropic/anthropic.ts",
+              "line": 274,
+              "kind": "source",
+              "use": "live",
+              "version": "claude-sonnet-4-5"
+            },
+            {
+              "file": "src/agent/anthropic/anthropic.ts",
+              "line": 720,
+              "kind": "source",
+              "use": "live",
+              "version": "claude-sonnet-4-5"
+            },
+            {
+              "file": "src/agent/core/title.ts",
+              "line": 21,
+              "kind": "source",
+              "use": "live",
+              "version": "claude-sonnet-4-5"
+            }
+          ],
+          "more": 0,
+          "nonLive": [],
+          "nonLiveMore": 0,
+          "nonLiveCounts": {}
+        }
+      ],
+      "mentions": []
+    },
+    "ignores": {
+      "file": null,
+      "entries": [],
+      "error": null
+    },
+    "models": [
+      {
+        "provider": "anthropic",
+        "file": "src/agent/core/title.ts",
+        "line": 20,
+        "call": "messages.create",
+        "model": "claude-sonnet-4-5",
+        "test": false
+      }
+    ]
+  }
+}
