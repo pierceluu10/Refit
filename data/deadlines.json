@@ -829,6 +829,71 @@
       "replacement": "@google/genai",
       "source": "https://github.com/google-gemini/deprecated-generative-ai-js/blob/main/README.md",
       "checkedAt": "2026-10-21"
+    },
+    {
+      "id": "algolia-javascript-client-v4",
+      "provider": "algolia",
+      "kind": "sdk",
+      "versions": [
+        "algoliasearch@<5"
+      ],
+      "date": "2026-08-14",
+      "summary": "Algolia ends support for the JavaScript API client v4 (algoliasearch below 5). Algolia Support can no longer help with v4-specific issues; the v5 compatibility layer is scheduled to be removed on 2027-02-14.",
+      "replacement": "algoliasearch 5 (the upgrade guide covers the removed initIndex pattern)",
+      "source": "https://changelog.algolia.com/label/80880",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "id": "zoom-meeting-sdk-key",
+      "provider": "zoom",
+      "kind": "api-version",
+      "versions": [
+        "meeting-sdk-key"
+      ],
+      "date": "2026-06-27",
+      "summary": "Zoom enforces the Client ID and Client Secret for Meeting SDK signatures from 2026-06-27; the legacy SDK Key and Secret are deprecated, and the web SDK's sdkKey argument is no longer needed.",
+      "replacement": "Sign the Meeting SDK JWT with the Client ID and Client Secret",
+      "source": "https://developers.zoom.us/docs/meeting-sdk/sdk-key-migration/",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "id": "mailchimp-export-api",
+      "provider": "mailchimp",
+      "kind": "api-version",
+      "versions": [
+        "export-api"
+      ],
+      "date": "2023-06-01",
+      "summary": "Mailchimp retired the Export API 1.0 and 2.0 on 2023-06-01. Calls to those endpoints return HTTP 410.",
+      "replacement": "Marketing API 3.0",
+      "source": "https://mailchimp.com/developer/release-notes",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "id": "airtable-user-api-keys",
+      "provider": "airtable",
+      "kind": "api-version",
+      "versions": [
+        "api-key"
+      ],
+      "date": "2024-02-01",
+      "summary": "Airtable completed the deprecation of user API keys on 2024-02-01: API keys can no longer access the Airtable API.",
+      "replacement": "Personal access tokens or OAuth",
+      "source": "https://support.airtable.com/docs/airtable-api-key-deprecation-notice",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "id": "hubspot-api-v4",
+      "provider": "hubspot",
+      "kind": "api-version",
+      "versions": [
+        "api-v4"
+      ],
+      "date": "2027-03-30",
+      "summary": "HubSpot ends support for APIs on numbered v4 paths on 2027-03-30. Support for v1 to v3 paths ends in September 2027.",
+      "replacement": "The dated API versions (for example 2026-03) HubSpot documents for each API",
+      "source": "https://developers.hubspot.com/changelog/legacy-apis-and-legacy-apps-whats-going-unsupported-and-when",
+      "checkedAt": "2026-10-22"
     }
   ]
 }

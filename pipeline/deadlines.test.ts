@@ -1021,7 +1021,18 @@ it('keeps the shipped registry valid and sourced', async () => {
   expect(report.errors).toEqual([]);
   expect(report.missingSource).toEqual([]);
   expect(new Set(shipped.deadlines.map((item) => item.provider))).toEqual(
-    new Set(['shopify', 'meta-graph', 'openai', 'anthropic', 'gemini']),
+    new Set([
+      'shopify',
+      'meta-graph',
+      'openai',
+      'anthropic',
+      'gemini',
+      'algolia',
+      'zoom',
+      'mailchimp',
+      'airtable',
+      'hubspot',
+    ]),
   );
 });
 

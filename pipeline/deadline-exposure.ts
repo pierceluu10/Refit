@@ -4,6 +4,7 @@ import { join, resolve } from 'node:path';
 import ts from 'typescript-compiler';
 import { detectApiHosts, type ApiHostScan } from './api-hosts.ts';
 import { AGENT_CATALOG, builtInPackage } from './agent-catalog.ts';
+import { dataApiContext, dataApiMatches, type DataApiContext } from './data-api-matchers.ts';
 import { daysUntil, type DeadlineEntry, type DeadlineRegistry } from './deadline-registry.ts';
 import { readRepository } from './repository.ts';
 import { isObject, parseObject } from './specifications.ts';
@@ -88,6 +89,7 @@ function sourceMatches(
   shopifyFile: boolean,
   metaFile: boolean,
   models: Map<string, DeadlineEntry['provider']>,
+  dataApi: DataApiContext,
 ) {
   const found: { provider: DeadlineEntry['provider']; version: string; column: number }[] = [];
   const add = (
@@ -120,6 +122,7 @@ function sourceMatches(
   // `tModel` does the same, so the prefixed form names the registry model too.
   for (const match of line.matchAll(/(['"`])models\/([a-z0-9][a-z0-9.-]*)\1/dg))
     if (models.get(match[2]) === 'gemini') add('gemini', match[2], match, 2);
+  found.push(...dataApiMatches(line, dataApi));
   return found;
 }
 
@@ -531,10 +534,11 @@ export async function scanDeadlines(
   for (const file of repository.files) {
     const shopifyFile = SHOPIFY_CONTEXT.some((name) => file.content.includes(name));
     const metaFile = META_CONTEXT.some((name) => file.content.includes(name));
+    const dataApi = dataApiContext(file.content);
     let useAt: ReturnType<typeof tokenUses> | undefined;
     let offset = 0;
     for (const [index, line] of file.content.split('\n').entries()) {
-      for (const match of sourceMatches(line, shopifyFile, metaFile, models)) {
+      for (const match of sourceMatches(line, shopifyFile, metaFile, models, dataApi)) {
         useAt ??= tokenUses(file.path, file.content, models);
         record(match.provider, match.version, {
           file: file.path,
@@ -562,16 +566,23 @@ export async function scanDeadlines(
   // names the package is not read a second time. Manifests in test and example paths are not live.
   for (const entry of registry.deadlines)
     if (entry.kind === 'sdk')
-      for (const name of entry.versions) {
+      for (const spec of entry.versions) {
+        // `algoliasearch@<5` covers majors below 5 of the package; a bare name covers all.
+        const below = spec.lastIndexOf('@<');
+        const name = below > 0 ? spec.slice(0, below) : spec;
+        const limit = below > 0 ? Number(spec.slice(below + 2)) : Infinity;
         if (!repository.files.some((file) => file.content.includes(name))) continue;
-        for (const dependency of (await readRepository(root, name)).dependencies)
-          record(entry.provider, name, {
+        for (const dependency of (await readRepository(root, name)).dependencies) {
+          const major = Number(/\d+/.exec(dependency.lock.version ?? dependency.version)?.[0]);
+          if (limit !== Infinity && !(major < limit)) continue;
+          record(entry.provider, spec, {
             file: dependency.file,
             line: await lineOf(root, dependency.file, `"${name}"`),
             kind: 'dependency',
             use: TEST_PATH.test(dependency.file) ? 'test' : 'live',
             text: `${name} ${dependency.lock.version ?? dependency.version}${dependency.lock.version ? ` (locked in ${dependency.lock.file})` : ''} is declared in ${dependency.section}`,
           });
+        }
       }
   for (const pin of await configuredApiVersions(root))
     record(pin.provider, pin.version, {
