@@ -307,7 +307,7 @@ export async function inspectRepositoryReadiness(options: {
         detail:
           'The supplied contracts contain unresolved breaking changes without a supported migration rule.',
         action:
-          'Inspect the scan evidence and define a reviewed adapter migration rule before attempting automatic validation or publication.',
+          'Run refit run --human to list them. Refit has no automatic migration for these changes, so they need a manual migration or a reviewed adapter rule before validation.',
       });
     if (evidence.specificationDiff.engine === 'direct-properties')
       report.checks.push({

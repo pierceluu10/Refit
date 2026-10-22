@@ -47,7 +47,12 @@ async function repository(configuration?: object) {
   await writeFile(join(binaries, 'docker'), `#!/bin/sh\necho sha256:${'a'.repeat(64)}\n`, {
     mode: 0o755,
   });
-  await writeFile(join(binaries, 'oasdiff'), '#!/bin/sh\necho "[]"\n', { mode: 0o755 });
+  // A test can make the fake report breaking changes through REFIT_TEST_OASDIFF.
+  await writeFile(
+    join(binaries, 'oasdiff'),
+    '#!/bin/sh\nif [ "$1" = "--version" ]; then echo oasdiff-test; else echo "${REFIT_TEST_OASDIFF:-[]}"; fi\n',
+    { mode: 0o755 },
+  );
   vi.stubEnv('PATH', `${binaries}:${process.env.PATH}`);
   await execute('git', ['-C', repository, 'init', '-qb', 'main']);
   await commit(repository);
@@ -165,6 +170,36 @@ const checkoutContract = (version: string, fields: string[]) => ({
   },
 });
 
+const checkoutProvider = {
+  id: 'stripe-checkout',
+  packageName: 'stripe',
+  defaultImport: true,
+  namedExport: 'Stripe',
+  constructorCalls: true,
+  apiVersion: { constructorArgument: 1, property: 'apiVersion', requestArguments: [1, 2] },
+  operations: [
+    {
+      resource: 'checkout.sessions',
+      method: 'create',
+      schema: 'checkout.session',
+      operationId: 'PostCheckoutSessions',
+    },
+  ],
+};
+const stripeConfiguration = {
+  formatVersion: 2,
+  integrations: [
+    {
+      id: 'stripe',
+      before: './refit/stripe-before.json',
+      after: './refit/stripe-after.json',
+      providerConfig: './refit/stripe.provider.json',
+      image: 'node:22-alpine',
+      command: ['npm', 'test'],
+    },
+  ],
+};
+
 it('tells a configured Stripe app where the removed parameter is sent and which apiVersion to add', async () => {
   const app = await repository();
   await mkdir(join(app, 'refit'));
@@ -178,35 +213,8 @@ it('tells a configured Stripe app where the removed parameter is sent and which 
     'refit/stripe-after.json': JSON.stringify(
       checkoutContract('2026-09-30.endive', ['mode', 'allowed_payment_method_types']),
     ),
-    'refit/stripe.provider.json': JSON.stringify({
-      id: 'stripe-checkout',
-      packageName: 'stripe',
-      defaultImport: true,
-      namedExport: 'Stripe',
-      constructorCalls: true,
-      apiVersion: { constructorArgument: 1, property: 'apiVersion', requestArguments: [1, 2] },
-      operations: [
-        {
-          resource: 'checkout.sessions',
-          method: 'create',
-          schema: 'checkout.session',
-          operationId: 'PostCheckoutSessions',
-        },
-      ],
-    }),
-    '.refit.json': JSON.stringify({
-      formatVersion: 2,
-      integrations: [
-        {
-          id: 'stripe',
-          before: './refit/stripe-before.json',
-          after: './refit/stripe-after.json',
-          providerConfig: './refit/stripe.provider.json',
-          image: 'node:22-alpine',
-          command: ['npm', 'test'],
-        },
-      ],
-    }),
+    'refit/stripe.provider.json': JSON.stringify(checkoutProvider),
+    '.refit.json': JSON.stringify(stripeConfiguration),
   };
   for (const [path, content] of Object.entries(files)) await writeFile(join(app, path), content);
   await commit(app);
@@ -218,5 +226,39 @@ it('tells a configured Stripe app where the removed parameter is sent and which 
   // before-contract API-version pin."
   expect(report.checks.find((check) => check.id === 'api-version')?.action).toBe(
     'Confirm your client and account use 2026-08-26.dahlia, then add "apiVersion": "2026-08-26.dahlia" to the stripe integration in .refit.json.',
+  );
+});
+
+it('tells the person which changes Refit cannot migrate, without asking for an adapter rule first', async () => {
+  const app = await repository();
+  await mkdir(join(app, 'refit'));
+  vi.stubEnv(
+    'REFIT_TEST_OASDIFF',
+    JSON.stringify([
+      {
+        id: 'response-media-type-removed',
+        level: 3,
+        text: 'removed the media type application/json from the response',
+        operation: 'POST',
+        operationId: 'PostCheckoutSessions',
+        path: '/v1/checkout/sessions',
+      },
+    ]),
+  );
+  const files = {
+    'package.json': JSON.stringify({ dependencies: { stripe: '22.6.2' } }),
+    'checkout.js':
+      "import Stripe from 'stripe';\nconst stripe = new Stripe(process.env.STRIPE_KEY, { apiVersion: '2026-08-26.dahlia' });\nexport const checkout = () => stripe.checkout.sessions.create({ mode: 'subscription' });\n",
+    'refit/stripe-before.json': JSON.stringify(checkoutContract('2026-08-26.dahlia', ['mode'])),
+    'refit/stripe-after.json': JSON.stringify(checkoutContract('2026-09-30.endive', ['mode'])),
+    'refit/stripe.provider.json': JSON.stringify(checkoutProvider),
+    '.refit.json': JSON.stringify(stripeConfiguration),
+  };
+  for (const [path, content] of Object.entries(files)) await writeFile(join(app, path), content);
+  await commit(app);
+  const report = await inspectRepositoryReadiness({ repository: app });
+  // Before: "Inspect the scan evidence and define a reviewed adapter migration rule".
+  expect(report.checks.find((check) => check.id === 'migration-coverage')?.action).toBe(
+    'Run refit run --human to list them. Refit has no automatic migration for these changes, so they need a manual migration or a reviewed adapter rule before validation.',
   );
 });
