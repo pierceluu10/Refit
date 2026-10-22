@@ -1,0 +1,3767 @@
+{
+  "formatVersion": 1,
+  "generatedBy": "scripts/slack-methods.mjs",
+  "checkedAt": "2026-10-22",
+  "webApi": {
+    "package": "@slack/web-api",
+    "source": "https://registry.npmjs.org/@slack%2Fweb-api",
+    "latest": "8.2.0",
+    "releases": [
+      "5.15.0",
+      "6.13.0",
+      "7.19.0",
+      "8.2.0"
+    ],
+    "properties": {
+      "admin.analytics.getFile": {
+        "methods": [
+          "admin.analytics.getFile"
+        ],
+        "releases": [
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "admin.apps.activities.list": {
+        "methods": [
+          "admin.apps.activities.list"
+        ],
+        "releases": [
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "admin.apps.approve": {
+        "methods": [
+          "admin.apps.approve"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "admin.apps.approved.list": {
+        "methods": [
+          "admin.apps.approved.list"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "admin.apps.clearResolution": {
+        "methods": [
+          "admin.apps.clearResolution"
+        ],
+        "releases": [
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "admin.apps.config.lookup": {
+        "methods": [
+          "admin.apps.config.lookup"
+        ],
+        "releases": [
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "admin.apps.config.set": {
+        "methods": [
+          "admin.apps.config.set"
+        ],
+        "releases": [
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "admin.apps.requests.cancel": {
+        "methods": [
+          "admin.apps.requests.cancel"
+        ],
+        "releases": [
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "admin.apps.requests.list": {
+        "methods": [
+          "admin.apps.requests.list"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "admin.apps.restrict": {
+        "methods": [
+          "admin.apps.restrict"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "admin.apps.restricted.list": {
+        "methods": [
+          "admin.apps.restricted.list"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "admin.apps.uninstall": {
+        "methods": [
+          "admin.apps.uninstall"
+        ],
+        "releases": [
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "admin.auth.policy.assignEntities": {
+        "methods": [
+          "admin.auth.policy.assignEntities"
+        ],
+        "releases": [
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "admin.auth.policy.getEntities": {
+        "methods": [
+          "admin.auth.policy.getEntities"
+        ],
+        "releases": [
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "admin.auth.policy.removeEntities": {
+        "methods": [
+          "admin.auth.policy.removeEntities"
+        ],
+        "releases": [
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "admin.barriers.create": {
+        "methods": [
+          "admin.barriers.create"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "admin.barriers.delete": {
+        "methods": [
+          "admin.barriers.delete"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "admin.barriers.list": {
+        "methods": [
+          "admin.barriers.list"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "admin.barriers.update": {
+        "methods": [
+          "admin.barriers.update"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "admin.conversations.archive": {
+        "methods": [
+          "admin.conversations.archive"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "admin.conversations.bulkArchive": {
+        "methods": [
+          "admin.conversations.bulkArchive"
+        ],
+        "releases": [
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "admin.conversations.bulkDelete": {
+        "methods": [
+          "admin.conversations.bulkDelete"
+        ],
+        "releases": [
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "admin.conversations.bulkMove": {
+        "methods": [
+          "admin.conversations.bulkMove"
+        ],
+        "releases": [
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "admin.conversations.convertToPrivate": {
+        "methods": [
+          "admin.conversations.convertToPrivate"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "admin.conversations.convertToPublic": {
+        "methods": [
+          "admin.conversations.convertToPublic"
+        ],
+        "releases": [
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "admin.conversations.create": {
+        "methods": [
+          "admin.conversations.create"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "admin.conversations.delete": {
+        "methods": [
+          "admin.conversations.delete"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "admin.conversations.disconnectShared": {
+        "methods": [
+          "admin.conversations.disconnectShared"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "admin.conversations.ekm.listOriginalConnectedChannelInfo": {
+        "methods": [
+          "admin.conversations.ekm.listOriginalConnectedChannelInfo"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "admin.conversations.getConversationPrefs": {
+        "methods": [
+          "admin.conversations.getConversationPrefs"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "admin.conversations.getCustomRetention": {
+        "methods": [
+          "admin.conversations.getCustomRetention"
+        ],
+        "releases": [
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "admin.conversations.getTeams": {
+        "methods": [
+          "admin.conversations.getTeams"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "admin.conversations.invite": {
+        "methods": [
+          "admin.conversations.invite"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "admin.conversations.lookup": {
+        "methods": [
+          "admin.conversations.lookup"
+        ],
+        "releases": [
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "admin.conversations.removeCustomRetention": {
+        "methods": [
+          "admin.conversations.removeCustomRetention"
+        ],
+        "releases": [
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "admin.conversations.rename": {
+        "methods": [
+          "admin.conversations.rename"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "admin.conversations.restrictAccess.addGroup": {
+        "methods": [
+          "admin.conversations.restrictAccess.addGroup"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "admin.conversations.restrictAccess.listGroups": {
+        "methods": [
+          "admin.conversations.restrictAccess.listGroups"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "admin.conversations.restrictAccess.removeGroup": {
+        "methods": [
+          "admin.conversations.restrictAccess.removeGroup"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "admin.conversations.search": {
+        "methods": [
+          "admin.conversations.search"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "admin.conversations.setConversationPrefs": {
+        "methods": [
+          "admin.conversations.setConversationPrefs"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "admin.conversations.setCustomRetention": {
+        "methods": [
+          "admin.conversations.setCustomRetention"
+        ],
+        "releases": [
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "admin.conversations.setTeams": {
+        "methods": [
+          "admin.conversations.setTeams"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "admin.conversations.unarchive": {
+        "methods": [
+          "admin.conversations.unarchive"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "admin.emoji.add": {
+        "methods": [
+          "admin.emoji.add"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "admin.emoji.addAlias": {
+        "methods": [
+          "admin.emoji.addAlias"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "admin.emoji.list": {
+        "methods": [
+          "admin.emoji.list"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "admin.emoji.remove": {
+        "methods": [
+          "admin.emoji.remove"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "admin.emoji.rename": {
+        "methods": [
+          "admin.emoji.rename"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "admin.functions.list": {
+        "methods": [
+          "admin.functions.list"
+        ],
+        "releases": [
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "admin.functions.permissions.lookup": {
+        "methods": [
+          "admin.functions.permissions.lookup"
+        ],
+        "releases": [
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "admin.functions.permissions.set": {
+        "methods": [
+          "admin.functions.permissions.set"
+        ],
+        "releases": [
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "admin.inviteRequests.approve": {
+        "methods": [
+          "admin.inviteRequests.approve"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "admin.inviteRequests.approved.list": {
+        "methods": [
+          "admin.inviteRequests.approved.list"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "admin.inviteRequests.denied.list": {
+        "methods": [
+          "admin.inviteRequests.denied.list"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "admin.inviteRequests.deny": {
+        "methods": [
+          "admin.inviteRequests.deny"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "admin.inviteRequests.list": {
+        "methods": [
+          "admin.inviteRequests.list"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "admin.roles.addAssignments": {
+        "methods": [
+          "admin.roles.addAssignments"
+        ],
+        "releases": [
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "admin.roles.listAssignments": {
+        "methods": [
+          "admin.roles.listAssignments"
+        ],
+        "releases": [
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "admin.roles.removeAssignments": {
+        "methods": [
+          "admin.roles.removeAssignments"
+        ],
+        "releases": [
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "admin.teams.admins.list": {
+        "methods": [
+          "admin.teams.admins.list"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "admin.teams.create": {
+        "methods": [
+          "admin.teams.create"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "admin.teams.list": {
+        "methods": [
+          "admin.teams.list"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "admin.teams.owners.list": {
+        "methods": [
+          "admin.teams.owners.list"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "admin.teams.settings.info": {
+        "methods": [
+          "admin.teams.settings.info"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "admin.teams.settings.setDefaultChannels": {
+        "methods": [
+          "admin.teams.settings.setDefaultChannels"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "admin.teams.settings.setDescription": {
+        "methods": [
+          "admin.teams.settings.setDescription"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "admin.teams.settings.setDiscoverability": {
+        "methods": [
+          "admin.teams.settings.setDiscoverability"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "admin.teams.settings.setIcon": {
+        "methods": [
+          "admin.teams.settings.setIcon"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "admin.teams.settings.setName": {
+        "methods": [
+          "admin.teams.settings.setName"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "admin.usergroups.addChannels": {
+        "methods": [
+          "admin.usergroups.addChannels"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "admin.usergroups.addTeams": {
+        "methods": [
+          "admin.usergroups.addTeams"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "admin.usergroups.listChannels": {
+        "methods": [
+          "admin.usergroups.listChannels"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "admin.usergroups.removeChannels": {
+        "methods": [
+          "admin.usergroups.removeChannels"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "admin.users.assign": {
+        "methods": [
+          "admin.users.assign"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "admin.users.getExpiration": {
+        "methods": [
+          "admin.users.getExpiration"
+        ],
+        "releases": [
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "admin.users.invite": {
+        "methods": [
+          "admin.users.invite"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "admin.users.list": {
+        "methods": [
+          "admin.users.list"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "admin.users.remove": {
+        "methods": [
+          "admin.users.remove"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "admin.users.session.clearSettings": {
+        "methods": [
+          "admin.users.session.clearSettings"
+        ],
+        "releases": [
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "admin.users.session.getSettings": {
+        "methods": [
+          "admin.users.session.getSettings"
+        ],
+        "releases": [
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "admin.users.session.invalidate": {
+        "methods": [
+          "admin.users.session.invalidate"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "admin.users.session.list": {
+        "methods": [
+          "admin.users.session.list"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "admin.users.session.reset": {
+        "methods": [
+          "admin.users.session.reset"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "admin.users.session.resetBulk": {
+        "methods": [
+          "admin.users.session.resetBulk"
+        ],
+        "releases": [
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "admin.users.session.setSettings": {
+        "methods": [
+          "admin.users.session.setSettings"
+        ],
+        "releases": [
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "admin.users.setAdmin": {
+        "methods": [
+          "admin.users.setAdmin"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "admin.users.setExpiration": {
+        "methods": [
+          "admin.users.setExpiration"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "admin.users.setOwner": {
+        "methods": [
+          "admin.users.setOwner"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "admin.users.setRegular": {
+        "methods": [
+          "admin.users.setRegular"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "admin.users.unsupportedVersions.export": {
+        "methods": [
+          "admin.users.unsupportedVersions.export"
+        ],
+        "releases": [
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "admin.workflows.collaborators.add": {
+        "methods": [
+          "admin.workflows.collaborators.add"
+        ],
+        "releases": [
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "admin.workflows.collaborators.remove": {
+        "methods": [
+          "admin.workflows.collaborators.remove"
+        ],
+        "releases": [
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "admin.workflows.permissions.lookup": {
+        "methods": [
+          "admin.workflows.permissions.lookup"
+        ],
+        "releases": [
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "admin.workflows.search": {
+        "methods": [
+          "admin.workflows.search"
+        ],
+        "releases": [
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "admin.workflows.unpublish": {
+        "methods": [
+          "admin.workflows.unpublish"
+        ],
+        "releases": [
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "agents.conversations.archive": {
+        "methods": [
+          "agents.conversations.archive"
+        ],
+        "releases": [
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "agents.conversations.create": {
+        "methods": [
+          "agents.conversations.create"
+        ],
+        "releases": [
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "agents.conversations.getCanvas": {
+        "methods": [
+          "agents.conversations.getCanvas"
+        ],
+        "releases": [
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "agents.conversations.listViews": {
+        "methods": [
+          "agents.conversations.listViews"
+        ],
+        "releases": [
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "agents.conversations.removeView": {
+        "methods": [
+          "agents.conversations.removeView"
+        ],
+        "releases": [
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "agents.conversations.setCanvasContent": {
+        "methods": [
+          "agents.conversations.setCanvasContent"
+        ],
+        "releases": [
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "agents.conversations.setCommands": {
+        "methods": [
+          "agents.conversations.setCommands"
+        ],
+        "releases": [
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "agents.conversations.setProperties": {
+        "methods": [
+          "agents.conversations.setProperties"
+        ],
+        "releases": [
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "agents.conversations.setView": {
+        "methods": [
+          "agents.conversations.setView"
+        ],
+        "releases": [
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "agents.sessions.rename": {
+        "methods": [
+          "agents.sessions.rename"
+        ],
+        "releases": [
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "agents.sessions.setStatus": {
+        "methods": [
+          "agents.sessions.setStatus"
+        ],
+        "releases": [
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "api.test": {
+        "methods": [
+          "api.test"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "apps.connections.open": {
+        "methods": [
+          "apps.connections.open"
+        ],
+        "releases": [
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "apps.event.authorizations.list": {
+        "methods": [
+          "apps.event.authorizations.list"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "apps.manifest.create": {
+        "methods": [
+          "apps.manifest.create"
+        ],
+        "releases": [
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "apps.manifest.delete": {
+        "methods": [
+          "apps.manifest.delete"
+        ],
+        "releases": [
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "apps.manifest.export": {
+        "methods": [
+          "apps.manifest.export"
+        ],
+        "releases": [
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "apps.manifest.update": {
+        "methods": [
+          "apps.manifest.update"
+        ],
+        "releases": [
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "apps.manifest.validate": {
+        "methods": [
+          "apps.manifest.validate"
+        ],
+        "releases": [
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "apps.uninstall": {
+        "methods": [
+          "apps.uninstall"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "apps.user.connection.update": {
+        "methods": [
+          "apps.user.connection.update"
+        ],
+        "releases": [
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "assistant.threads.setStatus": {
+        "methods": [
+          "assistant.threads.setStatus"
+        ],
+        "releases": [
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "assistant.threads.setSuggestedPrompts": {
+        "methods": [
+          "assistant.threads.setSuggestedPrompts"
+        ],
+        "releases": [
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "assistant.threads.setTitle": {
+        "methods": [
+          "assistant.threads.setTitle"
+        ],
+        "releases": [
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "auth.revoke": {
+        "methods": [
+          "auth.revoke"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "auth.teams.list": {
+        "methods": [
+          "auth.teams.list"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "auth.test": {
+        "methods": [
+          "auth.test"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "blocks.validate": {
+        "methods": [
+          "blocks.validate"
+        ],
+        "releases": [
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "bookmarks.add": {
+        "methods": [
+          "bookmarks.add"
+        ],
+        "releases": [
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "bookmarks.edit": {
+        "methods": [
+          "bookmarks.edit"
+        ],
+        "releases": [
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "bookmarks.list": {
+        "methods": [
+          "bookmarks.list"
+        ],
+        "releases": [
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "bookmarks.remove": {
+        "methods": [
+          "bookmarks.remove"
+        ],
+        "releases": [
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "bots.info": {
+        "methods": [
+          "bots.info"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "calls.add": {
+        "methods": [
+          "calls.add"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "calls.end": {
+        "methods": [
+          "calls.end"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "calls.info": {
+        "methods": [
+          "calls.info"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "calls.participants.add": {
+        "methods": [
+          "calls.participants.add"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "calls.participants.remove": {
+        "methods": [
+          "calls.participants.remove"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "calls.update": {
+        "methods": [
+          "calls.update"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "canvases.access.delete": {
+        "methods": [
+          "canvases.access.delete"
+        ],
+        "releases": [
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "canvases.access.set": {
+        "methods": [
+          "canvases.access.set"
+        ],
+        "releases": [
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "canvases.create": {
+        "methods": [
+          "canvases.create"
+        ],
+        "releases": [
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "canvases.delete": {
+        "methods": [
+          "canvases.delete"
+        ],
+        "releases": [
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "canvases.edit": {
+        "methods": [
+          "canvases.edit"
+        ],
+        "releases": [
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "canvases.sections.lookup": {
+        "methods": [
+          "canvases.sections.lookup"
+        ],
+        "releases": [
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "channels.archive": {
+        "methods": [
+          "channels.archive"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0"
+        ],
+        "deprecated": null
+      },
+      "channels.create": {
+        "methods": [
+          "channels.create"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0"
+        ],
+        "deprecated": null
+      },
+      "channels.history": {
+        "methods": [
+          "channels.history"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0"
+        ],
+        "deprecated": null
+      },
+      "channels.info": {
+        "methods": [
+          "channels.info"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0"
+        ],
+        "deprecated": null
+      },
+      "channels.invite": {
+        "methods": [
+          "channels.invite"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0"
+        ],
+        "deprecated": null
+      },
+      "channels.join": {
+        "methods": [
+          "channels.join"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0"
+        ],
+        "deprecated": null
+      },
+      "channels.kick": {
+        "methods": [
+          "channels.kick"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0"
+        ],
+        "deprecated": null
+      },
+      "channels.leave": {
+        "methods": [
+          "channels.leave"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0"
+        ],
+        "deprecated": null
+      },
+      "channels.list": {
+        "methods": [
+          "channels.list"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0"
+        ],
+        "deprecated": null
+      },
+      "channels.mark": {
+        "methods": [
+          "channels.mark"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0"
+        ],
+        "deprecated": null
+      },
+      "channels.rename": {
+        "methods": [
+          "channels.rename"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0"
+        ],
+        "deprecated": null
+      },
+      "channels.replies": {
+        "methods": [
+          "channels.replies"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0"
+        ],
+        "deprecated": null
+      },
+      "channels.setPurpose": {
+        "methods": [
+          "channels.setPurpose"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0"
+        ],
+        "deprecated": null
+      },
+      "channels.setTopic": {
+        "methods": [
+          "channels.setTopic"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0"
+        ],
+        "deprecated": null
+      },
+      "channels.unarchive": {
+        "methods": [
+          "channels.unarchive"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0"
+        ],
+        "deprecated": null
+      },
+      "chat.appendStream": {
+        "methods": [
+          "chat.appendStream"
+        ],
+        "releases": [
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "chat.delete": {
+        "methods": [
+          "chat.delete"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "chat.deleteScheduledMessage": {
+        "methods": [
+          "chat.deleteScheduledMessage"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "chat.getPermalink": {
+        "methods": [
+          "chat.getPermalink"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "chat.meMessage": {
+        "methods": [
+          "chat.meMessage"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "chat.postEphemeral": {
+        "methods": [
+          "chat.postEphemeral"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "chat.postMessage": {
+        "methods": [
+          "chat.postMessage"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "chat.scheduledMessages.list": {
+        "methods": [
+          "chat.scheduledMessages.list"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "chat.scheduleMessage": {
+        "methods": [
+          "chat.scheduleMessage"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "chat.startStream": {
+        "methods": [
+          "chat.startStream"
+        ],
+        "releases": [
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "chat.stopStream": {
+        "methods": [
+          "chat.stopStream"
+        ],
+        "releases": [
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "chat.unfurl": {
+        "methods": [
+          "chat.unfurl"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "chat.update": {
+        "methods": [
+          "chat.update"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "conversations.acceptSharedInvite": {
+        "methods": [
+          "conversations.acceptSharedInvite"
+        ],
+        "releases": [
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "conversations.approveSharedInvite": {
+        "methods": [
+          "conversations.approveSharedInvite"
+        ],
+        "releases": [
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "conversations.archive": {
+        "methods": [
+          "conversations.archive"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "conversations.canvases.create": {
+        "methods": [
+          "conversations.canvases.create"
+        ],
+        "releases": [
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "conversations.close": {
+        "methods": [
+          "conversations.close"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "conversations.create": {
+        "methods": [
+          "conversations.create"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "conversations.declineSharedInvite": {
+        "methods": [
+          "conversations.declineSharedInvite"
+        ],
+        "releases": [
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "conversations.externalInvitePermissions.set": {
+        "methods": [
+          "conversations.externalInvitePermissions.set"
+        ],
+        "releases": [
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "conversations.history": {
+        "methods": [
+          "conversations.history"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "conversations.info": {
+        "methods": [
+          "conversations.info"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "conversations.invite": {
+        "methods": [
+          "conversations.invite"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "conversations.inviteShared": {
+        "methods": [
+          "conversations.inviteShared"
+        ],
+        "releases": [
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "conversations.join": {
+        "methods": [
+          "conversations.join"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "conversations.kick": {
+        "methods": [
+          "conversations.kick"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "conversations.leave": {
+        "methods": [
+          "conversations.leave"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "conversations.list": {
+        "methods": [
+          "conversations.list"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "conversations.listConnectInvites": {
+        "methods": [
+          "conversations.listConnectInvites"
+        ],
+        "releases": [
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "conversations.mark": {
+        "methods": [
+          "conversations.mark"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "conversations.members": {
+        "methods": [
+          "conversations.members"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "conversations.open": {
+        "methods": [
+          "conversations.open"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "conversations.rename": {
+        "methods": [
+          "conversations.rename"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "conversations.replies": {
+        "methods": [
+          "conversations.replies"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "conversations.requestSharedInvite.approve": {
+        "methods": [
+          "conversations.requestSharedInvite.approve"
+        ],
+        "releases": [
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "conversations.requestSharedInvite.deny": {
+        "methods": [
+          "conversations.requestSharedInvite.deny"
+        ],
+        "releases": [
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "conversations.requestSharedInvite.list": {
+        "methods": [
+          "conversations.requestSharedInvite.list"
+        ],
+        "releases": [
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "conversations.setPurpose": {
+        "methods": [
+          "conversations.setPurpose"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "conversations.setTopic": {
+        "methods": [
+          "conversations.setTopic"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "conversations.unarchive": {
+        "methods": [
+          "conversations.unarchive"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "dialog.open": {
+        "methods": [
+          "dialog.open"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "dnd.endDnd": {
+        "methods": [
+          "dnd.endDnd"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "dnd.endSnooze": {
+        "methods": [
+          "dnd.endSnooze"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "dnd.info": {
+        "methods": [
+          "dnd.info"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "dnd.setSnooze": {
+        "methods": [
+          "dnd.setSnooze"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "dnd.teamInfo": {
+        "methods": [
+          "dnd.teamInfo"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "emoji.list": {
+        "methods": [
+          "emoji.list"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "entity.presentDetails": {
+        "methods": [
+          "entity.presentDetails"
+        ],
+        "releases": [
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "files.comments.delete": {
+        "methods": [
+          "files.comments.delete"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "files.completeUploadExternal": {
+        "methods": [
+          "files.completeUploadExternal"
+        ],
+        "releases": [
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "files.delete": {
+        "methods": [
+          "files.delete"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "files.getUploadURLExternal": {
+        "methods": [
+          "files.getUploadURLExternal"
+        ],
+        "releases": [
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "files.info": {
+        "methods": [
+          "files.info"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "files.list": {
+        "methods": [
+          "files.list"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "files.remote.add": {
+        "methods": [
+          "files.remote.add"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "files.remote.info": {
+        "methods": [
+          "files.remote.info"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "files.remote.list": {
+        "methods": [
+          "files.remote.list"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "files.remote.remove": {
+        "methods": [
+          "files.remote.remove"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "files.remote.share": {
+        "methods": [
+          "files.remote.share"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "files.remote.update": {
+        "methods": [
+          "files.remote.update"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "files.revokePublicURL": {
+        "methods": [
+          "files.revokePublicURL"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "files.sharedPublicURL": {
+        "methods": [
+          "files.sharedPublicURL"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "files.upload": {
+        "methods": [
+          "files.upload"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0"
+        ],
+        "deprecated": "Use `uploadV2` instead. See {@link https://docs.slack.dev/changelog/2024-04-a-better-way-to-upload-files-is-here-to-stay our post on retiring `files.upload`}."
+      },
+      "files.uploadV2": {
+        "methods": [
+          "files.getUploadURLExternal",
+          "files.completeUploadExternal"
+        ],
+        "releases": [
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "functions.completeError": {
+        "methods": [
+          "functions.completeError"
+        ],
+        "releases": [
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "functions.completeSuccess": {
+        "methods": [
+          "functions.completeSuccess"
+        ],
+        "releases": [
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "groups.archive": {
+        "methods": [
+          "groups.archive"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0"
+        ],
+        "deprecated": null
+      },
+      "groups.create": {
+        "methods": [
+          "groups.create"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0"
+        ],
+        "deprecated": null
+      },
+      "groups.createChild": {
+        "methods": [
+          "groups.createChild"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0"
+        ],
+        "deprecated": null
+      },
+      "groups.history": {
+        "methods": [
+          "groups.history"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0"
+        ],
+        "deprecated": null
+      },
+      "groups.info": {
+        "methods": [
+          "groups.info"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0"
+        ],
+        "deprecated": null
+      },
+      "groups.invite": {
+        "methods": [
+          "groups.invite"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0"
+        ],
+        "deprecated": null
+      },
+      "groups.kick": {
+        "methods": [
+          "groups.kick"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0"
+        ],
+        "deprecated": null
+      },
+      "groups.leave": {
+        "methods": [
+          "groups.leave"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0"
+        ],
+        "deprecated": null
+      },
+      "groups.list": {
+        "methods": [
+          "groups.list"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0"
+        ],
+        "deprecated": null
+      },
+      "groups.mark": {
+        "methods": [
+          "groups.mark"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0"
+        ],
+        "deprecated": null
+      },
+      "groups.open": {
+        "methods": [
+          "groups.open"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0"
+        ],
+        "deprecated": null
+      },
+      "groups.rename": {
+        "methods": [
+          "groups.rename"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0"
+        ],
+        "deprecated": null
+      },
+      "groups.replies": {
+        "methods": [
+          "groups.replies"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0"
+        ],
+        "deprecated": null
+      },
+      "groups.setPurpose": {
+        "methods": [
+          "groups.setPurpose"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0"
+        ],
+        "deprecated": null
+      },
+      "groups.setTopic": {
+        "methods": [
+          "groups.setTopic"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0"
+        ],
+        "deprecated": null
+      },
+      "groups.unarchive": {
+        "methods": [
+          "groups.unarchive"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0"
+        ],
+        "deprecated": null
+      },
+      "im.close": {
+        "methods": [
+          "im.close"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0"
+        ],
+        "deprecated": null
+      },
+      "im.history": {
+        "methods": [
+          "im.history"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0"
+        ],
+        "deprecated": null
+      },
+      "im.list": {
+        "methods": [
+          "im.list"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0"
+        ],
+        "deprecated": null
+      },
+      "im.mark": {
+        "methods": [
+          "im.mark"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0"
+        ],
+        "deprecated": null
+      },
+      "im.open": {
+        "methods": [
+          "im.open"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0"
+        ],
+        "deprecated": null
+      },
+      "im.replies": {
+        "methods": [
+          "im.replies"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0"
+        ],
+        "deprecated": null
+      },
+      "migration.exchange": {
+        "methods": [
+          "migration.exchange"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "mpim.close": {
+        "methods": [
+          "mpim.close"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0"
+        ],
+        "deprecated": null
+      },
+      "mpim.history": {
+        "methods": [
+          "mpim.history"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0"
+        ],
+        "deprecated": null
+      },
+      "mpim.list": {
+        "methods": [
+          "mpim.list"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0"
+        ],
+        "deprecated": null
+      },
+      "mpim.mark": {
+        "methods": [
+          "mpim.mark"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0"
+        ],
+        "deprecated": null
+      },
+      "mpim.open": {
+        "methods": [
+          "mpim.open"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0"
+        ],
+        "deprecated": null
+      },
+      "mpim.replies": {
+        "methods": [
+          "mpim.replies"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0"
+        ],
+        "deprecated": null
+      },
+      "oauth.access": {
+        "methods": [
+          "oauth.access"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": "This is a legacy method only used by classic Slack apps. Use `oauth.v2.access` for new Slack apps."
+      },
+      "oauth.v2.access": {
+        "methods": [
+          "oauth.v2.access"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "oauth.v2.exchange": {
+        "methods": [
+          "oauth.v2.exchange"
+        ],
+        "releases": [
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "openid.connect.token": {
+        "methods": [
+          "openid.connect.token"
+        ],
+        "releases": [
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "openid.connect.userInfo": {
+        "methods": [
+          "openid.connect.userInfo"
+        ],
+        "releases": [
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "pins.add": {
+        "methods": [
+          "pins.add"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "pins.list": {
+        "methods": [
+          "pins.list"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "pins.remove": {
+        "methods": [
+          "pins.remove"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "reactions.add": {
+        "methods": [
+          "reactions.add"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "reactions.get": {
+        "methods": [
+          "reactions.get"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "reactions.list": {
+        "methods": [
+          "reactions.list"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "reactions.remove": {
+        "methods": [
+          "reactions.remove"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "reminders.add": {
+        "methods": [
+          "reminders.add"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "reminders.complete": {
+        "methods": [
+          "reminders.complete"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "reminders.delete": {
+        "methods": [
+          "reminders.delete"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "reminders.info": {
+        "methods": [
+          "reminders.info"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "reminders.list": {
+        "methods": [
+          "reminders.list"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "rtm.connect": {
+        "methods": [
+          "rtm.connect"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "rtm.start": {
+        "methods": [
+          "rtm.start"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0"
+        ],
+        "deprecated": "Use `rtm.connect` instead. See {@link https://docs.slack.dev/changelog/2021-10-rtm-start-to-stop our post on retiring `rtm.start`}."
+      },
+      "search.all": {
+        "methods": [
+          "search.all"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "search.files": {
+        "methods": [
+          "search.files"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "search.messages": {
+        "methods": [
+          "search.messages"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "slackLists.access.delete": {
+        "methods": [
+          "slackLists.access.delete"
+        ],
+        "releases": [
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "slackLists.access.set": {
+        "methods": [
+          "slackLists.access.set"
+        ],
+        "releases": [
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "slackLists.create": {
+        "methods": [
+          "slackLists.create"
+        ],
+        "releases": [
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "slackLists.download.get": {
+        "methods": [
+          "slackLists.download.get"
+        ],
+        "releases": [
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "slackLists.download.start": {
+        "methods": [
+          "slackLists.download.start"
+        ],
+        "releases": [
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "slackLists.items.create": {
+        "methods": [
+          "slackLists.items.create"
+        ],
+        "releases": [
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "slackLists.items.delete": {
+        "methods": [
+          "slackLists.items.delete"
+        ],
+        "releases": [
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "slackLists.items.deleteMultiple": {
+        "methods": [
+          "slackLists.items.deleteMultiple"
+        ],
+        "releases": [
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "slackLists.items.info": {
+        "methods": [
+          "slackLists.items.info"
+        ],
+        "releases": [
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "slackLists.items.list": {
+        "methods": [
+          "slackLists.items.list"
+        ],
+        "releases": [
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "slackLists.items.update": {
+        "methods": [
+          "slackLists.items.update"
+        ],
+        "releases": [
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "slackLists.update": {
+        "methods": [
+          "slackLists.update"
+        ],
+        "releases": [
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "stars.add": {
+        "methods": [
+          "stars.add"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": "Stars can still be added but they can no longer be viewed or interacted with by end-users. See {@link https://docs.slack.dev/changelog/2023-07-its-later-already-for-stars-and-reminders our post on stars and the Later list}."
+      },
+      "stars.list": {
+        "methods": [
+          "stars.list"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": "Stars can still be listed but they can no longer be viewed or interacted with by end-users. See {@link https://docs.slack.dev/changelog/2023-07-its-later-already-for-stars-and-reminders our post on stars and the Later list}."
+      },
+      "stars.remove": {
+        "methods": [
+          "stars.remove"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": "Stars can still be removed but they can no longer be viewed or interacted with by end-users. See {@link https://docs.slack.dev/changelog/2023-07-its-later-already-for-stars-and-reminders our post on stars and the Later list}."
+      },
+      "team.accessLogs": {
+        "methods": [
+          "team.accessLogs"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "team.billableInfo": {
+        "methods": [
+          "team.billableInfo"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "team.billing.info": {
+        "methods": [
+          "team.billing.info"
+        ],
+        "releases": [
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "team.externalTeams.disconnect": {
+        "methods": [
+          "team.externalTeams.disconnect"
+        ],
+        "releases": [
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "team.externalTeams.list": {
+        "methods": [
+          "team.externalTeams.list"
+        ],
+        "releases": [
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "team.info": {
+        "methods": [
+          "team.info"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "team.integrationLogs": {
+        "methods": [
+          "team.integrationLogs"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "team.preferences.list": {
+        "methods": [
+          "team.preferences.list"
+        ],
+        "releases": [
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "team.profile.get": {
+        "methods": [
+          "team.profile.get"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "tooling.tokens.rotate": {
+        "methods": [
+          "tooling.tokens.rotate"
+        ],
+        "releases": [
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "usergroups.create": {
+        "methods": [
+          "usergroups.create"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "usergroups.disable": {
+        "methods": [
+          "usergroups.disable"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "usergroups.enable": {
+        "methods": [
+          "usergroups.enable"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "usergroups.list": {
+        "methods": [
+          "usergroups.list"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "usergroups.update": {
+        "methods": [
+          "usergroups.update"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "usergroups.users.list": {
+        "methods": [
+          "usergroups.users.list"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "usergroups.users.update": {
+        "methods": [
+          "usergroups.users.update"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "users.conversations": {
+        "methods": [
+          "users.conversations"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "users.deletePhoto": {
+        "methods": [
+          "users.deletePhoto"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "users.discoverableContacts.lookup": {
+        "methods": [
+          "users.discoverableContacts.lookup"
+        ],
+        "releases": [
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "users.getPresence": {
+        "methods": [
+          "users.getPresence"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "users.identity": {
+        "methods": [
+          "users.identity"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "users.info": {
+        "methods": [
+          "users.info"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "users.list": {
+        "methods": [
+          "users.list"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "users.lookupByEmail": {
+        "methods": [
+          "users.lookupByEmail"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "users.profile.get": {
+        "methods": [
+          "users.profile.get"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "users.profile.set": {
+        "methods": [
+          "users.profile.set"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "users.setPhoto": {
+        "methods": [
+          "users.setPhoto"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "users.setPresence": {
+        "methods": [
+          "users.setPresence"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "views.open": {
+        "methods": [
+          "views.open"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "views.publish": {
+        "methods": [
+          "views.publish"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "views.push": {
+        "methods": [
+          "views.push"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "views.update": {
+        "methods": [
+          "views.update"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "workflows.featured.add": {
+        "methods": [
+          "workflows.featured.add"
+        ],
+        "releases": [
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "workflows.featured.list": {
+        "methods": [
+          "workflows.featured.list"
+        ],
+        "releases": [
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "workflows.featured.remove": {
+        "methods": [
+          "workflows.featured.remove"
+        ],
+        "releases": [
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "workflows.featured.set": {
+        "methods": [
+          "workflows.featured.set"
+        ],
+        "releases": [
+          "7.19.0",
+          "8.2.0"
+        ],
+        "deprecated": null
+      },
+      "workflows.stepCompleted": {
+        "methods": [
+          "workflows.stepCompleted"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0"
+        ],
+        "deprecated": "Steps from Apps is deprecated. We're retiring all Slack app functionality around Steps from Apps in September 2024. See {@link https://docs.slack.dev/changelog/2023-08-workflow-steps-from-apps-step-back our post on deprecating Steps from Apps}."
+      },
+      "workflows.stepFailed": {
+        "methods": [
+          "workflows.stepFailed"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0"
+        ],
+        "deprecated": "Steps from Apps is deprecated. We're retiring all Slack app functionality around Steps from Apps in September 2024. See {@link https://docs.slack.dev/changelog/2023-08-workflow-steps-from-apps-step-back our post on deprecating Steps from Apps}."
+      },
+      "workflows.updateStep": {
+        "methods": [
+          "workflows.updateStep"
+        ],
+        "releases": [
+          "5.15.0",
+          "6.13.0",
+          "7.19.0"
+        ],
+        "deprecated": "Steps from Apps is deprecated. We're retiring all Slack app functionality around Steps from Apps in September 2024. See {@link https://docs.slack.dev/changelog/2023-08-workflow-steps-from-apps-step-back our post on deprecating Steps from Apps}."
+      }
+    }
+  },
+  "pythonSdk": {
+    "repository": "https://github.com/slackapi/python-slack-sdk",
+    "file": "slack_sdk/web/deprecation.py",
+    "commit": "ab4e4983ba02789f5854e711450f9340d4cd53f2",
+    "committedAt": "2026-10-16T12:29:21-07:00",
+    "deprecations": [
+      {
+        "prefixes": [
+          "channels.",
+          "groups.",
+          "im.",
+          "mpim.",
+          "admin.conversations.whitelist."
+        ],
+        "announcement": "https://docs.slack.dev/changelog/2020-01-deprecating-antecedents-to-the-conversations-api/"
+      },
+      {
+        "prefixes": [
+          "stars."
+        ],
+        "announcement": "https://docs.slack.dev/changelog/2023-07-its-later-already-for-stars-and-reminders/"
+      },
+      {
+        "prefixes": [
+          "workflows.stepCompleted",
+          "workflows.updateStep",
+          "workflows.stepFailed"
+        ],
+        "announcement": "https://docs.slack.dev/changelog/2023-08-workflow-steps-from-apps-step-back/"
+      }
+    ]
+  },
+  "nodeSdk": {
+    "repository": "https://github.com/slackapi/node-slack-sdk",
+    "file": "docs/english/migration/web-api/migrating-web-api-package-to-v8.md",
+    "commit": "8730b5e3a7cee08a0ccfa44b7f792814f939a9cf",
+    "committedAt": "2026-10-19T12:51:00-07:00",
+    "removed": [
+      {
+        "method": "files.upload",
+        "replacement": "filesUploadV2",
+        "notes": "`filesUploadV2` was added in web-api v6.7"
+      },
+      {
+        "method": "rtm.start",
+        "replacement": "rtm.connect",
+        "notes": "Deprecated since 2021"
+      },
+      {
+        "method": "workflows.stepCompleted",
+        "replacement": null,
+        "notes": "Steps from Apps was retired in Sep 2024"
+      },
+      {
+        "method": "workflows.stepFailed",
+        "replacement": null,
+        "notes": "Steps from Apps was retired in Sep 2024"
+      },
+      {
+        "method": "workflows.updateStep",
+        "replacement": null,
+        "notes": "Steps from Apps was retired in Sep 2024"
+      }
+    ]
+  }
+}

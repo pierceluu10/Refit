@@ -64,6 +64,16 @@ export function workflowNotice(result: {
   return null;
 }
 
+// The hosted worker rate-limits these per target; the receipt holds the full error and evidence.
+export function hostedFailureNotice(job: {
+  id: string;
+  repository: string;
+  outcome: string | null;
+  message: string | null;
+}) {
+  return `🚨 [URGENT] ${plain(job.repository)}: hosted job ${plain(job.id)} failed (${plain(`${job.outcome ?? 'no receipt'}: ${job.message ?? 'no message'}`)}); see refit hosted receipt ${plain(job.id)}.`;
+}
+
 export const URGENT_DEADLINE_DAYS = 7;
 
 // Deadline alerts already fire once per lead-time stage; only the last week and after are urgent.
