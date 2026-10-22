@@ -109,6 +109,11 @@ Last pass: 2026-10-22 04:10 EDT (pass 2). Base: `main` at `7b2c86a`. Reviews are
 
 No PR yet: PG2, PG4, PG5, PG6, PG7, PG9, PP2, PP3, PP6, PP7, PP8, PP9; every Furqan lane except FP1 and FG9; OG6 to OG10, OP2 to OP7, OP9, OP10.
 
+## Blocked
+
+- **GitHub Actions stopped starting jobs at about 08:04 UTC (04:04 EDT).** Every lane's CI run since then fails in seconds with no runner; the annotation reads: "The job was not started because recent account payments have failed or your spending limit needs to be increased." Owner action: fix the payment or raise the Actions spending limit under Billing & plans, then rerun the failed checks. Until then, "CI passed" in this checklist refers only to runs before 08:04 UTC, and lanes' local checks are the only evidence for later commits.
+- **AWS for runner sessions** (#179): `scripts/aws-benchmark.mjs launch` was refused by the runner session's permission classifier.
+
 ## Needs owner decision
 
 Ranked by what blocks the first customer.
