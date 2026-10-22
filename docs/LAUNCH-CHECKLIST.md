@@ -7,7 +7,7 @@ PP10 keeps this file current through the night. It tracks what stands between `m
 - **No PR yet**: the lane has not pushed.
 - **Blocked** or **Needs owner decision**: copied from the lane PR or found in review, with its reason.
 
-Last pass: 2026-10-22 11:55 EDT (pass 5). Base: `main` at `7b2c86a`. Reviews are PR comments; each names the commit it reviewed.
+Last pass: 2026-10-22 11:30 EDT (pass 5). Base: `main` at `7b2c86a`. Reviews are PR comments; each names the commit it reviewed.
 
 ## Landed on main during the night
 
