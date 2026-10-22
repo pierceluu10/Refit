@@ -81,6 +81,15 @@ export interface ShopifyRestDeprecationScan {
   // The version Shopify serves: the newest pin, raised to the oldest supported version.
   served: string | null;
   calls: ShopifyRestDeprecatedCall[];
+  // Every REST Admin call `scanShopify` found, so the inventory lists the endpoints an app uses.
+  rest: {
+    file: string;
+    line: number;
+    use: 'live' | 'test';
+    method: string | null;
+    path: string | null;
+    resource: string | null;
+  }[];
   // REST calls that match no removal, by count; and calls whose endpoint could not be read.
   unmatched: number;
   unreadable: number;
@@ -239,9 +248,19 @@ export async function scanShopifyRestDeprecations(
   const newest = pinned.at(-1);
   const served = newest && oldest ? (newest < oldest ? oldest : newest) : (newest ?? null);
   const calls: ShopifyRestDeprecatedCall[] = [];
+  const rest: ShopifyRestDeprecationScan['rest'] = [];
   let unmatched = 0;
   let unreadable = 0;
   for (const call of scan.rest) {
+    const where = isAbsolute(call.file) ? relative(root, call.file) : call.file;
+    rest.push({
+      file: where,
+      line: call.line,
+      use: TEST_PATH.test(where) ? 'test' : 'live',
+      method: call.method ?? null,
+      path: call.path ?? null,
+      resource: call.resource ?? null,
+    });
     if (!call.path && !call.resource) {
       unreadable += 1;
       continue;
@@ -266,5 +285,6 @@ export async function scanShopifyRestDeprecations(
       });
   }
   calls.sort((a, b) => a.file.localeCompare(b.file) || a.line - b.line);
-  return { pinned, served, calls, unmatched, unreadable };
+  rest.sort((a, b) => a.file.localeCompare(b.file) || a.line - b.line);
+  return { pinned, served, calls, rest, unmatched, unreadable };
 }
