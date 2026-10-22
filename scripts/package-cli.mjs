@@ -48,7 +48,7 @@ else {
     }
     await writeFile(
       join(stage, 'package.json'),
-      `${JSON.stringify({ name: metadata.name, version: metadata.version, description: 'Local API migration agent with reviewable patches and isolated validation', license: metadata.license, private: true, type: 'module', engines: metadata.engines, bin: { refit: 'bin/refit.mjs' }, files: ['bin/', 'pipeline/', 'data/', 'README.md', 'LICENSE', 'docs/', 'examples/', 'public/', '.env.example'], dependencies }, null, 2)}\n`,
+      `${JSON.stringify({ name: metadata.name, version: metadata.version, description: 'Local API migration agent with reviewable patches and isolated validation', license: metadata.license, private: true, type: 'module', engines: metadata.engines, bin: { refit: 'bin/refit.mjs' }, files: ['bin/', 'pipeline/', 'data/', 'README.md', 'LICENSE', 'docs/', 'examples/', 'public/', '.env.example', 'npm-shrinkwrap.json'], dependencies }, null, 2)}\n`,
     );
     await mkdir(join(stage, 'bin'));
     await copyFile(join(root, 'bin/refit.mjs'), join(stage, 'bin/refit.mjs'));
@@ -77,6 +77,14 @@ else {
     await copyFile(
       join(root, 'public/refit-agent-avatar.png'),
       join(stage, 'public/refit-agent-avatar.png'),
+    );
+    // npm recommends a shrinkwrap for globally installed command-line tools: installs then get the
+    // transitive versions this repository locked and tested, not whatever was published since.
+    await copyFile(join(root, 'package-lock.json'), join(stage, 'npm-shrinkwrap.json'));
+    await execute(
+      'npm',
+      ['install', '--package-lock-only', '--ignore-scripts', '--no-audit', '--no-fund'],
+      { cwd: stage, timeout: PACK_TIMEOUT_MS, maxBuffer: MAX_OUTPUT_BYTES },
     );
     const result = await execute(
       'npm',
