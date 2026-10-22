@@ -9,6 +9,8 @@ import { validateRepairAttempts } from './validation-options.ts';
 import type { GitHubAppConfiguration } from './github-app.ts';
 import { standaloneStateDirectory } from './github-checkout.ts';
 import { parseWebhook, verifyWebhook, WebhookInputError } from './github-webhooks.ts';
+import { isDatabaseUnavailable } from './hosted-database.ts';
+import { purgeUninstalled } from './hosted-retention.ts';
 import { openHostedStore, type HostedTarget } from './hosted-store.ts';
 import {
   authorized,
@@ -34,6 +36,9 @@ const DEFAULT_LEASE_SECONDS = 300;
 const MIN_LEASE_SECONDS = 3;
 // Renewing three times per lease keeps one missed renewal from releasing a running job.
 const RENEWALS_PER_LEASE = 3;
+// While PostgreSQL is unreachable the worker waits, doubling the wait up to the maximum.
+const OUTAGE_RETRY_MS = 5_000;
+const MAX_OUTAGE_RETRY_MS = 60_000;
 
 export async function runHostedService(options: {
   database: Pool;
@@ -48,6 +53,8 @@ export async function runHostedService(options: {
   aiPatch?: AiOptions;
   repairAttempts?: number;
   publishDraft?: boolean;
+  // Owner decision (2026-10-22): deleting uninstalled installations' data is opt-in.
+  purgeUninstalled?: boolean;
   host?: string;
   port?: number;
   intervalSeconds?: number;
@@ -84,7 +91,6 @@ export async function runHostedService(options: {
   await standaloneStateDirectory(root);
   await mkdir(root, { recursive: true, mode: 0o700 });
   const directory = await realpath(root);
-  const store = await openHostedStore(options.database);
   const running = new Map<number, AbortController>();
   let waiting: AbortController | undefined;
   let requested = false;
@@ -96,7 +102,38 @@ export async function runHostedService(options: {
     for (const controller of running.values()) controller.abort();
     waiting?.abort();
   };
+  // Waits until the time passes, a webhook wakes the worker or the service stops.
+  const pause = async (milliseconds: number) => {
+    waiting = new AbortController();
+    try {
+      await delay(milliseconds, undefined, { signal: waiting.signal });
+    } catch (error) {
+      if (!(error instanceof Error && error.name === 'AbortError')) throw error;
+    } finally {
+      waiting = undefined;
+    }
+  };
+  let outage = OUTAGE_RETRY_MS;
+  const unavailable = async (error: Error) => {
+    options.onProgress?.(
+      `PostgreSQL is unavailable (${error.message}); retrying in ${outage / MILLISECONDS_PER_SECOND} s.`,
+    );
+    await pause(outage);
+    outage = Math.min(outage * 2, MAX_OUTAGE_RETRY_MS);
+  };
   options.signal.addEventListener('abort', stop, { once: true });
+  const openStore = async () => {
+    for (;;)
+      try {
+        return await openHostedStore(options.database);
+      } catch (error) {
+        if (!isDatabaseUnavailable(error)) throw error;
+        await unavailable(error);
+        options.signal.throwIfAborted();
+      }
+  };
+  const store = await openStore();
+  outage = OUTAGE_RETRY_MS;
 
   const runJob = async (job: number, target: HostedTarget, retry: boolean) => {
     const controller = new AbortController();
@@ -104,22 +141,33 @@ export async function runHostedService(options: {
     options.signal.addEventListener('abort', abort, { once: true });
     running.set(job, controller);
     const progress = (message: string) => options.onProgress?.(`[${target.id}] ${message}`);
-    const renewal = setInterval(
-      () =>
-        void store.renew(job, worker, lease).then(
-          (active) => {
-            if (!active) {
-              progress('Lease lost or job cancelled; stopping.');
-              controller.abort();
-            }
-          },
-          (error: unknown) => {
-            progress(`Lease renewal failed: ${error instanceof Error ? error.message : error}`);
+    const leaseMilliseconds = lease * MILLISECONDS_PER_SECOND;
+    const renewEvery = leaseMilliseconds / RENEWALS_PER_LEASE;
+    // The claim set the lease just before this job started.
+    let leased = Date.now();
+    const renewal = setInterval(() => {
+      const sent = Date.now();
+      void store.renew(job, worker, lease).then(
+        (active) => {
+          if (active) leased = Math.max(leased, sent);
+          else {
+            progress('Lease lost or job cancelled; stopping.');
             controller.abort();
-          },
-        ),
-      (lease * MILLISECONDS_PER_SECOND) / RENEWALS_PER_LEASE,
-    );
+          }
+        },
+        (error: unknown) => {
+          const failure = `Lease renewal failed: ${error instanceof Error ? error.message : error}`;
+          // The lease still holds while PostgreSQL is down. The job stops only once the next
+          // renewal could land after it expires, so no other worker can claim it while it runs.
+          if (isDatabaseUnavailable(error) && Date.now() - leased + renewEvery < leaseMilliseconds)
+            progress(`${failure}; retrying.`);
+          else {
+            progress(`${failure}; stopping.`);
+            controller.abort();
+          }
+        },
+      );
+    }, renewEvery);
     try {
       const access = await confirmRepositoryAccess(options.app, target.repository);
       if (access.installationId !== target.installationId)
@@ -254,22 +302,32 @@ export async function runHostedService(options: {
     options.onReady?.(`http://${host}:${address.port}`);
     while (!options.signal.aborted) {
       requested = false;
-      await store.enqueueDue(interval);
-      for (
-        let claimed = await store.claim(worker, lease);
-        claimed && !options.signal.aborted;
-        claimed = await store.claim(worker, lease)
-      )
-        await runJob(claimed.job, claimed.target, claimed.retry);
-      if (options.signal.aborted || requested) continue;
-      waiting = new AbortController();
       try {
-        await delay(interval * MILLISECONDS_PER_SECOND, undefined, { signal: waiting.signal });
+        await store.enqueueDue(interval);
+        if (options.purgeUninstalled) {
+          const purged = await purgeUninstalled(options.database, directory);
+          if (purged.targets.length)
+            options.onProgress?.(
+              `Deleted ${purged.targets.length} target(s) and ${purged.jobs} job(s) of installation(s) ${purged.installations.join(', ')}, uninstalled more than the grace period ago.`,
+            );
+          for (const { target, reason } of purged.kept)
+            options.onProgress?.(`[${target}] Kept after the grace period: ${reason}`);
+        }
+        for (
+          let claimed = await store.claim(worker, lease);
+          claimed && !options.signal.aborted;
+          claimed = await store.claim(worker, lease)
+        )
+          await runJob(claimed.job, claimed.target, claimed.retry);
+        outage = OUTAGE_RETRY_MS;
       } catch (error) {
-        if (!(error instanceof Error && error.name === 'AbortError')) throw error;
-      } finally {
-        waiting = undefined;
+        // A job whose receipt could not be stored keeps its lease until it expires and is reclaimed.
+        if (!isDatabaseUnavailable(error)) throw error;
+        await unavailable(error);
+        continue;
       }
+      if (options.signal.aborted || requested) continue;
+      await pause(interval * MILLISECONDS_PER_SECOND);
     }
     return { directory, registry: await store.read() };
   } finally {
