@@ -50,6 +50,8 @@ const results: BenchmarkRepository[] = [
   },
   { repo: 'a/stopped', exposures: exposure, replacements: [], stops: [{}] },
   { repo: 'a/silent', exposures: exposure, replacements: [], stops: [] },
+  // Silent, but every live match is explained.
+  { repo: 'a/explained', exposures: exposure, replacements: [], stops: [], unresolved: [{}, {}] },
   {
     repo: 'a/slow',
     error: 'timed out after 120 s',
@@ -80,20 +82,23 @@ const results: BenchmarkRepository[] = [
   },
 ];
 
-it('keeps every 2026-10-20 summary key and value, and adds mentionedOnly and exposedErrored', () => {
+it('keeps every 2026-10-20 summary key and value, and adds the newer counts after them', () => {
   expect(benchmarkSummary(results)).toEqual({
-    repositories: 8,
+    repositories: 9,
     errors: 3,
     timedOut: 2,
-    exposed: 4,
+    exposed: 5,
     exposedWithReplacement: 1,
     exposedStoppedOnly: 1,
     // The timed-out exposed repository is not silent: it is counted as errored.
-    exposedSilent: 1,
+    exposedSilent: 2,
     replacements: 1,
     stops: 3,
     mentionedOnly: 1,
     exposedErrored: 1,
+    exposedUnresolvedOnly: 1,
+    exposedUnexplained: 1,
+    unresolved: 2,
   });
   // The earlier keys keep their order, and the new one follows them.
   expect(Object.keys(benchmarkSummary(results))).toEqual([
@@ -108,6 +113,9 @@ it('keeps every 2026-10-20 summary key and value, and adds mentionedOnly and exp
     'stops',
     'mentionedOnly',
     'exposedErrored',
+    'exposedUnresolvedOnly',
+    'exposedUnexplained',
+    'unresolved',
   ]);
 });
 
@@ -124,5 +132,8 @@ it('summarizes an empty run as zeros', () => {
     stops: 0,
     mentionedOnly: 0,
     exposedErrored: 0,
+    exposedUnresolvedOnly: 0,
+    exposedUnexplained: 0,
+    unresolved: 0,
   });
 });
