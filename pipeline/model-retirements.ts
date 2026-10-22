@@ -180,6 +180,7 @@ const UNTRACED_CALLS: Record<string, string[]> = {
     'moderations.create',
   ],
   anthropic: [...MODEL_CALLS.anthropic, ...MESSAGE_HELPERS, ...BATCH_CALLS, 'completions.create'],
+  gemini: [...MODEL_CALLS.gemini],
 };
 // Claude API model IDs such as `claude-opus-4-8` or `claude-haiku-4-5-20251001`.
 const CLAUDE_VERSIONED = /^claude-(?:opus|sonnet|haiku)-(\d+)(?:-(\d{1,2}))?(?:-\d{8})?$/;
@@ -2288,6 +2289,7 @@ export async function proposeModelReplacements(
         sdk: true,
         custom: false,
         platform: tracer.platform,
+        reportOnly: tracer.reportOnly,
         client,
       });
     }
