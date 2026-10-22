@@ -1,5 +1,5 @@
 import type { Pool } from 'pg';
-import { transaction } from './hosted-store.ts';
+import { transaction } from './hosted-database.ts';
 import {
   DEFAULT_TENANCY_LIMITS,
   reserveUsage,

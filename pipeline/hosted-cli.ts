@@ -1,7 +1,9 @@
 import { parseArgs } from 'node:util';
-import pg from 'pg';
 import { assessmentConfiguration } from './assessment.ts';
 import { githubAppConfiguration } from './github-app.ts';
+import { openHostedPool } from './hosted-database.ts';
+import { hostedSchemaStatus, migrateHostedSchema } from './hosted-migrations.ts';
+import { UNINSTALL_GRACE_DAYS } from './hosted-retention.ts';
 import { runHostedService } from './hosted-service.ts';
 import { openHostedStore } from './hosted-store.ts';
 import { hostedTenancy } from './hosted-tenancy.ts';
@@ -13,22 +15,26 @@ import { terminalText } from './workflow-presentation.ts';
 
 const GITHUB_LOGIN = /^[A-Za-z0-9][A-Za-z0-9-]{0,38}$/;
 const REPOSITORY = /^[A-Za-z0-9][A-Za-z0-9-]*\/[A-Za-z0-9_.-]+$/;
-const USAGE = `Usage: refit hosted serve --state <directory> [--host <address>] [--port <number>] [--interval <seconds>] [--ai-patch --repair-attempts 0|1|2] [--publish-draft]
+const USAGE = `Usage: refit hosted serve --state <directory> [--host <address>] [--port <number>] [--interval <seconds>] [--ai-patch --repair-attempts 0|1|2] [--publish-draft] [--purge-uninstalled]
        refit hosted approve --approval <receipt.json> --approved-by <github-login>
        refit hosted retry --target <id>
        refit hosted inventory --repository <owner/name>
        refit hosted accounts
+       refit hosted migrate [--dry-run]
 Requires REFIT_DATABASE_URL (PostgreSQL). serve also requires GITHUB_APP_ID, GITHUB_APP_PRIVATE_KEY_FILE, REFIT_WEBHOOK_SECRET, a different REFIT_SERVICE_TOKEN and REFIT_HOSTED_ACCOUNTS, the comma-separated GitHub accounts whose installations may enroll (default: REFIT_HOSTED_OWNER alone). Other accounts' installations are recorded as not allowed and nothing is cloned. Each installation runs one job at a time, at most REFIT_HOSTED_DAILY_JOBS (default 1440) jobs and REFIT_HOSTED_DAILY_INVENTORIES (default 500) inventories per UTC day. --ai-patch uses OPENAI_API_KEY and OPENAI_MODEL with a separate REFIT_AI_BUDGET_USD ledger per installation in PostgreSQL.
 approve stores a receipt made by refit enroll. Installing the App on an approved repository enrolls it: the worker runs refit doctor, then scans and validates with the approved checks, and stores a job receipt. Installed repositories without an approval never run. Removing the repository or the installation cancels its targets and stops running jobs. --publish-draft opens draft PRs as Refit Agent; Refit never merges.
 retry queues one fresh attempt for an enrolled target, permitting a cached failed job to run again; successful jobs remain cached. Approval and access gates still apply.
 With REFIT_HOSTED_APPROVAL_ISSUES=1, serve opens one issue on each installed repository of an allowed account that has no approval, showing what refit enroll shows (or a proposed .refit.json), and handles /refit approve <fingerprint-prefix> and /refit revoke comments from users with the admin or maintain role. It needs the App's Issues permission and issue_comment event.
 accounts lists every recorded installation, whether the serving worker allowed it, and today's usage against the caps. Run it with the worker's REFIT_HOSTED_ACCOUNTS (or REFIT_HOSTED_OWNER) and cap settings.
-inventory queues a read-only inventory of a repository installed by an allowed account, approved or not, and prints the stored one as JSON. The running worker takes it within its polling interval; an unchanged revision is not scanned again. Installing the App queues one for every repository it can read.`;
+inventory queues a read-only inventory of a repository installed by an allowed account, approved or not, and prints the stored one as JSON. The running worker takes it within its polling interval; an unchanged revision is not scanned again. Installing the App queues one for every repository it can read.
+migrate applies pending schema migrations, which serve also does on start; --dry-run lists them without applying anything. serve keeps running through PostgreSQL outages. With --purge-uninstalled it deletes an uninstalled installation's targets, jobs and evidence ${UNINSTALL_GRACE_DAYS} days after the uninstall; without it, nothing is deleted.`;
 
 function database() {
   const connectionString = process.env.REFIT_DATABASE_URL;
   if (!connectionString) throw new PipelineInputError('REFIT_DATABASE_URL is required.');
-  return new pg.Pool({ connectionString });
+  return openHostedPool(connectionString, (error) =>
+    console.error(`[refit] PostgreSQL connection error: ${terminalText(error.message)}`),
+  );
 }
 
 try {
@@ -42,10 +48,12 @@ try {
       'ai-patch': { type: 'boolean' },
       'repair-attempts': { type: 'string' },
       'publish-draft': { type: 'boolean' },
+      'purge-uninstalled': { type: 'boolean' },
       approval: { type: 'string' },
       'approved-by': { type: 'string' },
       target: { type: 'string' },
       repository: { type: 'string' },
+      'dry-run': { type: 'boolean' },
       help: { type: 'boolean' },
     },
   });
@@ -113,6 +121,30 @@ try {
     } finally {
       await pool.end();
     }
+  } else if (command === 'migrate') {
+    const pool = database();
+    try {
+      if (values['dry-run']) {
+        const status = await hostedSchemaStatus(pool);
+        console.log(
+          `Applied: ${status.applied.map((migration) => migration.version).join(', ') || 'none'}`,
+        );
+        for (const migration of status.unknown)
+          console.log(
+            `Applied by a newer worker: ${migration.version} ${terminalText(migration.name)}`,
+          );
+        if (!status.pending.length) console.log('No pending migrations.');
+        for (const migration of status.pending)
+          console.log(`Pending: ${migration.version} ${migration.name}`);
+      } else {
+        const applied = await migrateHostedSchema(pool);
+        if (!applied.length) console.log('No pending migrations.');
+        for (const migration of applied)
+          console.log(`Applied: ${migration.version} ${migration.name}`);
+      }
+    } finally {
+      await pool.end();
+    }
   } else if (command === 'serve') {
     if (!values.state) throw new PipelineInputError(USAGE);
     const app = githubAppConfiguration(process.env);
@@ -141,6 +173,7 @@ try {
         repairAttempts: Number(values['repair-attempts'] ?? 0),
         publishDraft: values['publish-draft'],
         approvalIssues: process.env.REFIT_HOSTED_APPROVAL_ISSUES === '1',
+        purgeUninstalled: values['purge-uninstalled'],
         host: values.host,
         port: values.port === undefined ? undefined : Number(values.port),
         intervalSeconds: values.interval === undefined ? undefined : Number(values.interval),

@@ -3,6 +3,8 @@ import type { AiLedger } from './ai-budget.ts';
 import type { GitHubWebhook } from './github-webhooks.ts';
 import { WebhookInputError } from './github-webhooks.ts';
 import { APPROVAL_SCHEMA, recordApprovalCommand } from './hosted-approval-store.ts';
+import { transaction } from './hosted-database.ts';
+import { MIGRATION_LOCK, migrateHostedSchema } from './hosted-migrations.ts';
 import {
   DEFAULT_TENANCY_LIMITS,
   installationRefusals,
@@ -21,73 +23,8 @@ import { PipelineInputError } from './types.ts';
 // A crashed worker's lease is reclaimed this many times before the job is marked failed.
 const MAX_LEASE_ATTEMPTS = 3;
 const TARGET_HASH_LENGTH = 16;
-const SCHEMA_LOCK = 4_206_100_001;
 // Serializes claims so two workers never start jobs for one installation at once.
 const CLAIM_LOCK = 4_206_100_002;
-
-const SCHEMA = `
-CREATE TABLE IF NOT EXISTS refit_installations (
-  id bigint PRIMARY KEY,
-  owner text NOT NULL,
-  status text NOT NULL CHECK (status IN ('active', 'suspended', 'deleted')),
-  updated_at timestamptz NOT NULL DEFAULT now()
-);
-CREATE TABLE IF NOT EXISTS refit_installation_repositories (
-  installation_id bigint NOT NULL REFERENCES refit_installations (id),
-  repository text NOT NULL,
-  github_id bigint NOT NULL,
-  PRIMARY KEY (installation_id, repository)
-);
-CREATE TABLE IF NOT EXISTS refit_deliveries (
-  id text PRIMARY KEY,
-  hash text NOT NULL,
-  event text NOT NULL,
-  received_at timestamptz NOT NULL DEFAULT now()
-);
-CREATE TABLE IF NOT EXISTS refit_approvals (
-  repository text NOT NULL,
-  base text NOT NULL,
-  fingerprint text NOT NULL,
-  approval jsonb NOT NULL,
-  approved_by text NOT NULL,
-  approved_at timestamptz NOT NULL DEFAULT now(),
-  PRIMARY KEY (repository, base)
-);
-CREATE TABLE IF NOT EXISTS refit_targets (
-  id text PRIMARY KEY,
-  repository text NOT NULL,
-  base text NOT NULL,
-  integration text,
-  installation_id bigint NOT NULL REFERENCES refit_installations (id),
-  fingerprint text NOT NULL,
-  status text NOT NULL CHECK (status IN ('enrolled', 'cancelled')),
-  message text,
-  updated_at timestamptz NOT NULL DEFAULT now()
-);
-CREATE TABLE IF NOT EXISTS refit_jobs (
-  id bigserial PRIMARY KEY,
-  target_id text NOT NULL REFERENCES refit_targets (id),
-  status text NOT NULL CHECK (status IN ('queued', 'running', 'finished', 'failed', 'cancelled')),
-  lease_owner text,
-  lease_expires_at timestamptz,
-  attempts integer NOT NULL DEFAULT 0,
-  created_at timestamptz NOT NULL DEFAULT now(),
-  finished_at timestamptz,
-  receipt jsonb
-);
--- An operator retry permits one fresh attempt of a cached failure; successful results stay cached.
-ALTER TABLE refit_jobs ADD COLUMN IF NOT EXISTS retry boolean NOT NULL DEFAULT false;
-CREATE UNIQUE INDEX IF NOT EXISTS refit_jobs_open ON refit_jobs (target_id)
-  WHERE status IN ('queued', 'running');
-CREATE INDEX IF NOT EXISTS refit_targets_installation ON refit_targets (installation_id);
--- No policies: data APIs such as Supabase's see nothing; the owning worker role bypasses RLS.
-ALTER TABLE refit_installations ENABLE ROW LEVEL SECURITY;
-ALTER TABLE refit_installation_repositories ENABLE ROW LEVEL SECURITY;
-ALTER TABLE refit_deliveries ENABLE ROW LEVEL SECURITY;
-ALTER TABLE refit_approvals ENABLE ROW LEVEL SECURITY;
-ALTER TABLE refit_targets ENABLE ROW LEVEL SECURITY;
-ALTER TABLE refit_jobs ENABLE ROW LEVEL SECURITY;
-`;
 
 export interface HostedTarget {
   id: string;
@@ -109,21 +46,6 @@ export interface HostedReceipt {
 export function hostedTargetId(repository: string, base: string, integration?: string | null) {
   const hash = digest(`${repository.toLowerCase()}#${base}`).slice(0, TARGET_HASH_LENGTH);
   return integration ? `${hash}.${integration}` : hash;
-}
-
-export async function transaction<T>(pool: Pool, operation: (client: PoolClient) => Promise<T>) {
-  const client = await pool.connect();
-  try {
-    await client.query('BEGIN');
-    const result = await operation(client);
-    await client.query('COMMIT');
-    return result;
-  } catch (error) {
-    await client.query('ROLLBACK');
-    throw error;
-  } finally {
-    client.release();
-  }
 }
 
 // Creates or refreshes targets for installed repositories that have a stored approval, and queues
@@ -187,9 +109,11 @@ export async function openHostedStore(
   pool: Pool,
   tenancy: HostedTenancy = { accounts: [], limits: DEFAULT_TENANCY_LIMITS },
 ) {
+  await migrateHostedSchema(pool);
+  // shortcut: `refit hosted migrate` does not create the tenancy and approval tables, which predate
+  // versioned migrations; append them to MIGRATIONS before release.
   await transaction(pool, async (client) => {
-    await client.query('SELECT pg_advisory_xact_lock($1)', [SCHEMA_LOCK]);
-    await client.query(SCHEMA);
+    await client.query('SELECT pg_advisory_xact_lock($1)', [MIGRATION_LOCK]);
     await client.query(TENANCY_SCHEMA);
     await client.query(APPROVAL_SCHEMA);
   });
