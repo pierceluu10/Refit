@@ -28,6 +28,8 @@ const commands = new Map([
   ['slack', 'slack-cli.ts'],
   ['cloudflare', 'cloudflare-cli.ts'],
   ['github-api', 'github-api-cli.ts'],
+  ['cloud-sdk', 'cloud-sdk-cli.ts'],
+  ['messaging', 'messaging-cli.ts'],
   ['shopify-rest', 'shopify-rest-cli.ts'],
 ]);
 const usage = `Refit: reviewable API migrations
@@ -58,6 +60,8 @@ Usage: refit <command> [options]
   slack            List Slack Web API methods called, with Slack's deprecations (review only)
   cloudflare       List Cloudflare API requests and Workers compatibility dates (review only)
   github-api       List GitHub REST, GraphQL and version-header use with deprecations (review only)
+  cloud-sdk        List AWS SDK v2 and v3 clients and legacy Azure SDK packages (review only)
+  messaging        List deprecated Twilio and Mailgun calls and retired messaging SDKs (review only)
   shopify-rest     List Shopify REST Admin calls to endpoints a later API version removes (review only)
 
 Use refit <command> --help for command options.

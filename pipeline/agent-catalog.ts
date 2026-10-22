@@ -1,4 +1,4 @@
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { repositoryApiVersionPins, type ApiVersionPin } from './commerce-api-versions.ts';
@@ -19,6 +19,12 @@ export interface ProviderAgent {
   adapter: { builtIn: string } | { file: string } | null;
   guide: string | null;
 }
+
+// The retired legacy (track 1) Azure SDK packages, generated from Microsoft's release data by
+// scripts/azure-sdk-retirements.mjs.
+const AZURE_LEGACY_PACKAGES: string[] = JSON.parse(
+  readFileSync(new URL('../data/azure-sdk-retirements.json', import.meta.url), 'utf8'),
+).packages.map((item: { name: string }) => item.name);
 
 // Source: npm package names and documented API base URLs on each provider's docs, 2026-10-15.
 export const AGENT_CATALOG: ProviderAgent[] = [
@@ -99,21 +105,64 @@ export const AGENT_CATALOG: ProviderAgent[] = [
     adapter: null,
     guide: 'docs/GITHUB-API-DETECTION.md',
   },
+  // Messaging (docs/MESSAGING-APIS.md). Package names were checked on the npm registry and each
+  // host read from the SDK's own source on 2026-10-22: twilio 6.2.0 (`lib/rest/*Base.js`),
+  // @sendgrid/client 8.1.6, resend 6.34.1, postmark 5.1.0 and mailgun.js 14.1.0 (the EU host from
+  // its README). `sendgrid` and `mailgun-js` are the retired packages npm marks deprecated.
   {
     id: 'twilio',
     name: 'Twilio',
     packages: ['twilio'],
-    hostnames: ['api.twilio.com'],
+    hostnames: [
+      'accounts.twilio.com',
+      'api.twilio.com',
+      'bulkexports.twilio.com',
+      'chat.twilio.com',
+      'content.twilio.com',
+      'conversations.twilio.com',
+      'events.twilio.com',
+      'flex-api.twilio.com',
+      'frontline-api.twilio.com',
+      'iam.twilio.com',
+      'insights.twilio.com',
+      'intelligence.twilio.com',
+      'ip-messaging.twilio.com',
+      'knowledge.twilio.com',
+      'lookups.twilio.com',
+      'marketplace.twilio.com',
+      'memory.twilio.com',
+      'messaging.twilio.com',
+      'monitor.twilio.com',
+      'notify.twilio.com',
+      'numbers.twilio.com',
+      'oauth.twilio.com',
+      'preview-iam.twilio.com',
+      'preview.twilio.com',
+      'pricing.twilio.com',
+      'proxy.twilio.com',
+      'routes.twilio.com',
+      'serverless.twilio.com',
+      'studio.twilio.com',
+      'supersim.twilio.com',
+      'sync.twilio.com',
+      'taskrouter.twilio.com',
+      'trunking.twilio.com',
+      'trusthub.twilio.com',
+      'verify.twilio.com',
+      'video.twilio.com',
+      'voice.twilio.com',
+      'wireless.twilio.com',
+    ],
     adapter: null,
-    guide: null,
+    guide: 'docs/MESSAGING-APIS.md',
   },
   {
     id: 'sendgrid',
     name: 'SendGrid',
-    packages: ['@sendgrid/mail', '@sendgrid/client'],
-    hostnames: ['api.sendgrid.com'],
+    packages: ['@sendgrid/mail', '@sendgrid/client', 'sendgrid'],
+    hostnames: ['api.sendgrid.com', 'api.eu.sendgrid.com'],
     adapter: null,
-    guide: null,
+    guide: 'docs/MESSAGING-APIS.md',
   },
   {
     id: 'resend',
@@ -121,7 +170,23 @@ export const AGENT_CATALOG: ProviderAgent[] = [
     packages: ['resend'],
     hostnames: ['api.resend.com'],
     adapter: null,
-    guide: null,
+    guide: 'docs/MESSAGING-APIS.md',
+  },
+  {
+    id: 'postmark',
+    name: 'Postmark',
+    packages: ['postmark'],
+    hostnames: ['api.postmarkapp.com'],
+    adapter: null,
+    guide: 'docs/MESSAGING-APIS.md',
+  },
+  {
+    id: 'mailgun',
+    name: 'Mailgun',
+    packages: ['mailgun.js', 'mailgun-js'],
+    hostnames: ['api.mailgun.net', 'api.eu.mailgun.net'],
+    adapter: null,
+    guide: 'docs/MESSAGING-APIS.md',
   },
   {
     id: 'paypal',
@@ -356,6 +421,27 @@ export const AGENT_CATALOG: ProviderAgent[] = [
       '@auth/qwik',
       '@auth/solid-start',
     ],
+    hostnames: [],
+    adapter: null,
+    guide: null,
+  },
+  // AWS SDK for JavaScript v2, whose support ended on 2025-09-08 (data/deadlines.json). No hostname:
+  // amazonaws.com also appears in S3 asset URLs and CSP lists that use no SDK. v3's per-service
+  // @aws-sdk/client-* packages are listed by scanCloudSdkClients (pipeline/cloud-sdk-clients.ts)
+  // rather than named here one by one.
+  {
+    id: 'aws',
+    name: 'AWS SDK for JavaScript',
+    packages: ['aws-sdk'],
+    hostnames: [],
+    adapter: null,
+    guide: null,
+  },
+  // Only the retired legacy Azure SDK packages: their end of life is the deadline Refit monitors.
+  {
+    id: 'azure',
+    name: 'Azure SDK (legacy)',
+    packages: AZURE_LEGACY_PACKAGES,
     hostnames: [],
     adapter: null,
     guide: null,

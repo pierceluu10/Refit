@@ -92,7 +92,7 @@ it('exports regression evidence without implying that checks passed or a PR exis
   );
 });
 
-it('follows the PR template: five sections, single-sentence bullets and no emoji', async () => {
+it('follows the PR template: its sections, single-sentence bullets and no emoji', async () => {
   const value = await report();
   value.changes.unshift({
     id: 'unrelated',
@@ -110,9 +110,18 @@ it('follows the PR template: five sections, single-sentence bullets and no emoji
     '## Key Changes',
     '## Code Changes',
     '## Automated Verification Gates',
+    '## Not Verified',
+    '## Rollback',
+    '## Reviewer Checklist',
     '## Related Telemetry',
   ]);
   expect(body).toContain('A deterministic Refit rule migrates');
+  expect(body).toContain('- Revert this pull request. It changes 1 file');
+  expect(body).toContain(
+    '- [ ] Read each change under Code Changes against the provider page linked in Overview.',
+  );
+  expect(body).toContain('Stripe documents the change: [docs.stripe.com/api/charges/list]');
+  expect(body).toContain('- Refit made no request to Stripe, and the checks did not pass');
   expect(body).toContain('- Breaking Changes: Removes response fields `payment_intent.charges`');
   expect(body).toContain('- `billing.ts`: Migrates reads of `payment_intent.charges`');
   expect(body).toContain('- Test Suite Output: **Validation did not pass (regression).**');
