@@ -31,6 +31,7 @@ const commands = new Map([
   ['cloud-sdk', 'cloud-sdk-cli.ts'],
   ['messaging', 'messaging-cli.ts'],
   ['report', 'report-cli.ts'],
+  ['api-hosts', 'api-hosts-cli.ts'],
 ]);
 const usage = `Refit: reviewable API migrations
 
@@ -69,6 +70,7 @@ Usage: refit <command> [options]
   cloud-sdk        List AWS SDK v2 and v3 clients and legacy Azure SDK packages (review only)
   messaging        List deprecated Twilio and Mailgun calls and retired messaging SDKs (review only)
   report           Report a repository's provider integrations, deadlines and AI model calls
+  api-hosts        List the external HTTP API hosts a repository calls (review only)
 
 Use refit <command> --help for command options.
 Use --env <path> to load credentials explicitly. Existing environment values take precedence.
