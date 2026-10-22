@@ -84,5 +84,5 @@ The budget ledgers recorded $0.058 (before) and $0.005 (after), $0.063 in all ag
 ## Blocked
 
 - **Docker.** Validation of after cases 8 to 22 and the billing demo. The disk filled about 08:53 UTC, Docker Desktop crashed at 08:58 and was still not responding at 15:10 UTC. It was not restarted because other agents share it.
-  - To finish: with Docker healthy, delete those case directories under the after output and rerun `scripts/ai-patch-eval.sh` from a worktree at 001fa3e or later (it resumes). Then score with `npm run eval:ai-patch`.
+  - To finish: with Docker healthy, run `scripts/ai-patch-eval.sh` for all 24 cases into a new output from a worktree at 001fa3e or later, then score it with `npm run eval:ai-patch` against the before results above. The partial run outputs were not kept.
 - **AWS.** `node scripts/aws-benchmark.mjs launch` was first refused by this session's permission classifier. A later launch from lane PG9 on 2026-10-22 got `UnauthorizedOperation`: `ec2:RunInstances` is explicitly denied by an organization service control policy. Validation on AWS needs that policy changed.
