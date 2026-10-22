@@ -56,6 +56,18 @@
       "after": "0b3e8a6",
       "change": "added sent long_context_eval.py:158 qwen3-32b",
       "reason": "Labelling miss: self.model_name = os.getenv(\"QWEN_MODEL_NAME\", \"qwen3-32b\") on the Qwen path reaches the calls that send self.model_name. Found when the first scored run reported it."
+    },
+    {
+      "repo": "GenSI-THUAIR/FLEX",
+      "after": "798d715",
+      "change": "added sent icl.py:129 openai/gpt-5",
+      "reason": "Labelling miss: the --model argparse default reaches client.chat.completions.create through args.model. Found when the second scored run reported it."
+    },
+    {
+      "repo": "wangyu-ustc/Mem-alpha",
+      "after": "798d715",
+      "change": "added sent long_context_eval.py:1624 gpt-4o-mini",
+      "reason": "Labelling miss: the --model argparse default becomes LongContextEvaluator's model_name, which the Azure path sends. Found when the second scored run reported it."
     }
   ],
   "repos": [
@@ -1421,14 +1433,14 @@
           "file": "long_context_eval.py",
           "line": 158,
           "model": "qwen3-32b"
+        },
+        {
+          "file": "long_context_eval.py",
+          "line": 1624,
+          "model": "gpt-4o-mini"
         }
       ],
       "notSent": [
-        {
-          "file": "long_context_eval.py",
-          "line": 53,
-          "model": "gpt-4o-mini"
-        },
         {
           "file": "memory_server.py",
           "line": 59,
@@ -1443,6 +1455,11 @@
           "file": "agent.py",
           "line": 36,
           "model": "Qwen/Qwen3-8B"
+        },
+        {
+          "file": "long_context_eval.py",
+          "line": 53,
+          "model": "gpt-4o-mini"
         }
       ],
       "ambiguous": [],
@@ -1549,6 +1566,11 @@
         {
           "file": "reject_sampling.py",
           "line": 753,
+          "model": "openai/gpt-5"
+        },
+        {
+          "file": "icl.py",
+          "line": 129,
           "model": "openai/gpt-5"
         }
       ],
