@@ -203,6 +203,8 @@ it('classifies infrastructure errors from the fields rows already have', () => {
     'package.json dependencies differ from the committed package-lock.json: next is "15.3.6"',
     'stdout maxBuffer length exceeded',
     'Validation does not accept tracked symbolic links or submodules.',
+    // From a real run: the tree filled the workspace; Yarn's retry notice is not the cause.
+    'yarn dependency preparation failed (1). \nerror Error: ENOSPC: no space left on device, write\nerror https://registry.yarnpkg.com/@esbuild/linux-x64/-/linux-x64-0.25.12.tgz: ENOSPC: no space left on device, write\ninfo There appears to be trouble with your network connection. Retrying...',
   ])
     expect(workflow({ error })).toEqual({ outcomeClass: 'repository' });
   expect(

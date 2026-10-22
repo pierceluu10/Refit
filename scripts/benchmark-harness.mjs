@@ -207,9 +207,14 @@ export async function checkoutError(directory, commit) {
 const DOCKER_FAILURE =
   /Cannot connect to the Docker daemon|Is the docker daemon running|error during connect|Error response from daemon|No such image|spawn docker ENOENT|Docker did not resolve a unique immutable image ID/;
 // Network failures while dependency preparation downloads from the registry, and preparation
-// running out of time. Validation itself is offline, so these come only from preparation.
+// running out of time. Validation itself is offline, so these come only from preparation. Yarn's
+// "trouble with your network connection. Retrying..." is a notice, not the failure, so it is not
+// one of them.
 const REGISTRY_FAILURE =
-  /\b(?:ETIMEDOUT|ECONNRESET|ECONNREFUSED|EAI_AGAIN|ENOTFOUND|ESOCKETTIMEDOUT|ERR_SOCKET_TIMEOUT|EHOSTUNREACH|ENETUNREACH)\b|network request to \S+ failed|ERR_PNPM_META_FETCH_FAIL|trouble with your network connection|^Dependency preparation exceeded \d+ seconds/m;
+  /\b(?:ETIMEDOUT|ECONNRESET|ECONNREFUSED|EAI_AGAIN|ENOTFOUND|ESOCKETTIMEDOUT|ERR_SOCKET_TIMEOUT|EHOSTUNREACH|ENETUNREACH)\b|network request to \S+ failed|ERR_PNPM_META_FETCH_FAIL|^Dependency preparation exceeded \d+ seconds/m;
+// A dependency tree that fills the sandbox workspace is the repository's size against Refit's
+// limit, whatever network notices come with it.
+const WORKSPACE_FULL = /\bENOSPC\b/;
 const firstLine = (text, pattern) =>
   text
     .split('\n')
@@ -229,7 +234,7 @@ function workflowInfrastructure(workflow) {
   const text = [workflow.error, workflow.reason].filter(Boolean).join('\n');
   if (DOCKER_FAILURE.test(text))
     return { kind: 'docker', message: firstLine(text, DOCKER_FAILURE) };
-  if (REGISTRY_FAILURE.test(text))
+  if (REGISTRY_FAILURE.test(text) && !WORKSPACE_FULL.test(text))
     return { kind: 'registry', message: firstLine(text, REGISTRY_FAILURE) };
   return undefined;
 }
