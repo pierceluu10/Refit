@@ -48,6 +48,48 @@ export function validRange(range: string) {
   return comparators(range) !== undefined;
 }
 
+// The releases a range allows, as an interval: `undefined` bounds are open. A missing range allows
+// every release.
+function interval(range: string | null) {
+  let low: { version: Version; inclusive: boolean } | undefined;
+  let high: { version: Version; inclusive: boolean } | undefined;
+  for (const { operator, version } of comparators(range ?? '') ?? []) {
+    if (operator === '>' || operator === '>=' || operator === '=') {
+      const inclusive = operator !== '>';
+      if (
+        !low ||
+        compare(version, low.version) > 0 ||
+        (compare(version, low.version) === 0 && !inclusive)
+      )
+        low = { version, inclusive };
+    }
+    if (operator === '<' || operator === '<=' || operator === '=') {
+      const inclusive = operator !== '<';
+      if (
+        !high ||
+        compare(version, high.version) < 0 ||
+        (compare(version, high.version) === 0 && !inclusive)
+      )
+        high = { version, inclusive };
+    }
+  }
+  return { low, high };
+}
+
+// Whether two ranges of one package share a release, so that release would have two deadlines.
+export function rangesOverlap(left: string | null, right: string | null) {
+  const a = interval(left);
+  const b = interval(right);
+  const lows = [a.low, b.low].filter((bound) => bound !== undefined);
+  const highs = [a.high, b.high].filter((bound) => bound !== undefined);
+  for (const low of lows)
+    for (const high of highs) {
+      const order = compare(low.version, high.version);
+      if (order > 0 || (order === 0 && !(low.inclusive && high.inclusive))) return false;
+    }
+  return true;
+}
+
 // Whether a full version is inside a range. A prerelease counts as its release.
 export function satisfiesRange(version: string, range: string) {
   const match = VERSION.exec(version);
