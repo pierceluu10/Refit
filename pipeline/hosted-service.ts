@@ -4,6 +4,8 @@ import { hostname } from 'node:os';
 import { join, resolve } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 import type { Pool } from 'pg';
+import type { AiOptions } from './ai-budget.ts';
+import { validateRepairAttempts } from './validation-options.ts';
 import type { GitHubAppConfiguration } from './github-app.ts';
 import { standaloneStateDirectory } from './github-checkout.ts';
 import { parseWebhook, verifyWebhook, WebhookInputError } from './github-webhooks.ts';
@@ -20,6 +22,7 @@ import { confirmRepositoryAccess, pollServiceTarget, summarizePoll } from './ser
 import { PipelineInputError } from './types.ts';
 
 const HOSTED_HOST = '0.0.0.0';
+const GITHUB_OWNER = /^[a-z0-9][a-z0-9-]{0,38}$/;
 const REQUEST_TIMEOUT_MS = 10_000;
 const HEADERS_TIMEOUT_MS = 5_000;
 const MAX_CONNECTIONS = 64;
@@ -39,6 +42,12 @@ export async function runHostedService(options: {
   directory: string;
   webhookSecret: string;
   controlToken: string;
+  // Single-tenant until jobs run in per-job microVMs: other accounts' installations never enroll.
+  owner: string;
+  // Each installation gets its own ledger under the budget directory, capped at the same limit.
+  aiPatch?: AiOptions;
+  repairAttempts?: number;
+  publishDraft?: boolean;
   host?: string;
   port?: number;
   intervalSeconds?: number;
@@ -48,6 +57,13 @@ export async function runHostedService(options: {
   onReady?: (url: string) => void;
   onProgress?: (message: string) => void;
 }) {
+  const owner = options.owner.toLowerCase();
+  if (!GITHUB_OWNER.test(owner))
+    throw new PipelineInputError('REFIT_HOSTED_OWNER requires a GitHub account login.');
+  const repairAttempts = validateRepairAttempts(
+    options.repairAttempts ?? 0,
+    Boolean(options.aiPatch),
+  );
   validateServiceSecret(options.webhookSecret, 'REFIT_WEBHOOK_SECRET');
   validateServiceSecret(options.controlToken, 'REFIT_SERVICE_TOKEN');
   if (options.webhookSecret === options.controlToken)
@@ -120,7 +136,20 @@ export async function runHostedService(options: {
         app: options.app,
         stateDirectory: join(directory, 'targets', target.id),
         signal: controller.signal,
-        repairAttempts: 0,
+        aiPatch: options.aiPatch && {
+          ...options.aiPatch,
+          ...(options.aiPatch.budget && {
+            budget: {
+              ...options.aiPatch.budget,
+              directory: join(
+                options.aiPatch.budget.directory,
+                `installation-${target.installationId}`,
+              ),
+            },
+          }),
+        },
+        repairAttempts,
+        publishDraft: options.publishDraft,
         inspectReadiness: true,
         onProgress: progress,
       });
@@ -175,6 +204,10 @@ export async function runHostedService(options: {
         );
         const event = request.headers['x-github-event'];
         const change = parseWebhook(body, event, Number(options.app.appId));
+        if ('owner' in change && change.owner !== owner) {
+          respond(response, 202, { delivery: id, status: 'ignored', enrolled: [], cancelled: [] });
+          return;
+        }
         const receipt = await store.accept(id, String(event), body, change);
         for (const job of receipt.running) running.get(job)?.abort();
         if (receipt.enrolled.length) wake();

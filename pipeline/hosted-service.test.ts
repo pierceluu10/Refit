@@ -185,6 +185,7 @@ it.skipIf(!DATABASE || !process.env.REFIT_DOCKER_IMAGE || !process.env.REFIT_OAS
       directory: join(sample.root, 'hosted-state'),
       webhookSecret: WEBHOOK_SECRET,
       controlToken: CONTROL_TOKEN,
+      owner: 'Example',
       host: '127.0.0.1',
       port: 0,
       intervalSeconds: 30,
@@ -218,6 +219,13 @@ it.skipIf(!DATABASE || !process.env.REFIT_DOCKER_IMAGE || !process.env.REFIT_OAS
         )
       ).status,
     ).toBe(409);
+
+    const foreign = await deliver(url, 'installation', {
+      ...installationPayload('created', []),
+      installation: { id: 999, app_id: 123, account: { login: 'someone-else' } },
+      repositories: [{ id: 901, full_name: 'someone-else/application' }],
+    });
+    expect(foreign.body).toMatchObject({ status: 'ignored', enrolled: [] });
 
     let registry = await status(url);
     for (

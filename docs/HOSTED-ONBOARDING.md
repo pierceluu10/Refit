@@ -1,6 +1,6 @@
 # Hosted onboarding (design proposal)
 
-Status: **milestone 3 core implemented, not deployed.** `refit hosted` runs the single-tenant hosted worker on PostgreSQL (see [what is implemented](#implemented-single-tenant-hosted-worker)). The platform, isolation, OAuth and budget decisions at the end are still open, and nothing is hosted for customers.
+Status: **owner decisions recorded 2026-10-21; single-tenant worker implemented, not yet deployed.** `refit hosted` runs the hosted worker on PostgreSQL (see [what is implemented](#implemented-single-tenant-hosted-worker) and [deployment](#deploy-on-flyio)). Nothing is hosted for other customers.
 
 ## Goal
 
@@ -42,7 +42,10 @@ A customer installs the Refit GitHub App on selected repositories, reviews and a
 4. **Pipeline.** Each job confirms repository access through the GitHub API, verifies the approved inputs on a fresh App-managed checkout, runs `refit doctor`, then scans and validates with the approved checks in offline Docker. Blocked doctor checks stop the job before scanning. The job receipt (status, evidence path, revision, doctor status) is stored in PostgreSQL.
 5. **Cancellation.** Removing a repository, or deleting or suspending the installation, cancels its targets and open jobs in the same transaction that records the delivery. Running jobs in the same process are aborted immediately; jobs in other processes stop at their next lease renewal. A cancelled job keeps whatever evidence it produced. Re-adding the repository enrolls it again.
 
-Not yet included: AI generation and draft PR publication (they wait for per-tenant budgets and isolation), OAuth installation ownership, object storage for evidence (it stays on the worker's disk under `--state`), and per-job microVMs. Validation still uses the worker host's Docker daemon, which is not a multi-tenant boundary, so run this only for your own installation.
+6. **AI and draft PRs.** `--ai-patch` uses the owner's `OPENAI_API_KEY` with a separate ledger per installation (`installation-<id>` under `REFIT_AI_BUDGET_DIRECTORY`), each capped at `REFIT_AI_BUDGET_USD`. `--publish-draft` opens draft PRs as Refit Agent through the existing publication path. Both stay explicit flags.
+7. **Single owner.** `REFIT_HOSTED_OWNER` names the only GitHub account whose installations are recorded or enrolled. Other accounts' deliveries are acknowledged and ignored. This holds until jobs run in per-job microVMs.
+
+Not yet included: OAuth installation ownership and a browser approval flow, object storage for evidence (it stays on the Fly volume under `/data/state`), per-job microVMs and the audit log. Validation uses the Docker daemon inside the worker's Fly Machine. That machine is a Firecracker VM separate from other apps, but all jobs share it, which is why hosting stays single-owner.
 
 The end-to-end test in `pipeline/hosted-service.test.ts` runs when `REFIT_POSTGRES_URL`, `REFIT_DOCKER_IMAGE` and `REFIT_OASDIFF` are set. For example, with a disposable database:
 
@@ -51,7 +54,25 @@ docker run -d --name refit-hosted-pg -e POSTGRES_USER=refit -e POSTGRES_PASSWORD
 REFIT_POSTGRES_URL=postgres://refit:refit-local-test@127.0.0.1:55432/refit REFIT_DOCKER_IMAGE=node:22-alpine REFIT_OASDIFF=1 npx vitest run pipeline/hosted-service.test.ts
 ```
 
-## Decisions needed
+## Deploy on Fly.io
+
+`Dockerfile`, `fly.toml` and `scripts/hosted-entrypoint.sh` build the worker from the release tarball. The image adds oasdiff 1.33.0, git and a Docker daemon that keeps its data on the `/data` volume. The machine never idle-stops, because leases renew between webhooks.
+
+1. Create a Supabase project in a US region. Copy its session-pooler connection string with `?sslmode=require`.
+2. Install `flyctl`, run `fly auth login`, then `fly launch --no-deploy --copy-config` and `fly volumes create refit_data --size 20 --region iad`.
+3. Set secrets with `fly secrets set`: `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY` (the PEM contents), `REFIT_WEBHOOK_SECRET`, `REFIT_SERVICE_TOKEN`, `REFIT_DATABASE_URL`, `REFIT_HOSTED_OWNER`, `OPENAI_API_KEY`, `OPENAI_MODEL`. Add `REFIT_HOSTED_IMAGES` with the validation images that approved repositories name.
+4. `fly deploy`, then set the GitHub App webhook URL to `https://<app>.fly.dev/github/webhook`. Stop any local `refit serve` that used the old URL.
+5. Store approvals with `REFIT_DATABASE_URL=... refit hosted approve --approval <receipt.json> --approved-by <login>`, then install the App on those repositories.
+
+## Owner decisions (2026-10-21)
+
+- **Hosting platform:** Fly.io Machines.
+- **Data store:** Supabase PostgreSQL in a US region. Evidence stays on the Fly volume until object storage is added.
+- **AI provider and billing:** the owner's own API key, with a capped ledger per installation.
+- **Scope of the first hosted release:** validation and draft PRs from day one, limited to the owner's own account until per-job microVMs exist.
+- **Repository code retention:** still open. Managed checkouts currently persist on the volume between jobs to support deduplication.
+
+## Decisions originally requested
 
 - **Hosting platform:** for example Fly.io Machines (Firecracker), AWS (ECS plus Firecracker or Fargate), or GCP Cloud Run with gVisor. This decides the isolation model and cost.
 - **Data store:** managed PostgreSQL plus S3-compatible storage. Confirm the provider and region, which affects data residency.

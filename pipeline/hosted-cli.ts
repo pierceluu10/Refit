@@ -1,5 +1,6 @@
 import { parseArgs } from 'node:util';
 import pg from 'pg';
+import { assessmentConfiguration } from './assessment.ts';
 import { githubAppConfiguration } from './github-app.ts';
 import { runHostedService } from './hosted-service.ts';
 import { openHostedStore } from './hosted-store.ts';
@@ -9,10 +10,10 @@ import { PipelineInputError } from './types.ts';
 import { terminalText } from './workflow-presentation.ts';
 
 const GITHUB_LOGIN = /^[A-Za-z0-9][A-Za-z0-9-]{0,38}$/;
-const USAGE = `Usage: refit hosted serve --state <directory> [--host <address>] [--port <number>] [--interval <seconds>]
+const USAGE = `Usage: refit hosted serve --state <directory> [--host <address>] [--port <number>] [--interval <seconds>] [--ai-patch --repair-attempts 0|1|2] [--publish-draft]
        refit hosted approve --approval <receipt.json> --approved-by <github-login>
-Requires REFIT_DATABASE_URL (PostgreSQL). serve also requires GITHUB_APP_ID, GITHUB_APP_PRIVATE_KEY_FILE, REFIT_WEBHOOK_SECRET and a different REFIT_SERVICE_TOKEN.
-approve stores a receipt made by refit enroll. Installing the App on an approved repository enrolls it: the worker runs refit doctor, then scans and validates with the approved checks, and stores a job receipt. Installed repositories without an approval never run. Removing the repository or the installation cancels its targets and stops running jobs. AI generation and draft PR publication are not available in hosted mode yet.`;
+Requires REFIT_DATABASE_URL (PostgreSQL). serve also requires GITHUB_APP_ID, GITHUB_APP_PRIVATE_KEY_FILE, REFIT_WEBHOOK_SECRET, a different REFIT_SERVICE_TOKEN and REFIT_HOSTED_OWNER, the only GitHub account whose installations enroll until jobs run in per-job microVMs. --ai-patch uses OPENAI_API_KEY and OPENAI_MODEL with a separate REFIT_AI_BUDGET_USD ledger per installation under REFIT_AI_BUDGET_DIRECTORY.
+approve stores a receipt made by refit enroll. Installing the App on an approved repository enrolls it: the worker runs refit doctor, then scans and validates with the approved checks, and stores a job receipt. Installed repositories without an approval never run. Removing the repository or the installation cancels its targets and stops running jobs. --publish-draft opens draft PRs as Refit Agent; Refit never merges.`;
 
 function database() {
   const connectionString = process.env.REFIT_DATABASE_URL;
@@ -28,6 +29,9 @@ try {
       host: { type: 'string' },
       port: { type: 'string' },
       interval: { type: 'string' },
+      'ai-patch': { type: 'boolean' },
+      'repair-attempts': { type: 'string' },
+      'publish-draft': { type: 'boolean' },
       approval: { type: 'string' },
       'approved-by': { type: 'string' },
       help: { type: 'boolean' },
@@ -79,6 +83,10 @@ try {
         directory: values.state,
         webhookSecret,
         controlToken,
+        owner: process.env.REFIT_HOSTED_OWNER ?? '',
+        aiPatch: assessmentConfiguration(values['ai-patch'], process.env),
+        repairAttempts: Number(values['repair-attempts'] ?? 0),
+        publishDraft: values['publish-draft'],
         host: values.host,
         port: values.port === undefined ? undefined : Number(values.port),
         intervalSeconds: values.interval === undefined ? undefined : Number(values.interval),
