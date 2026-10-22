@@ -17,7 +17,13 @@ import { readRepository } from './repository.ts';
 import { runPipeline } from './run.ts';
 import { scanShopify, SHOPIFY_PACKAGES } from './shopify-analysis.ts';
 import { lockedShopifyApi } from './shopify-pipeline.ts';
-import { enumFromVersion, latestApiVersion, sdkHasEnumMember } from './shopify-versions.ts';
+import { SHOPIFY_API, SHOPIFY_SDK_MAJORS } from './shopify-sdk-upgrade.ts';
+import {
+  enumFromVersion,
+  latestApiVersion,
+  SHOPIFY_API_ENUM_SINCE,
+  sdkHasEnumMember,
+} from './shopify-versions.ts';
 import { PipelineInputError } from './types.ts';
 
 // Benchmark runs never send Slack notices.
@@ -26,7 +32,7 @@ delete CHILD_ENV.REFIT_SLACK_WEBHOOK_URL;
 
 const execute = promisify(execFile);
 const USAGE =
-  'Usage: npm run benchmark:shopify -- --root <benchmark-dir> --output <new-dir> [--resume] [--allow-dirty] [--list <frozen.json>] [--validate] [--limit N] [--concurrency N]';
+  'Usage: npm run benchmark:shopify -- --root <benchmark-dir> --output <new-dir> [--resume] [--allow-dirty] [--list <frozen.json>] [--validate] [--sdk-upgrade] [--limit N] [--concurrency N]';
 const PINNED = 'docs/benchmarks/2026-10-16-shopify-repos.json';
 const VALIDATION_IMAGE = 'node:22-alpine';
 // Default `npm init` script; it is not a check.
@@ -41,6 +47,7 @@ const { values } = parseArgs({
     output: { type: 'string' },
     list: { type: 'string' },
     validate: { type: 'boolean' },
+    'sdk-upgrade': { type: 'boolean' },
     limit: { type: 'string' },
     concurrency: { type: 'string' },
     // Continue an interrupted run in the same --output; see docs/BENCHMARK-HARNESS.md.
@@ -66,7 +73,12 @@ const { rows: previous } = await openRunDirectory(
     format: 'shopify-results',
     refitRoot: fileURLToPath(new URL('..', import.meta.url)),
     list: { path: list, file: list },
-    options: { validate: values.validate, limit: values.limit, concurrency: values.concurrency },
+    options: {
+      validate: values.validate,
+      sdkUpgrade: values['sdk-upgrade'],
+      limit: values.limit,
+      concurrency: values.concurrency,
+    },
     environment: ['REFIT_VALIDATION_WORKSPACE', 'REFIT_DEPENDENCY_TIMEOUT_SECONDS'],
     ...(values.validate ? { image: VALIDATION_IMAGE } : {}),
     allowDirty: values['allow-dirty'],
@@ -119,15 +131,24 @@ async function benchmark(entry: (typeof repos)[number], index: number) {
   const enumPinned = scan.versions.some(
     (pin) => pin.kind === 'enum' && !CODEGEN_CONFIG.test(pin.file),
   );
+  const upgrade = Boolean(values['sdk-upgrade']);
+  // With --sdk-upgrade, LATEST_API_VERSION and the enum can name what the upgraded SDK's major has.
+  const sdkNames = (version: string) => {
+    const member = enumFromVersion(version)!;
+    return Boolean(
+      (sdk && sdkHasEnumMember(sdk, member)) ||
+      (upgrade &&
+        SHOPIFY_API_ENUM_SINCE[member]?.startsWith(`${SHOPIFY_SDK_MAJORS[SHOPIFY_API]}.`)),
+    );
+  };
+  const sdkLimited = enumPinned || (upgrade && Boolean(latest));
   // The before contract is what Shopify serves for the pin; the target is the newest pinned schema
   // the code can name: any version for strings and URLs, members the locked SDK has for the enum.
   const before =
     pins.length === 1
       ? ([...versions].reverse().find((version) => version <= pins[0]) ?? versions[0])
       : versions[0];
-  const reachable = versions.filter(
-    (version) => !enumPinned || (sdk && sdkHasEnumMember(sdk, enumFromVersion(version)!)),
-  );
+  const reachable = versions.filter((version) => !sdkLimited || sdkNames(version));
   const after = reachable.at(-1);
   Object.assign(result, {
     packageName,
@@ -166,6 +187,7 @@ async function benchmark(entry: (typeof repos)[number], index: number) {
       before: snapshot(before),
       after: snapshot(target),
       proposePatch: true,
+      shopifySdkUpgrade: upgrade,
     })) as unknown as {
       status: string;
       findings: {
@@ -176,7 +198,13 @@ async function benchmark(entry: (typeof repos)[number], index: number) {
         contractReview?: string;
         changeId: string;
       }[];
-      patch: { status: string; reason?: string; diff?: string; warnings?: string[] };
+      patch: {
+        status: string;
+        reason?: string;
+        diff?: string;
+        warnings?: string[];
+        shopifySdkUpgrade?: unknown;
+      };
       shopify: { deprecated: string[] };
       apiVersion: { applicability: string };
     };
@@ -202,6 +230,7 @@ async function benchmark(entry: (typeof repos)[number], index: number) {
         review: finding.contractReview,
       })),
     };
+    if (report.patch.shopifySdkUpgrade) result.sdkUpgrade = report.patch.shopifySdkUpgrade;
     if (report.patch.diff) await writeFile(join(work, 'proposal.patch'), report.patch.diff);
     if (report.patch.status !== 'proposed') {
       // Pinned to the newest schema Refit has: nothing to move, whatever else the scan reports.
@@ -257,6 +286,7 @@ async function benchmark(entry: (typeof repos)[number], index: number) {
         bundle,
         '--quiet',
         '--json',
+        ...(upgrade ? ['--shopify-sdk-upgrade'] : []),
       ],
       { env: CHILD_ENV, timeout: VALIDATION_TIMEOUT_MS, maxBuffer: 64 * 1024 * 1024 },
     );

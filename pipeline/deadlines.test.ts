@@ -1008,6 +1008,21 @@ it('checks the registry shape and flags past-due entries and entries without a s
           }),
           extra: true,
         },
+        // Read exactly 30 days before NOW, then 31.
+        entry({
+          id: 'checked-30',
+          provider: 'shopify',
+          versions: ['2026-04'],
+          date: '2027-04-01',
+          checkedAt: '2026-09-15',
+        }),
+        entry({
+          id: 'checked-31',
+          provider: 'shopify',
+          versions: ['2026-07'],
+          date: '2027-07-01',
+          checkedAt: '2026-09-14',
+        }),
         {
           ...entry({ id: 'derived', provider: 'openai', versions: ['d'], date: '2027-01-01' }),
           derivedDate: false,
@@ -1018,6 +1033,7 @@ it('checks the registry shape and flags past-due entries and entries without a s
   );
   expect(report.pastDue).toEqual([{ id: 'past', date: '2026-01-01', days: 287 }]);
   expect(report.missingSource).toEqual(['unsourced']);
+  expect(report.stale).toEqual([{ id: 'checked-31', checkedAt: '2026-09-14', days: 31 }]);
   expect(report.errors).toEqual([
     'Bad.Id: unknown fields extra.',
     'Bad.Id: id must be lowercase letters, digits and hyphens.',
@@ -1042,6 +1058,43 @@ it('checks the registry shape and flags past-due entries and entries without a s
   expect((await loadDeadlineRegistry(path, NOW)).deadlines.map((item) => item.id)).toEqual([
     'kept',
   ]);
+});
+
+it('warns on stale entries from --check-registry without failing it', async () => {
+  const today = new Date().toISOString().slice(0, 10);
+  const root = await repository({
+    'registry.json': {
+      formatVersion: 1,
+      deadlines: [
+        entry({
+          id: 'read-today',
+          provider: 'shopify',
+          versions: ['2030-01'],
+          date: '2030-04-01',
+          checkedAt: today,
+        }),
+        entry({
+          id: 'read-long-ago',
+          provider: 'shopify',
+          versions: ['2030-04'],
+          date: '2030-07-01',
+          checkedAt: '2026-01-02',
+        }),
+      ],
+    },
+  });
+  const { stdout } = await promisify(execFile)(process.execPath, [
+    resolve('bin/refit.mjs'),
+    'deadlines',
+    '--check-registry',
+    '--registry',
+    join(root, 'registry.json'),
+  ]);
+  expect(stdout).toMatch(/^Deadline registry is valid$/m);
+  expect(stdout).toMatch(
+    /^ {2}stale {5}read-long-ago \(checked 2026-01-02, \d+ days ago; read its source again\)$/m,
+  );
+  expect(stdout).not.toMatch(/read-today/);
 });
 
 it('keeps the shipped registry valid and sourced', async () => {

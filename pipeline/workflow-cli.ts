@@ -17,7 +17,7 @@ import { hasErrorCode } from './state-files.ts';
 const RUN_DIRECTORY_PREFIX = 'refit-run-';
 
 const USAGE =
-  'Usage: refit run [--integration <id>] [--output <new-directory-outside-repository>]\n   or: refit run --config <run.json> [--repository <git-root>] [--output <new-directory>]\n   or: refit run --repository <clean-git-directory> --before <spec.json-or-yaml> (--after <spec.json-or-yaml> | --latest-stripe) --image <local-image> --command \'["npm","test"]\'\nOptional: [--env <.env>] [--quiet] [--human | --json] [--api-version <current-api-version>] [--api-version-policy operator-pin|source-verified] [--full-diff (requires oasdiff)] [--provider-config <adapter.json>] [--assess] [--ai-patch [--documentation-snapshot <saved-note.json> ...]] [--repair-attempts 0|1|2 (sends failed check output to OpenAI)] [--publish-unresolved] [--publish-draft --github owner/repository --base main [--github-app]]';
+  'Usage: refit run [--integration <id>] [--output <new-directory-outside-repository>]\n   or: refit run --config <run.json> [--repository <git-root>] [--output <new-directory>]\n   or: refit run --repository <clean-git-directory> --before <spec.json-or-yaml> (--after <spec.json-or-yaml> | --latest-stripe) --image <local-image> --command \'["npm","test"]\'\nOptional: [--env <.env>] [--quiet] [--human | --json] [--api-version <current-api-version>] [--api-version-policy operator-pin|source-verified] [--full-diff (requires oasdiff)] [--provider-config <adapter.json>] [--assess] [--ai-patch [--documentation-snapshot <saved-note.json> ...]] [--repair-attempts 0|1|2 (sends failed check output to OpenAI)] [--publish-unresolved] [--shopify-sdk-upgrade] [--publish-draft --github owner/repository --base main [--github-app]]';
 
 try {
   const { values } = parseArgs({
@@ -47,6 +47,7 @@ try {
       'publish-draft': { type: 'boolean' },
       'github-app': { type: 'boolean' },
       'publish-unresolved': { type: 'boolean' },
+      'shopify-sdk-upgrade': { type: 'boolean' },
       github: { type: 'string' },
       base: { type: 'string' },
       help: { type: 'boolean' },
@@ -110,6 +111,7 @@ try {
       generatedChecks: configuration?.generatedChecks,
       compareTypeErrors: configuration?.compareTypeErrors,
       keepListedPaymentMethods: configuration?.keepListedPaymentMethods,
+      shopifySdkUpgrade: values['shopify-sdk-upgrade'],
       command,
       baselineCommand:
         values['baseline-command'] !== undefined

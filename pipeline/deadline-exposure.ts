@@ -6,6 +6,8 @@ import { AGENT_CATALOG, builtInPackage } from './agent-catalog.ts';
 import { daysUntil, type DeadlineEntry, type DeadlineRegistry } from './deadline-registry.ts';
 import { cloudflareEndpointUses } from './cloudflare-calls.ts';
 import { githubDeadlineUses } from './github-api-calls.ts';
+import { detectModelHosts, hostDeadlineMatches } from './model-hosts.ts';
+import { modelWrapperSites } from './model-wrappers.ts';
 import { repositoryApiVersionPins } from './commerce-api-versions.ts';
 import { declaredPackageNames, readRepository } from './repository.ts';
 import {
@@ -62,6 +64,8 @@ export interface DeadlineEvidence {
   use: DeadlineUse;
   version: string;
   text: string;
+  // For a model sent through an AI wrapper SDK, the call that sends it (pipeline/model-wrappers.ts).
+  via?: string;
 }
 
 export interface DeadlineExposure {
@@ -546,6 +550,12 @@ export async function scanDeadlines(
     .filter((entry) => entry.kind === 'feature')
     .flatMap((entry) => entry.versions.map((marker) => ({ provider: entry.provider, marker })));
   const repository = await readRepository(root, META_SDK);
+  // Models sent through AI wrapper SDKs: each match names the call that sends it, and gateway or
+  // registry IDs such as `'openai/gpt-4o'`, which the exact match below cannot see, are added.
+  const wrapped = modelWrapperSites(repository);
+  const via = new Map(
+    wrapped.map((site) => [`${site.file}:${site.line}:${site.version}`, site.via]),
+  );
   for (const file of repository.files) {
     const shopifyFile = SHOPIFY_CONTEXT.some((name) => file.content.includes(name));
     const metaFile = META_CONTEXT.some((name) => file.content.includes(name));
@@ -561,6 +571,9 @@ export async function scanDeadlines(
           kind: 'source',
           use: useAt(offset + match.column, match.provider, line, match.version),
           text: excerpt(line),
+          ...(via.has(`${file.path}:${index + 1}:${match.version}`)
+            ? { via: via.get(`${file.path}:${index + 1}:${match.version}`) }
+            : {}),
         });
       }
       // A product that shuts down: each marker in code, with test and example files kept apart and
@@ -582,6 +595,27 @@ export async function scanDeadlines(
       offset += line.length + 1;
     }
   }
+  // Models called through Amazon Bedrock, Azure OpenAI or OpenRouter (pipeline/model-hosts.ts).
+  for (const match of hostDeadlineMatches(detectModelHosts(repository), (provider, version) =>
+    byVersion.has(`${provider}:${version}`),
+  ))
+    record(match.provider, match.version, {
+      file: match.site.file,
+      line: match.site.line,
+      kind: 'source',
+      use: TEST_PATH.test(match.site.file) ? 'test' : 'live',
+      text: excerpt(match.text),
+    });
+  for (const site of wrapped)
+    if (site.model !== site.version)
+      record(site.provider, site.version, {
+        file: site.file,
+        line: site.line,
+        kind: 'source',
+        use: TEST_PATH.test(site.file) ? 'test' : 'live',
+        text: site.model,
+        via: site.via,
+      });
   // API versions pinned by header, SDK option or URL path, for providers that version that way.
   if (registry.deadlines.some((entry) => entry.kind === 'api-version'))
     for (const pin of repositoryApiVersionPins(repository))
