@@ -196,14 +196,14 @@ it('charges each launch from launch to exit, now or its deadman, with a one-minu
   const perHour = 0.1785 + (100 * 0.08) / 730;
   const launches = [
     { shard: 0, instance: 'i-a', launchedAt: '2026-10-22T08:00:00.000Z' },
-    // Shard 1 failed after 30 minutes and was retried; the retry still runs.
+    // Shard 1 failed after 30 minutes and was retried; the retry, listed first, still runs.
+    { shard: 1, instance: 'i-c', launchedAt: '2026-10-22T08:40:00.000Z' },
     {
       shard: 1,
       instance: 'i-b',
       launchedAt: '2026-10-22T08:00:00.000Z',
       endedAt: '2026-10-22T08:30:00.000Z',
     },
-    { shard: 1, instance: 'i-c', launchedAt: '2026-10-22T08:40:00.000Z' },
     // Shard 2 never uploaded an exit code and its instance is gone.
     { shard: 2, instance: 'i-d', launchedAt: '2026-10-22T08:00:00.000Z' },
     // Shard 3 failed within seconds.

@@ -114,15 +114,13 @@ export function runCost(run, launches, exitTimes, runningIds, now, prices) {
   if (hourly === undefined)
     throw new Error(`No price for ${run.instanceType}; add it to the cost table.`);
   const perHour = hourly + (run.diskGib * prices.gp3UsdPerGibMonth) / HOURS_PER_MONTH;
-  const latest = new Map();
-  for (const launch of launches)
-    if (
-      !latest.has(launch.shard) ||
-      Date.parse(launch.launchedAt) > Date.parse(latest.get(launch.shard).launchedAt)
-    )
-      latest.set(launch.shard, launch);
-  const rows = launches.map((launch) => {
-    const exited = latest.get(launch.shard) === launch ? exitTimes.get(launch.shard) : undefined;
+  // In launch order per shard, so each shard's last launch is the one its exit code belongs to.
+  const ordered = [...launches].sort(
+    (a, b) => a.shard - b.shard || Date.parse(a.launchedAt) - Date.parse(b.launchedAt),
+  );
+  const rows = ordered.map((launch, index) => {
+    const latest = ordered[index + 1]?.shard !== launch.shard;
+    const exited = latest ? exitTimes.get(launch.shard) : undefined;
     const running = !launch.endedAt && !exited && runningIds.has(launch.instance);
     const end = launch.endedAt ?? exited ?? (running ? now : undefined);
     const estimated = end === undefined;
@@ -142,9 +140,7 @@ export function runCost(run, launches, exitTimes, runningIds, now, prices) {
   return {
     instanceType: run.instanceType,
     market: run.market,
-    launches: rows
-      .sort((a, b) => a.shard - b.shard)
-      .map((row) => ({ ...row, usd: round(row.usd) })),
+    launches: rows.map((row) => ({ ...row, usd: round(row.usd) })),
     usd: round(rows.reduce((sum, row) => sum + row.usd, 0)),
   };
 }
