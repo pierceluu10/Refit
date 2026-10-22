@@ -5,8 +5,16 @@ import { PipelineInputError } from './types.ts';
 export const DEFAULT_DEADLINE_REGISTRY = new URL('../data/deadlines.json', import.meta.url);
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 const ENTRY_ID = /^[a-z0-9][a-z0-9-]{0,95}$/;
-const PROVIDERS = new Set(['shopify', 'meta-graph', 'openai', 'anthropic', 'gemini', 'slack']);
-const KINDS = new Set(['api-version', 'model', 'sdk', 'method']);
+const PROVIDERS = new Set([
+  'shopify',
+  'meta-graph',
+  'openai',
+  'anthropic',
+  'gemini',
+  'slack',
+  'cloudflare',
+]);
+const KINDS = new Set(['api-version', 'model', 'sdk', 'method', 'endpoint']);
 const ENTRY_KEYS = [
   'id',
   'provider',
@@ -25,14 +33,15 @@ const MILLISECONDS_PER_DAY = 86_400_000;
 
 // One reviewed sunset: the date a provider stops serving these API versions or models, or ends
 // support for these SDK packages (`kind: 'sdk'`, whose versions are npm package names) or retires
-// these API methods (`kind: 'method'`, whose versions are method names such as `files.upload`), with the
+// these API methods (`kind: 'method'`, whose versions are method names such as `files.upload`) or
+// HTTP endpoints (`kind: 'endpoint'`, whose versions read `GET /zones/{zone_id}/settings`), with the
 // page it came from and the day a person last checked that page. `derivedDate` marks a date the
 // provider never announced as a shutdown, such as one taken from a release date or an OpenAPI eol
 // field.
 export interface DeadlineEntry {
   id: string;
-  provider: 'shopify' | 'meta-graph' | 'openai' | 'anthropic' | 'gemini' | 'slack';
-  kind: 'api-version' | 'model' | 'sdk' | 'method';
+  provider: 'shopify' | 'meta-graph' | 'openai' | 'anthropic' | 'gemini' | 'slack' | 'cloudflare';
+  kind: 'api-version' | 'model' | 'sdk' | 'method' | 'endpoint';
   versions: string[];
   date: string;
   summary: string;
@@ -92,7 +101,7 @@ export function checkDeadlineRegistry(value: unknown, now: Date) {
     if (!PROVIDERS.has(String(entry.provider)))
       errors.push(`${label}: provider must be one of ${[...PROVIDERS].join(', ')}.`);
     if (!KINDS.has(String(entry.kind)))
-      errors.push(`${label}: kind must be api-version, model, sdk or method.`);
+      errors.push(`${label}: kind must be one of ${[...KINDS].join(', ')}.`);
     if (
       !Array.isArray(entry.versions) ||
       !entry.versions.length ||

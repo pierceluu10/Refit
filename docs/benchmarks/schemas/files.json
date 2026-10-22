@@ -105,6 +105,18 @@
       "format": "ai-model-results",
       "predates": ["/harness", "/results/*/outcomeClass"]
     },
+    "2026-10-22-cloudflare-baseline-results.json": {
+      "format": "cloudflare-results",
+      "predates": []
+    },
+    "2026-10-22-cloudflare-heldout-blind-results.json": {
+      "format": "cloudflare-results",
+      "predates": []
+    },
+    "2026-10-22-cloudflare-results.json": {
+      "format": "cloudflare-results",
+      "predates": []
+    },
     "2026-10-22-inventory-sample-results.json": {
       "format": "inventory-sample-results",
       "predates": []

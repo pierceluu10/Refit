@@ -4,6 +4,7 @@ import { isAbsolute, join, relative, resolve } from 'node:path';
 import ts from 'typescript-compiler';
 import { AGENT_CATALOG, builtInPackage } from './agent-catalog.ts';
 import { daysUntil, type DeadlineEntry, type DeadlineRegistry } from './deadline-registry.ts';
+import { cloudflareEndpointUses } from './cloudflare-calls.ts';
 import { readRepository } from './repository.ts';
 import { slackMethodUses } from './slack-calls.ts';
 import { isObject, parseObject } from './specifications.ts';
@@ -575,6 +576,17 @@ export async function scanDeadlines(
   if (registry.deadlines.some((entry) => entry.kind === 'method' && entry.provider === 'slack'))
     for (const use of await slackMethodUses(root, repository))
       record('slack', use.method, { ...use, kind: 'source' });
+  // Retired endpoints: each request that reaches one, from the provider's call scanner.
+  const endpoints = registry.deadlines.filter(
+    (entry) => entry.kind === 'endpoint' && entry.provider === 'cloudflare',
+  );
+  if (endpoints.length)
+    for (const use of await cloudflareEndpointUses(
+      root,
+      endpoints.flatMap((entry) => entry.versions),
+      repository,
+    ))
+      record('cloudflare', use.version, { ...use, kind: 'source' });
   for (const pin of await configuredApiVersions(root))
     record(pin.provider, pin.version, {
       file: REPOSITORY_CONFIGURATION,

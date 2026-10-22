@@ -507,9 +507,9 @@ web.workflows.updateStep({});
     };
     expect(checkDeadlineRegistry({ formatVersion: 1, deadlines: [entry] }, NOW).errors).toEqual([]);
     expect(
-      checkDeadlineRegistry({ formatVersion: 1, deadlines: [{ ...entry, kind: 'endpoint' }] }, NOW)
+      checkDeadlineRegistry({ formatVersion: 1, deadlines: [{ ...entry, kind: 'webhook' }] }, NOW)
         .errors,
-    ).toEqual(['slack-x: kind must be api-version, model, sdk or method.']);
+    ).toEqual([expect.stringMatching(/^slack-x: kind must be one of api-version, /)]);
   });
 });
 
