@@ -136,8 +136,8 @@ function resolveJoins(conditions, read) {
 }
 
 // The rows a query reads: each results file's arrays at `rows` (one pointer or several; default:
-// the file itself when it is an array), concatenated in order, optionally flattened into a nested
-// array per row.
+// the file itself when it is an array), concatenated in order, kept only when they match `within`,
+// and optionally flattened into a nested array per row.
 function rowsOf(query, read) {
   return query.results
     .flatMap((file) =>
@@ -147,6 +147,7 @@ function rowsOf(query, read) {
         return rows;
       }),
     )
+    .filter((row) => !query.within || filter([row], resolveJoins(query.within, read)).length)
     .flatMap((row) => (query.flatten ? (get(row, query.flatten) ?? []) : [row]));
 }
 

@@ -82,6 +82,7 @@ it('computes counts, sums, rates, fractions, intervals and values from result ro
   expect(rows({ where: [{ field: 'exposures.length', equalsField: 'fields.length' }] })).toBe(2);
   expect(rows({ where: [{ field: 'exposures', some: [{ field: 'id', equals: 'o1' }] }] })).toBe(1);
   expect(rows({ flatten: 'exposures', measure: 'distinct', field: 'id' })).toBe(2);
+  expect(rows({ within: [{ field: 'outcome', equals: 'stopped' }], flatten: 'exposures' })).toBe(1);
   expect(rows({ measure: 'median', field: 'calls' })).toBe(4);
   expect(
     evaluate(
