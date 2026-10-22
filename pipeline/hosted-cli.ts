@@ -33,7 +33,7 @@ approve stores a receipt made by refit enroll. Installing the App on an approved
 retry queues one fresh attempt for an enrolled target, permitting a cached failed job to run again; successful jobs remain cached. Approval and access gates still apply.
 jobs lists the newest ${JOBS_SHOWN} matching jobs. receipt prints one job's stored receipt and, on the machine that holds the evidence volume, its evidence files. targets lists each target's state, last job and last stored receipt. These commands only read PostgreSQL.
 health checks PostgreSQL, the Refit tables, the Docker daemon and every image in REFIT_HOSTED_IMAGES, and exits 1 if any check fails.
-serve logs one JSON object per line to stderr with secrets redacted. With REFIT_SLACK_WEBHOOK_URL set it posts each failed job, at most once per target per hour.`;
+serve logs one JSON object per line to stderr with secrets redacted. With REFIT_SLACK_WEBHOOK_URL set it posts the same notices as refit serve, plus each failed job at most once per target per hour.`;
 
 function database(config: pg.PoolConfig = {}) {
   const connectionString = process.env.REFIT_DATABASE_URL;

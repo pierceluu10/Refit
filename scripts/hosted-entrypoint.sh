@@ -3,19 +3,25 @@
 set -eu
 
 DOCKER_READY_SECONDS=60
+# Boot lines are JSON like the worker's. Messages here are fixed text and image names from fly.toml,
+# which never contain quotes or backslashes.
+log() { printf '{"time":"%s","level":"%s","message":"%s"}\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$1" "$2" >&2; }
 mkdir -p /data/docker /data/state /data/ai-budget
 dockerd --data-root=/data/docker >/var/log/dockerd.log 2>&1 &
 i=0
 until docker info >/dev/null 2>&1; do
   i=$((i + 1))
   if [ "$i" -ge "$DOCKER_READY_SECONDS" ]; then
-    echo "Docker daemon did not start; see /var/log/dockerd.log" >&2
+    log error "Docker daemon did not start; see /var/log/dockerd.log"
     exit 1
   fi
   sleep 1
 done
 # Validation images named by approved .refit.json files must exist before doctor runs.
-for image in ${REFIT_HOSTED_IMAGES:-}; do docker pull "$image"; done
+for image in ${REFIT_HOSTED_IMAGES:-}; do
+  docker pull --quiet "$image" >/dev/null
+  log info "Pulled validation image $image"
+done
 
 # Scope umask to the key: checkouts must stay readable to the unprivileged validation container.
 (

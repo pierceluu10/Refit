@@ -50,7 +50,7 @@ export async function runHostedService(options: {
   aiPatch?: AiOptions;
   repairAttempts?: number;
   publishDraft?: boolean;
-  // Failed jobs, at most one notice per target per hour.
+  // The workflow's own notices, plus failed jobs at most once per target per hour.
   notify?: SlackSend;
   host?: string;
   port?: number;
@@ -166,6 +166,7 @@ export async function runHostedService(options: {
         },
         repairAttempts,
         publishDraft: options.publishDraft,
+        notify: options.notify,
         inspectReadiness: true,
         onProgress: progress,
       });
