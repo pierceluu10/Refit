@@ -66,14 +66,14 @@ export function openMonitoringStore(pool: Pool) {
       }>(
         `SELECT t.installation_id, t.repository,
            CASE WHEN t.pushed THEN 'push'
-             WHEN v.registry IS NOT NULL AND v.registry <> $2 THEN 'registry'
+             WHEN v.registry IS NOT NULL AND v.registry <> $2 AND v.error IS NULL THEN 'registry'
              ELSE 'age' END AS reason
          FROM refit_monitoring t
          JOIN refit_inventories v
            ON v.installation_id = t.installation_id AND v.repository = t.repository
          ${ALLOWED} AND v.state = 'idle'
            AND t.rescanned_at <= $1::timestamptz - make_interval(mins => $3)
-           AND (t.pushed OR (v.registry IS NOT NULL AND v.registry <> $2)
+           AND (t.pushed OR (v.registry IS NOT NULL AND v.registry <> $2 AND v.error IS NULL)
              OR t.rescanned_at <= $1::timestamptz - make_interval(hours => $4))
          ORDER BY t.installation_id, t.repository`,
         [now, registry, debounceMinutes, ageHours],

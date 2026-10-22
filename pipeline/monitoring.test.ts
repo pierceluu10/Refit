@@ -277,34 +277,36 @@ it.skipIf(!DATABASE)(
         signal: new AbortController().signal,
         onProgress: (message) => console.log(message),
       });
+    // Nothing is listed before the longest lead time, so no digest opens at 100 or 97 days.
     expect(await digest(before(100))).toBe(0);
     expect(await digest(before(97))).toBe(0);
     expect(await digest(before(90))).toBe(1);
     expect(await digest(before(86))).toBe(0);
+    expect(await digest(before(83))).toBe(0);
     const written = github.writes.map((write) => `${write.method} ${write.path}`);
     console.log(written.join('\n'));
-    // A repository with nothing exposed gets no digest; the week's digest is written once.
+    // A repository with nothing exposed gets no digest; each week's digest is written once.
     expect(written).toEqual([
       'POST /repos/example/app/issues',
       'POST /repos/example/app/issues',
-      'PATCH /repos/example/app/issues/1',
-      'POST /repos/example/app/issues/1/comments',
+      'PATCH /repos/example/app/issues/2',
+      'POST /repos/example/app/issues/2/comments',
     ]);
-    const [first, alert, update, comment] = github.writes.map(
+    const [alert, first, update, comment] = github.writes.map(
       (write) => write.body as Record<string, string>,
     );
+    expect(alert).toMatchObject({ title: `OpenAI model gpt-4 reaches its sunset on ${DEADLINE}` });
     expect(first).toMatchObject({
       title: 'Refit weekly digest: deadlines this repository depends on',
     });
     expect(first.body).toContain('<!-- refit-deadline-digest -->');
-    expect(first.body).toContain(
-      `| OpenAI model gpt-4 reaches its sunset on ${DEADLINE} | ${DEADLINE} | 100 days left | \`src/chat.ts:3\` | Not yet alerted |`,
-    );
-    expect(alert).toMatchObject({ title: `OpenAI model gpt-4 reaches its sunset on ${DEADLINE}` });
     // The digest written in the same pass as the alert already lists the alert's issue.
-    expect(update.body).toContain('| 90 days left | `src/chat.ts:3` | #2 |');
+    expect(first.body).toContain(
+      `| OpenAI model gpt-4 reaches its sunset on ${DEADLINE} | ${DEADLINE} | 90 days left | \`src/chat.ts:3\` | #1 |`,
+    );
+    expect(update.body).toContain('| 83 days left | `src/chat.ts:3` | #1 |');
     expect(comment).toEqual({
-      body: `Weekly digest: 1 exposed deadline, the soonest on ${DEADLINE} (90 days left).`,
+      body: `Weekly digest: 1 exposed deadline, the soonest on ${DEADLINE} (83 days left).`,
     });
   },
 );
@@ -501,7 +503,12 @@ it.skipIf(!DATABASE)(
     expect(await rescans(at(41), changed)).toEqual([
       { installationId: 1, repository: 'example/app', reason: 'registry' },
     ]);
-    await finish();
+    // An inventory that fails is not asked for again for the same registry change, so it cannot
+    // spend the daily cap every 10 minutes; age (and a push) still ask.
+    await inventories.finish((await inventories.claim('scanner', 60))!, 'scanner', {
+      error: 'GitHubRequestError: unavailable',
+    });
+    expect(await rescans(at(52), changed)).toEqual([]);
     expect(await rescans(at(41 + 23 * 60))).toEqual([]);
     expect(await rescans(at(41 + 24 * 60))).toEqual([
       { installationId: 1, repository: 'example/app', reason: 'age' },
