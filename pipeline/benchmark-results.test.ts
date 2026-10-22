@@ -79,6 +79,15 @@ it('separates fields a row predates from real errors, with JSON pointers', () =>
   expect(broken.predates).toEqual([]);
 });
 
+it('checks results as they are written: a property set to undefined is absent', () => {
+  // The benchmark builds workflow summaries with optional fields left undefined.
+  const workflow = { status: 'validated', error: undefined, reason: 'Checks passed.' };
+  expect(validate(schemas, 'stripe-results', [{ ...row, workflow }]).errors).toEqual([]);
+  expect(
+    validate(schemas, 'stripe-results', [{ ...row, outcomeClass: undefined }]).predates,
+  ).toEqual([{ pointer: '/0/outcomeClass', message: 'is required' }]);
+});
+
 it('requires the infrastructure detail on infrastructure errors', () => {
   expect(
     validate(schemas, 'stripe-results', [{ ...row, outcomeClass: 'infrastructure' }]).errors,

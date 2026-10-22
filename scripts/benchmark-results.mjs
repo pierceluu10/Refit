@@ -139,13 +139,15 @@ function check(schemas, root, schema, value, pointer, errors, predates) {
   }
   if (typeOf(value) === 'object') {
     const properties = schema.properties ?? {};
+    // A property set to undefined is absent, as it is once the results are written as JSON.
+    const present = Object.entries(value).filter(([, item]) => item !== undefined);
     for (const name of schema.required ?? [])
-      if (!Object.hasOwn(value, name)) {
+      if (value[name] === undefined || !Object.hasOwn(value, name)) {
         const missing = { pointer: `${pointer}/${escape(name)}`, message: 'is required' };
         if (properties[name]?.['x-added']) predates.push(missing);
         else errors.push(missing);
       }
-    for (const [name, item] of Object.entries(value)) {
+    for (const [name, item] of present) {
       const path = `${pointer}/${escape(name)}`;
       if (schema.propertyNames)
         check(schemas, root, schema.propertyNames, name, path, errors, predates);
