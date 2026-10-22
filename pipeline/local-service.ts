@@ -24,6 +24,7 @@ import {
 import { agentStatus, configuredIntegrations, findDeadlineExposures } from './deadline-exposure.ts';
 import { applyDeadlineIgnores, readDeadlineIgnores } from './deadline-ignores.ts';
 import { loadDeadlineRegistry } from './deadline-registry.ts';
+import { loadModelParameters } from './model-parameters.ts';
 import { standaloneStateDirectory, type GitHubCheckout } from './github-checkout.ts';
 import { requestGitHub } from './github.ts';
 import { parseWebhook, verifyWebhook, WebhookInputError } from './github-webhooks.ts';
@@ -121,7 +122,7 @@ export async function runLocalService(options: {
   // Off unless set: replaces retiring AI models in each enrolled repository, validates the change
   // with its approved checks and, with publishDraft, opens a draft pull request. No per-change
   // approval is asked; enrollment is the approval.
-  modelFixes?: { registry?: string | URL };
+  modelFixes?: { registry?: string | URL; parameters?: string | URL };
   notify?: SlackSend;
   now?: () => Date;
   signal: AbortSignal;
@@ -357,8 +358,10 @@ export async function runLocalService(options: {
       if (!options.modelFixes || !checkouts.size) return;
       const now = options.now?.() ?? new Date();
       let registry: Awaited<ReturnType<typeof loadDeadlineRegistry>>;
+      let parameters: Awaited<ReturnType<typeof loadModelParameters>>;
       try {
         registry = await loadDeadlineRegistry(options.modelFixes.registry, now);
+        parameters = await loadModelParameters(options.modelFixes.parameters, now);
       } catch (error) {
         if (!(error instanceof Error)) throw error;
         options.onProgress?.(`Model fixes skipped: ${error.name}: ${error.message}`);
@@ -372,6 +375,7 @@ export async function runLocalService(options: {
           const result = await runModelFixes({
             repository: checkout.directory,
             registry,
+            parameters,
             now,
             checks: approved.checks,
             publication: options.publishDraft

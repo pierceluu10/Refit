@@ -1,5 +1,16 @@
 # Refit implementation checkpoints
 
+## October 21 checkpoint: sourced parameter stops (unreleased, after 0.39.0)
+
+The model-replacement rule can now continue past a sampling or length stop where an official page read by a person proves the replacement accepts that parameter with that literal value. Decision recorded in AGENTS.md, pending the repository owner's review on its PR.
+
+- **Table.** `data/model-parameters.json` holds sourced entries, each with an official `source`, a `checkedAt` date and, for defaults, a `defaultSource`. `npm run model-parameters:check` rejects the whole file on any error, and a table that fails to load stops model fixes.
+- **What continues.** Only a literal `temperature: 1` on a `claude-sonnet-5-5` replacement. Each parameter is verified separately.
+- **What keeps stopping.** On replacements with a table entry, every parameter the table does not prove, renamed parameters (never rewritten), non-literal values and computed property names. Replacements without an entry keep the earlier heuristic: Claude 4.7-and-later replacements (such as Opus 4.8) stop on `temperature`, `top_p` and `top_k`, earlier ones such as `claude-haiku-4-5-20251001` continue, and every OpenAI replacement stops on its sensitive parameters.
+- **Review.** The repository owner reviews the decision and the stop sentences on its PR.
+
+Evidence is fixture tests and the pages read; no live provider was called. Fix rates are measured separately, on the application benchmark sets.
+
 ## October 21 checkpoint: model fixes through indirect sources (unreleased, after 0.39.0)
 
 Owner decision, 2026-10-21 (D-06 to D-08, approved on #140): `refit deadlines --propose-model-fixes` and `refit serve --model-fixes` now edit the literal a request reaches through:

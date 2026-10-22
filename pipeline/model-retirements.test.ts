@@ -9,6 +9,7 @@ import {
   type DeadlineEntry,
   type DeadlineRegistry,
 } from './deadline-registry.ts';
+import type { ModelParameterEntry, ModelParameterTable } from './model-parameters.ts';
 import { proposeModelReplacements } from './model-retirements.ts';
 
 const execute = promisify(execFile);
@@ -2057,6 +2058,255 @@ it('edits indirect model sources where the model is written', async () => {
   const enabled = await proposeModelReplacements(root, registry, NOW);
   expect(enabled.stops).toEqual([]);
   expect(edited(enabled)).toHaveLength(9);
+});
+
+// Fixture tables stand in for data/model-parameters.json; no test reads the live file or calls a provider.
+const OFFICIAL = 'https://platform.claude.com/docs/en/models/sonnet-5-5/overview';
+const table = (...models: Pick<ModelParameterEntry, 'provider' | 'model' | 'parameters'>[]) =>
+  ({
+    formatVersion: 1,
+    models: models.map((model) => ({
+      ...model,
+      source: OFFICIAL,
+      defaultSource: OFFICIAL,
+      checkedAt: '2026-10-21',
+    })),
+  }) as ModelParameterTable;
+const PARAMETERS = table(
+  {
+    provider: 'anthropic',
+    model: 'claude-sonnet-5-5',
+    parameters: {
+      temperature: { accepts: 'default-only', default: 1 },
+      top_k: { accepts: 'none' },
+    },
+  },
+  {
+    provider: 'anthropic',
+    model: 'claude-range-test',
+    parameters: { temperature: { accepts: 'any', min: 0, max: 1 } },
+  },
+  {
+    provider: 'openai',
+    model: 'gpt-5.6-sol',
+    parameters: {
+      temperature: { accepts: 'any', min: 0, max: 2 },
+      top_p: { accepts: 'default-only', default: 1 },
+      max_tokens: { accepts: 'none', renamedTo: 'max_completion_tokens' },
+    },
+  },
+);
+const parameterRegistry: DeadlineRegistry = {
+  formatVersion: 1,
+  deadlines: [
+    ...registry.deadlines,
+    entry({
+      id: 'a-sonnet',
+      provider: 'anthropic',
+      versions: ['claude-3-5-sonnet-20241022'],
+      replacement: 'claude-sonnet-5-5',
+    }),
+    entry({
+      id: 'a-range',
+      provider: 'anthropic',
+      versions: ['claude-range-old'],
+      replacement: 'claude-range-test',
+    }),
+    entry({
+      id: 'a-haiku',
+      provider: 'anthropic',
+      versions: ['claude-3-haiku-20240307'],
+      replacement: 'claude-haiku-4-5-20251001',
+    }),
+    entry({
+      id: 'o-nano',
+      provider: 'openai',
+      versions: ['gpt-4.1-nano'],
+      replacement: 'gpt-5.6-luna',
+    }),
+  ],
+};
+
+async function propose(
+  target: readonly [provider: 'openai' | 'anthropic', model: string],
+  extra: string,
+) {
+  const [provider, model] = target;
+  const call =
+    provider === 'openai'
+      ? `openai.chat.completions.create({ model: '${model}', messages: [], ${extra} })`
+      : `anthropic.messages.create({ model: '${model}', max_tokens: 9, messages: [], ${extra} })`;
+  const root = await repository({
+    'src/ai.ts': [
+      "import OpenAI from 'openai';",
+      "import Anthropic from '@anthropic-ai/sdk';",
+      'const openai = new OpenAI();',
+      'const anthropic = new Anthropic();',
+      'const T = 1; const options = {};',
+      `export const call = (temperature: number) => ${call};`,
+    ].join('\n'),
+  });
+  return proposeModelReplacements(root, parameterRegistry, NOW, PARAMETERS);
+}
+
+const stopped = (reason: string) => [expect.objectContaining({ reason })];
+const SONNET = ['anthropic', 'claude-3-5-sonnet-20241022'] as const;
+const GPT = ['openai', 'gpt-4'] as const;
+
+it('parameter table: continues for a sourced literal and edits only the model', async () => {
+  for (const [args, extra, to] of [
+    [SONNET, 'temperature: 1', 'claude-sonnet-5-5'],
+    [GPT, 'temperature: 0.7', 'gpt-5.6-sol'],
+    [['anthropic', 'claude-range-old'], 'temperature: 0.5', 'claude-range-test'],
+  ] as const) {
+    const proposal = await propose(args, extra);
+    expect(proposal.stops).toEqual([]);
+    expect(proposal.replacements.map((item) => item.to)).toEqual([to]);
+    // Only the model ID differs between the removed and added text; every parameter is untouched.
+    const lines = (proposal.patch ?? '').split('\n');
+    const side = (mark: string) =>
+      lines.filter((line) => line.startsWith(mark) && !line.startsWith(mark.repeat(3)));
+    const removed = side('-').map((line) => line.slice(1));
+    const added = side('+').map((line) => line.slice(1));
+    expect(added.join('\n')).toBe(removed.join('\n').replace(/model: '[^']+'/, `model: '${to}'`));
+  }
+});
+
+it.each([
+  [
+    'unproven top_p on claude-sonnet-5-5',
+    SONNET,
+    'top_p: 1',
+    'The request sets top_p 1, which no official page read for claude-sonnet-5-5 proves it accepts; change it by hand to claude-sonnet-5-5.',
+  ],
+  [
+    'non-default temperature',
+    SONNET,
+    'temperature: 0.2',
+    'The request sets temperature 0.2, which claude-sonnet-5-5 accepts only at 1 (non-default value); change it by hand to claude-sonnet-5-5.',
+  ],
+  [
+    'top_k',
+    SONNET,
+    'top_k: 5',
+    'The request sets top_k 5, which claude-sonnet-5-5 does not accept; change it by hand to claude-sonnet-5-5.',
+  ],
+  [
+    'a constant',
+    SONNET,
+    'temperature: T',
+    'The request sets temperature to a value that is not a numeric literal, so it cannot be checked against what claude-sonnet-5-5 accepts; change it by hand to claude-sonnet-5-5.',
+  ],
+  [
+    'a shorthand property',
+    SONNET,
+    'temperature',
+    'The request sets temperature to a value that is not a numeric literal, so it cannot be checked against what claude-sonnet-5-5 accepts; change it by hand to claude-sonnet-5-5.',
+  ],
+  [
+    'an Anthropic value out of range',
+    ['anthropic', 'claude-range-old'] as const,
+    'temperature: 1.5',
+    'The request sets temperature 1.5, outside the 0 to 1 range claude-range-test accepts; change it by hand to claude-range-test.',
+  ],
+  [
+    'an OpenAI value out of range',
+    GPT,
+    'temperature: -1',
+    'The request sets temperature -1, outside the 0 to 2 range gpt-5.6-sol accepts; change it by hand to gpt-5.6-sol.',
+  ],
+  [
+    'an OpenAI non-default top_p',
+    GPT,
+    'top_p: 0.5',
+    'The request sets top_p 0.5, which gpt-5.6-sol accepts only at 1 (non-default value); change it by hand to gpt-5.6-sol.',
+  ],
+  [
+    'an OpenAI parameter without a spec',
+    GPT,
+    'presence_penalty: 0',
+    'The request sets presence_penalty 0, which no official page read for gpt-5.6-sol proves it accepts; change it by hand to gpt-5.6-sol.',
+  ],
+  [
+    'a string numeral',
+    GPT,
+    "temperature: '0.7'",
+    'The request sets temperature to a value that is not a numeric literal, so it cannot be checked against what gpt-5.6-sol accepts; change it by hand to gpt-5.6-sol.',
+  ],
+  [
+    'a renamed parameter',
+    GPT,
+    'max_tokens: 100',
+    'The request sets max_tokens 100, which gpt-5.6-sol does not accept; it takes max_completion_tokens instead, and Refit does not rename parameters; change it by hand to gpt-5.6-sol.',
+  ],
+  [
+    'only the failing parameter in a mix',
+    GPT,
+    'temperature: 0.7, top_p: 0.5',
+    'The request sets top_p 0.5, which gpt-5.6-sol accepts only at 1 (non-default value); change it by hand to gpt-5.6-sol.',
+  ],
+  [
+    'a spread, ahead of the table',
+    GPT,
+    '...options, temperature: 0.7',
+    'The request spreads other options, which may set parameters the replacement rejects.',
+  ],
+  [
+    'a computed string key',
+    SONNET,
+    "['temperature']: 0.5",
+    'The request sets a computed property, which may be a parameter the replacement rejects; change it by hand to claude-sonnet-5-5.',
+  ],
+  [
+    'a computed template key',
+    SONNET,
+    '[`top_k`]: 5',
+    'The request sets a computed property, which may be a parameter the replacement rejects; change it by hand to claude-sonnet-5-5.',
+  ],
+  [
+    'a computed OpenAI key',
+    GPT,
+    "['max_tokens']: 5",
+    'The request sets a computed property, which may be a parameter the replacement rejects; change it by hand to gpt-5.6-sol.',
+  ],
+  [
+    'a computed variable key',
+    GPT,
+    '[T]: 5',
+    'The request sets a computed property, which may be a parameter the replacement rejects; change it by hand to gpt-5.6-sol.',
+  ],
+])('parameter table: stops for %s', async (_name, args, extra, reason) => {
+  const proposal = await propose(args, extra);
+  expect(proposal.replacements).toEqual([]);
+  expect(proposal.stops).toEqual(stopped(reason));
+  // Nothing is rewritten, renamed parameters included.
+  expect(proposal.patch).toBeNull();
+});
+
+it("parameter table: keeps today's behavior for replacements with no entry", async () => {
+  const haiku = await propose(['anthropic', 'claude-3-haiku-20240307'], 'temperature: 0');
+  expect(haiku.replacements.map((item) => item.to)).toEqual(['claude-haiku-4-5-20251001']);
+  const opus = await propose(['anthropic', 'claude-3-opus-20240229'], 'temperature: 1');
+  expect(opus.stops).toEqual(
+    stopped('The request sets temperature, which claude-opus-4-8 may reject or treat differently.'),
+  );
+  const nano = await propose(['openai', 'gpt-4.1-nano'], 'temperature: 0.7');
+  expect(nano.stops).toEqual(
+    stopped('The request sets temperature, which gpt-5.6-luna may reject or treat differently.'),
+  );
+});
+
+it('stops on a computed property name for replacements with no entry too', async () => {
+  const computed = (to: string) =>
+    stopped(
+      `The request sets a computed property, which may be a parameter the replacement rejects; change it by hand to ${to}.`,
+    );
+  const haiku = await propose(['anthropic', 'claude-3-haiku-20240307'], "['temperature']: 0");
+  expect(haiku.replacements).toEqual([]);
+  expect(haiku.stops).toEqual(computed('claude-haiku-4-5-20251001'));
+  const nano = await propose(['openai', 'gpt-4.1-nano'], "['max_tokens']: 5");
+  expect(nano.replacements).toEqual([]);
+  expect(nano.stops).toEqual(computed('gpt-5.6-luna'));
 });
 
 it('stops on a computed property name in a request, which may hide a sampling parameter', async () => {
