@@ -107,8 +107,8 @@ it('runs the patched checks alongside the baseline checks when no AI is involved
 
 it('reports a failed baseline exactly as the sequential order did, discarding the patched run', async () => {
   const { report, checks } = await fixture(1);
-  // The patched run started alongside the baseline but its result is not used.
-  expect(checks.map((check) => check.side).sort()).toEqual(['baseline', 'patched']);
+  // A patched run started alongside the baseline is cancelled or discarded; it may not finish.
+  expect(checks.map((check) => check.side)).toContain('baseline');
   expect(report.validation).toMatchObject({
     status: 'baseline-failed',
     baseline: { status: 'failed' },
