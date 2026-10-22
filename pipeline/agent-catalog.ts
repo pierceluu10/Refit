@@ -5,6 +5,12 @@ import {
   type PackageInventory,
 } from './package-manifests.ts';
 import { readRepository } from './repository.ts';
+import {
+  nestedLock,
+  placeFinding,
+  readWorkspaceLayout,
+  type FindingPlace,
+} from './workspace-attribution.ts';
 import { PipelineInputError, type Repository } from './types.ts';
 
 // A provider agent is a reviewed adapter for one API provider. `adapter` is the built-in adapter
@@ -206,15 +212,17 @@ const MAX_HOSTNAME_EVIDENCE = 5;
 export interface AgentDetection {
   agent: ProviderAgent;
   // `ecosystem` is absent for npm packages, which keep their original shape.
-  packages: {
+  packages: ({
     file: string;
     name: string;
     version: string;
     locked: string | null;
     ecosystem?: Ecosystem;
     line?: number;
-  }[];
-  hostnames: { file: string; line: number; hostname: string }[];
+  } & Partial<FindingPlace>)[];
+  // `workspace` and `excluded` (pipeline/workspace-attribution.ts) say which package of a monorepo
+  // the evidence is in and whether its path is outside the product, such as an example.
+  hostnames: ({ file: string; line: number; hostname: string } & Partial<FindingPlace>)[];
 }
 
 function hostnameEvidence(repository: Repository, agent: ProviderAgent) {
@@ -255,6 +263,7 @@ export function ecosystemPackages(
 export async function detectProviders(directory: string): Promise<AgentDetection[]> {
   const detections: AgentDetection[] = [];
   const inventory = await readPackageManifests(directory);
+  const layout = await readWorkspaceLayout(directory);
   for (const agent of AGENT_CATALOG) {
     const packages: AgentDetection['packages'] = [];
     let repository: Repository | undefined;
@@ -267,12 +276,18 @@ export async function detectProviders(directory: string): Promise<AgentDetection
           file: dependency.file,
           name,
           version: dependency.version,
-          locked: dependency.lock.version,
+          // A nested package's own lockfile when the root's does not cover it.
+          locked: (await nestedLock(repository.root, dependency, name)).version,
         });
     }
     packages.push(...ecosystemPackages(agent, inventory));
     const hostnames = hostnameEvidence(repository!, agent);
-    if (packages.length || hostnames.length) detections.push({ agent, packages, hostnames });
+    if (packages.length || hostnames.length)
+      detections.push({
+        agent,
+        packages: packages.map((item) => ({ ...item, ...placeFinding(layout, item.file) })),
+        hostnames: hostnames.map((item) => ({ ...item, ...placeFinding(layout, item.file) })),
+      });
   }
   return detections;
 }

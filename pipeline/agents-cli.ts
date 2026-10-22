@@ -7,12 +7,24 @@ import { addAgents, builtInPackage, detectProviders, v1IntegrationId } from './a
 import { parseObject } from './specifications.ts';
 import { REPOSITORY_CONFIGURATION } from './workflow-configuration.ts';
 import { terminalText } from './workflow-presentation.ts';
+import type { FindingPlace } from './workspace-attribution.ts';
 
 const USAGE =
   'Usage: refit agents [--repository <root>] [--add <agent-id> ...] [--json]\nDetects provider SDKs from package manifests, lockfiles and raw API hostnames, and lists only the agents that match. --add writes an approved agent into .refit.json as a reviewable integration; it does not enroll, activate, download contracts or run code.';
 const PACKAGE_ROOT = fileURLToPath(new URL('../', import.meta.url));
 const PLACEHOLDER_TEST = /no test specified/;
 const LOCKFILES = ['package-lock.json', 'pnpm-lock.yaml', 'yarn.lock'];
+
+// The monorepo package and any exclusion, as `[package @acme/web]` or `[example, package demo]`.
+function placeText(item: Partial<FindingPlace>) {
+  const parts = [
+    ...(item.excluded ? [item.excluded] : []),
+    ...(item.workspace && item.workspace.path !== '.'
+      ? [`package ${item.workspace.name ?? item.workspace.path}`]
+      : []),
+  ];
+  return parts.length ? ` [${parts.join(', ')}]` : '';
+}
 
 try {
   const { values } = parseArgs({
@@ -111,9 +123,11 @@ try {
         const evidence = [
           ...entry.packages.map(
             (item) =>
-              `${item.ecosystem ? `${item.ecosystem}:` : ''}${item.name} ${item.version}${item.locked ? ` (locked ${item.locked})` : ''} in ${item.file}${item.line ? `:${item.line}` : ''}`,
+              `${item.ecosystem ? `${item.ecosystem}:` : ''}${item.name} ${item.version}${item.locked ? ` (locked ${item.locked})` : ''} in ${item.file}${item.line ? `:${item.line}` : ''}${placeText(item)}`,
           ),
-          ...entry.hostnames.map((item) => `${item.hostname} at ${item.file}:${item.line}`),
+          ...entry.hostnames.map(
+            (item) => `${item.hostname} at ${item.file}:${item.line}${placeText(item)}`,
+          ),
         ];
         const status = entry.configured
           ? 'configured'
