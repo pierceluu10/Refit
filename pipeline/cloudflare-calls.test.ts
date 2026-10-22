@@ -143,6 +143,42 @@ cf.accounts.roles.list({ account_id });
     ]);
   });
 
+  it('maps each method as the locked major defines it, and flags an unknown major', async () => {
+    const files = {
+      'src/vectors.ts': `import Cloudflare from 'cloudflare';
+const client = new Cloudflare();
+client.vectorize.indexes.query('docs', { account_id, vector });
+`,
+    };
+    const v3 = await scan(files, { name: 'app', dependencies: { cloudflare: '^3.4.0' } });
+    expect(summary(v3.calls)).toEqual([
+      '3 sdk vectorize.indexes.query POST /accounts/{account_id}/vectorize/indexes/{indexName}/query',
+    ]);
+    expect(v3.calls[0].unknown).toEqual([]);
+    const v4 = await scan(files);
+    expect(summary(v4.calls)).toEqual([
+      '3 sdk vectorize.indexes.query POST /accounts/{account_id}/vectorize/v2/indexes/{indexName}/query',
+    ]);
+    const mixed = await scan({
+      ...files,
+      'package.json': JSON.stringify({
+        name: 'app',
+        workspaces: ['tools'],
+        dependencies: { cloudflare: '^3.4.0' },
+      }),
+      'tools/package.json': JSON.stringify({
+        name: 'tools',
+        dependencies: { cloudflare: '^5.0.0' },
+      }),
+    });
+    expect(summary(mixed.calls)).toEqual([
+      '3 sdk vectorize.indexes.query POST /accounts/{account_id}/vectorize/v2/indexes/{indexName}/query',
+    ]);
+    expect(mixed.calls[0].unknown).toEqual([
+      'the endpoint differs across cloudflare releases and the locked major is unknown; mapped as in 7.3.0',
+    ]);
+  });
+
   it('reports 2.x factory clients without mapping their methods', async () => {
     const { calls } = await scan(
       {

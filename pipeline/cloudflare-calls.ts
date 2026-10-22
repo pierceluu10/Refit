@@ -689,6 +689,7 @@ function sdkCalls(
   file: FileContext,
   data: CloudflareEndpoints,
   legacy: boolean,
+  release: string | null,
   context: ResolverContext,
 ): CloudflareCall[] {
   const { holds } = resolver(file.source, context);
@@ -707,7 +708,7 @@ function sdkCalls(
         }
       }
       if (found) {
-        const record = sdkRecord(file, node, path, data, legacy);
+        const record = sdkRecord(file, node, path, data, legacy, release);
         if (record) calls.push(record);
       }
     }
@@ -723,6 +724,7 @@ function sdkRecord(
   path: string[],
   data: CloudflareEndpoints,
   legacy: boolean,
+  release: string | null,
 ): CloudflareCall | undefined {
   const unknown: string[] = [];
   const notes: string[] = [];
@@ -743,8 +745,13 @@ function sdkRecord(
   else {
     const entries = data.properties.get(property);
     const newest = data.releases.at(-1)!;
-    const current = entries?.find((entry) => entry.releases.split(/\.\.| /).includes(newest));
+    const target = release ?? newest;
+    const current = entries?.find((entry) => covers(entry.releases, target, data.releases));
     const chosen = current ?? entries?.at(-1);
+    if (!release && new Set(entries?.map((entry) => `${entry.method} ${entry.path}`)).size > 1)
+      unknown.push(
+        `the endpoint differs across cloudflare releases and the locked major is unknown; mapped as in ${newest}`,
+      );
     if (!chosen)
       notes.push(
         `\`${property}\` is not a method of any recorded cloudflare release (${data.releases[0]} to ${newest})`,
@@ -753,7 +760,7 @@ function sdkRecord(
       method = chosen.method;
       endpoint = chosen.path;
       if (!current)
-        notes.push(`\`${property}\` is not in cloudflare ${newest}; it is in ${chosen.releases}`);
+        notes.push(`\`${property}\` is not in cloudflare ${target}; it is in ${chosen.releases}`);
     }
   }
   return {
@@ -994,7 +1001,12 @@ function exportsOf(source: ts.SourceFile) {
   return { names, functions, methods };
 }
 
-function scanFiles(repository: Repository, data: CloudflareEndpoints, legacy: boolean) {
+function scanFiles(
+  repository: Repository,
+  data: CloudflareEndpoints,
+  legacy: boolean,
+  release: string | null,
+) {
   const calls: CloudflareCall[] = [];
   const sources = new Map<string, ts.SourceFile>();
   const sourceFor = (file: Repository['files'][number]) => {
@@ -1040,9 +1052,31 @@ function scanFiles(repository: Repository, data: CloudflareEndpoints, legacy: bo
       use: TEST_PATH.test(file.path) ? 'test' : 'live',
     };
     if (api) calls.push(...urlCalls(current, data));
-    if (sdk) calls.push(...sdkCalls(current, data, legacy, context));
+    if (sdk) calls.push(...sdkCalls(current, data, legacy, release, context));
   }
   return calls.sort((a, b) => a.file.localeCompare(b.file) || a.line - b.line);
+}
+
+// Whether `releases` ("4.5.0..6.5.0 7.3.0") includes `release`, by position in the recorded list.
+function covers(releases: string, release: string, recorded: string[]) {
+  const at = recorded.indexOf(release);
+  return releases.split(' ').some((part) => {
+    const [first, last = first] = part.split('..');
+    return recorded.indexOf(first) <= at && at <= recorded.indexOf(last);
+  });
+}
+
+// The recorded release of the major every declaration locks (3.5.0 for a 3.4.1 lock), or null
+// when declarations disagree or that major is not recorded.
+// shortcut: one recorded release stands for its whole major; record more releases if methods move
+// within a major.
+function recordedRelease(packages: CloudflarePackage[], recorded: string[]) {
+  const majors = new Set(
+    packages.map((item) => /^\D*(\d+)\./.exec(item.locked ?? item.declared)?.[1]),
+  );
+  const [major] = majors;
+  if (majors.size !== 1 || major === undefined) return null;
+  return recorded.find((release) => release.split('.')[0] === major) ?? null;
 }
 
 // Whether every declaration of the package is the 2.x client.
@@ -1053,6 +1087,15 @@ function legacyOnly(packages: CloudflarePackage[]) {
   );
 }
 
+function cloudflarePackages(repository: Repository): CloudflarePackage[] {
+  return repository.dependencies.map((dependency) => ({
+    name: CLOUDFLARE_PACKAGE,
+    file: dependency.file,
+    declared: dependency.version,
+    locked: dependency.lock.version,
+  }));
+}
+
 // Lists every Cloudflare API request a repository makes and its Workers compatibility settings.
 export async function scanCloudflareCalls(
   directory: string,
@@ -1061,14 +1104,14 @@ export async function scanCloudflareCalls(
   const data = options.data ?? (await loadCloudflareEndpoints());
   const root = resolve(directory);
   const repository = await readRepository(root, CLOUDFLARE_PACKAGE);
-  const packages = repository.dependencies.map((dependency) => ({
-    name: CLOUDFLARE_PACKAGE,
-    file: dependency.file,
-    declared: dependency.version,
-    locked: dependency.lock.version,
-  }));
+  const packages = cloudflarePackages(repository);
   return {
-    calls: scanFiles(repository, data, legacyOnly(packages)),
+    calls: scanFiles(
+      repository,
+      data,
+      legacyOnly(packages),
+      recordedRelease(packages, data.releases),
+    ),
     workers: await workersCompatibility(root, { data, now: options.now }),
     packages,
     sources: data.sources,
@@ -1085,13 +1128,24 @@ export async function cloudflareEndpointUses(
 ): Promise<{ version: string; file: string; line: number; use: 'live' | 'test'; text: string }[]> {
   const data = await loadCloudflareEndpoints();
   const read = repository ?? (await readRepository(resolve(directory), CLOUDFLARE_PACKAGE));
+  // A shared repository was read for another package, so its dependencies are not cloudflare's.
+  const declared =
+    repository && repository.files.some((file) => file.content.includes(CLOUDFLARE_PACKAGE))
+      ? await readRepository(resolve(directory), CLOUDFLARE_PACKAGE)
+      : read;
   const byKey = new Map(
     versions.map((version) => {
       const [method, path] = version.split(' ');
       return [cloudflarePathKey(method, path), version];
     }),
   );
-  return scanFiles(read, data, false).flatMap((call) => {
+  const packages = cloudflarePackages(declared);
+  return scanFiles(
+    read,
+    data,
+    legacyOnly(packages),
+    recordedRelease(packages, data.releases),
+  ).flatMap((call) => {
     const version =
       call.method && call.path ? byKey.get(cloudflarePathKey(call.method, call.path)) : undefined;
     return version
