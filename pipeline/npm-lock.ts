@@ -289,7 +289,7 @@ export function validateNpmLock(
         if (ancestor.inBundle === true) continue;
         if (!verified(ancestor)) return false;
         try {
-          assertRegistryTarball(ancestor.resolved as string);
+          assertRegistryTarball(ancestor.resolved as string, undefined, true);
         } catch {
           return false;
         }
@@ -309,7 +309,7 @@ export function validateNpmLock(
         `package-lock.json records ${path}${others ? ` and ${others} more packages` : ''} without a version, registry "resolved" URL and SHA-256-or-stronger "integrity", so Refit cannot verify what it would install. Reinstall against registry.npmjs.org so npm records them (delete node_modules and run npm install; if entries stay incomplete, regenerate package-lock.json) and commit the lockfile.`,
       );
     }
-    assertRegistryTarball(record.resolved as string, path);
+    assertRegistryTarball(record.resolved as string, path, true);
   }
   return {
     packageHash: digest(packageContent),
@@ -326,7 +326,12 @@ export function validateNpmLock(
   };
 }
 
-export function assertRegistryTarball(source: string, path?: string) {
+// Public mirrors of the npm registry that serve its tarballs at the same paths. npm installs with
+// --replace-registry-host=always, so it fetches every one from registry.npmjs.org and checks the
+// lockfile's integrity; the mirror recorded in the lockfile is never contacted.
+const NPM_REGISTRY_MIRRORS = new Set(['registry.npmmirror.com', 'registry.yarnpkg.com']);
+
+export function assertRegistryTarball(source: string, path?: string, mirrors = false) {
   let url;
   try {
     url = new URL(source);
@@ -335,7 +340,8 @@ export function assertRegistryTarball(source: string, path?: string) {
   }
   if (
     url.protocol !== 'https:' ||
-    url.hostname !== 'registry.npmjs.org' ||
+    (url.hostname !== 'registry.npmjs.org' &&
+      !(mirrors && NPM_REGISTRY_MIRRORS.has(url.hostname))) ||
     url.port ||
     url.username ||
     url.password ||

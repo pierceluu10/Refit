@@ -346,3 +346,9 @@ it('accepts registry packages published before npm required lowercase names', ()
     expect(() => validate(unsafe)).toThrow(/Every pnpm package needs a registry name/);
   }
 });
+it('refuses mirror tarballs in pnpm lockfiles, which pnpm would fetch from the mirror itself', () => {
+  const sample = scenario();
+  sample.lock.packages['stripe@10.17.0'].resolution.tarball =
+    'https://registry.npmmirror.com/stripe/-/stripe-10.17.0.tgz';
+  expect(() => validate(sample)).toThrow('Package tarballs must use public registry.npmjs.org');
+});

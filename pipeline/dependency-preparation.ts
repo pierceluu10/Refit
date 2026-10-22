@@ -41,9 +41,11 @@ import { verifyArtifacts } from './verification.ts';
 
 const RECIPE_VERSION = 5;
 const LEGACY_PEER_DEPS_MARKER = 'REFIT_LEGACY_PEER_DEPS=1';
+// --replace-registry-host=always fetches every locked tarball from registry.npmjs.org, including
+// ones a lockfile resolved through a public mirror (npm-lock.ts); integrity still decides.
 const NPM_CI =
   'npm ci --ignore-scripts --include=dev --engine-strict --no-audit --no-fund ' +
-  '--registry=https://registry.npmjs.org --cache=/workspace/.npm-cache';
+  '--registry=https://registry.npmjs.org --replace-registry-host=always --cache=/workspace/.npm-cache';
 const DEFAULT_INSTALL_TIMEOUT_SECONDS = 300;
 const MIN_INSTALL_TIMEOUT_SECONDS = 60;
 const MAX_INSTALL_TIMEOUT_SECONDS = 1800;
