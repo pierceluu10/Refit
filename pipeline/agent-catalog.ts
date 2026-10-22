@@ -392,7 +392,8 @@ export const AGENT_CATALOG: ProviderAgent[] = [
       'instantsearch.js',
       'react-instantsearch',
     ],
-    hostnames: ['algolia.net', 'algolianet.com'],
+    // Subdomains only (`<app>-dsn.algolia.net`): the bare domain names no API request.
+    hostnames: ['.algolia.net', '.algolianet.com'],
     adapter: null,
     guide: null,
   },
@@ -464,7 +465,8 @@ export const AGENT_CATALOG: ProviderAgent[] = [
     id: 'sentry',
     name: 'Sentry',
     packages: ['@sentry/node', '@sentry/browser', '@sentry/react', '@sentry/nextjs', 'raven-js'],
-    hostnames: ['sentry.io/api'],
+    // Sentry's web API is /api/0/; ingest URLs (`o1.ingest.sentry.io/api/<project>/envelope`) are SDK traffic.
+    hostnames: ['sentry.io/api/0/'],
     adapter: null,
     guide: null,
   },
@@ -538,7 +540,8 @@ export async function detectProviders(directory: string): Promise<AgentDetection
   // Loaded when needed: api-hosts.ts reads this catalog, and deadline-exposure.ts reads it when
   // loaded, so a static import would be a cycle.
   const { detectApiHosts } = await import('./api-hosts.ts');
-  const apiHosts = await detectApiHosts(directory);
+  // It throws only where readRepository above already would, or on a malformed shipped host list.
+  const apiHosts = await detectApiHosts(directory, { repository });
   for (const agent of AGENT_CATALOG) {
     const packages: AgentDetection['packages'] = [];
     for (const name of agent.packages) {

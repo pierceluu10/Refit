@@ -28,7 +28,7 @@ const manifest = (dependencies: Record<string, string>) =>
 const PROVIDERS: [id: string, packageName: string, hostname: string][] = [
   ['google-maps', '@googlemaps/google-maps-services-js', 'maps.googleapis.com'],
   ['mapbox', 'mapbox-gl', 'api.mapbox.com'],
-  ['algolia', 'algoliasearch', 'algolia.net'],
+  ['algolia', 'algoliasearch', '.algolia.net'],
   ['hubspot', '@hubspot/api-client', 'api.hubapi.com'],
   ['intercom', 'intercom-client', 'api.intercom.io'],
   ['mailchimp', '@mailchimp/mailchimp_marketing', 'api.mailchimp.com'],
@@ -37,7 +37,7 @@ const PROVIDERS: [id: string, packageName: string, hostname: string][] = [
   ['notion', '@notionhq/client', 'api.notion.com'],
   ['airtable', 'airtable', 'api.airtable.com'],
   ['segment', '@segment/analytics-node', 'api.segment.io'],
-  ['sentry', '@sentry/node', 'sentry.io/api'],
+  ['sentry', '@sentry/node', 'sentry.io/api/0/'],
   ['discord', 'discord.js', 'discord.com/api'],
   ['contentful', 'contentful', 'cdn.contentful.com'],
   ['cloudinary', 'cloudinary', 'api.cloudinary.com'],
@@ -61,7 +61,7 @@ describe('list-B catalog entries', () => {
 
       const byHost = await repository({
         'package.json': JSON.stringify({ name: 'app' }),
-        'src/a.ts': `const r = await fetch('https://${host}/v1/things');\n`,
+        'src/a.ts': `const r = await fetch('https://${host.startsWith('.') ? `abc-dsn${host}` : host}/v1/things');\n`,
       });
       const hostFound = (await detectProviders(byHost)).find((item) => item.agent.id === id);
       expect(hostFound?.hostnames[0]).toMatchObject({ file: 'src/a.ts', line: 1, hostname: host });
@@ -84,6 +84,16 @@ describe('list-B catalog entries', () => {
     ]);
     expect(mapbox.hostnames.map((item) => item.file)).toContain('test/c.test.ts');
     expect(found.find((item) => item.agent.id === 'algolia')!.requests).toHaveLength(1);
+  });
+
+  it('does not take Sentry ingest URLs or the bare Algolia domain for API requests', async () => {
+    const root = await repository({
+      'package.json': JSON.stringify({ name: 'app' }),
+      'src/a.ts': `const tunnel = 'https://o1.ingest.sentry.io/api/123/envelope/';\nconst site = 'https://algolia.net';\n`,
+    });
+    const ids = (await detectProviders(root)).map((item) => item.agent.id);
+    expect(ids).not.toContain('sentry');
+    expect(ids).not.toContain('algolia');
   });
 
   it('does not detect a provider from an unrelated package', async () => {
