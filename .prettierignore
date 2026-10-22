@@ -3,3 +3,5 @@ dist
 package-lock.json
 .impeccable/review
 pipeline/fixtures/pnpm-workspaces/*.yaml
+# Snapshots must match the generated text byte for byte.
+pipeline/__snapshots__
