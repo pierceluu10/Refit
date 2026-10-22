@@ -23,7 +23,6 @@ import { PAYMENT_METHOD_RENAME_RULES, removedRequestParameters } from './request
 import { gitEnvironment } from './git-environment.ts';
 import { readCommittedRepository } from './committed-repository.ts';
 import { prepareDependencies, repositoryDependencyFailure } from './dependency-preparation.ts';
-import { declaredGenerators, generatorExits, withGenerators } from './declared-generators.ts';
 import { baselineStop } from './preparation-stops.ts';
 import { inspectArtifactFile } from './verification.ts';
 import { analyzeRepository } from './analyzer.ts';
@@ -84,13 +83,6 @@ export interface CheckResult {
   stdout: string;
   stderr: string;
   error?: string;
-  // Generated files recreated offline before the checks (see declared-generators.ts).
-  generators?: {
-    name: string;
-    command: string[];
-    environment?: Record<string, string>;
-    exitCode: number | null;
-  }[];
 }
 
 const TYPE_ERROR = /^(.+?)\((\d+),(\d+)\): error (TS\d+): (.*)$/;
@@ -165,10 +157,6 @@ async function containerCheck(
   readOnlyMounts?: { source: string; target: string }[],
 ): Promise<CheckResult> {
   const name = `refit-${randomUUID()}`;
-  // Only prepared dependencies skip the repository's install steps; a custom image ran its own.
-  const generators = dependencies ? await declaredGenerators(directory) : [];
-  const withExit = (result: CheckResult): CheckResult =>
-    generators.length ? { ...result, ...generatorExits(generators, result.stderr) } : result;
   try {
     const result = await execute(
       'docker',
@@ -176,14 +164,14 @@ async function containerCheck(
         name,
         directory,
         image,
-        command: generators.length ? withGenerators(generators, argumentsList) : argumentsList,
+        command: argumentsList,
         network: 'none',
         dependencies,
         readOnlyMounts,
       }),
       { timeout: CHECK_TIMEOUT_MS, maxBuffer: MAX_OUTPUT_BYTES, encoding: 'utf8' },
     );
-    return withExit({ status: 'passed', exitCode: 0, ...result });
+    return { status: 'passed', exitCode: 0, ...result };
   } catch (error) {
     if (!(error instanceof Error)) throw error;
     const failure = error as Error & {
@@ -193,13 +181,13 @@ async function containerCheck(
       stderr?: string;
     };
     const exitCode = typeof failure.code === 'number' ? failure.code : null;
-    return withExit({
+    return {
       status: exitCode !== null && !failure.killed && exitCode < 125 ? 'failed' : 'error',
       exitCode,
       stdout: failure.stdout ?? '',
       stderr: failure.stderr ?? '',
       error: failure.message,
-    });
+    };
   } finally {
     // A killed Docker client does not necessarily stop the container it started.
     await removeDockerContainer(name);
