@@ -1,14 +1,24 @@
 import { mkdir, realpath } from 'node:fs/promises';
-import { createServer } from 'node:http';
+import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
 import { hostname } from 'node:os';
 import { join, resolve } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 import type { Pool } from 'pg';
 import type { AiOptions } from './ai-budget.ts';
+import { FlyMachinesError, type FlyMachines } from './fly-machines.ts';
 import { validateRepairAttempts } from './validation-options.ts';
 import type { GitHubAppConfiguration } from './github-app.ts';
 import { standaloneStateDirectory } from './github-checkout.ts';
 import { parseWebhook, verifyWebhook, WebhookInputError } from './github-webhooks.ts';
+import {
+  failedOutcome,
+  JOB_POLL_SECONDS,
+  JOB_TIMEOUT_SECONDS,
+  jobChannel,
+  reapJobMachines,
+  runHostedTarget,
+  runJobMachine,
+} from './hosted-runner.ts';
 import { openHostedStore, type HostedTarget } from './hosted-store.ts';
 import {
   authorized,
@@ -17,13 +27,16 @@ import {
   respond,
   validateServiceSecret,
 } from './local-service.ts';
-import { RepositoryApprovalError } from './repository-enrollment.ts';
-import { confirmRepositoryAccess, pollServiceTarget, summarizePoll } from './service-worker.ts';
+import { confirmRepositoryAccess } from './service-worker.ts';
 import { PipelineInputError } from './types.ts';
 
 const HOSTED_HOST = '0.0.0.0';
 const GITHUB_OWNER = /^[a-z0-9][a-z0-9-]{0,38}$/;
 const REQUEST_TIMEOUT_MS = 10_000;
+// Job machines upload up to 64 MiB of evidence over the private network.
+const JOB_REQUEST_TIMEOUT_MS = 120_000;
+const JOB_CHANNEL_HOST = 'fly-local-6pn';
+const JOB_CHANNEL_PORT = 8081;
 const HEADERS_TIMEOUT_MS = 5_000;
 const MAX_CONNECTIONS = 64;
 const MILLISECONDS_PER_SECOND = 1000;
@@ -48,6 +61,18 @@ export async function runHostedService(options: {
   aiPatch?: AiOptions;
   repairAttempts?: number;
   publishDraft?: boolean;
+  // Runs each job on its own short-lived Fly Machine in a separate app that holds no secrets,
+  // instead of on this VM's Docker daemon. The job channel listens on the private network only.
+  jobMachines?: {
+    machines: FlyMachines;
+    image: string;
+    region: string;
+    images: string[];
+    host?: string;
+    port?: number;
+    timeoutSeconds?: number;
+    pollSeconds?: number;
+  };
   host?: string;
   port?: number;
   intervalSeconds?: number;
@@ -68,6 +93,10 @@ export async function runHostedService(options: {
   validateServiceSecret(options.controlToken, 'REFIT_SERVICE_TOKEN');
   if (options.webhookSecret === options.controlToken)
     throw new PipelineInputError('Webhook and service-control secrets must be different.');
+  if (options.jobMachines && (options.aiPatch || options.publishDraft))
+    throw new PipelineInputError(
+      '--job-machines does not support --ai-patch or --publish-draft: a job machine never holds the per-installation AI ledger or a GitHub token that can write.',
+    );
   const interval = options.intervalSeconds ?? DEFAULT_INTERVAL_SECONDS;
   const lease = options.leaseSeconds ?? DEFAULT_LEASE_SECONDS;
   if (
@@ -97,6 +126,26 @@ export async function runHostedService(options: {
     waiting?.abort();
   };
   options.signal.addEventListener('abort', stop, { once: true });
+  let jobs:
+    | Omit<
+        Parameters<typeof runJobMachine>[0],
+        'job' | 'target' | 'retry' | 'directory' | 'github' | 'signal' | 'onProgress'
+      >
+    | undefined;
+  // A job machine whose job no live worker holds was left by a crash; destroy it before claiming.
+  const reap = async ({ machines, channel }: NonNullable<typeof jobs>) => {
+    try {
+      const leases = await store.leases();
+      for (const id of await reapJobMachines(
+        machines,
+        (job) => channel.has(job) || (leases.has(job) && leases.get(job) !== worker),
+      ))
+        options.onProgress?.(`Destroyed orphaned job machine ${id}.`);
+    } catch (error) {
+      if (!(error instanceof FlyMachinesError)) throw error;
+      options.onProgress?.(`Job machine reaper failed: ${error.message}`);
+    }
+  };
 
   const runJob = async (job: number, target: HostedTarget, retry: boolean) => {
     const controller = new AbortController();
@@ -124,51 +173,49 @@ export async function runHostedService(options: {
       const access = await confirmRepositoryAccess(options.app, target.repository);
       if (access.installationId !== target.installationId)
         throw new PipelineInputError('Repository now belongs to another App installation.');
-      const result = await pollServiceTarget({
-        target: {
-          id: target.id,
-          ...(target.integration ? { integration: target.integration } : {}),
-          repository: target.repository,
-          base: target.base,
-          documentationSources: [],
-          approval: target.approval,
-        },
-        app: options.app,
-        stateDirectory: join(directory, 'targets', target.id),
-        signal: controller.signal,
-        retry,
-        aiPatch: options.aiPatch && {
-          ...options.aiPatch,
-          ...(options.aiPatch.budget && {
-            budget: {
-              ...options.aiPatch.budget,
-              directory: join(
-                options.aiPatch.budget.directory,
-                `installation-${target.installationId}`,
-              ),
+      const outcome = jobs
+        ? await runJobMachine({
+            ...jobs,
+            job,
+            target,
+            retry,
+            directory,
+            github: {
+              appId: options.app.appId,
+              installationId: access.installationId,
+              token: access.token,
             },
-          }),
-        },
-        repairAttempts,
-        publishDraft: options.publishDraft,
-        inspectReadiness: true,
-        onProgress: progress,
-      });
-      const receipt = {
-        ...summarizePoll(result),
-        revision: 'checkout' in result ? result.checkout.revision : null,
-        readiness: 'readiness' in result && result.readiness ? result.readiness.status : null,
-      };
-      await store.finish(job, worker, 'finished', receipt);
-      progress(`${receipt.status}: ${receipt.message}`);
+            signal: controller.signal,
+            onProgress: progress,
+          })
+        : await runHostedTarget({
+            target,
+            app: options.app,
+            directory,
+            retry,
+            signal: controller.signal,
+            aiPatch: options.aiPatch && {
+              ...options.aiPatch,
+              ...(options.aiPatch.budget && {
+                budget: {
+                  ...options.aiPatch.budget,
+                  directory: join(
+                    options.aiPatch.budget.directory,
+                    `installation-${target.installationId}`,
+                  ),
+                },
+              }),
+            },
+            repairAttempts,
+            publishDraft: options.publishDraft,
+            onProgress: progress,
+          });
+      await store.finish(job, worker, outcome.status, outcome.receipt);
+      progress(`${outcome.receipt.status}: ${outcome.receipt.message}`);
     } catch (error) {
       if (!(error instanceof Error)) throw error;
-      const approval = error instanceof RepositoryApprovalError;
-      await store.finish(job, worker, approval ? 'finished' : 'failed', {
-        status: controller.signal.aborted ? 'interrupted' : approval ? 'needs-review' : 'error',
-        output: null,
-        message: `${error.name}: ${error.message}`,
-      });
+      const outcome = failedOutcome(error, controller.signal.aborted);
+      await store.finish(job, worker, outcome.status, outcome.receipt);
       progress(`${error.name}: ${error.message}`);
     } finally {
       clearInterval(renewal);
@@ -178,10 +225,53 @@ export async function runHostedService(options: {
   };
 
   const handlers = new Set<Promise<void>>();
-  const server = createServer(
-    { requestTimeout: REQUEST_TIMEOUT_MS, headersTimeout: HEADERS_TIMEOUT_MS },
-    (request, response) => {
-      const handler = (async () => {
+  const servers: Server[] = [];
+  // Serves one router with the worker's limits; open handlers settle before the service returns.
+  const listen = async (
+    router: (request: IncomingMessage, response: ServerResponse) => Promise<void>,
+    address: { host: string; port: number; requestTimeout: number; label: string },
+  ) => {
+    const server = createServer(
+      { requestTimeout: address.requestTimeout, headersTimeout: HEADERS_TIMEOUT_MS },
+      (request, response) => {
+        const handler = router(request, response).catch((error: unknown) => {
+          if (error instanceof WebhookInputError)
+            respond(response, error.status, { error: error.message });
+          else {
+            options.onProgress?.(
+              `${address.label} processing failed: ${error instanceof Error ? error.message : 'Unknown storage failure.'}`,
+            );
+            respond(response, 500, {
+              error: `${address.label} was not accepted. Inspect service logs before redelivery.`,
+            });
+          }
+          request.resume();
+        });
+        handlers.add(handler);
+        void handler.then(
+          () => handlers.delete(handler),
+          () => handlers.delete(handler),
+        );
+      },
+    );
+    server.maxConnections = MAX_CONNECTIONS;
+    servers.push(server);
+    await new Promise<void>((resolve, reject) => {
+      server.once('error', reject);
+      server.listen(address.port, address.host, () => {
+        server.removeListener('error', reject);
+        resolve();
+      });
+    });
+    const bound = server.address();
+    if (!bound || typeof bound === 'string')
+      throw new PipelineInputError('Hosted service did not acquire a network address.');
+    return bound;
+  };
+  try {
+    const host = options.host ?? HOSTED_HOST;
+    const address = await listen(
+      async (request, response) => {
         if (request.method === 'GET' && request.url === '/health') {
           respond(response, 200, { status: 'listening' });
           return;
@@ -218,42 +308,38 @@ export async function runHostedService(options: {
           enrolled: receipt.enrolled,
           cancelled: receipt.cancelled,
         });
-      })().catch((error: unknown) => {
-        if (error instanceof WebhookInputError)
-          respond(response, error.status, { error: error.message });
-        else {
-          options.onProgress?.(
-            `Webhook processing failed: ${error instanceof Error ? error.message : 'Unknown storage failure.'}`,
-          );
-          respond(response, 500, {
-            error: 'Webhook was not accepted. Inspect service logs before redelivery.',
-          });
-        }
-        request.resume();
+      },
+      {
+        host,
+        port: options.port ?? DEFAULT_SERVICE_PORT,
+        requestTimeout: REQUEST_TIMEOUT_MS,
+        label: 'Webhook',
+      },
+    );
+    if (options.jobMachines) {
+      const channel = jobChannel();
+      const bound = await listen(channel.handle, {
+        host: options.jobMachines.host ?? JOB_CHANNEL_HOST,
+        port: options.jobMachines.port ?? JOB_CHANNEL_PORT,
+        requestTimeout: JOB_REQUEST_TIMEOUT_MS,
+        label: 'Job channel request',
       });
-      handlers.add(handler);
-      void handler.then(
-        () => handlers.delete(handler),
-        () => handlers.delete(handler),
-      );
-    },
-  );
-  server.maxConnections = MAX_CONNECTIONS;
-  try {
-    const host = options.host ?? HOSTED_HOST;
-    await new Promise<void>((resolve, reject) => {
-      server.once('error', reject);
-      server.listen(options.port ?? DEFAULT_SERVICE_PORT, host, () => {
-        server.removeListener('error', reject);
-        resolve();
-      });
-    });
-    const address = server.address();
-    if (!address || typeof address === 'string')
-      throw new PipelineInputError('Hosted service did not acquire a network address.');
+      jobs = {
+        machines: options.jobMachines.machines,
+        channel,
+        callback: `http://${bound.family === 'IPv6' ? `[${bound.address}]` : bound.address}:${bound.port}`,
+        image: options.jobMachines.image,
+        region: options.jobMachines.region,
+        images: options.jobMachines.images,
+        timeoutSeconds: options.jobMachines.timeoutSeconds ?? JOB_TIMEOUT_SECONDS,
+        pollSeconds: options.jobMachines.pollSeconds ?? JOB_POLL_SECONDS,
+      };
+      options.onProgress?.(`Job channel listening at ${jobs.callback}; jobs run on Fly Machines.`);
+    }
     options.onReady?.(`http://${host}:${address.port}`);
     while (!options.signal.aborted) {
       requested = false;
+      if (jobs) await reap(jobs);
       await store.enqueueDue(interval);
       for (
         let claimed = await store.claim(worker, lease);
@@ -275,13 +361,18 @@ export async function runHostedService(options: {
   } finally {
     options.signal.removeEventListener('abort', stop);
     stop();
-    await new Promise<void>((resolve, reject) => {
-      server.close((error) => {
-        if (!error || ('code' in error && error.code === 'ERR_SERVER_NOT_RUNNING')) resolve();
-        else reject(error);
-      });
-      server.closeAllConnections();
-    });
+    await Promise.all(
+      servers.map(
+        (server) =>
+          new Promise<void>((resolve, reject) => {
+            server.close((error) => {
+              if (!error || ('code' in error && error.code === 'ERR_SERVER_NOT_RUNNING')) resolve();
+              else reject(error);
+            });
+            server.closeAllConnections();
+          }),
+      ),
+    );
     await Promise.all(handlers);
   }
 }

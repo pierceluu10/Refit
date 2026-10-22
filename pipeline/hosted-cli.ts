@@ -1,7 +1,9 @@
 import { parseArgs } from 'node:util';
 import pg from 'pg';
 import { assessmentConfiguration } from './assessment.ts';
+import { flyMachines } from './fly-machines.ts';
 import { githubAppConfiguration } from './github-app.ts';
+import { runHostedJob } from './hosted-runner.ts';
 import { runHostedService } from './hosted-service.ts';
 import { openHostedStore } from './hosted-store.ts';
 import { validateServiceSecret } from './local-service.ts';
@@ -10,12 +12,34 @@ import { PipelineInputError } from './types.ts';
 import { terminalText } from './workflow-presentation.ts';
 
 const GITHUB_LOGIN = /^[A-Za-z0-9][A-Za-z0-9-]{0,38}$/;
-const USAGE = `Usage: refit hosted serve --state <directory> [--host <address>] [--port <number>] [--interval <seconds>] [--ai-patch --repair-attempts 0|1|2] [--publish-draft]
+const JOB_ID = /^[1-9]\d{0,15}$/;
+const USAGE = `Usage: refit hosted serve --state <directory> [--host <address>] [--port <number>] [--interval <seconds>] [--ai-patch --repair-attempts 0|1|2] [--publish-draft] [--job-machines]
        refit hosted approve --approval <receipt.json> --approved-by <github-login>
        refit hosted retry --target <id>
+       refit hosted job
 Requires REFIT_DATABASE_URL (PostgreSQL). serve also requires GITHUB_APP_ID, GITHUB_APP_PRIVATE_KEY_FILE, REFIT_WEBHOOK_SECRET, a different REFIT_SERVICE_TOKEN and REFIT_HOSTED_OWNER, the only GitHub account whose installations enroll until jobs run in per-job microVMs. --ai-patch uses OPENAI_API_KEY and OPENAI_MODEL with a separate REFIT_AI_BUDGET_USD ledger per installation under REFIT_AI_BUDGET_DIRECTORY.
 approve stores a receipt made by refit enroll. Installing the App on an approved repository enrolls it: the worker runs refit doctor, then scans and validates with the approved checks, and stores a job receipt. Installed repositories without an approval never run. Removing the repository or the installation cancels its targets and stops running jobs. --publish-draft opens draft PRs as Refit Agent; Refit never merges.
-retry queues one fresh attempt for an enrolled target, permitting a cached failed job to run again; successful jobs remain cached. Approval and access gates still apply.`;
+retry queues one fresh attempt for an enrolled target, permitting a cached failed job to run again; successful jobs remain cached. Approval and access gates still apply.
+--job-machines runs each job on its own Fly Machine in REFIT_JOB_APP, a separate Fly app with no secrets, using FLY_API_TOKEN for that app, REFIT_JOB_IMAGE (default FLY_IMAGE_REF), REFIT_JOB_REGION (default FLY_REGION) and the validation images in REFIT_HOSTED_IMAGES. It cannot be combined with --ai-patch or --publish-draft. job runs on such a machine: it reads REFIT_JOB_URL, REFIT_JOB_ID and REFIT_JOB_SECRET, runs that one job and reports to the control process.`;
+
+function jobMachines(environment: NodeJS.ProcessEnv) {
+  const app = environment.REFIT_JOB_APP?.trim();
+  const image = environment.REFIT_JOB_IMAGE?.trim() || environment.FLY_IMAGE_REF?.trim();
+  const region = environment.REFIT_JOB_REGION?.trim() || environment.FLY_REGION?.trim();
+  if (!app || !image || !region)
+    throw new PipelineInputError(
+      '--job-machines requires REFIT_JOB_APP, FLY_API_TOKEN, and REFIT_JOB_IMAGE and REFIT_JOB_REGION unless Fly sets FLY_IMAGE_REF and FLY_REGION.',
+    );
+  // Fly gives every Machine in an app that app's secrets, so jobs never share the control app.
+  if (app === environment.FLY_APP_NAME)
+    throw new PipelineInputError('REFIT_JOB_APP must be a separate Fly app with no secrets.');
+  return {
+    machines: flyMachines({ token: environment.FLY_API_TOKEN ?? '', app }),
+    image,
+    region,
+    images: (environment.REFIT_HOSTED_IMAGES ?? '').split(/\s+/).filter(Boolean),
+  };
+}
 
 function database() {
   const connectionString = process.env.REFIT_DATABASE_URL;
@@ -34,6 +58,7 @@ try {
       'ai-patch': { type: 'boolean' },
       'repair-attempts': { type: 'string' },
       'publish-draft': { type: 'boolean' },
+      'job-machines': { type: 'boolean' },
       approval: { type: 'string' },
       'approved-by': { type: 'string' },
       target: { type: 'string' },
@@ -72,6 +97,33 @@ try {
     } finally {
       await pool.end();
     }
+  } else if (command === 'job') {
+    const url = process.env.REFIT_JOB_URL;
+    const job = process.env.REFIT_JOB_ID;
+    const secret = process.env.REFIT_JOB_SECRET;
+    if (!url || !job || !JOB_ID.test(job) || !secret)
+      throw new PipelineInputError(
+        'refit hosted job runs on a job machine and requires REFIT_JOB_URL, REFIT_JOB_ID and REFIT_JOB_SECRET.',
+      );
+    // Nothing the job starts needs the channel secret.
+    delete process.env.REFIT_JOB_SECRET;
+    const controller = new AbortController();
+    const stop = () => controller.abort();
+    process.once('SIGINT', stop);
+    process.once('SIGTERM', stop);
+    try {
+      const outcome = await runHostedJob({
+        url,
+        job: Number(job),
+        secret,
+        signal: controller.signal,
+        onProgress: (message) => console.error(`[refit] ${terminalText(message)}`),
+      });
+      console.log(`Job ${job} reported ${outcome.receipt.status}.`);
+    } finally {
+      process.removeListener('SIGINT', stop);
+      process.removeListener('SIGTERM', stop);
+    }
   } else if (command === 'serve') {
     if (!values.state) throw new PipelineInputError(USAGE);
     const app = githubAppConfiguration(process.env);
@@ -99,6 +151,7 @@ try {
         aiPatch: assessmentConfiguration(values['ai-patch'], process.env),
         repairAttempts: Number(values['repair-attempts'] ?? 0),
         publishDraft: values['publish-draft'],
+        jobMachines: values['job-machines'] ? jobMachines(process.env) : undefined,
         host: values.host,
         port: values.port === undefined ? undefined : Number(values.port),
         intervalSeconds: values.interval === undefined ? undefined : Number(values.interval),
