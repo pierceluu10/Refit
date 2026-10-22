@@ -480,10 +480,14 @@ export function createReviewArtifacts(
         ]
       : []),
   ];
+  // An entry that failed on the original code (missing module, unmocked service) proves nothing.
+  const generatedRan = generated ? generated.entryPoints.length - generated.notRunnable.length : 0;
   const generatedResult = generated
     ? generated.patched.status === 'not-run'
       ? ' Generated stripe-mock checks did not run.'
-      : ` Generated stripe-mock checks ${generated.patched.status} on ${generated.entryPoints.length} exported functions.`
+      : generatedRan === 0
+        ? ` Generated stripe-mock checks could not run any of ${generated.entryPoints.length} exported functions on their own.`
+        : ` Generated stripe-mock checks ${generated.patched.status} on ${generatedRan} of ${generated.entryPoints.length} exported functions.`
     : '';
   const body =
     [

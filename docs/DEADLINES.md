@@ -236,14 +236,14 @@ Every traced SDK call outside the text-generation list stops with a named reason
 
 `--json` returns `replacements` (each with the call's `file`, `line` and `call`, `edited`, the place the string changes, `from`, `to`, the deadline and `via`, the registry entries followed), `stops` (each with `at`, where the model is written, and a `reason`), `unresolved` (each with `file`, `line`, `model`, `to` and a `reason`) and `patch`.
 
-On the 34 OpenAI repositories of the [deadline benchmark](DEADLINE-BENCHMARK.md), 15 send a model retiring on 2026-10-23 from live code. The rule proposed 6 replacements in 2 of them, 4 through the v3 SDK or `openai-edge`. Every proposal was read by hand, and each is the registry replacement in a plain request. It stopped for review, with a reason, in 4 more:
+On the 34 OpenAI repositories of the [deadline benchmark](DEADLINE-BENCHMARK.md), 22 send a registry model from live code (2026-10-21 run, with the registry as of that day). The rule proposed 6 replacements in 2 of them, 4 through the v3 SDK or `openai-edge`. Every proposal was read by hand, and each is the registry replacement in a plain request. It stopped for review, with a reason, in 4 more:
 
 - a helper whose request sets `max_tokens`;
 - a raw `fetch` that sets `temperature`;
 - spread options;
 - a reused request object.
 
-The other 9 hold the model in settings or UI defaults, a CLI option default, an alias map, a request to the app's own proxy, an Apps Script options variable, a Deno library or a configuration object. Results are in [`benchmarks/2026-10-20-model-replacement-results.json`](benchmarks/2026-10-20-model-replacement-results.json).
+The other 16 hold the model in settings or UI defaults, a CLI option default, an alias map, a request to the app's own proxy, an Apps Script options variable, a Deno library or a configuration object, or name only non-text models. Results are in [`benchmarks/2026-10-21-model-replacement-results.json`](benchmarks/2026-10-21-model-replacement-results.json); the 2026-10-20 run is in [`benchmarks/2026-10-20-model-replacement-results.json`](benchmarks/2026-10-20-model-replacement-results.json).
 
 ## Automatic model fixes
 

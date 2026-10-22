@@ -293,3 +293,143 @@ export const charge = (id: string, account: string) =>
   );
   expect(requests.map((entry) => entry.status)).toEqual(['inherited']);
 });
+
+it.each([
+  [
+    'instanceof on an error class',
+    'export const known = (error: unknown) => error instanceof Stripe.errors.StripeError;',
+  ],
+  [
+    'a conditional on an error class',
+    "export function message(error: unknown) { const text = error instanceof Stripe.errors.StripeError ? error.message : 'failed'; return text; }",
+  ],
+  ['an identity comparison', 'export const same = (value: unknown) => value === Stripe;'],
+])('keeps a client without a version option absent after %s', (_name, use) => {
+  const repository: Repository = {
+    root: '/refit-version-fixture',
+    files: [
+      {
+        path: 'application.ts',
+        content: `${prefix}\nexport const stripe = new Stripe('key');\n${use}`,
+      },
+    ],
+    dependencies: [],
+    lockfiles: [],
+    warnings: [],
+  };
+  const declarations = analyzeRepository(repository, [], STRIPE).apiVersionDeclarations;
+  expect(declarations.find((entry) => entry.kind === 'constructor')).toMatchObject({
+    absent: true,
+  });
+});
+
+it('still treats a client whose constructor escapes into a call as uncertain', () => {
+  const repository: Repository = {
+    root: '/refit-version-fixture',
+    files: [
+      {
+        path: 'application.ts',
+        content: `${prefix}\nexport const stripe = new Stripe('key');\nexport const wrapped = wrap(Stripe.errors);`,
+      },
+    ],
+    dependencies: [],
+    lockfiles: [],
+    warnings: [],
+  };
+  const declarations = analyzeRepository(repository, [], STRIPE).apiVersionDeclarations;
+  expect(declarations.find((entry) => entry.kind === 'constructor')?.absent).toBeUndefined();
+});
+
+const requestStatuses = (source: string) =>
+  analyzeRepository(
+    {
+      root: '/refit-version-fixture',
+      files: [{ path: 'application.ts', content: `${prefix}\n${source}` }],
+      dependencies: [],
+      lockfiles: [],
+      warnings: [],
+    },
+    [],
+    STRIPE,
+  )
+    .apiVersionDeclarations.filter((entry) => entry.kind === 'request')
+    .map((entry) => entry.status);
+
+// stripe-node reads the last argument as request options when it has any option key, so a
+// spread there is an override unless every object it can add is spelled out without one.
+const priceOf = `function priceOf(id: string | null) {
+  if (!id) return { price_data: { currency: 'usd', unit_amount: 100 } };
+  return { price: id };
+}`;
+it.each([
+  [
+    'a local function returning object literals',
+    `${priceOf}\nexport const update = (id: string) => stripe.subscriptionItems.update(id, { ...priceOf(id), proration_behavior: 'none' });`,
+  ],
+  [
+    'a const holding its result',
+    `${priceOf}\nexport const update = (id: string) => { const price = priceOf(id); const params = { ...price, proration_behavior: 'none' }; return stripe.subscriptionItems.update(id, params); };`,
+  ],
+  [
+    'an arrow function',
+    `const priceOf = (id: string) => ({ price: id });\nexport const update = (id: string) => stripe.subscriptionItems.update(id, { ...priceOf(id) });`,
+  ],
+])('treats a request spread of %s without option keys as inheriting', (_label, source) => {
+  expect(requestStatuses(`const stripe = new Stripe('key');\n${source}`)).toEqual(['inherited']);
+});
+
+it.each([
+  [
+    'a returned option key',
+    `const extra = () => ({ apiVersion: '${CHANGED}' });\nexport const update = (id: string) => stripe.subscriptionItems.update(id, { ...extra() });`,
+  ],
+  [
+    'a returned parameter',
+    `const extra = (value: object) => value;\nexport const update = (id: string, value: object) => stripe.subscriptionItems.update(id, { ...extra(value) });`,
+  ],
+  [
+    'a bare return',
+    `function extra(flag: boolean) { if (flag) return; return { price: 'p' }; }\nexport const update = (id: string) => stripe.subscriptionItems.update(id, { ...extra(true) });`,
+  ],
+  [
+    'an async function',
+    `async function extra() { return { price: 'p' }; }\nexport const update = async (id: string) => stripe.subscriptionItems.update(id, { ...(await extra()) });`,
+  ],
+  [
+    'an imported function',
+    `import { extra } from './extra';\nexport const update = (id: string) => stripe.subscriptionItems.update(id, { ...extra() });`,
+  ],
+  [
+    'a reassigned function',
+    `let extra = () => ({ price: 'p' }); extra = () => ({ apiVersion: '${CHANGED}' });\nexport const update = (id: string) => stripe.subscriptionItems.update(id, { ...extra() });`,
+  ],
+])('keeps a request spread of %s unverified', (_label, source) => {
+  expect(requestStatuses(`const stripe = new Stripe('key');\n${source}`)).toEqual(['unknown']);
+});
+
+it('keeps a spread result unverified once anything but a spread uses it', () => {
+  expect(
+    requestStatuses(`const stripe = new Stripe('key');
+${priceOf}
+export const update = (id: string) => { const price = priceOf(id); Object.assign(price, { apiVersion: '${CHANGED}' }); return stripe.subscriptionItems.update(id, { ...price }); };`),
+  ).toEqual(['unknown']);
+});
+
+it('trusts request params passed to SDK calls and spread, but not ones handed to other code', () => {
+  const shared = `const stripe = new Stripe('key');
+${priceOf}
+export const save = async (id: string, item?: string) => {
+  const params = { ...priceOf(id), proration_behavior: 'none' as const };`;
+  expect(
+    requestStatuses(`${shared}
+  if (item) return stripe.subscriptionItems.update(item, params);
+  return stripe.subscriptionItems.create({ subscription: id, ...params });
+};`),
+  ).toEqual(['inherited', 'inherited']);
+  expect(
+    requestStatuses(`${shared}
+  customize(params);
+  return stripe.subscriptionItems.update(id, params);
+};`),
+  ).toEqual(['unknown']);
+});

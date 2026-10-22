@@ -254,23 +254,30 @@ it.each(['fail', 'verbose'])(
   },
 );
 
-it('cancels an in-flight Docker client, removes its container and leaves no reusable partial bundle', async () => {
-  const fixture = await setup();
-  vi.stubEnv('REFIT_TEST_INSTALL_MODE', 'wait');
-  const controller = new AbortController();
-  const preparation = prepareDependencies({ ...fixture.options, signal: controller.signal });
-  const rejection = expect(preparation).rejects.toMatchObject({ name: 'AbortError' });
-  await expect
-    .poll(async () =>
-      (await fixture.calls().catch(() => [])).some((call) => call.args[0] === 'run'),
-    )
-    .toBe(true);
-  controller.abort();
-  await rejection;
-  const [key] = await readdir(fixture.options.cacheDirectory);
-  expect(await readdir(join(fixture.options.cacheDirectory, key))).toEqual([]);
-  expect((await fixture.calls()).some((call) => call.args[0] === 'rm')).toBe(true);
-});
+it(
+  'cancels an in-flight Docker client, removes its container and leaves no reusable partial bundle',
+  async () => {
+    const fixture = await setup();
+    vi.stubEnv('REFIT_TEST_INSTALL_MODE', 'wait');
+    const controller = new AbortController();
+    const preparation = prepareDependencies({ ...fixture.options, signal: controller.signal });
+    const rejection = expect(preparation).rejects.toMatchObject({ name: 'AbortError' });
+    await expect
+      .poll(
+        async () => (await fixture.calls().catch(() => [])).some((call) => call.args[0] === 'run'),
+        // The fake Docker client starts after git and image checks; under full-suite load that can
+        // exceed poll's 1 s default, abandoning a preparation whose fixture is then deleted.
+        { timeout: NATIVE_PROCESS_TEST_TIMEOUT_MS },
+      )
+      .toBe(true);
+    controller.abort();
+    await rejection;
+    const [key] = await readdir(fixture.options.cacheDirectory);
+    expect(await readdir(join(fixture.options.cacheDirectory, key))).toEqual([]);
+    expect((await fixture.calls()).some((call) => call.args[0] === 'rm')).toBe(true);
+  },
+  NATIVE_PROCESS_TEST_TIMEOUT_MS,
+);
 
 it.skipIf(!process.env.REFIT_NPM_PREPARE || !process.env.REFIT_BILLING_REPOSITORY)(
   'installs actual locked packages without root lifecycle scripts or repository npm configuration and uses them offline',

@@ -1,7 +1,9 @@
 import ts from 'typescript-compiler';
 
-// `new Proxy(target, { get: (_, key) => client[key] })`, or the same with `Reflect.get(client, key)`,
-// forwards every read to `client`; returns that expression. Any other trap or trap body is not one.
+// `new Proxy(target, { get: (_, key) => client[key] })`, or the same with `Reflect.get(client, key)`
+// or `Reflect.get(client, key, receiver)`, forwards every read to `client`; returns that expression.
+// The trap may first fill `client` (`client ??= make()` or `if (!client) client = make()`); that
+// write is checked wherever `client` is. Any other trap or trap body is not one.
 export function proxyClient(expression: ts.Expression): ts.Expression | undefined {
   const unwrap = (node: ts.Expression): ts.Expression =>
     ts.isParenthesizedExpression(node) ||
@@ -34,33 +36,62 @@ export function proxyClient(expression: ts.Expression): ts.Expression | undefine
   if (get.modifiers?.some((modifier) => modifier.kind === ts.SyntaxKind.AsyncKeyword)) return;
   const key = get.parameters[1]?.name;
   if (!key || !ts.isIdentifier(key) || !get.body) return;
+  const statements = ts.isBlock(get.body) ? [...get.body.statements] : [];
+  const last = statements.pop();
   const body = ts.isBlock(get.body)
-    ? get.body.statements.length === 1 &&
-      ts.isReturnStatement(get.body.statements[0]) &&
-      get.body.statements[0].expression
+    ? last && ts.isReturnStatement(last) && last.expression
     : get.body;
-  if (!body) return;
+  if (!body || statements.length > 1) return;
   const read = unwrap(body);
-  const isKey = (node: ts.Expression) => {
-    const current = unwrap(node);
-    return ts.isIdentifier(current) && current.text === key.text;
+  const named = (node: ts.Node | undefined, name: string | undefined) => {
+    const current = node && ts.isExpression(node) ? unwrap(node) : node;
+    return Boolean(current && name && ts.isIdentifier(current) && current.text === name);
   };
-  if (
+  const receiver = get.parameters[2]?.name;
+  const target =
     ts.isElementAccessExpression(read) &&
     !read.questionDotToken &&
-    isKey(read.argumentExpression)
-  )
-    return unwrap(read.expression);
-  if (
-    ts.isCallExpression(read) &&
-    ts.isPropertyAccessExpression(read.expression) &&
-    ts.isIdentifier(read.expression.expression) &&
-    read.expression.expression.text === 'Reflect' &&
-    read.expression.name.text === 'get' &&
-    read.arguments.length === 2 &&
-    isKey(read.arguments[1])
-  )
-    return unwrap(read.arguments[0]);
+    named(read.argumentExpression, key.text)
+      ? unwrap(read.expression)
+      : ts.isCallExpression(read) &&
+          ts.isPropertyAccessExpression(read.expression) &&
+          ts.isIdentifier(read.expression.expression) &&
+          read.expression.expression.text === 'Reflect' &&
+          read.expression.name.text === 'get' &&
+          named(read.arguments[1], key.text) &&
+          (read.arguments.length === 2 ||
+            (read.arguments.length === 3 &&
+              receiver &&
+              ts.isIdentifier(receiver) &&
+              named(read.arguments[2], receiver.text)))
+        ? unwrap(read.arguments[0])
+        : undefined;
+  if (!target || (statements.length && !fills(statements[0], target))) return;
+  return target;
+}
+
+// `client ??= make();` or `if (!client) client = make();` with no else.
+function fills(statement: ts.Statement, target: ts.Expression) {
+  if (!ts.isIdentifier(target)) return false;
+  const same = (node: ts.Expression) => ts.isIdentifier(node) && node.text === target.text;
+  const write = (node: ts.Statement, operator: ts.SyntaxKind) => {
+    const inner = ts.isBlock(node) && node.statements.length === 1 ? node.statements[0] : node;
+    return (
+      ts.isExpressionStatement(inner) &&
+      ts.isBinaryExpression(inner.expression) &&
+      inner.expression.operatorToken.kind === operator &&
+      same(inner.expression.left)
+    );
+  };
+  if (write(statement, ts.SyntaxKind.QuestionQuestionEqualsToken)) return true;
+  return (
+    ts.isIfStatement(statement) &&
+    !statement.elseStatement &&
+    ts.isPrefixUnaryExpression(statement.expression) &&
+    statement.expression.operator === ts.SyntaxKind.ExclamationToken &&
+    same(statement.expression.operand) &&
+    write(statement.thenStatement, ts.SyntaxKind.EqualsToken)
+  );
 }
 
 type Creation = ts.NewExpression | ts.CallExpression;
@@ -94,6 +125,7 @@ export function factoryClients(options: {
   const writes = new Map<ts.Symbol, ts.Expression[]>();
   const rejected = new Set<ts.Symbol>();
   const asyncFactories = new Set<ts.Symbol>();
+  const wrappers = new Set<ts.Symbol>();
 
   function unwrap(expression: ts.Expression): ts.Expression {
     if (
@@ -160,6 +192,25 @@ export function factoryClients(options: {
     if (ts.isConditionalExpression(current))
       return combine([value(current.whenTrue, found), value(current.whenFalse, found)]);
     if (
+      ts.isCallExpression(current) &&
+      !current.questionDotToken &&
+      current.arguments.length === 1
+    ) {
+      const binding = reference(unwrap(current.expression));
+      const make = unwrap(current.arguments[0]);
+      if (
+        binding &&
+        wrappers.has(binding) &&
+        (ts.isArrowFunction(make) || ts.isFunctionExpression(make)) &&
+        !make.asteriskToken &&
+        !make.modifiers?.some((modifier) => modifier.kind === ts.SyntaxKind.AsyncKeyword)
+      )
+        return combine(returns(make).map((entry) => (entry ? value(entry, found) : 'null'))) ===
+          'client'
+          ? 'client'
+          : undefined;
+    }
+    if (
       ts.isBinaryExpression(current) &&
       [ts.SyntaxKind.QuestionQuestionToken, ts.SyntaxKind.BarBarToken].includes(
         current.operatorToken.kind,
@@ -220,7 +271,9 @@ export function factoryClients(options: {
     else if (
       constant &&
       initializer &&
-      (ts.isConditionalExpression(initializer) || ts.isBinaryExpression(initializer))
+      (ts.isConditionalExpression(initializer) ||
+        ts.isBinaryExpression(initializer) ||
+        ts.isCallExpression(initializer))
     )
       conditionals.push(
         node as ts.VariableDeclaration & { name: ts.Identifier; initializer: ts.Expression },
@@ -283,6 +336,48 @@ export function factoryClients(options: {
   }
   for (const binding of candidateFactories.keys())
     if (writes.has(binding)) candidateFactories.delete(binding);
+  // `lazy(() => new Stripe(key))`: a one-parameter function whose only return is a forwarding Proxy
+  // over its own local, which only ever holds nothing or the parameter's result. A call to it with
+  // a function that returns a client is that client.
+  for (const [binding, wrapper] of candidateFactories) {
+    const [parameter] = wrapper.parameters;
+    if (
+      wrapper.parameters.length !== 1 ||
+      parameter.dotDotDotToken ||
+      !ts.isIdentifier(parameter.name) ||
+      asyncFactories.has(binding)
+    )
+      continue;
+    const made = symbol(parameter.name);
+    const [result, ...rest] = returns(wrapper);
+    const target = result && !rest.length ? proxyClient(result) : undefined;
+    const local = target && ts.isIdentifier(target) ? symbol(target) : undefined;
+    const declaration = local && candidateHolders.get(local);
+    if (
+      !made ||
+      !declaration ||
+      !ts.isVariableDeclaration(declaration) ||
+      declaration.getSourceFile() !== wrapper.getSourceFile() ||
+      declaration.pos < wrapper.pos ||
+      declaration.end > wrapper.end
+    )
+      continue;
+    const fromParameter = (entry: ts.Expression) => {
+      const call = unwrap(entry);
+      return (
+        ts.isCallExpression(call) &&
+        !call.questionDotToken &&
+        call.arguments.length === 0 &&
+        reference(unwrap(call.expression)) === made
+      );
+    };
+    if (
+      [declaration.initializer, ...(writes.get(local!) ?? [])].every(
+        (entry) => !entry || nullish(unwrap(entry)) || fromParameter(entry),
+      )
+    )
+      wrappers.add(binding);
+  }
 
   // Grows from nothing, so a holder or factory is accepted only when all of its values are known.
   let changed = true;

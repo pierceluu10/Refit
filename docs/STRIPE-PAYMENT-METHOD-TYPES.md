@@ -1,6 +1,6 @@
 # Stripe `payment_method_types` in endive: proposed policy
 
-**Status: approved by the owner on 2026-10-16 and implemented for case A only.** Cases B and C keep stopping for review, and Refit never drops the parameter. A per-repository opt-in for case B is [proposed](#proposed-2026-10-17-a-repository-opt-in-for-case-b-awaiting-owner-sign-off) and awaits sign-off.
+**Status: approved by the owner on 2026-10-16 and implemented for case A only.** Cases B and C keep stopping for review, and Refit never drops the parameter. A per-repository opt-in for case B was [approved by the owner on 2026-10-21](#approved-2026-10-21-a-repository-opt-in-for-case-b).
 
 ## The change
 
@@ -62,7 +62,9 @@ The same rename would keep the methods listed. But dynamic eligibility can hide 
 
 Optional middle ground: rename case B too, but list it under "please check" with each method that may now be filtered. I recommend keeping the stop until a customer asks for it.
 
-#### Proposed 2026-10-17: a repository opt-in for case B (awaiting owner sign-off)
+#### Approved 2026-10-21: a repository opt-in for case B
+
+Proposed 2026-10-17; approved by the owner on 2026-10-21 as written below. Benchmarks simulate a repository's opt-in with `--keep-listed-payment-methods`.
 
 The default stays the decision above. A repository whose owner wants the middle ground asks for it in `.refit.json`:
 

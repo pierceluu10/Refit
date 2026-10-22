@@ -327,3 +327,34 @@ it('says when npm installed the committed lockfile with --legacy-peer-deps', asy
     "- Dependency Installation: `npm ci` rejected the committed lockfile's peer dependencies (ERESOLVE), so Refit installed the same lockfile with `--legacy-peer-deps`.",
   );
 });
+
+it('counts only generated stripe-mock entries that ran on the original code', async () => {
+  const value = await report();
+  const entry = { file: 'src/billing/history.ts', name: 'history', parameters: 0 };
+  const hashes = { contract: 'd'.repeat(64), fixtures: 'e'.repeat(64) };
+  const generated = (notRunnable: { id: string; error: string }[]) => ({
+    engine: 'stripe-mock' as const,
+    image: `sha256:${'f'.repeat(64)}`,
+    binaryHash: 'f'.repeat(64),
+    inputs: { before: hashes, after: hashes },
+    claim: 'Synthetic generated checks.',
+    entryPoints: [entry, { ...entry, name: 'refund' }],
+    uncoveredFindings: 0,
+    notRunnable,
+    regressions: [],
+    baseline: { status: 'passed' as const, exitCode: 0, stdout: '', stderr: '' },
+    patched: { status: 'passed' as const, exitCode: 0, stdout: '', stderr: '' },
+  });
+  const body = (notRunnable: { id: string; error: string }[]) =>
+    createReviewArtifacts({
+      ...value,
+      validation: { ...value.validation, generated: generated(notRunnable) },
+    }).files['pull-request.md'];
+  const missing = { id: 'src/billing/history.ts#history', error: 'Cannot find module' };
+  expect(body([missing, { ...missing, id: 'src/billing/history.ts#refund' }])).toContain(
+    'Generated stripe-mock checks could not run any of 2 exported functions on their own.',
+  );
+  expect(body([missing])).toContain(
+    'Generated stripe-mock checks passed on 1 of 2 exported functions.',
+  );
+});

@@ -55,7 +55,8 @@ vi.mock('./github.ts', async (original) => ({
   }),
 }));
 // The approved repository's managed checkout is a local fixture directory.
-vi.mock('./service-worker.ts', () => ({
+vi.mock('./service-worker.ts', async (original) => ({
+  ...(await original<typeof import('./service-worker.ts')>()),
   pollServiceTarget: vi.fn(async ({ target }: { target: ServiceTarget }) => ({
     status: 'already-processed',
     previousStatus: 'existing-pr',
