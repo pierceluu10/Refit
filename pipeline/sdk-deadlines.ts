@@ -1,0 +1,84 @@
+// Matching for package and product deadlines in the registry: `kind: 'sdk'` versions name an npm
+// package, optionally narrowed to the releases a provider stopped supporting (`@clerk/nextjs@<5`),
+// and `kind: 'feature'` versions are source markers of a product that shuts down, such as an API
+// hostname or an SDK option name. Nothing is installed or executed.
+
+// A range is one or more space-separated comparators that must all hold, as in `>=5 <7`. A
+// comparator's version may leave out its minor and patch numbers, which then count as 0.
+const COMPARATOR = /^(<=|>=|<|>|=)?v?(\d+)(?:\.(\d+))?(?:\.(\d+))?$/;
+// A full version, with any prerelease or build suffix, as a lockfile records it.
+const VERSION = /^v?(\d+)\.(\d+)\.(\d+)(?:[-+][0-9A-Za-z.+-]*)?$/;
+// Declared specifiers whose lowest release fixes the installed major: an exact version, a caret or
+// tilde range, or an x-range such as `4.x` or `4`. Open ranges (`>=4`, `*`, `latest`, tags, URLs
+// and workspace links) could resolve to any release, so they are not read.
+const DECLARED = /^[\^~=]?\s*v?(\d+)(?:\.(\d+|x|\*))?(?:\.(\d+|x|\*))?(?:[-+][0-9A-Za-z.+-]*)?$/i;
+
+type Version = [number, number, number];
+
+function compare(left: Version, right: Version) {
+  for (let index = 0; index < 3; index += 1)
+    if (left[index] !== right[index]) return left[index] - right[index];
+  return 0;
+}
+
+function comparators(range: string) {
+  const parts = range.trim().split(/\s+/);
+  const parsed = parts.map((part) => COMPARATOR.exec(part));
+  if (!range.trim() || parsed.some((match) => !match)) return undefined;
+  return parsed.map((match) => ({
+    operator: match![1] ?? '=',
+    version: [Number(match![2]), Number(match![3] ?? 0), Number(match![4] ?? 0)] as Version,
+  }));
+}
+
+// The package an `sdk` deadline names and the range of its releases the deadline covers. A scoped
+// package's own `@` is not a range separator.
+export function sdkTarget(version: string): { name: string; range: string | null } {
+  const separator = version.indexOf('@', 1);
+  return separator < 0
+    ? { name: version, range: null }
+    : { name: version.slice(0, separator), range: version.slice(separator + 1) };
+}
+
+export function validRange(range: string) {
+  return comparators(range) !== undefined;
+}
+
+// Whether a full version is inside a range. A prerelease counts as its release.
+export function satisfiesRange(version: string, range: string) {
+  const match = VERSION.exec(version);
+  const required = comparators(range);
+  if (!match || !required) return false;
+  const actual: Version = [Number(match[1]), Number(match[2]), Number(match[3])];
+  return required.every(({ operator, version: bound }) => {
+    const order = compare(actual, bound);
+    if (operator === '<') return order < 0;
+    if (operator === '<=') return order <= 0;
+    if (operator === '>') return order > 0;
+    if (operator === '>=') return order >= 0;
+    return order === 0;
+  });
+}
+
+// The release a repository installs: the locked version when a lockfile records one, otherwise the
+// lowest release a bounded declared specifier allows. Null when neither says which major it is.
+export function installedVersion(declared: string, locked: string | null) {
+  if (locked && VERSION.test(locked)) return locked.replace(/^v/, '');
+  const match = DECLARED.exec(declared.trim());
+  if (!match) return null;
+  const part = (value: string | undefined) => (value && /^\d+$/.test(value) ? value : '0');
+  return `${match[1]}.${part(match[2])}.${part(match[3])}`;
+}
+
+// Each place a line names a feature marker, with the column where it starts so the caller can tell
+// code from comments.
+export function featureMatches<Provider extends string>(
+  line: string,
+  features: { provider: Provider; marker: string }[],
+) {
+  const found: { provider: Provider; marker: string; column: number }[] = [];
+  for (const { provider, marker } of features)
+    for (let column = line.indexOf(marker); column >= 0; column = line.indexOf(marker, column + 1))
+      found.push({ provider, marker, column });
+  return found;
+}

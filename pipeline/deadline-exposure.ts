@@ -5,6 +5,7 @@ import ts from 'typescript-compiler';
 import { AGENT_CATALOG, builtInPackage } from './agent-catalog.ts';
 import { daysUntil, type DeadlineEntry, type DeadlineRegistry } from './deadline-registry.ts';
 import { readRepository } from './repository.ts';
+import { featureMatches, installedVersion, satisfiesRange, sdkTarget } from './sdk-deadlines.ts';
 import { isObject, parseObject } from './specifications.ts';
 import { REPOSITORY_CONFIGURATION } from './workflow-configuration.ts';
 
@@ -522,6 +523,9 @@ export async function scanDeadlines(
     else exposure.more += 1;
   };
 
+  const features = registry.deadlines
+    .filter((entry) => entry.kind === 'feature')
+    .flatMap((entry) => entry.versions.map((marker) => ({ provider: entry.provider, marker })));
   const repository = await readRepository(root, META_SDK);
   for (const file of repository.files) {
     const shopifyFile = SHOPIFY_CONTEXT.some((name) => file.content.includes(name));
@@ -536,6 +540,18 @@ export async function scanDeadlines(
           line: index + 1,
           kind: 'source',
           use: useAt(offset + match.column, match.provider, line, match.version),
+          text: excerpt(line),
+        });
+      }
+      // A product that shuts down: each marker in code, with test and example files kept apart.
+      for (const match of featureMatches(line, features)) {
+        useAt ??= tokenUses(file.path, file.content, models);
+        const use = useAt(offset + match.column, match.provider, line, match.marker);
+        record(match.provider, match.marker, {
+          file: file.path,
+          line: index + 1,
+          kind: 'source',
+          use: use === 'live' && TEST_PATH.test(file.path) ? 'test' : use,
           text: excerpt(line),
         });
       }
@@ -555,18 +571,24 @@ export async function scanDeadlines(
   }
   // A package whose support ended: each manifest that declares it. A repository whose source never
   // names the package is not read a second time. Manifests in test and example paths are not live.
+  // An entry narrowed to a range matches only a release Refit can place in it: the locked version,
+  // or the lowest release a bounded declared range allows.
   for (const entry of registry.deadlines)
     if (entry.kind === 'sdk')
-      for (const name of entry.versions) {
+      for (const version of entry.versions) {
+        const { name, range } = sdkTarget(version);
         if (!repository.files.some((file) => file.content.includes(name))) continue;
-        for (const dependency of (await readRepository(root, name)).dependencies)
-          record(entry.provider, name, {
+        for (const dependency of (await readRepository(root, name)).dependencies) {
+          const installed = installedVersion(dependency.version, dependency.lock.version);
+          if (range && !(installed && satisfiesRange(installed, range))) continue;
+          record(entry.provider, version, {
             file: dependency.file,
             line: await lineOf(root, dependency.file, `"${name}"`),
             kind: 'dependency',
             use: TEST_PATH.test(dependency.file) ? 'test' : 'live',
-            text: `${name} ${dependency.lock.version ?? dependency.version}${dependency.lock.version ? ` (locked in ${dependency.lock.file})` : ''} is declared in ${dependency.section}`,
+            text: `${name} ${dependency.lock.version ?? dependency.version}${dependency.lock.version ? ` (locked in ${dependency.lock.file})` : ''} is declared in ${dependency.section}${range ? `, inside ${range}` : ''}`,
           });
+        }
       }
   for (const pin of await configuredApiVersions(root))
     record(pin.provider, pin.version, {

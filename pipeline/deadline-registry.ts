@@ -1,12 +1,23 @@
 import { readFile } from 'node:fs/promises';
+import { sdkTarget, validRange } from './sdk-deadlines.ts';
 import { isObject, parseObject } from './specifications.ts';
 import { PipelineInputError } from './types.ts';
 
 export const DEFAULT_DEADLINE_REGISTRY = new URL('../data/deadlines.json', import.meta.url);
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 const ENTRY_ID = /^[a-z0-9][a-z0-9-]{0,95}$/;
-const PROVIDERS = new Set(['shopify', 'meta-graph', 'openai', 'anthropic', 'gemini']);
-const KINDS = new Set(['api-version', 'model', 'sdk']);
+const PROVIDERS = new Set([
+  'shopify',
+  'meta-graph',
+  'openai',
+  'anthropic',
+  'gemini',
+  'auth0',
+  'clerk',
+  'firebase',
+  'supabase',
+]);
+const KINDS = new Set(['api-version', 'model', 'sdk', 'feature']);
 const ENTRY_KEYS = [
   'id',
   'provider',
@@ -20,13 +31,24 @@ const ENTRY_KEYS = [
 ];
 const MILLISECONDS_PER_DAY = 86_400_000;
 
-// One reviewed sunset: the date a provider stops serving these API versions or models, or ends
-// support for these SDK packages (`kind: 'sdk'`, whose versions are npm package names), with the
-// page it came from and the day a person last checked that page.
+// One reviewed sunset: the date a provider stops serving these API versions or models, ends
+// support for these SDK packages (`kind: 'sdk'`, whose versions are npm package names, each
+// optionally narrowed to a version range as in `@clerk/nextjs@<5`), or shuts down a product
+// (`kind: 'feature'`, whose versions are the source markers that use it, such as an API hostname
+// or an SDK option name), with the page it came from and the day a person last checked that page.
 export interface DeadlineEntry {
   id: string;
-  provider: 'shopify' | 'meta-graph' | 'openai' | 'anthropic' | 'gemini';
-  kind: 'api-version' | 'model' | 'sdk';
+  provider:
+    | 'shopify'
+    | 'meta-graph'
+    | 'openai'
+    | 'anthropic'
+    | 'gemini'
+    | 'auth0'
+    | 'clerk'
+    | 'firebase'
+    | 'supabase';
+  kind: 'api-version' | 'model' | 'sdk' | 'feature';
   versions: string[];
   date: string;
   summary: string;
@@ -80,7 +102,7 @@ export function checkDeadlineRegistry(value: unknown, now: Date) {
     if (!PROVIDERS.has(String(entry.provider)))
       errors.push(`${label}: provider must be one of ${[...PROVIDERS].join(', ')}.`);
     if (!KINDS.has(String(entry.kind)))
-      errors.push(`${label}: kind must be api-version, model or sdk.`);
+      errors.push(`${label}: kind must be api-version, model, sdk or feature.`);
     if (
       !Array.isArray(entry.versions) ||
       !entry.versions.length ||
@@ -92,6 +114,9 @@ export function checkDeadlineRegistry(value: unknown, now: Date) {
         const key = `${String(entry.provider)}:${version}`;
         if (versions.has(key)) errors.push(`${label}: ${version} already has another deadline.`);
         versions.add(key);
+        const range = entry.kind === 'sdk' ? sdkTarget(version).range : null;
+        if (range !== null && !validRange(range))
+          errors.push(`${label}: ${version} has a version range Refit cannot read.`);
       }
     if (!validDate(entry.date)) errors.push(`${label}: date must be a real YYYY-MM-DD date.`);
     if (!validDate(entry.checkedAt))
