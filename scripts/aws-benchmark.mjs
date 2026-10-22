@@ -13,6 +13,7 @@ import {
   credentialsFailed,
   dryRunAllowed,
   fillCommand,
+  memoryWarning,
   runCost,
   shardSlices,
   shardStates,
@@ -276,14 +277,11 @@ async function instances(run) {
   });
 }
 
-async function vcpus(instanceType) {
-  const { InstanceTypes } = await aws(
-    'ec2',
-    'describe-instance-types',
-    '--instance-types',
-    instanceType,
-  );
-  return InstanceTypes[0].VCpuInfo.DefaultVCpus;
+async function describeType(instanceType) {
+  const {
+    InstanceTypes: [type],
+  } = await aws('ec2', 'describe-instance-types', '--instance-types', instanceType);
+  return { vcpus: type.VCpuInfo.DefaultVCpus, memoryMib: type.MemoryInfo.SizeInMiB };
 }
 
 // Every active instance of the same market counts against its vCPU quota, including ones other
@@ -292,7 +290,7 @@ async function checkQuota(market, instanceType, count) {
   if (!(market in VCPU_QUOTAS)) throw new Error('--market must be spot or on-demand.');
   const [active, perInstance, quota] = await Promise.all([
     instances(),
-    vcpus(instanceType),
+    describeType(instanceType).then((type) => type.vcpus),
     aws(
       'service-quotas',
       'get-service-quota',
@@ -303,10 +301,9 @@ async function checkQuota(market, instanceType, count) {
     ),
   ]);
   const sameMarket = active.filter((instance) => instance.spot === (market === 'spot'));
-  const used = (await Promise.all(sameMarket.map((instance) => vcpus(instance.type)))).reduce(
-    (sum, count) => sum + count,
-    0,
-  );
+  const used = (
+    await Promise.all(sameMarket.map(async (instance) => (await describeType(instance.type)).vcpus))
+  ).reduce((sum, count) => sum + count, 0);
   const needed = perInstance * count;
   if (used + needed > quota.Quota.Value)
     throw new Error(
@@ -431,11 +428,15 @@ async function launch(values, command) {
   await checkQuota(market, instanceType, slices.length);
 
   const commit = (await execute('git', ['rev-parse', values.commit ?? 'HEAD'])).stdout.trim();
+  const { memoryMib } = await describeType(instanceType);
+  const warning = memoryWarning(command, instanceType, memoryMib);
+  if (warning) console.warn(warning);
   const settings = {
     run: values.run,
     commit,
     command,
     instanceType,
+    memoryMib,
     market,
     hours,
     images: values.images ?? DEFAULT_IMAGES,

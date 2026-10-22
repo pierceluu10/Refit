@@ -50,6 +50,11 @@ export function stateCounts(
 ): Record<'succeeded' | 'failed' | 'running' | 'lost', number>;
 export function credentialsFailed(stderr: string): boolean;
 export function dryRunAllowed(stderr: string): boolean;
+export function memoryWarning(
+  command: string,
+  instanceType: string,
+  memoryMib: number,
+): string | undefined;
 export function runCost(
   run: { instanceType: string; market: string; hours: number; diskGib: number },
   launches: Launch[],

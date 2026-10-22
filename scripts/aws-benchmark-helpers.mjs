@@ -11,6 +11,10 @@ const CREDENTIALS_FAILURE =
   /ExpiredToken|token (?:included in the request is|has) expired|session has expired|Unable to locate credentials/i;
 // `ec2 run-instances --dry-run` reports a launch it would allow as a DryRunOperation error.
 const DRY_RUN_ALLOWED = /\(DryRunOperation\)/;
+// A validating benchmark holds the harness, a `refit run` child and a 3 GiB validation container at
+// once; under this much memory a c7i.large shard was starved (docs/VALIDATION-ORDER.md).
+const VALIDATE_MEMORY_MIB = 8 * 1024;
+const VALIDATE = /--validate\b/;
 const MILLISECONDS_PER_HOUR = 3_600_000;
 // EC2 bills Linux on-demand instances per second with a one-minute minimum.
 const MINIMUM_BILLED_HOURS = 1 / 60;
@@ -105,6 +109,11 @@ export function credentialsFailed(stderr) {
 
 export function dryRunAllowed(stderr) {
   return DRY_RUN_ALLOWED.test(stderr);
+}
+
+export function memoryWarning(command, instanceType, memoryMib) {
+  if (!VALIDATE.test(command) || memoryMib >= VALIDATE_MEMORY_MIB) return undefined;
+  return `Warning: ${instanceType} has ${memoryMib / 1024} GiB of memory; a --validate run needs at least ${VALIDATE_MEMORY_MIB / 1024} GiB, or the harness, refit run and the validation container compete for it.`;
 }
 
 function round(usd) {

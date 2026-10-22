@@ -12,6 +12,7 @@ import {
   dryRunAllowed,
   fillCommand,
   listSlice,
+  memoryWarning,
   parseExit,
   runCost,
   shardSlices,
@@ -263,11 +264,26 @@ it('treats only a DryRunOperation answer as a launch EC2 would allow', () => {
     expect(dryRunAllowed(stderr), stderr).toBe(false);
 });
 
-// Runs `launch` against a fake `aws` on PATH that answers the dry run with `dryRun` and logs every
-// call, then returns the calls and how the script ended.
-async function fakeLaunch(dryRun: string) {
+it('warns about --validate runs only on instances under 8 GiB', () => {
+  const validate =
+    'npm run benchmark:stripe -- --root /work/root --output /work/out/run --validate';
+  expect(memoryWarning(validate, 'c7i.large', 4096)).toBe(
+    'Warning: c7i.large has 4 GiB of memory; a --validate run needs at least 8 GiB, or the harness, refit run and the validation container compete for it.',
+  );
+  expect(memoryWarning(validate, 'c7i.xlarge', 8192)).toBeUndefined();
+  expect(memoryWarning('npm run benchmark:stripe -- --root /work/root', 'c7i.large', 4096)).toBe(
+    undefined,
+  );
+  expect(memoryWarning('refit run --validated-only', 'c7i.large', 4096)).toBeUndefined();
+});
+
+// Runs `launch` of `command` against a fake `aws` on PATH whose instance type has `memoryMib` and
+// which answers the dry run with `dryRun`. Returns every call, the uploaded run.json and how the
+// script ended.
+async function fakeLaunch(dryRun: string, command = 'true', memoryMib = 16384) {
   const bin = await mkdtemp(join(tmpdir(), 'refit-fake-aws-'));
   const log = join(bin, 'calls.log');
+  const runFile = join(bin, 'run.json');
   try {
     await writeFile(
       join(bin, 'aws'),
@@ -276,13 +292,14 @@ echo "$*" >> "$AWS_CALLS"
 case "$*" in
   "sts get-caller-identity"*) echo '{"Account":"123456789012"}' ;;
   "ec2 describe-instances"*) echo '{"Reservations":[]}' ;;
-  "ec2 describe-instance-types"*) echo '{"InstanceTypes":[{"VCpuInfo":{"DefaultVCpus":4}}]}' ;;
+  "ec2 describe-instance-types"*) echo "{\\"InstanceTypes\\":[{\\"VCpuInfo\\":{\\"DefaultVCpus\\":4},\\"MemoryInfo\\":{\\"SizeInMiB\\":$AWS_MEMORY_MIB}}]}" ;;
   "service-quotas get-service-quota"*) echo '{"Quota":{"Value":16}}' ;;
   "ec2 describe-vpcs"*) echo '{"Vpcs":[{"VpcId":"vpc-1"}]}' ;;
   "ec2 describe-security-groups"*) echo '{"SecurityGroups":[{"GroupId":"sg-1"}]}' ;;
   "ssm get-parameter"*) echo '{"Parameter":{"Value":"ami-1"}}' ;;
   "ec2 run-instances --dry-run"*) echo "$AWS_DRY_RUN" >&2; exit 254 ;;
   "ec2 run-instances"*) echo '{"Instances":[{"InstanceId":"i-1","LaunchTime":"2026-10-22T00:00:00Z"}]}' ;;
+  "s3 cp "*/run.json*) cp "$3" "$AWS_RUN_FILE" ;;
 esac
 `,
     );
@@ -301,7 +318,7 @@ esac
         '--market',
         'on-demand',
         '--',
-        'true',
+        command,
       ],
       {
         env: {
@@ -309,15 +326,18 @@ esac
           PATH: `${bin}:${process.env.PATH}`,
           AWS_CALLS: log,
           AWS_DRY_RUN: dryRun,
+          AWS_MEMORY_MIB: String(memoryMib),
+          AWS_RUN_FILE: runFile,
           AWS_PROFILE: 'fake',
         },
       },
     ).then(
-      ({ stdout }) => ({ code: 0, output: stdout }),
-      (error) => ({ code: error.code as number, output: String(error.stderr) }),
+      ({ stdout, stderr }) => ({ code: 0, output: stdout, warnings: stderr }),
+      (error) => ({ code: error.code as number, output: String(error.stderr), warnings: '' }),
     );
     const calls = (await readFile(log, 'utf8')).trim().split('\n');
-    return { ...ended, calls };
+    const run = await readFile(runFile, 'utf8').then(JSON.parse, () => undefined);
+    return { ...ended, calls, run };
   } finally {
     await rm(bin, { recursive: true, force: true });
   }
@@ -329,6 +349,7 @@ it('asks EC2 for a dry run before uploading anything, and stops there when it is
   expect(refused.output).toContain('The launch dry run failed, so nothing was uploaded or changed');
   expect(refused.output).toContain('(UnauthorizedOperation)');
   expect(refused.calls.filter((call) => /^s3 |run-instances (?!--dry-run)/.test(call))).toEqual([]);
+  expect(refused.run).toBeUndefined();
 
   const allowed = await fakeLaunch(ALLOWED_LAUNCH);
   expect(allowed.code, allowed.output).toBe(0);
@@ -342,4 +363,15 @@ it('asks EC2 for a dry run before uploading anything, and stops there when it is
   expect(launches[0]).toContain(
     allowed.calls[dryRun].replace('ec2 run-instances --dry-run ', '').replace(/ --region .*/, ''),
   );
+});
+
+it('records the instance memory in run.json and warns when a --validate run gets too little', async () => {
+  const command = 'npm run benchmark:stripe -- --root /work/root --output /work/out/run --validate';
+  const small = await fakeLaunch(ALLOWED_LAUNCH, command, 4096);
+  expect(small.code, small.output).toBe(0);
+  expect(small.run).toMatchObject({ instanceType: 'c7i.2xlarge', memoryMib: 4096, command });
+  expect(small.warnings).toContain('Warning: c7i.2xlarge has 4 GiB of memory');
+  const large = await fakeLaunch(ALLOWED_LAUNCH, command, 16384);
+  expect(large.run).toMatchObject({ memoryMib: 16384 });
+  expect(large.warnings).not.toContain('Warning');
 });
