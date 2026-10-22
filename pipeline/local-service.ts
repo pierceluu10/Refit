@@ -22,7 +22,7 @@ import {
 } from './deadline-alerts.ts';
 import { agentStatus, configuredIntegrations, findDeadlineExposures } from './deadline-exposure.ts';
 import { applyDeadlineIgnores, readDeadlineIgnores } from './deadline-ignores.ts';
-import { loadDeadlineRegistry } from './deadline-registry.ts';
+import { loadDeadlineRegistry, reportOnly } from './deadline-registry.ts';
 import { standaloneStateDirectory, type GitHubCheckout } from './github-checkout.ts';
 import { requestGitHub } from './github.ts';
 import { parseWebhook, verifyWebhook, WebhookInputError } from './github-webhooks.ts';
@@ -271,7 +271,11 @@ export async function runLocalService(options: {
           );
           const known = (await store.read()).deadlineAlerts ?? {};
           const due = exposures
-            .filter((exposure) => !decisions.get(exposure.deadline.id)?.ignoredBy.length)
+            .filter(
+              (exposure) =>
+                !reportOnly(exposure.deadline) &&
+                !decisions.get(exposure.deadline.id)?.ignoredBy.length,
+            )
             .map((exposure) => ({
               exposure,
               key: `${repository}|${exposure.deadline.id}`,

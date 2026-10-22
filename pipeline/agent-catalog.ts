@@ -111,6 +111,34 @@ export const AGENT_CATALOG: ProviderAgent[] = [
     adapter: null,
     guide: null,
   },
+  // npm packages checked on the registry on 2026-10-22 (@slack/client is deprecated there in favour
+  // of the other four). Hosts from @slack/web-api's default `slackApiUrl` and @slack/webhook's
+  // incoming-webhook URLs. `refit slack` lists the methods called (docs/SLACK-DETECTION.md).
+  {
+    id: 'slack',
+    name: 'Slack',
+    packages: [
+      '@slack/web-api',
+      '@slack/bolt',
+      '@slack/rtm-api',
+      '@slack/webhook',
+      '@slack/client',
+    ],
+    hostnames: ['slack.com/api', 'hooks.slack.com/services'],
+    adapter: null,
+    guide: 'docs/SLACK-DETECTION.md',
+  },
+  // The `cloudflare` npm package (checked on the registry on 2026-10-22) and the server of
+  // Cloudflare's published OpenAPI document. `refit cloudflare` lists the endpoints called
+  // (docs/CLOUDFLARE.md).
+  {
+    id: 'cloudflare',
+    name: 'Cloudflare',
+    packages: ['cloudflare'],
+    hostnames: ['api.cloudflare.com'],
+    adapter: null,
+    guide: 'docs/CLOUDFLARE.md',
+  },
 ];
 
 const MAX_HOSTNAME_EVIDENCE = 5;

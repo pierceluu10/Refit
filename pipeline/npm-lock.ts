@@ -5,7 +5,8 @@ import { posix } from 'node:path';
 export const MAX_PACKAGE_BYTES = 512 * 1024;
 export const MAX_LOCK_BYTES = 8 * 1024 * 1024;
 const MAX_WORKSPACES = 64;
-export const NPM_PACKAGE_NAME = /^(?:@[a-z0-9._-]+\/)?[a-z0-9._-]+$/;
+// Scoped names are lowercase; a few legacy unscoped names keep capitals (JSONStream).
+export const NPM_PACKAGE_NAME = /^(?:@[a-z0-9._-]+\/[a-z0-9._-]+|[A-Za-z0-9._-]+)$/;
 export const EXACT_PACKAGE_VERSION =
   /^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/;
 export const MAX_PACKAGES = 20_000;

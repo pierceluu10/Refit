@@ -28,10 +28,13 @@ export async function confirmRepositoryAccess(app: GitHubAppConfiguration, repos
     throw new PipelineInputError(
       'Configured repository is unavailable, archived, disabled or has mismatched identity.',
     );
+  // The default branch and size (in kilobytes) are passed through unchecked for callers that use them.
   return {
     installationId: authentication.installationId,
     id: Number(record.id),
     token: authentication.token,
+    defaultBranch: record.default_branch,
+    size: record.size,
   };
 }
 

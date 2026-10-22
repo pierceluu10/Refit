@@ -1,0 +1,166 @@
+# Hosted worker runbook
+
+How to operate the single-tenant hosted worker (`refit hosted serve`, Fly app `refit-hosted`, one Machine in `iad` with the `refit_data` volume at `/data`, PostgreSQL on Supabase). Setup and the database role are in [Hosted onboarding](HOSTED-ONBOARDING.md#deploy-on-flyio).
+
+Commands marked **live** change the running service or spend money; run them only when you mean to. Everything else only reads. You need membership in the Fly organization that owns `refit-hosted`; run `fly auth login` yourself.
+
+## Quick checks
+
+| Question                     | Command                                                                                                  |
+| ---------------------------- | -------------------------------------------------------------------------------------------------------- |
+| Is it up?                    | `curl https://refit-hosted.fly.dev/health` → `{"status":"listening"}`                                    |
+| Machine state and checks     | `fly status -a refit-hosted`                                                                             |
+| Can it run a job?            | `fly ssh console -a refit-hosted -C "refit hosted health"`                                               |
+| What ran recently?           | `fly ssh console -a refit-hosted -C "refit hosted jobs"`                                                 |
+| Only failures since midnight | `fly ssh console -a refit-hosted -C "refit hosted jobs --status failed --since 2026-10-22"`              |
+| One target                   | `fly ssh console -a refit-hosted -C "refit hosted jobs --target <id>"`                                   |
+| Every target and its state   | `fly ssh console -a refit-hosted -C "refit hosted targets"`                                              |
+| One job's receipt            | `fly ssh console -a refit-hosted -C "refit hosted receipt <job>"`                                        |
+| Raw registry for one target  | `curl -H "Authorization: Bearer $REFIT_SERVICE_TOKEN" "https://refit-hosted.fly.dev/status?target=<id>"` |
+
+`fly ssh console -C` runs the command on the Machine, where the app's secrets are already environment variables, so no database URL leaves Fly. From your own machine the same `refit hosted` commands work with `REFIT_DATABASE_URL` from the owner's private `~/.refit/hosted/` files; never paste it into a terminal or a file in the repository.
+
+- `refit hosted jobs` lists the newest 50 matching jobs: id, status, the receipt's outcome, attempts (`r` marks an operator retry), creation time, target and repository.
+- `refit hosted receipt <job>` prints the stored receipt (status, message, revision, doctor status) and its evidence path. On the Machine it also lists the evidence files under `/data/state/targets/<id>/runs/`.
+- `refit hosted targets` prints each target's state, its last job and its last stored receipt.
+- `refit hosted health` checks PostgreSQL, that the six `refit_*` tables exist and are writable by this role, the Docker daemon, and every image in `REFIT_HOSTED_IMAGES`. It exits 1 if any check fails. Before versioned migrations there is no schema version to compare, so it checks the tables only.
+
+## Read logs
+
+Each line the worker writes is one JSON object on stderr: `time`, `level` (`info` or `error`), `message`, and whichever of `job`, `target`, `installation` and `delivery` apply. Known secrets (the App key, webhook secret, service token, database URL and its password, OpenAI key, Slack webhook URL) and token-shaped strings are replaced with `[redacted]` before writing. The entrypoint's boot lines use the same shape.
+
+```sh
+fly logs -a refit-hosted                       # stream
+fly logs -a refit-hosted --no-tail             # recent lines, then exit
+fly logs -a refit-hosted --no-tail | grep -o '{.*}' | jq 'select(.level == "error")'
+fly logs -a refit-hosted --no-tail | grep -o '{.*}' | jq 'select(.target == "<id>")'
+```
+
+`fly logs` keeps only recent lines. The evidence directory of each job is the durable record: `refit hosted receipt <job>` gives its path.
+
+Lines that are not JSON come from other programs: the Docker daemon writes to `/var/log/dockerd.log` on the Machine, and a failed `docker pull` or a missing secret at boot prints the tool's own error before the worker starts.
+
+## What each alert means
+
+### Slack: `🚨 [URGENT] <repository>: hosted job <n> failed (<outcome>: <message>); see refit hosted receipt <n>.`
+
+Sent when `REFIT_SLACK_WEBHOOK_URL` is set and a job ends `failed`, at most once per target per hour (the limit is in memory, so a restart can send one more). A failed job stays cached for its commit: the next scheduled run reuses it, so nothing retries by itself.
+
+1. `refit hosted receipt <n>` and read the message.
+2. Fix the cause, then [retry](#retry-a-job).
+
+| Outcome and message                                                              | Meaning and fix                                                                                                                       |
+| -------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `interrupted`                                                                    | The worker stopped mid-job (deploy, restart, `fly secrets set`, lease renewal failure). Retry.                                        |
+| `error: Worker lease expired repeatedly…`                                        | Three workers in a row died holding this job: usually the Machine ran out of memory or crashed. Check `fly logs` for OOM, then retry. |
+| `error: PipelineInputError: Repository now belongs to another App installation.` | The repository moved. Check the installation in GitHub before retrying.                                                               |
+| `error: … Configured repository is unavailable, archived, disabled …`            | The App lost access or the repository was archived. Nothing to retry until access returns.                                            |
+| `error: Managed Git … failed: …`                                                 | Fetching the repository failed (GitHub outage, revoked access). Retry once GitHub is reachable.                                       |
+| any other `error`                                                                | A pipeline failure. The evidence directory holds the details.                                                                         |
+
+`needs-review` and `validation-failed` are not failures: the job finished and the receipt says what to review. They never send this notice. The workflow's own notices (draft PR ready, regression, publication failed partway) arrive as in `refit serve`; see [Slack notifications](SLACK.md).
+
+### Fly health check critical, or `/health` does not answer
+
+The worker process is not listening. `fly status` and `fly logs`: a crash loop shows the same error at every boot. The Machine restarts on a non-zero exit, up to 10 times in 5 minutes, then stays stopped. See [restore after a crash](#restore-after-a-crash).
+
+### `refit hosted health` failures
+
+| Check      | Failure means                                                                                                                                                                                     |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `postgres` | The database is unreachable or refused the login. Check Supabase status, then the `REFIT_DATABASE_URL` secret ([rotate](#database-url-refit_database_url) if the password changed).               |
+| `schema`   | Tables are missing (the worker never booted against this database, or it connects as the wrong role or schema) or the role cannot write them. The worker creates its tables on boot.              |
+| `docker`   | The in-VM Docker daemon is down. Read `/var/log/dockerd.log` over `fly ssh console`; a restart starts it again.                                                                                   |
+| `images`   | A validation image named in `REFIT_HOSTED_IMAGES` is missing, so doctor blocks every job that uses it. The entrypoint pulls them at boot; restart the Machine, or `docker pull <image>` over SSH. |
+
+### Error log lines
+
+| `message` starts with          | Meaning                                                                                                                                                          |
+| ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Webhook processing failed:`   | A signed delivery was not stored and GitHub got a 500. Fix the cause (usually the database), then redeliver it from the App's Advanced → Recent Deliveries page. |
+| `Lease renewal failed:`        | The worker could not reach the database while a job ran; the job was stopped and will be `interrupted`.                                                          |
+| `Slack notification not sent:` | The Slack webhook failed or timed out. Jobs are unaffected.                                                                                                      |
+| `<ErrorName>: …` with a `job`  | That job failed; its receipt has the same message.                                                                                                               |
+
+`Lease lost or job cancelled; stopping.` (info) means the repository or installation was removed, or another worker reclaimed the job. GitHub shows 401 for deliveries signed with an old webhook secret and 409 for a reused delivery id with a different body; neither changes state.
+
+## Deploy
+
+**Live.** Deploy from a clean checkout of the commit being shipped.
+
+1. Run the hosted tests against a local PostgreSQL ([Hosted onboarding](HOSTED-ONBOARDING.md#implemented-single-tenant-hosted-worker)) and `npm test`.
+2. [Drain](#drain-the-worker): check that no job is running.
+3. `fly deploy -a refit-hosted`. Fly builds the image from `Dockerfile`, replaces the Machine and keeps the volume.
+4. Verify: `curl https://refit-hosted.fly.dev/health`, `fly status`, then `fly ssh console -C "refit hosted health"`.
+5. Retry any job the deploy interrupted (`refit hosted jobs --status failed`).
+
+## Roll back to the previous image
+
+**Live.** No rebuild: Fly keeps each release's image in its registry.
+
+```sh
+fly releases -a refit-hosted --image        # find the last good release's image
+fly deploy -a refit-hosted --image registry.fly.io/refit-hosted:deployment-<id>
+```
+
+Then verify as after a deploy. The worker only adds tables and columns on boot, so an older image runs against a schema a newer one created. A rollback never undoes database rows.
+
+## Retry a job
+
+**Live, and may spend.** A failed or interrupted result stays cached for its commit until an operator retries it.
+
+```sh
+fly ssh console -a refit-hosted -C "refit hosted retry --target <id>"
+```
+
+It queues one fresh attempt, or marks the already-queued job as a retry. It refuses while the target has a running job and for a target that is not enrolled. Approval and access gates still apply. With `--ai-patch` in `REFIT_HOSTED_FLAGS`, a retried job can spend the installation's AI budget, and with `--publish-draft` it can open a draft PR.
+
+## Drain the worker
+
+There is no drain switch. On `SIGTERM` or `SIGINT` the worker stops claiming jobs, aborts the running job (stored as `interrupted`, which needs a retry) and exits. Fly allows 5 seconds (`kill_timeout`) before killing it, enough to store the receipt but not to finish a validation.
+
+To stop without interrupting work:
+
+1. `fly ssh console -C "refit hosted jobs --status running"`. Repeat until it lists nothing. A scheduled poll that finds nothing new is short; a job that validates can take most of an hour.
+2. Deploy, restart or stop right away: enrolled targets are queued again every 5 minutes.
+3. If a job started in between, it is `interrupted`. [Retry](#retry-a-job) it.
+
+To stop new work entirely, `fly machine stop -a refit-hosted` (**live**). Webhook deliveries fail while it is stopped; GitHub shows them as failed, and you can redeliver them after `fly machine start`.
+
+## Rotate each secret
+
+Secrets live only in `fly secrets` and the owner's private `~/.refit/hosted/` files. Write each new value to a file there (`chmod 600`) and set it from the file, never from a literal or a placeholder:
+
+```sh
+fly secrets set NAME="$(cat ~/.refit/hosted/<file>)" -a refit-hosted          # restarts the Machine
+fly secrets set NAME="$(cat ~/.refit/hosted/<file>)" -a refit-hosted --stage  # applies at the next deploy or `fly secrets deploy`
+```
+
+Setting a secret restarts the Machine, which interrupts a running job: drain first. `fly secrets list` shows names and digests only; compare digests to confirm a change.
+
+| Secret                                                | Rotate                                                                                                                                                                                                                                                |
+| ----------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GITHUB_APP_PRIVATE_KEY`                              | In the App's settings (owned by `refit-dev`, under its Developer settings), generate a new private key. Set it, confirm a job runs, then delete the old key there. Both keys work until the old one is deleted.                                       |
+| `REFIT_WEBHOOK_SECRET`                                | GitHub keeps one secret, so deliveries between the two changes fail with 401. Stage the new value with `--stage`, paste it into the App's Webhook secret, then run `fly secrets deploy` at once. Redeliver any 401 deliveries from Recent Deliveries. |
+| `REFIT_SERVICE_TOKEN`                                 | `openssl rand -hex 32` into the file, then set it. It must differ from the webhook secret. Only `/status` callers need the new value.                                                                                                                 |
+| `REFIT_DATABASE_URL`                                  | See [below](#database-url-refit_database_url).                                                                                                                                                                                                        |
+| `OPENAI_API_KEY`                                      | Create a new key in the OpenAI dashboard, set it, confirm, then revoke the old key. Budget ledgers on the volume are unaffected.                                                                                                                      |
+| `REFIT_SLACK_WEBHOOK_URL`                             | Optional; set only to turn failed-job notices on. Create a new incoming webhook for the channel, set it, then remove the old one in Slack.                                                                                                            |
+| `GITHUB_APP_ID`, `REFIT_HOSTED_OWNER`, `OPENAI_MODEL` | Not secret. Change them only to move to another App, another owner (an owner decision) or another model.                                                                                                                                              |
+
+### Database URL (`REFIT_DATABASE_URL`)
+
+The worker connects as the `refit_hosted` role. Do not switch it to `postgres` or the service key.
+
+1. Generate a new password locally and compute its SCRAM verifier against a local PostgreSQL, so Supabase only ever receives the verifier (`SET password_encryption = 'scram-sha-256'`, set the password on a throwaway local role, read `rolpassword` from `pg_authid`).
+2. In Supabase's SQL editor, `ALTER ROLE refit_hosted PASSWORD '<verifier>'`. The running worker's open connections keep working; new ones fail until the next step.
+3. Write the new URL (same form as in [Hosted onboarding](HOSTED-ONBOARDING.md#deploy-on-flyio)) to its file and set the secret. The Machine restarts with it.
+4. `fly ssh console -C "refit hosted health"`.
+
+## Restore after a crash
+
+- **Worker crash.** Fly restarts the Machine on a non-zero exit. A job running at the crash keeps its lease until it expires (5 minutes); the restarted worker then reclaims it, up to three attempts in total, after which it fails with `Worker lease expired repeatedly`. A reclaimed job whose evidence was incomplete is stored as `interrupted`. Check `refit hosted jobs --status running` and `--status failed`, and retry what needs it.
+- **Crash loop.** After 10 restarts in 5 minutes the Machine stays stopped. Read `fly logs` for the repeated boot error (a bad secret, the database, Docker), fix it, then `fly machine start` (**live**) or [roll back](#roll-back-to-the-previous-image).
+- **Database unreachable.** The worker exits when a query fails and Fly restarts it; once PostgreSQL answers again, jobs resume from their leases. If the outage outlasts Fly's restart limit, the Machine stays stopped: `fly machine start` (**live**) once Supabase answers.
+- **Lost volume.** The volume holds evidence, managed checkouts, AI budget ledgers and Docker images; the database does not depend on it. Fly snapshots volumes daily (5 days by default): `fly volumes list`, `fly volumes snapshots list <volume>`, then `fly volumes create refit_data --snapshot-id <snapshot> -s 20 --region iad` (**live**). A Machine keeps the volume it was created with, so the restored volume needs a new Machine (`fly machine destroy` the old one, then `fly deploy`); confirm in `fly volumes list` that the restored volume is the attached one before deleting anything else. Without a snapshot, a fresh volume works: the entrypoint pulls images and jobs re-create checkouts, but evidence paths in older receipts no longer exist and cached results are gone, so every target runs again, which can spend AI budget again.
+- **Lost database.** Restore from Supabase's backups. Approvals must be stored again with `refit hosted approve` if they are not in the restored data.

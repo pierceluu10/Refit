@@ -223,6 +223,11 @@ export async function openHostedStore(
           [change.installationId, removed],
         );
       if (status !== 'active') {
+        // Repository rows stay for the uninstall grace period; their inventories go now.
+        if (status === 'deleted')
+          await client.query('DELETE FROM refit_inventories WHERE installation_id = $1', [
+            change.installationId,
+          ]);
         const cancelled = await cancel(
           client,
           'installation_id = $1',

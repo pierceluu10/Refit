@@ -45,6 +45,7 @@ A customer installs the Refit GitHub App on selected repositories, reviews and a
 6. **AI and draft PRs.** `--ai-patch` uses the owner's `OPENAI_API_KEY` with a separate PostgreSQL ledger per installation, each capped at `REFIT_AI_BUDGET_USD`. `--publish-draft` opens draft PRs as Refit Agent through the existing publication path. Both stay explicit flags.
 7. **Allowed accounts.** `REFIT_HOSTED_ACCOUNTS` lists the GitHub accounts whose installations enroll. It defaults to `REFIT_HOSTED_OWNER` alone. Other accounts' installations are recorded as not allowed, and nothing is cloned. Each installation runs one job at a time, within daily job and inventory caps, and claims take turns across installations. Listing a second account is an owner decision until jobs run in per-job microVMs. See [hosted tenancy](HOSTED-TENANCY.md).
 8. **Approval from GitHub (off by default).** With `REFIT_HOSTED_APPROVAL_ISSUES=1`, the worker opens one issue on each installed repository without an approval. It shows the `refit enroll` review, or a proposed `.refit.json`. An admin or maintainer approves with `/refit approve <fingerprint-prefix>` and withdraws with `/refit revoke`. It needs the App's Issues permission and the Issue comment event. See [approve a repository from GitHub](HOSTED-ONBOARDING-APPROVAL.md).
+9. **Inventory.** Every installed repository of an allowed account, approved or not, gets a read-only [inventory](INVENTORY.md) of its SDKs, pinned versions, models and deadline exposures, from a fresh checkout that is deleted afterwards. It runs no code and never enrolls a repository.
 
 Not yet included: OAuth installation ownership and a browser approval flow, object storage for evidence (it stays on the Fly volume under `/data/state`), per-job microVMs and the audit log. Validation uses the Docker daemon inside the worker's Fly Machine. That machine is a Firecracker VM separate from other apps, but all jobs share it, which is why hosting stays single-owner.
 
@@ -66,6 +67,8 @@ REFIT_POSTGRES_URL=postgres://refit:refit-local-test@127.0.0.1:55432/refit REFIT
 5. Store approvals with `REFIT_DATABASE_URL=... refit hosted approve --approval <receipt.json> --approved-by <login>`, then install the App on those repositories. Choosing "All repositories" again on an existing installation sends no event; uninstall and reinstall, or remove and re-add the repository, to deliver one.
 
 ### Operate the deployed worker
+
+The [hosted runbook](HOSTED-RUNBOOK.md) covers day-to-day operation: `refit hosted jobs`, `receipt`, `targets` and `health`, reading the JSON logs, what each alert means, deploy and rollback, retries, draining, secret rotation and crash recovery.
 
 - `GET /health` is public. `GET /status` with `Authorization: Bearer $REFIT_SERVICE_TOKEN` lists installations, targets and jobs with their receipts.
 - `fly logs -a refit-hosted` shows each job's progress lines, prefixed with the target id. `fly ssh console -a refit-hosted` reaches the volume; evidence lives under `/data/state/targets/<id>/runs/`.

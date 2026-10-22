@@ -242,8 +242,10 @@ it.skipIf(!DATABASE)(
         'privateKeyFile' in configuration ? 'control' : 'machine',
       );
     expect(reads).toContain('machine');
-    expect(reads.filter((read) => read === 'control')).toHaveLength(1);
-    expect(control.progress).toContain(`[${target}] Job machine ${created.id} destroyed.`);
+    // One for the job's access check, one for the install's inventory, which the fake GitHub
+    // record (no default branch or size) stops before any checkout.
+    expect(reads.filter((read) => read === 'control')).toHaveLength(2);
+    expect(control.progress).toContain(`Job machine ${created.id} destroyed.`);
   },
   90_000,
 );

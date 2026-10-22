@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { mkdir, realpath } from 'node:fs/promises';
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
 import { hostname } from 'node:os';
@@ -7,6 +8,7 @@ import type { Pool } from 'pg';
 import type { AiOptions } from './ai-budget.ts';
 import { FlyMachinesError, type FlyMachines } from './fly-machines.ts';
 import { validateRepairAttempts } from './validation-options.ts';
+import { loadDeadlineRegistry } from './deadline-registry.ts';
 import type { GitHubAppConfiguration } from './github-app.ts';
 import { standaloneStateDirectory } from './github-checkout.ts';
 import { parseWebhook, verifyWebhook, WebhookInputError } from './github-webhooks.ts';
@@ -24,8 +26,16 @@ import {
   runHostedTarget,
   runJobMachine,
 } from './hosted-runner.ts';
+import { failedJobNotifier, filterHostedStatus, type HostedLogContext } from './hosted-ops.ts';
 import { openHostedStore, type HostedTarget } from './hosted-store.ts';
 import type { HostedTenancy } from './hosted-tenancy.ts';
+import {
+  INVENTORY_LIMITS,
+  inventorySummary,
+  refreshInventory,
+  registryDigest,
+} from './inventory.ts';
+import { openInventoryStore, type InventoryClaim } from './inventory-store.ts';
 import {
   authorized,
   DEFAULT_SERVICE_PORT,
@@ -34,6 +44,7 @@ import {
   validateServiceSecret,
 } from './local-service.ts';
 import { confirmRepositoryAccess } from './service-worker.ts';
+import type { SlackSend } from './slack.ts';
 import { PipelineInputError } from './types.ts';
 
 const HOSTED_HOST = '0.0.0.0';
@@ -53,6 +64,8 @@ const MIN_LEASE_SECONDS = 3;
 // Renewing three times per lease keeps one missed renewal from releasing a running job.
 const RENEWALS_PER_LEASE = 3;
 const NOT_FOUND = 404;
+// An inventory holds its lease for its whole time cap, plus this margin, without renewing it.
+const INVENTORY_LEASE_MARGIN_SECONDS = 60;
 // While PostgreSQL is unreachable the worker waits, doubling the wait up to the maximum.
 const OUTAGE_RETRY_MS = 5_000;
 const MAX_OUTAGE_RETRY_MS = 60_000;
@@ -87,6 +100,10 @@ export async function runHostedService(options: {
   // Opens an approval issue on installed repositories without an approval and handles
   // `/refit approve` and `/refit revoke` comments (REFIT_HOSTED_APPROVAL_ISSUES).
   approvalIssues?: boolean;
+  // The workflow's own notices, plus failed jobs at most once per target per hour.
+  notify?: SlackSend;
+  // Applied to job fields before a failure notice cuts them to length.
+  redact?: (text: string) => string;
   host?: string;
   port?: number;
   intervalSeconds?: number;
@@ -94,7 +111,7 @@ export async function runHostedService(options: {
   worker?: string;
   signal: AbortSignal;
   onReady?: (url: string) => void;
-  onProgress?: (message: string) => void;
+  onProgress?: (message: string, context?: HostedLogContext) => void;
 }) {
   const repairAttempts = validateRepairAttempts(
     options.repairAttempts ?? 0,
@@ -173,7 +190,11 @@ export async function runHostedService(options: {
   };
   const store = await openStore();
   outage = OUTAGE_RETRY_MS;
+  const inventories = openInventoryStore(options.database, options.tenancy.limits);
   const approvals = openApprovalStore(options.database);
+  const notifyFailures =
+    options.notify && failedJobNotifier(options.database, options.notify, options.redact);
+  await notifyFailures?.();
 
   let jobs:
     | Omit<
@@ -201,7 +222,13 @@ export async function runHostedService(options: {
     const abort = () => controller.abort();
     options.signal.addEventListener('abort', abort, { once: true });
     running.set(job, controller);
-    const progress = (message: string) => options.onProgress?.(`[${target.id}] ${message}`);
+    const progress = (message: string, level?: 'error') =>
+      options.onProgress?.(message, {
+        job,
+        target: target.id,
+        installation: target.installationId,
+        ...(level && { level }),
+      });
     const leaseMilliseconds = lease * MILLISECONDS_PER_SECOND;
     const renewEvery = leaseMilliseconds / RENEWALS_PER_LEASE;
     // The claim set the lease just before this job started.
@@ -223,7 +250,7 @@ export async function runHostedService(options: {
           if (isDatabaseUnavailable(error) && Date.now() - leased + renewEvery < leaseMilliseconds)
             progress(`${failure}; retrying.`);
           else {
-            progress(`${failure}; stopping.`);
+            progress(`${failure}; stopping.`, 'error');
             controller.abort();
           }
         },
@@ -283,6 +310,7 @@ export async function runHostedService(options: {
             },
             repairAttempts,
             publishDraft: options.publishDraft,
+            notify: options.notify,
             onProgress: progress,
           });
       await store.finish(job, worker, outcome.status, outcome.receipt);
@@ -294,7 +322,7 @@ export async function runHostedService(options: {
       if (!(error instanceof Error)) throw error;
       const outcome = failedOutcome(error, controller.signal.aborted);
       await store.finish(job, worker, outcome.status, outcome.receipt);
-      progress(`${error.name}: ${error.message}`);
+      progress(`${error.name}: ${error.message}`, 'error');
     } finally {
       clearInterval(renewal);
       running.delete(job);
@@ -302,22 +330,66 @@ export async function runHostedService(options: {
     }
   };
 
+  // A read-only inventory of an installed repository, approved or not; it never enrolls anything.
+  const runInventory = async (claimed: InventoryClaim) => {
+    const progress = (message: string) =>
+      options.onProgress?.(`[inventory ${claimed.repository}] ${message}`);
+    const started = Date.now();
+    try {
+      const registry = await loadDeadlineRegistry();
+      const result = await refreshInventory({
+        app: options.app,
+        directory: join(directory, 'inventory', randomUUID()),
+        installationId: claimed.installationId,
+        repository: claimed.repository,
+        registry,
+        previous: claimed.previous,
+        signal: options.signal,
+        onProgress: progress,
+      });
+      const recorded = await inventories.finish(claimed, worker, {
+        result,
+        registry: registryDigest(registry),
+        durationMs: Date.now() - started,
+      });
+      progress(
+        !recorded
+          ? 'Repository removed or lease lost; the result was dropped.'
+          : result.outcome === 'stopped'
+            ? `Stopped (${result.stop}): ${result.message}`
+            : `Inventory ${result.outcome} at ${result.revision.slice(0, 12)}.`,
+      );
+    } catch (error) {
+      if (!(error instanceof Error)) throw error;
+      // On shutdown the lease is left to expire, so another worker takes the inventory again.
+      if (options.signal.aborted) return;
+      await inventories.finish(claimed, worker, { error: `${error.name}: ${error.message}` });
+      progress(`${error.name}: ${error.message}`);
+    }
+  };
+
   const handlers = new Set<Promise<void>>();
   const servers: Server[] = [];
   // Serves one router with the worker's limits; open handlers settle before the service returns.
   const listen = async (
-    router: (request: IncomingMessage, response: ServerResponse) => Promise<void>,
+    router: (
+      request: IncomingMessage,
+      response: ServerResponse,
+      context: HostedLogContext,
+    ) => Promise<void>,
     address: { host: string; port: number; requestTimeout: number; label: string },
   ) => {
     const server = createServer(
       { requestTimeout: address.requestTimeout, headersTimeout: HEADERS_TIMEOUT_MS },
       (request, response) => {
-        const handler = router(request, response).catch((error: unknown) => {
+        const context: HostedLogContext = { level: 'error' };
+        const handler = router(request, response, context).catch((error: unknown) => {
           if (error instanceof WebhookInputError)
             respond(response, error.status, { error: error.message });
           else {
             options.onProgress?.(
               `${address.label} processing failed: ${error instanceof Error ? error.message : 'Unknown storage failure.'}`,
+              context,
             );
             respond(response, 500, {
               error: `${address.label} was not accepted. Inspect service logs before redelivery.`,
@@ -349,17 +421,27 @@ export async function runHostedService(options: {
   try {
     const host = options.host ?? HOSTED_HOST;
     const address = await listen(
-      async (request, response) => {
+      async (request, response, context) => {
         if (request.method === 'GET' && request.url === '/health') {
           respond(response, 200, { status: 'listening' });
           return;
         }
-        if (request.method === 'GET' && request.url === '/status') {
+        const url = new URL(request.url ?? '/', 'http://refit.invalid');
+        if (request.method === 'GET' && url.pathname === '/status') {
           if (!authorized(request, options.controlToken))
             throw new WebhookInputError(401, 'Service authorization is required.');
+          const status = filterHostedStatus(await store.read(), url.searchParams);
+          // A target's view shows only its repository's inventory.
+          const repository = url.searchParams.has('target')
+            ? status.targets[0].repository
+            : undefined;
           respond(response, 200, {
-            ...(await store.read()),
+            ...status,
             ...(options.approvalIssues && { approvals: await approvals.read() }),
+            inventories: (await inventories.read(repository)).map(({ inventory, ...row }) => ({
+              ...row,
+              summary: inventory && inventorySummary(inventory),
+            })),
           });
           return;
         }
@@ -374,8 +456,10 @@ export async function runHostedService(options: {
           request.headers['x-github-delivery'],
           options.webhookSecret,
         );
+        context.delivery = id;
         const event = request.headers['x-github-event'];
         const parsed = parseWebhook(body, event, Number(options.app.appId));
+        if ('installationId' in parsed) context.installation = parsed.installationId;
         const change =
           parsed.kind === 'issue_comment' && !options.approvalIssues
             ? { kind: 'ignored' as const }
@@ -390,9 +474,17 @@ export async function runHostedService(options: {
             `Account ${change.previousOwner} is now ${change.owner}, which REFIT_HOSTED_ACCOUNTS does not list; its targets stopped. Add ${change.owner} to allow it again.`,
           );
         for (const job of receipt.running) running.get(job)?.abort();
+        const inventoried =
+          receipt.status === 'accepted' && 'added' in change && change.added.length
+            ? await inventories.request(
+                change.installationId,
+                change.added.map((repository) => repository.name),
+              )
+            : 0;
         // With approval issues on, new installations and comments are handled without waiting.
         if (
           receipt.enrolled.length ||
+          inventoried ||
           (options.approvalIssues && ['accepted', 'queued'].includes(receipt.status))
         )
           wake();
@@ -457,12 +549,24 @@ export async function runHostedService(options: {
           for (const { target, reason } of purged.kept)
             options.onProgress?.(`[${target}] Kept after the grace period: ${reason}`);
         }
-        for (
-          let claimed = await store.claim(worker, lease);
-          claimed && !options.signal.aborted;
-          claimed = await store.claim(worker, lease)
-        )
+        await inventories.requestMissing();
+        // Inventories are short and read-only, so a queued one goes before the next validation job.
+        while (!options.signal.aborted) {
+          const inventory = await inventories.claim(
+            worker,
+            Math.max(lease, INVENTORY_LIMITS.seconds + INVENTORY_LEASE_MARGIN_SECONDS),
+          );
+          if (inventory) {
+            await runInventory(inventory);
+            continue;
+          }
+          const claimed = await store.claim(worker, lease);
+          if (!claimed) break;
           await runJob(claimed.job, claimed.target, claimed.retry);
+          await notifyFailures?.();
+        }
+        // A claim can also fail a job whose lease expired too often.
+        await notifyFailures?.();
         outage = OUTAGE_RETRY_MS;
       } catch (error) {
         // A job whose receipt could not be stored keeps its lease until it expires and is reclaimed.
