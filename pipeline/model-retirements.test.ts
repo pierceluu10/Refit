@@ -517,6 +517,9 @@ it('keeps Anthropic sampling parameters when the replacement predates Claude 4.7
       'const anthropic = new Anthropic();',
       "anthropic.messages.create({ model: 'claude-3-haiku-20240307', temperature: 0, max_tokens: 9, messages: [] });",
       "anthropic.messages.create({ model: 'claude-3-opus-20240229', top_k: 5, max_tokens: 9, messages: [] });",
+      // Claude 4.7 and later reject `thinking: { type: 'enabled' }`; Claude Haiku 4.5 keeps it.
+      "anthropic.messages.create({ model: 'claude-3-opus-20240229', thinking: { type: 'enabled', budget_tokens: 2048 }, max_tokens: 4096, messages: [] });",
+      "anthropic.messages.create({ model: 'claude-3-haiku-20240307', thinking: { type: 'enabled', budget_tokens: 2048 }, max_tokens: 4096, messages: [] });",
     ].join('\n'),
   });
   const proposal = await proposeModelReplacements(
@@ -538,9 +541,11 @@ it('keeps Anthropic sampling parameters when the replacement predates Claude 4.7
   );
   expect(proposal.replacements.map((item) => [item.line, item.to])).toEqual([
     [3, 'claude-haiku-4-5-20251001'],
+    [6, 'claude-haiku-4-5-20251001'],
   ]);
   expect(proposal.stops.map((item) => [item.line, item.reason])).toEqual([
     [4, 'The request sets top_k, which claude-opus-4-8 may reject or treat differently.'],
+    [5, 'The request sets thinking, which claude-opus-4-8 may reject or treat differently.'],
   ]);
 });
 

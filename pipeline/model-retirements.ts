@@ -137,7 +137,9 @@ const UNTRACED_CALLS: Record<string, string[]> = {
 };
 // Request parameters a newer model may reject or treat differently. Anthropic returns a 400 for
 // non-default temperature, top_p and top_k on Claude 4.7 and later models (Anthropic model
-// deprecations page, 2026-10-20). OpenAI reasoning models' support for the sampling and length
+// deprecations page, 2026-10-20), and for `thinking: { type: 'enabled', budget_tokens }`, the
+// only thinking mode of the retiring models (platform.claude.com extended thinking page, read
+// 2026-10-22). OpenAI reasoning models' support for the sampling and length
 // parameters below: unverified, so they stop for review too.
 const SENSITIVE_PARAMETERS: Record<string, Set<string>> = {
   openai: new Set([
@@ -150,7 +152,7 @@ const SENSITIVE_PARAMETERS: Record<string, Set<string>> = {
     'logprobs',
     'top_logprobs',
   ]),
-  anthropic: new Set(['temperature', 'top_p', 'top_k']),
+  anthropic: new Set(['temperature', 'top_p', 'top_k', 'thinking']),
 };
 // Claude API model IDs such as `claude-opus-4-8` or `claude-haiku-4-5-20251001`.
 const CLAUDE_VERSIONED = /^claude-(?:opus|sonnet|haiku)-(\d+)(?:-(\d{1,2}))?(?:-\d{8})?$/;
