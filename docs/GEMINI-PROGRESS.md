@@ -18,7 +18,7 @@ Lane FP10. Before: Gemini was 20% on its checklist in [Provider goals](PROVIDER-
 
 ## Benchmark
 
-Set: `docs/benchmarks/2026-10-21-gemini-repos.json` (50 repositories, unchanged). Labels: `docs/benchmarks/2026-10-22-gemini-labels.json`, 20 repositories (seeded order, at most 60 candidate lines each; two larger ones skipped), 395 candidate lines: 60 sent (40 through a Google SDK), 321 not sent, 14 ambiguous. They were committed before either run below. Run: `node scripts/gemini-benchmark.mjs --list … --root … --output …`; score: `npx tsx pipeline/gemini-labels.ts --labels … --results …` (tested in `pipeline/gemini-labels.test.ts`). Results at f067ac1: `docs/benchmarks/2026-10-22-gemini-results.json`.
+Set: `docs/benchmarks/2026-10-21-gemini-repos.json` (50 repositories, unchanged). Labels: `docs/benchmarks/2026-10-22-gemini-labels.json`, 20 repositories (seeded order, at most 60 candidate lines each; two larger ones skipped), 395 candidate lines: 60 sent (38 through a Google SDK), 321 not sent, 14 ambiguous. They were committed before either run below. Run: `node scripts/gemini-benchmark.mjs --list … --root … --output …`; score: `npx tsx pipeline/gemini-labels.ts --labels … --results …` (tested in `pipeline/gemini-labels.test.ts`). Results at f067ac1: `docs/benchmarks/2026-10-22-gemini-results.json`.
 
 | Measure (17 labelled repositories Refit can scan)       | Before (main 7b2c86a)   | After (f067ac1) |
 | ------------------------------------------------------- | ----------------------- | --------------- |
