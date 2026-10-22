@@ -1,4 +1,4 @@
-// Runs benchmark shards on EC2 spot instances that terminate themselves. Uses the AWS CLI with the
+// Runs benchmark shards on EC2 instances that terminate themselves. Uses the AWS CLI with the
 // caller's AWS_PROFILE and AWS_REGION. See docs/AWS-BENCHMARKS.md.
 import { execFile } from 'node:child_process';
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
@@ -19,7 +19,10 @@ const ROLE = 'refit-benchmark-instance';
 const SECURITY_GROUP = 'refit-benchmark-no-inbound';
 const TAG = 'refit-benchmark-run';
 const AMI_PARAMETER = '/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64';
-const SPOT_VCPU_QUOTA = 'L-34B43A08';
+// Standard-family vCPU quotas. The AWS free plan denies spot launches, so on-demand is an option.
+const VCPU_QUOTAS = { spot: 'L-34B43A08', 'on-demand': 'L-1216C47A' };
+const SPOT_OPTIONS =
+  'MarketType=spot,SpotOptions={SpotInstanceType=one-time,InstanceInterruptionBehavior=terminate}';
 const DEFAULT_INSTANCE_TYPE = 'c7i.2xlarge';
 const DEFAULT_HOURS = 2;
 const MAX_HOURS = 6;
@@ -30,7 +33,7 @@ const DEFAULT_IMAGES = 'node:22-alpine';
 const ACTIVE_STATES = ['pending', 'running', 'stopping', 'shutting-down'];
 const USAGE = `Usage: node scripts/aws-benchmark.mjs <command>
   setup                                     create the bucket, instance role and security group (idempotent)
-  launch --run <id> --total N --shards K [--commit <ref>] [--instance-type ${DEFAULT_INSTANCE_TYPE}]
+  launch --run <id> --total N --shards K [--commit <ref>] [--instance-type ${DEFAULT_INSTANCE_TYPE}] [--market spot|on-demand]
          [--hours ${DEFAULT_HOURS}] [--images "${DEFAULT_IMAGES}"] [--env <file>] -- <command>
                                             {offset} {limit} {shard} {run} are replaced per shard;
                                             write results to /work/out
@@ -239,7 +242,9 @@ async function launch(values, command) {
   )
     throw new Error(`Run ${values.run} already exists in ${prefix}; pick a new run id.`);
 
-  // Every running benchmark shard, from any agent, counts against the account's spot vCPU quota.
+  const market = values.market ?? 'spot';
+  if (!(market in VCPU_QUOTAS)) throw new Error('--market must be spot or on-demand.');
+  // Every running benchmark shard, from any agent, counts against the chosen vCPU quota.
   const [active, perInstance, quota] = await Promise.all([
     instances(),
     vcpus(instanceType),
@@ -249,7 +254,7 @@ async function launch(values, command) {
       '--service-code',
       'ec2',
       '--quota-code',
-      SPOT_VCPU_QUOTA,
+      VCPU_QUOTAS[market],
     ),
   ]);
   const used = (await Promise.all(active.map((instance) => vcpus(instance.InstanceType)))).reduce(
@@ -259,7 +264,7 @@ async function launch(values, command) {
   const needed = perInstance * slices.length;
   if (used + needed > quota.Quota.Value)
     throw new Error(
-      `Needs ${needed} spot vCPUs but ${used} of ${quota.Quota.Value} are in use. Use fewer shards or wait.`,
+      `Needs ${needed} ${market} vCPUs but ${used} of ${quota.Quota.Value} are in use. Use fewer shards or wait.`,
     );
 
   const commit = (await execute('git', ['rev-parse', values.commit ?? 'HEAD'])).stdout.trim();
@@ -304,8 +309,7 @@ async function launch(values, command) {
         `Name=${ROLE}`,
         '--security-group-ids',
         group,
-        '--instance-market-options',
-        'MarketType=spot,SpotOptions={SpotInstanceType=one-time,InstanceInterruptionBehavior=terminate}',
+        ...(market === 'spot' ? ['--instance-market-options', SPOT_OPTIONS] : []),
         '--instance-initiated-shutdown-behavior',
         'terminate',
         '--block-device-mappings',
@@ -326,7 +330,7 @@ async function launch(values, command) {
     await rm(work, { recursive: true, force: true });
   }
   console.log(
-    `Launched ${slices.length} spot ${instanceType} shards of ${values.run} from ${commit.slice(0, 12)}; each terminates within ${hours} h.`,
+    `Launched ${slices.length} ${market} ${instanceType} shards of ${values.run} from ${commit.slice(0, 12)}; each terminates within ${hours} h.`,
   );
 }
 
@@ -422,6 +426,7 @@ const { values, positionals } = parseArgs({
     shards: { type: 'string' },
     commit: { type: 'string' },
     'instance-type': { type: 'string' },
+    market: { type: 'string' },
     hours: { type: 'string' },
     images: { type: 'string' },
     env: { type: 'string' },
