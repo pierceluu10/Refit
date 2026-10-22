@@ -274,6 +274,17 @@ it.skipIf(!DATABASE || !process.env.REFIT_DOCKER_IMAGE || !process.env.REFIT_OAS
         github.issued().every((token) => !call.args.join(' ').includes(token)),
       ),
     ).toBe(true);
+    // Installation tokens only read both installed repositories and their base branch.
+    const reads = github.requests.filter(
+      ({ path }) => path.startsWith('/repos/') && !path.endsWith('/installation'),
+    );
+    expect(reads.length).toBeGreaterThan(0);
+    for (const { method, path } of reads) {
+      expect(method).toBe('GET');
+      expect(path).toMatch(
+        /^\/repos\/example\/(?:application|unapproved)(?:\/git\/ref\/heads\/main)?$/,
+      );
+    }
 
     const uninstalled = await deliver(url, 'installation', installationPayload('deleted', []));
     expect(uninstalled).toMatchObject({ status: 202, body: { cancelled: [target] } });
