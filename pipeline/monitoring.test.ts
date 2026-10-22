@@ -225,11 +225,72 @@ const issueWrites = () =>
 it('reads REFIT_HOSTED_ALERTS as off unless it is 1', () => {
   expect(hostedAlerts({})).toBeNull();
   expect(hostedAlerts({ REFIT_HOSTED_ALERTS: '0' })).toBeNull();
-  expect(hostedAlerts({ REFIT_HOSTED_ALERTS: '1' })).toEqual({ leadDays: [90, 30, 7] });
   expect(() => hostedAlerts({ REFIT_HOSTED_ALERTS: 'yes' })).toThrow(
     'REFIT_HOSTED_ALERTS must be 1, 0 or unset.',
   );
+  expect(hostedAlerts({ REFIT_HOSTED_ALERTS: '1', REFIT_HOSTED_ALERT_DIGEST: '1' })).toEqual({
+    leadDays: [90, 30, 7],
+    digest: true,
+  });
+  expect(hostedAlerts({ REFIT_HOSTED_ALERTS: '1' })).toEqual({
+    leadDays: [90, 30, 7],
+    digest: false,
+  });
+  expect(() => hostedAlerts({ REFIT_HOSTED_ALERT_DIGEST: '1' })).toThrow(
+    'REFIT_HOSTED_ALERT_DIGEST requires REFIT_HOSTED_ALERTS=1.',
+  );
 });
+
+it.skipIf(!DATABASE)(
+  'keeps one weekly digest issue per exposed repository, listing the alert issue once one exists',
+  async () => {
+    const pool = await database();
+    const { monitoring } = await inventoried(pool, {
+      'example/app': { 'package.json': PACKAGE, 'src/chat.ts': MODEL_CALL },
+      'example/clean': { 'package.json': PACKAGE },
+    });
+    const digest = (now: Date) =>
+      sendDeadlineAlerts({
+        app: APP,
+        monitoring,
+        registry: REGISTRY,
+        now,
+        leadDays: DEFAULT_LEAD_DAYS,
+        digest: true,
+        signal: new AbortController().signal,
+        onProgress: (message) => console.log(message),
+      });
+    expect(await digest(before(100))).toBe(0);
+    expect(await digest(before(97))).toBe(0);
+    expect(await digest(before(90))).toBe(1);
+    expect(await digest(before(86))).toBe(0);
+    const written = github.writes.map((write) => `${write.method} ${write.path}`);
+    console.log(written.join('\n'));
+    // A repository with nothing exposed gets no digest; the week's digest is written once.
+    expect(written).toEqual([
+      'POST /repos/example/app/issues',
+      'POST /repos/example/app/issues',
+      'PATCH /repos/example/app/issues/1',
+      'POST /repos/example/app/issues/1/comments',
+    ]);
+    const [first, alert, update, comment] = github.writes.map(
+      (write) => write.body as Record<string, string>,
+    );
+    expect(first).toMatchObject({
+      title: 'Refit weekly digest: deadlines this repository depends on',
+    });
+    expect(first.body).toContain('<!-- refit-deadline-digest -->');
+    expect(first.body).toContain(
+      `| OpenAI model gpt-4 reaches its sunset on ${DEADLINE} | ${DEADLINE} | 100 days left | \`src/chat.ts:3\` | Not yet alerted |`,
+    );
+    expect(alert).toMatchObject({ title: `OpenAI model gpt-4 reaches its sunset on ${DEADLINE}` });
+    // The digest written in the same pass as the alert already lists the alert's issue.
+    expect(update.body).toContain('| 90 days left | `src/chat.ts:3` | #2 |');
+    expect(comment).toEqual({
+      body: `Weekly digest: 1 exposed deadline, the soonest on ${DEADLINE} (90 days left).`,
+    });
+  },
+);
 
 it.skipIf(!DATABASE)(
   'writes the issue exactly three times from 91 to 7 days left, recomputing days from the stored inventory',

@@ -17,6 +17,10 @@ Each worker pass (on a webhook that wakes it, or every `--interval` seconds, 300
 
 Only live evidence counts: model names in tests, comments, catalogs and tokenizer calls never open an alert.
 
+## Weekly digest
+
+With `REFIT_HOSTED_ALERT_DIGEST=1` as well (off by default; it requires `REFIT_HOSTED_ALERTS=1`), each repository with at least one exposed deadline also gets one digest issue, titled "Refit weekly digest: deadlines this repository depends on" and marked `<!-- refit-deadline-digest -->`. It lists every exposed deadline, soonest first (at most 50): its date, days left, the first piece of evidence, and either the ignore that accepts it or the alert issue opened for it. Refit updates it, with a comment, every 7 days. Once Refit has opened a digest, it keeps updating it weekly; when nothing is exposed any more, the digest says so. The week is taken before the issue is written, like an alert stage, so a digest is written at most once a week and a failed one waits for the next week.
+
 ## Ignores
 
 The committed `.refit-deadlines-ignore.json` (see [API deadlines](DEADLINES.md)) is read when the inventory is taken. Active entries that cover every piece of live evidence silence that deadline; expired entries do not. An invalid file accepts nothing, so a broken exception can never silence an alert. A changed ignore file takes effect at the next re-scan (push or 24 hours).
@@ -33,24 +37,25 @@ Monitoring rows and alert state belong to the installed repository. Removing the
 
 PostgreSQL tables created by `pipeline/monitoring-store.ts`, both deleted with the installed repository:
 
-| Table                   | Columns                                                                                                                                                                           |
-| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `refit_monitoring`      | `installation_id`, `repository`, `pushed` (a default-branch push not yet re-scanned), `rescanned_at` (last re-scan Refit asked for, or when monitoring first saw the repository). |
-| `refit_deadline_alerts` | `installation_id`, `repository`, `deadline`, `stage` (90, 30, 7 or 0), `issue`, `status` (`sending`, `opened`, `updated` or `failed`), `message` (the failure), `sent_at`.        |
+| Table                   | Columns                                                                                                                                                                                                                               |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `refit_monitoring`      | `installation_id`, `repository`, `pushed` (a default-branch push not yet re-scanned), `rescanned_at` (last re-scan Refit asked for, or when monitoring first saw the repository), `digest_issue` and `digest_at` (the weekly digest). |
+| `refit_deadline_alerts` | `installation_id`, `repository`, `deadline`, `stage` (90, 30, 7 or 0), `issue`, `status` (`sending`, `opened`, `updated` or `failed`), `message` (the failure), `sent_at`.                                                            |
 
 `GET /status` adds `monitoring`: whether alerts are on, and for each installation its exposed deadlines across repositories, soonest first (at most 50, with `more` counting the rest): repository, deadline, date, days left, whether an ignore accepts it, and the last alert's stage, issue and status. It is listed even when alerts are off, from the stored inventories.
 
 ## Configuration
 
-| Setting                   | Effect                                                                                           |
-| ------------------------- | ------------------------------------------------------------------------------------------------ |
-| `REFIT_HOSTED_ALERTS=1`   | Turns re-scans and alerts on with lead times of 90, 30 and 7 days. `0` or unset leaves them off. |
-| Issues: Read and write    | GitHub App permission the alerts need.                                                           |
-| `push` event subscription | Lets a default-branch push trigger a re-scan. Without it, new commits are found within 24 hours. |
+| Setting                       | Effect                                                                                           |
+| ----------------------------- | ------------------------------------------------------------------------------------------------ |
+| `REFIT_HOSTED_ALERT_DIGEST=1` | Adds the weekly digest issue. Requires `REFIT_HOSTED_ALERTS=1`; off by default.                  |
+| `REFIT_HOSTED_ALERTS=1`       | Turns re-scans and alerts on with lead times of 90, 30 and 7 days. `0` or unset leaves them off. |
+| Issues: Read and write        | GitHub App permission the alerts need.                                                           |
+| `push` event subscription     | Lets a default-branch push trigger a re-scan. Without it, new commits are found within 24 hours. |
 
 ## Needs owner decision
 
-- **Enable alerts.** Setting `REFIT_HOSTED_ALERTS=1` on the deployed worker opens issues in customer repositories that never approved Refit. That is customer-facing and stays off until the owner decides.
+- **Enable alerts.** Setting `REFIT_HOSTED_ALERTS=1` (and the digest) on the deployed worker opens issues in customer repositories that never approved Refit. That is customer-facing and stays off until the owner decides.
 - **App permission and event.** Alerts need the App's **Issues: Read and write** permission, and push re-scans need the App to subscribe to the **Push** event. Both are App settings changes, which existing installations must accept. Until then, a missing permission shows as a failed token on each pass, and new commits are picked up by the 24-hour re-scan.
 
 ## Not covered yet

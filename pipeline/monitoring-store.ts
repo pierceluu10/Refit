@@ -14,6 +14,8 @@ CREATE TABLE IF NOT EXISTS refit_monitoring (
   repository text NOT NULL,
   pushed boolean NOT NULL DEFAULT false,
   rescanned_at timestamptz NOT NULL,
+  digest_issue integer,
+  digest_at timestamptz,
   PRIMARY KEY (installation_id, repository),
   FOREIGN KEY (installation_id, repository)
     REFERENCES refit_installation_repositories (installation_id, repository) ON DELETE CASCADE
@@ -57,6 +59,7 @@ export interface MonitoredRepository {
   ignores: Inventory['ignores'];
   integrations: Inventory['integrations'];
   alerts: DeadlineAlert[];
+  digest: { issue: number | null; at: Date | null };
 }
 
 // Opens the monitoring tables. The hosted and inventory stores must be opened first.
@@ -148,11 +151,17 @@ export async function openMonitoringStore(pool: Pool) {
         exposures: DeadlineExposure[];
         ignores: Inventory['ignores'];
         integrations: Inventory['integrations'];
+        digest_issue: number | null;
+        digest_at: Date | null;
       }>(
         `SELECT t.installation_id, i.owner, t.repository, t.revision,
            t.inventory -> 'deadlines' -> 'exposures' AS exposures,
-           t.inventory -> 'ignores' AS ignores, t.inventory -> 'integrations' AS integrations
-         FROM refit_inventories t ${ALLOWED} AND t.status = 'complete'
+           t.inventory -> 'ignores' AS ignores, t.inventory -> 'integrations' AS integrations,
+           m.digest_issue, m.digest_at
+         FROM refit_inventories t
+         LEFT JOIN refit_monitoring m
+           ON m.installation_id = t.installation_id AND m.repository = t.repository
+         ${ALLOWED} AND t.status = 'complete'
          ORDER BY t.installation_id, t.repository`,
       ),
       pool.query<{
@@ -190,6 +199,7 @@ export async function openMonitoringStore(pool: Pool) {
           message: alert.message,
           sentAt: alert.sent_at,
         })),
+      digest: { issue: row.digest_issue, at: row.digest_at },
     }));
   };
 
@@ -237,5 +247,44 @@ export async function openMonitoringStore(pool: Pool) {
     );
   };
 
-  return { pushed, due, rescanned, repositories, claim, record };
+  // Takes this week's digest for a repository before it is written, as `claim` does for alerts.
+  // Returns the digest issue to update (null opens one), or null when it is not due.
+  const claimDigest = async (
+    installationId: number,
+    repository: string,
+    now: Date,
+    intervalDays: number,
+  ) => {
+    const { rows } = await pool.query<{ digest_issue: number | null }>(
+      `INSERT INTO refit_monitoring (installation_id, repository, rescanned_at, digest_at)
+       SELECT t.installation_id, t.repository, $3, $3
+       FROM refit_installation_repositories t ${ALLOWED}
+         AND t.installation_id = $1 AND t.repository = $2
+       ON CONFLICT (installation_id, repository) DO UPDATE SET digest_at = EXCLUDED.digest_at
+         WHERE refit_monitoring.digest_at IS NULL
+           OR refit_monitoring.digest_at <= EXCLUDED.digest_at - make_interval(days => $4)
+       RETURNING digest_issue`,
+      [installationId, repository, now, intervalDays],
+    );
+    return rows[0] ? { issue: rows[0].digest_issue } : null;
+  };
+
+  const recordDigest = async (installationId: number, repository: string, issue: number) => {
+    await pool.query(
+      `UPDATE refit_monitoring SET digest_issue = $3
+       WHERE installation_id = $1 AND repository = $2`,
+      [installationId, repository, issue],
+    );
+  };
+
+  return {
+    pushed,
+    due,
+    rescanned,
+    repositories,
+    claim,
+    record,
+    claimDigest,
+    recordDigest,
+  };
 }

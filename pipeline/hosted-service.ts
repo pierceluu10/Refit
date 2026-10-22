@@ -386,6 +386,7 @@ export async function runHostedService(options: {
           registry,
           now: now(),
           leadDays: options.alerts.leadDays,
+          digest: options.alerts.digest,
           signal: options.signal,
           onProgress: options.onProgress,
         });
