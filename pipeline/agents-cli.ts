@@ -111,7 +111,7 @@ try {
         const evidence = [
           ...entry.packages.map(
             (item) =>
-              `${item.name} ${item.version}${item.locked ? ` (locked ${item.locked})` : ''} in ${item.file}`,
+              `${item.ecosystem ? `${item.ecosystem}:` : ''}${item.name} ${item.version}${item.locked ? ` (locked ${item.locked})` : ''} in ${item.file}${item.line ? `:${item.line}` : ''}`,
           ),
           ...entry.hostnames.map((item) => `${item.hostname} at ${item.file}:${item.line}`),
         ];

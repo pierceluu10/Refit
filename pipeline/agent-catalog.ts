@@ -1,3 +1,9 @@
+import {
+  matchesPackage,
+  readPackageManifests,
+  type Ecosystem,
+  type PackageInventory,
+} from './package-manifests.ts';
 import { readRepository } from './repository.ts';
 import { PipelineInputError, type Repository } from './types.ts';
 
@@ -7,6 +13,9 @@ export interface ProviderAgent {
   id: string;
   name: string;
   packages: string[];
+  // Package names in other ecosystems' registries, each checked on that registry (see
+  // docs/benchmarks/2026-10-22-catalog-registry-check.json). `packages` stays npm only.
+  ecosystems?: Partial<Record<Ecosystem, string[]>>;
   hostnames: string[];
   adapter: { builtIn: string } | { file: string } | null;
   guide: string | null;
@@ -18,6 +27,15 @@ export const AGENT_CATALOG: ProviderAgent[] = [
     id: 'stripe',
     name: 'Stripe',
     packages: ['stripe'],
+    ecosystems: {
+      pypi: ['stripe'],
+      go: ['github.com/stripe/stripe-go'],
+      rubygems: ['stripe'],
+      packagist: ['stripe/stripe-php'],
+      maven: ['com.stripe:stripe-java'],
+      nuget: ['Stripe.net'],
+      cargo: ['async-stripe'],
+    },
     hostnames: ['api.stripe.com', 'files.stripe.com', 'connect.stripe.com'],
     adapter: { builtIn: 'stripe' },
     guide: 'docs/STRIPE-PLAN.md',
@@ -26,6 +44,15 @@ export const AGENT_CATALOG: ProviderAgent[] = [
     id: 'openai',
     name: 'OpenAI',
     packages: ['openai'],
+    ecosystems: {
+      pypi: ['openai'],
+      go: ['github.com/openai/openai-go', 'github.com/sashabaranov/go-openai'],
+      rubygems: ['openai', 'ruby-openai'],
+      packagist: ['openai-php/client'],
+      maven: ['com.openai:openai-java', 'com.theokanning.openai-gpt3-java:service'],
+      nuget: ['OpenAI'],
+      cargo: ['async-openai'],
+    },
     hostnames: ['api.openai.com'],
     adapter: { file: 'examples/openai.provider.json' },
     guide: 'docs/MULTIPLE-INTEGRATIONS.md',
@@ -34,6 +61,14 @@ export const AGENT_CATALOG: ProviderAgent[] = [
     id: 'anthropic',
     name: 'Anthropic',
     packages: ['@anthropic-ai/sdk'],
+    ecosystems: {
+      pypi: ['anthropic'],
+      go: ['github.com/anthropics/anthropic-sdk-go'],
+      rubygems: ['anthropic'],
+      packagist: ['anthropic-ai/sdk'],
+      maven: ['com.anthropic:anthropic-java'],
+      nuget: ['Anthropic', 'Anthropic.SDK'],
+    },
     hostnames: ['api.anthropic.com'],
     adapter: null,
     guide: null,
@@ -45,6 +80,13 @@ export const AGENT_CATALOG: ProviderAgent[] = [
     id: 'gemini',
     name: 'Gemini',
     packages: ['@google/genai', '@google/generative-ai'],
+    ecosystems: {
+      pypi: ['google-genai', 'google-generativeai'],
+      go: ['google.golang.org/genai', 'github.com/google/generative-ai-go'],
+      packagist: ['google-gemini-php/client'],
+      maven: ['com.google.genai:google-genai'],
+      nuget: ['Google.GenAI'],
+    },
     hostnames: ['generativelanguage.googleapis.com'],
     adapter: null,
     guide: null,
@@ -60,6 +102,13 @@ export const AGENT_CATALOG: ProviderAgent[] = [
       '@shopify/shopify-app-express',
       'shopify-api-node',
     ],
+    ecosystems: {
+      pypi: ['ShopifyAPI'],
+      go: ['github.com/bold-commerce/go-shopify'],
+      rubygems: ['shopify_api'],
+      packagist: ['shopify/shopify-api'],
+      nuget: ['ShopifySharp'],
+    },
     hostnames: ['myshopify.com/admin/api'],
     adapter: { builtIn: 'shopify' },
     guide: 'docs/SHOPIFY.md',
@@ -68,6 +117,12 @@ export const AGENT_CATALOG: ProviderAgent[] = [
     id: 'meta-graph',
     name: 'Meta Graph API',
     packages: ['facebook-nodejs-business-sdk'],
+    ecosystems: {
+      pypi: ['facebook-business'],
+      rubygems: ['facebookbusiness'],
+      packagist: ['facebook/php-business-sdk'],
+      maven: ['com.facebook.business.sdk:facebook-java-business-sdk'],
+    },
     hostnames: ['graph.facebook.com'],
     adapter: null,
     guide: null,
@@ -76,6 +131,14 @@ export const AGENT_CATALOG: ProviderAgent[] = [
     id: 'twilio',
     name: 'Twilio',
     packages: ['twilio'],
+    ecosystems: {
+      pypi: ['twilio'],
+      go: ['github.com/twilio/twilio-go'],
+      rubygems: ['twilio-ruby'],
+      packagist: ['twilio/sdk'],
+      maven: ['com.twilio.sdk:twilio'],
+      nuget: ['Twilio'],
+    },
     hostnames: ['api.twilio.com'],
     adapter: null,
     guide: null,
@@ -84,6 +147,14 @@ export const AGENT_CATALOG: ProviderAgent[] = [
     id: 'sendgrid',
     name: 'SendGrid',
     packages: ['@sendgrid/mail', '@sendgrid/client'],
+    ecosystems: {
+      pypi: ['sendgrid'],
+      go: ['github.com/sendgrid/sendgrid-go'],
+      rubygems: ['sendgrid-ruby'],
+      packagist: ['sendgrid/sendgrid'],
+      maven: ['com.sendgrid:sendgrid-java'],
+      nuget: ['SendGrid'],
+    },
     hostnames: ['api.sendgrid.com'],
     adapter: null,
     guide: null,
@@ -92,6 +163,15 @@ export const AGENT_CATALOG: ProviderAgent[] = [
     id: 'resend',
     name: 'Resend',
     packages: ['resend'],
+    ecosystems: {
+      pypi: ['resend'],
+      go: ['github.com/resend/resend-go'],
+      rubygems: ['resend'],
+      packagist: ['resend/resend-php'],
+      maven: ['com.resend:resend-java'],
+      nuget: ['Resend'],
+      cargo: ['resend-rs'],
+    },
     hostnames: ['api.resend.com'],
     adapter: null,
     guide: null,
@@ -100,6 +180,13 @@ export const AGENT_CATALOG: ProviderAgent[] = [
     id: 'paypal',
     name: 'PayPal',
     packages: ['@paypal/paypal-server-sdk', '@paypal/checkout-server-sdk'],
+    ecosystems: {
+      pypi: ['paypal-server-sdk'],
+      rubygems: ['paypal-server-sdk'],
+      packagist: ['paypal/paypal-server-sdk'],
+      maven: ['com.paypal.sdk:paypal-server-sdk'],
+      nuget: ['PayPalServerSDK'],
+    },
     hostnames: ['api-m.paypal.com', 'api-m.sandbox.paypal.com'],
     adapter: null,
     guide: null,
@@ -110,7 +197,15 @@ const MAX_HOSTNAME_EVIDENCE = 5;
 
 export interface AgentDetection {
   agent: ProviderAgent;
-  packages: { file: string; name: string; version: string; locked: string | null }[];
+  // `ecosystem` is absent for npm packages, which keep their original shape.
+  packages: {
+    file: string;
+    name: string;
+    version: string;
+    locked: string | null;
+    ecosystem?: Ecosystem;
+    line?: number;
+  }[];
   hostnames: { file: string; line: number; hostname: string }[];
 }
 
@@ -124,10 +219,34 @@ function hostnameEvidence(repository: Repository, agent: ProviderAgent) {
   return evidence;
 }
 
-// Reads each catalog provider's manifest declarations and lock evidence, plus raw API hostnames in
-// source, without running repository code or contacting any provider.
+// Direct dependencies in other ecosystems' manifests that are one of the agent's packages.
+export function ecosystemPackages(
+  agent: ProviderAgent,
+  inventory: PackageInventory,
+): AgentDetection['packages'] {
+  const packages: AgentDetection['packages'] = [];
+  for (const dependency of inventory.dependencies) {
+    if (!dependency.direct) continue;
+    const names = agent.ecosystems?.[dependency.ecosystem] ?? [];
+    if (!names.some((name) => matchesPackage(dependency, name))) continue;
+    packages.push({
+      file: dependency.file,
+      name: dependency.name,
+      version: dependency.declared ?? '',
+      locked: dependency.locked,
+      ecosystem: dependency.ecosystem,
+      line: dependency.line,
+    });
+  }
+  return packages;
+}
+
+// Reads each catalog provider's manifest declarations and lock evidence in every supported
+// ecosystem, plus raw API hostnames in JS/TS source, without running repository code or
+// contacting any provider.
 export async function detectProviders(directory: string): Promise<AgentDetection[]> {
   const detections: AgentDetection[] = [];
+  const inventory = await readPackageManifests(directory);
   for (const agent of AGENT_CATALOG) {
     const packages: AgentDetection['packages'] = [];
     let repository: Repository | undefined;
@@ -143,6 +262,7 @@ export async function detectProviders(directory: string): Promise<AgentDetection
           locked: dependency.lock.version,
         });
     }
+    packages.push(...ecosystemPackages(agent, inventory));
     const hostnames = hostnameEvidence(repository!, agent);
     if (packages.length || hostnames.length) detections.push({ agent, packages, hostnames });
   }
