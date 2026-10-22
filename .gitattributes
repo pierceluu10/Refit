@@ -1,0 +1,2 @@
+# git archive stamps the commit into this file, so an exported tree (an AWS benchmark shard) knows its commit.
+scripts/benchmark-commit.txt export-subst

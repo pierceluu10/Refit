@@ -86,7 +86,7 @@ The default checks failed for reasons outside the change. Both Next.js 14 apps' 
 
 ## Off-by-default options measured
 
-`proposeModelReplacements` was run on each of the 60 exposed app-set repositories and the four extra checkouts with four option sets: default, `endpoints: true`, `indirect: true` (D-06 to D-08) and both, one process per repository with a 2-minute cap, at `263d88f`.
+`proposeModelReplacements` was run on each of the 60 exposed app-set repositories and the four extra checkouts with four option sets: default, `endpoints: true`, `indirect: true` (D-06 to D-08) and both, one process per repository with a 2-minute cap, at `263d88f`. These counts are not backed by a committed results file.
 
 | Option set        | Repositories with a proposal | Sites |
 | ----------------- | ---------------------------- | ----- |

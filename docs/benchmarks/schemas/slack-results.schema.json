@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Slack review-only detection results",
+  "description": "Written by scripts/slack-benchmark.mjs: the Slack Web API calls, RTM connections and incoming webhooks `refit slack` lists per repository of a frozen list. A repository that could not be fetched or scanned has `error` and no findings.",
+  "type": "object",
+  "required": ["formatVersion", "list", "refit", "scannedAt", "results"],
+  "properties": {
+    "formatVersion": { "const": 1 },
+    "list": { "type": "string" },
+    "refit": {
+      "type": "object",
+      "required": ["commit", "dirty"],
+      "properties": {
+        "commit": { "$ref": "common.schema.json#/$defs/commit" },
+        "dirty": { "type": "boolean" }
+      }
+    },
+    "scannedAt": { "$ref": "common.schema.json#/$defs/time" },
+    "results": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["repo", "commit"],
+        "properties": {
+          "repo": { "$ref": "common.schema.json#/$defs/repo" },
+          "commit": { "$ref": "common.schema.json#/$defs/commit" },
+          "packages": { "type": ["array", "null"], "items": { "type": "string" } },
+          "calls": { "type": ["array", "null"], "items": { "$ref": "#/$defs/call" } },
+          "rtm": { "type": ["array", "null"], "items": { "$ref": "#/$defs/connection" } },
+          "webhooks": { "type": ["array", "null"], "items": { "$ref": "#/$defs/connection" } },
+          "error": { "type": "string" }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "call": {
+      "type": "object",
+      "$ref": "common.schema.json#/$defs/location",
+      "required": ["kind", "use", "methods", "notes", "unknown"],
+      "properties": {
+        "kind": { "type": "string" },
+        "use": { "type": "string" },
+        "methods": { "type": "array", "items": { "type": "string" } },
+        "deprecated": { "type": ["string", "null"] },
+        "notes": { "type": "array" },
+        "unknown": { "type": "array" }
+      }
+    },
+    "connection": {
+      "type": "object",
+      "$ref": "common.schema.json#/$defs/location",
+      "required": ["use", "via", "methods"],
+      "properties": {
+        "use": { "type": "string" },
+        "via": { "type": "string" },
+        "methods": { "type": "array", "items": { "type": "string" } }
+      }
+    }
+  }
+}

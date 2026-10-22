@@ -1,9 +1,11 @@
 // The numbers ai-model-benchmark.mjs writes for each repository and for the whole run. They are
 // pure functions of the `refit deadlines --json` result and the per-repository results, so tests
 // can feed them fixtures.
+import { classifyRow } from './benchmark-harness.mjs';
 
 // One provider's non-live matches in a repository, by use, from the exact counts the scan keeps
-// for each exposure and mention. Key order carries no meaning.
+// for each exposure and mention. Key order carries no meaning; keys are sorted so every run writes
+// the same bytes.
 export function repositoryNonLive(result, provider) {
   const nonLive = {};
   for (const group of [...(result?.exposures ?? []), ...(result?.mentions ?? [])])
@@ -11,7 +13,9 @@ export function repositoryNonLive(result, provider) {
       for (const [use, count] of Object.entries(group.nonLiveCounts ?? {}))
         nonLive[use] = (nonLive[use] ?? 0) + count;
   return {
-    nonLive,
+    nonLive: Object.fromEntries(
+      Object.entries(nonLive).sort(([left], [right]) => left.localeCompare(right)),
+    ),
     nonLiveTotal: Object.values(nonLive).reduce((total, count) => total + count, 0),
   };
 }
@@ -51,6 +55,11 @@ export function benchmarkSummary(results) {
         !item.error && !item.replacements.length && !item.stops.length && !item.unresolved?.length,
     ).length,
     unresolved: results.reduce((total, item) => total + (item.unresolved?.length ?? 0), 0),
+    // Rows that are infrastructure errors (a failed checkout), not results; `repositories` and
+    // `errors` still count them, as they always have, so subtract them to count results only.
+    infrastructureErrors: results.filter(
+      (item) => classifyRow('ai-model-results', item).outcomeClass === 'infrastructure',
+    ).length,
   };
 }
 

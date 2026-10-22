@@ -46,6 +46,7 @@ export interface BenchmarkSummary {
   exposedUnresolvedOnly: number;
   exposedUnexplained: number;
   unresolved: number;
+  infrastructureErrors: number;
 }
 
 export function repositoryNonLive(

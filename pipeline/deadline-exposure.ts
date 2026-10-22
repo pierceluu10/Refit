@@ -1,16 +1,32 @@
 import { existsSync } from 'node:fs';
-import { readFile } from 'node:fs/promises';
-import { join, resolve } from 'node:path';
+import { readFile, realpath, stat } from 'node:fs/promises';
+import { isAbsolute, join, relative, resolve } from 'node:path';
 import ts from 'typescript-compiler';
 import { AGENT_CATALOG, builtInPackage } from './agent-catalog.ts';
 import { daysUntil, type DeadlineEntry, type DeadlineRegistry } from './deadline-registry.ts';
+import { cloudflareEndpointUses } from './cloudflare-calls.ts';
+import { githubDeadlineUses } from './github-api-calls.ts';
 import { detectModelHosts, hostDeadlineMatches } from './model-hosts.ts';
-import { readRepository } from './repository.ts';
+import { modelWrapperSites } from './model-wrappers.ts';
+import { repositoryApiVersionPins } from './commerce-api-versions.ts';
+import { declaredPackageNames, readRepository } from './repository.ts';
+import {
+  featureMatches,
+  installedVersion,
+  literalTextAt,
+  markerInProse,
+  satisfiesRange,
+  sdkTarget,
+} from './sdk-deadlines.ts';
+import { slackMethodUses } from './slack-calls.ts';
+import { TEST_PATH } from './source-paths.ts';
 import { isObject, parseObject } from './specifications.ts';
+import { PipelineInputError } from './types.ts';
 import { REPOSITORY_CONFIGURATION } from './workflow-configuration.ts';
 
 export const META_SDK = 'facebook-nodejs-business-sdk';
 const MAX_EVIDENCE = 20;
+const MAX_CONFIGURATION_BYTES = 128 * 1024;
 const MAX_EVIDENCE_TEXT = 160;
 const QUARTER_MONTHS: Record<string, string> = {
   January: '01',
@@ -48,6 +64,8 @@ export interface DeadlineEvidence {
   use: DeadlineUse;
   version: string;
   text: string;
+  // For a model sent through an AI wrapper SDK, the call that sends it (pipeline/model-wrappers.ts).
+  via?: string;
 }
 
 export interface DeadlineExposure {
@@ -64,6 +82,13 @@ export interface DeadlineExposure {
   // scan, and optional only so a hand-built exposure need not repeat it.
   nonLiveCounts?: Partial<Record<DeadlineUse, number>>;
 }
+
+// An exposure as alerts and reports read it: stored inventories drop each match's source line.
+export type ReportedEvidence = Omit<DeadlineEvidence, 'text'> & { text?: string };
+export type ReportedExposure = Omit<DeadlineExposure, 'evidence' | 'nonLive'> & {
+  evidence: ReportedEvidence[];
+  nonLive: ReportedEvidence[];
+};
 
 // Deadlines found in a repository: exposures have live evidence; mentions are deadlines the
 // repository names only outside live code, with `evidence` empty.
@@ -129,9 +154,7 @@ const CHECK_OPERATORS = new Set([
   ts.SyntaxKind.ExclamationEqualsToken,
   ts.SyntaxKind.ExclamationEqualsEqualsToken,
 ]);
-// Test, spec, story, fixture and example files, by directory or name.
-export const TEST_PATH =
-  /(?:^|\/)(?:__tests__|__mocks__|__fixtures__|tests?|specs?|e2e|cypress|fixtures?|examples?|stories)\/|\.(?:test|spec|e2e|stories|story)\.[cm]?[jt]sx?$/i;
+export { TEST_PATH };
 // Providers whose deadlines retire models rather than API versions. Their matches get every use
 // class below; API-version providers get only comments, tokenizers and prefix checks.
 const MODEL_PROVIDERS = new Set<DeadlineEntry['provider']>(['openai', 'anthropic', 'gemini']);
@@ -523,11 +546,21 @@ export async function scanDeadlines(
     else exposure.more += 1;
   };
 
+  const features = registry.deadlines
+    .filter((entry) => entry.kind === 'feature')
+    .flatMap((entry) => entry.versions.map((marker) => ({ provider: entry.provider, marker })));
   const repository = await readRepository(root, META_SDK);
+  // Models sent through AI wrapper SDKs: each match names the call that sends it, and gateway or
+  // registry IDs such as `'openai/gpt-4o'`, which the exact match below cannot see, are added.
+  const wrapped = modelWrapperSites(repository);
+  const via = new Map(
+    wrapped.map((site) => [`${site.file}:${site.line}:${site.version}`, site.via]),
+  );
   for (const file of repository.files) {
     const shopifyFile = SHOPIFY_CONTEXT.some((name) => file.content.includes(name));
     const metaFile = META_CONTEXT.some((name) => file.content.includes(name));
     let useAt: ReturnType<typeof tokenUses> | undefined;
+    let literalAt: ReturnType<typeof literalTextAt> | undefined;
     let offset = 0;
     for (const [index, line] of file.content.split('\n').entries()) {
       for (const match of sourceMatches(line, shopifyFile, metaFile, models)) {
@@ -537,6 +570,25 @@ export async function scanDeadlines(
           line: index + 1,
           kind: 'source',
           use: useAt(offset + match.column, match.provider, line, match.version),
+          text: excerpt(line),
+          ...(via.has(`${file.path}:${index + 1}:${match.version}`)
+            ? { via: via.get(`${file.path}:${index + 1}:${match.version}`) }
+            : {}),
+        });
+      }
+      // A product that shuts down: each marker in code, with test and example files kept apart and
+      // a variable name inside prose listed as a comment.
+      for (const match of featureMatches(line, features)) {
+        useAt ??= tokenUses(file.path, file.content, models);
+        literalAt ??= literalTextAt(file.path, file.content);
+        const use = markerInProse(match.marker, literalAt(offset + match.column))
+          ? 'comment'
+          : useAt(offset + match.column, match.provider, line, match.marker);
+        record(match.provider, match.marker, {
+          file: file.path,
+          line: index + 1,
+          kind: 'source',
+          use: use === 'live' && TEST_PATH.test(file.path) ? 'test' : use,
           text: excerpt(line),
         });
       }
@@ -554,6 +606,26 @@ export async function scanDeadlines(
       use: TEST_PATH.test(match.site.file) ? 'test' : 'live',
       text: excerpt(match.text),
     });
+  for (const site of wrapped)
+    if (site.model !== site.version)
+      record(site.provider, site.version, {
+        file: site.file,
+        line: site.line,
+        kind: 'source',
+        use: TEST_PATH.test(site.file) ? 'test' : 'live',
+        text: site.model,
+        via: site.via,
+      });
+  // API versions pinned by header, SDK option or URL path, for providers that version that way.
+  if (registry.deadlines.some((entry) => entry.kind === 'api-version'))
+    for (const pin of repositoryApiVersionPins(repository))
+      record(pin.provider, pin.version, {
+        file: pin.file,
+        line: pin.line,
+        kind: 'source',
+        use: pin.use,
+        text: pin.text,
+      });
   for (const dependency of repository.dependencies) {
     const version = metaSdkVersion(dependency.version, dependency.lock.version);
     if (version)
@@ -567,19 +639,55 @@ export async function scanDeadlines(
   }
   // A package whose support ended: each manifest that declares it. A repository whose source never
   // names the package is not read a second time. Manifests in test and example paths are not live.
+  // An entry narrowed to a range matches only a release Refit can place in it: the locked version,
+  // or the lowest release a bounded declared range allows.
+  // Each package is read once, and only when a manifest declares it.
+  const declared = await declaredPackageNames(root);
+  const declarations = new Map<string, Promise<Awaited<ReturnType<typeof readRepository>>>>();
   for (const entry of registry.deadlines)
     if (entry.kind === 'sdk')
-      for (const name of entry.versions) {
+      for (const version of entry.versions) {
+        const { name, range } = sdkTarget(version);
+        if (declared && !declared.has(name)) continue;
         if (!repository.files.some((file) => file.content.includes(name))) continue;
-        for (const dependency of (await readRepository(root, name)).dependencies)
-          record(entry.provider, name, {
+        if (!declarations.has(name)) declarations.set(name, readRepository(root, name));
+        for (const dependency of (await declarations.get(name)!).dependencies) {
+          const installed = installedVersion(dependency.version, dependency.lock.version);
+          if (range && !(installed && satisfiesRange(installed, range))) continue;
+          record(entry.provider, version, {
             file: dependency.file,
             line: await lineOf(root, dependency.file, `"${name}"`),
             kind: 'dependency',
             use: TEST_PATH.test(dependency.file) ? 'test' : 'live',
-            text: `${name} ${dependency.lock.version ?? dependency.version}${dependency.lock.version ? ` (locked in ${dependency.lock.file})` : ''} is declared in ${dependency.section}`,
+            text: `${name} ${dependency.lock.version ?? dependency.version}${dependency.lock.version ? ` (locked in ${dependency.lock.file})` : ''} is declared in ${dependency.section}${range ? `, inside ${range}` : ''}`,
           });
+        }
       }
+  // Retired API methods: each call site that sends one, from the provider's call scanner.
+  if (registry.deadlines.some((entry) => entry.kind === 'method' && entry.provider === 'slack'))
+    for (const use of await slackMethodUses(root, repository))
+      record('slack', use.method, { ...use, kind: 'source' });
+  // Retired endpoints: each request that reaches one, from the provider's call scanner.
+  const endpoints = registry.deadlines.filter(
+    (entry) => entry.kind === 'endpoint' && entry.provider === 'cloudflare',
+  );
+  if (endpoints.length)
+    for (const use of await cloudflareEndpointUses(
+      root,
+      endpoints.flatMap((entry) => entry.versions),
+      repository,
+    ))
+      record('cloudflare', use.version, { ...use, kind: 'source' });
+  // GitHub: pinned X-GitHub-Api-Version headers, requests to removed endpoints and GraphQL fields,
+  // from the GitHub API call scanner.
+  const github = registry.deadlines.filter((entry) => entry.provider === 'github');
+  if (github.length)
+    for (const use of await githubDeadlineUses(
+      root,
+      github.flatMap((entry) => entry.versions),
+      repository,
+    ))
+      record('github', use.version, { ...use, kind: 'source' });
   for (const pin of await configuredApiVersions(root))
     record(pin.provider, pin.version, {
       file: REPOSITORY_CONFIGURATION,
@@ -628,13 +736,31 @@ interface ConfiguredIntegration {
   apiVersion: string | null;
 }
 
+// Reads a regular file of the repository, refusing a link anywhere on its path, a path outside the
+// repository and a file over the size cap, so a checkout cannot make Refit read the worker's files.
+async function readRepositoryFile(directory: string, name: string) {
+  const root = await realpath(directory);
+  const path = resolve(root, name);
+  const inside = relative(root, path);
+  if (!inside || inside.startsWith('..') || isAbsolute(inside) || (await realpath(path)) !== path)
+    throw new PipelineInputError(`${name} must be a file inside the repository, not a link.`);
+  const stats = await stat(path);
+  if (!stats.isFile() || stats.size > MAX_CONFIGURATION_BYTES)
+    throw new PipelineInputError(
+      `${name} must be a regular file of at most ${MAX_CONFIGURATION_BYTES / 1024} KiB.`,
+    );
+  return readFile(path, 'utf8');
+}
+
 // Integrations in a committed .refit.json and the catalog agent each adapter covers. A v1 file
 // without providerConfig uses the built-in Stripe adapter. Unreadable adapters are skipped rather
 // than failing the deadline check.
 export async function configuredIntegrations(directory: string): Promise<ConfiguredIntegration[]> {
-  const path = join(directory, REPOSITORY_CONFIGURATION);
-  if (!existsSync(path)) return [];
-  const configuration = parseObject(await readFile(path, 'utf8'), REPOSITORY_CONFIGURATION);
+  if (!existsSync(join(directory, REPOSITORY_CONFIGURATION))) return [];
+  const configuration = parseObject(
+    await readRepositoryFile(directory, REPOSITORY_CONFIGURATION),
+    REPOSITORY_CONFIGURATION,
+  );
   const integrations = (
     configuration.formatVersion === 2 && Array.isArray(configuration.integrations)
       ? configuration.integrations
@@ -646,7 +772,7 @@ export async function configuredIntegrations(directory: string): Promise<Configu
     if (typeof integration.providerConfig === 'string')
       try {
         const adapter = parseObject(
-          await readFile(resolve(directory, integration.providerConfig), 'utf8'),
+          await readRepositoryFile(directory, integration.providerConfig),
           'Provider adapter',
         );
         if (typeof adapter.packageName !== 'string') continue;

@@ -32,6 +32,11 @@ It covers five providers, each checked against its own documentation:
 
 An entry's `kind` is `api-version`, `model` or `sdk`. An `sdk` entry lists npm package names in `versions`: the date is when the provider ends support for those packages, not when its API stops answering, and its summary says which.
 
+Some entries are **report only**: `refit deadlines` lists them, marked `Report only`, but they never fail `--fail-within` and never open a `--deadline-alerts` issue (owner decision, 2026-10-22). That covers:
+
+- an entry with `"derivedDate": true`, whose date the provider never announced as a shutdown, such as one taken from a release date or an OpenAPI `eol` field. Its summary says where the date comes from;
+- every entry whose `kind` is `method`, `endpoint`, `field` or `feature`.
+
 Past-due entries stay in the registry on purpose: a repository still pinning a retired version is the most urgent case. To change the registry, edit the file from the provider's page, set `checkedAt` to the day you checked, and run:
 
 ```sh
@@ -110,7 +115,7 @@ refit deadlines --fail-within 30
 
 With `--fail-within <days>`, the command exits **2** when the repository has a live exposure whose deadline has passed, is today or is within that many days. It exits **0** when there is none, and **1** on any error. `0` fails only on past-due deadlines and today; the maximum is 3650. Without the flag, `refit deadlines` only reports and always exits 0 unless it hits an error.
 
-Only live evidence counts. A model named in a list, a test, an example or a comment never fails a build. The output ends with the result, and on failure it lists each failing deadline with its date and days left.
+Only live evidence counts, and report-only deadlines (see [The registry](#the-registry)) never fail it. A model named in a list, a test, an example or a comment never fails a build. The output ends with the result, and on failure it lists each failing deadline with its date and days left.
 
 Run it on pull requests to block new uses, and on a schedule so a quiet repository still notices an approaching date:
 
@@ -174,7 +179,7 @@ refit serve --env .env --config service.json --state /path/outside/repo \
   --deadline-alerts --deadline-lead-days 90,30,7
 ```
 
-The lead times default to 90, 30 and 7 days. Alerts rest on live evidence only. A deadline named only in a model list, a test or a comment never opens an issue, and an issue lists only live lines plus a count of the matches it did not count. With alerts on, after each poll the service checks every **enrolled** repository, meaning a target approved with `refit enroll` whose managed checkout synced in that poll. Operator workflow targets are not alerted. For each exposure, Refit opens one GitHub issue per repository and deadline when the first lead time is reached. At each tighter lead time, and once the date passes, it updates that issue's title, body and evidence and adds a comment so watchers are notified. If several lead times pass between polls, only one alert is sent, at the tightest. Each repository and deadline's last stage and issue number are saved in the service state's `registry.json` under `deadlineAlerts`, so restarts don't repeat alerts. Turning alerts on or off does not require fresh state.
+The lead times default to 90, 30 and 7 days. Alerts rest on live evidence only, and a report-only deadline (see [The registry](#the-registry)) never opens one. A deadline named only in a model list, a test or a comment never opens an issue, and an issue lists only live lines plus a count of the matches it did not count. With alerts on, after each poll the service checks every **enrolled** repository, meaning a target approved with `refit enroll` whose managed checkout synced in that poll. Operator workflow targets are not alerted. For each exposure, Refit opens one GitHub issue per repository and deadline when the first lead time is reached. At each tighter lead time, and once the date passes, it updates that issue's title, body and evidence and adds a comment so watchers are notified. If several lead times pass between polls, only one alert is sent, at the tightest. Each repository and deadline's last stage and issue number are saved in the service state's `registry.json` under `deadlineAlerts`, so restarts don't repeat alerts. Turning alerts on or off does not require fresh state.
 
 A committed `.refit-deadlines-ignore.json` in the repository also applies to alerts. An exposure it accepts opens or updates no issue until the entry expires. An invalid ignore file accepts nothing: the service logs that the ignores were not applied and alerts as if the file were absent, so a broken exception never silences an alert.
 
@@ -237,7 +242,7 @@ These cases stop for review and are listed with a reason, with no edit:
 
 Every live OpenAI or Anthropic match that none of the above reaches is listed under **Not sent by a traced request** (`unresolved` in `--json`) with its file, line, replacement and where it is written, for example "No traced request sends it as its model; it is the `defaultModel` value of an object", or "No file imports `@anthropic-ai/sdk`, so the model may reach the API through another library or a wrapper". So every live match ends in a replacement, a stop or a reason; unresolved matches are never edited.
 
-Every traced SDK call outside the text-generation list stops with a named reason and is not edited: "`<call>` is not a call Refit edits; <to> may change formats or parameters; change it by hand to <to>." This covers images, audio, embeddings, moderations, legacy completions (`completions.create`, v3 `createCompletion`), v3 methods other than `createChatCompletion`, assistants and others. Raw JSON-body requests to the matching OpenAI endpoints (images, audio speech, embeddings, moderations, completions) and to Anthropic's `POST /v1/complete` stop the same way. Multipart bodies are not read. A call that sends no `model` object stays silent. In `refit serve --model-fixes`, a repository whose only retiring uses are in such calls now moves from `no-change` to `needs-review`. A model sent through another host (such as the app's own proxy), LangChain, the Vercel AI SDK or a Deno re-export, or held in settings objects, UI state or CLI option defaults, is not traced and stays an ordinary exposure.
+Every traced SDK call outside the text-generation list stops with a named reason and is not edited: "`<call>` is not a call Refit edits; <to> may change formats or parameters; change it by hand to <to>." This covers images, audio, embeddings, moderations, legacy completions (`completions.create`, v3 `createCompletion`), v3 methods other than `createChatCompletion`, assistants and others. Raw JSON-body requests to the matching OpenAI endpoints (images, audio speech, embeddings, moderations, completions) and to Anthropic's `POST /v1/complete` stop the same way. Multipart bodies are not read. A call that sends no `model` object stays silent. In `refit serve --model-fixes`, a repository whose only retiring uses are in such calls now moves from `no-change` to `needs-review`. A model sent through another host (such as the app's own proxy) or a Deno re-export, or held in settings objects, UI state or CLI option defaults, is not traced and stays an ordinary exposure. A model sent through the Vercel AI SDK, LangChain JS or LlamaIndex TS is detected by [`pipeline/model-wrappers.ts`](MODEL-WRAPPERS.md): it stops with the wrapper call that sends it ("The model is sent through @ai-sdk/openai openai() (src/ai.ts:3), a Vercel AI SDK call Refit reports but does not edit; change it by hand."), and a gateway or registry ID such as `'openai/gpt-4o'` or `'anthropic:claude-…'` counts as exposure to the bare ID.
 
 `--json` returns `replacements` (each with the call's `file`, `line` and `call`, `edited`, the place the string changes, `from`, `to`, the deadline and `via`, the registry entries followed), `stops` (each with `at`, where the model is written, and a `reason`), `unresolved` (each with `file`, `line`, `model`, `to` and a `reason`) and `patch`.
 
@@ -275,10 +280,19 @@ Every alert and CLI result states one of three outcomes:
 - **Agent available:** Refit ships an agent for the provider, currently OpenAI's preview adapter and the built-in Shopify agent. The alert gives `refit agents --add <id>` and the enrollment steps.
 - **No agent yet:** currently Meta, Anthropic and Gemini. The alert says so and points to the provider's guide. Anthropic's adapter exists for model replacement proposals, but it is not in the agent catalog because Anthropic publishes no contract that `refit run` could compare.
 
+### Sourced model parameters
+
+`data/model-parameters.json` records, per replacement model, what an official provider page read on `checkedAt` says it accepts. Each entry has `provider`, `model`, `parameters` (per parameter `accepts` of `any`, `default-only` or `none`, with `min` and `max`, `default`, or `renamedTo` where they apply), a `source` and, whenever a default is given, a `defaultSource`. Every URL must be https on an official OpenAI or Anthropic host. The table is off by default (owner decision, 2026-10-22): only `refit deadlines --propose-model-fixes --parameters <path>` reads it, and without it the heuristic below applies to every replacement. Any error rejects the whole file, and that command then stops instead of falling back to an empty table. Check it with `npm run model-parameters:check`. Nothing runs, installs or contacts a provider.
+
+Only a number written directly in the request, optionally signed, is compared with the table. Constants and expressions are not followed. A renamed parameter, such as `max_tokens` on `o3`, stops with a reason naming the new parameter and is never rewritten.
+
+With the shipped table passed, only a literal `temperature: 1` on a `claude-sonnet-5-5` replacement continues. For replacements with a table entry, the table decides each parameter, and everything it does not prove keeps stopping (`top_p` and `top_k` on `claude-sonnet-5-5`, for example). For replacements without an entry the earlier heuristic is unchanged: Claude 4.7-and-later replacements, such as Opus 4.8, stop on `temperature`, `top_p` and `top_k`; earlier ones, such as `claude-haiku-4-5-20251001`, continue; every OpenAI replacement stops on its sensitive parameters. A computed property name in the request stops in both paths. Entries come only from official pages someone read. See AGENTS.md.
+
 A deadline starts a code change only through [automatic model fixes](#automatic-model-fixes), which the service runs when `--model-fixes` is on. Every other migration starts from contract changes, approved configuration and the existing gates.
 
 ## Limits
 
+- Parameter values are read only as numeric literals. Renamed parameters are never rewritten. Fixture tests of the parameter rule do not exercise a live provider.
 - Only JavaScript and TypeScript source is scanned. Models named in environment files, YAML or other languages are not found. Values built at runtime are invisible.
 - Shopify package versions are not mapped to the API version they default to, and Shopify versions older than 2025-04 are not in the registry yet.
 - A version held in a constant or an environment-variable fallback, such as `SHOPIFY_API_VERSION = '2025-07'`, and the Meta JS SDK's `FB.init({ version })` are not read.
