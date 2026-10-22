@@ -560,7 +560,7 @@ export async function scanDeadlines(
     }
   }
   for (const site of wrapped)
-    if (site.model !== site.version && !site.custom)
+    if (site.model !== site.version)
       record(site.provider, site.version, {
         file: site.file,
         line: site.line,

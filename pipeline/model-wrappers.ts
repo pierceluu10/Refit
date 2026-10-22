@@ -570,7 +570,7 @@ export function modelWrapperStops(repository: Repository): ReportOnlySite[] {
     model: site.version,
     call: site.via,
     reason: site.custom
-      ? `The model is sent through ${site.via} (${site.call.file}:${site.call.line}) on a provider set to another endpoint by ${site.custom}, such as an OpenAI-compatible host (Groq, Together, Fireworks), so it may not be this provider's model; Refit reports it but does not match or edit it. Check the endpoint and change it by hand if it is.`
+      ? `The model is sent through ${site.via} (${site.call.file}:${site.call.line}) on a provider set to another endpoint by ${site.custom}, such as an OpenAI-compatible host (Groq, Together, Fireworks), so it may not be this provider's model; Refit reports it but does not edit it. Check the endpoint and change it by hand if it is.`
       : `The model is sent through ${site.via} (${site.call.file}:${site.call.line}), a ${site.wrapper === 'ai-sdk' ? 'Vercel AI SDK' : site.wrapper === 'langchain' ? 'LangChain' : 'LlamaIndex'} call Refit reports but does not edit; change it by hand.`,
   }));
 }

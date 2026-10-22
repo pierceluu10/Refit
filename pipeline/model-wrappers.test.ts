@@ -273,7 +273,14 @@ it('feeds gateway IDs and wrapper calls into the deadline scan and lists them as
       exposure.evidence.map((item) => [item.line, item.use, item.via]),
     ]),
   ).toEqual([
-    ['anthropic-claude-3-opus', [[4, 'live', 'ai generateText()']]],
+    [
+      'anthropic-claude-3-opus',
+      [
+        [4, 'live', 'ai generateText()'],
+        // On another endpoint it still counts, and the proposal lists it as a stop below.
+        [6, 'live', '@ai-sdk/openai groq()'],
+      ],
+    ],
     ['openai-gpt-4', [[3, 'live', '@ai-sdk/openai openai()']]],
   ]);
   const proposal = await proposeModelReplacements(root, registry, NOW);
@@ -295,6 +302,12 @@ it('feeds gateway IDs and wrapper calls into the deadline scan and lists them as
       'claude-3-opus-20240229',
       'ai generateText()',
       'The model is sent through ai generateText() (src/ai.ts:4), a Vercel AI SDK call Refit reports but does not edit; change it by hand.',
+    ],
+    [
+      6,
+      'claude-3-opus-20240229',
+      '@ai-sdk/openai groq()',
+      "The model is sent through @ai-sdk/openai groq() (src/ai.ts:6) on a provider set to another endpoint by `baseURL` (src/ai.ts:5), such as an OpenAI-compatible host (Groq, Together, Fireworks), so it may not be this provider's model; Refit reports it but does not edit it. Check the endpoint and change it by hand if it is.",
     ],
   ]);
 });
