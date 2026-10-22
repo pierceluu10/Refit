@@ -61,6 +61,14 @@ CREATE TABLE IF NOT EXISTS refit_jobs (
 );
 CREATE UNIQUE INDEX IF NOT EXISTS refit_jobs_open ON refit_jobs (target_id)
   WHERE status IN ('queued', 'running');
+CREATE INDEX IF NOT EXISTS refit_targets_installation ON refit_targets (installation_id);
+-- No policies: data APIs such as Supabase's see nothing; the owning worker role bypasses RLS.
+ALTER TABLE refit_installations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE refit_installation_repositories ENABLE ROW LEVEL SECURITY;
+ALTER TABLE refit_deliveries ENABLE ROW LEVEL SECURITY;
+ALTER TABLE refit_approvals ENABLE ROW LEVEL SECURITY;
+ALTER TABLE refit_targets ENABLE ROW LEVEL SECURITY;
+ALTER TABLE refit_jobs ENABLE ROW LEVEL SECURITY;
 `;
 
 export interface HostedTarget {

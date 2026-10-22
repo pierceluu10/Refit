@@ -58,7 +58,7 @@ REFIT_POSTGRES_URL=postgres://refit:refit-local-test@127.0.0.1:55432/refit REFIT
 
 `Dockerfile`, `fly.toml` and `scripts/hosted-entrypoint.sh` build the worker from the release tarball. The image adds oasdiff 1.33.0, git and a Docker daemon that keeps its data on the `/data` volume. The machine never idle-stops, because leases renew between webhooks.
 
-1. Create a Supabase project in a US region. Copy its session-pooler connection string with `?sslmode=require`.
+1. Use the `refit-hosted` Supabase project (us-east-1, next to Fly's `iad`). The worker creates its tables on boot, with row-level security and no policies, so Supabase's Data API exposes nothing. From the dashboard's Connect panel, copy the session-pooler connection string (port 5432, IPv4) and add `?sslmode=require`.
 2. Install `flyctl`, run `fly auth login`, then `fly launch --no-deploy --copy-config` and `fly volumes create refit_data --size 20 --region iad`.
 3. Set secrets with `fly secrets set`: `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY` (the PEM contents), `REFIT_WEBHOOK_SECRET`, `REFIT_SERVICE_TOKEN`, `REFIT_DATABASE_URL`, `REFIT_HOSTED_OWNER`, `OPENAI_API_KEY`, `OPENAI_MODEL`. Add `REFIT_HOSTED_IMAGES` with the validation images that approved repositories name.
 4. `fly deploy`, then set the GitHub App webhook URL to `https://<app>.fly.dev/github/webhook`. Stop any local `refit serve` that used the old URL.
@@ -67,7 +67,7 @@ REFIT_POSTGRES_URL=postgres://refit:refit-local-test@127.0.0.1:55432/refit REFIT
 ## Owner decisions (2026-10-21)
 
 - **Hosting platform:** Fly.io Machines.
-- **Data store:** Supabase PostgreSQL in a US region. Evidence stays on the Fly volume until object storage is added.
+- **Data store:** Supabase PostgreSQL in us-east-1 (project `refit-hosted`, created 2026-10-22). Evidence stays on the Fly volume until object storage is added.
 - **AI provider and billing:** the owner's own API key, with a capped ledger per installation.
 - **Scope of the first hosted release:** validation and draft PRs from day one, limited to the owner's own account until per-job microVMs exist.
 - **Repository code retention:** still open. Managed checkouts currently persist on the volume between jobs to support deduplication.
