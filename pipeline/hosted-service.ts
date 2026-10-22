@@ -12,6 +12,7 @@ import { loadDeadlineRegistry } from './deadline-registry.ts';
 import type { GitHubAppConfiguration } from './github-app.ts';
 import { standaloneStateDirectory } from './github-checkout.ts';
 import { parseWebhook, verifyWebhook, WebhookInputError } from './github-webhooks.ts';
+import { hostedPages } from './hosted-setup.ts';
 import { isDatabaseUnavailable } from './hosted-database.ts';
 import { purgeUninstalled } from './hosted-retention.ts';
 import { processApprovalIssues } from './hosted-approval.ts';
@@ -90,6 +91,8 @@ export async function runHostedService(options: {
   aiPatch?: AiOptions;
   repairAttempts?: number;
   publishDraft?: boolean;
+  // Where customers ask for data deletion and report security issues (REFIT_HOSTED_CONTACT).
+  contact?: string;
   // Off by default: re-scans inventories on push, registry change and age, and opens or updates
   // deadline issues at the lead times. Needs the App's Issues write permission.
   alerts?: HostedAlerts;
@@ -378,6 +381,14 @@ export async function runHostedService(options: {
     }
   };
 
+  const pages = hostedPages({
+    app: options.app,
+    tenancy: options.tenancy,
+    publishDraft: Boolean(options.publishDraft),
+    aiPatch: Boolean(options.aiPatch),
+    contact: options.contact,
+    onProgress: options.onProgress,
+  });
   // A registry that does not load skips monitoring for this pass, as it does locally.
   const monitoringRegistry = async () => {
     try {
@@ -443,6 +454,7 @@ export async function runHostedService(options: {
     const host = options.host ?? HOSTED_HOST;
     const address = await listen(
       async (request, response, context) => {
+        if (await pages(request, response)) return;
         if (request.method === 'GET' && request.url === '/health') {
           respond(response, 200, { status: 'listening' });
           return;

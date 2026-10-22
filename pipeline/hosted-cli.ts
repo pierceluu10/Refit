@@ -19,6 +19,7 @@ import {
 } from './hosted-ops.ts';
 import { runHostedService } from './hosted-service.ts';
 import { openHostedStore } from './hosted-store.ts';
+import { hostedContact } from './hosted-setup.ts';
 import { hostedTenancy } from './hosted-tenancy.ts';
 import { openInventoryStore } from './inventory-store.ts';
 import { hostedAlerts } from './monitoring.ts';
@@ -54,7 +55,8 @@ jobs lists the newest ${JOBS_SHOWN} matching jobs. receipt prints one job's stor
 health checks PostgreSQL, the Refit tables, the Docker daemon and every image in REFIT_HOSTED_IMAGES, and exits 1 if any check fails.
 REFIT_HOSTED_ALERTS=1 (off by default) makes serve monitor every approved, inventoried repository: it takes a new inventory after a default-branch push, a registry change or 24 hours (at most once per 10 minutes), and opens or updates one GitHub issue per repository and deadline 90, 30 and 7 days before it and when it passes. REFIT_HOSTED_ALERT_DIGEST=1 adds a weekly digest issue per repository listing every exposed deadline. It needs the App's Issues write permission, and push re-scans need the App's push event.
 REFIT_HOSTED_REPORTS=1 (off by default) makes serve keep one issue per approved, inventoried repository with its \`refit report\`: integrations, deadlines, AI model calls and the next step. It re-scans like REFIT_HOSTED_ALERTS and rewrites the issue only when the report changes, at most once per change. It needs the App's Issues write permission.
-serve logs one JSON object per line to stderr with secrets redacted. With REFIT_SLACK_WEBHOOK_URL set it posts the same notices as refit serve, plus each failed job at most once per target per hour.`;
+serve logs one JSON object per line to stderr with secrets redacted. With REFIT_SLACK_WEBHOOK_URL set it posts the same notices as refit serve, plus each failed job at most once per target per hour.
+serve also answers GET /github/setup (the App's Setup URL), /github/uninstalled and /.well-known/security.txt. REFIT_HOSTED_CONTACT, a mailto: or https: URI, is shown for data deletion and served as the security.txt contact.`;
 
 function jobMachines(environment: NodeJS.ProcessEnv) {
   const app = environment.REFIT_JOB_APP?.trim();
@@ -353,6 +355,7 @@ try {
         aiPatch: assessmentConfiguration(values['ai-patch'], process.env),
         repairAttempts: Number(values['repair-attempts'] ?? 0),
         publishDraft: values['publish-draft'],
+        contact: hostedContact(process.env.REFIT_HOSTED_CONTACT),
         jobMachines: values['job-machines'] ? jobMachines(process.env) : undefined,
         purgeUninstalled: values['purge-uninstalled'],
         approvalIssues: process.env.REFIT_HOSTED_APPROVAL_ISSUES === '1',
