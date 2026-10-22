@@ -120,6 +120,7 @@ it('names a confirmed, just-installed account and says what happens next', async
   expect(page.text).toContain(
     `<a href="https://github.com/settings/installations/${INSTALLATION}">`,
   );
+  expect(page.text).toContain('It keeps file paths, line numbers and match counts, not your code.');
   expect(page.text).toContain('This service does not open pull requests');
   expect(page.text).toContain('It does not use AI.');
   expect(page.text).toContain(
@@ -176,6 +177,7 @@ it('shows only generic text unless GitHub confirms a recent installation of this
     expect(status, sample.name).toBe(200);
     expect(requests, sample.name).toHaveLength(1);
     expect(text, sample.name).toContain('If you just installed Refit Agent');
+    expect(text, sample.name).toContain('If it is not enabled, Refit records the installation');
     expect(text, sample.name).not.toContain('<strong>');
     if (sample.name === 'another App’s installation')
       expect(progress).toEqual([

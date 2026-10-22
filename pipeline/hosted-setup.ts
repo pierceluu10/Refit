@@ -105,7 +105,7 @@ export function setupPage(
     ? setup.tenancy.accounts.includes(installation.account.toLowerCase())
     : undefined;
   const intro = !installation
-    ? '<p>If you just installed Refit Agent, this is what happens next.</p>'
+    ? '<p>If you just installed Refit Agent and your account is enabled on this Refit service, this is what happens next. If it is not enabled, Refit records the installation and the repositories you selected and does not read, clone or run anything in them.</p>'
     : allowed
       ? `<p>Refit Agent is installed on <strong>${html(installation.account)}</strong>.</p>`
       : `<p>Refit Agent is installed on <strong>${html(installation.account)}</strong>, but this account is not enabled on this Refit service yet. Refit recorded the installation and the repositories you selected. It does not read, clone or run anything in them until the operator enables the account.</p>`;
@@ -118,9 +118,9 @@ export function setupPage(
   return page('Refit Agent is installed', [
     intro,
     '<h2>1. Inventory</h2>',
-    '<p>For each repository you selected, Refit takes a read-only inventory from a fresh checkout: the provider SDKs and API versions it uses, the AI models it calls and the deadlines that apply. It reads files only. It does not run your code, install dependencies or use AI, and it deletes the checkout afterwards.</p>',
+    '<p>For each repository you selected, Refit takes a read-only inventory from a fresh checkout: the provider SDKs and API versions it uses, the AI models it calls and the deadlines that apply. It parses files without running them, does not install dependencies or use AI, and deletes the checkout afterwards. It keeps file paths, line numbers and match counts, not your code.</p>',
     '<h2>2. Approval</h2>',
-    '<p>Refit runs nothing else in a repository until its configuration is approved. The configuration is a committed <code>.refit.json</code> that names the API contracts and the checks to run. The operator of this Refit service reviews it, including the exact files and their hashes, and stores the approval. A later change to those files stops Refit until it is approved again.</p>',
+    '<p>Refit runs no checks in a repository until its configuration is approved. The configuration is a committed <code>.refit.json</code> that names the API contracts and the checks to run. The operator of this Refit service reviews it, including the exact files and their hashes, and stores the approval. A later change to those files stops Refit until it is approved again.</p>',
     '<h2>3. After approval</h2>',
     `<p>Refit checks out the repository, finds code affected by API changes and runs the approved checks in an offline container. If the configuration asks for it, dependencies are first installed from the package registry, with install scripts disabled. ${setup.publishDraft ? 'When a migration passes its checks, Refit opens a draft pull request for you to review. It never merges.' : 'This service does not open pull requests; results stay with the operator.'} ${setup.aiPatch ? 'It may ask an AI model to propose a patch, using the operator’s own key and a capped budget.' : 'It does not use AI.'}</p>`,
     '<h2>Uninstall</h2>',
@@ -131,7 +131,7 @@ export function setupPage(
 export function uninstalledPage(contact: string | undefined) {
   return page('Refit Agent was uninstalled', [
     '<p>When GitHub tells Refit about the uninstall, Refit cancels queued and running work for your repositories and deletes their inventories. It can no longer read those repositories.</p>',
-    `<p>The approved configuration record, job results, validation evidence and the copy of each approved repository that Refit checked out stay with the operator of this Refit service. ${deletion(contact)}</p>`,
+    `<p>The installation and repository names, webhook delivery records, the approved configuration record, job results, validation evidence and the copy of each approved repository that Refit checked out stay with the operator of this Refit service. ${deletion(contact)}</p>`,
     '<p>This page collects nothing about your visit.</p>',
   ]);
 }
