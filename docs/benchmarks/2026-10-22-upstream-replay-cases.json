@@ -134,7 +134,7 @@
       "effectiveAt": "2026-03-26",
       "source": "https://developers.openai.com/api/docs/deprecations (read 2026-10-22: \"2025-09-26: Legacy GPT model snapshots (March 2026 shutdown)\", shutdown 2026-03-26); registry entry openai-2026-03-26-gpt-4-0314",
       "search": {
-        "query": "gh search commits \"gpt-4-turbo-preview retired\" --limit 40",
+        "query": "gh search commits \"gpt-4-turbo-preview retired\" --limit 40; gh search commits \"gpt-4-turbo-preview gpt-4o\" --limit 40",
         "ranAt": "2026-10-22"
       },
       "repos": [
@@ -144,6 +144,20 @@
           "beforeAt": "2026-06-10T18:00:42+01:00",
           "fix": "bc2bce211f5ce2b6547f2fc27d59714d99c8d661",
           "fixAt": "2026-06-10T18:13:47+01:00"
+        },
+        {
+          "repo": "letoya-ui/ravlo-platform",
+          "before": "b374b0c9bec4b119d7937ef04b01c5c3f9ca6f90",
+          "beforeAt": "2026-04-30T19:32:08-04:00",
+          "fix": "818abc9a9fef96a496c93101aa6b74be225ccfd0",
+          "fixAt": "2026-04-30T23:41:11Z"
+        },
+        {
+          "repo": "victorsole/brubru",
+          "before": "545d5343a0bb5154a7ddc199fbdc008b63f77182",
+          "beforeAt": "2026-04-20T12:08:46+02:00",
+          "fix": "62585a675e3a42da6d3f70ff5856988fe9319192",
+          "fixAt": "2026-04-20T12:29:03+02:00"
         }
       ]
     },
@@ -172,6 +186,35 @@
           "beforeAt": "2026-01-23T18:08:24+04:00",
           "fix": "27a9cdf8c96c9b26b38c52e13c5e2ca7182a76ff",
           "fixAt": "2026-06-02T18:00:12+04:00"
+        }
+      ]
+    },
+    {
+      "id": "meta-graph-v20-0-end",
+      "provider": "meta-graph",
+      "kind": "deadline",
+      "summary": "Meta Graph API v20.0 stops being available. Meta has no Refit agent, so this is report only: an alert, no patch.",
+      "announcedAt": null,
+      "effectiveAt": "2026-09-24",
+      "source": "Registry entry meta-graph-v20-0 (source https://developers.facebook.com/docs/graph-api/changelog, checkedAt 2026-10-15). No announcement date is recorded; Meta supports each version for about two years after its release.",
+      "search": {
+        "query": "gh search commits \"graph.facebook.com v20.0\" --limit 40",
+        "ranAt": "2026-10-22"
+      },
+      "repos": [
+        {
+          "repo": "k9tsune/tokyo-cafe-finder",
+          "before": "d6bea9fb5c69a16416071a95f32886cf50caf805",
+          "beforeAt": "2026-08-08T11:00:32Z",
+          "fix": "0d80307b0482b1a412855df2bf48b5d00d86afc8",
+          "fixAt": "2026-08-08T20:10:43+09:00"
+        },
+        {
+          "repo": "lhotea/TriAgent",
+          "before": "2de91c3101f1bc4699b905bacff4542e0494076d",
+          "beforeAt": "2026-06-12T23:59:41+02:00",
+          "fix": "d9b7a4c2c939105efff5bafed617eb29b4b05999",
+          "fixAt": "2026-08-05T17:28:32Z"
         }
       ]
     }
