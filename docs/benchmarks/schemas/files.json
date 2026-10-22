@@ -199,6 +199,10 @@
     "2026-10-22-slack-results.json": {
       "format": "slack-results",
       "predates": []
+    },
+    "2026-10-22-upstream-replay-results.json": {
+      "format": "upstream-replay-results",
+      "predates": []
     }
   }
 }

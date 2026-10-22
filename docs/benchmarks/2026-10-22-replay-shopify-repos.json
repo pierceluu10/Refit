@@ -1,0 +1,37 @@
+{
+  "frozenAt": "2026-10-22",
+  "purpose": "Upstream replay of shopify-admin-2025-01-removal: each app at the commit before its maintainers moved off Admin API 2025-01 by hand (docs/benchmarks/2026-10-22-upstream-replay-cases.json), for npm run benchmark:shopify -- --list.",
+  "target": "2026-10",
+  "schemas": {
+    "source": "https://shopify.dev/admin-graphql-direct-proxy/<version> (public documentation proxy; introspection with descriptions and deprecated input values, no store or credentials)",
+    "note": "The schemas available to this replay are 2026-01 to 2026-10, the same pinned introspection as the fresh Shopify set. 2025-01 and 2025-07 schemas were not available, so the before contract is 2026-01, the oldest pinned version, which is what Shopify serves a 2025-01 pin today.",
+    "versions": [
+      {
+        "version": "2026-01",
+        "sha256": "8257c80360a18fe3ba7020d4edeccc3065f26612f269bb988c60401c35e1ebcc"
+      },
+      {
+        "version": "2026-04",
+        "sha256": "2948548d64d4c370d4d4478717a8d322e115ec127dbac8974ca0a60d15da6298"
+      },
+      {
+        "version": "2026-07",
+        "sha256": "710be3ed9e7ad4175f334f977f048914c845c724f2298eb89e8a5708924ed5dd"
+      },
+      {
+        "version": "2026-10",
+        "sha256": "9e99798c2e590ef1e6edb0baf498fb8f66c9894de72b8403795d2d077ee8868b"
+      }
+    ]
+  },
+  "repos": [
+    {
+      "repo": "balvant0707/Fomoify-Test",
+      "commit": "c8379eb2b97797b008bde27289d6798be18e1c6c"
+    },
+    {
+      "repo": "futureaidigital/bal-ring-builder",
+      "commit": "647909b4809d2edfbddcf3f3602a349e8dda0f49"
+    }
+  ]
+}
