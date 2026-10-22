@@ -1,5 +1,5 @@
 import { readdir, readFile, realpath, stat } from 'node:fs/promises';
-import { join, posix, relative } from 'node:path';
+import { isAbsolute, join, posix, relative } from 'node:path';
 import { XMLParser, XMLValidator } from 'fast-xml-parser';
 import { parseToml, TomlError, type TomlTable, type TomlValue } from './package-manifests-toml.ts';
 
@@ -41,7 +41,8 @@ export type ManifestStopReason =
   | 'version-not-literal'
   | 'include-missing'
   | 'include-outside-repository'
-  | 'manifest-too-large';
+  | 'manifest-too-large'
+  | 'scan-limit';
 
 export interface ManifestStop {
   file: string;
@@ -143,6 +144,8 @@ function pep508(requirement: string) {
   return { name: normalizePythonName(match[1]), declared: specifier };
 }
 
+// shortcut: every requirement line is `direct: true`, so a pip-freeze file over-reports direct
+// dependencies; read pip-compile's `# via` comments if transitive pins start causing noise.
 export function parseRequirements(content: string, file: string): ParsedManifest {
   const result = empty();
   const lines = content.replace(/\r\n/g, '\n').split('\n');
@@ -943,12 +946,16 @@ export async function readPackageManifests(directory: string): Promise<PackageIn
   const found: { file: string; kind: ManifestKind }[] = [];
   const buildProps: string[] = [];
   let entries = 0;
+  let truncated = false;
   async function visit(path: string): Promise<void> {
     const children = (await readdir(path, { withFileTypes: true })).sort((a, b) =>
       a.name.localeCompare(b.name),
     );
     for (const child of children) {
-      if ((entries += 1) > MAX_ENTRIES) return;
+      if ((entries += 1) > MAX_ENTRIES) {
+        truncated = true;
+        return;
+      }
       if (child.isSymbolicLink()) continue;
       const childPath = join(path, child.name);
       if (child.isDirectory()) {
@@ -963,6 +970,14 @@ export async function readPackageManifests(directory: string): Promise<PackageIn
   }
   await visit(root);
   const inventory: PackageInventory = { manifests: [], dependencies: [], stops: [] };
+  if (truncated)
+    inventory.stops.push(
+      stop(
+        '.',
+        'scan-limit',
+        `More than ${MAX_ENTRIES} entries; manifests past the limit not read`,
+      ),
+    );
   const parsed = new Map<string, ParsedManifest>();
   const read = async (file: string, kind: ManifestKind) => {
     const path = join(root, file);
@@ -1013,8 +1028,16 @@ export async function readPackageManifests(directory: string): Promise<PackageIn
       );
       continue;
     }
-    const path = join(root, include.file);
-    if (!(await stat(path).catch(() => undefined))?.isFile()) {
+    // A symlinked include may point outside the repository, so its real path must stay inside.
+    const real = await realpath(join(root, include.file)).catch(() => undefined);
+    const inside = real === undefined ? '' : relative(root, real);
+    if (real !== undefined && (inside.startsWith('..') || isAbsolute(inside))) {
+      inventory.stops.push(
+        stop(include.from, 'include-outside-repository', `-r ${include.file}`, include.line),
+      );
+      continue;
+    }
+    if (!real || !(await stat(real))?.isFile()) {
       inventory.stops.push(
         stop(include.from, 'include-missing', `-r ${include.file}`, include.line),
       );

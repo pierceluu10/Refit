@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { basename, join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -90,6 +90,21 @@ describe('TOML reader', () => {
         { name: 'b', dependencies: { c: '*' } },
       ],
     });
+  });
+
+  it('keeps __proto__ tables and keys as ordinary entries', () => {
+    const document = parseToml('[__proto__]\npolluted = "yes"\n[a]\n__proto__.x = 1\n');
+    expect(({} as Record<string, unknown>).polluted).toBeUndefined();
+    expect(Object.prototype).not.toHaveProperty('x');
+    expect(Object.keys(document)).toEqual(['__proto__', 'a']);
+    expect((document.__proto__ as Record<string, unknown>).polluted).toBe('yes');
+  });
+
+  it('turns out-of-range escapes and deep nesting into TomlError', () => {
+    expect(() => parseToml('a = "\\UFFFFFFFF"')).toThrow(TomlError);
+    expect(() => parseToml('a = "\\uD800"')).toThrow(TomlError);
+    expect(() => parseToml(`a = ${'['.repeat(100_000)}`)).toThrow(TomlError);
+    expect(parseToml(`a = ${'['.repeat(50)}${']'.repeat(50)}`).a).toBeDefined();
   });
 
   it.each([
@@ -455,6 +470,28 @@ describe('Ruby, PHP, Java, .NET and Rust manifests', () => {
 });
 
 describe('stops and exclusions', () => {
+  it('stops on a -r include whose symlink leaves the repository', async () => {
+    const outside = await repository({ 'secret.txt': 'stripe==1.0\n' });
+    const root = await repository({ 'requirements.txt': '-r base.txt\n' });
+    await symlink(join(outside, 'secret.txt'), join(root, 'base.txt'));
+    const inventory = await readPackageManifests(root);
+    expect(inventory.stops.map((entry) => entry.reason)).toEqual(['include-outside-repository']);
+    expect(inventory.dependencies).toEqual([]);
+  });
+
+  it('keeps detectProviders and scanDeadlines running past a TOML file that cannot be read', async () => {
+    const root = await repository({
+      'package.json': JSON.stringify({ dependencies: { stripe: '^14.0.0' } }),
+      'pyproject.toml': `a = ${'['.repeat(100_000)}\nb = "\\UFFFFFFFF"\n`,
+    });
+    const inventory = await readPackageManifests(root);
+    expect(inventory.stops.map((entry) => entry.reason)).toEqual(['unparseable-toml']);
+    await expect(detectProviders(root)).resolves.toBeInstanceOf(Array);
+    await expect(
+      scanDeadlines(root, await loadDeadlineRegistry(), new Date('2026-10-22')),
+    ).resolves.toBeDefined();
+  });
+
   it('turns every malformed manifest into a named stop and keeps going', async () => {
     const root = await repository({
       'pyproject.toml': '[project]\ndependencies = ["stripe"\n',

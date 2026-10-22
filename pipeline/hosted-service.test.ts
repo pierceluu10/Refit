@@ -7,6 +7,7 @@ import { afterEach, expect, it, vi } from 'vitest';
 import { gitEnvironment } from './git-environment.ts';
 import { runHostedService } from './hosted-service.ts';
 import { hostedTargetId, openHostedStore } from './hosted-store.ts';
+import { hostedTenancy, TENANCY_REFUSALS } from './hosted-tenancy.ts';
 import {
   approveRepositoryEnrollment,
   inspectRepositoryEnrollment,
@@ -49,9 +50,18 @@ vi.mock('./github.ts', async (original) => ({
   ...(await original<typeof import('./github.ts')>()),
   requestGitHub: vi.fn(async (_token: string, method: string, path: string) => {
     expect(method).toBe('GET');
-    if (path === '/repos/example/application')
-      return { id: 789, full_name: 'example/application', archived: false, disabled: false };
-    expect(path).toBe('/repos/example/application/git/ref/heads/main');
+    // Both installed repositories are inventoried from the same source; only one is approved.
+    const repository = /^\/repos\/(example\/(?:application|unapproved))(\/.*)?$/.exec(path);
+    if (repository && !repository[2])
+      return {
+        id: 789,
+        full_name: repository[1],
+        archived: false,
+        disabled: false,
+        default_branch: 'main',
+        size: 1,
+      };
+    expect(repository?.[2]).toBe('/git/ref/heads/main');
     return { object: { type: 'commit', sha: transport.head } };
   }),
 }));
@@ -185,7 +195,7 @@ it.skipIf(!DATABASE || !process.env.REFIT_DOCKER_IMAGE || !process.env.REFIT_OAS
       directory: join(sample.root, 'hosted-state'),
       webhookSecret: WEBHOOK_SECRET,
       controlToken: CONTROL_TOKEN,
-      owner: 'Example',
+      tenancy: hostedTenancy({ REFIT_HOSTED_OWNER: 'Example' }),
       host: '127.0.0.1',
       port: 0,
       intervalSeconds: 30,
@@ -225,7 +235,7 @@ it.skipIf(!DATABASE || !process.env.REFIT_DOCKER_IMAGE || !process.env.REFIT_OAS
       installation: { id: 999, app_id: 123, account: { login: 'someone-else' } },
       repositories: [{ id: 901, full_name: 'someone-else/application' }],
     });
-    expect(foreign.body).toMatchObject({ status: 'ignored', enrolled: [] });
+    expect(foreign.body).toMatchObject({ status: 'not-allowed', enrolled: [] });
 
     let registry = await status(url);
     for (
@@ -240,7 +250,21 @@ it.skipIf(!DATABASE || !process.env.REFIT_DOCKER_IMAGE || !process.env.REFIT_OAS
         id: String(INSTALLATION),
         owner: 'example',
         status: 'active',
+        allowed: true,
         repositories: ['example/application', 'example/unapproved'],
+        jobsToday: 1,
+        inventoriesToday: 0,
+        refusals: [],
+      },
+      {
+        id: '999',
+        owner: 'someone-else',
+        status: 'active',
+        allowed: false,
+        repositories: ['someone-else/application'],
+        jobsToday: 0,
+        inventoriesToday: 0,
+        refusals: [TENANCY_REFUSALS.notAllowed],
       },
     ]);
     expect(registry.targets).toEqual([
@@ -292,7 +316,7 @@ it.skipIf(!DATABASE)(
   async () => {
     const pool = await database();
     const sample = await approvedRepository();
-    const store = await openHostedStore(pool);
+    const store = await openHostedStore(pool, hostedTenancy({ REFIT_HOSTED_OWNER: 'example' }));
     const change = (action: string, added: string[], removed: string[] = []) => ({
       kind: 'repositories' as const,
       installationId: 456,
@@ -382,7 +406,7 @@ it.skipIf(!DATABASE)(
   async () => {
     const pool = await database();
     const sample = await approvedRepository();
-    const store = await openHostedStore(pool);
+    const store = await openHostedStore(pool, hostedTenancy({ REFIT_HOSTED_OWNER: 'example' }));
     const target = hostedTargetId('example/application', 'main');
     const change = (action: string, added: string[], removed: string[] = []) => ({
       kind: 'repositories' as const,

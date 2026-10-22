@@ -205,3 +205,21 @@ it('uses a repository-scoped Contents read token for managed checkout without pu
     authenticateGitHubRead(await configuration(), 'example/application'),
   ).rejects.toThrow(/requested permissions/);
 });
+
+it('uses a job machine installation token for reads and refuses every write without the key', async () => {
+  const fetch = vi.fn();
+  vi.stubGlobal('fetch', fetch);
+  const configuration = {
+    appId: String(APP_ID),
+    installationToken: { installationId: INSTALLATION_ID, token: 'job-read-token' },
+  };
+  expect(await authenticateGitHubRead(configuration, 'example/application')).toEqual({
+    token: 'job-read-token',
+    appId: APP_ID,
+    installationId: INSTALLATION_ID,
+  });
+  await expect(authenticateGitHubApp(configuration, 'example/application')).rejects.toThrow(
+    'A job machine holds only a read-only installation token; this step needs the GitHub App private key.',
+  );
+  expect(fetch).not.toHaveBeenCalled();
+});

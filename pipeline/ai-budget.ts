@@ -39,10 +39,29 @@ export interface AiUsage {
   outputTokens: number;
   reasoningTokens: number;
 }
+// Stores ledger state with exclusive access: `change` receives the current state, and its result
+// is saved atomically. A thrown error saves nothing.
+export interface AiLedger {
+  update(
+    change: (state: Record<string, unknown> | undefined) => Record<string, unknown>,
+  ): Promise<void>;
+}
 export interface AiBudget {
   directory: string;
   limitUsd: number;
   prices?: AiPrices;
+  // Replaces budget.json under directory, for example with one PostgreSQL row per installation.
+  ledger?: AiLedger;
+}
+
+function fileLedger(directory: string): AiLedger {
+  const path = join(directory, 'budget.json');
+  return {
+    update: (change) =>
+      withStateLock(directory, 'budget', async () =>
+        writeState(path, change(await readState(path))),
+      ),
+  };
 }
 export interface AiOptions {
   apiKey: string;
@@ -166,15 +185,16 @@ export async function reserveAiBudget(
       NANO_USD_PER_USD) /
       TOKENS_PER_MILLION,
   );
-  const path = join(budget.directory, 'budget.json');
+  const ledger = budget.ledger ?? fileLedger(budget.directory);
   const id = randomUUID();
-  const load = async () => {
-    const value = (await readState(path)) ?? {
+  const load = (
+    value: Record<string, unknown> = {
       formatVersion: 1,
       limitNano,
       spentNano: 0,
       reservations: {},
-    };
+    },
+  ) => {
     if (
       value.formatVersion !== 1 ||
       value.limitNano !== limitNano ||
@@ -195,15 +215,15 @@ export async function reserveAiBudget(
       reservations: value.reservations as Record<string, number>,
     };
   };
-  await withStateLock(budget.directory, 'budget', async () => {
-    const state = await load();
+  await ledger.update((stored) => {
+    const state = load(stored);
     const reserved = Object.values(state.reservations).reduce((sum, amount) => sum + amount, 0);
     if (state.spentNano + reserved + maximumNano > limitNano)
       throw new PipelineInputError(
         'AI budget exhausted: this request and its maximum output would exceed the remaining allowance.',
       );
     state.reservations[id] = maximumNano;
-    await writeState(path, state);
+    return state;
   });
   return async (usage: AiUsage | null, responseModel: string) => {
     if (!usage)
@@ -215,22 +235,25 @@ export async function reserveAiBudget(
         'OpenAI returned an unpriced model or one priced differently from the configured model; the request reservation remains in the budget.',
       );
     const costNano = usageCostNano(usage, prices);
-    return withStateLock(budget.directory, 'budget', async () => {
-      const state = await load();
+    let spentNano = 0;
+    await ledger.update((stored) => {
+      const state = load(stored);
       if (state.reservations[id] !== maximumNano)
         throw new PipelineInputError('AI budget reservation is missing or already settled.');
       delete state.reservations[id];
       state.spentNano += costNano;
-      await writeState(path, state);
-      if (costNano > maximumNano || state.spentNano > limitNano)
-        throw new PipelineInputError(
-          'OpenAI usage exceeded the reserved allowance; recorded usage requires review before further requests.',
-        );
-      return {
-        costUsd: costNano / NANO_USD_PER_USD,
-        spentUsd: state.spentNano / NANO_USD_PER_USD,
-        limitUsd: budget.limitUsd,
-      };
+      spentNano = state.spentNano;
+      return state;
     });
+    // Checked after saving, so overspend stays recorded.
+    if (costNano > maximumNano || spentNano > limitNano)
+      throw new PipelineInputError(
+        'OpenAI usage exceeded the reserved allowance; recorded usage requires review before further requests.',
+      );
+    return {
+      costUsd: costNano / NANO_USD_PER_USD,
+      spentUsd: spentNano / NANO_USD_PER_USD,
+      limitUsd: budget.limitUsd,
+    };
   };
 }

@@ -1,0 +1,1020 @@
+{
+  "formatVersion": 1,
+  "list": "docs/benchmarks/2026-10-22-model-hosts-repos.json",
+  "unit": "One host identifier on a labelled line: a Bedrock model ID or ARN, an Azure OpenAI deployment (a literal name or the expression that holds it where a request or URL uses it) or api-version literal, or an OpenRouter provider/model ID. use is how the line uses it: call (product code that sends or configures it), catalog (a model list, price or profile table), test, example or doc (a comment). Prefix checks, API-version expressions, env-variable names, content types and import paths are not identifiers.",
+  "labelledAt": "2026-10-22",
+  "sample": "node scripts/model-hosts-label-candidates.mjs --seed 20261023 --per-host 4 --lines 12 --exclude docs/benchmarks/2026-10-22-model-hosts-labels.json (12 held-out repositories)",
+  "blind": "Held out: labelled after the detector changes the first label set informed, and before the changed detector was run on these repositories. Their output from the first run was not read.",
+  "repositories": [
+    {
+      "repository": "aws-amplify/amplify-backend",
+      "host": "bedrock",
+      "commit": "39fbb195a014915af0a6a913654d98000b85b8af",
+      "lines": [
+        {
+          "at": "packages/ai-constructs/src/conversation/conversation_handler_construct.test.ts:122",
+          "units": [
+            {
+              "host": "bedrock",
+              "kind": "model-id",
+              "value": "arn:aws:bedrock:region1::foundation-model/model1",
+              "use": "test"
+            }
+          ]
+        },
+        {
+          "at": "packages/ai-constructs/src/conversation/conversation_handler_construct.test.ts:161",
+          "units": []
+        },
+        {
+          "at": "packages/ai-constructs/src/conversation/conversation_handler_construct.test.ts:483",
+          "units": [
+            {
+              "host": "bedrock",
+              "kind": "model-id",
+              "value": "global.anthropic.claude-haiku-4-5-20251001-v1:0",
+              "use": "test"
+            }
+          ]
+        },
+        {
+          "at": "packages/ai-constructs/src/conversation/conversation_handler_construct.test.ts:511",
+          "units": [
+            {
+              "host": "bedrock",
+              "kind": "model-id",
+              "value": "arn:aws:bedrock:us-west-2::foundation-model/anthropic.claude-haiku-4-5-20251001-v1:0",
+              "use": "test"
+            }
+          ]
+        },
+        {
+          "at": "packages/ai-constructs/src/conversation/conversation_handler_construct.test.ts:587",
+          "units": [
+            {
+              "host": "bedrock",
+              "kind": "model-id",
+              "value": "arn:aws:bedrock:::foundation-model/anthropic.claude-sonnet-4-5-20250929-v1:0",
+              "use": "test"
+            }
+          ]
+        },
+        {
+          "at": "packages/ai-constructs/src/conversation/conversation_handler_construct.test.ts:636",
+          "units": [
+            {
+              "host": "bedrock",
+              "kind": "model-id",
+              "value": "arn:aws:bedrock:::foundation-model/anthropic.claude-opus-4-5-20251101-v1:0",
+              "use": "test"
+            }
+          ]
+        },
+        {
+          "at": "packages/ai-constructs/src/conversation/conversation_handler_construct.ts:310",
+          "units": []
+        },
+        {
+          "at": "packages/auth-construct/src/construct.test.ts:2141",
+          "units": []
+        },
+        {
+          "at": "packages/auth-construct/src/construct.test.ts:2634",
+          "units": []
+        },
+        {
+          "at": "packages/auth-construct/src/construct.test.ts:2931",
+          "units": []
+        },
+        {
+          "at": "packages/auth-construct/src/construct.ts:84",
+          "units": []
+        },
+        {
+          "at": "packages/backend-notifications/src/factory.test.ts:109",
+          "units": []
+        }
+      ]
+    },
+    {
+      "repository": "openclaw/openclaw",
+      "host": "bedrock",
+      "commit": "a2e35cd3a0a46a051accf742624be79a33b81159",
+      "lines": [
+        {
+          "at": "extensions/microsoft-foundry/onboard.ts:178",
+          "units": []
+        },
+        {
+          "at": "extensions/policy/src/doctor/register.base.test-utils.ts:251",
+          "units": []
+        },
+        {
+          "at": "extensions/policy/src/doctor/register.models-and-mcp.test-utils.ts:296",
+          "units": []
+        },
+        {
+          "at": "packages/ai/src/providers/azure-deployment-map.ts:47",
+          "units": []
+        },
+        {
+          "at": "src/agents/model-selection-alias-scope.test.ts:60",
+          "units": []
+        },
+        {
+          "at": "src/commands/doctor-legacy-config.migrations.test.ts:298",
+          "units": []
+        },
+        {
+          "at": "src/commands/doctor/shared/codex-route-warnings.test.ts:260",
+          "units": []
+        },
+        {
+          "at": "src/tui/tui-event-handlers.test.ts:242",
+          "units": []
+        },
+        {
+          "at": "test/scripts/publish-model-catalog.test.ts:1035",
+          "units": []
+        },
+        {
+          "at": "test/scripts/publish-model-catalog.test.ts:803",
+          "units": [
+            {
+              "host": "openrouter",
+              "kind": "model-id",
+              "value": "z-ai/glm-5.2",
+              "use": "test"
+            }
+          ]
+        },
+        {
+          "at": "ui/src/e2e/model-providers.e2e.test.ts:842",
+          "units": []
+        },
+        {
+          "at": "ui/src/pages/chat/chat-view.test.ts:547",
+          "units": []
+        }
+      ]
+    },
+    {
+      "repository": "clavia-labs/effect",
+      "host": "bedrock",
+      "commit": "42c9fec2f84712c41e2116864bcaadd10382166b",
+      "lines": [
+        {
+          "at": "packages/ai/anthropic/src/AnthropicLanguageModel.ts:1435",
+          "units": []
+        },
+        {
+          "at": "packages/ai/anthropic/src/AnthropicLanguageModel.ts:1460",
+          "units": []
+        },
+        {
+          "at": "packages/ai/anthropic/src/AnthropicTool.ts:412",
+          "units": []
+        },
+        {
+          "at": "packages/ai/openrouter/src/OpenRouterLanguageModel.ts:1804",
+          "units": []
+        },
+        {
+          "at": "packages/ai/openrouter/test/Generated.test.ts:88",
+          "units": []
+        },
+        {
+          "at": "packages/ai/openrouter/test/OpenRouterClient.test.ts:40",
+          "units": [
+            {
+              "host": "openrouter",
+              "kind": "model-id",
+              "value": "openai/gpt-4o-mini",
+              "use": "test"
+            }
+          ]
+        },
+        {
+          "at": "packages/ai/openrouter/test/OpenRouterLanguageModel.test.ts:116",
+          "units": []
+        },
+        {
+          "at": "packages/ai/openrouter/test/OpenRouterLanguageModel.test.ts:120",
+          "units": []
+        },
+        {
+          "at": "packages/ai/openrouter/test/OpenRouterLanguageModel.test.ts:244",
+          "units": [
+            {
+              "host": "openrouter",
+              "kind": "model-id",
+              "value": "google/gemini-2.5-flash",
+              "use": "test"
+            }
+          ]
+        },
+        {
+          "at": "packages/ai/openrouter/test/OpenRouterLanguageModel.test.ts:295",
+          "units": [
+            {
+              "host": "openrouter",
+              "kind": "model-id",
+              "value": "openai/gpt-4o-mini",
+              "use": "test"
+            }
+          ]
+        },
+        {
+          "at": "packages/effect/src/ConfigProvider.ts:890",
+          "units": []
+        },
+        {
+          "at": "packages/effect/src/unstable/cluster/K8sTypes.ts:322",
+          "units": []
+        }
+      ]
+    },
+    {
+      "repository": "aws/agentcore-cli",
+      "host": "bedrock",
+      "commit": "dd6304eef85dac8135acb01579a1cf41313148e5",
+      "lines": [
+        {
+          "at": "src/cli/commands/create/command.tsx:242",
+          "units": [
+            {
+              "host": "bedrock",
+              "kind": "model-id",
+              "value": "global.anthropic.claude-sonnet-4-6",
+              "use": "call"
+            }
+          ]
+        },
+        {
+          "at": "src/cli/commands/import/__tests__/import-evaluator.test.ts:199",
+          "units": []
+        },
+        {
+          "at": "src/cli/commands/import/__tests__/import-evaluator.test.ts:74",
+          "units": [
+            {
+              "host": "bedrock",
+              "kind": "model-id",
+              "value": "anthropic.claude-3-5-sonnet-20241022-v2:0",
+              "use": "test"
+            }
+          ]
+        },
+        {
+          "at": "src/cli/commands/import/__tests__/import-gateway.test.ts:52",
+          "units": []
+        },
+        {
+          "at": "src/cli/commands/import/__tests__/import-runtime-handler.test.ts:402",
+          "units": []
+        },
+        {
+          "at": "src/cli/commands/import/__tests__/import-runtime-handler.test.ts:565",
+          "units": []
+        },
+        {
+          "at": "src/cli/operations/eval/__tests__/logs-eval.test.ts:47",
+          "units": []
+        },
+        {
+          "at": "src/cli/operations/identity/__tests__/oauth2-credential-provider.test.ts:124",
+          "units": []
+        },
+        {
+          "at": "src/cli/operations/jobs/recommendation/__tests__/input-validation.test.ts:97",
+          "units": []
+        },
+        {
+          "at": "src/cli/primitives/__tests__/HarnessPrimitive.remove.test.ts:241",
+          "units": []
+        },
+        {
+          "at": "src/cli/primitives/__tests__/wirePaymentCapability.test.ts:244",
+          "units": [
+            {
+              "host": "bedrock",
+              "kind": "model-id",
+              "value": "anthropic.claude-3-5-sonnet-20241022-v2:0",
+              "use": "test"
+            }
+          ]
+        },
+        {
+          "at": "src/schema/schemas/__tests__/deployed-state.test.ts:320",
+          "units": []
+        }
+      ]
+    },
+    {
+      "repository": "anvia-hq/anvia",
+      "host": "azure-openai",
+      "commit": "01fa2d4a668a5a66bd6a29b7cbd73bfd7cdc34b6",
+      "lines": [
+        {
+          "at": "packages/provider-azure/test/client.test.ts:100",
+          "units": [
+            {
+              "host": "azure-openai",
+              "kind": "deployment",
+              "value": "embedding-deployment",
+              "use": "test"
+            }
+          ]
+        },
+        {
+          "at": "packages/provider-azure/test/client.test.ts:140",
+          "units": []
+        },
+        {
+          "at": "packages/provider-azure/test/client.test.ts:143",
+          "units": []
+        },
+        {
+          "at": "packages/provider-azure/test/client.test.ts:154",
+          "units": []
+        },
+        {
+          "at": "packages/provider-azure/test/client.test.ts:18",
+          "units": []
+        },
+        {
+          "at": "packages/provider-azure/test/client.test.ts:196",
+          "units": [
+            {
+              "host": "azure-openai",
+              "kind": "deployment",
+              "value": "image-deployment",
+              "use": "test"
+            }
+          ]
+        },
+        {
+          "at": "packages/provider-azure/test/client.test.ts:197",
+          "units": [
+            {
+              "host": "azure-openai",
+              "kind": "deployment",
+              "value": "speech-deployment",
+              "use": "test"
+            }
+          ]
+        },
+        {
+          "at": "packages/provider-azure/test/client.test.ts:207",
+          "units": [
+            {
+              "host": "azure-openai",
+              "kind": "deployment",
+              "value": "deployment",
+              "use": "test"
+            }
+          ]
+        },
+        {
+          "at": "packages/provider-azure/test/client.test.ts:243",
+          "units": []
+        },
+        {
+          "at": "packages/provider-azure/test/client.test.ts:37",
+          "units": [
+            {
+              "host": "azure-openai",
+              "kind": "deployment",
+              "value": "my-deployment",
+              "use": "test"
+            }
+          ]
+        },
+        {
+          "at": "packages/provider-azure/test/responses.integration.test.ts:33",
+          "units": [
+            {
+              "host": "azure-openai",
+              "kind": "deployment",
+              "value": "azureDeployment!",
+              "use": "test"
+            }
+          ]
+        },
+        {
+          "at": "packages/provider-azure/test/responses.integration.test.ts:9",
+          "units": []
+        }
+      ]
+    },
+    {
+      "repository": "aiqadam/qadam-flow",
+      "host": "azure-openai",
+      "commit": "0fec1a9691ce0fb13eab0acb446592150837d73e",
+      "lines": [
+        {
+          "at": "packages/qadams/community/amazon-bedrock/src/lib/actions/generate-embeddings.ts:77",
+          "units": []
+        },
+        {
+          "at": "packages/qadams/community/azure-devops/src/lib/actions/get-work-item.ts:37",
+          "units": []
+        },
+        {
+          "at": "packages/qadams/community/azure-devops/src/lib/common/index.ts:245",
+          "units": []
+        },
+        {
+          "at": "packages/qadams/community/azure-devops/src/lib/triggers/new-updated-work-item.ts:65",
+          "units": []
+        },
+        {
+          "at": "packages/qadams/community/serp-api/src/lib/constants/google-domains.ts:107",
+          "units": []
+        },
+        {
+          "at": "packages/qadams/community/serp-api/src/lib/constants/google-domains.ts:121",
+          "units": []
+        },
+        {
+          "at": "packages/qadams/community/serp-api/src/lib/constants/google-domains.ts:125",
+          "units": []
+        },
+        {
+          "at": "packages/qadams/community/serp-api/src/lib/constants/google-domains.ts:129",
+          "units": []
+        },
+        {
+          "at": "packages/qadams/community/serp-api/src/lib/constants/google-domains.ts:152",
+          "units": []
+        },
+        {
+          "at": "packages/qadams/community/serp-api/src/lib/constants/google-domains.ts:55",
+          "units": []
+        },
+        {
+          "at": "packages/server/api/test/unit/app/chat/chat-model-context-window.test.ts:64",
+          "units": [
+            {
+              "host": "openrouter",
+              "kind": "model-id",
+              "value": "deepseek/deepseek-chat",
+              "use": "test"
+            }
+          ]
+        },
+        {
+          "at": "packages/server/utils/test/chat-ai-utils-provider-options.test.ts:82",
+          "units": [
+            {
+              "host": "bedrock",
+              "kind": "model-id",
+              "value": "apac.anthropic.claude-3-opus-20240229-v1:0",
+              "use": "test"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "repository": "OrenGrinker/jstextfromimage",
+      "host": "azure-openai",
+      "commit": "c3d395813e6d16b983f6ece8ae44e124b33f54d2",
+      "lines": [
+        {
+          "at": "src/azure_openai.ts:22",
+          "units": [
+            {
+              "host": "azure-openai",
+              "kind": "api-version",
+              "value": "2024-07-01-preview",
+              "use": "call"
+            }
+          ]
+        },
+        {
+          "at": "src/azure_openai.ts:24",
+          "units": []
+        },
+        {
+          "at": "src/azure_openai.ts:28",
+          "units": []
+        },
+        {
+          "at": "src/azure_openai.ts:39",
+          "units": []
+        },
+        {
+          "at": "src/azure_openai.ts:40",
+          "units": [
+            {
+              "host": "azure-openai",
+              "kind": "deployment",
+              "value": "deploymentName",
+              "use": "call"
+            }
+          ]
+        },
+        {
+          "at": "src/types.ts:34",
+          "units": []
+        },
+        {
+          "at": "src/types.ts:35",
+          "units": []
+        },
+        {
+          "at": "tests/azure_openai.test.ts:27",
+          "units": [
+            {
+              "host": "azure-openai",
+              "kind": "deployment",
+              "value": "test-deployment",
+              "use": "test"
+            }
+          ]
+        },
+        {
+          "at": "tests/azure_openai.test.ts:28",
+          "units": [
+            {
+              "host": "azure-openai",
+              "kind": "api-version",
+              "value": "2024-07-01-preview",
+              "use": "test"
+            }
+          ]
+        },
+        {
+          "at": "tests/azure_openai.test.ts:42",
+          "units": []
+        },
+        {
+          "at": "tests/azure_openai.test.ts:56",
+          "units": [
+            {
+              "host": "azure-openai",
+              "kind": "deployment",
+              "value": "mockConfig.deploymentName",
+              "use": "test"
+            }
+          ]
+        },
+        {
+          "at": "tests/azure_openai.test.ts:93",
+          "units": [
+            {
+              "host": "azure-openai",
+              "kind": "deployment",
+              "value": "mockConfig.deploymentName",
+              "use": "test"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "repository": "polymind-inc/agent-framework-js",
+      "host": "azure-openai",
+      "commit": "fba296e7823be1965b435b5996ce0fc4b34b766d",
+      "lines": [
+        {
+          "at": "examples/02-foundry/01-foundry-chat.ts:11",
+          "units": []
+        },
+        {
+          "at": "packages/foundry/src/chat-client.test.ts:76",
+          "units": []
+        },
+        {
+          "at": "packages/foundry/src/hosting/response-store.test.ts:163",
+          "units": []
+        },
+        {
+          "at": "packages/foundry/src/hosting/response-store.test.ts:181",
+          "units": []
+        },
+        {
+          "at": "packages/foundry/src/hosting/toolbox.test.ts:199",
+          "units": []
+        },
+        {
+          "at": "packages/foundry/src/integration-extensibility.test.ts:122",
+          "units": []
+        },
+        {
+          "at": "packages/foundry/src/integration-extensibility.test.ts:155",
+          "units": []
+        },
+        {
+          "at": "packages/foundry/src/integration-extensibility.test.ts:276",
+          "units": []
+        },
+        {
+          "at": "packages/foundry/src/integration.test.ts:40",
+          "units": [
+            {
+              "host": "azure-openai",
+              "kind": "deployment",
+              "value": "modelDeployment",
+              "use": "test"
+            }
+          ]
+        },
+        {
+          "at": "packages/foundry/src/memory/client.test.ts:111",
+          "units": []
+        },
+        {
+          "at": "packages/foundry/src/memory/client.test.ts:137",
+          "units": []
+        },
+        {
+          "at": "packages/foundry/src/memory/client.test.ts:80",
+          "units": []
+        }
+      ]
+    },
+    {
+      "repository": "vincemakes/kiso",
+      "host": "openrouter",
+      "commit": "7e96966f787e856c3998817142b1b148aeee0074",
+      "lines": [
+        {
+          "at": "apps/cli/tests/astra-f3-login-next-step.test.ts:43",
+          "units": []
+        },
+        {
+          "at": "apps/cli/tests/credentials.test.ts:55",
+          "units": []
+        },
+        {
+          "at": "apps/cli/tests/xp1-status-truth-pty.test.ts:119",
+          "units": []
+        },
+        {
+          "at": "packages/core/tests/event-schema.test.ts:21",
+          "units": []
+        },
+        {
+          "at": "packages/core/tests/mg1-stamp.test.ts:76",
+          "units": []
+        },
+        {
+          "at": "packages/provider-anthropic/src/index.ts:384",
+          "units": []
+        },
+        {
+          "at": "packages/runtime/src/provider/metadata.ts:348",
+          "units": [
+            {
+              "host": "openrouter",
+              "kind": "model-id",
+              "value": "z-ai/glm-5.3-flash",
+              "use": "catalog"
+            }
+          ]
+        },
+        {
+          "at": "packages/runtime/src/provider/metadata.ts:349",
+          "units": []
+        },
+        {
+          "at": "packages/runtime/tests/a1a-request-budget.test.ts:18",
+          "units": []
+        },
+        {
+          "at": "packages/runtime/tests/registry-models-2026-10.test.ts:121",
+          "units": [
+            {
+              "host": "openrouter",
+              "kind": "model-id",
+              "value": "anthropic/claude-opus-5.5",
+              "use": "test"
+            }
+          ]
+        },
+        {
+          "at": "scripts/registry-or-rows.mjs:36",
+          "units": [
+            {
+              "host": "openrouter",
+              "kind": "model-id",
+              "value": "openai/gpt-6.1-sol",
+              "use": "catalog"
+            }
+          ]
+        },
+        {
+          "at": "scripts/registry-or-rows.mjs:43",
+          "units": [
+            {
+              "host": "openrouter",
+              "kind": "model-id",
+              "value": "xiaomi/mimo-v2.6-flash",
+              "use": "catalog"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "repository": "Merkie/whspr",
+      "host": "openrouter",
+      "commit": "a8e7777743fa455af76b7a81aa5029e7fb21e626",
+      "lines": [
+        {
+          "at": "src/index.ts:288",
+          "units": [
+            {
+              "host": "openrouter",
+              "kind": "model-id",
+              "value": "openai/gpt-4o-transcribe",
+              "use": "call"
+            }
+          ]
+        },
+        {
+          "at": "src/transcribe.ts:151",
+          "units": []
+        },
+        {
+          "at": "src/transcribe.ts:19",
+          "units": [
+            {
+              "host": "openrouter",
+              "kind": "model-id",
+              "value": "openai/gpt-4o-mini-transcribe",
+              "use": "catalog"
+            }
+          ]
+        },
+        {
+          "at": "src/transcribe.ts:20",
+          "units": [
+            {
+              "host": "openrouter",
+              "kind": "model-id",
+              "value": "openai/whisper-large-v3",
+              "use": "catalog"
+            }
+          ]
+        },
+        {
+          "at": "src/transcribe.ts:98",
+          "units": []
+        },
+        {
+          "at": "test/recovery.test.js:250",
+          "units": [
+            {
+              "host": "openrouter",
+              "kind": "model-id",
+              "value": "openai/gpt-4o-transcribe",
+              "use": "test"
+            }
+          ]
+        },
+        {
+          "at": "test/recovery.test.js:71",
+          "units": []
+        },
+        {
+          "at": "test/recovery.test.js:77",
+          "units": [
+            {
+              "host": "openrouter",
+              "kind": "model-id",
+              "value": "deepseek/deepseek-v4-flash-0731",
+              "use": "test"
+            }
+          ]
+        },
+        {
+          "at": "test/transcribe.test.js:109",
+          "units": [
+            {
+              "host": "openrouter",
+              "kind": "model-id",
+              "value": "openai/gpt-4o-transcribe",
+              "use": "test"
+            }
+          ]
+        },
+        {
+          "at": "test/transcribe.test.js:124",
+          "units": []
+        },
+        {
+          "at": "test/transcribe.test.js:40",
+          "units": []
+        },
+        {
+          "at": "test/transcribe.test.js:97",
+          "units": [
+            {
+              "host": "openrouter",
+              "kind": "model-id",
+              "value": "openai/gpt-4o-transcribe",
+              "use": "test"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "repository": "kindgi/kindgi-sdk",
+      "host": "openrouter",
+      "commit": "590d10ca6a6fdf9dcee69619c3e576a62bccb2a3",
+      "lines": [
+        {
+          "at": "packages/adapters/model-azure-openai/src/config.ts:260",
+          "units": []
+        },
+        {
+          "at": "packages/adapters/model-azure-openai/src/entry.ts:96",
+          "units": []
+        },
+        {
+          "at": "packages/adapters/model-azure-openai/tests/azure-openai.test.ts:106",
+          "units": []
+        },
+        {
+          "at": "packages/adapters/model-azure-openai/tests/azure-openai.test.ts:221",
+          "units": []
+        },
+        {
+          "at": "packages/cli/src/dev/defaults.ts:1161",
+          "units": []
+        },
+        {
+          "at": "packages/cli/src/license/cloud.ts:110",
+          "units": []
+        },
+        {
+          "at": "packages/cli/tests/doctor.test.ts:567",
+          "units": []
+        },
+        {
+          "at": "packages/cli/tests/license-commands.test.ts:146",
+          "units": []
+        },
+        {
+          "at": "packages/cli/tests/preset-settings.test.ts:321",
+          "units": []
+        },
+        {
+          "at": "site/scripts/reference/entries/cli.mjs:1057",
+          "units": []
+        },
+        {
+          "at": "site/scripts/reference/entries/cli.mjs:2079",
+          "units": []
+        },
+        {
+          "at": "site/scripts/reference/entries/env-vars.mjs:105",
+          "units": []
+        }
+      ]
+    },
+    {
+      "repository": "ClickerMonkey/aeye",
+      "host": "openrouter",
+      "commit": "a746b8bab9ef4bb62c178e008aeaf88c6e8a1f88",
+      "lines": [
+        {
+          "at": "packages/aws/src/common.ts:190",
+          "units": [
+            {
+              "host": "bedrock",
+              "kind": "model-id",
+              "value": "meta.llama2-13b-chat-v1",
+              "use": "catalog"
+            }
+          ]
+        },
+        {
+          "at": "packages/models/scripts/scrapers/__tests__/aws.test.ts:55",
+          "units": [
+            {
+              "host": "bedrock",
+              "kind": "model-id",
+              "value": "stability.stable-diffusion-xl-v1",
+              "use": "test"
+            }
+          ]
+        },
+        {
+          "at": "packages/models/src/models/aws.ts:686",
+          "units": [
+            {
+              "host": "bedrock",
+              "kind": "model-id",
+              "value": "arn:aws:bedrock:us-east-2::foundation-model/amazon.titan-embed-text-v2:0",
+              "use": "catalog"
+            }
+          ]
+        },
+        {
+          "at": "packages/models/src/models/openrouter.ts:1343",
+          "units": [
+            {
+              "host": "openrouter",
+              "kind": "model-id",
+              "value": "cohere/north-mini-code-20260617",
+              "use": "catalog"
+            }
+          ]
+        },
+        {
+          "at": "packages/models/src/models/openrouter.ts:3375",
+          "units": [
+            {
+              "host": "openrouter",
+              "kind": "model-id",
+              "value": "mistralai/codestral-2508",
+              "use": "catalog"
+            }
+          ]
+        },
+        {
+          "at": "packages/models/src/models/openrouter.ts:376",
+          "units": [
+            {
+              "host": "openrouter",
+              "kind": "model-id",
+              "value": "aion-labs/aion-rp-llama-3.1-8b",
+              "use": "catalog"
+            }
+          ]
+        },
+        {
+          "at": "packages/models/src/models/openrouter.ts:4042",
+          "units": [
+            {
+              "host": "openrouter",
+              "kind": "model-id",
+              "value": "morph/morph-v3-large",
+              "use": "catalog"
+            }
+          ]
+        },
+        {
+          "at": "packages/models/src/models/openrouter.ts:5118",
+          "units": [
+            {
+              "host": "openrouter",
+              "kind": "model-id",
+              "value": "openai/gpt-5-mini-2025-08-07",
+              "use": "catalog"
+            }
+          ]
+        },
+        {
+          "at": "packages/models/src/models/openrouter.ts:5762",
+          "units": [
+            {
+              "host": "openrouter",
+              "kind": "model-id",
+              "value": "openai/gpt-5.6-terra-pro",
+              "use": "catalog"
+            }
+          ]
+        },
+        {
+          "at": "packages/models/src/models/openrouter.ts:6216",
+          "units": [
+            {
+              "host": "openrouter",
+              "kind": "model-id",
+              "value": "openai/o4-mini-high",
+              "use": "catalog"
+            }
+          ]
+        },
+        {
+          "at": "packages/models/src/models/openrouter.ts:8519",
+          "units": [
+            {
+              "host": "openrouter",
+              "kind": "model-id",
+              "value": "x-ai/grok-4.3",
+              "use": "catalog"
+            }
+          ]
+        },
+        {
+          "at": "packages/openrouter/src/__tests__/openrouter.test.ts:278",
+          "units": [
+            {
+              "host": "openrouter",
+              "kind": "model-id",
+              "value": "openai/gpt-4o",
+              "use": "test"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

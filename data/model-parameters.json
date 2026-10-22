@@ -1,0 +1,25 @@
+{
+  "formatVersion": 1,
+  "models": [
+    {
+      "provider": "anthropic",
+      "model": "claude-sonnet-5-5",
+      "parameters": {
+        "temperature": { "accepts": "default-only", "default": 1 },
+        "top_k": { "accepts": "none" }
+      },
+      "source": "https://platform.claude.com/docs/en/models/sonnet-5-5/overview",
+      "defaultSource": "https://platform.claude.com/docs/en/api/messages",
+      "checkedAt": "2026-10-21"
+    },
+    {
+      "provider": "openai",
+      "model": "o3",
+      "parameters": {
+        "max_tokens": { "accepts": "none", "renamedTo": "max_completion_tokens" }
+      },
+      "source": "https://developers.openai.com/api/reference/resources/chat",
+      "checkedAt": "2026-10-21"
+    }
+  ]
+}
