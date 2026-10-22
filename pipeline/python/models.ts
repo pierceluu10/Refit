@@ -7,6 +7,7 @@ import {
   type PythonFile,
   type Tree,
 } from './syntax.ts';
+import type { TracerStop } from '../tree-sitter.ts';
 
 // The model-bearing Python SDKs Refit traces. `clients` maps each client class to the platform it is
 // set up for, or null for the provider's own API. `text` lists the text-generation calls; every
@@ -1423,12 +1424,15 @@ export interface PythonModelTrace {
 
 // Every OpenAI, Anthropic and google-genai call in a repository's Python code that sends a model,
 // with the literals its model can resolve to. Nothing is executed.
-export async function tracePythonModelCalls(directory: string): Promise<PythonModelTrace> {
-  const files = await readPythonFiles(directory);
-  return { calls: await traceFiles(files), files: files.length };
+export async function tracePythonModelCalls(
+  directory: string,
+  stops?: TracerStop[],
+): Promise<PythonModelTrace> {
+  const files = await readPythonFiles(directory, stops);
+  return { calls: await traceFiles(files, stops), files: files.length };
 }
 
-export async function traceFiles(files: PythonFile[]) {
+export async function traceFiles(files: PythonFile[], stops?: TracerStop[]) {
   if (
     !files.some(
       (file) =>
@@ -1437,7 +1441,9 @@ export async function traceFiles(files: PythonFile[]) {
     )
   )
     return [];
-  return withPythonTrees(files, (tree) =>
-    traceCalls({ files: new Map(files.map((file) => [file.path, file])), tree }),
+  return withPythonTrees(
+    files,
+    (tree) => traceCalls({ files: new Map(files.map((file) => [file.path, file])), tree }),
+    stops,
   );
 }

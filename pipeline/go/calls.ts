@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { join, posix } from 'node:path';
 import type { SdkCallRecord, SourceSite, TracedValue } from '../sdk-call-record.ts';
+import type { TracerStop } from '../tree-sitter.ts';
 import { readGoFiles, withGoTrees, type GoFile, type Node, type Tree } from './syntax.ts';
 
 // The Go SDKs Refit traces, by module path without the major suffix. `clients` are the constructor
@@ -496,12 +497,30 @@ function traceModel(
       return merge(
         returned.map((item) => traceModel(context, item.file, item.node, via, depth + 1, seen)),
       );
-    if (calleeText === 'cmp.Or' && first)
-      return merge(
-        [first, second, ...named(field(node, 'arguments')).slice(2)]
-          .filter((item): item is Node => Boolean(item))
-          .map((item) => traceModel(context, file, item, via, depth + 1, seen)),
+    if (calleeText === 'cmp.Or' && first) {
+      // `cmp.Or(os.Getenv("M"), "gpt-4")` has a default, as Python's `getenv("M", "gpt-4")`.
+      const options = [first, second, ...named(field(node, 'arguments')).slice(2)].filter(
+        (item): item is Node => Boolean(item),
       );
+      const environment = (item: Node) =>
+        item.type === 'call_expression' &&
+        /^os\.(?:Getenv|LookupEnv)$/.test(field(item, 'function')!.text);
+      return merge(
+        options.map((item, index) => {
+          if (environment(item) && index < options.length - 1) return { literals: [], stop: null };
+          const read = options.slice(0, index).find(environment);
+          const name = read && named(field(read, 'arguments'))[0];
+          return traceModel(
+            context,
+            file,
+            item,
+            read ? `environment default (${(name && goString(name)) ?? '?'})` : via,
+            depth + 1,
+            seen,
+          );
+        }),
+      );
+    }
     return stop(`The model comes from \`${text(node)}\`, which Refit cannot trace.`);
   }
   if (node.type === 'identifier') {
@@ -843,16 +862,16 @@ export interface GoTrace {
 
 // Every stripe-go, openai-go and anthropic-sdk-go call in a repository's Go code, the models the
 // OpenAI and Anthropic calls can send, and the SDK versions go.mod requires. Nothing is executed.
-export async function traceGoCalls(directory: string): Promise<GoTrace> {
-  const files = await readGoFiles(directory);
+export async function traceGoCalls(directory: string, stops?: TracerStop[]): Promise<GoTrace> {
+  const files = await readGoFiles(directory, stops);
   return {
-    calls: await traceGoFiles(files),
+    calls: await traceGoFiles(files, stops),
     modules: await goModules(directory),
     files: files.length,
   };
 }
 
-export async function traceGoFiles(files: GoFile[]) {
+export async function traceGoFiles(files: GoFile[], stops?: TracerStop[]) {
   if (!files.some((file) => GO_SDKS.some((sdk) => file.content.includes(sdk.module)))) return [];
   const sdkData = await goSdkData();
   const constants = new Map<string, string>();
@@ -863,7 +882,10 @@ export async function traceGoFiles(files: GoFile[]) {
     for (const release of Object.values(table))
       for (const [name, value] of Object.entries(release.constants))
         constants.set(`${provider}:${name}`, value);
-  return withGoTrees(files, (tree) =>
-    traceCalls({ files: new Map(files.map((file) => [file.path, file])), tree, constants }),
+  return withGoTrees(
+    files,
+    (tree) =>
+      traceCalls({ files: new Map(files.map((file) => [file.path, file])), tree, constants }),
+    stops,
   );
 }

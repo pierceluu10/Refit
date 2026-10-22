@@ -16,6 +16,7 @@ import {
   isGoTextCall,
   traceGoFiles,
 } from './calls.ts';
+import type { TracerStop } from '../tree-sitter.ts';
 import { readGoFiles, withGoTrees, type GoFile, type Node } from './syntax.ts';
 
 const PROVIDERS = new Set(['openai', 'anthropic']);
@@ -120,6 +121,7 @@ function where(node: Node) {
 export async function goModelMatches(
   files: GoFile[],
   models: Map<string, string>,
+  stops?: TracerStop[],
 ): Promise<GoModelMatch[]> {
   const sdkData = await goSdkData();
   const constants = new Map<string, string>();
@@ -137,55 +139,59 @@ export async function goModelMatches(
       ) || [...constants.keys()].some((key) => file.content.includes(`.${key.split(':')[1]}`)),
   );
   if (!candidates.length) return [];
-  return withGoTrees(candidates, (tree) => {
-    const matches: GoModelMatch[] = [];
-    for (const file of candidates) {
-      const root = tree(file.path)?.rootNode;
-      if (!root) continue;
-      const lines = file.content.split('\n');
-      // Local names of the SDK packages the file imports, aliases and subpackages such as `shared`.
-      const imported = imports(root);
-      for (const node of root.descendantsOfType([
-        'interpreted_string_literal',
-        'raw_string_literal',
-        'selector_expression',
-        'comment',
-      ])) {
-        if (!node) continue;
-        if (node.type === 'comment') {
-          for (const match of node.text.matchAll(/["'`]([a-z0-9][a-z0-9.-]*)["'`]/g))
-            if (models.has(match[1]))
-              matches.push({
-                file: file.path,
-                line: node.startPosition.row + 1,
-                version: match[1],
-                provider: models.get(match[1])!,
-                use: 'comment',
-                text: lines[node.startPosition.row].trim(),
-              });
-          continue;
+  return withGoTrees(
+    candidates,
+    (tree) => {
+      const matches: GoModelMatch[] = [];
+      for (const file of candidates) {
+        const root = tree(file.path)?.rootNode;
+        if (!root) continue;
+        const lines = file.content.split('\n');
+        // Local names of the SDK packages the file imports, aliases and subpackages such as `shared`.
+        const imported = imports(root);
+        for (const node of root.descendantsOfType([
+          'interpreted_string_literal',
+          'raw_string_literal',
+          'selector_expression',
+          'comment',
+        ])) {
+          if (!node) continue;
+          if (node.type === 'comment') {
+            for (const match of node.text.matchAll(/["'`]([a-z0-9][a-z0-9.-]*)["'`]/g))
+              if (models.has(match[1]))
+                matches.push({
+                  file: file.path,
+                  line: node.startPosition.row + 1,
+                  version: match[1],
+                  provider: models.get(match[1])!,
+                  use: 'comment',
+                  text: lines[node.startPosition.row].trim(),
+                });
+            continue;
+          }
+          if (
+            node.type === 'selector_expression' &&
+            !imported.has(node.childForFieldName('operand')?.text ?? '')
+          )
+            continue;
+          const value = modelValue(node, constants);
+          if (value === undefined || !models.has(value)) continue;
+          const how = use(node, file.path, constants);
+          matches.push({
+            file: file.path,
+            line: node.startPosition.row + 1,
+            version: value,
+            provider: models.get(value)!,
+            use: how,
+            text: lines[node.startPosition.row].trim(),
+            ...(how === 'live' ? { where: where(node) } : {}),
+          });
         }
-        if (
-          node.type === 'selector_expression' &&
-          !imported.has(node.childForFieldName('operand')?.text ?? '')
-        )
-          continue;
-        const value = modelValue(node, constants);
-        if (value === undefined || !models.has(value)) continue;
-        const how = use(node, file.path, constants);
-        matches.push({
-          file: file.path,
-          line: node.startPosition.row + 1,
-          version: value,
-          provider: models.get(value)!,
-          use: how,
-          text: lines[node.startPosition.row].trim(),
-          ...(how === 'live' ? { where: where(node) } : {}),
-        });
       }
-    }
-    return matches;
-  });
+      return matches;
+    },
+    stops,
+  );
 }
 
 // Go requests that send a retiring model, as stops with the TypeScript rule's reasons, and every
@@ -194,6 +200,7 @@ export async function goModelReports(
   directory: string,
   registry: DeadlineRegistry,
   rules: ModelRules,
+  tracerStops?: TracerStop[],
 ): Promise<{ stops: ModelReplacementStop[]; unresolved: ModelReplacementUnresolved[] }> {
   const byProvider = new Map<string, Map<string, DeadlineEntry>>();
   for (const entry of registry.deadlines)
@@ -203,10 +210,10 @@ export async function goModelReports(
       for (const version of entry.versions) models.set(version, entry);
     }
   if (!byProvider.size) return { stops: [], unresolved: [] };
-  const files = await readGoFiles(directory);
+  const files = await readGoFiles(directory, tracerStops);
   const stops: ModelReplacementStop[] = [];
   const covered = new Set<string>();
-  for (const call of await traceGoFiles(files)) {
+  for (const call of await traceGoFiles(files, tracerStops)) {
     const models = byProvider.get(call.provider);
     const model = call.arguments.model;
     if (!models || !model || GO_TEST_PATH.test(call.file)) continue;
@@ -257,7 +264,7 @@ export async function goModelReports(
   );
   const check = 'Check where it is used and change it by hand if it reaches the API.';
   const unresolved: ModelReplacementUnresolved[] = [];
-  for (const match of await goModelMatches(files, all)) {
+  for (const match of await goModelMatches(files, all, tracerStops)) {
     if (match.use !== 'live' || covered.has(`${match.file}:${match.line}`)) continue;
     covered.add(`${match.file}:${match.line}`);
     const models = byProvider.get(match.provider)!;

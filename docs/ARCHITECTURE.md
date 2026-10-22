@@ -68,11 +68,43 @@ The SDK adapter and npm lockfile do not prove which API version the application 
 
 ## Other languages (decisions, 2026-10-22)
 
-[Language goals](LANGUAGE-GOALS.md#the-shared-design) asks for three decisions before the first tracer. They were taken for the Python model tracer (`pipeline/python/`). Each is still an owner call, so they are not yet the defaults for later languages; until the owner confirms them, a later tracer reuses them only by choice and says so:
+[Language goals](LANGUAGE-GOALS.md#the-shared-design) asks for three decisions before the first tracer. They were taken for the Python model tracer (`pipeline/python/`) and reused for Go (`pipeline/go/`). **Owner decision, 2026-10-22: they are the standard path for every later language tracer**, built behind the checks in [Rules every tracer must satisfy](#rules-every-tracer-must-satisfy):
 
 1. **Syntax toolkit: tree-sitter compiled to WebAssembly, one grammar per language.** `web-tree-sitter` (MIT, no install scripts, no dependencies) runs inside Node, so scanning needs no network, no Python interpreter and no other runtime. Grammars are the `.wasm` files published in each grammar's npm package, copied into the repository with their version and SHA-256 (`pipeline/python/tree-sitter-python.wasm` from `tree-sitter-python@0.25.0`), because the grammar packages themselves run a native build on install. Tree-sitter gives syntax only, with error recovery: a file that does not parse is still read where it does, and nothing is inferred from types. No type service (Pyright or `go/types`) is used.
 2. **Neutral call record: `SdkCallRecord` in `pipeline/sdk-call-record.ts`.** One record per traced SDK call, whatever the language: language, provider, SDK package, file, line and column, the resource path and method (`chat.completions` and `create`), how the client was obtained (`module`, `constructor`, `class-field` or `parameter`, with where), the keyword or field names the request sets, whether it spreads other options, and, per traced argument, every literal it can resolve to with where it is written, or a stop reason. Rules and reports read the record, not the syntax tree, so a later Python or Go rule is a neutral decision plus a per-language text edit.
 3. **Edits without types: none.** Python is detection and reporting only. Every Python model site is reported with a reason, as the TypeScript model-retirement rule reports a stop, and is never edited. Allowing Python edits is an owner decision.
+
+### Rules every tracer must satisfy
+
+`pipeline/tree-sitter.ts` holds the shared layer: grammar pins, limits, stops and isolation. A tracer reads and parses only through it (`readSources`, `withTrees`, `loadParser`). JavaScript and TypeScript keep their own TypeScript-compiler tracers, and nothing here changes them.
+
+1. **Grammar integrity.** Each grammar is vendored byte for byte from its npm tarball: the `.wasm` beside the tracer and the generated grammar it was built from (`src/grammar.json`; the hand-written `grammar.js` is pinned through the tarball hash, not copied, since it carries its authors' email addresses), with its `LICENSE`, under `pipeline/grammars/<package>/`. `GRAMMARS` pins both files' SHA-256. It also records the tarball URL, the tarball's SHA-256 and npm integrity, and the upstream repository, tag and commit (npm `gitHead`, which the tag points to), with the day they were checked. `loadParser` hashes the WASM and loads those same bytes only when they match. A mismatch is the named stop `grammar-integrity`, and a load failure is `grammar-load-failed`. `pipeline/tree-sitter.test.ts` checks both hashes and the provenance fields, and that a tampered build is refused.
+2. **Resource limits** (`TRACER_LIMITS`), each a named stop for that file, never a silent drop or a crash:
+   - 2 MiB per file (`file-too-large`);
+   - a 5-second parse budget (`parse-timeout`, cancelled through the parser's progress callback);
+   - 2,000,000 syntax nodes (`tree-too-large`) and 1,000 levels of nesting (`tree-too-deep`). These are checked before a tracer walks the tree, so a recursive tracer cannot overflow the stack;
+   - repository totals as `readRepository` has them: 10,000 files and 50 MiB (`scan-limits`, for the whole language).
+3. **Failure isolation.** `scanDeadlines` and `proposeModelReplacements` run each language's pass inside `isolated`. A grammar or parser failure, a limit, or an exception in a tracer becomes a stop. The stop is for that file where it can be tied to one; otherwise, as for a tracer bug, it is for the whole language. The rest of the repository is still scanned. Stops come back as `stops` from `scanDeadlines`, as `tracerStops` in the model-fix proposal, and under "Not read (named stops)" in `refit deadlines`. `detectProviders` reads manifests and hostnames only, never these tracers. A caller that passes no stop list gets the same failure as a thrown `TracerStopError` instead, so nothing is dropped silently.
+4. **Report only.** These languages (`REPORT_ONLY_LANGUAGES`) never produce edits. `proposeModelReplacements` throws if a replacement ever targets a file outside JavaScript and TypeScript, and the conformance suite checks that a retiring model in each language is a stop, never a replacement or a patch line. Changing this needs a recorded owner decision.
+5. **Conformance.** `pipeline/tracer-conformance.test.ts` runs the same fixtures, written in each language's own syntax, against every grammar in `GRAMMARS`; a grammar without fixtures fails the suite. The fixtures cover:
+   - a plain import and an aliased import;
+   - an environment variable with a default, read as `environment default (NAME)` with no stop;
+   - an unsupported construct, which gives a stop with a reason;
+   - malformed code, read past the error without throwing;
+   - an oversized file, which is a stop while the other files are read;
+   - each limit;
+   - grammar-integrity isolation in `scanDeadlines` and the model-fix proposal;
+   - report only;
+   - determinism: the same input gives byte-identical records across runs and across a fresh parser.
+
+**Adding a language:**
+
+1. Vendor the grammar's `.wasm`, `src/grammar.json` and `LICENSE` from its npm tarball, and add a `GRAMMARS` pin with every provenance field.
+2. Write `pipeline/<language>/syntax.ts` on `readSources` and `withTrees`.
+3. Emit `SdkCallRecord`s.
+4. Add the language to `REPORT_ONLY_LANGUAGES` and to the conformance suite's table.
+5. Wire it into `scanDeadlines` and the model-fix proposal inside `isolated`.
+6. Write a tracing benchmark with blind labels before claiming precision.
 
 ## AI and validation
 

@@ -34,6 +34,7 @@ import {
 import { proposeModelReplacements } from './model-retirements.ts';
 import { DEPRECATION_SOURCES, syncDeadlines, type SyncProvider } from './deadline-sync.ts';
 import { parseObject } from './specifications.ts';
+import type { TracerStop } from './tree-sitter.ts';
 import { terminalText } from './workflow-presentation.ts';
 
 // Providers whose retiring model IDs `--propose-model-fixes` can replace; Gemini is report only.
@@ -197,6 +198,7 @@ try {
         console.log(
           `  ${terminalText(`${item.file}:${item.line}`)}  ${terminalText(item.model)}${item.to ? ` (replacement ${terminalText(item.to)})` : ''}  ${terminalText(item.reason)}`,
         );
+      printTracerStops(proposal.tracerStops);
       if (proposal.patch && values.output)
         console.log(`\nPatch written to ${terminalText(resolve(values.output))}`);
       else if (proposal.patch) console.log(`\n${proposal.patch}`);
@@ -237,6 +239,7 @@ try {
           checkedAt: now.toISOString(),
           exposures: results,
           mentions: scan.mentions,
+          stops: scan.stops,
           ignores: { file: ignores.file, expired, unknown },
           ...(check ? { check } : {}),
         }),
@@ -293,6 +296,7 @@ try {
           printNonLive(nonLive, nonLiveMore, nonLiveCounts);
         }
       }
+      printTracerStops(scan.stops);
       printIgnoreWarnings(ignores.file, expired, unknown);
       if (check) {
         const byId = new Map(results.map((result) => [result.deadline.id, result]));
@@ -330,6 +334,16 @@ function reportOnlyReason(deadline: DeadlineEntry) {
     ? 'the provider announced no shutdown; this date is derived'
     : `${deadline.kind} deadlines are report only`;
   return `${why}, so it never fails --fail-within or opens an alert`;
+}
+
+// Python and Go files the scan could not read, so a gap is never silent (pipeline/tree-sitter.ts).
+function printTracerStops(stops: TracerStop[]) {
+  if (!stops.length) return;
+  console.log('\nNot read (named stops):');
+  for (const stop of stops)
+    console.log(
+      `  ${stop.language.padEnd(6)}  ${stop.code.padEnd(18)}  ${terminalText(stop.file ?? '(all files)')}  ${terminalText(stop.reason)}`,
+    );
 }
 
 // Ignores that no longer apply, so a stale exception file gets noticed.

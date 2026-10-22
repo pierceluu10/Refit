@@ -13,6 +13,7 @@ import { modelWrapperSites } from './model-wrappers.ts';
 import { repositoryApiVersionPins } from './commerce-api-versions.ts';
 import { pythonModelMatches } from './python/model-uses.ts';
 import { readPythonFiles } from './python/syntax.ts';
+import { isolated, uniqueStops, type TracerStop } from './tree-sitter.ts';
 import { declaredPackageNames, readRepository } from './repository.ts';
 import {
   featureMatches,
@@ -99,6 +100,9 @@ export type ReportedExposure = Omit<DeadlineExposure, 'evidence' | 'nonLive'> & 
 export interface DeadlineScan {
   exposures: DeadlineExposure[];
   mentions: DeadlineExposure[];
+  // Python and Go files or whole languages that could not be read, each with a named reason
+  // (pipeline/tree-sitter.ts). The rest of the scan is unaffected.
+  stops: TracerStop[];
 }
 
 function excerpt(line: string) {
@@ -607,9 +611,18 @@ export async function scanDeadlines(
       offset += line.length + 1;
     }
   }
-  // Python files: quoted registry models only, classified like the TypeScript matches above.
-  const python = models.size ? await readPythonFiles(root) : [];
-  for (const match of await pythonModelMatches(python, models, listModel(models)))
+  // Python files: quoted registry models only, classified like the TypeScript matches above. A
+  // Python or Go failure is a named stop, never the end of the scan.
+  const stops: TracerStop[] = [];
+  const pythonMatches = await isolated('python', stops, [], async () =>
+    pythonModelMatches(
+      models.size ? await readPythonFiles(root, stops) : [],
+      models,
+      listModel(models),
+      stops,
+    ),
+  );
+  for (const match of pythonMatches)
     record(match.provider, match.version, {
       file: match.file,
       line: match.line,
@@ -618,7 +631,10 @@ export async function scanDeadlines(
       text: excerpt(match.text),
     });
   // Go files: model literals and openai-go and anthropic-sdk-go model constants.
-  for (const match of await goModelMatches(models.size ? await readGoFiles(root) : [], models))
+  const goMatches = await isolated('go', stops, [], async () =>
+    goModelMatches(models.size ? await readGoFiles(root, stops) : [], models, stops),
+  );
+  for (const match of goMatches)
     record(match.provider, match.version, {
       file: match.file,
       line: match.line,
@@ -749,6 +765,7 @@ export async function scanDeadlines(
   return {
     exposures: all.filter((exposure) => exposure.evidence.length),
     mentions: all.filter((exposure) => !exposure.evidence.length),
+    stops: uniqueStops(stops),
   };
 }
 

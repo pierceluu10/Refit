@@ -20,6 +20,7 @@ import { readProviderAdapter, type ProviderAdapter } from './providers.ts';
 import { readRepository } from './repository.ts';
 import { goModelReports } from './go/model-reports.ts';
 import { pythonModelReports, type ModelRules } from './python/model-reports.ts';
+import { isolated, uniqueStops, type TracerStop } from './tree-sitter.ts';
 import { createSourceImportResolver } from './source-imports.ts';
 import type { Repository, SourceEdit } from './types.ts';
 
@@ -249,9 +250,15 @@ export interface ModelReplacementProposal {
   replacements: ModelReplacement[];
   stops: ModelReplacementStop[];
   unresolved: ModelReplacementUnresolved[];
+  // Python and Go files or languages that could not be read, with a named reason.
+  tracerStops: TracerStop[];
   // A unified diff of every replacement; null when there is none. Never applied by Refit.
   patch: string | null;
 }
+
+// Files a replacement may edit. Python and Go are report only (REPORT_ONLY_LANGUAGES in
+// pipeline/tree-sitter.ts) unless a recorded owner decision changes that.
+const EDITABLE_FILE = /\.(?:[cm]?[jt]sx?)$/;
 
 // The model a retiring one should become: the registry replacement, followed while it retires
 // too. Null when an entry names no concrete model ID or the chain loops.
@@ -2148,12 +2155,19 @@ export async function proposeModelReplacements(
     sensitive: (provider, to) =>
       rejectsSampling(provider, to) ? (MODEL_PARAMETER_NAMES[provider] ?? new Set()) : new Set(),
   };
-  // Python and Go call sites are reported, never edited.
-  const pythonReports = await pythonModelReports(directory, registry, rules);
-  const goReports = await goModelReports(directory, registry, rules);
+  // Python and Go call sites are reported, never edited. A failure in either is a named stop.
+  const tracerStops: TracerStop[] = [];
+  const none = { stops: [], unresolved: [] };
+  const pythonReports = await isolated('python', tracerStops, none, () =>
+    pythonModelReports(directory, registry, rules, tracerStops),
+  );
+  const goReports = await isolated('go', tracerStops, none, () =>
+    goModelReports(directory, registry, rules, tracerStops),
+  );
   const python = {
     stops: [...pythonReports.stops, ...goReports.stops],
     unresolved: [...pythonReports.unresolved, ...goReports.unresolved],
+    tracerStops: uniqueStops(tracerStops),
   };
   const empty = { replacements: [], ...python, patch: null };
   if (
@@ -2618,10 +2632,18 @@ export async function proposeModelReplacements(
       });
     }
   }
+  const outside = replacements.find(
+    (item) => !EDITABLE_FILE.test(item.file) || !EDITABLE_FILE.test(item.edited.file),
+  );
+  if (outside)
+    throw new Error(
+      `Refit proposed an edit to ${outside.edited.file}, outside JavaScript and TypeScript, which are the only languages it edits.`,
+    );
   return {
     replacements,
     stops: [...stops, ...python.stops],
     unresolved: [...unresolved, ...python.unresolved],
+    tracerStops: python.tracerStops,
     patch: edits.length ? renderPatch(repository, edits) : null,
   };
 }
