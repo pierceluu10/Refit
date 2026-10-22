@@ -1,0 +1,1259 @@
+{
+  "formatVersion": 1,
+  "refit": "735535e0b84d06996778b2d6292444190a3e522b",
+  "dirty": false,
+  "scannedAt": "2026-10-22T08:17:23.841Z",
+  "score": {
+    "repositories": 30,
+    "truePositives": 42,
+    "falsePositives": 0,
+    "falseNegatives": 7,
+    "precision": 1,
+    "recall": 0.8571,
+    "wrong": [],
+    "missed": [
+      {
+        "repo": "xvirobotics/metabot",
+        "host": "api.telegram.org"
+      },
+      {
+        "repo": "xvirobotics/metabot",
+        "host": "ilinkai.weixin.qq.com"
+      },
+      {
+        "repo": "op7418/Claude-to-IM-skill",
+        "host": "ilinkai.weixin.qq.com"
+      },
+      {
+        "repo": "op7418/Claude-to-IM-skill",
+        "host": "novac2c.cdn.weixin.qq.com"
+      },
+      {
+        "repo": "janoside/btc-rpc-explorer",
+        "host": "api.coindesk.com"
+      },
+      {
+        "repo": "janoside/btc-rpc-explorer",
+        "host": "forex-data-feed.swissquote.com"
+      },
+      {
+        "repo": "janoside/btc-rpc-explorer",
+        "host": "raw.githubusercontent.com"
+      }
+    ]
+  },
+  "results": [
+    {
+      "repo": "codse/animata",
+      "commit": "e7478b835a3b5c4153e71f60666634e91bb38813",
+      "hosts": [
+        {
+          "host": "api.useplunk.com",
+          "provider": null,
+          "count": 1
+        }
+      ],
+      "excluded": {}
+    },
+    {
+      "repo": "aralroca/next-translate",
+      "commit": "8dcfa2ee862442040b4491611fe1ecb948092b3b",
+      "hosts": [],
+      "excluded": {}
+    },
+    {
+      "repo": "jsynowiec/node-typescript-boilerplate",
+      "commit": "8b27c174543eedf5d83e1038adc1664dc53ed9c0",
+      "hosts": [],
+      "excluded": {}
+    },
+    {
+      "repo": "kartikk221/hyper-express",
+      "commit": "04ea6b4118606ba2cdc486299a81c7c81c1edc08",
+      "hosts": [],
+      "excluded": {
+        "test-file": 2
+      }
+    },
+    {
+      "repo": "wanikua/danghuangshang",
+      "commit": "acea185a9a1abb1788206fddc9c52a2693afaa39",
+      "hosts": [
+        {
+          "host": "api.notion.com",
+          "provider": null,
+          "count": 2
+        },
+        {
+          "host": "discord.com",
+          "provider": null,
+          "count": 2
+        },
+        {
+          "host": "api.open-meteo.com",
+          "provider": "Open-Meteo",
+          "count": 1
+        },
+        {
+          "host": "ip-api.com",
+          "provider": "ip-api",
+          "count": 1
+        },
+        {
+          "host": "wttr.in",
+          "provider": "wttr.in",
+          "count": 1
+        }
+      ],
+      "excluded": {}
+    },
+    {
+      "repo": "discord-tickets/bot",
+      "commit": "ca555b6a71140bf8c2bcf109646aca1bd3f5b287",
+      "hosts": [
+        {
+          "host": "discordapp.com",
+          "provider": null,
+          "count": 4
+        },
+        {
+          "host": "discord.com",
+          "provider": null,
+          "count": 2
+        },
+        {
+          "host": "api.github.com",
+          "provider": null,
+          "count": 1
+        },
+        {
+          "host": "stats.discordtickets.app",
+          "provider": null,
+          "count": 1
+        }
+      ],
+      "excluded": {}
+    },
+    {
+      "repo": "alsk1992/CloddsBot",
+      "commit": "c930628c47a4a745f497e29035a3b64622f97cc7",
+      "hosts": [
+        {
+          "host": "clob.polymarket.com",
+          "provider": null,
+          "count": 58
+        },
+        {
+          "host": "api.manifold.markets",
+          "provider": "Manifold",
+          "count": 51
+        },
+        {
+          "host": "gamma-api.polymarket.com",
+          "provider": null,
+          "count": 39
+        },
+        {
+          "host": "api.elections.kalshi.com",
+          "provider": null,
+          "count": 35
+        },
+        {
+          "host": "www.metaculus.com",
+          "provider": null,
+          "count": 28
+        },
+        {
+          "host": "api.predict.fun",
+          "provider": null,
+          "count": 22
+        },
+        {
+          "host": "proxy.opinion.trade",
+          "provider": null,
+          "count": 20
+        },
+        {
+          "host": "data-api.polymarket.com",
+          "provider": "Polymarket",
+          "count": 19
+        },
+        {
+          "host": "api.coingecko.com",
+          "provider": null,
+          "count": 10
+        },
+        {
+          "host": "bet.drift.trade",
+          "provider": null,
+          "count": 10
+        },
+        {
+          "host": "agentbets-api-production.up.railway.app",
+          "provider": null,
+          "count": 9
+        },
+        {
+          "host": "api.anthropic.com",
+          "provider": "Anthropic",
+          "count": 7
+        },
+        {
+          "host": "api.virtuals.io",
+          "provider": null,
+          "count": 7
+        },
+        {
+          "host": "query1.finance.yahoo.com",
+          "provider": "Yahoo Finance",
+          "count": 7
+        },
+        {
+          "host": "api.openai.com",
+          "provider": "OpenAI",
+          "count": 6
+        },
+        {
+          "host": "oauth2.googleapis.com",
+          "provider": null,
+          "count": 6
+        },
+        {
+          "host": "api.weather.gov",
+          "provider": "National Weather Service",
+          "count": 5
+        },
+        {
+          "host": "public-api-v2.bags.fm",
+          "provider": null,
+          "count": 5
+        },
+        {
+          "host": "api.telegram.org",
+          "provider": "Telegram Bot API",
+          "count": 4
+        },
+        {
+          "host": "api.together.xyz",
+          "provider": null,
+          "count": 4
+        },
+        {
+          "host": "dashscope.aliyuncs.com",
+          "provider": null,
+          "count": 4
+        },
+        {
+          "host": "generativelanguage.googleapis.com",
+          "provider": "Gemini",
+          "count": 4
+        },
+        {
+          "host": "www.predictit.org",
+          "provider": "PredictIt",
+          "count": 4
+        },
+        {
+          "host": "api.bankr.bot",
+          "provider": null,
+          "count": 3
+        },
+        {
+          "host": "api.binance.com",
+          "provider": null,
+          "count": 3
+        },
+        {
+          "host": "api.fireworks.ai",
+          "provider": null,
+          "count": 3
+        },
+        {
+          "host": "api.groq.com",
+          "provider": "Groq",
+          "count": 3
+        },
+        {
+          "host": "api.open-meteo.com",
+          "provider": "Open-Meteo",
+          "count": 3
+        },
+        {
+          "host": "discord.com",
+          "provider": null,
+          "count": 3
+        },
+        {
+          "host": "dlob.drift.trade",
+          "provider": null,
+          "count": 3
+        },
+        {
+          "host": "mainnet.block-engine.jito.wtf",
+          "provider": null,
+          "count": 3
+        },
+        {
+          "host": "polygon-rpc.com",
+          "provider": null,
+          "count": 3
+        },
+        {
+          "host": "price.jup.ag",
+          "provider": null,
+          "count": 3
+        },
+        {
+          "host": "pump.fun",
+          "provider": null,
+          "count": 3
+        },
+        {
+          "host": "transaction-v1.raydium.io",
+          "provider": null,
+          "count": 3
+        },
+        {
+          "host": "api-data.line.me",
+          "provider": null,
+          "count": 2
+        },
+        {
+          "host": "api-v3.raydium.io",
+          "provider": null,
+          "count": 2
+        },
+        {
+          "host": "api.betfair.com",
+          "provider": null,
+          "count": 2
+        },
+        {
+          "host": "api.elevenlabs.io",
+          "provider": null,
+          "count": 2
+        },
+        {
+          "host": "api.github.com",
+          "provider": null,
+          "count": 2
+        },
+        {
+          "host": "api.githubcopilot.com",
+          "provider": null,
+          "count": 2
+        },
+        {
+          "host": "api.gopluslabs.io",
+          "provider": null,
+          "count": 2
+        },
+        {
+          "host": "api.odos.xyz",
+          "provider": null,
+          "count": 2
+        },
+        {
+          "host": "api.opinion.trade",
+          "provider": null,
+          "count": 2
+        },
+        {
+          "host": "api.wormholescan.io",
+          "provider": null,
+          "count": 2
+        },
+        {
+          "host": "api.x.com",
+          "provider": "X API",
+          "count": 2
+        },
+        {
+          "host": "github.com",
+          "provider": null,
+          "count": 2
+        },
+        {
+          "host": "identitysso.betfair.com",
+          "provider": null,
+          "count": 2
+        },
+        {
+          "host": "public-api.birdeye.so",
+          "provider": null,
+          "count": 2
+        },
+        {
+          "host": "registry.clodds.dev",
+          "provider": null,
+          "count": 2
+        },
+        {
+          "host": "slack.com",
+          "provider": null,
+          "count": 2
+        },
+        {
+          "host": "us-central1-aiplatform.googleapis.com",
+          "provider": null,
+          "count": 2
+        },
+        {
+          "host": "x402.coinbase.com",
+          "provider": null,
+          "count": 2
+        },
+        {
+          "host": "api-testnet.bybit.com",
+          "provider": null,
+          "count": 1
+        },
+        {
+          "host": "api.1inch.com",
+          "provider": null,
+          "count": 1
+        },
+        {
+          "host": "api.acleddata.com",
+          "provider": null,
+          "count": 1
+        },
+        {
+          "host": "api.alternative.me",
+          "provider": "Alternative.me",
+          "count": 1
+        },
+        {
+          "host": "api.cohere.ai",
+          "provider": null,
+          "count": 1
+        },
+        {
+          "host": "api.coinbase.com",
+          "provider": null,
+          "count": 1
+        },
+        {
+          "host": "api.dexscreener.com",
+          "provider": "DEX Screener",
+          "count": 1
+        },
+        {
+          "host": "api.jup.ag",
+          "provider": "Jupiter",
+          "count": 1
+        },
+        {
+          "host": "api.mainnet-beta.solana.com",
+          "provider": "Solana",
+          "count": 1
+        },
+        {
+          "host": "api.neynar.com",
+          "provider": "Neynar",
+          "count": 1
+        },
+        {
+          "host": "api.nft.storage",
+          "provider": null,
+          "count": 1
+        },
+        {
+          "host": "api.search.brave.com",
+          "provider": null,
+          "count": 1
+        },
+        {
+          "host": "api.smarkets.com",
+          "provider": "Smarkets",
+          "count": 1
+        },
+        {
+          "host": "api.stlouisfed.org",
+          "provider": null,
+          "count": 1
+        },
+        {
+          "host": "api.the-odds-api.com",
+          "provider": "The Odds API",
+          "count": 1
+        },
+        {
+          "host": "api.twilio.com",
+          "provider": "Twilio",
+          "count": 1
+        },
+        {
+          "host": "archive-api.open-meteo.com",
+          "provider": "Open-Meteo",
+          "count": 1
+        },
+        {
+          "host": "backend.composio.dev",
+          "provider": null,
+          "count": 1
+        },
+        {
+          "host": "chat.zalo.me",
+          "provider": null,
+          "count": 1
+        },
+        {
+          "host": "cloddhub.com",
+          "provider": null,
+          "count": 1
+        },
+        {
+          "host": "contract.mexc.com",
+          "provider": null,
+          "count": 1
+        },
+        {
+          "host": "copilot-proxy.githubusercontent.com",
+          "provider": null,
+          "count": 1
+        },
+        {
+          "host": "dlmm-api.meteora.ag",
+          "provider": null,
+          "count": 1
+        },
+        {
+          "host": "fapi.binance.com",
+          "provider": null,
+          "count": 1
+        },
+        {
+          "host": "frontend-api-v3.pump.fun",
+          "provider": null,
+          "count": 1
+        },
+        {
+          "host": "geocoding-api.open-meteo.com",
+          "provider": "Open-Meteo",
+          "count": 1
+        },
+        {
+          "host": "hedgehog.markets",
+          "provider": null,
+          "count": 1
+        },
+        {
+          "host": "login.microsoftonline.com",
+          "provider": "Microsoft identity platform",
+          "count": 1
+        },
+        {
+          "host": "mainnet.base.org",
+          "provider": null,
+          "count": 1
+        },
+        {
+          "host": "markets.api.cmegroup.com",
+          "provider": null,
+          "count": 1
+        },
+        {
+          "host": "nitter.net",
+          "provider": null,
+          "count": 1
+        },
+        {
+          "host": "nitter.privacydev.net",
+          "provider": null,
+          "count": 1
+        },
+        {
+          "host": "openapi.zalo.me",
+          "provider": null,
+          "count": 1
+        },
+        {
+          "host": "protect.flashbots.net",
+          "provider": null,
+          "count": 1
+        },
+        {
+          "host": "quote-api.jup.ag",
+          "provider": null,
+          "count": 1
+        },
+        {
+          "host": "relay.flashbots.net",
+          "provider": null,
+          "count": 1
+        },
+        {
+          "host": "rpc.mevblocker.io",
+          "provider": null,
+          "count": 1
+        },
+        {
+          "host": "sts.aliyuncs.com",
+          "provider": null,
+          "count": 1
+        },
+        {
+          "host": "testnet.binancefuture.com",
+          "provider": null,
+          "count": 1
+        },
+        {
+          "host": "tokens.jup.ag",
+          "provider": null,
+          "count": 1
+        },
+        {
+          "host": "www.realclearpolitics.com",
+          "provider": null,
+          "count": 1
+        },
+        {
+          "host": "www.reddit.com",
+          "provider": "Reddit",
+          "count": 1
+        }
+      ],
+      "excluded": {
+        "localhost": 4,
+        "test-file": 5
+      }
+    },
+    {
+      "repo": "backmeupplz/voicy",
+      "commit": "51427adf0cf2a2b8333ee5ade846eb10163b644e",
+      "hosts": [
+        {
+          "host": "localizer.borodutch.com",
+          "provider": null,
+          "count": 2
+        },
+        {
+          "host": "api.telegram.org",
+          "provider": "Telegram Bot API",
+          "count": 1
+        }
+      ],
+      "excluded": {
+        "asset-url": 1
+      }
+    },
+    {
+      "repo": "zenstackhq/zenstack",
+      "commit": "2c81cbd89f07de0dc64250bdcc811926f4ba12f7",
+      "hosts": [
+        {
+          "host": "api.zenstack.dev",
+          "provider": null,
+          "count": 1
+        },
+        {
+          "host": "registry.npmjs.org",
+          "provider": "npm registry",
+          "count": 1
+        },
+        {
+          "host": "zenstack.dev",
+          "provider": null,
+          "count": 1
+        }
+      ],
+      "excluded": {}
+    },
+    {
+      "repo": "miroslavpejic85/mirotalkwebrtc",
+      "commit": "737f7b1c8ef8a79638bf5c0289f01921807d1caa",
+      "hosts": [],
+      "excluded": {}
+    },
+    {
+      "repo": "Derpyu520/qq-bridge",
+      "commit": "a56164e70a0521a7829138a42eee76066fde2b8b",
+      "hosts": [
+        {
+          "host": "cn.bing.com",
+          "provider": null,
+          "count": 2
+        }
+      ],
+      "excluded": {
+        "localhost": 4,
+        "test-file": 14
+      }
+    },
+    {
+      "repo": "dockpeek/dockpeek",
+      "commit": "d506f3ac6d9570cc8bb5d72db09005f1bf83620a",
+      "hosts": [],
+      "excluded": {}
+    },
+    {
+      "repo": "jpudysz/react-native-unistyles",
+      "commit": "26aee10810e2354f5b9d9b8f74b4a290fb8a8460",
+      "hosts": [],
+      "excluded": {}
+    },
+    {
+      "repo": "react-native-datetimepicker/datetimepicker",
+      "commit": "2afd1f98c4ec648885dc7be66467daf9d063942f",
+      "error": "Command failed: node /Users/furqan/Documents/PROJECTS/Refit-FG4/bin/refit.mjs api-hosts --repository /tmp/fg4/repos/react-native-datetimepicker__datetimepicker --json\nPipelineInputError: Repository exceeds scan limits (10,000 files, 2 MiB per file, 50 MiB total).\n"
+    },
+    {
+      "repo": "juicycleff/ultimate-backend",
+      "commit": "0ae62a4b894c0e46baf75228ec88fae98f6abe06",
+      "hosts": [],
+      "excluded": {}
+    },
+    {
+      "repo": "ravsamhq/notify-slack-action",
+      "commit": "7c9f9aac57b83835edc1177fdf84142e979d05b9",
+      "hosts": [],
+      "excluded": {}
+    },
+    {
+      "repo": "lmammino/norrisbot",
+      "commit": "f983ca313443ef02ba25d08ac20b96a29fd11574",
+      "hosts": [],
+      "excluded": {}
+    },
+    {
+      "repo": "dmotz/trystero",
+      "commit": "acef9ddc15528f3d5476b64023c4c8d21ff8d5c9",
+      "hosts": [
+        {
+          "host": "api.proxyscrape.com",
+          "provider": null,
+          "count": 1
+        }
+      ],
+      "excluded": {}
+    },
+    {
+      "repo": "jpettitt/weather-radar-card",
+      "commit": "0b0c479074c84541954715f3d53a927c1c8a8e87",
+      "hosts": [
+        {
+          "host": "api.rainviewer.com",
+          "provider": null,
+          "count": 1
+        },
+        {
+          "host": "api.weather.gov",
+          "provider": "National Weather Service",
+          "count": 1
+        },
+        {
+          "host": "inciweb.wildfire.gov",
+          "provider": null,
+          "count": 1
+        },
+        {
+          "host": "maps.dwd.de",
+          "provider": null,
+          "count": 1
+        }
+      ],
+      "excluded": {}
+    },
+    {
+      "repo": "saleor/storefront",
+      "commit": "a6e357a575c6e694e1aa5e5def4a1783dd223117",
+      "hosts": [],
+      "excluded": {
+        "localhost": 1
+      }
+    },
+    {
+      "repo": "aimeos/aimeos-headless",
+      "commit": "69350c285f4d353970600bf6f744fde3c01028c1",
+      "hosts": [],
+      "excluded": {}
+    },
+    {
+      "repo": "react-native-community/cli",
+      "commit": "f4c4ef37ccf98e0205d4a8bc5d9f40f24f1120fd",
+      "hosts": [
+        {
+          "host": "api.github.com",
+          "provider": null,
+          "count": 1
+        }
+      ],
+      "excluded": {}
+    },
+    {
+      "repo": "junedomingo/react-native-rename",
+      "commit": "3563c146d422988ce042225cf94ef40f7bbc5ece",
+      "hosts": [],
+      "excluded": {}
+    },
+    {
+      "repo": "mengjian-github/openclaw101",
+      "commit": "b09052ecaac357a3753276e763c1668e5a15888f",
+      "hosts": [
+        {
+          "host": "open.feishu.cn",
+          "provider": "Feishu Open Platform",
+          "count": 5
+        }
+      ],
+      "excluded": {}
+    },
+    {
+      "repo": "craftzdog/craftzdog-homepage",
+      "commit": "ada0276d9ff6242597521a8c96a77c7058c74e4f",
+      "hosts": [],
+      "excluded": {}
+    },
+    {
+      "repo": "golevelup/nestjs",
+      "commit": "503972ed78192ced08d8d5b16fa3f99ab6210736",
+      "hosts": [],
+      "excluded": {}
+    },
+    {
+      "repo": "expressjs/generator",
+      "commit": "a1f384101a59cbade670e09b4d6f267c0759e9f1",
+      "hosts": [],
+      "excluded": {}
+    },
+    {
+      "repo": "stegripe/rawon",
+      "commit": "0a6d8506e0aa156bc4fb881bcf0663c4132fa80b",
+      "hosts": [
+        {
+          "host": "api.github.com",
+          "provider": null,
+          "count": 2
+        },
+        {
+          "host": "lrclib.net",
+          "provider": null,
+          "count": 2
+        },
+        {
+          "host": "accounts.spotify.com",
+          "provider": "Spotify",
+          "count": 1
+        },
+        {
+          "host": "api.spotify.com",
+          "provider": null,
+          "count": 1
+        },
+        {
+          "host": "music.youtube.com",
+          "provider": null,
+          "count": 1
+        }
+      ],
+      "excluded": {}
+    },
+    {
+      "repo": "umutxyp/MusicBot",
+      "commit": "bf396aa48887333c2fc8f199221b16f0eeef1b2c",
+      "hosts": [
+        {
+          "host": "discord.com",
+          "provider": null,
+          "count": 1
+        },
+        {
+          "host": "github.com",
+          "provider": null,
+          "count": 1
+        },
+        {
+          "host": "lrclib.net",
+          "provider": null,
+          "count": 1
+        },
+        {
+          "host": "suggestqueries.google.com",
+          "provider": null,
+          "count": 1
+        }
+      ],
+      "excluded": {}
+    },
+    {
+      "repo": "xvirobotics/metabot",
+      "commit": "916637eccb68fd79a0850a02dff390580cedce4a",
+      "hosts": [
+        {
+          "host": "novac2c.cdn.weixin.qq.com",
+          "provider": null,
+          "count": 2
+        },
+        {
+          "host": "openspeech.bytedance.com",
+          "provider": null,
+          "count": 2
+        },
+        {
+          "host": "slack.com",
+          "provider": null,
+          "count": 2
+        },
+        {
+          "host": "api.elevenlabs.io",
+          "provider": null,
+          "count": 1
+        }
+      ],
+      "excluded": {}
+    },
+    {
+      "repo": "thedevs-network/the-guard-bot",
+      "commit": "1576d1b106469d4e4383cd6b8d41f8bf1f1af4de",
+      "hosts": [],
+      "excluded": {}
+    },
+    {
+      "repo": "graphile/starter",
+      "commit": "5f377879c06cf26b36946d23a31d885abc82dfc6",
+      "error": "Command failed: node /Users/furqan/Documents/PROJECTS/Refit-FG4/bin/refit.mjs api-hosts --repository /tmp/fg4/repos/graphile__starter --json\nPipelineInputError: Repository exceeds scan limits (10,000 files, 2 MiB per file, 50 MiB total).\n"
+    },
+    {
+      "repo": "novabennett95/tiktok-bot",
+      "commit": "ac02ec5998b301f546525467c74bf838e90ac02f",
+      "hosts": [],
+      "excluded": {}
+    },
+    {
+      "repo": "op7418/Claude-to-IM-skill",
+      "commit": "536908f5e9bd65a151ca4cb4b08d3fedc1a43b4d",
+      "hosts": [],
+      "excluded": {}
+    },
+    {
+      "repo": "tmijs/tmi.js",
+      "commit": "7b273652ed5a295803df0ecff0d9f9d5bff42c67",
+      "hosts": [],
+      "excluded": {}
+    },
+    {
+      "repo": "TailAdmin/free-nextjs-admin-dashboard",
+      "commit": "4fba02489c93171220c13cd2b44cc0161ff6d2a1",
+      "hosts": [],
+      "excluded": {}
+    },
+    {
+      "repo": "gre/react-native-view-shot",
+      "commit": "6f55765632bb2ddc9ce554cacd9096ea246bd97f",
+      "hosts": [],
+      "excluded": {
+        "test-file": 1
+      }
+    },
+    {
+      "repo": "infinitered/apisauce",
+      "commit": "ac2dc65338b706091c8fbb6c0f645ad6a3718148",
+      "hosts": [],
+      "excluded": {
+        "test-file": 1
+      }
+    },
+    {
+      "repo": "nestjs/javascript-starter",
+      "commit": "9ab99dbb9563048ac668f58a7671b11efad81114",
+      "hosts": [],
+      "excluded": {}
+    },
+    {
+      "repo": "slack-edge/slack-edge",
+      "commit": "24d0731f3fc83d239ddd6b54bb09e8e9ebea5ff9",
+      "hosts": [],
+      "excluded": {}
+    },
+    {
+      "repo": "impulsoteam/atena",
+      "commit": "c94b72c604249bdb39d1f36a737e721cc3f4343e",
+      "hosts": [],
+      "excluded": {}
+    },
+    {
+      "repo": "rango-exchange/rango-sdk",
+      "commit": "bf6c62bf8847f0865081672acd0450cfa7e89334",
+      "hosts": [
+        {
+          "host": "api.rango.exchange",
+          "provider": null,
+          "count": 2
+        }
+      ],
+      "excluded": {
+        "test-file": 2
+      }
+    },
+    {
+      "repo": "pubkey/eth-crypto",
+      "commit": "38bfebb653309b0b94d689be3cccd485c7504e87",
+      "hosts": [],
+      "excluded": {}
+    },
+    {
+      "repo": "decompil3d/lovelace-hourly-weather",
+      "commit": "9f2bbb14dcaa4d06f95739dabb6024d37ba66c87",
+      "hosts": [],
+      "excluded": {}
+    },
+    {
+      "repo": "mlamberts78/weather-chart-card",
+      "commit": "4a74db149c3fb01b0967df28b58090bfcee68753",
+      "hosts": [],
+      "excluded": {}
+    },
+    {
+      "repo": "w3bdesign/nextjs-woocommerce",
+      "commit": "dfaba177b2edf327a503fa69939bfa18e03ec77b",
+      "hosts": [],
+      "excluded": {}
+    },
+    {
+      "repo": "shamahoque/mern-marketplace",
+      "commit": "bf3fc45e7782b13dcaefdae8939c621a3c9a65e3",
+      "hosts": [
+        {
+          "host": "connect.stripe.com",
+          "provider": "Stripe",
+          "count": 1
+        }
+      ],
+      "excluded": {}
+    },
+    {
+      "repo": "dzhng/jevgrep",
+      "commit": "28cf384d444e1f4bf5571142ec32357cb84973ae",
+      "hosts": [],
+      "excluded": {}
+    },
+    {
+      "repo": "sequelize/cli",
+      "commit": "679054aea251572ac7f6fa152f5d9eff9dbbbe9c",
+      "hosts": [],
+      "excluded": {}
+    },
+    {
+      "repo": "Sly777/ran",
+      "commit": "9879d908d2a8f79b4cd1d23910db62960a99fef8",
+      "hosts": [],
+      "excluded": {}
+    },
+    {
+      "repo": "tsrpc/tsrpc",
+      "commit": "16330c47f33933214b1209d4d3ac71f5e2bf24ea",
+      "hosts": [],
+      "excluded": {}
+    },
+    {
+      "repo": "janoside/btc-rpc-explorer",
+      "commit": "26e282a06e87b645c6e0687e2503d26d1e623dea",
+      "hosts": [
+        {
+          "host": "blockchain.info",
+          "provider": "Blockchain.com",
+          "count": 2
+        },
+        {
+          "host": "api.blockchair.com",
+          "provider": null,
+          "count": 1
+        },
+        {
+          "host": "api.blockcypher.com",
+          "provider": "BlockCypher",
+          "count": 1
+        },
+        {
+          "host": "api.github.com",
+          "provider": null,
+          "count": 1
+        },
+        {
+          "host": "api.ipstack.com",
+          "provider": null,
+          "count": 1
+        }
+      ],
+      "excluded": {}
+    },
+    {
+      "repo": "aiko-chan-ai/DiscordBotClient",
+      "commit": "919bd693e4d78508ccb740c6408ededc1b48cb22",
+      "hosts": [
+        {
+          "host": "api.rollouts.advaith.io",
+          "provider": null,
+          "count": 1
+        },
+        {
+          "host": "canary.discord.com",
+          "provider": null,
+          "count": 1
+        }
+      ],
+      "excluded": {}
+    },
+    {
+      "repo": "CorwinDev/Discord-Bot",
+      "commit": "cab811eda178a8677f9beeea2ff23109606c3ce5",
+      "hosts": [
+        {
+          "host": "some-random-api.com",
+          "provider": null,
+          "count": 16
+        },
+        {
+          "host": "discord.com",
+          "provider": null,
+          "count": 3
+        },
+        {
+          "host": "nekobot.xyz",
+          "provider": null,
+          "count": 2
+        },
+        {
+          "host": "api.coingecko.com",
+          "provider": null,
+          "count": 1
+        },
+        {
+          "host": "api.github.com",
+          "provider": null,
+          "count": 1
+        },
+        {
+          "host": "api.mcsrvstat.us",
+          "provider": "Minecraft Server Status",
+          "count": 1
+        },
+        {
+          "host": "api.openai.com",
+          "provider": "OpenAI",
+          "count": 1
+        },
+        {
+          "host": "api2.willyoupressthebutton.com",
+          "provider": null,
+          "count": 1
+        },
+        {
+          "host": "covid19.mathdro.id",
+          "provider": "COVID-19 API",
+          "count": 1
+        },
+        {
+          "host": "djsdocs.sorta.moe",
+          "provider": null,
+          "count": 1
+        },
+        {
+          "host": "io.wyr.app",
+          "provider": null,
+          "count": 1
+        },
+        {
+          "host": "is.gd",
+          "provider": "is.gd",
+          "count": 1
+        },
+        {
+          "host": "opentdb.com",
+          "provider": "Open Trivia Database",
+          "count": 1
+        },
+        {
+          "host": "uselessfacts.jsph.pl",
+          "provider": null,
+          "count": 1
+        },
+        {
+          "host": "weather.service.msn.com",
+          "provider": null,
+          "count": 1
+        },
+        {
+          "host": "www.anagramica.com",
+          "provider": "Anagramica",
+          "count": 1
+        },
+        {
+          "host": "www.reddit.com",
+          "provider": "Reddit",
+          "count": 1
+        }
+      ],
+      "excluded": {}
+    },
+    {
+      "repo": "1inch/shieldy",
+      "commit": "579cb1faf82ed6b31011f8198c73449eb70c262f",
+      "hosts": [
+        {
+          "host": "localizer.borodutch.com",
+          "provider": null,
+          "count": 2
+        },
+        {
+          "host": "api.cas.chat",
+          "provider": "Combot Anti-Spam",
+          "count": 1
+        }
+      ],
+      "excluded": {}
+    },
+    {
+      "repo": "revokslab/ShipFree",
+      "commit": "3b72a6f985e4e6781f02f9dd4c7fe3895b32c4eb",
+      "hosts": [
+        {
+          "host": "api.github.com",
+          "provider": null,
+          "count": 1
+        }
+      ],
+      "excluded": {
+        "asset-url": 1
+      }
+    },
+    {
+      "repo": "hahahumble/speechgpt",
+      "commit": "daa4d49203c5c59ff23bd682d6f474789137e002",
+      "hosts": [
+        {
+          "host": "api.openai.com",
+          "provider": "OpenAI",
+          "count": 1
+        }
+      ],
+      "excluded": {}
+    },
+    {
+      "repo": "winkjs/wink-nlp",
+      "commit": "c2fa2f1554a64de12dd76421cb6199ded1b6b062",
+      "hosts": [],
+      "excluded": {}
+    },
+    {
+      "repo": "vizzuhq/vizzu-lib",
+      "commit": "d81a7e9abf32830093c7b37101dc89898c700f7c",
+      "hosts": [
+        {
+          "host": "purge.jsdelivr.net",
+          "provider": null,
+          "count": 2
+        }
+      ],
+      "excluded": {
+        "test-file": 2
+      }
+    },
+    {
+      "repo": "stephenh/ts-proto",
+      "commit": "1b195c06af8cd399b0fe21a453780ddee2cec37b",
+      "error": "Command failed: node /Users/furqan/Documents/PROJECTS/Refit-FG4/bin/refit.mjs api-hosts --repository /tmp/fg4/repos/stephenh__ts-proto --json\nPipelineInputError: Repository exceeds scan limits (10,000 files, 2 MiB per file, 50 MiB total).\n"
+    }
+  ]
+}
