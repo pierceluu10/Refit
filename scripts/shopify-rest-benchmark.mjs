@@ -106,7 +106,18 @@ const output = {
   summary,
   results,
 };
-if (values.labels)
-  output.score = scoreShopifyRest(JSON.parse(await readFile(values.labels, 'utf8')), { results });
+if (values.labels) {
+  const labels = JSON.parse(await readFile(values.labels, 'utf8'));
+  output.score = scoreShopifyRest(labels, { results });
+  // The labelled sample and, with it, every app the labels extend to.
+  if (labels.extension)
+    output.scoreAll = scoreShopifyRest(
+      {
+        repos: [...labels.repos, ...labels.extension.repos],
+        sites: [...labels.sites, ...labels.extension.sites],
+      },
+      { results },
+    );
+}
 await writeFile(join(resolve(values.root), values.output), `${JSON.stringify(output, null, 2)}\n`);
-console.log(JSON.stringify({ summary, score: output.score }, null, 2));
+console.log(JSON.stringify({ summary, score: output.score, scoreAll: output.scoreAll }, null, 2));
