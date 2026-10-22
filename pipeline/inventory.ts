@@ -217,7 +217,7 @@ export async function scanInventory(
 }
 
 // Counts checked-out files and bytes outside .git, stopping as soon as either cap is passed.
-async function measureCheckout(directory: string, limits: InventoryLimits) {
+export async function measureCheckout(directory: string, limits = INVENTORY_LIMITS) {
   let files = 0;
   let bytes = 0;
   const visit = async (path: string): Promise<void> => {
@@ -237,6 +237,27 @@ async function measureCheckout(directory: string, limits: InventoryLimits) {
     }
   };
   await visit(directory);
+  return { files, bytes };
+}
+
+// Measures and scans a checked-out directory. Its caps and any file a scanner refuses end in a
+// named stop.
+export async function inventoryDirectory(
+  directory: string,
+  registry: DeadlineRegistry,
+  now: Date,
+  signal: AbortSignal,
+  limits = INVENTORY_LIMITS,
+) {
+  await measureCheckout(directory, limits);
+  signal.throwIfAborted();
+  try {
+    return await scanInventory(directory, registry, now, signal);
+  } catch (error) {
+    if (error instanceof PipelineInputError && !(error instanceof InventoryStopError))
+      throw new InventoryStopError('unreadable', error.message);
+    throw error;
+  }
 }
 
 async function defaultRevision(app: GitHubAppConfiguration, repository: string, base: string) {
@@ -350,21 +371,13 @@ export async function refreshInventory(options: {
       },
       async (checkout) => {
         revision = checkout.revision;
-        await measureCheckout(checkout.directory, limits);
-        signal.throwIfAborted();
-        let inventory;
-        try {
-          inventory = await scanInventory(
-            checkout.directory,
-            options.registry,
-            options.now ?? new Date(),
-            signal,
-          );
-        } catch (error) {
-          if (error instanceof PipelineInputError && !(error instanceof InventoryStopError))
-            throw new InventoryStopError('unreadable', error.message);
-          throw error;
-        }
+        const inventory = await inventoryDirectory(
+          checkout.directory,
+          options.registry,
+          options.now ?? new Date(),
+          signal,
+          limits,
+        );
         return { outcome: 'complete' as const, base: checkout.base, revision, inventory };
       },
     );
