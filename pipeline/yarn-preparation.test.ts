@@ -1,10 +1,13 @@
 import { execFile } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { randomUUID } from 'node:crypto';
 import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
 import { afterEach, expect, it } from 'vitest';
+import { readCommittedRepository } from './committed-repository.ts';
+import { readPreparationInputs } from './dependency-inputs.ts';
 import { installTimeoutSeconds, prepareDependencies } from './dependency-preparation.ts';
 import { dockerSandboxArguments, removeDockerContainer } from './docker-sandbox.ts';
 import { DEFAULT_YARN_VERSION, validateBerryInputs, validateYarnInputs } from './yarn-inputs.ts';
@@ -264,7 +267,6 @@ it('refuses Yarn 2+ projects that need a custom image', async () => {
     ['Plug-n-Play default', pinned, berry, undefined],
     ['Plug-n-Play explicit', pinned, berry, 'nodeLinker: pnp\n'],
     ['custom settings', pinned, berry, `${BERRY_RC}npmRegistryServer: "https://npm.example"\n`],
-    ['workspaces', { ...pinned, workspaces: ['packages/*'] }, berry, BERRY_RC],
     ['undeclared range', { ...pinned, dependencies: { stripe: '^18.0.0' } }, berry, BERRY_RC],
     ['missing checksum', pinned, berry.replace(/^ {2}checksum: .*$/m, ''), BERRY_RC],
     [
@@ -279,6 +281,191 @@ it('refuses Yarn 2+ projects that need a custom image', async () => {
   ];
   for (const [name, value, lock, rc] of cases)
     expect(() => validateBerryInputs(JSON.stringify(value), lock, rc), name).toThrow();
+});
+
+it('names each Yarn 2+ setup it does not prepare', async () => {
+  const { manifest, berry, classic } = await fixture();
+  const pinned = { ...manifest, packageManager: 'yarn@4.9.2' };
+  const refusal = (value: Record<string, unknown>, rc: string | undefined, lock = berry) => {
+    try {
+      validateBerryInputs(JSON.stringify(value), lock, rc);
+    } catch (error) {
+      return (error as Error).message;
+    }
+    throw new Error('accepted');
+  };
+  expect(refusal(pinned, undefined)).toBe(
+    "Yarn Plug'n'Play requires a custom validation image: Refit prepares Yarn 2+ only with nodeLinker: node-modules in .yarnrc.yml, and without nodeLinker Yarn uses Plug'n'Play.",
+  );
+  expect(refusal(pinned, 'nodeLinker: pnp\n')).toBe(
+    "Yarn Plug'n'Play requires a custom validation image: Refit prepares Yarn 2+ only with nodeLinker: node-modules in .yarnrc.yml.",
+  );
+  expect(refusal(pinned, 'nodeLinker: pnpm\n')).toBe(
+    'Yarn\'s "pnpm" linker requires a custom validation image; Refit prepares Yarn 2+ only with nodeLinker: node-modules.',
+  );
+  expect(
+    refusal(
+      pinned,
+      `${BERRY_RC}plugins:\n  - path: .yarn/plugins/@yarnpkg/plugin-workspace-tools.cjs\n`,
+    ),
+  ).toBe(
+    'Yarn plugins (plugins in .yarnrc.yml) run their own code during installs, so they require a custom validation image.',
+  );
+  expect(refusal(pinned, `${BERRY_RC}checksumBehavior: ignore\nnmMode: hardlinks-global\n`)).toBe(
+    '.yarnrc.yml sets checksumBehavior, nmMode, which Refit does not apply; validating with them requires a custom image.',
+  );
+  expect(refusal({ ...manifest, packageManager: 'yarn@1.22.19' }, BERRY_RC)).toBe(
+    'packageManager pins yarn@1.22.19, but yarn.lock is a Yarn 2+ lockfile. Pin the Yarn release that wrote the lockfile, or regenerate it with Yarn 1.',
+  );
+  expect(refusal(manifest, BERRY_RC)).toBe(
+    'Yarn 2+ preparation requires an exact packageManager pin such as yarn@4.9.2 (optionally with a Corepack checksum), or a committed yarnPath release named yarn-<version>.cjs.',
+  );
+  expect(refusal(pinned, `${BERRY_RC}yarnPath: .yarn/releases/yarn-4.9.2.cjs\n`)).toBe(
+    'yarnPath in .yarnrc.yml must name a committed Yarn release under .yarn/releases.',
+  );
+  expect(() => validateYarnInputs(JSON.stringify(pinned), classic)).toThrow(
+    'packageManager pins yarn@4.9.2, but yarn.lock is a Yarn 1 lockfile. Run yarn install with that release and commit the lockfile it writes.',
+  );
+});
+
+it('verifies a committed yarnPath release by digest and takes its version from the name', async () => {
+  const { manifest, berry } = await fixture();
+  const release = {
+    path: '.yarn/releases/yarn-4.9.2.cjs',
+    content: Buffer.from('// yarn 4.9.2\n'),
+  };
+  const digest = createHash('sha512').update(release.content).digest('hex');
+  const rc = `${BERRY_RC}yarnPath: ${release.path}\n`;
+  expect(validateBerryInputs(JSON.stringify(manifest), berry, rc, release)).toMatchObject({
+    managerVersion: '4.9.2',
+    managerBundleSha512: digest,
+  });
+  expect(
+    validateBerryInputs(
+      JSON.stringify({ ...manifest, packageManager: `yarn@4.9.2+sha512.${digest}` }),
+      berry,
+      rc,
+      release,
+    ),
+  ).toMatchObject({ managerVersion: '4.9.2', managerBundleSha512: digest });
+  // A release named without its version takes the version from packageManager.
+  const unnamed = { ...release, path: '.yarn/releases/yarn-berry.cjs' };
+  expect(
+    validateBerryInputs(
+      JSON.stringify({ ...manifest, packageManager: 'yarn@4.9.2' }),
+      berry,
+      `${BERRY_RC}yarnPath: ${unnamed.path}\n`,
+      unnamed,
+    ),
+  ).toMatchObject({ managerVersion: '4.9.2', managerBundleSha512: digest });
+  expect(() =>
+    validateBerryInputs(
+      JSON.stringify({ ...manifest, packageManager: 'yarn@4.10.0' }),
+      berry,
+      rc,
+      release,
+    ),
+  ).toThrow('packageManager pins Yarn 4.10.0, but yarnPath names Yarn 4.9.2.');
+  expect(() =>
+    validateBerryInputs(
+      JSON.stringify({ ...manifest, packageManager: `yarn@4.9.2+sha512.${'c'.repeat(128)}` }),
+      berry,
+      rc,
+      release,
+    ),
+  ).toThrow('The packageManager checksum differs from the committed yarnPath release.');
+});
+
+it('accepts Yarn 2 and 3 built-in compatibility patches', async () => {
+  const { manifest, berry } = await fixture();
+  const lock = `${berry}
+"resolve@patch:resolve@npm%3A^1.22.1#~builtin<compat/resolve>":
+  version: 1.22.1
+  resolution: "resolve@patch:resolve@npm%3A1.22.1#~builtin<compat/resolve>::version=1.22.1&hash=07638b"
+  checksum: ${'d'.repeat(128)}
+  languageName: node
+  linkType: hard
+`;
+  expect(() =>
+    validateBerryInputs(
+      JSON.stringify({ ...manifest, packageManager: 'yarn@3.2.3' }),
+      lock,
+      BERRY_RC,
+    ),
+  ).not.toThrow();
+  expect(() =>
+    validateBerryInputs(
+      JSON.stringify({ ...manifest, packageManager: 'yarn@3.2.3' }),
+      lock.replace('~builtin<compat/resolve>::', '~.yarn/patches/resolve.patch::'),
+      BERRY_RC,
+    ),
+  ).toThrow();
+});
+
+it('accepts Yarn 2+ workspaces recorded in the lockfile and refuses unrecorded ones', async () => {
+  const { manifest, berry } = await fixture();
+  const root = JSON.stringify({
+    ...manifest,
+    packageManager: 'yarn@4.9.2',
+    workspaces: ['packages/*'],
+    dependencies: { ...manifest.dependencies, shared: 'workspace:^' },
+  });
+  const workspace = JSON.stringify({
+    name: 'shared',
+    version: '1.0.0',
+    dependencies: { qs: '~6.13.0' },
+  });
+  const lock = `${berry}
+"shared@workspace:^, shared@workspace:packages/shared":
+  version: 0.0.0-use.local
+  resolution: "shared@workspace:packages/shared"
+  dependencies:
+    qs: "npm:~6.13.0"
+  languageName: unknown
+  linkType: soft
+`;
+  const contents = new Map([['packages/shared', workspace]]);
+  expect(validateBerryInputs(root, lock, BERRY_RC, undefined, contents)).toMatchObject({
+    workspaceHashes: { 'packages/shared': expect.any(String) },
+    workspaceOptionalLinks: { 'node_modules/shared': 'packages/shared' },
+  });
+  expect(() => validateBerryInputs(root, berry, BERRY_RC, undefined, contents)).toThrow(
+    'yarn.lock has no entry for workspace packages/shared; run yarn install and commit the lockfile it writes.',
+  );
+  expect(() =>
+    validateBerryInputs(
+      root,
+      lock.replaceAll('packages/shared', 'packages/other'),
+      BERRY_RC,
+      undefined,
+      contents,
+    ),
+  ).toThrow(
+    'yarn.lock records workspace shared@workspace:packages/other, which the committed workspace manifests do not declare; run yarn install and commit the lockfile it writes.',
+  );
+  expect(() =>
+    validateBerryInputs(
+      root,
+      lock,
+      BERRY_RC,
+      undefined,
+      new Map([
+        ['packages/shared', JSON.stringify({ name: 'shared', dependencies: { lodash: '^4.0.0' } })],
+      ]),
+    ),
+  ).toThrow(
+    'lodash@^4.0.0 in packages/shared/package.json is not a public registry dependency or a sibling workspace recorded in yarn.lock; regenerate the lockfile or use a custom image.',
+  );
+  // A workspace: range must name a sibling workspace.
+  expect(() =>
+    validateBerryInputs(
+      JSON.stringify({ ...JSON.parse(root), dependencies: { other: 'workspace:^' } }),
+      lock,
+      BERRY_RC,
+      undefined,
+      contents,
+    ),
+  ).toThrow('other@workspace:^ in package.json is not a public registry dependency');
 });
 
 it.skipIf(!process.env.REFIT_NPM_PREPARE || !process.env.REFIT_DOCKER_IMAGE)(
@@ -345,3 +532,29 @@ it.skipIf(!process.env.REFIT_NPM_PREPARE || !process.env.REFIT_DOCKER_IMAGE)(
   },
   180_000,
 );
+
+it('names a Yarn 2+ project that commits no lockfile', async () => {
+  const repository = await mkdtemp(join(tmpdir(), 'refit-yarn-no-lock-'));
+  roots.push(repository);
+  await writeFile(join(repository, 'package.json'), '{"name":"app","packageManager":"yarn@4.9.2"}');
+  await writeFile(join(repository, '.yarnrc.yml'), BERRY_RC);
+  await execute('git', ['init', '-q', repository]);
+  await execute('git', ['-C', repository, 'add', '.']);
+  await execute('git', [
+    '-C',
+    repository,
+    '-c',
+    'user.name=Refit Test',
+    '-c',
+    'user.email=test@example.invalid',
+    '-c',
+    'commit.gpgsign=false',
+    'commit',
+    '-q',
+    '-m',
+    'test: no lockfile',
+  ]);
+  await expect(readPreparationInputs(await readCommittedRepository(repository))).rejects.toThrow(
+    'The repository commits .yarnrc.yml but no yarn.lock, so the dependency versions to verify are unknown. Run yarn install and commit the yarn.lock it writes.',
+  );
+});

@@ -15,6 +15,7 @@ import {
   validateBerryInputs,
   validateYarnInputs,
   YARN_RC,
+  YARN_RELEASE,
   yarnWorkspacePatterns,
 } from './yarn-inputs.ts';
 import { CLASSIC_HEADER } from './yarn-lock.ts';
@@ -54,6 +55,10 @@ export async function readPreparationInputs(
       `Automatic preparation reads dependencies only from the repository root, which has no committed package.json${nested.length ? ` (lockfiles exist in ${nested.slice(0, 3).join(', ')})` : ''}. Validate with a custom image, or commit a root package.json and lockfile.`,
     );
   }
+  if (!paths.includes(lockfile) && paths.includes(YARN_RC))
+    throw new PipelineInputError(
+      `The repository commits ${YARN_RC} but no ${YARN_LOCKFILE}, so the dependency versions to verify are unknown. Run yarn install and commit the ${YARN_LOCKFILE} it writes.`,
+    );
   if (!paths.includes(lockfile))
     throw new PipelineInputError(
       'The repository commits package.json without a lockfile, so the dependency versions to verify are unknown. Run npm install, pnpm install or yarn install and commit the package-lock.json, pnpm-lock.yaml or yarn.lock it writes.',
@@ -72,21 +77,9 @@ export async function readPreparationInputs(
   const manifest = parseObject(packageContent, 'package.json');
   if (yarn) {
     const lockContent = await readCommittedFile(snapshot, YARN_LOCKFILE, MAX_LOCK_BYTES);
-    if (!CLASSIC_HEADER.test(lockContent))
-      return {
-        files: new Map([
-          ['package.json', packageContent],
-          [YARN_LOCKFILE, lockContent],
-        ]),
-        workspaceContents: new Map<string, string>(),
-        inputs: validateBerryInputs(
-          packageContent,
-          lockContent,
-          paths.includes(YARN_RC)
-            ? await readCommittedFile(snapshot, YARN_RC, MAX_PACKAGE_BYTES)
-            : undefined,
-        ) as PreparationIdentity,
-      };
+    const rcContent = paths.includes(YARN_RC)
+      ? await readCommittedFile(snapshot, YARN_RC, MAX_PACKAGE_BYTES)
+      : undefined;
     const workspaceContents = new Map<string, string>();
     for (const directory of npmWorkspaceDirectories(
       { workspaces: yarnWorkspacePatterns(manifest) },
@@ -96,14 +89,27 @@ export async function readPreparationInputs(
         directory,
         await readCommittedFile(snapshot, `${directory}/package.json`, MAX_PACKAGE_BYTES),
       );
+    const files = new Map([
+      ['package.json', packageContent],
+      [YARN_LOCKFILE, lockContent],
+      ...[...workspaceContents].map(
+        ([directory, content]) => [`${directory}/package.json`, content] as const,
+      ),
+    ]);
+    if (!CLASSIC_HEADER.test(lockContent))
+      return {
+        files,
+        workspaceContents,
+        inputs: validateBerryInputs(
+          packageContent,
+          lockContent,
+          rcContent,
+          await committedRelease(snapshot, paths, rcContent),
+          workspaceContents,
+        ) as PreparationIdentity,
+      };
     return {
-      files: new Map([
-        ['package.json', packageContent],
-        [YARN_LOCKFILE, lockContent],
-        ...[...workspaceContents].map(
-          ([directory, content]) => [`${directory}/package.json`, content] as const,
-        ),
-      ]),
+      files,
       workspaceContents,
       inputs: validateYarnInputs(
         packageContent,
@@ -181,5 +187,24 @@ function npmPin(packageManager: unknown) {
     ...(pin[2]
       ? { managerIntegrity: `sha512-${Buffer.from(pin[2], 'hex').toString('base64')}` }
       : {}),
+  };
+}
+
+// Yarn bundles are about 3 MiB; the cap leaves room for a few releases' growth.
+const MAX_RELEASE_BYTES = 8 * 1024 * 1024;
+
+// The committed Yarn release a .yarnrc.yml `yarnPath` names, read as bytes to digest, never run.
+async function committedRelease(
+  snapshot: Awaited<ReturnType<typeof readCommittedRepository>>,
+  paths: string[],
+  rcContent: string | undefined,
+) {
+  const path =
+    rcContent === undefined ? undefined : parseDocumentObject(rcContent, YARN_RC).yarnPath;
+  if (typeof path !== 'string' || !YARN_RELEASE.test(path) || !paths.includes(path))
+    return undefined;
+  return {
+    path,
+    content: Buffer.from(await readCommittedFile(snapshot, path, MAX_RELEASE_BYTES), 'utf8'),
   };
 }
