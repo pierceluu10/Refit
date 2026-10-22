@@ -516,11 +516,19 @@ export async function validateMigration(options: {
   const { revision, entries } = snapshot;
   const image = await resolveDockerImage(options.image);
   const root = await mkdtemp(join(tmpdir(), 'refit-validation-'));
+  // Wall-clock milliseconds per stage, summed over repeats; they vary between runs.
+  const timings: Record<string, number> = {};
+  const timed = async <T>(stage: string, work: () => Promise<T>) => {
+    const started = performance.now();
+    try {
+      return await work();
+    } finally {
+      timings[stage] = (timings[stage] ?? 0) + Math.round(performance.now() - started);
+    }
+  };
   try {
-    const { archive, archiveHash, baselineDirectory } = await extractSnapshot(
-      repository,
-      revision,
-      root,
+    const { archive, archiveHash, baselineDirectory } = await timed('snapshot', () =>
+      extractSnapshot(repository, revision, root),
     );
     let dependencies: string | undefined;
     let environment: Record<string, unknown> | undefined;
@@ -528,12 +536,14 @@ export async function validateMigration(options: {
     let prepared: Awaited<ReturnType<typeof prepareDependencies>> | undefined;
     if (options.prepareDependencies)
       try {
-        prepared = await prepareDependencies({
-          repository,
-          image,
-          signal: options.signal,
-          onProgress: options.onProgress,
-        });
+        prepared = await timed('preparation', () =>
+          prepareDependencies({
+            repository,
+            image,
+            signal: options.signal,
+            onProgress: options.onProgress,
+          }),
+        );
       } catch (error) {
         dependencyFailure = options.recordDependencyFailures
           ? repositoryDependencyFailure(error)
@@ -543,23 +553,29 @@ export async function validateMigration(options: {
       }
     if (prepared) {
       dependencies = join(root, 'dependencies.tar');
-      environment = await snapshotDependencies(prepared, dependencies);
+      environment = await timed('dependencySnapshot', () =>
+        snapshotDependencies(prepared!, dependencies!),
+      );
     }
     options.signal?.throwIfAborted();
     if (!dependencyFailure) options.onProgress?.('Running baseline checks in offline Docker...');
     const baselineRun: CheckResult = dependencyFailure
       ? { status: 'not-run', exitCode: null, stdout: '', stderr: '' }
-      : await containerCheck(baselineDirectory, image, baselineCommand, dependencies);
+      : await timed('baselineChecks', () =>
+          containerCheck(baselineDirectory, image, baselineCommand, dependencies),
+        );
     const { baseline, compared } = typeCheckComparison(baselineRun, options.compareTypeErrors);
     options.signal?.throwIfAborted();
-    const report = await runPipeline({
-      ...options,
-      repository: baselineDirectory,
-      proposePatch: true,
-      aiPatch: baseline.status === 'passed' ? options.aiPatch : undefined,
-      assessment: baseline.status === 'passed' ? options.assessment : undefined,
-      onProgress: baseline.status === 'passed' ? options.onProgress : undefined,
-    });
+    const report = await timed('proposal', () =>
+      runPipeline({
+        ...options,
+        repository: baselineDirectory,
+        proposePatch: true,
+        aiPatch: baseline.status === 'passed' ? options.aiPatch : undefined,
+        assessment: baseline.status === 'passed' ? options.assessment : undefined,
+        onProgress: baseline.status === 'passed' ? options.onProgress : undefined,
+      }),
+    );
     const configuredEndpointProposal = report.operationChanges.some(
       (change) => change.usages.length > 0,
     );
@@ -583,7 +599,8 @@ export async function validateMigration(options: {
       );
     let proposal = report.patch;
     const originalSources = await readRepository(baselineDirectory, report.adapter.packageName);
-    const prepareCandidate = async (diff: string) => {
+    const prepareCandidate = (diff: string) => timed('candidates', () => buildCandidate(diff));
+    const buildCandidate = async (diff: string) => {
       // Reusing a removed bind-mount path can expose a stale directory in Docker Desktop.
       const patchedDirectory = await mkdtemp(join(root, 'candidate-'));
       await applyPatch(archive, patchedDirectory, join(root, 'migration.patch'), diff);
@@ -592,8 +609,10 @@ export async function validateMigration(options: {
       let candidateDependencies = dependencies;
       let candidateEnvironment: Record<string, unknown> | undefined;
       if (packageDiff(diff) && options.prepareDependencies && !dependencyFailure)
-        ({ dependencies: candidateDependencies, environment: candidateEnvironment } =
-          await prepareCandidateDependencies(patchedDirectory, root, image, options));
+        ({ dependencies: candidateDependencies, environment: candidateEnvironment } = await timed(
+          'candidatePreparation',
+          () => prepareCandidateDependencies(patchedDirectory, root, image, options),
+        ));
       const patchedSources = await readRepository(patchedDirectory, report.adapter.packageName);
       const shopify = report.provider === SHOPIFY.id;
       const declarations = shopify
@@ -677,11 +696,13 @@ export async function validateMigration(options: {
     if (runPatched) options.onProgress?.('Running patched checks in offline Docker...');
     let patched: CheckResult = runPatched
       ? compared(
-          await containerCheck(
-            initialCandidate.directory,
-            image,
-            options.command,
-            initialCandidate.dependencies,
+          await timed('patchedChecks', () =>
+            containerCheck(
+              initialCandidate.directory,
+              image,
+              options.command,
+              initialCandidate.dependencies,
+            ),
           ),
         )
       : { status: 'not-run', exitCode: null, stdout: '', stderr: '' };
@@ -763,7 +784,9 @@ export async function validateMigration(options: {
       );
       const prepared = await prepareCandidate(diff);
       const check = compared(
-        await containerCheck(prepared.directory, image, options.command, prepared.dependencies),
+        await timed('patchedChecks', () =>
+          containerCheck(prepared.directory, image, options.command, prepared.dependencies),
+        ),
       );
       if (check.status === 'passed') {
         proposal = { ...proposal, diff };
@@ -880,11 +903,13 @@ export async function validateMigration(options: {
         }
         options.onProgress?.('Running repaired checks in offline Docker...');
         const check = compared(
-          await containerCheck(
-            preparedCandidate.directory,
-            image,
-            options.command,
-            preparedCandidate.dependencies,
+          await timed('patchedChecks', () =>
+            containerCheck(
+              preparedCandidate.directory,
+              image,
+              options.command,
+              preparedCandidate.dependencies,
+            ),
           ),
         );
         candidateDependencies = preparedCandidate.dependencies;
@@ -913,24 +938,26 @@ export async function validateMigration(options: {
       candidateDirectory &&
       baseline.status === 'passed' &&
       patched.status === 'passed'
-        ? await generatedStripeChecks({
-            settings: options.generatedChecks,
-            root,
-            image,
-            dependencies,
-            entryPoints: generatedEntryPoints(originalSources, report.findings),
-            imports: generatedImportMap(originalSources),
-            runs: [
-              { directory: baselineDirectory, contract: options.before, side: 'before' },
-              {
-                directory: candidateDirectory,
-                contract: options.after,
-                side: 'after',
-                dependencies: candidateDependencies,
-              },
-            ],
-            onProgress: options.onProgress,
-          })
+        ? await timed('generatedChecks', () =>
+            generatedStripeChecks({
+              settings: options.generatedChecks!,
+              root,
+              image,
+              dependencies,
+              entryPoints: generatedEntryPoints(originalSources, report.findings),
+              imports: generatedImportMap(originalSources),
+              runs: [
+                { directory: baselineDirectory, contract: options.before, side: 'before' },
+                {
+                  directory: candidateDirectory,
+                  contract: options.after,
+                  side: 'after',
+                  dependencies: candidateDependencies,
+                },
+              ],
+              onProgress: options.onProgress,
+            }),
+          )
         : undefined;
     const currentRevision = (await git(['rev-parse', '--verify', 'HEAD^{commit}'])).stdout.trim();
     const currentStatus = (await git(['status', '--porcelain', '--untracked-files=all'])).stdout;
@@ -964,6 +991,7 @@ export async function validateMigration(options: {
       repair,
       ...(reviewTypeErrors.length ? { reviewTypeErrors } : {}),
       ...namedBaselineStop(validationStatus, baselineRun),
+      ...(Object.keys(timings).length ? { timings } : {}),
       limits: validationLimits(),
       publishable: false,
       reason:
