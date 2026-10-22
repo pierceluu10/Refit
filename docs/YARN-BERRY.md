@@ -25,6 +25,8 @@ Refit used to refuse such lockfiles, which ruled out nearly every Yarn 4 project
 
 The count is recorded as `platformPackages` in the dependency environment, and the CLI summary says how many platform-specific packages were not installed. A check that needs one of those binaries fails at baseline with the tool's own message, for example `The package "@esbuild/linux-arm64" could not be found, and is needed by esbuild.`, so Refit stops rather than reporting a result. Type checks and tests that do not load a native binary run as usual. Entries without `conditions` still need a checksum.
 
+**Operator opt-in (Needs owner decision).** `REFIT_YARN_PLATFORM_PACKAGES=install` leaves the setting out, so Yarn installs this host's platform packages, fetched from the npm registry over HTTPS with no lockfile checksum to check them against. The default is `skip`; any other value is refused. The mode keys the dependency cache and is recorded as `platformPackageMode`, and the summary then says how many platform-specific packages were installed without checksums. Whether Refit should offer this, and whether it should become the default, is an owner decision; the measurements below are the evidence.
+
 ## How the Yarn release is verified
 
 - **`packageManager` pin:** the named version is installed from npm. With `+sha512.<hex>`, the installed `bin/yarn.js` must have that SHA-512.
@@ -68,6 +70,20 @@ Census of 2026-10-22: every repository in the frozen lists, with its root `yarn.
 | strapi-community/shopify (Shopify fresh) | Refused: no Yarn 2+ pin | Named stop: `packageManager` pins Yarn 1.22.19 over a Yarn 2+ lockfile |
 
 - **All 15 frozen lists** (1,384 rows; a repository on two lists counts twice): 71 rows commit a `yarn.lock`, and 6 distinct repositories are Yarn 2+. Besides the four above, a2arium/callLLM (OpenAI applications) is now prepared, and medusajs/medusa (PayPal) stops at the 64-workspace limit; it would also stop on its plugins and `checksumBehavior: ignore`.
+
+## Real repositories
+
+The three frozen Yarn 2+ repositories this branch can prepare were prepared and then checked locally on 2026-10-22, in Docker on `node:22-alpine` (their Node.js declarations allow it). Each ran at its frozen commit with the benchmark's own check: the test script, else `tsc --noEmit -p .`. Refit was at `e189b1f` (default runs) and `4634aa6` (install-mode runs); the preparation code is the same apart from the opt-in.
+
+| Repository | Yarn | Default profile (2 GiB), platform packages skipped | Operator `4g` profile | `REFIT_YARN_PLATFORM_PACKAGES=install` |
+| --- | --- | --- | --- | --- |
+| Crunchyman-ralph/shopify-app-node-monorepo-express-vite `ed5dae0` (workspaces, `yarnPath`, Yarn 3 patches) | 3.2.3 | Prepared in 115 s; `tsc --noEmit` **passed** | Not needed | Not run |
+| a2arium/callLLM `1e29285` | 4.9.4 | Prepared in 23 s; `yarn test`: 1,262 tests passed and 98 failed, all failures `sharp` unable to load its skipped native binary | Not needed | Prepared in 27 s; `yarn test` ran out of JavaScript heap (about 1.5 GB) before finishing |
+| ahmadk953/tasko `c098402` | 4.12.0 | Out of space in the 2 GiB installer workspace (named ENOSPC) | Prepared in 51 s; `yarn test` failed because Next.js could not find its skipped SWC binary and cannot download it offline | Out of space in the 4 GiB workspace, now that the Linux platform binaries are installed too |
+
+Before the `TMPDIR` fix, all three ran out of space in the sandbox's 64 MiB `/tmp`, even on the `4g` profile.
+
+One repository validates end to end. In the other two, a check needs a platform binary, so Refit stops at baseline with the tool's own message; installing the binaries unverified did not produce a passing baseline for either. The measurements therefore do not argue for changing the `skip` default.
 
 ## Plug'n'Play
 
