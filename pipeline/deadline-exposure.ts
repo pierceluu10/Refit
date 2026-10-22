@@ -4,6 +4,7 @@ import { join, resolve } from 'node:path';
 import ts from 'typescript-compiler';
 import { AGENT_CATALOG, builtInPackage } from './agent-catalog.ts';
 import { daysUntil, type DeadlineEntry, type DeadlineRegistry } from './deadline-registry.ts';
+import { githubDeadlineUses } from './github-api-calls.ts';
 import { readRepository } from './repository.ts';
 import { isObject, parseObject } from './specifications.ts';
 import { REPOSITORY_CONFIGURATION } from './workflow-configuration.ts';
@@ -568,6 +569,16 @@ export async function scanDeadlines(
             text: `${name} ${dependency.lock.version ?? dependency.version}${dependency.lock.version ? ` (locked in ${dependency.lock.file})` : ''} is declared in ${dependency.section}`,
           });
       }
+  // GitHub: pinned X-GitHub-Api-Version headers, requests to removed endpoints and GraphQL fields,
+  // from the GitHub API call scanner.
+  const github = registry.deadlines.filter((entry) => entry.provider === 'github');
+  if (github.length)
+    for (const use of await githubDeadlineUses(
+      root,
+      github.flatMap((entry) => entry.versions),
+      repository,
+    ))
+      record('github', use.version, { ...use, kind: 'source' });
   for (const pin of await configuredApiVersions(root))
     record(pin.provider, pin.version, {
       file: REPOSITORY_CONFIGURATION,

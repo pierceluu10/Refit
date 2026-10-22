@@ -72,6 +72,25 @@ export const AGENT_CATALOG: ProviderAgent[] = [
     adapter: null,
     guide: null,
   },
+  // The Octokit packages and @actions/github, each checked on npm on 2026-10-22, and the REST and
+  // GraphQL host. Review-only detection lives in `refit github-api`.
+  {
+    id: 'github',
+    name: 'GitHub API',
+    packages: [
+      'octokit',
+      '@octokit/rest',
+      '@octokit/core',
+      '@octokit/request',
+      '@octokit/graphql',
+      '@octokit/app',
+      '@octokit/action',
+      '@actions/github',
+    ],
+    hostnames: ['api.github.com'],
+    adapter: null,
+    guide: 'docs/GITHUB-API-DETECTION.md',
+  },
   {
     id: 'twilio',
     name: 'Twilio',
