@@ -1,6 +1,11 @@
 import type { Pool, PoolClient } from 'pg';
 import type { GitHubWebhook } from './github-webhooks.ts';
 import { WebhookInputError } from './github-webhooks.ts';
+import {
+  confirmRepositoryIdentity,
+  followLifecycle,
+  type LifecyclePlan,
+} from './hosted-lifecycle.ts';
 import type { RepositoryApproval } from './repository-enrollment.ts';
 import { digest } from './specifications.ts';
 import { PipelineInputError } from './types.ts';
@@ -9,6 +14,8 @@ import { PipelineInputError } from './types.ts';
 const MAX_LEASE_ATTEMPTS = 3;
 const TARGET_HASH_LENGTH = 16;
 const SCHEMA_LOCK = 4_206_100_001;
+// GitHub redelivers only deliveries from the past 3 days, so an older GUID can never recur.
+const DELIVERY_RETENTION_DAYS = 30;
 
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS refit_installations (
@@ -62,6 +69,9 @@ CREATE TABLE IF NOT EXISTS refit_jobs (
 );
 -- An operator retry permits one fresh attempt of a cached failure; successful results stay cached.
 ALTER TABLE refit_jobs ADD COLUMN IF NOT EXISTS retry boolean NOT NULL DEFAULT false;
+-- installation.updated_at of the newest installation event applied; older redeliveries are stale.
+ALTER TABLE refit_installations ADD COLUMN IF NOT EXISTS changed_at timestamptz;
+CREATE INDEX IF NOT EXISTS refit_deliveries_received ON refit_deliveries (received_at);
 CREATE UNIQUE INDEX IF NOT EXISTS refit_jobs_open ON refit_jobs (target_id)
   WHERE status IN ('queued', 'running');
 CREATE INDEX IF NOT EXISTS refit_targets_installation ON refit_targets (installation_id);
@@ -159,6 +169,22 @@ async function cancel(client: PoolClient, where: string, values: unknown[], mess
   };
 }
 
+// Applies a lifecycle plan's cancellations; running jobs are returned so this process aborts them.
+async function stop(client: PoolClient, plan: LifecyclePlan) {
+  const stopped = { targets: [] as string[], running: [] as number[] };
+  for (const entry of plan.cancel) {
+    const result = await cancel(
+      client,
+      'installation_id = $1 AND repository = $2',
+      [entry.installationId, entry.repository],
+      entry.message,
+    );
+    stopped.targets.push(...result.targets);
+    stopped.running.push(...result.running);
+  }
+  return stopped;
+}
+
 export async function openHostedStore(pool: Pool) {
   await transaction(pool, async (client) => {
     await client.query('SELECT pg_advisory_xact_lock($1)', [SCHEMA_LOCK]);
@@ -167,6 +193,10 @@ export async function openHostedStore(pool: Pool) {
 
   const accept = (delivery: string, event: string, body: Uint8Array, change: GitHubWebhook) =>
     transaction(pool, async (client) => {
+      await client.query(
+        'DELETE FROM refit_deliveries WHERE received_at < now() - make_interval(days => $1)',
+        [DELIVERY_RETENTION_DAYS],
+      );
       const hash = digest(body);
       const inserted = await client.query(
         'INSERT INTO refit_deliveries (id, hash, event) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING',
@@ -185,23 +215,49 @@ export async function openHostedStore(pool: Pool) {
           );
         return { status: 'duplicate' as const, ...none };
       }
-      if (!('installationId' in change)) return { status: 'accepted' as const, ...none };
-      const { rows: prior } = await client.query<{ owner: string }>(
-        'SELECT owner FROM refit_installations WHERE id = $1 FOR UPDATE',
-        [change.installationId],
-      );
+      if (change.kind === 'repository' || change.kind === 'account') {
+        const plan = await followLifecycle(client, change);
+        const stopped = await stop(client, plan);
+        return {
+          status: 'accepted' as const,
+          enrolled: await enroll(client, change.installationId, plan.enroll),
+          cancelled: stopped.targets,
+          running: stopped.running,
+        };
+      }
+      if (change.kind !== 'installation' && change.kind !== 'repositories')
+        return { status: change.kind === 'ignored' ? ('ignored' as const) : 'accepted', ...none };
+      const { rows: prior } = await client.query<{
+        owner: string;
+        status: string;
+        changed_at: Date | null;
+      }>('SELECT owner, status, changed_at FROM refit_installations WHERE id = $1 FOR UPDATE', [
+        change.installationId,
+      ]);
       if (prior[0] && prior[0].owner !== change.owner)
         throw new WebhookInputError(409, 'Installation owner changed unexpectedly.');
+      const changedAt =
+        change.kind === 'installation' && change.updatedAt ? change.updatedAt : null;
+      // GitHub never reuses an installation ID, so no later delivery revives a deleted one.
+      if (
+        prior[0]?.status === 'deleted' ||
+        (changedAt && prior[0]?.changed_at && changedAt < prior[0].changed_at.getTime())
+      )
+        return { status: 'stale' as const, ...none };
+      // Repository changes and accepted permissions leave a suspension in place.
       const status =
-        change.action === 'deleted'
-          ? 'deleted'
-          : change.action === 'suspend'
-            ? 'suspended'
-            : 'active';
+        change.kind === 'repositories' || change.action === 'new_permissions_accepted'
+          ? (prior[0]?.status ?? 'active')
+          : change.action === 'deleted'
+            ? 'deleted'
+            : change.action === 'suspend'
+              ? 'suspended'
+              : 'active';
       await client.query(
-        `INSERT INTO refit_installations (id, owner, status) VALUES ($1, $2, $3)
-         ON CONFLICT (id) DO UPDATE SET status = $3, updated_at = now()`,
-        [change.installationId, change.owner, status],
+        `INSERT INTO refit_installations (id, owner, status, changed_at) VALUES ($1, $2, $3, $4)
+         ON CONFLICT (id) DO UPDATE SET status = $3, updated_at = now(),
+           changed_at = GREATEST(refit_installations.changed_at, $4)`,
+        [change.installationId, change.owner, status, changedAt && new Date(changedAt)],
       );
       for (const repository of change.added)
         await client.query(
@@ -273,6 +329,15 @@ export async function openHostedStore(pool: Pool) {
       );
       return rows[0] ? enroll(client, Number(rows[0].installation_id), [approval.repository]) : [];
     });
+
+  // Stops a target whose repository GitHub no longer serves, or whose name changed hands.
+  const retire = (targetId: string, githubId: number | null) =>
+    transaction(
+      pool,
+      async (client) =>
+        (await stop(client, await confirmRepositoryIdentity(client, targetId, githubId))).targets
+          .length > 0,
+    );
 
   const enqueueDue = async (intervalSeconds: number) =>
     (
@@ -423,5 +488,5 @@ export async function openHostedStore(pool: Pool) {
     return { installations: installations.rows, targets: targets.rows, jobs: jobs.rows };
   };
 
-  return { accept, approve, enqueueDue, claim, retry, renew, finish, read };
+  return { accept, approve, retire, enqueueDue, claim, retry, renew, finish, read };
 }

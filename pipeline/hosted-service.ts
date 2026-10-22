@@ -9,6 +9,7 @@ import { validateRepairAttempts } from './validation-options.ts';
 import type { GitHubAppConfiguration } from './github-app.ts';
 import { standaloneStateDirectory } from './github-checkout.ts';
 import { parseWebhook, verifyWebhook, WebhookInputError } from './github-webhooks.ts';
+import { GitHubRequestError } from './github.ts';
 import { openHostedStore, type HostedTarget } from './hosted-store.ts';
 import {
   authorized,
@@ -34,6 +35,7 @@ const DEFAULT_LEASE_SECONDS = 300;
 const MIN_LEASE_SECONDS = 3;
 // Renewing three times per lease keeps one missed renewal from releasing a running job.
 const RENEWALS_PER_LEASE = 3;
+const NOT_FOUND = 404;
 
 export async function runHostedService(options: {
   database: Pool;
@@ -121,9 +123,19 @@ export async function runHostedService(options: {
       (lease * MILLISECONDS_PER_SECOND) / RENEWALS_PER_LEASE,
     );
     try {
-      const access = await confirmRepositoryAccess(options.app, target.repository);
+      const access = await confirmRepositoryAccess(options.app, target.repository).catch(
+        async (error: unknown) => {
+          if (error instanceof GitHubRequestError && error.status === NOT_FOUND)
+            await store.retire(target.id, null);
+          throw error;
+        },
+      );
       if (access.installationId !== target.installationId)
         throw new PipelineInputError('Repository now belongs to another App installation.');
+      if (await store.retire(target.id, access.id))
+        throw new PipelineInputError(
+          'Repository name now belongs to a different GitHub repository; approve it again.',
+        );
       const result = await pollServiceTarget({
         target: {
           id: target.id,
@@ -205,11 +217,20 @@ export async function runHostedService(options: {
         );
         const event = request.headers['x-github-event'];
         const change = parseWebhook(body, event, Number(options.app.appId));
-        if ('owner' in change && change.owner !== owner) {
+        // A transfer or rename away from the configured account still stops its targets.
+        if (
+          'owner' in change &&
+          change.owner !== owner &&
+          !('previousOwner' in change && change.previousOwner === owner)
+        ) {
           respond(response, 202, { delivery: id, status: 'ignored', enrolled: [], cancelled: [] });
           return;
         }
         const receipt = await store.accept(id, String(event), body, change);
+        if (change.kind === 'account' && change.previousOwner === owner)
+          options.onProgress?.(
+            `Account ${change.previousOwner} is now ${change.owner}; set REFIT_HOSTED_OWNER=${change.owner} to keep accepting its webhooks.`,
+          );
         for (const job of receipt.running) running.get(job)?.abort();
         if (receipt.enrolled.length) wake();
         respond(response, 202, {

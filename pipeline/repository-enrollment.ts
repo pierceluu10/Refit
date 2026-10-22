@@ -295,6 +295,20 @@ export async function approveRepositoryEnrollment(options: {
   return { output, approval };
 }
 
+// A renamed repository keeps its reviewed inputs, so its approval moves to the new name.
+export function renameRepositoryApproval(
+  approval: RepositoryApproval,
+  repository: string,
+): RepositoryApproval {
+  const name = repository.toLowerCase();
+  validateGitHubTarget(name, approval.base);
+  return {
+    ...approval,
+    repository: name,
+    fingerprint: fingerprint(name, approval.base, approval.files, approval.integrations),
+  };
+}
+
 export async function readRepositoryApproval(path: string): Promise<RepositoryApproval> {
   await standaloneStateDirectory(await realpath(dirname(resolve(path))));
   const file = await inspectArtifactFile(path, MAX_APPROVAL_BYTES, true);
