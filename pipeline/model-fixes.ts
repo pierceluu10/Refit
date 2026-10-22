@@ -6,6 +6,7 @@ import {
   type ModelReplacementStop,
 } from './model-retirements.ts';
 import { publicationConfiguration, publishFiles } from './publication.ts';
+import { MAX_BODY_CHARACTERS } from './review.ts';
 import { validateSourcePatch } from './validation.ts';
 
 // The repository's approved checks, from its enrolled Refit configuration.
@@ -76,59 +77,92 @@ export function modelFixBody(options: {
 }) {
   const { replacements, stops, validation } = options;
   const sources = new Map(options.registry.deadlines.map((entry) => [entry.id, entry]));
-  const lines = [
-    '## Retiring AI models',
-    '',
-    'Refit replaced model IDs that their provider retires, using the replacement in its reviewed deadline registry. Requests to a retired model fail.',
-    '',
-    '| Call | Changed at | Model | Retires | Source |',
-    '|---|---|---|---|---|',
-    ...replacements.map((item) => {
-      const entry = sources.get(item.deadline);
-      return `| ${code(`${item.file}:${item.line}`)} ${code(item.call)} | ${code(`${item.edited.file}:${item.edited.line}`)} | ${code(item.from)} → ${code(item.to)} | ${item.date} | ${entry?.source ? `[provider page](${entry.source}), checked ${entry.checkedAt}` : 'registry'} |`;
-    }),
-    '',
-  ];
-  if (replacements.some((item) => item.via.length > 1))
-    lines.push(
-      'Where the registry replacement retires too, Refit followed the registry to a model that does not.',
+  const more = (count: number, where: string) =>
+    count > 0 ? [`- and ${count} more; ${where}.`] : [];
+  const render = (rowLimit: number, stopLimit: number) => {
+    const lines = [
+      '## Retiring AI models',
       '',
+      'Refit replaced model IDs that their provider retires, using the replacement in its reviewed deadline registry. Requests to a retired model fail.',
+      '',
+      '| Call | Changed at | Model | Retires | Source |',
+      '|---|---|---|---|---|',
+      ...replacements.slice(0, rowLimit).map((item) => {
+        const entry = sources.get(item.deadline);
+        return `| ${code(`${item.file}:${item.line}`)} ${code(item.call)} | ${code(`${item.edited.file}:${item.edited.line}`)} | ${code(item.from)} → ${code(item.to)} | ${item.date} | ${entry?.source ? `[provider page](${entry.source}), checked ${entry.checkedAt}` : 'registry'} |`;
+      }),
+      '',
+      ...(replacements.length > rowLimit
+        ? [
+            `${replacements.length - rowLimit} more replacements are not listed to keep this description short; every one is in Files changed.`,
+            '',
+          ]
+        : []),
+    ];
+    if (replacements.some((item) => item.via.length > 1))
+      lines.push(
+        'Where the registry replacement retires too, Refit followed the registry to a model that does not.',
+        '',
+      );
+    lines.push(
+      '## Checks',
+      '',
+      `Refit ran the repository's approved checks on ${code(validation.revision.slice(0, 12))} in offline Docker (${code(validation.image)}), before and after this change:`,
+      '',
+      `- Baseline ${code(validation.baselineCommand.join(' '))}: ${validation.baseline.status}`,
+      `- Patched ${code(validation.command.join(' '))}: ${validation.patched.status}`,
+      '',
+      '## Not Verified',
+      '',
+      '- A passing check is evidence about that command only. The checks ran without network access, so no request reached OpenAI or Anthropic, and they cannot show how the new model answers.',
+      '- A replacement model can change answers, cost, rate limits and supported parameters.',
+      '',
+      '## Rollback',
+      '',
+      'Revert this pull request. It changes only the model IDs in the table above: no dependency, configuration or environment variable.',
+      '',
+      '## Reviewer Checklist',
+      '',
+      '- [ ] Try each changed call against the provider and compare its answers.',
+      `- [ ] Confirm ${code(validation.command.join(' '))} exercises the changed calls.`,
+      ...(stops.length ? ['- [ ] Decide each use under Left for review.'] : []),
+      '',
+      'Refit opened this as a draft and never merges it.',
     );
-  lines.push(
-    '## Checks',
-    '',
-    `Refit ran the repository's approved checks on ${code(validation.revision.slice(0, 12))} in offline Docker (${code(validation.image)}), before and after this change:`,
-    '',
-    `- Baseline ${code(validation.baselineCommand.join(' '))}: ${validation.baseline.status}`,
-    `- Patched ${code(validation.command.join(' '))}: ${validation.patched.status}`,
-    '',
-    'A passing check is evidence about that command only. The checks ran without network access, so no request reached OpenAI or Anthropic, and they cannot show how the new model answers.',
-    '',
-    '## Before merging',
-    '',
-    '- A replacement model can change answers, cost, rate limits and supported parameters. Try the changed calls against the provider.',
-    '- Refit opened this as a draft and never merges it.',
+    if (stops.length)
+      lines.push(
+        '',
+        '## Left for review',
+        '',
+        'Refit did not change these, because a swap could change the request:',
+        '',
+        ...stops
+          .slice(0, stopLimit)
+          .map(
+            (item) =>
+              `- ${code(`${item.at.file}:${item.at.line}`)} ${code(item.model)}: ${item.reason}`,
+          ),
+        ...more(stops.length - stopLimit, 'Refit records every use in its result'),
+      );
+    if (validation.patched.status !== 'passed')
+      lines.push(
+        '',
+        '```',
+        tail(`${validation.patched.stdout}\n${validation.patched.stderr}`),
+        '```',
+      );
+    return `${lines.join('\n')}\n`;
+  };
+  // Shorter lists until the body fits.
+  return (
+    [
+      [Infinity, Infinity],
+      [40, 25],
+      [10, 10],
+    ]
+      .map(([rows, uses]) => render(rows, uses))
+      .find((body) => body.length <= MAX_BODY_CHARACTERS) ?? render(0, 0)
   );
-  if (stops.length)
-    lines.push(
-      '',
-      '## Left for review',
-      '',
-      'Refit did not change these, because a swap could change the request:',
-      '',
-      ...stops.map(
-        (item) =>
-          `- ${code(`${item.at.file}:${item.at.line}`)} ${code(item.model)}: ${item.reason}`,
-      ),
-    );
-  if (validation.patched.status !== 'passed')
-    lines.push(
-      '',
-      '```',
-      tail(`${validation.patched.stdout}\n${validation.patched.stderr}`),
-      '```',
-    );
-  return `${lines.join('\n')}\n`;
 }
 
 // Replaces retiring OpenAI and Anthropic models in an enrolled repository without asking first:
