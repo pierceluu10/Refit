@@ -37,14 +37,19 @@ export interface PythonModelResult {
   stops: { file: string; line: number; reason: string }[];
 }
 
+// The SDK packages the main labels cover; LangChain wrappers are labelled separately.
+const SDK_PACKAGES = ['openai', 'anthropic', 'google-genai'];
 const key = (site: Site) => `${site.file}:${site.line} ${site.model}`;
 const ratio = (part: number, whole: number) => (whole ? part / whole : null);
 
 // The record's reportable parts, with test paths left out as the labels leave them out.
 export function reported(
   calls: SdkCallRecord[],
+  packages: string[] = SDK_PACKAGES,
 ): Pick<PythonModelResult, 'calls' | 'sites' | 'stops'> {
-  const live = calls.filter((call) => !PYTHON_TEST_PATH.test(call.file));
+  const live = calls.filter(
+    (call) => packages.includes(call.package) && !PYTHON_TEST_PATH.test(call.file),
+  );
   const sites = new Map<string, Site>();
   for (const call of live)
     for (const literal of call.arguments.model.literals)
@@ -164,12 +169,14 @@ async function main() {
       root: { type: 'string' },
       list: { type: 'string', default: 'docs/benchmarks/2026-10-22-python-model-repos.json' },
       labels: { type: 'string', default: 'docs/benchmarks/2026-10-22-python-model-labels.json' },
+      // The packages the labels cover, comma-separated.
+      packages: { type: 'string', default: SDK_PACKAGES.join(',') },
       output: { type: 'string' },
     },
   });
   if (!values.root || !values.output) {
     console.log(
-      'Usage: tsx pipeline/python/model-benchmark.ts --root <checkouts> --output <results.json> [--list <repos.json>] [--labels <labels.json>]',
+      'Usage: tsx pipeline/python/model-benchmark.ts --root <checkouts> --output <results.json> [--list <repos.json>] [--labels <labels.json>] [--packages openai,anthropic,google-genai]',
     );
     process.exitCode = 1;
     return;
@@ -193,7 +200,11 @@ async function main() {
     }
     try {
       const trace = await tracePythonModelCalls(directory);
-      results.push({ ...base, status: 'scanned', ...reported(trace.calls) });
+      results.push({
+        ...base,
+        status: 'scanned',
+        ...reported(trace.calls, values.packages!.split(',')),
+      });
     } catch (error) {
       results.push({ ...base, status: 'not-scanned', error: String(error).slice(0, 300) });
     }

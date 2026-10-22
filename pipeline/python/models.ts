@@ -89,6 +89,22 @@ export const PYTHON_SDKS: PythonSdk[] = [
   },
 ];
 
+// LangChain chat model classes, reported by name and never edited: `ChatOpenAI(model=...)`.
+const LANGCHAIN_MODELS: Record<string, { provider: string; custom: string | null }> = {
+  ChatOpenAI: { provider: 'openai', custom: null },
+  AzureChatOpenAI: { provider: 'openai', custom: 'Azure OpenAI' },
+  ChatAnthropic: { provider: 'anthropic', custom: null },
+};
+const LANGCHAIN_MODULES =
+  /^(?:langchain_openai|langchain_anthropic|langchain_community\.chat_models|langchain\.chat_models)(?:\.|$)/;
+const LANGCHAIN_ENDPOINTS = new Set([
+  'base_url',
+  'openai_api_base',
+  'azure_endpoint',
+  'anthropic_api_url',
+  'http_client',
+]);
+
 // Attributes that return the same resource with another response shape.
 const RESPONSE_WRAPPERS = new Set(['with_raw_response', 'with_streaming_response']);
 // Keyword arguments that point a client somewhere other than the provider's own API.
@@ -1188,6 +1204,12 @@ function traceCalls(context: Context): SdkCallRecord[] {
     for (const call of tree?.rootNode.descendantsOfType('call') ?? []) {
       if (!call) continue;
       const callee = field(call, 'function')!;
+      const wrapper = langchainModel(callee);
+      if (wrapper) {
+        const record = langchainRecord(context, path, call, callee, wrapper);
+        if (record) records.push(record);
+        continue;
+      }
       if (callee.type !== 'attribute') continue;
       const { names, objects } = chain(callee);
       let client: Client | undefined;
@@ -1239,6 +1261,79 @@ function traceCalls(context: Context): SdkCallRecord[] {
   return records;
 }
 
+// The LangChain chat model class a callee names, with the package it is imported from.
+function langchainModel(callee: Node) {
+  callee = unwrap(callee);
+  const root = callee.type === 'attribute' ? unwrap(field(callee, 'object')!) : callee;
+  if (root.type !== 'identifier') return undefined;
+  for (const binding of lookup(root, root.text)) {
+    if (binding.kind !== 'import' || binding.level) continue;
+    // `ChatOpenAI(...)`, imported under any alias, or `langchain_openai.ChatOpenAI(...)`.
+    const [module, name] =
+      callee.type === 'identifier'
+        ? [binding.module, binding.name ?? '']
+        : [
+            binding.name ? `${binding.module}.${binding.name}` : binding.module,
+            field(callee, 'attribute')!.text,
+          ];
+    if (name in LANGCHAIN_MODELS && LANGCHAIN_MODULES.test(module))
+      return {
+        name,
+        package: module.split('.')[0].replaceAll('_', '-'),
+        ...LANGCHAIN_MODELS[name],
+      };
+  }
+  return undefined;
+}
+
+function langchainRecord(
+  context: Context,
+  path: string,
+  call: Node,
+  callee: Node,
+  wrapper: NonNullable<ReturnType<typeof langchainModel>>,
+): SdkCallRecord | undefined {
+  const { keywords, splats } = keywordArguments(call);
+  const options = new Map(keywords);
+  let spread = false;
+  for (const splat of splats) {
+    const found = spreadOptions(context, path, splat);
+    if (!found?.complete) spread = true;
+    for (const [name, value] of found?.options ?? [])
+      if (!options.has(name)) options.set(name, value);
+  }
+  const model = options.get('model') ?? options.get('model_name');
+  if (!model && !spread) return undefined;
+  return {
+    language: 'python',
+    provider: wrapper.provider,
+    package: wrapper.package,
+    ...site(path, call),
+    resource: 'langchain',
+    method: wrapper.name,
+    expression: text(callee),
+    client: {
+      kind: 'constructor',
+      ...site(path, call),
+      custom:
+        wrapper.custom ??
+        ([...options.keys()].some((name) => LANGCHAIN_ENDPOINTS.has(name))
+          ? 'a custom base URL'
+          : null),
+    },
+    options: [...options.keys()],
+    spread,
+    arguments: {
+      model: model
+        ? traceValue(context, path, model, 'literal')
+        : {
+            literals: [],
+            stop: `The model is passed with \`**${text(splats[0])}\`, which Refit cannot trace.`,
+          },
+    },
+  };
+}
+
 export function isTextCall(record: Pick<SdkCallRecord, 'provider' | 'resource' | 'method'>) {
   const sdk = PYTHON_SDKS.find((item) => item.provider === record.provider);
   return Boolean(sdk?.text.has(`${record.resource}.${record.method}`));
@@ -1258,8 +1353,10 @@ export async function tracePythonModelCalls(directory: string): Promise<PythonMo
 
 export async function traceFiles(files: PythonFile[]) {
   if (
-    !files.some((file) =>
-      PYTHON_SDKS.some((sdk) => file.content.includes(sdk.module.split('.').at(-1)!)),
+    !files.some(
+      (file) =>
+        file.content.includes('langchain') ||
+        PYTHON_SDKS.some((sdk) => file.content.includes(sdk.module.split('.').at(-1)!)),
     )
   )
     return [];

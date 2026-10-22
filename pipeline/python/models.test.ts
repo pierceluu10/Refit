@@ -362,6 +362,42 @@ class Model:
     ]);
   });
 
+  it('reports LangChain chat models by class, with their model arguments', async () => {
+    expect(
+      await traced({
+        'chains.py': `import os
+import langchain_openai
+from langchain_openai import ChatOpenAI, AzureChatOpenAI
+from langchain_anthropic import ChatAnthropic
+from langchain_community.chat_models import ChatOpenAI as LegacyChat
+from mylib import ChatOpenAI as Other
+
+fast = ChatOpenAI(model="gpt-4o-mini", temperature=0)
+smart = ChatAnthropic(model_name=os.getenv("CLAUDE", "claude-3-opus-20240229"))
+azure = AzureChatOpenAI(model="gpt-4", azure_endpoint="https://x")
+local = langchain_openai.ChatOpenAI(model="llama3", base_url="http://localhost:11434/v1")
+legacy = LegacyChat(model_name="gpt-3.5-turbo")
+other = Other(model="gpt-4")
+default = ChatOpenAI()
+`,
+      }),
+    ).toEqual([
+      'chains.py:8 openai langchain.ChatOpenAI constructor <- gpt-4o-mini@chains.py:8 (literal)',
+      'chains.py:9 anthropic langchain.ChatAnthropic constructor <- claude-3-opus-20240229@chains.py:9 (environment default (CLAUDE))',
+      'chains.py:10 openai langchain.AzureChatOpenAI constructor <- gpt-4@chains.py:10 (literal) custom: Azure OpenAI',
+      'chains.py:11 openai langchain.ChatOpenAI constructor <- llama3@chains.py:11 (literal) custom: a custom base URL',
+      'chains.py:12 openai langchain.ChatOpenAI constructor <- gpt-3.5-turbo@chains.py:12 (literal)',
+    ]);
+    const calls = await traceFiles([
+      {
+        path: 'a.py',
+        content:
+          'from langchain_community.chat_models import ChatOpenAI\nChatOpenAI(model="gpt-4")\n',
+      },
+    ]);
+    expect(calls.map((call) => call.package)).toEqual(['langchain-community']);
+  });
+
   it('reads the model from a spread dictionary and stops on what it cannot trace', async () => {
     expect(
       await traced({
@@ -545,6 +581,7 @@ claude.messages.create(model="claude-3-opus-20240229", max_tokens=1, messages=[]
 gemini.models.generate_content(model="gemini-1.5-flash", contents="x")
 UNUSED = "gpt-4"
 `,
+      'chain.py': `from langchain_openai import ChatOpenAI\nllm = ChatOpenAI(model="gpt-4")\n`,
       'tests/test_app.py': `from openai import OpenAI\nOpenAI().chat.completions.create(model="gpt-4", messages=[])\n`,
     });
     const proposal = await proposeModelReplacements(root, registry, now);
@@ -564,6 +601,7 @@ UNUSED = "gpt-4"
       '21 21 gpt-4: The model is read from the environment variable M with no default. Change it by hand to gpt-5.6-sol.',
       '22 22 claude-3-opus-20240229: Refit reports Python requests but does not edit Python code yet; change it by hand to claude-opus-4-8.',
       '23 23 gemini-1.5-flash: Gemini is report only, so Refit never edits its models; change it by hand to gemini-2.5-flash.',
+      '2 2 gpt-4: `ChatOpenAI` is a LangChain chat model, which Refit reports but does not edit; change it by hand to gpt-5.6-sol.',
     ]);
     expect(proposal.unresolved.map((item) => `${item.file}:${item.line} ${item.reason}`)).toEqual([
       'app.py:24 No traced request sends it as its model; it is assigned to `UNUSED`. Check where it is used and change it by hand if it reaches the API.',

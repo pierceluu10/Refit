@@ -55,23 +55,25 @@ export async function pythonModelReports(
         : [];
       const reason = !to
         ? 'The registry names no concrete replacement model ID.'
-        : call.provider === 'gemini'
-          ? `Gemini is report only, so Refit never edits its models; change it by hand to ${to}.`
-          : !isTextCall(call)
-            ? `\`${name}\` is not a call Refit edits; ${to} may change formats or parameters; change it by hand to ${to}.`
-            : call.client.custom === 'a custom base URL' || call.client.custom === 'Azure OpenAI'
-              ? `The client sets a custom base URL, so the model may name another provider's model or a deployment; change it by hand to ${to}.`
-              : call.client.custom
-                ? `The client is set up for ${call.client.custom}, so the model may name a platform model ID; change it by hand to ${to}.`
-                : model.stop
-                  ? `${model.stop} Change it by hand to ${to}.`
-                  : literal.via !== 'literal'
-                    ? `The model reaches this request through ${literal.via}, which Refit reports but does not edit yet; change it by hand to ${to}.`
-                    : call.spread
-                      ? 'The request spreads other options, which may set parameters the replacement rejects.'
-                      : sensitive.length
-                        ? `The request sets ${sensitive.join(', ')}, which ${to} may reject or treat differently.`
-                        : `Refit reports Python requests but does not edit Python code yet; change it by hand to ${to}.`;
+        : call.resource === 'langchain'
+          ? `\`${call.method}\` is a LangChain chat model, which Refit reports but does not edit; change it by hand to ${to}.`
+          : call.provider === 'gemini'
+            ? `Gemini is report only, so Refit never edits its models; change it by hand to ${to}.`
+            : !isTextCall(call)
+              ? `\`${name}\` is not a call Refit edits; ${to} may change formats or parameters; change it by hand to ${to}.`
+              : call.client.custom === 'a custom base URL' || call.client.custom === 'Azure OpenAI'
+                ? `The client sets a custom base URL, so the model may name another provider's model or a deployment; change it by hand to ${to}.`
+                : call.client.custom
+                  ? `The client is set up for ${call.client.custom}, so the model may name a platform model ID; change it by hand to ${to}.`
+                  : model.stop
+                    ? `${model.stop} Change it by hand to ${to}.`
+                    : literal.via !== 'literal'
+                      ? `The model reaches this request through ${literal.via}, which Refit reports but does not edit yet; change it by hand to ${to}.`
+                      : call.spread
+                        ? 'The request spreads other options, which may set parameters the replacement rejects.'
+                        : sensitive.length
+                          ? `The request sets ${sensitive.join(', ')}, which ${to} may reject or treat differently.`
+                          : `Refit reports Python requests but does not edit Python code yet; change it by hand to ${to}.`;
       stops.push({
         deadline: entry.id,
         provider: entry.provider,
