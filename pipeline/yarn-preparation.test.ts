@@ -1,11 +1,11 @@
 import { execFile } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { randomUUID } from 'node:crypto';
-import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { chmod, cp, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { delimiter, join } from 'node:path';
 import { promisify } from 'node:util';
-import { afterEach, expect, it } from 'vitest';
+import { afterEach, expect, it, vi } from 'vitest';
 import { readCommittedRepository } from './committed-repository.ts';
 import { readPreparationInputs } from './dependency-inputs.ts';
 import { installTimeoutSeconds, prepareDependencies } from './dependency-preparation.ts';
@@ -17,6 +17,7 @@ const execute = promisify(execFile);
 const FIXTURES = 'pipeline/fixtures/yarn-locks';
 const roots: string[] = [];
 afterEach(async () => {
+  vi.unstubAllEnvs();
   await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
 });
 
@@ -624,4 +625,76 @@ it('accepts legacy npm package names with capitals in a Yarn 2+ lockfile', async
   expect(() =>
     validateBerryInputs(pinned, lock.replaceAll('JSONStream', '@Scope/JSONStream'), BERRY_RC),
   ).toThrow('Every Yarn 2+ lock entry must resolve an exact npm version with a checksum');
+});
+
+it('explains running out of installer space by package manager', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'refit-yarn-enospc-'));
+  roots.push(root);
+  await mkdir(join(root, 'bin'));
+  await writeFile(
+    join(root, 'bin', 'docker'),
+    `#!/usr/bin/env node
+const args = process.argv.slice(2);
+if (args[0] === 'image') { console.log('sha256:${'a'.repeat(64)}'); process.exit(0); }
+if (args[0] === 'run') { process.stderr.write('ENOSPC: no space left on device, write\\n'); process.exit(1); }
+`,
+  );
+  await chmod(join(root, 'bin', 'docker'), 0o755);
+  vi.stubEnv('PATH', join(root, 'bin') + delimiter + process.env.PATH);
+  const { manifest, berry } = await fixture();
+  const commit = async (name: string, files: Record<string, string>) => {
+    const repository = join(root, name);
+    await mkdir(repository);
+    for (const [path, content] of Object.entries(files))
+      await writeFile(join(repository, path), content);
+    await execute('git', ['init', '-q', repository]);
+    await execute('git', ['-C', repository, 'add', '.']);
+    await execute('git', [
+      '-C',
+      repository,
+      '-c',
+      'user.name=Refit Test',
+      '-c',
+      'user.email=test@example.invalid',
+      '-c',
+      'commit.gpgsign=false',
+      'commit',
+      '-q',
+      '-m',
+      'test: enospc',
+    ]);
+    return repository;
+  };
+  const berryRepository = await commit('berry', {
+    'package.json': JSON.stringify({ ...manifest, packageManager: 'yarn@4.9.2' }),
+    'yarn.lock': berry,
+    '.yarnrc.yml': BERRY_RC,
+  });
+  await expect(
+    prepareDependencies({
+      repository: berryRepository,
+      image: 'node:22-alpine',
+      cacheDirectory: join(root, 'cache'),
+    }),
+  ).rejects.toThrow(
+    'yarn dependency preparation ran out of space in its 2g workspace (ENOSPC). Yarn 2+ keeps a zip of every package in its cache beside the unpacked tree. An operator can set REFIT_VALIDATION_WORKSPACE=4g',
+  );
+  const npmRepository = await commit('npm', {
+    'package.json': '{"name":"app","version":"1.0.0"}',
+    'package-lock.json': JSON.stringify({
+      name: 'app',
+      version: '1.0.0',
+      lockfileVersion: 3,
+      packages: { '': { name: 'app', version: '1.0.0' } },
+    }),
+  });
+  await expect(
+    prepareDependencies({
+      repository: npmRepository,
+      image: 'node:22-alpine',
+      cacheDirectory: join(root, 'cache'),
+    }),
+  ).rejects.toThrow(
+    'npm dependency preparation ran out of space in its 2g workspace (ENOSPC). An operator can set REFIT_VALIDATION_WORKSPACE=4g',
+  );
 });

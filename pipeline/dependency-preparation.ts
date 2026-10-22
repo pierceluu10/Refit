@@ -290,7 +290,13 @@ async function installDependencies(
         `${inputs.manager} dependency preparation ran out of space in its ${workspace} workspace (ENOSPC).${
           workspace === '4g'
             ? ''
-            : " Yarn 1 also downloads other platforms' optional binaries. An operator can set REFIT_VALIDATION_WORKSPACE=4g (4 GiB workspace, 5 GiB container memory) on a host with memory to spare."
+            : `${
+                inputs.manager !== 'yarn'
+                  ? ''
+                  : inputs.managerVersion?.startsWith('1.')
+                    ? " Yarn 1 also downloads other platforms' optional binaries."
+                    : ' Yarn 2+ keeps a zip of every package in its cache beside the unpacked tree.'
+              } An operator can set REFIT_VALIDATION_WORKSPACE=4g (4 GiB workspace, 5 GiB container memory) on a host with memory to spare.`
         }`,
       );
     if (result.code !== 0)
