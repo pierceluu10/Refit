@@ -165,7 +165,7 @@ The first matching rule wins, in that order. A repository where a detector error
 - **Run:** Refit commit `ab0cb9a` on this branch, a clean tree that is `main` at `7b2c86a` plus only this benchmark's scripts, labels and docs, so detection code is identical to `main`. Command: `node scripts/inventory-benchmark.mjs --root <checkouts> --results <results.json> --score <score.json>`, written outside the repository and copied in afterwards so the tree stayed clean during the run. A first run at `2a3ae60`, before per-detector error handling, produced identical detections. Rescore without rerunning: `node scripts/inventory-benchmark.mjs --results docs/benchmarks/2026-10-22-inventory-results.json`.
 - **Detectors run:** `refit agents --json` (`detectProviders`) and `refit deadlines --json`, the two detectors on `main` that name providers.
 - **Files:** [results](benchmarks/2026-10-22-inventory-results.json) (every detection with its files) and [score](benchmarks/2026-10-22-inventory-score.json) (every true positive, false positive and false negative, with its category).
-- **Labels:** these numbers use the labels exactly as committed before the run. The one correction is scored separately under "Label corrections".
+- **Labels:** these numbers use the labels exactly as committed before the run. The later corrections are scored separately under "Label corrections".
 
 ### Headline
 
@@ -246,20 +246,28 @@ So 5 of the 6 are real Refit false positives, from three mechanisms:
 
 ### Label corrections
 
-Reading Refit's output turned up one labelling mistake. It is fixed in its own commit, after the results were committed:
+Two rounds of corrections were made after the results were committed. Each is in its own commit, and the tables above keep the numbers from the labels as committed.
 
-- **`evanbaker315/AttentionOS`:** add `meta-graph`, `http`, host `graph.facebook.com`, at `packages/providers/scrape-iggraph/src/index.ts:124`. That line sets the default Graph host the client sends requests to.
+1. **Found by reading Refit's output (`25a4898`): `evanbaker315/AttentionOS`.** Added `meta-graph`, `http`, host `graph.facebook.com`, at `packages/providers/scrape-iggraph/src/index.ts:124`. The Instagram Graph API client uses that default host, written as a bare string with no scheme. My candidate search only finds hosts that follow a scheme, so I missed it.
+2. **Second labelling pass.** It was prompted by an FG4 branch detection (`api.apify.com` in `Affitor/open-affiliate`). The cause was mine: my summary viewer cut off long host lists, so I never saw that host. The second pass then listed every API-like production host in every candidate summary that had no label (`api.*`, `graph.*`, `oauth2.*`, `hooks.*` and similar) and reviewed each one by the guide. It added 5 labels in 3 repositories:
+   - `Affitor/open-affiliate`: `apify`, `api.apify.com`, at `src/lib/social.ts:103`.
+   - `MTES-MCT/acceslibre`: a second `api-gouv` host, `recherche-entreprises.api.gouv.fr`, at `erp/provider/entreprise.py:13`. The pair already existed.
+   - `juicedata/juicefs`: object-store backends that talk HTTP or the S3 client instead of a provider SDK:
+     - `bunny` (`pkg/object/bunny.go:34`);
+     - `qingcloud`, QingStor through the S3 client (`pkg/object/qingstor.go:34`);
+     - `ucloud` (`pkg/object/ufile.go:115`).
 
-| Scope | Labels as committed before the run | With the correction |
-|---|---|---|
-| Catalog providers, precision | 82.4% (28/34) | 85.3% (29/34) |
-| Catalog providers, recall | 56% (28/50) | 56.9% (29/51) |
-| Every labelled provider, recall | 6.8% (28/414) | 7% (29/415) |
-| `meta-graph`, precision and recall | 0% (0/1), n/a | 100% (1/1), 100% (1/1) |
+   The juicefs B2, Storj, EOS and OOS backends were left unlabelled: their code does not name a provider host I could confirm.
 
-The corrected score is in [`2026-10-22-inventory-score-corrected.json`](benchmarks/2026-10-22-inventory-score-corrected.json). The tables above keep the numbers from the labels as committed.
+| Scope | Labels as committed before the run | After correction 1 | After both |
+|---|---|---|---|
+| Catalog providers, precision | 82.4% (28/34) | 85.3% (29/34) | 85.3% (29/34) |
+| Catalog providers, recall | 56% (28/50) | 56.9% (29/51) | 56.9% (29/51) |
+| Every labelled provider, recall | 6.8% (28/414) | 7% (29/415) | 6.9% (29/419) |
 
-The correction exposes a gap in the labelling method: hosts written without a scheme were found only by reading. Refit's `detectProviders` matches bare hostnames, so for catalog providers this blind spot is covered by Refit's own output. For uncatalogued providers it may still hide misses, which would make the 6.8% overall recall slightly optimistic.
+The score with both corrections is in [`2026-10-22-inventory-score-corrected.json`](benchmarks/2026-10-22-inventory-score-corrected.json).
+
+**What the corrections show about the labelling method.** Hosts written without a scheme, and hosts in very long candidate lists, were found only by reading. For catalog providers, Refit's own bare-hostname matching covers the first gap. For uncatalogued providers there may be more misses of both kinds, so the overall recall is an upper bound by a small margin.
 
 ### What this measures and what it does not
 

@@ -3557,6 +3557,17 @@
           "line": 19,
           "monorepo": false,
           "notes": "Turnstile widget"
+        },
+        {
+          "provider": "apify",
+          "via": "http",
+          "package": null,
+          "host": "api.apify.com",
+          "language": "typescript",
+          "file": "src/lib/social.ts",
+          "line": 103,
+          "monorepo": false,
+          "notes": "Google search scraper Actor (label correction, second pass)"
         }
       ]
     },
@@ -4301,6 +4312,17 @@
           "line": 494,
           "monorepo": false,
           "notes": "Matomo Cloud analytics configured for templates"
+        },
+        {
+          "provider": "api-gouv",
+          "via": "http",
+          "package": null,
+          "host": "recherche-entreprises.api.gouv.fr",
+          "language": "python",
+          "file": "erp/provider/entreprise.py",
+          "line": 13,
+          "monorepo": false,
+          "notes": "company search API (label correction, second pass)"
         }
       ]
     },
@@ -5729,6 +5751,39 @@
           "line": 27,
           "monorepo": false,
           "notes": "Wasabi through the S3 client"
+        },
+        {
+          "provider": "bunny",
+          "via": "sdk",
+          "package": "github.com/l0wl3vel/bunny-storage-go-sdk",
+          "host": null,
+          "language": "go",
+          "file": "pkg/object/bunny.go",
+          "line": 34,
+          "monorepo": false,
+          "notes": "Bunny Storage object store (label correction, second pass)"
+        },
+        {
+          "provider": "qingcloud",
+          "via": "sdk",
+          "package": "github.com/aws/aws-sdk-go-v2/aws",
+          "host": null,
+          "language": "go",
+          "file": "pkg/object/qingstor.go",
+          "line": 34,
+          "monorepo": false,
+          "notes": "QingStor through the S3 client (label correction, second pass)"
+        },
+        {
+          "provider": "ucloud",
+          "via": "http",
+          "package": null,
+          "host": "api.ucloud.cn",
+          "language": "go",
+          "file": "pkg/object/ufile.go",
+          "line": 115,
+          "monorepo": false,
+          "notes": "UCloud UFile API (label correction, second pass)"
         }
       ]
     },

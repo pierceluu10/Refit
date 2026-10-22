@@ -61,7 +61,7 @@
   "allProviders": {
     "truePositives": 29,
     "falsePositives": 5,
-    "falseNegatives": 386,
+    "falseNegatives": 390,
     "precision": {
       "k": 29,
       "n": 34,
@@ -71,10 +71,10 @@
     },
     "recall": {
       "k": 29,
-      "n": 415,
-      "rate": 7,
+      "n": 419,
+      "rate": 6.9,
       "low": 4.9,
-      "high": 9.9
+      "high": 9.8
     }
   },
   "byGroup": {
@@ -101,7 +101,7 @@
       "allProviders": {
         "truePositives": 0,
         "falsePositives": 0,
-        "falseNegatives": 44,
+        "falseNegatives": 47,
         "precision": {
           "k": 0,
           "n": 0,
@@ -111,10 +111,10 @@
         },
         "recall": {
           "k": 0,
-          "n": 44,
+          "n": 47,
           "rate": 0,
           "low": 0,
-          "high": 8
+          "high": 7.6
         }
       }
     },
@@ -141,7 +141,7 @@
       "allProviders": {
         "truePositives": 28,
         "falsePositives": 5,
-        "falseNegatives": 248,
+        "falseNegatives": 249,
         "precision": {
           "k": 28,
           "n": 33,
@@ -151,10 +151,10 @@
         },
         "recall": {
           "k": 28,
-          "n": 276,
+          "n": 277,
           "rate": 10.1,
           "low": 7.1,
-          "high": 14.3
+          "high": 14.2
         }
       }
     },
@@ -200,8 +200,8 @@
     }
   },
   "missesByCategory": {
-    "language not supported": 155,
-    "provider not in catalog": 210,
+    "language not supported": 158,
+    "provider not in catalog": 211,
     "raw HTTP": 0,
     "monorepo": 0,
     "other": 21
@@ -431,7 +431,7 @@
       "inCatalog": false,
       "truePositives": 0,
       "falsePositives": 0,
-      "falseNegatives": 3,
+      "falseNegatives": 4,
       "precision": {
         "k": 0,
         "n": 0,
@@ -441,10 +441,10 @@
       },
       "recall": {
         "k": 0,
-        "n": 3,
+        "n": 4,
         "rate": 0,
         "low": 0,
-        "high": 56.2
+        "high": 49
       }
     },
     "apple": {
@@ -948,6 +948,26 @@
       }
     },
     "browser-use": {
+      "inCatalog": false,
+      "truePositives": 0,
+      "falsePositives": 0,
+      "falseNegatives": 1,
+      "precision": {
+        "k": 0,
+        "n": 0,
+        "rate": null,
+        "low": null,
+        "high": null
+      },
+      "recall": {
+        "k": 0,
+        "n": 1,
+        "rate": 0,
+        "low": 0,
+        "high": 79.3
+      }
+    },
+    "bunny": {
       "inCatalog": false,
       "truePositives": 0,
       "falsePositives": 0,
@@ -3307,6 +3327,26 @@
         "high": 79.3
       }
     },
+    "qingcloud": {
+      "inCatalog": false,
+      "truePositives": 0,
+      "falsePositives": 0,
+      "falseNegatives": 1,
+      "precision": {
+        "k": 0,
+        "n": 0,
+        "rate": null,
+        "low": null,
+        "high": null
+      },
+      "recall": {
+        "k": 0,
+        "n": 1,
+        "rate": 0,
+        "low": 0,
+        "high": 79.3
+      }
+    },
     "qiniu": {
       "inCatalog": false,
       "truePositives": 0,
@@ -3869,6 +3909,26 @@
     },
     "twilio": {
       "inCatalog": true,
+      "truePositives": 0,
+      "falsePositives": 0,
+      "falseNegatives": 1,
+      "precision": {
+        "k": 0,
+        "n": 0,
+        "rate": null,
+        "low": null,
+        "high": null
+      },
+      "recall": {
+        "k": 0,
+        "n": 1,
+        "rate": 0,
+        "low": 0,
+        "high": 79.3
+      }
+    },
+    "ucloud": {
+      "inCatalog": false,
       "truePositives": 0,
       "falsePositives": 0,
       "falseNegatives": 1,
@@ -6704,6 +6764,17 @@
     {
       "repo": "Affitor/open-affiliate",
       "group": "js-ts",
+      "provider": "apify",
+      "inCatalog": false,
+      "files": [
+        "src/lib/social.ts:103"
+      ],
+      "category": "provider not in catalog",
+      "detail": "apify"
+    },
+    {
+      "repo": "Affitor/open-affiliate",
+      "group": "js-ts",
       "provider": "cloudflare",
       "inCatalog": false,
       "files": [
@@ -7175,7 +7246,8 @@
       "provider": "api-gouv",
       "inCatalog": false,
       "files": [
-        "erp/provider/public_erp.py:14"
+        "erp/provider/public_erp.py:14",
+        "erp/provider/entreprise.py:13"
       ],
       "category": "language not supported",
       "detail": "python"
@@ -8321,6 +8393,17 @@
     {
       "repo": "juicedata/juicefs",
       "group": "go",
+      "provider": "bunny",
+      "inCatalog": false,
+      "files": [
+        "pkg/object/bunny.go:34"
+      ],
+      "category": "language not supported",
+      "detail": "go"
+    },
+    {
+      "repo": "juicedata/juicefs",
+      "group": "go",
       "provider": "google-cloud",
       "inCatalog": false,
       "files": [
@@ -8365,6 +8448,17 @@
     {
       "repo": "juicedata/juicefs",
       "group": "go",
+      "provider": "qingcloud",
+      "inCatalog": false,
+      "files": [
+        "pkg/object/qingstor.go:34"
+      ],
+      "category": "language not supported",
+      "detail": "go"
+    },
+    {
+      "repo": "juicedata/juicefs",
+      "group": "go",
       "provider": "qiniu",
       "inCatalog": false,
       "files": [
@@ -8391,6 +8485,17 @@
       "inCatalog": false,
       "files": [
         "pkg/object/cos.go:37"
+      ],
+      "category": "language not supported",
+      "detail": "go"
+    },
+    {
+      "repo": "juicedata/juicefs",
+      "group": "go",
+      "provider": "ucloud",
+      "inCatalog": false,
+      "files": [
+        "pkg/object/ufile.go:115"
       ],
       "category": "language not supported",
       "detail": "go"
