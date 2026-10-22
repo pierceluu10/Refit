@@ -7,6 +7,7 @@ import { scanDeadlines } from '../deadline-exposure.ts';
 import type { DeadlineEntry, DeadlineRegistry } from '../deadline-registry.ts';
 import { proposeModelReplacements } from '../model-retirements.ts';
 import { tracePythonModelCalls, traceFiles } from './models.ts';
+import type { TracerStop } from '../tree-sitter.ts';
 import { GRAMMAR, GRAMMAR_SHA256, readPythonFiles, withPythonTrees } from './syntax.ts';
 
 const roots: string[] = [];
@@ -584,9 +585,16 @@ other.chat.completions.create(model="gpt-4", messages=[])
     expect(trace.calls.map((call) => call.file)).toEqual(['app.py']);
   });
 
-  it('refuses Python sources past the scan limits instead of dropping them', async () => {
-    const root = await repository({ 'big.py': `x = 1\n${'#'.repeat(2 * 1024 * 1024)}\n` });
-    await expect(readPythonFiles(root)).rejects.toThrow(/exceed scan limits/);
+  it('never drops a Python file past the size limit silently', async () => {
+    const root = await repository({
+      'big.py': `x = 1\n${'#'.repeat(2 * 1024 * 1024)}\n`,
+      'small.py': 'x = 1\n',
+    });
+    // Without a stop list it refuses; with one it names the file and reads the rest.
+    await expect(readPythonFiles(root)).rejects.toThrow(/big\.py is \d+ bytes, over the/);
+    const stops: TracerStop[] = [];
+    expect((await readPythonFiles(root, stops)).map((file) => file.path)).toEqual(['small.py']);
+    expect(stops.map((stop) => [stop.file, stop.code])).toEqual([['big.py', 'file-too-large']]);
   });
 
   it('keeps trees alive until an async callback finishes', async () => {

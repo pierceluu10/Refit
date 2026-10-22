@@ -1,5 +1,6 @@
 import type { DeadlineUse } from '../deadline-exposure.ts';
 import { PYTHON_TEST_PATH, stringValue } from './models.ts';
+import type { TracerStop } from '../tree-sitter.ts';
 import { withPythonTrees, type Node, type PythonFile } from './syntax.ts';
 
 // How a quoted model ID in Python code is used, with the classes and rules of the TypeScript
@@ -232,6 +233,7 @@ export async function pythonModelMatches(
   models: Map<string, string>,
   // The model test for a list holding a match of the given provider (`listModel`).
   isModel: (provider: string) => (value: string) => boolean,
+  stops?: TracerStop[],
 ): Promise<PythonModelMatch[]> {
   const candidates = files.filter((file) =>
     [...models.keys()].some(
@@ -242,40 +244,44 @@ export async function pythonModelMatches(
     ),
   );
   if (!candidates.length) return [];
-  return withPythonTrees(candidates, (tree) => {
-    const matches: PythonModelMatch[] = [];
-    for (const file of candidates) {
-      const root = tree(file.path)?.rootNode;
-      if (!root) continue;
-      let offset = 0;
-      for (const [index, line] of file.content.split('\n').entries()) {
-        const found: { version: string; column: number }[] = [];
-        for (const match of line.matchAll(/(['"])([a-z0-9][a-z0-9.-]*)\1/dg))
-          if (models.has(match[2]))
-            found.push({ version: match[2], column: match.indices![2]![0] });
-        for (const match of line.matchAll(/(['"])models\/([a-z0-9][a-z0-9.-]*)\1/dg))
-          if (models.get(match[2]) === 'gemini')
-            found.push({ version: match[2], column: match.indices![2]![0] });
-        for (const { version, column } of found) {
-          let node: Node | null = root.descendantForIndex(offset + column);
-          while (node && node.type !== 'string' && node.type !== 'comment') node = node.parent;
-          const use =
-            node?.type === 'string'
-              ? literalUse(node, file.path, version, isModel(models.get(version)!))
-              : 'comment';
-          matches.push({
-            file: file.path,
-            line: index + 1,
-            version,
-            provider: models.get(version)!,
-            use,
-            text: line.trim(),
-            ...(use === 'live' && node ? { where: holder(node) } : {}),
-          });
+  return withPythonTrees(
+    candidates,
+    (tree) => {
+      const matches: PythonModelMatch[] = [];
+      for (const file of candidates) {
+        const root = tree(file.path)?.rootNode;
+        if (!root) continue;
+        let offset = 0;
+        for (const [index, line] of file.content.split('\n').entries()) {
+          const found: { version: string; column: number }[] = [];
+          for (const match of line.matchAll(/(['"])([a-z0-9][a-z0-9.-]*)\1/dg))
+            if (models.has(match[2]))
+              found.push({ version: match[2], column: match.indices![2]![0] });
+          for (const match of line.matchAll(/(['"])models\/([a-z0-9][a-z0-9.-]*)\1/dg))
+            if (models.get(match[2]) === 'gemini')
+              found.push({ version: match[2], column: match.indices![2]![0] });
+          for (const { version, column } of found) {
+            let node: Node | null = root.descendantForIndex(offset + column);
+            while (node && node.type !== 'string' && node.type !== 'comment') node = node.parent;
+            const use =
+              node?.type === 'string'
+                ? literalUse(node, file.path, version, isModel(models.get(version)!))
+                : 'comment';
+            matches.push({
+              file: file.path,
+              line: index + 1,
+              version,
+              provider: models.get(version)!,
+              use,
+              text: line.trim(),
+              ...(use === 'live' && node ? { where: holder(node) } : {}),
+            });
+          }
+          offset += line.length + 1;
         }
-        offset += line.length + 1;
       }
-    }
-    return matches;
-  });
+      return matches;
+    },
+    stops,
+  );
 }

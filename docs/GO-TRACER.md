@@ -38,4 +38,4 @@ On the whole set (32 repositories, 25c1613): 216 traced calls in 29 repositories
 
 ## Not covered
 
-Code generation templates, `vendor/` and `testdata/`, `_test.go` files, other Go SDKs (go-openai by sashabaranov, langchaingo, Bedrock through the AWS SDK), raw HTTP requests and `go.work` workspaces. Files past 2 MiB, 10,000 files or 50 MiB per repository are skipped.
+Code generation templates, `vendor/` and `testdata/`, `_test.go` files, other Go SDKs (go-openai by sashabaranov, langchaingo, Bedrock through the AWS SDK), raw HTTP requests and `go.work` workspaces. A file past 2 MiB is a named stop (`file-too-large`), and past 10,000 files or 50 MiB per repository the whole language is one (`scan-limits`). Parse-time, node-count and depth limits stop a file the same way; see [Rules every tracer must satisfy](ARCHITECTURE.md#rules-every-tracer-must-satisfy).

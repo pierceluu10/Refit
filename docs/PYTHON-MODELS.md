@@ -55,4 +55,4 @@ Exposure on the frozen sets at eb781f6 with the current registry: 9 of the 50 SD
 
 ## Not covered
 
-Jupyter notebooks, `.pyi` stubs, other Python SDKs (litellm, the deprecated `google-generativeai`, Vertex AI's SDK, Bedrock through boto3), raw HTTP requests, and package manifests (`requirements.txt`, `pyproject.toml`: lane FG5). Files past 2 MiB, 10,000 files or 50 MiB per repository are skipped.
+Jupyter notebooks, `.pyi` stubs, other Python SDKs (litellm, the deprecated `google-generativeai`, Vertex AI's SDK, Bedrock through boto3), raw HTTP requests, and package manifests (`requirements.txt`, `pyproject.toml`: lane FG5). A file past 2 MiB is a named stop (`file-too-large`), and past 10,000 files or 50 MiB per repository the whole language is one (`scan-limits`). Parse-time, node-count and depth limits stop a file the same way; see [Rules every tracer must satisfy](ARCHITECTURE.md#rules-every-tracer-must-satisfy).

@@ -3,6 +3,7 @@ import type { DeadlineEntry, DeadlineRegistry } from '../deadline-registry.ts';
 import type { ModelReplacementStop, ModelReplacementUnresolved } from '../model-retirements.ts';
 import { isTextCall, PYTHON_SDKS, PYTHON_TEST_PATH, traceFiles } from './models.ts';
 import { pythonModelMatches } from './model-uses.ts';
+import type { TracerStop } from '../tree-sitter.ts';
 import { readPythonFiles } from './syntax.ts';
 
 const PROVIDERS = new Set(PYTHON_SDKS.map((sdk) => sdk.provider));
@@ -27,6 +28,7 @@ export async function pythonModelReports(
   directory: string,
   registry: DeadlineRegistry,
   rules: ModelRules,
+  tracerStops?: TracerStop[],
 ): Promise<{ stops: ModelReplacementStop[]; unresolved: ModelReplacementUnresolved[] }> {
   const byProvider = new Map<string, Map<string, DeadlineEntry>>();
   for (const entry of registry.deadlines)
@@ -36,10 +38,10 @@ export async function pythonModelReports(
       for (const version of entry.versions) models.set(version, entry);
     }
   if (!byProvider.size) return { stops: [], unresolved: [] };
-  const files = await readPythonFiles(directory);
+  const files = await readPythonFiles(directory, tracerStops);
   const stops: ModelReplacementStop[] = [];
   const covered = new Set<string>();
-  for (const call of await traceFiles(files)) {
+  for (const call of await traceFiles(files, tracerStops)) {
     const models = byProvider.get(call.provider);
     if (!models || PYTHON_TEST_PATH.test(call.file)) continue;
     const model = call.arguments.model;
@@ -93,7 +95,7 @@ export async function pythonModelReports(
   );
   const check = 'Check where it is used and change it by hand if it reaches the API.';
   const unresolved: ModelReplacementUnresolved[] = [];
-  const matches = await pythonModelMatches(files, all, listModel(all));
+  const matches = await pythonModelMatches(files, all, listModel(all), tracerStops);
   for (const match of matches) {
     if (match.use !== 'live' || covered.has(`${match.file}:${match.line}`)) continue;
     covered.add(`${match.file}:${match.line}`);

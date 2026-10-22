@@ -870,7 +870,12 @@ it('counts every non-live match by use before the evidence cap', async () => {
     classifying,
     NOW,
   );
-  expect(none).toEqual({ exposures: [], mentions: [], apiHosts: { hosts: [], excluded: {} } });
+  expect(none).toEqual({
+    exposures: [],
+    mentions: [],
+    stops: [],
+    apiHosts: { hosts: [], excluded: {} },
+  });
 });
 
 it('classifies each of two matches on one line, and a live match hides non-live ones of its own version', async () => {
