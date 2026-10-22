@@ -75,16 +75,16 @@ Of the 54 scanned repositories (`docs/benchmarks/2026-10-22-cloud-sdk-results.js
 
 25 repositories were labelled blind (`docs/benchmarks/2026-10-22-cloud-sdk-labels.json`): a seeded sample of 12 v2, 7 v3 and 6 Azure repositories, with `DefinitelyTyped/DefinitelyTyped` replaced by the next seeded v3 pick because its file count, counted before any scan, is over Refit's limit. Candidates came from `scripts/cloud-sdk-label-candidates.mjs`, an independent text search that imports no pipeline code: every `new …` in a live file that names `aws-sdk` (built-ins and v3 `…Command` objects aside), every `new AWS.…` anywhere, and every quoted legacy Azure package. Four fresh-context labelling agents read the 370 candidates against written rules, never seeing Refit output, and the labels were committed before Refit scanned any labelled repository. It is one AI-assisted pass; 12 labels were spot-checked against the code, and none was second-labelled.
 
-113 candidates are client or load sites. Two labelled repositories exceeded the scan limits (`payloadcms/payload`, `DataDog/serverless-plugin-datadog`; 7 labelled v3 sites), so 106 sites in 23 repositories are scored:
+113 candidates are client or load sites. Two labelled repositories exceeded the scan limits (`payloadcms/payload`, `DataDog/serverless-plugin-datadog`; 7 labelled v3 sites). Failed scans stay in the denominator, so those 7 sites count as misses and 113 sites in 25 repositories are scored. The committed results file's `score` excludes them (106):
 
-| SDK          | Labelled sites | Reported | True positives | Precision |   Recall |
-| ------------ | -------------: | -------: | -------------: | --------: | -------: |
-| AWS SDK v2   |             19 |       19 |             19 |      100% |     100% |
-| AWS SDK v3   |             76 |       76 |             76 |      100% |     100% |
-| Legacy Azure |             11 |       11 |             11 |      100% |     100% |
-| **All**      |        **106** |  **106** |        **106** |  **100%** | **100%** |
+| SDK          | Labelled sites | Reported | True positives | Precision |    Recall |
+| ------------ | -------------: | -------: | -------------: | --------: | --------: |
+| AWS SDK v2   |             19 |       19 |             19 |      100% |      100% |
+| AWS SDK v3   |             83 |       76 |             76 |      100% |     91.6% |
+| Legacy Azure |             11 |       11 |             11 |      100% |      100% |
+| **All**      |        **113** |  **106** |        **106** |  **100%** | **93.8%** |
 
-Every reported service matched its label. Per service, every row is at 100% precision and recall: v2 DynamoDB 5 sites, S3 4, IAM 3, and ACM, CloudFormation, CloudFront, CostExplorer, Lambda, SSO and STS 1 each; v3 21 client packages from 1 site (several) to 16 (`@aws-sdk/client-cloudformation`); Azure `azure-storage` 8 and three other packages 1 each; per-service rows are in the `score.byService` field of the results file. The scorer compares the service only; the v3 replacement packages are not scored. These are small counts: a 100% on 19 v2 sites says the forms in this sample are covered, not that every form is.
+Every reported service matched its label. Among scanned repositories, every service row is at 100% precision and recall: v2 DynamoDB 5 sites, S3 4, IAM 3, and ACM, CloudFormation, CloudFront, CostExplorer, Lambda, SSO and STS 1 each; v3 21 client packages from 1 site (several) to 16 (`@aws-sdk/client-cloudformation`); Azure `azure-storage` 8 and three other packages 1 each; per-service rows are in the `score.byService` field of the results file. The scorer compares the service only; the v3 replacement packages are not scored. These are small counts: a 100% on 19 v2 sites says the forms in this sample are covered, not that every form is.
 
 Recall is measured inside the candidate net. A client built in a file that names neither `aws-sdk` nor `AWS.` is outside both the net and the detector. The sample has one such repository outside the labelled set: `motdotla/node-lambda` exports the SDK from `lib/aws.js` (`sdk: aws`) and passes it to constructors that call `new aws.Lambda()` and `new aws.S3()` on the parameter. Following an SDK object across modules and through parameters is not implemented; the manifest entry still reports the repository.
 

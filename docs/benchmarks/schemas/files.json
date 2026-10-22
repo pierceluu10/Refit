@@ -109,6 +109,10 @@
       "format": "auth-backend-results",
       "predates": []
     },
+    "2026-10-22-cloud-sdk-results.json": {
+      "format": "cloud-sdk-results",
+      "predates": []
+    },
     "2026-10-22-cloudflare-baseline-results.json": {
       "format": "cloudflare-results",
       "predates": []

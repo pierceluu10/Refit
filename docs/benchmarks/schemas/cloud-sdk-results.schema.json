@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Cloud SDK client inventory results",
+  "description": "Written by scripts/cloud-sdk-benchmark.mjs: the AWS SDK v2 and v3 clients and legacy Azure SDK packages `refit cloud-sdk` lists per repository of a frozen list, with scripts/cloud-sdk-score.mjs's score against the labels. `refit` was recorded by hand for this run. A repository that could not be scanned has `error`.",
+  "type": "object",
+  "required": ["formatVersion", "list", "checkedAt", "summary", "results"],
+  "properties": {
+    "formatVersion": { "const": 1 },
+    "list": { "type": "string" },
+    "checkedAt": { "$ref": "common.schema.json#/$defs/time" },
+    "summary": { "type": "object" },
+    "score": { "type": "object" },
+    "refit": {
+      "type": "object",
+      "required": ["commit"],
+      "properties": {
+        "commit": { "$ref": "common.schema.json#/$defs/shortCommit" },
+        "note": { "type": "string" }
+      }
+    },
+    "results": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["repo", "commit", "status"],
+        "properties": {
+          "repo": { "$ref": "common.schema.json#/$defs/repo" },
+          "commit": { "$ref": "common.schema.json#/$defs/commit" },
+          "group": { "type": "string" },
+          "declared": { "type": "object" },
+          "status": { "type": "string" },
+          "clients": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "$ref": "common.schema.json#/$defs/location",
+              "required": ["sdk", "service", "name", "use"],
+              "properties": {
+                "sdk": { "type": "string" },
+                "service": { "type": "string" },
+                "name": { "type": "string" },
+                "form": { "type": "string" },
+                "replacement": { "type": ["array", "null"], "items": { "type": "string" } },
+                "deadline": { "type": ["object", "null"] },
+                "use": { "type": "string" }
+              }
+            }
+          },
+          "services": { "type": "array", "items": { "type": "object" } },
+          "warnings": { "type": "array", "items": { "type": "string" } },
+          "error": { "type": "string" }
+        }
+      }
+    }
+  }
+}
