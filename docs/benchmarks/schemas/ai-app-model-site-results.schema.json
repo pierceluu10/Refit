@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "AI application model-site detection results",
+  "description": "Written by `node scripts/ai-app-precision.mjs run`: the `refit deadlines --json` exposures and mentions of each repository, keyed by repository, with the clean Refit commit the run used.",
+  "type": "object",
+  "required": ["formatVersion", "ranAt", "refit", "seed", "results"],
+  "properties": {
+    "formatVersion": { "type": "integer" },
+    "ranAt": { "type": "string" },
+    "refit": {
+      "type": "object",
+      "required": ["commit", "clean"],
+      "properties": { "commit": { "type": "string" }, "clean": { "type": "boolean" } }
+    },
+    "seed": { "type": "integer" },
+    "results": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["set", "checkedAt", "exposures", "mentions", "ignores"],
+        "properties": {
+          "set": { "type": "string" },
+          "checkedAt": { "type": "string" },
+          "exposures": { "type": "array", "items": { "$ref": "#/$defs/exposure" } },
+          "mentions": { "type": "array", "items": { "$ref": "#/$defs/exposure" } },
+          "ignores": { "type": "object" }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "exposure": {
+      "type": "object",
+      "required": ["deadline", "days", "evidence"],
+      "properties": {
+        "deadline": {
+          "type": "object",
+          "required": ["id", "provider", "date"],
+          "properties": {
+            "id": { "type": "string" },
+            "provider": { "type": "string" },
+            "date": { "type": "string" }
+          }
+        },
+        "days": { "type": "integer" },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["file", "line", "kind", "use"],
+            "properties": {
+              "file": { "type": "string" },
+              "line": { "type": "integer" },
+              "kind": { "type": "string" },
+              "use": { "type": "string" }
+            }
+          }
+        }
+      }
+    }
+  }
+}

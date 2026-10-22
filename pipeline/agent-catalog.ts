@@ -5,6 +5,7 @@ import { repositoryApiVersionPins, type ApiVersionPin } from './commerce-api-ver
 import { declaredPackageNames, readRepository } from './repository.ts';
 import { parseObject } from './specifications.ts';
 import { PipelineInputError, type Repository } from './types.ts';
+import { contractCommand } from './contract-commands.ts';
 
 const PLACEHOLDER_TEST = /no test specified/;
 const LOCKFILES = ['package-lock.json', 'pnpm-lock.yaml', 'yarn.lock'];
@@ -602,17 +603,12 @@ export function addAgents(options: {
     });
     added.push(id);
     nextSteps.push(
-      `Save reviewed ${detection.agent.name} contracts at refit/${id}-before.json and refit/${id}-after.json` +
-        (id === 'stripe'
-          ? ' (refit stripe-snapshot --revision <sha> --output …).'
-          : id === 'shopify'
-            ? ' (refit shopify-snapshot --version <pinned version, or 2026-01 if older> --output … and --version <target>).'
-            : ' (refit source-snapshot …).'),
+      `Save reviewed ${detection.agent.name} contracts: ${contractCommand(id, 'before', `refit/${id}-before.json`)} and ${contractCommand(id, 'after', `refit/${id}-after.json`)}.`,
     );
   }
   if (added.length)
     nextSteps.push(
-      'Review the check command, then run refit doctor. Nothing runs until you approve the configuration with refit enroll.',
+      'Review the check command in .refit.json, commit .refit.json and the contracts, then run refit doctor. The GitHub App runs nothing until you approve the configuration with refit enroll.',
     );
   return {
     configuration: { formatVersion: 2, integrations },

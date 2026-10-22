@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { parseArgs, promisify } from 'node:util';
 import { runWorkflow } from './workflow.ts';
 import { PipelineInputError } from './types.ts';
+import { cliErrorMessage } from './cli-errors.ts';
 
 const execute = promisify(execFile);
 const DEMO_API_VERSION = '2022-08-01';
@@ -120,6 +121,6 @@ try {
   }
 } catch (error) {
   if (!(error instanceof Error)) throw error;
-  console.error(`${error.name}: ${error.message}`);
+  console.error(cliErrorMessage(error, 'demo'));
   process.exitCode = 1;
 }
