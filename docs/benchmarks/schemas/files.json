@@ -69,6 +69,10 @@
       "format": "agent-comparison-results",
       "predates": []
     },
+    "2026-10-21-anthropic-app-results.json": {
+      "format": "ai-model-results",
+      "predates": ["/harness", "/results/*/outcomeClass"]
+    },
     "2026-10-21-anthropic-results.json": {
       "format": "ai-model-results",
       "predates": ["/harness", "/results/*/outcomeClass"]
@@ -78,6 +82,10 @@
       "predates": []
     },
     "2026-10-21-model-replacement-results.json": {
+      "format": "ai-model-results",
+      "predates": ["/harness", "/results/*/outcomeClass"]
+    },
+    "2026-10-21-openai-app-results.json": {
       "format": "ai-model-results",
       "predates": ["/harness", "/results/*/outcomeClass"]
     },
