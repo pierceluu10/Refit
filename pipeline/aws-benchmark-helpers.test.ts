@@ -277,14 +277,24 @@ it('warns about --validate runs only on instances under 8 GiB', () => {
   expect(memoryWarning('refit run --validated-only', 'c7i.large', 4096)).toBeUndefined();
 });
 
-// Runs `launch` of `command` against a fake `aws` on PATH whose instance type has `memoryMib` and
-// which answers the dry run with `dryRun`. Returns every call, the uploaded run.json and how the
-// script ended.
-async function fakeLaunch(dryRun: string, command = 'true', memoryMib = 16384) {
+// Runs aws-benchmark.mjs with `args` against a fake `aws` on PATH that logs every call. Its
+// instance type has `memoryMib`, it answers the launch dry run with `dryRun`, and with `existing`
+// it serves that run.json for run fake-1 with shard 1 failed. Returns every call, the run.json
+// uploaded, if any, and how the script ended.
+async function fakeAws(
+  args: string[],
+  {
+    dryRun,
+    memoryMib = 16384,
+    existing,
+  }: { dryRun: string; memoryMib?: number; existing?: object },
+) {
   const bin = await mkdtemp(join(tmpdir(), 'refit-fake-aws-'));
   const log = join(bin, 'calls.log');
-  const runFile = join(bin, 'run.json');
+  const uploadedRun = join(bin, 'uploaded-run.json');
+  const existingRun = join(bin, 'existing-run.json');
   try {
+    if (existing) await writeFile(existingRun, JSON.stringify(existing));
     await writeFile(
       join(bin, 'aws'),
       `#!/bin/sh
@@ -299,64 +309,70 @@ case "$*" in
   "ssm get-parameter"*) echo '{"Parameter":{"Value":"ami-1"}}' ;;
   "ec2 run-instances --dry-run"*) echo "$AWS_DRY_RUN" >&2; exit 254 ;;
   "ec2 run-instances"*) echo '{"Instances":[{"InstanceId":"i-1","LaunchTime":"2026-10-22T00:00:00Z"}]}' ;;
-  "s3 cp "*/run.json*) cp "$3" "$AWS_RUN_FILE" ;;
+  "s3api list-objects-v2"*)
+    if [ -f "$AWS_EXISTING_RUN" ]; then
+      echo '{"Contents":[{"Key":"runs/fake-1/run.json","LastModified":"2026-10-22T00:00:00Z"},{"Key":"runs/fake-1/shard-1/exit-code","LastModified":"2026-10-22T01:00:00Z"}]}'
+    fi ;;
+  "s3 cp s3://"*"/run.json -"*) cat "$AWS_EXISTING_RUN" ;;
+  "s3 cp s3://"*"/exit-code -"*) echo '1 command' ;;
+  "s3 cp "*/run.json*) cp "$3" "$AWS_UPLOADED_RUN" ;;
 esac
 `,
     );
     await chmod(join(bin, 'aws'), 0o755);
-    const ended = await execute(
-      process.execPath,
-      [
-        'scripts/aws-benchmark.mjs',
-        'launch',
-        '--run',
-        'fake-1',
-        '--total',
-        '2',
-        '--shards',
-        '2',
-        '--market',
-        'on-demand',
-        '--',
-        command,
-      ],
-      {
-        env: {
-          ...process.env,
-          PATH: `${bin}:${process.env.PATH}`,
-          AWS_CALLS: log,
-          AWS_DRY_RUN: dryRun,
-          AWS_MEMORY_MIB: String(memoryMib),
-          AWS_RUN_FILE: runFile,
-          AWS_PROFILE: 'fake',
-        },
+    const ended = await execute(process.execPath, ['scripts/aws-benchmark.mjs', ...args], {
+      env: {
+        ...process.env,
+        PATH: `${bin}:${process.env.PATH}`,
+        AWS_CALLS: log,
+        AWS_DRY_RUN: dryRun,
+        AWS_MEMORY_MIB: String(memoryMib),
+        AWS_EXISTING_RUN: existingRun,
+        AWS_UPLOADED_RUN: uploadedRun,
+        AWS_PROFILE: 'fake',
       },
-    ).then(
+    }).then(
       ({ stdout, stderr }) => ({ code: 0, output: stdout, warnings: stderr }),
       (error) => ({ code: error.code as number, output: String(error.stderr), warnings: '' }),
     );
     const calls = (await readFile(log, 'utf8')).trim().split('\n');
-    const run = await readFile(runFile, 'utf8').then(JSON.parse, () => undefined);
+    const run = await readFile(uploadedRun, 'utf8').then(JSON.parse, () => undefined);
     return { ...ended, calls, run };
   } finally {
     await rm(bin, { recursive: true, force: true });
   }
 }
 
+const launch = (command = 'true') => [
+  'launch',
+  '--run',
+  'fake-1',
+  '--total',
+  '2',
+  '--shards',
+  '2',
+  '--market',
+  'on-demand',
+  '--',
+  command,
+];
+// Calls that change anything: uploads, deletions and real launches.
+const CHANGES = /^s3 (rm|cp (?!s3:\/\/))|^ec2 run-instances (?!--dry-run)/;
+
 it('asks EC2 for a dry run before uploading anything, and stops there when it is refused', async () => {
-  const refused = await fakeLaunch(REFUSED_LAUNCH);
+  const refused = await fakeAws(launch(), { dryRun: REFUSED_LAUNCH });
   expect(refused.code).toBe(1);
   expect(refused.output).toContain('The launch dry run failed, so nothing was uploaded or changed');
   expect(refused.output).toContain('(UnauthorizedOperation)');
-  expect(refused.calls.filter((call) => /^s3 |run-instances (?!--dry-run)/.test(call))).toEqual([]);
+  expect(refused.calls.filter((call) => CHANGES.test(call))).toEqual([]);
   expect(refused.run).toBeUndefined();
 
-  const allowed = await fakeLaunch(ALLOWED_LAUNCH);
+  const allowed = await fakeAws(launch(), { dryRun: ALLOWED_LAUNCH });
   expect(allowed.code, allowed.output).toBe(0);
   const dryRun = allowed.calls.findIndex((call) => call.startsWith('ec2 run-instances --dry-run'));
-  const firstUpload = allowed.calls.findIndex((call) => call.startsWith('s3 cp'));
+  const firstChange = allowed.calls.findIndex((call) => CHANGES.test(call));
   expect(dryRun).toBeGreaterThanOrEqual(0);
-  expect(firstUpload).toBeGreaterThan(dryRun);
+  expect(firstChange).toBeGreaterThan(dryRun);
   // The dry run carries the same instance settings as the real launches, minus the boot script.
   const launches = allowed.calls.filter((call) => /^ec2 run-instances --image-id/.test(call));
   expect(launches).toHaveLength(2);
@@ -365,13 +381,46 @@ it('asks EC2 for a dry run before uploading anything, and stops there when it is
   );
 });
 
+it("dry-runs a retry before deleting the shard's earlier output", async () => {
+  const existing = {
+    run: 'fake-1',
+    commit: 'f'.repeat(40),
+    sourceSha256: 'a'.repeat(64),
+    command: 'true',
+    instanceType: 'c7i.2xlarge',
+    market: 'on-demand',
+    hours: 1,
+    images: 'node:22-alpine',
+    diskGib: 100,
+    env: false,
+    slices: [
+      { shard: 0, offset: 0, limit: 1 },
+      { shard: 1, offset: 1, limit: 1 },
+    ],
+  };
+  const retry = ['retry', '--run', 'fake-1', '--shard', '1'];
+  const refused = await fakeAws(retry, { dryRun: REFUSED_LAUNCH, existing });
+  expect(refused.code).toBe(1);
+  expect(refused.output).toContain('nothing was uploaded or changed');
+  expect(refused.calls.filter((call) => CHANGES.test(call))).toEqual([]);
+
+  const allowed = await fakeAws(retry, { dryRun: ALLOWED_LAUNCH, existing });
+  expect(allowed.code, allowed.output).toBe(0);
+  const dryRun = allowed.calls.findIndex((call) => call.startsWith('ec2 run-instances --dry-run'));
+  const removal = allowed.calls.findIndex((call) =>
+    call.startsWith('s3 rm s3://refit-benchmarks-123456789012-us-east-2/runs/fake-1/shard-1/'),
+  );
+  expect(dryRun).toBeGreaterThanOrEqual(0);
+  expect(removal).toBeGreaterThan(dryRun);
+});
+
 it('records the instance memory in run.json and warns when a --validate run gets too little', async () => {
   const command = 'npm run benchmark:stripe -- --root /work/root --output /work/out/run --validate';
-  const small = await fakeLaunch(ALLOWED_LAUNCH, command, 4096);
+  const small = await fakeAws(launch(command), { dryRun: ALLOWED_LAUNCH, memoryMib: 4096 });
   expect(small.code, small.output).toBe(0);
   expect(small.run).toMatchObject({ instanceType: 'c7i.2xlarge', memoryMib: 4096, command });
   expect(small.warnings).toContain('Warning: c7i.2xlarge has 4 GiB of memory');
-  const large = await fakeLaunch(ALLOWED_LAUNCH, command, 16384);
+  const large = await fakeAws(launch(command), { dryRun: ALLOWED_LAUNCH, memoryMib: 16384 });
   expect(large.run).toMatchObject({ memoryMib: 16384 });
   expect(large.warnings).not.toContain('Warning');
 });
