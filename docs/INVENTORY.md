@@ -60,8 +60,24 @@ The inventory JSON (`formatVersion: 1`) has these fields:
 
 `GET /status` lists every row with a `summary` in place of the full inventory: provider IDs, exposed deadline IDs with their date and live-evidence count, mentioned deadline IDs, Stripe API versions, literal models outside tests and the number of model calls. `refit hosted inventory` prints the full row.
 
+## Sample: 30 frozen repositories
+
+`scripts/inventory-sample.mjs` runs the same `inventoryDirectory` the worker uses (measure, then scan) on a local shallow clone at each repository's recorded commit, then deletes the clone. It has no GitHub App, so the steps before the checkout (access, size and head checks) are not part of it. The run on 2026-10-22 took the first 10 repositories of the OpenAI application, Anthropic application and Stripe frozen lists at Refit commit `863cb34` ([results](benchmarks/2026-10-22-inventory-sample-results.json)). It ran on a laptop shared with other benchmark lanes, so the times are indicative only, and each time includes measuring the checkout twice (once for the report).
+
+| List (first 10)                | Completed | Scan median | Scan max | Repositories with a live deadline exposure | Traced model calls (repositories) |
+| ------------------------------ | --------- | ----------- | -------- | ------------------------------------------ | --------------------------------- |
+| OpenAI applications (10-21)    | 10        | 5.5 s       | 80.6 s   | 4                                          | 52 (9)                            |
+| Anthropic applications (10-21) | 10        | 10.0 s      | 91.7 s   | 8                                          | 21 (7)                            |
+| Stripe (10-14)                 | 10        | 1.5 s       | 6.3 s    | 4                                          | 6 (1)                             |
+
+- All 30 completed; none hit a cap or stop. Across them the median scan took 4.3 s; the slowest (9,138 files, 143 MiB checked out) took 92 s, under a third of the 300-second cap. The largest checkout was 286 MiB, against the 512 MiB cap.
+- Providers: every Stripe repository was detected as Stripe, five also as OpenAI. Every application repository was detected as OpenAI, and 18 of 20 as Anthropic too; Gemini appeared in 12 and Meta Graph in 2. Only Stripe pins were found in code: `2022-11-15` (2), `2023-10-16` (2) and `2026-01-28.clover` (1).
+- Deadlines: 16 repositories had live exposures, most often `anthropic-2026-06-15-claude-sonnet-4` (6), `anthropic-2026-11-30-claude-sonnet-4-5` (5), `openai-2026-10-23-gpt-4` (5) and `openai-2026-10-23-gpt-3-5-turbo` (5). Seven more had only mentions (tests, comments, catalogs).
+- Models: 17 repositories had traced text-generation calls (79 calls), but only 4 pass the model as a string literal in the call; 13 compute it (a variable, an environment fallback or a helper), so their calls show `model: null`. The deadline scan still catches literal model names elsewhere in those repositories.
+
 ## Not covered yet
 
 - Languages other than JavaScript and TypeScript, and package manifests of other ecosystems.
 - Raw HTTP hosts beyond the catalog's provider hostnames.
 - Re-inventory on push or on a schedule: a new commit is picked up when the repository is requested again (install delivery or the operator command).
+- Scanner changes: an inventory taken by an older Refit is kept until the revision or the registry changes.
