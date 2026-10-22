@@ -1,4 +1,5 @@
 import { execFile } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -35,15 +36,26 @@ function validated(reason: string) {
   };
 }
 
-// Writes a run's results.json and, for each diff given, the repository's report.json bundle.
-async function run(results: unknown[], diff?: string) {
+// Writes a run's results.json and, when a diff is given, acme/shop's run bundle: report.json, or
+// scan.json and its manifest entry for a run that stopped before validation.
+async function run(results: unknown[], diff?: string, stoppedBeforeValidation = false) {
   const directory = await mkdtemp(join(tmpdir(), 'refit-compare-'));
   directories.push(directory);
   await writeFile(join(directory, 'results.json'), JSON.stringify(results));
   if (diff !== undefined) {
     const bundle = join(directory, 'repos', 'acme__shop', 'run');
     await mkdir(bundle, { recursive: true });
-    await writeFile(join(bundle, 'report.json'), JSON.stringify({ patch: { diff } }));
+    if (!stoppedBeforeValidation)
+      await writeFile(join(bundle, 'report.json'), JSON.stringify({ patch: { diff } }));
+    else {
+      const scan = JSON.stringify({ runId: 'same', patch: { status: 'proposed', diff } });
+      await writeFile(join(bundle, 'scan.json'), scan);
+      const sha256 = createHash('sha256').update(scan).digest('hex');
+      await writeFile(
+        join(bundle, 'manifest.json'),
+        JSON.stringify({ files: [{ path: 'scan.json', sha256 }] }),
+      );
+    }
   }
   return join(directory, 'results.json');
 }
@@ -85,4 +97,33 @@ it('reports which fields differ between runs, hashing the full patch from each b
   expect(table.stdout).toMatch(
     /\| acme\/shop \| diff \| [0-9a-f]{12} \| [0-9a-f]{12} \(results, first 8000 characters\) \|/,
   );
+});
+
+it('hashes the proposed patch and scan.json of runs that stopped before validation', async () => {
+  const stopped = {
+    repo: 'acme/shop',
+    mappedMethods: 2,
+    fullAdapter: { confirmed: 1 },
+    checks: 'tests',
+    workflow: { status: 'error', stage: 'validation' },
+  };
+  const compare = async (first: string, second: string) =>
+    JSON.parse(
+      (
+        await execute(process.execPath, [
+          'scripts/stripe-benchmark-compare.mjs',
+          await run([stopped], first, true),
+          await run([stopped], second, true),
+          '--details',
+          '--json',
+        ])
+      ).stdout,
+    ).rows[0];
+  const same = await compare('a', 'a');
+  expect(same.differs).toEqual([]);
+  expect(same.fields[0]).toMatchObject({
+    scan: expect.stringMatching(/^[0-9a-f]{12}$/),
+    diff: expect.stringMatching(/^[0-9a-f]{12}$/),
+  });
+  expect((await compare('a', 'b')).differs).toEqual(['scan', 'diff']);
 });

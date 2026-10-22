@@ -46,15 +46,22 @@ function digest(text) {
   return createHash('sha256').update(text).digest('hex').slice(0, HASH_LENGTH);
 }
 
+async function bundleFile(bundle, name) {
+  return bundle ? JSON.parse(await readFile(join(bundle, name), 'utf8').catch(() => 'null')) : null;
+}
+
 // Every compared field of one repository's result. The patch hash comes from the full diff in
-// <results dir>/repos/<owner__repo>/run/report.json when that bundle exists.
+// <results dir>/repos/<owner__repo>/run/report.json, or from scan.json when the run stopped before
+// validation wrote a report.
 async function details(result, directory) {
   const workflow = result?.workflow ?? {};
   const bundle = result && join(directory, 'repos', result.repo.replace('/', '__'), 'run');
-  const report = bundle
-    ? JSON.parse(await readFile(join(bundle, 'report.json'), 'utf8').catch(() => 'null'))
-    : null;
-  const diff = report?.patch?.diff ?? workflow.diff;
+  const [report, scan, manifest] = await Promise.all(
+    ['report.json', 'scan.json', 'manifest.json'].map((name) => bundleFile(bundle, name)),
+  );
+  const fullDiff = report?.patch?.diff ?? scan?.patch?.diff;
+  const diff = fullDiff ?? workflow.diff;
+  const scanHash = manifest?.files?.find((file) => file.path === 'scan.json')?.sha256;
   return {
     outcome: outcome(result),
     tracedCalls: result?.tracedCalls,
@@ -69,10 +76,12 @@ async function details(result, directory) {
     validation: workflow.validation,
     typeErrors: JSON.stringify(workflow.typeErrors),
     generated: JSON.stringify(workflow.generated),
+    // scan.json is content-addressed (its runId hashes the inputs), so equal runs write equal bytes.
+    scan: scanHash?.slice(0, HASH_LENGTH),
     diff:
       diff === undefined
         ? undefined
-        : report?.patch?.diff
+        : fullDiff
           ? digest(diff)
           : `${digest(diff)} (results, first ${RESULTS_DIFF_LIMIT} characters)`,
   };
