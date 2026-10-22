@@ -99,6 +99,20 @@ async function refitJson(args) {
   }
 }
 
+// A list with no single provider (the AI wrapper sample) counts every model provider.
+const providers = frozen.provider ? [frozen.provider] : ['openai', 'anthropic', 'gemini'];
+const counted = (provider) => providers.includes(provider);
+function nonLive(result) {
+  const merged = { nonLive: {}, nonLiveTotal: 0 };
+  for (const provider of providers) {
+    const counts = repositoryNonLive(result, provider);
+    for (const [use, count] of Object.entries(counts.nonLive))
+      merged.nonLive[use] = (merged.nonLive[use] ?? 0) + count;
+    merged.nonLiveTotal += counts.nonLiveTotal;
+  }
+  return merged;
+}
+
 async function scan(entry) {
   let directory;
   try {
@@ -107,8 +121,8 @@ async function scan(entry) {
     return { repo: entry.repo, commit: entry.commit, error: `checkout: ${error.message}` };
   }
   const deadlines = await refitJson(['deadlines', '--repository', directory]);
-  const live = (deadlines.result?.exposures ?? []).filter(
-    (exposure) => exposure.deadline.provider === frozen.provider,
+  const live = (deadlines.result?.exposures ?? []).filter((exposure) =>
+    counted(exposure.deadline.provider),
   );
   // Only a repository with a live exposure can get a replacement, so the slower proposal runs
   // only there.
@@ -123,9 +137,17 @@ async function scan(entry) {
       deadline: exposure.deadline.id,
       date: exposure.deadline.date,
       evidence: exposure.evidence.map((item) => `${item.file}:${item.line}`),
+      // Evidence sent through an AI wrapper SDK, with the call (pipeline/model-wrappers.ts).
+      ...(exposure.evidence.some((item) => item.via)
+        ? {
+            wrapped: exposure.evidence
+              .filter((item) => item.via)
+              .map((item) => `${item.file}:${item.line} ${item.via}`),
+          }
+        : {}),
     })),
     replacements: (proposal.result?.replacements ?? [])
-      .filter((item) => item.provider === frozen.provider)
+      .filter((item) => counted(item.provider))
       .map(({ file, line, call, edited, from, to, deadline }) => ({
         file,
         line,
@@ -136,12 +158,12 @@ async function scan(entry) {
         deadline,
       })),
     stops: (proposal.result?.stops ?? [])
-      .filter((item) => item.provider === frozen.provider)
+      .filter((item) => counted(item.provider))
       .map(({ file, line, call, at, model, reason }) => ({ file, line, call, at, model, reason })),
     unresolved: (proposal.result?.unresolved ?? [])
-      .filter((item) => item.provider === frozen.provider)
+      .filter((item) => counted(item.provider))
       .map(({ file, line, model, to, reason }) => ({ file, line, model, to, reason })),
-    ...repositoryNonLive(deadlines.result, frozen.provider),
+    ...nonLive(deadlines.result),
   };
 }
 
@@ -150,7 +172,7 @@ const results = [];
 const document = () => ({
   formatVersion: 2,
   list: values.list,
-  provider: frozen.provider,
+  provider: frozen.provider ?? providers.join(', '),
   ranAt: new Date().toISOString(),
   note: 'refit deadlines and refit deadlines --propose-model-fixes at each frozen commit; files read only. Exposure counts live evidence for this provider only.',
   harness,
