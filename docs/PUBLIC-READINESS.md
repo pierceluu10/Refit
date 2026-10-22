@@ -73,16 +73,16 @@ Audited on 2026-10-22 from a fresh `git clone --mirror` of GitHub (204 branches,
 
 | # | Value | Files | Introduced in | Where | Kind |
 |---|---|---|---|---|---|
-| I1 | `/Users/pier…` | 10 docs, plus `AGENTS.md`, `docs/READINESS.md`, `OVERNIGHT-AGENTS.md` | `fe7d095` (AGENTS.md), `f958954` (READINESS), `fb0143a` (OVERNIGHT), docs from `dac5eb3` on | `main` | Local username in example commands and evidence paths |
-| I2 | `/Users/otab…` | 10 files under `.planning/phases/` | `2878f84`, `6b0f77b`, `a1c2362`, `29d3948`, `b377766` | History only (removed from `main`) | Local username in planning notes |
-| I3 | `/Users/furq…` | `experiments/agent-baseline/agent-settings.json`, `…/refit-rules/typecheck.json` | `d23d7ed` | History only | Local username in agent settings |
+| I1 | `/Users/<owner>/…` | 10 docs, plus `AGENTS.md`, `docs/READINESS.md`, `OVERNIGHT-AGENTS.md` | `fe7d095` (AGENTS.md), `f958954` (READINESS), `fb0143a` (OVERNIGHT), docs from `dac5eb3` on | `main` | Local username in example commands and evidence paths |
+| I2 | `/Users/<contributor A>/…` | 10 files under `.planning/phases/` | `2878f84`, `6b0f77b`, `a1c2362`, `29d3948`, `b377766` | History only (removed from `main`) | Local username in planning notes |
+| I3 | `/Users/<contributor B>/…` | `experiments/agent-baseline/agent-settings.json`, `…/refit-rules/typecheck.json` | `d23d7ed` | History only | Local username in agent settings |
 | I4 | `refi….fly.dev` | `AGENTS.md` | `6411338` | `main` | The hosted worker's public hostname: an endpoint, not a credential |
-| I5 | `pier…@gmail.com` | Author, committer and tagger of 576 / 484 / 23 entries | Since the first commit | Commit metadata, all refs | Personal email |
-| I6 | `otab…@gmail.com` | Author and committer of 322 / 252 entries | Throughout | Commit metadata | Personal email |
-| I7 | `furq…@gmail.com` | Author of 13 entries | Throughout | Commit metadata | Personal email |
-| I8 | `oali…@uwaterloo.ca` | Author and committer of 1 entry | One commit | Commit metadata | University email |
+| I5 | `<owner>@gmail.com` | Author, committer and tagger of 576 / 484 / 23 entries | Since the first commit | Commit metadata, all refs | Personal email |
+| I6 | `<contributor A>@gmail.com` | Author and committer of 322 / 252 entries | Throughout | Commit metadata | Personal email |
+| I7 | `<contributor B>@gmail.com` | Author of 13 entries | Throughout | Commit metadata | Personal email |
+| I8 | `<contributor C>@<university>` | Author and committer of 1 entry | One commit | Commit metadata | Institutional email |
 
-No AWS account ID, Supabase project ref, bucket name, EC2 or network ID, Fly token, private IP or internal hostname appears in any blob, commit message, PR, issue or comment. The docs name these only as placeholders: `refit-benchmarks-<account>-<region>`, `refit_hosted.<project-ref>`. No personal email appears in file contents; the only email in `docs`, `data`, fixtures, `src` and examples is `pagination@example.com`.
+As of the scan (2026-10-22, at this branch's base), no AWS account ID, Supabase project ref, bucket name, EC2 or network ID, Fly token, private IP or internal hostname appears in any blob, commit message, PR, issue or comment. The docs name these only as placeholders: `refit-benchmarks-<account>-<region>`, `refit_hosted.<project-ref>`. PRs opened after the scan are not covered and already add hits: a local home path in #191's results, third-party authors' emails in #193's fixtures and the hosted hostname in #178's `docs/HOSTED-RUNBOOK.md`; rerun the scan before publishing. No personal email appeared in file contents; the only email in `docs`, `data`, fixtures, `src` and examples is `pagination@example.com`.
 
 **HEAD fix (I1).** The ten docs no lane owns now use `~/…`, with one exception: the JSON example in `docs/APP-ONBOARDING.md` uses `/home/you/…`, because Node does not expand `~` there. The shared docs are PP10's and `OVERNIGHT-AGENTS.md` is never edited by lanes, so those stay listed under Requests. I2, I3 and I5–I8 are history and need an owner decision.
 
@@ -91,6 +91,7 @@ No AWS account ID, Supabase project ref, bucket name, EC2 or network ID, Fly tok
 | # | What | Where | Assessment |
 |---|---|---|---|
 | D1 | Diffs of 17 public repositories, inside agent-generated patches. Mostly context lines, 13 to 715 lines each, 89 KB in total. | `docs/benchmarks/2026-10-21-agent-comparison-results.json` (`main`) | **13 of the 17 repositories declare no license**, so their code is all rights reserved, including the 715- and 328-line diffs. 3 are MIT. 1 is NOASSERTION. Publishing these is a licensing risk. |
+| D1b | Nine Refit patches of public repositories, about 3,100 changed lines without lockfiles. Two of those repositories declare no license and one is AGPL-3.0. | `experiments/agent-baseline/data/refit-rules/*.patch` on branch `experiment/agent-baseline` (`d23d7ed`) | Same licensing risk as D1. No other ref points to these commits, so deleting the branch before publishing removes them. |
 | D2 | One source line per PayPal call site: 98 lines, at most 98 characters | `docs/benchmarks/2026-10-21-paypal-results.json` and similar `text` fields | Single-line excerpts from public code as benchmark evidence; low risk |
 | D3 | Names of public repositories with verdicts such as `broken` and file and line references | Benchmark labels and results | Public repositories at pinned commits; no code beyond D1 and D2. Naming them is an owner choice. |
 | D4 | `pierceluu10/refit-billing-demo` and `~/Repos/refit-stripe-lab` used as examples | `examples/local-service*.refit.json`, several docs | The demo repository is not visible to this account (HTTP 404), so a public reader cannot reproduce those examples |
@@ -115,7 +116,7 @@ No AWS account ID, Supabase project ref, bucket name, EC2 or network ID, Fly tok
 | # | Setting | Finding |
 |---|---|---|
 | R1 | Default branch | `pre-launch-website`, not `main`. Visitors and new clones land on the website branch. |
-| R2 | Workflows | `ci.yml` runs on `pull_request` with `contents: read` and no secrets, so fork PRs get a read-only token. `deadlines-sync.yml` runs on a schedule only. Neither uses `pull_request_target`. Actions are pinned by tag, not SHA (OP7). |
+| R2 | Workflows | `ci.yml` runs on `pull_request` with `contents: read` and no secrets, so fork PRs get a read-only token. `deadlines-sync.yml` runs on a schedule and on `workflow_dispatch`, with `contents: write`. Neither uses `pull_request_target`. Actions are pinned by tag, not SHA (OP7). |
 | R3 | Actions secrets | Not verified: listing them needs admin access, which this account (WRITE) lacks. |
 | R4 | Pull-request refs | `refs/pull/*` keep every PR's commits even after a branch is deleted or rewritten. Purging anything from history means publishing a fresh repository, not force-pushing this one. |
 
@@ -150,10 +151,12 @@ History rewrites and key rotations are listed here, never done.
 4. **Default branch (R1).** Switch it to `main` before publishing, or decide the website branch is the front door.
 5. **Hosted hostname (I4).** Publishing `refi….fly.dev` advertises the worker's endpoint. Every route except `/health` needs a signature or the service token (`docs/SECURITY.md` on #171), so this is a disclosure choice, not a vulnerability.
 6. **Example repositories (D4).** Make `refit-billing-demo` public, or mark those examples as needing your own repository.
+7. **Agent-baseline branch (D1b, I3).** Delete `experiment/agent-baseline` before publishing, or keep its third-party patches.
+8. **Planning files in the public tree.** Whether `OVERNIGHT-AGENTS.md` and this document ship publicly.
 
 ## Requests for other lanes
 
-- **PP10.** Replace `/Users/pier…` in `AGENTS.md` (Stripe lab path) and `docs/READINESS.md` with `~/…`, as this PR does for the other docs. Fold the public-facing proposals below into `README.md` if accepted.
+- **PP10.** Replace `/Users/<owner>/…` in `AGENTS.md` (Stripe lab path) and `docs/READINESS.md` with `~/…`, as this PR does for the other docs. Fold the public-facing proposals below into `README.md` if accepted.
 - **PP5.** Generate the test RSA keys at runtime (`generateKeyPairSync`), as `pipeline/hosted-security.test.ts` on #171 does, instead of committing PEM blocks (S7, S8). Build the fake `ghs_` tokens from parts so they don't match token scanners (S9–S11). Otherwise every public scanner and any gitleaks CI step will flag them.
 - **OP7 / OG9.** A CI step that runs gitleaks pinned by digest with this `.gitleaksignore` would keep `main` clean after publishing. OP7 covers the supply-chain side; the job belongs in OG9's `ci*.yml`.
 

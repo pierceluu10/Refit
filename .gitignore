@@ -14,4 +14,4 @@ dist-cli/
 .claude/settings.local.json
 .planning/
 # Registry credentials.
-.npmrc
+/.npmrc
