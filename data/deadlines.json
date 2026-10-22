@@ -1456,7 +1456,8 @@
       "summary": "Coinbase marks coinbase-commerce-node as not actively maintained, in its README (notice added 2021-06-10) and in the npm deprecation notice on every release.",
       "replacement": null,
       "source": "https://github.com/coinbase/coinbase-commerce-node/blob/master/README.md",
-      "checkedAt": "2026-10-22"
+      "checkedAt": "2026-10-22",
+      "derivedDate": true
     },
     {
       "id": "easypost-2025-04-28-easypost-node-v7",
@@ -1469,7 +1470,8 @@
       "summary": "EasyPost's upgrade guide marks @easypost/api v5, v6 and v7 as deprecated; older majors predate them. It gives no dates; the date here is when v8.0.0 was released (CHANGELOG), the latest any of these became deprecated.",
       "replacement": "@easypost/api v8",
       "source": "https://github.com/EasyPost/easypost-node/blob/master/UPGRADE_GUIDE.md",
-      "checkedAt": "2026-10-22"
+      "checkedAt": "2026-10-22",
+      "derivedDate": true
     }
   ]
 }
