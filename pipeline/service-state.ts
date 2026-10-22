@@ -250,7 +250,9 @@ export async function openServiceStore(
           'Delivery receipt capacity reached. Archive service state before accepting more events.',
         );
       const disabled: string[] = [];
-      if ('installationId' in change) {
+      // Repository and account renames are recorded only; configured targets name their repository.
+      const access = change.kind === 'installation' || change.kind === 'repositories';
+      if (access) {
         state.accessVersion += 1;
         const id = String(change.installationId);
         const prior = state.installations[id];
@@ -313,7 +315,7 @@ export async function openServiceStore(
       return {
         status: 'accepted' as const,
         disabled,
-        wake: 'installationId' in change || watched,
+        wake: access || watched,
       };
     });
   return { read, update, accept };

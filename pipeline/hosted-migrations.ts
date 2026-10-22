@@ -259,6 +259,37 @@ export const MIGRATIONS: HostedMigration[] = [
     name: 'Report issues',
     up: (client) => client.query(REPORTS),
   },
+  {
+    version: 8,
+    name: 'Installation event order and rename cascades',
+    // installation.updated_at of the newest installation event applied; older redeliveries are
+    // stale. Inventories, monitoring state, deadline alerts and report rows follow a repository or account
+    // rename. Deliveries are never pruned.
+    up: (client) =>
+      client.query(`
+ALTER TABLE refit_installations ADD COLUMN changed_at timestamptz;
+ALTER TABLE refit_inventories
+  DROP CONSTRAINT refit_inventories_installation_id_repository_fkey,
+  ADD FOREIGN KEY (installation_id, repository)
+    REFERENCES refit_installation_repositories (installation_id, repository)
+    ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE refit_monitoring
+  DROP CONSTRAINT refit_monitoring_installation_id_repository_fkey,
+  ADD FOREIGN KEY (installation_id, repository)
+    REFERENCES refit_installation_repositories (installation_id, repository)
+    ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE refit_deadline_alerts
+  DROP CONSTRAINT refit_deadline_alerts_installation_id_repository_fkey,
+  ADD FOREIGN KEY (installation_id, repository)
+    REFERENCES refit_installation_repositories (installation_id, repository)
+    ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE refit_reports
+  DROP CONSTRAINT refit_reports_installation_id_repository_fkey,
+  ADD FOREIGN KEY (installation_id, repository)
+    REFERENCES refit_installation_repositories (installation_id, repository)
+    ON DELETE CASCADE ON UPDATE CASCADE;
+`),
+  },
 ];
 
 // Reads the applied versions without creating anything. `unknown` lists versions a newer worker
