@@ -34,8 +34,19 @@ Build toward a reliable agent for many API providers, with separate integrations
 - Goals for each API provider: [Provider goals](docs/PROVIDER-GOALS.md).
 - Goals for each programming language: [Language goals](docs/LANGUAGE-GOALS.md).
 - See CLI commands and requirements: [CLI guide](docs/CLI.md).
+- Deploy or operate the hosted worker (Fly.io + Supabase): [Hosted onboarding](docs/HOSTED-ONBOARDING.md#deploy-on-flyio).
 
 The guides explain onboarding a repository into Refit. This file explains how coding agents should contribute to Refit itself.
+
+## Hosted worker (Fly.io + Supabase)
+
+The single-tenant hosted worker (`refit hosted serve`) runs as Fly app `refit-hosted` (region `iad`, one machine, 20 GB volume `refit_data` at `/data`) against the `refit-hosted` Supabase project (us-east-1). The deploy steps, the database role and day-to-day operation are in [Hosted onboarding](docs/HOSTED-ONBOARDING.md#deploy-on-flyio).
+
+- Access: a teammate needs membership in the Fly organization that owns `refit-hosted` and in the Supabase organization that owns the project. Ask the owner for both; do not create new apps, projects or volumes to work around missing access. Run `fly auth login` yourself; agents never type credentials.
+- Secrets live only in `fly secrets` (names: `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY`, `REFIT_WEBHOOK_SECRET`, `REFIT_SERVICE_TOKEN`, `REFIT_DATABASE_URL`, `REFIT_HOSTED_OWNER`, `OPENAI_API_KEY`, `OPENAI_MODEL`) and in the owner's private `~/.refit/hosted/` files. `fly secrets list` shows names and digests only. Never print, commit or paste secret values, the Supabase project ref or database passwords into this repository, which is intended to become public. Stage a value from a file or variable (`fly secrets set NAME="$(cat file)"`), never from a placeholder: a literal `<value>` is accepted and crashes the worker on boot.
+- The worker connects as the `refit_hosted` role, which owns the `refit_*` tables. Do not switch it to `postgres` or the Supabase service key, add RLS policies or expose the tables through the Data API.
+- Read-only checks are always safe: `curl https://refit-hosted.fly.dev/health`, `/status` with the service token, `fly status` and `fly logs -a refit-hosted`. `fly deploy`, `fly secrets set`, schema changes, `refit hosted approve` and `refit hosted retry` change the live service; with `--ai-patch` a job spends the owner's OpenAI budget and with `--publish-draft` it can open draft PRs. Do them only when the task asks.
+- Hosted mode enrolls only `REFIT_HOSTED_OWNER`'s installations, and only repositories with a stored approval. Widening that to other accounts needs per-job isolation and an owner decision.
 
 ## Release and verification notes
 

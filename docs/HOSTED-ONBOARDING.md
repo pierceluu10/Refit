@@ -58,11 +58,18 @@ REFIT_POSTGRES_URL=postgres://refit:refit-local-test@127.0.0.1:55432/refit REFIT
 
 `Dockerfile`, `fly.toml` and `scripts/hosted-entrypoint.sh` build the worker from the release tarball. The image adds oasdiff 1.33.0, git and a Docker daemon that keeps its data on the `/data` volume. The machine never idle-stops, because leases renew between webhooks.
 
-1. Use the `refit-hosted` Supabase project (us-east-1, next to Fly's `iad`). The worker creates its tables on boot, with row-level security and no policies, so Supabase's Data API exposes nothing. From the dashboard's Connect panel, copy the session-pooler connection string (port 5432, IPv4) and add `?uselibpqcompat=true&sslmode=require`: node-postgres otherwise treats `require` as full verification, which Supabase's pooler certificate chain fails.
+1. Use the `refit-hosted` Supabase project (us-east-1, next to Fly's `iad`). The worker creates its tables on boot, with row-level security and no policies, so Supabase's Data API exposes nothing. It connects as a dedicated `refit_hosted` login role that owns the Refit tables, not as `postgres`: create the role with a generated password (send Supabase only its SCRAM verifier), `GRANT refit_hosted TO postgres`, grant it `USAGE, CREATE` on `public` and make it the owner of the six `refit_*` tables. The URL is `postgresql://refit_hosted.<project-ref>:<password>@aws-0-us-east-1.pooler.supabase.com:5432/postgres?uselibpqcompat=true&sslmode=require` (session pooler, IPv4). Without `uselibpqcompat=true`, node-postgres treats `require` as full verification, which Supabase's pooler certificate chain fails.
 2. Install `flyctl`, run `fly auth login`, then `fly launch --no-deploy --copy-config` and `fly volumes create refit_data --size 20 --region iad`.
-3. Set secrets with `fly secrets set`: `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY` (the PEM contents), `REFIT_WEBHOOK_SECRET`, `REFIT_SERVICE_TOKEN`, `REFIT_DATABASE_URL`, `REFIT_HOSTED_OWNER`, `OPENAI_API_KEY`, `OPENAI_MODEL`. Add `REFIT_HOSTED_IMAGES` with the validation images that approved repositories name.
-4. `fly deploy`, then set the GitHub App webhook URL to `https://<app>.fly.dev/github/webhook`. Stop any local `refit serve` that used the old URL.
-5. Store approvals with `REFIT_DATABASE_URL=... refit hosted approve --approval <receipt.json> --approved-by <login>`, then install the App on those repositories.
+3. Set secrets with `fly secrets set`: `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY` (the PEM contents), `REFIT_WEBHOOK_SECRET`, `REFIT_SERVICE_TOKEN`, `REFIT_DATABASE_URL`, `REFIT_HOSTED_OWNER`, `OPENAI_API_KEY`, `OPENAI_MODEL`. `REFIT_HOSTED_IMAGES` in `fly.toml` lists the validation images that approved repositories name; the entrypoint pulls them on boot, because validation runs with `--pull never`.
+4. `fly deploy`, then open the App's settings (Refit Agent is owned by the `refit-dev` organization, so they are under its Developer settings, not a repository's Webhooks page). Under Webhook, tick Active, set the URL to `https://<app>.fly.dev/github/webhook` and paste `REFIT_WEBHOOK_SECRET`. Stop any local `refit serve` that used the old URL.
+5. Store approvals with `REFIT_DATABASE_URL=... refit hosted approve --approval <receipt.json> --approved-by <login>`, then install the App on those repositories. Choosing "All repositories" again on an existing installation sends no event; uninstall and reinstall, or remove and re-add the repository, to deliver one.
+
+### Operate the deployed worker
+
+- `GET /health` is public. `GET /status` with `Authorization: Bearer $REFIT_SERVICE_TOKEN` lists installations, targets and jobs with their receipts.
+- `fly logs -a refit-hosted` shows each job's progress lines, prefixed with the target id. `fly ssh console -a refit-hosted` reaches the volume; evidence lives under `/data/state/targets/<id>/runs/`.
+- A failed job stays cached for its commit, so the next scheduled run reuses it instead of paying again. After fixing the cause, `REFIT_DATABASE_URL=... refit hosted retry --target <id>` queues one fresh attempt (or marks the already-queued job); successful jobs remain cached, and approval and access gates still apply. A running job must finish first.
+- Before changing hosted code, run the hosted tests against a local PostgreSQL: `REFIT_POSTGRES_URL=postgres://… REFIT_DOCKER_IMAGE=node:22-alpine REFIT_OASDIFF=1 npx vitest run pipeline/hosted-service.test.ts`. Deploy with `fly deploy` from a clean checkout of the branch being shipped.
 
 ## Owner decisions (2026-10-21)
 
