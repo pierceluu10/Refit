@@ -233,3 +233,19 @@ it.skipIf(!DATABASE)(
     });
   },
 );
+
+it.skipIf(!DATABASE)(
+  'refuses a version that another build recorded under a different name',
+  async () => {
+    const { pool } = await database();
+    await migrateHostedSchema(pool);
+    const last = MIGRATIONS.at(-1)!;
+    await pool.query('UPDATE refit_schema_migrations SET name = $1 WHERE version = $2', [
+      'branch-only-migration',
+      last.version,
+    ]);
+    await expect(migrateHostedSchema(pool)).rejects.toThrow(
+      `Schema version ${last.version} was applied as "branch-only-migration", but this worker expects "${last.name}".`,
+    );
+  },
+);

@@ -1,5 +1,6 @@
 import type { Pool, PoolClient } from 'pg';
 import { transaction } from './hosted-database.ts';
+import { PipelineInputError } from './types.ts';
 
 // The schema lock workers took before versioned migrations, so old and new workers never interleave.
 const MIGRATION_LOCK = 4_206_100_001;
@@ -133,11 +134,17 @@ export async function migrateHostedSchema(pool: Pool) {
   for (const migration of MIGRATIONS)
     await transaction(pool, async (client) => {
       await client.query('SELECT pg_advisory_xact_lock($1)', [MIGRATION_LOCK]);
-      const { rowCount } = await client.query(
-        'SELECT 1 FROM refit_schema_migrations WHERE version = $1',
+      const { rows } = await client.query<{ name: string }>(
+        'SELECT name FROM refit_schema_migrations WHERE version = $1',
         [migration.version],
       );
-      if (rowCount) return;
+      // Another build recorded this version for a different migration; skipping would leave the
+      // schema without this one.
+      if (rows.length && rows[0].name !== migration.name)
+        throw new PipelineInputError(
+          `Schema version ${migration.version} was applied as "${rows[0].name}", but this worker expects "${migration.name}".`,
+        );
+      if (rows.length) return;
       await migration.up(client);
       await client.query('INSERT INTO refit_schema_migrations (version, name) VALUES ($1, $2)', [
         migration.version,
