@@ -1,0 +1,397 @@
+import { randomBytes, randomUUID } from 'node:crypto';
+import { mkdir, mkdtemp, readdir, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import pg from 'pg';
+import { afterEach, expect, it } from 'vitest';
+import { reserveAiBudget } from './ai-budget.ts';
+import { hostedTargetId, openHostedStore } from './hosted-store.ts';
+import {
+  DEFAULT_TENANCY_LIMITS,
+  hostedTenancy,
+  TENANCY_REFUSALS,
+  type TenancyLimits,
+} from './hosted-tenancy.ts';
+import type { RepositoryApproval } from './repository-enrollment.ts';
+import { digest } from './specifications.ts';
+import { writeState } from './state-files.ts';
+
+const DATABASE = process.env.REFIT_POSTGRES_URL;
+const MODEL = 'gpt-5.4-mini';
+const cleanups: (() => Promise<unknown>)[] = [];
+
+afterEach(async () => {
+  for (const cleanup of cleanups.splice(0).reverse()) await cleanup();
+});
+
+// Each test gets its own schema so runs never share rows.
+async function database() {
+  const schema = `refit_test_${randomBytes(6).toString('hex')}`;
+  const admin = new pg.Pool({ connectionString: DATABASE });
+  await admin.query(`CREATE SCHEMA ${schema}`);
+  const pool = new pg.Pool({ connectionString: DATABASE, options: `-c search_path=${schema}` });
+  cleanups.push(async () => {
+    await pool.end();
+    await admin.query(`DROP SCHEMA ${schema} CASCADE`);
+    await admin.end();
+  });
+  return pool;
+}
+
+async function temporaryDirectory() {
+  const directory = await mkdtemp(join(tmpdir(), 'refit-tenancy-'));
+  cleanups.push(() => rm(directory, { recursive: true, force: true }));
+  return directory;
+}
+
+// The store only matches approvals by repository, base and fingerprint.
+function approval(repository: string): RepositoryApproval {
+  return {
+    formatVersion: 2,
+    kind: 'refit-repository-approval',
+    repository,
+    base: 'main',
+    fingerprint: digest(repository),
+    files: [],
+    reviewedRevision: 'a'.repeat(40),
+    approvedAt: '2026-10-22T00:00:00.000Z',
+  };
+}
+
+function tenancy(accounts: string[], limits: Partial<TenancyLimits> = {}) {
+  return { accounts, limits: { ...DEFAULT_TENANCY_LIMITS, ...limits } };
+}
+
+type Store = Awaited<ReturnType<typeof openHostedStore>>;
+
+function install(store: Store, installationId: number, owner: string, repositories: string[]) {
+  return store.accept(randomUUID(), 'installation', new TextEncoder().encode(randomUUID()), {
+    kind: 'installation',
+    installationId,
+    owner,
+    action: 'created',
+    added: repositories.map((name, index) => ({ id: installationId * 100 + index, name })),
+    removed: [],
+  });
+}
+
+async function finish(store: Store, job: number, worker: string) {
+  expect(
+    await store.finish(job, worker, 'finished', {
+      status: 'validated',
+      output: null,
+      message: null,
+    }),
+  ).toBe(true);
+}
+
+it('reads allowed accounts from REFIT_HOSTED_ACCOUNTS, defaulting to REFIT_HOSTED_OWNER alone', () => {
+  expect(hostedTenancy({ REFIT_HOSTED_OWNER: 'Example' })).toEqual({
+    accounts: ['example'],
+    limits: DEFAULT_TENANCY_LIMITS,
+  });
+  expect(
+    hostedTenancy({
+      REFIT_HOSTED_OWNER: 'example',
+      REFIT_HOSTED_ACCOUNTS: 'Example, first-customer,example\nsecond',
+      REFIT_HOSTED_DAILY_JOBS: '20',
+      REFIT_HOSTED_DAILY_INVENTORIES: '3',
+    }),
+  ).toEqual({
+    accounts: ['example', 'first-customer', 'second'],
+    limits: { dailyJobs: 20, dailyInventories: 3 },
+  });
+  for (const environment of [
+    {},
+    { REFIT_HOSTED_OWNER: 'example', REFIT_HOSTED_ACCOUNTS: '' },
+    { REFIT_HOSTED_ACCOUNTS: 'example,not/an-account' },
+    { REFIT_HOSTED_ACCOUNTS: '-leading-dash' },
+  ])
+    expect(() => hostedTenancy(environment)).toThrow('REFIT_HOSTED_ACCOUNTS');
+  for (const value of ['0', '-1', '1.5', 'ten', '100001', ''])
+    expect(() =>
+      hostedTenancy({ REFIT_HOSTED_OWNER: 'example', REFIT_HOSTED_DAILY_JOBS: value }),
+    ).toThrow('REFIT_HOSTED_DAILY_JOBS must be a whole number from 1 to 100000.');
+});
+
+it.skipIf(!DATABASE)(
+  'records other accounts as not allowed, backfills them once allowed and cancels them when removed',
+  async () => {
+    const pool = await database();
+    const owner = await openHostedStore(pool, tenancy(['example']));
+    const ours = hostedTargetId('example/application', 'main');
+    const theirs = hostedTargetId('customer/shop', 'main');
+    await owner.approve(approval('example/application'), 'octo-reviewer');
+    expect(await owner.approve(approval('customer/shop'), 'octo-reviewer')).toEqual([]);
+
+    expect(await install(owner, 1, 'example', ['example/application'])).toMatchObject({
+      status: 'accepted',
+      enrolled: [ours],
+    });
+    expect(await install(owner, 2, 'customer', ['customer/shop', 'customer/site'])).toEqual({
+      status: 'not-allowed',
+      enrolled: [],
+      cancelled: [],
+      running: [],
+    });
+    // A stored approval for a not-allowed installation enrolls nothing either.
+    expect(await owner.approve(approval('customer/shop'), 'octo-reviewer')).toEqual([]);
+    let registry = await owner.read();
+    expect(registry.installations).toEqual([
+      expect.objectContaining({ id: '1', owner: 'example', allowed: true, refusals: [] }),
+      {
+        id: '2',
+        owner: 'customer',
+        status: 'active',
+        allowed: false,
+        repositories: ['customer/shop', 'customer/site'],
+        jobsToday: 0,
+        inventoriesToday: 0,
+        refusals: [TENANCY_REFUSALS.notAllowed],
+      },
+    ]);
+    expect(registry.targets.map((target) => target.id)).toEqual([ours]);
+    expect(await owner.reserveInventory(2)).toBe(TENANCY_REFUSALS.notAllowed);
+    expect(await owner.reserveInventory(3)).toBe(TENANCY_REFUSALS.notAllowed);
+    const first = await owner.claim('worker', 30);
+    expect(first?.target.id).toBe(ours);
+    await finish(owner, first!.job, 'worker');
+    expect(await owner.claim('worker', 30)).toBeNull();
+
+    // Restarting with the customer allowed backfills its recorded, approved repository.
+    const widened = await openHostedStore(pool, tenancy(['example', 'customer']));
+    expect(await widened.allow()).toEqual({ enrolled: [theirs], cancelled: [], running: [] });
+    expect(await widened.allow()).toEqual({ enrolled: [], cancelled: [], running: [] });
+    const backfilled = await widened.claim('worker', 30);
+    expect(backfilled?.target).toMatchObject({ id: theirs, installationId: 2 });
+    expect(await widened.reserveInventory(2)).toBeNull();
+
+    // Narrowing the list again cancels the customer's targets and its running job.
+    const narrowed = await openHostedStore(pool, tenancy(['example']));
+    expect(await narrowed.allow()).toEqual({
+      enrolled: [],
+      cancelled: [theirs],
+      running: [backfilled!.job],
+    });
+    registry = await narrowed.read();
+    expect(registry.targets).toEqual([
+      expect.objectContaining({ id: ours, status: 'enrolled' }),
+      expect.objectContaining({
+        id: theirs,
+        status: 'cancelled',
+        message: 'Account is no longer allowed.',
+      }),
+    ]);
+    expect(registry.installations[1]).toMatchObject({ allowed: false, inventoriesToday: 1 });
+    expect(await narrowed.renew(backfilled!.job, 'worker', 30)).toBe(false);
+    expect(
+      await install(narrowed, 2, 'customer', ['customer/shop']).then((receipt) => receipt.status),
+    ).toBe('not-allowed');
+    expect(await narrowed.enqueueDue(0)).toBe(1);
+    expect((await narrowed.claim('worker', 30))?.target.id).toBe(ours);
+  },
+  30_000,
+);
+
+it.skipIf(!DATABASE)(
+  'runs one job per installation at a time and takes turns, so a noisy installation cannot starve another',
+  async () => {
+    const pool = await database();
+    const store = await openHostedStore(pool, tenancy(['noisy', 'quiet']));
+    const noisy = ['noisy/a', 'noisy/b', 'noisy/c', 'noisy/d'];
+    for (const repository of [...noisy, 'quiet/a'])
+      await store.approve(approval(repository), 'octo-reviewer');
+    expect((await install(store, 10, 'noisy', noisy)).enrolled).toHaveLength(4);
+    // The quiet installation's only job is queued after all of the noisy one's.
+    expect((await install(store, 20, 'quiet', ['quiet/a'])).enrolled).toHaveLength(1);
+
+    const running = await store.claim('worker-a', 30);
+    expect(running?.target.installationId).toBe(10);
+    const quiet = await store.claim('worker-b', 30);
+    expect(quiet?.target).toMatchObject({ installationId: 20, repository: 'quiet/a' });
+    // Both installations now have a running job; three noisy jobs wait.
+    expect(await store.claim('worker-c', 30)).toBeNull();
+    let registry = await store.read();
+    expect(registry.installations.map((installation) => installation.refusals)).toEqual([
+      [TENANCY_REFUSALS.jobRunning],
+      [TENANCY_REFUSALS.jobRunning],
+    ]);
+    expect(registry.jobs.map((job) => [job.status, job.waiting])).toEqual([
+      ['running', null],
+      ['queued', TENANCY_REFUSALS.jobRunning],
+      ['queued', TENANCY_REFUSALS.jobRunning],
+      ['queued', TENANCY_REFUSALS.jobRunning],
+      ['running', null],
+    ]);
+    await finish(store, running!.job, 'worker-a');
+    await finish(store, quiet!.job, 'worker-b');
+
+    // With jobs finishing one at a time, claims alternate while both installations have work.
+    await store.approve(approval('quiet/b'), 'octo-reviewer');
+    await store.accept(
+      randomUUID(),
+      'installation_repositories',
+      new TextEncoder().encode(randomUUID()),
+      {
+        kind: 'repositories',
+        installationId: 20,
+        owner: 'quiet',
+        action: 'added',
+        added: [{ id: 2001, name: 'quiet/b' }],
+        removed: [],
+      },
+    );
+    const order: number[] = [];
+    const repositories = [running!.target.repository];
+    for (let claimed = await store.claim('worker', 30); claimed;) {
+      order.push(claimed.target.installationId);
+      repositories.push(claimed.target.repository);
+      await finish(store, claimed.job, 'worker');
+      claimed = await store.claim('worker', 30);
+    }
+    // Claiming in job order would have run all three noisy jobs before quiet/b.
+    expect(order).toEqual([10, 20, 10, 10]);
+    expect(repositories.filter((name) => name.startsWith('noisy/')).sort()).toEqual(noisy);
+    registry = await store.read();
+    expect(registry.installations.map((installation) => installation.jobsToday)).toEqual([4, 2]);
+    expect(registry.jobs.every((job) => job.waiting === null)).toBe(true);
+  },
+  30_000,
+);
+
+it.skipIf(!DATABASE)(
+  'caps jobs and inventories per installation per UTC day with named refusals in status',
+  async () => {
+    const pool = await database();
+    const store = await openHostedStore(
+      pool,
+      tenancy(['capped', 'other'], { dailyJobs: 2, dailyInventories: 1 }),
+    );
+    for (const repository of ['capped/a', 'capped/b', 'capped/c', 'other/a'])
+      await store.approve(approval(repository), 'octo-reviewer');
+    await install(store, 30, 'capped', ['capped/a', 'capped/b', 'capped/c']);
+
+    // Reclaiming an expired lease continues the same job and does not count again.
+    const expiring = await store.claim('worker-a', 1);
+    await new Promise((resolve) => setTimeout(resolve, 1_500));
+    const reclaimed = await store.claim('worker-b', 30);
+    expect(reclaimed).toMatchObject({ job: expiring!.job });
+    await finish(store, reclaimed!.job, 'worker-b');
+    const second = await store.claim('worker-b', 30);
+    expect(second?.job).not.toBe(expiring!.job);
+    await finish(store, second!.job, 'worker-b');
+    expect(await store.claim('worker-b', 30)).toBeNull();
+
+    expect(await store.reserveInventory(30)).toBeNull();
+    expect(await store.reserveInventory(30)).toBe(TENANCY_REFUSALS.dailyInventories);
+    let registry = await store.read();
+    expect(registry.installations).toEqual([
+      expect.objectContaining({
+        id: '30',
+        jobsToday: 2,
+        inventoriesToday: 1,
+        refusals: [TENANCY_REFUSALS.dailyJobs, TENANCY_REFUSALS.dailyInventories],
+      }),
+    ]);
+    expect(registry.jobs.map((job) => job.waiting)).toEqual([
+      null,
+      null,
+      TENANCY_REFUSALS.dailyJobs,
+    ]);
+
+    // Caps are per installation: another account's work still runs.
+    await install(store, 40, 'other', ['other/a']);
+    expect(await store.reserveInventory(40)).toBeNull();
+    const other = await store.claim('worker-b', 30);
+    expect(other?.target.installationId).toBe(40);
+    await finish(store, other!.job, 'worker-b');
+
+    // The next UTC day starts with fresh allowances.
+    await pool.query('UPDATE refit_installation_usage SET day = day - 1');
+    expect((await store.claim('worker-b', 30))?.target.installationId).toBe(30);
+    expect(await store.reserveInventory(30)).toBeNull();
+    registry = await store.read();
+    expect(registry.installations[0]).toMatchObject({
+      jobsToday: 1,
+      inventoriesToday: 1,
+      refusals: [TENANCY_REFUSALS.jobRunning, TENANCY_REFUSALS.dailyInventories],
+    });
+  },
+  30_000,
+);
+
+it.skipIf(!DATABASE)(
+  'keeps one PostgreSQL AI ledger per installation, so one customer cannot spend another’s budget',
+  async () => {
+    const pool = await database();
+    const store = await openHostedStore(pool, tenancy(['first', 'second', 'third']));
+    for (const [id, owner] of [
+      [1, 'first'],
+      [2, 'second'],
+      [3, 'third'],
+    ] as const)
+      await install(store, id, owner, []);
+    const directory = await temporaryDirectory();
+    // Each maximum reservation costs $0.019182, so two fit within $0.05.
+    const budget = (installationId: number, legacyFile?: string) => ({
+      directory,
+      limitUsd: 0.05,
+      ledger: store.aiLedger(installationId, legacyFile),
+    });
+    const reserve = (installationId: number, legacyFile?: string) =>
+      reserveAiBudget(budget(installationId, legacyFile), MODEL, 1000, 4096);
+
+    const attempts = await Promise.allSettled(Array.from({ length: 5 }, () => reserve(1)));
+    expect(attempts.filter((attempt) => attempt.status === 'fulfilled')).toHaveLength(2);
+    for (const attempt of attempts)
+      if (attempt.status === 'rejected')
+        expect(attempt.reason.message).toMatch(/^AI budget exhausted/);
+    const settle = attempts.find((attempt) => attempt.status === 'fulfilled')!;
+    expect(
+      await settle.value(
+        {
+          inputTokens: 1000,
+          cachedInputTokens: 0,
+          cacheWriteInputTokens: 0,
+          outputTokens: 100,
+          reasoningTokens: 0,
+        },
+        MODEL,
+      ),
+    ).toEqual({ costUsd: 0.0012, spentUsd: 0.0012, limitUsd: 0.05 });
+
+    // The second installation's allowance is untouched by the first one's reservations.
+    await reserve(2);
+    await reserve(2);
+    await expect(reserve(2)).rejects.toThrow('AI budget exhausted');
+    const { rows } = await pool.query(
+      'SELECT installation_id::int AS id, state FROM refit_ai_ledgers ORDER BY installation_id',
+    );
+    expect(
+      rows.map((row) => [row.id, row.state.spentNano, Object.keys(row.state.reservations).length]),
+    ).toEqual([
+      [1, 1_200_000, 1],
+      [2, 0, 2],
+    ]);
+    // Nothing was written to the file ledger under the budget directory.
+    expect(await readdir(directory)).toEqual([]);
+
+    // A file ledger written by an earlier worker is imported, so its spend is not forgotten.
+    await mkdir(join(directory, 'installation-3'));
+    const legacy = join(directory, 'installation-3', 'budget.json');
+    await writeState(legacy, {
+      formatVersion: 1,
+      limitNano: 50_000_000,
+      spentNano: 20_000_000,
+      reservations: {},
+    });
+    await reserve(3, legacy);
+    await expect(reserve(3, legacy)).rejects.toThrow('AI budget exhausted');
+    const imported = await pool.query(
+      'SELECT state FROM refit_ai_ledgers WHERE installation_id = 3',
+    );
+    expect(imported.rows[0].state).toMatchObject({ spentNano: 20_000_000 });
+    expect(Object.keys(imported.rows[0].state.reservations)).toHaveLength(1);
+  },
+  30_000,
+);

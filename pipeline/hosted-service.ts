@@ -12,6 +12,7 @@ import type { GitHubAppConfiguration } from './github-app.ts';
 import { standaloneStateDirectory } from './github-checkout.ts';
 import { parseWebhook, verifyWebhook, WebhookInputError } from './github-webhooks.ts';
 import { openHostedStore, type HostedTarget } from './hosted-store.ts';
+import type { HostedTenancy } from './hosted-tenancy.ts';
 import {
   INVENTORY_LIMITS,
   inventorySummary,
@@ -31,7 +32,6 @@ import { confirmRepositoryAccess, pollServiceTarget, summarizePoll } from './ser
 import { PipelineInputError } from './types.ts';
 
 const HOSTED_HOST = '0.0.0.0';
-const GITHUB_OWNER = /^[a-z0-9][a-z0-9-]{0,38}$/;
 const REQUEST_TIMEOUT_MS = 10_000;
 const HEADERS_TIMEOUT_MS = 5_000;
 const MAX_CONNECTIONS = 64;
@@ -53,9 +53,9 @@ export async function runHostedService(options: {
   directory: string;
   webhookSecret: string;
   controlToken: string;
-  // Single-tenant until jobs run in per-job microVMs: other accounts' installations never enroll.
-  owner: string;
-  // Each installation gets its own ledger under the budget directory, capped at the same limit.
+  // Allowed accounts and per-installation caps; other accounts' installations never enroll.
+  tenancy: HostedTenancy;
+  // Each installation gets its own PostgreSQL ledger, capped at the same limit.
   aiPatch?: AiOptions;
   repairAttempts?: number;
   publishDraft?: boolean;
@@ -68,9 +68,6 @@ export async function runHostedService(options: {
   onReady?: (url: string) => void;
   onProgress?: (message: string) => void;
 }) {
-  const owner = options.owner.toLowerCase();
-  if (!GITHUB_OWNER.test(owner))
-    throw new PipelineInputError('REFIT_HOSTED_OWNER requires a GitHub account login.');
   const repairAttempts = validateRepairAttempts(
     options.repairAttempts ?? 0,
     Boolean(options.aiPatch),
@@ -95,8 +92,13 @@ export async function runHostedService(options: {
   await standaloneStateDirectory(root);
   await mkdir(root, { recursive: true, mode: 0o700 });
   const directory = await realpath(root);
-  const store = await openHostedStore(options.database);
-  const inventories = await openInventoryStore(options.database);
+  const store = await openHostedStore(options.database, options.tenancy);
+  const allowed = await store.allow();
+  if (allowed.enrolled.length || allowed.cancelled.length)
+    options.onProgress?.(
+      `Allowed accounts ${options.tenancy.accounts.join(', ')}: enrolled ${allowed.enrolled.length}, cancelled ${allowed.cancelled.length} targets.`,
+    );
+  const inventories = await openInventoryStore(options.database, options.tenancy.limits);
   const running = new Map<number, AbortController>();
   let waiting: AbortController | undefined;
   let requested = false;
@@ -154,9 +156,14 @@ export async function runHostedService(options: {
           ...(options.aiPatch.budget && {
             budget: {
               ...options.aiPatch.budget,
-              directory: join(
-                options.aiPatch.budget.directory,
-                `installation-${target.installationId}`,
+              // Earlier workers kept a file ledger per installation under the budget directory.
+              ledger: store.aiLedger(
+                target.installationId,
+                join(
+                  options.aiPatch.budget.directory,
+                  `installation-${target.installationId}`,
+                  'budget.json',
+                ),
               ),
             },
           }),
@@ -261,10 +268,6 @@ export async function runHostedService(options: {
         );
         const event = request.headers['x-github-event'];
         const change = parseWebhook(body, event, Number(options.app.appId));
-        if ('owner' in change && change.owner !== owner) {
-          respond(response, 202, { delivery: id, status: 'ignored', enrolled: [], cancelled: [] });
-          return;
-        }
         const receipt = await store.accept(id, String(event), body, change);
         for (const job of receipt.running) running.get(job)?.abort();
         const inventoried =

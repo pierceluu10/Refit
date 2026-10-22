@@ -10,9 +10,9 @@ An inventory never runs repository code: no dependency install, no Docker, no AI
 - **Backfill.** Each worker pass queues any installed repository of an active installation that has no inventory yet, such as one installed while the worker was down.
 - **Operator.** `refit hosted inventory --repository <owner/name>` queues one and prints the stored inventory as JSON. The running worker takes it within its polling interval (`--interval`, 300 seconds by default).
 
-Queued inventories run before the next validation job, one at a time per worker. A request for a repository whose inventory is running is queued again when that run ends.
+Queued inventories run before the next validation job, one at a time per worker, oldest request first. A request for a repository whose inventory is running is queued again when that run ends.
 
-Only installations the worker records are inventoried: today that is `REFIT_HOSTED_OWNER`'s. Deliveries from other accounts are acknowledged and ignored before anything is stored or cloned.
+Only installations of allowed accounts (`REFIT_HOSTED_ACCOUNTS`, by default `REFIT_HOSTED_OWNER` alone) are inventoried. Other accounts' installations are recorded as not allowed, and nothing is queued or cloned for them; allowing the account later backfills their inventories on the next pass. Each installation takes at most `REFIT_HOSTED_DAILY_INVENTORIES` (default 500) inventories per UTC day, counting every one a worker takes, including those that find the revision unchanged; reclaiming a crashed worker's lease does not count again. Requests over the cap stay queued until the next day, and `/status` lists `daily-inventory-cap` among that installation's refusals.
 
 ## How it runs
 

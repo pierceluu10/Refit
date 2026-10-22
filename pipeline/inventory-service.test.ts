@@ -8,6 +8,7 @@ import pg from 'pg';
 import { afterEach, expect, it, vi } from 'vitest';
 import { gitEnvironment } from './git-environment.ts';
 import { runHostedService } from './hosted-service.ts';
+import { DEFAULT_TENANCY_LIMITS } from './hosted-tenancy.ts';
 
 const transport = vi.hoisted(() => ({
   // Remote URL → local source repository and its head commit.
@@ -197,7 +198,7 @@ it.skipIf(!DATABASE)(
       directory: state,
       webhookSecret: WEBHOOK_SECRET,
       controlToken: CONTROL_TOKEN,
-      owner: 'Example',
+      tenancy: { accounts: ['example'], limits: DEFAULT_TENANCY_LIMITS },
       host: '127.0.0.1',
       port: 0,
       intervalSeconds: 30,
@@ -220,14 +221,14 @@ it.skipIf(!DATABASE)(
         installation('created', ['example/application', 'example/notes']),
       ),
     ).toMatchObject({ status: 'accepted', enrolled: [] });
-    // Another account's installation is ignored before anything is recorded or cloned.
+    // Another account's installation is recorded as not allowed, and nothing is cloned.
     expect(
       await deliver(url, 'installation', {
         ...installation('created', []),
         installation: { id: 999, app_id: 123, account: { login: 'someone-else' } },
         repositories: [{ id: 901, full_name: 'someone-else/application' }],
       }),
-    ).toMatchObject({ status: 'ignored' });
+    ).toMatchObject({ status: 'not-allowed' });
 
     let registry = await settled(url, 2);
     console.log(progress.join('\n'));
@@ -310,7 +311,7 @@ it.skipIf(!DATABASE)(
       ),
     ).rejects.toMatchObject({
       stderr: expect.stringContaining(
-        'example/missing is not installed in an active installation.',
+        'example/missing is not installed in an allowed, active installation.',
       ),
     });
 
@@ -326,7 +327,8 @@ it.skipIf(!DATABASE)(
     await deliver(url, 'installation', installation('deleted', ['example/application']));
     registry = await status(url);
     expect(registry.installations).toEqual([
-      expect.objectContaining({ status: 'deleted', repositories: [] }),
+      expect.objectContaining({ id: String(INSTALLATION), status: 'deleted', repositories: [] }),
+      expect.objectContaining({ id: '999', allowed: false, inventoriesToday: 0 }),
     ]);
     expect(registry.inventories).toEqual([]);
     expect((await pool.query('SELECT count(*)::int AS rows FROM refit_inventories')).rows).toEqual([
