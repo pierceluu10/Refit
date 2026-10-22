@@ -58,6 +58,18 @@ it('names the dependency that comes from outside the public registry', () => {
     });
 });
 
+it('says which lockfile limit a refused lockfile misses', () => {
+  // App-4-Dat-LLC/LandLORDER-rp commits a version 3 lockfile with no package records.
+  const lock = (value: object) => () =>
+    validateNpmLock(JSON.stringify(manifest), JSON.stringify(value));
+  expect(lock({ lockfileVersion: 3 })).toThrow(
+    'It has no package record for the root project; regenerate it with npm install.',
+  );
+  expect(lock({ lockfileVersion: 1, dependencies: {} })).toThrow(
+    'It is lockfile version 1; npm 7 or later writes version 2 or 3.',
+  );
+});
+
 it('gives every refusal Refit cannot fix a named stop with its .refit.json change', () => {
   // Messages from the 2026-10-22 rerun of the benchmark failures at fb0143a.
   for (const [message, reason] of [

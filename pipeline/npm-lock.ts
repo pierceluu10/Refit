@@ -147,7 +147,13 @@ export function validateNpmLock(
     Object.keys(lock.packages).length > MAX_PACKAGES
   )
     throw new PipelineInputError(
-      'Automatic preparation requires a root npm lockfile version 2 or 3 with at most 20,000 package records.',
+      `Automatic preparation requires a root npm lockfile version 2 or 3 with at most 20,000 package records. ${
+        !(lock.lockfileVersion === 2 || lock.lockfileVersion === 3)
+          ? `It is lockfile version ${JSON.stringify(lock.lockfileVersion)}; npm 7 or later writes version 2 or 3.`
+          : !isObject(lock.packages) || !isObject(lock.packages[''])
+            ? 'It has no package record for the root project; regenerate it with npm install.'
+            : `It records ${Object.keys(lock.packages).length} packages.`
+      }`,
     );
   const directories = npmWorkspaceDirectories(
     manifest,
