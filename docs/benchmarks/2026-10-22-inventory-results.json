@@ -1,0 +1,1379 @@
+{
+  "formatVersion": 1,
+  "ranAt": "2026-10-22T08:55:54.836Z",
+  "refit": {
+    "commit": "ab0cb9aa89bd1756224674b22f0d630e6c889b04",
+    "clean": true
+  },
+  "list": {
+    "path": "docs/benchmarks/2026-10-22-inventory-repos.json",
+    "sha256": "7349b0b060ef0035bfc1780c90c6d914b8301d7e8877d4482ab317d0e58692c6"
+  },
+  "detectors": [
+    "agents",
+    "deadlines"
+  ],
+  "catalog": [
+    {
+      "id": "stripe",
+      "packages": [
+        "stripe"
+      ],
+      "hostnames": [
+        "api.stripe.com",
+        "files.stripe.com",
+        "connect.stripe.com"
+      ]
+    },
+    {
+      "id": "openai",
+      "packages": [
+        "openai"
+      ],
+      "hostnames": [
+        "api.openai.com"
+      ]
+    },
+    {
+      "id": "anthropic",
+      "packages": [
+        "@anthropic-ai/sdk"
+      ],
+      "hostnames": [
+        "api.anthropic.com"
+      ]
+    },
+    {
+      "id": "gemini",
+      "packages": [
+        "@google/genai",
+        "@google/generative-ai"
+      ],
+      "hostnames": [
+        "generativelanguage.googleapis.com"
+      ]
+    },
+    {
+      "id": "shopify",
+      "packages": [
+        "@shopify/shopify-api",
+        "@shopify/admin-api-client",
+        "@shopify/shopify-app-remix",
+        "@shopify/shopify-app-react-router",
+        "@shopify/shopify-app-express",
+        "shopify-api-node"
+      ],
+      "hostnames": [
+        "myshopify.com/admin/api"
+      ]
+    },
+    {
+      "id": "meta-graph",
+      "packages": [
+        "facebook-nodejs-business-sdk"
+      ],
+      "hostnames": [
+        "graph.facebook.com"
+      ]
+    },
+    {
+      "id": "twilio",
+      "packages": [
+        "twilio"
+      ],
+      "hostnames": [
+        "api.twilio.com"
+      ]
+    },
+    {
+      "id": "sendgrid",
+      "packages": [
+        "@sendgrid/mail",
+        "@sendgrid/client"
+      ],
+      "hostnames": [
+        "api.sendgrid.com"
+      ]
+    },
+    {
+      "id": "resend",
+      "packages": [
+        "resend"
+      ],
+      "hostnames": [
+        "api.resend.com"
+      ]
+    },
+    {
+      "id": "paypal",
+      "packages": [
+        "@paypal/paypal-server-sdk",
+        "@paypal/checkout-server-sdk"
+      ],
+      "hostnames": [
+        "api-m.paypal.com",
+        "api-m.sandbox.paypal.com"
+      ]
+    }
+  ],
+  "repos": [
+    {
+      "repo": "alharkan7/beeblio",
+      "group": "js-ts",
+      "commit": "c6785237dfb052c3982f64abac86a3abd5033825",
+      "detections": [
+        {
+          "provider": "gemini",
+          "files": [
+            "agent/tools/transcribe_audio.ts:15",
+            "agent/tools/transcribe_audio.ts:588",
+            "package.json"
+          ],
+          "detector": "agents"
+        }
+      ]
+    },
+    {
+      "repo": "zordhalo/runs-on.dev",
+      "group": "js-ts",
+      "commit": "60dff8593b88c0d73e3ddf66e93b89a65fd1b49f",
+      "detections": []
+    },
+    {
+      "repo": "databasus/databasus",
+      "group": "js-ts",
+      "commit": "360040e69c1162bd2454eafc6f362eabe2f9c152",
+      "detections": []
+    },
+    {
+      "repo": "cross-seed/cross-seed",
+      "group": "js-ts",
+      "commit": "a40cf1d150e4f34d9659113af3f5227a94f7eca2",
+      "detections": []
+    },
+    {
+      "repo": "skuqre/nikke-font-generator",
+      "group": "js-ts",
+      "commit": "803baf965596176ccae73f8670cfb97dab0fd3ae",
+      "detections": []
+    },
+    {
+      "repo": "CaoMeiYouRen/rsshub-never-die",
+      "group": "js-ts",
+      "commit": "8f916f85dda6aa8266800c59024b0714c0030476",
+      "detections": []
+    },
+    {
+      "repo": "HelloQun54321/nai-atelier",
+      "group": "js-ts",
+      "commit": "09d540a1d78f60711b5b274f06dc28366e263e34",
+      "detections": [
+        {
+          "provider": "openai",
+          "files": [
+            "services/agentProviders.ts:13",
+            "tests/components/PromptAgentSettings.connection.test.tsx:100",
+            "tests/components/PromptAgentSettings.connection.test.tsx:95",
+            "tests/components/PromptAgentSettings.connection.test.tsx:97"
+          ],
+          "detector": "agents"
+        },
+        {
+          "provider": "anthropic",
+          "files": [
+            "services/agentProviders.ts:14"
+          ],
+          "detector": "agents"
+        },
+        {
+          "provider": "gemini",
+          "files": [
+            "services/agentProviders.ts:15"
+          ],
+          "detector": "agents"
+        }
+      ]
+    },
+    {
+      "repo": "guaner-334/civ-atlas",
+      "group": "js-ts",
+      "commit": "02ee2cabc6a69c6ae75411aeec6ebaa4f021b690",
+      "detections": []
+    },
+    {
+      "repo": "Brajesh31/myPen",
+      "group": "js-ts",
+      "commit": "1a3d522900f5167257e686c711586e3649fcd778",
+      "detections": []
+    },
+    {
+      "repo": "francescocartelli/nyla-instant-messaging-app",
+      "group": "js-ts",
+      "commit": "c35d2d3d63e1db273b2da75d189710a3fe021038",
+      "detections": []
+    },
+    {
+      "repo": "boundlessfi/builders",
+      "group": "js-ts",
+      "commit": "4443169f083bb1b9e41a860cf473aaed6201b620",
+      "detections": []
+    },
+    {
+      "repo": "Bellows-AI/factory",
+      "group": "js-ts",
+      "commit": "843a673a81974a25bf294cc3e6792f6154568f28",
+      "detections": [
+        {
+          "provider": "anthropic",
+          "files": [
+            "web/src/workspace/executors.ts:50"
+          ],
+          "detector": "deadlines"
+        }
+      ]
+    },
+    {
+      "repo": "FontWoW/FontWoW.github.io",
+      "group": "js-ts",
+      "commit": "208805d8a683c11413327c086da90aedb459ee99",
+      "detections": []
+    },
+    {
+      "repo": "gardener/dashboard",
+      "group": "js-ts",
+      "commit": "d22afb23d1b969211a7d2f5f4afd95193e5a84e0",
+      "detections": [],
+      "detectorErrors": [
+        "agents: PipelineInputError: Repository exceeds scan limits (10,000 files, 2 MiB per file, 50 MiB total).",
+        "deadlines: PipelineInputError: Repository exceeds scan limits (10,000 files, 2 MiB per file, 50 MiB total)."
+      ],
+      "error": "agents: PipelineInputError: Repository exceeds scan limits (10,000 files, 2 MiB per file, 50 MiB total).; deadlines: PipelineInputError: Repository exceeds scan limits (10,000 files, 2 MiB per file, 50 MiB total)."
+    },
+    {
+      "repo": "Bearisbug/Quilt",
+      "group": "js-ts",
+      "commit": "9b4ab215054afd7d6c621a681d616aa4e6f96c86",
+      "detections": [
+        {
+          "provider": "openai",
+          "files": [
+            "apps/api/src/lib/llm.ts:389",
+            "packages/core/src/schemas.ts:430"
+          ],
+          "detector": "agents"
+        },
+        {
+          "provider": "anthropic",
+          "files": [
+            "apps/api/package.json",
+            "apps/cli/package.json",
+            "packages/core/src/schemas.ts:426"
+          ],
+          "detector": "agents"
+        },
+        {
+          "provider": "gemini",
+          "files": [
+            "apps/api/package.json",
+            "apps/cli/package.json",
+            "packages/core/src/schemas.ts:429"
+          ],
+          "detector": "agents"
+        }
+      ]
+    },
+    {
+      "repo": "Brajesh31/Kennedyconcrete",
+      "group": "js-ts",
+      "commit": "9fb44ec90a07061352a390d93151860604153b88",
+      "detections": []
+    },
+    {
+      "repo": "jaygupta17/otto",
+      "group": "js-ts",
+      "commit": "5a48fb79a1f07b3bc233219995aaabc62f5a71d5",
+      "detections": []
+    },
+    {
+      "repo": "Brajesh31/MathPuzzle",
+      "group": "js-ts",
+      "commit": "c8c29fd68dc662347731231e112a860aa12447ef",
+      "detections": []
+    },
+    {
+      "repo": "apify/apify-mcp-server",
+      "group": "js-ts",
+      "commit": "e45c1cd6bde0b8bac2dab192f30ba77299ae6b26",
+      "detections": [
+        {
+          "provider": "openai",
+          "files": [
+            "package.json"
+          ],
+          "detector": "agents"
+        }
+      ]
+    },
+    {
+      "repo": "ZengLiangYi/ChatCrystal",
+      "group": "js-ts",
+      "commit": "ef53d6c70ea5facbebabb340460fbe3119f793c2",
+      "detections": [
+        {
+          "provider": "openai",
+          "files": [
+            "server/src/services/modelDiscovery.ts:69"
+          ],
+          "detector": "agents"
+        },
+        {
+          "provider": "anthropic",
+          "files": [
+            "server/src/services/modelDiscovery.ts:71"
+          ],
+          "detector": "agents"
+        },
+        {
+          "provider": "gemini",
+          "files": [
+            "server/src/services/modelDiscovery.test.ts:177",
+            "server/src/services/modelDiscovery.ts:72"
+          ],
+          "detector": "agents"
+        }
+      ]
+    },
+    {
+      "repo": "SciCatProject/frontend",
+      "group": "js-ts",
+      "commit": "d5f97aebd51d6a72e379a5e536b4003256d8ea34",
+      "detections": []
+    },
+    {
+      "repo": "Brajesh31/Zentry-game",
+      "group": "js-ts",
+      "commit": "cfd68785bb60b3690bf07bddff3490c60395001f",
+      "detections": []
+    },
+    {
+      "repo": "datalayer/core",
+      "group": "js-ts",
+      "commit": "a473957ed39c8df39cd19f9f5e6521b2790245e3",
+      "detections": []
+    },
+    {
+      "repo": "bel-frontend/bel-frontend.github.io",
+      "group": "js-ts",
+      "commit": "d77aac3feb7680b85a5a6a7971e9ec593a8423c1",
+      "detections": []
+    },
+    {
+      "repo": "wakujs/waku",
+      "group": "js-ts",
+      "commit": "83803da555e00b5d3525a7c1d6e08bbbdd04aa30",
+      "detections": []
+    },
+    {
+      "repo": "ktmouk/minute",
+      "group": "js-ts",
+      "commit": "b0df5ac8ddf9e6f836f725bf4f83e6a1d8359122",
+      "detections": []
+    },
+    {
+      "repo": "ijry/uview-plus",
+      "group": "js-ts",
+      "commit": "282dd9667b0321b644e322539363105bedbc5c73",
+      "detections": []
+    },
+    {
+      "repo": "syncular/syncular",
+      "group": "js-ts",
+      "commit": "360e99c51fe078b9c71760bc98e81183114137eb",
+      "detections": [
+        {
+          "provider": "openai",
+          "files": [
+            "packages/conformance/src/catalog/conflict.ts:52",
+            "packages/conformance/src/catalog/conflict.ts:56",
+            "packages/conformance/src/catalog/conflict.ts:63",
+            "packages/conformance/src/catalog/lifecycle.ts:215",
+            "packages/conformance/src/catalog/lifecycle.ts:260",
+            "packages/conformance/src/catalog/observation.ts:1251",
+            "packages/conformance/src/catalog/observation.ts:1253",
+            "packages/conformance/src/catalog/schema-bump.ts:410",
+            "packages/conformance/src/catalog/schema-bump.ts:428",
+            "packages/conformance/src/catalog/schema-bump.ts:695",
+            "packages/conformance/src/catalog/scopes.ts:252",
+            "packages/conformance/src/catalog/scopes.ts:254",
+            "packages/conformance/src/catalog/scopes.ts:53",
+            "packages/conformance/src/catalog/scopes.ts:56",
+            "packages/conformance/src/catalog/scopes.ts:58",
+            "packages/conformance/src/catalog/scopes.ts:63",
+            "packages/conformance/src/catalog/sparse-rows.ts:120",
+            "packages/conformance/src/catalog/sparse-rows.ts:91"
+          ],
+          "detector": "deadlines"
+        }
+      ]
+    },
+    {
+      "repo": "Brajesh31/LangSQL",
+      "group": "js-ts",
+      "commit": "03ea15d5af0daf4574149526a01ba0438ea0838f",
+      "detections": []
+    },
+    {
+      "repo": "OpenByteInc/QuantDinger-Vue",
+      "group": "js-ts",
+      "commit": "6c05a16873fae3a05f059a9664c5fb2d943eb1f1",
+      "detections": []
+    },
+    {
+      "repo": "MWang-TS/easy-dataset",
+      "group": "js-ts",
+      "commit": "255feb366a9a7bafdd51566816ba329533078a58",
+      "detections": []
+    },
+    {
+      "repo": "middleapi/orpc",
+      "group": "js-ts",
+      "commit": "947c60afc4e59c9d626bb2db9c378a3536a02007",
+      "detections": []
+    },
+    {
+      "repo": "hypercodism/alpine-code",
+      "group": "js-ts",
+      "commit": "465b52bcea33dbea9111ce9c0f48a1d5c528524f",
+      "detections": [
+        {
+          "provider": "openai",
+          "files": [
+            "apps/desktop/src/shared/server/fixtures.ts:33"
+          ],
+          "detector": "agents"
+        }
+      ]
+    },
+    {
+      "repo": "ChurchApps/B1App",
+      "group": "js-ts",
+      "commit": "5ca19ee4ef947235b8ffba9fbb35af42d0dcb41d",
+      "detections": []
+    },
+    {
+      "repo": "linux-do/credit",
+      "group": "js-ts",
+      "commit": "45f87f26c57b51a8c901e4c9501e26a35db936f9",
+      "detections": []
+    },
+    {
+      "repo": "lingcang728/ZeppBridge",
+      "group": "js-ts",
+      "commit": "aa8efebe72e3aae22ed82180cd14d549775227df",
+      "detections": []
+    },
+    {
+      "repo": "neo4j-contrib/neodash",
+      "group": "js-ts",
+      "commit": "5d16b689177bb832a37aa3f36a1b074d8809f4aa",
+      "detections": [
+        {
+          "provider": "openai",
+          "files": [
+            "package.json"
+          ],
+          "detector": "agents"
+        }
+      ]
+    },
+    {
+      "repo": "mortennordbye/homelab",
+      "group": "js-ts",
+      "commit": "2aaae87d82a7a91b407490968b3545c1ebebce7c",
+      "detections": []
+    },
+    {
+      "repo": "kinora-dev/kinora",
+      "group": "js-ts",
+      "commit": "34e6e4b70d48ef440088cfcdb0f0f3e07473c98f",
+      "detections": []
+    },
+    {
+      "repo": "rknightion/paperless-ngx-dedupe",
+      "group": "js-ts",
+      "commit": "4527207cd1aa12d910c71a46eb1bc860d2651779",
+      "detections": [
+        {
+          "provider": "openai",
+          "files": [
+            "package.json",
+            "packages/core/package.json",
+            "packages/web/package.json"
+          ],
+          "detector": "agents"
+        }
+      ]
+    },
+    {
+      "repo": "chamals3n4/OpenATS",
+      "group": "js-ts",
+      "commit": "59c83fb6e299073858373eebf27b0fa6afeb4feb",
+      "detections": [
+        {
+          "provider": "gemini",
+          "files": [
+            "backend/package.json"
+          ],
+          "detector": "agents"
+        },
+        {
+          "provider": "resend",
+          "files": [
+            "backend/package.json",
+            "frontend/lib/auth/password-emails.ts:3",
+            "frontend/tests/auth-mail.test.ts:103"
+          ],
+          "detector": "agents"
+        }
+      ]
+    },
+    {
+      "repo": "zeitword/zeitword",
+      "group": "js-ts",
+      "commit": "726047070bb5eb22caa46b7a646b7d2f5b86b3e5",
+      "detections": [
+        {
+          "provider": "resend",
+          "files": [
+            "package.json"
+          ],
+          "detector": "agents"
+        }
+      ]
+    },
+    {
+      "repo": "MacRimi/ProxMenux",
+      "group": "js-ts",
+      "commit": "396b44eacb6ba12995a6e5ac1e44f2c1315b1295",
+      "detections": []
+    },
+    {
+      "repo": "betagouv/mon-aide-cyber",
+      "group": "js-ts",
+      "commit": "59fd149d5af73ceea8409c3f36247abf146217a8",
+      "detections": []
+    },
+    {
+      "repo": "organui/organui",
+      "group": "js-ts",
+      "commit": "69b4589bfa533f8b83901d5249aaafb69e322eb5",
+      "detections": []
+    },
+    {
+      "repo": "evanbaker315/AttentionOS",
+      "group": "js-ts",
+      "commit": "2ebb8615641defd38e688e58fef2edc1a0a4e2d0",
+      "detections": [
+        {
+          "provider": "openai",
+          "files": [
+            "packages/knowledge/src/embedder.ts:130",
+            "packages/knowledge/test/rrf-embedder.test.ts:58"
+          ],
+          "detector": "agents"
+        },
+        {
+          "provider": "anthropic",
+          "files": [
+            "packages/runner/package.json"
+          ],
+          "detector": "agents"
+        },
+        {
+          "provider": "meta-graph",
+          "files": [
+            "packages/providers/scrape-iggraph/src/index.ts:124",
+            "packages/providers/scrape-iggraph/src/index.ts:17"
+          ],
+          "detector": "agents"
+        },
+        {
+          "provider": "meta-graph",
+          "files": [
+            "packages/providers/scrape-iggraph/src/index.ts:125"
+          ],
+          "detector": "deadlines"
+        }
+      ]
+    },
+    {
+      "repo": "scratchfoundation/scratch-www",
+      "group": "js-ts",
+      "commit": "8935857e18b12746e1b1d282bfe4200f7c223594",
+      "detections": []
+    },
+    {
+      "repo": "iam567/rich4-renew-app",
+      "group": "js-ts",
+      "commit": "e4224ee00bbb7e18e62e5f9e8be69d47c767d518",
+      "detections": []
+    },
+    {
+      "repo": "Peon-sh/Peon",
+      "group": "js-ts",
+      "commit": "ecfe6a548e37e68cf8a745c40f7c66453146b37b",
+      "detections": [
+        {
+          "provider": "stripe",
+          "files": [
+            "package.json"
+          ],
+          "detector": "agents"
+        },
+        {
+          "provider": "openai",
+          "files": [
+            "package.json"
+          ],
+          "detector": "agents"
+        }
+      ]
+    },
+    {
+      "repo": "CoderJackZhu/Thingary",
+      "group": "js-ts",
+      "commit": "478be512963fbf10cd5ec6e8d77dbcd9ab3803f9",
+      "detections": []
+    },
+    {
+      "repo": "andrebuilds/melodyc",
+      "group": "js-ts",
+      "commit": "8636fefd1db2060a0e10f508431f913e72621aa5",
+      "detections": [
+        {
+          "provider": "resend",
+          "files": [
+            "frontend/package.json"
+          ],
+          "detector": "agents"
+        }
+      ]
+    },
+    {
+      "repo": "Brajesh31/issue-tracker-next.js-app",
+      "group": "js-ts",
+      "commit": "c8672df3ffe8fa3d49af2a212e378079f7f2a539",
+      "detections": []
+    },
+    {
+      "repo": "mwakidenis/mwakidenis.com",
+      "group": "js-ts",
+      "commit": "2b303f8c206a2ecbd48b2ab42d85f4ce3affa686",
+      "detections": []
+    },
+    {
+      "repo": "ember-learn/super-rentals",
+      "group": "js-ts",
+      "commit": "87087b377ae63955637f6ef414dc2be560597bea",
+      "detections": []
+    },
+    {
+      "repo": "YanQuan-dozzy/Boss-Claw",
+      "group": "js-ts",
+      "commit": "9ed6246e558486d4bc0d004534fd57228957a864",
+      "detections": [
+        {
+          "provider": "openai",
+          "files": [
+            "desktop-app/src/lib/bossclaw/providerPresets.ts:32"
+          ],
+          "detector": "agents"
+        }
+      ]
+    },
+    {
+      "repo": "merill/mc",
+      "group": "js-ts",
+      "commit": "74232b110d839d788929760793b4bfd946882f4a",
+      "detections": []
+    },
+    {
+      "repo": "zhaoolee/ChineseBQB",
+      "group": "js-ts",
+      "commit": "5decb10b50bd5265af86cef8d50111572bcbad76",
+      "detections": []
+    },
+    {
+      "repo": "OpenDataEnsemble/ode",
+      "group": "js-ts",
+      "commit": "f3afc11b2f9c71064e25ea9515b182437cd1308a",
+      "detections": []
+    },
+    {
+      "repo": "leftos/towercab-3d",
+      "group": "js-ts",
+      "commit": "59819399da9dfab7f49ea08b908b0c86f67a1343",
+      "detections": []
+    },
+    {
+      "repo": "eee555/saolei_website",
+      "group": "js-ts",
+      "commit": "aecb7774fa5e4c786e020c3b7c089145aff9542e",
+      "detections": []
+    },
+    {
+      "repo": "Jaxton07/percho",
+      "group": "js-ts",
+      "commit": "f1a0585c619a3fdf4aef9e769088bf8a17d0c002",
+      "detections": [
+        {
+          "provider": "gemini",
+          "files": [
+            "scripts/verify-vertex-auth.mts:116"
+          ],
+          "detector": "agents"
+        }
+      ]
+    },
+    {
+      "repo": "UI5/webcomponents-react",
+      "group": "js-ts",
+      "commit": "08de49188e2349d90f6236ff1aea4df44c2fa6fc",
+      "detections": [],
+      "detectorErrors": [
+        "agents: PipelineInputError: Repository exceeds scan limits (10,000 files, 2 MiB per file, 50 MiB total).",
+        "deadlines: PipelineInputError: Repository exceeds scan limits (10,000 files, 2 MiB per file, 50 MiB total)."
+      ],
+      "error": "agents: PipelineInputError: Repository exceeds scan limits (10,000 files, 2 MiB per file, 50 MiB total).; deadlines: PipelineInputError: Repository exceeds scan limits (10,000 files, 2 MiB per file, 50 MiB total)."
+    },
+    {
+      "repo": "Jobcrazy/TRX-USDT-Wallet",
+      "group": "js-ts",
+      "commit": "bdc99c0191b6c3a1df621549be93af1723a41824",
+      "detections": []
+    },
+    {
+      "repo": "ralscha/blog",
+      "group": "js-ts",
+      "commit": "c046ef41bcb48fea02138a933a748c2af534962c",
+      "detections": []
+    },
+    {
+      "repo": "spr-networks/super",
+      "group": "js-ts",
+      "commit": "975d544ee64179ee3d094db9e19d911b554eb8a3",
+      "detections": []
+    },
+    {
+      "repo": "holistics/dbml",
+      "group": "js-ts",
+      "commit": "0c34d8514ae7ebb457549531ef4fa5dab839c4fa",
+      "detections": [],
+      "detectorErrors": [
+        "agents: PipelineInputError: Repository exceeds scan limits (10,000 files, 2 MiB per file, 50 MiB total).",
+        "deadlines: PipelineInputError: Repository exceeds scan limits (10,000 files, 2 MiB per file, 50 MiB total)."
+      ],
+      "error": "agents: PipelineInputError: Repository exceeds scan limits (10,000 files, 2 MiB per file, 50 MiB total).; deadlines: PipelineInputError: Repository exceeds scan limits (10,000 files, 2 MiB per file, 50 MiB total)."
+    },
+    {
+      "repo": "reactjs/react-tabs",
+      "group": "js-ts",
+      "commit": "1e0d27b8598d1d2fd5709180e37c93cfa834612c",
+      "detections": []
+    },
+    {
+      "repo": "HkingAuditore/civ-game",
+      "group": "js-ts",
+      "commit": "99382cd4ac4ade80969d1098679c103f24acc749",
+      "detections": []
+    },
+    {
+      "repo": "Brajesh31/Anime-Book-Store",
+      "group": "js-ts",
+      "commit": "3353c65e7a31c7a512c18f0651d201324da6a2c1",
+      "detections": []
+    },
+    {
+      "repo": "Kylrix/kylrix",
+      "group": "js-ts",
+      "commit": "5876460e59f76b003f23d53673147609d774903c",
+      "detections": [
+        {
+          "provider": "openai",
+          "files": [
+            "lib/agentic/ai-sdk/models.ts:43",
+            "lib/ai/agent-scheduler.ts:104"
+          ],
+          "detector": "agents"
+        },
+        {
+          "provider": "gemini",
+          "files": [
+            "lib/actions/flow-creator.ts:44",
+            "lib/agentic/errors.ts:134",
+            "package.json"
+          ],
+          "detector": "agents"
+        },
+        {
+          "provider": "gemini",
+          "files": [
+            "package.json:37"
+          ],
+          "detector": "deadlines"
+        }
+      ]
+    },
+    {
+      "repo": "ryuzcorp/noite",
+      "group": "js-ts",
+      "commit": "28d12965dddddb26f55dc1f209722b51adea9e4b",
+      "detections": []
+    },
+    {
+      "repo": "haposoft/cafekit",
+      "group": "js-ts",
+      "commit": "96da1253261a064641d2228097f5d47938a3c08e",
+      "detections": []
+    },
+    {
+      "repo": "huilang-me/CF-Server-Monitor",
+      "group": "js-ts",
+      "commit": "42ad10acd7a3073a22e9516407735f303e412920",
+      "detections": []
+    },
+    {
+      "repo": "facenox/facenox",
+      "group": "js-ts",
+      "commit": "f859f4fa014361bf31305d3c92e684a2f5b2b273",
+      "detections": []
+    },
+    {
+      "repo": "tidepool-org/blip",
+      "group": "js-ts",
+      "commit": "9586b7ecc606245b67b6de2027a1ce7e595b151c",
+      "detections": [],
+      "detectorErrors": [
+        "agents: PipelineInputError: Repository exceeds scan limits (10,000 files, 2 MiB per file, 50 MiB total).",
+        "deadlines: PipelineInputError: Repository exceeds scan limits (10,000 files, 2 MiB per file, 50 MiB total)."
+      ],
+      "error": "agents: PipelineInputError: Repository exceeds scan limits (10,000 files, 2 MiB per file, 50 MiB total).; deadlines: PipelineInputError: Repository exceeds scan limits (10,000 files, 2 MiB per file, 50 MiB total)."
+    },
+    {
+      "repo": "ahaoboy/js-engine-benchmark",
+      "group": "js-ts",
+      "commit": "9658e94c0e73cd905acd76fd3f8b59cfc1c26641",
+      "detections": []
+    },
+    {
+      "repo": "timoncool/ACE-Step-Studio",
+      "group": "js-ts",
+      "commit": "00a78016f1899e566e5908ec0dfcf40bd40b14d2",
+      "detections": [],
+      "detectorErrors": [
+        "agents: PipelineInputError: Repository exceeds scan limits (10,000 files, 2 MiB per file, 50 MiB total).",
+        "deadlines: PipelineInputError: Repository exceeds scan limits (10,000 files, 2 MiB per file, 50 MiB total)."
+      ],
+      "error": "agents: PipelineInputError: Repository exceeds scan limits (10,000 files, 2 MiB per file, 50 MiB total).; deadlines: PipelineInputError: Repository exceeds scan limits (10,000 files, 2 MiB per file, 50 MiB total)."
+    },
+    {
+      "repo": "danything/denpa",
+      "group": "js-ts",
+      "commit": "4b3f816aed8f508b22ddcd2074f8499387517781",
+      "detections": []
+    },
+    {
+      "repo": "HSLdevcom/digitransit-ui",
+      "group": "js-ts",
+      "commit": "3454ac67bb64000d0f936b032abd2651c3b7cf43",
+      "detections": [],
+      "detectorErrors": [
+        "agents: PipelineInputError: Repository exceeds scan limits (10,000 files, 2 MiB per file, 50 MiB total).",
+        "deadlines: PipelineInputError: Repository exceeds scan limits (10,000 files, 2 MiB per file, 50 MiB total)."
+      ],
+      "error": "agents: PipelineInputError: Repository exceeds scan limits (10,000 files, 2 MiB per file, 50 MiB total).; deadlines: PipelineInputError: Repository exceeds scan limits (10,000 files, 2 MiB per file, 50 MiB total)."
+    },
+    {
+      "repo": "Felix-Lai-12/whospost",
+      "group": "js-ts",
+      "commit": "d0fbf9efb2a23f22933fdeec76ef4755742a9b94",
+      "detections": [
+        {
+          "provider": "gemini",
+          "files": [
+            "server/ai/gemini.mjs:6"
+          ],
+          "detector": "agents"
+        }
+      ]
+    },
+    {
+      "repo": "Affitor/open-affiliate",
+      "group": "js-ts",
+      "commit": "afc364948a4b1dbe42a78864cddca220cfe9fbb6",
+      "detections": [
+        {
+          "provider": "openai",
+          "files": [
+            "package.json"
+          ],
+          "detector": "agents"
+        },
+        {
+          "provider": "resend",
+          "files": [
+            "scripts/inbound-email.test.ts:109",
+            "scripts/inbound-email.test.ts:94",
+            "scripts/inbound-email.test.ts:95",
+            "src/lib/claims/live.ts:289",
+            "src/lib/inbound-email.ts:38"
+          ],
+          "detector": "agents"
+        }
+      ]
+    },
+    {
+      "repo": "mantrakp04/ardia",
+      "group": "js-ts",
+      "commit": "1dd343fb62f51f39f5143f54b66080183f25dcd6",
+      "detections": []
+    },
+    {
+      "repo": "ZyFou/ProceduralTerrains",
+      "group": "js-ts",
+      "commit": "65eef6a0e0c37c67129d1595606c4f298d2db5a1",
+      "detections": []
+    },
+    {
+      "repo": "debezium/debezium-platform",
+      "group": "js-ts",
+      "commit": "5be96c5b86b05878cbb7c0b941243101eb01b22f",
+      "detections": []
+    },
+    {
+      "repo": "dengcb/weixin-reader-desktop",
+      "group": "js-ts",
+      "commit": "46784a16537b4b4ddba4bc109104e46aecad67ed",
+      "detections": []
+    },
+    {
+      "repo": "OpenCCU/OpenCCU",
+      "group": "js-ts",
+      "commit": "40c0b48205f129a08f9a0fa8850e2668f6856257",
+      "detections": [],
+      "detectorErrors": [
+        "agents: PipelineInputError: Repository exceeds scan limits (10,000 files, 2 MiB per file, 50 MiB total).",
+        "deadlines: PipelineInputError: Repository exceeds scan limits (10,000 files, 2 MiB per file, 50 MiB total)."
+      ],
+      "error": "agents: PipelineInputError: Repository exceeds scan limits (10,000 files, 2 MiB per file, 50 MiB total).; deadlines: PipelineInputError: Repository exceeds scan limits (10,000 files, 2 MiB per file, 50 MiB total)."
+    },
+    {
+      "repo": "nextcloud/tables",
+      "group": "js-ts",
+      "commit": "c5c87cf04206f144749ed7cd4f1ceeb016256b36",
+      "detections": []
+    },
+    {
+      "repo": "readium/ts-toolkit",
+      "group": "js-ts",
+      "commit": "26b30f14159d394f16dcece4664deaa3ed4ed80c",
+      "detections": []
+    },
+    {
+      "repo": "dengxiaoning/cesium_dev_kit",
+      "group": "js-ts",
+      "commit": "69ece5616c9a320eb0864b7a93f08512f365b141",
+      "detections": []
+    },
+    {
+      "repo": "antvis/antvis.github.io",
+      "group": "js-ts",
+      "commit": "2fa91a44668140d52151283a5bc8894442cc0735",
+      "detections": []
+    },
+    {
+      "repo": "8starlabs/ui",
+      "group": "js-ts",
+      "commit": "4edff1ddacfd5a47b974916ba07c8d2367b9a151",
+      "detections": []
+    },
+    {
+      "repo": "ravidsrk/slop-detect",
+      "group": "js-ts",
+      "commit": "456b70440c00902ba211f77d1f7d29af69abee0a",
+      "detections": [
+        {
+          "provider": "resend",
+          "files": [
+            "apps/web/functions/_email.ts:74",
+            "apps/web/test/analytics.test.js:309",
+            "apps/web/test/monitor-flow.test.js:70",
+            "apps/web/test/watch.test.js:308"
+          ],
+          "detector": "agents"
+        }
+      ]
+    },
+    {
+      "repo": "Brajesh31/PassMan-Your-personal-password-manager",
+      "group": "js-ts",
+      "commit": "82904f368f481895a42e8832b102a0cd0775f552",
+      "detections": []
+    },
+    {
+      "repo": "SlumperSan/agent-governed-vaults",
+      "group": "js-ts",
+      "commit": "07d1be0e7d4e7fabaf5dc1fcd9cbb5c1a647e43a",
+      "detections": []
+    },
+    {
+      "repo": "Brajesh31/Skill_share_grow_final",
+      "group": "js-ts",
+      "commit": "d15e38033e9ce7a895fe703beb3a8628fee4c116",
+      "detections": []
+    },
+    {
+      "repo": "r-near/zorsh",
+      "group": "js-ts",
+      "commit": "4a54b28775b58f380d72f4426a471f2b23c37f3b",
+      "detections": []
+    },
+    {
+      "repo": "nikunjsingh93/react-glass-keep",
+      "group": "js-ts",
+      "commit": "1a62f2b450c3d9e6f182584121759bbeb5cefa85",
+      "detections": []
+    },
+    {
+      "repo": "PapillonApp/Papillon",
+      "group": "js-ts",
+      "commit": "7b5aaed7d2f96ce3a913579cd0af2309a12eb82d",
+      "detections": []
+    },
+    {
+      "repo": "ProjectSidewalk/SidewalkWebpage",
+      "group": "js-ts",
+      "commit": "21884834a3553c58b76851606c3c9b60b12b8b67",
+      "detections": []
+    },
+    {
+      "repo": "plhery/peek-delivery-tracker",
+      "group": "js-ts",
+      "commit": "cad21eba4ae79d6517a434a22017d3deef500102",
+      "detections": []
+    },
+    {
+      "repo": "MTES-MCT/acceslibre",
+      "group": "python",
+      "commit": "b23e189680e9cfe0293087a05effac6b924250f6",
+      "detections": []
+    },
+    {
+      "repo": "gpustack/gpustack",
+      "group": "python",
+      "commit": "4e35ee088abc0f4cc7ee75a86e15970de6b5091b",
+      "detections": []
+    },
+    {
+      "repo": "fumingyang2004/Tulpa",
+      "group": "python",
+      "commit": "b9b0d82224040c56842056feaeb80d7a000717a6",
+      "detections": []
+    },
+    {
+      "repo": "chedim/babyseat",
+      "group": "python",
+      "commit": "9294a339b083a44dad966cb80a06042dad20eac6",
+      "detections": [],
+      "detectorErrors": [
+        "agents: PipelineInputError: Repository exceeds scan limits (10,000 files, 2 MiB per file, 50 MiB total).",
+        "deadlines: PipelineInputError: Repository exceeds scan limits (10,000 files, 2 MiB per file, 50 MiB total)."
+      ],
+      "error": "agents: PipelineInputError: Repository exceeds scan limits (10,000 files, 2 MiB per file, 50 MiB total).; deadlines: PipelineInputError: Repository exceeds scan limits (10,000 files, 2 MiB per file, 50 MiB total)."
+    },
+    {
+      "repo": "deep-learning-indaba/Baobab",
+      "group": "python",
+      "commit": "aa497d1bbf75785e9ca8332ede09c9ee252742a1",
+      "detections": []
+    },
+    {
+      "repo": "aidotse/LeakPro",
+      "group": "python",
+      "commit": "d65e7f4f14fb2c7658a506f184714e6c8d26ba75",
+      "detections": []
+    },
+    {
+      "repo": "MCDReforged/MCDReforged",
+      "group": "python",
+      "commit": "00c834307bcf887cc2eddf54256c75210b06eea4",
+      "detections": []
+    },
+    {
+      "repo": "whoahaow/rjsxrd",
+      "group": "python",
+      "commit": "443307da7e774fc9b739d34791759a4ec2bb462c",
+      "detections": []
+    },
+    {
+      "repo": "QuinnDamerell/OctoPrint-OctoEverywhere",
+      "group": "python",
+      "commit": "d7f2cb029805adbac798fbcdccf9a299a9b693b2",
+      "detections": []
+    },
+    {
+      "repo": "batocera-linux/batocera.linux",
+      "group": "python",
+      "commit": "a3f0541d9a45473f649f06f0f00e755b157a81e4",
+      "detections": []
+    },
+    {
+      "repo": "olofk/fusesoc",
+      "group": "python",
+      "commit": "8cba6be2907020319b25d138feb7a052dcf00d60",
+      "detections": []
+    },
+    {
+      "repo": "Optexity/optexity",
+      "group": "python",
+      "commit": "710ca2cc099f6057bc93c8485197f76f5397889d",
+      "detections": []
+    },
+    {
+      "repo": "odoo/runbot",
+      "group": "python",
+      "commit": "0d47bd6bb0d163c24cb903de801e2e2eb98d450c",
+      "detections": []
+    },
+    {
+      "repo": "Oaklight/llm-rosetta",
+      "group": "python",
+      "commit": "809f7f3659938d218aedf8145c6952738b4dad55",
+      "detections": [
+        {
+          "provider": "openai",
+          "files": [
+            "packages/llm-rosetta-gateway/src/llm_rosetta_gateway/admin/js/tabs/providers.js:31"
+          ],
+          "detector": "agents"
+        }
+      ]
+    },
+    {
+      "repo": "digitalmethodsinitiative/4cat",
+      "group": "python",
+      "commit": "a11a20c16bcb0185a460c866888b0170f835c1f8",
+      "detections": []
+    },
+    {
+      "repo": "devitocodes/devito",
+      "group": "python",
+      "commit": "a9e3f31a57dfc180e8f95f4d9ceabbff807a89a2",
+      "detections": []
+    },
+    {
+      "repo": "green-coding-solutions/green-metrics-tool",
+      "group": "python",
+      "commit": "7e6c33aafabdf9c5f3be5cafcad0f36c9cc9c248",
+      "detections": []
+    },
+    {
+      "repo": "ashleydarosa/CC-Checker-Validator-Generator",
+      "group": "python",
+      "commit": "a50ad557c0ea3ccabd36b5578ea73bbd41ed4971",
+      "detections": []
+    },
+    {
+      "repo": "django-treebeard/django-treebeard",
+      "group": "python",
+      "commit": "7948d1003db8d724d291e2a0b875b75aea32d52b",
+      "detections": []
+    },
+    {
+      "repo": "M9nx/CodexA",
+      "group": "python",
+      "commit": "2b4c499a9a9707d8c03c885fc44d52348b3efa09",
+      "detections": []
+    },
+    {
+      "repo": "line/promgen",
+      "group": "python",
+      "commit": "5969e7f9b03ccb6f624af60cc3be8ad083f0ae91",
+      "detections": []
+    },
+    {
+      "repo": "shuxiachai/academic-commercialization-agent",
+      "group": "python",
+      "commit": "9fa5bce858631f887be9c37dc7cdde56ba54706f",
+      "detections": []
+    },
+    {
+      "repo": "openedx/license-manager",
+      "group": "python",
+      "commit": "fcd7ad010ede418150c1032c9a29398c172e799b",
+      "detections": []
+    },
+    {
+      "repo": "SatyamSingh-Git/ElevenPowers",
+      "group": "python",
+      "commit": "a5dabc12e826957cbdb022bd6a646f97fcc7bae3",
+      "detections": []
+    },
+    {
+      "repo": "algorithmicsuperintelligence/openevolve",
+      "group": "python",
+      "commit": "515d1bcb7b36ac64bbe028f8d83b5d08315ca4b5",
+      "detections": []
+    },
+    {
+      "repo": "TimSoethout/goodwe-sems-home-assistant",
+      "group": "python",
+      "commit": "b728dedbfeb003953b3a74aff63fc44fd40f1a1b",
+      "detections": []
+    },
+    {
+      "repo": "dalibo/temboard",
+      "group": "python",
+      "commit": "5a509fb0cac2dde80f1598e0fe205257e7bc27a6",
+      "detections": []
+    },
+    {
+      "repo": "VocaHQ/vocalinux",
+      "group": "python",
+      "commit": "b148bca5fab1b2a2a8834232c3d4be7b08130bd0",
+      "detections": []
+    },
+    {
+      "repo": "calibrain/shelfmark",
+      "group": "python",
+      "commit": "182e80f894b4e0de9d1062d7c03467403f7c9974",
+      "detections": []
+    },
+    {
+      "repo": "coaxk/subarr",
+      "group": "python",
+      "commit": "2cbf5df9028fd3e06ce5ce7ddc818de74e47a240",
+      "detections": []
+    },
+    {
+      "repo": "git-hulk/clime",
+      "group": "go",
+      "commit": "cfa0b37b22923f8323cd58c0e8e42e5a9a66e493",
+      "detections": []
+    },
+    {
+      "repo": "fclairamb/ftpserver",
+      "group": "go",
+      "commit": "7804ead2ac1a61fc70a080bf4a01f4200dcdf877",
+      "detections": []
+    },
+    {
+      "repo": "go-task/task",
+      "group": "go",
+      "commit": "ad2782e1709f0bcf8fbbe0d8e00c2d239141e099",
+      "detections": []
+    },
+    {
+      "repo": "bookingcom/nanotube",
+      "group": "go",
+      "commit": "32176b251ea064de6be66ae2179d09e1adade54b",
+      "detections": []
+    },
+    {
+      "repo": "juicedata/juicefs",
+      "group": "go",
+      "commit": "0eb0e6d5aa549a527c4dd97d170f22d52a0ffec0",
+      "detections": []
+    },
+    {
+      "repo": "moby/buildkit",
+      "group": "go",
+      "commit": "98d9aa8f76ed6bb92bf0f1fc499a5272de7c624a",
+      "detections": []
+    },
+    {
+      "repo": "supersonictw/popsenzawa-echo",
+      "group": "go",
+      "commit": "2a582dcacf11c0a67cd06f7065095c8bec7a39e0",
+      "detections": []
+    },
+    {
+      "repo": "osmosis-labs/osmosis",
+      "group": "go",
+      "commit": "19f2853c56a26fa8bc3bf82c6fef361d7acc7861",
+      "detections": []
+    },
+    {
+      "repo": "k8ssandra/k8ssandra-operator",
+      "group": "go",
+      "commit": "8672072e8caf191162bc5d663a7057c132bc5cb1",
+      "detections": []
+    },
+    {
+      "repo": "app-sre/deployment-validation-operator",
+      "group": "go",
+      "commit": "deee78a6b24fa3c6fe2ca0dfebc768dcdabac1f0",
+      "detections": []
+    },
+    {
+      "repo": "cdalar/onctl",
+      "group": "go",
+      "commit": "7605c758f84190e18343d049951c4f6baa8cf24e",
+      "detections": []
+    },
+    {
+      "repo": "benprew/s30",
+      "group": "go",
+      "commit": "b84f93570699a8ddae5aa4a4ff580beab31efe0d",
+      "detections": []
+    },
+    {
+      "repo": "sempr/hustoj-go",
+      "group": "go",
+      "commit": "e15a9d9a8862710ec02a6a1f4102bf8eb24ff7a7",
+      "detections": []
+    },
+    {
+      "repo": "shpyrd-io/shpyrd",
+      "group": "go",
+      "commit": "c315831f41ddee936a5ad31b75e5126ca38b0ee1",
+      "detections": []
+    },
+    {
+      "repo": "damonto/sigmo",
+      "group": "go",
+      "commit": "601f07f40e12c38afb550aaac56fd26eeba86d66",
+      "detections": []
+    },
+    {
+      "repo": "suzuki-shunsuke/pinact",
+      "group": "go",
+      "commit": "0b4394fbe2f865d5a3993e8f830bce5d8ccc17f1",
+      "detections": []
+    },
+    {
+      "repo": "aws-samples/aws-pod-eip-controller",
+      "group": "go",
+      "commit": "d1e603db371fb21605495fba19acea526dae67c2",
+      "detections": []
+    },
+    {
+      "repo": "gardener/gardener-landscape-kit",
+      "group": "go",
+      "commit": "6c3acb8d4712f468b3d6ca036ba6987bb50fbc20",
+      "detections": []
+    },
+    {
+      "repo": "arkmq-org/arkmq-org-broker-operator",
+      "group": "go",
+      "commit": "d568a39a7028dd118fd5be1ba00c23feaf5f967f",
+      "detections": []
+    },
+    {
+      "repo": "openai/openai-cli",
+      "group": "go",
+      "commit": "a74037654d66266e566a7a34730c27f7e5e1419c",
+      "detections": []
+    }
+  ]
+}
