@@ -9,6 +9,7 @@ import { scanDeadlines, TEST_PATH } from './deadline-exposure.ts';
 import { renderPatch } from './patches.ts';
 import { readProviderAdapter, type ProviderAdapter } from './providers.ts';
 import { readRepository } from './repository.ts';
+import { pythonModelReports } from './python/model-reports.ts';
 import { createSourceImportResolver } from './source-imports.ts';
 import type { Repository, SourceEdit } from './types.ts';
 
@@ -1877,7 +1878,13 @@ export async function proposeModelReplacements(
       byProvider.set(entry.provider, models);
       for (const version of entry.versions) models.set(version, entry);
     }
-  const empty = { replacements: [], stops: [], unresolved: [], patch: null };
+  // Python call sites are reported, never edited (docs/ARCHITECTURE.md, "Other languages").
+  const python = await pythonModelReports(directory, registry, {
+    replacement: (entry, models) => finalReplacement(entry, models)?.to ?? null,
+    sensitive: (provider, to) =>
+      rejectsSampling(provider, to) ? (SENSITIVE_PARAMETERS[provider] ?? new Set()) : new Set(),
+  });
+  const empty = { replacements: [], ...python, patch: null };
   if (
     ![...byProvider.keys()].some((provider) =>
       TRACERS.some((tracer) => tracer.provider === provider),
@@ -2183,7 +2190,12 @@ export async function proposeModelReplacements(
     const models = byProvider.get(provider);
     if (!models || !TRACERS.some((tracer) => tracer.provider === provider)) continue;
     for (const evidence of exposure.evidence) {
-      if (evidence.kind !== 'source' || covered.has(`${evidence.file}:${evidence.line}`)) continue;
+      if (
+        evidence.kind !== 'source' ||
+        evidence.file.endsWith('.py') ||
+        covered.has(`${evidence.file}:${evidence.line}`)
+      )
+        continue;
       const entry = models.get(evidence.version) ?? exposure.deadline;
       unresolved.push({
         deadline: exposure.deadline.id,
@@ -2198,8 +2210,8 @@ export async function proposeModelReplacements(
   }
   return {
     replacements,
-    stops,
-    unresolved,
+    stops: [...stops, ...python.stops],
+    unresolved: [...unresolved, ...python.unresolved],
     patch: edits.length ? renderPatch(repository, edits) : null,
   };
 }

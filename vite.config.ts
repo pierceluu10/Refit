@@ -19,7 +19,7 @@ export default defineConfig({
         extends: true,
         test: {
           name: 'pipeline',
-          include: ['pipeline/*.test.ts'],
+          include: ['pipeline/*.test.ts', 'pipeline/python/*.test.ts'],
           environment: 'node',
           // Many pipeline tests start the CLI as a subprocess or run the TypeScript compiler; on a
           // loaded runner they take longer than vitest's 5 s default.

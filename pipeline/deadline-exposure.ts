@@ -5,6 +5,8 @@ import ts from 'typescript-compiler';
 import { AGENT_CATALOG, builtInPackage } from './agent-catalog.ts';
 import { daysUntil, type DeadlineEntry, type DeadlineRegistry } from './deadline-registry.ts';
 import { readRepository } from './repository.ts';
+import { pythonModelMatches } from './python/model-uses.ts';
+import { readPythonFiles } from './python/syntax.ts';
 import { isObject, parseObject } from './specifications.ts';
 import { REPOSITORY_CONFIGURATION } from './workflow-configuration.ts';
 
@@ -138,9 +140,9 @@ const MODEL_PROVIDERS = new Set<DeadlineEntry['provider']>(['openai', 'anthropic
 // model list, which often mixes providers. Router IDs such as `openai/o1` and
 // `anthropic/claude-3-opus` count too. Gemini-shaped IDs count only when the match being
 // classified is a Gemini model, so OpenAI and Anthropic classification is unchanged.
-const ANTHROPIC_MODEL = /^(?:anthropic\/)?claude-/;
-const GEMINI_MODEL = /^(?:google\/|models\/)?gemini-/;
-const OPENAI_MODEL =
+export const ANTHROPIC_MODEL = /^(?:anthropic\/)?claude-/;
+export const GEMINI_MODEL = /^(?:google\/|models\/)?gemini-/;
+export const OPENAI_MODEL =
   /^(?:openai\/)?(?:gpt-|chatgpt-|o\d(?:-|$)|text-(?:davinci|curie|babbage|ada|embedding|moderation)-|(?:davinci|curie|babbage|ada)(?:-|$)|dall-e-|tts-|whisper-|codex-|computer-use-|omni-moderation-|sora-)/;
 const CATALOG_SIZE = 3;
 // Cloud-platform forms of a Claude model ID: Bedrock (`anthropic.claude-…`, optionally with a region
@@ -542,6 +544,24 @@ export async function scanDeadlines(
       offset += line.length + 1;
     }
   }
+  // Python files: quoted registry models only, classified like the TypeScript matches above.
+  const python = models.size ? await readPythonFiles(root) : [];
+  for (const match of await pythonModelMatches(
+    python,
+    models,
+    (value) =>
+      models.has(value) ||
+      OPENAI_MODEL.test(value) ||
+      ANTHROPIC_MODEL.test(value) ||
+      GEMINI_MODEL.test(value),
+  ))
+    record(match.provider, match.version, {
+      file: match.file,
+      line: match.line,
+      kind: 'source',
+      use: match.use,
+      text: excerpt(match.text),
+    });
   for (const dependency of repository.dependencies) {
     const version = metaSdkVersion(dependency.version, dependency.lock.version);
     if (version)
