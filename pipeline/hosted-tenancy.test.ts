@@ -1,10 +1,14 @@
-import { randomBytes, randomUUID } from 'node:crypto';
+import { execFile } from 'node:child_process';
+import { createHmac, randomBytes, randomUUID } from 'node:crypto';
 import { mkdir, mkdtemp, readdir, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
+import { promisify } from 'node:util';
 import pg from 'pg';
-import { afterEach, expect, it } from 'vitest';
+import { afterEach, expect, it, vi } from 'vitest';
 import { reserveAiBudget } from './ai-budget.ts';
+import { authenticateGitHubRead } from './github-app.ts';
+import { runHostedService } from './hosted-service.ts';
 import { hostedTargetId, openHostedStore } from './hosted-store.ts';
 import {
   DEFAULT_TENANCY_LIMITS,
@@ -16,11 +20,22 @@ import type { RepositoryApproval } from './repository-enrollment.ts';
 import { digest } from './specifications.ts';
 import { writeState } from './state-files.ts';
 
+// Any checkout starts by authenticating, so a call here means Refit tried to clone.
+vi.mock('./github-app.ts', async (original) => ({
+  ...(await original<typeof import('./github-app.ts')>()),
+  authenticateGitHubRead: vi.fn(async () => {
+    throw new Error('GitHub access is simulated as unavailable.');
+  }),
+}));
+
 const DATABASE = process.env.REFIT_POSTGRES_URL;
 const MODEL = 'gpt-5.4-mini';
+const WEBHOOK_SECRET = 'webhook-secret-for-hosted-tenancy-tests-123';
+const CONTROL_TOKEN = 'control-secret-for-hosted-tenancy-tests-456';
 const cleanups: (() => Promise<unknown>)[] = [];
 
 afterEach(async () => {
+  vi.clearAllMocks();
   for (const cleanup of cleanups.splice(0).reverse()) await cleanup();
 });
 
@@ -73,6 +88,53 @@ function install(store: Store, installationId: number, owner: string, repositori
     added: repositories.map((name, index) => ({ id: installationId * 100 + index, name })),
     removed: [],
   });
+}
+
+async function serve(pool: pg.Pool, directory: string, accounts: string[]) {
+  const controller = new AbortController();
+  let ready: (url: string) => void;
+  const listening = new Promise<string>((resolve) => (ready = resolve));
+  const service = runHostedService({
+    database: pool,
+    app: { appId: '123', privateKeyFile: 'unused-test-key' },
+    directory,
+    webhookSecret: WEBHOOK_SECRET,
+    controlToken: CONTROL_TOKEN,
+    tenancy: tenancy(accounts),
+    host: '127.0.0.1',
+    port: 0,
+    intervalSeconds: 30,
+    leaseSeconds: 30,
+    worker: 'tenancy-worker',
+    signal: controller.signal,
+    onReady: (url) => ready(url),
+  });
+  const url = await listening;
+  const stop = async () => {
+    controller.abort();
+    await service;
+  };
+  cleanups.push(() => stop().catch(() => undefined));
+  const status = async () =>
+    (
+      await fetch(`${url}/status`, { headers: { Authorization: `Bearer ${CONTROL_TOKEN}` } })
+    ).json();
+  return { url, stop, status };
+}
+
+async function deliver(url: string, event: string, payload: unknown) {
+  const body = JSON.stringify(payload);
+  const response = await fetch(`${url}/github/webhook`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-GitHub-Event': event,
+      'X-GitHub-Delivery': randomUUID(),
+      'X-Hub-Signature-256': `sha256=${createHmac('sha256', WEBHOOK_SECRET).update(body).digest('hex')}`,
+    },
+    body,
+  });
+  return { status: response.status, body: await response.json() };
 }
 
 async function finish(store: Store, job: number, worker: string) {
@@ -189,6 +251,62 @@ it.skipIf(!DATABASE)(
     ).toBe('not-allowed');
     expect(await narrowed.enqueueDue(0)).toBe(1);
     expect((await narrowed.claim('worker', 30))?.target.id).toBe(ours);
+  },
+  30_000,
+);
+
+it.skipIf(!DATABASE)(
+  'clones nothing for a signed install from an account that is not allowed until a restart allows it',
+  async () => {
+    const pool = await database();
+    const directory = await temporaryDirectory();
+    await (await openHostedStore(pool)).approve(approval('customer/shop'), 'octo-reviewer');
+    const first = await serve(pool, directory, ['example']);
+    const installed = await deliver(first.url, 'installation', {
+      action: 'created',
+      installation: { id: 77, app_id: 123, account: { login: 'Customer' } },
+      repositories: [{ id: 7701, full_name: 'Customer/shop' }],
+    });
+    expect(installed).toEqual({
+      status: 202,
+      body: { delivery: expect.any(String), status: 'not-allowed', enrolled: [], cancelled: [] },
+    });
+    let registry = await first.status();
+    expect(registry.installations).toEqual([
+      expect.objectContaining({
+        id: '77',
+        owner: 'customer',
+        allowed: false,
+        repositories: ['customer/shop'],
+        refusals: [TENANCY_REFUSALS.notAllowed],
+      }),
+    ]);
+    expect(registry.targets).toEqual([]);
+    expect(registry.jobs).toEqual([]);
+    await first.stop();
+    expect(authenticateGitHubRead).not.toHaveBeenCalled();
+    expect(await readdir(directory)).toEqual([]);
+
+    // Restarting with the account listed enrolls the recorded repository and runs its job.
+    const second = await serve(pool, directory, ['example', 'customer']);
+    for (
+      const deadline = Date.now() + 10_000;
+      registry.jobs[0]?.status !== 'failed' && Date.now() < deadline;
+      registry = await second.status()
+    )
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    expect(registry.targets).toEqual([
+      expect.objectContaining({ id: hostedTargetId('customer/shop', 'main'), status: 'enrolled' }),
+    ]);
+    expect(registry.jobs).toEqual([
+      expect.objectContaining({
+        status: 'failed',
+        receipt: expect.objectContaining({
+          message: 'Error: GitHub access is simulated as unavailable.',
+        }),
+      }),
+    ]);
+    expect(authenticateGitHubRead).toHaveBeenCalledOnce();
   },
   30_000,
 );
@@ -392,6 +510,45 @@ it.skipIf(!DATABASE)(
     );
     expect(imported.rows[0].state).toMatchObject({ spentNano: 20_000_000 });
     expect(Object.keys(imported.rows[0].state.reservations)).toHaveLength(1);
+  },
+  30_000,
+);
+
+it.skipIf(!DATABASE)(
+  'lists installations, their allow state and today’s usage with refit hosted accounts',
+  async () => {
+    const pool = await database();
+    const store = await openHostedStore(
+      pool,
+      tenancy(['example'], { dailyJobs: 5, dailyInventories: 2 }),
+    );
+    await store.approve(approval('example/application'), 'octo-reviewer');
+    await install(store, 1, 'example', ['example/application', 'example/site']);
+    await install(store, 2, 'customer', ['customer/shop']);
+    await store.claim('worker', 30);
+    await store.reserveInventory(1);
+    const { schema } = (await pool.query('SELECT current_schema() AS schema')).rows[0];
+    const url = new URL(DATABASE!);
+    url.searchParams.set('options', `-c search_path=${schema}`);
+    const { stdout } = await promisify(execFile)(
+      process.execPath,
+      [resolve('bin/refit.mjs'), 'hosted', 'accounts'],
+      {
+        env: {
+          PATH: process.env.PATH,
+          REFIT_DATABASE_URL: url.toString(),
+          REFIT_HOSTED_ACCOUNTS: 'example',
+          REFIT_HOSTED_DAILY_JOBS: '5',
+          REFIT_HOSTED_DAILY_INVENTORIES: '2',
+        },
+      },
+    );
+    console.log(stdout);
+    expect(stdout.trimEnd().split('\n')).toEqual([
+      'Allowed accounts: example. Daily caps per installation (UTC): 5 jobs, 2 inventories.',
+      'Installation 1 (example): active, allowed; 2 repositories; today 1/5 jobs, 1/2 inventories; refusals: installation-job-running.',
+      'Installation 2 (customer): active, not allowed; 1 repository; today 0/5 jobs, 0/2 inventories; refusals: account-not-allowed.',
+    ]);
   },
   30_000,
 );
