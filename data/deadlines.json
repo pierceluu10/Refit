@@ -1138,7 +1138,8 @@
       "summary": "GitHub’s OpenAPI description marks the legacy /teams/{team_id} endpoints deprecated (deprecation date 2020-01-21) with a removal date of 2021-02-01. 16 operations.",
       "replacement": "the /orgs/{org}/teams/{team_slug} endpoints",
       "source": "https://github.com/github/rest-api-description/blob/755ee33b4a81d51f6f07a902cce26cbec3b822f2/descriptions/api.github.com/api.github.com.json",
-      "checkedAt": "2026-10-22"
+      "checkedAt": "2026-10-22",
+      "derivedDate": true
     },
     {
       "id": "github-source-imports-endpoints",
@@ -1158,7 +1159,8 @@
       "summary": "GitHub’s OpenAPI description marks the source imports endpoints under /repos/{owner}/{repo}/import deprecated (deprecation date 2023-10-12) with a removal date of 2024-04-12. 8 operations.",
       "replacement": null,
       "source": "https://github.com/github/rest-api-description/blob/755ee33b4a81d51f6f07a902cce26cbec3b822f2/descriptions/api.github.com/api.github.com.json",
-      "checkedAt": "2026-10-22"
+      "checkedAt": "2026-10-22",
+      "derivedDate": true
     },
     {
       "id": "github-org-security-product-enablement",
@@ -1171,7 +1173,8 @@
       "summary": "GitHub’s OpenAPI description marks the endpoint that enables or disables a security product on all organization repositories deprecated (deprecation date 2024-07-22) with a removal date of 2025-07-22. 1 operation.",
       "replacement": null,
       "source": "https://github.com/github/rest-api-description/blob/755ee33b4a81d51f6f07a902cce26cbec3b822f2/descriptions/api.github.com/api.github.com.json",
-      "checkedAt": "2026-10-22"
+      "checkedAt": "2026-10-22",
+      "derivedDate": true
     },
     {
       "id": "github-org-security-managers-endpoints",
@@ -1186,7 +1189,8 @@
       "summary": "GitHub’s OpenAPI description marks the organization security managers endpoints deprecated (deprecation date 2024-12-01) with a removal date of 2026-01-01. 3 operations.",
       "replacement": null,
       "source": "https://github.com/github/rest-api-description/blob/755ee33b4a81d51f6f07a902cce26cbec3b822f2/descriptions/api.github.com/api.github.com.json",
-      "checkedAt": "2026-10-22"
+      "checkedAt": "2026-10-22",
+      "derivedDate": true
     },
     {
       "id": "github-classroom-endpoints",
@@ -1204,7 +1208,8 @@
       "summary": "GitHub’s OpenAPI description marks the GitHub Classroom endpoints deprecated (deprecation date 2026-05-22) with a removal date of 2026-08-28. 6 operations.",
       "replacement": null,
       "source": "https://github.com/github/rest-api-description/blob/755ee33b4a81d51f6f07a902cce26cbec3b822f2/descriptions/api.github.com/api.github.com.json",
-      "checkedAt": "2026-10-22"
+      "checkedAt": "2026-10-22",
+      "derivedDate": true
     },
     {
       "id": "github-dependency-graph-sbom-export",
@@ -1217,7 +1222,8 @@
       "summary": "GitHub’s OpenAPI description marks the dependency graph SBOM export endpoint deprecated (deprecation date 2026-05-12) with a removal date of 2026-11-13. 1 operation.",
       "replacement": null,
       "source": "https://github.com/github/rest-api-description/blob/755ee33b4a81d51f6f07a902cce26cbec3b822f2/descriptions/api.github.com/api.github.com.json",
-      "checkedAt": "2026-10-22"
+      "checkedAt": "2026-10-22",
+      "derivedDate": true
     },
     {
       "id": "github-graphql-databaseid-2027",
