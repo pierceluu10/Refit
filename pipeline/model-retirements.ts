@@ -26,6 +26,12 @@ const MODEL_CALLS: Record<string, Set<string>> = {
     'responses.parse',
     'responses.stream',
   ]),
+  gemini: new Set([
+    'models.generateContent',
+    'models.generateContentStream',
+    'models.countTokens',
+    'chats.create',
+  ]),
   anthropic: new Set([
     'messages.create',
     'messages.stream',
@@ -35,6 +41,9 @@ const MODEL_CALLS: Record<string, Set<string>> = {
     'beta.messages.countTokens',
   ]),
 };
+
+const GEMINI_REPORT_ONLY =
+  'Gemini is report only, so Refit never edits its models (an owner decision); change it by hand to';
 
 // The OpenAI v3 SDK and openai-edge, which keeps its API: methods on an `OpenAIApi` client.
 function legacyOpenAi(packageName: string): ProviderAdapter {
@@ -56,6 +65,8 @@ const TRACERS: {
   clientCalls?: Set<string>;
   // The client is not the provider's own endpoint, so its requests only ever stop for review.
   custom?: boolean;
+  // Report only: every request stops with this reason and is never edited (Gemini, AGENTS.md).
+  reportOnly?: string;
 }[] = [
   {
     provider: 'openai',
@@ -78,6 +89,32 @@ const TRACERS: {
     provider: 'anthropic',
     adapter: new URL('../examples/anthropic.provider.json', import.meta.url),
     resourceCalls: MODEL_CALLS.anthropic,
+  },
+  {
+    provider: 'gemini',
+    adapter: {
+      id: 'gemini',
+      packageName: '@google/genai',
+      defaultImport: false,
+      namedExport: 'GoogleGenAI',
+      operations: [],
+    },
+    resourceCalls: MODEL_CALLS.gemini,
+    reportOnly: GEMINI_REPORT_ONLY,
+  },
+  {
+    // The old SDK selects the model once, in `getGenerativeModel({ model })`.
+    provider: 'gemini',
+    adapter: { ...legacyOpenAi('@google/generative-ai'), namedExport: 'GoogleGenerativeAI' },
+    clientCalls: new Set(['getGenerativeModel']),
+    reportOnly: GEMINI_REPORT_ONLY,
+  },
+  {
+    provider: 'gemini',
+    adapter: { ...legacyOpenAi('@google-cloud/vertexai'), namedExport: 'VertexAI' },
+    clientCalls: new Set(['getGenerativeModel']),
+    reportOnly:
+      "The client is Vertex AI, whose model retirement dates differ from the Gemini API's; check Google Cloud's model versions page and change it by hand, for example to",
   },
 ];
 // Request parameters a newer model may reject or treat differently. Anthropic returns a 400 for
@@ -1913,6 +1950,7 @@ export async function proposeModelReplacements(
     custom: boolean;
     // Traced only by trusting an SDK import under an unreadable tsconfig or jsconfig.
     unverified?: boolean;
+    reportOnly?: string;
   }[] = [];
   const seen = new Set<ts.Node>();
   // Providers whose SDK the repository imports, so their requests can be traced at all.
@@ -1984,6 +2022,7 @@ export async function proposeModelReplacements(
         sdk: true,
         custom: Boolean(tracer.custom),
         unverified: !confirmed.has(callKey(sdk)),
+        reportOnly: tracer.reportOnly,
       });
     }
   }
@@ -2079,44 +2118,46 @@ export async function proposeModelReplacements(
       const sensitive = found.object.properties
         .map((item) => (item.name ? propertyName(item.name) : undefined))
         .filter((name): name is string =>
-          Boolean(name && SENSITIVE_PARAMETERS[request.provider].has(name)),
+          Boolean(name && SENSITIVE_PARAMETERS[request.provider]?.has(name)),
         )
         .filter(() => rejectsSampling(request.provider, resolved.to));
       const stop = site.stop ?? sharedUse(program, site.passes, reached);
       const reason = !resolved.to
         ? 'The registry names no concrete replacement model ID.'
-        : request.unverified
-          ? `The tsconfig.json or jsconfig.json for the SDK import cannot be fully read (it may extend a generated file that is not checked in), so Refit cannot confirm the import is the SDK; change its model by hand to ${resolved.to}.`
-          : // Images, audio, embeddings, moderation and legacy completions change formats, vector
-            // sizes or parameters with the model, so they are never edited. The wording is accurate for
-            // any call outside the text allow-list, such as beta.assistants.create (D-11, D-16).
-            !request.text
-            ? `\`${request.call}\` is not a call Refit edits; ${resolved.to} may change formats or parameters; change it by hand to ${resolved.to}.`
-            : customUrl
-              ? request.sdk
-                ? `The client sets a custom base URL, so the model may name another provider's model or a deployment; change it by hand to ${resolved.to}.`
-                : `The request goes to a host other than the official API, so the model may name another provider's model or a deployment; change it by hand to ${resolved.to}.`
-              : limit
-                ? `${limit} ${resolved.to}.`
-                : stop
-                  ? `${stop} ${resolved.to}.`
-                  : direct && (!direct.has(site.literal) || direct.get(site.literal))
-                    ? /^(?:axios|request) /.test(request.call)
-                      ? `\`${request.call}\` is an axios request config, which Refit reports but does not edit yet; change it by hand to ${resolved.to}.`
-                      : `The model reaches this request through ${indirectSource(site)}, which Refit reports but does not edit yet; change it by hand to ${resolved.to}.`
-                    : found.shared
-                      ? `${found.shared} ${resolved.to}.`
-                      : found.object.properties.some((item) => ts.isSpreadAssignment(item))
-                        ? 'The request spreads other options, which may set parameters the replacement rejects.'
-                        : // A computed name such as `['temperature']: 0.5` or `[KEY]: 5` may be a
-                          // sampling or length parameter the name check cannot see.
-                          found.object.properties.some(
-                              (item) => item.name && ts.isComputedPropertyName(item.name),
-                            )
-                          ? `The request sets a computed property, which may be a parameter the replacement rejects; change it by hand to ${resolved.to}.`
-                          : sensitive.length
-                            ? `The request sets ${sensitive.join(', ')}, which ${resolved.to} may reject or treat differently.`
-                            : undefined;
+        : request.reportOnly
+          ? `${request.reportOnly} ${resolved.to}.`
+          : request.unverified
+            ? `The tsconfig.json or jsconfig.json for the SDK import cannot be fully read (it may extend a generated file that is not checked in), so Refit cannot confirm the import is the SDK; change its model by hand to ${resolved.to}.`
+            : // Images, audio, embeddings, moderation and legacy completions change formats, vector
+              // sizes or parameters with the model, so they are never edited. The wording is accurate for
+              // any call outside the text allow-list, such as beta.assistants.create (D-11, D-16).
+              !request.text
+              ? `\`${request.call}\` is not a call Refit edits; ${resolved.to} may change formats or parameters; change it by hand to ${resolved.to}.`
+              : customUrl
+                ? request.sdk
+                  ? `The client sets a custom base URL, so the model may name another provider's model or a deployment; change it by hand to ${resolved.to}.`
+                  : `The request goes to a host other than the official API, so the model may name another provider's model or a deployment; change it by hand to ${resolved.to}.`
+                : limit
+                  ? `${limit} ${resolved.to}.`
+                  : stop
+                    ? `${stop} ${resolved.to}.`
+                    : direct && (!direct.has(site.literal) || direct.get(site.literal))
+                      ? /^(?:axios|request) /.test(request.call)
+                        ? `\`${request.call}\` is an axios request config, which Refit reports but does not edit yet; change it by hand to ${resolved.to}.`
+                        : `The model reaches this request through ${indirectSource(site)}, which Refit reports but does not edit yet; change it by hand to ${resolved.to}.`
+                      : found.shared
+                        ? `${found.shared} ${resolved.to}.`
+                        : found.object.properties.some((item) => ts.isSpreadAssignment(item))
+                          ? 'The request spreads other options, which may set parameters the replacement rejects.'
+                          : // A computed name such as `['temperature']: 0.5` or `[KEY]: 5` may be a
+                            // sampling or length parameter the name check cannot see.
+                            found.object.properties.some(
+                                (item) => item.name && ts.isComputedPropertyName(item.name),
+                              )
+                            ? `The request sets a computed property, which may be a parameter the replacement rejects; change it by hand to ${resolved.to}.`
+                            : sensitive.length
+                              ? `The request sets ${sensitive.join(', ')}, which ${resolved.to} may reject or treat differently.`
+                              : undefined;
       const decision = decisions.get(site.literal) ?? {
         entry,
         ...resolved,
