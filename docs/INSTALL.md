@@ -2,13 +2,13 @@
 
 This page is for a customer installing the Refit Agent GitHub App on the hosted Refit service. Each statement describes what the code on `main` does today, plus the setup, uninstall and `security.txt` pages that ship with this page (PP8). A statement marked **planned (lane)** describes a change that is open as a pull request and not yet merged; it is not true until that lane lands. Where data lives and who processes it is in [data handling](DATA-HANDLING.md).
 
-The hosted service is single tenant today: it works only for the installations of the account that runs it (`REFIT_HOSTED_OWNER`). Installations on any other account are ignored. **Planned (PG10, #177):** an operator allowlist of customer accounts; installations on other accounts are recorded as not allowed and Refit clones nothing from them.
+The hosted service is single tenant today: it works only for the installations of the account that runs it (`REFIT_HOSTED_OWNER`). Refit enrolls and clones nothing from installations on any other account. **Planned (PG10, #177):** an operator allowlist of customer accounts; installations on other accounts are recorded as not allowed and Refit clones nothing from them.
 
 ## Permissions the App requests
 
 | Permission | Why |
 |---|---|
-| Contents: Read and write | Read: check out an approved repository at its default branch to scan it and run its approved checks. Write: push the branch for a draft pull request. Nothing else is written. |
+| Contents: Read and write | Read: check out an approved repository at its approved branch to scan it and run its approved checks. Write: push the branch for a draft pull request. Nothing else is written. |
 | Pull requests: Read and write | Open a draft pull request for a migration that passed its checks. Refit never merges. |
 | Metadata: Read | Automatic for every GitHub App: repository names and visibility. |
 | Installation and installation repository events | Automatic: Refit learns which repositories you selected, and when you remove a repository or uninstall. |
@@ -19,8 +19,8 @@ Each operation asks GitHub for a short-lived installation token scoped to the on
 
 ## What Refit reads
 
-- **Before approval:** nothing on `main`; the repository is listed but not cloned. **Planned (PG1, #170):** a read-only inventory of each selected repository from a fresh checkout: provider SDK packages and versions, provider hostnames, pinned Stripe API versions, OpenAI and Anthropic model calls, and the API deadlines that apply, each with its file and line. It reads files only; it does not run code, install dependencies or use AI, and it deletes the checkout afterwards (`pipeline/inventory.ts`).
-- **After approval:** the repository at its default branch. Refit compares the API contracts named in `.refit.json`, finds affected SDK calls and, when a supported migration applies, edits the affected files and runs the approved checks. See [what never leaves the sandbox](DATA-HANDLING.md#what-stays-inside-the-sandbox).
+- **Before approval:** on `main`, only the repository's name and GitHub id, from the installation event; nothing is cloned. **Planned (PG1, #170):** a read-only inventory of each selected repository from a fresh checkout: provider SDK packages and versions, provider hostnames, pinned Stripe API versions, OpenAI and Anthropic model calls, and the API deadlines that apply, each with its file and line. It reads files only; it does not run code, install dependencies or use AI, and it deletes the checkout afterwards (`pipeline/inventory.ts`).
+- **After approval:** the repository at its approved branch. Refit compares the API contracts named in `.refit.json`, finds affected SDK calls and, when a supported migration applies, edits the affected files and runs the approved checks. See [what never leaves the sandbox](DATA-HANDLING.md#what-stays-inside-the-sandbox).
 
 ## What Refit stores, and for how long
 
@@ -30,7 +30,7 @@ All of it stays with the operator of the service, in PostgreSQL and on the worke
 |---|---|---|
 | Installation id, account login and status; the names and GitHub ids of selected repositories | `refit_installations`, `refit_installation_repositories` | Repository rows are deleted when you remove the repository. The installation row stays, marked deleted, after an uninstall. |
 | Each webhook delivery's id, body hash and event name (not the body) | `refit_deliveries` | Indefinitely, to reject replays. |
-| The approval: repository, branch, the hashes of the approved files and who approved it | `refit_approvals` | Indefinitely, until the operator removes it. |
+| The approval: repository, branch, the hashes of the approved files and who approved it | `refit_approvals` | Indefinitely. **Planned (PG2, #196):** `/refit revoke` deletes it. |
 | Job records and their results: status, message, revision and readiness | `refit_targets`, `refit_jobs` | Indefinitely. Uninstall and repository removal cancel them but do not delete them. |
 | A managed checkout of each approved repository, and each run's evidence: reports, patches and check output | `/data/state/targets/<id>/` on the worker's volume | Indefinitely; there is no automatic deletion yet. |
 | AI spend per installation, if AI patches are on | A file under `/data/ai-budget` (**planned, PG10:** `refit_ai_ledgers`) | Indefinitely. |
