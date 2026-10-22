@@ -101,7 +101,7 @@ export function checkDeadlineRegistry(value: unknown, now: Date) {
     if (!PROVIDERS.has(String(entry.provider)))
       errors.push(`${label}: provider must be one of ${[...PROVIDERS].join(', ')}.`);
     if (!KINDS.has(String(entry.kind)))
-      errors.push(`${label}: kind must be api-version, model, sdk, method or endpoint.`);
+      errors.push(`${label}: kind must be one of ${[...KINDS].join(', ')}.`);
     if (
       !Array.isArray(entry.versions) ||
       !entry.versions.length ||
