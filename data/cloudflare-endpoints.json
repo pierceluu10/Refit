@@ -1939,8 +1939,23 @@
     "endOfLife": "2026-10-15",
     "endpoints": [
      {
+      "method": "GET",
+      "path": "/accounts/{account_id}/workers/namespaces",
+      "change": "deprecated"
+     },
+     {
       "method": "POST",
       "path": "/accounts/{account_id}/workers/namespaces",
+      "change": "deprecated"
+     },
+     {
+      "method": "GET",
+      "path": "/accounts/{account_id}/workers/namespaces/{namespace_id}",
+      "change": "deprecated"
+     },
+     {
+      "method": "PUT",
+      "path": "/accounts/{account_id}/workers/namespaces/{namespace_id}",
       "change": "deprecated"
      },
      {
@@ -1956,6 +1971,16 @@
      {
       "method": "GET",
       "path": "/accounts/{account_id}/workers/namespaces/{namespace_id}/metadata/{key_name}",
+      "change": "deprecated"
+     },
+     {
+      "method": "GET",
+      "path": "/accounts/{account_id}/workers/namespaces/{namespace_id}/values/{key_name}",
+      "change": "deprecated"
+     },
+     {
+      "method": "PUT",
+      "path": "/accounts/{account_id}/workers/namespaces/{namespace_id}/values/{key_name}",
       "change": "deprecated"
      },
      {
@@ -2058,12 +2083,12 @@
      {
       "method": "POST",
       "path": "/accounts/{account_id}/gateway/rules",
-      "change": "deprecated"
+      "change": "affected"
      },
      {
       "method": "PUT",
       "path": "/accounts/{account_id}/gateway/rules/{rule_id}",
-      "change": "deprecated"
+      "change": "affected"
      }
     ]
    },
@@ -3063,6 +3088,13 @@
   "page": "https://developers.cloudflare.com/workers/configuration/compatibility-flags/",
   "repository": "https://github.com/cloudflare/cloudflare-docs",
   "directory": "src/content/compatibility-flags",
+  "pageSource": "src/content/docs/workers/configuration/compatibility-flags.mdx",
+  "documented": [
+   "no_nodejs_compat",
+   "no_nodejs_compat_v2",
+   "nodejs_compat",
+   "nodejs_compat_v2"
+  ],
   "commit": "ea89e14e0b75bab7f0dfca82ae14f35ba3550cdf",
   "committedAt": "2026-10-22T06:58:01+00:00",
   "flags": [

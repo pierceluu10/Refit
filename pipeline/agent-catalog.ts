@@ -104,6 +104,17 @@ export const AGENT_CATALOG: ProviderAgent[] = [
     adapter: null,
     guide: null,
   },
+  // The `cloudflare` npm package (checked on the registry on 2026-10-22) and the server of
+  // Cloudflare's published OpenAPI document. `refit cloudflare` lists the endpoints called
+  // (docs/CLOUDFLARE.md).
+  {
+    id: 'cloudflare',
+    name: 'Cloudflare',
+    packages: ['cloudflare'],
+    hostnames: ['api.cloudflare.com'],
+    adapter: null,
+    guide: 'docs/CLOUDFLARE.md',
+  },
 ];
 
 const MAX_HOSTNAME_EVIDENCE = 5;
