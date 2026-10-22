@@ -1,6 +1,6 @@
 {
   "formatVersion": 1,
-  "list": "/Users/furqan/Documents/PROJECTS/Refit-FP10/docs/benchmarks/2026-10-21-gemini-repos.json",
+  "list": "docs/benchmarks/2026-10-21-gemini-repos.json",
   "provider": "gemini",
   "ranAt": "2026-10-22T10:15:10.687Z",
   "note": "refit deadlines at each frozen commit with the shipped registry, then with a per-repository census registry naming every quoted Gemini-shaped model ID under a placeholder date. Files read only; no install, no code run, no provider contacted. Census counts measure classification, not exposure to any Google date.",
