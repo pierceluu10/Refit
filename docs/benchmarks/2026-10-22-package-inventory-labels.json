@@ -1,0 +1,489 @@
+{
+  "formatVersion": 1,
+  "labelledAt": "2026-10-22",
+  "list": "docs/benchmarks/2026-10-22-package-inventory-repos.json",
+  "sample": "node scripts/package-inventory-label-candidates.mjs --per-ecosystem 5 --seed 20261022 (5 per ecosystem, 35 repositories)",
+  "blind": "Labelled from the candidate listing and the files themselves before Refit's package inventory or detectProviders was run on any sampled repository.",
+  "unit": "One catalog provider declared as a direct dependency (including dev, test, optional and workspace declarations) in one dependency-declaring file, in that file's ecosystem. Files Refit does not parse (*.gemspec, setup.py, packages.config) count too.",
+  "rules": [
+    "A provider package is its official SDK, other packages the provider publishes for its API (Stripe Terminal, Twilio.AspNet helpers), or a general-purpose community client of that API (ruby-openai, gemini-ai, Google_GenerativeAI, async-openai, async-stripe, resend-rs, resendlabs/resend-go).",
+    "Framework and gateway adapters that wrap an SDK are not provider packages: Laravel Cashier, Payum and Omnipay gateways, Spring AI starters, DSPy adapters, LangChain integrations.",
+    "Azure OpenAI clients (Azure.AI.OpenAI) are not the OpenAI API.",
+    "Central version lists (Directory.Packages.props PackageVersion) and Gemfile `gemspec` lines declare nothing by themselves; the file with the PackageReference or add_dependency does.",
+    "A repository that is the SDK itself (a fork of sendgrid-python) does not depend on it."
+  ],
+  "repositories": [
+    {
+      "repository": "blockshooter/claude-ui-mod",
+      "ecosystem": "pypi",
+      "commit": "a1f54bf1eeffd4b52006beca1c7401ae1e1601e9",
+      "units": []
+    },
+    {
+      "repository": "uniluxembourg/lcsb/eci/chemicalstripes",
+      "ecosystem": "pypi",
+      "commit": "3a709d235800bf090b3f24e809d3780db0556295",
+      "units": []
+    },
+    {
+      "repository": "gitlab-ai-hackathon/transcend-october-2026/43479942/stripes",
+      "ecosystem": "pypi",
+      "commit": "a6a826135717f66e6c2e8449284ab8b4e35f6ed6",
+      "units": []
+    },
+    {
+      "repository": "g2764/smolver",
+      "ecosystem": "pypi",
+      "commit": "327b9db00c7222595c23b2746a3ce462e83b0d9a",
+      "units": []
+    },
+    {
+      "repository": "vipulgupta2048/sendgrid-python",
+      "ecosystem": "pypi",
+      "commit": "1627df741b06b5659890c77ccf6168b7281f5a1d",
+      "units": []
+    },
+    {
+      "repository": "Builder-Lawyers/builder-backend",
+      "ecosystem": "go",
+      "commit": "8a5c66bcc6b9bb4bf82442559364247fd02a2d5c",
+      "units": [
+        {
+          "provider": "openai",
+          "ecosystem": "go",
+          "file": "go.mod"
+        },
+        {
+          "provider": "stripe",
+          "ecosystem": "go",
+          "file": "go.mod"
+        }
+      ]
+    },
+    {
+      "repository": "0x34d/go-fuzz-GPT",
+      "ecosystem": "go",
+      "commit": "be329e0bc58dcf79cae3eb1abb35cbbefdded80f",
+      "units": [
+        {
+          "provider": "openai",
+          "ecosystem": "go",
+          "file": "go.mod"
+        }
+      ]
+    },
+    {
+      "repository": "0xJacky/Nginx-UI",
+      "ecosystem": "go",
+      "commit": "1b3548af566ef17c754b501af1e2d96b175a0186",
+      "units": [
+        {
+          "provider": "openai",
+          "ecosystem": "go",
+          "file": "go.mod"
+        }
+      ]
+    },
+    {
+      "repository": "3dw1nM0535/nyatta",
+      "ecosystem": "go",
+      "commit": "05ba9c9fbf39dd1fde24d79636be4923c9fa89af",
+      "units": [
+        {
+          "provider": "resend",
+          "ecosystem": "go",
+          "file": "go.mod"
+        },
+        {
+          "provider": "twilio",
+          "ecosystem": "go",
+          "file": "go.mod"
+        }
+      ]
+    },
+    {
+      "repository": "0x5d/shiru",
+      "ecosystem": "go",
+      "commit": "47441c86a3e206750e9baacc15324adb51d360b2",
+      "units": [
+        {
+          "provider": "anthropic",
+          "ecosystem": "go",
+          "file": "go.mod"
+        }
+      ]
+    },
+    {
+      "repository": "jackal998/aicommit",
+      "ecosystem": "rubygems",
+      "commit": "fc53dfc1554d9326d586f8599fe2830d857eca68",
+      "units": [
+        {
+          "provider": "openai",
+          "ecosystem": "rubygems",
+          "file": "Gemfile"
+        },
+        {
+          "provider": "openai",
+          "ecosystem": "rubygems",
+          "file": "aicommit.gemspec"
+        }
+      ]
+    },
+    {
+      "repository": "tungnt1203/minds_ruby_sdk",
+      "ecosystem": "rubygems",
+      "commit": "7c66a01e09cfcd58265ecd3a47158068c49098a6",
+      "units": [
+        {
+          "provider": "openai",
+          "ecosystem": "rubygems",
+          "file": "Gemfile"
+        },
+        {
+          "provider": "openai",
+          "ecosystem": "rubygems",
+          "file": "minds_sdk.gemspec"
+        }
+      ]
+    },
+    {
+      "repository": "vicentereig/dspy.rb",
+      "ecosystem": "rubygems",
+      "commit": "b18a402143091a6b435972d460b8c4c8feca0b2d",
+      "units": [
+        {
+          "provider": "anthropic",
+          "ecosystem": "rubygems",
+          "file": "dspy-anthropic.gemspec"
+        },
+        {
+          "provider": "gemini",
+          "ecosystem": "rubygems",
+          "file": "dspy-gemini.gemspec"
+        },
+        {
+          "provider": "openai",
+          "ecosystem": "rubygems",
+          "file": "dspy-openai.gemspec"
+        }
+      ]
+    },
+    {
+      "repository": "andrewculver/honyaku",
+      "ecosystem": "rubygems",
+      "commit": "27ef64ee0f613ca46d5659da76fe5319ac39a0cd",
+      "units": [
+        {
+          "provider": "openai",
+          "ecosystem": "rubygems",
+          "file": "honyaku.gemspec"
+        }
+      ]
+    },
+    {
+      "repository": "holysugar/sendgrid_notification",
+      "ecosystem": "rubygems",
+      "commit": "e4a37d0a252b8567fc8f54d7def5f226c499cc04",
+      "units": [
+        {
+          "provider": "sendgrid",
+          "ecosystem": "rubygems",
+          "file": "sendgrid_notification.gemspec"
+        }
+      ]
+    },
+    {
+      "repository": "spatie/laravel-stripe-webhooks",
+      "ecosystem": "packagist",
+      "commit": "024bfb84a4dce38cb5166563471b376ba2d7aa43",
+      "units": [
+        {
+          "provider": "stripe",
+          "ecosystem": "packagist",
+          "file": "composer.json"
+        }
+      ]
+    },
+    {
+      "repository": "laravel-notification-channels/twilio",
+      "ecosystem": "packagist",
+      "commit": "31abf845e315dda8cd039bc433550d34df8df674",
+      "units": [
+        {
+          "provider": "twilio",
+          "ecosystem": "packagist",
+          "file": "composer.json"
+        }
+      ]
+    },
+    {
+      "repository": "spaze/phpstan-stripe",
+      "ecosystem": "packagist",
+      "commit": "acfa1e720be863e8a4419234f6e134b1de9a35f0",
+      "units": [
+        {
+          "provider": "stripe",
+          "ecosystem": "packagist",
+          "file": "composer.json"
+        }
+      ]
+    },
+    {
+      "repository": "Payum/PayumBundle",
+      "ecosystem": "packagist",
+      "commit": "854ed36ab02c00c350b70ae3f7656d6a980f8a66",
+      "units": [
+        {
+          "provider": "stripe",
+          "ecosystem": "packagist",
+          "file": "composer.json"
+        }
+      ]
+    },
+    {
+      "repository": "laravel/cashier-stripe",
+      "ecosystem": "packagist",
+      "commit": "676765cc7c0f997086a565309c145a9eba47bd8f",
+      "units": [
+        {
+          "provider": "stripe",
+          "ecosystem": "packagist",
+          "file": "composer.json"
+        }
+      ]
+    },
+    {
+      "repository": "manideep_bhattacharyya/SkillTuner-AI",
+      "ecosystem": "maven",
+      "commit": "b99a18fda422111e9e475454a4a6cb390d82532b",
+      "units": [
+        {
+          "provider": "gemini",
+          "ecosystem": "maven",
+          "file": "pom.xml"
+        }
+      ]
+    },
+    {
+      "repository": "thiago.hernandes.souza/agents-config",
+      "ecosystem": "maven",
+      "commit": "60efae1d71a7ba9dd632833a66a4f3ee89c5fa97",
+      "units": []
+    },
+    {
+      "repository": "codalilitari/OpenJKDF2-MotS-Fixes",
+      "ecosystem": "maven",
+      "commit": "74e4657c4f1751d09af9ad9e056acb8f41997acb",
+      "units": []
+    },
+    {
+      "repository": "abhishekthapa1/coding-agent-anthropic-claude-basic",
+      "ecosystem": "maven",
+      "commit": "c8a66201d0390c6586fb7fa8265755f15956c9ca",
+      "units": []
+    },
+    {
+      "repository": "squirelboy360/tap-to-pay-android-demo",
+      "ecosystem": "maven",
+      "commit": "ad1b48b0008baea241b696aa67bc12b36fda288d",
+      "units": [
+        {
+          "provider": "stripe",
+          "ecosystem": "maven",
+          "file": "app/build.gradle"
+        }
+      ]
+    },
+    {
+      "repository": "smartstore/Smartstore",
+      "ecosystem": "nuget",
+      "commit": "edfb8fb2edb18776906bc45f33505564e2a5f242",
+      "units": [
+        {
+          "provider": "stripe",
+          "ecosystem": "nuget",
+          "file": "src/Smartstore.Modules/Smartstore.Stripe/Smartstore.Stripe.csproj"
+        }
+      ]
+    },
+    {
+      "repository": "louthy/language-ext",
+      "ecosystem": "nuget",
+      "commit": "54d27a2d76cf3f14b964ce1ab421ae80a080bb7a",
+      "units": [
+        {
+          "provider": "sendgrid",
+          "ecosystem": "nuget",
+          "file": "Samples/Newsletter/Newsletter/Newsletter.csproj"
+        }
+      ]
+    },
+    {
+      "repository": "bitwarden/server",
+      "ecosystem": "nuget",
+      "commit": "3327e2fdedeb2b3eb7ebcf4ccb705b2548639ab2",
+      "units": [
+        {
+          "provider": "sendgrid",
+          "ecosystem": "nuget",
+          "file": "src/Core/Core.csproj"
+        },
+        {
+          "provider": "stripe",
+          "ecosystem": "nuget",
+          "file": "src/Core/Core.csproj"
+        },
+        {
+          "provider": "stripe",
+          "ecosystem": "nuget",
+          "file": "src/Libraries/Invoicing/Invoicing.csproj"
+        }
+      ]
+    },
+    {
+      "repository": "SciSharp/BotSharp",
+      "ecosystem": "nuget",
+      "commit": "c8f632bf13bb22aed53c8ba63d41ee9e0e0fb75b",
+      "units": [
+        {
+          "provider": "anthropic",
+          "ecosystem": "nuget",
+          "file": "src/Plugins/BotSharp.Plugin.AnthropicAI/BotSharp.Plugin.AnthropicAI.csproj"
+        },
+        {
+          "provider": "openai",
+          "ecosystem": "nuget",
+          "file": "src/Plugins/BotSharp.Plugin.Daoxe/BotSharp.Plugin.Daoxe.csproj"
+        },
+        {
+          "provider": "openai",
+          "ecosystem": "nuget",
+          "file": "src/Plugins/BotSharp.Plugin.DeepSeekAI/BotSharp.Plugin.DeepSeekAI.csproj"
+        },
+        {
+          "provider": "gemini",
+          "ecosystem": "nuget",
+          "file": "src/Plugins/BotSharp.Plugin.GoogleAI/BotSharp.Plugin.GoogleAI.csproj"
+        },
+        {
+          "provider": "openai",
+          "ecosystem": "nuget",
+          "file": "src/Plugins/BotSharp.Plugin.LiteLLM/BotSharp.Plugin.LiteLLM.csproj"
+        },
+        {
+          "provider": "openai",
+          "ecosystem": "nuget",
+          "file": "src/Plugins/BotSharp.Plugin.MMPEmbedding/BotSharp.Plugin.MMPEmbedding.csproj"
+        },
+        {
+          "provider": "openai",
+          "ecosystem": "nuget",
+          "file": "src/Plugins/BotSharp.Plugin.OpenAI/BotSharp.Plugin.OpenAI.csproj"
+        },
+        {
+          "provider": "twilio",
+          "ecosystem": "nuget",
+          "file": "src/Plugins/BotSharp.Plugin.Twilio/BotSharp.Plugin.Twilio.csproj"
+        },
+        {
+          "provider": "anthropic",
+          "ecosystem": "nuget",
+          "file": "tests/BotSharp.Test.ComputerUse/BotSharp.Test.ComputerUse.csproj"
+        }
+      ]
+    },
+    {
+      "repository": "ONLYOFFICE/CommunityServer",
+      "ecosystem": "nuget",
+      "commit": "fe1fa7babd093969e939ba6ff45a9fee1299dc93",
+      "units": [
+        {
+          "provider": "twilio",
+          "ecosystem": "nuget",
+          "file": "module/ASC.VoipService/ASC.VoipService.csproj"
+        },
+        {
+          "provider": "twilio",
+          "ecosystem": "nuget",
+          "file": "web/core/ASC.Web.Core/ASC.Web.Core.csproj"
+        },
+        {
+          "provider": "twilio",
+          "ecosystem": "nuget",
+          "file": "web/studio/ASC.Web.Studio/Products/CRM/ASC.Web.CRM.csproj"
+        }
+      ]
+    },
+    {
+      "repository": "sobelio/llm-chain",
+      "ecosystem": "cargo",
+      "commit": "5d26adf8fecdbc2ea5e4b233620fdf206bd36446",
+      "units": [
+        {
+          "provider": "openai",
+          "ecosystem": "cargo",
+          "file": "crates/llm-chain-openai/Cargo.toml"
+        }
+      ]
+    },
+    {
+      "repository": "nikwithak/tailwag",
+      "ecosystem": "cargo",
+      "commit": "b7bbe21a9c2ab7b0b73da4cdb0d88411bd4b23ba",
+      "units": [
+        {
+          "provider": "stripe",
+          "ecosystem": "cargo",
+          "file": "Cargo.toml"
+        },
+        {
+          "provider": "stripe",
+          "ecosystem": "cargo",
+          "file": "crates/application/Cargo.toml"
+        }
+      ]
+    },
+    {
+      "repository": "vicanso/tibba",
+      "ecosystem": "cargo",
+      "commit": "5f1f8ba7b830787257e6b8070b0a0a8576044f87",
+      "units": [
+        {
+          "provider": "resend",
+          "ecosystem": "cargo",
+          "file": "Cargo.toml"
+        },
+        {
+          "provider": "resend",
+          "ecosystem": "cargo",
+          "file": "tibba-email/Cargo.toml"
+        }
+      ]
+    },
+    {
+      "repository": "mairie360/API_lib",
+      "ecosystem": "cargo",
+      "commit": "73151c38429fc9b655a8cfde2c0f2b560622bcc7",
+      "units": [
+        {
+          "provider": "resend",
+          "ecosystem": "cargo",
+          "file": "Cargo.toml"
+        }
+      ]
+    },
+    {
+      "repository": "netrondev/tinkr",
+      "ecosystem": "cargo",
+      "commit": "8ae7a5a4d6a0f14d455b64de4a5d5877c98f0758",
+      "units": [
+        {
+          "provider": "resend",
+          "ecosystem": "cargo",
+          "file": "Cargo.toml"
+        }
+      ]
+    }
+  ]
+}
