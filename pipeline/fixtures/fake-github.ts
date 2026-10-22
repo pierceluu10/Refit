@@ -412,6 +412,8 @@ export async function startFakeGitHub(options: { appId: number; webhookSecret: s
     requests,
     writes,
     fetches,
+    // Every installation token issued so far, to check none leaks into logs or arguments.
+    issued: () => [...tokens.keys()],
     issues: (fullName: string) => repositories.get(fullName.toLowerCase())?.issues,
     roles: (fullName: string) => repositories.get(fullName.toLowerCase())!.roles,
     // Pass to vi.stubGlobal('fetch', …): api.github.com requests come here, everything else is unchanged.

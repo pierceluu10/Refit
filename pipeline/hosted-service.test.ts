@@ -1,7 +1,9 @@
+import { execFile } from 'node:child_process';
 import { createHmac, randomBytes, randomUUID } from 'node:crypto';
 import { cp, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
+import { promisify } from 'node:util';
 import pg from 'pg';
 import { afterEach, expect, it, vi } from 'vitest';
 import { gitEnvironment } from './git-environment.ts';
@@ -14,61 +16,24 @@ import {
   readRepositoryApproval,
 } from './repository-enrollment.ts';
 import { verifyArtifacts } from './verification.ts';
+import { startFakeGitHub } from './fixtures/fake-github.ts';
 
 const transport = vi.hoisted(() => ({
   source: '',
   head: '',
   calls: [] as { binary: string; args: string[] }[],
-  native: undefined as
-    undefined | ((args: string[], cwd: string) => Promise<{ stdout: string; stderr: string }>),
 }));
-vi.mock('node:child_process', async (original) => {
-  const actual = await original<typeof import('node:child_process')>();
-  const { promisify } = await import('node:util');
-  const execute = promisify(actual.execFile);
-  transport.native = (args, cwd) => execute('git', args, { cwd, env: gitEnvironment() });
-  const execFile = vi.fn();
-  Object.defineProperty(execFile, promisify.custom, {
-    value: async (binary: string, args: string[], options: { env: NodeJS.ProcessEnv }) => {
-      transport.calls.push({ binary, args });
-      if (binary !== 'git' || !args.includes('fetch')) return execute(binary, args, options);
-      const local = [...args];
-      local[local.indexOf('origin')] = transport.source;
-      return execute(binary, ['-c', 'protocol.file.allow=always', ...local], options);
-    },
-  });
-  return { ...actual, execFile };
-});
-vi.mock('./github-app.ts', () => ({
-  authenticateGitHubRead: vi.fn(async () => ({
-    token: 'private-read-test-token',
-    appId: 123,
-    installationId: 456,
-  })),
-}));
-vi.mock('./github.ts', async (original) => ({
-  ...(await original<typeof import('./github.ts')>()),
-  requestGitHub: vi.fn(async (_token: string, method: string, path: string) => {
-    expect(method).toBe('GET');
-    // Both installed repositories are inventoried from the same source; only one is approved.
-    const repository = /^\/repos\/(example\/(?:application|unapproved))(\/.*)?$/.exec(path);
-    if (repository && !repository[2])
-      return {
-        id: 789,
-        full_name: repository[1],
-        archived: false,
-        disabled: false,
-        default_branch: 'main',
-        size: 1,
-      };
-    expect(repository?.[2]).toBe('/git/ref/heads/main');
-    return { object: { type: 'commit', sha: transport.head } };
-  }),
-}));
+vi.mock('node:child_process', async (original) =>
+  (await import('./fixtures/fake-github-git.ts')).throughFakeGitHub(
+    await original(),
+    (binary, args) => transport.calls.push({ binary, args }),
+  ),
+);
 
+const git = (args: string[], cwd: string) =>
+  promisify(execFile)('git', args, { cwd, env: gitEnvironment() });
 const DATABASE = process.env.REFIT_POSTGRES_URL;
 const INSTALLATION = 456;
-const APP = { appId: '123', privateKeyFile: 'unused-test-key' };
 const WEBHOOK_SECRET = 'webhook-secret-for-hosted-service-tests-123';
 const CONTROL_TOKEN = 'control-secret-for-hosted-service-tests-456';
 const fixture = resolve('pipeline/fixtures/endpoint-replacement');
@@ -76,6 +41,7 @@ const cleanups: (() => Promise<unknown>)[] = [];
 
 afterEach(async () => {
   vi.clearAllMocks();
+  vi.unstubAllGlobals();
   transport.calls = [];
   for (const cleanup of cleanups.splice(0).reverse()) await cleanup();
 });
@@ -95,8 +61,8 @@ async function database() {
 }
 
 async function commit() {
-  await transport.native!(['add', '.'], transport.source);
-  await transport.native!(
+  await git(['add', '.'], transport.source);
+  await git(
     [
       '-c',
       'user.name=Refit Tests',
@@ -109,7 +75,7 @@ async function commit() {
     ],
     transport.source,
   );
-  transport.head = (await transport.native!(['rev-parse', 'HEAD'], transport.source)).stdout.trim();
+  transport.head = (await git(['rev-parse', 'HEAD'], transport.source)).stdout.trim();
 }
 
 // A committed application whose contract already changed, with a reviewed approval receipt.
@@ -134,7 +100,7 @@ async function approvedRepository() {
       command: ['node', '--experimental-strip-types', 'simulator/check.mjs', 'after'],
     }),
   );
-  await transport.native!(['init', '--quiet', '--initial-branch=main'], transport.source);
+  await git(['init', '--quiet', '--initial-branch=main'], transport.source);
   await commit();
   const enrollment = await inspectRepositoryEnrollment({
     repository: transport.source,
@@ -182,6 +148,19 @@ it.skipIf(!DATABASE || !process.env.REFIT_DOCKER_IMAGE || !process.env.REFIT_OAS
   async () => {
     const pool = await database();
     const sample = await approvedRepository();
+    const github = await startFakeGitHub({ appId: 123, webhookSecret: WEBHOOK_SECRET });
+    cleanups.push(() => github.close());
+    vi.stubGlobal('fetch', github.fetch);
+    // Both installed repositories are inventoried from the same source; only one is approved.
+    const repositories = ['example/application', 'example/unapproved'];
+    for (const [index, repository] of repositories.entries())
+      await github.publish(repository, transport.source, { id: 789 + index });
+    github.installations.set(INSTALLATION, {
+      id: INSTALLATION,
+      login: 'example',
+      repositories,
+      suspended: false,
+    });
     expect(await (await openHostedStore(pool)).approve(sample.approval, 'octo-reviewer')).toEqual(
       [],
     );
@@ -191,7 +170,7 @@ it.skipIf(!DATABASE || !process.env.REFIT_DOCKER_IMAGE || !process.env.REFIT_OAS
     const progress: string[] = [];
     const service = runHostedService({
       database: pool,
-      app: APP,
+      app: github.app,
       directory: join(sample.root, 'hosted-state'),
       webhookSecret: WEBHOOK_SECRET,
       controlToken: CONTROL_TOKEN,
@@ -289,8 +268,11 @@ it.skipIf(!DATABASE || !process.env.REFIT_DOCKER_IMAGE || !process.env.REFIT_OAS
     expect(report.patch.generator).toBe('deterministic');
     expect((await verifyArtifacts(job.receipt.output)).status).toBe('integrity-verified');
     expect(transport.calls.some((call) => call.binary === 'docker')).toBe(true);
+    expect(github.issued().length).toBeGreaterThan(0);
     expect(
-      transport.calls.every((call) => !call.args.join(' ').includes('private-read-test-token')),
+      transport.calls.every((call) =>
+        github.issued().every((token) => !call.args.join(' ').includes(token)),
+      ),
     ).toBe(true);
 
     const uninstalled = await deliver(url, 'installation', installationPayload('deleted', []));

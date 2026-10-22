@@ -16,12 +16,17 @@ export function routeGitTo(url: string | undefined) {
 // GitHub over HTTP with the same App token header git would send to github.com. The checkout keeps
 // its https://github.com remote, so Refit's own remote checks still run. This module must not
 // import node:child_process itself, or the mock factory would load the mock it is building.
-export function throughFakeGitHub(actual: typeof ChildProcess): typeof ChildProcess {
+// `observe` sees every promisified call as Refit made it, before any rerouting.
+export function throughFakeGitHub(
+  actual: typeof ChildProcess,
+  observe?: (binary: string, args: string[]) => void,
+): typeof ChildProcess {
   const execute = promisify(actual.execFile);
   const execFile = ((...args: Parameters<typeof actual.execFile>) =>
     actual.execFile(...args)) as typeof actual.execFile;
   Object.defineProperty(execFile, promisify.custom, {
     value: async (binary: string, args: string[], options: ChildProcess.ExecFileOptions = {}) => {
+      observe?.(binary, args);
       const origin = args.indexOf('origin');
       if (binary !== 'git' || !gitRoot || !args.includes('fetch') || origin < 0)
         return execute(binary, args, options);
