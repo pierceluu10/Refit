@@ -114,16 +114,16 @@ describe('zoom-meeting-sdk-key', () => {
   it('matches the legacy sdkKey in a Meeting SDK file', async () => {
     expect(
       await exposures({
-        'src/join.ts': `import { ZoomMtg } from '@zoom/meetingsdk';\nZoomMtg.join({ sdkKey: key, signature, meetingNumber });\n`,
+        'src/join.ts': `import { ZoomMtg } from '@zoom/meetingsdk';\nZoomMtg.join({ sdkKey: key, signature, meetingNumber });\nconst payload = { appKey: id, sdkKey: id };\n`,
       }),
-    ).toEqual([{ id: 'zoom-meeting-sdk-key', lines: ['src/join.ts:2'] }]);
+    ).toEqual([{ id: 'zoom-meeting-sdk-key', lines: ['src/join.ts:2', 'src/join.ts:3'] }]);
   });
 
   it('ignores sdkKey outside a Zoom Meeting SDK file, and a Client ID join', async () => {
     expect(
       await exposures({
         'src/other.ts': `const config = { sdkKey: 'abc' };\n`,
-        'src/join.ts': `import { ZoomMtg } from '@zoom/meetingsdk';\nZoomMtg.join({ signature, meetingNumber });\n`,
+        'src/join.ts': `import { ZoomMtg } from '@zoom/meetingsdk';\nZoomMtg.join({ signature, meetingNumber });\nlet sdkKey = process.env.ID;\nprivate sdkKey: string;\nif (!sdkKey) throw new Error('x');\n`,
       }),
     ).toEqual([]);
   });
@@ -146,10 +146,10 @@ describe('mailchimp-export-api', () => {
 });
 
 describe('airtable-user-api-keys', () => {
-  it('matches apiKey passed to the airtable package', async () => {
+  it('matches a legacy key written in a file that uses the airtable package', async () => {
     expect(
       await exposures({
-        'src/a.js': `const Airtable = require('airtable');\nconst base = new Airtable({ apiKey: process.env.KEY }).base('app');\n`,
+        'src/a.js': `const Airtable = require('airtable');\nconst base = new Airtable({ apiKey: 'keyAbC123dEf456gH' }).base('app');\n`,
       }),
     ).toEqual([{ id: 'airtable-user-api-keys', lines: ['src/a.js:2'] }]);
   });
