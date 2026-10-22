@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { distribution, parseTime } from '../scripts/capacity-helpers.mjs';
+import { distribution, installSeconds, parseTime } from '../scripts/capacity-helpers.mjs';
 
 // Captured from macOS `/usr/bin/time -l -o <file> node -e 0`.
 const BSD = `        0.05 real         0.04 user         0.00 sys
@@ -41,4 +41,21 @@ it('reports nearest-rank percentiles and ignores missing values', () => {
   });
   expect(distribution([7])).toEqual({ count: 1, p50: 7, p90: 7, p99: 7, max: 7 });
   expect(distribution([])).toBeNull();
+});
+
+it('reads the install time each package manager prints, flagging npm whole minutes', () => {
+  expect(installSeconds('added 1484 packages, and audited 1485 packages in 33s')).toEqual({
+    seconds: 33,
+    rounded: false,
+  });
+  expect(installSeconds('added 1 package in 545ms')).toEqual({ seconds: 0.545, rounded: false });
+  expect(installSeconds('added 2210 packages in 2m')).toEqual({ seconds: 120, rounded: true });
+  expect(installSeconds('Done in 1m 2.5s using pnpm v10.34.7')).toEqual({
+    seconds: 62.5,
+    rounded: false,
+  });
+  expect(installSeconds('Done in 8.7s.')).toEqual({ seconds: 8.7, rounded: false });
+  // The last report wins; a log without one is not guessed at.
+  expect(installSeconds('added 3 packages in 1s\nadded 9 packages in 4s')?.seconds).toBe(4);
+  expect(installSeconds('npm error code ETIMEDOUT')).toBeNull();
 });

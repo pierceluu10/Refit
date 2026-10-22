@@ -4,6 +4,7 @@ export interface TimeUsage {
   maxRssBytes: number;
 }
 export function parseTime(text: string): TimeUsage | null;
+export function installSeconds(log: string): { seconds: number; rounded: boolean } | null;
 export interface Distribution {
   count: number;
   p50: number;
