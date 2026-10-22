@@ -85,6 +85,12 @@ it('scaffolds approved agents, converts a v1 configuration and refuses agents it
     prepareDependencies: true,
     command: ['npm', 'test'],
   });
+  // Exact commands instead of "refit stripe-snapshot --revision <sha> --output …" (FIRST-RUN.md).
+  expect(fresh.nextSteps).toEqual([
+    'Save reviewed Stripe contracts: refit stripe-snapshot --revision <stripe/openapi commit for the API version your code pins> --output refit/stripe-before.json and refit stripe-snapshot --latest --output refit/stripe-after.json.',
+    "Save reviewed OpenAI contracts: refit source-snapshot --provider openai --url <the provider's public OpenAPI URL> --output refit/openai-before.json and refit source-snapshot --provider openai --url <the provider's public OpenAPI URL> --output refit/openai-after.json.",
+    'Review the check command in .refit.json, commit .refit.json and the contracts, then run refit doctor. The GitHub App runs nothing until you approve the configuration with refit enroll.',
+  ]);
   const v1 = {
     formatVersion: 1,
     before: './b.json',

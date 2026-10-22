@@ -69,7 +69,7 @@ try {
           (error: unknown) => {
             if (implicitConfiguration && hasErrorCode(error, 'ENOENT'))
               throw new PipelineInputError(
-                `No ${REPOSITORY_CONFIGURATION} at ${root}. Run refit doctor for setup diagnostics, or supply --config with an existing workflow.`,
+                `No ${REPOSITORY_CONFIGURATION} at ${root}. Run refit agents to see which provider agents apply and refit agents --add <id> to write one, or supply --config with an existing workflow.`,
                 { cause: error },
               );
             throw error;

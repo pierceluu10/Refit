@@ -4,7 +4,7 @@ import { renderReadiness } from './readiness-presentation.ts';
 import { cliErrorMessage } from './cli-errors.ts';
 
 const USAGE =
-  'Usage: refit doctor [--repository <git-root>] [--config <workflow.json>] [--integration <id>] [--json]\nDefaults to the repository root .refit.json. External workflow files can use --repository to select a local checkout. Checks Git, contracts, adapter coverage, API-version evidence, npm preparation inputs and the existing Docker image. No application code, installs, AI, source downloads or GitHub requests are run. Exit 2 means setup needs attention; passing checks permit an attempt at validation, not approval or activation.';
+  "Usage: refit doctor [--repository <git-root>] [--config <workflow.json>] [--integration <id>] [--json]\nChecks a repository's Refit setup: .refit.json, Git, contracts, SDK mappings, API-version evidence, dependency inputs and the Docker image. It runs no application code, installs, AI, downloads or GitHub requests.\nUses the repository root .refit.json unless --config names another workflow file; --repository selects the checkout. Exit 2 means setup needs attention, and the first line says what to do next.";
 
 try {
   const { values } = parseArgs({
