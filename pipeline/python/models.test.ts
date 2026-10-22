@@ -494,6 +494,27 @@ def lonely(model):
     ]);
   });
 
+  it('stops at the depth limit and on fields declared without a value', async () => {
+    const chain = Array.from({ length: 12 }, (_, index) => `M${index} = M${index + 1}`).join('\n');
+    expect(
+      await traced({
+        'app.py': `from openai import OpenAI
+client = OpenAI()
+${chain}
+M12 = "gpt-4"
+class Bot:
+    model: str
+    def run(self):
+        client.chat.completions.create(model=self.model, messages=[])
+client.chat.completions.create(model=M0, messages=[])
+`,
+      }),
+    ).toEqual([
+      'app.py:19 openai chat.completions.create constructor stop: The model comes from the field `self.model`, which has no value.',
+      'app.py:20 openai chat.completions.create constructor stop: Tracing this model stopped at the depth limit of 8.',
+    ]);
+  });
+
   it('records custom endpoints and platforms on the client', async () => {
     expect(
       await traced({
