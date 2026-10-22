@@ -11,6 +11,7 @@ import {
   renderFileReplacements,
 } from './patches.ts';
 import { stripePackageUpgrade } from './stripe-package-upgrade.ts';
+import { invoicePreviewMove } from './stripe-invoice-preview.ts';
 import { propertyExists } from './stripe-field-moves.ts';
 import { readRepository } from './repository.ts';
 import {
@@ -153,6 +154,10 @@ async function runOpenApiPipeline(options: {
   const parameterRemovals = removedRequestParameters(provider, before.document, after.document, {
     keepListedPaymentMethods: options.keepListedPaymentMethods,
   });
+  const invoicePreview =
+    provider.packageName === STRIPE.packageName
+      ? invoicePreviewMove(before.document, after.document)
+      : undefined;
   const {
     edits: analyzedEdits,
     apiVersionDeclarations,
@@ -172,6 +177,7 @@ async function runOpenApiPipeline(options: {
     requestRenames,
     moves,
     parameterRemovals,
+    { invoicePreview },
   );
   const stripePackage =
     provider.packageName === STRIPE.packageName
@@ -199,6 +205,8 @@ async function runOpenApiPipeline(options: {
       'collected_information',
       'shipping_details',
     ]),
+    // The coupon ID and product features helpers, the mined request moves and the createPreview
+    // move have no entry: they stay review-only (owner decision, 2026-10-22).
   } as Record<string, boolean>;
   const targetVersion = isObject(after.document.info) ? after.document.info.version : undefined;
   const versionEdits =
@@ -387,6 +395,7 @@ async function runOpenApiPipeline(options: {
         requestRenames,
         moves,
         parameterRemovals,
+        { invoicePreview },
         // Untraced reads stay unresolved (owner decision, 2026-10-20): the draft needs review.
       ).findings.length
     : 0;

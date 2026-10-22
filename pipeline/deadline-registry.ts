@@ -34,6 +34,14 @@ const PROVIDERS = new Set([
   'coinbase-commerce',
   'bedrock',
   'azure-openai',
+  'algolia',
+  'zoom',
+  'mailchimp',
+  'airtable',
+  'hubspot',
+  'aws',
+  'azure',
+  'twilio',
 ]);
 const KINDS = new Set(['api-version', 'model', 'sdk', 'method', 'endpoint', 'field', 'feature']);
 const ENTRY_KEYS = [
@@ -95,7 +103,15 @@ export interface DeadlineEntry {
     | 'lob'
     | 'coinbase-commerce'
     | 'bedrock'
-    | 'azure-openai';
+    | 'azure-openai'
+    | 'algolia'
+    | 'zoom'
+    | 'mailchimp'
+    | 'airtable'
+    | 'hubspot'
+    | 'aws'
+    | 'azure'
+    | 'twilio';
   kind: 'api-version' | 'model' | 'sdk' | 'method' | 'endpoint' | 'field' | 'feature';
   versions: string[];
   date: string;

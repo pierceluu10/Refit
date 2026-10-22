@@ -2,7 +2,9 @@ import { existsSync } from 'node:fs';
 import { readFile, realpath, stat } from 'node:fs/promises';
 import { isAbsolute, join, relative, resolve } from 'node:path';
 import ts from 'typescript-compiler';
+import { detectApiHosts, type ApiHostScan } from './api-hosts.ts';
 import { AGENT_CATALOG, builtInPackage } from './agent-catalog.ts';
+import { dataApiContext, dataApiMatches, type DataApiContext } from './data-api-matchers.ts';
 import { daysUntil, type DeadlineEntry, type DeadlineRegistry } from './deadline-registry.ts';
 import { cloudflareEndpointUses } from './cloudflare-calls.ts';
 import { githubDeadlineUses } from './github-api-calls.ts';
@@ -10,6 +12,8 @@ import { detectModelHosts, hostDeadlineMatches } from './model-hosts.ts';
 import { modelWrapperSites } from './model-wrappers.ts';
 import { repositoryApiVersionPins } from './commerce-api-versions.ts';
 import { manifestSdkDeclarations } from './package-manifests-deadlines.ts';
+import { pythonModelMatches } from './python/model-uses.ts';
+import { readPythonFiles } from './python/syntax.ts';
 import { declaredPackageNames, readRepository } from './repository.ts';
 import {
   featureMatches,
@@ -96,6 +100,10 @@ export type ReportedExposure = Omit<DeadlineExposure, 'evidence' | 'nonLive'> & 
 export interface DeadlineScan {
   exposures: DeadlineExposure[];
   mentions: DeadlineExposure[];
+  // The external HTTP API hosts the repository calls (pipeline/api-hosts.ts), for the inventory.
+  // Absent in a hand-built scan, and `apiHostsError` says why when reading them failed.
+  apiHosts?: ApiHostScan;
+  apiHostsError?: string;
 }
 
 function excerpt(line: string) {
@@ -110,6 +118,7 @@ function sourceMatches(
   shopifyFile: boolean,
   metaFile: boolean,
   models: Map<string, DeadlineEntry['provider']>,
+  dataApi: DataApiContext,
 ) {
   const found: { provider: DeadlineEntry['provider']; version: string; column: number }[] = [];
   const add = (
@@ -142,6 +151,7 @@ function sourceMatches(
   // `tModel` does the same, so the prefixed form names the registry model too.
   for (const match of line.matchAll(/(['"`])models\/([a-z0-9][a-z0-9.-]*)\1/dg))
     if (models.get(match[2]) === 'gemini') add('gemini', match[2], match, 2);
+  found.push(...dataApiMatches(line, dataApi));
   return found;
 }
 
@@ -163,9 +173,19 @@ const MODEL_PROVIDERS = new Set<DeadlineEntry['provider']>(['openai', 'anthropic
 // model list, which often mixes providers. Router IDs such as `openai/o1` and
 // `anthropic/claude-3-opus` count too. Gemini-shaped IDs count only when the match being
 // classified is a Gemini model, so OpenAI and Anthropic classification is unchanged.
-const ANTHROPIC_MODEL = /^(?:anthropic\/)?claude-/;
-const GEMINI_MODEL = /^(?:google\/|models\/)?gemini-/;
-const OPENAI_MODEL =
+export const ANTHROPIC_MODEL = /^(?:anthropic\/)?claude-/;
+export const GEMINI_MODEL = /^(?:google\/|models\/)?gemini-/;
+
+// What counts as a model ID when deciding whether a list of them is a catalog, for a match of
+// `provider`: Gemini IDs count only in Gemini lists, so a mixed list is classified alike in
+// TypeScript and Python.
+export function listModel(models: { has(value: string): boolean }) {
+  const isModel = (value: string) =>
+    models.has(value) || OPENAI_MODEL.test(value) || ANTHROPIC_MODEL.test(value);
+  const isGeminiListModel = (value: string) => isModel(value) || GEMINI_MODEL.test(value);
+  return (provider: string) => (provider === 'gemini' ? isGeminiListModel : isModel);
+}
+export const OPENAI_MODEL =
   /^(?:openai\/)?(?:gpt-|chatgpt-|o\d(?:-|$)|text-(?:davinci|curie|babbage|ada|embedding|moderation)-|(?:davinci|curie|babbage|ada)(?:-|$)|dall-e-|tts-|whisper-|codex-|computer-use-|omni-moderation-|sora-)/;
 const CATALOG_SIZE = 3;
 // Cloud-platform forms of a Claude model ID: Bedrock (`anthropic.claude-…`, optionally with a region
@@ -457,9 +477,7 @@ function tokenUses(path: string, content: string, models: Map<string, unknown>) 
     if (leaf) ranges.push([node.getStart(source), node.end, node]);
   };
   visit(source);
-  const isModel = (value: string) =>
-    models.has(value) || OPENAI_MODEL.test(value) || ANTHROPIC_MODEL.test(value);
-  const isGeminiListModel = (value: string) => isModel(value) || GEMINI_MODEL.test(value);
+  const isModel = listModel(models);
   return (
     offset: number,
     provider: DeadlineEntry['provider'],
@@ -476,7 +494,7 @@ function tokenUses(path: string, content: string, models: Map<string, unknown>) 
       else {
         const model = MODEL_PROVIDERS.has(provider);
         const use = ts.isStringLiteralLike(node)
-          ? literalUse(node, path, model, provider === 'gemini' ? isGeminiListModel : isModel)
+          ? literalUse(node, path, model, isModel(provider))
           : 'live';
         if (use !== 'live' || !model) return use;
         // An HTML or JSX `<option>` is one choice in a picker.
@@ -562,18 +580,22 @@ export async function scanDeadlines(
   for (const file of repository.files) {
     const shopifyFile = SHOPIFY_CONTEXT.some((name) => file.content.includes(name));
     const metaFile = META_CONTEXT.some((name) => file.content.includes(name));
+    const dataApi = dataApiContext(file.content);
     let useAt: ReturnType<typeof tokenUses> | undefined;
     let literalAt: ReturnType<typeof literalTextAt> | undefined;
     let offset = 0;
     for (const [index, line] of file.content.split('\n').entries()) {
-      for (const match of sourceMatches(line, shopifyFile, metaFile, models)) {
+      for (const match of sourceMatches(line, shopifyFile, metaFile, models, dataApi)) {
         useAt ??= tokenUses(file.path, file.content, models);
         record(match.provider, match.version, {
           file: file.path,
           line: index + 1,
           kind: 'source',
           use: useAt(offset + match.column, match.provider, line, match.version),
-          text: excerpt(line),
+          // An Airtable key is a credential: report where it is, never its value.
+          text: excerpt(
+            match.provider === 'airtable' ? line.replace(/key[A-Za-z0-9]{14}/g, 'key…') : line,
+          ),
           ...(via.has(`${file.path}:${index + 1}:${match.version}`)
             ? { via: via.get(`${file.path}:${index + 1}:${match.version}`) }
             : {}),
@@ -598,6 +620,16 @@ export async function scanDeadlines(
       offset += line.length + 1;
     }
   }
+  // Python files: quoted registry models only, classified like the TypeScript matches above.
+  const python = models.size ? await readPythonFiles(root) : [];
+  for (const match of await pythonModelMatches(python, models, listModel(models)))
+    record(match.provider, match.version, {
+      file: match.file,
+      line: match.line,
+      kind: 'source',
+      use: match.use,
+      text: excerpt(match.text),
+    });
   // Models called through Amazon Bedrock, Azure OpenAI or OpenRouter (pipeline/model-hosts.ts).
   for (const match of hostDeadlineMatches(detectModelHosts(repository), (provider, version) =>
     byVersion.has(`${provider}:${version}`),
@@ -732,9 +764,16 @@ export async function scanDeadlines(
     exposure.nonLive = rest.slice(0, MAX_EVIDENCE);
     exposure.nonLiveMore = rest.length - exposure.nonLive.length;
   }
+  const hosts: Pick<DeadlineScan, 'apiHosts' | 'apiHostsError'> = {};
+  try {
+    hosts.apiHosts = await detectApiHosts(root, { repository });
+  } catch (error) {
+    hosts.apiHostsError = error instanceof Error ? error.message : String(error);
+  }
   return {
     exposures: all.filter((exposure) => exposure.evidence.length),
     mentions: all.filter((exposure) => !exposure.evidence.length),
+    ...hosts,
   };
 }
 

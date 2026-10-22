@@ -1,0 +1,740 @@
+{
+  "formatVersion": 1,
+  "ranAt": "2026-10-22",
+  "refit": "984668b3c8e9d2224dff21acbaaa1670d6b8f6c9",
+  "cases": "2026-10-22-upstream-replay-cases.json",
+  "earliestSignal": {
+    "contract": "The later of the version publication date and the day the affected code was added: a scan against the new version reports it from then on.",
+    "deadline": "The latest of the announcement, 90 days before the deadline (Refit's first default alert, pipeline/deadline-alerts.ts) and the day the affected code was added.",
+    "version": "None when the registry has no date for the removed version: Refit reports pins but cannot alert ahead of an unknown date.",
+    "daysEarlier": "Days from the earliest signal to the UTC date of the maintainers' fix.",
+    "brokenDays": "Deadlines only: days from the later of the deadline and the day the code was added to the fix, when the fix came after the deadline.",
+    "codeAdded": "The first commit before the fix whose diff adds the affected string (git log -S) in a file Refit reads."
+  },
+  "harness": {
+    "scan-basil": {
+      "formatVersion": 1,
+      "format": "stripe-results",
+      "refit": {
+        "commit": "984668b3c8e9d2224dff21acbaaa1670d6b8f6c9",
+        "source": "git",
+        "dirty": null,
+        "allowDirty": false
+      },
+      "list": {
+        "path": "selected.json",
+        "sha256": "5131d93c3273c28f7ef20bc7a6a639728578e15e74a888721119fd379e463438"
+      },
+      "options": {},
+      "node": "v24.14.0",
+      "docker": null,
+      "startedAt": "2026-10-22T09:30:28.745Z"
+    },
+    "scan-endive": {
+      "formatVersion": 1,
+      "format": "stripe-results",
+      "refit": {
+        "commit": "984668b3c8e9d2224dff21acbaaa1670d6b8f6c9",
+        "source": "git",
+        "dirty": null,
+        "allowDirty": false
+      },
+      "list": {
+        "path": "selected.json",
+        "sha256": "c26b7975bc9eb3792282a7ca16e3772da7eb059eeb3064f52156b8ca9bb488fe"
+      },
+      "options": {},
+      "node": "v24.14.0",
+      "docker": null,
+      "startedAt": "2026-10-22T09:30:39.549Z"
+    },
+    "scan-shopify": {
+      "formatVersion": 1,
+      "format": "shopify-results",
+      "refit": {
+        "commit": "984668b3c8e9d2224dff21acbaaa1670d6b8f6c9",
+        "source": "git",
+        "dirty": null,
+        "allowDirty": false
+      },
+      "list": {
+        "path": "docs/benchmarks/2026-10-22-replay-shopify-repos.json",
+        "sha256": "3df5b0bf473ee6160e19a8329df054aeaa6b65a25052b828b5cc611f8cb860fa"
+      },
+      "options": {},
+      "node": "v24.14.0",
+      "docker": null,
+      "startedAt": "2026-10-22T09:41:25.034Z"
+    },
+    "val-basil-0": {
+      "formatVersion": 1,
+      "format": "stripe-results",
+      "refit": {
+        "commit": "984668b3c8e9d2224dff21acbaaa1670d6b8f6c9",
+        "source": "git",
+        "dirty": null,
+        "allowDirty": false
+      },
+      "list": {
+        "path": "selected.json",
+        "sha256": "5131d93c3273c28f7ef20bc7a6a639728578e15e74a888721119fd379e463438"
+      },
+      "options": {
+        "limit": "1",
+        "offset": "0",
+        "validate": true
+      },
+      "node": "v24.14.0",
+      "docker": {
+        "version": "29.8.2",
+        "image": "node:22-alpine",
+        "imageId": "sha256:0a7108bf6c7bf5de370ffb1a3ed6be93d405b43ff159f681a8d18c0e2bc2e402",
+        "repoDigests": [
+          "node@sha256:0a7108bf6c7bf5de370ffb1a3ed6be93d405b43ff159f681a8d18c0e2bc2e402"
+        ]
+      },
+      "startedAt": "2026-10-22T09:41:33.246Z"
+    },
+    "val-basil-1": {
+      "formatVersion": 1,
+      "format": "stripe-results",
+      "refit": {
+        "commit": "984668b3c8e9d2224dff21acbaaa1670d6b8f6c9",
+        "source": "git",
+        "dirty": null,
+        "allowDirty": false
+      },
+      "list": {
+        "path": "selected.json",
+        "sha256": "5131d93c3273c28f7ef20bc7a6a639728578e15e74a888721119fd379e463438"
+      },
+      "options": {
+        "limit": "1",
+        "offset": "1",
+        "validate": true
+      },
+      "node": "v24.14.0",
+      "docker": {
+        "version": "29.8.2",
+        "image": "node:22-alpine",
+        "imageId": "sha256:0a7108bf6c7bf5de370ffb1a3ed6be93d405b43ff159f681a8d18c0e2bc2e402",
+        "repoDigests": [
+          "node@sha256:0a7108bf6c7bf5de370ffb1a3ed6be93d405b43ff159f681a8d18c0e2bc2e402"
+        ]
+      },
+      "startedAt": "2026-10-22T09:43:12.396Z"
+    },
+    "val-basil-2": {
+      "formatVersion": 1,
+      "format": "stripe-results",
+      "refit": {
+        "commit": "984668b3c8e9d2224dff21acbaaa1670d6b8f6c9",
+        "source": "git",
+        "dirty": null,
+        "allowDirty": false
+      },
+      "list": {
+        "path": "selected.json",
+        "sha256": "5131d93c3273c28f7ef20bc7a6a639728578e15e74a888721119fd379e463438"
+      },
+      "options": {
+        "limit": "1",
+        "offset": "2",
+        "validate": true
+      },
+      "node": "v24.14.0",
+      "docker": {
+        "version": "29.8.2",
+        "image": "node:22-alpine",
+        "imageId": "sha256:0a7108bf6c7bf5de370ffb1a3ed6be93d405b43ff159f681a8d18c0e2bc2e402",
+        "repoDigests": [
+          "node@sha256:0a7108bf6c7bf5de370ffb1a3ed6be93d405b43ff159f681a8d18c0e2bc2e402"
+        ]
+      },
+      "startedAt": "2026-10-22T09:44:17.566Z"
+    },
+    "val-endive-2": {
+      "formatVersion": 1,
+      "format": "stripe-results",
+      "refit": {
+        "commit": "984668b3c8e9d2224dff21acbaaa1670d6b8f6c9",
+        "source": "git",
+        "dirty": null,
+        "allowDirty": false
+      },
+      "list": {
+        "path": "selected.json",
+        "sha256": "c26b7975bc9eb3792282a7ca16e3772da7eb059eeb3064f52156b8ca9bb488fe"
+      },
+      "options": {
+        "limit": "1",
+        "offset": "2",
+        "validate": true
+      },
+      "node": "v24.14.0",
+      "docker": {
+        "version": "29.8.2",
+        "image": "node:22-alpine",
+        "imageId": "sha256:0a7108bf6c7bf5de370ffb1a3ed6be93d405b43ff159f681a8d18c0e2bc2e402",
+        "repoDigests": [
+          "node@sha256:0a7108bf6c7bf5de370ffb1a3ed6be93d405b43ff159f681a8d18c0e2bc2e402"
+        ]
+      },
+      "startedAt": "2026-10-22T09:45:07.548Z"
+    },
+    "val-endive-3": {
+      "formatVersion": 1,
+      "format": "stripe-results",
+      "refit": {
+        "commit": "984668b3c8e9d2224dff21acbaaa1670d6b8f6c9",
+        "source": "git",
+        "dirty": null,
+        "allowDirty": false
+      },
+      "list": {
+        "path": "selected.json",
+        "sha256": "c26b7975bc9eb3792282a7ca16e3772da7eb059eeb3064f52156b8ca9bb488fe"
+      },
+      "options": {
+        "limit": "1",
+        "offset": "3",
+        "validate": true
+      },
+      "node": "v24.14.0",
+      "docker": {
+        "version": "29.8.2",
+        "image": "node:22-alpine",
+        "imageId": "sha256:0a7108bf6c7bf5de370ffb1a3ed6be93d405b43ff159f681a8d18c0e2bc2e402",
+        "repoDigests": [
+          "node@sha256:0a7108bf6c7bf5de370ffb1a3ed6be93d405b43ff159f681a8d18c0e2bc2e402"
+        ]
+      },
+      "startedAt": "2026-10-22T09:46:20.203Z"
+    }
+  },
+  "replays": [
+    {
+      "change": "stripe-basil-subscription-periods",
+      "repo": "SergeySharipov/ai-companion-saas",
+      "language": "TypeScript",
+      "before": "5972f03c013e65173c9de5ee98900ead13a78ffe",
+      "fix": "7001a74e7b0983d6d8de9048edba644467fa25e1",
+      "fixAt": "2025-04-15T15:58:06-04:00",
+      "codeAdded": "c9355058c14353fad43c2620e933750e0510481c",
+      "codeAddedAt": "2024-05-19T21:41:39-04:00",
+      "earliestSignalAt": "2025-03-31",
+      "daysEarlier": 15,
+      "refit": {
+        "outcome": "patch",
+        "detail": "Confirmed 3 reads in app/api/webhook/route.ts (current_period_end twice, invoice.subscription once). The deterministic patch reads them through a generated helper (app/api/webhook/stripe-subscription-period.ts), moves apiVersion 2024-04-10 to 2025-03-31.basil and upgrades stripe-node 15.7.0 to 18.0.0.",
+        "sites": {
+          "confirmed": 3,
+          "review": 0,
+          "patched": 3
+        }
+      },
+      "maintainers": {
+        "sites": 2,
+        "summary": "Read subscription.items.data[0].current_period_end in both places, set apiVersion to 2025-03-31.basil and stripe to ^18.0.0, in a commit that updated every dependency."
+      },
+      "comparison": "Same pin and SDK upgrade and the same two period reads. Refit also migrated session.subscription in the invoice.payment_succeeded branch: that event's object is an Invoice, whose subscription field basil moved to parent.subscription_details.subscription. The maintainers left that read, and it is unchanged at their latest commit b680ee2 (2026-02-18).",
+      "validation": {
+        "status": "passed",
+        "detail": "Typecheck in offline Docker: 10 errors before and after the patch, none introduced."
+      }
+    },
+    {
+      "change": "stripe-basil-subscription-periods",
+      "repo": "anand-mukul/PDFNinja",
+      "language": "TypeScript",
+      "before": "c13e13ee34de4858a089ad4953be1fc77a0dbd83",
+      "fix": "e48393bfb88c59d8c9dcc336d02991f61de67641",
+      "fixAt": "2025-08-16T03:58:18+05:30",
+      "codeAdded": "c34ea45fc655a537570c6522af7274691b95ca48",
+      "codeAddedAt": "2023-10-11T11:17:24+05:30",
+      "earliestSignalAt": "2025-03-31",
+      "daysEarlier": 137,
+      "refit": {
+        "outcome": "patch",
+        "detail": "Confirmed 3 reads in src/app/api/webhooks/stripe/route.ts (current_period_end twice, invoice.subscription once) and patched all 3 through the helper, with apiVersion 2023-08-16 to 2025-03-31.basil. It skipped the stripe-node upgrade (\"stripe 18.0.0 needs dependency changes (qs, @types/node); regenerate the lockfile instead\"). 4 review findings are .price reads of the local PLANS config, not Stripe objects, and were left alone.",
+        "sites": {
+          "confirmed": 3,
+          "review": 4,
+          "patched": 3
+        }
+      },
+      "maintainers": {
+        "sites": 2,
+        "summary": "Replaced both current_period_end reads with subscription.items.data[0]?.current_period_start, set apiVersion to 2025-07-30.basil and stripe to ^18.4.0, in a commit that rewrote the AI stack and reformatted the files."
+      },
+      "comparison": "The maintainers stored the period start as stripeCurrentPeriodEnd and left session.subscription in the invoice.payment_succeeded branch; both are unchanged at their latest commit d83bd78 (2025-12-30). Refit read the period end and migrated the invoice read, but its pin bump without the SDK upgrade fails to typecheck, which validation caught.",
+      "validation": {
+        "status": "failed",
+        "detail": "Typecheck regression in offline Docker: 8 errors before, 9 after; introduced src/lib/stripe.ts TS2322 Type '\"2025-03-31.basil\"' is not assignable to type '\"2023-08-16\"'. Nothing would be published."
+      }
+    },
+    {
+      "change": "stripe-basil-subscription-periods",
+      "repo": "trentas/saas-scaffolding",
+      "language": "TypeScript",
+      "before": "4f3e953480d1ff2038cdb87846a78b591be1d76a",
+      "fix": "b104c9e44e5605e72f7386e55023bd3642270662",
+      "fixAt": "2026-03-31T16:48:58-03:00",
+      "codeAdded": "8186919d812476edfbdcc559ed37e09ddf0edfdd",
+      "codeAddedAt": "2025-10-22T23:49:27-03:00",
+      "earliestSignalAt": "2025-10-23",
+      "daysEarlier": 159,
+      "refit": {
+        "outcome": "partial-patch",
+        "detail": "Confirmed 5 reads in lib/stripe.ts (current_period_end at 213, invoice.subscription at 241, 247, 259, 265) and patched them through the helper. It left 2 for review: current_period_end at lib/stripe.ts:86, because the subscription is returned to the caller, and .type at src/app/api/webhooks/stripe/route.ts:34. The constructor's apiVersion '2023-10-16' was reported unknown, so the patch keeps the pin and the SDK, although the workflow summary says it updates the pinned version.",
+        "sites": {
+          "confirmed": 5,
+          "review": 2,
+          "patched": 5
+        }
+      },
+      "maintainers": {
+        "sites": 6,
+        "summary": "Moved both current_period_end reads to items.data[0]?.current_period_end (with the current time when absent) and all 4 invoice.subscription reads to a getInvoiceSubscriptionId helper on parent.subscription_details, set apiVersion to 2026-03-25.dahlia, upgraded Stripe 14 to 21 and made the client lazy."
+      },
+      "comparison": "Refit's 5 edits match 5 of the maintainers' 6. The maintainers also migrated the read at line 86 that Refit left for review, and they moved the pin and the SDK, which Refit did not.",
+      "validation": {
+        "status": "passed",
+        "detail": "Tests in offline Docker passed before and after the patch; the run stopped at needs-review because 2 findings stay unresolved."
+      }
+    },
+    {
+      "change": "stripe-endive-payment-method-types",
+      "repo": "deniaiapp/deni-ai",
+      "language": "TypeScript",
+      "before": "81c6dbdc2abc5087bf097a8c97c4a1e5cea557e6",
+      "fix": "5345d696ba93e0c5b532f7b39befc2c88e968082",
+      "fixAt": "2026-10-03T18:04:24+09:00",
+      "codeAdded": "274384d1090830a3e3fb7c66c4d2ca91ebd3d821",
+      "codeAddedAt": "2026-05-26T10:30:13+09:00",
+      "earliestSignalAt": "2026-09-30",
+      "daysEarlier": 3,
+      "refit": {
+        "outcome": "flagged",
+        "detail": "Found both payment_method_types: ['card'] sites (src/server/api/routers/billing.ts:1113, src/app/api/ads/campaigns/checkout/route.ts:63) at review confidence and stopped. The default client new Stripe(stripeSecretKey) at src/lib/stripe.ts:7 has no options argument and is reported as an unknown pin, and 6 requests pin 2026-03-25.dahlia, which conflicts with the application pin. The stripe-node upgrade check also fails: \"pnpm-lock.yaml is not a single document in pnpm formatting.\"",
+        "sites": {
+          "confirmed": 0,
+          "review": 2,
+          "patched": 0
+        }
+      },
+      "maintainers": {
+        "sites": 2,
+        "summary": "Renamed both to allowed_payment_method_types: ['card']."
+      },
+      "comparison": "No Refit patch. The fix is the card rule Refit has, and both calls use the default client, which already ran stripe-node 23.0.0 (locked in pnpm-lock.yaml) and so sent 2026-09-30.endive.",
+      "validation": {
+        "status": "not-run",
+        "detail": "No patch to validate."
+      }
+    },
+    {
+      "change": "stripe-endive-payment-method-types",
+      "repo": "Singuralitylabs/sinlab-study",
+      "language": "TypeScript",
+      "before": "5030fe28255888b3a18ba01d129bd405571d721d",
+      "fix": "e9da9d221968f38f611e41260423a25476816ea7",
+      "fixAt": "2026-10-12T09:08:57+09:00",
+      "codeAdded": "2539c86c5908f989f12d6df48556bb2f7f7aa66a",
+      "codeAddedAt": "2026-08-12T18:25:05+09:00",
+      "earliestSignalAt": "2026-09-30",
+      "daysEarlier": 12,
+      "refit": {
+        "outcome": "flagged",
+        "detail": "Found the payment_method_types: ['card'] site at app/services/api/stripe-server.ts:177 at review confidence and stopped. The only client, new Stripe(secretKey) at line 118, has no options argument and is reported as an unknown pin, and the repository's only lockfile is bun.lock, which the stripe-node upgrade does not support.",
+        "sites": {
+          "confirmed": 0,
+          "review": 1,
+          "patched": 0
+        }
+      },
+      "maintainers": {
+        "sites": 1,
+        "summary": "Renamed it to allowed_payment_method_types: ['card'], upgraded stripe to 23.0.0, added a test and documented that cards must stay enabled in the Dashboard."
+      },
+      "comparison": "No Refit patch. The maintainers made the card-rule edit with the SDK upgrade, as the rule requires.",
+      "validation": {
+        "status": "not-run",
+        "detail": "No patch to validate."
+      }
+    },
+    {
+      "change": "stripe-endive-payment-method-types",
+      "repo": "caballerorandy6/rcweb",
+      "language": "TypeScript",
+      "before": "1738856a2427f6efc2167222436f890bf8346091",
+      "fix": "bb10bea17ab807d87c8fa75decfe9e28d631776b",
+      "fixAt": "2026-10-16T16:55:03-05:00",
+      "codeAdded": "674adfdfc04862b84cfa951d8194581d0e83cbed",
+      "codeAddedAt": "2025-09-10T23:46:08-05:00",
+      "earliestSignalAt": "2026-09-30",
+      "daysEarlier": 16,
+      "refit": {
+        "outcome": "flagged",
+        "detail": "Confirmed all 3 payment_method_types: ['card'] sites (createFinalPaymentSessionAction.ts:44, createStripeCheckoutAction.ts:54 and 93). The workflow ended in validation with an error before any patch was recorded: \"Dependency archive exceeds 1024 MiB.\"",
+        "sites": {
+          "confirmed": 3,
+          "review": 0,
+          "patched": 0
+        }
+      },
+      "maintainers": {
+        "sites": 3,
+        "summary": "Renamed all 3 to allowed_payment_method_types: ['card'] and upgraded stripe to v23."
+      },
+      "comparison": "The same 3 sites. Refit's patch was not produced because the repository's dependencies exceed the default validation archive; REFIT_VALIDATION_WORKSPACE=4g was not tried.",
+      "validation": {
+        "status": "error",
+        "detail": "Dependency archive exceeds 1024 MiB."
+      }
+    },
+    {
+      "change": "stripe-endive-payment-method-types",
+      "repo": "Lala-Arham/Last-Bite-App",
+      "language": "TypeScript",
+      "before": "429e7f7f465c8db2da91c58dfccb668a7cc084cd",
+      "fix": "35da25fda54057f8c31c374043a4c42271065f88",
+      "fixAt": "2026-10-04T02:11:18Z",
+      "codeAdded": "5b642ef6ee543c1550f0076ce3a37a7aa7ef5841",
+      "codeAddedAt": "2026-10-01T18:27:38Z",
+      "earliestSignalAt": "2026-10-01",
+      "daysEarlier": 3,
+      "refit": {
+        "outcome": "flagged",
+        "detail": "Confirmed both payment_method_types: ['card'] sites (src/lib/payments/stripe.ts:38 and 63) and stopped before a patch. The stripe-node upgrade itself works (22.6.2 to 23.0.0); the card rule is dropped because two pins are unknown: the main client spreads ...api into its options, and the webhook verifier new Stripe(secretKey) at line 191 has no options argument. Removing both in a scratch copy made Refit propose the patch.",
+        "sites": {
+          "confirmed": 2,
+          "review": 0,
+          "patched": 0
+        }
+      },
+      "maintainers": {
+        "sites": 2,
+        "summary": "Renamed both to allowed_payment_method_types: ['card']."
+      },
+      "comparison": "No Refit patch; the fix is the card rule, applied by hand.",
+      "validation": {
+        "status": "not-run",
+        "detail": "Stopped at scan; no patch to validate."
+      }
+    },
+    {
+      "change": "anthropic-claude-sonnet-4-retirement",
+      "repo": "remypol/mikki-mase.com",
+      "language": "TypeScript",
+      "before": "39ed41a71d54ea768222ba4be2fdc3685d8e19ee",
+      "fix": "2cdfdc82029aa3fcf5cc4c7422a6c29d66bbb56c",
+      "fixAt": "2026-08-19T20:00:37+01:00",
+      "codeAdded": "e16a072a517d5656331f80b78fa2162bbee1a0c1",
+      "codeAddedAt": "2026-03-17T15:43:26+01:00",
+      "earliestSignalAt": "2026-04-14",
+      "daysEarlier": 127,
+      "brokenDays": 65,
+      "refit": {
+        "outcome": "patch",
+        "detail": "Reported the exposure and replaced the one model at src/pages/api/support/chat.ts:85 with claude-sonnet-5-5.",
+        "sites": {
+          "found": 1,
+          "patched": 1
+        }
+      },
+      "maintainers": {
+        "sites": 1,
+        "summary": "Replaced it with claude-sonnet-5, citing 404s since June 15."
+      },
+      "comparison": "The same site; Refit picks the registry replacement claude-sonnet-5-5, the maintainers claude-sonnet-5.",
+      "validation": {
+        "status": "refused",
+        "detail": "Committed source exceeds the 50 MiB validation archive limit."
+      }
+    },
+    {
+      "change": "anthropic-claude-sonnet-4-retirement",
+      "repo": "ParisB81/MealPlan",
+      "language": "TypeScript",
+      "before": "6fb8fe3af12cf307b173f8ea40f5ff32d044f5ad",
+      "fix": "fed1f2129471ad9467c467d30dd4717fa132cfd3",
+      "fixAt": "2026-08-28T11:31:19+03:00",
+      "codeAdded": "7dad34f2a968ea894f6203e505164f9dba837011",
+      "codeAddedAt": "2026-03-10T11:33:16+02:00",
+      "earliestSignalAt": "2026-04-14",
+      "daysEarlier": 136,
+      "brokenDays": 74,
+      "refit": {
+        "outcome": "flagged",
+        "detail": "Reported the exposure and found all 4 sites (aiMealPlan.service.ts 316, 495, 667; aiRecipe.service.ts 134), but stopped every one: \"The client sets a custom base URL\". The match comes from the frontend API_BASE_URL setting, not from the Anthropic client.",
+        "sites": {
+          "found": 4,
+          "stopped": 4,
+          "patched": 0
+        }
+      },
+      "maintainers": {
+        "sites": 4,
+        "summary": "Replaced all 4 with claude-sonnet-5."
+      },
+      "comparison": "The same 4 sites; Refit would have patched them without the custom-endpoint false positive.",
+      "validation": {
+        "status": "not-run",
+        "detail": "No patch to validate."
+      }
+    },
+    {
+      "change": "anthropic-claude-sonnet-4-retirement",
+      "repo": "kataragon1/PawRecords",
+      "language": "JavaScript",
+      "before": "8511da2852a0abbd376b6707cbfdfdf93e996afe",
+      "fix": "57eeeaae927da7c4d8b247e9155c7d4c2bce1484",
+      "fixAt": "2026-09-15T03:01:52-04:00",
+      "codeAdded": "c1ab64cf98d4b6e542a62511a6b6abc49aaf0b49",
+      "codeAddedAt": "2026-05-14T17:11:26-04:00",
+      "earliestSignalAt": "2026-05-14",
+      "daysEarlier": 124,
+      "brokenDays": 92,
+      "refit": {
+        "outcome": "partial-patch",
+        "detail": "Reported the exposure and patched 4 of 6 sites (import.js 260, 281, 347; chat.js 332) to claude-sonnet-5-5. It stopped chat.js:299 because the module is also loaded dynamically, and left files.js:1119 unresolved because no file imports @anthropic-ai/sdk. The patch prints whole-file hunks but changes exactly 4 lines.",
+        "sites": {
+          "found": 6,
+          "patched": 4,
+          "stopped": 1,
+          "unresolved": 1
+        }
+      },
+      "maintainers": {
+        "sites": 6,
+        "summary": "Replaced all 6 (chat.js 2, files.js 1, import.js 3) with claude-sonnet-5."
+      },
+      "comparison": "Refit's 4 edits match 4 of the maintainers' 6; the other 2 were left for a person.",
+      "validation": {
+        "status": "no-checks",
+        "detail": "No package.json, so no test or build script."
+      }
+    },
+    {
+      "change": "anthropic-claude-sonnet-4-retirement",
+      "repo": "grenager/trondbot",
+      "language": "TypeScript",
+      "before": "eb3bc81682a7ffd3267bda5ed88e0f61024ea8ae",
+      "fix": "ab591ca0a706295f8ef9ae9b59155244af7ee061",
+      "fixAt": "2026-08-30T23:45:22Z",
+      "codeAdded": "0b19c6c233aa68175199a80f714dedbbe2baa47b",
+      "codeAddedAt": "2026-05-30T10:20:58-07:00",
+      "earliestSignalAt": "2026-05-30",
+      "daysEarlier": 92,
+      "brokenDays": 76,
+      "refit": {
+        "outcome": "partial-patch",
+        "detail": "Reported the exposure and patched 3 of 4 routes (lookup, memories, tokenize) to claude-sonnet-5-5. It stopped app/api/chat/route.ts because its MODEL constant is used 2 times.",
+        "sites": {
+          "found": 4,
+          "patched": 3,
+          "stopped": 1
+        }
+      },
+      "maintainers": {
+        "sites": 4,
+        "summary": "Replaced the MODEL constant in all 4 routes with claude-sonnet-5."
+      },
+      "comparison": "Refit's 3 edits match 3 of the maintainers' 4.",
+      "validation": {
+        "status": "failed",
+        "detail": "npm run build failed at the before commit in offline Docker (baseline-failed), so the patch was not checked. The validation output does not record why."
+      }
+    },
+    {
+      "change": "openai-gpt-4-turbo-preview-shutdown",
+      "repo": "dacostatricia99-ctrl/Mood-Pass",
+      "language": "TypeScript",
+      "before": "e19b672329aab99816ff78b713fb552ebb26d4f5",
+      "fix": "bc2bce211f5ce2b6547f2fc27d59714d99c8d661",
+      "fixAt": "2026-06-10T18:13:47+01:00",
+      "codeAdded": "3d0f3460546ab5bbf1b910354fb7bb99805dd83c",
+      "codeAddedAt": "2026-06-10T15:59:56+01:00",
+      "earliestSignalAt": "2026-06-10",
+      "daysEarlier": 0,
+      "brokenDays": 0,
+      "refit": {
+        "outcome": "patch",
+        "detail": "Reported the exposure at supabase/functions/mood-ai-manager/index.ts:26 and replaced gpt-4-turbo-preview with gpt-5.",
+        "sites": {
+          "found": 1,
+          "patched": 1
+        }
+      },
+      "maintainers": {
+        "sites": 1,
+        "summary": "Replaced it with gpt-4o."
+      },
+      "comparison": "The same site; Refit picks the registry replacement gpt-5, the maintainers gpt-4o. The model was added after its shutdown and fixed the same day, so there was no lead time to win.",
+      "validation": {
+        "status": "passed",
+        "detail": "npm run build passed before and after the patch in offline Docker."
+      }
+    },
+    {
+      "change": "openai-gpt-4-turbo-preview-shutdown",
+      "repo": "letoya-ui/ravlo-platform",
+      "language": "Python",
+      "before": "b374b0c9bec4b119d7937ef04b01c5c3f9ca6f90",
+      "fix": "818abc9a9fef96a496c93101aa6b74be225ccfd0",
+      "fixAt": "2026-04-30T23:41:11Z",
+      "earliestSignalAt": null,
+      "daysEarlier": null,
+      "brokenDays": null,
+      "refit": {
+        "outcome": "missed",
+        "detail": "The model is in Python; Refit reads JavaScript and TypeScript only."
+      },
+      "maintainers": {
+        "sites": 1,
+        "summary": "Changed the AI_MODEL default in LoanMVP/config.py to gpt-4o-mini."
+      },
+      "comparison": "Out of scope for Refit (language).",
+      "validation": {
+        "status": "not-run"
+      }
+    },
+    {
+      "change": "openai-gpt-4-turbo-preview-shutdown",
+      "repo": "victorsole/brubru",
+      "language": "Python",
+      "before": "545d5343a0bb5154a7ddc199fbdc008b63f77182",
+      "fix": "62585a675e3a42da6d3f70ff5856988fe9319192",
+      "fixAt": "2026-04-20T12:29:03+02:00",
+      "earliestSignalAt": null,
+      "daysEarlier": null,
+      "brokenDays": null,
+      "refit": {
+        "outcome": "missed",
+        "detail": "The model is in Python; Refit reads JavaScript and TypeScript only. Its one exposure in this repository is an unrelated 'gpt-4' default in a frontend component."
+      },
+      "maintainers": {
+        "sites": 1,
+        "summary": "Changed MODEL in backend/services/ai/multi_provider_service.py to gpt-4o, noting that gpt-4-turbo-preview returned 404 model_not_found on 20 Apr 2026."
+      },
+      "comparison": "Out of scope for Refit (language).",
+      "validation": {
+        "status": "not-run"
+      }
+    },
+    {
+      "change": "shopify-admin-2025-01-removal",
+      "repo": "balvant0707/Fomoify-Test",
+      "language": "JavaScript",
+      "before": "c8379eb2b97797b008bde27289d6798be18e1c6c",
+      "fix": "bf35d6be7ab360c2db98ee786320face9e425db8",
+      "fixAt": "2026-03-01T19:45:15+05:30",
+      "codeAdded": "f06b4a1b871526c56470950b7c1ac54b15a4cffa",
+      "codeAddedAt": "2025-08-29T18:21:16+05:30",
+      "earliestSignalAt": null,
+      "daysEarlier": null,
+      "refit": {
+        "outcome": "flagged",
+        "detail": "The scan is affected but proposes no patch: it flags ApiVersion.January25 (app/shopify.server.js 91, 147) and the 3 REST URLs on /admin/api/2025-01/ for review, and stops because a GraphQL document is built at runtime and the app pins both 2025-01 and 2025-07. No deadline alert: the registry has no 2025-01 entry, so the only exposure reported is 2025-07 (due 2026-07-16).",
+        "sites": {
+          "review": 13,
+          "confirmed": 1,
+          "patched": 0
+        }
+      },
+      "maintainers": {
+        "sites": 8,
+        "summary": "Moved every 2025-01 pin to 2025-07 (2 ApiVersion values, shopify.app.toml and 3 REST URLs) and added limit: null to 2 customersCount queries."
+      },
+      "comparison": "Refit pointed at the same pins and URLs but neither dated nor fixed them.",
+      "validation": {
+        "status": "not-run",
+        "detail": "No patch to validate."
+      }
+    },
+    {
+      "change": "shopify-admin-2025-01-removal",
+      "repo": "futureaidigital/bal-ring-builder",
+      "language": "JavaScript",
+      "before": "647909b4809d2edfbddcf3f3602a349e8dda0f49",
+      "fix": "27a9cdf8c96c9b26b38c52e13c5e2ca7182a76ff",
+      "fixAt": "2026-06-02T18:00:12+04:00",
+      "codeAdded": "d299f82b618a36f7d9a7b6604fefb45dee16b124",
+      "codeAddedAt": "2026-01-22T12:06:23+04:00",
+      "earliestSignalAt": null,
+      "daysEarlier": null,
+      "refit": {
+        "outcome": "flagged",
+        "detail": "The scan is affected but proposes no patch: it flags ApiVersion.January25 (app/shopify.server.js 14, 30) for review, stops because a GraphQL document is built at runtime and the app pins 2025-01 and 2025-04, and counts 4 deprecated selections. No deadline alert: the registry has no 2025-01 entry.",
+        "sites": {
+          "review": 3,
+          "confirmed": 1,
+          "patched": 0
+        }
+      },
+      "maintainers": {
+        "sites": 2,
+        "summary": "Moved both ApiVersion.January25 pins to July25 and, in 5 routes, replaced productByHandle and Product.priceRange (with productByIdentifier, product(handle:) and priceRangeV2) and logged GraphQL errors."
+      },
+      "comparison": "Refit flagged the pin, not the queries. In the 2026-01 to 2026-10 snapshots Refit used, productByHandle and priceRange are deprecated, not removed; the maintainers' commit message says priceRange was removed under the 2025-07 version Shopify served, which was not checked.",
+      "validation": {
+        "status": "not-run",
+        "detail": "No patch to validate."
+      }
+    },
+    {
+      "change": "meta-graph-v20-0-end",
+      "repo": "k9tsune/tokyo-cafe-finder",
+      "language": "JavaScript",
+      "before": "d6bea9fb5c69a16416071a95f32886cf50caf805",
+      "fix": "0d80307b0482b1a412855df2bf48b5d00d86afc8",
+      "fixAt": "2026-08-08T20:10:43+09:00",
+      "codeAdded": "08cfa0d4a648ef3f6d309f5aae223f638641f7e2",
+      "codeAddedAt": "2026-08-04T16:05:29Z",
+      "earliestSignalAt": "2026-08-04",
+      "daysEarlier": 4,
+      "brokenDays": null,
+      "refit": {
+        "outcome": "flagged",
+        "detail": "Reported the exposure at scripts/fetch-instagram.mjs:40 (graph.facebook.com/v20.0, due 2026-09-24). Meta has no Refit agent, so this is an alert with no patch.",
+        "sites": {
+          "found": 1,
+          "patched": 0
+        }
+      },
+      "maintainers": {
+        "sites": 1,
+        "summary": "Moved the oEmbed URL to v25.0, noting that v20.0 returned 403 for every call."
+      },
+      "comparison": "The alert names the same line. The maintainers saw 403s on 2026-08-08, 47 days before the registry's 2026-09-24 date; why is not verified.",
+      "validation": {
+        "status": "not-run",
+        "detail": "Report only."
+      }
+    },
+    {
+      "change": "meta-graph-v20-0-end",
+      "repo": "lhotea/TriAgent",
+      "language": "Python",
+      "before": "2de91c3101f1bc4699b905bacff4542e0494076d",
+      "fix": "d9b7a4c2c939105efff5bafed617eb29b4b05999",
+      "fixAt": "2026-08-05T17:28:32Z",
+      "earliestSignalAt": null,
+      "daysEarlier": null,
+      "brokenDays": null,
+      "refit": {
+        "outcome": "missed",
+        "detail": "The Graph API URL is in Python; Refit reads JavaScript and TypeScript only."
+      },
+      "maintainers": {
+        "sites": 1,
+        "summary": "Moved src/triagent/publisher.py from v20.0 to a GRAPH_API_VERSION setting defaulting to v25.0."
+      },
+      "comparison": "Out of scope for Refit (language).",
+      "validation": {
+        "status": "not-run"
+      }
+    }
+  ]
+}

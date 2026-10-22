@@ -10,9 +10,10 @@ import { runWorkflow } from './workflow.ts';
 import { parseCheckCommand } from './validation-options.ts';
 import { readWorkflowConfiguration, REPOSITORY_CONFIGURATION } from './workflow-configuration.ts';
 import { githubAppConfiguration } from './github-app.ts';
-import { renderWorkflowResult, terminalText } from './workflow-presentation.ts';
+import { renderWorkflowResult } from './workflow-presentation.ts';
 import { validateApiVersionPolicy } from './api-version.ts';
 import { hasErrorCode } from './state-files.ts';
+import { cliErrorMessage } from './cli-errors.ts';
 
 const RUN_DIRECTORY_PREFIX = 'refit-run-';
 
@@ -69,7 +70,7 @@ try {
           (error: unknown) => {
             if (implicitConfiguration && hasErrorCode(error, 'ENOENT'))
               throw new PipelineInputError(
-                `No ${REPOSITORY_CONFIGURATION} at ${root}. Run refit doctor for setup diagnostics, or supply --config with an existing workflow.`,
+                `No ${REPOSITORY_CONFIGURATION} at ${root}. Run refit agents to see which provider agents apply and refit agents --add <id> to write one, or supply --config with an existing workflow.`,
                 { cause: error },
               );
             throw error;
@@ -157,6 +158,6 @@ try {
   }
 } catch (error) {
   if (!(error instanceof Error)) throw error;
-  console.error(`${error.name}: ${terminalText(error.message)}`);
+  console.error(cliErrorMessage(error, 'run'));
   process.exitCode = 1;
 }

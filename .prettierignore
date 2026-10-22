@@ -7,5 +7,10 @@ pipeline/fixtures/deprecations/*.md
 pipeline/fixtures/deprecations/*.html
 pipeline/fixtures/package-manifests
 pipeline/fixtures/model-hosts
+pipeline/fixtures/report/*.md
+pipeline/fixtures/report/*.report.json
+docs/report-examples/
 pipeline/fixtures/yarn-workspaces
 pipeline/fixtures/yarn-platform
+# Snapshots must match the generated text byte for byte.
+pipeline/__snapshots__
