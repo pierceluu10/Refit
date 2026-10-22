@@ -4,15 +4,15 @@ Refit lists the SDKs a repository depends on from its manifests and lockfiles. I
 
 ## What is read
 
-| Ecosystem             | Manifests                                                                                                                   | Lockfiles and pins                                                  | Name rule                                         |
-| --------------------- | --------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- | ------------------------------------------------- |
-| Python (`pypi`)       | `requirements*.txt` / `.in` with `-r` includes, `pyproject.toml` (PEP 621, dependency groups, Poetry), `Pipfile`            | `uv.lock`, `poetry.lock`, `Pipfile.lock`                            | PEP 503 normalised                                |
-| Go (`go`)             | `go.mod` (`// indirect` kept, not a detection)                                                                              | `go.sum` confirms go.mod's version                                  | module path; catalog names match any `/vN` suffix |
-| Ruby (`rubygems`)     | `Gemfile`, `*.gemspec`                                                                                                      | `Gemfile.lock`                                                      | as written                                        |
-| PHP (`packagist`)     | `composer.json` (`require`, `require-dev`; platform packages skipped)                                                       | `composer.lock`                                                     | lower-cased                                       |
-| Java/Kotlin (`maven`) | `pom.xml` (literal versions and same-POM properties), `build.gradle(.kts)` literal coordinates, `gradle/libs.versions.toml` | none                                                                | `group:artifact`                                  |
-| .NET (`nuget`)        | `*.csproj` / `.fsproj` / `.vbproj` `PackageReference`, `$(Name)` from the project and the nearest `Directory.Build.props`   | `Directory.Packages.props` (declared version), `packages.lock.json` | case-insensitive                                  |
-| Rust (`cargo`)        | `Cargo.toml` (renames, `[workspace.dependencies]`, target tables)                                                           | `Cargo.lock`                                                        | as written                                        |
+| Ecosystem | Manifests | Lockfiles and pins | Name rule |
+|---|---|---|---|
+| Python (`pypi`) | `requirements*.txt` / `.in` with `-r` includes, `pyproject.toml` (PEP 621, dependency groups, Poetry), `Pipfile` | `uv.lock`, `poetry.lock`, `Pipfile.lock` | PEP 503 normalised |
+| Go (`go`) | `go.mod` (`// indirect` kept, not a detection) | `go.sum` confirms go.mod's version | module path; catalog names match any `/vN` suffix |
+| Ruby (`rubygems`) | `Gemfile`, `*.gemspec` | `Gemfile.lock` | as written |
+| PHP (`packagist`) | `composer.json` (`require`, `require-dev`; platform packages skipped) | `composer.lock` | lower-cased |
+| Java/Kotlin (`maven`) | `pom.xml` (literal versions and same-POM properties), `build.gradle(.kts)` literal coordinates, `gradle/libs.versions.toml` | none | `group:artifact` |
+| .NET (`nuget`) | `*.csproj` / `.fsproj` / `.vbproj` `PackageReference`, `$(Name)` from the project and the nearest `Directory.Build.props` | `Directory.Packages.props` (declared version), `packages.lock.json` | case-insensitive |
+| Rust (`cargo`) | `Cargo.toml` (renames, `[workspace.dependencies]`, target tables) | `Cargo.lock` | as written |
 
 Each dependency carries `ecosystem`, `name`, `declared` (as written, or null), `locked` (from the nearest lockfile in the manifest's directory or an ancestor), `file`, `line` and `direct`. Directories with installed or generated packages are skipped: `node_modules`, `vendor`, `.venv`, `venv`, `site-packages`, `target`, `bin`, `obj`, `.gradle`, `Pods` and similar.
 
@@ -36,11 +36,11 @@ What that means for the numbers:
 
 **Labels.** 35 repositories (5 per ecosystem, seed 20261022) were labelled blind from their dependency-declaring files, using `scripts/package-inventory-label-candidates.mjs`, which imports no pipeline code. The labels were committed (`e6877cc`) before Refit ran on them: [labels](benchmarks/2026-10-22-package-inventory-labels.json). A unit is one provider declared directly in one file. The labelling rules (what counts as a provider package, adapters that do not) are recorded in the labels file. `pipeline/package-manifests-score.ts` scores them, and its own test covers the scorer.
 
-| Run                                                                                      | Refit commit | Units |        Precision |            Recall | Provider-level recall |
-| ---------------------------------------------------------------------------------------- | ------------ | ----: | ---------------: | ----------------: | --------------------: |
-| First run, labelled set                                                                  | `e6877cc`    |    47 |     100% (36/36) |     76.6% (36/47) |         74.3% (26/35) |
-| After fixes, labelled set (fixes informed by these labels)                               | `7975aff`    |    47 |     100% (47/47) |      100% (47/47) |          100% (35/35) |
-| After fixes, **held-out set** (14 repositories, seed 20261023, labelled after the fixes) | `7975aff`    |    17 | **100% (16/16)** | **94.1% (16/17)** |          100% (14/14) |
+| Run | Refit commit | Units | Precision | Recall | Provider-level recall |
+|---|---|---:|---:|---:|---:|
+| First run, labelled set | `e6877cc` | 47 | 100% (36/36) | 76.6% (36/47) | 74.3% (26/35) |
+| After fixes, labelled set (fixes informed by these labels) | `7975aff` | 47 | 100% (47/47) | 100% (47/47) | 100% (35/35) |
+| After fixes, **held-out set** (14 repositories, seed 20261023, labelled after the fixes) | `7975aff` | 17 | **100% (16/16)** | **94.1% (16/17)** | 100% (14/14) |
 
 The held-out row is the honest estimate. The labelled-set "after" row measures the same labels the fixes were built from.
 
@@ -59,14 +59,14 @@ The first run also surfaced two parser problems, now fixed:
 **Whole sample at `7975aff`** ([results](benchmarks/2026-10-22-package-inventory-results-after.json); first run [here](benchmarks/2026-10-22-package-inventory-results-before.json)):
 
 | Sampled for | Repositories | With a manifest of that ecosystem | With a catalog provider in that ecosystem | With a stop |
-| ----------- | -----------: | --------------------------------: | ----------------------------------------: | ----------: |
-| Python      |           15 |                                 9 |                                         3 |           1 |
-| Go          |           15 |                                14 |                                        14 |           0 |
-| Ruby        |           15 |                                15 |                                        15 |           0 |
-| PHP         |           15 |                                15 |                                        15 |           0 |
-| Java/Kotlin |           10 |                                10 |                                         3 |           4 |
-| .NET        |           15 |                                15 |                                        14 |           2 |
-| Rust        |           15 |                                15 |                                        15 |           0 |
+|---|---:|---:|---:|---:|
+| Python | 15 | 9 | 3 | 1 |
+| Go | 15 | 14 | 14 | 0 |
+| Ruby | 15 | 15 | 15 | 0 |
+| PHP | 15 | 15 | 15 | 0 |
+| Java/Kotlin | 10 | 10 | 3 | 4 |
+| .NET | 15 | 15 | 14 | 2 |
+| Rust | 15 | 15 | 15 | 0 |
 
 There are 98 stops left. 97 are `version-not-literal`: 81 MSBuild properties defined outside the nearest props file or imported, and 16 Gradle variables. The last one is a test-fixture `pom.xml` with no `<project>` element.
 

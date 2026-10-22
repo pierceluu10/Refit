@@ -5,9 +5,9 @@ version = "2.11.0"
 description = "Django + Stripe made easy"
 license = "MIT"
 authors = [
-    { name = "Alexander Kavanaugh", email = "alex@kavdev.io" },
-    { name = "Jerome Leclanche", email = "jerome@leclan.ch" },
-    { name = "Abe Hanoka", email = "abe@habet.dev" },
+    { name = "Alexander Kavanaugh", email = "author1@example.com" },
+    { name = "Jerome Leclanche", email = "author2@example.com" },
+    { name = "Abe Hanoka", email = "author3@example.com" },
 ]
 readme = "docs/README.md"
 requires-python = ">=3.11"

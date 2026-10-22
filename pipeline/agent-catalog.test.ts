@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
 import { afterEach, expect, it } from 'vitest';
-import { addAgents, detectProviders } from './agent-catalog.ts';
+import { addable, addAgents, detectProviders } from './agent-catalog.ts';
 import { parseWorkflowConfigurations } from './workflow-configuration.ts';
 
 const execute = promisify(execFile);
@@ -220,4 +220,26 @@ it('detects both Gemini SDKs and the Gemini API host, with no agent to add', asy
       lockfile: true,
     }),
   ).toThrow('no Gemini agent');
+});
+
+it('reports a provider found only in non-npm manifests and refuses to add it', async () => {
+  const root = await repository({ 'requirements.txt': 'stripe==11.4.0\n' });
+  const detections = await detectProviders(root);
+  const stripe = detections.find((entry) => entry.agent.id === 'stripe');
+  expect(stripe?.packages).toMatchObject([{ name: 'stripe', ecosystem: 'pypi' }]);
+  expect(addable(stripe!)).toBe(false);
+  expect(() =>
+    addAgents({
+      configuration: undefined,
+      v1Id: 'stripe',
+      detections,
+      ids: ['stripe'],
+      testScript: false,
+      lockfile: false,
+    }),
+  ).toThrow('detected only in non-npm manifests, which are report only');
+  const mixed = await detectProviders(
+    await repository({ 'requirements.txt': 'stripe==11.4.0\n', 'package.json': MANIFEST }),
+  );
+  expect(addable(mixed.find((entry) => entry.agent.id === 'stripe')!)).toBe(true);
 });

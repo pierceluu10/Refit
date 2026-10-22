@@ -310,6 +310,12 @@ it('says when the open-enum repair restored widened Stripe enum values', async (
   expect(createReviewArtifacts(value).files['pull-request.md']).toContain(
     'Restores the known values of the Stripe enums that stripe-node 22.4.0 widened with `OtherString`',
   );
+  // A restore of part of the errors, before an AI repair fixed the rest, is disclosed too.
+  value.validation.repair.stopReason = 'checks-passed';
+  value.validation.repair.openEnumRestored = true;
+  expect(createReviewArtifacts(value).files['pull-request.md']).toContain(
+    'Restores the known values of the Stripe enums that stripe-node 22.4.0 widened with `OtherString`',
+  );
 });
 
 it('marks a draft with an untraced read for review and keeps it out of the confirmed count', async () => {

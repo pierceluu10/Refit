@@ -108,16 +108,28 @@ it('slices a frozen list for one shard and rejects counts that are not whole num
 it('writes the selected slice of a Shopify frozen list for the benchmark to read', async () => {
   const root = await mkdtemp(join(tmpdir(), 'refit-shopify-setup-'));
   try {
-    const repos = ['a/one', 'b/two', 'c/three', 'd/four'].map((repo) => ({
-      repo,
-      stars: 1,
-      commit: 'f'.repeat(40),
-    }));
+    // Clones already at their pinned commit are reused, so the script needs no network.
+    const repos = [];
+    for (const repo of ['a/one', 'b/two', 'c/three', 'd/four']) {
+      const directory = join(root, 'repos', repo.replace('/', '__'));
+      await mkdir(directory, { recursive: true });
+      const git = (...args: string[]) => execute('git', ['-C', directory, ...args]);
+      await git('init', '-q');
+      await git(
+        '-c',
+        'user.name=t',
+        '-c',
+        'user.email=t@t',
+        'commit',
+        '-q',
+        '--allow-empty',
+        '-m',
+        repo,
+      );
+      repos.push({ repo, stars: 1, commit: (await git('rev-parse', 'HEAD')).stdout.trim() });
+    }
     const list = join(root, 'frozen.json');
     await writeFile(list, JSON.stringify({ schemas: { versions: [] }, repos }));
-    // Existing clones are reused, so the script needs no network.
-    for (const { repo } of repos)
-      await mkdir(join(root, 'repos', repo.replace('/', '__'), '.git'), { recursive: true });
     const { stdout } = await execute(process.execPath, [
       'scripts/shopify-benchmark-setup.mjs',
       '--root',
