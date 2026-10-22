@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { scanDeadlines } from './deadline-exposure.ts';
 import { loadDeadlineRegistry, type DeadlineRegistry } from './deadline-registry.ts';
-import { detectModelHosts, hostDeadlineMatches, modelHostStops } from './model-hosts.ts';
+import { detectModelHosts, hostDeadlineMatches } from './model-hosts.ts';
 import { proposeModelReplacements } from './model-retirements.ts';
 
 // Real snippets copied from public repositories; each file's first line names its source commit.
