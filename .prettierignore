@@ -4,3 +4,4 @@ package-lock.json
 .impeccable/review
 pipeline/fixtures/pnpm-workspaces/*.yaml
 pipeline/fixtures/deprecations/*.md
+pipeline/fixtures/deprecations/*.html

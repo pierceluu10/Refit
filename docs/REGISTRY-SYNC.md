@@ -1,6 +1,6 @@
 # Registry sync
 
-`data/deadlines.json` lists the dates providers retire models and API versions. Refit keeps the AI providers' entries current by reading each provider's official deprecations page, and a scheduled workflow proposes every change as a pull request for a person to review. Matching, CI checks, alerts and model replacements still read only the committed registry; nothing at run time fetches a provider page.
+`data/deadlines.json` lists the dates providers retire models and API versions. Refit keeps every provider's entries current by reading the provider's official deprecations or versioning page, and a scheduled workflow proposes every change as a pull request for a person to review. Matching, CI checks, alerts and model replacements still read only the committed registry; nothing at run time fetches a provider page.
 
 ## Run a sync
 
@@ -8,19 +8,23 @@
 refit deadlines --sync anthropic          # list what would change
 refit deadlines --sync openai
 refit deadlines --sync gemini
+refit deadlines --sync shopify
+refit deadlines --sync meta-graph
 refit deadlines --sync openai --write     # save it to data/deadlines.json
 refit deadlines --sync openai --json      # the same report as JSON
 ```
 
-Each sync fetches one page as Markdown, parses its tables, checks the current registry, merges the page into it and checks the result before anything is written. It prints the entries it would add, update or recheck, the entries the page no longer lists, and every row it skipped with the reason.
+Each sync fetches one page, as Markdown where the provider serves it, parses its tables, checks the current registry, merges the page into it and checks the result before anything is written. It prints the entries it would add, update or recheck, the entries the page no longer lists, and every row it skipped with the reason.
 
-| Provider  | Page read                                                              | Entries it maintains        |
-| --------- | ---------------------------------------------------------------------- | --------------------------- |
-| Anthropic | https://platform.claude.com/docs/en/about-claude/model-deprecations.md | `anthropic` `model` entries |
-| OpenAI    | https://developers.openai.com/api/docs/deprecations.md                 | `openai` `model` entries    |
-| Gemini    | https://ai.google.dev/gemini-api/docs/deprecations.md.txt              | `gemini` `model` entries    |
+| Provider       | Page read                                                              | Entries it maintains               |
+| -------------- | ---------------------------------------------------------------------- | ---------------------------------- |
+| Anthropic      | https://platform.claude.com/docs/en/about-claude/model-deprecations.md | `anthropic` `model` entries        |
+| OpenAI         | https://developers.openai.com/api/docs/deprecations.md                 | `openai` `model` entries           |
+| Gemini         | https://ai.google.dev/gemini-api/docs/deprecations.md.txt              | `gemini` `model` entries           |
+| Shopify        | https://shopify.dev/docs/api/usage/versioning.md                       | `shopify` `api-version` entries    |
+| Meta Graph API | https://developers.facebook.com/docs/graph-api/changelog (HTML)        | `meta-graph` `api-version` entries |
 
-A sync only touches its provider's `model` entries. SDK entries, such as the `@google/generative-ai` end of support, and every other provider stay as they are.
+A sync only touches its provider's entries of that kind. SDK entries, such as the `@google/generative-ai` end of support, and every other provider stay as they are.
 
 ## How each page is read
 
@@ -29,6 +33,8 @@ Every parser fails the whole sync on a table or row it does not recognize, so a 
 - **Anthropic.** Every table headed `Retirement date | Deprecated model | Recommended replacement`. Other tables, such as the model status table, are ignored.
 - **OpenAI.** Every table that starts with `Shutdown date`, names its models in a model column and ends with a replacement column; price columns between them are ignored. Timeline tables (`Date | Update`) are product notices and are skipped. A model cell can be a snapshot and its aliases (`` `gpt-4-0613` | `gpt-4`, `gpt-4-completions` ``), a display name around snapshots (``GPT-4o (`gpt-4o-2024-08-06`, `gpt-4o-2024-11-20`)``), or a snapshot with the aliases that point to it. A model listed by several announcements takes the most recent announcement's row.
 - **Gemini.** Every `Model | Release date | Shutdown date | Recommended replacement` table. Rows with no shutdown date announced, and rows marked `N/A` because the endpoint keeps working and routes to a newer model, retire nothing. Group labels such as "Preview models" are ignored. Google gives shutdown dates as the earliest possible date, and the entry summaries say so.
+- **Shopify.** The release schedule table, `Stable version | Release date | Accessible until | Status`, including the release candidate, which already has its date. Each version must stop being accessible at 15:00 UTC, the time the entry summaries state; any other time fails the sync.
+- **Meta Graph API.** The table under "Available Graph API Versions" on the changelog, which Meta serves only as HTML. A version still marked TBD retires nothing. The Marketing API table on the same page gives other dates for the same version numbers and is never read; if the Graph API table moves, the sync fails rather than read the next table.
 
 Rows that name nothing Refit can match are skipped and listed with their reason:
 
@@ -40,7 +46,7 @@ Rows that name nothing Refit can match are skipped and listed with their reason:
 
 ## How entries are merged
 
-The page's rows are grouped by shutdown date and recommendation. Each group becomes one registry entry, found by any model it shares with an existing entry.
+For models, the page's rows are grouped by shutdown date and recommendation. Each group becomes one registry entry, found by any model it shares with an existing entry. Each API version has an entry of its own, such as `shopify-admin-2026-10` or `meta-graph-v21-0`, whose replacement is the registry's fixed advice: "A supported stable version" for Shopify and "A newer Graph API version" for Meta.
 
 - **Unchanged entries** (same date, replacement and models) are left exactly as they are, including aliases a person added from another page and a summary a person wrote. Their `checkedAt` moves to today only once it is more than 30 days old, so a quiet page does not produce a daily diff.
 - **Changed entries** keep their ID and gain the page's models; nothing is removed from `versions`. They get a regenerated summary and today's `checkedAt`.
@@ -81,4 +87,4 @@ Two repository settings affect it:
 
 ## Providers without a sync
 
-Meta Graph API and Shopify entries are maintained by hand from the pages in their `source`. PayPal has no deadline entries (see [PayPal](PAYPAL.md)).
+Every provider with registry entries has a sync. PayPal has no deadline entries (see [PayPal](PAYPAL.md)). A new provider gets a sync only when its page lists retirements in a table, and its parser is tested against a saved copy of that page in `pipeline/fixtures/deprecations/`.

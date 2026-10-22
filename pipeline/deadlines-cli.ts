@@ -32,11 +32,11 @@ import { terminalText } from './workflow-presentation.ts';
 const USAGE = `Usage: refit deadlines [--repository <root>] [--fail-within <days>] [--ignore-file <path>] [--registry <path>] [--json]
        refit deadlines --propose-model-fixes [--repository <root>] [--output <patch>] [--registry <path>] [--json]
        refit deadlines --check-registry [--registry <path>] [--json]
-       refit deadlines --sync anthropic|openai|gemini [--registry <path>] [--write] [--json]
+       refit deadlines --sync anthropic|openai|gemini|shopify|meta-graph [--registry <path>] [--write] [--json]
 Lists API versions and models a repository pins, and SDK packages it declares, that have a provider sunset or end-of-support date in the reviewed registry, with file:line evidence. Only live code counts; model lists, tests, examples, comments, tokenizers and checks are listed separately.
 --fail-within <days> exits 2 when a live exposure is past due or within that many days, for CI. Reviewed, expiring exceptions go in ${DEADLINE_IGNORE_FILE} at the repository root; --ignore-file reads another file. Exit 0 means the check passed, 1 an error (including an invalid ignore file).
 --propose-model-fixes proposes replacing retiring OpenAI and Anthropic model IDs with the registry replacement, only where the ID is a literal model in a traced SDK call, lists every case that stops for review, and lists every other live model ID with why no traced request sends it. It prints a patch, or writes it to --output; it never applies, validates or publishes it.
---sync reads Anthropic's, OpenAI's or the Gemini API's model deprecations page and lists registry entries to add or update; --write saves them. It never deletes an entry. A scheduled workflow runs every sync and opens a pull request for review.
+--sync reads a provider's deprecations page (Anthropic, OpenAI and Gemini API models; Shopify and Meta Graph API versions) and lists registry entries to add or update; --write saves them. It never deletes an entry. A scheduled workflow runs every sync and opens a pull request for review.
 --check-registry validates the registry and flags past-due entries, entries without a source and entries checked more than ${STALE_CHECK_DAYS} days ago. Nothing runs, installs or contacts a provider.`;
 
 try {
@@ -64,8 +64,8 @@ try {
     const source = DEPRECATION_SOURCES[values.sync as SyncProvider];
     const path = values.registry ? resolve(values.registry) : DEFAULT_DEADLINE_REGISTRY;
     const registry = parseObject(await readFile(path, 'utf8'), 'Deadline registry');
-    const response = await fetch(source.markdown);
-    if (!response.ok) throw new Error(`${source.markdown} answered HTTP ${response.status}.`);
+    const response = await fetch(source.download);
+    if (!response.ok) throw new Error(`${source.download} answered HTTP ${response.status}.`);
     const page = source.parse(await response.text());
     const today = now.toISOString().slice(0, 10);
     const current = checkDeadlineRegistry(registry, now);
@@ -94,7 +94,7 @@ try {
       );
     else {
       console.log(
-        `${source.name} deprecations  ${page.rows.length} retiring models on ${source.page}`,
+        `${source.name} deprecations  ${page.rows.length} retiring ${source.kind === 'model' ? 'models' : 'API versions'} on ${source.page}`,
       );
       for (const id of sync.added) console.log(`  add      ${terminalText(id)}`);
       for (const id of sync.changed) console.log(`  update   ${terminalText(id)}`);

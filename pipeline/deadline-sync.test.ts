@@ -11,14 +11,19 @@ import {
   OPENAI_DEPRECATIONS,
   parseAnthropicDeprecations,
   parseGeminiDeprecations,
+  parseMetaGraphVersions,
   parseOpenAiDeprecations,
+  parseShopifyVersions,
   syncDeadlines,
   type SyncProvider,
 } from './deadline-sync.ts';
 
 // Copies of the providers' pages as served on 2026-10-22; see fixtures/deprecations/README.md.
 const fixture = (provider: SyncProvider) =>
-  readFile(`pipeline/fixtures/deprecations/${provider}.md`, 'utf8');
+  readFile(
+    `pipeline/fixtures/deprecations/${provider}.${provider === 'meta-graph' ? 'html' : 'md'}`,
+    'utf8',
+  );
 
 const shipped = async () =>
   JSON.parse(await readFile('data/deadlines.json', 'utf8')) as DeadlineRegistry;
@@ -37,12 +42,12 @@ const entry = (fields: Partial<DeadlineEntry> & Pick<DeadlineEntry, 'id'>): Dead
   ...fields,
 });
 
-const row = (date: string, model: string, replacements: string[], note: string | null = null) => ({
-  date,
-  model,
-  replacements,
-  note,
-});
+const row = (
+  date: string,
+  version: string,
+  replacements: string[] = [],
+  note: string | null = null,
+) => ({ date, version, replacements, note });
 
 // The shape of Anthropic's model deprecations page (checked 2026-10-20): a model status table,
 // then one table per announcement. Only the announcement tables are read.
@@ -230,7 +235,7 @@ describe('OpenAI', () => {
   it('reads every shutdown table of the saved page and says why it skips the rest', async () => {
     const page = parseOpenAiDeprecations(await fixture('openai'));
     expect(page.rows).toHaveLength(144);
-    expect(new Set(page.rows.map((item) => item.model)).size).toBe(144);
+    expect(new Set(page.rows.map((item) => item.version)).size).toBe(144);
     for (const expected of [
       // A display name around the snapshots.
       row('2027-01-14', 'gpt-4o-2024-08-06', ['gpt-6-luna']),
@@ -357,7 +362,7 @@ describe('Gemini API', () => {
   it('reads the model tables of the saved page and skips managed agents', async () => {
     const page = parseGeminiDeprecations(await fixture('gemini'));
     expect(page.rows).toHaveLength(52);
-    const models = page.rows.map((item) => item.model);
+    const models = page.rows.map((item) => item.version);
     // No shutdown date announced, and an endpoint that keeps routing (N/A).
     expect(models).not.toContain('gemini-3.8-flash');
     expect(models).not.toContain('gemini-3.7-flash');
@@ -421,15 +426,112 @@ describe('Gemini API', () => {
   });
 });
 
+describe('Shopify', () => {
+  it('reads the release schedule of the saved page', async () => {
+    expect(parseShopifyVersions(await fixture('shopify'))).toEqual({
+      rows: [
+        row('2026-04-16', '2025-04'),
+        row('2026-07-16', '2025-07'),
+        row('2026-10-16', '2025-10'),
+        row('2027-01-16', '2026-01'),
+        row('2027-04-16', '2026-04'),
+        row('2027-07-16', '2026-07'),
+        row('2027-10-16', '2026-10'),
+        // The release candidate already has its date.
+        row('2028-01-16', '2027-01'),
+      ],
+      skipped: [],
+    });
+  });
+
+  const TABLE = `## Release schedule
+
+| Stable version | Release date | Accessible until | Status |
+| - | - | - | - |
+| 2026-10 | October 1, 2026 | October 16, 2027 15:00 UTC | Latest stable |
+`;
+
+  it('fails on any schedule row it does not recognize', () => {
+    expect(parseShopifyVersions(TABLE).rows).toEqual([row('2027-10-16', '2026-10')]);
+    for (const [from, to] of [
+      // The registry summaries state 15:00 UTC, so another time must not pass silently.
+      ['October 16, 2027 15:00 UTC', 'October 16, 2027 17:00 UTC'],
+      ['October 16, 2027 15:00 UTC', 'TBD'],
+      ['| 2026-10 |', '| unstable |'],
+      [' | Latest stable |', ' |'],
+    ])
+      expect(() => parseShopifyVersions(TABLE.replace(from, to)), from).toThrow(
+        /Unrecognized row in Shopify's deprecation table/,
+      );
+    expect(() => parseShopifyVersions(TABLE.replace('Stable version', 'Version'))).toThrow(
+      /No release schedule found/,
+    );
+  });
+});
+
+describe('Meta Graph API', () => {
+  it('reads the Graph API version table of the saved page and not the Marketing API one', async () => {
+    const page = parseMetaGraphVersions(await fixture('meta-graph'));
+    // v26.0 is still TBD. The Marketing API table gives v24.0 2026-10-06 instead.
+    expect(page.rows.map((item) => `${item.version} ${item.date}`)).toEqual([
+      'v25.0 2028-07-29',
+      'v24.0 2028-02-18',
+      'v23.0 2027-10-08',
+      'v22.0 2027-05-20',
+      'v21.0 2027-01-21',
+      'v20.0 2026-09-24',
+      'v19.0 2026-05-21',
+      'v18.0 2026-01-26',
+      'v17.0 2025-09-12',
+      'v16.0 2025-05-14',
+      'v15.0 2024-11-20',
+      'v14.0 2024-09-17',
+      'v13.0 2024-05-28',
+    ]);
+    expect(page.skipped).toEqual([]);
+  });
+
+  const table = (heading: string) =>
+    `<h2>${heading}</h2> <div><table class="_4-ss"><thead><th> Version </th><th> Date Introduced </th><th> Available Until </th></thead><tbody>` +
+    '<tr><td><p><a href="/docs/graph-api/changelog/version26.0">v26.0</a></p> </td><td><p>July 29, 2026</p> </td><td><p>TBD</p> </td></tr>' +
+    '<tr class="row_1"><td><p><a href="/docs/graph-api/changelog/version25.0">v25.0</a></p> </td><td><p>February 18, 2026</p> </td><td><p>July 29, 2028</p> </td></tr>' +
+    '</tbody></table></div>';
+  const PAGE = `${table('Available Graph API Versions')}<h2>Available Marketing API Versions</h2>`;
+
+  it('fails on any row or table it does not recognize', () => {
+    expect(parseMetaGraphVersions(PAGE).rows).toEqual([row('2028-07-29', 'v25.0')]);
+    for (const [from, to] of [
+      ['<p>July 29, 2028</p>', '<p>Mid 2028</p>'],
+      ['>v25.0</a>', '>Graph API 25</a>'],
+      ['<td><p>February 18, 2026</p> </td>', ''],
+    ])
+      expect(() => parseMetaGraphVersions(PAGE.replace(from, to)), from).toThrow(
+        /Unrecognized row in the Graph API's deprecation table/,
+      );
+    expect(() => parseMetaGraphVersions(PAGE.replace('Available Until', 'Deprecated'))).toThrow(
+      /Unrecognized table on Meta's changelog/,
+    );
+    // Without the Graph API table, the Marketing API table that follows is never read.
+    expect(() =>
+      parseMetaGraphVersions(
+        `<h2>Available Graph API Versions</h2><p>Moved.</p>${table('Available Marketing API Versions')}`,
+      ),
+    ).toThrow(/No Graph API version table/);
+    expect(() =>
+      parseMetaGraphVersions(PAGE.replace(/<tr class="row_1">[\s\S]*?<\/tr>/, '')),
+    ).toThrow(/No Graph API version table/);
+  });
+});
+
 describe('syncDeadlines', () => {
   it('builds a valid registry from each saved page and finds nothing new on a second run', async () => {
-    for (const provider of ['anthropic', 'openai', 'gemini'] as const) {
-      const source = DEPRECATION_SOURCES[provider];
+    for (const source of Object.values(DEPRECATION_SOURCES)) {
+      const { provider } = source;
       const page = source.parse(await fixture(provider));
       const first = syncDeadlines(empty(), source, page.rows, '2026-10-22');
       expect(first.registry.deadlines.length, provider).toBe(first.added.length);
       expect(first.registry.deadlines.flatMap((item) => item.versions).sort(), provider).toEqual(
-        page.rows.map((item) => item.model).sort(),
+        page.rows.map((item) => item.version).sort(),
       );
       expect(
         checkDeadlineRegistry(first.registry, new Date('2026-10-22T00:00:00Z')).errors,
@@ -444,6 +546,77 @@ describe('syncDeadlines', () => {
       ]);
       expect(second.registry, provider).toEqual(first.registry);
     }
+  });
+
+  it('writes API version entries the way the shipped registry has them', async () => {
+    const registry = await shipped();
+    for (const provider of ['shopify', 'meta-graph'] as const) {
+      const source = DEPRECATION_SOURCES[provider];
+      const entries = registry.deadlines.filter((item) => item.provider === provider);
+      const rows = entries.map((item) => row(item.date, item.versions[0]));
+      const today = entries.map((item) => item.checkedAt).sort()[0];
+      // From nothing, the sync writes the same IDs, summaries, replacements and sources.
+      const rebuilt = syncDeadlines(empty(), source, rows, today).registry.deadlines;
+      const byId = (items: DeadlineEntry[]) =>
+        items
+          .map((item) => ({ ...item, checkedAt: today }))
+          .sort((a, b) => a.id.localeCompare(b.id));
+      expect(byId(rebuilt), provider).toEqual(byId(entries));
+      const sync = syncDeadlines(registry, source, rows, today);
+      expect([sync.added, sync.changed, sync.rechecked, sync.missing], provider).toEqual([
+        [],
+        [],
+        [],
+        [],
+      ]);
+    }
+  });
+
+  it('gives each API version its own entry and keeps its fixed advice', () => {
+    const sync = syncDeadlines(
+      {
+        formatVersion: 1,
+        deadlines: [
+          entry({
+            id: 'shopify-admin-2026-01',
+            provider: 'shopify',
+            kind: 'api-version',
+            versions: ['2026-01'],
+            date: '2027-01-01',
+            replacement: 'A supported stable version',
+          }),
+        ],
+      },
+      DEPRECATION_SOURCES.shopify,
+      // Two versions on one date stay two entries; the moved one is updated in place.
+      [row('2027-01-16', '2026-01'), row('2027-01-16', '2026-02')],
+      '2026-10-22',
+    );
+    expect([sync.added, sync.changed]).toEqual([
+      ['shopify-admin-2026-02'],
+      ['shopify-admin-2026-01'],
+    ]);
+    expect(
+      sync.registry.deadlines.map(({ id, versions, date, replacement }) => ({
+        id,
+        versions,
+        date,
+        replacement,
+      })),
+    ).toEqual([
+      {
+        id: 'shopify-admin-2026-01',
+        versions: ['2026-01'],
+        date: '2027-01-16',
+        replacement: 'A supported stable version',
+      },
+      {
+        id: 'shopify-admin-2026-02',
+        versions: ['2026-02'],
+        date: '2027-01-16',
+        replacement: 'A supported stable version',
+      },
+    ]);
   });
 
   it('names a replacement only for a single recommended model with nothing beside it', () => {
