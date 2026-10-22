@@ -89,7 +89,7 @@ Debian packages in the hosted image (`docker.io`, `git`, `iptables`, `curl`, `ca
 | Fixtures | Shipped by design: `replay`, `demo` and the install test run them | Same |
 | Guides (`docs/*.md`), `examples/` | Shipped; CLI messages and adapters point at them | Same |
 | `license` in `package.json` | Missing | `MIT`, also declared in the root `package.json` |
-| Transitive versions | Only the 8 direct dependencies were exact; 49 transitive versions resolved fresh on every install | `npm-shrinkwrap.json` pins all 57 runtime packages with integrity hashes. The packaging test asserts that every entry is identical to `package-lock.json` and none is a dev package. npm recommends this for "daemons and command-line tools intended as global installs" ([npm docs](https://docs.npmjs.com/cli/v11/configuring-npm/npm-shrinkwrap-json), read 2026-10-22). |
+| Transitive versions | Only the 8 direct dependencies were exact; 49 transitive versions resolved fresh on every install | `npm-shrinkwrap.json` pins all 57 runtime packages with integrity hashes. The packaging test asserts that every entry has the same name, version and integrity as in `package-lock.json` and none is a dev package. npm recommends this for "daemons and command-line tools intended as global installs" ([npm docs](https://docs.npmjs.com/cli/v11/configuring-npm/npm-shrinkwrap-json), read 2026-10-22). |
 | Secrets | Not checked | gitleaks v8.30.1 `dir` scan of the unpacked tarball: no findings |
 | Install scripts | `esbuild` (through tsx) and `fsevents` run install scripts on `npm install` | Same for users. The hosted image now installs with `--ignore-scripts`. The release instructions could recommend that too (request for PP10/PP8). |
 
@@ -99,7 +99,7 @@ Debian packages in the hosted image (`docker.io`, `git`, `iptables`, `curl`, `ca
 
 | Shipped in | Packages | Licenses |
 |---|---|---|
-| CLI tarball (`npm-shrinkwrap.json`) | 57, of which 28 are optional esbuild platform binaries | MIT 51, ISC 3, Apache-2.0 1 (TypeScript), BSD-2-Clause 1, BSD-3-Clause 1 |
+| CLI tarball (`npm-shrinkwrap.json`) | 57, of which 28 are optional platform packages (26 esbuild binaries, `fsevents` and `pg-cloudflare`) | MIT 51, ISC 3, Apache-2.0 1 (TypeScript), BSD-2-Clause 1, BSD-3-Clause 1 |
 | Website bundle | 10 | MIT 8, OFL-1.1 2 (`@fontsource-variable/geist`, `geist-mono`) |
 
 Refit is MIT. Every CLI dependency license is permissive and compatible; attribution is satisfied by the packages' own license files, which npm installs with them.
