@@ -330,6 +330,7 @@ git worktree add --detach <worktree> <commit>    # always run from a pinned chec
 OPENAI_MODEL=gpt-5.6-luna npm run benchmark:stripe -- --root <dir> --output <run> --env .env --ai --validate [--offset N --limit N]
 npm run benchmark:shopify -- --root <dir> --list <list> --output <run> --validate
 node scripts/stripe-benchmark-compare.mjs <run-a>/results.json <run-b>/results.json
+node scripts/aws-benchmark.mjs launch --run <id> --total N --shards K --market on-demand -- '<command with {offset} {limit}>'   # see AWS-BENCHMARKS.md
 node scripts/paypal-benchmark.mjs --root <dir> --refit <worktree> --list docs/benchmarks/2026-10-21-paypal-repos.json
 node scripts/ai-app-select.mjs --provider openai --work <cache> --root <checkouts> --output <openai-list.json>
 node scripts/ai-app-select.mjs --provider anthropic --work <cache> --root <checkouts> --output <anthropic-list.json>

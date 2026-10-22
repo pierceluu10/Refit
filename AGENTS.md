@@ -35,6 +35,7 @@ Build toward a reliable agent for many API providers, with separate integrations
 - Goals for each programming language: [Language goals](docs/LANGUAGE-GOALS.md).
 - See CLI commands and requirements: [CLI guide](docs/CLI.md).
 - Deploy or operate the hosted worker (Fly.io + Supabase): [Hosted onboarding](docs/HOSTED-ONBOARDING.md#deploy-on-flyio).
+- Run benchmarks on EC2 instead of a laptop: [AWS benchmarks](docs/AWS-BENCHMARKS.md).
 
 The guides explain onboarding a repository into Refit. This file explains how coding agents should contribute to Refit itself.
 
@@ -47,6 +48,15 @@ The single-tenant hosted worker (`refit hosted serve`) runs as Fly app `refit-ho
 - The worker connects as the `refit_hosted` role, which owns the `refit_*` tables. Do not switch it to `postgres` or the Supabase service key, add RLS policies or expose the tables through the Data API.
 - Read-only checks are always safe: `curl https://refit-hosted.fly.dev/health`, `/status` with the service token, `fly status` and `fly logs -a refit-hosted`. `fly deploy`, `fly secrets set`, schema changes, `refit hosted approve` and `refit hosted retry` change the live service; with `--ai-patch` a job spends the owner's OpenAI budget and with `--publish-draft` it can open draft PRs. Do them only when the task asks.
 - Hosted mode enrolls only `REFIT_HOSTED_OWNER`'s installations, and only repositories with a stored approval. Widening that to other accounts needs per-job isolation and an owner decision.
+
+## Working in parallel
+
+Several agents build and benchmark at once. To keep out of each other's way:
+
+- One branch and one `git worktree` per task (`git worktree add -b feat/<name> ../Refit-<name> origin/main`). Never edit another agent's worktree or switch its branch. Run `npm ci` in a new worktree before tests.
+- Benchmarks run on AWS with `node scripts/aws-benchmark.mjs` (profile `refit`, region `us-east-2`; the owner signs in with `aws login`, agents never handle credentials). Use a unique `--run <benchmark>-<date>-<agent>` id, pin `--commit`, keep `--hours` as low as the run needs, and always `collect` or `stop` the run when done. `launch` counts every agent's running shards against the account's vCPU quota and refuses to exceed it; wait rather than raising quotas or limits yourself.
+- The AWS project has a monthly spend limit (see Billing) and is on the free plan (on-demand only). Ask before a run that needs more than the free on-demand quota (16 vCPUs, two `c7i.2xlarge`) or more than three hours, and before any `--ai` run, which also spends the OpenAI budget.
+- Record benchmark outcomes in `docs/BENCHMARKS.md` with the run id, commit and command, as for local runs.
 
 ## Release and verification notes
 
