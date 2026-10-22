@@ -1,6 +1,7 @@
 import { readdir, readFile } from 'node:fs/promises';
 import { join, posix, relative } from 'node:path';
 import { parse as parseYaml } from 'yaml';
+import { parseToml, TomlError, type TomlTable } from './package-manifests-toml.ts';
 import { resolveLockedDependency, type DependencyLockfile } from './lockfiles.ts';
 import { PNPM_LOCKFILE, parsePnpmLock } from './pnpm-lock.ts';
 import { parseDocumentObject } from './specifications.ts';
@@ -12,7 +13,8 @@ import { YARN_LOCKFILE, parseYarnLock } from './yarn-lock.ts';
 // installed code, build output, examples, docs sites, test fixtures). Read from the repository's
 // own files only; nothing is installed or run.
 
-export type WorkspaceTool = 'npm' | 'yarn' | 'pnpm' | 'lerna' | 'nx' | 'turborepo' | 'rush';
+export type WorkspaceTool =
+  'npm' | 'yarn' | 'pnpm' | 'lerna' | 'nx' | 'turborepo' | 'rush' | 'uv' | 'cargo' | 'go';
 
 // The package a finding belongs to: the nearest directory above it with a package.json (or an Nx
 // project.json, or another ecosystem's manifest), named as that manifest names it.
@@ -53,6 +55,9 @@ const MANIFESTS = new Set([
   'package.json',
   'project.json',
   'pyproject.toml',
+  'setup.py',
+  'setup.cfg',
+  'Pipfile',
   'go.mod',
   'Cargo.toml',
   'composer.json',
@@ -113,13 +118,28 @@ function manifestName(file: string, text: string | undefined): string | null {
     const name = jsonObject(text)?.name;
     return typeof name === 'string' ? name : null;
   }
+  if (file.endsWith('.toml')) {
+    // [project] or [tool.poetry] in pyproject.toml, [package] in Cargo.toml.
+    try {
+      const document = parseToml(text);
+      const tables = [
+        document.project,
+        (document.tool as TomlTable | undefined)?.poetry,
+        document.package,
+      ] as (TomlTable | undefined)[];
+      const name = tables.map((table) => table?.name).find((item) => typeof item === 'string');
+      return (name as string | undefined) ?? null;
+    } catch (error) {
+      if (!(error instanceof TomlError)) throw error;
+      return null;
+    }
+  }
   const patterns: Record<string, RegExp> = {
-    'pyproject.toml': /^\s*name\s*=\s*["']([^"']+)["']/m,
-    'Cargo.toml': /^\s*name\s*=\s*["']([^"']+)["']/m,
+    'setup.cfg': /^\s*name\s*=\s*(\S+)/m,
+    'setup.py': /\bname\s*=\s*["']([^"']+)["']/,
     'go.mod': /^module\s+(\S+)/m,
   };
-  const match = patterns[posix.basename(file)]?.exec(text);
-  return match?.[1] ?? null;
+  return patterns[posix.basename(file)]?.exec(text)?.[1] ?? null;
 }
 
 export async function readWorkspaceLayout(root: string): Promise<WorkspaceLayout> {
@@ -159,6 +179,43 @@ export async function readWorkspaceLayout(root: string): Promise<WorkspaceLayout
     tools.add('rush');
     for (const project of (rush.projects ?? []) as { projectFolder?: unknown }[])
       if (typeof project.projectFolder === 'string') patterns.push(project.projectFolder);
+  }
+  // uv and Cargo workspaces list members in the root manifest; go.work `use`s module directories.
+  const pyproject = await readText(join(root, 'pyproject.toml'));
+  if (pyproject !== undefined)
+    try {
+      const uv = (parseToml(pyproject).tool as TomlTable | undefined)?.uv as TomlTable | undefined;
+      const members = stringList((uv?.workspace as TomlTable | undefined)?.members);
+      if (members.length) {
+        tools.add('uv');
+        patterns.push(
+          ...members,
+          ...stringList((uv?.workspace as TomlTable).exclude).map((item) => `!${item}`),
+        );
+      }
+    } catch (error) {
+      if (!(error instanceof TomlError)) throw error;
+    }
+  const cargo = await readText(join(root, 'Cargo.toml'));
+  if (cargo !== undefined)
+    try {
+      const workspace = parseToml(cargo).workspace as TomlTable | undefined;
+      if (workspace) {
+        tools.add('cargo');
+        patterns.push(
+          ...stringList(workspace.members),
+          ...stringList(workspace.exclude).map((item) => `!${item}`),
+        );
+      }
+    } catch (error) {
+      if (!(error instanceof TomlError)) throw error;
+    }
+  const goWork = await readText(join(root, 'go.work'));
+  if (goWork !== undefined) {
+    tools.add('go');
+    const uses = /^use\s*\(([^)]*)\)/m.exec(goWork)?.[1] ?? '';
+    for (const match of [...uses.matchAll(/^\s*(\S+)/gm), ...goWork.matchAll(/^use\s+([^\s(]+)/gm)])
+      patterns.push(match[1].replace(/^\.\//, ''));
   }
   if ((await readText(join(root, 'nx.json'))) !== undefined) tools.add('nx');
   if ((await readText(join(root, 'turbo.json'))) !== undefined) tools.add('turborepo');

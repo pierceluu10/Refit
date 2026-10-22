@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { detectProviders } from './agent-catalog.ts';
 import { scanDeadlines } from './deadline-exposure.ts';
 import { loadDeadlineRegistry } from './deadline-registry.ts';
+import { readPackageManifests } from './package-manifests.ts';
 import {
   exclusionReason,
   globMatcher,
@@ -210,5 +211,91 @@ describe('attribution in detectProviders and scanDeadlines', () => {
       exposure.nonLive.map((item) => [item.file, item.use, item.excluded, item.workspace]),
     ).toEqual([['docs/snippets/chat.ts', 'excluded', 'docs-site', { path: '.', name: 'root' }]]);
     expect(exposure.nonLiveCounts).toEqual({ excluded: 1 });
+  });
+});
+
+describe('Python, Rust and Go monorepos', () => {
+  // A real uv workspace (fixture header names its commit): one uv.lock at the root locks both
+  // members' dependencies.
+  const UV_WORKSPACE = join(import.meta.dirname, 'fixtures', 'workspace-attribution', 'uv-backai');
+
+  it('reads uv workspace members and locks member dependencies from the root uv.lock', async () => {
+    const layout = await readWorkspaceLayout(UV_WORKSPACE);
+    expect(layout.tools).toEqual(['uv']);
+    expect(layout.packages.map((item) => [item.path, item.name, item.member])).toEqual([
+      ['.', 'af-stack-workspace', true],
+      ['apps/backend', 'af-stack-backend', true],
+      ['packages/sdk-py', 'af-stack', true],
+    ]);
+    const inventory = await readPackageManifests(UV_WORKSPACE);
+    expect(
+      inventory.dependencies
+        .filter(
+          (item) =>
+            item.file === 'packages/sdk-py/pyproject.toml' &&
+            ['httpx', 'pydantic', 'anyio'].includes(item.name),
+        )
+        .map((item) => [item.name, item.locked, placeFinding(layout, item.file).workspace?.name]),
+    ).toEqual([
+      ['httpx', '0.28.1', 'af-stack'],
+      ['pydantic', '2.13.4', 'af-stack'],
+      ['anyio', '4.13.0', 'af-stack'],
+    ]);
+  });
+
+  it('attributes provider SDKs in several pyproject.toml files to their own package', async () => {
+    const root = await repository({
+      'pyproject.toml':
+        '[project]\nname = "suite"\n[tool.uv.workspace]\nmembers = ["services/*"]\nexclude = ["services/old"]\n',
+      'services/chat/pyproject.toml': '[project]\nname = "chat"\ndependencies = ["openai>=1.40"]\n',
+      'services/billing/pyproject.toml':
+        '[project]\nname = "billing"\ndependencies = ["stripe==12.0.0"]\n',
+      'services/old/pyproject.toml': '[project]\nname = "old"\ndependencies = ["anthropic"]\n',
+      'examples/bot/pyproject.toml': '[project]\nname = "bot"\ndependencies = ["anthropic"]\n',
+      'uv.lock': '[[package]]\nname = "openai"\nversion = "1.52.0"\n',
+    });
+    const layout = await readWorkspaceLayout(root);
+    expect(layout.packages.filter((item) => item.member).map((item) => item.path)).toEqual([
+      '.',
+      'services/billing',
+      'services/chat',
+    ]);
+    expect(
+      (await detectProviders(root)).map((detection) => [
+        detection.agent.id,
+        detection.packages.map(
+          (item) =>
+            `${item.workspace?.name}:${item.locked ?? (item.version || '-')}${item.excluded ? ` (${item.excluded})` : ''}`,
+        ),
+      ]),
+    ).toEqual([
+      ['stripe', ['billing:==12.0.0']],
+      ['openai', ['chat:1.52.0']],
+      ['anthropic', ['bot:- (example)', 'old:-']],
+    ]);
+  });
+
+  it('reads Cargo workspace members and go.work modules', async () => {
+    const root = await repository({
+      'Cargo.toml': '[workspace]\nmembers = ["crates/*"]\nexclude = ["crates/scratch"]\n',
+      'crates/api/Cargo.toml': '[package]\nname = "api"\n',
+      'crates/scratch/Cargo.toml': '[package]\nname = "scratch"\n',
+      'go.work': 'go 1.23\n\nuse (\n\t./svc/payments\n\t./svc/mail\n)\nuse ./tools\n',
+      'svc/payments/go.mod': 'module example.com/payments\n',
+      'svc/mail/go.mod': 'module example.com/mail\n',
+      'tools/go.mod': 'module example.com/tools\n',
+      'legacy/go.mod': 'module example.com/legacy\n',
+    });
+    const layout = await readWorkspaceLayout(root);
+    expect(layout.tools).toEqual(['cargo', 'go']);
+    expect(layout.packages.map((item) => [item.path, item.name, item.member])).toEqual([
+      ['.', null, true],
+      ['crates/api', 'api', true],
+      ['crates/scratch', 'scratch', false],
+      ['legacy', 'example.com/legacy', false],
+      ['svc/mail', 'example.com/mail', true],
+      ['svc/payments', 'example.com/payments', true],
+      ['tools', 'example.com/tools', true],
+    ]);
   });
 });
