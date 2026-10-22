@@ -8,7 +8,6 @@ import { readCommittedRepository } from './committed-repository.ts';
 import { validateSourcePatch } from './validation.ts';
 import {
   nodeDeclarations,
-  nodeMajorCandidate,
   satisfiesNodeDeclarations,
   selectValidationRuntime,
   type NodeDeclaration,
@@ -124,18 +123,6 @@ it('treats version-manager pins as their release line and needs every declaratio
   expect(satisfiesNodeDeclarations('22.23.3', both)).toBe(false);
 });
 
-it('lists the release lines that could satisfy the declarations', () => {
-  const lines = (declarations: NodeDeclaration[]) =>
-    [18, 20, 22, 24].filter((major) => nodeMajorCandidate(major, declarations));
-  expect(lines(engines('>=18 <21'))).toEqual([18, 20]);
-  expect(lines(engines('^18 || ^20'))).toEqual([18, 20]);
-  expect(lines(engines('>=23.0.0'))).toEqual([24]);
-  expect(lines(engines('22.14.0'))).toEqual([22]);
-  expect(lines(engines('>20 <=20'))).toEqual([]);
-  expect(lines([{ source: '.nvmrc', value: '18' }, ...engines('>=20.0.0')])).toEqual([]);
-  expect(lines([{ source: '.nvmrc', value: 'v16.18.0' }])).toEqual([]);
-});
-
 // A committed repository with the given root files, read as Refit reads one for validation.
 async function snapshot(contents: Record<string, string>) {
   const repository = await mkdtemp(join(tmpdir(), 'refit-runtime-'));
@@ -183,7 +170,7 @@ console.log(JSON.stringify(env));
   vi.stubEnv('PATH', binary + delimiter + process.env.PATH);
 }
 
-it('keeps the configured image unless a declaration excludes it', async () => {
+it('keeps the configured image and reports whether it satisfies the declarations', async () => {
   await installedImages({ 'node:22-alpine': '22.23.3', 'node:20-alpine': '20.20.2' });
   expect(await selectValidationRuntime(await snapshot({}), 'node:22-alpine')).toEqual({
     configured: 'node:22-alpine',
@@ -202,24 +189,7 @@ it('keeps the configured image unless a declaration excludes it', async () => {
     nodeVersion: '22.23.3',
     reason: 'The configured image satisfies engines.node ">=18".',
   });
-  // A custom image is the operator's choice; Refit reads the declarations but does not switch.
-  expect(
-    await selectValidationRuntime(await snapshot({ '.nvmrc': '20\n' }), 'stripe-checks'),
-  ).toEqual({
-    configured: 'stripe-checks',
-    image: 'stripe-checks',
-    nodeVersion: null,
-    declarations: [{ source: '.nvmrc', value: '20' }],
-    reason: 'The configured image is not one of the Node.js images Refit selects among.',
-  });
-});
-
-it('switches to the highest installed allowed image that satisfies every declaration', async () => {
-  await installedImages({
-    'node:18-alpine': '18.20.8',
-    'node:20-alpine': '20.20.2',
-    'node:22-alpine': '22.23.3',
-  });
+  // A declaration never switches the image, even when an installed allowed image would satisfy it.
   expect(
     await selectValidationRuntime(
       await snapshot({ '.nvmrc': '20\n', 'package.json': '{"engines":{"node":">=20.19 <23"}}' }),
@@ -227,68 +197,42 @@ it('switches to the highest installed allowed image that satisfies every declara
     ),
   ).toEqual({
     configured: 'node:22-alpine',
-    image: 'node:20-alpine',
-    nodeVersion: '20.20.2',
+    image: 'node:22-alpine',
+    nodeVersion: '22.23.3',
     declarations: [
       { source: '.nvmrc', value: '20' },
       { source: 'engines.node', value: '>=20.19 <23' },
     ],
     reason:
-      '.nvmrc "20" and engines.node ">=20.19 <23" excludes the configured node:22-alpine; node:20-alpine satisfies it.',
+      'The configured image does not satisfy .nvmrc "20" and engines.node ">=20.19 <23"; only the approved configuration chooses the image, so the baseline check shows whether the repository works there.',
   });
+  // An unreadable declaration is reported, not a stop.
   expect(
-    await selectValidationRuntime(
-      await snapshot({ 'package.json': '{"engines":{"node":"^18 || ^20"}}' }),
-      'node:22-alpine',
-    ),
-  ).toMatchObject({ image: 'node:20-alpine' });
-  // node:24-alpine is allowed but not installed, so 18 is the only installed match.
-  expect(
-    await selectValidationRuntime(
-      await snapshot({ 'package.json': '{"engines":{"node":"18.x || 24.x"}}' }),
-      'node:22-alpine',
-    ),
-  ).toMatchObject({ image: 'node:18-alpine', nodeVersion: '18.20.8' });
-});
-
-it('stops when the allowed image a repository needs is not installed', async () => {
-  await installedImages({ 'node:22-alpine': '22.23.3' });
-  await expect(
-    selectValidationRuntime(await snapshot({ '.nvmrc': '24\n' }), 'node:22-alpine'),
-  ).rejects.toThrow(
-    'Validation needs a Node.js image that satisfies .nvmrc "24". Install node:24-alpine on the Docker host (docker pull node:24-alpine); Refit never pulls images.',
-  );
-});
-
-it('stops when no installed allowed image carries a satisfying release', async () => {
-  await installedImages({ 'node:22-alpine': '22.23.3' });
-  await expect(
-    selectValidationRuntime(
-      await snapshot({ 'package.json': '{"engines":{"node":"22.14.0"}}' }),
-      'node:22-alpine',
-    ),
-  ).rejects.toThrow(
-    'Validation needs a Node.js image that satisfies engines.node "22.14.0". None of the installed allowed images does (node:22-alpine (22.23.3)); install a release that does, or configure a custom validation image.',
-  );
-  await installedImages({ 'node:22-alpine': '' });
-  await expect(
-    selectValidationRuntime(await snapshot({ '.nvmrc': '22\n' }), 'node:22-alpine'),
-  ).rejects.toThrow('node:22-alpine does not record its Node.js version (NODE_VERSION).');
-});
-
-it('keeps the configured image when no allowed image could satisfy the declarations', async () => {
-  await installedImages({ 'node:22-alpine': '22.23.3' });
-  expect(
-    await selectValidationRuntime(await snapshot({ '.nvmrc': 'v16.18.0\n' }), 'node:22-alpine'),
+    await selectValidationRuntime(await snapshot({ '.nvmrc': 'v22/*\n' }), 'node:22-alpine'),
   ).toMatchObject({
     image: 'node:22-alpine',
-    nodeVersion: '22.23.3',
-    reason:
-      'No allowed Node.js image (node:18-alpine, node:20-alpine, node:22-alpine, node:24-alpine) satisfies .nvmrc "v16.18.0", so the configured image is used; the baseline check shows whether the repository works there.',
+    declarations: [],
+    reason: 'Validation cannot read .nvmrc "v22/*" as a Node.js version or range.',
   });
 });
 
-it('prepares and checks the repository on the selected image and records the choice', async () => {
+it('does not read declarations for a custom image', async () => {
+  expect(
+    await selectValidationRuntime(
+      await snapshot({ '.nvmrc': '20\n', 'package.json': '{"engines":{"node":1}}' }),
+      'stripe-checks',
+    ),
+  ).toEqual({
+    configured: 'stripe-checks',
+    image: 'stripe-checks',
+    nodeVersion: null,
+    declarations: [],
+    reason:
+      'The configured image is not one of the Node.js images Refit compares declarations with.',
+  });
+});
+
+it('prepares and checks the repository on the configured image and records the declarations', async () => {
   const binary = await mkdtemp(join(tmpdir(), 'refit-runtime-docker-'));
   roots.push(binary);
   const log = join(binary, 'calls.jsonl');
@@ -324,8 +268,8 @@ if (args[0] === 'image') {
   });
   expect(result).toMatchObject({
     status: 'passed',
-    image: ids['node:20-alpine'],
-    runtime: { configured: 'node:22-alpine', image: 'node:20-alpine', nodeVersion: '20.20.2' },
+    image: ids['node:22-alpine'],
+    runtime: { configured: 'node:22-alpine', image: 'node:22-alpine', nodeVersion: '22.23.3' },
   });
   const runs = (await readFile(log, 'utf8'))
     .trim()
@@ -334,7 +278,7 @@ if (args[0] === 'image') {
     .filter((args) => args[0] === 'run');
   expect(runs).toHaveLength(2);
   for (const args of runs) {
-    expect(args).toContain(ids['node:20-alpine']);
-    expect(args).not.toContain(ids['node:22-alpine']);
+    expect(args).toContain(ids['node:22-alpine']);
+    expect(args).not.toContain(ids['node:20-alpine']);
   }
 });

@@ -106,15 +106,15 @@ it('summarizes API impact, proposed edits and offline checks for interactive CLI
   expect(review).not.toContain('\u001b');
 });
 
-it('shows the validation runtime and why it differs from the configured image', async () => {
+it('shows the validation runtime and, when the repository declares a version, the comparison', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'refit-presentation-test-'));
   directories.push(directory);
   const runtime = {
     configured: 'node:22-alpine',
-    image: 'node:20-alpine',
-    nodeVersion: '20.20.2',
+    image: 'node:22-alpine',
+    nodeVersion: '22.23.3',
     declarations: [{ source: '.nvmrc', value: '20' }],
-    reason: '.nvmrc "20" excludes the configured node:22-alpine; node:20-alpine satisfies it.',
+    reason: 'The configured image does not satisfy .nvmrc "20".',
   };
   const write = (value: typeof runtime) =>
     writeFile(
@@ -127,10 +127,14 @@ it('shows the validation runtime and why it differs from the configured image', 
   } as unknown as Parameters<typeof renderWorkflowResult>[0];
   await write(runtime);
   expect(await renderWorkflowResult(result)).toContain(
-    'Runtime     node:20-alpine (Node.js 20.20.2); configured node:22-alpine. .nvmrc "20" excludes the configured node:22-alpine; node:20-alpine satisfies it.',
+    'Runtime     node:22-alpine (Node.js 22.23.3). The configured image does not satisfy .nvmrc "20".',
   );
-  await write({ ...runtime, image: 'node:22-alpine', nodeVersion: '22.23.3', reason: 'Kept.' });
-  const kept = await renderWorkflowResult(result);
-  expect(kept).toContain('Runtime     node:22-alpine (Node.js 22.23.3)\n');
-  expect(kept).not.toContain('Kept.');
+  await write({
+    ...runtime,
+    declarations: [],
+    reason: 'The repository declares no Node.js version.',
+  });
+  const plain = await renderWorkflowResult(result);
+  expect(plain).toContain('Runtime     node:22-alpine (Node.js 22.23.3)\n');
+  expect(plain).not.toContain('declares no');
 });

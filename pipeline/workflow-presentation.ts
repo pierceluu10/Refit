@@ -285,9 +285,9 @@ function renderReportRows(report: Record<string, unknown> | undefined, existingP
     if (isObject(runtime) && typeof runtime.image === 'string')
       rows.push(
         `Runtime     ${terminalText(runtime.image)}${typeof runtime.nodeVersion === 'string' ? ` (Node.js ${terminalText(runtime.nodeVersion)})` : ''}${
-          runtime.image === runtime.configured
-            ? ''
-            : `; configured ${terminalText(String(runtime.configured))}. ${terminalText(String(runtime.reason))}`
+          Array.isArray(runtime.declarations) && runtime.declarations.length
+            ? `. ${terminalText(String(runtime.reason))}`
+            : ''
         }`,
       );
     if (isObject(validation.baseline) && isObject(validation.patched))

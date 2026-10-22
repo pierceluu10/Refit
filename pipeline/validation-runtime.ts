@@ -9,9 +9,8 @@ const PROCESS_TIMEOUT_MS = 30_000;
 const MAX_DECLARATION_BYTES = 64 * 1024;
 const MAX_MANIFEST_BYTES = 1024 * 1024;
 
-// The operator allowlist: official Node.js images Refit may pick for a repository that declares a
-// Node.js version its configured image does not satisfy. Refit never pulls them; the operator
-// installs the ones they want (`docker pull node:20-alpine`).
+// The official Node.js images whose release Refit compares with a repository's declarations. Only
+// the approved configuration chooses the image; Refit never switches it or pulls one.
 export const NODE_18_IMAGE = 'node:18-alpine';
 export const NODE_20_IMAGE = 'node:20-alpine';
 export const NODE_22_IMAGE = 'node:22-alpine';
@@ -222,22 +221,6 @@ export function satisfiesNodeDeclarations(version: string, declarations: NodeDec
   );
 }
 
-// Whether some release of the major could satisfy every declaration, before checking the exact
-// version an installed image carries.
-export function nodeMajorCandidate(major: number, declarations: NodeDeclaration[]) {
-  const line: Interval = { lower: atLeast([major, 0, 0]), upper: below([major + 1, 0, 0]) };
-  return declarations.every((declaration) =>
-    declarationRange(declaration).some((interval) => {
-      const { lower, upper } = intersect(line, interval);
-      if (!lower || !upper) return true;
-      const order = compare(lower.version, upper.version);
-      return order < 0 || (order === 0 && lower.inclusive && upper.inclusive);
-    }),
-  );
-}
-
-const imageMajor = (image: string) => Number(/^node:(\d+)-alpine$/.exec(image)![1]);
-
 // Reads the root files that declare a Node.js version. `read` returns a committed file's text, or
 // undefined when the repository does not commit it.
 export async function nodeDeclarations(read: (path: string) => Promise<string | undefined>) {
@@ -321,15 +304,18 @@ export interface ValidationRuntime {
   reason: string;
 }
 
-// Chooses the image that prepares and validates a repository. A configured image outside the
-// allowlist is used as configured; an allowlisted one gives way to the highest installed allowed
-// image whose Node.js release satisfies every declaration.
+// The approved configuration chooses the image. For an allowlisted image, the repository's Node.js
+// declarations are read and compared with its release for the report; they never change the image
+// or stop validation.
 export async function selectValidationRuntime(
   snapshot: Awaited<ReturnType<typeof readCommittedRepository>>,
   configured: string,
 ): Promise<ValidationRuntime> {
-  const declarations = await readNodeDeclarations(snapshot);
-  const keep = (reason: string, nodeVersion: string | null = null) => ({
+  const keep = (
+    reason: string,
+    declarations: NodeDeclaration[] = [],
+    nodeVersion: string | null = null,
+  ) => ({
     configured,
     image: configured,
     nodeVersion,
@@ -337,41 +323,24 @@ export async function selectValidationRuntime(
     reason,
   });
   if (!VALIDATION_NODE_IMAGES.includes(configured))
-    return keep('The configured image is not one of the Node.js images Refit selects among.');
-  if (!declarations.length)
-    return keep('The repository declares no Node.js version.', await imageNodeVersion(configured));
-  const candidates = VALIDATION_NODE_IMAGES.filter((image) =>
-    nodeMajorCandidate(imageMajor(image), declarations),
-  ).sort((left, right) =>
-    left === configured ? -1 : right === configured ? 1 : imageMajor(right) - imageMajor(left),
-  );
-  if (!candidates.length)
     return keep(
-      `No allowed Node.js image (${VALIDATION_NODE_IMAGES.join(', ')}) satisfies ${describe(declarations)}, so the configured image is used; the baseline check shows whether the repository works there.`,
-      await imageNodeVersion(configured),
+      'The configured image is not one of the Node.js images Refit compares declarations with.',
     );
-  const installed: string[] = [];
-  for (const image of candidates) {
-    const nodeVersion = await imageNodeVersion(image);
-    if (nodeVersion === null) continue;
-    installed.push(`${image} (${nodeVersion})`);
-    if (satisfiesNodeDeclarations(nodeVersion, declarations))
-      return {
-        configured,
-        image,
-        nodeVersion,
-        declarations,
-        reason:
-          image === configured
-            ? `The configured image satisfies ${describe(declarations)}.`
-            : `${describe(declarations)} excludes the configured ${configured}; ${image} satisfies it.`,
-      };
+  const nodeVersion = await imageNodeVersion(configured);
+  let declarations: NodeDeclaration[];
+  try {
+    declarations = await readNodeDeclarations(snapshot);
+  } catch (error) {
+    if (!(error instanceof PipelineInputError)) throw error;
+    return keep(error.message, [], nodeVersion);
   }
-  throw new PipelineInputError(
-    `Validation needs a Node.js image that satisfies ${describe(declarations)}. ${
-      installed.length
-        ? `None of the installed allowed images does (${installed.join(', ')}); install a release that does, or configure a custom validation image.`
-        : `Install ${candidates[0]} on the Docker host (docker pull ${candidates[0]}); Refit never pulls images.`
-    }`,
+  if (!declarations.length)
+    return keep('The repository declares no Node.js version.', declarations, nodeVersion);
+  return keep(
+    nodeVersion !== null && satisfiesNodeDeclarations(nodeVersion, declarations)
+      ? `The configured image satisfies ${describe(declarations)}.`
+      : `The configured image does not satisfy ${describe(declarations)}; only the approved configuration chooses the image, so the baseline check shows whether the repository works there.`,
+    declarations,
+    nodeVersion,
   );
 }
