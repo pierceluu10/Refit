@@ -15,6 +15,7 @@ import { deadlineTitle, dueDeadlineAlerts, syncDeadlineAlert, timing } from './d
 import { configuredIntegrations, findDeadlineExposures } from './deadline-exposure.ts';
 import { readDeadlineIgnores } from './deadline-ignores.ts';
 import { loadDeadlineRegistry } from './deadline-registry.ts';
+import { loadModelParameters } from './model-parameters.ts';
 import { standaloneStateDirectory, type GitHubCheckout } from './github-checkout.ts';
 import { requestGitHub } from './github.ts';
 import { parseWebhook, verifyWebhook, WebhookInputError } from './github-webhooks.ts';
@@ -30,7 +31,8 @@ import { publicationConfiguration } from './publication.ts';
 import { RepositoryApprovalError } from './repository-enrollment.ts';
 
 const HOST = '127.0.0.1';
-const MAX_BODY_BYTES = 1024 * 1024;
+const BYTES_PER_MIB = 1024 * 1024;
+const MAX_BODY_BYTES = BYTES_PER_MIB;
 const REQUEST_TIMEOUT_MS = 10_000;
 const HEADERS_TIMEOUT_MS = 5_000;
 const MIN_SECRET_LENGTH = 32;
@@ -64,23 +66,23 @@ export function authorized(request: IncomingMessage, token: string) {
   return supplied.length === expected.length && timingSafeEqual(supplied, expected);
 }
 
-export async function requestBody(request: IncomingMessage) {
+export async function requestBody(request: IncomingMessage, maximumBytes = MAX_BODY_BYTES) {
   if (
     request.headers['content-type']?.split(';')[0].toLowerCase() !== 'application/json' ||
     (request.headers['content-encoding'] && request.headers['content-encoding'] !== 'identity')
   )
-    throw new WebhookInputError(415, 'Webhook requests require uncompressed application/json.');
-  const oversized = Number(request.headers['content-length']) > MAX_BODY_BYTES;
+    throw new WebhookInputError(415, 'Requests require uncompressed application/json.');
+  const oversized = Number(request.headers['content-length']) > maximumBytes;
   const chunks: Buffer[] = [];
   let length = 0;
   for await (const chunk of request.iterator({ destroyOnReturn: false })) {
     const bytes = Buffer.from(chunk);
     length += bytes.length;
     // Drain oversized requests within the server timeout so clients receive HTTP 413 rather than a socket reset.
-    if (!oversized && length <= MAX_BODY_BYTES) chunks.push(bytes);
+    if (!oversized && length <= maximumBytes) chunks.push(bytes);
   }
-  if (oversized || length > MAX_BODY_BYTES)
-    throw new WebhookInputError(413, 'Webhook payload exceeds 1 MiB.');
+  if (oversized || length > maximumBytes)
+    throw new WebhookInputError(413, `Request body exceeds ${maximumBytes / BYTES_PER_MIB} MiB.`);
   return Buffer.concat(chunks);
 }
 
@@ -112,7 +114,7 @@ export async function runLocalService(options: {
   // Off unless set: replaces retiring AI models in each enrolled repository, validates the change
   // with its approved checks and, with publishDraft, opens a draft pull request. No per-change
   // approval is asked; enrollment is the approval.
-  modelFixes?: { registry?: string | URL };
+  modelFixes?: { registry?: string | URL; parameters?: string | URL };
   notify?: SlackSend;
   now?: () => Date;
   signal: AbortSignal;
@@ -338,8 +340,12 @@ export async function runLocalService(options: {
       if (!options.modelFixes || !checkouts.size) return;
       const now = options.now?.() ?? new Date();
       let registry: Awaited<ReturnType<typeof loadDeadlineRegistry>>;
+      let parameters: Awaited<ReturnType<typeof loadModelParameters>> | undefined;
       try {
         registry = await loadDeadlineRegistry(options.modelFixes.registry, now);
+        // The sourced parameter table is off unless a path is configured (owner decision, 2026-10-22).
+        if (options.modelFixes.parameters)
+          parameters = await loadModelParameters(options.modelFixes.parameters, now);
       } catch (error) {
         if (!(error instanceof Error)) throw error;
         options.onProgress?.(`Model fixes skipped: ${error.name}: ${error.message}`);
@@ -353,6 +359,7 @@ export async function runLocalService(options: {
           const result = await runModelFixes({
             repository: checkout.directory,
             registry,
+            parameters,
             now,
             checks: approved.checks,
             publication: options.publishDraft

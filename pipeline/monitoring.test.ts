@@ -173,12 +173,27 @@ async function stores(pool: pg.Pool) {
     accounts: ['example'],
     limits: DEFAULT_TENANCY_LIMITS,
   });
-  const inventories = await openInventoryStore(pool);
-  return { hosted, inventories, monitoring: await openMonitoringStore(pool) };
+  const inventories = openInventoryStore(pool);
+  return { hosted, inventories, monitoring: openMonitoringStore(pool) };
 }
 
-// Installs `repositories` and stores an inventory of each, scanned from its files.
-async function inventoried(pool: pg.Pool, repositories: Record<string, Record<string, string>>) {
+// Stores an approval as `refit hosted approve` would, without enrolling a target, since alerts
+// reach approved repositories only.
+async function approve(pool: pg.Pool, repository: string) {
+  await pool.query(
+    `INSERT INTO refit_approvals (repository, base, fingerprint, approval, approved_by)
+     VALUES ($1, 'main', 'fingerprint', '{}', 'octo-reviewer')`,
+    [repository],
+  );
+}
+
+// Installs `repositories` and stores an inventory of each, scanned from its files. All but
+// `unapproved` get a stored approval.
+async function inventoried(
+  pool: pg.Pool,
+  repositories: Record<string, Record<string, string>>,
+  unapproved: string[] = [],
+) {
   const { hosted, inventories, monitoring } = await stores(pool);
   await hosted.accept(
     randomUUID(),
@@ -186,6 +201,8 @@ async function inventoried(pool: pg.Pool, repositories: Record<string, Record<st
     new TextEncoder().encode(randomUUID()),
     installation(1, 'created', Object.keys(repositories)),
   );
+  for (const repository of Object.keys(repositories))
+    if (!unapproved.includes(repository)) await approve(pool, repository);
   await inventories.requestMissing();
   for (let claimed; (claimed = await inventories.claim('scanner', 60));) {
     const inventory = await scanInventory(
@@ -260,34 +277,36 @@ it.skipIf(!DATABASE)(
         signal: new AbortController().signal,
         onProgress: (message) => console.log(message),
       });
+    // Nothing is listed before the longest lead time, so no digest opens at 100 or 97 days.
     expect(await digest(before(100))).toBe(0);
     expect(await digest(before(97))).toBe(0);
     expect(await digest(before(90))).toBe(1);
     expect(await digest(before(86))).toBe(0);
+    expect(await digest(before(83))).toBe(0);
     const written = github.writes.map((write) => `${write.method} ${write.path}`);
     console.log(written.join('\n'));
-    // A repository with nothing exposed gets no digest; the week's digest is written once.
+    // A repository with nothing exposed gets no digest; each week's digest is written once.
     expect(written).toEqual([
       'POST /repos/example/app/issues',
       'POST /repos/example/app/issues',
-      'PATCH /repos/example/app/issues/1',
-      'POST /repos/example/app/issues/1/comments',
+      'PATCH /repos/example/app/issues/2',
+      'POST /repos/example/app/issues/2/comments',
     ]);
-    const [first, alert, update, comment] = github.writes.map(
+    const [alert, first, update, comment] = github.writes.map(
       (write) => write.body as Record<string, string>,
     );
+    expect(alert).toMatchObject({ title: `OpenAI model gpt-4 reaches its sunset on ${DEADLINE}` });
     expect(first).toMatchObject({
       title: 'Refit weekly digest: deadlines this repository depends on',
     });
     expect(first.body).toContain('<!-- refit-deadline-digest -->');
-    expect(first.body).toContain(
-      `| OpenAI model gpt-4 reaches its sunset on ${DEADLINE} | ${DEADLINE} | 100 days left | \`src/chat.ts:3\` | Not yet alerted |`,
-    );
-    expect(alert).toMatchObject({ title: `OpenAI model gpt-4 reaches its sunset on ${DEADLINE}` });
     // The digest written in the same pass as the alert already lists the alert's issue.
-    expect(update.body).toContain('| 90 days left | `src/chat.ts:3` | #2 |');
+    expect(first.body).toContain(
+      `| OpenAI model gpt-4 reaches its sunset on ${DEADLINE} | ${DEADLINE} | 90 days left | \`src/chat.ts:3\` | #1 |`,
+    );
+    expect(update.body).toContain('| 83 days left | `src/chat.ts:3` | #1 |');
     expect(comment).toEqual({
-      body: `Weekly digest: 1 exposed deadline, the soonest on ${DEADLINE} (90 days left).`,
+      body: `Weekly digest: 1 exposed deadline, the soonest on ${DEADLINE} (83 days left).`,
     });
   },
 );
@@ -375,28 +394,33 @@ it.skipIf(!DATABASE)(
   'honours a committed ignore and sends nothing for an uninstalled repository',
   async () => {
     const pool = await database();
-    const { hosted, monitoring } = await inventoried(pool, {
-      'example/accepted': {
-        'package.json': PACKAGE,
-        'src/chat.ts': MODEL_CALL,
-        '.refit-deadlines-ignore.json': JSON.stringify({
-          formatVersion: 1,
-          ignore: [
-            {
-              deadline: 'openai-test-gpt-4',
-              reason: 'Replaced before launch.',
-              until: '2027-02-01',
-            },
-          ],
-        }),
+    const { hosted, monitoring } = await inventoried(
+      pool,
+      {
+        'example/accepted': {
+          'package.json': PACKAGE,
+          'src/chat.ts': MODEL_CALL,
+          '.refit-deadlines-ignore.json': JSON.stringify({
+            formatVersion: 1,
+            ignore: [
+              {
+                deadline: 'openai-test-gpt-4',
+                reason: 'Replaced before launch.',
+                until: '2027-02-01',
+              },
+            ],
+          }),
+        },
+        'example/broken-ignore': {
+          'package.json': PACKAGE,
+          'src/chat.ts': MODEL_CALL,
+          '.refit-deadlines-ignore.json': '{"formatVersion": 1, "ignore": "everything"}',
+        },
+        'example/removed': { 'package.json': PACKAGE, 'src/chat.ts': MODEL_CALL },
+        'example/unapproved': { 'package.json': PACKAGE, 'src/chat.ts': MODEL_CALL },
       },
-      'example/broken-ignore': {
-        'package.json': PACKAGE,
-        'src/chat.ts': MODEL_CALL,
-        '.refit-deadlines-ignore.json': '{"formatVersion": 1, "ignore": "everything"}',
-      },
-      'example/removed': { 'package.json': PACKAGE, 'src/chat.ts': MODEL_CALL },
-    });
+      ['example/unapproved'],
+    );
     await hosted.accept(
       randomUUID(),
       'installation_repositories',
@@ -408,7 +432,8 @@ it.skipIf(!DATABASE)(
       },
     );
     expect(await pass(monitoring, before(30))).toBe(1);
-    // Only the repository whose ignore file is invalid, which accepts nothing, is alerted.
+    // Only the repository whose ignore file is invalid, which accepts nothing, is alerted; the
+    // unapproved repository is inventoried but never alerted.
     expect(issueWrites().map((write) => write.path)).toEqual([
       '/repos/example/broken-ignore/issues',
     ]);
@@ -418,7 +443,8 @@ it.skipIf(!DATABASE)(
       ['example/broken-ignore', false],
     ]);
 
-    // Uninstalling deletes the alert state with the repositories, and nothing is sent afterwards.
+    // Uninstalling deletes the inventories, so nothing is sent afterwards. The alert state stays for
+    // the uninstall grace period, so a reinstall does not open the issue again.
     await hosted.accept(
       randomUUID(),
       'installation',
@@ -429,7 +455,7 @@ it.skipIf(!DATABASE)(
     expect(issueWrites()).toHaveLength(1);
     expect(
       (await pool.query('SELECT count(*)::int AS rows FROM refit_deadline_alerts')).rows,
-    ).toEqual([{ rows: 0 }]);
+    ).toEqual([{ rows: 1 }]);
     expect(await upcomingDeadlines(monitoring, before(7))).toEqual([]);
   },
 );
@@ -477,7 +503,12 @@ it.skipIf(!DATABASE)(
     expect(await rescans(at(41), changed)).toEqual([
       { installationId: 1, repository: 'example/app', reason: 'registry' },
     ]);
-    await finish();
+    // An inventory that fails is not asked for again for the same registry change, so it cannot
+    // spend the daily cap every 10 minutes; age (and a push) still ask.
+    await inventories.finish((await inventories.claim('scanner', 60))!, 'scanner', {
+      error: 'GitHubRequestError: unavailable',
+    });
+    expect(await rescans(at(52), changed)).toEqual([]);
     expect(await rescans(at(41 + 23 * 60))).toEqual([]);
     expect(await rescans(at(41 + 24 * 60))).toEqual([
       { installationId: 1, repository: 'example/app', reason: 'age' },
@@ -587,6 +618,7 @@ it.skipIf(!DATABASE)(
       installation: { id: 456, app_id: 123, account: { login: 'example' } },
       repositories: [{ id: 789, full_name: 'example/app' }],
     });
+    await approve(pool, 'example/app');
     let registry = await until(status, (value) =>
       value.inventories.some((row: { revision: string }) => row.revision === first),
     );

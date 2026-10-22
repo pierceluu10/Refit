@@ -572,3 +572,37 @@ it.skipIf(!DATABASE)(
   },
   30_000,
 );
+
+it.skipIf(!DATABASE)(
+  'claims and uninstalls racing each other never deadlock',
+  async () => {
+    const pool = await database();
+    const accounts = Array.from({ length: 12 }, (_, index) => `account${index}`);
+    const store = await openHostedStore(pool, tenancy(accounts));
+    for (const [index, account] of accounts.entries()) {
+      await store.approve(approval(`${account}/app`), 'octo-reviewer');
+      await install(store, 500 + index, account, [`${account}/app`]);
+    }
+    const uninstall = (index: number) =>
+      store.accept(randomUUID(), 'installation', new TextEncoder().encode(randomUUID()), {
+        kind: 'installation',
+        installationId: 500 + index,
+        owner: accounts[index],
+        action: 'deleted',
+        added: [],
+        removed: [],
+      });
+    const results = await Promise.allSettled([
+      ...accounts.map((_, index) => store.claim(`worker-${index}`, 30)),
+      ...accounts.map((_, index) => uninstall(index)),
+      store.allow(),
+    ]);
+    const failures = results.filter((result) => result.status === 'rejected');
+    console.log('Rejected:', failures);
+    expect(failures).toEqual([]);
+    expect((await store.read()).targets.every((target) => target.status === 'cancelled')).toBe(
+      true,
+    );
+  },
+  30_000,
+);

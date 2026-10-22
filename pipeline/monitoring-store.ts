@@ -1,45 +1,12 @@
 import type { Pool } from 'pg';
-import type { DeadlineExposure } from './deadline-exposure.ts';
-import { transaction } from './hosted-store.ts';
-import type { Inventory } from './inventory.ts';
+import { transaction } from './hosted-database.ts';
+import type { Inventory, InventoryExposure } from './inventory.ts';
 
-const SCHEMA_LOCK = 4_206_100_004;
-
-// Monitoring state for each inventoried repository, and the last alert stage sent per deadline.
-// Both go with the installed repository, so removal or uninstall deletes them. Times come from the
-// monitoring clock, which tests replace.
-const SCHEMA = `
-CREATE TABLE IF NOT EXISTS refit_monitoring (
-  installation_id bigint NOT NULL,
-  repository text NOT NULL,
-  pushed boolean NOT NULL DEFAULT false,
-  rescanned_at timestamptz NOT NULL,
-  digest_issue integer,
-  digest_at timestamptz,
-  PRIMARY KEY (installation_id, repository),
-  FOREIGN KEY (installation_id, repository)
-    REFERENCES refit_installation_repositories (installation_id, repository) ON DELETE CASCADE
-);
-CREATE TABLE IF NOT EXISTS refit_deadline_alerts (
-  installation_id bigint NOT NULL,
-  repository text NOT NULL,
-  deadline text NOT NULL,
-  stage integer NOT NULL,
-  issue integer,
-  status text NOT NULL CHECK (status IN ('sending', 'opened', 'updated', 'failed')),
-  message text,
-  sent_at timestamptz NOT NULL,
-  PRIMARY KEY (installation_id, repository, deadline),
-  FOREIGN KEY (installation_id, repository)
-    REFERENCES refit_installation_repositories (installation_id, repository) ON DELETE CASCADE
-);
-ALTER TABLE refit_monitoring ENABLE ROW LEVEL SECURITY;
-ALTER TABLE refit_deadline_alerts ENABLE ROW LEVEL SECURITY;
-`;
-
-// Joins a table aliased `t` to an allowed, active installation.
+// Joins a table aliased `t` to an allowed, active installation. Owner decision (2026-10-22):
+// alerts and digests reach only repositories with a stored approval.
 const ALLOWED = `JOIN refit_installations i ON i.id = t.installation_id
-  WHERE i.status = 'active' AND i.allowed`;
+  WHERE i.status = 'active' AND i.allowed
+    AND EXISTS (SELECT 1 FROM refit_approvals a WHERE lower(a.repository) = t.repository)`;
 
 export interface DeadlineAlert {
   deadline: string;
@@ -55,20 +22,16 @@ export interface MonitoredRepository {
   owner: string;
   repository: string;
   revision: string | null;
-  exposures: DeadlineExposure[];
+  exposures: InventoryExposure[];
   ignores: Inventory['ignores'];
   integrations: Inventory['integrations'];
   alerts: DeadlineAlert[];
   digest: { issue: number | null; at: Date | null };
 }
 
-// Opens the monitoring tables. The hosted and inventory stores must be opened first.
-export async function openMonitoringStore(pool: Pool) {
-  await transaction(pool, async (client) => {
-    await client.query('SELECT pg_advisory_xact_lock($1)', [SCHEMA_LOCK]);
-    await client.query(SCHEMA);
-  });
-
+// Reads and writes the monitoring tables, which hosted migration 6 creates when the hosted store
+// opens.
+export function openMonitoringStore(pool: Pool) {
   // Records a default-branch push for an inventoried or installed repository of an allowed
   // installation. Returns false for anything else, which is then ignored.
   const pushed = async (installationId: number, repository: string, now: Date) =>
@@ -103,14 +66,14 @@ export async function openMonitoringStore(pool: Pool) {
       }>(
         `SELECT t.installation_id, t.repository,
            CASE WHEN t.pushed THEN 'push'
-             WHEN v.registry IS NOT NULL AND v.registry <> $2 THEN 'registry'
+             WHEN v.registry IS NOT NULL AND v.registry <> $2 AND v.error IS NULL THEN 'registry'
              ELSE 'age' END AS reason
          FROM refit_monitoring t
          JOIN refit_inventories v
            ON v.installation_id = t.installation_id AND v.repository = t.repository
          ${ALLOWED} AND v.state = 'idle'
            AND t.rescanned_at <= $1::timestamptz - make_interval(mins => $3)
-           AND (t.pushed OR (v.registry IS NOT NULL AND v.registry <> $2)
+           AND (t.pushed OR (v.registry IS NOT NULL AND v.registry <> $2 AND v.error IS NULL)
              OR t.rescanned_at <= $1::timestamptz - make_interval(hours => $4))
          ORDER BY t.installation_id, t.repository`,
         [now, registry, debounceMinutes, ageHours],
@@ -140,7 +103,8 @@ export async function openMonitoringStore(pool: Pool) {
     );
   };
 
-  // Every complete inventory of an allowed, active installation with the alerts sent for it.
+  // The last complete inventory of each monitored repository, kept through a stopped re-scan, with
+  // the alerts sent for it.
   const repositories = async (): Promise<MonitoredRepository[]> => {
     const [inventories, alerts] = await Promise.all([
       pool.query<{
@@ -148,20 +112,20 @@ export async function openMonitoringStore(pool: Pool) {
         owner: string;
         repository: string;
         revision: string | null;
-        exposures: DeadlineExposure[];
+        exposures: InventoryExposure[];
         ignores: Inventory['ignores'];
         integrations: Inventory['integrations'];
         digest_issue: number | null;
         digest_at: Date | null;
       }>(
-        `SELECT t.installation_id, i.owner, t.repository, t.revision,
+        `SELECT t.installation_id, i.owner, t.repository, t.inventory_revision AS revision,
            t.inventory -> 'deadlines' -> 'exposures' AS exposures,
            t.inventory -> 'ignores' AS ignores, t.inventory -> 'integrations' AS integrations,
            m.digest_issue, m.digest_at
          FROM refit_inventories t
          LEFT JOIN refit_monitoring m
            ON m.installation_id = t.installation_id AND m.repository = t.repository
-         ${ALLOWED} AND t.status = 'complete'
+         ${ALLOWED} AND t.inventory IS NOT NULL
          ORDER BY t.installation_id, t.repository`,
       ),
       pool.query<{

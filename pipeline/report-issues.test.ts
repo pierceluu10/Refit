@@ -46,6 +46,8 @@ vi.mock('./github.ts', async (original) => ({
 const DATABASE = process.env.REFIT_POSTGRES_URL;
 const APP = { appId: '123', privateKeyFile: 'unused-test-key' };
 const NOW = new Date('2026-10-22T12:00:00Z');
+// The registry the recorded reports were built with, so registry edits do not change these tests.
+const REGISTRY = new URL('./fixtures/report/registry.json', import.meta.url);
 const DAY = 24 * 60 * 60 * 1000;
 const WEBHOOK_SECRET = 'webhook-secret-for-report-service-tests-1';
 const CONTROL_TOKEN = 'control-secret-for-report-service-tests-2';
@@ -97,20 +99,27 @@ async function installed(pool: pg.Pool, inventory: Inventory) {
     limits: DEFAULT_TENANCY_LIMITS,
   });
   const inventories = await openInventoryStore(pool);
-  const reports = await openReportStore(pool);
-  const registry = await loadDeadlineRegistry(undefined, NOW);
+  const reports = openReportStore(pool);
+  const registry = await loadDeadlineRegistry(REGISTRY, NOW);
   await hosted.accept(
     randomUUID(),
     'installation',
     new TextEncoder().encode(randomUUID()),
     installation('created', ['example/app']),
   );
-  const store = async (changed: Inventory) => {
+  // Report issues go only to approved repositories; this stores one as `refit hosted approve`
+  // would, without enrolling a target.
+  const approve = () =>
+    pool.query(
+      `INSERT INTO refit_approvals (repository, base, fingerprint, approval, approved_by)
+       VALUES ('example/app', 'main', 'fingerprint', '{}', 'octo-reviewer')`,
+    );
+  const store = async (changed: Inventory, revision = 'a'.repeat(40)) => {
     await inventories.requestRepository('example/app');
     const claimed = (await inventories.claim('scanner', 60))!;
     expect(
       await inventories.finish(claimed, 'scanner', {
-        result: { outcome: 'complete', base: 'main', revision: 'a'.repeat(40), inventory: changed },
+        result: { outcome: 'complete', base: 'main', revision, inventory: changed },
         registry: registryDigest(registry),
         durationMs: 1,
       }),
@@ -126,7 +135,7 @@ async function installed(pool: pg.Pool, inventory: Inventory) {
       signal: new AbortController().signal,
       onProgress: (message) => console.log(message),
     });
-  return { hosted, reports, store, pass };
+  return { hosted, reports, store, pass, approve };
 }
 
 const writes = () => github.writes.map((write) => `${write.method} ${write.path}`);
@@ -145,8 +154,12 @@ it.skipIf(!DATABASE)(
   async () => {
     const pool = await database();
     const inventory = await anthropicApp();
-    const { reports, store, pass } = await installed(pool, inventory);
+    const { reports, store, pass, approve } = await installed(pool, inventory);
 
+    // Nothing is written for an inventoried repository without an approval.
+    expect(await pass(NOW)).toBe(0);
+    expect(writes()).toEqual([]);
+    await approve();
     expect(await pass(NOW)).toBe(1);
     expect(writes()).toEqual([
       'GET /repos/example/app/issues?state=all&creator=refit-test%5Bbot%5D&per_page=100',
@@ -166,19 +179,25 @@ it.skipIf(!DATABASE)(
     expect(writes()).toEqual([]);
     expect(authenticateGitHubIssues).toHaveBeenCalledTimes(1);
 
+    // A push that only moves code (a new commit, other line numbers) writes nothing.
+    await store(
+      { ...inventory, models: inventory.models.map((call) => ({ ...call, line: call.line + 1 })) },
+      'b'.repeat(40),
+    );
+    expect(await pass(NOW)).toBe(0);
+    expect(writes()).toEqual([]);
+
     // A new model call changes the report: one update with a comment, on the same issue.
     await store({
       ...inventory,
-      models: [...inventory.models, { ...inventory.models[0], line: 99 }],
+      models: [...inventory.models, { ...inventory.models[0], file: 'src/agent/core/added.ts' }],
     });
     expect(await pass(NOW)).toBe(1);
     expect(writes()).toEqual([
       'PATCH /repos/example/app/issues/1',
       'POST /repos/example/app/issues/1/comments',
     ]);
-    expect((github.writes[0].body as { body: string }).body).toContain(
-      '`src/agent/core/title.ts:99`',
-    );
+    expect((github.writes[0].body as { body: string }).body).toContain('`src/agent/core/added.ts:');
     expect(github.writes[1].body).toEqual({
       body: 'Refit updated this report for commit `aaaaaaaaaaaa`.',
     });
@@ -228,7 +247,8 @@ it.skipIf(!DATABASE)(
       { number: 12, body: `${REPORT_MARKER}\n# An earlier report` },
     ];
     github.failNext = true;
-    const { reports, pass } = await installed(pool, await anthropicApp());
+    const { reports, pass, approve } = await installed(pool, await anthropicApp());
+    await approve();
 
     expect(await pass(NOW)).toBe(0);
     expect(writes()).toEqual([
@@ -255,10 +275,10 @@ it.skipIf(!DATABASE)(
 );
 
 it.skipIf(!DATABASE)(
-  'keeps the report issue from the hosted worker when enabled, and forgets it on uninstall',
+  'keeps the report issue from the hosted worker when enabled, and stops writing on uninstall',
   async () => {
     const pool = await database();
-    await installed(pool, await anthropicApp());
+    await (await installed(pool, await anthropicApp())).approve();
     const root = await mkdtemp(join(tmpdir(), 'refit-report-service-'));
     cleanups.push(() => rm(root, { recursive: true, force: true }));
     const controller = new AbortController();
@@ -320,8 +340,10 @@ it.skipIf(!DATABASE)(
       body,
     });
     expect(response.status).toBe(202);
-    const removed = await until(status, (value) => value.reports.issues.length === 0);
-    expect(removed.inventories).toEqual([]);
+    // The report row stays for the uninstall grace period (until purge); the inventory goes now,
+    // so nothing is written for the repository again.
+    const removed = await until(status, (value) => value.inventories.length === 0);
+    expect(removed.reports.issues).toHaveLength(1);
     expect(
       writes().filter(
         (write) =>

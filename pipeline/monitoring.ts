@@ -6,9 +6,9 @@ import {
   syncDeadlineIssue,
   timing,
 } from './deadline-alerts.ts';
-import type { DeadlineExposure } from './deadline-exposure.ts';
+import type { ReportedExposure } from './deadline-exposure.ts';
 import { applyDeadlineIgnores } from './deadline-ignores.ts';
-import { daysUntil, type DeadlineRegistry } from './deadline-registry.ts';
+import { daysUntil, reportOnly, type DeadlineRegistry } from './deadline-registry.ts';
 import { authenticateGitHubIssues, type GitHubAppConfiguration } from './github-app.ts';
 import { requestGitHub } from './github.ts';
 import type { openInventoryStore } from './inventory-store.ts';
@@ -73,7 +73,7 @@ const cell = (value: string) => value.replaceAll('|', '\\|').replaceAll('`', "'"
 // Every exposed deadline, soonest first, with its ignore or the alert issue opened for it.
 function digestBody(options: {
   repository: MonitoredRepository;
-  exposures: DeadlineExposure[];
+  exposures: ReportedExposure[];
   issues: (deadline: string) => number | null | undefined;
   now: Date;
   leadDays: readonly number[];
@@ -124,7 +124,7 @@ function digestBody(options: {
   ].join('\n');
 }
 
-function digestComment(exposures: DeadlineExposure[]) {
+function digestComment(exposures: ReportedExposure[]) {
   const [soonest] = [...exposures].sort((a, b) => a.days - b.days);
   return soonest
     ? `Weekly digest: ${exposures.length} exposed ${exposures.length === 1 ? 'deadline' : 'deadlines'}, the soonest on ${soonest.deadline.date} (${timing(soonest.days)}).`
@@ -179,9 +179,23 @@ export async function sendDeadlineAlerts(options: {
       leadDays,
       sent: (deadline) => repository.alerts.find((alert) => alert.deadline === deadline)?.stage,
     });
+    // The digest lists what alerts could reach: not report-only, not accepted by a valid ignore and
+    // within the longest lead time.
+    const { decisions } = applyDeadlineIgnores(
+      exposures,
+      ignores(repository),
+      new Set(options.registry.deadlines.map((entry) => entry.id)),
+      now,
+    );
+    const listed = exposures.filter(
+      (exposure) =>
+        !reportOnly(exposure.deadline) &&
+        !decisions.get(exposure.deadline.id)?.ignoredBy.length &&
+        exposure.days <= Math.max(...leadDays),
+    );
     const digestDue =
       options.digest &&
-      (exposures.length > 0 || repository.digest.issue !== null) &&
+      (listed.length > 0 || repository.digest.issue !== null) &&
       (!repository.digest.at ||
         now.getTime() - repository.digest.at.getTime() >=
           DIGEST_INTERVAL_DAYS * MILLISECONDS_PER_DAY);
@@ -255,14 +269,14 @@ export async function sendDeadlineAlerts(options: {
         title: DIGEST_TITLE,
         body: digestBody({
           repository,
-          exposures,
+          exposures: listed,
           issues: (deadline) =>
             opened.get(deadline) ??
             repository.alerts.find((alert) => alert.deadline === deadline)?.issue,
           now,
           leadDays,
         }),
-        comment: digestComment(exposures),
+        comment: digestComment(listed),
       });
       await monitoring.recordDigest(repository.installationId, repository.repository, result.issue);
       progress(`Digest: issue #${result.issue} ${result.action}.`);

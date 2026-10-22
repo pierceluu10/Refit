@@ -1,7 +1,7 @@
 import { AGENT_CATALOG } from './agent-catalog.ts';
-import { agentStatus, type AgentStatus, type DeadlineExposure } from './deadline-exposure.ts';
+import { agentStatus, type AgentStatus, type ReportedExposure } from './deadline-exposure.ts';
 import { applyDeadlineIgnores, type DeadlineIgnore } from './deadline-ignores.ts';
-import type { DeadlineRegistry } from './deadline-registry.ts';
+import { reportOnly, type DeadlineRegistry } from './deadline-registry.ts';
 import { isObject } from './specifications.ts';
 import { PipelineInputError } from './types.ts';
 
@@ -45,11 +45,11 @@ export function alertDue(stage: number | null, previous: number | null | undefin
   return stage !== null && (previous === null || previous === undefined || stage < previous);
 }
 
-// The exposures to alert about now: not accepted by an active ignore, and at a tighter lead time
-// than the last alert `sent` for that deadline. An invalid ignore file should pass no entries, so a
+// The exposures to alert about now: not report-only, not accepted by an active ignore, and at a
+// tighter lead time than the last alert `sent` for that deadline. An invalid ignore file should pass no entries, so a
 // broken exception can never silence an alert.
-export function dueDeadlineAlerts(options: {
-  exposures: DeadlineExposure[];
+export function dueDeadlineAlerts<Exposure extends ReportedExposure>(options: {
+  exposures: Exposure[];
   ignores: DeadlineIgnore[];
   registry: DeadlineRegistry;
   now: Date;
@@ -63,9 +63,12 @@ export function dueDeadlineAlerts(options: {
     options.now,
   );
   return options.exposures
-    .filter((exposure) => !decisions.get(exposure.deadline.id)?.ignoredBy.length)
+    .filter(
+      (exposure) =>
+        !reportOnly(exposure.deadline) && !decisions.get(exposure.deadline.id)?.ignoredBy.length,
+    )
     .map((exposure) => ({ exposure, stage: alertStage(exposure.days, options.leadDays) }))
-    .filter((alert): alert is { exposure: DeadlineExposure; stage: number } =>
+    .filter((alert): alert is { exposure: Exposure; stage: number } =>
       alertDue(alert.stage, options.sent(alert.exposure.deadline.id)),
     );
 }
@@ -82,7 +85,7 @@ export function deadlineMarker(id: string) {
   return `<!-- refit-deadline:${id} -->`;
 }
 
-function subject(exposure: DeadlineExposure) {
+function subject(exposure: ReportedExposure) {
   const { deadline } = exposure;
   const matched = [...new Set(exposure.evidence.map((item) => item.version))];
   const versions = matched.length ? matched : deadline.versions;
@@ -93,7 +96,15 @@ function subject(exposure: DeadlineExposure) {
     return `${versions.length === 1 ? 'model' : 'models'} ${listed}${extra}`;
   if (deadline.kind === 'sdk')
     return `${versions.length === 1 ? 'package' : 'packages'} ${listed}${extra}`;
+  if (deadline.kind === 'method')
+    return `${versions.length === 1 ? 'method' : 'methods'} ${listed}${extra}`;
+  if (deadline.kind === 'endpoint')
+    return `${versions.length === 1 ? 'endpoint' : 'endpoints'} ${listed}${extra}`;
+  if (deadline.kind === 'field')
+    return `GraphQL ${versions.length === 1 ? 'field' : 'fields'} ${listed}${extra}`;
+  if (deadline.kind === 'feature') return `use of ${listed}${extra}`;
   if (deadline.provider === 'meta-graph') return `Graph API ${listed}`;
+  if (deadline.provider === 'github') return `REST API version ${listed}`;
   return `API version ${listed}`;
 }
 
@@ -104,7 +115,7 @@ export function timing(days: number) {
   return `passed ${-days} day${days === -1 ? '' : 's'} ago`;
 }
 
-export function deadlineTitle(exposure: DeadlineExposure) {
+export function deadlineTitle(exposure: ReportedExposure) {
   return `${providerName(exposure.deadline.provider)} ${subject(exposure)} ${exposure.days < 0 ? 'passed its' : 'reaches its'} sunset on ${exposure.deadline.date}`;
 }
 
@@ -120,7 +131,7 @@ export function migrationNote(provider: string, status: AgentStatus) {
 }
 
 export function deadlineBody(options: {
-  exposure: DeadlineExposure;
+  exposure: ReportedExposure;
   repository: string;
   revision: string | null;
   status: AgentStatus;
@@ -144,7 +155,9 @@ export function deadlineBody(options: {
     '',
     '### Where this repository depends on it',
     '',
-    ...exposure.evidence.map((item) => `- ${link(item.file, item.line)}: ${code(item.text)}`),
+    ...exposure.evidence.map(
+      (item) => `- ${link(item.file, item.line)}${item.text ? `: ${code(item.text)}` : ''}`,
+    ),
     ...(exposure.more ? [`- …and ${exposure.more} more matches.`] : []),
     ...nonLiveNote(exposure),
     '',
@@ -157,7 +170,7 @@ export function deadlineBody(options: {
 }
 
 // Matches outside live code never open or update an alert; the issue only counts them.
-function nonLiveNote(exposure: DeadlineExposure) {
+function nonLiveNote(exposure: ReportedExposure) {
   const counts = new Map<string, number>();
   for (const item of exposure.nonLive) counts.set(item.use, (counts.get(item.use) ?? 0) + 1);
   const total = exposure.nonLive.length + exposure.nonLiveMore;
@@ -169,7 +182,7 @@ function nonLiveNote(exposure: DeadlineExposure) {
   ];
 }
 
-export function deadlineComment(exposure: DeadlineExposure) {
+export function deadlineComment(exposure: ReportedExposure) {
   return exposure.days <= 0
     ? `The ${exposure.deadline.date} deadline has ${exposure.days === 0 ? 'arrived' : 'passed'} and this repository still depends on it. Refit refreshed the evidence above.`
     : `${timing(exposure.days)} until ${exposure.deadline.date}. Refit refreshed the evidence above.`;
@@ -209,7 +222,7 @@ export function syncDeadlineAlert(options: {
   request: DeadlineRequest;
   repository: string;
   issue: number | null;
-  exposure: DeadlineExposure;
+  exposure: ReportedExposure;
   revision: string | null;
   integrations: Parameters<typeof agentStatus>[1];
   leadDays: readonly number[];

@@ -6,3 +6,5 @@ pipeline/fixtures/pnpm-workspaces/*.yaml
 pipeline/fixtures/report/*.md
 pipeline/fixtures/report/*.report.json
 docs/report-examples/
+pipeline/fixtures/yarn-workspaces
+pipeline/fixtures/yarn-platform

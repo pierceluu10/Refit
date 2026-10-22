@@ -66,12 +66,6 @@ it('runs a root profile with no path flags and retains distinct private evidence
 
 it('uses --repository from elsewhere and derives an explicitly selected root configuration repository', async () => {
   const sample = await setup();
-  expect((await sample.evidence(['--repository', sample.app], sample.root)).manifest.status).toBe(
-    'needs-review',
-  );
-  expect((await sample.evidence(['--config', sample.path], sample.root)).manifest.status).toBe(
-    'needs-review',
-  );
   const external = join(sample.root, 'operator.json');
   await writeFile(
     external,
@@ -81,10 +75,17 @@ it('uses --repository from elsewhere and derives an explicitly selected root con
       after: join(sample.app, 'before.json'),
     }),
   );
-  await expect(sample.run(['--config', external], sample.root)).rejects.toMatchObject({
-    code: 1,
-    stderr: expect.stringContaining('Missing run inputs'),
-  });
+  // Each run writes its own evidence directory, so they start together; a CLI start costs about 0.3 s.
+  const [fromRepository, fromConfig] = await Promise.all([
+    sample.evidence(['--repository', sample.app], sample.root),
+    sample.evidence(['--config', sample.path], sample.root),
+    expect(sample.run(['--config', external], sample.root)).rejects.toMatchObject({
+      code: 1,
+      stderr: expect.stringContaining('Missing run inputs'),
+    }),
+  ]);
+  expect(fromRepository.manifest.status).toBe('needs-review');
+  expect(fromConfig.manifest.status).toBe('needs-review');
 });
 
 it('requires an explicit integration choice and retains it in automatic evidence', async () => {

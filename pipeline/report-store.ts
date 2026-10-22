@@ -1,26 +1,5 @@
 import type { Pool } from 'pg';
-import { transaction } from './hosted-store.ts';
 import type { Inventory } from './inventory.ts';
-
-const SCHEMA_LOCK = 4_206_100_005;
-
-// The report issue Refit keeps for each inventoried repository, with the digest of what it last
-// wrote. It goes with the installed repository, so removal or uninstall deletes it.
-const SCHEMA = `
-CREATE TABLE IF NOT EXISTS refit_reports (
-  installation_id bigint NOT NULL,
-  repository text NOT NULL,
-  issue integer,
-  digest text NOT NULL,
-  status text NOT NULL CHECK (status IN ('sending', 'opened', 'updated', 'failed')),
-  message text,
-  updated_at timestamptz NOT NULL,
-  PRIMARY KEY (installation_id, repository),
-  FOREIGN KEY (installation_id, repository)
-    REFERENCES refit_installation_repositories (installation_id, repository) ON DELETE CASCADE
-);
-ALTER TABLE refit_reports ENABLE ROW LEVEL SECURITY;
-`;
 
 export interface ReportedRepository {
   installationId: number;
@@ -36,14 +15,13 @@ export interface ReportedRepository {
   } | null;
 }
 
-// Opens the report table. The hosted and inventory stores must be opened first.
-export async function openReportStore(pool: Pool) {
-  await transaction(pool, async (client) => {
-    await client.query('SELECT pg_advisory_xact_lock($1)', [SCHEMA_LOCK]);
-    await client.query(SCHEMA);
-  });
+// Owner decision (2026-10-22): report issues go only to repositories with a stored approval.
+const APPROVED = `EXISTS (SELECT 1 FROM refit_approvals a WHERE lower(a.repository) = t.repository)`;
 
-  // Every complete inventory of an allowed, active installation, with its report issue.
+// Reads and writes the report table, which hosted migration 7 creates when the hosted store opens.
+export function openReportStore(pool: Pool) {
+  // The last complete inventory of every approved repository of an allowed, active installation,
+  // kept through a stopped re-scan, with its report issue.
   const repositories = async (): Promise<ReportedRepository[]> => {
     const { rows } = await pool.query<{
       installation_id: string;
@@ -56,14 +34,14 @@ export async function openReportStore(pool: Pool) {
       message: string | null;
       updated_at: Date | null;
     }>(
-      `SELECT v.installation_id, v.repository, v.revision, v.inventory,
+      `SELECT t.installation_id, t.repository, t.inventory_revision AS revision, t.inventory,
          r.issue, r.digest, r.status, r.message, r.updated_at
-       FROM refit_inventories v
-       JOIN refit_installations i ON i.id = v.installation_id
+       FROM refit_inventories t
+       JOIN refit_installations i ON i.id = t.installation_id
        LEFT JOIN refit_reports r
-         ON r.installation_id = v.installation_id AND r.repository = v.repository
-       WHERE i.status = 'active' AND i.allowed AND v.status = 'complete'
-       ORDER BY v.installation_id, v.repository`,
+         ON r.installation_id = t.installation_id AND r.repository = t.repository
+       WHERE i.status = 'active' AND i.allowed AND t.inventory IS NOT NULL AND ${APPROVED}
+       ORDER BY t.installation_id, t.repository`,
     );
     return rows.map((row) => ({
       installationId: Number(row.installation_id),
@@ -86,7 +64,8 @@ export async function openReportStore(pool: Pool) {
   // Takes the write of a report with this digest before anything is sent, so concurrent workers
   // and restarts write each change once. A write that failed or never finished is taken again
   // after `retryHours`. Returns the issue to update (null opens or finds one), or null when this
-  // digest is already written or the repository is no longer installed by an allowed account.
+  // digest is already written or the repository is no longer installed by an allowed account or
+  // approved.
   const claim = async (
     installationId: number,
     repository: string,
@@ -100,6 +79,7 @@ export async function openReportStore(pool: Pool) {
        FROM refit_installation_repositories t
        JOIN refit_installations i ON i.id = t.installation_id
        WHERE i.status = 'active' AND i.allowed AND t.installation_id = $1 AND t.repository = $2
+         AND ${APPROVED}
        ON CONFLICT (installation_id, repository) DO UPDATE
          SET digest = EXCLUDED.digest, status = 'sending', message = NULL,
            updated_at = EXCLUDED.updated_at
