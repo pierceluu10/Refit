@@ -398,6 +398,35 @@ default = ChatOpenAI()
     expect(calls.map((call) => call.package)).toEqual(['langchain-community']);
   });
 
+  it('traces the return of a helper with the arguments of each call, and pydantic field defaults', async () => {
+    expect(
+      await traced({
+        'app.py': `import os
+from pydantic import BaseModel, Field
+from openai import OpenAI
+
+def first(*names, default=""):
+    for name in names:
+        if os.environ.get(name):
+            return os.environ[name]
+    return default
+
+class Settings(BaseModel):
+    model: str = Field(default="gpt-4.1")
+
+settings = Settings()
+client = OpenAI()
+url = first("BASE_URL", default="http://localhost:11434")
+client.chat.completions.create(model=first("MODEL", "LLM_MODEL", default="gpt-4o-mini"), messages=[])
+client.chat.completions.create(model=settings.model, messages=[])
+`,
+      }),
+    ).toEqual([
+      'app.py:17 openai chat.completions.create constructor <- gpt-4o-mini@app.py:17 (argument for `default`) stop: The model is read from the environment variable name with no default.',
+      'app.py:18 openai chat.completions.create constructor <- gpt-4.1@app.py:12 (class field `settings.model`)',
+    ]);
+  });
+
   it('reads the model from a spread dictionary and stops on what it cannot trace', async () => {
     expect(
       await traced({

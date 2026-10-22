@@ -121,6 +121,9 @@ type Context = {
   tree: (path: string) => Tree | undefined;
   // The module client's endpoint, per SDK, found once.
   endpoints?: Map<PythonSdk, string | null>;
+  // The call whose return value is being traced, per function (`file:node id`), so that function's
+  // parameters take that call's arguments rather than every caller's.
+  frames?: Map<string, { call: Node; file: string }>;
 };
 
 type Binding =
@@ -461,7 +464,7 @@ function resolveClient(context: Context, file: string, node: Node, depth = 0): C
     const returned = returnedValues(context, file, callee);
     if (!returned) return undefined;
     let client: Client | undefined;
-    for (const value of returned) {
+    for (const value of returned.values) {
       if (value.node.type === 'none') continue;
       const found = resolveClient(context, value.file, value.node, depth + 1);
       if (!found) return undefined;
@@ -670,7 +673,7 @@ function traceValue(
   seen = new Set<string>(),
 ): TracedValue {
   node = unwrap(node);
-  const key = `${file}:${node.id}`;
+  const key = `${file}:${node.id}:${[...(context.frames?.values() ?? [])].map((frame) => frame.call.id).join(',')}`;
   const stop = (reason: string): TracedValue => ({ literals: [], stop: reason });
   if (depth > MAX_DEPTH)
     return stop(`Tracing this model stopped at the depth limit of ${MAX_DEPTH}.`);
@@ -776,8 +779,23 @@ function traceValue(
         if (fallback) values.push(next(fallback, `default of \`${text(callee)}("${entry}")\``));
         return merge(values);
       }
+      // pydantic's `Field(default=...)` or `Field("...")`.
+      const name = callee.type === 'attribute' ? field(callee, 'attribute')!.text : callee.text;
+      if (name === 'Field' && (keywords.get('default') ?? positional[0]))
+        return next(keywords.get('default') ?? positional[0], via);
       const factory = returnedValues(context, file, callee);
-      if (factory) return merge(factory.map((value) => next(value.node, via, value.file)));
+      if (factory) {
+        context.frames ??= new Map();
+        const frame = `${factory.file}:${factory.definition.id}`;
+        const previous = context.frames.get(frame);
+        context.frames.set(frame, { call: node, file });
+        try {
+          return merge(factory.values.map((value) => next(value.node, via, value.file)));
+        } finally {
+          if (previous) context.frames.set(frame, previous);
+          else context.frames.delete(frame);
+        }
+      }
       return stop(`The model comes from \`${text(node)}\`, which Refit cannot trace.`);
     }
     case 'subscript': {
@@ -882,19 +900,22 @@ function traceParameter(
   const parameters = (field(owner, 'parameters')?.namedChildren ?? []).filter(
     (item): item is Node => Boolean(item),
   );
-  const position = parameters.findIndex((item) => item.id === binding.node.id);
+  // Parameters after `*args` or a bare `*` take keywords only.
+  const index = parameters.findIndex((item) => item.id === binding.node.id);
+  const position = parameters
+    .slice(0, index)
+    .some((item) => item.type === 'list_splat_pattern' || item.type === 'keyword_separator')
+    ? -1
+    : index;
   const functionName = field(owner, 'name')!.text;
   let container = owner.parent;
   if (container?.type === 'decorated_definition') container = container.parent;
   const method = container?.parent?.type === 'class_definition' ? container.parent : undefined;
   const callee = functionName === '__init__' && method ? field(method, 'name')!.text : functionName;
   const offset = method ? 1 : 0;
-  let unknown = false;
-  // The default is sent when no caller is found, or one leaves the argument out.
-  let callers = 0;
-  let omitted = false;
-  for (const { call, where } of callersOf(context, file, method ?? owner, callee)) {
-    const { keywords, splats } = keywordArguments(call);
+  const frame = context.frames?.get(`${file}:${owner.id}`);
+  const argumentOf = (call: Node) => {
+    const { keywords } = keywordArguments(call);
     const positional = (field(call, 'arguments')?.namedChildren ?? []).filter(
       (item): item is Node =>
         Boolean(item) &&
@@ -902,20 +923,42 @@ function traceParameter(
         item!.type !== 'dictionary_splat' &&
         item!.type !== 'comment',
     );
-    const argument =
+    return (
       keywords.get(name) ??
       (position - offset >= 0 && positional[position - offset]?.type !== 'list_splat'
         ? positional[position - offset]
-        : undefined);
+        : undefined)
+    );
+  };
+  const fallback = field(binding.node, 'value');
+  // Tracing what one call returns: only that call's argument, or the default.
+  if (frame) {
+    const argument = argumentOf(frame.call);
+    if (argument)
+      return traceValue(context, frame.file, argument, `argument for \`${name}\``, depth + 1, seen);
+    return fallback && fallback.type !== 'none'
+      ? traceValue(context, file, fallback, `parameter default \`${name}\``, depth + 1, seen)
+      : { literals: [], stop: null };
+  }
+  let unknown = false;
+  // The default is sent when no caller is found, or one leaves the argument out.
+  let callers = 0;
+  let omitted = false;
+  for (const { call, where } of callersOf(context, file, method ?? owner, callee)) {
+    const argument = argumentOf(call);
     callers += 1;
     if (argument)
       values.push(
         traceValue(context, where, argument, `argument for \`${name}\``, depth + 1, seen),
       );
-    else if (splats.length || positional.some((item) => item.type === 'list_splat')) unknown = true;
+    else if (
+      field(call, 'arguments')?.namedChildren.some(
+        (item) => item?.type === 'list_splat' || item?.type === 'dictionary_splat',
+      )
+    )
+      unknown = true;
     else omitted = true;
   }
-  const fallback = field(binding.node, 'value');
   if (fallback && fallback.type !== 'none' && (!callers || omitted))
     values.unshift(
       traceValue(context, file, fallback, `parameter default \`${name}\``, depth + 1, seen),
@@ -1102,7 +1145,7 @@ function returnedValues(
   context: Context,
   file: string,
   callee: Node,
-): { node: Node; file: string }[] | undefined {
+): { definition: Node; file: string; values: { node: Node; file: string }[] } | undefined {
   callee = unwrap(callee);
   let definition: { node: Node; file: string } | undefined;
   if (callee.type === 'identifier') {
@@ -1148,7 +1191,7 @@ function returnedValues(
   };
   const body = field(definition.node, 'body');
   if (body) visit(body);
-  return values.length ? values : undefined;
+  return values.length ? { definition: definition.node, file: definition.file, values } : undefined;
 }
 
 // `args.model` from `argparse`: the default of the option whose destination is `model`, when the
