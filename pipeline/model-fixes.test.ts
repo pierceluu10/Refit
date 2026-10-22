@@ -5,7 +5,9 @@ import { afterEach, expect, it, vi } from 'vitest';
 import type { DeadlineRegistry } from './deadline-registry.ts';
 import { runModelFixes } from './model-fixes.ts';
 
-const published = vi.hoisted(() => [] as { key: string; title: string; body: string }[]);
+const published = vi.hoisted(
+  () => [] as { key: string; title: string; body: string; message: string }[],
+);
 const checks = vi.hoisted(() => ({ patched: 'passed', runs: 0 }));
 
 // Validation runs the proposal on the repository itself and reports the configured outcome, so
@@ -115,6 +117,7 @@ it('opens a draft pull request for validated replacements without asking first',
   expect(published[0].title).toBe('fix: replace 1 retiring AI model');
   expect(published[0].key).toBe(`model-fixes:${'a'.repeat(40)}:${result.fixKey}`);
   const body = published[0].body;
+  expect(published[0].message).toContain('- src/ai.ts:3: gpt-4 -> gpt-5.6-sol, retires 2026-10-23');
   expect(body).toContain(
     '| `src/ai.ts:3` `chat.completions.create` | `src/ai.ts:3` | `gpt-4` → `gpt-5.6-sol` | 2026-10-23 |',
   );

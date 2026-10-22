@@ -163,6 +163,17 @@ function changeSections(diff: string, limit = MAX_VISIBLE_DIFF_LINES) {
 }
 
 // A Markdown link to an https page, or nothing for anything else.
+// Words to lines of at most 72 columns; a longer word, such as a URL, keeps its own line.
+export function wrap(text: string, indent = '') {
+  const lines = [''];
+  for (const word of text.split(' ')) {
+    const line = lines[lines.length - 1];
+    if (line.trim() && `${line} ${word}`.length > 72) lines.push(`${indent}${word}`);
+    else lines[lines.length - 1] = line ? `${line} ${word}` : word;
+  }
+  return lines.join('\n');
+}
+
 function link(url: string) {
   try {
     const parsed = new URL(url);
@@ -558,17 +569,16 @@ export function createReviewArtifacts(
     ),
   ];
   // Provider pages that document the change, from the rule's source and attached vendor notes.
-  const sources = [
+  const sourceUrls = [
     ...new Set(
       [
         ...('source' in patch && typeof patch.source === 'string' ? [patch.source] : []),
         ...vendorNotes(patch).map((note) => note.url),
         ...(cardRename || listedMethods.length ? [PAYMENT_METHOD_TYPES_CHANGELOG] : []),
-      ]
-        .map(link)
-        .filter((entry): entry is string => Boolean(entry)),
+      ].filter((url) => link(url)),
     ),
   ];
+  const sources = sourceUrls.map((url) => link(url)!);
   // An entry that failed on the original code (missing module, unmocked service) proves nothing.
   const generatedRan = generated ? generated.entryPoints.length - generated.notRunnable.length : 0;
   const generatedResult = generated
@@ -660,6 +670,16 @@ export function createReviewArtifacts(
         ]
       : []),
   ];
+  const overview = shopify
+    ? `This app pins Shopify Admin API ${plainText(report.apiVersion.application ?? 'an older version')}. A deterministic Refit rule moves it to ${after} after checking every traced GraphQL document against the ${after} schema.`
+    : `${plainText(provider)} API ${after} ${overviewCauses.length ? overviewCauses.join(' and ') : 'changes API usage this code relies on'}. ${ai ? `AI${model ? ` (${code(model)})` : ''}, checked by Refit,` : 'A deterministic Refit rule'} migrates ${usageCount} in ${fileCount} so the code keeps working after the upgrade.`;
+  const checks = passed
+    ? sameCommand
+      ? `${commandText(validation.command)} passed on the original and migrated code in offline Docker.`
+      : `${commandText(validation.baselineCommand)} passed on the original and ${commandText(validation.command)} on the migrated code in offline Docker.`
+    : waiver?.gate === 'dependency-preparation'
+      ? `**Not run: dependency preparation failed (${code(waiver.reason)}); this patch is untested.**`
+      : `**Validation did not pass (${validation.status}).**`;
   const render = (diffLimit: number, siteLimit: number, shortened?: string) =>
     [
       ...(waiver?.gate === 'dependency-preparation'
@@ -708,8 +728,8 @@ export function createReviewArtifacts(
         : []),
       '## Overview',
       shopify
-        ? `This app pins Shopify Admin API ${plainText(report.apiVersion.application ?? 'an older version')}. A deterministic Refit rule moves it to ${after} after checking every traced GraphQL document against the ${after} schema.`
-        : `${plainText(provider)} API ${after} ${overviewCauses.length ? overviewCauses.join(' and ') : 'changes API usage this code relies on'}. ${ai ? `AI${model ? ` (${code(model)})` : ''}, checked by Refit,` : 'A deterministic Refit rule'} migrates ${usageCount} in ${fileCount} so the code keeps working after the upgrade.${sources.length ? ` ${plainText(provider)} documents the change: ${sources.join(', ')}.` : ''}`,
+        ? overview
+        : `${overview}${sources.length ? ` ${plainText(provider)} documents the change: ${sources.join(', ')}.` : ''}`,
       '## API Impact & Spec Changes',
       [
         `- Breaking Changes: ${breaking.join(' ') || 'Recorded in the technical evidence.'}`,
@@ -727,15 +747,7 @@ export function createReviewArtifacts(
         : []),
       '## Automated Verification Gates',
       [
-        `- Test Suite Output: ${
-          passed
-            ? sameCommand
-              ? `${commandText(validation.command)} passed on the original and migrated code in offline Docker.`
-              : `${commandText(validation.baselineCommand)} passed on the original and ${commandText(validation.command)} on the migrated code in offline Docker.`
-            : waiver?.gate === 'dependency-preparation'
-              ? `**Not run: dependency preparation failed (${code(waiver.reason)}); this patch is untested.**`
-              : `**Validation did not pass (${validation.status}).**`
-        }${generatedResult}`,
+        `- Test Suite Output: ${checks}${generatedResult}`,
         ...(legacyPeerDeps
           ? [
               "- Dependency Installation: `npm ci` rejected the committed lockfile's peer dependencies (ERESOLVE), so Refit installed the same lockfile with `--legacy-peer-deps`. Check that your own install uses the same setting.",
@@ -783,6 +795,27 @@ export function createReviewArtifacts(
       .map(([diffLimit, siteLimit, shortened]) => render(diffLimit, siteLimit, shortened))
       .find((text) => text.length <= MAX_BODY_CHARACTERS) ??
     render(0, 0, 'code changes and site lists left out');
+  // The commit explains itself in `git log`: the title without its review prefix, what changed per
+  // file, the checks, the provider pages and the run, as plain text wrapped at 72 columns.
+  const commitMessage = `${[
+    title.slice(prefix.length),
+    '',
+    wrap(overview.replace(/`/g, '')),
+    '',
+    ...keyChanges.slice(0, MAX_LISTED_SITES).map((entry) => wrap(entry.replace(/`/g, ''), '  ')),
+    ...(keyChanges.length > MAX_LISTED_SITES
+      ? [`- and ${keyChanges.length - MAX_LISTED_SITES} more files; see the pull request.`]
+      : []),
+    '',
+    wrap(`Checks: ${checks.replace(/`|\*\*/g, '')}`),
+    ...(needsReview
+      ? ['', wrap('Needs review: the pull request lists what to check before merging.')]
+      : []),
+    ...(sourceUrls.length ? ['', ...sourceUrls.map((url) => `Source: ${url}`)] : []),
+    '',
+    `Refit-Run: ${report.runId.slice(0, 12)}`,
+    ...(integration ? [`Refit-Integration: ${integration}`] : []),
+  ].join('\n')}\n`;
   const files = {
     'report.json': `${JSON.stringify(waiver ? { ...report, waivedGates: [waiver] } : report, null, 2)}\n`,
     'migration.patch': patch.diff,
@@ -805,7 +838,7 @@ export function createReviewArtifacts(
       bytes: Buffer.byteLength(content),
     })),
   };
-  return { files, manifest };
+  return { files, manifest, commitMessage };
 }
 
 export async function writeReviewBundle(directory: string, report: ValidationReport) {

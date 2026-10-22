@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { expect, it } from 'vitest';
 import type { DeadlineRegistry } from './deadline-registry.ts';
-import { modelFixBody } from './model-fixes.ts';
+import { modelFixBody, modelFixMessage } from './model-fixes.ts';
 import { publicationWaiver } from './publication.ts';
 import { createReviewArtifacts, MAX_BODY_CHARACTERS } from './review.ts';
 import { digest } from './specifications.ts';
@@ -14,11 +14,16 @@ const registry: DeadlineRegistry = JSON.parse(readFileSync('data/deadlines.json'
 // As publication renders them: with the waiver an allowed review gate earns, if any.
 const published = (name: string, integration?: string) => {
   const report = fixture(name);
-  return createReviewArtifacts(report, 'github', integration, publicationWaiver(report, true))
-    .files['pull-request.md'];
+  const artifacts = createReviewArtifacts(
+    report,
+    'github',
+    integration,
+    publicationWaiver(report, true),
+  );
+  return { body: artifacts.files['pull-request.md'], message: artifacts.commitMessage };
 };
 
-const bodies: Record<string, () => string> = {
+const shapes: Record<string, () => { body: string; message: string }> = {
   validated: () => published('validated'),
   'needs-review-waiver': () => {
     expect(publicationWaiver(fixture('needs-review-waiver'), true)?.gate).toBe(
@@ -28,19 +33,37 @@ const bodies: Record<string, () => string> = {
   },
   'untraced-reads': () => published('untraced-reads'),
   'ai-patch': () => published('ai-patch'),
-  'model-fix': () => modelFixBody({ ...fixture('model-fix'), registry }),
+  'model-fix': () => {
+    const options = { ...fixture('model-fix'), registry };
+    return { body: modelFixBody(options), message: modelFixMessage(options) };
+  },
   shopify: () => published('shopify'),
   // One draft of a collection: each integration publishes its own body, marked with its id.
   'multi-integration': () => published('multi-integration', 'stripe'),
 };
 
-it.each(Object.keys(bodies))('writes the %s pull request body within budget', async (name) => {
-  const body = bodies[name]();
+it.each(Object.keys(shapes))('writes the %s pull request body within budget', async (name) => {
+  const { body } = shapes[name]();
   expect(body.length).toBeLessThanOrEqual(MAX_BODY_CHARACTERS);
   expect(body).toMatch(/^## Rollback$/m);
   expect(body).toMatch(/^## Reviewer Checklist$/m);
   expect(body).toMatch(/^## Not Verified$/m);
   await expect(body).toMatchFileSnapshot(`__snapshots__/pr-bodies/${name}.md`);
+});
+
+it.each(Object.keys(shapes))('writes the %s commit message', async (name) => {
+  const { message } = shapes[name]();
+  const [subject, blank] = message.split('\n');
+  expect(subject).toMatch(/^fix(\([a-z0-9-]+\))?: \S/);
+  expect(subject.length).toBeLessThanOrEqual(70);
+  expect(blank).toBe('');
+  // Only a single word too long to wrap, such as a URL, may pass 72 columns.
+  for (const line of message.split('\n'))
+    expect(line.length <= 72 || !line.trim().includes(' ') || line.startsWith('Source: ')).toBe(
+      true,
+    );
+  expect(message).not.toMatch(/Co-Authored-By|Generated with/i);
+  await expect(message).toMatchFileSnapshot(`__snapshots__/commit-messages/${name}.txt`);
 });
 
 it('shortens a body that would exceed the budget and says so', () => {

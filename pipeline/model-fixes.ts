@@ -6,7 +6,7 @@ import {
   type ModelReplacementStop,
 } from './model-retirements.ts';
 import { publicationConfiguration, publishFiles } from './publication.ts';
-import { MAX_BODY_CHARACTERS } from './review.ts';
+import { MAX_BODY_CHARACTERS, wrap } from './review.ts';
 import { validateSourcePatch } from './validation.ts';
 
 // The repository's approved checks, from its enrolled Refit configuration.
@@ -165,6 +165,47 @@ export function modelFixBody(options: {
   );
 }
 
+const modelFixTitle = (replacements: ModelReplacement[]) =>
+  `fix: replace ${replacements.length} retiring AI model${replacements.length === 1 ? '' : 's'}`;
+
+// The commit explains itself in `git log`: each edited line, the checks and the provider pages.
+export function modelFixMessage(options: Parameters<typeof modelFixBody>[0]) {
+  const { replacements, stops, validation } = options;
+  const sources = new Map(options.registry.deadlines.map((entry) => [entry.id, entry.source]));
+  const listed = replacements.slice(0, 25);
+  return `${[
+    modelFixTitle(replacements),
+    '',
+    ...listed.map((item) =>
+      wrap(
+        `- ${item.edited.file}:${item.edited.line}: ${item.from} -> ${item.to}, retires ${item.date}`,
+        '  ',
+      ),
+    ),
+    ...(replacements.length > listed.length
+      ? [`- and ${replacements.length - listed.length} more; see the pull request.`]
+      : []),
+    '',
+    wrap(
+      validation.baselineCommand.join(' ') === validation.command.join(' ')
+        ? `Checks: ${validation.command.join(' ')} ${validation.baseline.status} on the original and ${validation.patched.status} on the patched code in offline Docker; no request reached the provider.`
+        : `Checks: ${validation.baselineCommand.join(' ')} ${validation.baseline.status} on the original and ${validation.command.join(' ')} ${validation.patched.status} on the patched code in offline Docker; no request reached the provider.`,
+    ),
+    ...(stops.length
+      ? [
+          '',
+          wrap(
+            `Left for review: ${stops.length} use${stops.length === 1 ? '' : 's'}; see the pull request.`,
+          ),
+        ]
+      : []),
+    '',
+    ...[...new Set(replacements.map((item) => sources.get(item.deadline)).filter(Boolean))].map(
+      (url) => `Source: ${url}`,
+    ),
+  ].join('\n')}\n`;
+}
+
 // Replaces retiring OpenAI and Anthropic models in an enrolled repository without asking first:
 // proposes the registry replacements, validates them with the repository's approved checks in
 // offline Docker, and opens a draft pull request when they pass and publication is configured.
@@ -243,9 +284,9 @@ export async function runModelFixes(options: {
     revision: validation.revision,
     key: `model-fixes:${validation.revision}:${fixKey(replacements)}`,
     files: validation.publicationFiles,
-    title: `fix: replace ${replacements.length} retiring AI model${replacements.length === 1 ? '' : 's'}`,
+    title: modelFixTitle(replacements),
     body: modelFixBody({ replacements, stops, registry: options.registry, validation }),
-    message: 'fix: replace retiring AI models',
+    message: modelFixMessage({ replacements, stops, registry: options.registry, validation }),
   });
   return result(published.status === 'created' ? 'draft-created' : 'existing-pr', published.url, {
     url: published.url,
