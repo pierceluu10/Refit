@@ -14,6 +14,7 @@ import {
   dryRunAllowed,
   fillCommand,
   memoryWarning,
+  redactAws,
   runCost,
   shardSlices,
   shardStates,
@@ -75,7 +76,9 @@ async function cli(args) {
     });
     return stdout;
   } catch (error) {
-    const stderr = String(error.stderr ?? '').trim();
+    const stderr = redactAws(String(error.stderr ?? '').trim());
+    error.stderr = stderr;
+    error.message = redactAws(error.message);
     if (credentialsFailed(stderr))
       throw new CredentialsError(
         `AWS credentials expired or missing: ${stderr}\nSign in again with \`aws login --region ${region}\` for profile ${process.env.AWS_PROFILE ?? 'default'}. This command may have stopped partway: check \`status\` (or \`list\`) before rerunning it.`,
@@ -723,6 +726,6 @@ try {
   else if (action === 'stop') await stop(values.run);
   else throw new Error(USAGE);
 } catch (error) {
-  console.error(error.stderr?.trim() || error.message);
+  console.error(redactAws(error.stderr?.trim() || error.message));
   process.exitCode = 1;
 }

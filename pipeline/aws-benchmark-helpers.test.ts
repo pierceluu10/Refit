@@ -364,6 +364,8 @@ it('asks EC2 for a dry run before uploading anything, and stops there when it is
   expect(refused.code).toBe(1);
   expect(refused.output).toContain('The launch dry run failed, so nothing was uploaded or changed');
   expect(refused.output).toContain('(UnauthorizedOperation)');
+  for (const identifier of ['123456789012', 'o-example', 'p-example', 'encoded'])
+    expect(refused.output).not.toContain(identifier);
   expect(refused.calls.filter((call) => CHANGES.test(call))).toEqual([]);
   expect(refused.run).toBeUndefined();
 
