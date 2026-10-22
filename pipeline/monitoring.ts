@@ -36,7 +36,8 @@ export interface HostedAlerts {
   digest?: boolean;
 }
 
-function flag(environment: NodeJS.ProcessEnv, name: string) {
+// A switch read from the environment: 1 is on; 0, empty or unset is off; anything else is an error.
+export function environmentFlag(environment: NodeJS.ProcessEnv, name: string) {
   const value = environment[name];
   if (value === undefined || value === '' || value === '0') return false;
   if (value !== '1') throw new PipelineInputError(`${name} must be 1, 0 or unset.`);
@@ -46,8 +47,8 @@ function flag(environment: NodeJS.ProcessEnv, name: string) {
 // REFIT_HOSTED_ALERTS=1 turns monitoring on with the default 90, 30 and 7 day lead times;
 // REFIT_HOSTED_ALERT_DIGEST=1 adds the weekly digest.
 export function hostedAlerts(environment: NodeJS.ProcessEnv): HostedAlerts | null {
-  const digest = flag(environment, 'REFIT_HOSTED_ALERT_DIGEST');
-  if (!flag(environment, 'REFIT_HOSTED_ALERTS')) {
+  const digest = environmentFlag(environment, 'REFIT_HOSTED_ALERT_DIGEST');
+  if (!environmentFlag(environment, 'REFIT_HOSTED_ALERTS')) {
     if (digest)
       throw new PipelineInputError('REFIT_HOSTED_ALERT_DIGEST requires REFIT_HOSTED_ALERTS=1.');
     return null;
