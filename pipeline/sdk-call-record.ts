@@ -26,10 +26,8 @@ export interface SdkCallRecord extends SourceSite {
   method: string;
   expression: string;
   // How the client was obtained, where, and the custom endpoint or platform it is set up for.
-  client: {
+  client: SourceSite & {
     kind: 'module' | 'constructor' | 'class-field' | 'parameter';
-    file: string;
-    line: number;
     custom: string | null;
   };
   // The keyword or field names the request sets, and whether it also passes options it cannot name.
