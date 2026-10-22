@@ -33,6 +33,8 @@ const PROVIDERS = new Set([
   'coinbase-commerce',
   'bedrock',
   'azure-openai',
+  'aws',
+  'azure',
 ]);
 const KINDS = new Set(['api-version', 'model', 'sdk', 'method', 'endpoint', 'field', 'feature']);
 const ENTRY_KEYS = [
@@ -90,7 +92,9 @@ export interface DeadlineEntry {
     | 'lob'
     | 'coinbase-commerce'
     | 'bedrock'
-    | 'azure-openai';
+    | 'azure-openai'
+    | 'aws'
+    | 'azure';
   kind: 'api-version' | 'model' | 'sdk' | 'method' | 'endpoint' | 'field' | 'feature';
   versions: string[];
   date: string;

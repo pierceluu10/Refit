@@ -156,13 +156,15 @@ it.skipIf(!DATABASE)(
       accounts: ['example'],
       limits: DEFAULT_TENANCY_LIMITS,
     });
-    // Version 3 adds tenancy columns to installations; every other value stays as main wrote it.
+    // Versions 3 and 8 add tenancy and event-order columns to installations; every other value
+    // stays as main wrote it.
     expect(await rows(upgraded.pool)).toEqual({
       ...before,
       refit_installations: before.refit_installations.map((row) => ({
         ...(row as object),
         allowed: false,
         last_claimed_at: null,
+        changed_at: null,
       })),
     });
     expect(await history(upgraded.pool)).toEqual(
@@ -190,8 +192,8 @@ it.skipIf(!DATABASE)(
     await migrateHostedSchema(fresh.pool);
     const upgradedShape = await shape(upgraded.pool, upgraded.schema);
     expect(await shape(fresh.pool, fresh.schema)).toEqual(upgradedShape);
-    // Versions 1 and 2 adopt main's schema unchanged: only version 3's columns are new.
-    expect(upgradedShape.columns.length - mainShape.columns.length).toBe(2);
+    // Versions 1 and 2 adopt main's schema unchanged: only versions 3 and 8 add columns to it.
+    expect(upgradedShape.columns.length - mainShape.columns.length).toBe(3);
     // A second start applies nothing.
     expect(await migrateHostedSchema(upgraded.pool)).toEqual([]);
   },
@@ -227,7 +229,7 @@ it.skipIf(!DATABASE)(
     const dryRun = await refit(['hosted', 'migrate', '--dry-run'], url);
     console.log(dryRun);
     expect(dryRun).toBe(
-      'Applied: none\nPending: 1 Initial hosted tables\nPending: 2 Operator retry flag on jobs\nPending: 3 Allowed accounts, claim fairness, daily usage and AI ledgers\nPending: 4 Approval issues and commands\nPending: 5 Repository inventories\nPending: 6 Deadline monitoring and alerts\n',
+      'Applied: none\nPending: 1 Initial hosted tables\nPending: 2 Operator retry flag on jobs\nPending: 3 Allowed accounts, claim fairness, daily usage and AI ledgers\nPending: 4 Approval issues and commands\nPending: 5 Repository inventories\nPending: 6 Deadline monitoring and alerts\nPending: 7 Report issues\nPending: 8 Installation event order and rename cascades\n',
     );
     const created = await pool.query(
       `SELECT count(*)::int AS count FROM pg_class
@@ -236,18 +238,18 @@ it.skipIf(!DATABASE)(
     expect(created.rows[0].count).toBe(0);
 
     expect(await refit(['hosted', 'migrate'], url)).toBe(
-      'Applied: 1 Initial hosted tables\nApplied: 2 Operator retry flag on jobs\nApplied: 3 Allowed accounts, claim fairness, daily usage and AI ledgers\nApplied: 4 Approval issues and commands\nApplied: 5 Repository inventories\nApplied: 6 Deadline monitoring and alerts\n',
+      'Applied: 1 Initial hosted tables\nApplied: 2 Operator retry flag on jobs\nApplied: 3 Allowed accounts, claim fairness, daily usage and AI ledgers\nApplied: 4 Approval issues and commands\nApplied: 5 Repository inventories\nApplied: 6 Deadline monitoring and alerts\nApplied: 7 Report issues\nApplied: 8 Installation event order and rename cascades\n',
     );
     expect(await refit(['hosted', 'migrate'], url)).toBe('No pending migrations.\n');
     await pool.query(
-      `INSERT INTO refit_schema_migrations (version, name) VALUES (7, 'From a newer worker')`,
+      `INSERT INTO refit_schema_migrations (version, name) VALUES (9, 'From a newer worker')`,
     );
     expect(await refit(['hosted', 'migrate', '--dry-run'], url)).toBe(
-      'Applied: 1, 2, 3, 4, 5, 6, 7\nApplied by a newer worker: 7 From a newer worker\nNo pending migrations.\n',
+      'Applied: 1, 2, 3, 4, 5, 6, 7, 8, 9\nApplied by a newer worker: 9 From a newer worker\nNo pending migrations.\n',
     );
     const { unknown, pending } = await hostedSchemaStatus(pool);
     expect({ unknown: unknown.map((migration) => migration.version), pending }).toEqual({
-      unknown: [7],
+      unknown: [9],
       pending: [],
     });
   },

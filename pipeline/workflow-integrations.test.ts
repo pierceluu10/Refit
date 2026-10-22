@@ -175,7 +175,10 @@ it('executes selected CLI scans from outside the checkout without mixing provide
           '--output',
           join(root, 'missing'),
         ]),
-      ).rejects.toMatchObject({ code: 1, stderr: expect.stringContaining('Choose --integration') });
+      ).rejects.toMatchObject({
+        code: 1,
+        stderr: expect.stringContaining('integrations; choose one with --integration:'),
+      });
       await expect(readFile(join(root, 'missing/manifest.json'))).rejects.toMatchObject({
         code: 'ENOENT',
       });

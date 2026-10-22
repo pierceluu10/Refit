@@ -3,6 +3,11 @@ import type { AiLedger } from './ai-budget.ts';
 import type { GitHubWebhook } from './github-webhooks.ts';
 import { WebhookInputError } from './github-webhooks.ts';
 import { transaction } from './hosted-database.ts';
+import {
+  confirmRepositoryIdentity,
+  followLifecycle,
+  type LifecyclePlan,
+} from './hosted-lifecycle.ts';
 import { migrateHostedSchema } from './hosted-migrations.ts';
 import { recordApprovalCommand } from './hosted-approval-store.ts';
 import {
@@ -103,6 +108,22 @@ async function cancel(client: PoolClient, where: string, values: unknown[], mess
   };
 }
 
+// Applies a lifecycle plan's cancellations; running jobs are returned so this process aborts them.
+async function stop(client: PoolClient, plan: LifecyclePlan) {
+  const stopped = { targets: [] as string[], running: [] as number[] };
+  for (const entry of plan.cancel) {
+    const result = await cancel(
+      client,
+      'installation_id = $1 AND repository = $2',
+      [entry.installationId, entry.repository],
+      entry.message,
+    );
+    stopped.targets.push(...result.targets);
+    stopped.running.push(...result.running);
+  }
+  return stopped;
+}
+
 // Without a tenancy, no account is allowed: only the serving worker records deliveries.
 export async function openHostedStore(
   pool: Pool,
@@ -145,25 +166,59 @@ export async function openHostedStore(
         );
       if (change.kind === 'issue_comment')
         return { status: await recordApprovalCommand(client, change), ...none };
-      if (!('installationId' in change)) return { status: 'accepted' as const, ...none };
-      const { rows: prior } = await client.query<{ owner: string }>(
-        'SELECT owner FROM refit_installations WHERE id = $1 FOR UPDATE',
-        [change.installationId],
-      );
+      if (change.kind === 'repository' || change.kind === 'account') {
+        const allowed = tenancy.accounts.includes(change.owner);
+        const plan = await followLifecycle(client, change, allowed);
+        const stopped = await stop(client, plan);
+        return {
+          status: allowed ? ('accepted' as const) : ('not-allowed' as const),
+          enrolled: await enroll(client, change.installationId, plan.enroll),
+          cancelled: stopped.targets,
+          running: stopped.running,
+        };
+      }
+      if (change.kind !== 'installation' && change.kind !== 'repositories')
+        // Hosted mode acts on no pull request; the local service suggests agents from them. A push
+        // is accepted so monitoring can re-scan the repository.
+        return {
+          status:
+            change.kind === 'ping' || change.kind === 'push' ? ('accepted' as const) : 'ignored',
+          ...none,
+        };
+      const { rows: prior } = await client.query<{
+        owner: string;
+        status: string;
+        changed_at: Date | null;
+      }>('SELECT owner, status, changed_at FROM refit_installations WHERE id = $1 FOR UPDATE', [
+        change.installationId,
+      ]);
       if (prior[0] && prior[0].owner !== change.owner)
         throw new WebhookInputError(409, 'Installation owner changed unexpectedly.');
+      const changedAt =
+        change.kind === 'installation' && change.updatedAt ? change.updatedAt : null;
+      // GitHub never reuses an installation ID, so no later delivery revives a deleted one.
+      if (
+        prior[0]?.status === 'deleted' ||
+        (changedAt && prior[0]?.changed_at && changedAt < prior[0].changed_at.getTime())
+      )
+        return { status: 'stale' as const, ...none };
+      // Repository changes and accepted permissions leave a suspension in place.
       const status =
-        change.action === 'deleted'
-          ? 'deleted'
-          : change.action === 'suspend'
-            ? 'suspended'
-            : 'active';
+        change.kind === 'repositories' || change.action === 'new_permissions_accepted'
+          ? (prior[0]?.status ?? 'active')
+          : change.action === 'deleted'
+            ? 'deleted'
+            : change.action === 'suspend'
+              ? 'suspended'
+              : 'active';
       // Other accounts' installations are recorded, so allowing the account later backfills them.
       const allowed = tenancy.accounts.includes(change.owner);
       await client.query(
-        `INSERT INTO refit_installations (id, owner, status, allowed) VALUES ($1, $2, $3, $4)
-         ON CONFLICT (id) DO UPDATE SET status = $3, allowed = $4, updated_at = now()`,
-        [change.installationId, change.owner, status, allowed],
+        `INSERT INTO refit_installations (id, owner, status, allowed, changed_at)
+         VALUES ($1, $2, $3, $4, $5)
+         ON CONFLICT (id) DO UPDATE SET status = $3, allowed = $4, updated_at = now(),
+           changed_at = GREATEST(refit_installations.changed_at, $5)`,
+        [change.installationId, change.owner, status, allowed, changedAt && new Date(changedAt)],
       );
       for (const repository of change.added)
         await client.query(
@@ -242,6 +297,15 @@ export async function openHostedStore(
       );
       return rows[0] ? enroll(client, Number(rows[0].installation_id), [approval.repository]) : [];
     });
+
+  // Stops a target whose repository GitHub no longer serves, or whose name changed hands.
+  const retire = (targetId: string, githubId: number | null) =>
+    transaction(
+      pool,
+      async (client) =>
+        (await stop(client, await confirmRepositoryIdentity(client, targetId, githubId))).targets
+          .length > 0,
+    );
 
   // Removes a repository's approval and cancels its targets; running jobs are returned to abort.
   const revoke = (repository: string, revokedBy: string) =>
@@ -558,6 +622,7 @@ export async function openHostedStore(
   return {
     accept,
     approve,
+    retire,
     revoke,
     enqueueDue,
     claim,
