@@ -42,7 +42,9 @@ import {
   crossesOpenEnums,
   OPEN_ENUM_REPAIR,
   OPEN_ENUM_RULE,
+  keepsPartialRestore,
   openEnumRepair,
+  restorableOpenEnumErrors,
 } from './stripe-open-enums.ts';
 import { SUBSCRIPTION_PERIOD_RULE } from './stripe-subscription-periods.ts';
 import {
@@ -648,7 +650,7 @@ export async function validateMigration(options: {
     let candidateDirectory = initialCandidate?.directory;
     let candidateSources = initialCandidate?.sources;
     // A deterministic proposal is the rules' output; AI repairs are guarded against it.
-    const ruleSources =
+    let ruleSources =
       report.patch.generator === 'deterministic' ? initialCandidate?.sources.files : undefined;
     let candidateDependencies = initialCandidate?.dependencies;
     let candidateEnvironment = initialCandidate?.environment;
@@ -689,7 +691,14 @@ export async function validateMigration(options: {
         ).map((removal) => removal.parameter),
       ),
     ];
-    const repair: { limit: number; requested: number; stopReason: string; error: string | null } = {
+    const repair: {
+      limit: number;
+      requested: number;
+      stopReason: string;
+      error: string | null;
+      // The open-enum restore applied to part of the errors before an AI repair of the rest.
+      openEnumRestored?: boolean;
+    } = {
       limit: repairLimit,
       requested: 0,
       stopReason: dependencyFailure
@@ -704,13 +713,15 @@ export async function validateMigration(options: {
       error: null,
     };
     // stripe-node 22.4.0 widened open response enums with OtherString. Before any AI repair, a
-    // deterministic repair restores their known literals where the upgraded types reject them; it
-    // is kept only when every introduced error is that shape and the checks then pass.
+    // deterministic repair restores their known literals where the upgraded types reject them. It
+    // is kept when every introduced error is that shape and the checks then pass, or, before an AI
+    // repair of a rules proposal, when the checks then fail only on the errors it left alone: the
+    // model then repairs those errors on the restored candidate instead of all of them.
     const sdkUpgrade =
       'sdkUpgrade' in report.patch
         ? (report.patch.sdkUpgrade as { from?: string; to?: string } | undefined)
         : undefined;
-    const openEnumFiles =
+    const introducedByRules =
       baseline.status === 'passed' &&
       patched.status === 'failed' &&
       options.compareTypeErrors &&
@@ -718,7 +729,15 @@ export async function validateMigration(options: {
       sdkUpgrade?.from &&
       sdkUpgrade.to &&
       crossesOpenEnums(sdkUpgrade.from, sdkUpgrade.to)
-        ? openEnumRepair(candidateSources.files, introducedTypeErrors(baselineRun, patched))
+        ? introducedTypeErrors(baselineRun, patched)
+        : [];
+    const openEnumErrors =
+      candidateSources && options.aiPatch && ruleSources
+        ? restorableOpenEnumErrors(candidateSources.files, introducedByRules)
+        : introducedByRules;
+    const openEnumFiles =
+      candidateSources && openEnumErrors.length
+        ? openEnumRepair(candidateSources.files, openEnumErrors)
         : undefined;
     if (openEnumFiles?.length && candidateSources) {
       const current = new Map(candidateSources.files.map((file) => [file.path, file.content]));
@@ -747,7 +766,15 @@ export async function validateMigration(options: {
       const check = compared(
         await containerCheck(prepared.directory, image, options.command, prepared.dependencies),
       );
-      if (check.status === 'passed') {
+      if (
+        check.status === 'passed' ||
+        (check.status === 'failed' &&
+          keepsPartialRestore(
+            introducedByRules,
+            openEnumErrors,
+            introducedTypeErrors(baselineRun, check),
+          ))
+      ) {
         proposal = { ...proposal, diff };
         publicationFiles = prepared.publicationFiles;
         candidateDirectory = prepared.directory;
@@ -756,7 +783,12 @@ export async function validateMigration(options: {
         candidateEnvironment = prepared.environment;
         patched = check;
         recordAttempt();
-        repair.stopReason = OPEN_ENUM_REPAIR;
+        if (check.status === 'passed') repair.stopReason = OPEN_ENUM_REPAIR;
+        else {
+          repair.openEnumRestored = true;
+          // The restore is a rule edit, so the AI guards do not count it as the model's.
+          ruleSources = prepared.sources.files;
+        }
       }
     }
     while (
