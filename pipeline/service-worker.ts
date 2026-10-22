@@ -32,6 +32,7 @@ export async function confirmRepositoryAccess(app: GitHubAppConfiguration, repos
   return {
     installationId: authentication.installationId,
     id: Number(record.id),
+    token: authentication.token,
     defaultBranch: record.default_branch,
     size: record.size,
   };

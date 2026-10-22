@@ -2,12 +2,14 @@ import type { Pool, PoolClient } from 'pg';
 import type { AiLedger } from './ai-budget.ts';
 import type { GitHubWebhook } from './github-webhooks.ts';
 import { WebhookInputError } from './github-webhooks.ts';
+import { transaction } from './hosted-database.ts';
+import { migrateHostedSchema } from './hosted-migrations.ts';
+import { recordApprovalCommand } from './hosted-approval-store.ts';
 import {
   DEFAULT_TENANCY_LIMITS,
   installationRefusals,
   reserveUsage,
   TENANCY_REFUSALS,
-  TENANCY_SCHEMA,
   USAGE_DAY,
   type HostedTenancy,
   type TenancyRefusal,
@@ -20,73 +22,8 @@ import { PipelineInputError } from './types.ts';
 // A crashed worker's lease is reclaimed this many times before the job is marked failed.
 const MAX_LEASE_ATTEMPTS = 3;
 const TARGET_HASH_LENGTH = 16;
-const SCHEMA_LOCK = 4_206_100_001;
 // Serializes claims so two workers never start jobs for one installation at once.
 const CLAIM_LOCK = 4_206_100_002;
-
-const SCHEMA = `
-CREATE TABLE IF NOT EXISTS refit_installations (
-  id bigint PRIMARY KEY,
-  owner text NOT NULL,
-  status text NOT NULL CHECK (status IN ('active', 'suspended', 'deleted')),
-  updated_at timestamptz NOT NULL DEFAULT now()
-);
-CREATE TABLE IF NOT EXISTS refit_installation_repositories (
-  installation_id bigint NOT NULL REFERENCES refit_installations (id),
-  repository text NOT NULL,
-  github_id bigint NOT NULL,
-  PRIMARY KEY (installation_id, repository)
-);
-CREATE TABLE IF NOT EXISTS refit_deliveries (
-  id text PRIMARY KEY,
-  hash text NOT NULL,
-  event text NOT NULL,
-  received_at timestamptz NOT NULL DEFAULT now()
-);
-CREATE TABLE IF NOT EXISTS refit_approvals (
-  repository text NOT NULL,
-  base text NOT NULL,
-  fingerprint text NOT NULL,
-  approval jsonb NOT NULL,
-  approved_by text NOT NULL,
-  approved_at timestamptz NOT NULL DEFAULT now(),
-  PRIMARY KEY (repository, base)
-);
-CREATE TABLE IF NOT EXISTS refit_targets (
-  id text PRIMARY KEY,
-  repository text NOT NULL,
-  base text NOT NULL,
-  integration text,
-  installation_id bigint NOT NULL REFERENCES refit_installations (id),
-  fingerprint text NOT NULL,
-  status text NOT NULL CHECK (status IN ('enrolled', 'cancelled')),
-  message text,
-  updated_at timestamptz NOT NULL DEFAULT now()
-);
-CREATE TABLE IF NOT EXISTS refit_jobs (
-  id bigserial PRIMARY KEY,
-  target_id text NOT NULL REFERENCES refit_targets (id),
-  status text NOT NULL CHECK (status IN ('queued', 'running', 'finished', 'failed', 'cancelled')),
-  lease_owner text,
-  lease_expires_at timestamptz,
-  attempts integer NOT NULL DEFAULT 0,
-  created_at timestamptz NOT NULL DEFAULT now(),
-  finished_at timestamptz,
-  receipt jsonb
-);
--- An operator retry permits one fresh attempt of a cached failure; successful results stay cached.
-ALTER TABLE refit_jobs ADD COLUMN IF NOT EXISTS retry boolean NOT NULL DEFAULT false;
-CREATE UNIQUE INDEX IF NOT EXISTS refit_jobs_open ON refit_jobs (target_id)
-  WHERE status IN ('queued', 'running');
-CREATE INDEX IF NOT EXISTS refit_targets_installation ON refit_targets (installation_id);
--- No policies: data APIs such as Supabase's see nothing; the owning worker role bypasses RLS.
-ALTER TABLE refit_installations ENABLE ROW LEVEL SECURITY;
-ALTER TABLE refit_installation_repositories ENABLE ROW LEVEL SECURITY;
-ALTER TABLE refit_deliveries ENABLE ROW LEVEL SECURITY;
-ALTER TABLE refit_approvals ENABLE ROW LEVEL SECURITY;
-ALTER TABLE refit_targets ENABLE ROW LEVEL SECURITY;
-ALTER TABLE refit_jobs ENABLE ROW LEVEL SECURITY;
-`;
 
 export interface HostedTarget {
   id: string;
@@ -108,21 +45,6 @@ export interface HostedReceipt {
 export function hostedTargetId(repository: string, base: string, integration?: string | null) {
   const hash = digest(`${repository.toLowerCase()}#${base}`).slice(0, TARGET_HASH_LENGTH);
   return integration ? `${hash}.${integration}` : hash;
-}
-
-export async function transaction<T>(pool: Pool, operation: (client: PoolClient) => Promise<T>) {
-  const client = await pool.connect();
-  try {
-    await client.query('BEGIN');
-    const result = await operation(client);
-    await client.query('COMMIT');
-    return result;
-  } catch (error) {
-    await client.query('ROLLBACK');
-    throw error;
-  } finally {
-    client.release();
-  }
 }
 
 // Creates or refreshes targets for installed repositories that have a stored approval, and queues
@@ -186,14 +108,12 @@ export async function openHostedStore(
   pool: Pool,
   tenancy: HostedTenancy = { accounts: [], limits: DEFAULT_TENANCY_LIMITS },
 ) {
-  await transaction(pool, async (client) => {
-    await client.query('SELECT pg_advisory_xact_lock($1)', [SCHEMA_LOCK]);
-    await client.query(SCHEMA);
-    await client.query(TENANCY_SCHEMA);
-  });
+  await migrateHostedSchema(pool);
 
   const accept = (delivery: string, event: string, body: Uint8Array, change: GitHubWebhook) =>
     transaction(pool, async (client) => {
+      // claim locks jobs and then installations; taking its lock first keeps the order the same.
+      await client.query('SELECT pg_advisory_xact_lock($1)', [CLAIM_LOCK]);
       const hash = digest(body);
       const inserted = await client.query(
         'INSERT INTO refit_deliveries (id, hash, event) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING',
@@ -212,6 +132,8 @@ export async function openHostedStore(
           );
         return { status: 'duplicate' as const, ...none };
       }
+      if (change.kind === 'issue_comment')
+        return { status: await recordApprovalCommand(client, change), ...none };
       if (!('installationId' in change)) return { status: 'accepted' as const, ...none };
       const { rows: prior } = await client.query<{ owner: string }>(
         'SELECT owner FROM refit_installations WHERE id = $1 FOR UPDATE',
@@ -245,12 +167,11 @@ export async function openHostedStore(
           [change.installationId, removed],
         );
       if (status !== 'active') {
-        // An uninstalled App keeps no repositories, so nothing derived from them (inventories) stays.
+        // Repository rows stay for the uninstall grace period; their inventories go now.
         if (status === 'deleted')
-          await client.query(
-            'DELETE FROM refit_installation_repositories WHERE installation_id = $1',
-            [change.installationId],
-          );
+          await client.query('DELETE FROM refit_inventories WHERE installation_id = $1', [
+            change.installationId,
+          ]);
         const cancelled = await cancel(
           client,
           'installation_id = $1',
@@ -309,6 +230,25 @@ export async function openHostedStore(
         [approval.repository],
       );
       return rows[0] ? enroll(client, Number(rows[0].installation_id), [approval.repository]) : [];
+    });
+
+  // Removes a repository's approval and cancels its targets; running jobs are returned to abort.
+  const revoke = (repository: string, revokedBy: string) =>
+    transaction(pool, async (client) => {
+      const { rowCount } = await client.query('DELETE FROM refit_approvals WHERE repository = $1', [
+        repository,
+      ]);
+      const cancelled = await cancel(
+        client,
+        'repository = $1',
+        [repository],
+        `Approval revoked by ${revokedBy}.`,
+      );
+      return {
+        revoked: Boolean(rowCount),
+        cancelled: cancelled.targets,
+        running: cancelled.running,
+      };
     });
 
   const enqueueDue = async (intervalSeconds: number) =>
@@ -468,6 +408,7 @@ export async function openHostedStore(
   // installed repository; newly disallowed ones are cancelled as if uninstalled.
   const allow = () =>
     transaction(pool, async (client) => {
+      await client.query('SELECT pg_advisory_xact_lock($1)', [CLAIM_LOCK]);
       const { rows } = await client.query<{ id: string; allowed: boolean; status: string }>(
         `UPDATE refit_installations SET allowed = owner = ANY($1::text[]), updated_at = now()
          WHERE allowed <> (owner = ANY($1::text[])) RETURNING id, allowed, status`,
@@ -536,6 +477,16 @@ export async function openHostedStore(
       }),
   });
 
+  // Running jobs whose lease is still live, with the worker holding each.
+  const leases = async () =>
+    new Map(
+      (
+        await pool.query<{ id: string; lease_owner: string }>(
+          `SELECT id, lease_owner FROM refit_jobs WHERE status = 'running' AND lease_expires_at > now()`,
+        )
+      ).rows.map((row) => [Number(row.id), row.lease_owner]),
+    );
+
   const read = async () => {
     const [installations, targets, jobs] = await Promise.all([
       pool.query<{
@@ -596,6 +547,7 @@ export async function openHostedStore(
   return {
     accept,
     approve,
+    revoke,
     enqueueDue,
     claim,
     retry,
@@ -605,5 +557,6 @@ export async function openHostedStore(
     allow,
     reserveInventory,
     aiLedger,
+    leases,
   };
 }

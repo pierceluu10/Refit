@@ -12,10 +12,10 @@ const APP_SLUG = /^[a-z0-9][a-z0-9-]*$/;
 const ACCOUNT_LOGIN = /^[A-Za-z0-9][A-Za-z0-9-]{0,38}$/;
 const NOT_FOUND = 404;
 
-export interface GitHubAppConfiguration {
-  appId: string;
-  privateKeyFile: string;
-}
+export type GitHubAppConfiguration =
+  | { appId: string; privateKeyFile: string }
+  // A job machine holds one read-only installation token minted by the control process, never the key.
+  | { appId: string; installationToken: { installationId: number; token: string } };
 
 export function githubAppConfiguration(environment: NodeJS.ProcessEnv): GitHubAppConfiguration {
   const appId = environment.GITHUB_APP_ID?.trim();
@@ -35,6 +35,10 @@ export function githubAppConfiguration(environment: NodeJS.ProcessEnv): GitHubAp
 
 // A short-lived JWT that authenticates as the App itself, not as one of its installations.
 async function appJwt(configuration: GitHubAppConfiguration) {
+  if (!('privateKeyFile' in configuration))
+    throw new PipelineInputError(
+      'A job machine holds only a read-only installation token; this step needs the GitHub App private key.',
+    );
   if ((await stat(configuration.privateKeyFile)).size > MAX_PRIVATE_KEY_BYTES)
     throw new PipelineInputError('GitHub App private key exceeds 64 KiB.');
   const content = await readFile(configuration.privateKeyFile);
@@ -127,6 +131,12 @@ export async function authenticateGitHubRead(
   configuration: GitHubAppConfiguration,
   repository: string,
 ) {
+  if ('installationToken' in configuration)
+    return {
+      token: configuration.installationToken.token,
+      appId: Number(configuration.appId),
+      installationId: configuration.installationToken.installationId,
+    };
   const access = await installationAccess(configuration, repository, { contents: 'read' });
   return {
     token: access.token,

@@ -51,11 +51,11 @@ const MAX_METADATA_BYTES = 1024 * 1024;
 const REQUEST_TIMEOUT_MS = 30_000;
 const REGISTRY_ATTEMPTS = 3;
 const REGISTRY_RETRY_MS = 2_000;
-const INTEGRITY = /^sha512-[A-Za-z0-9+/]{86}==$/;
+export const INTEGRITY = /^sha512-[A-Za-z0-9+/]{86}==$/;
 const VERSION_SPEC = /^([~^]?)(\d+\.\d+\.\d+)$/;
 // pnpm writes flow maps without inner padding and never folds long lines.
 const PNPM_FORMAT = { lineWidth: 0, flowCollectionPadding: false, singleQuote: true };
-const NPM_FORMATS = [2, 4, '\t'].flatMap((indent) =>
+export const NPM_FORMATS = [2, 4, '\t'].flatMap((indent) =>
   ['\n', '\r\n'].flatMap((newline) =>
     ['', '\n'].map(
       (end) => (lock: unknown) =>
@@ -101,7 +101,7 @@ interface Declaration {
   spec: string;
   newSpec: (target: string) => string;
   unique: boolean;
-  rewrite: (target: string) => string;
+  rewrite: (target: string, text?: string) => string;
 }
 interface Release {
   tarball: string;
@@ -127,42 +127,47 @@ function satisfiesMinimum(version: unknown, range: string) {
   return true;
 }
 
-function stringRecord(value: unknown): value is Record<string, string> {
+export function stringRecord(value: unknown): value is Record<string, string> {
   return isObject(value) && Object.values(value).every((entry) => typeof entry === 'string');
 }
 
-function manifestDeclaration(
+export function manifestDeclaration(
   manifest: Record<string, unknown>,
   manifestText: string,
+  name = 'stripe',
 ): Declaration | Refusal {
   const section = (['dependencies', 'devDependencies'] as const).find(
-    (name) => isObject(manifest[name]) && typeof manifest[name].stripe === 'string',
+    (key) => isObject(manifest[key]) && typeof manifest[key][name] === 'string',
   );
-  if (!section) return { reason: 'The root package.json does not declare stripe.' };
-  const spec = (manifest[section] as Record<string, string>).stripe;
+  if (!section) return { reason: `The root package.json does not declare ${name}.` };
+  const spec = (manifest[section] as Record<string, string>)[name];
   const parsed = VERSION_SPEC.exec(spec);
-  if (!parsed) return { reason: `The stripe version "${spec}" is not an exact, ^ or ~ version.` };
-  const declaration = new RegExp(`("stripe"\\s*:\\s*")${spec.replace(/[.^~]/g, '\\$&')}"`, 'g');
+  if (!parsed) return { reason: `The ${name} version "${spec}" is not an exact, ^ or ~ version.` };
+  const declaration = new RegExp(
+    `(${JSON.stringify(name).replace(/[.\\/-]/g, '\\$&')}\\s*:\\s*")${spec.replace(/[.^~]/g, '\\$&')}"`,
+    'g',
+  );
   return {
     section,
     spec,
     newSpec: (target: string) => `${parsed[1]}${target}`,
     unique: (manifestText.match(declaration) ?? []).length === 1,
-    rewrite: (target: string) => manifestText.replace(declaration, `$1${parsed[1]}${target}"`),
+    rewrite: (target: string, text = manifestText) =>
+      text.replace(declaration, `$1${parsed[1]}${target}"`),
   };
 }
 
 // Benchmark runs under load saw single connection resets; a short retry keeps them from skipping
 // the upgrade. Any other failure is reported at once.
-async function registryResponse(target: string) {
+export async function npmRegistryResponse(url: string, accept = 'application/json') {
   for (let attempt = 1; ; attempt++) {
     try {
       return await fetchSpecificationResponse(
-        `${REGISTRY}${target}`,
+        url,
         {
           redirect: 'error',
           signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
-          headers: { Accept: 'application/json' },
+          headers: { Accept: accept },
         },
         'npm registry',
       );
@@ -177,7 +182,7 @@ async function registryResponse(target: string) {
 async function registryRelease(target: string): Promise<Release | Refusal> {
   let metadata: unknown;
   try {
-    const response = await registryResponse(target);
+    const response = await npmRegistryResponse(`${REGISTRY}${target}`);
     if (!response.ok) {
       await response.body?.cancel();
       return { reason: `The npm registry returned HTTP ${response.status} for stripe ${target}.` };

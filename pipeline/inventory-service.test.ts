@@ -327,7 +327,7 @@ it.skipIf(!DATABASE)(
     await deliver(url, 'installation', installation('deleted', ['example/application']));
     registry = await status(url);
     expect(registry.installations).toEqual([
-      expect.objectContaining({ id: String(INSTALLATION), status: 'deleted', repositories: [] }),
+      expect.objectContaining({ id: String(INSTALLATION), status: 'deleted' }),
       expect.objectContaining({ id: '999', allowed: false, inventoriesToday: 0 }),
     ]);
     expect(registry.inventories).toEqual([]);

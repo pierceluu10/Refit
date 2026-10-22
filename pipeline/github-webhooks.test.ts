@@ -95,6 +95,39 @@ it('normalizes installation access without trusting foreign Apps, owners or exec
   });
 });
 
+it('keeps only pushes that move the default branch', () => {
+  const head = 'a'.repeat(40);
+  const push = (fields: Record<string, unknown>) =>
+    parseWebhook(
+      Buffer.from(
+        JSON.stringify({
+          ref: 'refs/heads/main',
+          after: head,
+          deleted: false,
+          installation: { id: INSTALLATION_ID },
+          repository: { full_name: 'Example/Application', default_branch: 'main' },
+          ...fields,
+        }),
+      ),
+      'push',
+      APP_ID,
+    );
+  expect(push({})).toEqual({
+    kind: 'push',
+    installation: INSTALLATION_ID,
+    repository: 'example/application',
+    head,
+  });
+  expect(push({ ref: 'refs/heads/feature' })).toEqual({ kind: 'ignored' });
+  expect(push({ ref: 'refs/tags/v1.0.0' })).toEqual({ kind: 'ignored' });
+  expect(push({ deleted: true, after: '0'.repeat(40) })).toEqual({ kind: 'ignored' });
+  expect(() => push({ installation: undefined })).toThrow('Push webhook is incomplete.');
+  expect(() => push({ after: 'not-a-commit' })).toThrow('Push webhook is incomplete.');
+  expect(() => push({ repository: { full_name: '../escape', default_branch: 'main' } })).toThrow(
+    'Push webhook is incomplete.',
+  );
+});
+
 it('deduplicates concurrent deliveries and keeps receipts across restart without granting access', async () => {
   const { root, value } = await store();
   const id = randomUUID();
