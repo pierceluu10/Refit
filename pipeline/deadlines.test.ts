@@ -1032,6 +1032,10 @@ it('keeps the shipped registry valid and sourced', async () => {
       'firebase',
       'supabase',
       'nextauth',
+      'adyen',
+      'braintree',
+      'coinbase-commerce',
+      'easypost',
     ]),
   );
 });

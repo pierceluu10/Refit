@@ -17,6 +17,16 @@ const PROVIDERS = new Set([
   'firebase',
   'supabase',
   'nextauth',
+  'plaid',
+  'square',
+  'braintree',
+  'adyen',
+  'paddle',
+  'lemon-squeezy',
+  'shippo',
+  'easypost',
+  'lob',
+  'coinbase-commerce',
 ]);
 const KINDS = new Set(['api-version', 'model', 'sdk', 'feature']);
 const ENTRY_KEYS = [
@@ -49,7 +59,17 @@ export interface DeadlineEntry {
     | 'clerk'
     | 'firebase'
     | 'supabase'
-    | 'nextauth';
+    | 'nextauth'
+    | 'plaid'
+    | 'square'
+    | 'braintree'
+    | 'adyen'
+    | 'paddle'
+    | 'lemon-squeezy'
+    | 'shippo'
+    | 'easypost'
+    | 'lob'
+    | 'coinbase-commerce';
   kind: 'api-version' | 'model' | 'sdk' | 'feature';
   versions: string[];
   date: string;
