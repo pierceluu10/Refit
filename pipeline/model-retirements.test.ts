@@ -2597,6 +2597,16 @@ it("ties the custom-endpoint stop to the request's own client where it can", asy
       'const traced = new OpenAI({ fetch: globalThis.fetch });',
       `export const ask = () => traced.${create};`,
     ].join('\n'),
+    // A lazy getter over a `let` is followed through its assignments.
+    'src/lazy.ts': [
+      "import OpenAI from 'openai';",
+      'let cached: OpenAI | null = null;',
+      'function client() {',
+      '  if (!cached) cached = new OpenAI({ apiKey: process.env.KEY, baseURL: process.env.URL });',
+      '  return cached;',
+      '}',
+      `export const ask = () => client().${create};`,
+    ].join('\n'),
     'src/helper.ts': [
       "import OpenAI from 'openai';",
       'const helped = new OpenAI();',
@@ -2619,6 +2629,10 @@ it("ties the custom-endpoint stop to the request's own client where it can", asy
       [
         'src/helper.ts',
         "The client sets a custom base URL, so the model may name another provider's model or a deployment; change it by hand to gpt-5.6-sol.",
+      ],
+      [
+        'src/lazy.ts',
+        "The client sets `baseURL` (src/lazy.ts:4), so the model may name another provider's model or a deployment; change it by hand to gpt-5.6-sol.",
       ],
     ]);
   }

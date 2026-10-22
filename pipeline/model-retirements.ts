@@ -1747,9 +1747,10 @@ async function customEndpoint(directory: string, repository: Repository) {
 const ENDPOINT_OPTIONS = new Set(['fetch', 'defaultQuery', 'defaultHeaders']);
 
 // Where the client a traced SDK request is made on was constructed: every `new` expression it can
-// come from, through `const` variables, class fields (initializers and `this.x = …` assignments)
-// and object members. Undefined when any source cannot be followed (a `let` variable, a parameter,
-// a function's result).
+// come from, through variables (a `let` through every `x = …` assignment), class fields
+// (initializers and `this.x = …` assignments), object members and the returns of a function called
+// with no arguments, such as a lazy `getClient()`. `null` and `undefined` add nothing. Undefined
+// when any source cannot be followed (a parameter, a call with arguments, anything else).
 function clientConstructions(program: SourceProgram, call: ts.CallExpression, segments: number) {
   let receiver: ts.Expression = call.expression;
   for (let index = 0; index < segments; index += 1) {
@@ -1760,6 +1761,35 @@ function clientConstructions(program: SourceProgram, call: ts.CallExpression, se
   const follow = (expression: ts.Expression, depth: number): boolean => {
     const value = unwrap(ts.isNonNullExpression(expression) ? expression.expression : expression);
     if (ts.isNewExpression(value)) return Boolean(found.push(value));
+    if (
+      value.kind === ts.SyntaxKind.NullKeyword ||
+      (ts.isIdentifier(value) && value.text === 'undefined')
+    )
+      return true;
+    if (
+      ts.isCallExpression(value) &&
+      !value.arguments.length &&
+      ts.isIdentifier(value.expression)
+    ) {
+      const callee = depth < 4 ? program.symbolOf(value.expression) : undefined;
+      const functions = (callee?.declarations ?? []).map((declaration) =>
+        ts.isFunctionDeclaration(declaration)
+          ? declaration
+          : ts.isVariableDeclaration(declaration) &&
+              declaration.initializer &&
+              (ts.isArrowFunction(declaration.initializer) ||
+                ts.isFunctionExpression(declaration.initializer))
+            ? declaration.initializer
+            : undefined,
+      );
+      const returns = functions.flatMap((fn) => (fn ? returnsOf(fn) : []));
+      return (
+        functions.length > 0 &&
+        functions.every(Boolean) &&
+        returns.length > 0 &&
+        returns.every((item) => follow(item, depth + 1))
+      );
+    }
     const name = ts.isIdentifier(value)
       ? value
       : ts.isPropertyAccessExpression(value)
@@ -1770,14 +1800,29 @@ function clientConstructions(program: SourceProgram, call: ts.CallExpression, se
     if (!symbol || !declarations.length) return false;
     const sources: ts.Expression[] = [];
     for (const declaration of declarations) {
-      if (
-        ts.isVariableDeclaration(declaration) &&
-        declaration.initializer &&
-        ts.isVariableDeclarationList(declaration.parent) &&
-        declaration.parent.flags & ts.NodeFlags.Const
-      )
-        sources.push(declaration.initializer);
-      else if (
+      if (ts.isVariableDeclaration(declaration) && ts.isIdentifier(declaration.name)) {
+        if (declaration.initializer) sources.push(declaration.initializer);
+        if (
+          ts.isVariableDeclarationList(declaration.parent) &&
+          !(declaration.parent.flags & ts.NodeFlags.Const)
+        )
+          for (const use of program.usesOf(symbol)) {
+            const parent = use.parent;
+            if (
+              ts.isBinaryExpression(parent) &&
+              parent.left === use &&
+              parent.operatorToken.kind === ts.SyntaxKind.EqualsToken
+            )
+              sources.push(parent.right);
+            else if (
+              ts.isBinaryExpression(parent) &&
+              parent.left === use &&
+              parent.operatorToken.kind >= ts.SyntaxKind.FirstAssignment &&
+              parent.operatorToken.kind <= ts.SyntaxKind.LastAssignment
+            )
+              return false;
+          }
+      } else if (
         (ts.isPropertyDeclaration(declaration) || ts.isPropertyAssignment(declaration)) &&
         declaration.initializer
       )
