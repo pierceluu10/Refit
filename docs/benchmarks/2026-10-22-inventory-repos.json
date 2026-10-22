@@ -1,0 +1,1712 @@
+{
+  "formatVersion": 1,
+  "selectedAt": "2026-10-22T07:44:06.944Z",
+  "seed": 20261022,
+  "pushedSince": "2026-07-22",
+  "cutoff": "frozen commit committedDate >= 2026-04-22",
+  "sourceFiles": "10..1000 in the group's language",
+  "method": "GitHub repository search through gh api (queries below, sorted by most recently updated), pool deduplicated by lower-cased full name per group, forks, archived repositories, templates, repositories in other frozen lists and excluded names or topics removed, the whole pool shuffled with the seed (mulberry32 Fisher-Yates over sorted names) before those exclusions, and the remaining repositories checked in that order until each group quota passed. No provider, package or keyword is searched for.",
+  "queries": [
+    {
+      "group": "js-ts",
+      "query": "language:TypeScript stars:10..49 pushed:>=2026-07-22 fork:false archived:false",
+      "sort": "updated",
+      "pages": 3,
+      "collected": 300
+    },
+    {
+      "group": "js-ts",
+      "query": "language:TypeScript stars:50..199 pushed:>=2026-07-22 fork:false archived:false",
+      "sort": "updated",
+      "pages": 3,
+      "collected": 300
+    },
+    {
+      "group": "js-ts",
+      "query": "language:TypeScript stars:200..999 pushed:>=2026-07-22 fork:false archived:false",
+      "sort": "updated",
+      "pages": 3,
+      "collected": 300
+    },
+    {
+      "group": "js-ts",
+      "query": "language:TypeScript stars:1000..20000 pushed:>=2026-07-22 fork:false archived:false",
+      "sort": "updated",
+      "pages": 3,
+      "collected": 300
+    },
+    {
+      "group": "js-ts",
+      "query": "language:JavaScript stars:10..49 pushed:>=2026-07-22 fork:false archived:false",
+      "sort": "updated",
+      "pages": 3,
+      "collected": 300
+    },
+    {
+      "group": "js-ts",
+      "query": "language:JavaScript stars:50..199 pushed:>=2026-07-22 fork:false archived:false",
+      "sort": "updated",
+      "pages": 3,
+      "collected": 300
+    },
+    {
+      "group": "js-ts",
+      "query": "language:JavaScript stars:200..999 pushed:>=2026-07-22 fork:false archived:false",
+      "sort": "updated",
+      "pages": 3,
+      "collected": 300
+    },
+    {
+      "group": "js-ts",
+      "query": "language:JavaScript stars:1000..20000 pushed:>=2026-07-22 fork:false archived:false",
+      "sort": "updated",
+      "pages": 3,
+      "collected": 300
+    },
+    {
+      "group": "python",
+      "query": "language:Python stars:10..49 pushed:>=2026-07-22 fork:false archived:false",
+      "sort": "updated",
+      "pages": 3,
+      "collected": 300
+    },
+    {
+      "group": "python",
+      "query": "language:Python stars:50..199 pushed:>=2026-07-22 fork:false archived:false",
+      "sort": "updated",
+      "pages": 3,
+      "collected": 300
+    },
+    {
+      "group": "python",
+      "query": "language:Python stars:200..999 pushed:>=2026-07-22 fork:false archived:false",
+      "sort": "updated",
+      "pages": 3,
+      "collected": 300
+    },
+    {
+      "group": "python",
+      "query": "language:Python stars:1000..20000 pushed:>=2026-07-22 fork:false archived:false",
+      "sort": "updated",
+      "pages": 3,
+      "collected": 300
+    },
+    {
+      "group": "go",
+      "query": "language:Go stars:10..49 pushed:>=2026-07-22 fork:false archived:false",
+      "sort": "updated",
+      "pages": 3,
+      "collected": 300
+    },
+    {
+      "group": "go",
+      "query": "language:Go stars:50..199 pushed:>=2026-07-22 fork:false archived:false",
+      "sort": "updated",
+      "pages": 3,
+      "collected": 300
+    },
+    {
+      "group": "go",
+      "query": "language:Go stars:200..999 pushed:>=2026-07-22 fork:false archived:false",
+      "sort": "updated",
+      "pages": 3,
+      "collected": 300
+    },
+    {
+      "group": "go",
+      "query": "language:Go stars:1000..20000 pushed:>=2026-07-22 fork:false archived:false",
+      "sort": "updated",
+      "pages": 3,
+      "collected": 300
+    }
+  ],
+  "excludedLists": [
+    {
+      "file": "2026-10-14-sdk-repos.json",
+      "count": 45
+    },
+    {
+      "file": "2026-10-14-stripe-repos.json",
+      "count": 100
+    },
+    {
+      "file": "2026-10-15-deadline-pilot-repos.json",
+      "count": 20
+    },
+    {
+      "file": "2026-10-15-stripe-heldout-repos.json",
+      "count": 50
+    },
+    {
+      "file": "2026-10-16-deadline-repos.json",
+      "count": 100
+    },
+    {
+      "file": "2026-10-16-shopify-fresh-repos.json",
+      "count": 200
+    },
+    {
+      "file": "2026-10-16-shopify-repos.json",
+      "count": 50
+    },
+    {
+      "file": "2026-10-16-stripe-active-repos.json",
+      "count": 66
+    },
+    {
+      "file": "2026-10-16-stripe-fresh-repos.json",
+      "count": 381
+    },
+    {
+      "file": "2026-10-20-anthropic-repos.json",
+      "count": 50
+    },
+    {
+      "file": "2026-10-20-openai-repos.json",
+      "count": 100
+    },
+    {
+      "file": "2026-10-21-anthropic-app-repos.json",
+      "count": 50
+    },
+    {
+      "file": "2026-10-21-gemini-repos.json",
+      "count": 50
+    },
+    {
+      "file": "2026-10-21-openai-app-repos.json",
+      "count": 100
+    },
+    {
+      "file": "2026-10-21-paypal-repos.json",
+      "count": 22
+    }
+  ],
+  "rejected": {
+    "js-ts": {
+      "excluded name or topic": 532,
+      "fork, archived or template": 17,
+      "already in a frozen list": 7,
+      "not an application": 194,
+      "more than 1,000 source files": 73,
+      "tree truncated": 3,
+      "fewer than 10 source files": 4
+    },
+    "python": {
+      "excluded name or topic": 239,
+      "fork, archived or template": 5,
+      "not an application": 102,
+      "more than 1,000 source files": 17,
+      "tree truncated": 2,
+      "fewer than 10 source files": 2
+    },
+    "go": {
+      "excluded name or topic": 150,
+      "fork, archived or template": 1,
+      "not an application": 9,
+      "more than 1,000 source files": 5
+    }
+  },
+  "repos": [
+    {
+      "repo": "alharkan7/beeblio",
+      "group": "js-ts",
+      "commit": "c6785237dfb052c3982f64abac86a3abd5033825",
+      "committedDate": "2026-10-22T07:23:26Z",
+      "stars": 102,
+      "primaryLanguage": "TypeScript",
+      "application": "marker:app/",
+      "sourceFiles": 374
+    },
+    {
+      "repo": "zordhalo/runs-on.dev",
+      "group": "js-ts",
+      "commit": "60dff8593b88c0d73e3ddf66e93b89a65fd1b49f",
+      "committedDate": "2026-10-22T07:45:00Z",
+      "stars": 475,
+      "primaryLanguage": "JavaScript",
+      "application": "private, marker:app/",
+      "sourceFiles": 183
+    },
+    {
+      "repo": "databasus/databasus",
+      "group": "js-ts",
+      "commit": "360040e69c1162bd2454eafc6f362eabe2f9c152",
+      "committedDate": "2026-10-22T07:23:16Z",
+      "stars": 9167,
+      "primaryLanguage": "TypeScript",
+      "application": "frontend: marker:src/app/",
+      "sourceFiles": 772
+    },
+    {
+      "repo": "cross-seed/cross-seed",
+      "group": "js-ts",
+      "commit": "a40cf1d150e4f34d9659113af3f5227a94f7eca2",
+      "committedDate": "2026-10-22T07:07:44Z",
+      "stars": 1572,
+      "primaryLanguage": "TypeScript",
+      "application": "cross-seed.org: marker:src/pages/",
+      "sourceFiles": 224
+    },
+    {
+      "repo": "skuqre/nikke-font-generator",
+      "group": "js-ts",
+      "commit": "803baf965596176ccae73f8670cfb97dab0fd3ae",
+      "committedDate": "2026-10-22T06:50:36Z",
+      "stars": 36,
+      "primaryLanguage": "JavaScript",
+      "application": "unpublished, marker:astro.config.mjs",
+      "sourceFiles": 43
+    },
+    {
+      "repo": "CaoMeiYouRen/rsshub-never-die",
+      "group": "js-ts",
+      "commit": "8f916f85dda6aa8266800c59024b0714c0030476",
+      "committedDate": "2026-10-22T07:04:47Z",
+      "stars": 63,
+      "primaryLanguage": "TypeScript",
+      "application": "marker:src/routes/",
+      "sourceFiles": 14
+    },
+    {
+      "repo": "HelloQun54321/nai-atelier",
+      "group": "js-ts",
+      "commit": "09d540a1d78f60711b5b274f06dc28366e263e34",
+      "committedDate": "2026-10-22T07:16:16Z",
+      "stars": 18,
+      "primaryLanguage": "TypeScript",
+      "application": "private, marker:vite.config.ts",
+      "sourceFiles": 699
+    },
+    {
+      "repo": "guaner-334/civ-atlas",
+      "group": "js-ts",
+      "commit": "02ee2cabc6a69c6ae75411aeec6ebaa4f021b690",
+      "committedDate": "2026-10-22T07:25:03Z",
+      "stars": 151,
+      "primaryLanguage": "TypeScript",
+      "application": "marker:vite.config.ts",
+      "sourceFiles": 530
+    },
+    {
+      "repo": "Brajesh31/myPen",
+      "group": "js-ts",
+      "commit": "1a3d522900f5167257e686c711586e3649fcd778",
+      "committedDate": "2026-10-22T07:16:16Z",
+      "stars": 10,
+      "primaryLanguage": "JavaScript",
+      "application": "private, marker:vite.config.js",
+      "sourceFiles": 10
+    },
+    {
+      "repo": "francescocartelli/nyla-instant-messaging-app",
+      "group": "js-ts",
+      "commit": "c35d2d3d63e1db273b2da75d189710a3fe021038",
+      "committedDate": "2026-10-22T07:14:03Z",
+      "stars": 32,
+      "primaryLanguage": "JavaScript",
+      "application": "client: marker:src/pages/",
+      "sourceFiles": 149
+    },
+    {
+      "repo": "boundlessfi/builders",
+      "group": "js-ts",
+      "commit": "4443169f083bb1b9e41a860cf473aaed6201b620",
+      "committedDate": "2026-10-22T08:05:54Z",
+      "stars": 13,
+      "primaryLanguage": "TypeScript",
+      "application": "private, marker:app/",
+      "sourceFiles": 908
+    },
+    {
+      "repo": "Bellows-AI/factory",
+      "group": "js-ts",
+      "commit": "843a673a81974a25bf294cc3e6792f6154568f28",
+      "committedDate": "2026-10-22T07:19:16Z",
+      "stars": 40,
+      "primaryLanguage": "TypeScript",
+      "application": "server: marker:src/routes/",
+      "sourceFiles": 967
+    },
+    {
+      "repo": "FontWoW/FontWoW.github.io",
+      "group": "js-ts",
+      "commit": "208805d8a683c11413327c086da90aedb459ee99",
+      "committedDate": "2026-10-22T03:59:24Z",
+      "stars": 159,
+      "primaryLanguage": "JavaScript",
+      "application": "private, marker:vite.config.js",
+      "sourceFiles": 30
+    },
+    {
+      "repo": "gardener/dashboard",
+      "group": "js-ts",
+      "commit": "d22afb23d1b969211a7d2f5f4afd95193e5a84e0",
+      "committedDate": "2026-10-22T07:46:20Z",
+      "stars": 219,
+      "primaryLanguage": "JavaScript",
+      "application": "backend: dependency:express",
+      "sourceFiles": 869
+    },
+    {
+      "repo": "Bearisbug/Quilt",
+      "group": "js-ts",
+      "commit": "9b4ab215054afd7d6c621a681d616aa4e6f96c86",
+      "committedDate": "2026-10-22T07:18:19Z",
+      "stars": 101,
+      "primaryLanguage": "TypeScript",
+      "application": "apps/api: dependency:hono",
+      "sourceFiles": 269
+    },
+    {
+      "repo": "Brajesh31/Kennedyconcrete",
+      "group": "js-ts",
+      "commit": "9fb44ec90a07061352a390d93151860604153b88",
+      "committedDate": "2026-10-22T07:07:36Z",
+      "stars": 10,
+      "primaryLanguage": "JavaScript",
+      "application": "private, marker:vite.config.js",
+      "sourceFiles": 52
+    },
+    {
+      "repo": "jaygupta17/otto",
+      "group": "js-ts",
+      "commit": "5a48fb79a1f07b3bc233219995aaabc62f5a71d5",
+      "committedDate": "2026-10-22T07:34:47Z",
+      "stars": 11,
+      "primaryLanguage": "TypeScript",
+      "application": "private, marker:vite.config.ts",
+      "sourceFiles": 146
+    },
+    {
+      "repo": "Brajesh31/MathPuzzle",
+      "group": "js-ts",
+      "commit": "c8c29fd68dc662347731231e112a860aa12447ef",
+      "committedDate": "2026-10-22T06:55:38Z",
+      "stars": 10,
+      "primaryLanguage": "JavaScript",
+      "application": "private, marker:vite.config.js",
+      "sourceFiles": 19
+    },
+    {
+      "repo": "apify/apify-mcp-server",
+      "group": "js-ts",
+      "commit": "e45c1cd6bde0b8bac2dab192f30ba77299ae6b26",
+      "committedDate": "2026-10-21T21:19:17Z",
+      "stars": 12511,
+      "primaryLanguage": "TypeScript",
+      "application": "dependency:express",
+      "sourceFiles": 343
+    },
+    {
+      "repo": "ZengLiangYi/ChatCrystal",
+      "group": "js-ts",
+      "commit": "ef53d6c70ea5facbebabb340460fbe3119f793c2",
+      "committedDate": "2026-10-22T07:40:49Z",
+      "stars": 61,
+      "primaryLanguage": "TypeScript",
+      "application": "client: marker:src/pages/",
+      "sourceFiles": 311
+    },
+    {
+      "repo": "SciCatProject/frontend",
+      "group": "js-ts",
+      "commit": "d5f97aebd51d6a72e379a5e536b4003256d8ea34",
+      "committedDate": "2026-10-22T07:57:13Z",
+      "stars": 29,
+      "primaryLanguage": "TypeScript",
+      "application": "private, marker:angular.json",
+      "sourceFiles": 632
+    },
+    {
+      "repo": "Brajesh31/Zentry-game",
+      "group": "js-ts",
+      "commit": "cfd68785bb60b3690bf07bddff3490c60395001f",
+      "committedDate": "2026-10-22T06:53:59Z",
+      "stars": 10,
+      "primaryLanguage": "JavaScript",
+      "application": "private, marker:vite.config.js",
+      "sourceFiles": 18
+    },
+    {
+      "repo": "datalayer/core",
+      "group": "js-ts",
+      "commit": "a473957ed39c8df39cd19f9f5e6521b2790245e3",
+      "committedDate": "2026-10-22T07:51:50Z",
+      "stars": 17,
+      "primaryLanguage": "TypeScript",
+      "application": "docs: marker:src/pages/",
+      "sourceFiles": 851
+    },
+    {
+      "repo": "bel-frontend/bel-frontend.github.io",
+      "group": "js-ts",
+      "commit": "d77aac3feb7680b85a5a6a7971e9ec593a8423c1",
+      "committedDate": "2026-10-22T07:13:58Z",
+      "stars": 11,
+      "primaryLanguage": "TypeScript",
+      "application": "private, marker:next.config.js",
+      "sourceFiles": 139
+    },
+    {
+      "repo": "wakujs/waku",
+      "group": "js-ts",
+      "commit": "83803da555e00b5d3525a7c1d6e08bbbdd04aa30",
+      "committedDate": "2026-10-22T06:22:29Z",
+      "stars": 6474,
+      "primaryLanguage": "TypeScript",
+      "application": "packages/waku: dependency:hono",
+      "sourceFiles": 826
+    },
+    {
+      "repo": "ktmouk/minute",
+      "group": "js-ts",
+      "commit": "b0df5ac8ddf9e6f836f725bf4f83e6a1d8359122",
+      "committedDate": "2026-10-22T05:19:45Z",
+      "stars": 261,
+      "primaryLanguage": "TypeScript",
+      "application": "apps/web: marker:next.config.ts",
+      "sourceFiles": 244
+    },
+    {
+      "repo": "ijry/uview-plus",
+      "group": "js-ts",
+      "commit": "282dd9667b0321b644e322539363105bedbc5c73",
+      "committedDate": "2026-10-22T07:25:59Z",
+      "stars": 718,
+      "primaryLanguage": "JavaScript",
+      "application": "unpublished, marker:src/pages/",
+      "sourceFiles": 624
+    },
+    {
+      "repo": "syncular/syncular",
+      "group": "js-ts",
+      "commit": "360e99c51fe078b9c71760bc98e81183114137eb",
+      "committedDate": "2026-10-22T07:29:29Z",
+      "stars": 304,
+      "primaryLanguage": "TypeScript",
+      "application": "apps/demo: marker:wrangler.jsonc",
+      "sourceFiles": 611
+    },
+    {
+      "repo": "Brajesh31/LangSQL",
+      "group": "js-ts",
+      "commit": "03ea15d5af0daf4574149526a01ba0438ea0838f",
+      "committedDate": "2026-10-22T07:03:27Z",
+      "stars": 10,
+      "primaryLanguage": "JavaScript",
+      "application": "Client: marker:src/pages/",
+      "sourceFiles": 100
+    },
+    {
+      "repo": "OpenByteInc/QuantDinger-Vue",
+      "group": "js-ts",
+      "commit": "6c05a16873fae3a05f059a9664c5fb2d943eb1f1",
+      "committedDate": "2026-10-22T04:09:22Z",
+      "stars": 161,
+      "primaryLanguage": "JavaScript",
+      "application": "marker:vite.config.js",
+      "sourceFiles": 325
+    },
+    {
+      "repo": "MWang-TS/easy-dataset",
+      "group": "js-ts",
+      "commit": "255feb366a9a7bafdd51566816ba329533078a58",
+      "committedDate": "2026-10-22T07:37:11Z",
+      "stars": 40,
+      "primaryLanguage": "TypeScript",
+      "application": "private, marker:routes/",
+      "sourceFiles": 20
+    },
+    {
+      "repo": "middleapi/orpc",
+      "group": "js-ts",
+      "commit": "947c60afc4e59c9d626bb2db9c378a3536a02007",
+      "committedDate": "2026-10-22T07:14:08Z",
+      "stars": 5706,
+      "primaryLanguage": "TypeScript",
+      "application": "apps/content: marker:pages/",
+      "sourceFiles": 929
+    },
+    {
+      "repo": "hypercodism/alpine-code",
+      "group": "js-ts",
+      "commit": "465b52bcea33dbea9111ce9c0f48a1d5c528524f",
+      "committedDate": "2026-10-22T07:28:35Z",
+      "stars": 28,
+      "primaryLanguage": "TypeScript",
+      "application": "apps/desktop: marker:src/app/",
+      "sourceFiles": 397
+    },
+    {
+      "repo": "ChurchApps/B1App",
+      "group": "js-ts",
+      "commit": "5ca19ee4ef947235b8ffba9fbb35af42d0dcb41d",
+      "committedDate": "2026-10-22T07:31:57Z",
+      "stars": 28,
+      "primaryLanguage": "TypeScript",
+      "application": "private, marker:next.config.mjs",
+      "sourceFiles": 367
+    },
+    {
+      "repo": "linux-do/credit",
+      "group": "js-ts",
+      "commit": "45f87f26c57b51a8c901e4c9501e26a35db936f9",
+      "committedDate": "2026-10-22T07:19:51Z",
+      "stars": 352,
+      "primaryLanguage": "TypeScript",
+      "application": "frontend: marker:app/",
+      "sourceFiles": 238
+    },
+    {
+      "repo": "lingcang728/ZeppBridge",
+      "group": "js-ts",
+      "commit": "aa8efebe72e3aae22ed82180cd14d549775227df",
+      "committedDate": "2026-10-22T06:22:37Z",
+      "stars": 219,
+      "primaryLanguage": "TypeScript",
+      "application": "private, marker:vite.config.ts",
+      "sourceFiles": 828
+    },
+    {
+      "repo": "neo4j-contrib/neodash",
+      "group": "js-ts",
+      "commit": "5d16b689177bb832a37aa3f36a1b074d8809f4aa",
+      "committedDate": "2026-10-22T06:43:17Z",
+      "stars": 515,
+      "primaryLanguage": "TypeScript",
+      "application": "unpublished, marker:webpack.config.js",
+      "sourceFiles": 245
+    },
+    {
+      "repo": "mortennordbye/homelab",
+      "group": "js-ts",
+      "commit": "2aaae87d82a7a91b407490968b3545c1ebebce7c",
+      "committedDate": "2026-10-22T06:04:02Z",
+      "stars": 324,
+      "primaryLanguage": "TypeScript",
+      "application": "portfolio: marker:next.config.ts",
+      "sourceFiles": 175
+    },
+    {
+      "repo": "kinora-dev/kinora",
+      "group": "js-ts",
+      "commit": "34e6e4b70d48ef440088cfcdb0f0f3e07473c98f",
+      "committedDate": "2026-10-22T07:26:57Z",
+      "stars": 39,
+      "primaryLanguage": "TypeScript",
+      "application": "docs: marker:astro.config.mjs",
+      "sourceFiles": 770
+    },
+    {
+      "repo": "rknightion/paperless-ngx-dedupe",
+      "group": "js-ts",
+      "commit": "4527207cd1aa12d910c71a46eb1bc860d2651779",
+      "committedDate": "2026-10-22T07:17:34Z",
+      "stars": 23,
+      "primaryLanguage": "TypeScript",
+      "application": "packages/web: marker:src/routes/",
+      "sourceFiles": 506
+    },
+    {
+      "repo": "chamals3n4/OpenATS",
+      "group": "js-ts",
+      "commit": "59c83fb6e299073858373eebf27b0fa6afeb4feb",
+      "committedDate": "2026-10-22T07:36:02Z",
+      "stars": 39,
+      "primaryLanguage": "TypeScript",
+      "application": "backend: marker:src/routes/",
+      "sourceFiles": 787
+    },
+    {
+      "repo": "zeitword/zeitword",
+      "group": "js-ts",
+      "commit": "726047070bb5eb22caa46b7a646b7d2f5b86b3e5",
+      "committedDate": "2026-10-22T07:52:45Z",
+      "stars": 86,
+      "primaryLanguage": "TypeScript",
+      "application": "private, marker:app/",
+      "sourceFiles": 200
+    },
+    {
+      "repo": "MacRimi/ProxMenux",
+      "group": "js-ts",
+      "commit": "396b44eacb6ba12995a6e5ac1e44f2c1315b1295",
+      "committedDate": "2026-10-22T06:08:57Z",
+      "stars": 3216,
+      "primaryLanguage": "TypeScript",
+      "application": "AppImage: marker:app/",
+      "sourceFiles": 322
+    },
+    {
+      "repo": "betagouv/mon-aide-cyber",
+      "group": "js-ts",
+      "commit": "59fd149d5af73ceea8409c3f36247abf146217a8",
+      "committedDate": "2026-10-22T07:22:40Z",
+      "stars": 16,
+      "primaryLanguage": "TypeScript",
+      "application": "mon-aide-cyber-api: dependency:express",
+      "sourceFiles": 763
+    },
+    {
+      "repo": "organui/organui",
+      "group": "js-ts",
+      "commit": "69b4589bfa533f8b83901d5249aaafb69e322eb5",
+      "committedDate": "2026-10-22T07:04:11Z",
+      "stars": 131,
+      "primaryLanguage": "TypeScript",
+      "application": "apps/web: marker:app/",
+      "sourceFiles": 606
+    },
+    {
+      "repo": "evanbaker315/AttentionOS",
+      "group": "js-ts",
+      "commit": "2ebb8615641defd38e688e58fef2edc1a0a4e2d0",
+      "committedDate": "2026-10-22T06:26:53Z",
+      "stars": 117,
+      "primaryLanguage": "TypeScript",
+      "application": "apps/studio: marker:next.config.ts",
+      "sourceFiles": 753
+    },
+    {
+      "repo": "scratchfoundation/scratch-www",
+      "group": "js-ts",
+      "commit": "8935857e18b12746e1b1d282bfe4200f7c223594",
+      "committedDate": "2026-10-22T07:32:15Z",
+      "stars": 1687,
+      "primaryLanguage": "JavaScript",
+      "application": "unpublished, marker:webpack.config.js",
+      "sourceFiles": 509
+    },
+    {
+      "repo": "iam567/rich4-renew-app",
+      "group": "js-ts",
+      "commit": "e4224ee00bbb7e18e62e5f9e8be69d47c767d518",
+      "committedDate": "2026-10-22T07:48:26Z",
+      "stars": 243,
+      "primaryLanguage": "TypeScript",
+      "application": "game: marker:vite.config.ts",
+      "sourceFiles": 188
+    },
+    {
+      "repo": "Peon-sh/Peon",
+      "group": "js-ts",
+      "commit": "ecfe6a548e37e68cf8a745c40f7c66453146b37b",
+      "committedDate": "2026-10-22T07:23:10Z",
+      "stars": 101,
+      "primaryLanguage": "TypeScript",
+      "application": "marker:next.config.ts",
+      "sourceFiles": 661
+    },
+    {
+      "repo": "CoderJackZhu/Thingary",
+      "group": "js-ts",
+      "commit": "478be512963fbf10cd5ec6e8d77dbcd9ab3803f9",
+      "committedDate": "2026-10-22T07:35:01Z",
+      "stars": 12,
+      "primaryLanguage": "TypeScript",
+      "application": "private, marker:vite.config.ts",
+      "sourceFiles": 654
+    },
+    {
+      "repo": "andrebuilds/melodyc",
+      "group": "js-ts",
+      "commit": "8636fefd1db2060a0e10f508431f913e72621aa5",
+      "committedDate": "2026-10-22T07:50:18Z",
+      "stars": 49,
+      "primaryLanguage": "TypeScript",
+      "application": "frontend: marker:next.config.js",
+      "sourceFiles": 159
+    },
+    {
+      "repo": "Brajesh31/issue-tracker-next.js-app",
+      "group": "js-ts",
+      "commit": "c8672df3ffe8fa3d49af2a212e378079f7f2a539",
+      "committedDate": "2026-10-22T07:14:53Z",
+      "stars": 10,
+      "primaryLanguage": "TypeScript",
+      "application": "private, marker:app/",
+      "sourceFiles": 50
+    },
+    {
+      "repo": "mwakidenis/mwakidenis.com",
+      "group": "js-ts",
+      "commit": "2b303f8c206a2ecbd48b2ab42d85f4ce3affa686",
+      "committedDate": "2026-10-22T04:37:58Z",
+      "stars": 161,
+      "primaryLanguage": "JavaScript",
+      "application": "private, marker:next.config.js",
+      "sourceFiles": 72
+    },
+    {
+      "repo": "ember-learn/super-rentals",
+      "group": "js-ts",
+      "commit": "87087b377ae63955637f6ef414dc2be560597bea",
+      "committedDate": "2026-10-22T04:42:25Z",
+      "stars": 174,
+      "primaryLanguage": "JavaScript",
+      "application": "private, marker:app.json",
+      "sourceFiles": 23
+    },
+    {
+      "repo": "YanQuan-dozzy/Boss-Claw",
+      "group": "js-ts",
+      "commit": "9ed6246e558486d4bc0d004534fd57228957a864",
+      "committedDate": "2026-10-21T02:01:53Z",
+      "stars": 53,
+      "primaryLanguage": "TypeScript",
+      "application": "desktop-app: marker:src/pages/",
+      "sourceFiles": 219
+    },
+    {
+      "repo": "merill/mc",
+      "group": "js-ts",
+      "commit": "74232b110d839d788929760793b4bfd946882f4a",
+      "committedDate": "2026-10-22T07:32:59Z",
+      "stars": 35,
+      "primaryLanguage": "TypeScript",
+      "application": "private, marker:app/",
+      "sourceFiles": 92
+    },
+    {
+      "repo": "zhaoolee/ChineseBQB",
+      "group": "js-ts",
+      "commit": "5decb10b50bd5265af86cef8d50111572bcbad76",
+      "committedDate": "2026-10-22T07:53:27Z",
+      "stars": 16297,
+      "primaryLanguage": "TypeScript",
+      "application": "maker: marker:vite.config.ts",
+      "sourceFiles": 76
+    },
+    {
+      "repo": "OpenDataEnsemble/ode",
+      "group": "js-ts",
+      "commit": "f3afc11b2f9c71064e25ea9515b182437cd1308a",
+      "committedDate": "2026-10-22T07:24:39Z",
+      "stars": 15,
+      "primaryLanguage": "TypeScript",
+      "application": "desktop: marker:src/pages/",
+      "sourceFiles": 690
+    },
+    {
+      "repo": "leftos/towercab-3d",
+      "group": "js-ts",
+      "commit": "59819399da9dfab7f49ea08b908b0c86f67a1343",
+      "committedDate": "2026-10-22T07:24:22Z",
+      "stars": 11,
+      "primaryLanguage": "TypeScript",
+      "application": "unpublished, marker:vite.config.ts",
+      "sourceFiles": 287
+    },
+    {
+      "repo": "eee555/saolei_website",
+      "group": "js-ts",
+      "commit": "aecb7774fa5e4c786e020c3b7c089145aff9542e",
+      "committedDate": "2026-10-22T07:30:49Z",
+      "stars": 14,
+      "primaryLanguage": "TypeScript",
+      "application": "front_end: marker:vite.config.ts",
+      "sourceFiles": 633
+    },
+    {
+      "repo": "Jaxton07/percho",
+      "group": "js-ts",
+      "commit": "f1a0585c619a3fdf4aef9e769088bf8a17d0c002",
+      "committedDate": "2026-10-22T06:41:03Z",
+      "stars": 454,
+      "primaryLanguage": "TypeScript",
+      "application": "packages/desktop: marker:electron.vite.config.ts",
+      "sourceFiles": 589
+    },
+    {
+      "repo": "UI5/webcomponents-react",
+      "group": "js-ts",
+      "commit": "08de49188e2349d90f6236ff1aea4df44c2fa6fc",
+      "committedDate": "2026-10-22T07:37:00Z",
+      "stars": 542,
+      "primaryLanguage": "TypeScript",
+      "application": "marker:vite.config.ts",
+      "sourceFiles": 854
+    },
+    {
+      "repo": "Jobcrazy/TRX-USDT-Wallet",
+      "group": "js-ts",
+      "commit": "bdc99c0191b6c3a1df621549be93af1723a41824",
+      "committedDate": "2026-10-22T07:23:10Z",
+      "stars": 52,
+      "primaryLanguage": "JavaScript",
+      "application": "backend: marker:app.json",
+      "sourceFiles": 83
+    },
+    {
+      "repo": "ralscha/blog",
+      "group": "js-ts",
+      "commit": "c046ef41bcb48fea02138a933a748c2af534962c",
+      "committedDate": "2026-10-22T06:20:08Z",
+      "stars": 222,
+      "primaryLanguage": "TypeScript",
+      "application": "customicons4: marker:angular.json",
+      "sourceFiles": 181
+    },
+    {
+      "repo": "spr-networks/super",
+      "group": "js-ts",
+      "commit": "975d544ee64179ee3d094db9e19d911b554eb8a3",
+      "committedDate": "2026-10-22T07:34:10Z",
+      "stars": 872,
+      "primaryLanguage": "JavaScript",
+      "application": "frontend: marker:app.json",
+      "sourceFiles": 382
+    },
+    {
+      "repo": "holistics/dbml",
+      "group": "js-ts",
+      "commit": "0c34d8514ae7ebb457549531ef4fa5dab839c4fa",
+      "committedDate": "2026-10-22T03:25:56Z",
+      "stars": 3717,
+      "primaryLanguage": "JavaScript",
+      "application": "dbml-homepage: marker:src/pages/",
+      "sourceFiles": 516
+    },
+    {
+      "repo": "reactjs/react-tabs",
+      "group": "js-ts",
+      "commit": "1e0d27b8598d1d2fd5709180e37c93cfa834612c",
+      "committedDate": "2026-10-21T23:46:28Z",
+      "stars": 3146,
+      "primaryLanguage": "JavaScript",
+      "application": "marker:webpack.config.js",
+      "sourceFiles": 31
+    },
+    {
+      "repo": "HkingAuditore/civ-game",
+      "group": "js-ts",
+      "commit": "99382cd4ac4ade80969d1098679c103f24acc749",
+      "committedDate": "2026-10-22T07:13:32Z",
+      "stars": 112,
+      "primaryLanguage": "JavaScript",
+      "application": "private, marker:vite.config.js",
+      "sourceFiles": 339
+    },
+    {
+      "repo": "Brajesh31/Anime-Book-Store",
+      "group": "js-ts",
+      "commit": "3353c65e7a31c7a512c18f0651d201324da6a2c1",
+      "committedDate": "2026-10-22T07:04:48Z",
+      "stars": 10,
+      "primaryLanguage": "JavaScript",
+      "application": "backend: marker:routes/",
+      "sourceFiles": 20
+    },
+    {
+      "repo": "Kylrix/kylrix",
+      "group": "js-ts",
+      "commit": "5876460e59f76b003f23d53673147609d774903c",
+      "committedDate": "2026-10-22T07:42:13Z",
+      "stars": 12,
+      "primaryLanguage": "TypeScript",
+      "application": "marker:app/",
+      "sourceFiles": 977
+    },
+    {
+      "repo": "ryuzcorp/noite",
+      "group": "js-ts",
+      "commit": "28d12965dddddb26f55dc1f209722b51adea9e4b",
+      "committedDate": "2026-10-22T07:19:05Z",
+      "stars": 31,
+      "primaryLanguage": "TypeScript",
+      "application": "apps/noite: marker:src/pages/",
+      "sourceFiles": 579
+    },
+    {
+      "repo": "haposoft/cafekit",
+      "group": "js-ts",
+      "commit": "96da1253261a064641d2228097f5d47938a3c08e",
+      "committedDate": "2026-10-22T07:21:56Z",
+      "stars": 54,
+      "primaryLanguage": "JavaScript",
+      "application": "cafekit-web: marker:next.config.ts",
+      "sourceFiles": 575
+    },
+    {
+      "repo": "huilang-me/CF-Server-Monitor",
+      "group": "js-ts",
+      "commit": "42ad10acd7a3073a22e9516407735f303e412920",
+      "committedDate": "2026-10-19T00:44:48Z",
+      "stars": 2633,
+      "primaryLanguage": "JavaScript",
+      "application": "unpublished, marker:vite.config.js",
+      "sourceFiles": 96
+    },
+    {
+      "repo": "facenox/facenox",
+      "group": "js-ts",
+      "commit": "f859f4fa014361bf31305d3c92e684a2f5b2b273",
+      "committedDate": "2026-10-22T08:14:40Z",
+      "stars": 61,
+      "primaryLanguage": "TypeScript",
+      "application": "app: marker:electron.vite.config.ts",
+      "sourceFiles": 253
+    },
+    {
+      "repo": "tidepool-org/blip",
+      "group": "js-ts",
+      "commit": "9586b7ecc606245b67b6de2027a1ce7e595b151c",
+      "committedDate": "2026-10-22T04:15:36Z",
+      "stars": 112,
+      "primaryLanguage": "JavaScript",
+      "application": "private, marker:app/",
+      "sourceFiles": 630
+    },
+    {
+      "repo": "ahaoboy/js-engine-benchmark",
+      "group": "js-ts",
+      "commit": "9658e94c0e73cd905acd76fd3f8b59cfc1c26641",
+      "committedDate": "2026-10-22T03:26:35Z",
+      "stars": 59,
+      "primaryLanguage": "JavaScript",
+      "application": "web: marker:vite.config.ts",
+      "sourceFiles": 26
+    },
+    {
+      "repo": "timoncool/ACE-Step-Studio",
+      "group": "js-ts",
+      "commit": "00a78016f1899e566e5908ec0dfcf40bd40b14d2",
+      "committedDate": "2026-10-22T06:02:10Z",
+      "stars": 432,
+      "primaryLanguage": "TypeScript",
+      "application": "app: marker:vite.config.ts",
+      "sourceFiles": 194
+    },
+    {
+      "repo": "danything/denpa",
+      "group": "js-ts",
+      "commit": "4b3f816aed8f508b22ddcd2074f8499387517781",
+      "committedDate": "2026-10-22T08:16:44Z",
+      "stars": 42,
+      "primaryLanguage": "TypeScript",
+      "application": "private, marker:src/routes/",
+      "sourceFiles": 617
+    },
+    {
+      "repo": "HSLdevcom/digitransit-ui",
+      "group": "js-ts",
+      "commit": "3454ac67bb64000d0f936b032abd2651c3b7cf43",
+      "committedDate": "2026-10-22T07:24:49Z",
+      "stars": 268,
+      "primaryLanguage": "JavaScript",
+      "application": "marker:app/",
+      "sourceFiles": 937
+    },
+    {
+      "repo": "Felix-Lai-12/whospost",
+      "group": "js-ts",
+      "commit": "d0fbf9efb2a23f22933fdeec76ef4755742a9b94",
+      "committedDate": "2026-10-22T08:00:13Z",
+      "stars": 20,
+      "primaryLanguage": "JavaScript",
+      "application": "private, marker:wrangler.jsonc",
+      "sourceFiles": 126
+    },
+    {
+      "repo": "Affitor/open-affiliate",
+      "group": "js-ts",
+      "commit": "afc364948a4b1dbe42a78864cddca220cfe9fbb6",
+      "committedDate": "2026-10-22T06:12:53Z",
+      "stars": 118,
+      "primaryLanguage": "TypeScript",
+      "application": "marker:next.config.ts",
+      "sourceFiles": 306
+    },
+    {
+      "repo": "mantrakp04/ardia",
+      "group": "js-ts",
+      "commit": "1dd343fb62f51f39f5143f54b66080183f25dcd6",
+      "committedDate": "2026-10-22T07:19:40Z",
+      "stars": 46,
+      "primaryLanguage": "TypeScript",
+      "application": "apps/browser: marker:app.json",
+      "sourceFiles": 752
+    },
+    {
+      "repo": "ZyFou/ProceduralTerrains",
+      "group": "js-ts",
+      "commit": "65eef6a0e0c37c67129d1595606c4f298d2db5a1",
+      "committedDate": "2026-10-22T07:38:29Z",
+      "stars": 641,
+      "primaryLanguage": "JavaScript",
+      "application": "api: dependency:fastify",
+      "sourceFiles": 678
+    },
+    {
+      "repo": "debezium/debezium-platform",
+      "group": "js-ts",
+      "commit": "5be96c5b86b05878cbb7c0b941243101eb01b22f",
+      "committedDate": "2026-10-22T07:51:50Z",
+      "stars": 55,
+      "primaryLanguage": "TypeScript",
+      "application": "debezium-platform-stage: marker:src/pages/",
+      "sourceFiles": 289
+    },
+    {
+      "repo": "dengcb/weixin-reader-desktop",
+      "group": "js-ts",
+      "commit": "46784a16537b4b4ddba4bc109104e46aecad67ed",
+      "committedDate": "2026-10-22T07:29:36Z",
+      "stars": 504,
+      "primaryLanguage": "TypeScript",
+      "application": "private, marker:vite.config.ts",
+      "sourceFiles": 129
+    },
+    {
+      "repo": "OpenCCU/OpenCCU",
+      "group": "js-ts",
+      "commit": "40c0b48205f129a08f9a0fa8850e2668f6856257",
+      "committedDate": "2026-10-22T08:12:42Z",
+      "stars": 1846,
+      "primaryLanguage": "JavaScript",
+      "application": "home-assistant-addon-proxy: dependency:express",
+      "sourceFiles": 95
+    },
+    {
+      "repo": "nextcloud/tables",
+      "group": "js-ts",
+      "commit": "c5c87cf04206f144749ed7cd4f1ceeb016256b36",
+      "committedDate": "2026-10-22T02:18:00Z",
+      "stars": 220,
+      "primaryLanguage": "JavaScript",
+      "application": "private, marker:src/pages/",
+      "sourceFiles": 366
+    },
+    {
+      "repo": "readium/ts-toolkit",
+      "group": "js-ts",
+      "commit": "26b30f14159d394f16dcece4664deaa3ed4ed80c",
+      "committedDate": "2026-10-22T07:40:08Z",
+      "stars": 157,
+      "primaryLanguage": "TypeScript",
+      "application": "decorator: marker:vite.config.js",
+      "sourceFiles": 314
+    },
+    {
+      "repo": "dengxiaoning/cesium_dev_kit",
+      "group": "js-ts",
+      "commit": "69ece5616c9a320eb0864b7a93f08512f365b141",
+      "committedDate": "2026-10-21T23:57:56Z",
+      "stars": 262,
+      "primaryLanguage": "JavaScript",
+      "application": "unpublished, marker:vite.config.ts",
+      "sourceFiles": 188
+    },
+    {
+      "repo": "antvis/antvis.github.io",
+      "group": "js-ts",
+      "commit": "2fa91a44668140d52151283a5bc8894442cc0735",
+      "committedDate": "2026-10-22T06:57:56Z",
+      "stars": 501,
+      "primaryLanguage": "TypeScript",
+      "application": "private, marker:astro.config.mjs",
+      "sourceFiles": 25
+    },
+    {
+      "repo": "8starlabs/ui",
+      "group": "js-ts",
+      "commit": "4edff1ddacfd5a47b974916ba07c8d2367b9a151",
+      "committedDate": "2026-10-22T06:15:04Z",
+      "stars": 141,
+      "primaryLanguage": "TypeScript",
+      "application": "marker:app/",
+      "sourceFiles": 178
+    },
+    {
+      "repo": "ravidsrk/slop-detect",
+      "group": "js-ts",
+      "commit": "456b70440c00902ba211f77d1f7d29af69abee0a",
+      "committedDate": "2026-10-22T07:37:12Z",
+      "stars": 14,
+      "primaryLanguage": "TypeScript",
+      "application": "apps/web: marker:wrangler.toml",
+      "sourceFiles": 224
+    },
+    {
+      "repo": "Brajesh31/PassMan-Your-personal-password-manager",
+      "group": "js-ts",
+      "commit": "82904f368f481895a42e8832b102a0cd0775f552",
+      "committedDate": "2026-10-22T07:15:03Z",
+      "stars": 10,
+      "primaryLanguage": "JavaScript",
+      "application": "private, marker:vite.config.js",
+      "sourceFiles": 10
+    },
+    {
+      "repo": "SlumperSan/agent-governed-vaults",
+      "group": "js-ts",
+      "commit": "07d1be0e7d4e7fabaf5dc1fcd9cbb5c1a647e43a",
+      "committedDate": "2026-10-22T07:42:48Z",
+      "stars": 18,
+      "primaryLanguage": "JavaScript",
+      "application": "apps/site: marker:vite.config.ts",
+      "sourceFiles": 478
+    },
+    {
+      "repo": "Brajesh31/Skill_share_grow_final",
+      "group": "js-ts",
+      "commit": "d15e38033e9ce7a895fe703beb3a8628fee4c116",
+      "committedDate": "2026-10-22T07:15:29Z",
+      "stars": 10,
+      "primaryLanguage": "JavaScript",
+      "application": "frontend: marker:src/pages/",
+      "sourceFiles": 19
+    },
+    {
+      "repo": "r-near/zorsh",
+      "group": "js-ts",
+      "commit": "4a54b28775b58f380d72f4426a471f2b23c37f3b",
+      "committedDate": "2026-10-22T07:31:56Z",
+      "stars": 15,
+      "primaryLanguage": "TypeScript",
+      "application": "packages/effect: marker:vite.config.ts",
+      "sourceFiles": 53
+    },
+    {
+      "repo": "nikunjsingh93/react-glass-keep",
+      "group": "js-ts",
+      "commit": "1a62f2b450c3d9e6f182584121759bbeb5cefa85",
+      "committedDate": "2026-10-22T04:45:45Z",
+      "stars": 602,
+      "primaryLanguage": "JavaScript",
+      "application": "private, marker:vite.config.js",
+      "sourceFiles": 63
+    },
+    {
+      "repo": "PapillonApp/Papillon",
+      "group": "js-ts",
+      "commit": "7b5aaed7d2f96ce3a913579cd0af2309a12eb82d",
+      "committedDate": "2026-10-22T06:38:25Z",
+      "stars": 331,
+      "primaryLanguage": "TypeScript",
+      "application": "private, marker:app.config.ts",
+      "sourceFiles": 439
+    },
+    {
+      "repo": "ProjectSidewalk/SidewalkWebpage",
+      "group": "js-ts",
+      "commit": "21884834a3553c58b76851606c3c9b60b12b8b67",
+      "committedDate": "2026-10-22T03:32:21Z",
+      "stars": 110,
+      "primaryLanguage": "JavaScript",
+      "application": "private, marker:app/",
+      "sourceFiles": 642
+    },
+    {
+      "repo": "plhery/peek-delivery-tracker",
+      "group": "js-ts",
+      "commit": "cad21eba4ae79d6517a434a22017d3deef500102",
+      "committedDate": "2026-10-22T08:14:47Z",
+      "stars": 13,
+      "primaryLanguage": "TypeScript",
+      "application": "private, marker:app/",
+      "sourceFiles": 775
+    },
+    {
+      "repo": "MTES-MCT/acceslibre",
+      "group": "python",
+      "commit": "b23e189680e9cfe0293087a05effac6b924250f6",
+      "committedDate": "2026-10-22T07:40:00Z",
+      "stars": 20,
+      "primaryLanguage": "Python",
+      "application": "pyproject.toml + Dockerfile",
+      "sourceFiles": 370
+    },
+    {
+      "repo": "gpustack/gpustack",
+      "group": "python",
+      "commit": "4e35ee088abc0f4cc7ee75a86e15970de6b5091b",
+      "committedDate": "2026-10-22T07:24:12Z",
+      "stars": 5873,
+      "primaryLanguage": "Python",
+      "application": "pyproject.toml + gpustack/main.py",
+      "sourceFiles": 919
+    },
+    {
+      "repo": "fumingyang2004/Tulpa",
+      "group": "python",
+      "commit": "b9b0d82224040c56842056feaeb80d7a000717a6",
+      "committedDate": "2026-10-22T07:19:26Z",
+      "stars": 419,
+      "primaryLanguage": "Python",
+      "application": "requirements.txt + app.py",
+      "sourceFiles": 329
+    },
+    {
+      "repo": "chedim/babyseat",
+      "group": "python",
+      "commit": "9294a339b083a44dad966cb80a06042dad20eac6",
+      "committedDate": "2026-10-22T07:36:25Z",
+      "stars": 12,
+      "primaryLanguage": "Python",
+      "application": "pyproject.toml + Dockerfile",
+      "sourceFiles": 617
+    },
+    {
+      "repo": "deep-learning-indaba/Baobab",
+      "group": "python",
+      "commit": "aa497d1bbf75785e9ca8332ede09c9ee252742a1",
+      "committedDate": "2026-10-22T07:55:14Z",
+      "stars": 61,
+      "primaryLanguage": "Python",
+      "application": "requirements.txt + api/Dockerfile",
+      "sourceFiles": 485
+    },
+    {
+      "repo": "aidotse/LeakPro",
+      "group": "python",
+      "commit": "d65e7f4f14fb2c7658a506f184714e6c8d26ba75",
+      "committedDate": "2026-10-22T08:15:15Z",
+      "stars": 25,
+      "primaryLanguage": "Python",
+      "application": "pyproject.toml + leakpro/run.py",
+      "sourceFiles": 356
+    },
+    {
+      "repo": "MCDReforged/MCDReforged",
+      "group": "python",
+      "commit": "00c834307bcf887cc2eddf54256c75210b06eea4",
+      "committedDate": "2026-10-22T05:12:45Z",
+      "stars": 1100,
+      "primaryLanguage": "Python",
+      "application": "pyproject.toml + docker/Dockerfile",
+      "sourceFiles": 247
+    },
+    {
+      "repo": "whoahaow/rjsxrd",
+      "group": "python",
+      "commit": "443307da7e774fc9b739d34791759a4ec2bb462c",
+      "committedDate": "2026-10-22T08:16:04Z",
+      "stars": 861,
+      "primaryLanguage": "Python",
+      "application": "pyproject.toml + source/main.py",
+      "sourceFiles": 105
+    },
+    {
+      "repo": "QuinnDamerell/OctoPrint-OctoEverywhere",
+      "group": "python",
+      "commit": "d7f2cb029805adbac798fbcdccf9a299a9b693b2",
+      "committedDate": "2026-10-22T05:50:41Z",
+      "stars": 306,
+      "primaryLanguage": "Python",
+      "application": "pyproject.toml + Dockerfile",
+      "sourceFiles": 268
+    },
+    {
+      "repo": "batocera-linux/batocera.linux",
+      "group": "python",
+      "commit": "a3f0541d9a45473f649f06f0f00e755b157a81e4",
+      "committedDate": "2026-10-22T06:27:33Z",
+      "stars": 3269,
+      "primaryLanguage": "Python",
+      "application": "pyproject.toml + docker/Dockerfile",
+      "sourceFiles": 452
+    },
+    {
+      "repo": "olofk/fusesoc",
+      "group": "python",
+      "commit": "8cba6be2907020319b25d138feb7a052dcf00d60",
+      "committedDate": "2026-10-22T07:36:24Z",
+      "stars": 1477,
+      "primaryLanguage": "Python",
+      "application": "pyproject.toml + fusesoc/main.py",
+      "sourceFiles": 55
+    },
+    {
+      "repo": "Optexity/optexity",
+      "group": "python",
+      "commit": "710ca2cc099f6057bc93c8485197f76f5397889d",
+      "committedDate": "2026-10-14T11:33:30Z",
+      "stars": 39,
+      "primaryLanguage": "Python",
+      "application": "pyproject.toml + docker/Dockerfile",
+      "sourceFiles": 108
+    },
+    {
+      "repo": "odoo/runbot",
+      "group": "python",
+      "commit": "0d47bd6bb0d163c24cb903de801e2e2eb98d450c",
+      "committedDate": "2026-10-22T07:37:46Z",
+      "stars": 166,
+      "primaryLanguage": "Python",
+      "application": "requirements.txt + runbot_builder/main.py",
+      "sourceFiles": 176
+    },
+    {
+      "repo": "Oaklight/llm-rosetta",
+      "group": "python",
+      "commit": "809f7f3659938d218aedf8145c6952738b4dad55",
+      "committedDate": "2026-10-22T07:33:33Z",
+      "stars": 93,
+      "primaryLanguage": "Python",
+      "application": "pyproject.toml + docker/Dockerfile",
+      "sourceFiles": 742
+    },
+    {
+      "repo": "digitalmethodsinitiative/4cat",
+      "group": "python",
+      "commit": "a11a20c16bcb0185a460c866888b0170f835c1f8",
+      "committedDate": "2026-10-22T06:43:05Z",
+      "stars": 421,
+      "primaryLanguage": "Python",
+      "application": "requirements.txt + docker-compose.yml",
+      "sourceFiles": 331
+    },
+    {
+      "repo": "devitocodes/devito",
+      "group": "python",
+      "commit": "a9e3f31a57dfc180e8f95f4d9ceabbff807a89a2",
+      "committedDate": "2026-10-22T07:44:15Z",
+      "stars": 717,
+      "primaryLanguage": "Python",
+      "application": "pyproject.toml + docker-compose.yaml",
+      "sourceFiles": 289
+    },
+    {
+      "repo": "green-coding-solutions/green-metrics-tool",
+      "group": "python",
+      "commit": "7e6c33aafabdf9c5f3be5cafcad0f36c9cc9c248",
+      "committedDate": "2026-10-22T06:01:49Z",
+      "stars": 259,
+      "primaryLanguage": "Python",
+      "application": "requirements-dev.txt + api/main.py",
+      "sourceFiles": 175
+    },
+    {
+      "repo": "ashleydarosa/CC-Checker-Validator-Generator",
+      "group": "python",
+      "commit": "a50ad557c0ea3ccabd36b5578ea73bbd41ed4971",
+      "committedDate": "2026-10-22T08:20:04Z",
+      "stars": 201,
+      "primaryLanguage": "Python",
+      "application": "requirements.txt + main.py",
+      "sourceFiles": 14
+    },
+    {
+      "repo": "django-treebeard/django-treebeard",
+      "group": "python",
+      "commit": "7948d1003db8d724d291e2a0b875b75aea32d52b",
+      "committedDate": "2026-10-22T05:59:03Z",
+      "stars": 1226,
+      "primaryLanguage": "Python",
+      "application": "pyproject.toml + tests/manage.py",
+      "sourceFiles": 32
+    },
+    {
+      "repo": "M9nx/CodexA",
+      "group": "python",
+      "commit": "2b4c499a9a9707d8c03c885fc44d52348b3efa09",
+      "committedDate": "2026-10-22T07:46:39Z",
+      "stars": 35,
+      "primaryLanguage": "Python",
+      "application": "pyproject.toml + Dockerfile",
+      "sourceFiles": 196
+    },
+    {
+      "repo": "line/promgen",
+      "group": "python",
+      "commit": "5969e7f9b03ccb6f624af60cc3be8ad083f0ae91",
+      "committedDate": "2026-10-22T05:45:07Z",
+      "stars": 1132,
+      "primaryLanguage": "Python",
+      "application": "pyproject.toml + Dockerfile",
+      "sourceFiles": 139
+    },
+    {
+      "repo": "shuxiachai/academic-commercialization-agent",
+      "group": "python",
+      "commit": "9fa5bce858631f887be9c37dc7cdde56ba54706f",
+      "committedDate": "2026-10-22T07:55:52Z",
+      "stars": 737,
+      "primaryLanguage": "Python",
+      "application": "pyproject.toml + Dockerfile",
+      "sourceFiles": 467
+    },
+    {
+      "repo": "openedx/license-manager",
+      "group": "python",
+      "commit": "fcd7ad010ede418150c1032c9a29398c172e799b",
+      "committedDate": "2026-10-22T07:39:15Z",
+      "stars": 37,
+      "primaryLanguage": "Python",
+      "application": "pyproject.toml + docker-compose.yml",
+      "sourceFiles": 193
+    },
+    {
+      "repo": "SatyamSingh-Git/ElevenPowers",
+      "group": "python",
+      "commit": "a5dabc12e826957cbdb022bd6a646f97fcc7bae3",
+      "committedDate": "2026-10-22T08:20:18Z",
+      "stars": 14,
+      "primaryLanguage": "Python",
+      "application": "requirements-dev.txt + eval/run.py",
+      "sourceFiles": 448
+    },
+    {
+      "repo": "algorithmicsuperintelligence/openevolve",
+      "group": "python",
+      "commit": "515d1bcb7b36ac64bbe028f8d83b5d08315ca4b5",
+      "committedDate": "2026-10-22T07:27:38Z",
+      "stars": 7620,
+      "primaryLanguage": "Python",
+      "application": "pyproject.toml + Dockerfile",
+      "sourceFiles": 278
+    },
+    {
+      "repo": "TimSoethout/goodwe-sems-home-assistant",
+      "group": "python",
+      "commit": "b728dedbfeb003953b3a74aff63fc44fd40f1a1b",
+      "committedDate": "2026-10-22T07:05:29Z",
+      "stars": 147,
+      "primaryLanguage": "Python",
+      "application": "pyproject.toml + .devcontainer/Dockerfile",
+      "sourceFiles": 30
+    },
+    {
+      "repo": "dalibo/temboard",
+      "group": "python",
+      "commit": "5a509fb0cac2dde80f1598e0fe205257e7bc27a6",
+      "committedDate": "2026-10-22T07:44:50Z",
+      "stars": 769,
+      "primaryLanguage": "Python",
+      "application": "pyproject.toml + docker-compose.yml",
+      "sourceFiles": 173
+    },
+    {
+      "repo": "VocaHQ/vocalinux",
+      "group": "python",
+      "commit": "b148bca5fab1b2a2a8834232c3d4be7b08130bd0",
+      "committedDate": "2026-10-22T06:54:29Z",
+      "stars": 958,
+      "primaryLanguage": "Python",
+      "application": "pyproject.toml + .oss-scanner/Dockerfile",
+      "sourceFiles": 225
+    },
+    {
+      "repo": "calibrain/shelfmark",
+      "group": "python",
+      "commit": "182e80f894b4e0de9d1062d7c03467403f7c9974",
+      "committedDate": "2026-10-22T07:21:05Z",
+      "stars": 4051,
+      "primaryLanguage": "Python",
+      "application": "pyproject.toml + Dockerfile",
+      "sourceFiles": 455
+    },
+    {
+      "repo": "coaxk/subarr",
+      "group": "python",
+      "commit": "2cbf5df9028fd3e06ce5ce7ddc818de74e47a240",
+      "committedDate": "2026-10-22T07:52:02Z",
+      "stars": 147,
+      "primaryLanguage": "Python",
+      "application": "pyproject.toml + Dockerfile",
+      "sourceFiles": 455
+    },
+    {
+      "repo": "git-hulk/clime",
+      "group": "go",
+      "commit": "cfa0b37b22923f8323cd58c0e8e42e5a9a66e493",
+      "committedDate": "2026-10-22T08:04:27Z",
+      "stars": 11,
+      "primaryLanguage": "Go",
+      "application": "go.mod + main.go",
+      "sourceFiles": 34
+    },
+    {
+      "repo": "fclairamb/ftpserver",
+      "group": "go",
+      "commit": "7804ead2ac1a61fc70a080bf4a01f4200dcdf877",
+      "committedDate": "2026-10-22T06:08:33Z",
+      "stars": 804,
+      "primaryLanguage": "Go",
+      "application": "go.mod + main.go",
+      "sourceFiles": 20
+    },
+    {
+      "repo": "go-task/task",
+      "group": "go",
+      "commit": "ad2782e1709f0bcf8fbbe0d8e00c2d239141e099",
+      "committedDate": "2026-10-13T20:44:40Z",
+      "stars": 16275,
+      "primaryLanguage": "Go",
+      "application": "go.mod + cmd/release/main.go",
+      "sourceFiles": 116
+    },
+    {
+      "repo": "bookingcom/nanotube",
+      "group": "go",
+      "commit": "32176b251ea064de6be66ae2179d09e1adade54b",
+      "committedDate": "2026-10-22T07:48:40Z",
+      "stars": 59,
+      "primaryLanguage": "Go",
+      "application": "go.mod + cmd/nanotube/main.go",
+      "sourceFiles": 44
+    },
+    {
+      "repo": "juicedata/juicefs",
+      "group": "go",
+      "commit": "0eb0e6d5aa549a527c4dd97d170f22d52a0ffec0",
+      "committedDate": "2026-10-22T07:49:19Z",
+      "stars": 14564,
+      "primaryLanguage": "Go",
+      "application": "go.mod + main.go",
+      "sourceFiles": 226
+    },
+    {
+      "repo": "moby/buildkit",
+      "group": "go",
+      "commit": "98d9aa8f76ed6bb92bf0f1fc499a5272de7c624a",
+      "committedDate": "2026-10-22T06:09:57Z",
+      "stars": 10333,
+      "primaryLanguage": "Go",
+      "application": "go.mod + cmd/buildctl/main.go",
+      "sourceFiles": 774
+    },
+    {
+      "repo": "supersonictw/popsenzawa-echo",
+      "group": "go",
+      "commit": "2a582dcacf11c0a67cd06f7065095c8bec7a39e0",
+      "committedDate": "2026-10-22T07:38:23Z",
+      "stars": 73,
+      "primaryLanguage": "Go",
+      "application": "go.mod + cmd/echo/main.go",
+      "sourceFiles": 26
+    },
+    {
+      "repo": "osmosis-labs/osmosis",
+      "group": "go",
+      "commit": "19f2853c56a26fa8bc3bf82c6fef361d7acc7861",
+      "committedDate": "2026-10-22T06:51:17Z",
+      "stars": 960,
+      "primaryLanguage": "Go",
+      "application": "go.mod + cmd/osmosisd/main.go",
+      "sourceFiles": 964
+    },
+    {
+      "repo": "k8ssandra/k8ssandra-operator",
+      "group": "go",
+      "commit": "8672072e8caf191162bc5d663a7057c132bc5cb1",
+      "committedDate": "2026-10-22T07:52:20Z",
+      "stars": 243,
+      "primaryLanguage": "Go",
+      "application": "go.mod + main.go",
+      "sourceFiles": 142
+    },
+    {
+      "repo": "app-sre/deployment-validation-operator",
+      "group": "go",
+      "commit": "deee78a6b24fa3c6fe2ca0dfebc768dcdabac1f0",
+      "committedDate": "2026-10-22T07:56:45Z",
+      "stars": 58,
+      "primaryLanguage": "Go",
+      "application": "go.mod + main.go",
+      "sourceFiles": 28
+    },
+    {
+      "repo": "cdalar/onctl",
+      "group": "go",
+      "commit": "7605c758f84190e18343d049951c4f6baa8cf24e",
+      "committedDate": "2026-10-22T08:01:31Z",
+      "stars": 48,
+      "primaryLanguage": "Go",
+      "application": "go.mod + main.go",
+      "sourceFiles": 80
+    },
+    {
+      "repo": "benprew/s30",
+      "group": "go",
+      "commit": "b84f93570699a8ddae5aa4a4ff580beab31efe0d",
+      "committedDate": "2026-10-22T05:39:42Z",
+      "stars": 66,
+      "primaryLanguage": "Go",
+      "application": "go.mod + cmd/arena/main.go",
+      "sourceFiles": 132
+    },
+    {
+      "repo": "sempr/hustoj-go",
+      "group": "go",
+      "commit": "e15a9d9a8862710ec02a6a1f4102bf8eb24ff7a7",
+      "committedDate": "2026-10-22T08:05:28Z",
+      "stars": 13,
+      "primaryLanguage": "Go",
+      "application": "go.mod + main.go",
+      "sourceFiles": 135
+    },
+    {
+      "repo": "shpyrd-io/shpyrd",
+      "group": "go",
+      "commit": "c315831f41ddee936a5ad31b75e5126ca38b0ee1",
+      "committedDate": "2026-10-21T12:25:27Z",
+      "stars": 176,
+      "primaryLanguage": "Go",
+      "application": "go.mod + cmd/pg-gateway/main.go",
+      "sourceFiles": 366
+    },
+    {
+      "repo": "damonto/sigmo",
+      "group": "go",
+      "commit": "601f07f40e12c38afb550aaac56fd26eeba86d66",
+      "committedDate": "2026-10-22T06:50:39Z",
+      "stars": 133,
+      "primaryLanguage": "Go",
+      "application": "go.mod + cmd/updatemanifest/main.go",
+      "sourceFiles": 332
+    },
+    {
+      "repo": "suzuki-shunsuke/pinact",
+      "group": "go",
+      "commit": "0b4394fbe2f865d5a3993e8f830bce5d8ccc17f1",
+      "committedDate": "2026-10-22T06:39:07Z",
+      "stars": 1233,
+      "primaryLanguage": "Go",
+      "application": "go.mod + cmd/gen-jsonschema/main.go",
+      "sourceFiles": 37
+    },
+    {
+      "repo": "aws-samples/aws-pod-eip-controller",
+      "group": "go",
+      "commit": "d1e603db371fb21605495fba19acea526dae67c2",
+      "committedDate": "2026-10-22T06:56:15Z",
+      "stars": 67,
+      "primaryLanguage": "Go",
+      "application": "go.mod + main.go",
+      "sourceFiles": 11
+    },
+    {
+      "repo": "gardener/gardener-landscape-kit",
+      "group": "go",
+      "commit": "6c3acb8d4712f468b3d6ca036ba6987bb50fbc20",
+      "committedDate": "2026-10-22T06:37:23Z",
+      "stars": 11,
+      "primaryLanguage": "Go",
+      "application": "go.mod + cmd/gardener-landscape-kit/main.go",
+      "sourceFiles": 82
+    },
+    {
+      "repo": "arkmq-org/arkmq-org-broker-operator",
+      "group": "go",
+      "commit": "d568a39a7028dd118fd5be1ba00c23feaf5f967f",
+      "committedDate": "2026-10-21T12:28:47Z",
+      "stars": 87,
+      "primaryLanguage": "Go",
+      "application": "go.mod + main.go",
+      "sourceFiles": 187
+    },
+    {
+      "repo": "openai/openai-cli",
+      "group": "go",
+      "commit": "a74037654d66266e566a7a34730c27f7e5e1419c",
+      "committedDate": "2026-10-22T05:10:09Z",
+      "stars": 835,
+      "primaryLanguage": "Go",
+      "application": "go.mod + cmd/openai/main.go",
+      "sourceFiles": 491
+    }
+  ]
+}

@@ -19,6 +19,17 @@ import {
 } from './inventory-benchmark-helpers.mjs';
 
 const execute = promisify(execFile);
+// Repositories that declare a Git LFS filter fail to check out without git-lfs installed. Turning
+// the filter off for every git child process keeps LFS pointers as plain text, which is all a scan needs.
+Object.assign(process.env, {
+  GIT_CONFIG_COUNT: '3',
+  GIT_CONFIG_KEY_0: 'filter.lfs.process',
+  GIT_CONFIG_VALUE_0: '',
+  GIT_CONFIG_KEY_1: 'filter.lfs.smudge',
+  GIT_CONFIG_VALUE_1: '',
+  GIT_CONFIG_KEY_2: 'filter.lfs.required',
+  GIT_CONFIG_VALUE_2: 'false',
+});
 const { values } = parseArgs({
   options: {
     list: { type: 'string', default: 'docs/benchmarks/2026-10-22-inventory-repos.json' },
