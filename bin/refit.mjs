@@ -32,6 +32,12 @@ const commands = new Map([
 ]);
 const usage = `Refit: reviewable API migrations
 
+Start in your repository:
+  refit agents              See which provider agents apply
+  refit agents --add <id>   Write .refit.json for one and list the contracts to save
+  refit doctor              Check the setup without running any code
+  refit run                 Scan, propose and validate a migration
+
 Usage: refit <command> [options]
 
   scan             Analyze a local repository against two specifications
