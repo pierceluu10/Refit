@@ -571,7 +571,7 @@ export async function scanDeadlines(
       }
   // Retired API methods: each call site that sends one, from the provider's call scanner.
   if (registry.deadlines.some((entry) => entry.kind === 'method' && entry.provider === 'slack'))
-    for (const use of await slackMethodUses(root, repository.files))
+    for (const use of await slackMethodUses(root, repository))
       record('slack', use.method, { ...use, kind: 'source' });
   for (const pin of await configuredApiVersions(root))
     record(pin.provider, pin.version, {

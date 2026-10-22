@@ -1,5 +1,5 @@
 import { readFile } from 'node:fs/promises';
-import { resolve } from 'node:path';
+import { join, resolve } from 'node:path';
 import ts from 'typescript-compiler';
 import { TEST_PATH } from './deadline-exposure.ts';
 import {
@@ -16,12 +16,12 @@ import {
   partsOf,
   propertyName,
   requiredModule,
-  resolveImport,
   sourceOf,
   unwrap,
   type Part,
 } from './meta-graph-calls.ts';
 import { readRepository } from './repository.ts';
+import { createSourceImportResolver } from './source-imports.ts';
 import { isObject, parseObject } from './specifications.ts';
 import type { Repository } from './types.ts';
 
@@ -293,7 +293,17 @@ function resolver(source: ts.SourceFile, imported: Map<string, Holder>) {
   // `WebClient`, `WebClient | null`, `App`.
   const typeHolder = (type: ts.TypeNode | undefined): Holder | undefined => {
     if (!type) return undefined;
-    if (ts.isTypeReferenceNode(type)) return classOf(type.typeName);
+    if (ts.isTypeReferenceNode(type)) {
+      const holder = classOf(type.typeName);
+      if (holder || !ts.isIdentifier(type.typeName)) return holder;
+      // `type SlackSDK = WebClient` in this file.
+      const name = type.typeName.text;
+      const alias = source.statements.find(
+        (statement): statement is ts.TypeAliasDeclaration =>
+          ts.isTypeAliasDeclaration(statement) && statement.name.text === name,
+      );
+      return alias && alias.type !== type ? typeHolder(alias.type) : undefined;
+    }
     if (ts.isUnionTypeNode(type)) {
       for (const member of type.types) {
         const holder = typeHolder(member);
@@ -389,6 +399,16 @@ function resolver(source: ts.SourceFile, imported: Map<string, Holder>) {
       ? 'bolt-client'
       : undefined;
   };
+  // `const adapter = this`, as code inside a class method writes before a nested function.
+  const isThisAlias = (expression: ts.Expression) => {
+    if (!ts.isIdentifier(expression)) return false;
+    const declaration = findDeclaration(expression.text, expression);
+    return (
+      !!declaration?.initializer &&
+      isConst(declaration) &&
+      unwrap(declaration.initializer).kind === ts.SyntaxKind.ThisKeyword
+    );
+  };
   const holderOf = (expression: ts.Expression | undefined, depth = 0): Holder | undefined => {
     if (!expression || depth > MAX_DEPTH) return undefined;
     const node = unwrap(expression);
@@ -428,7 +448,7 @@ function resolver(source: ts.SourceFile, imported: Map<string, Holder>) {
       return binding && parameterHolder(binding, node.text);
     }
     if (ts.isPropertyAccessExpression(node)) {
-      if (node.expression.kind === ts.SyntaxKind.ThisKeyword) {
+      if (node.expression.kind === ts.SyntaxKind.ThisKeyword || isThisAlias(node.expression)) {
         const owner = ts.findAncestor(node, ts.isClassLike);
         return owner && propertyHolder(owner, node.name.getText(), depth);
       }
@@ -768,7 +788,8 @@ function constructedWith(node: ts.Expression) {
   return found;
 }
 
-function scanFiles(files: Repository['files'], data: SlackMethods) {
+function scanFiles(repository: Repository, data: SlackMethods) {
+  const { files } = repository;
   const calls: SlackCall[] = [];
   const findings: SlackFinding[] = [];
   const sources = new Map<string, ts.SourceFile>();
@@ -785,7 +806,9 @@ function scanFiles(files: Repository['files'], data: SlackMethods) {
       if (holders.size) exportedHolders.set(file.path, holders);
     }
   const names = [...exportedHolders.values()].flatMap((holders) => [...holders.keys()]);
-  const paths = new Set(files.map((file) => file.path));
+  // Relative imports and tsconfig or jsconfig `paths` aliases, as the analyzer resolves them.
+  const absolute = new Map(files.map((file) => [join(repository.root, file.path), file.path]));
+  const resolver = createSourceImportResolver(repository, absolute);
   for (const file of files) {
     const api = mentionsApiHost(file.content);
     const surface =
@@ -793,8 +816,8 @@ function scanFiles(files: Repository['files'], data: SlackMethods) {
     const imported = new Map<string, Holder>();
     if (names.some((name) => file.content.includes(name)))
       for (const [local, binding] of importedNames(sourceFor(file))) {
-        const target = resolveImport(file.path, binding.specifier, paths);
-        const holder = target && exportedHolders.get(target)?.get(binding.name);
+        const target = resolver.resolve(binding.specifier, join(repository.root, file.path));
+        const holder = target && exportedHolders.get(absolute.get(target)!)?.get(binding.name);
         if (holder) imported.set(local, holder);
       }
     const sdk = mentionsSdk(file.content) || imported.size > 0;
@@ -844,7 +867,7 @@ export async function scanSlackCalls(
     packages.push(...declarations(repository, name));
   }
   return {
-    ...scanFiles(repository!.files, data),
+    ...scanFiles(repository!, data),
     packages,
     methodsCheckedAt: data.checkedAt,
     warnings: repository!.warnings,
@@ -852,13 +875,13 @@ export async function scanSlackCalls(
 }
 
 // Each method a repository's source sends, with where, for matching against retired methods in
-// the deadline registry. `files` lets a caller that already read the repository skip a second read.
+// the deadline registry. `repository` lets a caller that already read it skip a second read.
 export async function slackMethodUses(
   directory: string,
-  files?: Repository['files'],
+  repository?: Repository,
 ): Promise<{ method: string; file: string; line: number; use: 'live' | 'test'; text: string }[]> {
   const data = await loadSlackMethods();
-  const read = files ?? (await readRepository(resolve(directory), SLACK_PACKAGES[0])).files;
+  const read = repository ?? (await readRepository(resolve(directory), SLACK_PACKAGES[0]));
   return scanFiles(read, data).calls.flatMap((call) =>
     call.methods.map((method) => ({
       method,

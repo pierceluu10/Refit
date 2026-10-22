@@ -200,7 +200,10 @@ export class SlackService {
   topic() { return this.web.conversations.setTopic({}); }
   #private = new Client();
   pin() { return this.#private.pins.add({}); }
+  later() { const self = this; return () => self.injected.dnd.info({}); }
 }
+type SlackSDK = WebClient;
+class Addon { private sdk?: SlackSDK; send() { return this.sdk?.chat.update({}); } }
 let late: WebClient | null = null;
 export const ping = () => late?.auth.test();
 `,
@@ -210,7 +213,9 @@ export const ping = () => late?.auth.test();
       'src/service.ts:9 web-api users.info',
       'src/service.ts:10 web-api conversations.setTopic',
       'src/service.ts:12 web-api pins.add',
-      'src/service.ts:15 web-api auth.test',
+      'src/service.ts:13 web-api dnd.info',
+      'src/service.ts:16 web-api chat.update',
+      'src/service.ts:18 web-api auth.test',
     ]);
   });
 
@@ -247,6 +252,18 @@ export async function run() {
       'src/use.ts:8 bolt views.publish',
       'src/use.ts:9 bolt chat.delete',
     ]);
+  });
+  it('follows client functions imported through tsconfig paths aliases', async () => {
+    const found = await calls({
+      'tsconfig.json': JSON.stringify({ compilerOptions: { paths: { '@/*': ['./src/*'] } } }),
+      'src/slack/client.ts': `import { WebClient } from '@slack/web-api';
+export function getSlackClient(): WebClient { return new WebClient(token); }
+`,
+      'src/chat/outbound.ts': `import { getSlackClient } from '@/slack/client';
+export const post = () => getSlackClient().chat.postMessage({});
+`,
+    });
+    expect(summary(found)).toEqual(['src/chat/outbound.ts:2 web-api chat.postMessage']);
   });
 });
 
