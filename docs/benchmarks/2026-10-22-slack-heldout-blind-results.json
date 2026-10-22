@@ -1,0 +1,1056 @@
+{
+  "formatVersion": 1,
+  "list": "docs/benchmarks/2026-10-22-slack-repos.json, the 10 repositories in 2026-10-22-slack-heldout-labels.json",
+  "refit": {
+    "commit": "e4f28068ce68189a400f4300aa31fc8cccd53f41",
+    "dirty": false
+  },
+  "scannedAt": "2026-10-22T08:44:54.848Z",
+  "results": [
+    {
+      "repo": "howdyai/botkit",
+      "commit": "b8f0e3e7fd9238a585ffdcec4a691acb23d0adcf",
+      "packages": [
+        "@slack/web-api@^6.5.1"
+      ],
+      "calls": [
+        {
+          "file": "packages/botbuilder-adapter-slack/src/botworker.ts",
+          "line": 103,
+          "kind": "web-api",
+          "use": "live",
+          "methods": [
+            "conversations.open"
+          ],
+          "deprecated": null,
+          "notes": [],
+          "unknown": []
+        },
+        {
+          "file": "packages/botbuilder-adapter-slack/src/botworker.ts",
+          "line": 319,
+          "kind": "web-api",
+          "use": "live",
+          "methods": [
+            "dialog.open"
+          ],
+          "deprecated": null,
+          "notes": [],
+          "unknown": []
+        },
+        {
+          "file": "packages/botbuilder-adapter-slack/src/slack_adapter.ts",
+          "line": 129,
+          "kind": "web-api",
+          "use": "live",
+          "methods": [
+            "auth.test"
+          ],
+          "deprecated": null,
+          "notes": [],
+          "unknown": []
+        },
+        {
+          "file": "packages/botbuilder-adapter-slack/src/slack_adapter.ts",
+          "line": 301,
+          "kind": "web-api",
+          "use": "live",
+          "methods": [
+            "oauth.v2.access"
+          ],
+          "deprecated": null,
+          "notes": [],
+          "unknown": []
+        },
+        {
+          "file": "packages/botbuilder-adapter-slack/src/slack_adapter.ts",
+          "line": 303,
+          "kind": "web-api",
+          "use": "live",
+          "methods": [
+            "oauth.access"
+          ],
+          "deprecated": "oauth.access",
+          "notes": [],
+          "unknown": []
+        }
+      ],
+      "webhooks": [],
+      "rtm": []
+    },
+    {
+      "repo": "happyvertical/sdk",
+      "commit": "1c351d5e3baa4eed17ad392da833a2e8313d6115",
+      "packages": [
+        "@slack/web-api@7.15.1"
+      ],
+      "calls": [
+        {
+          "file": "packages/messages/src/adapters/slack.ts",
+          "line": 51,
+          "kind": "web-api",
+          "use": "live",
+          "methods": [
+            "chat.postMessage"
+          ],
+          "deprecated": null,
+          "notes": [],
+          "unknown": []
+        },
+        {
+          "file": "packages/messages/src/adapters/slack.ts",
+          "line": 76,
+          "kind": "web-api",
+          "use": "live",
+          "methods": [
+            "conversations.history"
+          ],
+          "deprecated": null,
+          "notes": [],
+          "unknown": []
+        },
+        {
+          "file": "packages/messages/src/adapters/slack.ts",
+          "line": 108,
+          "kind": "web-api",
+          "use": "live",
+          "methods": [
+            "conversations.history"
+          ],
+          "deprecated": null,
+          "notes": [],
+          "unknown": []
+        },
+        {
+          "file": "packages/messages/src/adapters/slack.ts",
+          "line": 137,
+          "kind": "web-api",
+          "use": "live",
+          "methods": [
+            "conversations.replies"
+          ],
+          "deprecated": null,
+          "notes": [],
+          "unknown": []
+        },
+        {
+          "file": "packages/messages/src/adapters/slack.ts",
+          "line": 152,
+          "kind": "web-api",
+          "use": "live",
+          "methods": [
+            "conversations.list"
+          ],
+          "deprecated": null,
+          "notes": [],
+          "unknown": []
+        },
+        {
+          "file": "packages/messages/src/adapters/slack.ts",
+          "line": 174,
+          "kind": "web-api",
+          "use": "live",
+          "methods": [
+            "auth.test"
+          ],
+          "deprecated": null,
+          "notes": [],
+          "unknown": []
+        }
+      ],
+      "webhooks": [],
+      "rtm": []
+    },
+    {
+      "repo": "geminixiang/mikan",
+      "commit": "fbdbf52d9cd24cc237964d7b89a9137d20363b3d",
+      "packages": [
+        "@slack/web-api@8.0.0"
+      ],
+      "calls": [
+        {
+          "file": "e2e/slack/helper-waits.e2e.ts",
+          "line": 25,
+          "kind": "web-api",
+          "use": "test",
+          "methods": [
+            "auth.test"
+          ],
+          "deprecated": null,
+          "notes": [],
+          "unknown": []
+        },
+        {
+          "file": "e2e/slack/helper-waits.e2e.ts",
+          "line": 72,
+          "kind": "web-api",
+          "use": "test",
+          "methods": [
+            "chat.delete"
+          ],
+          "deprecated": null,
+          "notes": [],
+          "unknown": []
+        },
+        {
+          "file": "e2e/slack/helper-waits.e2e.ts",
+          "line": 73,
+          "kind": "web-api",
+          "use": "test",
+          "methods": [
+            "chat.delete"
+          ],
+          "deprecated": null,
+          "notes": [],
+          "unknown": []
+        },
+        {
+          "file": "e2e/slack/helper-waits.e2e.ts",
+          "line": 81,
+          "kind": "web-api",
+          "use": "test",
+          "methods": [
+            "auth.test"
+          ],
+          "deprecated": null,
+          "notes": [],
+          "unknown": []
+        },
+        {
+          "file": "e2e/slack/helper-waits.e2e.ts",
+          "line": 125,
+          "kind": "web-api",
+          "use": "test",
+          "methods": [
+            "chat.delete"
+          ],
+          "deprecated": null,
+          "notes": [],
+          "unknown": []
+        },
+        {
+          "file": "e2e/slack/helper-waits.e2e.ts",
+          "line": 127,
+          "kind": "web-api",
+          "use": "test",
+          "methods": [
+            "chat.delete"
+          ],
+          "deprecated": null,
+          "notes": [],
+          "unknown": []
+        },
+        {
+          "file": "e2e/slack/helper-waits.e2e.ts",
+          "line": 141,
+          "kind": "web-api",
+          "use": "test",
+          "methods": [
+            "auth.test"
+          ],
+          "deprecated": null,
+          "notes": [],
+          "unknown": []
+        },
+        {
+          "file": "e2e/slack/helpers/slack.ts",
+          "line": 49,
+          "kind": "web-api",
+          "use": "test",
+          "methods": [
+            "chat.postMessage"
+          ],
+          "deprecated": null,
+          "notes": [],
+          "unknown": []
+        },
+        {
+          "file": "e2e/slack/helpers/slack.ts",
+          "line": 148,
+          "kind": "web-api",
+          "use": "test",
+          "methods": [
+            "files.getUploadURLExternal",
+            "files.completeUploadExternal"
+          ],
+          "deprecated": null,
+          "notes": [],
+          "unknown": []
+        },
+        {
+          "file": "e2e/slack/helpers/slack.ts",
+          "line": 168,
+          "kind": "web-api",
+          "use": "test",
+          "methods": [
+            "files.getUploadURLExternal",
+            "files.completeUploadExternal"
+          ],
+          "deprecated": null,
+          "notes": [],
+          "unknown": []
+        },
+        {
+          "file": "e2e/slack/helpers/slack.ts",
+          "line": 197,
+          "kind": "web-api",
+          "use": "test",
+          "methods": [
+            "conversations.open"
+          ],
+          "deprecated": null,
+          "notes": [],
+          "unknown": []
+        },
+        {
+          "file": "e2e/slack/helpers/slack.ts",
+          "line": 208,
+          "kind": "web-api",
+          "use": "test",
+          "methods": [
+            "conversations.replies"
+          ],
+          "deprecated": null,
+          "notes": [],
+          "unknown": []
+        },
+        {
+          "file": "e2e/slack/helpers/slack.ts",
+          "line": 217,
+          "kind": "web-api",
+          "use": "test",
+          "methods": [
+            "conversations.history"
+          ],
+          "deprecated": null,
+          "notes": [],
+          "unknown": []
+        },
+        {
+          "file": "e2e/slack/long-message-thread.e2e.ts",
+          "line": 118,
+          "kind": "web-api",
+          "use": "test",
+          "methods": [
+            "chat.delete"
+          ],
+          "deprecated": null,
+          "notes": [],
+          "unknown": []
+        },
+        {
+          "file": "e2e/slack/streaming.e2e.ts",
+          "line": 26,
+          "kind": "web-api",
+          "use": "test",
+          "methods": [
+            "auth.test"
+          ],
+          "deprecated": null,
+          "notes": [],
+          "unknown": []
+        },
+        {
+          "file": "e2e/slack/streaming.e2e.ts",
+          "line": 29,
+          "kind": "web-api",
+          "use": "test",
+          "methods": [
+            "chat.startStream"
+          ],
+          "deprecated": null,
+          "notes": [],
+          "unknown": []
+        },
+        {
+          "file": "e2e/slack/streaming.e2e.ts",
+          "line": 39,
+          "kind": "web-api",
+          "use": "test",
+          "methods": [
+            "chat.appendStream"
+          ],
+          "deprecated": null,
+          "notes": [],
+          "unknown": []
+        },
+        {
+          "file": "e2e/slack/streaming.e2e.ts",
+          "line": 44,
+          "kind": "web-api",
+          "use": "test",
+          "methods": [
+            "chat.stopStream"
+          ],
+          "deprecated": null,
+          "notes": [],
+          "unknown": []
+        },
+        {
+          "file": "e2e/slack/streaming.e2e.ts",
+          "line": 61,
+          "kind": "web-api",
+          "use": "test",
+          "methods": [
+            "chat.delete"
+          ],
+          "deprecated": null,
+          "notes": [],
+          "unknown": []
+        },
+        {
+          "file": "scripts/run-local-slack-e2e.mjs",
+          "line": 32,
+          "kind": "url",
+          "use": "live",
+          "methods": [
+            "auth.test"
+          ],
+          "deprecated": null,
+          "notes": [],
+          "unknown": []
+        },
+        {
+          "file": "src/adapters/slack/app-config.ts",
+          "line": 276,
+          "kind": "web-api",
+          "use": "live",
+          "methods": [
+            "tooling.tokens.rotate"
+          ],
+          "deprecated": null,
+          "notes": [],
+          "unknown": []
+        },
+        {
+          "file": "src/adapters/slack/app-config.ts",
+          "line": 285,
+          "kind": "web-api",
+          "use": "live",
+          "methods": [
+            "apps.manifest.export"
+          ],
+          "deprecated": null,
+          "notes": [],
+          "unknown": []
+        },
+        {
+          "file": "src/adapters/slack/app-config.ts",
+          "line": 290,
+          "kind": "web-api",
+          "use": "live",
+          "methods": [
+            "apps.manifest.update"
+          ],
+          "deprecated": null,
+          "notes": [],
+          "unknown": []
+        },
+        {
+          "file": "src/adapters/slack/app-config.ts",
+          "line": 294,
+          "kind": "web-api",
+          "use": "live",
+          "methods": [
+            "apps.manifest.create"
+          ],
+          "deprecated": null,
+          "notes": [],
+          "unknown": []
+        },
+        {
+          "file": "src/adapters/slack/app-config.ts",
+          "line": 301,
+          "kind": "web-api",
+          "use": "live",
+          "methods": [
+            "apps.manifest.delete"
+          ],
+          "deprecated": null,
+          "notes": [],
+          "unknown": []
+        },
+        {
+          "file": "src/adapters/slack/app-config.ts",
+          "line": 310,
+          "kind": "web-api",
+          "use": "live",
+          "methods": [
+            "auth.test"
+          ],
+          "deprecated": null,
+          "notes": [],
+          "unknown": []
+        },
+        {
+          "file": "src/adapters/slack/app-config.ts",
+          "line": 311,
+          "kind": "web-api",
+          "use": "live",
+          "methods": [
+            "bots.info"
+          ],
+          "deprecated": null,
+          "notes": [],
+          "unknown": []
+        },
+        {
+          "file": "src/adapters/slack/app-config.ts",
+          "line": 313,
+          "kind": "web-api",
+          "use": "live",
+          "methods": [
+            "auth.test"
+          ],
+          "deprecated": null,
+          "notes": [],
+          "unknown": []
+        },
+        {
+          "file": "src/adapters/slack/app-config.ts",
+          "line": 315,
+          "kind": "web-api",
+          "use": "live",
+          "methods": [
+            "chat.postMessage"
+          ],
+          "deprecated": null,
+          "notes": [],
+          "unknown": []
+        },
+        {
+          "file": "src/adapters/slack/bot.ts",
+          "line": 390,
+          "kind": "web-api",
+          "use": "live",
+          "methods": [
+            "auth.test"
+          ],
+          "deprecated": null,
+          "notes": [],
+          "unknown": []
+        },
+        {
+          "file": "src/adapters/slack/bot.ts",
+          "line": 467,
+          "kind": "web-api",
+          "use": "live",
+          "methods": [
+            "chat.postMessage"
+          ],
+          "deprecated": null,
+          "notes": [],
+          "unknown": []
+        },
+        {
+          "file": "src/adapters/slack/bot.ts",
+          "line": 476,
+          "kind": "web-api",
+          "use": "live",
+          "methods": [
+            "reactions.add"
+          ],
+          "deprecated": null,
+          "notes": [],
+          "unknown": []
+        },
+        {
+          "file": "src/adapters/slack/bot.ts",
+          "line": 492,
+          "kind": "web-api",
+          "use": "live",
+          "methods": [
+            "chat.postEphemeral"
+          ],
+          "deprecated": null,
+          "notes": [],
+          "unknown": []
+        },
+        {
+          "file": "src/adapters/slack/bot.ts",
+          "line": 525,
+          "kind": "web-api",
+          "use": "live",
+          "methods": [
+            "chat.postMessage"
+          ],
+          "deprecated": null,
+          "notes": [],
+          "unknown": []
+        },
+        {
+          "file": "src/adapters/slack/bot.ts",
+          "line": 537,
+          "kind": "web-api",
+          "use": "live",
+          "methods": [
+            "chat.update"
+          ],
+          "deprecated": null,
+          "notes": [],
+          "unknown": []
+        },
+        {
+          "file": "src/adapters/slack/bot.ts",
+          "line": 564,
+          "kind": "web-api",
+          "use": "live",
+          "methods": [
+            "conversations.open"
+          ],
+          "deprecated": null,
+          "notes": [],
+          "unknown": []
+        },
+        {
+          "file": "src/adapters/slack/bot.ts",
+          "line": 577,
+          "kind": "web-api",
+          "use": "live",
+          "methods": [
+            "chat.update"
+          ],
+          "deprecated": null,
+          "notes": [],
+          "unknown": []
+        },
+        {
+          "file": "src/adapters/slack/bot.ts",
+          "line": 598,
+          "kind": "web-api",
+          "use": "live",
+          "methods": [
+            "chat.startStream"
+          ],
+          "deprecated": null,
+          "notes": [],
+          "unknown": []
+        },
+        {
+          "file": "src/adapters/slack/bot.ts",
+          "line": 621,
+          "kind": "web-api",
+          "use": "live",
+          "methods": [
+            "chat.appendStream"
+          ],
+          "deprecated": null,
+          "notes": [],
+          "unknown": []
+        },
+        {
+          "file": "src/adapters/slack/bot.ts",
+          "line": 631,
+          "kind": "web-api",
+          "use": "live",
+          "methods": [
+            "chat.stopStream"
+          ],
+          "deprecated": null,
+          "notes": [],
+          "unknown": []
+        },
+        {
+          "file": "src/adapters/slack/bot.ts",
+          "line": 637,
+          "kind": "web-api",
+          "use": "live",
+          "methods": [
+            "chat.delete"
+          ],
+          "deprecated": null,
+          "notes": [],
+          "unknown": []
+        },
+        {
+          "file": "src/adapters/slack/bot.ts",
+          "line": 647,
+          "kind": "web-api",
+          "use": "live",
+          "methods": [
+            "assistant.threads.setStatus"
+          ],
+          "deprecated": null,
+          "notes": [],
+          "unknown": []
+        },
+        {
+          "file": "src/adapters/slack/bot.ts",
+          "line": 669,
+          "kind": "web-api",
+          "use": "live",
+          "methods": [
+            "assistant.threads.setSuggestedPrompts"
+          ],
+          "deprecated": null,
+          "notes": [],
+          "unknown": []
+        },
+        {
+          "file": "src/adapters/slack/bot.ts",
+          "line": 684,
+          "kind": "web-api",
+          "use": "live",
+          "methods": [
+            "assistant.threads.setTitle"
+          ],
+          "deprecated": null,
+          "notes": [],
+          "unknown": []
+        },
+        {
+          "file": "src/adapters/slack/bot.ts",
+          "line": 756,
+          "kind": "web-api",
+          "use": "live",
+          "methods": [
+            "files.getUploadURLExternal",
+            "files.completeUploadExternal"
+          ],
+          "deprecated": null,
+          "notes": [],
+          "unknown": []
+        },
+        {
+          "file": "src/adapters/slack/bot.ts",
+          "line": 1886,
+          "kind": "web-api",
+          "use": "live",
+          "methods": [
+            "conversations.history"
+          ],
+          "deprecated": null,
+          "notes": [],
+          "unknown": []
+        },
+        {
+          "file": "src/adapters/slack/bot.ts",
+          "line": 1972,
+          "kind": "web-api",
+          "use": "live",
+          "methods": [
+            "users.list"
+          ],
+          "deprecated": null,
+          "notes": [],
+          "unknown": []
+        },
+        {
+          "file": "src/adapters/slack/bot.ts",
+          "line": 1998,
+          "kind": "web-api",
+          "use": "live",
+          "methods": [
+            "conversations.list"
+          ],
+          "deprecated": null,
+          "notes": [],
+          "unknown": []
+        },
+        {
+          "file": "src/adapters/slack/bot.ts",
+          "line": 2028,
+          "kind": "web-api",
+          "use": "live",
+          "methods": [
+            "conversations.list"
+          ],
+          "deprecated": null,
+          "notes": [],
+          "unknown": []
+        }
+      ],
+      "webhooks": [],
+      "rtm": []
+    },
+    {
+      "repo": "electrovir/deploy-vir",
+      "commit": "e9bbd00a69d5a49e78bdf74967a6edc726cb8494",
+      "packages": [
+        "@slack/web-api@8.2.0"
+      ],
+      "calls": [],
+      "webhooks": [
+        {
+          "file": "src/readme-examples/config.example.ts",
+          "line": 34,
+          "use": "live",
+          "via": "url",
+          "methods": []
+        }
+      ],
+      "rtm": []
+    },
+    {
+      "repo": "agent-messenger/agent-messenger",
+      "commit": "9d2de96a43fe3e0e172e8e399454c475146a2697",
+      "packages": [
+        "@slack/web-api@^6.9.0"
+      ],
+      "calls": [
+        {
+          "file": "e2e/slack.e2e.test.ts",
+          "line": 184,
+          "kind": "web-api",
+          "use": "test",
+          "methods": [
+            "files.getUploadURLExternal",
+            "files.completeUploadExternal"
+          ],
+          "deprecated": null,
+          "notes": [],
+          "unknown": []
+        },
+        {
+          "file": "e2e/slack.e2e.test.ts",
+          "line": 375,
+          "kind": "web-api",
+          "use": "test",
+          "methods": [
+            "files.getUploadURLExternal",
+            "files.completeUploadExternal"
+          ],
+          "deprecated": null,
+          "notes": [],
+          "unknown": []
+        },
+        {
+          "file": "e2e/slack.e2e.test.ts",
+          "line": 403,
+          "kind": "web-api",
+          "use": "test",
+          "methods": [
+            "files.delete"
+          ],
+          "deprecated": null,
+          "notes": [],
+          "unknown": []
+        },
+        {
+          "file": "src/platforms/slackbot/client.ts",
+          "line": 516,
+          "kind": "web-api",
+          "use": "live",
+          "methods": [
+            "apps.connections.open"
+          ],
+          "deprecated": null,
+          "notes": [],
+          "unknown": []
+        }
+      ],
+      "webhooks": [],
+      "rtm": []
+    },
+    {
+      "repo": "framerslab/agentos-extensions",
+      "commit": "7829e60d2bb3d147811ed85fc58f5b55878aa35f",
+      "packages": [
+        "@slack/bolt@3.22.0"
+      ],
+      "calls": [],
+      "webhooks": [],
+      "rtm": []
+    },
+    {
+      "repo": "jungjaehoon-lifegamez/MAMA",
+      "commit": "273dbc7d9e22daf34e9cf9a720dc21e204f85dc8",
+      "packages": [
+        "@slack/web-api@7.19.0"
+      ],
+      "calls": [
+        {
+          "file": "packages/standalone/src/connectors/slack/index.ts",
+          "line": 150,
+          "kind": "web-api",
+          "use": "live",
+          "methods": [
+            "auth.test"
+          ],
+          "deprecated": null,
+          "notes": [],
+          "unknown": []
+        },
+        {
+          "file": "packages/standalone/src/connectors/slack/index.ts",
+          "line": 162,
+          "kind": "web-api",
+          "use": "live",
+          "methods": [
+            "users.info"
+          ],
+          "deprecated": null,
+          "notes": [],
+          "unknown": []
+        },
+        {
+          "file": "packages/standalone/src/connectors/slack/index.ts",
+          "line": 188,
+          "kind": "web-api",
+          "use": "live",
+          "methods": [
+            "conversations.history"
+          ],
+          "deprecated": null,
+          "notes": [],
+          "unknown": []
+        },
+        {
+          "file": "packages/standalone/src/connectors/slack/index.ts",
+          "line": 211,
+          "kind": "web-api",
+          "use": "live",
+          "methods": [
+            "conversations.replies"
+          ],
+          "deprecated": null,
+          "notes": [],
+          "unknown": []
+        },
+        {
+          "file": "packages/standalone/src/connectors/slack/index.ts",
+          "line": 366,
+          "kind": "web-api",
+          "use": "live",
+          "methods": [
+            "files.info"
+          ],
+          "deprecated": null,
+          "notes": [],
+          "unknown": []
+        },
+        {
+          "file": "packages/standalone/src/gateways/slack.ts",
+          "line": 260,
+          "kind": "web-api",
+          "use": "live",
+          "methods": [
+            "files.getUploadURLExternal",
+            "files.completeUploadExternal"
+          ],
+          "deprecated": null,
+          "notes": [],
+          "unknown": []
+        },
+        {
+          "file": "packages/standalone/src/gateways/slack.ts",
+          "line": 376,
+          "kind": "web-api",
+          "use": "live",
+          "methods": [
+            "chat.postMessage"
+          ],
+          "deprecated": null,
+          "notes": [],
+          "unknown": []
+        }
+      ],
+      "webhooks": [],
+      "rtm": []
+    },
+    {
+      "repo": "screwdriver-cd/notifications-slack",
+      "commit": "a78c97fde0f9f0c65fa0153de753ef272bdfa7ff",
+      "packages": [
+        "@slack/web-api@^7.15.1"
+      ],
+      "calls": [],
+      "webhooks": [],
+      "rtm": []
+    },
+    {
+      "repo": "stablyai/agent-slack",
+      "commit": "adda22908cecb3fbb53be7b44b8c1e0876d6688b",
+      "packages": [
+        "@slack/web-api@^7.13.0"
+      ],
+      "calls": [
+        {
+          "file": "src/slack/client.ts",
+          "line": 183,
+          "kind": "web-api",
+          "use": "live",
+          "methods": [],
+          "deprecated": null,
+          "notes": [],
+          "unknown": [
+            "the method is chosen at runtime from `method`"
+          ]
+        }
+      ],
+      "webhooks": [],
+      "rtm": []
+    },
+    {
+      "repo": "MaroonedSoftware/serverkit",
+      "commit": "07d339983c960fa24b6cc4543bab68793584b00b",
+      "packages": [
+        "@slack/web-api@8.1.1"
+      ],
+      "calls": [
+        {
+          "file": "packages/slack/src/client/slack.client.ts",
+          "line": 100,
+          "kind": "web-api",
+          "use": "live",
+          "methods": [
+            "chat.postMessage"
+          ],
+          "deprecated": null,
+          "notes": [],
+          "unknown": []
+        },
+        {
+          "file": "packages/slack/src/client/slack.client.ts",
+          "line": 105,
+          "kind": "web-api",
+          "use": "live",
+          "methods": [
+            "chat.update"
+          ],
+          "deprecated": null,
+          "notes": [],
+          "unknown": []
+        },
+        {
+          "file": "packages/slack/src/client/slack.client.ts",
+          "line": 110,
+          "kind": "web-api",
+          "use": "live",
+          "methods": [
+            "chat.delete"
+          ],
+          "deprecated": null,
+          "notes": [],
+          "unknown": []
+        },
+        {
+          "file": "packages/slack/src/client/slack.client.ts",
+          "line": 115,
+          "kind": "web-api",
+          "use": "live",
+          "methods": [
+            "views.open"
+          ],
+          "deprecated": null,
+          "notes": [],
+          "unknown": []
+        },
+        {
+          "file": "packages/slack/src/client/slack.client.ts",
+          "line": 173,
+          "kind": "web-api",
+          "use": "live",
+          "methods": [
+            "apps.connections.open"
+          ],
+          "deprecated": null,
+          "notes": [],
+          "unknown": []
+        }
+      ],
+      "webhooks": [],
+      "rtm": []
+    }
+  ]
+}
