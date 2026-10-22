@@ -134,6 +134,16 @@ async function benchmark(entry: Selected, index: number) {
     console.error(`[${index + 1}/${selected.length}] ${entry.repo}: ${stage}`);
   let repository: Repository;
   try {
+    // A root built before setup checked its clones can hold an empty checkout where a fetch failed
+    // (a repository deleted upstream), which would read as a repository with no Stripe calls.
+    const head = await execute('git', ['-C', directory, 'rev-parse', 'HEAD']).then(
+      ({ stdout }) => stdout.trim(),
+      () => undefined,
+    );
+    if (head !== entry.commit)
+      throw new PipelineInputError(
+        `No checkout at ${entry.commit}; rerun scripts/stripe-benchmark-setup.mjs.`,
+      );
     repository = await readRepository(directory, 'stripe');
     result.read = 'ok';
   } catch (error) {
