@@ -42,7 +42,7 @@ Reviewed on 2026-10-22 against `main` at `fb0143a`. Nothing here was tested agai
 | T6 | Hostile repository: escape, exfiltration, resource exhaustion | Mitigated for this review; sandbox detail is OG3's | `npm-dependencies.test.ts`, `yarn-preparation.test.ts`, `validation.test.ts` (gated) |
 | T7 | Lease theft | Mitigated; worker-ID collision Accepted | `hosted-service.test.ts` (expired leases, stale renew and finish refused) |
 | T8 | SQL injection | Mitigated | `hosted-security.test.ts`: stores hostile text verbatim |
-| T9 | Secret exposure in logs, receipts, evidence and errors | **Fixed** (outputs had no redaction) | `hosted-security.test.ts`, `secret-redaction.test.ts`, `github-checkout.test.ts`, `hosted-service.test.ts` (gated evidence scan) |
+| T9 | Secret exposure in logs, receipts, evidence and errors | **Fixed** (outputs had no redaction) | `hosted-security.test.ts`, `hosted-redaction.test.ts`, `github-checkout.test.ts`, `hosted-service.test.ts` (gated evidence scan) |
 | T10 | Status token handling and timing | **Fixed** (length leak) | `token-comparison.test.ts`; `hosted-security.test.ts` (`/status` refusals) |
 | T11 | SSRF through configured URLs | Mitigated in hosted mode; operator URLs Accepted | `workflow-configuration.ts` key allowlist; `npm-dependencies.test.ts` (`.npmrc` registry ignored) |
 | T12 | Database TLS without certificate verification | **Owner action** | `docs/HOSTED-ONBOARDING.md` URL; `pg-connection-string` 2.14.1 source |
@@ -68,12 +68,12 @@ Tests:
 
 The job-time API check (`confirmRepositoryAccess`) stops a replayed install from running code without real access. The cancellations, however, take effect immediately.
 
-**Fix.** `hosted-store.ts` now refuses a body whose SHA-256 was already accepted under a different GUID, with 409 *"already accepted under another delivery GUID; refusing a replay"*. GitHub's own redelivery reuses the original GUID ("If you request a redelivery, the `X-GitHub-Delivery` header will be the same as in the original delivery", [GitHub: best practices for using webhooks](https://docs.github.com/en/webhooks/using-webhooks/best-practices-for-using-webhooks), read 2026-10-22). A redelivery therefore still answers `duplicate`. A new index on `refit_deliveries (hash)` keeps the lookup cheap.
+**Fix.** `hosted-store.ts` now refuses a body whose SHA-256 was already accepted under a different GUID, with 409 *"already accepted under another delivery GUID; refusing a replay"*. GitHub's own redelivery reuses the original GUID ("If you request a redelivery, the `X-GitHub-Delivery` header will be the same as in the original delivery", [GitHub: best practices for using webhooks](https://docs.github.com/en/webhooks/using-webhooks/best-practices-for-using-webhooks), read 2026-10-22). A redelivery therefore still answers `duplicate`. An index on `refit_deliveries (hash)` (hosted migration 9) keeps the lookup cheap. Delivery rows are never pruned (owner decision, 2026-10-22), so a replay is refused however late.
 
 **Test.** `hosted-security.test.ts` runs the flow over HTTP against Postgres: add, then remove, then replay the *added* body under a new GUID. The replay gets 409 and the target stays cancelled. A same-GUID redelivery returns `duplicate`, and a genuinely new event for the same repository is still accepted. It failed before the fix (202 instead of 409).
 
 **Residual risks.**
-- **Identical events.** Two distinct GitHub events with byte-identical bodies would be refused as a replay. Payloads carry the sender and installation timestamps, so this is unlikely. GitHub records the refusal, and the owner can redeliver.
+- **Identical events.** Two distinct GitHub events with byte-identical bodies would be refused as a replay. Whether GitHub ever sends two such events is not verified: no recorded add→remove→add payload pair backs it, and the test's second event differs only because it adds a `sender`. A refused event cannot be recovered: its GUID is not stored, so GitHub's redelivery under that GUID is refused again. See [needs owner decision](#needs-owner-decision).
 - **Pruning.** Replay protection lasts only as long as `refit_deliveries` keeps the hash (see Requests).
 - **Local service.** `refit serve` (`service-state.ts`) has the same GUID-only deduplication. There, every installation change is held as `waiting for API confirmation` until the API confirms it, and the service binds `127.0.0.1`, so it is listed rather than changed here.
 
@@ -168,14 +168,14 @@ Every value reaches Postgres as a bound parameter. The only interpolated SQL is 
 
 Even so, nothing stopped a future or third-party error from being stored and served.
 
-**Fix.** `pipeline/secret-redaction.ts` removes the worker's own secrets wherever they appear: the webhook secret, the service token, the OpenAI key and the database password (raw and URL-decoded), plus their base64 forms. It also removes known credential shapes it was never given:
+**Fix.** `hostedRedactor` in `pipeline/hosted-ops.ts` (the redactor `refit hosted serve` already used for its logs and Slack notices) removes the worker's own secrets wherever they appear: the webhook secret, the service token, the OpenAI key, the Slack URL, the App key and the database password (raw and URL-decoded), plus their base64 forms. It also removes known credential shapes it was never given:
 - GitHub tokens (`ghs_` and other prefixes, `github_pat_`);
 - OpenAI keys;
 - PEM private keys, including truncated ones;
-- `Authorization` header values and long `Bearer` tokens;
+- `Authorization: token` header values and long `Bearer` and `Basic` values;
 - passwords in Postgres URLs.
 
-`runHostedService` applies it to every progress line, both receipt paths (finished and failed), lease-renewal and storage failures, and 4xx error responses. 5xx responses were already generic.
+`runHostedService` applies it, with the secrets it was given, to every progress line, every stored job receipt, lease-renewal and storage failures, and 4xx error responses. 5xx responses were already generic.
 
 **Tests.**
 - `hosted-security.test.ts` runs the service against Postgres. It feeds the webhook secret, the service token, an OpenAI key, a `ghs_` token, an RSA private key, the database password, a Postgres URL and a Basic credential through:
@@ -186,7 +186,7 @@ Even so, nothing stopped a future or third-party error from being stored and ser
   - a storage failure on webhook intake;
   - malformed signed JSON.
 
-  It then checks that none of them, nor their base64 forms, appear in the progress log, `/status`, the stored receipts, the HTTP responses or any file under the state directory. It also checks that each message still says what happened. It failed before the fix.
+  It then checks that none of them, nor their base64 forms, appear in the progress log, `/status`, the stored receipts or the HTTP responses. Job execution is mocked, so nothing is written under the state directory and the test does not check it. It also checks that each message still says what happened. It failed before the fix.
 - `github-checkout.test.ts` makes Git print the installation token and its Basic credential and checks that both are redacted (this path had no test).
 - The gated end-to-end test in `hosted-service.test.ts` now scans every file the worker kept: evidence, managed checkouts, approved-input cache and receipts. It checks for the webhook secret, the service token and the installation token. It needs Docker and `oasdiff`; see the PR for whether it ran.
 
@@ -267,14 +267,15 @@ These two lanes add new trust boundaries. Each requirement below names the threa
 7. **Machines API token.** The control process's Fly token must be scoped to the job app only. A deploy token for the worker app could redeploy the control process. Never log it; add its shape to `secretRedactor` if Fly tokens appear in errors. Answers T9.
 8. **Isolation claim.** Only after 1–7 hold may the docs claim per-job isolation, and only then is lifting the single-owner restriction an owner decision with evidence.
 
+## Needs owner decision
+
+- **Refused identical events (T2).** A legitimate event whose body is byte-identical to one already accepted is refused, and GitHub's redelivery of it is refused again. There is no operator recovery path; the effect is a missed installation change until the next event for that installation. Accept this, or ask for a recovery path (for example, an operator command that accepts one refused GUID).
+- **Login reuse (T4)** stays accepted until accounts are matched by numeric ID.
+
 ## Requests for other lanes
 
 - **PG10 (tenancy).**
   - Key `REFIT_HOSTED_ACCOUNTS` on the numeric account ID, or record the ID the first time a login is seen and refuse a later installation whose ID differs. This closes the login-reuse case in T4.
-  - My changes touch `hosted-store.ts` (`accept`: the replay check) and `hosted-service.ts` (redaction at the outputs). Keep both when merging.
-- **PP7 (store and retention).**
-  - Keep `refit_deliveries.hash` for as long as any signed body could be replayed: forever, or prune only rows older than GitHub's redelivery window *and* keep their hashes. Pruning hashes reopens T2 for pruned payloads.
-  - Fold `refit_deliveries_hash` into your migrations.
 - **Pierce (hosted entrypoint, `github-app.ts`, onboarding doc).**
   - T12: switch `REFIT_DATABASE_URL` to `sslmode=verify-full` with the Supabase CA certificate.
   - T13: load the App key once into a `KeyObject` and delete `/run/refit/app.pem` after start-up.
@@ -287,7 +288,7 @@ docker run -d --name refit-hosted-pg -e POSTGRES_USER=refit -e POSTGRES_PASSWORD
   -e POSTGRES_DB=refit -p 127.0.0.1:55432:5432 postgres:17-alpine
 REFIT_POSTGRES_URL=postgres://refit:refit-local-test@127.0.0.1:55432/refit \
   npx vitest run pipeline/hosted-security.test.ts pipeline/token-comparison.test.ts \
-  pipeline/secret-redaction.test.ts pipeline/github-checkout.test.ts --maxWorkers=2
+  pipeline/hosted-redaction.test.ts pipeline/github-checkout.test.ts --maxWorkers=2
 ```
 
-Without `REFIT_POSTGRES_URL`, the Postgres tests are skipped and the others still run. The end-to-end evidence scan also needs `REFIT_DOCKER_IMAGE=node:22-alpine` and `REFIT_OASDIFF=1` (`pipeline/hosted-service.test.ts`).
+Without `REFIT_POSTGRES_URL`, the Postgres tests are skipped and the others still run. GitHub Actions is disabled on this repository, so `hosted-security.test.ts` has only run locally, against a Postgres container. The end-to-end evidence scan also needs `REFIT_DOCKER_IMAGE=node:22-alpine` and `REFIT_OASDIFF=1` (`pipeline/hosted-service.test.ts`).
