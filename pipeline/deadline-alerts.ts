@@ -1,5 +1,7 @@
 import { AGENT_CATALOG } from './agent-catalog.ts';
-import type { AgentStatus, DeadlineExposure } from './deadline-exposure.ts';
+import { agentStatus, type AgentStatus, type DeadlineExposure } from './deadline-exposure.ts';
+import { applyDeadlineIgnores, type DeadlineIgnore } from './deadline-ignores.ts';
+import type { DeadlineRegistry } from './deadline-registry.ts';
 import { isObject } from './specifications.ts';
 import { PipelineInputError } from './types.ts';
 
@@ -41,6 +43,31 @@ export function alertStage(days: number, leadDays: readonly number[]) {
 // several lead times between polls sends one alert at the tightest.
 export function alertDue(stage: number | null, previous: number | null | undefined) {
   return stage !== null && (previous === null || previous === undefined || stage < previous);
+}
+
+// The exposures to alert about now: not accepted by an active ignore, and at a tighter lead time
+// than the last alert `sent` for that deadline. An invalid ignore file should pass no entries, so a
+// broken exception can never silence an alert.
+export function dueDeadlineAlerts(options: {
+  exposures: DeadlineExposure[];
+  ignores: DeadlineIgnore[];
+  registry: DeadlineRegistry;
+  now: Date;
+  leadDays: readonly number[];
+  sent: (deadline: string) => number | null | undefined;
+}) {
+  const { decisions } = applyDeadlineIgnores(
+    options.exposures,
+    options.ignores,
+    new Set(options.registry.deadlines.map((entry) => entry.id)),
+    options.now,
+  );
+  return options.exposures
+    .filter((exposure) => !decisions.get(exposure.deadline.id)?.ignoredBy.length)
+    .map((exposure) => ({ exposure, stage: alertStage(exposure.days, options.leadDays) }))
+    .filter((alert): alert is { exposure: DeadlineExposure; stage: number } =>
+      alertDue(alert.stage, options.sent(alert.exposure.deadline.id)),
+    );
 }
 
 function providerName(provider: string) {
@@ -175,4 +202,31 @@ export async function syncDeadlineIssue(options: {
     body: options.comment,
   });
   return { issue: options.issue, action: 'updated' as const };
+}
+
+// Opens or updates the issue for one exposure with its current evidence and migration note.
+export function syncDeadlineAlert(options: {
+  request: DeadlineRequest;
+  repository: string;
+  issue: number | null;
+  exposure: DeadlineExposure;
+  revision: string | null;
+  integrations: Parameters<typeof agentStatus>[1];
+  leadDays: readonly number[];
+}) {
+  const { exposure, repository } = options;
+  return syncDeadlineIssue({
+    request: options.request,
+    repository,
+    issue: options.issue,
+    title: deadlineTitle(exposure),
+    body: deadlineBody({
+      exposure,
+      repository,
+      revision: options.revision,
+      status: agentStatus(exposure.deadline.provider, options.integrations),
+      leadDays: options.leadDays,
+    }),
+    comment: deadlineComment(exposure),
+  });
 }

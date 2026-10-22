@@ -11,17 +11,9 @@ import {
   type GitHubAppConfiguration,
 } from './github-app.ts';
 import { suggestAgentsForPullRequest } from './agent-suggestions.ts';
-import {
-  alertDue,
-  alertStage,
-  deadlineBody,
-  deadlineComment,
-  deadlineTitle,
-  syncDeadlineIssue,
-  timing,
-} from './deadline-alerts.ts';
-import { agentStatus, configuredIntegrations, findDeadlineExposures } from './deadline-exposure.ts';
-import { applyDeadlineIgnores, readDeadlineIgnores } from './deadline-ignores.ts';
+import { deadlineTitle, dueDeadlineAlerts, syncDeadlineAlert, timing } from './deadline-alerts.ts';
+import { configuredIntegrations, findDeadlineExposures } from './deadline-exposure.ts';
+import { readDeadlineIgnores } from './deadline-ignores.ts';
 import { loadDeadlineRegistry } from './deadline-registry.ts';
 import { standaloneStateDirectory, type GitHubCheckout } from './github-checkout.ts';
 import { requestGitHub } from './github.ts';
@@ -262,24 +254,19 @@ export async function runLocalService(options: {
               `[${repository}] Deadline ignores not applied: ${error.name}: ${error.message}`,
             );
           }
-          const { decisions } = applyDeadlineIgnores(
+          const known = (await store.read()).deadlineAlerts ?? {};
+          const due = dueDeadlineAlerts({
             exposures,
             ignores,
-            new Set(registry.deadlines.map((entry) => entry.id)),
+            registry,
             now,
-          );
-          const known = (await store.read()).deadlineAlerts ?? {};
-          const due = exposures
-            .filter((exposure) => !decisions.get(exposure.deadline.id)?.ignoredBy.length)
-            .map((exposure) => ({
-              exposure,
-              key: `${repository}|${exposure.deadline.id}`,
-              stage: alertStage(exposure.days, leadDays),
-            }))
-            .filter((alert) => alertDue(alert.stage, known[alert.key]?.stage));
+            leadDays,
+            sent: (deadline) => known[`${repository}|${deadline}`]?.stage,
+          });
           if (!due.length) continue;
           const { token } = await authenticateGitHubIssues(options.app, repository);
-          for (const { exposure, key, stage } of due) {
+          for (const { exposure, stage } of due) {
+            const key = `${repository}|${exposure.deadline.id}`;
             const previous = known[key];
             const save = (change: {
               issue: number | null;
@@ -306,19 +293,14 @@ export async function runLocalService(options: {
               if (notice) await options.notify?.(notice);
             };
             try {
-              const result = await syncDeadlineIssue({
+              const result = await syncDeadlineAlert({
                 request: (method, path, body) => requestGitHub(token, method, path, body),
                 repository,
                 issue: previous?.issue ?? null,
-                title: deadlineTitle(exposure),
-                body: deadlineBody({
-                  exposure,
-                  repository,
-                  revision: checkout.revision,
-                  status: agentStatus(exposure.deadline.provider, integrations),
-                  leadDays,
-                }),
-                comment: deadlineComment(exposure),
+                exposure,
+                revision: checkout.revision,
+                integrations,
+                leadDays,
               });
               await save({ issue: result.issue, status: result.action, message: null });
               options.onProgress?.(
