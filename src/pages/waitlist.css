@@ -823,7 +823,7 @@
 .launch-close {
   position: relative;
   overflow: hidden;
-  padding: 128px 24px 56px;
+  padding: 88px 24px 36px;
   color: #fff;
   background: var(--blue);
   text-align: center;
@@ -861,7 +861,7 @@
 }
 .launch-logo {
   width: min(1392px, 100%);
-  margin: 88px auto 0;
+  margin: 56px auto 0;
   color: #ffffff6b;
 }
 .launch-logo .ascii-wordmark-lens {
