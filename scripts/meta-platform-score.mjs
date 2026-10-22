@@ -1,7 +1,8 @@
 // Scores how Refit treats WhatsApp Cloud API and Messenger Send API requests against blind hand
 // labels (docs/benchmarks/2026-10-22-meta-platform-labels.json). Each label is a live request a
-// person found by reading the code: its file and the line its HTTP call starts on, and whether it
-// goes to WhatsApp or Messenger. Three questions, from `refit meta-graph --json` and
+// person found by reading the code: its file, the lines that identify it (where its HTTP or helper
+// call starts and, when the URL is written on another line, that line too), and whether it goes
+// to WhatsApp or Messenger. A result on any of its lines counts for the request. Three questions, from `refit meta-graph --json` and
 // `refit meta-graph --propose-version-moves --json`:
 // - found: the request scan reports a live call on that line;
 // - guarded: a version-move stop names that line with the WhatsApp and Messenger reason, so no
@@ -52,20 +53,23 @@ export function scoreMetaPlatform(labels, results) {
       failed.push(label.repo);
       continue;
     }
-    const expected = new Set(label.requests.map((request) => `${request.file}:${request.line}`));
-    for (const key of expected) {
+    const claimed = new Set();
+    for (const request of label.requests) {
+      const keys = request.lines.map((line) => `${request.file}:${line}`);
+      for (const key of keys) claimed.add(key);
+      const name = keys[0];
       tally.labelled += 1;
-      if (result.calls.includes(key)) tally.found += 1;
-      else misses.push({ repo: label.repo, line: key, error: 'not found' });
-      if (result.guarded.includes(key)) tally.guarded += 1;
-      else misses.push({ repo: label.repo, line: key, error: 'not guarded' });
-      if (result.moved.includes(key)) {
+      if (keys.some((key) => result.calls.includes(key))) tally.found += 1;
+      else misses.push({ repo: label.repo, line: name, error: 'not found' });
+      if (keys.some((key) => result.guarded.includes(key))) tally.guarded += 1;
+      else misses.push({ repo: label.repo, line: name, error: 'not guarded' });
+      if (keys.some((key) => result.moved.includes(key))) {
         tally.moved += 1;
-        misses.push({ repo: label.repo, line: key, error: 'moved' });
+        misses.push({ repo: label.repo, line: name, error: 'moved' });
       }
     }
     for (const key of result.guarded)
-      if (!expected.has(key)) {
+      if (!claimed.has(key)) {
         tally.falseGuards += 1;
         misses.push({ repo: label.repo, line: key, error: 'guarded, not labelled' });
       }

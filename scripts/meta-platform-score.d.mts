@@ -21,7 +21,7 @@ export function repositoryResult(
 ): Omit<MetaPlatformResult, 'repo'>;
 
 export function scoreMetaPlatform(
-  labels: { labels: { repo: string; requests: { file: string; line: number }[] }[] },
+  labels: { labels: { repo: string; requests: { file: string; lines: number[] }[] }[] },
   results: { repos: MetaPlatformResult[] },
 ): {
   repositories: number;

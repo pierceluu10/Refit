@@ -36,11 +36,11 @@ it('scores found, guarded and moved requests, and counts guards no label names',
         {
           repo: 'a/one',
           requests: [
-            { file: 'src/wa.ts', line: 47 },
-            { file: 'src/wa.ts', line: 60 },
+            { file: 'src/wa.ts', lines: [47] },
+            { file: 'src/wa.ts', lines: [59, 60] },
           ],
         },
-        { repo: 'b/two', requests: [{ file: 'bot.js', line: 5 }] },
+        { repo: 'b/two', requests: [{ file: 'bot.js', lines: [5] }] },
       ],
     },
     {
@@ -68,8 +68,8 @@ it('scores found, guarded and moved requests, and counts guards no label names',
     guardPrecision: 0.5,
   });
   expect(score.misses.map((miss) => `${miss.line} ${miss.error}`)).toEqual([
-    'src/wa.ts:60 not guarded',
-    'src/wa.ts:60 moved',
+    'src/wa.ts:59 not guarded',
+    'src/wa.ts:59 moved',
     'src/x.ts:1 guarded, not labelled',
   ]);
 });
