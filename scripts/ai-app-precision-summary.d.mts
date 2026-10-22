@@ -72,6 +72,7 @@ export interface SetScore {
   negativeFileFalsePositives: number;
   truePositives: ScoredSite[];
   falsePositives: ScoredSite[];
+  compatibleHits: ScoredSite[];
   falseNegatives: SiteLabel[];
   beyondLimit: SiteLabel[];
 }

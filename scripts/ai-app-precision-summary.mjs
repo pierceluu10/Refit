@@ -7,6 +7,9 @@
 export const SETS = ['openai', 'anthropic'];
 export const VIA = ['sdk', 'wrapper', 'raw-http', 'indirect'];
 export const PROVIDERS = ['openai', 'anthropic', 'gemini', 'compatible'];
+// Registry providers whose deadlines retire models. Meta Graph and Shopify deadlines are API
+// versions, outside this benchmark.
+const MODEL_PROVIDERS = new Set(['openai', 'anthropic', 'gemini']);
 
 const NON_PRODUCTION =
   /[^/]*_test\.[cm]?[jt]sx?$|(?:^|\/)(?:tests?|__tests__|__mocks__|mocks?|spec|specs|e2e|cypress|playwright|fixtures?|examples?|demos?|docs?|stories|\.storybook|scripts?|seeds?|benchmarks?|evals?|testdata)\/|\.(?:test|spec|stories|e2e)\.[^/]+$|(?:^|\/)(?:test_[^/]*\.py|[^/]*_test\.py|conftest\.py|[^/]*\.config\.[cm]?[jt]s)$/i;
@@ -120,12 +123,13 @@ export function wilson(k, n, z = 1.96) {
   };
 }
 
-// Live sites Refit reported in one repository's `refit deadlines --json` result, one per
+// Live model sites Refit reported in one repository's `refit deadlines --json` result, one per
 // file:line:model, and the deadlines whose evidence list was cut at the limit.
 export function reportedSites(result) {
   const sites = [];
   const capped = new Set();
   for (const exposure of result?.exposures ?? []) {
+    if (!MODEL_PROVIDERS.has(exposure.deadline.provider)) continue;
     if (exposure.more > 0) capped.add(exposure.deadline.id);
     for (const evidence of exposure.evidence)
       if (evidence.kind === 'source')
@@ -144,7 +148,8 @@ export function reportedSites(result) {
 // (or `{ error }`); `deadlineOf` maps a provider:model pair to its registry deadline id. A
 // labelled registry site Refit did not list counts as a miss, unless its deadline's evidence was
 // cut at the limit, in which case it is "beyond the evidence limit" and counted apart. A reported
-// site matches a label at the same file, line and model.
+// site matches a label at the same file, line and model. A report at a labelled compatible site
+// is kept out of precision, as the guide keeps compatible sites out of the scores.
 export function scoreSet(set, labels, results, deadlineOf) {
   const sampled = labels.sample[set];
   const siteKey = (repo, s) => `${repo}\u0000${s.file}\u0000${s.line}\u0000${s.model}`;
@@ -152,11 +157,17 @@ export function scoreSet(set, labels, results, deadlineOf) {
     (s) => sampled.includes(s.repo) && s.provider !== 'compatible',
   );
   const byKey = new Map(labelled.map((s) => [siteKey(s.repo, s), s]));
+  const compatible = new Set(
+    labels.sites
+      .filter((s) => sampled.includes(s.repo) && s.provider === 'compatible')
+      .map((s) => siteKey(s.repo, s)),
+  );
   const negatives = new Set(
     labels.negatives.filter((n) => n.set === set).map((n) => `${n.repo}\u0000${n.file}`),
   );
   const truePositives = [];
   const falsePositives = [];
+  const compatibleHits = [];
   const falseNegatives = [];
   const beyondLimit = [];
   const errored = [];
@@ -175,7 +186,8 @@ export function scoreSet(set, labels, results, deadlineOf) {
       if (label) {
         truePositives.push(item);
         matched.add(key);
-      } else falsePositives.push(item);
+      } else if (compatible.has(key)) compatibleHits.push(item);
+      else falsePositives.push(item);
     }
     for (const label of labelled.filter((s) => s.repo === repo && s.registry)) {
       if (matched.has(siteKey(repo, label))) continue;
@@ -201,6 +213,7 @@ export function scoreSet(set, labels, results, deadlineOf) {
     negativeFileFalsePositives: falsePositives.filter((f) => f.negativeFile).length,
     truePositives,
     falsePositives,
+    compatibleHits,
     falseNegatives,
     beyondLimit,
   };

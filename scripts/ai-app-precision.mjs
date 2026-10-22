@@ -194,7 +194,7 @@ if (step === 'score') {
     score.sets[set] = scoreSet(set, labels, run.results, deadlineOf);
     const s = score.sets[set];
     console.log(
-      `${set}: ${s.repositories} repositories, ${s.labelledSites} sites (${s.registrySites} registry), precision ${s.precision.rate}% (${s.precision.k}/${s.precision.n}), recall ${s.recall.rate}% (${s.recall.k}/${s.recall.n}), all-site recall ${s.recallAllSites.rate}% (${s.recallAllSites.k}/${s.recallAllSites.n}), ${s.beyondLimit.length} beyond the evidence limit, ${s.negativeFileFalsePositives} false positives in negative files`,
+      `${set}: ${s.repositories} repositories, ${s.labelledSites} sites (${s.registrySites} registry), precision ${s.precision.rate}% (${s.precision.k}/${s.precision.n}), recall ${s.recall.rate}% (${s.recall.k}/${s.recall.n}), all-site recall ${s.recallAllSites.rate}% (${s.recallAllSites.k}/${s.recallAllSites.n}), ${s.beyondLimit.length} beyond the evidence limit, ${s.negativeFileFalsePositives} false positives in negative files, ${s.compatibleHits.length} reports at compatible sites`,
     );
   }
   if (values.output) await writeFile(resolve(values.output), `${JSON.stringify(score, null, 2)}\n`);

@@ -28,9 +28,9 @@ function negatives(set: string, repo: string) {
   return Array.from({ length: 30 }, (_, i) => ({ set, repo, file: `src/negative-${i}.ts` }));
 }
 
-function exposure(id: string, evidence: [string, number, string][], more = 0) {
+function exposure(id: string, evidence: [string, number, string][], more = 0, provider = 'openai') {
   return {
-    deadline: { id, provider: 'openai' },
+    deadline: { id, provider },
     more,
     evidence: evidence.map(([file, line, version]) => ({ kind: 'source', file, line, version })),
   };
@@ -171,7 +171,10 @@ describe('scoring', () => {
           exposure('openai-4o', [
             ['src/ai.ts', 3, 'gpt-4o'],
             ['src/quiet.ts', 7, 'gpt-4o'],
+            ['src/router.ts', 2, 'llama-3'],
           ]),
+          // An API-version deadline, outside the benchmark.
+          exposure('meta-v17', [['src/whatsapp.ts', 8, 'v17.0']], 0, 'meta-graph'),
         ],
       },
       'o/two': { exposures: [exposure('openai-35', [['src/other.ts', 1, 'gpt-3.5-turbo']], 4)] },
@@ -195,6 +198,7 @@ describe('scoring', () => {
       'o/two src/other.ts:1',
     ]);
     expect(score.negativeFileFalsePositives).toBe(1);
+    expect(score.compatibleHits.map((s) => `${s.file}:${s.line}`)).toEqual(['src/router.ts:2']);
     expect(score.falseNegatives.map((s) => `${s.file}:${s.line}`)).toEqual(['src/ai.ts:9']);
     expect(score.beyondLimit.map((s) => `${s.repo} ${s.file}:${s.line}`)).toEqual([
       'o/two src/big.ts:5',
