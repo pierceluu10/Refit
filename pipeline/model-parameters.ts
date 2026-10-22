@@ -5,7 +5,12 @@ import { PipelineInputError } from './types.ts';
 
 export const DEFAULT_MODEL_PARAMETERS = new URL('../data/model-parameters.json', import.meta.url);
 
-// The request parameters the replacement rule stops on, per provider.
+// The request parameters the replacement rule stops on, per provider. Anthropic returns a 400 for
+// non-default temperature, top_p and top_k on Claude 4.7 and later models (Anthropic model
+// deprecations page, 2026-10-20), and for `thinking: { type: 'enabled', budget_tokens }`, the
+// only thinking mode of the retiring models (platform.claude.com extended thinking page, read
+// 2026-10-22). OpenAI reasoning models' support for the sampling and length parameters below:
+// unverified, so they stop for review too.
 export const MODEL_PARAMETER_NAMES: Record<string, ReadonlySet<string>> = {
   openai: new Set([
     'temperature',
@@ -17,7 +22,7 @@ export const MODEL_PARAMETER_NAMES: Record<string, ReadonlySet<string>> = {
     'logprobs',
     'top_logprobs',
   ]),
-  anthropic: new Set(['temperature', 'top_p', 'top_k']),
+  anthropic: new Set(['temperature', 'top_p', 'top_k', 'thinking']),
 };
 const OFFICIAL_HOSTS = [
   'developers.openai.com',

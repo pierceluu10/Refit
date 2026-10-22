@@ -1,30 +1,26 @@
 # Refit implementation checkpoints
 
-## October 21 checkpoint: sourced parameter stops (unreleased, after 0.39.0)
+## October 22 checkpoint: no silent model exposures (unreleased, after 0.39.0)
 
-The model-replacement rule can now continue past a sampling or length stop where an official page read by a person proves the replacement accepts that parameter with that literal value. Decision recorded in AGENTS.md, pending the repository owner's review on its PR.
+`refit deadlines --propose-model-fixes` now gives every live OpenAI and Anthropic model match an outcome:
+
+- **Unresolved.** A live model ID that no traced request sends is listed under `unresolved` (`--json`) or "Not sent by a traced request", with its replacement and where it is written. These are never edited.
+- **Header-detected requests.** A `fetch` to a non-official URL that sets `anthropic-version` inline and sends `model` and `messages` is traced as an Anthropic request and always stops for review.
+- **Unreadable configurations.** Calls found only by trusting an SDK import under a `tsconfig.json` or `jsconfig.json` Refit cannot read (for example one extending a generated `.svelte-kit/tsconfig.json`) stop for review.
+- **`paths` fallback.** A bare import matching a `paths` entry is the installed package when no mapped target or `baseUrl` lookup is a scanned source, as TypeScript resolves it. This applies to every provider's analysis, Stripe included.
+- **Catalogs.** A model's per-platform ID record (with a Bedrock or Vertex AI form) and members of a `new Set([...])` or keys of a `new Map([...])` are catalog.
+
+On the application sets, read only against `main` at `fb0143a`, exposed repositories with no outcome went from 17 to 0 for Anthropic and 12 to 0 for OpenAI; replacements stayed at 2 repositories per set and no repository lost one ([benchmarks](BENCHMARKS.md#model-fixes-on-the-application-sets-october-21)). Tests: `pipeline/model-retirements.test.ts`, `pipeline/deadlines.test.ts` and `pipeline/ai-model-benchmark-summary.test.ts`.
+
+## October 22 checkpoint: sourced parameter table, off by default (unreleased, after 0.39.0)
+
+The model-replacement rule can continue past a sampling or length stop where an official page read by a person proves the replacement accepts that parameter with that literal value. It is off by default (owner decision, 2026-10-22): only `refit deadlines --propose-model-fixes --parameters data/model-parameters.json` uses the table; `refit serve --model-fixes` and the default command keep the heuristic stops.
 
 - **Table.** `data/model-parameters.json` holds sourced entries, each with an official `source`, a `checkedAt` date and, for defaults, a `defaultSource`. `npm run model-parameters:check` rejects the whole file on any error, and a table that fails to load stops model fixes.
 - **What continues.** Only a literal `temperature: 1` on a `claude-sonnet-5-5` replacement. Each parameter is verified separately.
 - **What keeps stopping.** On replacements with a table entry, every parameter the table does not prove, renamed parameters (never rewritten), non-literal values and computed property names. Replacements without an entry keep the earlier heuristic: Claude 4.7-and-later replacements (such as Opus 4.8) stop on `temperature`, `top_p` and `top_k`, earlier ones such as `claude-haiku-4-5-20251001` continue, and every OpenAI replacement stops on its sensitive parameters.
-- **Review.** The repository owner reviews the decision and the stop sentences on its PR.
 
 Evidence is fixture tests and the pages read; no live provider was called. Fix rates are measured separately, on the application benchmark sets.
-
-## October 21 checkpoint: model fixes through indirect sources (unreleased, after 0.39.0)
-
-Owner decision, 2026-10-21 (D-06 to D-08, approved on #140): `refit deadlines --propose-model-fixes` and `refit serve --model-fixes` now edit the literal a request reaches through:
-
-- in-file class fields (initializers, `this.x =` assignments, constructor defaults and `new` callers' literals);
-- enum and `const` object members;
-- env fallbacks, `??`, `||` and conditionals;
-- returned literals, destructuring defaults and options-object parameters;
-- imported constants;
-- axios request configs.
-
-Before, these sources were traced and reported as stops. Each is edited only when the request is its single use. Shared sources (D-09) stay stops until the application benchmark measures the wrong-edit rate. Every stop from the previous checkpoint still applies.
-
-Tests: `pipeline/model-retirements.test.ts` covers each source with edits, and keeps the stop for a field read twice.
 
 ## October 21 checkpoint: single-tenant hosted enrollment (unreleased, after 0.39.0)
 

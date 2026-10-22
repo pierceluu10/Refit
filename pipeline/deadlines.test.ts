@@ -618,6 +618,59 @@ it('matches and classifies Anthropic model IDs like OpenAI ones', async () => {
   );
 });
 
+// Claude Code-style model configs list one model's IDs per platform, and capability sets name a
+// couple of models for `.has(model)`: both describe models rather than send one.
+it('classifies platform records and membership collections as catalog', async () => {
+  const anthropic: DeadlineRegistry = {
+    formatVersion: 1,
+    deadlines: [
+      ...classifying.deadlines,
+      entry({
+        id: 'anthropic-sonnet-4-5',
+        provider: 'anthropic',
+        kind: 'model',
+        versions: ['claude-sonnet-4-5-20250929', 'claude-sonnet-4-5'],
+        date: '2026-11-30',
+        replacement: 'claude-sonnet-5-5',
+      }),
+    ],
+  };
+  const scan = await scanDeadlines(
+    await repository({
+      'src/configs.ts': [
+        'export const CLAUDE_SONNET_4_5_CONFIG = {',
+        "  firstParty: 'claude-sonnet-4-5-20250929',",
+        "  bedrock: 'us.anthropic.claude-sonnet-4-5-20250929-v1:0',",
+        "  vertex: 'claude-sonnet-4-5@20250929',",
+        "  foundry: 'claude-sonnet-4-5',",
+        '} as const;',
+        "const small = new Set(['claude-sonnet-4-5', 'gpt-4']);",
+        "const limits = new Map([['gpt-4', 8192]]);",
+        // No platform form: a request and a settings object with two models stay live.
+        "send({ model: 'claude-sonnet-4-5', fallback: 'claude-sonnet-4-5-20250929' });",
+        "const pair = ['claude-sonnet-4-5', 'gpt-4'];",
+      ].join('\n'),
+    }),
+    anthropic,
+    NOW,
+  );
+  const result: Record<string, string> = {};
+  for (const exposure of [...scan.exposures, ...scan.mentions])
+    for (const item of [...exposure.evidence, ...exposure.nonLive])
+      result[`${item.file}:${item.line} ${item.version}`] = item.use;
+  expect(result).toEqual({
+    'src/configs.ts:2 claude-sonnet-4-5-20250929': 'catalog',
+    'src/configs.ts:5 claude-sonnet-4-5': 'catalog',
+    'src/configs.ts:7 claude-sonnet-4-5': 'catalog',
+    'src/configs.ts:7 gpt-4': 'catalog',
+    'src/configs.ts:8 gpt-4': 'catalog',
+    'src/configs.ts:9 claude-sonnet-4-5': 'live',
+    'src/configs.ts:9 claude-sonnet-4-5-20250929': 'live',
+    'src/configs.ts:10 claude-sonnet-4-5': 'live',
+    'src/configs.ts:10 gpt-4': 'live',
+  });
+});
+
 // Gemini entries for tests only: the model IDs are from the SDK READMEs, the dates are invented.
 const gemini: DeadlineRegistry = {
   formatVersion: 1,
@@ -927,6 +980,10 @@ it('checks the registry shape and flags past-due entries and entries without a s
           }),
           extra: true,
         },
+        {
+          ...entry({ id: 'derived', provider: 'openai', versions: ['d'], date: '2027-01-01' }),
+          derivedDate: false,
+        },
       ],
     },
     NOW,
@@ -938,6 +995,7 @@ it('checks the registry shape and flags past-due entries and entries without a s
     'Bad.Id: id must be lowercase letters, digits and hyphens.',
     'Bad.Id: old-model already has another deadline.',
     'Bad.Id: date must be a real YYYY-MM-DD date.',
+    'derived: derivedDate must be true or left out.',
   ]);
   const path = join(await repository({}), 'registry.json');
   await writeFile(
@@ -968,7 +1026,7 @@ it('keeps the shipped registry valid and sourced', async () => {
   expect(report.errors).toEqual([]);
   expect(report.missingSource).toEqual([]);
   expect(new Set(shipped.deadlines.map((item) => item.provider))).toEqual(
-    new Set(['shopify', 'meta-graph', 'openai', 'anthropic', 'gemini']),
+    new Set(['shopify', 'meta-graph', 'openai', 'anthropic', 'gemini', 'slack']),
   );
 });
 
@@ -1246,6 +1304,21 @@ it('lets a committed ignore file accept an alert, and never lets an invalid one 
       message.startsWith('[example/app] Deadline ignores not applied: PipelineInputError'),
     ),
   ).toBe(true);
+
+  // A derived date never opens an issue, even with no ignore file.
+  requests.length = 0;
+  notices.length = 0;
+  await rm(join(checkout.directory, '.refit-deadlines-ignore.json'));
+  await writeFile(
+    registryPath,
+    JSON.stringify({
+      ...registry,
+      deadlines: registry.deadlines.map((item) => ({ ...item, derivedDate: true })),
+    }),
+  );
+  await run();
+  expect(requests).toEqual([]);
+  expect(notices).toEqual([]);
 }, 30_000);
 
 it('renders the deadline issue with evidence, the replacement and the migration path', () => {

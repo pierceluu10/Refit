@@ -179,7 +179,8 @@ it('stops for review where a swap could change the request, and skips what it ca
       "  await openai.chat.completions.create({ ...options, model: 'gpt-4', messages });",
       '  await openai.chat.completions.create({ model: MODEL, messages });',
       "  await openai.chat.completions.create({ model: 'gpt-prose', messages });",
-      // Not a text-generation call: it stops for review. Not the SDK, or not a retiring model: nothing.
+      // Not a text-generation call, or an Amazon Bedrock ID: it stops for review. Not the SDK, or
+      // not a retiring model: nothing.
       "  await openai.embeddings.create({ model: 'gpt-4', input: 'x' });",
       "  await fetch('https://api.openai.com', { body: JSON.stringify({ model: 'gpt-4' }) });",
       "  await openai.chat.completions.create({ model: 'gpt-4o', messages });",
@@ -218,6 +219,11 @@ it('stops for review where a swap could change the request, and skips what it ca
       8,
       'claude-3-opus-20240229',
       'The request sets temperature, which claude-opus-4-8 may reject or treat differently.',
+    ],
+    [
+      15,
+      'anthropic.claude-3-opus-20240229-v1:0',
+      "`anthropic.claude-3-opus-20240229-v1:0` is a model ID for Amazon Bedrock, where model IDs and retirement dates are Amazon Bedrock's, not the Claude API's (the Claude API retires claude-3-opus-20240229 on 2026-01-05); check Amazon Bedrock's model lifecycle and change it by hand to its ID for claude-opus-4-8.",
     ],
   ]);
 });
@@ -285,6 +291,7 @@ it('never proposes Gemini model or SDK replacements', async () => {
   expect(await proposeModelReplacements(root, gemini, NOW)).toEqual({
     replacements: [],
     stops: [],
+    unresolved: [],
     patch: null,
   });
 });
@@ -506,6 +513,9 @@ it('keeps Anthropic sampling parameters when the replacement predates Claude 4.7
       'const anthropic = new Anthropic();',
       "anthropic.messages.create({ model: 'claude-3-haiku-20240307', temperature: 0, max_tokens: 9, messages: [] });",
       "anthropic.messages.create({ model: 'claude-3-opus-20240229', top_k: 5, max_tokens: 9, messages: [] });",
+      // Claude 4.7 and later reject `thinking: { type: 'enabled' }`; Claude Haiku 4.5 keeps it.
+      "anthropic.messages.create({ model: 'claude-3-opus-20240229', thinking: { type: 'enabled', budget_tokens: 2048 }, max_tokens: 4096, messages: [] });",
+      "anthropic.messages.create({ model: 'claude-3-haiku-20240307', thinking: { type: 'enabled', budget_tokens: 2048 }, max_tokens: 4096, messages: [] });",
     ].join('\n'),
   });
   const proposal = await proposeModelReplacements(
@@ -527,9 +537,11 @@ it('keeps Anthropic sampling parameters when the replacement predates Claude 4.7
   );
   expect(proposal.replacements.map((item) => [item.line, item.to])).toEqual([
     [3, 'claude-haiku-4-5-20251001'],
+    [6, 'claude-haiku-4-5-20251001'],
   ]);
   expect(proposal.stops.map((item) => [item.line, item.reason])).toEqual([
     [4, 'The request sets top_k, which claude-opus-4-8 may reject or treat differently.'],
+    [5, 'The request sets thinking, which claude-opus-4-8 may reject or treat differently.'],
   ]);
 });
 
@@ -1346,7 +1358,11 @@ it('stops instead of editing when a client sets a custom base URL or is an Azure
   expect(proposal.patch).toBeNull();
   expect(proposal.stops.map((item) => [item.file, item.model, item.reason]).sort()).toEqual([
     ['src/azure.ts', 'gpt-4', reason],
-    ['src/proxy.ts', 'gpt-4', reason],
+    [
+      'src/proxy.ts',
+      'gpt-4',
+      "The client sets `baseURL` (src/proxy.ts:2), so the model may name another provider's model or a deployment; change it by hand to gpt-5.6-sol.",
+    ],
   ]);
 
   // Without a base URL or an Azure client the same request is edited, and a raw request to the
@@ -1369,7 +1385,12 @@ it('stops instead of editing when a client sets a custom base URL or is an Azure
   });
   const held = await proposeModelReplacements(mixed, registry, NOW);
   expect(edited(held)).toEqual(['src/raw.ts:1 o1-mini']);
-  expect(held.stops.map((item) => [item.file, item.reason])).toEqual([['src/a.ts', reason]]);
+  expect(held.stops.map((item) => [item.file, item.reason])).toEqual([
+    [
+      'src/a.ts',
+      "The repository mentions a custom endpoint (src/proxy.ts:1), but this request's client (src/a.ts:2) sets none; editing it waits on an owner decision on endpoint tracing; change it by hand to gpt-5.6-sol.",
+    ],
+  ]);
 });
 
 it('stops on overridden methods, subclass fields and super(...) arguments instead of dropping them', async () => {
@@ -1480,9 +1501,25 @@ it('stops every SDK request when any file mentions a custom endpoint, in any sha
     });
     const proposal = await proposeModelReplacements(root, registry, NOW);
     expect([label, proposal.replacements]).toEqual([label, []]);
+    // Where only another client's constructor sets the endpoint, the stop says so; with the
+    // endpoint-tracing option (off by default, pending an owner decision) the request is edited.
+    const elsewhere = ['options object', 'spread'].includes(label);
     expect([label, proposal.stops.map((item) => [item.file, item.reason])]).toEqual([
       label,
-      [['src/a.ts', reason]],
+      [
+        [
+          'src/a.ts',
+          elsewhere
+            ? "The repository mentions a custom endpoint (src/client.ts:2), but this request's client (src/a.ts:2) sets none; editing it waits on an owner decision on endpoint tracing; change it by hand to gpt-5.6-sol."
+            : reason,
+        ],
+      ],
+    ]);
+    const traced = await proposeModelReplacements(root, registry, NOW, { endpoints: true });
+    expect([label, traced.replacements.length, traced.stops.length]).toEqual([
+      label,
+      elsewhere ? 1 : 0,
+      elsewhere ? 0 : 1,
     ]);
   }
   // A compiler `baseUrl`, files in node_modules, and words that only contain `base`
@@ -1913,10 +1950,6 @@ it('follows the right side of && and keeps the other shapes untraced', async () 
     ],
     arguments: ['function ask() {', `  return ${send('arguments[0]')}`, '}', "ask('gpt-4');"],
     'this in an object method': ["const o = { m: 'gpt-4', go() { " + send('this.m') + ' } };'],
-    'spread from a const object': [
-      "const base = { model: 'gpt-4' };",
-      'openai.chat.completions.create({ ...base, messages: [] });',
-    ],
   };
   for (const [label, lines] of Object.entries(shapes)) {
     const proposal = await proposeModelReplacements(
@@ -1926,6 +1959,26 @@ it('follows the right side of && and keeps the other shapes untraced', async () 
     );
     expect([label, proposal.replacements, proposal.stops]).toEqual([label, [], []]);
   }
+  // A model spread in from a `const` object is reported, not edited.
+  const spread = await proposeModelReplacements(
+    await repository({
+      'src/a.ts': [
+        ...HEAD,
+        "const base = { model: 'gpt-4' };",
+        'openai.chat.completions.create({ ...base, messages: [] });',
+      ].join('\n'),
+    }),
+    registry,
+    NOW,
+  );
+  expect(spread.replacements).toEqual([]);
+  expect(spread.stops).toMatchObject([
+    {
+      model: 'gpt-4',
+      reason:
+        'The request takes its model from the options it spreads (`...base`), which Refit reports but does not edit; change it by hand to gpt-5.6-sol.',
+    },
+  ]);
 });
 it('edits class property models at their initializers and assignments when the request reads them once', async () => {
   const root = await repository({
@@ -2146,7 +2199,7 @@ async function propose(
       `export const call = (temperature: number) => ${call};`,
     ].join('\n'),
   });
-  return proposeModelReplacements(root, parameterRegistry, NOW, PARAMETERS);
+  return proposeModelReplacements(root, parameterRegistry, NOW, { parameters: PARAMETERS });
 }
 
 const stopped = (reason: string) => [expect.objectContaining({ reason })];
@@ -2333,4 +2386,454 @@ it('stops on a computed property name in a request, which may hide a sampling pa
     [8, computed('claude-opus-4-8')],
   ]);
   expect(proposal.replacements.map((item) => item.line)).toEqual([9]);
+});
+
+// Shapes from the 2026-10-21 Anthropic application benchmark: a model constant with an environment
+// or config fallback, a raw fetch to a configurable base URL, a tsconfig extending a generated file,
+// and model IDs that no traced request sends.
+it('replaces the fallback literal of a model constant used once', async () => {
+  const root = await repository({
+    'src/agent.ts': [
+      "import Anthropic from '@anthropic-ai/sdk';",
+      'const client = new Anthropic();',
+      'export async function run(messages: Anthropic.MessageParam[]) {',
+      "  const model = process.env.AGENT_MODEL ?? 'claude-3-opus-20240229';",
+      '  return client.messages.create({ model, max_tokens: 64, messages });',
+      '}',
+    ].join('\n'),
+    'src/shared.ts': [
+      "import Anthropic from '@anthropic-ai/sdk';",
+      'const client = new Anthropic();',
+      "export const MODEL = process.env.MODEL_ID || process.env.ANTHROPIC_MODEL || 'claude-3-opus-20240229';",
+      'export const first = () => client.messages.create({ model: MODEL, max_tokens: 8, messages: [] });',
+      'export const second = () => client.messages.create({ model: MODEL, max_tokens: 8, messages: [] });',
+    ].join('\n'),
+  });
+  const proposal = await proposeModelReplacements(root, registry, NOW);
+  expect(proposal.replacements).toMatchObject([
+    {
+      file: 'src/agent.ts',
+      edited: { file: 'src/agent.ts', line: 4 },
+      from: 'claude-3-opus-20240229',
+      to: 'claude-opus-4-8',
+    },
+  ]);
+  expect(proposal.patch).toContain(
+    "+  const model = process.env.AGENT_MODEL ?? 'claude-opus-4-8';",
+  );
+  expect(proposal.stops).toMatchObject([
+    {
+      at: { file: 'src/shared.ts', line: 3 },
+      reason:
+        'The model comes from the constant MODEL (src/shared.ts:3), which is used 2 times; change it by hand to claude-opus-4-8.',
+    },
+  ]);
+  expect(proposal.unresolved).toEqual([]);
+});
+
+// Its URL is not the official host, so it is a custom endpoint and stops rather than being edited.
+it('stops on a fetch that sets anthropic-version to another host', async () => {
+  const root = await repository({
+    'src/probe.ts': [
+      'export async function probe(endpoint: { url: string }, apiKey: string) {',
+      '  return fetch(endpoint.url, {',
+      "    method: 'POST',",
+      "    headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },",
+      "    body: JSON.stringify({ model: 'claude-3-opus-20240229', max_tokens: 1, messages: [] }),",
+      '  });',
+      '}',
+      // Without `messages` the body is not a Messages API request.
+      'export async function other(url: string) {',
+      '  return fetch(url, {',
+      "    headers: { 'anthropic-version': '2023-06-01' },",
+      "    body: JSON.stringify({ model: 'claude-3-opus-20240229' }),",
+      '  });',
+      '}',
+    ].join('\n'),
+  });
+  const proposal = await proposeModelReplacements(root, registry, NOW);
+  expect(proposal.replacements).toEqual([]);
+  expect(proposal.patch).toBeNull();
+  expect(proposal.stops).toMatchObject([
+    {
+      file: 'src/probe.ts',
+      line: 2,
+      call: 'fetch with anthropic-version',
+      at: { file: 'src/probe.ts', line: 5 },
+      reason:
+        "The request goes to a host other than the official API, so the model may name another provider's model or a deployment; change it by hand to claude-opus-4-8.",
+    },
+  ]);
+  expect(proposal.unresolved).toMatchObject([
+    { file: 'src/probe.ts', line: 11, model: 'claude-3-opus-20240229', to: 'claude-opus-4-8' },
+  ]);
+});
+
+it('stops for review when the SDK import sits under an unreadable tsconfig', async () => {
+  const root = await repository({
+    // SvelteKit generates this base file; it is not in a fresh checkout.
+    'tsconfig.json': JSON.stringify({
+      extends: './.svelte-kit/tsconfig.json',
+      compilerOptions: { strict: true },
+    }),
+    'src/lib/server/claude.ts': [
+      "import Anthropic from '@anthropic-ai/sdk';",
+      'let client: Anthropic | null = null;',
+      'function getClient(): Anthropic {',
+      '  if (!client) client = new Anthropic();',
+      '  return client;',
+      '}',
+      'export async function ask(content: string) {',
+      '  const claude = getClient();',
+      "  return claude.messages.create({ model: 'claude-3-opus-20240229', max_tokens: 64, messages: [{ role: 'user', content }] });",
+      '}',
+    ].join('\n'),
+  });
+  const proposal = await proposeModelReplacements(root, registry, NOW);
+  expect(proposal.replacements).toEqual([]);
+  expect(proposal.patch).toBeNull();
+  expect(proposal.stops).toMatchObject([
+    {
+      file: 'src/lib/server/claude.ts',
+      line: 9,
+      call: 'messages.create',
+      reason: expect.stringContaining('cannot be fully read'),
+    },
+  ]);
+  expect(proposal.unresolved).toEqual([]);
+});
+
+it('explains every live model ID that no traced request sends', async () => {
+  const withSdk = await repository({
+    'src/config.ts': [
+      "export const converter = { defaultModel: 'claude-3-opus-20240229', retries: 2 };",
+      "export const fallback = process.env.MODEL ?? 'claude-3-opus-20240229';",
+    ].join('\n'),
+    'src/client.ts': [
+      "import Anthropic from '@anthropic-ai/sdk';",
+      'export const anthropic = new Anthropic();',
+    ].join('\n'),
+  });
+  const explained = await proposeModelReplacements(withSdk, registry, NOW);
+  expect(explained.replacements).toEqual([]);
+  expect(explained.stops).toEqual([]);
+  expect(explained.unresolved).toEqual([
+    {
+      deadline: 'anthropic-claude-3-opus',
+      provider: 'anthropic',
+      file: 'src/config.ts',
+      line: 1,
+      model: 'claude-3-opus-20240229',
+      to: 'claude-opus-4-8',
+      reason:
+        'No traced request sends it as its model; it is the `defaultModel` value of an object. Check where it is used and change it by hand if it reaches the API.',
+    },
+    expect.objectContaining({
+      line: 2,
+      reason: expect.stringContaining('it is assigned to `fallback`'),
+    }),
+  ]);
+
+  const withoutSdk = await repository({
+    'package.json': JSON.stringify({ name: 'app', dependencies: { '@ai-sdk/anthropic': '1.0.0' } }),
+    'src/model.ts': [
+      "import { anthropic } from '@ai-sdk/anthropic';",
+      "export const model = anthropic('claude-3-opus-20240229');",
+    ].join('\n'),
+  });
+  expect((await proposeModelReplacements(withoutSdk, registry, NOW)).unresolved).toMatchObject([
+    {
+      file: 'src/model.ts',
+      line: 2,
+      reason: expect.stringMatching(
+        /^No file imports `@anthropic-ai\/sdk`, `@anthropic-ai\/bedrock-sdk` or `@anthropic-ai\/vertex-sdk`, so the model may reach the API through another library or a wrapper \(it is passed to anthropic\(\)\)\./,
+      ),
+    },
+  ]);
+  // A report-only detector's site is listed as its stop, with its reason, instead.
+  const wrapper = {
+    file: 'src/model.ts',
+    line: 2,
+    model: 'claude-3-opus-20240229',
+    call: '@ai-sdk/anthropic anthropic()',
+    reason: 'Reported by a wrapper detector.',
+  };
+  const reported = await proposeModelReplacements(withoutSdk, registry, NOW, {
+    reportOnly: [() => [wrapper], () => [{ ...wrapper, line: 9 }]],
+  });
+  expect(reported.unresolved).toEqual([]);
+  expect(reported.patch).toBeNull();
+  expect(reported.stops).toEqual([
+    {
+      deadline: 'anthropic-claude-3-opus',
+      provider: 'anthropic',
+      ...wrapper,
+      at: { file: 'src/model.ts', line: 2 },
+    },
+  ]);
+});
+
+// A catch-all `paths` entry, common in older Node backends, maps every bare name to `baseUrl` and
+// falls back to node_modules, so the SDK package is still the SDK unless a source file shadows it.
+it('treats the SDK as the package under a catch-all paths entry unless a source shadows it', async () => {
+  const files = {
+    'server/tsconfig.json': JSON.stringify({
+      compilerOptions: { baseUrl: '../', paths: { '*': ['*'], 'src/*': ['src/*'] } },
+    }),
+    'server/src/summarize.ts': [
+      "import Anthropic from '@anthropic-ai/sdk';",
+      'const anthropic = new Anthropic();',
+      'export const summarize = (content: string) =>',
+      "  anthropic.messages.create({ model: 'claude-3-opus-20240229', max_tokens: 64, messages: [{ role: 'user', content }] });",
+    ].join('\n'),
+  };
+  const package_ = await proposeModelReplacements(await repository(files), registry, NOW);
+  expect(package_.replacements).toMatchObject([
+    { file: 'server/src/summarize.ts', line: 4, to: 'claude-opus-4-8' },
+  ]);
+
+  const shadowed = await proposeModelReplacements(
+    await repository({
+      ...files,
+      '@anthropic-ai/sdk.ts': 'export default class Anthropic { messages = { create() {} }; }',
+    }),
+    registry,
+    NOW,
+  );
+  expect(shadowed.replacements).toEqual([]);
+  expect(shadowed.patch).toBeNull();
+  expect(shadowed.unresolved).toMatchObject([{ file: 'server/src/summarize.ts', line: 4 }]);
+});
+
+// Messages API shapes real applications use: streaming, beta.messages and a tool-use loop are
+// plain requests and are edited; the rest are reported with why they are not.
+it('edits streaming, beta and tool-loop Messages requests and stops on helpers, batches and spreads', async () => {
+  const root = await repository({
+    'src/chat.ts': [
+      "import Anthropic from '@anthropic-ai/sdk';",
+      'const anthropic = new Anthropic();',
+      'export async function chat(messages: any[], tools: any[]) {',
+      "  const stream = await anthropic.messages.create({ model: 'claude-3-opus-20240229', max_tokens: 9, messages, stream: true });",
+      '  for await (const event of stream) console.log(event);',
+      "  await anthropic.messages.stream({ model: 'claude-3-opus-20240229', max_tokens: 9, messages }).on('text', console.log).finalMessage();",
+      "  await anthropic.beta.messages.create({ model: 'claude-3-opus-20240229', max_tokens: 9, messages, betas: ['x'] });",
+      "  anthropic.beta.messages.stream({ model: 'claude-3-opus-20240229', max_tokens: 9, messages });",
+      '  while (true) {',
+      "    const response = await anthropic.messages.create({ model: 'claude-3-opus-20240229', max_tokens: 9, tools, messages });",
+      "    if (response.stop_reason !== 'tool_use') return response;",
+      "    messages.push({ role: 'assistant', content: response.content });",
+      '  }',
+      '}',
+    ].join('\n'),
+    'src/other.ts': [
+      "import Anthropic from '@anthropic-ai/sdk';",
+      'const anthropic = new Anthropic();',
+      'export async function other(messages: any[], tools: any[]) {',
+      "  await anthropic.beta.messages.toolRunner({ model: 'claude-3-opus-20240229', max_tokens: 9, tools, messages });",
+      "  await anthropic.beta.tools.messages.create({ model: 'claude-3-opus-20240229', max_tokens: 9, tools, messages });",
+      '  await anthropic.messages.batches.create({',
+      "    requests: [{ custom_id: 'a', params: { model: 'claude-3-opus-20240229', max_tokens: 9, messages } }],",
+      '  });',
+      "  const params = { model: 'claude-3-opus-20240229', max_tokens: 9, tools };",
+      '  await anthropic.messages.create({ ...params, messages });',
+      '}',
+    ].join('\n'),
+  });
+  const proposal = await proposeModelReplacements(root, registry, NOW);
+  expect(proposal.replacements.map((item) => [item.file, item.line, item.call])).toEqual([
+    ['src/chat.ts', 4, 'messages.create'],
+    ['src/chat.ts', 6, 'messages.stream'],
+    ['src/chat.ts', 7, 'beta.messages.create'],
+    ['src/chat.ts', 8, 'beta.messages.stream'],
+    ['src/chat.ts', 10, 'messages.create'],
+  ]);
+  expect(proposal.stops.map((item) => [item.at.line, item.call, item.reason])).toEqual([
+    [
+      4,
+      'beta.messages.toolRunner',
+      '`beta.messages.toolRunner` is a Messages API helper or retired beta path, which Refit reports but does not edit; change it by hand to claude-opus-4-8.',
+    ],
+    [
+      5,
+      'beta.tools.messages.create',
+      '`beta.tools.messages.create` is a Messages API helper or retired beta path, which Refit reports but does not edit; change it by hand to claude-opus-4-8.',
+    ],
+    [
+      7,
+      'messages.batches.create',
+      '`messages.batches.create` is a Message Batches request, which Refit reports but does not edit; change it by hand to claude-opus-4-8.',
+    ],
+    [
+      9,
+      'messages.create',
+      'The request takes its model from the options it spreads (`...params`), which Refit reports but does not edit; change it by hand to claude-opus-4-8.',
+    ],
+  ]);
+  expect(proposal.unresolved).toEqual([]);
+});
+
+// Claude on Amazon Bedrock and Google Cloud Vertex AI keeps its own model IDs and retirement
+// dates, so its requests are reported with the Claude API model they name and never edited.
+it('stops on Bedrock and Vertex AI clients and on platform model IDs', async () => {
+  const root = await repository({
+    'package.json': JSON.stringify({
+      name: 'app',
+      dependencies: {
+        '@anthropic-ai/sdk': '0.40.0',
+        '@anthropic-ai/bedrock-sdk': '0.12.0',
+        '@anthropic-ai/vertex-sdk': '0.6.0',
+      },
+    }),
+    'src/bedrock.ts': [
+      "import { AnthropicBedrock } from '@anthropic-ai/bedrock-sdk';",
+      'const bedrock = new AnthropicBedrock();',
+      'export const ask = (messages: any[]) =>',
+      "  bedrock.messages.create({ model: 'us.anthropic.claude-3-opus-20240229-v1:0', max_tokens: 9, messages });",
+    ].join('\n'),
+    'src/vertex.ts': [
+      "import AnthropicVertex from '@anthropic-ai/vertex-sdk';",
+      "const vertex = new AnthropicVertex({ region: 'us-east5', projectId: 'p' });",
+      'export const ask = (messages: any[]) =>',
+      "  vertex.messages.stream({ model: 'claude-3-opus@20240229', max_tokens: 9, messages });",
+      'export const plain = (messages: any[]) =>',
+      "  vertex.messages.create({ model: 'claude-3-opus-20240229', max_tokens: 9, messages });",
+    ].join('\n'),
+    // A Bedrock ID on the Claude API client (a gateway, say) stops too; the next model is not.
+    'src/api.ts': [
+      "import Anthropic from '@anthropic-ai/sdk';",
+      'const anthropic = new Anthropic();',
+      'export const ask = (messages: any[]) =>',
+      "  anthropic.messages.create({ model: 'anthropic.claude-3-opus-20240229-v1:0', max_tokens: 9, messages });",
+      'export const keep = (messages: any[]) =>',
+      "  anthropic.messages.create({ model: 'anthropic.claude-opus-4-8-v1:0', max_tokens: 9, messages });",
+    ].join('\n'),
+  });
+  const proposal = await proposeModelReplacements(root, registry, NOW);
+  expect(proposal.replacements).toEqual([]);
+  expect(proposal.patch).toBeNull();
+  const bedrock =
+    "where model IDs and retirement dates are Amazon Bedrock's, not the Claude API's (the Claude API retires claude-3-opus-20240229 on 2026-01-05); check Amazon Bedrock's model lifecycle and change it by hand to its ID for claude-opus-4-8.";
+  const vertex =
+    "The client is Claude on Google Cloud Vertex AI, where model IDs and retirement dates are Google Cloud Vertex AI's, not the Claude API's (the Claude API retires claude-3-opus-20240229 on 2026-01-05); check Google Cloud Vertex AI's model lifecycle and change it by hand to its ID for claude-opus-4-8.";
+  expect(
+    proposal.stops
+      .map((item) => [item.file, item.model, item.reason])
+      .sort((a, b) => a[0].localeCompare(b[0])),
+  ).toEqual([
+    [
+      'src/api.ts',
+      'anthropic.claude-3-opus-20240229-v1:0',
+      `\`anthropic.claude-3-opus-20240229-v1:0\` is a model ID for Amazon Bedrock, ${bedrock}`,
+    ],
+    [
+      'src/bedrock.ts',
+      'us.anthropic.claude-3-opus-20240229-v1:0',
+      `The client is Claude on Amazon Bedrock, ${bedrock}`,
+    ],
+    ['src/vertex.ts', 'claude-3-opus@20240229', vertex],
+    ['src/vertex.ts', 'claude-3-opus-20240229', vertex],
+  ]);
+});
+
+// A client the analyzer cannot trace to `new Anthropic()` is still the SDK when its declaration
+// names the SDK export; its requests are listed with that reason and never edited.
+it('lists requests on clients it cannot trace to the SDK constructor', async () => {
+  const create = "messages.create({ model: 'claude-3-opus-20240229', max_tokens: 9, messages })";
+  const root = await repository({
+    'src/clients.ts': [
+      "import Anthropic from '@anthropic-ai/sdk';",
+      'let lazy: Anthropic | null = null;',
+      'try { lazy = new Anthropic(); } catch {}',
+      'const maybe: Anthropic | undefined = process.env.KEY ? new Anthropic() : undefined;',
+      'const held = { claude: new Anthropic() };',
+      'export async function all(messages: any[], given: Anthropic) {',
+      `  if (lazy) await lazy.${create};`,
+      `  await maybe!.${create};`,
+      `  await held.claude.${create};`,
+      `  await given.${create};`,
+      '}',
+      'export class Service {',
+      '  constructor(private readonly client: Anthropic) {}',
+      `  run(messages: any[]) { return this.client.${create}; }`,
+      '}',
+    ].join('\n'),
+    // Not the SDK: an ORM table that happens to be called `messages`.
+    'src/store.ts': [
+      "import Anthropic from '@anthropic-ai/sdk';",
+      'declare const db: { messages: { create(row: object): void } };',
+      "export const save = () => db.messages.create({ model: 'claude-3-opus-20240229' });",
+      'export type Client = Anthropic;',
+    ].join('\n'),
+  });
+  const proposal = await proposeModelReplacements(root, registry, NOW);
+  expect(proposal.replacements).toEqual([]);
+  expect(proposal.patch).toBeNull();
+  const reason = (client: string) =>
+    `The client \`${client}\` is not one Refit can trace to the SDK constructor (a \`let\` variable, a typed parameter or field, or an object member), so this request is listed but not edited; change it by hand to claude-opus-4-8.`;
+  expect(proposal.stops.map((item) => [item.line, item.reason])).toEqual([
+    [7, reason('lazy')],
+    [8, reason('maybe')],
+    [9, reason('held.claude')],
+    [10, reason('given')],
+    [14, reason('this.client')],
+  ]);
+  expect(proposal.unresolved).toMatchObject([{ file: 'src/store.ts', line: 3 }]);
+});
+
+// The custom-endpoint stop names the request's own client where its constructor shows one, and
+// keeps the repository-wide wording where the client cannot be followed.
+it("ties the custom-endpoint stop to the request's own client where it can", async () => {
+  const create = "chat.completions.create({ model: 'gpt-4', messages: [] })";
+  const root = await repository({
+    'src/field.ts': [
+      "import OpenAI from 'openai';",
+      'export class Chat {',
+      "  client = new OpenAI({ apiKey: 'k', baseURL: 'https://router.example/v1' });",
+      `  ask() { return this.client.${create}; }`,
+      '}',
+    ].join('\n'),
+    'src/fetch.ts': [
+      "import OpenAI from 'openai';",
+      'const traced = new OpenAI({ fetch: globalThis.fetch });',
+      `export const ask = () => traced.${create};`,
+    ].join('\n'),
+    // A lazy getter over a `let` is followed through its assignments.
+    'src/lazy.ts': [
+      "import OpenAI from 'openai';",
+      'let cached: OpenAI | null = null;',
+      'function client() {',
+      '  if (!cached) cached = new OpenAI({ apiKey: process.env.KEY, baseURL: process.env.URL });',
+      '  return cached;',
+      '}',
+      `export const ask = () => client().${create};`,
+    ].join('\n'),
+    'src/helper.ts': [
+      "import OpenAI from 'openai';",
+      'const helped = new OpenAI();',
+      `const run = (client: OpenAI) => client.${create};`,
+      'export const ask = () => run(helped);',
+    ].join('\n'),
+  });
+  for (const endpoints of [false, true]) {
+    const proposal = await proposeModelReplacements(root, registry, NOW, { endpoints });
+    expect(proposal.replacements).toEqual([]);
+    expect(proposal.stops.map((item) => [item.file, item.reason]).sort()).toEqual([
+      [
+        'src/fetch.ts',
+        "The client sets `fetch` (src/fetch.ts:2), so the model may name another provider's model or a deployment; change it by hand to gpt-5.6-sol.",
+      ],
+      [
+        'src/field.ts',
+        "The client sets `baseURL` (src/field.ts:3), so the model may name another provider's model or a deployment; change it by hand to gpt-5.6-sol.",
+      ],
+      [
+        'src/helper.ts',
+        "The client sets a custom base URL, so the model may name another provider's model or a deployment; change it by hand to gpt-5.6-sol.",
+      ],
+      [
+        'src/lazy.ts',
+        "The client sets `baseURL` (src/lazy.ts:4), so the model may name another provider's model or a deployment; change it by hand to gpt-5.6-sol.",
+      ],
+    ]);
+  }
 });

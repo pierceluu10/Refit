@@ -1,15 +1,12 @@
 import { readdir, readFile, stat } from 'node:fs/promises';
-import { join, resolve } from 'node:path';
+import { join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import ts from 'typescript-compiler';
 import { analyzeRepository } from './analyzer.ts';
 import type { DeadlineEntry, DeadlineRegistry } from './deadline-registry.ts';
 import { daysUntil } from './deadline-registry.ts';
-import { TEST_PATH } from './deadline-exposure.ts';
+import { scanDeadlines, TEST_PATH } from './deadline-exposure.ts';
 import { renderPatch } from './patches.ts';
-import { readProviderAdapter, type ProviderAdapter } from './providers.ts';
-import { readRepository } from './repository.ts';
-import { createSourceImportResolver } from './source-imports.ts';
 import {
   EMPTY_MODEL_PARAMETERS,
   MODEL_PARAMETER_NAMES,
@@ -17,6 +14,9 @@ import {
   parameterVerdict,
   type ModelParameterTable,
 } from './model-parameters.ts';
+import { readProviderAdapter, type ProviderAdapter } from './providers.ts';
+import { readRepository } from './repository.ts';
+import { createSourceImportResolver } from './source-imports.ts';
 import type { Repository, SourceEdit } from './types.ts';
 
 // Text-generation calls whose `model` selects a chat or reasoning model. Embeddings, images, audio,
@@ -63,6 +63,9 @@ const TRACERS: {
   clientCalls?: Set<string>;
   // The client is not the provider's own endpoint, so its requests only ever stop for review.
   custom?: boolean;
+  // A cloud platform's client for the provider's models, whose model IDs and retirement dates are
+  // the platform's own. Its requests only ever stop for review.
+  platform?: string;
 }[] = [
   {
     provider: 'openai',
@@ -86,14 +89,66 @@ const TRACERS: {
     adapter: new URL('../examples/anthropic.provider.json', import.meta.url),
     resourceCalls: MODEL_CALLS.anthropic,
   },
+  ...[
+    ['@anthropic-ai/bedrock-sdk', 'AnthropicBedrock', 'Amazon Bedrock'],
+    ['@anthropic-ai/vertex-sdk', 'AnthropicVertex', 'Google Cloud Vertex AI'],
+  ].map(([packageName, namedExport, platform]) => ({
+    provider: 'anthropic' as const,
+    adapter: { id: 'anthropic', packageName, defaultImport: true, namedExport, operations: [] },
+    resourceCalls: MODEL_CALLS.anthropic,
+    platform,
+  })),
 ];
+
+// The Claude API model ID inside a dated Amazon Bedrock ID (`us.anthropic.claude-3-5-haiku-20241022-v1:0`)
+// or Google Cloud Vertex AI ID (`claude-3-5-sonnet-v2@20241022`), with the platform's name.
+const BEDROCK_ID = /^(?:[a-z]{2,6}\.)?anthropic\.(claude-[a-z0-9.-]+?)-v\d+(?::\d+)?$/;
+const VERTEX_ID = /^(claude-[a-z0-9.-]+?)(?:-v\d+)?@(\d{8})$/;
+const PLATFORM_ID =
+  /(?:[a-z]{2,6}\.)?anthropic\.claude-[a-z0-9.-]+?-v\d+(?::\d+)?|claude-[a-z0-9.-]+@\d{8}/g;
+function platformModel(text: string) {
+  const bedrock = BEDROCK_ID.exec(text);
+  if (bedrock) return { id: bedrock[1], platform: 'Amazon Bedrock' };
+  const vertex = VERTEX_ID.exec(text);
+  if (vertex) return { id: `${vertex[1]}-${vertex[2]}`, platform: 'Google Cloud Vertex AI' };
+  return undefined;
+}
+
+// Messages API calls that are not plain requests: the SDK's tool runner, which sends
+// `messages.create` in a loop, and the retired `beta.tools` and `beta.promptCaching` paths of
+// SDK versions before 0.30. Their model is reported, but editing them is not decided (#120).
+const MESSAGE_HELPERS = new Set([
+  'beta.messages.toolRunner',
+  'beta.tools.messages.create',
+  'beta.tools.messages.stream',
+  'beta.promptCaching.messages.create',
+  'beta.promptCaching.messages.stream',
+]);
+// Message Batches calls, whose model is in each entry's `params`.
+const BATCH_CALLS = new Set(['messages.batches.create', 'beta.messages.batches.create']);
+
+// Calls listed when made on a client the analyzer cannot trace to the SDK constructor.
+const UNTRACED_CALLS: Record<string, string[]> = {
+  openai: [
+    ...MODEL_CALLS.openai,
+    'completions.create',
+    'embeddings.create',
+    'images.generate',
+    'images.edit',
+    'audio.speech.create',
+    'audio.transcriptions.create',
+    'audio.translations.create',
+    'moderations.create',
+  ],
+  anthropic: [...MODEL_CALLS.anthropic, ...MESSAGE_HELPERS, ...BATCH_CALLS, 'completions.create'],
+};
 // Claude API model IDs such as `claude-opus-4-8` or `claude-haiku-4-5-20251001`.
 const CLAUDE_VERSIONED = /^claude-(?:opus|sonnet|haiku)-(\d+)(?:-(\d{1,2}))?(?:-\d{8})?$/;
 
 // Whether a replacement model is one on which Anthropic rejects non-default sampling parameters:
 // Claude 4.7 and later models, per the Anthropic model deprecations page (2026-10-20). Unrecognized
 // IDs are treated as rejecting them, so the request stops for review. This serves replacements with
-// no entry in data/model-parameters.json; an entry there overrides it per parameter.
+// no entry in a model parameter table; an entry there overrides it per parameter.
 function rejectsSampling(provider: string, model: string) {
   if (provider !== 'anthropic') return true;
   const match = CLAUDE_VERSIONED.exec(model);
@@ -133,9 +188,24 @@ export interface ModelReplacementStop {
   reason: string;
 }
 
+// A live model ID that no traced request sends as its model, so it is neither replaced nor stopped
+// at a request: a model kept in a config object, a variable, a library Refit does not trace, or a
+// file no request reaches. Listed so every live match has an outcome and a reason.
+export interface ModelReplacementUnresolved {
+  deadline: string;
+  provider: DeadlineEntry['provider'];
+  file: string;
+  line: number;
+  model: string;
+  // The registry replacement, when it names a concrete model.
+  to: string | null;
+  reason: string;
+}
+
 export interface ModelReplacementProposal {
   replacements: ModelReplacement[];
   stops: ModelReplacementStop[];
+  unresolved: ModelReplacementUnresolved[];
   // A unified diff of every replacement; null when there is none. Never applied by Refit.
   patch: string | null;
 }
@@ -697,6 +767,9 @@ function sourceProgram(repository: Repository) {
     line: (node: ts.Node) =>
       node.getSourceFile().getLineAndCharacterOfPosition(node.getStart()).line + 1,
     source: (path: string) => files.find((source) => paths.get(source.fileName) === path),
+    // Whether the file's own tsconfig or jsconfig could not be read, so a bare import such as the
+    // SDK package may be an alias to something else.
+    unverifiedFile: (path: string) => resolution.unverifiedFile(resolve(repository.root, path)),
   };
 }
 type SourceProgram = ReturnType<typeof sourceProgram>;
@@ -844,6 +917,9 @@ function axiosBinding(program: SourceProgram, node: ts.Expression, depth = 0): b
   );
 }
 
+// The header every Anthropic API request sends.
+const ANTHROPIC_VERSION_HEADER = 'anthropic-version';
+
 // The request body of a raw HTTP call to an official endpoint, before `JSON.stringify`.
 function rawRequest(program: SourceProgram, call: ts.CallExpression) {
   const callee = call.expression;
@@ -865,8 +941,23 @@ function rawRequest(program: SourceProgram, call: ts.CallExpression) {
       ? objectProperty(options, 'url')
       : undefined;
   const url = urlText(program, config ? configUrl && propertyValue(configUrl) : call.arguments[0]);
-  const endpoint = url && RAW_ENDPOINTS.find((item) => item.pattern.test(url));
-  if (!endpoint) return undefined;
+  const endpoint = url ? RAW_ENDPOINTS.find((item) => item.pattern.test(url)) : undefined;
+  // A `fetch` to another URL (a configurable base URL, a proxy) that sets `anthropic-version`
+  // inline is an Anthropic request. Its host is not the official one, so it always stops.
+  const headers =
+    !config && options && ts.isObjectLiteralExpression(options)
+      ? objectProperty(options, 'headers')
+      : undefined;
+  const headerValues = headers && propertyValue(headers);
+  const versioned =
+    !endpoint &&
+    name === 'fetch' &&
+    Boolean(
+      headerValues &&
+      ts.isObjectLiteralExpression(headerValues) &&
+      objectProperty(headerValues, ANTHROPIC_VERSION_HEADER),
+    );
+  if (!endpoint && !versioned) return undefined;
   let body: ts.Expression | undefined;
   if (name === 'post' && !config) body = call.arguments[1];
   else {
@@ -887,9 +978,27 @@ function rawRequest(program: SourceProgram, call: ts.CallExpression) {
           : undefined;
   }
   if (!body) return undefined;
-  const path = /\/v1\/[\w/]+/.exec(url)![0];
+  if (versioned) {
+    const object = requestObject(program, body)?.object;
+    return object && objectProperty(object, 'model') && objectProperty(object, 'messages')
+      ? {
+          provider: 'anthropic' as const,
+          body,
+          call: `fetch with ${ANTHROPIC_VERSION_HEADER}`,
+          text: true,
+          custom: true,
+        }
+      : undefined;
+  }
+  const path = /\/v1\/[\w/]+/.exec(url!)![0];
   const label = config ? (name === 'request' ? 'request' : 'axios') : name;
-  return { provider: endpoint.provider, body, call: `${label} ${path}`, text: endpoint.text };
+  return {
+    provider: endpoint!.provider,
+    body,
+    call: `${label} ${path}`,
+    text: endpoint!.text,
+    custom: false,
+  };
 }
 
 // A reference a literal was reached through, kept for the shared-use rule and the limit stops.
@@ -1577,12 +1686,29 @@ const NOT_CONFIG =
 const MAX_CONFIG_FILES = 5000;
 const MAX_CONFIG_BYTES = 1024 * 1024;
 
+// Text that sets the endpoint of every client, whatever its constructor options: the environment
+// variables the SDKs read, `withOptions`, an Azure client, and an assignment such as
+// `client.baseURL = …`, which may write to any client.
+const SDK_WIDE_ENDPOINT =
+  /openai_base_url|anthropic_base_url|openai_api_base|withoptions\(|azureopenai|\.\s*\w*base_?(?:url|path)\s*=(?!=)/i;
+
 // Whether any source or configuration file (`.env*`, JSON, YAML, outside node_modules) in the
-// repository mentions a custom endpoint. Which client sends a request is not traced, so one match
-// puts every SDK request in doubt: the model may name another provider's model or a deployment.
-// An unreadable or oversized file, or too many files, counts as a match.
+// repository mentions a custom endpoint: the first match, as `file:line`, and whether any match
+// sets every client's endpoint. One match puts every SDK request in doubt unless the request's own
+// client is shown to set none. An unreadable or oversized file, or too many files, counts as a
+// match that sets every client's.
 async function customEndpoint(directory: string, repository: Repository) {
-  if (repository.files.some((file) => ENDPOINT_TEXT.test(file.content))) return true;
+  let first: string | undefined;
+  let everyClient = false;
+  const read = (path: string, content: string) => {
+    if (!ENDPOINT_TEXT.test(content)) return;
+    if (!first) {
+      const index = content.split('\n').findIndex((line) => ENDPOINT_TEXT.test(line));
+      first = `${path}:${index + 1}`;
+    }
+    everyClient ||= SDK_WIDE_ENDPOINT.test(content);
+  };
+  for (const file of repository.files) read(file.path, file.content);
   let count = 0;
   const visit = async (path: string): Promise<boolean> => {
     for (const entry of await readdir(path, { withFileTypes: true })) {
@@ -1593,16 +1719,130 @@ async function customEndpoint(directory: string, repository: Repository) {
       } else if (entry.isFile() && CONFIG_FILE.test(entry.name) && !NOT_CONFIG.test(entry.name)) {
         count += 1;
         if (count > MAX_CONFIG_FILES || (await stat(full)).size > MAX_CONFIG_BYTES) return true;
-        if (ENDPOINT_TEXT.test(await readFile(full, 'utf8'))) return true;
+        read(relative(directory, full), await readFile(full, 'utf8'));
       }
     }
     return false;
   };
   try {
-    return await visit(directory);
+    if (await visit(directory)) return { at: first, everyClient: true };
   } catch {
-    return true;
+    return { at: first, everyClient: true };
   }
+  return first ? { at: first, everyClient } : undefined;
+}
+
+// Constructor options that change where a client sends requests, or that Refit cannot read.
+const ENDPOINT_OPTIONS = new Set(['fetch', 'defaultQuery', 'defaultHeaders']);
+
+// Where the client a traced SDK request is made on was constructed: every `new` expression it can
+// come from, through variables (a `let` through every `x = …` assignment), class fields
+// (initializers and `this.x = …` assignments), object members and the returns of a function called
+// with no arguments, such as a lazy `getClient()`. `null` and `undefined` add nothing. Undefined
+// when any source cannot be followed (a parameter, a call with arguments, anything else).
+function clientConstructions(program: SourceProgram, call: ts.CallExpression, segments: number) {
+  let receiver: ts.Expression = call.expression;
+  for (let index = 0; index < segments; index += 1) {
+    if (!ts.isPropertyAccessExpression(receiver)) return undefined;
+    receiver = receiver.expression;
+  }
+  const found: ts.NewExpression[] = [];
+  const follow = (expression: ts.Expression, depth: number): boolean => {
+    const value = unwrap(ts.isNonNullExpression(expression) ? expression.expression : expression);
+    if (ts.isNewExpression(value)) return Boolean(found.push(value));
+    if (
+      value.kind === ts.SyntaxKind.NullKeyword ||
+      (ts.isIdentifier(value) && value.text === 'undefined')
+    )
+      return true;
+    if (
+      ts.isCallExpression(value) &&
+      !value.arguments.length &&
+      ts.isIdentifier(value.expression)
+    ) {
+      const callee = depth < 4 ? program.symbolOf(value.expression) : undefined;
+      const functions = (callee?.declarations ?? []).map((declaration) =>
+        ts.isFunctionDeclaration(declaration)
+          ? declaration
+          : ts.isVariableDeclaration(declaration) &&
+              declaration.initializer &&
+              (ts.isArrowFunction(declaration.initializer) ||
+                ts.isFunctionExpression(declaration.initializer))
+            ? declaration.initializer
+            : undefined,
+      );
+      const returns = functions.flatMap((fn) => (fn ? returnsOf(fn) : []));
+      return (
+        functions.length > 0 &&
+        functions.every(Boolean) &&
+        returns.length > 0 &&
+        returns.every((item) => follow(item, depth + 1))
+      );
+    }
+    const name = ts.isIdentifier(value)
+      ? value
+      : ts.isPropertyAccessExpression(value)
+        ? value.name
+        : undefined;
+    const symbol = name && depth < 4 ? program.symbolOf(name) : undefined;
+    const declarations = symbol?.declarations ?? [];
+    if (!symbol || !declarations.length) return false;
+    const sources: ts.Expression[] = [];
+    for (const declaration of declarations) {
+      if (ts.isVariableDeclaration(declaration) && ts.isIdentifier(declaration.name)) {
+        if (declaration.initializer) sources.push(declaration.initializer);
+        if (
+          ts.isVariableDeclarationList(declaration.parent) &&
+          !(declaration.parent.flags & ts.NodeFlags.Const)
+        )
+          for (const use of program.usesOf(symbol)) {
+            const parent = use.parent;
+            if (
+              ts.isBinaryExpression(parent) &&
+              parent.left === use &&
+              parent.operatorToken.kind === ts.SyntaxKind.EqualsToken
+            )
+              sources.push(parent.right);
+            else if (
+              ts.isBinaryExpression(parent) &&
+              parent.left === use &&
+              parent.operatorToken.kind >= ts.SyntaxKind.FirstAssignment &&
+              parent.operatorToken.kind <= ts.SyntaxKind.LastAssignment
+            )
+              return false;
+          }
+      } else if (
+        (ts.isPropertyDeclaration(declaration) || ts.isPropertyAssignment(declaration)) &&
+        declaration.initializer
+      )
+        sources.push(declaration.initializer);
+      else if (!ts.isPropertyDeclaration(declaration)) return false;
+    }
+    if (ts.isPropertyAccessExpression(value)) sources.push(...program.assignmentsOf(symbol));
+    return sources.length > 0 && sources.every((source) => follow(source, depth + 1));
+  };
+  return follow(receiver, 0) ? found : undefined;
+}
+
+// What a request's client constructors say about its endpoint: `custom` names an option that sets
+// one, `official` a constructor that sets none, with only literal options. Undefined when unknown.
+function clientEndpoint(program: SourceProgram, call: ts.CallExpression, segments: number) {
+  const constructions = clientConstructions(program, call, segments);
+  if (!constructions?.length) return undefined;
+  for (const construction of constructions) {
+    const options = construction.arguments?.[0] && unwrap(construction.arguments[0]);
+    if (!options) continue;
+    if (!ts.isObjectLiteralExpression(options) || (construction.arguments?.length ?? 0) > 1)
+      return undefined;
+    for (const property of options.properties) {
+      const name = property.name && propertyName(property.name);
+      if (!name || ts.isSpreadAssignment(property)) return undefined;
+      if (ENDPOINT_TEXT.test(name) || ENDPOINT_OPTIONS.has(name))
+        return { custom: `${program.path(property)}:${program.line(property)}`, option: name };
+    }
+  }
+  const first = constructions[0];
+  return { official: `${program.path(first)}:${program.line(first)}` };
 }
 
 const SWEEP_CAP = 20_000;
@@ -1722,15 +1962,136 @@ function numericLiteral(expression: ts.Expression): number | undefined {
   return value !== undefined && Number.isFinite(value) ? value : undefined;
 }
 
+// The model sites the rule edited before indirect sources were traced: string literals in the
+// request, a `??` or `||` default, a constant or enum member holding a literal, and a helper
+// parameter's default and its callers' literals. A site maps to its stop, or `undefined` when it
+// could be edited. Until indirect edits are enabled (an owner decision on D-06 to D-08), a site the
+// new resolver reaches that this function does not allow stops for review instead.
+function directSites(
+  program: SourceProgram,
+  value: ts.Expression,
+  depth = 0,
+  sites = new Map<ts.StringLiteralLike, string | undefined>(),
+) {
+  const add = (literal: ts.StringLiteralLike, stop?: string) =>
+    sites.set(literal, sites.has(literal) ? (sites.get(literal) ?? stop) : stop);
+  if (depth > 4) return sites;
+  if (ts.isStringLiteralLike(value)) return (add(value), sites);
+  if (
+    ts.isBinaryExpression(value) &&
+    [ts.SyntaxKind.QuestionQuestionToken, ts.SyntaxKind.BarBarToken].includes(
+      value.operatorToken.kind,
+    )
+  )
+    return directSites(program, unwrap(value.right), depth + 1, sites);
+  const reference = ts.isPropertyAccessExpression(value) ? value.name : value;
+  if (!ts.isIdentifier(reference)) return sites;
+  const symbol = program.symbolOf(reference);
+  const declaration = symbol?.valueDeclaration;
+  if (!symbol || !declaration) return sites;
+  if (
+    (ts.isVariableDeclaration(declaration) &&
+      ts.isVariableDeclarationList(declaration.parent) &&
+      declaration.parent.flags & ts.NodeFlags.Const) ||
+    ts.isEnumMember(declaration)
+  ) {
+    const initializer = declaration.initializer && unwrap(declaration.initializer as ts.Expression);
+    if (!initializer || !ts.isStringLiteralLike(initializer)) return sites;
+    const uses = program.usesOf(symbol).length;
+    return (add(initializer, uses !== 1 ? 'used more than once' : undefined), sites);
+  }
+  // A parameter read by name; `this.model` from a constructor parameter property is a class field.
+  if (ts.isParameter(declaration) && ts.isIdentifier(declaration.name) && reference === value) {
+    const helper = declaration.parent;
+    const index = helper.parameters.indexOf(declaration);
+    const own: ts.StringLiteralLike[] = [];
+    if (declaration.initializer && ts.isStringLiteralLike(unwrap(declaration.initializer)))
+      own.push(unwrap(declaration.initializer) as ts.StringLiteralLike);
+    const name =
+      ts.isFunctionDeclaration(helper) && helper.name
+        ? helper.name
+        : (ts.isFunctionExpression(helper) || ts.isArrowFunction(helper)) &&
+            ts.isVariableDeclaration(helper.parent) &&
+            ts.isIdentifier(helper.parent.name)
+          ? helper.parent.name
+          : undefined;
+    const helperSymbol = name && program.symbolOf(name);
+    let stop: string | undefined;
+    if (helperSymbol)
+      for (const use of program.usesOf(helperSymbol)) {
+        const callee =
+          ts.isPropertyAccessExpression(use.parent) && use.parent.name === use ? use.parent : use;
+        const call = callee.parent;
+        if (
+          !ts.isCallExpression(call) ||
+          call.expression !== callee ||
+          call.arguments.slice(0, index + 1).some((argument) => ts.isSpreadElement(argument))
+        ) {
+          stop = 'passed as a value or spread into';
+          continue;
+        }
+        const argument = call.arguments[index] && unwrap(call.arguments[index]);
+        if (argument) directSites(program, argument, depth + 1, sites);
+      }
+    for (const literal of own) add(literal, stop);
+  }
+  return sites;
+}
+
+// How a site the new resolver reached, but the direct rule does not edit, gets its model.
+function indirectSource(site: Site) {
+  const pass = site.passes[0];
+  if (!pass) return 'a conditional, fallback or computed value';
+  if (pass.kind === 'field') return `the class field ${pass.name} (${pass.at})`;
+  if (pass.kind === 'function') return `the value returned by ${pass.name} (${pass.at})`;
+  if (pass.keys?.length)
+    return pass.kind === 'constant'
+      ? `the object member ${pass.name}.${pass.keys.join('.')} (${pass.at})`
+      : `the property ${pass.keys.join('.')} of the parameter ${pass.name} (${pass.at})`;
+  return `the computed ${pass.kind} ${pass.name} (${pass.at})`;
+}
+
 // Proposes replacing a retiring model ID with its registry replacement where a traced SDK call, or a
 // raw HTTP request to an official text-generation endpoint, sends it as `model`, outside tests and
 // build output. Anything less certain stops for review with a reason. Nothing is written, applied,
 // validated or sent to a provider: the proposal is a patch for a person to review.
+// A model a report-only detector found where no traced SDK request sends it, such as an AI wrapper
+// SDK call (`anthropic('claude-3-opus-20240229')`). `line` is where the model is written.
+export interface ReportOnlySite {
+  file: string;
+  line: number;
+  model: string;
+  call: string;
+  reason: string;
+}
+export type ReportOnlySource = (
+  repository: Repository,
+) => ReportOnlySite[] | Promise<ReportOnlySite[]>;
+// Report-only detectors from other modules. A live match one of them finds is listed as a stop with
+// its reason instead of under unresolved; it is never edited.
+const REPORT_ONLY_SOURCES: ReportOnlySource[] = [];
+
 export async function proposeModelReplacements(
   directory: string,
   registry: DeadlineRegistry,
   now: Date,
-  parameters: ModelParameterTable = EMPTY_MODEL_PARAMETERS,
+  {
+    // Edit what the resolver reaches through class fields, object members and computed
+    // initializers (D-06 to D-08). Off until the owner decision lands; until then those sites stop.
+    indirect = false,
+    reportOnly = REPORT_ONLY_SOURCES,
+    // Edit requests whose own client sets no endpoint although the repository mentions one
+    // elsewhere. Off until an owner decision; until then they stop with where the mention is.
+    endpoints = false,
+    // A sourced table (data/model-parameters.json) that decides each sampling or length parameter
+    // per replacement. Off unless passed (owner decision, 2026-10-22); until then the heuristic stops.
+    parameters = EMPTY_MODEL_PARAMETERS,
+  }: {
+    indirect?: boolean;
+    reportOnly?: ReportOnlySource[];
+    endpoints?: boolean;
+    parameters?: ModelParameterTable;
+  } = {},
 ): Promise<ModelReplacementProposal> {
   const byProvider = new Map<string, Map<string, DeadlineEntry>>();
   for (const entry of registry.deadlines)
@@ -1739,7 +2100,7 @@ export async function proposeModelReplacements(
       byProvider.set(entry.provider, models);
       for (const version of entry.versions) models.set(version, entry);
     }
-  const empty = { replacements: [], stops: [], patch: null };
+  const empty = { replacements: [], stops: [], unresolved: [], patch: null };
   if (
     ![...byProvider.keys()].some((provider) =>
       TRACERS.some((tracer) => tracer.provider === provider),
@@ -1757,7 +2118,14 @@ export async function proposeModelReplacements(
           file.content.includes(`"${model}"`) ||
           file.content.includes(`\`${model}\``),
       ),
-    );
+    ) ||
+    (provider === 'anthropic' &&
+      repository.files.some((file) =>
+        [...file.content.matchAll(PLATFORM_ID)].some((match) => {
+          const id = platformModel(match[0])?.id;
+          return id !== undefined && byProvider.get(provider)!.has(id);
+        }),
+      ));
   for (const provider of [...byProvider.keys()]) if (!quoted(provider)) byProvider.delete(provider);
   if (!byProvider.size) return empty;
   const program = sourceProgram(repository);
@@ -1771,10 +2139,19 @@ export async function proposeModelReplacements(
     text: boolean;
     // A call on an SDK client, as opposed to a raw HTTP request to an official host.
     sdk: boolean;
-    // A call on an Azure client.
+    // A call on an Azure client, or a raw request to a host other than the official one.
     custom: boolean;
+    // Traced only by trusting an SDK import under an unreadable tsconfig or jsconfig.
+    unverified?: boolean;
+    // A cloud platform's client, such as Claude on Amazon Bedrock.
+    platform?: string;
+    // A client the analyzer could not trace to the SDK constructor, as written.
+    client?: string;
   }[] = [];
   const seen = new Set<ts.Node>();
+  // Providers whose SDK the repository imports, so their requests can be traced at all.
+  const imported = new Set<string>();
+  const untraced: { tracer: (typeof TRACERS)[number]; packageName: string }[] = [];
   for (const tracer of TRACERS) {
     if (!byProvider.has(tracer.provider)) continue;
     const adapter =
@@ -1793,11 +2170,27 @@ export async function proposeModelReplacements(
       )
     )
       continue;
+    imported.add(tracer.provider);
     // The same files for every tracer, so the analyses share one compiler program.
-    const analysis = analyzeRepository(
-      { ...(await readRepository(directory, adapter.packageName)), files: repository.files },
-      [],
-      adapter,
+    const snapshot = {
+      ...(await readRepository(directory, adapter.packageName)),
+      files: repository.files,
+    };
+    const confirmedAnalysis = analyzeRepository(snapshot, [], adapter);
+    // Where a file importing the SDK has a tsconfig or jsconfig Refit cannot read (one extending
+    // a generated `.svelte-kit/tsconfig.json`, say), the import may be an alias, so its calls are
+    // not confirmed. They are traced anyway and stop for review rather than going unreported.
+    const analysis = repository.files.some(
+      (file) => sdkImported(file.content, adapter.packageName) && program.unverifiedFile(file.path),
+    )
+      ? analyzeRepository(snapshot, [], adapter, {}, [], [], [], [], {
+          traceUnverifiedPackageImports: true,
+        })
+      : confirmedAnalysis;
+    const callKey = (sdk: { file: string; line: number; column: number; expression: string }) =>
+      `${sdk.file}:${sdk.line}:${sdk.column}:${sdk.expression}`;
+    const confirmed = new Set(
+      [...confirmedAnalysis.sdkCalls, ...confirmedAnalysis.clientMethodCalls].map(callKey),
     );
     // Every traced call is kept: one outside the text allow-list stops for review (D-16), so a
     // retiring model in an image, audio, embeddings or legacy completions call is never silent.
@@ -1825,9 +2218,34 @@ export async function proposeModelReplacements(
         text: sdk.text,
         sdk: true,
         custom: Boolean(tracer.custom),
+        unverified: !confirmed.has(callKey(sdk)),
+        platform: tracer.platform,
       });
     }
+    if (tracer.resourceCalls && !tracer.custom)
+      untraced.push({ tracer, packageName: adapter.packageName });
   }
+  // After every traced call is seen, the calls on clients the analyzer could not trace.
+  for (const { tracer, packageName } of untraced)
+    for (const { node, call, client } of untracedCalls(
+      program,
+      packageName,
+      UNTRACED_CALLS[tracer.provider],
+    )) {
+      if (seen.has(node)) continue;
+      seen.add(node);
+      requests.push({
+        provider: tracer.provider,
+        call,
+        node,
+        argument: node.arguments[0],
+        text: tracer.resourceCalls!.has(call),
+        sdk: true,
+        custom: false,
+        platform: tracer.platform,
+        client,
+      });
+    }
   for (const source of program.files) {
     const visit = (node: ts.Node) => {
       if (ts.isCallExpression(node) && !seen.has(node)) {
@@ -1841,7 +2259,7 @@ export async function proposeModelReplacements(
             argument: raw.body,
             text: raw.text,
             sdk: false,
-            custom: false,
+            custom: raw.custom,
           });
         }
       }
@@ -1872,30 +2290,57 @@ export async function proposeModelReplacements(
     found: NonNullable<ReturnType<typeof requestObject>>;
     value: ts.Expression;
     trace: ReturnType<typeof modelSites>;
+    // Where the model is read from other than the request's own `model`: options it spreads, or
+    // one entry of a Message Batches request.
+    from?: string;
   }[] = [];
   const paths = new Set(repository.files.map((item) => item.path));
   const skipped = (file: string) => TEST_PATH.test(file) || compiledOutput(file, paths);
   for (const request of requests) {
     if (skipped(program.path(request.node))) continue;
     const found = requestObject(program, request.argument);
-    const property = found && objectProperty(found.object, 'model');
-    if (!found || !property) continue;
-    const value = propertyValue(property);
-    const trace = modelSites(program, value);
-    for (const site of trace.sites) for (const pass of site.passes) reached.add(pass.use);
-    traced.push({ request, found, value, trace });
+    if (!found) continue;
+    // A request without its own `model` may take it from options it spreads, or, for a Message
+    // Batches request, from each entry's `params`. Both are reported, never edited.
+    const sources: { object: ts.ObjectLiteralExpression; from?: string }[] = [found];
+    if (BATCH_CALLS.has(request.call)) {
+      const entries = objectProperty(found.object, 'requests');
+      const list = entries && unwrap(propertyValue(entries));
+      if (list && ts.isArrayLiteralExpression(list))
+        for (const element of list.elements) {
+          const item = unwrap(element);
+          const params = ts.isObjectLiteralExpression(item) && objectProperty(item, 'params');
+          const object = params && requestObject(program, propertyValue(params));
+          if (object) sources.push({ object: object.object, from: 'batch' });
+        }
+    } else if (!objectProperty(found.object, 'model'))
+      for (const item of found.object.properties)
+        if (ts.isSpreadAssignment(item)) {
+          const object = requestObject(program, item.expression);
+          if (object) sources.push({ object: object.object, from: item.expression.getText() });
+        }
+    for (const { object, from } of sources) {
+      const property = objectProperty(object, 'model');
+      if (!property) continue;
+      const value = propertyValue(property);
+      const trace = modelSites(program, value);
+      for (const site of trace.sites) for (const pass of site.passes) reached.add(pass.use);
+      traced.push({ request, found, value, trace, from });
+    }
   }
   const endpointSet = requests.some((request) => request.sdk && !request.custom)
     ? await customEndpoint(directory, repository)
     : false;
-  for (const { request, found, value, trace } of traced) {
+  for (const { request, found, value, trace, from } of traced) {
     const models = byProvider.get(request.provider)!;
     // A trace a limit cut cannot prove every source and use, so no literal it reaches is edited.
     // The literals a bounded sweep adds stop too.
     const sites: Site[] = [...trace.sites];
     if (trace.cut) {
       const known = new Set(sites.map((site) => site.literal));
-      for (const literal of sweepLiterals(program, value, (text) => models.has(text)))
+      for (const literal of sweepLiterals(program, value, (text) =>
+        models.has(platformModel(text)?.id ?? text),
+      ))
         if (!known.has(literal)) sites.push({ literal, passes: [] });
     }
     const limit =
@@ -1905,10 +2350,27 @@ export async function proposeModelReplacements(
           ? `work budget of ${MAX_STEPS.toLocaleString('en-US')} steps`
           : `depth limit of ${MAX_DEPTH}`
       }, so not every source and use could be checked; change it by hand to`;
-    const customUrl = request.custom || (request.sdk && endpointSet);
+    // For an SDK request: what its own client's constructor says about the endpoint.
+    const client =
+      request.sdk && !request.custom && endpointSet
+        ? clientEndpoint(program, request.node, request.call.split('.').length)
+        : undefined;
+    const customUrl =
+      request.custom ||
+      (request.sdk && endpointSet && !(endpoints && client?.official && !endpointSet.everyClient));
+    // axios request configs (`axios({ url, data })`, `axios.request`) are new request shapes, so
+    // they are reported, not edited, until indirect edits are enabled.
+    const direct = indirect
+      ? undefined
+      : /^(?:axios|request) /.test(request.call)
+        ? new Map<ts.StringLiteralLike, string | undefined>()
+        : directSites(program, value);
     for (const site of sites) {
-      const entry = models.get(site.literal.text);
+      const onPlatform =
+        request.provider === 'anthropic' ? platformModel(site.literal.text) : undefined;
+      const entry = models.get(onPlatform?.id ?? site.literal.text);
       if (!entry || skipped(program.path(site.literal))) continue;
+      const platform = request.platform ?? onPlatform?.platform;
       const resolved = finalReplacement(entry, models) ?? { to: '', via: [entry.id] };
       const tabled = parameters.models.some(
         (item) => item.provider === request.provider && item.model === resolved.to,
@@ -1938,30 +2400,56 @@ export async function proposeModelReplacements(
       const stop = site.stop ?? sharedUse(program, site.passes, reached);
       const reason = !resolved.to
         ? 'The registry names no concrete replacement model ID.'
-        : // Images, audio, embeddings, moderation and legacy completions change formats, vector
-          // sizes or parameters with the model, so they are never edited. The wording is accurate for
-          // any call outside the text allow-list, such as beta.assistants.create (D-11, D-16).
-          !request.text
-          ? `\`${request.call}\` is not a call Refit edits; ${resolved.to} may change formats or parameters; change it by hand to ${resolved.to}.`
-          : customUrl
-            ? `The client sets a custom base URL, so the model may name another provider's model or a deployment; change it by hand to ${resolved.to}.`
-            : limit
-              ? `${limit} ${resolved.to}.`
-              : stop
-                ? `${stop} ${resolved.to}.`
-                : found.shared
-                  ? `${found.shared} ${resolved.to}.`
-                  : found.object.properties.some((item) => ts.isSpreadAssignment(item))
-                    ? 'The request spreads other options, which may set parameters the replacement rejects.'
-                    : found.object.properties.some(
-                          (item) => item.name && ts.isComputedPropertyName(item.name),
-                        )
-                      ? `The request sets a computed property, which may be a parameter the replacement rejects; change it by hand to ${resolved.to}.`
-                      : tabled
-                        ? tableReasons.join(' ') || undefined
-                        : sensitive.length
-                          ? `The request sets ${sensitive.join(', ')}, which ${resolved.to} may reject or treat differently.`
-                          : undefined;
+        : platform
+          ? `${request.platform ? `The client is Claude on ${platform}` : `\`${site.literal.text}\` is a model ID for ${platform}`}, where model IDs and retirement dates are ${platform}'s, not the Claude API's (the Claude API retires ${onPlatform?.id ?? site.literal.text} on ${entry.date}); check ${platform}'s model lifecycle and change it by hand to its ID for ${resolved.to}.`
+          : request.client
+            ? `The client \`${request.client}\` is not one Refit can trace to the SDK constructor (a \`let\` variable, a typed parameter or field, or an object member), so this request is listed but not edited; change it by hand to ${resolved.to}.`
+            : request.unverified
+              ? `The tsconfig.json or jsconfig.json for the SDK import cannot be fully read (it may extend a generated file that is not checked in), so Refit cannot confirm the import is the SDK; change its model by hand to ${resolved.to}.`
+              : MESSAGE_HELPERS.has(request.call)
+                ? `\`${request.call}\` is a Messages API helper or retired beta path, which Refit reports but does not edit; change it by hand to ${resolved.to}.`
+                : from === 'batch'
+                  ? `\`${request.call}\` is a Message Batches request, which Refit reports but does not edit; change it by hand to ${resolved.to}.`
+                  : // Images, audio, embeddings, moderation and legacy completions change formats, vector
+                    // sizes or parameters with the model, so they are never edited. The wording is accurate for
+                    // any call outside the text allow-list, such as beta.assistants.create (D-11, D-16).
+                    !request.text
+                    ? `\`${request.call}\` is not a call Refit edits; ${resolved.to} may change formats or parameters; change it by hand to ${resolved.to}.`
+                    : customUrl
+                      ? request.sdk
+                        ? client?.custom
+                          ? `The client sets \`${client.option}\` (${client.custom}), so the model may name another provider's model or a deployment; change it by hand to ${resolved.to}.`
+                          : client?.official && endpointSet && !endpointSet.everyClient
+                            ? `The repository mentions a custom endpoint (${endpointSet.at}), but this request's client (${client.official}) sets none; editing it waits on an owner decision on endpoint tracing; change it by hand to ${resolved.to}.`
+                            : `The client sets a custom base URL, so the model may name another provider's model or a deployment; change it by hand to ${resolved.to}.`
+                        : `The request goes to a host other than the official API, so the model may name another provider's model or a deployment; change it by hand to ${resolved.to}.`
+                      : from
+                        ? `The request takes its model from the options it spreads (\`...${from}\`), which Refit reports but does not edit; change it by hand to ${resolved.to}.`
+                        : limit
+                          ? `${limit} ${resolved.to}.`
+                          : stop
+                            ? `${stop} ${resolved.to}.`
+                            : direct && (!direct.has(site.literal) || direct.get(site.literal))
+                              ? /^(?:axios|request) /.test(request.call)
+                                ? `\`${request.call}\` is an axios request config, which Refit reports but does not edit yet; change it by hand to ${resolved.to}.`
+                                : `The model reaches this request through ${indirectSource(site)}, which Refit reports but does not edit yet; change it by hand to ${resolved.to}.`
+                              : found.shared
+                                ? `${found.shared} ${resolved.to}.`
+                                : found.object.properties.some((item) =>
+                                      ts.isSpreadAssignment(item),
+                                    )
+                                  ? 'The request spreads other options, which may set parameters the replacement rejects.'
+                                  : // A computed name such as `['temperature']: 0.5` or `[KEY]: 5` may be a
+                                    // sampling or length parameter the name check cannot see.
+                                    found.object.properties.some(
+                                        (item) => item.name && ts.isComputedPropertyName(item.name),
+                                      )
+                                    ? `The request sets a computed property, which may be a parameter the replacement rejects; change it by hand to ${resolved.to}.`
+                                    : tabled
+                                      ? tableReasons.join(' ') || undefined
+                                      : sensitive.length
+                                        ? `The request sets ${sensitive.join(', ')}, which ${resolved.to} may reject or treat differently.`
+                                        : undefined;
       const decision = decisions.get(site.literal) ?? {
         entry,
         ...resolved,
@@ -2016,5 +2504,221 @@ export async function proposeModelReplacements(
       via: decision.via,
     });
   }
-  return { replacements, stops, patch: edits.length ? renderPatch(repository, edits) : null };
+  // Every other live match of a traced provider, with why no traced request sends it.
+  const covered = new Set([
+    ...replacements.map((item) => `${item.edited.file}:${item.edited.line}`),
+    ...stops.map((item) => `${item.at.file}:${item.at.line}`),
+  ]);
+  const unresolved: ModelReplacementUnresolved[] = [];
+  const reported = new Map<string, ReportOnlySite>();
+  for (const source of reportOnly)
+    for (const site of await source(repository))
+      reported.set(`${site.file}:${site.line}:${site.model}`, site);
+  const scan = await scanDeadlines(directory, registry, now);
+  for (const exposure of scan.exposures) {
+    const provider = exposure.deadline.provider;
+    const models = byProvider.get(provider);
+    if (!models || !TRACERS.some((tracer) => tracer.provider === provider)) continue;
+    for (const evidence of exposure.evidence) {
+      if (evidence.kind !== 'source' || covered.has(`${evidence.file}:${evidence.line}`)) continue;
+      const entry = models.get(evidence.version) ?? exposure.deadline;
+      const site = reported.get(`${evidence.file}:${evidence.line}:${evidence.version}`);
+      if (site) {
+        stops.push({
+          deadline: exposure.deadline.id,
+          provider,
+          file: site.file,
+          line: site.line,
+          call: site.call,
+          at: { file: site.file, line: site.line },
+          model: site.model,
+          reason: site.reason,
+        });
+        continue;
+      }
+      unresolved.push({
+        deadline: exposure.deadline.id,
+        provider,
+        file: evidence.file,
+        line: evidence.line,
+        model: evidence.version,
+        to: finalReplacement(entry, models)?.to ?? null,
+        reason: unresolvedReason(program, evidence, provider, imported.has(provider), paths),
+      });
+    }
+  }
+  return {
+    replacements,
+    stops,
+    unresolved,
+    patch: edits.length ? renderPatch(repository, edits) : null,
+  };
+}
+
+const SDK_PACKAGES: Record<string, string> = {
+  openai: '`openai` or `openai-edge`',
+  anthropic: '`@anthropic-ai/sdk`, `@anthropic-ai/bedrock-sdk` or `@anthropic-ai/vertex-sdk`',
+};
+
+// Why a live model ID is not sent by any traced request, from where it is written.
+function unresolvedReason(
+  program: SourceProgram,
+  evidence: { file: string; line: number; version: string },
+  provider: string,
+  imported: boolean,
+  paths: Set<string>,
+) {
+  const check = 'Check where it is used and change it by hand if it reaches the API.';
+  if (compiledOutput(evidence.file, paths))
+    return 'It is in build output; change the source file it is built from instead.';
+  const source = program.source(evidence.file);
+  if (!source) return `The file could not be parsed, so its requests are not traced. ${check}`;
+  let literal: ts.StringLiteralLike | undefined;
+  const visit = (node: ts.Node) => {
+    if (literal) return;
+    if (
+      ts.isStringLiteralLike(node) &&
+      node.text === evidence.version &&
+      program.line(node) === evidence.line
+    )
+      literal = node;
+    else ts.forEachChild(node, visit);
+  };
+  visit(source);
+  const parent = literal && holder(literal);
+  const name = (node: ts.Node | undefined) =>
+    node && (ts.isIdentifier(node) || ts.isStringLiteralLike(node)) ? `\`${node.text}\`` : '';
+  const where = !parent
+    ? 'it is part of a longer string, such as a template'
+    : ts.isPropertyAssignment(parent)
+      ? `it is the ${name(parent.name)} value of an object`
+      : ts.isVariableDeclaration(parent)
+        ? `it is assigned to ${name(parent.name)}`
+        : ts.isPropertyDeclaration(parent)
+          ? `it is the class field ${name(parent.name)}`
+          : ts.isParameter(parent)
+            ? `it is the default of the parameter ${name(parent.name)}`
+            : ts.isReturnStatement(parent)
+              ? 'it is returned from a function'
+              : ts.isCallExpression(parent) || ts.isNewExpression(parent)
+                ? `it is passed to ${parent.expression.getText().slice(0, 60)}()`
+                : ts.isArrayLiteralExpression(parent)
+                  ? 'it is an entry in a list'
+                  : 'it is not where a request reads its model';
+  return imported
+    ? `No traced request sends it as its model; ${where}. ${check}`
+    : `No file imports ${SDK_PACKAGES[provider] ?? 'the SDK Refit traces'}, so the model may reach the API through another library or a wrapper (${where}). ${check}`;
+}
+
+// The names a file binds to a package's exports: `import X`, `import { X as Y }`, `import * as X`,
+// `const X = require(...)` and `const { X } = require(...)`. A name that resolves to a repository
+// source, because a file shadows the package, is left out.
+function packageNames(program: SourceProgram, source: ts.SourceFile, packageName: string) {
+  const names = new Set<string>();
+  const sources = new Set(program.files);
+  const add = (name: ts.Identifier) => {
+    const declarations = program.symbolOf(name)?.declarations ?? [];
+    if (!declarations.some((declaration) => sources.has(declaration.getSourceFile())))
+      names.add(name.text);
+  };
+  const matches = (node: ts.Node | undefined) =>
+    node !== undefined &&
+    ts.isStringLiteralLike(node) &&
+    (node.text === packageName || node.text.startsWith(`${packageName}/`));
+  const bind = (name: ts.BindingName) => {
+    if (ts.isIdentifier(name)) add(name);
+    else
+      for (const element of name.elements) if (!ts.isOmittedExpression(element)) bind(element.name);
+  };
+  const visit = (node: ts.Node) => {
+    if (ts.isImportDeclaration(node) && matches(node.moduleSpecifier) && node.importClause) {
+      const clause = node.importClause;
+      if (clause.name) add(clause.name);
+      const bindings = clause.namedBindings;
+      if (bindings && ts.isNamespaceImport(bindings)) add(bindings.name);
+      else if (bindings) for (const element of bindings.elements) add(element.name);
+    } else if (
+      ts.isVariableDeclaration(node) &&
+      node.initializer &&
+      ts.isCallExpression(node.initializer) &&
+      ts.isIdentifier(node.initializer.expression) &&
+      node.initializer.expression.text === 'require' &&
+      matches(node.initializer.arguments[0])
+    )
+      bind(node.name);
+    ts.forEachChild(node, visit);
+  };
+  visit(source);
+  return names;
+}
+
+// Calls `<client>.<path>(...)` in files that import the SDK, on a client the analyzer cannot
+// trace to the SDK constructor: a `let` variable, a typed parameter or field, an object member,
+// `client!`. The client counts only when a declaration of it names an SDK export, such as
+// `client: Anthropic | null` or `{ a: new Anthropic() }`. These calls are listed, never edited.
+function untracedCalls(program: SourceProgram, packageName: string, calls: string[]) {
+  const found: { node: ts.CallExpression; call: string; client: string }[] = [];
+  const named = new Map<ts.SourceFile, Set<string>>();
+  const sdkNamed = (source: ts.SourceFile) => {
+    let names = named.get(source);
+    if (!names) named.set(source, (names = packageNames(program, source, packageName)));
+    return names;
+  };
+  for (const source of program.files) {
+    if (!sdkNamed(source).size) continue;
+    const visit = (node: ts.Node) => {
+      if (ts.isCallExpression(node)) {
+        const path: string[] = [];
+        let receiver: ts.Expression = node.expression;
+        while (ts.isPropertyAccessExpression(receiver)) {
+          path.unshift(receiver.name.text);
+          receiver = receiver.expression;
+          const call = path.join('.');
+          if (!calls.includes(call)) continue;
+          const client = unwrap(ts.isNonNullExpression(receiver) ? receiver.expression : receiver);
+          const name = ts.isIdentifier(client)
+            ? client
+            : ts.isPropertyAccessExpression(client)
+              ? client.name
+              : undefined;
+          const declarations = (name && program.symbolOf(name)?.declarations) ?? [];
+          if (
+            declarations.some((declaration) =>
+              [...sdkNamed(declaration.getSourceFile())].some((sdk) =>
+                new RegExp(`(?<![\\w$])${sdk.replace(/\$/g, '\\$')}(?![\\w$])`).test(
+                  declaration.getText(),
+                ),
+              ),
+            )
+          )
+            found.push({ node, call, client: client.getText() });
+        }
+      }
+      ts.forEachChild(node, visit);
+    };
+    visit(source);
+  }
+  return found;
+}
+
+// The node that holds a literal, past parentheses, type assertions and a `||` or `??` fallback.
+function holder(literal: ts.Node) {
+  let current: ts.Node = literal;
+  let parent = current.parent;
+  while (
+    parent &&
+    (ts.isParenthesizedExpression(parent) ||
+      ts.isAsExpression(parent) ||
+      ts.isSatisfiesExpression(parent) ||
+      ts.isTypeAssertionExpression(parent) ||
+      (ts.isBinaryExpression(parent) &&
+        parent.right === current &&
+        [ts.SyntaxKind.QuestionQuestionToken, ts.SyntaxKind.BarBarToken].includes(
+          parent.operatorToken.kind,
+        )))
+  ) {
+    current = parent;
+    parent = current.parent;
+  }
+  return parent;
 }

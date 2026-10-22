@@ -5,6 +5,7 @@ import { existsSync } from 'node:fs';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { parseArgs, promisify } from 'node:util';
+import { listSlice } from './aws-benchmark-helpers.mjs';
 
 const execute = promisify(execFile);
 const PINNED = 'docs/benchmarks/2026-10-14-stripe-repos.json';
@@ -36,9 +37,7 @@ const labels = list
   ? { labelled: [], heldOut: pinned.repos.map((entry) => entry.repo) }
   : JSON.parse(await readFile(LABELS, 'utf8'));
 // --offset and --limit build one shard's slice; the benchmark then runs that root without them.
-const repos = pinned.repos
-  .slice(Number(values.offset ?? 0))
-  .slice(0, values.limit ? Number(values.limit) : undefined);
+const repos = listSlice(pinned.repos, values.offset, values.limit);
 const latest = pinned.specs
   .map((spec) => spec.version)
   .sort()

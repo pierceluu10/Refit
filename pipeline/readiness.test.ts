@@ -347,18 +347,23 @@ it('routes human and JSON diagnostics outside the repository and returns exit 2 
   const sample = await setup();
   await writeFile(join(sample.root, 'tsconfig.json'), 'not valid JSON');
   const argumentsList = [bin, 'doctor', '--config', join(sample.repository, '.refit.json')];
-  const human = await execute(process.execPath, argumentsList, { cwd: sample.root });
+  // Runs that see the same files start together; each CLI start costs about 0.3 s.
+  const [human, json] = await Promise.all([
+    execute(process.execPath, argumentsList, { cwd: sample.root }),
+    execute(process.execPath, [...argumentsList, '--json'], { cwd: sample.root }),
+  ]);
   expect(human.stdout).toContain('Refit is ready to attempt validation');
-  const json = await execute(process.execPath, [...argumentsList, '--json'], { cwd: sample.root });
   expect(JSON.parse(json.stdout).sdkCoverage).toMatchObject({ observedCalls: 1, mappedCalls: 1 });
   await writeFile(
     join(sample.repository, '.refit.json'),
     JSON.stringify({ ...sample.configuration, apiVersion: 'wrong' }),
   );
-  await expect(
-    execute(process.execPath, [...argumentsList, '--json'], { cwd: sample.root }),
-  ).rejects.toMatchObject({ code: 2, stdout: expect.stringContaining('needs-attention') });
-  await expect(
-    execute(process.execPath, [...argumentsList, '--ai-patch'], { cwd: sample.root }),
-  ).rejects.toMatchObject({ code: 1, stderr: expect.stringContaining('Unknown option') });
+  await Promise.all([
+    expect(
+      execute(process.execPath, [...argumentsList, '--json'], { cwd: sample.root }),
+    ).rejects.toMatchObject({ code: 2, stdout: expect.stringContaining('needs-attention') }),
+    expect(
+      execute(process.execPath, [...argumentsList, '--ai-patch'], { cwd: sample.root }),
+    ).rejects.toMatchObject({ code: 1, stderr: expect.stringContaining('Unknown option') }),
+  ]);
 }, 30_000);

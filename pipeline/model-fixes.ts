@@ -139,7 +139,7 @@ export function modelFixBody(options: {
 export async function runModelFixes(options: {
   repository: string;
   registry: DeadlineRegistry;
-  parameters: ModelParameterTable;
+  parameters?: ModelParameterTable;
   now: Date;
   checks: ModelFixChecks;
   publication?: ReturnType<typeof publicationConfiguration>;
@@ -156,12 +156,9 @@ export async function runModelFixes(options: {
     signal: options.signal,
     onProgress: options.onProgress,
     propose: async (directory) => {
-      proposal = await proposeModelReplacements(
-        directory,
-        options.registry,
-        options.now,
-        options.parameters,
-      );
+      proposal = await proposeModelReplacements(directory, options.registry, options.now, {
+        parameters: options.parameters,
+      });
       return proposal.patch;
     },
     skip: (revision) => {

@@ -5,8 +5,8 @@ import { PipelineInputError } from './types.ts';
 export const DEFAULT_DEADLINE_REGISTRY = new URL('../data/deadlines.json', import.meta.url);
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 const ENTRY_ID = /^[a-z0-9][a-z0-9-]{0,95}$/;
-const PROVIDERS = new Set(['shopify', 'meta-graph', 'openai', 'anthropic', 'gemini']);
-const KINDS = new Set(['api-version', 'model', 'sdk']);
+const PROVIDERS = new Set(['shopify', 'meta-graph', 'openai', 'anthropic', 'gemini', 'slack']);
+const KINDS = new Set(['api-version', 'model', 'sdk', 'method']);
 const ENTRY_KEYS = [
   'id',
   'provider',
@@ -17,27 +17,39 @@ const ENTRY_KEYS = [
   'replacement',
   'source',
   'checkedAt',
+  'derivedDate',
 ];
+// Kinds whose matching is too new to gate a build or open an issue (owner decision, 2026-10-22).
+const REPORT_ONLY_KINDS = new Set(['method', 'endpoint', 'field', 'feature']);
 const MILLISECONDS_PER_DAY = 86_400_000;
 
 // One reviewed sunset: the date a provider stops serving these API versions or models, or ends
-// support for these SDK packages (`kind: 'sdk'`, whose versions are npm package names), with the
-// page it came from and the day a person last checked that page.
+// support for these SDK packages (`kind: 'sdk'`, whose versions are npm package names) or retires
+// these API methods (`kind: 'method'`, whose versions are method names such as `files.upload`), with the
+// page it came from and the day a person last checked that page. `derivedDate` marks a date the
+// provider never announced as a shutdown, such as one taken from a release date or an OpenAPI eol
+// field.
 export interface DeadlineEntry {
   id: string;
-  provider: 'shopify' | 'meta-graph' | 'openai' | 'anthropic' | 'gemini';
-  kind: 'api-version' | 'model' | 'sdk';
+  provider: 'shopify' | 'meta-graph' | 'openai' | 'anthropic' | 'gemini' | 'slack';
+  kind: 'api-version' | 'model' | 'sdk' | 'method';
   versions: string[];
   date: string;
   summary: string;
   replacement: string | null;
   source: string | null;
   checkedAt: string;
+  derivedDate?: true;
 }
 
 export interface DeadlineRegistry {
   formatVersion: 1;
   deadlines: DeadlineEntry[];
+}
+
+// Listed by `refit deadlines`, but never fails --fail-within or opens a --deadline-alerts issue.
+export function reportOnly(entry: DeadlineEntry) {
+  return entry.derivedDate === true || REPORT_ONLY_KINDS.has(entry.kind);
 }
 
 export function validDate(value: unknown): value is string {
@@ -80,7 +92,7 @@ export function checkDeadlineRegistry(value: unknown, now: Date) {
     if (!PROVIDERS.has(String(entry.provider)))
       errors.push(`${label}: provider must be one of ${[...PROVIDERS].join(', ')}.`);
     if (!KINDS.has(String(entry.kind)))
-      errors.push(`${label}: kind must be api-version, model or sdk.`);
+      errors.push(`${label}: kind must be api-version, model, sdk or method.`);
     if (
       !Array.isArray(entry.versions) ||
       !entry.versions.length ||
@@ -96,6 +108,8 @@ export function checkDeadlineRegistry(value: unknown, now: Date) {
     if (!validDate(entry.date)) errors.push(`${label}: date must be a real YYYY-MM-DD date.`);
     if (!validDate(entry.checkedAt))
       errors.push(`${label}: checkedAt must be a real YYYY-MM-DD date.`);
+    if (entry.derivedDate !== undefined && entry.derivedDate !== true)
+      errors.push(`${label}: derivedDate must be true or left out.`);
     if (typeof entry.summary !== 'string' || !entry.summary.trim())
       errors.push(`${label}: summary is required.`);
     if (entry.replacement !== null && typeof entry.replacement !== 'string')

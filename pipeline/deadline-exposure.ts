@@ -5,6 +5,7 @@ import ts from 'typescript-compiler';
 import { AGENT_CATALOG, builtInPackage } from './agent-catalog.ts';
 import { daysUntil, type DeadlineEntry, type DeadlineRegistry } from './deadline-registry.ts';
 import { readRepository } from './repository.ts';
+import { slackMethodUses } from './slack-calls.ts';
 import { isObject, parseObject } from './specifications.ts';
 import { REPOSITORY_CONFIGURATION } from './workflow-configuration.ts';
 
@@ -28,7 +29,9 @@ const META_CONTEXT = [META_SDK, 'graph.facebook.com'];
 // - catalog: one entry in a model list (an array, enum, tuple or constant-case object naming three
 //   or more models), an HTML or JSX `<option>`, any type position, a table keyed or indexed by
 //   model, such as pricing or context windows, a model record's `id` or `name` beside a metadata
-//   field such as `contextWindow`, or a model reference's `versions` list;
+//   field such as `contextWindow`, a model reference's `versions` list, one model's IDs on several
+//   platforms (`{ firstParty: 'claude-…', bedrock: 'anthropic.claude-…', vertex: 'claude-…@…' }`),
+//   or a membership collection (`new Set([...])`, the keys of `new Map([...])`) of any size;
 // - test: test, spec, story, fixture and example files;
 // - comment: comments, which the parser keeps out of every source token, and, for model providers
 //   only, a model ID quoted inside a longer plain string, such as a description or an error message;
@@ -141,6 +144,10 @@ const GEMINI_MODEL = /^(?:google\/|models\/)?gemini-/;
 const OPENAI_MODEL =
   /^(?:openai\/)?(?:gpt-|chatgpt-|o\d(?:-|$)|text-(?:davinci|curie|babbage|ada|embedding|moderation)-|(?:davinci|curie|babbage|ada)(?:-|$)|dall-e-|tts-|whisper-|codex-|computer-use-|omni-moderation-|sora-)/;
 const CATALOG_SIZE = 3;
+// Cloud-platform forms of a Claude model ID: Bedrock (`anthropic.claude-…`, optionally with a region
+// prefix such as `us.`) and Vertex AI (`claude-…@20250514`).
+const PLATFORM_MODEL = /^(?:[a-z]{2,4}\.)?anthropic\.claude-|^claude-[\w.-]+@\d{8}$/;
+const MEMBERSHIP_COLLECTIONS = new Set(['Set', 'Map', 'WeakSet', 'WeakMap']);
 const OPTION_ELEMENT = /<option\b/i;
 // Fields of a model metadata record, such as `{ id: 'gpt-4', contextWindow: 8192 }`. None of them
 // is a request parameter, so an object that has one describes a model rather than calling it.
@@ -214,6 +221,43 @@ function modelRecord(node: ts.Node) {
     RECORD_NAME.has(keyText(property.name) ?? '') &&
     ts.isObjectLiteralExpression(property.parent) &&
     property.parent.properties.some((item) => MODEL_METADATA.has(keyText(item.name) ?? ''))
+  );
+}
+
+// One model's IDs across platforms: an object with two or more model-shaped string values, at least
+// one of them a Bedrock or Vertex AI form. It lists where a model is available; the code picks one
+// entry elsewhere.
+function platformVariants(node: ts.Node, isModel: (value: string) => boolean) {
+  const property = node.parent;
+  if (!ts.isPropertyAssignment(property) || property.initializer !== node) return false;
+  const values = property.parent.properties.flatMap((item) => {
+    if (!ts.isPropertyAssignment(item)) return [];
+    const value = stripped(item.initializer);
+    return ts.isStringLiteralLike(value) ? [value.text] : [];
+  });
+  return (
+    values.some((value) => PLATFORM_MODEL.test(value)) &&
+    values.filter((value) => isModel(value) || PLATFORM_MODEL.test(value)).length >= 2
+  );
+}
+
+// A list handed to `new Set(...)` or `new Map(...)`: membership or lookup, as in
+// `new Set(['claude-3-opus', 'claude-3-haiku']).has(model)`. In a Map it is an entry's key.
+function membershipEntry(node: ts.Node) {
+  let list = node.parent;
+  if (
+    ts.isArrayLiteralExpression(list) &&
+    list.elements[0] === node &&
+    ts.isArrayLiteralExpression(list.parent)
+  )
+    list = list.parent;
+  const owner = list.parent;
+  return (
+    ts.isArrayLiteralExpression(list) &&
+    ts.isNewExpression(owner) &&
+    owner.arguments?.[0] === list &&
+    ts.isIdentifier(owner.expression) &&
+    MEMBERSHIP_COLLECTIONS.has(owner.expression.text)
   );
 }
 
@@ -335,6 +379,7 @@ function literalUse(
   if (propertyKey(node)) return 'catalog';
   if (ts.isElementAccessExpression(parent) && parent.argumentExpression === node) return 'catalog';
   if (modelRecord(node)) return 'catalog';
+  if (platformVariants(node, isModel) || membershipEntry(node)) return 'catalog';
   // The versions a model reference accepts, as in genkit's `versions: ['gpt-4o-2024-05-13']`.
   if (
     ts.isArrayLiteralExpression(parent) &&
@@ -524,6 +569,10 @@ export async function scanDeadlines(
             text: `${name} ${dependency.lock.version ?? dependency.version}${dependency.lock.version ? ` (locked in ${dependency.lock.file})` : ''} is declared in ${dependency.section}`,
           });
       }
+  // Retired API methods: each call site that sends one, from the provider's call scanner.
+  if (registry.deadlines.some((entry) => entry.kind === 'method' && entry.provider === 'slack'))
+    for (const use of await slackMethodUses(root, repository))
+      record('slack', use.method, { ...use, kind: 'source' });
   for (const pin of await configuredApiVersions(root))
     record(pin.provider, pin.version, {
       file: REPOSITORY_CONFIGURATION,

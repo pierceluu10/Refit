@@ -2,6 +2,8 @@ import { expect, it } from 'vitest';
 import {
   benchmarkSummary,
   repositoryNonLive,
+  stopReasonKind,
+  stopReasons,
   type BenchmarkRepository,
   type DeadlineGroup,
 } from '../scripts/ai-model-benchmark-summary.mjs';
@@ -50,6 +52,8 @@ const results: BenchmarkRepository[] = [
   },
   { repo: 'a/stopped', exposures: exposure, replacements: [], stops: [{}] },
   { repo: 'a/silent', exposures: exposure, replacements: [], stops: [] },
+  // Silent, but every live match is explained.
+  { repo: 'a/explained', exposures: exposure, replacements: [], stops: [], unresolved: [{}, {}] },
   {
     repo: 'a/slow',
     error: 'timed out after 120 s',
@@ -80,20 +84,25 @@ const results: BenchmarkRepository[] = [
   },
 ];
 
-it('keeps every 2026-10-20 summary key and value, and adds mentionedOnly and exposedErrored', () => {
+it('keeps every 2026-10-20 summary key and value, and adds the newer counts after them', () => {
   expect(benchmarkSummary(results)).toEqual({
-    repositories: 8,
+    repositories: 9,
     errors: 3,
     timedOut: 2,
-    exposed: 4,
+    exposed: 5,
     exposedWithReplacement: 1,
     exposedStoppedOnly: 1,
     // The timed-out exposed repository is not silent: it is counted as errored.
-    exposedSilent: 1,
+    exposedSilent: 2,
     replacements: 1,
     stops: 3,
     mentionedOnly: 1,
     exposedErrored: 1,
+    exposedUnresolvedOnly: 1,
+    exposedUnexplained: 1,
+    unresolved: 2,
+    // The failed checkout is an infrastructure error, not a result.
+    infrastructureErrors: 1,
   });
   // The earlier keys keep their order, and the new one follows them.
   expect(Object.keys(benchmarkSummary(results))).toEqual([
@@ -108,6 +117,10 @@ it('keeps every 2026-10-20 summary key and value, and adds mentionedOnly and exp
     'stops',
     'mentionedOnly',
     'exposedErrored',
+    'exposedUnresolvedOnly',
+    'exposedUnexplained',
+    'unresolved',
+    'infrastructureErrors',
   ]);
 });
 
@@ -124,5 +137,58 @@ it('summarizes an empty run as zeros', () => {
     stops: 0,
     mentionedOnly: 0,
     exposedErrored: 0,
+    exposedUnresolvedOnly: 0,
+    exposedUnexplained: 0,
+    unresolved: 0,
+    infrastructureErrors: 0,
   });
+});
+
+it('ranks stop reasons by the exposed repositories they block', () => {
+  const custom = (to: string) =>
+    `The client sets a custom base URL, so the model may name another provider's model or a deployment; change it by hand to ${to}.`;
+  const spread = (name: string, to: string) =>
+    `The request takes its model from the options it spreads (\`...${name}\`), which Refit reports but does not edit; change it by hand to ${to}.`;
+  const exposures = [{}];
+  expect(
+    stopReasons([
+      {
+        exposures,
+        replacements: [],
+        stops: [{ reason: custom('gpt-5.6-sol') }, { reason: custom('o4-mini') }],
+      },
+      { exposures, replacements: [{}], stops: [{ reason: custom('claude-opus-4-8') }] },
+      { exposures, replacements: [], stops: [{ reason: spread('params', 'claude-opus-4-8') }] },
+      { exposures, replacements: [], stops: [{ reason: spread('base', 'gpt-5.6-sol') }] },
+      // Not exposed: a stop on a deadline the scan does not report is not counted.
+      { exposures: [], replacements: [], stops: [{ reason: custom('gpt-5.6-sol') }] },
+    ]),
+  ).toEqual(
+    [
+      {
+        reason:
+          "The client sets a custom base URL, so the model may name another provider's model or a deployment",
+        repositories: 2,
+        blocked: 1,
+      },
+      {
+        reason:
+          'The request takes its model from the options it spreads, which Refit reports but does not edit',
+        repositories: 2,
+        blocked: 2,
+      },
+    ].reverse(),
+  );
+  expect(
+    stopReasonKind(
+      "The client is Claude on Amazon Bedrock, where model IDs and retirement dates are Amazon Bedrock's, not the Claude API's (the Claude API retires claude-3-opus-20240229 on 2026-01-05); check Amazon Bedrock's model lifecycle and change it by hand to its ID for claude-opus-4-8.",
+    ),
+  ).toBe(
+    "The client is Claude on Amazon Bedrock, where model IDs and retirement dates are Amazon Bedrock's, not the Claude API's",
+  );
+  expect(
+    stopReasonKind(
+      'The request sets max_tokens, which gpt-5.6-sol may reject or treat differently.',
+    ),
+  ).toBe('The request sets max_tokens, which <model> may reject or treat differently.');
 });

@@ -1,9 +1,11 @@
 // The numbers ai-model-benchmark.mjs writes for each repository and for the whole run. They are
 // pure functions of the `refit deadlines --json` result and the per-repository results, so tests
 // can feed them fixtures.
+import { classifyRow } from './benchmark-harness.mjs';
 
 // One provider's non-live matches in a repository, by use, from the exact counts the scan keeps
-// for each exposure and mention. Key order carries no meaning.
+// for each exposure and mention. Key order carries no meaning; keys are sorted so every run writes
+// the same bytes.
 export function repositoryNonLive(result, provider) {
   const nonLive = {};
   for (const group of [...(result?.exposures ?? []), ...(result?.mentions ?? [])])
@@ -11,7 +13,9 @@ export function repositoryNonLive(result, provider) {
       for (const [use, count] of Object.entries(group.nonLiveCounts ?? {}))
         nonLive[use] = (nonLive[use] ?? 0) + count;
   return {
-    nonLive,
+    nonLive: Object.fromEntries(
+      Object.entries(nonLive).sort(([left], [right]) => left.localeCompare(right)),
+    ),
     nonLiveTotal: Object.values(nonLive).reduce((total, count) => total + count, 0),
   };
 }
@@ -40,5 +44,53 @@ export function benchmarkSummary(results) {
     ).length,
     // Exposed repositories whose proposal step failed: they are neither silent nor handled.
     exposedErrored: exposed.filter((item) => item.error).length,
+    // Silent ones whose every live match is listed as unresolved, with where it is written, and
+    // those left with no outcome at all. Results from before `unresolved` have none.
+    exposedUnresolvedOnly: exposed.filter(
+      (item) =>
+        !item.error && !item.replacements.length && !item.stops.length && item.unresolved?.length,
+    ).length,
+    exposedUnexplained: exposed.filter(
+      (item) =>
+        !item.error && !item.replacements.length && !item.stops.length && !item.unresolved?.length,
+    ).length,
+    unresolved: results.reduce((total, item) => total + (item.unresolved?.length ?? 0), 0),
+    // Rows that are infrastructure errors (a failed checkout), not results; `repositories` and
+    // `errors` still count them, as they always have, so subtract them to count results only.
+    infrastructureErrors: results.filter(
+      (item) => classifyRow('ai-model-results', item).outcomeClass === 'infrastructure',
+    ).length,
   };
+}
+
+// A stop reason without what varies between sites: quoted names, places in parentheses, model IDs
+// and the closing "change it by hand to <model>".
+export function stopReasonKind(reason) {
+  return reason
+    .replace(/`[^`]*`/g, '`…`')
+    .replace(/\s*\([^)]*\)/g, '')
+    .replace(/[;,]?\s*(?:check [^;]* and )?change (?:it|its model) by hand.*$/, '')
+    .replace(/\b(?:gpt|claude|chatgpt|dall-e|tts|whisper|o\d)[\w.:@-]*/g, '<model>')
+    .trim();
+}
+
+// Stop reasons ranked by the exposed repositories they block: `repositories` where the reason
+// stops at least one site, and `blocked` where the repository also gets no replacement.
+export function stopReasons(results) {
+  const kinds = new Map();
+  for (const item of results) {
+    if (!item.exposures?.length) continue;
+    for (const kind of new Set(
+      (item.stops ?? []).map((stop) => stopReasonKind(stop.reason ?? '')),
+    )) {
+      const counts = kinds.get(kind) ?? { reason: kind, repositories: 0, blocked: 0 };
+      kinds.set(kind, counts);
+      counts.repositories += 1;
+      if (!item.replacements?.length) counts.blocked += 1;
+    }
+  }
+  return [...kinds.values()].sort(
+    (a, b) =>
+      b.blocked - a.blocked || b.repositories - a.repositories || a.reason.localeCompare(b.reason),
+  );
 }
