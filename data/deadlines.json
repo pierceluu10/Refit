@@ -1029,7 +1029,8 @@
       "summary": "Cloudflare's OpenAPI document marks these operations deprecated, end of life 2023-03-19 (x-cfDeprecation bookmarks_deprecation): This endpoint is deprecated in favor of using a specialized Access Application App Type.",
       "replacement": null,
       "source": "https://github.com/cloudflare/api-schemas/blob/d3e86eec17211653ca9bc18c0d4bfcace2904148/openapi.json",
-      "checkedAt": "2026-10-22"
+      "checkedAt": "2026-10-22",
+      "derivedDate": true
     },
     {
       "id": "cloudflare-user-organizations",
@@ -1044,7 +1045,8 @@
       "summary": "Cloudflare's OpenAPI document marks these operations deprecated, end of life 2020-02-04 (x-cfDeprecation org_deprecation): This endpoint and its related APIs are deprecated in favor of the `/accounts` equivalent APIs, which have a broader range of features and are backwards compatible with these API.",
       "replacement": null,
       "source": "https://github.com/cloudflare/api-schemas/blob/d3e86eec17211653ca9bc18c0d4bfcace2904148/openapi.json",
-      "checkedAt": "2026-10-22"
+      "checkedAt": "2026-10-22",
+      "derivedDate": true
     },
     {
       "id": "cloudflare-zone-analytics",
@@ -1058,7 +1060,8 @@
       "summary": "Cloudflare's OpenAPI document marks these operations deprecated, end of life 2021-03-01 (x-cfDeprecation zone_analytics_deprecation): Please use the new GraphQL Analytics API instead: https://developers.cloudflare.com/analytics/graphql-api/. It provides equivalent data and more features, including the ability to select only the metrics you need. Migration guide: https://developers.cloudflare.com/analytics/migration-guides/zone-analytics/.",
       "replacement": null,
       "source": "https://github.com/cloudflare/api-schemas/blob/d3e86eec17211653ca9bc18c0d4bfcace2904148/openapi.json",
-      "checkedAt": "2026-10-22"
+      "checkedAt": "2026-10-22",
+      "derivedDate": true
     },
     {
       "id": "cloudflare-origin-cloud-regions-v1",
@@ -1078,7 +1081,8 @@
       "summary": "Cloudflare's OpenAPI document marks these operations deprecated, end of life 2026-10-01 (x-cfDeprecation opcr_v1_deprecation): Use the v2 endpoints under `/zones/{zone_id}/origin/cloud_regions` instead. The v2 API uses idempotent PUT semantics for create+update, provides a flat response shape, and is the supported path for Terraform and SDK clients. The v1 endpoints under `/zones/{zone_id}/cache/origin_cloud_regions` will be removed on 2026-10-01.",
       "replacement": null,
       "source": "https://github.com/cloudflare/api-schemas/blob/d3e86eec17211653ca9bc18c0d4bfcace2904148/openapi.json",
-      "checkedAt": "2026-10-22"
+      "checkedAt": "2026-10-22",
+      "derivedDate": true
     },
     {
       "id": "cloudflare-origin-post-quantum-encryption",
@@ -1092,7 +1096,8 @@
       "summary": "Cloudflare's OpenAPI document marks these operations deprecated, end of life 2026-07-19 (x-cfDeprecation origin_pqe_deprecation): Origin post-quantum encryption selection is now handled automatically by Auto-Origin TLS KEX (`/zones/{zone_id}/settings/auto_origin_tls_kex`) combined with Origin TLS Compliance Modes (`/zones/{zone_id}/settings/origin_tls_compliance_modes`). As that rollout proceeds, the manual `origin_post_quantum_encryption` setting becomes ineffective and the endpoint will be removed on 2026-07-19.",
       "replacement": null,
       "source": "https://github.com/cloudflare/api-schemas/blob/d3e86eec17211653ca9bc18c0d4bfcace2904148/openapi.json",
-      "checkedAt": "2026-10-22"
+      "checkedAt": "2026-10-22",
+      "derivedDate": true
     }
   ]
 }
