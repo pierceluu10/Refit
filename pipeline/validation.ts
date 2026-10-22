@@ -146,6 +146,15 @@ export function rejectedProperties(baseline: CheckResult, patched: CheckResult) 
   ];
 }
 
+// Stripe moved a subscription's billing period onto its items in 2025-03-31.basil. Reading it from
+// an item means choosing one, which only the reviewed stripeSubscriptionPeriods rule may do.
+const SUBSCRIPTION_PERIOD_READ =
+  /^Property 'current_period_(?:start|end)' does not exist on type '[^']*\bSubscription\b[^']*'/;
+
+export function subscriptionPeriodRead(error: { message: string }) {
+  return SUBSCRIPTION_PERIOD_READ.test(error.message);
+}
+
 const formatTypeError = (error: ReturnType<typeof typeErrors>[number]) =>
   `${error.file}(${error.line},${error.column}): error ${error.code}: ${error.message}`;
 
@@ -846,6 +855,12 @@ export async function validateMigration(options: {
       if (rejected.length) {
         repair.stopReason = 'review-required';
         repair.error = `The upgraded types reject ${rejected.map((name) => `'${name}'`).join(', ')}; removing or replacing ${rejected.length === 1 ? 'it' : 'them'} changes what the code sends, so it stops for review.`;
+        break;
+      }
+      const periodReads = introduced.filter(subscriptionPeriodRead);
+      if (periodReads.length) {
+        repair.stopReason = 'review-required';
+        repair.error = `Stripe moved subscription billing periods onto subscription items, and ${periodReads.map((error) => `${error.file}:${error.line}`).join(', ')} still ${periodReads.length === 1 ? 'reads one' : 'read them'} from the subscription. Choosing an item is a reviewed rule (stripeSubscriptionPeriods), so it stops for review.`;
         break;
       }
       repair.requested++;

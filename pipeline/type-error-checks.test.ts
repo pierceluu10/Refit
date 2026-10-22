@@ -3,6 +3,7 @@ import {
   compareTypeCheck,
   rejectedProperties,
   reviewTypeError,
+  subscriptionPeriodRead,
   typeErrors,
   type CheckResult,
 } from './validation.ts';
@@ -84,4 +85,22 @@ it('names object-literal properties the upgraded types reject, from either tsc l
   const typo =
     "  Object literal may only specify known properties, but 'forignTable' does not exist in type '{ foreignTable?: string; }'. Did you mean to write 'foreignTable'?";
   expect(rejectedProperties(run(2, typo), run(2, `${typo}\n${existing}`))).toEqual([]);
+});
+
+it('recognizes billing-period reads the upgraded Subscription type no longer has', () => {
+  const errors = typeErrors(
+    run(
+      2,
+      [
+        // iggy-tech/product-hunt-clone-final, reading `subscriptions.list().data[0]`.
+        "lib/stripe.ts(113,51): error TS2339: Property 'current_period_end' does not exist on type 'Subscription'.",
+        "lib/billing.ts(20,30): error TS2339: Property 'current_period_start' does not exist on type 'Response<Subscription>'.",
+        "lib/billing.ts(21,30): error TS2339: Property 'current_period_end' does not exist on type 'Stripe.Subscription | null'.",
+        "lib/items.ts(8,12): error TS2339: Property 'current_period_end' does not exist on type 'SubscriptionSchedule'.",
+        "lib/items.ts(9,12): error TS2339: Property 'cancel_at' does not exist on type 'Subscription'.",
+        existing,
+      ].join('\n'),
+    ),
+  );
+  expect(errors.map(subscriptionPeriodRead)).toEqual([true, true, true, false, false, false]);
 });
