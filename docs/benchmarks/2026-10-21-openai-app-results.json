@@ -1,0 +1,2649 @@
+{
+  "formatVersion": 1,
+  "list": "docs/benchmarks/2026-10-21-openai-app-repos.json",
+  "provider": "openai",
+  "ranAt": "2026-10-22T07:47:07.575Z",
+  "note": "refit deadlines and refit deadlines --propose-model-fixes at each frozen commit, read only: nothing installed, run or validated, no provider contacted. austineckman/CraftingComputer crashes the scanner process on main and on this change alike. baseline is the same run on main before the change.",
+  "summary": {
+    "repositories": 100,
+    "errors": 1,
+    "timedOut": 0,
+    "exposed": 32,
+    "exposedWithReplacement": 2,
+    "exposedStoppedOnly": 18,
+    "exposedSilent": 11,
+    "replacements": 3,
+    "stops": 44,
+    "mentionedOnly": 20,
+    "exposedErrored": 1,
+    "exposedUnresolvedOnly": 11,
+    "exposedUnexplained": 0,
+    "unresolved": 68
+  },
+  "results": [
+    {
+      "repo": "yetone/cumora",
+      "commit": "60fb5b3e489c0926b0654189cd6a8c6e5430b296",
+      "exposures": [],
+      "replacements": [],
+      "stops": [],
+      "unresolved": [],
+      "nonLive": {
+        "check": 2
+      },
+      "nonLiveTotal": 2
+    },
+    {
+      "repo": "OpenCoworkAI/open-cowork",
+      "commit": "e94ee2c50239e64ba0e18921e339d49b93dae31f",
+      "exposures": [],
+      "replacements": [],
+      "stops": [],
+      "unresolved": [],
+      "nonLive": {
+        "catalog": 6,
+        "test": 6
+      },
+      "nonLiveTotal": 12
+    },
+    {
+      "repo": "JohnRiceML/clawport-ui",
+      "commit": "40db84d69b793048a9f738db57fe6e5db9751df3",
+      "exposures": [
+        {
+          "deadline": "openai-2027-01-06-tts-1",
+          "date": "2027-01-06",
+          "evidence": [
+            "app/api/tts/route.ts:18"
+          ]
+        },
+        {
+          "deadline": "openai-2027-02-26-whisper-1",
+          "date": "2027-02-26",
+          "evidence": [
+            "app/api/transcribe/route.ts:21"
+          ]
+        }
+      ],
+      "replacements": [],
+      "stops": [
+        {
+          "file": "app/api/transcribe/route.ts",
+          "line": 20,
+          "call": "audio.transcriptions.create",
+          "at": {
+            "file": "app/api/transcribe/route.ts",
+            "line": 21
+          },
+          "model": "whisper-1",
+          "reason": "`audio.transcriptions.create` is not a call Refit edits; gpt-transcribe may change formats or parameters; change it by hand to gpt-transcribe."
+        },
+        {
+          "file": "app/api/tts/route.ts",
+          "line": 17,
+          "call": "audio.speech.create",
+          "at": {
+            "file": "app/api/tts/route.ts",
+            "line": 18
+          },
+          "model": "tts-1",
+          "reason": "`audio.speech.create` is not a call Refit edits; gpt-realtime-2.1-mini may change formats or parameters; change it by hand to gpt-realtime-2.1-mini."
+        }
+      ],
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
+    },
+    {
+      "repo": "yayasoumah/pocket-server",
+      "commit": "10854b5ebc2055346c57bf000f86222da1d953fe",
+      "exposures": [],
+      "replacements": [],
+      "stops": [],
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
+    },
+    {
+      "repo": "pdovhomilja/nextcrm-app",
+      "commit": "ade5fcfb8137b6b05ef578cc79a1365a00b3f619",
+      "exposures": [],
+      "replacements": [],
+      "stops": [],
+      "unresolved": [],
+      "nonLive": {
+        "test": 301
+      },
+      "nonLiveTotal": 301
+    },
+    {
+      "repo": "mayfer/dbpill",
+      "commit": "b5b176943f678a1a009cda73236805ebc0c0ae29",
+      "exposures": [],
+      "replacements": [],
+      "stops": [],
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
+    },
+    {
+      "repo": "babarot/oksskolten",
+      "commit": "8fb6ceed07320b8f85e7fa5bbaebd400af6c4a26",
+      "exposures": [],
+      "replacements": [],
+      "stops": [],
+      "unresolved": [],
+      "nonLive": {
+        "test": 6,
+        "catalog": 2
+      },
+      "nonLiveTotal": 8
+    },
+    {
+      "repo": "Wing900/ManimCat",
+      "commit": "344187503c5e1ad6041bfbebadec5b68bf24ee2c",
+      "exposures": [],
+      "replacements": [],
+      "stops": [],
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
+    },
+    {
+      "repo": "rohitg00/manim-video-generator",
+      "commit": "9c41982e620bf9dbaac6553197eb2dfafbef90f2",
+      "exposures": [
+        {
+          "deadline": "openai-2026-10-23-gpt-4-1-nano",
+          "date": "2026-10-23",
+          "evidence": [
+            "src/agents/math-enricher.step.ts:29",
+            "src/agents/narrative-composer.step.ts:19",
+            "src/agents/prerequisite-explorer.step.ts:19",
+            "src/agents/visual-designer.step.ts:23",
+            "src/api/refine.step.ts:92",
+            "src/services/nlu-classifier.ts:21",
+            "src/services/openai-client.ts:10",
+            "src/services/prompt-engine.ts:17"
+          ]
+        }
+      ],
+      "replacements": [],
+      "stops": [],
+      "unresolved": [
+        {
+          "file": "src/agents/math-enricher.step.ts",
+          "line": 29,
+          "model": "gpt-4.1-nano",
+          "to": "gpt-5.6-luna",
+          "reason": "No traced request sends it as its model; it is assigned to `OPENAI_MODEL`. Check where it is used and change it by hand if it reaches the API."
+        },
+        {
+          "file": "src/agents/narrative-composer.step.ts",
+          "line": 19,
+          "model": "gpt-4.1-nano",
+          "to": "gpt-5.6-luna",
+          "reason": "No traced request sends it as its model; it is assigned to `OPENAI_MODEL`. Check where it is used and change it by hand if it reaches the API."
+        },
+        {
+          "file": "src/agents/prerequisite-explorer.step.ts",
+          "line": 19,
+          "model": "gpt-4.1-nano",
+          "to": "gpt-5.6-luna",
+          "reason": "No traced request sends it as its model; it is assigned to `OPENAI_MODEL`. Check where it is used and change it by hand if it reaches the API."
+        },
+        {
+          "file": "src/agents/visual-designer.step.ts",
+          "line": 23,
+          "model": "gpt-4.1-nano",
+          "to": "gpt-5.6-luna",
+          "reason": "No traced request sends it as its model; it is assigned to `OPENAI_MODEL`. Check where it is used and change it by hand if it reaches the API."
+        },
+        {
+          "file": "src/api/refine.step.ts",
+          "line": 92,
+          "model": "gpt-4.1-nano",
+          "to": "gpt-5.6-luna",
+          "reason": "No traced request sends it as its model; it is the `model` value of an object. Check where it is used and change it by hand if it reaches the API."
+        },
+        {
+          "file": "src/services/nlu-classifier.ts",
+          "line": 21,
+          "model": "gpt-4.1-nano",
+          "to": "gpt-5.6-luna",
+          "reason": "No traced request sends it as its model; it is assigned to `OPENAI_MODEL`. Check where it is used and change it by hand if it reaches the API."
+        },
+        {
+          "file": "src/services/openai-client.ts",
+          "line": 10,
+          "model": "gpt-4.1-nano",
+          "to": "gpt-5.6-luna",
+          "reason": "No traced request sends it as its model; it is assigned to `OPENAI_MODEL`. Check where it is used and change it by hand if it reaches the API."
+        },
+        {
+          "file": "src/services/prompt-engine.ts",
+          "line": 17,
+          "model": "gpt-4.1-nano",
+          "to": "gpt-5.6-luna",
+          "reason": "No traced request sends it as its model; it is assigned to `OPENAI_MODEL`. Check where it is used and change it by hand if it reaches the API."
+        }
+      ],
+      "nonLive": {},
+      "nonLiveTotal": 0
+    },
+    {
+      "repo": "vual/lobe-chat-pro",
+      "commit": "2a400facaee734beedeb9c93d9977728d626bec2",
+      "exposures": [
+        {
+          "deadline": "openai-2026-02-17-chatgpt-4o-latest",
+          "date": "2026-02-17",
+          "evidence": [
+            ".i18nrc.js:28"
+          ]
+        },
+        {
+          "deadline": "openai-2026-05-12-dall-e-2",
+          "date": "2026-05-12",
+          "evidence": [
+            "packages/model-bank/src/aiModels/azure.ts:1215",
+            "src/services/textToImage.ts:17"
+          ]
+        },
+        {
+          "deadline": "openai-2026-10-23-gpt-4",
+          "date": "2026-10-23",
+          "evidence": [
+            "src/store/session/slices/session/action.ts:271"
+          ]
+        },
+        {
+          "deadline": "openai-2026-10-23-gpt-4-1-nano",
+          "date": "2026-10-23",
+          "evidence": [
+            "src/config/modelProviders/aihubmix.ts:6"
+          ]
+        },
+        {
+          "deadline": "openai-2026-10-23-gpt-image-1",
+          "date": "2026-10-23",
+          "evidence": [
+            "packages/model-bank/src/aiModels/azure.ts:1201",
+            "src/store/image/slices/generationConfig/initialState.ts:13"
+          ]
+        },
+        {
+          "deadline": "openai-2026-12-01-gpt-image-1-mini",
+          "date": "2026-12-01",
+          "evidence": [
+            "src/store/palette/initialState.ts:18"
+          ]
+        },
+        {
+          "deadline": "openai-2027-01-06-tts-1",
+          "date": "2027-01-06",
+          "evidence": [
+            "packages/const/src/settings/tts.ts:6",
+            "src/app/[variants]/(main)/settings/tts/features/const.tsx:12",
+            "src/app/[variants]/(main)/settings/tts/features/const.tsx:16"
+          ]
+        },
+        {
+          "deadline": "openai-2027-02-26-whisper-1",
+          "date": "2027-02-26",
+          "evidence": [
+            "packages/const/src/settings/tts.ts:5",
+            "src/app/[variants]/(main)/settings/tts/features/const.tsx:23",
+            "src/app/[variants]/(main)/settings/tts/features/const.tsx:24"
+          ]
+        }
+      ],
+      "replacements": [],
+      "stops": [],
+      "unresolved": [
+        {
+          "file": ".i18nrc.js",
+          "line": 28,
+          "model": "chatgpt-4o-latest",
+          "to": "gpt-5.1-chat-latest",
+          "reason": "No traced request sends it as its model; it is the `modelName` value of an object. Check where it is used and change it by hand if it reaches the API."
+        },
+        {
+          "file": "packages/model-bank/src/aiModels/azure.ts",
+          "line": 1215,
+          "model": "dall-e-3",
+          "to": "gpt-image-2",
+          "reason": "No traced request sends it as its model; it is the `id` value of an object. Check where it is used and change it by hand if it reaches the API."
+        },
+        {
+          "file": "src/services/textToImage.ts",
+          "line": 17,
+          "model": "dall-e-3",
+          "to": "gpt-image-2",
+          "reason": "No traced request sends it as its model; it is the `model` value of an object. Check where it is used and change it by hand if it reaches the API."
+        },
+        {
+          "file": "src/store/session/slices/session/action.ts",
+          "line": 271,
+          "model": "gpt-4",
+          "to": "gpt-5.6-sol",
+          "reason": "No traced request sends it as its model; it is the `orchestratorModel` value of an object. Check where it is used and change it by hand if it reaches the API."
+        },
+        {
+          "file": "src/config/modelProviders/aihubmix.ts",
+          "line": 6,
+          "model": "gpt-4.1-nano",
+          "to": "gpt-5.6-luna",
+          "reason": "No traced request sends it as its model; it is the `checkModel` value of an object. Check where it is used and change it by hand if it reaches the API."
+        },
+        {
+          "file": "packages/model-bank/src/aiModels/azure.ts",
+          "line": 1201,
+          "model": "gpt-image-1",
+          "to": "gpt-image-2.5-sunburst",
+          "reason": "No traced request sends it as its model; it is the `id` value of an object. Check where it is used and change it by hand if it reaches the API."
+        },
+        {
+          "file": "src/store/image/slices/generationConfig/initialState.ts",
+          "line": 13,
+          "model": "gpt-image-1",
+          "to": "gpt-image-2.5-sunburst",
+          "reason": "No traced request sends it as its model; it is assigned to `DEFAULT_AI_IMAGE_MODEL`. Check where it is used and change it by hand if it reaches the API."
+        },
+        {
+          "file": "src/store/palette/initialState.ts",
+          "line": 18,
+          "model": "gpt-image-1.5",
+          "to": "gpt-image-2.5-sunburst",
+          "reason": "No traced request sends it as its model; it is the `model` value of an object. Check where it is used and change it by hand if it reaches the API."
+        },
+        {
+          "file": "packages/const/src/settings/tts.ts",
+          "line": 6,
+          "model": "tts-1",
+          "to": "gpt-realtime-2.1-mini",
+          "reason": "No traced request sends it as its model; it is the `ttsModel` value of an object. Check where it is used and change it by hand if it reaches the API."
+        },
+        {
+          "file": "src/app/[variants]/(main)/settings/tts/features/const.tsx",
+          "line": 12,
+          "model": "tts-1",
+          "to": "gpt-realtime-2.1-mini",
+          "reason": "No traced request sends it as its model; it is not where a request reads its model. Check where it is used and change it by hand if it reaches the API."
+        },
+        {
+          "file": "src/app/[variants]/(main)/settings/tts/features/const.tsx",
+          "line": 16,
+          "model": "tts-1-hd",
+          "to": "gpt-realtime-2.1-mini",
+          "reason": "No traced request sends it as its model; it is not where a request reads its model. Check where it is used and change it by hand if it reaches the API."
+        },
+        {
+          "file": "packages/const/src/settings/tts.ts",
+          "line": 5,
+          "model": "whisper-1",
+          "to": "gpt-transcribe",
+          "reason": "No traced request sends it as its model; it is the `sttModel` value of an object. Check where it is used and change it by hand if it reaches the API."
+        },
+        {
+          "file": "src/app/[variants]/(main)/settings/tts/features/const.tsx",
+          "line": 23,
+          "model": "whisper-1",
+          "to": "gpt-transcribe",
+          "reason": "No traced request sends it as its model; it is not where a request reads its model. Check where it is used and change it by hand if it reaches the API."
+        },
+        {
+          "file": "src/app/[variants]/(main)/settings/tts/features/const.tsx",
+          "line": 24,
+          "model": "whisper-1",
+          "to": "gpt-transcribe",
+          "reason": "No traced request sends it as its model; it is the `value` value of an object. Check where it is used and change it by hand if it reaches the API."
+        }
+      ],
+      "nonLive": {
+        "catalog": 249,
+        "test": 587,
+        "check": 44,
+        "comment": 15
+      },
+      "nonLiveTotal": 895
+    },
+    {
+      "repo": "joeseesun/qiaomu-blog-opensource",
+      "commit": "5d41358f707320c2f56016bf62327eb60d8668b8",
+      "exposures": [],
+      "replacements": [],
+      "stops": [],
+      "unresolved": [],
+      "nonLive": {
+        "catalog": 8,
+        "test": 2
+      },
+      "nonLiveTotal": 10
+    },
+    {
+      "repo": "glidea/claude-worker-proxy",
+      "commit": "9ef3a881600ba24ce55f9f62fbe2026e165d7148",
+      "exposures": [],
+      "replacements": [],
+      "stops": [],
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
+    },
+    {
+      "repo": "Phala-Network/ai-agent-template-openai",
+      "commit": "30f7abaf1cf17a1e4201e12e25589b704b4ea0e0",
+      "exposures": [],
+      "replacements": [],
+      "stops": [],
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
+    },
+    {
+      "repo": "LangChat/langchat-slides",
+      "commit": "d0ea0bc67a1a3cf2f63e0771cda7e8e848240df5",
+      "exposures": [],
+      "replacements": [],
+      "stops": [],
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
+    },
+    {
+      "repo": "3cqs-coder/SymBot",
+      "commit": "ab1123e2392e42c1b72cabeb069867276cf9b1bd",
+      "exposures": [],
+      "replacements": [],
+      "stops": [],
+      "unresolved": [],
+      "nonLive": {
+        "test": 3
+      },
+      "nonLiveTotal": 3
+    },
+    {
+      "repo": "NomaDamas/bananatape",
+      "commit": "a6e52b95a01963e5b1b4e9f172cf12dde43e2062",
+      "exposures": [],
+      "replacements": [],
+      "stops": [],
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
+    },
+    {
+      "repo": "linkcraftstudio/feedlog",
+      "commit": "33a081a8273125f7305c19330e44fe1cceadd114",
+      "exposures": [],
+      "replacements": [],
+      "stops": [],
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
+    },
+    {
+      "repo": "hugodemenez/deltalytix",
+      "commit": "1ed4c7306c0361eaada02919bfd7994735de526b",
+      "exposures": [
+        {
+          "deadline": "openai-2027-01-14-gpt-4o-2024-08-06",
+          "date": "2027-01-14",
+          "evidence": [
+            "app/api/ai/format-trades/route.ts:30"
+          ]
+        },
+        {
+          "deadline": "openai-2027-02-26-whisper-1",
+          "date": "2027-02-26",
+          "evidence": [
+            "app/api/ai/transcribe/route.ts:32"
+          ]
+        }
+      ],
+      "replacements": [],
+      "stops": [
+        {
+          "file": "app/api/ai/transcribe/route.ts",
+          "line": 30,
+          "call": "audio.transcriptions.create",
+          "at": {
+            "file": "app/api/ai/transcribe/route.ts",
+            "line": 32
+          },
+          "model": "whisper-1",
+          "reason": "`audio.transcriptions.create` is not a call Refit edits; gpt-transcribe may change formats or parameters; change it by hand to gpt-transcribe."
+        }
+      ],
+      "unresolved": [
+        {
+          "file": "app/api/ai/format-trades/route.ts",
+          "line": 30,
+          "model": "gpt-4o-mini-2024-07-18",
+          "to": "gpt-6-luna",
+          "reason": "No traced request sends it as its model; it is passed to openai(). Check where it is used and change it by hand if it reaches the API."
+        }
+      ],
+      "nonLive": {
+        "test": 1
+      },
+      "nonLiveTotal": 1
+    },
+    {
+      "repo": "adrianhajdin/job_pilot",
+      "commit": "788baa5784f94264c33780fd051f9d0b17a68f60",
+      "exposures": [],
+      "replacements": [],
+      "stops": [],
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
+    },
+    {
+      "repo": "jwangkun/Pi-Multi-Agent",
+      "commit": "d2fef0f30a762ec04eff9d8dde6cd406648955bc",
+      "exposures": [],
+      "replacements": [],
+      "stops": [],
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
+    },
+    {
+      "repo": "backenly/backenly",
+      "commit": "b49c50144ce8bda82241b716af067fa826dbeada",
+      "exposures": [],
+      "replacements": [],
+      "stops": [],
+      "unresolved": [],
+      "nonLive": {
+        "catalog": 4,
+        "comment": 5,
+        "check": 1,
+        "test": 2
+      },
+      "nonLiveTotal": 12
+    },
+    {
+      "repo": "jsar-project/runtime",
+      "commit": "0ed9b7167a2ec33d389a92cb856392ab5c2b9335",
+      "exposures": [],
+      "replacements": [],
+      "stops": [],
+      "unresolved": [],
+      "nonLive": {
+        "comment": 1
+      },
+      "nonLiveTotal": 1
+    },
+    {
+      "repo": "Vivek-736/Repo-Mind",
+      "commit": "c3accf3969247417aae9e408f009789edea64041",
+      "exposures": [],
+      "replacements": [],
+      "stops": [],
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
+    },
+    {
+      "repo": "beatrix-ha/beatrix",
+      "commit": "1ae01d3d893a79969c6214078c679793d37ba705",
+      "exposures": [
+        {
+          "deadline": "openai-2026-10-23-gpt-4",
+          "date": "2026-10-23",
+          "evidence": [
+            "server/openai.ts:29",
+            "server/openai.ts:56"
+          ]
+        }
+      ],
+      "replacements": [],
+      "stops": [
+        {
+          "file": "server/openai.ts",
+          "line": 231,
+          "call": "chat.completions.create",
+          "at": {
+            "file": "server/openai.ts",
+            "line": 56
+          },
+          "model": "gpt-4-turbo",
+          "reason": "The client sets a custom base URL, so the model may name another provider's model or a deployment; change it by hand to gpt-5.6-sol."
+        }
+      ],
+      "unresolved": [
+        {
+          "file": "server/openai.ts",
+          "line": 29,
+          "model": "gpt-4-turbo",
+          "to": "gpt-5.6-sol",
+          "reason": "No traced request sends it as its model; it is assigned to `OPENAI_EVAL_MODEL`. Check where it is used and change it by hand if it reaches the API."
+        }
+      ],
+      "nonLive": {
+        "catalog": 3
+      },
+      "nonLiveTotal": 3
+    },
+    {
+      "repo": "hridaya423/conductor-tasks",
+      "commit": "97055b3e4f7d42ce314cb4e3a5d57ba84c16ad43",
+      "exposures": [],
+      "replacements": [],
+      "stops": [],
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
+    },
+    {
+      "repo": "breck7/ScrollHub",
+      "commit": "fdfb31ef780342a9b5bd72dc3754a685282ac303",
+      "exposures": [],
+      "replacements": [],
+      "stops": [],
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
+    },
+    {
+      "repo": "coinacci/TravelMintNFT",
+      "commit": "4256ddd378dfa0f24709f98eb74002f24169f9be",
+      "exposures": [],
+      "replacements": [],
+      "stops": [],
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
+    },
+    {
+      "repo": "zhengxs2018/ai",
+      "commit": "633ea41ffaf8b6d0d43b152cf3567a91b3ed8f40",
+      "exposures": [],
+      "replacements": [],
+      "stops": [],
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
+    },
+    {
+      "repo": "utter-one/bonsai",
+      "commit": "ba57fb73ef7b140d219b67ee91b0264fa928eb07",
+      "exposures": [],
+      "replacements": [],
+      "stops": [],
+      "unresolved": [],
+      "nonLive": {
+        "catalog": 13,
+        "test": 52,
+        "check": 2,
+        "comment": 3
+      },
+      "nonLiveTotal": 70
+    },
+    {
+      "repo": "JaleelB/readium-x",
+      "commit": "35e83158ebe9e0c3da2268291361f58b2f225649",
+      "exposures": [
+        {
+          "deadline": "openai-2026-10-23-gpt-3-5-turbo",
+          "date": "2026-10-23",
+          "evidence": [
+            "app/account/settings/tokens/actions.ts:22",
+            "app/article/actions/summarize.ts:40",
+            "app/article/actions/translate.ts:50"
+          ]
+        },
+        {
+          "deadline": "openai-2027-01-06-tts-1",
+          "date": "2027-01-06",
+          "evidence": [
+            "app/account/settings/text-to-speech/page.tsx:102",
+            "app/account/settings/text-to-speech/page.tsx:155",
+            "app/account/settings/text-to-speech/page.tsx:479",
+            "app/account/settings/text-to-speech/page.tsx:479",
+            "components/tts-button.tsx:132",
+            "components/tts-button.tsx:133"
+          ]
+        }
+      ],
+      "replacements": [
+        {
+          "file": "app/article/actions/summarize.ts",
+          "line": 39,
+          "call": "chat.completions.create",
+          "edited": {
+            "file": "app/article/actions/summarize.ts",
+            "line": 40
+          },
+          "from": "gpt-3.5-turbo",
+          "to": "gpt-5.6-terra",
+          "deadline": "openai-2026-10-23-gpt-3-5-turbo"
+        },
+        {
+          "file": "app/article/actions/translate.ts",
+          "line": 49,
+          "call": "chat.completions.create",
+          "edited": {
+            "file": "app/article/actions/translate.ts",
+            "line": 50
+          },
+          "from": "gpt-3.5-turbo",
+          "to": "gpt-5.6-terra",
+          "deadline": "openai-2026-10-23-gpt-3-5-turbo"
+        }
+      ],
+      "stops": [
+        {
+          "file": "app/account/settings/tokens/actions.ts",
+          "line": 21,
+          "call": "chat.completions.create",
+          "at": {
+            "file": "app/account/settings/tokens/actions.ts",
+            "line": 22
+          },
+          "model": "gpt-3.5-turbo",
+          "reason": "The request sets max_tokens, which gpt-5.6-terra may reject or treat differently."
+        }
+      ],
+      "unresolved": [
+        {
+          "file": "app/account/settings/text-to-speech/page.tsx",
+          "line": 102,
+          "model": "tts-1",
+          "to": "gpt-realtime-2.1-mini",
+          "reason": "No traced request sends it as its model; it is the `model` value of an object. Check where it is used and change it by hand if it reaches the API."
+        },
+        {
+          "file": "app/account/settings/text-to-speech/page.tsx",
+          "line": 155,
+          "model": "tts-1",
+          "to": "gpt-realtime-2.1-mini",
+          "reason": "No traced request sends it as its model; it is the `model` value of an object. Check where it is used and change it by hand if it reaches the API."
+        },
+        {
+          "file": "app/account/settings/text-to-speech/page.tsx",
+          "line": 479,
+          "model": "tts-1",
+          "to": "gpt-realtime-2.1-mini",
+          "reason": "No traced request sends it as its model; it is an entry in a list. Check where it is used and change it by hand if it reaches the API."
+        },
+        {
+          "file": "app/account/settings/text-to-speech/page.tsx",
+          "line": 479,
+          "model": "tts-1-hd",
+          "to": "gpt-realtime-2.1-mini",
+          "reason": "No traced request sends it as its model; it is an entry in a list. Check where it is used and change it by hand if it reaches the API."
+        },
+        {
+          "file": "components/tts-button.tsx",
+          "line": 132,
+          "model": "tts-1",
+          "to": "gpt-realtime-2.1-mini",
+          "reason": "No traced request sends it as its model; it is not where a request reads its model. Check where it is used and change it by hand if it reaches the API."
+        },
+        {
+          "file": "components/tts-button.tsx",
+          "line": 133,
+          "model": "tts-1",
+          "to": "gpt-realtime-2.1-mini",
+          "reason": "No traced request sends it as its model; it is not where a request reads its model. Check where it is used and change it by hand if it reaches the API."
+        }
+      ],
+      "nonLive": {
+        "catalog": 4,
+        "check": 1
+      },
+      "nonLiveTotal": 5
+    },
+    {
+      "repo": "kaieye/Livo",
+      "commit": "a4ab8689124ce081a0bac207d7759eb564b90d75",
+      "exposures": [],
+      "replacements": [],
+      "stops": [],
+      "unresolved": [],
+      "nonLive": {
+        "catalog": 4
+      },
+      "nonLiveTotal": 4
+    },
+    {
+      "repo": "LeafYeeXYZ/PsychPen",
+      "commit": "140d1db38680c8c077b339e21615cbbfdb8a70db",
+      "exposures": [
+        {
+          "deadline": "openai-2027-04-01-gpt-5-1",
+          "date": "2027-04-01",
+          "evidence": [
+            "src/components/data/ConfigAI.tsx:264"
+          ]
+        }
+      ],
+      "replacements": [],
+      "stops": [],
+      "unresolved": [
+        {
+          "file": "src/components/data/ConfigAI.tsx",
+          "line": 264,
+          "model": "gpt-5.1",
+          "to": "gpt-6-sol",
+          "reason": "No traced request sends it as its model; it is passed to _DataView_setModel(). Check where it is used and change it by hand if it reaches the API."
+        }
+      ],
+      "nonLive": {},
+      "nonLiveTotal": 0
+    },
+    {
+      "repo": "ribaunt/tekir",
+      "commit": "4a53d9449f31a5616bdbf6603c210039654e52bb",
+      "exposures": [],
+      "replacements": [],
+      "stops": [],
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
+    },
+    {
+      "repo": "andersrex/kindllm",
+      "commit": "1ada7196af56963082b379e867491eb91e84411c",
+      "exposures": [],
+      "replacements": [],
+      "stops": [],
+      "unresolved": [],
+      "nonLive": {
+        "comment": 1
+      },
+      "nonLiveTotal": 1
+    },
+    {
+      "repo": "kirill-markin/chatgpt-telegram-bot-telegraf",
+      "commit": "6c2cdc9302473cf8ba884b9127d40562c2614bdf",
+      "exposures": [
+        {
+          "deadline": "openai-2026-10-23-gpt-3-5-turbo",
+          "date": "2026-10-23",
+          "evidence": [
+            "src/utils/encodingUtils.ts:3",
+            "src/utils/encodingUtils.ts:14"
+          ]
+        },
+        {
+          "deadline": "openai-2027-02-26-whisper-1",
+          "date": "2027-02-26",
+          "evidence": [
+            "src/database/database.ts:362",
+            "src/openAIFunctions.ts:502"
+          ]
+        }
+      ],
+      "replacements": [],
+      "stops": [],
+      "unresolved": [
+        {
+          "file": "src/utils/encodingUtils.ts",
+          "line": 3,
+          "model": "gpt-3.5-turbo",
+          "to": "gpt-5.6-terra",
+          "reason": "No traced request sends it as its model; it is the default of the parameter `model`. Check where it is used and change it by hand if it reaches the API."
+        },
+        {
+          "file": "src/utils/encodingUtils.ts",
+          "line": 14,
+          "model": "gpt-3.5-turbo",
+          "to": "gpt-5.6-terra",
+          "reason": "No traced request sends it as its model; it is the default of the parameter `model`. Check where it is used and change it by hand if it reaches the API."
+        },
+        {
+          "file": "src/database/database.ts",
+          "line": 362,
+          "model": "whisper-1",
+          "to": "gpt-transcribe",
+          "reason": "No traced request sends it as its model; it is the `usage_model` value of an object. Check where it is used and change it by hand if it reaches the API."
+        },
+        {
+          "file": "src/openAIFunctions.ts",
+          "line": 502,
+          "model": "whisper-1",
+          "to": "gpt-transcribe",
+          "reason": "No traced request sends it as its model; it is the `model` value of an object. Check where it is used and change it by hand if it reaches the API."
+        }
+      ],
+      "nonLive": {
+        "test": 2
+      },
+      "nonLiveTotal": 2
+    },
+    {
+      "repo": "inite-ai/inite-brain-service",
+      "commit": "03f1c684326b12560345e22a1ac98d8ab45d4bb6",
+      "exposures": [],
+      "replacements": [],
+      "stops": [],
+      "unresolved": [],
+      "nonLive": {
+        "test": 8
+      },
+      "nonLiveTotal": 8
+    },
+    {
+      "repo": "bpluo/image-atelier",
+      "commit": "889c35696c788272cbe5c2e4fa7d83e9db253d09",
+      "exposures": [],
+      "replacements": [],
+      "stops": [],
+      "unresolved": [],
+      "nonLive": {
+        "catalog": 15,
+        "test": 3,
+        "check": 2
+      },
+      "nonLiveTotal": 20
+    },
+    {
+      "repo": "thetronjohnson/slate",
+      "commit": "4a274cb39214e6be6cbd28fdc90bfd25e2e50a18",
+      "exposures": [],
+      "replacements": [],
+      "stops": [],
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
+    },
+    {
+      "repo": "aeromechanic000/minecraft-ai",
+      "commit": "02de4adec8354d1f7a88b886298948db90dd824b",
+      "exposures": [
+        {
+          "deadline": "openai-2026-10-23-gpt-3-5-turbo",
+          "date": "2026-10-23",
+          "evidence": [
+            "src/models/gpt.js:26"
+          ]
+        },
+        {
+          "deadline": "openai-2027-02-26-whisper-1",
+          "date": "2027-02-26",
+          "evidence": [
+            "src/server/monitor_server.js:1060"
+          ]
+        }
+      ],
+      "replacements": [],
+      "stops": [
+        {
+          "file": "src/models/gpt.js",
+          "line": 41,
+          "call": "chat.completions.create",
+          "at": {
+            "file": "src/models/gpt.js",
+            "line": 26
+          },
+          "model": "gpt-3.5-turbo",
+          "reason": "The client sets a custom base URL, so the model may name another provider's model or a deployment; change it by hand to gpt-5.6-terra."
+        }
+      ],
+      "unresolved": [
+        {
+          "file": "src/server/monitor_server.js",
+          "line": 1060,
+          "model": "whisper-1",
+          "to": "gpt-transcribe",
+          "reason": "No traced request sends it as its model; it is passed to formData.append(). Check where it is used and change it by hand if it reaches the API."
+        }
+      ],
+      "nonLive": {
+        "check": 3
+      },
+      "nonLiveTotal": 3
+    },
+    {
+      "repo": "dashersw/double-agent",
+      "commit": "8ea9144306bd4b33499704e57360f95727e25c00",
+      "exposures": [],
+      "replacements": [],
+      "stops": [],
+      "unresolved": [],
+      "nonLive": {
+        "catalog": 11
+      },
+      "nonLiveTotal": 11
+    },
+    {
+      "repo": "dongzhang84/vibe-reading",
+      "commit": "6ba556759a7991acd26d0f6a516f56a974a584af",
+      "exposures": [],
+      "replacements": [],
+      "stops": [],
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
+    },
+    {
+      "repo": "LocalRouter/LocalRouter",
+      "commit": "fa79054cb7716af861bb5a316081707de05c3dbd",
+      "exposures": [
+        {
+          "deadline": "openai-2026-10-23-gpt-4",
+          "date": "2026-10-23",
+          "evidence": [
+            "website/src/components/demo/TauriMockSetup.ts:5279"
+          ]
+        }
+      ],
+      "replacements": [],
+      "stops": [],
+      "unresolved": [
+        {
+          "file": "website/src/components/demo/TauriMockSetup.ts",
+          "line": 5279,
+          "model": "gpt-4",
+          "to": "gpt-5.6-sol",
+          "reason": "No traced request sends it as its model; it is the `model` value of an object. Check where it is used and change it by hand if it reaches the API."
+        }
+      ],
+      "nonLive": {
+        "catalog": 11,
+        "check": 3
+      },
+      "nonLiveTotal": 14
+    },
+    {
+      "repo": "tomasmaillo/tomasmaillo.com",
+      "commit": "b343c4863e4990c37159392e18453767d6eb8c7d",
+      "exposures": [],
+      "replacements": [],
+      "stops": [],
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
+    },
+    {
+      "repo": "tahaygun/ai-calorie-tracker",
+      "commit": "f0921bf543d6f1581afbf36b68c71a6305eccb52",
+      "exposures": [],
+      "replacements": [],
+      "stops": [],
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
+    },
+    {
+      "repo": "TejasAdhiya/TrustFirst",
+      "commit": "556ac5d1a066723009f0d6f9eb76a01a4611ab58",
+      "exposures": [],
+      "replacements": [],
+      "stops": [],
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
+    },
+    {
+      "repo": "ueberdosis/ai-agent-custom-llm-demos",
+      "commit": "bbffe54f69cafdcb70175384b919063cddb48d6c",
+      "exposures": [],
+      "replacements": [],
+      "stops": [],
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
+    },
+    {
+      "repo": "Liyue-Cheng/marina",
+      "commit": "17081430c425d7e6fd70944f4368ed6e14902274",
+      "exposures": [],
+      "replacements": [],
+      "stops": [],
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
+    },
+    {
+      "repo": "david-crespo/llm-cli",
+      "commit": "7177bcd4f44ceaa3a9ee548a8cb75651104667f9",
+      "exposures": [],
+      "replacements": [],
+      "stops": [],
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
+    },
+    {
+      "repo": "thereactfoundation/react.foundation",
+      "commit": "5a51afb76c2a54e6aa967221b76f03e4f92da5fd",
+      "exposures": [
+        {
+          "deadline": "openai-2026-10-23-gpt-image-1",
+          "date": "2026-10-23",
+          "evidence": [
+            "scripts/generate-collection-images.mjs:338"
+          ]
+        }
+      ],
+      "replacements": [],
+      "stops": [
+        {
+          "file": "scripts/generate-collection-images.mjs",
+          "line": 331,
+          "call": "fetch /v1/images/generations",
+          "at": {
+            "file": "scripts/generate-collection-images.mjs",
+            "line": 338
+          },
+          "model": "gpt-image-1",
+          "reason": "`fetch /v1/images/generations` is not a call Refit edits; gpt-image-2.5-sunburst may change formats or parameters; change it by hand to gpt-image-2.5-sunburst."
+        }
+      ],
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
+    },
+    {
+      "repo": "yiichuan/oddeNova",
+      "commit": "fec4090449f5205057213e037cc1e5bff8e9ac4b",
+      "exposures": [],
+      "replacements": [],
+      "stops": [],
+      "unresolved": [],
+      "nonLive": {
+        "test": 3,
+        "catalog": 1
+      },
+      "nonLiveTotal": 4
+    },
+    {
+      "repo": "DrEden33773/adam-agent",
+      "commit": "6484138da5d1be608473f68131cfeb903cc47160",
+      "exposures": [],
+      "replacements": [],
+      "stops": [],
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
+    },
+    {
+      "repo": "Rushi-Joshi-au50/sofia-ia-whatsapp",
+      "commit": "77aa671ef7e752e8e006aeb3f3cede0ad7420429",
+      "exposures": [],
+      "replacements": [],
+      "stops": [],
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
+    },
+    {
+      "repo": "ethanlee-core/AionUi",
+      "commit": "9b5e1ce3442c37a16faa6adfe7686fe33fa014b1",
+      "exposures": [],
+      "replacements": [],
+      "stops": [],
+      "unresolved": [],
+      "nonLive": {
+        "catalog": 8
+      },
+      "nonLiveTotal": 8
+    },
+    {
+      "repo": "MisonL/visual-journal",
+      "commit": "9d61ce95a120e0356988adfca282e04c52ea4364",
+      "exposures": [
+        {
+          "deadline": "openai-2026-10-23-gpt-image-1",
+          "date": "2026-10-23",
+          "evidence": [
+            "src/components/editing-form.tsx:1455",
+            "src/components/generation-form.tsx:1021"
+          ]
+        },
+        {
+          "deadline": "openai-2026-12-01-gpt-image-1-mini",
+          "date": "2026-12-01",
+          "evidence": [
+            "src/components/editing-form.tsx:1454",
+            "src/components/editing-form.tsx:1456",
+            "src/components/generation-form.tsx:1020",
+            "src/components/generation-form.tsx:1022"
+          ]
+        }
+      ],
+      "replacements": [],
+      "stops": [],
+      "unresolved": [
+        {
+          "file": "src/components/editing-form.tsx",
+          "line": 1455,
+          "model": "gpt-image-1",
+          "to": "gpt-image-2.5-sunburst",
+          "reason": "No traced request sends it as its model; it is not where a request reads its model. Check where it is used and change it by hand if it reaches the API."
+        },
+        {
+          "file": "src/components/generation-form.tsx",
+          "line": 1021,
+          "model": "gpt-image-1",
+          "to": "gpt-image-2.5-sunburst",
+          "reason": "No traced request sends it as its model; it is not where a request reads its model. Check where it is used and change it by hand if it reaches the API."
+        },
+        {
+          "file": "src/components/editing-form.tsx",
+          "line": 1454,
+          "model": "gpt-image-1.5",
+          "to": "gpt-image-2.5-sunburst",
+          "reason": "No traced request sends it as its model; it is not where a request reads its model. Check where it is used and change it by hand if it reaches the API."
+        },
+        {
+          "file": "src/components/editing-form.tsx",
+          "line": 1456,
+          "model": "gpt-image-1-mini",
+          "to": "gpt-image-2.5-sunburst",
+          "reason": "No traced request sends it as its model; it is not where a request reads its model. Check where it is used and change it by hand if it reaches the API."
+        },
+        {
+          "file": "src/components/generation-form.tsx",
+          "line": 1020,
+          "model": "gpt-image-1.5",
+          "to": "gpt-image-2.5-sunburst",
+          "reason": "No traced request sends it as its model; it is not where a request reads its model. Check where it is used and change it by hand if it reaches the API."
+        },
+        {
+          "file": "src/components/generation-form.tsx",
+          "line": 1022,
+          "model": "gpt-image-1-mini",
+          "to": "gpt-image-2.5-sunburst",
+          "reason": "No traced request sends it as its model; it is not where a request reads its model. Check where it is used and change it by hand if it reaches the API."
+        }
+      ],
+      "nonLive": {
+        "test": 19,
+        "catalog": 21
+      },
+      "nonLiveTotal": 40
+    },
+    {
+      "repo": "sambaleuk/Vibetape-MCP-Server",
+      "commit": "12ca17eabefc08f3b99e6d021f4cdd9e80246e74",
+      "exposures": [],
+      "replacements": [],
+      "stops": [],
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
+    },
+    {
+      "repo": "lrzy8/Goofish",
+      "commit": "0504013e0d03170a51d9a79d6921f06d2c978323",
+      "exposures": [
+        {
+          "deadline": "openai-2026-10-23-gpt-3-5-turbo",
+          "date": "2026-10-23",
+          "evidence": [
+            "frontend/src/app/views/system-setting/system-setting.component.ts:30",
+            "src/db/settings.repository.ts:80",
+            "src/services/ai.service.ts:133",
+            "src/services/ai.service.ts:175",
+            "src/services/ai.service.ts:216"
+          ]
+        }
+      ],
+      "replacements": [],
+      "stops": [
+        {
+          "file": "src/services/ai.service.ts",
+          "line": 145,
+          "call": "chat.completions.create",
+          "at": {
+            "file": "src/db/settings.repository.ts",
+            "line": 80
+          },
+          "model": "gpt-3.5-turbo",
+          "reason": "The client sets a custom base URL, so the model may name another provider's model or a deployment; change it by hand to gpt-5.6-terra."
+        },
+        {
+          "file": "src/services/ai.service.ts",
+          "line": 145,
+          "call": "chat.completions.create",
+          "at": {
+            "file": "src/services/ai.service.ts",
+            "line": 133
+          },
+          "model": "gpt-3.5-turbo",
+          "reason": "The client sets a custom base URL, so the model may name another provider's model or a deployment; change it by hand to gpt-5.6-terra."
+        },
+        {
+          "file": "src/services/ai.service.ts",
+          "line": 174,
+          "call": "chat.completions.create",
+          "at": {
+            "file": "src/services/ai.service.ts",
+            "line": 175
+          },
+          "model": "gpt-3.5-turbo",
+          "reason": "The client sets a custom base URL, so the model may name another provider's model or a deployment; change it by hand to gpt-5.6-terra."
+        },
+        {
+          "file": "src/services/ai.service.ts",
+          "line": 215,
+          "call": "chat.completions.create",
+          "at": {
+            "file": "src/services/ai.service.ts",
+            "line": 216
+          },
+          "model": "gpt-3.5-turbo",
+          "reason": "The client sets a custom base URL, so the model may name another provider's model or a deployment; change it by hand to gpt-5.6-terra."
+        }
+      ],
+      "unresolved": [
+        {
+          "file": "frontend/src/app/views/system-setting/system-setting.component.ts",
+          "line": 30,
+          "model": "gpt-3.5-turbo",
+          "to": "gpt-5.6-terra",
+          "reason": "No traced request sends it as its model; it is the `model` value of an object. Check where it is used and change it by hand if it reaches the API."
+        }
+      ],
+      "nonLive": {},
+      "nonLiveTotal": 0
+    },
+    {
+      "repo": "badhri17/GhazelleChat",
+      "commit": "c7875966ce377618ff9801f04345523c80f98c74",
+      "exposures": [
+        {
+          "deadline": "openai-2026-12-11-gpt-5-mini-2025-08-07",
+          "date": "2026-12-11",
+          "evidence": [
+            "lib/models/registry.ts:3",
+            "server/db/seed.ts:71"
+          ]
+        }
+      ],
+      "replacements": [],
+      "stops": [],
+      "unresolved": [
+        {
+          "file": "lib/models/registry.ts",
+          "line": 3,
+          "model": "gpt-5-mini-2025-08-07",
+          "to": "gpt-5.6-terra",
+          "reason": "No traced request sends it as its model; it is assigned to `DEFAULT_MODEL_ID`. Check where it is used and change it by hand if it reaches the API."
+        },
+        {
+          "file": "server/db/seed.ts",
+          "line": 71,
+          "model": "gpt-5-mini-2025-08-07",
+          "to": "gpt-5.6-terra",
+          "reason": "No traced request sends it as its model; it is the `model` value of an object. Check where it is used and change it by hand if it reaches the API."
+        }
+      ],
+      "nonLive": {
+        "catalog": 3
+      },
+      "nonLiveTotal": 3
+    },
+    {
+      "repo": "ShinChven/remix-studio",
+      "commit": "3d7669571df8658e2e318ac80966999b9c31245c",
+      "exposures": [
+        {
+          "deadline": "openai-2027-04-01-gpt-5-4-nano",
+          "date": "2027-04-01",
+          "evidence": [
+            "server/assistant/assistant-runner.ts:338"
+          ]
+        }
+      ],
+      "replacements": [],
+      "stops": [],
+      "unresolved": [
+        {
+          "file": "server/assistant/assistant-runner.ts",
+          "line": 338,
+          "model": "gpt-5.4-nano",
+          "to": "gpt-6-luna",
+          "reason": "No traced request sends it as its model; it is not where a request reads its model. Check where it is used and change it by hand if it reaches the API."
+        }
+      ],
+      "nonLive": {
+        "catalog": 2
+      },
+      "nonLiveTotal": 2
+    },
+    {
+      "repo": "Trustdev-eth/x402-erc8004-agent",
+      "commit": "136a3e04d4aefa5e5e1901bc745e2896cf01ed0b",
+      "exposures": [],
+      "replacements": [],
+      "stops": [],
+      "unresolved": [],
+      "nonLive": {
+        "comment": 1
+      },
+      "nonLiveTotal": 1
+    },
+    {
+      "repo": "YiZhanSuDaShui/GoofishCredentialsBot",
+      "commit": "6f611e7aa09bade660c860dd43755e31bd47a2ec",
+      "exposures": [
+        {
+          "deadline": "openai-2026-10-23-gpt-3-5-turbo",
+          "date": "2026-10-23",
+          "evidence": [
+            "frontend/src/app/views/system-setting/system-setting.component.ts:26",
+            "src/db/settings.repository.ts:58",
+            "src/services/ai.service.ts:133",
+            "src/services/ai.service.ts:175",
+            "src/services/ai.service.ts:216"
+          ]
+        }
+      ],
+      "replacements": [],
+      "stops": [
+        {
+          "file": "src/services/ai.service.ts",
+          "line": 145,
+          "call": "chat.completions.create",
+          "at": {
+            "file": "src/db/settings.repository.ts",
+            "line": 58
+          },
+          "model": "gpt-3.5-turbo",
+          "reason": "The client sets a custom base URL, so the model may name another provider's model or a deployment; change it by hand to gpt-5.6-terra."
+        },
+        {
+          "file": "src/services/ai.service.ts",
+          "line": 145,
+          "call": "chat.completions.create",
+          "at": {
+            "file": "src/services/ai.service.ts",
+            "line": 133
+          },
+          "model": "gpt-3.5-turbo",
+          "reason": "The client sets a custom base URL, so the model may name another provider's model or a deployment; change it by hand to gpt-5.6-terra."
+        },
+        {
+          "file": "src/services/ai.service.ts",
+          "line": 174,
+          "call": "chat.completions.create",
+          "at": {
+            "file": "src/services/ai.service.ts",
+            "line": 175
+          },
+          "model": "gpt-3.5-turbo",
+          "reason": "The client sets a custom base URL, so the model may name another provider's model or a deployment; change it by hand to gpt-5.6-terra."
+        },
+        {
+          "file": "src/services/ai.service.ts",
+          "line": 215,
+          "call": "chat.completions.create",
+          "at": {
+            "file": "src/services/ai.service.ts",
+            "line": 216
+          },
+          "model": "gpt-3.5-turbo",
+          "reason": "The client sets a custom base URL, so the model may name another provider's model or a deployment; change it by hand to gpt-5.6-terra."
+        }
+      ],
+      "unresolved": [
+        {
+          "file": "frontend/src/app/views/system-setting/system-setting.component.ts",
+          "line": 26,
+          "model": "gpt-3.5-turbo",
+          "to": "gpt-5.6-terra",
+          "reason": "No traced request sends it as its model; it is the `model` value of an object. Check where it is used and change it by hand if it reaches the API."
+        }
+      ],
+      "nonLive": {},
+      "nonLiveTotal": 0
+    },
+    {
+      "repo": "dsound-zz/DDIA-RAG",
+      "commit": "51f1aa65dc0be6d3bbc77ba3923fa28bfb9db965",
+      "exposures": [],
+      "replacements": [],
+      "stops": [],
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
+    },
+    {
+      "repo": "masnwilliams/better404",
+      "commit": "0bc4ea534c17cba1dcaeddea525e7ce85aaca968",
+      "exposures": [
+        {
+          "deadline": "openai-2026-10-23-gpt-4-1-nano",
+          "date": "2026-10-23",
+          "evidence": [
+            "src/app/api/v1/recommendations/route.ts:68",
+            "src/lib/kernel-app/index.ts:202"
+          ]
+        }
+      ],
+      "replacements": [],
+      "stops": [
+        {
+          "file": "src/app/api/v1/recommendations/route.ts",
+          "line": 69,
+          "call": "chat.completions.create",
+          "at": {
+            "file": "src/app/api/v1/recommendations/route.ts",
+            "line": 68
+          },
+          "model": "gpt-4.1-nano",
+          "reason": "The client sets a custom base URL, so the model may name another provider's model or a deployment; change it by hand to gpt-5.6-luna."
+        },
+        {
+          "file": "src/lib/kernel-app/index.ts",
+          "line": 201,
+          "call": "chat.completions.create",
+          "at": {
+            "file": "src/lib/kernel-app/index.ts",
+            "line": 202
+          },
+          "model": "gpt-4.1-nano",
+          "reason": "The client sets a custom base URL, so the model may name another provider's model or a deployment; change it by hand to gpt-5.6-luna."
+        }
+      ],
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
+    },
+    {
+      "repo": "nasserDev/OwlBrain",
+      "commit": "d9ec10213c4f48b3da6c933b34d9f37c2509ec16",
+      "exposures": [],
+      "replacements": [],
+      "stops": [],
+      "unresolved": [],
+      "nonLive": {
+        "catalog": 4
+      },
+      "nonLiveTotal": 4
+    },
+    {
+      "repo": "queeragenda/bay.lgbt",
+      "commit": "4f682fe66d998367fc4b042553cfa6a9be7f3e2a",
+      "exposures": [],
+      "replacements": [],
+      "stops": [],
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
+    },
+    {
+      "repo": "sbl1996/zero",
+      "commit": "eff2cf84d32dc7fb52126be7430a805e57a28daa",
+      "exposures": [],
+      "replacements": [],
+      "stops": [],
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
+    },
+    {
+      "repo": "v-fidelusaleksander/prompt-action",
+      "commit": "eff79e3f37008031cf5b554c2895862045abf495",
+      "exposures": [],
+      "replacements": [],
+      "stops": [],
+      "unresolved": [],
+      "nonLive": {
+        "test": 7
+      },
+      "nonLiveTotal": 7
+    },
+    {
+      "repo": "alanagoyal/booklist",
+      "commit": "9b506ba2975590998e2bd1b292b4ea9e0c64f4e3",
+      "exposures": [],
+      "replacements": [],
+      "stops": [],
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
+    },
+    {
+      "repo": "dgriffith/ide-for-thought",
+      "commit": "7d9f2c249277aa3a84bba2c347b80e3036707db9",
+      "exposures": [],
+      "replacements": [],
+      "stops": [],
+      "unresolved": [],
+      "nonLive": {
+        "catalog": 3,
+        "test": 16
+      },
+      "nonLiveTotal": 19
+    },
+    {
+      "repo": "lemonade-sdk/interviewer",
+      "commit": "44339316fd687a15b7f69da68fcb4db9f9134d7f",
+      "exposures": [],
+      "replacements": [],
+      "stops": [],
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
+    },
+    {
+      "repo": "mathix420/communityfix",
+      "commit": "8b96abd8d83d610dc29dfbead58ae6492b79e223",
+      "exposures": [],
+      "replacements": [],
+      "stops": [],
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
+    },
+    {
+      "repo": "mcaupybugs/minimal-n8n",
+      "commit": "c929651d2affcf57aff2fca65c939898a734e710",
+      "exposures": [],
+      "replacements": [],
+      "stops": [],
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
+    },
+    {
+      "repo": "nimrod-ai/inenglishplease",
+      "commit": "10a6e11c5c8c29fc5709b3bc8bef9b82895fc062",
+      "exposures": [],
+      "replacements": [],
+      "stops": [],
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
+    },
+    {
+      "repo": "Aimagine-life/Betsy",
+      "commit": "3bc47e747ec3091806b7c5146eede7b1baaf671d",
+      "exposures": [
+        {
+          "deadline": "openai-2027-01-06-tts-1",
+          "date": "2027-01-06",
+          "evidence": [
+            "src/channels/telegram/voice.ts:92"
+          ]
+        }
+      ],
+      "replacements": [],
+      "stops": [
+        {
+          "file": "src/channels/telegram/voice.ts",
+          "line": 91,
+          "call": "audio.speech.create",
+          "at": {
+            "file": "src/channels/telegram/voice.ts",
+            "line": 92
+          },
+          "model": "tts-1",
+          "reason": "`audio.speech.create` is not a call Refit edits; gpt-realtime-2.1-mini may change formats or parameters; change it by hand to gpt-realtime-2.1-mini."
+        }
+      ],
+      "unresolved": [],
+      "nonLive": {
+        "catalog": 3
+      },
+      "nonLiveTotal": 3
+    },
+    {
+      "repo": "Jay-Bosco/GoofishCredentialsBot",
+      "commit": "1b4e458a2e6af8d1082c231f97c998237de98bda",
+      "exposures": [
+        {
+          "deadline": "openai-2026-10-23-gpt-3-5-turbo",
+          "date": "2026-10-23",
+          "evidence": [
+            "frontend/src/app/views/system-setting/system-setting.component.ts:26",
+            "src/db/settings.repository.ts:58",
+            "src/services/ai.service.ts:133",
+            "src/services/ai.service.ts:175",
+            "src/services/ai.service.ts:216"
+          ]
+        }
+      ],
+      "replacements": [],
+      "stops": [
+        {
+          "file": "src/services/ai.service.ts",
+          "line": 145,
+          "call": "chat.completions.create",
+          "at": {
+            "file": "src/db/settings.repository.ts",
+            "line": 58
+          },
+          "model": "gpt-3.5-turbo",
+          "reason": "The client sets a custom base URL, so the model may name another provider's model or a deployment; change it by hand to gpt-5.6-terra."
+        },
+        {
+          "file": "src/services/ai.service.ts",
+          "line": 145,
+          "call": "chat.completions.create",
+          "at": {
+            "file": "src/services/ai.service.ts",
+            "line": 133
+          },
+          "model": "gpt-3.5-turbo",
+          "reason": "The client sets a custom base URL, so the model may name another provider's model or a deployment; change it by hand to gpt-5.6-terra."
+        },
+        {
+          "file": "src/services/ai.service.ts",
+          "line": 174,
+          "call": "chat.completions.create",
+          "at": {
+            "file": "src/services/ai.service.ts",
+            "line": 175
+          },
+          "model": "gpt-3.5-turbo",
+          "reason": "The client sets a custom base URL, so the model may name another provider's model or a deployment; change it by hand to gpt-5.6-terra."
+        },
+        {
+          "file": "src/services/ai.service.ts",
+          "line": 215,
+          "call": "chat.completions.create",
+          "at": {
+            "file": "src/services/ai.service.ts",
+            "line": 216
+          },
+          "model": "gpt-3.5-turbo",
+          "reason": "The client sets a custom base URL, so the model may name another provider's model or a deployment; change it by hand to gpt-5.6-terra."
+        }
+      ],
+      "unresolved": [
+        {
+          "file": "frontend/src/app/views/system-setting/system-setting.component.ts",
+          "line": 26,
+          "model": "gpt-3.5-turbo",
+          "to": "gpt-5.6-terra",
+          "reason": "No traced request sends it as its model; it is the `model` value of an object. Check where it is used and change it by hand if it reaches the API."
+        }
+      ],
+      "nonLive": {},
+      "nonLiveTotal": 0
+    },
+    {
+      "repo": "ananddtyagi/Sora-Studio",
+      "commit": "7474a2a55038123f6f0379ab126f770ddb29129e",
+      "exposures": [
+        {
+          "deadline": "openai-2026-10-23-gpt-image-1",
+          "date": "2026-10-23",
+          "evidence": [
+            "app/api/images/generate/route.ts:27"
+          ]
+        }
+      ],
+      "replacements": [],
+      "stops": [
+        {
+          "file": "app/api/images/generate/route.ts",
+          "line": 26,
+          "call": "images.generate",
+          "at": {
+            "file": "app/api/images/generate/route.ts",
+            "line": 27
+          },
+          "model": "gpt-image-1",
+          "reason": "`images.generate` is not a call Refit edits; gpt-image-2.5-sunburst may change formats or parameters; change it by hand to gpt-image-2.5-sunburst."
+        }
+      ],
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
+    },
+    {
+      "repo": "jahani-moghaddam/AI-Substitle-Translator",
+      "commit": "ae6c89109f2914b4c70400f6831a00fdb46e5817",
+      "exposures": [],
+      "replacements": [],
+      "stops": [],
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
+    },
+    {
+      "repo": "keegandonley/dalle-3-ui",
+      "commit": "984af8f8b8ac46d4febe90d95341599a6b83ee5a",
+      "exposures": [
+        {
+          "deadline": "openai-2026-10-23-gpt-image-1",
+          "date": "2026-10-23",
+          "evidence": [
+            "src/components/Prompt/index.tsx:21",
+            "src/components/Prompt/index.tsx:95"
+          ]
+        }
+      ],
+      "replacements": [],
+      "stops": [
+        {
+          "file": "src/components/Prompt/index.tsx",
+          "line": 43,
+          "call": "images.generate",
+          "at": {
+            "file": "src/components/Prompt/index.tsx",
+            "line": 21
+          },
+          "model": "gpt-image-1",
+          "reason": "`images.generate` is not a call Refit edits; gpt-image-2.5-sunburst may change formats or parameters; change it by hand to gpt-image-2.5-sunburst."
+        }
+      ],
+      "unresolved": [
+        {
+          "file": "src/components/Prompt/index.tsx",
+          "line": 95,
+          "model": "gpt-image-1",
+          "to": "gpt-image-2.5-sunburst",
+          "reason": "No traced request sends it as its model; it is assigned to `modelValue`. Check where it is used and change it by hand if it reaches the API."
+        }
+      ],
+      "nonLive": {
+        "catalog": 4
+      },
+      "nonLiveTotal": 4
+    },
+    {
+      "repo": "AnyVM-Tech/AnyGPT",
+      "commit": "efe9c87458f746997b3f0b0ad5638859b60e0d72",
+      "exposures": [
+        {
+          "deadline": "openai-2026-10-23-gpt-3-5-turbo",
+          "date": "2026-10-23",
+          "evidence": [
+            "apps/api/dev/testApi.ts:162",
+            "apps/api/dev/testOpenAISdk.ts:224",
+            "apps/api/dev/testWs.ts:41",
+            "apps/api/dev/testWs.ts:49"
+          ]
+        },
+        {
+          "deadline": "openai-2026-12-01-gpt-image-1-mini",
+          "date": "2026-12-01",
+          "evidence": [
+            "apps/api/dev/removeModelFromProviders.ts:19"
+          ]
+        },
+        {
+          "deadline": "openai-2027-02-26-whisper-1",
+          "date": "2027-02-26",
+          "evidence": [
+            "apps/api/modules/modelUpdater.ts:920",
+            "apps/api/modules/modelUpdater.ts:923",
+            "apps/langgraph-control-plane/src/workflow.ts:3116",
+            "apps/langgraph-control-plane/src/workflow.ts:3119"
+          ]
+        }
+      ],
+      "replacements": [],
+      "stops": [
+        {
+          "file": "apps/api/dev/testOpenAISdk.ts",
+          "line": 232,
+          "call": "chat.completions.create",
+          "at": {
+            "file": "apps/api/dev/testOpenAISdk.ts",
+            "line": 224
+          },
+          "model": "gpt-3.5-turbo",
+          "reason": "The client sets a custom base URL, so the model may name another provider's model or a deployment; change it by hand to gpt-5.6-terra."
+        }
+      ],
+      "unresolved": [
+        {
+          "file": "apps/api/dev/testApi.ts",
+          "line": 162,
+          "model": "gpt-3.5-turbo",
+          "to": "gpt-5.6-terra",
+          "reason": "No traced request sends it as its model; it is assigned to `modelId`. Check where it is used and change it by hand if it reaches the API."
+        },
+        {
+          "file": "apps/api/dev/testWs.ts",
+          "line": 41,
+          "model": "gpt-3.5-turbo",
+          "to": "gpt-5.6-terra",
+          "reason": "No traced request sends it as its model; it is the `model` value of an object. Check where it is used and change it by hand if it reaches the API."
+        },
+        {
+          "file": "apps/api/dev/testWs.ts",
+          "line": 49,
+          "model": "gpt-3.5-turbo",
+          "to": "gpt-5.6-terra",
+          "reason": "No traced request sends it as its model; it is the `model` value of an object. Check where it is used and change it by hand if it reaches the API."
+        },
+        {
+          "file": "apps/api/dev/removeModelFromProviders.ts",
+          "line": 19,
+          "model": "chatgpt-image-latest",
+          "to": "gpt-image-2.5-sunburst",
+          "reason": "No traced request sends it as its model; it is assigned to `modelId`. Check where it is used and change it by hand if it reaches the API."
+        },
+        {
+          "file": "apps/api/modules/modelUpdater.ts",
+          "line": 920,
+          "model": "gpt-4o-mini-transcribe",
+          "to": "gpt-transcribe",
+          "reason": "No traced request sends it as its model; it is passed to add(). Check where it is used and change it by hand if it reaches the API."
+        },
+        {
+          "file": "apps/api/modules/modelUpdater.ts",
+          "line": 923,
+          "model": "gpt-4o-transcribe",
+          "to": "gpt-transcribe",
+          "reason": "No traced request sends it as its model; it is passed to add(). Check where it is used and change it by hand if it reaches the API."
+        },
+        {
+          "file": "apps/langgraph-control-plane/src/workflow.ts",
+          "line": 3116,
+          "model": "gpt-4o-mini-transcribe",
+          "to": "gpt-transcribe",
+          "reason": "No traced request sends it as its model; it is passed to add(). Check where it is used and change it by hand if it reaches the API."
+        },
+        {
+          "file": "apps/langgraph-control-plane/src/workflow.ts",
+          "line": 3119,
+          "model": "gpt-4o-transcribe",
+          "to": "gpt-transcribe",
+          "reason": "No traced request sends it as its model; it is passed to add(). Check where it is used and change it by hand if it reaches the API."
+        }
+      ],
+      "nonLive": {
+        "catalog": 96,
+        "check": 8,
+        "comment": 1
+      },
+      "nonLiveTotal": 105
+    },
+    {
+      "repo": "Langdock/assignment",
+      "commit": "7ab5e26405d60ae77f67703dd9412d31dea08ecb",
+      "exposures": [
+        {
+          "deadline": "openai-2026-10-23-gpt-3-5-turbo",
+          "date": "2026-10-23",
+          "evidence": [
+            "app/actions/openai.ts:13"
+          ]
+        }
+      ],
+      "replacements": [
+        {
+          "file": "app/actions/openai.ts",
+          "line": 12,
+          "call": "chat.completions.create",
+          "edited": {
+            "file": "app/actions/openai.ts",
+            "line": 13
+          },
+          "from": "gpt-3.5-turbo",
+          "to": "gpt-5.6-terra",
+          "deadline": "openai-2026-10-23-gpt-3-5-turbo"
+        }
+      ],
+      "stops": [],
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
+    },
+    {
+      "repo": "austineckman/CraftingComputer",
+      "commit": "c34a63adc8c0d95f9226449133b88cc738678839",
+      "error": "44: 0x18c1deb98 start [/usr/lib/dyld]",
+      "exposures": [
+        {
+          "deadline": "openai-2026-05-12-dall-e-2",
+          "date": "2026-05-12",
+          "evidence": [
+            "server/routes/admin-quest-generator.ts:268"
+          ]
+        }
+      ],
+      "replacements": [],
+      "stops": [],
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
+    },
+    {
+      "repo": "ayuer/OptionFinder",
+      "commit": "e8de7be50c5d96b03d1fae2c7c12c0cb8ae4989d",
+      "exposures": [],
+      "replacements": [],
+      "stops": [],
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
+    },
+    {
+      "repo": "convex/components-submissions-directory",
+      "commit": "06a151a88b81ef567b9090d8aeb2989f9457aad2",
+      "exposures": [],
+      "replacements": [],
+      "stops": [],
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
+    },
+    {
+      "repo": "liuxingqitd/content-flow",
+      "commit": "6b8091669ea538e4604b4d1c6384dead5ea512a7",
+      "exposures": [],
+      "replacements": [],
+      "stops": [],
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
+    },
+    {
+      "repo": "membranehq/ai-agent-example",
+      "commit": "ad9989e8554d0c2d51282a23406649d5c5ca8555",
+      "exposures": [],
+      "replacements": [],
+      "stops": [],
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
+    },
+    {
+      "repo": "sanidhyy/meet-ai",
+      "commit": "a2b025ea34e27240b4a5093205b4881a54a7a2b0",
+      "exposures": [
+        {
+          "deadline": "openai-2026-05-07-gpt-4o-realtime-preview",
+          "date": "2026-05-07",
+          "evidence": [
+            "src/app/api/webhook/stream/route.ts:87"
+          ]
+        },
+        {
+          "deadline": "openai-2026-10-23-gpt-4-1-nano",
+          "date": "2026-10-23",
+          "evidence": [
+            "src/app/api/webhook/stream/route.ts:218"
+          ]
+        }
+      ],
+      "replacements": [],
+      "stops": [
+        {
+          "file": "src/app/api/webhook/stream/route.ts",
+          "line": 216,
+          "call": "chat.completions.create",
+          "at": {
+            "file": "src/app/api/webhook/stream/route.ts",
+            "line": 218
+          },
+          "model": "gpt-4.1-nano",
+          "reason": "The client sets a custom base URL, so the model may name another provider's model or a deployment; change it by hand to gpt-5.6-luna."
+        }
+      ],
+      "unresolved": [
+        {
+          "file": "src/app/api/webhook/stream/route.ts",
+          "line": 87,
+          "model": "gpt-4o-realtime-preview",
+          "to": "gpt-realtime-mini",
+          "reason": "No traced request sends it as its model; it is the `model` value of an object. Check where it is used and change it by hand if it reaches the API."
+        }
+      ],
+      "nonLive": {},
+      "nonLiveTotal": 0
+    },
+    {
+      "repo": "DANG-PH/dragonboy-api-gateway",
+      "commit": "15b306a9dab94209a685bf9c2804a4fdaa576c62",
+      "exposures": [],
+      "replacements": [],
+      "stops": [],
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
+    },
+    {
+      "repo": "Emanuele-Sgroi/emanuelesgroi.com",
+      "commit": "a883c4e3b7db940c965496a1373536cb79c89980",
+      "exposures": [
+        {
+          "deadline": "openai-2026-10-23-gpt-4",
+          "date": "2026-10-23",
+          "evidence": [
+            "src/components/DiscussionsPage/DiscussionSideBar.js:184"
+          ]
+        }
+      ],
+      "replacements": [],
+      "stops": [],
+      "unresolved": [
+        {
+          "file": "src/components/DiscussionsPage/DiscussionSideBar.js",
+          "line": 184,
+          "model": "o1",
+          "to": "gpt-5.6-sol",
+          "reason": "No traced request sends it as its model; it is the `name` value of an object. Check where it is used and change it by hand if it reaches the API."
+        }
+      ],
+      "nonLive": {
+        "comment": 2
+      },
+      "nonLiveTotal": 2
+    },
+    {
+      "repo": "LinkIt-Company/Linkit-Backend",
+      "commit": "0965fa11de7a55bdee1ba4ecb7d8a5776ac16b23",
+      "exposures": [
+        {
+          "deadline": "openai-2027-01-14-gpt-4o-2024-08-06",
+          "date": "2027-01-14",
+          "evidence": [
+            "src/infrastructure/ai/ai.constant.ts:2"
+          ]
+        }
+      ],
+      "replacements": [],
+      "stops": [
+        {
+          "file": "src/infrastructure/ai/ai.service.ts",
+          "line": 99,
+          "call": "chat.completions.create",
+          "at": {
+            "file": "src/infrastructure/ai/ai.constant.ts",
+            "line": 2
+          },
+          "model": "gpt-4o-mini-2024-07-18",
+          "reason": "The client sets a custom base URL, so the model may name another provider's model or a deployment; change it by hand to gpt-6-luna."
+        }
+      ],
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
+    },
+    {
+      "repo": "asilbek2706/ai-writer",
+      "commit": "e1984982a02b9e140327035a4a8c328ae9e51816",
+      "exposures": [
+        {
+          "deadline": "openai-2026-10-23-gpt-3-5-turbo",
+          "date": "2026-10-23",
+          "evidence": [
+            "src/utils/apenai.ts:40"
+          ]
+        }
+      ],
+      "replacements": [],
+      "stops": [],
+      "unresolved": [
+        {
+          "file": "src/utils/apenai.ts",
+          "line": 40,
+          "model": "gpt-3.5-turbo",
+          "to": "gpt-5.6-terra",
+          "reason": "No traced request sends it as its model; it is the `model` value of an object. Check where it is used and change it by hand if it reaches the API."
+        }
+      ],
+      "nonLive": {},
+      "nonLiveTotal": 0
+    },
+    {
+      "repo": "hyunwookshin/iodine",
+      "commit": "ab8f4481439005656bd984f70acc2fdfde9cc361",
+      "exposures": [
+        {
+          "deadline": "openai-2026-05-07-gpt-4o-realtime-preview",
+          "date": "2026-05-07",
+          "evidence": [
+            "server/src/routes/meeting.ts:25"
+          ]
+        },
+        {
+          "deadline": "openai-2027-01-06-tts-1",
+          "date": "2027-01-06",
+          "evidence": [
+            "client/src/components/right/CodingAssistant.tsx:22",
+            "server/src/routes/tts.ts:109"
+          ]
+        },
+        {
+          "deadline": "openai-2027-02-26-whisper-1",
+          "date": "2027-02-26",
+          "evidence": [
+            "server/src/routes/stt.ts:29"
+          ]
+        }
+      ],
+      "replacements": [],
+      "stops": [
+        {
+          "file": "server/src/routes/tts.ts",
+          "line": 108,
+          "call": "audio.speech.create",
+          "at": {
+            "file": "server/src/routes/tts.ts",
+            "line": 109
+          },
+          "model": "tts-1-hd",
+          "reason": "`audio.speech.create` is not a call Refit edits; gpt-realtime-2.1-mini may change formats or parameters; change it by hand to gpt-realtime-2.1-mini."
+        },
+        {
+          "file": "server/src/routes/stt.ts",
+          "line": 28,
+          "call": "audio.transcriptions.create",
+          "at": {
+            "file": "server/src/routes/stt.ts",
+            "line": 29
+          },
+          "model": "whisper-1",
+          "reason": "`audio.transcriptions.create` is not a call Refit edits; gpt-transcribe may change formats or parameters; change it by hand to gpt-transcribe."
+        }
+      ],
+      "unresolved": [
+        {
+          "file": "server/src/routes/meeting.ts",
+          "line": 25,
+          "model": "gpt-4o-realtime-preview",
+          "to": "gpt-realtime-mini",
+          "reason": "No traced request sends it as its model; it is the `model` value of an object. Check where it is used and change it by hand if it reaches the API."
+        },
+        {
+          "file": "client/src/components/right/CodingAssistant.tsx",
+          "line": 22,
+          "model": "tts-1-hd",
+          "to": "gpt-realtime-2.1-mini",
+          "reason": "No traced request sends it as its model; it is the `model` value of an object. Check where it is used and change it by hand if it reaches the API."
+        }
+      ],
+      "nonLive": {
+        "catalog": 1
+      },
+      "nonLiveTotal": 1
+    },
+    {
+      "repo": "projectshft/mini-rag",
+      "commit": "8dbe9ba2fd1e171994516c8f70966442dddf40da",
+      "exposures": [
+        {
+          "deadline": "openai-2027-01-14-gpt-4o-2024-08-06",
+          "date": "2027-01-14",
+          "evidence": [
+            "app/scripts/upload-training-data.ts:69"
+          ]
+        }
+      ],
+      "replacements": [],
+      "stops": [
+        {
+          "file": "app/scripts/upload-training-data.ts",
+          "line": 67,
+          "call": "fineTuning.jobs.create",
+          "at": {
+            "file": "app/scripts/upload-training-data.ts",
+            "line": 69
+          },
+          "model": "gpt-4o-mini-2024-07-18",
+          "reason": "`fineTuning.jobs.create` is not a call Refit edits; gpt-6-luna may change formats or parameters; change it by hand to gpt-6-luna."
+        }
+      ],
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
+    },
+    {
+      "repo": "timscheuerai/claude-gtm",
+      "commit": "87c3ee02830c0b627909ea86379901ed307be7c4",
+      "exposures": [],
+      "replacements": [],
+      "stops": [],
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
+    },
+    {
+      "repo": "zer0-A1/Emineon",
+      "commit": "4f27997cdaa14f5663e6305b21b47030156b91ff",
+      "exposures": [
+        {
+          "deadline": "openai-2026-03-26-gpt-4-0314",
+          "date": "2026-03-26",
+          "evidence": [
+            "src/app/api/ai/cv-parse/route.ts:72",
+            "src/lib/ai/enrichment-pipeline.ts:251"
+          ]
+        },
+        {
+          "deadline": "openai-2026-10-23-gpt-3-5-turbo",
+          "date": "2026-10-23",
+          "evidence": [
+            "src/app/api/ai/email-analysis/route.ts:91",
+            "src/lib/openai.ts:105",
+            "src/lib/openai.ts:173",
+            "src/lib/openai.ts:235",
+            "src/lib/openai.ts:404"
+          ]
+        },
+        {
+          "deadline": "openai-2026-10-23-gpt-4",
+          "date": "2026-10-23",
+          "evidence": [
+            "src/app/api/ai/enhance-skills/route.ts:35",
+            "src/app/api/projects/parse-email/route.ts:31",
+            "src/app/api/projects/parse-email/route.ts:441",
+            "src/lib/ai/competence-enrichment.ts:721",
+            "src/lib/ai/competence-enrichment.ts:792",
+            "src/lib/ai/competence-enrichment.ts:863",
+            "src/lib/services/assessment.ts:51"
+          ]
+        },
+        {
+          "deadline": "openai-2027-02-26-whisper-1",
+          "date": "2027-02-26",
+          "evidence": [
+            "src/app/api/ai/transcribe/route.ts:35"
+          ]
+        }
+      ],
+      "replacements": [],
+      "stops": [
+        {
+          "file": "src/app/api/ai/cv-parse/route.ts",
+          "line": 71,
+          "call": "chat.completions.create",
+          "at": {
+            "file": "src/app/api/ai/cv-parse/route.ts",
+            "line": 72
+          },
+          "model": "gpt-4-turbo-preview",
+          "reason": "The client sets a custom base URL, so the model may name another provider's model or a deployment; change it by hand to gpt-5."
+        },
+        {
+          "file": "src/app/api/ai/email-analysis/route.ts",
+          "line": 90,
+          "call": "chat.completions.create",
+          "at": {
+            "file": "src/app/api/ai/email-analysis/route.ts",
+            "line": 91
+          },
+          "model": "gpt-3.5-turbo",
+          "reason": "The client sets a custom base URL, so the model may name another provider's model or a deployment; change it by hand to gpt-5.6-terra."
+        },
+        {
+          "file": "src/lib/openai.ts",
+          "line": 104,
+          "call": "chat.completions.create",
+          "at": {
+            "file": "src/lib/openai.ts",
+            "line": 105
+          },
+          "model": "gpt-3.5-turbo",
+          "reason": "The client sets a custom base URL, so the model may name another provider's model or a deployment; change it by hand to gpt-5.6-terra."
+        },
+        {
+          "file": "src/lib/openai.ts",
+          "line": 172,
+          "call": "chat.completions.create",
+          "at": {
+            "file": "src/lib/openai.ts",
+            "line": 173
+          },
+          "model": "gpt-3.5-turbo",
+          "reason": "The client sets a custom base URL, so the model may name another provider's model or a deployment; change it by hand to gpt-5.6-terra."
+        },
+        {
+          "file": "src/lib/openai.ts",
+          "line": 234,
+          "call": "chat.completions.create",
+          "at": {
+            "file": "src/lib/openai.ts",
+            "line": 235
+          },
+          "model": "gpt-3.5-turbo",
+          "reason": "The client sets a custom base URL, so the model may name another provider's model or a deployment; change it by hand to gpt-5.6-terra."
+        },
+        {
+          "file": "src/lib/openai.ts",
+          "line": 403,
+          "call": "chat.completions.create",
+          "at": {
+            "file": "src/lib/openai.ts",
+            "line": 404
+          },
+          "model": "gpt-3.5-turbo",
+          "reason": "The client sets a custom base URL, so the model may name another provider's model or a deployment; change it by hand to gpt-5.6-terra."
+        },
+        {
+          "file": "src/app/api/ai/enhance-skills/route.ts",
+          "line": 34,
+          "call": "chat.completions.create",
+          "at": {
+            "file": "src/app/api/ai/enhance-skills/route.ts",
+            "line": 35
+          },
+          "model": "gpt-4",
+          "reason": "The client sets a custom base URL, so the model may name another provider's model or a deployment; change it by hand to gpt-5.6-sol."
+        },
+        {
+          "file": "src/lib/ai/competence-enrichment.ts",
+          "line": 720,
+          "call": "chat.completions.create",
+          "at": {
+            "file": "src/lib/ai/competence-enrichment.ts",
+            "line": 721
+          },
+          "model": "gpt-4",
+          "reason": "The client sets a custom base URL, so the model may name another provider's model or a deployment; change it by hand to gpt-5.6-sol."
+        },
+        {
+          "file": "src/lib/ai/competence-enrichment.ts",
+          "line": 791,
+          "call": "chat.completions.create",
+          "at": {
+            "file": "src/lib/ai/competence-enrichment.ts",
+            "line": 792
+          },
+          "model": "gpt-4",
+          "reason": "The client sets a custom base URL, so the model may name another provider's model or a deployment; change it by hand to gpt-5.6-sol."
+        },
+        {
+          "file": "src/lib/ai/competence-enrichment.ts",
+          "line": 862,
+          "call": "chat.completions.create",
+          "at": {
+            "file": "src/lib/ai/competence-enrichment.ts",
+            "line": 863
+          },
+          "model": "gpt-4",
+          "reason": "The client sets a custom base URL, so the model may name another provider's model or a deployment; change it by hand to gpt-5.6-sol."
+        },
+        {
+          "file": "src/app/api/ai/transcribe/route.ts",
+          "line": 33,
+          "call": "audio.transcriptions.create",
+          "at": {
+            "file": "src/app/api/ai/transcribe/route.ts",
+            "line": 35
+          },
+          "model": "whisper-1",
+          "reason": "`audio.transcriptions.create` is not a call Refit edits; gpt-transcribe may change formats or parameters; change it by hand to gpt-transcribe."
+        },
+        {
+          "file": "src/app/api/projects/parse-email/route.ts",
+          "line": 30,
+          "call": "chat.completions.create",
+          "at": {
+            "file": "src/app/api/projects/parse-email/route.ts",
+            "line": 31
+          },
+          "model": "gpt-4",
+          "reason": "The client sets a custom base URL, so the model may name another provider's model or a deployment; change it by hand to gpt-5.6-sol."
+        },
+        {
+          "file": "src/app/api/projects/parse-email/route.ts",
+          "line": 440,
+          "call": "chat.completions.create",
+          "at": {
+            "file": "src/app/api/projects/parse-email/route.ts",
+            "line": 441
+          },
+          "model": "gpt-4",
+          "reason": "The client sets a custom base URL, so the model may name another provider's model or a deployment; change it by hand to gpt-5.6-sol."
+        },
+        {
+          "file": "src/lib/services/assessment.ts",
+          "line": 44,
+          "call": "fetch /v1/chat/completions",
+          "at": {
+            "file": "src/lib/services/assessment.ts",
+            "line": 51
+          },
+          "model": "gpt-4",
+          "reason": "The request sets max_tokens, temperature, which gpt-5.6-sol may reject or treat differently."
+        }
+      ],
+      "unresolved": [
+        {
+          "file": "src/lib/ai/enrichment-pipeline.ts",
+          "line": 251,
+          "model": "gpt-4-1106-preview",
+          "to": "gpt-5",
+          "reason": "No traced request sends it as its model; it is the `model` value of an object. Check where it is used and change it by hand if it reaches the API."
+        }
+      ],
+      "nonLive": {},
+      "nonLiveTotal": 0
+    },
+    {
+      "repo": "CHARM-BDF/charmonator",
+      "commit": "08d62979a416e26e4234db7a421f7c6c99703c73",
+      "exposures": [
+        {
+          "deadline": "openai-2026-10-23-gpt-3-5-turbo",
+          "date": "2026-10-23",
+          "evidence": [
+            "lib/config.mjs:214",
+            "scripts/generate-example-config.js:52"
+          ]
+        },
+        {
+          "deadline": "openai-2026-10-23-gpt-4",
+          "date": "2026-10-23",
+          "evidence": [
+            "lib/config.mjs:215",
+            "public/script.js:118"
+          ]
+        }
+      ],
+      "replacements": [],
+      "stops": [],
+      "unresolved": [
+        {
+          "file": "lib/config.mjs",
+          "line": 214,
+          "model": "gpt-3.5-turbo",
+          "to": "gpt-5.6-terra",
+          "reason": "No traced request sends it as its model; it is the `gpt-3.5-turbo` value of an object. Check where it is used and change it by hand if it reaches the API."
+        },
+        {
+          "file": "scripts/generate-example-config.js",
+          "line": 52,
+          "model": "gpt-3.5-turbo",
+          "to": "gpt-5.6-terra",
+          "reason": "No traced request sends it as its model; it is the `model` value of an object. Check where it is used and change it by hand if it reaches the API."
+        },
+        {
+          "file": "lib/config.mjs",
+          "line": 215,
+          "model": "gpt-4",
+          "to": "gpt-5.6-sol",
+          "reason": "No traced request sends it as its model; it is the `gpt-4` value of an object. Check where it is used and change it by hand if it reaches the API."
+        },
+        {
+          "file": "public/script.js",
+          "line": 118,
+          "model": "o1",
+          "to": "gpt-5.6-sol",
+          "reason": "No traced request sends it as its model; it is assigned to `savedModel`. Check where it is used and change it by hand if it reaches the API."
+        }
+      ],
+      "nonLive": {
+        "comment": 3,
+        "check": 1
+      },
+      "nonLiveTotal": 4
+    },
+    {
+      "repo": "Dregen-Yor/auto-invoice",
+      "commit": "575ba731cf0f9445f64900897988ed9b65f6acfc",
+      "exposures": [],
+      "replacements": [],
+      "stops": [],
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
+    },
+    {
+      "repo": "MattB543/asheville-event-feed",
+      "commit": "0995ef90104dfc395a0189fb74c848e021a70c7c",
+      "exposures": [],
+      "replacements": [],
+      "stops": [],
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
+    },
+    {
+      "repo": "benjiyaya/OminiUI",
+      "commit": "5e07675d47b2115896513d408c9609fbfac1bc0d",
+      "exposures": [],
+      "replacements": [],
+      "stops": [],
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
+    },
+    {
+      "repo": "david-crespo/llm-web",
+      "commit": "41b1296cc1e9bfa2b7a84f52fa0c7fe7ac68af32",
+      "exposures": [],
+      "replacements": [],
+      "stops": [],
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
+    },
+    {
+      "repo": "fltman/beatbrawl",
+      "commit": "ffba94f4c618528087e11522563b2b9ac94a65ad",
+      "exposures": [],
+      "replacements": [],
+      "stops": [],
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
+    },
+    {
+      "repo": "navekedem/ibkr-trading-bot",
+      "commit": "ec6dbfaa769a66c9f27ad0df4f1aae3040d8289a",
+      "exposures": [],
+      "replacements": [],
+      "stops": [],
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
+    }
+  ],
+  "refitCommit": "c084880",
+  "baseline": {
+    "refitCommit": "fb0143a",
+    "summary": {
+      "repositories": 100,
+      "errors": 1,
+      "timedOut": 0,
+      "exposed": 32,
+      "exposedWithReplacement": 2,
+      "exposedStoppedOnly": 17,
+      "exposedSilent": 12,
+      "replacements": 3,
+      "stops": 43,
+      "mentionedOnly": 20,
+      "exposedErrored": 1
+    }
+  }
+}

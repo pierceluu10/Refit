@@ -294,9 +294,28 @@ Two sets of real applications were frozen on 2026-10-21 with `scripts/ai-app-sel
 - **No exposure filter.** Selection never looked at which models a repository uses, so the traced and fixed fractions measured on these sets are not biased by it.
 - **Reproducibility.** Rerunning the script against the same cache rewrites both files byte for byte. That shows cache replay only: the code-search index moves, so a fresh search is not expected to reproduce the lists, and the frozen files are the record.
 
-The 2026-10-20 npm sets, [OpenAI](benchmarks/2026-10-20-openai-repos.json) and [Anthropic](benchmarks/2026-10-20-anthropic-repos.json), are kept unchanged as library baselines: npm search returns published packages, mostly SDK wrappers, not applications. No tracing or fix numbers exist for the new sets yet.
+The 2026-10-20 npm sets, [OpenAI](benchmarks/2026-10-20-openai-repos.json) and [Anthropic](benchmarks/2026-10-20-anthropic-repos.json), are kept unchanged as library baselines: npm search returns published packages, mostly SDK wrappers, not applications. Tracing and fix numbers for the new sets follow in [Model fixes on the application sets](#model-fixes-on-the-application-sets-october-21).
 
 An independent grep for quoted exact registry model IDs found **4,679** candidate locations in the 150 repositories ([labels](benchmarks/2026-10-21-ai-app-labels.json)): 2,428 in TypeScript, 148 in JavaScript, 1 in Python and the rest in JSON, Markdown, YAML and other files, with 11 in generated files. **374** are live (the ID reaches a request), 370 of them JS/TS. By `via`: 258 `sdk-text`, 58 `sdk-non-text`, 21 `wrapper:*`, 17 `raw-http` and 20 `other`; the current tracers do not follow `wrapper:*`, `raw-http` or `other` (wrapper tracers are deferred). The main non-live reasons are tests (1,805), catalogs (1,602), docs (376) and comparisons (217). The labels come from one AI-assisted reading pass by fresh-context labelling agents, one per batch, not hand labelling; some agents labelled groups of obviously uniform candidates (locale catalogs, test fixtures) by file after spot checks. A seeded random 10% (468 of 4,679 candidates, seed 20261021) was re-read by separate fresh-context agents, one per slice of the sample, that never saw the first labels: `live` agreed on 460 of 468 and `via` on 456 of 468; on the 38 candidates either pass called live, `live` agreed on 30 and `via` on 26. The 12 disagreements were adjudicated by reading the code again, and 7 labels changed (the counts above include them). Aliases the registry does not name are out of scope. The tracing measurement on these sets reports JS/TS live pins as the headline, the languages Refit's agents cover, and all live pins as a secondary number.
+
+## Model fixes on the application sets (October 21)
+
+`scripts/ai-model-benchmark.mjs` ran `refit deadlines` and `refit deadlines --propose-model-fixes` at each frozen commit of both application sets, once on `main` (`fb0143a`) and once with the tracing and reporting changes in [the October 22 checkpoint](READINESS.md) merged onto it (`c084880`). Files were read only: nothing was installed, run or validated, and no provider was contacted, so these are proposals, not validated fixes. Results: [Anthropic](benchmarks/2026-10-21-anthropic-app-results.json), [OpenAI](benchmarks/2026-10-21-openai-app-results.json); each file keeps the `main` summary as `baseline`.
+
+| Repositories with a live exposure | Anthropic before | Anthropic after | OpenAI before | OpenAI after |
+|---|---|---|---|---|
+| Exposed | 28 | 28 | 32 | 32 |
+| With a proposed replacement | 2 | 2 | 2 | 2 |
+| Stopped for review only | 9 | 12 | 17 | 18 |
+| Every live match explained as unresolved | not reported | 14 | not reported | 11 |
+| No outcome at all | 17 | 0 | 12 | 0 |
+| Scanner error | 0 | 0 | 1 | 1 |
+
+- **Silent repositories.** Before, 17 of 28 exposed Anthropic applications and 12 of 32 OpenAI ones ended with no replacement, no stop and no reason. Now each live match is a replacement, a stop or an `unresolved` entry that says where the model is written (58 Anthropic and 68 OpenAI entries). The OpenAI scanner error is `austineckman/CraftingComputer`, which crashes the scanner process on `main` too, so it has no proposal at all.
+- **Replacements did not move.** Since [#147](https://github.com/pierceluu10/Refit/pull/147) added stops on `main`, both sets propose 3 replacements in 2 repositories, before and after. On these sets this change adds stops and explanations and edits nothing new.
+- **Copies.** 12 of the 50 Anthropic applications are copies of one leaked Claude Code source tree. Their exposures are mostly that tree's per-platform model configs, now catalog, plus a few helper returns and a documentation template that stay unresolved (11 unresolved only, 1 stopped). Without them, the 16 distinct exposed applications went from 2 replacements, 8 stops and 6 silent to 2 replacements, 11 stops and 3 unresolved.
+- **What stops.** Of the 12 distinct Anthropic applications with a stop, 8 send through a custom base URL or another host, 2 load the module that declares the model dynamically, 1 reuses a request object and 1 is a SvelteKit app under a `tsconfig.json` that extends the generated `.svelte-kit/tsconfig.json`, which is not in the checkout. The new stops are 2 custom base URLs (one per set), 1 `fetch` with `anthropic-version` to a non-official host, and the SvelteKit app.
+- **No regressions.** No repository lost a replacement or an exposure on either set. Exposures fell only where the deadline scan now lists entries as catalog (the 12 copies and `vual/lobe-chat-pro`).
 
 ## Speed and cost
 
