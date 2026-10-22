@@ -33,6 +33,7 @@ import {
   PNPM_INSTALL_COMMAND,
   YARN_BERRY_INSTALL_COMMAND,
   YARN_INSTALL_COMMAND,
+  YARN_SKIP_PLATFORM_PACKAGES,
 } from './manager-install.ts';
 import { hasStrongIntegrity } from './npm-lock.ts';
 import { digest, parseObject } from './specifications.ts';
@@ -97,7 +98,10 @@ for (const name of Object.keys(links)) {
   if (!(await lstat(resolve(workspace, name))).isSymbolicLink()) throw new Error("Missing workspace dependency link");
 }
 `;
-function installCommand({ manager, managerVersion, legacyPeerDeps }: PreparationIdentity) {
+function installCommand(
+  { manager, managerVersion, legacyPeerDeps, platformPackages }: PreparationIdentity,
+  platformPackageMode?: 'skip' | 'install',
+) {
   const NPM_CI = npmCi(managerVersion ? '"$refit_tool"' : 'npm');
   return [
     'sh',
@@ -111,7 +115,9 @@ function installCommand({ manager, managerVersion, legacyPeerDeps }: Preparation
         : manager === 'yarn'
           ? managerVersion?.startsWith('1.')
             ? YARN_INSTALL_COMMAND
-            : YARN_BERRY_INSTALL_COMMAND
+            : (platformPackages && platformPackageMode !== 'install'
+                ? YARN_SKIP_PLATFORM_PACKAGES
+                : '') + YARN_BERRY_INSTALL_COMMAND
           : (managerVersion ? NPM_TOOL_INSTALL_COMMAND : '') +
             (legacyPeerDeps
               ? // The repository's own .npmrc asks for it, so there is nothing to retry.
@@ -156,6 +162,15 @@ export function installTimeoutSeconds(value = process.env.REFIT_DEPENDENCY_TIMEO
       `REFIT_DEPENDENCY_TIMEOUT_SECONDS must be a whole number from ${MIN_INSTALL_TIMEOUT_SECONDS} to ${MAX_INSTALL_TIMEOUT_SECONDS}.`,
     );
   return seconds;
+}
+
+// Yarn records platform-specific packages without checksums. Refit skips them unless an operator
+// accepts installing them unverified for this host (Needs owner decision; off by default).
+export function yarnPlatformPackageMode(value = process.env.REFIT_YARN_PLATFORM_PACKAGES) {
+  const mode = value?.trim() || 'skip';
+  if (mode !== 'skip' && mode !== 'install')
+    throw new PipelineInputError('REFIT_YARN_PLATFORM_PACKAGES must be skip or install.');
+  return mode;
 }
 
 export class DependencyPreparationError extends PipelineInputError {
@@ -284,7 +299,13 @@ async function installDependencies(
         `${inputs.manager} dependency preparation ran out of space in its ${workspace} workspace (ENOSPC).${
           workspace === '4g'
             ? ''
-            : " Yarn 1 also downloads other platforms' optional binaries. An operator can set REFIT_VALIDATION_WORKSPACE=4g (4 GiB workspace, 5 GiB container memory) on a host with memory to spare."
+            : `${
+                inputs.manager !== 'yarn'
+                  ? ''
+                  : inputs.managerVersion?.startsWith('1.')
+                    ? " Yarn 1 also downloads other platforms' optional binaries."
+                    : ' Yarn 2+ keeps a zip of every package in its cache beside the unpacked tree.'
+              } An operator can set REFIT_VALIDATION_WORKSPACE=4g (4 GiB workspace, 5 GiB container memory) on a host with memory to spare.`
         }`,
       );
     if (result.code !== 0)
@@ -346,7 +367,15 @@ export async function prepareDependencies(options: {
   const image = DOCKER_IMAGE_ID.test(options.image)
     ? options.image
     : await resolveDockerImage(options.image);
-  const signature = digest(JSON.stringify({ recipeVersion: RECIPE_VERSION, image, ...inputs }));
+  const platformPackageMode = inputs.platformPackages ? yarnPlatformPackageMode() : undefined;
+  const signature = digest(
+    JSON.stringify({
+      recipeVersion: RECIPE_VERSION,
+      image,
+      ...inputs,
+      ...(platformPackageMode ? { platformPackageMode } : {}),
+    }),
+  );
   const cacheDirectory = resolve(
     options.cacheDirectory ??
       (process.env.REFIT_DEPENDENCY_CACHE_DIRECTORY?.trim() || undefined) ??
@@ -442,7 +471,7 @@ export async function prepareDependencies(options: {
           directory: input,
           image,
           command: [
-            ...installCommand(inputs),
+            ...installCommand(inputs, platformPackageMode),
             'refit-npm-install',
             JSON.stringify({
               links: inputs.workspaceLinks ?? {},
@@ -482,6 +511,7 @@ export async function prepareDependencies(options: {
         ...(inputs.manager === 'yarn'
           ? { yarnVersion: result.toolVersion, yarnIntegrity: result.toolIntegrity }
           : {}),
+        ...(platformPackageMode ? { platformPackageMode } : {}),
         ...(inputs.manager === 'npm' && inputs.managerVersion
           ? { npmToolVersion: result.toolVersion, npmToolIntegrity: result.toolIntegrity }
           : {}),

@@ -51,9 +51,11 @@ export const YARN_INSTALL_COMMAND =
   'mkdir -p node_modules; mv /workspace/.refit-tools node_modules/.refit-tools; ';
 
 // Yarn 2+ is configured only through environment variables: the node-modules linker, no scripts,
-// a private cache and an immutable lockfile. Repository rc files never reach the installer.
+// a private cache and an immutable lockfile. Repository rc files never reach the installer. Yarn
+// builds each package's zip in the temporary directory, which the sandbox's /tmp is too small for.
 export const YARN_BERRY_INSTALL_COMMAND =
-  'export COREPACK_ENABLE_NETWORK=0 CI=true HOME=/workspace/.home YARN_IGNORE_PATH=1 ' +
+  'mkdir -p /workspace/.yarn-tmp; export TMPDIR=/workspace/.yarn-tmp ' +
+  'COREPACK_ENABLE_NETWORK=0 CI=true HOME=/workspace/.home YARN_IGNORE_PATH=1 ' +
   'YARN_NODE_LINKER=node-modules YARN_ENABLE_SCRIPTS=0 YARN_ENABLE_TELEMETRY=0 ' +
   'YARN_ENABLE_GLOBAL_CACHE=0 YARN_CACHE_FOLDER=/workspace/.yarn-cache ' +
   'YARN_NPM_REGISTRY_SERVER=https://registry.npmjs.org YARN_ENABLE_IMMUTABLE_INSTALLS=1; ' +
@@ -64,3 +66,9 @@ export const YARN_BERRY_INSTALL_COMMAND =
 // A packageManager pin of npm installs that exact npm the same way; npm ci then runs with it, and
 // it moves into node_modules so checks run it too. REFIT_NPM_VERSION stays the image's own npm.
 export const NPM_TOOL_INSTALL_COMMAND = installTool('npm', 'npm', 'NPM_TOOL');
+
+// Yarn records platform-specific packages without checksums, so Refit installs none of them: no
+// platform matches these values. The setting lives in the installer's own workspace, never the
+// repository's, and needs Yarn 3.2+, which is also what writes platform conditions.
+export const YARN_SKIP_PLATFORM_PACKAGES =
+  "printf 'supportedArchitectures:\\n  os: [refit-none]\\n  cpu: [refit-none]\\n  libc: [refit-none]\\n' > /workspace/.yarnrc.yml; ";

@@ -279,7 +279,13 @@ function renderReportRows(report: Record<string, unknown> | undefined, existingP
     const validation = report.validation;
     if (isObject(validation.environment))
       rows.push(
-        `Dependencies ${validation.environment.reused ? 'Verified cache reused' : `Prepared from ${typeof validation.environment.manager === 'string' ? validation.environment.manager : 'npm'} lockfile`}; checks offline`,
+        `Dependencies ${validation.environment.reused ? 'Verified cache reused' : `Prepared from ${typeof validation.environment.manager === 'string' ? validation.environment.manager : 'npm'} lockfile`}; checks offline${
+          typeof validation.environment.platformPackages !== 'number'
+            ? ''
+            : validation.environment.platformPackageMode === 'install'
+              ? `; ${validation.environment.platformPackages} platform-specific packages installed without checksums (REFIT_YARN_PLATFORM_PACKAGES=install)`
+              : `; ${validation.environment.platformPackages} platform-specific packages without checksums not installed`
+        }`,
       );
     const runtime = validation.runtime;
     if (isObject(runtime) && typeof runtime.image === 'string')
