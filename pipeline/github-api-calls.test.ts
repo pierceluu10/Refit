@@ -195,6 +195,10 @@ describe('clients Refit cannot resolve', () => {
           '  const octokit = new Octokit();',
           "  await octokit.request('POST /repos/{owner}/{repo}/releases', {});",
           '}',
+          'export async function find(octokit) {',
+          "  await octokit.graphql('{ viewer { login } }');",
+          "  await octokit.request('GET /repos/:owner/:repo/labels');",
+          '}',
         ].join('\n'),
         'src/driver.js': [
           "const { Octokit } = require('@octokit/rest');",
@@ -234,6 +238,8 @@ describe('clients Refit cannot resolve', () => {
       { name: 'app' },
     );
     expect(at(calls, 'lib/publish.js', 3).route).toBe('POST /repos/{owner}/{repo}/releases');
+    expect(at(calls, 'lib/publish.js', 6).kind).toBe('graphql');
+    expect(at(calls, 'lib/publish.js', 7).route).toBe('GET /repos/{owner}/{repo}/labels');
     expect(at(calls, 'src/driver.js', 6).method).toBe('issues.createComment');
     expect(at(calls, 'src/driver.js', 7).method).toBe('repos.listCommentsForCommit');
     expect(at(calls, 'src/driver.js', 9).kind).toBe('graphql');
@@ -263,6 +269,9 @@ describe('raw requests and version headers', () => {
           '  await fetch(`https://api.github.com/${endpoint}`);',
           '}',
           "const headers = { 'x-github-api-version': '2021-01-01' };",
+          'const more = new Headers();',
+          "more.set('X-GitHub-Api-Version', '2022-11-28');",
+          "more['X-GitHub-Api-Version'] = '2026-03-10';",
         ].join('\n'),
       },
       { name: 'app' },
@@ -286,6 +295,8 @@ describe('raw requests and version headers', () => {
         endOfSupport: null,
         notes: [expect.stringMatching(/not a REST API version GitHub lists/)],
       }),
+      expect.objectContaining({ line: 11, version: '2022-11-28' }),
+      expect.objectContaining({ line: 12, version: '2026-03-10', endOfSupport: null, notes: [] }),
     ]);
   });
 });

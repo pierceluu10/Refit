@@ -940,7 +940,9 @@ function octokitCalls(
     const unknown: string[] = [];
     const value = argument && constantString(argument)?.value;
     let route: string | null = null;
-    if (value && /^(GET|POST|PUT|PATCH|DELETE|HEAD) \//i.test(value)) route = value;
+    // Octokit reads `:owner` as `{owner}`.
+    if (value && /^(GET|POST|PUT|PATCH|DELETE|HEAD) \//i.test(value))
+      route = value.replace(/\/:(\w+)/g, '/{$1}');
     else if (value && value.startsWith('/')) route = `GET ${value}`;
     else if (argument && ts.isTemplateExpression(unwrap(argument))) {
       const template = unwrap(argument) as ts.TemplateExpression;
@@ -1005,8 +1007,11 @@ function octokitCalls(
           const method = unresolvedMethod(path, root);
           const last = path.at(-1);
           const before = path.at(-2) ?? (ts.isIdentifier(root) ? root.text : '');
-          const named = githubFile && CLIENT_NAME.test(before);
+          // A receiver named `octokit` needs no GitHub import: Octokit passed in as a parameter.
+          const named = (githubFile && CLIENT_NAME.test(before)) || /octokit/i.test(before);
           if (method) calls.push(restRecord(node, method));
+          else if (named && last === 'graphql' && graphqlText(first) !== undefined)
+            calls.push(graphqlRecord(file, node, first, data));
           else if (named && last === 'request' && routeLiteral(first))
             calls.push(routeRecord(node, first));
           else if (named && (last === 'paginate' || path.join('.').endsWith('paginate.iterator'))) {
@@ -1137,8 +1142,25 @@ function urlRecords(
 function versionPins(file: FileContext, data: GitHubApiData): GitHubVersionPin[] {
   const pins: GitHubVersionPin[] = [];
   const visit = (node: ts.Node) => {
-    if (ts.isPropertyAssignment(node) && VERSION_HEADER.test(propertyName(node.name) ?? '')) {
-      const value = constantString(node.initializer)?.value;
+    // `{ 'X-GitHub-Api-Version': '…' }`, `headers.set('x-github-api-version', '…')` and
+    // `headers['X-GitHub-Api-Version'] = '…'`.
+    const header =
+      ts.isPropertyAssignment(node) && VERSION_HEADER.test(propertyName(node.name) ?? '')
+        ? node.initializer
+        : ts.isCallExpression(node) &&
+            ts.isPropertyAccessExpression(node.expression) &&
+            ['set', 'append'].includes(node.expression.name.text) &&
+            node.arguments.length === 2 &&
+            VERSION_HEADER.test(constantString(node.arguments[0])?.value ?? '')
+          ? node.arguments[1]
+          : ts.isBinaryExpression(node) &&
+              node.operatorToken.kind === ts.SyntaxKind.EqualsToken &&
+              ts.isElementAccessExpression(node.left) &&
+              VERSION_HEADER.test(constantString(node.left.argumentExpression)?.value ?? '')
+            ? node.right
+            : undefined;
+    if (header) {
+      const value = constantString(header)?.value;
       const notes: string[] = [];
       if (value && !data.versions.has(value))
         notes.push(
