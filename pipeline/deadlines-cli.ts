@@ -28,6 +28,10 @@ import {
   ANTHROPIC_DEPRECATIONS,
   parseAnthropicDeprecations,
   syncAnthropicDeadlines,
+  GEMINI_DEPRECATIONS,
+  parseGeminiDeprecations,
+  syncGeminiDeadlines,
+  type AnthropicRetirement,
 } from './deadline-sync.ts';
 import { parseObject } from './specifications.ts';
 import { terminalText } from './workflow-presentation.ts';
@@ -35,11 +39,11 @@ import { terminalText } from './workflow-presentation.ts';
 const USAGE = `Usage: refit deadlines [--repository <root>] [--fail-within <days>] [--ignore-file <path>] [--registry <path>] [--json]
        refit deadlines --propose-model-fixes [--repository <root>] [--output <patch>] [--registry <path>] [--json]
        refit deadlines --check-registry [--registry <path>] [--json]
-       refit deadlines --sync anthropic [--registry <path>] [--write] [--json]
+       refit deadlines --sync anthropic|gemini [--registry <path>] [--write] [--json]
 Lists API versions and models a repository pins, and SDK packages it declares, that have a provider sunset or end-of-support date in the reviewed registry, with file:line evidence. Only live code counts; model lists, tests, examples, comments, tokenizers and checks are listed separately.
 --fail-within <days> exits 2 when a live exposure is past due or within that many days, for CI. Reviewed, expiring exceptions go in ${DEADLINE_IGNORE_FILE} at the repository root; --ignore-file reads another file. Exit 0 means the check passed, 1 an error (including an invalid ignore file).
 --propose-model-fixes proposes replacing retiring OpenAI and Anthropic model IDs with the registry replacement, only where the ID is a literal model in a traced SDK call, lists every case that stops for review, and lists every other live model ID with why no traced request sends it. It prints a patch, or writes it to --output; it never applies, validates or publishes it.
---sync anthropic reads Anthropic's model deprecations page and lists registry entries to add or update; --write saves them. It never deletes an entry. A scheduled workflow runs it and opens a pull request for review.
+--sync anthropic reads Anthropic's model deprecations page, and --sync gemini Google's Gemini API deprecations page, and lists registry entries to add or update; --write saves them. It never deletes an entry. A scheduled workflow runs it and opens a pull request for review.
 --check-registry validates the registry and flags past-due entries and entries without a source. Nothing runs, installs or contacts a provider.`;
 
 try {
@@ -62,19 +66,28 @@ try {
   const registryPath = values.registry ? resolve(values.registry) : DEFAULT_DEADLINE_REGISTRY;
   if (values.help) console.log(USAGE);
   else if (values.sync !== undefined) {
-    if (values.sync !== 'anthropic')
-      throw new Error('--sync supports anthropic; other providers are maintained by hand.');
+    if (values.sync !== 'anthropic' && values.sync !== 'gemini')
+      throw new Error(
+        '--sync supports anthropic and gemini; other providers are maintained by hand.',
+      );
     const path = values.registry ? resolve(values.registry) : DEFAULT_DEADLINE_REGISTRY;
     const registry = parseObject(await readFile(path, 'utf8'), 'Deadline registry');
-    const response = await fetch(`${ANTHROPIC_DEPRECATIONS}.md`);
-    if (!response.ok)
-      throw new Error(`${ANTHROPIC_DEPRECATIONS}.md answered HTTP ${response.status}.`);
-    const rows = parseAnthropicDeprecations(await response.text());
+    const source = values.sync === 'gemini' ? GEMINI_DEPRECATIONS : ANTHROPIC_DEPRECATIONS;
+    const page = values.sync === 'gemini' ? source : `${source}.md`;
+    const response = await fetch(page);
+    if (!response.ok) throw new Error(`${page} answered HTTP ${response.status}.`);
+    const text = await response.text();
+    const rows =
+      values.sync === 'gemini' ? parseGeminiDeprecations(text) : parseAnthropicDeprecations(text);
     const today = now.toISOString().slice(0, 10);
     const current = checkDeadlineRegistry(registry, now);
     if (current.errors.length)
       throw new Error(`Deadline registry is invalid: ${current.errors.slice(0, 5).join(' ')}`);
-    const sync = syncAnthropicDeadlines(registry as unknown as DeadlineRegistry, rows, today);
+    const sync = (values.sync === 'gemini' ? syncGeminiDeadlines : syncAnthropicDeadlines)(
+      registry as unknown as DeadlineRegistry,
+      rows as AnthropicRetirement[],
+      today,
+    );
     const report = checkDeadlineRegistry(sync.registry, now);
     if (report.errors.length)
       throw new Error(`Synced registry would be invalid: ${report.errors.slice(0, 5).join(' ')}`);
@@ -83,7 +96,7 @@ try {
     if (values.json)
       console.log(
         JSON.stringify({
-          source: ANTHROPIC_DEPRECATIONS,
+          source,
           rows: rows.length,
           added: sync.added,
           changed: sync.changed,
@@ -93,7 +106,7 @@ try {
       );
     else {
       console.log(
-        `Anthropic deprecations  ${rows.length} retirements on ${ANTHROPIC_DEPRECATIONS}`,
+        `${values.sync === 'gemini' ? 'Gemini' : 'Anthropic'} deprecations  ${rows.length} retirements on ${source}`,
       );
       for (const id of sync.added) console.log(`  add      ${terminalText(id)}`);
       for (const id of sync.changed) console.log(`  update   ${terminalText(id)}`);

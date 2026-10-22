@@ -3,8 +3,11 @@ import { expect, it } from 'vitest';
 import { checkDeadlineRegistry, type DeadlineRegistry } from './deadline-registry.ts';
 import {
   ANTHROPIC_DEPRECATIONS,
+  GEMINI_DEPRECATIONS,
   parseAnthropicDeprecations,
+  parseGeminiDeprecations,
   syncAnthropicDeadlines,
+  syncGeminiDeadlines,
 } from './deadline-sync.ts';
 
 // The shape of Anthropic's model deprecations page (checked 2026-10-20): a model status table,
@@ -163,4 +166,86 @@ it('stops when the page splits one registry entry across retirement dates', () =
   ).toThrow(
     "Anthropic's page splits registry entry anthropic-2025-07-21-claude-2.0 across retirement dates or replacements; update it by hand.",
   );
+});
+
+// The shape of Google's Gemini API deprecations page (read 2026-10-22): one HTML table per model
+// family with a header row of cells, "Preview models" separator rows, and a managed agents table.
+const GEMINI_PAGE = `<h2>Gemini 2.0 models</h2>
+<table class="pricing-table"><thead><tr>
+<td><b>Model</b></td><td><b>Release date</b></td><td><b>Shutdown date</b></td><td><b>Recommended replacement</b></td>
+</tr></thead><tbody>
+<tr><td><code translate="no">gemini-2.0-flash</code></td><td>February 5, 2025</td><td>June 1, 2026</td><td><code>gemini-3.6-flash</code></td></tr>
+<tr><td><code>gemini-2.0-flash-001</code></td><td>February 5, 2025</td><td>June 1, 2026</td><td><code>gemini-3.6-flash</code></td></tr>
+<tr><td><code>gemini-3.8-flash</code></td><td>September 2, 2026</td><td>No shutdown date announced</td><td></td></tr>
+<tr><td><code>gemini-3.5-flash</code></td><td>May 19, 2026</td><td>N/A</td><td><code>gemini-3.6-flash</code> (routes automatically)</td></tr>
+<tr><td colspan="4"><b>Preview models</b></td></tr>
+<tr><td><code>gemini-2.5-flash-preview-tts</code></td><td>May 20, 2025</td><td>November 17, 2026</td><td><code>gemini-3.8-flash-tts</code> or <code>gemini-3.8-flash-lite-tts</code></td></tr>
+</tbody></table>
+<h2>Managed agents</h2>
+<table><thead><tr><td>Agent</td><td>Release date</td><td>Shutdown date</td><td>Recommended replacement</td></tr></thead>
+<tr><td>deep-research-pro-preview-12-2025</td><td>December 11, 2025</td><td>October 23, 2026</td><td>deep-research-preview-04-2026</td></tr></table>`;
+
+it('reads the dated rows of the Gemini model tables and fails loudly on a row it does not recognize', () => {
+  expect(parseGeminiDeprecations(GEMINI_PAGE)).toEqual([
+    { date: '2026-06-01', model: 'gemini-2.0-flash', replacement: 'gemini-3.6-flash' },
+    { date: '2026-06-01', model: 'gemini-2.0-flash-001', replacement: 'gemini-3.6-flash' },
+    { date: '2026-11-17', model: 'gemini-2.5-flash-preview-tts', replacement: null },
+  ]);
+  expect(() =>
+    parseGeminiDeprecations(
+      GEMINI_PAGE.replace(
+        'June 1, 2026</td><td><code>gemini-3.6',
+        'Mid 2026</td><td><code>gemini-3.6',
+      ),
+    ),
+  ).toThrow(
+    "Unrecognized row in Google's Gemini deprecations table: gemini-2.0-flash | February 5, 2025 | Mid 2026 | gemini-3.6-flash",
+  );
+  expect(() => parseGeminiDeprecations('<p>moved</p>')).toThrow(/No dated shutdown/);
+});
+
+it('adds Gemini entries per date and replacement, leaving the SDK entry alone', () => {
+  const sdk = {
+    id: 'gemini-2025-11-30-google-generative-ai',
+    provider: 'gemini' as const,
+    kind: 'sdk' as const,
+    versions: ['@google/generative-ai'],
+    date: '2025-11-30',
+    summary: 'Old SDK.',
+    replacement: '@google/genai',
+    source: 'https://github.com/google-gemini/deprecated-generative-ai-js/blob/main/README.md',
+    checkedAt: '2026-10-21',
+  };
+  const sync = syncGeminiDeadlines(
+    { formatVersion: 1, deadlines: [sdk] },
+    parseGeminiDeprecations(GEMINI_PAGE),
+    '2026-10-22',
+  );
+  expect([sync.added, sync.changed, sync.missing]).toEqual([
+    ['gemini-2026-06-01-gemini-2-0-flash', 'gemini-2026-11-17-gemini-2-5-flash-preview-tts'],
+    [],
+    [],
+  ]);
+  expect(sync.registry.deadlines[0]).toBe(sdk);
+  expect(sync.registry.deadlines[1]).toEqual({
+    id: 'gemini-2026-06-01-gemini-2-0-flash',
+    provider: 'gemini',
+    kind: 'model',
+    versions: ['gemini-2.0-flash', 'gemini-2.0-flash-001'],
+    date: '2026-06-01',
+    summary:
+      'Google shuts down gemini-2.0-flash, gemini-2.0-flash-001 on the Gemini API no earlier than this date; requests to a shut-down model fail. The Vertex AI (Gemini Enterprise Agent Platform) dates differ.',
+    replacement: 'gemini-3.6-flash',
+    source: GEMINI_DEPRECATIONS,
+    checkedAt: '2026-10-22',
+  });
+  expect(sync.registry.deadlines[2].replacement).toBeNull();
+  expect(checkDeadlineRegistry(sync.registry, new Date('2026-10-22')).errors).toEqual([]);
+  // A second read of the same page changes nothing.
+  const again = syncGeminiDeadlines(
+    sync.registry,
+    parseGeminiDeprecations(GEMINI_PAGE),
+    '2026-11-01',
+  );
+  expect([again.added, again.changed]).toEqual([[], []]);
 });
