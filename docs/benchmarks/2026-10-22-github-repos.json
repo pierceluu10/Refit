@@ -1,0 +1,882 @@
+{
+  "formatVersion": 1,
+  "provider": "github",
+  "sdks": [
+    "octokit",
+    "@octokit/rest",
+    "@octokit/core",
+    "@octokit/graphql",
+    "@octokit/request",
+    "@octokit/app",
+    "@octokit/action",
+    "@actions/github",
+    "probot"
+  ],
+  "selectedAt": "2026-10-22T10:53:27.318Z",
+  "method": "npm search for \"github api\", \"octokit\", \"github action\", \"github app\", \"github bot\", \"github release\", \"github issues\", \"github pull request\", \"github cli\", \"github graphql\", \"changelog github\", \"github stats\", \"github repository\", \"github mcp\" (2 pages of 250); latest manifest declares octokit or @octokit/rest or @octokit/core or @octokit/graphql or @octokit/request or @octokit/app or @octokit/action or @actions/github or probot in dependencies; github.com repository; published since 2022-01-01; vendor scopes excluded; ranked by monthly downloads; one entry per repository; frozen at HEAD from git ls-remote.",
+  "rejected": {
+    "vendor": 94,
+    "old": 1164,
+    "noDependency": 2797,
+    "noRepository": 5,
+    "duplicate": 9,
+    "unreachable": 0
+  },
+  "repos": [
+    {
+      "provider": "github",
+      "repo": "semantic-release/github",
+      "commit": "ead7bd3ef2a9bc6f98dc01f3d65d82e8915ae0de",
+      "package": "@semantic-release/github",
+      "version": "12.0.10",
+      "declared": {
+        "@octokit/core": "^7.0.0 (dependencies)"
+      },
+      "monthlyDownloads": 13217194,
+      "publishedAt": "2026-09-21T18:44:46.914Z"
+    },
+    {
+      "provider": "github",
+      "repo": "napi-rs/napi-rs",
+      "commit": "31a0c2ec04a5751fc2f9fc3d919ce5aa3c54901f",
+      "package": "@napi-rs/cli",
+      "version": "3.10.9",
+      "declared": {
+        "@octokit/rest": "^22.0.1 (dependencies)"
+      },
+      "monthlyDownloads": 6437819,
+      "publishedAt": "2026-10-21T16:38:55.714Z"
+    },
+    {
+      "provider": "github",
+      "repo": "danger/danger-js",
+      "commit": "37a360502df74a18cda7bf6a350789d5dd066dfd",
+      "package": "danger",
+      "version": "14.0.7",
+      "declared": {
+        "@octokit/rest": "^20.1.2 (dependencies)"
+      },
+      "monthlyDownloads": 4596758,
+      "publishedAt": "2026-08-28T07:36:29.501Z"
+    },
+    {
+      "provider": "github",
+      "repo": "sindresorhus/github-username",
+      "commit": "bf26cea5bb7753e5a0319785b40be75bf8df7281",
+      "package": "github-username",
+      "version": "9.0.0",
+      "declared": {
+        "@octokit/rest": "^21.1.1 (dependencies)"
+      },
+      "monthlyDownloads": 4381987,
+      "publishedAt": "2025-02-20T13:38:26.463Z"
+    },
+    {
+      "provider": "github",
+      "repo": "release-it/release-it",
+      "commit": "45483990a7fef3959fbbb36ea00d719b1bc6102f",
+      "package": "release-it",
+      "version": "21.1.1",
+      "declared": {
+        "@octokit/rest": "22.0.1 (dependencies)"
+      },
+      "monthlyDownloads": 3877599,
+      "publishedAt": "2026-10-07T14:59:18.603Z"
+    },
+    {
+      "provider": "github",
+      "repo": "googleapis/repo-automation-bots",
+      "commit": "bace413ee163c5290ceaf3e2635cc29308d4ecea",
+      "package": "@google-automations/git-file-utils",
+      "version": "3.2.1",
+      "declared": {
+        "@octokit/rest": "^20.1.1 (dependencies)"
+      },
+      "monthlyDownloads": 940698,
+      "publishedAt": "2026-09-16T02:07:23.610Z"
+    },
+    {
+      "provider": "github",
+      "repo": "googleapis/release-please",
+      "commit": "459f184c9b893ddd7c33e0d28265915bdbb4a15a",
+      "package": "release-please",
+      "version": "17.11.2",
+      "declared": {
+        "@octokit/rest": "^20.1.1 (dependencies)",
+        "@octokit/graphql": "^7.1.0 (dependencies)",
+        "@octokit/request": "^8.3.1 (dependencies)"
+      },
+      "monthlyDownloads": 908109,
+      "publishedAt": "2026-08-24T21:48:19.403Z"
+    },
+    {
+      "provider": "github",
+      "repo": "sorenlouv/backport",
+      "commit": "f9d847e91713a58c6b8e76208241c7575569cd44",
+      "package": "backport",
+      "version": "12.1.2",
+      "declared": {
+        "@octokit/rest": "^22.0.1 (dependencies)"
+      },
+      "monthlyDownloads": 855286,
+      "publishedAt": "2026-10-07T22:22:22.792Z"
+    },
+    {
+      "provider": "github",
+      "repo": "momentic-ai/cli",
+      "commit": "b86cc1370f87e7ce213b41b9ab6157e97ff64cf2",
+      "package": "momentic",
+      "version": "3.66.4",
+      "declared": {
+        "@octokit/rest": "22.0.1 (dependencies)"
+      },
+      "monthlyDownloads": 743284,
+      "publishedAt": "2026-10-21T01:22:52.235Z"
+    },
+    {
+      "provider": "github",
+      "repo": "wundergraph/cosmo",
+      "commit": "e33b3832c89b56fe1c1adb09f2fd62506c70b693",
+      "package": "wgc",
+      "version": "0.133.2",
+      "declared": {
+        "octokit": "4.1.3 (dependencies)",
+        "@octokit/rest": "22.0.0 (dependencies)"
+      },
+      "monthlyDownloads": 699662,
+      "publishedAt": "2026-10-21T15:38:36.045Z"
+    },
+    {
+      "provider": "github",
+      "repo": "vercel/chat",
+      "commit": "5781d46cd6dc59f2645771d4252b0c7ce305c609",
+      "package": "@chat-adapter/github",
+      "version": "4.43.0",
+      "declared": {
+        "@octokit/rest": "^22.0.1 (dependencies)"
+      },
+      "monthlyDownloads": 538664,
+      "publishedAt": "2026-10-19T10:21:32.437Z"
+    },
+    {
+      "provider": "github",
+      "repo": "backstage/backstage",
+      "commit": "10a4660379d2a241d931580bbf2fbeb70963896b",
+      "package": "@backstage/cli-module-github",
+      "version": "0.1.5",
+      "declared": {
+        "@octokit/request": "^8.0.0 (dependencies)"
+      },
+      "monthlyDownloads": 479508,
+      "publishedAt": "2026-10-20T16:41:39.634Z"
+    },
+    {
+      "provider": "github",
+      "repo": "storyblok/monoblok",
+      "commit": "0ddc2960e4abe9d1ad16fc8d3d095a613e425151",
+      "package": "storyblok",
+      "version": "4.25.0",
+      "declared": {
+        "octokit": "^5.0.3 (dependencies)"
+      },
+      "monthlyDownloads": 312160,
+      "publishedAt": "2026-10-21T13:40:08.845Z"
+    },
+    {
+      "provider": "github",
+      "repo": "docker/actions-toolkit",
+      "commit": "7ba5a65b88c11a72a6979b8a8b5839083959bb89",
+      "package": "@docker/github-builder-runtime",
+      "version": "0.107.0",
+      "declared": {
+        "@actions/github": "^9.1.1 (dependencies)"
+      },
+      "monthlyDownloads": 306112,
+      "publishedAt": "2026-10-21T11:16:37.825Z"
+    },
+    {
+      "provider": "github",
+      "repo": "electron/forge",
+      "commit": "16d47dc293877af4a3739ad54965e8f0030abbfd",
+      "package": "@electron-forge/publisher-github",
+      "version": "8.0.1",
+      "declared": {
+        "@octokit/rest": "^20.1.2 (dependencies)",
+        "@octokit/core": "^5.2.1 (dependencies)"
+      },
+      "monthlyDownloads": 256680,
+      "publishedAt": "2026-09-29T20:35:20.040Z"
+    },
+    {
+      "provider": "github",
+      "repo": "googleapis/code-suggester",
+      "commit": "140a8b84129562cc5d4e1cd146d638d629a35fd1",
+      "package": "code-suggester",
+      "version": "5.0.1",
+      "declared": {
+        "@octokit/rest": "^20.1.2 (dependencies)"
+      },
+      "monthlyDownloads": 232904,
+      "publishedAt": "2026-01-19T16:48:45.951Z"
+    },
+    {
+      "provider": "github",
+      "repo": "MetaMask/auto-changelog",
+      "commit": "18023a35b51db354be86feff2bf68144b24f5aa4",
+      "package": "@metamask/auto-changelog",
+      "version": "6.2.1",
+      "declared": {
+        "@octokit/rest": "^20.0.0 (dependencies)"
+      },
+      "monthlyDownloads": 220288,
+      "publishedAt": "2026-08-18T11:34:43.480Z"
+    },
+    {
+      "provider": "github",
+      "repo": "vercel-labs/github-tools",
+      "commit": "e0ad2a3930cf000494adf8582f1d197c2ad684af",
+      "package": "@github-tools/sdk",
+      "version": "1.18.0",
+      "declared": {
+        "octokit": "^5.0.5 (dependencies)"
+      },
+      "monthlyDownloads": 212957,
+      "publishedAt": "2026-10-07T15:47:10.861Z"
+    },
+    {
+      "provider": "github",
+      "repo": "aws-amplify/amplify-category-api",
+      "commit": "edb5c2a9f10b3fd60951bdde2b990fdeda159a05",
+      "package": "@aws-amplify/amplify-category-api",
+      "version": "5.15.7",
+      "declared": {
+        "@octokit/rest": "^20.1.2 (dependencies)"
+      },
+      "monthlyDownloads": 173236,
+      "publishedAt": "2026-09-28T11:53:08.590Z"
+    },
+    {
+      "provider": "github",
+      "repo": "upptime/graphs",
+      "commit": "c671006d78048ac34bb013e659bcf307836cade2",
+      "package": "@upptime/graphs",
+      "version": "1.2.33",
+      "declared": {
+        "@octokit/rest": "^18.0.6 (dependencies)"
+      },
+      "monthlyDownloads": 109662,
+      "publishedAt": "2026-10-20T09:08:45.256Z"
+    },
+    {
+      "provider": "github",
+      "repo": "upptime/status-page",
+      "commit": "62283e7c8a0356a74e9eefca8b59ae92c1aceb25",
+      "package": "@upptime/status-page",
+      "version": "1.17.0",
+      "declared": {
+        "@octokit/rest": "^18.12.0 (dependencies)"
+      },
+      "monthlyDownloads": 104116,
+      "publishedAt": "2024-06-29T10:53:06.242Z"
+    },
+    {
+      "provider": "github",
+      "repo": "github/local-action",
+      "commit": "b9351d8a8f1e6eed27646f4d892b49a3847ba180",
+      "package": "@github/local-action",
+      "version": "7.0.1",
+      "declared": {
+        "@octokit/rest": "^22.0.1 (dependencies)",
+        "@octokit/core": "^7.0.6 (dependencies)",
+        "@actions/github": "^7.0.0 (dependencies)"
+      },
+      "monthlyDownloads": 91994,
+      "publishedAt": "2026-02-18T19:48:17.707Z"
+    },
+    {
+      "provider": "github",
+      "repo": "salesforcecli/plugin-release-management",
+      "commit": "390a93e9a442ace9b52d3588d69a5387e6b357bf",
+      "package": "@salesforce/plugin-release-management",
+      "version": "6.1.11",
+      "declared": {
+        "@octokit/core": "^6.1.6 (dependencies)"
+      },
+      "monthlyDownloads": 91885,
+      "publishedAt": "2026-10-17T08:59:06.570Z"
+    },
+    {
+      "provider": "github",
+      "repo": "wevm/frog",
+      "commit": "242e306ebb19fbe77b6b3bcffcd9430743f5117a",
+      "package": "frog",
+      "version": "1.1.0",
+      "declared": {
+        "@octokit/rest": "^22.0.1 (dependencies)"
+      },
+      "monthlyDownloads": 87403,
+      "publishedAt": "2026-08-04T09:04:47.530Z"
+    },
+    {
+      "provider": "github",
+      "repo": "JoshuaKGoldberg/octokit-from-auth",
+      "commit": "65e5e76bb6f66b612d575113d200e1b05c06402a",
+      "package": "octokit-from-auth",
+      "version": "0.3.2",
+      "declared": {
+        "octokit": "^5.0.0 (dependencies)"
+      },
+      "monthlyDownloads": 65638,
+      "publishedAt": "2025-05-27T10:48:00.581Z"
+    },
+    {
+      "provider": "github",
+      "repo": "JoshuaKGoldberg/new-github-repository",
+      "commit": "788af7a1da109ab6e4966a38f7534c8feae10f2f",
+      "package": "new-github-repository",
+      "version": "0.2.5",
+      "declared": {
+        "octokit": "^5.0.5 (dependencies)"
+      },
+      "monthlyDownloads": 54716,
+      "publishedAt": "2026-09-20T18:55:42.958Z"
+    },
+    {
+      "provider": "github",
+      "repo": "ungoldman/gh-release",
+      "commit": "8f758fd2cc9557b82618d95fd6029a617a311302",
+      "package": "gh-release",
+      "version": "8.1.0",
+      "declared": {
+        "@octokit/rest": "^22.0.1 (dependencies)"
+      },
+      "monthlyDownloads": 54007,
+      "publishedAt": "2026-06-17T22:04:56.795Z"
+    },
+    {
+      "provider": "github",
+      "repo": "mheap/pin-github-action",
+      "commit": "c20721ac7d063c318d208caf9f8c2024cff31970",
+      "package": "pin-github-action",
+      "version": "3.5.2",
+      "declared": {
+        "@octokit/rest": "^22 (dependencies)"
+      },
+      "monthlyDownloads": 53462,
+      "publishedAt": "2026-08-13T08:10:41.812Z"
+    },
+    {
+      "provider": "github",
+      "repo": "acalcutt/node-pre-gyp-github",
+      "commit": "093d4ed411388e5507f37a3929601f8a7fcab4bb",
+      "package": "@acalcutt/node-pre-gyp-github",
+      "version": "2.0.3",
+      "declared": {
+        "@octokit/rest": "22.0.1 (dependencies)"
+      },
+      "monthlyDownloads": 41584,
+      "publishedAt": "2026-06-01T23:20:09.429Z"
+    },
+    {
+      "provider": "github",
+      "repo": "SAP/mdk-mcp-server",
+      "commit": "2093f6bfe9f096128768278c7f7cdc30be3b0156",
+      "package": "@sap/mdk-mcp-server",
+      "version": "0.4.2",
+      "declared": {
+        "@octokit/rest": "^22.0.0 (dependencies)"
+      },
+      "monthlyDownloads": 38360,
+      "publishedAt": "2026-10-21T11:40:04.477Z"
+    },
+    {
+      "provider": "github",
+      "repo": "backstage/community-plugins",
+      "commit": "cf85f5f3f968808bade9916193540e4b7389b012",
+      "package": "@backstage-community/plugin-github-pull-requests-board",
+      "version": "1.5.1",
+      "declared": {
+        "@octokit/rest": "^19.0.3 (dependencies)"
+      },
+      "monthlyDownloads": 36378,
+      "publishedAt": "2026-10-12T19:21:15.610Z"
+    },
+    {
+      "provider": "github",
+      "repo": "HaruHunab1320/git-workspace-service",
+      "commit": "aa7d47fb227e977ddf95b0a4855922ef1c36ac89",
+      "package": "git-workspace-service",
+      "version": "0.5.0",
+      "declared": {
+        "@octokit/rest": "^20.0.0 (dependencies)"
+      },
+      "monthlyDownloads": 35443,
+      "publishedAt": "2026-10-07T03:06:12.948Z"
+    },
+    {
+      "provider": "github",
+      "repo": "electron/github-app-auth",
+      "commit": "c80357822bc5479d2bb5ef9c31619c00e3617529",
+      "package": "@electron/github-app-auth",
+      "version": "3.2.0",
+      "declared": {
+        "@octokit/rest": "^22.0.0 (dependencies)"
+      },
+      "monthlyDownloads": 34989,
+      "publishedAt": "2025-11-14T07:34:58.681Z"
+    },
+    {
+      "provider": "github",
+      "repo": "UsefulSoftwareCo/emulate",
+      "commit": "0dd11e1a7c0051d5614a925bc9874d80b3af269e",
+      "package": "@executor-js/emulate",
+      "version": "0.14.2",
+      "declared": {
+        "@octokit/rest": "^22.0.1 (dependencies)"
+      },
+      "monthlyDownloads": 34675,
+      "publishedAt": "2026-09-15T02:01:37.588Z"
+    },
+    {
+      "provider": "github",
+      "repo": "uphold/github-changelog-generator",
+      "commit": "323ebe761b621f4c9f51249c3038c6e527bb232d",
+      "package": "@uphold/github-changelog-generator",
+      "version": "4.0.2",
+      "declared": {
+        "@octokit/graphql": "^8.2.1 (dependencies)"
+      },
+      "monthlyDownloads": 28716,
+      "publishedAt": "2025-03-21T00:51:54.484Z"
+    },
+    {
+      "provider": "github",
+      "repo": "iterative/cml",
+      "commit": "a3a66c74b218b08710f42bf599b066e37cb4cba7",
+      "package": "@dvcorg/cml",
+      "version": "0.20.6",
+      "declared": {
+        "@octokit/rest": "18.0.0 (dependencies)",
+        "@octokit/core": "^3.5.1 (dependencies)",
+        "@octokit/graphql": "^4.8.0 (dependencies)",
+        "@actions/github": "^4.0.0 (dependencies)"
+      },
+      "monthlyDownloads": 27170,
+      "publishedAt": "2024-10-24T14:06:00.774Z"
+    },
+    {
+      "provider": "github",
+      "repo": "cursor/cursor",
+      "commit": "654b1b4775ca67aef473bd31a14c8c04a1abde2d",
+      "package": "@cursor/bdk",
+      "version": "0.2.28",
+      "declared": {
+        "@octokit/rest": "^21.1.1 (dependencies)"
+      },
+      "monthlyDownloads": 26798,
+      "publishedAt": "2026-10-21T19:29:19.101Z"
+    },
+    {
+      "provider": "github",
+      "repo": "gagoar/github-app-installation-token",
+      "commit": "14755291d579174ef732c34434273399a5b0de98",
+      "package": "github-app-installation-token",
+      "version": "1.2.0",
+      "declared": {
+        "@octokit/rest": "18.12.0 (dependencies)"
+      },
+      "monthlyDownloads": 25586,
+      "publishedAt": "2022-01-26T14:31:15.506Z"
+    },
+    {
+      "provider": "github",
+      "repo": "timotheeguerin/chronus",
+      "commit": "112b4288472f20dd4595f6893cec8c499f6a50ca",
+      "package": "@chronus/github",
+      "version": "1.2.1",
+      "declared": {
+        "octokit": "^5.0.3 (dependencies)",
+        "@octokit/rest": "^22.0.1 (dependencies)",
+        "@octokit/graphql": "^9.0.1 (dependencies)"
+      },
+      "monthlyDownloads": 23203,
+      "publishedAt": "2026-09-11T16:02:46.244Z"
+    },
+    {
+      "provider": "github",
+      "repo": "trim21/pi-extensions",
+      "commit": "058f238bad702fb193bbd02cd294d00fe8fd2c6c",
+      "package": "@trim21/personal-pi-extensions",
+      "version": "0.1.20261022015401",
+      "declared": {
+        "octokit": "^5.0.5 (dependencies)"
+      },
+      "monthlyDownloads": 21611,
+      "publishedAt": "2026-10-21T17:56:29.848Z"
+    },
+    {
+      "provider": "github",
+      "repo": "favware/cliff-jumper",
+      "commit": "d54e20c018841b214db4bea68c4354bb01e565bd",
+      "package": "@favware/cliff-jumper",
+      "version": "6.1.0",
+      "declared": {
+        "@octokit/core": "^7.0.6 (dependencies)"
+      },
+      "monthlyDownloads": 20852,
+      "publishedAt": "2026-04-13T13:00:49.709Z"
+    },
+    {
+      "provider": "github",
+      "repo": "intuit/auto",
+      "commit": "fc18021f300a58f6bb6ee4c1e894756c7e533d27",
+      "package": "@auto-it/protected-branch",
+      "version": "11.3.6",
+      "declared": {
+        "@octokit/rest": "^18.12.0 (dependencies)"
+      },
+      "monthlyDownloads": 17476,
+      "publishedAt": "2025-11-14T21:51:08.719Z"
+    },
+    {
+      "provider": "github",
+      "repo": "tinacms/tinacms",
+      "commit": "40cf6628da02f81bd0cb5994a3ed78b71cba699a",
+      "package": "tinacms-gitprovider-github",
+      "version": "5.0.0",
+      "declared": {
+        "@octokit/rest": "^22.0.1 (dependencies)"
+      },
+      "monthlyDownloads": 16963,
+      "publishedAt": "2026-10-12T04:57:06.600Z"
+    },
+    {
+      "provider": "github",
+      "repo": "enormora/pr-log",
+      "commit": "ff64e1bdd6376ceebed80d8c8a6344b75744edf4",
+      "package": "@pr-log/core",
+      "version": "0.0.5",
+      "declared": {
+        "@octokit/rest": "22.0.1 (dependencies)"
+      },
+      "monthlyDownloads": 16833,
+      "publishedAt": "2026-09-14T17:00:25.004Z"
+    },
+    {
+      "provider": "github",
+      "repo": "cjbarth/github-release-notes",
+      "commit": "fa42a8fe61d77bc9043400750678a84be1a2686a",
+      "package": "@cjbarth/github-release-notes",
+      "version": "5.2.0",
+      "declared": {
+        "@octokit/rest": "^22.0.1 (dependencies)"
+      },
+      "monthlyDownloads": 16772,
+      "publishedAt": "2026-09-17T17:39:16.201Z"
+    },
+    {
+      "provider": "github",
+      "repo": "gr2m/register-github-app",
+      "commit": "5d81e98a34aaa0f292db1db405b7c57811031dac",
+      "package": "register-github-app",
+      "version": "2.0.2",
+      "declared": {
+        "@octokit/request": "^9.0.1 (dependencies)"
+      },
+      "monthlyDownloads": 15435,
+      "publishedAt": "2024-04-09T22:45:34.239Z"
+    },
+    {
+      "provider": "github",
+      "repo": "medikoo/gh-release-from-cc-changelog",
+      "commit": "2ed5b393ffc9d1a61a17133cfd5ec583719fa03b",
+      "package": "github-release-from-cc-changelog",
+      "version": "2.3.0",
+      "declared": {
+        "@octokit/rest": "^18.12.0 (dependencies)"
+      },
+      "monthlyDownloads": 15345,
+      "publishedAt": "2022-04-05T10:13:50.458Z"
+    },
+    {
+      "provider": "github",
+      "repo": "enormora/packtory",
+      "commit": "18049b8e17ae72ed0688948441edc435d4da6359",
+      "package": "@packtory/github-release-gate",
+      "version": "0.0.85",
+      "declared": {
+        "@octokit/core": "7.0.8 (dependencies)"
+      },
+      "monthlyDownloads": 14654,
+      "publishedAt": "2026-10-15T09:45:33.911Z"
+    },
+    {
+      "provider": "github",
+      "repo": "googleapis/google-cloud-node",
+      "commit": "96926ffe2514d650d170ad05c0d68ca0d7225696",
+      "package": "gapic-node-processing",
+      "version": "0.3.1",
+      "declared": {
+        "@octokit/rest": "^20.0.0 (dependencies)"
+      },
+      "monthlyDownloads": 13664,
+      "publishedAt": "2026-10-20T15:52:21.209Z"
+    },
+    {
+      "provider": "github",
+      "repo": "spencerbeggs/effected",
+      "commit": "e8990d4fbb5960d72b0bc93eadced3a804bc039e",
+      "package": "@effected/github",
+      "version": "0.21.0",
+      "declared": {
+        "@octokit/core": "^7.0.6 (dependencies)"
+      },
+      "monthlyDownloads": 12984,
+      "publishedAt": "2026-10-19T15:12:56.984Z"
+    },
+    {
+      "provider": "github",
+      "repo": "repository-settings/app",
+      "commit": "8c9292a19fd8372a5de490cf15c92af787f45042",
+      "package": "@repository-settings/app",
+      "version": "5.0.14",
+      "declared": {
+        "probot": "14.3.2 (dependencies)"
+      },
+      "monthlyDownloads": 12114,
+      "publishedAt": "2026-08-29T21:04:01.242Z"
+    },
+    {
+      "provider": "github",
+      "repo": "nodejs/changelog-maker",
+      "commit": "03fe495f2667e04b24d727e74895df0152487d58",
+      "package": "changelog-maker",
+      "version": "5.0.10",
+      "declared": {
+        "@octokit/graphql": "^9.0.3 (dependencies)"
+      },
+      "monthlyDownloads": 10182,
+      "publishedAt": "2026-10-20T18:21:38.032Z"
+    },
+    {
+      "provider": "github",
+      "repo": "hipstersmoothie/jest-github-reporter",
+      "commit": "7a380afe8c9b3b604d1ddbc9338d3d51d65fdcfd",
+      "package": "jest-github-reporter",
+      "version": "1.1.1",
+      "declared": {
+        "@octokit/rest": "^16.28.7 (dependencies)"
+      },
+      "monthlyDownloads": 9957,
+      "publishedAt": "2023-03-02T19:47:38.226Z"
+    },
+    {
+      "provider": "github",
+      "repo": "rejot-dev/fragno",
+      "commit": "b854e42c314ebd330b23254800752afe6386ecc7",
+      "package": "@fragno-dev/github-app-fragment",
+      "version": "0.0.3",
+      "declared": {
+        "octokit": "^5.0.5 (dependencies)"
+      },
+      "monthlyDownloads": 9329,
+      "publishedAt": "2026-04-15T09:00:58.073Z"
+    },
+    {
+      "provider": "github",
+      "repo": "TrigenSoftware/simple-release",
+      "commit": "48b1ed749457837b0b39d8698426eec987ada5a5",
+      "package": "@simple-release/github",
+      "version": "3.3.1",
+      "declared": {
+        "@octokit/rest": "^22.0.0 (dependencies)"
+      },
+      "monthlyDownloads": 9043,
+      "publishedAt": "2026-09-05T15:26:52.512Z"
+    },
+    {
+      "provider": "github",
+      "repo": "framerslab/agentos-extensions",
+      "commit": "7829e60d2bb3d147811ed85fc58f5b55878aa35f",
+      "package": "@framers/agentos-ext-github",
+      "version": "0.5.0",
+      "declared": {
+        "@octokit/rest": "^22.0.1 (dependencies)"
+      },
+      "monthlyDownloads": 8140,
+      "publishedAt": "2026-10-18T05:54:53.463Z"
+    },
+    {
+      "provider": "github",
+      "repo": "cypress-io/github-action",
+      "commit": "ab34eeced21c816a9ef8396f2d2a9ef4b735b16f",
+      "package": "@cypress/github-action",
+      "version": "7.4.6",
+      "declared": {
+        "@octokit/core": "7.0.6 (dependencies)"
+      },
+      "monthlyDownloads": 7780,
+      "publishedAt": "2026-10-01T16:37:51.732Z"
+    },
+    {
+      "provider": "github",
+      "repo": "electrovir/pull-request-vir",
+      "commit": "1a07c23dfa6ed34e2760e681b14aaa0554c9cce1",
+      "package": "pull-request-vir",
+      "version": "1.8.5",
+      "declared": {
+        "@octokit/rest": "^22.0.1 (dependencies)",
+        "@octokit/core": "^7.0.8 (dependencies)",
+        "@actions/github": "^9.1.1 (dependencies)"
+      },
+      "monthlyDownloads": 7268,
+      "publishedAt": "2026-10-16T18:29:37.181Z"
+    },
+    {
+      "provider": "github",
+      "repo": "hyperse-io/vitest-coverage-reporter",
+      "commit": "a5a945c35aca52cd1d51394547b47ec18ac6502b",
+      "package": "@hyperse/vitest-coverage-reporter",
+      "version": "1.0.16",
+      "declared": {
+        "@actions/github": "6.0.1 (dependencies)"
+      },
+      "monthlyDownloads": 7130,
+      "publishedAt": "2025-06-28T01:10:50.043Z"
+    },
+    {
+      "provider": "github",
+      "repo": "cardinalby/js-github-action-test-utils",
+      "commit": "5faa643cccf39dc9f9825260ad0589065dec22b2",
+      "package": "github-action-ts-run-api",
+      "version": "3.1.0",
+      "declared": {
+        "@actions/github": "^5.1.1 (dependencies)"
+      },
+      "monthlyDownloads": 6902,
+      "publishedAt": "2026-04-13T19:03:57.434Z"
+    },
+    {
+      "provider": "github",
+      "repo": "JoshuaKGoldberg/co-author-to-username",
+      "commit": "37767aa76e49ca8f98543af0115bde906c63f920",
+      "package": "co-author-to-username",
+      "version": "0.1.3",
+      "declared": {
+        "octokit": "^5.0.0 (dependencies)"
+      },
+      "monthlyDownloads": 6716,
+      "publishedAt": "2025-05-27T09:36:46.391Z"
+    },
+    {
+      "provider": "github",
+      "repo": "JoshuaKGoldberg/release-it-action",
+      "commit": "26d7e9af85d45e120d9c32de0969acaf643c7a19",
+      "package": "release-it-action",
+      "version": "0.6.4",
+      "declared": {
+        "@actions/github": "^9.0.0 (dependencies)"
+      },
+      "monthlyDownloads": 6699,
+      "publishedAt": "2026-10-03T16:49:44.624Z"
+    },
+    {
+      "provider": "github",
+      "repo": "technote-space/github-action-test-helper",
+      "commit": "457bee1265b2ac829d68c9775e1329931b09ef17",
+      "package": "@technote-space/github-action-test-helper",
+      "version": "0.11.17",
+      "declared": {
+        "@actions/github": "^5.1.1 (dependencies)"
+      },
+      "monthlyDownloads": 6359,
+      "publishedAt": "2023-05-29T15:01:26.778Z"
+    },
+    {
+      "provider": "github",
+      "repo": "Microsoft/vscode-azuretools",
+      "commit": "5087d3c62117c414d6aff007da6326dbd076cab2",
+      "package": "@microsoft/vscode-azext-github",
+      "version": "3.0.0",
+      "declared": {
+        "@octokit/rest": "^22.0.1 (dependencies)"
+      },
+      "monthlyDownloads": 6214,
+      "publishedAt": "2026-10-06T15:56:39.878Z"
+    },
+    {
+      "provider": "github",
+      "repo": "technote-space/github-action-helper",
+      "commit": "6ac584ed22a472869ab7321e80ac7ef57df54c9c",
+      "package": "@technote-space/github-action-helper",
+      "version": "5.3.17",
+      "declared": {
+        "@actions/github": "^5.1.1 (dependencies)"
+      },
+      "monthlyDownloads": 6115,
+      "publishedAt": "2023-05-29T15:30:54.062Z"
+    },
+    {
+      "provider": "github",
+      "repo": "technote-space/filter-github-action",
+      "commit": "079b6ed252abb84bc69851c52317758cd48cdc80",
+      "package": "@technote-space/filter-github-action",
+      "version": "0.6.13",
+      "declared": {
+        "@actions/github": "^5.1.1 (dependencies)"
+      },
+      "monthlyDownloads": 5545,
+      "publishedAt": "2023-05-27T14:03:36.868Z"
+    },
+    {
+      "provider": "github",
+      "repo": "nyaomaru/changelog-bot",
+      "commit": "98398ff4db057305b0d72dfcbafbb14c01f269aa",
+      "package": "@nyaomaru/changelog-bot",
+      "version": "0.9.3",
+      "declared": {
+        "octokit": "^5.0.5 (dependencies)"
+      },
+      "monthlyDownloads": 5427,
+      "publishedAt": "2026-10-19T16:46:37.534Z"
+    },
+    {
+      "provider": "github",
+      "repo": "probelabs/visor",
+      "commit": "c0d33ed84dd363c9b42fb4cd5d65db05f1de08a4",
+      "package": "@probelabs/visor",
+      "version": "0.1.194",
+      "declared": {
+        "@octokit/rest": "^22.0.0 (dependencies)",
+        "@octokit/core": "^7.0.3 (dependencies)",
+        "@octokit/action": "^8.0.2 (dependencies)"
+      },
+      "monthlyDownloads": 5337,
+      "publishedAt": "2026-10-20T10:04:02.321Z"
+    },
+    {
+      "provider": "github",
+      "repo": "security-alert/security-alert",
+      "commit": "44d48c878ea8e95df88b8302f842809055874242",
+      "package": "@security-alert/sarif-to-comment",
+      "version": "1.11.1",
+      "declared": {
+        "@octokit/rest": "^18.0.3 (dependencies)"
+      },
+      "monthlyDownloads": 4979,
+      "publishedAt": "2026-01-10T06:51:50.040Z"
+    },
+    {
+      "provider": "github",
+      "repo": "nearform/lastlight",
+      "commit": "2e391d22223f3d52664e62c41904a24deacea405",
+      "package": "lastlight-core",
+      "version": "0.40.3",
+      "declared": {
+        "octokit": "^5.0.5 (dependencies)"
+      },
+      "monthlyDownloads": 4484,
+      "publishedAt": "2026-10-11T04:27:55.641Z"
+    }
+  ]
+}

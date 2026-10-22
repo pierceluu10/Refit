@@ -3,9 +3,12 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { afterEach, expect, it, vi } from 'vitest';
 import type { DeadlineRegistry } from './deadline-registry.ts';
+import { EMPTY_MODEL_PARAMETERS } from './model-parameters.ts';
 import { runModelFixes } from './model-fixes.ts';
 
-const published = vi.hoisted(() => [] as { key: string; title: string; body: string }[]);
+const published = vi.hoisted(
+  () => [] as { key: string; title: string; body: string; message: string }[],
+);
 const checks = vi.hoisted(() => ({ patched: 'passed', runs: 0 }));
 
 // Validation runs the proposal on the repository itself and reports the configured outcome, so
@@ -99,6 +102,7 @@ it('opens a draft pull request for validated replacements without asking first',
   const result = await runModelFixes({
     repository: root,
     registry,
+    parameters: EMPTY_MODEL_PARAMETERS,
     now: NOW,
     checks: CHECKS,
     publication: { repository: 'example/app', base: 'main', token: 'token' },
@@ -115,6 +119,7 @@ it('opens a draft pull request for validated replacements without asking first',
   expect(published[0].title).toBe('fix: replace 1 retiring AI model');
   expect(published[0].key).toBe(`model-fixes:${'a'.repeat(40)}:${result.fixKey}`);
   const body = published[0].body;
+  expect(published[0].message).toContain('- src/ai.ts:3: gpt-4 -> gpt-5.6-sol, retires 2026-10-23');
   expect(body).toContain(
     '| `src/ai.ts:3` `chat.completions.create` | `src/ai.ts:3` | `gpt-4` → `gpt-5.6-sol` | 2026-10-23 |',
   );
@@ -131,6 +136,7 @@ it('opens a draft pull request for validated replacements without asking first',
   const again = await runModelFixes({
     repository: root,
     registry,
+    parameters: EMPTY_MODEL_PARAMETERS,
     now: NOW,
     checks: CHECKS,
     publication: { repository: 'example/app', base: 'main', token: 'token' },
@@ -147,6 +153,7 @@ it('never publishes a replacement whose checks fail, and stops when nothing is s
   const failed = await runModelFixes({
     repository: root,
     registry,
+    parameters: EMPTY_MODEL_PARAMETERS,
     now: NOW,
     checks: CHECKS,
     publication: { repository: 'example/app', base: 'main', token: 'token' },
@@ -164,18 +171,69 @@ it('never publishes a replacement whose checks fail, and stops when nothing is s
       .join('\n'),
   });
   expect(
-    await runModelFixes({ repository: unsafe, registry, now: NOW, checks: CHECKS }),
+    await runModelFixes({
+      repository: unsafe,
+      registry,
+      parameters: EMPTY_MODEL_PARAMETERS,
+      now: NOW,
+      checks: CHECKS,
+    }),
   ).toMatchObject({
     status: 'needs-review',
     reason: 'No model can be replaced safely; 1 use left for review.',
   });
   const clean = await repository({ 'src/ai.ts': 'export const x = 1;' });
   expect(
-    await runModelFixes({ repository: clean, registry, now: NOW, checks: CHECKS }),
+    await runModelFixes({
+      repository: clean,
+      registry,
+      parameters: EMPTY_MODEL_PARAMETERS,
+      now: NOW,
+      checks: CHECKS,
+    }),
   ).toMatchObject({ status: 'no-change', reason: 'No traced call sends a retiring model.' });
   // Without a publication target, a passing run is recorded as validated.
   checks.patched = 'passed';
   expect(
-    await runModelFixes({ repository: root, registry, now: NOW, checks: CHECKS }),
+    await runModelFixes({
+      repository: root,
+      registry,
+      parameters: EMPTY_MODEL_PARAMETERS,
+      now: NOW,
+      checks: CHECKS,
+    }),
   ).toMatchObject({ status: 'validated' });
+});
+
+it('edits a parameterised call only when a table entry proves the literal', async () => {
+  const root = await repository({ 'src/ai.ts': SOURCE });
+  const source = 'https://developers.openai.com/api/docs/models';
+  const parameters = {
+    formatVersion: 1 as const,
+    models: [
+      {
+        provider: 'openai' as const,
+        model: 'gpt-5.6-sol',
+        parameters: { temperature: { accepts: 'any' as const, min: 0, max: 2 } },
+        source,
+        checkedAt: '2026-10-20',
+      },
+    ],
+  };
+  const without = await runModelFixes({
+    repository: root,
+    registry,
+    parameters: EMPTY_MODEL_PARAMETERS,
+    now: NOW,
+    checks: CHECKS,
+  });
+  expect(without.replacements.map((item) => item.line)).toEqual([3]);
+  const withTable = await runModelFixes({
+    repository: root,
+    registry,
+    parameters,
+    now: NOW,
+    checks: CHECKS,
+  });
+  expect(withTable.replacements.map((item) => item.line)).toEqual([3, 4]);
 });

@@ -151,6 +151,7 @@ it.skipIf(!process.env.REFIT_STRIPE_SDK || !IMAGE || !process.env.REFIT_NPM_PREP
           image: String(prepared.environment.image),
           dependencies: prepared.archive,
           network: 'none',
+          timeoutMs: 120_000,
           command: ['node', 'contract.mjs', './application', 'regression'],
         }),
         { timeout: PROCESS_TIMEOUT_MS },

@@ -12,6 +12,16 @@
 
 On the application sets, read only against `main` at `fb0143a`, exposed repositories with no outcome went from 17 to 0 for Anthropic and 12 to 0 for OpenAI; replacements stayed at 2 repositories per set and no repository lost one ([benchmarks](BENCHMARKS.md#model-fixes-on-the-application-sets-october-21)). Tests: `pipeline/model-retirements.test.ts`, `pipeline/deadlines.test.ts` and `pipeline/ai-model-benchmark-summary.test.ts`.
 
+## October 22 checkpoint: sourced parameter table, off by default (unreleased, after 0.39.0)
+
+The model-replacement rule can continue past a sampling or length stop where an official page read by a person proves the replacement accepts that parameter with that literal value. It is off by default (owner decision, 2026-10-22): only `refit deadlines --propose-model-fixes --parameters data/model-parameters.json` uses the table; `refit serve --model-fixes` and the default command keep the heuristic stops.
+
+- **Table.** `data/model-parameters.json` holds sourced entries, each with an official `source`, a `checkedAt` date and, for defaults, a `defaultSource`. `npm run model-parameters:check` rejects the whole file on any error, and a table that fails to load stops model fixes.
+- **What continues.** Only a literal `temperature: 1` on a `claude-sonnet-5-5` replacement. Each parameter is verified separately.
+- **What keeps stopping.** On replacements with a table entry, every parameter the table does not prove, renamed parameters (never rewritten), non-literal values and computed property names. Replacements without an entry keep the earlier heuristic: Claude 4.7-and-later replacements (such as Opus 4.8) stop on `temperature`, `top_p` and `top_k`, earlier ones such as `claude-haiku-4-5-20251001` continue, and every OpenAI replacement stops on its sensitive parameters.
+
+Evidence is fixture tests and the pages read; no live provider was called. Fix rates are measured separately, on the application benchmark sets.
+
 ## October 21 checkpoint: single-tenant hosted enrollment (unreleased, after 0.39.0)
 
 `refit hosted serve` is milestone 3 of the [hosted onboarding proposal](HOSTED-ONBOARDING.md#implemented-single-tenant-hosted-worker). A signed App installation webhook enrolls each installed repository that has a stored `refit enroll` approval. PostgreSQL then holds the installation, the target, a leased job and its receipt. The worker reuses the service's existing core: access confirmation, an App-managed checkout, the approval fingerprint check, `refit doctor`, then scanning and validation with the approved checks. Removing the repository, or deleting or suspending the installation, cancels its targets and stops running jobs. `refit hosted approve` stores an approval.

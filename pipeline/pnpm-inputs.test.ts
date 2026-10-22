@@ -326,3 +326,42 @@ it('accepts release-age settings, which a frozen install never consults, only in
   sample.workspace.minimumReleaseAge = -1;
   expect(() => validate(sample)).toThrow('minimumReleaseAge');
 });
+it('accepts registry packages published before npm required lowercase names', () => {
+  // JSONStream is locked by 7 of 126 benchmark pnpm lockfiles (docs/PREPARATION-FAILURES.md).
+  const sample = scenario();
+  sample.manifest.dependencies.JSONStream = '^1.3.5';
+  sample.lock.importers['.'].dependencies.JSONStream = { specifier: '^1.3.5', version: '1.3.5' };
+  sample.lock.packages['JSONStream@1.3.5'] = { resolution: { integrity: INTEGRITY } };
+  sample.lock.snapshots['JSONStream@1.3.5'] = {};
+  expect(validate(sample)).toMatchObject({ packages: 2 });
+  // A workspace is a new package, so its own name must still be lowercase.
+  const workspace = scenario();
+  workspace.workspaces.set('packages/Billing', JSON.stringify({ name: 'Billing' }));
+  workspace.lock.importers['packages/Billing'] = {};
+  expect(() => validate(workspace)).toThrow(/workspace package names must be explicit/);
+  // Names still cannot carry paths or a scope with capitals.
+  for (const name of ['../JSONStream', '@Scope/pkg']) {
+    const unsafe = scenario();
+    unsafe.lock.packages[`${name}@1.0.0`] = { resolution: { integrity: INTEGRITY } };
+    expect(() => validate(unsafe)).toThrow(/Every pnpm package needs a registry name/);
+  }
+});
+it('refuses mirror tarballs in pnpm lockfiles, which pnpm would fetch from the mirror itself', () => {
+  const sample = scenario();
+  sample.lock.packages['stripe@10.17.0'].resolution.tarball =
+    'https://registry.npmmirror.com/stripe/-/stripe-10.17.0.tgz';
+  expect(() => validate(sample)).toThrow('Package tarballs must use public registry.npmjs.org');
+});
+it('names the declaration a pnpm lockfile has not caught up with', () => {
+  // Suhaib3100/online-compiler declares prisma ^5.20.0 against a lockfile written for ^5.17.0.
+  const changed = scenario();
+  changed.manifest.dependencies.stripe = '^10.17.0';
+  expect(() => validate(changed)).toThrow(
+    'stripe is "^10.17.0" in package.json but "10.17.0" in pnpm-lock.yaml. Run pnpm install and commit the updated pnpm-lock.yaml.',
+  );
+  const added = scenario();
+  added.manifest.dependencies.zod = '3.23.8';
+  expect(() => validate(added)).toThrow(
+    'zod is in package.json dependencies but not in pnpm-lock.yaml.',
+  );
+});
