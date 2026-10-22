@@ -81,6 +81,20 @@ const DETECTORS = {
         provider: item.sdk.startsWith('azure') ? 'azure' : 'aws',
         files: [`${item.file}:${item.line}`],
       })),
+  // Messaging providers: catalog detections, declared packages and live calls.
+  messaging: (json) => [
+    ...(json.providers ?? []).map((item) => ({
+      provider: item.agent.id,
+      files: files([
+        ...item.packages.map((p) => p.file),
+        ...item.hostnames.map((h) => `${h.file}:${h.line}`),
+      ]),
+    })),
+    ...(json.packages ?? []).map((item) => ({ provider: item.provider, files: [item.file] })),
+    ...(json.calls ?? [])
+      .filter((item) => item.use !== 'test')
+      .map((item) => ({ provider: item.provider, files: [`${item.file}:${item.line}`] })),
+  ],
   // Live Slack Web API calls, incoming webhooks and RTM connections.
   slack: (json) => {
     const live = [...(json.calls ?? []), ...(json.webhooks ?? []), ...(json.rtm ?? [])].filter(
