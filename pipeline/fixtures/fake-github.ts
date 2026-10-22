@@ -100,7 +100,13 @@ export async function startFakeGitHub(options: { appId: number; webhookSecret: s
   const installations = new Map<number, FakeInstallation>();
   const repositories = new Map<string, FakeRepository>();
   const tokens = new Map<string, IssuedToken>();
-  const requests: { method: string; path: string; status: number }[] = [];
+  // Every request, refused ones included; `body` is the parsed JSON body of an API request.
+  const requests: {
+    method: string;
+    path: string;
+    status: number;
+    body?: Record<string, unknown>;
+  }[] = [];
   const writes: { method: string; path: string; body: Record<string, unknown> }[] = [];
   const fetches: { repository: string; installation: number }[] = [];
   const deliveries = new Map<string, { event: string; body: string }>();
@@ -344,8 +350,10 @@ export async function startFakeGitHub(options: { appId: number; webhookSecret: s
     const url = new URL(request.url ?? '/', 'http://fake-github');
     const method = request.method ?? 'GET';
     let status: number;
+    let parsed: Record<string, unknown> | undefined;
     try {
       const body = await readBody(request);
+      if (!url.pathname.startsWith('/git/') && body.length) parsed = json(body);
       if (url.pathname.startsWith('/git/')) status = await serveGit(request, response, url, body);
       else {
         const [code, payload] = await api(
@@ -366,7 +374,7 @@ export async function startFakeGitHub(options: { appId: number; webhookSecret: s
         response.end(JSON.stringify({ message: (error as Error).message }));
       }
     }
-    requests.push({ method, path: url.pathname, status });
+    requests.push({ method, path: url.pathname, status, ...(parsed && { body: parsed }) });
   });
   server.listen(0, '127.0.0.1');
   await once(server, 'listening');

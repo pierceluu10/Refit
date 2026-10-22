@@ -20,7 +20,7 @@ REFIT_TEST_DATABASE_URL=postgres://refit:refit-local-test@127.0.0.1:55432/refit 
 - **Installation tokens.** `POST /app/installations/{id}/access_tokens` issues a token scoped to one repository with the requested permissions. A token stops working when its repository leaves the installation or the App is uninstalled.
 - **Repositories.** It serves repository metadata, branch refs, and issue, comment and collaborator-permission endpoints.
 - **Git.** Each repository is a local bare remote served by `git http-backend`. It serves fetches only, and only with a valid token for that repository.
-- **Records.** It records every request, every write and every Git fetch, so tests can assert what Refit never did.
+- **Records.** It records every request with its status and JSON body, refused ones included, and every successful write, so tests can assert what Refit never did.
 - **Webhooks.** Customer actions (`install`, `changeRepositories`, `uninstall`, `redeliver`) change what it serves, then deliver the webhook GitHub would send, signed with the webhook secret.
 
 Tests route Refit's `api.github.com` requests to it with `vi.stubGlobal('fetch', github.fetch)`. Managed checkouts' `git fetch origin` goes to it through `throughFakeGitHub` in [`fake-github-git.ts`](../pipeline/fixtures/fake-github-git.ts), with the same token header git would send to github.com. Checkouts keep their `https://github.com` remote, so Refit's remote checks still run. `pipeline/customer-journey-github.test.ts` runs in the default suite and checks the fake itself against Refit's real App authentication, access check and managed checkout.

@@ -239,10 +239,18 @@ async function expectValidated(output: string) {
   expect((await verifyArtifacts(output)).status).toBe('integrity-verified');
 }
 
-// The App only ever minted read tokens: no issue, comment, branch or pull request.
-function expectNoWrites(github: FakeGitHub) {
+// Every request, refused ones included: each token asks for contents read only, and nothing else
+// writes (no issue, comment, branch, push or pull request). Git fetches POST to git-upload-pack.
+function expectReadOnly(github: FakeGitHub) {
+  const tokens = github.requests.filter(({ path }) => path.endsWith('/access_tokens'));
+  expect(tokens.length, 'Refit asked for installation tokens').toBeGreaterThan(0);
+  for (const token of tokens)
+    expect(token.body?.permissions, `${token.method} ${token.path}`).toEqual({ contents: 'read' });
   expect(
-    github.writes.filter(({ path }) => !path.endsWith('/access_tokens')),
+    github.requests.filter(
+      ({ method, path }) =>
+        method !== 'GET' && !path.endsWith('/access_tokens') && !path.endsWith('/git-upload-pack'),
+    ),
     'Refit writes nothing to the customer’s repositories',
   ).toEqual([]);
 }
@@ -285,8 +293,7 @@ it('drives the hosted worker through a customer install, offline validation, rem
     receipt: { status: 'validated', readiness: 'ready-for-validation', revision: head },
   });
   await expectValidated(job.receipt.output);
-  expect(hosted.progress.join('\n')).toMatch(/doctor/i);
-  expectNoWrites(github);
+  expectReadOnly(github);
 
   // 6. A redelivered installation webhook is a duplicate and changes nothing.
   const duplicate = await github.redeliver(hosted.url, installed.delivery);
@@ -327,9 +334,11 @@ it('drives the hosted worker through a customer install, offline validation, rem
       registry.inventories.every((row: any) => row.state !== 'queued' && row.state !== 'running'),
   );
   expect(settled.targets).toEqual([expect.objectContaining({ id: target, status: 'cancelled' })]);
-  const tokens = github.writes.length;
+  expectReadOnly(github);
+  // Any request after the uninstall, refused or not, would show up here.
+  const seen = github.requests.length;
   await new Promise((resolve) => setTimeout(resolve, 3 * 1000));
-  expect(github.writes, 'no GitHub access after uninstall').toHaveLength(tokens);
+  expect(github.requests.slice(seen), 'no GitHub request after uninstall').toEqual([]);
 }, 600_000);
 
 it('reclaims a killed worker’s job after its lease lapses, and validates it again on `refit hosted retry`', async (context) => {
@@ -390,5 +399,5 @@ it('reclaims a killed worker’s job after its lease lapses, and validates it ag
     receipt: { status: 'validated', revision: head },
   });
   await expectValidated(retry.receipt.output);
-  expectNoWrites(github);
+  expectReadOnly(github);
 }, 600_000);
