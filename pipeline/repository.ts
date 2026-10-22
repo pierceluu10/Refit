@@ -131,7 +131,6 @@ export async function readRepository(
         repository.files.push(await sourceFile(path, name, content));
         continue;
       }
-      (repository.manifests ??= []).push({ path: name, content });
       const manifest = parseObject(content, name);
       for (const section of DEPENDENCY_SECTIONS) {
         const dependencies = manifest[section];
@@ -180,4 +179,33 @@ export async function readRepository(
     lock: resolveLockedDependency(dependency, packageName, lockfiles),
   }));
   return repository;
+}
+
+// Package names that any package.json readRepository would visit declares in a dependency section,
+// without reading source or lockfiles, or null when a manifest cannot be parsed (readRepository
+// then reports it). A caller can skip a full read for a package no manifest declares.
+export async function declaredPackageNames(directory: string): Promise<Set<string> | null> {
+  const names = new Set<string>();
+  async function visit(directoryPath: string): Promise<boolean> {
+    for (const entry of await readdir(directoryPath, { withFileTypes: true })) {
+      const path = join(directoryPath, entry.name);
+      if (entry.isSymbolicLink()) continue;
+      if (entry.isDirectory()) {
+        if (!EXCLUDED_DIRECTORIES.has(entry.name) && !(await visit(path))) return false;
+        continue;
+      }
+      if (!entry.isFile() || entry.name !== 'package.json') continue;
+      let manifest: Record<string, unknown>;
+      try {
+        manifest = parseObject(await readFile(path, 'utf8'), entry.name);
+      } catch {
+        return false;
+      }
+      for (const section of DEPENDENCY_SECTIONS)
+        if (isObject(manifest[section]))
+          for (const name of Object.keys(manifest[section])) names.add(name);
+    }
+    return true;
+  }
+  return (await visit(await realpath(directory))) ? names : null;
 }

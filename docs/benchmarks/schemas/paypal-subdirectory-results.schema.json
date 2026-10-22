@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PayPal request detection in package subdirectories",
+  "description": "A separate `refit paypal` scan of the PayPal package directories of repositories over the whole-repository scan limits.",
+  "type": "object",
+  "required": ["formatVersion", "refit", "checkedAt", "results"],
+  "properties": {
+    "formatVersion": { "const": 1 },
+    "note": { "type": "string" },
+    "refit": { "$ref": "common.schema.json#/$defs/shortCommit" },
+    "checkedAt": { "$ref": "common.schema.json#/$defs/time" },
+    "results": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["repo", "commit", "directory", "packages", "calls"],
+        "properties": {
+          "repo": { "$ref": "common.schema.json#/$defs/repo" },
+          "commit": { "$ref": "common.schema.json#/$defs/commit" },
+          "directory": { "type": "string", "minLength": 1 },
+          "packages": { "type": "array", "items": { "type": "object" } },
+          "calls": {
+            "type": "array",
+            "items": { "$ref": "paypal-results.schema.json#/$defs/call" }
+          }
+        }
+      }
+    }
+  }
+}

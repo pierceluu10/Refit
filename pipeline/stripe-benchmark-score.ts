@@ -2,6 +2,8 @@ import { existsSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { parseArgs } from 'node:util';
+import { splitRows } from '../scripts/benchmark-harness.mjs';
+import { assertResults } from '../scripts/benchmark-results.mjs';
 import { PipelineInputError } from './types.ts';
 
 // Scores benchmark findings against the hand-checked Stripe ground truth.
@@ -152,9 +154,20 @@ if (import.meta.url === `file://${process.argv[1]}`) {
       'Usage: npm run benchmark:stripe-score -- --results <results.json> --labels <labels.json> [--mode fullAdapter|shippedAdapter] [--verbose]',
     );
   const mode = values.mode ?? 'fullAdapter';
-  const results = JSON.parse(await readFile(values.results, 'utf8')) as Array<
-    Record<string, unknown> & { repo: string; workflow?: Workflow }
-  >;
+  const results = (
+    JSON.parse(await readFile(values.results, 'utf8')) as Array<
+      (Record<string, unknown> & { repo: string; workflow?: Workflow }) | null
+    >
+  ).filter((entry) => entry !== null);
+  // Checked before anything is counted. A labelled repository whose row is an infrastructure
+  // error has no result to score, so it is listed instead of counted as missed reads.
+  const { predates } = assertResults('stripe-results', results, { allowPredating: true });
+  const infrastructure = new Map(
+    splitRows('stripe-results', results).infrastructure.map((row) => [
+      row.repo,
+      row.infrastructure,
+    ]),
+  );
   const labels = JSON.parse(await readFile(values.labels, 'utf8')) as {
     repos: LabelledRepository[];
   };
@@ -166,6 +179,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     undecided: 0,
   };
   for (const labelled of labels.repos) {
+    if (infrastructure.has(labelled.repo)) continue;
     const result = results.find((entry) => entry.repo === labelled.repo);
     const scan = (result?.[mode] ?? result?.shippedAdapter) as { findings?: Finding[] } | undefined;
     const score = scoreRepository(scan?.findings ?? [], labelled.reads);
@@ -206,8 +220,15 @@ if (import.meta.url === `file://${process.argv[1]}`) {
       `${level.padEnd(9)} recall ${rate(tp, tp + fn)} (${tp}/${tp + fn})  precision ${rate(tp, tp + fp)} (${tp}/${tp + fp})`,
     );
   }
-  const decided = labels.repos.length - outcomes.undecided;
+  const unscored = labels.repos.filter((labelled) => infrastructure.has(labelled.repo));
+  const decided = labels.repos.length - unscored.length - outcomes.undecided;
   console.log(
     `outcomes  strict ${outcomes.correct}/${decided}  lenient ${outcomes.correct + outcomes['correct-review']}/${decided}  (correct ${outcomes.correct}, correct-review ${outcomes['correct-review']}, incorrect ${outcomes.incorrect}, undecided ${outcomes.undecided})`,
   );
+  if (unscored.length)
+    console.log(
+      `not scored ${unscored.length} infrastructure error(s): ${unscored.map((labelled) => `${labelled.repo} (${infrastructure.get(labelled.repo)!.kind})`).join(', ')}`,
+    );
+  if (predates.length)
+    console.log(`results predate ${predates.join(', ')}; rows were classified from their fields`);
 }
