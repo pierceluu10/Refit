@@ -7,7 +7,15 @@ import {
 import type { DeadlineEntry, DeadlineRegistry } from '../deadline-registry.ts';
 import type { ModelReplacementStop, ModelReplacementUnresolved } from '../model-retirements.ts';
 import type { ModelRules } from '../python/model-reports.ts';
-import { GO_SDKS, GO_TEST_PATH, goSdkData, goString, isGoTextCall, traceGoFiles } from './calls.ts';
+import {
+  GO_SDKS,
+  GO_TEST_PATH,
+  goSdkData,
+  goString,
+  imports,
+  isGoTextCall,
+  traceGoFiles,
+} from './calls.ts';
 import { readGoFiles, withGoTrees, type GoFile, type Node } from './syntax.ts';
 
 const PROVIDERS = new Set(['openai', 'anthropic']);
@@ -135,16 +143,8 @@ export async function goModelMatches(
       const root = tree(file.path)?.rootNode;
       if (!root) continue;
       const lines = file.content.split('\n');
-      const imported = new Set(
-        root
-          .descendantsOfType('import_spec')
-          .filter((spec) => GO_SDKS.some((sdk) => spec?.text.includes(sdk.module)))
-          .map(
-            (spec) =>
-              spec!.childForFieldName('name')?.text ??
-              (spec!.text.includes('anthropic') ? 'anthropic' : 'openai'),
-          ),
-      );
+      // Local names of the SDK packages the file imports, aliases and subpackages such as `shared`.
+      const imported = imports(root);
       for (const node of root.descendantsOfType([
         'interpreted_string_literal',
         'raw_string_literal',

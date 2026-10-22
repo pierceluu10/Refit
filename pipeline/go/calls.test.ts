@@ -170,6 +170,12 @@ func (s *Service) ask(ctx context.Context, m string) {
 	s.claude.Messages.New(ctx, anthropic.MessageNewParams{Model: anthropic.ModelClaude3OpusLatest, MaxTokens: 5})
 	s.claude.Messages.New(ctx, anthropic.MessageNewParams{Model: anthropic.ModelUnknownFuture})
 }
+
+func more(ctx context.Context, c *openai.Client) {
+	var declared string
+	c.Chat.Completions.New(ctx, openai.ChatCompletionNewParams{Model: declared})
+	c.Chat.Completions.New(ctx, openai.ChatCompletionNewParams{Temperature: openai.Float(0)})
+}
 `,
       }),
     ).toEqual([
@@ -183,6 +189,8 @@ func (s *Service) ask(ctx context.Context, m string) {
       'app.go:42 openai Chat.Completions.New class-field stop: The model comes from the parameter `m`, whose callers Refit does not follow in Go.',
       'app.go:43 anthropic Messages.New class-field <- claude-3-opus-latest@43 (SDK constant `anthropic.ModelClaude3OpusLatest`)',
       'app.go:44 anthropic Messages.New class-field stop: `anthropic.ModelUnknownFuture` is not a model constant Refit knows from the SDK.',
+      'app.go:49 openai Chat.Completions.New parameter stop: The model comes from `declared`, which is declared without a value; Refit does not follow later assignments in Go.',
+      'app.go:50 openai Chat.Completions.New parameter stop: The request params set no Model field, so the model is set somewhere Refit cannot see.',
     ]);
   });
 
@@ -322,6 +330,23 @@ func New() *wrapper { return &wrapper{client: openai.NewClient(), model: "gpt-4o
 });
 
 describe('Go model deadlines', () => {
+  it('reads model constants through SDK subpackages such as shared', async () => {
+    const root = await repository({
+      'go.mod': 'module example.com/app\n',
+      'models.go': `package app
+
+import "github.com/openai/openai-go/v3/shared"
+
+var Fallback = shared.ChatModelGPT4
+`,
+    });
+    const scan = await scanDeadlines(root, registry, now);
+    const gpt4 = [...scan.exposures, ...scan.mentions].find(
+      (item) => item.deadline.id === 'openai-gpt-4',
+    );
+    expect(gpt4?.evidence.map((item) => `${item.file}:${item.line}`)).toEqual(['models.go:5']);
+  });
+
   it('classifies Go matches and reports traced requests as stops, never edits', async () => {
     const root = await repository({
       'go.mod': 'module example.com/app\n',

@@ -138,7 +138,7 @@ function importOf(path: string): Import | undefined {
 // Every import of a file by local name, with Go's default name: the last path element, or the
 // module's package name for a module root with a major suffix.
 const IMPORTS = new WeakMap<Tree, Map<string, Import>>();
-function imports(root: Node) {
+export function imports(root: Node) {
   const cached = IMPORTS.get(root.tree);
   if (cached) return cached;
   const found = new Map<string, Import>();
@@ -523,7 +523,9 @@ function traceModel(
             ? stop(
                 `The model comes from the parameter \`${node.text}\`, whose callers Refit does not follow in Go.`,
               )
-            : { literals: [], stop: null },
+            : stop(
+                `The model comes from \`${node.text}\`, which is declared without a value; Refit does not follow later assignments in Go.`,
+              ),
       ),
     );
   }
@@ -745,14 +747,17 @@ function record(
     options,
     spread: model === null,
     arguments:
-      model === undefined
+      model === undefined && sdk.provider === 'stripe'
         ? {}
         : {
             model: model
               ? traceModel(context, model.file, model.node, 'literal')
               : {
                   literals: [],
-                  stop: 'The request params are not a struct literal Refit can read.',
+                  stop:
+                    model === undefined
+                      ? 'The request params set no Model field, so the model is set somewhere Refit cannot see.'
+                      : 'The request params are not a struct literal Refit can read.',
                 },
           },
   };

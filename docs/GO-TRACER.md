@@ -19,11 +19,11 @@ Set: `docs/benchmarks/2026-10-22-go-repos.json`, 32 repositories from GitHub cod
 
 A reported line is a traced Stripe call or a model site an OpenAI or Anthropic call can send. Line precision counts both.
 
-| Set                                        | Commit  | Line precision   | Stripe calls | Model sites     | OpenAI and Anthropic calls |
-| ------------------------------------------ | ------- | ---------------- | ------------ | --------------- | -------------------------- |
-| Labels, first run (blind)                  | 318bbc7 | 16/17 (94.1%)    | 15/29        | 1/21            | 48/55                      |
-| Labels, after four adjudications and fixes | 25c1613 | **47/47 (100%)** | **29/29**    | **18/25 (72%)** | 55/55                      |
-| Held-out, tracer frozen at 25c1613         | 25c1613 | 7/7              | 4/4          | 3/5             | 8/10                       |
+| Set                                                        | Commit  | Line precision   | Stripe calls | Model sites     | OpenAI and Anthropic calls |
+| ---------------------------------------------------------- | ------- | ---------------- | ------------ | --------------- | -------------------------- |
+| Labels, first run (blind; no committed output, unverified) | 318bbc7 | 16/17 (94.1%)    | 15/29        | 1/21            | 48/55                      |
+| Labels, after four adjudications and fixes                 | 25c1613 | **47/47 (100%)** | **29/29**    | **18/25 (72%)** | 55/55                      |
+| Held-out, tracer frozen at 25c1613                         | 25c1613 | 7/7              | 4/4          | 3/5             | 8/10                       |
 
 By provider at 25c1613 (labels): OpenAI calls 35/35, sites 5/8 found, 5/5 reported correct; **Anthropic** (the "Keep going" SDK) calls 20/20, sites 13/17 found, 13/13 reported correct.
 
@@ -31,9 +31,10 @@ Read these honestly:
 
 - The first run's only "wrong" site was a labelling miss; four adjudications (in the labels file) add SDK-constant fallbacks the labeller missed in one repository. Three of the four were found by reading, not by the tracer, and lower measured recall.
 - The fixes after the first run (nested Stripe resource packages such as `checkout/session`, struct fields through their own struct type, package function results, map lookups) were made with the labelled repositories in view. The held-out set is the only measurement with the tracer frozen; it is small.
+- Provenance: the first run's row has no committed output, so it rests on the session's notes. `2026-10-22-go-results.json` records no Refit commit (the benchmark records `refitCommit` and `dirty` from now on), so 25c1613 is not tied to the file. Its `checkedAt` (10:50:31Z) already includes the held-out repositories, 29 seconds before the held-out labels were committed (4045ea5, 10:51:00Z), so the history cannot show those labels were written before the tracer ran on them.
 - Remaining misses: models passed as function parameters across packages (callers are not followed in Go), defaults read through the application's own option getters, configuration defaults in other packages, and audio model constants outside `shared/shared.go`.
 
-On the whole set (32 repositories, 25c1613): 216 traced calls in 28 repositories, 87 of them Stripe; 14 stripe-go requirements in `go.mod`, all with a known pinned API version.
+On the whole set (32 repositories, 25c1613): 216 traced calls in 29 repositories, 87 of them Stripe; 14 stripe-go requirements in `go.mod`, all with a known pinned API version.
 
 ## Not covered
 

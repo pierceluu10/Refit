@@ -237,9 +237,12 @@ async function main() {
     ).length,
     labelled: scoreGo(labels, results),
   };
+  // The Refit commit and whether its worktree was dirty, so a result names the code it measured.
+  const { stdout: refitCommit } = await execute('git', ['rev-parse', 'HEAD']);
+  const { stdout: dirty } = await execute('git', ['status', '--porcelain']);
   await writeFile(
     values.output,
-    `${JSON.stringify({ formatVersion: 1, list: values.list, labels: values.labels, checkedAt: new Date().toISOString(), summary, results }, null, 2)}\n`,
+    `${JSON.stringify({ formatVersion: 1, refitCommit: refitCommit.trim(), dirty: Boolean(dirty.trim()), list: values.list, labels: values.labels, checkedAt: new Date().toISOString(), summary, results }, null, 2)}\n`,
   );
   const { wrong, missed, ...headline } = summary.labelled;
   console.log(
