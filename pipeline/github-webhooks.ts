@@ -39,6 +39,16 @@ export type GitHubWebhook =
       head: string;
     }
   | {
+      kind: 'issue_comment';
+      installation: number;
+      repository: string;
+      issue: number;
+      comment: number;
+      edited: boolean;
+      author: string;
+      body: string;
+    }
+  | {
       kind: 'installation' | 'repositories';
       installationId: number;
       owner: string;
@@ -125,6 +135,44 @@ function pullRequest(payload: Record<string, unknown>): GitHubWebhook {
   };
 }
 
+const COMMENT_ACTIONS = new Set(['created', 'edited']);
+const LOGIN = /^[A-Za-z0-9][A-Za-z0-9-]{0,38}$/;
+
+// Issue comments carry only the installation ID. Pull request comments, bot comments (including
+// Refit's own replies) and deleted or pinned comments are ignored.
+function issueComment(payload: Record<string, unknown>): GitHubWebhook {
+  if (typeof payload.action !== 'string' || !COMMENT_ACTIONS.has(payload.action))
+    return { kind: 'ignored' };
+  const { installation, repository, issue, comment } = payload;
+  if (
+    !isObject(installation) ||
+    !isObject(repository) ||
+    typeof repository.full_name !== 'string' ||
+    !REPOSITORY.test(repository.full_name) ||
+    !isObject(issue) ||
+    !isObject(comment) ||
+    typeof comment.body !== 'string' ||
+    !isObject(comment.user) ||
+    typeof comment.user.login !== 'string' ||
+    typeof comment.user.type !== 'string'
+  )
+    throw new WebhookInputError(422, 'Issue comment webhook is incomplete.');
+  // Bot logins end in `[bot]`, which LOGIN rejects, so bots are ignored before it is checked.
+  if (issue.pull_request !== undefined || comment.user.type === 'Bot') return { kind: 'ignored' };
+  if (!LOGIN.test(comment.user.login))
+    throw new WebhookInputError(422, 'Issue comment webhook is incomplete.');
+  return {
+    kind: 'issue_comment',
+    installation: positiveIdentifier(installation.id),
+    repository: repository.full_name.toLowerCase(),
+    issue: positiveIdentifier(issue.number),
+    comment: positiveIdentifier(comment.id),
+    edited: payload.action === 'edited',
+    author: comment.user.login.toLowerCase(),
+    body: comment.body,
+  };
+}
+
 export function parseWebhook(body: Uint8Array, event: unknown, appId: number): GitHubWebhook {
   if (typeof event !== 'string' || !/^[a-z_]+$/.test(event))
     throw new WebhookInputError(400, 'A GitHub event name is required.');
@@ -139,6 +187,7 @@ export function parseWebhook(body: Uint8Array, event: unknown, appId: number): G
   }
   if (event === 'ping') return { kind: 'ping' };
   if (event === 'pull_request') return pullRequest(payload);
+  if (event === 'issue_comment') return issueComment(payload);
   if (!['installation', 'installation_repositories'].includes(event)) return { kind: 'ignored' };
   const installation = payload.installation;
   if (

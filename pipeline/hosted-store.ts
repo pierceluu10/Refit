@@ -1,78 +1,29 @@
 import type { Pool, PoolClient } from 'pg';
+import type { AiLedger } from './ai-budget.ts';
 import type { GitHubWebhook } from './github-webhooks.ts';
 import { WebhookInputError } from './github-webhooks.ts';
+import { transaction } from './hosted-database.ts';
+import { migrateHostedSchema } from './hosted-migrations.ts';
+import { recordApprovalCommand } from './hosted-approval-store.ts';
+import {
+  DEFAULT_TENANCY_LIMITS,
+  installationRefusals,
+  reserveUsage,
+  TENANCY_REFUSALS,
+  USAGE_DAY,
+  type HostedTenancy,
+  type TenancyRefusal,
+} from './hosted-tenancy.ts';
 import type { RepositoryApproval } from './repository-enrollment.ts';
 import { digest } from './specifications.ts';
+import { readState } from './state-files.ts';
 import { PipelineInputError } from './types.ts';
 
 // A crashed worker's lease is reclaimed this many times before the job is marked failed.
 const MAX_LEASE_ATTEMPTS = 3;
 const TARGET_HASH_LENGTH = 16;
-const SCHEMA_LOCK = 4_206_100_001;
-
-const SCHEMA = `
-CREATE TABLE IF NOT EXISTS refit_installations (
-  id bigint PRIMARY KEY,
-  owner text NOT NULL,
-  status text NOT NULL CHECK (status IN ('active', 'suspended', 'deleted')),
-  updated_at timestamptz NOT NULL DEFAULT now()
-);
-CREATE TABLE IF NOT EXISTS refit_installation_repositories (
-  installation_id bigint NOT NULL REFERENCES refit_installations (id),
-  repository text NOT NULL,
-  github_id bigint NOT NULL,
-  PRIMARY KEY (installation_id, repository)
-);
-CREATE TABLE IF NOT EXISTS refit_deliveries (
-  id text PRIMARY KEY,
-  hash text NOT NULL,
-  event text NOT NULL,
-  received_at timestamptz NOT NULL DEFAULT now()
-);
-CREATE TABLE IF NOT EXISTS refit_approvals (
-  repository text NOT NULL,
-  base text NOT NULL,
-  fingerprint text NOT NULL,
-  approval jsonb NOT NULL,
-  approved_by text NOT NULL,
-  approved_at timestamptz NOT NULL DEFAULT now(),
-  PRIMARY KEY (repository, base)
-);
-CREATE TABLE IF NOT EXISTS refit_targets (
-  id text PRIMARY KEY,
-  repository text NOT NULL,
-  base text NOT NULL,
-  integration text,
-  installation_id bigint NOT NULL REFERENCES refit_installations (id),
-  fingerprint text NOT NULL,
-  status text NOT NULL CHECK (status IN ('enrolled', 'cancelled')),
-  message text,
-  updated_at timestamptz NOT NULL DEFAULT now()
-);
-CREATE TABLE IF NOT EXISTS refit_jobs (
-  id bigserial PRIMARY KEY,
-  target_id text NOT NULL REFERENCES refit_targets (id),
-  status text NOT NULL CHECK (status IN ('queued', 'running', 'finished', 'failed', 'cancelled')),
-  lease_owner text,
-  lease_expires_at timestamptz,
-  attempts integer NOT NULL DEFAULT 0,
-  created_at timestamptz NOT NULL DEFAULT now(),
-  finished_at timestamptz,
-  receipt jsonb
-);
--- An operator retry permits one fresh attempt of a cached failure; successful results stay cached.
-ALTER TABLE refit_jobs ADD COLUMN IF NOT EXISTS retry boolean NOT NULL DEFAULT false;
-CREATE UNIQUE INDEX IF NOT EXISTS refit_jobs_open ON refit_jobs (target_id)
-  WHERE status IN ('queued', 'running');
-CREATE INDEX IF NOT EXISTS refit_targets_installation ON refit_targets (installation_id);
--- No policies: data APIs such as Supabase's see nothing; the owning worker role bypasses RLS.
-ALTER TABLE refit_installations ENABLE ROW LEVEL SECURITY;
-ALTER TABLE refit_installation_repositories ENABLE ROW LEVEL SECURITY;
-ALTER TABLE refit_deliveries ENABLE ROW LEVEL SECURITY;
-ALTER TABLE refit_approvals ENABLE ROW LEVEL SECURITY;
-ALTER TABLE refit_targets ENABLE ROW LEVEL SECURITY;
-ALTER TABLE refit_jobs ENABLE ROW LEVEL SECURITY;
-`;
+// Serializes claims so two workers never start jobs for one installation at once.
+const CLAIM_LOCK = 4_206_100_002;
 
 export interface HostedTarget {
   id: string;
@@ -94,21 +45,6 @@ export interface HostedReceipt {
 export function hostedTargetId(repository: string, base: string, integration?: string | null) {
   const hash = digest(`${repository.toLowerCase()}#${base}`).slice(0, TARGET_HASH_LENGTH);
   return integration ? `${hash}.${integration}` : hash;
-}
-
-async function transaction<T>(pool: Pool, operation: (client: PoolClient) => Promise<T>) {
-  const client = await pool.connect();
-  try {
-    await client.query('BEGIN');
-    const result = await operation(client);
-    await client.query('COMMIT');
-    return result;
-  } catch (error) {
-    await client.query('ROLLBACK');
-    throw error;
-  } finally {
-    client.release();
-  }
 }
 
 // Creates or refreshes targets for installed repositories that have a stored approval, and queues
@@ -138,6 +74,14 @@ async function enroll(client: PoolClient, installationId: number, repositories: 
   return enrolled;
 }
 
+async function installedRepositories(client: PoolClient, installationId: number) {
+  const { rows } = await client.query<{ repository: string }>(
+    'SELECT repository FROM refit_installation_repositories WHERE installation_id = $1',
+    [installationId],
+  );
+  return rows.map((row) => row.repository);
+}
+
 // Cancels targets and their open jobs. Running jobs are returned so this process can abort them;
 // workers in other processes stop when their next lease renewal fails.
 async function cancel(client: PoolClient, where: string, values: unknown[], message: string) {
@@ -159,14 +103,17 @@ async function cancel(client: PoolClient, where: string, values: unknown[], mess
   };
 }
 
-export async function openHostedStore(pool: Pool) {
-  await transaction(pool, async (client) => {
-    await client.query('SELECT pg_advisory_xact_lock($1)', [SCHEMA_LOCK]);
-    await client.query(SCHEMA);
-  });
+// Without a tenancy, no account is allowed: only the serving worker records deliveries.
+export async function openHostedStore(
+  pool: Pool,
+  tenancy: HostedTenancy = { accounts: [], limits: DEFAULT_TENANCY_LIMITS },
+) {
+  await migrateHostedSchema(pool);
 
   const accept = (delivery: string, event: string, body: Uint8Array, change: GitHubWebhook) =>
     transaction(pool, async (client) => {
+      // claim locks jobs and then installations; taking its lock first keeps the order the same.
+      await client.query('SELECT pg_advisory_xact_lock($1)', [CLAIM_LOCK]);
       const hash = digest(body);
       const inserted = await client.query(
         'INSERT INTO refit_deliveries (id, hash, event) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING',
@@ -185,6 +132,8 @@ export async function openHostedStore(pool: Pool) {
           );
         return { status: 'duplicate' as const, ...none };
       }
+      if (change.kind === 'issue_comment')
+        return { status: await recordApprovalCommand(client, change), ...none };
       if (!('installationId' in change)) return { status: 'accepted' as const, ...none };
       const { rows: prior } = await client.query<{ owner: string }>(
         'SELECT owner FROM refit_installations WHERE id = $1 FOR UPDATE',
@@ -198,10 +147,12 @@ export async function openHostedStore(pool: Pool) {
           : change.action === 'suspend'
             ? 'suspended'
             : 'active';
+      // Other accounts' installations are recorded, so allowing the account later backfills them.
+      const allowed = tenancy.accounts.includes(change.owner);
       await client.query(
-        `INSERT INTO refit_installations (id, owner, status) VALUES ($1, $2, $3)
-         ON CONFLICT (id) DO UPDATE SET status = $3, updated_at = now()`,
-        [change.installationId, change.owner, status],
+        `INSERT INTO refit_installations (id, owner, status, allowed) VALUES ($1, $2, $3, $4)
+         ON CONFLICT (id) DO UPDATE SET status = $3, allowed = $4, updated_at = now()`,
+        [change.installationId, change.owner, status, allowed],
       );
       for (const repository of change.added)
         await client.query(
@@ -223,7 +174,7 @@ export async function openHostedStore(pool: Pool) {
           `Installation ${change.action}.`,
         );
         return {
-          status: 'accepted' as const,
+          status: allowed ? ('accepted' as const) : ('not-allowed' as const),
           enrolled: [],
           cancelled: cancelled.targets,
           running: cancelled.running,
@@ -237,15 +188,17 @@ export async function openHostedStore(pool: Pool) {
             'Repository removed from the installation.',
           )
         : { targets: [], running: [] };
+      if (!allowed)
+        return {
+          status: 'not-allowed' as const,
+          enrolled: [],
+          cancelled: cancelled.targets,
+          running: cancelled.running,
+        };
       // An unsuspended installation resumes every installed repository; otherwise only new ones.
       const candidates =
         change.action === 'unsuspend'
-          ? (
-              await client.query<{ repository: string }>(
-                'SELECT repository FROM refit_installation_repositories WHERE installation_id = $1',
-                [change.installationId],
-              )
-            ).rows.map((row) => row.repository)
+          ? await installedRepositories(client, change.installationId)
           : change.added.map((repository) => repository.name);
       return {
         status: 'accepted' as const,
@@ -268,10 +221,29 @@ export async function openHostedStore(pool: Pool) {
       const { rows } = await client.query<{ installation_id: string }>(
         `SELECT r.installation_id FROM refit_installation_repositories r
          JOIN refit_installations i ON i.id = r.installation_id
-         WHERE r.repository = $1 AND i.status = 'active'`,
+         WHERE r.repository = $1 AND i.status = 'active' AND i.allowed`,
         [approval.repository],
       );
       return rows[0] ? enroll(client, Number(rows[0].installation_id), [approval.repository]) : [];
+    });
+
+  // Removes a repository's approval and cancels its targets; running jobs are returned to abort.
+  const revoke = (repository: string, revokedBy: string) =>
+    transaction(pool, async (client) => {
+      const { rowCount } = await client.query('DELETE FROM refit_approvals WHERE repository = $1', [
+        repository,
+      ]);
+      const cancelled = await cancel(
+        client,
+        'repository = $1',
+        [repository],
+        `Approval revoked by ${revokedBy}.`,
+      );
+      return {
+        revoked: Boolean(rowCount),
+        cancelled: cancelled.targets,
+        running: cancelled.running,
+      };
     });
 
   const enqueueDue = async (intervalSeconds: number) =>
@@ -287,10 +259,13 @@ export async function openHostedStore(pool: Pool) {
       )
     ).rowCount ?? 0;
 
+  // Takes the next job from the installation that waited longest, skipping installations with a
+  // live running job or at today's job cap. Reclaiming an expired lease does not count again.
   const claim = (worker: string, leaseSeconds: number) =>
     transaction(
       pool,
       async (client): Promise<{ job: number; retry: boolean; target: HostedTarget } | null> => {
+        await client.query('SELECT pg_advisory_xact_lock($1)', [CLAIM_LOCK]);
         await client.query(
           `UPDATE refit_jobs SET status = 'failed', finished_at = now(), lease_owner = NULL,
            receipt = jsonb_build_object('status', 'error', 'output', NULL,
@@ -298,18 +273,31 @@ export async function openHostedStore(pool: Pool) {
          WHERE status = 'running' AND lease_expires_at < now() AND attempts >= $1`,
           [MAX_LEASE_ATTEMPTS],
         );
-        const { rows } = await client.query<{ id: string; target_id: string; retry: boolean }>(
+        const { rows } = await client.query<{
+          id: string;
+          target_id: string;
+          retry: boolean;
+          attempts: number;
+        }>(
           `UPDATE refit_jobs SET status = 'running', lease_owner = $1, attempts = attempts + 1,
            lease_expires_at = now() + make_interval(secs => $2)
          WHERE id = (
            SELECT j.id FROM refit_jobs j JOIN refit_targets t ON t.id = j.target_id
            JOIN refit_approvals a
              ON a.repository = t.repository AND a.base = t.base AND a.fingerprint = t.fingerprint
-           WHERE t.status = 'enrolled'
+           JOIN refit_installations i ON i.id = t.installation_id
+           LEFT JOIN refit_installation_usage u
+             ON u.installation_id = i.id AND u.day = ${USAGE_DAY}
+           WHERE t.status = 'enrolled' AND i.allowed AND i.status = 'active'
              AND (j.status = 'queued' OR (j.status = 'running' AND j.lease_expires_at < now()))
-           ORDER BY j.id LIMIT 1 FOR UPDATE OF j SKIP LOCKED)
-         RETURNING id, target_id, retry`,
-          [worker, leaseSeconds],
+             AND (j.attempts > 0 OR coalesce(u.jobs, 0) < $3)
+             AND NOT EXISTS (
+               SELECT 1 FROM refit_jobs r JOIN refit_targets rt ON rt.id = r.target_id
+               WHERE rt.installation_id = t.installation_id AND r.id <> j.id
+                 AND r.status = 'running' AND r.lease_expires_at >= now())
+           ORDER BY i.last_claimed_at NULLS FIRST, j.id LIMIT 1 FOR UPDATE OF j SKIP LOCKED)
+         RETURNING id, target_id, retry, attempts`,
+          [worker, leaseSeconds, tenancy.limits.dailyJobs],
         );
         if (!rows[0]) return null;
         const { rows: targets } = await client.query<{
@@ -327,6 +315,15 @@ export async function openHostedStore(pool: Pool) {
           [rows[0].target_id],
         );
         const target = targets[0];
+        const installationId = Number(target.installation_id);
+        await client.query('UPDATE refit_installations SET last_claimed_at = now() WHERE id = $1', [
+          installationId,
+        ]);
+        if (
+          rows[0].attempts === 1 &&
+          !(await reserveUsage(client, installationId, 'jobs', tenancy.limits.dailyJobs))
+        )
+          throw new PipelineInputError(`Installation ${installationId} reached its daily job cap.`);
         return {
           job: Number(rows[0].id),
           retry: rows[0].retry,
@@ -335,7 +332,7 @@ export async function openHostedStore(pool: Pool) {
             repository: target.repository,
             base: target.base,
             integration: target.integration,
-            installationId: Number(target.installation_id),
+            installationId,
             approval: target.approval,
           },
         };
@@ -402,26 +399,159 @@ export async function openHostedStore(pool: Pool) {
       ).rowCount,
     );
 
+  // Applies the configured accounts. Newly allowed active installations enroll every approved
+  // installed repository; newly disallowed ones are cancelled as if uninstalled.
+  const allow = () =>
+    transaction(pool, async (client) => {
+      await client.query('SELECT pg_advisory_xact_lock($1)', [CLAIM_LOCK]);
+      const { rows } = await client.query<{ id: string; allowed: boolean; status: string }>(
+        `UPDATE refit_installations SET allowed = owner = ANY($1::text[]), updated_at = now()
+         WHERE allowed <> (owner = ANY($1::text[])) RETURNING id, allowed, status`,
+        [tenancy.accounts],
+      );
+      const result = {
+        enrolled: [] as string[],
+        cancelled: [] as string[],
+        running: [] as number[],
+      };
+      for (const row of rows) {
+        const id = Number(row.id);
+        if (!row.allowed) {
+          const cancelled = await cancel(
+            client,
+            'installation_id = $1',
+            [id],
+            'Account is no longer allowed.',
+          );
+          result.cancelled.push(...cancelled.targets);
+          result.running.push(...cancelled.running);
+        } else if (row.status === 'active')
+          result.enrolled.push(
+            ...(await enroll(client, id, await installedRepositories(client, id))),
+          );
+      }
+      return result;
+    });
+
+  // Counts one inventory against the installation's daily cap; a refusal means it must not run.
+  const reserveInventory = (installationId: number) =>
+    transaction(pool, async (client): Promise<TenancyRefusal | null> => {
+      const { rows } = await client.query<{ allowed: boolean; status: string }>(
+        'SELECT allowed, status FROM refit_installations WHERE id = $1',
+        [installationId],
+      );
+      if (!rows[0]?.allowed || rows[0].status !== 'active') return TENANCY_REFUSALS.notAllowed;
+      return (await reserveUsage(
+        client,
+        installationId,
+        'inventories',
+        tenancy.limits.dailyInventories,
+      ))
+        ? null
+        : TENANCY_REFUSALS.dailyInventories;
+    });
+
+  // One AI ledger per installation. A legacy budget.json is imported on first use, so moving the
+  // ledger into PostgreSQL does not forget recorded spend.
+  const aiLedger = (installationId: number, legacyFile?: string): AiLedger => ({
+    update: (change) =>
+      transaction(pool, async (client) => {
+        await client.query(
+          'INSERT INTO refit_ai_ledgers (installation_id) VALUES ($1) ON CONFLICT DO NOTHING',
+          [installationId],
+        );
+        const { rows } = await client.query<{ state: Record<string, unknown> | null }>(
+          'SELECT state FROM refit_ai_ledgers WHERE installation_id = $1 FOR UPDATE',
+          [installationId],
+        );
+        const stored = rows[0].state ?? (legacyFile ? await readState(legacyFile) : undefined);
+        await client.query(
+          'UPDATE refit_ai_ledgers SET state = $2, updated_at = now() WHERE installation_id = $1',
+          [installationId, change(stored)],
+        );
+      }),
+  });
+
+  // Running jobs whose lease is still live, with the worker holding each.
+  const leases = async () =>
+    new Map(
+      (
+        await pool.query<{ id: string; lease_owner: string }>(
+          `SELECT id, lease_owner FROM refit_jobs WHERE status = 'running' AND lease_expires_at > now()`,
+        )
+      ).rows.map((row) => [Number(row.id), row.lease_owner]),
+    );
+
   const read = async () => {
     const [installations, targets, jobs] = await Promise.all([
-      pool.query(
-        `SELECT i.id::text, i.owner, i.status,
-           coalesce(array_agg(r.repository ORDER BY r.repository) FILTER (WHERE r.repository IS NOT NULL), '{}') AS repositories
+      pool.query<{
+        id: string;
+        owner: string;
+        status: string;
+        allowed: boolean;
+        repositories: string[];
+        jobsToday: number;
+        inventoriesToday: number;
+      }>(
+        `SELECT i.id::text, i.owner, i.status, i.allowed,
+           coalesce(array_agg(r.repository ORDER BY r.repository) FILTER (WHERE r.repository IS NOT NULL), '{}') AS repositories,
+           coalesce(u.jobs, 0) AS "jobsToday", coalesce(u.inventories, 0) AS "inventoriesToday"
          FROM refit_installations i LEFT JOIN refit_installation_repositories r ON r.installation_id = i.id
-         GROUP BY i.id ORDER BY i.id`,
+         LEFT JOIN refit_installation_usage u ON u.installation_id = i.id AND u.day = ${USAGE_DAY}
+         GROUP BY i.id, u.jobs, u.inventories ORDER BY i.id`,
       ),
       pool.query(
         `SELECT id, repository, base, integration, installation_id::text AS "installationId",
            fingerprint, status, message FROM refit_targets ORDER BY id`,
       ),
       pool.query(
-        `SELECT id::text, target_id AS "targetId", status, attempts, retry, receipt,
-           created_at AS "createdAt", finished_at AS "finishedAt"
-         FROM refit_jobs ORDER BY id`,
+        `SELECT j.id::text, j.target_id AS "targetId", j.status, j.attempts, j.retry, j.receipt,
+           j.created_at AS "createdAt", j.finished_at AS "finishedAt",
+           t.installation_id::text AS "installationId",
+           (j.status = 'running' AND j.lease_expires_at >= now()) AS live
+         FROM refit_jobs j JOIN refit_targets t ON t.id = j.target_id ORDER BY j.id`,
       ),
     ]);
-    return { installations: installations.rows, targets: targets.rows, jobs: jobs.rows };
+    const running = new Set(jobs.rows.filter((job) => job.live).map((job) => job.installationId));
+    const listed = installations.rows.map((installation) => ({
+      ...installation,
+      refusals: installationRefusals(
+        { ...installation, running: running.has(installation.id) },
+        tenancy.limits,
+      ),
+    }));
+    const refusals = new Map(
+      listed.map((installation) => [installation.id, installation.refusals]),
+    );
+    return {
+      installations: listed,
+      targets: targets.rows,
+      jobs: jobs.rows.map(({ live: _live, installationId, ...job }) => ({
+        ...job,
+        // Why a queued job has not started; the inventory cap never holds jobs back.
+        waiting:
+          job.status === 'queued'
+            ? (refusals
+                .get(installationId)
+                ?.find((refusal) => refusal !== TENANCY_REFUSALS.dailyInventories) ?? null)
+            : null,
+      })),
+    };
   };
 
-  return { accept, approve, enqueueDue, claim, retry, renew, finish, read };
+  return {
+    accept,
+    approve,
+    revoke,
+    enqueueDue,
+    claim,
+    retry,
+    renew,
+    finish,
+    read,
+    allow,
+    reserveInventory,
+    aiLedger,
+    leases,
+  };
 }
