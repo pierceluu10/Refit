@@ -58,7 +58,7 @@ Each stops before Docker runs, with this message:
 
 ## How many repositories this unblocks
 
-Census of 2026-10-22: every repository in the frozen lists, with its root `yarn.lock`, `.yarnrc.yml` and `package.json` read at the pinned commit from raw.githubusercontent.com, then scored with Refit's own `readPreparationInputs` on a shallow clone.
+Census of 2026-10-22: every repository in the frozen lists, with its root `yarn.lock`, `.yarnrc.yml` and `package.json` read at the pinned commit from raw.githubusercontent.com, then scored with Refit's own `readPreparationInputs` on a shallow clone. The census counts are not backed by a committed results file.
 
 - **Stripe and Shopify lists** (847 repositories): 41 commit a `yarn.lock`. 37 are Yarn 1, which was already supported, and 4 are Yarn 2+. `main` prepares none of the 4; this branch prepares 2:
 
@@ -73,7 +73,7 @@ Census of 2026-10-22: every repository in the frozen lists, with its root `yarn.
 
 ## Real repositories
 
-The three frozen Yarn 2+ repositories this branch can prepare were prepared and then checked locally on 2026-10-22, in Docker on `node:22-alpine` (their Node.js declarations allow it). Each ran at its frozen commit with the benchmark's own check: the test script, else `tsc --noEmit -p .`. Refit was at `e189b1f` (default runs) and `4634aa6` (install-mode runs); the preparation code is the same apart from the opt-in.
+The three frozen Yarn 2+ repositories this branch can prepare were prepared and then checked locally on 2026-10-22, in Docker on `node:22-alpine` (their Node.js declarations allow it). Each ran at its frozen commit with the benchmark's own check: the test script, else `tsc --noEmit -p .`. Refit was at `e189b1f` (default runs) and `4634aa6` (install-mode runs); the preparation code is the same apart from the opt-in. These runs are not backed by a committed results file.
 
 | Repository | Yarn | Default profile (2 GiB), platform packages skipped | Operator `4g` profile | `REFIT_YARN_PLATFORM_PACKAGES=install` |
 | --- | --- | --- | --- | --- |
