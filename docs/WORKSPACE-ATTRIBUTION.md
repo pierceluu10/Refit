@@ -9,17 +9,16 @@ In a monorepo, every finding `detectProviders` and `scanDeadlines` report now sa
   - Nx `nx.json` and Turborepo `turbo.json`, recorded as tools.
 
   A nested `package.json` with no workspace configuration is still a package, just not a member.
-
 - **`excluded`.** Why a path is not product code, or `null`. Directory names are matched as whole segments, first match wins:
 
-  | Reason         | Directories                                                                                                                 |
-  | -------------- | --------------------------------------------------------------------------------------------------------------------------- |
-  | `node-modules` | `node_modules`                                                                                                              |
-  | `vendored`     | `vendor`, `vendors`, `vendored`, `third_party`, `third-party`, `thirdparty`                                                 |
+  | Reason | Directories |
+  |---|---|
+  | `node-modules` | `node_modules` |
+  | `vendored` | `vendor`, `vendors`, `vendored`, `third_party`, `third-party`, `thirdparty` |
   | `build-output` | `dist`, `build`, `out`, `.next`, `.nuxt`, `.output`, `.svelte-kit`, `coverage`, `.turbo`, plus `*.min.js` and `*.bundle.js` |
-  | `example`      | `example(s)`, `sample(s)`, `demo(s)`                                                                                        |
-  | `docs-site`    | `doc(s)`, `website`, `documentation`                                                                                        |
-  | `test-fixture` | `fixture(s)`, `__fixtures__`, `__mocks__`, `testdata`, `test-data`, `mocks`                                                 |
+  | `example` | `example(s)`, `sample(s)`, `demo(s)` |
+  | `docs-site` | `doc(s)`, `website`, `documentation` |
+  | `test-fixture` | `fixture(s)`, `__fixtures__`, `__mocks__`, `testdata`, `test-data`, `mocks` |
 
 How the two scanners use them:
 
@@ -33,20 +32,20 @@ How the two scanners use them:
 
 **Monorepos in the frozen sets.** `scripts/workspace-monorepos.mjs` fetched the trees of all 922 repositories in the Stripe (100, 50, 381), Shopify (50, 200) and AI-app (100, 50) frozen sets at their frozen commits. 326 are monorepos ([list](benchmarks/2026-10-22-workspace-monorepos.json)):
 
-| Signal                                                   | Monorepos |
-| -------------------------------------------------------- | --------: |
-| `package.json` workspaces                                |       173 |
-| `pnpm-workspace.yaml`                                    |        58 |
-| `turbo.json`                                             |         6 |
-| `nx.json`                                                |         2 |
-| More than one `package.json` (with or without the above) |       201 |
+| Signal | Monorepos |
+|---|---:|
+| `package.json` workspaces | 173 |
+| `pnpm-workspace.yaml` | 58 |
+| `turbo.json` | 6 |
+| `nx.json` | 2 |
+| More than one `package.json` (with or without the above) | 201 |
 
 **Blind labels.** 20 monorepos were labelled before Refit ran on them ([labels](benchmarks/2026-10-22-workspace-labels.json), `scripts/workspace-sample.mjs`, seed 20261022): 10 with declared workspaces and 10 with only nested `package.json` files. Each was labelled from `scripts/workspace-label-candidates.mjs`, which imports no pipeline code. That covers 204 files: every `package.json` that declares a catalog SDK and every JS/TS file naming a provider host, model ID or API version. Each file gets its enclosing package and a category (product, test, or an exclusion reason). 133 of the 204 sit outside the root package. `pipeline/workspace-attribution-score.ts` scores them, with its own test.
 
-| Run on the 20 labelled monorepos              | Refit commit | Findings (labelled) | Package attribution correct | Live findings that are product code |
-| --------------------------------------------- | ------------ | ------------------: | --------------------------: | ----------------------------------: |
-| Before (every finding implicitly at the root) | `cf66902`    |           119 (101) |              43.6% (44/101) |                       94.9% (94/99) |
-| After                                         | `d7026fe`    |           119 (101) |          **100% (101/101)** |                       94.9% (94/99) |
+| Run on the 20 labelled monorepos | Refit commit | Findings (labelled) | Package attribution correct | Live findings that are product code |
+|---|---|---:|---:|---:|
+| Before (every finding implicitly at the root) | `cf66902` | 119 (101) | 43.6% (44/101) | 94.9% (94/99) |
+| After | `d7026fe` | 119 (101) | **100% (101/101)** | 94.9% (94/99) |
 
 The after row is from `d7026fe`, before `015fe7a` added `setup.py`, `setup.cfg` and `Pipfile` as package manifests, so the head can differ from it; it was not rerun.
 
