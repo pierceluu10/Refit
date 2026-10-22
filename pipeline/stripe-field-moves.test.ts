@@ -405,17 +405,76 @@ it('reads a webhook invoice.subscription through the generated helper for either
   expect(getInvoiceSubscription({ parent: null })).toBeNull();
 });
 
-it('leaves invoice.subscription unchanged where typeof narrows it', async () => {
+it('reads a typeof-narrowed invoice.subscription through one local', async () => {
   const report = await run(
     mixed.replace(
       'return invoice.subscription;',
       "return typeof invoice.subscription === 'string' ? invoice.subscription : invoice.subscription?.id;",
     ),
   );
-  expect(report.patch).toMatchObject({ status: 'proposed', unresolvedFindings: 3 });
+  expect(report.patch).toMatchObject({ status: 'proposed', unresolvedFindings: 0 });
   const diff = 'diff' in report.patch ? report.patch.diff : '';
-  expect(diff).toContain('getSubscriptionPeriodEnd(subscription)');
+  expect(diff).toContain(
+    '+    const invoiceSubscription = getInvoiceSubscription(invoice);\n' +
+      "+    return typeof invoiceSubscription === 'string' ? invoiceSubscription : invoiceSubscription?.id;",
+  );
+});
+
+it('declares the local once per receiver, before the first guard', async () => {
+  const report = await run(`export async function paid(invoice: Stripe.Invoice) {
+  if (!invoice.subscription) {
+    return;
+  }
+  const id = typeof invoice.subscription === 'string'
+    ? invoice.subscription
+    : invoice.subscription.id;
+  return id;
+}
+export function owner(event: Stripe.Event) {
+  switch (event.type) {
+    case 'invoice.paid': {
+      const invoice = event.data.object as Stripe.Invoice;
+      let id: string | null = null;
+      if (typeof invoice.subscription === 'string') {
+        id = invoice.subscription;
+      }
+      return id;
+    }
+    case 'invoice.payment_failed': {
+      const invoice = event.data.object as Stripe.Invoice;
+      if (typeof invoice.subscription === 'string') return invoice.subscription;
+      return null;
+    }
+  }
+}`);
+  expect(report.patch).toMatchObject({ status: 'proposed', unresolvedFindings: 0 });
+  const diff = 'diff' in report.patch ? report.patch.diff : '';
+  expect(diff).toContain(
+    '+  const invoiceSubscription = getInvoiceSubscription(invoice);\n+  if (!invoiceSubscription) {',
+  );
+  expect(diff).toContain(
+    "+  const id = typeof invoiceSubscription === 'string'\n+    ? invoiceSubscription\n+    : invoiceSubscription.id;",
+  );
+  expect(diff).toContain(
+    '+      const invoiceSubscription = getInvoiceSubscription(invoice);\n' +
+      "+      if (typeof invoiceSubscription === 'string') {\n+        id = invoiceSubscription;",
+  );
+  expect(diff).toContain(
+    '+      const invoiceSubscription = getInvoiceSubscription(invoice);\n' +
+      "+      if (typeof invoiceSubscription === 'string') return invoiceSubscription;",
+  );
+  expect(diff.match(/const invoiceSubscription =/g)).toHaveLength(3);
+});
+
+it('leaves a typeof-narrowed invoice.subscription unresolved when the receiver changes', async () => {
+  const report = await run(`export async function paid(id: string, fallback: Stripe.Invoice) {
+  let invoice: Stripe.Invoice = await stripe.invoices.retrieve(id);
+  if (!invoice.subscription) invoice = fallback;
+  return typeof invoice.subscription === 'string' ? invoice.subscription : null;
+}`);
+  const diff = 'diff' in report.patch ? report.patch.diff : '';
   expect(diff).not.toContain('getInvoiceSubscription(invoice)');
+  expect(report.patch).toMatchObject({ unresolvedFindings: 3 });
 });
 
 it('leaves invoice.subscription unresolved when it is expanded', async () => {

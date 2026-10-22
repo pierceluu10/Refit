@@ -1187,8 +1187,19 @@ export function analyzeRepository(
       !propertyMoves.some((move) => move.schema === 'invoice' && move.removed === 'subscription') &&
       (webhooks?.origin(receiver) || provenance === 'declared-type' || provenance === 'sdk')
     ) {
-      const edit = invoiceSubscriptionHelperEdit(node, location(node).file, change.id);
-      if (edit && addEdit(edit)) return edit.rule;
+      const planned = invoiceSubscriptionHelperEdit(node, location(node).file, change.id);
+      // Reads sharing a hoisted local plan the same declaration; it is added once.
+      const added = planned?.every(
+        (edit) =>
+          edits.some(
+            (other) =>
+              other.file === edit.file &&
+              other.start === edit.start &&
+              other.end === edit.end &&
+              other.replacement === edit.replacement,
+          ) || addEdit(edit),
+      );
+      if (planned && added) return planned[0].rule;
     }
     // `line.price.id` on invoice line items and invoice items: the ID moved under `pricing`.
     if (
