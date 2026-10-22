@@ -6,6 +6,7 @@ import { analyzeRepository } from './analyzer.ts';
 import type { DeadlineEntry, DeadlineRegistry } from './deadline-registry.ts';
 import { daysUntil } from './deadline-registry.ts';
 import { scanDeadlines, TEST_PATH } from './deadline-exposure.ts';
+import { modelHostStops } from './model-hosts.ts';
 import { modelWrapperStops } from './model-wrappers.ts';
 import { renderPatch } from './patches.ts';
 import {
@@ -2070,7 +2071,7 @@ export type ReportOnlySource = (
 ) => ReportOnlySite[] | Promise<ReportOnlySite[]>;
 // Report-only detectors from other modules. A live match one of them finds is listed as a stop with
 // its reason instead of under unresolved; it is never edited.
-const REPORT_ONLY_SOURCES: ReportOnlySource[] = [modelWrapperStops];
+const REPORT_ONLY_SOURCES: ReportOnlySource[] = [modelWrapperStops, modelHostStops];
 
 export async function proposeModelReplacements(
   directory: string,

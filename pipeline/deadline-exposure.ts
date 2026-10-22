@@ -6,6 +6,7 @@ import { AGENT_CATALOG, builtInPackage } from './agent-catalog.ts';
 import { daysUntil, type DeadlineEntry, type DeadlineRegistry } from './deadline-registry.ts';
 import { cloudflareEndpointUses } from './cloudflare-calls.ts';
 import { githubDeadlineUses } from './github-api-calls.ts';
+import { detectModelHosts, hostDeadlineMatches } from './model-hosts.ts';
 import { modelWrapperSites } from './model-wrappers.ts';
 import { repositoryApiVersionPins } from './commerce-api-versions.ts';
 import { declaredPackageNames, readRepository } from './repository.ts';
@@ -594,6 +595,17 @@ export async function scanDeadlines(
       offset += line.length + 1;
     }
   }
+  // Models called through Amazon Bedrock, Azure OpenAI or OpenRouter (pipeline/model-hosts.ts).
+  for (const match of hostDeadlineMatches(detectModelHosts(repository), (provider, version) =>
+    byVersion.has(`${provider}:${version}`),
+  ))
+    record(match.provider, match.version, {
+      file: match.site.file,
+      line: match.site.line,
+      kind: 'source',
+      use: TEST_PATH.test(match.site.file) ? 'test' : 'live',
+      text: excerpt(match.text),
+    });
   for (const site of wrapped)
     if (site.model !== site.version)
       record(site.provider, site.version, {
