@@ -2,6 +2,7 @@ import type { Pool, PoolClient } from 'pg';
 import type { AiLedger } from './ai-budget.ts';
 import type { GitHubWebhook } from './github-webhooks.ts';
 import { WebhookInputError } from './github-webhooks.ts';
+import { APPROVAL_SCHEMA, recordApprovalCommand } from './hosted-approval-store.ts';
 import {
   DEFAULT_TENANCY_LIMITS,
   installationRefusals,
@@ -190,6 +191,7 @@ export async function openHostedStore(
     await client.query('SELECT pg_advisory_xact_lock($1)', [SCHEMA_LOCK]);
     await client.query(SCHEMA);
     await client.query(TENANCY_SCHEMA);
+    await client.query(APPROVAL_SCHEMA);
   });
 
   const accept = (delivery: string, event: string, body: Uint8Array, change: GitHubWebhook) =>
@@ -212,6 +214,8 @@ export async function openHostedStore(
           );
         return { status: 'duplicate' as const, ...none };
       }
+      if (change.kind === 'issue_comment')
+        return { status: await recordApprovalCommand(client, change), ...none };
       if (!('installationId' in change)) return { status: 'accepted' as const, ...none };
       const { rows: prior } = await client.query<{ owner: string }>(
         'SELECT owner FROM refit_installations WHERE id = $1 FOR UPDATE',
@@ -309,6 +313,25 @@ export async function openHostedStore(
         [approval.repository],
       );
       return rows[0] ? enroll(client, Number(rows[0].installation_id), [approval.repository]) : [];
+    });
+
+  // Removes a repository's approval and cancels its targets; running jobs are returned to abort.
+  const revoke = (repository: string, revokedBy: string) =>
+    transaction(pool, async (client) => {
+      const { rowCount } = await client.query('DELETE FROM refit_approvals WHERE repository = $1', [
+        repository,
+      ]);
+      const cancelled = await cancel(
+        client,
+        'repository = $1',
+        [repository],
+        `Approval revoked by ${revokedBy}.`,
+      );
+      return {
+        revoked: Boolean(rowCount),
+        cancelled: cancelled.targets,
+        running: cancelled.running,
+      };
     });
 
   const enqueueDue = async (intervalSeconds: number) =>
@@ -596,6 +619,7 @@ export async function openHostedStore(
   return {
     accept,
     approve,
+    revoke,
     enqueueDue,
     claim,
     retry,

@@ -11,6 +11,8 @@ import { loadDeadlineRegistry } from './deadline-registry.ts';
 import type { GitHubAppConfiguration } from './github-app.ts';
 import { standaloneStateDirectory } from './github-checkout.ts';
 import { parseWebhook, verifyWebhook, WebhookInputError } from './github-webhooks.ts';
+import { processApprovalIssues } from './hosted-approval.ts';
+import { openApprovalStore } from './hosted-approval-store.ts';
 import { openHostedStore, type HostedTarget } from './hosted-store.ts';
 import type { HostedTenancy } from './hosted-tenancy.ts';
 import {
@@ -59,6 +61,9 @@ export async function runHostedService(options: {
   aiPatch?: AiOptions;
   repairAttempts?: number;
   publishDraft?: boolean;
+  // Opens an approval issue on installed repositories without an approval and handles
+  // `/refit approve` and `/refit revoke` comments (REFIT_HOSTED_APPROVAL_ISSUES).
+  approvalIssues?: boolean;
   host?: string;
   port?: number;
   intervalSeconds?: number;
@@ -93,6 +98,7 @@ export async function runHostedService(options: {
   await mkdir(root, { recursive: true, mode: 0o700 });
   const directory = await realpath(root);
   const store = await openHostedStore(options.database, options.tenancy);
+  const approvals = openApprovalStore(options.database);
   const allowed = await store.allow();
   if (allowed.enrolled.length || allowed.cancelled.length)
     options.onProgress?.(
@@ -183,6 +189,7 @@ export async function runHostedService(options: {
     } catch (error) {
       if (!(error instanceof Error)) throw error;
       const approval = error instanceof RepositoryApprovalError;
+      if (approval && options.approvalIssues) await approvals.changed(target.repository);
       await store.finish(job, worker, approval ? 'finished' : 'failed', {
         status: controller.signal.aborted ? 'interrupted' : approval ? 'needs-review' : 'error',
         output: null,
@@ -252,6 +259,7 @@ export async function runHostedService(options: {
               ...row,
               summary: inventory && inventorySummary(inventory),
             })),
+            ...(options.approvalIssues && { approvals: await approvals.read() }),
           });
           return;
         }
@@ -267,7 +275,11 @@ export async function runHostedService(options: {
           options.webhookSecret,
         );
         const event = request.headers['x-github-event'];
-        const change = parseWebhook(body, event, Number(options.app.appId));
+        const parsed = parseWebhook(body, event, Number(options.app.appId));
+        const change =
+          parsed.kind === 'issue_comment' && !options.approvalIssues
+            ? { kind: 'ignored' as const }
+            : parsed;
         const receipt = await store.accept(id, String(event), body, change);
         for (const job of receipt.running) running.get(job)?.abort();
         const inventoried =
@@ -277,7 +289,13 @@ export async function runHostedService(options: {
                 change.added.map((repository) => repository.name),
               )
             : 0;
-        if (receipt.enrolled.length || inventoried) wake();
+        // With approval issues on, new installations and comments are handled without waiting.
+        if (
+          receipt.enrolled.length ||
+          inventoried ||
+          (options.approvalIssues && ['accepted', 'queued'].includes(receipt.status))
+        )
+          wake();
         respond(response, 202, {
           delivery: id,
           status: receipt.status,
@@ -320,6 +338,18 @@ export async function runHostedService(options: {
     options.onReady?.(`http://${host}:${address.port}`);
     while (!options.signal.aborted) {
       requested = false;
+      if (options.approvalIssues)
+        await processApprovalIssues({
+          app: options.app,
+          directory: join(directory, 'approvals'),
+          store,
+          approvals,
+          signal: options.signal,
+          onCancelled: (jobs) => {
+            for (const job of jobs) running.get(job)?.abort();
+          },
+          onProgress: options.onProgress,
+        });
       await store.enqueueDue(interval);
       await inventories.requestMissing();
       // Inventories are short and read-only, so a queued one goes before the next validation job.
