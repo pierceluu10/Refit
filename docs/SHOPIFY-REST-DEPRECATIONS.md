@@ -91,14 +91,14 @@ Labels are in `docs/benchmarks/2026-10-22-shopify-rest-labels.json`. They were l
 - **Extension:** the sample has no call to a removed endpoint, so the labels were extended the same way to every other app with REST usage (57 more), again before any scan.
 - This is one pass, not second-labelled.
 
-The unit is a REST request site in live code, by file and line.
+The unit is a REST request site in live code, by file and line. One labelled app, `strapi-community/shopify`, exceeds the scan limits; it stays in the denominator, but none of its 4 labelled sites is a REST request, so no count changes.
 
-| Unit                                          | Labelled apps scanned | Labelled sites |                 Precision |        Recall |
-| --------------------------------------------- | --------------------: | -------------: | ------------------------: | ------------: |
-| Call to a removed endpoint, 20-app sample     |                    19 |              0 | not measured (0 reported) |  not measured |
-| Call to a removed endpoint, all labelled apps |                    76 |              1 |             100% (1 of 1) | 100% (1 of 1) |
-| REST request site, 20-app sample              |                    19 |             42 |                     77.8% |         33.3% |
-| REST request site, all labelled apps          |                    76 |            257 |                     78.5% |         55.3% |
+| Unit                                          | Labelled apps scanned | Labelled sites |                          Precision |                             Recall |
+| --------------------------------------------- | --------------------: | -------------: | ---------------------------------: | ---------------------------------: |
+| Call to a removed endpoint, 20-app sample     |                    19 |              0 |          not measured (0 reported) |                       not measured |
+| Call to a removed endpoint, all labelled apps |                    76 |              1 | not measured (1 of 1, tuned on it) | not measured (1 of 1, tuned on it) |
+| REST request site, 20-app sample              |                    19 |             42 |                              77.8% |                              33.3% |
+| REST request site, all labelled apps          |                    76 |            257 |                              78.5% |                              55.3% |
 
 **The removed-endpoint row for all labelled apps is after a fix made on these labels.** The first run (`a7722f9`) reported nothing and missed the one call (recall 0%).
 

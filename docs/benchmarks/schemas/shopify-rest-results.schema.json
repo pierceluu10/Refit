@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Shopify REST deprecation detection results",
+  "description": "Written by scripts/shopify-rest-benchmark.mjs: the REST request sites and calls to removed endpoints `refit shopify-rest` lists per repository of a frozen list, with the score on the 20-app sample (`score`) and on every labelled app (`scoreAll`). `refit` was recorded by hand for this run. A repository that could not be scanned has `error`.",
+  "type": "object",
+  "required": ["formatVersion", "list", "checkedAt", "summary", "results"],
+  "properties": {
+    "formatVersion": { "const": 1 },
+    "list": { "type": "string" },
+    "checkedAt": { "$ref": "common.schema.json#/$defs/time" },
+    "summary": { "type": "object" },
+    "score": { "type": "object" },
+    "scoreAll": { "type": "object" },
+    "refit": {
+      "type": "object",
+      "required": ["commit"],
+      "properties": {
+        "commit": { "$ref": "common.schema.json#/$defs/shortCommit" },
+        "note": { "type": "string" }
+      }
+    },
+    "results": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["repo", "commit", "status"],
+        "properties": {
+          "repo": { "$ref": "common.schema.json#/$defs/repo" },
+          "commit": { "$ref": "common.schema.json#/$defs/commit" },
+          "status": { "type": "string" },
+          "pinned": { "type": "array", "items": { "type": "string" } },
+          "served": { "type": ["string", "null"] },
+          "rest": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "$ref": "common.schema.json#/$defs/location",
+              "required": ["use"],
+              "properties": {
+                "use": { "type": "string" },
+                "method": { "type": ["string", "null"] },
+                "path": { "type": ["string", "null"] },
+                "resource": { "type": ["string", "null"] }
+              }
+            }
+          },
+          "calls": { "type": "array", "items": { "type": "object" } },
+          "unmatched": { "$ref": "common.schema.json#/$defs/count" },
+          "unreadable": { "$ref": "common.schema.json#/$defs/count" },
+          "error": { "type": "string" }
+        }
+      }
+    }
+  }
+}

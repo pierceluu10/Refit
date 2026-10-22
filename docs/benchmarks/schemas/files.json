@@ -153,6 +153,10 @@
       "format": "ai-model-results",
       "predates": ["/harness", "/results/*/outcomeClass"]
     },
+    "2026-10-22-shopify-rest-results.json": {
+      "format": "shopify-rest-results",
+      "predates": []
+    },
     "2026-10-22-slack-baseline-results.json": {
       "format": "slack-results",
       "predates": []
