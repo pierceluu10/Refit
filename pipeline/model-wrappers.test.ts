@@ -175,10 +175,13 @@ it('follows constants, object members and environment fallbacks, also across fil
         'export const a = openai(MODEL);',
         'export const b = new ChatAnthropic({ model: SETTINGS.claude });',
         "export const c = openai(process.env.FAST ? 'gpt-4' : process.env.OTHER ?? 'gpt-4o');",
-        // Not followed: a `let`, a parameter.
+        // A `let` through its assignments, and a shorthand option; a parameter is not followed.
         "let mutable = 'gpt-4';",
+        "if (process.env.FAST) mutable = 'gpt-4o-mini';",
         'export const d = openai(mutable);',
         'export const e = (model: string) => openai(model);',
+        "const model = 'claude-3-opus-20240229';",
+        'export const f = new ChatAnthropic({ model });',
       ].join('\n'),
     }),
   ).toEqual([
@@ -192,6 +195,15 @@ it('follows constants, object members and environment fallbacks, also across fil
     ],
     ['src/ai.ts:6', 'openai', 'gpt-4', '@ai-sdk/openai openai()', true],
     ['src/ai.ts:6', 'openai', 'gpt-4o', '@ai-sdk/openai openai()', true],
+    ['src/ai.ts:7', 'openai', 'gpt-4', '@ai-sdk/openai openai()', true],
+    ['src/ai.ts:8', 'openai', 'gpt-4o-mini', '@ai-sdk/openai openai()', true],
+    [
+      'src/ai.ts:11',
+      'anthropic',
+      'claude-3-opus-20240229',
+      '@langchain/anthropic new ChatAnthropic()',
+      true,
+    ],
   ]);
 });
 
@@ -284,5 +296,78 @@ it('feeds gateway IDs and wrapper calls into the deadline scan and lists them as
       'ai generateText()',
       'The model is sent through ai generateText() (src/ai.ts:4), a Vercel AI SDK call Refit reports but does not edit; change it by hand.',
     ],
+  ]);
+});
+
+it('follows dynamic imports and helper returns, and skips another provider shape', async () => {
+  expect(
+    await sites({
+      'src/models.ts': [
+        'export function modelFor(provider: string) {',
+        "  if (provider === 'anthropic') return 'claude-3-opus-20240229';",
+        "  return process.env.MODEL || 'gpt-4';",
+        '}',
+        "export const pick = () => 'gpt-4o';",
+      ].join('\n'),
+      'src/route.ts': [
+        "import { ChatOpenAI } from '@langchain/openai';",
+        "import { modelFor, pick } from './models';",
+        'export async function run(provider: string) {',
+        "  const { createAnthropic } = await import('@ai-sdk/anthropic');",
+        '  const anthropic = createAnthropic({});',
+        '  const model = modelFor(provider);',
+        '  anthropic(model);',
+        // The helper's Claude return is not ChatOpenAI's model; its GPT return is.
+        '  new ChatOpenAI({ model: modelFor(provider) });',
+        '  new ChatOpenAI({ model: pick() });',
+        '}',
+      ].join('\n'),
+    }),
+  ).toEqual([
+    [
+      'src/models.ts:2',
+      'anthropic',
+      'claude-3-opus-20240229',
+      '@ai-sdk/anthropic anthropic()',
+      true,
+    ],
+    ['src/models.ts:3', 'openai', 'gpt-4', '@langchain/openai new ChatOpenAI()', true],
+    ['src/models.ts:5', 'openai', 'gpt-4o', '@langchain/openai new ChatOpenAI()', true],
+  ]);
+});
+
+it('keeps only the call provider’s models from a shared helper, and late-assigned providers', async () => {
+  expect(
+    await sites({
+      'src/provider.ts': [
+        "import { createAnthropic } from '@ai-sdk/anthropic';",
+        "import { createGoogleGenerativeAI } from '@ai-sdk/google';",
+        "import { Gemini } from '@llamaindex/google';",
+        'function modelFor(provider: string) {',
+        "  if (provider === 'Bedrock') return 'us.anthropic.claude-sonnet-4-6';",
+        "  if (provider === 'XAI') return 'grok-3-mini';",
+        "  if (provider === 'Custom') return 'my-own-model';",
+        "  return 'claude-3-opus-20240229';",
+        '}',
+        'let google;',
+        'export function build(provider: string) {',
+        '  const anthropic = createAnthropic({});',
+        '  anthropic(modelFor(provider));',
+        '  google = createGoogleGenerativeAI({});',
+        "  google('gemini-1.5-pro');",
+        "  return new Gemini({ model: 'gemini-1.5-flash' });",
+        '}',
+      ].join('\n'),
+    }),
+  ).toEqual([
+    [
+      'src/provider.ts:8',
+      'anthropic',
+      'claude-3-opus-20240229',
+      '@ai-sdk/anthropic anthropic()',
+      true,
+    ],
+    ['src/provider.ts:15', 'gemini', 'gemini-1.5-pro', '@ai-sdk/google google()', true],
+    ['src/provider.ts:16', 'gemini', 'gemini-1.5-flash', '@llamaindex/google new Gemini()', true],
   ]);
 });

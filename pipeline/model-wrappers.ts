@@ -86,6 +86,7 @@ const CLASSES: Record<string, Record<string, { provider: Provider; text: boolean
     openai: { provider: 'openai', text: true },
     OpenAIEmbedding: { provider: 'openai', text: false },
   },
+  '@llamaindex/google': { Gemini: { provider: 'gemini', text: true } },
   '@llamaindex/anthropic': {
     Anthropic: { provider: 'anthropic', text: true },
     anthropic: { provider: 'anthropic', text: true },
@@ -107,6 +108,17 @@ const PREFIX_PROVIDER: Record<string, Provider> = {
 const ENDPOINT_OPTION = /^(?:base_?url|basePath|anthropicApiUrl|configuration)$/i;
 
 const MAX_DEPTH = 6;
+// Literals reached through a function's `return`: a shared helper may return several providers'
+// models, so such a literal counts only when it is shaped like the call's provider's.
+const RETURNED = new WeakSet<ts.Node>();
+const MODEL_SHAPES: [RegExp, string][] = [
+  // Amazon Bedrock and Vertex AI IDs, and other vendors' families seen in shared helpers.
+  [/^(?:[a-z]{2,6}\.)?anthropic\.|@\d{8}$/, 'platform'],
+  [/^grok-/, 'xai'],
+  [/^claude-/, 'anthropic'],
+  [/^gemini-/, 'gemini'],
+  [/^(?:gpt-|o\d|chatgpt-|text-embedding-|dall-e|whisper-|tts-)/, 'openai'],
+];
 
 function wrapperOf(module: string): Wrapper | undefined {
   if (module.startsWith('@ai-sdk/') || module === 'ai') return 'ai-sdk';
@@ -175,7 +187,10 @@ function sourceProgram(repository: Repository) {
     [...sources.keys()].map((path, index) => [path, repository.files[index].path]),
   );
   const symbolOf = (node: ts.Node) => {
-    let symbol = checker.getSymbolAtLocation(node);
+    let symbol =
+      ts.isShorthandPropertyAssignment(node.parent) && node.parent.name === node
+        ? checker.getShorthandAssignmentValueSymbol(node.parent)
+        : checker.getSymbolAtLocation(node);
     for (let depth = 0; symbol && symbol.flags & ts.SymbolFlags.Alias && depth < 8; depth += 1)
       symbol = checker.getAliasedSymbol(symbol);
     return symbol;
@@ -193,9 +208,25 @@ function sourceProgram(repository: Repository) {
 }
 type Program = ReturnType<typeof sourceProgram>;
 
+// The `return` expressions of a function body, not counting nested functions.
+function returnsOf(fn: ts.SignatureDeclaration) {
+  const body = (fn as ts.FunctionLikeDeclaration).body;
+  if (!body) return [];
+  if (!ts.isBlock(body)) return [body];
+  const found: ts.Expression[] = [];
+  const visit = (node: ts.Node) => {
+    if (ts.isReturnStatement(node)) {
+      if (node.expression) found.push(node.expression);
+    } else if (!ts.isFunctionLike(node) && !ts.isClassLike(node)) ts.forEachChild(node, visit);
+  };
+  visit(body);
+  return found;
+}
+
 // The string literals a model expression can send: the literal itself, both sides of `||`, `??`
-// and a conditional, and `const` variables and object members (`MODEL`, `CONFIG.model`), also
-// across files. An environment variable adds nothing; anything else is not followed.
+// and a conditional, `const` variables and object members (`MODEL`, `CONFIG.model`), and what a
+// repository function returns (`modelForProvider(…)`), also across files. An environment variable
+// adds nothing; anything else is not followed.
 function modelLiterals(
   program: Program,
   expression: ts.Expression,
@@ -215,6 +246,23 @@ function modelLiterals(
     )
   )
     return [value.left, value.right].flatMap((item) => modelLiterals(program, item, depth + 1));
+  if (ts.isCallExpression(value) && ts.isIdentifier(value.expression)) {
+    const callee = program.symbolOf(value.expression)?.valueDeclaration;
+    const fn =
+      callee && ts.isFunctionDeclaration(callee)
+        ? callee
+        : callee &&
+            ts.isVariableDeclaration(callee) &&
+            callee.initializer &&
+            (ts.isArrowFunction(callee.initializer) || ts.isFunctionExpression(callee.initializer))
+          ? callee.initializer
+          : undefined;
+    const returned = fn
+      ? returnsOf(fn).flatMap((item) => modelLiterals(program, item, depth + 1))
+      : [];
+    for (const literal of returned) RETURNED.add(literal);
+    return returned;
+  }
   const name = ts.isIdentifier(value)
     ? value
     : ts.isPropertyAccessExpression(value)
@@ -229,6 +277,23 @@ function modelLiterals(
     declaration.parent.flags & ts.NodeFlags.Const
   )
     return modelLiterals(program, declaration.initializer, depth + 1);
+  // A `let` or `var`: its initializer and every `name = …` in the same file.
+  if (ts.isVariableDeclaration(declaration) && ts.isIdentifier(declaration.name)) {
+    const symbol = program.symbolOf(declaration.name);
+    const sources = declaration.initializer ? [declaration.initializer] : [];
+    const visit = (node: ts.Node) => {
+      if (
+        ts.isBinaryExpression(node) &&
+        node.operatorToken.kind === ts.SyntaxKind.EqualsToken &&
+        ts.isIdentifier(node.left) &&
+        program.symbolOf(node.left) === symbol
+      )
+        sources.push(node.right);
+      ts.forEachChild(node, visit);
+    };
+    visit(declaration.getSourceFile());
+    return sources.flatMap((item) => modelLiterals(program, item, depth + 1));
+  }
   if (ts.isPropertyAssignment(declaration))
     return modelLiterals(program, declaration.initializer, depth + 1);
   return [];
@@ -240,7 +305,22 @@ interface Binding {
   name: string;
 }
 
-// What each identifier in a file is bound to by a wrapper package import or require.
+// The wrapper package `require('…')`, `import('…')` or `await import('…')` loads.
+function loadedModule(initializer: ts.Expression | undefined) {
+  const value =
+    initializer && unwrap(ts.isAwaitExpression(initializer) ? initializer.expression : initializer);
+  if (!value || !ts.isCallExpression(value)) return undefined;
+  const specifier = value.arguments[0];
+  const loads =
+    value.expression.kind === ts.SyntaxKind.ImportKeyword ||
+    (ts.isIdentifier(value.expression) && value.expression.text === 'require');
+  return loads && specifier && ts.isStringLiteral(specifier) && wrapperOf(specifier.text)
+    ? specifier.text
+    : undefined;
+}
+
+// What each identifier in a file is bound to by a wrapper package import, require or
+// destructured dynamic import.
 function wrapperBindings(source: ts.SourceFile) {
   const bindings = new Map<string, Binding>();
   const visit = (node: ts.Node) => {
@@ -265,16 +345,10 @@ function wrapperBindings(source: ts.SourceFile) {
           });
     } else if (
       ts.isVariableDeclaration(node) &&
-      node.initializer &&
-      ts.isCallExpression(node.initializer) &&
-      ts.isIdentifier(node.initializer.expression) &&
-      node.initializer.expression.text === 'require' &&
-      node.initializer.arguments[0] &&
-      ts.isStringLiteral(node.initializer.arguments[0]) &&
-      wrapperOf(node.initializer.arguments[0].text) &&
-      ts.isObjectBindingPattern(node.name)
+      ts.isObjectBindingPattern(node.name) &&
+      loadedModule(node.initializer)
     ) {
-      const module = node.initializer.arguments[0].text;
+      const module = loadedModule(node.initializer)!;
       for (const element of node.name.elements)
         if (ts.isIdentifier(element.name))
           bindings.set(element.name.text, {
@@ -327,6 +401,10 @@ export function modelWrapperSites(repository: Repository): ModelWrapperSite[] {
       // A gateway or registry ID names its provider; a bare one belongs to the call's provider.
       if (prefixed && !match) continue;
       const provider = match ? PREFIX_PROVIDER[match[1]] : details.provider;
+      // A bare ID shaped like another provider's (`claude-…` reaching `new OpenAI()` through a
+      // shared helper) is not this call's model.
+      const shaped = MODEL_SHAPES.find(([pattern]) => pattern.test(literal.text))?.[1];
+      if (!match && (shaped ? shaped !== provider : RETURNED.has(literal))) continue;
       const site = {
         ...details,
         provider,
@@ -355,22 +433,26 @@ export function modelWrapperSites(repository: Repository): ModelWrapperSite[] {
         instances.set(name, { provider, module: binding.module });
     }
     const collect = (node: ts.Node) => {
-      if (
-        ts.isVariableDeclaration(node) &&
-        ts.isIdentifier(node.name) &&
-        node.initializer &&
-        ts.isCallExpression(unwrap(node.initializer))
-      ) {
-        const factory = unwrap(node.initializer) as ts.CallExpression;
+      // `const openai = createOpenAI(…)`, or `google = createGoogleGenerativeAI(…)` on a `let`.
+      const target =
+        ts.isVariableDeclaration(node) && ts.isIdentifier(node.name)
+          ? { name: node.name, value: node.initializer }
+          : ts.isBinaryExpression(node) &&
+              node.operatorToken.kind === ts.SyntaxKind.EqualsToken &&
+              ts.isIdentifier(node.left)
+            ? { name: node.left, value: node.right }
+            : undefined;
+      if (target?.value && ts.isCallExpression(unwrap(target.value))) {
+        const factory = unwrap(target.value) as ts.CallExpression;
         const binding = exported(bindings, factory.expression);
         if (binding && AI_SDK_FACTORIES.has(binding.name) && AI_SDK[binding.module])
-          instances.set(node.name.text, {
+          instances.set(target.name.text, {
             provider: AI_SDK[binding.module],
             module: binding.module,
             custom: endpointOption(program, factory.arguments[0]),
           });
         else if (binding?.module === AI_SDK_COMPATIBLE)
-          instances.set(node.name.text, {
+          instances.set(target.name.text, {
             provider: 'openai',
             module: binding.module,
             custom: `\`${binding.name}\` from ${AI_SDK_COMPATIBLE} (${program.where(factory)})`,
