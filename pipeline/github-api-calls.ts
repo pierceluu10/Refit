@@ -146,10 +146,12 @@ export interface GitHubApiData {
   sources: GitHubScan['sources'];
 }
 
-// `GET /repos/{owner}/{repo}` and `GET /repos/{o}/{r}/` compare equal.
+// `GET /repos/{owner}/{repo}` and `GET /repos/{o}/{r}/` compare equal, as do Octokit's
+// `compare/{base}...{head}` and GitHub's `compare/{basehead}`; `{?name}` query templates are dropped.
 export function githubRouteKey(route: string) {
   const [method, path = ''] = route.split(' ');
   const clean = path
+    .replace(/\{\?[^}]*\}/g, '')
     .replace(/[?#].*$/, '')
     .replace(/\/+$/, '')
     .split('/')

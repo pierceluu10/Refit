@@ -49,6 +49,12 @@ describe('githubRouteKey', () => {
       githubRouteKey('GET /repos/{owner}/{repo}'),
     );
     expect(githubRouteKey('GET /teams/:team_id')).toBe('GET /teams/{}');
+    expect(githubRouteKey('GET /repos/{o}/{r}/compare/{base}...{head}')).toBe(
+      githubRouteKey('GET /repos/{owner}/{repo}/compare/{basehead}'),
+    );
+    expect(githubRouteKey('POST /repos/{o}/{r}/releases/{id}/assets{?name,label}')).toBe(
+      'POST /repos/{}/{}/releases/{}/assets',
+    );
   });
 });
 

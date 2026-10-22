@@ -10,7 +10,7 @@
 // Only labelled repositories that scanned without error count. A reported live request matches a
 // label at the same file and line. Precision is matched reports over live reports; recall is
 // matched labels over labels; route agreement compares the routes (parameters compared as `{}`)
-// of the matched pairs whose label knows one. Pins are scored the same way, by file and line.
+// of the matched pairs whose label knows one; `{?name}` query templates are dropped. Pins are scored the same way, by file and line.
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -21,9 +21,12 @@ const route = (item) => {
   if (!item.route) return null;
   const [method, path = ''] = item.route.split(' ');
   return `${method.toUpperCase()} ${path
+    .replace(/\{\?[^}]*\}/g, '')
     .replace(/[?#].*$/, '')
-    .replace(/\{[^}]*\}/g, '{}')
-    .replace(/\/+$/, '')}`;
+    .replace(/\/+$/, '')
+    .split('/')
+    .map((segment) => (segment.includes('{') ? '{}' : segment))
+    .join('/')}`;
 };
 const ratio = (a, b) => (b ? Math.round((a / b) * 1000) / 1000 : null);
 
