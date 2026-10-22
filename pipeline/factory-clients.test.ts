@@ -261,6 +261,7 @@ it.each([
     'a function trap over a constant client',
     'get: function (_target, key) { return (base as any)[key]; }',
   ],
+  ['a Reflect.get receiver', 'get: (_t, key, receiver) => Reflect.get(getStripe(), key, receiver)'],
 ])('traces a Proxy export that forwards every read through %s', (_name, trap) => {
   const result = analyze({
     'client.ts': `import Stripe from 'stripe';\n${lazy}\nconst base = new Stripe('key', ${options});\nexport const stripe = new Proxy({} as Stripe, { ${trap} });`,
@@ -276,11 +277,19 @@ it.each([
     'a trap that binds methods',
     'get(_t, key) { const value = getStripe()[key]; return typeof value === "function" ? value.bind(getStripe()) : value; }',
   ],
-  ['a Reflect.get receiver', 'get: (_t, key, receiver) => Reflect.get(getStripe(), key, receiver)'],
+  [
+    "a receiver that is not the trap's",
+    'get: (_t, key, receiver) => Reflect.get(getStripe(), key, other)',
+  ],
+  ['a trap with another statement', 'get(_t, key) { console.log(key); return getStripe()[key]; }'],
+  [
+    'a trap that fills another variable',
+    'get(_t, key) { other ??= getStripe(); return getStripe()[key]; }',
+  ],
   ['a target that is not a client', 'get: (_t, key) => ({} as any)[key]'],
 ])('leaves a Proxy export untraced with %s', (_name, trap) => {
   const result = analyze({
-    'client.ts': `import Stripe from 'stripe';\n${lazy}\nexport const stripe = new Proxy({} as Stripe, { ${trap} });`,
+    'client.ts': `import Stripe from 'stripe';\n${lazy}\nconst other: any = {};\nexport const stripe = new Proxy({} as Stripe, { ${trap} });`,
     'billing.ts': `import { stripe } from './client.ts';\n${read('stripe')}`,
   });
   expect(result.findings.filter((entry) => entry.confidence === 'confirmed')).toEqual([]);
@@ -321,6 +330,59 @@ export function getStripe(): Stripe { return new Stripe('key', ${options}); }`,
   const intent = await stripe.paymentIntents.retrieve('pi');
   return intent.charges.data;
 }`,
+  });
+  expect(result.findings.filter((entry) => entry.confidence === 'confirmed')).toEqual([]);
+});
+
+const wrapper = (body: string) => `export function lazy<T extends object>(factory: () => T): T {
+  let instance: T | null = null;
+  ${body}
+  return new Proxy({} as T, {
+    get(_target, prop, receiver) {
+      if (!instance) instance = factory();
+      return Reflect.get(instance as object, prop, receiver);
+    },
+  });
+}`;
+
+it('traces a client created through a generic lazy Proxy wrapper', () => {
+  const result = analyze({
+    'lazy-client.ts': wrapper(''),
+    'route.ts': `import Stripe from 'stripe';\nimport { lazy } from './lazy-client.ts';\nconst stripe = lazy(() => new Stripe('key', ${options}));\n${read('stripe')}`,
+  });
+  expect(result.findings).toMatchObject([{ file: 'route.ts', confidence: 'confirmed' }]);
+  expect(result.apiVersionDeclarations).toMatchObject([
+    { file: 'route.ts', kind: 'constructor', status: 'literal', value: ORIGINAL },
+    { file: 'route.ts', kind: 'request', status: 'inherited' },
+  ]);
+});
+
+it.each([
+  ['a local the wrapper also fills with something else', wrapper('instance = {} as T;')],
+  [
+    'two parameters',
+    wrapper('').replace('factory: () => T)', 'factory: () => T, other?: () => T)'),
+  ],
+  [
+    'a local filled with a call that passes arguments',
+    wrapper('').replace('instance = factory();', 'instance = (factory as any)(1);'),
+  ],
+  [
+    'a module holder instead of its own local',
+    `let instance: any = null;\n${wrapper('').replace('let instance: T | null = null;', '')}`,
+  ],
+])('leaves a lazy wrapper untraced with %s', (_name, source) => {
+  const result = analyze({
+    'lazy-client.ts': source,
+    'route.ts': `import Stripe from 'stripe';\nimport { lazy } from './lazy-client.ts';\nconst stripe = lazy(() => new Stripe('key', ${options}));\n${read('stripe')}`,
+  });
+  expect(result.findings.filter((entry) => entry.confidence === 'confirmed')).toEqual([]);
+});
+
+it('leaves a lazy wrapper call untraced when its function does not return a client', () => {
+  const result = analyze({
+    'lazy-client.ts': wrapper(''),
+    'route.ts': `import Stripe from 'stripe';\nimport { lazy } from './lazy-client.ts';\nconst stripe = lazy(() => ({}) as Stripe);\n${read('stripe')}`,
   });
   expect(result.findings.filter((entry) => entry.confidence === 'confirmed')).toEqual([]);
 });
