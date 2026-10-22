@@ -7,7 +7,10 @@ const RESPONSES_URL = 'https://api.openai.com/v1/responses';
 const REQUEST_TIMEOUT_MS = 60_000;
 export const MAX_INPUT_BYTES = 64 * 1024;
 const MAX_RESPONSE_BYTES = 256 * 1024;
-const MAX_OUTPUT_TOKENS = 4096;
+// Reasoning tokens count against this limit. OpenAI recommends reserving at least 25,000 tokens for
+// reasoning and output (developers.openai.com/api/docs/guides/reasoning/advice-on-prompting); at 4,096
+// repair requests ran out while reasoning and returned no output.
+export const MAX_OUTPUT_TOKENS = 25_000;
 // At least 2 bytes per token, so the 64 KiB byte limit binds first. JSON-wrapped source measures
 // about 3.5 bytes per token: a 16,384 cap rejected evidence the byte limit allowed.
 const MAX_INPUT_TOKENS = 32_768;
@@ -95,8 +98,12 @@ export async function requestStructuredOutput(
     !Array.isArray(result.output) ||
     typeof result.id !== 'string' ||
     typeof result.model !== 'string'
-  )
-    throw new PipelineInputError('OpenAI response was incomplete or invalid.');
+  ) {
+    const reason = isObject(result.incomplete_details) ? result.incomplete_details.reason : null;
+    throw new PipelineInputError(
+      `OpenAI response was incomplete or invalid${typeof reason === 'string' ? ` (${reason.slice(0, 64)})` : ''}.`,
+    );
+  }
   const texts: string[] = [];
   for (const item of result.output) {
     if (!isObject(item)) throw new PipelineInputError('Invalid OpenAI output item.');
