@@ -48,7 +48,7 @@ else {
     }
     await writeFile(
       join(stage, 'package.json'),
-      `${JSON.stringify({ name: metadata.name, version: metadata.version, description: 'Local API migration agent with reviewable patches and isolated validation', private: true, type: 'module', engines: metadata.engines, bin: { refit: 'bin/refit.mjs' }, files: ['bin/', 'pipeline/', 'data/', 'README.md', 'LICENSE', 'docs/', 'examples/', 'public/', '.env.example'], dependencies }, null, 2)}\n`,
+      `${JSON.stringify({ name: metadata.name, version: metadata.version, description: 'Local API migration agent with reviewable patches and isolated validation', license: metadata.license, private: true, type: 'module', engines: metadata.engines, bin: { refit: 'bin/refit.mjs' }, files: ['bin/', 'pipeline/', 'data/', 'README.md', 'LICENSE', 'docs/', 'examples/', 'public/', '.env.example'], dependencies }, null, 2)}\n`,
     );
     await mkdir(join(stage, 'bin'));
     await copyFile(join(root, 'bin/refit.mjs'), join(stage, 'bin/refit.mjs'));
@@ -66,7 +66,13 @@ else {
     await copyFile(join(root, 'README.md'), join(stage, 'README.md'));
     await copyFile(join(root, 'LICENSE'), join(stage, 'LICENSE'));
     await copyFile(join(root, '.env.example'), join(stage, '.env.example'));
-    await cp(join(root, 'docs'), join(stage, 'docs'), { recursive: true });
+    // Guides ship; benchmark data and AI evaluation records stay in the repository. They are not read
+    // at runtime and include third-party code excerpts.
+    const unpackaged = ['benchmarks', 'ai-evals'].map((name) => join(root, 'docs', name));
+    await cp(join(root, 'docs'), join(stage, 'docs'), {
+      recursive: true,
+      filter: (source) => !unpackaged.includes(source),
+    });
     await mkdir(join(stage, 'public'));
     await copyFile(
       join(root, 'public/refit-agent-avatar.png'),

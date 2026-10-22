@@ -107,6 +107,12 @@ it('packs only CLI runtime sources, fixtures, docs and exact runtime dependencie
         file.includes('.test.') || file.startsWith('src/') || file.startsWith('node_modules/'),
     ),
   ).toBe(false);
+  // Benchmark data and AI evaluation records are not read at runtime and quote third-party code.
+  expect(
+    result.files.filter(
+      (file) => file.startsWith('docs/benchmarks/') || file.startsWith('docs/ai-evals/'),
+    ),
+  ).toEqual([]);
   expect(Object.keys(result.dependencies).sort()).toEqual([
     'diff',
     'fast-xml-parser',
@@ -123,6 +129,7 @@ it('packs only CLI runtime sources, fixtures, docs and exact runtime dependencie
   const metadata = JSON.parse(extracted.stdout);
   expect(metadata.bin.refit).toBe('bin/refit.mjs');
   expect(metadata.private).toBe(true);
+  expect(metadata.license).toBe('MIT');
   expect(metadata.scripts).toBeUndefined();
   const readme = await execute('tar', ['-xOf', result.archive, 'package/README.md']);
   expect(readme.stdout).toBe(await readFile(resolve('README.md'), 'utf8'));
