@@ -141,6 +141,25 @@
       "format": "commerce-results",
       "predates": []
     },
+    "2026-10-22-deadline-fresh-sample-results.json": {
+      "format": "deadline-results",
+      "predates": ["/*/outcomeClass"]
+    },
+    "2026-10-22-deadline-fresh-sets-results.json": {
+      "format": "deadline-sets",
+      "predates": [
+        "/harness",
+        "/sets/shopify-fresh/*/outcomeClass",
+        "/sets/stripe-fresh/*/outcomeClass"
+      ]
+    },
+    "2026-10-22-deadline-rerun-results.json": {
+      "format": "deadline-rerun-results",
+      "predates": [
+        "/runs/classified/results/*/outcomeClass",
+        "/runs/current/results/*/outcomeClass"
+      ]
+    },
     "2026-10-22-gemini-results.json": {
       "format": "gemini-results",
       "predates": []
@@ -157,6 +176,14 @@
       "format": "inventory-sample-results",
       "predates": []
     },
+    "2026-10-22-messaging-results.json": {
+      "format": "messaging-results",
+      "predates": []
+    },
+    "2026-10-22-messaging-targeted-results.json": {
+      "format": "messaging-results",
+      "predates": []
+    },
     "2026-10-22-meta-platform-results.json": {
       "format": "meta-platform-results",
       "predates": []
@@ -169,6 +196,14 @@
       "format": "ai-model-results",
       "predates": ["/harness", "/results/*/outcomeClass"]
     },
+    "2026-10-22-python-langchain-results.json": {
+      "format": "python-model-results",
+      "predates": []
+    },
+    "2026-10-22-python-model-results.json": {
+      "format": "python-model-results",
+      "predates": []
+    },
     "2026-10-22-slack-baseline-results.json": {
       "format": "slack-results",
       "predates": []
@@ -179,6 +214,10 @@
     },
     "2026-10-22-slack-results.json": {
       "format": "slack-results",
+      "predates": []
+    },
+    "2026-10-22-upstream-replay-results.json": {
+      "format": "upstream-replay-results",
       "predates": []
     }
   }

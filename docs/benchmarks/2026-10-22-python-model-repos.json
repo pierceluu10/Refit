@@ -1,0 +1,354 @@
+{
+  "formatVersion": 1,
+  "language": "python",
+  "sdks": [
+    "openai",
+    "anthropic",
+    "google-genai"
+  ],
+  "selectedAt": "2026-10-22T08:24:06.102Z",
+  "method": "GitHub code search through gh api (queries below, 3 pages of 100), pool deduplicated by lower-cased full_name; vendor organizations (openai, anthropics, google, google-gemini, googleapis, googlecloudplatform) and repositories in other frozen lists removed; metadata through GraphQL; forks, archived repositories, repositories last pushed before 2025-10-22 and repositories over 100 MB removed; ranked by stars, top 50; frozen at the default branch head. Retiring models are never consulted.",
+  "queries": [
+    {
+      "query": "\"from openai import OpenAI\" language:Python",
+      "pages": 3,
+      "collected": 300
+    },
+    {
+      "query": "\"from openai import AsyncOpenAI\" language:Python",
+      "pages": 3,
+      "collected": 300
+    },
+    {
+      "query": "\"from anthropic import Anthropic\" language:Python",
+      "pages": 3,
+      "collected": 300
+    },
+    {
+      "query": "\"from anthropic import AsyncAnthropic\" language:Python",
+      "pages": 3,
+      "collected": 300
+    },
+    {
+      "query": "\"from google import genai\" language:Python",
+      "pages": 3,
+      "collected": 300
+    },
+    {
+      "query": "\"openai.ChatCompletion.create\" language:Python",
+      "pages": 3,
+      "collected": 300
+    }
+  ],
+  "rejected": {
+    "vendor": 0,
+    "frozen": 0,
+    "fork": 0,
+    "archived": 0,
+    "stale": 583,
+    "large": 76,
+    "missing": 0
+  },
+  "repos": [
+    {
+      "repo": "Upsonic/Upsonic",
+      "commit": "101f0313b0ddb96cd4078354879b2ff57005db29",
+      "stars": 7962,
+      "pushedAt": "2026-06-18T14:55:50Z"
+    },
+    {
+      "repo": "VRSEN/agency-swarm",
+      "commit": "5b02d5f5bb1e47fd50c404398b36a07050f98001",
+      "stars": 4609,
+      "pushedAt": "2026-10-21T19:49:11Z"
+    },
+    {
+      "repo": "SkywalkerDarren/chatWeb",
+      "commit": "2e5e1addf422e587635739fbc590c712beda8271",
+      "stars": 917,
+      "pushedAt": "2026-05-25T16:56:25Z"
+    },
+    {
+      "repo": "enjalot/latent-scope",
+      "commit": "41f7305dffbbc0dd74d3605ac6af9df21fa1270f",
+      "stars": 796,
+      "pushedAt": "2026-08-21T00:45:04Z"
+    },
+    {
+      "repo": "juliepy/AI-Engineer-from-scrach",
+      "commit": "09fafe3e291890ae7827939e592a4df8d1115134",
+      "stars": 472,
+      "pushedAt": "2026-10-13T11:32:16Z"
+    },
+    {
+      "repo": "EvolvingLMMs-Lab/OneVision-Encoder",
+      "commit": "c2cd3e0d85c7c44d1b1b1bad5317ceb6ff6fe93a",
+      "stars": 404,
+      "pushedAt": "2026-06-20T02:08:18Z"
+    },
+    {
+      "repo": "MCG-NJU/VideoChat3",
+      "commit": "015f52eb2ea70b5abda30192aee18034f2c5f13b",
+      "stars": 351,
+      "pushedAt": "2026-10-02T07:35:21Z"
+    },
+    {
+      "repo": "zeroQiaoba/MERTools",
+      "commit": "89120b780ab18b28349f0e37dcc12b8cc253cb02",
+      "stars": 338,
+      "pushedAt": "2026-06-05T06:25:14Z"
+    },
+    {
+      "repo": "AnswerDotAI/claudette",
+      "commit": "e2484253a1840385f50a3f1d57847d07f6f4fa18",
+      "stars": 315,
+      "pushedAt": "2026-09-21T03:35:55Z"
+    },
+    {
+      "repo": "blixt/sol-mate-eink",
+      "commit": "d5acff86929d31a6ad10a6c960e1c9695a915c43",
+      "stars": 311,
+      "pushedAt": "2026-01-04T19:41:18Z"
+    },
+    {
+      "repo": "Role1776/netmon",
+      "commit": "8b103de505c82a0860d5b6766d21820b08f7e2f1",
+      "stars": 286,
+      "pushedAt": "2026-10-11T10:48:40Z"
+    },
+    {
+      "repo": "Lyra-stellAI/BYO-LLM-WIKI",
+      "commit": "0316fb7d01c0c5be590580ebedc02688a6f27d73",
+      "stars": 279,
+      "pushedAt": "2026-07-29T06:59:57Z"
+    },
+    {
+      "repo": "Zhiyuan-Zeng/RLVE",
+      "commit": "b2dd0b6f726ee2ebc8e2c0fb2af0796414f18cb2",
+      "stars": 253,
+      "pushedAt": "2026-04-30T18:54:06Z"
+    },
+    {
+      "repo": "wangyu-ustc/Mem-alpha",
+      "commit": "9c0e1f6482f8ea7a322012a8155247966285946f",
+      "stars": 228,
+      "pushedAt": "2025-12-25T17:50:03Z"
+    },
+    {
+      "repo": "snowmanzhuang/yixueAIganhuo-PPT",
+      "commit": "abe5557888923718010629689d4888ca03dcae57",
+      "stars": 199,
+      "pushedAt": "2026-07-07T14:48:39Z"
+    },
+    {
+      "repo": "kandada/fastclaw",
+      "commit": "5d0b4619e8dcb3bdd0660e5606afe34176fc64c4",
+      "stars": 169,
+      "pushedAt": "2026-10-08T10:13:25Z"
+    },
+    {
+      "repo": "ryysayhi/AudioGenie",
+      "commit": "a7baad56d3a37b62f19f55e27c78afb665d3b0de",
+      "stars": 160,
+      "pushedAt": "2025-10-23T09:26:50Z"
+    },
+    {
+      "repo": "OpenDataBox/MemoryData",
+      "commit": "bdbe698f776d921ac791d1b07c0a7fc65a8bb4bb",
+      "stars": 150,
+      "pushedAt": "2026-07-05T03:15:53Z"
+    },
+    {
+      "repo": "ai-forever/gpt2giga",
+      "commit": "b0235e41f968ecc568c3ab5755fe1a8663dcf057",
+      "stars": 138,
+      "pushedAt": "2026-10-21T12:21:53Z"
+    },
+    {
+      "repo": "Liu-Hy/GenoMAS",
+      "commit": "2d934e122f66c1160207300da155655b4fcaeeee",
+      "stars": 134,
+      "pushedAt": "2026-10-20T02:19:09Z"
+    },
+    {
+      "repo": "aurateam2026/AURA",
+      "commit": "82d78f0f3e0ac61b7a88d065cc59508e3b0d9ad8",
+      "stars": 133,
+      "pushedAt": "2026-06-05T09:38:30Z"
+    },
+    {
+      "repo": "ibuilder/massing",
+      "commit": "523e5b3a120bec5c593bdeae7abc44e1b559dc92",
+      "stars": 128,
+      "pushedAt": "2026-10-21T09:11:59Z"
+    },
+    {
+      "repo": "future-agi/agent-learning-kit",
+      "commit": "bd5ab6b4ad3d590b87953c658bbcf0b16a9675ee",
+      "stars": 127,
+      "pushedAt": "2026-10-22T08:14:05Z"
+    },
+    {
+      "repo": "hnking-star/FlySecAgent",
+      "commit": "89e35195b2d85345ffd2f3b5202cd9c72a8829a4",
+      "stars": 123,
+      "pushedAt": "2026-10-04T07:07:32Z"
+    },
+    {
+      "repo": "joaompinto/janito",
+      "commit": "d4ad7d0965d594f022f950f0ec8b7332c0b7ae43",
+      "stars": 121,
+      "pushedAt": "2026-10-19T12:03:38Z"
+    },
+    {
+      "repo": "litmux4ai/litmux",
+      "commit": "9c7e4e662cbc5a0c3ead52eeebb3a68a5b89dd17",
+      "stars": 108,
+      "pushedAt": "2026-05-21T22:02:04Z"
+    },
+    {
+      "repo": "Ghy0501/MCITlib",
+      "commit": "a3a622c9beb690e84c2923785279f179a6aac07e",
+      "stars": 106,
+      "pushedAt": "2026-07-17T06:58:12Z"
+    },
+    {
+      "repo": "DataArcTech/GraphSearch",
+      "commit": "78255b256e922d65c9c125d986b8204a4b135fac",
+      "stars": 100,
+      "pushedAt": "2026-04-09T09:48:56Z"
+    },
+    {
+      "repo": "wwwzhouhui/in_animation",
+      "commit": "d86dd59455ed0a7c300339db0bdaaddd862756e3",
+      "stars": 94,
+      "pushedAt": "2026-10-16T13:56:49Z"
+    },
+    {
+      "repo": "GenSI-THUAIR/FLEX",
+      "commit": "b749fc351f81d834b71edb13bc7bc0e51cfdc15d",
+      "stars": 86,
+      "pushedAt": "2026-06-09T03:48:30Z"
+    },
+    {
+      "repo": "surrealdb/kaig",
+      "commit": "0c92e728e454a653439fa09f8f4ab5120b3104fe",
+      "stars": 79,
+      "pushedAt": "2026-08-13T14:19:40Z"
+    },
+    {
+      "repo": "agent-persona/personas-pipeline",
+      "commit": "725c2e354059bedfcc03490ca1778d2c862767a0",
+      "stars": 71,
+      "pushedAt": "2026-04-19T22:41:46Z"
+    },
+    {
+      "repo": "whitematterlabs/ambiance",
+      "commit": "af994d9647295d98655990ada112306891049f2d",
+      "stars": 71,
+      "pushedAt": "2026-07-20T13:25:36Z"
+    },
+    {
+      "repo": "laiyao1/AnalogCoderPro",
+      "commit": "05542af46020e5c37d5a7e3ca79da9f24626e1c9",
+      "stars": 69,
+      "pushedAt": "2026-03-14T21:36:11Z"
+    },
+    {
+      "repo": "FaustoS88/Pydantic-AI-Pinescript-Expert",
+      "commit": "03cbd93c486435df08d70185fbab9aa61fff5fbb",
+      "stars": 67,
+      "pushedAt": "2026-08-04T07:14:18Z"
+    },
+    {
+      "repo": "ChatHouseDiffusion/chathousediffusion",
+      "commit": "b6dc810c5b8ca2aed05016389bbe08c2c1fbdf27",
+      "stars": 62,
+      "pushedAt": "2025-10-25T22:20:45Z"
+    },
+    {
+      "repo": "ShijieZhou-UCLA/VLM4D",
+      "commit": "23f2680764a2266e69cea6f81ef660decd28792d",
+      "stars": 56,
+      "pushedAt": "2025-11-20T05:47:18Z"
+    },
+    {
+      "repo": "KeWang0622/agent-zero-to-hero",
+      "commit": "179d6b38f137a46e33328958a014e60cb6038b2a",
+      "stars": 55,
+      "pushedAt": "2026-06-03T00:42:01Z"
+    },
+    {
+      "repo": "alexlmoney83-oss/travel-planning-agent",
+      "commit": "d9b77eb45518bf5205b9637843011a282f27922b",
+      "stars": 53,
+      "pushedAt": "2025-12-07T13:08:00Z"
+    },
+    {
+      "repo": "mitodl/ol-data-platform",
+      "commit": "ea6db3c8b3ef9d00d78b9c9cf49e010d14462176",
+      "stars": 51,
+      "pushedAt": "2026-10-22T02:20:11Z"
+    },
+    {
+      "repo": "eighteendreamer/Ai_Test_Agent",
+      "commit": "186679a8661ac3414f7b6f75782e8669d69b6f1a",
+      "stars": 47,
+      "pushedAt": "2026-10-06T15:29:21Z"
+    },
+    {
+      "repo": "LongHorizonReasoning/longcot",
+      "commit": "fb9649423f15f5b0091f8e988b100596cac592ca",
+      "stars": 44,
+      "pushedAt": "2026-04-20T13:38:34Z"
+    },
+    {
+      "repo": "SakanaAI/CoffeeBench",
+      "commit": "9e2f3950b5812c8753de81ede9c68babc024b5c8",
+      "stars": 41,
+      "pushedAt": "2026-08-11T06:25:28Z"
+    },
+    {
+      "repo": "KodyKlupt/PromptMOL",
+      "commit": "3a9448de8a21a619f13fe92253232e7835a6c2fc",
+      "stars": 40,
+      "pushedAt": "2026-05-19T23:11:06Z"
+    },
+    {
+      "repo": "chchenhui/mlrbench",
+      "commit": "f728d571a992d71c8b526eeb4d9ab6bb5c8cc824",
+      "stars": 37,
+      "pushedAt": "2026-09-08T06:53:37Z"
+    },
+    {
+      "repo": "animede/simple_video",
+      "commit": "86a4840171dadbd41010bfd3e724bcd83fe1f001",
+      "stars": 36,
+      "pushedAt": "2026-04-24T06:39:09Z"
+    },
+    {
+      "repo": "chenluQwQ/bilibili-ai-bot",
+      "commit": "6d24b1c6f8c4b300ad62056ced4f4ae5f7b54640",
+      "stars": 36,
+      "pushedAt": "2026-07-30T09:49:09Z"
+    },
+    {
+      "repo": "henrymao2004/Auto-research-red-teaming",
+      "commit": "6c9a92277e3027bd205f10e31be96be8fb52d6a3",
+      "stars": 35,
+      "pushedAt": "2026-09-26T06:39:57Z"
+    },
+    {
+      "repo": "Bob-bobo/LLM-to-Agent",
+      "commit": "679cfc2cf68761b4a9107082a259f1badec19097",
+      "stars": 34,
+      "pushedAt": "2026-07-14T08:53:10Z"
+    },
+    {
+      "repo": "build-trust/autonomy",
+      "commit": "4053093592b864a60f9711694fe8aad507a540fe",
+      "stars": 34,
+      "pushedAt": "2026-03-25T18:23:54Z"
+    }
+  ]
+}

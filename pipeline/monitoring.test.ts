@@ -638,7 +638,7 @@ it.skipIf(!DATABASE)(
         installation: { id: 456 },
         repository: { full_name: 'example/app', default_branch: 'main' },
       });
-    expect(await push('refs/heads/feature')).toMatchObject({ status: 'accepted' });
+    expect(await push('refs/heads/feature')).toMatchObject({ status: 'ignored' });
     expect(await push('refs/heads/main')).toMatchObject({ status: 'accepted' });
     await until(
       async () => issueWrites(),

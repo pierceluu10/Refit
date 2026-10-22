@@ -38,8 +38,8 @@ node bin/refit.mjs verify --directory dist-cli/billing-ai-evaluation-history-202
 Recheck the saved final patch, including multi-page and empty history, without another AI request:
 
 ```sh
-REFIT_BILLING_REPOSITORY=/Users/pierceluu/Repos/refit-billing-demo \
-REFIT_BILLING_PATCH=/Users/pierceluu/Repos/Refit/dist-cli/billing-ai-evaluation-history-2026-10-09/migration.patch \
+REFIT_BILLING_REPOSITORY=~/Repos/refit-billing-demo \
+REFIT_BILLING_PATCH=~/Repos/Refit/dist-cli/billing-ai-evaluation-history-2026-10-09/migration.patch \
 npm test
 ```
 
