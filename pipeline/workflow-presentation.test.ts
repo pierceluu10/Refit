@@ -77,10 +77,20 @@ it('summarizes API impact, proposed edits and offline checks for interactive CLI
   expect(output).toContain('Original: passed; proposed: passed');
 
   const report = JSON.parse(await readFile(join(directory, 'report.json'), 'utf8'));
-  report.validation.environment = { reused: false, manager: 'yarn', skippedPlatformPackages: 25 };
+  report.validation.environment = { reused: false, manager: 'yarn', platformPackages: 25 };
   await writeFile(join(directory, 'report.json'), JSON.stringify(report));
   expect(await renderWorkflowResult(result)).toContain(
     'Prepared from yarn lockfile; checks offline; 25 platform-specific packages without checksums not installed',
+  );
+  report.validation.environment = {
+    reused: false,
+    manager: 'yarn',
+    platformPackages: 25,
+    platformPackageMode: 'install',
+  };
+  await writeFile(join(directory, 'report.json'), JSON.stringify(report));
+  expect(await renderWorkflowResult(result)).toContain(
+    '25 platform-specific packages installed without checksums (REFIT_YARN_PLATFORM_PACKAGES=install)',
   );
   report.validation.environment = { reused: false };
   await writeFile(join(directory, 'report.json'), JSON.stringify(report));

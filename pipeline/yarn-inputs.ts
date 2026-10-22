@@ -263,7 +263,7 @@ export function validateBerryInputs(
   const locked = new Set<string>();
   let packages = 0;
   // Yarn 3.2+ records platform-specific packages with `conditions` and, since Yarn 4, never with a
-  // checksum. Refit does not install any of them (see YARN_SKIP_PLATFORM_PACKAGES).
+  // checksum. By default Refit installs none of them (see YARN_SKIP_PLATFORM_PACKAGES).
   let platformPackages = 0;
   for (const [key, record] of Object.entries(lock)) {
     if (key === '__metadata') continue;
@@ -341,7 +341,7 @@ export function validateBerryInputs(
     lockHash: digest(lockContent),
     ...(rcContent === undefined ? {} : { workspaceConfigHash: digest(rcContent) }),
     packages,
-    ...(platformPackages ? { skippedPlatformPackages: platformPackages } : {}),
+    ...(platformPackages ? { platformPackages } : {}),
     ...(workspaceContents.size
       ? {
           workspaceHashes: Object.fromEntries(

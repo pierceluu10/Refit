@@ -8,7 +8,11 @@ import { promisify } from 'node:util';
 import { afterEach, expect, it, vi } from 'vitest';
 import { readCommittedRepository } from './committed-repository.ts';
 import { readPreparationInputs } from './dependency-inputs.ts';
-import { installTimeoutSeconds, prepareDependencies } from './dependency-preparation.ts';
+import {
+  installTimeoutSeconds,
+  prepareDependencies,
+  yarnPlatformPackageMode,
+} from './dependency-preparation.ts';
 import { dockerSandboxArguments, removeDockerContainer } from './docker-sandbox.ts';
 import { YARN_BERRY_INSTALL_COMMAND, YARN_SKIP_PLATFORM_PACKAGES } from './manager-install.ts';
 import { DEFAULT_YARN_VERSION, validateBerryInputs, validateYarnInputs } from './yarn-inputs.ts';
@@ -591,10 +595,10 @@ it('accepts platform-specific Yarn packages without checksums and installs none 
   linkType: hard
 `;
   expect(validateBerryInputs(JSON.stringify(pinned), lock, BERRY_RC)).toMatchObject({
-    skippedPlatformPackages: 2,
+    platformPackages: 2,
   });
   expect(validateBerryInputs(JSON.stringify(pinned), berry, BERRY_RC)).not.toHaveProperty(
-    'skippedPlatformPackages',
+    'platformPackages',
   );
   // Without conditions, a missing checksum still refuses the lockfile.
   expect(() =>
@@ -701,4 +705,14 @@ if (args[0] === 'run') { process.stderr.write('ENOSPC: no space left on device, 
   ).rejects.toThrow(
     'npm dependency preparation ran out of space in its 2g workspace (ENOSPC). An operator can set REFIT_VALIDATION_WORKSPACE=4g',
   );
+});
+
+it('reads the operator choice for platform packages and defaults to skipping them', () => {
+  expect(yarnPlatformPackageMode(undefined)).toBe('skip');
+  expect(yarnPlatformPackageMode(' ')).toBe('skip');
+  expect(yarnPlatformPackageMode('install')).toBe('install');
+  for (const value of ['yes', 'INSTALL', '1'])
+    expect(() => yarnPlatformPackageMode(value), value).toThrow(
+      'REFIT_YARN_PLATFORM_PACKAGES must be skip or install.',
+    );
 });

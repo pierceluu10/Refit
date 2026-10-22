@@ -213,7 +213,7 @@ gated(
       image: process.env.REFIT_DOCKER_IMAGE!,
       cacheDirectory: join(root, 'cache'),
     });
-    expect(prepared.environment).toMatchObject({ yarnVersion: YARN, skippedPlatformPackages: 25 });
+    expect(prepared.environment).toMatchObject({ yarnVersion: YARN, platformPackages: 25 });
     const stdout = await offline(
       prepared,
       directory,
@@ -222,6 +222,41 @@ gated(
     expect(stdout).toMatch(/^0\n/);
     expect(stdout).toContain('verified package loads');
     expect(stdout).toMatch(/esbuild: The package "@esbuild\/linux-[a-z0-9]+" could not be found/);
+  },
+  300_000,
+);
+
+gated(
+  'installs platform packages unverified only when the operator opts in',
+  async () => {
+    const source = 'pipeline/fixtures/yarn-platform';
+    const files: Record<string, string> = {};
+    for (const path of ['package.json', 'yarn.lock', '.yarnrc.yml'])
+      files[path] = await readFile(join(source, path), 'utf8');
+    const { root, directory } = await repository(files);
+    const previous = process.env.REFIT_YARN_PLATFORM_PACKAGES;
+    process.env.REFIT_YARN_PLATFORM_PACKAGES = 'install';
+    try {
+      const prepared = await prepareDependencies({
+        repository: directory,
+        image: process.env.REFIT_DOCKER_IMAGE!,
+        cacheDirectory: join(root, 'cache'),
+      });
+      expect(prepared.environment).toMatchObject({
+        platformPackages: 25,
+        platformPackageMode: 'install',
+      });
+      const stdout = await offline(
+        prepared,
+        directory,
+        `ls node_modules/@esbuild | wc -l; node -e "console.log(require('esbuild').transformSync('let a = 1').code.trim())"`,
+      );
+      expect(stdout).toMatch(/^1\n/);
+      expect(stdout).toContain('let a = 1;');
+    } finally {
+      if (previous === undefined) delete process.env.REFIT_YARN_PLATFORM_PACKAGES;
+      else process.env.REFIT_YARN_PLATFORM_PACKAGES = previous;
+    }
   },
   300_000,
 );

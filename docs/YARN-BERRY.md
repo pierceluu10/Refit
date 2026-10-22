@@ -13,6 +13,8 @@ A Yarn 2+ project is one whose root `yarn.lock` has a `__metadata` header (Yarn 
 
 Installation is unchanged from the single-package case. Refit installs `@yarnpkg/cli-dist` at the named version through npm, with scripts off, and checks its version and registry integrity. It then runs `yarn install --immutable --mode=skip-build`, configured only through environment variables: node-modules linker, scripts off, a private cache, the public npm registry, no telemetry, and `YARN_IGNORE_PATH=1`. The repository's `.yarnrc.yml` and `.npmrc` never reach the installer. The result is cached by the lockfile, manifests, Yarn release and image, like every other manager. Validation stays offline and is unchanged.
 
+Yarn 2+ builds each package's zip in the operating system's temporary directory before moving it into its cache. The sandbox's `/tmp` holds 64 MiB, so every real Yarn 4 project in the frozen sets ran out of space there, even with the `4g` profile. The installer therefore sets `TMPDIR` to `/workspace/.yarn-tmp`, inside the installer workspace, which is the space the profile sizes. Yarn 2+ keeps a zip of every package in its cache beside the unpacked tree, so it needs more workspace than npm for the same dependencies. When it runs out, the error says so and points to the operator's `4g` profile.
+
 The Node.js image follows the repository's declaration (`docs/VALIDATION-RUNTIME.md`), so a Yarn release runs on the Node.js line the project names.
 
 ## Platform-specific packages
@@ -21,7 +23,7 @@ Yarn 3.2 and later record a package that only installs on some platforms (`@esbu
 
 Refit used to refuse such lockfiles, which ruled out nearly every Yarn 4 project that uses esbuild, Vite, Rollup or SWC. It now accepts an entry with `conditions` and no checksum, but installs none of them. Before installing, it writes `supportedArchitectures` with `os`, `cpu` and `libc` set to `refit-none` into the installer's own `/workspace/.yarnrc.yml`, a platform no package declares. Yarn then skips every conditional package, the lockfile stays unchanged under `--immutable`, and every installed package was checked against a lockfile checksum. The setting is written only when the lockfile has conditional entries, because Yarn releases older than 3.2 do not know it (and do not write `conditions` either).
 
-The count is recorded as `skippedPlatformPackages` in the dependency environment, and the CLI summary says how many platform-specific packages were not installed. A check that needs one of those binaries fails at baseline with the tool's own message, for example `The package "@esbuild/linux-arm64" could not be found, and is needed by esbuild.`, so Refit stops rather than reporting a result. Type checks and tests that do not load a native binary run as usual. Entries without `conditions` still need a checksum.
+The count is recorded as `platformPackages` in the dependency environment, and the CLI summary says how many platform-specific packages were not installed. A check that needs one of those binaries fails at baseline with the tool's own message, for example `The package "@esbuild/linux-arm64" could not be found, and is needed by esbuild.`, so Refit stops rather than reporting a result. Type checks and tests that do not load a native binary run as usual. Entries without `conditions` still need a checksum.
 
 ## How the Yarn release is verified
 
