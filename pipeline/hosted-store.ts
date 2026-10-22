@@ -537,6 +537,16 @@ export async function openHostedStore(
       }),
   });
 
+  // Running jobs whose lease is still live, with the worker holding each.
+  const leases = async () =>
+    new Map(
+      (
+        await pool.query<{ id: string; lease_owner: string }>(
+          `SELECT id, lease_owner FROM refit_jobs WHERE status = 'running' AND lease_expires_at > now()`,
+        )
+      ).rows.map((row) => [Number(row.id), row.lease_owner]),
+    );
+
   const read = async () => {
     const [installations, targets, jobs] = await Promise.all([
       pool.query<{
@@ -608,5 +618,6 @@ export async function openHostedStore(
     allow,
     reserveInventory,
     aiLedger,
+    leases,
   };
 }
