@@ -270,7 +270,9 @@ function resolver(source: ts.SourceFile, imported: Map<string, Holder>) {
   );
   const holderName = (module: string | undefined, name: string | undefined): Holder | undefined => {
     if (!module) return undefined;
-    if (name === 'WebClient' && WEB_CLIENT_MODULES.includes(module)) return 'web-api';
+    // WebClient extends the exported `Methods` class, which some code uses as the client type.
+    if ((name === 'WebClient' || name === 'Methods') && WEB_CLIENT_MODULES.includes(module))
+      return 'web-api';
     if (name === 'App' && module === BOLT) return 'bolt-app';
     return undefined;
   };
@@ -788,6 +790,36 @@ function constructedWith(node: ts.Expression) {
   return found;
 }
 
+// Names bound from `const { getSlackApp } = await import('./slack/app')` anywhere in a file.
+function dynamicImports(source: ts.SourceFile) {
+  const names = new Map<string, { specifier: string; name: string }>();
+  const visit = (node: ts.Node) => {
+    if (
+      ts.isVariableDeclaration(node) &&
+      node.initializer &&
+      ts.isObjectBindingPattern(node.name)
+    ) {
+      let call = unwrap(node.initializer);
+      if (ts.isAwaitExpression(call)) call = unwrap(call.expression);
+      if (
+        ts.isCallExpression(call) &&
+        call.expression.kind === ts.SyntaxKind.ImportKeyword &&
+        call.arguments.length === 1 &&
+        ts.isStringLiteral(call.arguments[0])
+      )
+        for (const element of node.name.elements)
+          if (ts.isIdentifier(element.name))
+            names.set(element.name.text, {
+              specifier: call.arguments[0].text,
+              name: propertyName(element.propertyName) ?? element.name.text,
+            });
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(source);
+  return names;
+}
+
 function scanFiles(repository: Repository, data: SlackMethods) {
   const { files } = repository;
   const calls: SlackCall[] = [];
@@ -815,7 +847,10 @@ function scanFiles(repository: Repository, data: SlackMethods) {
       file.content.includes('hooks.slack.com') || /IncomingWebhook|RTMClient/.test(file.content);
     const imported = new Map<string, Holder>();
     if (names.some((name) => file.content.includes(name)))
-      for (const [local, binding] of importedNames(sourceFor(file))) {
+      for (const [local, binding] of [
+        ...importedNames(sourceFor(file)),
+        ...dynamicImports(sourceFor(file)),
+      ]) {
         const target = resolver.resolve(binding.specifier, join(repository.root, file.path));
         const holder = target && exportedHolders.get(absolute.get(target)!)?.get(binding.name);
         if (holder) imported.set(local, holder);

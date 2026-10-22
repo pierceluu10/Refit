@@ -188,7 +188,7 @@ function send(client) { return client.chat.postMessage({}); }
 describe('clients reached indirectly', () => {
   it('follows typed properties, injected parameters and fallbacks', async () => {
     const found = await calls({
-      'src/service.ts': `import type { WebClient } from '@slack/web-api';
+      'src/service.ts': `import type { WebClient, Methods } from '@slack/web-api';
 import { WebClient as Client } from '@slack/web-api';
 export class SlackService {
   private slackClient?: WebClient;
@@ -202,7 +202,7 @@ export class SlackService {
   pin() { return this.#private.pins.add({}); }
   later() { const self = this; return () => self.injected.dnd.info({}); }
 }
-type SlackSDK = WebClient;
+type SlackSDK = Methods;
 class Addon { private sdk?: SlackSDK; send() { return this.sdk?.chat.update({}); } }
 let late: WebClient | null = null;
 export const ping = () => late?.auth.test();
@@ -235,6 +235,8 @@ local().team.info({});
       'src/use.ts': `import { getSlackClient, createClient as make, getSlackApp } from './client';
 import { other } from './other';
 export async function run() {
+  const { getSlackApp: lazy } = await import('./client');
+  await lazy()?.client.pins.list({});
   await getSlackClient().chat.postMessage({});
   const web = make(token);
   await web.reactions.add({});
@@ -247,10 +249,11 @@ export async function run() {
     });
     expect(summary(found)).toEqual([
       'src/client.ts:10 web-api team.info',
-      'src/use.ts:4 web-api chat.postMessage',
-      'src/use.ts:6 web-api reactions.add',
-      'src/use.ts:8 bolt views.publish',
-      'src/use.ts:9 bolt chat.delete',
+      'src/use.ts:5 bolt pins.list',
+      'src/use.ts:6 web-api chat.postMessage',
+      'src/use.ts:8 web-api reactions.add',
+      'src/use.ts:10 bolt views.publish',
+      'src/use.ts:11 bolt chat.delete',
     ]);
   });
   it('follows client functions imported through tsconfig paths aliases', async () => {
