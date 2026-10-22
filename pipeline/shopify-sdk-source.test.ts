@@ -4,6 +4,7 @@ import { shopifySdkSourceChanges } from './shopify-sdk-source.ts';
 
 const API = '@shopify/shopify-api';
 const REMIX = '@shopify/shopify-app-remix';
+const EXPRESS = '@shopify/shopify-app-express';
 
 function changes(files: Record<string, string>, primary = REMIX) {
   const result = shopifySdkSourceChanges(
@@ -78,6 +79,24 @@ export const shopify = shopifyApp({ apiVersion: ApiVersion.April26, future: {} }
     `const { shopifyApi, ApiVersion, LogSeverity } = require('${API}');
 module.exports = shopifyApi({ apiVersion: ApiVersion.April26, logger: { level: LogSeverity.Info } });
 `,
+  );
+});
+
+it('finds the shopify-api settings of an express app under api', () => {
+  // Manuel1996-coder/shoppulseai, without its billing flag.
+  const server = `import { LATEST_API_VERSION } from '${API}';
+import { shopifyApp } from '${EXPRESS}';
+export const shopify = shopifyApp({
+  api: { apiVersion: LATEST_API_VERSION, future: { customerAddressDefaultFix: true } },
+  auth: { path: '/api/auth', callbackPath: '/api/auth/callback' },
+});
+`;
+  const result = changes({ 'web/shopify.js': server }, EXPRESS);
+  expect(result.stops).toEqual([]);
+  expect(result.after('web/shopify.js')).toBe(
+    server
+      .replace('{ LATEST_API_VERSION }', '{ ApiVersion }')
+      .replace('apiVersion: LATEST_API_VERSION', 'apiVersion: ApiVersion.April26'),
   );
 });
 
@@ -209,11 +228,15 @@ export const shopify = shopifyApi({ apiKey: 'key' });
 const config = { apiVersion: '2025-07' };
 export const shopify = shopifyApp(config);
 `,
+    'web/express.js': `import { shopifyApp } from '${EXPRESS}';
+export const shopify = shopifyApp({ api: { restResources }, auth: { path: '/api/auth' } });
+`,
   });
   expect(result.edits).toEqual([]);
   expect(result.stops).toEqual([
     { file: 'app/missing.ts', line: 2, column: 24, reason },
     { file: 'app/variable.ts', line: 3, column: 24, reason },
+    { file: 'web/express.js', line: 2, column: 24, reason },
   ]);
 });
 

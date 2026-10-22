@@ -169,13 +169,19 @@ export function shopifySdkSourceChanges(
       )
         future(node);
       if (ts.isCallExpression(node) && CONFIG_CALL.test(node.expression.getText())) {
+        // @shopify/shopify-app-express takes the @shopify/shopify-api settings under `api`.
         const [config] = node.arguments;
+        const api =
+          config && ts.isObjectLiteralExpression(config) ? property(config, 'api') : undefined;
+        const settings = api
+          ? ts.isPropertyAssignment(api)
+            ? api.initializer
+            : undefined
+          : config;
         if (
-          !config ||
-          !ts.isObjectLiteralExpression(config) ||
-          !config.properties.some(
-            (property) => property.name?.getText().replace(/['"]/g, '') === 'apiVersion',
-          )
+          !settings ||
+          !ts.isObjectLiteralExpression(settings) ||
+          !property(settings, 'apiVersion')
         )
           stop(node, API_VERSION_REQUIRED);
       }
@@ -222,6 +228,9 @@ export function shopifySdkSourceChanges(
   }
   return { edits, stops };
 }
+
+const property = (object: ts.ObjectLiteralExpression, name: string) =>
+  object.properties.find((entry) => entry.name?.getText().replace(/['"]/g, '') === name);
 
 type SdkBinding = ts.ImportSpecifier | ts.BindingElement;
 
