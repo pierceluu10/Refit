@@ -141,6 +141,25 @@
       "format": "commerce-results",
       "predates": []
     },
+    "2026-10-22-deadline-fresh-sample-results.json": {
+      "format": "deadline-results",
+      "predates": ["/*/outcomeClass"]
+    },
+    "2026-10-22-deadline-fresh-sets-results.json": {
+      "format": "deadline-sets",
+      "predates": [
+        "/harness",
+        "/sets/shopify-fresh/*/outcomeClass",
+        "/sets/stripe-fresh/*/outcomeClass"
+      ]
+    },
+    "2026-10-22-deadline-rerun-results.json": {
+      "format": "deadline-rerun-results",
+      "predates": [
+        "/runs/classified/results/*/outcomeClass",
+        "/runs/current/results/*/outcomeClass"
+      ]
+    },
     "2026-10-22-gemini-results.json": {
       "format": "gemini-results",
       "predates": []
