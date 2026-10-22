@@ -81,6 +81,15 @@ function print(root: string, scan: ShopifyRestDeprecationScan) {
       `  Removed in ${endpoint.removedIn}; last in ${endpoint.lastVersion}${call.deadline ? `, which Shopify retires on ${call.deadline.date}` : ''}`,
     );
     console.log(
+      `  shopify.dev  ${
+        endpoint.shopifyDev.status === 'confirmed'
+          ? `confirms the removal in ${endpoint.removedIn}`
+          : endpoint.shopifyDev.status === 'confirmed-earlier'
+            ? `removes it in ${endpoint.removedIn} (the SDK resources say ${endpoint.sdkRemovedIn})`
+            : 'no supported version documents it; the removal version is from the SDK only'
+      } (${terminalText(endpoint.shopifyDev.source)})`,
+    );
+    console.log(
       `  Status     ${call.status === 'removed' ? 'the version this app is served no longer has it' : call.status === 'upcoming' ? 'still served; removed when the app moves to ' + endpoint.removedIn : 'unknown: no API version pin found'}`,
     );
   }

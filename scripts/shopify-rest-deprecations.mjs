@@ -10,9 +10,14 @@
 // `lastVersion` the last one that does. This is what Shopify's generated resources say; it is not
 // a changelog entry, and Shopify's per-version release notes are cited only where someone read them.
 //
+// --verification applies what shopify.dev says (scripts/shopify-rest-verify.mjs, run on the list
+// generated without it): an endpoint shopify.dev still documents is dropped, an earlier removal
+// version shopify.dev states replaces the SDK's, and every endpoint records its shopify.dev status.
+//
 //   npm pack @shopify/shopify-api@6.2.0 @shopify/shopify-api@12.3.0 @shopify/shopify-api@15.0.1
 //   node scripts/shopify-rest-deprecations.mjs --sdk shopify-api-6.2.0/package \
 //     --sdk shopify-api-12.3.0/package --sdk shopify-api-15.0.1/package \
+//     --verification docs/benchmarks/2026-10-22-shopify-rest-verification.json \
 //     --checked-at 2026-10-22 --output data/shopify-rest-deprecations.json
 import { existsSync } from 'node:fs';
 import { readdir, readFile, writeFile } from 'node:fs/promises';
@@ -27,6 +32,7 @@ const { values } = parseArgs({
   options: {
     sdk: { type: 'string', multiple: true },
     'checked-at': { type: 'string' },
+    verification: { type: 'string' },
     output: { type: 'string' },
     help: { type: 'boolean' },
   },
@@ -173,6 +179,26 @@ for (const [key, { value, versions: listed }] of seen) {
       removedIn: next,
       source: compared,
     });
+}
+if (values.verification) {
+  const verified = new Map(
+    JSON.parse(await readFile(values.verification, 'utf8')).endpoints.map((item) => [
+      `${item.resource} ${item.method} ${item.path}`,
+      item,
+    ]),
+  );
+  for (const endpoint of endpoints.splice(0)) {
+    const item = verified.get(`${endpoint.resource} ${endpoint.method} ${endpoint.path}`);
+    if (!item) throw new Error(`${endpoint.method} ${endpoint.path} is not in the verification.`);
+    if (item.status === 'contradicted') continue;
+    if (item.status === 'confirmed-earlier') {
+      endpoint.sdkRemovedIn = endpoint.removedIn;
+      endpoint.removedIn = item.removedIn;
+      endpoint.lastVersion = versions[versions.indexOf(item.removedIn) - 1];
+    }
+    endpoint.shopifyDev = { status: item.status, source: item.source, checkedAt: item.checkedAt };
+    endpoints.push(endpoint);
+  }
 }
 const order = (a, b) =>
   a.removedIn.localeCompare(b.removedIn) ||

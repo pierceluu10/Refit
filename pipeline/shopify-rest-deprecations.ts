@@ -45,7 +45,20 @@ export interface RemovedEndpoint {
   removedIn: string;
   resourceRemoved: boolean;
   source: string;
+  // What shopify.dev says (docs/benchmarks/2026-10-22-shopify-rest-verification.json): it states
+  // this removal version (`confirmed`) or an earlier one that replaced the SDK's `sdkRemovedIn`
+  // (`confirmed-earlier`), or no supported version documents the endpoint but no page names the
+  // version (`not-in-current-reference`). Endpoints shopify.dev still documents are not listed.
+  shopifyDev: { status: ShopifyDevStatus; source: string; checkedAt: string };
+  sdkRemovedIn?: string;
 }
+
+export type ShopifyDevStatus = 'confirmed' | 'confirmed-earlier' | 'not-in-current-reference';
+const SHOPIFY_DEV_STATUSES = new Set([
+  'confirmed',
+  'confirmed-earlier',
+  'not-in-current-reference',
+]);
 
 export interface RemovedField {
   resource: string;
@@ -126,6 +139,18 @@ export function checkShopifyRestDeprecations(value: unknown) {
     if (isObject(entry)) {
       if (!METHODS.has(String(entry.method)))
         errors.push(`endpoints[${index}]: method must be GET, POST, PUT or DELETE.`);
+      const verified = entry.shopifyDev;
+      if (
+        !isObject(verified) ||
+        !SHOPIFY_DEV_STATUSES.has(String(verified.status)) ||
+        typeof verified.source !== 'string' ||
+        !/^https:\/\/shopify\.dev\/\S+$/.test(verified.source) ||
+        typeof verified.checkedAt !== 'string' ||
+        !/^\d{4}-\d{2}-\d{2}$/.test(verified.checkedAt)
+      )
+        errors.push(
+          `endpoints[${index}]: shopifyDev needs a status (${[...SHOPIFY_DEV_STATUSES].join(', ')}), a shopify.dev source and checkedAt.`,
+        );
       const key = `${String(entry.method)} ${String(entry.path)}`;
       if (seen.has(key)) errors.push(`endpoints[${index}]: ${key} is listed twice.`);
       seen.add(key);

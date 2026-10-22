@@ -4,41 +4,58 @@ Shopify's REST Admin API is legacy, and some of its endpoints and fields are gon
 
 ## Where the removals come from
 
-`shopify.dev` (the REST reference, the per-version release notes and the changelog) and its Admin GraphQL proxy were refused by the cloud environment's network proxy on 2026-10-22. Each failed twice with `curl: (56) CONNECT tunnel failed, response 403`, so Shopify's deprecation pages were not read.
-
-The removals come instead from the REST resources Shopify generates for every Admin API version and ships in `@shopify/shopify-api` (`rest/admin/<version>/`). Each resource class lists its endpoints (`paths`: HTTP method, operation, path) and its fields. `scripts/shopify-rest-deprecations.mjs` reads them as text from the downloaded, never-installed tarballs of releases 6.2.0 (versions 2022-01 to 2022-07), 12.3.0 (2022-10 to 2024-07) and 15.0.1 (2024-10 to 2026-07). Each version is taken from the newest release that ships it. It then writes `data/shopify-rest-deprecations.json`:
+The removals come from the REST resources Shopify generates for every Admin API version and ships in `@shopify/shopify-api` (`rest/admin/<version>/`). Each resource class lists its endpoints (`paths`: HTTP method, operation, path) and its fields. `scripts/shopify-rest-deprecations.mjs` reads them as text from the downloaded, never-installed tarballs of releases 6.2.0 (versions 2022-01 to 2022-07), 12.3.0 (2022-10 to 2024-07) and 15.0.1 (2024-10 to 2026-07). Each version is taken from the newest release that ships it. It then writes `data/shopify-rest-deprecations.json`:
 
 - **endpoints:** an endpoint (resource, method, operation, path) that a version lists and no later version lists again. `lastVersion` is the last version that has it and `removedIn` the next one. `resourceRemoved` marks a whole resource class that is gone.
 - **fields:** a field of a resource that is still there in later versions but no longer declares the field.
-- **resources:** each class's operations across all versions, used to match `shopify.rest.CustomerAddress.all()` to `GET customers/<customer_id>/addresses.json`.
+- **resources:** each class's operations across all versions, used to match `shopify.rest.Report.all()` to `GET reports.json`.
 
-The generated resources occasionally leave a resource out of one version and restore it in the next. `CustomerSavedSearch` is missing from 2022-10 and back in 2023-01. Only a removal that no later version undoes is listed, so that resource counts as removed in 2023-10.
+The generated resources occasionally leave a resource out of one version and restore it in the next. `CustomerSavedSearch` is missing from 2022-10 and back in 2023-01. Only a removal that no later version undoes is listed, so the SDK resources put that removal in 2023-10 (shopify.dev says 2022-04, which the list uses).
 
-**This is what Shopify's generated SDK resources say, not a changelog entry.** An endpoint can leave the SDK's resources while the API still serves it for a while. The list has not been checked against Shopify's release notes, which could not be read; see [Blocked](#blocked). The `source` of each entry names the two tarballs and the files compared.
+**This is what Shopify's generated SDK resources say, checked against shopify.dev** ([below](#checked-against-shopifydev)). An endpoint can leave the SDK's resources while the API still serves it, so every endpoint was checked, and the ones shopify.dev still documents were dropped. The `source` of each entry names the two tarballs and the files compared; `shopifyDev` gives shopify.dev's status, the page and the day it was read.
 
 `npm run shopify-rest:check` (`refit shopify-rest --check-deprecations`) validates the list and exits 1 on any error, as `npm run meta-graph:check` does for Meta. It checks that every entry has its fields, that `removedIn` is the version right after `lastVersion`, that both are listed versions, and that sources are https URLs. It also checks that methods are GET, POST, PUT or DELETE and that no endpoint is listed twice. Regenerate the file rather than editing it.
 
+### Checked against shopify.dev
+
+Owner decision, 2026-10-22: every endpoint in the SDK-derived list is checked against shopify.dev before Refit reports it. The cloud environment's proxy refused shopify.dev on 2026-10-22 (`CONNECT tunnel failed, response 403`); it was read from a local machine the same day. `scripts/shopify-rest-verify.mjs` wrote [the verification](benchmarks/2026-10-22-shopify-rest-verification.json), and `scripts/shopify-rest-deprecations.mjs --verification` applies it. Two kinds of evidence:
+
+- **The REST reference for every supported version** (2026-01, 2026-04, 2026-07, 2026-10), read live as Markdown. The page URL and its SHA-256 are recorded per endpoint and version, since a live page cannot be pinned. Older versions' reference pages redirect to `latest`, so they cannot be read.
+- **Release notes and changelog posts** that name a removal. shopify.dev no longer serves release notes before 2024-10, so each is cited by its shopify.dev URL plus a pinned Wayback Machine copy of that page. A person read each one on 2026-10-22.
+
+| shopify.dev says | Endpoints | Status | Result |
+|---|---:|---|---|
+| The 2022-07 release notes list the five order-based fulfillment writes as removed | 5 | `confirmed` | Kept (2022-07) |
+| The 2023-07 release notes deprecate creating app credits through the Admin API (`POST application_credits.json`) | 1 | `confirmed` | Kept (2023-07) |
+| The 2022-04 release notes remove all 7 `CustomerSavedSearch` endpoints; the SDK kept generating them until 2023-07 | 7 | `confirmed-earlier` | Kept, `removedIn` 2022-04 (was 2023-10; `sdkRemovedIn` keeps the SDK's) |
+| `Report` and `AndroidPayKey` are in no supported version's reference, but no page found names the removal version | 8 | `not-in-current-reference` | Kept; the version is the SDK's |
+| `GET checkouts/<checkout_id>/payments.json` and its count: absent from the 2026-01 reference. The REST Checkout endpoints were deprecated (2024-04 notes) and shut off on 2025-04-01 (changelog); neither names 2025-01 | 2 | `not-in-current-reference` | Kept; the version is the SDK's |
+| The reference for 2026-01, 2026-04, 2026-07 and 2026-10 still documents all 7 `CustomerAddress` endpoints | 7 | `contradicted` | **Dropped** |
+
+So 30 endpoints become 23. `refit shopify-rest` prints each call's shopify.dev status, and `npm run shopify-rest:check` requires one on every endpoint. No REST site in the benchmark below calls a changed endpoint, so its numbers are unchanged.
+
+- **Not added:** shopify.dev was searched per listed resource, not systematically for removals the SDK list missed, so it may miss some. The one found is the REST Checkout endpoints, shut off on 2025-04-01. That is a shutdown date rather than a version removal, and their reference pages remain, so they are left out rather than given an invented version. A full pass over the release notes (archived before 2024-10) would be a separate change.
+- **Not checked:** the 12 removed fields. They are listed but never matched in code (see [Not covered](#not-covered)).
+
 ### What the list holds
 
-30 endpoints and 12 fields, read on 2026-10-22:
+23 endpoints and 12 fields, read on 2026-10-22:
 
 | Removed in | Endpoints                                                                                                                                                                        | Fields                                                                                                                           |
 | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| 2022-04    |                                                                                                                                                                                  | `Metafield.value_type`, `PriceRule.prerequisite_saved_search_ids`                                                                |
+| 2022-04    | `CustomerSavedSearch` (7 endpoints; the SDK resources say 2023-10)                                                                                                               | `Metafield.value_type`, `PriceRule.prerequisite_saved_search_ids`                                                                |
 | 2022-07    | `POST orders/<order_id>/fulfillments.json`, `PUT orders/<order_id>/fulfillments/<id>.json`, and its `cancel`, `complete` and `open` actions (the order-based fulfillment writes) | `FulfillmentService.format`                                                                                                      |
 | 2022-10    |                                                                                                                                                                                  | `Shop.cookie_consent_level`, `Variant.inventory_quantity_adjustment`                                                             |
 | 2023-01    | `AndroidPayKey` (3 endpoints)                                                                                                                                                    |                                                                                                                                  |
 | 2023-04    |                                                                                                                                                                                  | `Order.payment_details`, `Order.processing_method`                                                                               |
 | 2023-07    | `POST application_credits.json`                                                                                                                                                  |                                                                                                                                  |
-| 2023-10    | `CustomerSavedSearch` (7 endpoints)                                                                                                                                              |                                                                                                                                  |
 | 2024-04    | `Report` (5 endpoints)                                                                                                                                                           |                                                                                                                                  |
 | 2025-01    | `GET checkouts/<checkout_id>/payments.json` and its `count`                                                                                                                      | `Customer.accepts_marketing`, `Customer.accepts_marketing_updated_at`, `Order.gateway`, `Shop.eligible_for_card_reader_giveaway` |
-| 2025-07    | `CustomerAddress` (7 endpoints: `customers/<customer_id>/addresses…`)                                                                                                            |                                                                                                                                  |
 | 2026-04    |                                                                                                                                                                                  | `FulfillmentService.permits_sku_sharing`                                                                                         |
 
 ## Deadlines
 
-No new registry entry was added. Shopify's announced removal dates are on the pages that could not be read. The date that matters for an app follows from what is already in `data/deadlines.json`: Shopify serves an unsupported version as the oldest supported one. So an endpoint is gone for every app once the last version that has it (`lastVersion`) is retired, and each report shows that version's registry sunset. The customer address endpoints, last in 2025-04, are gone for every app since 2025-04 was retired on 2026-04-16.
+No new registry entry was added. Shopify's announced removal dates are on the pages that could not be read. The date that matters for an app follows from what is already in `data/deadlines.json`: Shopify serves an unsupported version as the oldest supported one. So an endpoint is gone for every app once the last version that has it (`lastVersion`) is retired, and each report shows that version's registry sunset. For example, the `Report` endpoints, last in 2024-01, are gone for every app since 2024-01 was retired.
 
 ## List the calls
 
@@ -120,7 +137,7 @@ The REST-site rows measure the evidence `scanShopify` collects, plus the relativ
 
 ## Blocked
 
-- **Shopify's pages:** shopify.dev's REST deprecation pages, per-version release notes and changelog were refused on 2026-10-22 (`CONNECT tunnel failed, response 403`, twice each). So no removal is cited from them, no removal date was added to the registry, and the generated list is not cross-checked against the release notes. To unblock, read those pages from a machine with access, add dated `source` citations, and confirm or drop each entry.
+- **Shopify's pages: unblocked.** The cloud proxy refused shopify.dev, but it was read locally on 2026-10-22, and every endpoint is now checked ([above](#checked-against-shopifydev)). No registry date was added.
 - **Keep going: GraphQL Admin fields deprecated in the pinned schema.** This needs the Admin GraphQL schema for the app's API version. The only source Refit uses, Shopify's public documentation proxy (`https://shopify.dev/admin-graphql-direct-proxy/<version>`, see [Shopify](SHOPIFY.md)), was refused with the same error twice. No schema is committed to the repository, and a copy from a third-party repository is not Shopify's page. Once snapshots can be saved (`refit shopify-snapshot`), the Shopify agent's report already lists deprecated fields for a draft; a report-only listing for the pinned version would read the same snapshots.
 
 ## Not covered

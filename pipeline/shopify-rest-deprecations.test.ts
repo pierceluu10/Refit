@@ -51,13 +51,20 @@ describe('matching REST calls to removed endpoints', () => {
         'app/shopify.server.ts': `import { shopifyApi, ApiVersion } from '@shopify/shopify-api';
 export const shopify = shopifyApi({ apiVersion: ApiVersion.January25 });
 `,
+        'app/reports.ts': `import { shopify } from './shopify.server';
+export async function reports(session: any) {
+  return shopify.rest.Report.all({ session });
+}
+export async function rename(session: any, id: number) {
+  const client = new shopify.clients.Rest({ session });
+  return client.put({ path: \`reports/\${id}\`, data: { report: { name: 'Sales' } } });
+}
+`,
+        // shopify.dev still documents the customer address endpoints the SDK dropped in 2025-07,
+        // so they are not listed (docs/benchmarks/2026-10-22-shopify-rest-verification.json).
         'app/addresses.ts': `import { shopify } from './shopify.server';
 export async function addresses(session: any, customerId: number) {
   return shopify.rest.CustomerAddress.all({ session, customer_id: customerId });
-}
-export async function setDefault(session: any, customerId: number, id: number) {
-  const client = new shopify.clients.Rest({ session });
-  return client.put({ path: \`customers/\${customerId}/addresses/\${id}/default\` });
 }
 `,
         'app/raw.ts': `export async function legacyFulfil(shop: string, orderId: number, token: string) {
@@ -74,17 +81,18 @@ export async function listFulfillments(shop: string, orderId: number) {
       { now: NOW },
     );
     expect(summary(scan.calls)).toEqual([
-      'app/addresses.ts:3 GET customers/<customer_id>/addresses.json 2025-07 removed',
-      'app/addresses.ts:7 PUT customers/<customer_id>/addresses/<id>/default.json 2025-07 removed',
       'app/raw.ts:2 POST orders/<order_id>/fulfillments.json 2022-07 removed',
+      'app/reports.ts:3 GET reports.json 2024-04 removed',
+      'app/reports.ts:7 PUT reports/<id>.json 2024-04 removed',
     ]);
     expect(scan.pinned).toEqual(['2024-01', '2025-01']);
     expect(scan.served).toBe('2026-01');
-    const address = scan.calls[0];
-    expect(address.endpoint).toMatchObject({ resource: 'CustomerAddress', lastVersion: '2025-04' });
-    expect(address.deadline).toMatchObject({ id: 'shopify-admin-2025-04', date: '2026-04-16' });
-    expect(address.endpoint.source).toMatch(
-      /^https:\/\/registry\.npmjs\.org\/@shopify\/shopify-api\/-\/shopify-api-15\.0\.1\.tgz rest\/admin\/2025-07\//,
+    const [fulfil, report] = scan.calls;
+    expect(fulfil.endpoint.shopifyDev).toMatchObject({ status: 'confirmed' });
+    expect(report.endpoint).toMatchObject({ resource: 'Report', lastVersion: '2024-01' });
+    expect(report.endpoint.shopifyDev).toMatchObject({ status: 'not-in-current-reference' });
+    expect(report.endpoint.source).toMatch(
+      /^https:\/\/registry\.npmjs\.org\/@shopify\/shopify-api\/-\/shopify-api-12\.3\.0\.tgz rest\/admin\/2024-04\//,
     );
   });
 
@@ -163,6 +171,11 @@ export async function run(session: any) {
           removedIn: '2026-07',
           resourceRemoved: true,
           source: 'https://example.com/widgets',
+          shopifyDev: {
+            status: 'confirmed' as const,
+            source: 'https://shopify.dev/changelog',
+            checkedAt: '2026-10-22',
+          },
         },
       ],
       fields: [],
@@ -208,12 +221,27 @@ describe('the generated list', () => {
         removedIn: '2022-07',
       }),
     );
-    // A resource the 2022-10 resources skip and 2023-01 restores is removed only in 2023-10.
+    // The SDK resources drop CustomerSavedSearch in 2023-10; shopify.dev's 2022-04 release notes
+    // remove it in 2022-04, which wins.
     expect(
       data.endpoints
         .filter((item: { resource: string }) => item.resource === 'CustomerSavedSearch')
-        .map((item: { removedIn: string }) => item.removedIn),
-    ).toEqual(Array(7).fill('2023-10'));
+        .map((item: { removedIn: string; sdkRemovedIn: string }) => [
+          item.removedIn,
+          item.sdkRemovedIn,
+        ]),
+    ).toEqual(Array(7).fill(['2022-04', '2023-10']));
+    // Every endpoint was checked on shopify.dev; the ones it still documents are gone.
+    expect(data.endpoints).toHaveLength(23);
+    expect(
+      data.endpoints.some((item: { resource: string }) => item.resource === 'CustomerAddress'),
+    ).toBe(false);
+    for (const item of data.endpoints)
+      expect(item.shopifyDev).toMatchObject({
+        status: expect.stringMatching(/^(confirmed|confirmed-earlier|not-in-current-reference)$/),
+        source: expect.stringMatching(/^https:\/\/shopify\.dev\//),
+        checkedAt: '2026-10-22',
+      });
     expect(data.fields).toContainEqual(
       expect.objectContaining({ resource: 'Order', field: 'gateway', removedIn: '2025-01' }),
     );
@@ -243,6 +271,7 @@ describe('the generated list', () => {
       'endpoints[0]: removedIn must be the version right after lastVersion.',
       'endpoints[0]: source must start with an https URL.',
       'endpoints[0]: method must be GET, POST, PUT or DELETE.',
+      'endpoints[0]: shopifyDev needs a status (confirmed, confirmed-earlier, not-in-current-reference), a shopify.dev source and checkedAt.',
     ]);
   });
 });
@@ -254,15 +283,14 @@ describe('refit shopify-rest', () => {
     const root = await repository({
       'app/a.ts': `import { shopifyApi, ApiVersion } from '@shopify/shopify-api';
 const shopify = shopifyApi({ apiVersion: ApiVersion.July24 });
-export const list = (session: any) => shopify.rest.CustomerAddress.all({ session, customer_id: 1 });
+export const list = (session: any) => shopify.rest.Report.all({ session });
 `,
     });
     const { stdout } = await execute(process.execPath, [CLI, 'shopify-rest', '--repository', root]);
+    expect(stdout).toContain('app/a.ts:3  GET reports.json  (Report)');
+    expect(stdout).toContain('Removed in 2024-04; last in 2024-01');
     expect(stdout).toContain(
-      'app/a.ts:3  GET customers/<customer_id>/addresses.json  (CustomerAddress)',
-    );
-    expect(stdout).toContain(
-      'Removed in 2025-07; last in 2025-04, which Shopify retires on 2026-04-16',
+      'shopify.dev  no supported version documents it; the removal version is from the SDK only',
     );
   });
 });
