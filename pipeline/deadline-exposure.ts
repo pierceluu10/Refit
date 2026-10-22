@@ -4,6 +4,7 @@ import { join, resolve } from 'node:path';
 import ts from 'typescript-compiler';
 import { AGENT_CATALOG, builtInPackage } from './agent-catalog.ts';
 import { daysUntil, type DeadlineEntry, type DeadlineRegistry } from './deadline-registry.ts';
+import { manifestSdkDeclarations } from './package-manifests-deadlines.ts';
 import { readRepository } from './repository.ts';
 import { isObject, parseObject } from './specifications.ts';
 import { REPOSITORY_CONFIGURATION } from './workflow-configuration.ts';
@@ -489,7 +490,8 @@ export async function scanDeadlines(
   const root = resolve(directory);
   const byVersion = new Map<string, DeadlineEntry>();
   for (const entry of registry.deadlines)
-    for (const version of entry.versions) byVersion.set(`${entry.provider}:${version}`, entry);
+    if (!entry.ecosystem)
+      for (const version of entry.versions) byVersion.set(`${entry.provider}:${version}`, entry);
   const models = new Map(
     registry.deadlines
       .filter((entry) => entry.kind === 'model' && MODEL_PROVIDERS.has(entry.provider))
@@ -501,8 +503,9 @@ export async function scanDeadlines(
     provider: string,
     version: string,
     evidence: Omit<DeadlineEvidence, 'version'>,
+    entry?: DeadlineEntry,
   ) => {
-    const deadline = byVersion.get(`${provider}:${version}`);
+    const deadline = entry ?? byVersion.get(`${provider}:${version}`);
     if (!deadline) return;
     const exposure = found.get(deadline.id) ?? {
       deadline,
@@ -556,7 +559,7 @@ export async function scanDeadlines(
   // A package whose support ended: each manifest that declares it. A repository whose source never
   // names the package is not read a second time. Manifests in test and example paths are not live.
   for (const entry of registry.deadlines)
-    if (entry.kind === 'sdk')
+    if (entry.kind === 'sdk' && !entry.ecosystem)
       for (const name of entry.versions) {
         if (!repository.files.some((file) => file.content.includes(name))) continue;
         for (const dependency of (await readRepository(root, name)).dependencies)
@@ -568,6 +571,20 @@ export async function scanDeadlines(
             text: `${name} ${dependency.lock.version ?? dependency.version}${dependency.lock.version ? ` (locked in ${dependency.lock.file})` : ''} is declared in ${dependency.section}`,
           });
       }
+  // The same for other ecosystems' manifests (pipeline/package-manifests-deadlines.ts).
+  for (const declaration of await manifestSdkDeclarations(root, registry))
+    record(
+      declaration.deadline.provider,
+      declaration.deadline.versions[0],
+      {
+        file: declaration.file,
+        line: declaration.line,
+        kind: 'dependency',
+        use: TEST_PATH.test(declaration.file) ? 'test' : 'live',
+        text: declaration.text,
+      },
+      declaration.deadline,
+    );
   for (const pin of await configuredApiVersions(root))
     record(pin.provider, pin.version, {
       file: REPOSITORY_CONFIGURATION,

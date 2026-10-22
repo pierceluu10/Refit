@@ -3,6 +3,8 @@ import { tmpdir } from 'node:os';
 import { basename, join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { detectProviders } from './agent-catalog.ts';
+import { scanDeadlines } from './deadline-exposure.ts';
+import { checkDeadlineRegistry, loadDeadlineRegistry } from './deadline-registry.ts';
 import {
   manifestKind,
   matchesPackage,
@@ -564,4 +566,64 @@ it('detects catalog providers from non-JavaScript manifests through detectProvid
   ]);
   // The indirect Twilio Go module is not a detection; the direct Composer one is.
   expect(detections.find((entry) => entry.agent.id === 'twilio')?.packages).toHaveLength(1);
+});
+
+describe('SDKs past end of support in other ecosystems', () => {
+  it('reports declarations of a registry sdk entry with an ecosystem, live or test', async () => {
+    const root = await repository({
+      'requirements.txt': 'google-generativeai==0.8.3\n',
+      'tests/requirements.txt': 'Google_GenerativeAI>=0.7\n',
+      'services/chat/go.mod': 'module chat\n\nrequire github.com/google/generative-ai-go v0.18.0\n',
+      'services/chat/go.sum': 'github.com/google/generative-ai-go v0.18.0 h1:x=\n',
+      // The new SDKs are not exposures.
+      'api/pyproject.toml': '[project]\ndependencies = ["google-genai>=1"]\n',
+    });
+    const registry = await loadDeadlineRegistry();
+    const scan = await scanDeadlines(root, registry, new Date('2026-10-22T00:00:00Z'));
+    const exposures = scan.exposures.map((exposure) => [
+      exposure.deadline.id,
+      exposure.evidence.map((item) => `${item.file}:${item.line} ${item.use} ${item.text}`),
+      exposure.nonLive.map((item) => `${item.file}:${item.line} ${item.use}`),
+    ]);
+    expect(exposures).toEqual([
+      [
+        'gemini-2025-11-30-generative-ai-go',
+        [
+          'services/chat/go.mod:3 live go:github.com/google/generative-ai-go v0.18.0 (locked) is declared in services/chat/go.mod',
+        ],
+        [],
+      ],
+      [
+        'gemini-2025-11-30-google-generativeai-python',
+        [
+          'requirements.txt:1 live pypi:google-generativeai ==0.8.3 is declared in requirements.txt',
+        ],
+        ['tests/requirements.txt:1 test'],
+      ],
+    ]);
+  });
+
+  it('accepts ecosystem only on sdk entries and only for a known registry', () => {
+    const entry = {
+      id: 'x',
+      provider: 'gemini',
+      kind: 'sdk',
+      versions: ['google-generativeai'],
+      date: '2025-11-30',
+      summary: 'Support ended.',
+      replacement: null,
+      source: 'https://example.com',
+      checkedAt: '2026-10-22',
+    };
+    const check = (extra: Record<string, unknown>) =>
+      checkDeadlineRegistry(
+        { formatVersion: 1, deadlines: [{ ...entry, ...extra }] },
+        new Date('2026-10-22T00:00:00Z'),
+      ).errors;
+    expect(check({ ecosystem: 'pypi' })).toEqual([]);
+    expect(check({ ecosystem: 'npm' })).toEqual([
+      'x: ecosystem is only for sdk entries and must be one of pypi, go, rubygems, packagist, maven, nuget, cargo.',
+    ]);
+    expect(check({ ecosystem: 'pypi', kind: 'model' })).toHaveLength(1);
+  });
 });

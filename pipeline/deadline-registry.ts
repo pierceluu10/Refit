@@ -17,12 +17,16 @@ const ENTRY_KEYS = [
   'replacement',
   'source',
   'checkedAt',
+  'ecosystem',
 ];
+// Registries other than npm that an SDK entry may name (pipeline/package-manifests.ts).
+const SDK_ECOSYSTEMS = new Set(['pypi', 'go', 'rubygems', 'packagist', 'maven', 'nuget', 'cargo']);
 const MILLISECONDS_PER_DAY = 86_400_000;
 
 // One reviewed sunset: the date a provider stops serving these API versions or models, or ends
-// support for these SDK packages (`kind: 'sdk'`, whose versions are npm package names), with the
-// page it came from and the day a person last checked that page.
+// support for these SDK packages (`kind: 'sdk'`, whose versions are npm package names, or names in
+// `ecosystem`'s registry when it is set), with the page it came from and the day a person last
+// checked that page.
 export interface DeadlineEntry {
   id: string;
   provider: 'shopify' | 'meta-graph' | 'openai' | 'anthropic' | 'gemini';
@@ -33,6 +37,7 @@ export interface DeadlineEntry {
   replacement: string | null;
   source: string | null;
   checkedAt: string;
+  ecosystem?: 'pypi' | 'go' | 'rubygems' | 'packagist' | 'maven' | 'nuget' | 'cargo';
 }
 
 export interface DeadlineRegistry {
@@ -89,10 +94,17 @@ export function checkDeadlineRegistry(value: unknown, now: Date) {
       errors.push(`${label}: versions must be a non-empty list of strings.`);
     else
       for (const version of entry.versions as string[]) {
-        const key = `${String(entry.provider)}:${version}`;
+        const key = `${String(entry.provider)}:${String(entry.ecosystem ?? '')}:${version}`;
         if (versions.has(key)) errors.push(`${label}: ${version} already has another deadline.`);
         versions.add(key);
       }
+    if (
+      entry.ecosystem !== undefined &&
+      (entry.kind !== 'sdk' || !SDK_ECOSYSTEMS.has(String(entry.ecosystem)))
+    )
+      errors.push(
+        `${label}: ecosystem is only for sdk entries and must be one of ${[...SDK_ECOSYSTEMS].join(', ')}.`,
+      );
     if (!validDate(entry.date)) errors.push(`${label}: date must be a real YYYY-MM-DD date.`);
     if (!validDate(entry.checkedAt))
       errors.push(`${label}: checkedAt must be a real YYYY-MM-DD date.`);

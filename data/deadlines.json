@@ -829,6 +829,34 @@
       "replacement": "@google/genai",
       "source": "https://github.com/google-gemini/deprecated-generative-ai-js/blob/main/README.md",
       "checkedAt": "2026-10-21"
+    },
+    {
+      "id": "gemini-2025-11-30-google-generativeai-python",
+      "provider": "gemini",
+      "kind": "sdk",
+      "ecosystem": "pypi",
+      "versions": [
+        "google-generativeai"
+      ],
+      "date": "2025-11-30",
+      "summary": "Google ended all support for the google-generativeai Python package on 2025-11-30 and recommends google-genai, whose call shapes differ. The README calls the repository legacy; it does not say that requests through the old package stop working.",
+      "replacement": "google-genai",
+      "source": "https://github.com/google-gemini/deprecated-generative-ai-python/blob/main/README.md",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "id": "gemini-2025-11-30-generative-ai-go",
+      "provider": "gemini",
+      "kind": "sdk",
+      "ecosystem": "go",
+      "versions": [
+        "github.com/google/generative-ai-go"
+      ],
+      "date": "2025-11-30",
+      "summary": "Google ends all support for the github.com/google/generative-ai-go module, including bug fixes, on 2025-11-30 and recommends google.golang.org/genai, whose call shapes differ. The README calls the repository legacy; it does not say that requests through the old module stop working.",
+      "replacement": "google.golang.org/genai",
+      "source": "https://github.com/google/generative-ai-go/blob/main/README.md",
+      "checkedAt": "2026-10-22"
     }
   ]
 }
