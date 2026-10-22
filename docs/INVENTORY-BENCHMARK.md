@@ -1,6 +1,6 @@
 # Inventory benchmark
 
-This benchmark tests the claim "Refit detects the APIs a repository uses". It is independent of every other frozen list. The repositories were not chosen because they use a provider Refit knows, and they were labelled by hand before Refit was run on any of them.
+This benchmark tests the claim "Refit detects the APIs a repository uses". It is independent of every other frozen list. The repositories were not chosen because they use a provider Refit knows, and every repository was labelled, by reading its code, before Refit was run on any of them. The labeller is the AI agent that ran this lane (Claude), not a human; see "Labelling summary".
 
 - Frozen list: [`benchmarks/2026-10-22-inventory-repos.json`](benchmarks/2026-10-22-inventory-repos.json) (150 repositories: 100 JS/TS, 30 Python, 20 Go).
 - Labels: [`benchmarks/2026-10-22-inventory-labels.json`](benchmarks/2026-10-22-inventory-labels.json).
@@ -109,7 +109,8 @@ Cases the guide did not foresee, decided once while labelling and applied to eve
 - 53 repositories have no external API use in production JS/TS, Python or Go code (`"none": true`).
 - Pairs by group: JS/TS 275, Python 95, Go 44.
 - Most common providers (repositories): `github` 38, `openai` 19, `aws` 14, `gemini` 12, `cloudflare` 12, `sentry` 11, `telegram` 10, `anthropic` 10, `openrouter` 8, `google-analytics` 7.
-- One person (the labeller of this lane) made every label in one pass. There is no second labeller, so inter-rater agreement is not measured. The rulings above are the places where a second labeller would most likely disagree.
+- **Who labelled:** every label was made in one pass by a single labeller, the AI agent (Claude) running this overnight lane. It read each candidate summary and the code it pointed to. These are not human labels, and no human reviewed them.
+- **Agreement:** there was no second labeller, so inter-rater agreement is not measured. The rulings above are where a second labeller, human or AI, would most likely disagree.
 
 ## Sampling procedure
 
@@ -221,7 +222,7 @@ Every miss, with its evidence file and category, is listed in the appendix and i
 
 ### False positives
 
-All 6 were read by hand.
+The labelling agent read all 6 in full.
 
 | Repository | Provider | Detector | Evidence Refit reported |
 |---|---|---|---|
