@@ -71,3 +71,33 @@ it('reports a checkout that is empty or not at the pinned commit as unreadable',
     await rm(work, { recursive: true, force: true });
   }
 });
+
+it('reports an empty Shopify checkout as unreadable too', async () => {
+  const work = await mkdtemp(join(tmpdir(), 'refit-shopify-checkout-'));
+  try {
+    const root = join(work, 'root');
+    await mkdir(join(root, 'repos', 'o__empty'), { recursive: true });
+    await execute('git', ['-C', join(root, 'repos', 'o__empty'), 'init', '-q']);
+    const list = join(work, 'list.json');
+    const commit = 'c'.repeat(40);
+    await writeFile(
+      list,
+      JSON.stringify({ schemas: { versions: [] }, repos: [{ repo: 'o/empty', stars: 0, commit }] }),
+    );
+    const output = join(work, 'output');
+    await execute('npx', [
+      'tsx',
+      'pipeline/shopify-benchmark-cli.ts',
+      '--root',
+      root,
+      '--output',
+      output,
+      '--list',
+      list,
+    ]);
+    const [row] = JSON.parse(await readFile(join(output, 'results.json'), 'utf8'));
+    expect(row.read).toBe(`No checkout at ${commit}; rerun scripts/shopify-benchmark-setup.mjs.`);
+  } finally {
+    await rm(work, { recursive: true, force: true });
+  }
+});

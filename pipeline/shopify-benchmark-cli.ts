@@ -3,6 +3,7 @@ import { existsSync } from 'node:fs';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { parseArgs, promisify } from 'node:util';
+import { requireCheckout } from './benchmark-checkout.ts';
 import { readRepository } from './repository.ts';
 import { runPipeline } from './run.ts';
 import { scanShopify, SHOPIFY_PACKAGES } from './shopify-analysis.ts';
@@ -68,6 +69,7 @@ async function benchmark(entry: (typeof repos)[number], index: number) {
   const packageName = SHOPIFY_PACKAGES.find((name) => declared[name]) ?? SHOPIFY_PACKAGES[3];
   let scan: ReturnType<typeof scanShopify>;
   try {
+    await requireCheckout(directory, entry.commit, 'scripts/shopify-benchmark-setup.mjs');
     scan = scanShopify(await readRepository(directory, packageName));
   } catch (error) {
     result.read = message(error);
