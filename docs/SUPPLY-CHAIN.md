@@ -11,6 +11,7 @@ What Refit ships, what it depends on, and how each part is pinned, verified and 
 | Direct dependencies | 27 declared; 1 unused (`@testing-library/user-event`), **removed** after a clean build and full suite |
 | GitHub Actions | `actions/checkout` and `actions/setup-node` were pinned by tag (`@v4`); **now pinned by commit SHA** in every workflow |
 | Dockerfiles | Both base images were tags. The hosted image downloaded `oasdiff` with no checksum. **Now** pinned by digest, and `oasdiff` is verified against its published SHA-256 |
+| Container runtime in the hosted image | **High, open:** bookworm's `runc` 1.1.5, `containerd` 1.6.20 and `docker.io` 20.10.24 have open Debian security issues (5, 7 and 15). Listed for the owner; see [Hosted image](#hosted-image) |
 | `fly.toml` | Validation image `node:22-alpine` is pulled by tag on boot. Read only here: **request for Pierce** |
 | CLI tarball | Shipped 6 MB of benchmark data and AI evaluation records (third-party code included), had no `license`, and left 49 transitive versions to float at install. **Now** without that data, MIT-declared, with an `npm-shrinkwrap.json`. No secrets (gitleaks) |
 | Licenses | CLI runtime: 57 packages, all permissive. Website bundle: 8 MIT plus 2 OFL-1.1 fonts. Hosted image: see [Hosted image](#hosted-image) |
@@ -122,7 +123,28 @@ Existing output files are never overwritten. `pipeline/sbom-helpers.test.ts` cov
 
 ## Hosted image
 
-_Pending: the local build, smoke test and image SBOM are recorded here once they have run._
+Built locally from this branch (`e40468e` plus the Dockerfile changes) with `docker build --platform linux/amd64 -t refit-hosted:op7 .` in 65 s, under the machine's Docker lock. The image ID is `sha256:616deeb8…`, 242 MB.
+
+- **Build.** The `oasdiff` checksum step printed `/tmp/oasdiff.tar.gz: OK`.
+- **Smoke run** (`--network none`, entrypoint overridden so `dockerd` does not start): `refit --version` gives 0.39.0, `oasdiff version 1.33.0` and Node v22.23.4. `npm-shrinkwrap.json` is present in the installed package, and `refit replay --propose-patch` returns `affected` with a `proposed` patch.
+- **`scripts/sbom.mjs image`.** 167 components:
+  - 131 Debian packages;
+  - Node.js and oasdiff;
+  - 34 npm packages: `npm` 10.9.9, `corepack` 0.36.0, and `refit` with the 31 runtime packages installed for linux-x64.
+
+**Container runtime (High).** Validation runs repository code under the Debian bookworm packages this image installs: `docker.io` 20.10.24+dfsg1-1+deb12u1+b6, `containerd` 1.6.20~ds1-1+deb12u3 and `runc` 1.1.5+ds1-1+deb12u1. On 2026-10-22, Debian's security tracker listed these as open in bookworm:
+
+| Package | Open in bookworm | Source |
+|---|---|---|
+| `runc` | 5: CVE-2026-41579, CVE-2025-52881, CVE-2025-52565 and CVE-2025-31133 "vulnerable"; CVE-2024-45310 "vulnerable (no DSA)" | [tracker](https://security-tracker.debian.org/tracker/source-package/runc) |
+| `docker.io` | 15 (9 "vulnerable", 6 "vulnerable (no DSA)") | [tracker](https://security-tracker.debian.org/tracker/source-package/docker.io) |
+| `containerd` | 7 "vulnerable" | [tracker](https://security-tracker.debian.org/tracker/source-package/containerd) |
+
+CVE-2025-31133, for example, is runc not verifying that the bind-mount source used to mask paths is a real `/dev/null` ([tracker](https://security-tracker.debian.org/tracker/CVE-2025-31133)). Debian fixed it in sid (1.3.6), not in bookworm or trixie.
+
+On Fly, `dockerd` runs inside the worker's own VM. That VM also holds the App key file and every Fly secret (`docs/SECURITY.md`, T6 and T13 on #171), so a container escape there reaches them. This review did not test whether any of these CVEs is exploitable through Refit's validation flags; OG3 owns that audit. The fix is to install the container runtime from Docker's own apt repository, verified by key fingerprint and pinned, or from a Debian suite that carries the fixes. It changes the production runtime and needs a deploy-time test on Fly, so it is listed for the owner rather than made here.
+
+**Licenses in the image.** Debian packages carry their own licenses (GPL, LGPL, MIT, BSD and others), installed as copyright files under `/usr/share/doc`. The image aggregates them; Refit links none of them into its code. `oasdiff` is Apache-2.0 per its repository, and Node.js is MIT. The image SBOM records names and versions, not licenses, for Debian packages.
 
 ## CI gate (Keep going)
 
@@ -139,6 +161,7 @@ Against `main`'s lockfile it fails on GHSA-587h-7wmj-h5pm (vite) and GHSA-68fv-2
 
 | Severity | Item | Owner |
 |---|---|---|
+| High | The hosted image's container runtime (`runc` 1.1.5, `containerd` 1.6.20, `docker.io` 20.10.24 from bookworm) has open Debian security issues, including the 2025 runc mount-verification CVEs. Hostile repository code runs on it in the same VM as the hosted secrets. | Pierce (hosted image and Fly deploy), with OG3 for the sandbox |
 | Medium | `fly.toml` pulls `REFIT_HOSTED_IMAGES=node:22-alpine` by tag on every boot, so the validation image can change between deploys without review | Pierce (read only here) |
 | Low | Users who install the tarball run `esbuild`'s and `fsevents`' install scripts unless they pass `--ignore-scripts` | PP10/PP8: release and install docs |
 | Low | Debian packages in the hosted image are not version-pinned (accepted; recorded by the image SBOM) | — |
@@ -147,6 +170,8 @@ Against `main`'s lockfile it fails on GHSA-587h-7wmj-h5pm (vite) and GHSA-68fv-2
 
 ## Requests for other lanes
 
+- **Pierce (hosted image).** Replace bookworm's `docker.io`, `containerd` and `runc` with a currently patched runtime, then test a validation on Fly before relying on it. See [Hosted image](#hosted-image).
+- **OG3 (sandbox).** Your hardening assumes the runtime itself is sound. The open runc and containerd issues above belong in `docs/SANDBOX.md` as an accepted or tracked risk.
 - **Pierce (`fly.toml`).** Pin `REFIT_HOSTED_IMAGES` by digest, for example `node:22-alpine@sha256:fe4f6d74e20370acb04ad889077d14d0f64a9c8ea6a42bc60cddf1e844699914` (the index on 2026-10-22). Approved `.refit.json` files then need the same reference.
 - **OG9 (CI).** `supply-chain.yml` is a separate workflow so it does not collide with `ci*.yml`. Keep it, fold it into `ci.yml`, or make "npm audit gate" a required check. Also keep the SHA pins this PR puts in `ci.yml`. OP8 (#183) asks for a pinned gitleaks job; with its `.gitleaksignore` merged, `docker run zricethezav/gitleaks@sha256:c00b6bd0… git /repo --log-opts=--all` passes on `main`.
 - **PG6 (registry sync).** Your new `registry-sync.yml` should use the same pinned SHAs. `deadlines-sync.yml` is pinned here.
