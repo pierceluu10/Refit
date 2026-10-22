@@ -41,7 +41,7 @@ export function WorkspaceMissing() {
       <FolderSimple size={32} />
       <h1>Nothing at this address.</h1>
       <p>This resource is not part of the sample workspace.</p>
-      <Link className="button button-primary" to="/app">
+      <Link className="button button-primary" to="/sample">
         Back to overview
       </Link>
     </div>

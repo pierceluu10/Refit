@@ -55,7 +55,7 @@ export function Demo() {
             <h2>See where the work lives.</h2>
             <p>Browse the repositories, changes, and run details in the sample workspace.</p>
           </div>
-          <Link className="button button-dark" to="/app">
+          <Link className="button button-dark" to="/sample">
             Explore the workspace <ArrowRight />
           </Link>
         </div>

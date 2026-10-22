@@ -32,8 +32,16 @@ describe('workspace navigation', () => {
     expect(document.title).toBe('Refit: Keep your integrations current');
   });
 
+  it('redirects old /app links to the same sample workspace page', () => {
+    renderRoute('/app/runs/validation-failure?tab=review');
+    expect(screen.getByLabelText('Current address')).toHaveTextContent(
+      '/sample/runs/validation-failure?tab=review',
+    );
+    expect(screen.getByRole('heading', { level: 1 })).toBeInTheDocument();
+  });
+
   it('keeps repository filters in the URL and restores them when navigating back', () => {
-    renderRoute('/app/repositories');
+    renderRoute('/sample/repositories');
     fireEvent.change(screen.getByLabelText('Search repositories'), { target: { value: 'api' } });
     fireEvent.change(screen.getByLabelText('Filter repositories by status'), {
       target: { value: 'Affected' },
@@ -48,7 +56,7 @@ describe('workspace navigation', () => {
   });
 
   it('recovers from an empty repository search', () => {
-    renderRoute('/app/repositories?q=missing');
+    renderRoute('/sample/repositories?q=missing');
     expect(screen.getByRole('heading', { name: 'No repositories match.' })).toBeVisible();
     fireEvent.click(screen.getByRole('button', { name: 'Clear filters' }));
     expect(screen.getByLabelText('Search repositories')).toHaveValue('');
@@ -56,7 +64,7 @@ describe('workspace navigation', () => {
   });
 
   it('preserves failed-run tabs across deep links and never claims publication', () => {
-    renderRoute('/app/runs/validation-failure?tab=review');
+    renderRoute('/sample/runs/validation-failure?tab=review');
     expect(screen.getByRole('heading', { name: 'No passing checks. No PR.' })).toBeVisible();
     fireEvent.click(screen.getByRole('button', { name: 'Validation' }));
     expect(screen.getByText('Example failure')).toBeVisible();
@@ -74,7 +82,7 @@ describe('workspace navigation', () => {
   });
 
   it('contains keyboard focus in the workspace drawer and restores it on Escape', () => {
-    renderRoute('/app');
+    renderRoute('/sample');
     const trigger = screen.getByRole('button', { name: 'Open workspace navigation' });
     fireEvent.click(trigger);
     const drawer = screen.getByRole('dialog', { name: 'Workspace navigation' });
@@ -91,7 +99,7 @@ describe('workspace navigation', () => {
   });
 
   it('handles unknown resource addresses with a recovery link', () => {
-    renderRoute('/app/repositories/not-real');
+    renderRoute('/sample/repositories/not-real');
     expect(screen.getByRole('heading', { name: 'Nothing at this address.' })).toBeVisible();
     fireEvent.click(screen.getByRole('link', { name: 'Back to overview' }));
     expect(

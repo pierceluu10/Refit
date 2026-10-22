@@ -1,5 +1,5 @@
 import { ArrowLeft } from '@phosphor-icons/react';
-import { Link, Route, Routes } from 'react-router-dom';
+import { Link, Navigate, Route, Routes, useLocation, useParams } from 'react-router-dom';
 import { PagePosition } from './components/Layout';
 import { Demo } from './pages/Demo';
 import { Docs } from './pages/Docs';
@@ -17,11 +17,19 @@ export function App() {
         <Route path="/" element={<Waitlist />} />
         <Route path="/demo" element={<Demo />} />
         <Route path="/docs" element={<Docs />} />
-        <Route path="/app/*" element={<Workspace />} />
+        <Route path="/sample/*" element={<Workspace />} />
+        <Route path="/app/*" element={<SampleRedirect />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </>
   );
+}
+
+// /app was the sample workspace's old address; keep shared links working.
+function SampleRedirect() {
+  const { '*': rest } = useParams();
+  const { search, hash } = useLocation();
+  return <Navigate replace to={`/sample${rest ? `/${rest}` : ''}${search}${hash}`} />;
 }
 
 function NotFound() {

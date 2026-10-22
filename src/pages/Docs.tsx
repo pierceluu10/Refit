@@ -159,7 +159,7 @@ export function Docs() {
               commands must succeed. A missing command, skipped check, or incomplete execution must
               never be reported as a pass.
             </p>
-            <Link className="text-link" to="/app/settings">
+            <Link className="text-link" to="/sample/settings">
               Build an example configuration <ArrowRight />
             </Link>
           </section>

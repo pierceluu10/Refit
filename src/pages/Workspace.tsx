@@ -35,11 +35,11 @@ import { Changes, ChangeDetail, Runs, RunDetail } from './Activity';
 import { Settings } from './Settings';
 
 const navigation = [
-  { path: '/app', name: 'Overview', icon: House, exact: true },
-  { path: '/app/repositories', name: 'Repositories', icon: FolderSimple },
-  { path: '/app/changes', name: 'API changes', icon: Pulse },
-  { path: '/app/runs', name: 'Migration runs', icon: GitPullRequest },
-  { path: '/app/settings', name: 'Settings', icon: SlidersHorizontal },
+  { path: '/sample', name: 'Overview', icon: House, exact: true },
+  { path: '/sample/repositories', name: 'Repositories', icon: FolderSimple },
+  { path: '/sample/changes', name: 'API changes', icon: Pulse },
+  { path: '/sample/runs', name: 'Migration runs', icon: GitPullRequest },
+  { path: '/sample/settings', name: 'Settings', icon: SlidersHorizontal },
 ];
 
 export function Workspace() {
@@ -210,7 +210,7 @@ function Overview() {
           <h2>Needs a closer look</h2>
           <span>Example impact analysis</span>
         </div>
-        <Link className="attention-item" to="/app/repositories/acme-api">
+        <Link className="attention-item" to="/sample/repositories/acme-api">
           <span className="attention-icon">
             <Code />
           </span>
@@ -223,7 +223,7 @@ function Overview() {
           <Status value="Affected" />
           <CaretRight />
         </Link>
-        <Link className="attention-item" to="/app/repositories/acme-worker">
+        <Link className="attention-item" to="/sample/repositories/acme-worker">
           <span className="attention-icon neutral">
             <MagnifyingGlass />
           </span>
@@ -241,14 +241,18 @@ function Overview() {
         <section>
           <h2>Your repositories</h2>
           {sampleRepositories.map((repo) => (
-            <Link className="compact-repository" key={repo.id} to={`/app/repositories/${repo.id}`}>
+            <Link
+              className="compact-repository"
+              key={repo.id}
+              to={`/sample/repositories/${repo.id}`}
+            >
               <FolderSimple />
               <strong>{repo.name}</strong>
               <span>{repo.language}</span>
               <CaretRight />
             </Link>
           ))}
-          <Link className="text-link" to="/app/repositories">
+          <Link className="text-link" to="/sample/repositories">
             View all repositories <ArrowRight />
           </Link>
         </section>
@@ -339,7 +343,7 @@ export function Repositories() {
             aria-label={`View ${repo.name}, ${repo.language}, ${repo.status}`}
             className="resource-row"
             key={repo.id}
-            to={`/app/repositories/${repo.id}`}
+            to={`/sample/repositories/${repo.id}`}
           >
             <div className="resource-name">
               <FolderSimple />
@@ -384,7 +388,7 @@ function RepositoryDetail() {
   if (!repo) return <WorkspaceMissing />;
   return (
     <>
-      <Link className="back-link" to="/app/repositories">
+      <Link className="back-link" to="/sample/repositories">
         ← All repositories
       </Link>
       <PageHeading

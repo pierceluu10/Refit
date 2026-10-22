@@ -46,7 +46,7 @@ export function Changes() {
         </div>
         <span className="preview-chip">MVP provider</span>
       </div>
-      <Link className="change-row" to="/app/changes/charge-reference">
+      <Link className="change-row" to="/sample/changes/charge-reference">
         <span className="change-icon">
           <BracketsCurly />
         </span>
@@ -73,7 +73,7 @@ export function ChangeDetail() {
   if (id !== 'charge-reference') return <WorkspaceMissing />;
   return (
     <>
-      <Link className="back-link" to="/app/changes">
+      <Link className="back-link" to="/sample/changes">
         ← All API changes
       </Link>
       <PageHeading
@@ -110,7 +110,7 @@ export function ChangeDetail() {
               note: 'Dynamic access needs evidence',
             },
           ].map((repo) => (
-            <Link key={repo.id} to={`/app/repositories/${repo.id}`}>
+            <Link key={repo.id} to={`/sample/repositories/${repo.id}`}>
               <div>
                 <strong>{repo.name}</strong>
                 <span>{repo.note}</span>
@@ -122,7 +122,7 @@ export function ChangeDetail() {
         </div>
       </section>
       <div className="detail-actions">
-        <Link className="button button-primary" to="/app/runs/charge-reference">
+        <Link className="button button-primary" to="/sample/runs/charge-reference">
           Inspect the example migration <ArrowRight />
         </Link>
       </div>
@@ -174,7 +174,7 @@ export function Runs() {
       </div>
       <div className="runs-list">
         {runs.map((run) => (
-          <Link key={run.id} to={`/app/runs/${run.id}`}>
+          <Link key={run.id} to={`/sample/runs/${run.id}`}>
             <GitPullRequest />
             <div>
               <strong>{run.title}</strong>
@@ -214,7 +214,7 @@ export function RunDetail() {
   const failed = run.scenario === 'failed';
   return (
     <>
-      <Link className="back-link" to="/app/runs">
+      <Link className="back-link" to="/sample/runs">
         ← All migration runs
       </Link>
       <PageHeading

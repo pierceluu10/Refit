@@ -215,7 +215,7 @@ export function Landing() {
               <br />
               The provider’s context, your affected code, and the path to a fix—together.
             </p>
-            <Link to="/app" className="button button-secondary">
+            <Link to="/sample" className="button button-secondary">
               Explore the workspace <ArrowRight />
             </Link>
           </div>
