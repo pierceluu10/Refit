@@ -109,8 +109,13 @@ const summary = {
   v3Services: services('aws-sdk-v3'),
   azurePackages: services('azure-legacy'),
 };
+// The Refit commit and whether its worktree was dirty, so a result names the code it measured.
+const { stdout: refitCommit } = await execute('git', ['rev-parse', 'HEAD']);
+const { stdout: dirty } = await execute('git', ['status', '--porcelain']);
 const output = {
   formatVersion: 1,
+  refitCommit: refitCommit.trim(),
+  dirty: Boolean(dirty.trim()),
   list: values.list,
   checkedAt: new Date().toISOString(),
   summary,
