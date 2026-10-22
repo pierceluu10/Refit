@@ -322,6 +322,46 @@ shared.chat.completions.create(model="", messages=[])
     ]);
   });
 
+  it('follows self into nested functions, callers in other files and keys after a spread', async () => {
+    expect(
+      await traced({
+        'pkg/embed.py': `from google import genai
+async def embed(client: genai.Client, texts, model="gemini-embedding-001"):
+    return await client.aio.models.embed_content(model=model, contents=texts)
+
+def query(client: genai.Client, model="gemini-2.0-flash"):
+    return client.models.generate_content(model=model, contents="x")
+`,
+        'pkg/tools.py': `from pkg.embed import embed, query
+from pkg import embed as embedding
+async def run(client):
+    await embed(client, ["a"], "text-embedding-004")
+    query(client)
+    embedding.query(client, model="gemini-2.5-pro")
+`,
+        'pkg/model.py': `from anthropic import Anthropic
+class Model:
+    def __init__(self, model="claude-sonnet-4-6"):
+        self.model = model
+        self.client = Anthropic()
+
+    def query(self, sampling):
+        kwargs = {**sampling, "model": self.model, "max_tokens": 5}
+
+        def call():
+            return self.client.messages.create(**kwargs)
+
+        return call()
+`,
+        'main.py': `from pkg.model import Model\nModel("claude-opus-4-8")\n`,
+      }),
+    ).toEqual([
+      'pkg/embed.py:3 gemini aio.models.embed_content parameter <- text-embedding-004@pkg/tools.py:4 (argument for `model`)',
+      'pkg/embed.py:6 gemini models.generate_content parameter <- gemini-2.0-flash@pkg/embed.py:5 (parameter default `model`) <- gemini-2.5-pro@pkg/tools.py:6 (argument for `model`)',
+      'pkg/model.py:11 anthropic messages.create constructor <- claude-opus-4-8@main.py:2 (argument for `model`) spread',
+    ]);
+  });
+
   it('reads the model from a spread dictionary and stops on what it cannot trace', async () => {
     expect(
       await traced({
@@ -361,7 +401,7 @@ def lonely(model):
       'app.py:14 openai chat.completions.create constructor stop: The model is imported from `somewhere`, which is not a file in this repository.',
       'app.py:16 openai chat.completions.create constructor stop: The model comes from `a`, which is reassigned or unpacked where Refit cannot trace it.',
       'app.py:18 openai chat.completions.create constructor stop: A caller passes `model` through unpacked arguments, which Refit cannot trace.',
-      'app.py:22 openai chat.completions.create constructor stop: The model comes from the parameter `model`, and no caller in the same file passes it.',
+      'app.py:22 openai chat.completions.create constructor stop: The model comes from the parameter `model`, and no caller Refit found passes it.',
     ]);
   });
 

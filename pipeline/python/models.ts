@@ -566,15 +566,21 @@ function findModuleEndpoint(context: Context, sdk: PythonSdk) {
 
 // The class whose instance `self` (or `cls`) is, for a method's first parameter.
 function classOfSelf(node: Node) {
-  const scope = scopesOf(node)[0];
-  if (scope?.type !== 'function_definition') return undefined;
-  const first = field(scope, 'parameters')?.namedChild(0);
-  const name = first?.type === 'identifier' ? first.text : first && field(first, 'name')?.text;
-  if (name !== node.text) return undefined;
-  let owner = scope.parent;
-  if (owner?.type === 'decorated_definition') owner = owner.parent;
-  owner = owner?.parent ?? null;
-  return owner?.type === 'class_definition' ? owner : undefined;
+  // A nested function may use the method's `self`, as long as it does not bind the name itself.
+  for (const scope of scopesOf(node)) {
+    if (scope.type !== 'function_definition') return undefined;
+    const first = field(scope, 'parameters')?.namedChild(0);
+    const name = first?.type === 'identifier' ? first.text : first && field(first, 'name')?.text;
+    if (name !== node.text) {
+      if (bindingsIn(scope, node.text).length) return undefined;
+      continue;
+    }
+    let owner = scope.parent;
+    if (owner?.type === 'decorated_definition') owner = owner.parent;
+    owner = owner?.parent ?? null;
+    return owner?.type === 'class_definition' ? owner : undefined;
+  }
+  return undefined;
 }
 
 // Every place a class sets an attribute: class-body assignments and annotations, and
@@ -867,21 +873,11 @@ function traceParameter(
   const method = container?.parent?.type === 'class_definition' ? container.parent : undefined;
   const callee = functionName === '__init__' && method ? field(method, 'name')!.text : functionName;
   const offset = method ? 1 : 0;
-  const tree = context.tree(file);
   let unknown = false;
-  // The default is sent when no caller in the file is found, or one leaves the argument out.
+  // The default is sent when no caller is found, or one leaves the argument out.
   let callers = 0;
   let omitted = false;
-  for (const call of tree?.rootNode.descendantsOfType('call') ?? []) {
-    if (!call) continue;
-    const target = field(call, 'function')!;
-    const called =
-      target.type === 'identifier'
-        ? target.text
-        : target.type === 'attribute'
-          ? field(target, 'attribute')!.text
-          : undefined;
-    if (called !== callee) continue;
+  for (const { call, where } of callersOf(context, file, method ?? owner, callee)) {
     const { keywords, splats } = keywordArguments(call);
     const positional = (field(call, 'arguments')?.namedChildren ?? []).filter(
       (item): item is Node =>
@@ -897,7 +893,9 @@ function traceParameter(
         : undefined);
     callers += 1;
     if (argument)
-      values.push(traceValue(context, file, argument, `argument for \`${name}\``, depth + 1, seen));
+      values.push(
+        traceValue(context, where, argument, `argument for \`${name}\``, depth + 1, seen),
+      );
     else if (splats.length || positional.some((item) => item.type === 'list_splat')) unknown = true;
     else omitted = true;
   }
@@ -914,9 +912,47 @@ function traceParameter(
   if (!values.length)
     values.push({
       literals: [],
-      stop: `The model comes from the parameter \`${name}\`, and no caller in the same file passes it.`,
+      stop: `The model comes from the parameter \`${name}\`, and no caller Refit found passes it.`,
     });
   return merge(values);
+}
+
+// Calls to a function or class by name: every call in its own file, and calls in other files that
+// import it from that file (by name or through the module), when it is defined at module level.
+function callersOf(context: Context, file: string, definition: Node, name: string) {
+  const found: { call: Node; where: string }[] = [];
+  let top: Node | null = definition.parent;
+  if (top?.type === 'decorated_definition') top = top.parent;
+  const moduleLevel = top?.type === 'module';
+  for (const [path, source] of context.files) {
+    if (path !== file && (!moduleLevel || !source.content.includes(name))) continue;
+    for (const call of context.tree(path)?.rootNode.descendantsOfType('call') ?? []) {
+      if (!call) continue;
+      const target = field(call, 'function')!;
+      const called =
+        target.type === 'identifier'
+          ? target.text
+          : target.type === 'attribute'
+            ? field(target, 'attribute')!.text
+            : undefined;
+      if (called !== name) continue;
+      if (path !== file) {
+        const object = target.type === 'attribute' ? unwrap(field(target, 'object')!) : undefined;
+        const imported =
+          target.type === 'identifier'
+            ? lookup(target, name).some(
+                (binding) =>
+                  binding.kind === 'import' &&
+                  binding.name !== null &&
+                  moduleFile(context, path, binding.module, binding.level) === file,
+              )
+            : object?.type === 'identifier' && importedModule(context, path, object) === file;
+        if (!imported) continue;
+      }
+      found.push({ call, where: path });
+    }
+  }
+  return found;
 }
 
 // `os.getenv("NAME", default)`, `os.environ.get("NAME", default)` and `os.environ["NAME"]`.
@@ -1012,7 +1048,7 @@ function spreadOptions(
   file: string,
   splat: Node,
   depth = 0,
-): Map<string, Node> | undefined {
+): { options: Map<string, Node>; complete: boolean } | undefined {
   splat = unwrap(splat);
   if (depth > MAX_DEPTH) return undefined;
   if (splat.type === 'identifier') {
@@ -1022,17 +1058,24 @@ function spreadOptions(
   }
   const options = new Map<string, Node>();
   if (splat.type === 'dictionary') {
+    // Keys after a `**other` win over it; keys before it may be replaced by it.
+    let complete = true;
     for (const pair of splat.namedChildren) {
       if (!pair || pair.type === 'comment') continue;
+      if (pair.type === 'dictionary_splat') {
+        options.clear();
+        complete = false;
+        continue;
+      }
       const key = pair.type === 'pair' ? stringValue(unwrap(field(pair, 'key')!)) : undefined;
       if (key === undefined) return undefined;
       options.set(key, field(pair, 'value')!);
     }
-    return options;
+    return { options, complete };
   }
   if (splat.type === 'call' && field(splat, 'function')?.text === 'dict') {
     const { keywords, splats, positional } = keywordArguments(splat);
-    return splats.length || positional ? undefined : keywords;
+    return splats.length || positional ? undefined : { options: keywords, complete: true };
   }
   return undefined;
 }
@@ -1161,8 +1204,9 @@ function traceCalls(context: Context): SdkCallRecord[] {
       let spread = false;
       for (const splat of splats) {
         const found = spreadOptions(context, path, splat);
-        if (!found) spread = true;
-        else for (const [name, value] of found) if (!options.has(name)) options.set(name, value);
+        if (!found?.complete) spread = true;
+        for (const [name, value] of found?.options ?? [])
+          if (!options.has(name)) options.set(name, value);
       }
       const model = options.get('model');
       if (!model && !spread) continue;
