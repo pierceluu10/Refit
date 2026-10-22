@@ -250,7 +250,14 @@ Reading Refit's output turned up one labelling mistake. It is fixed in its own c
 
 - **`evanbaker315/AttentionOS`:** add `meta-graph`, `http`, host `graph.facebook.com`, at `packages/providers/scrape-iggraph/src/index.ts:124`. That line sets the default Graph host the client sends requests to.
 
-The score with the corrected label is added in the commit that makes the correction.
+| Scope | Labels as committed before the run | With the correction |
+|---|---|---|
+| Catalog providers, precision | 82.4% (28/34) | 85.3% (29/34) |
+| Catalog providers, recall | 56% (28/50) | 56.9% (29/51) |
+| Every labelled provider, recall | 6.8% (28/414) | 7% (29/415) |
+| `meta-graph`, precision and recall | 0% (0/1), n/a | 100% (1/1), 100% (1/1) |
+
+The corrected score is in [`2026-10-22-inventory-score-corrected.json`](benchmarks/2026-10-22-inventory-score-corrected.json). The tables above keep the numbers from the labels as committed.
 
 The correction exposes a gap in the labelling method: hosts written without a scheme were found only by reading. Refit's `detectProviders` matches bare hostnames, so for catalog providers this blind spot is covered by Refit's own output. For uncatalogued providers it may still hide misses, which would make the 6.8% overall recall slightly optimistic.
 

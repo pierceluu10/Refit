@@ -2302,6 +2302,17 @@
           "line": 247,
           "monorepo": true,
           "notes": "repository search"
+        },
+        {
+          "provider": "meta-graph",
+          "via": "http",
+          "package": null,
+          "host": "graph.facebook.com",
+          "language": "typescript",
+          "file": "packages/providers/scrape-iggraph/src/index.ts",
+          "line": 124,
+          "monorepo": true,
+          "notes": "Instagram Graph API default host (label correction after scoring)"
         }
       ]
     },
