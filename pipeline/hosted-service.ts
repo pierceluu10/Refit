@@ -11,6 +11,7 @@ import { loadDeadlineRegistry } from './deadline-registry.ts';
 import type { GitHubAppConfiguration } from './github-app.ts';
 import { standaloneStateDirectory } from './github-checkout.ts';
 import { parseWebhook, verifyWebhook, WebhookInputError } from './github-webhooks.ts';
+import { hostedPages } from './hosted-setup.ts';
 import { openHostedStore, type HostedTarget } from './hosted-store.ts';
 import type { HostedTenancy } from './hosted-tenancy.ts';
 import {
@@ -59,6 +60,8 @@ export async function runHostedService(options: {
   aiPatch?: AiOptions;
   repairAttempts?: number;
   publishDraft?: boolean;
+  // Where customers ask for data deletion and report security issues (REFIT_HOSTED_CONTACT).
+  contact?: string;
   host?: string;
   port?: number;
   intervalSeconds?: number;
@@ -234,11 +237,20 @@ export async function runHostedService(options: {
     }
   };
 
+  const pages = hostedPages({
+    app: options.app,
+    tenancy: options.tenancy,
+    publishDraft: Boolean(options.publishDraft),
+    aiPatch: Boolean(options.aiPatch),
+    contact: options.contact,
+    onProgress: options.onProgress,
+  });
   const handlers = new Set<Promise<void>>();
   const server = createServer(
     { requestTimeout: REQUEST_TIMEOUT_MS, headersTimeout: HEADERS_TIMEOUT_MS },
     (request, response) => {
       const handler = (async () => {
+        if (await pages(request, response)) return;
         if (request.method === 'GET' && request.url === '/health') {
           respond(response, 200, { status: 'listening' });
           return;

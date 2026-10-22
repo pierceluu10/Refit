@@ -4,6 +4,7 @@ import { assessmentConfiguration } from './assessment.ts';
 import { githubAppConfiguration } from './github-app.ts';
 import { runHostedService } from './hosted-service.ts';
 import { openHostedStore } from './hosted-store.ts';
+import { hostedContact } from './hosted-setup.ts';
 import { hostedTenancy } from './hosted-tenancy.ts';
 import { openInventoryStore } from './inventory-store.ts';
 import { validateServiceSecret } from './local-service.ts';
@@ -22,7 +23,8 @@ Requires REFIT_DATABASE_URL (PostgreSQL). serve also requires GITHUB_APP_ID, GIT
 approve stores a receipt made by refit enroll. Installing the App on an approved repository enrolls it: the worker runs refit doctor, then scans and validates with the approved checks, and stores a job receipt. Installed repositories without an approval never run. Removing the repository or the installation cancels its targets and stops running jobs. --publish-draft opens draft PRs as Refit Agent; Refit never merges.
 retry queues one fresh attempt for an enrolled target, permitting a cached failed job to run again; successful jobs remain cached. Approval and access gates still apply.
 accounts lists every recorded installation, whether the serving worker allowed it, and today's usage against the caps. Run it with the worker's REFIT_HOSTED_ACCOUNTS (or REFIT_HOSTED_OWNER) and cap settings.
-inventory queues a read-only inventory of a repository installed by an allowed account, approved or not, and prints the stored one as JSON. The running worker takes it within its polling interval; an unchanged revision is not scanned again. Installing the App queues one for every repository it can read.`;
+inventory queues a read-only inventory of a repository installed by an allowed account, approved or not, and prints the stored one as JSON. The running worker takes it within its polling interval; an unchanged revision is not scanned again. Installing the App queues one for every repository it can read.
+serve also answers GET /github/setup (the App's Setup URL), /github/uninstalled and /.well-known/security.txt. REFIT_HOSTED_CONTACT, a mailto: or https: URI, is shown for data deletion and served as the security.txt contact.`;
 
 function database() {
   const connectionString = process.env.REFIT_DATABASE_URL;
@@ -139,6 +141,7 @@ try {
         aiPatch: assessmentConfiguration(values['ai-patch'], process.env),
         repairAttempts: Number(values['repair-attempts'] ?? 0),
         publishDraft: values['publish-draft'],
+        contact: hostedContact(process.env.REFIT_HOSTED_CONTACT),
         host: values.host,
         port: values.port === undefined ? undefined : Number(values.port),
         intervalSeconds: values.interval === undefined ? undefined : Number(values.interval),
