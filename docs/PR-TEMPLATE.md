@@ -13,10 +13,10 @@ Adhere strictly to these execution, formatting, and structural protocols:
 - Keep the title under 70 characters. Do not include trailing punctuation.
 
 ### 3. PR Body Structure
-Generate the description using the exact markdown structure below. Keep bullet points to single sentences.
+Generate the description using the exact markdown structure below. Keep bullet points to single sentences. Keep the whole body under 16,000 characters: shorten the code changes first, then the site lists, and say what was shortened.
 
 ## Overview
-[A 1-2 sentence maximum statement outlining the architectural or business justification for this change. State the exact problem or security vulnerability addressed.]
+[A 1-2 sentence maximum statement outlining the architectural or business justification for this change. State the exact problem or security vulnerability addressed, and link the provider's changelog page for it.]
 
 ## API Impact & Spec Changes
 - Breaking Changes: [None, or explicit list of altered endpoint contracts / payloads]
@@ -34,6 +34,18 @@ Generate the description using the exact markdown structure below. Keep bullet p
 - Test Suite Output: [State exact commands run, e.g., `pytest`, `npm run test:ci`, and pass status]
 - Linter & Static Analysis: [State tools verified against, e.g., Ruff, ESLint, SonarQube]
 - Security Scans: [State tools run, e.g., Trivy, Bandit, Snyk, and confirmation of zero vulnerabilities]
+
+## Left Unchanged
+[Only when sites were left for review: each one as `file:line` and what it reads, up to 25, then how many more and where they are recorded.]
+
+## Not Verified
+- [What the checks above do not establish, e.g., no request reached the provider, webhook endpoint versions, code paths the checks do not run]
+
+## Rollback
+- [How to undo the change: revert, plus any pinned version, dependency or generated file the revert restores or removes]
+
+## Reviewer Checklist
+- [ ] [One action the reviewer must take before merging]
 
 ## Related Telemetry
 - Closes Issue: #[Issue_Number]
