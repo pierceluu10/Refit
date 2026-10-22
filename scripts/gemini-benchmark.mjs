@@ -191,7 +191,8 @@ const summary = {
   errors: results.filter((item) => item.error).length,
   timedOut: results.filter((item) => item.error?.startsWith('timed out')).length,
   declaresOldSdk: frozen.repos.filter((item) => item.sdk === '@google/generative-ai').length,
-  exposedToOldSdkEndOfSupport: scanned.filter((item) => item.shippedExposures.length).length,
+  // Any shipped Gemini deadline: the old SDK's end of support or a dated model shutdown.
+  exposedToShippedDeadlines: scanned.filter((item) => item.shippedExposures.length).length,
   withGeminiIds: scanned.filter((item) => item.geminiIds).length,
   withLivePins: scanned.filter((item) => item.uses.live).length,
   pins: {

@@ -117,6 +117,10 @@
       "format": "ai-model-results",
       "predates": ["/harness", "/results/*/outcomeClass"]
     },
+    "2026-10-22-api-hosts-results.json": {
+      "format": "api-hosts-results",
+      "predates": []
+    },
     "2026-10-22-auth-backend-results.json": {
       "format": "auth-backend-results",
       "predates": []
@@ -139,6 +143,10 @@
     },
     "2026-10-22-commerce-results.json": {
       "format": "commerce-results",
+      "predates": []
+    },
+    "2026-10-22-data-apis-results.json": {
+      "format": "data-apis-results",
       "predates": []
     },
     "2026-10-22-deadline-fresh-sample-results.json": {
@@ -195,6 +203,10 @@
     "2026-10-22-openai-app-results.json": {
       "format": "ai-model-results",
       "predates": ["/harness", "/results/*/outcomeClass"]
+    },
+    "2026-10-22-paypal-results.json": {
+      "format": "paypal-results",
+      "predates": []
     },
     "2026-10-22-python-langchain-results.json": {
       "format": "python-model-results",

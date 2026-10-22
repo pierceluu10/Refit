@@ -33,6 +33,11 @@ const PROVIDERS = new Set([
   'coinbase-commerce',
   'bedrock',
   'azure-openai',
+  'algolia',
+  'zoom',
+  'mailchimp',
+  'airtable',
+  'hubspot',
   'aws',
   'azure',
   'twilio',
@@ -94,6 +99,11 @@ export interface DeadlineEntry {
     | 'coinbase-commerce'
     | 'bedrock'
     | 'azure-openai'
+    | 'algolia'
+    | 'zoom'
+    | 'mailchimp'
+    | 'airtable'
+    | 'hubspot'
     | 'aws'
     | 'azure'
     | 'twilio';

@@ -6,6 +6,7 @@ import {
   agentStatus,
   configuredIntegrations,
   scanDeadlines,
+  type AgentStatus,
   type DeadlineEvidence,
   type DeadlineUse,
 } from './deadline-exposure.ts';
@@ -22,6 +23,7 @@ import {
   applyDeadlineIgnores,
   DEADLINE_IGNORE_FILE,
   deadlineCheck,
+  parseAllowPastDue,
   parseFailWithin,
   readDeadlineIgnores,
   type DeadlineIgnore,
@@ -34,19 +36,20 @@ import {
 import { proposeModelReplacements } from './model-retirements.ts';
 import { DEPRECATION_SOURCES, syncDeadlines, type SyncProvider } from './deadline-sync.ts';
 import { parseObject } from './specifications.ts';
+import { PipelineInputError } from './types.ts';
 import { terminalText } from './workflow-presentation.ts';
 
 // Providers whose retiring model IDs `--propose-model-fixes` can replace; Gemini is report only.
 const MODEL_FIX_PROVIDERS = new Set(['openai', 'anthropic']);
 import { cliErrorMessage } from './cli-errors.ts';
 
-const USAGE = `Usage: refit deadlines [--repository <root>] [--fail-within <days>] [--ignore-file <path>] [--registry <path>] [--json]
+const USAGE = `Usage: refit deadlines [--repository <root>] [--fail-within <days> [--allow-past-due <id>[,<id>]...]] [--ignore-file <path>] [--registry <path>] [--json]
        refit deadlines --propose-model-fixes [--repository <root>] [--output <patch>] [--registry <path>] [--parameters <path>] [--json]
        refit deadlines --check-registry [--registry <path>] [--json]
        refit deadlines --check-parameters [--parameters <path>] [--json]
        refit deadlines --sync anthropic|openai|gemini|shopify|meta-graph [--registry <path>] [--write] [--json]
 Lists API versions and models a repository pins, and SDK packages it declares, that have a provider sunset or end-of-support date in the reviewed registry, with file:line evidence. Only live code counts; model lists, tests, examples, comments, tokenizers and checks are listed separately.
---fail-within <days> exits 2 when a live exposure is past due or within that many days, for CI. Report-only deadlines (a derived date, or kind method, endpoint, field or feature) are listed but never fail it. Reviewed, expiring exceptions go in ${DEADLINE_IGNORE_FILE} at the repository root; --ignore-file reads another file. Exit 0 means the check passed, 1 an error (including an invalid ignore file).
+--fail-within <days> exits 2 when a live exposure is past due or within that many days, for CI. Report-only deadlines (a derived date, or kind method, endpoint, field or feature) are listed but never fail it. Reviewed, expiring exceptions go in ${DEADLINE_IGNORE_FILE} at the repository root; --ignore-file reads another file. A deadline that has already passed keeps failing, with what to upgrade to and whether Refit can propose the upgrade. --allow-past-due <id> (repeatable or comma-separated) turns the named past-due deadlines into warnings; it never applies to a deadline that has not passed yet, and an ID the registry does not have is an error. Exit 0 means the check passed, 1 an error (including an invalid ignore file).
 --propose-model-fixes proposes replacing retiring OpenAI and Anthropic model IDs with the registry replacement, only where the ID is a literal model in a traced SDK call, lists every case that stops for review, and lists every other live model ID with why no traced request sends it. It prints a patch, or writes it to --output; it never applies, validates or publishes it.
 --sync reads a provider's deprecations page (Anthropic, OpenAI and Gemini API models; Shopify and Meta Graph API versions) and lists registry entries to add or update; --write saves them. It never deletes an entry. A scheduled workflow runs every sync and opens a pull request for review.
 --check-registry validates the registry and flags past-due entries, entries without a source and entries checked more than ${STALE_CHECK_DAYS} days ago. Nothing runs, installs or contacts a provider.
@@ -61,6 +64,7 @@ try {
       'check-parameters': { type: 'boolean' },
       parameters: { type: 'string' },
       'fail-within': { type: 'string' },
+      'allow-past-due': { type: 'string', multiple: true },
       'ignore-file': { type: 'string' },
       'propose-model-fixes': { type: 'boolean' },
       sync: { type: 'string' },
@@ -205,8 +209,14 @@ try {
     // Parse the window first, so a typo fails before any scanning.
     const failWithin =
       values['fail-within'] === undefined ? undefined : parseFailWithin(values['fail-within']);
+    if (values['allow-past-due'] && failWithin === undefined)
+      throw new PipelineInputError('--allow-past-due only applies with --fail-within.');
     const root = resolve(values.repository ?? '.');
     const registry = await loadDeadlineRegistry(registryPath, now);
+    const allowPastDue = parseAllowPastDue(
+      values['allow-past-due'] ?? [],
+      new Set(registry.deadlines.map((entry) => entry.id)),
+    );
     const [scan, integrations, ignores] = await Promise.all([
       scanDeadlines(root, registry, now),
       configuredIntegrations(root),
@@ -229,7 +239,9 @@ try {
       };
     });
     const check =
-      failWithin === undefined ? undefined : deadlineCheck(scan.exposures, decisions, failWithin);
+      failWithin === undefined
+        ? undefined
+        : deadlineCheck(scan.exposures, decisions, failWithin, allowPastDue);
     if (values.json)
       console.log(
         JSON.stringify({
@@ -307,14 +319,27 @@ try {
           for (const id of check.failing) {
             const result = byId.get(id)!;
             console.log(`  ${id}  ${result.deadline.date} (${timing(result.days)})`);
+            if (result.days < 0) printPastDue(result.deadline, result.agent);
           }
           console.log(
-            `Fix the code, or record a reviewed exception with a reason and an expiry in ${DEADLINE_IGNORE_FILE}.`,
+            `Fix the code, or record a reviewed exception with a reason and an expiry in ${DEADLINE_IGNORE_FILE}${check.failing.some((id) => byId.get(id)!.days < 0) ? '; --allow-past-due <id> turns a passed deadline into a warning' : ''}.`,
           );
         } else
           console.log(
-            `\nDeadline check passed: no live exposure is ${window}${check.ignored.length ? ` (${check.ignored.length} accepted by ${ignores.file})` : ''}.`,
+            `\nDeadline check passed${check.allowed ? ` with ${check.allowed.length} past-due ${check.allowed.length === 1 ? 'deadline' : 'deadlines'} allowed by --allow-past-due` : ''}: no ${check.allowed ? 'other ' : ''}live exposure is ${window}${check.ignored.length ? ` (${check.ignored.length} accepted by ${ignores.file})` : ''}.`,
           );
+        for (const id of check.allowed ?? []) {
+          const result = byId.get(id)!;
+          console.log(
+            `Warning: ${id} passed on ${result.deadline.date} (${timing(result.days)}); allowed by --allow-past-due, so it does not fail the check.`,
+          );
+          printPastDue(result.deadline, result.agent);
+        }
+        for (const id of allowPastDue)
+          if ((byId.get(id)?.days ?? -1) >= 0)
+            console.log(
+              `Note: ${id} has not passed yet (${byId.get(id)!.deadline.date}), so --allow-past-due does not apply to it.`,
+            );
       }
     }
     if (check?.status === 'fail') process.exitCode = 2;
@@ -325,9 +350,28 @@ try {
   process.exitCode = 1;
 }
 
+// What a passed deadline means and what to do about it. Refit offers a draft pull request only
+// where a fixer exists: model replacements for OpenAI and Anthropic, and API version migrations
+// through a provider agent. Everything else is reported and upgraded by hand.
+function printPastDue(deadline: DeadlineEntry, agent: AgentStatus) {
+  const modelFix =
+    deadline.kind === 'model' && MODEL_FIX_PROVIDERS.has(deadline.provider) && deadline.replacement;
+  const action = modelFix
+    ? 'Refit can propose this replacement as a draft PR where the model is a literal in a traced SDK call (`refit serve --model-fixes`; `refit deadlines --propose-model-fixes` shows the patch and every site it stops on).'
+    : deadline.kind === 'api-version' && agent.state !== 'none'
+      ? `Refit can propose this upgrade as a draft PR through its ${deadline.provider} agent${agent.state === 'configured' ? '' : ` once it is added (\`refit agents --add ${deadline.provider}\`)`}.`
+      : 'Refit reports this, and the upgrade is manual.';
+  console.log(`    Passed       on ${deadline.date}; this deadline is already in effect`);
+  console.log(`    Source       ${terminalText(deadline.source ?? '')}`);
+  console.log(
+    `    Upgrade to   ${terminalText(deadline.replacement ?? 'the registry names no replacement; see the source')}`,
+  );
+  console.log(`    Action       ${action}`);
+}
+
 function reportOnlyReason(deadline: DeadlineEntry) {
   const why = deadline.derivedDate
-    ? 'the provider announced no shutdown; this date is derived'
+    ? 'the provider has not announced this date; it is an estimate, see the summary'
     : `${deadline.kind} deadlines are report only`;
   return `${why}, so it never fails --fail-within or opens an alert`;
 }
