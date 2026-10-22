@@ -13,6 +13,7 @@ import {
   MAX_PACKAGES,
   NPM_PACKAGE_NAME,
   REGISTRY_PACKAGE_NAME,
+  quotedSource,
   npmWorkspaceDirectories,
 } from './npm-lock.ts';
 
@@ -292,7 +293,7 @@ export function validatePnpmInputs(
             !isRegistrySource(source))
         )
           throw new PipelineInputError(
-            `pnpm declarations must use public registry, configured catalogs or explicit local workspaces; ${directory === '.' ? '' : `${directory}/`}package.json declares ${name} as ${JSON.stringify(source)}.`,
+            `pnpm declarations must use public registry, configured catalogs or explicit local workspaces; ${directory === '.' ? '' : `${directory}/`}package.json declares ${name} as ${quotedSource(source)}.`,
           );
       if (section === 'peerDependencies') continue;
       const recorded: unknown = importer[section] ?? {};
@@ -316,7 +317,7 @@ export function validatePnpmInputs(
           typeof record.version !== 'string'
         )
           throw new PipelineInputError(
-            `pnpm importer specifiers differ from committed manifests: ${name} is ${JSON.stringify(specifier)} in ${manifestFile} but ${JSON.stringify(isObject(record) ? record.specifier : undefined) ?? 'missing'} in pnpm-lock.yaml. ${update}`,
+            `pnpm importer specifiers differ from committed manifests: ${name} is ${quotedSource(specifier)} in ${manifestFile} but ${quotedSource(isObject(record) ? record.specifier : undefined) ?? 'missing'} in pnpm-lock.yaml. ${update}`,
           );
         if (specifier.startsWith('workspace:')) {
           const target = names.get(name);

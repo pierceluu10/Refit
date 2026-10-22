@@ -247,3 +247,18 @@ it('accepts tarballs a lockfile resolved through a public npm mirror, which npm 
       ),
     ).toThrow('Package tarballs must use public registry.npmjs.org HTTPS URLs');
 });
+
+it('never repeats a source URL credential in a refusal', () => {
+  const refusal = () =>
+    validateNpmLock(
+      JSON.stringify({
+        ...manifest,
+        dependencies: { stripe: 'git+https://user:secret-token@github.com/acme/stripe.git' },
+      }),
+      JSON.stringify(lock),
+    );
+  expect(refusal).toThrow(
+    'package.json declares stripe as "git+https://***@github.com/acme/stripe.git"',
+  );
+  expect(refusal).not.toThrow(/secret-token/);
+});

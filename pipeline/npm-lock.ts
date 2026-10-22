@@ -8,6 +8,10 @@ const MAX_WORKSPACES = 64;
 export const NPM_PACKAGE_NAME = /^(?:@[a-z0-9._-]+\/)?[a-z0-9._-]+$/;
 // npm refuses capital letters in new names, but packages published before that rule keep theirs
 // (JSONStream is in 7 of 126 benchmark pnpm lockfiles), so registry dependencies may use them.
+// Quotes a declared source for a refusal; a URL's credentials never reach a message or a draft.
+export const quotedSource = (source: unknown) =>
+  JSON.stringify(source)?.replace(/(\/\/)[^/@\s"]*@/g, '$1***@');
+
 export const REGISTRY_PACKAGE_NAME = /^(?:@[a-z0-9._-]+\/)?[A-Za-z0-9._-]+$/;
 export const EXACT_PACKAGE_VERSION =
   /^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/;
@@ -60,7 +64,7 @@ function dependencySources(value: Record<string, unknown>, file: string, publish
     for (const [name, source] of Object.entries(dependencies))
       if (!(published && source === '') && !isRegistrySource(source))
         throw new PipelineInputError(
-          `Automatic preparation supports public npm registry dependencies only; ${file} declares ${name} as ${JSON.stringify(source)}. Local, Git and URL dependencies require a custom image.`,
+          `Automatic preparation supports public npm registry dependencies only; ${file} declares ${name} as ${quotedSource(source)}. Local, Git and URL dependencies require a custom image.`,
         );
   }
 }
@@ -212,7 +216,7 @@ export function validateNpmLock(
           (name) => declared[name] !== recorded[name],
         );
         throw new PipelineInputError(
-          `${file} ${section} differ from the committed package-lock.json${name ? `: ${name} is ${JSON.stringify(declared[name]) ?? 'missing'} in ${file} but ${JSON.stringify(recorded[name]) ?? 'missing'} in the lockfile` : ''}. Run npm install and commit the updated package-lock.json.`,
+          `${file} ${section} differ from the committed package-lock.json${name ? `: ${name} is ${quotedSource(declared[name]) ?? 'missing'} in ${file} but ${quotedSource(recorded[name]) ?? 'missing'} in the lockfile` : ''}. Run npm install and commit the updated package-lock.json.`,
         );
       }
     }
