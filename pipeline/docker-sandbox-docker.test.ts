@@ -99,7 +99,7 @@ const mount = (target) => mounts.find((entry) => entry[1] === target)?.[3] ?? nu
 console.log(JSON.stringify({
   uid: process.getuid(), gid: process.getgid(),
   capEff: status.CapEff, capBnd: status.CapBnd, noNewPrivs: status.NoNewPrivs, seccomp: status.Seccomp,
-  memoryMax: read('/sys/fs/cgroup/memory.max'), swapMax: read('/sys/fs/cgroup/memory.swap.max'),
+  memoryMax: read('/sys/fs/cgroup/memory.max'),
   pidsMax: read('/sys/fs/cgroup/pids.max'), cpuMax: read('/sys/fs/cgroup/cpu.max'),
   core: execSync('ulimit -c', { shell: '/bin/sh', encoding: 'utf8' }).trim(),
   root: mount('/'), workspace: mount('/workspace'), tmp: mount('/tmp'), input: mount('/input'),
@@ -125,7 +125,6 @@ gated(
       noNewPrivs: '1',
       seccomp: '2',
       memoryMax: String(3 * 1024 ** 3),
-      swapMax: '0',
       pidsMax: '128',
       cpuMax: '100000 100000',
       core: '0',

@@ -45,8 +45,6 @@ const HARDENING = [
   '128',
   '--memory',
   '3g',
-  '--memory-swap',
-  '3g',
   '--cpus',
   '1',
   '--ulimit',

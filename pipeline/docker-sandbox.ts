@@ -149,9 +149,6 @@ export function dockerSandboxArguments(options: {
     '128',
     '--memory',
     memory,
-    // Equal to --memory, so the container cannot add the same amount again as swap.
-    '--memory-swap',
-    memory,
     '--cpus',
     '1',
     // A host whose core pattern pipes to a crash handler would otherwise process the dump outside
