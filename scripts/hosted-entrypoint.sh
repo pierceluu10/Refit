@@ -1,5 +1,6 @@
 #!/bin/sh
-# Starts the in-VM Docker daemon, writes the App key from its Fly secret, then runs the hosted worker.
+# Starts the in-VM Docker daemon, then runs one job (on a job machine) or writes the App key from its
+# Fly secret and runs the hosted worker.
 set -eu
 
 DOCKER_READY_SECONDS=60
@@ -16,6 +17,11 @@ until docker info >/dev/null 2>&1; do
 done
 # Validation images named by approved .refit.json files must exist before doctor runs.
 for image in ${REFIT_HOSTED_IMAGES:-}; do docker pull "$image"; done
+
+# A job machine runs one job from the control process's job channel and never holds the App key.
+if [ -n "${REFIT_JOB_ID:-}" ]; then
+  exec refit hosted job
+fi
 
 # Scope umask to the key: checkouts must stay readable to the unprivileged validation container.
 (
