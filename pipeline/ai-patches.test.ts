@@ -31,15 +31,20 @@ async function fixture() {
   return { repository, report, edit };
 }
 
-function respond(edits: unknown[]) {
+// Request n gets answers[n], and every later request the last answer, so a rejected answer is
+// also the corrected request's answer unless a test supplies one.
+function respond(...answers: unknown[][]) {
+  let requests = 0;
   vi.stubGlobal(
     'fetch',
-    vi.fn().mockResolvedValue(
-      new Response(
+    vi.fn().mockImplementation(async () => {
+      const edits = answers[Math.min(requests++, answers.length - 1)];
+      return new Response(
         JSON.stringify({
-          id: 'resp_patch',
+          id: `resp_patch_${requests}`,
           model: OPTIONS.model,
           status: 'completed',
+          usage: { input_tokens: 1000, output_tokens: 100 },
           output: [
             {
               type: 'message',
@@ -57,8 +62,8 @@ function respond(edits: unknown[]) {
             },
           ],
         }),
-      ),
-    ),
+      );
+    }),
   );
 }
 
@@ -154,6 +159,51 @@ it('rejects overlapping edits and ambiguous original text', async () => {
   await expect(
     proposeAiPatch(repository, report.changes, report.findings, OPTIONS),
   ).rejects.toThrow(/exactly one/);
+});
+
+function requestBodies() {
+  return vi
+    .mocked(fetch)
+    .mock.calls.map(([, request]) => JSON.parse(String((request as RequestInit).body)));
+}
+
+it('gives the model one corrected request, with the reason, after a mechanical edit rejection', async () => {
+  const { edit, repository, report } = await fixture();
+  respond([edit, edit], [edit]);
+  const proposal = await proposeAiPatch(repository, report.changes, report.findings, OPTIONS);
+  expect(proposal).toMatchObject({
+    status: 'proposed',
+    edits: 1,
+    responseId: 'resp_patch_2',
+    rejectedProposals: ['AI replacements overlap.'],
+    usage: { inputTokens: 2000, outputTokens: 200 },
+  });
+  const [first, second] = requestBodies();
+  expect(first.instructions).not.toContain('rejectedProposal');
+  expect(JSON.parse(first.input[0].content)).not.toHaveProperty('rejectedProposal');
+  expect(second.instructions).toContain('evidence.rejectedProposal is why Refit rejected');
+  expect(JSON.parse(second.input[0].content).rejectedProposal).toEqual({
+    reason: 'AI replacements overlap.',
+    edit: { file: 'billing.ts', findingId: edit.findingId },
+  });
+});
+
+it('stops when the corrected answer is rejected too, without a third request', async () => {
+  const { edit, repository, report } = await fixture();
+  respond([edit, edit], [{ ...edit, original: 'does not exist' }]);
+  await expect(
+    proposeAiPatch(repository, report.changes, report.findings, OPTIONS),
+  ).rejects.toThrow('AI replacement must match exactly one source occurrence.');
+  expect(fetch).toHaveBeenCalledTimes(2);
+});
+
+it('records no rejected proposal when the first answer is accepted', async () => {
+  const { edit, repository, report } = await fixture();
+  respond([edit]);
+  const proposal = await proposeAiPatch(repository, report.changes, report.findings, OPTIONS);
+  expect(proposal).not.toHaveProperty('rejectedProposals');
+  expect(proposal.usage).toMatchObject({ inputTokens: 1000, outputTokens: 100 });
+  expect(fetch).toHaveBeenCalledTimes(1);
 });
 
 it('allows a no-edit response without inventing a patch', async () => {
@@ -396,6 +446,15 @@ it('rejects a pre-existing field substituted for the removed field', async () =>
   );
 });
 
+it('never gives the substitution guard a corrected request', async () => {
+  const { inputs, edit } = await openaiInputs();
+  respond([edit('model.id.toLowerCase()')], [edit('model.owner_name.toLowerCase()')]);
+  await expect(runPipeline({ ...inputs, aiPatch: OPTIONS })).rejects.toBeInstanceOf(
+    FieldSubstitutionError,
+  );
+  expect(fetch).toHaveBeenCalledTimes(1);
+});
+
 it.each(['String(model.id).toLowerCase()', '`${model.object}`.toLowerCase()'])(
   'rejects a pre-existing field read outside an SDK call argument: %s',
   async (replacement) => {
@@ -546,7 +605,7 @@ it('rejects a type-error fix outside the statement enclosing the reported positi
     { file: 'checkout.ts', original: "return 'done';", replacement: "return 'ok';", findingId },
   ]);
   await expect(proposeAiPatch(repository, report.changes, findings, OPTIONS)).rejects.toThrow(
-    'AI replacement does not cover its cited finding location.',
+    /^AI replacement does not cover its cited finding location \(checkout\.ts:\d+:\d+\)\.$/,
   );
 });
 
@@ -566,6 +625,8 @@ it('stops a fix that renames a webhook event type for review', async () => {
   await expect(proposeAiPatch(repository, report.changes, findings, OPTIONS)).rejects.toThrow(
     "AI patch changes webhook event type 'customer.subscription-created'; event names stop for review.",
   );
+  // A policy stop is not an edit rejection, so the model gets no corrected request.
+  expect(fetch).toHaveBeenCalledTimes(1);
 });
 
 it('stops a fix that chooses a subscription item for the billing period', async () => {

@@ -74,6 +74,9 @@ export interface ValidationAttempt {
   evidenceHash: string | null;
   usage: AiUsage | null;
   costUsd: number | null;
+  // Why Refit rejected the model's earlier answer before its corrected request; usage and cost
+  // cover both requests.
+  rejectedProposals?: string[];
 }
 
 export interface CheckResult {
@@ -672,6 +675,9 @@ export async function validateMigration(options: {
         evidenceHash: 'evidenceHash' in proposal ? proposal.evidenceHash : null,
         usage: 'usage' in proposal ? proposal.usage : null,
         costUsd: 'budget' in proposal ? (proposal.budget?.costUsd ?? null) : null,
+        ...('rejectedProposals' in proposal
+          ? { rejectedProposals: proposal.rejectedProposals }
+          : {}),
       });
     if (initialCandidate) recordAttempt();
     const removedParameters = [

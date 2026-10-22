@@ -53,6 +53,23 @@ it('scores an AI repair that passed, with its attempts and recorded cost', () =>
   });
 });
 
+it('counts an attempt whose first answer was rejected as edits and then corrected', () => {
+  const result = scoreBundle(
+    'a/b',
+    validated,
+    report(
+      'openai',
+      'passed',
+      [deterministic, { ...ai(2, 0.006), rejectedProposals: ['AI replacements overlap.'] }],
+      { requested: 1, stopReason: 'checks-passed' },
+    ),
+  );
+  expect(result).toMatchObject({ outcome: 'pass', aiAttempts: 1, corrections: 1, costUsd: 0.006 });
+  expect(comparisonTable([{ label: 'after', results: [result] }])).toContain(
+    '| a/b | pass, 1 repair (checks-passed), 1 corrected, $0.0060 |',
+  );
+});
+
 it('scores a first AI proposal that passed with no repair', () => {
   const result = scoreBundle(
     'demo',

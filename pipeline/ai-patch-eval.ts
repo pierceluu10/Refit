@@ -27,10 +27,13 @@ export interface AiPatchCaseResult {
   generator: string | null;
   // AI responses whose candidate reached the checks; rejected proposals are not attempts.
   aiAttempts: number;
+  // Attempts whose first answer Refit rejected as edits and the model corrected.
+  corrections: number;
   repairs: number;
   repairStop: string | null;
-  // Recorded cost of the AI attempts. Rejected or failed requests leave no cost in the bundle, so
-  // costComplete is false whenever one may have happened; the run's ledger has the total.
+  // Recorded cost of the AI attempts, including corrected requests. A request whose answer was
+  // finally rejected, or that failed, leaves no cost in the bundle, so costComplete is false
+  // whenever one may have happened; the run's ledger has the total.
   costUsd: number;
   costComplete: boolean;
   detail: string | null;
@@ -46,6 +49,7 @@ interface Manifest {
 interface Attempt {
   responseId?: string | null;
   costUsd?: number | null;
+  rejectedProposals?: string[];
 }
 
 interface Report {
@@ -89,6 +93,7 @@ export function scoreBundle(
     validation: report?.validation?.status ?? null,
     generator: report?.patch?.generator ?? null,
     aiAttempts: ai.length,
+    corrections: ai.filter((attempt) => attempt.rejectedProposals?.length).length,
     repairs: repair?.requested ?? 0,
     repairStop: repair?.stopReason ?? null,
     costUsd: ai.reduce((sum, attempt) => sum + (attempt.costUsd ?? 0), 0),
@@ -202,11 +207,12 @@ export function comparisonTable(runs: { label: string; results: AiPatchCaseResul
       const result = run.results.find((candidate) => candidate.id === id);
       if (!result) return 'not run';
       const repair = result.repairs ? `, ${result.repairs} repair (${result.repairStop})` : '';
+      const corrected = result.corrections ? `, ${result.corrections} corrected` : '';
       const cost =
         result.aiAttempts || result.outcome !== 'not-reached'
           ? `, ${usd(result.costUsd)}${result.costComplete ? '' : '+'}`
           : '';
-      return `${result.outcome}${repair}${cost}`;
+      return `${result.outcome}${repair}${corrected}${cost}`;
     });
     return `| ${id} | ${cells.join(' | ')} |`;
   });
