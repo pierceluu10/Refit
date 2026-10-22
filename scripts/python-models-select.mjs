@@ -107,9 +107,9 @@ for (let start = 0; start < names.length; start += 50) {
       return `r${index}: repository(owner: ${JSON.stringify(owner)}, name: ${JSON.stringify(repo)}) { nameWithOwner stargazerCount isFork isArchived pushedAt diskUsage defaultBranchRef { target { oid } } }`;
     })
     .join('\n');
-  const result = await gh(['api', 'graphql', '-f', `query=query { ${fields} }`]).catch(
-    (error) => ({ data: JSON.parse(error.stdout || '{}').data ?? {} }),
-  );
+  const result = await gh(['api', 'graphql', '-f', `query=query { ${fields} }`]).catch((error) => ({
+    data: JSON.parse(error.stdout || '{}').data ?? {},
+  }));
   for (const index of batch.keys()) {
     const repository = result.data?.[`r${index}`];
     if (!repository?.defaultBranchRef) rejected.missing += 1;
@@ -147,4 +147,6 @@ await writeFile(
     2,
   )}\n`,
 );
-console.error(`Selected ${repos.length} of ${candidates.length}; rejected ${JSON.stringify(rejected)}`);
+console.error(
+  `Selected ${repos.length} of ${candidates.length}; rejected ${JSON.stringify(rejected)}`,
+);
