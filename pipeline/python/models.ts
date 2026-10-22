@@ -349,14 +349,31 @@ function reaching(scope: Node, use: Node, found: Binding[]) {
     )
       cut = statement!;
   }
-  return cut
-    ? found.filter(
-        (binding) =>
-          binding.kind !== 'parameter' &&
-          'node' in binding &&
-          binding.node.startIndex >= cut!.startIndex,
-      )
-    : found;
+  // An assignment after the use reaches it only when a loop holds both.
+  let loop: Node | null = use.parent;
+  while (
+    loop &&
+    loop.id !== scope.id &&
+    loop.type !== 'for_statement' &&
+    loop.type !== 'while_statement'
+  )
+    loop = loop.parent;
+  const reaches = (binding: Binding) =>
+    !('node' in binding) ||
+    binding.kind === 'parameter' ||
+    binding.kind === 'definition' ||
+    binding.node.startIndex < use.startIndex ||
+    (loop !== null && loop.id !== scope.id && binding.node.startIndex < loop.endIndex);
+  return (
+    cut
+      ? found.filter(
+          (binding) =>
+            binding.kind !== 'parameter' &&
+            'node' in binding &&
+            binding.node.startIndex >= cut!.startIndex,
+        )
+      : found
+  ).filter(reaches);
 }
 
 // The file a module name refers to, from the importing file: relative imports from its directory,

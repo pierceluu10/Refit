@@ -398,6 +398,30 @@ default = ChatOpenAI()
     expect(calls.map((call) => call.package)).toEqual(['langchain-community']);
   });
 
+  it('ignores assignments after the use unless a loop holds both', async () => {
+    expect(
+      await traced({
+        'app.py': `from openai import OpenAI
+client = OpenAI()
+def run(name):
+    if name == "openai":
+        model = "gpt-4o"
+        return client.chat.completions.create(model=model, messages=[])
+    if name == "local":
+        model = "llama3.2"
+        return None
+    for attempt in range(3):
+        if attempt:
+            client.chat.completions.create(model=retry, messages=[])
+        retry = "gpt-4o-mini"
+`,
+      }),
+    ).toEqual([
+      'app.py:6 openai chat.completions.create constructor <- gpt-4o@app.py:5 (constant `model`)',
+      'app.py:12 openai chat.completions.create constructor <- gpt-4o-mini@app.py:13 (constant `retry`)',
+    ]);
+  });
+
   it('traces the return of a helper with the arguments of each call, and pydantic field defaults', async () => {
     expect(
       await traced({
