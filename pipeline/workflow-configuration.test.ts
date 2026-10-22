@@ -258,6 +258,19 @@ it('allows a checkout-free configuration but requires explicit App syncing befor
   });
 });
 
+it('reads the Shopify SDK upgrade opt-in as a boolean, off by default', async () => {
+  const { path, configuration } = await setup();
+  expect((await readWorkflowConfiguration(path)).shopifySdkUpgrade).toBeUndefined();
+  await writeFile(path, JSON.stringify({ ...configuration, shopifySdkUpgrade: true }));
+  expect((await readWorkflowConfiguration(path)).shopifySdkUpgrade).toBe(true);
+  await writeFile(path, JSON.stringify({ ...configuration, shopifySdkUpgrade: false }));
+  expect((await readWorkflowConfiguration(path)).shopifySdkUpgrade).toBeUndefined();
+  await writeFile(path, JSON.stringify({ ...configuration, shopifySdkUpgrade: 'yes' }));
+  await expect(readWorkflowConfiguration(path)).rejects.toThrow(
+    'Run configuration shopifySdkUpgrade must be a boolean.',
+  );
+});
+
 it('accepts only the keep-listed payment method opt-in', async () => {
   const { path, configuration } = await setup();
   expect((await readWorkflowConfiguration(path)).keepListedPaymentMethods).toBeUndefined();

@@ -444,6 +444,7 @@ export async function validateMigration(options: {
   // --publish-unresolved: see withoutRequestParameters.
   leaveRequestParameters?: boolean;
   keepListedPaymentMethods?: boolean;
+  shopifySdkUpgrade?: boolean;
   // --publish-unresolved: a repository-side dependency preparation failure skips the checks and
   // returns the deterministic patch as `untested` instead of throwing.
   recordDependencyFailures?: boolean;
