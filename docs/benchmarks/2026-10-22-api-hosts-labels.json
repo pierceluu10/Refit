@@ -1,0 +1,197 @@
+{
+  "formatVersion": 1,
+  "labelledAt": "2026-10-22",
+  "method": "Hand labels for the odd-numbered repositories (1, 3, … 59, zero-based) of 2026-10-22-api-hosts-repos.json, made before Refit ran on any of them. For each repository, scripts/api-hosts-label-candidates.mjs listed every absolute URL host written in non-test JS/TS source (a plain text search, not the detector); the person labelling read the code around each and kept a host only when the repository sends a request to it through an HTTP client (fetch, axios, got, ky, undici, node:http(s), superagent, request) or hands it to one as a base URL. Not kept: hosts only in links, href/src attributes, embeds, image or asset URLs, schema namespaces, localhost and private addresses, test and fixture files, documentation comments, hosts handed to an SDK or an unrecognised wrapper (an Apollo uri, an OpenAI baseURL, a download helper), and strings only printed or passed to a shell. A host written in code that the person could not tell was requested was kept out. Dynamic hosts are not labelled.",
+  "repos": [
+    {
+      "repo": "aralroca/next-translate",
+      "commit": "8dcfa2ee862442040b4491611fe1ecb948092b3b",
+      "hosts": []
+    },
+    {
+      "repo": "kartikk221/hyper-express",
+      "commit": "04ea6b4118606ba2cdc486299a81c7c81c1edc08",
+      "hosts": []
+    },
+    {
+      "repo": "discord-tickets/bot",
+      "commit": "ca555b6a71140bf8c2bcf109646aca1bd3f5b287",
+      "hosts": ["api.github.com", "discord.com", "discordapp.com", "stats.discordtickets.app"]
+    },
+    {
+      "repo": "backmeupplz/voicy",
+      "commit": "51427adf0cf2a2b8333ee5ade846eb10163b644e",
+      "hosts": ["api.telegram.org", "localizer.borodutch.com"]
+    },
+    {
+      "repo": "miroslavpejic85/mirotalkwebrtc",
+      "commit": "737f7b1c8ef8a79638bf5c0289f01921807d1caa",
+      "hosts": []
+    },
+    {
+      "repo": "dockpeek/dockpeek",
+      "commit": "d506f3ac6d9570cc8bb5d72db09005f1bf83620a",
+      "hosts": []
+    },
+    {
+      "repo": "react-native-datetimepicker/datetimepicker",
+      "commit": "2afd1f98c4ec648885dc7be66467daf9d063942f",
+      "hosts": []
+    },
+    {
+      "repo": "ravsamhq/notify-slack-action",
+      "commit": "7c9f9aac57b83835edc1177fdf84142e979d05b9",
+      "hosts": []
+    },
+    {
+      "repo": "dmotz/trystero",
+      "commit": "acef9ddc15528f3d5476b64023c4c8d21ff8d5c9",
+      "hosts": ["api.proxyscrape.com"]
+    },
+    {
+      "repo": "saleor/storefront",
+      "commit": "a6e357a575c6e694e1aa5e5def4a1783dd223117",
+      "hosts": []
+    },
+    {
+      "repo": "react-native-community/cli",
+      "commit": "f4c4ef37ccf98e0205d4a8bc5d9f40f24f1120fd",
+      "hosts": ["api.github.com"]
+    },
+    {
+      "repo": "mengjian-github/openclaw101",
+      "commit": "b09052ecaac357a3753276e763c1668e5a15888f",
+      "hosts": ["open.feishu.cn"]
+    },
+    {
+      "repo": "golevelup/nestjs",
+      "commit": "503972ed78192ced08d8d5b16fa3f99ab6210736",
+      "hosts": []
+    },
+    {
+      "repo": "stegripe/rawon",
+      "commit": "0a6d8506e0aa156bc4fb881bcf0663c4132fa80b",
+      "hosts": [
+        "accounts.spotify.com",
+        "api.github.com",
+        "api.spotify.com",
+        "lrclib.net",
+        "music.youtube.com"
+      ]
+    },
+    {
+      "repo": "xvirobotics/metabot",
+      "commit": "916637eccb68fd79a0850a02dff390580cedce4a",
+      "hosts": [
+        "api.elevenlabs.io",
+        "api.telegram.org",
+        "ilinkai.weixin.qq.com",
+        "novac2c.cdn.weixin.qq.com",
+        "openspeech.bytedance.com",
+        "slack.com"
+      ]
+    },
+    {
+      "repo": "graphile/starter",
+      "commit": "5f377879c06cf26b36946d23a31d885abc82dfc6",
+      "hosts": []
+    },
+    {
+      "repo": "op7418/Claude-to-IM-skill",
+      "commit": "536908f5e9bd65a151ca4cb4b08d3fedc1a43b4d",
+      "hosts": ["ilinkai.weixin.qq.com", "novac2c.cdn.weixin.qq.com"]
+    },
+    {
+      "repo": "TailAdmin/free-nextjs-admin-dashboard",
+      "commit": "4fba02489c93171220c13cd2b44cc0161ff6d2a1",
+      "hosts": []
+    },
+    {
+      "repo": "infinitered/apisauce",
+      "commit": "ac2dc65338b706091c8fbb6c0f645ad6a3718148",
+      "hosts": []
+    },
+    {
+      "repo": "slack-edge/slack-edge",
+      "commit": "24d0731f3fc83d239ddd6b54bb09e8e9ebea5ff9",
+      "hosts": []
+    },
+    {
+      "repo": "rango-exchange/rango-sdk",
+      "commit": "bf6c62bf8847f0865081672acd0450cfa7e89334",
+      "hosts": ["api.rango.exchange"]
+    },
+    {
+      "repo": "decompil3d/lovelace-hourly-weather",
+      "commit": "9f2bbb14dcaa4d06f95739dabb6024d37ba66c87",
+      "hosts": []
+    },
+    {
+      "repo": "w3bdesign/nextjs-woocommerce",
+      "commit": "dfaba177b2edf327a503fa69939bfa18e03ec77b",
+      "hosts": []
+    },
+    {
+      "repo": "dzhng/jevgrep",
+      "commit": "28cf384d444e1f4bf5571142ec32357cb84973ae",
+      "hosts": []
+    },
+    {
+      "repo": "Sly777/ran",
+      "commit": "9879d908d2a8f79b4cd1d23910db62960a99fef8",
+      "hosts": []
+    },
+    {
+      "repo": "janoside/btc-rpc-explorer",
+      "commit": "26e282a06e87b645c6e0687e2503d26d1e623dea",
+      "hosts": [
+        "api.blockchair.com",
+        "api.blockcypher.com",
+        "api.coindesk.com",
+        "api.github.com",
+        "api.ipstack.com",
+        "blockchain.info",
+        "forex-data-feed.swissquote.com",
+        "raw.githubusercontent.com"
+      ]
+    },
+    {
+      "repo": "CorwinDev/Discord-Bot",
+      "commit": "cab811eda178a8677f9beeea2ff23109606c3ce5",
+      "hosts": [
+        "api.coingecko.com",
+        "api.github.com",
+        "api.mcsrvstat.us",
+        "api.openai.com",
+        "api2.willyoupressthebutton.com",
+        "covid19.mathdro.id",
+        "discord.com",
+        "djsdocs.sorta.moe",
+        "io.wyr.app",
+        "is.gd",
+        "nekobot.xyz",
+        "opentdb.com",
+        "some-random-api.com",
+        "uselessfacts.jsph.pl",
+        "weather.service.msn.com",
+        "www.anagramica.com",
+        "www.reddit.com"
+      ]
+    },
+    {
+      "repo": "revokslab/ShipFree",
+      "commit": "3b72a6f985e4e6781f02f9dd4c7fe3895b32c4eb",
+      "hosts": ["api.github.com"]
+    },
+    {
+      "repo": "winkjs/wink-nlp",
+      "commit": "c2fa2f1554a64de12dd76421cb6199ded1b6b062",
+      "hosts": []
+    },
+    {
+      "repo": "stephenh/ts-proto",
+      "commit": "1b195c06af8cd399b0fe21a453780ddee2cec37b",
+      "hosts": []
+    }
+  ]
+}
