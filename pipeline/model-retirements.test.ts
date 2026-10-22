@@ -2320,6 +2320,27 @@ it('explains every live model ID that no traced request sends', async () => {
       ),
     },
   ]);
+  // A report-only detector's site is listed as its stop, with its reason, instead.
+  const wrapper = {
+    file: 'src/model.ts',
+    line: 2,
+    model: 'claude-3-opus-20240229',
+    call: '@ai-sdk/anthropic anthropic()',
+    reason: 'Reported by a wrapper detector.',
+  };
+  const reported = await proposeModelReplacements(withoutSdk, registry, NOW, {
+    reportOnly: [() => [wrapper], () => [{ ...wrapper, line: 9 }]],
+  });
+  expect(reported.unresolved).toEqual([]);
+  expect(reported.patch).toBeNull();
+  expect(reported.stops).toEqual([
+    {
+      deadline: 'anthropic-claude-3-opus',
+      provider: 'anthropic',
+      ...wrapper,
+      at: { file: 'src/model.ts', line: 2 },
+    },
+  ]);
 });
 
 // A catch-all `paths` entry, common in older Node backends, maps every bare name to `baseUrl` and

@@ -1901,13 +1901,32 @@ function indirectSource(site: Site) {
 // raw HTTP request to an official text-generation endpoint, sends it as `model`, outside tests and
 // build output. Anything less certain stops for review with a reason. Nothing is written, applied,
 // validated or sent to a provider: the proposal is a patch for a person to review.
+// A model a report-only detector found where no traced SDK request sends it, such as an AI wrapper
+// SDK call (`anthropic('claude-3-opus-20240229')`). `line` is where the model is written.
+export interface ReportOnlySite {
+  file: string;
+  line: number;
+  model: string;
+  call: string;
+  reason: string;
+}
+export type ReportOnlySource = (
+  repository: Repository,
+) => ReportOnlySite[] | Promise<ReportOnlySite[]>;
+// Report-only detectors from other modules. A live match one of them finds is listed as a stop with
+// its reason instead of under unresolved; it is never edited.
+const REPORT_ONLY_SOURCES: ReportOnlySource[] = [];
+
 export async function proposeModelReplacements(
   directory: string,
   registry: DeadlineRegistry,
   now: Date,
-  // Edit what the resolver reaches through class fields, object members and computed initializers
-  // (D-06 to D-08). Off until the owner decision lands; until then those sites stop for review.
-  { indirect = false }: { indirect?: boolean } = {},
+  {
+    // Edit what the resolver reaches through class fields, object members and computed
+    // initializers (D-06 to D-08). Off until the owner decision lands; until then those sites stop.
+    indirect = false,
+    reportOnly = REPORT_ONLY_SOURCES,
+  }: { indirect?: boolean; reportOnly?: ReportOnlySource[] } = {},
 ): Promise<ModelReplacementProposal> {
   const byProvider = new Map<string, Map<string, DeadlineEntry>>();
   for (const entry of registry.deadlines)
@@ -2264,6 +2283,10 @@ export async function proposeModelReplacements(
     ...stops.map((item) => `${item.at.file}:${item.at.line}`),
   ]);
   const unresolved: ModelReplacementUnresolved[] = [];
+  const reported = new Map<string, ReportOnlySite>();
+  for (const source of reportOnly)
+    for (const site of await source(repository))
+      reported.set(`${site.file}:${site.line}:${site.model}`, site);
   const scan = await scanDeadlines(directory, registry, now);
   for (const exposure of scan.exposures) {
     const provider = exposure.deadline.provider;
@@ -2272,6 +2295,20 @@ export async function proposeModelReplacements(
     for (const evidence of exposure.evidence) {
       if (evidence.kind !== 'source' || covered.has(`${evidence.file}:${evidence.line}`)) continue;
       const entry = models.get(evidence.version) ?? exposure.deadline;
+      const site = reported.get(`${evidence.file}:${evidence.line}:${evidence.version}`);
+      if (site) {
+        stops.push({
+          deadline: exposure.deadline.id,
+          provider,
+          file: site.file,
+          line: site.line,
+          call: site.call,
+          at: { file: site.file, line: site.line },
+          model: site.model,
+          reason: site.reason,
+        });
+        continue;
+      }
       unresolved.push({
         deadline: exposure.deadline.id,
         provider,
