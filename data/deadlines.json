@@ -2117,7 +2117,7 @@
         "twilio@<6.0.0"
       ],
       "date": "2026-04-20",
-      "summary": "twilio-node 5.x and older get no more features, bug fixes or security updates once 6.0.0 is current: Twilio supports only the current major version of twilio-node (VERSIONS.md, https://github.com/twilio/twilio-node/blob/main/VERSIONS.md). 2026-04-20 is the 6.0.0 release date in UPGRADE.md, not a date Twilio gives for the end of 5.x support. Twilio says 6.x has no breaking API changes but needs Node.js 20 or newer. Twilio does not say that requests through older versions stop working.",
+      "summary": "Estimate: Twilio has not announced an exact end-of-support date for twilio-node 5.x and older. 2026-04-20 is Refit's estimate from Twilio's support policy, not a Twilio date: Twilio supports only the current major version of twilio-node (VERSIONS.md, https://github.com/twilio/twilio-node/blob/main/VERSIONS.md), and 6.0.0 became the current major on 2026-04-20, its release date in UPGRADE.md, so since then 5.x and older get no new features, bug fixes or security updates. Refit watches for Twilio's official announcement: this entry's sources are re-checked at least every 30 days, and as soon as Twilio publishes a date Refit will flag it and replace this estimate. Until then the entry is report only. Twilio says 6.x has no breaking API changes but needs Node.js 20 or newer, and does not say that requests through older versions stop working.",
       "replacement": "twilio 6.x",
       "source": "https://github.com/twilio/twilio-node/blob/main/UPGRADE.md",
       "checkedAt": "2026-10-22",

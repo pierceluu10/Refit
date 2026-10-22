@@ -42,7 +42,11 @@ function print(root: string, scan: MessagingScan) {
   for (const item of scan.packages) {
     const notes = [
       item.deprecated ? `retired on npm: ${item.deprecated}` : '',
-      item.deadline ? `unsupported since ${item.deadline.date} (${item.deadline.id})` : '',
+      item.deadline
+        ? item.deadline.estimate
+          ? `unsupported since about ${item.deadline.date}, Refit's estimate: the provider has not announced a date (${item.deadline.id}, report only)`
+          : `unsupported since ${item.deadline.date} (${item.deadline.id})`
+        : '',
     ].filter(Boolean);
     console.log(
       `SDK          ${terminalText(`${item.name} ${item.locked ?? item.declared} in ${item.file}`)}${notes.length ? `  ${terminalText(notes.join('; '))}` : ''}`,

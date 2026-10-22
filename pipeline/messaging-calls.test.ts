@@ -7,7 +7,9 @@ import { promisify } from 'node:util';
 import { afterEach, describe, expect, it } from 'vitest';
 import { AGENT_CATALOG } from './agent-catalog.ts';
 import { scanDeadlines } from './deadline-exposure.ts';
-import { loadDeadlineRegistry } from './deadline-registry.ts';
+import { DEFAULT_LEAD_DAYS, dueDeadlineAlerts } from './deadline-alerts.ts';
+import { deadlineCheck } from './deadline-ignores.ts';
+import { loadDeadlineRegistry, reportOnly } from './deadline-registry.ts';
 import { scanMessagingCalls, type MessagingCall } from './messaging-calls.ts';
 
 const execute = promisify(execFile);
@@ -278,6 +280,52 @@ describe('packages and registry', () => {
     expect(await exposed('^4.0.0 || ^6.0.0')).toEqual([]);
   });
 
+  // Owner decision 2026-10-22: Twilio has announced no end-of-support date for twilio-node 5.x, so
+  // the entry is Refit's estimate, labelled as one, and report only.
+  it('keeps the Twilio estimate report only: it never fails --fail-within or opens an alert', async () => {
+    const registry = await loadDeadlineRegistry();
+    const entry = registry.deadlines.find((item) => item.id === 'twilio-node-below-6-2026-04-20')!;
+    expect(entry.derivedDate).toBe(true);
+    expect(reportOnly(entry)).toBe(true);
+    expect(entry.source).toMatch(/^https:\/\/github\.com\/twilio\/twilio-node\//);
+    expect(entry.checkedAt).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(entry.summary).toContain(
+      'Twilio has not announced an exact end-of-support date for twilio-node 5.x and older.',
+    );
+    expect(entry.summary).toContain(
+      "Refit's estimate from Twilio's support policy, not a Twilio date",
+    );
+    expect(entry.summary).toContain("Refit watches for Twilio's official announcement");
+    const { exposures } = await scanDeadlines(
+      await repository(
+        { 'src/index.js': "require('twilio');\n" },
+        { name: 'app', dependencies: { twilio: '^5.3.1' } },
+      ),
+      registry,
+      NOW,
+    );
+    const twilio = exposures.filter((item) => item.deadline.id === entry.id);
+    expect(twilio).toHaveLength(1);
+    expect(twilio[0].days).toBeLessThan(0);
+    // Past due, yet the widest window passes and no alert is due at any lead time.
+    expect(deadlineCheck(twilio, new Map(), 3650)).toEqual({
+      failWithin: 3650,
+      status: 'pass',
+      failing: [],
+      ignored: [],
+    });
+    expect(
+      dueDeadlineAlerts({
+        exposures: twilio,
+        ignores: [],
+        registry,
+        now: NOW,
+        leadDays: DEFAULT_LEAD_DAYS,
+        sent: () => null,
+      }),
+    ).toEqual([]);
+  });
+
   it('keeps the generated deprecation list and endpoint list sourced', async () => {
     const deprecations = JSON.parse(
       await readFile(new URL('../data/messaging-deprecations.json', import.meta.url), 'utf8'),
@@ -309,7 +357,7 @@ describe('refit messaging', () => {
     const { stdout } = await execute(process.execPath, [CLI, 'messaging', '--repository', root]);
     expect(stdout).toContain('Providers    Twilio');
     expect(stdout).toContain(
-      'twilio 5.0.0 in package.json  unsupported since 2026-04-20 (twilio-node-below-6-2026-04-20)',
+      "twilio 5.0.0 in package.json  unsupported since about 2026-04-20, Refit's estimate: the provider has not announced a date (twilio-node-below-6-2026-04-20, report only)",
     );
     expect(stdout).toContain('src/verify.js:2  client.verify.services');
     expect(stdout).toContain('Use        verify.v2.services');
