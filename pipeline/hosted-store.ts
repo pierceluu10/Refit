@@ -4,6 +4,7 @@ import type { GitHubWebhook } from './github-webhooks.ts';
 import { WebhookInputError } from './github-webhooks.ts';
 import { transaction } from './hosted-database.ts';
 import { migrateHostedSchema } from './hosted-migrations.ts';
+import { recordApprovalCommand } from './hosted-approval-store.ts';
 import {
   DEFAULT_TENANCY_LIMITS,
   installationRefusals,
@@ -131,6 +132,8 @@ export async function openHostedStore(
           );
         return { status: 'duplicate' as const, ...none };
       }
+      if (change.kind === 'issue_comment')
+        return { status: await recordApprovalCommand(client, change), ...none };
       if (!('installationId' in change)) return { status: 'accepted' as const, ...none };
       const { rows: prior } = await client.query<{ owner: string }>(
         'SELECT owner FROM refit_installations WHERE id = $1 FOR UPDATE',
@@ -222,6 +225,25 @@ export async function openHostedStore(
         [approval.repository],
       );
       return rows[0] ? enroll(client, Number(rows[0].installation_id), [approval.repository]) : [];
+    });
+
+  // Removes a repository's approval and cancels its targets; running jobs are returned to abort.
+  const revoke = (repository: string, revokedBy: string) =>
+    transaction(pool, async (client) => {
+      const { rowCount } = await client.query('DELETE FROM refit_approvals WHERE repository = $1', [
+        repository,
+      ]);
+      const cancelled = await cancel(
+        client,
+        'repository = $1',
+        [repository],
+        `Approval revoked by ${revokedBy}.`,
+      );
+      return {
+        revoked: Boolean(rowCount),
+        cancelled: cancelled.targets,
+        running: cancelled.running,
+      };
     });
 
   const enqueueDue = async (intervalSeconds: number) =>
@@ -510,6 +532,7 @@ export async function openHostedStore(
   return {
     accept,
     approve,
+    revoke,
     enqueueDue,
     claim,
     retry,

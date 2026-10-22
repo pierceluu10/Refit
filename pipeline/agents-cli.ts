@@ -3,7 +3,13 @@ import { existsSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
-import { addAgents, builtInPackage, detectProviders, v1IntegrationId } from './agent-catalog.ts';
+import {
+  addAgents,
+  builtInPackage,
+  detectProviders,
+  scaffoldChecks,
+  v1IntegrationId,
+} from './agent-catalog.ts';
 import { parseObject } from './specifications.ts';
 import { REPOSITORY_CONFIGURATION } from './workflow-configuration.ts';
 import { terminalText } from './workflow-presentation.ts';
@@ -11,8 +17,6 @@ import { terminalText } from './workflow-presentation.ts';
 const USAGE =
   'Usage: refit agents [--repository <root>] [--add <agent-id> ...] [--json]\nDetects provider SDKs from package manifests, lockfiles and raw API hostnames, and lists only the agents that match. --add writes an approved agent into .refit.json as a reviewable integration; it does not enroll, activate, download contracts or run code.';
 const PACKAGE_ROOT = fileURLToPath(new URL('../', import.meta.url));
-const PLACEHOLDER_TEST = /no test specified/;
-const LOCKFILES = ['package-lock.json', 'pnpm-lock.yaml', 'yarn.lock'];
 
 try {
   const { values } = parseArgs({
@@ -61,10 +65,6 @@ try {
       );
     const configured = (agentPackages: string[]) =>
       agentPackages.some((name) => configuredPackages.has(name));
-    const manifest = existsSync(join(root, 'package.json'))
-      ? parseObject(await readFile(join(root, 'package.json'), 'utf8'), 'package.json')
-      : {};
-    const scripts = (manifest.scripts ?? {}) as Record<string, unknown>;
     const result = values.add?.length
       ? addAgents({
           configuration,
@@ -76,8 +76,7 @@ try {
                 (detection) => detection.agent.id === id && configured(detection.agent.packages),
               ),
           ),
-          testScript: typeof scripts.test === 'string' && !PLACEHOLDER_TEST.test(scripts.test),
-          lockfile: LOCKFILES.some((name) => existsSync(join(root, name))),
+          ...(await scaffoldChecks(root)),
         })
       : undefined;
     if (result?.added.length) {
