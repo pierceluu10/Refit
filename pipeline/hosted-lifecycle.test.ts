@@ -347,23 +347,27 @@ it.skipIf(!DATABASE)(
     const pool = await database();
     const store = await openHostedStore(pool, TENANCY);
     await store.approve((await approved()).approval, 'octo-reviewer');
-    await deliver(store, 'installation', installation('created', []));
-    await deliver(store, 'installation', installation('suspend', []));
+    // GitHub sends each installation event with the time it changed the installation.
+    const at = (hour: number) => ({
+      updatedAt: `2026-10-22T${String(hour).padStart(2, '0')}:00:00Z`,
+    });
+    await deliver(store, 'installation', installation('created', [], at(8)));
+    await deliver(store, 'installation', installation('suspend', [], at(9)));
     const accepted = await deliver(
       store,
       'installation',
-      installation('new_permissions_accepted', [['example/application', APPLICATION_ID]]),
+      installation('new_permissions_accepted', [['example/application', APPLICATION_ID]], at(10)),
     );
     expect(accepted).toMatchObject({ status: 'accepted', enrolled: [] });
     expect((await store.read()).installations[0]).toMatchObject({
       status: 'suspended',
       repositories: ['example/application'],
     });
-    await deliver(store, 'installation', installation('unsuspend', []));
+    await deliver(store, 'installation', installation('unsuspend', [], at(11)));
     const active = await deliver(
       store,
       'installation',
-      installation('new_permissions_accepted', [['example/application', APPLICATION_ID]]),
+      installation('new_permissions_accepted', [['example/application', APPLICATION_ID]], at(12)),
     );
     expect(active.enrolled).toEqual([TARGET]);
     expect((await store.read()).installations[0].status).toBe('active');
