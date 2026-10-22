@@ -31,6 +31,9 @@ import {
 } from './deadline-sync.ts';
 import { parseObject } from './specifications.ts';
 import { terminalText } from './workflow-presentation.ts';
+
+// Providers whose retiring model IDs `--propose-model-fixes` can replace; Gemini is report only.
+const MODEL_FIX_PROVIDERS = new Set(['openai', 'anthropic']);
 import { cliErrorMessage } from './cli-errors.ts';
 
 const USAGE = `Usage: refit deadlines [--repository <root>] [--fail-within <days>] [--ignore-file <path>] [--registry <path>] [--json]
@@ -216,7 +219,7 @@ try {
         ignoreNote,
       } of results) {
         console.log(
-          `\n${terminalText(deadline.summary)}\n  Deadline     ${deadline.date} (${timing(days)})`,
+          `\n${days < 0 ? 'Past due: ' : ''}${terminalText(deadline.summary)}\n  Deadline     ${deadline.date} (${timing(days)}${days < 0 ? '; already in effect' : ''})`,
         );
         for (const entry of ignored ?? [])
           console.log(
@@ -232,7 +235,14 @@ try {
           console.log(`  ${terminalText(`${item.file}:${item.line}`)}  ${terminalText(item.text)}`);
         if (more) console.log(`  …and ${more} more matches`);
         printNonLive(nonLive, nonLiveMore, nonLiveCounts);
-        console.log(`  Migration    ${terminalText(migrationNote(deadline.provider, agent))}`);
+        // A retiring OpenAI or Anthropic model is replaced by a model fix, not an API contract run.
+        console.log(
+          `  Migration    ${terminalText(
+            deadline.kind === 'model' && MODEL_FIX_PROVIDERS.has(deadline.provider)
+              ? `Run \`refit deadlines --propose-model-fixes\` to see a patch that moves each traced call${deadline.replacement ? ` to ${deadline.replacement}` : ''}; it applies nothing. \`refit serve --model-fixes\` can validate it and open a draft pull request.`
+              : migrationNote(deadline.provider, agent),
+          )}`,
+        );
       }
       if (scan.mentions.length) {
         console.log('\nNamed only outside live code (not counted as exposure):');
