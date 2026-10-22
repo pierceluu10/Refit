@@ -2,11 +2,11 @@
 
 Customers often call OpenAI, Anthropic and other models through a cloud host instead of the provider's own API. `pipeline/model-hosts.ts` finds those call sites in JS/TS source, report only. Nothing is edited.
 
-| Host           | What is reported                                                                                                                                                                                                                                                                        | Named stop                                                                                                                                                   |
-| -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Amazon Bedrock | Model IDs (`anthropic.claude-3-sonnet-20240229-v1:0`, cross-region `us.`/`eu.`/`apac.`/`global.`/`us-gov.` profiles, unversioned IDs such as `us.anthropic.claude-haiku-5-5`) and model or inference-profile ARNs. An Anthropic ID also names its Claude API model as `upstream`.       | `bedrock-lifecycle-unknown`                                                                                                                                  |
-| Azure OpenAI   | `api-version` values (client `apiVersion`, a quoted `api-version` key, `?api-version=` in URLs, including `v1`) and deployment names (any `…deployment…` key, the `model` an Azure client sends, `/openai/deployments/<name or ${expr}>/`, and `AZURE_OPENAI_*DEPLOYMENT*` env values). | `azure-deployment-name`: a deployment name is the customer's own, so check which model it runs in Azure. `azure-api-version-lifecycle-unknown` for versions. |
-| OpenRouter     | `namespace/model` IDs in its model namespaces (`openai/…`, `anthropic/…`, `moonshotai/…`, `openrouter/auto` and others), in any file that names OpenRouter. The provider part becomes `upstream`.                                                                                       | `openrouter-alias` when the ID is not dated and names no registry model                                                                                      |
+| Host | What is reported | Named stop |
+|---|---|---|
+| Amazon Bedrock | Model IDs (`anthropic.claude-3-sonnet-20240229-v1:0`, cross-region `us.`/`eu.`/`apac.`/`global.`/`us-gov.` profiles, unversioned IDs such as `us.anthropic.claude-haiku-5-5`) and model or inference-profile ARNs. An Anthropic ID also names its Claude API model as `upstream`. | `bedrock-lifecycle-unknown` |
+| Azure OpenAI | `api-version` values (client `apiVersion`, a quoted `api-version` key, `?api-version=` in URLs, including `v1`) and deployment names (any `…deployment…` key, the `model` an Azure client sends, `/openai/deployments/<name or ${expr}>/`, and `AZURE_OPENAI_*DEPLOYMENT*` env values). | `azure-deployment-name`: a deployment name is the customer's own, so check which model it runs in Azure. `azure-api-version-lifecycle-unknown` for versions. |
+| OpenRouter | `namespace/model` IDs in its model namespaces (`openai/…`, `anthropic/…`, `moonshotai/…`, `openrouter/auto` and others), in any file that names OpenRouter. The provider part becomes `upstream`. | `openrouter-alias` when the ID is not dated and names no registry model |
 
 How the findings are used:
 
@@ -37,11 +37,11 @@ The matchers exist and are tested with illustrative, test-only entries, so addin
 - [First set](benchmarks/2026-10-22-model-hosts-labels.json): 20 repositories (7 Bedrock, 7 Azure, 6 OpenRouter), 215 lines, 112 identifiers.
 - [Held-out set](benchmarks/2026-10-22-model-hosts-heldout-labels.json): 12 other repositories (4 per host), 144 lines, 50 identifiers. It was labelled after the detector changes that the first set informed.
 
-| Run                                | Refit commit |         Precision |    Recall | Bedrock P / R |   Azure P / R | OpenRouter P / R |
-| ---------------------------------- | ------------ | ----------------: | --------: | ------------: | ------------: | ---------------: |
-| First set, first detector          | `5e341b7`    |     96.8% (60/62) |     53.6% |  100% / 65.2% | 81.8% / 40.9% |     100% / 47.7% |
-| First set, after fixes it informed | `fc0a8ed`    |   97.2% (106/109) |     94.6% |  97.9% / 100% | 90.0% / 81.8% |     100% / 95.5% |
-| **Held-out set**                   | `fc0a8ed`    | **82.0% (41/50)** | **82.0%** |   100% / 100% | 53.8% / 53.8% |    88.0% / 88.0% |
+| Run | Refit commit | Precision | Recall | Bedrock P / R | Azure P / R | OpenRouter P / R |
+|---|---|---:|---:|---:|---:|---:|
+| First set, first detector | `5e341b7` | 96.8% (60/62) | 53.6% | 100% / 65.2% | 81.8% / 40.9% | 100% / 47.7% |
+| First set, after fixes it informed | `fc0a8ed` | 97.2% (106/109) | 94.6% | 97.9% / 100% | 90.0% / 81.8% | 100% / 95.5% |
+| **Held-out set** | `fc0a8ed` | **82.0% (41/50)** | **82.0%** | 100% / 100% | 53.8% / 53.8% | 88.0% / 88.0% |
 
 Every figure above matches the committed results files (checked 2026-10-22). The after and held-out files record Refit commit `1706f25`, which differs from `fc0a8ed` only in `scripts/model-hosts-benchmark.mjs`, so the detector is the same.
 
