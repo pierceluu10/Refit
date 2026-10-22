@@ -22,6 +22,7 @@ import { openHostedStore } from './hosted-store.ts';
 import { hostedTenancy } from './hosted-tenancy.ts';
 import { openInventoryStore } from './inventory-store.ts';
 import { hostedAlerts } from './monitoring.ts';
+import { hostedReports } from './report-issues.ts';
 import { validateServiceSecret } from './local-service.ts';
 import { readRepositoryApproval } from './repository-enrollment.ts';
 import { PipelineInputError } from './types.ts';
@@ -51,7 +52,8 @@ inventory queues a read-only inventory of a repository installed by an allowed a
 --job-machines runs each job on its own Fly Machine in REFIT_JOB_APP, a separate Fly app with no secrets, using FLY_API_TOKEN for that app, REFIT_JOB_IMAGE (default FLY_IMAGE_REF), REFIT_JOB_REGION (default FLY_REGION) and the validation images in REFIT_HOSTED_IMAGES. It cannot be combined with --ai-patch or --publish-draft. job runs on such a machine: it reads REFIT_JOB_URL, REFIT_JOB_ID and REFIT_JOB_SECRET, runs that one job and reports to the control process.
 jobs lists the newest ${JOBS_SHOWN} matching jobs. receipt prints one job's stored receipt and, on the machine that holds the evidence volume, its evidence files. targets lists each target's state, last job and last stored receipt. These commands only read PostgreSQL.
 health checks PostgreSQL, the Refit tables, the Docker daemon and every image in REFIT_HOSTED_IMAGES, and exits 1 if any check fails.
-REFIT_HOSTED_ALERTS=1 (off by default) makes serve monitor every inventoried repository: it takes a new inventory after a default-branch push, a registry change or 24 hours (at most once per 10 minutes), and opens or updates one GitHub issue per repository and deadline 90, 30 and 7 days before it and when it passes. REFIT_HOSTED_ALERT_DIGEST=1 adds a weekly digest issue per repository listing every exposed deadline. It needs the App's Issues write permission, and push re-scans need the App's push event.
+REFIT_HOSTED_ALERTS=1 (off by default) makes serve monitor every approved, inventoried repository: it takes a new inventory after a default-branch push, a registry change or 24 hours (at most once per 10 minutes), and opens or updates one GitHub issue per repository and deadline 90, 30 and 7 days before it and when it passes. REFIT_HOSTED_ALERT_DIGEST=1 adds a weekly digest issue per repository listing every exposed deadline. It needs the App's Issues write permission, and push re-scans need the App's push event.
+REFIT_HOSTED_REPORTS=1 (off by default) makes serve keep one issue per approved, inventoried repository with its \`refit report\`: integrations, deadlines, AI model calls and the next step. It re-scans like REFIT_HOSTED_ALERTS and rewrites the issue only when the report changes, at most once per change. It needs the App's Issues write permission.
 serve logs one JSON object per line to stderr with secrets redacted. With REFIT_SLACK_WEBHOOK_URL set it posts the same notices as refit serve, plus each failed job at most once per target per hour.`;
 
 function jobMachines(environment: NodeJS.ProcessEnv) {
@@ -347,6 +349,7 @@ try {
         controlToken,
         tenancy: hostedTenancy(process.env),
         alerts: hostedAlerts(process.env) ?? undefined,
+        reports: hostedReports(process.env),
         aiPatch: assessmentConfiguration(values['ai-patch'], process.env),
         repairAttempts: Number(values['repair-attempts'] ?? 0),
         publishDraft: values['publish-draft'],

@@ -29,6 +29,7 @@ const commands = new Map([
   ['cloudflare', 'cloudflare-cli.ts'],
   ['github-api', 'github-api-cli.ts'],
   ['cloud-sdk', 'cloud-sdk-cli.ts'],
+  ['report', 'report-cli.ts'],
 ]);
 const usage = `Refit: reviewable API migrations
 
@@ -65,6 +66,7 @@ Usage: refit <command> [options]
   cloudflare       List Cloudflare API requests and Workers compatibility dates (review only)
   github-api       List GitHub REST, GraphQL and version-header use with deprecations (review only)
   cloud-sdk        List AWS SDK v2 and v3 clients and legacy Azure SDK packages (review only)
+  report           Report a repository's provider integrations, deadlines and AI model calls
 
 Use refit <command> --help for command options.
 Use --env <path> to load credentials explicitly. Existing environment values take precedence.
