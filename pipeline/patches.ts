@@ -22,6 +22,11 @@ import {
   REQUEST_MOVE_SOURCES,
   REQUEST_MOVE_WARNINGS,
 } from './stripe-request-moves.ts';
+import {
+  INVOICE_PREVIEW_RULE,
+  INVOICE_PREVIEW_SOURCE,
+  INVOICE_PREVIEW_WARNING,
+} from './stripe-invoice-preview.ts';
 
 const FIELD_MOVE_SOURCES: Partial<Record<NonNullable<SourceEdit['rule']>, string>> = {
   [SUBSCRIPTION_PERIOD_HELPER_RULE]:
@@ -59,7 +64,8 @@ export function isFieldMove(edit: SourceEdit) {
     edit.rule &&
     (FIELD_MOVE_SOURCES[edit.rule] ||
       PAYMENT_METHOD_RENAME_RULES.has(edit.rule) ||
-      REQUEST_MOVE_RULES.has(edit.rule)),
+      REQUEST_MOVE_RULES.has(edit.rule) ||
+      edit.rule === INVOICE_PREVIEW_RULE),
   );
 }
 
@@ -188,6 +194,18 @@ export function proposePatch(
       fieldMoves.filter((edit) => REQUEST_MOVE_RULES.has(edit.rule!)).map((edit) => edit.rule!),
     ),
   ];
+  const preview = fieldMoves.some((edit) => edit.rule === INVOICE_PREVIEW_RULE);
+  // Request-side rules, with the reads and renames that share their patch.
+  const requestSummary = [
+    preview ? 'replace the removed upcoming invoice call with invoices.createPreview' : '',
+    requestMoves.length
+      ? 'move removed Stripe request parameters to their documented replacements'
+      : '',
+    reads.length ? 'move removed field reads to their documented new locations' : '',
+    cardRename ? 'replace payment_method_types with allowed_payment_method_types' : '',
+  ]
+    .filter(Boolean)
+    .join(', ');
   const listedWarnings = [
     ...new Set(
       fieldMoves
@@ -210,13 +228,14 @@ export function proposePatch(
   )
     return {
       generator: 'deterministic' as const,
-      summary: requestMoves.length
-        ? `Move removed Stripe request parameters to their documented replacements${reads.length ? ', move removed field reads to their documented new locations' : ''}${cardRename ? ', replace payment_method_types with allowed_payment_method_types' : ''} and update the pinned Stripe API version.`
-        : !cardRename
-          ? 'Move removed Stripe field reads to their documented new locations and update the pinned Stripe API version.'
-          : reads.length
-            ? `Move removed Stripe field reads to their documented new locations, replace ${listedWarnings.length ? 'payment_method_types' : "payment_method_types: ['card']"} with allowed_payment_method_types, and update the pinned Stripe API version.`
-            : `Replace ${listedWarnings.length ? 'payment_method_types' : "payment_method_types: ['card']"} with allowed_payment_method_types and update the pinned Stripe API version.`,
+      summary:
+        requestMoves.length || preview
+          ? `${requestSummary[0].toUpperCase()}${requestSummary.slice(1)} and update the pinned Stripe API version.`
+          : !cardRename
+            ? 'Move removed Stripe field reads to their documented new locations and update the pinned Stripe API version.'
+            : reads.length
+              ? `Move removed Stripe field reads to their documented new locations, replace ${listedWarnings.length ? 'payment_method_types' : "payment_method_types: ['card']"} with allowed_payment_method_types, and update the pinned Stripe API version.`
+              : `Replace ${listedWarnings.length ? 'payment_method_types' : "payment_method_types: ['card']"} with allowed_payment_method_types and update the pinned Stripe API version.`,
       status: 'proposed' as const,
       edits: edits.length,
       unresolvedFindings,
@@ -258,6 +277,7 @@ export function proposePatch(
           : []),
         ...listedWarnings,
         ...requestMoves.map((rule) => REQUEST_MOVE_WARNINGS[rule]),
+        ...(preview ? [INVOICE_PREVIEW_WARNING] : []),
         'The stripe package is not upgraded. TypeScript projects may need the stripe package version matching the new API version before they typecheck.',
         'Patch contains source code. Review it for sensitive content before sharing.',
       ],
@@ -265,7 +285,9 @@ export function proposePatch(
         ? FIELD_MOVE_SOURCES[reads[0].rule!]!
         : requestMoves.length
           ? REQUEST_MOVE_SOURCES[requestMoves[0]]
-          : 'docs/STRIPE-PAYMENT-METHOD-TYPES.md',
+          : preview
+            ? INVOICE_PREVIEW_SOURCE
+            : 'docs/STRIPE-PAYMENT-METHOD-TYPES.md',
     };
   return {
     generator: 'deterministic' as const,

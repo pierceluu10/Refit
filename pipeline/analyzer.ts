@@ -18,6 +18,11 @@ import type { PropertyMove } from './provider-renames.ts';
 import { removedParameterProperty, requestPropertyEdit } from './request-migration.ts';
 import { requestMoveEdit } from './stripe-request-moves.ts';
 import {
+  INVOICE_PREVIEW_RULE,
+  invoicePreviewEdits,
+  type InvoicePreviewMove,
+} from './stripe-invoice-preview.ts';
+import {
   CARD_PAYMENT_METHOD_RULE,
   LISTED_PAYMENT_METHODS_RULE,
   type RequestParameterRemoval,
@@ -241,7 +246,8 @@ export function analyzeRepository(
   // For review-only callers: also trace the SDK package where the importing file's tsconfig or
   // jsconfig is unverified, so a caller can report those calls for review instead of missing
   // them. Analyses that can lead to edits keep the default, which treats them as unknown imports.
-  options: { traceUnverifiedPackageImports?: boolean } = {},
+  // `invoicePreview`: the contract-checked move of Stripe's removed upcoming invoice call.
+  options: { traceUnverifiedPackageImports?: boolean; invoicePreview?: InvoicePreviewMove } = {},
 ) {
   const { sources, resolution, program, checker } = analysisProgram(repository);
   const findings: Finding[] = [];
@@ -1022,6 +1028,39 @@ export function analyzeRepository(
           moved && 'reason' in moved
             ? `The target API version no longer accepts this request parameter. ${moved.reason}`
             : 'The target API version no longer accepts this request parameter, and no reviewed replacement exists; removing or replacing it changes request behavior.',
+      });
+    }
+    // Stripe's removed upcoming invoice call (stripe-invoice-preview.ts). It stops for review
+    // unless run.ts keeps the createPreview edit, which then covers the finding.
+    if (
+      options.invoicePreview &&
+      provider.packageName === STRIPE.packageName &&
+      call.resource === 'invoices' &&
+      call.method === 'retrieveUpcoming' &&
+      ts.isPropertyAccessExpression(node.expression)
+    ) {
+      const confirmed = !unsafe.has(clientBinding(call.client)!) && !call.optional;
+      const planned = confirmed ? invoicePreviewEdits(node, options.invoicePreview) : undefined;
+      if (Array.isArray(planned))
+        for (const edit of planned)
+          edits.push({
+            file: location(node).file,
+            ...edit,
+            changeId: INVOICE_PREVIEW_RULE,
+            rule: INVOICE_PREVIEW_RULE,
+          });
+      const reason =
+        planned && !Array.isArray(planned)
+          ? planned.reason
+          : 'Stripe 2025-03-31.basil removed the upcoming invoice API (invoices.retrieveUpcoming) in favour of invoices.createPreview; this call needs review.';
+      findings.push({
+        ...location(node.expression.name),
+        changeId: INVOICE_PREVIEW_RULE,
+        expression: 'invoices.retrieveUpcoming',
+        confidence: confirmed ? 'confirmed' : 'review',
+        ...helperEvidence(call.client),
+        contractReview: reason,
+        reason,
       });
     }
   }

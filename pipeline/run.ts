@@ -6,6 +6,7 @@ import { assessMigration, buildAssessmentEvidence } from './assessment.ts';
 import { applySourceEdits, editCovers, isFieldMove, proposePatch, renderPatch } from './patches.ts';
 import { stripePackageUpgrade } from './stripe-package-upgrade.ts';
 import { REQUEST_MOVE_RULES } from './stripe-request-moves.ts';
+import { INVOICE_PREVIEW_RULE, invoicePreviewMove } from './stripe-invoice-preview.ts';
 import { propertyExists } from './stripe-field-moves.ts';
 import { readRepository } from './repository.ts';
 import {
@@ -148,6 +149,10 @@ async function runOpenApiPipeline(options: {
   const parameterRemovals = removedRequestParameters(provider, before.document, after.document, {
     keepListedPaymentMethods: options.keepListedPaymentMethods,
   });
+  const invoicePreview =
+    provider.packageName === STRIPE.packageName
+      ? invoicePreviewMove(before.document, after.document)
+      : undefined;
   const {
     edits: analyzedEdits,
     apiVersionDeclarations,
@@ -167,6 +172,7 @@ async function runOpenApiPipeline(options: {
     requestRenames,
     moves,
     parameterRemovals,
+    { invoicePreview },
   );
   const stripePackage =
     provider.packageName === STRIPE.packageName
@@ -243,7 +249,11 @@ async function runOpenApiPipeline(options: {
   const bumpsVersion = versionEdits.length > 0 || sdkPinned;
   const typescript = repository.files.some((file) => /\.(?:[cm]?ts|tsx)$/.test(file.path));
   // A client without the option follows the package's pin, so any such client needs the upgrade.
-  const upgradeRequired = typescript || constructors.some((entry) => entry.absent);
+  // invoices.createPreview exists only in newer stripe-node releases, in any language.
+  const upgradeRequired =
+    typescript ||
+    constructors.some((entry) => entry.absent) ||
+    analyzedEdits.some((edit) => edit.rule === INVOICE_PREVIEW_RULE);
   // The reviewed card-only rename is kept only with the target pin in the same patch and, for
   // TypeScript or an SDK-pinned version, the stripe-node release whose types have
   // allowed_payment_method_types. Without a patch request (validation preflight, scans) only the
@@ -254,7 +264,9 @@ async function runOpenApiPipeline(options: {
     patchRequested &&
     analyzedEdits.some(
       (edit) =>
-        PAYMENT_METHOD_RENAME_RULES.has(edit.rule ?? '') || REQUEST_MOVE_RULES.has(edit.rule ?? ''),
+        PAYMENT_METHOD_RENAME_RULES.has(edit.rule ?? '') ||
+        REQUEST_MOVE_RULES.has(edit.rule ?? '') ||
+        edit.rule === INVOICE_PREVIEW_RULE,
     ) &&
     bumpsVersion &&
     upgradeRequired &&
@@ -274,6 +286,7 @@ async function runOpenApiPipeline(options: {
   movedTo[LISTED_PAYMENT_METHODS_RULE] = movedTo[CARD_PAYMENT_METHOD_RULE];
   // Reviewed request moves send a parameter only the target version accepts, like the card rename.
   for (const rule of REQUEST_MOVE_RULES) movedTo[rule] = movedTo[CARD_PAYMENT_METHOD_RULE];
+  movedTo[INVOICE_PREVIEW_RULE] = movedTo[CARD_PAYMENT_METHOD_RULE];
   // The period helper reads either API version, so it does not depend on the version pin.
   const edits = analyzedEdits.filter((edit) => !isFieldMove(edit) || movedTo[edit.rule!]);
   const ruleEdits = edits.filter(isFieldMove);
@@ -291,6 +304,10 @@ async function runOpenApiPipeline(options: {
   for (const finding of analysis.findings)
     if (finding.requestParameter && editCovers(repository, edits, finding))
       delete finding.requestParameter;
+  // The removed upcoming invoice call is migrated only while its createPreview edit is kept.
+  for (const finding of analysis.findings)
+    if (finding.changeId === INVOICE_PREVIEW_RULE && editCovers(repository, edits, finding))
+      delete finding.contractReview;
   if (specificationDiff && provider.packageName === STRIPE.packageName)
     specificationDiff.changes.push(
       ...switchedEnumAdditions(enumChecks, before.schemas, after.schemas),
@@ -394,6 +411,7 @@ async function runOpenApiPipeline(options: {
         requestRenames,
         moves,
         parameterRemovals,
+        { invoicePreview },
         // Untraced reads stay unresolved (owner decision, 2026-10-20): the draft needs review.
       ).findings.length
     : 0;

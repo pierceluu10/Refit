@@ -75,6 +75,7 @@ export interface SourceEdit {
     | 'stripe-listed-allowed-payment-method-types'
     | 'stripe-promotion-code-promotion'
     | 'stripe-product-marketing-features'
+    | 'stripe-invoice-create-preview'
     | 'stripe-api-version'
     | 'model-retirement';
 }
