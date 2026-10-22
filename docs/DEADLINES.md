@@ -34,7 +34,7 @@ An entry's `kind` is `api-version`, `model` or `sdk`. An `sdk` entry lists npm p
 
 Some entries are **report only**: `refit deadlines` lists them, marked `Report only`, but they never fail `--fail-within` and never open a `--deadline-alerts` issue (owner decision, 2026-10-22). That covers:
 
-- an entry with `"derivedDate": true`, whose date the provider never announced as a shutdown, such as one taken from a release date or an OpenAPI `eol` field. Its summary says where the date comes from;
+- an entry with `"derivedDate": true`, whose date the provider never announced as a shutdown, such as one taken from a release date or an OpenAPI `eol` field. Its summary says where the date comes from. `refit deadlines` labels it as an estimate ("the provider has not announced this date"). For example, `twilio-node-below-6-2026-04-20` is Refit's estimate: Twilio has announced no end-of-support date for twilio-node 5.x, so the date comes from its support policy (only the current major is supported) and the 6.0.0 release date. Its summary says so, and that Refit watches for the official date: like every entry, its sources are re-checked at least every 30 days (`npm run deadlines:check` lists entries checked longer ago), and an announced date replaces the estimate and drops `derivedDate` (owner decision, 2026-10-22);
 - every entry whose `kind` is `method`, `endpoint`, `field` or `feature`.
 
 Past-due entries stay in the registry on purpose: a repository still pinning a retired version is the most urgent case. To change the registry, edit the file from the provider's page, set `checkedAt` to the day you checked, and run:

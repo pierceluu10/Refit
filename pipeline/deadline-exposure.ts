@@ -2,6 +2,7 @@ import { existsSync } from 'node:fs';
 import { readFile, realpath, stat } from 'node:fs/promises';
 import { isAbsolute, join, relative, resolve } from 'node:path';
 import ts from 'typescript-compiler';
+import { detectApiHosts, type ApiHostScan } from './api-hosts.ts';
 import { AGENT_CATALOG, builtInPackage } from './agent-catalog.ts';
 import { daysUntil, type DeadlineEntry, type DeadlineRegistry } from './deadline-registry.ts';
 import { cloudflareEndpointUses } from './cloudflare-calls.ts';
@@ -97,6 +98,10 @@ export type ReportedExposure = Omit<DeadlineExposure, 'evidence' | 'nonLive'> & 
 export interface DeadlineScan {
   exposures: DeadlineExposure[];
   mentions: DeadlineExposure[];
+  // The external HTTP API hosts the repository calls (pipeline/api-hosts.ts), for the inventory.
+  // Absent in a hand-built scan, and `apiHostsError` says why when reading them failed.
+  apiHosts?: ApiHostScan;
+  apiHostsError?: string;
 }
 
 function excerpt(line: string) {
@@ -735,9 +740,16 @@ export async function scanDeadlines(
     exposure.nonLive = rest.slice(0, MAX_EVIDENCE);
     exposure.nonLiveMore = rest.length - exposure.nonLive.length;
   }
+  const hosts: Pick<DeadlineScan, 'apiHosts' | 'apiHostsError'> = {};
+  try {
+    hosts.apiHosts = await detectApiHosts(root, { repository });
+  } catch (error) {
+    hosts.apiHostsError = error instanceof Error ? error.message : String(error);
+  }
   return {
     exposures: all.filter((exposure) => exposure.evidence.length),
     mentions: all.filter((exposure) => !exposure.evidence.length),
+    ...hosts,
   };
 }
 

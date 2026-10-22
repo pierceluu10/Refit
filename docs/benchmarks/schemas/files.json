@@ -117,6 +117,10 @@
       "format": "ai-model-results",
       "predates": ["/harness", "/results/*/outcomeClass"]
     },
+    "2026-10-22-api-hosts-results.json": {
+      "format": "api-hosts-results",
+      "predates": []
+    },
     "2026-10-22-auth-backend-results.json": {
       "format": "auth-backend-results",
       "predates": []
@@ -174,6 +178,14 @@
     },
     "2026-10-22-inventory-sample-results.json": {
       "format": "inventory-sample-results",
+      "predates": []
+    },
+    "2026-10-22-messaging-results.json": {
+      "format": "messaging-results",
+      "predates": []
+    },
+    "2026-10-22-messaging-targeted-results.json": {
+      "format": "messaging-results",
       "predates": []
     },
     "2026-10-22-meta-platform-results.json": {

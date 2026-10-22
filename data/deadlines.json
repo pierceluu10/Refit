@@ -1628,6 +1628,7 @@
         "azure-cognitiveservices-computervision",
         "azure-cognitiveservices-contentmoderator",
         "azure-cognitiveservices-customimagesearch",
+        "azure-cognitiveservices-customsearch",
         "azure-cognitiveservices-customvision-prediction",
         "azure-cognitiveservices-customvision-training",
         "azure-cognitiveservices-entitysearch",
@@ -1651,7 +1652,7 @@
         "azure-storage"
       ],
       "date": "2023-03-31",
-      "summary": "Microsoft lists these 108 legacy (track 1) Azure SDK for JavaScript packages as deprecated with end of life on 2023-03-31: no further fixes or updates. Each has a modern @azure/* replacement named in data/azure-sdk-retirements.json, with different call shapes. Microsoft does not say that requests through the old packages stop working.",
+      "summary": "Microsoft lists these 109 legacy (track 1) Azure SDK for JavaScript packages as deprecated with end of life on 2023-03-31: no further fixes or updates. Each has a modern @azure/* replacement named in data/azure-sdk-retirements.json, with different call shapes. Microsoft does not say that requests through the old packages stop working.",
       "replacement": "The @azure/* package Microsoft names for each (data/azure-sdk-retirements.json)",
       "source": "https://github.com/Azure/azure-sdk/blob/671a60848e02af18b43dd08aad5f67ad9e0e81fb/_data/releases/latest/js-packages.csv",
       "checkedAt": "2026-10-22"
@@ -2108,6 +2109,20 @@
       "replacement": "gemini-embedding-2",
       "source": "https://ai.google.dev/gemini-api/docs/deprecations",
       "checkedAt": "2026-10-22"
+    },
+    {
+      "id": "twilio-node-below-6-2026-04-20",
+      "provider": "twilio",
+      "kind": "sdk",
+      "versions": [
+        "twilio@<6.0.0"
+      ],
+      "date": "2026-04-20",
+      "summary": "Estimate: Twilio has not announced an exact end-of-support date for twilio-node 5.x and older. 2026-04-20 is Refit's estimate from Twilio's support policy, not a Twilio date: Twilio supports only the current major version of twilio-node (VERSIONS.md, https://github.com/twilio/twilio-node/blob/main/VERSIONS.md), and 6.0.0 became the current major on 2026-04-20, its release date in UPGRADE.md, so since then 5.x and older get no new features, bug fixes or security updates. Refit watches for Twilio's official announcement: this entry's sources are re-checked at least every 30 days, and as soon as Twilio publishes a date Refit will flag it and replace this estimate. Until then the entry is report only. Twilio says 6.x has no breaking API changes but needs Node.js 20 or newer, and does not say that requests through older versions stop working.",
+      "replacement": "twilio 6.x",
+      "source": "https://github.com/twilio/twilio-node/blob/main/UPGRADE.md",
+      "checkedAt": "2026-10-22",
+      "derivedDate": true
     }
   ]
 }
