@@ -154,7 +154,9 @@ function skip(skipped: SkippedRow[], row: SkippedRow) {
 export function parseAnthropicDeprecations(markdown: string): DeprecationPage {
   const rows: Retirement[] = [];
   for (const table of tables(markdown)) {
-    if (!sameHeader(table.header, ['Retirement date', 'Deprecated model', 'Recommended replacement']))
+    if (
+      !sameHeader(table.header, ['Retirement date', 'Deprecated model', 'Recommended replacement'])
+    )
       continue;
     for (const { line, cells: row } of table.rows) {
       const date = isoDate(row[0] ?? '');
