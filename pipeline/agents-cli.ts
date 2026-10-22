@@ -10,7 +10,7 @@ import { terminalText } from './workflow-presentation.ts';
 import { cliErrorMessage } from './cli-errors.ts';
 
 const USAGE =
-  'Usage: refit agents [--repository <root>] [--add <agent-id> ...] [--json]\nDetects provider SDKs from package manifests, lockfiles and raw API hostnames, and lists only the agents that match. --add writes an approved agent into .refit.json as a reviewable integration; it does not enroll, activate, download contracts or run code.';
+  'Usage: refit agents [--repository <root>] [--add <agent-id> ...] [--json]\nDetects provider SDKs from package manifests, lockfiles and raw API hostnames, and lists only the agents that match. --add writes an approved agent into .refit.json as a reviewable integration; it does not enroll, activate, download contracts or run code.\nAfter --add: save the contracts it lists, commit, then run refit doctor.';
 const PACKAGE_ROOT = fileURLToPath(new URL('../', import.meta.url));
 const PLACEHOLDER_TEST = /no test specified/;
 const LOCKFILES = ['package-lock.json', 'pnpm-lock.yaml', 'yarn.lock'];

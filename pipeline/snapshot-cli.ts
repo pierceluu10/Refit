@@ -5,7 +5,7 @@ import { PipelineInputError } from './types.ts';
 import { cliErrorMessage } from './cli-errors.ts';
 
 const USAGE =
-  'Usage: refit stripe-snapshot (--revision <full-commit-sha> | --latest) --output <new-snapshot.json>';
+  "Usage: refit stripe-snapshot (--revision <full-commit-sha> | --latest) --output <new-snapshot.json>\nSaves Stripe's published OpenAPI document from github.com/stripe/openapi as a pinned snapshot. Use --latest for the contract to move to, and --revision with the stripe/openapi commit whose spec has your code's pinned API version for the contract you start from.";
 
 try {
   const { values } = parseArgs({
@@ -18,7 +18,9 @@ try {
   });
   if (values.help) console.log(USAGE);
   else if ((!values.revision && !values.latest) || !values.output) {
-    console.error(USAGE);
+    console.error(
+      `refit stripe-snapshot: ${!values.output ? '--output <new-snapshot.json> is required' : 'choose --latest or --revision <full-commit-sha>'}.\n${USAGE}`,
+    );
     process.exitCode = 1;
   } else {
     if (values.revision && values.latest)
