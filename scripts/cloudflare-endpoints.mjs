@@ -30,6 +30,7 @@ const DEPRECATIONS_PAGE =
   'https://developers.cloudflare.com/fundamentals/api/reference/deprecations/';
 const FLAGS = 'src/content/compatibility-flags';
 const FLAGS_PAGE = 'https://developers.cloudflare.com/workers/configuration/compatibility-flags/';
+const FLAGS_PAGE_SOURCE = 'src/content/docs/workers/configuration/compatibility-flags.mdx';
 const MONTHS = [
   'January',
   'February',
@@ -265,6 +266,7 @@ function isoDate(text) {
 
 // `GET /zones/{zone_id}`, `GET zones/:zone_identifier/analytics/colos` or `GET/zones/{zone_id}/…`.
 const ENDPOINT = /`(GET|POST|PUT|PATCH|DELETE) ?(\/?[A-Za-z0-9_{}:.\/-]+)`/g;
+const BARE_METHOD = /`(GET|POST|PUT|PATCH|DELETE)`/g;
 
 // Each entry of the deprecations page's YAML: its dates and the endpoints listed under a
 // "Deprecated API", "Affected API" or "Deprecated endpoints" heading, until "Replacement".
@@ -280,12 +282,21 @@ async function announcements(root) {
       if (heading) listing = heading[1].toLowerCase();
       else if (/^\s*(?:\*\*)?Replacements?\b/i.test(line)) listing = undefined;
       if (!listing) continue;
-      for (const [, method, path] of line.matchAll(ENDPOINT))
-        endpoints.push({
-          method,
-          path: `/${path.replace(/^\//, '').replace(/\/$/, '')}`.replace(/:(\w+)/g, '{$1}'),
-          change: listing,
-        });
+      for (const match of line.matchAll(ENDPOINT)) {
+        const [, method, path] = match;
+        // "`GET`, `PUT`, and `DELETE /accounts/…`" lists several methods for one path.
+        const before = line.slice(0, match.index);
+        const methods = [...new Set([...before.matchAll(BARE_METHOD)].map((item) => item[1]))];
+        // "`POST /…/gateway/rules` — creating rules with `action: "audit_ssh"` is no longer
+        // accepted" retires one request shape, not the endpoint.
+        const qualified = /\bwith `/.test(line.slice(match.index + match[0].length));
+        for (const each of [...methods, method])
+          endpoints.push({
+            method: each,
+            path: `/${path.replace(/^\//, '').replace(/\/$/, '')}`.replace(/:(\w+)/g, '{$1}'),
+            change: qualified ? 'affected' : listing,
+          });
+      }
     }
     const deprecation = /Deprecation date:\s*([^\n]+)/.exec(text)?.[1].trim() ?? null;
     const endOfLife = /End of life date:\s*([^\n]+)/.exec(text)?.[1].trim() ?? null;
@@ -324,10 +335,27 @@ async function compatibilityFlags(root) {
       experimental: value.experimental === true,
     });
   }
+  // The page names the Node.js flags in prose, outside the collection above.
+  const page = await readFile(join(root, FLAGS_PAGE_SOURCE), 'utf8');
+  const section = page.split(/^## Node\.js compatibility flag/m)[1]?.split(/^## /m)[0];
+  if (!section) throw new Error(`${FLAGS_PAGE_SOURCE} has no Node.js compatibility flag section.`);
+  const named = new Set(flags.flatMap((flag) => [flag.enableFlag, flag.disableFlag]));
+  const documented = [
+    ...new Set(
+      [...section.matchAll(/[`"](n[a-z_]*nodejs[a-z0-9_]*|nodejs[a-z0-9_]*)[`"]/g)].map(
+        (match) => match[1],
+      ),
+    ),
+  ]
+    .filter((flag) => !named.has(flag))
+    .sort();
   return {
     page: FLAGS_PAGE,
     repository: 'https://github.com/cloudflare/cloudflare-docs',
     directory: FLAGS,
+    pageSource: FLAGS_PAGE_SOURCE,
+    // Flags the page's Node.js section names that the collection does not list.
+    documented,
     ...(await gitCommit(root)),
     flags,
   };
