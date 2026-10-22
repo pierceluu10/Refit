@@ -13,4 +13,28 @@ Refit reads Go code for calls to stripe-go (v71 and later), openai-go and anthro
 - Clients: `stripe.NewClient(...)` (`sc.V1PaymentIntents.Create`), `client.New(...)` from stripe-go's `client` package (`sc.PaymentIntents.New`), stripe-go resource packages (`paymentintent.New`, `checkout/session.Get`; not `webhook`, `form` or `client`), `openai.NewClient(...)` and `anthropic.NewClient(...)`, through local and package-level variables, parameters, `var` declarations and struct fields typed `*openai.Client`, `anthropic.Client`, `*client.API` or `stripe.Client`, in any file of the same package.
 - Models: the `Model` field of a params struct literal, passed directly or through a variable (including a later `params.Model = …`), followed through string literals, SDK model constants (the union of every release's constants), conversions and wrappers (`openai.ChatModel(…)`, `shared.ChatModel(…)`, `anthropic.Model(…)`, `openai.F(…)`), constants and variables in the function or package, every value assigned to a variable, and `cmp.Or`. Stops: `os.Getenv` without a fallback in the same expression, struct fields of other types, function parameters (callers are not followed in Go), function results, unknown SDK constants, params that are not a struct literal.
 
-BENCHMARK
+## Benchmark
+
+Set: `docs/benchmarks/2026-10-22-go-repos.json`, 32 repositories from GitHub code search for the three module paths (`node scripts/python-models-select.mjs --go`), pinned commits. Labels: `2026-10-22-go-labels.json`, 16 repositories in seeded order (three over 130 candidate lines skipped), committed before the tracer ran on them: 84 SDK calls (29 Stripe, 35 OpenAI, 20 Anthropic) and 25 model sites after the adjudications below. Held-out: `2026-10-22-go-heldout-labels.json`, 3 more repositories labelled with the tracer frozen. Scorer: `npx tsx pipeline/go/benchmark.ts --root <checkouts> --output <results.json> [--labels …]`, tested in `pipeline/go/benchmark.test.ts`; results at 25c1613 in `2026-10-22-go-results.json`.
+
+A reported line is a traced Stripe call or a model site an OpenAI or Anthropic call can send. Line precision counts both.
+
+| Set                                        | Commit  | Line precision   | Stripe calls | Model sites     | OpenAI and Anthropic calls |
+| ------------------------------------------ | ------- | ---------------- | ------------ | --------------- | -------------------------- |
+| Labels, first run (blind)                  | 318bbc7 | 16/17 (94.1%)    | 15/29        | 1/21            | 48/55                      |
+| Labels, after four adjudications and fixes | 25c1613 | **47/47 (100%)** | **29/29**    | **18/25 (72%)** | 55/55                      |
+| Held-out, tracer frozen at 25c1613         | 25c1613 | 7/7              | 4/4          | 3/5             | 8/10                       |
+
+By provider at 25c1613 (labels): OpenAI calls 35/35, sites 5/8 found, 5/5 reported correct; **Anthropic** (the "Keep going" SDK) calls 20/20, sites 13/17 found, 13/13 reported correct.
+
+Read these honestly:
+
+- The first run's only "wrong" site was a labelling miss; four adjudications (in the labels file) add SDK-constant fallbacks the labeller missed in one repository. Three of the four were found by reading, not by the tracer, and lower measured recall.
+- The fixes after the first run (nested Stripe resource packages such as `checkout/session`, struct fields through their own struct type, package function results, map lookups) were made with the labelled repositories in view. The held-out set is the only measurement with the tracer frozen; it is small.
+- Remaining misses: models passed as function parameters across packages (callers are not followed in Go), defaults read through the application's own option getters, configuration defaults in other packages, and audio model constants outside `shared/shared.go`.
+
+On the whole set (32 repositories, 25c1613): 216 traced calls in 28 repositories, 87 of them Stripe; 14 stripe-go requirements in `go.mod`, all with a known pinned API version.
+
+## Not covered
+
+Code generation templates, `vendor/` and `testdata/`, `_test.go` files, other Go SDKs (go-openai by sashabaranov, langchaingo, Bedrock through the AWS SDK), raw HTTP requests and `go.work` workspaces. Files past 2 MiB, 10,000 files or 50 MiB per repository are skipped.
