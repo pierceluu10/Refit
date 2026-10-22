@@ -18739,7 +18739,7 @@
    "version": "gpt-5.3-codex",
    "provider": "openai",
    "label": "other",
-   "note": "automation template text"
+   "note": "automation template model for the Codex CLI agent, which makes the request"
   },
   {
    "repo": "paulboutin/Aegis",
@@ -18748,7 +18748,7 @@
    "version": "gpt-5.3-codex",
    "provider": "openai",
    "label": "other",
-   "note": "automation template text"
+   "note": "automation template model for the Codex CLI agent, which makes the request"
   },
   {
    "repo": "paulboutin/Aegis",
@@ -18757,7 +18757,7 @@
    "version": "gpt-5.3-codex",
    "provider": "openai",
    "label": "other",
-   "note": "automation template text"
+   "note": "automation template model for the Codex CLI agent, which makes the request"
   },
   {
    "repo": "paulboutin/Aegis",
@@ -18766,7 +18766,7 @@
    "version": "gpt-5.3-codex",
    "provider": "openai",
    "label": "other",
-   "note": "automation template text"
+   "note": "automation template model for the Codex CLI agent, which makes the request"
   },
   {
    "repo": "paulboutin/Aegis",
@@ -18775,7 +18775,7 @@
    "version": "gpt-5.3-codex",
    "provider": "openai",
    "label": "other",
-   "note": "automation template text"
+   "note": "automation template model for the Codex CLI agent, which makes the request"
   },
   {
    "repo": "paulboutin/Aegis",
@@ -18999,8 +18999,8 @@
    "line": 167,
    "version": "gpt-4",
    "provider": "openai",
-   "label": "live",
-   "note": "chat completion"
+   "label": "comment",
+   "note": "inside a block comment (lines 156-185); correction 1"
   },
   {
    "repo": "SailedApple1991/greenlaw-ai",
@@ -19217,6 +19217,26 @@
    "provider": "gemini",
    "label": "other",
    "note": "declared, but its only import is inside a block comment"
+  },
+  {
+   "repo": "hcassar93/meta-ads-cli",
+   "file": "package.json",
+   "line": 50,
+   "version": "v20.0",
+   "provider": "meta-graph",
+   "label": "other",
+   "note": "facebook-nodejs-business-sdk declared but never imported; added after the run, because the loose search does not read the Meta SDK dependency; correction 1"
+  }
+ ],
+ "corrections": [
+  {
+   "commit": "this commit",
+   "reason": "read from Refit reports on the fresh sample",
+   "changes": [
+    "SailedApple1991/greenlaw-ai app/api/chat/route.ts:167 live -> comment",
+    "hcassar93/meta-ads-cli package.json:50 added as other",
+    "paulboutin/Aegis automations-settings.ts notes corrected, labels unchanged"
+   ]
   }
  ]
 }
