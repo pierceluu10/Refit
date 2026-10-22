@@ -35,12 +35,6 @@ export const MODEL_CALLS: Record<string, Set<string>> = {
     'responses.parse',
     'responses.stream',
   ]),
-  gemini: new Set([
-    'models.generateContent',
-    'models.generateContentStream',
-    'models.countTokens',
-    'chats.create',
-  ]),
   anthropic: new Set([
     'messages.create',
     'messages.stream',
@@ -51,6 +45,13 @@ export const MODEL_CALLS: Record<string, Set<string>> = {
   ]),
 };
 
+// Gemini's @google/genai model calls, kept out of MODEL_CALLS because Gemini is report only.
+const GEMINI_CALLS = new Set([
+  'models.generateContent',
+  'models.generateContentStream',
+  'models.countTokens',
+  'chats.create',
+]);
 const GEMINI_REPORT_ONLY =
   'Gemini is report only, so Refit never edits its models (an owner decision); change it by hand to';
 
@@ -111,7 +112,7 @@ const TRACERS: {
       namedExport: 'GoogleGenAI',
       operations: [],
     },
-    resourceCalls: MODEL_CALLS.gemini,
+    resourceCalls: GEMINI_CALLS,
     reportOnly: GEMINI_REPORT_ONLY,
   },
   {
@@ -180,7 +181,7 @@ const UNTRACED_CALLS: Record<string, string[]> = {
     'moderations.create',
   ],
   anthropic: [...MODEL_CALLS.anthropic, ...MESSAGE_HELPERS, ...BATCH_CALLS, 'completions.create'],
-  gemini: [...MODEL_CALLS.gemini],
+  gemini: [...GEMINI_CALLS],
 };
 // Claude API model IDs such as `claude-opus-4-8` or `claude-haiku-4-5-20251001`.
 const CLAUDE_VERSIONED = /^claude-(?:opus|sonnet|haiku)-(\d+)(?:-(\d{1,2}))?(?:-\d{8})?$/;
