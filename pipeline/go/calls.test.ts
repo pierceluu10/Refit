@@ -186,6 +186,52 @@ func (s *Service) ask(ctx context.Context, m string) {
     ]);
   });
 
+  it('follows struct fields, package functions and map lookups, and nested Stripe resources', async () => {
+    expect(
+      await traced({
+        'agent/agent.go': `package agent
+
+import (
+	"context"
+
+	"github.com/anthropics/anthropic-sdk-go"
+	stripe "github.com/stripe/stripe-go/v84"
+	checkoutsession "github.com/stripe/stripe-go/v84/checkout/session"
+)
+
+var tiers = map[string]string{"fast": "claude-haiku-4-5", "deep": "claude-opus-4-8"}
+
+type wrapper struct {
+	client anthropic.Client
+	model  anthropic.Model
+}
+
+func New(name string) *wrapper {
+	return &wrapper{client: anthropic.NewClient(), model: parse(name)}
+}
+
+func parse(name string) anthropic.Model {
+	switch name {
+	case "opus":
+		return anthropic.ModelClaudeOpus4_6
+	}
+	return "claude-sonnet-4-6"
+}
+
+func (w *wrapper) Ask(ctx context.Context, tier string) {
+	w.client.Messages.New(ctx, anthropic.MessageNewParams{Model: w.model})
+	w.client.Messages.New(ctx, anthropic.MessageNewParams{Model: anthropic.Model(tiers[tier])})
+	checkoutsession.New(&stripe.CheckoutSessionParams{})
+}
+`,
+      }),
+    ).toEqual([
+      'agent/agent.go:31 anthropic Messages.New class-field <- claude-opus-4-6@25 (SDK constant `anthropic.ModelClaudeOpus4_6`) <- claude-sonnet-4-6@27 (field `model`)',
+      'agent/agent.go:32 anthropic Messages.New class-field <- claude-haiku-4-5@11 (entry of `tiers`) <- claude-opus-4-8@11 (entry of `tiers`)',
+      'agent/agent.go:33 stripe checkout/session.New module',
+    ]);
+  });
+
   it('finds clients declared in another file of the package and ignores other types', async () => {
     expect(
       await traced({

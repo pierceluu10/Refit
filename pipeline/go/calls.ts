@@ -96,7 +96,7 @@ type Context = {
 };
 
 const field = (node: Node, name: string) => node.childForFieldName(name) ?? undefined;
-const named = (node: Node | undefined) =>
+const named = (node: Node | null | undefined) =>
   (node?.namedChildren ?? []).filter((child): child is Node => Boolean(child));
 const site = (file: string, node: Node): SourceSite => ({
   file,
@@ -415,7 +415,50 @@ function traceModel(
           }
         : stop(`\`${text(node)}\` is not a model constant Refit knows from the SDK.`);
     }
-    return stop(`The model comes from \`${text(node)}\`, which Refit cannot trace.`);
+    // A struct field: every value the package gives it in a struct literal or an assignment.
+    const values = fieldValues(context, file, name);
+    return values.length
+      ? merge(
+          values.map((item) =>
+            traceModel(context, item.file, item.node, `field \`${name}\``, depth + 1, seen),
+          ),
+        )
+      : stop(`The model comes from \`${text(node)}\`, which Refit cannot trace.`);
+  }
+  if (node.type === 'index_expression') {
+    // `models[tier]` on a map literal: the entry for a literal key, or every entry.
+    const operand = unwrap(field(node, 'operand')!);
+    const index = field(node, 'index');
+    const table =
+      operand.type === 'identifier' ? bindings(context, file, operand, operand.text) : [];
+    const literal =
+      table.length === 1 && table[0].kind === 'value' && table[0].node.type === 'composite_literal'
+        ? table[0]
+        : undefined;
+    if (!literal) return stop(`The model comes from \`${text(node)}\`, which Refit cannot trace.`);
+    const key = index && goString(index);
+    const entries = named(field(literal.node, 'body'))
+      .filter((element) => element.type === 'keyed_element')
+      .filter(
+        (element) =>
+          key === undefined || goString(named(named(element)[0])[0] ?? named(element)[0]) === key,
+      )
+      .map((element) => named(element)[1])
+      .filter((item): item is Node => Boolean(item));
+    return entries.length
+      ? merge(
+          entries.map((item) =>
+            traceModel(
+              context,
+              literal.file,
+              named(item)[0] ?? item,
+              `entry of \`${operand.text}\``,
+              depth + 1,
+              seen,
+            ),
+          ),
+        )
+      : stop(`The model comes from \`${text(node)}\`, which Refit cannot trace.`);
   }
   if (node.type === 'call_expression') {
     const callee = field(node, 'function')!;
@@ -436,6 +479,12 @@ function traceModel(
         `The model is read from the environment variable ${variable} with no default in the same expression.`,
       );
     }
+    // A function or method of the package: what its return statements give.
+    const returned = returnValues(context, file, callee);
+    if (returned.length)
+      return merge(
+        returned.map((item) => traceModel(context, item.file, item.node, via, depth + 1, seen)),
+      );
     if (calleeText === 'cmp.Or' && first)
       return merge(
         [first, second, ...named(field(node, 'arguments')).slice(2)]
@@ -468,6 +517,65 @@ function traceModel(
     );
   }
   return stop(`The model comes from \`${text(node)}\`, which Refit cannot trace.`);
+}
+
+function packageFiles(context: Context, file: string) {
+  const directory = posix.dirname(file);
+  return [...context.files.keys()].filter((path) => posix.dirname(path) === directory);
+}
+
+// Values a package gives a struct field: `Field: value` in struct literals that are not SDK params,
+// and `x.Field = value`.
+function fieldValues(context: Context, file: string, name: string) {
+  const found: { node: Node; file: string }[] = [];
+  for (const path of packageFiles(context, file)) {
+    const root = context.tree(path)?.rootNode;
+    if (!root) continue;
+    const fileImports = imports(root);
+    for (const element of root.descendantsOfType('keyed_element')) {
+      const [key, value] = named(element);
+      if (key?.text !== name || !value) continue;
+      const type = element!.parent?.parent?.childForFieldName('type');
+      const sdkType =
+        type?.type === 'qualified_type' && fileImports.has(field(type, 'package')!.text);
+      if (sdkType) continue;
+      found.push({ node: named(value)[0] ?? value, file: path });
+    }
+    for (const assignment of root.descendantsOfType('assignment_statement')) {
+      const [left] = named(field(assignment!, 'left'));
+      const [right] = named(field(assignment!, 'right'));
+      if (left?.type === 'selector_expression' && field(left, 'field')?.text === name && right)
+        found.push({ node: right, file: path });
+    }
+  }
+  return found;
+}
+
+// The first result of every return statement of a package function or method a callee names.
+function returnValues(context: Context, file: string, callee: Node) {
+  const name =
+    callee.type === 'identifier'
+      ? callee.text
+      : callee.type === 'selector_expression' &&
+          !imports(context.tree(file)!.rootNode).has(field(callee, 'operand')!.text)
+        ? field(callee, 'field')!.text
+        : undefined;
+  if (!name) return [];
+  const found: { node: Node; file: string }[] = [];
+  for (const path of packageFiles(context, file))
+    for (const declaration of context
+      .tree(path)
+      ?.rootNode.descendantsOfType(['function_declaration', 'method_declaration']) ?? []) {
+      if (field(declaration!, 'name')?.text !== name) continue;
+      for (const statement of declaration!.descendantsOfType('return_statement')) {
+        if (enclosingFunction(statement!)?.id !== declaration!.id) continue;
+        const [first] = named(
+          named(statement)[0]?.type === 'expression_list' ? named(statement)[0] : statement,
+        );
+        if (first) found.push({ node: first, file: path });
+      }
+    }
+  return found;
 }
 
 function merge(values: TracedValue[]): TracedValue {
@@ -516,8 +624,7 @@ function traceCalls(context: Context): SdkCallRecord[] {
         if (
           packageImport.sdk.provider === 'stripe' &&
           packageImport.subpackage &&
-          !packageImport.subpackage.includes('/') &&
-          !STRIPE_NOT_RESOURCES.has(packageImport.subpackage) &&
+          !STRIPE_NOT_RESOURCES.has(packageImport.subpackage.split('/')[0]) &&
           /^[A-Z]/.test(field(callee, 'field')!.text)
         )
           records.push(
