@@ -65,6 +65,7 @@ ALTER TABLE refit_jobs ADD COLUMN IF NOT EXISTS retry boolean NOT NULL DEFAULT f
 CREATE UNIQUE INDEX IF NOT EXISTS refit_jobs_open ON refit_jobs (target_id)
   WHERE status IN ('queued', 'running');
 CREATE INDEX IF NOT EXISTS refit_targets_installation ON refit_targets (installation_id);
+CREATE INDEX IF NOT EXISTS refit_deliveries_hash ON refit_deliveries (hash);
 -- No policies: data APIs such as Supabase's see nothing; the owning worker role bypasses RLS.
 ALTER TABLE refit_installations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE refit_installation_repositories ENABLE ROW LEVEL SECURITY;
@@ -185,6 +186,17 @@ export async function openHostedStore(pool: Pool) {
           );
         return { status: 'duplicate' as const, ...none };
       }
+      // The signature covers the body but not the delivery GUID, and GitHub redelivers under the
+      // original GUID, so a known body under a new GUID is a replay.
+      const { rowCount: replayed } = await client.query(
+        'SELECT 1 FROM refit_deliveries WHERE hash = $1 AND id <> $2 LIMIT 1',
+        [hash, delivery],
+      );
+      if (replayed)
+        throw new WebhookInputError(
+          409,
+          'This payload was already accepted under another delivery GUID; refusing a replay.',
+        );
       if (!('installationId' in change)) return { status: 'accepted' as const, ...none };
       const { rows: prior } = await client.query<{ owner: string }>(
         'SELECT owner FROM refit_installations WHERE id = $1 FOR UPDATE',

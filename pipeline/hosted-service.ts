@@ -18,6 +18,7 @@ import {
   validateServiceSecret,
 } from './local-service.ts';
 import { RepositoryApprovalError } from './repository-enrollment.ts';
+import { databaseSecrets, secretRedactor } from './secret-redaction.ts';
 import { confirmRepositoryAccess, pollServiceTarget, summarizePoll } from './service-worker.ts';
 import { PipelineInputError } from './types.ts';
 
@@ -79,6 +80,14 @@ export async function runHostedService(options: {
   if (!Number.isInteger(lease) || lease < MIN_LEASE_SECONDS)
     throw new PipelineInputError(`Worker leases must be at least ${MIN_LEASE_SECONDS} seconds.`);
   const worker = options.worker ?? `${hostname()}:${process.pid}`;
+  // Logs, stored receipts and error responses never carry a credential, whatever produced the text.
+  const redact = secretRedactor([
+    options.webhookSecret,
+    options.controlToken,
+    options.aiPatch?.apiKey,
+    ...databaseSecrets(options.database.options),
+  ]);
+  const log = (message: string) => options.onProgress?.(redact(message));
   options.signal.throwIfAborted();
   const root = resolve(options.directory);
   await standaloneStateDirectory(root);
@@ -103,7 +112,7 @@ export async function runHostedService(options: {
     const abort = () => controller.abort();
     options.signal.addEventListener('abort', abort, { once: true });
     running.set(job, controller);
-    const progress = (message: string) => options.onProgress?.(`[${target.id}] ${message}`);
+    const progress = (message: string) => log(`[${target.id}] ${message}`);
     const renewal = setInterval(
       () =>
         void store.renew(job, worker, lease).then(
@@ -154,8 +163,10 @@ export async function runHostedService(options: {
         inspectReadiness: true,
         onProgress: progress,
       });
+      const summary = summarizePoll(result);
       const receipt = {
-        ...summarizePoll(result),
+        ...summary,
+        message: redact(summary.message),
         revision: 'checkout' in result ? result.checkout.revision : null,
         readiness: 'readiness' in result && result.readiness ? result.readiness.status : null,
       };
@@ -167,7 +178,7 @@ export async function runHostedService(options: {
       await store.finish(job, worker, approval ? 'finished' : 'failed', {
         status: controller.signal.aborted ? 'interrupted' : approval ? 'needs-review' : 'error',
         output: null,
-        message: `${error.name}: ${error.message}`,
+        message: redact(`${error.name}: ${error.message}`),
       });
       progress(`${error.name}: ${error.message}`);
     } finally {
@@ -220,9 +231,9 @@ export async function runHostedService(options: {
         });
       })().catch((error: unknown) => {
         if (error instanceof WebhookInputError)
-          respond(response, error.status, { error: error.message });
+          respond(response, error.status, { error: redact(error.message) });
         else {
-          options.onProgress?.(
+          log(
             `Webhook processing failed: ${error instanceof Error ? error.message : 'Unknown storage failure.'}`,
           );
           respond(response, 500, {
