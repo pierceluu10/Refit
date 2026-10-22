@@ -1250,7 +1250,8 @@
       "summary": "Auth0 deprecated v6 of the auth0 (node-auth0) package: its npm deprecation notice says v6 no longer receives updates, and that v7 is Management API only, with the authentication clients moved to @auth0/auth0-auth-js and @auth0/auth0-server-js. The notice gives no date; the date here is when v7.0.0 was published on npm.",
       "replacement": "auth0 v7 (Management API) with @auth0/auth0-auth-js or @auth0/auth0-server-js for authentication",
       "source": "https://registry.npmjs.org/auth0",
-      "checkedAt": "2026-10-22"
+      "checkedAt": "2026-10-22",
+      "derivedDate": true
     },
     {
       "id": "clerk-2025-01-10-clerk-sdk-node",
@@ -1285,7 +1286,8 @@
       "summary": "Clerk's long term support schedule lists Core 1 and the Legacy (v3) SDKs as Unsupported: no changes of any kind. The schedule gives no end date. A previous major gets one year of long term support after the next major ships, and the Core 2 majors were published on npm on 2024-04-19, so the date here is 2025-04-19. The Core 1 majors are the ones Clerk's Core 2 upgrade guides tell you to update to first (@clerk/nextjs@4, @clerk/backend@0, @clerk/remix@3 and so on); @clerk/edge is deprecated on npm in favour of @clerk/backend.",
       "replacement": "The current Clerk major (Core 3)",
       "source": "https://github.com/clerk/clerk-docs/blob/main/docs/guides/development/upgrading/versioning.mdx",
-      "checkedAt": "2026-10-22"
+      "checkedAt": "2026-10-22",
+      "derivedDate": true
     },
     {
       "id": "clerk-2026-03-03-elements",
@@ -1298,7 +1300,8 @@
       "summary": "Clerk no longer supports @clerk/elements, per its npm deprecation notice, which points to the Core 3 release of 2026-03-03.",
       "replacement": null,
       "source": "https://registry.npmjs.org/@clerk/elements",
-      "checkedAt": "2026-10-22"
+      "checkedAt": "2026-10-22",
+      "derivedDate": true
     },
     {
       "id": "clerk-2027-01-01-core-2-lts-ends",
@@ -1359,7 +1362,8 @@
       "summary": "Supabase deprecated every @supabase/auth-helpers-* package in favour of @supabase/ssr; the repository README says they are no longer maintained. The deprecation notice was added to that README on 2024-11-27.",
       "replacement": "@supabase/ssr",
       "source": "https://github.com/supabase/auth-helpers/blob/main/README.md",
-      "checkedAt": "2026-10-22"
+      "checkedAt": "2026-10-22",
+      "derivedDate": true
     },
     {
       "id": "supabase-2026-12-31-legacy-api-keys",
@@ -1386,7 +1390,8 @@
       "summary": "Auth.js releases security updates only for the current latest version and does not maintain old releases. next-auth's latest major is 4 (v5 is still a beta), so v3 and older receive no updates. The policy gives no date; the date here is when the last v3 release, 3.29.10, was published on npm.",
       "replacement": "next-auth v4 (maintenance mode) or v5",
       "source": "https://github.com/nextauthjs/next-auth/blob/main/docs/pages/security.mdx",
-      "checkedAt": "2026-10-22"
+      "checkedAt": "2026-10-22",
+      "derivedDate": true
     }
   ]
 }
