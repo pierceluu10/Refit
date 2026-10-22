@@ -3,6 +3,7 @@ import { assessmentConfiguration } from './assessment.ts';
 import { githubAppConfiguration } from './github-app.ts';
 import { openHostedPool } from './hosted-database.ts';
 import { hostedSchemaStatus, migrateHostedSchema } from './hosted-migrations.ts';
+import { UNINSTALL_GRACE_DAYS } from './hosted-retention.ts';
 import { runHostedService } from './hosted-service.ts';
 import { openHostedStore } from './hosted-store.ts';
 import { validateServiceSecret } from './local-service.ts';
@@ -18,7 +19,7 @@ const USAGE = `Usage: refit hosted serve --state <directory> [--host <address>] 
 Requires REFIT_DATABASE_URL (PostgreSQL). serve also requires GITHUB_APP_ID, GITHUB_APP_PRIVATE_KEY_FILE, REFIT_WEBHOOK_SECRET, a different REFIT_SERVICE_TOKEN and REFIT_HOSTED_OWNER, the only GitHub account whose installations enroll until jobs run in per-job microVMs. --ai-patch uses OPENAI_API_KEY and OPENAI_MODEL with a separate REFIT_AI_BUDGET_USD ledger per installation under REFIT_AI_BUDGET_DIRECTORY.
 approve stores a receipt made by refit enroll. Installing the App on an approved repository enrolls it: the worker runs refit doctor, then scans and validates with the approved checks, and stores a job receipt. Installed repositories without an approval never run. Removing the repository or the installation cancels its targets and stops running jobs. --publish-draft opens draft PRs as Refit Agent; Refit never merges.
 retry queues one fresh attempt for an enrolled target, permitting a cached failed job to run again; successful jobs remain cached. Approval and access gates still apply.
-migrate applies pending schema migrations, which serve also does on start; --dry-run lists them without applying anything. serve keeps running through PostgreSQL outages and deletes an uninstalled installation's targets, jobs and evidence 7 days after the uninstall.`;
+migrate applies pending schema migrations, which serve also does on start; --dry-run lists them without applying anything. serve keeps running through PostgreSQL outages and deletes an uninstalled installation's targets, jobs and evidence ${UNINSTALL_GRACE_DAYS} days after the uninstall.`;
 
 function database() {
   const connectionString = process.env.REFIT_DATABASE_URL;
