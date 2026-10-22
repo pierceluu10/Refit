@@ -120,6 +120,17 @@ it('reads SDK version options only where the SDK takes them', () => {
       ].join('\n'),
     ),
   ).toEqual(['lob 2020-02-11 option 2 live']);
+  // A Square catalog object's `version` and a Lob or Shippo integer are not API versions.
+  expect(
+    pins(
+      'src/catalog.ts',
+      [
+        "import { SquareClient } from 'square';",
+        'await client.catalog.object.upsert({ object: { id, version: 1, type: "ITEM" } });',
+        "const shippo = { 'Shippo-API-Version': 2 };",
+      ].join('\n'),
+    ),
+  ).toEqual([]);
   // Without the SDK, the same keys are not its pins.
   expect(
     pins('src/other.ts', "const config = { version: '2024-05-04', squareVersion: '2024-01-18' };"),

@@ -40,8 +40,17 @@ const OPTIONS: { provider: string; key: string; module: string; direct: boolean 
   { provider: 'shippo', key: 'shippoApiVersion', module: 'shippo', direct: false },
   { provider: 'lob', key: 'apiVersion', module: 'lob', direct: true },
 ];
-// A dated API version, as all of these headers and options take, or Paddle's integer version.
-const VERSION_VALUE = /^(?:\d{4}-\d{2}-\d{2}|\d{1,2})$/;
+// Every header and option above takes a dated version, except Paddle's, which takes an integer.
+// A Square `version: 1` is a catalog object's version, not the API's.
+const DATED_VERSION = /^\d{4}-\d{2}-\d{2}$/;
+const INTEGER_VERSION = /^\d{1,2}$/;
+
+function versionValue(provider: string, value: string | undefined) {
+  return (
+    value !== undefined &&
+    (DATED_VERSION.test(value) || (provider === 'paddle' && INTEGER_VERSION.test(value)))
+  );
+}
 // Versioned URL paths. Adyen versions each API separately, so its version names the API: the path
 // segment before the version (`/checkout/v71`, `/pal/servlet/Payment/v68`, `/bcl/v2`) or the
 // host's API name (`checkout-test.adyen.com/v71`, `management-live.adyen.com/v3`).
@@ -203,12 +212,13 @@ export function fileApiVersionPins(path: string, content: string): ApiVersionPin
     if (ts.isPropertyAssignment(node) && ts.isObjectLiteralExpression(node.parent)) {
       const key = keyText(node.name);
       const value = literalValue(node.initializer, constants);
-      if (key && value !== undefined && VERSION_VALUE.test(value)) {
+      if (key && value !== undefined) {
         const header = HEADERS.get(key.toLowerCase());
-        if (header) add(header, value, node, 'header');
+        if (header && versionValue(header, value)) add(header, value, node, 'header');
         for (const option of options)
           if (
             option.key === key &&
+            versionValue(option.provider, value) &&
             imports(option.module) &&
             (!option.direct || directArgument(node.parent, option.module))
           )
@@ -225,8 +235,7 @@ export function fileApiVersionPins(path: string, content: string): ApiVersionPin
       const key = keyText(node.arguments[0]);
       const value = literalValue(node.arguments[1], constants);
       const header = key ? HEADERS.get(key.toLowerCase()) : undefined;
-      if (header && value !== undefined && VERSION_VALUE.test(value))
-        add(header, value, node, 'header');
+      if (header && versionValue(header, value)) add(header, value!, node, 'header');
     }
     // `headers['Plaid-Version'] = '2020-09-14'`.
     if (
@@ -237,8 +246,7 @@ export function fileApiVersionPins(path: string, content: string): ApiVersionPin
       const key = keyText(node.left.argumentExpression);
       const value = literalValue(node.right, constants);
       const header = key ? HEADERS.get(key.toLowerCase()) : undefined;
-      if (header && value !== undefined && VERSION_VALUE.test(value))
-        add(header, value, node, 'header');
+      if (header && versionValue(header, value)) add(header, value!, node, 'header');
     }
     // Versioned URL paths in strings and template pieces.
     if (
