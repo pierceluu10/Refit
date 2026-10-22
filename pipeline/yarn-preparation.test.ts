@@ -118,6 +118,7 @@ it.skipIf(!process.env.REFIT_NPM_PREPARE || !process.env.REFIT_DOCKER_IMAGE)(
           image: String(prepared.environment.image),
           dependencies: prepared.archive,
           network: 'none',
+          timeoutMs: 120_000,
           command: [
             'sh',
             '-c',
@@ -201,6 +202,7 @@ it.skipIf(!process.env.REFIT_NPM_PREPARE || !process.env.REFIT_DOCKER_IMAGE)(
           image: String(prepared.environment.image),
           dependencies: prepared.archive,
           network: 'none',
+          timeoutMs: 120_000,
           command: [
             'sh',
             '-c',
@@ -334,6 +336,7 @@ it.skipIf(!process.env.REFIT_NPM_PREPARE || !process.env.REFIT_DOCKER_IMAGE)(
           image: String(prepared.environment.image),
           dependencies: prepared.archive,
           network: 'none',
+          timeoutMs: 120_000,
           command: ['sh', '-c', 'test "$(yarn --version)" = 4.9.2 && yarn run check'],
         }),
         { timeout: 60_000 },

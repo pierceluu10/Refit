@@ -254,6 +254,20 @@ it('fails on live exposures that are past due or inside the window, unless accep
     failing: [],
     ignored: [],
   });
+  // A derived date or a report-only kind is listed but never fails the check.
+  const derived = exposure('derived', -10, ['a.ts']);
+  derived.deadline.derivedDate = true;
+  const endpoint = exposure('endpoint', 2, ['a.ts']);
+  endpoint.deadline.kind = 'endpoint' as DeadlineEntry['kind'];
+  expect(
+    deadlineCheck([derived, endpoint, exposure('past', -40, ['a.ts'])], new Map(), 30),
+  ).toEqual({
+    failWithin: 30,
+    status: 'fail',
+    failing: ['past'],
+    ignored: [],
+  });
+  expect(deadlineCheck([derived, endpoint], new Map(), 30).status).toBe('pass');
   for (const value of ['30', '0', ' 7 ', '3650'])
     expect(parseFailWithin(value)).toBe(Number(value));
   for (const value of ['', '-1', '30d', '1.5', '3651', 'soon', '1e3'])
@@ -299,11 +313,18 @@ it('runs as a CI check end to end: exit 2 on due live exposures, 0 when accepted
   });
   const run = (...extra: string[]) =>
     cli(['--repository', root, '--registry', registryPath, ...extra]);
+  // Each CLI start costs about 0.3 s, so runs that see the same files start together.
+  const [report, failing, json, tight, wide] = await Promise.all([
+    run(),
+    run('--fail-within', '30'),
+    run('--fail-within', '30', '--json'),
+    run('--fail-within', '1'),
+    run('--fail-within', '300'),
+  ]);
 
   // Without --fail-within the command only reports.
-  expect((await run()).code).toBe(0);
+  expect(report.code).toBe(0);
 
-  const failing = await run('--fail-within', '30');
   expect(failing.code).toBe(2);
   expect(failing.stdout).toContain(
     'Deadline check failed: 2 live exposures are past due or within 30 days.',
@@ -312,7 +333,6 @@ it('runs as a CI check end to end: exit 2 on due live exposures, 0 when accepted
   expect(failing.stdout).toContain('zz-soon-model');
   expect(failing.stdout).not.toMatch(/^ {2}zz-later-model/m);
 
-  const json = await run('--fail-within', '30', '--json');
   expect(json.code).toBe(2);
   expect(JSON.parse(json.stdout).check).toEqual({
     failWithin: 30,
@@ -320,8 +340,8 @@ it('runs as a CI check end to end: exit 2 on due live exposures, 0 when accepted
     failing: ['zz-past-model', 'zz-soon-model'],
     ignored: [],
   });
-  expect((await run('--fail-within', '1')).code).toBe(2);
-  expect((await run('--fail-within', '300')).code).toBe(2);
+  expect(tight.code).toBe(2);
+  expect(wide.code).toBe(2);
 
   await writeFile(
     join(root, '.refit-deadlines-ignore.json'),
@@ -334,7 +354,12 @@ it('runs as a CI check end to end: exit 2 on due live exposures, 0 when accepted
       ],
     }),
   );
-  const accepted = await run('--fail-within', '30');
+  const strict = await directory({ 'none.json': JSON.stringify({ formatVersion: 1, ignore: [] }) });
+  const [accepted, acceptedOutput, explicit] = await Promise.all([
+    run('--fail-within', '30'),
+    run('--fail-within', '30', '--json'),
+    run('--fail-within', '30', '--ignore-file', join(strict, 'none.json')),
+  ]);
   expect(accepted.code).toBe(0);
   expect(accepted.stdout).toContain(
     'Deadline check passed: no live exposure is past due or within 30 days (2 accepted by .refit-deadlines-ignore.json).',
@@ -344,17 +369,14 @@ it('runs as a CI check end to end: exit 2 on due live exposures, 0 when accepted
   expect(accepted.stdout).toContain('unknown      zz-gone is not a registry deadline');
   // The accepted exposures are still reported, not hidden.
   expect(accepted.stdout).toContain('src/ai.ts:1');
-  const acceptedJson = JSON.parse((await run('--fail-within', '30', '--json')).stdout);
+  const acceptedJson = JSON.parse(acceptedOutput.stdout);
   expect(acceptedJson.check.ignored).toEqual(['zz-past-model', 'zz-soon-model']);
   expect(acceptedJson.ignores.expired.map((entry: DeadlineIgnore) => entry.deadline)).toEqual([
     'zz-gone',
   ]);
 
   // A different file can be named explicitly; the default one is then not read.
-  const strict = await directory({ 'none.json': JSON.stringify({ formatVersion: 1, ignore: [] }) });
-  expect((await run('--fail-within', '30', '--ignore-file', join(strict, 'none.json'))).code).toBe(
-    2,
-  );
+  expect(explicit.code).toBe(2);
 
   // Errors fail closed with exit 1: an invalid ignore file, a bad window, a missing explicit file.
   await writeFile(
@@ -364,11 +386,13 @@ it('runs as a CI check end to end: exit 2 on due live exposures, 0 when accepted
       ignore: [{ deadline: 'zz-soon-model', reason: '', until: day(400) }],
     }),
   );
-  const invalid = await run('--fail-within', '30');
+  const [invalid, badWindow, missing] = await Promise.all([
+    run('--fail-within', '30'),
+    run('--fail-within', '30d'),
+    run('--fail-within', '30', '--ignore-file', join(strict, 'missing.json')),
+  ]);
   expect(invalid.code).toBe(1);
   expect(invalid.stderr).toContain('.refit-deadlines-ignore.json is invalid');
-  expect((await run('--fail-within', '30d')).code).toBe(1);
-  expect(
-    (await run('--fail-within', '30', '--ignore-file', join(strict, 'missing.json'))).code,
-  ).toBe(1);
+  expect(badWindow.code).toBe(1);
+  expect(missing.code).toBe(1);
 }, 60_000);
