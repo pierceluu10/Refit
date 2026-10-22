@@ -1,0 +1,1022 @@
+{
+ "formatVersion": 1,
+ "method": "Blind: candidates from scripts/shopify-rest-label-candidates.mjs (an independent text search that imports no pipeline code), then one AI-assisted reading pass by a fresh-context labelling agent that read the checkouts, used data/shopify-rest-deprecations.json as the reference list of removed endpoints, searched beyond the candidates, and never saw Refit output. Not hand labelling and not second-labelled.",
+ "labelledAt": "2026-10-22",
+ "list": "docs/benchmarks/2026-10-16-shopify-fresh-repos.json",
+ "selection": "20 apps: 10 from the 67 apps whose live code has REST usage by the candidate search, and 10 from the 133 without, each in seeded order (seededSample in scripts/ai-app-helpers.mjs, seed 20261022). None of the 200 is over Refit scan limits counted before scanning.",
+ "rules": {
+  "rest": "a line in live code that sends a Shopify REST Admin request (REST client call, REST resource class operation, or a fetch/axios to /admin/api/<version>/...json); GraphQL is not REST.",
+  "removed": "the request method and path match an entry of data/shopify-rest-deprecations.json; null when the method or path cannot be read"
+ },
+ "repos": [
+  {
+   "repo": "mdrahbar21/shopifyApp",
+   "commit": "009718809752a31da054d50afb8001de8ad5ed8b"
+  },
+  {
+   "repo": "NINE15Team/Finally-Back-In-Stock",
+   "commit": "67ea483e11f0dca49b978eaae2f40414e258d806"
+  },
+  {
+   "repo": "atsuki-sakai/shopify-point-app",
+   "commit": "69a01aa38487b3395da720909bfbea67cc178cb2"
+  },
+  {
+   "repo": "raj84908/Quantus-Warehouse-javascript",
+   "commit": "77fbd8e284a629a0fde829e90efe08f86e702cba"
+  },
+  {
+   "repo": "Nuraveda/shopify-agentic-seo-app",
+   "commit": "f40b395b84fc16744549648890e2bd120f4a679a"
+  },
+  {
+   "repo": "amm10090/Shopify-API-Project",
+   "commit": "03492a9543c551a16a06d02b57a22b10bebe84c4"
+  },
+  {
+   "repo": "sanjeev744/smart-variants-display",
+   "commit": "3cfa2a6175f18571cd5408a2f208c91b221fe585"
+  },
+  {
+   "repo": "strapi-community/shopify",
+   "commit": "8821013cb081196fc41a740bf6a07b33b5a30fb9"
+  },
+  {
+   "repo": "michaelwang11394/sales-associate",
+   "commit": "ae0c1c987e2f27910c6c8767342fefcaf9794858"
+  },
+  {
+   "repo": "tahmidbintaslim/shopify-ucp",
+   "commit": "7ed07b95f74963005afcf0205002b87ea708a264"
+  },
+  {
+   "repo": "Aident-AI/open-cuak",
+   "commit": "24e97076e05089c20bf8704d362b33a704518e4b"
+  },
+  {
+   "repo": "Shopify/dotdev-workshop-events",
+   "commit": "0b47c28fb2af37226199f9e7195445113fb40740"
+  },
+  {
+   "repo": "SnithfferxDS/sioma-backend",
+   "commit": "b896432574479824797892abe397079f6cb77ecd"
+  },
+  {
+   "repo": "Shopify/example-app--embedded-auth--js",
+   "commit": "16902cffad7102354217d01e62f63d675dc1c1b9"
+  },
+  {
+   "repo": "umxr/shopify-product-reviews",
+   "commit": "974daab7d5b5e9786bee68a7f32b282ba28b5a0c"
+  },
+  {
+   "repo": "AntonVasylchenko/shopify-node-app",
+   "commit": "a08a905f2318caf46e336cb275a352727bd309d1"
+  },
+  {
+   "repo": "rahulitme/Final_Year_Project",
+   "commit": "2b482804516962dbab45999ca31621cf3db7234b"
+  },
+  {
+   "repo": "Timdev0x/Shopify-QR-app",
+   "commit": "2caaec381c545c0b6eb6b98e99cf3f21a4e91a37"
+  },
+  {
+   "repo": "MarlonPerez-01/price-tracker",
+   "commit": "969bd1e8fc4e14d5a8fe5a350646dd7b23aa9857"
+  },
+  {
+   "repo": "R-A-Print-And-Seasonal-Market-LLC/ra-cj-importer",
+   "commit": "503a6dadfa3198e118f0d1baf877352a741e9069"
+  }
+ ],
+ "sites": [
+  {
+   "repo": "mdrahbar21/shopifyApp",
+   "file": "src/pages/api/orderByPhone.js",
+   "line": 21,
+   "rest": true,
+   "endpoint": "GET customers.json",
+   "removed": false,
+   "note": "axios.get raw URL"
+  },
+  {
+   "repo": "mdrahbar21/shopifyApp",
+   "file": "src/pages/api/orderByPhone.js",
+   "line": 35,
+   "rest": true,
+   "endpoint": "GET orders.json",
+   "removed": false,
+   "note": "axios.get raw URL"
+  },
+  {
+   "repo": "NINE15Team/Finally-Back-In-Stock",
+   "file": "app/services/store-info.service.ts",
+   "line": 39,
+   "rest": true,
+   "endpoint": "GET shop.json",
+   "removed": false,
+   "note": "admin.rest.get"
+  },
+  {
+   "repo": "NINE15Team/Finally-Back-In-Stock",
+   "file": "app/services/store-info.service.ts",
+   "line": 62,
+   "rest": true,
+   "endpoint": "GET shop.json",
+   "removed": false,
+   "note": "admin.rest.get"
+  },
+  {
+   "repo": "NINE15Team/Finally-Back-In-Stock",
+   "file": "app/services/store-info.service.ts",
+   "line": 73,
+   "rest": true,
+   "endpoint": "GET shop.json",
+   "removed": false,
+   "note": "admin.rest.get"
+  },
+  {
+   "repo": "atsuki-sakai/shopify-point-app",
+   "file": "app/controller/storeController.ts",
+   "line": 11,
+   "rest": true,
+   "endpoint": "GET products.json",
+   "removed": false,
+   "note": "fetch, no method"
+  },
+  {
+   "repo": "raj84908/Quantus-Warehouse-javascript",
+   "file": "app/api/shopify/products/route.js",
+   "line": 30,
+   "rest": true,
+   "endpoint": "GET products.json",
+   "removed": false,
+   "note": "URL for fetch with no method"
+  },
+  {
+   "repo": "raj84908/Quantus-Warehouse-javascript",
+   "file": "lib/shopify.js",
+   "line": 39,
+   "rest": true,
+   "endpoint": "GET products.json",
+   "removed": false,
+   "note": "Rest client get"
+  },
+  {
+   "repo": "raj84908/Quantus-Warehouse-javascript",
+   "file": "lib/shopify.js",
+   "line": 89,
+   "rest": true,
+   "endpoint": "GET shop.json",
+   "removed": false,
+   "note": "Rest client get"
+  },
+  {
+   "repo": "amm10090/Shopify-API-Project",
+   "file": "server/routes/auth.ts",
+   "line": 236,
+   "rest": true,
+   "endpoint": "GET shop.json",
+   "removed": false,
+   "note": "Rest client get, session check"
+  },
+  {
+   "repo": "amm10090/Shopify-API-Project",
+   "file": "server/routes/settings.ts",
+   "line": 309,
+   "rest": true,
+   "endpoint": "GET shop.json",
+   "removed": false,
+   "note": "axios.get raw URL"
+  },
+  {
+   "repo": "amm10090/Shopify-API-Project",
+   "file": "server/services/CustomAppService.ts",
+   "line": 142,
+   "rest": true,
+   "endpoint": "GET shop.json",
+   "removed": false,
+   "note": "fetchWithTimeout, no method"
+  },
+  {
+   "repo": "amm10090/Shopify-API-Project",
+   "file": "server/services/CustomAppService.ts",
+   "line": 214,
+   "rest": true,
+   "endpoint": "GET shop.json",
+   "removed": false,
+   "note": "fetchWithTimeout, no method"
+  },
+  {
+   "repo": "amm10090/Shopify-API-Project",
+   "file": "server/services/ShopifyService.ts",
+   "line": 72,
+   "rest": true,
+   "endpoint": "GET custom_collections.json",
+   "removed": false,
+   "note": "Rest client"
+  },
+  {
+   "repo": "amm10090/Shopify-API-Project",
+   "file": "server/services/ShopifyService.ts",
+   "line": 105,
+   "rest": true,
+   "endpoint": "PUT custom_collections/<id>.json",
+   "removed": false,
+   "note": "Rest client"
+  },
+  {
+   "repo": "amm10090/Shopify-API-Project",
+   "file": "server/services/ShopifyService.ts",
+   "line": 127,
+   "rest": true,
+   "endpoint": "POST custom_collections.json",
+   "removed": false,
+   "note": "Rest client"
+  },
+  {
+   "repo": "amm10090/Shopify-API-Project",
+   "file": "server/services/ShopifyService.ts",
+   "line": 149,
+   "rest": true,
+   "endpoint": "POST collects.json",
+   "removed": false,
+   "note": "Rest client"
+  },
+  {
+   "repo": "amm10090/Shopify-API-Project",
+   "file": "server/services/ShopifyService.ts",
+   "line": 225,
+   "rest": true,
+   "endpoint": "GET products.json",
+   "removed": false,
+   "note": "Rest client"
+  },
+  {
+   "repo": "amm10090/Shopify-API-Project",
+   "file": "server/services/ShopifyService.ts",
+   "line": 412,
+   "rest": true,
+   "endpoint": "POST products.json",
+   "removed": false,
+   "note": "Rest client"
+  },
+  {
+   "repo": "amm10090/Shopify-API-Project",
+   "file": "server/services/ShopifyService.ts",
+   "line": 754,
+   "rest": true,
+   "endpoint": "POST products/<id>/images.json",
+   "removed": false,
+   "note": "Rest client"
+  },
+  {
+   "repo": "amm10090/Shopify-API-Project",
+   "file": "server/services/ShopifyService.ts",
+   "line": 980,
+   "rest": true,
+   "endpoint": "GET products/<id>.json",
+   "removed": false,
+   "note": "Rest client"
+  },
+  {
+   "repo": "amm10090/Shopify-API-Project",
+   "file": "server/services/ShopifyService.ts",
+   "line": 1037,
+   "rest": true,
+   "endpoint": "PUT variants/<id>.json",
+   "removed": false,
+   "note": "Rest client"
+  },
+  {
+   "repo": "amm10090/Shopify-API-Project",
+   "file": "server/services/ShopifyService.ts",
+   "line": 1079,
+   "rest": true,
+   "endpoint": "PUT products/<id>.json",
+   "removed": false,
+   "note": "Rest client"
+  },
+  {
+   "repo": "amm10090/Shopify-API-Project",
+   "file": "server/services/ShopifyService.ts",
+   "line": 1120,
+   "rest": true,
+   "endpoint": "GET inventory_levels.json",
+   "removed": false,
+   "note": "Rest client, query in path"
+  },
+  {
+   "repo": "amm10090/Shopify-API-Project",
+   "file": "server/services/ShopifyService.ts",
+   "line": 1194,
+   "rest": true,
+   "endpoint": "GET products/<id>/metafields.json",
+   "removed": false,
+   "note": "Rest client"
+  },
+  {
+   "repo": "amm10090/Shopify-API-Project",
+   "file": "server/services/ShopifyService.ts",
+   "line": 1206,
+   "rest": true,
+   "endpoint": "PUT metafields/<id>.json",
+   "removed": false,
+   "note": "Rest client"
+  },
+  {
+   "repo": "amm10090/Shopify-API-Project",
+   "file": "server/services/ShopifyService.ts",
+   "line": 1221,
+   "rest": true,
+   "endpoint": "POST products/<id>/metafields.json",
+   "removed": false,
+   "note": "Rest client"
+  },
+  {
+   "repo": "amm10090/Shopify-API-Project",
+   "file": "server/services/ShopifyService.ts",
+   "line": 1254,
+   "rest": true,
+   "endpoint": "GET locations.json",
+   "removed": false,
+   "note": "Rest client"
+  },
+  {
+   "repo": "amm10090/Shopify-API-Project",
+   "file": "server/services/ShopifyService.ts",
+   "line": 1282,
+   "rest": true,
+   "endpoint": "POST inventory_levels/set.json",
+   "removed": false,
+   "note": "Rest client"
+  },
+  {
+   "repo": "amm10090/Shopify-API-Project",
+   "file": "server/services/ShopifyService.ts",
+   "line": 1310,
+   "rest": true,
+   "endpoint": "GET products/<id>.json",
+   "removed": false,
+   "note": "Rest client"
+  },
+  {
+   "repo": "amm10090/Shopify-API-Project",
+   "file": "server/services/ShopifyService.ts",
+   "line": 1339,
+   "rest": true,
+   "endpoint": "PUT products/<id>.json",
+   "removed": false,
+   "note": "Rest client"
+  },
+  {
+   "repo": "amm10090/Shopify-API-Project",
+   "file": "server/services/ShopifyService.ts",
+   "line": 1364,
+   "rest": true,
+   "endpoint": "GET products/<id>.json",
+   "removed": false,
+   "note": "Rest client"
+  },
+  {
+   "repo": "amm10090/Shopify-API-Project",
+   "file": "server/services/ShopifyService.ts",
+   "line": 1375,
+   "rest": true,
+   "endpoint": "DELETE products/<id>.json",
+   "removed": false,
+   "note": "Rest client"
+  },
+  {
+   "repo": "amm10090/Shopify-API-Project",
+   "file": "server/services/ShopifyService.ts",
+   "line": 1402,
+   "rest": true,
+   "endpoint": "GET products/<id>.json",
+   "removed": false,
+   "note": "Rest client"
+  },
+  {
+   "repo": "amm10090/Shopify-API-Project",
+   "file": "server/services/ShopifyService.ts",
+   "line": 1441,
+   "rest": true,
+   "endpoint": "GET inventory_levels.json",
+   "removed": false,
+   "note": "Rest client, query in path"
+  },
+  {
+   "repo": "amm10090/Shopify-API-Project",
+   "file": "server/services/ShopifyService.ts",
+   "line": 1469,
+   "rest": true,
+   "endpoint": "GET locations.json",
+   "removed": false,
+   "note": "Rest client"
+  },
+  {
+   "repo": "amm10090/Shopify-API-Project",
+   "file": "server/services/ShopifyService.ts",
+   "line": 1489,
+   "rest": true,
+   "endpoint": "POST inventory_levels/set.json",
+   "removed": false,
+   "note": "Rest client"
+  },
+  {
+   "repo": "michaelwang11394/sales-associate",
+   "file": "app/routes/app.settings.tsx",
+   "line": 46,
+   "rest": true,
+   "endpoint": "GET shop.json",
+   "removed": false,
+   "note": "rest resource Shop.all"
+  },
+  {
+   "repo": "michaelwang11394/sales-associate",
+   "file": "app/routes/app._index/onboarding.tsx",
+   "line": 24,
+   "rest": true,
+   "endpoint": "GET shop.json",
+   "removed": false,
+   "note": "rest resource Shop.all"
+  },
+  {
+   "repo": "michaelwang11394/sales-associate",
+   "file": "app/routes/app._index/route.tsx",
+   "line": 13,
+   "rest": true,
+   "endpoint": "GET shop.json",
+   "removed": false,
+   "note": "rest resource Shop.all"
+  },
+  {
+   "repo": "michaelwang11394/sales-associate",
+   "file": "api/pages/api/v1/_helpers/shopify.ts",
+   "line": 102,
+   "rest": true,
+   "endpoint": "GET products.json",
+   "removed": false,
+   "note": "Rest client get"
+  },
+  {
+   "repo": "michaelwang11394/sales-associate",
+   "file": "api/pages/api/v1/_helpers/shopify.ts",
+   "line": 206,
+   "rest": true,
+   "endpoint": "GET orders.json",
+   "removed": false,
+   "note": "Rest client request, method GET"
+  },
+  {
+   "repo": "strapi-community/shopify",
+   "file": "server/src/services/shop.service.ts",
+   "line": 9,
+   "rest": false,
+   "endpoint": null,
+   "removed": false,
+   "note": "not a REST request"
+  },
+  {
+   "repo": "strapi-community/shopify",
+   "file": "server/src/services/shop.service.ts",
+   "line": 26,
+   "rest": false,
+   "endpoint": null,
+   "removed": false,
+   "note": "not a REST request"
+  },
+  {
+   "repo": "strapi-community/shopify",
+   "file": "server/src/services/shop.service.ts",
+   "line": 66,
+   "rest": false,
+   "endpoint": null,
+   "removed": false,
+   "note": "not a REST request"
+  },
+  {
+   "repo": "strapi-community/shopify",
+   "file": "server/src/services/shop.service.ts",
+   "line": 80,
+   "rest": false,
+   "endpoint": null,
+   "removed": false,
+   "note": "REST client construction, not a request"
+  },
+  {
+   "repo": "Nuraveda/shopify-agentic-seo-app",
+   "file": "cli/sh-admin.mjs",
+   "line": 20,
+   "rest": false,
+   "endpoint": null,
+   "removed": false,
+   "note": "not a REST request"
+  },
+  {
+   "repo": "Nuraveda/shopify-agentic-seo-app",
+   "file": "cli/sh-admin.mjs",
+   "line": 85,
+   "rest": false,
+   "endpoint": null,
+   "removed": false,
+   "note": "GraphQL or unrelated, not REST"
+  },
+  {
+   "repo": "Nuraveda/shopify-agentic-seo-app",
+   "file": "cli/sh-admin.mjs",
+   "line": 155,
+   "rest": false,
+   "endpoint": null,
+   "removed": false,
+   "note": "not a REST request"
+  },
+  {
+   "repo": "Nuraveda/shopify-agentic-seo-app",
+   "file": "cli/sh-admin.mjs",
+   "line": 236,
+   "rest": false,
+   "endpoint": null,
+   "removed": false,
+   "note": "not a REST request"
+  },
+  {
+   "repo": "mdrahbar21/shopifyApp",
+   "file": "src/pages/api/orderByPhone.js",
+   "line": 4,
+   "rest": false,
+   "endpoint": null,
+   "removed": false,
+   "note": "not a REST request"
+  },
+  {
+   "repo": "amm10090/Shopify-API-Project",
+   "file": "server/routes/auth.ts",
+   "line": 235,
+   "rest": false,
+   "endpoint": null,
+   "removed": false,
+   "note": "REST client construction, not a request"
+  },
+  {
+   "repo": "amm10090/Shopify-API-Project",
+   "file": "server/routes/auth.ts",
+   "line": 327,
+   "rest": false,
+   "endpoint": null,
+   "removed": false,
+   "note": "not a REST request"
+  },
+  {
+   "repo": "amm10090/Shopify-API-Project",
+   "file": "server/routes/settings.ts",
+   "line": 423,
+   "rest": false,
+   "endpoint": null,
+   "removed": false,
+   "note": "not a REST request"
+  },
+  {
+   "repo": "amm10090/Shopify-API-Project",
+   "file": "server/services/CustomAppService.ts",
+   "line": 97,
+   "rest": false,
+   "endpoint": null,
+   "removed": false,
+   "note": "not a REST request"
+  },
+  {
+   "repo": "amm10090/Shopify-API-Project",
+   "file": "server/services/ShopifyService.ts",
+   "line": 41,
+   "rest": false,
+   "endpoint": null,
+   "removed": false,
+   "note": "REST client construction, not a request"
+  },
+  {
+   "repo": "amm10090/Shopify-API-Project",
+   "file": "server/services/ShopifyService.ts",
+   "line": 44,
+   "rest": false,
+   "endpoint": null,
+   "removed": false,
+   "note": "REST client construction, not a request"
+  },
+  {
+   "repo": "amm10090/Shopify-API-Project",
+   "file": "server/services/ShopifyService.ts",
+   "line": 221,
+   "rest": false,
+   "endpoint": null,
+   "removed": false,
+   "note": "not a REST request"
+  },
+  {
+   "repo": "amm10090/Shopify-API-Project",
+   "file": "server/services/ShopifyService.ts",
+   "line": 1117,
+   "rest": false,
+   "endpoint": null,
+   "removed": false,
+   "note": "not a REST request"
+  },
+  {
+   "repo": "amm10090/Shopify-API-Project",
+   "file": "server/services/ShopifyService.ts",
+   "line": 1155,
+   "rest": false,
+   "endpoint": null,
+   "removed": false,
+   "note": "not a REST request"
+  },
+  {
+   "repo": "amm10090/Shopify-API-Project",
+   "file": "server/services/ShopifyService.ts",
+   "line": 1158,
+   "rest": false,
+   "endpoint": null,
+   "removed": false,
+   "note": "not a REST request"
+  },
+  {
+   "repo": "amm10090/Shopify-API-Project",
+   "file": "server/services/ShopifyService.ts",
+   "line": 1166,
+   "rest": false,
+   "endpoint": null,
+   "removed": false,
+   "note": "not a REST request"
+  },
+  {
+   "repo": "amm10090/Shopify-API-Project",
+   "file": "server/services/ShopifyService.ts",
+   "line": 1169,
+   "rest": false,
+   "endpoint": null,
+   "removed": false,
+   "note": "not a REST request"
+  },
+  {
+   "repo": "amm10090/Shopify-API-Project",
+   "file": "server/services/ShopifyService.ts",
+   "line": 1266,
+   "rest": false,
+   "endpoint": null,
+   "removed": false,
+   "note": "not a REST request"
+  },
+  {
+   "repo": "amm10090/Shopify-API-Project",
+   "file": "server/services/ShopifyService.ts",
+   "line": 1283,
+   "rest": false,
+   "endpoint": null,
+   "removed": false,
+   "note": "not a REST request"
+  },
+  {
+   "repo": "amm10090/Shopify-API-Project",
+   "file": "server/services/ShopifyService.ts",
+   "line": 1291,
+   "rest": false,
+   "endpoint": null,
+   "removed": false,
+   "note": "not a REST request"
+  },
+  {
+   "repo": "amm10090/Shopify-API-Project",
+   "file": "server/services/ShopifyService.ts",
+   "line": 1477,
+   "rest": false,
+   "endpoint": null,
+   "removed": false,
+   "note": "not a REST request"
+  },
+  {
+   "repo": "amm10090/Shopify-API-Project",
+   "file": "server/services/ShopifyService.ts",
+   "line": 1490,
+   "rest": false,
+   "endpoint": null,
+   "removed": false,
+   "note": "not a REST request"
+  },
+  {
+   "repo": "amm10090/Shopify-API-Project",
+   "file": "server/services/ShopifyService.ts",
+   "line": 1672,
+   "rest": false,
+   "endpoint": null,
+   "removed": false,
+   "note": "not a REST request"
+  },
+  {
+   "repo": "amm10090/Shopify-API-Project",
+   "file": "server/services/ShopifyService.ts",
+   "line": 1695,
+   "rest": false,
+   "endpoint": null,
+   "removed": false,
+   "note": "not a REST request"
+  },
+  {
+   "repo": "amm10090/Shopify-API-Project",
+   "file": "server/services/ShopifyService.ts",
+   "line": 1699,
+   "rest": false,
+   "endpoint": null,
+   "removed": false,
+   "note": "not a REST request"
+  },
+  {
+   "repo": "amm10090/Shopify-API-Project",
+   "file": "server/services/ShopifyService.ts",
+   "line": 1749,
+   "rest": false,
+   "endpoint": null,
+   "removed": false,
+   "note": "not a REST request"
+  },
+  {
+   "repo": "amm10090/Shopify-API-Project",
+   "file": "server/services/ShopifyService.ts",
+   "line": 2031,
+   "rest": false,
+   "endpoint": null,
+   "removed": false,
+   "note": "GraphQL or unrelated, not REST"
+  },
+  {
+   "repo": "amm10090/Shopify-API-Project",
+   "file": "server/services/ShopifyService.ts",
+   "line": 2084,
+   "rest": false,
+   "endpoint": null,
+   "removed": false,
+   "note": "not a REST request"
+  },
+  {
+   "repo": "amm10090/Shopify-API-Project",
+   "file": "server/services/ShopifyService.ts",
+   "line": 2088,
+   "rest": false,
+   "endpoint": null,
+   "removed": false,
+   "note": "not a REST request"
+  },
+  {
+   "repo": "amm10090/Shopify-API-Project",
+   "file": "server/services/ShopifyService.ts",
+   "line": 2095,
+   "rest": false,
+   "endpoint": null,
+   "removed": false,
+   "note": "not a REST request"
+  },
+  {
+   "repo": "amm10090/Shopify-API-Project",
+   "file": "server/services/ShopifyService.ts",
+   "line": 2349,
+   "rest": false,
+   "endpoint": null,
+   "removed": false,
+   "note": "not a REST request"
+  },
+  {
+   "repo": "amm10090/Shopify-API-Project",
+   "file": "server/services/ShopifyService.ts",
+   "line": 2350,
+   "rest": false,
+   "endpoint": null,
+   "removed": false,
+   "note": "not a REST request"
+  },
+  {
+   "repo": "amm10090/Shopify-API-Project",
+   "file": "server/services/ShopifyService.ts",
+   "line": 2354,
+   "rest": false,
+   "endpoint": null,
+   "removed": false,
+   "note": "not a REST request"
+  },
+  {
+   "repo": "amm10090/Shopify-API-Project",
+   "file": "server/services/ShopifyService.ts",
+   "line": 2356,
+   "rest": false,
+   "endpoint": null,
+   "removed": false,
+   "note": "not a REST request"
+  },
+  {
+   "repo": "amm10090/Shopify-API-Project",
+   "file": "server/services/ShopifyService.ts",
+   "line": 2462,
+   "rest": false,
+   "endpoint": null,
+   "removed": false,
+   "note": "not a REST request"
+  },
+  {
+   "repo": "amm10090/Shopify-API-Project",
+   "file": "server/services/ShopifyService.ts",
+   "line": 2463,
+   "rest": false,
+   "endpoint": null,
+   "removed": false,
+   "note": "not a REST request"
+  },
+  {
+   "repo": "amm10090/Shopify-API-Project",
+   "file": "server/services/ShopifyService.ts",
+   "line": 2464,
+   "rest": false,
+   "endpoint": null,
+   "removed": false,
+   "note": "not a REST request"
+  },
+  {
+   "repo": "amm10090/Shopify-API-Project",
+   "file": "server/services/ShopifyService.ts",
+   "line": 2477,
+   "rest": false,
+   "endpoint": null,
+   "removed": false,
+   "note": "not a REST request"
+  },
+  {
+   "repo": "amm10090/Shopify-API-Project",
+   "file": "server/services/ShopifyService.ts",
+   "line": 2548,
+   "rest": false,
+   "endpoint": null,
+   "removed": false,
+   "note": "not a REST request"
+  },
+  {
+   "repo": "michaelwang11394/sales-associate",
+   "file": "app/routes/app._index/onboarding.tsx",
+   "line": 32,
+   "rest": false,
+   "endpoint": null,
+   "removed": false,
+   "note": "not a REST request"
+  },
+  {
+   "repo": "michaelwang11394/sales-associate",
+   "file": "app/routes/app._index/onboarding.tsx",
+   "line": 77,
+   "rest": false,
+   "endpoint": null,
+   "removed": false,
+   "note": "not a REST request"
+  },
+  {
+   "repo": "michaelwang11394/sales-associate",
+   "file": "app/routes/app._index/onboarding.tsx",
+   "line": 80,
+   "rest": false,
+   "endpoint": null,
+   "removed": false,
+   "note": "not a REST request"
+  },
+  {
+   "repo": "michaelwang11394/sales-associate",
+   "file": "app/routes/app._index/onboarding.tsx",
+   "line": 128,
+   "rest": false,
+   "endpoint": null,
+   "removed": false,
+   "note": "not a REST request"
+  },
+  {
+   "repo": "michaelwang11394/sales-associate",
+   "file": "app/routes/app._index/route.tsx",
+   "line": 96,
+   "rest": false,
+   "endpoint": null,
+   "removed": false,
+   "note": "not a REST request"
+  },
+  {
+   "repo": "michaelwang11394/sales-associate",
+   "file": "app/routes/app.settings.tsx",
+   "line": 181,
+   "rest": false,
+   "endpoint": null,
+   "removed": false,
+   "note": "not a REST request"
+  },
+  {
+   "repo": "michaelwang11394/sales-associate",
+   "file": "app/routes/app.settings.tsx",
+   "line": 205,
+   "rest": false,
+   "endpoint": null,
+   "removed": false,
+   "note": "not a REST request"
+  },
+  {
+   "repo": "raj84908/Quantus-Warehouse-javascript",
+   "file": "lib/shopify.js",
+   "line": 9,
+   "rest": false,
+   "endpoint": null,
+   "removed": false,
+   "note": "not a REST request"
+  },
+  {
+   "repo": "raj84908/Quantus-Warehouse-javascript",
+   "file": "lib/shopify.js",
+   "line": 26,
+   "rest": false,
+   "endpoint": null,
+   "removed": false,
+   "note": "REST client construction, not a request"
+  },
+  {
+   "repo": "raj84908/Quantus-Warehouse-javascript",
+   "file": "lib/shopify.js",
+   "line": 140,
+   "rest": false,
+   "endpoint": null,
+   "removed": false,
+   "note": "not a REST request"
+  },
+  {
+   "repo": "sanjeev744/smart-variants-display",
+   "file": "app/services/admin-error.server.ts",
+   "line": 79,
+   "rest": false,
+   "endpoint": null,
+   "removed": false,
+   "note": "GraphQL or unrelated, not REST"
+  },
+  {
+   "repo": "sanjeev744/smart-variants-display",
+   "file": "scripts/check-scopes.ts",
+   "line": 30,
+   "rest": false,
+   "endpoint": null,
+   "removed": false,
+   "note": "GraphQL or unrelated, not REST"
+  },
+  {
+   "repo": "sanjeev744/smart-variants-display",
+   "file": "scripts/check-scopes.ts",
+   "line": 68,
+   "rest": false,
+   "endpoint": null,
+   "removed": false,
+   "note": "not a REST request"
+  },
+  {
+   "repo": "sanjeev744/smart-variants-display",
+   "file": "scripts/diagnose-products.ts",
+   "line": 35,
+   "rest": false,
+   "endpoint": null,
+   "removed": false,
+   "note": "GraphQL or unrelated, not REST"
+  },
+  {
+   "repo": "sanjeev744/smart-variants-display",
+   "file": "scripts/test-product-graphql.ts",
+   "line": 32,
+   "rest": false,
+   "endpoint": null,
+   "removed": false,
+   "note": "GraphQL or unrelated, not REST"
+  },
+  {
+   "repo": "sanjeev744/smart-variants-display",
+   "file": "scripts/test-split-full.ts",
+   "line": 18,
+   "rest": false,
+   "endpoint": null,
+   "removed": false,
+   "note": "GraphQL or unrelated, not REST"
+  },
+  {
+   "repo": "sanjeev744/smart-variants-display",
+   "file": "scripts/test-split-graphql.ts",
+   "line": 17,
+   "rest": false,
+   "endpoint": null,
+   "removed": false,
+   "note": "GraphQL or unrelated, not REST"
+  },
+  {
+   "repo": "tahmidbintaslim/shopify-ucp",
+   "file": "app/utils/agent-logic.ts",
+   "line": 177,
+   "rest": false,
+   "endpoint": null,
+   "removed": false,
+   "note": "GraphQL or unrelated, not REST"
+  }
+ ]
+}
