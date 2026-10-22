@@ -19,6 +19,15 @@ const MAX_TITLE = 70;
 // Longer diffs stay readable in the Files changed tab and migration.patch.
 const MAX_VISIBLE_DIFF_LINES = 80;
 const MAX_QUOTE = 300;
+// The body stays well under GitHub's 65,536-character limit and readable in one sitting; above
+// this, diffs and site lists shorten in steps and the body says what it left out.
+export const MAX_BODY_CHARACTERS = 16_000;
+const MAX_LISTED_SITES = 25;
+// Source: Stripe changelog, 2026-09-30.endive, read 2026-10-22.
+const PAYMENT_METHOD_TYPES_CHANGELOG =
+  'https://docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions';
+const LOCKFILE =
+  /(?:^|\/)(?:package-lock\.json|npm-shrinkwrap\.json|pnpm-lock\.yaml|yarn\.lock|bun\.lockb?)$/;
 
 function plainText(value: string) {
   return value.replace(/[\x00-\x1f\x7f]/g, ' ').replace(/[\\`*_{}\[\]<>#|]/g, '\\$&');
@@ -96,8 +105,10 @@ function enclosingFunction(lines: string[], index: number) {
   }
 }
 
-function changeSections(diff: string) {
+// Lockfiles are named, not shown: their entries follow the package change shown above them.
+function changeSections(diff: string, limit = MAX_VISIBLE_DIFF_LINES) {
   const sections: string[] = [];
+  const lockfiles: string[] = [];
   let shown = 0;
   let hidden = 0;
   for (const file of fileChanges(diff)) {
@@ -105,11 +116,15 @@ function changeSections(diff: string) {
       sections.push(`New file ${code(file.path)}; see Files changed.`);
       continue;
     }
+    if (LOCKFILE.test(file.path)) {
+      lockfiles.push(file.path);
+      continue;
+    }
     const afterLines = file.after.split('\n');
     for (const hunk of structuredPatch(file.path, file.path, file.before, file.after, '', '', {
       context: 2,
     }).hunks) {
-      if (shown + hunk.lines.length > MAX_VISIBLE_DIFF_LINES) {
+      if (shown + hunk.lines.length > limit) {
         hidden++;
         continue;
       }
@@ -136,11 +151,48 @@ function changeSections(diff: string) {
       );
     }
   }
+  if (lockfiles.length)
+    sections.push(
+      `Changes to ${summaryList(lockfiles.map(code))} are not shown here; see Files changed.`,
+    );
   if (hidden)
     sections.push(
       `${hidden} more ${hidden === 1 ? 'change is' : 'changes are'} not shown here; see Files changed or migration.patch.`,
     );
   return sections;
+}
+
+// A Markdown link to an https page, or nothing for anything else.
+// Words to lines of at most 72 columns; a longer word, such as a URL, keeps its own line.
+export function wrap(text: string, indent = '') {
+  const lines = [''];
+  for (const word of text.split(' ')) {
+    const line = lines[lines.length - 1];
+    if (line.trim() && `${line} ${word}`.length > 72) lines.push(`${indent}${word}`);
+    else lines[lines.length - 1] = line ? `${line} ${word}` : word;
+  }
+  return lines.join('\n');
+}
+
+function link(url: string) {
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol !== 'https:') return undefined;
+    const text = `${parsed.host}${parsed.pathname}`.replace(/\/$/, '');
+    return `[${plainText(text)}](${parsed.href.replace(/[()\s]/g, encodeURIComponent)})`;
+  } catch {
+    return undefined;
+  }
+}
+
+// One site per line, up to `limit`, then a count with where the rest are recorded.
+function siteList(sites: string[], limit: number) {
+  const visible = sites.slice(0, limit).map((site) => `- ${site}`);
+  const remaining = sites.length - visible.length;
+  return [
+    ...visible,
+    ...(remaining ? [`- and ${remaining} more; every location is in report.json.`] : []),
+  ].join('\n');
 }
 
 function addedProperties(patch: ValidationReport['patch']): AddedProperty[] {
@@ -365,6 +417,27 @@ export function createReviewArtifacts(
         }),
     ),
   ];
+  const upgrade =
+    'sdkUpgrade' in patch &&
+    patch.sdkUpgrade &&
+    typeof patch.sdkUpgrade === 'object' &&
+    'to' in patch.sdkUpgrade &&
+    'from' in patch.sdkUpgrade
+      ? (patch.sdkUpgrade as { from: string; to: string })
+      : undefined;
+  const pinFrom = report.apiVersion.application;
+  const pinTo = report.apiVersion.after;
+  const movesPin = (file: FileChange) =>
+    Boolean(
+      pinFrom &&
+      pinTo &&
+      pinFrom !== pinTo &&
+      file.before.includes(pinFrom) &&
+      file.after.includes(pinTo) &&
+      !file.before.includes(pinTo),
+    );
+  const pinFiles = fileChanges(patch.diff).filter(movesPin);
+  const helperFiles = fileChanges(patch.diff).filter((file) => !file.before);
   const keyChanges = fileChanges(patch.diff).map((file) => {
     const fields = migratedFields(file.path);
     const what = shopify
@@ -378,6 +451,14 @@ export function createReviewArtifacts(
             ...(cardFiles.has(file.path)
               ? [
                   `Sends ${code('allowed_payment_method_types')} in place of the removed ${code('payment_method_types')}.`,
+                ]
+              : []),
+            ...(movesPin(file)
+              ? [`Moves the pinned API version from ${code(pinFrom!)} to ${code(pinTo!)}.`]
+              : []),
+            ...(upgrade && (/(?:^|\/)package\.json$/.test(file.path) || LOCKFILE.test(file.path))
+              ? [
+                  `Upgrades ${code(report.adapter.packageName)} from ${code(upgrade.from)} to ${code(upgrade.to)}.`,
                 ]
               : []),
           ].join(' ') || `Updates ${plainText(provider)} API usage for the new contract.`;
@@ -414,7 +495,8 @@ export function createReviewArtifacts(
             // A configured replacement keeps the HTTP method; its contract signature must match.
             `Retires ${code(`${entry.resource}.${entry.method}`)} (${code(`${entry.httpMethod} ${entry.path}`)}) in favor of ${code(`${entry.replacementResource}.${entry.replacementMethod}`)} (${code(`${entry.httpMethod} ${entry.replacementPath}`)}).`,
         ),
-        ...(validation.repair?.stopReason === OPEN_ENUM_REPAIR
+        ...(validation.repair?.stopReason === OPEN_ENUM_REPAIR ||
+        validation.repair?.openEnumRestored
           ? [
               `Restores the known values of the Stripe enums that stripe-node 22.4.0 widened with ${code('OtherString')}, using ${code('Extract<…>')} types where the upgraded types rejected this code. Runtime code is unchanged: a value Stripe adds later still reaches this code unchecked, as it did before the upgrade.`,
             ]
@@ -476,10 +558,28 @@ export function createReviewArtifacts(
       : []),
     ...(unconfirmed.length
       ? [
-          `Leaves ${unconfirmed.length} untraced read${unconfirmed.length === 1 ? '' : 's'} of removed field names unchanged for manual review: ${summaryList([...new Set(unconfirmed.map((finding) => code(`${finding.file}:${finding.line}`)))])}.`,
+          `Leaves ${unconfirmed.length} untraced read${unconfirmed.length === 1 ? '' : 's'} of removed field names unchanged for manual review; each is listed under Left Unchanged.`,
         ]
       : []),
   ];
+  const untracedSites = [
+    ...new Set(
+      unconfirmed.map(
+        (finding) => `${code(`${finding.file}:${finding.line}`)} reads ${code(finding.expression)}`,
+      ),
+    ),
+  ];
+  // Provider pages that document the change, from the rule's source and attached vendor notes.
+  const sourceUrls = [
+    ...new Set(
+      [
+        ...('source' in patch && typeof patch.source === 'string' ? [patch.source] : []),
+        ...vendorNotes(patch).map((note) => note.url),
+        ...(cardRename || listedMethods.length ? [PAYMENT_METHOD_TYPES_CHANGELOG] : []),
+      ].filter((url) => link(url)),
+    ),
+  ];
+  const sources = sourceUrls.map((url) => link(url)!);
   // An entry that failed on the original code (missing module, unmocked service) proves nothing.
   const generatedRan = generated ? generated.entryPoints.length - generated.notRunnable.length : 0;
   const generatedResult = generated
@@ -489,7 +589,99 @@ export function createReviewArtifacts(
         ? ` Generated stripe-mock checks could not run any of ${generated.entryPoints.length} exported functions on their own.`
         : ` Generated stripe-mock checks ${generated.patched.status} on ${generatedRan} of ${generated.entryPoints.length} exported functions.`
     : '';
-  const body =
+  const fileTotal = fileChanges(patch.diff).length;
+  const stripe = provider === 'Stripe';
+  const webhookReads = report.findings.some((finding) => finding.webhook);
+  // What the run did not establish, in one place, so a reviewer does not infer it from silence.
+  const notVerified = [
+    passed
+      ? `Refit made no request to ${plainText(provider)}. The checks ran on this repository's code in offline Docker, so they cover only the code paths they exercise.`
+      : `Refit made no request to ${plainText(provider)}, and the checks did not pass or did not run on this patch.`,
+    ...(ai
+      ? [
+          'The AI-written lines are checked only by the commands above; read them as you would a teammate’s.',
+        ]
+      : []),
+    ...(stripe && (pinFiles.length || webhookReads)
+      ? [
+          'Webhook endpoints keep the API version set in the Stripe Dashboard. This patch does not change them, so events can keep arriving in the old shape until you update them.',
+        ]
+      : []),
+    ...(shopify
+      ? ['Requests the Shopify SDK makes on its own (authentication, billing) were not checked.']
+      : []),
+    ...(untracedSites.length
+      ? [
+          `${untracedSites.length} untraced read${untracedSites.length === 1 ? ' was' : 's were'} left unchanged; see Left Unchanged.`,
+        ]
+      : []),
+    ...(unresolvedReads
+      ? [
+          `${unresolvedReads} confirmed usage${unresolvedReads === 1 ? ' is' : 's are'} still unmigrated.`,
+        ]
+      : []),
+    ...(parameterCalls.length
+      ? [
+          `${parameterCalls.length} call${parameterCalls.length === 1 ? ' still sends' : 's still send'} a removed request parameter.`,
+        ]
+      : []),
+  ];
+  const rollback = [
+    `Revert this pull request. It changes ${fileTotal} ${fileTotal === 1 ? 'file' : 'files'} and adds no database migration or environment variable.`,
+    ...(pinFiles.length ? [`The revert restores the pinned API version ${code(pinFrom!)}.`] : []),
+    ...(upgrade
+      ? [
+          `It also restores ${code(report.adapter.packageName)} ${code(upgrade.from)} in the package manifest and lockfile; reinstall dependencies after reverting.`,
+        ]
+      : []),
+    ...(helperFiles.length
+      ? [`It removes the generated ${summaryList(helperFiles.map((file) => code(file.path)))}.`]
+      : []),
+    `Refit changed nothing outside this repository${stripe ? ': no Stripe Dashboard, webhook endpoint or account setting' : ''}.`,
+  ];
+  const checklist = [
+    `Read each change under Code Changes${sources.length ? ' against the provider page linked in Overview' : ''}.`,
+    ...(waiver?.gate === 'dependency-preparation'
+      ? ['Install dependencies and run your checks: Refit could not run any.']
+      : []),
+    ...(waiver?.gate === 'removed-request-parameter'
+      ? ['Change or remove each call under Removed request parameters left for you.']
+      : []),
+    ...(waiver?.gate === 'webhook-api-version'
+      ? [
+          `Set the webhook endpoint API version to ${code(waiver.targetVersion)} when you deploy, or confirm it already is.`,
+        ]
+      : []),
+    ...(cardRename ? ['Confirm cards stay enabled in the Stripe Dashboard.'] : []),
+    ...listedMethods.map(
+      (methods) => `Confirm ${code(`[${methods}]`)} are still offered where you rely on them.`,
+    ),
+    ...(untracedSites.length ? ['Check each read under Left Unchanged.'] : []),
+    ...(unresolvedReads
+      ? [
+          `Migrate the ${unresolvedReads} confirmed usage${unresolvedReads === 1 ? '' : 's'} Refit left unmigrated.`,
+        ]
+      : []),
+    ...(flaggedPeriods.length
+      ? ['Choose the subscription item for mixed billing periods (see Key Changes).']
+      : []),
+    ...(passed
+      ? [
+          `Confirm ${commandText(validation.command)} exercises the code this patch changes, or add a test that does.`,
+        ]
+      : []),
+  ];
+  const overview = shopify
+    ? `This app pins Shopify Admin API ${plainText(report.apiVersion.application ?? 'an older version')}. A deterministic Refit rule moves it to ${after} after checking every traced GraphQL document against the ${after} schema.`
+    : `${plainText(provider)} API ${after} ${overviewCauses.length ? overviewCauses.join(' and ') : 'changes API usage this code relies on'}. ${ai ? `AI${model ? ` (${code(model)})` : ''}, checked by Refit,` : 'A deterministic Refit rule'} migrates ${usageCount} in ${fileCount} so the code keeps working after the upgrade.`;
+  const checks = passed
+    ? sameCommand
+      ? `${commandText(validation.command)} passed on the original and migrated code in offline Docker.`
+      : `${commandText(validation.baselineCommand)} passed on the original and ${commandText(validation.command)} on the migrated code in offline Docker.`
+    : waiver?.gate === 'dependency-preparation'
+      ? `**Not run: dependency preparation failed (${code(waiver.reason)}); this patch is untested.**`
+      : `**Validation did not pass (${validation.status}).**`;
+  const render = (diffLimit: number, siteLimit: number, shortened?: string) =>
     [
       ...(waiver?.gate === 'dependency-preparation'
         ? [
@@ -508,30 +700,37 @@ export function createReviewArtifacts(
                 REMOVED_PARAMETER_NOTES[parameter] ??
                 `No reviewed replacement for ${code(parameter)} exists. Check the ${plainText(provider)} changelog for ${code(waiver.targetVersion)}, then remove or replace it.`,
             ),
-            parameterCalls
-              .map(
+            siteList(
+              parameterCalls.map(
                 (call) =>
-                  `- ${code(`${call.file}:${call.line}`)}: ${code(call.call)} sends ${code(call.parameter)}`,
-              )
-              .join('\n'),
+                  `${code(`${call.file}:${call.line}`)}: ${code(call.call)} sends ${code(call.parameter)}`,
+              ),
+              Math.max(siteLimit, 1),
+            ),
           ]
         : []),
       ...(waiver?.gate === 'webhook-api-version'
         ? [
             '## Webhook API version not verified',
             `This patch changes webhook handlers. Stripe sends webhooks in the API version set on the webhook endpoint in the Stripe dashboard, which Refit can't see from code. Before merging, check the endpoint's API version in Dashboard > Developers > Webhooks and confirm it matches ${code(waiver.targetVersion)}, or update it when you deploy.`,
-            waiver.handlers
-              .map(
-                (handler) =>
-                  `- ${code(`${handler.file}:${handler.line}`)}${handler.eventTypes.length ? ` (${handler.eventTypes.map(code).join(', ')})` : ''}`,
-              )
-              .join('\n'),
+            siteList(
+              // One read can break more than one field change; list its site once.
+              [
+                ...new Set(
+                  waiver.handlers.map(
+                    (handler) =>
+                      `${code(`${handler.file}:${handler.line}`)}${handler.eventTypes.length ? ` (${handler.eventTypes.map(code).join(', ')})` : ''}`,
+                  ),
+                ),
+              ],
+              Math.max(siteLimit, 1),
+            ),
           ]
         : []),
       '## Overview',
       shopify
-        ? `This app pins Shopify Admin API ${plainText(report.apiVersion.application ?? 'an older version')}. A deterministic Refit rule moves it to ${after} after checking every traced GraphQL document against the ${after} schema.`
-        : `${plainText(provider)} API ${after} ${overviewCauses.length ? overviewCauses.join(' and ') : 'changes API usage this code relies on'}. ${ai ? `AI${model ? ` (${code(model)})` : ''}, checked by Refit,` : 'A deterministic Refit rule'} migrates ${usageCount} in ${fileCount} so the code keeps working after the upgrade.`,
+        ? overview
+        : `${overview}${sources.length ? ` ${plainText(provider)} documents the change: ${sources.join(', ')}.` : ''}`,
       '## API Impact & Spec Changes',
       [
         `- Breaking Changes: ${breaking.join(' ') || 'Recorded in the technical evidence.'}`,
@@ -541,18 +740,15 @@ export function createReviewArtifacts(
       '## Key Changes',
       [...keyChanges, ...review.map((entry) => `- Review: ${entry}`)].join('\n'),
       '## Code Changes',
-      ...changeSections(patch.diff),
+      ...changeSections(patch.diff, diffLimit),
+      ...(shortened
+        ? [
+            `This description is shortened to stay under ${MAX_BODY_CHARACTERS.toLocaleString('en-US')} characters (${shortened}); migration.patch and report.json have everything.`,
+          ]
+        : []),
       '## Automated Verification Gates',
       [
-        `- Test Suite Output: ${
-          passed
-            ? sameCommand
-              ? `${commandText(validation.command)} passed on the original and migrated code in offline Docker.`
-              : `${commandText(validation.baselineCommand)} passed on the original and ${commandText(validation.command)} on the migrated code in offline Docker.`
-            : waiver?.gate === 'dependency-preparation'
-              ? `**Not run: dependency preparation failed (${code(waiver.reason)}); this patch is untested.**`
-              : `**Validation did not pass (${validation.status}).**`
-        }${generatedResult}`,
+        `- Test Suite Output: ${checks}${generatedResult}`,
         ...(legacyPeerDeps
           ? [
               "- Dependency Installation: `npm ci` rejected the committed lockfile's peer dependencies (ERESOLVE), so Refit installed the same lockfile with `--legacy-peer-deps`. Check that your own install uses the same setting.",
@@ -561,6 +757,19 @@ export function createReviewArtifacts(
         `- Linter & Static Analysis: ${typeChecked ? 'TypeScript type check is the test command above; ' : 'Not run; '}${shopify ? `Refit rescanned the migrated code and every runtime Admin API pin is on ${after}.` : `Refit rescanned the migrated code and ${unresolvedReads} confirmed usage${unresolvedReads === 1 ? '' : 's'} of the breaking changes remain${parameterCalls.length ? `, plus ${parameterCalls.length} call${parameterCalls.length === 1 ? '' : 's'} sending a removed request parameter` : ''}${untracedReads ? `, plus ${untracedReads} untraced read${untracedReads === 1 ? '' : 's'} of removed field names` : ''}.`}`,
         '- Security Scans: Not run.',
       ].join('\n'),
+      ...(untracedSites.length
+        ? [
+            '## Left Unchanged',
+            `Refit could not trace these reads of removed field names to a ${plainText(provider)} object, so it did not change them. Check each one: a read of a ${plainText(provider)} object here breaks after the upgrade.`,
+            siteList(untracedSites, siteLimit),
+          ]
+        : []),
+      '## Not Verified',
+      notVerified.map((entry) => `- ${entry}`).join('\n'),
+      '## Rollback',
+      rollback.map((entry) => `- ${entry}`).join('\n'),
+      '## Reviewer Checklist',
+      checklist.map((entry) => `- [ ] ${entry}`).join('\n'),
       '## Related Telemetry',
       [
         '- Closes Issue: None.',
@@ -575,6 +784,39 @@ export function createReviewArtifacts(
       `<!-- refit-migration:${migrationIdentity(report, validation.revision, integration)} -->`,
       `<!-- refit-evidence "runId": "${report.runId}", "patchHash": "${validation.patchHash}" -->`,
     ].join('\n\n') + '\n';
+  // Shorter diffs first, then shorter site lists, until the body fits.
+  const tiers: [number, number, string?][] = [
+    [MAX_VISIBLE_DIFF_LINES, MAX_LISTED_SITES],
+    [40, MAX_LISTED_SITES, 'code changes cut to 40 lines'],
+    [20, 10, 'code changes cut to 20 lines and site lists to 10'],
+    [0, 3, 'code changes and most site lists left out'],
+  ];
+  const body =
+    tiers
+      .map(([diffLimit, siteLimit, shortened]) => render(diffLimit, siteLimit, shortened))
+      .find((text) => text.length <= MAX_BODY_CHARACTERS) ??
+    render(0, 0, 'code changes and site lists left out');
+  // The commit explains itself in `git log`: the title without its review prefix, what changed per
+  // file, the checks, the provider pages and the run, as plain text wrapped at 72 columns.
+  const commitMessage = `${[
+    title.slice(prefix.length),
+    '',
+    wrap(overview.replace(/`/g, '')),
+    '',
+    ...keyChanges.slice(0, MAX_LISTED_SITES).map((entry) => wrap(entry.replace(/`/g, ''), '  ')),
+    ...(keyChanges.length > MAX_LISTED_SITES
+      ? [`- and ${keyChanges.length - MAX_LISTED_SITES} more files; see the pull request.`]
+      : []),
+    '',
+    wrap(`Checks: ${checks.replace(/`|\*\*/g, '')}`),
+    ...(needsReview
+      ? ['', wrap('Needs review: the pull request lists what to check before merging.')]
+      : []),
+    ...(sourceUrls.length ? ['', ...sourceUrls.map((url) => `Source: ${url}`)] : []),
+    '',
+    `Refit-Run: ${report.runId.slice(0, 12)}`,
+    ...(integration ? [`Refit-Integration: ${integration}`] : []),
+  ].join('\n')}\n`;
   const files = {
     'report.json': `${JSON.stringify(waiver ? { ...report, waivedGates: [waiver] } : report, null, 2)}\n`,
     'migration.patch': patch.diff,
@@ -597,7 +839,7 @@ export function createReviewArtifacts(
       bytes: Buffer.byteLength(content),
     })),
   };
-  return { files, manifest };
+  return { files, manifest, commitMessage };
 }
 
 export async function writeReviewBundle(directory: string, report: ValidationReport) {

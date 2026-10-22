@@ -1,4 +1,5 @@
 import { readFile } from 'node:fs/promises';
+import { ECOSYSTEMS, type Ecosystem } from './package-manifests.ts';
 import { rangesOverlap, sdkTarget, validRange } from './sdk-deadlines.ts';
 import { isObject, parseObject } from './specifications.ts';
 import { PipelineInputError } from './types.ts';
@@ -33,6 +34,14 @@ const PROVIDERS = new Set([
   'coinbase-commerce',
   'bedrock',
   'azure-openai',
+  'algolia',
+  'zoom',
+  'mailchimp',
+  'airtable',
+  'hubspot',
+  'aws',
+  'azure',
+  'twilio',
 ]);
 const KINDS = new Set(['api-version', 'model', 'sdk', 'method', 'endpoint', 'field', 'feature']);
 const ENTRY_KEYS = [
@@ -45,15 +54,21 @@ const ENTRY_KEYS = [
   'replacement',
   'source',
   'checkedAt',
+  'ecosystem',
   'derivedDate',
 ];
+// Registries other than npm that an SDK entry may name (pipeline/package-manifests.ts).
+const SDK_ECOSYSTEMS = new Set<string>(ECOSYSTEMS);
 // Kinds whose matching is too new to gate a build or open an issue (owner decision, 2026-10-22).
 const REPORT_ONLY_KINDS = new Set(['method', 'endpoint', 'field', 'feature']);
 const MILLISECONDS_PER_DAY = 86_400_000;
+// A `checkedAt` older than this many days is flagged: the entry's page needs reading again.
+export const STALE_CHECK_DAYS = 30;
 
 // One reviewed sunset: the date a provider stops serving these API versions or models, ends
-// support for these SDK packages (`kind: 'sdk'`, whose versions are npm package names, each
-// optionally narrowed to a version range as in `@clerk/nextjs@<5`), retires these API methods
+// support for these SDK packages (`kind: 'sdk'`, whose versions are npm package names, or names in
+// `ecosystem`'s registry when it is set, each optionally narrowed to a version range as in
+// `@clerk/nextjs@<5`), retires these API methods
 // (`kind: 'method'`, whose versions are method names such as `files.upload`), HTTP endpoints
 // (`kind: 'endpoint'`, whose versions read `GET /zones/{zone_id}/settings`) or GraphQL fields
 // (`kind: 'field'`, whose versions read `Type.field`), or shuts down a product (`kind: 'feature'`,
@@ -88,7 +103,15 @@ export interface DeadlineEntry {
     | 'lob'
     | 'coinbase-commerce'
     | 'bedrock'
-    | 'azure-openai';
+    | 'azure-openai'
+    | 'algolia'
+    | 'zoom'
+    | 'mailchimp'
+    | 'airtable'
+    | 'hubspot'
+    | 'aws'
+    | 'azure'
+    | 'twilio';
   kind: 'api-version' | 'model' | 'sdk' | 'method' | 'endpoint' | 'field' | 'feature';
   versions: string[];
   date: string;
@@ -96,6 +119,7 @@ export interface DeadlineEntry {
   replacement: string | null;
   source: string | null;
   checkedAt: string;
+  ecosystem?: Ecosystem;
   derivedDate?: true;
 }
 
@@ -120,17 +144,20 @@ export function daysUntil(date: string, now: Date) {
   return Math.round((Date.parse(`${date}T00:00:00Z`) - today) / MILLISECONDS_PER_DAY);
 }
 
-// Shape problems make the registry unusable; past-due entries and missing sources are flagged for
-// review but still load, since a repository pinning a sunset version is the most urgent exposure.
+// Shape problems make the registry unusable; past-due entries, missing sources and stale checks are
+// flagged for review but still load, since a repository pinning a sunset version is the most urgent
+// exposure.
 export function checkDeadlineRegistry(value: unknown, now: Date) {
   const errors: string[] = [];
   const missingSource: string[] = [];
   const pastDue: { id: string; date: string; days: number }[] = [];
+  const stale: { id: string; checkedAt: string; days: number }[] = [];
   if (!isObject(value) || value.formatVersion !== 1 || !Array.isArray(value.deadlines))
     return {
       errors: ['Registry requires formatVersion: 1 and a deadlines array.'],
       missingSource,
       pastDue,
+      stale,
     };
   const ids = new Set<string>();
   const versions = new Set<string>();
@@ -160,7 +187,7 @@ export function checkDeadlineRegistry(value: unknown, now: Date) {
       errors.push(`${label}: versions must be a non-empty list of strings.`);
     else
       for (const version of entry.versions as string[]) {
-        const key = `${String(entry.provider)}:${version}`;
+        const key = `${String(entry.provider)}:${String(entry.ecosystem ?? '')}:${version}`;
         if (versions.has(key)) errors.push(`${label}: ${version} already has another deadline.`);
         versions.add(key);
         if (entry.kind !== 'sdk') continue;
@@ -169,14 +196,26 @@ export function checkDeadlineRegistry(value: unknown, now: Date) {
           errors.push(`${label}: ${version} has a version range Refit cannot read.`);
           continue;
         }
-        const seen = packageRanges.get(`${String(entry.provider)}:${name}`) ?? [];
+        const seen =
+          packageRanges.get(`${String(entry.provider)}:${String(entry.ecosystem ?? '')}:${name}`) ??
+          [];
         for (const other of seen)
           if (other.version !== version && rangesOverlap(range, sdkTarget(other.version).range))
             errors.push(
               `${label}: ${version} overlaps ${other.version} in ${other.label}, so a release would have two deadlines.`,
             );
-        packageRanges.set(`${String(entry.provider)}:${name}`, [...seen, { version, label }]);
+        packageRanges.set(`${String(entry.provider)}:${String(entry.ecosystem ?? '')}:${name}`, [
+          ...seen,
+          { version, label },
+        ]);
       }
+    if (
+      entry.ecosystem !== undefined &&
+      (entry.kind !== 'sdk' || !SDK_ECOSYSTEMS.has(String(entry.ecosystem)))
+    )
+      errors.push(
+        `${label}: ecosystem is only for sdk entries and must be one of ${[...SDK_ECOSYSTEMS].join(', ')}.`,
+      );
     if (!validDate(entry.date)) errors.push(`${label}: date must be a real YYYY-MM-DD date.`);
     if (!validDate(entry.checkedAt))
       errors.push(`${label}: checkedAt must be a real YYYY-MM-DD date.`);
@@ -192,8 +231,10 @@ export function checkDeadlineRegistry(value: unknown, now: Date) {
       errors.push(`${label}: source must be an https URL.`);
     if (validDate(entry.date) && daysUntil(entry.date, now) < 0)
       pastDue.push({ id: label, date: entry.date, days: -daysUntil(entry.date, now) });
+    if (validDate(entry.checkedAt) && -daysUntil(entry.checkedAt, now) > STALE_CHECK_DAYS)
+      stale.push({ id: label, checkedAt: entry.checkedAt, days: -daysUntil(entry.checkedAt, now) });
   }
-  return { errors, missingSource, pastDue };
+  return { errors, missingSource, pastDue, stale };
 }
 
 // Loads the registry for matching. An entry without a source is never used for alerts: a deadline

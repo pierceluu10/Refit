@@ -119,12 +119,30 @@ it('inventories Stripe and OpenAI: packages, the pinned API version, deadlines a
     {
       id: 'stripe',
       agent: true,
-      packages: [{ file: 'package.json', name: 'stripe', version: '^16.0.0', locked: '16.12.0' }],
+      packages: [
+        {
+          file: 'package.json',
+          name: 'stripe',
+          version: '^16.0.0',
+          locked: '16.12.0',
+          workspace: { path: '.', name: null },
+          excluded: null,
+        },
+      ],
     },
     {
       id: 'openai',
       agent: true,
-      packages: [{ file: 'package.json', name: 'openai', version: '^4.20.0', locked: '4.77.0' }],
+      packages: [
+        {
+          file: 'package.json',
+          name: 'openai',
+          version: '^4.20.0',
+          locked: '4.77.0',
+          workspace: { path: '.', name: null },
+          excluded: null,
+        },
+      ],
     },
   ]);
   expect(inventory.integrations).toEqual([]);
@@ -146,7 +164,15 @@ it('inventories Stripe and OpenAI: packages, the pinned API version, deadlines a
   });
   // Paths, lines and counts only: no source line is kept.
   expect(exposure.evidence).toEqual([
-    { file: 'src/chat.ts', line: 4, kind: 'source', use: 'live', version: 'gpt-4' },
+    {
+      file: 'src/chat.ts',
+      line: 4,
+      kind: 'source',
+      use: 'live',
+      version: 'gpt-4',
+      workspace: { path: '.', name: null },
+      excluded: null,
+    },
   ]);
   expect(JSON.stringify(inventory)).not.toContain('"text"');
   expect(inventory.models).toEqual([
@@ -301,6 +327,8 @@ it('attributes packages to each pnpm workspace with their locked versions', asyn
           name: '@anthropic-ai/sdk',
           version: '^0.30.0',
           locked: '0.30.1',
+          workspace: { path: 'apps/assistant', name: 'assistant' },
+          excluded: null,
         },
       ],
     },
@@ -312,6 +340,8 @@ it('attributes packages to each pnpm workspace with their locked versions', asyn
           name: '@shopify/shopify-api',
           version: '^11.0.0',
           locked: '11.4.0',
+          workspace: { path: 'apps/shop', name: 'shop' },
+          excluded: null,
         },
       ],
     },
@@ -363,10 +393,16 @@ it('lists model strings found only in tests as mentions, never as exposures', as
     inventory.deadlines.mentions.map((mention) => ({
       id: mention.deadline.id,
       counts: mention.nonLiveCounts,
+      outside: mention.outside?.map((item) => [item.file, item.excluded]),
     })),
   ).toEqual([
-    { id: 'openai-2026-10-23-gpt-3-5-turbo', counts: { test: 1 } },
-    { id: 'openai-2026-10-23-gpt-4', counts: { test: 1 } },
+    { id: 'openai-2026-10-23-gpt-3-5-turbo', counts: { test: 1 }, outside: [] },
+    // A fixture path is listed outside application code, not as a test match.
+    {
+      id: 'openai-2026-10-23-gpt-4',
+      counts: {},
+      outside: [['test/fixtures/models.ts', 'test-fixture']],
+    },
   ]);
   expect(inventory.models).toEqual([
     {

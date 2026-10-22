@@ -1,0 +1,56 @@
+{
+  "formatVersion": 1,
+  "repository": "Shopify/example-app--qr-code--remix",
+  "revision": "6ed425cab13f9e8d1e64dc23de0da6711531650c",
+  "date": "2026-10-22",
+  "integrations": [
+    {
+      "provider": "shopify",
+      "name": "Shopify",
+      "packages": [
+        {
+          "file": "package.json",
+          "name": "@shopify/shopify-app-react-router",
+          "declared": "^1.1.0",
+          "locked": null
+        }
+      ],
+      "configured": false,
+      "integration": null,
+      "capability": "migrate",
+      "apiVersions": []
+    }
+  ],
+  "deadlines": [
+    {
+      "id": "shopify-admin-2026-01",
+      "provider": "shopify",
+      "kind": "api-version",
+      "versions": [
+        "2026-01"
+      ],
+      "date": "2027-01-16",
+      "days": 86,
+      "summary": "Shopify API version 2026-01 stops being accessible at 15:00 UTC. Requests fall forward to the oldest accessible stable version.",
+      "replacement": "A supported stable version",
+      "source": "https://shopify.dev/docs/api/usage/versioning",
+      "evidence": [
+        {
+          "file": "app/shopify.server.js",
+          "line": 16
+        },
+        {
+          "file": "app/shopify.server.js",
+          "line": 40
+        }
+      ],
+      "more": 0,
+      "ignored": false
+    }
+  ],
+  "mentions": [],
+  "outside": [],
+  "models": [],
+  "untracked": [],
+  "next": "Plan to move off `2026-01` before 2027-01-16 (86 days left). Replacement: a supported stable version."
+}

@@ -1,4 +1,5 @@
-import { basename, dirname, join, resolve } from 'node:path';
+import { lstat } from 'node:fs/promises';
+import { basename, dirname, join, relative, resolve } from 'node:path';
 import { readCommittedRepository } from './committed-repository.ts';
 import { resolveDockerImage } from './docker-sandbox.ts';
 import { readPreparationInputs } from './dependency-inputs.ts';
@@ -10,6 +11,7 @@ import { migrationReviewReason } from './migration-review.ts';
 import { hasErrorCode } from './state-files.ts';
 import { PipelineInputError } from './types.ts';
 import { readWorkflowConfiguration, REPOSITORY_CONFIGURATION } from './workflow-configuration.ts';
+import { contractCommand } from './contract-commands.ts';
 
 const MAX_UNMAPPED_EXAMPLES = 3;
 const FILE_ERROR_CODES = ['ENOENT', 'ENOTDIR', 'EACCES', 'EPERM'];
@@ -44,6 +46,17 @@ export interface ReadinessReport {
   scope: string[];
 }
 
+// Names the file or program a check could not use, when the error says which.
+function missingFileDetail(title: string, error: unknown) {
+  const { path, syscall, code } = error as { path?: unknown; syscall?: unknown; code?: unknown };
+  if (typeof path !== 'string') return `${title} could not access a required file or executable.`;
+  if (typeof syscall === 'string' && syscall.startsWith('spawn'))
+    return `${title} needs ${path}, which is not installed or not on PATH.`;
+  return code === 'ENOENT' || code === 'ENOTDIR'
+    ? `${title} needs ${path}, which does not exist.`
+    : `${title} cannot read ${path}.`;
+}
+
 async function inspectCheck<T>(
   id: string,
   title: string,
@@ -56,7 +69,7 @@ async function inspectCheck<T>(
   } catch (error) {
     if (error instanceof PipelineInputError) check.detail = error.message;
     else if (FILE_ERROR_CODES.some((code) => hasErrorCode(error, code)))
-      check.detail = `${title} could not access a required file or executable.`;
+      check.detail = missingFileDetail(title, error);
     else if (
       error instanceof Error &&
       'cmd' in error &&
@@ -105,6 +118,32 @@ export async function inspectRepositoryReadiness(options: {
       'The configuration is not approved or activated by this command. SDK/API-version rollout and effective account versions still need review.',
     ],
   };
+  const missing = await lstat(configurationPath).then(
+    () => false,
+    (error: unknown) => hasErrorCode(error, 'ENOENT') || hasErrorCode(error, 'ENOTDIR'),
+  );
+  if (missing) {
+    const repositoryExists = await lstat(dirname(configurationPath)).then(
+      () => true,
+      () => false,
+    );
+    report.checks.push({
+      id: 'configuration',
+      title: 'Workflow configuration',
+      status: 'blocked',
+      detail: options.config
+        ? `${configurationPath} does not exist.`
+        : repositoryExists
+          ? `No ${REPOSITORY_CONFIGURATION} in ${dirname(configurationPath)} yet.`
+          : `${dirname(configurationPath)} does not exist.`,
+      action: options.config
+        ? `Check the --config path, or omit --config to use the repository's ${REPOSITORY_CONFIGURATION}.`
+        : repositoryExists
+          ? `Run refit agents to see which provider agents apply, then refit agents --add <id> to write ${REPOSITORY_CONFIGURATION}.`
+          : 'Check the --repository path, or run refit doctor from inside the repository.',
+    });
+    return report;
+  }
   const configuration = await inspectCheck(
     'configuration',
     'Workflow configuration',
@@ -112,6 +151,9 @@ export async function inspectRepositoryReadiness(options: {
     () => readWorkflowConfiguration(configurationPath, options.integration),
   );
   report.checks.push(configuration.check);
+  const choice = /choose one with --integration: ([^,.]+)/.exec(configuration.check.detail);
+  if (choice)
+    configuration.check.action = `Run refit doctor --integration ${choice[1]}, and once for each other integration listed.`;
   if (!configuration.value) return report;
   const workflow = configuration.value;
   if (workflow.integration) report.integration = workflow.integration;
@@ -135,7 +177,7 @@ export async function inspectRepositoryReadiness(options: {
     inspectCheck(
       'repository',
       'Committed repository',
-      'Use the Git repository root with a committed HEAD and clean git status, including untracked files; submodules and symlinks that resolve outside the repository are unsupported.',
+      'Commit or stash the files it names, then run refit doctor again. Doctor needs the Git repository root with a committed HEAD; submodules and symlinks that resolve outside the repository are unsupported.',
       () => readCommittedRepository(repository),
     ),
     inspectCheck(
@@ -161,6 +203,25 @@ export async function inspectRepositoryReadiness(options: {
     ),
   ]);
   report.checks.push(snapshot.check, scan.check);
+  if (scan.check.status === 'blocked') {
+    const missing: { side: 'before' | 'after'; path: string }[] = [];
+    for (const side of ['before', 'after'] as const) {
+      const path = side === 'after' ? workflow.after : workflow.before;
+      if (
+        path &&
+        (await lstat(path).then(
+          () => false,
+          () => true,
+        ))
+      )
+        missing.push({ side, path: relative(report.repository, path) });
+    }
+    // Contracts are read in parallel, so the error names either; this names both, in order.
+    if (missing.length) {
+      scan.check.detail = `Missing contract${missing.length > 1 ? 's' : ''}: ${missing.map(({ path }) => path).join(', ')}.`;
+      scan.check.action = `Save the contract${missing.length > 1 ? 's' : ''}: ${missing.map(({ side, path }) => contractCommand(workflow.integration, side, path)).join(' and ')}. Then run refit doctor again.`;
+    }
+  }
   if (snapshot.value) {
     report.repository = snapshot.value.directory;
     report.revision = snapshot.value.revision;
@@ -184,8 +245,9 @@ export async function inspectRepositoryReadiness(options: {
         title: 'Migration source evidence',
         status: 'blocked',
         detail: originReview,
-        action:
-          'Repair skipped sources and establish SDK or incoming-event provenance before activation.',
+        action: evidence.findings.some((finding) => finding.requestParameter)
+          ? 'Run refit run --human to see where each removed parameter is still sent, and change those calls yourself: Refit replaces only the owner-approved Stripe payment_method_types lists in docs/STRIPE-PAYMENT-METHOD-TYPES.md, including the keep-listed opt-in.'
+          : 'Repair skipped sources and establish SDK or incoming-event provenance before activation.',
       });
     if (webhookReview)
       report.checks.push({
@@ -225,7 +287,9 @@ export async function inspectRepositoryReadiness(options: {
       action:
         evidence.apiVersion.applicability === 'matches-before'
           ? null
-          : 'Verify the application client/account version and configure an exact before-contract API-version pin.',
+          : evidence.apiVersion.application === null && evidence.apiVersion.before
+            ? `Confirm your client and account use ${evidence.apiVersion.before}, then add "apiVersion": "${evidence.apiVersion.before}" to ${workflow.integration ? `the ${workflow.integration} integration in ` : ''}${REPOSITORY_CONFIGURATION}.`
+            : 'Verify the application client/account version and configure an exact before-contract API-version pin.',
     });
     if (workflow.latestStripe && !evidence.provenance.before)
       report.checks.push({
@@ -252,7 +316,7 @@ export async function inspectRepositoryReadiness(options: {
         detail:
           'The supplied contracts contain unresolved breaking changes without a supported migration rule.',
         action:
-          'Inspect the scan evidence and define a reviewed adapter migration rule before attempting automatic validation or publication.',
+          'Run refit run --human to list them. Refit has no automatic migration for these changes, so they need a manual migration or a reviewed adapter rule before validation.',
       });
     if (evidence.specificationDiff.engine === 'direct-properties')
       report.checks.push({

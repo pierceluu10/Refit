@@ -1,0 +1,496 @@
+{
+  "formatVersion": 1,
+  "repositories": 94,
+  "errors": [
+    {
+      "repository": "getcord/cord",
+      "error": "Repository exceeds scan limits (10,000 files, 2 MiB per file, 50 MiB total)."
+    },
+    {
+      "repository": "litmajor/mtaa-dao",
+      "error": "Repository exceeds scan limits (10,000 files, 2 MiB per file, 50 MiB total)."
+    }
+  ],
+  "declarations": 235,
+  "nested": 89,
+  "lockedBefore": 6,
+  "lockedAfter": 74,
+  "resolved": [
+    {
+      "repository": "AAGAM17/Mind",
+      "file": "server/package.json",
+      "package": "stripe",
+      "version": "14.17.0",
+      "lockfile": "server/package-lock.json"
+    },
+    {
+      "repository": "Adarshagupta/cheatbit-desktop",
+      "file": "backend/package.json",
+      "package": "stripe",
+      "version": "18.5.0",
+      "lockfile": "backend/package-lock.json"
+    },
+    {
+      "repository": "aman-gupta21/Hungry-Harvest",
+      "file": "backend/package.json",
+      "package": "stripe",
+      "version": "19.1.0",
+      "lockfile": "backend/package-lock.json"
+    },
+    {
+      "repository": "antho8101/RefSpring",
+      "file": "functions/package.json",
+      "package": "stripe",
+      "version": "14.25.0",
+      "lockfile": "functions/package-lock.json"
+    },
+    {
+      "repository": "App-4-Dat-LLC/LandLORDER-rp",
+      "file": "landlorder/package.json",
+      "package": "stripe",
+      "version": "14.25.0",
+      "lockfile": "landlorder/package-lock.json"
+    },
+    {
+      "repository": "ARCPrivus2026/ARCPrivus-AI-Madre",
+      "file": "arc-privus-ai_ESTABLE_IA_FUNCIONANDO/package.json",
+      "package": "openai",
+      "version": "4.104.0",
+      "lockfile": "arc-privus-ai_ESTABLE_IA_FUNCIONANDO/package-lock.json"
+    },
+    {
+      "repository": "benlamiro/ShipGenAI",
+      "file": "ai_agents/ai-knowledge-base/package.json",
+      "package": "stripe",
+      "version": "22.1.1",
+      "lockfile": "ai_agents/ai-knowledge-base/package-lock.json"
+    },
+    {
+      "repository": "benlamiro/ShipGenAI",
+      "file": "ai_agents/ai-travel-studio/package.json",
+      "package": "stripe",
+      "version": "22.2.0",
+      "lockfile": "ai_agents/ai-travel-studio/package-lock.json"
+    },
+    {
+      "repository": "benlamiro/ShipGenAI",
+      "file": "ai_agents/my-podcast/package.json",
+      "package": "stripe",
+      "version": "22.1.1",
+      "lockfile": "ai_agents/my-podcast/package-lock.json"
+    },
+    {
+      "repository": "benlamiro/ShipGenAI",
+      "file": "beauty_fashion/ai-hair-style-simulator/package.json",
+      "package": "stripe",
+      "version": "22.1.1",
+      "lockfile": "beauty_fashion/ai-hair-style-simulator/package-lock.json"
+    },
+    {
+      "repository": "benlamiro/ShipGenAI",
+      "file": "beauty_fashion/ai-professional-makeup-generator/package.json",
+      "package": "stripe",
+      "version": "22.2.0",
+      "lockfile": "beauty_fashion/ai-professional-makeup-generator/package-lock.json"
+    },
+    {
+      "repository": "benlamiro/ShipGenAI",
+      "file": "beauty_fashion/ai-tattoo-try-on/package.json",
+      "package": "stripe",
+      "version": "22.1.1",
+      "lockfile": "beauty_fashion/ai-tattoo-try-on/package-lock.json"
+    },
+    {
+      "repository": "benlamiro/ShipGenAI",
+      "file": "beauty_fashion/ai-tryon/package.json",
+      "package": "stripe",
+      "version": "22.1.1",
+      "lockfile": "beauty_fashion/ai-tryon/package-lock.json"
+    },
+    {
+      "repository": "benlamiro/ShipGenAI",
+      "file": "ecommerce/amazon-product-studio/package.json",
+      "package": "stripe",
+      "version": "22.1.1",
+      "lockfile": "ecommerce/amazon-product-studio/package-lock.json"
+    },
+    {
+      "repository": "benlamiro/ShipGenAI",
+      "file": "ecommerce/pet-product-studio/package.json",
+      "package": "stripe",
+      "version": "22.1.1",
+      "lockfile": "ecommerce/pet-product-studio/package-lock.json"
+    },
+    {
+      "repository": "benlamiro/ShipGenAI",
+      "file": "ecommerce/resale-photo-enhancer/package.json",
+      "package": "stripe",
+      "version": "22.1.1",
+      "lockfile": "ecommerce/resale-photo-enhancer/package-lock.json"
+    },
+    {
+      "repository": "benlamiro/ShipGenAI",
+      "file": "home_real_estate/ai-real-estate-stager/package.json",
+      "package": "stripe",
+      "version": "22.1.1",
+      "lockfile": "home_real_estate/ai-real-estate-stager/package-lock.json"
+    },
+    {
+      "repository": "benlamiro/ShipGenAI",
+      "file": "home_real_estate/ai-room-declutter/package.json",
+      "package": "stripe",
+      "version": "22.2.0",
+      "lockfile": "home_real_estate/ai-room-declutter/package-lock.json"
+    },
+    {
+      "repository": "benlamiro/ShipGenAI",
+      "file": "image_generation/ai-headshot-generator/package.json",
+      "package": "stripe",
+      "version": "22.0.1",
+      "lockfile": "image_generation/ai-headshot-generator/package-lock.json"
+    },
+    {
+      "repository": "benlamiro/ShipGenAI",
+      "file": "image_generation/ai-logo-studio/package.json",
+      "package": "stripe",
+      "version": "22.1.1",
+      "lockfile": "image_generation/ai-logo-studio/package-lock.json"
+    },
+    {
+      "repository": "benlamiro/ShipGenAI",
+      "file": "image_generation/ai-meme-generator/package.json",
+      "package": "stripe",
+      "version": "22.1.1",
+      "lockfile": "image_generation/ai-meme-generator/package-lock.json"
+    },
+    {
+      "repository": "benlamiro/ShipGenAI",
+      "file": "image_generation/clearmark-ai/package.json",
+      "package": "stripe",
+      "version": "22.2.0",
+      "lockfile": "image_generation/clearmark-ai/package-lock.json"
+    },
+    {
+      "repository": "benlamiro/ShipGenAI",
+      "file": "image_generation/nano-banana-generator/package.json",
+      "package": "stripe",
+      "version": "22.0.1",
+      "lockfile": "image_generation/nano-banana-generator/package-lock.json"
+    },
+    {
+      "repository": "benlamiro/ShipGenAI",
+      "file": "image_generation/old-photo-restore/package.json",
+      "package": "stripe",
+      "version": "22.1.1",
+      "lockfile": "image_generation/old-photo-restore/package-lock.json"
+    },
+    {
+      "repository": "benlamiro/ShipGenAI",
+      "file": "platforms/Free-AI-Social-Media-Scheduler/package.json",
+      "package": "stripe",
+      "version": "22.2.0",
+      "lockfile": "platforms/Free-AI-Social-Media-Scheduler/package-lock.json"
+    },
+    {
+      "repository": "benlamiro/ShipGenAI",
+      "file": "portrait_avatar/ai-business-card/package.json",
+      "package": "stripe",
+      "version": "22.1.1",
+      "lockfile": "portrait_avatar/ai-business-card/package-lock.json"
+    },
+    {
+      "repository": "benlamiro/ShipGenAI",
+      "file": "portrait_avatar/ai-character-studio/package.json",
+      "package": "stripe",
+      "version": "22.2.0",
+      "lockfile": "portrait_avatar/ai-character-studio/package-lock.json"
+    },
+    {
+      "repository": "benlamiro/ShipGenAI",
+      "file": "portrait_avatar/ai-fitness-body-simulator/package.json",
+      "package": "stripe",
+      "version": "22.2.0",
+      "lockfile": "portrait_avatar/ai-fitness-body-simulator/package-lock.json"
+    },
+    {
+      "repository": "benlamiro/ShipGenAI",
+      "file": "portrait_avatar/ai-kid-to-adult-prediction/package.json",
+      "package": "stripe",
+      "version": "22.2.0",
+      "lockfile": "portrait_avatar/ai-kid-to-adult-prediction/package-lock.json"
+    },
+    {
+      "repository": "benlamiro/ShipGenAI",
+      "file": "portrait_avatar/ai-pet-portrait/package.json",
+      "package": "stripe",
+      "version": "22.2.0",
+      "lockfile": "portrait_avatar/ai-pet-portrait/package-lock.json"
+    },
+    {
+      "repository": "benlamiro/ShipGenAI",
+      "file": "portrait_avatar/ai-royal-portrait/package.json",
+      "package": "stripe",
+      "version": "22.1.1",
+      "lockfile": "portrait_avatar/ai-royal-portrait/package-lock.json"
+    },
+    {
+      "repository": "benlamiro/ShipGenAI",
+      "file": "portrait_avatar/ai-wedding-photo/package.json",
+      "package": "stripe",
+      "version": "22.2.0",
+      "lockfile": "portrait_avatar/ai-wedding-photo/package-lock.json"
+    },
+    {
+      "repository": "benlamiro/ShipGenAI",
+      "file": "portrait_avatar/magicself-ai/package.json",
+      "package": "stripe",
+      "version": "22.2.0",
+      "lockfile": "portrait_avatar/magicself-ai/package-lock.json"
+    },
+    {
+      "repository": "benlamiro/ShipGenAI",
+      "file": "portrait_avatar/open-character-ai/package.json",
+      "package": "stripe",
+      "version": "22.1.1",
+      "lockfile": "portrait_avatar/open-character-ai/package-lock.json"
+    },
+    {
+      "repository": "benlamiro/ShipGenAI",
+      "file": "video_generation/ai-clipping-generator/package.json",
+      "package": "stripe",
+      "version": "22.1.0",
+      "lockfile": "video_generation/ai-clipping-generator/package-lock.json"
+    },
+    {
+      "repository": "benlamiro/ShipGenAI",
+      "file": "video_generation/ai-kissing-video-generator/package.json",
+      "package": "stripe",
+      "version": "22.1.1",
+      "lockfile": "video_generation/ai-kissing-video-generator/package-lock.json"
+    },
+    {
+      "repository": "benlamiro/ShipGenAI",
+      "file": "video_generation/Open-AI-UGC/package.json",
+      "package": "stripe",
+      "version": "22.1.1",
+      "lockfile": "video_generation/Open-AI-UGC/package-lock.json"
+    },
+    {
+      "repository": "benlamiro/ShipGenAI",
+      "file": "video_generation/seedance-2-generator/package.json",
+      "package": "stripe",
+      "version": "22.0.1",
+      "lockfile": "video_generation/seedance-2-generator/package-lock.json"
+    },
+    {
+      "repository": "benlamiro/ShipGenAI",
+      "file": "video_generation/veo4-video-generator/package.json",
+      "package": "stripe",
+      "version": "22.1.0",
+      "lockfile": "video_generation/veo4-video-generator/package-lock.json"
+    },
+    {
+      "repository": "benlamiro/ShipGenAI",
+      "file": "writing_content/ai-resume-builder/package.json",
+      "package": "stripe",
+      "version": "22.2.0",
+      "lockfile": "writing_content/ai-resume-builder/package-lock.json"
+    },
+    {
+      "repository": "benlamiro/ShipGenAI",
+      "file": "writing_content/blogger-cms/package.json",
+      "package": "stripe",
+      "version": "22.1.1",
+      "lockfile": "writing_content/blogger-cms/package-lock.json"
+    },
+    {
+      "repository": "benlamiro/ShipGenAI",
+      "file": "writing_content/geo-checker/package.json",
+      "package": "stripe",
+      "version": "22.2.0",
+      "lockfile": "writing_content/geo-checker/package-lock.json"
+    },
+    {
+      "repository": "benlamiro/ShipGenAI",
+      "file": "writing_content/mail-wise/package.json",
+      "package": "stripe",
+      "version": "22.1.1",
+      "lockfile": "writing_content/mail-wise/package-lock.json"
+    },
+    {
+      "repository": "benlamiro/ShipGenAI",
+      "file": "writing_content/prompt-architect/package.json",
+      "package": "stripe",
+      "version": "22.1.1",
+      "lockfile": "writing_content/prompt-architect/package-lock.json"
+    },
+    {
+      "repository": "benlamiro/ShipGenAI",
+      "file": "writing_content/social-post/package.json",
+      "package": "stripe",
+      "version": "22.1.1",
+      "lockfile": "writing_content/social-post/package-lock.json"
+    },
+    {
+      "repository": "bolg55/fastify_starter",
+      "file": "fastify/package.json",
+      "package": "stripe",
+      "version": "14.21.0",
+      "lockfile": "fastify/pnpm-lock.yaml"
+    },
+    {
+      "repository": "c-riq/ipvote",
+      "file": "serverless/phoneVerification/sendSMSChallenge/package.json",
+      "package": "twilio",
+      "version": "5.4.3",
+      "lockfile": "serverless/phoneVerification/sendSMSChallenge/package-lock.json"
+    },
+    {
+      "repository": "CapChris20/Retronix-Wallpapers-Startup",
+      "file": "extras/functions/package.json",
+      "package": "stripe",
+      "version": "18.2.1",
+      "lockfile": "extras/functions/package-lock.json"
+    },
+    {
+      "repository": "codingwithriha/LearnSphere",
+      "file": "server/package.json",
+      "package": "stripe",
+      "version": "22.3.2",
+      "lockfile": "server/package-lock.json"
+    },
+    {
+      "repository": "dcam9586/scout-source2",
+      "file": "backend/package.json",
+      "package": "stripe",
+      "version": "20.3.0",
+      "lockfile": "backend/package-lock.json"
+    },
+    {
+      "repository": "dcam9586/scout-source2",
+      "file": "backend/package.json",
+      "package": "@shopify/shopify-api",
+      "version": "10.0.0",
+      "lockfile": "backend/package-lock.json"
+    },
+    {
+      "repository": "different-ai/embedbase",
+      "file": "dashboard/package.json",
+      "package": "stripe",
+      "version": "11.17.0",
+      "lockfile": "dashboard/package-lock.json"
+    },
+    {
+      "repository": "different-ai/embedbase",
+      "file": "docs/package.json",
+      "package": "openai",
+      "version": "3.2.1",
+      "lockfile": "docs/package-lock.json"
+    },
+    {
+      "repository": "drizzle-team/tento",
+      "file": "examples/oauth/package.json",
+      "package": "@shopify/shopify-api",
+      "version": "8.1.1",
+      "lockfile": "examples/oauth/pnpm-lock.yaml"
+    },
+    {
+      "repository": "encoredev/examples",
+      "file": "ts/webhook-processor/package.json",
+      "package": "stripe",
+      "version": "20.4.1",
+      "lockfile": "ts/webhook-processor/package-lock.json"
+    },
+    {
+      "repository": "encoredev/examples",
+      "file": "ts/ai-chat/package.json",
+      "package": "openai",
+      "version": "4.52.1",
+      "lockfile": "ts/ai-chat/package-lock.json"
+    },
+    {
+      "repository": "encoredev/examples",
+      "file": "ts/langfuse-openrouter/package.json",
+      "package": "openai",
+      "version": "6.9.1",
+      "lockfile": "ts/langfuse-openrouter/package-lock.json"
+    },
+    {
+      "repository": "encoredev/examples",
+      "file": "ts/ai-chat/package.json",
+      "package": "@anthropic-ai/sdk",
+      "version": "0.24.1",
+      "lockfile": "ts/ai-chat/package-lock.json"
+    },
+    {
+      "repository": "encoredev/examples",
+      "file": "ts/simple-event-driven/package.json",
+      "package": "@sendgrid/mail",
+      "version": "8.1.3",
+      "lockfile": "ts/simple-event-driven/package-lock.json"
+    },
+    {
+      "repository": "joschan21/contentport",
+      "file": "jobs/transcription/package.json",
+      "package": "openai",
+      "version": "5.10.2",
+      "lockfile": "jobs/transcription/package-lock.json"
+    },
+    {
+      "repository": "laxmanclo/multi-agent-kit",
+      "file": "packages/video-pipeline/package.json",
+      "package": "@anthropic-ai/sdk",
+      "version": "0.39.0",
+      "lockfile": "packages/video-pipeline/package-lock.json"
+    },
+    {
+      "repository": "laxmanclo/multi-agent-kit",
+      "file": "packages/video-pipeline/package.json",
+      "package": "@anthropic-ai/sdk",
+      "version": "0.39.0",
+      "lockfile": "packages/video-pipeline/package-lock.json"
+    },
+    {
+      "repository": "Priyanshu-Baghel/Prayatana-2.0",
+      "file": "server/package.json",
+      "package": "stripe",
+      "version": "15.3.0",
+      "lockfile": "server/package-lock.json"
+    },
+    {
+      "repository": "profullstack/vibe-stack",
+      "file": "public/js/modules/payment-gateway/package.json",
+      "package": "stripe",
+      "version": "14.25.0",
+      "lockfile": "public/js/modules/payment-gateway/pnpm-lock.yaml"
+    },
+    {
+      "repository": "RemiMinderAI/RemiMinderAI",
+      "file": "frontend/package.json",
+      "package": "stripe",
+      "version": "17.7.0",
+      "lockfile": "frontend/package-lock.json"
+    },
+    {
+      "repository": "RemiMinderAI/RemiMinderAI",
+      "file": "frontend/package.json",
+      "package": "resend",
+      "version": "6.12.2",
+      "lockfile": "frontend/package-lock.json"
+    },
+    {
+      "repository": "seongsu-kang/tycono",
+      "file": "packages/server/src/api/package.json",
+      "package": "@anthropic-ai/sdk",
+      "version": "0.78.0",
+      "lockfile": "packages/server/src/api/package-lock.json"
+    },
+    {
+      "repository": "starmanv4/react-typescript-docker",
+      "file": "payments/package.json",
+      "package": "stripe",
+      "version": "11.17.0",
+      "lockfile": "payments/package-lock.json"
+    }
+  ]
+}

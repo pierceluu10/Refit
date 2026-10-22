@@ -2,7 +2,9 @@ import { existsSync } from 'node:fs';
 import { readFile, realpath, stat } from 'node:fs/promises';
 import { isAbsolute, join, relative, resolve } from 'node:path';
 import ts from 'typescript-compiler';
+import { detectApiHosts, type ApiHostScan } from './api-hosts.ts';
 import { AGENT_CATALOG, builtInPackage } from './agent-catalog.ts';
+import { dataApiContext, dataApiMatches, type DataApiContext } from './data-api-matchers.ts';
 import { daysUntil, type DeadlineEntry, type DeadlineRegistry } from './deadline-registry.ts';
 import { cloudflareEndpointUses } from './cloudflare-calls.ts';
 import { githubDeadlineUses } from './github-api-calls.ts';
@@ -11,6 +13,7 @@ import { readGoFiles } from './go/syntax.ts';
 import { detectModelHosts, hostDeadlineMatches } from './model-hosts.ts';
 import { modelWrapperSites } from './model-wrappers.ts';
 import { repositoryApiVersionPins } from './commerce-api-versions.ts';
+import { manifestSdkDeclarations } from './package-manifests-deadlines.ts';
 import { pythonModelMatches } from './python/model-uses.ts';
 import { readPythonFiles } from './python/syntax.ts';
 import { declaredPackageNames, readRepository } from './repository.ts';
@@ -24,6 +27,12 @@ import {
 } from './sdk-deadlines.ts';
 import { slackMethodUses } from './slack-calls.ts';
 import { TEST_PATH } from './source-paths.ts';
+import {
+  placeFinding,
+  readWorkspaceLayout,
+  UNCOUNTED_EXCLUSIONS,
+  type FindingPlace,
+} from './workspace-attribution.ts';
 import { isObject, parseObject } from './specifications.ts';
 import { PipelineInputError } from './types.ts';
 import { REPOSITORY_CONFIGURATION } from './workflow-configuration.ts';
@@ -68,6 +77,9 @@ export interface DeadlineEvidence {
   use: DeadlineUse;
   version: string;
   text: string;
+  // The monorepo package the match is in, and why its path is not product code, if it is not.
+  workspace?: FindingPlace['workspace'];
+  excluded?: FindingPlace['excluded'];
   // For a model sent through an AI wrapper SDK, the call that sends it (pipeline/model-wrappers.ts).
   via?: string;
 }
@@ -85,20 +97,31 @@ export interface DeadlineExposure {
   // The exact number of non-live matches by use, counted before the limit above. Always set by the
   // scan, and optional only so a hand-built exposure need not repeat it.
   nonLiveCounts?: Partial<Record<DeadlineUse, number>>;
+  // Live matches on a docs, example, test-fixture or build-output path (UNCOUNTED_EXCLUSIONS):
+  // listed with their `excluded` reason, never counted (owner decision, 2026-10-22). Set by the
+  // scan, and optional only so a hand-built exposure need not repeat them.
+  outside?: DeadlineEvidence[];
+  outsideMore?: number;
 }
 
 // An exposure as alerts and reports read it: stored inventories drop each match's source line.
 export type ReportedEvidence = Omit<DeadlineEvidence, 'text'> & { text?: string };
-export type ReportedExposure = Omit<DeadlineExposure, 'evidence' | 'nonLive'> & {
+export type ReportedExposure = Omit<DeadlineExposure, 'evidence' | 'nonLive' | 'outside'> & {
   evidence: ReportedEvidence[];
   nonLive: ReportedEvidence[];
+  outside?: ReportedEvidence[];
 };
 
-// Deadlines found in a repository: exposures have live evidence; mentions are deadlines the
-// repository names only outside live code, with `evidence` empty.
+// Deadlines found in a repository: exposures have live evidence in application code; mentions are
+// deadlines the repository names only outside it (non-live matches, or live matches on an
+// uncounted path in `outside`), with `evidence` empty.
 export interface DeadlineScan {
   exposures: DeadlineExposure[];
   mentions: DeadlineExposure[];
+  // The external HTTP API hosts the repository calls (pipeline/api-hosts.ts), for the inventory.
+  // Absent in a hand-built scan, and `apiHostsError` says why when reading them failed.
+  apiHosts?: ApiHostScan;
+  apiHostsError?: string;
 }
 
 function excerpt(line: string) {
@@ -113,6 +136,7 @@ function sourceMatches(
   shopifyFile: boolean,
   metaFile: boolean,
   models: Map<string, DeadlineEntry['provider']>,
+  dataApi: DataApiContext,
 ) {
   const found: { provider: DeadlineEntry['provider']; version: string; column: number }[] = [];
   const add = (
@@ -145,6 +169,7 @@ function sourceMatches(
   // `tModel` does the same, so the prefixed form names the registry model too.
   for (const match of line.matchAll(/(['"`])models\/([a-z0-9][a-z0-9.-]*)\1/dg))
     if (models.get(match[2]) === 'gemini') add('gemini', match[2], match, 2);
+  found.push(...dataApiMatches(line, dataApi));
   return found;
 }
 
@@ -525,21 +550,28 @@ export async function scanDeadlines(
   const root = resolve(directory);
   const byVersion = new Map<string, DeadlineEntry>();
   for (const entry of registry.deadlines)
-    for (const version of entry.versions) byVersion.set(`${entry.provider}:${version}`, entry);
+    if (!entry.ecosystem)
+      for (const version of entry.versions) byVersion.set(`${entry.provider}:${version}`, entry);
   const models = new Map(
     registry.deadlines
       .filter((entry) => entry.kind === 'model' && MODEL_PROVIDERS.has(entry.provider))
       .flatMap((entry) => entry.versions.map((version) => [version, entry.provider] as const)),
   );
-  const found = new Map<string, DeadlineExposure>();
+  const found = new Map<
+    string,
+    Required<Pick<DeadlineExposure, 'outside' | 'outsideMore'>> & DeadlineExposure
+  >();
   const seen = new Set<string>();
+  const layout = await readWorkspaceLayout(root);
   const record = (
     provider: string,
     version: string,
     evidence: Omit<DeadlineEvidence, 'version'>,
+    entry?: DeadlineEntry,
   ) => {
-    const deadline = byVersion.get(`${provider}:${version}`);
+    const deadline = entry ?? byVersion.get(`${provider}:${version}`);
     if (!deadline) return;
+    evidence = { ...evidence, ...placeFinding(layout, evidence.file) };
     const exposure = found.get(deadline.id) ?? {
       deadline,
       days: daysUntil(deadline.date, now),
@@ -547,12 +579,23 @@ export async function scanDeadlines(
       more: 0,
       nonLive: [],
       nonLiveMore: 0,
+      outside: [],
+      outsideMore: 0,
     };
     found.set(deadline.id, exposure);
     const key = `${evidence.use === 'live'}\t${evidence.file}\t${evidence.line}\t${version}`;
     if (seen.has(key)) return;
     seen.add(key);
-    if (evidence.use !== 'live') exposure.nonLive.push({ ...evidence, version });
+    // A live or test-path match outside application code is listed with its reason and never
+    // counted (owner decision, 2026-10-22); examples and fixtures are test paths too.
+    if (
+      (evidence.use === 'live' || evidence.use === 'test') &&
+      evidence.excluded &&
+      UNCOUNTED_EXCLUSIONS.has(evidence.excluded)
+    ) {
+      if (exposure.outside.length < MAX_EVIDENCE) exposure.outside.push({ ...evidence, version });
+      else exposure.outsideMore += 1;
+    } else if (evidence.use !== 'live') exposure.nonLive.push({ ...evidence, version });
     else if (exposure.evidence.length < MAX_EVIDENCE)
       exposure.evidence.push({ ...evidence, version });
     else exposure.more += 1;
@@ -571,18 +614,22 @@ export async function scanDeadlines(
   for (const file of repository.files) {
     const shopifyFile = SHOPIFY_CONTEXT.some((name) => file.content.includes(name));
     const metaFile = META_CONTEXT.some((name) => file.content.includes(name));
+    const dataApi = dataApiContext(file.content);
     let useAt: ReturnType<typeof tokenUses> | undefined;
     let literalAt: ReturnType<typeof literalTextAt> | undefined;
     let offset = 0;
     for (const [index, line] of file.content.split('\n').entries()) {
-      for (const match of sourceMatches(line, shopifyFile, metaFile, models)) {
+      for (const match of sourceMatches(line, shopifyFile, metaFile, models, dataApi)) {
         useAt ??= tokenUses(file.path, file.content, models);
         record(match.provider, match.version, {
           file: file.path,
           line: index + 1,
           kind: 'source',
           use: useAt(offset + match.column, match.provider, line, match.version),
-          text: excerpt(line),
+          // An Airtable key is a credential: report where it is, never its value.
+          text: excerpt(
+            match.provider === 'airtable' ? line.replace(/key[A-Za-z0-9]{14}/g, 'key…') : line,
+          ),
           ...(via.has(`${file.path}:${index + 1}:${match.version}`)
             ? { via: via.get(`${file.path}:${index + 1}:${match.version}`) }
             : {}),
@@ -676,7 +723,7 @@ export async function scanDeadlines(
   const declared = await declaredPackageNames(root);
   const declarations = new Map<string, Promise<Awaited<ReturnType<typeof readRepository>>>>();
   for (const entry of registry.deadlines)
-    if (entry.kind === 'sdk')
+    if (entry.kind === 'sdk' && !entry.ecosystem)
       for (const version of entry.versions) {
         const { name, range } = sdkTarget(version);
         if (declared && !declared.has(name)) continue;
@@ -694,6 +741,20 @@ export async function scanDeadlines(
           });
         }
       }
+  // The same for other ecosystems' manifests (pipeline/package-manifests-deadlines.ts).
+  for (const declaration of await manifestSdkDeclarations(root, registry))
+    record(
+      declaration.deadline.provider,
+      declaration.name,
+      {
+        file: declaration.file,
+        line: declaration.line,
+        kind: 'dependency',
+        use: TEST_PATH.test(declaration.file) ? 'test' : 'live',
+        text: declaration.text,
+      },
+      declaration.deadline,
+    );
   // Retired API methods: each call site that sends one, from the provider's call scanner.
   if (registry.deadlines.some((entry) => entry.kind === 'method' && entry.provider === 'slack'))
     for (const use of await slackMethodUses(root, repository))
@@ -746,9 +807,16 @@ export async function scanDeadlines(
     exposure.nonLive = rest.slice(0, MAX_EVIDENCE);
     exposure.nonLiveMore = rest.length - exposure.nonLive.length;
   }
+  const hosts: Pick<DeadlineScan, 'apiHosts' | 'apiHostsError'> = {};
+  try {
+    hosts.apiHosts = await detectApiHosts(root, { repository });
+  } catch (error) {
+    hosts.apiHostsError = error instanceof Error ? error.message : String(error);
+  }
   return {
     exposures: all.filter((exposure) => exposure.evidence.length),
     mentions: all.filter((exposure) => !exposure.evidence.length),
+    ...hosts,
   };
 }
 

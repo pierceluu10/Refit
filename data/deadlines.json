@@ -347,43 +347,66 @@
       "kind": "model",
       "versions": [
         "gpt-4-0314",
-        "gpt-4-1106-preview",
         "gpt-4-0125-preview",
         "gpt-4-turbo-preview"
       ],
       "date": "2026-03-26",
-      "summary": "OpenAI shuts down gpt-4-0314, gpt-4-1106-preview, gpt-4-0125-preview, gpt-4-turbo-preview.",
-      "replacement": "gpt-5",
+      "summary": "OpenAI shuts down gpt-4-0314, gpt-4-0125-preview, gpt-4-turbo-preview on the API; requests to a shut-down model fail.",
+      "replacement": null,
       "source": "https://developers.openai.com/api/docs/deprecations",
-      "checkedAt": "2026-10-15"
+      "checkedAt": "2026-10-22"
     },
     {
       "id": "openai-2026-05-07-gpt-4o-realtime-preview",
       "provider": "openai",
       "kind": "model",
       "versions": [
-        "gpt-4o-realtime-preview",
+        "gpt-4o-realtime-preview"
+      ],
+      "date": "2026-05-07",
+      "summary": "OpenAI shuts down gpt-4o-realtime-preview on the API; requests to a shut-down model fail.",
+      "replacement": "gpt-realtime-1.5",
+      "source": "https://developers.openai.com/api/docs/deprecations",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "id": "openai-2026-05-07-gpt-4o-mini-realtime-preview",
+      "provider": "openai",
+      "kind": "model",
+      "versions": [
         "gpt-4o-mini-realtime-preview"
       ],
       "date": "2026-05-07",
-      "summary": "OpenAI shuts down gpt-4o-realtime-preview, gpt-4o-mini-realtime-preview.",
+      "summary": "OpenAI shuts down gpt-4o-mini-realtime-preview on the API; requests to a shut-down model fail.",
       "replacement": "gpt-realtime-mini",
       "source": "https://developers.openai.com/api/docs/deprecations",
-      "checkedAt": "2026-10-15"
+      "checkedAt": "2026-10-22"
     },
     {
       "id": "openai-2026-05-07-gpt-4o-audio-preview",
       "provider": "openai",
       "kind": "model",
       "versions": [
-        "gpt-4o-audio-preview",
+        "gpt-4o-audio-preview"
+      ],
+      "date": "2026-05-07",
+      "summary": "OpenAI shuts down gpt-4o-audio-preview on the API; requests to a shut-down model fail.",
+      "replacement": "gpt-audio-1.5",
+      "source": "https://developers.openai.com/api/docs/deprecations",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "id": "openai-2026-05-07-gpt-4o-mini-audio-preview",
+      "provider": "openai",
+      "kind": "model",
+      "versions": [
         "gpt-4o-mini-audio-preview"
       ],
       "date": "2026-05-07",
-      "summary": "OpenAI shuts down gpt-4o-audio-preview, gpt-4o-mini-audio-preview.",
+      "summary": "OpenAI shuts down gpt-4o-mini-audio-preview on the API; requests to a shut-down model fail.",
       "replacement": "gpt-audio-mini",
       "source": "https://developers.openai.com/api/docs/deprecations",
-      "checkedAt": "2026-10-15"
+      "checkedAt": "2026-10-22"
     },
     {
       "id": "openai-2026-05-12-dall-e-2",
@@ -482,19 +505,33 @@
       "versions": [
         "gpt-4",
         "gpt-4-0613",
+        "gpt-4-1106-preview",
         "gpt-4-turbo",
         "gpt-4-turbo-2024-04-09",
         "gpt-4o-2024-05-13",
         "o1",
         "o1-2024-12-17",
-        "o1-pro",
         "o3-mini"
       ],
       "date": "2026-10-23",
-      "summary": "OpenAI shuts down gpt-4, gpt-4-0613, gpt-4-turbo, gpt-4-turbo-2024-04-09, gpt-4o-2024-05-13, o1, o1-2024-12-17, o1-pro, o3-mini.",
+      "summary": "OpenAI shuts down gpt-4, gpt-4-0613, gpt-4-1106-preview, gpt-4-turbo, gpt-4-turbo-2024-04-09, gpt-4o-2024-05-13, o1, o1-2024-12-17, o3-mini on the API; requests to a shut-down model fail.",
       "replacement": "gpt-5.6-sol",
       "source": "https://developers.openai.com/api/docs/deprecations",
-      "checkedAt": "2026-10-15"
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "id": "openai-2026-10-23-o1-pro-2025-03-19",
+      "provider": "openai",
+      "kind": "model",
+      "versions": [
+        "o1-pro-2025-03-19",
+        "o1-pro"
+      ],
+      "date": "2026-10-23",
+      "summary": "OpenAI shuts down o1-pro-2025-03-19, o1-pro on the API; requests to a shut-down model fail. The page recommends: gpt-5.6-sol (reasoning.mode: pro).",
+      "replacement": null,
+      "source": "https://developers.openai.com/api/docs/deprecations",
+      "checkedAt": "2026-10-22"
     },
     {
       "id": "openai-2026-10-23-gpt-4-1-nano",
@@ -544,14 +581,27 @@
       "kind": "model",
       "versions": [
         "gpt-5-2025-08-07",
-        "o3-2025-04-16",
+        "o3-2025-04-16"
+      ],
+      "date": "2026-12-11",
+      "summary": "OpenAI shuts down gpt-5-2025-08-07, o3-2025-04-16 on the API; requests to a shut-down model fail.",
+      "replacement": "gpt-5.6-sol",
+      "source": "https://developers.openai.com/api/docs/deprecations",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "id": "openai-2026-12-11-gpt-5-pro-2025-10-06",
+      "provider": "openai",
+      "kind": "model",
+      "versions": [
+        "gpt-5-pro-2025-10-06",
         "o3-pro-2025-06-10"
       ],
       "date": "2026-12-11",
-      "summary": "OpenAI shuts down gpt-5-2025-08-07, o3-2025-04-16, o3-pro-2025-06-10.",
-      "replacement": "gpt-5.6-sol",
+      "summary": "OpenAI shuts down gpt-5-pro-2025-10-06, o3-pro-2025-06-10 on the API; requests to a shut-down model fail. The page recommends: gpt-5.6-sol (reasoning.mode: pro).",
+      "replacement": null,
       "source": "https://developers.openai.com/api/docs/deprecations",
-      "checkedAt": "2026-10-15"
+      "checkedAt": "2026-10-22"
     },
     {
       "id": "openai-2026-12-11-gpt-5-mini-2025-08-07",
@@ -1472,6 +1522,700 @@
       "source": "https://github.com/EasyPost/easypost-node/blob/master/UPGRADE_GUIDE.md",
       "checkedAt": "2026-10-22",
       "derivedDate": true
+    },
+    {
+      "id": "gemini-2025-11-30-google-generativeai-python",
+      "provider": "gemini",
+      "kind": "sdk",
+      "ecosystem": "pypi",
+      "versions": [
+        "google-generativeai"
+      ],
+      "date": "2025-11-30",
+      "summary": "Google ended all support for the google-generativeai Python package on 2025-11-30 and recommends google-genai, whose call shapes differ. The README calls the repository legacy; it does not say that requests through the old package stop working.",
+      "replacement": "google-genai",
+      "source": "https://github.com/google-gemini/deprecated-generative-ai-python/blob/main/README.md",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "id": "gemini-2025-11-30-generative-ai-go",
+      "provider": "gemini",
+      "kind": "sdk",
+      "ecosystem": "go",
+      "versions": [
+        "github.com/google/generative-ai-go"
+      ],
+      "date": "2025-11-30",
+      "summary": "Google ends all support for the github.com/google/generative-ai-go module, including bug fixes, on 2025-11-30 and recommends google.golang.org/genai, whose call shapes differ. The README calls the repository legacy; it does not say that requests through the old module stop working.",
+      "replacement": "google.golang.org/genai",
+      "source": "https://github.com/google/generative-ai-go/blob/main/README.md",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "id": "aws-sdk-js-v2-2025-09-08",
+      "provider": "aws",
+      "kind": "sdk",
+      "versions": [
+        "aws-sdk"
+      ],
+      "date": "2025-09-08",
+      "summary": "The AWS SDK for JavaScript v2 (aws-sdk) reached end of support on 2025-09-08 and no longer receives updates or releases. AWS recommends v3, whose modular @aws-sdk/client-* packages have different call shapes. AWS does not say that requests through v2 stop working.",
+      "replacement": "AWS SDK for JavaScript v3 (@aws-sdk/client-*)",
+      "source": "https://github.com/aws/aws-sdk-js/blob/master/README.md",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "id": "azure-sdk-legacy-2023-03-31",
+      "provider": "azure",
+      "kind": "sdk",
+      "versions": [
+        "@azure/applicationinsights-query",
+        "@azure/cognitiveservices-formrecognizer",
+        "@azure/cognitiveservices-textanalytics",
+        "@azure/event-processor-host",
+        "@azure/graph",
+        "@azure/keyvault",
+        "@azure/loganalytics",
+        "@azure/search",
+        "azure-applicationinsights-query",
+        "azure-arm-advisor",
+        "azure-arm-analysisservices",
+        "azure-arm-apimanagement",
+        "azure-arm-appinsights",
+        "azure-arm-authorization",
+        "azure-arm-automation",
+        "azure-arm-batch",
+        "azure-arm-batchai",
+        "azure-arm-billing",
+        "azure-arm-cdn",
+        "azure-arm-cognitiveservices",
+        "azure-arm-commerce",
+        "azure-arm-compute",
+        "azure-arm-consumption",
+        "azure-arm-containerinstance",
+        "azure-arm-containerregistry",
+        "azure-arm-containerservice",
+        "azure-arm-cosmosdb",
+        "azure-arm-customerinsights",
+        "azure-arm-datafactory",
+        "azure-arm-datalake-analytics",
+        "azure-arm-datalake-store",
+        "azure-arm-deviceprovisioningservices",
+        "azure-arm-devtestlabs",
+        "azure-arm-dns",
+        "azure-arm-documentdb",
+        "azure-arm-domainservices",
+        "azure-arm-eventgrid",
+        "azure-arm-hdinsight",
+        "azure-arm-hdinsight-jobs",
+        "azure-arm-insights",
+        "azure-arm-iothub",
+        "azure-arm-keyvault",
+        "azure-arm-labservices",
+        "azure-arm-logic",
+        "azure-arm-machinelearningcompute",
+        "azure-arm-marketplaceordering",
+        "azure-arm-mediaservices",
+        "azure-arm-mobileengagement",
+        "azure-arm-monitor",
+        "azure-arm-mysql",
+        "azure-arm-network",
+        "azure-arm-notificationhubs",
+        "azure-arm-operationalinsights",
+        "azure-arm-operations",
+        "azure-arm-postgresql",
+        "azure-arm-powerbiembedded",
+        "azure-arm-recoveryservices",
+        "azure-arm-recoveryservices-siterecovery",
+        "azure-arm-recoveryservicesbackup",
+        "azure-arm-rediscache",
+        "azure-arm-relay",
+        "azure-arm-resource",
+        "azure-arm-resourcehealth",
+        "azure-arm-scheduler",
+        "azure-arm-search",
+        "azure-arm-servermanagement",
+        "azure-arm-servicefabric",
+        "azure-arm-servicemap",
+        "azure-arm-sql",
+        "azure-arm-storage",
+        "azure-arm-storageimportexport",
+        "azure-arm-storsimple8000series",
+        "azure-arm-streamanalytics",
+        "azure-arm-trafficmanager",
+        "azure-arm-visualstudio",
+        "azure-arm-website",
+        "azure-asm-compute",
+        "azure-asm-hdinsight",
+        "azure-asm-network",
+        "azure-asm-sql",
+        "azure-asm-storage",
+        "azure-asm-trafficmanager",
+        "azure-asm-website",
+        "azure-cognitiveservices-autosuggest",
+        "azure-cognitiveservices-computervision",
+        "azure-cognitiveservices-contentmoderator",
+        "azure-cognitiveservices-customimagesearch",
+        "azure-cognitiveservices-customsearch",
+        "azure-cognitiveservices-customvision-prediction",
+        "azure-cognitiveservices-customvision-training",
+        "azure-cognitiveservices-entitysearch",
+        "azure-cognitiveservices-face",
+        "azure-cognitiveservices-imagesearch",
+        "azure-cognitiveservices-luis-authoring",
+        "azure-cognitiveservices-luis-runtime",
+        "azure-cognitiveservices-newssearch",
+        "azure-cognitiveservices-spellcheck",
+        "azure-cognitiveservices-textanalytics",
+        "azure-cognitiveservices-videosearch",
+        "azure-cognitiveservices-visualsearch",
+        "azure-cognitiveservices-websearch",
+        "azure-eventgrid",
+        "azure-graph",
+        "azure-keyvault",
+        "azure-loganalytics",
+        "azure-monitoring",
+        "azure-scheduler",
+        "azure-servicefabric",
+        "azure-storage"
+      ],
+      "date": "2023-03-31",
+      "summary": "Microsoft lists these 109 legacy (track 1) Azure SDK for JavaScript packages as deprecated with end of life on 2023-03-31: no further fixes or updates. Each has a modern @azure/* replacement named in data/azure-sdk-retirements.json, with different call shapes. Microsoft does not say that requests through the old packages stop working.",
+      "replacement": "The @azure/* package Microsoft names for each (data/azure-sdk-retirements.json)",
+      "source": "https://github.com/Azure/azure-sdk/blob/671a60848e02af18b43dd08aad5f67ad9e0e81fb/_data/releases/latest/js-packages.csv",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "id": "azure-sdk-legacy-2023-12-31",
+      "provider": "azure",
+      "kind": "sdk",
+      "versions": [
+        "azure-arm-eventhub",
+        "azure-arm-sb",
+        "azure-asm-sb",
+        "azure-sb"
+      ],
+      "date": "2023-12-31",
+      "summary": "Microsoft lists these 4 legacy (track 1) Azure SDK for JavaScript packages as deprecated with end of life on 2023-12-31: no further fixes or updates. Each has a modern @azure/* replacement named in data/azure-sdk-retirements.json, with different call shapes. Microsoft does not say that requests through the old packages stop working.",
+      "replacement": "The @azure/* package Microsoft names for each (data/azure-sdk-retirements.json)",
+      "source": "https://github.com/Azure/azure-sdk/blob/671a60848e02af18b43dd08aad5f67ad9e0e81fb/_data/releases/latest/js-packages.csv",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "id": "azure-sdk-legacy-2024-02-02",
+      "provider": "azure",
+      "kind": "sdk",
+      "versions": [
+        "azure-arm-machinelearning"
+      ],
+      "date": "2024-02-02",
+      "summary": "Microsoft lists this legacy (track 1) Azure SDK for JavaScript package as deprecated with end of life on 2024-02-02: no further fixes or updates. Each has a modern @azure/* replacement named in data/azure-sdk-retirements.json, with different call shapes. Microsoft does not say that requests through the old packages stop working.",
+      "replacement": "The @azure/* package Microsoft names for each (data/azure-sdk-retirements.json)",
+      "source": "https://github.com/Azure/azure-sdk/blob/671a60848e02af18b43dd08aad5f67ad9e0e81fb/_data/releases/latest/js-packages.csv",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "id": "gemini-2025-10-30-embedding-001",
+      "provider": "gemini",
+      "kind": "model",
+      "versions": [
+        "embedding-001",
+        "embedding-gecko-001",
+        "gemini-embedding-exp",
+        "gemini-embedding-exp-03-07"
+      ],
+      "date": "2025-10-30",
+      "summary": "Google shuts down embedding-001, embedding-gecko-001, gemini-embedding-exp, gemini-embedding-exp-03-07 on the Gemini API on this date at the earliest; requests to a shut-down model fail.",
+      "replacement": "gemini-embedding-2",
+      "source": "https://ai.google.dev/gemini-api/docs/deprecations",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "id": "gemini-2025-11-10-imagen-3-0-generate-002",
+      "provider": "gemini",
+      "kind": "model",
+      "versions": [
+        "imagen-3.0-generate-002"
+      ],
+      "date": "2025-11-10",
+      "summary": "Google shuts down imagen-3.0-generate-002 on the Gemini API on this date at the earliest; requests to a shut-down model fail.",
+      "replacement": "gemini-nano-banana-2.1",
+      "source": "https://ai.google.dev/gemini-api/docs/deprecations",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "id": "gemini-2025-11-12-veo-3-0-generate-preview",
+      "provider": "gemini",
+      "kind": "model",
+      "versions": [
+        "veo-3.0-generate-preview",
+        "veo-3.0-fast-generate-preview"
+      ],
+      "date": "2025-11-12",
+      "summary": "Google shuts down veo-3.0-generate-preview, veo-3.0-fast-generate-preview on the Gemini API on this date at the earliest; requests to a shut-down model fail.",
+      "replacement": "gemini-omni-1.1-flash",
+      "source": "https://ai.google.dev/gemini-api/docs/deprecations",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "id": "gemini-2025-11-14-gemini-2-0-flash-preview-image-generation",
+      "provider": "gemini",
+      "kind": "model",
+      "versions": [
+        "gemini-2.0-flash-preview-image-generation"
+      ],
+      "date": "2025-11-14",
+      "summary": "Google shuts down gemini-2.0-flash-preview-image-generation on the Gemini API on this date at the earliest; requests to a shut-down model fail.",
+      "replacement": "gemini-nano-banana-2.1",
+      "source": "https://ai.google.dev/gemini-api/docs/deprecations",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "id": "gemini-2025-11-18-gemini-2-5-flash-preview-05-20",
+      "provider": "gemini",
+      "kind": "model",
+      "versions": [
+        "gemini-2.5-flash-preview-05-20"
+      ],
+      "date": "2025-11-18",
+      "summary": "Google shuts down gemini-2.5-flash-preview-05-20 on the Gemini API on this date at the earliest; requests to a shut-down model fail.",
+      "replacement": "gemini-3.6-flash",
+      "source": "https://ai.google.dev/gemini-api/docs/deprecations",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "id": "gemini-2025-12-02-gemini-2-5-pro-preview-03-25",
+      "provider": "gemini",
+      "kind": "model",
+      "versions": [
+        "gemini-2.5-pro-preview-03-25",
+        "gemini-2.5-pro-preview-05-06",
+        "gemini-2.5-pro-preview-06-05"
+      ],
+      "date": "2025-12-02",
+      "summary": "Google shuts down gemini-2.5-pro-preview-03-25, gemini-2.5-pro-preview-05-06, gemini-2.5-pro-preview-06-05 on the Gemini API on this date at the earliest; requests to a shut-down model fail.",
+      "replacement": "gemini-3.1-pro-preview",
+      "source": "https://ai.google.dev/gemini-api/docs/deprecations",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "id": "gemini-2025-12-09-gemini-2-0-flash-lite-preview",
+      "provider": "gemini",
+      "kind": "model",
+      "versions": [
+        "gemini-2.0-flash-lite-preview",
+        "gemini-2.0-flash-lite-preview-02-05"
+      ],
+      "date": "2025-12-09",
+      "summary": "Google shuts down gemini-2.0-flash-lite-preview, gemini-2.0-flash-lite-preview-02-05 on the Gemini API on this date at the earliest; requests to a shut-down model fail.",
+      "replacement": "gemini-3.1-flash-lite",
+      "source": "https://ai.google.dev/gemini-api/docs/deprecations",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "id": "gemini-2025-12-09-gemini-2-0-flash-live-001",
+      "provider": "gemini",
+      "kind": "model",
+      "versions": [
+        "gemini-2.0-flash-live-001",
+        "gemini-live-2.5-flash-preview"
+      ],
+      "date": "2025-12-09",
+      "summary": "Google shuts down gemini-2.0-flash-live-001, gemini-live-2.5-flash-preview on the Gemini API on this date at the earliest; requests to a shut-down model fail.",
+      "replacement": "gemini-3.8-live",
+      "source": "https://ai.google.dev/gemini-api/docs/deprecations",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "id": "gemini-2026-01-14-text-embedding-004",
+      "provider": "gemini",
+      "kind": "model",
+      "versions": [
+        "text-embedding-004"
+      ],
+      "date": "2026-01-14",
+      "summary": "Google shuts down text-embedding-004 on the Gemini API on this date at the earliest; requests to a shut-down model fail.",
+      "replacement": "gemini-embedding-2",
+      "source": "https://ai.google.dev/gemini-api/docs/deprecations",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "id": "gemini-2026-01-15-gemini-2-5-flash-image-preview",
+      "provider": "gemini",
+      "kind": "model",
+      "versions": [
+        "gemini-2.5-flash-image-preview"
+      ],
+      "date": "2026-01-15",
+      "summary": "Google shuts down gemini-2.5-flash-image-preview on the Gemini API on this date at the earliest; requests to a shut-down model fail.",
+      "replacement": "gemini-nano-banana-2.1",
+      "source": "https://ai.google.dev/gemini-api/docs/deprecations",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "id": "gemini-2026-02-17-gemini-2-5-flash-preview-09-25",
+      "provider": "gemini",
+      "kind": "model",
+      "versions": [
+        "gemini-2.5-flash-preview-09-25"
+      ],
+      "date": "2026-02-17",
+      "summary": "Google shuts down gemini-2.5-flash-preview-09-25 on the Gemini API on this date at the earliest; requests to a shut-down model fail.",
+      "replacement": "gemini-3.6-flash",
+      "source": "https://ai.google.dev/gemini-api/docs/deprecations",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "id": "gemini-2026-02-17-imagen-4-0-generate-preview-06-06",
+      "provider": "gemini",
+      "kind": "model",
+      "versions": [
+        "imagen-4.0-generate-preview-06-06",
+        "imagen-4.0-ultra-generate-preview-06-06"
+      ],
+      "date": "2026-02-17",
+      "summary": "Google shuts down imagen-4.0-generate-preview-06-06, imagen-4.0-ultra-generate-preview-06-06 on the Gemini API on this date at the earliest; requests to a shut-down model fail.",
+      "replacement": "gemini-nano-banana-2.1",
+      "source": "https://ai.google.dev/gemini-api/docs/deprecations",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "id": "gemini-2026-03-09-gemini-3-pro-preview",
+      "provider": "gemini",
+      "kind": "model",
+      "versions": [
+        "gemini-3-pro-preview"
+      ],
+      "date": "2026-03-09",
+      "summary": "Google shuts down gemini-3-pro-preview on the Gemini API on this date at the earliest; requests to a shut-down model fail.",
+      "replacement": "gemini-3.1-pro-preview",
+      "source": "https://ai.google.dev/gemini-api/docs/deprecations",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "id": "gemini-2026-03-31-gemini-2-5-flash-lite-preview-09-2025",
+      "provider": "gemini",
+      "kind": "model",
+      "versions": [
+        "gemini-2.5-flash-lite-preview-09-2025"
+      ],
+      "date": "2026-03-31",
+      "summary": "Google shuts down gemini-2.5-flash-lite-preview-09-2025 on the Gemini API on this date at the earliest; requests to a shut-down model fail.",
+      "replacement": "gemini-3.1-flash-lite",
+      "source": "https://ai.google.dev/gemini-api/docs/deprecations",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "id": "gemini-2026-04-30-gemini-robotics-er-1-5-preview",
+      "provider": "gemini",
+      "kind": "model",
+      "versions": [
+        "gemini-robotics-er-1.5-preview"
+      ],
+      "date": "2026-04-30",
+      "summary": "Google shuts down gemini-robotics-er-1.5-preview on the Gemini API on this date at the earliest; requests to a shut-down model fail.",
+      "replacement": "gemini-robotics-er-2-preview",
+      "source": "https://ai.google.dev/gemini-api/docs/deprecations",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "id": "gemini-2026-05-25-gemini-3-1-flash-lite-preview",
+      "provider": "gemini",
+      "kind": "model",
+      "versions": [
+        "gemini-3.1-flash-lite-preview"
+      ],
+      "date": "2026-05-25",
+      "summary": "Google shuts down gemini-3.1-flash-lite-preview on the Gemini API on this date at the earliest; requests to a shut-down model fail.",
+      "replacement": "gemini-3.1-flash-lite",
+      "source": "https://ai.google.dev/gemini-api/docs/deprecations",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "id": "gemini-2026-06-01-gemini-2-0-flash",
+      "provider": "gemini",
+      "kind": "model",
+      "versions": [
+        "gemini-2.0-flash",
+        "gemini-2.0-flash-001"
+      ],
+      "date": "2026-06-01",
+      "summary": "Google shuts down gemini-2.0-flash, gemini-2.0-flash-001 on the Gemini API on this date at the earliest; requests to a shut-down model fail.",
+      "replacement": "gemini-3.6-flash",
+      "source": "https://ai.google.dev/gemini-api/docs/deprecations",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "id": "gemini-2026-06-01-gemini-2-0-flash-lite",
+      "provider": "gemini",
+      "kind": "model",
+      "versions": [
+        "gemini-2.0-flash-lite",
+        "gemini-2.0-flash-lite-001"
+      ],
+      "date": "2026-06-01",
+      "summary": "Google shuts down gemini-2.0-flash-lite, gemini-2.0-flash-lite-001 on the Gemini API on this date at the earliest; requests to a shut-down model fail.",
+      "replacement": "gemini-3.1-flash-lite",
+      "source": "https://ai.google.dev/gemini-api/docs/deprecations",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "id": "gemini-2026-06-25-gemini-3-1-flash-image-preview",
+      "provider": "gemini",
+      "kind": "model",
+      "versions": [
+        "gemini-3.1-flash-image-preview"
+      ],
+      "date": "2026-06-25",
+      "summary": "Google shuts down gemini-3.1-flash-image-preview on the Gemini API on this date at the earliest; requests to a shut-down model fail.",
+      "replacement": "gemini-nano-banana-2.1",
+      "source": "https://ai.google.dev/gemini-api/docs/deprecations",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "id": "gemini-2026-06-25-gemini-3-pro-image-preview",
+      "provider": "gemini",
+      "kind": "model",
+      "versions": [
+        "gemini-3-pro-image-preview"
+      ],
+      "date": "2026-06-25",
+      "summary": "Google shuts down gemini-3-pro-image-preview on the Gemini API on this date at the earliest; requests to a shut-down model fail.",
+      "replacement": "gemini-3-pro-image",
+      "source": "https://ai.google.dev/gemini-api/docs/deprecations",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "id": "gemini-2026-06-30-veo-3-0-generate-001",
+      "provider": "gemini",
+      "kind": "model",
+      "versions": [
+        "veo-3.0-generate-001",
+        "veo-3.0-fast-generate-001",
+        "veo-2.0-generate-001"
+      ],
+      "date": "2026-06-30",
+      "summary": "Google shuts down veo-3.0-generate-001, veo-3.0-fast-generate-001, veo-2.0-generate-001 on the Gemini API on this date at the earliest; requests to a shut-down model fail. The page recommends: gemini-omni-1.1-flash or the GA models on the Gemini Enterprise Agent Platform.",
+      "replacement": null,
+      "source": "https://ai.google.dev/gemini-api/docs/deprecations",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "id": "gemini-2026-07-28-gemini-2-5-computer-use-preview-10-2025",
+      "provider": "gemini",
+      "kind": "model",
+      "versions": [
+        "gemini-2.5-computer-use-preview-10-2025"
+      ],
+      "date": "2026-07-28",
+      "summary": "Google shuts down gemini-2.5-computer-use-preview-10-2025 on the Gemini API on this date at the earliest; requests to a shut-down model fail.",
+      "replacement": "gemini-3.8-flash",
+      "source": "https://ai.google.dev/gemini-api/docs/deprecations",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "id": "gemini-2026-08-10-embedding-2-preview",
+      "provider": "gemini",
+      "kind": "model",
+      "versions": [
+        "embedding-2-preview"
+      ],
+      "date": "2026-08-10",
+      "summary": "Google shuts down embedding-2-preview on the Gemini API on this date at the earliest; requests to a shut-down model fail.",
+      "replacement": "gemini-embedding-2",
+      "source": "https://ai.google.dev/gemini-api/docs/deprecations",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "id": "gemini-2026-08-17-imagen-4-0-generate-001",
+      "provider": "gemini",
+      "kind": "model",
+      "versions": [
+        "imagen-4.0-generate-001",
+        "imagen-4.0-ultra-generate-001",
+        "imagen-4.0-fast-generate-001"
+      ],
+      "date": "2026-08-17",
+      "summary": "Google shuts down imagen-4.0-generate-001, imagen-4.0-ultra-generate-001, imagen-4.0-fast-generate-001 on the Gemini API on this date at the earliest; requests to a shut-down model fail.",
+      "replacement": "gemini-nano-banana-2.1",
+      "source": "https://ai.google.dev/gemini-api/docs/deprecations",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "id": "gemini-2026-08-31-gemini-robotics-er-1-6-preview",
+      "provider": "gemini",
+      "kind": "model",
+      "versions": [
+        "gemini-robotics-er-1.6-preview"
+      ],
+      "date": "2026-08-31",
+      "summary": "Google shuts down gemini-robotics-er-1.6-preview on the Gemini API on this date at the earliest; requests to a shut-down model fail.",
+      "replacement": "gemini-robotics-er-2-preview",
+      "source": "https://ai.google.dev/gemini-api/docs/deprecations",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "id": "gemini-2026-10-22-veo-3-1-lite-generate-preview",
+      "provider": "gemini",
+      "kind": "model",
+      "versions": [
+        "veo-3.1-lite-generate-preview",
+        "veo-3.1-generate-preview",
+        "veo-3.1-fast-generate-preview",
+        "gemini-omni-flash-preview"
+      ],
+      "date": "2026-10-22",
+      "summary": "Google shuts down veo-3.1-lite-generate-preview, veo-3.1-generate-preview, veo-3.1-fast-generate-preview, gemini-omni-flash-preview on the Gemini API on this date at the earliest; requests to a shut-down model fail.",
+      "replacement": "gemini-omni-1.1-flash",
+      "source": "https://ai.google.dev/gemini-api/docs/deprecations",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "id": "gemini-2026-11-17-gemini-3-1-flash-live-preview",
+      "provider": "gemini",
+      "kind": "model",
+      "versions": [
+        "gemini-3.1-flash-live-preview",
+        "gemini-2.5-flash-native-audio-preview-12-2025"
+      ],
+      "date": "2026-11-17",
+      "summary": "Google shuts down gemini-3.1-flash-live-preview, gemini-2.5-flash-native-audio-preview-12-2025 on the Gemini API on this date at the earliest; requests to a shut-down model fail.",
+      "replacement": "gemini-3.8-live",
+      "source": "https://ai.google.dev/gemini-api/docs/deprecations",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "id": "gemini-2026-11-17-gemini-3-1-flash-tts-preview",
+      "provider": "gemini",
+      "kind": "model",
+      "versions": [
+        "gemini-3.1-flash-tts-preview",
+        "gemini-2.5-flash-preview-tts",
+        "gemini-2.5-pro-preview-tts"
+      ],
+      "date": "2026-11-17",
+      "summary": "Google shuts down gemini-3.1-flash-tts-preview, gemini-2.5-flash-preview-tts, gemini-2.5-pro-preview-tts on the Gemini API on this date at the earliest; requests to a shut-down model fail. The page recommends: gemini-3.8-flash-tts or gemini-3.8-flash-lite-tts.",
+      "replacement": null,
+      "source": "https://ai.google.dev/gemini-api/docs/deprecations",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "id": "gemini-2027-03-15-gemini-2-5-flash-image",
+      "provider": "gemini",
+      "kind": "model",
+      "versions": [
+        "gemini-2.5-flash-image"
+      ],
+      "date": "2027-03-15",
+      "summary": "Google shuts down gemini-2.5-flash-image on the Gemini API on this date at the earliest; requests to a shut-down model fail.",
+      "replacement": "gemini-3.1-flash-lite-image",
+      "source": "https://ai.google.dev/gemini-api/docs/deprecations",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "id": "gemini-2027-05-07-gemini-3-1-flash-lite",
+      "provider": "gemini",
+      "kind": "model",
+      "versions": [
+        "gemini-3.1-flash-lite"
+      ],
+      "date": "2027-05-07",
+      "summary": "Google shuts down gemini-3.1-flash-lite on the Gemini API on this date at the earliest; requests to a shut-down model fail.",
+      "replacement": "gemini-3.5-flash-lite",
+      "source": "https://ai.google.dev/gemini-api/docs/deprecations",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "id": "gemini-2028-05-14-gemini-embedding-001",
+      "provider": "gemini",
+      "kind": "model",
+      "versions": [
+        "gemini-embedding-001"
+      ],
+      "date": "2028-05-14",
+      "summary": "Google shuts down gemini-embedding-001 on the Gemini API on this date at the earliest; requests to a shut-down model fail.",
+      "replacement": "gemini-embedding-2",
+      "source": "https://ai.google.dev/gemini-api/docs/deprecations",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "id": "twilio-node-below-6-2026-04-20",
+      "provider": "twilio",
+      "kind": "sdk",
+      "versions": [
+        "twilio@<6.0.0"
+      ],
+      "date": "2026-04-20",
+      "summary": "Estimate: Twilio has not announced an exact end-of-support date for twilio-node 5.x and older. 2026-04-20 is Refit's estimate from Twilio's support policy, not a Twilio date: Twilio supports only the current major version of twilio-node (VERSIONS.md, https://github.com/twilio/twilio-node/blob/main/VERSIONS.md), and 6.0.0 became the current major on 2026-04-20, its release date in UPGRADE.md, so since then 5.x and older get no new features, bug fixes or security updates. Refit watches for Twilio's official announcement: this entry's sources are re-checked at least every 30 days, and as soon as Twilio publishes a date Refit will flag it and replace this estimate. Until then the entry is report only. Twilio says 6.x has no breaking API changes but needs Node.js 20 or newer, and does not say that requests through older versions stop working.",
+      "replacement": "twilio 6.x",
+      "source": "https://github.com/twilio/twilio-node/blob/main/UPGRADE.md",
+      "checkedAt": "2026-10-22",
+      "derivedDate": true
+    },
+    {
+      "id": "algolia-javascript-client-v4",
+      "provider": "algolia",
+      "kind": "sdk",
+      "versions": [
+        "algoliasearch@<5"
+      ],
+      "date": "2026-08-14",
+      "summary": "Algolia ends support for the JavaScript API client v4 (algoliasearch below 5). Algolia Support can no longer help with v4-specific issues; the v5 compatibility layer is scheduled to be removed on 2027-02-14.",
+      "replacement": "algoliasearch 5 (the upgrade guide covers the removed initIndex pattern)",
+      "source": "https://changelog.algolia.com/label/80880",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "id": "zoom-meeting-sdk-key",
+      "provider": "zoom",
+      "kind": "feature",
+      "versions": [
+        "meeting-sdk-key"
+      ],
+      "date": "2026-06-27",
+      "summary": "Zoom enforces the Client ID and Client Secret for Meeting SDK signatures from 2026-06-27; the legacy SDK Key and Secret are deprecated, and the web SDK's sdkKey argument is no longer needed.",
+      "replacement": "Sign the Meeting SDK JWT with the Client ID and Client Secret",
+      "source": "https://developers.zoom.us/docs/meeting-sdk/sdk-key-migration/",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "id": "mailchimp-export-api",
+      "provider": "mailchimp",
+      "kind": "endpoint",
+      "versions": [
+        "export-api"
+      ],
+      "date": "2023-06-01",
+      "summary": "Mailchimp retired the Export API 1.0 and API 2.0 on 2023-06-01. Calls to those endpoints return HTTP 410.",
+      "replacement": "Marketing API 3.0",
+      "source": "https://mailchimp.com/developer/release-notes",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "id": "airtable-user-api-keys",
+      "provider": "airtable",
+      "kind": "feature",
+      "versions": [
+        "api-key"
+      ],
+      "date": "2024-02-01",
+      "summary": "Airtable completed the deprecation of user API keys on 2024-02-01: API keys can no longer access the Airtable API.",
+      "replacement": "Personal access tokens or OAuth",
+      "source": "https://support.airtable.com/docs/airtable-api-key-deprecation-notice",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "id": "hubspot-api-v4",
+      "provider": "hubspot",
+      "kind": "api-version",
+      "versions": [
+        "api-v4"
+      ],
+      "date": "2027-03-30",
+      "summary": "HubSpot ends support for APIs on numbered v4 paths on 2027-03-30. Support for v1 to v3 paths ends in September 2027.",
+      "replacement": "The dated API versions (for example 2026-03) HubSpot documents for each API",
+      "source": "https://developers.hubspot.com/changelog/legacy-apis-and-legacy-apps-whats-going-unsupported-and-when",
+      "checkedAt": "2026-10-22"
     }
   ]
 }

@@ -34,7 +34,7 @@ An entry's `kind` is `api-version`, `model` or `sdk`. An `sdk` entry lists npm p
 
 Some entries are **report only**: `refit deadlines` lists them, marked `Report only`, but they never fail `--fail-within` and never open a `--deadline-alerts` issue (owner decision, 2026-10-22). That covers:
 
-- an entry with `"derivedDate": true`, whose date the provider never announced as a shutdown, such as one taken from a release date or an OpenAPI `eol` field. Its summary says where the date comes from;
+- an entry with `"derivedDate": true`, whose date the provider never announced as a shutdown, such as one taken from a release date or an OpenAPI `eol` field. Its summary says where the date comes from. `refit deadlines` labels it as an estimate ("the provider has not announced this date"). For example, `twilio-node-below-6-2026-04-20` is Refit's estimate: Twilio has announced no end-of-support date for twilio-node 5.x, so the date comes from its support policy (only the current major is supported) and the 6.0.0 release date. Its summary says so, and that Refit watches for the official date: like every entry, its sources are re-checked at least every 30 days (`npm run deadlines:check` lists entries checked longer ago), and an announced date replaces the estimate and drops `derivedDate` (owner decision, 2026-10-22);
 - every entry whose `kind` is `method`, `endpoint`, `field` or `feature`.
 
 Past-due entries stay in the registry on purpose: a repository still pinning a retired version is the most urgent case. To change the registry, edit the file from the provider's page, set `checkedAt` to the day you checked, and run:
@@ -47,18 +47,16 @@ This is the same as `refit deadlines --check-registry`. It fails on shape errors
 
 ### Keep the registry current
 
-Anthropic publishes its retirements as tables on its model deprecations page, so Refit can maintain those entries itself:
+Anthropic, OpenAI, Google, Shopify and Meta publish their retirement dates as tables, so Refit maintains those entries itself:
 
 ```sh
-refit deadlines --sync anthropic          # list what would change
-refit deadlines --sync anthropic --write  # save it to data/deadlines.json
+refit deadlines --sync openai          # list what would change (also anthropic, gemini, shopify, meta-graph)
+refit deadlines --sync openai --write  # save it to data/deadlines.json
 ```
 
-The sync groups the page's rows by retirement date and replacement, one registry entry each. An entry whose date, replacement and models are unchanged is left exactly as it is, including aliases a person added from another page and its `checkedAt`. A new retirement gets a new entry, and a changed date or replacement updates the existing entry in place, both with today's `checkedAt`. An entry the page no longer lists is kept and reported, never deleted. A table row it cannot parse fails the whole sync, so a changed page layout is noticed rather than skipped. The result must pass the same registry check before it is written.
+A model sync groups the page's rows by shutdown date and recommendation, one registry entry each; an API version sync writes one entry per version. Unchanged entries keep their aliases, summary and `checkedAt` until it is more than 30 days old; new and changed entries get today's `checkedAt`. An entry the page no longer lists is kept and reported, never deleted, and a row the parser does not recognize fails the whole sync. The result must pass the registry check before it is written. The `Registry sync` workflow runs every sync daily and opens or updates one pull request for review. [Registry sync](REGISTRY-SYNC.md) covers how each page is read, when an entry names a replacement, and the workflow's settings.
 
-The repository's `Deadline registry sync` workflow (`.github/workflows/deadlines-sync.yml`) runs the sync every day and opens a pull request when the registry should change, unless a sync pull request is already open. Nothing is merged automatically. It needs **Allow GitHub Actions to create and approve pull requests** enabled in the repository's Actions settings. A pull request opened with the workflow's token does not start CI by itself, so push a commit or re-run CI on it before merging.
-
-Other providers' entries are still maintained by hand: OpenAI's deprecations page could not be read from Refit's build environment, and Shopify and Meta publish prose, not tables. There is no Gemini sync: its page could not be read either, so a parser could not be written against its real layout.
+`deadlines --check-registry` also warns on entries whose `checkedAt` is more than 30 days old.
 
 ## Check a repository
 
@@ -103,9 +101,37 @@ The terminal output lists live evidence first, then one collapsed `Not live` lin
 - The benchmark script's results add `nonLive` (counts by use), `nonLiveTotal` and `mentionedOnly`, and keep the 2026-10-20 keys.
 - Every evidence item has a `use`.
 - A top-level `mentions` array lists deadlines with no live match, in the same shape with an empty `evidence`.
+- Each exposure and mention has `outside` and `outsideMore`: matches outside application code, [not counted](#matches-outside-application-code-not-counted).
 - Each exposure has `ignored` (the [ignore entries](#accept-an-exposure-for-a-while) that accept it, or `null`) and `ignoreNote` (why an ignore for that deadline did not apply, or `null`).
 - A top-level `ignores` object names the ignore file read and lists `expired` and `unknown` entries.
 - With `--fail-within`, a top-level `check` holds `failWithin`, `status` (`pass` or `fail`), `failing` and `ignored` deadline IDs.
+
+### Matches outside application code (not counted)
+
+Owner decision, 2026-10-22: a match in docs, examples, test fixtures or build output is not an exposure. It never fails `--fail-within`, never opens or updates an alert and never reaches the model-fix lists. It is still listed, so nothing is hidden: `refit deadlines` prints it under each deadline as **Also found outside application code (not counted)**, with the path, the reason and the matched line, and `--json` gives it as `outside` (plus `outsideMore` past the 20-item cap) on each exposure and mention. A deadline matched only there moves to "Named only outside live code". `refit report` lists the same matches in its own section.
+
+A path is outside application code when one of its directories (matched as a whole segment) or its file name is:
+
+| Reason | Paths | Why |
+|---|---|---|
+| `docs-site` | `doc/`, `docs/`, `website/`, `documentation/` | Documentation and marketing sites |
+| `example` | `example(s)/`, `sample(s)/`, `demo(s)/` | Sample code that is not the application |
+| `test-fixture` | `fixture(s)/`, `__fixtures__/`, `__mocks__/`, `testdata/`, `test-data/`, `mocks/` | Test data and mocks |
+| `build-output` | `out/`, `.next/`, `.nuxt/`, `.output/`, `.svelte-kit/`, `coverage/`, `.turbo/`, `dist/`, `build/`, and `*.min.js`, `*.bundle.js` files | Generated from the source, which is scanned itself |
+
+- **Still counted:** `vendor/`, `vendors/`, `vendored/` and `third_party/` code ships with the application, so it stays an exposure (with its `vendored` reason shown).
+- **Tests:** test files (`*.test.*`, `test/`, `__tests__/`, ...) are unchanged and stay under `Not live` as `test`. A match in `examples/` or `fixtures/`, which are also test paths, is listed outside application code instead, with use `test`.
+- **Never read:** the repository reader skips `dist/`, `build/`, `coverage/`, `.next/` and `node_modules/` before any matcher runs (`pipeline/repository.ts`), so matches there are neither counted nor listed. The other build-output paths above are read and listed.
+
+The rules live in `pipeline/workspace-attribution.ts` (`EXCLUSIONS`, `UNCOUNTED_EXCLUSIONS`), and [WORKSPACE-ATTRIBUTION.md](WORKSPACE-ATTRIBUTION.md) has the measurement.
+
+**Declaring a path as application code.** Some of these directories are deployed: a `website/` that serves API routes, an `apps/demo` that is a product. Commit `.refit-application-paths.json` at the repository root to say so:
+
+```json
+{ "formatVersion": 1, "paths": ["website", "apps/demo"] }
+```
+
+Each entry is a directory relative to the root, with no globs, `.` or `..` (at most 100). Inside those directories no exclusion applies, so matches count as exposures again and `refit agents` shows no exclusion reason. A file that is present but malformed stops the scan with an error naming it; it is never ignored. Without the file, the rules above apply.
 
 ## Fail a CI build before a deadline
 
@@ -115,7 +141,7 @@ refit deadlines --fail-within 30
 
 With `--fail-within <days>`, the command exits **2** when the repository has a live exposure whose deadline has passed, is today or is within that many days. It exits **0** when there is none, and **1** on any error. `0` fails only on past-due deadlines and today; the maximum is 3650. Without the flag, `refit deadlines` only reports and always exits 0 unless it hits an error.
 
-Only live evidence counts, and report-only deadlines (see [The registry](#the-registry)) never fail it. A model named in a list, a test, an example or a comment never fails a build. The output ends with the result, and on failure it lists each failing deadline with its date and days left.
+Only live evidence counts, and report-only deadlines (see [The registry](#the-registry)) never fail it. A model named in a list, a test, an example or a comment never fails a build. The output ends with the result, and on failure it lists each failing deadline with its date and days left. A deadline that has already passed also gets its source, what to upgrade to and what Refit can do ([below](#past-due-deadlines)).
 
 Run it on pull requests to block new uses, and on a schedule so a quiet repository still notices an approaching date:
 
@@ -136,6 +162,35 @@ jobs:
       - run: npm install --global ./refit-X.Y.Z.tgz # the CLI archive from a Refit release
       - run: refit deadlines --fail-within 30
 ```
+
+### Past-due deadlines
+
+Owner decision, 2026-10-22: a deadline that has already passed **keeps failing** `--fail-within`. Report-only deadlines, including derived and estimated dates, still never fail. On failure, each passed deadline gets these lines:
+
+```
+  algolia-javascript-client-v4  2026-08-14 (passed 69 days ago)
+    Passed       on 2026-08-14; this deadline is already in effect
+    Source       https://changelog.algolia.com/label/80880
+    Upgrade to   algoliasearch 5 (the upgrade guide covers the removed initIndex pattern)
+    Action       Refit reports this, and the upgrade is manual.
+```
+
+`Action` offers a draft pull request only where Refit has a fixer:
+- an OpenAI or Anthropic model with a concrete registry replacement: `refit serve --model-fixes`, for models written as a literal in a traced SDK call;
+- an API version of a provider with a Refit agent (Stripe, Shopify), through that agent's migration run.
+
+Every other deadline says the upgrade is manual.
+
+**Allow named past-due deadlines:** `--allow-past-due <id>`, repeatable or comma-separated, with `--fail-within`:
+
+```sh
+refit deadlines --fail-within 30 --allow-past-due algolia-javascript-client-v4
+```
+
+- It turns the named deadlines into warnings, only when they have already passed. They are still printed, with `Warning: … allowed by --allow-past-due` and the lines above, and `--json` lists them in `check.allowed`.
+- It never applies to a deadline that has not passed yet, including one due today: such a deadline still fails inside the window, and the command notes that the flag did not apply.
+- An ID that is not in the registry is an error (exit 1), so a typo never silences anything. Without `--fail-within` the flag is an error too.
+- For an exception with a reason and an expiry, use the ignore file below instead.
 
 ### Accept an exposure for a while
 
@@ -310,4 +365,4 @@ A deadline starts a code change only through [automatic model fixes](#automatic-
 - Evidence is capped at 20 live and 20 non-live matches per deadline, plus a count of the rest.
 - Issues are not closed automatically once the repository stops depending on a deadline.
 - `--fail-within` checks only what Refit can see; the limits above apply. A passing check does not prove the repository uses no retiring version or model.
-- The registry is maintained by hand from the provider pages listed above. Recheck it before relying on a date.
+- The registry follows the provider pages listed above through a sync that a person reviews (Anthropic daily; the others when the workflow is started by hand), and changes only when that pull request is merged. Recheck an entry's `source` before relying on a date.

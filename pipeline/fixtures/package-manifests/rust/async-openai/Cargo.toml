@@ -1,0 +1,9 @@
+# Fixture: copied from https://github.com/64bit/async-openai/blob/65e987a25d0aa1e2c0e9db5584c558089befd94a/Cargo.toml
+[workspace]
+members = [ "async-openai", "async-openai-*", "examples/*" ]
+# Only check / build main crates by default (check all with `--workspace`)
+default-members = ["async-openai", "async-openai-*"]
+resolver = "2"
+
+[workspace.package]
+rust-version = "1.75"

@@ -408,7 +408,7 @@ describe('inventory and deadlines', () => {
     const cloudflare = (await detectProviders(root)).find((item) => item.agent.id === 'cloudflare');
     expect(cloudflare?.packages.map((item) => item.name)).toEqual(['cloudflare']);
     expect(cloudflare?.hostnames).toEqual([
-      { file: 'src/a.ts', line: 1, hostname: 'api.cloudflare.com' },
+      expect.objectContaining({ file: 'src/a.ts', line: 1, hostname: 'api.cloudflare.com' }),
     ]);
   });
 

@@ -288,17 +288,29 @@ it('never proposes Gemini model or SDK replacements', async () => {
     'src/gemini.ts': [
       "import { GoogleGenAI } from '@google/genai';",
       "import { GoogleGenerativeAI } from '@google/generative-ai';",
+      "import { VertexAI } from '@google-cloud/vertexai';",
       'const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });',
       "await ai.models.generateContent({ model: 'gemini-1.5-flash', contents: 'Hi' });",
+      'const genAI = new GoogleGenerativeAI(key);',
+      "const MODEL = process.env.GEMINI_MODEL ?? 'gemini-1.5-flash';",
+      'genAI.getGenerativeModel({ model: MODEL });',
+      "const vertex = new VertexAI({ project: 'p', location: 'us-central1' });",
+      "vertex.getGenerativeModel({ model: 'gemini-1.5-flash' });",
       "new GoogleGenerativeAI(key).getGenerativeModel({ model: 'gemini-1.5-flash' });",
     ].join('\n'),
   });
-  expect(await proposeModelReplacements(root, gemini, NOW)).toEqual({
-    replacements: [],
-    stops: [],
-    unresolved: [],
-    patch: null,
-  });
+  const proposal = await proposeModelReplacements(root, gemini, NOW);
+  // Reported, never edited.
+  expect(proposal.replacements).toEqual([]);
+  expect(proposal.patch).toBeNull();
+  expect(
+    proposal.stops.map((stop) => `${stop.line} ${stop.call} ${stop.at.line}: ${stop.reason}`),
+  ).toEqual([
+    '5 models.generateContent 5: Gemini is report only, so Refit never edits its models (an owner decision); change it by hand to gemini-2.0-flash.',
+    '8 getGenerativeModel 7: Gemini is report only, so Refit never edits its models (an owner decision); change it by hand to gemini-2.0-flash.',
+    "10 getGenerativeModel 10: The client is Vertex AI, whose model retirement dates differ from the Gemini API's; check Google Cloud's model versions page and change it by hand, for example to gemini-2.0-flash.",
+  ]);
+  expect(proposal.unresolved.map((item) => item.line)).toEqual([11]);
 });
 
 // Shapes found on the deadline benchmark: the openai v3 SDK and openai-edge, request objects held in
