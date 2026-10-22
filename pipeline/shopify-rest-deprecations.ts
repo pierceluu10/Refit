@@ -1,4 +1,5 @@
 import { readFile } from 'node:fs/promises';
+import ts from 'typescript-compiler';
 import { isAbsolute, relative, resolve } from 'node:path';
 import { TEST_PATH } from './deadline-exposure.ts';
 import {
@@ -7,9 +8,11 @@ import {
   type DeadlineEntry,
   type DeadlineRegistry,
 } from './deadline-registry.ts';
+import { sourceOf } from './meta-graph-calls.ts';
 import { readRepository } from './repository.ts';
 import { scanShopify } from './shopify-analysis.ts';
 import { isObject, parseObject } from './specifications.ts';
+import type { Repository } from './types.ts';
 
 // REST Admin calls a Shopify app makes to endpoints that a later API version no longer has, read
 // from the REST evidence `scanShopify` already collects (`shopify.restCalls`). Each call is matched
@@ -231,6 +234,81 @@ function matches(
   return found.length && found.every(Boolean) ? [...new Set(found as RemovedEndpoint[])] : [];
 }
 
+const HTTP_VERBS: Record<string, string> = {
+  get: 'GET',
+  post: 'POST',
+  put: 'PUT',
+  delete: 'DELETE',
+  del: 'DELETE',
+};
+// A REST path written after a base URL another expression supplies:
+// `${this.baseUrl(credentials)}/orders/${orderId}/fulfillments.json`.
+const RELATIVE_REST =
+  /^(?:\{[^}]*\})?\/((?:[a-z_]+|\{[^}]*\})(?:\/(?:[a-z_]+|\{[^}]*\}))*\.json)(?:\?.*)?$/;
+
+function literalPath(
+  node: ts.StringLiteral | ts.NoSubstitutionTemplateLiteral | ts.TemplateExpression,
+) {
+  if (!ts.isTemplateExpression(node)) return node.text;
+  return (
+    node.head.text +
+    node.templateSpans.map((span) => `{${span.expression.getText()}}${span.literal.text}`).join('')
+  );
+}
+
+// The method of the request a URL literal is passed to: an HTTP verb call (`client.post(url)`), or
+// a literal `method` in an options object among the call's arguments (`fetch(url, { method })`,
+// `shopifyFetch(url, headers, { method: 'POST' })`). Undefined when the code does not say.
+function urlMethod(node: ts.Node) {
+  const call = node.parent;
+  if (!ts.isCallExpression(call) || !call.arguments.includes(node as ts.Expression))
+    return undefined;
+  if (ts.isPropertyAccessExpression(call.expression) && HTTP_VERBS[call.expression.name.text])
+    return HTTP_VERBS[call.expression.name.text];
+  for (const argument of call.arguments)
+    if (ts.isObjectLiteralExpression(argument))
+      for (const property of argument.properties)
+        if (
+          ts.isPropertyAssignment(property) &&
+          ts.isIdentifier(property.name) &&
+          property.name.text === 'method' &&
+          ts.isStringLiteralLike(property.initializer)
+        )
+          return property.initializer.text.toUpperCase();
+  return undefined;
+}
+
+// REST paths `scanShopify` does not see because the versioned base comes from elsewhere. Only files
+// that build an `/admin/api/` URL are read, and only literals that are a bare REST path.
+function relativeRestCalls(repository: Repository, root: string, seen: Set<string>) {
+  const found: { file: string; line: number; expression: string; method?: string; path: string }[] =
+    [];
+  for (const file of repository.files) {
+    if (!file.content.includes('/admin/api/')) continue;
+    const source = sourceOf(file.path, file.content);
+    const visit = (node: ts.Node) => {
+      if (
+        ts.isStringLiteral(node) ||
+        ts.isNoSubstitutionTemplateLiteral(node) ||
+        ts.isTemplateExpression(node)
+      ) {
+        const text = literalPath(node);
+        const path = RELATIVE_REST.exec(text)?.[1];
+        const line = source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1;
+        const where = isAbsolute(file.path) ? relative(root, file.path) : file.path;
+        if (path && !text.includes('graphql.json') && !seen.has(`${where}:${line}`)) {
+          const method = urlMethod(node);
+          found.push({ file: where, line, expression: text, ...(method ? { method } : {}), path });
+        }
+        return;
+      }
+      ts.forEachChild(node, visit);
+    };
+    visit(source);
+  }
+  return found;
+}
+
 // Lists the REST Admin calls an app makes to endpoints a later API version removes.
 export async function scanShopifyRestDeprecations(
   directory: string,
@@ -240,8 +318,13 @@ export async function scanShopifyRestDeprecations(
   const registry = options.registry ?? (await loadDeadlineRegistry());
   const now = options.now ?? new Date();
   const root = resolve(directory);
-  const scan = scanShopify(await readRepository(root, '@shopify/shopify-api'));
-  const pinned = [...new Set(scan.versions.map((item) => item.value))]
+  const repository = await readRepository(root, '@shopify/shopify-api');
+  const scan = scanShopify(repository);
+  // `scanShopify`'s pins, plus a version that ends a base URL (`/admin/api/2024-01` + path).
+  const baseVersions = repository.files.flatMap((file) =>
+    [...file.content.matchAll(/\/admin\/api\/(\d{4}-\d{2})(?=[`'"])/g)].map((match) => match[1]),
+  );
+  const pinned = [...new Set([...scan.versions.map((item) => item.value), ...baseVersions])]
     .filter((version) => VERSION.test(version))
     .sort();
   const oldest = oldestSupported(registry, now);
@@ -278,6 +361,34 @@ export async function scanShopifyRestDeprecations(
           method: call.method ?? null,
           path: call.path ?? null,
           resource: call.resource ?? null,
+        },
+        endpoint,
+        status: !served ? 'unknown' : served >= endpoint.removedIn ? 'removed' : 'upcoming',
+        deadline: sunset(registry, endpoint.lastVersion, now),
+      });
+  }
+  const seen = new Set(rest.map((item) => `${item.file}:${item.line}`));
+  for (const call of relativeRestCalls(repository, root, seen)) {
+    rest.push({
+      file: call.file,
+      line: call.line,
+      use: TEST_PATH.test(call.file) ? 'test' : 'live',
+      method: call.method ?? null,
+      path: call.path,
+      resource: null,
+    });
+    const found = matches(data, call);
+    if (!found.length) unmatched += 1;
+    for (const endpoint of found)
+      calls.push({
+        file: call.file,
+        line: call.line,
+        use: TEST_PATH.test(call.file) ? 'test' : 'live',
+        call: {
+          expression: call.expression,
+          method: call.method ?? null,
+          path: call.path,
+          resource: null,
         },
         endpoint,
         status: !served ? 'unknown' : served >= endpoint.removedIn ? 'removed' : 'upcoming',

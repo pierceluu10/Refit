@@ -88,6 +88,45 @@ export async function listFulfillments(shop: string, orderId: number) {
     );
   });
 
+  it('reads REST paths written after a base URL from a helper', async () => {
+    const scan = await scanShopifyRestDeprecations(
+      await repository({
+        'server/adapter.ts': `export class ShopifyAdapter {
+  private baseUrl(shop: string) {
+    return \`https://\${shop}/admin/api/2024-01\`;
+  }
+  async fulfil(shop: string, orderId: string, body: unknown) {
+    await this.shopifyFetch(
+      \`\${this.baseUrl(shop)}/orders/\${orderId}/fulfillments.json\`,
+      { 'X-Shopify-Access-Token': 'token' },
+      { method: 'POST', body: JSON.stringify(body) },
+    );
+  }
+  async fulfillments(shop: string, orderId: string) {
+    return this.shopifyFetch(\`\${this.baseUrl(shop)}/orders/\${orderId}/fulfillments.json\`, {});
+  }
+  async products(shop: string) {
+    return fetch(\`\${this.baseUrl(shop)}/products.json?limit=250\`);
+  }
+  readonly manifest = 'package.json';
+  private async shopifyFetch(url: string, headers: object, init: object = {}) {
+    return fetch(url, { headers, ...init });
+  }
+}
+`,
+      }),
+      { now: NOW },
+    );
+    expect(summary(scan.calls)).toEqual([
+      'server/adapter.ts:7 POST orders/<order_id>/fulfillments.json 2022-07 removed',
+    ]);
+    expect(scan.rest.map((item) => `${item.line} ${item.method} ${item.path}`)).toEqual([
+      '7 POST orders/{orderId}/fulfillments.json',
+      '13 null orders/{orderId}/fulfillments.json',
+      '16 null products.json',
+    ]);
+  });
+
   it('leaves calls alone when the endpoint they may send still exists', async () => {
     const scan = await scanShopifyRestDeprecations(
       await repository({
