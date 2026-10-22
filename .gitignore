@@ -9,3 +9,9 @@ dist-cli/
 !.env.example
 *.pem
 .impeccable/review/
+# Local agent and planning state: worktrees of other branches, personal settings and absolute paths.
+.claude/worktrees/
+.claude/settings.local.json
+.planning/
+# Registry credentials.
+.npmrc

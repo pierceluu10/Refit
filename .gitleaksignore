@@ -1,0 +1,7 @@
+# Reviewed gitleaks findings that are not credentials (docs/PUBLIC-READINESS.md lists each one).
+d3e4df368746fe43c6d36040c711f1c287dc9188:pipeline/generated-checks.test.ts:stripe-access-token:33
+58c3177bc35de160edbaa6af012bea1bacae6b96:pipeline/property-moves.test.ts:stripe-access-token:134
+9541119f8caf58065dc31179e44273e6d576832f:pipeline/property-moves.test.ts:stripe-access-token:339
+0a930146b81485a27a81262ad0f68f75cfd54df0:pipeline/secret-redaction.test.ts:curl-auth-header:29
+1232923430ae1b4f9679ebfe3f21ce0bd1251491:pipeline/stripe-package-upgrade.test.ts:stripe-access-token:252
+1232923430ae1b4f9679ebfe3f21ce0bd1251491:pipeline/stripe-package-upgrade.test.ts:stripe-access-token:297

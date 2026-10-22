@@ -13,9 +13,9 @@ The local Docker daemon must be running and `node:22-alpine` must already be ins
 From the Refit checkout, run the installed App with the prepared npm profile:
 
 ```sh
-cd /Users/pierceluu/Repos/Refit
+cd ~/Repos/Refit
 refit serve --env .env --config examples/local-service.npm.refit.json \
-  --state /Users/pierceluu/.refit/stripe-prepared-pilot --once
+  --state ~/.refit/stripe-prepared-pilot --once
 ```
 
 This discovers the installed App's access, fetches the billing demo into a managed checkout, scans the supplied historical Stripe contracts, prepares dependencies when necessary, and validates a deterministic migration. The example checks original behavior, both original/changed behavior after patching, and TypeScript. It leaves your billing checkout unchanged and does not publish a PR. Subsequent polls reuse the saved job and report that checks were not rerun. Omit `--once` for continuous polling.
@@ -24,9 +24,9 @@ For draft publication, use a **fresh service state directory** and add `--publis
 
 ```sh
 REFIT_AI_BUDGET_USD=2 \
-REFIT_AI_BUDGET_DIRECTORY=/Users/pierceluu/.refit/evaluations/2026-10-12 \
+REFIT_AI_BUDGET_DIRECTORY=~/.refit/evaluations/2026-10-12 \
 refit serve --env .env --config examples/local-service.npm.refit.json \
-  --state /Users/pierceluu/.refit/stripe-prepared-ai-pilot \
+  --state ~/.refit/stripe-prepared-ai-pilot \
   --once --ai-patch --repair-attempts 1
 ```
 
@@ -37,7 +37,7 @@ This uses the existing project allowance rather than resetting spending. AI gene
 Inspect dependency preparation independently:
 
 ```sh
-refit prepare --repository /Users/pierceluu/Repos/refit-billing-demo \
+refit prepare --repository ~/Repos/refit-billing-demo \
   --image node:22-alpine
 ```
 
@@ -46,7 +46,7 @@ It prints the recorded Node/npm versions, number of locked package records and e
 You can also opt in on a run without creating a service:
 
 ```sh
-refit run --repository /Users/pierceluu/Repos/refit-billing-demo \
+refit run --repository ~/Repos/refit-billing-demo \
   --before pipeline/fixtures/before.json --after pipeline/fixtures/after.json \
   --output /tmp/new-refit-prepared-run --image node:22-alpine \
   --prepare-dependencies --baseline-command '["npm","test"]' \
