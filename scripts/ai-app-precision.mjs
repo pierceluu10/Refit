@@ -52,13 +52,15 @@ const { values } = parseArgs({
     results: { type: 'string' },
     labels: { type: 'string', default: 'docs/benchmarks/2026-10-22-ai-app-model-sites.json' },
     registry: { type: 'string', default: 'data/deadlines.json' },
+    // Every repository in both frozen lists, in the same seeded order as the sample.
+    all: { type: 'boolean' },
     help: { type: 'boolean' },
   },
 });
 const usage =
-  'Usage: node scripts/ai-app-precision.mjs candidates --root <checkouts> --output <dir>\n' +
+  'Usage: node scripts/ai-app-precision.mjs candidates --root <checkouts> --output <dir> [--all]\n' +
   '       node scripts/ai-app-precision.mjs negatives --output <dir>\n' +
-  '       node scripts/ai-app-precision.mjs run --root <checkouts> --results <results.json>\n' +
+  '       node scripts/ai-app-precision.mjs run --root <checkouts> --results <results.json> [--all]\n' +
   '       node scripts/ai-app-precision.mjs score --results <results.json> [--labels <labels.json>] [--output <score.json>]';
 if (values.help || !SETS.length || !['candidates', 'negatives', 'run', 'score'].includes(step)) {
   console.log(usage);
@@ -72,10 +74,12 @@ async function sample() {
   for (const set of SETS) {
     const list = await read(join(REFIT, LISTS[set]));
     const commits = new Map(list.repos.map((entry) => [entry.repo, entry.commit]));
-    out[set] = seededSample([...commits.keys()], SEED, FRACTION[set]).map((repo) => ({
-      repo,
-      commit: commits.get(repo),
-    }));
+    out[set] = seededSample([...commits.keys()], SEED, values.all ? 1 : FRACTION[set]).map(
+      (repo) => ({
+        repo,
+        commit: commits.get(repo),
+      }),
+    );
   }
   return out;
 }

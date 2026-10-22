@@ -46,7 +46,7 @@ It does not count when the literal is:
 }
 ```
 
-- A site belongs to its repository, not to a set. Two repositories (`vual/lobe-chat-pro`, `utter-one/bonsai`) are in both frozen lists and both samples, so their sites count in both sets.
+- A site belongs to its repository, not to a set. Nine repositories are in both frozen lists. Three of them (`backenly/backenly`, `utter-one/bonsai`, `vual/lobe-chat-pro`) are in both samples, so their sites count in both sets.
 - `provider` is the provider whose API receives the request: `openai`, `anthropic`, `gemini`, or `compatible` for another host.
 - `via` is `sdk`, `wrapper`, `raw-http` or `indirect` (a constant, default or config one hop or more away from the call).
 - `registry` is filled in after labelling, by rule: `true` when the model is listed in `data/deadlines.json` at the scored commit. Model-retirement detection only reports registry models, so recall is scored over registry sites and reported separately for all sites.
@@ -153,7 +153,7 @@ Refit finds nearly every registry model an OpenAI-set application sends. Two thi
 
 ## False positives by cause
 
-All 83 false positives (75 distinct sites, since two repositories are in both sets) were read in full. The full list is in the appendix.
+All 83 false positives (75 distinct sites, since three repositories are in both samples) were read in full. The full list is in the appendix.
 
 | Cause                                                                                                                                                           | OpenAI | Anthropic | Where                                                                                 |
 | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | -----: | --------: | ------------------------------------------------------------------------------------- |
