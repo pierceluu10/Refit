@@ -98,6 +98,8 @@ it('packs only CLI runtime sources, fixtures, docs and exact runtime dependencie
   expect(result.files).toContain('pipeline/manager-install.ts');
   expect(result.files).toContain('examples/billing-demo.npm.refit.json');
   expect(result.files).toContain('examples/local-service.npm.refit.json');
+  expect(result.files).toContain('pipeline/stripe-open-enums.json');
+  expect(result.files).toContain('pipeline/stripe-sdk-metadata.json');
   expect(result.files).toContain('pipeline/fixtures/repository/billing.ts');
   expect(
     result.files.some(
@@ -110,6 +112,7 @@ it('packs only CLI runtime sources, fixtures, docs and exact runtime dependencie
     'fast-xml-parser',
     'graphql',
     'parse5',
+    'pg',
     'tsx',
     'typescript-compiler',
     'yaml',

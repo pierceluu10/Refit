@@ -56,6 +56,23 @@ const MUTATING_STATICS = new Set([
   'Reflect.deleteProperty',
 ]);
 
+const COMPARISONS = new Set([
+  ts.SyntaxKind.InstanceOfKeyword,
+  ts.SyntaxKind.InKeyword,
+  ts.SyntaxKind.EqualsEqualsToken,
+  ts.SyntaxKind.EqualsEqualsEqualsToken,
+  ts.SyntaxKind.ExclamationEqualsToken,
+  ts.SyntaxKind.ExclamationEqualsEqualsToken,
+  ts.SyntaxKind.LessThanToken,
+  ts.SyntaxKind.LessThanEqualsToken,
+  ts.SyntaxKind.GreaterThanToken,
+  ts.SyntaxKind.GreaterThanEqualsToken,
+]);
+// A comparison yields a boolean, so neither operand escapes through it (`error instanceof
+// Stripe.errors.StripeError` does not expose the SDK constructor).
+const comparison = (node: ts.Node) =>
+  ts.isBinaryExpression(node) && COMPARISONS.has(node.operatorToken.kind);
+
 function receiver(node: ts.Node): ts.Identifier | undefined {
   if (ts.isIdentifier(node)) return node;
   if (
@@ -115,7 +132,13 @@ export function unsafeBindings(
     // Type annotations name types and cannot reach a runtime value. Passing a function exposes the
     // function, not the locals its body declares; the body's own mutations and returns are tracked
     // directly.
-    if (ts.isTypeNode(node) || ts.isFunctionLike(node) || (value && primitiveValue(node))) return;
+    if (
+      ts.isTypeNode(node) ||
+      ts.isFunctionLike(node) ||
+      comparison(node) ||
+      (value && primitiveValue(node))
+    )
+      return;
     if (receiver(node) || references?.rootBinding(node)) taint(node);
     // Passing a call's result does not expose its callee or SDK client.
     else if (ts.isCallExpression(node) || ts.isNewExpression(node))
@@ -297,7 +320,7 @@ export function unsafeBindings(
     else if (ts.isConditionalExpression(expression)) {
       expose(expression.whenTrue);
       expose(expression.whenFalse);
-    } else if (ts.isBinaryExpression(expression)) {
+    } else if (ts.isBinaryExpression(expression) && !comparison(expression)) {
       expose(expression.left);
       expose(expression.right);
     }

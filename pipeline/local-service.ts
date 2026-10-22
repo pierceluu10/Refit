@@ -8,7 +8,6 @@ import type { AiOptions } from './ai-budget.ts';
 import {
   authenticateGitHubComment,
   authenticateGitHubIssues,
-  authenticateGitHubRead,
   type GitHubAppConfiguration,
 } from './github-app.ts';
 import { suggestAgentsForPullRequest } from './agent-suggestions.ts';
@@ -30,11 +29,11 @@ import { requestGitHub } from './github.ts';
 import { parseWebhook, verifyWebhook, WebhookInputError } from './github-webhooks.ts';
 import type { ServiceTarget } from './service-configuration.ts';
 import { openServiceStore, type PullRequestState } from './service-state.ts';
-import { digest, isObject } from './specifications.ts';
+import { digest } from './specifications.ts';
 import { withStateLock } from './state-files.ts';
 import { PipelineInputError } from './types.ts';
 import { validateRepairAttempts } from './validation-options.ts';
-import { pollServiceTarget } from './service-worker.ts';
+import { confirmRepositoryAccess, pollServiceTarget, summarizePoll } from './service-worker.ts';
 import { runModelFixes, type ModelFixChecks } from './model-fixes.ts';
 import { publicationConfiguration } from './publication.ts';
 import { RepositoryApprovalError } from './repository-enrollment.ts';
@@ -66,7 +65,7 @@ export function validateServiceSecret(value: string | undefined, name: string) {
   return value;
 }
 
-function authorized(request: IncomingMessage, token: string) {
+export function authorized(request: IncomingMessage, token: string) {
   const header = request.headers.authorization;
   if (typeof header !== 'string' || !header.startsWith('Bearer ')) return false;
   const supplied = Buffer.from(header.slice('Bearer '.length));
@@ -74,7 +73,7 @@ function authorized(request: IncomingMessage, token: string) {
   return supplied.length === expected.length && timingSafeEqual(supplied, expected);
 }
 
-async function requestBody(request: IncomingMessage) {
+export async function requestBody(request: IncomingMessage) {
   if (
     request.headers['content-type']?.split(';')[0].toLowerCase() !== 'application/json' ||
     (request.headers['content-encoding'] && request.headers['content-encoding'] !== 'identity')
@@ -94,7 +93,7 @@ async function requestBody(request: IncomingMessage) {
   return Buffer.concat(chunks);
 }
 
-function respond(response: ServerResponse, status: number, value: unknown) {
+export function respond(response: ServerResponse, status: number, value: unknown) {
   if (response.destroyed || response.writableEnded) return;
   response.writeHead(status, {
     'Content-Type': 'application/json',
@@ -504,43 +503,26 @@ export async function runLocalService(options: {
           const startedVersion = (await store.read()).accessVersion;
           let authorized = false;
           try {
-            const authentication = await authenticateGitHubRead(options.app, target.repository);
-            const repository = await requestGitHub(
-              authentication.token,
-              'GET',
-              `/repos/${target.repository}`,
-            );
-            if (
-              !isObject(repository) ||
-              typeof repository.full_name !== 'string' ||
-              repository.full_name.toLowerCase() !== target.repository.toLowerCase() ||
-              !Number.isSafeInteger(repository.id) ||
-              Number(repository.id) <= 0 ||
-              repository.archived !== false ||
-              repository.disabled !== false
-            )
-              throw new PipelineInputError(
-                'Configured repository is unavailable, archived, disabled or has mismatched identity.',
-              );
+            const access = await confirmRepositoryAccess(options.app, target.repository);
             const active = await store.update((state) => {
               if (state.accessVersion !== startedVersion || controller.signal.aborted) return false;
               const record = state.targets[target.id];
-              record.installationId = authentication.installationId;
+              record.installationId = access.installationId;
               record.access = 'active';
               record.status = 'running';
               record.message = null;
               record.checkedAt = new Date().toISOString();
-              const installation = state.installations[String(authentication.installationId)] ?? {
+              const installation = state.installations[String(access.installationId)] ?? {
                 owner: target.repository.split('/')[0].toLowerCase(),
                 status: 'active' as const,
                 repositories: {},
               };
               installation.status = 'active';
               installation.repositories[target.repository.toLowerCase()] = {
-                id: Number(repository.id),
+                id: access.id,
                 name: target.repository.toLowerCase(),
               };
-              state.installations[String(authentication.installationId)] = installation;
+              state.installations[String(access.installationId)] = installation;
               return true;
             });
             if (!active) continue;
@@ -570,31 +552,7 @@ export async function runLocalService(options: {
                   'Worker stopped after service shutdown or installation access changed.';
                 return;
               }
-              record.status =
-                result.status === 'processed'
-                  ? result.result.manifest.status
-                  : result.status === 'documentation-changed'
-                    ? result.status
-                    : result.previousStatus;
-              record.output = result.output;
-              record.message =
-                result.status === 'processed'
-                  ? [
-                      result.result.manifest.reason,
-                      ...(result.documentationBaselines?.length
-                        ? [
-                            `Now monitoring ${result.documentationBaselines.length} documentation source${result.documentationBaselines.length === 1 ? '' : 's'}.`,
-                          ]
-                        : []),
-                      ...(result.documentationChanges?.length
-                        ? [
-                            `${result.documentationChanges.length} provider documentation change${result.documentationChanges.length === 1 ? '' : 's'} saved for review.`,
-                          ]
-                        : []),
-                    ].join(' ')
-                  : result.status === 'documentation-changed'
-                    ? `Provider documentation changed. Refit saved a unified diff and did not start a migration. The prior API workflow status remains ${result.previousStatus}.`
-                    : 'Saved worker result reused; checks were not rerun.';
+              Object.assign(record, summarizePoll(result));
             });
             // Enrolled (approved) repositories expose their managed checkout for deadline matching.
             if (target.approval && 'checkout' in result && !controller.signal.aborted) {

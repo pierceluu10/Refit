@@ -169,6 +169,118 @@
         "upgradeComplete": "partly: apiVersion moves to 2026-09-30.endive everywhere, but the stripe package is not upgraded because the project uses pnpm, which the SDK upgrade does not support yet. The project is JavaScript, so no type check catches the old package; its tests pass on both versions.",
         "wouldMerge": "yes, after upgrading stripe by hand."
       }
+    },
+    {
+      "repo": "RISHIE2006/Signl",
+      "pullRequest": "https://github.com/refit-dev/Signl/pull/1",
+      "reviewedAt": "2026-10-21",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: the one Checkout Session creation sends exactly ['card'], which the owner-approved card rule moves to allowed_payment_method_types.",
+        "bothVersions": "not needed: the rename ships with the apiVersion move to 2026-09-30.endive in the same patch, as the card rule requires; the full contract diff from 2025-03-31.basil found no other read or request the code makes.",
+        "nothingUnrelated": "yes: one parameter, one apiVersion literal, the stripe dependency and its lockfile entry.",
+        "pleaseCheck": "allowed_payment_method_types filters the methods Stripe finds eligible, so cards must stay enabled for the account. The checks are weak: npm test needs better-sqlite3's native binding, which the offline image does not build, so the operator ran npm run lint; the generated stripe-mock check could not load the route alone (@clerk/nextjs under plain Node). No Stripe request was exercised.",
+        "upgradeComplete": "yes: stripe-node 22.2.2 to 23.0.0 and the pin to 2026-09-30.endive.",
+        "wouldMerge": "yes, after confirming cards stay enabled and running the app's checkout once in test mode."
+      }
+    },
+    {
+      "repo": "amahmood-pci/pci-update",
+      "pullRequest": "https://github.com/refit-dev/pci-update/pull/1",
+      "reviewedAt": "2026-10-21",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: the one Checkout Session creation sends exactly ['card'], which the owner-approved card rule moves to allowed_payment_method_types.",
+        "bothVersions": "not needed: the client sets no apiVersion, so stripe-node 23 sends its own pinned endive version, and the upgrade ships in the same patch.",
+        "nothingUnrelated": "yes: one parameter, the stripe dependency and its lockfile entry.",
+        "pleaseCheck": "allowed_payment_method_types filters the methods Stripe finds eligible, so cards must stay enabled for the account. The untraced read left unchanged, session.payment_intent in api/stripe-webhook.js, is a Checkout Session field endive keeps, so it needs no change. The check is tsc --noEmit over JavaScript with allowJs; the generated stripe-mock check could not run the handler alone, so no Stripe request was exercised.",
+        "upgradeComplete": "yes: stripe-node 17.7.0 to 23.0.0.",
+        "wouldMerge": "yes, after confirming cards stay enabled and running checkout once in test mode."
+      }
+    },
+    {
+      "repo": "beindigital-products/wedillybird",
+      "pullRequest": "https://github.com/refit-dev/wedillybird/pull/1",
+      "reviewedAt": "2026-10-21",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: four Checkout Session creations each send exactly ['card'], which the owner-approved card rule moves to allowed_payment_method_types.",
+        "bothVersions": "not needed: the client sets no apiVersion, so stripe-node 23 sends its own pinned endive version, and the upgrade ships in the same patch.",
+        "nothingUnrelated": "yes: four parameters, the stripe dependency and its pnpm lockfile entry.",
+        "pleaseCheck": "allowed_payment_method_types filters the methods Stripe finds eligible, so cards must stay enabled for the account. The 8 untraced reads left unchanged are .description on the app's own input objects, not Stripe objects. The full pnpm test passed the 120-second limit, so the operator ran the 8 Stripe-related unit test files instead; both runs passed.",
+        "upgradeComplete": "yes: stripe-node 22 to 23.0.0.",
+        "wouldMerge": "yes, after confirming cards stay enabled and running one checkout in test mode."
+      }
+    },
+    {
+      "repo": "JiantaoFu/insightly",
+      "pullRequest": "https://github.com/refit-dev/insightly/pull/1",
+      "reviewedAt": "2026-10-21",
+      "verdict": "incomplete",
+      "checks": {
+        "rightReplacement": "partly: current_period_end reads go through the item helper and invoice.subscription through parent.subscription_details, both correct; payment_method_types: ['card'] at server/index.js:2989 is left in place under the #88 waiver because stripe-node cannot be upgraded (@types/node 18 in the lockfile).",
+        "bothVersions": "yes: the helpers read the legacy field first, then the endive location.",
+        "nothingUnrelated": "yes: the pin, three period reads, three invoice.subscription reads and one new helper file.",
+        "pleaseCheck": "Do not merge as-is: with the endive pin, the Checkout Session creation still sends payment_method_types and fails. The 10 untraced reads left unchanged are .description on the app's own objects. The full mocha run reaches the network, so the operator ran npm run test:server; it passed on both.",
+        "upgradeComplete": "no: the stripe-node upgrade is refused by the @types/node gate.",
+        "wouldMerge": "no, not until the Checkout call is changed by hand."
+      }
+    },
+    {
+      "repo": "YosraGhanmi/BrainTrain-",
+      "pullRequest": "https://github.com/refit-dev/BrainTrain-/pull/1",
+      "reviewedAt": "2026-10-21",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: the one Checkout Session creation in lib/payments/actions.ts sends exactly ['card'], which the owner-approved card rule moves to allowed_payment_method_types.",
+        "bothVersions": "not needed: the cached client's apiVersion literal moves from 2026-08-26.dahlia to 2026-09-30.endive in the same patch, as the card rule requires.",
+        "nothingUnrelated": "yes: one parameter, one apiVersion literal, the stripe dependency and its lockfile entry.",
+        "pleaseCheck": "Untested: 279 lockfile entries have no integrity hash, so Refit refused to install dependencies and no check ran. Run the app's checks and checkout once in test mode, and confirm cards stay enabled for the account.",
+        "upgradeComplete": "yes: stripe-node 22.6.2 to 23.0.0.",
+        "wouldMerge": "yes, after its checks pass locally and checkout is tried once in test mode."
+      }
+    },
+    {
+      "repo": "Evolvededen/niore-platform",
+      "pullRequest": "https://github.com/refit-dev/niore-platform/pull/1",
+      "reviewedAt": "2026-10-21",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: the one Checkout Session creation in lib/stripe.ts sends exactly ['card'], which the owner-approved card rule moves to allowed_payment_method_types.",
+        "bothVersions": "not needed: the shared STRIPE_API_VERSION constant and the two script literals move to 2026-09-30.endive in the same patch; every client reading the constant, including the lazy() Proxy clients in the API routes, is now traced.",
+        "nothingUnrelated": "yes: one parameter, one constant, two script pins, the stripe dependency and its pnpm lockfile entry.",
+        "pleaseCheck": "allowed_payment_method_types filters the methods Stripe finds eligible, so cards must stay enabled for the account. The one untraced read left unchanged, item.description in scripts/sync-stripe-catalog.mjs, is the app's own catalog data. Validation needed the 4g workspace profile; the generated stripe-mock check did not run.",
+        "upgradeComplete": "yes: stripe-node 22.2.1 to 23.0.0.",
+        "wouldMerge": "yes, after confirming cards stay enabled and running checkout once in test mode."
+      }
+    },
+    {
+      "repo": "MeiyuTech/AET-App",
+      "pullRequest": "https://github.com/refit-dev/AET-App/pull/1",
+      "reviewedAt": "2026-10-21",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes, under the keep-listed opt-in (owner decision 2026-10-21): both Checkout Session creations send ['card', 'alipay'], which move to allowed_payment_method_types with the same methods.",
+        "bothVersions": "not needed: every client is new Stripe(key) with no apiVersion, so stripe-node 23 sends its own endive version, and the upgrade ships in the same patch.",
+        "nothingUnrelated": "yes: two parameters, the stripe dependency and its lockfile entry.",
+        "pleaseCheck": "Stripe now filters card and alipay by each buyer's eligibility, so alipay may not be offered to some customers; confirm it still appears where needed. The 4 untraced reads left unchanged are error.type on StripeError. The repository's npm test fails 9 tests on the original code, so the operator ran tsc with the 4g workspace profile; it passed on both. No Stripe request was exercised.",
+        "upgradeComplete": "yes: stripe-node 17.x to 23.0.0.",
+        "wouldMerge": "yes, after confirming alipay still appears where the business relies on it and running checkout once in test mode."
+      }
+    },
+    {
+      "repo": "MuhammadTanveerAbbas/Clario-ai",
+      "pullRequest": "https://github.com/refit-dev/Clario-ai/pull/1",
+      "reviewedAt": "2026-10-21",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: the one Checkout Session creation in src/app/api/stripe/create-checkout/route.ts sends exactly [\"card\"], which the owner-approved card rule moves to allowed_payment_method_types.",
+        "bothVersions": "not needed: both clients' apiVersion literals move from 2026-02-25.clover to 2026-09-30.endive in the same patch, as the card rule requires.",
+        "nothingUnrelated": "yes: one parameter, two apiVersion literals, the stripe dependency and its pnpm lockfile entries.",
+        "pleaseCheck": "Found by the live worker against Stripe's latest specification, with fullDiff off. pnpm test (24 tests, none on Stripe) and tsc passed before and after in offline Docker; tsc against stripe-node 23's types is the only check on the changed call. No Stripe request was exercised; confirm cards stay enabled for the account and run checkout once in test mode.",
+        "upgradeComplete": "yes: stripe-node 20.4.1 to 23.0.0; the lockfile integrity matches npm.",
+        "wouldMerge": "yes, after running checkout once in test mode."
+      }
     }
   ]
 }

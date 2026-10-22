@@ -361,6 +361,7 @@ export const PERIOD_HELPERS = {
   current_period_end: 'getSubscriptionPeriodEnd',
 } as const;
 export const INVOICE_SUBSCRIPTION_HELPER = 'getInvoiceSubscription';
+const INVOICE_SUBSCRIPTION_LOCAL = 'invoiceSubscription';
 export const INVOICE_PRICE_ID_HELPER = 'getInvoicePriceId';
 export const CHECKOUT_SHIPPING_HELPER = 'getCheckoutShippingDetails';
 // Fields of the old Shipping object that the new checkout address details no longer carry.
@@ -388,15 +389,166 @@ export function subscriptionPeriodHelperEdit(
 }
 
 // Replaces an `invoice.subscription` read, which moved to `parent.subscription_details.subscription`.
-export function invoiceSubscriptionHelperEdit(node: ts.Node, file: string, changeId: string) {
+export function invoiceSubscriptionHelperEdit(
+  node: ts.Node,
+  file: string,
+  changeId: string,
+): SourceEdit[] | undefined {
   if (!ts.isPropertyAccessExpression(node) || node.name.text !== 'subscription') return;
-  return movedReadEdit(
+  // Plain JavaScript does not narrow, so each read can call the helper.
+  if (/\.[cm]?tsx?$/.test(file) && typeofGuarded(node)) {
+    const reads = receiverReads(node);
+    return reads && localReadEdits(node, reads, file, changeId);
+  }
+  const edit = movedReadEdit(
     node,
     file,
     changeId,
     INVOICE_SUBSCRIPTION_HELPER_RULE,
     (invoice) => `${INVOICE_SUBSCRIPTION_HELPER}(${invoice})`,
   );
+  return edit && [edit];
+}
+
+// `typeof invoice.subscription === 'string' ? invoice.subscription : invoice.subscription.id`
+// narrows the field for the reads it guards; separate helper calls would not be narrowed, so the
+// patched code would not compile.
+// shortcut: truthiness guards (`if (!invoice.subscription) return`) also stop narrowing under
+// strictNullChecks; the repository's type check catches those, so they are still rewritten.
+function typeofGuarded(read: ts.PropertyAccessExpression) {
+  const text = read.getText();
+  let scope: ts.Node = read;
+  while (!ts.isFunctionLike(scope) && !ts.isSourceFile(scope)) scope = scope.parent;
+  const unwrap = (node: ts.Expression): ts.Expression =>
+    ts.isParenthesizedExpression(node) || ts.isNonNullExpression(node)
+      ? unwrap(node.expression)
+      : node;
+  let found = false;
+  const visit = (node: ts.Node) => {
+    if (found) return;
+    if (ts.isTypeOfExpression(node) && unwrap(node.expression).getText() === text) found = true;
+    else ts.forEachChild(node, visit);
+  };
+  visit(scope);
+  return found;
+}
+
+// Every read of `receiver.subscription` in the block, loop or function that declares the receiver,
+// or none when the receiver or the field is written there or the name is declared twice.
+function receiverReads(read: ts.PropertyAccessExpression) {
+  const receiver = read.expression;
+  if (!ts.isIdentifier(receiver)) return;
+  const declares = (node: ts.Node) =>
+    (ts.isVariableDeclaration(node) || ts.isParameter(node)) &&
+    ts.isIdentifier(node.name) &&
+    node.name.text === receiver.text;
+  let scope: ts.Node | undefined = read.parent;
+  while (scope && !scopeDeclares(scope, declares)) scope = scope.parent;
+  if (!scope) return;
+  const text = read.getText();
+  const reads: ts.PropertyAccessExpression[] = [];
+  let declarations = 0;
+  let written = false;
+  const visit = (node: ts.Node) => {
+    if (declares(node)) declarations++;
+    if (ts.isPropertyAccessExpression(node) && node.getText() === text) reads.push(node);
+    const target =
+      ts.isBinaryExpression(node) &&
+      node.operatorToken.kind >= ts.SyntaxKind.FirstAssignment &&
+      node.operatorToken.kind <= ts.SyntaxKind.LastAssignment
+        ? node.left
+        : (ts.isPrefixUnaryExpression(node) || ts.isPostfixUnaryExpression(node)) &&
+            (node.operator === ts.SyntaxKind.PlusPlusToken ||
+              node.operator === ts.SyntaxKind.MinusMinusToken)
+          ? node.operand
+          : ts.isDeleteExpression(node)
+            ? node.expression
+            : undefined;
+    if (target && [receiver.text, text].includes(target.getText())) written = true;
+    ts.forEachChild(node, visit);
+  };
+  visit(scope);
+  return declarations === 1 && !written ? reads : undefined;
+}
+
+function scopeDeclares(scope: ts.Node, declares: (node: ts.Node) => boolean) {
+  if (ts.isFunctionLike(scope)) return scope.parameters.some(declares);
+  if (ts.isBlock(scope) || ts.isSourceFile(scope) || ts.isCaseClause(scope))
+    return scope.statements.some(
+      (statement) =>
+        ts.isVariableStatement(statement) && statement.declarationList.declarations.some(declares),
+    );
+  if (ts.isForStatement(scope) || ts.isForOfStatement(scope) || ts.isForInStatement(scope))
+    return (
+      !!scope.initializer &&
+      ts.isVariableDeclarationList(scope.initializer) &&
+      scope.initializer.declarations.some(declares)
+    );
+  return false;
+}
+
+// One local that every read uses narrows like the field did. It is declared before the statement
+// holding the first read, in the innermost block holding them all.
+function localReadEdits(
+  read: ts.PropertyAccessExpression,
+  reads: ts.PropertyAccessExpression[],
+  file: string,
+  changeId: string,
+): SourceEdit[] | undefined {
+  if (reads.some((node) => node.questionDotToken)) return;
+  const source = read.getSourceFile();
+  const first = reads.reduce((left, right) => (right.getStart() < left.getStart() ? right : left));
+  let anchor: ts.Node = first;
+  while (
+    anchor.parent &&
+    !(
+      (ts.isBlock(anchor.parent) ||
+        ts.isSourceFile(anchor.parent) ||
+        ts.isCaseClause(anchor.parent)) &&
+      reads.every(
+        (node) =>
+          anchor.parent.getStart() <= node.getStart() && node.getEnd() <= anchor.parent.getEnd(),
+      )
+    )
+  )
+    anchor = anchor.parent;
+  const declaration = read.expression.getText();
+  const lineStart = source.text.lastIndexOf('\n', anchor.getStart()) + 1;
+  const indentation = source.text.slice(lineStart, anchor.getStart());
+  if (
+    !anchor.parent ||
+    anchor.getStart() === first.getStart() ||
+    /\S/.test(indentation) ||
+    (ts.isVariableStatement(anchor) &&
+      anchor.declarationList.declarations.some(
+        (entry) => ts.isIdentifier(entry.name) && entry.name.text === declaration,
+      ))
+  )
+    return;
+  let name = INVOICE_SUBSCRIPTION_LOCAL;
+  for (let suffix = 2; new RegExp(`\\b${name}\\b`).test(source.text); suffix++)
+    name = `${INVOICE_SUBSCRIPTION_LOCAL}${suffix}`;
+  const imports = source.statements.filter(ts.isImportDeclaration);
+  const semicolon = !imports.length || imports[0].getText().endsWith(';') ? ';' : '';
+  const newline = source.text.includes('\r\n') ? '\r\n' : '\n';
+  return [
+    {
+      file,
+      start: anchor.getStart(),
+      end: anchor.getStart(),
+      replacement: `const ${name} = ${INVOICE_SUBSCRIPTION_HELPER}(${declaration})${semicolon}${newline}${indentation}`,
+      changeId,
+      rule: INVOICE_SUBSCRIPTION_HELPER_RULE,
+    },
+    {
+      file,
+      start: read.getStart(),
+      end: read.getEnd(),
+      replacement: name,
+      changeId,
+      rule: INVOICE_SUBSCRIPTION_HELPER_RULE,
+    },
+  ];
 }
 
 // Replaces a `line.price.id` read on an invoice line item or invoice item: the Price object moved to

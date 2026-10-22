@@ -15,6 +15,7 @@ const GIT_TIMEOUT_MS = 300_000;
 const { values } = parseArgs({
   options: {
     root: { type: 'string' },
+    offset: { type: 'string' },
     limit: { type: 'string' },
     'held-out': { type: 'boolean' },
     list: { type: 'string' },
@@ -23,7 +24,7 @@ const { values } = parseArgs({
 });
 if (values.help || !values.root) {
   console.log(
-    'Usage: node scripts/stripe-benchmark-setup.mjs --root <dir> [--held-out | --list <frozen.json>] [--limit N]',
+    'Usage: node scripts/stripe-benchmark-setup.mjs --root <dir> [--held-out | --list <frozen.json>] [--offset N] [--limit N]',
   );
   process.exit(values.help ? 0 : 1);
 }
@@ -34,7 +35,10 @@ const pinned = JSON.parse(await readFile(list ?? PINNED, 'utf8'));
 const labels = list
   ? { labelled: [], heldOut: pinned.repos.map((entry) => entry.repo) }
   : JSON.parse(await readFile(LABELS, 'utf8'));
-const repos = pinned.repos.slice(0, values.limit ? Number(values.limit) : undefined);
+// --offset and --limit build one shard's slice; the benchmark then runs that root without them.
+const repos = pinned.repos
+  .slice(Number(values.offset ?? 0))
+  .slice(0, values.limit ? Number(values.limit) : undefined);
 const latest = pinned.specs
   .map((spec) => spec.version)
   .sort()
