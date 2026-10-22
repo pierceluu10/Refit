@@ -2427,6 +2427,926 @@
    "property": "name",
    "label": "not-stripe",
    "note": "app model, form, database row or UI value, not a Stripe object"
+  },
+  {
+   "repo": "akn3107/whatsapp-store-creator",
+   "file": "app/api/affiliate/webhook/route.ts",
+   "line": 117,
+   "column": 25,
+   "property": "subscription",
+   "label": "not-stripe",
+   "note": "Razorpay payload or client, not Stripe"
+  },
+  {
+   "repo": "akn3107/whatsapp-store-creator",
+   "file": "lib/order-cancellation.ts",
+   "line": 293,
+   "column": 44,
+   "property": "refund",
+   "label": "not-stripe",
+   "note": "Razorpay payload or client, not Stripe"
+  },
+  {
+   "repo": "devczero/vid-analyzer-saas",
+   "file": "app/api/webhooks/stripe/route.ts",
+   "line": 69,
+   "column": 16,
+   "property": "subscription",
+   "label": "not-stripe",
+   "note": "app model, form, database row or UI value, not a Stripe object"
+  },
+  {
+   "repo": "devczero/vid-analyzer-saas",
+   "file": "app/api/webhooks/stripe/route.ts",
+   "line": 82,
+   "column": 16,
+   "property": "subscription",
+   "label": "not-stripe",
+   "note": "app model, form, database row or UI value, not a Stripe object"
+  },
+  {
+   "repo": "devczero/vid-analyzer-saas",
+   "file": "app/api/webhooks/stripe/route.ts",
+   "line": 92,
+   "column": 16,
+   "property": "subscription",
+   "label": "not-stripe",
+   "note": "app model, form, database row or UI value, not a Stripe object"
+  },
+  {
+   "repo": "devczero/vid-analyzer-saas",
+   "file": "app/pricing/page.tsx",
+   "line": 15,
+   "column": 39,
+   "property": "subscription",
+   "label": "not-stripe",
+   "note": "app model, form, database row or UI value, not a Stripe object"
+  },
+  {
+   "repo": "4lbatr0s/jiro",
+   "file": "src/components/Dashboard.tsx",
+   "line": 80,
+   "column": 33,
+   "property": "name",
+   "label": "not-stripe",
+   "note": "app model, form, database row or UI value, not a Stripe object"
+  },
+  {
+   "repo": "yassine-ahmed/MyBusinessWebsite",
+   "file": "convex/stripe.ts",
+   "line": 50,
+   "column": 38,
+   "property": "price",
+   "label": "not-stripe",
+   "note": "app model, form, database row or UI value, not a Stripe object"
+  },
+  {
+   "repo": "haimatrix99/quiz-me",
+   "file": "components/dashboard/EmptyVideo.tsx",
+   "line": 122,
+   "column": 39,
+   "property": "name",
+   "label": "not-stripe",
+   "note": "app model, form, database row or UI value, not a Stripe object"
+  },
+  {
+   "repo": "haimatrix99/quiz-me",
+   "file": "components/dashboard/UploadButton.tsx",
+   "line": 125,
+   "column": 39,
+   "property": "name",
+   "label": "not-stripe",
+   "note": "app model, form, database row or UI value, not a Stripe object"
+  },
+  {
+   "repo": "Anuradha-Herath/Pinnacle",
+   "file": "app/api/checkout/route.tsx",
+   "line": 95,
+   "column": 40,
+   "property": "price",
+   "label": "not-stripe",
+   "note": "app model, form, database row or UI value, not a Stripe object"
+  },
+  {
+   "repo": "Anuradha-Herath/Pinnacle",
+   "file": "app/api/orders/route.tsx",
+   "line": 86,
+   "column": 46,
+   "property": "price",
+   "label": "not-stripe",
+   "note": "app model, form, database row or UI value, not a Stripe object"
+  },
+  {
+   "repo": "Anuradha-Herath/Pinnacle",
+   "file": "app/api/orders/route.tsx",
+   "line": 95,
+   "column": 32,
+   "property": "price",
+   "label": "not-stripe",
+   "note": "app model, form, database row or UI value, not a Stripe object"
+  },
+  {
+   "repo": "Anuradha-Herath/Pinnacle",
+   "file": "app/api/orders/route.tsx",
+   "line": 170,
+   "column": 42,
+   "property": "price",
+   "label": "not-stripe",
+   "note": "app model, form, database row or UI value, not a Stripe object"
+  },
+  {
+   "repo": "Anuradha-Herath/Pinnacle",
+   "file": "app/api/orders/route.tsx",
+   "line": 90,
+   "column": 21,
+   "property": "coupon",
+   "label": "not-stripe",
+   "note": "app model, form, database row or UI value, not a Stripe object"
+  },
+  {
+   "repo": "Anuradha-Herath/Pinnacle",
+   "file": "app/api/orders/route.tsx",
+   "line": 90,
+   "column": 49,
+   "property": "coupon",
+   "label": "not-stripe",
+   "note": "app model, form, database row or UI value, not a Stripe object"
+  },
+  {
+   "repo": "Anuradha-Herath/Pinnacle",
+   "file": "app/api/orders/route.tsx",
+   "line": 92,
+   "column": 53,
+   "property": "coupon",
+   "label": "not-stripe",
+   "note": "app model, form, database row or UI value, not a Stripe object"
+  },
+  {
+   "repo": "Anuradha-Herath/Pinnacle",
+   "file": "app/api/orders/route.tsx",
+   "line": 220,
+   "column": 27,
+   "property": "coupon",
+   "label": "not-stripe",
+   "note": "app model, form, database row or UI value, not a Stripe object"
+  },
+  {
+   "repo": "Anuradha-Herath/Pinnacle",
+   "file": "app/api/orders/route.tsx",
+   "line": 221,
+   "column": 31,
+   "property": "coupon",
+   "label": "not-stripe",
+   "note": "app model, form, database row or UI value, not a Stripe object"
+  },
+  {
+   "repo": "Anuradha-Herath/Pinnacle",
+   "file": "app/api/orders/route.tsx",
+   "line": 222,
+   "column": 34,
+   "property": "coupon",
+   "label": "not-stripe",
+   "note": "app model, form, database row or UI value, not a Stripe object"
+  },
+  {
+   "repo": "Anuradha-Herath/Pinnacle",
+   "file": "app/api/orders/route.tsx",
+   "line": 90,
+   "column": 57,
+   "property": "discount",
+   "label": "not-stripe",
+   "note": "app model, form, database row or UI value, not a Stripe object"
+  },
+  {
+   "repo": "Anuradha-Herath/Pinnacle",
+   "file": "app/api/orders/route.tsx",
+   "line": 92,
+   "column": 60,
+   "property": "discount",
+   "label": "not-stripe",
+   "note": "app model, form, database row or UI value, not a Stripe object"
+  },
+  {
+   "repo": "Anuradha-Herath/Pinnacle",
+   "file": "app/api/orders/route.tsx",
+   "line": 221,
+   "column": 39,
+   "property": "discount",
+   "label": "not-stripe",
+   "note": "app model, form, database row or UI value, not a Stripe object"
+  },
+  {
+   "repo": "doganarif/build-it",
+   "file": "app/api/webhook/route.js",
+   "line": 62,
+   "column": 40,
+   "property": "subscription",
+   "label": "stripe-unaffected",
+   "note": "Checkout Session in checkout.session.completed; it keeps subscription and payment_intent"
+  },
+  {
+   "repo": "doganarif/build-it",
+   "file": "app/dashboard/DashboardClient.js",
+   "line": 72,
+   "column": 65,
+   "property": "name",
+   "label": "not-stripe",
+   "note": "app model, form, database row or UI value, not a Stripe object"
+  },
+  {
+   "repo": "doganarif/build-it",
+   "file": "app/dashboard/page.js",
+   "line": 15,
+   "column": 16,
+   "property": "subscription",
+   "label": "not-stripe",
+   "note": "app model, form, database row or UI value, not a Stripe object"
+  },
+  {
+   "repo": "doganarif/build-it",
+   "file": "app/dashboard/page.js",
+   "line": 31,
+   "column": 24,
+   "property": "name",
+   "label": "not-stripe",
+   "note": "app model, form, database row or UI value, not a Stripe object"
+  },
+  {
+   "repo": "doganarif/build-it",
+   "file": "lib/cron/tasks/dataSyncTask.js",
+   "line": 13,
+   "column": 42,
+   "property": "subscription",
+   "label": "not-stripe",
+   "note": "app model, form, database row or UI value, not a Stripe object"
+  },
+  {
+   "repo": "doganarif/build-it",
+   "file": "lib/cron/tasks/dataSyncTask.js",
+   "line": 32,
+   "column": 48,
+   "property": "subscription",
+   "label": "not-stripe",
+   "note": "app model, form, database row or UI value, not a Stripe object"
+  },
+  {
+   "repo": "doganarif/build-it",
+   "file": "lib/cron/tasks/dataSyncTask.js",
+   "line": 51,
+   "column": 14,
+   "property": "subscription",
+   "label": "not-stripe",
+   "note": "app model, form, database row or UI value, not a Stripe object"
+  },
+  {
+   "repo": "doganarif/build-it",
+   "file": "lib/cron/tasks/emailDigestTask.js",
+   "line": 64,
+   "column": 26,
+   "property": "name",
+   "label": "not-stripe",
+   "note": "app model, form, database row or UI value, not a Stripe object"
+  },
+  {
+   "repo": "doganarif/build-it",
+   "file": "lib/stripe.js",
+   "line": 65,
+   "column": 14,
+   "property": "subscription",
+   "label": "not-stripe",
+   "note": "app model, form, database row or UI value, not a Stripe object"
+  },
+  {
+   "repo": "doganarif/build-it",
+   "file": "lib/stripe.js",
+   "line": 70,
+   "column": 14,
+   "property": "subscription",
+   "label": "not-stripe",
+   "note": "app model, form, database row or UI value, not a Stripe object"
+  },
+  {
+   "repo": "abhiya492/ticket-saas-app",
+   "file": "app/actions/createStripeCheckoutSession.ts",
+   "line": 74,
+   "column": 43,
+   "property": "price",
+   "label": "not-stripe",
+   "note": "app model, form, database row or UI value, not a Stripe object"
+  },
+  {
+   "repo": "abhiya492/ticket-saas-app",
+   "file": "app/actions/createStripeCheckoutSession.ts",
+   "line": 80,
+   "column": 50,
+   "property": "price",
+   "label": "not-stripe",
+   "note": "app model, form, database row or UI value, not a Stripe object"
+  },
+  {
+   "repo": "mageshyt/Nextjs-saas-starter",
+   "file": "app/(server)/api/(routes)/webhooks/stripe/route.ts",
+   "line": 86,
+   "column": 16,
+   "property": "subscription",
+   "label": "not-stripe",
+   "note": "app model, form, database row or UI value, not a Stripe object"
+  },
+  {
+   "repo": "mageshyt/Nextjs-saas-starter",
+   "file": "app/(server)/api/(routes)/webhooks/stripe/route.ts",
+   "line": 106,
+   "column": 36,
+   "property": "subscription",
+   "label": "not-stripe",
+   "note": "app model, form, database row or UI value, not a Stripe object"
+  },
+  {
+   "repo": "mageshyt/Nextjs-saas-starter",
+   "file": "app/(server)/api/(routes)/webhooks/stripe/route.ts",
+   "line": 135,
+   "column": 42,
+   "property": "subscription",
+   "label": "not-stripe",
+   "note": "app model, form, database row or UI value, not a Stripe object"
+  },
+  {
+   "repo": "mageshyt/Nextjs-saas-starter",
+   "file": "app/(server)/api/(routes)/webhooks/stripe/route.ts",
+   "line": 168,
+   "column": 37,
+   "property": "invoice",
+   "label": "not-stripe",
+   "note": "app model, form, database row or UI value, not a Stripe object"
+  },
+  {
+   "repo": "mageshyt/Nextjs-saas-starter",
+   "file": "lib/subscription.ts",
+   "line": 10,
+   "column": 39,
+   "property": "subscription",
+   "label": "not-stripe",
+   "note": "app model, form, database row or UI value, not a Stripe object"
+  },
+  {
+   "repo": "Drago-03/Neural-Nexus",
+   "file": "app/api/checkout-details/route.ts",
+   "line": 95,
+   "column": 15,
+   "property": "type",
+   "label": "not-stripe",
+   "note": "an SDK or application error object, not an API object"
+  },
+  {
+   "repo": "Drago-03/Neural-Nexus",
+   "file": "app/api/verify-payment/route.ts",
+   "line": 107,
+   "column": 93,
+   "property": "price",
+   "label": "not-stripe",
+   "note": "app model, form, database row or UI value, not a Stripe object"
+  },
+  {
+   "repo": "Drago-03/Neural-Nexus",
+   "file": "app/api/verify-payment/route.ts",
+   "line": 122,
+   "column": 27,
+   "property": "name",
+   "label": "not-stripe",
+   "note": "app model, form, database row or UI value, not a Stripe object"
+  },
+  {
+   "repo": "Drago-03/Neural-Nexus",
+   "file": "app/api/verify-payment/route.ts",
+   "line": 124,
+   "column": 95,
+   "property": "price",
+   "label": "not-stripe",
+   "note": "app model, form, database row or UI value, not a Stripe object"
+  },
+  {
+   "repo": "Drago-03/Neural-Nexus",
+   "file": "app/api/verify-payment/route.ts",
+   "line": 135,
+   "column": 94,
+   "property": "price",
+   "label": "not-stripe",
+   "note": "app model, form, database row or UI value, not a Stripe object"
+  },
+  {
+   "repo": "Drago-03/Neural-Nexus",
+   "file": "app/api/verify-payment/route.ts",
+   "line": 140,
+   "column": 48,
+   "property": "name",
+   "label": "not-stripe",
+   "note": "app model, form, database row or UI value, not a Stripe object"
+  },
+  {
+   "repo": "Drago-03/Neural-Nexus",
+   "file": "app/api/verify-payment/route.ts",
+   "line": 153,
+   "column": 25,
+   "property": "name",
+   "label": "not-stripe",
+   "note": "app model, form, database row or UI value, not a Stripe object"
+  },
+  {
+   "repo": "Drago-03/Neural-Nexus",
+   "file": "app/api/verify-payment/route.ts",
+   "line": 155,
+   "column": 93,
+   "property": "price",
+   "label": "not-stripe",
+   "note": "app model, form, database row or UI value, not a Stripe object"
+  },
+  {
+   "repo": "Drago-03/Neural-Nexus",
+   "file": "app/api/webhooks/stripe/route.ts",
+   "line": 91,
+   "column": 55,
+   "property": "type",
+   "label": "stripe-unaffected",
+   "note": "event type, which Stripe events keep"
+  },
+  {
+   "repo": "Drago-03/Neural-Nexus",
+   "file": "app/api/webhooks/stripe/route.ts",
+   "line": 196,
+   "column": 36,
+   "property": "subscription",
+   "label": "stripe-unaffected",
+   "note": "Checkout Session in checkout.session.completed; it keeps subscription and payment_intent"
+  },
+  {
+   "repo": "Drago-03/Neural-Nexus",
+   "file": "app/api/webhooks/stripe/route.ts",
+   "line": 203,
+   "column": 37,
+   "property": "payment_intent",
+   "label": "stripe-unaffected",
+   "note": "Checkout Session in checkout.session.completed; it keeps subscription and payment_intent"
+  },
+  {
+   "repo": "Drago-03/Neural-Nexus",
+   "file": "app/api/webhooks/stripe/route.ts",
+   "line": 229,
+   "column": 41,
+   "property": "current_period_end",
+   "label": "breaking",
+   "note": "Stripe Subscription in customer.subscription.* handlers",
+   "field": "subscription.current_period_end"
+  },
+  {
+   "repo": "Drago-03/Neural-Nexus",
+   "file": "app/api/webhooks/stripe/route.ts",
+   "line": 234,
+   "column": 36,
+   "property": "price",
+   "label": "stripe-unaffected",
+   "note": "subscription item; price is kept"
+  },
+  {
+   "repo": "Drago-03/Neural-Nexus",
+   "file": "app/api/webhooks/stripe/route.ts",
+   "line": 235,
+   "column": 30,
+   "property": "price",
+   "label": "stripe-unaffected",
+   "note": "subscription item; price is kept"
+  },
+  {
+   "repo": "Drago-03/Neural-Nexus",
+   "file": "app/api/webhooks/stripe/route.ts",
+   "line": 238,
+   "column": 26,
+   "property": "price",
+   "label": "stripe-unaffected",
+   "note": "subscription item; price is kept"
+  },
+  {
+   "repo": "Drago-03/Neural-Nexus",
+   "file": "app/api/webhooks/stripe/route.ts",
+   "line": 239,
+   "column": 27,
+   "property": "name",
+   "label": "stripe-unaffected",
+   "note": "Stripe Product; product.name is kept"
+  },
+  {
+   "repo": "Drago-03/Neural-Nexus",
+   "file": "app/api/webhooks/stripe/route.ts",
+   "line": 287,
+   "column": 34,
+   "property": "subscription",
+   "label": "breaking",
+   "note": "Stripe Invoice in the invoice.paid handler",
+   "field": "invoice.subscription"
+  },
+  {
+   "repo": "Drago-03/Neural-Nexus",
+   "file": "app/checkout/success/page.tsx",
+   "line": 204,
+   "column": 74,
+   "property": "name",
+   "label": "not-stripe",
+   "note": "app model, form, database row or UI value, not a Stripe object"
+  },
+  {
+   "repo": "Drago-03/Neural-Nexus",
+   "file": "app/page.tsx",
+   "line": 91,
+   "column": 25,
+   "property": "countries",
+   "label": "not-stripe",
+   "note": "app model, form, database row or UI value, not a Stripe object"
+  },
+  {
+   "repo": "TechWithEmmaYT/Social-X-Clone-Course",
+   "file": "app/actions/subcription.ts",
+   "line": 13,
+   "column": 43,
+   "property": "subscription",
+   "label": "not-stripe",
+   "note": "app model, form, database row or UI value, not a Stripe object"
+  },
+  {
+   "repo": "TechWithEmmaYT/Social-X-Clone-Course",
+   "file": "app/api/stripe/route.ts",
+   "line": 31,
+   "column": 43,
+   "property": "subscription",
+   "label": "not-stripe",
+   "note": "app model, form, database row or UI value, not a Stripe object"
+  },
+  {
+   "repo": "TechWithEmmaYT/Social-X-Clone-Course",
+   "file": "app/api/webhook/route.ts",
+   "line": 39,
+   "column": 20,
+   "property": "subscription",
+   "label": "not-stripe",
+   "note": "app model, form, database row or UI value, not a Stripe object"
+  },
+  {
+   "repo": "TechWithEmmaYT/Social-X-Clone-Course",
+   "file": "app/api/webhook/route.ts",
+   "line": 64,
+   "column": 20,
+   "property": "subscription",
+   "label": "not-stripe",
+   "note": "app model, form, database row or UI value, not a Stripe object"
+  },
+  {
+   "repo": "UNC-GDSC/Micro-SaaS-Starter-Kit",
+   "file": "app/dashboard/admin/page.tsx",
+   "line": 89,
+   "column": 56,
+   "property": "name",
+   "label": "not-stripe",
+   "note": "app model, form, database row or UI value, not a Stripe object"
+  },
+  {
+   "repo": "UNC-GDSC/Micro-SaaS-Starter-Kit",
+   "file": "app/dashboard/page.tsx",
+   "line": 23,
+   "column": 66,
+   "property": "name",
+   "label": "not-stripe",
+   "note": "app model, form, database row or UI value, not a Stripe object"
+  },
+  {
+   "repo": "UNC-GDSC/Micro-SaaS-Starter-Kit",
+   "file": "app/dashboard/settings/page.tsx",
+   "line": 50,
+   "column": 79,
+   "property": "name",
+   "label": "not-stripe",
+   "note": "app model, form, database row or UI value, not a Stripe object"
+  },
+  {
+   "repo": "UNC-GDSC/Micro-SaaS-Starter-Kit",
+   "file": "app/dashboard/settings/page.tsx",
+   "line": 52,
+   "column": 33,
+   "property": "name",
+   "label": "not-stripe",
+   "note": "app model, form, database row or UI value, not a Stripe object"
+  },
+  {
+   "repo": "UNC-GDSC/Micro-SaaS-Starter-Kit",
+   "file": "app/dashboard/settings/page.tsx",
+   "line": 56,
+   "column": 69,
+   "property": "name",
+   "label": "not-stripe",
+   "note": "app model, form, database row or UI value, not a Stripe object"
+  },
+  {
+   "repo": "UNC-GDSC/Micro-SaaS-Starter-Kit",
+   "file": "lib/invoices.ts",
+   "line": 49,
+   "column": 23,
+   "property": "invoice",
+   "label": "not-stripe",
+   "note": "app model, form, database row or UI value, not a Stripe object"
+  },
+  {
+   "repo": "UNC-GDSC/Micro-SaaS-Starter-Kit",
+   "file": "lib/invoices.ts",
+   "line": 85,
+   "column": 23,
+   "property": "invoice",
+   "label": "not-stripe",
+   "note": "app model, form, database row or UI value, not a Stripe object"
+  },
+  {
+   "repo": "UNC-GDSC/Micro-SaaS-Starter-Kit",
+   "file": "lib/invoices.ts",
+   "line": 114,
+   "column": 23,
+   "property": "invoice",
+   "label": "not-stripe",
+   "note": "app model, form, database row or UI value, not a Stripe object"
+  },
+  {
+   "repo": "UNC-GDSC/Micro-SaaS-Starter-Kit",
+   "file": "lib/invoices.ts",
+   "line": 124,
+   "column": 23,
+   "property": "invoice",
+   "label": "not-stripe",
+   "note": "app model, form, database row or UI value, not a Stripe object"
+  },
+  {
+   "repo": "UNC-GDSC/Micro-SaaS-Starter-Kit",
+   "file": "lib/invoices.ts",
+   "line": 134,
+   "column": 23,
+   "property": "invoice",
+   "label": "not-stripe",
+   "note": "app model, form, database row or UI value, not a Stripe object"
+  },
+  {
+   "repo": "UNC-GDSC/Micro-SaaS-Starter-Kit",
+   "file": "lib/invoices.ts",
+   "line": 152,
+   "column": 23,
+   "property": "invoice",
+   "label": "not-stripe",
+   "note": "app model, form, database row or UI value, not a Stripe object"
+  },
+  {
+   "repo": "UNC-GDSC/Micro-SaaS-Starter-Kit",
+   "file": "lib/invoices.ts",
+   "line": 227,
+   "column": 23,
+   "property": "invoice",
+   "label": "not-stripe",
+   "note": "app model, form, database row or UI value, not a Stripe object"
+  },
+  {
+   "repo": "aionarae/amazon-beta",
+   "file": "client/src/components/Cart/index.jsx",
+   "line": 25,
+   "column": 26,
+   "property": "price",
+   "label": "not-stripe",
+   "note": "app model, form, database row or UI value, not a Stripe object"
+  },
+  {
+   "repo": "aionarae/amazon-beta",
+   "file": "client/src/components/Cart/index.jsx",
+   "line": 72,
+   "column": 31,
+   "property": "price",
+   "label": "not-stripe",
+   "note": "app model, form, database row or UI value, not a Stripe object"
+  },
+  {
+   "repo": "aionarae/amazon-beta",
+   "file": "server/schemas/resolvers.js",
+   "line": 70,
+   "column": 34,
+   "property": "price",
+   "label": "not-stripe",
+   "note": "app model, form, database row or UI value, not a Stripe object"
+  },
+  {
+   "repo": "thematters/matters-server",
+   "file": "db/migrations/20230711100653_sync_stripe_old_events.js",
+   "line": 290,
+   "column": 40,
+   "property": "payment_intent",
+   "label": "stripe-unaffected",
+   "note": "Stripe Dispute; payment_intent is kept"
+  },
+  {
+   "repo": "thematters/matters-server",
+   "file": "db/migrations/20230711100653_sync_stripe_old_events.js",
+   "line": 308,
+   "column": 30,
+   "property": "payment_intent",
+   "label": "stripe-unaffected",
+   "note": "Stripe Dispute; payment_intent is kept"
+  },
+  {
+   "repo": "thematters/matters-server",
+   "file": "src/connectors/stripe/index.ts",
+   "line": 62,
+   "column": 29,
+   "property": "type",
+   "label": "not-stripe",
+   "note": "an SDK or application error object, not an API object"
+  },
+  {
+   "repo": "aresjinwoo94-cpu/EliteVault",
+   "file": "app/(app)/app/billing/page.tsx",
+   "line": 76,
+   "column": 16,
+   "property": "current_period_start",
+   "label": "stripe-unaffected",
+   "note": "subscription item; it keeps current_period_start and current_period_end"
+  },
+  {
+   "repo": "aresjinwoo94-cpu/EliteVault",
+   "file": "app/(app)/app/billing/page.tsx",
+   "line": 78,
+   "column": 16,
+   "property": "current_period_end",
+   "label": "stripe-unaffected",
+   "note": "subscription item; it keeps current_period_start and current_period_end"
+  },
+  {
+   "repo": "aresjinwoo94-cpu/EliteVault",
+   "file": "app/(app)/app/billing/page.tsx",
+   "line": 76,
+   "column": 48,
+   "property": "current_period_start",
+   "label": "excluded",
+   "note": "fallback after the subscription item field, so the code works on both versions; ambiguous whether this counts as a break"
+  },
+  {
+   "repo": "aresjinwoo94-cpu/EliteVault",
+   "file": "app/(app)/app/billing/page.tsx",
+   "line": 78,
+   "column": 46,
+   "property": "current_period_end",
+   "label": "excluded",
+   "note": "fallback after the subscription item field, so the code works on both versions; ambiguous whether this counts as a break"
+  },
+  {
+   "repo": "aresjinwoo94-cpu/EliteVault",
+   "file": "app/(app)/app/billing/page.tsx",
+   "line": 154,
+   "column": 26,
+   "property": "current_period_end",
+   "label": "not-stripe",
+   "note": "app model, form, database row or UI value, not a Stripe object"
+  },
+  {
+   "repo": "aresjinwoo94-cpu/EliteVault",
+   "file": "app/(app)/app/billing/page.tsx",
+   "line": 155,
+   "column": 22,
+   "property": "current_period_end",
+   "label": "not-stripe",
+   "note": "app model, form, database row or UI value, not a Stripe object"
+  },
+  {
+   "repo": "aresjinwoo94-cpu/EliteVault",
+   "file": "app/(app)/app/checkout/return/page.tsx",
+   "line": 79,
+   "column": 20,
+   "property": "current_period_start",
+   "label": "stripe-unaffected",
+   "note": "subscription item; it keeps current_period_start and current_period_end"
+  },
+  {
+   "repo": "aresjinwoo94-cpu/EliteVault",
+   "file": "app/(app)/app/checkout/return/page.tsx",
+   "line": 81,
+   "column": 20,
+   "property": "current_period_end",
+   "label": "stripe-unaffected",
+   "note": "subscription item; it keeps current_period_start and current_period_end"
+  },
+  {
+   "repo": "aresjinwoo94-cpu/EliteVault",
+   "file": "app/(app)/app/checkout/return/page.tsx",
+   "line": 79,
+   "column": 52,
+   "property": "current_period_start",
+   "label": "excluded",
+   "note": "fallback after the subscription item field, so the code works on both versions; ambiguous whether this counts as a break"
+  },
+  {
+   "repo": "aresjinwoo94-cpu/EliteVault",
+   "file": "app/(app)/app/checkout/return/page.tsx",
+   "line": 81,
+   "column": 50,
+   "property": "current_period_end",
+   "label": "excluded",
+   "note": "fallback after the subscription item field, so the code works on both versions; ambiguous whether this counts as a break"
+  },
+  {
+   "repo": "aresjinwoo94-cpu/EliteVault",
+   "file": "components/admin/owner-monitor.tsx",
+   "line": 268,
+   "column": 36,
+   "property": "countries",
+   "label": "not-stripe",
+   "note": "app model, form, database row or UI value, not a Stripe object"
+  },
+  {
+   "repo": "aresjinwoo94-cpu/EliteVault",
+   "file": "components/admin/owner-monitor.tsx",
+   "line": 270,
+   "column": 32,
+   "property": "countries",
+   "label": "not-stripe",
+   "note": "app model, form, database row or UI value, not a Stripe object"
+  },
+  {
+   "repo": "aresjinwoo94-cpu/EliteVault",
+   "file": "components/admin/owner-monitor.tsx",
+   "line": 271,
+   "column": 13,
+   "property": "countries",
+   "label": "not-stripe",
+   "note": "app model, form, database row or UI value, not a Stripe object"
+  },
+  {
+   "repo": "aresjinwoo94-cpu/EliteVault",
+   "file": "scripts/debug-profile.mjs",
+   "line": 21,
+   "column": 30,
+   "property": "current_period_start",
+   "label": "not-stripe",
+   "note": "app model, form, database row or UI value, not a Stripe object"
+  },
+  {
+   "repo": "aresjinwoo94-cpu/EliteVault",
+   "file": "scripts/debug-profile.mjs",
+   "line": 21,
+   "column": 58,
+   "property": "current_period_end",
+   "label": "not-stripe",
+   "note": "app model, form, database row or UI value, not a Stripe object"
+  },
+  {
+   "repo": "aresjinwoo94-cpu/EliteVault",
+   "file": "scripts/tests/report-unlock-checkout.test.ts",
+   "line": 22,
+   "column": 31,
+   "property": "unit_amount",
+   "label": "excluded",
+   "note": "test assertion on checkout parameters"
+  },
+  {
+   "repo": "aresjinwoo94-cpu/EliteVault",
+   "file": "scripts/tests/report-unlock-checkout.test.ts",
+   "line": 23,
+   "column": 31,
+   "property": "unit_amount",
+   "label": "excluded",
+   "note": "test assertion on checkout parameters"
+  },
+  {
+   "repo": "Suhaib3100/online-compiler",
+   "file": "app/api/og/route.tsx",
+   "line": 67,
+   "column": 23,
+   "property": "type",
+   "label": "not-stripe",
+   "note": "app model, form, database row or UI value, not a Stripe object"
+  },
+  {
+   "repo": "bhaveshchhimwal/PopIn",
+   "file": "server/controllers/payments.js",
+   "line": 36,
+   "column": 48,
+   "property": "price",
+   "label": "not-stripe",
+   "note": "app model, form, database row or UI value, not a Stripe object"
+  },
+  {
+   "repo": "bhaveshchhimwal/PopIn",
+   "file": "server/controllers/webhook.js",
+   "line": 64,
+   "column": 29,
+   "property": "price",
+   "label": "not-stripe",
+   "note": "app model, form, database row or UI value, not a Stripe object"
+  },
+  {
+   "repo": "bhaveshchhimwal/PopIn",
+   "file": "server/controllers/webhook.js",
+   "line": 66,
+   "column": 30,
+   "property": "price",
+   "label": "not-stripe",
+   "note": "app model, form, database row or UI value, not a Stripe object"
   }
  ],
  "requests": [
@@ -2528,6 +3448,65 @@
    "property": "payment_method_types",
    "label": "excluded",
    "note": "a backup copy of index-sqlite.js that no script runs"
+  },
+  {
+   "repo": "Anuradha-Herath/Pinnacle",
+   "file": "app/api/checkout/route.tsx",
+   "line": 164,
+   "column": 15,
+   "property": "payment_method_types",
+   "label": "breaking",
+   "field": "POST /v1/checkout/sessions payment_method_types",
+   "note": "client the oracle could not type: stripe.checkout.sessions.create"
+  },
+  {
+   "repo": "Anuradha-Herath/Pinnacle",
+   "file": "app/api/orders/route.tsx",
+   "line": 282,
+   "column": 11,
+   "property": "payment_method_types",
+   "label": "breaking",
+   "field": "POST /v1/checkout/sessions payment_method_types",
+   "note": "client the oracle could not type: stripe.checkout.sessions.create"
+  },
+  {
+   "repo": "ARCPrivus2026/ARCPrivus-AI-Madre",
+   "file": "backup-arc-privus/server.js",
+   "line": 277,
+   "column": 7,
+   "property": "payment_method_types",
+   "label": "excluded",
+   "note": "a backup copy; the package entry point server.js creates no Checkout Session"
+  },
+  {
+   "repo": "aionarae/amazon-beta",
+   "file": "server/schemas/resolvers.js",
+   "line": 77,
+   "column": 9,
+   "property": "payment_method_types",
+   "label": "breaking",
+   "field": "POST /v1/checkout/sessions payment_method_types",
+   "note": "client the oracle could not type: stripe.checkout.sessions.create"
+  },
+  {
+   "repo": "adobetoby-maker/app.languagethreshold.com",
+   "file": "src/routes/api.create-checkout.ts",
+   "line": 38,
+   "column": 11,
+   "property": "payment_method_types",
+   "label": "breaking",
+   "field": "POST /v1/checkout/sessions payment_method_types",
+   "note": "client the oracle could not type: stripe.checkout.sessions.create"
+  },
+  {
+   "repo": "adobetoby-maker/app.languagethreshold.com",
+   "file": "src/routes/api.module-request.ts",
+   "line": 104,
+   "column": 15,
+   "property": "payment_method_types",
+   "label": "breaking",
+   "field": "POST /v1/checkout/sessions payment_method_types",
+   "note": "client the oracle could not type: stripe.checkout.sessions.create"
   }
  ],
  "disputed": [

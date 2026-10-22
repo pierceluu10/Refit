@@ -16,6 +16,8 @@ const execute = promisify(execFile);
 const LIST = 'docs/benchmarks/2026-10-16-stripe-fresh-repos.json';
 const RESULTS = 'docs/benchmarks/2026-10-16-stripe-fresh-results.json';
 const SEED = 20261022;
+// The next repositories labelled come from the seeded "stopped" order, after the 80.
+const EXTENSION = 40;
 // Outcomes in which Refit reported nothing to change. `exceeds-scan-limits` was never scanned and
 // belongs to neither group.
 const NOT_AFFECTED = new Set(['not-affected', 'no-mapped-methods', 'no-sdk-calls']);
@@ -232,11 +234,12 @@ export function labelRepository({ entry, oracle, decisions, source }) {
 
 async function assemble(root, oracleDirectory, decisionsPath, output) {
   const { rows } = JSON.parse(await readFile(RESULTS, 'utf8'));
-  const { affected, notAffected, outcome } = draw(rows);
+  const { affected, notAffected, stopped, outcome } = draw(rows);
+  const extension = stopped.slice(0, EXTENSION);
   const sdk = JSON.parse(await readFile(join(root, 'labelled-sdk.json'), 'utf8'));
   const decisions = JSON.parse(await readFile(decisionsPath, 'utf8'));
   const repos = [];
-  for (const repo of [...affected, ...notAffected]) {
+  for (const repo of [...affected, ...notAffected, ...extension]) {
     const entry = sdk.find((candidate) => candidate.repo === repo);
     if (!entry) throw new Error(`${repo} is not in ${join(root, 'labelled-sdk.json')}`);
     const name = repo.replace('/', '__');
@@ -261,8 +264,9 @@ async function assemble(root, oracleDirectory, decisionsPath, output) {
       results: RESULTS,
       affected,
       notAffected,
+      extension,
     },
-    labelled: [...affected, ...notAffected],
+    labelled: [...affected, ...notAffected, ...extension],
     heldOut: [],
     repos,
   };

@@ -32,16 +32,23 @@ it('draws the same seeded sample every time, half from each group', () => {
   expect(draw(rows, 8, 3)).not.toEqual(first);
 });
 
-it('reproduces the committed fresh-set sample', () => {
+it('reproduces the committed fresh-set sample and its extension', () => {
   const { rows } = JSON.parse(
     readFileSync('docs/benchmarks/2026-10-16-stripe-fresh-results.json', 'utf8'),
   ) as { rows: { repo: string; outcome: string }[] };
   const labels = JSON.parse(
     readFileSync('docs/benchmarks/2026-10-22-stripe-fresh-labels.json', 'utf8'),
-  ) as { sample: { seed: number; affected: string[]; notAffected: string[] } };
-  const { affected, notAffected } = draw(rows, labels.sample.seed);
+  ) as {
+    sample: { seed: number; affected: string[]; notAffected: string[]; extension: string[] };
+    labelled: string[];
+    repos: { repo: string }[];
+  };
+  const { affected, notAffected, stopped } = draw(rows, labels.sample.seed);
   expect(affected).toEqual(labels.sample.affected);
   expect(notAffected).toEqual(labels.sample.notAffected);
+  expect(stopped.slice(0, 40)).toEqual(labels.sample.extension);
+  expect(labels.repos.map((repo) => repo.repo)).toEqual(labels.labelled);
+  expect(new Set(labels.labelled).size).toBe(120);
 });
 
 it('reads the locked stripe version from each lockfile format, else the declared minimum', () => {
