@@ -1,0 +1,97 @@
+{
+  "description": "The results format of every committed docs/benchmarks/*-results.json, and the fields each one predates because the harness added them later (2026-10-22). Checked by `node scripts/benchmark-results.mjs --committed`; a file that lacks anything else, or a predated field that appears, fails. Older files are recorded here, never rewritten.",
+  "files": {
+    "2026-10-16-deadline-fresh-results.json": {
+      "format": "deadline-sets",
+      "predates": [
+        "/harness",
+        "/sets/shopify-fresh/*/outcomeClass",
+        "/sets/stripe-fresh/*/outcomeClass"
+      ]
+    },
+    "2026-10-16-shopify-fresh-results.json": {
+      "format": "shopify-rows",
+      "predates": ["/harness", "/rows/*/outcomeClass"]
+    },
+    "2026-10-16-shopify-results.json": {
+      "format": "shopify-rows",
+      "predates": ["/harness", "/rows/*/outcomeClass"]
+    },
+    "2026-10-16-stripe-active-results.json": {
+      "format": "stripe-rows",
+      "predates": ["/harness", "/rows/*/outcomeClass"]
+    },
+    "2026-10-16-stripe-fixrate-fresh-results.json": {
+      "format": "stripe-rows",
+      "predates": ["/harness", "/rows/*/outcomeClass"]
+    },
+    "2026-10-16-stripe-fixrate-heldout-results.json": {
+      "format": "stripe-rows",
+      "predates": ["/harness", "/rows/*/outcomeClass"]
+    },
+    "2026-10-16-stripe-fixrate-original-results.json": {
+      "format": "stripe-rows",
+      "predates": ["/harness", "/rows/*/outcomeClass"]
+    },
+    "2026-10-16-stripe-fixrate-yarn-4g-results.json": {
+      "format": "stripe-rows",
+      "predates": ["/harness", "/rows/*/outcomeClass"]
+    },
+    "2026-10-16-stripe-fresh-results.json": {
+      "format": "stripe-rows",
+      "predates": ["/harness", "/rows/*/outcomeClass"]
+    },
+    "2026-10-20-anthropic-results.json": {
+      "format": "ai-model-results",
+      "predates": ["/harness", "/results/*/outcomeClass"]
+    },
+    "2026-10-20-meta-graph-call-results.json": {
+      "format": "meta-graph-call-results",
+      "predates": []
+    },
+    "2026-10-20-meta-graph-move-results.json": {
+      "format": "meta-graph-move-results",
+      "predates": []
+    },
+    "2026-10-20-model-replacement-results.json": {
+      "format": "model-replacement-review",
+      "predates": []
+    },
+    "2026-10-20-openai-results.json": {
+      "format": "ai-model-results",
+      "predates": ["/harness", "/results/*/outcomeClass"]
+    },
+    "2026-10-20-shopify-tracing-results.json": {
+      "format": "shopify-tracing-results",
+      "predates": []
+    },
+    "2026-10-21-agent-comparison-results.json": {
+      "format": "agent-comparison-results",
+      "predates": []
+    },
+    "2026-10-21-anthropic-results.json": {
+      "format": "ai-model-results",
+      "predates": ["/harness", "/results/*/outcomeClass"]
+    },
+    "2026-10-21-gemini-results.json": {
+      "format": "gemini-results",
+      "predates": []
+    },
+    "2026-10-21-model-replacement-results.json": {
+      "format": "ai-model-results",
+      "predates": ["/harness", "/results/*/outcomeClass"]
+    },
+    "2026-10-21-openai-results.json": {
+      "format": "ai-model-results",
+      "predates": ["/harness", "/results/*/outcomeClass"]
+    },
+    "2026-10-21-paypal-results.json": {
+      "format": "paypal-results",
+      "predates": []
+    },
+    "2026-10-21-paypal-subdirectory-results.json": {
+      "format": "paypal-subdirectory-results",
+      "predates": []
+    }
+  }
+}

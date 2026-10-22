@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "AI-app model benchmark results",
+  "description": "Written by scripts/ai-model-benchmark.mjs: `refit deadlines` and `refit deadlines --propose-model-fixes` on each repository of a frozen OpenAI, Anthropic or deadline list, in list order. Committed copies may add hand-written keys such as validation and handReview.",
+  "type": "object",
+  "required": ["formatVersion", "list", "provider", "ranAt", "summary", "results", "harness"],
+  "properties": {
+    "formatVersion": { "enum": [1, 2] },
+    "list": { "type": "string", "minLength": 1 },
+    "provider": { "enum": ["openai", "anthropic", "gemini"] },
+    "ranAt": { "$ref": "common.schema.json#/$defs/time" },
+    "note": { "type": "string" },
+    "summary": { "$ref": "common.schema.json#/$defs/counts" },
+    "harness": { "$ref": "harness.schema.json", "x-added": "2026-10-22" },
+    "results": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "$ref": "common.schema.json#/$defs/classified",
+        "required": ["repo", "commit", "outcomeClass"],
+        "anyOf": [
+          { "required": ["exposures", "replacements", "stops"] },
+          {
+            "required": ["outcomeClass"],
+            "properties": { "outcomeClass": { "const": "infrastructure" } }
+          }
+        ],
+        "properties": {
+          "repo": { "$ref": "common.schema.json#/$defs/repo" },
+          "commit": { "$ref": "common.schema.json#/$defs/commit" },
+          "error": { "type": "string", "minLength": 1 },
+          "exposures": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["deadline", "date", "evidence"],
+              "properties": {
+                "deadline": { "type": "string", "minLength": 1 },
+                "date": { "$ref": "common.schema.json#/$defs/date" },
+                "evidence": { "type": "array", "items": { "type": "string" } }
+              }
+            }
+          },
+          "replacements": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "$ref": "common.schema.json#/$defs/location",
+              "required": ["call", "from", "to", "deadline"],
+              "properties": {
+                "call": { "type": "string" },
+                "from": { "type": "string" },
+                "to": { "type": "string" },
+                "deadline": { "type": "string" }
+              }
+            }
+          },
+          "stops": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "$ref": "common.schema.json#/$defs/location",
+              "required": ["reason"],
+              "properties": { "reason": { "type": "string", "minLength": 1 } }
+            }
+          },
+          "nonLive": { "$ref": "common.schema.json#/$defs/counts" },
+          "nonLiveTotal": { "$ref": "common.schema.json#/$defs/count" },
+          "outcomeClass": {
+            "$ref": "common.schema.json#/$defs/outcomeClass",
+            "x-added": "2026-10-22"
+          },
+          "infrastructure": { "$ref": "common.schema.json#/$defs/infrastructure" }
+        }
+      }
+    }
+  }
+}
