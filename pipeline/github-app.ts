@@ -150,7 +150,7 @@ export async function authenticateGitHubIssues(
     contents: 'read',
     issues: 'write',
   });
-  return { token: access.token };
+  return { token: access.token, login: `${access.app.slug}[bot]` };
 }
 
 export async function authenticateGitHubApp(
