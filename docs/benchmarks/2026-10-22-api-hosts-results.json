@@ -696,7 +696,7 @@
     {
       "repo": "react-native-datetimepicker/datetimepicker",
       "commit": "2afd1f98c4ec648885dc7be66467daf9d063942f",
-      "error": "Command failed: node /Users/furqan/Documents/PROJECTS/Refit-FG4/bin/refit.mjs api-hosts --repository /tmp/fg4/repos/react-native-datetimepicker__datetimepicker --json\nPipelineInputError: Repository exceeds scan limits (10,000 files, 2 MiB per file, 50 MiB total).\n"
+      "error": "Command failed: node <refit>/bin/refit.mjs api-hosts --repository <root>/react-native-datetimepicker__datetimepicker --json\nPipelineInputError: Repository exceeds scan limits (10,000 files, 2 MiB per file, 50 MiB total).\n"
     },
     {
       "repo": "juicycleff/ultimate-backend",
@@ -912,7 +912,7 @@
     {
       "repo": "graphile/starter",
       "commit": "5f377879c06cf26b36946d23a31d885abc82dfc6",
-      "error": "Command failed: node /Users/furqan/Documents/PROJECTS/Refit-FG4/bin/refit.mjs api-hosts --repository /tmp/fg4/repos/graphile__starter --json\nPipelineInputError: Repository exceeds scan limits (10,000 files, 2 MiB per file, 50 MiB total).\n"
+      "error": "Command failed: node <refit>/bin/refit.mjs api-hosts --repository <root>/graphile__starter --json\nPipelineInputError: Repository exceeds scan limits (10,000 files, 2 MiB per file, 50 MiB total).\n"
     },
     {
       "repo": "novabennett95/tiktok-bot",
@@ -1253,7 +1253,7 @@
     {
       "repo": "stephenh/ts-proto",
       "commit": "1b195c06af8cd399b0fe21a453780ddee2cec37b",
-      "error": "Command failed: node /Users/furqan/Documents/PROJECTS/Refit-FG4/bin/refit.mjs api-hosts --repository /tmp/fg4/repos/stephenh__ts-proto --json\nPipelineInputError: Repository exceeds scan limits (10,000 files, 2 MiB per file, 50 MiB total).\n"
+      "error": "Command failed: node <refit>/bin/refit.mjs api-hosts --repository <root>/stephenh__ts-proto --json\nPipelineInputError: Repository exceeds scan limits (10,000 files, 2 MiB per file, 50 MiB total).\n"
     }
   ]
 }

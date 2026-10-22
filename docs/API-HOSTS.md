@@ -42,7 +42,7 @@ Each exclusion is named and counted in `excluded`:
 | `schema-url`    | namespace and schema URLs (`w3.org`, `json-schema.org`, `schemas.microsoft.com`, `schema.org`, …)                                                                                                                                                        |
 | `placeholder`   | `example.com/org/net/edu` and common `yourdomain.com`-style placeholders                                                                                                                                                                                 |
 
-A host that `data/api-hosts.json` or the catalog documents as an API is never left out as `asset-url`, so `cdn.contentful.com` stays.
+A host that `data/api-hosts.json` or the catalog documents as an API is never left out as `asset-url`, so `cdn.contentful.com` stays once a provider entry documents it; until FG3 adds Contentful it is excluded as `asset-url`.
 
 ## Provider mapping
 
@@ -69,22 +69,22 @@ Pinned Refit commit: the commit named in [`2026-10-22-api-hosts-results.json`](b
 
 **Sample.** [`2026-10-22-api-hosts-repos.json`](benchmarks/2026-10-22-api-hosts-repos.json) freezes 60 public JS/TS repositories at pinned commits, selected by `scripts/api-hosts-select.mjs` from GitHub repository search (14 topics × TypeScript and JavaScript, top 3 by stars, pushed since 2025-10-21, 30 to 3000 stars; the exact queries and the search date are in the file). It is a mix of applications, bots, libraries and boilerplates, because stars and topic, not shape, selected it. Fetched with `git fetch --depth 1` of the pinned commit, no submodules, nothing installed or run.
 
-**Labels.** [`2026-10-22-api-hosts-labels.json`](benchmarks/2026-10-22-api-hosts-labels.json) holds hand labels for the 30 odd-numbered repositories (0-based), committed (`dd08573`) before Refit ran on any of them. The labeller used `scripts/api-hosts-label-candidates.mjs`, a plain text search for every URL host in non-test source, and kept a host only when the code sends a request to it through an HTTP client (the `method` field in the file lists what was not kept). Seventeen of the 30 repositories call no external API; 49 (repository, host) pairs are labelled across the other 13. The scorer is `scripts/api-hosts-score.mjs` (`pipeline/api-hosts-score.test.ts` tests it), run by `node scripts/api-hosts-benchmark.mjs --root <dir>`.
+**Labels.** [`2026-10-22-api-hosts-labels.json`](benchmarks/2026-10-22-api-hosts-labels.json) holds hand labels for the 30 odd-numbered repositories (0-based), committed (`dd08573`) before Refit ran on any of them. The labeller used `scripts/api-hosts-label-candidates.mjs`, a plain text search for every URL host in non-test source, and kept a host only when the code sends a request to it through an HTTP client (the `method` field in the file lists what was not kept). Eighteen of the 30 repositories call no external API; 49 (repository, host) pairs are labelled across the other 12. The scorer is `scripts/api-hosts-score.mjs` (`pipeline/api-hosts-score.test.ts` tests it), run by `node scripts/api-hosts-benchmark.mjs --root <dir>`.
 
 **Result, host level (a repository and host pair is one unit):**
 
-| Run                                          | Precision | Recall | Pairs              |
-| -------------------------------------------- | --------- | ------ | ------------------ |
-| First run, before any change to the detector | 1.00      | 0.61   | TP 30, FP 0, FN 19 |
-| Final                                        | 1.00      | 0.86   | TP 42, FP 0, FN 7  |
+| Run                                                                                   | Precision | Recall | Pairs              |
+| ------------------------------------------------------------------------------------- | --------- | ------ | ------------------ |
+| First run, before any change to the detector (not backed by a committed results file) | 1.00      | 0.61   | TP 30, FP 0, FN 19 |
+| Final                                                                                 | 1.00      | 0.86   | TP 42, FP 0, FN 7  |
 
-The final recall is **not blind**: the 19 misses of the first run were read and the detector was extended for the general forms behind them (the `request` library, `let`/`var` URLs, `this.field`, options held in a variable, an untraced client or a request helper). Use the first run as the blind recall (0.61) and the final one as a measure of the fixes. Precision was 1.00 in both runs.
+The final recall is **not blind**: the 19 misses of the first run were read and the detector was extended for the general forms behind them (the `request` library, `let`/`var` URLs, `this.field`, options held in a variable, an untraced client or a request helper). Use the first run as the blind recall (0.61, unverified: its output was not committed; only the final run is, in [`2026-10-22-api-hosts-results.json`](benchmarks/2026-10-22-api-hosts-results.json)) and the final one as a measure of the fixes. Precision was 1.00 in both runs.
 
 Misses that remain are config flowing between objects and files, which the detector does not follow: `DEFAULT_BASE_URL` passed to a client through an options object (Claude-to-IM, metabot's WeChat client), a Telegram file URL built inside a helper, and `jsonUrl` members of a coin table read by index (btc-rpc-explorer).
 
 **Precision on the other 30 repositories** (no labels): after the final run, every reported host and its first evidence line in those repositories was read (121 pairs). One was wrong: `93.184.216.34` in a script named `test-audit-security.mjs`. The `test-*` file-name rule now excludes it. The rest are real calls, but this is an audit of Refit's own output after seeing it, not a blind label.
 
-**Not scanned.** Three repositories exceed the repository reader's limits (10,000 files, 2 MiB per file, 50 MiB total) and fail with the existing error: react-native-datetimepicker, graphile/starter and ts-proto. All three are labelled with no hosts or fall in the unlabelled half.
+**Not scanned.** Three repositories exceed the repository reader's limits (10,000 files, 2 MiB per file, 50 MiB total) and fail with the existing error: react-native-datetimepicker, graphile/starter and ts-proto. All three are labelled repositories with no hosts, so 27 of the 30 labelled repositories were scanned; they count in the denominators and change no labelled pair.
 
 **Not measured:** recall outside this sample; hosts reached only through SDKs or wrappers Refit cannot see; the share of repositories whose hosts come from environment variables only.
 

@@ -109,6 +109,10 @@
       "format": "ai-model-results",
       "predates": ["/harness", "/results/*/outcomeClass"]
     },
+    "2026-10-22-api-hosts-results.json": {
+      "format": "api-hosts-results",
+      "predates": []
+    },
     "2026-10-22-auth-backend-results.json": {
       "format": "auth-backend-results",
       "predates": []

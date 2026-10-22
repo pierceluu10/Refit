@@ -38,10 +38,10 @@ async function scan(files: Record<string, string>) {
         checkedAt: '2026-10-22',
       },
       {
-        host: '*.supabase.co',
-        provider: 'Supabase',
-        docs: 'https://supabase.com/docs',
-        source: 'https://supabase.com/docs',
+        host: '*.vendor-wild.io',
+        provider: 'Vendor Wild',
+        docs: 'https://vendor-wild.io/docs',
+        source: 'https://vendor-wild.io/docs',
         checkedAt: '2026-10-22',
       },
     ],
@@ -58,7 +58,8 @@ describe('detectApiHosts clients', () => {
     });
     expect(found).toHaveLength(1);
     expect(found[0].host).toBe('api.github.com');
-    expect(found[0].provider).toMatchObject({ name: 'GitHub', origin: 'api-hosts' });
+    // GitHub is a catalog agent, so the catalog wins over the host list.
+    expect(found[0].provider).toMatchObject({ id: 'github', origin: 'catalog' });
     expect(found[0].calls[0]).toMatchObject({
       file: 'src/a.ts',
       line: 2,
@@ -197,10 +198,12 @@ fetch(url);
 
   it('maps wildcard hosts and untracked hosts to a provider', async () => {
     const { hosts: found } = await scan({
-      'a.ts': `fetch('https://abcd.supabase.co/rest/v1/t');\nfetch('https://api.stripe.com/v1/charges');\nfetch('https://nobody.vendor-twelve.com/x');\n`,
+      'a.ts': `fetch('https://abcd.vendor-wild.io/rest/v1/t');\nfetch('https://api.stripe.com/v1/charges');\nfetch('https://nobody.vendor-twelve.com/x');\nfetch('https://abcd.supabase.co/rest/v1/t');\nfetch('https://store.myshopify.com/admin/api/2025-01/shop.json');\n`,
     });
     const by = Object.fromEntries(found.map((host) => [host.host, host.provider]));
-    expect(by['abcd.supabase.co']).toMatchObject({ name: 'Supabase', origin: 'api-hosts' });
+    expect(by['abcd.vendor-wild.io']).toMatchObject({ name: 'Vendor Wild', origin: 'api-hosts' });
+    expect(by['abcd.supabase.co']).toMatchObject({ id: 'supabase', origin: 'catalog' });
+    expect(by['store.myshopify.com']).toMatchObject({ id: 'shopify', origin: 'catalog' });
     expect(by['api.stripe.com']).toMatchObject({ id: 'stripe', origin: 'catalog' });
     expect(by['nobody.vendor-twelve.com']).toBeNull();
   });
