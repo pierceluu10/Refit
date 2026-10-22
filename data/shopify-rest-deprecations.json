@@ -1,0 +1,972 @@
+{
+  "formatVersion": 1,
+  "generatedBy": "scripts/shopify-rest-deprecations.mjs",
+  "checkedAt": "2026-10-22",
+  "versions": {
+    "2022-01": "6.2.0",
+    "2022-04": "6.2.0",
+    "2022-07": "6.2.0",
+    "2022-10": "12.3.0",
+    "2023-01": "12.3.0",
+    "2023-04": "12.3.0",
+    "2023-07": "12.3.0",
+    "2023-10": "12.3.0",
+    "2024-01": "12.3.0",
+    "2024-04": "12.3.0",
+    "2024-07": "12.3.0",
+    "2024-10": "15.0.1",
+    "2025-01": "15.0.1",
+    "2025-04": "15.0.1",
+    "2025-07": "15.0.1",
+    "2025-10": "15.0.1",
+    "2026-01": "15.0.1",
+    "2026-04": "15.0.1",
+    "2026-07": "15.0.1"
+  },
+  "endpoints": [
+    {
+      "resource": "Fulfillment",
+      "method": "POST",
+      "operation": "post",
+      "path": "orders/<order_id>/fulfillments.json",
+      "lastVersion": "2022-04",
+      "removedIn": "2022-07",
+      "resourceRemoved": false,
+      "source": "https://registry.npmjs.org/@shopify/shopify-api/-/shopify-api-6.2.0.tgz rest/admin/2022-07/fulfillment (compared with https://registry.npmjs.org/@shopify/shopify-api/-/shopify-api-6.2.0.tgz rest/admin/2022-04/fulfillment)"
+    },
+    {
+      "resource": "Fulfillment",
+      "method": "PUT",
+      "operation": "put",
+      "path": "orders/<order_id>/fulfillments/<id>.json",
+      "lastVersion": "2022-04",
+      "removedIn": "2022-07",
+      "resourceRemoved": false,
+      "source": "https://registry.npmjs.org/@shopify/shopify-api/-/shopify-api-6.2.0.tgz rest/admin/2022-07/fulfillment (compared with https://registry.npmjs.org/@shopify/shopify-api/-/shopify-api-6.2.0.tgz rest/admin/2022-04/fulfillment)"
+    },
+    {
+      "resource": "Fulfillment",
+      "method": "POST",
+      "operation": "cancel",
+      "path": "orders/<order_id>/fulfillments/<id>/cancel.json",
+      "lastVersion": "2022-04",
+      "removedIn": "2022-07",
+      "resourceRemoved": false,
+      "source": "https://registry.npmjs.org/@shopify/shopify-api/-/shopify-api-6.2.0.tgz rest/admin/2022-07/fulfillment (compared with https://registry.npmjs.org/@shopify/shopify-api/-/shopify-api-6.2.0.tgz rest/admin/2022-04/fulfillment)"
+    },
+    {
+      "resource": "Fulfillment",
+      "method": "POST",
+      "operation": "complete",
+      "path": "orders/<order_id>/fulfillments/<id>/complete.json",
+      "lastVersion": "2022-04",
+      "removedIn": "2022-07",
+      "resourceRemoved": false,
+      "source": "https://registry.npmjs.org/@shopify/shopify-api/-/shopify-api-6.2.0.tgz rest/admin/2022-07/fulfillment (compared with https://registry.npmjs.org/@shopify/shopify-api/-/shopify-api-6.2.0.tgz rest/admin/2022-04/fulfillment)"
+    },
+    {
+      "resource": "Fulfillment",
+      "method": "POST",
+      "operation": "open",
+      "path": "orders/<order_id>/fulfillments/<id>/open.json",
+      "lastVersion": "2022-04",
+      "removedIn": "2022-07",
+      "resourceRemoved": false,
+      "source": "https://registry.npmjs.org/@shopify/shopify-api/-/shopify-api-6.2.0.tgz rest/admin/2022-07/fulfillment (compared with https://registry.npmjs.org/@shopify/shopify-api/-/shopify-api-6.2.0.tgz rest/admin/2022-04/fulfillment)"
+    },
+    {
+      "resource": "AndroidPayKey",
+      "method": "POST",
+      "operation": "post",
+      "path": "android_pay_keys.json",
+      "lastVersion": "2022-10",
+      "removedIn": "2023-01",
+      "resourceRemoved": true,
+      "source": "https://registry.npmjs.org/@shopify/shopify-api/-/shopify-api-12.3.0.tgz rest/admin/2023-01/ (compared with https://registry.npmjs.org/@shopify/shopify-api/-/shopify-api-12.3.0.tgz rest/admin/2022-10/android_pay_key)"
+    },
+    {
+      "resource": "AndroidPayKey",
+      "method": "DELETE",
+      "operation": "delete",
+      "path": "android_pay_keys/<id>.json",
+      "lastVersion": "2022-10",
+      "removedIn": "2023-01",
+      "resourceRemoved": true,
+      "source": "https://registry.npmjs.org/@shopify/shopify-api/-/shopify-api-12.3.0.tgz rest/admin/2023-01/ (compared with https://registry.npmjs.org/@shopify/shopify-api/-/shopify-api-12.3.0.tgz rest/admin/2022-10/android_pay_key)"
+    },
+    {
+      "resource": "AndroidPayKey",
+      "method": "GET",
+      "operation": "get",
+      "path": "android_pay_keys/<id>.json",
+      "lastVersion": "2022-10",
+      "removedIn": "2023-01",
+      "resourceRemoved": true,
+      "source": "https://registry.npmjs.org/@shopify/shopify-api/-/shopify-api-12.3.0.tgz rest/admin/2023-01/ (compared with https://registry.npmjs.org/@shopify/shopify-api/-/shopify-api-12.3.0.tgz rest/admin/2022-10/android_pay_key)"
+    },
+    {
+      "resource": "ApplicationCredit",
+      "method": "POST",
+      "operation": "post",
+      "path": "application_credits.json",
+      "lastVersion": "2023-04",
+      "removedIn": "2023-07",
+      "resourceRemoved": false,
+      "source": "https://registry.npmjs.org/@shopify/shopify-api/-/shopify-api-12.3.0.tgz rest/admin/2023-07/application_credit (compared with https://registry.npmjs.org/@shopify/shopify-api/-/shopify-api-12.3.0.tgz rest/admin/2023-04/application_credit)"
+    },
+    {
+      "resource": "CustomerSavedSearch",
+      "method": "GET",
+      "operation": "get",
+      "path": "customer_saved_searches.json",
+      "lastVersion": "2023-07",
+      "removedIn": "2023-10",
+      "resourceRemoved": true,
+      "source": "https://registry.npmjs.org/@shopify/shopify-api/-/shopify-api-12.3.0.tgz rest/admin/2023-10/ (compared with https://registry.npmjs.org/@shopify/shopify-api/-/shopify-api-12.3.0.tgz rest/admin/2023-07/customer_saved_search)"
+    },
+    {
+      "resource": "CustomerSavedSearch",
+      "method": "POST",
+      "operation": "post",
+      "path": "customer_saved_searches.json",
+      "lastVersion": "2023-07",
+      "removedIn": "2023-10",
+      "resourceRemoved": true,
+      "source": "https://registry.npmjs.org/@shopify/shopify-api/-/shopify-api-12.3.0.tgz rest/admin/2023-10/ (compared with https://registry.npmjs.org/@shopify/shopify-api/-/shopify-api-12.3.0.tgz rest/admin/2023-07/customer_saved_search)"
+    },
+    {
+      "resource": "CustomerSavedSearch",
+      "method": "DELETE",
+      "operation": "delete",
+      "path": "customer_saved_searches/<id>.json",
+      "lastVersion": "2023-07",
+      "removedIn": "2023-10",
+      "resourceRemoved": true,
+      "source": "https://registry.npmjs.org/@shopify/shopify-api/-/shopify-api-12.3.0.tgz rest/admin/2023-10/ (compared with https://registry.npmjs.org/@shopify/shopify-api/-/shopify-api-12.3.0.tgz rest/admin/2023-07/customer_saved_search)"
+    },
+    {
+      "resource": "CustomerSavedSearch",
+      "method": "GET",
+      "operation": "get",
+      "path": "customer_saved_searches/<id>.json",
+      "lastVersion": "2023-07",
+      "removedIn": "2023-10",
+      "resourceRemoved": true,
+      "source": "https://registry.npmjs.org/@shopify/shopify-api/-/shopify-api-12.3.0.tgz rest/admin/2023-10/ (compared with https://registry.npmjs.org/@shopify/shopify-api/-/shopify-api-12.3.0.tgz rest/admin/2023-07/customer_saved_search)"
+    },
+    {
+      "resource": "CustomerSavedSearch",
+      "method": "PUT",
+      "operation": "put",
+      "path": "customer_saved_searches/<id>.json",
+      "lastVersion": "2023-07",
+      "removedIn": "2023-10",
+      "resourceRemoved": true,
+      "source": "https://registry.npmjs.org/@shopify/shopify-api/-/shopify-api-12.3.0.tgz rest/admin/2023-10/ (compared with https://registry.npmjs.org/@shopify/shopify-api/-/shopify-api-12.3.0.tgz rest/admin/2023-07/customer_saved_search)"
+    },
+    {
+      "resource": "CustomerSavedSearch",
+      "method": "GET",
+      "operation": "customers",
+      "path": "customer_saved_searches/<id>/customers.json",
+      "lastVersion": "2023-07",
+      "removedIn": "2023-10",
+      "resourceRemoved": true,
+      "source": "https://registry.npmjs.org/@shopify/shopify-api/-/shopify-api-12.3.0.tgz rest/admin/2023-10/ (compared with https://registry.npmjs.org/@shopify/shopify-api/-/shopify-api-12.3.0.tgz rest/admin/2023-07/customer_saved_search)"
+    },
+    {
+      "resource": "CustomerSavedSearch",
+      "method": "GET",
+      "operation": "count",
+      "path": "customer_saved_searches/count.json",
+      "lastVersion": "2023-07",
+      "removedIn": "2023-10",
+      "resourceRemoved": true,
+      "source": "https://registry.npmjs.org/@shopify/shopify-api/-/shopify-api-12.3.0.tgz rest/admin/2023-10/ (compared with https://registry.npmjs.org/@shopify/shopify-api/-/shopify-api-12.3.0.tgz rest/admin/2023-07/customer_saved_search)"
+    },
+    {
+      "resource": "Report",
+      "method": "GET",
+      "operation": "get",
+      "path": "reports.json",
+      "lastVersion": "2024-01",
+      "removedIn": "2024-04",
+      "resourceRemoved": true,
+      "source": "https://registry.npmjs.org/@shopify/shopify-api/-/shopify-api-12.3.0.tgz rest/admin/2024-04/ (compared with https://registry.npmjs.org/@shopify/shopify-api/-/shopify-api-12.3.0.tgz rest/admin/2024-01/report)"
+    },
+    {
+      "resource": "Report",
+      "method": "POST",
+      "operation": "post",
+      "path": "reports.json",
+      "lastVersion": "2024-01",
+      "removedIn": "2024-04",
+      "resourceRemoved": true,
+      "source": "https://registry.npmjs.org/@shopify/shopify-api/-/shopify-api-12.3.0.tgz rest/admin/2024-04/ (compared with https://registry.npmjs.org/@shopify/shopify-api/-/shopify-api-12.3.0.tgz rest/admin/2024-01/report)"
+    },
+    {
+      "resource": "Report",
+      "method": "DELETE",
+      "operation": "delete",
+      "path": "reports/<id>.json",
+      "lastVersion": "2024-01",
+      "removedIn": "2024-04",
+      "resourceRemoved": true,
+      "source": "https://registry.npmjs.org/@shopify/shopify-api/-/shopify-api-12.3.0.tgz rest/admin/2024-04/ (compared with https://registry.npmjs.org/@shopify/shopify-api/-/shopify-api-12.3.0.tgz rest/admin/2024-01/report)"
+    },
+    {
+      "resource": "Report",
+      "method": "GET",
+      "operation": "get",
+      "path": "reports/<id>.json",
+      "lastVersion": "2024-01",
+      "removedIn": "2024-04",
+      "resourceRemoved": true,
+      "source": "https://registry.npmjs.org/@shopify/shopify-api/-/shopify-api-12.3.0.tgz rest/admin/2024-04/ (compared with https://registry.npmjs.org/@shopify/shopify-api/-/shopify-api-12.3.0.tgz rest/admin/2024-01/report)"
+    },
+    {
+      "resource": "Report",
+      "method": "PUT",
+      "operation": "put",
+      "path": "reports/<id>.json",
+      "lastVersion": "2024-01",
+      "removedIn": "2024-04",
+      "resourceRemoved": true,
+      "source": "https://registry.npmjs.org/@shopify/shopify-api/-/shopify-api-12.3.0.tgz rest/admin/2024-04/ (compared with https://registry.npmjs.org/@shopify/shopify-api/-/shopify-api-12.3.0.tgz rest/admin/2024-01/report)"
+    },
+    {
+      "resource": "Payment",
+      "method": "GET",
+      "operation": "get",
+      "path": "checkouts/<checkout_id>/payments.json",
+      "lastVersion": "2024-10",
+      "removedIn": "2025-01",
+      "resourceRemoved": false,
+      "source": "https://registry.npmjs.org/@shopify/shopify-api/-/shopify-api-15.0.1.tgz rest/admin/2025-01/payment (compared with https://registry.npmjs.org/@shopify/shopify-api/-/shopify-api-15.0.1.tgz rest/admin/2024-10/payment)"
+    },
+    {
+      "resource": "Payment",
+      "method": "GET",
+      "operation": "count",
+      "path": "checkouts/<checkout_id>/payments/count.json",
+      "lastVersion": "2024-10",
+      "removedIn": "2025-01",
+      "resourceRemoved": false,
+      "source": "https://registry.npmjs.org/@shopify/shopify-api/-/shopify-api-15.0.1.tgz rest/admin/2025-01/payment (compared with https://registry.npmjs.org/@shopify/shopify-api/-/shopify-api-15.0.1.tgz rest/admin/2024-10/payment)"
+    },
+    {
+      "resource": "CustomerAddress",
+      "method": "GET",
+      "operation": "get",
+      "path": "customers/<customer_id>/addresses.json",
+      "lastVersion": "2025-04",
+      "removedIn": "2025-07",
+      "resourceRemoved": true,
+      "source": "https://registry.npmjs.org/@shopify/shopify-api/-/shopify-api-15.0.1.tgz rest/admin/2025-07/ (compared with https://registry.npmjs.org/@shopify/shopify-api/-/shopify-api-15.0.1.tgz rest/admin/2025-04/customer_address)"
+    },
+    {
+      "resource": "CustomerAddress",
+      "method": "POST",
+      "operation": "post",
+      "path": "customers/<customer_id>/addresses.json",
+      "lastVersion": "2025-04",
+      "removedIn": "2025-07",
+      "resourceRemoved": true,
+      "source": "https://registry.npmjs.org/@shopify/shopify-api/-/shopify-api-15.0.1.tgz rest/admin/2025-07/ (compared with https://registry.npmjs.org/@shopify/shopify-api/-/shopify-api-15.0.1.tgz rest/admin/2025-04/customer_address)"
+    },
+    {
+      "resource": "CustomerAddress",
+      "method": "DELETE",
+      "operation": "delete",
+      "path": "customers/<customer_id>/addresses/<id>.json",
+      "lastVersion": "2025-04",
+      "removedIn": "2025-07",
+      "resourceRemoved": true,
+      "source": "https://registry.npmjs.org/@shopify/shopify-api/-/shopify-api-15.0.1.tgz rest/admin/2025-07/ (compared with https://registry.npmjs.org/@shopify/shopify-api/-/shopify-api-15.0.1.tgz rest/admin/2025-04/customer_address)"
+    },
+    {
+      "resource": "CustomerAddress",
+      "method": "GET",
+      "operation": "get",
+      "path": "customers/<customer_id>/addresses/<id>.json",
+      "lastVersion": "2025-04",
+      "removedIn": "2025-07",
+      "resourceRemoved": true,
+      "source": "https://registry.npmjs.org/@shopify/shopify-api/-/shopify-api-15.0.1.tgz rest/admin/2025-07/ (compared with https://registry.npmjs.org/@shopify/shopify-api/-/shopify-api-15.0.1.tgz rest/admin/2025-04/customer_address)"
+    },
+    {
+      "resource": "CustomerAddress",
+      "method": "PUT",
+      "operation": "put",
+      "path": "customers/<customer_id>/addresses/<id>.json",
+      "lastVersion": "2025-04",
+      "removedIn": "2025-07",
+      "resourceRemoved": true,
+      "source": "https://registry.npmjs.org/@shopify/shopify-api/-/shopify-api-15.0.1.tgz rest/admin/2025-07/ (compared with https://registry.npmjs.org/@shopify/shopify-api/-/shopify-api-15.0.1.tgz rest/admin/2025-04/customer_address)"
+    },
+    {
+      "resource": "CustomerAddress",
+      "method": "PUT",
+      "operation": "default",
+      "path": "customers/<customer_id>/addresses/<id>/default.json",
+      "lastVersion": "2025-04",
+      "removedIn": "2025-07",
+      "resourceRemoved": true,
+      "source": "https://registry.npmjs.org/@shopify/shopify-api/-/shopify-api-15.0.1.tgz rest/admin/2025-07/ (compared with https://registry.npmjs.org/@shopify/shopify-api/-/shopify-api-15.0.1.tgz rest/admin/2025-04/customer_address)"
+    },
+    {
+      "resource": "CustomerAddress",
+      "method": "PUT",
+      "operation": "set",
+      "path": "customers/<customer_id>/addresses/set.json",
+      "lastVersion": "2025-04",
+      "removedIn": "2025-07",
+      "resourceRemoved": true,
+      "source": "https://registry.npmjs.org/@shopify/shopify-api/-/shopify-api-15.0.1.tgz rest/admin/2025-07/ (compared with https://registry.npmjs.org/@shopify/shopify-api/-/shopify-api-15.0.1.tgz rest/admin/2025-04/customer_address)"
+    }
+  ],
+  "fields": [
+    {
+      "resource": "Metafield",
+      "field": "value_type",
+      "lastVersion": "2022-01",
+      "removedIn": "2022-04",
+      "source": "https://registry.npmjs.org/@shopify/shopify-api/-/shopify-api-6.2.0.tgz rest/admin/2022-04/metafield (compared with https://registry.npmjs.org/@shopify/shopify-api/-/shopify-api-6.2.0.tgz rest/admin/2022-01/metafield)"
+    },
+    {
+      "resource": "PriceRule",
+      "field": "prerequisite_saved_search_ids",
+      "lastVersion": "2022-01",
+      "removedIn": "2022-04",
+      "source": "https://registry.npmjs.org/@shopify/shopify-api/-/shopify-api-6.2.0.tgz rest/admin/2022-04/price_rule (compared with https://registry.npmjs.org/@shopify/shopify-api/-/shopify-api-6.2.0.tgz rest/admin/2022-01/price_rule)"
+    },
+    {
+      "resource": "FulfillmentService",
+      "field": "format",
+      "lastVersion": "2022-04",
+      "removedIn": "2022-07",
+      "source": "https://registry.npmjs.org/@shopify/shopify-api/-/shopify-api-6.2.0.tgz rest/admin/2022-07/fulfillment_service (compared with https://registry.npmjs.org/@shopify/shopify-api/-/shopify-api-6.2.0.tgz rest/admin/2022-04/fulfillment_service)"
+    },
+    {
+      "resource": "Shop",
+      "field": "cookie_consent_level",
+      "lastVersion": "2022-07",
+      "removedIn": "2022-10",
+      "source": "https://registry.npmjs.org/@shopify/shopify-api/-/shopify-api-12.3.0.tgz rest/admin/2022-10/shop (compared with https://registry.npmjs.org/@shopify/shopify-api/-/shopify-api-6.2.0.tgz rest/admin/2022-07/shop)"
+    },
+    {
+      "resource": "Variant",
+      "field": "inventory_quantity_adjustment",
+      "lastVersion": "2022-07",
+      "removedIn": "2022-10",
+      "source": "https://registry.npmjs.org/@shopify/shopify-api/-/shopify-api-12.3.0.tgz rest/admin/2022-10/variant (compared with https://registry.npmjs.org/@shopify/shopify-api/-/shopify-api-6.2.0.tgz rest/admin/2022-07/variant)"
+    },
+    {
+      "resource": "Order",
+      "field": "payment_details",
+      "lastVersion": "2023-01",
+      "removedIn": "2023-04",
+      "source": "https://registry.npmjs.org/@shopify/shopify-api/-/shopify-api-12.3.0.tgz rest/admin/2023-04/order (compared with https://registry.npmjs.org/@shopify/shopify-api/-/shopify-api-12.3.0.tgz rest/admin/2023-01/order)"
+    },
+    {
+      "resource": "Order",
+      "field": "processing_method",
+      "lastVersion": "2023-01",
+      "removedIn": "2023-04",
+      "source": "https://registry.npmjs.org/@shopify/shopify-api/-/shopify-api-12.3.0.tgz rest/admin/2023-04/order (compared with https://registry.npmjs.org/@shopify/shopify-api/-/shopify-api-12.3.0.tgz rest/admin/2023-01/order)"
+    },
+    {
+      "resource": "Customer",
+      "field": "accepts_marketing",
+      "lastVersion": "2024-10",
+      "removedIn": "2025-01",
+      "source": "https://registry.npmjs.org/@shopify/shopify-api/-/shopify-api-15.0.1.tgz rest/admin/2025-01/customer (compared with https://registry.npmjs.org/@shopify/shopify-api/-/shopify-api-15.0.1.tgz rest/admin/2024-10/customer)"
+    },
+    {
+      "resource": "Customer",
+      "field": "accepts_marketing_updated_at",
+      "lastVersion": "2024-10",
+      "removedIn": "2025-01",
+      "source": "https://registry.npmjs.org/@shopify/shopify-api/-/shopify-api-15.0.1.tgz rest/admin/2025-01/customer (compared with https://registry.npmjs.org/@shopify/shopify-api/-/shopify-api-15.0.1.tgz rest/admin/2024-10/customer)"
+    },
+    {
+      "resource": "Order",
+      "field": "gateway",
+      "lastVersion": "2024-10",
+      "removedIn": "2025-01",
+      "source": "https://registry.npmjs.org/@shopify/shopify-api/-/shopify-api-15.0.1.tgz rest/admin/2025-01/order (compared with https://registry.npmjs.org/@shopify/shopify-api/-/shopify-api-15.0.1.tgz rest/admin/2024-10/order)"
+    },
+    {
+      "resource": "Shop",
+      "field": "eligible_for_card_reader_giveaway",
+      "lastVersion": "2024-10",
+      "removedIn": "2025-01",
+      "source": "https://registry.npmjs.org/@shopify/shopify-api/-/shopify-api-15.0.1.tgz rest/admin/2025-01/shop (compared with https://registry.npmjs.org/@shopify/shopify-api/-/shopify-api-15.0.1.tgz rest/admin/2024-10/shop)"
+    },
+    {
+      "resource": "FulfillmentService",
+      "field": "permits_sku_sharing",
+      "lastVersion": "2026-01",
+      "removedIn": "2026-04",
+      "source": "https://registry.npmjs.org/@shopify/shopify-api/-/shopify-api-15.0.1.tgz rest/admin/2026-04/fulfillment_service (compared with https://registry.npmjs.org/@shopify/shopify-api/-/shopify-api-15.0.1.tgz rest/admin/2026-01/fulfillment_service)"
+    }
+  ],
+  "resources": {
+    "AbandonedCheckout": [
+      "checkouts GET checkouts.json"
+    ],
+    "AccessScope": [
+      "get GET access_scopes.json"
+    ],
+    "AndroidPayKey": [
+      "delete DELETE android_pay_keys/<id>.json",
+      "get GET android_pay_keys/<id>.json",
+      "post POST android_pay_keys.json"
+    ],
+    "ApplePayCertificate": [
+      "csr GET apple_pay_certificates/<id>/csr.json",
+      "delete DELETE apple_pay_certificates/<id>.json",
+      "get GET apple_pay_certificates/<id>.json",
+      "post POST apple_pay_certificates.json",
+      "put PUT apple_pay_certificates/<id>.json"
+    ],
+    "ApplicationCharge": [
+      "get GET application_charges.json",
+      "get GET application_charges/<id>.json",
+      "post POST application_charges.json"
+    ],
+    "ApplicationCredit": [
+      "get GET application_credits.json",
+      "get GET application_credits/<id>.json",
+      "post POST application_credits.json"
+    ],
+    "Article": [
+      "authors GET articles/authors.json",
+      "count GET blogs/<blog_id>/articles/count.json",
+      "delete DELETE blogs/<blog_id>/articles/<id>.json",
+      "get GET blogs/<blog_id>/articles.json",
+      "get GET blogs/<blog_id>/articles/<id>.json",
+      "post POST blogs/<blog_id>/articles.json",
+      "put PUT blogs/<blog_id>/articles/<id>.json",
+      "tags GET articles/tags.json",
+      "tags GET blogs/<blog_id>/articles/tags.json"
+    ],
+    "Asset": [
+      "delete DELETE themes/<theme_id>/assets.json",
+      "get GET themes/<theme_id>/assets.json",
+      "put PUT themes/<theme_id>/assets.json"
+    ],
+    "AssignedFulfillmentOrder": [
+      "get GET assigned_fulfillment_orders.json"
+    ],
+    "Balance": [
+      "get GET shopify_payments/balance.json"
+    ],
+    "Blog": [
+      "count GET blogs/count.json",
+      "delete DELETE blogs/<id>.json",
+      "get GET blogs.json",
+      "get GET blogs/<id>.json",
+      "post POST blogs.json",
+      "put PUT blogs/<id>.json"
+    ],
+    "CancellationRequest": [
+      "accept POST fulfillment_orders/<fulfillment_order_id>/cancellation_request/accept.json",
+      "post POST fulfillment_orders/<fulfillment_order_id>/cancellation_request.json",
+      "reject POST fulfillment_orders/<fulfillment_order_id>/cancellation_request/reject.json"
+    ],
+    "CarrierService": [
+      "delete DELETE carrier_services/<id>.json",
+      "get GET carrier_services.json",
+      "get GET carrier_services/<id>.json",
+      "post POST carrier_services.json",
+      "put PUT carrier_services/<id>.json"
+    ],
+    "Checkout": [
+      "complete POST checkouts/<token>/complete.json",
+      "get GET checkouts/<token>.json",
+      "post POST checkouts.json",
+      "put PUT checkouts/<token>.json",
+      "shipping_rates GET checkouts/<token>/shipping_rates.json"
+    ],
+    "Collect": [
+      "count GET collects/count.json",
+      "delete DELETE collects/<id>.json",
+      "get GET collects.json",
+      "get GET collects/<id>.json",
+      "post POST collects.json"
+    ],
+    "Collection": [
+      "get GET collections/<id>.json",
+      "products GET collections/<id>/products.json"
+    ],
+    "CollectionListing": [
+      "delete DELETE collection_listings/<collection_id>.json",
+      "get GET collection_listings.json",
+      "get GET collection_listings/<collection_id>.json",
+      "product_ids GET collection_listings/<collection_id>/product_ids.json",
+      "put PUT collection_listings/<collection_id>.json"
+    ],
+    "Comment": [
+      "approve POST comments/<id>/approve.json",
+      "count GET comments/count.json",
+      "get GET comments.json",
+      "get GET comments/<id>.json",
+      "not_spam POST comments/<id>/not_spam.json",
+      "post POST comments.json",
+      "put PUT comments/<id>.json",
+      "remove POST comments/<id>/remove.json",
+      "restore POST comments/<id>/restore.json",
+      "spam POST comments/<id>/spam.json"
+    ],
+    "Country": [
+      "count GET countries/count.json",
+      "delete DELETE countries/<id>.json",
+      "get GET countries.json",
+      "get GET countries/<id>.json",
+      "post POST countries.json",
+      "put PUT countries/<id>.json"
+    ],
+    "Currency": [
+      "get GET currencies.json"
+    ],
+    "CustomCollection": [
+      "count GET custom_collections/count.json",
+      "delete DELETE custom_collections/<id>.json",
+      "get GET custom_collections.json",
+      "get GET custom_collections/<id>.json",
+      "post POST custom_collections.json",
+      "put PUT custom_collections/<id>.json"
+    ],
+    "Customer": [
+      "account_activation_url POST customers/<id>/account_activation_url.json",
+      "count GET customers/count.json",
+      "delete DELETE customers/<id>.json",
+      "get GET customers.json",
+      "get GET customers/<id>.json",
+      "orders GET customers/<id>/orders.json",
+      "post POST customers.json",
+      "put PUT customers/<id>.json",
+      "search GET customers/search.json",
+      "send_invite POST customers/<id>/send_invite.json"
+    ],
+    "CustomerAddress": [
+      "default PUT customers/<customer_id>/addresses/<id>/default.json",
+      "delete DELETE customers/<customer_id>/addresses/<id>.json",
+      "get GET customers/<customer_id>/addresses.json",
+      "get GET customers/<customer_id>/addresses/<id>.json",
+      "post POST customers/<customer_id>/addresses.json",
+      "put PUT customers/<customer_id>/addresses/<id>.json",
+      "set PUT customers/<customer_id>/addresses/set.json"
+    ],
+    "CustomerSavedSearch": [
+      "count GET customer_saved_searches/count.json",
+      "customers GET customer_saved_searches/<id>/customers.json",
+      "delete DELETE customer_saved_searches/<id>.json",
+      "get GET customer_saved_searches.json",
+      "get GET customer_saved_searches/<id>.json",
+      "post POST customer_saved_searches.json",
+      "put PUT customer_saved_searches/<id>.json"
+    ],
+    "DeprecatedApiCall": [
+      "get GET deprecated_api_calls.json"
+    ],
+    "DiscountCode": [
+      "batch POST price_rules/<price_rule_id>/batch.json",
+      "count GET discount_codes/count.json",
+      "delete DELETE price_rules/<price_rule_id>/discount_codes/<id>.json",
+      "get GET price_rules/<price_rule_id>/batch/<batch_id>/discount_codes.json",
+      "get GET price_rules/<price_rule_id>/discount_codes.json",
+      "get GET price_rules/<price_rule_id>/discount_codes/<id>.json",
+      "get_all GET price_rules/<price_rule_id>/batch/<batch_id>.json",
+      "lookup GET discount_codes/lookup.json",
+      "post POST price_rules/<price_rule_id>/discount_codes.json",
+      "put PUT price_rules/<price_rule_id>/discount_codes/<id>.json"
+    ],
+    "Dispute": [
+      "get GET shopify_payments/disputes.json",
+      "get GET shopify_payments/disputes/<id>.json"
+    ],
+    "DisputeEvidence": [
+      "get GET shopify_payments/disputes/<dispute_id>/dispute_evidences.json",
+      "put PUT shopify_payments/disputes/<dispute_id>/dispute_evidences.json"
+    ],
+    "DisputeFileUpload": [
+      "delete DELETE shopify_payments/disputes/<dispute_id>/dispute_file_uploads/<id>.json",
+      "post POST shopify_payments/disputes/<dispute_id>/dispute_file_uploads.json"
+    ],
+    "DraftOrder": [
+      "complete PUT draft_orders/<id>/complete.json",
+      "count GET draft_orders/count.json",
+      "delete DELETE draft_orders/<id>.json",
+      "get GET draft_orders.json",
+      "get GET draft_orders/<id>.json",
+      "post POST draft_orders.json",
+      "put PUT draft_orders/<id>.json",
+      "send_invoice POST draft_orders/<id>/send_invoice.json"
+    ],
+    "Event": [
+      "count GET events/count.json",
+      "get GET events.json",
+      "get GET events/<id>.json",
+      "get GET orders/<order_id>/events.json",
+      "get GET products/<product_id>/events.json"
+    ],
+    "Fulfillment": [
+      "cancel POST fulfillments/<id>/cancel.json",
+      "cancel POST orders/<order_id>/fulfillments/<id>/cancel.json",
+      "complete POST orders/<order_id>/fulfillments/<id>/complete.json",
+      "count GET orders/<order_id>/fulfillments/count.json",
+      "get GET fulfillment_orders/<fulfillment_order_id>/fulfillments.json",
+      "get GET orders/<order_id>/fulfillments.json",
+      "get GET orders/<order_id>/fulfillments/<id>.json",
+      "open POST orders/<order_id>/fulfillments/<id>/open.json",
+      "post POST fulfillments.json",
+      "post POST orders/<order_id>/fulfillments.json",
+      "put PUT orders/<order_id>/fulfillments/<id>.json",
+      "update_tracking POST fulfillments/<id>/update_tracking.json"
+    ],
+    "FulfillmentEvent": [
+      "delete DELETE orders/<order_id>/fulfillments/<fulfillment_id>/events/<id>.json",
+      "get GET orders/<order_id>/fulfillments/<fulfillment_id>/events.json",
+      "get GET orders/<order_id>/fulfillments/<fulfillment_id>/events/<id>.json",
+      "post POST orders/<order_id>/fulfillments/<fulfillment_id>/events.json"
+    ],
+    "FulfillmentOrder": [
+      "cancel POST fulfillment_orders/<id>/cancel.json",
+      "close POST fulfillment_orders/<id>/close.json",
+      "get GET fulfillment_orders/<id>.json",
+      "get GET orders/<order_id>/fulfillment_orders.json",
+      "hold POST fulfillment_orders/<id>/hold.json",
+      "move POST fulfillment_orders/<id>/move.json",
+      "open POST fulfillment_orders/<id>/open.json",
+      "release_hold POST fulfillment_orders/<id>/release_hold.json",
+      "reschedule POST fulfillment_orders/<id>/reschedule.json",
+      "set_fulfillment_orders_deadline POST fulfillment_orders/set_fulfillment_orders_deadline.json"
+    ],
+    "FulfillmentRequest": [
+      "accept POST fulfillment_orders/<fulfillment_order_id>/fulfillment_request/accept.json",
+      "post POST fulfillment_orders/<fulfillment_order_id>/fulfillment_request.json",
+      "reject POST fulfillment_orders/<fulfillment_order_id>/fulfillment_request/reject.json"
+    ],
+    "FulfillmentService": [
+      "delete DELETE fulfillment_services/<id>.json",
+      "get GET fulfillment_services.json",
+      "get GET fulfillment_services/<id>.json",
+      "post POST fulfillment_services.json",
+      "put PUT fulfillment_services/<id>.json"
+    ],
+    "GiftCard": [
+      "count GET gift_cards/count.json",
+      "disable POST gift_cards/<id>/disable.json",
+      "get GET gift_cards.json",
+      "get GET gift_cards/<id>.json",
+      "post POST gift_cards.json",
+      "put PUT gift_cards/<id>.json",
+      "search GET gift_cards/search.json"
+    ],
+    "GiftCardAdjustment": [
+      "get GET gift_cards/<gift_card_id>/adjustments.json",
+      "get GET gift_cards/<gift_card_id>/adjustments/<id>.json",
+      "post POST gift_cards/<gift_card_id>/adjustments.json"
+    ],
+    "Image": [
+      "count GET products/<product_id>/images/count.json",
+      "delete DELETE products/<product_id>/images/<id>.json",
+      "get GET products/<product_id>/images.json",
+      "get GET products/<product_id>/images/<id>.json",
+      "post POST products/<product_id>/images.json",
+      "put PUT products/<product_id>/images/<id>.json"
+    ],
+    "InventoryItem": [
+      "get GET inventory_items.json",
+      "get GET inventory_items/<id>.json",
+      "put PUT inventory_items/<id>.json"
+    ],
+    "InventoryLevel": [
+      "adjust POST inventory_levels/adjust.json",
+      "connect POST inventory_levels/connect.json",
+      "delete DELETE inventory_levels.json",
+      "get GET inventory_levels.json",
+      "set POST inventory_levels/set.json"
+    ],
+    "Location": [
+      "count GET locations/count.json",
+      "get GET locations.json",
+      "get GET locations/<id>.json",
+      "inventory_levels GET locations/<id>/inventory_levels.json"
+    ],
+    "LocationsForMove": [
+      "get GET fulfillment_orders/<fulfillment_order_id>/locations_for_move.json"
+    ],
+    "MarketingEvent": [
+      "count GET marketing_events/count.json",
+      "delete DELETE marketing_events/<id>.json",
+      "engagements POST marketing_events/<id>/engagements.json",
+      "get GET marketing_events.json",
+      "get GET marketing_events/<id>.json",
+      "post POST marketing_events.json",
+      "put PUT marketing_events/<id>.json"
+    ],
+    "Metafield": [
+      "count GET articles/<article_id>/metafields/count.json",
+      "count GET blogs/<blog_id>/metafields/count.json",
+      "count GET collections/<collection_id>/metafields/count.json",
+      "count GET customers/<customer_id>/metafields/count.json",
+      "count GET draft_orders/<draft_order_id>/metafields/count.json",
+      "count GET metafields/count.json",
+      "count GET orders/<order_id>/metafields/count.json",
+      "count GET pages/<page_id>/metafields/count.json",
+      "count GET product_images/<product_image_id>/metafields/count.json",
+      "count GET products/<product_id>/metafields/count.json",
+      "count GET variants/<variant_id>/metafields/count.json",
+      "delete DELETE articles/<article_id>/metafields/<id>.json",
+      "delete DELETE blogs/<blog_id>/metafields/<id>.json",
+      "delete DELETE collections/<collection_id>/metafields/<id>.json",
+      "delete DELETE customers/<customer_id>/metafields/<id>.json",
+      "delete DELETE draft_orders/<draft_order_id>/metafields/<id>.json",
+      "delete DELETE metafields/<id>.json",
+      "delete DELETE orders/<order_id>/metafields/<id>.json",
+      "delete DELETE pages/<page_id>/metafields/<id>.json",
+      "delete DELETE product_images/<product_image_id>/metafields/<id>.json",
+      "delete DELETE products/<product_id>/metafields/<id>.json",
+      "delete DELETE variants/<variant_id>/metafields/<id>.json",
+      "get GET articles/<article_id>/metafields.json",
+      "get GET articles/<article_id>/metafields/<id>.json",
+      "get GET blogs/<blog_id>/metafields.json",
+      "get GET blogs/<blog_id>/metafields/<id>.json",
+      "get GET collections/<collection_id>/metafields.json",
+      "get GET collections/<collection_id>/metafields/<id>.json",
+      "get GET customers/<customer_id>/metafields.json",
+      "get GET customers/<customer_id>/metafields/<id>.json",
+      "get GET draft_orders/<draft_order_id>/metafields.json",
+      "get GET draft_orders/<draft_order_id>/metafields/<id>.json",
+      "get GET metafields.json",
+      "get GET metafields/<id>.json",
+      "get GET orders/<order_id>/metafields.json",
+      "get GET orders/<order_id>/metafields/<id>.json",
+      "get GET pages/<page_id>/metafields.json",
+      "get GET pages/<page_id>/metafields/<id>.json",
+      "get GET product_images/<product_image_id>/metafields.json",
+      "get GET product_images/<product_image_id>/metafields/<id>.json",
+      "get GET products/<product_id>/metafields.json",
+      "get GET products/<product_id>/metafields/<id>.json",
+      "get GET variants/<variant_id>/metafields.json",
+      "get GET variants/<variant_id>/metafields/<id>.json",
+      "post POST articles/<article_id>/metafields.json",
+      "post POST blogs/<blog_id>/metafields.json",
+      "post POST collections/<collection_id>/metafields.json",
+      "post POST customers/<customer_id>/metafields.json",
+      "post POST draft_orders/<draft_order_id>/metafields.json",
+      "post POST metafields.json",
+      "post POST orders/<order_id>/metafields.json",
+      "post POST pages/<page_id>/metafields.json",
+      "post POST product_images/<product_image_id>/metafields.json",
+      "post POST products/<product_id>/metafields.json",
+      "post POST variants/<variant_id>/metafields.json",
+      "put PUT articles/<article_id>/metafields/<id>.json",
+      "put PUT blogs/<blog_id>/metafields/<id>.json",
+      "put PUT collections/<collection_id>/metafields/<id>.json",
+      "put PUT customers/<customer_id>/metafields/<id>.json",
+      "put PUT draft_orders/<draft_order_id>/metafields/<id>.json",
+      "put PUT metafields/<id>.json",
+      "put PUT orders/<order_id>/metafields/<id>.json",
+      "put PUT pages/<page_id>/metafields/<id>.json",
+      "put PUT product_images/<product_image_id>/metafields/<id>.json",
+      "put PUT products/<product_id>/metafields/<id>.json",
+      "put PUT variants/<variant_id>/metafields/<id>.json"
+    ],
+    "MobilePlatformApplication": [
+      "delete DELETE mobile_platform_applications/<id>.json",
+      "get GET mobile_platform_applications.json",
+      "get GET mobile_platform_applications/<id>.json",
+      "post POST mobile_platform_applications.json",
+      "put PUT mobile_platform_applications/<id>.json"
+    ],
+    "Order": [
+      "cancel POST orders/<id>/cancel.json",
+      "close POST orders/<id>/close.json",
+      "count GET orders/count.json",
+      "delete DELETE orders/<id>.json",
+      "get GET orders.json",
+      "get GET orders/<id>.json",
+      "open POST orders/<id>/open.json",
+      "post POST orders.json",
+      "put PUT orders/<id>.json"
+    ],
+    "OrderRisk": [
+      "delete DELETE orders/<order_id>/risks/<id>.json",
+      "get GET orders/<order_id>/risks.json",
+      "get GET orders/<order_id>/risks/<id>.json",
+      "post POST orders/<order_id>/risks.json",
+      "put PUT orders/<order_id>/risks/<id>.json"
+    ],
+    "Page": [
+      "count GET pages/count.json",
+      "delete DELETE pages/<id>.json",
+      "get GET pages.json",
+      "get GET pages/<id>.json",
+      "post POST pages.json",
+      "put PUT pages/<id>.json"
+    ],
+    "Payment": [
+      "count GET checkouts/<checkout_id>/payments/count.json",
+      "get GET checkouts/<checkout_id>/payments.json",
+      "get GET checkouts/<checkout_id>/payments/<id>.json",
+      "post POST checkouts/<checkout_id>/payments.json"
+    ],
+    "PaymentGateway": [
+      "delete DELETE payment_gateways/<id>.json",
+      "get GET payment_gateways.json",
+      "get GET payment_gateways/<id>.json",
+      "post POST payment_gateways.json",
+      "put PUT payment_gateways/<id>.json"
+    ],
+    "PaymentTransaction": [
+      "transactions GET shopify_payments/balance/transactions.json"
+    ],
+    "Payout": [
+      "get GET shopify_payments/payouts.json",
+      "get GET shopify_payments/payouts/<id>.json"
+    ],
+    "Policy": [
+      "get GET policies.json"
+    ],
+    "PriceRule": [
+      "count GET price_rules/count.json",
+      "delete DELETE price_rules/<id>.json",
+      "get GET price_rules.json",
+      "get GET price_rules/<id>.json",
+      "post POST price_rules.json",
+      "put PUT price_rules/<id>.json"
+    ],
+    "Product": [
+      "count GET products/count.json",
+      "delete DELETE products/<id>.json",
+      "get GET products.json",
+      "get GET products/<id>.json",
+      "post POST products.json",
+      "put PUT products/<id>.json"
+    ],
+    "ProductListing": [
+      "count GET product_listings/count.json",
+      "delete DELETE product_listings/<product_id>.json",
+      "get GET product_listings.json",
+      "get GET product_listings/<product_id>.json",
+      "product_ids GET product_listings/product_ids.json",
+      "put PUT product_listings/<product_id>.json"
+    ],
+    "ProductResourceFeedback": [
+      "get GET products/<product_id>/resource_feedback.json",
+      "post POST products/<product_id>/resource_feedback.json"
+    ],
+    "Province": [
+      "count GET countries/<country_id>/provinces/count.json",
+      "get GET countries/<country_id>/provinces.json",
+      "get GET countries/<country_id>/provinces/<id>.json",
+      "put PUT countries/<country_id>/provinces/<id>.json"
+    ],
+    "RecurringApplicationCharge": [
+      "customize PUT recurring_application_charges/<id>/customize.json",
+      "delete DELETE recurring_application_charges/<id>.json",
+      "get GET recurring_application_charges.json",
+      "get GET recurring_application_charges/<id>.json",
+      "post POST recurring_application_charges.json"
+    ],
+    "Redirect": [
+      "count GET redirects/count.json",
+      "delete DELETE redirects/<id>.json",
+      "get GET redirects.json",
+      "get GET redirects/<id>.json",
+      "post POST redirects.json",
+      "put PUT redirects/<id>.json"
+    ],
+    "Refund": [
+      "calculate POST orders/<order_id>/refunds/calculate.json",
+      "get GET orders/<order_id>/refunds.json",
+      "get GET orders/<order_id>/refunds/<id>.json",
+      "post POST orders/<order_id>/refunds.json"
+    ],
+    "Report": [
+      "delete DELETE reports/<id>.json",
+      "get GET reports.json",
+      "get GET reports/<id>.json",
+      "post POST reports.json",
+      "put PUT reports/<id>.json"
+    ],
+    "ResourceFeedback": [
+      "get GET resource_feedback.json",
+      "post POST resource_feedback.json"
+    ],
+    "ScriptTag": [
+      "count GET script_tags/count.json",
+      "delete DELETE script_tags/<id>.json",
+      "get GET script_tags.json",
+      "get GET script_tags/<id>.json",
+      "post POST script_tags.json",
+      "put PUT script_tags/<id>.json"
+    ],
+    "ShippingZone": [
+      "get GET shipping_zones.json"
+    ],
+    "Shop": [
+      "get GET shop.json"
+    ],
+    "SmartCollection": [
+      "count GET smart_collections/count.json",
+      "delete DELETE smart_collections/<id>.json",
+      "get GET smart_collections.json",
+      "get GET smart_collections/<id>.json",
+      "order PUT smart_collections/<id>/order.json",
+      "post POST smart_collections.json",
+      "put PUT smart_collections/<id>.json"
+    ],
+    "StorefrontAccessToken": [
+      "delete DELETE storefront_access_tokens/<id>.json",
+      "get GET storefront_access_tokens.json",
+      "post POST storefront_access_tokens.json"
+    ],
+    "TenderTransaction": [
+      "get GET tender_transactions.json"
+    ],
+    "Theme": [
+      "delete DELETE themes/<id>.json",
+      "get GET themes.json",
+      "get GET themes/<id>.json",
+      "post POST themes.json",
+      "put PUT themes/<id>.json"
+    ],
+    "Transaction": [
+      "count GET orders/<order_id>/transactions/count.json",
+      "get GET orders/<order_id>/transactions.json",
+      "get GET orders/<order_id>/transactions/<id>.json",
+      "post POST orders/<order_id>/transactions.json"
+    ],
+    "UsageCharge": [
+      "get GET recurring_application_charges/<recurring_application_charge_id>/usage_charges.json",
+      "get GET recurring_application_charges/<recurring_application_charge_id>/usage_charges/<id>.json",
+      "post POST recurring_application_charges/<recurring_application_charge_id>/usage_charges.json"
+    ],
+    "User": [
+      "current GET users/current.json",
+      "get GET users.json",
+      "get GET users/<id>.json"
+    ],
+    "Variant": [
+      "count GET products/<product_id>/variants/count.json",
+      "delete DELETE products/<product_id>/variants/<id>.json",
+      "get GET products/<product_id>/variants.json",
+      "get GET variants/<id>.json",
+      "post POST products/<product_id>/variants.json",
+      "put PUT variants/<id>.json"
+    ],
+    "Webhook": [
+      "count GET webhooks/count.json",
+      "delete DELETE webhooks/<id>.json",
+      "get GET webhooks.json",
+      "get GET webhooks/<id>.json",
+      "post POST webhooks.json",
+      "put PUT webhooks/<id>.json"
+    ]
+  }
+}

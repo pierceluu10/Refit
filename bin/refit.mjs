@@ -25,6 +25,7 @@ const commands = new Map([
   ['deadlines', 'deadlines-cli.ts'],
   ['meta-graph', 'meta-graph-cli.ts'],
   ['paypal', 'paypal-cli.ts'],
+  ['shopify-rest', 'shopify-rest-cli.ts'],
 ]);
 const usage = `Refit: reviewable API migrations
 
@@ -51,6 +52,7 @@ Usage: refit <command> [options]
   deadlines        List pinned API versions and models with provider sunset dates
   meta-graph       List Meta Graph API requests with version, edge and fields (review only)
   paypal           List PayPal REST requests with method, path and published operation (review only)
+  shopify-rest     List Shopify REST Admin calls to endpoints a later API version removes (review only)
 
 Use refit <command> --help for command options.
 Use --env <path> to load credentials explicitly. Existing environment values take precedence.
