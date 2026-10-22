@@ -2,15 +2,14 @@ import type { Pool, PoolClient } from 'pg';
 import type { AiLedger } from './ai-budget.ts';
 import type { GitHubWebhook } from './github-webhooks.ts';
 import { WebhookInputError } from './github-webhooks.ts';
-import { APPROVAL_SCHEMA, recordApprovalCommand } from './hosted-approval-store.ts';
 import { transaction } from './hosted-database.ts';
-import { MIGRATION_LOCK, migrateHostedSchema } from './hosted-migrations.ts';
+import { migrateHostedSchema } from './hosted-migrations.ts';
+import { recordApprovalCommand } from './hosted-approval-store.ts';
 import {
   DEFAULT_TENANCY_LIMITS,
   installationRefusals,
   reserveUsage,
   TENANCY_REFUSALS,
-  TENANCY_SCHEMA,
   USAGE_DAY,
   type HostedTenancy,
   type TenancyRefusal,
@@ -110,16 +109,11 @@ export async function openHostedStore(
   tenancy: HostedTenancy = { accounts: [], limits: DEFAULT_TENANCY_LIMITS },
 ) {
   await migrateHostedSchema(pool);
-  // shortcut: `refit hosted migrate` does not create the tenancy and approval tables, which predate
-  // versioned migrations; append them to MIGRATIONS before release.
-  await transaction(pool, async (client) => {
-    await client.query('SELECT pg_advisory_xact_lock($1)', [MIGRATION_LOCK]);
-    await client.query(TENANCY_SCHEMA);
-    await client.query(APPROVAL_SCHEMA);
-  });
 
   const accept = (delivery: string, event: string, body: Uint8Array, change: GitHubWebhook) =>
     transaction(pool, async (client) => {
+      // claim locks jobs and then installations; taking its lock first keeps the order the same.
+      await client.query('SELECT pg_advisory_xact_lock($1)', [CLAIM_LOCK]);
       const hash = digest(body);
       const inserted = await client.query(
         'INSERT INTO refit_deliveries (id, hash, event) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING',
@@ -173,12 +167,6 @@ export async function openHostedStore(
           [change.installationId, removed],
         );
       if (status !== 'active') {
-        // An uninstalled App keeps no repositories, so nothing derived from them (inventories) stays.
-        if (status === 'deleted')
-          await client.query(
-            'DELETE FROM refit_installation_repositories WHERE installation_id = $1',
-            [change.installationId],
-          );
         const cancelled = await cancel(
           client,
           'installation_id = $1',
@@ -415,6 +403,7 @@ export async function openHostedStore(
   // installed repository; newly disallowed ones are cancelled as if uninstalled.
   const allow = () =>
     transaction(pool, async (client) => {
+      await client.query('SELECT pg_advisory_xact_lock($1)', [CLAIM_LOCK]);
       const { rows } = await client.query<{ id: string; allowed: boolean; status: string }>(
         `UPDATE refit_installations SET allowed = owner = ANY($1::text[]), updated_at = now()
          WHERE allowed <> (owner = ANY($1::text[])) RETURNING id, allowed, status`,
@@ -482,6 +471,16 @@ export async function openHostedStore(
         );
       }),
   });
+
+  // Running jobs whose lease is still live, with the worker holding each.
+  const leases = async () =>
+    new Map(
+      (
+        await pool.query<{ id: string; lease_owner: string }>(
+          `SELECT id, lease_owner FROM refit_jobs WHERE status = 'running' AND lease_expires_at > now()`,
+        )
+      ).rows.map((row) => [Number(row.id), row.lease_owner]),
+    );
 
   const read = async () => {
     const [installations, targets, jobs] = await Promise.all([
@@ -553,5 +552,6 @@ export async function openHostedStore(
     allow,
     reserveInventory,
     aiLedger,
+    leases,
   };
 }

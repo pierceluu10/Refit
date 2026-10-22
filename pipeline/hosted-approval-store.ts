@@ -7,41 +7,6 @@ const COMMAND_RECLAIM_SECONDS = 600;
 const FAILED_RETRY_SECONDS = 3600;
 const COMMAND = /^\/refit[ \t]+(approve|revoke)(?:[ \t]+(\S+))?$/i;
 
-export const APPROVAL_SCHEMA = `
--- One approval issue per installed repository without a stored approval.
-CREATE TABLE IF NOT EXISTS refit_approval_issues (
-  repository text PRIMARY KEY,
-  installation_id bigint NOT NULL REFERENCES refit_installations (id),
-  base text,
-  issue integer,
-  state text NOT NULL CHECK (state IN ('review', 'proposal', 'invalid', 'no-providers', 'approved', 'failed')),
-  fingerprint text,
-  shown text[] NOT NULL DEFAULT '{}',
-  refresh boolean NOT NULL DEFAULT false,
-  message text,
-  updated_at timestamptz NOT NULL DEFAULT now()
-);
--- Each comment is handled once, so a replayed delivery cannot approve twice or make Refit reply.
-CREATE TABLE IF NOT EXISTS refit_approval_commands (
-  id bigserial PRIMARY KEY,
-  comment_id bigint NOT NULL,
-  edited boolean NOT NULL,
-  installation_id bigint NOT NULL,
-  repository text NOT NULL,
-  issue integer NOT NULL,
-  author text NOT NULL,
-  command text NOT NULL CHECK (command IN ('approve', 'revoke')),
-  argument text,
-  status text NOT NULL CHECK (status IN ('pending', 'processing', 'done')),
-  claimed_at timestamptz,
-  outcome text,
-  created_at timestamptz NOT NULL DEFAULT now(),
-  UNIQUE (comment_id, edited)
-);
-ALTER TABLE refit_approval_issues ENABLE ROW LEVEL SECURITY;
-ALTER TABLE refit_approval_commands ENABLE ROW LEVEL SECURITY;
-`;
-
 export type ApprovalIssueState =
   'review' | 'proposal' | 'invalid' | 'no-providers' | 'approved' | 'failed';
 
@@ -153,9 +118,11 @@ export function openApprovalStore(pool: Pool) {
   };
 
   // A job found that the approved inputs changed: the issue shows the current configuration again.
+  // Only an approved issue is flagged, so a failing repository does not reopen its issue every job.
   const changed = async (repository: string) => {
     await pool.query(
-      `UPDATE refit_approval_issues SET refresh = true, updated_at = now() WHERE repository = $1`,
+      `UPDATE refit_approval_issues SET refresh = true, updated_at = now()
+       WHERE repository = $1 AND state = 'approved'`,
       [repository],
     );
   };

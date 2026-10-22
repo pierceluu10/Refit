@@ -3,7 +3,7 @@ import { transaction } from './hosted-database.ts';
 import { PipelineInputError } from './types.ts';
 
 // The schema lock workers took before versioned migrations, so old and new workers never interleave.
-export const MIGRATION_LOCK = 4_206_100_001;
+const MIGRATION_LOCK = 4_206_100_001;
 
 const HISTORY = `
 CREATE TABLE IF NOT EXISTS refit_schema_migrations (
@@ -79,6 +79,61 @@ ALTER TABLE refit_targets ENABLE ROW LEVEL SECURITY;
 ALTER TABLE refit_jobs ENABLE ROW LEVEL SECURITY;
 `;
 
+const TENANCY = `
+-- Accounts are allowed only by REFIT_HOSTED_ACCOUNTS, which the service applies on start.
+ALTER TABLE refit_installations ADD COLUMN IF NOT EXISTS allowed boolean NOT NULL DEFAULT false;
+ALTER TABLE refit_installations ADD COLUMN IF NOT EXISTS last_claimed_at timestamptz;
+CREATE TABLE IF NOT EXISTS refit_installation_usage (
+  installation_id bigint NOT NULL REFERENCES refit_installations (id),
+  day date NOT NULL,
+  jobs integer NOT NULL DEFAULT 0,
+  inventories integer NOT NULL DEFAULT 0,
+  PRIMARY KEY (installation_id, day)
+);
+CREATE TABLE IF NOT EXISTS refit_ai_ledgers (
+  installation_id bigint PRIMARY KEY REFERENCES refit_installations (id),
+  state jsonb,
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+ALTER TABLE refit_installation_usage ENABLE ROW LEVEL SECURITY;
+ALTER TABLE refit_ai_ledgers ENABLE ROW LEVEL SECURITY;
+`;
+
+const APPROVALS = `
+-- One approval issue per installed repository without a stored approval.
+CREATE TABLE IF NOT EXISTS refit_approval_issues (
+  repository text PRIMARY KEY,
+  installation_id bigint NOT NULL REFERENCES refit_installations (id),
+  base text,
+  issue integer,
+  state text NOT NULL CHECK (state IN ('review', 'proposal', 'invalid', 'no-providers', 'approved', 'failed')),
+  fingerprint text,
+  shown text[] NOT NULL DEFAULT '{}',
+  refresh boolean NOT NULL DEFAULT false,
+  message text,
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+-- Each comment is handled once, so a replayed delivery cannot approve twice or make Refit reply.
+CREATE TABLE IF NOT EXISTS refit_approval_commands (
+  id bigserial PRIMARY KEY,
+  comment_id bigint NOT NULL,
+  edited boolean NOT NULL,
+  installation_id bigint NOT NULL,
+  repository text NOT NULL,
+  issue integer NOT NULL,
+  author text NOT NULL,
+  command text NOT NULL CHECK (command IN ('approve', 'revoke')),
+  argument text,
+  status text NOT NULL CHECK (status IN ('pending', 'processing', 'done')),
+  claimed_at timestamptz,
+  outcome text,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (comment_id, edited)
+);
+ALTER TABLE refit_approval_issues ENABLE ROW LEVEL SECURITY;
+ALTER TABLE refit_approval_commands ENABLE ROW LEVEL SECURITY;
+`;
+
 export interface HostedMigration {
   version: number;
   name: string;
@@ -96,6 +151,16 @@ export const MIGRATIONS: HostedMigration[] = [
       client.query(
         'ALTER TABLE refit_jobs ADD COLUMN IF NOT EXISTS retry boolean NOT NULL DEFAULT false',
       ),
+  },
+  {
+    version: 3,
+    name: 'Allowed accounts, claim fairness, daily usage and AI ledgers',
+    up: (client) => client.query(TENANCY),
+  },
+  {
+    version: 4,
+    name: 'Approval issues and commands',
+    up: (client) => client.query(APPROVALS),
   },
 ];
 

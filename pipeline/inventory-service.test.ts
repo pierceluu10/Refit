@@ -7,6 +7,7 @@ import { promisify } from 'node:util';
 import pg from 'pg';
 import { afterEach, expect, it, vi } from 'vitest';
 import { gitEnvironment } from './git-environment.ts';
+import { purgeUninstalled, UNINSTALL_GRACE_DAYS } from './hosted-retention.ts';
 import { runHostedService } from './hosted-service.ts';
 import { DEFAULT_TENANCY_LIMITS } from './hosted-tenancy.ts';
 
@@ -169,7 +170,7 @@ const installation = (action: string, repositories: string[]) => ({
 });
 
 it.skipIf(!DATABASE)(
-  'inventories every installed repository on install, skips an unchanged revision and deletes rows on removal and uninstall',
+  'inventories every installed repository on install, skips an unchanged revision, deletes rows on removal and keeps them until an uninstall is purged',
   async () => {
     const { pool, url: databaseUrl } = await database();
     const root = await mkdtemp(join(tmpdir(), 'refit-inventory-service-'));
@@ -324,13 +325,26 @@ it.skipIf(!DATABASE)(
       (await status(url)).inventories.map((row: { repository: string }) => row.repository),
     ).toEqual(['example/application']);
 
+    // An uninstall keeps the installed repositories, and so their inventories, for the grace period
+    // a reinstall needs; the retention purge deletes them together.
     await deliver(url, 'installation', installation('deleted', ['example/application']));
     registry = await status(url);
     expect(registry.installations).toEqual([
-      expect.objectContaining({ id: String(INSTALLATION), status: 'deleted', repositories: [] }),
+      expect.objectContaining({
+        id: String(INSTALLATION),
+        status: 'deleted',
+        repositories: ['example/application'],
+      }),
       expect.objectContaining({ id: '999', allowed: false, inventoriesToday: 0 }),
     ]);
-    expect(registry.inventories).toEqual([]);
+    expect(registry.inventories.map((row: { repository: string }) => row.repository)).toEqual([
+      'example/application',
+    ]);
+    await pool.query(
+      'UPDATE refit_installations SET updated_at = now() - make_interval(days => $2) WHERE id = $1',
+      [INSTALLATION, UNINSTALL_GRACE_DAYS + 1],
+    );
+    expect(await purgeUninstalled(pool, state)).toMatchObject({ installations: [INSTALLATION] });
     expect((await pool.query('SELECT count(*)::int AS rows FROM refit_inventories')).rows).toEqual([
       { rows: 0 },
     ]);

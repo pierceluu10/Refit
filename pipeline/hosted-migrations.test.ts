@@ -8,6 +8,7 @@ import { afterEach, expect, it } from 'vitest';
 import { transaction } from './hosted-database.ts';
 import { hostedSchemaStatus, MIGRATIONS, migrateHostedSchema } from './hosted-migrations.ts';
 import { openHostedStore } from './hosted-store.ts';
+import { DEFAULT_TENANCY_LIMITS } from './hosted-tenancy.ts';
 
 const DATABASE = process.env.REFIT_POSTGRES_URL;
 // The lock main's workers took around their schema statement.
@@ -151,16 +152,25 @@ it.skipIf(!DATABASE)(
     const before = await rows(upgraded.pool);
     const mainShape = await shape(upgraded.pool, upgraded.schema);
 
-    await migrateHostedSchema(upgraded.pool);
-    expect(await rows(upgraded.pool)).toEqual(before);
-    expect(await shape(upgraded.pool, upgraded.schema)).toEqual(mainShape);
+    const store = await openHostedStore(upgraded.pool, {
+      accounts: ['example'],
+      limits: DEFAULT_TENANCY_LIMITS,
+    });
+    // Version 3 adds tenancy columns to installations; every other value stays as main wrote it.
+    expect(await rows(upgraded.pool)).toEqual({
+      ...before,
+      refit_installations: before.refit_installations.map((row) => ({
+        ...(row as object),
+        allowed: false,
+        last_claimed_at: null,
+      })),
+    });
     expect(await history(upgraded.pool)).toEqual(
       MIGRATIONS.map(({ version, name }) => ({ version, name })),
     );
-    // Opening the store adds the tenancy columns; the upgraded installation's account is allowed.
-    const store = await openHostedStore(upgraded.pool);
-    await upgraded.pool.query('UPDATE refit_installations SET allowed = true WHERE id = 456');
-    // The upgraded store still serves the queued operator retry, and new ids follow the old ones.
+    // The serving worker allows its accounts on start; then the upgraded store still serves the
+    // queued operator retry, and new ids follow the old ones.
+    await store.allow();
     expect(await store.claim('test-worker', 60)).toEqual({
       job: 3,
       retry: true,
@@ -173,11 +183,15 @@ it.skipIf(!DATABASE)(
         message: 'No contract change.',
       }),
     ).toBe(true);
-    expect(await store.retry('0123456789abcdef')).toBe(4);
+    // allow() may queue a job for the newly allowed installation first, so only the order is checked.
+    expect(await store.retry('0123456789abcdef')).toBeGreaterThan(3);
 
     const fresh = await database();
     await migrateHostedSchema(fresh.pool);
-    expect(await shape(fresh.pool, fresh.schema)).toEqual(mainShape);
+    const upgradedShape = await shape(upgraded.pool, upgraded.schema);
+    expect(await shape(fresh.pool, fresh.schema)).toEqual(upgradedShape);
+    // Versions 1 and 2 adopt main's schema unchanged: only version 3's columns are new.
+    expect(upgradedShape.columns.length - mainShape.columns.length).toBe(2);
     // A second start applies nothing.
     expect(await migrateHostedSchema(upgraded.pool)).toEqual([]);
   },
@@ -197,7 +211,9 @@ it.skipIf(!DATABASE)(
       JSON.stringify(results.map((r) => r.map((m) => m.version))),
     );
     expect(applied.sort((a, b) => a - b)).toEqual(MIGRATIONS.map((migration) => migration.version));
-    expect((await history(pool)).map((migration) => migration.version)).toEqual([1, 2]);
+    expect((await history(pool)).map((migration) => migration.version)).toEqual(
+      MIGRATIONS.map((migration) => migration.version),
+    );
   },
 );
 
@@ -211,7 +227,7 @@ it.skipIf(!DATABASE)(
     const dryRun = await refit(['hosted', 'migrate', '--dry-run'], url);
     console.log(dryRun);
     expect(dryRun).toBe(
-      'Applied: none\nPending: 1 Initial hosted tables\nPending: 2 Operator retry flag on jobs\n',
+      'Applied: none\nPending: 1 Initial hosted tables\nPending: 2 Operator retry flag on jobs\nPending: 3 Allowed accounts, claim fairness, daily usage and AI ledgers\nPending: 4 Approval issues and commands\n',
     );
     const created = await pool.query(
       `SELECT count(*)::int AS count FROM pg_class
@@ -220,18 +236,18 @@ it.skipIf(!DATABASE)(
     expect(created.rows[0].count).toBe(0);
 
     expect(await refit(['hosted', 'migrate'], url)).toBe(
-      'Applied: 1 Initial hosted tables\nApplied: 2 Operator retry flag on jobs\n',
+      'Applied: 1 Initial hosted tables\nApplied: 2 Operator retry flag on jobs\nApplied: 3 Allowed accounts, claim fairness, daily usage and AI ledgers\nApplied: 4 Approval issues and commands\n',
     );
     expect(await refit(['hosted', 'migrate'], url)).toBe('No pending migrations.\n');
     await pool.query(
-      `INSERT INTO refit_schema_migrations (version, name) VALUES (3, 'From a newer worker')`,
+      `INSERT INTO refit_schema_migrations (version, name) VALUES (5, 'From a newer worker')`,
     );
     expect(await refit(['hosted', 'migrate', '--dry-run'], url)).toBe(
-      'Applied: 1, 2, 3\nApplied by a newer worker: 3 From a newer worker\nNo pending migrations.\n',
+      'Applied: 1, 2, 3, 4, 5\nApplied by a newer worker: 5 From a newer worker\nNo pending migrations.\n',
     );
     const { unknown, pending } = await hostedSchemaStatus(pool);
     expect({ unknown: unknown.map((migration) => migration.version), pending }).toEqual({
-      unknown: [3],
+      unknown: [5],
       pending: [],
     });
   },

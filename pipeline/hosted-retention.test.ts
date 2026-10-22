@@ -7,12 +7,12 @@ import { afterEach, expect, it } from 'vitest';
 import { purgeUninstalled, UNINSTALL_GRACE_DAYS } from './hosted-retention.ts';
 import { runHostedService } from './hosted-service.ts';
 import { hostedTargetId, openHostedStore } from './hosted-store.ts';
-import { hostedTenancy } from './hosted-tenancy.ts';
+import { DEFAULT_TENANCY_LIMITS } from './hosted-tenancy.ts';
 import type { RepositoryApproval } from './repository-enrollment.ts';
 
 const DATABASE = process.env.REFIT_POSTGRES_URL;
 const OWNER = 'example';
-const TENANCY = hostedTenancy({ REFIT_HOSTED_OWNER: OWNER });
+const TENANCY = { accounts: [OWNER], limits: DEFAULT_TENANCY_LIMITS };
 const cleanups: (() => Promise<unknown>)[] = [];
 
 afterEach(async () => {

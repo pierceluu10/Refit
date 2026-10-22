@@ -45,6 +45,9 @@ The state directory holds `targets/<target id>/`: `github/` is the App-managed c
 - `refit hosted migrate --dry-run` lists applied and pending versions without changing anything, not even by creating the history table.
 - Each version runs in its own transaction holding PostgreSQL advisory lock `4206100001`, the lock workers took before versioned migrations. The history is checked again once the lock is held. Two workers that start together therefore apply each version once, and a worker from an older release never interleaves with a migration.
 - Versions 1 and 2 recreate the schema that workers built before versioned migrations, and both are idempotent. The first new-style start on the live database records them and changes nothing else. A test builds main's exact schema (`pipeline/fixtures/hosted-schema-main.sql`), inserts rows, migrates, and checks that every row, column, constraint, index and row-level security flag is unchanged and that the result matches a fresh install.
+- Version 3 adds tenancy: `allowed` and `last_claimed_at` on `refit_installations`, and the `refit_installation_usage` and `refit_ai_ledgers` tables. New columns default to not allowed; the worker allows `REFIT_HOSTED_ACCOUNTS` when it starts.
+- Version 4 adds `refit_approval_issues` and `refit_approval_commands` for approval from GitHub issues (off unless `REFIT_HOSTED_APPROVAL_ISSUES=1`).
+- A version recorded under a different name (a branch build that applied its own migration with that number) stops the worker with an error instead of being skipped.
 - A worker that finds versions it does not know (`Applied by a newer worker` in the dry run) still runs, because migrations only add. This is what makes rolling back a deploy safe.
 
 To add a migration:

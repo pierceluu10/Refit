@@ -34,6 +34,7 @@ export async function confirmRepositoryAccess(app: GitHubAppConfiguration, repos
     id: Number(record.id),
     defaultBranch: record.default_branch,
     size: record.size,
+    token: authentication.token,
   };
 }
 
