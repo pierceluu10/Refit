@@ -26,6 +26,7 @@ export interface BenchmarkRepository {
   exposures?: unknown[];
   replacements?: unknown[];
   stops?: unknown[];
+  unresolved?: unknown[];
   nonLive?: Record<string, number>;
   nonLiveTotal?: number;
 }
@@ -42,6 +43,9 @@ export interface BenchmarkSummary {
   stops: number;
   mentionedOnly: number;
   exposedErrored: number;
+  exposedUnresolvedOnly: number;
+  exposedUnexplained: number;
+  unresolved: number;
 }
 
 export function repositoryNonLive(

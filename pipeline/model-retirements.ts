@@ -5,7 +5,7 @@ import ts from 'typescript-compiler';
 import { analyzeRepository } from './analyzer.ts';
 import type { DeadlineEntry, DeadlineRegistry } from './deadline-registry.ts';
 import { daysUntil } from './deadline-registry.ts';
-import { TEST_PATH } from './deadline-exposure.ts';
+import { scanDeadlines, TEST_PATH } from './deadline-exposure.ts';
 import { renderPatch } from './patches.ts';
 import { readProviderAdapter, type ProviderAdapter } from './providers.ts';
 import { readRepository } from './repository.ts';
@@ -142,9 +142,24 @@ export interface ModelReplacementStop {
   reason: string;
 }
 
+// A live model ID that no traced request sends as its model, so it is neither replaced nor stopped
+// at a request: a model kept in a config object, a variable, a library Refit does not trace, or a
+// file no request reaches. Listed so every live match has an outcome and a reason.
+export interface ModelReplacementUnresolved {
+  deadline: string;
+  provider: DeadlineEntry['provider'];
+  file: string;
+  line: number;
+  model: string;
+  // The registry replacement, when it names a concrete model.
+  to: string | null;
+  reason: string;
+}
+
 export interface ModelReplacementProposal {
   replacements: ModelReplacement[];
   stops: ModelReplacementStop[];
+  unresolved: ModelReplacementUnresolved[];
   // A unified diff of every replacement; null when there is none. Never applied by Refit.
   patch: string | null;
 }
@@ -706,6 +721,9 @@ function sourceProgram(repository: Repository) {
     line: (node: ts.Node) =>
       node.getSourceFile().getLineAndCharacterOfPosition(node.getStart()).line + 1,
     source: (path: string) => files.find((source) => paths.get(source.fileName) === path),
+    // Whether the file's own tsconfig or jsconfig could not be read, so a bare import such as the
+    // SDK package may be an alias to something else.
+    unverifiedFile: (path: string) => resolution.unverifiedFile(resolve(repository.root, path)),
   };
 }
 type SourceProgram = ReturnType<typeof sourceProgram>;
@@ -853,6 +871,9 @@ function axiosBinding(program: SourceProgram, node: ts.Expression, depth = 0): b
   );
 }
 
+// The header every Anthropic API request sends.
+const ANTHROPIC_VERSION_HEADER = 'anthropic-version';
+
 // The request body of a raw HTTP call to an official endpoint, before `JSON.stringify`.
 function rawRequest(program: SourceProgram, call: ts.CallExpression) {
   const callee = call.expression;
@@ -874,8 +895,23 @@ function rawRequest(program: SourceProgram, call: ts.CallExpression) {
       ? objectProperty(options, 'url')
       : undefined;
   const url = urlText(program, config ? configUrl && propertyValue(configUrl) : call.arguments[0]);
-  const endpoint = url && RAW_ENDPOINTS.find((item) => item.pattern.test(url));
-  if (!endpoint) return undefined;
+  const endpoint = url ? RAW_ENDPOINTS.find((item) => item.pattern.test(url)) : undefined;
+  // A `fetch` to another URL (a configurable base URL, a proxy) that sets `anthropic-version`
+  // inline is an Anthropic request. Its host is not the official one, so it always stops.
+  const headers =
+    !config && options && ts.isObjectLiteralExpression(options)
+      ? objectProperty(options, 'headers')
+      : undefined;
+  const headerValues = headers && propertyValue(headers);
+  const versioned =
+    !endpoint &&
+    name === 'fetch' &&
+    Boolean(
+      headerValues &&
+      ts.isObjectLiteralExpression(headerValues) &&
+      objectProperty(headerValues, ANTHROPIC_VERSION_HEADER),
+    );
+  if (!endpoint && !versioned) return undefined;
   let body: ts.Expression | undefined;
   if (name === 'post' && !config) body = call.arguments[1];
   else {
@@ -896,9 +932,27 @@ function rawRequest(program: SourceProgram, call: ts.CallExpression) {
           : undefined;
   }
   if (!body) return undefined;
-  const path = /\/v1\/[\w/]+/.exec(url)![0];
+  if (versioned) {
+    const object = requestObject(program, body)?.object;
+    return object && objectProperty(object, 'model') && objectProperty(object, 'messages')
+      ? {
+          provider: 'anthropic' as const,
+          body,
+          call: `fetch with ${ANTHROPIC_VERSION_HEADER}`,
+          text: true,
+          custom: true,
+        }
+      : undefined;
+  }
+  const path = /\/v1\/[\w/]+/.exec(url!)![0];
   const label = config ? (name === 'request' ? 'request' : 'axios') : name;
-  return { provider: endpoint.provider, body, call: `${label} ${path}`, text: endpoint.text };
+  return {
+    provider: endpoint!.provider,
+    body,
+    call: `${label} ${path}`,
+    text: endpoint!.text,
+    custom: false,
+  };
 }
 
 // A reference a literal was reached through, kept for the shared-use rule and the limit stops.
@@ -1823,7 +1877,7 @@ export async function proposeModelReplacements(
       byProvider.set(entry.provider, models);
       for (const version of entry.versions) models.set(version, entry);
     }
-  const empty = { replacements: [], stops: [], patch: null };
+  const empty = { replacements: [], stops: [], unresolved: [], patch: null };
   if (
     ![...byProvider.keys()].some((provider) =>
       TRACERS.some((tracer) => tracer.provider === provider),
@@ -1855,10 +1909,14 @@ export async function proposeModelReplacements(
     text: boolean;
     // A call on an SDK client, as opposed to a raw HTTP request to an official host.
     sdk: boolean;
-    // A call on an Azure client.
+    // A call on an Azure client, or a raw request to a host other than the official one.
     custom: boolean;
+    // Traced only by trusting an SDK import under an unreadable tsconfig or jsconfig.
+    unverified?: boolean;
   }[] = [];
   const seen = new Set<ts.Node>();
+  // Providers whose SDK the repository imports, so their requests can be traced at all.
+  const imported = new Set<string>();
   for (const tracer of TRACERS) {
     if (!byProvider.has(tracer.provider)) continue;
     const adapter =
@@ -1877,11 +1935,27 @@ export async function proposeModelReplacements(
       )
     )
       continue;
+    imported.add(tracer.provider);
     // The same files for every tracer, so the analyses share one compiler program.
-    const analysis = analyzeRepository(
-      { ...(await readRepository(directory, adapter.packageName)), files: repository.files },
-      [],
-      adapter,
+    const snapshot = {
+      ...(await readRepository(directory, adapter.packageName)),
+      files: repository.files,
+    };
+    const confirmedAnalysis = analyzeRepository(snapshot, [], adapter);
+    // Where a file importing the SDK has a tsconfig or jsconfig Refit cannot read (one extending
+    // a generated `.svelte-kit/tsconfig.json`, say), the import may be an alias, so its calls are
+    // not confirmed. They are traced anyway and stop for review rather than going unreported.
+    const analysis = repository.files.some(
+      (file) => sdkImported(file.content, adapter.packageName) && program.unverifiedFile(file.path),
+    )
+      ? analyzeRepository(snapshot, [], adapter, {}, [], [], [], [], {
+          traceUnverifiedPackageImports: true,
+        })
+      : confirmedAnalysis;
+    const callKey = (sdk: { file: string; line: number; column: number; expression: string }) =>
+      `${sdk.file}:${sdk.line}:${sdk.column}:${sdk.expression}`;
+    const confirmed = new Set(
+      [...confirmedAnalysis.sdkCalls, ...confirmedAnalysis.clientMethodCalls].map(callKey),
     );
     // Every traced call is kept: one outside the text allow-list stops for review (D-16), so a
     // retiring model in an image, audio, embeddings or legacy completions call is never silent.
@@ -1909,6 +1983,7 @@ export async function proposeModelReplacements(
         text: sdk.text,
         sdk: true,
         custom: Boolean(tracer.custom),
+        unverified: !confirmed.has(callKey(sdk)),
       });
     }
   }
@@ -1925,7 +2000,7 @@ export async function proposeModelReplacements(
             argument: raw.body,
             text: raw.text,
             sdk: false,
-            custom: false,
+            custom: raw.custom,
           });
         }
       }
@@ -2010,34 +2085,38 @@ export async function proposeModelReplacements(
       const stop = site.stop ?? sharedUse(program, site.passes, reached);
       const reason = !resolved.to
         ? 'The registry names no concrete replacement model ID.'
-        : // Images, audio, embeddings, moderation and legacy completions change formats, vector
-          // sizes or parameters with the model, so they are never edited. The wording is accurate for
-          // any call outside the text allow-list, such as beta.assistants.create (D-11, D-16).
-          !request.text
-          ? `\`${request.call}\` is not a call Refit edits; ${resolved.to} may change formats or parameters; change it by hand to ${resolved.to}.`
-          : customUrl
-            ? `The client sets a custom base URL, so the model may name another provider's model or a deployment; change it by hand to ${resolved.to}.`
-            : limit
-              ? `${limit} ${resolved.to}.`
-              : stop
-                ? `${stop} ${resolved.to}.`
-                : direct && (!direct.has(site.literal) || direct.get(site.literal))
-                  ? /^(?:axios|request) /.test(request.call)
-                    ? `\`${request.call}\` is an axios request config, which Refit reports but does not edit yet; change it by hand to ${resolved.to}.`
-                    : `The model reaches this request through ${indirectSource(site)}, which Refit reports but does not edit yet; change it by hand to ${resolved.to}.`
-                  : found.shared
-                    ? `${found.shared} ${resolved.to}.`
-                    : found.object.properties.some((item) => ts.isSpreadAssignment(item))
-                      ? 'The request spreads other options, which may set parameters the replacement rejects.'
-                      : // A computed name such as `['temperature']: 0.5` or `[KEY]: 5` may be a
-                        // sampling or length parameter the name check cannot see.
-                        found.object.properties.some(
-                            (item) => item.name && ts.isComputedPropertyName(item.name),
-                          )
-                        ? `The request sets a computed property, which may be a parameter the replacement rejects; change it by hand to ${resolved.to}.`
-                        : sensitive.length
-                          ? `The request sets ${sensitive.join(', ')}, which ${resolved.to} may reject or treat differently.`
-                          : undefined;
+        : request.unverified
+          ? `The tsconfig.json or jsconfig.json for the SDK import cannot be fully read (it may extend a generated file that is not checked in), so Refit cannot confirm the import is the SDK; change its model by hand to ${resolved.to}.`
+          : // Images, audio, embeddings, moderation and legacy completions change formats, vector
+            // sizes or parameters with the model, so they are never edited. The wording is accurate for
+            // any call outside the text allow-list, such as beta.assistants.create (D-11, D-16).
+            !request.text
+            ? `\`${request.call}\` is not a call Refit edits; ${resolved.to} may change formats or parameters; change it by hand to ${resolved.to}.`
+            : customUrl
+              ? request.sdk
+                ? `The client sets a custom base URL, so the model may name another provider's model or a deployment; change it by hand to ${resolved.to}.`
+                : `The request goes to a host other than the official API, so the model may name another provider's model or a deployment; change it by hand to ${resolved.to}.`
+              : limit
+                ? `${limit} ${resolved.to}.`
+                : stop
+                  ? `${stop} ${resolved.to}.`
+                  : direct && (!direct.has(site.literal) || direct.get(site.literal))
+                    ? /^(?:axios|request) /.test(request.call)
+                      ? `\`${request.call}\` is an axios request config, which Refit reports but does not edit yet; change it by hand to ${resolved.to}.`
+                      : `The model reaches this request through ${indirectSource(site)}, which Refit reports but does not edit yet; change it by hand to ${resolved.to}.`
+                    : found.shared
+                      ? `${found.shared} ${resolved.to}.`
+                      : found.object.properties.some((item) => ts.isSpreadAssignment(item))
+                        ? 'The request spreads other options, which may set parameters the replacement rejects.'
+                        : // A computed name such as `['temperature']: 0.5` or `[KEY]: 5` may be a
+                          // sampling or length parameter the name check cannot see.
+                          found.object.properties.some(
+                              (item) => item.name && ts.isComputedPropertyName(item.name),
+                            )
+                          ? `The request sets a computed property, which may be a parameter the replacement rejects; change it by hand to ${resolved.to}.`
+                          : sensitive.length
+                            ? `The request sets ${sensitive.join(', ')}, which ${resolved.to} may reject or treat differently.`
+                            : undefined;
       const decision = decisions.get(site.literal) ?? {
         entry,
         ...resolved,
@@ -2092,5 +2171,112 @@ export async function proposeModelReplacements(
       via: decision.via,
     });
   }
-  return { replacements, stops, patch: edits.length ? renderPatch(repository, edits) : null };
+  // Every other live match of a traced provider, with why no traced request sends it.
+  const covered = new Set([
+    ...replacements.map((item) => `${item.edited.file}:${item.edited.line}`),
+    ...stops.map((item) => `${item.at.file}:${item.at.line}`),
+  ]);
+  const unresolved: ModelReplacementUnresolved[] = [];
+  const scan = await scanDeadlines(directory, registry, now);
+  for (const exposure of scan.exposures) {
+    const provider = exposure.deadline.provider;
+    const models = byProvider.get(provider);
+    if (!models || !TRACERS.some((tracer) => tracer.provider === provider)) continue;
+    for (const evidence of exposure.evidence) {
+      if (evidence.kind !== 'source' || covered.has(`${evidence.file}:${evidence.line}`)) continue;
+      const entry = models.get(evidence.version) ?? exposure.deadline;
+      unresolved.push({
+        deadline: exposure.deadline.id,
+        provider,
+        file: evidence.file,
+        line: evidence.line,
+        model: evidence.version,
+        to: finalReplacement(entry, models)?.to ?? null,
+        reason: unresolvedReason(program, evidence, provider, imported.has(provider), paths),
+      });
+    }
+  }
+  return {
+    replacements,
+    stops,
+    unresolved,
+    patch: edits.length ? renderPatch(repository, edits) : null,
+  };
+}
+
+const SDK_PACKAGES: Record<string, string> = {
+  openai: '`openai` or `openai-edge`',
+  anthropic: '`@anthropic-ai/sdk`',
+};
+
+// Why a live model ID is not sent by any traced request, from where it is written.
+function unresolvedReason(
+  program: SourceProgram,
+  evidence: { file: string; line: number; version: string },
+  provider: string,
+  imported: boolean,
+  paths: Set<string>,
+) {
+  const check = 'Check where it is used and change it by hand if it reaches the API.';
+  if (compiledOutput(evidence.file, paths))
+    return 'It is in build output; change the source file it is built from instead.';
+  const source = program.source(evidence.file);
+  if (!source) return `The file could not be parsed, so its requests are not traced. ${check}`;
+  let literal: ts.StringLiteralLike | undefined;
+  const visit = (node: ts.Node) => {
+    if (literal) return;
+    if (
+      ts.isStringLiteralLike(node) &&
+      node.text === evidence.version &&
+      program.line(node) === evidence.line
+    )
+      literal = node;
+    else ts.forEachChild(node, visit);
+  };
+  visit(source);
+  const parent = literal && holder(literal);
+  const name = (node: ts.Node | undefined) =>
+    node && (ts.isIdentifier(node) || ts.isStringLiteralLike(node)) ? `\`${node.text}\`` : '';
+  const where = !parent
+    ? 'it is part of a longer string, such as a template'
+    : ts.isPropertyAssignment(parent)
+      ? `it is the ${name(parent.name)} value of an object`
+      : ts.isVariableDeclaration(parent)
+        ? `it is assigned to ${name(parent.name)}`
+        : ts.isPropertyDeclaration(parent)
+          ? `it is the class field ${name(parent.name)}`
+          : ts.isParameter(parent)
+            ? `it is the default of the parameter ${name(parent.name)}`
+            : ts.isReturnStatement(parent)
+              ? 'it is returned from a function'
+              : ts.isCallExpression(parent) || ts.isNewExpression(parent)
+                ? `it is passed to ${parent.expression.getText().slice(0, 60)}()`
+                : ts.isArrayLiteralExpression(parent)
+                  ? 'it is an entry in a list'
+                  : 'it is not where a request reads its model';
+  return imported
+    ? `No traced request sends it as its model; ${where}. ${check}`
+    : `No file imports ${SDK_PACKAGES[provider] ?? 'the SDK Refit traces'}, so the model may reach the API through another library or a wrapper (${where}). ${check}`;
+}
+
+// The node that holds a literal, past parentheses, type assertions and a `||` or `??` fallback.
+function holder(literal: ts.Node) {
+  let current: ts.Node = literal;
+  let parent = current.parent;
+  while (
+    parent &&
+    (ts.isParenthesizedExpression(parent) ||
+      ts.isAsExpression(parent) ||
+      ts.isSatisfiesExpression(parent) ||
+      ts.isTypeAssertionExpression(parent) ||
+      (ts.isBinaryExpression(parent) &&
+        parent.right === current &&
+        [ts.SyntaxKind.QuestionQuestionToken, ts.SyntaxKind.BarBarToken].includes(
+          parent.operatorToken.kind,
+        )))
+  ) {
+    current = parent;
+    parent = current.parent;
+  }
+  return parent;
 }
