@@ -14,6 +14,10 @@ import { parseArgs, promisify } from 'node:util';
 import { PROVIDERS, repositoryResult, scoreAuthBackend } from './auth-backend-score.mjs';
 
 const execute = promisify(execFile);
+// Evidence lines can quote a key that a scanned repository hard-codes, such as a JWT fallback for
+// an environment variable. Results keep the line but never the key.
+const KEY_TEXT =
+  /\beyJ[\w-]{8,}(?:\.[\w-]*){0,2}|\b(?:sk|pk|rk)_(?:live|test)_\w+|\bsb_(?:secret|publishable)_\w+/g;
 const GIT_TIMEOUT_MS = 300_000;
 const SCAN_TIMEOUT_MS = 300_000;
 const { values } = parseArgs({
@@ -89,7 +93,9 @@ for (const [index, item] of list.repos.entries()) {
           .filter((exposure) => PROVIDERS.includes(exposure.deadline.provider))
           .map((exposure) => [
             exposure.deadline.id,
-            exposure.evidence.map((line) => `${line.file}:${line.line} ${line.text}`),
+            exposure.evidence.map(
+              (line) => `${line.file}:${line.line} ${line.text.replace(KEY_TEXT, '[redacted]')}`,
+            ),
           ]),
       ),
       seconds: Math.round((Date.now() - started) / 100) / 10,
