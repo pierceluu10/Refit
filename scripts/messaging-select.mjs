@@ -11,7 +11,7 @@
 //
 //   node scripts/messaging-select.mjs --per-provider 12 --output <frozen.json>
 import { execFile } from 'node:child_process';
-import { writeFile } from 'node:fs/promises';
+import { readFile, writeFile } from 'node:fs/promises';
 import { parseArgs, promisify } from 'node:util';
 
 const execute = promisify(execFile);
@@ -54,16 +54,33 @@ const VENDOR_OWNERS = new Set(
 const { values } = parseArgs({
   options: {
     'per-provider': { type: 'string' },
+    // A targeted list: these queries instead of the defaults, only these groups, and none of the
+    // repositories already in another frozen list.
+    query: { type: 'string', multiple: true },
+    group: { type: 'string', multiple: true },
+    exclude: { type: 'string' },
     output: { type: 'string' },
     help: { type: 'boolean' },
   },
 });
 if (values.help || !values['per-provider'] || !values.output) {
-  console.log('Usage: node scripts/messaging-select.mjs --per-provider N --output <frozen.json>');
+  console.log(
+    'Usage: node scripts/messaging-select.mjs --per-provider N [--query <text>…] [--group <provider>…] [--exclude <frozen.json>] --output <frozen.json>',
+  );
   process.exit(values.help ? 0 : 1);
 }
+const queries = values.query?.length ? values.query : QUERIES;
 const quotas = Object.fromEntries(
-  Object.keys(GROUPS).map((group) => [group, Number(values['per-provider'])]),
+  Object.keys(GROUPS)
+    .filter((group) => !values.group?.length || values.group.includes(group))
+    .map((group) => [group, Number(values['per-provider'])]),
+);
+const excluded = new Set(
+  values.exclude
+    ? JSON.parse(await readFile(values.exclude, 'utf8')).repos.map((item) =>
+        item.repo.toLowerCase(),
+      )
+    : [],
 );
 
 async function json(url) {
@@ -96,7 +113,7 @@ function groupsOf(dependencies = {}) {
 }
 
 const candidates = new Map();
-for (const query of QUERIES)
+for (const query of queries)
   for (let page = 0; page < PAGES; page += 1) {
     const result = await json(
       `${REGISTRY}/-/v1/search?text=${encodeURIComponent(query)}&size=${PAGE_SIZE}&from=${page * PAGE_SIZE}`,
@@ -110,7 +127,7 @@ for (const query of QUERIES)
         });
     if ((result?.objects ?? []).length < PAGE_SIZE) break;
   }
-console.error(`${candidates.size} npm packages from ${QUERIES.length} queries`);
+console.error(`${candidates.size} npm packages from ${queries.length} queries`);
 
 const rejected = {
   vendor: 0,
@@ -122,7 +139,7 @@ const rejected = {
   unreachable: 0,
 };
 const selected = [];
-const counts = Object.fromEntries(Object.keys(GROUPS).map((group) => [group, 0]));
+const counts = Object.fromEntries(Object.keys(quotas).map((group) => [group, 0]));
 const seen = new Set();
 const ranked = [...candidates.values()].sort(
   (a, b) => b.downloads - a.downloads || a.name.localeCompare(b.name),
@@ -154,7 +171,9 @@ for (const candidate of eligible) {
     rejected.noDependency += 1;
     continue;
   }
-  const found = groups.find((item) => counts[item.group] < quotas[item.group]);
+  const found = groups.find(
+    (item) => item.group in quotas && counts[item.group] < quotas[item.group],
+  );
   if (!found) {
     rejected.groupFull += 1;
     continue;
@@ -170,7 +189,7 @@ for (const candidate of eligible) {
     rejected.vendor += 1;
     continue;
   }
-  if (seen.has(repo.toLowerCase())) {
+  if (seen.has(repo.toLowerCase()) || excluded.has(repo.toLowerCase())) {
     rejected.duplicate += 1;
     continue;
   }
@@ -212,13 +231,13 @@ await writeFile(
       formatVersion: 1,
       provider: 'messaging',
       selectedAt: new Date().toISOString(),
-      method: `npm search for ${QUERIES.map((query) => JSON.stringify(query)).join(', ')} (${PAGES} pages of ${PAGE_SIZE}); latest manifest declares, in dependencies, a package of ${Object.entries(
+      method: `npm search for ${queries.map((query) => JSON.stringify(query)).join(', ')} (${PAGES} pages of ${PAGE_SIZE}); latest manifest declares, in dependencies, a package of ${Object.entries(
         GROUPS,
       )
         .map(([group, names]) => `${group} (${names.join(', ')})`)
         .join(
           ', ',
-        )}, assigned to the first of those groups with room; quotas ${JSON.stringify(quotas)}; github.com repository outside ${[...VENDOR_OWNERS].join(', ')}; published since ${PUBLISHED_SINCE}; vendor scopes excluded; ranked by monthly downloads; one entry per repository; frozen at HEAD from git ls-remote.`,
+        )}, assigned to the first of those groups with room; quotas ${JSON.stringify(quotas)}; github.com repository outside ${[...VENDOR_OWNERS].join(', ')}; published since ${PUBLISHED_SINCE}; vendor scopes excluded; ranked by monthly downloads; one entry per repository${values.exclude ? `; repositories in ${values.exclude} excluded` : ''}; frozen at HEAD from git ls-remote.`,
       quotas,
       rejected,
       repos: selected,
