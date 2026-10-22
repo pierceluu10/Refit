@@ -13,6 +13,9 @@ import {
   checkDeadlineRegistry,
   DEFAULT_DEADLINE_REGISTRY,
   loadDeadlineRegistry,
+  STALE_CHECK_DAYS,
+  reportOnly,
+  type DeadlineEntry,
   type DeadlineRegistry,
 } from './deadline-registry.ts';
 import {
@@ -23,28 +26,27 @@ import {
   readDeadlineIgnores,
   type DeadlineIgnore,
 } from './deadline-ignores.ts';
-import { proposeModelReplacements } from './model-retirements.ts';
 import {
-  ANTHROPIC_DEPRECATIONS,
-  parseAnthropicDeprecations,
-  syncAnthropicDeadlines,
-  GEMINI_DEPRECATIONS,
-  parseGeminiDeprecations,
-  syncGeminiDeadlines,
-  type AnthropicRetirement,
-} from './deadline-sync.ts';
+  checkModelParameters,
+  DEFAULT_MODEL_PARAMETERS,
+  loadModelParameters,
+} from './model-parameters.ts';
+import { proposeModelReplacements } from './model-retirements.ts';
+import { DEPRECATION_SOURCES, syncDeadlines, type SyncProvider } from './deadline-sync.ts';
 import { parseObject } from './specifications.ts';
 import { terminalText } from './workflow-presentation.ts';
 
 const USAGE = `Usage: refit deadlines [--repository <root>] [--fail-within <days>] [--ignore-file <path>] [--registry <path>] [--json]
-       refit deadlines --propose-model-fixes [--repository <root>] [--output <patch>] [--registry <path>] [--json]
+       refit deadlines --propose-model-fixes [--repository <root>] [--output <patch>] [--registry <path>] [--parameters <path>] [--json]
        refit deadlines --check-registry [--registry <path>] [--json]
-       refit deadlines --sync anthropic|gemini [--registry <path>] [--write] [--json]
+       refit deadlines --check-parameters [--parameters <path>] [--json]
+       refit deadlines --sync anthropic|openai|gemini|shopify|meta-graph [--registry <path>] [--write] [--json]
 Lists API versions and models a repository pins, and SDK packages it declares, that have a provider sunset or end-of-support date in the reviewed registry, with file:line evidence. Only live code counts; model lists, tests, examples, comments, tokenizers and checks are listed separately.
---fail-within <days> exits 2 when a live exposure is past due or within that many days, for CI. Reviewed, expiring exceptions go in ${DEADLINE_IGNORE_FILE} at the repository root; --ignore-file reads another file. Exit 0 means the check passed, 1 an error (including an invalid ignore file).
+--fail-within <days> exits 2 when a live exposure is past due or within that many days, for CI. Report-only deadlines (a derived date, or kind method, endpoint, field or feature) are listed but never fail it. Reviewed, expiring exceptions go in ${DEADLINE_IGNORE_FILE} at the repository root; --ignore-file reads another file. Exit 0 means the check passed, 1 an error (including an invalid ignore file).
 --propose-model-fixes proposes replacing retiring OpenAI and Anthropic model IDs with the registry replacement, only where the ID is a literal model in a traced SDK call, lists every case that stops for review, and lists every other live model ID with why no traced request sends it. It prints a patch, or writes it to --output; it never applies, validates or publishes it.
---sync anthropic reads Anthropic's model deprecations page, and --sync gemini Google's Gemini API deprecations page, and lists registry entries to add or update; --write saves them. It never deletes an entry. A scheduled workflow runs it and opens a pull request for review.
---check-registry validates the registry and flags past-due entries and entries without a source. Nothing runs, installs or contacts a provider.`;
+--sync reads a provider's deprecations page (Anthropic, OpenAI and Gemini API models; Shopify and Meta Graph API versions) and lists registry entries to add or update; --write saves them. It never deletes an entry. A scheduled workflow runs every sync and opens a pull request for review.
+--check-registry validates the registry and flags past-due entries, entries without a source and entries checked more than ${STALE_CHECK_DAYS} days ago. Nothing runs, installs or contacts a provider.
+--check-parameters validates the sourced model parameter table (data/model-parameters.json) and rejects the whole file on any error. Nothing runs, installs or contacts a provider.`;
 
 try {
   const { values } = parseArgs({
@@ -52,6 +54,8 @@ try {
       repository: { type: 'string' },
       registry: { type: 'string' },
       'check-registry': { type: 'boolean' },
+      'check-parameters': { type: 'boolean' },
+      parameters: { type: 'string' },
       'fail-within': { type: 'string' },
       'ignore-file': { type: 'string' },
       'propose-model-fixes': { type: 'boolean' },
@@ -66,54 +70,54 @@ try {
   const registryPath = values.registry ? resolve(values.registry) : DEFAULT_DEADLINE_REGISTRY;
   if (values.help) console.log(USAGE);
   else if (values.sync !== undefined) {
-    if (values.sync !== 'anthropic' && values.sync !== 'gemini')
-      throw new Error(
-        '--sync supports anthropic and gemini; other providers are maintained by hand.',
-      );
+    if (!Object.hasOwn(DEPRECATION_SOURCES, values.sync))
+      throw new Error(`--sync supports ${Object.keys(DEPRECATION_SOURCES).join(', ')}.`);
+    const source = DEPRECATION_SOURCES[values.sync as SyncProvider];
     const path = values.registry ? resolve(values.registry) : DEFAULT_DEADLINE_REGISTRY;
     const registry = parseObject(await readFile(path, 'utf8'), 'Deadline registry');
-    const source = values.sync === 'gemini' ? GEMINI_DEPRECATIONS : ANTHROPIC_DEPRECATIONS;
-    const page = values.sync === 'gemini' ? source : `${source}.md`;
-    const response = await fetch(page);
-    if (!response.ok) throw new Error(`${page} answered HTTP ${response.status}.`);
-    const text = await response.text();
-    const rows =
-      values.sync === 'gemini' ? parseGeminiDeprecations(text) : parseAnthropicDeprecations(text);
+    const response = await fetch(source.download);
+    if (!response.ok) throw new Error(`${source.download} answered HTTP ${response.status}.`);
+    const page = source.parse(await response.text());
     const today = now.toISOString().slice(0, 10);
     const current = checkDeadlineRegistry(registry, now);
     if (current.errors.length)
       throw new Error(`Deadline registry is invalid: ${current.errors.slice(0, 5).join(' ')}`);
-    const sync = (values.sync === 'gemini' ? syncGeminiDeadlines : syncAnthropicDeadlines)(
-      registry as unknown as DeadlineRegistry,
-      rows as AnthropicRetirement[],
-      today,
-    );
+    const sync = syncDeadlines(registry as unknown as DeadlineRegistry, source, page.rows, today);
     const report = checkDeadlineRegistry(sync.registry, now);
     if (report.errors.length)
       throw new Error(`Synced registry would be invalid: ${report.errors.slice(0, 5).join(' ')}`);
-    const write = values.write && (sync.added.length > 0 || sync.changed.length > 0);
+    const changes = sync.added.length + sync.changed.length + sync.rechecked.length;
+    const write = values.write && changes > 0;
     if (write) await writeFile(path, `${JSON.stringify(sync.registry, null, 2)}\n`);
     if (values.json)
       console.log(
         JSON.stringify({
-          source,
-          rows: rows.length,
+          provider: source.provider,
+          source: source.page,
+          rows: page.rows.length,
           added: sync.added,
           changed: sync.changed,
+          rechecked: sync.rechecked,
           missing: sync.missing,
+          skipped: page.skipped,
           written: Boolean(write),
         }),
       );
     else {
       console.log(
-        `${values.sync === 'gemini' ? 'Gemini' : 'Anthropic'} deprecations  ${rows.length} retirements on ${source}`,
+        `${source.name} deprecations  ${page.rows.length} retiring ${source.kind === 'model' ? 'models' : 'API versions'} on ${source.page}`,
       );
       for (const id of sync.added) console.log(`  add      ${terminalText(id)}`);
       for (const id of sync.changed) console.log(`  update   ${terminalText(id)}`);
+      for (const id of sync.rechecked)
+        console.log(`  recheck  ${terminalText(id)} (unchanged; checkedAt was stale)`);
       for (const id of sync.missing)
         console.log(`  missing  ${terminalText(id)} (no longer on the page; kept for review)`);
-      if (!sync.added.length && !sync.changed.length)
-        console.log('  The registry already matches the page.');
+      for (const row of page.skipped)
+        console.log(
+          `  skipped  ${terminalText(row.text)}${row.date ? ` (${row.date})` : ''}: ${terminalText(row.reason)}`,
+        );
+      if (!changes) console.log('  The registry already matches the page.');
       else if (write) console.log(`Written to ${terminalText(String(path))}`);
       else console.log('Run with --write to save these changes.');
     }
@@ -134,12 +138,35 @@ try {
         console.log(
           `  past due  ${terminalText(entry.id)} (${entry.date}, ${timing(-entry.days)})`,
         );
+      for (const entry of report.stale)
+        console.log(
+          `  stale     ${terminalText(entry.id)} (checked ${entry.checkedAt}, ${entry.days} days ago; read its source again)`,
+        );
+    }
+    process.exitCode = report.errors.length ? 1 : 0;
+  } else if (values['check-parameters']) {
+    const path = values.parameters ? resolve(values.parameters) : DEFAULT_MODEL_PARAMETERS;
+    const table = parseObject(await readFile(path, 'utf8'), 'Model parameter table');
+    const report = checkModelParameters(table, now);
+    if (values.json) console.log(JSON.stringify(report));
+    else {
+      const count = Array.isArray(table.models) ? table.models.length : 0;
+      console.log(
+        report.errors.length
+          ? 'Model parameter table is invalid'
+          : `Model parameter table is valid (${count} models)`,
+      );
+      for (const error of report.errors) console.log(`  error     ${terminalText(error)}`);
     }
     process.exitCode = report.errors.length ? 1 : 0;
   } else if (values['propose-model-fixes']) {
     const root = resolve(values.repository ?? '.');
     const registry = await loadDeadlineRegistry(registryPath, now);
-    const proposal = await proposeModelReplacements(root, registry, now);
+    // The sourced parameter table is off by default (owner decision, 2026-10-22).
+    const parameters = values.parameters
+      ? await loadModelParameters(resolve(values.parameters), now)
+      : undefined;
+    const proposal = await proposeModelReplacements(root, registry, now, { parameters });
     if (values.output && proposal.patch) await writeFile(resolve(values.output), proposal.patch);
     if (values.json)
       console.log(JSON.stringify({ repository: root, checkedAt: now.toISOString(), ...proposal }));
@@ -192,6 +219,7 @@ try {
       return {
         ...exposure,
         agent: agentStatus(exposure.deadline.provider, integrations),
+        reportOnly: reportOnly(exposure.deadline),
         ignored: decision?.ignoredBy.length ? decision.ignoredBy : null,
         ignoreNote: decision?.note ?? null,
       };
@@ -235,6 +263,7 @@ try {
             `  Ignored      until ${entry.until}${entry.paths ? ` in ${terminalText(entry.paths.join(', '))}` : ''}: ${terminalText(entry.reason)}`,
           );
         if (ignoreNote) console.log(`  Not ignored  ${terminalText(ignoreNote)}`);
+        if (reportOnly(deadline)) console.log(`  Report only  ${reportOnlyReason(deadline)}`);
         if (deadline.replacement)
           console.log(`  Replacement  ${terminalText(deadline.replacement)}`);
         console.log(
@@ -283,6 +312,13 @@ try {
   if (!(error instanceof Error)) throw error;
   console.error(`${error.name}: ${terminalText(error.message)}`);
   process.exitCode = 1;
+}
+
+function reportOnlyReason(deadline: DeadlineEntry) {
+  const why = deadline.derivedDate
+    ? 'the provider announced no shutdown; this date is derived'
+    : `${deadline.kind} deadlines are report only`;
+  return `${why}, so it never fails --fail-within or opens an alert`;
 }
 
 // Ignores that no longer apply, so a stale exception file gets noticed.

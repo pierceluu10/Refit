@@ -1,4 +1,5 @@
 import type { DeadlineRegistry } from './deadline-registry.ts';
+import type { ModelParameterTable } from './model-parameters.ts';
 import { digest } from './specifications.ts';
 import {
   proposeModelReplacements,
@@ -138,6 +139,7 @@ export function modelFixBody(options: {
 export async function runModelFixes(options: {
   repository: string;
   registry: DeadlineRegistry;
+  parameters?: ModelParameterTable;
   now: Date;
   checks: ModelFixChecks;
   publication?: ReturnType<typeof publicationConfiguration>;
@@ -154,7 +156,9 @@ export async function runModelFixes(options: {
     signal: options.signal,
     onProgress: options.onProgress,
     propose: async (directory) => {
-      proposal = await proposeModelReplacements(directory, options.registry, options.now);
+      proposal = await proposeModelReplacements(directory, options.registry, options.now, {
+        parameters: options.parameters,
+      });
       return proposal.patch;
     },
     skip: (revision) => {
@@ -198,7 +202,7 @@ export async function runModelFixes(options: {
   if (validation.status !== 'passed')
     return result(
       'validation-failed',
-      `Validation returned ${validation.status}; publication was not attempted.`,
+      `Validation returned ${validation.status}; publication was not attempted.${validation.baselineStop ? ` The baseline checks failed because ${validation.baselineStop.summary}. ${validation.baselineStop.action}` : ''}`,
     );
   if (!options.publication)
     return result(

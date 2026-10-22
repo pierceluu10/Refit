@@ -77,6 +77,23 @@ it('summarizes API impact, proposed edits and offline checks for interactive CLI
   expect(output).toContain('Original: passed; proposed: passed');
 
   const report = JSON.parse(await readFile(join(directory, 'report.json'), 'utf8'));
+  report.validation.environment = { reused: false, manager: 'yarn', platformPackages: 25 };
+  await writeFile(join(directory, 'report.json'), JSON.stringify(report));
+  expect(await renderWorkflowResult(result)).toContain(
+    'Prepared from yarn lockfile; checks offline; 25 platform-specific packages without checksums not installed',
+  );
+  report.validation.environment = {
+    reused: false,
+    manager: 'yarn',
+    platformPackages: 25,
+    platformPackageMode: 'install',
+  };
+  await writeFile(join(directory, 'report.json'), JSON.stringify(report));
+  expect(await renderWorkflowResult(result)).toContain(
+    '25 platform-specific packages installed without checksums (REFIT_YARN_PLATFORM_PACKAGES=install)',
+  );
+  report.validation.environment = { reused: false };
+  await writeFile(join(directory, 'report.json'), JSON.stringify(report));
   report.changes.unshift({ id: 'unrelated', schema: 'invoice', property: 'subscription' });
   report.changes[1].id = 'history';
   report.findings.forEach((finding: { changeId: string }) => {
@@ -104,4 +121,37 @@ it('summarizes API impact, proposed edits and offline checks for interactive CLI
   expect(review).toContain('1 finding requires review in 1 file');
   expect(review).toContain('Sources     src/webhook.ts');
   expect(review).not.toContain('\u001b');
+});
+
+it('shows the validation runtime and, when the repository declares a version, the comparison', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'refit-presentation-test-'));
+  directories.push(directory);
+  const runtime = {
+    configured: 'node:22-alpine',
+    image: 'node:22-alpine',
+    nodeVersion: '22.23.3',
+    declarations: [{ source: '.nvmrc', value: '20' }],
+    reason: 'The configured image does not satisfy .nvmrc "20".',
+  };
+  const write = (value: typeof runtime) =>
+    writeFile(
+      join(directory, 'report.json'),
+      JSON.stringify({ validation: { status: 'passed', runtime: value } }),
+    );
+  const result = {
+    directory,
+    manifest: { files: [{ path: 'report.json' }], status: 'validated', reason: '', error: null },
+  } as unknown as Parameters<typeof renderWorkflowResult>[0];
+  await write(runtime);
+  expect(await renderWorkflowResult(result)).toContain(
+    'Runtime     node:22-alpine (Node.js 22.23.3). The configured image does not satisfy .nvmrc "20".',
+  );
+  await write({
+    ...runtime,
+    declarations: [],
+    reason: 'The repository declares no Node.js version.',
+  });
+  const plain = await renderWorkflowResult(result);
+  expect(plain).toContain('Runtime     node:22-alpine (Node.js 22.23.3)\n');
+  expect(plain).not.toContain('declares no');
 });

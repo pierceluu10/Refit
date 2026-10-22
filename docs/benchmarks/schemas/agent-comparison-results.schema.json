@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Refit against a general coding agent",
+  "description": "Per-repository outcomes of Refit and of a general coding agent on the same affected Stripe repositories, with validation and hand review.",
+  "type": "object",
+  "required": ["formatVersion", "ranAt", "agent", "repos"],
+  "properties": {
+    "formatVersion": { "const": 1 },
+    "ranAt": { "$ref": "common.schema.json#/$defs/date" },
+    "harness": { "type": "string" },
+    "agent": { "type": "object" },
+    "selection": { "type": "string" },
+    "validation": { "type": "string" },
+    "review": { "type": "string" },
+    "budgetUsd": { "type": "number", "minimum": 0 },
+    "spendUsd": { "type": "object" },
+    "repos": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["set", "repo", "refit", "checks", "agent"],
+        "properties": {
+          "set": { "type": "string" },
+          "repo": { "$ref": "common.schema.json#/$defs/repo" },
+          "refit": {
+            "type": "object",
+            "required": ["status"],
+            "properties": { "status": { "type": "string" } }
+          },
+          "checks": { "type": "string" },
+          "agent": {
+            "type": "object",
+            "required": ["status"],
+            "properties": { "status": { "type": "string" } }
+          }
+        }
+      }
+    }
+  }
+}

@@ -2,6 +2,7 @@ import { basename, dirname, join, resolve } from 'node:path';
 import { readCommittedRepository } from './committed-repository.ts';
 import { resolveDockerImage } from './docker-sandbox.ts';
 import { readPreparationInputs } from './dependency-inputs.ts';
+import { preparationStop } from './preparation-stops.ts';
 import { unmappedBreakingChanges } from './openapi-diff.ts';
 import { runPipeline } from './run.ts';
 import { stripeWebhookConstructor } from './stripe-webhook-payloads.ts';
@@ -322,7 +323,9 @@ export async function inspectRepositoryReadiness(options: {
     if (dependencies.value) {
       const workspaces = Object.keys(dependencies.value.inputs.workspaceHashes ?? {}).length;
       dependencies.check.detail = `${dependencies.value.inputs.packages} locked package records${workspaces ? ` and ${workspaces} committed workspace manifests` : ''} passed preparation input checks. Installation and engine compatibility were not tested.`;
-    }
+    } else if (dependencies.check.status === 'blocked')
+      dependencies.check.action =
+        preparationStop(dependencies.check.detail)?.action ?? dependencies.check.action;
     report.checks.push(dependencies.check);
   } else if (!workflow.prepareDependencies)
     report.checks.push({

@@ -3,7 +3,13 @@ import type { AiOptions } from './ai-budget.ts';
 import { analyzeRepository } from './analyzer.ts';
 import { proposeAiPatch } from './ai-patches.ts';
 import { assessMigration, buildAssessmentEvidence } from './assessment.ts';
-import { applySourceEdits, editCovers, isFieldMove, proposePatch, renderPatch } from './patches.ts';
+import {
+  applySourceEdits,
+  editCovers,
+  isFieldMove,
+  proposePatch,
+  renderFileReplacements,
+} from './patches.ts';
 import { stripePackageUpgrade } from './stripe-package-upgrade.ts';
 import { propertyExists } from './stripe-field-moves.ts';
 import { readRepository } from './repository.ts';
@@ -85,6 +91,8 @@ async function runOpenApiPipeline(options: {
   leaveRequestParameters?: boolean;
   // The repository's opt-in to keep listed payment methods (`stripePaymentMethodTypes`).
   keepListedPaymentMethods?: boolean;
+  // Shopify only: propose the SDK major upgrade a target version needs (docs/SHOPIFY-SDK-UPGRADE.md).
+  shopifySdkUpgrade?: boolean;
   onProgress?: (message: string) => void;
 }) {
   const applicationApiVersion = validateApiVersion(options.apiVersion);
@@ -460,22 +468,7 @@ async function runOpenApiPipeline(options: {
             edits: patch.edits + upgrade.upgrade.files.length,
             diff:
               patch.diff +
-              renderPatch(
-                {
-                  ...repository,
-                  files: upgrade.upgrade.files.map((file) => ({
-                    path: file.path,
-                    content: file.before,
-                  })),
-                },
-                upgrade.upgrade.files.map((file) => ({
-                  file: file.path,
-                  start: 0,
-                  end: file.before.length,
-                  replacement: file.after,
-                  changeId: 'stripe-package',
-                })),
-              ),
+              renderFileReplacements(repository, upgrade.upgrade.files, 'stripe-package'),
             sdkUpgrade: { from: upgrade.upgrade.from, to: upgrade.upgrade.to },
             warnings: [
               `Upgrades stripe from ${upgrade.upgrade.from} to ${upgrade.upgrade.to} in ${upgrade.upgrade.files.map((file) => file.path).join(' and ')}, using the npm registry's SHA-512 integrity. A major SDK upgrade can change other types and behavior; review the stripe-node changelog.`,
@@ -647,5 +640,6 @@ export async function runPipeline(
     proposePatch: options.proposePatch,
     apiVersion: validateApiVersion(options.apiVersion),
     apiVersionPolicy: validateApiVersionPolicy(options.apiVersionPolicy),
+    sdkUpgrade: options.shopifySdkUpgrade,
   })) as unknown as PipelineReport;
 }
