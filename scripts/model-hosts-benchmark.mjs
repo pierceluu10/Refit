@@ -10,7 +10,8 @@ import { execFile } from 'node:child_process';
 import { readdir, readFile, writeFile } from 'node:fs/promises';
 import { join, relative } from 'node:path';
 import { parseArgs, promisify } from 'node:util';
-import { detectModelHosts } from '../pipeline/model-hosts.ts';
+import { loadDeadlineRegistry } from '../pipeline/deadline-registry.ts';
+import { detectModelHosts, hostDeadlineMatches } from '../pipeline/model-hosts.ts';
 import { scoreModelHosts } from '../pipeline/model-hosts-score.ts';
 import { readRepository } from '../pipeline/repository.ts';
 
@@ -70,6 +71,25 @@ const score = scoreModelHosts(
     result.sites.map((site) => ({ ...site, file: `${result.repo}/${site.file}` })),
   ),
 );
+// OpenRouter IDs (and any Bedrock or Azure site with its own entry) that reach a registry deadline.
+const registry = await loadDeadlineRegistry();
+const hasEntry = (provider, version) =>
+  registry.deadlines.some(
+    (entry) => entry.provider === provider && entry.versions.includes(version),
+  );
+const routes = { sites: 0, repositories: 0, byModel: {} };
+for (const result of results) {
+  const matches = hostDeadlineMatches(
+    result.sites.map((site) => ({ ...site, text: '' })),
+    hasEntry,
+  );
+  routes.sites += matches.length;
+  if (matches.length) routes.repositories += 1;
+  for (const match of matches) {
+    const key = `${match.provider}:${match.version}`;
+    routes.byModel[key] = (routes.byModel[key] ?? 0) + 1;
+  }
+}
 const byHost = {};
 for (const result of results) {
   const summary = (byHost[result.host] ??= {
@@ -85,7 +105,7 @@ for (const result of results) {
 }
 await writeFile(
   values.output,
-  `${JSON.stringify({ formatVersion: 1, refitCommit: refitCommit.trim(), pipelineDirty: Boolean(dirty.trim()), byHost, score, results }, null, 2)}\n`,
+  `${JSON.stringify({ formatVersion: 1, refitCommit: refitCommit.trim(), pipelineDirty: Boolean(dirty.trim()), byHost, routes, score, results }, null, 2)}\n`,
 );
 console.log(
   JSON.stringify(
