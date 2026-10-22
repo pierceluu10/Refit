@@ -85,7 +85,7 @@ if(args[0]==='run') {
 }
 fs.appendFileSync(log,JSON.stringify({args,inputs,inputFiles})+'\\n');
 if(args[0]==='image'){console.log(${JSON.stringify(IMAGE)});process.exit(0)}
-if(args[0]==='rm')process.exit(0);
+if(args[0]==='rm'||args[0]==='ps')process.exit(0);
 if(process.env.REFIT_TEST_INSTALL_MODE==='wait'){setInterval(()=>{},1000)}
 else if(process.env.REFIT_TEST_INSTALL_MODE==='fail'){process.stderr.write('REFIT_NODE_VERSION=v22.23.3\\nREFIT_NPM_VERSION=10.9.9\\nsimulated npm failure\\n');process.exitCode=42}
 else if(process.env.REFIT_TEST_INSTALL_MODE==='verbose'){process.stderr.write(Buffer.alloc(1024*1024+1,120));setInterval(()=>{},1000)}
@@ -318,6 +318,7 @@ it.skipIf(!process.env.REFIT_NPM_PREPARE || !process.env.REFIT_BILLING_REPOSITOR
           image: String(prepared.environment.image),
           dependencies: prepared.archive,
           network: 'none',
+          timeoutMs: 120_000,
           command: [
             'node',
             '-e',
@@ -472,6 +473,7 @@ it('runs validation containers on the default 2 GiB workspace and 3 GiB memory, 
     image: IMAGE,
     command: ['npm', 'test'],
     network: 'none',
+    timeoutMs: 120_000,
   });
   expect(args).toContain('/workspace:rw,exec,size=2g,uid=65534,gid=65534,mode=0700');
   expect(args[args.indexOf('--memory') + 1]).toBe('3g');
@@ -511,6 +513,7 @@ it('enlarges validation only through a known REFIT_VALIDATION_WORKSPACE profile'
       image: IMAGE,
       command: ['npm', 'test'],
       network: 'none',
+      timeoutMs: 120_000,
     });
     expect(args).toContain('/workspace:rw,exec,size=1g,uid=65534,gid=65534,mode=0700');
     expect(args[args.indexOf('--memory') + 1]).toBe('2g');
@@ -524,6 +527,7 @@ it('enlarges validation only through a known REFIT_VALIDATION_WORKSPACE profile'
       image: IMAGE,
       command: ['npm', 'test'],
       network: 'none',
+      timeoutMs: 120_000,
     });
     expect(large).toContain('/workspace:rw,exec,size=4g,uid=65534,gid=65534,mode=0700');
     expect(large[large.indexOf('--memory') + 1]).toBe('5g');
