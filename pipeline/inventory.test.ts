@@ -143,8 +143,12 @@ it('inventories Stripe and OpenAI: packages, the pinned API version, deadlines a
   expect(exposure).toMatchObject({
     deadline: { id: 'openai-2026-10-23-gpt-4', date: '2026-10-23' },
     days: 1,
-    evidence: [{ file: 'src/chat.ts', line: 4, use: 'live', version: 'gpt-4' }],
   });
+  // Paths, lines and counts only: no source line is kept.
+  expect(exposure.evidence).toEqual([
+    { file: 'src/chat.ts', line: 4, kind: 'source', use: 'live', version: 'gpt-4' },
+  ]);
+  expect(JSON.stringify(inventory)).not.toContain('"text"');
   expect(inventory.models).toEqual([
     {
       provider: 'openai',
