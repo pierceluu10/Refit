@@ -1,0 +1,969 @@
+{
+  "formatVersion": 1,
+  "labelledAt": "2026-10-22",
+  "sample": "docs/benchmarks/2026-10-22-meta-platform-repos.json",
+  "selection": "The even positions of the frozen list (2, 4, ..., 20).",
+  "method": "Labelled blind, before `refit meta-graph` ran on these repositories, by reading every live (non-test, non-example) file of the packages that hold the send-API code at the pinned commit. A label is one request to graph.facebook.com that belongs to the WhatsApp Business Platform (Cloud API messages and media, phone numbers, business profile, templates, registration, subscribed apps, calling, coexistence) or the Messenger Platform (Send API, including Instagram messaging through graph.facebook.com, user profiles by PSID, Messenger profile, conversations, handover, attachments, templates). `lines` are the line its HTTP or helper call starts on and, where the URL is written on another line, that line. Left out: media downloads from the URL Meta returns, generic Graph calls (/me, Page reads, OAuth, debug_token, app subscriptions, resumable uploads, catalogs), graph.instagram.com, and the bodies of generic request helpers whose callers are labelled.",
+  "labels": [
+    {
+      "repo": "CopilotKit/CopilotKit",
+      "commit": "54dddf799b9dd2be67731baba35416ef5feafa21",
+      "requests": [
+        {
+          "file": "packages/channels-whatsapp/src/client.ts",
+          "lines": [
+            43,
+            44
+          ],
+          "product": "whatsapp"
+        },
+        {
+          "file": "packages/channels-whatsapp/src/client.ts",
+          "lines": [
+            74,
+            81
+          ],
+          "product": "whatsapp"
+        },
+        {
+          "file": "packages/channels-whatsapp/src/client.ts",
+          "lines": [
+            99,
+            116
+          ],
+          "product": "whatsapp"
+        },
+        {
+          "file": "packages/channels-whatsapp/src/client.ts",
+          "lines": [
+            132,
+            133
+          ],
+          "product": "whatsapp"
+        }
+      ]
+    },
+    {
+      "repo": "tawn33y/whatsapp-cloud-api",
+      "commit": "c3158fe94dd47f42fb37ab09b02e25d1fee10912",
+      "requests": [
+        {
+          "file": "src/sendRequestHelper.ts",
+          "lines": [
+            27,
+            29
+          ],
+          "product": "whatsapp"
+        }
+      ]
+    },
+    {
+      "repo": "MarcosNicolau/whatsapp-business-sdk",
+      "commit": "24c881f669d30f189d2f28ec614361d4482e4ee9",
+      "requests": [
+        {
+          "file": "src/WABA_client.ts",
+          "lines": [
+            66,
+            67
+          ],
+          "product": "whatsapp"
+        },
+        {
+          "file": "src/WABA_client.ts",
+          "lines": [
+            76,
+            77
+          ],
+          "product": "whatsapp"
+        },
+        {
+          "file": "src/WABA_client.ts",
+          "lines": [
+            99,
+            100
+          ],
+          "product": "whatsapp"
+        },
+        {
+          "file": "src/WABA_client.ts",
+          "lines": [
+            113,
+            114
+          ],
+          "product": "whatsapp"
+        },
+        {
+          "file": "src/WABA_client.ts",
+          "lines": [
+            116,
+            117
+          ],
+          "product": "whatsapp"
+        },
+        {
+          "file": "src/WABA_client.ts",
+          "lines": [
+            158,
+            159
+          ],
+          "product": "whatsapp"
+        },
+        {
+          "file": "src/WABA_client.ts",
+          "lines": [
+            169,
+            170
+          ],
+          "product": "whatsapp"
+        },
+        {
+          "file": "src/WABA_client.ts",
+          "lines": [
+            184,
+            185
+          ],
+          "product": "whatsapp"
+        },
+        {
+          "file": "src/WABA_client.ts",
+          "lines": [
+            189,
+            190
+          ],
+          "product": "whatsapp"
+        },
+        {
+          "file": "src/WABA_client.ts",
+          "lines": [
+            196,
+            197
+          ],
+          "product": "whatsapp"
+        },
+        {
+          "file": "src/WABA_client.ts",
+          "lines": [
+            206,
+            207
+          ],
+          "product": "whatsapp"
+        },
+        {
+          "file": "src/WABA_client.ts",
+          "lines": [
+            212,
+            213
+          ],
+          "product": "whatsapp"
+        },
+        {
+          "file": "src/WABA_client.ts",
+          "lines": [
+            215,
+            216
+          ],
+          "product": "whatsapp"
+        },
+        {
+          "file": "src/WABA_client.ts",
+          "lines": [
+            221,
+            222
+          ],
+          "product": "whatsapp"
+        },
+        {
+          "file": "src/WABA_client.ts",
+          "lines": [
+            224,
+            225
+          ],
+          "product": "whatsapp"
+        },
+        {
+          "file": "src/WABA_client.ts",
+          "lines": [
+            236,
+            237
+          ],
+          "product": "whatsapp"
+        }
+      ]
+    },
+    {
+      "repo": "postboi-mail/postboi",
+      "commit": "ff0b95311254c836fd6bb586d7621fbb0b292e13",
+      "requests": [
+        {
+          "file": "src/library/whatsapp/meta.ts",
+          "lines": [
+            118,
+            119
+          ],
+          "product": "whatsapp"
+        }
+      ]
+    },
+    {
+      "repo": "AyushJain070401/msgly",
+      "commit": "6f16be25c59c410c2d3a0046b0ae290344fab50d",
+      "requests": [
+        {
+          "file": "packages/adapter-instagram/src/index.ts",
+          "lines": [
+            388,
+            409
+          ],
+          "product": "messenger"
+        },
+        {
+          "file": "packages/adapter-instagram/src/meta-base.ts",
+          "lines": [
+            196,
+            208,
+            209
+          ],
+          "product": "messenger"
+        },
+        {
+          "file": "packages/adapter-instagram/src/meta-base.ts",
+          "lines": [
+            265,
+            266
+          ],
+          "product": "messenger"
+        },
+        {
+          "file": "packages/adapter-messenger/src/meta-base.ts",
+          "lines": [
+            200,
+            212,
+            213
+          ],
+          "product": "messenger"
+        },
+        {
+          "file": "packages/adapter-messenger/src/meta-base.ts",
+          "lines": [
+            269,
+            270
+          ],
+          "product": "messenger"
+        },
+        {
+          "file": "packages/adapter-messenger/src/meta-base.ts",
+          "lines": [
+            435,
+            436
+          ],
+          "product": "messenger"
+        },
+        {
+          "file": "packages/adapter-whatsapp/src/index.ts",
+          "lines": [
+            1354,
+            1355
+          ],
+          "product": "whatsapp"
+        },
+        {
+          "file": "packages/adapter-whatsapp/src/index.ts",
+          "lines": [
+            1381,
+            1382
+          ],
+          "product": "whatsapp"
+        },
+        {
+          "file": "packages/adapter-whatsapp/src/index.ts",
+          "lines": [
+            1420,
+            1421
+          ],
+          "product": "whatsapp"
+        },
+        {
+          "file": "packages/adapter-whatsapp/src/index.ts",
+          "lines": [
+            1430,
+            1431
+          ],
+          "product": "whatsapp"
+        },
+        {
+          "file": "packages/adapter-whatsapp/src/index.ts",
+          "lines": [
+            1441,
+            1442
+          ],
+          "product": "whatsapp"
+        },
+        {
+          "file": "packages/adapter-whatsapp/src/index.ts",
+          "lines": [
+            1452,
+            1453
+          ],
+          "product": "whatsapp"
+        },
+        {
+          "file": "packages/adapter-whatsapp/src/index.ts",
+          "lines": [
+            1460,
+            1461
+          ],
+          "product": "whatsapp"
+        },
+        {
+          "file": "packages/adapter-whatsapp/src/index.ts",
+          "lines": [
+            1475,
+            1476
+          ],
+          "product": "whatsapp"
+        },
+        {
+          "file": "packages/adapter-whatsapp/src/index.ts",
+          "lines": [
+            1500,
+            1501
+          ],
+          "product": "whatsapp"
+        },
+        {
+          "file": "packages/adapter-whatsapp/src/index.ts",
+          "lines": [
+            1512,
+            1513
+          ],
+          "product": "whatsapp"
+        },
+        {
+          "file": "packages/adapter-whatsapp/src/index.ts",
+          "lines": [
+            1523,
+            1524
+          ],
+          "product": "whatsapp"
+        },
+        {
+          "file": "packages/adapter-whatsapp/src/index.ts",
+          "lines": [
+            1537,
+            1538
+          ],
+          "product": "whatsapp"
+        },
+        {
+          "file": "packages/adapter-whatsapp/src/index.ts",
+          "lines": [
+            1553,
+            1554
+          ],
+          "product": "whatsapp"
+        },
+        {
+          "file": "packages/adapter-whatsapp/src/index.ts",
+          "lines": [
+            1561,
+            1562
+          ],
+          "product": "whatsapp"
+        },
+        {
+          "file": "packages/adapter-whatsapp/src/index.ts",
+          "lines": [
+            1569,
+            1570
+          ],
+          "product": "whatsapp"
+        },
+        {
+          "file": "packages/adapter-whatsapp/src/index.ts",
+          "lines": [
+            1580,
+            1581
+          ],
+          "product": "whatsapp"
+        },
+        {
+          "file": "packages/adapter-whatsapp/src/index.ts",
+          "lines": [
+            1598,
+            1599
+          ],
+          "product": "whatsapp"
+        },
+        {
+          "file": "packages/adapter-whatsapp/src/index.ts",
+          "lines": [
+            1616,
+            1617
+          ],
+          "product": "whatsapp"
+        },
+        {
+          "file": "packages/adapter-whatsapp/src/index.ts",
+          "lines": [
+            1631,
+            1632
+          ],
+          "product": "whatsapp"
+        },
+        {
+          "file": "packages/adapter-whatsapp/src/index.ts",
+          "lines": [
+            1645,
+            1646
+          ],
+          "product": "whatsapp"
+        },
+        {
+          "file": "packages/adapter-whatsapp/src/index.ts",
+          "lines": [
+            1726,
+            1727
+          ],
+          "product": "whatsapp"
+        },
+        {
+          "file": "packages/adapter-whatsapp/src/index.ts",
+          "lines": [
+            1873,
+            1874
+          ],
+          "product": "whatsapp"
+        },
+        {
+          "file": "packages/adapter-whatsapp/src/index.ts",
+          "lines": [
+            1883,
+            1884
+          ],
+          "product": "whatsapp"
+        },
+        {
+          "file": "packages/adapter-whatsapp/src/index.ts",
+          "lines": [
+            1972,
+            1973
+          ],
+          "product": "whatsapp"
+        },
+        {
+          "file": "packages/adapter-whatsapp/src/index.ts",
+          "lines": [
+            976,
+            993
+          ],
+          "product": "whatsapp"
+        },
+        {
+          "file": "packages/adapter-whatsapp/src/index.ts",
+          "lines": [
+            1186,
+            1187
+          ],
+          "product": "whatsapp"
+        },
+        {
+          "file": "packages/adapter-whatsapp/src/index.ts",
+          "lines": [
+            978,
+            1252
+          ],
+          "product": "whatsapp"
+        },
+        {
+          "file": "packages/adapter-whatsapp/src/index.ts",
+          "lines": [
+            1283
+          ],
+          "product": "whatsapp"
+        },
+        {
+          "file": "packages/adapter-whatsapp/src/index.ts",
+          "lines": [
+            976,
+            1661
+          ],
+          "product": "whatsapp"
+        },
+        {
+          "file": "packages/adapter-whatsapp/src/index.ts",
+          "lines": [
+            976,
+            1682
+          ],
+          "product": "whatsapp"
+        },
+        {
+          "file": "packages/adapter-whatsapp/src/index.ts",
+          "lines": [
+            976,
+            1704
+          ],
+          "product": "whatsapp"
+        }
+      ]
+    },
+    {
+      "repo": "guidone/node-red-contrib-chatbot",
+      "commit": "0464f7648425b5f78855e8d03300877f82ab2007",
+      "requests": [
+        {
+          "file": "lib/platforms/facebook/facebook.js",
+          "lines": [
+            378,
+            386
+          ],
+          "product": "messenger"
+        },
+        {
+          "file": "lib/platforms/facebook/facebook.js",
+          "lines": [
+            482,
+            484
+          ],
+          "product": "messenger"
+        },
+        {
+          "file": "lib/platforms/facebook/facebook.js",
+          "lines": [
+            523,
+            525
+          ],
+          "product": "messenger"
+        },
+        {
+          "file": "lib/platforms/facebook/facebook.js",
+          "lines": [
+            601,
+            603
+          ],
+          "product": "messenger"
+        },
+        {
+          "file": "lib/platforms/facebook/facebook.js",
+          "lines": [
+            616,
+            618
+          ],
+          "product": "messenger"
+        },
+        {
+          "file": "lib/platforms/facebook/facebook.js",
+          "lines": [
+            629,
+            631
+          ],
+          "product": "messenger"
+        },
+        {
+          "file": "lib/platforms/whatsapp/index.js",
+          "lines": [
+            191,
+            192
+          ],
+          "product": "whatsapp"
+        },
+        {
+          "file": "lib/platforms/whatsapp/index.js",
+          "lines": [
+            275
+          ],
+          "product": "whatsapp"
+        },
+        {
+          "file": "lib/platforms/whatsapp/index.js",
+          "lines": [
+            389
+          ],
+          "product": "whatsapp"
+        },
+        {
+          "file": "lib/platforms/whatsapp/index.js",
+          "lines": [
+            415,
+            416
+          ],
+          "product": "whatsapp"
+        },
+        {
+          "file": "lib/platforms/whatsapp/index.js",
+          "lines": [
+            440,
+            441
+          ],
+          "product": "whatsapp"
+        },
+        {
+          "file": "lib/platforms/whatsapp/index.js",
+          "lines": [
+            495,
+            496
+          ],
+          "product": "whatsapp"
+        },
+        {
+          "file": "lib/platforms/whatsapp/index.js",
+          "lines": [
+            527,
+            528
+          ],
+          "product": "whatsapp"
+        }
+      ]
+    },
+    {
+      "repo": "DavideCarvalho/nestjs-agent",
+      "commit": "aa7989e2dd9d906c5b39c04e85dfc9812fc44644",
+      "requests": [
+        {
+          "file": "packages/channels/src/adapters/whatsapp-cloud.ts",
+          "lines": [
+            121,
+            123,
+            124
+          ],
+          "product": "whatsapp"
+        },
+        {
+          "file": "packages/channels/src/adapters/whatsapp-cloud.ts",
+          "lines": [
+            136,
+            137,
+            139
+          ],
+          "product": "whatsapp"
+        },
+        {
+          "file": "packages/channels/src/adapters/whatsapp-cloud.ts",
+          "lines": [
+            213,
+            216
+          ],
+          "product": "whatsapp"
+        }
+      ]
+    },
+    {
+      "repo": "codigoencasa/bot-whatsapp",
+      "commit": "cb24cf93f0efe7d7d3cc586223115b44f0dc8b4f",
+      "requests": [
+        {
+          "file": "packages/provider-facebook-messenger/src/facebook.provider.ts",
+          "lines": [
+            168,
+            176
+          ],
+          "product": "messenger"
+        },
+        {
+          "file": "packages/provider-facebook-messenger/src/facebook.provider.ts",
+          "lines": [
+            191,
+            207
+          ],
+          "product": "messenger"
+        },
+        {
+          "file": "packages/provider-facebook-messenger/src/facebook.provider.ts",
+          "lines": [
+            220,
+            236
+          ],
+          "product": "messenger"
+        },
+        {
+          "file": "packages/provider-facebook-messenger/src/facebook.provider.ts",
+          "lines": [
+            249,
+            265
+          ],
+          "product": "messenger"
+        },
+        {
+          "file": "packages/provider-facebook-messenger/src/facebook.provider.ts",
+          "lines": [
+            278,
+            294
+          ],
+          "product": "messenger"
+        },
+        {
+          "file": "packages/provider-facebook-messenger/src/facebook.provider.ts",
+          "lines": [
+            311,
+            333
+          ],
+          "product": "messenger"
+        },
+        {
+          "file": "packages/provider-facebook-messenger/src/facebook.provider.ts",
+          "lines": [
+            352,
+            363
+          ],
+          "product": "messenger"
+        },
+        {
+          "file": "packages/provider-meta/src/meta/provider.ts",
+          "lines": [
+            415,
+            416
+          ],
+          "product": "whatsapp"
+        },
+        {
+          "file": "packages/provider-meta/src/meta/provider.ts",
+          "lines": [
+            488,
+            489
+          ],
+          "product": "whatsapp"
+        },
+        {
+          "file": "packages/provider-meta/src/meta/provider.ts",
+          "lines": [
+            980,
+            981
+          ],
+          "product": "whatsapp"
+        },
+        {
+          "file": "packages/provider-meta/src/meta/provider.ts",
+          "lines": [
+            1035,
+            1036
+          ],
+          "product": "whatsapp"
+        },
+        {
+          "file": "packages/provider-meta/src/meta/provider.ts",
+          "lines": [
+            1305,
+            1306
+          ],
+          "product": "whatsapp"
+        },
+        {
+          "file": "packages/provider-meta/src/utils/mediaUrl.ts",
+          "lines": [
+            21,
+            22
+          ],
+          "product": "whatsapp"
+        },
+        {
+          "file": "packages/provider-meta/src/utils/profile.ts",
+          "lines": [
+            22,
+            23
+          ],
+          "product": "whatsapp"
+        },
+        {
+          "file": "packages/provider-voice/src/calls/meta-call-client.ts",
+          "lines": [
+            155,
+            162
+          ],
+          "product": "whatsapp"
+        }
+      ]
+    },
+    {
+      "repo": "lc-cn/onebots",
+      "commit": "82616a4671f50531cba35ce6ee4235e9d2be74d4",
+      "requests": [
+        {
+          "file": "adapters/adapter-facebook-messenger/src/client.ts",
+          "lines": [
+            182
+          ],
+          "product": "messenger"
+        },
+        {
+          "file": "adapters/adapter-facebook-messenger/src/client.ts",
+          "lines": [
+            202
+          ],
+          "product": "messenger"
+        },
+        {
+          "file": "adapters/adapter-facebook-messenger/src/client.ts",
+          "lines": [
+            224
+          ],
+          "product": "messenger"
+        },
+        {
+          "file": "adapters/adapter-facebook-messenger/src/client.ts",
+          "lines": [
+            241
+          ],
+          "product": "messenger"
+        },
+        {
+          "file": "adapters/adapter-facebook-messenger/src/client.ts",
+          "lines": [
+            251
+          ],
+          "product": "messenger"
+        },
+        {
+          "file": "adapters/adapter-facebook-messenger/src/client.ts",
+          "lines": [
+            264
+          ],
+          "product": "messenger"
+        },
+        {
+          "file": "adapters/adapter-facebook-messenger/src/client.ts",
+          "lines": [
+            277
+          ],
+          "product": "messenger"
+        },
+        {
+          "file": "adapters/adapter-facebook-messenger/src/client.ts",
+          "lines": [
+            296
+          ],
+          "product": "messenger"
+        },
+        {
+          "file": "adapters/adapter-facebook-messenger/src/client.ts",
+          "lines": [
+            332
+          ],
+          "product": "messenger"
+        },
+        {
+          "file": "adapters/adapter-facebook-messenger/src/platform-actions.ts",
+          "lines": [
+            57
+          ],
+          "product": "messenger"
+        },
+        {
+          "file": "adapters/adapter-facebook-messenger/src/platform-actions.ts",
+          "lines": [
+            61
+          ],
+          "product": "messenger"
+        },
+        {
+          "file": "adapters/adapter-facebook-messenger/src/platform-actions.ts",
+          "lines": [
+            65
+          ],
+          "product": "messenger"
+        },
+        {
+          "file": "adapters/adapter-facebook-messenger/src/platform-actions.ts",
+          "lines": [
+            80
+          ],
+          "product": "messenger"
+        },
+        {
+          "file": "adapters/adapter-facebook-messenger/src/platform-actions.ts",
+          "lines": [
+            87
+          ],
+          "product": "messenger"
+        },
+        {
+          "file": "adapters/adapter-facebook-messenger/src/platform-actions.ts",
+          "lines": [
+            89
+          ],
+          "product": "messenger"
+        },
+        {
+          "file": "adapters/adapter-facebook-messenger/src/platform-actions.ts",
+          "lines": [
+            98
+          ],
+          "product": "messenger"
+        },
+        {
+          "file": "adapters/adapter-facebook-messenger/src/platform-actions.ts",
+          "lines": [
+            112
+          ],
+          "product": "messenger"
+        },
+        {
+          "file": "adapters/adapter-facebook-messenger/src/platform-actions.ts",
+          "lines": [
+            116
+          ],
+          "product": "messenger"
+        },
+        {
+          "file": "adapters/adapter-facebook-messenger/src/platform-actions.ts",
+          "lines": [
+            125
+          ],
+          "product": "messenger"
+        },
+        {
+          "file": "adapters/adapter-facebook-messenger/src/platform-actions.ts",
+          "lines": [
+            133
+          ],
+          "product": "messenger"
+        },
+        {
+          "file": "adapters/adapter-facebook-messenger/src/platform-actions.ts",
+          "lines": [
+            166
+          ],
+          "product": "messenger"
+        }
+      ]
+    },
+    {
+      "repo": "Dosbodoke/better-zap",
+      "commit": "3b3b9d4eb400ff059367e9c906a1daedc643cc40",
+      "requests": [
+        {
+          "file": "packages/better-zap/src/services/whatsapp.service.ts",
+          "lines": [
+            56,
+            416
+          ],
+          "product": "whatsapp"
+        },
+        {
+          "file": "packages/better-zap/src/services/coexistence.service.ts",
+          "lines": [
+            116,
+            117
+          ],
+          "product": "whatsapp"
+        },
+        {
+          "file": "packages/better-zap/src/services/coexistence.service.ts",
+          "lines": [
+            127,
+            128
+          ],
+          "product": "whatsapp"
+        },
+        {
+          "file": "packages/better-zap/src/services/coexistence.service.ts",
+          "lines": [
+            166,
+            167
+          ],
+          "product": "whatsapp"
+        }
+      ]
+    }
+  ]
+}

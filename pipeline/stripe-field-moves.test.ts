@@ -631,6 +631,13 @@ it('lists mixed-period reads without a selection in the pull request text', asyn
       status: 'passed',
       revision: 'a'.repeat(40),
       image: `sha256:${'b'.repeat(64)}`,
+      runtime: {
+        configured: 'node:22-alpine',
+        image: 'node:22-alpine',
+        nodeVersion: '22.23.3',
+        declarations: [],
+        reason: 'The repository declares no Node.js version.',
+      },
       command: ['npm', 'test'],
       baselineCommand: ['npm', 'test'],
       archiveHash: 'c'.repeat(64),

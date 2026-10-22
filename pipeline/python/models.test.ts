@@ -7,7 +7,7 @@ import { scanDeadlines } from '../deadline-exposure.ts';
 import type { DeadlineEntry, DeadlineRegistry } from '../deadline-registry.ts';
 import { proposeModelReplacements } from '../model-retirements.ts';
 import { tracePythonModelCalls, traceFiles } from './models.ts';
-import { GRAMMAR, GRAMMAR_SHA256 } from './syntax.ts';
+import { GRAMMAR, GRAMMAR_SHA256, readPythonFiles, withPythonTrees } from './syntax.ts';
 
 const roots: string[] = [];
 afterEach(async () => {
@@ -254,7 +254,7 @@ client.chat.completions.create(model=settings.model_name, messages=[])
       'app.py:31 openai chat.completions.create constructor <- gpt-4@app.py:8 (constant `MODEL`)',
       'app.py:32 openai chat.completions.create constructor <- gpt-4@config.py:2 (environment default (OPENAI_MODEL))',
       'app.py:33 openai chat.completions.create constructor <- gpt-4@config.py:2 (environment default (OPENAI_MODEL))',
-      'app.py:34 openai chat.completions.create constructor <- gpt-4@app.py:34 (literal) stop: The model is read from the environment variable M with no default.',
+      'app.py:34 openai chat.completions.create constructor <- gpt-4@app.py:34 (environment default (M))',
       'app.py:35 openai chat.completions.create constructor <- gpt-4@app.py:35 (environment default (M))',
       'app.py:36 openai chat.completions.create constructor <- gpt-4@app.py:36 (literal) <- gpt-4o@app.py:36 (literal)',
       'app.py:37 openai chat.completions.create constructor <- gpt-4@app.py:9 (entry `smart`)',
@@ -359,6 +359,24 @@ class Model:
       'pkg/embed.py:3 gemini aio.models.embed_content parameter <- text-embedding-004@pkg/tools.py:4 (argument for `model`)',
       'pkg/embed.py:6 gemini models.generate_content parameter <- gemini-2.0-flash@pkg/embed.py:5 (parameter default `model`) <- gemini-2.5-pro@pkg/tools.py:6 (argument for `model`)',
       'pkg/model.py:11 anthropic messages.create constructor <- claude-opus-4-8@main.py:2 (argument for `model`) spread',
+    ]);
+  });
+
+  it('stops when a method may be called from another file on an untraced instance', async () => {
+    expect(
+      await traced({
+        'pkg/agent.py': `from openai import OpenAI
+class Agent:
+    def __init__(self):
+        self.client = OpenAI()
+
+    def run(self, model="gpt-4"):
+        return self.client.chat.completions.create(model=model, messages=[])
+`,
+        'main.py': `from pkg.factory import make\nagent = make()\nagent.run(model="gpt-4o")\n`,
+      }),
+    ).toEqual([
+      'pkg/agent.py:7 openai chat.completions.create constructor <- gpt-4@pkg/agent.py:6 (parameter default `model`) stop: `run` is also called in main.py:3, on an object Refit cannot tie to this class, so `model` may be passed there.',
     ]);
   });
 
@@ -565,6 +583,20 @@ other.chat.completions.create(model="gpt-4", messages=[])
     expect(trace.files).toBe(1);
     expect(trace.calls.map((call) => call.file)).toEqual(['app.py']);
   });
+
+  it('refuses Python sources past the scan limits instead of dropping them', async () => {
+    const root = await repository({ 'big.py': `x = 1\n${'#'.repeat(2 * 1024 * 1024)}\n` });
+    await expect(readPythonFiles(root)).rejects.toThrow(/exceed scan limits/);
+  });
+
+  it('keeps trees alive until an async callback finishes', async () => {
+    const type = await withPythonTrees([{ path: 'a.py', content: 'x = 1\n' }], async (tree) => {
+      const parsed = tree('a.py')!;
+      await new Promise((resolve) => setTimeout(resolve, 1));
+      return parsed.rootNode.type;
+    });
+    expect(type).toBe('module');
+  });
 });
 
 describe('Python model deadlines', () => {
@@ -596,6 +628,7 @@ match model:
         pass
 error = "The model 'gpt-4' is not available"
 setting = "model: 'gpt-4'"
+MIXED = ["gpt-4", "gemini-9-pro", "gemini-9-flash"]
 `,
       'tests/test_app.py': `MODEL = "gpt-4"\n`,
     });
@@ -606,6 +639,8 @@ setting = "model: 'gpt-4'"
     expect(gpt4.evidence.map((item) => `${item.file}:${item.line}`)).toEqual([
       'app/models.py:6',
       'app/models.py:26',
+      // Gemini IDs do not make an OpenAI model's list a catalog, as in TypeScript.
+      'app/models.py:27',
     ]);
     expect(gpt4.nonLive.map((item) => `${item.line} ${item.use}`)).toEqual([
       '4 comment',
@@ -672,7 +707,7 @@ UNUSED = "gpt-4"
       "18 18 gpt-4: The client sets a custom base URL, so the model may name another provider's model or a deployment; change it by hand to gpt-5.6-sol.",
       '19 19 claude-3-opus-20240229: The client is set up for Vertex AI, so the model may name a platform model ID; change it by hand to claude-opus-4-8.',
       '20 11 gpt-4: The model reaches this request through environment default (OPENAI_MODEL), which Refit reports but does not edit yet; change it by hand to gpt-5.6-sol.',
-      '21 21 gpt-4: The model is read from the environment variable M with no default. Change it by hand to gpt-5.6-sol.',
+      '21 21 gpt-4: The model reaches this request through environment default (M), which Refit reports but does not edit yet; change it by hand to gpt-5.6-sol.',
       '22 22 claude-3-opus-20240229: Refit reports Python requests but does not edit Python code yet; change it by hand to claude-opus-4-8.',
       '23 23 gemini-1.5-flash: Gemini is report only, so Refit never edits its models; change it by hand to gemini-2.5-flash.',
       '2 2 gpt-4: `ChatOpenAI` is a LangChain chat model, which Refit reports but does not edit; change it by hand to gpt-5.6-sol.',

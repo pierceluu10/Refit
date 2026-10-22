@@ -1,0 +1,291 @@
+{
+  "formatVersion": 1,
+  "checkedAt": "2026-10-22",
+  "method": "Each repository's model-replacement proposal (`proposeModelReplacements`, default options) validated with `validateSourcePatch` in offline Docker, image node:22-alpine, one repository per machine-wide Docker lock. Dependencies prepared from the committed lockfile in a restricted container with lifecycle scripts off. Refit worktree pinned at d36524c (the first runs through scripts' validation CLI at 44cbcc0). Every diff was read in full and labelled; nothing contacted a provider.",
+  "image": "node:22-alpine",
+  "repositories": [
+    {
+      "repo": "Langdock/assignment",
+      "set": "2026-10-21-openai-app-repos.json",
+      "commit": "7ab5e26405d6",
+      "checks": [
+        {
+          "command": "npm run build",
+          "workspace": "default",
+          "status": "baseline-failed",
+          "cause": "next build: spawn /usr/local/bin/node EAGAIN while collecting page data (the 128-process cap)"
+        },
+        {
+          "command": "npx tsc --noEmit",
+          "workspace": "default",
+          "status": "passed",
+          "baseline": "passed",
+          "patched": "passed"
+        }
+      ],
+      "sites": [
+        {
+          "at": "app/actions/openai.ts:13",
+          "call": "chat.completions.create",
+          "from": "gpt-3.5-turbo",
+          "to": "gpt-5.6-terra",
+          "label": "correct",
+          "note": "Streaming request with model and messages only."
+        }
+      ]
+    },
+    {
+      "repo": "freshfriedfish/claude-tokenizer",
+      "set": "2026-10-21-anthropic-app-repos.json",
+      "commit": "c2da9bfc39e4",
+      "checks": [
+        {
+          "command": "npm run build",
+          "workspace": "default",
+          "status": "baseline-failed",
+          "cause": "next build: spawn /usr/local/bin/node EAGAIN while collecting page data"
+        },
+        {
+          "command": "npx tsc --noEmit",
+          "workspace": "default",
+          "status": "passed",
+          "baseline": "passed",
+          "patched": "passed"
+        }
+      ],
+      "sites": [
+        {
+          "at": "app/api/route.ts:18",
+          "call": "beta.messages.countTokens",
+          "from": "claude-sonnet-4-5",
+          "to": "claude-sonnet-5-5",
+          "label": "correct",
+          "note": "Token counting only; the counts the app shows now come from the replacement model's tokenizer, and its about page still lists older models."
+        }
+      ]
+    },
+    {
+      "repo": "JaleelB/readium-x",
+      "set": "2026-10-21-openai-app-repos.json",
+      "commit": "35e83158ebe9",
+      "checks": [
+        {
+          "command": "npm test",
+          "workspace": "default",
+          "status": "error",
+          "cause": "Dependency archive exceeds 1024 MiB"
+        },
+        {
+          "command": "npx tsc --noEmit",
+          "workspace": "4g",
+          "status": "passed",
+          "baseline": "passed",
+          "patched": "passed"
+        },
+        {
+          "command": "npm test (vitest)",
+          "workspace": "4g",
+          "status": "passed",
+          "baseline": "passed",
+          "patched": "passed"
+        }
+      ],
+      "sites": [
+        {
+          "at": "app/article/actions/summarize.ts:40",
+          "call": "chat.completions.create",
+          "from": "gpt-3.5-turbo",
+          "to": "gpt-5.6-terra",
+          "label": "correct",
+          "note": "System and user messages only."
+        },
+        {
+          "at": "app/article/actions/translate.ts:50",
+          "call": "chat.completions.create",
+          "from": "gpt-3.5-turbo",
+          "to": "gpt-5.6-terra",
+          "label": "correct",
+          "note": "Per-chunk requests in Promise.all; cost and latency per chunk not assessed."
+        }
+      ]
+    },
+    {
+      "repo": "RiP3rQ/AI-Butler",
+      "set": "2026-10-16-deadline-repos.json",
+      "commit": "4dadd4021c2d",
+      "checks": [
+        {
+          "command": "npx tsc --noEmit",
+          "workspace": "default",
+          "status": "baseline-failed",
+          "cause": "Pre-existing TS1128 in app/(modules)/notion/organization/[orgId]/page.tsx"
+        },
+        {
+          "command": "npx tsc --noEmit (compareTypeErrors)",
+          "workspace": "default",
+          "status": "passed",
+          "baseline": "passed",
+          "patched": "passed",
+          "note": "No type error added; the one pre-existing error is unchanged."
+        }
+      ],
+      "sites": [
+        {
+          "at": "lib/openai.ts:42",
+          "call": "chat.completions.create",
+          "from": "gpt-3.5-turbo",
+          "to": "gpt-5.6-terra",
+          "label": "correct"
+        },
+        {
+          "at": "app/api/chat/route.ts:51",
+          "call": "chat.completions.create",
+          "from": "gpt-3.5-turbo",
+          "to": "gpt-5.6-terra",
+          "label": "correct",
+          "note": "Streamed through the ai package's OpenAIStream."
+        },
+        {
+          "at": "app/api/journal/completion/route.ts:15",
+          "call": "createChatCompletion",
+          "from": "gpt-3.5-turbo",
+          "to": "gpt-5.6-terra",
+          "label": "correct",
+          "note": "openai-edge v3-style client."
+        },
+        {
+          "at": "app/api/pdfs/message/route.ts:71",
+          "call": "createChatCompletion",
+          "from": "gpt-3.5-turbo",
+          "to": "gpt-5.6-terra",
+          "label": "correct",
+          "note": "openai-edge, streamed."
+        }
+      ]
+    },
+    {
+      "repo": "Koifman/LUMEN",
+      "set": "2026-10-21-anthropic-app-repos.json",
+      "commit": "87ad1187",
+      "checks": [
+        {
+          "command": "npm run build",
+          "status": "error",
+          "cause": "Validation does not accept submodules"
+        }
+      ],
+      "sites": [
+        {
+          "at": "src/lib/llm/providers/anthropic.ts:127",
+          "call": "messages.create",
+          "from": "claude-3-haiku-20240307",
+          "to": "claude-haiku-4-5-20251001",
+          "label": "correct",
+          "note": "API-key check; not validated."
+        },
+        {
+          "at": "src/lib/llm/providers/anthropic.ts:152",
+          "call": "fetch to api.anthropic.com/v1/messages",
+          "from": "claude-3-haiku-20240307",
+          "to": "claude-haiku-4-5-20251001",
+          "label": "correct",
+          "note": "Fallback raw request in the same check; not validated."
+        }
+      ]
+    },
+    {
+      "repo": "arunpattnaik/damngood.tools",
+      "set": "2026-10-16-deadline-repos.json",
+      "commit": "b0c65ebb",
+      "checks": [
+        {
+          "command": "npx tsc --noEmit",
+          "status": "error",
+          "cause": "Conflicting lockfiles (package-lock.json and yarn.lock) need a custom validation image"
+        }
+      ],
+      "sites": [
+        {
+          "at": "lib/og.ts:6",
+          "from": "gpt-3.5-turbo",
+          "to": "gpt-5.6-terra",
+          "label": "correct",
+          "note": "Plain request with model and messages only; read on 2026-10-22, not validated."
+        },
+        {
+          "at": "lib/privacy.ts:88",
+          "from": "gpt-3.5-turbo",
+          "to": "gpt-5.6-terra",
+          "label": "correct",
+          "note": "Plain request with model and messages only; read on 2026-10-22, not validated."
+        }
+      ]
+    },
+    {
+      "repo": "AnyVM-Tech/AnyGPT",
+      "set": "2026-10-21-openai-app-repos.json (an Anthropic proposal, which the per-provider benchmark does not count)",
+      "commit": "see the frozen list",
+      "checks": [
+        {
+          "command": "none",
+          "status": "not run",
+          "cause": "bun.lock with a pnpm workspace: not a supported dependency layout"
+        }
+      ],
+      "sites": [
+        {
+          "at": "apps/api/modules/keyChecker.ts:283",
+          "call": "axios.post to api.anthropic.com/v1/messages",
+          "from": "claude-3-haiku-20240307",
+          "to": "claude-haiku-4-5-20251001",
+          "label": "correct",
+          "note": "API-key check with max_tokens: 1; read on 2026-10-22, not validated."
+        }
+      ]
+    },
+    {
+      "repo": "webgptorg/promptbook",
+      "set": "2026-10-20-openai-repos.json",
+      "commit": "ed2e60292434",
+      "checks": [
+        {
+          "command": "npx tsc --noEmit",
+          "workspace": "4g",
+          "status": "error",
+          "cause": "Committed source exceeds the 50 MiB validation archive limit"
+        }
+      ],
+      "sites": [
+        {
+          "at": "apps/agents-server/src/app/api/chat-streaming/route.ts:46",
+          "from": "gpt-3.5-turbo",
+          "to": "gpt-5.6-terra",
+          "label": "correct",
+          "note": "Plain request with model and messages only; read on 2026-10-22, not validated."
+        }
+      ]
+    },
+    {
+      "repo": "antra-tess/membrane",
+      "set": "2026-10-20-anthropic-repos.json",
+      "commit": "37718936b98b",
+      "checks": [
+        {
+          "command": "npm test",
+          "status": "needs-review",
+          "cause": "No longer proposed: main stops all six on a custom base URL mentioned elsewhere; this branch also stops them because each sets thinking"
+        }
+      ],
+      "sites": [
+        {
+          "at": "test-thinking.ts:17,55,73,120,157,201",
+          "call": "messages.create",
+          "from": "claude-sonnet-4-20250514",
+          "to": "claude-sonnet-5-5",
+          "label": "wrong",
+          "note": "Each sends thinking: { type: 'enabled', budget_tokens }, which Claude 4.7 and later reject with a 400 (platform.claude.com extended thinking page, read 2026-10-22). Proposed by the 2026-10-21 run; not proposed now."
+        }
+      ]
+    }
+  ]
+}
