@@ -6,7 +6,7 @@ import { existsSync } from 'node:fs';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { parseArgs, promisify } from 'node:util';
-import { benchmarkSummary, repositoryNonLive } from './ai-model-benchmark-summary.mjs';
+import { benchmarkSummary, repositoryNonLive, stopReasons } from './ai-model-benchmark-summary.mjs';
 
 const execute = promisify(execFile);
 const GIT_TIMEOUT_MS = 300_000;
@@ -132,6 +132,7 @@ await writeFile(
       ranAt: new Date().toISOString(),
       note: 'refit deadlines and refit deadlines --propose-model-fixes at each frozen commit; files read only. Exposure counts live evidence for this provider only.',
       summary,
+      stopReasons: stopReasons(results),
       results,
     },
     null,

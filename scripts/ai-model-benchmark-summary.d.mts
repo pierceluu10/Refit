@@ -25,7 +25,7 @@ export interface BenchmarkRepository {
   error?: string;
   exposures?: unknown[];
   replacements?: unknown[];
-  stops?: unknown[];
+  stops?: { reason: string }[];
   unresolved?: unknown[];
   nonLive?: Record<string, number>;
   nonLiveTotal?: number;
@@ -54,3 +54,13 @@ export function repositoryNonLive(
 ): RepositoryNonLive;
 
 export function benchmarkSummary(results: BenchmarkRepository[]): BenchmarkSummary;
+
+export interface StopReasonCount {
+  reason: string;
+  repositories: number;
+  blocked: number;
+}
+
+export function stopReasonKind(reason: string): string;
+
+export function stopReasons(results: BenchmarkRepository[]): StopReasonCount[];
