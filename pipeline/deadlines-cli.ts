@@ -255,6 +255,8 @@ try {
         nonLive,
         nonLiveMore,
         nonLiveCounts,
+        outside,
+        outsideMore,
         agent,
         ignored,
         ignoreNote,
@@ -277,6 +279,7 @@ try {
           console.log(`  ${terminalText(`${item.file}:${item.line}`)}  ${terminalText(item.text)}`);
         if (more) console.log(`  …and ${more} more matches`);
         printNonLive(nonLive, nonLiveMore, nonLiveCounts);
+        printOutside(outside, outsideMore);
         // A retiring OpenAI or Anthropic model is replaced by a model fix, not an API contract run.
         console.log(
           `  Migration    ${terminalText(
@@ -288,9 +291,11 @@ try {
       }
       if (scan.mentions.length) {
         console.log('\nNamed only outside live code (not counted as exposure):');
-        for (const { deadline, days, nonLive, nonLiveMore, nonLiveCounts } of scan.mentions) {
+        for (const mention of scan.mentions) {
+          const { deadline, days, nonLive, nonLiveMore, nonLiveCounts } = mention;
           console.log(`\n${terminalText(deadline.summary)} ${deadline.date} (${timing(days)})`);
           printNonLive(nonLive, nonLiveMore, nonLiveCounts);
+          printOutside(mention.outside, mention.outsideMore);
         }
       }
       printIgnoreWarnings(ignores.file, expired, unknown);
@@ -352,6 +357,18 @@ function printIgnoreWarnings(
 
 // Non-live matches, collapsed to one line per use: the exact count, then each listed file's line
 // numbers. A use whose matches all fall past the listing limit still gets a line with its count.
+// Live matches on docs, example, test-fixture and build-output paths, with the reason each path is
+// excluded. Listed so nothing is hidden; never counted (docs/WORKSPACE-ATTRIBUTION.md).
+function printOutside(items: DeadlineEvidence[] = [], more = 0) {
+  if (!items.length) return;
+  console.log('  Also found outside application code (not counted):');
+  for (const item of items)
+    console.log(
+      `    ${terminalText(`${item.file}:${item.line}`)}  ${item.excluded}  ${terminalText(item.text)}`,
+    );
+  if (more) console.log(`    …and ${more} more`);
+}
+
 function printNonLive(
   items: DeadlineEvidence[],
   more: number,

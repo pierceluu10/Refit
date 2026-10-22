@@ -7,9 +7,11 @@ import { scanDeadlines } from './deadline-exposure.ts';
 import { loadDeadlineRegistry } from './deadline-registry.ts';
 import { readPackageManifests } from './package-manifests.ts';
 import {
+  APPLICATION_PATHS_FILE,
   exclusionReason,
   globMatcher,
   placeFinding,
+  readApplicationPaths,
   readWorkspaceLayout,
 } from './workspace-attribution.ts';
 
@@ -213,25 +215,84 @@ describe('attribution in detectProviders and scanDeadlines', () => {
     ]);
   });
 
-  it('keeps an excluded deadline match live, with its reason and package', async () => {
+  const CALL = "client.chat.completions.create({ model: 'gpt-4.5-preview' });\n";
+  const scanFor = async (root: string) => {
+    const scan = await scanDeadlines(
+      root,
+      await loadDeadlineRegistry(),
+      new Date('2026-10-22T00:00:00Z'),
+    );
+    const find = (list: typeof scan.exposures) =>
+      list.find((item) => item.deadline.versions.includes('gpt-4.5-preview'));
+    return { exposure: find(scan.exposures), mention: find(scan.mentions) };
+  };
+
+  it('counts a match in application code and lists docs, example and build-output matches apart', async () => {
     const root = await repository({
       'package.json': manifest('root', { workspaces: ['apps/*'] }),
       'apps/api/package.json': manifest('api'),
-      'apps/api/src/chat.ts': "client.chat.completions.create({ model: 'gpt-4.5-preview' });\n",
-      'docs/snippets/chat.ts': "client.chat.completions.create({ model: 'gpt-4.5-preview' });\n",
+      'apps/api/src/chat.ts': CALL,
+      'docs/snippets/chat.ts': CALL,
+      'examples/chat.ts': CALL,
+      'out/chat.js': CALL,
     });
-    const registry = await loadDeadlineRegistry();
-    const scan = await scanDeadlines(root, registry, new Date('2026-10-22T00:00:00Z'));
-    const exposure = [...scan.exposures, ...scan.mentions].find((item) =>
-      item.deadline.versions.includes('gpt-4.5-preview'),
-    )!;
+    const { exposure } = await scanFor(root);
     expect(
-      exposure.evidence.map((item) => [item.file, item.use, item.excluded, item.workspace?.name]),
-    ).toEqual([
-      ['apps/api/src/chat.ts', 'live', null, 'api'],
-      ['docs/snippets/chat.ts', 'live', 'docs-site', 'root'],
+      exposure!.evidence.map((item) => [item.file, item.use, item.excluded, item.workspace?.name]),
+    ).toEqual([['apps/api/src/chat.ts', 'live', null, 'api']]);
+    // examples/ is also a test path, so its match keeps use `test`.
+    expect(exposure!.outside!.map((item) => [item.file, item.use, item.excluded])).toEqual([
+      ['docs/snippets/chat.ts', 'live', 'docs-site'],
+      ['examples/chat.ts', 'test', 'example'],
+      ['out/chat.js', 'live', 'build-output'],
     ]);
-    expect(exposure.nonLive).toEqual([]);
+    expect(exposure!.nonLive).toEqual([]);
+  });
+
+  it('never counts a deadline matched only in examples and build output', async () => {
+    const root = await repository({
+      'package.json': manifest('root'),
+      'examples/chat.ts': CALL,
+      'out/chat.js': CALL,
+      // The repository reader skips dist/ and build/ entirely (pipeline/repository.ts).
+      'dist/chat.js': CALL,
+    });
+    const { exposure, mention } = await scanFor(root);
+    expect(exposure).toBeUndefined();
+    expect(mention!.evidence).toEqual([]);
+    expect(mention!.nonLive).toEqual([]);
+    expect(mention!.outside!.map((item) => [item.file, item.excluded])).toEqual([
+      ['examples/chat.ts', 'example'],
+      ['out/chat.js', 'build-output'],
+    ]);
+  });
+
+  it('counts a path the repository declares as application code', async () => {
+    const root = await repository({
+      'package.json': manifest('root'),
+      [APPLICATION_PATHS_FILE]: JSON.stringify({ formatVersion: 1, paths: ['website/'] }),
+      'website/pages/api/chat.ts': CALL,
+      'examples/chat.ts': CALL,
+    });
+    const { exposure } = await scanFor(root);
+    expect(exposure!.evidence.map((item) => [item.file, item.excluded])).toEqual([
+      ['website/pages/api/chat.ts', null],
+    ]);
+    expect(exposure!.outside!.map((item) => item.file)).toEqual(['examples/chat.ts']);
+  });
+
+  it.each([
+    ['a glob', { formatVersion: 1, paths: ['apps/*'] }],
+    ['a parent path', { formatVersion: 1, paths: ['../app'] }],
+    ['an absolute path', { formatVersion: 1, paths: ['/srv/app'] }],
+    ['an unknown key', { formatVersion: 1, paths: ['docs'], everything: true }],
+    ['no paths list', { formatVersion: 1 }],
+  ])('refuses an application paths file with %s', async (_name, content) => {
+    const root = await repository({
+      'package.json': manifest('root'),
+      [APPLICATION_PATHS_FILE]: JSON.stringify(content),
+    });
+    await expect(readApplicationPaths(root)).rejects.toThrow(APPLICATION_PATHS_FILE);
   });
 });
 

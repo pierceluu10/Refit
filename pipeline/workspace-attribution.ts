@@ -5,7 +5,7 @@ import { parseToml, TomlError, type TomlTable } from './package-manifests-toml.t
 import { resolveLockedDependency, type DependencyLockfile } from './lockfiles.ts';
 import { PNPM_LOCKFILE, parsePnpmLock } from './pnpm-lock.ts';
 import { parseDocumentObject } from './specifications.ts';
-import type { DependencyDeclaration, LockedDependency } from './types.ts';
+import { PipelineInputError, type DependencyDeclaration, type LockedDependency } from './types.ts';
 import { YARN_LOCKFILE, parseYarnLock } from './yarn-lock.ts';
 
 // Monorepo attribution for detection and deadline findings: which package of the repository a
@@ -30,6 +30,9 @@ export interface WorkspaceLayout {
   // Workspace globs from package.json, pnpm-workspace.yaml, lerna.json and rush.json.
   patterns: string[];
   packages: WorkspacePackage[];
+  // Directories the repository declares as application code in APPLICATION_PATHS_FILE: no
+  // exclusion applies inside them.
+  applicationPaths?: string[];
 }
 
 export type ExclusionReason =
@@ -39,6 +42,21 @@ export interface FindingPlace {
   workspace: { path: string; name: string | null } | null;
   excluded: ExclusionReason | null;
 }
+
+// Exclusions whose live deadline matches are listed but not counted as exposures (owner decision,
+// 2026-10-22): docs sites, examples, test fixtures and build output. Vendored and installed code
+// ships with the application, so it still counts.
+export const UNCOUNTED_EXCLUSIONS: ReadonlySet<ExclusionReason> = new Set([
+  'build-output',
+  'example',
+  'docs-site',
+  'test-fixture',
+]);
+
+// An explicit, committed list of directories that are application code although their names match
+// an exclusion, such as a deployed `website/`: `{ "formatVersion": 1, "paths": ["website"] }`.
+export const APPLICATION_PATHS_FILE = '.refit-application-paths.json';
+const MAX_APPLICATION_PATHS = 100;
 
 // Directory names, matched as whole path segments, for each exclusion. The first match wins.
 const EXCLUSIONS: [ExclusionReason, RegExp][] = [
@@ -99,6 +117,41 @@ async function readText(path: string) {
   const info = await lstat(path).catch(() => undefined);
   if (!info?.isFile() || info.size > MAX_FILE_BYTES) return undefined;
   return readFile(path, 'utf8').catch(() => undefined);
+}
+
+// The directories APPLICATION_PATHS_FILE declares, or none when the file is absent. A file that is
+// present but malformed stops the scan rather than being ignored.
+export async function readApplicationPaths(root: string): Promise<string[]> {
+  const text = await readText(join(root, APPLICATION_PATHS_FILE));
+  if (text === undefined) {
+    const info = await lstat(join(root, APPLICATION_PATHS_FILE)).catch(() => undefined);
+    if (info)
+      throw new PipelineInputError(
+        `${APPLICATION_PATHS_FILE} must be a regular file of at most 2 MiB.`,
+      );
+    return [];
+  }
+  const value = jsonObject(text);
+  const paths = value?.paths;
+  const invalid = (path: unknown) =>
+    typeof path !== 'string' ||
+    !path ||
+    path.startsWith('/') ||
+    path.includes('\\') ||
+    /[*?[\]{}!]/.test(path) ||
+    path.split('/').some((segment) => segment === '..' || segment === '.');
+  if (
+    !value ||
+    Object.keys(value).sort().join(',') !== 'formatVersion,paths' ||
+    value.formatVersion !== 1 ||
+    !Array.isArray(paths) ||
+    paths.length > MAX_APPLICATION_PATHS ||
+    paths.some(invalid)
+  )
+    throw new PipelineInputError(
+      `${APPLICATION_PATHS_FILE} must be { "formatVersion": 1, "paths": [...] } with at most ${MAX_APPLICATION_PATHS} relative directory paths, without globs, "." or "..".`,
+    );
+  return (paths as string[]).map((path) => path.replace(/\/+$/, ''));
 }
 
 function jsonObject(text: string | undefined): Record<string, unknown> | undefined {
@@ -258,20 +311,22 @@ export async function readWorkspaceLayout(root: string): Promise<WorkspaceLayout
     tools: [...tools].sort(),
     patterns,
     packages: [...found.values()].sort((a, b) => a.path.localeCompare(b.path)),
+    applicationPaths: await readApplicationPaths(root),
   };
 }
 
 // The package a repository file belongs to and whether its path is excluded.
 export function placeFinding(layout: WorkspaceLayout, file: string): FindingPlace {
+  const declared = (layout.applicationPaths ?? []).some((path) => file.startsWith(`${path}/`));
+  const excluded = declared ? null : exclusionReason(file);
   let folder = posix.dirname(file);
   for (;;) {
     const found = layout.packages.find((item) => item.path === folder);
-    if (found)
-      return { workspace: { path: found.path, name: found.name }, excluded: exclusionReason(file) };
+    if (found) return { workspace: { path: found.path, name: found.name }, excluded };
     if (folder === '.' || folder === '/' || !folder) break;
     folder = posix.dirname(folder);
   }
-  return { workspace: null, excluded: exclusionReason(file) };
+  return { workspace: null, excluded };
 }
 
 // A dependency declared in a nested package.json that the root lockfile does not cover, resolved

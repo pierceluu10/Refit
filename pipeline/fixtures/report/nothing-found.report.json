@@ -6,6 +6,7 @@
   "integrations": [],
   "deadlines": [],
   "mentions": [],
+  "outside": [],
   "models": [],
   "untracked": [],
   "next": "Nothing to do. Refit found no provider SDK or API it knows in this repository."

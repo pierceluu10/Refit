@@ -55,6 +55,8 @@ export interface Report {
   }[];
   // Deadlines named only outside live code (tests, comments, catalogs, tokenizers, checks).
   mentions: string[];
+  // Live matches on docs, example, test-fixture and build-output paths: listed, never counted.
+  outside: { id: string; file: string; line: number; version: string; reason: string }[];
   models: {
     model: string | null;
     provider: string;
@@ -195,6 +197,17 @@ export function buildReport(options: {
       ignored: Boolean(decisions.get(exposure.deadline.id)?.ignoredBy.length),
     })),
     mentions: inventory.deadlines.mentions.map((mention) => mention.deadline.id).sort(),
+    outside: [...inventory.deadlines.exposures, ...inventory.deadlines.mentions]
+      .flatMap((exposure) =>
+        (exposure.outside ?? []).map((item) => ({
+          id: exposure.deadline.id,
+          file: item.file,
+          line: item.line,
+          version: item.version,
+          reason: item.excluded ?? '',
+        })),
+      )
+      .sort((a, b) => a.file.localeCompare(b.file) || a.line - b.line || a.id.localeCompare(b.id)),
     models: [...groups.values()].sort(
       (a, b) =>
         Number(a.model === null) - Number(b.model === null) ||
@@ -344,6 +357,21 @@ export function renderReport(report: Report) {
       ? [
           '',
           `Named only outside live code (tests, comments, catalogs): ${report.mentions.slice(0, LISTED).map(code).join(', ')}${report.mentions.length > LISTED ? `, and ${report.mentions.length - LISTED} more` : ''}.`,
+        ]
+      : []),
+    ...(report.outside.length
+      ? [
+          '',
+          'Also found outside application code (not counted):',
+          '',
+          ...listed(
+            report.outside,
+            LISTED,
+            (item) => [
+              `- ${code(`${item.file}:${item.line}`)} (${item.reason}): ${code(item.version)} for ${code(item.id)}`,
+            ],
+            'matches',
+          ),
         ]
       : []),
     '',

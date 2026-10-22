@@ -47,6 +47,7 @@
   "mentions": [
     "openai-2027-04-01-gpt-5-1"
   ],
+  "outside": [],
   "models": [],
   "untracked": [],
   "next": "Add the Stripe agent with `refit agents --add stripe` and approve the repository, so Refit can propose migrations for its breaking changes."

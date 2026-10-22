@@ -393,10 +393,16 @@ it('lists model strings found only in tests as mentions, never as exposures', as
     inventory.deadlines.mentions.map((mention) => ({
       id: mention.deadline.id,
       counts: mention.nonLiveCounts,
+      outside: mention.outside?.map((item) => [item.file, item.excluded]),
     })),
   ).toEqual([
-    { id: 'openai-2026-10-23-gpt-3-5-turbo', counts: { test: 1 } },
-    { id: 'openai-2026-10-23-gpt-4', counts: { test: 1 } },
+    { id: 'openai-2026-10-23-gpt-3-5-turbo', counts: { test: 1 }, outside: [] },
+    // A fixture path is listed outside application code, not as a test match.
+    {
+      id: 'openai-2026-10-23-gpt-4',
+      counts: {},
+      outside: [['test/fixtures/models.ts', 'test-fixture']],
+    },
   ]);
   expect(inventory.models).toEqual([
     {
