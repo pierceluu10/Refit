@@ -57,6 +57,34 @@ export async function resolveDockerImage(image: string) {
   return id;
 }
 
+// Every sandbox container carries the time after which no Refit process still waits on it. A Refit
+// process that is killed cannot remove its container, so the next sandbox start removes it.
+export const SANDBOX_EXPIRY_LABEL = 'dev.refit.sandbox.expires';
+const EXPIRY_GRACE_MS = 60_000;
+
+export async function removeExpiredSandboxContainers(now = Date.now()) {
+  const result = await execute(
+    'docker',
+    [
+      'ps',
+      '--all',
+      '--no-trunc',
+      '--filter',
+      `label=${SANDBOX_EXPIRY_LABEL}`,
+      '--format',
+      `{{.ID}} {{.Label "${SANDBOX_EXPIRY_LABEL}"}}`,
+    ],
+    { timeout: PROCESS_TIMEOUT_MS, maxBuffer: MAX_OUTPUT_BYTES },
+  );
+  const expired = result.stdout
+    .split('\n')
+    .map((line) => /^([a-f0-9]{64}) (\d+)$/.exec(line.trim()))
+    .filter((match): match is RegExpExecArray => match !== null && Number(match[2]) < now)
+    .map((match) => match[1]);
+  for (const id of expired) await removeDockerContainer(id);
+  return expired;
+}
+
 export async function removeDockerContainer(name: string) {
   try {
     await execute('docker', ['rm', '--force', name], {
@@ -80,11 +108,14 @@ export function dockerSandboxArguments(options: {
   image: string;
   command: string[];
   network: 'none' | 'bridge';
+  // How long the caller waits before it kills the Docker client and removes the container.
+  timeoutMs: number;
   dependencies?: string;
   preparation?: ReturnType<typeof preparationProfile>;
   readOnlyMounts?: { source: string; target: string }[];
 }) {
   const mounts = options.readOnlyMounts ?? [];
+  const { memory, workspace } = options.preparation ?? validationProfile();
   if (
     [
       options.directory,
@@ -97,10 +128,15 @@ export function dockerSandboxArguments(options: {
     'run',
     '--name',
     options.name,
+    '--label',
+    `${SANDBOX_EXPIRY_LABEL}=${Date.now() + options.timeoutMs + EXPIRY_GRACE_MS}`,
     '--pull',
     'never',
     '--network',
     options.network,
+    // Output reaches Refit through the attached client only; the daemon keeps no copy on disk.
+    '--log-driver',
+    'none',
     '--read-only',
     '--user',
     CONTAINER_USER,
@@ -111,11 +147,18 @@ export function dockerSandboxArguments(options: {
     '--pids-limit',
     '128',
     '--memory',
-    (options.preparation ?? validationProfile()).memory,
+    memory,
+    // Equal to --memory, so the container cannot add the same amount again as swap.
+    '--memory-swap',
+    memory,
     '--cpus',
     '1',
+    // A host whose core pattern pipes to a crash handler would otherwise process the dump outside
+    // the container's limits.
+    '--ulimit',
+    'core=0',
     '--tmpfs',
-    `/workspace:rw,exec,size=${(options.preparation ?? validationProfile()).workspace},uid=65534,gid=65534,mode=0700`,
+    `/workspace:rw,exec,size=${workspace},uid=65534,gid=65534,mode=0700`,
     '--tmpfs',
     '/tmp:rw,noexec,size=64m,mode=1777',
     '--mount',
