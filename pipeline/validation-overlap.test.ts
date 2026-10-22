@@ -15,7 +15,7 @@ afterEach(async () => {
 
 // A docker stand-in whose checks take a second each and record when they ran. The baseline
 // directory is mounted from `.../baseline`, candidates from `.../candidate-*`.
-async function fixture(baselineExit: number, generated = false) {
+async function fixture(baselineExit: number, generated = false, memory = 16 * 1024 ** 3) {
   const root = await mkdtemp(join(tmpdir(), 'refit-overlap-'));
   roots.push(root);
   const repository = join(root, 'repository');
@@ -44,6 +44,7 @@ async function fixture(baselineExit: number, generated = false) {
 const fs = require('node:fs');
 const args = process.argv.slice(2);
 if (args[0] === 'image') { console.log('sha256:${'d'.repeat(64)}'); process.exit(0); }
+if (args[0] === 'info') { console.log(${memory}); process.exit(0); }
 if (args[0] === 'rm' || args[0] === 'create') process.exit(0);
 if (args[0] === 'cp') { fs.writeFileSync(args[2], 'stripe-mock'); process.exit(0); }
 const mount = args.find((arg) => arg.includes('dst=/input'));
@@ -118,4 +119,13 @@ it('runs the generated checks against both contract versions at the same time', 
   const after = checks.find((check) => check.side === 'generated-after')!;
   expect(before.started).toBeLessThan(after.ended);
   expect(after.started).toBeLessThan(before.ended);
+});
+
+it('keeps one sandbox at a time on a Docker host without room for two', async () => {
+  // The hosted worker's 4 GB machine (fly.toml) cannot hold two 3 GiB sandboxes.
+  const { report, checks } = await fixture(0, false, 4 * 1024 ** 3);
+  const baseline = checks.find((check) => check.side === 'baseline')!;
+  const patched = checks.find((check) => check.side === 'patched')!;
+  expect(patched.started).toBeGreaterThanOrEqual(baseline.ended);
+  expect(report.validation).toMatchObject({ status: 'passed', patched: { status: 'passed' } });
 });

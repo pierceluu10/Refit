@@ -49,6 +49,7 @@ import {
 import { SUBSCRIPTION_PERIOD_RULE } from './stripe-subscription-periods.ts';
 import {
   dockerSandboxArguments,
+  preparationProfile,
   removeDockerContainer,
   resolveDockerImage,
   validationProfile,
@@ -204,6 +205,29 @@ async function containerCheck(
   } finally {
     // A killed Docker client does not necessarily stop the container it started.
     await removeDockerContainer(name);
+  }
+}
+
+const GIB = 1024 ** 3;
+
+// Running the patched side alongside the baseline puts two sandboxes on the Docker host at once,
+// so it needs room for both at their memory limit (two installs, or two checks) and 1 GiB more.
+// A smaller host, such as the 4 GB hosted worker, validates one sandbox at a time as before.
+async function roomForTwoSandboxes() {
+  const limit = Math.max(
+    ...[preparationProfile().memory, validationProfile().memory].map(
+      (memory) => Number.parseInt(memory, 10) * GIB,
+    ),
+  );
+  try {
+    const { stdout } = await execute('docker', ['info', '--format', '{{.MemTotal}}'], {
+      timeout: PROCESS_TIMEOUT_MS,
+      maxBuffer: MAX_OUTPUT_BYTES,
+      encoding: 'utf8',
+    });
+    return Number(stdout.trim()) >= 2 * limit + GIB;
+  } catch {
+    return false;
   }
 }
 
@@ -524,10 +548,10 @@ export async function validateMigration(options: {
       timings[stage] = (timings[stage] ?? 0) + Math.round(performance.now() - started);
     }
   };
-  // Without AI the proposal does not depend on the baseline, so the patch, its dependencies and
-  // its checks run alongside the baseline's. Results the sequential order would not have used are
+  // Without AI the proposal does not depend on the baseline, so when the Docker host has room for
+  // two sandboxes the patch, its dependencies and its checks run alongside the baseline's. Results the sequential order would not have used are
   // discarded unread; anything still running is cancelled and awaited before validation returns.
-  const independent = !options.aiPatch && !options.assessment;
+  const independent = !options.aiPatch && !options.assessment && (await roomForTwoSandboxes());
   const speculation = new AbortController();
   const stopSpeculation = () => speculation.abort();
   options.signal?.addEventListener('abort', stopSpeculation, { once: true });
