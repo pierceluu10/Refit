@@ -44,6 +44,20 @@
     "notSent": "model-shaped literals checked and found not to reach such a call (defaults every caller overrides, raw HTTP requests, other SDKs, unused constants); listed for reference, not exhaustive",
     "ambiguous": "literals whose path could not be settled by reading; excluded from scoring"
   },
+  "adjudications": [
+    {
+      "repo": "future-agi/agent-learning-kit",
+      "after": "0b3e8a6",
+      "change": "added sent src/fi/evals/guardrails/backends/openai.py:61 omni-moderation-latest and calls src/fi/evals/guardrails/backends/openai.py:136 and :279",
+      "reason": "Labelling miss: the labeller searched for chat, messages, embeddings, responses and images calls and missed client.moderations.create, which sends this parameter default. Found when the first scored run reported it."
+    },
+    {
+      "repo": "wangyu-ustc/Mem-alpha",
+      "after": "0b3e8a6",
+      "change": "added sent long_context_eval.py:158 qwen3-32b",
+      "reason": "Labelling miss: self.model_name = os.getenv(\"QWEN_MODEL_NAME\", \"qwen3-32b\") on the Qwen path reaches the calls that send self.model_name. Found when the first scored run reported it."
+    }
+  ],
   "repos": [
     {
       "repo": "kandada/fastclaw",
@@ -1402,6 +1416,11 @@
           "file": "verl/workers/reward_manager/naive.py",
           "line": 220,
           "model": "qwen3-32b"
+        },
+        {
+          "file": "long_context_eval.py",
+          "line": 158,
+          "model": "qwen3-32b"
         }
       ],
       "notSent": [
@@ -1457,6 +1476,16 @@
           "file": "src/fi/simulate/simulation/gemini_tts_stream.py",
           "line": 39,
           "provider": "gemini"
+        },
+        {
+          "file": "src/fi/evals/guardrails/backends/openai.py",
+          "line": 136,
+          "provider": "openai"
+        },
+        {
+          "file": "src/fi/evals/guardrails/backends/openai.py",
+          "line": 279,
+          "provider": "openai"
         }
       ],
       "sent": [
@@ -1474,6 +1503,11 @@
           "file": "src/fi/simulate/endpoints/actor_sources.py",
           "line": 191,
           "model": "gpt-4-turbo"
+        },
+        {
+          "file": "src/fi/evals/guardrails/backends/openai.py",
+          "line": 61,
+          "model": "omni-moderation-latest"
         }
       ],
       "notSent": [
