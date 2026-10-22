@@ -11,6 +11,7 @@ import { githubDeadlineUses } from './github-api-calls.ts';
 import { detectModelHosts, hostDeadlineMatches } from './model-hosts.ts';
 import { modelWrapperSites } from './model-wrappers.ts';
 import { repositoryApiVersionPins } from './commerce-api-versions.ts';
+import { manifestSdkDeclarations } from './package-manifests-deadlines.ts';
 import { pythonModelMatches } from './python/model-uses.ts';
 import { readPythonFiles } from './python/syntax.ts';
 import { declaredPackageNames, readRepository } from './repository.ts';
@@ -531,7 +532,8 @@ export async function scanDeadlines(
   const root = resolve(directory);
   const byVersion = new Map<string, DeadlineEntry>();
   for (const entry of registry.deadlines)
-    for (const version of entry.versions) byVersion.set(`${entry.provider}:${version}`, entry);
+    if (!entry.ecosystem)
+      for (const version of entry.versions) byVersion.set(`${entry.provider}:${version}`, entry);
   const models = new Map(
     registry.deadlines
       .filter((entry) => entry.kind === 'model' && MODEL_PROVIDERS.has(entry.provider))
@@ -543,8 +545,9 @@ export async function scanDeadlines(
     provider: string,
     version: string,
     evidence: Omit<DeadlineEvidence, 'version'>,
+    entry?: DeadlineEntry,
   ) => {
-    const deadline = byVersion.get(`${provider}:${version}`);
+    const deadline = entry ?? byVersion.get(`${provider}:${version}`);
     if (!deadline) return;
     const exposure = found.get(deadline.id) ?? {
       deadline,
@@ -677,7 +680,7 @@ export async function scanDeadlines(
   const declared = await declaredPackageNames(root);
   const declarations = new Map<string, Promise<Awaited<ReturnType<typeof readRepository>>>>();
   for (const entry of registry.deadlines)
-    if (entry.kind === 'sdk')
+    if (entry.kind === 'sdk' && !entry.ecosystem)
       for (const version of entry.versions) {
         const { name, range } = sdkTarget(version);
         if (declared && !declared.has(name)) continue;
@@ -695,6 +698,20 @@ export async function scanDeadlines(
           });
         }
       }
+  // The same for other ecosystems' manifests (pipeline/package-manifests-deadlines.ts).
+  for (const declaration of await manifestSdkDeclarations(root, registry))
+    record(
+      declaration.deadline.provider,
+      declaration.name,
+      {
+        file: declaration.file,
+        line: declaration.line,
+        kind: 'dependency',
+        use: TEST_PATH.test(declaration.file) ? 'test' : 'live',
+        text: declaration.text,
+      },
+      declaration.deadline,
+    );
   // Retired API methods: each call site that sends one, from the provider's call scanner.
   if (registry.deadlines.some((entry) => entry.kind === 'method' && entry.provider === 'slack'))
     for (const use of await slackMethodUses(root, repository))

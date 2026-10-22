@@ -4,6 +4,7 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 import {
+  addable,
   addAgents,
   builtInPackage,
   detectProviders,
@@ -93,7 +94,11 @@ try {
       detected: detections.map((detection) => ({
         id: detection.agent.id,
         name: detection.agent.name,
-        agent: detection.agent.adapter ? 'available' : 'none-yet',
+        agent: addable(detection)
+          ? 'available'
+          : detection.agent.adapter
+            ? 'report-only'
+            : 'none-yet',
         configured:
           configured(detection.agent.packages) ||
           Boolean(result?.added.includes(detection.agent.id)),
@@ -113,7 +118,7 @@ try {
         const evidence = [
           ...entry.packages.map(
             (item) =>
-              `${item.name} ${item.version}${item.locked ? ` (locked ${item.locked})` : ''} in ${item.file}`,
+              `${item.ecosystem ? `${item.ecosystem}:` : ''}${item.name} ${item.version}${item.locked ? ` (locked ${item.locked})` : ''} in ${item.file}${item.line ? `:${item.line}` : ''}`,
           ),
           ...entry.hostnames.map((item) => `${item.hostname} at ${item.file}:${item.line}`),
           ...(entry.apiVersions ?? []).map(
@@ -125,7 +130,9 @@ try {
           ? 'configured'
           : entry.agent === 'available'
             ? `agent available: refit agents --add ${entry.id}`
-            : 'no agent yet';
+            : entry.agent === 'report-only'
+              ? 'report only: detected outside npm'
+              : 'no agent yet';
         lines.push(`${entry.name.padEnd(16)}${status}`, ...evidence.map((item) => `  ${item}`));
       }
       if (report.added.length)
