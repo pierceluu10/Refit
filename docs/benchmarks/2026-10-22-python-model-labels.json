@@ -1,0 +1,1526 @@
+{
+  "formatVersion": 1,
+  "list": "docs/benchmarks/2026-10-22-python-model-repos.json",
+  "labelledAt": "2026-10-22",
+  "method": "Hand labels by reading each repository at its pinned commit, made before Refit's Python tracer was run on any repository in the list (this file is committed before the first scored run). The labeller is the agent that wrote the tracer, so the labels are blind to its output on these repositories but not to its design. Starting points came from scripts/python-models-candidates.mjs (an independent text search) and a search for SDK call sites; each call's model argument was followed by hand to every literal it can be.",
+  "sample": {
+    "seed": 20261022,
+    "order": "mulberry32(seed) shuffle of the 50 frozen repositories, taken in order",
+    "skipped": [
+      {
+        "repo": "OpenDataBox/MemoryData",
+        "reason": "over 400 candidate lines"
+      },
+      {
+        "repo": "juliepy/AI-Engineer-from-scrach",
+        "reason": "over 400 candidate lines"
+      },
+      {
+        "repo": "VRSEN/agency-swarm",
+        "reason": "over 400 candidate lines"
+      },
+      {
+        "repo": "ai-forever/gpt2giga",
+        "reason": "over 400 candidate lines"
+      },
+      {
+        "repo": "chchenhui/mlrbench",
+        "reason": "45-minute labelling timebox: hundreds of generated agent scripts with their own clients and models"
+      },
+      {
+        "repo": "agent-persona/personas-pipeline",
+        "reason": "45-minute labelling timebox: about 80 SDK calls whose models flow through settings, constants and CLI arguments"
+      },
+      {
+        "repo": "EvolvingLMMs-Lab/OneVision-Encoder",
+        "reason": "45-minute labelling timebox: judge models flow through hundreds of vendored lmms-eval task configs"
+      }
+    ]
+  },
+  "scope": {
+    "files": "Python files tracked by git, outside test, fixture, example, sample, cookbook and notebook paths (pipeline/python/models.ts PYTHON_TEST_PATH) and outside build output and virtual environments",
+    "calls": "every call on an openai, anthropic or google-genai SDK client (any method) that sends a model, including calls on clients Refit cannot prove are SDK clients (untyped parameters, factory results, wrapped clients)",
+    "sent": "a string literal that one of those calls can send as its model: the literal itself, a constant, an environment or argparse default, a parameter default that some path leaves in place, a class field, a dictionary entry or a config default that reaches the call",
+    "notSent": "model-shaped literals checked and found not to reach such a call (defaults every caller overrides, raw HTTP requests, other SDKs, unused constants); listed for reference, not exhaustive",
+    "ambiguous": "literals whose path could not be settled by reading; excluded from scoring"
+  },
+  "repos": [
+    {
+      "repo": "kandada/fastclaw",
+      "commit": "5d0b4619e8dcb3bdd0660e5606afe34176fc64c4",
+      "calls": [
+        {
+          "file": "core/app.py",
+          "line": 1039,
+          "provider": "openai"
+        },
+        {
+          "file": "core/app.py",
+          "line": 1179,
+          "provider": "anthropic"
+        }
+      ],
+      "sent": [
+        {
+          "file": "core/app.py",
+          "line": 275,
+          "model": "deepseek-chat"
+        },
+        {
+          "file": "core/app.py",
+          "line": 1040,
+          "model": "deepseek-chat"
+        },
+        {
+          "file": "core/app.py",
+          "line": 1164,
+          "model": "claude-3-5-sonnet-latest"
+        }
+      ],
+      "notSent": [],
+      "ambiguous": [],
+      "notes": "Clients come from a factory function (_get_llm_client); models from llm_config.get defaults and the default agent config."
+    },
+    {
+      "repo": "animede/simple_video",
+      "commit": "86a4840171dadbd41010bfd3e724bcd83fe1f001",
+      "calls": [
+        {
+          "file": "openai_chat.py",
+          "line": 53,
+          "provider": "openai"
+        },
+        {
+          "file": "openai_chat.py",
+          "line": 89,
+          "provider": "openai"
+        },
+        {
+          "file": "openai_chat.py",
+          "line": 124,
+          "provider": "openai"
+        },
+        {
+          "file": "openai_chat.py",
+          "line": 136,
+          "provider": "openai"
+        },
+        {
+          "file": "openai_chat.py",
+          "line": 160,
+          "provider": "openai"
+        }
+      ],
+      "sent": [
+        {
+          "file": "openai_chat.py",
+          "line": 42,
+          "model": "gemma3:latest"
+        },
+        {
+          "file": "app.py",
+          "line": 178,
+          "model": "gemma-3-27b-it"
+        },
+        {
+          "file": "openai_chat.py",
+          "line": 99,
+          "model": "gemma-3-27b-it"
+        },
+        {
+          "file": "openai_chat.py",
+          "line": 137,
+          "model": "gemma2:latest"
+        },
+        {
+          "file": "openai_chat.py",
+          "line": 161,
+          "model": "gpt-4"
+        }
+      ],
+      "notSent": [
+        {
+          "file": "openai_chat.py",
+          "line": 62,
+          "model": "gemma-3-27b-it"
+        }
+      ],
+      "ambiguous": [],
+      "notes": "Clients are untyped parameters; callers pass AsyncOpenAI clients. vlm_req's default is never used: its only caller passes model=VLM_MODEL."
+    },
+    {
+      "repo": "DataArcTech/GraphSearch",
+      "commit": "78255b256e922d65c9c125d986b8204a4b135fac",
+      "calls": [
+        {
+          "file": "utils.py",
+          "line": 47,
+          "provider": "openai"
+        }
+      ],
+      "sent": [
+        {
+          "file": "config.py",
+          "line": 3,
+          "model": "Qwen2.5-32B-Instruct"
+        }
+      ],
+      "notSent": [
+        {
+          "file": "utils.py",
+          "line": 30,
+          "model": "gpt-4o"
+        }
+      ],
+      "ambiguous": [],
+      "notes": "openai_complete overwrites its model parameter with MODEL_NAME, so the gpt-4o default is never sent."
+    },
+    {
+      "repo": "ChatHouseDiffusion/chathousediffusion",
+      "commit": "b6dc810c5b8ca2aed05016389bbe08c2c1fbdf27",
+      "calls": [
+        {
+          "file": "prompt2json/extractInformation.py",
+          "line": 162,
+          "provider": "openai"
+        },
+        {
+          "file": "prompt2json/extractInformation.py",
+          "line": 184,
+          "provider": "openai"
+        }
+      ],
+      "sent": [],
+      "notSent": [
+        {
+          "file": "prompt2json/extractInformation.py",
+          "line": 158,
+          "model": "llama3:instruct"
+        },
+        {
+          "file": "prompt2json/extractInformation.py",
+          "line": 174,
+          "model": "llama3:instruct"
+        },
+        {
+          "file": "prompt2json/prompt2Json.py",
+          "line": 18,
+          "model": "llama3:instruct"
+        },
+        {
+          "file": "prompt2json/prompt2Json.py",
+          "line": 29,
+          "model": "llama3:instruct"
+        }
+      ],
+      "ambiguous": [],
+      "notes": "Every caller passes model=api_info[\"model\"] from a JSON file, so no default literal is sent. Client is a module OpenAI() with a localhost base URL, passed as a parameter default."
+    },
+    {
+      "repo": "blixt/sol-mate-eink",
+      "commit": "d5acff86929d31a6ad10a6c960e1c9695a915c43",
+      "calls": [
+        {
+          "file": "ai.py",
+          "line": 40,
+          "provider": "openai"
+        },
+        {
+          "file": "ai.py",
+          "line": 139,
+          "provider": "openai"
+        },
+        {
+          "file": "ai.py",
+          "line": 196,
+          "provider": "openai"
+        }
+      ],
+      "sent": [
+        {
+          "file": "ai.py",
+          "line": 18,
+          "model": "gpt-5-mini"
+        },
+        {
+          "file": "ai.py",
+          "line": 19,
+          "model": "gpt-image-1-mini"
+        }
+      ],
+      "notSent": [],
+      "ambiguous": [],
+      "notes": "ai.py:196 is images.generate."
+    },
+    {
+      "repo": "enjalot/latent-scope",
+      "commit": "41f7305dffbbc0dd74d3605ac6af9df21fa1270f",
+      "calls": [
+        {
+          "file": "latentscope/models/providers/openai.py",
+          "line": 54,
+          "provider": "openai"
+        },
+        {
+          "file": "latentscope/models/providers/openai.py",
+          "line": 57,
+          "provider": "openai"
+        },
+        {
+          "file": "latentscope/models/providers/openai.py",
+          "line": 86,
+          "provider": "openai"
+        },
+        {
+          "file": "latentscope/models/providers/anthropic.py",
+          "line": 36,
+          "provider": "anthropic"
+        }
+      ],
+      "sent": [],
+      "notSent": [],
+      "ambiguous": [],
+      "notes": "Models come from self.name, set from model registry JSON files, not Python literals. tiktoken.encoding_for_model(\"gpt-4o\") is a tokenizer."
+    },
+    {
+      "repo": "wwwzhouhui/in_animation",
+      "commit": "d86dd59455ed0a7c300339db0bdaaddd862756e3",
+      "calls": [
+        {
+          "file": "app.py",
+          "line": 525,
+          "provider": "openai"
+        },
+        {
+          "file": "app.py",
+          "line": 823,
+          "provider": "openai"
+        }
+      ],
+      "sent": [
+        {
+          "file": "app.py",
+          "line": 93,
+          "model": "ZhipuAI/GLM-4.6"
+        }
+      ],
+      "notSent": [],
+      "ambiguous": [],
+      "notes": "Clients come from get_clients(); the model is config_manager.MODEL, whose fallback literal is set in the config class. The Anthropic path uses raw httpx (AnthropicClient.py), not the SDK. test_client's model comes from a request body."
+    },
+    {
+      "repo": "LongHorizonReasoning/longcot",
+      "commit": "fb9649423f15f5b0091f8e988b100596cac592ca",
+      "calls": [
+        {
+          "file": "src/_llm.py",
+          "line": 46,
+          "provider": "openai"
+        },
+        {
+          "file": "src/_llm.py",
+          "line": 95,
+          "provider": "openai"
+        },
+        {
+          "file": "src/_llm.py",
+          "line": 155,
+          "provider": "anthropic"
+        },
+        {
+          "file": "src/_llm.py",
+          "line": 191,
+          "provider": "gemini"
+        }
+      ],
+      "sent": [],
+      "notSent": [
+        {
+          "file": "src/_types.py",
+          "line": 47,
+          "model": "gemini-3-flash-preview"
+        },
+        {
+          "file": "src/_types.py",
+          "line": 80,
+          "model": "gemini-3.1-flash"
+        }
+      ],
+      "ambiguous": [],
+      "notes": "Provider models come from CLI arguments. The verifier fallback models go to the Gemini REST API through urllib, not an SDK."
+    },
+    {
+      "repo": "alexlmoney83-oss/travel-planning-agent",
+      "commit": "d9b77eb45518bf5205b9637843011a282f27922b",
+      "calls": [
+        {
+          "file": "aggentic_RAG/travel_agent/tools/r1_tool.py",
+          "line": 52,
+          "provider": "openai"
+        },
+        {
+          "file": "app.py",
+          "line": 759,
+          "provider": "openai"
+        }
+      ],
+      "sent": [
+        {
+          "file": "aggentic_RAG/travel_agent/config/settings.py",
+          "line": 31,
+          "model": "deepseek-reasoner"
+        },
+        {
+          "file": "app.py",
+          "line": 760,
+          "model": "deepseek-reasoner"
+        }
+      ],
+      "notSent": [],
+      "ambiguous": [],
+      "notes": "OpenAI clients pointed at DeepSeek."
+    },
+    {
+      "repo": "SkywalkerDarren/chatWeb",
+      "commit": "2e5e1addf422e587635739fbc590c712beda8271",
+      "calls": [
+        {
+          "file": "ai.py",
+          "line": 26,
+          "provider": "openai"
+        },
+        {
+          "file": "ai.py",
+          "line": 98,
+          "provider": "openai"
+        },
+        {
+          "file": "ai.py",
+          "line": 105,
+          "provider": "openai"
+        }
+      ],
+      "sent": [
+        {
+          "file": "config.py",
+          "line": 64,
+          "model": "gpt-3.5-turbo"
+        },
+        {
+          "file": "config.py",
+          "line": 66,
+          "model": "text-embedding-ada-002"
+        }
+      ],
+      "notSent": [
+        {
+          "file": "ai.py",
+          "line": 97,
+          "model": "text-embedding-ada-002"
+        }
+      ],
+      "ambiguous": [],
+      "notes": "The model is looked up by name in SUPPORTED_GPT_MODELS / SUPPORTED_EMBEDDING_MODELS (catalog entries, not labelled sent); the config defaults choose which one is sent."
+    },
+    {
+      "repo": "snowmanzhuang/yixueAIganhuo-PPT",
+      "commit": "abe5557888923718010629689d4888ca03dcae57",
+      "calls": [
+        {
+          "file": "cli/editppt/runtime/image_gen.py",
+          "line": 1214,
+          "provider": "openai"
+        },
+        {
+          "file": "cli/editppt/runtime/image_gen.py",
+          "line": 1249,
+          "provider": "openai"
+        },
+        {
+          "file": "cli/editppt/runtime/image_gen.py",
+          "line": 1493,
+          "provider": "openai"
+        },
+        {
+          "file": "cli/editppt/runtime/image_gen.py",
+          "line": 1592,
+          "provider": "openai"
+        }
+      ],
+      "sent": [
+        {
+          "file": "cli/editppt/runtime/image_gen.py",
+          "line": 27,
+          "model": "gpt-image-2"
+        }
+      ],
+      "notSent": [
+        {
+          "file": "cli/editppt/runtime/image_gen.py",
+          "line": 51,
+          "model": "gpt-5.5"
+        }
+      ],
+      "ambiguous": [
+        {
+          "file": "cli/editppt/runtime/configure_image_backend.py",
+          "line": 32,
+          "model": "gpt-image-2"
+        }
+      ],
+      "notes": "Image calls pass **payload whose model is args.model, an argparse default of os.getenv(..., DEFAULT_MODEL). The Codex responses model goes over raw HTTP. configure_image_backend's default is written to a config file that later feeds the environment variable: ambiguous, not scored."
+    },
+    {
+      "repo": "FaustoS88/Pydantic-AI-Pinescript-Expert",
+      "commit": "03cbd93c486435df08d70185fbab9aa61fff5fbb",
+      "calls": [
+        {
+          "file": "db_inspect.py",
+          "line": 75,
+          "provider": "openai"
+        },
+        {
+          "file": "pinescript_crawler.py",
+          "line": 273,
+          "provider": "openai"
+        },
+        {
+          "file": "pinescript_recrawl_light.py",
+          "line": 213,
+          "provider": "openai"
+        },
+        {
+          "file": "rag_utils.py",
+          "line": 447,
+          "provider": "openai"
+        },
+        {
+          "file": "rag_utils.py",
+          "line": 640,
+          "provider": "openai"
+        }
+      ],
+      "sent": [
+        {
+          "file": "db_inspect.py",
+          "line": 77,
+          "model": "text-embedding-3-small"
+        },
+        {
+          "file": "pinescript_crawler.py",
+          "line": 274,
+          "model": "text-embedding-3-small"
+        },
+        {
+          "file": "config.py",
+          "line": 23,
+          "model": "text-embedding-3-small"
+        },
+        {
+          "file": "config.py",
+          "line": 63,
+          "model": "openai/gpt-4.1-mini"
+        }
+      ],
+      "notSent": [
+        {
+          "file": "rag_utils.py",
+          "line": 417,
+          "model": "text-embedding-3-small"
+        }
+      ],
+      "ambiguous": [],
+      "notes": "hybrid_retrieve's default is never used: its only caller passes embedding_model. rag_utils clients are untyped parameters."
+    },
+    {
+      "repo": "AnswerDotAI/claudette",
+      "commit": "e2484253a1840385f50a3f1d57847d07f6f4fa18",
+      "calls": [
+        {
+          "file": "claudette/core.py",
+          "line": 290,
+          "provider": "anthropic"
+        },
+        {
+          "file": "claudette/asink.py",
+          "line": 57,
+          "provider": "anthropic"
+        }
+      ],
+      "sent": [],
+      "notSent": [],
+      "ambiguous": [],
+      "notes": "A library: the model is whatever the caller passes to Client(model); the model_types table is a catalog. The method is chosen dynamically (m.stream or m.create)."
+    },
+    {
+      "repo": "KeWang0622/agent-zero-to-hero",
+      "commit": "179d6b38f137a46e33328958a014e60cb6038b2a",
+      "calls": [
+        {
+          "file": "agent.py",
+          "line": 481,
+          "provider": "anthropic"
+        },
+        {
+          "file": "agent.py",
+          "line": 583,
+          "provider": "anthropic"
+        },
+        {
+          "file": "agent.py",
+          "line": 649,
+          "provider": "anthropic"
+        },
+        {
+          "file": "agent.py",
+          "line": 666,
+          "provider": "anthropic"
+        },
+        {
+          "file": "chapters/ch00_welcome.py",
+          "line": 67,
+          "provider": "anthropic"
+        },
+        {
+          "file": "chapters/ch02_messages_array.py",
+          "line": 53,
+          "provider": "anthropic"
+        },
+        {
+          "file": "chapters/ch03_stop_reasons.py",
+          "line": 55,
+          "provider": "anthropic"
+        },
+        {
+          "file": "chapters/ch04_one_tool.py",
+          "line": 66,
+          "provider": "anthropic"
+        },
+        {
+          "file": "chapters/ch05_the_loop.py",
+          "line": 103,
+          "provider": "anthropic"
+        },
+        {
+          "file": "chapters/ch06_parallel_tools.py",
+          "line": 81,
+          "provider": "anthropic"
+        },
+        {
+          "file": "chapters/ch07_errors.py",
+          "line": 74,
+          "provider": "anthropic"
+        },
+        {
+          "file": "chapters/ch08_system_prompts.py",
+          "line": 55,
+          "provider": "anthropic"
+        },
+        {
+          "file": "chapters/ch08_system_prompts.py",
+          "line": 68,
+          "provider": "anthropic"
+        },
+        {
+          "file": "chapters/ch08b_observability.py",
+          "line": 133,
+          "provider": "anthropic"
+        },
+        {
+          "file": "chapters/ch08c_prompt_caching.py",
+          "line": 218,
+          "provider": "anthropic"
+        },
+        {
+          "file": "chapters/ch08c_prompt_caching.py",
+          "line": 289,
+          "provider": "anthropic"
+        },
+        {
+          "file": "chapters/ch08c_prompt_caching.py",
+          "line": 297,
+          "provider": "anthropic"
+        },
+        {
+          "file": "chapters/ch09_sessions.py",
+          "line": 97,
+          "provider": "anthropic"
+        },
+        {
+          "file": "chapters/ch10_compaction.py",
+          "line": 76,
+          "provider": "anthropic"
+        },
+        {
+          "file": "chapters/ch10_compaction.py",
+          "line": 95,
+          "provider": "anthropic"
+        },
+        {
+          "file": "chapters/ch11_subagents.py",
+          "line": 69,
+          "provider": "anthropic"
+        },
+        {
+          "file": "chapters/ch11_subagents.py",
+          "line": 116,
+          "provider": "anthropic"
+        },
+        {
+          "file": "chapters/ch12_skills.py",
+          "line": 118,
+          "provider": "anthropic"
+        },
+        {
+          "file": "chapters/ch14_mcp_agent.py",
+          "line": 102,
+          "provider": "anthropic"
+        },
+        {
+          "file": "chapters/ch16_streaming_tools.py",
+          "line": 84,
+          "provider": "anthropic"
+        }
+      ],
+      "sent": [
+        {
+          "file": "agent.py",
+          "line": 62,
+          "model": "claude-sonnet-4-6"
+        },
+        {
+          "file": "chapters/ch00_welcome.py",
+          "line": 40,
+          "model": "claude-sonnet-4-6"
+        },
+        {
+          "file": "chapters/ch02_messages_array.py",
+          "line": 32,
+          "model": "claude-sonnet-4-6"
+        },
+        {
+          "file": "chapters/ch03_stop_reasons.py",
+          "line": 50,
+          "model": "claude-sonnet-4-6"
+        },
+        {
+          "file": "chapters/ch04_one_tool.py",
+          "line": 31,
+          "model": "claude-sonnet-4-6"
+        },
+        {
+          "file": "chapters/ch05_the_loop.py",
+          "line": 46,
+          "model": "claude-sonnet-4-6"
+        },
+        {
+          "file": "chapters/ch06_parallel_tools.py",
+          "line": 37,
+          "model": "claude-sonnet-4-6"
+        },
+        {
+          "file": "chapters/ch07_errors.py",
+          "line": 38,
+          "model": "claude-sonnet-4-6"
+        },
+        {
+          "file": "chapters/ch08_system_prompts.py",
+          "line": 43,
+          "model": "claude-sonnet-4-6"
+        },
+        {
+          "file": "chapters/ch08b_observability.py",
+          "line": 40,
+          "model": "claude-sonnet-4-6"
+        },
+        {
+          "file": "chapters/ch08c_prompt_caching.py",
+          "line": 56,
+          "model": "claude-sonnet-4-6"
+        },
+        {
+          "file": "chapters/ch09_sessions.py",
+          "line": 42,
+          "model": "claude-sonnet-4-6"
+        },
+        {
+          "file": "chapters/ch10_compaction.py",
+          "line": 52,
+          "model": "claude-sonnet-4-6"
+        },
+        {
+          "file": "chapters/ch11_subagents.py",
+          "line": 41,
+          "model": "claude-sonnet-4-6"
+        },
+        {
+          "file": "chapters/ch12_skills.py",
+          "line": 48,
+          "model": "claude-sonnet-4-6"
+        },
+        {
+          "file": "chapters/ch14_mcp_agent.py",
+          "line": 46,
+          "model": "claude-sonnet-4-6"
+        },
+        {
+          "file": "chapters/ch16_streaming_tools.py",
+          "line": 41,
+          "model": "claude-sonnet-4-6"
+        }
+      ],
+      "notSent": [
+        {
+          "file": "chapters/ch01_raw_call.py",
+          "line": 32,
+          "model": "claude-sonnet-4-6"
+        },
+        {
+          "file": "chapters/ch15_streaming_text.py",
+          "line": 50,
+          "model": "claude-sonnet-4-6"
+        },
+        {
+          "file": "chapters/ch17_multi_provider.py",
+          "line": 74,
+          "model": "claude-sonnet-4-6"
+        },
+        {
+          "file": "chapters/ch17_multi_provider.py",
+          "line": 115,
+          "model": "gpt-5-mini"
+        },
+        {
+          "file": "chapters/ch17_multi_provider.py",
+          "line": 161,
+          "model": "gemini-2.5-flash"
+        }
+      ],
+      "ambiguous": [],
+      "notes": "chapters 01, 15 and 17 call the APIs with urllib, not an SDK. agent.py:649 and 666 pass the SDK method to with_retries with model=MODEL. chapters/ch03:91 and ch05:12 are calls inside docstrings."
+    },
+    {
+      "repo": "Lyra-stellAI/BYO-LLM-WIKI",
+      "commit": "0316fb7d01c0c5be590580ebedc02688a6f27d73",
+      "calls": [
+        {
+          "file": "app.py",
+          "line": 236,
+          "provider": "anthropic"
+        },
+        {
+          "file": "app.py",
+          "line": 253,
+          "provider": "openai"
+        },
+        {
+          "file": "embeddings.py",
+          "line": 58,
+          "provider": "openai"
+        },
+        {
+          "file": "extraction.py",
+          "line": 111,
+          "provider": "anthropic"
+        },
+        {
+          "file": "extraction.py",
+          "line": 125,
+          "provider": "openai"
+        },
+        {
+          "file": "rag.py",
+          "line": 230,
+          "provider": "anthropic"
+        }
+      ],
+      "sent": [
+        {
+          "file": "providers.py",
+          "line": 18,
+          "model": "claude-haiku-4-5-20251001"
+        },
+        {
+          "file": "providers.py",
+          "line": 32,
+          "model": "gpt-4o-mini"
+        },
+        {
+          "file": "providers.py",
+          "line": 41,
+          "model": "qwen-plus"
+        },
+        {
+          "file": "providers.py",
+          "line": 50,
+          "model": "deepseek-chat"
+        },
+        {
+          "file": "providers.py",
+          "line": 59,
+          "model": "gemini-3.5-flash"
+        },
+        {
+          "file": "providers.py",
+          "line": 68,
+          "model": "mistral-large-latest"
+        },
+        {
+          "file": "embeddings.py",
+          "line": 16,
+          "model": "text-embedding-3-small"
+        }
+      ],
+      "notSent": [
+        {
+          "file": "providers.py",
+          "line": 154,
+          "model": "gpt-5.2-2025-12-11"
+        },
+        {
+          "file": "providers.py",
+          "line": 156,
+          "model": "deepseek-v4-flash"
+        }
+      ],
+      "ambiguous": [
+        {
+          "file": "providers.py",
+          "line": 102,
+          "model": "claude-opus-4-8"
+        },
+        {
+          "file": "vectorstore.py",
+          "line": 117,
+          "model": "text-embedding-3-small"
+        }
+      ],
+      "notes": "Clients are wrapped by config.traced_anthropic / traced_openai (LangSmith). Default models come from the PROVIDERS registry's default_model entries through resolve_provider_model; the models lists are catalogs (not labelled). Judge panel models go to LangChain ChatOpenAI, not the SDK."
+    },
+    {
+      "repo": "eighteendreamer/Ai_Test_Agent",
+      "commit": "186679a8661ac3414f7b6f75782e8669d69b6f1a",
+      "calls": [
+        {
+          "file": "Agent_Server/llm/base.py",
+          "line": 495,
+          "provider": "openai"
+        },
+        {
+          "file": "Agent_Server/llm/base.py",
+          "line": 653,
+          "provider": "openai"
+        },
+        {
+          "file": "Agent_Server/llm/providers/anthropic_provider.py",
+          "line": 98,
+          "provider": "anthropic"
+        },
+        {
+          "file": "Agent_Server/llm/providers/anthropic_provider.py",
+          "line": 173,
+          "provider": "anthropic"
+        },
+        {
+          "file": "Agent_Server/llm/providers/azure_provider.py",
+          "line": 76,
+          "provider": "openai"
+        },
+        {
+          "file": "Agent_Server/llm/providers/azure_provider.py",
+          "line": 122,
+          "provider": "openai"
+        },
+        {
+          "file": "Agent_Server/llm/providers/deepseek_provider.py",
+          "line": 73,
+          "provider": "openai"
+        },
+        {
+          "file": "Agent_Server/llm/providers/deepseek_provider.py",
+          "line": 98,
+          "provider": "openai"
+        },
+        {
+          "file": "Agent_Server/llm/providers/deepseek_provider.py",
+          "line": 169,
+          "provider": "openai"
+        },
+        {
+          "file": "Agent_Server/llm/providers/generic_provider.py",
+          "line": 91,
+          "provider": "openai"
+        },
+        {
+          "file": "Enterprise_AI_QA_Agent/Agent_Server/src/application/model_clients/anthropic_client.py",
+          "line": 40,
+          "provider": "anthropic"
+        },
+        {
+          "file": "Enterprise_AI_QA_Agent/Agent_Server/src/application/model_clients/anthropic_client.py",
+          "line": 68,
+          "provider": "anthropic"
+        },
+        {
+          "file": "Enterprise_AI_QA_Agent/Agent_Server/src/application/model_clients/embeddings.py",
+          "line": 43,
+          "provider": "openai"
+        },
+        {
+          "file": "Enterprise_AI_QA_Agent/Agent_Server/src/application/model_clients/embeddings.py",
+          "line": 103,
+          "provider": "gemini"
+        },
+        {
+          "file": "Enterprise_AI_QA_Agent/Agent_Server/src/application/model_clients/google_client.py",
+          "line": 89,
+          "provider": "gemini"
+        },
+        {
+          "file": "Enterprise_AI_QA_Agent/Agent_Server/src/application/model_clients/google_client.py",
+          "line": 119,
+          "provider": "gemini"
+        },
+        {
+          "file": "Enterprise_AI_QA_Agent/Agent_Server/src/application/model_clients/openai_client.py",
+          "line": 42,
+          "provider": "openai"
+        },
+        {
+          "file": "Enterprise_AI_QA_Agent/Agent_Server/src/application/model_clients/openai_client.py",
+          "line": 71,
+          "provider": "openai"
+        },
+        {
+          "file": "Enterprise_AI_QA_Agent/Agent_Server/src/application/model_clients/openai_responses_client.py",
+          "line": 50,
+          "provider": "openai"
+        },
+        {
+          "file": "Enterprise_AI_QA_Agent/Agent_Server/src/application/model_clients/openai_responses_client.py",
+          "line": 75,
+          "provider": "openai"
+        }
+      ],
+      "sent": [
+        {
+          "file": "Agent_Server/llm/examples.py",
+          "line": 20,
+          "model": "deepseek-chat"
+        },
+        {
+          "file": "Agent_Server/llm/examples.py",
+          "line": 49,
+          "model": "gpt-4o"
+        },
+        {
+          "file": "Agent_Server/llm/examples.py",
+          "line": 74,
+          "model": "deepseek-chat"
+        },
+        {
+          "file": "Agent_Server/llm/examples.py",
+          "line": 175,
+          "model": "deepseek-reasoner"
+        }
+      ],
+      "notSent": [],
+      "ambiguous": [
+        {
+          "file": "Enterprise_AI_QA_Agent/Agent_Server/src/infrastructure/model_config_store.py",
+          "line": 256,
+          "model": "claude-sonnet-4-20250514"
+        },
+        {
+          "file": "Enterprise_AI_QA_Agent/Agent_Server/src/infrastructure/model_config_store.py",
+          "line": 265,
+          "model": "gpt-5.4"
+        },
+        {
+          "file": "Enterprise_AI_QA_Agent/Agent_Server/src/infrastructure/model_config_store.py",
+          "line": 274,
+          "model": "qwen-max"
+        },
+        {
+          "file": "Enterprise_AI_QA_Agent/Agent_Server/src/infrastructure/model_config_store.py",
+          "line": 283,
+          "model": "deepseek-reasoner"
+        }
+      ],
+      "notes": "Model names come from provider configs (database records); config.py holds catalogs. llm/examples.py builds provider configs with literal model names that the providers send. model_config_store seed records may become configs: ambiguous, not scored. Docstring examples in __init__.py and factory.py are comments."
+    },
+    {
+      "repo": "MCG-NJU/VideoChat3",
+      "commit": "015f52eb2ea70b5abda30192aee18034f2c5f13b",
+      "calls": [
+        {
+          "file": "vlmevalkit-videochat3/vlmeval/api/doubao_vl_api.py",
+          "line": 185,
+          "provider": "openai"
+        },
+        {
+          "file": "vlmevalkit-videochat3/vlmeval/api/gemini.py",
+          "line": 150,
+          "provider": "gemini"
+        },
+        {
+          "file": "vlmevalkit-videochat3/vlmeval/dataset/simplevqa.py",
+          "line": 163,
+          "provider": "openai"
+        },
+        {
+          "file": "vlmevalkit-videochat3/vlmeval/dataset/utils/hipho_verifier.py",
+          "line": 1034,
+          "provider": "openai"
+        },
+        {
+          "file": "vlmevalkit-videochat3/vlmeval/dataset/utils/mathcanvas.py",
+          "line": 108,
+          "provider": "openai"
+        }
+      ],
+      "sent": [
+        {
+          "file": "vlmevalkit-videochat3/vlmeval/config.py",
+          "line": 293,
+          "model": "gemini-1.0-pro"
+        },
+        {
+          "file": "vlmevalkit-videochat3/vlmeval/config.py",
+          "line": 296,
+          "model": "gemini-1.5-pro"
+        },
+        {
+          "file": "vlmevalkit-videochat3/vlmeval/config.py",
+          "line": 299,
+          "model": "gemini-1.5-flash"
+        },
+        {
+          "file": "vlmevalkit-videochat3/vlmeval/config.py",
+          "line": 308,
+          "model": "gemini-2.0-flash"
+        },
+        {
+          "file": "vlmevalkit-videochat3/vlmeval/config.py",
+          "line": 311,
+          "model": "gemini-2.0-flash-lite"
+        },
+        {
+          "file": "vlmevalkit-videochat3/vlmeval/config.py",
+          "line": 314,
+          "model": "gemini-2.5-flash"
+        },
+        {
+          "file": "vlmevalkit-videochat3/vlmeval/config.py",
+          "line": 317,
+          "model": "gemini-2.5-pro"
+        },
+        {
+          "file": "vlmevalkit-videochat3/vlmeval/dataset/simplevqa.py",
+          "line": 164,
+          "model": "gpt-4o"
+        }
+      ],
+      "notSent": [
+        {
+          "file": "vlmevalkit-videochat3/vlmeval/api/gemini.py",
+          "line": 167,
+          "model": "gemini-1.0-pro-vision"
+        }
+      ],
+      "ambiguous": [
+        {
+          "file": "vlmevalkit-videochat3/vlmeval/api/gemini.py",
+          "line": 12,
+          "model": "gemini-1.0-pro"
+        }
+      ],
+      "notes": "The model registry in vlmeval/config.py builds Gemini wrappers with partial(Gemini, model=...); the wrapper sends self.model through google-genai's client.models.generate_content. GPT4V entries go through requests, not an SDK. The Vertex AI path (GenerativeModel) is another SDK. Most of the 1,640 files are model code with no API call."
+    },
+    {
+      "repo": "wangyu-ustc/Mem-alpha",
+      "commit": "9c0e1f6482f8ea7a322012a8155247966285946f",
+      "calls": [
+        {
+          "file": "agent.py",
+          "line": 497,
+          "provider": "openai"
+        },
+        {
+          "file": "agent.py",
+          "line": 584,
+          "provider": "openai"
+        },
+        {
+          "file": "data_preprocess/extract_booksum_keywords.py",
+          "line": 55,
+          "provider": "openai"
+        },
+        {
+          "file": "data_preprocess/extract_memoryagentbench_keywords.py",
+          "line": 60,
+          "provider": "openai"
+        },
+        {
+          "file": "data_preprocess/shorten_answers_for_perltqa.py",
+          "line": 84,
+          "provider": "openai"
+        },
+        {
+          "file": "evaluate_agent_results.py",
+          "line": 109,
+          "provider": "openai"
+        },
+        {
+          "file": "long_context_eval.py",
+          "line": 546,
+          "provider": "openai"
+        },
+        {
+          "file": "long_context_eval.py",
+          "line": 685,
+          "provider": "openai"
+        },
+        {
+          "file": "long_context_eval.py",
+          "line": 890,
+          "provider": "openai"
+        },
+        {
+          "file": "long_context_eval.py",
+          "line": 930,
+          "provider": "openai"
+        },
+        {
+          "file": "long_context_eval.py",
+          "line": 1011,
+          "provider": "openai"
+        },
+        {
+          "file": "long_context_eval.py",
+          "line": 1038,
+          "provider": "openai"
+        },
+        {
+          "file": "long_context_eval.py",
+          "line": 1116,
+          "provider": "openai"
+        },
+        {
+          "file": "long_context_eval.py",
+          "line": 1136,
+          "provider": "openai"
+        },
+        {
+          "file": "main.py",
+          "line": 67,
+          "provider": "openai"
+        },
+        {
+          "file": "memory.py",
+          "line": 128,
+          "provider": "openai"
+        },
+        {
+          "file": "memory_server.py",
+          "line": 120,
+          "provider": "openai"
+        },
+        {
+          "file": "memory_server.py",
+          "line": 546,
+          "provider": "openai"
+        },
+        {
+          "file": "memory_server.py",
+          "line": 639,
+          "provider": "openai"
+        },
+        {
+          "file": "memory_server.py",
+          "line": 750,
+          "provider": "openai"
+        },
+        {
+          "file": "memory_server.py",
+          "line": 1077,
+          "provider": "openai"
+        },
+        {
+          "file": "memory_server.py",
+          "line": 1097,
+          "provider": "openai"
+        },
+        {
+          "file": "memory_server.py",
+          "line": 1128,
+          "provider": "openai"
+        },
+        {
+          "file": "memory_server.py",
+          "line": 1148,
+          "provider": "openai"
+        },
+        {
+          "file": "memory_server.py",
+          "line": 1574,
+          "provider": "openai"
+        },
+        {
+          "file": "memory_server.py",
+          "line": 1609,
+          "provider": "openai"
+        },
+        {
+          "file": "memory_server.py",
+          "line": 1638,
+          "provider": "openai"
+        },
+        {
+          "file": "memory_server.py",
+          "line": 1655,
+          "provider": "openai"
+        },
+        {
+          "file": "openrouter_worker.py",
+          "line": 22,
+          "provider": "openai"
+        },
+        {
+          "file": "process_data.py",
+          "line": 362,
+          "provider": "openai"
+        },
+        {
+          "file": "process_data.py",
+          "line": 2143,
+          "provider": "openai"
+        },
+        {
+          "file": "process_data.py",
+          "line": 4165,
+          "provider": "openai"
+        },
+        {
+          "file": "verl/workers/reward_manager/naive.py",
+          "line": 130,
+          "provider": "openai"
+        },
+        {
+          "file": "verl/workers/reward_manager/naive.py",
+          "line": 219,
+          "provider": "openai"
+        },
+        {
+          "file": "verl/workers/rollout/chat_scheduler.py",
+          "line": 351,
+          "provider": "openai"
+        }
+      ],
+      "sent": [
+        {
+          "file": "agent.py",
+          "line": 35,
+          "model": "gpt-4.1-mini"
+        },
+        {
+          "file": "agent.py",
+          "line": 498,
+          "model": "qwen3-32b"
+        },
+        {
+          "file": "data_preprocess/extract_booksum_keywords.py",
+          "line": 56,
+          "model": "gpt-4.1"
+        },
+        {
+          "file": "data_preprocess/extract_memoryagentbench_keywords.py",
+          "line": 61,
+          "model": "gpt-4.1"
+        },
+        {
+          "file": "data_preprocess/shorten_answers_for_perltqa.py",
+          "line": 85,
+          "model": "gpt-4.1"
+        },
+        {
+          "file": "long_context_eval.py",
+          "line": 90,
+          "model": "BytedTsinghua-SIA/RL-MemoryAgent-7B"
+        },
+        {
+          "file": "long_context_eval.py",
+          "line": 91,
+          "model": "BytedTsinghua-SIA/RL-MemoryAgent-14B"
+        },
+        {
+          "file": "long_context_eval.py",
+          "line": 179,
+          "model": "gpt-4o-mini"
+        },
+        {
+          "file": "long_context_eval.py",
+          "line": 547,
+          "model": "gpt-4o-mini"
+        },
+        {
+          "file": "long_context_eval.py",
+          "line": 686,
+          "model": "qwen3-32b"
+        },
+        {
+          "file": "main.py",
+          "line": 68,
+          "model": "gpt-4.1-mini"
+        },
+        {
+          "file": "memory.py",
+          "line": 129,
+          "model": "text-embedding-3-small"
+        },
+        {
+          "file": "process_data.py",
+          "line": 297,
+          "model": "qwen3-32b"
+        },
+        {
+          "file": "process_data.py",
+          "line": 2144,
+          "model": "gpt-4o-mini"
+        },
+        {
+          "file": "process_data.py",
+          "line": 4166,
+          "model": "gpt-4.1"
+        },
+        {
+          "file": "verl/workers/reward_manager/naive.py",
+          "line": 64,
+          "model": "qwen3-32b"
+        },
+        {
+          "file": "verl/workers/reward_manager/naive.py",
+          "line": 220,
+          "model": "qwen3-32b"
+        }
+      ],
+      "notSent": [
+        {
+          "file": "long_context_eval.py",
+          "line": 53,
+          "model": "gpt-4o-mini"
+        },
+        {
+          "file": "memory_server.py",
+          "line": 59,
+          "model": "qwen3-32b"
+        },
+        {
+          "file": "memory.py",
+          "line": 23,
+          "model": "gpt-4.1-mini"
+        },
+        {
+          "file": "agent.py",
+          "line": 36,
+          "model": "Qwen/Qwen3-8B"
+        }
+      ],
+      "ambiguous": [],
+      "notes": "Many OpenAI-compatible clients point at local Qwen servers or Azure. LongContextEvaluator's model_name default is overridden by its only caller. memory_server's MODEL_NAME literal only selects the Qwen path, whose model comes from QWEN_MODEL_NAME. MEM1/ uses requests and litellm, not the SDK. tiktoken and token-count helpers are not requests."
+    },
+    {
+      "repo": "future-agi/agent-learning-kit",
+      "commit": "bd5ab6b4ad3d590b87953c658bbcf0b16a9675ee",
+      "calls": [
+        {
+          "file": "src/fi/simulate/agent/wrappers/anthropic.py",
+          "line": 57,
+          "provider": "anthropic"
+        },
+        {
+          "file": "src/fi/simulate/agent/wrappers/anthropic.py",
+          "line": 59,
+          "provider": "anthropic"
+        },
+        {
+          "file": "src/fi/simulate/agent/wrappers/openai.py",
+          "line": 35,
+          "provider": "openai"
+        },
+        {
+          "file": "src/fi/simulate/agent/wrappers/openai.py",
+          "line": 40,
+          "provider": "openai"
+        },
+        {
+          "file": "src/fi/simulate/simulation/gemini_tts_stream.py",
+          "line": 39,
+          "provider": "gemini"
+        }
+      ],
+      "sent": [
+        {
+          "file": "src/fi/simulate/agent/wrappers/openai.py",
+          "line": 9,
+          "model": "gpt-4-turbo"
+        },
+        {
+          "file": "src/fi/simulate/agent/wrappers/anthropic.py",
+          "line": 9,
+          "model": "claude-sonnet-4-5-20250929"
+        },
+        {
+          "file": "src/fi/simulate/endpoints/actor_sources.py",
+          "line": 191,
+          "model": "gpt-4-turbo"
+        }
+      ],
+      "notSent": [
+        {
+          "file": "src/fi/evals/otel/instrumentors/anthropic.py",
+          "line": 44,
+          "model": "claude-3-opus-20240229"
+        }
+      ],
+      "ambiguous": [],
+      "notes": "The agent wrappers take any client as an untyped parameter; their model defaults are public API defaults (AnthropicAgentWrapper has no caller in the repository, so its default is what a user gets). Calls in the otel instrumentors are docstring examples."
+    },
+    {
+      "repo": "GenSI-THUAIR/FLEX",
+      "commit": "b749fc351f81d834b71edb13bc7bc0e51cfdc15d",
+      "calls": [
+        {
+          "file": "icl.py",
+          "line": 97,
+          "provider": "openai"
+        },
+        {
+          "file": "rate_limiter.py",
+          "line": 23,
+          "provider": "openai"
+        },
+        {
+          "file": "rate_limiter.py",
+          "line": 41,
+          "provider": "openai"
+        }
+      ],
+      "sent": [
+        {
+          "file": "reject_sampling.py",
+          "line": 752,
+          "model": "openai/gpt-5"
+        },
+        {
+          "file": "reject_sampling.py",
+          "line": 753,
+          "model": "openai/gpt-5"
+        }
+      ],
+      "notSent": [],
+      "ambiguous": [],
+      "notes": "RateLimitedLLMClient.chat_completion takes the model as a parameter; reject_sampling's argparse defaults reach it. build/ is a build copy and test_*.py scripts are out of scope by the path rule."
+    }
+  ]
+}
