@@ -97,17 +97,27 @@ async function approvals(pool: pg.Pool) {
   ).rows;
 }
 
-// Every installed repository of an allowed account has an inventory row keyed by its name.
-async function inventoried(pool: pg.Pool, repository: string) {
+// An installed repository's inventory, monitoring state and deadline alerts are keyed by its name.
+async function derive(pool: pg.Pool, repository: string) {
   await pool.query(
     `INSERT INTO refit_inventories (installation_id, repository, state) VALUES ($1, $2, 'idle')`,
     [INSTALLATION, repository],
   );
+  await pool.query(
+    `INSERT INTO refit_monitoring (installation_id, repository, rescanned_at) VALUES ($1, $2, now())`,
+    [INSTALLATION, repository],
+  );
+  await pool.query(
+    `INSERT INTO refit_deadline_alerts (installation_id, repository, deadline, stage, status, sent_at)
+     VALUES ($1, $2, 'example-deadline', 1, 'opened', now())`,
+    [INSTALLATION, repository],
+  );
 }
 
-async function inventories(pool: pg.Pool) {
+async function derived(pool: pg.Pool) {
   const { rows } = await pool.query<{ repository: string }>(
-    'SELECT repository FROM refit_inventories ORDER BY repository',
+    `SELECT repository FROM refit_inventories UNION ALL SELECT repository FROM refit_monitoring
+     UNION ALL SELECT repository FROM refit_deadline_alerts`,
   );
   return rows.map((row) => row.repository);
 }
@@ -365,7 +375,7 @@ it.skipIf(!DATABASE)(
       'installation',
       installation('created', [['example/application', APPLICATION_ID]]),
     );
-    await inventoried(pool, 'example/application');
+    await derive(pool, 'example/application');
     const job = await store.claim('worker-a', 30);
     const renamedTarget = hostedTargetId('example/billing', 'main');
 
@@ -383,7 +393,7 @@ it.skipIf(!DATABASE)(
       enrolled: [renamedTarget],
     });
     expect(await membership(pool)).toEqual([[INSTALLATION, 'example/billing', APPLICATION_ID]]);
-    expect(await inventories(pool)).toEqual(['example/billing']);
+    expect(await derived(pool)).toEqual(['example/billing', 'example/billing', 'example/billing']);
     const [moved] = await approvals(pool);
     expect(moved).toMatchObject({ repository: 'example/billing', approved_by: 'octo-reviewer' });
     expect(moved.approval.files).toEqual(sample.approval.files);
@@ -627,7 +637,7 @@ it.skipIf(!DATABASE)(
       'installation',
       installation('created', [['example/application', APPLICATION_ID]]),
     );
-    await inventoried(pool, 'example/application');
+    await derive(pool, 'example/application');
     const renamedTarget = hostedTargetId('example-labs/application', 'main');
     const renamed = await deliver(
       store,
@@ -649,7 +659,11 @@ it.skipIf(!DATABASE)(
     expect((await approvals(pool)).map((row) => row.repository)).toEqual([
       'example-labs/application',
     ]);
-    expect(await inventories(pool)).toEqual(['example-labs/application']);
+    expect(await derived(pool)).toEqual([
+      'example-labs/application',
+      'example-labs/application',
+      'example-labs/application',
+    ]);
     // Later installation events carry the new login and are no longer refused as a changed owner.
     expect(
       (

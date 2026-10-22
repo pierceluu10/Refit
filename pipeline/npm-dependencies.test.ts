@@ -166,6 +166,10 @@ it(
     expect(
       run.args.find((argument: string) => argument.includes('npm ci --ignore-scripts')),
     ).toContain('npm ci --ignore-scripts --include=dev --engine-strict --no-audit --no-fund');
+    // Tarballs a lockfile resolved through a public mirror are fetched from the public registry.
+    expect(run.args.find((argument: string) => argument.includes('npm ci'))).toContain(
+      '--registry=https://registry.npmjs.org --replace-registry-host=always',
+    );
     expect(JSON.stringify(run.args)).not.toContain(fixture.repository);
     expect((await prepareDependencies(fixture.options)).reused).toBe(true);
     expect((await fixture.calls()).filter((call) => call.args[0] === 'run')).toHaveLength(1);

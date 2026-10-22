@@ -23,6 +23,7 @@ import { PAYMENT_METHOD_RENAME_RULES, removedRequestParameters } from './request
 import { gitEnvironment } from './git-environment.ts';
 import { readCommittedRepository } from './committed-repository.ts';
 import { prepareDependencies, repositoryDependencyFailure } from './dependency-preparation.ts';
+import { baselineStop } from './preparation-stops.ts';
 import { inspectArtifactFile } from './verification.ts';
 import { analyzeRepository } from './analyzer.ts';
 import {
@@ -345,6 +346,17 @@ function checkStatus(
       : patched.status !== 'passed' || generatedFailed(generated?.patched)
         ? ('regression' as const)
         : ('passed' as const);
+}
+
+// A baseline that fails for a known setup reason names the change that fixes it.
+function namedBaselineStop(status: string, baselineRun: CheckResult) {
+  const stop =
+    status === 'baseline-failed'
+      ? baselineStop(`${baselineRun.stdout}\n${baselineRun.stderr}`)
+      : undefined;
+  return stop
+    ? { baselineStop: { reason: stop.reason, summary: stop.summary, action: stop.action } }
+    : {};
 }
 
 const validationLimits = () => ({
@@ -984,6 +996,7 @@ export async function validateMigration(options: {
       attempts,
       repair,
       ...(reviewTypeErrors.length ? { reviewTypeErrors } : {}),
+      ...namedBaselineStop(validationStatus, baselineRun),
       limits: validationLimits(),
       publishable: false,
       reason:
@@ -1096,8 +1109,9 @@ export async function validateSourcePatch(options: {
         }),
       );
     }
+    const status = checkStatus(baseline, patched);
     return {
-      status: checkStatus(baseline, patched),
+      status,
       revision,
       image,
       runtime,
@@ -1111,6 +1125,7 @@ export async function validateSourcePatch(options: {
       baseline,
       patched,
       publicationFiles,
+      ...namedBaselineStop(status, baselineRun),
       limits: validationLimits(),
     };
   } finally {

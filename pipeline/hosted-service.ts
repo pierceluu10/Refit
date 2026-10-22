@@ -37,6 +37,13 @@ import {
 } from './inventory.ts';
 import { openInventoryStore, type InventoryClaim } from './inventory-store.ts';
 import {
+  requestRescans,
+  sendDeadlineAlerts,
+  upcomingDeadlines,
+  type HostedAlerts,
+} from './monitoring.ts';
+import { openMonitoringStore } from './monitoring-store.ts';
+import {
   authorized,
   DEFAULT_SERVICE_PORT,
   requestBody,
@@ -83,6 +90,12 @@ export async function runHostedService(options: {
   aiPatch?: AiOptions;
   repairAttempts?: number;
   publishDraft?: boolean;
+  // Off by default: re-scans inventories on push, registry change and age, and opens or updates
+  // deadline issues at the lead times. Needs the App's Issues write permission.
+  alerts?: HostedAlerts;
+  // The deadline registry file, by default the bundled one.
+  registry?: string | URL;
+  now?: () => Date;
   // Runs each job on its own short-lived Fly Machine in a separate app that holds no secrets,
   // instead of on this VM's Docker daemon. The job channel listens on the private network only.
   jobMachines?: {
@@ -191,6 +204,8 @@ export async function runHostedService(options: {
   const store = await openStore();
   outage = OUTAGE_RETRY_MS;
   const inventories = openInventoryStore(options.database, options.tenancy.limits);
+  const monitoring = openMonitoringStore(options.database);
+  const now = () => options.now?.() ?? new Date();
   const approvals = openApprovalStore(options.database);
   const notifyFailures =
     options.notify && failedJobNotifier(options.database, options.notify, options.redact);
@@ -336,7 +351,7 @@ export async function runHostedService(options: {
       options.onProgress?.(`[inventory ${claimed.repository}] ${message}`);
     const started = Date.now();
     try {
-      const registry = await loadDeadlineRegistry();
+      const registry = await loadDeadlineRegistry(options.registry, now());
       const result = await refreshInventory({
         app: options.app,
         directory: join(directory, 'inventory', randomUUID()),
@@ -344,6 +359,7 @@ export async function runHostedService(options: {
         repository: claimed.repository,
         registry,
         previous: claimed.previous,
+        now: now(),
         signal: options.signal,
         onProgress: progress,
       });
@@ -365,6 +381,17 @@ export async function runHostedService(options: {
       if (options.signal.aborted) return;
       await inventories.finish(claimed, worker, { error: `${error.name}: ${error.message}` });
       progress(`${error.name}: ${error.message}`);
+    }
+  };
+
+  // A registry that does not load skips monitoring for this pass, as it does locally.
+  const monitoringRegistry = async () => {
+    try {
+      return await loadDeadlineRegistry(options.registry, now());
+    } catch (error) {
+      if (!(error instanceof Error)) throw error;
+      options.onProgress?.(`Deadline monitoring skipped: ${error.name}: ${error.message}`);
+      return null;
     }
   };
 
@@ -431,7 +458,8 @@ export async function runHostedService(options: {
           if (!authorized(request, options.controlToken))
             throw new WebhookInputError(401, 'Service authorization is required.');
           const status = filterHostedStatus(await store.read(), url.searchParams);
-          // A target's view shows only its repository's inventory.
+          // A target's view shows only its repository's inventory, and no installation-wide
+          // monitoring.
           const repository = url.searchParams.has('target')
             ? status.targets[0].repository
             : undefined;
@@ -442,6 +470,12 @@ export async function runHostedService(options: {
               ...row,
               summary: inventory && inventorySummary(inventory),
             })),
+            ...(repository === undefined && {
+              monitoring: {
+                alerts: Boolean(options.alerts),
+                installations: await upcomingDeadlines(monitoring, now()),
+              },
+            }),
           });
           return;
         }
@@ -481,10 +515,15 @@ export async function runHostedService(options: {
                 change.added.map((repository) => repository.name),
               )
             : 0;
+        const pushed =
+          options.alerts && receipt.status === 'accepted' && change.kind === 'push'
+            ? await monitoring.pushed(change.installation, change.repository, now())
+            : false;
         // With approval issues on, new installations and comments are handled without waiting.
         if (
           receipt.enrolled.length ||
           inventoried ||
+          pushed ||
           (options.approvalIssues && ['accepted', 'queued'].includes(receipt.status))
         )
           wake();
@@ -550,6 +589,14 @@ export async function runHostedService(options: {
             options.onProgress?.(`[${target}] Kept after the grace period: ${reason}`);
         }
         await inventories.requestMissing();
+        const registry = options.alerts && (await monitoringRegistry());
+        if (registry) {
+          const due = await requestRescans({ monitoring, inventories, registry, now: now() });
+          for (const item of due)
+            options.onProgress?.(
+              `[monitoring ${item.repository}] Inventory requested (${item.reason}).`,
+            );
+        }
         // Inventories are short and read-only, so a queued one goes before the next validation job.
         while (!options.signal.aborted) {
           const inventory = await inventories.claim(
@@ -567,6 +614,17 @@ export async function runHostedService(options: {
         }
         // A claim can also fail a job whose lease expired too often.
         await notifyFailures?.();
+        if (registry && options.alerts && !options.signal.aborted)
+          await sendDeadlineAlerts({
+            app: options.app,
+            monitoring,
+            registry,
+            now: now(),
+            leadDays: options.alerts.leadDays,
+            digest: options.alerts.digest,
+            signal: options.signal,
+            onProgress: options.onProgress,
+          });
         outage = OUTAGE_RETRY_MS;
       } catch (error) {
         // A job whose receipt could not be stored keeps its lease until it expires and is reclaimed.

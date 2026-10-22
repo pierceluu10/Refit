@@ -105,6 +105,10 @@
       "format": "ai-model-results",
       "predates": ["/harness", "/results/*/outcomeClass"]
     },
+    "2026-10-22-auth-backend-results.json": {
+      "format": "auth-backend-results",
+      "predates": []
+    },
     "2026-10-22-cloudflare-baseline-results.json": {
       "format": "cloudflare-results",
       "predates": []
@@ -115,6 +119,10 @@
     },
     "2026-10-22-cloudflare-results.json": {
       "format": "cloudflare-results",
+      "predates": []
+    },
+    "2026-10-22-commerce-results.json": {
+      "format": "commerce-results",
       "predates": []
     },
     "2026-10-22-github-first-results.json": {
