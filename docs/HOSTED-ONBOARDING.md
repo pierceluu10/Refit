@@ -44,6 +44,7 @@ A customer installs the Refit GitHub App on selected repositories, reviews and a
 
 6. **AI and draft PRs.** `--ai-patch` uses the owner's `OPENAI_API_KEY` with a separate ledger per installation (`installation-<id>` under `REFIT_AI_BUDGET_DIRECTORY`), each capped at `REFIT_AI_BUDGET_USD`. `--publish-draft` opens draft PRs as Refit Agent through the existing publication path. Both stay explicit flags.
 7. **Single owner.** `REFIT_HOSTED_OWNER` names the only GitHub account whose installations are recorded or enrolled. Other accounts' deliveries are acknowledged and ignored. This holds until jobs run in per-job microVMs.
+8. **Inventory.** Every installed repository, approved or not, gets a read-only [inventory](INVENTORY.md) of its SDKs, pinned versions, models and deadline exposures, from a fresh checkout that is deleted afterwards. It runs no code and never enrolls a repository.
 
 Not yet included: OAuth installation ownership and a browser approval flow, object storage for evidence (it stays on the Fly volume under `/data/state`), per-job microVMs and the audit log. Validation uses the Docker daemon inside the worker's Fly Machine. That machine is a Firecracker VM separate from other apps, but all jobs share it, which is why hosting stays single-owner.
 
