@@ -185,6 +185,71 @@ function send(client) { return client.chat.postMessage({}); }
   });
 });
 
+describe('clients reached indirectly', () => {
+  it('follows typed properties, injected parameters and fallbacks', async () => {
+    const found = await calls({
+      'src/service.ts': `import type { WebClient } from '@slack/web-api';
+import { WebClient as Client } from '@slack/web-api';
+export class SlackService {
+  private slackClient?: WebClient;
+  constructor(private readonly injected: WebClient, web?: Client) {
+    this.web = web ?? new Client(token);
+  }
+  post() { return this.slackClient!.chat.postMessage({}); }
+  info() { return this.injected.users.info({ user }); }
+  topic() { return this.web.conversations.setTopic({}); }
+  #private = new Client();
+  pin() { return this.#private.pins.add({}); }
+}
+let late: WebClient | null = null;
+export const ping = () => late?.auth.test();
+`,
+    });
+    expect(summary(found)).toEqual([
+      'src/service.ts:8 web-api chat.postMessage',
+      'src/service.ts:9 web-api users.info',
+      'src/service.ts:10 web-api conversations.setTopic',
+      'src/service.ts:12 web-api pins.add',
+      'src/service.ts:15 web-api auth.test',
+    ]);
+  });
+
+  it('follows functions that return a client, in the same file and imported', async () => {
+    const found = await calls({
+      'src/client.ts': `import { WebClient } from '@slack/web-api';
+import { App } from '@slack/bolt';
+let cached: WebClient | undefined;
+export function getSlackClient(): WebClient {
+  return (cached ??= new WebClient(token));
+}
+export const createClient = (token: string) => new WebClient(token);
+export function getSlackApp(): App | null { return app; }
+const local = () => getSlackClient();
+local().team.info({});
+`,
+      'src/use.ts': `import { getSlackClient, createClient as make, getSlackApp } from './client';
+import { other } from './other';
+export async function run() {
+  await getSlackClient().chat.postMessage({});
+  const web = make(token);
+  await web.reactions.add({});
+  const app = getSlackApp();
+  await app?.client.views.publish({});
+  await getSlackApp()!.client.chat.delete({});
+  await other().chat.postMessage({});
+}
+`,
+    });
+    expect(summary(found)).toEqual([
+      'src/client.ts:10 web-api team.info',
+      'src/use.ts:4 web-api chat.postMessage',
+      'src/use.ts:6 web-api reactions.add',
+      'src/use.ts:8 bolt views.publish',
+      'src/use.ts:9 bolt chat.delete',
+    ]);
+  });
+});
+
 describe('@slack/bolt', () => {
   it('reads app.client and the client handlers receive', async () => {
     const found = await calls({
@@ -262,6 +327,23 @@ export async function run(method) {
       'the base URL is passed to `slackGet`; the methods called through it are not traced',
     ]);
     expect(at(found, 'src/raw.js', 7).client).toBe('axios.post');
+  });
+
+  it('follows new URL(…) to its request and marks partial runtime methods unknown', async () => {
+    const found = await calls({
+      'src/manifest.ts': `const SLACK_API_BASE = 'https://slack.com/api';
+export async function rotate(operation: string) {
+  const rotateUrl = new URL(\`\${SLACK_API_BASE}/tooling.tokens.rotate\`);
+  rotateUrl.searchParams.set('refresh_token', token);
+  await fetch(rotateUrl);
+  await fetch(\`\${SLACK_API_BASE}/apps.manifest.\${operation}\`, { method: 'POST' });
+}
+`,
+    });
+    expect(found.map((call) => [call.line, call.methods, call.unknown])).toEqual([
+      [5, ['tooling.tokens.rotate'], []],
+      [6, [], ['the method is chosen at runtime from `operation`']],
+    ]);
   });
 
   it('separates tests from live code', async () => {

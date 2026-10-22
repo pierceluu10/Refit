@@ -9,12 +9,14 @@ import {
   excerpt,
   expressionName,
   findDeclaration,
+  importedNames,
   isConst,
   isUrlRoot,
   lineOf,
   partsOf,
   propertyName,
   requiredModule,
+  resolveImport,
   sourceOf,
   unwrap,
   type Part,
@@ -251,119 +253,229 @@ function bindings(source: ts.SourceFile) {
   return { namespaces, named };
 }
 
-type Holder = 'web-api' | 'bolt-app';
+type Holder = 'web-api' | 'bolt-app' | 'bolt-client';
+// Exported functions that return a client, by file and export name, so `getSlackClient()`
+// imported from another file is followed.
+type FunctionHolders = Map<string, Map<string, Holder>>;
+const MAX_DEPTH = 6;
 
-// WebClient and Bolt App objects a file creates, and where they are held: variables (by
-// declaration) and class properties (by class and name).
-function holders(source: ts.SourceFile) {
+// Resolves which expressions hold a WebClient or Bolt App in one file, without a type checker:
+// `new WebClient()` (also behind `??`, `||` or a conditional), names and class properties typed
+// `WebClient` or `App` or assigned one, constructor parameter properties, Bolt's `app.client` and
+// handler `({ client })`, and calls of functions that return a client, local or imported.
+function resolver(source: ts.SourceFile, imported: Map<string, Holder>) {
   const { namespaces, named } = bindings(source);
-  // `WebClient` or `slack.WebClient` from a module that exports it; `App` from Bolt.
-  const classOf = (expression: ts.Expression): Holder | undefined => {
-    const node = unwrap(expression);
-    let module: string | undefined;
-    let name: string | undefined;
-    if (ts.isIdentifier(node)) ({ module, name } = named.get(node.text) ?? {});
-    else if (ts.isPropertyAccessExpression(node) && ts.isIdentifier(node.expression)) {
-      module = namespaces.get(node.expression.text);
-      name = node.name.text;
-    }
+  const bolt = [...namespaces.values(), ...[...named.values()].map((item) => item.module)].includes(
+    BOLT,
+  );
+  const holderName = (module: string | undefined, name: string | undefined): Holder | undefined => {
     if (!module) return undefined;
     if (name === 'WebClient' && WEB_CLIENT_MODULES.includes(module)) return 'web-api';
     if (name === 'App' && module === BOLT) return 'bolt-app';
     return undefined;
   };
-  const constructed = (expression: ts.Expression | undefined) => {
-    const node = expression && unwrap(expression);
-    return node && ts.isNewExpression(node) ? classOf(node.expression) : undefined;
-  };
-  const variables = new Map<ts.VariableDeclaration, Holder>();
-  const properties = new Map<ts.ClassLikeDeclaration, Map<string, Holder>>();
-  const setProperty = (node: ts.Node, name: string, holder: Holder) => {
-    const owner = ts.findAncestor(node, ts.isClassLike);
-    if (!owner) return;
-    const map = properties.get(owner) ?? new Map<string, Holder>();
-    properties.set(owner, map);
-    map.set(name, holder);
-  };
-  const collect = (node: ts.Node) => {
-    if (ts.isVariableDeclaration(node)) {
-      const holder = constructed(node.initializer);
-      if (holder) variables.set(node, holder);
+  // `WebClient` or `slack.WebClient` from a module that exports it; `App` from Bolt.
+  const classOf = (expression: ts.Node): Holder | undefined => {
+    if (ts.isIdentifier(expression)) {
+      const item = named.get(expression.text);
+      return holderName(item?.module, item?.name);
     }
-    if (ts.isPropertyDeclaration(node)) {
-      const holder = constructed(node.initializer);
-      const name = propertyName(node.name);
-      if (holder && name) setProperty(node, name, holder);
-    }
-    if (ts.isBinaryExpression(node) && node.operatorToken.kind === ts.SyntaxKind.EqualsToken) {
-      const holder = constructed(node.right);
-      const left = unwrap(node.left);
-      if (holder && ts.isIdentifier(left)) {
-        const declaration = findDeclaration(left.text, node);
-        if (declaration) variables.set(declaration, holder);
-      }
-      if (
-        holder &&
-        ts.isPropertyAccessExpression(left) &&
-        left.expression.kind === ts.SyntaxKind.ThisKeyword
-      )
-        setProperty(node, left.name.text, holder);
-    }
-    ts.forEachChild(node, collect);
-  };
-  collect(source);
-  // A WebClient type name in this file: `client: WebClient` marks a parameter as a client.
-  const typeNames = new Set(
-    [...named]
-      .filter(([, item]) => item.name === 'WebClient' && WEB_CLIENT_MODULES.includes(item.module))
-      .map(([local]) => local),
-  );
-  const bolt = [...namespaces.values(), ...[...named.values()].map((item) => item.module)].includes(
-    BOLT,
-  );
-  return { classOf, constructed, variables, properties, typeNames, bolt };
-}
-
-// A parameter that holds a client: Bolt's `({ client })` in a file that uses Bolt, or one typed
-// `WebClient`.
-function clientParameter(
-  declaration: ts.Node,
-  name: string,
-  typeNames: Set<string>,
-  bolt: boolean,
-): Holder | 'bolt-client' | undefined {
-  if (ts.isParameter(declaration)) {
-    const type = declaration.type;
     if (
-      ts.isIdentifier(declaration.name) &&
-      declaration.name.text === name &&
-      type &&
-      ts.isTypeReferenceNode(type) &&
-      typeNames.has(type.typeName.getText())
-    )
-      return 'web-api';
+      (ts.isPropertyAccessExpression(expression) || ts.isQualifiedName(expression)) &&
+      ts.isIdentifier(ts.isQualifiedName(expression) ? expression.left : expression.expression)
+    ) {
+      const left = ts.isQualifiedName(expression) ? expression.left : expression.expression;
+      const name = ts.isQualifiedName(expression) ? expression.right.text : expression.name.text;
+      return holderName(namespaces.get((left as ts.Identifier).text), name);
+    }
     return undefined;
-  }
-  if (!bolt || !ts.isBindingElement(declaration) || !ts.isIdentifier(declaration.name))
+  };
+  // `WebClient`, `WebClient | null`, `App`.
+  const typeHolder = (type: ts.TypeNode | undefined): Holder | undefined => {
+    if (!type) return undefined;
+    if (ts.isTypeReferenceNode(type)) return classOf(type.typeName);
+    if (ts.isUnionTypeNode(type)) {
+      for (const member of type.types) {
+        const holder = typeHolder(member);
+        if (holder) return holder;
+      }
+    }
+    if (ts.isParenthesizedTypeNode(type)) return typeHolder(type.type);
     return undefined;
-  const pattern = declaration.parent;
-  const parameter = pattern.parent;
-  return ts.isObjectBindingPattern(pattern) &&
-    ts.isParameter(parameter) &&
-    declaration.name.text === name &&
-    (propertyName(declaration.propertyName) ?? declaration.name.text) === 'client'
-    ? 'bolt-client'
-    : undefined;
+  };
+  // The functions a name can call in this file: declarations and `const f = () => …`.
+  const functionOf = (name: string, from: ts.Node): ts.SignatureDeclaration | undefined => {
+    const declaration = findDeclaration(name, from);
+    const initializer = declaration?.initializer && unwrap(declaration.initializer);
+    if (initializer && (ts.isArrowFunction(initializer) || ts.isFunctionExpression(initializer)))
+      return initializer;
+    if (declaration) return undefined;
+    return source.statements.find(
+      (statement): statement is ts.FunctionDeclaration =>
+        ts.isFunctionDeclaration(statement) && statement.name?.text === name,
+    );
+  };
+  const returned = (fn: ts.SignatureDeclaration, depth: number): Holder | undefined => {
+    const declared = typeHolder(fn.type);
+    if (declared) return declared;
+    const body = (fn as ts.FunctionLikeDeclaration).body;
+    if (!body) return undefined;
+    if (!ts.isBlock(body)) return holderOf(body, depth + 1);
+    let found: Holder | undefined;
+    const visit = (node: ts.Node) => {
+      if (found || (node !== body && ts.isFunctionLike(node))) return;
+      if (ts.isReturnStatement(node) && node.expression)
+        found = holderOf(node.expression, depth + 1);
+      ts.forEachChild(node, visit);
+    };
+    visit(body);
+    return found;
+  };
+  // Holders assigned to a variable or a `this` property after its declaration.
+  const assigned = (matches: (left: ts.Expression) => boolean, scope: ts.Node, depth: number) => {
+    let found: Holder | undefined;
+    const visit = (node: ts.Node) => {
+      if (found) return;
+      if (
+        ts.isBinaryExpression(node) &&
+        node.operatorToken.kind === ts.SyntaxKind.EqualsToken &&
+        matches(unwrap(node.left))
+      )
+        found = holderOf(node.right, depth + 1);
+      ts.forEachChild(node, visit);
+    };
+    visit(scope);
+    return found;
+  };
+  const propertyHolder = (
+    owner: ts.ClassLikeDeclaration,
+    name: string,
+    depth: number,
+  ): Holder | undefined => {
+    for (const member of owner.members) {
+      if (ts.isPropertyDeclaration(member) && member.name.getText() === name) {
+        const holder = typeHolder(member.type) ?? holderOf(member.initializer, depth + 1);
+        if (holder) return holder;
+      }
+      // `constructor(private readonly client: WebClient)`.
+      if (ts.isConstructorDeclaration(member))
+        for (const parameter of member.parameters)
+          if (
+            ts.getModifiers(parameter)?.length &&
+            ts.isIdentifier(parameter.name) &&
+            parameter.name.text === name
+          ) {
+            const holder = typeHolder(parameter.type);
+            if (holder) return holder;
+          }
+    }
+    return assigned(
+      (left) =>
+        ts.isPropertyAccessExpression(left) &&
+        left.expression.kind === ts.SyntaxKind.ThisKeyword &&
+        left.name.getText() === name,
+      owner,
+      depth,
+    );
+  };
+  const parameterHolder = (binding: ts.Node, name: string): Holder | undefined => {
+    if (ts.isParameter(binding)) return typeHolder(binding.type);
+    // Bolt's `({ client })` or `({ client: web })` in a file that uses Bolt.
+    if (!bolt || !ts.isBindingElement(binding)) return undefined;
+    const pattern = binding.parent;
+    return ts.isObjectBindingPattern(pattern) &&
+      ts.isParameter(pattern.parent) &&
+      (propertyName(binding.propertyName) ?? name) === 'client'
+      ? 'bolt-client'
+      : undefined;
+  };
+  const holderOf = (expression: ts.Expression | undefined, depth = 0): Holder | undefined => {
+    if (!expression || depth > MAX_DEPTH) return undefined;
+    const node = unwrap(expression);
+    if (ts.isAwaitExpression(node)) return holderOf(node.expression, depth + 1);
+    if (ts.isNewExpression(node)) return classOf(unwrap(node.expression));
+    if (ts.isBinaryExpression(node)) {
+      const operator = node.operatorToken.kind;
+      return operator === ts.SyntaxKind.QuestionQuestionToken ||
+        operator === ts.SyntaxKind.BarBarToken
+        ? (holderOf(node.right, depth + 1) ?? holderOf(node.left, depth + 1))
+        : undefined;
+    }
+    if (ts.isConditionalExpression(node))
+      return holderOf(node.whenTrue, depth + 1) ?? holderOf(node.whenFalse, depth + 1);
+    if (ts.isIdentifier(node)) {
+      const declaration = findDeclaration(node.text, node);
+      if (declaration) {
+        const scope = ts.findAncestor(
+          declaration,
+          (item) => ts.isBlock(item) || ts.isSourceFile(item),
+        );
+        return (
+          typeHolder(declaration.type) ??
+          holderOf(declaration.initializer, depth + 1) ??
+          (scope &&
+            assigned(
+              (left) =>
+                ts.isIdentifier(left) &&
+                left.text === node.text &&
+                findDeclaration(left.text, left) === declaration,
+              scope,
+              depth,
+            ))
+        );
+      }
+      const binding = parameterBinding(node.text, node);
+      return binding && parameterHolder(binding, node.text);
+    }
+    if (ts.isPropertyAccessExpression(node)) {
+      if (node.expression.kind === ts.SyntaxKind.ThisKeyword) {
+        const owner = ts.findAncestor(node, ts.isClassLike);
+        return owner && propertyHolder(owner, node.name.getText(), depth);
+      }
+      // `app.client`.
+      if (node.name.text === 'client' && holderOf(node.expression, depth + 1) === 'bolt-app')
+        return 'bolt-client';
+      return undefined;
+    }
+    if (ts.isCallExpression(node) && ts.isIdentifier(node.expression)) {
+      const fn = functionOf(node.expression.text, node);
+      if (fn) return returned(fn, depth);
+      return imported.get(node.expression.text);
+    }
+    return undefined;
+  };
+  return { holderOf, functionOf, returned, bolt, named };
 }
 
-// The binding a name refers to when it is a parameter or a destructured parameter, which
-// findDeclaration does not follow.
+// Exported functions of a file that return a client: `export function getSlackClient(): WebClient`.
+function exportedFunctionHolders(source: ts.SourceFile): Map<string, Holder> {
+  const { functionOf, returned } = resolver(source, new Map());
+  const found = new Map<string, Holder>();
+  for (const statement of source.statements) {
+    const exportedStatement = ts
+      .getModifiers(statement as ts.HasModifiers)
+      ?.some((modifier) => modifier.kind === ts.SyntaxKind.ExportKeyword);
+    if (!exportedStatement) continue;
+    const names = ts.isFunctionDeclaration(statement)
+      ? [statement.name?.text]
+      : ts.isVariableStatement(statement)
+        ? statement.declarationList.declarations.map((item) =>
+            ts.isIdentifier(item.name) ? item.name.text : undefined,
+          )
+        : [];
+    for (const name of names) {
+      const fn = name && functionOf(name, statement);
+      const holder = fn && returned(fn, 0);
+      if (name && holder) found.set(name, holder);
+    }
+  }
+  return found;
+}
+
+// The parameter or destructured parameter a name refers to, which findDeclaration does not follow.
 function parameterBinding(name: string, from: ts.Node): ts.Node | undefined {
   for (let scope: ts.Node | undefined = from; scope; scope = scope.parent) {
-    if (!ts.isFunctionLike(scope)) {
-      if (findDeclaration(name, scope) && scope !== from) return undefined;
-      continue;
-    }
+    if (!ts.isFunctionLike(scope)) continue;
     for (const parameter of scope.parameters) {
       if (ts.isIdentifier(parameter.name) && parameter.name.text === name) return parameter;
       if (ts.isObjectBindingPattern(parameter.name))
@@ -376,40 +488,19 @@ function parameterBinding(name: string, from: ts.Node): ts.Node | undefined {
 
 // `client.chat.postMessage(…)`, `app.client.chat.postMessage(…)`, Bolt handlers'
 // `({ client }) => client.views.open(…)`, and `client.apiCall('chat.postMessage', …)`.
-function sdkCalls(file: FileContext, data: SlackMethods): SlackCall[] {
-  const { source } = file;
-  const found = holders(source);
-  if (!found.variables.size && !found.properties.size && !found.typeNames.size && !found.bolt)
-    return [];
-  const holderOf = (expression: ts.Expression): Holder | 'bolt-client' | undefined => {
-    const node = unwrap(expression);
-    if (ts.isNewExpression(node)) return found.classOf(node.expression);
-    if (ts.isIdentifier(node)) {
-      const declaration = findDeclaration(node.text, node);
-      if (declaration) return found.variables.get(declaration);
-      const parameter = parameterBinding(node.text, node);
-      return parameter && clientParameter(parameter, node.text, found.typeNames, found.bolt);
-    }
-    if (ts.isPropertyAccessExpression(node)) {
-      if (node.expression.kind === ts.SyntaxKind.ThisKeyword) {
-        const owner = ts.findAncestor(node, ts.isClassLike);
-        return owner ? found.properties.get(owner)?.get(node.name.text) : undefined;
-      }
-      // `app.client`, and `context.client` or `args.client` in a Bolt file.
-      if (node.name.text === 'client') {
-        const owner = holderOf(node.expression);
-        if (owner === 'bolt-app') return 'bolt-client';
-      }
-    }
-    return undefined;
-  };
+function sdkCalls(
+  file: FileContext,
+  data: SlackMethods,
+  imported: Map<string, Holder>,
+): SlackCall[] {
+  const { holderOf } = resolver(file.source, imported);
   const calls: SlackCall[] = [];
   const visit = (node: ts.Node) => {
     if (ts.isCallExpression(node) && ts.isPropertyAccessExpression(node.expression)) {
       // Walk `a.b.c` down to the receiver that holds a client, collecting the property path.
       const path: string[] = [];
       let receiver: ts.Expression = node.expression;
-      let holder: ReturnType<typeof holderOf>;
+      let holder: Holder | undefined;
       while (ts.isPropertyAccessExpression(receiver)) {
         path.unshift(receiver.name.text);
         receiver = receiver.expression;
@@ -424,7 +515,7 @@ function sdkCalls(file: FileContext, data: SlackMethods): SlackCall[] {
     }
     ts.forEachChild(node, visit);
   };
-  visit(source);
+  visit(file.source);
   return calls;
 }
 
@@ -432,7 +523,7 @@ function sdkRecord(
   file: FileContext,
   call: ts.CallExpression,
   path: string[],
-  holder: Holder | 'bolt-client',
+  holder: Holder,
   data: SlackMethods,
 ): SlackCall | undefined {
   const unknown: string[] = [];
@@ -494,20 +585,23 @@ function urlMethod(expression: ts.Expression): { method: string | null; why?: st
   const [first, ...rest] = expanded(expression);
   if (!first || !('text' in first) || !API_URL.test(first.text)) return undefined;
   let text = first.text.replace(API_URL, '');
+  let runtime: ts.Expression | undefined;
   for (const part of rest) {
     if (/[?#]/.test(text)) break;
     if ('expression' in part) {
-      if (text.replace(/^\//, '') === '')
-        return {
-          method: null,
-          why: `the method is chosen at runtime from \`${expressionName(part.expression)}\``,
-        };
+      runtime = part.expression;
       break;
     }
     text += part.text;
   }
-  const method = /^\/([A-Za-z][\w.]*)/.exec(text)?.[1];
-  return method ? { method } : { method: null };
+  const match = /^\/([A-Za-z][\w.]*)?/.exec(text);
+  // `/${method}` or `/apps.manifest.${operation}`: a runtime value names all or part of the method.
+  if (runtime && match && match[0] === text)
+    return {
+      method: null,
+      why: `the method is chosen at runtime from \`${expressionName(runtime)}\``,
+    };
+  return match?.[1] ? { method: match[1] } : { method: null };
 }
 
 function urlCalls(file: FileContext, data: SlackMethods): SlackCall[] {
@@ -533,7 +627,15 @@ function urlRecords(
   url: { method: string | null; why?: string },
   data: SlackMethods,
 ): SlackCall[] {
-  const found = consumers(node);
+  // `new URL('https://slack.com/api/…')` is followed like the string it wraps.
+  const parent = node.parent;
+  const wrapped =
+    ts.isNewExpression(parent) &&
+    parent.expression.getText() === 'URL' &&
+    parent.arguments?.[0] === node
+      ? parent
+      : node;
+  const found = consumers(wrapped);
   // A base URL is reported only where it is passed to a call; the URLs built from it are reported
   // on their own.
   if (url.method === null && !url.why && !found.length) return [];
@@ -669,19 +771,41 @@ function constructedWith(node: ts.Expression) {
 function scanFiles(files: Repository['files'], data: SlackMethods) {
   const calls: SlackCall[] = [];
   const findings: SlackFinding[] = [];
+  const sources = new Map<string, ts.SourceFile>();
+  const sourceFor = (file: Repository['files'][number]) => {
+    let source = sources.get(file.path);
+    if (!source) sources.set(file.path, (source = sourceOf(file.path, file.content)));
+    return source;
+  };
+  // Functions exported by Slack files that return a client, followed into the files importing them.
+  const exportedHolders: FunctionHolders = new Map();
+  for (const file of files)
+    if (mentionsSdk(file.content)) {
+      const holders = exportedFunctionHolders(sourceFor(file));
+      if (holders.size) exportedHolders.set(file.path, holders);
+    }
+  const names = [...exportedHolders.values()].flatMap((holders) => [...holders.keys()]);
+  const paths = new Set(files.map((file) => file.path));
   for (const file of files) {
     const api = mentionsApiHost(file.content);
-    const sdk = mentionsSdk(file.content);
     const surface =
       file.content.includes('hooks.slack.com') || /IncomingWebhook|RTMClient/.test(file.content);
+    const imported = new Map<string, Holder>();
+    if (names.some((name) => file.content.includes(name)))
+      for (const [local, binding] of importedNames(sourceFor(file))) {
+        const target = resolveImport(file.path, binding.specifier, paths);
+        const holder = target && exportedHolders.get(target)?.get(binding.name);
+        if (holder) imported.set(local, holder);
+      }
+    const sdk = mentionsSdk(file.content) || imported.size > 0;
     if (!api && !sdk && !surface) continue;
     const context: FileContext = {
       path: file.path,
-      source: sourceOf(file.path, file.content),
+      source: sourceFor(file),
       use: TEST_PATH.test(file.path) ? 'test' : 'live',
     };
     if (api) calls.push(...urlCalls(context, data));
-    if (sdk) calls.push(...sdkCalls(context, data));
+    if (sdk) calls.push(...sdkCalls(context, data, imported));
     if (surface) findings.push(...surfaceFindings(context));
   }
   const order = <T extends { file: string; line: number }>(items: T[]) =>
