@@ -4,7 +4,7 @@ import { scanSlackCalls, type SlackCall, type SlackCallScan } from './slack-call
 import { terminalText } from './workflow-presentation.ts';
 
 const USAGE = `Usage: refit slack [--repository <root>] [--json]
-Lists the Slack Web API methods a repository calls: @slack/web-api WebClient calls (client.<group>.<method>, apiCall, paginate, filesUploadV2), Bolt's app.client and handler client calls, and raw requests to https://slack.com/api/<method> through fetch, axios and helpers. Each shows file:line, the method, and what Slack's SDKs say about it: a deprecation with its changelog post, a method @slack/web-api 8 removed, or one no recorded release defines. Values built at runtime are marked unknown, with the reason.
+Lists the Slack Web API methods a repository calls: @slack/web-api WebClient calls (client.<group>.<method>, apiCall, paginate, filesUploadV2), Bolt's app.client and handler client calls, and raw requests to https://slack.com/api/<method> through fetch, axios and helpers. It also lists incoming webhooks (@slack/webhook and hooks.slack.com requests) and Legacy RTM API clients, report only. Each call shows file:line, the method, and what Slack's SDKs say about it: a deprecation with its changelog post, a method @slack/web-api 8 removed, or one no recorded release defines. Values built at runtime are marked unknown, with the reason.
 Review only: nothing is changed, installed, run or sent to Slack. Retired methods with a published date also appear in refit deadlines.`;
 
 try {
@@ -40,6 +40,7 @@ function print(root: string, scan: SlackCallScan) {
     );
   const live = scan.calls.filter((call) => call.use === 'live');
   const tests = scan.calls.filter((call) => call.use === 'test');
+  printFindings(scan);
   if (!scan.calls.length) {
     console.log('\nNo Slack Web API call was found.');
     return;
@@ -69,6 +70,22 @@ function print(root: string, scan: SlackCallScan) {
         [...files].map(([file, lines]) => `${file}:${lines.join(',')}`).join(' '),
       )}`,
     );
+  }
+}
+
+// Incoming webhooks and the Legacy RTM API, report only.
+function printFindings(scan: SlackCallScan) {
+  for (const [label, items] of [
+    ['Incoming webhooks', scan.webhooks],
+    ['Legacy RTM API', scan.rtm],
+  ] as const) {
+    const live = items.filter((item) => item.use === 'live');
+    if (!live.length) continue;
+    console.log(`\n${label} (${live.length}):`);
+    for (const item of live) {
+      console.log(`  ${terminalText(`${item.file}:${item.line}`)}  ${terminalText(item.via)}`);
+      for (const note of item.notes) console.log(`    Note  ${terminalText(note)}`);
+    }
   }
 }
 

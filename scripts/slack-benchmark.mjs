@@ -87,6 +87,14 @@ for (const [index, entry] of list.repos.entries()) {
       notes: call.notes,
       unknown: call.unknown,
     }));
+    for (const field of ['webhooks', 'rtm'])
+      result[field] = scan[field].map((item) => ({
+        file: item.file,
+        line: item.line,
+        use: item.use,
+        via: item.via,
+        methods: [],
+      }));
   } catch (error) {
     result.error = String(error.stderr || error.message)
       .split('\n')

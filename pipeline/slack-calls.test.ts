@@ -279,6 +279,52 @@ export async function run(method) {
   });
 });
 
+describe('incoming webhooks and the Legacy RTM API', () => {
+  it('reports webhooks where they are constructed or sent, and RTM clients and methods', async () => {
+    const root = await repository({
+      'src/notify.ts': `import { IncomingWebhook } from '@slack/webhook';
+import { RTMClient } from '@slack/rtm-api';
+import { WebClient } from '@slack/web-api';
+const hook = new IncomingWebhook(process.env.SLACK_WEBHOOK_URL!);
+const ALERTS = 'https://hooks.slack.com/services/T000/B000/XXXX';
+const legacy = new IncomingWebhook(ALERTS);
+export const alert = () => fetch(ALERTS, { method: 'POST', body: '{}' });
+export const flow = () => axios.post('https://hooks.slack.com/workflows/T1/A1/1/x', {});
+const rtm = new RTMClient(token);
+new WebClient(token).rtm.connect();
+const docs = 'see https://hooks.slack.com/services/ in the guide';
+`,
+    });
+    const scan = await scanSlackCalls(root);
+    expect(
+      scan.webhooks.map((item) => `${item.line} ${item.via} ${item.notes.join(' | ')}`),
+    ).toEqual([
+      '4 IncomingWebhook ',
+      '6 IncomingWebhook ',
+      '7 fetch the complete webhook URL, which is a credential, is written in source',
+      '8 axios.post a Workflow Builder webhook (hooks.slack.com/workflows), which starts a workflow',
+    ]);
+    expect(scan.rtm.map((item) => `${item.line} ${item.via}`)).toEqual([
+      '9 RTMClient',
+      '10 rtm.connect',
+    ]);
+    expect(scan.rtm[0].notes[0]).toContain('Legacy RTM API');
+  });
+
+  it('reads RTMClient from the retired @slack/client package', async () => {
+    const found = await scanSlackCalls(
+      await repository({
+        'bot.js': `const { RTMClient, IncomingWebhook } = require('@slack/client');
+const rtm = new RTMClient(token);
+rtm.start();
+`,
+      }),
+    );
+    expect(found.rtm.map((item) => `${item.line} ${item.via}`)).toEqual(['2 RTMClient']);
+    expect(found.calls).toEqual([]);
+  });
+});
+
 describe('inventory and deadlines', () => {
   it('lists package declarations and the catalog detects Slack', async () => {
     const manifest = {

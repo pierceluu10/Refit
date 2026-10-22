@@ -75,8 +75,24 @@ export interface SlackPackage {
   locked: string | null;
 }
 
+// A report-only use of a Slack surface other than Web API methods: an incoming webhook (a
+// `@slack/webhook` IncomingWebhook or a request to hooks.slack.com) or the Legacy RTM API (an
+// `RTMClient`, or the `rtm.connect` and `rtm.start` methods that open its WebSocket).
+export interface SlackFinding {
+  kind: 'incoming-webhook' | 'rtm';
+  file: string;
+  line: number;
+  use: 'live' | 'test';
+  // `IncomingWebhook`, `RTMClient`, `rtm.connect`, or the call a webhook URL is passed to.
+  via: string;
+  notes: string[];
+  text: string;
+}
+
 export interface SlackCallScan {
   calls: SlackCall[];
+  webhooks: SlackFinding[];
+  rtm: SlackFinding[];
   packages: SlackPackage[];
   // When data/slack-methods.json was generated.
   methodsCheckedAt: string;
@@ -554,12 +570,111 @@ function mentionsSdk(content: string) {
   return WEB_CLIENT_MODULES.some((module) => content.includes(module));
 }
 
-function callsIn(files: Repository['files'], data: SlackMethods) {
+const WEBHOOK_URL = /^(?:https?:)?\/\/hooks\.slack\.com\/(services|workflows)\//;
+// The Legacy RTM API, as Slack's SDK guides name it (docs/english/rtm-api.md in node-slack-sdk).
+const RTM_NOTE =
+  "Slack's SDK guides call this the Legacy RTM API: it is not available to granular-permission apps, and new classic apps can no longer be created";
+
+// `new IncomingWebhook(url)` and `new RTMClient(token)` from Slack's packages, and requests to
+// incoming-webhook URLs.
+function surfaceFindings(file: FileContext): SlackFinding[] {
+  const { namespaces, named } = bindings(file.source);
+  const classOf = (expression: ts.Expression) => {
+    const node = unwrap(expression);
+    if (ts.isIdentifier(node)) return named.get(node.text)?.name;
+    if (
+      ts.isPropertyAccessExpression(node) &&
+      ts.isIdentifier(node.expression) &&
+      namespaces.has(node.expression.text)
+    )
+      return node.name.text;
+    return undefined;
+  };
+  const found: SlackFinding[] = [];
+  const add = (kind: SlackFinding['kind'], node: ts.Node, via: string, notes: string[]) =>
+    found.push({
+      kind,
+      file: file.path,
+      line: lineOf(file.source, node),
+      use: file.use,
+      via,
+      notes,
+      text: excerpt(file.source, node),
+    });
+  const visit = (node: ts.Node) => {
+    if (ts.isNewExpression(node)) {
+      const name = classOf(node.expression);
+      if (name === 'IncomingWebhook') add('incoming-webhook', node, name, []);
+      if (name === 'RTMClient') add('rtm', node, name, [RTM_NOTE]);
+    }
+    if (ts.isExpression(node) && isUrlRoot(node)) {
+      const [first] = expanded(node);
+      const match = first && 'text' in first ? WEBHOOK_URL.exec(first.text) : null;
+      if (match) {
+        // A URL is reported where it is sent, or where it is written when no call is traced. One
+        // passed to a constructor, such as `new IncomingWebhook(url)`, is reported there.
+        const consumer = consumers(node)[0];
+        if (consumer || !constructedWith(node))
+          add(
+            'incoming-webhook',
+            consumer?.call ?? node,
+            consumer ? calleeText(consumer.call) : 'url',
+            [
+              ...(match[1] === 'workflows'
+                ? [
+                    'a Workflow Builder webhook (hooks.slack.com/workflows), which starts a workflow',
+                  ]
+                : []),
+              ...(/\/services\/T\w+\/B\w+\/\w+/.test(first && 'text' in first ? first.text : '')
+                ? ['the complete webhook URL, which is a credential, is written in source']
+                : []),
+            ],
+          );
+        return;
+      }
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(file.source);
+  return found;
+}
+
+// Whether a URL is passed to a constructor, directly or through the variable that holds it.
+function constructedWith(node: ts.Expression) {
+  const argument = (child: ts.Node) => {
+    const parent = child.parent;
+    return ts.isNewExpression(parent) && (parent.arguments ?? []).some((item) => item === child);
+  };
+  if (argument(node)) return true;
+  const declaration = node.parent;
+  if (!ts.isVariableDeclaration(declaration) || !ts.isIdentifier(declaration.name)) return false;
+  const name = declaration.name.text;
+  const scope = ts.findAncestor(declaration, (item) => ts.isBlock(item) || ts.isSourceFile(item));
+  let found = false;
+  const visit = (child: ts.Node) => {
+    if (found) return;
+    if (
+      ts.isIdentifier(child) &&
+      child.text === name &&
+      argument(child) &&
+      findDeclaration(name, child) === declaration
+    )
+      found = true;
+    ts.forEachChild(child, visit);
+  };
+  if (scope) visit(scope);
+  return found;
+}
+
+function scanFiles(files: Repository['files'], data: SlackMethods) {
   const calls: SlackCall[] = [];
+  const findings: SlackFinding[] = [];
   for (const file of files) {
     const api = mentionsApiHost(file.content);
     const sdk = mentionsSdk(file.content);
-    if (!api && !sdk) continue;
+    const surface =
+      file.content.includes('hooks.slack.com') || /IncomingWebhook|RTMClient/.test(file.content);
+    if (!api && !sdk && !surface) continue;
     const context: FileContext = {
       path: file.path,
       source: sourceOf(file.path, file.content),
@@ -567,8 +682,28 @@ function callsIn(files: Repository['files'], data: SlackMethods) {
     };
     if (api) calls.push(...urlCalls(context, data));
     if (sdk) calls.push(...sdkCalls(context, data));
+    if (surface) findings.push(...surfaceFindings(context));
   }
-  return calls.sort((a, b) => a.file.localeCompare(b.file) || a.line - b.line);
+  const order = <T extends { file: string; line: number }>(items: T[]) =>
+    items.sort((a, b) => a.file.localeCompare(b.file) || a.line - b.line);
+  // The methods that open an RTM connection are RTM findings too.
+  for (const call of calls)
+    for (const method of call.methods)
+      if (method === 'rtm.connect' || method === 'rtm.start')
+        findings.push({
+          kind: 'rtm',
+          file: call.file,
+          line: call.line,
+          use: call.use,
+          via: method,
+          notes: [RTM_NOTE],
+          text: call.text,
+        });
+  return {
+    calls: order(calls),
+    webhooks: order(findings.filter((item) => item.kind === 'incoming-webhook')),
+    rtm: order(findings.filter((item) => item.kind === 'rtm')),
+  };
 }
 
 // Lists every Slack Web API method a repository calls, with what Slack's SDKs say about it.
@@ -585,7 +720,7 @@ export async function scanSlackCalls(
     packages.push(...declarations(repository, name));
   }
   return {
-    calls: callsIn(repository!.files, data),
+    ...scanFiles(repository!.files, data),
     packages,
     methodsCheckedAt: data.checkedAt,
     warnings: repository!.warnings,
@@ -600,7 +735,7 @@ export async function slackMethodUses(
 ): Promise<{ method: string; file: string; line: number; use: 'live' | 'test'; text: string }[]> {
   const data = await loadSlackMethods();
   const read = files ?? (await readRepository(resolve(directory), SLACK_PACKAGES[0])).files;
-  return callsIn(read, data).flatMap((call) =>
+  return scanFiles(read, data).calls.flatMap((call) =>
     call.methods.map((method) => ({
       method,
       file: call.file,
