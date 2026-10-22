@@ -46,8 +46,7 @@
       "evidence": [
         {
           "file": "app/api/tts/route.ts",
-          "line": 18,
-          "text": "model: 'tts-1',"
+          "line": 18
         }
       ],
       "more": 0,
@@ -68,8 +67,7 @@
       "evidence": [
         {
           "file": "app/api/transcribe/route.ts",
-          "line": 21,
-          "text": "model: 'whisper-1',"
+          "line": 21
         }
       ],
       "more": 0,

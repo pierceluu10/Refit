@@ -53,8 +53,7 @@
       "evidence": [
         {
           "file": "lib/vision-analyzer.ts",
-          "line": 68,
-          "text": "- GOOD tags: \"bitcoin price chart\", \"react hooks\", \"frustrated man\", \"gpt-4\", \"bull market\"`"
+          "line": 68
         }
       ],
       "more": 0,

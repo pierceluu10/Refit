@@ -47,7 +47,6 @@
               "line": 16,
               "kind": "source",
               "use": "live",
-              "text": "apiVersion: ApiVersion.January26,",
               "version": "2026-01"
             },
             {
@@ -55,7 +54,6 @@
               "line": 40,
               "kind": "source",
               "use": "live",
-              "text": "export const apiVersion = ApiVersion.January26;",
               "version": "2026-01"
             }
           ],

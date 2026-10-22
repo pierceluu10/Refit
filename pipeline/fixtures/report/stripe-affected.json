@@ -96,7 +96,6 @@
               "line": 27,
               "kind": "dependency",
               "use": "live",
-              "text": "@google/generative-ai 0.21.0 (locked in package-lock.json) is declared in dependencies",
               "version": "@google/generative-ai"
             }
           ],
@@ -124,7 +123,6 @@
               "line": 102,
               "kind": "source",
               "use": "live",
-              "text": "defaultModel: process.env.OPENAI_MODEL || 'gpt-3.5-turbo',",
               "version": "gpt-3.5-turbo"
             },
             {
@@ -132,7 +130,6 @@
               "line": 10,
               "kind": "source",
               "use": "live",
-              "text": "defaultModel: 'gpt-3.5-turbo',",
               "version": "gpt-3.5-turbo"
             }
           ],
@@ -143,7 +140,6 @@
               "line": 11,
               "kind": "source",
               "use": "catalog",
-              "text": "models: ['gpt-3.5-turbo', 'gpt-4', 'gpt-4-turbo']",
               "version": "gpt-3.5-turbo"
             }
           ],
@@ -185,7 +181,6 @@
               "line": 11,
               "kind": "source",
               "use": "catalog",
-              "text": "models: ['gpt-3.5-turbo', 'gpt-4', 'gpt-4-turbo']",
               "version": "gpt-4"
             },
             {
@@ -193,7 +188,6 @@
               "line": 11,
               "kind": "source",
               "use": "catalog",
-              "text": "models: ['gpt-3.5-turbo', 'gpt-4', 'gpt-4-turbo']",
               "version": "gpt-4-turbo"
             }
           ],

@@ -69,8 +69,7 @@
       "evidence": [
         {
           "file": "package.json",
-          "line": 15,
-          "text": "@google/generative-ai 0.21.0 (locked in package-lock.json) is declared in dependencies"
+          "line": 15
         }
       ],
       "more": 0,
@@ -91,8 +90,7 @@
       "evidence": [
         {
           "file": "src/vision/providers/anthropic-vision.ts",
-          "line": 40,
-          "text": "const CLAUDE_MODEL = process.env.ANTHROPIC_VISION_MODEL || 'claude-sonnet-4-20250514';"
+          "line": 40
         }
       ],
       "more": 0,
@@ -113,43 +111,35 @@
       "evidence": [
         {
           "file": "src/agents/math-enricher.step.ts",
-          "line": 29,
-          "text": "const OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-4.1-nano'"
+          "line": 29
         },
         {
           "file": "src/agents/narrative-composer.step.ts",
-          "line": 19,
-          "text": "const OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-4.1-nano'"
+          "line": 19
         },
         {
           "file": "src/agents/prerequisite-explorer.step.ts",
-          "line": 19,
-          "text": "const OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-4.1-nano'"
+          "line": 19
         },
         {
           "file": "src/agents/visual-designer.step.ts",
-          "line": 23,
-          "text": "const OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-4.1-nano'"
+          "line": 23
         },
         {
           "file": "src/api/refine.step.ts",
-          "line": 92,
-          "text": "model: process.env.OPENAI_MODEL || 'gpt-4.1-nano',"
+          "line": 92
         },
         {
           "file": "src/services/nlu-classifier.ts",
-          "line": 21,
-          "text": "const OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-4.1-nano'"
+          "line": 21
         },
         {
           "file": "src/services/openai-client.ts",
-          "line": 10,
-          "text": "const OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-4.1-nano'"
+          "line": 10
         },
         {
           "file": "src/services/prompt-engine.ts",
-          "line": 17,
-          "text": "const OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-4.1-nano'"
+          "line": 17
         }
       ],
       "more": 0,
@@ -170,8 +160,7 @@
       "evidence": [
         {
           "file": "src/providers/anthropic-provider.ts",
-          "line": 13,
-          "text": "const DEFAULT_MODEL = process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-5-20250929';"
+          "line": 13
         }
       ],
       "more": 0,

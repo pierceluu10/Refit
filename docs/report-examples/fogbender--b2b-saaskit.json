@@ -46,13 +46,11 @@
       "evidence": [
         {
           "file": "src/components/app/Prompt.tsx",
-          "line": 224,
-          "text": "model: 'gpt-3.5-turbo',"
+          "line": 224
         },
         {
           "file": "src/lib/trpc/routers/prompts.ts",
-          "line": 352,
-          "text": "model: key?.keyType === 'gpt-4' ? 'gpt-4' : 'gpt-3.5-turbo',"
+          "line": 352
         }
       ],
       "more": 0,
@@ -73,18 +71,15 @@
       "evidence": [
         {
           "file": "src/db/schema.ts",
-          "line": 55,
-          "text": "export const gptTypeEnum = pgEnum('gpt_type', ['gpt-3', 'gpt-4']);"
+          "line": 55
         },
         {
           "file": "src/lib/trpc/routers/prompts.ts",
-          "line": 352,
-          "text": "model: key?.keyType === 'gpt-4' ? 'gpt-4' : 'gpt-3.5-turbo',"
+          "line": 352
         },
         {
           "file": "src/lib/trpc/routers/settings.ts",
-          "line": 42,
-          "text": "keyType: z.enum(['gpt-3', 'gpt-4']),"
+          "line": 42
         }
       ],
       "more": 0,

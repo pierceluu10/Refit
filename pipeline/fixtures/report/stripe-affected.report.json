@@ -75,8 +75,7 @@
       "evidence": [
         {
           "file": "package.json",
-          "line": 27,
-          "text": "@google/generative-ai 0.21.0 (locked in package-lock.json) is declared in dependencies"
+          "line": 27
         }
       ],
       "more": 0,
@@ -97,13 +96,11 @@
       "evidence": [
         {
           "file": "server/llmProviders.js",
-          "line": 102,
-          "text": "defaultModel: process.env.OPENAI_MODEL || 'gpt-3.5-turbo',"
+          "line": 102
         },
         {
           "file": "src/components/ProviderModelSelector.tsx",
-          "line": 10,
-          "text": "defaultModel: 'gpt-3.5-turbo',"
+          "line": 10
         }
       ],
       "more": 0,

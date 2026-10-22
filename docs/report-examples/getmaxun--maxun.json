@@ -46,8 +46,7 @@
       "evidence": [
         {
           "file": "server/src/workflow-management/classes/DocumentInterpreter.ts",
-          "line": 1478,
-          "text": "const model = config.model || 'claude-3-5-haiku-20241022';"
+          "line": 1478
         }
       ],
       "more": 0,

@@ -16,8 +16,8 @@ Plan to move off `2026-01` before 2027-01-16 (86 days left). Replacement: a supp
 ## Deadlines
 
 - **2027-01-16** (86 days left): Shopify API version 2026-01 stops being accessible at 15:00 UTC. Requests fall forward to the oldest accessible stable version. Replacement: a supported stable version. [Source](https://shopify.dev/docs/api/usage/versioning)
-  - `app/shopify.server.js:16`: `apiVersion: ApiVersion.January26,`
-  - `app/shopify.server.js:40`: `export const apiVersion = ApiVersion.January26;`
+  - `app/shopify.server.js:16`
+  - `app/shopify.server.js:40`
 
 ## AI model calls
 

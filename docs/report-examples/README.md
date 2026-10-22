@@ -1,6 +1,6 @@
 # Report examples
 
-Generated with `refit report`'s builder from public repositories in Refit's frozen benchmark sets, at the commits those sets pinned. Each repository was shallow-cloned, inventoried read-only (nothing installed or run, no provider contacted) and deleted. Days left are counted from 2026-10-22. These are examples of the format, not reviews of the repositories: the findings are what Refit's scanners report, including their known gaps.
+Generated with `refit report`'s builder from public repositories in Refit's frozen benchmark sets, at the commits those sets pinned. Each repository was shallow-cloned, inventoried read-only (nothing installed or run, no provider contacted) and deleted. Days left are counted from 2026-10-22. The matched source lines were removed from the evidence afterwards, as reports no longer carry them (owner decision, 2026-10-22). These are examples of the format, not reviews of the repositories: the findings are what Refit's scanners report, including their known gaps.
 
 Refit commit `12fb86a23f2a8cf2f1800f88641d3d7e1c973375`, command:
 

@@ -101,8 +101,7 @@
       "evidence": [
         {
           "file": "server/meta.ts",
-          "line": 23,
-          "text": "const GRAPH = 'https://graph.facebook.com/v21.0'"
+          "line": 23
         }
       ],
       "more": 0,

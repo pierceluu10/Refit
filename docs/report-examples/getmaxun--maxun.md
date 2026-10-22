@@ -17,7 +17,7 @@ Move off `claude-3-5-haiku-20241022` now: its sunset was 2026-02-19 (passed 245 
 ## Deadlines
 
 - **2026-02-19** (passed 245 days ago): Anthropic retires claude-3-5-haiku-20241022 on the Claude API; requests to a retired model fail. Replacement: `claude-haiku-4-5-20251001`. [Source](https://platform.claude.com/docs/en/about-claude/model-deprecations)
-  - `server/src/workflow-management/classes/DocumentInterpreter.ts:1478`: `const model = config.model || 'claude-3-5-haiku-20241022';`
+  - `server/src/workflow-management/classes/DocumentInterpreter.ts:1478`
 
 ## AI model calls
 

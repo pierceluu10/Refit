@@ -18,12 +18,12 @@ Move off `claude-3-haiku-20240307` now: its sunset was 2026-04-20 (passed 185 da
 ## Deadlines
 
 - **2026-04-20** (passed 185 days ago): Anthropic retires claude-3-haiku-20240307 on the Claude API; requests to a retired model fail. Replacement: `claude-haiku-4-5-20251001`. [Source](https://platform.claude.com/docs/en/about-claude/model-deprecations)
-  - `src/providers/claude/config.ts:6`: `id: "claude-3-haiku-20240307",`
-  - `src/providers/claude/config.ts:7`: `name: "claude-3-haiku-20240307",`
+  - `src/providers/claude/config.ts:6`
+  - `src/providers/claude/config.ts:7`
 - **2026-10-23** (1 day left): OpenAI shuts down gpt-3.5-turbo, gpt-3.5-turbo-0125, o4-mini. Replacement: `gpt-5.6-terra`. [Source](https://developers.openai.com/api/docs/deprecations)
-  - `src/providers/openai/config.ts:8`: `id: "gpt-3.5-turbo",`
-  - `src/providers/openai/config.ts:9`: `name: "gpt-3.5-turbo",`
-  - `src/providers/raycast/index.ts:7`: `const MODEL_NAME = "gpt-3.5-turbo";`
+  - `src/providers/openai/config.ts:8`
+  - `src/providers/openai/config.ts:9`
+  - `src/providers/raycast/index.ts:7`
 
 Named only outside live code (tests, comments, catalogs): `anthropic-2024-11-06-claude-1`, `anthropic-2025-07-21-claude-2`, `anthropic-2025-07-21-claude-3-sonnet`, `anthropic-2026-01-05-claude-3-opus`.
 

@@ -17,7 +17,7 @@ Move off `gpt-4` before 2026-10-23 (1 day left). Replacement: `gpt-5.6-sol`; `re
 ## Deadlines
 
 - **2026-10-23** (1 day left): OpenAI shuts down gpt-4, gpt-4-0613, gpt-4-turbo, gpt-4-turbo-2024-04-09, gpt-4o-2024-05-13, o1, o1-2024-12-17, o1-pro, o3-mini. Replacement: `gpt-5.6-sol`. [Source](https://developers.openai.com/api/docs/deprecations)
-  - `lib/vision-analyzer.ts:68`: `` - GOOD tags: "bitcoin price chart", "react hooks", "frustrated man", "gpt-4", "bull market"` ``
+  - `lib/vision-analyzer.ts:68`
 
 Named only outside live code (tests, comments, catalogs): `openai-2026-10-23-gpt-3-5-turbo`, `openai-2026-10-23-gpt-4-1-nano`.
 

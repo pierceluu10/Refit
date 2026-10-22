@@ -70,7 +70,6 @@
               "line": 6,
               "kind": "source",
               "use": "catalog",
-              "text": "{ model: \"gpt-5.1\", name: \"GPT-5.1\" },",
               "version": "gpt-5.1"
             }
           ],

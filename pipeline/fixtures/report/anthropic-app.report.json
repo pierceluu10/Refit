@@ -53,13 +53,11 @@
       "evidence": [
         {
           "file": "src/agent/anthropic/streaming.ts",
-          "line": 127,
-          "text": "model: 'claude-sonnet-4-20250514',"
+          "line": 127
         },
         {
           "file": "src/agent/providers/anthropic/adapter.ts",
-          "line": 45,
-          "text": "model: 'claude-sonnet-4-20250514',"
+          "line": 45
         }
       ],
       "more": 0,
@@ -80,23 +78,19 @@
       "evidence": [
         {
           "file": "src/agent/anthropic/anthropic.ts",
-          "line": 80,
-          "text": "model: 'claude-sonnet-4-5',"
+          "line": 80
         },
         {
           "file": "src/agent/anthropic/anthropic.ts",
-          "line": 274,
-          "text": "model: 'claude-sonnet-4-5',"
+          "line": 274
         },
         {
           "file": "src/agent/anthropic/anthropic.ts",
-          "line": 720,
-          "text": "model: 'claude-sonnet-4-5',"
+          "line": 720
         },
         {
           "file": "src/agent/core/title.ts",
-          "line": 21,
-          "text": "model: 'claude-sonnet-4-5',"
+          "line": 21
         }
       ],
       "more": 0,

@@ -61,7 +61,6 @@
               "line": 127,
               "kind": "source",
               "use": "live",
-              "text": "model: 'claude-sonnet-4-20250514',",
               "version": "claude-sonnet-4-20250514"
             },
             {
@@ -69,7 +68,6 @@
               "line": 45,
               "kind": "source",
               "use": "live",
-              "text": "model: 'claude-sonnet-4-20250514',",
               "version": "claude-sonnet-4-20250514"
             }
           ],
@@ -97,7 +95,6 @@
               "line": 80,
               "kind": "source",
               "use": "live",
-              "text": "model: 'claude-sonnet-4-5',",
               "version": "claude-sonnet-4-5"
             },
             {
@@ -105,7 +102,6 @@
               "line": 274,
               "kind": "source",
               "use": "live",
-              "text": "model: 'claude-sonnet-4-5',",
               "version": "claude-sonnet-4-5"
             },
             {
@@ -113,7 +109,6 @@
               "line": 720,
               "kind": "source",
               "use": "live",
-              "text": "model: 'claude-sonnet-4-5',",
               "version": "claude-sonnet-4-5"
             },
             {
@@ -121,7 +116,6 @@
               "line": 21,
               "kind": "source",
               "use": "live",
-              "text": "model: 'claude-sonnet-4-5',",
               "version": "claude-sonnet-4-5"
             }
           ],

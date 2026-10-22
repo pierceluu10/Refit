@@ -37,13 +37,11 @@
       "evidence": [
         {
           "file": "app/shopify.server.js",
-          "line": 16,
-          "text": "apiVersion: ApiVersion.January26,"
+          "line": 16
         },
         {
           "file": "app/shopify.server.js",
-          "line": 40,
-          "text": "export const apiVersion = ApiVersion.January26;"
+          "line": 40
         }
       ],
       "more": 0,

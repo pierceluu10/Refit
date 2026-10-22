@@ -20,10 +20,10 @@ Stripe API versions pinned in code: `2023-10-16`.
 ## Deadlines
 
 - **2025-11-30** (passed 326 days ago): Google ends all support for the @google/generative-ai package, including bug fixes, on 2025-11-30 and recommends @google/genai, whose call shapes differ. Google does not say that requests through the old package stop working. The README in its last npm release (0.24.1) gave 2025-08-31; the repository README now gives 2025-11-30. Replacement: `@google/genai`. [Source](https://github.com/google-gemini/deprecated-generative-ai-js/blob/main/README.md)
-  - `package.json:27`: `@google/generative-ai 0.21.0 (locked in package-lock.json) is declared in dependencies`
+  - `package.json:27`
 - **2026-10-23** (1 day left): OpenAI shuts down gpt-3.5-turbo, gpt-3.5-turbo-0125, o4-mini. Replacement: `gpt-5.6-terra`. [Source](https://developers.openai.com/api/docs/deprecations)
-  - `server/llmProviders.js:102`: `defaultModel: process.env.OPENAI_MODEL || 'gpt-3.5-turbo',`
-  - `src/components/ProviderModelSelector.tsx:10`: `defaultModel: 'gpt-3.5-turbo',`
+  - `server/llmProviders.js:102`
+  - `src/components/ProviderModelSelector.tsx:10`
 
 Named only outside live code (tests, comments, catalogs): `openai-2026-10-23-gpt-4`.
 

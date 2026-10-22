@@ -17,8 +17,6 @@ const LISTED = 50;
 const LISTED_EVIDENCE = 5;
 const LISTED_CALLS = 10;
 const LISTED_PACKAGES = 10;
-// Evidence lines are cut to this many characters in markdown.
-const EVIDENCE_WIDTH = 160;
 // A live deadline this close, or past, makes moving off it the next step.
 const URGENT_DAYS = 30;
 
@@ -50,7 +48,7 @@ export interface Report {
     summary: string;
     replacement: string | null;
     source: string | null;
-    evidence: { file: string; line: number; text: string }[];
+    evidence: { file: string; line: number }[];
     more: number;
     // Accepted by an active entry in the committed ignore file.
     ignored: boolean;
@@ -192,11 +190,7 @@ export function buildReport(options: {
       summary: exposure.deadline.summary,
       replacement: exposure.deadline.replacement,
       source: exposure.deadline.source,
-      evidence: exposure.evidence.map((item) => ({
-        file: item.file,
-        line: item.line,
-        text: item.text,
-      })),
+      evidence: exposure.evidence.map((item) => ({ file: item.file, line: item.line })),
       more: exposure.more,
       ignored: Boolean(decisions.get(exposure.deadline.id)?.ignoredBy.length),
     })),
@@ -228,9 +222,6 @@ function capabilityText(integration: Report['integrations'][number]) {
   if (!integration.configured) return 'Agent available: migrates breaking changes once added';
   return `Migrates breaking changes, configured${integration.integration ? ` as ${code(integration.integration)}` : ''}`;
 }
-
-const clip = (text: string) =>
-  text.length > EVIDENCE_WIDTH ? `${text.slice(0, EVIDENCE_WIDTH - 1)}…` : text;
 
 function listed<T>(
   items: T[],
@@ -298,7 +289,7 @@ function deadlineLines(report: Report) {
       ...listed(
         deadline.evidence,
         LISTED_EVIDENCE,
-        (item) => [`  - ${code(`${item.file}:${item.line}`)}: ${code(clip(item.text))}`],
+        (item) => [`  - ${code(`${item.file}:${item.line}`)}`],
         'lines',
         '  ',
       ),
@@ -384,19 +375,24 @@ export function renderReport(report: Report) {
   return `${kept.slice(0, kept.lastIndexOf('\n'))}${note}`;
 }
 
-// Changes when what the report says changes, not every day: days left count only through the
-// alert stage they are in, so it changes when a deadline crosses 90, 30 or 7 days or arrives. The
-// date and the next step, which repeat days left, are left out.
+// Changes when what the report says changes, not every day or push: days left count only through
+// the alert stage they are in, so it changes when a deadline crosses 90, 30 or 7 days or arrives.
+// The date and next step (which repeat days left), the revision and line numbers are left out, so
+// a push that only moves code does not rewrite the issue and notify its watchers.
 export function reportDigest(report: Report) {
   return digest(
-    JSON.stringify({
-      ...report,
-      date: null,
-      next: null,
-      deadlines: report.deadlines.map((deadline) => ({
-        ...deadline,
-        days: alertStage(deadline.days, DEFAULT_LEAD_DAYS),
-      })),
-    }),
+    JSON.stringify(
+      {
+        ...report,
+        date: null,
+        next: null,
+        revision: null,
+        deadlines: report.deadlines.map((deadline) => ({
+          ...deadline,
+          days: alertStage(deadline.days, DEFAULT_LEAD_DAYS),
+        })),
+      },
+      (key, value) => (key === 'line' ? undefined : value),
+    ),
   );
 }

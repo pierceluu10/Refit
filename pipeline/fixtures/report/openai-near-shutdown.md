@@ -18,18 +18,18 @@ Move off `claude-sonnet-4-20250514` now: its sunset was 2026-06-15 (passed 129 d
 ## Deadlines
 
 - **2025-11-30** (passed 326 days ago): Google ends all support for the @google/generative-ai package, including bug fixes, on 2025-11-30 and recommends @google/genai, whose call shapes differ. Google does not say that requests through the old package stop working. The README in its last npm release (0.24.1) gave 2025-08-31; the repository README now gives 2025-11-30. Replacement: `@google/genai`. [Source](https://github.com/google-gemini/deprecated-generative-ai-js/blob/main/README.md)
-  - `package.json:15`: `@google/generative-ai 0.21.0 (locked in package-lock.json) is declared in dependencies`
+  - `package.json:15`
 - **2026-06-15** (passed 129 days ago): Anthropic retires claude-sonnet-4-20250514 on the Claude API; requests to a retired model fail. Replacement: `claude-sonnet-5-5`. [Source](https://platform.claude.com/docs/en/about-claude/model-deprecations)
-  - `src/vision/providers/anthropic-vision.ts:40`: `const CLAUDE_MODEL = process.env.ANTHROPIC_VISION_MODEL || 'claude-sonnet-4-20250514';`
+  - `src/vision/providers/anthropic-vision.ts:40`
 - **2026-10-23** (1 day left): OpenAI shuts down gpt-4.1-nano, gpt-4.1-nano-2025-04-14. Replacement: `gpt-5.6-luna`. [Source](https://developers.openai.com/api/docs/deprecations)
-  - `src/agents/math-enricher.step.ts:29`: `const OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-4.1-nano'`
-  - `src/agents/narrative-composer.step.ts:19`: `const OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-4.1-nano'`
-  - `src/agents/prerequisite-explorer.step.ts:19`: `const OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-4.1-nano'`
-  - `src/agents/visual-designer.step.ts:23`: `const OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-4.1-nano'`
-  - `src/api/refine.step.ts:92`: `model: process.env.OPENAI_MODEL || 'gpt-4.1-nano',`
+  - `src/agents/math-enricher.step.ts:29`
+  - `src/agents/narrative-composer.step.ts:19`
+  - `src/agents/prerequisite-explorer.step.ts:19`
+  - `src/agents/visual-designer.step.ts:23`
+  - `src/api/refine.step.ts:92`
   - …and 3 more lines.
 - **2026-11-30** (39 days left): Anthropic retires claude-sonnet-4-5-20250929 on the Claude API; requests to a retired model fail. The claude-sonnet-4-5 alias resolves to that snapshot (Claude Sonnet 4.5 model page). Replacement: `claude-sonnet-5-5`. [Source](https://platform.claude.com/docs/en/about-claude/model-deprecations)
-  - `src/providers/anthropic-provider.ts:13`: `const DEFAULT_MODEL = process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-5-20250929';`
+  - `src/providers/anthropic-provider.ts:13`
 
 ## AI model calls
 

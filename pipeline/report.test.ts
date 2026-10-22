@@ -36,7 +36,11 @@ async function fixture(name: string, now = NOW) {
   const { source, inventory } = JSON.parse(
     await readFile(new URL(`./fixtures/report/${name}.json`, import.meta.url), 'utf8'),
   ) as { source: { repository: string; commit: string }; inventory: Inventory };
-  const registry = await loadDeadlineRegistry(undefined, NOW);
+  // A pinned copy of the registry, so registry edits do not change the recorded reports.
+  const registry = await loadDeadlineRegistry(
+    new URL('./fixtures/report/registry.json', import.meta.url),
+    NOW,
+  );
   const build = (changed = inventory, at = now) =>
     buildReport({
       inventory: changed,
@@ -188,7 +192,7 @@ it('honours an active ignore in the next step but not an expired one or a broken
 it('keeps the markdown within the issue budget and says what it left out', async () => {
   const { inventory, build } = await fixture('openai-near-shutdown');
   const [exposure] = inventory.deadlines.exposures;
-  const long = `const prompt = \`${'x'.repeat(2_000)}\`;`;
+  const long = `src/${'x'.repeat(500)}.ts`;
   const report = build({
     ...inventory,
     deadlines: {
@@ -198,8 +202,8 @@ it('keeps the markdown within the issue budget and says what it left out', async
         deadline: { ...exposure.deadline, id: `deadline-${index}` },
         evidence: Array.from({ length: 7 }, (__, line) => ({
           ...exposure.evidence[0],
+          file: long,
           line: line + 1,
-          text: long,
         })),
         more: 3,
       })),
@@ -223,9 +227,6 @@ it('keeps the markdown within the issue budget and says what it left out', async
   );
   expect(markdown).toContain('  - …and 2 more lines.');
   expect(markdown).toContain('  - …and 3 more matches.');
-  // Evidence lines are cut in markdown and kept whole in JSON.
-  expect(markdown).not.toContain('x'.repeat(200));
-  expect(report.deadlines[0].evidence[0].text).toBe(long);
 
   const models = renderReport({ ...report, deadlines: [] });
   expect(models.length).toBeLessThan(REPORT_CHARACTER_BUDGET);
@@ -243,7 +244,7 @@ it('shows code exactly, even when it contains backticks or pipes', async () => {
     deadlines: {
       ...inventory.deadlines,
       exposures: [
-        { ...exposure, evidence: [{ ...exposure.evidence[0], text: 'const a = `x` + ``y``;' }] },
+        { ...exposure, evidence: [{ ...exposure.evidence[0], file: 'src/a`x`+``y``.ts' }] },
       ],
     },
     providers: [
@@ -254,7 +255,7 @@ it('shows code exactly, even when it contains backticks or pipes', async () => {
     ],
   });
   const markdown = renderReport(report);
-  expect(markdown).toContain(': ``` const a = `x` + ``y``; ```');
+  expect(markdown).toContain('``` src/a`x`+``y``.ts:');
   expect(markdown).toContain('`^4 \\|\\| ^5`');
 });
 
@@ -264,11 +265,20 @@ it('changes its digest when the report changes, not every day', async () => {
   // claude-sonnet-4-5 retires on 2026-11-30: 39 and 36 days away share the 90-day stage.
   expect(at('2026-10-25')).toBe(at('2026-10-22'));
   expect(at('2026-11-01')).not.toBe(at('2026-10-22'));
+  // A push that only moves code (new revision, other line numbers) keeps the digest; a new call
+  // changes it.
+  const [model] = inventory.models;
+  expect(
+    reportDigest({
+      ...build({ ...inventory, models: [{ ...model, line: model.line + 40 }] }),
+      revision: 'f'.repeat(40),
+    }),
+  ).toBe(reportDigest(build({ ...inventory, models: [model] })));
   expect(
     reportDigest(
       build({
         ...inventory,
-        models: [...inventory.models, { ...inventory.models[0], line: 99 }],
+        models: [...inventory.models, { ...model, file: 'src/added.ts' }],
       }),
     ),
   ).not.toBe(at('2026-10-22'));

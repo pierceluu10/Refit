@@ -75,7 +75,6 @@
               "line": 15,
               "kind": "dependency",
               "use": "live",
-              "text": "@google/generative-ai 0.21.0 (locked in package-lock.json) is declared in dependencies",
               "version": "@google/generative-ai"
             }
           ],
@@ -103,7 +102,6 @@
               "line": 40,
               "kind": "source",
               "use": "live",
-              "text": "const CLAUDE_MODEL = process.env.ANTHROPIC_VISION_MODEL || 'claude-sonnet-4-20250514';",
               "version": "claude-sonnet-4-20250514"
             }
           ],
@@ -131,7 +129,6 @@
               "line": 29,
               "kind": "source",
               "use": "live",
-              "text": "const OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-4.1-nano'",
               "version": "gpt-4.1-nano"
             },
             {
@@ -139,7 +136,6 @@
               "line": 19,
               "kind": "source",
               "use": "live",
-              "text": "const OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-4.1-nano'",
               "version": "gpt-4.1-nano"
             },
             {
@@ -147,7 +143,6 @@
               "line": 19,
               "kind": "source",
               "use": "live",
-              "text": "const OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-4.1-nano'",
               "version": "gpt-4.1-nano"
             },
             {
@@ -155,7 +150,6 @@
               "line": 23,
               "kind": "source",
               "use": "live",
-              "text": "const OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-4.1-nano'",
               "version": "gpt-4.1-nano"
             },
             {
@@ -163,7 +157,6 @@
               "line": 92,
               "kind": "source",
               "use": "live",
-              "text": "model: process.env.OPENAI_MODEL || 'gpt-4.1-nano',",
               "version": "gpt-4.1-nano"
             },
             {
@@ -171,7 +164,6 @@
               "line": 21,
               "kind": "source",
               "use": "live",
-              "text": "const OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-4.1-nano'",
               "version": "gpt-4.1-nano"
             },
             {
@@ -179,7 +171,6 @@
               "line": 10,
               "kind": "source",
               "use": "live",
-              "text": "const OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-4.1-nano'",
               "version": "gpt-4.1-nano"
             },
             {
@@ -187,7 +178,6 @@
               "line": 17,
               "kind": "source",
               "use": "live",
-              "text": "const OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-4.1-nano'",
               "version": "gpt-4.1-nano"
             }
           ],
@@ -215,7 +205,6 @@
               "line": 13,
               "kind": "source",
               "use": "live",
-              "text": "const DEFAULT_MODEL = process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-5-20250929';",
               "version": "claude-sonnet-4-5-20250929"
             }
           ],

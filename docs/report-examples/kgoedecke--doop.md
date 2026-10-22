@@ -22,7 +22,7 @@ Stripe API versions pinned in code: 4 computed.
 ## Deadlines
 
 - **2027-01-21** (91 days left): Meta Graph API v21.0 stops being available on this date. Replacement: a newer Graph API version. [Source](https://developers.facebook.com/docs/graph-api/changelog)
-  - `server/meta.ts:23`: `const GRAPH = 'https://graph.facebook.com/v21.0'`
+  - `server/meta.ts:23`
 
 ## AI model calls
 
