@@ -19,18 +19,18 @@ Refit reads JavaScript and TypeScript source and `package.json` files, without i
 
 Each request lists:
 
-| Field               | Meaning                                                                                                                                                                                                       |
-| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `kind`              | `checkout-sdk`, `server-sdk` or `url`.                                                                                                                                                                        |
-| `file`, `line`      | Where the request is made: the request class, the controller call, or the HTTP call. A URL no call uses is reported at the URL.                                                                               |
-| `request`, `client` | `orders.OrdersCreateRequest` or `OrdersController.createOrder`, and the call that sends it (`client.execute`, `fetch`, `axios.post`, a helper).                                                               |
-| `method`, `path`    | The HTTP method and path. SDK requests come from the SDK's own source (see [below](#the-recorded-requests)); `/v2/checkout/orders/{orderId}/capture` in a URL names runtime segments in braces.               |
-| `hosts`             | The REST hosts a URL can reach; empty for SDK calls, whose host the SDK's environment chooses.                                                                                                                |
-| `operation`         | The matching operation in PayPal's published OpenAPI documents (`orders.capture` in `checkout_orders_v2.json`), or null.                                                                                      |
-| `counterpart`       | The controller methods of the newest recorded `@paypal/paypal-server-sdk` release that make the same request. For an old-SDK request this is where a migration would land; `[]` means no controller makes it. |
-| `notes`             | Facts for review: a request the published documents do not list, a host they do not list, a method the declared SDK release does not define.                                                                  |
-| `unknown`           | Each thing Refit could not read, and why.                                                                                                                                                                     |
-| `use`               | `test` for test, spec, story, fixture and example files, which the text output lists separately.                                                                                                              |
+| Field | Meaning |
+| --- | --- |
+| `kind` | `checkout-sdk`, `server-sdk` or `url`. |
+| `file`, `line` | Where the request is made: the request class, the controller call, or the HTTP call. A URL no call uses is reported at the URL. |
+| `request`, `client` | `orders.OrdersCreateRequest` or `OrdersController.createOrder`, and the call that sends it (`client.execute`, `fetch`, `axios.post`, a helper). |
+| `method`, `path` | The HTTP method and path. SDK requests come from the SDK's own source (see [below](#the-recorded-requests)); `/v2/checkout/orders/{orderId}/capture` in a URL names runtime segments in braces. |
+| `hosts` | The REST hosts a URL can reach; empty for SDK calls, whose host the SDK's environment chooses. |
+| `operation` | The matching operation in PayPal's published OpenAPI documents (`orders.capture` in `checkout_orders_v2.json`), or null. |
+| `counterpart` | The controller methods of the newest recorded `@paypal/paypal-server-sdk` release that make the same request. For an old-SDK request this is where a migration would land; `[]` means no controller makes it. |
+| `notes` | Facts for review: a request the published documents do not list, a host they do not list, a method the declared SDK release does not define. |
+| `unknown` | Each thing Refit could not read, and why. |
+| `use` | `test` for test, spec, story, fixture and example files, which the text output lists separately. |
 
 The report also lists each declaration of either package with its declared and locked version, and npm's deprecation notice for `@paypal/checkout-server-sdk`.
 
@@ -72,19 +72,19 @@ What the recorded sources show (checked 2026-10-21):
 
 [`scripts/paypal-benchmark.mjs`](../scripts/paypal-benchmark.mjs) scanned each repository at its pinned commit from a pinned worktree at `1ec93a8`, with no code installed or run and nothing sent to PayPal ([results](benchmarks/2026-10-21-paypal-results.json)):
 
-| Measure                                                        |   Result |
-| -------------------------------------------------------------- | -------: |
-| Repositories                                                   |       22 |
-| Scanned                                                        |       17 |
-| Not scanned (over the 50 MiB or 128-configuration scan limits) |        5 |
-| Scanned repositories with a live PayPal request                |       11 |
-| Live requests reported                                         |       90 |
-| … `@paypal/paypal-server-sdk` controller calls                 |       82 |
-| … raw REST calls                                               |        8 |
-| … `@paypal/checkout-server-sdk` request classes                |        0 |
-| Path known                                                     |       90 |
-| Matched to a published operation                               |       83 |
-| Real request with the right method and path, on hand review    | 90 of 90 |
+| Measure | Result |
+| --- | ---: |
+| Repositories | 22 |
+| Scanned | 17 |
+| Not scanned (over the 50 MiB or 128-configuration scan limits) | 5 |
+| Scanned repositories with a live PayPal request | 11 |
+| Live requests reported | 90 |
+| … `@paypal/paypal-server-sdk` controller calls | 82 |
+| … raw REST calls | 8 |
+| … `@paypal/checkout-server-sdk` request classes | 0 |
+| Path known | 90 |
+| Matched to a published operation | 83 |
+| Real request with the right method and path, on hand review | 90 of 90 |
 
 Each of the 90 was read against its source line. The 7 without a published operation are `POST /v1/oauth2/token` (4), `POST /v1/identity/generate-token` (2) and `GET /v1/billing/subscriptions` (1), none of which the published documents list. 5 raw calls go to `api.paypal.com` or `api.sandbox.paypal.com`, which those documents do not list as servers.
 

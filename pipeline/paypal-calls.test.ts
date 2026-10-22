@@ -466,6 +466,26 @@ fetch(\`\${api(mode)}/v1/notifications/webhooks\`, { method: 'POST' });
     ]);
   });
 
+  it('reads the one base a function returns past an early guard, and none from two', async () => {
+    const found = await calls({
+      'a.ts': `function base() {
+  if (!process.env.PAYPAL_CLIENT_ID) return null;
+  if (process.env.PAYPAL_ENV === 'live') {
+    return 'https://api-m.paypal.com';
+  }
+  throw new Error('live only');
+}
+function either(live) {
+  if (live) return 'https://api-m.paypal.com';
+  return 'https://api.example.com';
+}
+fetch(\`\${base()}/v2/checkout/orders\`);
+fetch(\`\${either(true)}/v2/payments/captures\`);
+`,
+    });
+    expect(sites(found)).toEqual(['a.ts:12 GET /v2/checkout/orders api-m.paypal.com']);
+  });
+
   it('does not take a function that returns something else, or a host-looking string that is not PayPal', async () => {
     expect(
       await calls({

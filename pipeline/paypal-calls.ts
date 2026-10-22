@@ -813,12 +813,26 @@ interface Base {
 }
 
 // The expression a function returns: an arrow's body, or the last `return` of its block.
+// What a function body returns: its one non-null return, at any depth outside nested functions,
+// so a guard such as `if (!key) return null;` does not hide it. Two different returns are not one
+// base, so they give nothing.
 function returnedBy(body: ts.ConciseBody): ts.Expression | undefined {
   if (!ts.isBlock(body)) return body;
-  let found: ts.Expression | undefined;
-  for (const statement of body.statements)
-    if (ts.isReturnStatement(statement) && statement.expression) found = statement.expression;
-  return found;
+  const found: ts.Expression[] = [];
+  const visit = (node: ts.Node) => {
+    if (ts.isFunctionLike(node) || ts.isClassLike(node)) return;
+    if (ts.isReturnStatement(node) && node.expression) {
+      const value = unwrap(node.expression);
+      if (
+        value.kind !== ts.SyntaxKind.NullKeyword &&
+        !(ts.isIdentifier(value) && value.text === 'undefined')
+      )
+        found.push(node.expression);
+    }
+    ts.forEachChild(node, visit);
+  };
+  ts.forEachChild(body, visit);
+  return found.length === 1 ? found[0] : undefined;
 }
 
 // What a top-level `function name()` or `const name = () =>` in a file returns.
