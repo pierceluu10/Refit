@@ -26,7 +26,6 @@ const CONFIGURATION_KEYS = new Set([
   'compareTypeErrors',
   'generatedChecks',
   'stripePaymentMethodTypes',
-  'shopifySdkUpgrade',
 ]);
 const GENERATED_CHECK_KEYS = 'afterFixtures,beforeFixtures,stripeMockImage';
 
@@ -138,8 +137,6 @@ function parseSingleWorkflowConfiguration(value: Record<string, unknown>, path: 
     throw new PipelineInputError('Run configuration prepareDependencies must be a boolean.');
   if (value.compareTypeErrors !== undefined && typeof value.compareTypeErrors !== 'boolean')
     throw new PipelineInputError('Run configuration compareTypeErrors must be a boolean.');
-  if (value.shopifySdkUpgrade !== undefined && typeof value.shopifySdkUpgrade !== 'boolean')
-    throw new PipelineInputError('Run configuration shopifySdkUpgrade must be a boolean.');
   // The repository owner's opt-in to keep listed payment methods (docs/STRIPE-PAYMENT-METHOD-TYPES.md).
   if (
     value.stripePaymentMethodTypes !== undefined &&
@@ -190,7 +187,6 @@ function parseSingleWorkflowConfiguration(value: Record<string, unknown>, path: 
     ...(value.prepareDependencies ? { prepareDependencies: true } : {}),
     ...(value.compareTypeErrors ? { compareTypeErrors: true } : {}),
     ...(value.stripePaymentMethodTypes ? { keepListedPaymentMethods: true } : {}),
-    ...(value.shopifySdkUpgrade ? { shopifySdkUpgrade: true } : {}),
     ...(isObject(generated)
       ? {
           generatedChecks: {

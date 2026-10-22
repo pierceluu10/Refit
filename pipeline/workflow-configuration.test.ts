@@ -258,16 +258,11 @@ it('allows a checkout-free configuration but requires explicit App syncing befor
   });
 });
 
-it('reads the Shopify SDK upgrade opt-in as a boolean, off by default', async () => {
+it('refuses a Shopify SDK upgrade opt-in in configuration; only the run flag enables it', async () => {
   const { path, configuration } = await setup();
-  expect((await readWorkflowConfiguration(path)).shopifySdkUpgrade).toBeUndefined();
   await writeFile(path, JSON.stringify({ ...configuration, shopifySdkUpgrade: true }));
-  expect((await readWorkflowConfiguration(path)).shopifySdkUpgrade).toBe(true);
-  await writeFile(path, JSON.stringify({ ...configuration, shopifySdkUpgrade: false }));
-  expect((await readWorkflowConfiguration(path)).shopifySdkUpgrade).toBeUndefined();
-  await writeFile(path, JSON.stringify({ ...configuration, shopifySdkUpgrade: 'yes' }));
   await expect(readWorkflowConfiguration(path)).rejects.toThrow(
-    'Run configuration shopifySdkUpgrade must be a boolean.',
+    'Unknown run configuration fields: shopifySdkUpgrade.',
   );
 });
 

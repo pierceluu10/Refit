@@ -111,7 +111,7 @@ try {
       generatedChecks: configuration?.generatedChecks,
       compareTypeErrors: configuration?.compareTypeErrors,
       keepListedPaymentMethods: configuration?.keepListedPaymentMethods,
-      shopifySdkUpgrade: values['shopify-sdk-upgrade'] ?? configuration?.shopifySdkUpgrade,
+      shopifySdkUpgrade: values['shopify-sdk-upgrade'],
       command,
       baselineCommand:
         values['baseline-command'] !== undefined

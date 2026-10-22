@@ -233,7 +233,7 @@ async function benchmark(entry: (typeof repos)[number], index: number) {
   const config = join(work, 'run.json');
   await writeFile(
     config,
-    `${JSON.stringify({ formatVersion: 1, repository: directory, before: snapshot(before), after: snapshot(target), image: 'node:22-alpine', prepareDependencies: true, command, ...(result.checks === 'typecheck' ? { compareTypeErrors: true } : {}), ...(upgrade ? { shopifySdkUpgrade: true } : {}) }, null, 2)}\n`,
+    `${JSON.stringify({ formatVersion: 1, repository: directory, before: snapshot(before), after: snapshot(target), image: 'node:22-alpine', prepareDependencies: true, command, ...(result.checks === 'typecheck' ? { compareTypeErrors: true } : {}) }, null, 2)}\n`,
   );
   const bundle = join(work, 'run');
   try {
@@ -248,6 +248,7 @@ async function benchmark(entry: (typeof repos)[number], index: number) {
         bundle,
         '--quiet',
         '--json',
+        ...(upgrade ? ['--shopify-sdk-upgrade'] : []),
       ],
       { env: CHILD_ENV, timeout: VALIDATION_TIMEOUT_MS, maxBuffer: 64 * 1024 * 1024 },
     );

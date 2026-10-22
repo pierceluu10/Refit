@@ -8,7 +8,7 @@ In the [200-app fresh Shopify list](benchmarks/2026-10-16-shopify-fresh-repos.js
 
 ## Turning it on
 
-- `refit run --shopify-sdk-upgrade`, or `"shopifySdkUpgrade": true` in `run.json`.
+- `refit run --shopify-sdk-upgrade`. It is off by default, and a repository cannot turn it on from its configuration (owner decision, 2026-10-22); `refit serve` and the hosted worker never run it.
 - `npm run benchmark:shopify -- --sdk-upgrade` for the benchmark.
 
 It runs only when the version move needs it: the code uses `LATEST_API_VERSION` or an `ApiVersion` enum pin outside a codegen config, and the locked `@shopify/shopify-api` does not define the target member. Otherwise the run behaves exactly as with the flag off.
@@ -24,7 +24,7 @@ The upgrade moves the one Shopify package the project declares to the oldest maj
 | `@shopify/shopify-app-react-router` | 1            |
 | `@shopify/shopify-app-express`      | 6            |
 
-The target release is the oldest in that major whose `@shopify/shopify-api` names the target member: 12.1.0 for `January26`, 12.3.0 for `April26`. `July26` (13.1.0) and `October26` (14.0.0) need a later major, so the upgrade refuses them. With `--sdk-upgrade`, the benchmark aims `LATEST_API_VERSION` and enum pins at the newest member that major has. Today that member is `April26`.
+The target release is the newest in that major that fits the lockfile and whose `@shopify/shopify-api` names the target member (at least 12.1.0 for `January26`, 12.3.0 for `April26`). `July26` (13.1.0) and `October26` (14.0.0) need a later major, so the upgrade refuses them. With `--sdk-upgrade`, the benchmark aims `LATEST_API_VERSION` and enum pins at the newest member that major has. Today that member is `April26`.
 
 The upgrade writes `package.json` and `package-lock.json` the way the [Stripe package upgrade](DEPENDENCIES.md) does. It uses npm registry metadata and locks only releases that metadata gives with the canonical registry tarball URL and a SHA-512 integrity. It follows npm's key order and package order.
 
@@ -64,6 +64,8 @@ Before any edit, the upgrade also refuses these projects:
 Every proposed upgrade warns that `@shopify/shopify-api` 12 requires Node.js 20.10 or later (dc41d09). The published `engines` field says `>=20.0.0`; Refit uses the changelog's stricter bound.
 
 ## Results on the 44 (Refit `cedb1aa`, 2026-10-22)
+
+These counts and the per-repository table below are not backed by a committed results file.
 
 | Outcome             | Apps                      |
 | ------------------- | ------------------------- |
