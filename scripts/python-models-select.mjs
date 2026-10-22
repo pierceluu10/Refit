@@ -13,6 +13,11 @@ const LANGCHAIN_QUERIES = [
   '"from langchain_openai import ChatOpenAI" language:Python',
   '"from langchain_anthropic import ChatAnthropic" language:Python',
 ];
+const GO_QUERIES = [
+  '"github.com/stripe/stripe-go" language:Go',
+  '"github.com/openai/openai-go" language:Go',
+  '"github.com/anthropics/anthropic-sdk-go" language:Go',
+];
 const SDK_QUERIES = [
   '"from openai import OpenAI" language:Python',
   '"from openai import AsyncOpenAI" language:Python',
@@ -35,6 +40,7 @@ const VENDORS = new Set([
   'googleapis',
   'googlecloudplatform',
   'langchain-ai',
+  'stripe',
 ]);
 
 const { values } = parseArgs({
@@ -42,18 +48,20 @@ const { values } = parseArgs({
     count: { type: 'string' },
     // Select repositories using LangChain's ChatOpenAI or ChatAnthropic instead of the SDKs.
     langchain: { type: 'boolean' },
+    // Select Go repositories importing stripe-go, openai-go or anthropic-sdk-go.
+    go: { type: 'boolean' },
     output: { type: 'string' },
     help: { type: 'boolean' },
   },
 });
 if (values.help || !values.count || !values.output) {
   console.log(
-    'Usage: node scripts/python-models-select.mjs --count N --output <frozen.json> [--langchain]',
+    'Usage: node scripts/python-models-select.mjs --count N --output <frozen.json> [--langchain | --go]',
   );
   process.exit(values.help ? 0 : 1);
 }
 const count = Number(values.count);
-const QUERIES = values.langchain ? LANGCHAIN_QUERIES : SDK_QUERIES;
+const QUERIES = values.go ? GO_QUERIES : values.langchain ? LANGCHAIN_QUERIES : SDK_QUERIES;
 
 async function gh(args) {
   const { stdout } = await execute('gh', args, { maxBuffer: 64 * 1024 * 1024 });
@@ -145,10 +153,12 @@ await writeFile(
   `${JSON.stringify(
     {
       formatVersion: 1,
-      language: 'python',
-      sdks: values.langchain
-        ? ['langchain-openai', 'langchain-anthropic']
-        : ['openai', 'anthropic', 'google-genai'],
+      language: values.go ? 'go' : 'python',
+      sdks: values.go
+        ? ['stripe-go', 'openai-go', 'anthropic-sdk-go']
+        : values.langchain
+          ? ['langchain-openai', 'langchain-anthropic']
+          : ['openai', 'anthropic', 'google-genai'],
       selectedAt: new Date().toISOString(),
       method: `GitHub code search through gh api (queries below, ${PAGES} pages of ${PAGE_SIZE}), pool deduplicated by lower-cased full_name; vendor organizations (${[...VENDORS].join(', ')}) and repositories in other frozen lists removed; metadata through GraphQL; forks, archived repositories, repositories last pushed before ${PUSHED_SINCE} and repositories over ${MAX_DISK_KB / 1024} MB removed; ranked by stars, top ${count}; frozen at the default branch head. Retiring models are never consulted.`,
       queries,

@@ -18,7 +18,8 @@ import {
 } from './model-parameters.ts';
 import { readProviderAdapter, type ProviderAdapter } from './providers.ts';
 import { readRepository } from './repository.ts';
-import { pythonModelReports } from './python/model-reports.ts';
+import { goModelReports } from './go/model-reports.ts';
+import { pythonModelReports, type ModelRules } from './python/model-reports.ts';
 import { createSourceImportResolver } from './source-imports.ts';
 import type { Repository, SourceEdit } from './types.ts';
 
@@ -2142,12 +2143,18 @@ export async function proposeModelReplacements(
       byProvider.set(entry.provider, models);
       for (const version of entry.versions) models.set(version, entry);
     }
-  // Python call sites are reported, never edited (docs/ARCHITECTURE.md, "Other languages").
-  const python = await pythonModelReports(directory, registry, {
+  const rules: ModelRules = {
     replacement: (entry, models) => finalReplacement(entry, models)?.to ?? null,
     sensitive: (provider, to) =>
       rejectsSampling(provider, to) ? (MODEL_PARAMETER_NAMES[provider] ?? new Set()) : new Set(),
-  });
+  };
+  // Python and Go call sites are reported, never edited.
+  const pythonReports = await pythonModelReports(directory, registry, rules);
+  const goReports = await goModelReports(directory, registry, rules);
+  const python = {
+    stops: [...pythonReports.stops, ...goReports.stops],
+    unresolved: [...pythonReports.unresolved, ...goReports.unresolved],
+  };
   const empty = { replacements: [], ...python, patch: null };
   if (
     ![...byProvider.keys()].some((provider) =>
@@ -2581,6 +2588,7 @@ export async function proposeModelReplacements(
       if (
         evidence.kind !== 'source' ||
         evidence.file.endsWith('.py') ||
+        evidence.file.endsWith('.go') ||
         covered.has(`${evidence.file}:${evidence.line}`)
       )
         continue;

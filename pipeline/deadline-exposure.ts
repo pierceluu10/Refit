@@ -6,6 +6,8 @@ import { AGENT_CATALOG, builtInPackage } from './agent-catalog.ts';
 import { daysUntil, type DeadlineEntry, type DeadlineRegistry } from './deadline-registry.ts';
 import { cloudflareEndpointUses } from './cloudflare-calls.ts';
 import { githubDeadlineUses } from './github-api-calls.ts';
+import { goModelMatches } from './go/model-reports.ts';
+import { readGoFiles } from './go/syntax.ts';
 import { detectModelHosts, hostDeadlineMatches } from './model-hosts.ts';
 import { modelWrapperSites } from './model-wrappers.ts';
 import { repositoryApiVersionPins } from './commerce-api-versions.ts';
@@ -608,6 +610,15 @@ export async function scanDeadlines(
   // Python files: quoted registry models only, classified like the TypeScript matches above.
   const python = models.size ? await readPythonFiles(root) : [];
   for (const match of await pythonModelMatches(python, models, listModel(models)))
+    record(match.provider, match.version, {
+      file: match.file,
+      line: match.line,
+      kind: 'source',
+      use: match.use,
+      text: excerpt(match.text),
+    });
+  // Go files: model literals and openai-go and anthropic-sdk-go model constants.
+  for (const match of await goModelMatches(models.size ? await readGoFiles(root) : [], models))
     record(match.provider, match.version, {
       file: match.file,
       line: match.line,

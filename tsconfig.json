@@ -19,6 +19,7 @@
     "src",
     "pipeline/*.ts",
     "pipeline/python/*.ts",
+    "pipeline/go/*.ts",
     "pipeline/test/*.ts",
     "vite.config.ts"
   ]

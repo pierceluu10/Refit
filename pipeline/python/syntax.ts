@@ -68,12 +68,15 @@ export async function readPythonFiles(root: string): Promise<PythonFile[]> {
   return files;
 }
 
+let runtime: Promise<void> | undefined;
 let parser: Promise<Parser> | undefined;
 
-async function load() {
-  await Parser.init();
+// A parser for one grammar. Every language shares one web-tree-sitter runtime: two concurrent
+// Parser.init() calls can each create a WASM module and leave the first parser on a replaced one.
+export async function loadParser(grammar: string) {
+  await (runtime ??= Parser.init());
   const result = new Parser();
-  result.setLanguage(await Language.load(GRAMMAR));
+  result.setLanguage(await Language.load(grammar));
   return result;
 }
 
@@ -83,8 +86,15 @@ export async function withPythonTrees<T>(
   files: PythonFile[],
   use: (tree: (path: string) => Tree | undefined) => T | Promise<T>,
 ): Promise<T> {
-  parser ??= load();
-  const instance = await parser;
+  return withTrees((parser ??= loadParser(GRAMMAR)), files, use);
+}
+
+export async function withTrees<T>(
+  loaded: Promise<Parser>,
+  files: { path: string; content: string }[],
+  use: (tree: (path: string) => Tree | undefined) => T | Promise<T>,
+): Promise<T> {
+  const instance = await loaded;
   const contents = new Map(files.map((file) => [file.path, file.content]));
   const trees = new Map<string, Tree | undefined>();
   try {
