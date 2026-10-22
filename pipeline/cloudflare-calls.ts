@@ -10,6 +10,7 @@ import {
   expressionName,
   findDeclaration,
   httpMethod,
+  importedNames,
   isConst,
   isUrlRoot,
   lineOf,
@@ -22,6 +23,7 @@ import {
   type Part,
 } from './meta-graph-calls.ts';
 import { readRepository } from './repository.ts';
+import { createSourceImportResolver } from './source-imports.ts';
 import { isObject, parseObject } from './specifications.ts';
 import type { Repository } from './types.ts';
 
@@ -293,24 +295,57 @@ function bindings(source: ts.SourceFile) {
   return { classes, namespaces };
 }
 
+// Names other files make clients with: local names imported for an exported alias of the client
+// class, for an exported function that returns a client, and method names any class in the
+// repository declares to return a client.
+interface ResolverContext {
+  names: Set<string>;
+  functions: Set<string>;
+  methods: Set<string>;
+}
+const EMPTY_CONTEXT: ResolverContext = {
+  names: new Set(),
+  functions: new Set(),
+  methods: new Set(),
+};
+
 // Which expressions hold a client in one file: `new Cloudflare()`, the 2.x factory call
 // `cloudflare({ token })` or `require('cloudflare')({ … })`, names and class properties typed
 // `Cloudflare` or assigned a client, and calls of local functions that return one.
-function resolver(source: ts.SourceFile) {
+function resolver(source: ts.SourceFile, context: ResolverContext = EMPTY_CONTEXT) {
   const { classes, namespaces } = bindings(source);
   const isClass = (expression: ts.Node) => {
     const node = ts.isExpression(expression) ? unwrap(expression) : expression;
-    if (ts.isIdentifier(node)) return classes.has(node.text);
+    if (ts.isIdentifier(node)) return classes.has(node.text) || context.names.has(node.text);
     if (ts.isPropertyAccessExpression(node) && ts.isIdentifier(node.expression))
       return namespaces.has(node.expression.text) && node.name.text === 'Cloudflare';
     if (ts.isQualifiedName(node) && ts.isIdentifier(node.left))
       return namespaces.has(node.left.text) && node.right.text === 'Cloudflare';
     return requiredModule(node as ts.Expression) === CLOUDFLARE_PACKAGE;
   };
-  const typed = (type: ts.TypeNode | undefined): boolean =>
-    !!type &&
-    ((ts.isTypeReferenceNode(type) && isClass(type.typeName)) ||
-      (ts.isUnionTypeNode(type) && type.types.some(typed)));
+  // `Cloudflare`, `Cloudflare | null`, or a local `type CloudflareApiClient = Cloudflare`.
+  const typed = (type: ts.TypeNode | undefined, depth = 0): boolean => {
+    if (!type || depth > 4) return false;
+    if (ts.isUnionTypeNode(type)) return type.types.some((item) => typed(item, depth + 1));
+    if (!ts.isTypeReferenceNode(type)) return false;
+    if (isClass(type.typeName)) return true;
+    const name = type.typeName.getText();
+    const alias = source.statements.find(
+      (statement): statement is ts.TypeAliasDeclaration =>
+        ts.isTypeAliasDeclaration(statement) && statement.name.text === name,
+    );
+    return !!alias && typed(alias.type, depth + 1);
+  };
+  // A client whose `baseURL` is set to another host talks to a Cloudflare-compatible server, not
+  // Cloudflare: `new Cloudflare({ baseURL: 'http://127.0.0.1:8787/client/v4' })`.
+  const elsewhere = (node: ts.NewExpression) => {
+    const options = node.arguments?.[0] && unwrap(node.arguments[0]);
+    if (!options || !ts.isObjectLiteralExpression(options)) return false;
+    const base = objectProperty(options, 'baseURL');
+    if (!base) return false;
+    const value = constantString(base)?.value;
+    return !(value && HOST.test(value));
+  };
   const returns = (fn: ts.SignatureDeclaration, depth: number): boolean => {
     if (typed(fn.type)) return true;
     const body = (fn as ts.FunctionLikeDeclaration).body;
@@ -382,7 +417,7 @@ function resolver(source: ts.SourceFile) {
     if (!expression || depth > 6) return false;
     const node = unwrap(expression);
     if (ts.isAwaitExpression(node)) return holds(node.expression, depth + 1);
-    if (ts.isNewExpression(node)) return isClass(node.expression);
+    if (ts.isNewExpression(node)) return isClass(node.expression) && !elsewhere(node);
     if (ts.isBinaryExpression(node))
       return (
         (node.operatorToken.kind === ts.SyntaxKind.QuestionQuestionToken ||
@@ -396,7 +431,22 @@ function resolver(source: ts.SourceFile) {
       if (isClass(node.expression)) return true;
       if (ts.isIdentifier(node.expression)) {
         const fn = functionOf(node.expression.text, node);
-        return !!fn && returns(fn, depth);
+        return fn ? returns(fn, depth) : context.functions.has(node.expression.text);
+      }
+      // `this.getClient()`: a method of this class, or one a base class in another file declares
+      // to return a client.
+      if (
+        ts.isPropertyAccessExpression(node.expression) &&
+        node.expression.expression.kind === ts.SyntaxKind.ThisKeyword
+      ) {
+        const owner = ts.findAncestor(node, ts.isClassLike);
+        const name = node.expression.name.getText();
+        const method = owner?.members.find(
+          (member): member is ts.MethodDeclaration =>
+            ts.isMethodDeclaration(member) && member.name.getText() === name,
+        );
+        if (method) return returns(method, depth);
+        return !!owner?.heritageClauses?.length && context.methods.has(name);
       }
       return false;
     }
@@ -434,7 +484,7 @@ function resolver(source: ts.SourceFile) {
     }
     return false;
   };
-  return { holds };
+  return { holds, returns, typed, functionOf };
 }
 
 // The path a URL's parts spell after the API base, with runtime pieces named in braces.
@@ -539,6 +589,35 @@ function urlCalls(file: FileContext, data: CloudflareEndpoints): CloudflareCall[
   return calls;
 }
 
+// The request options object a URL is the `url` of, and the calls it is passed to, directly or
+// through the variable that holds it: `const options = { method: 'PUT', url }; request(options)`.
+function optionsObject(node: ts.Expression) {
+  const property = node.parent;
+  if (!ts.isPropertyAssignment(property) || propertyName(property.name) !== 'url') return undefined;
+  const object = property.parent;
+  const method = objectProperty(object, 'method');
+  const holder = object.parent;
+  if (ts.isCallExpression(holder) && holder.arguments.includes(object))
+    return { method, calls: [{ call: holder, argument: holder.arguments.indexOf(object) }] };
+  if (!ts.isVariableDeclaration(holder) || !ts.isIdentifier(holder.name)) return undefined;
+  const name = holder.name.text;
+  const scope = ts.findAncestor(holder, (item) => ts.isBlock(item) || ts.isSourceFile(item));
+  const calls: { call: ts.CallExpression; argument: number }[] = [];
+  const visit = (child: ts.Node) => {
+    if (
+      ts.isIdentifier(child) &&
+      child.text === name &&
+      ts.isCallExpression(child.parent) &&
+      child.parent.arguments.includes(child) &&
+      findDeclaration(name, child) === holder
+    )
+      calls.push({ call: child.parent, argument: child.parent.arguments.indexOf(child) });
+    ts.forEachChild(child, visit);
+  };
+  if (scope) visit(scope);
+  return calls.length ? { method, calls } : undefined;
+}
+
 function urlRecords(
   file: FileContext,
   node: ts.Expression,
@@ -548,7 +627,16 @@ function urlRecords(
   const pathUnknown: string[] = [];
   const path = urlPath(parts, pathUnknown);
   const base = path === null && !pathUnknown.length;
-  const found = consumers(node);
+  // `new URL('https://api.cloudflare.com/…')` is followed like the string it wraps.
+  const parent = node.parent;
+  const wrapped =
+    ts.isNewExpression(parent) &&
+    parent.expression.getText() === 'URL' &&
+    parent.arguments?.[0] === node
+      ? parent
+      : node;
+  const options = optionsObject(wrapped);
+  const found = options ? options.calls : consumers(wrapped);
   // A base URL is reported only where it is passed to a call; URLs built from it are reported on
   // their own.
   if (base && !found.length) return [];
@@ -560,7 +648,13 @@ function urlRecords(
       unknown.push(
         `the base URL is passed to \`${calleeText(consumer.call)}\`; requests built from it are not traced`,
       );
-    else if (consumer) {
+    else if (consumer && options) {
+      // `{ method: 'PUT', url }` handed to a request helper: the method is the object's.
+      client = calleeText(consumer.call);
+      const value = options.method && constantString(options.method)?.value;
+      method = options.method ? httpMethod(value) : 'GET';
+      if (options.method && value === undefined) unknown.push('HTTP method is chosen at runtime');
+    } else if (consumer) {
       const read = requestMethod(consumer.call, consumer.argument, unknown);
       client = read.client;
       method = read.method;
@@ -586,8 +680,13 @@ function urlRecords(
 }
 
 // `client.zones.settings.edit(…)` and the client's own `client.get('/zones')`.
-function sdkCalls(file: FileContext, data: CloudflareEndpoints, legacy: boolean): CloudflareCall[] {
-  const { holds } = resolver(file.source);
+function sdkCalls(
+  file: FileContext,
+  data: CloudflareEndpoints,
+  legacy: boolean,
+  context: ResolverContext,
+): CloudflareCall[] {
+  const { holds } = resolver(file.source, context);
   const calls: CloudflareCall[] = [];
   const visit = (node: ts.Node) => {
     if (ts.isCallExpression(node) && ts.isPropertyAccessExpression(node.expression)) {
@@ -828,19 +927,97 @@ export async function workersCompatibility(
   return found;
 }
 
+// What a file exports that makes clients elsewhere: aliases of the client class
+// (`export type CloudflareApiClient = Cloudflare`, `export { Cloudflare } from 'cloudflare'`),
+// functions that return a client, and the names of methods that return one.
+function exportsOf(source: ts.SourceFile) {
+  const { typed, functionOf, returns } = resolver(source);
+  const names = new Set<string>();
+  const functions = new Set<string>();
+  const methods = new Set<string>();
+  const exporting = (statement: ts.Statement) =>
+    ts
+      .getModifiers(statement as ts.HasModifiers)
+      ?.some((modifier) => modifier.kind === ts.SyntaxKind.ExportKeyword) ?? false;
+  for (const statement of source.statements) {
+    if (ts.isTypeAliasDeclaration(statement) && exporting(statement) && typed(statement.type))
+      names.add(statement.name.text);
+    if (
+      ts.isExportDeclaration(statement) &&
+      statement.moduleSpecifier &&
+      ts.isStringLiteral(statement.moduleSpecifier) &&
+      statement.moduleSpecifier.text === CLOUDFLARE_PACKAGE &&
+      statement.exportClause &&
+      ts.isNamedExports(statement.exportClause)
+    )
+      for (const element of statement.exportClause.elements)
+        if (['Cloudflare', 'default'].includes((element.propertyName ?? element.name).text))
+          names.add(element.name.text);
+    if (ts.isFunctionDeclaration(statement) && statement.name && exporting(statement))
+      if (returns(statement, 0)) functions.add(statement.name.text);
+    if (ts.isVariableStatement(statement) && exporting(statement))
+      for (const declaration of statement.declarationList.declarations) {
+        const fn = ts.isIdentifier(declaration.name)
+          ? functionOf(declaration.name.text, statement)
+          : undefined;
+        if (fn && returns(fn, 0)) functions.add((declaration.name as ts.Identifier).text);
+      }
+  }
+  const visit = (node: ts.Node) => {
+    if (ts.isMethodDeclaration(node) && returns(node, 0)) methods.add(node.name.getText());
+    ts.forEachChild(node, visit);
+  };
+  visit(source);
+  return { names, functions, methods };
+}
+
 function scanFiles(repository: Repository, data: CloudflareEndpoints, legacy: boolean) {
   const calls: CloudflareCall[] = [];
+  const sources = new Map<string, ts.SourceFile>();
+  const sourceFor = (file: Repository['files'][number]) => {
+    let source = sources.get(file.path);
+    if (!source) sources.set(file.path, (source = sourceOf(file.path, file.content)));
+    return source;
+  };
+  const sdkFile = (content: string) => /['"]cloudflare['"]/.test(content);
+  // Exports of the files that use the package, followed into the files importing them.
+  const exported = new Map<string, ReturnType<typeof exportsOf>>();
+  const methods = new Set<string>();
+  for (const file of repository.files)
+    if (sdkFile(file.content)) {
+      const found = exportsOf(sourceFor(file));
+      exported.set(file.path, found);
+      for (const method of found.methods) methods.add(method);
+    }
+  const exportedNames = [...exported.values()].flatMap((item) => [
+    ...item.names,
+    ...item.functions,
+  ]);
+  const absolute = new Map(
+    repository.files.map((file) => [join(repository.root, file.path), file.path]),
+  );
+  const imports = createSourceImportResolver(repository, absolute);
   for (const file of repository.files) {
     const api = file.content.includes('api.cloudflare.com/client/v4');
-    const sdk = /['"]cloudflare['"]/.test(file.content);
+    const context: ResolverContext = { names: new Set(), functions: new Set(), methods };
+    if (exportedNames.some((name) => file.content.includes(name)))
+      for (const [local, binding] of importedNames(sourceFor(file))) {
+        const target = imports.resolve(binding.specifier, join(repository.root, file.path));
+        const found = target ? exported.get(absolute.get(target)!) : undefined;
+        if (found?.names.has(binding.name)) context.names.add(local);
+        if (found?.functions.has(binding.name)) context.functions.add(local);
+      }
+    const inherited = [...methods].some((method) => file.content.includes(`this.${method}(`));
+    const sdk =
+      sdkFile(file.content) || context.names.size > 0 || context.functions.size > 0 || inherited;
     if (!api && !sdk) continue;
-    const context: FileContext = {
+    const current: FileContext = {
       path: file.path,
-      source: sourceOf(file.path, file.content),
+      source: sourceFor(file),
       use: TEST_PATH.test(file.path) ? 'test' : 'live',
     };
-    if (api) calls.push(...urlCalls(context, data));
-    if (sdk) calls.push(...sdkCalls(context, data, legacy));
+    if (api) calls.push(...urlCalls(current, data));
+    if (sdk) calls.push(...sdkCalls(current, data, legacy, context));
   }
   return calls.sort((a, b) => a.file.localeCompare(b.file) || a.line - b.line);
 }

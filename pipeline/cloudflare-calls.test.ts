@@ -173,6 +173,49 @@ export const run = (client) => client.zones.list();
   });
 });
 
+describe('clients reached across files', () => {
+  it('follows exported aliases, client functions and inherited client methods', async () => {
+    const { calls } = await scan({
+      'src/client.ts': `import Cloudflare from 'cloudflare';
+export type { Cloudflare } from 'cloudflare';
+export type CloudflareApiClient = Cloudflare;
+export const createClient = (apiToken: string): CloudflareApiClient => new Cloudflare({ apiToken });
+export class Manager {
+  protected getClient(): Cloudflare { return new Cloudflare(); }
+}
+`,
+      'src/resources.ts': `import type { Cloudflare } from './client';
+import { createClient } from './client';
+export const query = (client: Cloudflare, id: string) => client.d1.database.query(id, {});
+export const accounts = () => createClient('t').accounts.list();
+`,
+      'src/images.ts': `import { Manager } from './client';
+export class Images extends Manager {
+  list() { return this.getClient().images.v2.list({ account_id }); }
+}
+export class Other { list() { return this.getClient().images.v2.list({}); } }
+`,
+    });
+    expect(summary(calls)).toEqual([
+      '3 sdk images.v2.list GET /accounts/{account_id}/images/v2',
+      '3 sdk d1.database.query POST /accounts/{account_id}/d1/database/{databaseID}/query',
+      '4 sdk accounts.list GET /accounts',
+    ]);
+  });
+
+  it('skips clients pointed at another host', async () => {
+    const { calls } = await scan({
+      'src/local.ts': `import Cloudflare from 'cloudflare';
+const local = new Cloudflare({ baseURL: new URL('/client/v4', process.env.BASE).href });
+const real = new Cloudflare({ baseURL: 'https://api.cloudflare.com/client/v4' });
+local.accounts.list();
+real.accounts.list();
+`,
+    });
+    expect(summary(calls)).toEqual(['5 sdk accounts.list GET /accounts']);
+  });
+});
+
 describe('raw API requests', () => {
   it('reads the method and path of requests to api.cloudflare.com/client/v4', async () => {
     const { calls } = await scan({
@@ -204,6 +247,41 @@ export async function run(zone, account, path) {
     expect(at(calls, 7).unknown).toEqual(['path is built at runtime from `path`']);
     expect(at(calls, 8).unknown).toEqual([
       'the base URL is passed to `cfRequest`; requests built from it are not traced',
+    ]);
+  });
+
+  it('follows request options objects and new URL(…) to the request', async () => {
+    const { calls } = await scan({
+      'src/n8n.ts': `export async function run(this: Ctx, zoneId: string, accountId: string, endpoint: string, method: string) {
+  const options = {
+    method: 'POST' as const,
+    url: \`https://api.cloudflare.com/client/v4/zones/\${zoneId}/dns_records/import\`,
+  };
+  await this.helpers.httpRequestWithAuthentication.call(this, 'cloudflareApi', options);
+  const list = new URL(\`https://api.cloudflare.com/client/v4/accounts/\${accountId}/r2/buckets\`);
+  await fetch(list);
+  await request({ method, url: \`https://api.cloudflare.com/client/v4\${endpoint}\` });
+}
+`,
+    });
+    expect(
+      calls.map((call) => [call.line, call.client, call.method, call.path, call.unknown]),
+    ).toEqual([
+      [
+        6,
+        'this.helpers.httpRequestWithAuthentication.call',
+        'POST',
+        '/zones/{zoneId}/dns_records/import',
+        [],
+      ],
+      [8, 'fetch', 'GET', '/accounts/{accountId}/r2/buckets', []],
+      [
+        9,
+        'request',
+        null,
+        null,
+        ['path is built at runtime from `endpoint`', 'HTTP method is chosen at runtime'],
+      ],
     ]);
   });
 
