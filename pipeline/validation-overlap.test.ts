@@ -15,7 +15,7 @@ afterEach(async () => {
 
 // A docker stand-in whose checks take a second each and record when they ran. The baseline
 // directory is mounted from `.../baseline`, candidates from `.../candidate-*`.
-async function fixture(baselineExit: number) {
+async function fixture(baselineExit: number, generated = false) {
   const root = await mkdtemp(join(tmpdir(), 'refit-overlap-'));
   roots.push(root);
   const repository = join(root, 'repository');
@@ -44,9 +44,13 @@ async function fixture(baselineExit: number) {
 const fs = require('node:fs');
 const args = process.argv.slice(2);
 if (args[0] === 'image') { console.log('sha256:${'d'.repeat(64)}'); process.exit(0); }
-if (args[0] === 'rm') process.exit(0);
+if (args[0] === 'rm' || args[0] === 'create') process.exit(0);
+if (args[0] === 'cp') { fs.writeFileSync(args[2], 'stripe-mock'); process.exit(0); }
 const mount = args.find((arg) => arg.includes('dst=/input'));
-const side = mount.includes('/baseline,') ? 'baseline' : 'patched';
+const contract = args.find((arg) => arg.includes('dst=/refit/spec.json'));
+const side = contract
+  ? (contract.includes('before.json') ? 'generated-before' : 'generated-after')
+  : mount.includes('/baseline,') ? 'baseline' : 'patched';
 const started = Date.now();
 setTimeout(() => {
   fs.appendFileSync(${JSON.stringify(log)}, JSON.stringify({ side, started, ended: Date.now() }) + '\\n');
@@ -63,6 +67,15 @@ setTimeout(() => {
     apiVersion: '2022-08-01',
     image: 'node:22-alpine',
     command: ['npm', 'test'],
+    ...(generated
+      ? {
+          generatedChecks: {
+            stripeMockImage: 'stripe/stripe-mock:latest',
+            beforeFixtures: resolve('pipeline/fixtures/before.json'),
+            afterFixtures: resolve('pipeline/fixtures/after.json'),
+          },
+        }
+      : {}),
   });
   const checks = (await readFile(log, 'utf8'))
     .trim()
@@ -97,4 +110,12 @@ it('reports a failed baseline exactly as the sequential order did, discarding th
     repair: { stopReason: 'baseline-failed' },
   });
   expect(report.publicationFiles).toEqual([]);
+});
+
+it('runs the generated checks against both contract versions at the same time', async () => {
+  const { checks } = await fixture(0, true);
+  const before = checks.find((check) => check.side === 'generated-before')!;
+  const after = checks.find((check) => check.side === 'generated-after')!;
+  expect(before.started).toBeLessThan(after.ended);
+  expect(after.started).toBeLessThan(before.ended);
 });

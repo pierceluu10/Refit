@@ -385,17 +385,14 @@ async function generatedStripeChecks(options: {
   };
   await writeHarness(tools, entries, options.imports);
   const notRun: CheckResult = { status: 'not-run', exitCode: null, stdout: '', stderr: '' };
-  const results: CheckResult[] = [];
-  for (const run of options.runs) {
-    if (!entries.length) {
-      results.push(notRun);
-      continue;
-    }
-    options.onProgress?.(
-      `Running generated Stripe checks against ${run.side}-version stripe-mock in offline Docker...`,
-    );
-    results.push(
-      await containerCheck(
+  // Each side runs in its own offline sandbox with its own stripe-mock, so both run at once.
+  const results = await Promise.all(
+    options.runs.map(async (run) => {
+      if (!entries.length) return notRun;
+      options.onProgress?.(
+        `Running generated Stripe checks against ${run.side}-version stripe-mock in offline Docker...`,
+      );
+      return containerCheck(
         run.directory,
         options.image,
         generatedCommand(),
@@ -407,9 +404,9 @@ async function generatedStripeChecks(options: {
           { source: tools, target: '/refit/generated' },
           { source: typescriptDirectory(), target: '/refit/typescript' },
         ],
-      ),
-    );
-  }
+      );
+    }),
+  );
   return {
     engine: 'stripe-mock',
     image: mock.imageId,
