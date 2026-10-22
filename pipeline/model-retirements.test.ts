@@ -2504,3 +2504,48 @@ it('stops on Bedrock and Vertex AI clients and on platform model IDs', async () 
     ['src/vertex.ts', 'claude-3-opus-20240229', vertex],
   ]);
 });
+
+// A client the analyzer cannot trace to `new Anthropic()` is still the SDK when its declaration
+// names the SDK export; its requests are listed with that reason and never edited.
+it('lists requests on clients it cannot trace to the SDK constructor', async () => {
+  const create = "messages.create({ model: 'claude-3-opus-20240229', max_tokens: 9, messages })";
+  const root = await repository({
+    'src/clients.ts': [
+      "import Anthropic from '@anthropic-ai/sdk';",
+      'let lazy: Anthropic | null = null;',
+      'try { lazy = new Anthropic(); } catch {}',
+      'const maybe: Anthropic | undefined = process.env.KEY ? new Anthropic() : undefined;',
+      'const held = { claude: new Anthropic() };',
+      'export async function all(messages: any[], given: Anthropic) {',
+      `  if (lazy) await lazy.${create};`,
+      `  await maybe!.${create};`,
+      `  await held.claude.${create};`,
+      `  await given.${create};`,
+      '}',
+      'export class Service {',
+      '  constructor(private readonly client: Anthropic) {}',
+      `  run(messages: any[]) { return this.client.${create}; }`,
+      '}',
+    ].join('\n'),
+    // Not the SDK: an ORM table that happens to be called `messages`.
+    'src/store.ts': [
+      "import Anthropic from '@anthropic-ai/sdk';",
+      'declare const db: { messages: { create(row: object): void } };',
+      "export const save = () => db.messages.create({ model: 'claude-3-opus-20240229' });",
+      'export type Client = Anthropic;',
+    ].join('\n'),
+  });
+  const proposal = await proposeModelReplacements(root, registry, NOW);
+  expect(proposal.replacements).toEqual([]);
+  expect(proposal.patch).toBeNull();
+  const reason = (client: string) =>
+    `The client \`${client}\` is not one Refit can trace to the SDK constructor (a \`let\` variable, a typed parameter or field, or an object member), so this request is listed but not edited; change it by hand to claude-opus-4-8.`;
+  expect(proposal.stops.map((item) => [item.line, item.reason])).toEqual([
+    [7, reason('lazy')],
+    [8, reason('maybe')],
+    [9, reason('held.claude')],
+    [10, reason('given')],
+    [14, reason('this.client')],
+  ]);
+  expect(proposal.unresolved).toMatchObject([{ file: 'src/store.ts', line: 3 }]);
+});
