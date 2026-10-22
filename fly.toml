@@ -11,6 +11,8 @@ primary_region = "iad"
   REFIT_AI_BUDGET_DIRECTORY = "/data/ai-budget"
   REFIT_AI_BUDGET_USD = "2"
   REFIT_HOSTED_FLAGS = "--publish-draft --ai-patch --repair-attempts 2"
+  # Validation images named by approved .refit.json files; pulled on boot.
+  REFIT_HOSTED_IMAGES = "node:22-alpine"
 
 [mounts]
   source = "refit_data"
