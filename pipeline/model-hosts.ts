@@ -34,28 +34,65 @@ export interface ModelHostSite {
 const BEDROCK_PROVIDERS =
   'anthropic|amazon|meta|mistral|cohere|ai21|deepseek|openai|qwen|writer|stability|twelvelabs|luma|moonshot|minimax|google|nvidia';
 const BEDROCK_ID = new RegExp(
-  `^(?:(?:us|eu|apac|global|us-gov|ca|jp|au|ap)\\.)?(?:${BEDROCK_PROVIDERS})\\.[a-z0-9][a-z0-9.-]*?(?:-v\\d+(?::\\d+)?|:\\d+)(?::\\d+k)?$`,
+  `^(?:(?:us|eu|apac|global|us-gov|ca|jp|au|ap)\\.)?(?:${BEDROCK_PROVIDERS})\\.[a-z0-9][a-z0-9.]*-[a-z0-9.-]*?(?:-v\\d+(?::\\d+)?|:\\d+)(?::\\d+k)?$`,
 );
 const BEDROCK_ARN =
   /^arn:aws(?:-[a-z]+)?:bedrock:[a-z0-9-]*:\d*:(?:foundation-model|inference-profile|application-inference-profile|provisioned-model)\/(.+)$/;
 // Newer Bedrock IDs drop the version suffix (`us.anthropic.claude-haiku-5-5` in AWS's own
-// examples); they count only in a file that uses a Bedrock SDK.
+// examples); they count only in a file that uses a Bedrock SDK or names Bedrock in its path or text.
 const BEDROCK_UNVERSIONED = new RegExp(
   `^(?:(?:us|eu|apac|global|us-gov|ca|jp|au|ap)\\.)?(?:${BEDROCK_PROVIDERS})\\.[a-z0-9][a-z0-9.]*-[a-z0-9.-]*[a-z0-9]$`,
 );
 const BEDROCK_ANTHROPIC = /^(?:[a-z-]{2,6}\.)?anthropic\.(claude-[a-z0-9.-]+?)(?:-v\d+(?::\d+)?)?$/;
-const BEDROCK_IMPORT =
-  /['"](?:@aws-sdk\/client-bedrock-runtime|@aws-sdk\/client-bedrock|@anthropic-ai\/bedrock-sdk|@ai-sdk\/amazon-bedrock|@langchain\/aws)['"]/;
+const BEDROCK_CONTEXT =
+  /['"](?:@aws-sdk\/client-bedrock-runtime|@aws-sdk\/client-bedrock|@anthropic-ai\/bedrock-sdk|@ai-sdk\/amazon-bedrock|@langchain\/aws)['"]|(?<!:)bedrock/i;
 
-// Azure's v1 endpoint uses the plain OpenAI client, so its endpoint or settings mark the file too.
-const AZURE_IMPORT =
+// A file that sets up Azure OpenAI. Azure's v1 endpoint uses the plain OpenAI client, so its
+// endpoint or settings mark the file too. Only here does a request's `model` count as a deployment.
+const AZURE_CLIENT =
   /\bAzureOpenAI\b|['"]@azure\/openai['"]|\.openai\.azure\.com|\.cognitiveservices\.azure\.com|\bAZURE_OPENAI_\w+/;
-const AZURE_API_VERSION = /^\d{4}-\d{2}-\d{2}(?:-preview)?$/;
+// Any mention of Azure: enough for keys that say `deployment` themselves and for api-versions.
+const AZURE_CONTEXT = /azure/i;
+const AZURE_API_VERSION = '\\d{4}-\\d{2}-\\d{2}(?:-preview)?';
+const DEPLOYMENT_KEY = '[A-Za-z_]*[Dd]eployment(?:Name|Id|_name|_id)?';
 
-const OPENROUTER_CONTEXT =
-  /openrouter\.ai|['"]@openrouter\/ai-sdk-provider['"]|['"]openrouter['"]/i;
-const OPENROUTER_ID =
-  /^(openai|anthropic|google|meta-llama|mistralai|cohere|deepseek|x-ai|qwen|amazon|microsoft|nvidia|perplexity)\/([a-z0-9][a-z0-9.:_-]*)$/;
+const OPENROUTER_CONTEXT = /openrouter/i;
+// OpenRouter's model namespaces (its own `openrouter/auto` router included). A provider/model
+// string outside these is not counted, which keeps endpoint slugs and import paths out.
+const OPENROUTER_ID = new RegExp(
+  `^(${[
+    'openai',
+    'anthropic',
+    'google',
+    'meta-llama',
+    'mistralai',
+    'cohere',
+    'deepseek',
+    'x-ai',
+    'qwen',
+    'amazon',
+    'microsoft',
+    'nvidia',
+    'perplexity',
+    'moonshotai',
+    'z-ai',
+    'thudm',
+    'minimax',
+    'ai21',
+    'baidu',
+    'bytedance',
+    'tencent',
+    'alibaba',
+    'inflection',
+    'liquid',
+    'nousresearch',
+    'cognitivecomputations',
+    'black-forest-labs',
+    'arcee-ai',
+    'allenai',
+    'openrouter',
+  ].join('|')})\\/([a-z0-9][a-z0-9.:_-]*)$`,
+);
 // Dated model IDs: OpenRouter passes these through to the provider unchanged.
 const DATED = /-\d{4}(?:-\d{2}-\d{2})?$|-\d{8}$|-\d{4}$/;
 
@@ -97,84 +134,90 @@ export function detectModelHosts(repository: Pick<Repository, 'files'>): ModelHo
   const sites: ModelHostSite[] = [];
   for (const file of repository.files) {
     if (!SOURCE.test(file.path)) continue;
-    const bedrockFile = BEDROCK_IMPORT.test(file.content);
-    const azureFile = AZURE_IMPORT.test(file.content);
-    const openrouterFile = OPENROUTER_CONTEXT.test(file.content);
+    const bedrockFile = BEDROCK_CONTEXT.test(file.path) || BEDROCK_CONTEXT.test(file.content);
+    const azureClient = AZURE_CLIENT.test(file.content);
+    const azureFile =
+      azureClient || AZURE_CONTEXT.test(file.path) || AZURE_CONTEXT.test(file.content);
+    const openrouterFile =
+      OPENROUTER_CONTEXT.test(file.path) || OPENROUTER_CONTEXT.test(file.content);
     for (const [index, line] of file.content.split('\n').entries()) {
       const at = (column: number, rest: Omit<ModelHostSite, 'file' | 'line' | 'column' | 'text'>) =>
         sites.push({ file: file.path, line: index + 1, column, text: excerpt(line), ...rest });
+      const hostShaped = new Set<string>();
       for (const { value, column } of quoted(line)) {
-        // A full Bedrock ID or ARN is evidence on its own; anywhere else it is not a hostname.
+        // A versioned Bedrock ID or an ARN is evidence on its own; unversioned IDs need context.
         const bedrock = bedrockSite(value, bedrockFile);
-        if (bedrock && (bedrockFile || BEDROCK_ARN.test(value) || /-v\d+:\d+$/.test(value)))
+        if (bedrock) {
+          hostShaped.add(value);
           at(column, {
             host: 'bedrock',
             kind: 'model-id',
             ...bedrock,
             stop: 'bedrock-lifecycle-unknown',
           });
+        }
         const routed = openrouterFile ? OPENROUTER_ID.exec(value) : null;
-        if (routed)
+        if (routed) {
+          hostShaped.add(value);
           at(column, {
             host: 'openrouter',
             kind: 'model-id',
             value,
-            upstream: { provider: routed[1], model: routed[2] },
+            upstream: routed[1] === 'openrouter' ? null : { provider: routed[1], model: routed[2] },
             stop: DATED.test(routed[2]) ? null : 'openrouter-alias',
           });
+        }
       }
       if (!azureFile) continue;
-      // `apiVersion: '2024-02-15-preview'` on the client, or `api-version=` in a REST URL.
-      for (const match of line.matchAll(
-        /\b(?:apiVersion|api_version|AZURE_OPENAI_API_VERSION)\b[^'"`\n]{0,40}(['"`])(\d{4}-\d{2}-\d{2}(?:-preview)?)\1/g,
-      ))
-        at(match.index! + match[0].indexOf(match[2]) + 1, {
+      const apiVersion = (value: string, column: number) =>
+        at(column, {
           host: 'azure-openai',
           kind: 'api-version',
-          value: match[2],
+          value,
           upstream: null,
           stop: 'azure-api-version-lifecycle-unknown',
         });
-      for (const match of line.matchAll(/[?&]api-version=(\d{4}-\d{2}-\d{2}(?:-preview)?)/g))
-        if (AZURE_API_VERSION.test(match[1]))
-          at(match.index! + match[0].indexOf(match[1]) + 1, {
-            host: 'azure-openai',
-            kind: 'api-version',
-            value: match[1],
-            upstream: null,
-            stop: 'azure-api-version-lifecycle-unknown',
-          });
-      // Deployment names: the client's `deployment`, a REST path segment, or the `model` an
-      // AzureOpenAI request sends (Azure routes it to a deployment of that name).
+      const deployment = (value: string, column: number) => {
+        if (hostShaped.has(value)) return;
+        at(column, {
+          host: 'azure-openai',
+          kind: 'deployment',
+          value,
+          upstream: null,
+          stop: 'azure-deployment-name',
+        });
+      };
+      // `apiVersion: '2024-02-15-preview'` on a client, `'api-version': '…'` in query options, or
+      // `api-version=` in a REST URL (`v1` is Azure's unversioned v1 API).
       for (const match of line.matchAll(
-        /\b(?:deployment|deploymentName|deployment_name|azureDeployment|model)\s*:\s*(['"`])([\w.-]{1,64})\1/g,
+        new RegExp(
+          `(?:\\b(?:apiVersion|api_version|[A-Za-z_]*API_VERSION)\\b|['"]api-version['"])[^'"\`\\n]{0,40}(['"\`])(${AZURE_API_VERSION})\\1`,
+          'g',
+        ),
       ))
-        at(match.index! + match[0].indexOf(match[2]) + 1, {
-          host: 'azure-openai',
-          kind: 'deployment',
-          value: match[2],
-          upstream: null,
-          stop: 'azure-deployment-name',
-        });
-      // A deployment held in a variable or setting: the name to look up in Azure.
+        apiVersion(match[2], match.index! + match[0].lastIndexOf(match[2]) + 1);
       for (const match of line.matchAll(
-        /\b(?:deployment|deploymentName|deployment_name|azureDeployment|model)\s*:\s*([A-Za-z_$][\w$.]*(?:\[['"]\w+['"]\])?)\s*[,}]/g,
+        new RegExp(`[?&]api-version=(${AZURE_API_VERSION}|v1)\\b`, 'g'),
       ))
-        at(match.index! + match[0].indexOf(match[1]) + 1, {
-          host: 'azure-openai',
-          kind: 'deployment',
-          value: match[1],
-          upstream: null,
-          stop: 'azure-deployment-name',
-        });
-      for (const match of line.matchAll(/\/openai\/deployments\/([\w.-]{1,64})\//g))
-        at(match.index! + match[0].indexOf(match[1]) + 1, {
-          host: 'azure-openai',
-          kind: 'deployment',
-          value: match[1],
-          upstream: null,
-          stop: 'azure-deployment-name',
-        });
+        apiVersion(match[1], match.index! + match[0].indexOf(match[1]) + 1);
+      // Deployments: a key that says deployment, the `model` an Azure client's request sends
+      // (Azure routes it to a deployment of that name), a REST path segment, or an env value.
+      const keys = azureClient ? `(?:${DEPLOYMENT_KEY}|model)` : DEPLOYMENT_KEY;
+      for (const match of line.matchAll(
+        new RegExp(
+          `\\b${keys}\\s*:\\s*(?:(['"\`])([\\w.-]{1,64})\\1|([A-Za-z_$][\\w$.]*(?:\\[['"]\\w+['"]\\])?)\\s*[,}])`,
+          'g',
+        ),
+      ))
+        deployment(match[2] ?? match[3], match.index! + match[0].indexOf(match[2] ?? match[3]) + 1);
+      for (const match of line.matchAll(
+        /\/openai\/deployments\/(?:\$\{([^}]{1,80})\}|([\w.-]{1,64}))(?=[/?"'`]|$)/g,
+      ))
+        deployment(match[1] ?? match[2], match.index! + match[0].indexOf(match[1] ?? match[2]) + 1);
+      for (const match of line.matchAll(
+        /['"]AZURE_OPENAI_\w*DEPLOYMENT\w*['"]\s*,\s*['"]([\w.-]{1,64})['"]/g,
+      ))
+        deployment(match[1], match.index! + match[0].lastIndexOf(match[1]) + 1);
     }
   }
   return sites;

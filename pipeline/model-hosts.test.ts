@@ -67,7 +67,7 @@ describe('Amazon Bedrock', () => {
     ]);
   });
 
-  it('finds ARNs and fully versioned IDs anywhere, and unversioned ones only beside a Bedrock SDK', () => {
+  it('finds ARNs and fully versioned IDs anywhere, and unversioned ones only where Bedrock is named', () => {
     expect(
       sites([
         {
