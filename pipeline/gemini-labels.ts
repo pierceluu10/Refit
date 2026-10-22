@@ -34,9 +34,15 @@ export function scoreGeminiLabels(labels: GeminiLabels, results: GeminiResult[])
   const missedLive: string[] = [];
   const untraced: string[] = [];
   const wrongTraced: string[] = [];
+  // Labelled repositories Refit could not scan (scan limits, for example), with the error.
+  const notScanned: string[] = [];
   for (const repository of labels.repos) {
     const result = byRepo.get(repository.repo);
-    if (!result || result.error) throw new Error(`${repository.repo} was not scanned.`);
+    if (!result) throw new Error(`${repository.repo} was not scanned.`);
+    if (result.error) {
+      notScanned.push(`${repository.repo}: ${result.error}`);
+      continue;
+    }
     if (result.commit !== repository.commit)
       throw new Error(
         `${repository.repo} was scanned at ${result.commit}, not ${repository.commit}.`,
@@ -83,6 +89,7 @@ export function scoreGeminiLabels(labels: GeminiLabels, results: GeminiResult[])
     missedLive,
     untraced,
     wrongTraced,
+    notScanned,
   };
 }
 

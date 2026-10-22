@@ -68,6 +68,14 @@ it('scores the live class and the tracer against the labels, ignoring ambiguous 
   expect(score.wrongTraced).toEqual(['a/one src/models.ts:3 gemini-1.5-pro']);
 });
 
+it('lists repositories Refit could not scan instead of scoring them', () => {
+  const score = scoreGeminiLabels(labels, [
+    { repo: 'a/one', commit: 'c1', error: 'Repository exceeds scan limits.' },
+  ]);
+  expect(score.notScanned).toEqual(['a/one: Repository exceeds scan limits.']);
+  expect(score.livePrecision).toBeNull();
+});
+
 it('refuses missing or mismatched results', () => {
   expect(() => scoreGeminiLabels(labels, [])).toThrow('a/one was not scanned.');
   expect(() => scoreGeminiLabels(labels, [{ repo: 'a/one', commit: 'c2' }])).toThrow(
