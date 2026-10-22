@@ -163,7 +163,7 @@ Refit finds nearly every registry model an OpenAI-set application sends. Two thi
 
 ## False positives by cause
 
-All 83 false positives (75 distinct sites, since three repositories are in both samples) were read in full. The full list is in the appendix.
+All 83 false positives (75 distinct sites, since three repositories are in both samples) were read in full. The appendix lists them with the rest of the repositories, each sample repository marked.
 
 | Cause                                                                                                                                                           | OpenAI | Anthropic | Where                                                                                 |
 | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | -----: | --------: | ------------------------------------------------------------------------------------- |
@@ -186,39 +186,87 @@ The one false positive in a negative file is `LeafYeeXYZ/PsychPen` `src/componen
 - **Six Anthropic misses, one cause.** `src/utils/model/configs.ts` in each Claude Code fork maps one model to its ID on every platform (`firstParty`, `bedrock`, `vertex`, `foundry`). Refit's cross-platform table rule marks the whole object as a catalog. The `firstParty` value of `CLAUDE_SONNET_4_5_CONFIG` is what `getDefaultSonnetModel()` returns on third-party platforms, so it is sent.
 - **One OpenAI miss.** `badhri17/GhazelleChat` `lib/models/registry.ts:27` is the `apiModel` of the default entry in a model registry array, also marked as a catalog. Refit reports the default's lookup key at line 3 instead, a false positive one hop from the real site. A user fixing that report would still find the right entry.
 
+## All repositories
+
+Keep going: the 79 repositories outside the sample were then labelled the same way, in the same seeded order. Their labels were committed (`af3f5e4`) before detection ran on them. [`benchmarks/2026-10-22-ai-app-model-sites-all.json`](benchmarks/2026-10-22-ai-app-model-sites-all.json) holds all 680 sites over the 141 distinct repositories of both lists:
+
+- 211 SDK calls, 17 wrapper calls, 15 raw HTTP requests and 437 indirect sites;
+- 62 of the sites go to compatible hosts.
+
+The negative files are the sample's 60. Detection ran from the clean `af3f5e4`. Results: [`benchmarks/2026-10-22-ai-app-model-site-results-all.json`](benchmarks/2026-10-22-ai-app-model-site-results-all.json); score: [`benchmarks/2026-10-22-ai-app-model-site-score-all.json`](benchmarks/2026-10-22-ai-app-model-site-score-all.json).
+
+| Set                                             | Precision                  | Registry recall           | All-site recall            |
+| ----------------------------------------------- | -------------------------- | ------------------------- | -------------------------- |
+| OpenAI (100 repositories)                       | 62.1% (82/132), 53.6–69.9% | 96.5% (82/85), 90.1–98.8% | 20.1% (82/407), 16.5–24.3% |
+| Anthropic (50 repositories)                     | 32.1% (42/131), 24.7–40.5% | 77.8% (42/54), 65.1–86.8% | 15.5% (42/271), 11.7–20.3% |
+| Anthropic without the 12 Claude Code forks (38) | 71.2% (42/59), 58.6–81.2%  | 95.5% (42/44), 84.9–98.7% |                            |
+
+- Reading every new report in the remainder found no labelling miss, so no correction was needed.
+- The remainder holds six more Claude Code forks. With them, the twelve forks account for 72 of the Anthropic set's 89 false positives and 10 of its 12 misses, and for none of its true positives.
+- `txl16095/MiniClaude` keeps one model per config object (`{ firstParty: '…' }`). Refit reports every one of those objects as live, which adds 8 false positives that the four-platform tables do not have.
+
+False positives in all repositories, by cause:
+
+| Cause                                                                                                               | OpenAI | Anthropic |
+| ------------------------------------------------------------------------------------------------------------------- | -----: | --------: |
+| Catalog or remap table (including single-key and cross-platform config tables)                                      |      8 |        29 |
+| Name-normalising helper                                                                                             |      0 |        26 |
+| UI option, label or form default                                                                                    |     21 |         6 |
+| Non-production file (`dev/`, `scripts/`, examples, recipes, eval harness constants, seed, `website/`, `.i18nrc.js`) |     15 |         6 |
+| Model ID inside prompt or documentation text                                                                        |      0 |        12 |
+| ChatGPT sign-in model, not an API site by ruling                                                                    |      0 |         5 |
+| Display or cost-accounting fallback                                                                                 |      1 |         2 |
+| Tokenizer default (`TiktokenModel = 'gpt-3.5-turbo'`)                                                               |      2 |         0 |
+| Display name beside the sent `id:`                                                                                  |      0 |         2 |
+| Default model ID used as a lookup key                                                                               |      1 |         0 |
+| Placeholder group config                                                                                            |      1 |         1 |
+| A string that only looks like a model ID (an avatar named `o1`)                                                     |      1 |         0 |
+| **Total**                                                                                                           | **50** |    **89** |
+
+Misses in all repositories, by cause:
+
+- **The default inside a cross-platform config table (10, Claude Code forks):** the cause described above.
+- **`defaultModel:` inside a provider preset table (3):** `Koifman/LUMEN` `llmService.ts:55` and `:65`, and `joeseesun/qiaomu-blog-opensource` `ai-image-provider-presets.ts:35`. Refit takes the preset object as a catalog, but the code sends its `defaultModel` when the user picks no model.
+- **The first entry of a provider's model list, used as the default (1):** `kaieye/Livo` `types/ai.ts:190`.
+- **The `apiModel` of a registry entry (1):** `badhri17/GhazelleChat`, as in the sample.
+
 ## Requests for other lanes
 
-Ranked by the sites each fix would recover in this sample: false positives removed plus misses found. Counts are per set (OpenAI + Anthropic), so a repository in both samples counts twice. No detection code is changed here.
+Ranked by the sites each fix would recover across all 141 repositories: false positives removed plus misses found. Each total is followed by the sample's count. Counts are per set (OpenAI + Anthropic), so a repository in both lists counts twice. No detection code is changed here.
 
 **FG9 (model-retirement wedge):**
 
-1. **Model-name normalisers are checks, not uses (12 sites).** A model literal returned from a branch whose condition tests the same family with `includes` or `startsWith` (`if (name.includes('sonnet-4-5')) return 'claude-sonnet-4-5'`) is a `check`. All 12 are in the six Claude Code forks.
-2. **Cross-platform ID tables: report the first-party value when a default resolver reads it (6 misses recovered; 5 false positives in the same table form).** Today the whole `{ firstParty, bedrock, vertex, foundry }` object is a catalog. A first-party value reached through a property read (`getModelStrings().sonnet45`) should be live. A table that repeats one ID under every key (`OpenAisec/Miko` `configs.ts:106-110`, a ChatGPT sign-in model) should stay a catalog.
-3. **More catalog shapes (18 sites):**
-   - `[id, label]` tuple arrays (8, `cybercode` `webSessionProviders.ts` and `mediaProviders.ts`);
+1. **Report config-table entries by how they are read (29 sites; sample 11).**
+   - Today a cross-platform `{ firstParty, bedrock, vertex, foundry }` object is a catalog. A one-key `{ firstParty }` object is live.
+   - Both should be reported live only when a default resolver reads the entry (`getModelStrings().sonnet45` in `getDefaultSonnetModel()`).
+   - That recovers 10 misses and removes 19 false positives: MiniClaude's 8 single-key entries, and the ChatGPT sign-in tables in Miko (5) and kimi-2-6-code (6).
+2. **UI options and labels (27 sites; sample 20):** `<SelectItem value=…>` and similar option components; JSX `label={'…'}` and option `value` in settings constant files; Angular `frontend/` form defaults; settings-page default objects; cookie and `localStorage` seeds; click handlers that set a model. The `<option>` rule already exists, so this widens it to component libraries.
+3. **Model-name normalisers are checks, not uses (26 sites; sample 12).** A model literal returned from a branch whose condition tests the same family with `includes` or `startsWith` (`if (name.includes('sonnet-4-5')) return 'claude-sonnet-4-5'`) is a `check`. All 26 are in the twelve Claude Code forks.
+4. **Non-production paths (21 sites; sample 11):**
+   - `dev/` folders (5, AnyGPT);
+   - `scripts/` folders, including `app/scripts/` (4);
+   - folders named `examples`, `other-examples` or `recipes` (3);
+   - `website/` demo folders (2);
+   - eval-harness constants (4, `beatrix-ha/beatrix` in both sets);
+   - `server/db/seed.ts` (1);
+   - the `.i18nrc.js` translation tool config (2, both sets).
+5. **More catalog shapes (18 sites; sample 18):**
+   - `[id, label]` tuple arrays (8, `cybercode`);
    - `add('model')` calls that build a model list (4, AnyGPT);
    - `id:` entries in an array of model objects under `model-bank` or `aiModels` (4, lobe-chat-pro, both sets);
    - identity remap objects (`{ 'gpt-4': 'gpt-4' }`, 2, charmonator).
-4. **UI options and labels (20 sites):**
-   - `<SelectItem value=…>` and similar option components (6);
-   - JSX `label={'…'}` and option `value` in settings constant files (8, lobe-chat-pro, both sets);
-   - Angular `frontend/` form defaults (3);
-   - cookie and `localStorage` seeds (2);
-   - a click handler that sets a model (1).
+6. **Model IDs in prompt and documentation strings (12 sites; sample 7):** a model ID inside a template literal of prompt text, or inside a `//` comment that sits in a string (`statuslineSetup.ts:42` in every fork).
+7. **Smaller fixes (7 sites):**
+   - `TiktokenModel` default parameters are tokenizer use (2);
+   - in a `{ id: 'm', name: 'm' }` default-model object, report the `id:` line only (2);
+   - usage and cost-accounting fields (`usage_model: 'whisper-1'`) are not requests (3).
+8. **`defaultModel:` in a provider preset table is live (3 misses; sample 0)**, and so is the first entry of a provider's list when the code picks `models[0]` as the default (1 miss).
 
-   The `<option>` rule already exists, so this widens it to component libraries.
+**FP3 (AI wrapper SDKs):**
 
-5. **Non-production paths (11 sites):** `dev/` folders (5, AnyGPT), `scripts/` and `website/` demo folders inside a workspace (3), `server/db/seed.ts` (1) and the `.i18nrc.js` translation tool config (2, both sets).
-6. **Model IDs in prompt and documentation strings (7 sites):** a model ID inside a template literal of prompt text, or inside a `//` comment that sits in a string (`statuslineSetup.ts:42`).
-7. **Display names (2 sites):** in a `{ id: 'm', name: 'm' }` default-model object, report the `id:` line only.
-
-**FP3 (AI wrapper SDKs):** this sample gives FP3 no recall signal. Only 3 of 295 sites go through a wrapper SDK:
-
-- `adrianhajdin/job_pilot` Stagehand `modelName: "openai/gpt-4o"`;
-- `OpenCoworkAI/open-cowork` `getModel('google', 'gemini-2.5-flash')`;
-- `sanidhyy/meet-ai` `@inngest/agent-kit` `openai({ model: 'gpt-5-nano' })`.
-
-None names a registry model. When one does, the `openai/` prefix in Stagehand-style IDs will need stripping before the registry match. This is not measured here.
+- Across all repositories, 17 of 680 sites go through a wrapper SDK: `@ai-sdk/openai` and `@ai-sdk/anthropic` providers, Stagehand, `@inngest/agent-kit` and pi-ai's `getModel`.
+- Only one names a registry model, `hugodemenez/deltalytix` `openai("gpt-4o-mini-2024-07-18")`, and Refit finds it. So wrapper recall is not a gap this benchmark can show.
+- A larger risk for FP3 is the 13 Vercel AI SDK string IDs in deltalytix (`model: 'openai/gpt-5-mini'`). They go to the Vercel AI Gateway, and Refit should not credit them to OpenAI if it starts matching provider-prefixed IDs.
 
 **Side finding, for whichever lane owns Meta Graph detection:** in `utter-one/bonsai`, Refit lists `tests/e2e/alert-notifiers-p4-02.test.ts:213` and `tests/unit/monitoring/p4-02-notifiers.test.ts:444` as live evidence for Graph API v17.0. Both are test files, so they should be `test` use. This was seen while excluding Meta Graph from this score and was not measured.
 
@@ -227,109 +275,172 @@ None names a registry model. When one does, the `openai/` prefix in Stagehand-st
 ## Limits
 
 - **One labeller.** The labeller is an AI agent, and a second labeller was not used. The twelve label changes in the correction (three moved, nine added) came only from Refit's reports. Misses that Refit also missed stay invisible, so all-site recall is an upper bound on what the labels cover.
-- **Clustered repositories.** The six Claude Code forks share one source tree. They dominate the Anthropic set's errors, and they make up 28 of its 30 negative files.
+- **Clustered repositories.** The Claude Code forks (six in the sample, twelve in all) share one source tree. They dominate the Anthropic set's errors, and they make up 28 of its 30 negative files.
 - **What the candidate search can see.** It reads model-shaped literals of major providers. Compatible sites (DeepSeek, Groq, Qwen and the like) are under-recorded, which does not affect the scores.
-- **Small denominators.** Registry recall rests on 31 and 26 sites, with the intervals shown.
+- **Small denominators.** In the sample, registry recall rests on 31 and 26 sites, and across all repositories on 85 and 54, with the intervals shown.
 - **Scope.** JavaScript, TypeScript and Python files were labelled. Refit's model scan reads JavaScript and TypeScript, and no labelled site is in a Python file in this sample.
 
 ## Appendix
 
 ### Every false positive
 
-Each is listed once; "both" marks a repository in both samples, counted in each set.
+All repositories. Each is listed once; "both" marks a repository in both lists, counted in each set, and "sample" marks a repository in the seeded sample.
 
-- **Catalog or remap table (21):**
-  - `AnyVM-Tech/AnyGPT` `apps/api/modules/modelUpdater.ts:920` `gpt-4o-mini-transcribe` (openai)
-  - `AnyVM-Tech/AnyGPT` `apps/api/modules/modelUpdater.ts:923` `gpt-4o-transcribe` (openai)
-  - `AnyVM-Tech/AnyGPT` `apps/langgraph-control-plane/src/workflow.ts:3116` `gpt-4o-mini-transcribe` (openai)
-  - `AnyVM-Tech/AnyGPT` `apps/langgraph-control-plane/src/workflow.ts:3119` `gpt-4o-transcribe` (openai)
-  - `vual/lobe-chat-pro` `packages/model-bank/src/aiModels/azure.ts:1215` `dall-e-3` (both)
-  - `vual/lobe-chat-pro` `packages/model-bank/src/aiModels/azure.ts:1201` `gpt-image-1` (both)
-  - `CHARM-BDF/charmonator` `lib/config.mjs:214` `gpt-3.5-turbo` (openai)
-  - `CHARM-BDF/charmonator` `lib/config.mjs:215` `gpt-4` (openai)
-  - `wk42worldworld/cybercode` `src/shared/webSessionProviders.ts:185` `gpt-4-turbo` (anthropic)
-  - `wk42worldworld/cybercode` `src/shared/webSessionProviders.ts:186` `gpt-4` (anthropic)
-  - `wk42worldworld/cybercode` `src/shared/webSessionProviders.ts:336` `gpt-4-turbo` (anthropic)
-  - `wk42worldworld/cybercode` `src/shared/webSessionProviders.ts:457` `claude-sonnet-4-5` (anthropic)
-  - `wk42worldworld/cybercode` `src/shared/mediaProviders.ts:316` `gpt-image-1.5` (anthropic)
-  - `wk42worldworld/cybercode` `src/shared/mediaProviders.ts:317` `gpt-image-1-mini` (anthropic)
-  - `wk42worldworld/cybercode` `src/shared/mediaProviders.ts:1206` `tts-1-hd` (anthropic)
-  - `wk42worldworld/cybercode` `src/shared/mediaProviders.ts:1208` `whisper-1` (anthropic)
-  - `OpenAisec/Miko` `src/utils/model/configs.ts:106` `gpt-5.3-codex` (anthropic)
-  - `OpenAisec/Miko` `src/utils/model/configs.ts:107` `gpt-5.3-codex` (anthropic)
-  - `OpenAisec/Miko` `src/utils/model/configs.ts:108` `gpt-5.3-codex` (anthropic)
-  - `OpenAisec/Miko` `src/utils/model/configs.ts:109` `gpt-5.3-codex` (anthropic)
-  - `OpenAisec/Miko` `src/utils/model/configs.ts:110` `gpt-5.3-codex` (anthropic)
-- **UI option, label or form default (16):**
-  - `keegandonley/dalle-3-ui` `src/components/Prompt/index.tsx:95` `gpt-image-1` (openai)
-  - `YiZhanSuDaShui/GoofishCredentialsBot` `frontend/src/app/views/system-setting/system-setting.component.ts:26` `gpt-3.5-turbo` (openai)
-  - `MisonL/visual-journal` `src/components/editing-form.tsx:1455` `gpt-image-1` (openai)
-  - `MisonL/visual-journal` `src/components/generation-form.tsx:1021` `gpt-image-1` (openai)
-  - `MisonL/visual-journal` `src/components/editing-form.tsx:1454` `gpt-image-1.5` (openai)
-  - `MisonL/visual-journal` `src/components/editing-form.tsx:1456` `gpt-image-1-mini` (openai)
-  - `MisonL/visual-journal` `src/components/generation-form.tsx:1020` `gpt-image-1.5` (openai)
-  - `MisonL/visual-journal` `src/components/generation-form.tsx:1022` `gpt-image-1-mini` (openai)
-  - `vual/lobe-chat-pro` `src/app/[variants]/(main)/settings/tts/features/const.tsx:12` `tts-1` (both)
-  - `vual/lobe-chat-pro` `src/app/[variants]/(main)/settings/tts/features/const.tsx:16` `tts-1-hd` (both)
-  - `vual/lobe-chat-pro` `src/app/[variants]/(main)/settings/tts/features/const.tsx:23` `whisper-1` (both)
-  - `vual/lobe-chat-pro` `src/app/[variants]/(main)/settings/tts/features/const.tsx:24` `whisper-1` (both)
-  - `Jay-Bosco/GoofishCredentialsBot` `frontend/src/app/views/system-setting/system-setting.component.ts:26` `gpt-3.5-turbo` (openai)
-  - `LeafYeeXYZ/PsychPen` `src/components/data/ConfigAI.tsx:264` `gpt-5.1` (openai, negative file)
-  - `lrzy8/Goofish` `frontend/src/app/views/system-setting/system-setting.component.ts:30` `gpt-3.5-turbo` (openai)
-  - `CHARM-BDF/charmonator` `public/script.js:118` `o1` (openai)
-- **Name-normalising helper (returns a short name, sends nothing) (12):**
-  - `fazxes/Claude-code` `src/utils/commitAttribution.ts:161` `claude-sonnet-4-5` (anthropic)
-  - `fazxes/Claude-code` `src/utils/model/model.ts:237` `claude-sonnet-4-5` (anthropic)
-  - `wk42worldworld/cybercode` `src/utils/commitAttribution.ts:165` `claude-sonnet-4-5` (anthropic)
-  - `wk42worldworld/cybercode` `src/utils/model/model.ts:243` `claude-sonnet-4-5` (anthropic)
-  - `OpenAisec/Miko` `src/utils/commitAttribution.ts:161` `claude-sonnet-4-5` (anthropic)
-  - `OpenAisec/Miko` `src/utils/model/model.ts:259` `claude-sonnet-4-5` (anthropic)
-  - `kill136/claudecode` `src/utils/commitAttribution.ts:161` `claude-sonnet-4-5` (anthropic)
-  - `kill136/claudecode` `src/utils/model/model.ts:237` `claude-sonnet-4-5` (anthropic)
-  - `chenqinggang001/claude-code-build` `src/utils/commitAttribution.ts:161` `claude-sonnet-4-5` (anthropic)
-  - `chenqinggang001/claude-code-build` `src/utils/model/model.ts:237` `claude-sonnet-4-5` (anthropic)
-  - `wyh0626/claude-code-local` `src/utils/commitAttribution.ts:161` `claude-sonnet-4-5` (anthropic)
-  - `wyh0626/claude-code-local` `src/utils/model/model.ts:237` `claude-sonnet-4-5` (anthropic)
-- **Non-production file (dev probe, script, seed, website demo or i18n tool config) (10):**
-  - `AnyVM-Tech/AnyGPT` `apps/api/dev/testApi.ts:162` `gpt-3.5-turbo` (openai)
-  - `AnyVM-Tech/AnyGPT` `apps/api/dev/testOpenAISdk.ts:224` `gpt-3.5-turbo` (openai)
-  - `AnyVM-Tech/AnyGPT` `apps/api/dev/testWs.ts:41` `gpt-3.5-turbo` (openai)
-  - `AnyVM-Tech/AnyGPT` `apps/api/dev/testWs.ts:49` `gpt-3.5-turbo` (openai)
-  - `AnyVM-Tech/AnyGPT` `apps/api/dev/removeModelFromProviders.ts:19` `chatgpt-image-latest` (openai)
-  - `badhri17/GhazelleChat` `server/db/seed.ts:71` `gpt-5-mini-2025-08-07` (openai)
-  - `LocalRouter/LocalRouter` `website/src/components/GuardrailApprovalDemo.tsx:36` `claude-3-5-sonnet-20241022` (openai)
-  - `LocalRouter/LocalRouter` `website/src/components/demo/TauriMockSetup.ts:5279` `gpt-4` (openai)
-  - `vual/lobe-chat-pro` `.i18nrc.js:28` `chatgpt-4o-latest` (both)
-  - `CHARM-BDF/charmonator` `scripts/generate-example-config.js:52` `gpt-3.5-turbo` (openai)
-- **Model ID inside prompt or documentation text (7):**
-  - `fazxes/Claude-code` `src/tools/AgentTool/built-in/statuslineSetup.ts:42` `claude-3-5-sonnet-20241022` (anthropic)
-  - `wk42worldworld/cybercode` `src/tools/AgentTool/built-in/statuslineSetup.ts:42` `claude-3-5-sonnet-20241022` (anthropic)
-  - `viperrcrypto/Siftly` `lib/vision-analyzer.ts:68` `gpt-4` (anthropic)
-  - `OpenAisec/Miko` `src/tools/AgentTool/built-in/statuslineSetup.ts:42` `claude-3-5-sonnet-20241022` (anthropic)
-  - `kill136/claudecode` `src/tools/AgentTool/built-in/statuslineSetup.ts:42` `claude-3-5-sonnet-20241022` (anthropic)
-  - `chenqinggang001/claude-code-build` `src/tools/AgentTool/built-in/statuslineSetup.ts:42` `claude-3-5-sonnet-20241022` (anthropic)
-  - `wyh0626/claude-code-local` `src/tools/AgentTool/built-in/statuslineSetup.ts:42` `claude-3-5-sonnet-20241022` (anthropic)
-- **ChatGPT sign-in (chatgpt.com) model, not an API site by ruling (3):**
-  - `OpenAisec/Miko` `desktop/src/constants/openaiOfficialProvider.ts:4` `gpt-5.3-codex` (anthropic)
-  - `OpenAisec/Miko` `src/server/api/models.ts:241` `gpt-5.3-codex` (anthropic)
-  - `OpenAisec/Miko` `src/services/openaiAuth/models.ts:1` `gpt-5.3-codex` (anthropic)
+- **Catalog or remap table (35):**
+  - `AnyVM-Tech/AnyGPT` `apps/api/modules/modelUpdater.ts:920` `gpt-4o-mini-transcribe` (openai, sample)
+  - `AnyVM-Tech/AnyGPT` `apps/api/modules/modelUpdater.ts:923` `gpt-4o-transcribe` (openai, sample)
+  - `AnyVM-Tech/AnyGPT` `apps/langgraph-control-plane/src/workflow.ts:3116` `gpt-4o-mini-transcribe` (openai, sample)
+  - `AnyVM-Tech/AnyGPT` `apps/langgraph-control-plane/src/workflow.ts:3119` `gpt-4o-transcribe` (openai, sample)
+  - `vual/lobe-chat-pro` `packages/model-bank/src/aiModels/azure.ts:1215` `dall-e-3` (both, sample)
+  - `vual/lobe-chat-pro` `packages/model-bank/src/aiModels/azure.ts:1201` `gpt-image-1` (both, sample)
+  - `CHARM-BDF/charmonator` `lib/config.mjs:214` `gpt-3.5-turbo` (openai, sample)
+  - `CHARM-BDF/charmonator` `lib/config.mjs:215` `gpt-4` (openai, sample)
+  - `wk42worldworld/cybercode` `src/shared/webSessionProviders.ts:185` `gpt-4-turbo` (anthropic, sample)
+  - `wk42worldworld/cybercode` `src/shared/webSessionProviders.ts:186` `gpt-4` (anthropic, sample)
+  - `wk42worldworld/cybercode` `src/shared/webSessionProviders.ts:336` `gpt-4-turbo` (anthropic, sample)
+  - `wk42worldworld/cybercode` `src/shared/webSessionProviders.ts:457` `claude-sonnet-4-5` (anthropic, sample)
+  - `wk42worldworld/cybercode` `src/shared/mediaProviders.ts:316` `gpt-image-1.5` (anthropic, sample)
+  - `wk42worldworld/cybercode` `src/shared/mediaProviders.ts:317` `gpt-image-1-mini` (anthropic, sample)
+  - `wk42worldworld/cybercode` `src/shared/mediaProviders.ts:1206` `tts-1-hd` (anthropic, sample)
+  - `wk42worldworld/cybercode` `src/shared/mediaProviders.ts:1208` `whisper-1` (anthropic, sample)
+  - `OpenAisec/Miko` `src/utils/model/configs.ts:106` `gpt-5.3-codex` (anthropic, sample)
+  - `OpenAisec/Miko` `src/utils/model/configs.ts:107` `gpt-5.3-codex` (anthropic, sample)
+  - `OpenAisec/Miko` `src/utils/model/configs.ts:108` `gpt-5.3-codex` (anthropic, sample)
+  - `OpenAisec/Miko` `src/utils/model/configs.ts:109` `gpt-5.3-codex` (anthropic, sample)
+  - `OpenAisec/Miko` `src/utils/model/configs.ts:110` `gpt-5.3-codex` (anthropic, sample)
+  - `Doriandarko/kimi-2-6-code` `src/utils/model/configs.ts:129` `gpt-5.3-codex` (anthropic)
+  - `Doriandarko/kimi-2-6-code` `src/utils/model/configs.ts:130` `gpt-5.3-codex` (anthropic)
+  - `Doriandarko/kimi-2-6-code` `src/utils/model/configs.ts:131` `gpt-5.3-codex` (anthropic)
+  - `Doriandarko/kimi-2-6-code` `src/utils/model/configs.ts:132` `gpt-5.3-codex` (anthropic)
+  - `Doriandarko/kimi-2-6-code` `src/utils/model/configs.ts:133` `gpt-5.3-codex` (anthropic)
+  - `Doriandarko/kimi-2-6-code` `src/utils/model/configs.ts:134` `gpt-5.3-codex` (anthropic)
+  - `txl16095/MiniClaude` `src/utils/model/configs.ts:13` `claude-3-5-sonnet-20241022` (anthropic)
+  - `txl16095/MiniClaude` `src/utils/model/configs.ts:17` `claude-3-5-haiku-20241022` (anthropic)
+  - `txl16095/MiniClaude` `src/utils/model/configs.ts:9` `claude-3-7-sonnet-20250219` (anthropic)
+  - `txl16095/MiniClaude` `src/utils/model/configs.ts:33` `claude-opus-4-20250514` (anthropic)
+  - `txl16095/MiniClaude` `src/utils/model/configs.ts:25` `claude-sonnet-4-20250514` (anthropic)
+  - `txl16095/MiniClaude` `src/utils/model/configs.ts:37` `claude-opus-4-1-20250805` (anthropic)
+  - `txl16095/MiniClaude` `src/utils/model/configs.ts:29` `claude-sonnet-4-5-20250929` (anthropic)
+  - `txl16095/MiniClaude` `src/utils/model/configs.ts:58` `gpt-5.3-codex` (anthropic)
+- **Name-normalising helper (returns a short name, sends nothing) (26):**
+  - `fazxes/Claude-code` `src/utils/commitAttribution.ts:161` `claude-sonnet-4-5` (anthropic, sample)
+  - `fazxes/Claude-code` `src/utils/model/model.ts:237` `claude-sonnet-4-5` (anthropic, sample)
+  - `wk42worldworld/cybercode` `src/utils/commitAttribution.ts:165` `claude-sonnet-4-5` (anthropic, sample)
+  - `wk42worldworld/cybercode` `src/utils/model/model.ts:243` `claude-sonnet-4-5` (anthropic, sample)
+  - `OpenAisec/Miko` `src/utils/commitAttribution.ts:161` `claude-sonnet-4-5` (anthropic, sample)
+  - `OpenAisec/Miko` `src/utils/model/model.ts:259` `claude-sonnet-4-5` (anthropic, sample)
+  - `kill136/claudecode` `src/utils/commitAttribution.ts:161` `claude-sonnet-4-5` (anthropic, sample)
+  - `kill136/claudecode` `src/utils/model/model.ts:237` `claude-sonnet-4-5` (anthropic, sample)
+  - `chenqinggang001/claude-code-build` `src/utils/commitAttribution.ts:161` `claude-sonnet-4-5` (anthropic, sample)
+  - `chenqinggang001/claude-code-build` `src/utils/model/model.ts:237` `claude-sonnet-4-5` (anthropic, sample)
+  - `wyh0626/claude-code-local` `src/utils/commitAttribution.ts:161` `claude-sonnet-4-5` (anthropic, sample)
+  - `wyh0626/claude-code-local` `src/utils/model/model.ts:237` `claude-sonnet-4-5` (anthropic, sample)
+  - `DdogezD/claudium` `src/utils/commitAttribution.ts:161` `claude-sonnet-4-5` (anthropic)
+  - `DdogezD/claudium` `src/utils/model/model.ts:139` `claude-sonnet-4-5` (anthropic)
+  - `Doriandarko/kimi-2-6-code` `src/utils/commitAttribution.ts:161` `claude-sonnet-4-5` (anthropic)
+  - `Doriandarko/kimi-2-6-code` `src/utils/model/model.ts:260` `claude-sonnet-4-5` (anthropic)
+  - `Doriandarko/kimi-2-6-code` `src/utils/model/model.ts:295` `gpt-5.3-codex` (anthropic)
+  - `JrCx7scC/claude-code-source` `src/utils/commitAttribution.ts:163` `claude-sonnet-4-5` (anthropic)
+  - `JrCx7scC/claude-code-source` `src/utils/model/model.ts:241` `claude-sonnet-4-5` (anthropic)
+  - `txl16095/MiniClaude` `src/utils/commitAttribution.ts:161` `claude-sonnet-4-5` (anthropic)
+  - `txl16095/MiniClaude` `src/utils/model/model.ts:231` `claude-sonnet-4-5` (anthropic)
+  - `txl16095/MiniClaude` `src/utils/model/model.ts:266` `gpt-5.3-codex` (anthropic)
+  - `TaGoat/claude_code_cli` `src/utils/commitAttribution.ts:161` `claude-sonnet-4-5` (anthropic)
+  - `TaGoat/claude_code_cli` `src/utils/model/model.ts:237` `claude-sonnet-4-5` (anthropic)
+  - `andforce/Openclaude` `src/utils/commitAttribution.ts:161` `claude-sonnet-4-5` (anthropic)
+  - `andforce/Openclaude` `src/utils/model/model.ts:407` `claude-sonnet-4-5` (anthropic)
+- **UI option, label or form default (22):**
+  - `keegandonley/dalle-3-ui` `src/components/Prompt/index.tsx:95` `gpt-image-1` (openai, sample)
+  - `YiZhanSuDaShui/GoofishCredentialsBot` `frontend/src/app/views/system-setting/system-setting.component.ts:26` `gpt-3.5-turbo` (openai, sample)
+  - `MisonL/visual-journal` `src/components/editing-form.tsx:1455` `gpt-image-1` (openai, sample)
+  - `MisonL/visual-journal` `src/components/generation-form.tsx:1021` `gpt-image-1` (openai, sample)
+  - `MisonL/visual-journal` `src/components/editing-form.tsx:1454` `gpt-image-1.5` (openai, sample)
+  - `MisonL/visual-journal` `src/components/editing-form.tsx:1456` `gpt-image-1-mini` (openai, sample)
+  - `MisonL/visual-journal` `src/components/generation-form.tsx:1020` `gpt-image-1.5` (openai, sample)
+  - `MisonL/visual-journal` `src/components/generation-form.tsx:1022` `gpt-image-1-mini` (openai, sample)
+  - `vual/lobe-chat-pro` `src/app/[variants]/(main)/settings/tts/features/const.tsx:12` `tts-1` (both, sample)
+  - `vual/lobe-chat-pro` `src/app/[variants]/(main)/settings/tts/features/const.tsx:16` `tts-1-hd` (both, sample)
+  - `vual/lobe-chat-pro` `src/app/[variants]/(main)/settings/tts/features/const.tsx:23` `whisper-1` (both, sample)
+  - `vual/lobe-chat-pro` `src/app/[variants]/(main)/settings/tts/features/const.tsx:24` `whisper-1` (both, sample)
+  - `Jay-Bosco/GoofishCredentialsBot` `frontend/src/app/views/system-setting/system-setting.component.ts:26` `gpt-3.5-turbo` (openai, sample)
+  - `LeafYeeXYZ/PsychPen` `src/components/data/ConfigAI.tsx:264` `gpt-5.1` (openai, sample, negative file)
+  - `lrzy8/Goofish` `frontend/src/app/views/system-setting/system-setting.component.ts:30` `gpt-3.5-turbo` (openai, sample)
+  - `CHARM-BDF/charmonator` `public/script.js:118` `o1` (openai, sample)
+  - `hyunwookshin/iodine` `client/src/components/right/CodingAssistant.tsx:22` `tts-1-hd` (openai)
+  - `JaleelB/readium-x` `app/account/settings/text-to-speech/page.tsx:102` `tts-1` (openai)
+  - `JaleelB/readium-x` `app/account/settings/text-to-speech/page.tsx:155` `tts-1` (openai)
+  - `JaleelB/readium-x` `app/account/settings/text-to-speech/page.tsx:479` `tts-1` (openai)
+  - `Doriandarko/kimi-2-6-code` `src/utils/model/modelOptions.ts:225` `gpt-5.3-codex` (anthropic)
+  - `txl16095/MiniClaude` `src/utils/model/modelOptions.ts:224` `gpt-5.3-codex` (anthropic)
+- **Non-production file (dev probe, script, seed, website demo or i18n tool config) (18):**
+  - `AnyVM-Tech/AnyGPT` `apps/api/dev/testApi.ts:162` `gpt-3.5-turbo` (openai, sample)
+  - `AnyVM-Tech/AnyGPT` `apps/api/dev/testOpenAISdk.ts:224` `gpt-3.5-turbo` (openai, sample)
+  - `AnyVM-Tech/AnyGPT` `apps/api/dev/testWs.ts:41` `gpt-3.5-turbo` (openai, sample)
+  - `AnyVM-Tech/AnyGPT` `apps/api/dev/testWs.ts:49` `gpt-3.5-turbo` (openai, sample)
+  - `AnyVM-Tech/AnyGPT` `apps/api/dev/removeModelFromProviders.ts:19` `chatgpt-image-latest` (openai, sample)
+  - `badhri17/GhazelleChat` `server/db/seed.ts:71` `gpt-5-mini-2025-08-07` (openai, sample)
+  - `LocalRouter/LocalRouter` `website/src/components/GuardrailApprovalDemo.tsx:36` `claude-3-5-sonnet-20241022` (openai, sample)
+  - `LocalRouter/LocalRouter` `website/src/components/demo/TauriMockSetup.ts:5279` `gpt-4` (openai, sample)
+  - `vual/lobe-chat-pro` `.i18nrc.js:28` `chatgpt-4o-latest` (both, sample)
+  - `CHARM-BDF/charmonator` `scripts/generate-example-config.js:52` `gpt-3.5-turbo` (openai, sample)
+  - `thereactfoundation/react.foundation` `scripts/generate-collection-images.mjs:338` `gpt-image-1` (openai)
+  - `projectshft/mini-rag` `app/scripts/upload-training-data.ts:69` `gpt-4o-mini-2024-07-18` (openai)
+  - `beatrix-ha/beatrix` `server/anthropic.ts:25` `claude-3-7-sonnet-20250219` (both)
+  - `beatrix-ha/beatrix` `server/openai.ts:29` `gpt-4-turbo` (both)
+  - `membranehq/ai-agent-example` `other-examples/claude-sdk.ts:26` `claude-3-5-sonnet-20241022` (openai)
+  - `inbrainfun/inbrain` `recipes/agent-voice/code/server.mjs:47` `gpt-4o-realtime-preview` (anthropic)
+  - `inbrainfun/inbrain` `recipes/agent-voice/code/pipeline.mjs:303` `tts-1` (anthropic)
+  - `TaGoat/claude_code_cli` `scripts/test-auth.ts:14` `claude-sonnet-4-20250514` (anthropic)
+- **Model ID inside prompt or documentation text (12):**
+  - `fazxes/Claude-code` `src/tools/AgentTool/built-in/statuslineSetup.ts:42` `claude-3-5-sonnet-20241022` (anthropic, sample)
+  - `wk42worldworld/cybercode` `src/tools/AgentTool/built-in/statuslineSetup.ts:42` `claude-3-5-sonnet-20241022` (anthropic, sample)
+  - `viperrcrypto/Siftly` `lib/vision-analyzer.ts:68` `gpt-4` (anthropic, sample)
+  - `OpenAisec/Miko` `src/tools/AgentTool/built-in/statuslineSetup.ts:42` `claude-3-5-sonnet-20241022` (anthropic, sample)
+  - `kill136/claudecode` `src/tools/AgentTool/built-in/statuslineSetup.ts:42` `claude-3-5-sonnet-20241022` (anthropic, sample)
+  - `chenqinggang001/claude-code-build` `src/tools/AgentTool/built-in/statuslineSetup.ts:42` `claude-3-5-sonnet-20241022` (anthropic, sample)
+  - `wyh0626/claude-code-local` `src/tools/AgentTool/built-in/statuslineSetup.ts:42` `claude-3-5-sonnet-20241022` (anthropic, sample)
+  - `Doriandarko/kimi-2-6-code` `src/tools/AgentTool/built-in/statuslineSetup.ts:42` `claude-3-5-sonnet-20241022` (anthropic)
+  - `JrCx7scC/claude-code-source` `src/tools/AgentTool/built-in/statuslineSetup.ts:42` `claude-3-5-sonnet-20241022` (anthropic)
+  - `txl16095/MiniClaude` `src/tools/AgentTool/built-in/statuslineSetup.ts:42` `claude-3-5-sonnet-20241022` (anthropic)
+  - `TaGoat/claude_code_cli` `src/tools/AgentTool/built-in/statuslineSetup.ts:42` `claude-3-5-sonnet-20241022` (anthropic)
+  - `andforce/Openclaude` `src/tools/AgentTool/built-in/statuslineSetup.ts:42` `claude-3-5-sonnet-20241022` (anthropic)
+- **ChatGPT sign-in (chatgpt.com) model, not an API site by ruling (5):**
+  - `OpenAisec/Miko` `desktop/src/constants/openaiOfficialProvider.ts:4` `gpt-5.3-codex` (anthropic, sample)
+  - `OpenAisec/Miko` `src/server/api/models.ts:241` `gpt-5.3-codex` (anthropic, sample)
+  - `OpenAisec/Miko` `src/services/openaiAuth/models.ts:1` `gpt-5.3-codex` (anthropic, sample)
+  - `Doriandarko/kimi-2-6-code` `src/services/api/codex-fetch-adapter.ts:42` `gpt-5.1-codex-mini` (anthropic)
+  - `txl16095/MiniClaude` `src/services/api/codex-fetch-adapter.ts:42` `gpt-5.1-codex-mini` (anthropic)
+- **Display or cost-accounting fallback, not a request (3):**
+  - `kirill-markin/chatgpt-telegram-bot-telegraf` `src/database/database.ts:362` `whisper-1` (openai)
+  - `seongsu-kang/tycono` `packages/server/src/api/src/routes/execute.ts:903` `claude-sonnet-4-5` (anthropic, sample)
+  - `seongsu-kang/tycono` `packages/server/src/api/src/routes/execute.ts:1272` `claude-sonnet-4-5` (anthropic, sample)
+- **Tokenizer default (2):**
+  - `kirill-markin/chatgpt-telegram-bot-telegraf` `src/utils/encodingUtils.ts:3` `gpt-3.5-turbo` (openai)
+  - `kirill-markin/chatgpt-telegram-bot-telegraf` `src/utils/encodingUtils.ts:14` `gpt-3.5-turbo` (openai)
 - **Display name beside the default model id that is sent (2):**
-  - `nextai-translator/raycast-openai-translator` `src/providers/claude/config.ts:7` `claude-3-haiku-20240307` (anthropic)
-  - `nextai-translator/raycast-openai-translator` `src/providers/openai/config.ts:9` `gpt-3.5-turbo` (anthropic)
-- **Display or cost-accounting fallback, not a request (2):**
-  - `seongsu-kang/tycono` `packages/server/src/api/src/routes/execute.ts:903` `claude-sonnet-4-5` (anthropic)
-  - `seongsu-kang/tycono` `packages/server/src/api/src/routes/execute.ts:1272` `claude-sonnet-4-5` (anthropic)
+  - `nextai-translator/raycast-openai-translator` `src/providers/claude/config.ts:7` `claude-3-haiku-20240307` (anthropic, sample)
+  - `nextai-translator/raycast-openai-translator` `src/providers/openai/config.ts:9` `gpt-3.5-turbo` (anthropic, sample)
 - **Default model ID key; the labelled site is its entry's apiModel (1):**
-  - `badhri17/GhazelleChat` `lib/models/registry.ts:3` `gpt-5-mini-2025-08-07` (openai)
+  - `badhri17/GhazelleChat` `lib/models/registry.ts:3` `gpt-5-mini-2025-08-07` (openai, sample)
 - **Placeholder config in a client-side list transform (1):**
-  - `vual/lobe-chat-pro` `src/store/session/slices/session/action.ts:271` `gpt-4` (both)
+  - `vual/lobe-chat-pro` `src/store/session/slices/session/action.ts:271` `gpt-4` (both, sample)
+- **String that only looks like a model ID (an avatar name) (1):**
+  - `Emanuele-Sgroi/emanuelesgroi.com` `src/components/DiscussionsPage/DiscussionSideBar.js:184` `o1` (openai)
 
 ### Every false negative
 
-- `badhri17/GhazelleChat` `lib/models/registry.ts:27` `gpt-5-mini-2025-08-07` (openai)
-- `fazxes/Claude-code` `src/utils/model/configs.ts:45` `claude-sonnet-4-5-20250929` (anthropic)
-- `wk42worldworld/cybercode` `src/utils/model/configs.ts:45` `claude-sonnet-4-5-20250929` (anthropic)
-- `OpenAisec/Miko` `src/utils/model/configs.ts:50` `claude-sonnet-4-5-20250929` (anthropic)
-- `kill136/claudecode` `src/utils/model/configs.ts:45` `claude-sonnet-4-5-20250929` (anthropic)
-- `chenqinggang001/claude-code-build` `src/utils/model/configs.ts:45` `claude-sonnet-4-5-20250929` (anthropic)
-- `wyh0626/claude-code-local` `src/utils/model/configs.ts:45` `claude-sonnet-4-5-20250929` (anthropic)
+- `badhri17/GhazelleChat` `lib/models/registry.ts:27` `gpt-5-mini-2025-08-07` (openai, sample)
+- `joeseesun/qiaomu-blog-opensource` `lib/ai-image-provider-presets.ts:35` `gpt-image-1` (openai)
+- `kaieye/Livo` `src/shared/types/ai.ts:190` `claude-sonnet-4-20250514` (openai)
+- `fazxes/Claude-code` `src/utils/model/configs.ts:45` `claude-sonnet-4-5-20250929` (anthropic, sample)
+- `wk42worldworld/cybercode` `src/utils/model/configs.ts:45` `claude-sonnet-4-5-20250929` (anthropic, sample)
+- `OpenAisec/Miko` `src/utils/model/configs.ts:50` `claude-sonnet-4-5-20250929` (anthropic, sample)
+- `kill136/claudecode` `src/utils/model/configs.ts:45` `claude-sonnet-4-5-20250929` (anthropic, sample)
+- `chenqinggang001/claude-code-build` `src/utils/model/configs.ts:45` `claude-sonnet-4-5-20250929` (anthropic, sample)
+- `wyh0626/claude-code-local` `src/utils/model/configs.ts:45` `claude-sonnet-4-5-20250929` (anthropic, sample)
+- `Koifman/LUMEN` `src/lib/llm/llmService.ts:55` `gpt-5.1` (anthropic)
+- `Koifman/LUMEN` `src/lib/llm/llmService.ts:65` `claude-sonnet-4-5` (anthropic)
+- `Doriandarko/kimi-2-6-code` `src/utils/model/configs.ts:56` `claude-sonnet-4-5-20250929` (anthropic)
+- `JrCx7scC/claude-code-source` `src/utils/model/configs.ts:45` `claude-sonnet-4-5-20250929` (anthropic)
+- `TaGoat/claude_code_cli` `src/utils/model/configs.ts:45` `claude-sonnet-4-5-20250929` (anthropic)
+- `andforce/Openclaude` `src/utils/model/configs.ts:45` `claude-sonnet-4-5-20250929` (anthropic)
