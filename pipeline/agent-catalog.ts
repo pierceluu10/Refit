@@ -190,6 +190,23 @@ export const AGENT_CATALOG: ProviderAgent[] = [
     adapter: null,
     guide: null,
   },
+  // NextAuth.js and Auth.js run inside the application, so they have no API host of their own.
+  // Packages read on the npm registry on 2026-10-22, all from nextauthjs/next-auth.
+  {
+    id: 'nextauth',
+    name: 'NextAuth.js',
+    packages: [
+      'next-auth',
+      '@auth/core',
+      '@auth/sveltekit',
+      '@auth/express',
+      '@auth/qwik',
+      '@auth/solid-start',
+    ],
+    hostnames: [],
+    adapter: null,
+    guide: null,
+  },
 ];
 
 const MAX_HOSTNAME_EVIDENCE = 5;

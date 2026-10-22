@@ -16,6 +16,7 @@ const PROVIDERS = new Set([
   'clerk',
   'firebase',
   'supabase',
+  'nextauth',
 ]);
 const KINDS = new Set(['api-version', 'model', 'sdk', 'feature']);
 const ENTRY_KEYS = [
@@ -47,7 +48,8 @@ export interface DeadlineEntry {
     | 'auth0'
     | 'clerk'
     | 'firebase'
-    | 'supabase';
+    | 'supabase'
+    | 'nextauth';
   kind: 'api-version' | 'model' | 'sdk' | 'feature';
   versions: string[];
   date: string;

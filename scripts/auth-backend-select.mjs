@@ -1,5 +1,5 @@
-// Selects a frozen benchmark of public GitHub repositories that declare an Auth0, Clerk, Firebase
-// or Supabase SDK (docs/AUTH-BACKEND-SDKS.md). GitHub code search is unavailable to Refit's
+// Selects a frozen benchmark of public GitHub repositories that declare an Auth0, Clerk, Firebase,
+// Supabase or NextAuth.js/Auth.js SDK (docs/AUTH-BACKEND-SDKS.md). GitHub code search is unavailable to Refit's
 // benchmark environment, so applications come first from the repositories already frozen in
 // docs/benchmarks/*-repos.json (found earlier by GitHub code search and npm search), at their
 // pinned commits: the root package.json at that commit, read from raw.githubusercontent.com, must
@@ -22,6 +22,7 @@ const RAW = 'https://raw.githubusercontent.com';
 const PAGE_SIZE = 250;
 const PAGES = 2;
 const PUBLISHED_SINCE = '2024-01-01';
+const POOL_BEFORE = '2026-10-22';
 const CONCURRENCY = 16;
 const SECTIONS = ['dependencies', 'devDependencies', 'peerDependencies', 'optionalDependencies'];
 // The catalog's packages for each provider (pipeline/agent-catalog.ts), and the organizations
@@ -100,6 +101,18 @@ const PROVIDERS = {
     vendors: ['supabase', 'supabase-community'],
     queries: ['supabase', 'supabase nextjs', 'supabase starter'],
   },
+  nextauth: {
+    packages: [
+      'next-auth',
+      '@auth/core',
+      '@auth/sveltekit',
+      '@auth/express',
+      '@auth/qwik',
+      '@auth/solid-start',
+    ],
+    vendors: ['nextauthjs'],
+    queries: ['next-auth', 'nextauth', 'authjs'],
+  },
 };
 
 const { values } = parseArgs({
@@ -154,10 +167,12 @@ function githubRepository(url) {
   return match ? `${match[1]}/${match[2]}` : undefined;
 }
 
-// Every repository frozen so far, once, at the first pinned commit found in file-name order.
+// Every repository frozen before this sample, once, at the first pinned commit found in file-name
+// order. Lists dated from POOL_BEFORE on (this sample's own, and later ones) are left out, so a
+// rerun draws from the same pool.
 const frozen = new Map();
 for (const name of (await readdir(values.benchmarks))
-  .filter((file) => file.endsWith('-repos.json'))
+  .filter((file) => file.endsWith('-repos.json') && file < POOL_BEFORE)
   .sort()) {
   const list = JSON.parse(await readFile(join(values.benchmarks, name), 'utf8'));
   for (const item of list.repos ?? [])

@@ -965,6 +965,19 @@
       "replacement": "Publishable and secret API keys",
       "source": "https://github.com/supabase/supabase/blob/master/apps/docs/content/_partials/api_keys_deprecation.mdx",
       "checkedAt": "2026-10-22"
+    },
+    {
+      "id": "nextauth-2022-08-01-next-auth-v3",
+      "provider": "nextauth",
+      "kind": "sdk",
+      "versions": [
+        "next-auth@<4"
+      ],
+      "date": "2022-08-01",
+      "summary": "Auth.js releases security updates only for the current latest version and does not maintain old releases. next-auth's latest major is 4 (v5 is still a beta), so v3 and older receive no updates. The policy gives no date; the date here is when the last v3 release, 3.29.10, was published on npm.",
+      "replacement": "next-auth v4 (maintenance mode) or v5",
+      "source": "https://github.com/nextauthjs/next-auth/blob/main/docs/pages/security.mdx",
+      "checkedAt": "2026-10-22"
     }
   ]
 }

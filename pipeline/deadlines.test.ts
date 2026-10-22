@@ -1031,6 +1031,7 @@ it('keeps the shipped registry valid and sourced', async () => {
       'clerk',
       'firebase',
       'supabase',
+      'nextauth',
     ]),
   );
 });

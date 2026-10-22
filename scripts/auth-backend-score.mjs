@@ -1,11 +1,11 @@
-// Scores Refit's Auth0, Clerk, Firebase and Supabase results against blind hand labels
+// Scores Refit's Auth0, Clerk, Firebase, Supabase and NextAuth.js results against blind hand labels
 // (docs/benchmarks/2026-10-22-auth-backend-labels.json). Two questions per labelled repository:
-// which of the four providers it uses (provider detection), and which registry entries of those
+// which of the five providers it uses (provider detection), and which registry entries of those
 // providers it is exposed to through live evidence (exposure). Each is scored by repository and
 // item: a result the labels lack is a false positive, a label the result lacks a false negative.
 // Repositories whose scan failed are counted apart, never as misses or hits.
 
-export const PROVIDERS = ['auth0', 'clerk', 'firebase', 'supabase'];
+export const PROVIDERS = ['auth0', 'clerk', 'firebase', 'supabase', 'nextauth'];
 
 function ratio(numerator, denominator) {
   return denominator ? numerator / denominator : null;
@@ -35,7 +35,7 @@ function tally(pairs) {
   };
 }
 
-// The four providers' part of one repository's result: provider IDs Refit detected and IDs of the
+// The five providers' part of one repository's result: provider IDs Refit detected and IDs of the
 // registry entries with live evidence.
 export function repositoryResult(agents, deadlines) {
   return {

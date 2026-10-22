@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "labelledAt": "2026-10-22",
   "sample": "docs/benchmarks/2026-10-22-auth-backend-repos.json",
-  "method": "Labelled blind, before Refit's detectProviders or scanDeadlines was run on these repositories: every package.json outside node_modules, dist, build and .next, the root lockfile's resolved versions and the source files naming each package or legacy key variable were read at the pinned commit. providers: the catalog providers whose packages a manifest declares or whose API hosts live code calls. exposures: the registry entries (data/deadlines.json, this branch) that apply, where an sdk entry applies when a non-test manifest declares the package at a version inside its range (locked version, otherwise the declared range's major) and a feature entry applies when non-test, non-comment code uses one of its markers.",
+  "method": "Labelled blind, before Refit's detectProviders or scanDeadlines was run on these repositories: every package.json outside node_modules, dist, build and .next, the root lockfile's resolved versions and the source files naming each package or legacy key variable were read at the pinned commit. providers: the catalog providers whose packages a manifest declares or whose API hosts live code calls. exposures: the registry entries (data/deadlines.json, this branch) that apply, where an sdk entry applies when a non-test manifest declares the package at a version inside its range (locked version, otherwise the declared range's major) and a feature entry applies when non-test, non-comment code uses one of its markers. NextAuth.js (keep-going step, same day): 8 more repositories labelled blind, and the first 30 rechecked for NextAuth.js packages, before Refit scanned the 20 NextAuth.js repositories.",
   "labels": [
     {
       "repo": "projectplannerai/nextjs-clerk-convex-stripe-resend-template",
@@ -65,12 +65,13 @@
       "repo": "vual/lobe-chat-pro",
       "commit": "2a400facaee734beedeb9c93d9977728d626bec2",
       "providers": [
-        "clerk"
+        "clerk",
+        "nextauth"
       ],
       "exposures": [
         "clerk-2027-01-01-core-2-lts-ends"
       ],
-      "note": "@clerk/nextjs ^6.33.3 declared, no lockfile: a 6.x release, Core 2."
+      "note": "@clerk/nextjs ^6.33.3 declared, no lockfile: a 6.x release, Core 2. Also next-auth 5.0.0-beta.30 (not v3)."
     },
     {
       "repo": "seangray-dev/formail-app",
@@ -141,13 +142,14 @@
       "repo": "Chivo1530/CHIVITO-AI-DEV",
       "commit": "f492e7183d889ad259781f57b6defc6d31fa906e",
       "providers": [
+        "nextauth",
         "supabase"
       ],
       "exposures": [
         "supabase-2024-11-27-auth-helpers",
         "supabase-2026-12-31-legacy-api-keys"
       ],
-      "note": "Declares @supabase/auth-helpers-nextjs ^0.10.0 and -react ^0.5.0 (imported); lib/supabase.js falls back to a hard-coded legacy JWT anon key."
+      "note": "Declares @supabase/auth-helpers-nextjs ^0.10.0 and -react ^0.5.0 (imported); lib/supabase.js falls back to a hard-coded legacy JWT anon key. Also next-auth ^4.24.11 (not v3)."
     },
     {
       "repo": "offers-png/genid",
@@ -187,23 +189,25 @@
       "repo": "grepsoft/thelibrary",
       "commit": "801ce84fbd2559e6c1522a8555126929530c893e",
       "providers": [
-        "firebase"
+        "firebase",
+        "nextauth"
       ],
       "exposures": [],
-      "note": "firebase 11.1.0; no Dynamic Links option, host or module."
+      "note": "firebase 11.1.0; no Dynamic Links option, host or module. Also next-auth ^5.0.0-beta.25 (not v3)."
     },
     {
       "repo": "Drago-03/Neural-Nexus",
       "commit": "6b2a3b7703851ebe45019944f46f0f88dfdb55ca",
       "providers": [
         "firebase",
+        "nextauth",
         "supabase"
       ],
       "exposures": [
         "supabase-2024-11-27-auth-helpers",
         "supabase-2026-12-31-legacy-api-keys"
       ],
-      "note": "@supabase/auth-helpers-nextjs 0.8.7 locked and imported; reads NEXT_PUBLIC_SUPABASE_ANON_KEY with a hard-coded legacy JWT fallback."
+      "note": "@supabase/auth-helpers-nextjs 0.8.7 locked and imported; reads NEXT_PUBLIC_SUPABASE_ANON_KEY with a hard-coded legacy JWT fallback. Also next-auth ^4.24.11 (not v3)."
     },
     {
       "repo": "Liroo/emilievizcano.com",
@@ -236,10 +240,11 @@
       "repo": "grepsoft/ezrental",
       "commit": "935e79a08dfd59d9cbc01e363971d13fd22fe7b4",
       "providers": [
-        "firebase"
+        "firebase",
+        "nextauth"
       ],
       "exposures": [],
-      "note": "firebase 10.7.2; no Dynamic Links."
+      "note": "firebase 10.7.2; no Dynamic Links. Also next-auth ^4.24.5 (not v3)."
     },
     {
       "repo": "RemiMinderAI/RemiMinderAI",
@@ -315,6 +320,78 @@
       ],
       "exposures": [],
       "note": "Library; auth0-js 10.2.0 only."
+    },
+    {
+      "repo": "naveennaidu/OpenformStack",
+      "commit": "6eec1c882ee327efd4095ac8279543d2bcbe4b68",
+      "providers": [
+        "nextauth"
+      ],
+      "exposures": [],
+      "note": "next-auth 4.21.1 locked in yarn.lock."
+    },
+    {
+      "repo": "LarytheLord/Adventurers-Guild",
+      "commit": "21ec323ea2347e266b037e7818b9bb1030760e9f",
+      "providers": [
+        "nextauth"
+      ],
+      "exposures": [],
+      "note": "next-auth 4.24.7 locked."
+    },
+    {
+      "repo": "thereactfoundation/react.foundation",
+      "commit": "5a51afb76c2a54e6aa967221b76f03e4f92da5fd",
+      "providers": [
+        "nextauth"
+      ],
+      "exposures": [],
+      "note": "next-auth 4.24.11 locked."
+    },
+    {
+      "repo": "sudeepmahato16/airbnb-clone",
+      "commit": "fe8a793e7f7e296e8f52a050b1536fb756323f5d",
+      "providers": [
+        "nextauth"
+      ],
+      "exposures": [],
+      "note": "next-auth 4.24.5 locked."
+    },
+    {
+      "repo": "sa902/ship-fast-ts-main",
+      "commit": "e6ef4f2a99e0aaa330c25b1fa08f439a3152b1cb",
+      "providers": [
+        "nextauth"
+      ],
+      "exposures": [],
+      "note": "next-auth 4.23.1 locked."
+    },
+    {
+      "repo": "Shivamrai15/lms",
+      "commit": "161b3edab4eb1179cce56ed956423ff388097287",
+      "providers": [
+        "nextauth"
+      ],
+      "exposures": [],
+      "note": "next-auth 5.0.0-beta.20 locked."
+    },
+    {
+      "repo": "Will-404-debug/Katana-Forge",
+      "commit": "e1b9e5f954630fe3f0c8cccfbdf9b76b9a6047cd",
+      "providers": [
+        "nextauth"
+      ],
+      "exposures": [],
+      "note": "next-auth 4.24.11 locked."
+    },
+    {
+      "repo": "zebbern/repolens",
+      "commit": "9d0a2ff046600ea633b40837a03d5895173ef8d0",
+      "providers": [
+        "nextauth"
+      ],
+      "exposures": [],
+      "note": "next-auth 5.0.0-beta.32 and @auth/core 0.41.3 locked in pnpm-lock.yaml."
     }
   ]
 }

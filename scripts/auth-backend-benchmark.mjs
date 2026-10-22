@@ -87,7 +87,7 @@ for (const [index, item] of list.repos.entries()) {
       repo: item.repo,
       commit: item.commit,
       ...result,
-      // Live evidence for the four providers' entries, for reading each hit.
+      // Live evidence for the five providers' entries, for reading each hit.
       evidence: Object.fromEntries(
         deadlines.exposures
           .filter((exposure) => PROVIDERS.includes(exposure.deadline.provider))

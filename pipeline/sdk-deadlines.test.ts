@@ -353,3 +353,21 @@ it('lists a legacy key variable named inside prose as a comment, and keeps name-
     ),
   ).toBe(false);
 });
+
+it('reports next-auth v3 and older, and not v4 or the v5 beta', async () => {
+  const source = { 'pages/api/auth/[...nextauth].ts': "import NextAuth from 'next-auth';" };
+  expect(
+    (
+      await shipped({
+        ...manifest({ 'next-auth': '^3.29.0' }, { 'next-auth': '3.29.10' }),
+        ...source,
+      })
+    ).lines,
+  ).toEqual(['nextauth-2022-08-01-next-auth-v3 package.json:4 live']);
+  for (const version of ['^4.24.11', '5.0.0-beta.25'])
+    expect((await shipped({ ...manifest({ 'next-auth': version }), ...source })).lines).toEqual([]);
+  const detected = await detectProviders(
+    await repository({ ...manifest({ 'next-auth': '^4.24.11' }), ...source }),
+  );
+  expect(detected.map((item) => [item.agent.id, item.hostnames.length])).toEqual([['nextauth', 0]]);
+});
