@@ -7,7 +7,7 @@ Gem::Specification.new do |spec|
   spec.name = "honyaku"
   spec.version = Honyaku::VERSION
   spec.authors = ["Andrew Culver"]
-  spec.email = ["andrew.culver@gmail.com"]
+  spec.email = ["author@example.com"]
 
   spec.summary = "Translate your Rails application using OpenAI"
   # spec.description = "Honyaku provides tools to streamline the process of translating and maintaining translations for your Rails application using OpenAI"
