@@ -2,20 +2,23 @@
   "formatVersion": 1,
   "list": "docs/benchmarks/2026-10-21-openai-app-repos.json",
   "provider": "openai",
-  "ranAt": "2026-10-21T19:56:23.490Z",
+  "ranAt": "2026-10-22T07:47:07.575Z",
   "note": "refit deadlines and refit deadlines --propose-model-fixes at each frozen commit, read only: nothing installed, run or validated, no provider contacted. austineckman/CraftingComputer crashes the scanner process on main and on this change alike. baseline is the same run on main before the change.",
   "summary": {
     "repositories": 100,
     "errors": 1,
     "timedOut": 0,
-    "exposed": 33,
-    "exposedWithReplacement": 3,
-    "exposedStoppedOnly": 9,
-    "exposedUnresolvedOnly": 20,
-    "exposedSilent": 1,
-    "replacements": 4,
-    "stops": 29,
-    "unresolved": 84
+    "exposed": 32,
+    "exposedWithReplacement": 2,
+    "exposedStoppedOnly": 18,
+    "exposedSilent": 11,
+    "replacements": 3,
+    "stops": 44,
+    "mentionedOnly": 20,
+    "exposedErrored": 1,
+    "exposedUnresolvedOnly": 11,
+    "exposedUnexplained": 0,
+    "unresolved": 68
   },
   "results": [
     {
@@ -24,7 +27,11 @@
       "exposures": [],
       "replacements": [],
       "stops": [],
-      "unresolved": []
+      "unresolved": [],
+      "nonLive": {
+        "check": 2
+      },
+      "nonLiveTotal": 2
     },
     {
       "repo": "OpenCoworkAI/open-cowork",
@@ -32,7 +39,12 @@
       "exposures": [],
       "replacements": [],
       "stops": [],
-      "unresolved": []
+      "unresolved": [],
+      "nonLive": {
+        "catalog": 6,
+        "test": 6
+      },
+      "nonLiveTotal": 12
     },
     {
       "repo": "JohnRiceML/clawport-ui",
@@ -54,23 +66,33 @@
         }
       ],
       "replacements": [],
-      "stops": [],
-      "unresolved": [
-        {
-          "file": "app/api/tts/route.ts",
-          "line": 18,
-          "model": "tts-1",
-          "to": "gpt-realtime-2.1-mini",
-          "reason": "No traced request sends it as its model; it is the `model` value of an object. Check where it is used and change it by hand if it reaches the API."
-        },
+      "stops": [
         {
           "file": "app/api/transcribe/route.ts",
-          "line": 21,
+          "line": 20,
+          "call": "audio.transcriptions.create",
+          "at": {
+            "file": "app/api/transcribe/route.ts",
+            "line": 21
+          },
           "model": "whisper-1",
-          "to": "gpt-transcribe",
-          "reason": "No traced request sends it as its model; it is the `model` value of an object. Check where it is used and change it by hand if it reaches the API."
+          "reason": "`audio.transcriptions.create` is not a call Refit edits; gpt-transcribe may change formats or parameters; change it by hand to gpt-transcribe."
+        },
+        {
+          "file": "app/api/tts/route.ts",
+          "line": 17,
+          "call": "audio.speech.create",
+          "at": {
+            "file": "app/api/tts/route.ts",
+            "line": 18
+          },
+          "model": "tts-1",
+          "reason": "`audio.speech.create` is not a call Refit edits; gpt-realtime-2.1-mini may change formats or parameters; change it by hand to gpt-realtime-2.1-mini."
         }
-      ]
+      ],
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
     },
     {
       "repo": "yayasoumah/pocket-server",
@@ -78,7 +100,9 @@
       "exposures": [],
       "replacements": [],
       "stops": [],
-      "unresolved": []
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
     },
     {
       "repo": "pdovhomilja/nextcrm-app",
@@ -86,7 +110,11 @@
       "exposures": [],
       "replacements": [],
       "stops": [],
-      "unresolved": []
+      "unresolved": [],
+      "nonLive": {
+        "test": 301
+      },
+      "nonLiveTotal": 301
     },
     {
       "repo": "mayfer/dbpill",
@@ -94,7 +122,9 @@
       "exposures": [],
       "replacements": [],
       "stops": [],
-      "unresolved": []
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
     },
     {
       "repo": "babarot/oksskolten",
@@ -102,7 +132,12 @@
       "exposures": [],
       "replacements": [],
       "stops": [],
-      "unresolved": []
+      "unresolved": [],
+      "nonLive": {
+        "test": 6,
+        "catalog": 2
+      },
+      "nonLiveTotal": 8
     },
     {
       "repo": "Wing900/ManimCat",
@@ -110,7 +145,9 @@
       "exposures": [],
       "replacements": [],
       "stops": [],
-      "unresolved": []
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
     },
     {
       "repo": "rohitg00/manim-video-generator",
@@ -190,7 +227,9 @@
           "to": "gpt-5.6-luna",
           "reason": "No traced request sends it as its model; it is assigned to `OPENAI_MODEL`. Check where it is used and change it by hand if it reaches the API."
         }
-      ]
+      ],
+      "nonLive": {},
+      "nonLiveTotal": 0
     },
     {
       "repo": "vual/lobe-chat-pro",
@@ -360,7 +399,14 @@
           "to": "gpt-transcribe",
           "reason": "No traced request sends it as its model; it is the `value` value of an object. Check where it is used and change it by hand if it reaches the API."
         }
-      ]
+      ],
+      "nonLive": {
+        "catalog": 249,
+        "test": 587,
+        "check": 44,
+        "comment": 15
+      },
+      "nonLiveTotal": 895
     },
     {
       "repo": "joeseesun/qiaomu-blog-opensource",
@@ -368,7 +414,12 @@
       "exposures": [],
       "replacements": [],
       "stops": [],
-      "unresolved": []
+      "unresolved": [],
+      "nonLive": {
+        "catalog": 8,
+        "test": 2
+      },
+      "nonLiveTotal": 10
     },
     {
       "repo": "glidea/claude-worker-proxy",
@@ -376,7 +427,9 @@
       "exposures": [],
       "replacements": [],
       "stops": [],
-      "unresolved": []
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
     },
     {
       "repo": "Phala-Network/ai-agent-template-openai",
@@ -384,7 +437,9 @@
       "exposures": [],
       "replacements": [],
       "stops": [],
-      "unresolved": []
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
     },
     {
       "repo": "LangChat/langchat-slides",
@@ -392,7 +447,9 @@
       "exposures": [],
       "replacements": [],
       "stops": [],
-      "unresolved": []
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
     },
     {
       "repo": "3cqs-coder/SymBot",
@@ -400,7 +457,11 @@
       "exposures": [],
       "replacements": [],
       "stops": [],
-      "unresolved": []
+      "unresolved": [],
+      "nonLive": {
+        "test": 3
+      },
+      "nonLiveTotal": 3
     },
     {
       "repo": "NomaDamas/bananatape",
@@ -408,7 +469,9 @@
       "exposures": [],
       "replacements": [],
       "stops": [],
-      "unresolved": []
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
     },
     {
       "repo": "linkcraftstudio/feedlog",
@@ -416,7 +479,9 @@
       "exposures": [],
       "replacements": [],
       "stops": [],
-      "unresolved": []
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
     },
     {
       "repo": "hugodemenez/deltalytix",
@@ -438,7 +503,19 @@
         }
       ],
       "replacements": [],
-      "stops": [],
+      "stops": [
+        {
+          "file": "app/api/ai/transcribe/route.ts",
+          "line": 30,
+          "call": "audio.transcriptions.create",
+          "at": {
+            "file": "app/api/ai/transcribe/route.ts",
+            "line": 32
+          },
+          "model": "whisper-1",
+          "reason": "`audio.transcriptions.create` is not a call Refit edits; gpt-transcribe may change formats or parameters; change it by hand to gpt-transcribe."
+        }
+      ],
       "unresolved": [
         {
           "file": "app/api/ai/format-trades/route.ts",
@@ -446,15 +523,12 @@
           "model": "gpt-4o-mini-2024-07-18",
           "to": "gpt-6-luna",
           "reason": "No traced request sends it as its model; it is passed to openai(). Check where it is used and change it by hand if it reaches the API."
-        },
-        {
-          "file": "app/api/ai/transcribe/route.ts",
-          "line": 32,
-          "model": "whisper-1",
-          "to": "gpt-transcribe",
-          "reason": "No traced request sends it as its model; it is the `model` value of an object. Check where it is used and change it by hand if it reaches the API."
         }
-      ]
+      ],
+      "nonLive": {
+        "test": 1
+      },
+      "nonLiveTotal": 1
     },
     {
       "repo": "adrianhajdin/job_pilot",
@@ -462,7 +536,9 @@
       "exposures": [],
       "replacements": [],
       "stops": [],
-      "unresolved": []
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
     },
     {
       "repo": "jwangkun/Pi-Multi-Agent",
@@ -470,7 +546,9 @@
       "exposures": [],
       "replacements": [],
       "stops": [],
-      "unresolved": []
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
     },
     {
       "repo": "backenly/backenly",
@@ -478,7 +556,14 @@
       "exposures": [],
       "replacements": [],
       "stops": [],
-      "unresolved": []
+      "unresolved": [],
+      "nonLive": {
+        "catalog": 4,
+        "comment": 5,
+        "check": 1,
+        "test": 2
+      },
+      "nonLiveTotal": 12
     },
     {
       "repo": "jsar-project/runtime",
@@ -486,7 +571,11 @@
       "exposures": [],
       "replacements": [],
       "stops": [],
-      "unresolved": []
+      "unresolved": [],
+      "nonLive": {
+        "comment": 1
+      },
+      "nonLiveTotal": 1
     },
     {
       "repo": "Vivek-736/Repo-Mind",
@@ -494,7 +583,9 @@
       "exposures": [],
       "replacements": [],
       "stops": [],
-      "unresolved": []
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
     },
     {
       "repo": "beatrix-ha/beatrix",
@@ -520,7 +611,7 @@
             "line": 56
           },
           "model": "gpt-4-turbo",
-          "reason": "The model comes from the property model (server/openai.ts:44); it is read 4 times. Change it by hand to gpt-5.6-sol."
+          "reason": "The client sets a custom base URL, so the model may name another provider's model or a deployment; change it by hand to gpt-5.6-sol."
         }
       ],
       "unresolved": [
@@ -531,7 +622,11 @@
           "to": "gpt-5.6-sol",
           "reason": "No traced request sends it as its model; it is assigned to `OPENAI_EVAL_MODEL`. Check where it is used and change it by hand if it reaches the API."
         }
-      ]
+      ],
+      "nonLive": {
+        "catalog": 3
+      },
+      "nonLiveTotal": 3
     },
     {
       "repo": "hridaya423/conductor-tasks",
@@ -539,7 +634,9 @@
       "exposures": [],
       "replacements": [],
       "stops": [],
-      "unresolved": []
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
     },
     {
       "repo": "breck7/ScrollHub",
@@ -547,7 +644,9 @@
       "exposures": [],
       "replacements": [],
       "stops": [],
-      "unresolved": []
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
     },
     {
       "repo": "coinacci/TravelMintNFT",
@@ -555,7 +654,9 @@
       "exposures": [],
       "replacements": [],
       "stops": [],
-      "unresolved": []
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
     },
     {
       "repo": "zhengxs2018/ai",
@@ -563,39 +664,24 @@
       "exposures": [],
       "replacements": [],
       "stops": [],
-      "unresolved": []
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
     },
     {
       "repo": "utter-one/bonsai",
       "commit": "ba57fb73ef7b140d219b67ee91b0264fa928eb07",
-      "exposures": [
-        {
-          "deadline": "openai-2027-01-06-tts-1",
-          "date": "2027-01-06",
-          "evidence": [
-            "src/services/providers/tts/OpenAiTtsProvider.ts:26",
-            "src/services/providers/tts/OpenAiTtsProvider.ts:26"
-          ]
-        }
-      ],
+      "exposures": [],
       "replacements": [],
       "stops": [],
-      "unresolved": [
-        {
-          "file": "src/services/providers/tts/OpenAiTtsProvider.ts",
-          "line": 26,
-          "model": "tts-1",
-          "to": "gpt-realtime-2.1-mini",
-          "reason": "No traced request sends it as its model; it is part of a longer string, such as a template. Check where it is used and change it by hand if it reaches the API."
-        },
-        {
-          "file": "src/services/providers/tts/OpenAiTtsProvider.ts",
-          "line": 26,
-          "model": "tts-1-hd",
-          "to": "gpt-realtime-2.1-mini",
-          "reason": "No traced request sends it as its model; it is part of a longer string, such as a template. Check where it is used and change it by hand if it reaches the API."
-        }
-      ]
+      "unresolved": [],
+      "nonLive": {
+        "catalog": 13,
+        "test": 52,
+        "check": 2,
+        "comment": 3
+      },
+      "nonLiveTotal": 70
     },
     {
       "repo": "JaleelB/readium-x",
@@ -705,7 +791,12 @@
           "to": "gpt-realtime-2.1-mini",
           "reason": "No traced request sends it as its model; it is not where a request reads its model. Check where it is used and change it by hand if it reaches the API."
         }
-      ]
+      ],
+      "nonLive": {
+        "catalog": 4,
+        "check": 1
+      },
+      "nonLiveTotal": 5
     },
     {
       "repo": "kaieye/Livo",
@@ -713,7 +804,11 @@
       "exposures": [],
       "replacements": [],
       "stops": [],
-      "unresolved": []
+      "unresolved": [],
+      "nonLive": {
+        "catalog": 4
+      },
+      "nonLiveTotal": 4
     },
     {
       "repo": "LeafYeeXYZ/PsychPen",
@@ -737,7 +832,9 @@
           "to": "gpt-6-sol",
           "reason": "No traced request sends it as its model; it is passed to _DataView_setModel(). Check where it is used and change it by hand if it reaches the API."
         }
-      ]
+      ],
+      "nonLive": {},
+      "nonLiveTotal": 0
     },
     {
       "repo": "ribaunt/tekir",
@@ -745,7 +842,9 @@
       "exposures": [],
       "replacements": [],
       "stops": [],
-      "unresolved": []
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
     },
     {
       "repo": "andersrex/kindllm",
@@ -753,7 +852,11 @@
       "exposures": [],
       "replacements": [],
       "stops": [],
-      "unresolved": []
+      "unresolved": [],
+      "nonLive": {
+        "comment": 1
+      },
+      "nonLiveTotal": 1
     },
     {
       "repo": "kirill-markin/chatgpt-telegram-bot-telegraf",
@@ -807,7 +910,11 @@
           "to": "gpt-transcribe",
           "reason": "No traced request sends it as its model; it is the `model` value of an object. Check where it is used and change it by hand if it reaches the API."
         }
-      ]
+      ],
+      "nonLive": {
+        "test": 2
+      },
+      "nonLiveTotal": 2
     },
     {
       "repo": "inite-ai/inite-brain-service",
@@ -815,7 +922,11 @@
       "exposures": [],
       "replacements": [],
       "stops": [],
-      "unresolved": []
+      "unresolved": [],
+      "nonLive": {
+        "test": 8
+      },
+      "nonLiveTotal": 8
     },
     {
       "repo": "bpluo/image-atelier",
@@ -823,7 +934,13 @@
       "exposures": [],
       "replacements": [],
       "stops": [],
-      "unresolved": []
+      "unresolved": [],
+      "nonLive": {
+        "catalog": 15,
+        "test": 3,
+        "check": 2
+      },
+      "nonLiveTotal": 20
     },
     {
       "repo": "thetronjohnson/slate",
@@ -831,7 +948,9 @@
       "exposures": [],
       "replacements": [],
       "stops": [],
-      "unresolved": []
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
     },
     {
       "repo": "aeromechanic000/minecraft-ai",
@@ -863,7 +982,7 @@
             "line": 26
           },
           "model": "gpt-3.5-turbo",
-          "reason": "The request object pack (src/models/gpt.js:25) is used 3 times; change its model by hand to gpt-5.6-terra."
+          "reason": "The client sets a custom base URL, so the model may name another provider's model or a deployment; change it by hand to gpt-5.6-terra."
         }
       ],
       "unresolved": [
@@ -874,7 +993,11 @@
           "to": "gpt-transcribe",
           "reason": "No traced request sends it as its model; it is passed to formData.append(). Check where it is used and change it by hand if it reaches the API."
         }
-      ]
+      ],
+      "nonLive": {
+        "check": 3
+      },
+      "nonLiveTotal": 3
     },
     {
       "repo": "dashersw/double-agent",
@@ -882,7 +1005,11 @@
       "exposures": [],
       "replacements": [],
       "stops": [],
-      "unresolved": []
+      "unresolved": [],
+      "nonLive": {
+        "catalog": 11
+      },
+      "nonLiveTotal": 11
     },
     {
       "repo": "dongzhang84/vibe-reading",
@@ -890,7 +1017,9 @@
       "exposures": [],
       "replacements": [],
       "stops": [],
-      "unresolved": []
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
     },
     {
       "repo": "LocalRouter/LocalRouter",
@@ -914,7 +1043,12 @@
           "to": "gpt-5.6-sol",
           "reason": "No traced request sends it as its model; it is the `model` value of an object. Check where it is used and change it by hand if it reaches the API."
         }
-      ]
+      ],
+      "nonLive": {
+        "catalog": 11,
+        "check": 3
+      },
+      "nonLiveTotal": 14
     },
     {
       "repo": "tomasmaillo/tomasmaillo.com",
@@ -922,7 +1056,9 @@
       "exposures": [],
       "replacements": [],
       "stops": [],
-      "unresolved": []
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
     },
     {
       "repo": "tahaygun/ai-calorie-tracker",
@@ -930,7 +1066,9 @@
       "exposures": [],
       "replacements": [],
       "stops": [],
-      "unresolved": []
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
     },
     {
       "repo": "TejasAdhiya/TrustFirst",
@@ -938,7 +1076,9 @@
       "exposures": [],
       "replacements": [],
       "stops": [],
-      "unresolved": []
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
     },
     {
       "repo": "ueberdosis/ai-agent-custom-llm-demos",
@@ -946,7 +1086,9 @@
       "exposures": [],
       "replacements": [],
       "stops": [],
-      "unresolved": []
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
     },
     {
       "repo": "Liyue-Cheng/marina",
@@ -954,7 +1096,9 @@
       "exposures": [],
       "replacements": [],
       "stops": [],
-      "unresolved": []
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
     },
     {
       "repo": "david-crespo/llm-cli",
@@ -962,7 +1106,9 @@
       "exposures": [],
       "replacements": [],
       "stops": [],
-      "unresolved": []
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
     },
     {
       "repo": "thereactfoundation/react.foundation",
@@ -977,16 +1123,22 @@
         }
       ],
       "replacements": [],
-      "stops": [],
-      "unresolved": [
+      "stops": [
         {
           "file": "scripts/generate-collection-images.mjs",
-          "line": 338,
+          "line": 331,
+          "call": "fetch /v1/images/generations",
+          "at": {
+            "file": "scripts/generate-collection-images.mjs",
+            "line": 338
+          },
           "model": "gpt-image-1",
-          "to": "gpt-image-2.5-sunburst",
-          "reason": "No traced request sends it as its model; it is the `model` value of an object. Check where it is used and change it by hand if it reaches the API."
+          "reason": "`fetch /v1/images/generations` is not a call Refit edits; gpt-image-2.5-sunburst may change formats or parameters; change it by hand to gpt-image-2.5-sunburst."
         }
-      ]
+      ],
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
     },
     {
       "repo": "yiichuan/oddeNova",
@@ -994,7 +1146,12 @@
       "exposures": [],
       "replacements": [],
       "stops": [],
-      "unresolved": []
+      "unresolved": [],
+      "nonLive": {
+        "test": 3,
+        "catalog": 1
+      },
+      "nonLiveTotal": 4
     },
     {
       "repo": "DrEden33773/adam-agent",
@@ -1002,7 +1159,9 @@
       "exposures": [],
       "replacements": [],
       "stops": [],
-      "unresolved": []
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
     },
     {
       "repo": "Rushi-Joshi-au50/sofia-ia-whatsapp",
@@ -1010,7 +1169,9 @@
       "exposures": [],
       "replacements": [],
       "stops": [],
-      "unresolved": []
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
     },
     {
       "repo": "ethanlee-core/AionUi",
@@ -1018,7 +1179,11 @@
       "exposures": [],
       "replacements": [],
       "stops": [],
-      "unresolved": []
+      "unresolved": [],
+      "nonLive": {
+        "catalog": 8
+      },
+      "nonLiveTotal": 8
     },
     {
       "repo": "MisonL/visual-journal",
@@ -1088,7 +1253,12 @@
           "to": "gpt-image-2.5-sunburst",
           "reason": "No traced request sends it as its model; it is not where a request reads its model. Check where it is used and change it by hand if it reaches the API."
         }
-      ]
+      ],
+      "nonLive": {
+        "test": 19,
+        "catalog": 21
+      },
+      "nonLiveTotal": 40
     },
     {
       "repo": "sambaleuk/Vibetape-MCP-Server",
@@ -1096,7 +1266,9 @@
       "exposures": [],
       "replacements": [],
       "stops": [],
-      "unresolved": []
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
     },
     {
       "repo": "lrzy8/Goofish",
@@ -1121,11 +1293,22 @@
           "line": 145,
           "call": "chat.completions.create",
           "at": {
+            "file": "src/db/settings.repository.ts",
+            "line": 80
+          },
+          "model": "gpt-3.5-turbo",
+          "reason": "The client sets a custom base URL, so the model may name another provider's model or a deployment; change it by hand to gpt-5.6-terra."
+        },
+        {
+          "file": "src/services/ai.service.ts",
+          "line": 145,
+          "call": "chat.completions.create",
+          "at": {
             "file": "src/services/ai.service.ts",
             "line": 133
           },
           "model": "gpt-3.5-turbo",
-          "reason": "The request object requestParams (src/services/ai.service.ts:132) is used 3 times; change its model by hand to gpt-5.6-terra."
+          "reason": "The client sets a custom base URL, so the model may name another provider's model or a deployment; change it by hand to gpt-5.6-terra."
         },
         {
           "file": "src/services/ai.service.ts",
@@ -1136,7 +1319,7 @@
             "line": 175
           },
           "model": "gpt-3.5-turbo",
-          "reason": "The request sets max_tokens, temperature, which gpt-5.6-terra may reject or treat differently."
+          "reason": "The client sets a custom base URL, so the model may name another provider's model or a deployment; change it by hand to gpt-5.6-terra."
         },
         {
           "file": "src/services/ai.service.ts",
@@ -1147,7 +1330,7 @@
             "line": 216
           },
           "model": "gpt-3.5-turbo",
-          "reason": "The request sets max_tokens, which gpt-5.6-terra may reject or treat differently."
+          "reason": "The client sets a custom base URL, so the model may name another provider's model or a deployment; change it by hand to gpt-5.6-terra."
         }
       ],
       "unresolved": [
@@ -1157,15 +1340,10 @@
           "model": "gpt-3.5-turbo",
           "to": "gpt-5.6-terra",
           "reason": "No traced request sends it as its model; it is the `model` value of an object. Check where it is used and change it by hand if it reaches the API."
-        },
-        {
-          "file": "src/db/settings.repository.ts",
-          "line": 80,
-          "model": "gpt-3.5-turbo",
-          "to": "gpt-5.6-terra",
-          "reason": "No traced request sends it as its model; it is the `model` value of an object. Check where it is used and change it by hand if it reaches the API."
         }
-      ]
+      ],
+      "nonLive": {},
+      "nonLiveTotal": 0
     },
     {
       "repo": "badhri17/GhazelleChat",
@@ -1197,7 +1375,11 @@
           "to": "gpt-5.6-terra",
           "reason": "No traced request sends it as its model; it is the `model` value of an object. Check where it is used and change it by hand if it reaches the API."
         }
-      ]
+      ],
+      "nonLive": {
+        "catalog": 3
+      },
+      "nonLiveTotal": 3
     },
     {
       "repo": "ShinChven/remix-studio",
@@ -1221,7 +1403,11 @@
           "to": "gpt-6-luna",
           "reason": "No traced request sends it as its model; it is not where a request reads its model. Check where it is used and change it by hand if it reaches the API."
         }
-      ]
+      ],
+      "nonLive": {
+        "catalog": 2
+      },
+      "nonLiveTotal": 2
     },
     {
       "repo": "Trustdev-eth/x402-erc8004-agent",
@@ -1229,7 +1415,11 @@
       "exposures": [],
       "replacements": [],
       "stops": [],
-      "unresolved": []
+      "unresolved": [],
+      "nonLive": {
+        "comment": 1
+      },
+      "nonLiveTotal": 1
     },
     {
       "repo": "YiZhanSuDaShui/GoofishCredentialsBot",
@@ -1254,11 +1444,22 @@
           "line": 145,
           "call": "chat.completions.create",
           "at": {
+            "file": "src/db/settings.repository.ts",
+            "line": 58
+          },
+          "model": "gpt-3.5-turbo",
+          "reason": "The client sets a custom base URL, so the model may name another provider's model or a deployment; change it by hand to gpt-5.6-terra."
+        },
+        {
+          "file": "src/services/ai.service.ts",
+          "line": 145,
+          "call": "chat.completions.create",
+          "at": {
             "file": "src/services/ai.service.ts",
             "line": 133
           },
           "model": "gpt-3.5-turbo",
-          "reason": "The request object requestParams (src/services/ai.service.ts:132) is used 3 times; change its model by hand to gpt-5.6-terra."
+          "reason": "The client sets a custom base URL, so the model may name another provider's model or a deployment; change it by hand to gpt-5.6-terra."
         },
         {
           "file": "src/services/ai.service.ts",
@@ -1269,7 +1470,7 @@
             "line": 175
           },
           "model": "gpt-3.5-turbo",
-          "reason": "The request sets max_tokens, temperature, which gpt-5.6-terra may reject or treat differently."
+          "reason": "The client sets a custom base URL, so the model may name another provider's model or a deployment; change it by hand to gpt-5.6-terra."
         },
         {
           "file": "src/services/ai.service.ts",
@@ -1280,7 +1481,7 @@
             "line": 216
           },
           "model": "gpt-3.5-turbo",
-          "reason": "The request sets max_tokens, which gpt-5.6-terra may reject or treat differently."
+          "reason": "The client sets a custom base URL, so the model may name another provider's model or a deployment; change it by hand to gpt-5.6-terra."
         }
       ],
       "unresolved": [
@@ -1290,15 +1491,10 @@
           "model": "gpt-3.5-turbo",
           "to": "gpt-5.6-terra",
           "reason": "No traced request sends it as its model; it is the `model` value of an object. Check where it is used and change it by hand if it reaches the API."
-        },
-        {
-          "file": "src/db/settings.repository.ts",
-          "line": 58,
-          "model": "gpt-3.5-turbo",
-          "to": "gpt-5.6-terra",
-          "reason": "No traced request sends it as its model; it is the `model` value of an object. Check where it is used and change it by hand if it reaches the API."
         }
-      ]
+      ],
+      "nonLive": {},
+      "nonLiveTotal": 0
     },
     {
       "repo": "dsound-zz/DDIA-RAG",
@@ -1306,7 +1502,9 @@
       "exposures": [],
       "replacements": [],
       "stops": [],
-      "unresolved": []
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
     },
     {
       "repo": "masnwilliams/better404",
@@ -1332,7 +1530,7 @@
             "line": 68
           },
           "model": "gpt-4.1-nano",
-          "reason": "The request sets temperature, max_tokens, which gpt-5.6-luna may reject or treat differently."
+          "reason": "The client sets a custom base URL, so the model may name another provider's model or a deployment; change it by hand to gpt-5.6-luna."
         },
         {
           "file": "src/lib/kernel-app/index.ts",
@@ -1343,10 +1541,12 @@
             "line": 202
           },
           "model": "gpt-4.1-nano",
-          "reason": "The request sets temperature, max_tokens, which gpt-5.6-luna may reject or treat differently."
+          "reason": "The client sets a custom base URL, so the model may name another provider's model or a deployment; change it by hand to gpt-5.6-luna."
         }
       ],
-      "unresolved": []
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
     },
     {
       "repo": "nasserDev/OwlBrain",
@@ -1354,7 +1554,11 @@
       "exposures": [],
       "replacements": [],
       "stops": [],
-      "unresolved": []
+      "unresolved": [],
+      "nonLive": {
+        "catalog": 4
+      },
+      "nonLiveTotal": 4
     },
     {
       "repo": "queeragenda/bay.lgbt",
@@ -1362,7 +1566,9 @@
       "exposures": [],
       "replacements": [],
       "stops": [],
-      "unresolved": []
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
     },
     {
       "repo": "sbl1996/zero",
@@ -1370,7 +1576,9 @@
       "exposures": [],
       "replacements": [],
       "stops": [],
-      "unresolved": []
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
     },
     {
       "repo": "v-fidelusaleksander/prompt-action",
@@ -1378,7 +1586,11 @@
       "exposures": [],
       "replacements": [],
       "stops": [],
-      "unresolved": []
+      "unresolved": [],
+      "nonLive": {
+        "test": 7
+      },
+      "nonLiveTotal": 7
     },
     {
       "repo": "alanagoyal/booklist",
@@ -1386,7 +1598,9 @@
       "exposures": [],
       "replacements": [],
       "stops": [],
-      "unresolved": []
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
     },
     {
       "repo": "dgriffith/ide-for-thought",
@@ -1394,7 +1608,12 @@
       "exposures": [],
       "replacements": [],
       "stops": [],
-      "unresolved": []
+      "unresolved": [],
+      "nonLive": {
+        "catalog": 3,
+        "test": 16
+      },
+      "nonLiveTotal": 19
     },
     {
       "repo": "lemonade-sdk/interviewer",
@@ -1402,7 +1621,9 @@
       "exposures": [],
       "replacements": [],
       "stops": [],
-      "unresolved": []
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
     },
     {
       "repo": "mathix420/communityfix",
@@ -1410,7 +1631,9 @@
       "exposures": [],
       "replacements": [],
       "stops": [],
-      "unresolved": []
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
     },
     {
       "repo": "mcaupybugs/minimal-n8n",
@@ -1418,7 +1641,9 @@
       "exposures": [],
       "replacements": [],
       "stops": [],
-      "unresolved": []
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
     },
     {
       "repo": "nimrod-ai/inenglishplease",
@@ -1426,7 +1651,9 @@
       "exposures": [],
       "replacements": [],
       "stops": [],
-      "unresolved": []
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
     },
     {
       "repo": "Aimagine-life/Betsy",
@@ -1441,16 +1668,24 @@
         }
       ],
       "replacements": [],
-      "stops": [],
-      "unresolved": [
+      "stops": [
         {
           "file": "src/channels/telegram/voice.ts",
-          "line": 92,
+          "line": 91,
+          "call": "audio.speech.create",
+          "at": {
+            "file": "src/channels/telegram/voice.ts",
+            "line": 92
+          },
           "model": "tts-1",
-          "to": "gpt-realtime-2.1-mini",
-          "reason": "No traced request sends it as its model; it is the `model` value of an object. Check where it is used and change it by hand if it reaches the API."
+          "reason": "`audio.speech.create` is not a call Refit edits; gpt-realtime-2.1-mini may change formats or parameters; change it by hand to gpt-realtime-2.1-mini."
         }
-      ]
+      ],
+      "unresolved": [],
+      "nonLive": {
+        "catalog": 3
+      },
+      "nonLiveTotal": 3
     },
     {
       "repo": "Jay-Bosco/GoofishCredentialsBot",
@@ -1475,11 +1710,22 @@
           "line": 145,
           "call": "chat.completions.create",
           "at": {
+            "file": "src/db/settings.repository.ts",
+            "line": 58
+          },
+          "model": "gpt-3.5-turbo",
+          "reason": "The client sets a custom base URL, so the model may name another provider's model or a deployment; change it by hand to gpt-5.6-terra."
+        },
+        {
+          "file": "src/services/ai.service.ts",
+          "line": 145,
+          "call": "chat.completions.create",
+          "at": {
             "file": "src/services/ai.service.ts",
             "line": 133
           },
           "model": "gpt-3.5-turbo",
-          "reason": "The request object requestParams (src/services/ai.service.ts:132) is used 3 times; change its model by hand to gpt-5.6-terra."
+          "reason": "The client sets a custom base URL, so the model may name another provider's model or a deployment; change it by hand to gpt-5.6-terra."
         },
         {
           "file": "src/services/ai.service.ts",
@@ -1490,7 +1736,7 @@
             "line": 175
           },
           "model": "gpt-3.5-turbo",
-          "reason": "The request sets max_tokens, temperature, which gpt-5.6-terra may reject or treat differently."
+          "reason": "The client sets a custom base URL, so the model may name another provider's model or a deployment; change it by hand to gpt-5.6-terra."
         },
         {
           "file": "src/services/ai.service.ts",
@@ -1501,7 +1747,7 @@
             "line": 216
           },
           "model": "gpt-3.5-turbo",
-          "reason": "The request sets max_tokens, which gpt-5.6-terra may reject or treat differently."
+          "reason": "The client sets a custom base URL, so the model may name another provider's model or a deployment; change it by hand to gpt-5.6-terra."
         }
       ],
       "unresolved": [
@@ -1511,15 +1757,10 @@
           "model": "gpt-3.5-turbo",
           "to": "gpt-5.6-terra",
           "reason": "No traced request sends it as its model; it is the `model` value of an object. Check where it is used and change it by hand if it reaches the API."
-        },
-        {
-          "file": "src/db/settings.repository.ts",
-          "line": 58,
-          "model": "gpt-3.5-turbo",
-          "to": "gpt-5.6-terra",
-          "reason": "No traced request sends it as its model; it is the `model` value of an object. Check where it is used and change it by hand if it reaches the API."
         }
-      ]
+      ],
+      "nonLive": {},
+      "nonLiveTotal": 0
     },
     {
       "repo": "ananddtyagi/Sora-Studio",
@@ -1534,16 +1775,22 @@
         }
       ],
       "replacements": [],
-      "stops": [],
-      "unresolved": [
+      "stops": [
         {
           "file": "app/api/images/generate/route.ts",
-          "line": 27,
+          "line": 26,
+          "call": "images.generate",
+          "at": {
+            "file": "app/api/images/generate/route.ts",
+            "line": 27
+          },
           "model": "gpt-image-1",
-          "to": "gpt-image-2.5-sunburst",
-          "reason": "No traced request sends it as its model; it is the `model` value of an object. Check where it is used and change it by hand if it reaches the API."
+          "reason": "`images.generate` is not a call Refit edits; gpt-image-2.5-sunburst may change formats or parameters; change it by hand to gpt-image-2.5-sunburst."
         }
-      ]
+      ],
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
     },
     {
       "repo": "jahani-moghaddam/AI-Substitle-Translator",
@@ -1551,7 +1798,9 @@
       "exposures": [],
       "replacements": [],
       "stops": [],
-      "unresolved": []
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
     },
     {
       "repo": "keegandonley/dalle-3-ui",
@@ -1567,15 +1816,20 @@
         }
       ],
       "replacements": [],
-      "stops": [],
-      "unresolved": [
+      "stops": [
         {
           "file": "src/components/Prompt/index.tsx",
-          "line": 21,
+          "line": 43,
+          "call": "images.generate",
+          "at": {
+            "file": "src/components/Prompt/index.tsx",
+            "line": 21
+          },
           "model": "gpt-image-1",
-          "to": "gpt-image-2.5-sunburst",
-          "reason": "No traced request sends it as its model; it is assigned to `model`. Check where it is used and change it by hand if it reaches the API."
-        },
+          "reason": "`images.generate` is not a call Refit edits; gpt-image-2.5-sunburst may change formats or parameters; change it by hand to gpt-image-2.5-sunburst."
+        }
+      ],
+      "unresolved": [
         {
           "file": "src/components/Prompt/index.tsx",
           "line": 95,
@@ -1583,7 +1837,11 @@
           "to": "gpt-image-2.5-sunburst",
           "reason": "No traced request sends it as its model; it is assigned to `modelValue`. Check where it is used and change it by hand if it reaches the API."
         }
-      ]
+      ],
+      "nonLive": {
+        "catalog": 4
+      },
+      "nonLiveTotal": 4
     },
     {
       "repo": "AnyVM-Tech/AnyGPT",
@@ -1628,7 +1886,7 @@
             "line": 224
           },
           "model": "gpt-3.5-turbo",
-          "reason": "The model comes from the constant model (apps/api/dev/testOpenAISdk.ts:224), which is used 4 times; change it by hand to gpt-5.6-terra."
+          "reason": "The client sets a custom base URL, so the model may name another provider's model or a deployment; change it by hand to gpt-5.6-terra."
         }
       ],
       "unresolved": [
@@ -1688,7 +1946,13 @@
           "to": "gpt-transcribe",
           "reason": "No traced request sends it as its model; it is passed to add(). Check where it is used and change it by hand if it reaches the API."
         }
-      ]
+      ],
+      "nonLive": {
+        "catalog": 96,
+        "check": 8,
+        "comment": 1
+      },
+      "nonLiveTotal": 105
     },
     {
       "repo": "Langdock/assignment",
@@ -1717,12 +1981,14 @@
         }
       ],
       "stops": [],
-      "unresolved": []
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
     },
     {
       "repo": "austineckman/CraftingComputer",
       "commit": "c34a63adc8c0d95f9226449133b88cc738678839",
-      "error": "55: 0x18c1deb98 start [/usr/lib/dyld]",
+      "error": "44: 0x18c1deb98 start [/usr/lib/dyld]",
       "exposures": [
         {
           "deadline": "openai-2026-05-12-dall-e-2",
@@ -1734,7 +2000,9 @@
       ],
       "replacements": [],
       "stops": [],
-      "unresolved": []
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
     },
     {
       "repo": "ayuer/OptionFinder",
@@ -1742,7 +2010,9 @@
       "exposures": [],
       "replacements": [],
       "stops": [],
-      "unresolved": []
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
     },
     {
       "repo": "convex/components-submissions-directory",
@@ -1750,7 +2020,9 @@
       "exposures": [],
       "replacements": [],
       "stops": [],
-      "unresolved": []
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
     },
     {
       "repo": "liuxingqitd/content-flow",
@@ -1758,7 +2030,9 @@
       "exposures": [],
       "replacements": [],
       "stops": [],
-      "unresolved": []
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
     },
     {
       "repo": "membranehq/ai-agent-example",
@@ -1766,7 +2040,9 @@
       "exposures": [],
       "replacements": [],
       "stops": [],
-      "unresolved": []
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
     },
     {
       "repo": "sanidhyy/meet-ai",
@@ -1787,21 +2063,20 @@
           ]
         }
       ],
-      "replacements": [
+      "replacements": [],
+      "stops": [
         {
           "file": "src/app/api/webhook/stream/route.ts",
           "line": 216,
           "call": "chat.completions.create",
-          "edited": {
+          "at": {
             "file": "src/app/api/webhook/stream/route.ts",
             "line": 218
           },
-          "from": "gpt-4.1-nano",
-          "to": "gpt-5.6-luna",
-          "deadline": "openai-2026-10-23-gpt-4-1-nano"
+          "model": "gpt-4.1-nano",
+          "reason": "The client sets a custom base URL, so the model may name another provider's model or a deployment; change it by hand to gpt-5.6-luna."
         }
       ],
-      "stops": [],
       "unresolved": [
         {
           "file": "src/app/api/webhook/stream/route.ts",
@@ -1810,7 +2085,9 @@
           "to": "gpt-realtime-mini",
           "reason": "No traced request sends it as its model; it is the `model` value of an object. Check where it is used and change it by hand if it reaches the API."
         }
-      ]
+      ],
+      "nonLive": {},
+      "nonLiveTotal": 0
     },
     {
       "repo": "DANG-PH/dragonboy-api-gateway",
@@ -1818,7 +2095,9 @@
       "exposures": [],
       "replacements": [],
       "stops": [],
-      "unresolved": []
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
     },
     {
       "repo": "Emanuele-Sgroi/emanuelesgroi.com",
@@ -1842,7 +2121,11 @@
           "to": "gpt-5.6-sol",
           "reason": "No traced request sends it as its model; it is the `name` value of an object. Check where it is used and change it by hand if it reaches the API."
         }
-      ]
+      ],
+      "nonLive": {
+        "comment": 2
+      },
+      "nonLiveTotal": 2
     },
     {
       "repo": "LinkIt-Company/Linkit-Backend",
@@ -1867,10 +2150,12 @@
             "line": 2
           },
           "model": "gpt-4o-mini-2024-07-18",
-          "reason": "The model comes from the constant gptVersion (src/infrastructure/ai/ai.constant.ts:2), which is used 3 times; change it by hand to gpt-6-luna."
+          "reason": "The client sets a custom base URL, so the model may name another provider's model or a deployment; change it by hand to gpt-6-luna."
         }
       ],
-      "unresolved": []
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
     },
     {
       "repo": "asilbek2706/ai-writer",
@@ -1894,7 +2179,9 @@
           "to": "gpt-5.6-terra",
           "reason": "No traced request sends it as its model; it is the `model` value of an object. Check where it is used and change it by hand if it reaches the API."
         }
-      ]
+      ],
+      "nonLive": {},
+      "nonLiveTotal": 0
     },
     {
       "repo": "hyunwookshin/iodine",
@@ -1924,7 +2211,30 @@
         }
       ],
       "replacements": [],
-      "stops": [],
+      "stops": [
+        {
+          "file": "server/src/routes/tts.ts",
+          "line": 108,
+          "call": "audio.speech.create",
+          "at": {
+            "file": "server/src/routes/tts.ts",
+            "line": 109
+          },
+          "model": "tts-1-hd",
+          "reason": "`audio.speech.create` is not a call Refit edits; gpt-realtime-2.1-mini may change formats or parameters; change it by hand to gpt-realtime-2.1-mini."
+        },
+        {
+          "file": "server/src/routes/stt.ts",
+          "line": 28,
+          "call": "audio.transcriptions.create",
+          "at": {
+            "file": "server/src/routes/stt.ts",
+            "line": 29
+          },
+          "model": "whisper-1",
+          "reason": "`audio.transcriptions.create` is not a call Refit edits; gpt-transcribe may change formats or parameters; change it by hand to gpt-transcribe."
+        }
+      ],
       "unresolved": [
         {
           "file": "server/src/routes/meeting.ts",
@@ -1939,22 +2249,12 @@
           "model": "tts-1-hd",
           "to": "gpt-realtime-2.1-mini",
           "reason": "No traced request sends it as its model; it is the `model` value of an object. Check where it is used and change it by hand if it reaches the API."
-        },
-        {
-          "file": "server/src/routes/tts.ts",
-          "line": 109,
-          "model": "tts-1-hd",
-          "to": "gpt-realtime-2.1-mini",
-          "reason": "No traced request sends it as its model; it is the `model` value of an object. Check where it is used and change it by hand if it reaches the API."
-        },
-        {
-          "file": "server/src/routes/stt.ts",
-          "line": 29,
-          "model": "whisper-1",
-          "to": "gpt-transcribe",
-          "reason": "No traced request sends it as its model; it is the `model` value of an object. Check where it is used and change it by hand if it reaches the API."
         }
-      ]
+      ],
+      "nonLive": {
+        "catalog": 1
+      },
+      "nonLiveTotal": 1
     },
     {
       "repo": "projectshft/mini-rag",
@@ -1969,16 +2269,22 @@
         }
       ],
       "replacements": [],
-      "stops": [],
-      "unresolved": [
+      "stops": [
         {
           "file": "app/scripts/upload-training-data.ts",
-          "line": 69,
+          "line": 67,
+          "call": "fineTuning.jobs.create",
+          "at": {
+            "file": "app/scripts/upload-training-data.ts",
+            "line": 69
+          },
           "model": "gpt-4o-mini-2024-07-18",
-          "to": "gpt-6-luna",
-          "reason": "No traced request sends it as its model; it is the `model` value of an object. Check where it is used and change it by hand if it reaches the API."
+          "reason": "`fineTuning.jobs.create` is not a call Refit edits; gpt-6-luna may change formats or parameters; change it by hand to gpt-6-luna."
         }
-      ]
+      ],
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
     },
     {
       "repo": "timscheuerai/claude-gtm",
@@ -1986,7 +2292,9 @@
       "exposures": [],
       "replacements": [],
       "stops": [],
-      "unresolved": []
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
     },
     {
       "repo": "zer0-A1/Emineon",
@@ -2043,7 +2351,7 @@
             "line": 72
           },
           "model": "gpt-4-turbo-preview",
-          "reason": "The request sets temperature, max_tokens, which gpt-5 may reject or treat differently."
+          "reason": "The client sets a custom base URL, so the model may name another provider's model or a deployment; change it by hand to gpt-5."
         },
         {
           "file": "src/app/api/ai/email-analysis/route.ts",
@@ -2054,7 +2362,7 @@
             "line": 91
           },
           "model": "gpt-3.5-turbo",
-          "reason": "The request sets max_tokens, temperature, which gpt-5.6-terra may reject or treat differently."
+          "reason": "The client sets a custom base URL, so the model may name another provider's model or a deployment; change it by hand to gpt-5.6-terra."
         },
         {
           "file": "src/lib/openai.ts",
@@ -2065,7 +2373,7 @@
             "line": 105
           },
           "model": "gpt-3.5-turbo",
-          "reason": "The request sets temperature, max_tokens, which gpt-5.6-terra may reject or treat differently."
+          "reason": "The client sets a custom base URL, so the model may name another provider's model or a deployment; change it by hand to gpt-5.6-terra."
         },
         {
           "file": "src/lib/openai.ts",
@@ -2076,7 +2384,7 @@
             "line": 173
           },
           "model": "gpt-3.5-turbo",
-          "reason": "The request sets temperature, max_tokens, which gpt-5.6-terra may reject or treat differently."
+          "reason": "The client sets a custom base URL, so the model may name another provider's model or a deployment; change it by hand to gpt-5.6-terra."
         },
         {
           "file": "src/lib/openai.ts",
@@ -2087,7 +2395,7 @@
             "line": 235
           },
           "model": "gpt-3.5-turbo",
-          "reason": "The request sets temperature, max_tokens, which gpt-5.6-terra may reject or treat differently."
+          "reason": "The client sets a custom base URL, so the model may name another provider's model or a deployment; change it by hand to gpt-5.6-terra."
         },
         {
           "file": "src/lib/openai.ts",
@@ -2098,7 +2406,7 @@
             "line": 404
           },
           "model": "gpt-3.5-turbo",
-          "reason": "The request sets temperature, max_tokens, which gpt-5.6-terra may reject or treat differently."
+          "reason": "The client sets a custom base URL, so the model may name another provider's model or a deployment; change it by hand to gpt-5.6-terra."
         },
         {
           "file": "src/app/api/ai/enhance-skills/route.ts",
@@ -2109,7 +2417,7 @@
             "line": 35
           },
           "model": "gpt-4",
-          "reason": "The request sets max_tokens, temperature, which gpt-5.6-sol may reject or treat differently."
+          "reason": "The client sets a custom base URL, so the model may name another provider's model or a deployment; change it by hand to gpt-5.6-sol."
         },
         {
           "file": "src/lib/ai/competence-enrichment.ts",
@@ -2120,7 +2428,7 @@
             "line": 721
           },
           "model": "gpt-4",
-          "reason": "The request sets temperature, max_tokens, which gpt-5.6-sol may reject or treat differently."
+          "reason": "The client sets a custom base URL, so the model may name another provider's model or a deployment; change it by hand to gpt-5.6-sol."
         },
         {
           "file": "src/lib/ai/competence-enrichment.ts",
@@ -2131,7 +2439,7 @@
             "line": 792
           },
           "model": "gpt-4",
-          "reason": "The request sets temperature, max_tokens, which gpt-5.6-sol may reject or treat differently."
+          "reason": "The client sets a custom base URL, so the model may name another provider's model or a deployment; change it by hand to gpt-5.6-sol."
         },
         {
           "file": "src/lib/ai/competence-enrichment.ts",
@@ -2142,7 +2450,18 @@
             "line": 863
           },
           "model": "gpt-4",
-          "reason": "The request sets temperature, max_tokens, which gpt-5.6-sol may reject or treat differently."
+          "reason": "The client sets a custom base URL, so the model may name another provider's model or a deployment; change it by hand to gpt-5.6-sol."
+        },
+        {
+          "file": "src/app/api/ai/transcribe/route.ts",
+          "line": 33,
+          "call": "audio.transcriptions.create",
+          "at": {
+            "file": "src/app/api/ai/transcribe/route.ts",
+            "line": 35
+          },
+          "model": "whisper-1",
+          "reason": "`audio.transcriptions.create` is not a call Refit edits; gpt-transcribe may change formats or parameters; change it by hand to gpt-transcribe."
         },
         {
           "file": "src/app/api/projects/parse-email/route.ts",
@@ -2153,7 +2472,7 @@
             "line": 31
           },
           "model": "gpt-4",
-          "reason": "The request sets temperature, which gpt-5.6-sol may reject or treat differently."
+          "reason": "The client sets a custom base URL, so the model may name another provider's model or a deployment; change it by hand to gpt-5.6-sol."
         },
         {
           "file": "src/app/api/projects/parse-email/route.ts",
@@ -2164,7 +2483,7 @@
             "line": 441
           },
           "model": "gpt-4",
-          "reason": "The request sets temperature, which gpt-5.6-sol may reject or treat differently."
+          "reason": "The client sets a custom base URL, so the model may name another provider's model or a deployment; change it by hand to gpt-5.6-sol."
         },
         {
           "file": "src/lib/services/assessment.ts",
@@ -2185,15 +2504,10 @@
           "model": "gpt-4-1106-preview",
           "to": "gpt-5",
           "reason": "No traced request sends it as its model; it is the `model` value of an object. Check where it is used and change it by hand if it reaches the API."
-        },
-        {
-          "file": "src/app/api/ai/transcribe/route.ts",
-          "line": 35,
-          "model": "whisper-1",
-          "to": "gpt-transcribe",
-          "reason": "No traced request sends it as its model; it is the `model` value of an object. Check where it is used and change it by hand if it reaches the API."
         }
-      ]
+      ],
+      "nonLive": {},
+      "nonLiveTotal": 0
     },
     {
       "repo": "CHARM-BDF/charmonator",
@@ -2247,7 +2561,12 @@
           "to": "gpt-5.6-sol",
           "reason": "No traced request sends it as its model; it is assigned to `savedModel`. Check where it is used and change it by hand if it reaches the API."
         }
-      ]
+      ],
+      "nonLive": {
+        "comment": 3,
+        "check": 1
+      },
+      "nonLiveTotal": 4
     },
     {
       "repo": "Dregen-Yor/auto-invoice",
@@ -2255,7 +2574,9 @@
       "exposures": [],
       "replacements": [],
       "stops": [],
-      "unresolved": []
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
     },
     {
       "repo": "MattB543/asheville-event-feed",
@@ -2263,7 +2584,9 @@
       "exposures": [],
       "replacements": [],
       "stops": [],
-      "unresolved": []
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
     },
     {
       "repo": "benjiyaya/OminiUI",
@@ -2271,7 +2594,9 @@
       "exposures": [],
       "replacements": [],
       "stops": [],
-      "unresolved": []
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
     },
     {
       "repo": "david-crespo/llm-web",
@@ -2279,7 +2604,9 @@
       "exposures": [],
       "replacements": [],
       "stops": [],
-      "unresolved": []
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
     },
     {
       "repo": "fltman/beatbrawl",
@@ -2287,7 +2614,9 @@
       "exposures": [],
       "replacements": [],
       "stops": [],
-      "unresolved": []
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
     },
     {
       "repo": "navekedem/ibkr-trading-bot",
@@ -2295,22 +2624,26 @@
       "exposures": [],
       "replacements": [],
       "stops": [],
-      "unresolved": []
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
     }
   ],
-  "refitCommit": "93a13a5",
+  "refitCommit": "c084880",
   "baseline": {
-    "refitCommit": "ecd6ca7",
+    "refitCommit": "fb0143a",
     "summary": {
       "repositories": 100,
       "errors": 1,
       "timedOut": 0,
-      "exposed": 33,
-      "exposedWithReplacement": 3,
-      "exposedStoppedOnly": 8,
-      "exposedSilent": 22,
-      "replacements": 4,
-      "stops": 27
+      "exposed": 32,
+      "exposedWithReplacement": 2,
+      "exposedStoppedOnly": 17,
+      "exposedSilent": 12,
+      "replacements": 3,
+      "stops": 43,
+      "mentionedOnly": 20,
+      "exposedErrored": 1
     }
   }
 }

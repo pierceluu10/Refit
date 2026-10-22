@@ -1,5 +1,17 @@
 # Refit implementation checkpoints
 
+## October 22 checkpoint: no silent model exposures (unreleased, after 0.39.0)
+
+`refit deadlines --propose-model-fixes` now gives every live OpenAI and Anthropic model match an outcome:
+
+- **Unresolved.** A live model ID that no traced request sends is listed under `unresolved` (`--json`) or "Not sent by a traced request", with its replacement and where it is written. These are never edited.
+- **Header-detected requests.** A `fetch` to a non-official URL that sets `anthropic-version` inline and sends `model` and `messages` is traced as an Anthropic request and always stops for review.
+- **Unreadable configurations.** Calls found only by trusting an SDK import under a `tsconfig.json` or `jsconfig.json` Refit cannot read (for example one extending a generated `.svelte-kit/tsconfig.json`) stop for review.
+- **`paths` fallback.** A bare import matching a `paths` entry is the installed package when no mapped target or `baseUrl` lookup is a scanned source, as TypeScript resolves it. This applies to every provider's analysis, Stripe included.
+- **Catalogs.** A model's per-platform ID record (with a Bedrock or Vertex AI form) and members of a `new Set([...])` or keys of a `new Map([...])` are catalog.
+
+On the application sets, read only against `main` at `fb0143a`, exposed repositories with no outcome went from 17 to 0 for Anthropic and 12 to 0 for OpenAI; replacements stayed at 2 repositories per set and no repository lost one ([benchmarks](BENCHMARKS.md#model-fixes-on-the-application-sets-october-21)). Tests: `pipeline/model-retirements.test.ts`, `pipeline/deadlines.test.ts` and `pipeline/ai-model-benchmark-summary.test.ts`.
+
 ## October 21 checkpoint: single-tenant hosted enrollment (unreleased, after 0.39.0)
 
 `refit hosted serve` is milestone 3 of the [hosted onboarding proposal](HOSTED-ONBOARDING.md#implemented-single-tenant-hosted-worker). A signed App installation webhook enrolls each installed repository that has a stored `refit enroll` approval. PostgreSQL then holds the installation, the target, a leased job and its receipt. The worker reuses the service's existing core: access confirmation, an App-managed checkout, the approval fingerprint check, `refit doctor`, then scanning and validation with the approved checks. Removing the repository, or deleting or suspending the installation, cancels its targets and stops running jobs. `refit hosted approve` stores an approval.

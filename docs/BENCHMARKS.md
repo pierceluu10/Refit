@@ -300,20 +300,22 @@ An independent grep for quoted exact registry model IDs found **4,679** candidat
 
 ## Model fixes on the application sets (October 21)
 
-`scripts/ai-model-benchmark.mjs` ran `refit deadlines` and `refit deadlines --propose-model-fixes` at each frozen commit of both application sets, once on `main` (`ecd6ca7`) and once with the tracing and reporting changes in [the October 21 checkpoint](READINESS.md) (`93a13a5`). Files were read only: nothing was installed, run or validated, and no provider was contacted, so these are proposals, not validated fixes. Results: [Anthropic](benchmarks/2026-10-21-anthropic-app-results.json), [OpenAI](benchmarks/2026-10-21-openai-app-results.json); each file keeps the `main` summary as `baseline`.
+`scripts/ai-model-benchmark.mjs` ran `refit deadlines` and `refit deadlines --propose-model-fixes` at each frozen commit of both application sets, once on `main` (`fb0143a`) and once with the tracing and reporting changes in [the October 22 checkpoint](READINESS.md) merged onto it (`c084880`). Files were read only: nothing was installed, run or validated, and no provider was contacted, so these are proposals, not validated fixes. Results: [Anthropic](benchmarks/2026-10-21-anthropic-app-results.json), [OpenAI](benchmarks/2026-10-21-openai-app-results.json); each file keeps the `main` summary as `baseline`.
 
 | Repositories with a live exposure | Anthropic before | Anthropic after | OpenAI before | OpenAI after |
 |---|---|---|---|---|
-| Exposed | 28 | 28 | 33 | 33 |
-| With a proposed replacement | 4 | 6 | 3 | 3 |
-| Stopped for review only | 5 | 8 | 8 | 9 |
-| Every live match explained as unresolved | not reported | 14 | not reported | 20 |
-| No outcome at all | 19 | 0 | 22 | 1 |
+| Exposed | 28 | 28 | 32 | 32 |
+| With a proposed replacement | 2 | 2 | 2 | 2 |
+| Stopped for review only | 9 | 12 | 17 | 18 |
+| Every live match explained as unresolved | not reported | 14 | not reported | 11 |
+| No outcome at all | 17 | 0 | 12 | 0 |
+| Scanner error | 0 | 0 | 1 | 1 |
 
-- **Silent repositories.** Before, 19 of 28 exposed Anthropic applications and 22 of 33 OpenAI ones ended with no replacement, no stop and no reason. Now each live match is a replacement, a stop or an `unresolved` entry that says where the model is written. The one OpenAI repository left, `austineckman/CraftingComputer`, crashes the scanner process on `main` too, so it has no proposal at all.
-- **Copies.** 12 of the 50 Anthropic applications are copies of one leaked Claude Code source tree. Their exposures are mostly that tree's per-platform model configs, now catalog, plus a few helper returns and a documentation template that stay unresolved. Without them, the 16 distinct exposed applications went from 3 replacements, 5 stops and 8 silent to 5 replacements, 8 stops and 3 unresolved.
-- **What still stops.** Of the 8 distinct Anthropic stops, 5 are by design and wait on owner decisions: a model constant, request object or class property read more than once, and a request that sets `temperature` while the replacement is a Claude 4.7 or later model. Two are SvelteKit calls under a `tsconfig.json` that extends the generated `.svelte-kit/tsconfig.json`, which is not in the checkout.
-- **No regressions.** No repository lost a replacement or an exposure on either set.
+- **Silent repositories.** Before, 17 of 28 exposed Anthropic applications and 12 of 32 OpenAI ones ended with no replacement, no stop and no reason. Now each live match is a replacement, a stop or an `unresolved` entry that says where the model is written (58 Anthropic and 68 OpenAI entries). The OpenAI scanner error is `austineckman/CraftingComputer`, which crashes the scanner process on `main` too, so it has no proposal at all.
+- **Replacements did not move.** Since [#147](https://github.com/pierceluu10/Refit/pull/147) added stops on `main`, both sets propose 3 replacements in 2 repositories, before and after. On these sets this change adds stops and explanations and edits nothing new.
+- **Copies.** 12 of the 50 Anthropic applications are copies of one leaked Claude Code source tree. Their exposures are mostly that tree's per-platform model configs, now catalog, plus a few helper returns and a documentation template that stay unresolved (11 unresolved only, 1 stopped). Without them, the 16 distinct exposed applications went from 2 replacements, 8 stops and 6 silent to 2 replacements, 11 stops and 3 unresolved.
+- **What stops.** Of the 12 distinct Anthropic applications with a stop, 8 send through a custom base URL or another host, 2 load the module that declares the model dynamically, 1 reuses a request object and 1 is a SvelteKit app under a `tsconfig.json` that extends the generated `.svelte-kit/tsconfig.json`, which is not in the checkout. The new stops are 2 custom base URLs (one per set), 1 `fetch` with `anthropic-version` to a non-official host, and the SvelteKit app.
+- **No regressions.** No repository lost a replacement or an exposure on either set. Exposures fell only where the deadline scan now lists entries as catalog (the 12 copies and `vual/lobe-chat-pro`).
 
 ## Speed and cost
 

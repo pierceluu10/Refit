@@ -2,20 +2,23 @@
   "formatVersion": 1,
   "list": "docs/benchmarks/2026-10-21-anthropic-app-repos.json",
   "provider": "anthropic",
-  "ranAt": "2026-10-21T20:04:20.975Z",
+  "ranAt": "2026-10-22T07:43:40.055Z",
   "note": "refit deadlines and refit deadlines --propose-model-fixes at each frozen commit, read only: nothing installed, run or validated, no provider contacted. 12 of the 50 repositories are copies of one leaked Claude Code source tree (src/utils/model/configs.ts). baseline is the same run on main before the change.",
   "summary": {
     "repositories": 50,
     "errors": 0,
     "timedOut": 0,
     "exposed": 28,
-    "exposedWithReplacement": 6,
-    "exposedStoppedOnly": 8,
+    "exposedWithReplacement": 2,
+    "exposedStoppedOnly": 12,
+    "exposedSilent": 14,
+    "replacements": 3,
+    "stops": 16,
+    "mentionedOnly": 9,
+    "exposedErrored": 0,
     "exposedUnresolvedOnly": 14,
-    "exposedSilent": 0,
-    "replacements": 7,
-    "stops": 11,
-    "unresolved": 59
+    "exposedUnexplained": 0,
+    "unresolved": 58
   },
   "results": [
     {
@@ -41,10 +44,12 @@
             "line": 1478
           },
           "model": "claude-3-5-haiku-20241022",
-          "reason": "The model is the fallback of the constant model (server/src/workflow-management/classes/DocumentInterpreter.ts:1478), which is used 2 times; change it by hand to claude-haiku-4-5-20251001."
+          "reason": "The client sets a custom base URL, so the model may name another provider's model or a deployment; change it by hand to claude-haiku-4-5-20251001."
         }
       ],
-      "unresolved": []
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
     },
     {
       "repo": "viperrcrypto/Siftly",
@@ -52,7 +57,9 @@
       "exposures": [],
       "replacements": [],
       "stops": [],
-      "unresolved": []
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
     },
     {
       "repo": "OpenCoworkAI/open-cowork",
@@ -60,7 +67,12 @@
       "exposures": [],
       "replacements": [],
       "stops": [],
-      "unresolved": []
+      "unresolved": [],
+      "nonLive": {
+        "catalog": 2,
+        "test": 2
+      },
+      "nonLiveTotal": 4
     },
     {
       "repo": "wk42worldworld/cybercode",
@@ -114,7 +126,14 @@
           "to": "claude-sonnet-5-5",
           "reason": "No traced request sends it as its model; it is returned from a function. Check where it is used and change it by hand if it reaches the API."
         }
-      ]
+      ],
+      "nonLive": {
+        "catalog": 12,
+        "check": 8,
+        "test": 8,
+        "comment": 6
+      },
+      "nonLiveTotal": 34
     },
     {
       "repo": "kgoedecke/doop",
@@ -122,7 +141,9 @@
       "exposures": [],
       "replacements": [],
       "stops": [],
-      "unresolved": []
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
     },
     {
       "repo": "yayasoumah/pocket-server",
@@ -158,7 +179,7 @@
             "line": 21
           },
           "model": "claude-sonnet-4-5",
-          "reason": "The request sets temperature, which claude-sonnet-5-5 may reject or treat differently."
+          "reason": "The client sets a custom base URL, so the model may name another provider's model or a deployment; change it by hand to claude-sonnet-5-5."
         }
       ],
       "unresolved": [
@@ -197,7 +218,9 @@
           "to": "claude-sonnet-5-5",
           "reason": "No traced request sends it as its model; it is the `model` value of an object. Check where it is used and change it by hand if it reaches the API."
         }
-      ]
+      ],
+      "nonLive": {},
+      "nonLiveTotal": 0
     },
     {
       "repo": "OpenAisec/Miko",
@@ -243,7 +266,13 @@
           "to": "claude-sonnet-5-5",
           "reason": "No traced request sends it as its model; it is returned from a function. Check where it is used and change it by hand if it reaches the API."
         }
-      ]
+      ],
+      "nonLive": {
+        "catalog": 19,
+        "check": 8,
+        "comment": 6
+      },
+      "nonLiveTotal": 33
     },
     {
       "repo": "FerroxLabs/wayland",
@@ -266,21 +295,20 @@
           ]
         }
       ],
-      "replacements": [
+      "replacements": [],
+      "stops": [
         {
           "file": "src/process/bridge/modelBridge.ts",
           "line": 1336,
           "call": "fetch with anthropic-version",
-          "edited": {
+          "at": {
             "file": "src/process/bridge/modelBridge.ts",
             "line": 1345
           },
-          "from": "claude-3-haiku-20240307",
-          "to": "claude-haiku-4-5-20251001",
-          "deadline": "anthropic-2026-04-20-claude-3-haiku"
+          "model": "claude-3-haiku-20240307",
+          "reason": "The request goes to a host other than the official API, so the model may name another provider's model or a deployment; change it by hand to claude-haiku-4-5-20251001."
         }
       ],
-      "stops": [],
       "unresolved": [
         {
           "file": "src/common/utils/protocolDetector.ts",
@@ -303,7 +331,14 @@
           "to": "claude-sonnet-5-5",
           "reason": "No traced request sends it as its model; it is the `defaultModel` value of an object. Check where it is used and change it by hand if it reaches the API."
         }
-      ]
+      ],
+      "nonLive": {
+        "catalog": 13,
+        "test": 57,
+        "comment": 4,
+        "check": 1
+      },
+      "nonLiveTotal": 75
     },
     {
       "repo": "babarot/oksskolten",
@@ -311,7 +346,11 @@
       "exposures": [],
       "replacements": [],
       "stops": [],
-      "unresolved": []
+      "unresolved": [],
+      "nonLive": {
+        "catalog": 3
+      },
+      "nonLiveTotal": 3
     },
     {
       "repo": "nextai-translator/raycast-openai-translator",
@@ -343,7 +382,11 @@
           "to": "claude-haiku-4-5-20251001",
           "reason": "No traced request sends it as its model; it is the `name` value of an object. Check where it is used and change it by hand if it reaches the API."
         }
-      ]
+      ],
+      "nonLive": {
+        "catalog": 6
+      },
+      "nonLiveTotal": 6
     },
     {
       "repo": "JrCx7scC/claude-code-source",
@@ -389,7 +432,13 @@
           "to": "claude-sonnet-5-5",
           "reason": "No traced request sends it as its model; it is returned from a function. Check where it is used and change it by hand if it reaches the API."
         }
-      ]
+      ],
+      "nonLive": {
+        "comment": 9,
+        "catalog": 31,
+        "check": 8
+      },
+      "nonLiveTotal": 48
     },
     {
       "repo": "Charlie85270/Dorothy",
@@ -403,22 +452,26 @@
           ]
         }
       ],
-      "replacements": [
+      "replacements": [],
+      "stops": [
         {
           "file": "src/app/api/generate-zone/route.ts",
           "line": 310,
           "call": "messages.create",
-          "edited": {
+          "at": {
             "file": "src/app/api/generate-zone/route.ts",
             "line": 311
           },
-          "from": "claude-sonnet-4-20250514",
-          "to": "claude-sonnet-5-5",
-          "deadline": "anthropic-2026-06-15-claude-sonnet-4"
+          "model": "claude-sonnet-4-20250514",
+          "reason": "The client sets a custom base URL, so the model may name another provider's model or a deployment; change it by hand to claude-sonnet-5-5."
         }
       ],
-      "stops": [],
-      "unresolved": []
+      "unresolved": [],
+      "nonLive": {
+        "test": 2,
+        "catalog": 19
+      },
+      "nonLiveTotal": 21
     },
     {
       "repo": "ycode/ycode",
@@ -426,7 +479,9 @@
       "exposures": [],
       "replacements": [],
       "stops": [],
-      "unresolved": []
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
     },
     {
       "repo": "vual/lobe-chat-pro",
@@ -450,7 +505,13 @@
           "to": "claude-haiku-4-5-20251001",
           "reason": "No traced request sends it as its model; it is the `checkModel` value of an object. Check where it is used and change it by hand if it reaches the API."
         }
-      ]
+      ],
+      "nonLive": {
+        "catalog": 82,
+        "test": 88,
+        "check": 7
+      },
+      "nonLiveTotal": 177
     },
     {
       "repo": "hyl64/jlcmcp",
@@ -464,22 +525,23 @@
           ]
         }
       ],
-      "replacements": [
+      "replacements": [],
+      "stops": [
         {
           "file": "src/agent.ts",
           "line": 445,
           "call": "messages.create",
-          "edited": {
+          "at": {
             "file": "src/agent.ts",
             "line": 423
           },
-          "from": "claude-sonnet-4-20250514",
-          "to": "claude-sonnet-5-5",
-          "deadline": "anthropic-2026-06-15-claude-sonnet-4"
+          "model": "claude-sonnet-4-20250514",
+          "reason": "The client sets a custom base URL, so the model may name another provider's model or a deployment; change it by hand to claude-sonnet-5-5."
         }
       ],
-      "stops": [],
-      "unresolved": []
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
     },
     {
       "repo": "fazxes/Claude-code",
@@ -525,7 +587,13 @@
           "to": "claude-sonnet-5-5",
           "reason": "No traced request sends it as its model; it is returned from a function. Check where it is used and change it by hand if it reaches the API."
         }
-      ]
+      ],
+      "nonLive": {
+        "catalog": 88,
+        "comment": 9,
+        "check": 8
+      },
+      "nonLiveTotal": 105
     },
     {
       "repo": "AmazingAng/PolyWorld",
@@ -533,7 +601,9 @@
       "exposures": [],
       "replacements": [],
       "stops": [],
-      "unresolved": []
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
     },
     {
       "repo": "txl16095/MiniClaude",
@@ -665,7 +735,13 @@
           "to": "claude-sonnet-5-5",
           "reason": "No traced request sends it as its model; it is returned from a function. Check where it is used and change it by hand if it reaches the API."
         }
-      ]
+      ],
+      "nonLive": {
+        "comment": 4,
+        "check": 8,
+        "catalog": 3
+      },
+      "nonLiveTotal": 15
     },
     {
       "repo": "inbrainfun/inbrain",
@@ -673,7 +749,12 @@
       "exposures": [],
       "replacements": [],
       "stops": [],
-      "unresolved": []
+      "unresolved": [],
+      "nonLive": {
+        "catalog": 3,
+        "test": 1
+      },
+      "nonLiveTotal": 4
     },
     {
       "repo": "OPBR/build-claude-code",
@@ -698,10 +779,12 @@
             "line": 31
           },
           "model": "claude-sonnet-4-20250514",
-          "reason": "The model is the fallback of the constant MODEL (src/core/agent-loop.ts:31), which is used 13 times; change it by hand to claude-sonnet-5-5."
+          "reason": "The client sets a custom base URL, so the model may name another provider's model or a deployment; change it by hand to claude-sonnet-5-5."
         }
       ],
-      "unresolved": []
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
     },
     {
       "repo": "Koifman/LUMEN",
@@ -760,7 +843,7 @@
             "line": 13
           },
           "model": "claude-sonnet-4-5",
-          "reason": "The model is the fallback of the constant model (src/lib/llm/providers/anthropic.ts:13), which is used 3 times; change it by hand to claude-sonnet-5-5."
+          "reason": "The module that declares this model is also loaded dynamically or through a namespace the tracer cannot follow; change it by hand to claude-sonnet-5-5."
         },
         {
           "file": "src/lib/llm/providers/anthropic.ts",
@@ -771,10 +854,15 @@
             "line": 262
           },
           "model": "claude-sonnet-4-5",
-          "reason": "The model is the fallback of the constant model (src/lib/llm/providers/anthropic.ts:262), which is used 3 times; change it by hand to claude-sonnet-5-5."
+          "reason": "The module that declares this model is also loaded dynamically or through a namespace the tracer cannot follow; change it by hand to claude-sonnet-5-5."
         }
       ],
-      "unresolved": []
+      "unresolved": [],
+      "nonLive": {
+        "comment": 1,
+        "catalog": 3
+      },
+      "nonLiveTotal": 4
     },
     {
       "repo": "anxelswanz/astraea-agent",
@@ -782,7 +870,11 @@
       "exposures": [],
       "replacements": [],
       "stops": [],
-      "unresolved": []
+      "unresolved": [],
+      "nonLive": {
+        "catalog": 1
+      },
+      "nonLiveTotal": 1
     },
     {
       "repo": "TaGoat/claude_code_cli",
@@ -811,21 +903,20 @@
           ]
         }
       ],
-      "replacements": [
+      "replacements": [],
+      "stops": [
         {
           "file": "scripts/test-auth.ts",
           "line": 13,
           "call": "messages.create",
-          "edited": {
+          "at": {
             "file": "scripts/test-auth.ts",
             "line": 14
           },
-          "from": "claude-sonnet-4-20250514",
-          "to": "claude-sonnet-5-5",
-          "deadline": "anthropic-2026-06-15-claude-sonnet-4"
+          "model": "claude-sonnet-4-20250514",
+          "reason": "The client sets a custom base URL, so the model may name another provider's model or a deployment; change it by hand to claude-sonnet-5-5."
         }
       ],
-      "stops": [],
       "unresolved": [
         {
           "file": "src/tools/AgentTool/built-in/statuslineSetup.ts",
@@ -848,7 +939,13 @@
           "to": "claude-sonnet-5-5",
           "reason": "No traced request sends it as its model; it is returned from a function. Check where it is used and change it by hand if it reaches the API."
         }
-      ]
+      ],
+      "nonLive": {
+        "catalog": 12,
+        "check": 8,
+        "comment": 6
+      },
+      "nonLiveTotal": 26
     },
     {
       "repo": "backenly/backenly",
@@ -876,7 +973,9 @@
           "reason": "The request object body (lib/services/ai-functions/integration-context.ts:396) is used 2 times; change its model by hand to claude-haiku-4-5-20251001."
         }
       ],
-      "unresolved": []
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
     },
     {
       "repo": "zdenham/anvil",
@@ -884,7 +983,9 @@
       "exposures": [],
       "replacements": [],
       "stops": [],
-      "unresolved": []
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
     },
     {
       "repo": "andforce/Openclaude",
@@ -930,7 +1031,13 @@
           "to": "claude-sonnet-5-5",
           "reason": "No traced request sends it as its model; it is returned from a function. Check where it is used and change it by hand if it reaches the API."
         }
-      ]
+      ],
+      "nonLive": {
+        "catalog": 12,
+        "check": 8,
+        "comment": 6
+      },
+      "nonLiveTotal": 26
     },
     {
       "repo": "snapetech-org/seerrng",
@@ -938,7 +1045,9 @@
       "exposures": [],
       "replacements": [],
       "stops": [],
-      "unresolved": []
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
     },
     {
       "repo": "Doriandarko/kimi-2-6-code",
@@ -984,7 +1093,13 @@
           "to": "claude-sonnet-5-5",
           "reason": "No traced request sends it as its model; it is returned from a function. Check where it is used and change it by hand if it reaches the API."
         }
-      ]
+      ],
+      "nonLive": {
+        "catalog": 26,
+        "check": 8,
+        "comment": 6
+      },
+      "nonLiveTotal": 40
     },
     {
       "repo": "beatrix-ha/beatrix",
@@ -1007,21 +1122,28 @@
           "call": "messages.create",
           "at": {
             "file": "server/anthropic.ts",
+            "line": 25
+          },
+          "model": "claude-3-7-sonnet-20250219",
+          "reason": "The client sets a custom base URL, so the model may name another provider's model or a deployment; change it by hand to claude-sonnet-5-5."
+        },
+        {
+          "file": "server/anthropic.ts",
+          "line": 200,
+          "call": "messages.create",
+          "at": {
+            "file": "server/anthropic.ts",
             "line": 47
           },
           "model": "claude-3-7-sonnet-20250219",
-          "reason": "The model comes from the property model (server/anthropic.ts:41); it is read 3 times. Change it by hand to claude-sonnet-5-5."
+          "reason": "The client sets a custom base URL, so the model may name another provider's model or a deployment; change it by hand to claude-sonnet-5-5."
         }
       ],
-      "unresolved": [
-        {
-          "file": "server/anthropic.ts",
-          "line": 25,
-          "model": "claude-3-7-sonnet-20250219",
-          "to": "claude-sonnet-5-5",
-          "reason": "No traced request sends it as its model; it is assigned to `ANTHROPIC_EVAL_MODEL`. Check where it is used and change it by hand if it reaches the API."
-        }
-      ]
+      "unresolved": [],
+      "nonLive": {
+        "catalog": 5
+      },
+      "nonLiveTotal": 5
     },
     {
       "repo": "GiuseppeDM98/net-worth-tracker",
@@ -1029,7 +1151,9 @@
       "exposures": [],
       "replacements": [],
       "stops": [],
-      "unresolved": []
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
     },
     {
       "repo": "anymotion-agent/anymotion",
@@ -1037,7 +1161,11 @@
       "exposures": [],
       "replacements": [],
       "stops": [],
-      "unresolved": []
+      "unresolved": [],
+      "nonLive": {
+        "catalog": 1
+      },
+      "nonLiveTotal": 1
     },
     {
       "repo": "hridaya423/conductor-tasks",
@@ -1045,7 +1173,9 @@
       "exposures": [],
       "replacements": [],
       "stops": [],
-      "unresolved": []
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
     },
     {
       "repo": "breck7/ScrollHub",
@@ -1069,7 +1199,9 @@
           "to": "claude-sonnet-5-5",
           "reason": "No traced request sends it as its model; it is the class field `model`. Check where it is used and change it by hand if it reaches the API."
         }
-      ]
+      ],
+      "nonLive": {},
+      "nonLiveTotal": 0
     },
     {
       "repo": "calesthio/PhantomReach",
@@ -1077,7 +1209,11 @@
       "exposures": [],
       "replacements": [],
       "stops": [],
-      "unresolved": []
+      "unresolved": [],
+      "nonLive": {
+        "test": 1
+      },
+      "nonLiveTotal": 1
     },
     {
       "repo": "EthyMoney/TsukiBot",
@@ -1085,7 +1221,9 @@
       "exposures": [],
       "replacements": [],
       "stops": [],
-      "unresolved": []
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
     },
     {
       "repo": "prime-radiant-inc/gauntlet",
@@ -1093,7 +1231,11 @@
       "exposures": [],
       "replacements": [],
       "stops": [],
-      "unresolved": []
+      "unresolved": [],
+      "nonLive": {
+        "test": 10
+      },
+      "nonLiveTotal": 10
     },
     {
       "repo": "Ganeshp000/prochame",
@@ -1101,7 +1243,9 @@
       "exposures": [],
       "replacements": [],
       "stops": [],
-      "unresolved": []
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
     },
     {
       "repo": "utter-one/bonsai",
@@ -1109,7 +1253,12 @@
       "exposures": [],
       "replacements": [],
       "stops": [],
-      "unresolved": []
+      "unresolved": [],
+      "nonLive": {
+        "comment": 1,
+        "catalog": 5
+      },
+      "nonLiveTotal": 6
     },
     {
       "repo": "ranxi2001/OfferPilot",
@@ -1135,7 +1284,7 @@
             "line": 9
           },
           "model": "claude-sonnet-4-20250514",
-          "reason": "The model comes from the property defaultModel (src/query-engine/providers/claude.ts:7); class properties are reported, not edited. Change it by hand to claude-sonnet-5-5."
+          "reason": "The client sets a custom base URL, so the model may name another provider's model or a deployment; change it by hand to claude-sonnet-5-5."
         }
       ],
       "unresolved": [
@@ -1146,7 +1295,11 @@
           "to": "claude-sonnet-5-5",
           "reason": "No traced request sends it as its model; it is the `defaultModel` value of an object. Check where it is used and change it by hand if it reaches the API."
         }
-      ]
+      ],
+      "nonLive": {
+        "catalog": 2
+      },
+      "nonLiveTotal": 2
     },
     {
       "repo": "PermaShipAI/nexus",
@@ -1154,7 +1307,9 @@
       "exposures": [],
       "replacements": [],
       "stops": [],
-      "unresolved": []
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
     },
     {
       "repo": "vibeforge1111/vibeship-idearalph",
@@ -1194,7 +1349,9 @@
           "reason": "The tsconfig.json or jsconfig.json for the SDK import cannot be fully read (it may extend a generated file that is not checked in), so Refit cannot confirm the import is the SDK; change its model by hand to claude-sonnet-5-5."
         }
       ],
-      "unresolved": []
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
     },
     {
       "repo": "jameshaworthcs/countinghouse",
@@ -1202,7 +1359,9 @@
       "exposures": [],
       "replacements": [],
       "stops": [],
-      "unresolved": []
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
     },
     {
       "repo": "seongsu-kang/tycono",
@@ -1235,7 +1394,7 @@
             "line": 89
           },
           "model": "claude-sonnet-4-20250514",
-          "reason": "The model comes from the property model (packages/server/src/api/src/engine/llm-adapter.ts:83); it is read 2 times. Change it by hand to claude-sonnet-5-5."
+          "reason": "The module that declares this model is also loaded dynamically or through a namespace the tracer cannot follow; change it by hand to claude-sonnet-5-5."
         }
       ],
       "unresolved": [
@@ -1253,7 +1412,11 @@
           "to": "claude-sonnet-5-5",
           "reason": "No traced request sends it as its model; it is not where a request reads its model. Check where it is used and change it by hand if it reaches the API."
         }
-      ]
+      ],
+      "nonLive": {
+        "catalog": 3
+      },
+      "nonLiveTotal": 3
     },
     {
       "repo": "Y-RyuZU/MinecraftModsLocalizer",
@@ -1261,7 +1424,12 @@
       "exposures": [],
       "replacements": [],
       "stops": [],
-      "unresolved": []
+      "unresolved": [],
+      "nonLive": {
+        "test": 1,
+        "check": 1
+      },
+      "nonLiveTotal": 2
     },
     {
       "repo": "kill136/claudecode",
@@ -1307,7 +1475,13 @@
           "to": "claude-sonnet-5-5",
           "reason": "No traced request sends it as its model; it is returned from a function. Check where it is used and change it by hand if it reaches the API."
         }
-      ]
+      ],
+      "nonLive": {
+        "catalog": 12,
+        "check": 8,
+        "comment": 6
+      },
+      "nonLiveTotal": 26
     },
     {
       "repo": "wyh0626/claude-code-local",
@@ -1353,7 +1527,13 @@
           "to": "claude-sonnet-5-5",
           "reason": "No traced request sends it as its model; it is returned from a function. Check where it is used and change it by hand if it reaches the API."
         }
-      ]
+      ],
+      "nonLive": {
+        "catalog": 12,
+        "check": 8,
+        "comment": 6
+      },
+      "nonLiveTotal": 26
     },
     {
       "repo": "DdogezD/claudium",
@@ -1385,7 +1565,13 @@
           "to": "claude-sonnet-5-5",
           "reason": "No traced request sends it as its model; it is returned from a function. Check where it is used and change it by hand if it reaches the API."
         }
-      ]
+      ],
+      "nonLive": {
+        "catalog": 10,
+        "check": 3,
+        "comment": 4
+      },
+      "nonLiveTotal": 17
     },
     {
       "repo": "chenqinggang001/claude-code-build",
@@ -1431,7 +1617,13 @@
           "to": "claude-sonnet-5-5",
           "reason": "No traced request sends it as its model; it is returned from a function. Check where it is used and change it by hand if it reaches the API."
         }
-      ]
+      ],
+      "nonLive": {
+        "catalog": 12,
+        "check": 8,
+        "comment": 6
+      },
+      "nonLiveTotal": 26
     },
     {
       "repo": "jhmeel/bigfoot",
@@ -1439,7 +1631,9 @@
       "exposures": [],
       "replacements": [],
       "stops": [],
-      "unresolved": []
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
     },
     {
       "repo": "freshfriedfish/claude-tokenizer",
@@ -1468,22 +1662,26 @@
         }
       ],
       "stops": [],
-      "unresolved": []
+      "unresolved": [],
+      "nonLive": {},
+      "nonLiveTotal": 0
     }
   ],
-  "refitCommit": "93a13a5",
+  "refitCommit": "c084880",
   "baseline": {
-    "refitCommit": "ecd6ca7",
+    "refitCommit": "fb0143a",
     "summary": {
       "repositories": 50,
       "errors": 0,
       "timedOut": 0,
       "exposed": 28,
-      "exposedWithReplacement": 4,
-      "exposedStoppedOnly": 5,
-      "exposedSilent": 19,
-      "replacements": 5,
-      "stops": 5
+      "exposedWithReplacement": 2,
+      "exposedStoppedOnly": 9,
+      "exposedSilent": 17,
+      "replacements": 3,
+      "stops": 12,
+      "mentionedOnly": 9,
+      "exposedErrored": 0
     }
   }
 }
