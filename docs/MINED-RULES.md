@@ -117,6 +117,58 @@ All four follow the existing rule style:
 
 **Rollout.** stripe-node's published type definitions have `createPreview` from 15.6.0 on: it is absent in 15.1.0 and every earlier tarball read for the [fresh-set labels](STRIPE-FRESH-RECALL.md). So the rewrite is kept only together with the stripe-node upgrade, in any language.
 
+## Measurement
+
+**Setup.** The 9 repositories with a site for one of the rules, at their pinned commits:
+- `main` at `7b2c86a` ("before") against this branch at `0c287f0` ("after");
+- each with the generated full adapter the benchmark builds for it (`npm run benchmark:stripe`);
+- then `runPipeline({ proposePatch: true })`, which includes the stripe-node upgrade lookup on the npm registry.
+
+| Repository | Before | After |
+|---|---|---|
+| `boristenkes/shop.co` | Stops: removed request parameter (`promotionCodes.create` `coupon`) | **Patch proposed**: promotion move, the `['card']` rename, the endive pin, stripe-node 18.1.1 → 23.0.0; 6 review-only reads left unresolved |
+| `Nag-Software/proanbud2` | Stops: removed request parameter | Stops: the promotion edit is made but not kept, because `lib/billing/cancellation.ts:162` sets a request-level API version Refit cannot read, so the endive-only parameter could be sent on an older version |
+| `helloworld9912/Stripe-Account-Migration` | Stops: declared types | Stops: declared types. The coupon ID and product features helper edits are made; the repository-wide declared-type gate still blocks |
+| `ReeceHarding/firebase-next.js-boilerplate` | Unsupported: no rule, 15 unresolved, and the upcoming invoice call not reported | Stops with a named reason: a customer-wide `retrieveUpcoming`, which has no `createPreview` equivalent |
+| `kondax-com/Bocker`, `yuga-hashimoto/ai-tool-navigator` | Stops: removed request parameter (`subscriptions.update` `coupon`); `retrieveUpcoming` not reported | Same stop; `retrieveUpcoming` is now reported for review (their clients are not provably stable), so nothing is edited |
+| `thematters/matters-server` | Stops: `subscriptions.update({ coupon: '' })` | Same, now with the reviewer note |
+| `EngMajdSayedTaha/reelspy` | Stops: helper client | Same: the client is a helper parameter, so the call is not traced |
+| `internxt/payments-server` | Error: the generated adapter exceeds 100 operations | Same |
+
+**Counts.** One repository moves from a stop to a proposed patch (shop.co). Three upcoming invoice calls that Refit did not report at all are now reported (one confirmed stop, two review). Every other outcome is unchanged, and no new patch edits anything the rules do not name.
+
+### Every diff, read in full and labelled
+
+`boristenkes/shop.co`, applied to its pinned clone (`git apply`, then `git diff`), excluding the lockfile body:
+
+```diff
+--- a/features/coupon/actions/create.ts
++++ b/features/coupon/actions/create.ts
+-			coupon: stripeCoupon.id,
++			promotion: { type: 'coupon', coupon: stripeCoupon.id },
+--- a/features/orders/actions/create.ts
++++ b/features/orders/actions/create.ts
+-			payment_method_types: ['card'],
++			allowed_payment_method_types: ['card'],
+--- a/lib/stripe.ts
++++ b/lib/stripe.ts
+-	apiVersion: '2025-04-30.basil'
++	apiVersion: '2026-09-30.endive'
+--- a/package.json
++++ b/package.json
+-    "stripe": "^18.1.1",
++    "stripe": "^23.0.0",
+```
+
+`pnpm-lock.yaml` changes the `stripe` entry to 23.0.0 (24 lines).
+
+- **Label: correct.**
+  - `stripeCoupon.id` comes from `stripe.coupons.create` two lines above, so the moved value is a coupon ID, as `promotion.coupon` expects.
+  - `promotion.type` is `coupon`, the only value the endive enum allows.
+  - The card rename is the owner-approved rule.
+  - The pin and the SDK upgrade are the ones every endive patch carries.
+- **Not part of the patch:** the 6 unresolved findings are review-only `couponValidation.coupon` reads in `features/orders/actions/create.ts:83-84`, on the app's own validation object. They are not Stripe reads, and the draft lists them for review.
+
 ## Rejected candidates
 
 | Candidate | Repositories | Why it is not a rule |
