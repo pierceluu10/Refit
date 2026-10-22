@@ -33,6 +33,8 @@ const PROVIDERS = new Set([
   'coinbase-commerce',
   'bedrock',
   'azure-openai',
+  'aws',
+  'azure',
   'twilio',
 ]);
 const KINDS = new Set(['api-version', 'model', 'sdk', 'method', 'endpoint', 'field', 'feature']);
@@ -92,6 +94,8 @@ export interface DeadlineEntry {
     | 'coinbase-commerce'
     | 'bedrock'
     | 'azure-openai'
+    | 'aws'
+    | 'azure'
     | 'twilio';
   kind: 'api-version' | 'model' | 'sdk' | 'method' | 'endpoint' | 'field' | 'feature';
   versions: string[];

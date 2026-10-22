@@ -8,3 +8,5 @@ pipeline/fixtures/deprecations/*.html
 pipeline/fixtures/model-hosts
 pipeline/fixtures/yarn-workspaces
 pipeline/fixtures/yarn-platform
+# Snapshots must match the generated text byte for byte.
+pipeline/__snapshots__

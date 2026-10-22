@@ -1,0 +1,3497 @@
+{
+ "formatVersion": 1,
+ "method": "Blind: candidates from scripts/cloud-sdk-label-candidates.mjs (an independent text search that imports no pipeline code), then one AI-assisted reading pass by four fresh-context labelling agents, one per batch of at most 100 candidates, each reading only its batch, the checkouts and the written rules, never Refit output. The runner spot-checked 12 labels against the code (all agreed). Not hand labelling and not second-labelled.",
+ "labelledAt": "2026-10-22",
+ "list": "docs/benchmarks/2026-10-22-cloud-sdk-repos.json",
+ "selection": "Seeded sample (seededSample in scripts/ai-app-helpers.mjs, seed 20261022) per group: 12 aws-sdk-v2, 7 aws-sdk-v3, 6 azure. DefinitelyTyped/DefinitelyTyped (19,253 source files, over Refit 10,000-file scan limit, counted before any scan) was replaced by the next seeded aws-sdk-v3 pick, bbc/sqs-producer.",
+ "rules": {
+  "aws-sdk-v2": "new on an aws-sdk class that belongs to one service: a client (new AWS.S3()) or a class nested under one (AWS.DynamoDB.DocumentClient, AWS.S3.ManagedUpload); service is the v2 client name. Config, credential and endpoint classes are not clients.",
+  "aws-sdk-v3": "new on a client class exported by an @aws-sdk/client-* package (S3Client or aggregated S3); service is the package. Commands, exceptions, @aws-sdk/lib-* helpers and credential providers are not clients.",
+  "azure-legacy": "a line that loads a legacy Azure package (import, require, import =, import()); service is the package.",
+  "scope": "live JavaScript and TypeScript source only: test, spec, story, fixture and example paths, node_modules, dist, build, coverage, .next, .d.ts and .min.js are out of scope. Clients built in a file that names neither aws-sdk nor AWS. are outside the candidate net."
+ },
+ "repos": [
+  {
+   "repo": "auth0/node-s3-client",
+   "commit": "0ccd84b9b115627e31eb4560f7634aa13582369b",
+   "group": "aws-sdk-v2",
+   "candidates": 20
+  },
+  {
+   "repo": "aghadiry/serverless-cloudfront-invalidate",
+   "commit": "2c3bff063c13f71ddb74bf381116aae362c54402",
+   "group": "aws-sdk-v2",
+   "candidates": 0
+  },
+  {
+   "repo": "nicka/serverless-plugin-diff",
+   "commit": "70ee590cc1b9febae75f1b3ed22f1fe0eb25b3ad",
+   "group": "aws-sdk-v2",
+   "candidates": 1
+  },
+  {
+   "repo": "orvad/strapi-provider-aws-s3-cloudfront-cdn",
+   "commit": "60a76de5f7f9fac427ce981b0bf55dd460b05e32",
+   "group": "aws-sdk-v2",
+   "candidates": 1
+  },
+  {
+   "repo": "localstack/serverless-localstack",
+   "commit": "1171fd4cd3e306715ec1c903299ce82159d2796b",
+   "group": "aws-sdk-v2",
+   "candidates": 5
+  },
+  {
+   "repo": "ryansonshine/aws-sso-creds-helper",
+   "commit": "ded30bb38b01ed2d3fecc21735659c4895e85105",
+   "group": "aws-sdk-v2",
+   "candidates": 7
+  },
+  {
+   "repo": "zodern/mup-cloud-front",
+   "commit": "eec7ea98bf879a9f04259549b9aed55cc1f15e61",
+   "group": "aws-sdk-v2",
+   "candidates": 2
+  },
+  {
+   "repo": "serverless-appsync/serverless-appsync-simulator",
+   "commit": "1337fb424ec583a4001848e0a3a3b4b1989feeeb",
+   "group": "aws-sdk-v2",
+   "candidates": 9
+  },
+  {
+   "repo": "sensedeep/onetable-cli",
+   "commit": "7bf7c22101e2c236c80e582598d2da54aa8b4af5",
+   "group": "aws-sdk-v2",
+   "candidates": 5
+  },
+  {
+   "repo": "kamranahmedse/aws-cost-cli",
+   "commit": "25c9f50a28481354e5f587836838a8f5526afed2",
+   "group": "aws-sdk-v2",
+   "candidates": 3
+  },
+  {
+   "repo": "pulumi/pulumi-policy-aws",
+   "commit": "c8e0d15aaccb6586249fd242e5fce2bce916916e",
+   "group": "aws-sdk-v2",
+   "candidates": 3
+  },
+  {
+   "repo": "mapbox/dyno",
+   "commit": "1ef49674ab972f252e915b274ba7b62d51dccaca",
+   "group": "aws-sdk-v2",
+   "candidates": 15
+  },
+  {
+   "repo": "opennextjs/opennextjs-aws",
+   "commit": "66b552955dc1825bafcbdad9925038875dacc179",
+   "group": "aws-sdk-v3",
+   "candidates": 7
+  },
+  {
+   "repo": "langchain-ai/langchainjs",
+   "commit": "6a0ab38c5f71331fe7c6cc5cc788acb09eaedd31",
+   "group": "aws-sdk-v3",
+   "candidates": 28
+  },
+  {
+   "repo": "earendil-works/pi",
+   "commit": "7c22a93d0ed02092142fa63823e63d76aa4e2406",
+   "group": "aws-sdk-v3",
+   "candidates": 6
+  },
+  {
+   "repo": "payloadcms/payload",
+   "commit": "20aa089f1450dad1749f10b9656ec620809ef0b3",
+   "group": "aws-sdk-v3",
+   "candidates": 9
+  },
+  {
+   "repo": "DataDog/serverless-plugin-datadog",
+   "commit": "4918511109077a68b8e76acf44cc80e30bf369ab",
+   "group": "aws-sdk-v3",
+   "candidates": 4
+  },
+  {
+   "repo": "bbc/sqs-producer",
+   "commit": "3281e0444209184e87fda01875912d5390c22c5a",
+   "group": "aws-sdk-v3",
+   "candidates": 5
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "commit": "d95ba3b10cb160c46e6f37b492e3a4c12f7ccbbc",
+   "group": "aws-sdk-v3",
+   "candidates": 198
+  },
+  {
+   "repo": "Asad-Shah/multer-azure",
+   "commit": "20f880b0c41ea9a99cc264059fe223b102ee4d9e",
+   "group": "azure",
+   "candidates": 2
+  },
+  {
+   "repo": "vimeshjs/vimesh",
+   "commit": "299cdf6bf651adbbc65f14b7502d0013435de7c7",
+   "group": "azure",
+   "candidates": 4
+  },
+  {
+   "repo": "jldeen/ghost-azurestorage",
+   "commit": "1f56126824b91e930fc2fbd7b5bf11c0f61395b1",
+   "group": "azure",
+   "candidates": 1
+  },
+  {
+   "repo": "rrpatilcse/read-az-keyvault-secrets",
+   "commit": "c63280becf6c00b5bc62598dc69b0ae015c503bf",
+   "group": "azure",
+   "candidates": 1
+  },
+  {
+   "repo": "reactorynet/reactory-workflow-es",
+   "commit": "f24fafc10db3202dd393c223fe4477db44822c44",
+   "group": "azure",
+   "candidates": 2
+  },
+  {
+   "repo": "pulumi/pulumi-cloud",
+   "commit": "f0eaf7cf08f15667239bb8657aba4d44e736db15",
+   "group": "azure",
+   "candidates": 32
+  }
+ ],
+ "sites": [
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/aws/credentials.js",
+   "line": 19,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "Smithy HTTP handler, not an AWS service client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/aws/credentials.js",
+   "line": 63,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/aws/sso-login.js",
+   "line": 110,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/aws/sso-login.js",
+   "line": 122,
+   "client": true,
+   "sdk": "aws-sdk-v3",
+   "service": "@aws-sdk/client-sso-oidc",
+   "note": "SSOOIDCClient destructured from the v3 client package at top of file"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/aws/sso-login.js",
+   "line": 180,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/aws/sso-login.js",
+   "line": 189,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/aws/sso-login.js",
+   "line": 224,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/configuration/variables/sources/instance-dependent/get-aws.js",
+   "line": 18,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/configuration/variables/sources/instance-dependent/get-aws.js",
+   "line": 46,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/configuration/variables/sources/instance-dependent/get-cf.js",
+   "line": 19,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/configuration/variables/sources/instance-dependent/get-cf.js",
+   "line": 31,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/configuration/variables/sources/instance-dependent/get-s3.js",
+   "line": 24,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/configuration/variables/sources/instance-dependent/get-s3.js",
+   "line": 36,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/configuration/variables/sources/instance-dependent/get-ssm.js",
+   "line": 19,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/custom-resources/resources/api-gateway-cloud-watch-role/handler.js",
+   "line": 23,
+   "client": true,
+   "sdk": "aws-sdk-v3",
+   "service": "@aws-sdk/client-api-gateway",
+   "note": "APIGatewayClient destructured from the v3 client package at top of file"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/custom-resources/resources/api-gateway-cloud-watch-role/handler.js",
+   "line": 24,
+   "client": true,
+   "sdk": "aws-sdk-v3",
+   "service": "@aws-sdk/client-iam",
+   "note": "IAMClient destructured from the v3 client package at top of file"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/custom-resources/resources/cognito-user-pool/lib/permissions.js",
+   "line": 10,
+   "client": true,
+   "sdk": "aws-sdk-v3",
+   "service": "@aws-sdk/client-lambda",
+   "note": "LambdaClient destructured from the v3 client package at top of file"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/custom-resources/resources/cognito-user-pool/lib/user-pool.js",
+   "line": 11,
+   "client": true,
+   "sdk": "aws-sdk-v3",
+   "service": "@aws-sdk/client-cognito-identity-provider",
+   "note": "CognitoIdentityProviderClient destructured from the v3 client package at top of file"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/custom-resources/resources/event-bridge/lib/event-bridge.js",
+   "line": 15,
+   "client": true,
+   "sdk": "aws-sdk-v3",
+   "service": "@aws-sdk/client-eventbridge",
+   "note": "EventBridgeClient destructured from the v3 client package at top of file"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/custom-resources/resources/event-bridge/lib/permissions.js",
+   "line": 11,
+   "client": true,
+   "sdk": "aws-sdk-v3",
+   "service": "@aws-sdk/client-lambda",
+   "note": "LambdaClient destructured from the v3 client package at top of file"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/custom-resources/resources/s3/lib/bucket.js",
+   "line": 11,
+   "client": true,
+   "sdk": "aws-sdk-v3",
+   "service": "@aws-sdk/client-s3",
+   "note": "S3Client destructured from the v3 client package at top of file"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/custom-resources/resources/s3/lib/permissions.js",
+   "line": 10,
+   "client": true,
+   "sdk": "aws-sdk-v3",
+   "service": "@aws-sdk/client-lambda",
+   "note": "LambdaClient destructured from the v3 client package at top of file"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/deletion-protection.js",
+   "line": 36,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/deletion-protection.js",
+   "line": 76,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/deletion-protection.js",
+   "line": 93,
+   "client": true,
+   "sdk": "aws-sdk-v3",
+   "service": "@aws-sdk/client-cloudformation",
+   "note": "CloudFormationClient destructured from the v3 client package at top of file"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/deploy-function.js",
+   "line": 87,
+   "client": true,
+   "sdk": "aws-sdk-v3",
+   "service": "@aws-sdk/client-lambda",
+   "note": "LambdaClient destructured from the v3 client package at top of file"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/deploy-function.js",
+   "line": 94,
+   "client": true,
+   "sdk": "aws-sdk-v3",
+   "service": "@aws-sdk/client-iam",
+   "note": "IAMClient destructured from the v3 client package at top of file"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/deploy-function.js",
+   "line": 119,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/deploy-function.js",
+   "line": 134,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/deploy-function.js",
+   "line": 141,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/deploy-function.js",
+   "line": 157,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/deploy-function.js",
+   "line": 164,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/deploy-function.js",
+   "line": 203,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/deploy-function.js",
+   "line": 221,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/deploy-function.js",
+   "line": 222,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "word 'new' in a comment, log or string, not a construction"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/deploy-function.js",
+   "line": 239,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/deploy-function.js",
+   "line": 395,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/deploy-list.js",
+   "line": 41,
+   "client": true,
+   "sdk": "aws-sdk-v3",
+   "service": "@aws-sdk/client-s3",
+   "note": "S3Client destructured from the v3 client package at top of file"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/deploy-list.js",
+   "line": 48,
+   "client": true,
+   "sdk": "aws-sdk-v3",
+   "service": "@aws-sdk/client-lambda",
+   "note": "LambdaClient destructured from the v3 client package at top of file"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/deploy-list.js",
+   "line": 89,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/deploy/lib/check-for-changes.js",
+   "line": 57,
+   "client": true,
+   "sdk": "aws-sdk-v3",
+   "service": "@aws-sdk/client-s3",
+   "note": "S3Client destructured from the v3 client package at top of file"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/deploy/lib/check-for-changes.js",
+   "line": 64,
+   "client": true,
+   "sdk": "aws-sdk-v3",
+   "service": "@aws-sdk/client-lambda",
+   "note": "LambdaClient destructured from the v3 client package at top of file"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/deploy/lib/check-for-changes.js",
+   "line": 71,
+   "client": true,
+   "sdk": "aws-sdk-v3",
+   "service": "@aws-sdk/client-cloudwatch-logs",
+   "note": "CloudWatchLogsClient destructured from the v3 client package at top of file"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/deploy/lib/check-for-changes.js",
+   "line": 78,
+   "client": true,
+   "sdk": "aws-sdk-v3",
+   "service": "@aws-sdk/client-cloudformation",
+   "note": "CloudFormationClient destructured from the v3 client package at top of file"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/deploy/lib/check-for-changes.js",
+   "line": 144,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/deploy/lib/check-for-changes.js",
+   "line": 210,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/deploy/lib/check-for-changes.js",
+   "line": 314,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "word 'new' in a comment, log or string, not a construction"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/deploy/lib/check-for-changes.js",
+   "line": 316,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "word 'new' in a comment, log or string, not a construction"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/deploy/lib/check-for-changes.js",
+   "line": 317,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "word 'new' in a comment, log or string, not a construction"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/deploy/lib/check-for-changes.js",
+   "line": 416,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "word 'new' in a comment, log or string, not a construction"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/deploy/lib/check-for-changes.js",
+   "line": 433,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/deploy/lib/cleanup-s3-bucket.js",
+   "line": 16,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/deploy/lib/cleanup-s3-bucket.js",
+   "line": 25,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/deploy/lib/cleanup-s3-bucket.js",
+   "line": 31,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/deploy/lib/cleanup-s3-bucket.js",
+   "line": 40,
+   "client": true,
+   "sdk": "aws-sdk-v3",
+   "service": "@aws-sdk/client-s3",
+   "note": "S3Client destructured from the v3 client package at top of file"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/deploy/lib/cleanup-s3-bucket.js",
+   "line": 143,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/deploy/lib/create-stack.js",
+   "line": 21,
+   "client": true,
+   "sdk": "aws-sdk-v3",
+   "service": "@aws-sdk/client-cloudformation",
+   "note": "CloudFormationClient destructured from the v3 client package at top of file"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/deploy/lib/create-stack.js",
+   "line": 48,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "word 'new' in a comment, log or string, not a construction"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/deploy/lib/create-stack.js",
+   "line": 49,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "word 'new' in a comment, log or string, not a construction"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/deploy/lib/create-stack.js",
+   "line": 53,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "word 'new' in a comment, log or string, not a construction"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/deploy/lib/create-stack.js",
+   "line": 88,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/deploy/lib/create-stack.js",
+   "line": 119,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/deploy/lib/ensure-valid-bucket-exists.js",
+   "line": 26,
+   "client": true,
+   "sdk": "aws-sdk-v3",
+   "service": "@aws-sdk/client-s3",
+   "note": "S3Client destructured from the v3 client package at top of file"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/deploy/lib/ensure-valid-bucket-exists.js",
+   "line": 33,
+   "client": true,
+   "sdk": "aws-sdk-v3",
+   "service": "@aws-sdk/client-cloudformation",
+   "note": "CloudFormationClient destructured from the v3 client package at top of file"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/deploy/lib/ensure-valid-bucket-exists.js",
+   "line": 62,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/deploy/lib/ensure-valid-bucket-exists.js",
+   "line": 67,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/deploy/lib/ensure-valid-bucket-exists.js",
+   "line": 74,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/deploy/lib/ensure-valid-bucket-exists.js",
+   "line": 87,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/deploy/lib/ensure-valid-bucket-exists.js",
+   "line": 124,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/deploy/lib/ensure-valid-bucket-exists.js",
+   "line": 172,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "word 'new' in a comment, log or string, not a construction"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/deploy/lib/ensure-valid-bucket-exists.js",
+   "line": 173,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "word 'new' in a comment, log or string, not a construction"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/deploy/lib/ensure-valid-bucket-exists.js",
+   "line": 179,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "word 'new' in a comment, log or string, not a construction"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/deploy/lib/validate-template.js",
+   "line": 10,
+   "client": true,
+   "sdk": "aws-sdk-v3",
+   "service": "@aws-sdk/client-cloudformation",
+   "note": "CloudFormationClient destructured from the v3 client package at top of file"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/deploy/lib/validate-template.js",
+   "line": 29,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/info/get-api-key-values.js",
+   "line": 15,
+   "client": true,
+   "sdk": "aws-sdk-v3",
+   "service": "@aws-sdk/client-cloudformation",
+   "note": "CloudFormationClient destructured from the v3 client package at top of file"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/info/get-api-key-values.js",
+   "line": 22,
+   "client": true,
+   "sdk": "aws-sdk-v3",
+   "service": "@aws-sdk/client-api-gateway",
+   "note": "APIGatewayClient destructured from the v3 client package at top of file"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/info/get-resource-count.js",
+   "line": 12,
+   "client": true,
+   "sdk": "aws-sdk-v3",
+   "service": "@aws-sdk/client-cloudformation",
+   "note": "CloudFormationClient destructured from the v3 client package at top of file"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/info/get-stack-info.js",
+   "line": 15,
+   "client": true,
+   "sdk": "aws-sdk-v3",
+   "service": "@aws-sdk/client-cloudformation",
+   "note": "CloudFormationClient destructured from the v3 client package at top of file"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/info/get-stack-info.js",
+   "line": 22,
+   "client": true,
+   "sdk": "aws-sdk-v3",
+   "service": "@aws-sdk/client-apigatewayv2",
+   "note": "ApiGatewayV2Client destructured from the v3 client package at top of file"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/info/get-stack-info.js",
+   "line": 41,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/info/get-stack-info.js",
+   "line": 95,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/invoke-local/index.js",
+   "line": 56,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/invoke-local/index.js",
+   "line": 63,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/invoke-local/index.js",
+   "line": 79,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/invoke-local/index.js",
+   "line": 93,
+   "client": true,
+   "sdk": "aws-sdk-v3",
+   "service": "@aws-sdk/client-cloudformation",
+   "note": "CloudFormationClient destructured from the v3 client package at top of file"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/invoke-local/index.js",
+   "line": 109,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/invoke-local/index.js",
+   "line": 132,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/invoke-local/index.js",
+   "line": 173,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/invoke-local/index.js",
+   "line": 187,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/invoke-local/index.js",
+   "line": 203,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/invoke-local/index.js",
+   "line": 286,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/invoke-local/index.js",
+   "line": 292,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/invoke-local/index.js",
+   "line": 426,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/invoke-local/index.js",
+   "line": 461,
+   "client": true,
+   "sdk": "aws-sdk-v3",
+   "service": "@aws-sdk/client-lambda",
+   "note": "LambdaClient destructured from the v3 client package at top of file"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/invoke-local/index.js",
+   "line": 576,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/invoke-local/index.js",
+   "line": 719,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/invoke-local/index.js",
+   "line": 819,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/invoke-local/index.js",
+   "line": 868,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/invoke-local/index.js",
+   "line": 936,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/invoke-local/index.js",
+   "line": 943,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/invoke-local/index.js",
+   "line": 997,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/invoke-local/index.js",
+   "line": 1010,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/invoke.js",
+   "line": 33,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/invoke.js",
+   "line": 50,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/invoke.js",
+   "line": 60,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/invoke.js",
+   "line": 104,
+   "client": true,
+   "sdk": "aws-sdk-v3",
+   "service": "@aws-sdk/client-lambda",
+   "note": "LambdaClient destructured from @aws-sdk/client-lambda require at top of file"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/invoke.js",
+   "line": 179,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/lib/check-if-bucket-exists.js",
+   "line": 13,
+   "client": true,
+   "sdk": "aws-sdk-v3",
+   "service": "@aws-sdk/client-s3",
+   "note": "S3Client destructured from @aws-sdk/client-s3 require at top of file"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/lib/check-if-bucket-exists.js",
+   "line": 29,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/lib/check-if-ecr-repository-exists.js",
+   "line": 13,
+   "client": true,
+   "sdk": "aws-sdk-v3",
+   "service": "@aws-sdk/client-ecr",
+   "note": "ECRClient destructured from @aws-sdk/client-ecr require at top of file"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/lib/monitor-stack.js",
+   "line": 31,
+   "client": true,
+   "sdk": "aws-sdk-v3",
+   "service": "@aws-sdk/client-cloudformation",
+   "note": "CloudFormationClient destructured from @aws-sdk/client-cloudformation require at top of file"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/lib/monitor-stack.js",
+   "line": 170,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/lib/update-stack.js",
+   "line": 21,
+   "client": true,
+   "sdk": "aws-sdk-v3",
+   "service": "@aws-sdk/client-cloudformation",
+   "note": "CloudFormationClient destructured from @aws-sdk/client-cloudformation require at top of file"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/lib/update-stack.js",
+   "line": 53,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "word \"new\" in a comment or log string, no construction"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/lib/update-stack.js",
+   "line": 55,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "word \"new\" in a comment or log string, no construction"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/lib/update-stack.js",
+   "line": 59,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "word \"new\" in a comment or log string, no construction"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/lib/update-stack.js",
+   "line": 122,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "word \"new\" in a comment or log string, no construction"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/lib/update-stack.js",
+   "line": 123,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "word \"new\" in a comment or log string, no construction"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/lib/update-stack.js",
+   "line": 127,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "word \"new\" in a comment or log string, no construction"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/lib/upload-s3-object.js",
+   "line": 31,
+   "client": true,
+   "sdk": "aws-sdk-v3",
+   "service": "@aws-sdk/client-s3",
+   "note": "S3Client destructured from @aws-sdk/client-s3 require at top of file"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/lib/upload-s3-object.js",
+   "line": 43,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "Upload from @aws-sdk/lib-storage helper, not a client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/lib/wait-for-change-set-creation.js",
+   "line": 17,
+   "client": true,
+   "sdk": "aws-sdk-v3",
+   "service": "@aws-sdk/client-cloudformation",
+   "note": "CloudFormationClient destructured from @aws-sdk/client-cloudformation require at top of file"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/lib/wait-for-change-set-creation.js",
+   "line": 50,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/logs.js",
+   "line": 45,
+   "client": true,
+   "sdk": "aws-sdk-v3",
+   "service": "@aws-sdk/client-cloudwatch-logs",
+   "note": "CloudWatchLogsClient destructured from @aws-sdk/client-cloudwatch-logs require at top of file"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/logs.js",
+   "line": 60,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/metrics.js",
+   "line": 12,
+   "client": true,
+   "sdk": "aws-sdk-v3",
+   "service": "@aws-sdk/client-cloudwatch",
+   "note": "CloudWatchClient destructured from @aws-sdk/client-cloudwatch require at top of file"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/package/compile/events/api-gateway/lib/hack/disassociate-usage-plan.js",
+   "line": 25,
+   "client": true,
+   "sdk": "aws-sdk-v3",
+   "service": "@aws-sdk/client-cloudformation",
+   "note": "CloudFormationClient destructured from @aws-sdk/client-cloudformation require at top of file"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/package/compile/events/api-gateway/lib/hack/disassociate-usage-plan.js",
+   "line": 32,
+   "client": true,
+   "sdk": "aws-sdk-v3",
+   "service": "@aws-sdk/client-api-gateway",
+   "note": "APIGatewayClient destructured from @aws-sdk/client-api-gateway require at top of file"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/package/compile/events/api-gateway/lib/hack/update-stage.js",
+   "line": 92,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/package/compile/events/api-gateway/lib/hack/update-stage.js",
+   "line": 111,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "generic factory parameter; called with both APIGatewayClient and CloudWatchLogsClient, no single service at this line"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/package/compile/functions.js",
+   "line": 63,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "word \"new\" in a comment or log string, no construction"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/package/compile/functions.js",
+   "line": 136,
+   "client": true,
+   "sdk": "aws-sdk-v3",
+   "service": "@aws-sdk/client-s3",
+   "note": "S3Client destructured from @aws-sdk/client-s3 require at top of file"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/package/compile/functions.js",
+   "line": 210,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/package/compile/functions.js",
+   "line": 216,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/package/compile/functions.js",
+   "line": 480,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/package/compile/functions.js",
+   "line": 552,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "word \"new\" in a comment or log string, no construction"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/package/compile/functions.js",
+   "line": 634,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/package/compile/functions.js",
+   "line": 867,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/package/compile/functions.js",
+   "line": 879,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/package/compile/functions.js",
+   "line": 895,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/package/compile/functions.js",
+   "line": 902,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/package/compile/functions.js",
+   "line": 909,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/package/compile/functions.js",
+   "line": 918,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/package/compile/functions.js",
+   "line": 925,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/package/compile/functions.js",
+   "line": 932,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/package/compile/functions.js",
+   "line": 939,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/package/compile/functions.js",
+   "line": 1036,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/package/compile/functions.js",
+   "line": 1096,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/package/compile/layers.js",
+   "line": 48,
+   "client": true,
+   "sdk": "aws-sdk-v3",
+   "service": "@aws-sdk/client-cloudformation",
+   "note": "CloudFormationClient destructured from @aws-sdk/client-cloudformation require at top of file"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/provider.js",
+   "line": 58,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/provider.js",
+   "line": 171,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "word \"new\" in a comment or log string, no construction"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/provider.js",
+   "line": 1735,
+   "client": true,
+   "sdk": "aws-sdk-v3",
+   "service": "@aws-sdk/client-cloudformation",
+   "note": "CloudFormationClient destructured from @aws-sdk/client-cloudformation require at top of file"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/provider.js",
+   "line": 1770,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/provider.js",
+   "line": 1776,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/provider.js",
+   "line": 1935,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/provider.js",
+   "line": 2133,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/provider.js",
+   "line": 2146,
+   "client": true,
+   "sdk": "aws-sdk-v3",
+   "service": "@aws-sdk/client-sts",
+   "note": "STSClient destructured from @aws-sdk/client-sts require at top of file"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/provider.js",
+   "line": 2172,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/provider.js",
+   "line": 2183,
+   "client": true,
+   "sdk": "aws-sdk-v3",
+   "service": "@aws-sdk/client-ecr",
+   "note": "ECRClient destructured from @aws-sdk/client-ecr require at top of file"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/provider.js",
+   "line": 2194,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/provider.js",
+   "line": 2209,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/provider.js",
+   "line": 2223,
+   "client": true,
+   "sdk": "aws-sdk-v3",
+   "service": "@aws-sdk/client-ecr",
+   "note": "ECRClient destructured from @aws-sdk/client-ecr require at top of file"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/provider.js",
+   "line": 2299,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/provider.js",
+   "line": 2348,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/provider.js",
+   "line": 2364,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/provider.js",
+   "line": 2406,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/provider.js",
+   "line": 2413,
+   "client": true,
+   "sdk": "aws-sdk-v3",
+   "service": "@aws-sdk/client-ecr",
+   "note": "ECRClient destructured from @aws-sdk/client-ecr require at top of file"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/provider.js",
+   "line": 2450,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/provider.js",
+   "line": 2456,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/provider.js",
+   "line": 2504,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/provider.js",
+   "line": 2512,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/provider.js",
+   "line": 2518,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/provider.js",
+   "line": 2524,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/provider.js",
+   "line": 2530,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/provider.js",
+   "line": 2536,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/provider.js",
+   "line": 2542,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/provider.js",
+   "line": 2548,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/prune.js",
+   "line": 42,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/prune.js",
+   "line": 82,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/prune.js",
+   "line": 101,
+   "client": true,
+   "sdk": "aws-sdk-v3",
+   "service": "@aws-sdk/client-lambda",
+   "note": "LambdaClient destructured from @aws-sdk/client-lambda require at top of file"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/remove/lib/bucket.js",
+   "line": 20,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/remove/lib/bucket.js",
+   "line": 28,
+   "client": true,
+   "sdk": "aws-sdk-v3",
+   "service": "@aws-sdk/client-s3",
+   "note": "S3Client destructured from @aws-sdk/client-s3 require at top of file"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/remove/lib/bucket.js",
+   "line": 151,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/remove/lib/bucket.js",
+   "line": 157,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/remove/lib/ecr.js",
+   "line": 8,
+   "client": true,
+   "sdk": "aws-sdk-v3",
+   "service": "@aws-sdk/client-ecr",
+   "note": "ECRClient destructured from @aws-sdk/client-ecr require at top of file"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/remove/lib/stack.js",
+   "line": 18,
+   "client": true,
+   "sdk": "aws-sdk-v3",
+   "service": "@aws-sdk/client-cloudformation",
+   "note": "CloudFormationClient destructured from @aws-sdk/client-cloudformation require at top of file"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/remove/lib/stack.js",
+   "line": 44,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/rollback-function.js",
+   "line": 44,
+   "client": true,
+   "sdk": "aws-sdk-v3",
+   "service": "@aws-sdk/client-lambda",
+   "note": "LambdaClient destructured from @aws-sdk/client-lambda require at top of file"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/rollback-function.js",
+   "line": 78,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/rollback-function.js",
+   "line": 86,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/rollback-function.js",
+   "line": 94,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/rollback-function.js",
+   "line": 123,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/rollback-function.js",
+   "line": 141,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/rollback.js",
+   "line": 27,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/rollback.js",
+   "line": 35,
+   "client": true,
+   "sdk": "aws-sdk-v3",
+   "service": "@aws-sdk/client-s3",
+   "note": "S3Client destructured from @aws-sdk/client-s3 require at top of file"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/rollback.js",
+   "line": 142,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/rollback.js",
+   "line": 164,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "oss-serverless/osls",
+   "file": "lib/plugins/aws/rollback.js",
+   "line": 194,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo-local error class, not an SDK client"
+  },
+  {
+   "repo": "earendil-works/pi",
+   "file": "packages/ai/src/api/bedrock-converse-stream.ts",
+   "line": 133,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "local event stream class from repo utils"
+  },
+  {
+   "repo": "earendil-works/pi",
+   "file": "packages/ai/src/api/bedrock-converse-stream.ts",
+   "line": 227,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "NodeHttpHandler from @smithy/node-http-handler, not a client"
+  },
+  {
+   "repo": "earendil-works/pi",
+   "file": "packages/ai/src/api/bedrock-converse-stream.ts",
+   "line": 228,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "proxy agent from http-proxy-agent"
+  },
+  {
+   "repo": "earendil-works/pi",
+   "file": "packages/ai/src/api/bedrock-converse-stream.ts",
+   "line": 229,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "proxy agent from https-proxy-agent"
+  },
+  {
+   "repo": "earendil-works/pi",
+   "file": "packages/ai/src/api/bedrock-converse-stream.ts",
+   "line": 233,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "NodeHttpHandler from @smithy/node-http-handler, not a client"
+  },
+  {
+   "repo": "earendil-works/pi",
+   "file": "packages/ai/src/api/bedrock-converse-stream.ts",
+   "line": 253,
+   "client": true,
+   "sdk": "aws-sdk-v3",
+   "service": "@aws-sdk/client-bedrock-runtime",
+   "note": "BedrockRuntimeClient imported from client-bedrock-runtime"
+  },
+  {
+   "repo": "opennextjs/opennextjs-aws",
+   "file": "packages/open-next/src/overrides/cdnInvalidation/cloudfront.ts",
+   "line": 7,
+   "client": true,
+   "sdk": "aws-sdk-v3",
+   "service": "@aws-sdk/client-cloudfront",
+   "note": "CloudFrontClient imported from client-cloudfront"
+  },
+  {
+   "repo": "opennextjs/opennextjs-aws",
+   "file": "packages/open-next/src/overrides/imageLoader/s3.ts",
+   "line": 20,
+   "client": true,
+   "sdk": "aws-sdk-v3",
+   "service": "@aws-sdk/client-s3",
+   "note": "S3Client imported from client-s3"
+  },
+  {
+   "repo": "opennextjs/opennextjs-aws",
+   "file": "packages/open-next/src/overrides/imageLoader/s3.ts",
+   "line": 35,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "error class from repo utils"
+  },
+  {
+   "repo": "opennextjs/opennextjs-aws",
+   "file": "packages/open-next/src/overrides/incrementalCache/s3.ts",
+   "line": 31,
+   "client": true,
+   "sdk": "aws-sdk-v3",
+   "service": "@aws-sdk/client-s3",
+   "note": "S3Client imported from client-s3"
+  },
+  {
+   "repo": "opennextjs/opennextjs-aws",
+   "file": "packages/open-next/src/overrides/queue/sqs.ts",
+   "line": 9,
+   "client": true,
+   "sdk": "aws-sdk-v3",
+   "service": "@aws-sdk/client-sqs",
+   "note": "SQSClient imported from client-sqs"
+  },
+  {
+   "repo": "opennextjs/opennextjs-aws",
+   "file": "packages/open-next/src/overrides/tagCache/dynamodb.ts",
+   "line": 29,
+   "client": true,
+   "sdk": "aws-sdk-v3",
+   "service": "@aws-sdk/client-dynamodb",
+   "note": "DynamoDBClient imported from client-dynamodb"
+  },
+  {
+   "repo": "opennextjs/opennextjs-aws",
+   "file": "packages/open-next/src/overrides/warmer/aws-lambda.ts",
+   "line": 15,
+   "client": true,
+   "sdk": "aws-sdk-v3",
+   "service": "@aws-sdk/client-lambda",
+   "note": "LambdaClient from dynamic import of client-lambda"
+  },
+  {
+   "repo": "langchain-ai/langchainjs",
+   "file": "libs/providers/langchain-aws/src/chat_models.ts",
+   "line": 361,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "inside doc comment; langchain class, not SDK"
+  },
+  {
+   "repo": "langchain-ai/langchainjs",
+   "file": "libs/providers/langchain-aws/src/chat_models.ts",
+   "line": 666,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "inside doc comment; langchain message class"
+  },
+  {
+   "repo": "langchain-ai/langchainjs",
+   "file": "libs/providers/langchain-aws/src/chat_models.ts",
+   "line": 907,
+   "client": true,
+   "sdk": "aws-sdk-v3",
+   "service": "@aws-sdk/client-bedrock-runtime",
+   "note": "BedrockRuntimeClient imported from client-bedrock-runtime"
+  },
+  {
+   "repo": "langchain-ai/langchainjs",
+   "file": "libs/providers/langchain-aws/src/chat_models.ts",
+   "line": 1297,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "langchain output class"
+  },
+  {
+   "repo": "langchain-ai/langchainjs",
+   "file": "libs/providers/langchain-aws/src/chat_models.ts",
+   "line": 1299,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "langchain message class"
+  },
+  {
+   "repo": "langchain-ai/langchainjs",
+   "file": "libs/providers/langchain-aws/src/embeddings.ts",
+   "line": 82,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "inside doc comment; langchain class"
+  },
+  {
+   "repo": "langchain-ai/langchainjs",
+   "file": "libs/providers/langchain-aws/src/embeddings.ts",
+   "line": 137,
+   "client": true,
+   "sdk": "aws-sdk-v3",
+   "service": "@aws-sdk/client-bedrock-runtime",
+   "note": "BedrockRuntimeClient imported from client-bedrock-runtime"
+  },
+  {
+   "repo": "langchain-ai/langchainjs",
+   "file": "libs/providers/langchain-aws/src/retrievers/bedrock.ts",
+   "line": 30,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "inside doc comment; langchain retriever"
+  },
+  {
+   "repo": "langchain-ai/langchainjs",
+   "file": "libs/providers/langchain-aws/src/retrievers/bedrock.ts",
+   "line": 75,
+   "client": true,
+   "sdk": "aws-sdk-v3",
+   "service": "@aws-sdk/client-bedrock-agent-runtime",
+   "note": "BedrockAgentRuntimeClient imported from client-bedrock-agent-runtime"
+  },
+  {
+   "repo": "langchain-ai/langchainjs",
+   "file": "libs/providers/langchain-aws/src/retrievers/kendra.ts",
+   "line": 37,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "inside doc comment; langchain retriever"
+  },
+  {
+   "repo": "langchain-ai/langchainjs",
+   "file": "libs/providers/langchain-aws/src/retrievers/kendra.ts",
+   "line": 85,
+   "client": true,
+   "sdk": "aws-sdk-v3",
+   "service": "@aws-sdk/client-kendra",
+   "note": "KendraClient imported from client-kendra"
+  },
+  {
+   "repo": "langchain-ai/langchainjs",
+   "file": "libs/providers/langchain-aws/src/retrievers/kendra.ts",
+   "line": 185,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "langchain Document class"
+  },
+  {
+   "repo": "langchain-ai/langchainjs",
+   "file": "libs/providers/langchain-aws/src/retrievers/kendra.ts",
+   "line": 256,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "langchain Document class"
+  },
+  {
+   "repo": "langchain-ai/langchainjs",
+   "file": "libs/providers/langchain-aws/src/utils/message_inputs.ts",
+   "line": 884,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "comment text, no construction"
+  },
+  {
+   "repo": "langchain-ai/langchainjs",
+   "file": "libs/providers/langchain-aws/src/utils/message_inputs.ts",
+   "line": 912,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "comment text, no construction"
+  },
+  {
+   "repo": "langchain-ai/langchainjs",
+   "file": "libs/providers/langchain-aws/src/utils/message_inputs.ts",
+   "line": 925,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "comment text, no construction"
+  },
+  {
+   "repo": "langchain-ai/langchainjs",
+   "file": "libs/providers/langchain-aws/src/utils/message_outputs.ts",
+   "line": 84,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "langchain message class"
+  },
+  {
+   "repo": "langchain-ai/langchainjs",
+   "file": "libs/providers/langchain-aws/src/utils/message_outputs.ts",
+   "line": 135,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "langchain message class"
+  },
+  {
+   "repo": "langchain-ai/langchainjs",
+   "file": "libs/providers/langchain-aws/src/utils/message_outputs.ts",
+   "line": 155,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "langchain output class"
+  },
+  {
+   "repo": "langchain-ai/langchainjs",
+   "file": "libs/providers/langchain-aws/src/utils/message_outputs.ts",
+   "line": 157,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "langchain message class"
+  },
+  {
+   "repo": "langchain-ai/langchainjs",
+   "file": "libs/providers/langchain-aws/src/utils/message_outputs.ts",
+   "line": 163,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "langchain output class"
+  },
+  {
+   "repo": "langchain-ai/langchainjs",
+   "file": "libs/providers/langchain-aws/src/utils/message_outputs.ts",
+   "line": 165,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "langchain message class"
+  },
+  {
+   "repo": "langchain-ai/langchainjs",
+   "file": "libs/providers/langchain-aws/src/utils/message_outputs.ts",
+   "line": 177,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "langchain output class"
+  },
+  {
+   "repo": "langchain-ai/langchainjs",
+   "file": "libs/providers/langchain-aws/src/utils/message_outputs.ts",
+   "line": 179,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "langchain message class"
+  },
+  {
+   "repo": "langchain-ai/langchainjs",
+   "file": "libs/providers/langchain-aws/src/utils/message_outputs.ts",
+   "line": 204,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "langchain output class"
+  },
+  {
+   "repo": "langchain-ai/langchainjs",
+   "file": "libs/providers/langchain-aws/src/utils/message_outputs.ts",
+   "line": 206,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "langchain message class"
+  },
+  {
+   "repo": "langchain-ai/langchainjs",
+   "file": "libs/providers/langchain-aws/src/utils/message_outputs.ts",
+   "line": 255,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "langchain output class"
+  },
+  {
+   "repo": "langchain-ai/langchainjs",
+   "file": "libs/providers/langchain-aws/src/utils/message_outputs.ts",
+   "line": 257,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "langchain message class"
+  },
+  {
+   "repo": "bbc/sqs-producer",
+   "file": "src/producer.ts",
+   "line": 33,
+   "client": true,
+   "sdk": "aws-sdk-v3",
+   "service": "@aws-sdk/client-sqs",
+   "note": "SQSClient imported from client-sqs"
+  },
+  {
+   "repo": "bbc/sqs-producer",
+   "file": "src/producer.ts",
+   "line": 124,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "local error class"
+  },
+  {
+   "repo": "bbc/sqs-producer",
+   "file": "src/producer.ts",
+   "line": 129,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "comment text, no construction"
+  },
+  {
+   "repo": "bbc/sqs-producer",
+   "file": "src/producer.ts",
+   "line": 133,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "constructs the repo's own Producer class"
+  },
+  {
+   "repo": "bbc/sqs-producer",
+   "file": "src/types.ts",
+   "line": 13,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "comment text, no construction"
+  },
+  {
+   "repo": "payloadcms/payload",
+   "file": "packages/payload-cloud/src/hooks/beforeChange.ts",
+   "line": 57,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "Upload from @aws-sdk/lib-storage, helper not client"
+  },
+  {
+   "repo": "payloadcms/payload",
+   "file": "packages/payload-cloud/src/utilities/refreshSession.ts",
+   "line": 18,
+   "client": true,
+   "sdk": "aws-sdk-v3",
+   "service": "@aws-sdk/client-cognito-identity",
+   "note": "CognitoIdentityClient imported from client-cognito-identity"
+  },
+  {
+   "repo": "payloadcms/payload",
+   "file": "packages/payload-cloud/src/utilities/refreshSession.ts",
+   "line": 36,
+   "client": true,
+   "sdk": "aws-sdk-v3",
+   "service": "@aws-sdk/client-s3",
+   "note": "aggregated S3 imported from client-s3"
+  },
+  {
+   "repo": "payloadcms/payload",
+   "file": "packages/storage-r2/src/adapter.ts",
+   "line": 76,
+   "client": true,
+   "sdk": "aws-sdk-v3",
+   "service": "@aws-sdk/client-s3",
+   "note": "aggregated S3 from dynamic import of client-s3"
+  },
+  {
+   "repo": "payloadcms/payload",
+   "file": "packages/storage-s3/src/generateUploadInstructions.ts",
+   "line": 37,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "payload error class"
+  },
+  {
+   "repo": "payloadcms/payload",
+   "file": "packages/storage-s3/src/index.ts",
+   "line": 82,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "comment text, no construction"
+  },
+  {
+   "repo": "payloadcms/payload",
+   "file": "packages/storage-s3/src/index.ts",
+   "line": 128,
+   "client": true,
+   "sdk": "aws-sdk-v3",
+   "service": "@aws-sdk/client-s3",
+   "note": "aggregated S3 imported from client-s3"
+  },
+  {
+   "repo": "payloadcms/payload",
+   "file": "packages/storage-s3/src/uploadFile.ts",
+   "line": 41,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "Upload from @aws-sdk/lib-storage, helper not client"
+  },
+  {
+   "repo": "payloadcms/payload",
+   "file": "packages/tanstack-start/src/withPayload/config/optimizeDeps.ts",
+   "line": 135,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "comment text, no construction"
+  },
+  {
+   "repo": "DataDog/serverless-plugin-datadog",
+   "file": "src/aws-sdk-request.ts",
+   "line": 84,
+   "client": true,
+   "sdk": "aws-sdk-v3",
+   "service": "@aws-sdk/client-lambda",
+   "note": "LambdaClient on namespace from dynamic import of client-lambda"
+  },
+  {
+   "repo": "DataDog/serverless-plugin-datadog",
+   "file": "src/aws-sdk-request.ts",
+   "line": 98,
+   "client": true,
+   "sdk": "aws-sdk-v3",
+   "service": "@aws-sdk/client-cloudwatch-logs",
+   "note": "CloudWatchLogsClient on namespace from dynamic import of client-cloudwatch-logs"
+  },
+  {
+   "repo": "DataDog/serverless-plugin-datadog",
+   "file": "src/aws-sdk-request.ts",
+   "line": 112,
+   "client": true,
+   "sdk": "aws-sdk-v3",
+   "service": "@aws-sdk/client-cloudformation",
+   "note": "CloudFormationClient on namespace from dynamic import of client-cloudformation"
+  },
+  {
+   "repo": "DataDog/serverless-plugin-datadog",
+   "file": "src/forwarder.ts",
+   "line": 117,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "local error class"
+  },
+  {
+   "repo": "localstack/serverless-localstack",
+   "file": "src/index.js",
+   "line": 692,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "AWS.Credentials is a credentials class, not a service client"
+  },
+  {
+   "repo": "localstack/serverless-localstack",
+   "file": "src/index.js",
+   "line": 700,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "comment text, no construction"
+  },
+  {
+   "repo": "localstack/serverless-localstack",
+   "file": "src/index.js",
+   "line": 760,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "built-in error"
+  },
+  {
+   "repo": "localstack/serverless-localstack",
+   "file": "src/index.js",
+   "line": 879,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "Node net socket"
+  },
+  {
+   "repo": "localstack/serverless-localstack",
+   "file": "src/index.js",
+   "line": 1070,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "adm-zip class"
+  },
+  {
+   "repo": "auth0/node-s3-client",
+   "file": "lib/index.js",
+   "line": 26,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "constructs the module's own Client wrapper"
+  },
+  {
+   "repo": "auth0/node-s3-client",
+   "file": "lib/index.js",
+   "line": 43,
+   "client": true,
+   "sdk": "aws-sdk-v2",
+   "service": "S3",
+   "note": "AWS is require of aws-sdk; constructs S3 client"
+  },
+  {
+   "repo": "auth0/node-s3-client",
+   "file": "lib/index.js",
+   "line": 44,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "pend library class"
+  },
+  {
+   "repo": "auth0/node-s3-client",
+   "file": "lib/index.js",
+   "line": 78,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "pend library class"
+  },
+  {
+   "repo": "auth0/node-s3-client",
+   "file": "lib/index.js",
+   "line": 234,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "pend library class"
+  },
+  {
+   "repo": "auth0/node-s3-client",
+   "file": "lib/index.js",
+   "line": 283,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo's own multipart_etag module"
+  },
+  {
+   "repo": "auth0/node-s3-client",
+   "file": "lib/index.js",
+   "line": 286,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "pend library class"
+  },
+  {
+   "repo": "auth0/node-s3-client",
+   "file": "lib/index.js",
+   "line": 382,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "pend library class"
+  },
+  {
+   "repo": "auth0/node-s3-client",
+   "file": "lib/index.js",
+   "line": 383,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo's own multipart_etag module"
+  },
+  {
+   "repo": "auth0/node-s3-client",
+   "file": "lib/index.js",
+   "line": 462,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "pend library class"
+  },
+  {
+   "repo": "auth0/node-s3-client",
+   "file": "lib/index.js",
+   "line": 498,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo's own multipart_etag module"
+  },
+  {
+   "repo": "auth0/node-s3-client",
+   "file": "lib/index.js",
+   "line": 588,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "pend library class"
+  },
+  {
+   "repo": "auth0/node-s3-client",
+   "file": "lib/index.js",
+   "line": 663,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "pend library class"
+  },
+  {
+   "repo": "auth0/node-s3-client",
+   "file": "lib/index.js",
+   "line": 801,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "pend library class"
+  },
+  {
+   "repo": "auth0/node-s3-client",
+   "file": "lib/index.js",
+   "line": 815,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "streamsink library class"
+  },
+  {
+   "repo": "auth0/node-s3-client",
+   "file": "lib/index.js",
+   "line": 816,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo's own multipart_etag module"
+  },
+  {
+   "repo": "auth0/node-s3-client",
+   "file": "lib/index.js",
+   "line": 864,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "Node stream class"
+  },
+  {
+   "repo": "auth0/node-s3-client",
+   "file": "lib/index.js",
+   "line": 884,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "pend library class"
+  },
+  {
+   "repo": "auth0/node-s3-client",
+   "file": "lib/index.js",
+   "line": 1293,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo's own multipart_etag module"
+  },
+  {
+   "repo": "auth0/node-s3-client",
+   "file": "lib/index.js",
+   "line": 1336,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo's own multipart_etag module"
+  },
+  {
+   "repo": "pulumi/pulumi-policy-aws",
+   "file": "src/security.ts",
+   "line": 69,
+   "client": true,
+   "sdk": "aws-sdk-v2",
+   "service": "ACM",
+   "note": "AWS is namespace import of aws-sdk; constructs ACM client"
+  },
+  {
+   "repo": "pulumi/pulumi-policy-aws",
+   "file": "src/security.ts",
+   "line": 128,
+   "client": true,
+   "sdk": "aws-sdk-v2",
+   "service": "IAM",
+   "note": "AWS is namespace import of aws-sdk; constructs IAM client"
+  },
+  {
+   "repo": "pulumi/pulumi-policy-aws",
+   "file": "src/security.ts",
+   "line": 161,
+   "client": true,
+   "sdk": "aws-sdk-v2",
+   "service": "IAM",
+   "note": "aws-sdk v2 service client via AWS namespace imported from aws-sdk"
+  },
+  {
+   "repo": "orvad/strapi-provider-aws-s3-cloudfront-cdn",
+   "file": "lib/index.js",
+   "line": 14,
+   "client": true,
+   "sdk": "aws-sdk-v2",
+   "service": "S3",
+   "note": "aws-sdk v2 service client via AWS namespace imported from aws-sdk"
+  },
+  {
+   "repo": "sensedeep/onetable-cli",
+   "file": "src/cli.js",
+   "line": 118,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "SenseLogs from senselogs package, not an SDK"
+  },
+  {
+   "repo": "sensedeep/onetable-cli",
+   "file": "src/cli.js",
+   "line": 155,
+   "client": true,
+   "sdk": "aws-sdk-v2",
+   "service": "DynamoDB",
+   "note": "v2 DocumentClient nested under DynamoDB; AWS from aws-sdk"
+  },
+  {
+   "repo": "sensedeep/onetable-cli",
+   "file": "src/cli.js",
+   "line": 158,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "Migrate from onetable-migrate, not an SDK"
+  },
+  {
+   "repo": "sensedeep/onetable-cli",
+   "file": "src/cli.js",
+   "line": 556,
+   "client": true,
+   "sdk": "aws-sdk-v2",
+   "service": "Lambda",
+   "note": "aws-sdk v2 service client via AWS namespace imported from aws-sdk"
+  },
+  {
+   "repo": "sensedeep/onetable-cli",
+   "file": "src/cli.js",
+   "line": 619,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "local CLI class"
+  },
+  {
+   "repo": "serverless-appsync/serverless-appsync-simulator",
+   "file": "src/data-loaders/ElasticDataLoader.js",
+   "line": 13,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "AWS.HttpClient is a v2 utility class, no service"
+  },
+  {
+   "repo": "serverless-appsync/serverless-appsync-simulator",
+   "file": "src/data-loaders/ElasticDataLoader.js",
+   "line": 60,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "AWS.Endpoint is a utility class"
+  },
+  {
+   "repo": "serverless-appsync/serverless-appsync-simulator",
+   "file": "src/data-loaders/ElasticDataLoader.js",
+   "line": 61,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "AWS.HttpRequest is a utility class"
+  },
+  {
+   "repo": "serverless-appsync/serverless-appsync-simulator",
+   "file": "src/data-loaders/ElasticDataLoader.js",
+   "line": 68,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "AWS.Signers.V4 is a signing utility, no service"
+  },
+  {
+   "repo": "serverless-appsync/serverless-appsync-simulator",
+   "file": "src/data-loaders/ElasticDataLoader.js",
+   "line": 75,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "credential provider chain, not a client"
+  },
+  {
+   "repo": "serverless-appsync/serverless-appsync-simulator",
+   "file": "src/data-loaders/ElasticDataLoader.js",
+   "line": 76,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "credentials class"
+  },
+  {
+   "repo": "serverless-appsync/serverless-appsync-simulator",
+   "file": "src/data-loaders/ElasticDataLoader.js",
+   "line": 77,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "credentials class"
+  },
+  {
+   "repo": "serverless-appsync/serverless-appsync-simulator",
+   "file": "src/data-loaders/ElasticDataLoader.js",
+   "line": 78,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "credentials class"
+  },
+  {
+   "repo": "serverless-appsync/serverless-appsync-simulator",
+   "file": "src/data-loaders/ElasticDataLoader.js",
+   "line": 83,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "credentials class"
+  },
+  {
+   "repo": "mapbox/dyno",
+   "file": "index.js",
+   "line": 103,
+   "client": true,
+   "sdk": "aws-sdk-v2",
+   "service": "DynamoDB",
+   "note": "v2 DynamoDB client; AWS required from aws-sdk"
+  },
+  {
+   "repo": "mapbox/dyno",
+   "file": "index.js",
+   "line": 104,
+   "client": true,
+   "sdk": "aws-sdk-v2",
+   "service": "DynamoDB",
+   "note": "v2 DocumentClient nested under DynamoDB; AWS from aws-sdk"
+  },
+  {
+   "repo": "mapbox/dyno",
+   "file": "index.js",
+   "line": 105,
+   "client": true,
+   "sdk": "aws-sdk-v2",
+   "service": "DynamoDB",
+   "note": "v2 DynamoDB client; AWS required from aws-sdk"
+  },
+  {
+   "repo": "mapbox/dyno",
+   "file": "index.js",
+   "line": 106,
+   "client": true,
+   "sdk": "aws-sdk-v2",
+   "service": "DynamoDB",
+   "note": "v2 DocumentClient nested under DynamoDB; AWS from aws-sdk"
+  },
+  {
+   "repo": "mapbox/dyno",
+   "file": "index.js",
+   "line": 215,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "comment text, no construction"
+  },
+  {
+   "repo": "mapbox/dyno",
+   "file": "index.js",
+   "line": 460,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "DynamoDBSet is an aws-sdk internal lib helper, not a service client"
+  },
+  {
+   "repo": "mapbox/dyno",
+   "file": "index.js",
+   "line": 473,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "comment with Buffer, not SDK"
+  },
+  {
+   "repo": "mapbox/dyno",
+   "file": "lib/requests.js",
+   "line": 17,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "comment text"
+  },
+  {
+   "repo": "mapbox/dyno",
+   "file": "lib/requests.js",
+   "line": 92,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "comment text"
+  },
+  {
+   "repo": "mapbox/dyno",
+   "file": "lib/requests.js",
+   "line": 266,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "comment text"
+  },
+  {
+   "repo": "mapbox/dyno",
+   "file": "lib/requests.js",
+   "line": 305,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "comment text"
+  },
+  {
+   "repo": "mapbox/dyno",
+   "file": "lib/requests.js",
+   "line": 348,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "Node Buffer, not SDK"
+  },
+  {
+   "repo": "mapbox/dyno",
+   "file": "lib/requests.js",
+   "line": 365,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "Node Buffer, not SDK"
+  },
+  {
+   "repo": "mapbox/dyno",
+   "file": "lib/serialization.js",
+   "line": 32,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "Node Buffer, not SDK"
+  },
+  {
+   "repo": "mapbox/dyno",
+   "file": "lib/serialization.js",
+   "line": 41,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "Node Buffer, not SDK"
+  },
+  {
+   "repo": "zodern/mup-cloud-front",
+   "file": "src/utils.js",
+   "line": 22,
+   "client": true,
+   "sdk": "aws-sdk-v2",
+   "service": "S3",
+   "note": "aws-sdk v2 service client via AWS namespace imported from aws-sdk"
+  },
+  {
+   "repo": "zodern/mup-cloud-front",
+   "file": "src/utils.js",
+   "line": 23,
+   "client": true,
+   "sdk": "aws-sdk-v2",
+   "service": "CloudFront",
+   "note": "aws-sdk v2 service client via AWS namespace imported from aws-sdk"
+  },
+  {
+   "repo": "nicka/serverless-plugin-diff",
+   "file": "lib/index.js",
+   "line": 33,
+   "client": true,
+   "sdk": "aws-sdk-v2",
+   "service": "CloudFormation",
+   "note": "aws-sdk v2 service client via AWS namespace imported from aws-sdk"
+  },
+  {
+   "repo": "ryansonshine/aws-sso-creds-helper",
+   "file": "src/aws-sdk.ts",
+   "line": 7,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "credentials class, not a client"
+  },
+  {
+   "repo": "ryansonshine/aws-sso-creds-helper",
+   "file": "src/aws-sdk.ts",
+   "line": 45,
+   "client": true,
+   "sdk": "aws-sdk-v2",
+   "service": "SSO",
+   "note": "aws-sdk v2 service client via AWS namespace imported from aws-sdk"
+  },
+  {
+   "repo": "ryansonshine/aws-sso-creds-helper",
+   "file": "src/sso-creds.ts",
+   "line": 68,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo error class"
+  },
+  {
+   "repo": "ryansonshine/aws-sso-creds-helper",
+   "file": "src/sso-creds.ts",
+   "line": 87,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo error class"
+  },
+  {
+   "repo": "ryansonshine/aws-sso-creds-helper",
+   "file": "src/sso-creds.ts",
+   "line": 128,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo error class"
+  },
+  {
+   "repo": "ryansonshine/aws-sso-creds-helper",
+   "file": "src/sso-creds.ts",
+   "line": 136,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo error class"
+  },
+  {
+   "repo": "ryansonshine/aws-sso-creds-helper",
+   "file": "src/sso-creds.ts",
+   "line": 147,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "repo error class"
+  },
+  {
+   "repo": "kamranahmedse/aws-cost-cli",
+   "file": "src/account.ts",
+   "line": 8,
+   "client": true,
+   "sdk": "aws-sdk-v2",
+   "service": "IAM",
+   "note": "aws-sdk v2 service client via AWS namespace imported from aws-sdk"
+  },
+  {
+   "repo": "kamranahmedse/aws-cost-cli",
+   "file": "src/account.ts",
+   "line": 17,
+   "client": true,
+   "sdk": "aws-sdk-v2",
+   "service": "STS",
+   "note": "aws-sdk v2 service client via AWS namespace imported from aws-sdk"
+  },
+  {
+   "repo": "kamranahmedse/aws-cost-cli",
+   "file": "src/cost.ts",
+   "line": 15,
+   "client": true,
+   "sdk": "aws-sdk-v2",
+   "service": "CostExplorer",
+   "note": "aws-sdk v2 service client via AWS namespace imported from aws-sdk"
+  },
+  {
+   "repo": "pulumi/pulumi-cloud",
+   "file": "aws/bucket.ts",
+   "line": 39,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "Pulumi resource from @pulumi/aws, not an SDK client"
+  },
+  {
+   "repo": "pulumi/pulumi-cloud",
+   "file": "aws/bucket.ts",
+   "line": 55,
+   "client": true,
+   "sdk": "aws-sdk-v3",
+   "service": "@aws-sdk/client-s3",
+   "note": "aggregated v3 client from namespace import of the @aws-sdk/client package"
+  },
+  {
+   "repo": "pulumi/pulumi-cloud",
+   "file": "aws/bucket.ts",
+   "line": 68,
+   "client": true,
+   "sdk": "aws-sdk-v3",
+   "service": "@aws-sdk/client-s3",
+   "note": "aggregated v3 client from namespace import of the @aws-sdk/client package"
+  },
+  {
+   "repo": "pulumi/pulumi-cloud",
+   "file": "aws/bucket.ts",
+   "line": 77,
+   "client": true,
+   "sdk": "aws-sdk-v3",
+   "service": "@aws-sdk/client-s3",
+   "note": "aggregated v3 client from namespace import of the @aws-sdk/client package"
+  },
+  {
+   "repo": "pulumi/pulumi-cloud",
+   "file": "aws/service.ts",
+   "line": 34,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "comment text"
+  },
+  {
+   "repo": "pulumi/pulumi-cloud",
+   "file": "aws/service.ts",
+   "line": 89,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "Pulumi resource from @pulumi/aws, not an SDK client"
+  },
+  {
+   "repo": "pulumi/pulumi-cloud",
+   "file": "aws/service.ts",
+   "line": 101,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "comment text"
+  },
+  {
+   "repo": "pulumi/pulumi-cloud",
+   "file": "aws/service.ts",
+   "line": 102,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "Pulumi resource from @pulumi/aws, not an SDK client"
+  },
+  {
+   "repo": "pulumi/pulumi-cloud",
+   "file": "aws/service.ts",
+   "line": 114,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "Pulumi resource from @pulumi/aws, not an SDK client"
+  },
+  {
+   "repo": "pulumi/pulumi-cloud",
+   "file": "aws/service.ts",
+   "line": 163,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "Pulumi resource from @pulumi/aws, not an SDK client"
+  },
+  {
+   "repo": "pulumi/pulumi-cloud",
+   "file": "aws/service.ts",
+   "line": 182,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "Pulumi resource from @pulumi/aws, not an SDK client"
+  },
+  {
+   "repo": "pulumi/pulumi-cloud",
+   "file": "aws/service.ts",
+   "line": 453,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "Pulumi resource from @pulumi/aws, not an SDK client"
+  },
+  {
+   "repo": "pulumi/pulumi-cloud",
+   "file": "aws/service.ts",
+   "line": 461,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "Pulumi resource from @pulumi/aws, not an SDK client"
+  },
+  {
+   "repo": "pulumi/pulumi-cloud",
+   "file": "aws/service.ts",
+   "line": 475,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "Pulumi resource from @pulumi/aws, not an SDK client"
+  },
+  {
+   "repo": "pulumi/pulumi-cloud",
+   "file": "aws/service.ts",
+   "line": 478,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "Pulumi resource from @pulumi/aws, not an SDK client"
+  },
+  {
+   "repo": "pulumi/pulumi-cloud",
+   "file": "aws/service.ts",
+   "line": 495,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "Pulumi resource from @pulumi/aws, not an SDK client"
+  },
+  {
+   "repo": "pulumi/pulumi-cloud",
+   "file": "aws/service.ts",
+   "line": 522,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "Pulumi resource from @pulumi/aws, not an SDK client"
+  },
+  {
+   "repo": "pulumi/pulumi-cloud",
+   "file": "aws/service.ts",
+   "line": 738,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "Pulumi resource from @pulumi/aws, not an SDK client"
+  },
+  {
+   "repo": "pulumi/pulumi-cloud",
+   "file": "aws/service.ts",
+   "line": 916,
+   "client": true,
+   "sdk": "aws-sdk-v3",
+   "service": "@aws-sdk/client-ecs",
+   "note": "aggregated v3 client from namespace import of the @aws-sdk/client package"
+  },
+  {
+   "repo": "pulumi/pulumi-cloud",
+   "file": "aws/table.ts",
+   "line": 28,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "RunError from Pulumi, not SDK"
+  },
+  {
+   "repo": "pulumi/pulumi-cloud",
+   "file": "aws/table.ts",
+   "line": 61,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "Pulumi resource from @pulumi/aws, not an SDK client"
+  },
+  {
+   "repo": "pulumi/pulumi-cloud",
+   "file": "aws/table.ts",
+   "line": 73,
+   "client": true,
+   "sdk": "aws-sdk-v3",
+   "service": "@aws-sdk/client-dynamodb",
+   "note": "aggregated v3 client from namespace import of the @aws-sdk/client package"
+  },
+  {
+   "repo": "pulumi/pulumi-cloud",
+   "file": "aws/table.ts",
+   "line": 83,
+   "client": true,
+   "sdk": "aws-sdk-v3",
+   "service": "@aws-sdk/client-dynamodb",
+   "note": "aggregated v3 client from namespace import of the @aws-sdk/client package"
+  },
+  {
+   "repo": "pulumi/pulumi-cloud",
+   "file": "aws/table.ts",
+   "line": 99,
+   "client": true,
+   "sdk": "aws-sdk-v3",
+   "service": "@aws-sdk/client-dynamodb",
+   "note": "aggregated v3 client from namespace import of the @aws-sdk/client package"
+  },
+  {
+   "repo": "pulumi/pulumi-cloud",
+   "file": "aws/table.ts",
+   "line": 133,
+   "client": true,
+   "sdk": "aws-sdk-v3",
+   "service": "@aws-sdk/client-dynamodb",
+   "note": "aggregated v3 client from namespace import of the @aws-sdk/client package"
+  },
+  {
+   "repo": "pulumi/pulumi-cloud",
+   "file": "aws/table.ts",
+   "line": 142,
+   "client": true,
+   "sdk": "aws-sdk-v3",
+   "service": "@aws-sdk/client-dynamodb",
+   "note": "aggregated v3 client from namespace import of the @aws-sdk/client package"
+  },
+  {
+   "repo": "pulumi/pulumi-cloud",
+   "file": "aws/topic.ts",
+   "line": 36,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "Pulumi resource from @pulumi/aws, not an SDK client"
+  },
+  {
+   "repo": "pulumi/pulumi-cloud",
+   "file": "aws/topic.ts",
+   "line": 41,
+   "client": true,
+   "sdk": "aws-sdk-v3",
+   "service": "@aws-sdk/client-sns",
+   "note": "aggregated v3 client from namespace import of the @aws-sdk/client package"
+  },
+  {
+   "repo": "pulumi/pulumi-cloud",
+   "file": "azure/bucket.ts",
+   "line": 21,
+   "client": true,
+   "sdk": "azure-legacy",
+   "service": "azure-storage",
+   "note": "loads legacy Azure package"
+  },
+  {
+   "repo": "pulumi/pulumi-cloud",
+   "file": "azure/service.ts",
+   "line": 26,
+   "client": true,
+   "sdk": "azure-legacy",
+   "service": "azure-arm-containerinstance",
+   "note": "loads legacy Azure package"
+  },
+  {
+   "repo": "pulumi/pulumi-cloud",
+   "file": "azure/table.ts",
+   "line": 23,
+   "client": true,
+   "sdk": "azure-legacy",
+   "service": "azure-storage",
+   "note": "loads legacy Azure package"
+  },
+  {
+   "repo": "pulumi/pulumi-cloud",
+   "file": "azure/topic.ts",
+   "line": 18,
+   "client": true,
+   "sdk": "azure-legacy",
+   "service": "azure-sb",
+   "note": "loads legacy Azure package"
+  },
+  {
+   "repo": "jldeen/ghost-azurestorage",
+   "file": "lib/fileService.js",
+   "line": 1,
+   "client": true,
+   "sdk": "azure-legacy",
+   "service": "azure-storage",
+   "note": "loads legacy Azure package"
+  },
+  {
+   "repo": "rrpatilcse/read-az-keyvault-secrets",
+   "file": "index.js",
+   "line": 2,
+   "client": true,
+   "sdk": "azure-legacy",
+   "service": "azure-keyvault",
+   "note": "loads legacy Azure package"
+  },
+  {
+   "repo": "reactorynet/reactory-workflow-es",
+   "file": "providers/workflow-es-azure/src/azure-lock-manager.ts",
+   "line": 2,
+   "client": true,
+   "sdk": "azure-legacy",
+   "service": "azure-storage",
+   "note": "loads legacy Azure package"
+  },
+  {
+   "repo": "reactorynet/reactory-workflow-es",
+   "file": "providers/workflow-es-azure/src/azure-queue-provider.ts",
+   "line": 2,
+   "client": true,
+   "sdk": "azure-legacy",
+   "service": "azure-storage",
+   "note": "loads legacy Azure package"
+  },
+  {
+   "repo": "Asad-Shah/multer-azure",
+   "file": "index.js",
+   "line": 3,
+   "client": true,
+   "sdk": "azure-legacy",
+   "service": "azure-storage",
+   "note": "loads legacy Azure package"
+  },
+  {
+   "repo": "Asad-Shah/multer-azure",
+   "file": "index.ts",
+   "line": 5,
+   "client": true,
+   "sdk": "azure-legacy",
+   "service": "azure-storage",
+   "note": "loads legacy Azure package"
+  },
+  {
+   "repo": "vimeshjs/vimesh",
+   "file": "packages/storage-plugin-aws/index.js",
+   "line": 20,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "AWS.Config is a config class, not a client"
+  },
+  {
+   "repo": "vimeshjs/vimesh",
+   "file": "packages/storage-plugin-aws/index.js",
+   "line": 31,
+   "client": true,
+   "sdk": "aws-sdk-v2",
+   "service": "S3",
+   "note": "aws-sdk v2 service client via AWS namespace imported from aws-sdk"
+  },
+  {
+   "repo": "vimeshjs/vimesh",
+   "file": "packages/storage-plugin-aws/index.js",
+   "line": 379,
+   "client": false,
+   "sdk": null,
+   "service": null,
+   "note": "local S3Storage wrapper class"
+  },
+  {
+   "repo": "vimeshjs/vimesh",
+   "file": "packages/storage-plugin-azure/index.js",
+   "line": 4,
+   "client": true,
+   "sdk": "azure-legacy",
+   "service": "azure-storage",
+   "note": "loads legacy Azure package"
+  }
+ ]
+}
