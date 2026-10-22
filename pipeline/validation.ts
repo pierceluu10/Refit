@@ -163,6 +163,7 @@ async function containerCheck(
   argumentsList: string[],
   dependencies?: string,
   readOnlyMounts?: { source: string; target: string }[],
+  signal?: AbortSignal,
 ): Promise<CheckResult> {
   const name = `refit-${randomUUID()}`;
   // Only prepared dependencies skip the repository's install steps; a custom image ran its own.
@@ -181,7 +182,7 @@ async function containerCheck(
         dependencies,
         readOnlyMounts,
       }),
-      { timeout: CHECK_TIMEOUT_MS, maxBuffer: MAX_OUTPUT_BYTES, encoding: 'utf8' },
+      { timeout: CHECK_TIMEOUT_MS, maxBuffer: MAX_OUTPUT_BYTES, encoding: 'utf8', signal },
     );
     return withExit({ status: 'passed', exitCode: 0, ...result });
   } catch (error) {
@@ -526,10 +527,56 @@ export async function validateMigration(options: {
       timings[stage] = (timings[stage] ?? 0) + Math.round(performance.now() - started);
     }
   };
+  // Without AI the proposal does not depend on the baseline, so the patch, its dependencies and
+  // its checks run alongside the baseline's. Results the sequential order would not have used are
+  // discarded unread; anything still running is cancelled and awaited before validation returns.
+  const independent = !options.aiPatch && !options.assessment;
+  const speculation = new AbortController();
+  const stopSpeculation = () => speculation.abort();
+  options.signal?.addEventListener('abort', stopSpeculation, { once: true });
+  const speculative: Promise<unknown>[] = [];
+  const ahead = <T>(work: () => Promise<T>) => {
+    const promise = work();
+    promise.catch(() => undefined);
+    speculative.push(promise);
+    return promise;
+  };
   try {
     const { archive, archiveHash, baselineDirectory } = await timed('snapshot', () =>
       extractSnapshot(repository, revision, root),
     );
+    const propose = (baselinePassed: boolean) =>
+      timed('proposal', () =>
+        runPipeline({
+          ...options,
+          repository: baselineDirectory,
+          proposePatch: true,
+          aiPatch: baselinePassed ? options.aiPatch : undefined,
+          assessment: baselinePassed ? options.assessment : undefined,
+          onProgress: baselinePassed ? options.onProgress : undefined,
+        }),
+      );
+    const proposed = independent ? ahead(() => propose(true)) : undefined;
+    // A patch that changes the lockfile prepares its own dependencies; that install starts now.
+    const candidateInstall =
+      proposed && options.prepareDependencies
+        ? ahead(async () => {
+            const { patch } = await proposed;
+            const diff = 'diff' in patch ? patch.diff : '';
+            if (!diff || !packageDiff(diff)) return undefined;
+            const directory = await mkdtemp(join(root, 'candidate-'));
+            await applyPatch(archive, directory, `${directory}.patch`, diff);
+            return {
+              directory,
+              ...(await timed('candidatePreparation', () =>
+                prepareCandidateDependencies(directory, root, image, {
+                  ...options,
+                  signal: speculation.signal,
+                }),
+              )),
+            };
+          })
+        : undefined;
     let dependencies: string | undefined;
     let environment: Record<string, unknown> | undefined;
     let dependencyFailure: ReturnType<typeof repositoryDependencyFailure> = undefined;
@@ -557,62 +604,36 @@ export async function validateMigration(options: {
         snapshotDependencies(prepared!, dependencies!),
       );
     }
-    options.signal?.throwIfAborted();
-    if (!dependencyFailure) options.onProgress?.('Running baseline checks in offline Docker...');
-    const baselineRun: CheckResult = dependencyFailure
-      ? { status: 'not-run', exitCode: null, stdout: '', stderr: '' }
-      : await timed('baselineChecks', () =>
-          containerCheck(baselineDirectory, image, baselineCommand, dependencies),
-        );
-    const { baseline, compared } = typeCheckComparison(baselineRun, options.compareTypeErrors);
-    options.signal?.throwIfAborted();
-    const report = await timed('proposal', () =>
-      runPipeline({
-        ...options,
-        repository: baselineDirectory,
-        proposePatch: true,
-        aiPatch: baseline.status === 'passed' ? options.aiPatch : undefined,
-        assessment: baseline.status === 'passed' ? options.assessment : undefined,
-        onProgress: baseline.status === 'passed' ? options.onProgress : undefined,
-      }),
-    );
-    const configuredEndpointProposal = report.operationChanges.some(
-      (change) => change.usages.length > 0,
-    );
-    const configuredRequestProposal = report.requestChanges?.some(
-      (change) => change.usages.length > 0,
-    );
-    const [beforeSpecification, afterSpecification] = await Promise.all([
-      readSpecification(options.before),
-      readSpecification(options.after),
-    ]);
-    if (beforeSpecification.hash !== report.snapshots.before)
-      throw new PipelineInputError('Baseline specification changed during validation.');
-    if (afterSpecification.hash !== report.snapshots.after)
-      throw new PipelineInputError('Current specification changed during validation.');
-    if (
-      !('diff' in report.patch) ||
-      (!report.patch.diff && (baseline.status === 'passed' || dependencyFailure))
-    )
-      throw new PipelineInputError(
-        'No supported patch proposal is available for this committed revision.',
-      );
-    let proposal = report.patch;
-    const originalSources = await readRepository(baselineDirectory, report.adapter.packageName);
-    const prepareCandidate = (diff: string) => timed('candidates', () => buildCandidate(diff));
-    const buildCandidate = async (diff: string) => {
+    type Report = Awaited<ReturnType<typeof runPipeline>>;
+    type Install = Awaited<NonNullable<typeof candidateInstall>>;
+    const prepareCandidate = (
+      diff: string,
+      originalSources: Awaited<ReturnType<typeof readRepository>>,
+      report: Report,
+      install?: Promise<Install>,
+    ) => timed('candidates', () => buildCandidate(diff, originalSources, report, install));
+    const buildCandidate = async (
+      diff: string,
+      originalSources: Awaited<ReturnType<typeof readRepository>>,
+      report: Report,
+      install?: Promise<Install>,
+    ) => {
+      // The install started with the proposal, for this diff, when the patch changes the lockfile.
+      const installed = install && (await install);
       // Reusing a removed bind-mount path can expose a stale directory in Docker Desktop.
-      const patchedDirectory = await mkdtemp(join(root, 'candidate-'));
-      await applyPatch(archive, patchedDirectory, join(root, 'migration.patch'), diff);
+      const patchedDirectory = installed?.directory ?? (await mkdtemp(join(root, 'candidate-')));
+      if (!installed)
+        await applyPatch(archive, patchedDirectory, `${patchedDirectory}.patch`, diff);
       // An SDK upgrade in the patch needs dependencies prepared from the patched lockfile, which
       // preparation reads from a committed snapshot.
       let candidateDependencies = dependencies;
       let candidateEnvironment: Record<string, unknown> | undefined;
       if (packageDiff(diff) && options.prepareDependencies && !dependencyFailure)
-        ({ dependencies: candidateDependencies, environment: candidateEnvironment } = await timed(
-          'candidatePreparation',
-          () => prepareCandidateDependencies(patchedDirectory, root, image, options),
-        ));
+        ({ dependencies: candidateDependencies, environment: candidateEnvironment } =
+          installed ??
+          (await timed('candidatePreparation', () =>
+            prepareCandidateDependencies(patchedDirectory, root, image, options),
+          )));
       const patchedSources = await readRepository(patchedDirectory, report.adapter.packageName);
       const shopify = report.provider === SHOPIFY.id;
       const declarations = shopify
@@ -679,10 +700,75 @@ export async function validateMigration(options: {
         environment: candidateEnvironment,
       };
     };
+    options.signal?.throwIfAborted();
+    const earlyReport = proposed && (await proposed);
+    const earlyDiff =
+      earlyReport && 'diff' in earlyReport.patch ? earlyReport.patch.diff : undefined;
+    // Built only to run beside the baseline; used only where the sequential order would use it.
+    const speculativeCandidate =
+      earlyReport && earlyDiff && !dependencyFailure
+        ? ahead(async () =>
+            prepareCandidate(
+              earlyDiff,
+              await readRepository(baselineDirectory, earlyReport.adapter.packageName),
+              earlyReport,
+              candidateInstall,
+            ),
+          )
+        : undefined;
+    const speculativePatched =
+      speculativeCandidate &&
+      ahead(async () => {
+        const candidate = await speculativeCandidate;
+        return timed('patchedChecks', () =>
+          containerCheck(
+            candidate.directory,
+            image,
+            options.command,
+            candidate.dependencies,
+            undefined,
+            speculation.signal,
+          ),
+        );
+      });
+    if (!dependencyFailure) options.onProgress?.('Running baseline checks in offline Docker...');
+    const baselineRun: CheckResult = dependencyFailure
+      ? { status: 'not-run', exitCode: null, stdout: '', stderr: '' }
+      : await timed('baselineChecks', () =>
+          containerCheck(baselineDirectory, image, baselineCommand, dependencies),
+        );
+    const { baseline, compared } = typeCheckComparison(baselineRun, options.compareTypeErrors);
+    options.signal?.throwIfAborted();
+    const report = earlyReport || (await propose(baseline.status === 'passed'));
+    const configuredEndpointProposal = report.operationChanges.some(
+      (change) => change.usages.length > 0,
+    );
+    const configuredRequestProposal = report.requestChanges?.some(
+      (change) => change.usages.length > 0,
+    );
+    const [beforeSpecification, afterSpecification] = await Promise.all([
+      readSpecification(options.before),
+      readSpecification(options.after),
+    ]);
+    if (beforeSpecification.hash !== report.snapshots.before)
+      throw new PipelineInputError('Baseline specification changed during validation.');
+    if (afterSpecification.hash !== report.snapshots.after)
+      throw new PipelineInputError('Current specification changed during validation.');
+    if (
+      !('diff' in report.patch) ||
+      (!report.patch.diff && (baseline.status === 'passed' || dependencyFailure))
+    )
+      throw new PipelineInputError(
+        'No supported patch proposal is available for this committed revision.',
+      );
+    let proposal = report.patch;
+    const originalSources = await readRepository(baselineDirectory, report.adapter.packageName);
     // An untested patch is still applied, so its publication files come from the same candidate.
     const initialCandidate =
       baseline.status === 'passed' || dependencyFailure
-        ? await prepareCandidate(proposal.diff)
+        ? await (speculativeCandidate && baseline.status === 'passed'
+            ? speculativeCandidate
+            : prepareCandidate(proposal.diff, originalSources, report))
         : undefined;
     let publicationFiles = initialCandidate?.publicationFiles ?? [];
     let candidateDirectory = initialCandidate?.directory;
@@ -696,14 +782,16 @@ export async function validateMigration(options: {
     if (runPatched) options.onProgress?.('Running patched checks in offline Docker...');
     let patched: CheckResult = runPatched
       ? compared(
-          await timed('patchedChecks', () =>
-            containerCheck(
-              initialCandidate.directory,
-              image,
-              options.command,
-              initialCandidate.dependencies,
-            ),
-          ),
+          await (speculativePatched && baseline.status === 'passed'
+            ? speculativePatched
+            : timed('patchedChecks', () =>
+                containerCheck(
+                  initialCandidate.directory,
+                  image,
+                  options.command,
+                  initialCandidate.dependencies,
+                ),
+              )),
         )
       : { status: 'not-run', exitCode: null, stdout: '', stderr: '' };
     const attempts: ValidationAttempt[] = [];
@@ -782,7 +870,7 @@ export async function validateMigration(options: {
       options.onProgress?.(
         'Restoring stripe-node open-enum literals; running checks in offline Docker...',
       );
-      const prepared = await prepareCandidate(diff);
+      const prepared = await prepareCandidate(diff, originalSources, report);
       const check = compared(
         await timed('patchedChecks', () =>
           containerCheck(prepared.directory, image, options.command, prepared.dependencies),
@@ -888,7 +976,7 @@ export async function validateMigration(options: {
           repair.stopReason = 'repeated-proposal';
           break;
         }
-        const preparedCandidate = await prepareCandidate(candidate.diff);
+        const preparedCandidate = await prepareCandidate(candidate.diff, originalSources, report);
         // A removed request parameter has no reviewed replacement; a repair must not drop it.
         const dropped = droppedRequestParameters(
           removedParameters,
@@ -1004,6 +1092,9 @@ export async function validateMigration(options: {
       publicationFiles,
     };
   } finally {
+    speculation.abort();
+    options.signal?.removeEventListener('abort', stopSpeculation);
+    await Promise.allSettled(speculative);
     await rm(root, { recursive: true, force: true });
   }
 }
