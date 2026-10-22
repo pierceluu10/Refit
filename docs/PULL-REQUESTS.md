@@ -25,6 +25,10 @@ The body stays under 16,000 characters. Site lists show 25 entries and say how m
 
 Two hidden comments follow: the migration identity Refit uses to find its own open draft, and the run ID and patch hash.
 
+## Commit message
+
+The draft's single commit uses the PR title without `[Needs review]` as its subject. The body is plain text wrapped at 72 columns: the overview sentence, one line per changed file (up to 25), the check command and its result, `Needs review` when the draft needs it, each provider page as `Source: <url>`, and `Refit-Run:` with the short run ID (and `Refit-Integration:` for a collection). Model-fix commits list each edited line with the old and new model and the retirement date. Check logs never go into a commit.
+
 ## How "why this replacement" is decided
 
 For each removed field, Refit names the replacement only if the patch actually reads it, and states the strongest evidence it holds, in this order:

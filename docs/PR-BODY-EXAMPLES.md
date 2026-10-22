@@ -15,11 +15,13 @@ I read the 13 draft PRs Refit published under refit-dev (Signl, pci-update, podv
 | Each untraced site, with file and line | 9 of 13 drafts pack every untraced site into one Review sentence, up to 524 characters on one line. | A Left Unchanged section lists each site on its own line: 25 entries, then "and N more; every location is in report.json." |
 | How to roll back | Not stated. | A Rollback section: revert, plus the pinned version, the SDK version and the generated helper the revert restores or removes, and confirmation that Refit changed nothing outside the repository. |
 | What to do before merging | Spread across Review lines and waiver sections. | A Reviewer Checklist with one unchecked box per action. |
-| A body that fits | No budget. The longest draft is 8,468 characters, but nothing bounds a large patch, and GitHub rejects a body over 65,536 characters. | A hard budget of 16,000 characters. Code Changes shortens first (80 → 40 → 20 → 0 lines), then site lists (25 → 10 → 3 → 0), and the body says what it shortened. |
+| A commit that explains itself | Every migration commit reads `fix: migrate affected stripe API usage` and every model fix `fix: replace retiring AI models`, with no body, so `git log` says nothing about the change. | The commit subject is the PR title without `[Needs review]`. The body has the overview, one line per file, the checks, each source URL and the run, wrapped at 72 columns. |
+| A body that fits | No budget. The longest draft is 8,468 characters, but nothing bounds a large patch: publication refused a body over 60,000 characters (GitHub's limit is 65,536), so that patch was never published, not shortened. | A hard budget of 16,000 characters. Code Changes shortens first (80 → 40 → 20 → 0 lines), then site lists (25 → 10 → 3 → 0), and the body says what it shortened. |
 
 Still missing:
 
 - **Unmigrated confirmed usages are counted but not located.** The stored patch keeps only `unresolvedFindings` as a number, so the body says "migrate them ... using the locations in Refit's run report." Naming them needs the pipeline to record their sites.
+- **Stored reports from before 2026-10-21 do not count untraced reads as unresolved.** pci-update's stored `unresolvedFindings` is 0, so its regenerated title has no `[Needs review]` and its commit has no review line. A current run counts the read, so the same patch gets both.
 - **Breaking Changes can read "Recorded in the technical evidence."** That happens when the report has no change the body can describe; the template keeps the line.
 
 ## The seven shapes
@@ -690,3 +692,169 @@ New file `convex/stripe-subscription-period.ts`; see Files changed.
 
 <!-- refit-evidence "runId": "1da7a5d798d9259e7066a90ce774203bf43b5fc9a399d44fd5bb0cc60b8461b5", "patchHash": "c93ce56b8ae769674c9c162fbad43d3d7ebe185300049054e645fe25a946c2b7" -->
 `````
+
+## Commit messages
+
+Each draft's commit, regenerated from the same stored results (`pipeline/__snapshots__/commit-messages/`). The subject is the PR title without `[Needs review]`, under 70 characters. Lines wrap at 72 columns, except a URL that does not fit on one line. There are no co-author or "Generated with" lines.
+
+### Validated deterministic patch
+
+```text
+fix(stripe): move payment_method_types to allowed_payment_method_types
+
+Stripe API 2026-09-30.endive removes request fields this code sends. A
+deterministic Refit rule migrates 1 confirmed usage in 1 file so the
+code keeps working after the upgrade.
+
+- lib/stripe.ts: Sends allowed_payment_method_types in place of the
+  removed payment_method_types. Moves the pinned API version from
+  2026-02-25.clover to 2026-09-30.endive.
+- package.json: Upgrades stripe from 20.4.1 to 23.0.0.
+- package-lock.json: Upgrades stripe from 20.4.1 to 23.0.0.
+
+Checks: npx --no-install tsc --noEmit --pretty false -p . passed on the
+original and migrated code in offline Docker.
+
+Source: https://docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions
+
+Refit-Run: ed1c44af5cf2
+```
+
+### Needs-review waiver
+
+```text
+fix(stripe): migrate removed Stripe API fields
+
+Stripe API 2026-09-30.endive removes fields this code reads and removes
+request fields this code sends. A deterministic Refit rule migrates 3
+confirmed usages in 2 files so the code keeps working after the upgrade.
+
+- app/api/stripe/route.js: Sends allowed_payment_method_types in place
+  of the removed payment_method_types.
+- app/api/webhook/route.js: Migrates reads of
+  subscription.current_period_end to the documented new locations.
+- lib/stripe.js: Moves the pinned API version from 2023-08-16 to
+  2026-09-30.endive.
+- app/api/webhook/stripe-subscription-period.js: Adds the generated
+  helper that reads the removed fields under either API version.
+
+Checks: node -e 0 passed on the original and migrated code in offline
+Docker.
+
+Needs review: the pull request lists what to check before merging.
+
+Source: https://docs.stripe.com/changelog/basil/2025-03-31/deprecate-subscription-current-period-start-and-end
+Source: https://docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions
+
+Refit-Run: f87feb0a19dc
+```
+
+### Untraced reads
+
+```text
+fix(stripe): migrate removed invoice.payment_intent reads
+
+Stripe API 2026-09-30.endive removes fields this code reads and removes
+request fields this code sends. A deterministic Refit rule migrates 1
+confirmed usage in 1 file so the code keeps working after the upgrade.
+
+- api/stripe-checkout.js: Sends allowed_payment_method_types in place of
+  the removed payment_method_types.
+- package.json: Upgrades stripe from 17.7.0 to 23.0.0.
+- package-lock.json: Upgrades stripe from 17.7.0 to 23.0.0.
+
+Checks: npx --no-install tsc --noEmit --pretty false -p . passed on the
+original and migrated code in offline Docker.
+
+Source: https://docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions
+
+Refit-Run: 37a296da57c7
+```
+
+### AI patch
+
+```text
+fix(stripe): migrate removed Stripe API fields
+
+Stripe API 2026-09-30.endive removes fields this code reads. AI
+(gpt-5.4-mini-2026-03-17), checked by Refit, migrates 3 confirmed usages
+in 1 file so the code keeps working after the upgrade.
+
+- convex/stripe.ts: Migrates reads of subscription.current_period_end,
+  invoice.subscription to the documented new locations.
+- convex/stripe-subscription-period.ts: Adds the generated helper that
+  reads the removed fields under either API version.
+
+Checks: npx --no-install tsc --noEmit --pretty false -p . passed on the
+original and migrated code in offline Docker.
+
+Needs review: the pull request lists what to check before merging.
+
+Source: https://docs.stripe.com/changelog/basil/2025-03-31/deprecate-subscription-current-period-start-and-end.md
+Source: https://docs.stripe.com/changelog/basil/2025-03-31/adds-new-parent-field-to-invoicing-objects.md
+
+Refit-Run: 970d72753414
+```
+
+### Model fix (simulated checks)
+
+```text
+fix: replace 4 retiring AI models
+
+- lib/openai.ts:42: gpt-3.5-turbo -> gpt-5.6-terra, retires 2026-10-23
+- app/api/chat/route.ts:51: gpt-3.5-turbo -> gpt-5.6-terra, retires
+  2026-10-23
+- app/api/journal/completion/route.ts:15: gpt-3.5-turbo ->
+  gpt-5.6-terra, retires 2026-10-23
+- app/api/pdfs/message/route.ts:71: gpt-3.5-turbo -> gpt-5.6-terra,
+  retires 2026-10-23
+
+Checks: npm run build passed on the original and passed on the patched
+code in offline Docker; no request reached the provider.
+
+Source: https://developers.openai.com/api/docs/deprecations
+```
+
+### Shopify
+
+```text
+fix(shopify): upgrade Admin API to 2026-04
+
+This app pins Shopify Admin API 2025-10. A deterministic Refit rule
+moves it to 2026-04 after checking every traced GraphQL document against
+the 2026-04 schema.
+
+- .graphqlrc.ts: Moves the pinned Admin API version to 2026-04.
+- app/shopify.server.ts: Moves the pinned Admin API version to 2026-04.
+
+Checks: npm test passed on the original and migrated code in offline
+Docker.
+
+Refit-Run: a6212c5cfe66
+```
+
+### Multi-integration collection
+
+```text
+fix(stripe): migrate removed invoice.subscription reads
+
+Stripe API 2026-09-30.endive removes fields this code reads. A
+deterministic Refit rule migrates 1 confirmed usage in 1 file so the
+code keeps working after the upgrade.
+
+- convex/stripe.ts: Migrates reads of invoice.subscription to the
+  documented new locations. Moves the pinned API version from 2024-06-20
+  to 2026-09-30.endive.
+- convex/stripe-subscription-period.ts: Adds the generated helper that
+  reads the removed fields under either API version.
+- package.json: Upgrades stripe from 16.5.0 to 23.0.0.
+- package-lock.json: Upgrades stripe from 16.5.0 to 23.0.0.
+
+Checks: npx --no-install tsc --noEmit --pretty false -p . passed on the
+original and migrated code in offline Docker.
+
+Source: https://docs.stripe.com/changelog/basil/2025-03-31/adds-new-parent-field-to-invoicing-objects
+
+Refit-Run: 1da7a5d798d9
+Refit-Integration: stripe
+```
