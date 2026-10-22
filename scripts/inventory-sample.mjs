@@ -1,4 +1,4 @@
-// Takes the hosted inventory (pipeline/inventory.ts scanInventory) of the first --limit repositories
+// Takes the hosted inventory (pipeline/inventory.ts inventoryDirectory) of the first --limit repositories
 // of each frozen list, in frozen order, at their recorded commits. Each clone is read, timed and
 // deleted; nothing in it is installed or run, and no provider is contacted.
 // Usage: node scripts/inventory-sample.mjs --list <frozen.json> [--list …] --limit 10 --root <dir> --output <results.json>
