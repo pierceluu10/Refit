@@ -1127,6 +1127,7 @@ it('keeps the shipped registry valid and sourced', async () => {
       'easypost',
       'aws',
       'azure',
+      'twilio',
     ]),
   );
 });

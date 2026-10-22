@@ -43,6 +43,8 @@ The matchers exist and are tested with illustrative, test-only entries, so addin
 | First set, after fixes it informed | `fc0a8ed` | 97.2% (106/109) | 94.6% | 97.9% / 100% | 90.0% / 81.8% | 100% / 95.5% |
 | **Held-out set** | `fc0a8ed` | **82.0% (41/50)** | **82.0%** | 100% / 100% | 53.8% / 53.8% | 88.0% / 88.0% |
 
+Every figure above matches the committed results files (checked 2026-10-22). The after and held-out files record Refit commit `1706f25`, which differs from `fc0a8ed` only in `scripts/model-hosts-benchmark.mjs`, so the detector is the same.
+
 The held-out row is the honest estimate; the middle row measures the labels the fixes came from. The held-out errors, left as found:
 
 - **Azure false positives (6).** `?api-version=v1` on Azure AI Foundry project endpoints (storage, memory, toolbox), which are not Azure OpenAI model requests.

@@ -94,7 +94,8 @@ async function registryEntry(name) {
 }
 
 const rows = parseCsv(await readFile(values.csv, 'utf8'));
-const deprecated = rows.filter((row) => /^deprec/i.test(row.Support));
+// `depreacted` is Microsoft's own misspelling on at least one row (azure-cognitiveservices-customsearch).
+const deprecated = rows.filter((row) => /^depre(?:c|ac)/i.test(row.Support));
 const skipped = { noDate: [], versionOnly: [], notOnNpm: [] };
 const kept = [];
 for (const row of deprecated) {

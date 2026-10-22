@@ -1,0 +1,260 @@
+{
+  "formatVersion": 1,
+  "list": "docs/benchmarks/2026-10-22-python-model-repos.json",
+  "labelledAt": "2026-10-22",
+  "method": "Held-out hand labels, same scope and rules as docs/benchmarks/2026-10-22-python-model-labels.json, made after the tracer was frozen at 798d715 and before it was scored on these repositories: the next repositories in the seeded order after the labelled sample, skipping mitodl/ol-data-platform (45-minute labelling timebox: models flow through Dagster resources and an agent SDK). They measure precision without tuning on the labels.",
+  "repos": [
+    {
+      "repo": "Zhiyuan-Zeng/RLVE",
+      "calls": [
+        {
+          "file": "slime_plugins/rollout_buffer/generator/base_generator.py",
+          "line": 71,
+          "provider": "openai"
+        },
+        {
+          "file": "tinker-cookbook/tinker_cookbook/recipes/tool_use/search/embedding.py",
+          "line": 94,
+          "provider": "gemini"
+        }
+      ],
+      "sent": [
+        {
+          "file": "slime_plugins/rollout_buffer/generator/base_generator.py",
+          "line": 42,
+          "model": "custom"
+        },
+        {
+          "file": "tinker-cookbook/tinker_cookbook/recipes/tool_use/search/tools.py",
+          "line": 31,
+          "model": "gemini-embedding-001"
+        },
+        {
+          "file": "tinker-cookbook/tinker_cookbook/recipes/tool_use/search/train.py",
+          "line": 43,
+          "model": "gemini-embedding-001"
+        },
+        {
+          "file": "tinker-cookbook/tinker_cookbook/recipes/tool_use/search/offline_eval.py",
+          "line": 103,
+          "model": "gemini-embedding-001"
+        }
+      ],
+      "notSent": [
+        {
+          "file": "tinker-cookbook/tinker_cookbook/recipes/tool_use/search/embedding.py",
+          "line": 55,
+          "model": "gemini-embedding-001"
+        }
+      ],
+      "ambiguous": [],
+      "notes": "query_single_turn's client is an untyped parameter. EmbeddingConfig's model_name default reaches get_gemini_embedding through EmbeddingConfig() in tools.py; get_gemini_embedding's own default is overridden by its only caller.",
+      "commit": "b2dd0b6f726ee2ebc8e2c0fb2af0796414f18cb2"
+    },
+    {
+      "repo": "whitematterlabs/ambiance",
+      "calls": [
+        {
+          "file": "src/boot/debugger.py",
+          "line": 253,
+          "provider": "anthropic"
+        },
+        {
+          "file": "src/boot/llm.py",
+          "line": 389,
+          "provider": "anthropic"
+        }
+      ],
+      "sent": [
+        {
+          "file": "src/boot/llm.py",
+          "line": 130,
+          "model": "claude-sonnet-4-6"
+        },
+        {
+          "file": "src/boot/llm.py",
+          "line": 138,
+          "model": "deepseek-v4-pro"
+        },
+        {
+          "file": "src/boot/llm.py",
+          "line": 148,
+          "model": "glm-5.2"
+        },
+        {
+          "file": "src/boot/llm.py",
+          "line": 159,
+          "model": "gpt-5.5"
+        },
+        {
+          "file": "src/boot/llm.py",
+          "line": 171,
+          "model": "nvidia/nemotron-3-ultra-550b-a55b:free"
+        }
+      ],
+      "notSent": [
+        {
+          "file": "src/boot/llm.py",
+          "line": 195,
+          "model": "claude-opus-4-8"
+        },
+        {
+          "file": "src/boot/llm.py",
+          "line": 196,
+          "model": "claude-sonnet-4-6"
+        }
+      ],
+      "ambiguous": [],
+      "notes": "Every provider goes through AsyncAnthropic (proxied providers through a local LiteLLM proxy); _resolve sends the ProviderSpec default_model when no model is chosen. CatalogEntry rows are a picker catalog.",
+      "commit": "af994d9647295d98655990ada112306891049f2d"
+    },
+    {
+      "repo": "ryysayhi/AudioGenie",
+      "calls": [
+        {
+          "file": "llm.py",
+          "line": 139,
+          "provider": "gemini"
+        }
+      ],
+      "sent": [
+        {
+          "file": "llm.py",
+          "line": 21,
+          "model": "gemini-2.5-flash"
+        }
+      ],
+      "notSent": [],
+      "ambiguous": [],
+      "notes": "run.py builds GeminiLLM() with the default.",
+      "commit": "a7baad56d3a37b62f19f55e27c78afb665d3b0de"
+    },
+    {
+      "repo": "SakanaAI/CoffeeBench",
+      "calls": [
+        {
+          "file": "coffeebench/models/anthropic_model.py",
+          "line": 242,
+          "provider": "anthropic"
+        },
+        {
+          "file": "coffeebench/models/anthropic_model.py",
+          "line": 260,
+          "provider": "anthropic"
+        },
+        {
+          "file": "coffeebench/models/anthropic_model.py",
+          "line": 272,
+          "provider": "anthropic"
+        },
+        {
+          "file": "coffeebench/models/anthropic_model.py",
+          "line": 374,
+          "provider": "anthropic"
+        },
+        {
+          "file": "coffeebench/models/anthropic_model.py",
+          "line": 388,
+          "provider": "anthropic"
+        },
+        {
+          "file": "coffeebench/models/gemini_model.py",
+          "line": 240,
+          "provider": "gemini"
+        },
+        {
+          "file": "coffeebench/models/gemini_model.py",
+          "line": 353,
+          "provider": "gemini"
+        },
+        {
+          "file": "coffeebench/models/openai_model.py",
+          "line": 150,
+          "provider": "openai"
+        },
+        {
+          "file": "coffeebench/models/openai_model.py",
+          "line": 162,
+          "provider": "openai"
+        },
+        {
+          "file": "coffeebench/models/openai_model.py",
+          "line": 173,
+          "provider": "openai"
+        },
+        {
+          "file": "coffeebench/models/openai_model.py",
+          "line": 267,
+          "provider": "openai"
+        },
+        {
+          "file": "coffeebench/models/openai_model.py",
+          "line": 273,
+          "provider": "openai"
+        },
+        {
+          "file": "coffeebench/models/openai_model.py",
+          "line": 277,
+          "provider": "openai"
+        },
+        {
+          "file": "coffeebench/models/openrouter_model.py",
+          "line": 180,
+          "provider": "openai"
+        },
+        {
+          "file": "coffeebench/models/openrouter_model.py",
+          "line": 186,
+          "provider": "openai"
+        },
+        {
+          "file": "coffeebench/models/openrouter_model.py",
+          "line": 190,
+          "provider": "openai"
+        },
+        {
+          "file": "coffeebench/models/openrouter_model.py",
+          "line": 193,
+          "provider": "openai"
+        }
+      ],
+      "sent": [
+        {
+          "file": "coffeebench/models/openai_model.py",
+          "line": 17,
+          "model": "gpt-5.5"
+        },
+        {
+          "file": "coffeebench/models/openrouter_model.py",
+          "line": 33,
+          "model": "moonshotai/kimi-k2.6"
+        },
+        {
+          "file": "coffeebench/models/gemini_model.py",
+          "line": 36,
+          "model": "gemini-3.1-pro-preview"
+        },
+        {
+          "file": "coffeebench/models/anthropic_model.py",
+          "line": 410,
+          "model": "claude-sonnet-4-6"
+        },
+        {
+          "file": "coffeebench/human_ui.py",
+          "line": 31,
+          "model": "claude-haiku-4-5"
+        }
+      ],
+      "notSent": [
+        {
+          "file": "coffeebench/models/anthropic_model.py",
+          "line": 19,
+          "model": "claude-sonnet-4-6"
+        }
+      ],
+      "ambiguous": [],
+      "notes": "Model classes are built by a factory from a model string; each module's __main__ block builds one with its default (AnthropicModel's passes a model, so its default is never used). human_ui's --model default reaches the factory.",
+      "commit": "9e2f3950b5812c8753de81ede9c68babc024b5c8"
+    }
+  ]
+}

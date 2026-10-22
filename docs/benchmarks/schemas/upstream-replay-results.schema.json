@@ -1,0 +1,98 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Upstream replay results",
+  "description": "What Refit found at the commit before each maintainer fixed a historical breaking change by hand, compared with that fix. The cases are in 2026-10-22-upstream-replay-cases.json; see docs/UPSTREAM-REPLAY-RESULTS.md.",
+  "type": "object",
+  "required": ["formatVersion", "ranAt", "refit", "cases", "earliestSignal", "replays"],
+  "properties": {
+    "formatVersion": { "const": 1 },
+    "ranAt": { "$ref": "common.schema.json#/$defs/date" },
+    "refit": {
+      "description": "The clean, pinned Refit commit every replay ran from.",
+      "$ref": "common.schema.json#/$defs/commit"
+    },
+    "cases": { "type": "string", "minLength": 1 },
+    "earliestSignal": {
+      "description": "How the earliest day Refit could have flagged each case is set.",
+      "type": "object",
+      "additionalProperties": { "type": "string" }
+    },
+    "harness": {
+      "description": "The harness records of the Stripe and Shopify benchmark runs behind the replays, by run.",
+      "type": "object",
+      "additionalProperties": { "$ref": "harness.schema.json" }
+    },
+    "replays": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "change",
+          "repo",
+          "language",
+          "before",
+          "fix",
+          "fixAt",
+          "earliestSignalAt",
+          "daysEarlier",
+          "refit",
+          "maintainers",
+          "comparison",
+          "validation"
+        ],
+        "properties": {
+          "change": { "type": "string", "minLength": 1 },
+          "repo": { "$ref": "common.schema.json#/$defs/repo" },
+          "language": { "type": "string", "minLength": 1 },
+          "before": { "$ref": "common.schema.json#/$defs/commit" },
+          "fix": { "$ref": "common.schema.json#/$defs/commit" },
+          "fixAt": { "type": "string", "minLength": 10 },
+          "codeAdded": {
+            "description": "The first commit before the fix that added the affected code to a file Refit reads; absent when Refit cannot read the language.",
+            "$ref": "common.schema.json#/$defs/commit"
+          },
+          "codeAddedAt": { "type": "string", "minLength": 10 },
+          "earliestSignalAt": {
+            "anyOf": [{ "$ref": "common.schema.json#/$defs/date" }, { "type": "null" }]
+          },
+          "daysEarlier": {
+            "description": "Days from the earliest signal to the maintainers' fix; null when Refit would not have flagged it.",
+            "type": ["integer", "null"]
+          },
+          "brokenDays": {
+            "description": "Days the code sent a retired model or version before the fix, when the fix came after the deadline.",
+            "type": ["integer", "null"]
+          },
+          "refit": {
+            "type": "object",
+            "required": ["outcome", "detail"],
+            "properties": {
+              "outcome": { "enum": ["patch", "partial-patch", "flagged", "missed"] },
+              "detail": { "type": "string", "minLength": 1 },
+              "sites": { "$ref": "common.schema.json#/$defs/counts" }
+            }
+          },
+          "maintainers": {
+            "type": "object",
+            "required": ["sites", "summary"],
+            "properties": {
+              "sites": { "$ref": "common.schema.json#/$defs/count" },
+              "summary": { "type": "string", "minLength": 1 }
+            }
+          },
+          "comparison": { "type": "string", "minLength": 1 },
+          "validation": {
+            "type": "object",
+            "required": ["status"],
+            "properties": {
+              "status": {
+                "enum": ["passed", "failed", "not-run", "no-checks", "refused", "error"]
+              },
+              "detail": { "type": "string" }
+            }
+          }
+        }
+      }
+    }
+  }
+}
