@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { readRepository } from './repository.ts';
 import { PipelineInputError, type Repository } from './types.ts';
 
@@ -11,6 +12,12 @@ export interface ProviderAgent {
   adapter: { builtIn: string } | { file: string } | null;
   guide: string | null;
 }
+
+// The retired legacy (track 1) Azure SDK packages, generated from Microsoft's release data by
+// scripts/azure-sdk-retirements.mjs.
+const AZURE_LEGACY_PACKAGES: string[] = JSON.parse(
+  readFileSync(new URL('../data/azure-sdk-retirements.json', import.meta.url), 'utf8'),
+).packages.map((item: { name: string }) => item.name);
 
 // Source: npm package names and documented API base URLs on each provider's docs, 2026-10-15.
 export const AGENT_CATALOG: ProviderAgent[] = [
@@ -104,6 +111,26 @@ export const AGENT_CATALOG: ProviderAgent[] = [
     adapter: null,
     guide: null,
   },
+  // AWS SDK for JavaScript v2, whose support ended on 2025-09-08 (data/deadlines.json). Regional
+  // service hosts all end in amazonaws.com. v3's per-service @aws-sdk/client-* packages are listed
+  // by scanCloudSdkClients (pipeline/cloud-sdk-clients.ts) rather than named here one by one.
+  {
+    id: 'aws',
+    name: 'AWS SDK for JavaScript',
+    packages: ['aws-sdk'],
+    hostnames: ['amazonaws.com'],
+    adapter: null,
+    guide: null,
+  },
+  // Only the retired legacy Azure SDK packages: their end of life is the deadline Refit monitors.
+  {
+    id: 'azure',
+    name: 'Azure SDK (legacy)',
+    packages: AZURE_LEGACY_PACKAGES,
+    hostnames: [],
+    adapter: null,
+    guide: null,
+  },
 ];
 
 const MAX_HOSTNAME_EVIDENCE = 5;
@@ -131,9 +158,14 @@ export async function detectProviders(directory: string): Promise<AgentDetection
   for (const agent of AGENT_CATALOG) {
     const packages: AgentDetection['packages'] = [];
     let repository: Repository | undefined;
-    // shortcut: reads the repository once per catalog package; fine for a small catalog, share one
-    // read across packages if the catalog grows.
+    // Reads the repository once per catalog package that a package.json names: a package no
+    // manifest mentions has no declaration to find.
     for (const name of agent.packages) {
+      if (
+        repository &&
+        !repository.manifests?.some((manifest) => manifest.content.includes(`"${name}"`))
+      )
+        continue;
       repository = await readRepository(directory, name);
       for (const dependency of repository.dependencies)
         packages.push({

@@ -131,6 +131,7 @@ export async function readRepository(
         repository.files.push(await sourceFile(path, name, content));
         continue;
       }
+      (repository.manifests ??= []).push({ path: name, content });
       const manifest = parseObject(content, name);
       for (const section of DEPENDENCY_SECTIONS) {
         const dependencies = manifest[section];

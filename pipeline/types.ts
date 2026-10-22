@@ -78,6 +78,8 @@ export interface Repository {
   files: { path: string; content: string; encoding?: 'utf-16' }[];
   configurations?: Repository['files'];
   excludedPaths?: string[];
+  // Every package.json read, so a caller can tell which packages any manifest names.
+  manifests?: { path: string; content: string }[];
   dependencies: (DependencyDeclaration & { lock: LockedDependency })[];
   lockfiles: { file: string; hash: string; version: number | null }[];
   warnings: string[];
