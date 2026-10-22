@@ -11,9 +11,7 @@
       "detected": [
         {
           "id": "google-maps",
-          "packages": [
-            "@googlemaps/js-api-loader@^1.16.8"
-          ],
+          "packages": ["@googlemaps/js-api-loader@^1.16.8"],
           "hostnames": []
         }
       ],
@@ -26,9 +24,7 @@
       "detected": [
         {
           "id": "google-maps",
-          "packages": [
-            "@googlemaps/js-api-loader@2.0.2"
-          ],
+          "packages": ["@googlemaps/js-api-loader@2.0.2"],
           "hostnames": []
         }
       ],
@@ -38,7 +34,7 @@
       "repo": "ideil/ideil-vite-starter",
       "provider": "google-maps",
       "commit": "ad39483eb548c06012bf43b03331fea221f5f7cb",
-      "error": "Command failed: node /Users/furqan/Documents/PROJECTS/Refit-FG3/bin/refit.mjs agents --repository /tmp/fg3/repos/ideil__ideil-vite-starter --json"
+      "error": "Command failed: node <refit>/bin/refit.mjs agents --repository <root>/ideil__ideil-vite-starter --json"
     },
     {
       "repo": "tjhorner/transit-tracker-configurator",
@@ -47,9 +43,7 @@
       "detected": [
         {
           "id": "google-maps",
-          "packages": [
-            "@googlemaps/js-api-loader@2.0.2"
-          ],
+          "packages": ["@googlemaps/js-api-loader@2.0.2"],
           "hostnames": []
         }
       ],
@@ -62,9 +56,7 @@
       "detected": [
         {
           "id": "google-maps",
-          "packages": [
-            "@googlemaps/js-api-loader@1.16.8"
-          ],
+          "packages": ["@googlemaps/js-api-loader@1.16.8"],
           "hostnames": []
         }
       ],
@@ -77,9 +69,7 @@
       "detected": [
         {
           "id": "google-maps",
-          "packages": [
-            "@googlemaps/js-api-loader@^1.16.10"
-          ],
+          "packages": ["@googlemaps/js-api-loader@^1.16.10"],
           "hostnames": []
         }
       ],
@@ -92,9 +82,7 @@
       "detected": [
         {
           "id": "google-maps",
-          "packages": [
-            "@googlemaps/js-api-loader@^1.16.8"
-          ],
+          "packages": ["@googlemaps/js-api-loader@^1.16.8"],
           "hostnames": []
         }
       ],
@@ -107,9 +95,7 @@
       "detected": [
         {
           "id": "google-maps",
-          "packages": [
-            "@googlemaps/js-api-loader@2.0.2"
-          ],
+          "packages": ["@googlemaps/js-api-loader@2.0.2"],
           "hostnames": []
         }
       ],
@@ -122,9 +108,7 @@
       "detected": [
         {
           "id": "google-maps",
-          "packages": [
-            "@googlemaps/js-api-loader@^1.16.2"
-          ],
+          "packages": ["@googlemaps/js-api-loader@^1.16.2"],
           "hostnames": []
         }
       ],
@@ -137,10 +121,7 @@
       "detected": [
         {
           "id": "google-maps",
-          "packages": [
-            "@googlemaps/js-api-loader@2.0.2",
-            "@react-google-maps/api@2.20.7"
-          ],
+          "packages": ["@googlemaps/js-api-loader@2.0.2", "@react-google-maps/api@2.20.7"],
           "hostnames": []
         },
         {
@@ -161,9 +142,7 @@
       "detected": [
         {
           "id": "gemini",
-          "packages": [
-            "@google/generative-ai@0.24.0"
-          ],
+          "packages": ["@google/generative-ai@0.24.0"],
           "hostnames": [
             "components/farmerDashboard/VoiceChat.tsx:10 generativelanguage.googleapis.com",
             "lib/multimodal-live-client.ts:64 generativelanguage.googleapis.com"
@@ -171,20 +150,12 @@
         },
         {
           "id": "google-maps",
-          "packages": [
-            "@googlemaps/js-api-loader@1.16.8",
-            "@react-google-maps/api@2.20.6"
-          ],
-          "hostnames": [
-            "components/soilTestingRegistration/GoogleMap.tsx:88 routes.googleapis.com"
-          ]
+          "packages": ["@googlemaps/js-api-loader@1.16.8", "@react-google-maps/api@2.20.6"],
+          "hostnames": ["components/soilTestingRegistration/GoogleMap.tsx:88 routes.googleapis.com"]
         },
         {
           "id": "cloudinary",
-          "packages": [
-            "@cloudinary/url-gen@1.21.0",
-            "@cloudinary/react@1.14.1"
-          ],
+          "packages": ["@cloudinary/url-gen@1.21.0", "@cloudinary/react@1.14.1"],
           "hostnames": [
             "components/soilAgent/TestResultsComponent.tsx:144 api.cloudinary.com",
             "config/ImagesUrl.ts:2 res.cloudinary.com",
@@ -215,9 +186,7 @@
       "detected": [
         {
           "id": "google-maps",
-          "packages": [
-            "@googlemaps/js-api-loader@1.16.6"
-          ],
+          "packages": ["@googlemaps/js-api-loader@1.16.6"],
           "hostnames": []
         }
       ],
@@ -230,9 +199,7 @@
       "detected": [
         {
           "id": "google-maps",
-          "packages": [
-            "@googlemaps/js-api-loader@1.16.10"
-          ],
+          "packages": ["@googlemaps/js-api-loader@1.16.10"],
           "hostnames": []
         }
       ],
@@ -245,31 +212,22 @@
       "detected": [
         {
           "id": "stripe",
-          "packages": [
-            "stripe@17.1.0"
-          ],
+          "packages": ["stripe@17.1.0"],
           "hostnames": []
         },
         {
           "id": "resend",
-          "packages": [
-            "resend@4.0.0"
-          ],
+          "packages": ["resend@4.0.0"],
           "hostnames": []
         },
         {
           "id": "google-maps",
-          "packages": [
-            "@googlemaps/js-api-loader@1.16.8",
-            "@react-google-maps/api@2.20.3"
-          ],
+          "packages": ["@googlemaps/js-api-loader@1.16.8", "@react-google-maps/api@2.20.3"],
           "hostnames": []
         },
         {
           "id": "mapbox",
-          "packages": [
-            "mapbox-gl@3.8.0"
-          ],
+          "packages": ["mapbox-gl@3.8.0"],
           "hostnames": []
         }
       ],
@@ -282,9 +240,7 @@
       "detected": [
         {
           "id": "mapbox",
-          "packages": [
-            "mapbox-gl@3.9.3"
-          ],
+          "packages": ["mapbox-gl@3.9.3"],
           "hostnames": [
             "packages/veda-ui/src/components/common/map/controls/map-options/basemap.ts:10 api.mapbox.com",
             "packages/veda-ui/src/components/common/map/controls/map-options/basemap.ts:21 api.mapbox.com",
@@ -303,12 +259,8 @@
       "detected": [
         {
           "id": "mapbox",
-          "packages": [
-            "mapbox-gl@^3.13.0"
-          ],
-          "hostnames": [
-            "bin2/match-ids.ts:11 api.mapbox.com"
-          ]
+          "packages": ["mapbox-gl@^3.13.0"],
+          "hostnames": ["bin2/match-ids.ts:11 api.mapbox.com"]
         }
       ],
       "exposures": []
@@ -320,10 +272,7 @@
       "detected": [
         {
           "id": "mapbox",
-          "packages": [
-            "mapbox-gl@^3.15.0",
-            "@mapbox/mapbox-sdk@^0.16.2"
-          ],
+          "packages": ["mapbox-gl@^3.15.0", "@mapbox/mapbox-sdk@^0.16.2"],
           "hostnames": []
         }
       ],
@@ -336,9 +285,7 @@
       "detected": [
         {
           "id": "mapbox",
-          "packages": [
-            "mapbox-gl@2.7.0"
-          ],
+          "packages": ["mapbox-gl@2.7.0"],
           "hostnames": []
         }
       ],
@@ -351,9 +298,7 @@
       "detected": [
         {
           "id": "mapbox",
-          "packages": [
-            "mapbox-gl@^2.13.0"
-          ],
+          "packages": ["mapbox-gl@^2.13.0"],
           "hostnames": [
             "src/map/mapbox-style-switcher.tsx:23 api.mapbox.com",
             "src/map/mapbox-style-switcher.tsx:24 api.mapbox.com",
@@ -370,9 +315,7 @@
       "detected": [
         {
           "id": "mapbox",
-          "packages": [
-            "mapbox-gl@1.13.2"
-          ],
+          "packages": ["mapbox-gl@1.13.2"],
           "hostnames": []
         }
       ],
@@ -385,9 +328,7 @@
       "detected": [
         {
           "id": "mapbox",
-          "packages": [
-            "mapbox-gl@3.15.0"
-          ],
+          "packages": ["mapbox-gl@3.15.0"],
           "hostnames": [
             "src/utilities.tsx:166 api.mapbox.com",
             "src/utilities.tsx:197 api.mapbox.com"
@@ -403,17 +344,13 @@
       "detected": [
         {
           "id": "mapbox",
-          "packages": [
-            "mapbox-gl@3.17.0"
-          ],
+          "packages": ["mapbox-gl@3.17.0"],
           "hostnames": []
         },
         {
           "id": "airtable",
           "packages": [],
-          "hostnames": [
-            "src/lib/airtable.ts:7 api.airtable.com"
-          ]
+          "hostnames": ["src/lib/airtable.ts:7 api.airtable.com"]
         }
       ],
       "exposures": []
@@ -425,9 +362,7 @@
       "detected": [
         {
           "id": "mapbox",
-          "packages": [
-            "mapbox-gl@^3.7.0"
-          ],
+          "packages": ["mapbox-gl@^3.7.0"],
           "hostnames": []
         }
       ],
@@ -440,9 +375,7 @@
       "detected": [
         {
           "id": "mapbox",
-          "packages": [
-            "mapbox-gl@3.11.0"
-          ],
+          "packages": ["mapbox-gl@3.11.0"],
           "hostnames": []
         }
       ],
@@ -455,9 +388,7 @@
       "detected": [
         {
           "id": "mapbox",
-          "packages": [
-            "mapbox-gl@3.18.1"
-          ],
+          "packages": ["mapbox-gl@3.18.1"],
           "hostnames": []
         }
       ],
@@ -470,9 +401,7 @@
       "detected": [
         {
           "id": "mapbox",
-          "packages": [
-            "mapbox-gl@3.18.1"
-          ],
+          "packages": ["mapbox-gl@3.18.1"],
           "hostnames": []
         }
       ],
@@ -485,9 +414,7 @@
       "detected": [
         {
           "id": "mapbox",
-          "packages": [
-            "mapbox-gl@^3.16.0"
-          ],
+          "packages": ["mapbox-gl@^3.16.0"],
           "hostnames": []
         }
       ],
@@ -500,12 +427,8 @@
       "detected": [
         {
           "id": "mapbox",
-          "packages": [
-            "mapbox-gl@1.12.0"
-          ],
-          "hostnames": [
-            "config/nuxt/head.js:17 api.mapbox.com"
-          ]
+          "packages": ["mapbox-gl@1.12.0"],
+          "hostnames": ["config/nuxt/head.js:17 api.mapbox.com"]
         }
       ],
       "exposures": []
@@ -517,10 +440,7 @@
       "detected": [
         {
           "id": "algolia",
-          "packages": [
-            "algoliasearch@4.20.0",
-            "instantsearch.js@4.56.9"
-          ],
+          "packages": ["algoliasearch@4.20.0", "instantsearch.js@4.56.9"],
           "hostnames": []
         }
       ],
@@ -562,17 +482,12 @@
       "detected": [
         {
           "id": "algolia",
-          "packages": [
-            "algoliasearch@4.25.2",
-            "instantsearch.js@4.80.0"
-          ],
+          "packages": ["algoliasearch@4.25.2", "instantsearch.js@4.80.0"],
           "hostnames": []
         },
         {
           "id": "sentry",
-          "packages": [
-            "@sentry/browser@8.55.0"
-          ],
+          "packages": ["@sentry/browser@8.55.0"],
           "hostnames": []
         }
       ],
@@ -597,9 +512,7 @@
       "detected": [
         {
           "id": "algolia",
-          "packages": [
-            "algoliasearch@^5.43.0"
-          ],
+          "packages": ["algoliasearch@^5.43.0"],
           "hostnames": []
         }
       ],
@@ -641,9 +554,7 @@
       "detected": [
         {
           "id": "algolia",
-          "packages": [
-            "algoliasearch@4.24.0"
-          ],
+          "packages": ["algoliasearch@4.24.0"],
           "hostnames": []
         }
       ],
@@ -668,9 +579,7 @@
       "detected": [
         {
           "id": "algolia",
-          "packages": [
-            "algoliasearch@4.12.0"
-          ],
+          "packages": ["algoliasearch@4.12.0"],
           "hostnames": []
         }
       ],
@@ -695,10 +604,7 @@
       "detected": [
         {
           "id": "algolia",
-          "packages": [
-            "algoliasearch@4.22.1",
-            "@algolia/client-search@4.22.1"
-          ],
+          "packages": ["algoliasearch@4.22.1", "@algolia/client-search@4.22.1"],
           "hostnames": []
         }
       ],
@@ -711,9 +617,7 @@
       "detected": [
         {
           "id": "algolia",
-          "packages": [
-            "algoliasearch@3.32.0"
-          ],
+          "packages": ["algoliasearch@3.32.0"],
           "hostnames": []
         }
       ],
@@ -738,9 +642,7 @@
       "detected": [
         {
           "id": "algolia",
-          "packages": [
-            "algoliasearch@4.17.0"
-          ],
+          "packages": ["algoliasearch@4.17.0"],
           "hostnames": []
         }
       ],
@@ -762,7 +664,7 @@
       "repo": "naabu/naabu",
       "provider": "algolia",
       "commit": "1c404f61fe32b30a57ba6ddfe207d172d0d4f84d",
-      "error": "Command failed: node /Users/furqan/Documents/PROJECTS/Refit-FG3/bin/refit.mjs agents --repository /tmp/fg3/repos/naabu__naabu --json"
+      "error": "Command failed: node <refit>/bin/refit.mjs agents --repository <root>/naabu__naabu --json"
     },
     {
       "repo": "pixie-io/docs.px.dev",
@@ -771,9 +673,7 @@
       "detected": [
         {
           "id": "algolia",
-          "packages": [
-            "algoliasearch@4.4.0"
-          ],
+          "packages": ["algoliasearch@4.4.0"],
           "hostnames": []
         }
       ],
@@ -798,9 +698,7 @@
       "detected": [
         {
           "id": "algolia",
-          "packages": [
-            "algoliasearch@4.27.0"
-          ],
+          "packages": ["algoliasearch@4.27.0"],
           "hostnames": []
         }
       ],
@@ -825,23 +723,17 @@
       "detected": [
         {
           "id": "openai",
-          "packages": [
-            "openai@6.48.0"
-          ],
+          "packages": ["openai@6.48.0"],
           "hostnames": []
         },
         {
           "id": "algolia",
-          "packages": [
-            "algoliasearch@5.56.0"
-          ],
+          "packages": ["algoliasearch@5.56.0"],
           "hostnames": []
         },
         {
           "id": "sentry",
-          "packages": [
-            "@sentry/nextjs@10.66.0"
-          ],
+          "packages": ["@sentry/nextjs@10.66.0"],
           "hostnames": []
         }
       ],
@@ -874,7 +766,7 @@
       "repo": "looker-open-source/actions",
       "provider": "hubspot",
       "commit": "5d136eb830c3ea21b55032f7d4297935eaa03d56",
-      "error": "Command failed: node /Users/furqan/Documents/PROJECTS/Refit-FG3/bin/refit.mjs agents --repository /tmp/fg3/repos/looker-open-source__actions --json"
+      "error": "Command failed: node <refit>/bin/refit.mjs agents --repository <root>/looker-open-source__actions --json"
     },
     {
       "repo": "hubspotdev/crm-object-sync",
@@ -883,9 +775,7 @@
       "detected": [
         {
           "id": "hubspot",
-          "packages": [
-            "@hubspot/api-client@11.1.0"
-          ],
+          "packages": ["@hubspot/api-client@11.1.0"],
           "hostnames": []
         }
       ],
@@ -898,9 +788,7 @@
       "detected": [
         {
           "id": "hubspot",
-          "packages": [
-            "@hubspot/api-client@13.4.0"
-          ],
+          "packages": ["@hubspot/api-client@13.4.0"],
           "hostnames": []
         }
       ],
@@ -913,31 +801,22 @@
       "detected": [
         {
           "id": "twilio",
-          "packages": [
-            "twilio@^4.20.0"
-          ],
+          "packages": ["twilio@^4.20.0"],
           "hostnames": []
         },
         {
           "id": "sendgrid",
-          "packages": [
-            "@sendgrid/mail@^8.1.0",
-            "@sendgrid/client@^8.1.0"
-          ],
+          "packages": ["@sendgrid/mail@^8.1.0", "@sendgrid/client@^8.1.0"],
           "hostnames": []
         },
         {
           "id": "hubspot",
-          "packages": [
-            "@hubspot/api-client@^13.1.0"
-          ],
+          "packages": ["@hubspot/api-client@^13.1.0"],
           "hostnames": []
         },
         {
           "id": "airtable",
-          "packages": [
-            "airtable@^0.12.2"
-          ],
+          "packages": ["airtable@^0.12.2"],
           "hostnames": []
         }
       ],
@@ -962,9 +841,7 @@
       "detected": [
         {
           "id": "hubspot",
-          "packages": [
-            "@hubspot/api-client@12.1.0"
-          ],
+          "packages": ["@hubspot/api-client@12.1.0"],
           "hostnames": []
         }
       ],
@@ -977,17 +854,13 @@
       "detected": [
         {
           "id": "hubspot",
-          "packages": [
-            "@hubspot/api-client@8.5.0"
-          ],
+          "packages": ["@hubspot/api-client@8.5.0"],
           "hostnames": []
         },
         {
           "id": "cloudinary",
           "packages": [],
-          "hostnames": [
-            "next.config.js:9 res.cloudinary.com"
-          ]
+          "hostnames": ["next.config.js:9 res.cloudinary.com"]
         }
       ],
       "exposures": []
@@ -999,9 +872,7 @@
       "detected": [
         {
           "id": "hubspot",
-          "packages": [
-            "@hubspot/api-client@12.1.0"
-          ],
+          "packages": ["@hubspot/api-client@12.1.0"],
           "hostnames": []
         }
       ],
@@ -1014,12 +885,8 @@
       "detected": [
         {
           "id": "hubspot",
-          "packages": [
-            "@hubspot/api-client@13.5.0"
-          ],
-          "hostnames": [
-            "src/tools/workflows.ts:5 api.hubapi.com"
-          ]
+          "packages": ["@hubspot/api-client@13.5.0"],
+          "hostnames": ["src/tools/workflows.ts:5 api.hubapi.com"]
         }
       ],
       "exposures": []
@@ -1031,9 +898,7 @@
       "detected": [
         {
           "id": "hubspot",
-          "packages": [
-            "@hubspot/api-client@^12.0.1"
-          ],
+          "packages": ["@hubspot/api-client@^12.0.1"],
           "hostnames": []
         }
       ],
@@ -1046,9 +911,7 @@
       "detected": [
         {
           "id": "hubspot",
-          "packages": [
-            "@hubspot/api-client@13.5.0"
-          ],
+          "packages": ["@hubspot/api-client@13.5.0"],
           "hostnames": []
         }
       ],
@@ -1061,9 +924,7 @@
       "detected": [
         {
           "id": "hubspot",
-          "packages": [
-            "@hubspot/api-client@13.5.0"
-          ],
+          "packages": ["@hubspot/api-client@13.5.0"],
           "hostnames": []
         }
       ],
@@ -1076,12 +937,8 @@
       "detected": [
         {
           "id": "openai",
-          "packages": [
-            "openai@^4.29.0"
-          ],
-          "hostnames": [
-            "lib/connectionChecks.js:253 api.openai.com"
-          ]
+          "packages": ["openai@^4.29.0"],
+          "hostnames": ["lib/connectionChecks.js:253 api.openai.com"]
         },
         {
           "id": "anthropic",
@@ -1102,9 +959,7 @@
         },
         {
           "id": "hubspot",
-          "packages": [
-            "@hubspot/api-client@^11.1.0"
-          ],
+          "packages": ["@hubspot/api-client@^11.1.0"],
           "hostnames": [
             "lib/connectionChecks.js:206 api.hubapi.com",
             "lib/connectionChecks.js:207 api.hubapi.com"
@@ -1133,22 +988,16 @@
         {
           "id": "meta-graph",
           "packages": [],
-          "hostnames": [
-            "src/adapters/facebook.ts:32 graph.facebook.com"
-          ]
+          "hostnames": ["src/adapters/facebook.ts:32 graph.facebook.com"]
         },
         {
           "id": "hubspot",
-          "packages": [
-            "@hubspot/api-client@13.4.0"
-          ],
+          "packages": ["@hubspot/api-client@13.4.0"],
           "hostnames": []
         },
         {
           "id": "notion",
-          "packages": [
-            "@notionhq/client@5.4.0"
-          ],
+          "packages": ["@notionhq/client@5.4.0"],
           "hostnames": []
         }
       ],
@@ -1173,17 +1022,12 @@
       "detected": [
         {
           "id": "sendgrid",
-          "packages": [
-            "@sendgrid/mail@^7.7.0"
-          ],
+          "packages": ["@sendgrid/mail@^7.7.0"],
           "hostnames": []
         },
         {
           "id": "hubspot",
-          "packages": [
-            "@hubspot/api-client@^11.1.0",
-            "@hubspot/api-client@11.2.0"
-          ],
+          "packages": ["@hubspot/api-client@^11.1.0", "@hubspot/api-client@11.2.0"],
           "hostnames": []
         }
       ],
@@ -1196,37 +1040,27 @@
       "detected": [
         {
           "id": "stripe",
-          "packages": [
-            "stripe@22.3.0"
-          ],
+          "packages": ["stripe@22.3.0"],
           "hostnames": []
         },
         {
           "id": "gemini",
-          "packages": [
-            "@google/genai@2.13.0"
-          ],
+          "packages": ["@google/genai@2.13.0"],
           "hostnames": []
         },
         {
           "id": "meta-graph",
           "packages": [],
-          "hostnames": [
-            "src/util/fbq.ts:60 graph.facebook.com"
-          ]
+          "hostnames": ["src/util/fbq.ts:60 graph.facebook.com"]
         },
         {
           "id": "intercom",
-          "packages": [
-            "intercom-client@6.4.0"
-          ],
+          "packages": ["intercom-client@6.4.0"],
           "hostnames": []
         },
         {
           "id": "airtable",
-          "packages": [
-            "airtable@0.12.2"
-          ],
+          "packages": ["airtable@0.12.2"],
           "hostnames": []
         }
       ],
@@ -1262,17 +1096,12 @@
       "detected": [
         {
           "id": "intercom",
-          "packages": [
-            "intercom-client@6.4.0"
-          ],
+          "packages": ["intercom-client@6.4.0"],
           "hostnames": []
         },
         {
           "id": "sentry",
-          "packages": [
-            "@sentry/node@7.120.4",
-            "@sentry/react@7.120.4"
-          ],
+          "packages": ["@sentry/node@7.120.4", "@sentry/react@7.120.4"],
           "hostnames": []
         }
       ],
@@ -1285,9 +1114,7 @@
       "detected": [
         {
           "id": "intercom",
-          "packages": [
-            "intercom-client@^2.10.4"
-          ],
+          "packages": ["intercom-client@^2.10.4"],
           "hostnames": []
         }
       ],
@@ -1300,16 +1127,12 @@
       "detected": [
         {
           "id": "gemini",
-          "packages": [
-            "@google/generative-ai@0.21.0"
-          ],
+          "packages": ["@google/generative-ai@0.21.0"],
           "hostnames": []
         },
         {
           "id": "intercom",
-          "packages": [
-            "intercom-client@3.2.1"
-          ],
+          "packages": ["intercom-client@3.2.1"],
           "hostnames": []
         }
       ],
@@ -1334,30 +1157,22 @@
       "detected": [
         {
           "id": "intercom",
-          "packages": [
-            "intercom-client@7.0.3"
-          ],
+          "packages": ["intercom-client@7.0.3"],
           "hostnames": []
         },
         {
           "id": "mailchimp",
           "packages": [],
-          "hostnames": [
-            "src/lib/mailchimp.ts:47 api.mailchimp.com"
-          ]
+          "hostnames": ["src/lib/mailchimp.ts:47 api.mailchimp.com"]
         },
         {
           "id": "sentry",
-          "packages": [
-            "@sentry/nextjs@10.34.0"
-          ],
+          "packages": ["@sentry/nextjs@10.34.0"],
           "hostnames": []
         },
         {
           "id": "cloudinary",
-          "packages": [
-            "cloudinary@2.9.0"
-          ],
+          "packages": ["cloudinary@2.9.0"],
           "hostnames": [
             "ckEditor/obj/ckEditor/src/cloudinary.js:32 api.cloudinary.com",
             "ckEditor/src/cloudinary.ts:61 api.cloudinary.com",
@@ -1377,22 +1192,16 @@
         {
           "id": "stripe",
           "packages": [],
-          "hostnames": [
-            "server/api/payouts.js:17 api.stripe.com"
-          ]
+          "hostnames": ["server/api/payouts.js:17 api.stripe.com"]
         },
         {
           "id": "anthropic",
-          "packages": [
-            "@anthropic-ai/sdk@^0.81.0"
-          ],
+          "packages": ["@anthropic-ai/sdk@^0.81.0"],
           "hostnames": []
         },
         {
           "id": "twilio",
-          "packages": [
-            "twilio@^5.3.5"
-          ],
+          "packages": ["twilio@^5.3.5"],
           "hostnames": []
         },
         {
@@ -1419,17 +1228,12 @@
         },
         {
           "id": "intercom",
-          "packages": [
-            "intercom-client@^6.1.0"
-          ],
+          "packages": ["intercom-client@^6.1.0"],
           "hostnames": []
         },
         {
           "id": "sentry",
-          "packages": [
-            "@sentry/node@^8.55.0",
-            "@sentry/browser@^8.55.0"
-          ],
+          "packages": ["@sentry/node@^8.55.0", "@sentry/browser@^8.55.0"],
           "hostnames": []
         }
       ],
@@ -1442,23 +1246,17 @@
       "detected": [
         {
           "id": "stripe",
-          "packages": [
-            "stripe@^17.7.0"
-          ],
+          "packages": ["stripe@^17.7.0"],
           "hostnames": []
         },
         {
           "id": "openai",
-          "packages": [
-            "openai@3.3.0"
-          ],
+          "packages": ["openai@3.3.0"],
           "hostnames": []
         },
         {
           "id": "resend",
-          "packages": [
-            "resend@3.5.0"
-          ],
+          "packages": ["resend@3.5.0"],
           "hostnames": []
         },
         {
@@ -1474,9 +1272,7 @@
         },
         {
           "id": "intercom",
-          "packages": [
-            "intercom-client@4.0.0"
-          ],
+          "packages": ["intercom-client@4.0.0"],
           "hostnames": [
             "src/intercom/intercom.service.js:288 api.intercom.io",
             "src/intercom/intercom.service.js:395 api.intercom.io",
@@ -1487,9 +1283,7 @@
         },
         {
           "id": "sentry",
-          "packages": [
-            "@sentry/node@^10.34.0"
-          ],
+          "packages": ["@sentry/node@^10.34.0"],
           "hostnames": []
         },
         {
@@ -1525,72 +1319,52 @@
       "detected": [
         {
           "id": "stripe",
-          "packages": [
-            "stripe@^18.5.0"
-          ],
+          "packages": ["stripe@^18.5.0"],
           "hostnames": []
         },
         {
           "id": "openai",
-          "packages": [
-            "openai@6.29.0"
-          ],
+          "packages": ["openai@6.29.0"],
           "hostnames": []
         },
         {
           "id": "anthropic",
-          "packages": [
-            "@anthropic-ai/sdk@0.72.1"
-          ],
+          "packages": ["@anthropic-ai/sdk@0.72.1"],
           "hostnames": []
         },
         {
           "id": "gemini",
-          "packages": [
-            "@google/generative-ai@0.21.0"
-          ],
+          "packages": ["@google/generative-ai@0.21.0"],
           "hostnames": []
         },
         {
           "id": "twilio",
-          "packages": [
-            "twilio@5.13.0"
-          ],
+          "packages": ["twilio@5.13.0"],
           "hostnames": []
         },
         {
           "id": "google-maps",
-          "packages": [
-            "@googlemaps/js-api-loader@^1.16.8"
-          ],
+          "packages": ["@googlemaps/js-api-loader@^1.16.8"],
           "hostnames": []
         },
         {
           "id": "hubspot",
-          "packages": [
-            "@hubspot/api-client@13.5.0"
-          ],
+          "packages": ["@hubspot/api-client@13.5.0"],
           "hostnames": []
         },
         {
           "id": "intercom",
-          "packages": [
-            "intercom-client@7.0.3"
-          ],
+          "packages": ["intercom-client@7.0.3"],
           "hostnames": []
         },
         {
           "id": "mailchimp",
-          "packages": [
-            "@mailchimp/mailchimp_marketing@3.0.80"
-          ],
+          "packages": ["@mailchimp/mailchimp_marketing@3.0.80"],
           "hostnames": []
         },
         {
           "id": "notion",
-          "packages": [
-            "@notionhq/client@5.20.0"
-          ],
+          "packages": ["@notionhq/client@5.20.0"],
           "hostnames": []
         }
       ],
@@ -1615,9 +1389,7 @@
       "detected": [
         {
           "id": "mailchimp",
-          "packages": [
-            "@mailchimp/mailchimp_marketing@3.0.80"
-          ],
+          "packages": ["@mailchimp/mailchimp_marketing@3.0.80"],
           "hostnames": []
         }
       ],
@@ -1630,9 +1402,7 @@
       "detected": [
         {
           "id": "mailchimp",
-          "packages": [
-            "@mailchimp/mailchimp_marketing@3.0.80"
-          ],
+          "packages": ["@mailchimp/mailchimp_marketing@3.0.80"],
           "hostnames": [
             "src/pages/api/newsletter/mailchimp.ts:53 api.mailchimp.com",
             "src/pages/api/newsletter/mailchimp.ts:71 api.mailchimp.com"
@@ -1648,30 +1418,22 @@
       "detected": [
         {
           "id": "twilio",
-          "packages": [
-            "twilio@3.84.1"
-          ],
+          "packages": ["twilio@3.84.1"],
           "hostnames": []
         },
         {
           "id": "resend",
-          "packages": [
-            "resend@6.9.2"
-          ],
+          "packages": ["resend@6.9.2"],
           "hostnames": []
         },
         {
           "id": "mailchimp",
-          "packages": [
-            "@mailchimp/mailchimp_marketing@3.0.80"
-          ],
+          "packages": ["@mailchimp/mailchimp_marketing@3.0.80"],
           "hostnames": []
         },
         {
           "id": "sentry",
-          "packages": [
-            "@sentry/node@10.46.0"
-          ],
+          "packages": ["@sentry/node@10.46.0"],
           "hostnames": []
         }
       ],
@@ -1684,9 +1446,7 @@
       "detected": [
         {
           "id": "mailchimp",
-          "packages": [
-            "@mailchimp/mailchimp_marketing@3.0.72"
-          ],
+          "packages": ["@mailchimp/mailchimp_marketing@3.0.72"],
           "hostnames": []
         }
       ],
@@ -1699,23 +1459,17 @@
       "detected": [
         {
           "id": "stripe",
-          "packages": [
-            "stripe@17.7.0"
-          ],
+          "packages": ["stripe@17.7.0"],
           "hostnames": []
         },
         {
           "id": "openai",
-          "packages": [
-            "openai@4.104.0"
-          ],
+          "packages": ["openai@4.104.0"],
           "hostnames": []
         },
         {
           "id": "mailchimp",
-          "packages": [
-            "@mailchimp/mailchimp_marketing@3.0.80"
-          ],
+          "packages": ["@mailchimp/mailchimp_marketing@3.0.80"],
           "hostnames": []
         }
       ],
@@ -1728,9 +1482,7 @@
       "detected": [
         {
           "id": "mailchimp",
-          "packages": [
-            "@mailchimp/mailchimp_marketing@^3.0.58"
-          ],
+          "packages": ["@mailchimp/mailchimp_marketing@^3.0.58"],
           "hostnames": []
         }
       ],
@@ -1743,9 +1495,7 @@
       "detected": [
         {
           "id": "mailchimp",
-          "packages": [
-            "@mailchimp/mailchimp_marketing@3.0.72"
-          ],
+          "packages": ["@mailchimp/mailchimp_marketing@3.0.72"],
           "hostnames": []
         }
       ],
@@ -1758,9 +1508,7 @@
       "detected": [
         {
           "id": "mailchimp",
-          "packages": [
-            "@mailchimp/mailchimp_marketing@3.0.80"
-          ],
+          "packages": ["@mailchimp/mailchimp_marketing@3.0.80"],
           "hostnames": []
         }
       ],
@@ -1773,16 +1521,12 @@
       "detected": [
         {
           "id": "mailchimp",
-          "packages": [
-            "@mailchimp/mailchimp_marketing@3.0.80"
-          ],
+          "packages": ["@mailchimp/mailchimp_marketing@3.0.80"],
           "hostnames": []
         },
         {
           "id": "sentry",
-          "packages": [
-            "@sentry/node@9.35.0"
-          ],
+          "packages": ["@sentry/node@9.35.0"],
           "hostnames": []
         }
       ],
@@ -1799,15 +1543,11 @@
             "@mailchimp/mailchimp_marketing@3.0.80",
             "@mailchimp/mailchimp_transactional@1.4.1"
           ],
-          "hostnames": [
-            "src/lib/newsletter/providers/mailchimp.tsx:54 api.mailchimp.com"
-          ]
+          "hostnames": ["src/lib/newsletter/providers/mailchimp.tsx:54 api.mailchimp.com"]
         },
         {
           "id": "cloudinary",
-          "packages": [
-            "cloudinary@2.10.0"
-          ],
+          "packages": ["cloudinary@2.10.0"],
           "hostnames": [
             "next.config.js:56 res.cloudinary.com",
             "src/components/Dropzone/UploadProviders/cloudinary.ts:33 api.cloudinary.com"
@@ -1835,16 +1575,12 @@
       "detected": [
         {
           "id": "mailchimp",
-          "packages": [
-            "@mailchimp/mailchimp_marketing@3.0.80"
-          ],
+          "packages": ["@mailchimp/mailchimp_marketing@3.0.80"],
           "hostnames": []
         },
         {
           "id": "notion",
-          "packages": [
-            "@notionhq/client@4.0.2"
-          ],
+          "packages": ["@notionhq/client@4.0.2"],
           "hostnames": [
             "services/Notion/CreateDatabase/handler.ts:2 api.notion.com",
             "services/Notion/CreateDatabase/test.spec.ts:23 api.notion.com",
@@ -1874,9 +1610,7 @@
       "detected": [
         {
           "id": "mailchimp",
-          "packages": [
-            "@mailchimp/mailchimp_marketing@3.0.72"
-          ],
+          "packages": ["@mailchimp/mailchimp_marketing@3.0.72"],
           "hostnames": []
         }
       ],
@@ -1889,9 +1623,7 @@
       "detected": [
         {
           "id": "mailchimp",
-          "packages": [
-            "@mailchimp/mailchimp_marketing@^3.0.80"
-          ],
+          "packages": ["@mailchimp/mailchimp_marketing@^3.0.80"],
           "hostnames": []
         }
       ],
@@ -1904,16 +1636,12 @@
       "detected": [
         {
           "id": "stripe",
-          "packages": [
-            "stripe@14.25.0"
-          ],
+          "packages": ["stripe@14.25.0"],
           "hostnames": []
         },
         {
           "id": "mailchimp",
-          "packages": [
-            "@mailchimp/mailchimp_marketing@3.0.80"
-          ],
+          "packages": ["@mailchimp/mailchimp_marketing@3.0.80"],
           "hostnames": []
         }
       ],
@@ -1926,16 +1654,12 @@
       "detected": [
         {
           "id": "openai",
-          "packages": [
-            "openai@^6.22.0"
-          ],
+          "packages": ["openai@^6.22.0"],
           "hostnames": []
         },
         {
           "id": "zoom",
-          "packages": [
-            "@zoom/meetingsdk@^5.1.2"
-          ],
+          "packages": ["@zoom/meetingsdk@^5.1.2"],
           "hostnames": []
         }
       ],
@@ -1960,23 +1684,17 @@
       "detected": [
         {
           "id": "stripe",
-          "packages": [
-            "stripe@20.4.1"
-          ],
+          "packages": ["stripe@20.4.1"],
           "hostnames": []
         },
         {
           "id": "resend",
-          "packages": [
-            "resend@6.12.3"
-          ],
+          "packages": ["resend@6.12.3"],
           "hostnames": []
         },
         {
           "id": "zoom",
-          "packages": [
-            "@zoom/meetingsdk@5.1.4"
-          ],
+          "packages": ["@zoom/meetingsdk@5.1.4"],
           "hostnames": []
         }
       ],
@@ -1989,26 +1707,18 @@
       "detected": [
         {
           "id": "openai",
-          "packages": [
-            "openai@6.18.0"
-          ],
+          "packages": ["openai@6.18.0"],
           "hostnames": []
         },
         {
           "id": "gemini",
-          "packages": [
-            "@google/generative-ai@0.24.1"
-          ],
+          "packages": ["@google/generative-ai@0.24.1"],
           "hostnames": []
         },
         {
           "id": "zoom",
-          "packages": [
-            "@zoom/meetingsdk@5.1.2"
-          ],
-          "hostnames": [
-            "lib/zoom.ts:9 api.zoom.us"
-          ]
+          "packages": ["@zoom/meetingsdk@5.1.2"],
+          "hostnames": ["lib/zoom.ts:9 api.zoom.us"]
         }
       ],
       "exposures": []
@@ -2020,9 +1730,7 @@
       "detected": [
         {
           "id": "zoom",
-          "packages": [
-            "@zoom/meetingsdk@3.8.5"
-          ],
+          "packages": ["@zoom/meetingsdk@3.8.5"],
           "hostnames": []
         }
       ],
@@ -2053,9 +1761,7 @@
       "detected": [
         {
           "id": "zoom",
-          "packages": [
-            "@zoom/meetingsdk@3.13.1"
-          ],
+          "packages": ["@zoom/meetingsdk@3.13.1"],
           "hostnames": []
         }
       ],
@@ -2080,9 +1786,7 @@
       "detected": [
         {
           "id": "zoom",
-          "packages": [
-            "@zoom/meetingsdk@^4.1.0"
-          ],
+          "packages": ["@zoom/meetingsdk@^4.1.0"],
           "hostnames": []
         }
       ],
@@ -2095,16 +1799,12 @@
       "detected": [
         {
           "id": "openai",
-          "packages": [
-            "openai@4.104.0"
-          ],
+          "packages": ["openai@4.104.0"],
           "hostnames": []
         },
         {
           "id": "zoom",
-          "packages": [
-            "@zoom/meetingsdk@3.13.2"
-          ],
+          "packages": ["@zoom/meetingsdk@3.13.2"],
           "hostnames": []
         }
       ],
@@ -2117,12 +1817,8 @@
       "detected": [
         {
           "id": "zoom",
-          "packages": [
-            "@zoom/meetingsdk@^6.2.0"
-          ],
-          "hostnames": [
-            "server.js:74 api.zoom.us"
-          ]
+          "packages": ["@zoom/meetingsdk@^6.2.0"],
+          "hostnames": ["server.js:74 api.zoom.us"]
         }
       ],
       "exposures": [
@@ -2146,9 +1842,7 @@
       "detected": [
         {
           "id": "zoom",
-          "packages": [
-            "@zoom/meetingsdk@4.0.7"
-          ],
+          "packages": ["@zoom/meetingsdk@4.0.7"],
           "hostnames": []
         }
       ],
@@ -2161,9 +1855,7 @@
       "detected": [
         {
           "id": "zoom",
-          "packages": [
-            "@zoom/meetingsdk@5.1.4"
-          ],
+          "packages": ["@zoom/meetingsdk@5.1.4"],
           "hostnames": [
             "app/api/coach-mode/zoom/callback/route.ts:276 api.zoom.us",
             "app/api/coach-mode/zoom/meeting/route.ts:61 api.zoom.us"
@@ -2209,9 +1901,7 @@
       "detected": [
         {
           "id": "zoom",
-          "packages": [
-            "@zoom/meetingsdk@5.1.2"
-          ],
+          "packages": ["@zoom/meetingsdk@5.1.2"],
           "hostnames": []
         }
       ],
@@ -2224,9 +1914,7 @@
       "detected": [
         {
           "id": "zoom",
-          "packages": [
-            "@zoom/meetingsdk@5.1.4"
-          ],
+          "packages": ["@zoom/meetingsdk@5.1.4"],
           "hostnames": []
         }
       ],
@@ -2263,26 +1951,17 @@
       "detected": [
         {
           "id": "gemini",
-          "packages": [
-            "@google/generative-ai@0.24.1"
-          ],
+          "packages": ["@google/generative-ai@0.24.1"],
           "hostnames": []
         },
         {
           "id": "zoom",
-          "packages": [
-            "@zoom/meetingsdk@5.0.0"
-          ],
-          "hostnames": [
-            "src/lib/zoomApiService.ts:43 api.zoom.us"
-          ]
+          "packages": ["@zoom/meetingsdk@5.0.0"],
+          "hostnames": ["src/lib/zoomApiService.ts:43 api.zoom.us"]
         },
         {
           "id": "cloudinary",
-          "packages": [
-            "@cloudinary/url-gen@1.22.0",
-            "@cloudinary/react@1.14.3"
-          ],
+          "packages": ["@cloudinary/url-gen@1.22.0", "@cloudinary/react@1.14.3"],
           "hostnames": [
             "src/lib/cloudinary.ts:37 api.cloudinary.com",
             "src/lib/cloudinary.ts:73 res.cloudinary.com"
@@ -2345,9 +2024,7 @@
       "detected": [
         {
           "id": "zoom",
-          "packages": [
-            "@zoom/meetingsdk@5.0.4"
-          ],
+          "packages": ["@zoom/meetingsdk@5.0.4"],
           "hostnames": []
         }
       ],
@@ -2360,9 +2037,7 @@
       "detected": [
         {
           "id": "dropbox",
-          "packages": [
-            "dropbox@10.34.0"
-          ],
+          "packages": ["dropbox@10.34.0"],
           "hostnames": []
         }
       ],
@@ -2375,9 +2050,7 @@
       "detected": [
         {
           "id": "dropbox",
-          "packages": [
-            "dropbox@4.0.30"
-          ],
+          "packages": ["dropbox@4.0.30"],
           "hostnames": []
         }
       ],
@@ -2390,9 +2063,7 @@
       "detected": [
         {
           "id": "dropbox",
-          "packages": [
-            "dropbox@^9.6.0"
-          ],
+          "packages": ["dropbox@^9.6.0"],
           "hostnames": []
         }
       ],
@@ -2405,9 +2076,7 @@
       "detected": [
         {
           "id": "dropbox",
-          "packages": [
-            "dropbox@10.34.0"
-          ],
+          "packages": ["dropbox@10.34.0"],
           "hostnames": []
         }
       ],
@@ -2420,9 +2089,7 @@
       "detected": [
         {
           "id": "dropbox",
-          "packages": [
-            "dropbox@^10.34.0"
-          ],
+          "packages": ["dropbox@^10.34.0"],
           "hostnames": []
         }
       ],
@@ -2435,9 +2102,7 @@
       "detected": [
         {
           "id": "dropbox",
-          "packages": [
-            "dropbox@10.34.0"
-          ],
+          "packages": ["dropbox@10.34.0"],
           "hostnames": []
         }
       ],
@@ -2450,9 +2115,7 @@
       "detected": [
         {
           "id": "dropbox",
-          "packages": [
-            "dropbox@10.34.0"
-          ],
+          "packages": ["dropbox@10.34.0"],
           "hostnames": []
         }
       ],
@@ -2462,7 +2125,7 @@
       "repo": "RakambdaOrg/YTTracker",
       "provider": "dropbox",
       "commit": "eb0184956e692f9f969bb216083403e5d689145f",
-      "error": "Command failed: node /Users/furqan/Documents/PROJECTS/Refit-FG3/bin/refit.mjs agents --repository /tmp/fg3/repos/RakambdaOrg__YTTracker --json"
+      "error": "Command failed: node <refit>/bin/refit.mjs agents --repository <root>/RakambdaOrg__YTTracker --json"
     },
     {
       "repo": "Dcup-dev/dcup",
@@ -2471,23 +2134,17 @@
       "detected": [
         {
           "id": "stripe",
-          "packages": [
-            "stripe@17.7.0"
-          ],
+          "packages": ["stripe@17.7.0"],
           "hostnames": []
         },
         {
           "id": "openai",
-          "packages": [
-            "openai@4.104.0"
-          ],
+          "packages": ["openai@4.104.0"],
           "hostnames": []
         },
         {
           "id": "dropbox",
-          "packages": [
-            "dropbox@10.34.0"
-          ],
+          "packages": ["dropbox@10.34.0"],
           "hostnames": [
             "DataSource/Dropbox/DropboxPicker/dropbox-picker.context.tsx:48 api.dropboxapi.com",
             "DataSource/Dropbox/DropboxPicker/dropbox-picker.context.tsx:49 api.dropboxapi.com",
@@ -2506,9 +2163,7 @@
       "detected": [
         {
           "id": "dropbox",
-          "packages": [
-            "dropbox@4.0.16"
-          ],
+          "packages": ["dropbox@4.0.16"],
           "hostnames": []
         }
       ],
@@ -2521,9 +2176,7 @@
       "detected": [
         {
           "id": "gemini",
-          "packages": [
-            "@google/generative-ai@0.24.1"
-          ],
+          "packages": ["@google/generative-ai@0.24.1"],
           "hostnames": []
         },
         {
@@ -2539,9 +2192,7 @@
         },
         {
           "id": "dropbox",
-          "packages": [
-            "dropbox@10.34.0"
-          ],
+          "packages": ["dropbox@10.34.0"],
           "hostnames": []
         }
       ],
@@ -2566,16 +2217,12 @@
       "detected": [
         {
           "id": "resend",
-          "packages": [
-            "resend@6.0.2"
-          ],
+          "packages": ["resend@6.0.2"],
           "hostnames": []
         },
         {
           "id": "dropbox",
-          "packages": [
-            "dropbox@10.34.0"
-          ],
+          "packages": ["dropbox@10.34.0"],
           "hostnames": []
         }
       ],
@@ -2588,12 +2235,8 @@
       "detected": [
         {
           "id": "dropbox",
-          "packages": [
-            "dropbox@^10.34.0"
-          ],
-          "hostnames": [
-            "src/dropbox/client.ts:136 api.dropboxapi.com"
-          ]
+          "packages": ["dropbox@^10.34.0"],
+          "hostnames": ["src/dropbox/client.ts:136 api.dropboxapi.com"]
         }
       ],
       "exposures": []
@@ -2605,9 +2248,7 @@
       "detected": [
         {
           "id": "dropbox",
-          "packages": [
-            "dropbox@10.34.0"
-          ],
+          "packages": ["dropbox@10.34.0"],
           "hostnames": [
             "netlify/functions/dropbox-new-storage.js:9 content.dropboxapi.com",
             "netlify/functions/dropbox-new-storage.js:10 content.dropboxapi.com",
@@ -2625,9 +2266,7 @@
       "detected": [
         {
           "id": "notion",
-          "packages": [
-            "@notionhq/client@3.1.2"
-          ],
+          "packages": ["@notionhq/client@3.1.2"],
           "hostnames": []
         }
       ],
@@ -2648,18 +2287,12 @@
         },
         {
           "id": "anthropic",
-          "packages": [
-            "@anthropic-ai/sdk@0.39.0"
-          ],
-          "hostnames": [
-            "src/lib/diagnostics/doctor.ts:630 api.anthropic.com"
-          ]
+          "packages": ["@anthropic-ai/sdk@0.39.0"],
+          "hostnames": ["src/lib/diagnostics/doctor.ts:630 api.anthropic.com"]
         },
         {
           "id": "notion",
-          "packages": [
-            "@notionhq/client@2.3.0"
-          ],
+          "packages": ["@notionhq/client@2.3.0"],
           "hostnames": [
             "src/lib/diagnostics/doctor.ts:726 api.notion.com",
             "src/lib/providers/builtin/notion-provider.ts:27 api.notion.com"
@@ -2687,9 +2320,7 @@
       "detected": [
         {
           "id": "notion",
-          "packages": [
-            "@notionhq/client@5.4.0"
-          ],
+          "packages": ["@notionhq/client@5.4.0"],
           "hostnames": []
         }
       ],
@@ -2702,9 +2333,7 @@
       "detected": [
         {
           "id": "notion",
-          "packages": [
-            "@notionhq/client@0.4.11"
-          ],
+          "packages": ["@notionhq/client@0.4.11"],
           "hostnames": []
         }
       ],
@@ -2717,9 +2346,7 @@
       "detected": [
         {
           "id": "notion",
-          "packages": [
-            "@notionhq/client@0.2.2"
-          ],
+          "packages": ["@notionhq/client@0.2.2"],
           "hostnames": []
         }
       ],
@@ -2742,9 +2369,7 @@
         },
         {
           "id": "notion",
-          "packages": [
-            "@notionhq/client@5.3.0"
-          ],
+          "packages": ["@notionhq/client@5.3.0"],
           "hostnames": []
         }
       ],
@@ -2757,12 +2382,8 @@
       "detected": [
         {
           "id": "notion",
-          "packages": [
-            "@notionhq/client@2.3.0"
-          ],
-          "hostnames": [
-            "scripts/write-update-notes.ts:8 api.notion.com"
-          ]
+          "packages": ["@notionhq/client@2.3.0"],
+          "hostnames": ["scripts/write-update-notes.ts:8 api.notion.com"]
         }
       ],
       "exposures": []
@@ -2774,16 +2395,12 @@
       "detected": [
         {
           "id": "anthropic",
-          "packages": [
-            "@anthropic-ai/sdk@0.40.1"
-          ],
+          "packages": ["@anthropic-ai/sdk@0.40.1"],
           "hostnames": []
         },
         {
           "id": "notion",
-          "packages": [
-            "@notionhq/client@2.3.0"
-          ],
+          "packages": ["@notionhq/client@2.3.0"],
           "hostnames": []
         }
       ],
@@ -2796,9 +2413,7 @@
       "detected": [
         {
           "id": "notion",
-          "packages": [
-            "@notionhq/client@5.22.0"
-          ],
+          "packages": ["@notionhq/client@5.22.0"],
           "hostnames": []
         }
       ],
@@ -2811,9 +2426,7 @@
       "detected": [
         {
           "id": "notion",
-          "packages": [
-            "@notionhq/client@2.2.13"
-          ],
+          "packages": ["@notionhq/client@2.2.13"],
           "hostnames": []
         }
       ],
@@ -2826,9 +2439,7 @@
       "detected": [
         {
           "id": "gemini",
-          "packages": [
-            "@google/generative-ai@0.3.1"
-          ],
+          "packages": ["@google/generative-ai@0.3.1"],
           "hostnames": [
             "scripts/list_models.ts:30 generativelanguage.googleapis.com",
             "scripts/list_models.ts:32 generativelanguage.googleapis.com"
@@ -2836,9 +2447,7 @@
         },
         {
           "id": "notion",
-          "packages": [
-            "@notionhq/client@5.9.0"
-          ],
+          "packages": ["@notionhq/client@5.9.0"],
           "hostnames": [
             "src/notion/client.ts:109 api.notion.com",
             "src/notion/client.ts:165 api.notion.com",
@@ -2869,9 +2478,7 @@
       "detected": [
         {
           "id": "notion",
-          "packages": [
-            "@notionhq/client@2.2.15"
-          ],
+          "packages": ["@notionhq/client@2.2.15"],
           "hostnames": [
             "notion-backup.js:27 api.notion.com",
             "src/_data/arts.js:31 api.notion.com",
@@ -2890,9 +2497,7 @@
       "detected": [
         {
           "id": "notion",
-          "packages": [
-            "@notionhq/client@2.1.1"
-          ],
+          "packages": ["@notionhq/client@2.1.1"],
           "hostnames": []
         }
       ],
@@ -2905,9 +2510,7 @@
       "detected": [
         {
           "id": "notion",
-          "packages": [
-            "@notionhq/client@2.2.5"
-          ],
+          "packages": ["@notionhq/client@2.2.5"],
           "hostnames": []
         }
       ],
@@ -2920,9 +2523,7 @@
       "detected": [
         {
           "id": "airtable",
-          "packages": [
-            "airtable@^0.8.1"
-          ],
+          "packages": ["airtable@^0.8.1"],
           "hostnames": []
         }
       ],
@@ -2935,12 +2536,8 @@
       "detected": [
         {
           "id": "airtable",
-          "packages": [
-            "airtable@0.12.2"
-          ],
-          "hostnames": [
-            "src/getAirtableTsTable.ts:58 api.airtable.com"
-          ]
+          "packages": ["airtable@0.12.2"],
+          "hostnames": ["src/getAirtableTsTable.ts:58 api.airtable.com"]
         }
       ],
       "exposures": []
@@ -2952,9 +2549,7 @@
       "detected": [
         {
           "id": "airtable",
-          "packages": [
-            "airtable@0.12.2"
-          ],
+          "packages": ["airtable@0.12.2"],
           "hostnames": []
         }
       ],
@@ -2985,12 +2580,8 @@
       "detected": [
         {
           "id": "airtable",
-          "packages": [
-            "airtable@^0.12.2"
-          ],
-          "hostnames": [
-            "src/shared/logging.js:35 api.airtable.com"
-          ]
+          "packages": ["airtable@^0.12.2"],
+          "hostnames": ["src/shared/logging.js:35 api.airtable.com"]
         }
       ],
       "exposures": [
@@ -3056,9 +2647,7 @@
       "detected": [
         {
           "id": "airtable",
-          "packages": [
-            "airtable@0.12.2"
-          ],
+          "packages": ["airtable@0.12.2"],
           "hostnames": []
         }
       ],
@@ -3089,9 +2678,7 @@
       "detected": [
         {
           "id": "airtable",
-          "packages": [
-            "airtable@0.12.2"
-          ],
+          "packages": ["airtable@0.12.2"],
           "hostnames": []
         }
       ],
@@ -3238,9 +2825,7 @@
         },
         {
           "id": "airtable",
-          "packages": [
-            "airtable@0.12.2"
-          ],
+          "packages": ["airtable@0.12.2"],
           "hostnames": []
         }
       ],
@@ -3265,9 +2850,7 @@
       "detected": [
         {
           "id": "airtable",
-          "packages": [
-            "airtable@0.11.6"
-          ],
+          "packages": ["airtable@0.11.6"],
           "hostnames": []
         }
       ],
@@ -3292,9 +2875,7 @@
       "detected": [
         {
           "id": "airtable",
-          "packages": [
-            "airtable@0.12.2"
-          ],
+          "packages": ["airtable@0.12.2"],
           "hostnames": []
         }
       ],
@@ -3307,9 +2888,7 @@
       "detected": [
         {
           "id": "airtable",
-          "packages": [
-            "airtable@0.12.2"
-          ],
+          "packages": ["airtable@0.12.2"],
           "hostnames": []
         }
       ],
@@ -3334,9 +2913,7 @@
       "detected": [
         {
           "id": "airtable",
-          "packages": [
-            "airtable@^0.7.0"
-          ],
+          "packages": ["airtable@^0.7.0"],
           "hostnames": []
         }
       ],
@@ -3349,9 +2926,7 @@
       "detected": [
         {
           "id": "airtable",
-          "packages": [
-            "airtable@^0.11.0"
-          ],
+          "packages": ["airtable@^0.11.0"],
           "hostnames": []
         }
       ],
@@ -3376,12 +2951,8 @@
       "detected": [
         {
           "id": "airtable",
-          "packages": [
-            "airtable@0.12.2"
-          ],
-          "hostnames": [
-            "src/utils/airtable_fns.ts:4 api.airtable.com"
-          ]
+          "packages": ["airtable@0.12.2"],
+          "hostnames": ["src/utils/airtable_fns.ts:4 api.airtable.com"]
         }
       ],
       "exposures": [
@@ -3416,9 +2987,7 @@
         },
         {
           "id": "airtable",
-          "packages": [
-            "airtable@0.12.2"
-          ],
+          "packages": ["airtable@0.12.2"],
           "hostnames": []
         }
       ],
@@ -3443,30 +3012,22 @@
       "detected": [
         {
           "id": "openai",
-          "packages": [
-            "openai@6.38.0"
-          ],
+          "packages": ["openai@6.38.0"],
           "hostnames": []
         },
         {
           "id": "algolia",
-          "packages": [
-            "algoliasearch@5.52.1"
-          ],
+          "packages": ["algoliasearch@5.52.1"],
           "hostnames": []
         },
         {
           "id": "segment",
-          "packages": [
-            "@segment/analytics-node@2.3.0"
-          ],
+          "packages": ["@segment/analytics-node@2.3.0"],
           "hostnames": []
         },
         {
           "id": "sentry",
-          "packages": [
-            "@sentry/node@10.53.1"
-          ],
+          "packages": ["@sentry/node@10.53.1"],
           "hostnames": []
         }
       ],
@@ -3476,7 +3037,7 @@
       "repo": "pezzolabs/pezzo",
       "provider": "segment",
       "commit": "0787e3c037ad24544c2d3e6842507c3e7461a1de",
-      "error": "Command failed: node /Users/furqan/Documents/PROJECTS/Refit-FG3/bin/refit.mjs agents --repository /tmp/fg3/repos/pezzolabs__pezzo --json"
+      "error": "Command failed: node <refit>/bin/refit.mjs agents --repository <root>/pezzolabs__pezzo --json"
     },
     {
       "repo": "neondatabase/mcp-server-neon",
@@ -3485,16 +3046,12 @@
       "detected": [
         {
           "id": "segment",
-          "packages": [
-            "@segment/analytics-node@2.2.1"
-          ],
+          "packages": ["@segment/analytics-node@2.2.1"],
           "hostnames": []
         },
         {
           "id": "sentry",
-          "packages": [
-            "@sentry/node@9.19.0"
-          ],
+          "packages": ["@sentry/node@9.19.0"],
           "hostnames": []
         }
       ],
@@ -3504,7 +3061,7 @@
       "repo": "openops-cloud/openops",
       "provider": "segment",
       "commit": "aaacf849cd977dd6b6b1157aa7539e4a82f68e38",
-      "error": "Command failed: node /Users/furqan/Documents/PROJECTS/Refit-FG3/bin/refit.mjs agents --repository /tmp/fg3/repos/openops-cloud__openops --json"
+      "error": "Command failed: node <refit>/bin/refit.mjs agents --repository <root>/openops-cloud__openops --json"
     },
     {
       "repo": "retracedhq/retraced",
@@ -3513,9 +3070,7 @@
       "detected": [
         {
           "id": "segment",
-          "packages": [
-            "@segment/analytics-node@2.2.1"
-          ],
+          "packages": ["@segment/analytics-node@2.2.1"],
           "hostnames": []
         }
       ],
@@ -3528,9 +3083,7 @@
       "detected": [
         {
           "id": "segment",
-          "packages": [
-            "@segment/analytics-node@1.3.0"
-          ],
+          "packages": ["@segment/analytics-node@1.3.0"],
           "hostnames": []
         }
       ],
@@ -3543,9 +3096,7 @@
       "detected": [
         {
           "id": "segment",
-          "packages": [
-            "@segment/analytics-node@2.3.0"
-          ],
+          "packages": ["@segment/analytics-node@2.3.0"],
           "hostnames": []
         }
       ],
@@ -3555,7 +3106,7 @@
       "repo": "getcord/cord",
       "provider": "segment",
       "commit": "c115dddb47a3036e8d2e82f3320144382d2fb686",
-      "error": "Command failed: node /Users/furqan/Documents/PROJECTS/Refit-FG3/bin/refit.mjs agents --repository /tmp/fg3/repos/getcord__cord --json"
+      "error": "Command failed: node <refit>/bin/refit.mjs agents --repository <root>/getcord__cord --json"
     },
     {
       "repo": "contentful/contentful-merge",
@@ -3564,24 +3115,17 @@
       "detected": [
         {
           "id": "segment",
-          "packages": [
-            "@segment/analytics-node@3.0.0"
-          ],
+          "packages": ["@segment/analytics-node@3.0.0"],
           "hostnames": []
         },
         {
           "id": "sentry",
-          "packages": [
-            "@sentry/node@7.100.1"
-          ],
+          "packages": ["@sentry/node@7.100.1"],
           "hostnames": []
         },
         {
           "id": "contentful",
-          "packages": [
-            "contentful@11.11.0",
-            "contentful-management@12.19.2"
-          ],
+          "packages": ["contentful@11.11.0", "contentful-management@12.19.2"],
           "hostnames": [
             "src/commands/apply/index.ts:74 api.contentful.com",
             "src/commands/create/index.ts:76 api.contentful.com",
@@ -3597,7 +3141,7 @@
       "repo": "atlassian/atlascode",
       "provider": "segment",
       "commit": "7ef48ac216e6ecb8da95ef5af92a94e5fea23f2d",
-      "error": "Command failed: node /Users/furqan/Documents/PROJECTS/Refit-FG3/bin/refit.mjs agents --repository /tmp/fg3/repos/atlassian__atlascode --json"
+      "error": "Command failed: node <refit>/bin/refit.mjs agents --repository <root>/atlassian__atlascode --json"
     },
     {
       "repo": "ansible/aap-mcp-server",
@@ -3606,9 +3150,7 @@
       "detected": [
         {
           "id": "segment",
-          "packages": [
-            "@segment/analytics-node@2.3.0"
-          ],
+          "packages": ["@segment/analytics-node@2.3.0"],
           "hostnames": []
         }
       ],
@@ -3621,16 +3163,12 @@
       "detected": [
         {
           "id": "segment",
-          "packages": [
-            "@segment/analytics-node@0.0.1-rc.3"
-          ],
+          "packages": ["@segment/analytics-node@0.0.1-rc.3"],
           "hostnames": []
         },
         {
           "id": "sentry",
-          "packages": [
-            "@sentry/browser@6.19.7"
-          ],
+          "packages": ["@sentry/browser@6.19.7"],
           "hostnames": []
         }
       ],
@@ -3643,12 +3181,8 @@
       "detected": [
         {
           "id": "segment",
-          "packages": [
-            "@segment/analytics-node@1.0.0-beta.24"
-          ],
-          "hostnames": [
-            "src/common/telemetry.ts:49 api.segment.io"
-          ]
+          "packages": ["@segment/analytics-node@1.0.0-beta.24"],
+          "hostnames": ["src/common/telemetry.ts:49 api.segment.io"]
         }
       ],
       "exposures": []
@@ -3660,9 +3194,7 @@
       "detected": [
         {
           "id": "segment",
-          "packages": [
-            "@segment/analytics-node@2.1.0"
-          ],
+          "packages": ["@segment/analytics-node@2.1.0"],
           "hostnames": []
         }
       ],
@@ -3675,30 +3207,22 @@
       "detected": [
         {
           "id": "stripe",
-          "packages": [
-            "stripe@8.222.0"
-          ],
+          "packages": ["stripe@8.222.0"],
           "hostnames": []
         },
         {
           "id": "twilio",
-          "packages": [
-            "twilio@3.84.1"
-          ],
+          "packages": ["twilio@3.84.1"],
           "hostnames": []
         },
         {
           "id": "segment",
-          "packages": [
-            "analytics-node@6.2.0"
-          ],
+          "packages": ["analytics-node@6.2.0"],
           "hostnames": []
         },
         {
           "id": "sentry",
-          "packages": [
-            "@sentry/node@7.120.4"
-          ],
+          "packages": ["@sentry/node@7.120.4"],
           "hostnames": []
         }
       ],
@@ -3711,9 +3235,7 @@
       "detected": [
         {
           "id": "sentry",
-          "packages": [
-            "@sentry/node@8.34.0"
-          ],
+          "packages": ["@sentry/node@8.34.0"],
           "hostnames": []
         }
       ],
@@ -3726,9 +3248,7 @@
       "detected": [
         {
           "id": "sentry",
-          "packages": [
-            "@sentry/node@7.107.0"
-          ],
+          "packages": ["@sentry/node@7.107.0"],
           "hostnames": []
         }
       ],
@@ -3741,25 +3261,17 @@
       "detected": [
         {
           "id": "openai",
-          "packages": [
-            "openai@3.2.1"
-          ],
-          "hostnames": [
-            "src/openai/openai.service.ts:182 api.openai.com"
-          ]
+          "packages": ["openai@3.2.1"],
+          "hostnames": ["src/openai/openai.service.ts:182 api.openai.com"]
         },
         {
           "id": "sendgrid",
-          "packages": [
-            "@sendgrid/mail@7.7.0"
-          ],
+          "packages": ["@sendgrid/mail@7.7.0"],
           "hostnames": []
         },
         {
           "id": "sentry",
-          "packages": [
-            "@sentry/node@7.43.0"
-          ],
+          "packages": ["@sentry/node@7.43.0"],
           "hostnames": []
         }
       ],
@@ -3808,16 +3320,12 @@
       "detected": [
         {
           "id": "stripe",
-          "packages": [
-            "stripe@8.175.0"
-          ],
+          "packages": ["stripe@8.175.0"],
           "hostnames": []
         },
         {
           "id": "sentry",
-          "packages": [
-            "@sentry/node@5.30.0"
-          ],
+          "packages": ["@sentry/node@5.30.0"],
           "hostnames": []
         }
       ],
@@ -3830,9 +3338,7 @@
       "detected": [
         {
           "id": "sentry",
-          "packages": [
-            "@sentry/node@7.16.0"
-          ],
+          "packages": ["@sentry/node@7.16.0"],
           "hostnames": []
         }
       ],
@@ -3845,10 +3351,7 @@
       "detected": [
         {
           "id": "sentry",
-          "packages": [
-            "@sentry/node@6.19.7",
-            "@sentry/browser@6.19.7"
-          ],
+          "packages": ["@sentry/node@6.19.7", "@sentry/browser@6.19.7"],
           "hostnames": []
         }
       ],
@@ -3861,9 +3364,7 @@
       "detected": [
         {
           "id": "sentry",
-          "packages": [
-            "@sentry/node@7.37.2"
-          ],
+          "packages": ["@sentry/node@7.37.2"],
           "hostnames": []
         }
       ],
@@ -3876,9 +3377,7 @@
       "detected": [
         {
           "id": "sentry",
-          "packages": [
-            "@sentry/node@5.7.0"
-          ],
+          "packages": ["@sentry/node@5.7.0"],
           "hostnames": []
         }
       ],
@@ -3891,9 +3390,7 @@
       "detected": [
         {
           "id": "sentry",
-          "packages": [
-            "@sentry/node@5.11.1"
-          ],
+          "packages": ["@sentry/node@5.11.1"],
           "hostnames": []
         }
       ],
@@ -3906,9 +3403,7 @@
       "detected": [
         {
           "id": "sentry",
-          "packages": [
-            "@sentry/node@7.120.0"
-          ],
+          "packages": ["@sentry/node@7.120.0"],
           "hostnames": []
         }
       ],
@@ -3918,13 +3413,13 @@
       "repo": "muehlemann-popp/html-to-pdf",
       "provider": "sentry",
       "commit": "4e3b4b62565d04f96d3c9872d7d18e7a6fc6a3f1",
-      "error": "Command failed: node /Users/furqan/Documents/PROJECTS/Refit-FG3/bin/refit.mjs agents --repository /tmp/fg3/repos/muehlemann-popp__html-to-pdf --json"
+      "error": "Command failed: node <refit>/bin/refit.mjs agents --repository <root>/muehlemann-popp__html-to-pdf --json"
     },
     {
       "repo": "SAPikachu/amae-koromo-scripts",
       "provider": "sentry",
       "commit": "d375252fefd2bb6b1cca82b409b7a1abcf155197",
-      "error": "Command failed: node /Users/furqan/Documents/PROJECTS/Refit-FG3/bin/refit.mjs agents --repository /tmp/fg3/repos/SAPikachu__amae-koromo-scripts --json"
+      "error": "Command failed: node <refit>/bin/refit.mjs agents --repository <root>/SAPikachu__amae-koromo-scripts --json"
     },
     {
       "repo": "DestinyItemManager/dim-api",
@@ -3933,9 +3428,7 @@
       "detected": [
         {
           "id": "sentry",
-          "packages": [
-            "@sentry/node@7.120.4"
-          ],
+          "packages": ["@sentry/node@7.120.4"],
           "hostnames": []
         }
       ],
@@ -3948,9 +3441,7 @@
       "detected": [
         {
           "id": "discord",
-          "packages": [
-            "discord.js@14.25.1"
-          ],
+          "packages": ["discord.js@14.25.1"],
           "hostnames": []
         }
       ],
@@ -3964,15 +3455,11 @@
         {
           "id": "openai",
           "packages": [],
-          "hostnames": [
-            "src/events/message/messageCreate.js:226 api.openai.com"
-          ]
+          "hostnames": ["src/events/message/messageCreate.js:226 api.openai.com"]
         },
         {
           "id": "discord",
-          "packages": [
-            "discord.js@14.7.1"
-          ],
+          "packages": ["discord.js@14.7.1"],
           "hostnames": [
             "src/commands/guild/inviteinfo.js:17 discord.com/api",
             "src/commands/images/banner.js:7 discord.com/api",
@@ -3989,9 +3476,7 @@
       "detected": [
         {
           "id": "discord",
-          "packages": [
-            "discord.js@14.27.0"
-          ],
+          "packages": ["discord.js@14.27.0"],
           "hostnames": []
         }
       ],
@@ -4004,9 +3489,7 @@
       "detected": [
         {
           "id": "discord",
-          "packages": [
-            "discord.js@14.25.1"
-          ],
+          "packages": ["discord.js@14.25.1"],
           "hostnames": []
         }
       ],
@@ -4019,9 +3502,7 @@
       "detected": [
         {
           "id": "discord",
-          "packages": [
-            "discord.js@^14.27.0"
-          ],
+          "packages": ["discord.js@^14.27.0"],
           "hostnames": []
         }
       ],
@@ -4034,9 +3515,7 @@
       "detected": [
         {
           "id": "discord",
-          "packages": [
-            "discord.js@14.22.1"
-          ],
+          "packages": ["discord.js@14.22.1"],
           "hostnames": [
             "src-functional/bot-loop.ts:11 discord.com/api",
             "src-functional/bot-loop.ts:312 discord.com/api"
@@ -4052,9 +3531,7 @@
       "detected": [
         {
           "id": "discord",
-          "packages": [
-            "discord.js@13.12.0"
-          ],
+          "packages": ["discord.js@13.12.0"],
           "hostnames": [
             "server.js:308 discordapp.com/api",
             "server.js:320 discordapp.com/api",
@@ -4072,15 +3549,11 @@
         {
           "id": "anthropic",
           "packages": [],
-          "hostnames": [
-            "tests/integration/agent-runner.test.ts:33 api.anthropic.com"
-          ]
+          "hostnames": ["tests/integration/agent-runner.test.ts:33 api.anthropic.com"]
         },
         {
           "id": "discord",
-          "packages": [
-            "discord.js@14.25.1"
-          ],
+          "packages": ["discord.js@14.25.1"],
           "hostnames": []
         }
       ],
@@ -4111,9 +3584,7 @@
       "detected": [
         {
           "id": "discord",
-          "packages": [
-            "discord.js@14.18.0"
-          ],
+          "packages": ["discord.js@14.18.0"],
           "hostnames": []
         }
       ],
@@ -4126,9 +3597,7 @@
       "detected": [
         {
           "id": "discord",
-          "packages": [
-            "discord.js@^14.16.0"
-          ],
+          "packages": ["discord.js@^14.16.0"],
           "hostnames": []
         }
       ],
@@ -4205,9 +3674,7 @@
       "detected": [
         {
           "id": "discord",
-          "packages": [
-            "discord.js@14.21.0"
-          ],
+          "packages": ["discord.js@14.21.0"],
           "hostnames": []
         }
       ],
@@ -4220,9 +3687,7 @@
       "detected": [
         {
           "id": "discord",
-          "packages": [
-            "discord.js@^14.25.1"
-          ],
+          "packages": ["discord.js@^14.25.1"],
           "hostnames": []
         }
       ],
@@ -4235,9 +3700,7 @@
       "detected": [
         {
           "id": "discord",
-          "packages": [
-            "discord.js@^14.25.1"
-          ],
+          "packages": ["discord.js@^14.25.1"],
           "hostnames": []
         }
       ],
@@ -4250,9 +3713,7 @@
       "detected": [
         {
           "id": "discord",
-          "packages": [
-            "discord.js@^11.4.2"
-          ],
+          "packages": ["discord.js@^11.4.2"],
           "hostnames": []
         }
       ],
@@ -4265,37 +3726,27 @@
       "detected": [
         {
           "id": "openai",
-          "packages": [
-            "openai@4.104.0"
-          ],
+          "packages": ["openai@4.104.0"],
           "hostnames": []
         },
         {
           "id": "gemini",
-          "packages": [
-            "@google/generative-ai@0.2.1"
-          ],
+          "packages": ["@google/generative-ai@0.2.1"],
           "hostnames": []
         },
         {
           "id": "resend",
-          "packages": [
-            "resend@4.8.0"
-          ],
+          "packages": ["resend@4.8.0"],
           "hostnames": []
         },
         {
           "id": "discord",
-          "packages": [
-            "discord-api-types@0.37.120"
-          ],
+          "packages": ["discord-api-types@0.37.120"],
           "hostnames": []
         },
         {
           "id": "contentful",
-          "packages": [
-            "contentful@11.12.2"
-          ],
+          "packages": ["contentful@11.12.2"],
           "hostnames": []
         }
       ],
@@ -4326,9 +3777,7 @@
       "detected": [
         {
           "id": "contentful",
-          "packages": [
-            "contentful@10.0.0-beta-v10.8"
-          ],
+          "packages": ["contentful@10.0.0-beta-v10.8"],
           "hostnames": []
         }
       ],
@@ -4341,9 +3790,7 @@
       "detected": [
         {
           "id": "contentful",
-          "packages": [
-            "contentful@10.6.14"
-          ],
+          "packages": ["contentful@10.6.14"],
           "hostnames": []
         }
       ],
@@ -4356,16 +3803,12 @@
       "detected": [
         {
           "id": "stripe",
-          "packages": [
-            "stripe@18.5.0"
-          ],
+          "packages": ["stripe@18.5.0"],
           "hostnames": []
         },
         {
           "id": "contentful",
-          "packages": [
-            "contentful@10.15.1"
-          ],
+          "packages": ["contentful@10.15.1"],
           "hostnames": []
         }
       ],
@@ -4390,9 +3833,7 @@
       "detected": [
         {
           "id": "contentful",
-          "packages": [
-            "contentful@11.2.5"
-          ],
+          "packages": ["contentful@11.2.5"],
           "hostnames": []
         }
       ],
@@ -4405,10 +3846,7 @@
       "detected": [
         {
           "id": "contentful",
-          "packages": [
-            "contentful@7.10.0",
-            "contentful-management@5.11.3"
-          ],
+          "packages": ["contentful@7.10.0", "contentful-management@5.11.3"],
           "hostnames": []
         }
       ],
@@ -4421,16 +3859,12 @@
       "detected": [
         {
           "id": "openai",
-          "packages": [
-            "openai@4.78.1"
-          ],
+          "packages": ["openai@4.78.1"],
           "hostnames": []
         },
         {
           "id": "contentful",
-          "packages": [
-            "contentful@11.4.3"
-          ],
+          "packages": ["contentful@11.4.3"],
           "hostnames": []
         }
       ],
@@ -4455,9 +3889,7 @@
       "detected": [
         {
           "id": "contentful",
-          "packages": [
-            "contentful@^11.5.15"
-          ],
+          "packages": ["contentful@^11.5.15"],
           "hostnames": []
         }
       ],
@@ -4470,9 +3902,7 @@
       "detected": [
         {
           "id": "contentful",
-          "packages": [
-            "contentful@11.7.6"
-          ],
+          "packages": ["contentful@11.7.6"],
           "hostnames": []
         }
       ],
@@ -4485,9 +3915,7 @@
       "detected": [
         {
           "id": "contentful",
-          "packages": [
-            "contentful@8.5.0"
-          ],
+          "packages": ["contentful@8.5.0"],
           "hostnames": []
         }
       ],
@@ -4500,9 +3928,7 @@
       "detected": [
         {
           "id": "contentful",
-          "packages": [
-            "contentful@11.12.1"
-          ],
+          "packages": ["contentful@11.12.1"],
           "hostnames": []
         }
       ],
@@ -4515,10 +3941,7 @@
       "detected": [
         {
           "id": "contentful",
-          "packages": [
-            "contentful@8.3.5",
-            "contentful-management@7.19.1"
-          ],
+          "packages": ["contentful@8.3.5", "contentful-management@7.19.1"],
           "hostnames": []
         }
       ],
@@ -4531,16 +3954,12 @@
       "detected": [
         {
           "id": "algolia",
-          "packages": [
-            "algoliasearch@4.27.0"
-          ],
+          "packages": ["algoliasearch@4.27.0"],
           "hostnames": []
         },
         {
           "id": "contentful",
-          "packages": [
-            "contentful@10.15.2"
-          ],
+          "packages": ["contentful@10.15.2"],
           "hostnames": [
             "nuxt.config.ts:148 cdn.contentful.com",
             "plugins/contentful.js:45 preview.contentful.com"
@@ -4568,9 +3987,7 @@
       "detected": [
         {
           "id": "contentful",
-          "packages": [
-            "contentful@10.14.1"
-          ],
+          "packages": ["contentful@10.14.1"],
           "hostnames": []
         }
       ],
@@ -4583,28 +4000,18 @@
       "detected": [
         {
           "id": "gemini",
-          "packages": [
-            "@google/generative-ai@0.24.1"
-          ],
-          "hostnames": [
-            "src/lib/gemini.ts:280 generativelanguage.googleapis.com"
-          ]
+          "packages": ["@google/generative-ai@0.24.1"],
+          "hostnames": ["src/lib/gemini.ts:280 generativelanguage.googleapis.com"]
         },
         {
           "id": "resend",
-          "packages": [
-            "resend@6.5.2"
-          ],
+          "packages": ["resend@6.5.2"],
           "hostnames": []
         },
         {
           "id": "cloudinary",
-          "packages": [
-            "cloudinary@2.8.0"
-          ],
-          "hostnames": [
-            "next.config.js:12 res.cloudinary.com"
-          ]
+          "packages": ["cloudinary@2.8.0"],
+          "hostnames": ["next.config.js:12 res.cloudinary.com"]
         }
       ],
       "exposures": [
@@ -4628,19 +4035,13 @@
       "detected": [
         {
           "id": "openai",
-          "packages": [
-            "openai@6.48.0"
-          ],
+          "packages": ["openai@6.48.0"],
           "hostnames": []
         },
         {
           "id": "cloudinary",
-          "packages": [
-            "cloudinary@2.10.0"
-          ],
-          "hostnames": [
-            "src/plugins/cloudinary-picture.mjs:126 res.cloudinary.com"
-          ]
+          "packages": ["cloudinary@2.10.0"],
+          "hostnames": ["src/plugins/cloudinary-picture.mjs:126 res.cloudinary.com"]
         }
       ],
       "exposures": []
@@ -4652,12 +4053,8 @@
       "detected": [
         {
           "id": "cloudinary",
-          "packages": [
-            "cloudinary@2.10.0"
-          ],
-          "hostnames": [
-            "next.config.ts:14 res.cloudinary.com"
-          ]
+          "packages": ["cloudinary@2.10.0"],
+          "hostnames": ["next.config.ts:14 res.cloudinary.com"]
         }
       ],
       "exposures": []
@@ -4669,9 +4066,7 @@
       "detected": [
         {
           "id": "cloudinary",
-          "packages": [
-            "cloudinary@1.41.3"
-          ],
+          "packages": ["cloudinary@1.41.3"],
           "hostnames": []
         }
       ],
@@ -4684,16 +4079,12 @@
       "detected": [
         {
           "id": "mapbox",
-          "packages": [
-            "@mapbox/mapbox-sdk@0.16.2"
-          ],
+          "packages": ["@mapbox/mapbox-sdk@0.16.2"],
           "hostnames": []
         },
         {
           "id": "cloudinary",
-          "packages": [
-            "cloudinary@1.41.3"
-          ],
+          "packages": ["cloudinary@1.41.3"],
           "hostnames": []
         }
       ],
@@ -4703,7 +4094,7 @@
       "repo": "AryaVeerJai/wattn_inventory",
       "provider": "cloudinary",
       "commit": "708afece94cc7304725efa7a892f764f09b8ad46",
-      "error": "Command failed: node /Users/furqan/Documents/PROJECTS/Refit-FG3/bin/refit.mjs agents --repository /tmp/fg3/repos/AryaVeerJai__wattn_inventory --json"
+      "error": "Command failed: node <refit>/bin/refit.mjs agents --repository <root>/AryaVeerJai__wattn_inventory --json"
     },
     {
       "repo": "westborn/SB-Reg-svelte5",
@@ -4712,9 +4103,7 @@
       "detected": [
         {
           "id": "cloudinary",
-          "packages": [
-            "cloudinary@2.9.0"
-          ],
+          "packages": ["cloudinary@2.9.0"],
           "hostnames": []
         }
       ],
@@ -4727,9 +4116,7 @@
       "detected": [
         {
           "id": "cloudinary",
-          "packages": [
-            "cloudinary@2.8.0"
-          ],
+          "packages": ["cloudinary@2.8.0"],
           "hostnames": []
         }
       ],
@@ -4742,16 +4129,12 @@
       "detected": [
         {
           "id": "resend",
-          "packages": [
-            "resend@4.8.0"
-          ],
+          "packages": ["resend@4.8.0"],
           "hostnames": []
         },
         {
           "id": "cloudinary",
-          "packages": [
-            "cloudinary@1.41.3"
-          ],
+          "packages": ["cloudinary@1.41.3"],
           "hostnames": [
             "src/controllers/authController.js:30 res.cloudinary.com",
             "src/controllers/authController.js:31 res.cloudinary.com",
@@ -4770,30 +4153,22 @@
       "detected": [
         {
           "id": "stripe",
-          "packages": [
-            "stripe@22.1.1"
-          ],
+          "packages": ["stripe@22.1.1"],
           "hostnames": []
         },
         {
           "id": "openai",
-          "packages": [
-            "openai@6.33.0"
-          ],
+          "packages": ["openai@6.33.0"],
           "hostnames": []
         },
         {
           "id": "gemini",
-          "packages": [
-            "@google/generative-ai@0.24.1"
-          ],
+          "packages": ["@google/generative-ai@0.24.1"],
           "hostnames": []
         },
         {
           "id": "cloudinary",
-          "packages": [
-            "cloudinary@2.8.0"
-          ],
+          "packages": ["cloudinary@2.8.0"],
           "hostnames": []
         }
       ],
@@ -4806,12 +4181,8 @@
       "detected": [
         {
           "id": "cloudinary",
-          "packages": [
-            "cloudinary@2.10.0"
-          ],
-          "hostnames": [
-            "next.config.mjs:17 res.cloudinary.com"
-          ]
+          "packages": ["cloudinary@2.10.0"],
+          "hostnames": ["next.config.mjs:17 res.cloudinary.com"]
         }
       ],
       "exposures": []
@@ -4823,9 +4194,7 @@
       "detected": [
         {
           "id": "cloudinary",
-          "packages": [
-            "cloudinary@2.10.0"
-          ],
+          "packages": ["cloudinary@2.10.0"],
           "hostnames": []
         }
       ],
@@ -4838,9 +4207,7 @@
       "detected": [
         {
           "id": "cloudinary",
-          "packages": [
-            "cloudinary@^2.5.1"
-          ],
+          "packages": ["cloudinary@^2.5.1"],
           "hostnames": []
         }
       ],
@@ -4853,18 +4220,12 @@
       "detected": [
         {
           "id": "mapbox",
-          "packages": [
-            "mapbox-gl@2.15.0"
-          ],
-          "hostnames": [
-            "src/hooks/use-mapbox/useMapbox.tsx:9 api.mapbox.com"
-          ]
+          "packages": ["mapbox-gl@2.15.0"],
+          "hostnames": ["src/hooks/use-mapbox/useMapbox.tsx:9 api.mapbox.com"]
         },
         {
           "id": "cloudinary",
-          "packages": [
-            "cloudinary@1.41.3"
-          ],
+          "packages": ["cloudinary@1.41.3"],
           "hostnames": [
             "next.config.mjs:10 res.cloudinary.com",
             "src/server/trpc/router/image-upload.ts:21 api.cloudinary.com"
@@ -4877,7 +4238,7 @@
       "repo": "oomol-lab/open-connector",
       "provider": "intercom",
       "commit": "83f271a19f7f8ba98262723eb9dc60054a723929",
-      "error": "Command failed: node /Users/furqan/Documents/PROJECTS/Refit-FG3/bin/refit.mjs agents --repository /tmp/fg3/repos/oomol-lab__open-connector --json"
+      "error": "Command failed: node <refit>/bin/refit.mjs agents --repository <root>/oomol-lab__open-connector --json"
     },
     {
       "repo": "holaboss-ai/holaOS",
@@ -4887,15 +4248,11 @@
         {
           "id": "stripe",
           "packages": [],
-          "hostnames": [
-            "runtime/api-server/src/workspace-app-host-lint.ts:45 api.stripe.com"
-          ]
+          "hostnames": ["runtime/api-server/src/workspace-app-host-lint.ts:45 api.stripe.com"]
         },
         {
           "id": "openai",
-          "packages": [
-            "openai@^6.26.0"
-          ],
+          "packages": ["openai@^6.26.0"],
           "hostnames": [
             "apps/desktop/electron/main.ts:5591 api.openai.com",
             "runtime/api-server/src/agent-runtime-config.test.ts:408 api.openai.com",
@@ -4929,23 +4286,17 @@
         {
           "id": "hubspot",
           "packages": [],
-          "hostnames": [
-            "runtime/api-server/src/workspace-app-host-lint.ts:44 api.hubspot.com"
-          ]
+          "hostnames": ["runtime/api-server/src/workspace-app-host-lint.ts:44 api.hubspot.com"]
         },
         {
           "id": "intercom",
           "packages": [],
-          "hostnames": [
-            "runtime/api-server/src/workspace-app-host-lint.ts:50 api.intercom.io"
-          ]
+          "hostnames": ["runtime/api-server/src/workspace-app-host-lint.ts:50 api.intercom.io"]
         },
         {
           "id": "mailchimp",
           "packages": [],
-          "hostnames": [
-            "runtime/api-server/src/workspace-app-host-lint.ts:48 api.mailchimp.com"
-          ]
+          "hostnames": ["runtime/api-server/src/workspace-app-host-lint.ts:48 api.mailchimp.com"]
         },
         {
           "id": "notion",
@@ -4957,10 +4308,7 @@
         },
         {
           "id": "discord",
-          "packages": [
-            "discord.js@^14.26.4",
-            "discord.js@^14.26.4"
-          ],
+          "packages": ["discord.js@^14.26.4", "discord.js@^14.26.4"],
           "hostnames": [
             "runtime/api-server/src/workspace-app-host-lint.ts:37 discord.com/api",
             "runtime/channel-gateway/src/connectors/discord.ts:36 discord.com/api"
@@ -4986,9 +4334,7 @@
         {
           "id": "anthropic",
           "packages": [],
-          "hostnames": [
-            "benchmarks/src/ai/model.ts:166 api.anthropic.com"
-          ]
+          "hostnames": ["benchmarks/src/ai/model.ts:166 api.anthropic.com"]
         },
         {
           "id": "gemini",
@@ -5001,9 +4347,7 @@
         {
           "id": "intercom",
           "packages": [],
-          "hostnames": [
-            "src/connectors/service_catalog.ts:66 api.intercom.io"
-          ]
+          "hostnames": ["src/connectors/service_catalog.ts:66 api.intercom.io"]
         },
         {
           "id": "notion",

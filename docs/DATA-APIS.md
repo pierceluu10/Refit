@@ -89,15 +89,15 @@ Pinned Refit commit: `5bec50d`, clean tree (`refit` in the results file).
 | Cloudinary           | 14      | 13      | 13                  | 0                     | 0                          | none              |
 | Total                | 208     | 196     | 193                 | 3                     | 18                         |                   |
 
-"Detected by package" counts a repository whose own provider is found from a manifest or lockfile, which the selection guarantees, so it measures that the catalog package names and the reader agree (193 of 193 scanned; the three misses are Intercom repositories chosen by host). "Deadline exposure" is the repositories in the provider's own sample that match its deadline entry. No sampled repository matched `mailchimp-export-api`, `hubspot-api-v4` or `airtable-user-api-keys`; those matchers are tested on fixtures only, so their recall in real code is not measured.
+"Detected by package" counts a repository whose own provider is found from a manifest or lockfile, which the selection guarantees, so it measures that the catalog package names and the reader agree (193 of 208: the 12 that stopped at the size limit count as misses, and the three others are Intercom repositories chosen by host). "Deadline exposure" is the repositories in the provider's own sample that match its deadline entry. No sampled repository matched `mailchimp-export-api`, `hubspot-api-v4` or `airtable-user-api-keys`; those matchers are tested on fixtures only, so their recall in real code is not measured.
 
 **Precision**, [`2026-10-22-data-apis-labels.json`](benchmarks/2026-10-22-data-apis-labels.json). Each hit was read in the clone with the code around it. The labels are not blind to the fact that Refit reported the hit.
 
-| Hits                                                                 | Read                       | Correct  |
-| -------------------------------------------------------------------- | -------------------------- | -------- |
-| Matcher lines (10 Algolia dependencies, 6 Zoom `sdkKey:` properties) | 16 (all)                   | 16       |
-| HTTP requests (`requests`, 15 providers)                             | 72 (all)                   | 72       |
-| Hostname lines (`hostnames`, 15 providers)                           | 40, a seeded sample of 151 | 22 (55%) |
+| Hits                                                                 | Read                                                                                               | Correct                                                                                                        |
+| -------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| Matcher lines (10 Algolia dependencies, 6 Zoom `sdkKey:` properties) | 16 (all)                                                                                           | 16                                                                                                             |
+| HTTP requests (`requests`, 15 providers)                             | 72 (all)                                                                                           | 72                                                                                                             |
+| Hostname lines (`hostnames`, 15 providers)                           | 40, a seeded sample of the first run's lines (its total of 151 is not in a committed results file) | 22 (55%); 7 of the 18 wrong ones (`res.cloudinary.com`) are no longer reported, so 22 of 33 (67%) at `5bec50d` |
 
 The 18 wrong hostname lines are links, image URLs, an OAuth invite link, CSP allowlists, detector patterns, a test, a mock and vendored SDK files. Cloudinary and Mapbox account for most. This is the reason for `requests`: it left out every one of those 18 in the sample read, but it is also narrower (it needs a client call with a resolvable URL), and recall of `requests` against all real calls is not measured.
 

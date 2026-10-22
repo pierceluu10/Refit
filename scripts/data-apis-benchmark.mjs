@@ -31,7 +31,14 @@ const run = async (command, directory) => {
     );
   } catch (error) {
     // `deadlines` exits 2 only with --fail-within; any other failure is a real error.
-    return { error: String(error.message).split('\n')[0].slice(0, 200) };
+    // Local checkout and clone paths stay out of committed results.
+    return {
+      error: String(error.message)
+        .split('\n')[0]
+        .replaceAll(resolve(values.refit), '<refit>')
+        .replaceAll(resolve(values.root), '<root>')
+        .slice(0, 200),
+    };
   }
 };
 const refit = (await execute('git', ['-C', values.refit, 'rev-parse', 'HEAD'])).stdout.trim();
