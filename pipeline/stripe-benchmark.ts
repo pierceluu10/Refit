@@ -1,3 +1,5 @@
+import { splitRows } from '../scripts/benchmark-harness.mjs';
+import { assertResults } from '../scripts/benchmark-results.mjs';
 import { analyzeRepository } from './analyzer.ts';
 import { STRIPE, type ProviderAdapter } from './providers.ts';
 import { isObject } from './specifications.ts';
@@ -108,9 +110,12 @@ export function repositoryAdapter(repository: Repository, operations: StripeOper
 
 export const PUBLISH_BASE = 'refit-base';
 
-// One row per affected repository: outcome, pull request and the reason it stopped.
+// One row per affected repository: outcome, pull request and the reason it stopped. The results
+// are checked against their schema first; infrastructure errors are listed, not counted.
 export function summaryTable(entries: Record<string, unknown>[]) {
-  const rows = entries.filter(Boolean).map((entry) => {
+  const { predates } = assertResults('stripe-results', entries, { allowPredating: true });
+  const { results, infrastructure } = splitRows('stripe-results', entries);
+  const rows = results.map((entry) => {
     const workflow = entry.workflow as Record<string, unknown> | undefined;
     const publication = entry.publication as Record<string, unknown> | undefined;
     const affected = Boolean((entry.fullAdapter as { confirmed?: number } | undefined)?.confirmed);
@@ -133,6 +138,12 @@ export function summaryTable(entries: Record<string, unknown>[]) {
     '# Stripe benchmark summary',
     '',
     `Repositories: ${rows.length}. Affected: ${affected.length}. Pull requests: ${count('pull request')}.`,
+    ...(predates.length
+      ? [
+          '',
+          `These results predate ${predates.join(', ')}; rows were classified from their fields.`,
+        ]
+      : []),
     '',
     '| Outcome | Repositories |',
     '|---|---|',
@@ -145,6 +156,19 @@ export function summaryTable(entries: Record<string, unknown>[]) {
         `| ${row.repo} | ${row.outcome} | ${row.url ? `[link](${String(row.url)})` : ''} | ${row.reason} |`,
     ),
     '',
+    ...(infrastructure.length
+      ? [
+          `Infrastructure errors, not counted above: ${infrastructure.length}. Rerun them with --resume.`,
+          '',
+          '| Repository | Kind | Message |',
+          '|---|---|---|',
+          ...infrastructure.map(
+            (row) =>
+              `| ${String(row.repo)} | ${row.infrastructure.kind} | ${row.infrastructure.message.replace(/\s+/g, ' ').replace(/\|/g, '/').slice(0, 140)} |`,
+          ),
+          '',
+        ]
+      : []),
   ].join('\n');
 }
 
