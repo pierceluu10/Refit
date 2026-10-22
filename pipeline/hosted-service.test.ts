@@ -50,9 +50,18 @@ vi.mock('./github.ts', async (original) => ({
   ...(await original<typeof import('./github.ts')>()),
   requestGitHub: vi.fn(async (_token: string, method: string, path: string) => {
     expect(method).toBe('GET');
-    if (path === '/repos/example/application')
-      return { id: 789, full_name: 'example/application', archived: false, disabled: false };
-    expect(path).toBe('/repos/example/application/git/ref/heads/main');
+    // Both installed repositories are inventoried from the same source; only one is approved.
+    const repository = /^\/repos\/(example\/(?:application|unapproved))(\/.*)?$/.exec(path);
+    if (repository && !repository[2])
+      return {
+        id: 789,
+        full_name: repository[1],
+        archived: false,
+        disabled: false,
+        default_branch: 'main',
+        size: 1,
+      };
+    expect(repository?.[2]).toBe('/git/ref/heads/main');
     return { object: { type: 'commit', sha: transport.head } };
   }),
 }));

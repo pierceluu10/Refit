@@ -15,7 +15,7 @@ import type { Repository, SourceEdit } from './types.ts';
 // Text-generation calls whose `model` selects a chat or reasoning model. Embeddings, images, audio,
 // moderation and legacy completions are left out: their replacements change vector sizes, formats,
 // endpoints or parameters.
-const MODEL_CALLS: Record<string, Set<string>> = {
+export const MODEL_CALLS: Record<string, Set<string>> = {
   openai: new Set([
     'chat.completions.create',
     'chat.completions.parse',

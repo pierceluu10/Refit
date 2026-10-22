@@ -20,16 +20,19 @@ import {
 import { runHostedService } from './hosted-service.ts';
 import { openHostedStore } from './hosted-store.ts';
 import { hostedTenancy } from './hosted-tenancy.ts';
+import { openInventoryStore } from './inventory-store.ts';
 import { validateServiceSecret } from './local-service.ts';
 import { readRepositoryApproval } from './repository-enrollment.ts';
 import { PipelineInputError } from './types.ts';
 import { terminalText } from './workflow-presentation.ts';
 
 const GITHUB_LOGIN = /^[A-Za-z0-9][A-Za-z0-9-]{0,38}$/;
+const REPOSITORY = /^[A-Za-z0-9][A-Za-z0-9-]*\/[A-Za-z0-9_.-]+$/;
 const JOB_ID = /^[1-9]\d{0,15}$/;
 const USAGE = `Usage: refit hosted serve --state <directory> [--host <address>] [--port <number>] [--interval <seconds>] [--ai-patch --repair-attempts 0|1|2] [--publish-draft] [--job-machines] [--purge-uninstalled]
        refit hosted approve --approval <receipt.json> --approved-by <github-login>
        refit hosted retry --target <id>
+       refit hosted inventory --repository <owner/name>
        refit hosted migrate [--dry-run]
        refit hosted accounts
        refit hosted job
@@ -43,6 +46,7 @@ retry queues one fresh attempt for an enrolled target, permitting a cached faile
 migrate applies pending schema migrations, which serve also does on start; --dry-run lists them without applying anything. serve keeps running through PostgreSQL outages. With --purge-uninstalled it deletes an uninstalled installation's targets, jobs and evidence ${UNINSTALL_GRACE_DAYS} days after the uninstall; without it, nothing is deleted.
 With REFIT_HOSTED_APPROVAL_ISSUES=1, serve opens one issue on each installed repository of an allowed account that has no approval, showing what refit enroll shows (or a proposed .refit.json), and handles /refit approve <fingerprint-prefix> and /refit revoke comments from users with the admin or maintain role. It needs the App's Issues permission and issue_comment event.
 accounts lists every recorded installation, whether the serving worker allowed it, and today's usage against the caps. Run it with the worker's REFIT_HOSTED_ACCOUNTS (or REFIT_HOSTED_OWNER) and cap settings.
+inventory queues a read-only inventory of a repository installed by an allowed account, approved or not, and prints the stored one as JSON. The running worker takes it within its polling interval; an unchanged revision is not scanned again. Installing the App queues one for every repository it can read.
 --job-machines runs each job on its own Fly Machine in REFIT_JOB_APP, a separate Fly app with no secrets, using FLY_API_TOKEN for that app, REFIT_JOB_IMAGE (default FLY_IMAGE_REF), REFIT_JOB_REGION (default FLY_REGION) and the validation images in REFIT_HOSTED_IMAGES. It cannot be combined with --ai-patch or --publish-draft. job runs on such a machine: it reads REFIT_JOB_URL, REFIT_JOB_ID and REFIT_JOB_SECRET, runs that one job and reports to the control process.
 jobs lists the newest ${JOBS_SHOWN} matching jobs. receipt prints one job's stored receipt and, on the machine that holds the evidence volume, its evidence files. targets lists each target's state, last job and last stored receipt. These commands only read PostgreSQL.
 health checks PostgreSQL, the Refit tables, the Docker daemon and every image in REFIT_HOSTED_IMAGES, and exits 1 if any check fails.
@@ -163,6 +167,7 @@ try {
       approval: { type: 'string' },
       'approved-by': { type: 'string' },
       target: { type: 'string' },
+      repository: { type: 'string' },
       'dry-run': { type: 'boolean' },
       status: { type: 'string' },
       since: { type: 'string' },
@@ -198,6 +203,21 @@ try {
     try {
       const job = await (await openHostedStore(pool)).retry(values.target);
       console.log(`Queued retry job ${job} for ${values.target}.`);
+    } finally {
+      await pool.end();
+    }
+  } else if (command === 'inventory') {
+    const repository = values.repository;
+    if (!repository) throw new PipelineInputError(USAGE);
+    if (!REPOSITORY.test(repository))
+      throw new PipelineInputError('--repository requires owner/name.');
+    const pool = database();
+    try {
+      await openHostedStore(pool);
+      const inventories = openInventoryStore(pool);
+      const installation = await inventories.requestRepository(repository);
+      console.error(`Queued an inventory of ${repository} (installation ${installation}).`);
+      console.log(JSON.stringify((await inventories.read(repository))[0], null, 2));
     } finally {
       await pool.end();
     }

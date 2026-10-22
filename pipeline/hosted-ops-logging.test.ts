@@ -26,6 +26,14 @@ const fake = vi.hoisted(() => ({
   store: {} as Record<string, ReturnType<typeof vi.fn>>,
 }));
 vi.mock('./hosted-store.ts', () => ({ openHostedStore: vi.fn(async () => fake.store) }));
+vi.mock('./inventory-store.ts', () => ({
+  openInventoryStore: vi.fn(() => ({
+    request: vi.fn(async () => 0),
+    requestMissing: vi.fn(async () => 0),
+    claim: vi.fn(async () => null),
+    read: vi.fn(async () => []),
+  })),
+}));
 vi.mock('./service-worker.ts', () => ({
   confirmRepositoryAccess: vi.fn(),
   pollServiceTarget: vi.fn(),
@@ -68,15 +76,21 @@ it('keeps every hosted log path and the failed-job notice JSON and free of secre
     read: vi.fn(async () => ({
       installations: [{ id: '456' }, { id: '900' }],
       targets: [
-        { id: TARGET.id, installationId: '456' },
-        { id: 'target-b', installationId: '900' },
+        { id: TARGET.id, installationId: '456', repository: TARGET.repository },
+        { id: 'target-b', installationId: '900', repository: 'example/other' },
       ],
       jobs: [{ targetId: TARGET.id }, { targetId: 'target-b' }],
     })),
   };
   vi.mocked(worker.confirmRepositoryAccess)
     .mockRejectedValueOnce(new Error(`GitHub rejected token ${TOKEN}`))
-    .mockResolvedValueOnce({ installationId: 456, id: 789, token: 'test-token' });
+    .mockResolvedValueOnce({
+      installationId: 456,
+      id: 789,
+      token: 'test-token',
+      defaultBranch: 'main',
+      size: 1,
+    });
   vi.mocked(worker.pollServiceTarget).mockImplementationOnce(async (options) => {
     options.onProgress?.(`Fetching with x-access-token:${TOKEN}@github.com`);
     await new Promise<void>((resolve) => {
@@ -178,8 +192,9 @@ it('keeps every hosted log path and the failed-job notice JSON and free of secre
     fetch(`${url}/status${query}`, { headers: { Authorization: `Bearer ${token}` } });
   expect(await (await status(`?target=${TARGET.id}`)).json()).toEqual({
     installations: [{ id: '456' }],
-    targets: [{ id: TARGET.id, installationId: '456' }],
+    targets: [{ id: TARGET.id, installationId: '456', repository: TARGET.repository }],
     jobs: [{ targetId: TARGET.id }],
+    inventories: [],
   });
   expect((await status('')).status).toBe(200);
   expect((await status('?target=missing')).status).toBe(404);
