@@ -18,7 +18,7 @@ console.error("REFIT_" + marker + "_INTEGRITY=" + integrity);
 `;
 
 // `name` is the npm package that ships the manager; its `bin` is called through `$refit_tool`.
-function installTool(name: string, bin: string, marker: 'PNPM' | 'YARN') {
+function installTool(name: string, bin: string, marker: 'PNPM' | 'YARN' | 'NPM_TOOL') {
   return (
     `refit_tool_version=$(node -e 'process.stdout.write(JSON.parse(process.argv[1]).managerVersion)' "$1"); ` +
     'npm install --prefix /workspace/.refit-tools --cache=/workspace/.npm-cache --ignore-scripts --include=optional ' +
@@ -60,3 +60,7 @@ export const YARN_BERRY_INSTALL_COMMAND =
   installTool('@yarnpkg/cli-dist', 'yarn', 'YARN') +
   '"$refit_tool" install --immutable --mode=skip-build >&2; ' +
   'mkdir -p node_modules; mv /workspace/.refit-tools node_modules/.refit-tools; ';
+
+// A packageManager pin of npm installs that exact npm the same way; npm ci then runs with it, and
+// it moves into node_modules so checks run it too. REFIT_NPM_VERSION stays the image's own npm.
+export const NPM_TOOL_INSTALL_COMMAND = installTool('npm', 'npm', 'NPM_TOOL');

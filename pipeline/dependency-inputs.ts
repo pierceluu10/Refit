@@ -19,6 +19,11 @@ import {
 } from './yarn-inputs.ts';
 import { CLASSIC_HEADER } from './yarn-lock.ts';
 
+// An exact npm pin, as Corepack writes it. Only a sha512 checksum can be compared with registry
+// integrity; a weaker one is ignored and npm still verifies the tarball against the registry.
+const NPM_PIN =
+  /^npm@((?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*))(?:\+(?:sha512\.([a-f0-9]{128})|sha1\.[a-f0-9]{40}|sha224\.[a-f0-9]{56}|sha256\.[a-f0-9]{64}|sha384\.[a-f0-9]{96}))?$/;
+
 export interface PreparationIdentity {
   manager: 'npm' | 'pnpm' | 'yarn';
   managerVersion?: string;
@@ -139,6 +144,7 @@ export async function readPreparationInputs(
     : {
         ...validateNpmLock(packageContent, lockContent, workspaceContents),
         manager: 'npm',
+        ...npmPin(manifest.packageManager),
         ...(paths.includes('.npmrc') &&
         legacyPeerDeps(await readCommittedFile(snapshot, '.npmrc', MAX_PACKAGE_BYTES))
           ? { legacyPeerDeps: true as const }
@@ -164,4 +170,16 @@ export async function readPreparationInputs(
 // with it, and every package is still installed from that lockfile with its integrity.
 export function legacyPeerDeps(npmrc: string) {
   return npmrc.split(/\r?\n/).some((line) => /^\s*legacy-peer-deps\s*=\s*true\s*$/.test(line));
+}
+
+// A pinned npm installs and runs that exact release; an unpinned `npm@` range keeps the image's npm.
+function npmPin(packageManager: unknown) {
+  const pin = typeof packageManager === 'string' ? NPM_PIN.exec(packageManager) : null;
+  if (!pin) return {};
+  return {
+    managerVersion: pin[1],
+    ...(pin[2]
+      ? { managerIntegrity: `sha512-${Buffer.from(pin[2], 'hex').toString('base64')}` }
+      : {}),
+  };
 }
