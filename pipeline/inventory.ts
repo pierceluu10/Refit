@@ -10,6 +10,11 @@ import {
   TEST_PATH,
   type DeadlineScan,
 } from './deadline-exposure.ts';
+import {
+  DEADLINE_IGNORE_FILE,
+  readDeadlineIgnores,
+  type DeadlineIgnores,
+} from './deadline-ignores.ts';
 import type { DeadlineRegistry } from './deadline-registry.ts';
 import { authenticateGitHubRead, type GitHubAppConfiguration } from './github-app.ts';
 import { withGitHubCheckout } from './github-checkout.ts';
@@ -93,6 +98,8 @@ export interface Inventory {
     status: 'literal' | 'unknown';
   }[];
   deadlines: DeadlineScan;
+  // The committed .refit-deadlines-ignore.json. An invalid file accepts nothing and keeps its error.
+  ignores: DeadlineIgnores & { error: string | null };
   models: InventoryModelCall[];
 }
 
@@ -188,6 +195,13 @@ export async function scanInventory(
   const detected = new Set(detections.map((detection) => detection.agent.id));
   const integrations = await configuredIntegrations(directory);
   const deadlines = await scanDeadlines(directory, registry, now);
+  let ignores: Inventory['ignores'];
+  try {
+    ignores = { ...(await readDeadlineIgnores(directory, now)), error: null };
+  } catch (error) {
+    if (!(error instanceof PipelineInputError)) throw error;
+    ignores = { file: DEADLINE_IGNORE_FILE, entries: [], error: error.message };
+  }
   signal?.throwIfAborted();
   const apiVersions = detected.has('stripe')
     ? analyzeRepository(await readRepository(directory, 'stripe'), [], STRIPE)
@@ -212,6 +226,7 @@ export async function scanInventory(
         : [{ provider: 'stripe' as const, file, line, kind, value, status }],
     ),
     deadlines,
+    ignores,
     models,
   };
 }

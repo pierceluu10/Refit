@@ -186,7 +186,45 @@ it('inventories an empty repository as having nothing', async () => {
     integrations: [],
     apiVersions: [],
     deadlines: { exposures: [], mentions: [] },
+    ignores: { file: null, entries: [], error: null },
     models: [],
+  });
+});
+
+it('keeps committed deadline ignores, and an invalid ignore file as accepting nothing', async () => {
+  const registry = await loadDeadlineRegistry(undefined, NOW);
+  const ignore = {
+    deadline: 'openai-2026-10-23-gpt-4',
+    reason: 'Moving to gpt-5.6-sol in the next release.',
+    until: '2026-11-30',
+    paths: ['src/legacy'],
+  };
+  const valid = await scanInventory(
+    await repository({
+      '.refit-deadlines-ignore.json': JSON.stringify({ formatVersion: 1, ignore: [ignore] }),
+    }),
+    registry,
+    NOW,
+  );
+  expect(valid.ignores).toEqual({
+    file: '.refit-deadlines-ignore.json',
+    entries: [ignore],
+    error: null,
+  });
+  const invalid = await scanInventory(
+    await repository({
+      '.refit-deadlines-ignore.json': JSON.stringify({
+        formatVersion: 1,
+        ignore: [{ ...ignore, until: '2028-01-01' }],
+      }),
+    }),
+    registry,
+    NOW,
+  );
+  expect(invalid.ignores).toEqual({
+    file: '.refit-deadlines-ignore.json',
+    entries: [],
+    error: expect.stringContaining('ignore[0].until must be within 365 days'),
   });
 });
 
