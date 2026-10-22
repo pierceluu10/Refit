@@ -464,6 +464,20 @@ function resolver(source: ts.SourceFile, imported: Map<string, Holder>) {
       if (fn) return returned(fn, depth);
       return imported.get(node.expression.text);
     }
+    // `this.ensureAuth()`: a method of the enclosing class that returns a client.
+    if (
+      ts.isCallExpression(node) &&
+      ts.isPropertyAccessExpression(node.expression) &&
+      node.expression.expression.kind === ts.SyntaxKind.ThisKeyword
+    ) {
+      const owner = ts.findAncestor(node, ts.isClassLike);
+      const name = node.expression.name.getText();
+      const method = owner?.members.find(
+        (member): member is ts.MethodDeclaration =>
+          ts.isMethodDeclaration(member) && member.name.getText() === name,
+      );
+      return method && returned(method, depth);
+    }
     return undefined;
   };
   return { holderOf, functionOf, returned, bolt, named };

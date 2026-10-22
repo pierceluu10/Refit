@@ -201,6 +201,8 @@ export class SlackService {
   #private = new Client();
   pin() { return this.#private.pins.add({}); }
   later() { const self = this; return () => self.injected.dnd.info({}); }
+  private ensure(): WebClient { return this.injected; }
+  mark() { return this.ensure().conversations.mark({}); }
 }
 type SlackSDK = Methods;
 class Addon { private sdk?: SlackSDK; send() { return this.sdk?.chat.update({}); } }
@@ -214,8 +216,9 @@ export const ping = () => late?.auth.test();
       'src/service.ts:10 web-api conversations.setTopic',
       'src/service.ts:12 web-api pins.add',
       'src/service.ts:13 web-api dnd.info',
-      'src/service.ts:16 web-api chat.update',
-      'src/service.ts:18 web-api auth.test',
+      'src/service.ts:15 web-api conversations.mark',
+      'src/service.ts:18 web-api chat.update',
+      'src/service.ts:20 web-api auth.test',
     ]);
   });
 
