@@ -280,7 +280,24 @@ function urlMethod(node: ts.Node) {
 
 // REST paths `scanShopify` does not see because the versioned base comes from elsewhere. Only files
 // that build an `/admin/api/` URL are read, and only literals that are a bare REST path.
-function relativeRestCalls(repository: Repository, root: string, seen: Set<string>) {
+function relativeRestCalls(
+  repository: Repository,
+  root: string,
+  seen: Set<string>,
+  data: ShopifyRestDeprecations,
+) {
+  // A path counts only when its first segment is one the REST resources use (`orders`,
+  // `products`, …), so an app's own routes such as `/ai/products.json` are not REST calls.
+  const roots = new Set(
+    Object.values(data.resources).flatMap((list) =>
+      list.map((item) =>
+        item
+          .split(' ')[2]
+          .split('/')[0]
+          .replace(/\.json$/, ''),
+      ),
+    ),
+  );
   const found: { file: string; line: number; expression: string; method?: string; path: string }[] =
     [];
   for (const file of repository.files) {
@@ -296,7 +313,11 @@ function relativeRestCalls(repository: Repository, root: string, seen: Set<strin
         const path = RELATIVE_REST.exec(text)?.[1];
         const line = source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1;
         const where = isAbsolute(file.path) ? relative(root, file.path) : file.path;
-        if (path && !text.includes('graphql.json') && !seen.has(`${where}:${line}`)) {
+        if (
+          path &&
+          roots.has(path.split('/')[0].replace(/\.json$/, '')) &&
+          !seen.has(`${where}:${line}`)
+        ) {
           const method = urlMethod(node);
           found.push({ file: where, line, expression: text, ...(method ? { method } : {}), path });
         }
@@ -368,7 +389,7 @@ export async function scanShopifyRestDeprecations(
       });
   }
   const seen = new Set(rest.map((item) => `${item.file}:${item.line}`));
-  for (const call of relativeRestCalls(repository, root, seen)) {
+  for (const call of relativeRestCalls(repository, root, seen, data)) {
     rest.push({
       file: call.file,
       line: call.line,

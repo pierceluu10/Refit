@@ -109,6 +109,7 @@ export async function listFulfillments(shop: string, orderId: number) {
     return fetch(\`\${this.baseUrl(shop)}/products.json?limit=250\`);
   }
   readonly manifest = 'package.json';
+  readonly route = '/ai/products.json';
   private async shopifyFetch(url: string, headers: object, init: object = {}) {
     return fetch(url, { headers, ...init });
   }
