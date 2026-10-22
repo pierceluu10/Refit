@@ -37,30 +37,30 @@ Other failures (GitHub or Git errors) are recorded in `error` with the previous 
 
 ## What it stores
 
-PostgreSQL table `refit_inventories`, one row per installed repository, created by `pipeline/inventory-store.ts`:
+PostgreSQL table `refit_inventories`, one row per installed repository, created by hosted migration 5 (`pipeline/hosted-migrations.ts`). It holds file paths, line numbers, identifiers and counts, never a line of source:
 
-| Column                                                   | Meaning                                                                                                                                                               |
-| -------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `installation_id`, `repository`                          | The installed repository. The row references `refit_installation_repositories` and is deleted with it, so removing the repository or uninstalling the App deletes it. |
-| `state`, `requeue`, `requested_at`                       | `queued`, `running` or `idle`, and whether a request arrived while running.                                                                                           |
-| `lease_owner`, `lease_expires_at`, `attempts`            | The worker holding a running inventory.                                                                                                                               |
-| `checked_at`, `error`                                    | When a worker last looked at the repository, and the last failure (null after a success).                                                                             |
-| `base`, `revision`, `registry`                           | The default branch, the commit scanned and a digest of the deadline registry it was matched against.                                                                  |
-| `status`, `stop`, `message`, `scanned_at`, `duration_ms` | The stored result: `complete` or `stopped`, and when and how long the scan took.                                                                                      |
-| `inventory`                                              | The inventory JSON for a complete scan.                                                                                                                               |
+| Column                                                   | Meaning                                                                                                                                                                                             |
+| -------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `installation_id`, `repository`                          | The installed repository. The row references `refit_installation_repositories` and is deleted with it when the repository is removed; uninstalling the App deletes the installation's rows at once. |
+| `state`, `requeue`, `requested_at`                       | `queued`, `running` or `idle`, and whether a request arrived while running.                                                                                                                         |
+| `lease_owner`, `lease_expires_at`, `attempts`            | The worker holding a running inventory.                                                                                                                                                             |
+| `checked_at`, `error`                                    | When a worker last looked at the repository, and the last failure (null after a success).                                                                                                           |
+| `base`, `revision`, `registry`                           | The default branch, the commit scanned and a digest of the deadline registry it was matched against.                                                                                                |
+| `status`, `stop`, `message`, `scanned_at`, `duration_ms` | The stored result: `complete` or `stopped`, and when and how long the scan took.                                                                                                                    |
+| `inventory`                                              | The inventory JSON for a complete scan.                                                                                                                                                             |
 
 The inventory JSON (`formatVersion: 1`) has these fields:
 
 - `providers`: each catalog provider detected from manifests or raw API hostnames, with `agent` (whether Refit ships a reviewed agent), each declaring manifest's `packages` (`file`, `name`, declared `version`, `locked` version from a supported lockfile or null) and up to five `hostnames` lines.
 - `integrations`: the integrations a committed `.refit.json` configures, with their catalog agent and `apiVersion`.
 - `apiVersions`: Stripe API versions the code sets on a client or request (`kind`), as a literal `value` or `status: "unknown"` when computed. Requests that inherit their client's version are left out. Other providers' pins appear only through deadlines.
-- `deadlines`: the deadline scan from [API deadlines](DEADLINES.md#the-registry): `exposures` (deadlines with live evidence) and `mentions` (named only in tests, comments, catalogs, tokenizers or checks), each with the registry entry, `days` left at scan time, up to 20 evidence lines per use, and exact counts.
+- `deadlines`: the deadline scan from [API deadlines](DEADLINES.md#the-registry): `exposures` (deadlines with live evidence) and `mentions` (named only in tests, comments, catalogs, tokenizers or checks), each with the registry entry, `days` left at scan time, up to 20 evidence locations per use (`file`, `line`, `kind`, `use` and the matched version; the source line itself is dropped), and exact counts.
 - `ignores`: the committed `.refit-deadlines-ignore.json` (see [API deadlines](DEADLINES.md)) as parsed `entries`, so monitoring can honour them without a checkout. An invalid file keeps its `error` and no entries: it accepts nothing.
 - `models`: OpenAI and Anthropic text-generation calls traced by Refit's analyzer (the calls model fixes cover: chat completions, responses and messages), with the `model` when it is a string literal in the call (null when computed) and `test` for test and fixture files. Embeddings, image, audio and Gemini calls are not listed, and models set through constants or helpers show as null.
 
 `GET /status` lists every row with a `summary` in place of the full inventory: provider IDs, exposed deadline IDs with their date and live-evidence count, mentioned deadline IDs, Stripe API versions, literal models outside tests and the number of model calls. `refit hosted inventory` prints the full row.
 
-## Sample: 30 frozen repositories
+## Sample: 30 frozen list entries, 27 repositories
 
 `scripts/inventory-sample.mjs` runs the same `inventoryDirectory` the worker uses (measure, then scan) on a local shallow clone at each repository's recorded commit, then deletes the clone. It has no GitHub App, so the steps before the checkout (access, size and head checks) are not part of it. The run on 2026-10-22 took the first 10 repositories of the OpenAI application, Anthropic application and Stripe frozen lists at Refit commit `863cb34` ([results](benchmarks/2026-10-22-inventory-sample-results.json)). It ran on a laptop shared with other benchmark lanes, so the times are indicative only, and each time includes measuring the checkout twice (once for the report).
 
@@ -70,10 +70,10 @@ The inventory JSON (`formatVersion: 1`) has these fields:
 | Anthropic applications (10-21) | 10        | 10.0 s      | 91.7 s   | 8                                          | 21 (7)                            |
 | Stripe (10-14)                 | 10        | 1.5 s       | 6.3 s    | 4                                          | 6 (1)                             |
 
-- All 30 completed; none hit a cap or stop. Across them the median scan took 4.3 s; the slowest (9,138 files, 143 MiB checked out) took 92 s, under a third of the 300-second cap. The largest checkout was 286 MiB, against the 512 MiB cap.
-- Providers: every Stripe repository was detected as Stripe, five also as OpenAI. Every application repository was detected as OpenAI, and 18 of 20 as Anthropic too; Gemini appeared in 12 and Meta Graph in 2. Only Stripe pins were found in code: `2022-11-15` (2), `2023-10-16` (2) and `2026-01-28.clover` (1).
-- Deadlines: 16 repositories had live exposures, most often `anthropic-2026-06-15-claude-sonnet-4` (6), `anthropic-2026-11-30-claude-sonnet-4-5` (5), `openai-2026-10-23-gpt-4` (5) and `openai-2026-10-23-gpt-3-5-turbo` (5). Seven more had only mentions (tests, comments, catalogs).
-- Models: 17 repositories had traced text-generation calls (79 calls), but only 4 pass the model as a string literal in the call; 13 compute it (a variable, an environment fallback or a helper), so their calls show `model: null`. The deadline scan still catches literal model names elsewhere in those repositories.
+- Three repositories appear in both AI application lists at the same commit, so the 30 entries are 27 distinct repositories; the bullets below count each once. All completed; none hit a cap or stop. Across the 27 the median scan took 4.2 s; the slowest (9,138 files, 143 MiB checked out) took 92 s, under a third of the 300-second cap. The largest checkout was 286 MiB, against the 512 MiB cap.
+- Providers: every Stripe repository was detected as Stripe, five also as OpenAI. All 17 distinct application repositories were detected as OpenAI, and 15 as Anthropic too; Gemini appeared in 10 and Meta Graph in 2. Only Stripe pins were found in code: `2022-11-15` (2), `2023-10-16` (2) and `2026-01-28.clover` (1).
+- Deadlines: 15 repositories had live exposures, most often `anthropic-2026-06-15-claude-sonnet-4` (5), `openai-2026-10-23-gpt-4` (5), `openai-2026-10-23-gpt-3-5-turbo` (5) and `anthropic-2026-11-30-claude-sonnet-4-5` (4). Five more had only mentions (tests, comments, catalogs).
+- Models: 14 repositories had traced text-generation calls (67 calls), but only 3 pass the model as a string literal in the call; 11 compute it (a variable, an environment fallback or a helper), so their calls show `model: null`. The deadline scan still catches literal model names elsewhere in those repositories.
 
 ## Not covered yet
 

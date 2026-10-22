@@ -100,6 +100,10 @@
     "2026-10-21-paypal-subdirectory-results.json": {
       "format": "paypal-subdirectory-results",
       "predates": []
+    },
+    "2026-10-22-inventory-sample-results.json": {
+      "format": "inventory-sample-results",
+      "predates": []
     }
   }
 }
