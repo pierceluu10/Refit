@@ -101,6 +101,14 @@
       "format": "paypal-subdirectory-results",
       "predates": []
     },
+    "2026-10-22-ai-app-model-site-all-results.json": {
+      "format": "ai-app-model-site-results",
+      "predates": []
+    },
+    "2026-10-22-ai-app-model-site-results.json": {
+      "format": "ai-app-model-site-results",
+      "predates": []
+    },
     "2026-10-22-ai-patch-results.json": {
       "format": "ai-patch-results",
       "predates": []
