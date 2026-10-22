@@ -352,3 +352,16 @@ it('refuses mirror tarballs in pnpm lockfiles, which pnpm would fetch from the m
     'https://registry.npmmirror.com/stripe/-/stripe-10.17.0.tgz';
   expect(() => validate(sample)).toThrow('Package tarballs must use public registry.npmjs.org');
 });
+it('names the declaration a pnpm lockfile has not caught up with', () => {
+  // Suhaib3100/online-compiler declares prisma ^5.20.0 against a lockfile written for ^5.17.0.
+  const changed = scenario();
+  changed.manifest.dependencies.stripe = '^10.17.0';
+  expect(() => validate(changed)).toThrow(
+    'stripe is "^10.17.0" in package.json but "10.17.0" in pnpm-lock.yaml. Run pnpm install and commit the updated pnpm-lock.yaml.',
+  );
+  const added = scenario();
+  added.manifest.dependencies.zod = '3.23.8';
+  expect(() => validate(added)).toThrow(
+    'zod is in package.json dependencies but not in pnpm-lock.yaml.',
+  );
+});

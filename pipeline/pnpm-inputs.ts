@@ -296,12 +296,17 @@ export function validatePnpmInputs(
           );
       if (section === 'peerDependencies') continue;
       const recorded: unknown = importer[section] ?? {};
-      if (
-        !isObject(recorded) ||
-        JSON.stringify(Object.keys(recorded).sort()) !==
-          JSON.stringify(Object.keys(declarations).sort())
-      )
+      const manifestFile = `${directory === '.' ? '' : `${directory}/`}package.json`;
+      const update = 'Run pnpm install and commit the updated pnpm-lock.yaml.';
+      if (!isObject(recorded))
         throw new PipelineInputError('pnpm importer declarations differ from committed manifests.');
+      const unmatched = [...new Set([...Object.keys(recorded), ...Object.keys(declarations)])].find(
+        (name) => !Object.hasOwn(recorded, name) || !Object.hasOwn(declarations, name),
+      );
+      if (unmatched)
+        throw new PipelineInputError(
+          `pnpm importer declarations differ from committed manifests: ${unmatched} is ${Object.hasOwn(declarations, unmatched) ? '' : 'not '}in ${manifestFile} ${section} but ${Object.hasOwn(recorded, unmatched) ? '' : 'not '}in pnpm-lock.yaml. ${update}`,
+        );
       for (const [name, source] of Object.entries(declarations)) {
         const specifier = source as string;
         const record: unknown = recorded[name];
@@ -310,7 +315,9 @@ export function validatePnpmInputs(
           record.specifier !== specifier ||
           typeof record.version !== 'string'
         )
-          throw new PipelineInputError('pnpm importer specifiers differ from committed manifests.');
+          throw new PipelineInputError(
+            `pnpm importer specifiers differ from committed manifests: ${name} is ${JSON.stringify(specifier)} in ${manifestFile} but ${JSON.stringify(isObject(record) ? record.specifier : undefined) ?? 'missing'} in pnpm-lock.yaml. ${update}`,
+          );
         if (specifier.startsWith('workspace:')) {
           const target = names.get(name);
           if (
