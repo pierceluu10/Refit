@@ -43,7 +43,9 @@ import {
   crossesOpenEnums,
   OPEN_ENUM_REPAIR,
   OPEN_ENUM_RULE,
+  keepsPartialRestore,
   openEnumRepair,
+  restorableOpenEnumErrors,
 } from './stripe-open-enums.ts';
 import { SUBSCRIPTION_PERIOD_RULE } from './stripe-subscription-periods.ts';
 import { selectValidationRuntime } from './validation-runtime.ts';
@@ -78,6 +80,9 @@ export interface ValidationAttempt {
   evidenceHash: string | null;
   usage: AiUsage | null;
   costUsd: number | null;
+  // Why Refit rejected the model's earlier answer before its corrected request; usage and cost
+  // cover both requests.
+  rejectedProposals?: string[];
 }
 
 export interface CheckResult {
@@ -121,6 +126,37 @@ const REVIEW_TYPE_ERROR =
 
 export function reviewTypeError(error: { message: string }) {
   return REVIEW_TYPE_ERROR.test(error.message);
+}
+
+const REJECTED_PROPERTY =
+  /Object literal may only specify known properties, (?:and|but) '([^']+)' does not exist in type '[^']*'/;
+
+// Object-literal properties the upgraded types reject that the original code's check accepted,
+// such as Checkout's `subscription_data.trial_from_plan`, which stripe-node 12 typed and later
+// versions drop. tsc reports them on the error line or the indented line after it.
+export function rejectedProperties(baseline: CheckResult, patched: CheckResult) {
+  const reports = (check: CheckResult) =>
+    `${check.stdout}\n${check.stderr}`
+      .split('\n')
+      .map((line) => REJECTED_PROPERTY.exec(line))
+      .filter((match): match is RegExpExecArray => Boolean(match));
+  const before = new Set(reports(baseline).map((match) => match[0]));
+  return [
+    ...new Set(
+      reports(patched)
+        .filter((match) => !before.has(match[0]))
+        .map((match) => match[1]),
+    ),
+  ];
+}
+
+// Stripe moved a subscription's billing period onto its items in 2025-03-31.basil. Reading it from
+// an item means choosing one, which only the reviewed stripeSubscriptionPeriods rule may do.
+const SUBSCRIPTION_PERIOD_READ =
+  /^Property 'current_period_(?:start|end)' does not exist on type '[^']*\bSubscription\b[^']*'/;
+
+export function subscriptionPeriodRead(error: { message: string }) {
+  return SUBSCRIPTION_PERIOD_READ.test(error.message);
 }
 
 const formatTypeError = (error: ReturnType<typeof typeErrors>[number]) =>
@@ -512,6 +548,7 @@ export async function validateMigration(options: {
   // --publish-unresolved: see withoutRequestParameters.
   leaveRequestParameters?: boolean;
   keepListedPaymentMethods?: boolean;
+  shopifySdkUpgrade?: boolean;
   // --publish-unresolved: a repository-side dependency preparation failure skips the checks and
   // returns the deterministic patch as `untested` instead of throwing.
   recordDependencyFailures?: boolean;
@@ -823,7 +860,7 @@ export async function validateMigration(options: {
     let candidateDirectory = initialCandidate?.directory;
     let candidateSources = initialCandidate?.sources;
     // A deterministic proposal is the rules' output; AI repairs are guarded against it.
-    const ruleSources =
+    let ruleSources =
       report.patch.generator === 'deterministic' ? initialCandidate?.sources.files : undefined;
     let candidateDependencies = initialCandidate?.dependencies;
     let candidateEnvironment = initialCandidate?.environment;
@@ -855,6 +892,9 @@ export async function validateMigration(options: {
         evidenceHash: 'evidenceHash' in proposal ? proposal.evidenceHash : null,
         usage: 'usage' in proposal ? proposal.usage : null,
         costUsd: 'budget' in proposal ? (proposal.budget?.costUsd ?? null) : null,
+        ...('rejectedProposals' in proposal
+          ? { rejectedProposals: proposal.rejectedProposals }
+          : {}),
       });
     if (initialCandidate) recordAttempt();
     const removedParameters = [
@@ -866,7 +906,14 @@ export async function validateMigration(options: {
         ).map((removal) => removal.parameter),
       ),
     ];
-    const repair: { limit: number; requested: number; stopReason: string; error: string | null } = {
+    const repair: {
+      limit: number;
+      requested: number;
+      stopReason: string;
+      error: string | null;
+      // The open-enum restore applied to part of the errors before an AI repair of the rest.
+      openEnumRestored?: boolean;
+    } = {
       limit: repairLimit,
       requested: 0,
       stopReason: dependencyFailure
@@ -881,13 +928,15 @@ export async function validateMigration(options: {
       error: null,
     };
     // stripe-node 22.4.0 widened open response enums with OtherString. Before any AI repair, a
-    // deterministic repair restores their known literals where the upgraded types reject them; it
-    // is kept only when every introduced error is that shape and the checks then pass.
+    // deterministic repair restores their known literals where the upgraded types reject them. It
+    // is kept when every introduced error is that shape and the checks then pass, or, before an AI
+    // repair of a rules proposal, when the checks then fail only on the errors it left alone: the
+    // model then repairs those errors on the restored candidate instead of all of them.
     const sdkUpgrade =
       'sdkUpgrade' in report.patch
         ? (report.patch.sdkUpgrade as { from?: string; to?: string } | undefined)
         : undefined;
-    const openEnumFiles =
+    const introducedByRules =
       baseline.status === 'passed' &&
       patched.status === 'failed' &&
       options.compareTypeErrors &&
@@ -895,7 +944,15 @@ export async function validateMigration(options: {
       sdkUpgrade?.from &&
       sdkUpgrade.to &&
       crossesOpenEnums(sdkUpgrade.from, sdkUpgrade.to)
-        ? openEnumRepair(candidateSources.files, introducedTypeErrors(baselineRun, patched))
+        ? introducedTypeErrors(baselineRun, patched)
+        : [];
+    const openEnumErrors =
+      candidateSources && options.aiPatch && ruleSources
+        ? restorableOpenEnumErrors(candidateSources.files, introducedByRules)
+        : introducedByRules;
+    const openEnumFiles =
+      candidateSources && openEnumErrors.length
+        ? openEnumRepair(candidateSources.files, openEnumErrors)
         : undefined;
     if (openEnumFiles?.length && candidateSources) {
       const current = new Map(candidateSources.files.map((file) => [file.path, file.content]));
@@ -932,7 +989,15 @@ export async function validateMigration(options: {
           }),
         ),
       );
-      if (check.status === 'passed') {
+      if (
+        check.status === 'passed' ||
+        (check.status === 'failed' &&
+          keepsPartialRestore(
+            introducedByRules,
+            openEnumErrors,
+            introducedTypeErrors(baselineRun, check),
+          ))
+      ) {
         proposal = { ...proposal, diff };
         publicationFiles = prepared.publicationFiles;
         candidateDirectory = prepared.directory;
@@ -941,7 +1006,12 @@ export async function validateMigration(options: {
         candidateEnvironment = prepared.environment;
         patched = check;
         recordAttempt();
-        repair.stopReason = OPEN_ENUM_REPAIR;
+        if (check.status === 'passed') repair.stopReason = OPEN_ENUM_REPAIR;
+        else {
+          repair.openEnumRestored = true;
+          // The restore is a rule edit, so the AI guards do not count it as the model's.
+          ruleSources = prepared.sources.files;
+        }
       }
     }
     while (
@@ -969,6 +1039,20 @@ export async function validateMigration(options: {
       // Only review items remain: another round would have nothing it may fix.
       if (introduced.length && introduced.every(reviewTypeError)) {
         repair.stopReason = 'review-required';
+        break;
+      }
+      // No contract documents a property the upgraded types reject, and no repair passes without
+      // dropping or replacing it, which changes what the code sends: a person decides.
+      const rejected = options.compareTypeErrors ? rejectedProperties(baselineRun, patched) : [];
+      if (rejected.length) {
+        repair.stopReason = 'review-required';
+        repair.error = `The upgraded types reject ${rejected.map((name) => `'${name}'`).join(', ')}; removing or replacing ${rejected.length === 1 ? 'it' : 'them'} changes what the code sends, so it stops for review.`;
+        break;
+      }
+      const periodReads = introduced.filter(subscriptionPeriodRead);
+      if (periodReads.length) {
+        repair.stopReason = 'review-required';
+        repair.error = `Stripe moved subscription billing periods onto subscription items, and ${periodReads.map((error) => `${error.file}:${error.line}`).join(', ')} still ${periodReads.length === 1 ? 'reads one' : 'read them'} from the subscription. Choosing an item is a reviewed rule (stripeSubscriptionPeriods), so it stops for review.`;
         break;
       }
       repair.requested++;
