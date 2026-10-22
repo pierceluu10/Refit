@@ -252,7 +252,7 @@ export async function openHostedStore(
           `Installation ${change.action}.`,
         );
         return {
-          status: 'accepted' as const,
+          status: allowed ? ('accepted' as const) : ('not-allowed' as const),
           enrolled: [],
           cancelled: cancelled.targets,
           running: cancelled.running,

@@ -249,6 +249,25 @@ it.skipIf(!DATABASE)(
     expect(
       await install(narrowed, 2, 'customer', ['customer/shop']).then((receipt) => receipt.status),
     ).toBe('not-allowed');
+    const uninstalled = await narrowed.accept(
+      randomUUID(),
+      'installation',
+      new TextEncoder().encode(randomUUID()),
+      {
+        kind: 'installation',
+        installationId: 2,
+        owner: 'customer',
+        action: 'deleted',
+        added: [],
+        removed: [],
+      },
+    );
+    expect(uninstalled).toEqual({
+      status: 'not-allowed',
+      enrolled: [],
+      cancelled: [],
+      running: [],
+    });
     expect(await narrowed.enqueueDue(0)).toBe(1);
     expect((await narrowed.claim('worker', 30))?.target.id).toBe(ours);
   },
