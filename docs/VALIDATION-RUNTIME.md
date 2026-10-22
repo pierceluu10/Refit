@@ -44,6 +44,32 @@ Images are never pulled; `docker run --pull never` is unchanged. A run stops bef
 
 An operator who wants every allowed line available installs the images once: `docker pull node:18-alpine node:20-alpine node:24-alpine`. On the hosted worker, that means listing them in `REFIT_HOSTED_IMAGES`.
 
+## Before and after on repositories that failed for this reason
+
+Because none of the committed failures was a Node.js mismatch, the candidates came from the census instead: repositories whose `engines.node` excludes Node.js 22, which npm, pnpm and Yarn enforce at install time. Each was screened with Refit's own preparation input checks, without Docker. Four that reached Docker turned out to stop for unrelated reasons and are listed at the end.
+
+Each repository then ran twice on 2026-10-22, at its frozen commit, one Docker lock hold per repository. "Before" means preparation (and, when it succeeded, the benchmark's check) on the configured `node:22-alpine`, as `main` does. "After" means the same on the image `selectValidationRuntime` chose. Refit was at `973d476` to `d53318f`; the selection code is the same across that range, and `d53318f` only adds npm pins, which applied to both runs of the one repository that pins npm (the chr33s starter, `npm@12.0.2`).
+
+| Repository (commit) | Declaration | Before: `node:22-alpine` | After |
+| --- | --- | --- | --- |
+| Kayange123/ecommerce-dashboard `d67efd0` | `engines.node 24.x` | npm refuses (`EBADENGINE`) | `node:24-alpine`: prepared; `npm test` passed |
+| airwaylab-app/airwaylab `350571d` | `.nvmrc 20`, `engines.node 20.x` | npm refuses | `node:20-alpine`: prepared; `npm test` ran and was killed before it finished (no exit code: the 120-second limit or the output cap) |
+| ondrej7lukac/fakturidias `329e2bf` | `engines.node 20.x` | npm refuses | `node:20-alpine`: prepared; the repository has no test script or typecheck to run |
+| chr33s/shopify-cloudflare-hono-preact-iso-starter `76e4d3e` | `engines.node >=24.0.0` | npm refuses | `node:24-alpine`: prepared; `npm test` failed because Cloudflare's `workerd` cannot start its local server in the offline sandbox |
+| ShopyOs/metaobjects-orm `50ef372` | `engines.node ^18 \|\| ^20` | npm refuses | `node:20-alpine`: prepared; Jest reported "Test suite failed to run" (the cause was beyond the captured output) |
+| AlbanAndrieu/nabla-site-apache `b795de3` | `.nvmrc v24.14.1`, `engines.node 24.x` (and `npm >=11.6.2`) | npm refuses | `node:24-alpine`: installed; the dependency archive exceeds 1 GiB |
+| meetingmindsexperts/ea-sys `1eea545` | `.nvmrc 24`, `engines.node 24.x` (and `npm 11.x`) | npm refuses | `node:24-alpine`: installed; archive over 1 GiB |
+| papotte/stundenzettel `59e0c24` | `.nvmrc 24.15.0`, `engines.node 24` | npm refuses | `node:24-alpine`: installed; archive over 1 GiB |
+| acm-uiuc/core `32a5dad` | `engines.node >=24.0.0 <25.0.0` | Yarn 1 refuses (`The engine "node" is incompatible`) | `node:24-alpine`: Yarn ran out of space in the 2 GiB workspace |
+| meisbobzheng/pinpoint-archive `24f900a` | `engines.node >=23.0.0` | Yarn 1 refuses | `node:24-alpine`: out of space in the 2 GiB workspace |
+| ACKaraca/draw-or-die `d0799c0` | `.nvmrc 22.23.1`, `engines.node 22.23.1` | npm refuses | Named stop before preparation: no installed allowed image carries 22.23.1 |
+| Lightspace-dev/shopify-remix-app-template `01fe63d` | `engines.node 22.14.0` | npm refuses | Named stop: no installed allowed image carries 22.14.0 |
+| mw10013/tanstack-cloudflare-effect-shopify-app `ca98413` | `engines.node 24.14.0` | pnpm refuses (`ERR_PNPM_UNSUPPORTED_ENGINE`) | Named stop: `node:24-alpine` carries 24.22.1 |
+
+All ten repositories that failed on Node.js 22 because of their declaration now get past it. Five then prepare: one passes its tests, three run checks that fail for reasons of their own, and one has no check to run. The other five stop later, on limits that are already named (three archives over 1 GiB, two Yarn 1 workspaces out of space). The three exact pins that no moving image tag can meet now stop before preparation with a reason that names the declaration, instead of an installer error.
+
+Excluded after screening, because their preparation stops for reasons unrelated to Node.js in both runs: UTDallasEPICS/Carson-s-Village (unsupported pnpm settings), LoLoSenPai/oryon-master (a non-registry tarball URL), thematters/matters-server (lockfile entries without integrity), PansaLegrand/sushi-saas-template (pnpm importer specifiers differ from the manifests).
+
 ## Package manager pins
 
 `packageManager` pins the package manager the way the files above pin Node.js. Refit does not run Corepack: Corepack would download the manager itself, and the installer containers keep `COREPACK_ENABLE_NETWORK=0`. Instead, preparation installs the exact pinned release from the npm registry with `--ignore-scripts`, and checks its version and registry integrity, plus a Corepack `sha512` checksum when the pin has one, before using it.
