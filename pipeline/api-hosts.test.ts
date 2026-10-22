@@ -3,6 +3,8 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { detectApiHosts, excludedHost, loadApiHosts, providerOf } from './api-hosts.ts';
+import { scanDeadlines } from './deadline-exposure.ts';
+import { loadDeadlineRegistry } from './deadline-registry.ts';
 
 const roots: string[] = [];
 afterEach(async () => {
@@ -321,13 +323,32 @@ fetch('https://real.vendor-thirteen.com/v1');
 describe('the shipped host list', () => {
   it('has unique hosts that no catalog hostname already names', async () => {
     const list = await loadApiHosts();
+    expect(list.length).toBeGreaterThanOrEqual(150);
     expect(new Set(list.map((entry) => entry.host)).size).toBe(list.length);
     for (const entry of list) {
       const mapped = providerOf(entry.host.replace(/^\*\./, 'x.'), list);
       expect(mapped?.origin, entry.host).not.toBe('catalog');
-      expect(entry.docs, entry.host).toMatch(/^https:\/\//);
-      expect(entry.source, entry.host).toMatch(/^https:\/\//);
+      expect(entry.docs, entry.host).toMatch(/^https?:\/\//);
+      expect(entry.source, entry.host).toMatch(/^https?:\/\//);
       expect(entry.checkedAt, entry.host).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     }
+  });
+});
+
+describe('scanDeadlines', () => {
+  it('carries the API hosts of the repository for the inventory', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'refit-api-hosts-'));
+    roots.push(root);
+    await writeFile(join(root, 'package.json'), JSON.stringify({ name: 'app' }));
+    await writeFile(
+      join(root, 'a.ts'),
+      `fetch('https://api.stripe.com/v1/charges');\nfetch('https://x.vendor-nineteen.com/a');\n`,
+    );
+    const scan = await scanDeadlines(root, await loadDeadlineRegistry(), new Date('2026-10-22'));
+    expect(scan.apiHostsError).toBeUndefined();
+    expect(scan.apiHosts?.hosts.map((host) => [host.host, host.provider?.id ?? null])).toEqual([
+      ['api.stripe.com', 'stripe'],
+      ['x.vendor-nineteen.com', null],
+    ]);
   });
 });

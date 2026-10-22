@@ -1,1 +1,1531 @@
-{ "formatVersion": 1, "hosts": [] }
+{
+  "formatVersion": 1,
+  "hosts": [
+    {
+      "host": "*.atlassian.net",
+      "provider": "Atlassian Cloud",
+      "docs": "https://developer.atlassian.com/cloud/jira/platform/rest/v3/intro/",
+      "source": "https://developer.atlassian.com/cloud/jira/platform/rest/v3/intro/",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "*.chargebee.com",
+      "provider": "Chargebee",
+      "docs": "https://apidocs.chargebee.com/docs/api",
+      "source": "https://apidocs.chargebee.com/docs/api",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "*.datadoghq.com",
+      "provider": "Datadog",
+      "docs": "https://docs.datadoghq.com/api/latest/",
+      "source": "https://docs.datadoghq.com/api/latest/",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "*.freshdesk.com",
+      "provider": "Freshdesk",
+      "docs": "https://developers.freshdesk.com/api/",
+      "source": "https://developers.freshdesk.com/api/",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "*.hereapi.com",
+      "provider": "HERE",
+      "docs": "https://www.here.com/docs",
+      "source": "https://www.here.com/docs",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "*.infura.io",
+      "provider": "Infura",
+      "docs": "https://docs.metamask.io/services/",
+      "source": "https://docs.metamask.io/services/",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "*.okta.com",
+      "provider": "Okta",
+      "docs": "https://developer.okta.com/docs/api/",
+      "source": "https://developer.okta.com/docs/api/",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "*.pinecone.io",
+      "provider": "Pinecone",
+      "docs": "https://docs.pinecone.io/reference/api/introduction",
+      "source": "https://docs.pinecone.io/reference/api/introduction",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "*.salesforce.com",
+      "provider": "Salesforce",
+      "docs": "https://developer.salesforce.com/docs/apis",
+      "source": "https://developer.salesforce.com/docs/apis",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "*.upstash.io",
+      "provider": "Upstash",
+      "docs": "https://upstash.com/docs/redis/features/restapi",
+      "source": "https://upstash.com/docs/redis/features/restapi",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "*.wikipedia.org",
+      "provider": "Wikipedia",
+      "docs": "https://www.mediawiki.org/wiki/API:Main_page",
+      "source": "https://www.mediawiki.org/wiki/API:Main_page",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "*.zendesk.com",
+      "provider": "Zendesk",
+      "docs": "https://developer.zendesk.com/api-reference/",
+      "source": "https://developer.zendesk.com/api-reference/",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "accounts.spotify.com",
+      "provider": "Spotify",
+      "docs": "https://developer.spotify.com/documentation/web-api/tutorials/client-credentials-flow",
+      "source": "https://developer.spotify.com/documentation/web-api/tutorials/client-credentials-flow",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.ai21.com",
+      "provider": "AI21 Labs",
+      "docs": "https://docs.ai21.com/reference/",
+      "source": "https://docs.ai21.com/reference/",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.alternative.me",
+      "provider": "Alternative.me",
+      "docs": "https://alternative.me/crypto/fear-and-greed-index/#api",
+      "source": "https://alternative.me/crypto/fear-and-greed-index/#api",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.amplitude.com",
+      "provider": "Amplitude",
+      "docs": "https://amplitude.com/docs/apis/analytics/http-v2",
+      "source": "https://amplitude.com/docs/apis/analytics/http-v2",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.apify.com",
+      "provider": "Apify",
+      "docs": "https://docs.apify.com/api/v2",
+      "source": "https://docs.apify.com/api/v2",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.apollo.io",
+      "provider": "Apollo.io",
+      "docs": "https://docs.apollo.io/reference/",
+      "source": "https://docs.apollo.io/reference/",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.atlassian.com",
+      "provider": "Atlassian",
+      "docs": "https://developer.atlassian.com/cloud/jira/platform/rest/v3/intro/",
+      "source": "https://developer.atlassian.com/cloud/jira/platform/rest/v3/intro/",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.axiom.co",
+      "provider": "Axiom",
+      "docs": "https://axiom.co/docs/restapi/introduction",
+      "source": "https://axiom.co/docs/restapi/introduction",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.bitbucket.org",
+      "provider": "Bitbucket Cloud",
+      "docs": "https://developer.atlassian.com/cloud/bitbucket/rest/intro/",
+      "source": "https://developer.atlassian.com/cloud/bitbucket/rest/intro/",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.blockcypher.com",
+      "provider": "BlockCypher",
+      "docs": "https://www.blockcypher.com/dev/bitcoin/",
+      "source": "https://www.blockcypher.com/dev/bitcoin/",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.buildkite.com",
+      "provider": "Buildkite",
+      "docs": "https://buildkite.com/docs/apis/rest-api",
+      "source": "https://buildkite.com/docs/apis/rest-api",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.bybit.com",
+      "provider": "Bybit",
+      "docs": "https://bybit-exchange.github.io/docs/v5/intro",
+      "source": "https://bybit-exchange.github.io/docs/v5/intro",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.cal.com",
+      "provider": "Cal.com",
+      "docs": "https://cal.com/docs/api-reference/v2/introduction",
+      "source": "https://cal.com/docs/api-reference/v2/introduction",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.cas.chat",
+      "provider": "Combot Anti-Spam",
+      "docs": "https://cas.chat/api",
+      "source": "https://cas.chat/api",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.cerebras.ai",
+      "provider": "Cerebras",
+      "docs": "https://inference-docs.cerebras.ai/api-reference/chat-completions",
+      "source": "https://inference-docs.cerebras.ai/api-reference/chat-completions",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.clickup.com",
+      "provider": "ClickUp",
+      "docs": "https://developer.clickup.com/reference",
+      "source": "https://developer.clickup.com/reference",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.clockify.me",
+      "provider": "Clockify",
+      "docs": "https://docs.clockify.me/",
+      "source": "https://docs.clockify.me/",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.codecov.io",
+      "provider": "Codecov",
+      "docs": "https://docs.codecov.com/reference/overview",
+      "source": "https://docs.codecov.com/reference/overview",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.coinpaprika.com",
+      "provider": "Coinpaprika",
+      "docs": "https://api.coinpaprika.com/",
+      "source": "https://api.coinpaprika.com/",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.congress.gov",
+      "provider": "Congress.gov",
+      "docs": "https://api.congress.gov/",
+      "source": "https://api.congress.gov/",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.courier.com",
+      "provider": "Courier",
+      "docs": "https://www.courier.com/docs/reference/",
+      "source": "https://www.courier.com/docs/reference/",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.covalenthq.com",
+      "provider": "Covalent",
+      "docs": "https://goldrush.dev/docs/api-reference",
+      "source": "https://goldrush.dev/docs/api-reference",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.crossref.org",
+      "provider": "Crossref",
+      "docs": "https://www.crossref.org/documentation/retrieve-metadata/rest-api/",
+      "source": "https://www.crossref.org/documentation/retrieve-metadata/rest-api/",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.deepseek.com",
+      "provider": "DeepSeek",
+      "docs": "https://api-docs.deepseek.com/",
+      "source": "https://api-docs.deepseek.com/",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.deps.dev",
+      "provider": "deps.dev",
+      "docs": "https://docs.deps.dev/api/v3/",
+      "source": "https://docs.deps.dev/api/v3/",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.dexscreener.com",
+      "provider": "DEX Screener",
+      "docs": "https://docs.dexscreener.com/api/reference",
+      "source": "https://docs.dexscreener.com/api/reference",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.dictionaryapi.dev",
+      "provider": "Free Dictionary API",
+      "docs": "https://dictionaryapi.dev/",
+      "source": "https://dictionaryapi.dev/",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.dub.co",
+      "provider": "Dub",
+      "docs": "https://dub.co/docs/api-reference/introduction",
+      "source": "https://dub.co/docs/api-reference/introduction",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.etherscan.io",
+      "provider": "Etherscan",
+      "docs": "https://docs.etherscan.io/",
+      "source": "https://docs.etherscan.io/",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.exa.ai",
+      "provider": "Exa",
+      "docs": "https://docs.exa.ai/reference/getting-started",
+      "source": "https://docs.exa.ai/reference/getting-started",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.exchangeratesapi.io",
+      "provider": "Exchange Rates API",
+      "docs": "https://exchangeratesapi.io/documentation/",
+      "source": "https://exchangeratesapi.io/documentation/",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.fda.gov",
+      "provider": "openFDA",
+      "docs": "https://open.fda.gov/apis/",
+      "source": "https://open.fda.gov/apis/",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.figma.com",
+      "provider": "Figma",
+      "docs": "https://www.figma.com/developers/api",
+      "source": "https://www.figma.com/developers/api",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.firecrawl.dev",
+      "provider": "Firecrawl",
+      "docs": "https://docs.firecrawl.dev/api-reference/introduction",
+      "source": "https://docs.firecrawl.dev/api-reference/introduction",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.fitbit.com",
+      "provider": "Fitbit",
+      "docs": "https://dev.fitbit.com/build/reference/web-api/",
+      "source": "https://dev.fitbit.com/build/reference/web-api/",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.flutterwave.com",
+      "provider": "Flutterwave",
+      "docs": "https://developer.flutterwave.com/",
+      "source": "https://developer.flutterwave.com/",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.football-data.org",
+      "provider": "football-data.org",
+      "docs": "https://www.football-data.org/documentation/quickstart",
+      "source": "https://www.football-data.org/documentation/quickstart",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.genius.com",
+      "provider": "Genius",
+      "docs": "https://docs.genius.com/",
+      "source": "https://docs.genius.com/",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.giphy.com",
+      "provider": "Giphy",
+      "docs": "https://developers.giphy.com/docs/api",
+      "source": "https://developers.giphy.com/docs/api",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.gocardless.com",
+      "provider": "GoCardless",
+      "docs": "https://developer.gocardless.com/api-reference",
+      "source": "https://developer.gocardless.com/api-reference",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.groq.com",
+      "provider": "Groq",
+      "docs": "https://console.groq.com/docs/api-reference",
+      "source": "https://console.groq.com/docs/api-reference",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.gumroad.com",
+      "provider": "Gumroad",
+      "docs": "https://app.gumroad.com/api",
+      "source": "https://app.gumroad.com/api",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.hcaptcha.com",
+      "provider": "hCaptcha",
+      "docs": "https://docs.hcaptcha.com/",
+      "source": "https://docs.hcaptcha.com/",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.heroku.com",
+      "provider": "Heroku",
+      "docs": "https://devcenter.heroku.com/articles/platform-api-reference",
+      "source": "https://devcenter.heroku.com/articles/platform-api-reference",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.honeybadger.io",
+      "provider": "Honeybadger",
+      "docs": "https://docs.honeybadger.io/api/",
+      "source": "https://docs.honeybadger.io/api/",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.hunter.io",
+      "provider": "Hunter",
+      "docs": "https://hunter.io/api-documentation",
+      "source": "https://hunter.io/api-documentation",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.igdb.com",
+      "provider": "IGDB",
+      "docs": "https://api-docs.igdb.com/",
+      "source": "https://api-docs.igdb.com/",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.imgur.com",
+      "provider": "Imgur",
+      "docs": "https://apidocs.imgur.com/",
+      "source": "https://apidocs.imgur.com/",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.ipify.org",
+      "provider": "ipify",
+      "docs": "https://www.ipify.org/",
+      "source": "https://www.ipify.org/",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.jikan.moe",
+      "provider": "Jikan",
+      "docs": "https://docs.api.jikan.moe/",
+      "source": "https://docs.api.jikan.moe/",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.jup.ag",
+      "provider": "Jupiter",
+      "docs": "https://station.jup.ag/docs/apis/swap-api",
+      "source": "https://station.jup.ag/docs/apis/swap-api",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.knock.app",
+      "provider": "Knock",
+      "docs": "https://docs.knock.app/reference",
+      "source": "https://docs.knock.app/reference",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.kraken.com",
+      "provider": "Kraken",
+      "docs": "https://docs.kraken.com/api/",
+      "source": "https://docs.kraken.com/api/",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.kucoin.com",
+      "provider": "KuCoin",
+      "docs": "https://www.kucoin.com/docs/beginners/introduction",
+      "source": "https://www.kucoin.com/docs/beginners/introduction",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.linear.app",
+      "provider": "Linear",
+      "docs": "https://linear.app/developers/graphql",
+      "source": "https://linear.app/developers/graphql",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.mailjet.com",
+      "provider": "Mailjet",
+      "docs": "https://dev.mailjet.com/email/reference/",
+      "source": "https://dev.mailjet.com/email/reference/",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.mainnet-beta.solana.com",
+      "provider": "Solana",
+      "docs": "https://solana.com/docs/rpc",
+      "source": "https://solana.com/docs/rpc",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.manifold.markets",
+      "provider": "Manifold",
+      "docs": "https://docs.manifold.markets/api",
+      "source": "https://docs.manifold.markets/api",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.mcsrvstat.us",
+      "provider": "Minecraft Server Status",
+      "docs": "https://api.mcsrvstat.us/",
+      "source": "https://api.mcsrvstat.us/",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.medium.com",
+      "provider": "Medium",
+      "docs": "https://github.com/Medium/medium-api-docs",
+      "source": "https://github.com/Medium/medium-api-docs",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.mercadopago.com",
+      "provider": "Mercado Pago",
+      "docs": "https://www.mercadopago.com/developers/en/reference",
+      "source": "https://www.mercadopago.com/developers/en/reference",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.meteomatics.com",
+      "provider": "Meteomatics",
+      "docs": "https://www.meteomatics.com/en/api/getting-started/",
+      "source": "https://www.meteomatics.com/en/api/getting-started/",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.mistral.ai",
+      "provider": "Mistral AI",
+      "docs": "https://docs.mistral.ai/api/",
+      "source": "https://docs.mistral.ai/api/",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.mixpanel.com",
+      "provider": "Mixpanel",
+      "docs": "https://developer.mixpanel.com/reference/overview",
+      "source": "https://developer.mixpanel.com/reference/overview",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.monday.com",
+      "provider": "monday.com",
+      "docs": "https://developer.monday.com/api-reference/docs",
+      "source": "https://developer.monday.com/api-reference/docs",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.moonshot.cn",
+      "provider": "Moonshot AI",
+      "docs": "https://platform.moonshot.cn/docs",
+      "source": "https://platform.moonshot.cn/docs",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.mux.com",
+      "provider": "Mux",
+      "docs": "https://docs.mux.com/api-reference",
+      "source": "https://docs.mux.com/api-reference",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.nasa.gov",
+      "provider": "NASA Open APIs",
+      "docs": "https://api.nasa.gov/",
+      "source": "https://api.nasa.gov/",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.netlify.com",
+      "provider": "Netlify",
+      "docs": "https://docs.netlify.com/api/get-started/",
+      "source": "https://docs.netlify.com/api/get-started/",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.neynar.com",
+      "provider": "Neynar",
+      "docs": "https://docs.neynar.com/reference/quickstart",
+      "source": "https://docs.neynar.com/reference/quickstart",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.ngrok.com",
+      "provider": "ngrok",
+      "docs": "https://ngrok.com/docs/api/",
+      "source": "https://ngrok.com/docs/api/",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.novu.co",
+      "provider": "Novu",
+      "docs": "https://docs.novu.co/api-reference/overview",
+      "source": "https://docs.novu.co/api-reference/overview",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.npmjs.org",
+      "provider": "npm downloads",
+      "docs": "https://github.com/npm/registry/blob/main/docs/download-counts.md",
+      "source": "https://github.com/npm/registry/blob/main/docs/download-counts.md",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.nuget.org",
+      "provider": "NuGet",
+      "docs": "https://learn.microsoft.com/en-us/nuget/api/overview",
+      "source": "https://learn.microsoft.com/en-us/nuget/api/overview",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.onesignal.com",
+      "provider": "OneSignal",
+      "docs": "https://documentation.onesignal.com/reference/rest-api-overview",
+      "source": "https://documentation.onesignal.com/reference/rest-api-overview",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.open-meteo.com",
+      "provider": "Open-Meteo",
+      "docs": "https://open-meteo.com/en/docs",
+      "source": "https://open-meteo.com/en/docs",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.opencagedata.com",
+      "provider": "OpenCage",
+      "docs": "https://opencagedata.com/api",
+      "source": "https://opencagedata.com/api",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.opensea.io",
+      "provider": "OpenSea",
+      "docs": "https://docs.opensea.io/reference/api-overview",
+      "source": "https://docs.opensea.io/reference/api-overview",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.pandadoc.com",
+      "provider": "PandaDoc",
+      "docs": "https://developers.pandadoc.com/reference/about",
+      "source": "https://developers.pandadoc.com/reference/about",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.perplexity.ai",
+      "provider": "Perplexity",
+      "docs": "https://docs.perplexity.ai/api-reference/chat-completions-post",
+      "source": "https://docs.perplexity.ai/api-reference/chat-completions-post",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.pinecone.io",
+      "provider": "Pinecone",
+      "docs": "https://docs.pinecone.io/reference/api/introduction",
+      "source": "https://docs.pinecone.io/reference/api/introduction",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.pinterest.com",
+      "provider": "Pinterest",
+      "docs": "https://developers.pinterest.com/docs/api/v5/",
+      "source": "https://developers.pinterest.com/docs/api/v5/",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.plivo.com",
+      "provider": "Plivo",
+      "docs": "https://www.plivo.com/docs/",
+      "source": "https://www.plivo.com/docs/",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.printful.com",
+      "provider": "Printful",
+      "docs": "https://developers.printful.com/docs/",
+      "source": "https://developers.printful.com/docs/",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.printify.com",
+      "provider": "Printify",
+      "docs": "https://developers.printify.com/",
+      "source": "https://developers.printify.com/",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.rawg.io",
+      "provider": "RAWG",
+      "docs": "https://rawg.io/apidocs",
+      "source": "https://rawg.io/apidocs",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.razorpay.com",
+      "provider": "Razorpay",
+      "docs": "https://razorpay.com/docs/api/",
+      "source": "https://razorpay.com/docs/api/",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.replicate.com",
+      "provider": "Replicate",
+      "docs": "https://replicate.com/docs/reference/http",
+      "source": "https://replicate.com/docs/reference/http",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.rollbar.com",
+      "provider": "Rollbar",
+      "docs": "https://docs.rollbar.com/reference/getting-started-1",
+      "source": "https://docs.rollbar.com/reference/getting-started-1",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.sanity.io",
+      "provider": "Sanity",
+      "docs": "https://www.sanity.io/docs/http-reference",
+      "source": "https://www.sanity.io/docs/http-reference",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.screenshotone.com",
+      "provider": "ScreenshotOne",
+      "docs": "https://screenshotone.com/docs/",
+      "source": "https://screenshotone.com/docs/",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.semanticscholar.org",
+      "provider": "Semantic Scholar",
+      "docs": "https://api.semanticscholar.org/api-docs/",
+      "source": "https://api.semanticscholar.org/api-docs/",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.shodan.io",
+      "provider": "Shodan",
+      "docs": "https://developer.shodan.io/api",
+      "source": "https://developer.shodan.io/api",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.smarkets.com",
+      "provider": "Smarkets",
+      "docs": "https://docs.smarkets.com/",
+      "source": "https://docs.smarkets.com/",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.spacexdata.com",
+      "provider": "SpaceX API",
+      "docs": "https://github.com/r-spacex/SpaceX-API/blob/master/docs/README.md",
+      "source": "https://github.com/r-spacex/SpaceX-API/blob/master/docs/README.md",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.sparkpost.com",
+      "provider": "SparkPost",
+      "docs": "https://developers.sparkpost.com/api/",
+      "source": "https://developers.sparkpost.com/api/",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.spoonacular.com",
+      "provider": "Spoonacular",
+      "docs": "https://spoonacular.com/food-api/docs",
+      "source": "https://spoonacular.com/food-api/docs",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.statuspage.io",
+      "provider": "Statuspage",
+      "docs": "https://developer.statuspage.io/",
+      "source": "https://developer.statuspage.io/",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.steampowered.com",
+      "provider": "Steam Web API",
+      "docs": "https://steamcommunity.com/dev",
+      "source": "https://steamcommunity.com/dev",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.storyblok.com",
+      "provider": "Storyblok",
+      "docs": "https://www.storyblok.com/docs/api/content-delivery/v2",
+      "source": "https://www.storyblok.com/docs/api/content-delivery/v2",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.stytch.com",
+      "provider": "Stytch",
+      "docs": "https://stytch.com/docs/api",
+      "source": "https://stytch.com/docs/api",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.sunrise-sunset.org",
+      "provider": "Sunrise Sunset",
+      "docs": "https://sunrise-sunset.org/api",
+      "source": "https://sunrise-sunset.org/api",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.svix.com",
+      "provider": "Svix",
+      "docs": "https://api.svix.com/docs",
+      "source": "https://api.svix.com/docs",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.tavily.com",
+      "provider": "Tavily",
+      "docs": "https://docs.tavily.com/documentation/api-reference/introduction",
+      "source": "https://docs.tavily.com/documentation/api-reference/introduction",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.telegram.org",
+      "provider": "Telegram Bot API",
+      "docs": "https://core.telegram.org/bots/api",
+      "source": "https://core.telegram.org/bots/api",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.telnyx.com",
+      "provider": "Telnyx",
+      "docs": "https://developers.telnyx.com/api/overview",
+      "source": "https://developers.telnyx.com/api/overview",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.the-odds-api.com",
+      "provider": "The Odds API",
+      "docs": "https://the-odds-api.com/liveapi/guides/v4/",
+      "source": "https://the-odds-api.com/liveapi/guides/v4/",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.thecatapi.com",
+      "provider": "The Cat API",
+      "docs": "https://developers.thecatapi.com/",
+      "source": "https://developers.thecatapi.com/",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.thedogapi.com",
+      "provider": "The Dog API",
+      "docs": "https://thedogapi.com/",
+      "source": "https://thedogapi.com/",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.todoist.com",
+      "provider": "Todoist",
+      "docs": "https://developer.todoist.com/api/v1/",
+      "source": "https://developer.todoist.com/api/v1/",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.trello.com",
+      "provider": "Trello",
+      "docs": "https://developer.atlassian.com/cloud/trello/rest/api-group-actions/",
+      "source": "https://developer.atlassian.com/cloud/trello/rest/api-group-actions/",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.turso.tech",
+      "provider": "Turso",
+      "docs": "https://docs.turso.tech/api-reference/introduction",
+      "source": "https://docs.turso.tech/api-reference/introduction",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.twelvedata.com",
+      "provider": "Twelve Data",
+      "docs": "https://twelvedata.com/docs",
+      "source": "https://twelvedata.com/docs",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.typeform.com",
+      "provider": "Typeform",
+      "docs": "https://www.typeform.com/developers/get-started/",
+      "source": "https://www.typeform.com/developers/get-started/",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.unsplash.com",
+      "provider": "Unsplash",
+      "docs": "https://unsplash.com/documentation",
+      "source": "https://unsplash.com/documentation",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.usaspending.gov",
+      "provider": "USAspending",
+      "docs": "https://api.usaspending.gov/",
+      "source": "https://api.usaspending.gov/",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.vapi.ai",
+      "provider": "Vapi",
+      "docs": "https://docs.vapi.ai/api-reference/",
+      "source": "https://docs.vapi.ai/api-reference/",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.vercel.com",
+      "provider": "Vercel",
+      "docs": "https://vercel.com/docs/rest-api",
+      "source": "https://vercel.com/docs/rest-api",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.vimeo.com",
+      "provider": "Vimeo",
+      "docs": "https://developer.vimeo.com/api/reference",
+      "source": "https://developer.vimeo.com/api/reference",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.vonage.com",
+      "provider": "Vonage",
+      "docs": "https://developer.vonage.com/en/api",
+      "source": "https://developer.vonage.com/en/api",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.voyageai.com",
+      "provider": "Voyage AI",
+      "docs": "https://docs.voyageai.com/reference/embeddings-api",
+      "source": "https://docs.voyageai.com/reference/embeddings-api",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.wakatime.com",
+      "provider": "WakaTime",
+      "docs": "https://wakatime.com/developers",
+      "source": "https://wakatime.com/developers",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.weather.gov",
+      "provider": "National Weather Service",
+      "docs": "https://www.weather.gov/documentation/services-web-api",
+      "source": "https://www.weather.gov/documentation/services-web-api",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.weatherapi.com",
+      "provider": "WeatherAPI",
+      "docs": "https://www.weatherapi.com/docs/",
+      "source": "https://www.weatherapi.com/docs/",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.webflow.com",
+      "provider": "Webflow",
+      "docs": "https://developers.webflow.com/data/reference/rest-introduction",
+      "source": "https://developers.webflow.com/data/reference/rest-introduction",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.wikimedia.org",
+      "provider": "Wikimedia",
+      "docs": "https://api.wikimedia.org/wiki/Main_Page",
+      "source": "https://api.wikimedia.org/wiki/Main_Page",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.workos.com",
+      "provider": "WorkOS",
+      "docs": "https://workos.com/docs/reference",
+      "source": "https://workos.com/docs/reference",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.worldbank.org",
+      "provider": "World Bank",
+      "docs": "https://datahelpdesk.worldbank.org/knowledgebase/articles/889392-about-the-indicators-api-documentation",
+      "source": "https://datahelpdesk.worldbank.org/knowledgebase/articles/889392-about-the-indicators-api-documentation",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.x.ai",
+      "provider": "xAI",
+      "docs": "https://docs.x.ai/docs/overview",
+      "source": "https://docs.x.ai/docs/overview",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.x.com",
+      "provider": "X API",
+      "docs": "https://docs.x.com/x-api/introduction",
+      "source": "https://docs.x.com/x-api/introduction",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "api.zenrows.com",
+      "provider": "ZenRows",
+      "docs": "https://docs.zenrows.com/universal-scraper-api/api-reference",
+      "source": "https://docs.zenrows.com/universal-scraper-api/api-reference",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "apicdn.sanity.io",
+      "provider": "Sanity",
+      "docs": "https://www.sanity.io/docs/http-reference/query",
+      "source": "https://www.sanity.io/docs/http-reference/query",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "apis.fedex.com",
+      "provider": "FedEx",
+      "docs": "https://developer.fedex.com/api/en-us/home.html",
+      "source": "https://developer.fedex.com/api/en-us/home.html",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "app.asana.com",
+      "provider": "Asana",
+      "docs": "https://developers.asana.com/reference/rest-api-reference",
+      "source": "https://developers.asana.com/reference/rest-api-reference",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "app.loops.so",
+      "provider": "Loops",
+      "docs": "https://loops.so/docs/api-reference/intro",
+      "source": "https://loops.so/docs/api-reference/intro",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "app.posthog.com",
+      "provider": "PostHog",
+      "docs": "https://posthog.com/docs/api",
+      "source": "https://posthog.com/docs/api",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "app.scrapingbee.com",
+      "provider": "ScrapingBee",
+      "docs": "https://www.scrapingbee.com/documentation/",
+      "source": "https://www.scrapingbee.com/documentation/",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "archive-api.open-meteo.com",
+      "provider": "Open-Meteo",
+      "docs": "https://open-meteo.com/en/docs/historical-weather-api",
+      "source": "https://open-meteo.com/en/docs/historical-weather-api",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "blockchain.info",
+      "provider": "Blockchain.com",
+      "docs": "https://www.blockchain.com/explorer/api",
+      "source": "https://www.blockchain.com/explorer/api",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "catfact.ninja",
+      "provider": "Cat Facts",
+      "docs": "https://catfact.ninja/",
+      "source": "https://catfact.ninja/",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "cloud.langfuse.com",
+      "provider": "Langfuse",
+      "docs": "https://langfuse.com/docs/api-and-data-platform/features/public-api",
+      "source": "https://langfuse.com/docs/api-and-data-platform/features/public-api",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "cloud.mongodb.com",
+      "provider": "MongoDB Atlas",
+      "docs": "https://www.mongodb.com/docs/atlas/api/",
+      "source": "https://www.mongodb.com/docs/atlas/api/",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "connect.mailerlite.com",
+      "provider": "MailerLite",
+      "docs": "https://developers.mailerlite.com/docs/",
+      "source": "https://developers.mailerlite.com/docs/",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "covid19.mathdro.id",
+      "provider": "COVID-19 API",
+      "docs": "https://github.com/mathdroid/covid-19-api",
+      "source": "https://github.com/mathdroid/covid-19-api",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "data-api.polymarket.com",
+      "provider": "Polymarket",
+      "docs": "https://docs.polymarket.com/developers/misc-endpoints/data-api-activity",
+      "source": "https://docs.polymarket.com/developers/misc-endpoints/data-api-activity",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "dev.to",
+      "provider": "DEV",
+      "docs": "https://developers.forem.com/api/v1",
+      "source": "https://developers.forem.com/api/v1",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "dog.ceo",
+      "provider": "Dog CEO",
+      "docs": "https://dog.ceo/dog-api/documentation",
+      "source": "https://dog.ceo/dog-api/documentation",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "dummyjson.com",
+      "provider": "DummyJSON",
+      "docs": "https://dummyjson.com/docs",
+      "source": "https://dummyjson.com/docs",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "eu.i.posthog.com",
+      "provider": "PostHog",
+      "docs": "https://posthog.com/docs/api",
+      "source": "https://posthog.com/docs/api",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "exp.host",
+      "provider": "Expo Push",
+      "docs": "https://docs.expo.dev/push-notifications/sending-notifications/",
+      "source": "https://docs.expo.dev/push-notifications/sending-notifications/",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "fakestoreapi.com",
+      "provider": "Fake Store API",
+      "docs": "https://fakestoreapi.com/docs",
+      "source": "https://fakestoreapi.com/docs",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "finnhub.io",
+      "provider": "Finnhub",
+      "docs": "https://finnhub.io/docs/api",
+      "source": "https://finnhub.io/docs/api",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "geocoding-api.open-meteo.com",
+      "provider": "Open-Meteo",
+      "docs": "https://open-meteo.com/en/docs/geocoding-api",
+      "source": "https://open-meteo.com/en/docs/geocoding-api",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "gitlab.com",
+      "provider": "GitLab",
+      "docs": "https://docs.gitlab.com/api/rest/",
+      "source": "https://docs.gitlab.com/api/rest/",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "graph.microsoft.com",
+      "provider": "Microsoft Graph",
+      "docs": "https://learn.microsoft.com/en-us/graph/overview",
+      "source": "https://learn.microsoft.com/en-us/graph/overview",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "graphql.anilist.co",
+      "provider": "AniList",
+      "docs": "https://docs.anilist.co/",
+      "source": "https://docs.anilist.co/",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "haveibeenpwned.com",
+      "provider": "Have I Been Pwned",
+      "docs": "https://haveibeenpwned.com/API/v3",
+      "source": "https://haveibeenpwned.com/API/v3",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "hooks.zapier.com",
+      "provider": "Zapier",
+      "docs": "https://help.zapier.com/hc/en-us/articles/8496288690317-Trigger-Zaps-from-webhooks",
+      "source": "https://help.zapier.com/hc/en-us/articles/8496288690317-Trigger-Zaps-from-webhooks",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "httpbin.org",
+      "provider": "httpbin",
+      "docs": "https://httpbin.org/",
+      "source": "https://httpbin.org/",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "hub.docker.com",
+      "provider": "Docker Hub",
+      "docs": "https://docs.docker.com/reference/api/hub/latest/",
+      "source": "https://docs.docker.com/reference/api/hub/latest/",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "huggingface.co",
+      "provider": "Hugging Face Hub",
+      "docs": "https://huggingface.co/docs/hub/api",
+      "source": "https://huggingface.co/docs/hub/api",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "ip-api.com",
+      "provider": "ip-api",
+      "docs": "https://ip-api.com/docs/api:json",
+      "source": "https://ip-api.com/docs/api:json",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "ipapi.co",
+      "provider": "ipapi",
+      "docs": "https://ipapi.co/api/",
+      "source": "https://ipapi.co/api/",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "ipinfo.io",
+      "provider": "IPinfo",
+      "docs": "https://ipinfo.io/developers",
+      "source": "https://ipinfo.io/developers",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "is.gd",
+      "provider": "is.gd",
+      "docs": "https://is.gd/apishorteningreference.php",
+      "source": "https://is.gd/apishorteningreference.php",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "jsonplaceholder.typicode.com",
+      "provider": "JSONPlaceholder",
+      "docs": "https://jsonplaceholder.typicode.com/",
+      "source": "https://jsonplaceholder.typicode.com/",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "login.microsoftonline.com",
+      "provider": "Microsoft identity platform",
+      "docs": "https://learn.microsoft.com/en-us/entra/identity-platform/v2-oauth2-auth-code-flow",
+      "source": "https://learn.microsoft.com/en-us/entra/identity-platform/v2-oauth2-auth-code-flow",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "mempool.space",
+      "provider": "mempool.space",
+      "docs": "https://mempool.space/docs/api/rest",
+      "source": "https://mempool.space/docs/api/rest",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "musicbrainz.org",
+      "provider": "MusicBrainz",
+      "docs": "https://musicbrainz.org/doc/MusicBrainz_API",
+      "source": "https://musicbrainz.org/doc/MusicBrainz_API",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "newsapi.org",
+      "provider": "NewsAPI",
+      "docs": "https://newsapi.org/docs",
+      "source": "https://newsapi.org/docs",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "nominatim.openstreetmap.org",
+      "provider": "OpenStreetMap Nominatim",
+      "docs": "https://nominatim.org/release-docs/latest/api/Search/",
+      "source": "https://nominatim.org/release-docs/latest/api/Search/",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "open.feishu.cn",
+      "provider": "Feishu Open Platform",
+      "docs": "https://open.feishu.cn/document/server-docs/api-call-guide/calling-process/overview",
+      "source": "https://open.feishu.cn/document/server-docs/api-call-guide/calling-process/overview",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "open.larksuite.com",
+      "provider": "Lark Open Platform",
+      "docs": "https://open.larksuite.com/document",
+      "source": "https://open.larksuite.com/document",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "openexchangerates.org",
+      "provider": "Open Exchange Rates",
+      "docs": "https://docs.openexchangerates.org/",
+      "source": "https://docs.openexchangerates.org/",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "openlibrary.org",
+      "provider": "Open Library",
+      "docs": "https://openlibrary.org/developers/api",
+      "source": "https://openlibrary.org/developers/api",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "opensky-network.org",
+      "provider": "OpenSky Network",
+      "docs": "https://openskynetwork.github.io/opensky-api/rest.html",
+      "source": "https://openskynetwork.github.io/opensky-api/rest.html",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "opentdb.com",
+      "provider": "Open Trivia Database",
+      "docs": "https://opentdb.com/api_config.php",
+      "source": "https://opentdb.com/api_config.php",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "overpass-api.de",
+      "provider": "Overpass API",
+      "docs": "https://wiki.openstreetmap.org/wiki/Overpass_API",
+      "source": "https://wiki.openstreetmap.org/wiki/Overpass_API",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "pixabay.com",
+      "provider": "Pixabay",
+      "docs": "https://pixabay.com/api/docs/",
+      "source": "https://pixabay.com/api/docs/",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "pokeapi.co",
+      "provider": "PokeAPI",
+      "docs": "https://pokeapi.co/docs/v2",
+      "source": "https://pokeapi.co/docs/v2",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "pro-api.coinmarketcap.com",
+      "provider": "CoinMarketCap",
+      "docs": "https://coinmarketcap.com/api/documentation/v1/",
+      "source": "https://coinmarketcap.com/api/documentation/v1/",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "proxy.golang.org",
+      "provider": "Go module proxy",
+      "docs": "https://go.dev/ref/mod#goproxy-protocol",
+      "source": "https://go.dev/ref/mod#goproxy-protocol",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "public-api.wordpress.com",
+      "provider": "WordPress.com",
+      "docs": "https://developer.wordpress.com/docs/api/",
+      "source": "https://developer.wordpress.com/docs/api/",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "pypi.org",
+      "provider": "PyPI",
+      "docs": "https://docs.pypi.org/api/",
+      "source": "https://docs.pypi.org/api/",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "query1.finance.yahoo.com",
+      "provider": "Yahoo Finance",
+      "docs": "https://finance.yahoo.com/",
+      "source": "https://finance.yahoo.com/",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "r.jina.ai",
+      "provider": "Jina Reader",
+      "docs": "https://jina.ai/reader/",
+      "source": "https://jina.ai/reader/",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "readwise.io",
+      "provider": "Readwise",
+      "docs": "https://readwise.io/api_deets",
+      "source": "https://readwise.io/api_deets",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "registry.npmjs.org",
+      "provider": "npm registry",
+      "docs": "https://github.com/npm/registry/blob/main/docs/REGISTRY-API.md",
+      "source": "https://github.com/npm/registry/blob/main/docs/REGISTRY-API.md",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "reqres.in",
+      "provider": "ReqRes",
+      "docs": "https://reqres.in/",
+      "source": "https://reqres.in/",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "rest.ably.io",
+      "provider": "Ably",
+      "docs": "https://ably.com/docs/api/rest-api",
+      "source": "https://ably.com/docs/api/rest-api",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "restcountries.com",
+      "provider": "REST Countries",
+      "docs": "https://restcountries.com/",
+      "source": "https://restcountries.com/",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "router.huggingface.co",
+      "provider": "Hugging Face",
+      "docs": "https://huggingface.co/docs/inference-providers/index",
+      "source": "https://huggingface.co/docs/inference-providers/index",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "router.project-osrm.org",
+      "provider": "OSRM",
+      "docs": "https://project-osrm.org/docs/v5.24.0/api/",
+      "source": "https://project-osrm.org/docs/v5.24.0/api/",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "rubygems.org",
+      "provider": "RubyGems",
+      "docs": "https://guides.rubygems.org/rubygems-org-api/",
+      "source": "https://guides.rubygems.org/rubygems-org-api/",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "search.maven.org",
+      "provider": "Maven Central",
+      "docs": "https://central.sonatype.org/search/rest-api-guide/",
+      "source": "https://central.sonatype.org/search/rest-api-guide/",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "serpapi.com",
+      "provider": "SerpApi",
+      "docs": "https://serpapi.com/search-api",
+      "source": "https://serpapi.com/search-api",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "us.i.posthog.com",
+      "provider": "PostHog",
+      "docs": "https://posthog.com/docs/api",
+      "source": "https://posthog.com/docs/api",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "wttr.in",
+      "provider": "wttr.in",
+      "docs": "https://github.com/chubin/wttr.in",
+      "source": "https://github.com/chubin/wttr.in",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "www.alphavantage.co",
+      "provider": "Alpha Vantage",
+      "docs": "https://www.alphavantage.co/documentation/",
+      "source": "https://www.alphavantage.co/documentation/",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "www.anagramica.com",
+      "provider": "Anagramica",
+      "docs": "http://www.anagramica.com/api",
+      "source": "http://www.anagramica.com/api",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "www.omdbapi.com",
+      "provider": "OMDb API",
+      "docs": "https://www.omdbapi.com/",
+      "source": "https://www.omdbapi.com/",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "www.predictit.org",
+      "provider": "PredictIt",
+      "docs": "https://www.predictit.org/api/marketdata/all/",
+      "source": "https://www.predictit.org/api/marketdata/all/",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "www.reddit.com",
+      "provider": "Reddit",
+      "docs": "https://www.reddit.com/dev/api/",
+      "source": "https://www.reddit.com/dev/api/",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "www.strava.com",
+      "provider": "Strava",
+      "docs": "https://developers.strava.com/docs/reference/",
+      "source": "https://developers.strava.com/docs/reference/",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "www.thecocktaildb.com",
+      "provider": "TheCocktailDB",
+      "docs": "https://www.thecocktaildb.com/api.php",
+      "source": "https://www.thecocktaildb.com/api.php",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "host": "www.virustotal.com",
+      "provider": "VirusTotal",
+      "docs": "https://docs.virustotal.com/reference/overview",
+      "source": "https://docs.virustotal.com/reference/overview",
+      "checkedAt": "2026-10-22"
+    }
+  ]
+}
