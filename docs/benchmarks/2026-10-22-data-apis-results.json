@@ -1,8 +1,8 @@
 {
   "formatVersion": 1,
-  "refit": "fee81afce2ffb3f1e74c20e2593922e381432d4e",
+  "refit": "af075483289b5679fc62441bdcfa96b66ec8939d",
   "dirty": false,
-  "scannedAt": "2026-10-22T09:08:00.425Z",
+  "scannedAt": "2026-10-22T09:16:25.424Z",
   "results": [
     {
       "repo": "burdas/TaxiPeralta2024",
@@ -186,11 +186,7 @@
             "@cloudinary/react@1.14.1"
           ],
           "hostnames": [
-            "components/soilAgent/TestResultsComponent.tsx:144 api.cloudinary.com",
-            "config/ImagesUrl.ts:2 res.cloudinary.com",
-            "config/ImagesUrl.ts:5 res.cloudinary.com",
-            "config/ImagesUrl.ts:8 res.cloudinary.com",
-            "config/ImagesUrl.ts:11 res.cloudinary.com"
+            "components/soilAgent/TestResultsComponent.tsx:144 api.cloudinary.com"
           ]
         }
       ],
@@ -969,13 +965,6 @@
             "@hubspot/api-client@8.5.0"
           ],
           "hostnames": []
-        },
-        {
-          "id": "cloudinary",
-          "packages": [],
-          "hostnames": [
-            "next.config.js:9 res.cloudinary.com"
-          ]
         }
       ],
       "exposures": []
@@ -1337,10 +1326,7 @@
           ],
           "hostnames": [
             "ckEditor/obj/ckEditor/src/cloudinary.js:32 api.cloudinary.com",
-            "ckEditor/src/cloudinary.ts:61 api.cloudinary.com",
-            "src/app/layout.tsx:109 res.cloudinary.com",
-            "src/lib/cloudinary/cloudinaryHelpers.ts:35 res.cloudinary.com",
-            "src/lib/cloudinary/cloudinaryHelpers.ts:41 res.cloudinary.com"
+            "ckEditor/src/cloudinary.ts:61 api.cloudinary.com"
           ]
         }
       ],
@@ -1468,17 +1454,6 @@
             "@sentry/node@^10.34.0"
           ],
           "hostnames": []
-        },
-        {
-          "id": "cloudinary",
-          "packages": [],
-          "hostnames": [
-            "src/billing/enum/utils.js:629 res.cloudinary.com",
-            "src/billing/enum/utils.js:1323 res.cloudinary.com",
-            "src/billing/enum/utils.js:2006 res.cloudinary.com",
-            "src/billing/enum/utils.js:2712 res.cloudinary.com",
-            "src/billing/enum/utils.js:3436 res.cloudinary.com"
-          ]
         }
       ],
       "exposures": [
@@ -1786,7 +1761,6 @@
             "cloudinary@2.10.0"
           ],
           "hostnames": [
-            "next.config.js:56 res.cloudinary.com",
             "src/components/Dropzone/UploadProviders/cloudinary.ts:33 api.cloudinary.com"
           ]
         }
@@ -2225,8 +2199,7 @@
             "@cloudinary/react@1.14.3"
           ],
           "hostnames": [
-            "src/lib/cloudinary.ts:37 api.cloudinary.com",
-            "src/lib/cloudinary.ts:73 res.cloudinary.com"
+            "src/lib/cloudinary.ts:37 api.cloudinary.com"
           ]
         }
       ],
@@ -4231,9 +4204,7 @@
           "packages": [
             "cloudinary@2.8.0"
           ],
-          "hostnames": [
-            "next.config.js:12 res.cloudinary.com"
-          ]
+          "hostnames": []
         }
       ],
       "exposures": [
@@ -4267,9 +4238,7 @@
           "packages": [
             "cloudinary@2.10.0"
           ],
-          "hostnames": [
-            "src/plugins/cloudinary-picture.mjs:126 res.cloudinary.com"
-          ]
+          "hostnames": []
         }
       ],
       "exposures": []
@@ -4284,9 +4253,7 @@
           "packages": [
             "cloudinary@2.10.0"
           ],
-          "hostnames": [
-            "next.config.ts:14 res.cloudinary.com"
-          ]
+          "hostnames": []
         }
       ],
       "exposures": []
@@ -4381,13 +4348,7 @@
           "packages": [
             "cloudinary@1.41.3"
           ],
-          "hostnames": [
-            "src/controllers/authController.js:30 res.cloudinary.com",
-            "src/controllers/authController.js:31 res.cloudinary.com",
-            "src/controllers/authController.js:32 res.cloudinary.com",
-            "src/controllers/authController.js:33 res.cloudinary.com",
-            "src/models/SystemSettings.js:20 res.cloudinary.com"
-          ]
+          "hostnames": []
         }
       ],
       "exposures": []
@@ -4438,9 +4399,7 @@
           "packages": [
             "cloudinary@2.10.0"
           ],
-          "hostnames": [
-            "next.config.mjs:17 res.cloudinary.com"
-          ]
+          "hostnames": []
         }
       ],
       "exposures": []
@@ -4495,7 +4454,6 @@
             "cloudinary@1.41.3"
           ],
           "hostnames": [
-            "next.config.mjs:10 res.cloudinary.com",
             "src/server/trpc/router/image-upload.ts:21 api.cloudinary.com"
           ]
         }

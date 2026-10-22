@@ -55,6 +55,7 @@ for (const entry of pinned.repos) {
             id: item.id,
             packages: item.packages.map((p) => `${p.name}@${p.locked ?? p.version}`),
             hostnames: item.hostnames.map((h) => `${h.file}:${h.line} ${h.hostname}`),
+            requests: item.requests.map((r) => `${r.file}:${r.line} ${r.host} ${r.client}`),
           })),
           exposures: deadlines.exposures.map((item) => ({
             id: item.deadline.id,
