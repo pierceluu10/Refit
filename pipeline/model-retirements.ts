@@ -6,6 +6,7 @@ import { analyzeRepository } from './analyzer.ts';
 import type { DeadlineEntry, DeadlineRegistry } from './deadline-registry.ts';
 import { daysUntil } from './deadline-registry.ts';
 import { scanDeadlines, TEST_PATH } from './deadline-exposure.ts';
+import { modelWrapperStops } from './model-wrappers.ts';
 import { renderPatch } from './patches.ts';
 import { readProviderAdapter, type ProviderAdapter } from './providers.ts';
 import { readRepository } from './repository.ts';
@@ -2064,7 +2065,7 @@ export type ReportOnlySource = (
 ) => ReportOnlySite[] | Promise<ReportOnlySite[]>;
 // Report-only detectors from other modules. A live match one of them finds is listed as a stop with
 // its reason instead of under unresolved; it is never edited.
-const REPORT_ONLY_SOURCES: ReportOnlySource[] = [];
+const REPORT_ONLY_SOURCES: ReportOnlySource[] = [modelWrapperStops];
 
 export async function proposeModelReplacements(
   directory: string,
@@ -2103,6 +2104,10 @@ export async function proposeModelReplacements(
         (file) =>
           file.content.includes(`'${model}'`) ||
           file.content.includes(`"${model}"`) ||
+          // A gateway or registry ID such as `'openai/gpt-4'` (pipeline/model-wrappers.ts).
+          new RegExp(
+            `['"\`](?:openai|anthropic|google)[/:]${model.replace(/\./g, '\\.')}['"\`]`,
+          ).test(file.content) ||
           file.content.includes(`\`${model}\``),
       ),
     ) ||

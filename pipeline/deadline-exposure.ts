@@ -4,6 +4,7 @@ import { join, resolve } from 'node:path';
 import ts from 'typescript-compiler';
 import { AGENT_CATALOG, builtInPackage } from './agent-catalog.ts';
 import { daysUntil, type DeadlineEntry, type DeadlineRegistry } from './deadline-registry.ts';
+import { modelWrapperSites } from './model-wrappers.ts';
 import { readRepository } from './repository.ts';
 import { isObject, parseObject } from './specifications.ts';
 import { REPOSITORY_CONFIGURATION } from './workflow-configuration.ts';
@@ -47,6 +48,8 @@ export interface DeadlineEvidence {
   use: DeadlineUse;
   version: string;
   text: string;
+  // For a model sent through an AI wrapper SDK, the call that sends it (pipeline/model-wrappers.ts).
+  via?: string;
 }
 
 export interface DeadlineExposure {
@@ -523,6 +526,12 @@ export async function scanDeadlines(
   };
 
   const repository = await readRepository(root, META_SDK);
+  // Models sent through AI wrapper SDKs: each match names the call that sends it, and gateway or
+  // registry IDs such as `'openai/gpt-4o'`, which the exact match below cannot see, are added.
+  const wrapped = modelWrapperSites(repository);
+  const via = new Map(
+    wrapped.map((site) => [`${site.file}:${site.line}:${site.version}`, site.via]),
+  );
   for (const file of repository.files) {
     const shopifyFile = SHOPIFY_CONTEXT.some((name) => file.content.includes(name));
     const metaFile = META_CONTEXT.some((name) => file.content.includes(name));
@@ -537,11 +546,24 @@ export async function scanDeadlines(
           kind: 'source',
           use: useAt(offset + match.column, match.provider, line, match.version),
           text: excerpt(line),
+          ...(via.has(`${file.path}:${index + 1}:${match.version}`)
+            ? { via: via.get(`${file.path}:${index + 1}:${match.version}`) }
+            : {}),
         });
       }
       offset += line.length + 1;
     }
   }
+  for (const site of wrapped)
+    if (site.model !== site.version && !site.custom)
+      record(site.provider, site.version, {
+        file: site.file,
+        line: site.line,
+        kind: 'source',
+        use: TEST_PATH.test(site.file) ? 'test' : 'live',
+        text: site.model,
+        via: site.via,
+      });
   for (const dependency of repository.dependencies) {
     const version = metaSdkVersion(dependency.version, dependency.lock.version);
     if (version)
