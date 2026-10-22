@@ -552,6 +552,17 @@ export async function detectProviders(directory: string): Promise<AgentDetection
   return detections;
 }
 
+// Non-npm manifests are report only (owner decision, 2026-10-22): an agent is addable only with
+// npm package, JS/TS hostname or API version evidence.
+export function addable(detection: AgentDetection) {
+  return Boolean(
+    detection.agent.adapter &&
+    (detection.packages.some((entry) => !entry.ecosystem) ||
+      detection.hostnames.length ||
+      detection.apiVersions?.length),
+  );
+}
+
 // Chooses a scaffold's check: npm test when package.json has a real test script, and dependency
 // preparation when a lockfile is committed.
 export async function scaffoldChecks(root: string) {
@@ -629,6 +640,10 @@ export function addAgents(options: {
       );
     if (!detection.agent.adapter)
       throw new PipelineInputError(`Refit has no ${detection.agent.name} agent yet.`);
+    if (!addable(detection))
+      throw new PipelineInputError(
+        `${detection.agent.name} was detected only in non-npm manifests, which are report only.`,
+      );
     if (existing.includes(id) || added.includes(id)) continue;
     const adapter = detection.agent.adapter;
     if ('file' in adapter)
