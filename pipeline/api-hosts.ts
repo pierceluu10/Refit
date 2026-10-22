@@ -18,7 +18,7 @@ import {
 } from './meta-graph-calls.ts';
 import { readRepository } from './repository.ts';
 import { isObject, parseObject } from './specifications.ts';
-import type { Repository } from './types.ts';
+import { PipelineInputError, type Repository } from './types.ts';
 
 // Every external HTTP API host a JS/TS repository calls, read from source without running it.
 // A host is reported where it reaches an HTTP client: fetch, axios, got, ky, undici, node:http(s)
@@ -135,16 +135,31 @@ export function loadApiHosts(path: string | URL = API_HOSTS): Promise<ApiHostEnt
   const load = async () => {
     const document = parseObject(await readFile(path, 'utf8'), 'API host list');
     if (!Array.isArray(document.hosts)) throw new Error('API host list needs a hosts array.');
-    return document.hosts.filter(isObject).map((entry) => ({
-      host: String(entry.host).toLowerCase(),
-      provider: String(entry.provider),
-      docs: String(entry.docs),
-      source: String(entry.source),
-      checkedAt: String(entry.checkedAt),
-    }));
+    return document.hosts.map((entry, index) => {
+      const fields = ['host', 'provider', 'docs', 'source', 'checkedAt'] as const;
+      const missing = fields.filter(
+        (name) => !isObject(entry) || typeof entry[name] !== 'string' || !entry[name],
+      );
+      if (missing.length)
+        throw new PipelineInputError(
+          `API host list entry ${index + 1} needs a non-empty ${missing.join(', ')}.`,
+        );
+      const item = entry as Record<(typeof fields)[number], string>;
+      return {
+        host: item.host.toLowerCase(),
+        provider: item.provider,
+        docs: item.docs,
+        source: item.source,
+        checkedAt: item.checkedAt,
+      };
+    });
   };
   if (path !== API_HOSTS) return load();
-  entries ??= load();
+  // A failed read is not cached, so the next scan tries again.
+  entries ??= load().catch((error: unknown) => {
+    entries = undefined;
+    throw error;
+  });
   return entries;
 }
 

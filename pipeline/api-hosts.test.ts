@@ -355,3 +355,13 @@ describe('scanDeadlines', () => {
     ]);
   });
 });
+
+it('rejects a host list entry without its fields', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'refit-api-hosts-list-'));
+  const path = join(root, 'api-hosts.json');
+  await writeFile(path, JSON.stringify({ hosts: [{ host: 'api.example.com', provider: 'X' }] }));
+  await expect(loadApiHosts(path)).rejects.toThrow(
+    'API host list entry 1 needs a non-empty docs, source, checkedAt.',
+  );
+  await rm(root, { recursive: true, force: true });
+});

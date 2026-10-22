@@ -86,6 +86,8 @@ Misses that remain are config flowing between objects and files, which the detec
 
 **Not scanned.** Three repositories exceed the repository reader's limits (10,000 files, 2 MiB per file, 50 MiB total) and fail with the existing error: react-native-datetimepicker, graphile/starter and ts-proto. All three are labelled repositories with no hosts, so 27 of the 30 labelled repositories were scanned; they count in the denominators and change no labelled pair.
 
+**Cost.** `scanDeadlines` now parses every JS/TS file for host calls. On code-yeongyu/senpi at `70b868d` (6,625 JS/TS files), `refit deadlines` took 104 s at `e9d7632` against 96 s on main at `7a3f2e4` (plus a regex-only change), one run each on Node 22 on 2026-10-22: about 8% more. The branch also carries later main commits, so the 8 s is an upper bound for this lane.
+
 **Not measured:** recall outside this sample; hosts reached only through SDKs or wrappers Refit cannot see; the share of repositories whose hosts come from environment variables only.
 
 ## Most common untracked hosts in the sample
