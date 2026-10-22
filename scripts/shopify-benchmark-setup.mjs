@@ -7,11 +7,11 @@ import { existsSync } from 'node:fs';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { parseArgs, promisify } from 'node:util';
+import { shallowCheckout } from './ai-app-helpers.mjs';
 import { listSlice } from './aws-benchmark-helpers.mjs';
 
 const execute = promisify(execFile);
 const PINNED = 'docs/benchmarks/2026-10-16-shopify-repos.json';
-const GIT_TIMEOUT_MS = 300_000;
 const { values } = parseArgs({
   options: {
     root: { type: 'string' },
@@ -56,26 +56,11 @@ for (const { version, sha256 } of pinned.schemas.versions) {
 
 const failures = [];
 for (const [index, entry] of repos.entries()) {
-  const directory = join(root, 'repos', entry.repo.replace('/', '__'));
-  if (existsSync(join(directory, '.git'))) continue;
   console.error(`[${index + 1}/${repos.length}] ${entry.repo}`);
   try {
-    await execute('git', ['init', '-q', directory]);
-    await execute(
-      'git',
-      [
-        '-C',
-        directory,
-        'fetch',
-        '-q',
-        '--depth',
-        '1',
-        `https://github.com/${entry.repo}`,
-        entry.commit,
-      ],
-      { timeout: GIT_TIMEOUT_MS },
-    );
-    await execute('git', ['-C', directory, 'checkout', '-q', 'FETCH_HEAD']);
+    // Reuses a clone only at the pinned commit and removes one whose fetch failed, so a rerun
+    // retries it instead of leaving an empty checkout for the benchmark to read.
+    await shallowCheckout(join(root, 'repos'), entry.repo, entry.commit);
   } catch (error) {
     failures.push({
       repo: entry.repo,
