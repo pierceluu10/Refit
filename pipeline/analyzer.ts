@@ -40,6 +40,9 @@ import {
   COUPON_ID_HELPER,
   COUPON_ID_HELPER_RULE,
   couponIdHelperEdit,
+  PRODUCT_FEATURES_HELPER,
+  PRODUCT_FEATURES_HELPER_RULE,
+  productFeaturesHelperEdit,
   CHECKOUT_SHIPPING_HELPER,
   CHECKOUT_SHIPPING_HELPER_RULE,
   checkoutShippingHelperEdit,
@@ -986,7 +989,7 @@ export function analyzeRepository(
         removal.move &&
         !rule &&
         (ts.isPropertyAssignment(property) || ts.isShorthandPropertyAssignment(property))
-          ? requestMoveEdit(property)
+          ? requestMoveEdit(property, removal.move)
           : undefined;
       if (moved && 'replacement' in moved)
         edits.push({
@@ -1261,6 +1264,17 @@ export function analyzeRepository(
       (webhooks?.origin(receiver) || provenance === 'declared-type' || provenance === 'sdk')
     ) {
       const edit = couponIdHelperEdit(node, location(node).file, change.id);
+      if (edit && addEdit(edit)) return edit.rule;
+    }
+    // Product `features` was renamed `marketing_features`, the same list.
+    if (
+      provider.packageName === STRIPE.packageName &&
+      change.schema === 'product' &&
+      change.property === 'features' &&
+      !propertyMoves.some((move) => move.schema === 'product' && move.removed === 'features') &&
+      (webhooks?.origin(receiver) || provenance === 'declared-type' || provenance === 'sdk')
+    ) {
+      const edit = productFeaturesHelperEdit(node, location(node).file, change.id);
       if (edit && addEdit(edit)) return edit.rule;
     }
     // Checkout Session shipping details moved under `collected_information`.
@@ -1619,7 +1633,8 @@ export function analyzeRepository(
                 migration === INVOICE_SUBSCRIPTION_HELPER_RULE ||
                 migration === INVOICE_PRICE_ID_HELPER_RULE ||
                 migration === CHECKOUT_SHIPPING_HELPER_RULE ||
-                migration === COUPON_ID_HELPER_RULE
+                migration === COUPON_ID_HELPER_RULE ||
+                migration === PRODUCT_FEATURES_HELPER_RULE
                   ? { migration: { rule: migration } }
                   : {}),
                 schema: webhook.schema,
@@ -1756,6 +1771,7 @@ export function analyzeRepository(
     INVOICE_PRICE_ID_HELPER,
     CHECKOUT_SHIPPING_HELPER,
     COUPON_ID_HELPER,
+    PRODUCT_FEATURES_HELPER,
   ] as string[];
   // Node16/NodeNext resolution requires explicit extensions on relative imports.
   const nodeModuleResolution = (repository.configurations ?? []).some((file) =>
@@ -1790,6 +1806,7 @@ export function analyzeRepository(
         INVOICE_PRICE_ID_HELPER_RULE,
         CHECKOUT_SHIPPING_HELPER_RULE,
         COUPON_ID_HELPER_RULE,
+        PRODUCT_FEATURES_HELPER_RULE,
       ] as const
     ).find((rule) => edits.some((edit) => edit.rule === rule))!;
     const directories = helperFiles.map((file) => posix.dirname(file).split('/'));

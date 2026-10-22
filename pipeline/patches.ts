@@ -13,6 +13,7 @@ import {
   CHECKOUT_SHIPPING_HELPER_RULE,
   COUPON_ID_HELPER_RULE,
   INVOICE_SUBSCRIPTION_HELPER_RULE,
+  PRODUCT_FEATURES_HELPER_RULE,
   SUBSCRIPTION_PERIOD_HELPER_RULE,
   SUBSCRIPTION_PERIOD_RULE,
 } from './stripe-subscription-periods.ts';
@@ -33,6 +34,8 @@ const FIELD_MOVE_SOURCES: Partial<Record<NonNullable<SourceEdit['rule']>, string
     'https://docs.stripe.com/changelog/basil/2025-03-31/checkout-session-remove-shipping-details',
   [COUPON_ID_HELPER_RULE]:
     'https://docs.stripe.com/changelog/clover/2025-09-30/add-discount-source-property',
+  [PRODUCT_FEATURES_HELPER_RULE]:
+    'https://docs.stripe.com/changelog/2024-04-10/renames-features-attribute-product-object',
 };
 
 export const CARD_PAYMENT_METHOD_WARNING =
@@ -238,6 +241,11 @@ export function proposePatch(
         ...(fieldMoves.some((edit) => edit.rule === CHECKOUT_SHIPPING_HELPER_RULE)
           ? [
               'Checkout Session shipping details are read through a generated helper: the old shipping_details field when present (old-version events), otherwise collected_information.shipping_details. The new object holds only address and name; reads of carrier, phone or tracking_number are left for review. Webhook endpoints are not changed.',
+            ]
+          : []),
+        ...(fieldMoves.some((edit) => edit.rule === PRODUCT_FEATURES_HELPER_RULE)
+          ? [
+              'Product features are read through a generated helper: the old features list when present (old-version events), otherwise marketing_features, the same list under its new name. Webhook endpoints are not changed.',
             ]
           : []),
         ...(fieldMoves.some((edit) => edit.rule === COUPON_ID_HELPER_RULE)

@@ -16,6 +16,7 @@ export const INVOICE_SUBSCRIPTION_HELPER_RULE = 'stripe-invoice-subscription-hel
 export const INVOICE_PRICE_ID_HELPER_RULE = 'stripe-invoice-price-id-helper';
 export const CHECKOUT_SHIPPING_HELPER_RULE = 'stripe-checkout-shipping-details-helper';
 export const COUPON_ID_HELPER_RULE = 'stripe-coupon-id-helper';
+export const PRODUCT_FEATURES_HELPER_RULE = 'stripe-product-features-helper';
 // Rules whose edits call the generated helper module.
 export const HELPER_RULES = new Set<string>([
   SUBSCRIPTION_PERIOD_HELPER_RULE,
@@ -23,6 +24,7 @@ export const HELPER_RULES = new Set<string>([
   INVOICE_PRICE_ID_HELPER_RULE,
   CHECKOUT_SHIPPING_HELPER_RULE,
   COUPON_ID_HELPER_RULE,
+  PRODUCT_FEATURES_HELPER_RULE,
 ]);
 const BEFORE_VERSION = '2025-02-24.acacia';
 const AFTER_VERSION = '2025-03-31.basil';
@@ -367,6 +369,7 @@ const INVOICE_SUBSCRIPTION_LOCAL = 'invoiceSubscription';
 export const INVOICE_PRICE_ID_HELPER = 'getInvoicePriceId';
 export const CHECKOUT_SHIPPING_HELPER = 'getCheckoutShippingDetails';
 export const COUPON_ID_HELPER = 'getCouponId';
+export const PRODUCT_FEATURES_HELPER = 'getProductMarketingFeatures';
 // Fields of the old Shipping object that the new checkout address details no longer carry.
 const DROPPED_SHIPPING_FIELDS = new Set(['carrier', 'phone', 'tracking_number']);
 export type PeriodRareCase = 'item-in-code' | 'price-policy' | 'flagged';
@@ -613,6 +616,29 @@ export function couponIdHelperEdit(node: ts.Node, file: string, changeId: string
   return edit && { ...edit, end: read.getEnd() };
 }
 
+// Replaces a product `features` read: 2024-04-10 renamed it `marketing_features`, the same list of
+// named features. Writes stay with review. Source, read 2026-10-22:
+// https://docs.stripe.com/changelog/2024-04-10/renames-features-attribute-product-object
+export function productFeaturesHelperEdit(node: ts.Node, file: string, changeId: string) {
+  if (!ts.isPropertyAccessExpression(node) || node.name.text !== 'features') return;
+  const parent = node.parent;
+  if (
+    (ts.isBinaryExpression(parent) &&
+      parent.left === node &&
+      parent.operatorToken.kind >= ts.SyntaxKind.FirstAssignment &&
+      parent.operatorToken.kind <= ts.SyntaxKind.LastAssignment) ||
+    ts.isDeleteExpression(parent)
+  )
+    return;
+  return movedReadEdit(
+    node,
+    file,
+    changeId,
+    PRODUCT_FEATURES_HELPER_RULE,
+    (product) => `${PRODUCT_FEATURES_HELPER}(${product})`,
+  );
+}
+
 // Replaces a Checkout Session `shipping_details` read, which moved to
 // `collected_information.shipping_details`. Its new object holds only `address` and `name`, so a
 // read of `carrier`, `phone` or `tracking_number` stays with review.
@@ -754,5 +780,22 @@ ${exported}function getCouponId(value${t(': object')})${t(': string | undefined'
   const id${t(': unknown')} = coupon && typeof coupon === 'object' ? Reflect.get(coupon, 'id') : coupon;
   return typeof id === 'string' ? id : undefined;
 }
-${kind === 'cjs' ? '\nmodule.exports = { getSubscriptionPeriodStart, getSubscriptionPeriodEnd, getInvoiceSubscription, getInvoicePriceId, getCheckoutShippingDetails, getCouponId };\n' : ''}`;
+
+${
+  typed
+    ? `// Typed like the removed field under old stripe types, like the new name under new ones.
+type ProductMarketingFeatures<T> = T extends { features: infer F }
+  ? F
+  : T extends { marketing_features: infer M }
+    ? M
+    : { name?: string }[];
+
+`
+    : ''
+}// The old features list when present (old-version payloads), otherwise marketing_features.
+${exported}function getProductMarketingFeatures${typed ? '<T extends object>(product: T): ProductMarketingFeatures<T>' : '(product)'} {
+  const legacy${t(': unknown')} = Reflect.get(product, 'features');
+  return (legacy !== undefined ? legacy : Reflect.get(product, 'marketing_features'))${typed ? ' as ProductMarketingFeatures<T>' : ''};
+}
+${kind === 'cjs' ? '\nmodule.exports = { getSubscriptionPeriodStart, getSubscriptionPeriodEnd, getInvoiceSubscription, getInvoicePriceId, getCheckoutShippingDetails, getCouponId, getProductMarketingFeatures };\n' : ''}`;
 }

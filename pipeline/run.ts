@@ -52,6 +52,7 @@ import {
   INVOICE_PRICE_ID_HELPER_RULE,
   CHECKOUT_SHIPPING_HELPER_RULE,
   COUPON_ID_HELPER_RULE,
+  PRODUCT_FEATURES_HELPER_RULE,
   HELPER_RULES,
   SUBSCRIPTION_PERIOD_RULE,
   validateStripeSubscriptionPeriodContract,
@@ -196,6 +197,10 @@ async function runOpenApiPipeline(options: {
     [COUPON_ID_HELPER_RULE]:
       propertyExists(after.schemas, ['promotion_code', 'promotion', 'coupon']) &&
       propertyExists(after.schemas, ['discount', 'source', 'coupon']),
+    [PRODUCT_FEATURES_HELPER_RULE]: propertyExists(after.schemas, [
+      'product',
+      'marketing_features',
+    ]),
   } as Record<string, boolean>;
   const targetVersion = isObject(after.document.info) ? after.document.info.version : undefined;
   const versionEdits =
