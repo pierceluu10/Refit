@@ -163,6 +163,52 @@ it('scores an AI proposal with zero edits as declined', () => {
   ).toBe('declined');
 });
 
+it('counts a proposal the open-enum restore re-recorded once', () => {
+  const restored = { ...ai(1, 0.004), number: 2 };
+  const result = scoreBundle(
+    'a/b',
+    validated,
+    report('openai', 'passed', [ai(1, 0.004), restored], {
+      requested: 0,
+      stopReason: 'open-enum-repair',
+    }),
+  );
+  expect(result).toMatchObject({ outcome: 'pass', aiAttempts: 1, costUsd: 0.004 });
+});
+
+it('marks the cost incomplete when a review stop discards a requested repair', () => {
+  const stop = (requested: number) =>
+    scoreBundle(
+      'a/b',
+      failed,
+      report('deterministic', 'regression', [deterministic], {
+        requested,
+        stopReason: 'review-required',
+        error: requested
+          ? 'AI repair drops removed request parameter payment_method_types; it stops for review.'
+          : "The upgraded types reject 'trial_from_plan'; removing or replacing it changes what the code sends, so it stops for review.",
+      }),
+    );
+  expect(stop(1)).toMatchObject({ outcome: 'review-stop', costComplete: false });
+  // The rejected-property stop comes before any request.
+  expect(stop(0)).toMatchObject({
+    outcome: 'review-stop',
+    costComplete: true,
+    detail: expect.stringContaining("reject 'trial_from_plan'"),
+  });
+});
+
+it('scores a first proposal whose request failed or timed out as an AI error', () => {
+  for (const message of ['fetch failed', 'The operation was aborted due to timeout'])
+    expect(
+      scoreBundle(
+        'a/b',
+        { status: 'error', stage: 'proposal', error: { name: 'TypeError', message } },
+        undefined,
+      ),
+    ).toMatchObject({ outcome: 'error', costComplete: false, detail: message });
+});
+
 it('scores a repair whose checks still fail as a regression', () => {
   const result = scoreBundle(
     'a/b',

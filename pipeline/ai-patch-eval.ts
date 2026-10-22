@@ -69,7 +69,9 @@ const EVIDENCE_LIMIT = /exceeds the 64 KiB input limit|exceeds the token limit/;
 // event names and subscription item choice.
 const INPUT_CHECK = /^(PipelineInputError: )?AI (patch|replacement|replacements) /;
 const NO_PROPOSAL = /No supported patch proposal is available/;
-const AI_ERROR = /OpenAI|\bAI\b/;
+// The eval's runs are offline apart from OpenAI, so a failed fetch or an aborted request is the
+// model request's.
+const AI_ERROR = /OpenAI|\bAI\b|fetch failed|operation was aborted|aborted due to timeout/;
 
 function rejection(message: string): AiPatchOutcome {
   if (GUARD.test(message)) return 'guard-rejected';
@@ -85,7 +87,12 @@ export function scoreBundle(
   report: Report | undefined,
 ): AiPatchCaseResult {
   const attempts = report?.validation?.attempts ?? [];
-  const ai = attempts.filter((attempt) => attempt.responseId);
+  // The open-enum restore re-records the proposal it restored, response and cost included.
+  const ai = attempts.filter(
+    (attempt, index) =>
+      attempt.responseId &&
+      attempts.findIndex((other) => other.responseId === attempt.responseId) === index,
+  );
   const repair = report?.validation?.repair;
   const result: AiPatchCaseResult = {
     id,
@@ -115,6 +122,15 @@ export function scoreBundle(
   }
   if (!report?.validation)
     return { ...result, outcome: 'not-reached', detail: manifest.reason ?? null };
+  // The repair step's review stops, before a request (only review items left, a property the
+  // upgraded types reject) or after one; a request's discarded response leaves no cost.
+  if (result.repairStop === 'review-required')
+    return {
+      ...result,
+      outcome: 'review-stop',
+      costComplete: result.costComplete && !result.repairs,
+      detail: repair?.error ?? null,
+    };
   const aiUsed = result.generator === 'openai' || result.repairs > 0;
   if (!aiUsed || result.validation === 'baseline-failed')
     return { ...result, outcome: 'not-reached', detail: manifest.reason ?? null };
@@ -129,8 +145,6 @@ export function scoreBundle(
     };
   if (stop === 'no-proposal') return { ...result, outcome: 'declined', costComplete: false };
   if (stop === 'repeated-proposal') return { ...result, outcome: 'repeated', costComplete: false };
-  if (stop === 'review-required')
-    return { ...result, outcome: 'review-stop', detail: repair?.error ?? null };
   return {
     ...result,
     outcome: result.validation === 'regression' ? 'regression' : 'error',

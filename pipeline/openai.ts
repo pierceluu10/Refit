@@ -5,11 +5,14 @@ import { reserveAiBudget, responseUsage, type AiOptions } from './ai-budget.ts';
 
 const RESPONSES_URL = 'https://api.openai.com/v1/responses';
 const REQUEST_TIMEOUT_MS = 60_000;
+// A response may reason through most of the output allowance before it answers, and an aborted
+// request keeps its full reservation, so generation waits longer than token counting.
+const GENERATION_TIMEOUT_MS = 180_000;
 export const MAX_INPUT_BYTES = 64 * 1024;
 const MAX_RESPONSE_BYTES = 256 * 1024;
 // Reasoning tokens count against this limit. OpenAI recommends reserving at least 25,000 tokens for
-// reasoning and output (developers.openai.com/api/docs/guides/reasoning/advice-on-prompting); at 4,096
-// repair requests ran out while reasoning and returned no output.
+// reasoning and output (developers.openai.com/api/docs/guides/reasoning/advice-on-prompting). At
+// 4,096, a repair in the PG8 eval came back incomplete without saying why; the error now names it.
 export const MAX_OUTPUT_TOKENS = 25_000;
 // At least 2 bytes per token, so the 64 KiB byte limit binds first. JSON-wrapped source measures
 // about 3.5 bytes per token: a 16,384 cap rejected evidence the byte limit allowed.
@@ -75,7 +78,7 @@ export async function requestStructuredOutput(
   const response = await fetch(RESPONSES_URL, {
     method: 'POST',
     redirect: 'error',
-    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+    signal: AbortSignal.timeout(GENERATION_TIMEOUT_MS),
     headers: { Authorization: `Bearer ${options.apiKey}`, 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   });
