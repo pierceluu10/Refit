@@ -166,6 +166,38 @@ CREATE TABLE IF NOT EXISTS refit_inventories (
 ALTER TABLE refit_inventories ENABLE ROW LEVEL SECURITY;
 `;
 
+// Monitoring state for each inventoried repository, and the last alert stage sent per deadline.
+// Both go with the installed repository, so removal or uninstall deletes them. Times come from the
+// monitoring clock, which tests replace.
+const MONITORING = `
+CREATE TABLE IF NOT EXISTS refit_monitoring (
+  installation_id bigint NOT NULL,
+  repository text NOT NULL,
+  pushed boolean NOT NULL DEFAULT false,
+  rescanned_at timestamptz NOT NULL,
+  digest_issue integer,
+  digest_at timestamptz,
+  PRIMARY KEY (installation_id, repository),
+  FOREIGN KEY (installation_id, repository)
+    REFERENCES refit_installation_repositories (installation_id, repository) ON DELETE CASCADE
+);
+CREATE TABLE IF NOT EXISTS refit_deadline_alerts (
+  installation_id bigint NOT NULL,
+  repository text NOT NULL,
+  deadline text NOT NULL,
+  stage integer NOT NULL,
+  issue integer,
+  status text NOT NULL CHECK (status IN ('sending', 'opened', 'updated', 'failed')),
+  message text,
+  sent_at timestamptz NOT NULL,
+  PRIMARY KEY (installation_id, repository, deadline),
+  FOREIGN KEY (installation_id, repository)
+    REFERENCES refit_installation_repositories (installation_id, repository) ON DELETE CASCADE
+);
+ALTER TABLE refit_monitoring ENABLE ROW LEVEL SECURITY;
+ALTER TABLE refit_deadline_alerts ENABLE ROW LEVEL SECURITY;
+`;
+
 export interface HostedMigration {
   version: number;
   name: string;
@@ -198,6 +230,11 @@ export const MIGRATIONS: HostedMigration[] = [
     version: 5,
     name: 'Repository inventories',
     up: (client) => client.query(INVENTORIES),
+  },
+  {
+    version: 6,
+    name: 'Deadline monitoring and alerts',
+    up: (client) => client.query(MONITORING),
   },
 ];
 

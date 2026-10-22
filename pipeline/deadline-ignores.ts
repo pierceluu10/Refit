@@ -1,6 +1,6 @@
 import { lstat, readFile } from 'node:fs/promises';
 import { isAbsolute, join, relative, resolve } from 'node:path';
-import type { DeadlineExposure } from './deadline-exposure.ts';
+import type { ReportedExposure } from './deadline-exposure.ts';
 import { daysUntil, reportOnly } from './deadline-registry.ts';
 import { isObject, parseObject } from './specifications.ts';
 import { PipelineInputError } from './types.ts';
@@ -161,7 +161,7 @@ export interface IgnoreDecision {
 // its live evidence is covered: a repository-wide entry covers everything, and path-scoped entries
 // must cover every listed file and cannot vouch for matches past the listing limit.
 export function applyDeadlineIgnores(
-  exposures: DeadlineExposure[],
+  exposures: ReportedExposure[],
   ignores: DeadlineIgnore[],
   knownDeadlines: ReadonlySet<string>,
   now: Date,
@@ -213,7 +213,7 @@ export function parseFailWithin(value: string) {
 // The CI decision: a live exposure fails when its deadline is today, past or within the window,
 // unless a reviewed ignore accepts it.
 export function deadlineCheck(
-  exposures: DeadlineExposure[],
+  exposures: ReportedExposure[],
   decisions: ReadonlyMap<string, IgnoreDecision>,
   failWithin: number,
 ) {

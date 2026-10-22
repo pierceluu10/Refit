@@ -79,6 +79,13 @@ export interface DeadlineExposure {
   nonLiveCounts?: Partial<Record<DeadlineUse, number>>;
 }
 
+// An exposure as alerts and reports read it: stored inventories drop each match's source line.
+export type ReportedEvidence = Omit<DeadlineEvidence, 'text'> & { text?: string };
+export type ReportedExposure = Omit<DeadlineExposure, 'evidence' | 'nonLive'> & {
+  evidence: ReportedEvidence[];
+  nonLive: ReportedEvidence[];
+};
+
 // Deadlines found in a repository: exposures have live evidence; mentions are deadlines the
 // repository names only outside live code, with `evidence` empty.
 export interface DeadlineScan {

@@ -38,6 +38,7 @@ export type GitHubWebhook =
       base: string;
       head: string;
     }
+  | { kind: 'push'; installation: number; repository: string; head: string }
   | {
       kind: 'issue_comment';
       installation: number;
@@ -135,6 +136,30 @@ function pullRequest(payload: Record<string, unknown>): GitHubWebhook {
   };
 }
 
+// Only a push that moves the default branch matters; other branches, tags and deletions are ignored.
+function push(payload: Record<string, unknown>): GitHubWebhook {
+  const repository = payload.repository;
+  if (
+    !isObject(payload.installation) ||
+    !isObject(repository) ||
+    typeof repository.full_name !== 'string' ||
+    !REPOSITORY.test(repository.full_name) ||
+    typeof repository.default_branch !== 'string' ||
+    typeof payload.ref !== 'string'
+  )
+    throw new WebhookInputError(422, 'Push webhook is incomplete.');
+  if (payload.deleted === true || payload.ref !== `refs/heads/${repository.default_branch}`)
+    return { kind: 'ignored' };
+  if (typeof payload.after !== 'string' || !COMMIT.test(payload.after))
+    throw new WebhookInputError(422, 'Push webhook is incomplete.');
+  return {
+    kind: 'push',
+    installation: positiveIdentifier(payload.installation.id),
+    repository: repository.full_name.toLowerCase(),
+    head: payload.after,
+  };
+}
+
 const COMMENT_ACTIONS = new Set(['created', 'edited']);
 const LOGIN = /^[A-Za-z0-9][A-Za-z0-9-]{0,38}$/;
 
@@ -187,6 +212,7 @@ export function parseWebhook(body: Uint8Array, event: unknown, appId: number): G
   }
   if (event === 'ping') return { kind: 'ping' };
   if (event === 'pull_request') return pullRequest(payload);
+  if (event === 'push') return push(payload);
   if (event === 'issue_comment') return issueComment(payload);
   if (!['installation', 'installation_repositories'].includes(event)) return { kind: 'ignored' };
   const installation = payload.installation;
