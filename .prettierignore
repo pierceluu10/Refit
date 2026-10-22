@@ -3,6 +3,8 @@ dist
 package-lock.json
 .impeccable/review
 pipeline/fixtures/pnpm-workspaces/*.yaml
+pipeline/fixtures/deprecations/*.md
+pipeline/fixtures/deprecations/*.html
 pipeline/fixtures/model-hosts
 pipeline/fixtures/yarn-workspaces
 pipeline/fixtures/yarn-platform
