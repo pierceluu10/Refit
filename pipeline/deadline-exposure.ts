@@ -6,6 +6,7 @@ import { AGENT_CATALOG, builtInPackage } from './agent-catalog.ts';
 import { daysUntil, type DeadlineEntry, type DeadlineRegistry } from './deadline-registry.ts';
 import { cloudflareEndpointUses } from './cloudflare-calls.ts';
 import { githubDeadlineUses } from './github-api-calls.ts';
+import { repositoryApiVersionPins } from './commerce-api-versions.ts';
 import { declaredPackageNames, readRepository } from './repository.ts';
 import {
   featureMatches,
@@ -16,6 +17,7 @@ import {
   sdkTarget,
 } from './sdk-deadlines.ts';
 import { slackMethodUses } from './slack-calls.ts';
+import { TEST_PATH } from './source-paths.ts';
 import { isObject, parseObject } from './specifications.ts';
 import { PipelineInputError } from './types.ts';
 import { REPOSITORY_CONFIGURATION } from './workflow-configuration.ts';
@@ -141,9 +143,7 @@ const CHECK_OPERATORS = new Set([
   ts.SyntaxKind.ExclamationEqualsToken,
   ts.SyntaxKind.ExclamationEqualsEqualsToken,
 ]);
-// Test, spec, story, fixture and example files, by directory or name.
-export const TEST_PATH =
-  /(?:^|\/)(?:__tests__|__mocks__|__fixtures__|tests?|specs?|e2e|cypress|fixtures?|examples?|stories)\/|\.(?:test|spec|e2e|stories|story)\.[cm]?[jt]sx?$/i;
+export { TEST_PATH };
 // Providers whose deadlines retire models rather than API versions. Their matches get every use
 // class below; API-version providers get only comments, tokenizers and prefix checks.
 const MODEL_PROVIDERS = new Set<DeadlineEntry['provider']>(['openai', 'anthropic', 'gemini']);
@@ -575,6 +575,16 @@ export async function scanDeadlines(
       offset += line.length + 1;
     }
   }
+  // API versions pinned by header, SDK option or URL path, for providers that version that way.
+  if (registry.deadlines.some((entry) => entry.kind === 'api-version'))
+    for (const pin of repositoryApiVersionPins(repository))
+      record(pin.provider, pin.version, {
+        file: pin.file,
+        line: pin.line,
+        kind: 'source',
+        use: pin.use,
+        text: pin.text,
+      });
   for (const dependency of repository.dependencies) {
     const version = metaSdkVersion(dependency.version, dependency.lock.version);
     if (version)

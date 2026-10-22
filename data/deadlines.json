@@ -1392,6 +1392,86 @@
       "source": "https://github.com/nextauthjs/next-auth/blob/main/docs/pages/security.mdx",
       "checkedAt": "2026-10-22",
       "derivedDate": true
+    },
+    {
+      "id": "adyen-2025-10-01-adyen-web-v3",
+      "provider": "adyen",
+      "kind": "sdk",
+      "versions": [
+        "@adyen/adyen-web@<4"
+      ],
+      "date": "2025-10-01",
+      "summary": "Adyen no longer supports version 3.x of @adyen/adyen-web (Drop-in and Components) after October 1, 2025, per the npm deprecation notice on every 3.x release; the adyen-web README lists 3.x as end-of-life since October 2025.",
+      "replacement": "@adyen/adyen-web v6",
+      "source": "https://registry.npmjs.org/@adyen/adyen-web",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "id": "adyen-2026-08-01-adyen-web-v4",
+      "provider": "adyen",
+      "kind": "sdk",
+      "versions": [
+        "@adyen/adyen-web@>=4 <5"
+      ],
+      "date": "2026-08-01",
+      "summary": "Adyen no longer supports version 4.x of @adyen/adyen-web (Drop-in and Components) after August 1, 2026, per the npm deprecation notice on every 4.x release; the adyen-web README lists 4.x as end-of-life since August 2026.",
+      "replacement": "@adyen/adyen-web v6",
+      "source": "https://registry.npmjs.org/@adyen/adyen-web",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "id": "braintree-2023-02-01-braintree-web-v2",
+      "provider": "braintree",
+      "kind": "sdk",
+      "versions": [
+        "braintree-web@<3"
+      ],
+      "date": "2023-02-01",
+      "summary": "Braintree's client SDK table lists braintree-web 2.x as Unsupported since February 2023 (deprecated February 2022). The table gives the month only, so the date here is its first day.",
+      "replacement": "braintree-web v3",
+      "source": "https://github.com/braintree/braintree-web/blob/main/README.md",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "id": "braintree-2023-09-01-braintree-node-v2",
+      "provider": "braintree",
+      "kind": "sdk",
+      "versions": [
+        "braintree@<3"
+      ],
+      "date": "2023-09-01",
+      "summary": "Braintree's server SDK table lists the braintree Node.js SDK 2.x as unsupported from September 2023 (deprecated September 2022). The table gives the month only, so the date here is its first day.",
+      "replacement": "braintree v3",
+      "source": "https://github.com/braintree/braintree_node/blob/master/README.md",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "id": "coinbase-commerce-2021-06-10-commerce-node",
+      "provider": "coinbase-commerce",
+      "kind": "sdk",
+      "versions": [
+        "coinbase-commerce-node"
+      ],
+      "date": "2021-06-10",
+      "summary": "Coinbase marks coinbase-commerce-node as not actively maintained, in its README (notice added 2021-06-10) and in the npm deprecation notice on every release.",
+      "replacement": null,
+      "source": "https://github.com/coinbase/coinbase-commerce-node/blob/master/README.md",
+      "checkedAt": "2026-10-22",
+      "derivedDate": true
+    },
+    {
+      "id": "easypost-2025-04-28-easypost-node-v7",
+      "provider": "easypost",
+      "kind": "sdk",
+      "versions": [
+        "@easypost/api@<8"
+      ],
+      "date": "2025-04-28",
+      "summary": "EasyPost's upgrade guide marks @easypost/api v5, v6 and v7 as deprecated; older majors predate them. It gives no dates; the date here is when v8.0.0 was released (CHANGELOG), the latest any of these became deprecated.",
+      "replacement": "@easypost/api v8",
+      "source": "https://github.com/EasyPost/easypost-node/blob/master/UPGRADE_GUIDE.md",
+      "checkedAt": "2026-10-22",
+      "derivedDate": true
     }
   ]
 }

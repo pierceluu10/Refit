@@ -1,6 +1,7 @@
 import { existsSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import { repositoryApiVersionPins, type ApiVersionPin } from './commerce-api-versions.ts';
 import { declaredPackageNames, readRepository } from './repository.ts';
 import { parseObject } from './specifications.ts';
 import { PipelineInputError, type Repository } from './types.ts';
@@ -244,6 +245,104 @@ export const AGENT_CATALOG: ProviderAgent[] = [
     adapter: null,
     guide: null,
   },
+  // Payments and commerce APIs (docs/COMMERCE-APIS.md). Every package was read on the npm registry
+  // on 2026-10-22, with its repository in the provider's GitHub organization (@paddle/paddle-js is
+  // published by the paddle.com npm account). The hostnames are the API bases in each provider's
+  // published SDK code: plaid-node, square-nodejs-sdk, braintree_node and braintree-web,
+  // adyen-node-api-library, paddle-node-sdk, lemonsqueezy.js, shippo-javascript-sdk,
+  // easypost-node, lob-node and coinbase-commerce-node.
+  {
+    id: 'plaid',
+    name: 'Plaid',
+    packages: ['plaid', 'react-plaid-link'],
+    hostnames: ['production.plaid.com', 'sandbox.plaid.com'],
+    adapter: null,
+    guide: null,
+  },
+  {
+    id: 'square',
+    name: 'Square',
+    packages: ['square', '@square/web-sdk', '@square/web-payments-sdk-types'],
+    hostnames: ['connect.squareup.com', 'connect.squareupsandbox.com'],
+    adapter: null,
+    guide: null,
+  },
+  {
+    id: 'braintree',
+    name: 'Braintree',
+    packages: ['braintree', 'braintree-web', 'braintree-web-drop-in'],
+    hostnames: [
+      'api.braintreegateway.com',
+      'api.sandbox.braintreegateway.com',
+      'payments.braintree-api.com',
+      'payments.sandbox.braintree-api.com',
+    ],
+    adapter: null,
+    guide: null,
+  },
+  {
+    id: 'adyen',
+    name: 'Adyen',
+    packages: ['@adyen/api-library', '@adyen/adyen-web'],
+    hostnames: [
+      'checkout-test.adyen.com',
+      'checkout-live.adyenpayments.com',
+      'pal-test.adyen.com',
+      'pal-live.adyen.com',
+      'management-test.adyen.com',
+      'management-live.adyen.com',
+    ],
+    adapter: null,
+    guide: null,
+  },
+  {
+    id: 'paddle',
+    name: 'Paddle',
+    packages: ['@paddle/paddle-node-sdk', '@paddle/paddle-js'],
+    hostnames: ['api.paddle.com', 'sandbox-api.paddle.com'],
+    adapter: null,
+    guide: null,
+  },
+  {
+    id: 'lemon-squeezy',
+    name: 'Lemon Squeezy',
+    packages: ['@lemonsqueezy/lemonsqueezy.js'],
+    hostnames: ['api.lemonsqueezy.com'],
+    adapter: null,
+    guide: null,
+  },
+  {
+    id: 'shippo',
+    name: 'Shippo',
+    packages: ['shippo'],
+    hostnames: ['api.goshippo.com'],
+    adapter: null,
+    guide: null,
+  },
+  {
+    id: 'easypost',
+    name: 'EasyPost',
+    packages: ['@easypost/api'],
+    hostnames: ['api.easypost.com'],
+    adapter: null,
+    guide: null,
+  },
+  {
+    id: 'lob',
+    name: 'Lob',
+    packages: ['lob', '@lob/lob-typescript-sdk'],
+    hostnames: ['api.lob.com'],
+    adapter: null,
+    guide: null,
+  },
+  {
+    id: 'coinbase-commerce',
+    name: 'Coinbase Commerce',
+    packages: ['coinbase-commerce-node'],
+    hostnames: ['api.commerce.coinbase.com'],
+    adapter: null,
+    guide: null,
+  },
   // NextAuth.js and Auth.js run inside the application, so they have no API host of their own.
   // Packages read on the npm registry on 2026-10-22, all from nextauthjs/next-auth.
   {
@@ -269,6 +368,8 @@ export interface AgentDetection {
   agent: ProviderAgent;
   packages: { file: string; name: string; version: string; locked: string | null }[];
   hostnames: { file: string; line: number; hostname: string }[];
+  // API versions the code pins for providers that version their API by header, option or path.
+  apiVersions?: ApiVersionPin[];
 }
 
 // A hostname in a line, not as the start of a longer name: `.supabase.co` is in
@@ -297,6 +398,7 @@ export async function detectProviders(directory: string): Promise<AgentDetection
   // hostname check, and a package is read again only when some manifest declares it.
   const repository: Repository = await readRepository(directory);
   const declared = await declaredPackageNames(directory);
+  const pins = repositoryApiVersionPins(repository);
   for (const agent of AGENT_CATALOG) {
     const packages: AgentDetection['packages'] = [];
     for (const name of agent.packages) {
@@ -310,7 +412,14 @@ export async function detectProviders(directory: string): Promise<AgentDetection
         });
     }
     const hostnames = hostnameEvidence(repository, agent);
-    if (packages.length || hostnames.length) detections.push({ agent, packages, hostnames });
+    const apiVersions = pins.filter((pin) => pin.provider === agent.id);
+    if (packages.length || hostnames.length || apiVersions.length)
+      detections.push({
+        agent,
+        packages,
+        hostnames,
+        ...(apiVersions.length ? { apiVersions } : {}),
+      });
   }
   return detections;
 }

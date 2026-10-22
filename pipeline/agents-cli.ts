@@ -15,7 +15,7 @@ import { REPOSITORY_CONFIGURATION } from './workflow-configuration.ts';
 import { terminalText } from './workflow-presentation.ts';
 
 const USAGE =
-  'Usage: refit agents [--repository <root>] [--add <agent-id> ...] [--json]\nDetects provider SDKs from package manifests, lockfiles and raw API hostnames, and lists only the agents that match. --add writes an approved agent into .refit.json as a reviewable integration; it does not enroll, activate, download contracts or run code.';
+  'Usage: refit agents [--repository <root>] [--add <agent-id> ...] [--json]\nDetects provider SDKs from package manifests, lockfiles and raw API hostnames, and lists only the agents that match, with any API version the code pins for a provider that versions its API by header, option or path. --add writes an approved agent into .refit.json as a reviewable integration; it does not enroll, activate, download contracts or run code.';
 const PACKAGE_ROOT = fileURLToPath(new URL('../', import.meta.url));
 
 try {
@@ -98,6 +98,7 @@ try {
           Boolean(result?.added.includes(detection.agent.id)),
         packages: detection.packages,
         hostnames: detection.hostnames,
+        ...(detection.apiVersions ? { apiVersions: detection.apiVersions } : {}),
       })),
       added: result?.added ?? [],
       nextSteps: result?.nextSteps ?? [],
@@ -113,6 +114,10 @@ try {
               `${item.name} ${item.version}${item.locked ? ` (locked ${item.locked})` : ''} in ${item.file}`,
           ),
           ...entry.hostnames.map((item) => `${item.hostname} at ${item.file}:${item.line}`),
+          ...(entry.apiVersions ?? []).map(
+            (item) =>
+              `API version ${item.version} (${item.form}${item.use === 'test' ? ', test' : ''}) at ${item.file}:${item.line}`,
+          ),
         ];
         const status = entry.configured
           ? 'configured'
