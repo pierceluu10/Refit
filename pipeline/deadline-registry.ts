@@ -33,6 +33,8 @@ const PROVIDERS = new Set([
   'coinbase-commerce',
   'bedrock',
   'azure-openai',
+  'aws',
+  'azure',
 ]);
 const KINDS = new Set(['api-version', 'model', 'sdk', 'method', 'endpoint', 'field', 'feature']);
 const ENTRY_KEYS = [
@@ -50,6 +52,8 @@ const ENTRY_KEYS = [
 // Kinds whose matching is too new to gate a build or open an issue (owner decision, 2026-10-22).
 const REPORT_ONLY_KINDS = new Set(['method', 'endpoint', 'field', 'feature']);
 const MILLISECONDS_PER_DAY = 86_400_000;
+// A `checkedAt` older than this many days is flagged: the entry's page needs reading again.
+export const STALE_CHECK_DAYS = 30;
 
 // One reviewed sunset: the date a provider stops serving these API versions or models, ends
 // support for these SDK packages (`kind: 'sdk'`, whose versions are npm package names, each
@@ -88,7 +92,9 @@ export interface DeadlineEntry {
     | 'lob'
     | 'coinbase-commerce'
     | 'bedrock'
-    | 'azure-openai';
+    | 'azure-openai'
+    | 'aws'
+    | 'azure';
   kind: 'api-version' | 'model' | 'sdk' | 'method' | 'endpoint' | 'field' | 'feature';
   versions: string[];
   date: string;
@@ -120,17 +126,20 @@ export function daysUntil(date: string, now: Date) {
   return Math.round((Date.parse(`${date}T00:00:00Z`) - today) / MILLISECONDS_PER_DAY);
 }
 
-// Shape problems make the registry unusable; past-due entries and missing sources are flagged for
-// review but still load, since a repository pinning a sunset version is the most urgent exposure.
+// Shape problems make the registry unusable; past-due entries, missing sources and stale checks are
+// flagged for review but still load, since a repository pinning a sunset version is the most urgent
+// exposure.
 export function checkDeadlineRegistry(value: unknown, now: Date) {
   const errors: string[] = [];
   const missingSource: string[] = [];
   const pastDue: { id: string; date: string; days: number }[] = [];
+  const stale: { id: string; checkedAt: string; days: number }[] = [];
   if (!isObject(value) || value.formatVersion !== 1 || !Array.isArray(value.deadlines))
     return {
       errors: ['Registry requires formatVersion: 1 and a deadlines array.'],
       missingSource,
       pastDue,
+      stale,
     };
   const ids = new Set<string>();
   const versions = new Set<string>();
@@ -192,8 +201,10 @@ export function checkDeadlineRegistry(value: unknown, now: Date) {
       errors.push(`${label}: source must be an https URL.`);
     if (validDate(entry.date) && daysUntil(entry.date, now) < 0)
       pastDue.push({ id: label, date: entry.date, days: -daysUntil(entry.date, now) });
+    if (validDate(entry.checkedAt) && -daysUntil(entry.checkedAt, now) > STALE_CHECK_DAYS)
+      stale.push({ id: label, checkedAt: entry.checkedAt, days: -daysUntil(entry.checkedAt, now) });
   }
-  return { errors, missingSource, pastDue };
+  return { errors, missingSource, pastDue, stale };
 }
 
 // Loads the registry for matching. An entry without a source is never used for alerts: a deadline

@@ -1,5 +1,12 @@
 import { expect, it } from 'vitest';
-import { compareTypeCheck, reviewTypeError, typeErrors, type CheckResult } from './validation.ts';
+import {
+  compareTypeCheck,
+  rejectedProperties,
+  reviewTypeError,
+  subscriptionPeriodRead,
+  typeErrors,
+  type CheckResult,
+} from './validation.ts';
 
 const run = (exitCode: number, stdout: string): CheckResult => ({
   status: exitCode === 0 ? 'passed' : 'failed',
@@ -56,4 +63,44 @@ it('leaves rejected literal comparisons and their never narrowing for review, no
     ),
   );
   expect(errors.map(reviewTypeError)).toEqual([true, true, true, false]);
+});
+
+it('names object-literal properties the upgraded types reject, from either tsc line', () => {
+  const nested = [
+    "app/route.ts(37,9): error TS2322: Type '{ trial_from_plan: true; metadata: any; }' is not assignable to type 'SubscriptionData'.",
+    "  Object literal may only specify known properties, and 'trial_from_plan' does not exist in type 'SubscriptionData'.",
+  ].join('\n');
+  const baseline = run(2, existing);
+  expect(rejectedProperties(baseline, compareTypeCheck(baseline, run(2, nested)))).toEqual([
+    'trial_from_plan',
+  ]);
+  expect(rejectedProperties(baseline, compareTypeCheck(baseline, run(2, added)))).toEqual([
+    'trial_from_plan',
+  ]);
+  // tsc says "but" when it suggests a near name, as for a renamed property.
+  const renamed =
+    "  Object literal may only specify known properties, but 'trial_end_at' does not exist in type 'SubscriptionData'. Did you mean to write 'trial_end'?";
+  expect(rejectedProperties(baseline, run(2, renamed))).toEqual(['trial_end_at']);
+  // A rejection the original code already had is not the upgrade's, and other errors name none.
+  const typo =
+    "  Object literal may only specify known properties, but 'forignTable' does not exist in type '{ foreignTable?: string; }'. Did you mean to write 'foreignTable'?";
+  expect(rejectedProperties(run(2, typo), run(2, `${typo}\n${existing}`))).toEqual([]);
+});
+
+it('recognizes billing-period reads the upgraded Subscription type no longer has', () => {
+  const errors = typeErrors(
+    run(
+      2,
+      [
+        // iggy-tech/product-hunt-clone-final, reading `subscriptions.list().data[0]`.
+        "lib/stripe.ts(113,51): error TS2339: Property 'current_period_end' does not exist on type 'Subscription'.",
+        "lib/billing.ts(20,30): error TS2339: Property 'current_period_start' does not exist on type 'Response<Subscription>'.",
+        "lib/billing.ts(21,30): error TS2339: Property 'current_period_end' does not exist on type 'Stripe.Subscription | null'.",
+        "lib/items.ts(8,12): error TS2339: Property 'current_period_end' does not exist on type 'SubscriptionSchedule'.",
+        "lib/items.ts(9,12): error TS2339: Property 'cancel_at' does not exist on type 'Subscription'.",
+        existing,
+      ].join('\n'),
+    ),
+  );
+  expect(errors.map(subscriptionPeriodRead)).toEqual([true, true, true, false, false, false]);
 });

@@ -1,0 +1,70 @@
+{
+  "formatVersion": 1,
+  "repository": "viperrcrypto/Siftly",
+  "revision": "b25daa45b858f4be096b5c368671c34db4407d8e",
+  "date": "2026-10-22",
+  "integrations": [
+    {
+      "provider": "openai",
+      "name": "OpenAI",
+      "packages": [
+        {
+          "file": "package.json",
+          "name": "openai",
+          "declared": "^6.27.0",
+          "locked": "6.27.0"
+        }
+      ],
+      "configured": false,
+      "integration": null,
+      "capability": "migrate",
+      "apiVersions": []
+    },
+    {
+      "provider": "anthropic",
+      "name": "Anthropic",
+      "packages": [
+        {
+          "file": "package.json",
+          "name": "@anthropic-ai/sdk",
+          "declared": "^0.78.0",
+          "locked": "0.78.0"
+        }
+      ],
+      "configured": false,
+      "integration": null,
+      "capability": "model-fixes",
+      "apiVersions": []
+    }
+  ],
+  "deadlines": [
+    {
+      "id": "openai-2026-10-23-gpt-4",
+      "provider": "openai",
+      "kind": "model",
+      "versions": [
+        "gpt-4"
+      ],
+      "date": "2026-10-23",
+      "days": 1,
+      "summary": "OpenAI shuts down gpt-4, gpt-4-0613, gpt-4-turbo, gpt-4-turbo-2024-04-09, gpt-4o-2024-05-13, o1, o1-2024-12-17, o1-pro, o3-mini.",
+      "replacement": "gpt-5.6-sol",
+      "source": "https://developers.openai.com/api/docs/deprecations",
+      "evidence": [
+        {
+          "file": "lib/vision-analyzer.ts",
+          "line": 68
+        }
+      ],
+      "more": 0,
+      "ignored": false
+    }
+  ],
+  "mentions": [
+    "openai-2026-10-23-gpt-3-5-turbo",
+    "openai-2026-10-23-gpt-4-1-nano"
+  ],
+  "models": [],
+  "untracked": [],
+  "next": "Move off `gpt-4` before 2026-10-23 (1 day left). Replacement: `gpt-5.6-sol`; `refit deadlines --propose-model-fixes` proposes it where the model is a literal in a traced call."
+}

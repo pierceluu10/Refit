@@ -3,6 +3,7 @@ import { resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 import { captureSpecification } from './openapi-sources.ts';
 import { PipelineInputError } from './types.ts';
+import { cliErrorMessage } from './cli-errors.ts';
 
 const USAGE =
   'Usage: refit source-snapshot --provider <id> (--url <public-https-openapi> | --file <openapi.json-or-yaml>) --output <new-snapshot.json>';
@@ -50,6 +51,6 @@ try {
   }
 } catch (error) {
   if (!(error instanceof Error)) throw error;
-  console.error(`${error.name}: ${error.message}`);
+  console.error(cliErrorMessage(error, 'source-snapshot'));
   process.exitCode = 1;
 }

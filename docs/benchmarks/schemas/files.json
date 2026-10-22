@@ -101,12 +101,28 @@
       "format": "paypal-subdirectory-results",
       "predates": []
     },
+    "2026-10-22-ai-app-model-site-all-results.json": {
+      "format": "ai-app-model-site-results",
+      "predates": []
+    },
+    "2026-10-22-ai-app-model-site-results.json": {
+      "format": "ai-app-model-site-results",
+      "predates": []
+    },
+    "2026-10-22-ai-patch-results.json": {
+      "format": "ai-patch-results",
+      "predates": []
+    },
     "2026-10-22-anthropic-app-results.json": {
       "format": "ai-model-results",
       "predates": ["/harness", "/results/*/outcomeClass"]
     },
     "2026-10-22-auth-backend-results.json": {
       "format": "auth-backend-results",
+      "predates": []
+    },
+    "2026-10-22-cloud-sdk-results.json": {
+      "format": "cloud-sdk-results",
       "predates": []
     },
     "2026-10-22-cloudflare-baseline-results.json": {
@@ -123,6 +139,10 @@
     },
     "2026-10-22-commerce-results.json": {
       "format": "commerce-results",
+      "predates": []
+    },
+    "2026-10-22-gemini-results.json": {
+      "format": "gemini-results",
       "predates": []
     },
     "2026-10-22-github-first-results.json": {

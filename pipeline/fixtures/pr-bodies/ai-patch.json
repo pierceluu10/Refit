@@ -1,0 +1,527 @@
+{
+  "formatVersion": 1,
+  "provider": "stripe-full",
+  "adapter": {
+    "id": "stripe-full",
+    "packageName": "stripe",
+    "defaultImport": true,
+    "namedExport": "Stripe",
+    "operations": [
+      {
+        "resource": "checkout.sessions",
+        "method": "create",
+        "schema": "checkout.session",
+        "operationId": "PostCheckoutSessions"
+      },
+      {
+        "resource": "subscriptions",
+        "method": "retrieve",
+        "schema": "subscription",
+        "operationId": "GetSubscriptionsSubscriptionExposedId"
+      }
+    ],
+    "constructorCalls": true,
+    "apiVersion": {
+      "constructorArgument": 1,
+      "property": "apiVersion",
+      "requestArguments": [1, 2]
+    }
+  },
+  "runId": "970d72753414c1eaff706cb9e9f9eb0da56140a6da68029c303d677a56459003",
+  "apiVersion": {
+    "application": "2023-10-16",
+    "before": "2023-10-16",
+    "after": "2026-09-30.endive",
+    "applicability": "matches-before",
+    "reason": "Application API version 2023-10-16 matches the before contract.",
+    "policy": "operator-pin",
+    "source": {
+      "status": "unknown",
+      "declarations": [
+        {
+          "file": "convex/stripe.ts",
+          "line": 28,
+          "column": 20,
+          "kind": "constructor",
+          "value": null,
+          "status": "unknown",
+          "reason": "Constructor version is absent or cannot be resolved through immutable local declarations."
+        },
+        {
+          "file": "convex/stripe.ts",
+          "line": 31,
+          "column": 27,
+          "kind": "request",
+          "value": null,
+          "status": "inherited",
+          "reason": "No override in the adapter-declared option arguments; inherits the client version."
+        },
+        {
+          "file": "convex/stripe.ts",
+          "line": 49,
+          "column": 20,
+          "kind": "constructor",
+          "value": null,
+          "status": "unknown",
+          "reason": "Constructor version is absent or cannot be resolved through immutable local declarations."
+        },
+        {
+          "file": "convex/stripe.ts",
+          "line": 66,
+          "column": 36,
+          "kind": "request",
+          "value": null,
+          "status": "inherited",
+          "reason": "No override in the adapter-declared option arguments; inherits the client version."
+        },
+        {
+          "file": "convex/stripe.ts",
+          "line": 80,
+          "column": 36,
+          "kind": "request",
+          "value": null,
+          "status": "inherited",
+          "reason": "No override in the adapter-declared option arguments; inherits the client version."
+        }
+      ],
+      "reason": "SDK API-version declarations are missing, dynamic or unsafe to resolve statically; the operator pin is not verified in source."
+    }
+  },
+  "findings": [
+    {
+      "file": "convex/stripe.ts",
+      "line": 75,
+      "column": 19,
+      "changeId": "1b1240130d2bdc263d4cb66a",
+      "expression": ".current_period_end",
+      "confidence": "confirmed",
+      "subscriptionPeriod": {
+        "rareCase": "item-in-code",
+        "selection": "items.data[0]"
+      },
+      "reason": "Removed field read on a statically traced stripe-full subscription response."
+    },
+    {
+      "file": "convex/stripe.ts",
+      "line": 81,
+      "column": 11,
+      "changeId": "eefe4ea32b74e64919fbc645",
+      "expression": ".subscription",
+      "confidence": "confirmed",
+      "webhook": {
+        "schema": "invoice",
+        "eventTypes": ["invoice.payment_succeeded"],
+        "origin": {
+          "file": "convex/stripe.ts",
+          "line": 55,
+          "column": 21
+        },
+        "apiVersion": "unverified"
+      },
+      "reason": "Removed invoice.subscription read on a Stripe snapshot webhook payload narrowed by event.type. Incoming webhook API version and migration semantics require separate review."
+    },
+    {
+      "file": "convex/stripe.ts",
+      "line": 86,
+      "column": 19,
+      "changeId": "1b1240130d2bdc263d4cb66a",
+      "expression": ".current_period_end",
+      "confidence": "confirmed",
+      "subscriptionPeriod": {
+        "rareCase": "item-in-code",
+        "selection": "items.data[0]"
+      },
+      "reason": "Removed field read on a statically traced stripe-full subscription response."
+    }
+  ],
+  "operationChanges": [],
+  "patch": {
+    "status": "proposed",
+    "provider": "openai",
+    "model": "gpt-5.4-mini-2026-03-17",
+    "responseId": "resp_0ab6e869c14cf836016ad14d4096f487d29027ff3ea52d6aab",
+    "evidenceHash": "8aa3969c4966a96b4e32c836d5f9075b6bfff45d0004dc968f19c9764d7d0554",
+    "usage": {
+      "inputTokens": 11630,
+      "outputTokens": 212,
+      "cachedInputTokens": 0,
+      "cacheWriteInputTokens": 0,
+      "reasoningTokens": 0
+    },
+    "budget": {
+      "costUsd": 0.0096765,
+      "spentUsd": 1.250223001,
+      "limitUsd": 3
+    },
+    "generator": "openai",
+    "summary": "No source replacement is proposed. The only finding concerns `invoice.subscription` in a webhook path, and the supplied documentation gives a clear documented replacement (`invoice.parent.subscription_details.subscription`) but the current function only uses `completedEvent.subscription` in the `invoice.payment_succeeded` branch, not the invoice object itself. Because the exact webhook payload shape and whether this code should read from `event.data.object.parent...` cannot be established from the supplied snippet without risking behavior changes, I\u2019m returning zero edits for human review.",
+    "evidence": {
+      "provider": "stripe-full",
+      "adapter": {
+        "id": "stripe-full",
+        "packageName": "stripe",
+        "defaultImport": true,
+        "namedExport": "Stripe",
+        "operations": [
+          {
+            "resource": "checkout.sessions",
+            "method": "create",
+            "schema": "checkout.session",
+            "operationId": "PostCheckoutSessions"
+          },
+          {
+            "resource": "subscriptions",
+            "method": "retrieve",
+            "schema": "subscription",
+            "operationId": "GetSubscriptionsSubscriptionExposedId"
+          }
+        ],
+        "constructorCalls": true,
+        "apiVersion": {
+          "constructorArgument": 1,
+          "property": "apiVersion",
+          "requestArguments": [1, 2]
+        }
+      },
+      "operationImpacts": [],
+      "operationChanges": [],
+      "changes": [
+        {
+          "id": "eefe4ea32b74e64919fbc645",
+          "schema": "invoice",
+          "property": "subscription",
+          "pointer": "/components/schemas/invoice/properties/subscription"
+        }
+      ],
+      "findings": [
+        {
+          "file": "convex/stripe.ts",
+          "line": 82,
+          "column": 11,
+          "changeId": "eefe4ea32b74e64919fbc645",
+          "expression": ".subscription",
+          "confidence": "confirmed",
+          "webhook": {
+            "schema": "invoice",
+            "eventTypes": ["invoice.payment_succeeded"],
+            "origin": {
+              "file": "convex/stripe.ts",
+              "line": 56,
+              "column": 21
+            },
+            "apiVersion": "unverified"
+          },
+          "reason": "Removed invoice.subscription read on a Stripe snapshot webhook payload narrowed by event.type. Incoming webhook API version and migration semantics require separate review.",
+          "id": "7b78a391a335f3a6063e1f0b15282054e3bd899c1eeabf3c14e34fd2fa31581f",
+          "context": {
+            "startLine": 79,
+            "text": "\n      if (event.type === \"invoice.payment_succeeded\") {\n        const subscription = await stripe.subscriptions.retrieve(\n          completedEvent.subscription as string\n        );\n\n        await ctx.runMutation(internal.users.updateSubscriptionBySubId, {"
+          }
+        }
+      ],
+      "limitations": "Local ESM SDK patterns under the supplied adapter only. Adapter mappings, API version and full OpenAPI compatibility are not independently established.",
+      "addedProperties": [
+        {
+          "schema": "bank_connections_resource_link_account_session_filters",
+          "property": "account_subcategories",
+          "type": "array",
+          "description": "Restricts the Session to subcategories of accounts that can be linked. Valid subcategories are: `checking`, `savings`, `mortgage`, `line_of_credit`, `credit_card`."
+        },
+        {
+          "schema": "bank_connections_resource_link_account_session_filters",
+          "property": "country",
+          "type": "string",
+          "description": "Country from which to filter accounts."
+        },
+        {
+          "schema": "bank_connections_resource_link_account_session_filters",
+          "property": "require_payment_method_support",
+          "type": "string",
+          "description": "Whether the Session should require that linked accounts support payments and retrieve account numbers before completion."
+        },
+        {
+          "schema": "charge",
+          "property": "presentment_details"
+        },
+        {
+          "schema": "checkout.session",
+          "property": "adaptive_pricing",
+          "description": "Settings for price localization with [Adaptive Pricing](https://docs.stripe.com/payments/checkout/adaptive-pricing)."
+        },
+        {
+          "schema": "checkout.session",
+          "property": "allowed_payment_method_types",
+          "type": "array",
+          "description": "A list of the types of payment methods (e.g., `card`) this Checkout Session can accept."
+        },
+        {
+          "schema": "checkout.session",
+          "property": "branding_settings"
+        },
+        {
+          "schema": "checkout.session",
+          "property": "collected_information",
+          "description": "Information about the customer collected within the Checkout Session."
+        },
+        {
+          "schema": "checkout.session",
+          "property": "customer_account",
+          "type": "string",
+          "description": "The ID of the account for this Session."
+        },
+        {
+          "schema": "checkout.session",
+          "property": "discounts",
+          "type": "array",
+          "description": "List of coupons and promotion codes attached to the Checkout Session."
+        },
+        {
+          "schema": "checkout.session",
+          "property": "excluded_payment_method_types",
+          "type": "array",
+          "description": "A list of the types of payment methods (e.g., `card`) that should be excluded from this Checkout Session. This should only be used when payment methods for this Checkout Session are managed through th"
+        },
+        {
+          "schema": "checkout.session",
+          "property": "integration_identifier",
+          "type": "string",
+          "description": "The integration identifier for this Checkout Session. Multiple Checkout Sessions can have the same integration identifier."
+        },
+        {
+          "schema": "checkout.session",
+          "property": "managed_payments",
+          "description": "Settings for Managed Payments for this Checkout Session and resulting [PaymentIntents](/api/payment_intents/object), [Invoices](/api/invoices/object), and [Subscriptions](/api/subscriptions/object)."
+        },
+        {
+          "schema": "checkout.session",
+          "property": "name_collection"
+        },
+        {
+          "schema": "checkout.session",
+          "property": "optional_items",
+          "type": "array",
+          "description": "The optional items presented to the customer at checkout."
+        },
+        {
+          "schema": "checkout.session",
+          "property": "origin_context",
+          "type": "string",
+          "description": "Where the user is coming from. This informs the optimizations that are applied to the session."
+        },
+        {
+          "schema": "checkout.session",
+          "property": "permissions",
+          "description": "This property is used to set up permissions for various actions (e.g., update) on the CheckoutSession object.\n\nFor specific permissions, please refer to their dedicated subsections, such as `permissio"
+        },
+        {
+          "schema": "checkout.session",
+          "property": "presentment_details"
+        },
+        {
+          "schema": "checkout.session",
+          "property": "saved_payment_method_options",
+          "description": "Controls saved payment method settings for the session. Only available in `payment` and `subscription` mode."
+        },
+        {
+          "schema": "checkout.session",
+          "property": "wallet_options",
+          "description": "Wallet-specific configuration for this Checkout Session."
+        }
+      ],
+      "files": [
+        {
+          "path": "convex/stripe.ts",
+          "content": "\"use node\";\n\nimport { v } from \"convex/values\";\nimport Stripe from \"stripe\";\n\nimport { action, internalAction } from \"./_generated/server\";\nimport { internal } from \"./_generated/api\";\nimport { Id } from \"./_generated/dataModel\";\nimport { getSubscriptionPeriodEnd } from './stripe-subscription-period';\n\ntype Metadata = {\n  userId: string;\n};\n\nexport const pay = action({\n  args: {},\n  handler: async (ctx) => {\n    const user = await ctx.auth.getUserIdentity();\n\n    if (!user) {\n      throw new Error(\"you must be logged in to subscribe\");\n    }\n\n    if (!user.emailVerified) {\n      throw new Error(\"you must have a verified email to subscribe\");\n    }\n\n    const domain = process.env.HOSTING_URL ?? \"http://localhost:3000\";\n    const stripe = new Stripe(process.env.STRIPE_KEY!, {\n      apiVersion: \"2023-10-16\",\n    });\n    const session = await stripe.checkout.sessions.create({\n      line_items: [{ price: process.env.PRICE_ID!, quantity: 1 }],\n      customer_email: user.email,\n      metadata: {\n        userId: user.subject,\n      },\n      mode: \"subscription\",\n      success_url: `${domain}`,\n      cancel_url: `${domain}`,\n    });\n\n    return session.url!;\n  },\n});\n\nexport const fulfill = internalAction({\n  args: { signature: v.string(), payload: v.string() },\n  handler: async (ctx, args) => {\n    const stripe = new Stripe(process.env.STRIPE_KEY!, {\n      apiVersion: \"2023-10-16\",\n    });\n\n    const webhookSecret = process.env.STRIPE_WEBHOOKS_SECRET!;\n    try {\n      const event = stripe.webhooks.constructEvent(\n        args.payload,\n        args.signature,\n        webhookSecret\n      );\n\n      const completedEvent = event.data.object as Stripe.Checkout.Session & {\n        metadata: Metadata;\n      };\n\n      if (event.type === \"checkout.session.completed\") {\n        const subscription = await stripe.subscriptions.retrieve(\n          completedEvent.subscription as string\n        );\n\n        const userId = completedEvent.metadata.userId as Id<\"users\">;\n\n        await ctx.runMutation(internal.users.updateSubscription, {\n          userId,\n          subscriptionId: subscription.id,\n          endsOn: (getSubscriptionPeriodEnd(subscription, (items) => items[0])) * 1000,\n        });\n      }\n\n      if (event.type === \"invoice.payment_succeeded\") {\n        const subscription = await stripe.subscriptions.retrieve(\n          completedEvent.subscription as string\n        );\n\n        await ctx.runMutation(internal.users.updateSubscriptionBySubId, {\n          subscriptionId: subscription.items.data[0]?.price.id,\n          endsOn: (getSubscriptionPeriodEnd(subscription, (items) => items[0])) * 1000,\n        });\n      }\n\n      return { success: true };\n    } catch (err) {\n      console.error(err);\n      return { success: false, error: (err as { message: string }).message };\n    }\n  },\n});\n"
+        }
+      ],
+      "contextFiles": [
+        {
+          "path": "convex/_generated/server.js",
+          "content": "/* eslint-disable */\n/**\n * Generated utilities for implementing server-side Convex query and mutation functions.\n *\n * THIS CODE IS AUTOMATICALLY GENERATED.\n *\n * Generated by convex@1.10.0.\n * To regenerate, run `npx convex dev`.\n * @module\n */\n\nimport {\n  actionGeneric,\n  httpActionGeneric,\n  queryGeneric,\n  mutationGeneric,\n  internalActionGeneric,\n  internalMutationGeneric,\n  internalQueryGeneric,\n} from \"convex/server\";\n\n/**\n * Define a query in this Convex app's public API.\n *\n * This function will be allowed to read your Convex database and will be accessible from the client.\n *\n * @param func - The query function. It receives a {@link QueryCtx} as its first argument.\n * @returns The wrapped query. Include this as an `export` to name it and make it accessible.\n */\nexport const query = queryGeneric;\n\n/**\n * Define a query that is only accessible from other Convex functions (but not from the client).\n *\n * This function will be allowed to read from your Convex database. It will not be accessible from the client.\n *\n * @param func - The query function. It receives a {@link QueryCtx} as its first argument.\n * @returns The wrapped query. Include this as an `export` to name it and make it accessible.\n */\nexport const internalQuery = internalQueryGeneric;\n\n/**\n * Define a mutation in this Convex app's public API.\n *\n * This function will be allowed to modify your Convex database and will be accessible from the client.\n *\n * @param func - The mutation function. It receives a {@link MutationCtx} as its first argument.\n * @returns The wrapped mutation. Include this as an `export` to name it and make it accessible.\n */\nexport const mutation = mutationGeneric;\n\n/**\n * Define a mutation that is only accessible from other Convex functions (but not from the client).\n *\n * This function will be allowed to modify your Convex database. It will not be accessible from the client.\n *\n * @param func - The mutation function. It receives a {@link MutationCtx} as its first argument.\n * @returns The wrapped mutation. Include this as an `export` to name it and make it accessible.\n */\nexport const internalMutation = internalMutationGeneric;\n\n/**\n * Define an action in this Convex app's public API.\n *\n * An action is a function which can execute any JavaScript code, including non-deterministic\n * code and code with side-effects, like calling third-party services.\n * They can be run in Convex's JavaScript environment or in Node.js using the \"use node\" directive.\n * They can interact with the database indirectly by calling queries and mutations using the {@link ActionCtx}.\n *\n * @param func - The action. It receives an {@link ActionCtx} as its first argument.\n * @returns The wrapped action. Include this as an `export` to name it and make it accessible.\n */\nexport const action = actionGeneric;\n\n/**\n * Define an action that is only accessible from other Convex functions (but not from the client).\n *\n * @param func - The function. It receives an {@link ActionCtx} as its first argument.\n * @returns The wrapped function. Include this as an `export` to name it and make it accessible.\n */\nexport const internalAction = internalActionGeneric;\n\n/**\n * Define a Convex HTTP action.\n *\n * @param func - The function. It receives an {@link ActionCtx} as its first argument, and a `Request` object\n * as its second.\n * @returns The wrapped endpoint function. Route a URL path to this function in `convex/http.js`.\n */\nexport const httpAction = httpActionGeneric;\n"
+        },
+        {
+          "path": "convex/_generated/api.js",
+          "content": "/* eslint-disable */\n/**\n * Generated `api` utility.\n *\n * THIS CODE IS AUTOMATICALLY GENERATED.\n *\n * Generated by convex@1.10.0.\n * To regenerate, run `npx convex dev`.\n * @module\n */\n\nimport { anyApi } from \"convex/server\";\n\n/**\n * A utility for referencing Convex functions in your app's API.\n *\n * Usage:\n * ```js\n * const myFunctionReference = api.myModule.myFunction;\n * ```\n */\nexport const api = anyApi;\nexport const internal = anyApi;\n"
+        },
+        {
+          "path": "convex/stripe-subscription-period.ts",
+          "content": "type PeriodItem = { price?: { id?: string } | null };\ntype PeriodField = 'current_period_start' | 'current_period_end';\ntype PlanItem = (items: PeriodItem[]) => PeriodItem | undefined;\n\n// Typed like the removed field, which was also absent at runtime when Stripe omitted it.\nfunction subscriptionPeriod(subscription: object, field: PeriodField, planItem?: PlanItem): number {\n  const legacy: unknown = Reflect.get(subscription, field);\n  if (typeof legacy === 'number') return legacy;\n  const list: unknown = Reflect.get(subscription, 'items');\n  const data: unknown = list && typeof list === 'object' ? Reflect.get(list, 'data') : undefined;\n  const items = (Array.isArray(data) ? data : []).filter(\n    (item): item is PeriodItem => typeof item === 'object' && item !== null,\n  );\n  const periods = new Set(items.map((item) => Reflect.get(item, field)));\n  const chosen = periods.size === 1 ? items[0] : planItem?.(items);\n  const value: unknown = chosen ? Reflect.get(chosen, field) : undefined;\n  return (typeof value === 'number' ? value : undefined) as number;\n}\n\nexport function getSubscriptionPeriodStart(subscription: object, planItem?: PlanItem): number {\n  return subscriptionPeriod(subscription, 'current_period_start', planItem);\n}\n\nexport function getSubscriptionPeriodEnd(subscription: object, planItem?: PlanItem): number {\n  return subscriptionPeriod(subscription, 'current_period_end', planItem);\n}\n"
+        }
+      ],
+      "documentation": [
+        {
+          "label": "Stripe changelog: deprecate-subscription-current-period-start-and-end",
+          "url": "https://docs.stripe.com/changelog/basil/2025-03-31/deprecate-subscription-current-period-start-and-end.md",
+          "hash": "226badaefe5fbb5410a0c7a4d46cef65bafed8cf83600737b8f6eae5a17f3276",
+          "content": "# Adds subscription item-level billing periods and removes subscription-level periods\n\n## What\u2019s new\n\n[Subscription items](https://docs.stripe.com/api/subscription_items/object.md?api-version=2025-03-31.basil) now track their respective billing periods directly instead of as a top-level shared billing period on the [subscription](https://docs.stripe.com/api/subscriptions/object.md?api-version=2025-03-31.basil) resource.\n\n## Why is this a breaking change?\n\n- `current_period_start` and `current_period_end` fields are no longer available on the [subscription](https://docs.stripe.com/api/subscriptions/object.md?api-version=2025-03-31.basil) resource.\n- `previous_attributes` on the `customer.subscription.updated` webhook now include that the subscription item\u2019s billing period has changed.\n\n## Impact\n\nUpdate any code that references subscription-level `current_period_end` and `current_period_start` fields. Instead, access the subscription item\u2019s billing periods directly using [items.data.current_period_end](https://docs.stripe.com/api/subscription_items/object.md?api-version=2025-03-31.basil#subscription_item_object-current_period_end) and [items.data.current_period_start](https://docs.stripe.com/api/subscription_items/object.md?api-version=2025-03-31.basil#subscription_item_object-current_period_start) fields.\n\nMake sure that your integration correctly handles the `previous_attributes` field on the `customer.subscription.updated` webhook. For instance, for `price` or `quantity` changes, inspect the `previous_attributes.items.data[].price` field.\n\n## Changes\n\n#### REST API\n\n| Parameters | Change | Resources or endpoints |\n| --- | --- | --- |\n| `current_period_end`, `current_period_start` | Removed | [Subscription](/api/subscriptions/object?api-version=2025-03-31.basil) |\n| `current_period_end`, `current_period_start` | Added | [SubscriptionItem](/api/subscription_items/object?api-version=2025-03-31.basil) |\n\n#### Ruby\n\nThis change does not affect the Ruby SDK.\n\n#### Python\n\n| Parameters | Change | Resources or methods |\n| --- | --- | --- |\n| `current_period_end`, `current_period_start` | Removed | [Subscription](/api/subscriptions/object?api-version=2025-03-31.basil) |\n| `current_period_end`, `current_period_start` | Added | [SubscriptionItem](/api/subscription_items/object?api-version=2025-03-31.basil) |\n\n#### PHP\n\n| Parameters | Change | Resources or methods |\n| --- | --- | --- |\n| `current_period_end`, `current_period_start` | Removed | [Subscription](/api/subscriptions/object?api-version=2025-03-31.basil) |\n| `current_period_end`, `current_period_start` | Added | [SubscriptionItem](/api/subscription_items/object?api-version=2025-03-31.basil) |\n\n#### Java\n\n| Parameters | Change | Resources or methods |\n| --- | --- | --- |\n| `currentPeriodEnd`, `currentPeriodStart` | Removed | [Subscription](/api/subscriptions/object?api-version=2025-03-31.basil) |\n| `currentPeriodEnd`, `currentPeriodStart` | Added | [SubscriptionItem](/api/subscription_items/object?api-version=2025-03-31.basil) |\n\n#### Node.js\n\n| Parameters | Change | Resources or methods |\n| --- | --- | --- |\n| `current_period_end`, `current_period_start` | Removed | [Subscription](/api/subscriptions/object?api-version=2025-03-31.basil) |\n| `current_period_end`, `current_period_start` | Added | [SubscriptionItem](/api/subscription_items/object?api-version=2025-03-31.basil) |\n\n#### Go\n\n| Parameters | Change | Resources or methods |\n| --- | --- | --- |\n| `CurrentPeriodEnd`, `CurrentPeriodStart` | Removed | [Subscription](/api/subscriptions/object?api-version=2025-03-31.basil) |\n| `CurrentPeriodEnd`, `CurrentPeriodStart` | Added | [SubscriptionItem](/api/subscription_items/object?api-version=2025-03-31.basil) |\n\n#### .NET\n\n| Parameters | Change | Resources or methods |\n| --- | --- | --- |\n| `CurrentPeriodEnd`, `CurrentPeriodStart` | Removed | [Subscription](/api/subscriptions/object?api-version=2025-03-31.basil) |\n| `CurrentPeriodEnd`, `CurrentPeriodStart` | Added | [SubscriptionItem](/api/subscription_items/object?api-version=2025-03-31.basil) |\n\n## Upgrade\n\n#### REST API\n\n1. [View your current API version](https://docs.stripe.com/workbench/guides.md#view-api-versions) in Workbench.\n2. If you use an SDK, upgrade to the corresponding SDK version for this API version.\n- If you don\u2019t use an SDK, update your [API requests](https://docs.stripe.com/api-versions.md#how-versions-are-specified-in-requests) to include `Stripe-Version: 2025-03-31.basil`\n3. Upgrade the API version used for [webhook endpoints](https://docs.stripe.com/webhooks/versioning.md).\n4. [Test your integration](https://docs.stripe.com/testing.md) against the new version.\n5. If you use Connect, [test your Connect integration](https://docs.stripe.com/connect/testing.md).\n\nLearn more about [Stripe API upgrades](https://docs.stripe.com/upgrades.md).\n\n#### Ruby\n\n1. [View your current API version](https://docs.stripe.com/upgrades.md#view-your-api-version-and-the-latest-available-upgrade-in-workbench) in Workbench.\n2. Upgrade your Ruby SDK to [v15.0.0](https://github.com/stripe/stripe-ruby/releases/tag/v15.0.0)\n3. Upgrade the API version used for [webhook endpoints](https://docs.stripe.com/webhooks/versioning.md).\n4. [Test your integration](https://docs.stripe.com/testing.md) against the new version.\n5. If you use Connect, [test your Connect integration](https://docs.stripe.com/connect/testing.md).\n6. In Workbench, [perform the upgrade](https://docs.stripe.com/upgrades.md#perform-the-upgrade). You can [roll back the version](https://docs.stripe.com/upgrades.md#roll-back-your-api-version) for 72 hours.\n\nLearn more about [Stripe API upgrades](https://docs.stripe.com/upgrades.md).\n\n#### Python\n\n1. [View your current API version](https://docs.stripe.com/upgrades.md#view-your-api-version-and-the-latest-available-upgrade-in-workbench) in Workbench.\n2. Upgrade your Python SDK to [v12.0.0](https://github.com/stripe/stripe-python/releases/tag/v12.0.0)\n3. Upgrade the API version used for [webhook endpoints](https://docs.stripe.com/webhooks/versioning.md).\n4. [Test your integration](https://docs.stripe.com/testing.md) against the new version.\n5. If you use Connect, [test your Connect integration](https://docs.stripe.com/connect/testing.md).\n6. In Workbench, [perform the upgrade](https://docs.stripe.com/upgrades.md#perform-the-upgrade). You can [roll back the version](https://docs.stripe.com/upgrades.md#roll-back-your-api-version) for 72 hours.\n\nLearn more about [Stripe API upgrades](https://docs.stripe.com/upgrades.md).\n\n#### PHP\n\n1. [View your current API version](https://docs.stripe.com/upgrades.md#view-your-api-version-and-the-latest-available-upgrade-in-workbench) in Workbench.\n2. Upgrade your PHP SDK to [v17.0.0](https://github.com/stripe/stripe-php/releases/tag/v17.0.0)\n3. Upgrade the API version used for [webhook endpoints](https://docs.stripe.com/webhooks/versioning.md).\n4. [Test your integration](https://docs.stripe.com/testing.md) against the new version.\n5. If you use Connect, [test your Connect integration](https://docs.stripe.com/connect/testing.md).\n6. In Workbench, [perform the upgrade](https://docs.stripe.com/upgrades.md#perform-the-upgrade). You can [roll back the version](https://docs.stripe.com/upgrades.md#roll-back-your-api-version) for 72 hours.\n\nLearn more about [Stripe API upgrades](https://docs.stripe.com/upgrades.md).\n\n#### Java\n\n1. [View your current API version](https://docs.stripe.com/upgrades.md#view-your-api-version-and-the-latest-available-upgrade-in-workbench) in Workbench.\n2. Upgrade your Java SDK to [v29.0.0](https://github.com/stripe/stripe-java/releases/tag/v29.0.0)\n3. Upgrade the API version used for [webhook endpoints](https://docs.stripe.com/webhooks/versioning.md).\n4. [Test your integration](https://docs.stripe.com/testing.md) against the new version.\n5. If you use Connect, [test your Connect integration](https://docs.stripe.com/connect/testing.md).\n6. In Workbench, [perform the upgrade](https://docs.stripe.com/upgrades.md#perform-the-upgrade). You can [roll back the version](https://docs.stripe.com/upgrades.md#roll-back-your-api-version) for 72 hours.\n\nLearn more about [Stripe API upgrades](https://docs.stripe.com/upgrades.md).\n\n#### Node.js\n\n1. [View your current API version](https://docs.stripe.com/upgrades.md#view-your-api-version-and-the-latest-available-upgrade-in-workbench) in Workbench.\n2. Upgrade your Node SDK to [v18.0.0](https://github.com/stripe/stripe-node/releases/tag/v18.0.0)\n3. Upgrade the API version used for [webhook endpoints](https://docs.stripe.com/webhooks/versioning.md).\n4. [Test your integration](https://docs.stripe.com/testing.md) against the new version.\n5. If you use Connect, [test your Connect integration](https://docs.stripe.com/connect/testing.md).\n6. In Workbench, [perform the upgrade](https://docs.stripe.com/upgrades.md#perform-the-upgrade). You can [roll back the version](https://docs.stripe.com/upgrades.md#roll-back-your-api-version) for 72 hours.\n\nLearn more about [Stripe API upgrades](https://docs.stripe.com/upgrades.md).\n\n#### Go\n\n1. [View your current API version](https://docs.stripe.com/upgrades.md#view-your-api-version-and-the-latest-available-upgrade-in-workbench) in Workbench.\n2. Upgrade your Go SDK to [v82.0.0](https://github.com/stripe/stripe-go/releases/tag/v82.0.0)\n3. Upgrade the API version used for [webhook endpoints](https://docs.stripe.com/webhooks/versioning.md).\n4. [Test your integration](https://docs.stripe.com/testing.md) against the new version.\n5. If you use Connect, [test your Connect integration](https://docs.stripe.com/connect/testing.md).\n6. In Workbench, [perform the upgrade](https://docs.stripe.com/upgrades.md#perform-the-upgrade). You can [roll back the version](https://docs.stripe.com/upgrades.md#roll-back-your-api-version) for 72 hours.\n\nLearn more about [Stripe API upgrades](https://docs.stripe.com/upgrades.md).\n\n#### .NET\n\n1. [View your current API version](https://docs.stripe.com/upgrades.md#view-your-api-version-and-the-latest-available-upgrade-in-workbench) in Workbench.\n2. Upgrade your .NET SDK to [v48.0.0](https://github.com/stripe/stripe-dotnet/releases/tag/v48.0.0)\n3. Upgrade the API version used for [webhook endpoints](https://docs.stripe.com/webhooks/versioning.md).\n4. [Test your integration](https://docs.stripe.com/testing.md) against the new version.\n5. If you use Connect, [test your Connect integration](https://docs.stripe.com/connect/testing.md).\n6. In Workbench, [perform the upgrade](https://docs.stripe.com/upgrades.md#perform-the-upgrade). You can [roll back the version](https://docs.stripe.com/upgrades.md#roll-back-your-api-version) for 72 hours.\n\nLearn more about [Stripe API upgrades](https://docs.stripe.com/upgrades.md).\n\n## Related changes\n\n- [Invoicing resources now specify how they were generated](https://docs.stripe.com/changelog/basil/2025-03-31/adds-new-parent-field-to-invoicing-objects.md)\n- [Adds support for last aggregation formula on meters](https://docs.stripe.com/changelog/basil/2025-03-31/meters-last-agg-formula.md)\n- [Adds new webhook event types for Billing Meters](https://docs.stripe.com/changelog/basil/2025-03-31/billing-meter-webhooks.md)\n- [Adds new webhook event types for billing credits](https://docs.stripe.com/changelog/basil/2025-03-31/billing-credit-webhooks.md)",
+          "truncated": false
+        },
+        {
+          "label": "Stripe changelog: adds-new-parent-field-to-invoicing-objects",
+          "url": "https://docs.stripe.com/changelog/basil/2025-03-31/adds-new-parent-field-to-invoicing-objects.md",
+          "hash": "b220f1c347eb6d4946ea0204489023710fc7e574f2889a96a3c687b09dde4dde",
+          "content": "# Invoicing resources now specify how they were generated\n\n## What\u2019s new\n\nWe\u2019re introducing a new `parent` field on [invoices](https://docs.stripe.com/api/invoices.md?api-version=2025-03-31.basil), [invoice items](https://docs.stripe.com/api/invoiceitems.md?api-version=2025-03-31.basil), and [invoice line items](https://docs.stripe.com/api/invoice-line-item.md?api-version=2025-03-31.basil). The `parent` field allows you to view the details of the upstream object that generated the `invoice`, `invoice item`, or `invoice line item` (such as a subscription, a quote, or other). It replaces top level fields that we previously used to reference these objects.\n\n## Why is this a breaking change?\n\n- On the [Invoice](https://docs.stripe.com/api/invoices.md?api-version=2025-03-31.basil) object, we deprecated the `quote`, `subscription`, `subscription_details`, and `subscription_proration_date` fields.\n- On the [Invoice Item](https://docs.stripe.com/api/invoiceitems.md?api-version=2025-03-31.basil) object, we deprecated the `subscription_item` and `subscription` fields.\n- On the [Invoice Line Item](https://docs.stripe.com/api/invoice-line-item.md?api-version=2025-03-31.basil) object, we deprecated the `type`, `subscription`, `subscription_item`, `invoice_item`, `proration`, and `proration_details` fields.\n\n## Impact\n\nReplace field references on invoicing objects with their new locations in the `parent` field.\n\nOn [Invoice](https://docs.stripe.com/api/invoices.md?api-version=2025-03-31.basil) objects:\n\n- Use `invoice.parent.subscription_details.subscription` (verify `invoice.parent.type` is `subscription_details`) instead of `invoice.subscription`.\n- This also applies to:\n- `quote`\n- `subscription_details`\n- `subscription_proration_date`\n\nOn [Invoice Item](https://docs.stripe.com/api/invoiceitems.md?api-version=2025-03-31.basil) objects:\n\n- Use `invoiceitem.parent.subscription_details.subscription` (verify `invoiceitem.parent.type` is `subscription_details`) instead of `invoice_item.subscription`\n- This also applies to the `subscription_item` field\n\nOn [Invoice Line Item](https://docs.stripe.com/api/invoice-line-item.md?api-version=2025-03-31.basil) objects:\n\n- Use `line_item.parent.subscription_item_details.subscription_item` (verify `line_item.parent.type` is `subscription_item_details`) instead of `line_item.subscription_item`.\n- This also applies to:\n- `subscription`\n- `invoice_item`\n- `proration`\n- `proration_details`\n\n## Changes\n\n#### REST API\n\n| Parameters | Change | Resources or endpoints |\n| --- | --- | --- |\n| `subscription`, `subscription_item` | Removed | [InvoiceItem](/api/invoiceitems/object?api-version=2025-03-31.basil) |\n| `quote`, `subscription`, `subscription_details`, `subscription_proration_date` | Removed | [Invoice](/api/invoices/object?api-version=2025-03-31.basil) |\n| `invoice_item`, `proration`, `proration_details`, `subscription`, `subscription_item`, `type` | Removed | [InvoiceLineItem](/api/invoice-line-item?api-version=2025-03-31.basil) |\n| `parent` | Added | [Invoice](/api/invoices/object?api-version=2025-03-31.basil), [InvoiceItem](/api/invoiceitems/object?api-version=2025-03-31.basil), [InvoiceLineItem](/api/invoice-line-item?api-version=2025-03-31.basil) |\n\n#### Ruby\n\nThis change does not affect the Ruby SDK.\n\n#### Python\n\n| Parameters | Change | Resources or methods |\n| --- | --- | --- |\n| `subscription`, `subscription_item` | Removed | [InvoiceItem](/api/invoiceitems/object?api-version=2025-03-31.basil) |\n| `quote`, `subscription`, `subscription_details`, `subscription_proration_date` | Removed | [Invoice](/api/invoices/object?api-version=2025-03-31.basil) |\n| `invoice_item`, `proration`, `proration_details`, `subscription`, `subscription_item`, `type` | Removed | [InvoiceLineItem](/api/invoice-line-item?api-version=2025-03-31.basil) |\n| `parent` | Added | [Invoice](/api/invoices/object?api-version=2025-03-31.basil), [InvoiceItem](/api/invoiceitems/object?api-version=2025-03-31.basil), [InvoiceLineItem](/api/invoice-line-item?api-version=2025-03-31.basil) |\n\n#### PHP\n\n| Parameters | Change | Resources or methods |\n| --- | --- | --- |\n| `subscription`, `subscription_item` | Removed | [InvoiceItem](/api/invoiceitems/object?api-version=2025-03-31.basil) |\n| `quote`, `subscription`, `subscription_details`, `subscription_proration_date` | Removed | [Invoice](/api/invoices/object?api-version=2025-03-31.basil) |\n| `invoice_item`, `proration`, `proration_details`, `subscription`, `subscription_item`, `type` | Removed | [InvoiceLineItem](/api/invoice-line-item?api-version=2025-03-31.basil) |\n| `parent` | Added | [Invoice](/api/invoices/object?api-version=2025-03-31.basil), [InvoiceItem](/api/invoiceitems/object?api-version=2025-03-31.basil), [InvoiceLineItem](/api/invoice-line-item?api-version=2025-03-31.basil) |\n\n#### Java\n\n| Parameters | Change | Resources or methods |\n| --- | --- | --- |\n| `subscription`, `subscriptionItem` | Removed | [InvoiceItem](/api/invoiceitems/object?api-version=2025-03-31.basil) |\n| `quote`, `subscription`, `subscriptionDetails`, `subscriptionProrationDate` | Removed | [Invoice](/api/invoices/object?api-version=2025-03-31.basil) |\n| `invoiceItem`, `proration`, `prorationDetails`, `subscription`, `subscriptionItem`, `type` | Removed | [InvoiceLineItem](/api/invoice-line-item?api-version=2025-03-31.basil) |\n| `parent` | Added | [Invoice](/api/invoices/object?api-version=2025-03-31.basil), [InvoiceItem](/api/invoiceitems/object?api-version=2025-03-31.basil), [InvoiceLineItem](/api/invoice-line-item?api-version=2025-03-31.basil) |\n\n#### Node.js\n\n| Parameters | Change | Resources or methods |\n| --- | --- | --- |\n| `subscription`, `subscription_item` | Removed | [InvoiceItem](/api/invoiceitems/object?api-version=2025-03-31.basil) |\n| `quote`, `subscription`, `subscription_details`, `subscription_proration_date` | Removed | [Invoice](/api/invoices/object?api-version=2025-03-31.basil) |\n| `invoice_item`, `proration`, `proration_details`, `subscription`, `subscription_item`, `type` | Removed | [InvoiceLineItem](/api/invoice-line-item?api-version=2025-03-31.basil) |\n| `parent` | Added | [Invoice](/api/invoices/object?api-version=2025-03-31.basil), [InvoiceItem](/api/invoiceitems/object?api-version=2025-03-31.basil), [InvoiceLineItem](/api/invoice-line-item?api-version=2025-03-31.basil) |\n\n#### Go\n\n| Parameters | Change | Resources or methods |\n| --- | --- | --- |\n| `Subscription`, `SubscriptionItem` | Removed | [InvoiceItem](/api/invoiceitems/object?api-version=2025-03-31.basil) |\n| `Quote`, `Subscription`, `SubscriptionDetails`, `SubscriptionProrationDate` | Removed | [Invoice](/api/invoices/object?api-version=2025-03-31.basil) |\n| `InvoiceItem`, `Proration`, `ProrationDetails`, `Subscription`, `SubscriptionItem`, `Type` | Removed | [InvoiceLineItem](/api/invoice-line-item?api-version=2025-03-31.basil) |\n| `Parent` | Added | [Invoice](/api/invoices/object?api-version=2025-03-31.basil), [InvoiceItem](/api/invoiceitems/object?api-version=2025-03-31.basil), [InvoiceLineItem](/api/invoice-line-item?api-version=2025-03-31.basil) |\n\n#### .NET\n\n| Parameters | Change | Resources or methods |\n| --- | --- | --- |\n| `Subscription`, `SubscriptionItem` | Removed | [InvoiceItem](/api/invoiceitems/object?api-version=2025-03-31.basil) |\n| `Quote`, `Subscription`, `SubscriptionDetails`, `SubscriptionProrationDate` | Removed | [Invoice](/api/invoices/object?api-version=2025-03-31.basil) |\n| `InvoiceItem`, `Proration`, `ProrationDetails`, `Subscription`, `SubscriptionItem`, `Type` | Removed | [InvoiceLineItem](/api/invoice-line-item?api-version=2025-03-31.basil) |\n| `Parent` | Added | [Invoice](/api/invoices/object?api-version=2025-03-31.basil), [InvoiceItem](/api/invoiceitems/object?api-version=2025-03-31.basil), [InvoiceLineItem](/api/invoice-line-item?api-version=2025-03-31.basil) |\n\n## Upgrade\n\n#### REST API\n\n1. [View your current API version](https://docs.stripe.com/workbench/guides.md#view-api-versions) in Workbench.\n2. If you use an SDK, upgrade to the corresponding SDK version for this API version.\n- If you don\u2019t use an SDK, update your [API requests](https://docs.stripe.com/api-versions.md#how-versions-are-specified-in-requests) to include `Stripe-Version: 2025-03-31.basil`\n3. Upgrade the API version used for [webhook endpoints](https://docs.stripe.com/webhooks/versioning.md).\n4. [Test your integration](https://docs.stripe.com/testing.md) against the new version.\n5. If you use Connect, [test your Connect integration](https://docs.stripe.com/connect/testing.md).\n\nLearn more about [Stripe API upgrades](https://docs.stripe.com/upgrades.md).\n\n#### Ruby\n\n1. [View your current API version](https://docs.stripe.com/upgrades.md#view-your-api-version-and-the-latest-available-upgrade-in-workbench) in Workbench.\n2. Upgrade your Ruby SDK to [v15.0.0](https://github.com/stripe/stripe-ruby/releases/tag/v15.0.0)\n3. Upgrade the API version used for [webhook endpoints](https://docs.stripe.com/webhooks/versioning.md).\n4. [Test your integration](https://docs.stripe.com/testing.md) against the new version.\n5. If you use Connect, [test your Connect integration](https://docs.stripe.com/connect/testing.md).\n6. In Workbench, [perform the upgrade](https://docs.stripe.com/upgrades.md#perform-the-upgrade). You can [roll back the version](https://docs.stripe.com/upgrades.md#roll-back-your-api-version) for 72 hours.\n\nLearn more about [Stripe API upgrades](https://docs.stripe.com/upgrades.md).\n\n#### Python\n\n1. [View your current API version](https://docs.stripe.com/upgrades.md#view-your-api-version-and-the-latest-available-upgrade-in-workbench) in Workbench.\n2. Upgrade your Python SDK to [v12.0.0](https://github.com/stripe/stripe-python/releases/tag/v12.0.0)\n3. Upgrade the API version used for [webhook endpoints](https://docs.stripe.com/webhooks/versioning.md).\n4. [Test your integration](https://docs.stripe.com/testing.md) against the new version.\n5. If you use Connect, [test your Connect integration](https://docs.stripe.com/connect/testing.md).\n6. In Workbench, [perform the upgrade](https://docs.stripe.com/upgrades.md#perform-the-upgrade). You can [roll back the version](https://docs.stripe.com/upgrades.md#roll-back-your-api-version) for 72 hours.\n\nLearn more about [Stripe API upgrades](https://docs.stripe.com/upgrades.md).\n\n#### PHP\n\n1. [View your current API version](https://docs.stripe.com/upgrades.md#view-your-api-version-and-the-latest-available-upgrade-in-workbench) in Workbench.\n2. Upgrade your PHP SDK to [v17.0.0](https://github.com/stripe/stripe-php/releases/tag/v17.0.0)\n3. Upgrade the API version used for [webhook endpoints](https://docs.stripe.com/webhooks/versioning.md).\n4. [Test your integration](https://docs.stripe.com/testing.md) against the new version.\n5. If you use Connect, [test your Connect integration](https://docs.stripe.com/connect/testing.md).\n6. In Workbench, [perform the upgrade](https://docs.stripe.com/upgrades.md#perform-the-upgrade). You can [roll back the version](https://docs.stripe.com/upgrades.md#roll-back-your-api-version) for 72 hours.\n\nLearn more about [Stripe API upgrades](https://docs.stripe.com/upgrades.md).\n\n#### Java\n\n1. [View your current API version](https://docs.stripe.com/upgrades.md#view-your-api-version-and-the-latest-available-upgrade-in-workbench) in Workbench.\n2. Upgrade your Java SDK to [v29.0.0](https://github.com/stripe/stripe-java/releases/tag/v29.0.0)\n3. Upgrade the API version used for [webhook endpoints](https://docs.stripe.com/webhooks/versioning.md).\n4. [Test your integration](https://docs.stripe.com/testing.md) against the new version.\n5. If you use Connect, [test your Connect integration](https://docs.stripe.com/connect/testing.md).\n6. In Workbench, [perform the upgrade](https://docs.stripe.com/upgrades.md#perform-the-upgrade). You can [roll back the version](https://docs.stripe.com/upgrades.md#roll-back-your-api-version) for 72 hours.\n\nLearn more about [Stripe API upgrades](https://docs.stripe.com/upgrades.md).\n\n#### Node.js\n\n1. [View your current API version](https://docs.stripe.com/upgrades.md#view-your-api-version-and-the-latest-available-upgrade-in-workbench) in Workbench.\n2. Upgrade your Node SDK to [v18.0.0](https://github.com/stripe/stripe-node/releases/tag/v18.0.0)\n3. Upgrade the API version used for [webhook endpoints](https://docs.stripe.com/webhooks/versioning.md).\n4. [Test your integration](https://docs.stripe.com/testing.md) against the new version.\n5. If you use Connect, [test your Connect integration](https://docs.stripe.com/connect/testing.md).\n6. In Workbench, [perform the upgrade](https://docs.stripe.com/upgrades.md#perform-the-upgrade). You can [roll back the version](https://docs.stripe.com/upgrades.md#roll-back-your-api-version) for 72 hours.\n\nLearn more about [Stripe API upgrades](https://docs.stripe.com/upgrades.md).\n\n#### Go\n\n1. [View your current API version](https://docs.stripe.com/upgrades.md#view-your-api-version-and-the-latest-available-upgrade-in-workbench) in Workbench.\n2. Upgrade your Go SDK to [v82.0.0](https://github.com/stripe/stripe-go/releases/tag/v82.0.0)\n3. Upgrade the API version used for [webhook endpoints](https://docs.stripe.com/webhooks/versioning.md).\n4. [Test your integration](https://docs.stripe.com/testing.md) against the new version.\n5. If you use Connect, [test your Connect integration](https://docs.stripe.com/connect/testing.md).\n6. In Workbench, [perform the upgrade](https://docs.stripe.com/upgrades.md#perform-the-upgrade). You can [roll back the version](https://docs.stripe.com/upgrades.md#roll-back-your-api-version) for 72 hours.\n\nLearn more about [Stripe API upgrades](https://docs.stripe.com/upgrades.md).\n\n#### .NET\n\n1. [View your current API version](https://docs.stripe.com/upgrades.md#view-your-api-version-and-the-latest-available-upgrade-in-workbench) in Workbench.\n2. Upgrade your .NET SDK to [v48.0.0](https://github.com/stripe/stripe-dotnet/releases/tag/v48.0.0)\n3. Upgrade the API version used for [webhook endpoints](https://docs.stripe.com/webhooks/versioning.md).\n4. [Test your integration](https://docs.stripe.com/testing.md) against the new version.\n5. If you use Connect, [test your Connect integration](https://docs.stripe.com/connect/testing.md).\n6. In Workbench, [perform the upgrade](https://docs.stripe.com/upgrades.md#perform-the-upgrade). You can [roll back the version](https://docs.stripe.com/upgrades.md#roll-back-your-api-version) for 72 hours.\n\nLearn more about [Stripe API upgrades](https://docs.stripe.com/upgrades.md).\n\n## Related changes\n\n- [Adds subscription item-level billing periods and removes subscription-level periods](https://docs.stripe.com/changelog/basil/2025-03-31/deprecate-subscription-current-period-start-and-end.md)\n- [Adds support for last aggregation formula on meters](https://docs.stripe.com/changelog/basil/2025-03-31/meters-last-agg-formula.md)\n- [Adds new webhook event types for Billing Meters](https://docs.stripe.com/changelog/basil/2025-03-31/billing-meter-webhooks.md)\n- [Adds new webhook event types for billing credits](https://docs.stripe.com/changelog/basil/2025-03-31/billing-credit-webhooks.md)",
+          "truncated": false
+        }
+      ]
+    },
+    "edits": 4,
+    "ruleEdits": [
+      {
+        "file": "convex/stripe.ts",
+        "start": 2052,
+        "end": 2083,
+        "replacement": "(getSubscriptionPeriodEnd(subscription, (items) => items[0]))",
+        "changeId": "1b1240130d2bdc263d4cb66a",
+        "rule": "stripe-subscription-periods-helper"
+      },
+      {
+        "file": "convex/stripe.ts",
+        "start": 2451,
+        "end": 2482,
+        "replacement": "(getSubscriptionPeriodEnd(subscription, (items) => items[0]))",
+        "changeId": "1b1240130d2bdc263d4cb66a",
+        "rule": "stripe-subscription-periods-helper"
+      },
+      {
+        "file": "convex/stripe-subscription-period.ts",
+        "start": 0,
+        "end": 0,
+        "replacement": "type PeriodItem = { price?: { id?: string } | null };\ntype PeriodField = 'current_period_start' | 'current_period_end';\ntype PlanItem = (items: PeriodItem[]) => PeriodItem | undefined;\n\n// Typed like the removed field, which was also absent at runtime when Stripe omitted it.\nfunction subscriptionPeriod(subscription: object, field: PeriodField, planItem?: PlanItem): number {\n  const legacy: unknown = Reflect.get(subscription, field);\n  if (typeof legacy === 'number') return legacy;\n  const list: unknown = Reflect.get(subscription, 'items');\n  const data: unknown = list && typeof list === 'object' ? Reflect.get(list, 'data') : undefined;\n  const items = (Array.isArray(data) ? data : []).filter(\n    (item): item is PeriodItem => typeof item === 'object' && item !== null,\n  );\n  const periods = new Set(items.map((item) => Reflect.get(item, field)));\n  const chosen = periods.size === 1 ? items[0] : planItem?.(items);\n  const value: unknown = chosen ? Reflect.get(chosen, field) : undefined;\n  return (typeof value === 'number' ? value : undefined) as number;\n}\n\nexport function getSubscriptionPeriodStart(subscription: object, planItem?: PlanItem): number {\n  return subscriptionPeriod(subscription, 'current_period_start', planItem);\n}\n\nexport function getSubscriptionPeriodEnd(subscription: object, planItem?: PlanItem): number {\n  return subscriptionPeriod(subscription, 'current_period_end', planItem);\n}\n",
+        "changeId": "stripe-subscription-period-helper",
+        "rule": "stripe-subscription-periods-helper"
+      },
+      {
+        "file": "convex/stripe.ts",
+        "start": 229,
+        "end": 229,
+        "replacement": "\nimport { getSubscriptionPeriodEnd } from './stripe-subscription-period';",
+        "changeId": "stripe-subscription-period-helper",
+        "rule": "stripe-subscription-periods-helper"
+      }
+    ],
+    "migratedWebhookFindings": [],
+    "unresolvedFindings": 1,
+    "diff": "diff --git \"a/convex/stripe.ts\" \"b/convex/stripe.ts\"\n--- \"a/convex/stripe.ts\"\n+++ \"b/convex/stripe.ts\"\n@@ -1,96 +1,97 @@\n-\"use node\";\n-\n-import { v } from \"convex/values\";\n-import Stripe from \"stripe\";\n-\n-import { action, internalAction } from \"./_generated/server\";\n-import { internal } from \"./_generated/api\";\n-import { Id } from \"./_generated/dataModel\";\n-\n-type Metadata = {\n-  userId: string;\n-};\n-\n-export const pay = action({\n-  args: {},\n-  handler: async (ctx) => {\n-    const user = await ctx.auth.getUserIdentity();\n-\n-    if (!user) {\n-      throw new Error(\"you must be logged in to subscribe\");\n-    }\n-\n-    if (!user.emailVerified) {\n-      throw new Error(\"you must have a verified email to subscribe\");\n-    }\n-\n-    const domain = process.env.HOSTING_URL ?? \"http://localhost:3000\";\n-    const stripe = new Stripe(process.env.STRIPE_KEY!, {\n-      apiVersion: \"2023-10-16\",\n-    });\n-    const session = await stripe.checkout.sessions.create({\n-      line_items: [{ price: process.env.PRICE_ID!, quantity: 1 }],\n-      customer_email: user.email,\n-      metadata: {\n-        userId: user.subject,\n-      },\n-      mode: \"subscription\",\n-      success_url: `${domain}`,\n-      cancel_url: `${domain}`,\n-    });\n-\n-    return session.url!;\n-  },\n-});\n-\n-export const fulfill = internalAction({\n-  args: { signature: v.string(), payload: v.string() },\n-  handler: async (ctx, args) => {\n-    const stripe = new Stripe(process.env.STRIPE_KEY!, {\n-      apiVersion: \"2023-10-16\",\n-    });\n-\n-    const webhookSecret = process.env.STRIPE_WEBHOOKS_SECRET!;\n-    try {\n-      const event = stripe.webhooks.constructEvent(\n-        args.payload,\n-        args.signature,\n-        webhookSecret\n-      );\n-\n-      const completedEvent = event.data.object as Stripe.Checkout.Session & {\n-        metadata: Metadata;\n-      };\n-\n-      if (event.type === \"checkout.session.completed\") {\n-        const subscription = await stripe.subscriptions.retrieve(\n-          completedEvent.subscription as string\n-        );\n-\n-        const userId = completedEvent.metadata.userId as Id<\"users\">;\n-\n-        await ctx.runMutation(internal.users.updateSubscription, {\n-          userId,\n-          subscriptionId: subscription.id,\n-          endsOn: subscription.current_period_end * 1000,\n-        });\n-      }\n-\n-      if (event.type === \"invoice.payment_succeeded\") {\n-        const subscription = await stripe.subscriptions.retrieve(\n-          completedEvent.subscription as string\n-        );\n-\n-        await ctx.runMutation(internal.users.updateSubscriptionBySubId, {\n-          subscriptionId: subscription.items.data[0]?.price.id,\n-          endsOn: subscription.current_period_end * 1000,\n-        });\n-      }\n-\n-      return { success: true };\n-    } catch (err) {\n-      console.error(err);\n-      return { success: false, error: (err as { message: string }).message };\n-    }\n-  },\n-});\n+\"use node\";\n+\n+import { v } from \"convex/values\";\n+import Stripe from \"stripe\";\n+\n+import { action, internalAction } from \"./_generated/server\";\n+import { internal } from \"./_generated/api\";\n+import { Id } from \"./_generated/dataModel\";\n+import { getSubscriptionPeriodEnd } from './stripe-subscription-period';\n+\n+type Metadata = {\n+  userId: string;\n+};\n+\n+export const pay = action({\n+  args: {},\n+  handler: async (ctx) => {\n+    const user = await ctx.auth.getUserIdentity();\n+\n+    if (!user) {\n+      throw new Error(\"you must be logged in to subscribe\");\n+    }\n+\n+    if (!user.emailVerified) {\n+      throw new Error(\"you must have a verified email to subscribe\");\n+    }\n+\n+    const domain = process.env.HOSTING_URL ?? \"http://localhost:3000\";\n+    const stripe = new Stripe(process.env.STRIPE_KEY!, {\n+      apiVersion: \"2023-10-16\",\n+    });\n+    const session = await stripe.checkout.sessions.create({\n+      line_items: [{ price: process.env.PRICE_ID!, quantity: 1 }],\n+      customer_email: user.email,\n+      metadata: {\n+        userId: user.subject,\n+      },\n+      mode: \"subscription\",\n+      success_url: `${domain}`,\n+      cancel_url: `${domain}`,\n+    });\n+\n+    return session.url!;\n+  },\n+});\n+\n+export const fulfill = internalAction({\n+  args: { signature: v.string(), payload: v.string() },\n+  handler: async (ctx, args) => {\n+    const stripe = new Stripe(process.env.STRIPE_KEY!, {\n+      apiVersion: \"2023-10-16\",\n+    });\n+\n+    const webhookSecret = process.env.STRIPE_WEBHOOKS_SECRET!;\n+    try {\n+      const event = stripe.webhooks.constructEvent(\n+        args.payload,\n+        args.signature,\n+        webhookSecret\n+      );\n+\n+      const completedEvent = event.data.object as Stripe.Checkout.Session & {\n+        metadata: Metadata;\n+      };\n+\n+      if (event.type === \"checkout.session.completed\") {\n+        const subscription = await stripe.subscriptions.retrieve(\n+          completedEvent.subscription as string\n+        );\n+\n+        const userId = completedEvent.metadata.userId as Id<\"users\">;\n+\n+        await ctx.runMutation(internal.users.updateSubscription, {\n+          userId,\n+          subscriptionId: subscription.id,\n+          endsOn: (getSubscriptionPeriodEnd(subscription, (items) => items[0])) * 1000,\n+        });\n+      }\n+\n+      if (event.type === \"invoice.payment_succeeded\") {\n+        const subscription = await stripe.subscriptions.retrieve(\n+          completedEvent.subscription as string\n+        );\n+\n+        await ctx.runMutation(internal.users.updateSubscriptionBySubId, {\n+          subscriptionId: subscription.items.data[0]?.price.id,\n+          endsOn: (getSubscriptionPeriodEnd(subscription, (items) => items[0])) * 1000,\n+        });\n+      }\n+\n+      return { success: true };\n+    } catch (err) {\n+      console.error(err);\n+      return { success: false, error: (err as { message: string }).message };\n+    }\n+  },\n+});\ndiff --git \"a/convex/stripe-subscription-period.ts\" \"b/convex/stripe-subscription-period.ts\"\nnew file mode 100644\n--- /dev/null\n+++ \"b/convex/stripe-subscription-period.ts\"\n@@ -0,0 +1,26 @@\n+type PeriodItem = { price?: { id?: string } | null };\n+type PeriodField = 'current_period_start' | 'current_period_end';\n+type PlanItem = (items: PeriodItem[]) => PeriodItem | undefined;\n+\n+// Typed like the removed field, which was also absent at runtime when Stripe omitted it.\n+function subscriptionPeriod(subscription: object, field: PeriodField, planItem?: PlanItem): number {\n+  const legacy: unknown = Reflect.get(subscription, field);\n+  if (typeof legacy === 'number') return legacy;\n+  const list: unknown = Reflect.get(subscription, 'items');\n+  const data: unknown = list && typeof list === 'object' ? Reflect.get(list, 'data') : undefined;\n+  const items = (Array.isArray(data) ? data : []).filter(\n+    (item): item is PeriodItem => typeof item === 'object' && item !== null,\n+  );\n+  const periods = new Set(items.map((item) => Reflect.get(item, field)));\n+  const chosen = periods.size === 1 ? items[0] : planItem?.(items);\n+  const value: unknown = chosen ? Reflect.get(chosen, field) : undefined;\n+  return (typeof value === 'number' ? value : undefined) as number;\n+}\n+\n+export function getSubscriptionPeriodStart(subscription: object, planItem?: PlanItem): number {\n+  return subscriptionPeriod(subscription, 'current_period_start', planItem);\n+}\n+\n+export function getSubscriptionPeriodEnd(subscription: object, planItem?: PlanItem): number {\n+  return subscriptionPeriod(subscription, 'current_period_end', planItem);\n+}\n",
+    "validation": "passed",
+    "warnings": [
+      "AI-generated proposal requires human review. Syntax and evidence checks do not prove preservation of behavior.",
+      "Unresolved findings come from rescanning the proposed code; disappearing findings do not prove correctness.",
+      "Source files were sent to OpenAI. Review the exported source and logs before sharing.",
+      "The finding is on an invoice webhook payload, but the snippet doesn\u2019t access `invoice.subscription` directly; it accesses `completedEvent.subscription`.",
+      "The documented replacement is clear for invoice objects, but the surrounding code may be relying on a different event object shape or versioned webhook payload.",
+      "A minimal safe migration may require reading both old and new shapes with `Reflect.get`, but the precise object path in this function is not established by the evidence."
+    ]
+  },
+  "validation": {
+    "status": "passed",
+    "revision": "a294ef2177d98f7ab654d3e22ae193987aea4edc",
+    "image": "sha256:0a7108bf6c7bf5de370ffb1a3ed6be93d405b43ff159f681a8d18c0e2bc2e402",
+    "environment": {
+      "formatVersion": 1,
+      "kind": "refit-npm-environment",
+      "signature": "bc7d3601d9175ad8bf554144f1115bbe6848112d8d1a0698b24e1069b70f2030",
+      "recipeVersion": 4,
+      "image": "sha256:0a7108bf6c7bf5de370ffb1a3ed6be93d405b43ff159f681a8d18c0e2bc2e402",
+      "packageHash": "03cbd4f6abab939f391aeae1d79d38a245fafb591a6ff49f0ced2087c19f582a",
+      "lockHash": "385835a56962519d6d115c6e946127f4d7d581346a2c3ef555181e11bbe4f6ef",
+      "packages": 709,
+      "manager": "npm",
+      "nodeVersion": "v22.23.3",
+      "npmVersion": "10.9.9",
+      "archiveHash": "042f38f4ba54d74591aba685af972a93efabfe58f8f3024db602bb76ed42732c",
+      "archiveBytes": 617777152,
+      "installation": {
+        "network": "bridge",
+        "lifecycleScripts": false,
+        "registry": "https://registry.npmjs.org",
+        "timeoutMs": 300000,
+        "workspace": "2g",
+        "memory": "3g"
+      },
+      "validation": {
+        "network": "none"
+      },
+      "reused": true
+    },
+    "command": ["npx", "--no-install", "tsc", "--noEmit", "--pretty", "false", "-p", "."],
+    "baselineCommand": ["npx", "--no-install", "tsc", "--noEmit", "--pretty", "false", "-p", "."],
+    "archiveHash": "9ca85b1e17d89daa4e505b160f76e392bee99fb2072927d8f05caaf312686641",
+    "patchHash": "d2681f6d5332c6d872edcec520db0a151fb44068935b476125a804be1abab1f9",
+    "baseline": {
+      "status": "passed",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    "patched": {
+      "status": "passed",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    "generated": {
+      "engine": "stripe-mock",
+      "image": "sha256:aeb96b83e87a893d2ac005e363ac01ffa6e59a5ad85b49c155dfc9129de02e78",
+      "binaryHash": "a14f5b5e15c6fa21c3c399438c6e5f47f0c7732ec882a3e0e775c309d96c1a5c",
+      "inputs": {
+        "before": {
+          "contract": "20ad0c262d4d372fea8234d119cc28791b1525d0ee952d6728e9ac9dcfb2ae37",
+          "fixtures": "9ef01717638190caf6c1fb0e53a7d18e207184a4a1e5f0e0c08db6d9809e84b7"
+        },
+        "after": {
+          "contract": "7cff4cc46d0654101a36a3302f7544640f5f73e4f3cad6f264f0e23c19fa1776",
+          "fixtures": "e6822f7ee6fd71bdde6228537368aafcfb7191109340fe119d9aca27c6e9396d"
+        }
+      },
+      "entryPoints": [],
+      "uncoveredFindings": 3,
+      "notRunnable": [],
+      "regressions": [],
+      "baseline": {
+        "status": "not-run",
+        "exitCode": null,
+        "stdout": "",
+        "stderr": ""
+      },
+      "patched": {
+        "status": "not-run",
+        "exitCode": null,
+        "stdout": "",
+        "stderr": ""
+      },
+      "claim": "Exported functions enclosing confirmed findings ran against stripe-mock serving each side's contract and fixtures. Placeholder fixtures check response shapes, not business data or application tests."
+    },
+    "attempts": [],
+    "repair": {
+      "limit": 1,
+      "requested": 0,
+      "stopReason": "not-needed-or-disabled",
+      "error": null
+    },
+    "limits": {
+      "timeoutMs": 120000,
+      "outputBytes": 1048576,
+      "network": "none",
+      "workspace": "2g",
+      "memory": "3g"
+    },
+    "publishable": false,
+    "reason": "Validation records check results only. Draft publication requires an explicit GitHub target and passing checks; migration semantics require human review."
+  },
+  "changes": [
+    {
+      "id": "eefe4ea32b74e64919fbc645",
+      "schema": "invoice",
+      "property": "subscription",
+      "pointer": "/components/schemas/invoice/properties/subscription"
+    },
+    {
+      "id": "1b1240130d2bdc263d4cb66a",
+      "schema": "subscription",
+      "property": "current_period_end",
+      "pointer": "/components/schemas/subscription/properties/current_period_end"
+    }
+  ],
+  "storedResult": "refit-stripe-benchmark/run-prs-all/repos/webdevcody__thumbnail-critique/run/report.json"
+}
