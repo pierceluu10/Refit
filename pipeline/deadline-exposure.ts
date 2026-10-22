@@ -5,6 +5,8 @@ import ts from 'typescript-compiler';
 import { AGENT_CATALOG, builtInPackage } from './agent-catalog.ts';
 import { daysUntil, type DeadlineEntry, type DeadlineRegistry } from './deadline-registry.ts';
 import { readRepository } from './repository.ts';
+import { goModelMatches } from './go/model-reports.ts';
+import { readGoFiles } from './go/syntax.ts';
 import { pythonModelMatches } from './python/model-uses.ts';
 import { readPythonFiles } from './python/syntax.ts';
 import { isObject, parseObject } from './specifications.ts';
@@ -555,6 +557,15 @@ export async function scanDeadlines(
       ANTHROPIC_MODEL.test(value) ||
       GEMINI_MODEL.test(value),
   ))
+    record(match.provider, match.version, {
+      file: match.file,
+      line: match.line,
+      kind: 'source',
+      use: match.use,
+      text: excerpt(match.text),
+    });
+  // Go files: model literals and openai-go and anthropic-sdk-go model constants.
+  for (const match of await goModelMatches(models.size ? await readGoFiles(root) : [], models))
     record(match.provider, match.version, {
       file: match.file,
       line: match.line,
