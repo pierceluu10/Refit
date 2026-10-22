@@ -318,12 +318,20 @@ export interface AgentDetection {
   apiVersions?: ApiVersionPin[];
 }
 
+// A hostname in a line, not as the start of a longer name: `.supabase.co` is in
+// `https://abc.supabase.co/rest` but not in `api.supabase.com`.
+function hostnameIn(line: string, hostname: string) {
+  for (let at = line.indexOf(hostname); at >= 0; at = line.indexOf(hostname, at + 1))
+    if (!/[A-Za-z0-9-]/.test(line[at + hostname.length] ?? '')) return true;
+  return false;
+}
+
 function hostnameEvidence(repository: Repository, agent: ProviderAgent) {
   const evidence: AgentDetection['hostnames'] = [];
   for (const file of repository.files)
     for (const [index, line] of file.content.split('\n').entries())
       for (const hostname of agent.hostnames)
-        if (line.includes(hostname) && evidence.length < MAX_HOSTNAME_EVIDENCE)
+        if (hostnameIn(line, hostname) && evidence.length < MAX_HOSTNAME_EVIDENCE)
           evidence.push({ file: file.path, line: index + 1, hostname });
   return evidence;
 }

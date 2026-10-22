@@ -14,7 +14,7 @@ Checked 2026-10-22 (FP5). Nothing here was installed, run or sent to a provider.
 | Supabase | `@supabase/supabase-js`, `@supabase/ssr`, the five `@supabase/auth-helpers-*` packages | `.supabase.co` (project URLs in @supabase/supabase-js 2.118.0) |
 | NextAuth.js | `next-auth`, `@auth/core`, `@auth/sveltekit`, `@auth/express`, `@auth/qwik`, `@auth/solid-start` | none: it runs inside the application |
 
-Every package's npm repository is in the provider's own GitHub organization. Detection runs through `detectProviders` (`refit agents`), so the hosted inventory picks it up.
+Every package's npm repository is in the provider's own GitHub organization. A hostname matches only where it ends, so `.supabase.co` matches `abc.supabase.co/rest` but not `api.supabase.com` or `app.supabase.com` (fixed after PP10's review; the benchmark below was run before that fix and was not rerun). Detection runs through `detectProviders` (`refit agents`), so the hosted inventory picks it up.
 
 ## Registry entries
 
@@ -23,7 +23,7 @@ Two new forms in `data/deadlines.json`, matched by `pipeline/sdk-deadlines.ts`:
 - **A package range** (`kind: "sdk"`). A version such as `@clerk/nextjs@>=5 <7` names a package and the releases the entry covers. A comparator list is space-separated (`<`, `<=`, `>`, `>=`, `=`). The installed release is the locked version when a lockfile records one. Otherwise it is the lowest release a bounded declared specifier allows: exact, `^`, `~` or an x-range. Open specifiers (`>=4`, `*`, `latest`, tags, URLs, `workspace:`) could install any major, so they match nothing. A package without a range works as before: every declaration matches.
 - **A shut-down product** (`kind: "feature"`). Versions are source markers: an API hostname, an SDK option name or a module name. A marker in code is live, one in a comment is a comment, and one in a test or example file is a test. A marker that names a variable (such as `SUPABASE_ANON_KEY`) inside a longer string, such as an error message or a generated `.env` template, is listed as a comment, because it names the variable without reading it.
 
-`npm run deadlines:check` validates both forms and rejects a range it cannot read.
+`npm run deadlines:check` validates both forms. It rejects a range it cannot read, and two entries whose ranges (or a bare name and a range) share a release of the same package, since that release would get two deadlines.
 
 | Entry | Date | Matches | Source read |
 | --- | --- | --- | --- |

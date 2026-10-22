@@ -1,5 +1,5 @@
 import { readFile } from 'node:fs/promises';
-import { sdkTarget, validRange } from './sdk-deadlines.ts';
+import { rangesOverlap, sdkTarget, validRange } from './sdk-deadlines.ts';
 import { isObject, parseObject } from './specifications.ts';
 import { PipelineInputError } from './types.ts';
 
@@ -109,6 +109,8 @@ export function checkDeadlineRegistry(value: unknown, now: Date) {
     };
   const ids = new Set<string>();
   const versions = new Set<string>();
+  // Package ranges seen so far, by provider and package, to reject overlaps.
+  const packageRanges = new Map<string, { version: string; label: string }[]>();
   for (const [index, entry] of value.deadlines.entries()) {
     const label = isObject(entry) && typeof entry.id === 'string' ? entry.id : `entry ${index}`;
     if (!isObject(entry)) {
@@ -136,9 +138,19 @@ export function checkDeadlineRegistry(value: unknown, now: Date) {
         const key = `${String(entry.provider)}:${version}`;
         if (versions.has(key)) errors.push(`${label}: ${version} already has another deadline.`);
         versions.add(key);
-        const range = entry.kind === 'sdk' ? sdkTarget(version).range : null;
-        if (range !== null && !validRange(range))
+        if (entry.kind !== 'sdk') continue;
+        const { name, range } = sdkTarget(version);
+        if (range !== null && !validRange(range)) {
           errors.push(`${label}: ${version} has a version range Refit cannot read.`);
+          continue;
+        }
+        const seen = packageRanges.get(`${String(entry.provider)}:${name}`) ?? [];
+        for (const other of seen)
+          if (other.version !== version && rangesOverlap(range, sdkTarget(other.version).range))
+            errors.push(
+              `${label}: ${version} overlaps ${other.version} in ${other.label}, so a release would have two deadlines.`,
+            );
+        packageRanges.set(`${String(entry.provider)}:${name}`, [...seen, { version, label }]);
       }
     if (!validDate(entry.date)) errors.push(`${label}: date must be a real YYYY-MM-DD date.`);
     if (!validDate(entry.checkedAt))

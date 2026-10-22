@@ -9,6 +9,7 @@ import { checkDeadlineRegistry, loadDeadlineRegistry } from './deadline-registry
 import {
   featureMatches,
   installedVersion,
+  rangesOverlap,
   markerInProse,
   satisfiesRange,
   sdkTarget,
@@ -370,4 +371,52 @@ it('reports next-auth v3 and older, and not v4 or the v5 beta', async () => {
     await repository({ ...manifest({ 'next-auth': '^4.24.11' }), ...source }),
   );
   expect(detected.map((item) => [item.agent.id, item.hostnames.length])).toEqual([['nextauth', 0]]);
+});
+
+it('rejects package ranges that give one release two deadlines', () => {
+  expect(rangesOverlap('<5', '>=5 <7')).toBe(false);
+  expect(rangesOverlap('<=5', '>=5')).toBe(true);
+  expect(rangesOverlap('>=5 <7', '>=6')).toBe(true);
+  expect(rangesOverlap(null, '<5')).toBe(true);
+  expect(rangesOverlap('=4.2.0', '<4.2.0')).toBe(false);
+  const entry = (id: string, versions: string[]) => ({
+    id,
+    provider: 'clerk',
+    kind: 'sdk',
+    versions,
+    date: '2027-01-01',
+    summary: `${id} ends.`,
+    replacement: null,
+    source: 'https://example.com/clerk',
+    checkedAt: '2026-10-22',
+  });
+  expect(
+    checkDeadlineRegistry(
+      {
+        formatVersion: 1,
+        deadlines: [
+          entry('clerk-core-1', ['@clerk/nextjs@<5']),
+          entry('clerk-core-2', ['@clerk/nextjs@>=5 <7']),
+          entry('clerk-wide', ['@clerk/nextjs@>=6']),
+          entry('clerk-all', ['@clerk/nextjs']),
+        ],
+      },
+      NOW,
+    ).errors,
+  ).toEqual([
+    'clerk-wide: @clerk/nextjs@>=6 overlaps @clerk/nextjs@>=5 <7 in clerk-core-2, so a release would have two deadlines.',
+    'clerk-all: @clerk/nextjs overlaps @clerk/nextjs@<5 in clerk-core-1, so a release would have two deadlines.',
+    'clerk-all: @clerk/nextjs overlaps @clerk/nextjs@>=5 <7 in clerk-core-2, so a release would have two deadlines.',
+    'clerk-all: @clerk/nextjs overlaps @clerk/nextjs@>=6 in clerk-wide, so a release would have two deadlines.',
+  ]);
+});
+
+it('matches a hostname only where it ends, not inside a longer name', async () => {
+  const root = await repository({
+    'src/hosts.ts': [
+      "const dashboard = 'https://app.supabase.com/project/abc';",
+      "const api = 'https://api.supabase.com/v1/projects';",
+    ].join('\n'),
+  });
+  expect(await detectProviders(root)).toEqual([]);
 });
