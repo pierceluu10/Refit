@@ -1,5 +1,6 @@
 import { parseArgs } from 'node:util';
 import { checkStripe } from './check.ts';
+import { cliErrorMessage } from './cli-errors.ts';
 
 const USAGE =
   'Usage: refit stripe-check --repository <directory> --baseline <pinned-snapshot.json> --output <new-directory-outside-repository> [--propose-patch]';
@@ -32,6 +33,6 @@ try {
     );
 } catch (error) {
   if (!(error instanceof Error)) throw error;
-  console.error(`${error.name}: ${error.message}`);
+  console.error(cliErrorMessage(error, 'stripe-check'));
   process.exitCode = 1;
 }

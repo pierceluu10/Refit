@@ -10,9 +10,10 @@ import { runWorkflow } from './workflow.ts';
 import { parseCheckCommand } from './validation-options.ts';
 import { readWorkflowConfiguration, REPOSITORY_CONFIGURATION } from './workflow-configuration.ts';
 import { githubAppConfiguration } from './github-app.ts';
-import { renderWorkflowResult, terminalText } from './workflow-presentation.ts';
+import { renderWorkflowResult } from './workflow-presentation.ts';
 import { validateApiVersionPolicy } from './api-version.ts';
 import { hasErrorCode } from './state-files.ts';
+import { cliErrorMessage } from './cli-errors.ts';
 
 const RUN_DIRECTORY_PREFIX = 'refit-run-';
 
@@ -155,6 +156,6 @@ try {
   }
 } catch (error) {
   if (!(error instanceof Error)) throw error;
-  console.error(`${error.name}: ${terminalText(error.message)}`);
+  console.error(cliErrorMessage(error, 'run'));
   process.exitCode = 1;
 }

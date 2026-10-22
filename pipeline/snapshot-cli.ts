@@ -2,6 +2,7 @@ import { writeFile } from 'node:fs/promises';
 import { parseArgs } from 'node:util';
 import { discoverStripeRevision, encodeSnapshot, fetchStripeSnapshot } from './snapshots.ts';
 import { PipelineInputError } from './types.ts';
+import { cliErrorMessage } from './cli-errors.ts';
 
 const USAGE =
   'Usage: refit stripe-snapshot (--revision <full-commit-sha> | --latest) --output <new-snapshot.json>';
@@ -40,6 +41,6 @@ try {
   }
 } catch (error) {
   if (!(error instanceof Error)) throw error;
-  console.error(`${error.name}: ${error.message}`);
+  console.error(cliErrorMessage(error, 'stripe-snapshot'));
   process.exitCode = 1;
 }

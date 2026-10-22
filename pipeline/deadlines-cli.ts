@@ -31,6 +31,7 @@ import {
 } from './deadline-sync.ts';
 import { parseObject } from './specifications.ts';
 import { terminalText } from './workflow-presentation.ts';
+import { cliErrorMessage } from './cli-errors.ts';
 
 const USAGE = `Usage: refit deadlines [--repository <root>] [--fail-within <days>] [--ignore-file <path>] [--registry <path>] [--json]
        refit deadlines --propose-model-fixes [--repository <root>] [--output <patch>] [--registry <path>] [--json]
@@ -268,7 +269,7 @@ try {
   }
 } catch (error) {
   if (!(error instanceof Error)) throw error;
-  console.error(`${error.name}: ${terminalText(error.message)}`);
+  console.error(cliErrorMessage(error, 'deadlines'));
   process.exitCode = 1;
 }
 

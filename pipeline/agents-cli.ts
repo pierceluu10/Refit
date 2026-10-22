@@ -7,6 +7,7 @@ import { addAgents, builtInPackage, detectProviders, v1IntegrationId } from './a
 import { parseObject } from './specifications.ts';
 import { REPOSITORY_CONFIGURATION } from './workflow-configuration.ts';
 import { terminalText } from './workflow-presentation.ts';
+import { cliErrorMessage } from './cli-errors.ts';
 
 const USAGE =
   'Usage: refit agents [--repository <root>] [--add <agent-id> ...] [--json]\nDetects provider SDKs from package manifests, lockfiles and raw API hostnames, and lists only the agents that match. --add writes an approved agent into .refit.json as a reviewable integration; it does not enroll, activate, download contracts or run code.';
@@ -133,6 +134,6 @@ try {
   }
 } catch (error) {
   if (!(error instanceof Error)) throw error;
-  console.error(`${error.name}: ${terminalText(error.message)}`);
+  console.error(cliErrorMessage(error, 'agents'));
   process.exitCode = 1;
 }
