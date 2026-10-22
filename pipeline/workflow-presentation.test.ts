@@ -155,3 +155,32 @@ it('shows the validation runtime and, when the repository declares a version, th
   expect(plain).toContain('Runtime     node:22-alpine (Node.js 22.23.3)\n');
   expect(plain).not.toContain('declares no');
 });
+
+it('lists where each removed request parameter is still sent', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'refit-presentation-test-'));
+  directories.push(directory);
+  const site = (line: number) => ({
+    confidence: 'confirmed',
+    file: 'app/api/stripe/route.ts',
+    line,
+    requestParameter: { operationId: 'PostCheckoutSessions', parameter: 'payment_method_types' },
+  });
+  await writeFile(
+    join(directory, 'scan.json'),
+    JSON.stringify({ provider: 'stripe', changes: [], findings: [37, 52, 80, 91].map(site) }),
+  );
+  const rendered = await renderWorkflowResult({
+    directory,
+    manifest: {
+      files: [{ path: 'scan.json' }],
+      status: 'needs-review',
+      reason: 'A traced SDK request sends a parameter the target API version removed.',
+    },
+  } as Parameters<typeof renderWorkflowResult>[0]);
+  expect(rendered.split('\n').filter((line) => /^(Removed|            and)/.test(line))).toEqual([
+    'Removed     payment_method_types is still sent at app/api/stripe/route.ts:37',
+    'Removed     payment_method_types is still sent at app/api/stripe/route.ts:52',
+    'Removed     payment_method_types is still sent at app/api/stripe/route.ts:80',
+    '            and 1 more in the evidence',
+  ]);
+});

@@ -47,18 +47,16 @@ This is the same as `refit deadlines --check-registry`. It fails on shape errors
 
 ### Keep the registry current
 
-Anthropic publishes its retirements as tables on its model deprecations page, so Refit can maintain those entries itself:
+Anthropic, OpenAI, Google, Shopify and Meta publish their retirement dates as tables, so Refit maintains those entries itself:
 
 ```sh
-refit deadlines --sync anthropic          # list what would change
-refit deadlines --sync anthropic --write  # save it to data/deadlines.json
+refit deadlines --sync openai          # list what would change (also anthropic, gemini, shopify, meta-graph)
+refit deadlines --sync openai --write  # save it to data/deadlines.json
 ```
 
-The sync groups the page's rows by retirement date and replacement, one registry entry each. An entry whose date, replacement and models are unchanged is left exactly as it is, including aliases a person added from another page and its `checkedAt`. A new retirement gets a new entry, and a changed date or replacement updates the existing entry in place, both with today's `checkedAt`. An entry the page no longer lists is kept and reported, never deleted. A table row it cannot parse fails the whole sync, so a changed page layout is noticed rather than skipped. The result must pass the same registry check before it is written.
+A model sync groups the page's rows by shutdown date and recommendation, one registry entry each; an API version sync writes one entry per version. Unchanged entries keep their aliases, summary and `checkedAt` until it is more than 30 days old; new and changed entries get today's `checkedAt`. An entry the page no longer lists is kept and reported, never deleted, and a row the parser does not recognize fails the whole sync. The result must pass the registry check before it is written. The `Registry sync` workflow runs every sync daily and opens or updates one pull request for review. [Registry sync](REGISTRY-SYNC.md) covers how each page is read, when an entry names a replacement, and the workflow's settings.
 
-The repository's `Deadline registry sync` workflow (`.github/workflows/deadlines-sync.yml`) runs the sync every day and opens a pull request when the registry should change, unless a sync pull request is already open. Nothing is merged automatically. It needs **Allow GitHub Actions to create and approve pull requests** enabled in the repository's Actions settings. A pull request opened with the workflow's token does not start CI by itself, so push a commit or re-run CI on it before merging.
-
-Other providers' entries are still maintained by hand: OpenAI's deprecations page could not be read from Refit's build environment, and Shopify and Meta publish prose, not tables. There is no Gemini sync: its page could not be read either, so a parser could not be written against its real layout.
+`deadlines --check-registry` also warns on entries whose `checkedAt` is more than 30 days old.
 
 ## Check a repository
 
@@ -310,4 +308,4 @@ A deadline starts a code change only through [automatic model fixes](#automatic-
 - Evidence is capped at 20 live and 20 non-live matches per deadline, plus a count of the rest.
 - Issues are not closed automatically once the repository stops depending on a deadline.
 - `--fail-within` checks only what Refit can see; the limits above apply. A passing check does not prove the repository uses no retiring version or model.
-- The registry is maintained by hand from the provider pages listed above. Recheck it before relying on a date.
+- The registry follows the provider pages listed above through a sync that a person reviews (Anthropic daily; the others when the workflow is started by hand), and changes only when that pull request is merged. Recheck an entry's `source` before relying on a date.

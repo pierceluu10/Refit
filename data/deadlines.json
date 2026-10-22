@@ -347,43 +347,66 @@
       "kind": "model",
       "versions": [
         "gpt-4-0314",
-        "gpt-4-1106-preview",
         "gpt-4-0125-preview",
         "gpt-4-turbo-preview"
       ],
       "date": "2026-03-26",
-      "summary": "OpenAI shuts down gpt-4-0314, gpt-4-1106-preview, gpt-4-0125-preview, gpt-4-turbo-preview.",
-      "replacement": "gpt-5",
+      "summary": "OpenAI shuts down gpt-4-0314, gpt-4-0125-preview, gpt-4-turbo-preview on the API; requests to a shut-down model fail.",
+      "replacement": null,
       "source": "https://developers.openai.com/api/docs/deprecations",
-      "checkedAt": "2026-10-15"
+      "checkedAt": "2026-10-22"
     },
     {
       "id": "openai-2026-05-07-gpt-4o-realtime-preview",
       "provider": "openai",
       "kind": "model",
       "versions": [
-        "gpt-4o-realtime-preview",
+        "gpt-4o-realtime-preview"
+      ],
+      "date": "2026-05-07",
+      "summary": "OpenAI shuts down gpt-4o-realtime-preview on the API; requests to a shut-down model fail.",
+      "replacement": "gpt-realtime-1.5",
+      "source": "https://developers.openai.com/api/docs/deprecations",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "id": "openai-2026-05-07-gpt-4o-mini-realtime-preview",
+      "provider": "openai",
+      "kind": "model",
+      "versions": [
         "gpt-4o-mini-realtime-preview"
       ],
       "date": "2026-05-07",
-      "summary": "OpenAI shuts down gpt-4o-realtime-preview, gpt-4o-mini-realtime-preview.",
+      "summary": "OpenAI shuts down gpt-4o-mini-realtime-preview on the API; requests to a shut-down model fail.",
       "replacement": "gpt-realtime-mini",
       "source": "https://developers.openai.com/api/docs/deprecations",
-      "checkedAt": "2026-10-15"
+      "checkedAt": "2026-10-22"
     },
     {
       "id": "openai-2026-05-07-gpt-4o-audio-preview",
       "provider": "openai",
       "kind": "model",
       "versions": [
-        "gpt-4o-audio-preview",
+        "gpt-4o-audio-preview"
+      ],
+      "date": "2026-05-07",
+      "summary": "OpenAI shuts down gpt-4o-audio-preview on the API; requests to a shut-down model fail.",
+      "replacement": "gpt-audio-1.5",
+      "source": "https://developers.openai.com/api/docs/deprecations",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "id": "openai-2026-05-07-gpt-4o-mini-audio-preview",
+      "provider": "openai",
+      "kind": "model",
+      "versions": [
         "gpt-4o-mini-audio-preview"
       ],
       "date": "2026-05-07",
-      "summary": "OpenAI shuts down gpt-4o-audio-preview, gpt-4o-mini-audio-preview.",
+      "summary": "OpenAI shuts down gpt-4o-mini-audio-preview on the API; requests to a shut-down model fail.",
       "replacement": "gpt-audio-mini",
       "source": "https://developers.openai.com/api/docs/deprecations",
-      "checkedAt": "2026-10-15"
+      "checkedAt": "2026-10-22"
     },
     {
       "id": "openai-2026-05-12-dall-e-2",
@@ -482,19 +505,33 @@
       "versions": [
         "gpt-4",
         "gpt-4-0613",
+        "gpt-4-1106-preview",
         "gpt-4-turbo",
         "gpt-4-turbo-2024-04-09",
         "gpt-4o-2024-05-13",
         "o1",
         "o1-2024-12-17",
-        "o1-pro",
         "o3-mini"
       ],
       "date": "2026-10-23",
-      "summary": "OpenAI shuts down gpt-4, gpt-4-0613, gpt-4-turbo, gpt-4-turbo-2024-04-09, gpt-4o-2024-05-13, o1, o1-2024-12-17, o1-pro, o3-mini.",
+      "summary": "OpenAI shuts down gpt-4, gpt-4-0613, gpt-4-1106-preview, gpt-4-turbo, gpt-4-turbo-2024-04-09, gpt-4o-2024-05-13, o1, o1-2024-12-17, o3-mini on the API; requests to a shut-down model fail.",
       "replacement": "gpt-5.6-sol",
       "source": "https://developers.openai.com/api/docs/deprecations",
-      "checkedAt": "2026-10-15"
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "id": "openai-2026-10-23-o1-pro-2025-03-19",
+      "provider": "openai",
+      "kind": "model",
+      "versions": [
+        "o1-pro-2025-03-19",
+        "o1-pro"
+      ],
+      "date": "2026-10-23",
+      "summary": "OpenAI shuts down o1-pro-2025-03-19, o1-pro on the API; requests to a shut-down model fail. The page recommends: gpt-5.6-sol (reasoning.mode: pro).",
+      "replacement": null,
+      "source": "https://developers.openai.com/api/docs/deprecations",
+      "checkedAt": "2026-10-22"
     },
     {
       "id": "openai-2026-10-23-gpt-4-1-nano",
@@ -544,14 +581,27 @@
       "kind": "model",
       "versions": [
         "gpt-5-2025-08-07",
-        "o3-2025-04-16",
+        "o3-2025-04-16"
+      ],
+      "date": "2026-12-11",
+      "summary": "OpenAI shuts down gpt-5-2025-08-07, o3-2025-04-16 on the API; requests to a shut-down model fail.",
+      "replacement": "gpt-5.6-sol",
+      "source": "https://developers.openai.com/api/docs/deprecations",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "id": "openai-2026-12-11-gpt-5-pro-2025-10-06",
+      "provider": "openai",
+      "kind": "model",
+      "versions": [
+        "gpt-5-pro-2025-10-06",
         "o3-pro-2025-06-10"
       ],
       "date": "2026-12-11",
-      "summary": "OpenAI shuts down gpt-5-2025-08-07, o3-2025-04-16, o3-pro-2025-06-10.",
-      "replacement": "gpt-5.6-sol",
+      "summary": "OpenAI shuts down gpt-5-pro-2025-10-06, o3-pro-2025-06-10 on the API; requests to a shut-down model fail. The page recommends: gpt-5.6-sol (reasoning.mode: pro).",
+      "replacement": null,
       "source": "https://developers.openai.com/api/docs/deprecations",
-      "checkedAt": "2026-10-15"
+      "checkedAt": "2026-10-22"
     },
     {
       "id": "openai-2026-12-11-gpt-5-mini-2025-08-07",
@@ -1472,6 +1522,168 @@
       "source": "https://github.com/EasyPost/easypost-node/blob/master/UPGRADE_GUIDE.md",
       "checkedAt": "2026-10-22",
       "derivedDate": true
+    },
+    {
+      "id": "aws-sdk-js-v2-2025-09-08",
+      "provider": "aws",
+      "kind": "sdk",
+      "versions": [
+        "aws-sdk"
+      ],
+      "date": "2025-09-08",
+      "summary": "The AWS SDK for JavaScript v2 (aws-sdk) reached end of support on 2025-09-08 and no longer receives updates or releases. AWS recommends v3, whose modular @aws-sdk/client-* packages have different call shapes. AWS does not say that requests through v2 stop working.",
+      "replacement": "AWS SDK for JavaScript v3 (@aws-sdk/client-*)",
+      "source": "https://github.com/aws/aws-sdk-js/blob/master/README.md",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "id": "azure-sdk-legacy-2023-03-31",
+      "provider": "azure",
+      "kind": "sdk",
+      "versions": [
+        "@azure/applicationinsights-query",
+        "@azure/cognitiveservices-formrecognizer",
+        "@azure/cognitiveservices-textanalytics",
+        "@azure/event-processor-host",
+        "@azure/graph",
+        "@azure/keyvault",
+        "@azure/loganalytics",
+        "@azure/search",
+        "azure-applicationinsights-query",
+        "azure-arm-advisor",
+        "azure-arm-analysisservices",
+        "azure-arm-apimanagement",
+        "azure-arm-appinsights",
+        "azure-arm-authorization",
+        "azure-arm-automation",
+        "azure-arm-batch",
+        "azure-arm-batchai",
+        "azure-arm-billing",
+        "azure-arm-cdn",
+        "azure-arm-cognitiveservices",
+        "azure-arm-commerce",
+        "azure-arm-compute",
+        "azure-arm-consumption",
+        "azure-arm-containerinstance",
+        "azure-arm-containerregistry",
+        "azure-arm-containerservice",
+        "azure-arm-cosmosdb",
+        "azure-arm-customerinsights",
+        "azure-arm-datafactory",
+        "azure-arm-datalake-analytics",
+        "azure-arm-datalake-store",
+        "azure-arm-deviceprovisioningservices",
+        "azure-arm-devtestlabs",
+        "azure-arm-dns",
+        "azure-arm-documentdb",
+        "azure-arm-domainservices",
+        "azure-arm-eventgrid",
+        "azure-arm-hdinsight",
+        "azure-arm-hdinsight-jobs",
+        "azure-arm-insights",
+        "azure-arm-iothub",
+        "azure-arm-keyvault",
+        "azure-arm-labservices",
+        "azure-arm-logic",
+        "azure-arm-machinelearningcompute",
+        "azure-arm-marketplaceordering",
+        "azure-arm-mediaservices",
+        "azure-arm-mobileengagement",
+        "azure-arm-monitor",
+        "azure-arm-mysql",
+        "azure-arm-network",
+        "azure-arm-notificationhubs",
+        "azure-arm-operationalinsights",
+        "azure-arm-operations",
+        "azure-arm-postgresql",
+        "azure-arm-powerbiembedded",
+        "azure-arm-recoveryservices",
+        "azure-arm-recoveryservices-siterecovery",
+        "azure-arm-recoveryservicesbackup",
+        "azure-arm-rediscache",
+        "azure-arm-relay",
+        "azure-arm-resource",
+        "azure-arm-resourcehealth",
+        "azure-arm-scheduler",
+        "azure-arm-search",
+        "azure-arm-servermanagement",
+        "azure-arm-servicefabric",
+        "azure-arm-servicemap",
+        "azure-arm-sql",
+        "azure-arm-storage",
+        "azure-arm-storageimportexport",
+        "azure-arm-storsimple8000series",
+        "azure-arm-streamanalytics",
+        "azure-arm-trafficmanager",
+        "azure-arm-visualstudio",
+        "azure-arm-website",
+        "azure-asm-compute",
+        "azure-asm-hdinsight",
+        "azure-asm-network",
+        "azure-asm-sql",
+        "azure-asm-storage",
+        "azure-asm-trafficmanager",
+        "azure-asm-website",
+        "azure-cognitiveservices-autosuggest",
+        "azure-cognitiveservices-computervision",
+        "azure-cognitiveservices-contentmoderator",
+        "azure-cognitiveservices-customimagesearch",
+        "azure-cognitiveservices-customvision-prediction",
+        "azure-cognitiveservices-customvision-training",
+        "azure-cognitiveservices-entitysearch",
+        "azure-cognitiveservices-face",
+        "azure-cognitiveservices-imagesearch",
+        "azure-cognitiveservices-luis-authoring",
+        "azure-cognitiveservices-luis-runtime",
+        "azure-cognitiveservices-newssearch",
+        "azure-cognitiveservices-spellcheck",
+        "azure-cognitiveservices-textanalytics",
+        "azure-cognitiveservices-videosearch",
+        "azure-cognitiveservices-visualsearch",
+        "azure-cognitiveservices-websearch",
+        "azure-eventgrid",
+        "azure-graph",
+        "azure-keyvault",
+        "azure-loganalytics",
+        "azure-monitoring",
+        "azure-scheduler",
+        "azure-servicefabric",
+        "azure-storage"
+      ],
+      "date": "2023-03-31",
+      "summary": "Microsoft lists these 108 legacy (track 1) Azure SDK for JavaScript packages as deprecated with end of life on 2023-03-31: no further fixes or updates. Each has a modern @azure/* replacement named in data/azure-sdk-retirements.json, with different call shapes. Microsoft does not say that requests through the old packages stop working.",
+      "replacement": "The @azure/* package Microsoft names for each (data/azure-sdk-retirements.json)",
+      "source": "https://github.com/Azure/azure-sdk/blob/671a60848e02af18b43dd08aad5f67ad9e0e81fb/_data/releases/latest/js-packages.csv",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "id": "azure-sdk-legacy-2023-12-31",
+      "provider": "azure",
+      "kind": "sdk",
+      "versions": [
+        "azure-arm-eventhub",
+        "azure-arm-sb",
+        "azure-asm-sb",
+        "azure-sb"
+      ],
+      "date": "2023-12-31",
+      "summary": "Microsoft lists these 4 legacy (track 1) Azure SDK for JavaScript packages as deprecated with end of life on 2023-12-31: no further fixes or updates. Each has a modern @azure/* replacement named in data/azure-sdk-retirements.json, with different call shapes. Microsoft does not say that requests through the old packages stop working.",
+      "replacement": "The @azure/* package Microsoft names for each (data/azure-sdk-retirements.json)",
+      "source": "https://github.com/Azure/azure-sdk/blob/671a60848e02af18b43dd08aad5f67ad9e0e81fb/_data/releases/latest/js-packages.csv",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "id": "azure-sdk-legacy-2024-02-02",
+      "provider": "azure",
+      "kind": "sdk",
+      "versions": [
+        "azure-arm-machinelearning"
+      ],
+      "date": "2024-02-02",
+      "summary": "Microsoft lists this legacy (track 1) Azure SDK for JavaScript package as deprecated with end of life on 2024-02-02: no further fixes or updates. Each has a modern @azure/* replacement named in data/azure-sdk-retirements.json, with different call shapes. Microsoft does not say that requests through the old packages stop working.",
+      "replacement": "The @azure/* package Microsoft names for each (data/azure-sdk-retirements.json)",
+      "source": "https://github.com/Azure/azure-sdk/blob/671a60848e02af18b43dd08aad5f67ad9e0e81fb/_data/releases/latest/js-packages.csv",
+      "checkedAt": "2026-10-22"
     }
   ]
 }
