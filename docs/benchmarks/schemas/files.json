@@ -101,6 +101,18 @@
       "format": "paypal-subdirectory-results",
       "predates": []
     },
+    "2026-10-22-cloudflare-baseline-results.json": {
+      "format": "cloudflare-results",
+      "predates": []
+    },
+    "2026-10-22-cloudflare-heldout-blind-results.json": {
+      "format": "cloudflare-results",
+      "predates": []
+    },
+    "2026-10-22-cloudflare-results.json": {
+      "format": "cloudflare-results",
+      "predates": []
+    },
     "2026-10-22-slack-baseline-results.json": {
       "format": "slack-results",
       "predates": []
