@@ -189,7 +189,20 @@ async function release(root) {
           ) {
             const verb = child.expression.name.text;
             const path = child.arguments[0] && templatePath(child.arguments[0]);
-            if (verb === 'getAPIList' && path) request = { method: 'GET', path };
+            // `getAPIList(path, Page, { body, method: 'post' })` pages through a POST.
+            const option = child.arguments
+              .slice(2)
+              .flatMap((argument) =>
+                ts.isObjectLiteralExpression(argument) ? argument.properties : [],
+              )
+              .find(
+                (property) =>
+                  ts.isPropertyAssignment(property) &&
+                  property.name.getText() === 'method' &&
+                  ts.isStringLiteral(property.initializer),
+              );
+            if (verb === 'getAPIList' && path)
+              request = { method: option ? option.initializer.text.toUpperCase() : 'GET', path };
             else if (VERBS.has(verb) && path) request = { method: verb.toUpperCase(), path };
           }
           ts.forEachChild(child, visit);

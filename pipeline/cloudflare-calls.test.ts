@@ -67,6 +67,14 @@ describe('recorded endpoints', () => {
         releases: '3.5.0..7.3.0',
       },
     ]);
+    // `getAPIList(path, Page, { method: 'post' })` pages through a POST.
+    expect(data.properties.get('d1.database.raw')).toEqual([
+      {
+        method: 'POST',
+        path: '/accounts/{account_id}/d1/database/{databaseID}/raw',
+        releases: '3.5.0..7.3.0',
+      },
+    ]);
     expect(data.sources.openapi.sha256).toBe(
       '528bae360f1cb45296ebd60b67571c1146b1b50b07b1cb74bf6b3cff7c2534ca',
     );

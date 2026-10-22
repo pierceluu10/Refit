@@ -1,8 +1,8 @@
 // Selects a frozen benchmark of public GitHub repositories that ship an npm package declaring the
-// `cloudflare` API client as a runtime dependency. GitHub code search is unavailable to Refit's
-// benchmark environment, so candidates come from npm search, as in scripts/paypal-select.mjs: each
-// package's latest manifest must list `cloudflare` in `dependencies`,
-// link a github.com repository and have been published since 2022-01. Repositories are ranked by
+// `cloudflare` API client. GitHub code search is unavailable to Refit's benchmark environment, so
+// candidates come from npm search, as in scripts/paypal-select.mjs: each package's latest manifest
+// must list `cloudflare` in `dependencies`, `devDependencies` or `peerDependencies` (too few list
+// it at runtime alone), link a github.com repository and have been published since 2020-01. Repositories are ranked by
 // monthly downloads, deduplicated, and frozen at the commit `git ls-remote` reports for HEAD.
 // Nothing is installed or executed.
 import { execFile } from 'node:child_process';
@@ -16,6 +16,7 @@ const PAGES = 4;
 // 2020 on, so the sample includes clients of the earlier 2.x package too.
 const PUBLISHED_SINCE = '2020-01-01';
 const SDKS = ['cloudflare'];
+const SECTIONS = ['dependencies', 'devDependencies', 'peerDependencies'];
 const QUERIES = [
   'cloudflare',
   'cloudflare api',
@@ -49,6 +50,14 @@ const QUERIES = [
   'cloudflare purge',
   'cloudflare certificate',
   'cloudflare terraform',
+  'cloudflare adapter',
+  'cloudflare plugin',
+  'cloudflare r2 upload',
+  'cloudflare workers ai',
+  'cloudflare dns record',
+  'cloudflare zero trust',
+  'cloudflare mcp server',
+  'cloudflare backup',
 ];
 const CONCURRENCY = 16;
 const VENDOR_SCOPES = ['@cloudflare/'];
@@ -141,7 +150,9 @@ for (const candidate of eligible) {
   const manifest = manifests.get(candidate.name);
   const declared = Object.fromEntries(
     SDKS.flatMap((sdk) =>
-      manifest?.dependencies?.[sdk] ? [[sdk, manifest.dependencies[sdk]]] : [],
+      SECTIONS.flatMap((section) =>
+        manifest?.[section]?.[sdk] ? [[sdk, `${manifest[section][sdk]} (${section})`]] : [],
+      ).slice(0, 1),
     ),
   );
   if (!Object.keys(declared).length) {
@@ -195,7 +206,7 @@ await writeFile(
       provider: 'cloudflare',
       sdks: SDKS,
       selectedAt: new Date().toISOString(),
-      method: `npm search for ${QUERIES.map((query) => JSON.stringify(query)).join(', ')} (${PAGES} pages of ${PAGE_SIZE}); latest manifest declares ${SDKS.join(' or ')} in dependencies; github.com repository; published since ${PUBLISHED_SINCE}; vendor scopes excluded; ranked by monthly downloads; one entry per repository; frozen at HEAD from git ls-remote.`,
+      method: `npm search for ${QUERIES.map((query) => JSON.stringify(query)).join(', ')} (${PAGES} pages of ${PAGE_SIZE}); latest manifest declares ${SDKS.join(' or ')} in ${SECTIONS.join(', ')}; github.com repository; published since ${PUBLISHED_SINCE}; vendor scopes excluded; ranked by monthly downloads; one entry per repository; frozen at HEAD from git ls-remote.`,
       rejected,
       repos: selected,
     },
