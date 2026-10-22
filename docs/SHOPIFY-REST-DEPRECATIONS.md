@@ -86,7 +86,7 @@ node scripts/shopify-rest-benchmark.mjs --root <dir> --labels docs/benchmarks/20
 Labels are in `docs/benchmarks/2026-10-22-shopify-rest-labels.json`. They were labelled blind:
 
 - **Candidates:** `scripts/shopify-rest-label-candidates.mjs`, an independent text search that imports no pipeline code.
-- **Labellers:** fresh-context AI-assisted agents that read the checkouts, searched beyond the candidates, and used the generated list as their reference for what is removed. They never saw Refit output. Every label was committed before Refit scanned the set.
+- **Labellers:** fresh-context AI-assisted agents that read the checkouts, searched beyond the candidates, and used the generated list as their reference for what is removed. They never saw Refit output. The labels were committed before any committed scan output, but the history cannot show they were written before Refit ran: the labels commit (`f929779`, 10:05:50Z) follows the detection code (`818d901`, 10:00:52Z) and the benchmark script (`17d338a`, 10:03:54Z), so their blindness rests on the lane's notes.
 - **Sample:** 20 apps, 10 seeded from the 67 with REST usage and 10 from the 133 without, all within scan limits counted before scanning.
 - **Extension:** the sample has no call to a removed endpoint, so the labels were extended the same way to every other app with REST usage (57 more), again before any scan.
 - This is one pass, not second-labelled.
