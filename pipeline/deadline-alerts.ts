@@ -72,6 +72,7 @@ function subject(exposure: DeadlineExposure) {
     return `${versions.length === 1 ? 'endpoint' : 'endpoints'} ${listed}${extra}`;
   if (deadline.kind === 'field')
     return `GraphQL ${versions.length === 1 ? 'field' : 'fields'} ${listed}${extra}`;
+  if (deadline.kind === 'feature') return `use of ${listed}${extra}`;
   if (deadline.provider === 'meta-graph') return `Graph API ${listed}`;
   if (deadline.provider === 'github') return `REST API version ${listed}`;
   return `API version ${listed}`;

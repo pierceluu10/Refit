@@ -1,7 +1,7 @@
 import { existsSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { readRepository } from './repository.ts';
+import { declaredPackageNames, readRepository } from './repository.ts';
 import { parseObject } from './specifications.ts';
 import { PipelineInputError, type Repository } from './types.ts';
 
@@ -158,6 +158,109 @@ export const AGENT_CATALOG: ProviderAgent[] = [
     adapter: null,
     guide: 'docs/CLOUDFLARE.md',
   },
+  // Auth and backend SDKs (docs/AUTH-BACKEND-SDKS.md). Every package was read on the npm registry
+  // on 2026-10-22, with its repository in the provider's GitHub organization. The hostnames come
+  // from the published SDK code: Auth0 tenant domains (`your-tenant.auth0.com` in auth0 7.6.0),
+  // Clerk's Backend API (`API_URL` in @clerk/backend 3.26.1), the Firebase service hosts in
+  // firebase-admin 14.5.0 and the @firebase packages, and Supabase project URLs
+  // (`xyzcompany.supabase.co` in @supabase/supabase-js 2.118.0).
+  {
+    id: 'auth0',
+    name: 'Auth0',
+    packages: [
+      'auth0',
+      '@auth0/nextjs-auth0',
+      '@auth0/auth0-react',
+      '@auth0/auth0-spa-js',
+      '@auth0/auth0-angular',
+      '@auth0/auth0-vue',
+      '@auth0/auth0-auth-js',
+      '@auth0/auth0-server-js',
+      'auth0-js',
+      'auth0-lock',
+      'express-openid-connect',
+      'express-oauth2-jwt-bearer',
+    ],
+    hostnames: ['.auth0.com'],
+    adapter: null,
+    guide: null,
+  },
+  {
+    id: 'clerk',
+    name: 'Clerk',
+    packages: [
+      '@clerk/nextjs',
+      '@clerk/react',
+      '@clerk/clerk-react',
+      '@clerk/clerk-js',
+      '@clerk/backend',
+      '@clerk/express',
+      '@clerk/clerk-sdk-node',
+      '@clerk/expo',
+      '@clerk/clerk-expo',
+      '@clerk/remix',
+      '@clerk/react-router',
+      '@clerk/astro',
+      '@clerk/vue',
+      '@clerk/nuxt',
+      '@clerk/fastify',
+      '@clerk/chrome-extension',
+      '@clerk/tanstack-react-start',
+      '@clerk/types',
+      '@clerk/elements',
+      '@clerk/edge',
+    ],
+    hostnames: ['api.clerk.com'],
+    adapter: null,
+    guide: null,
+  },
+  {
+    id: 'firebase',
+    name: 'Firebase',
+    packages: ['firebase', 'firebase-admin'],
+    hostnames: [
+      'firestore.googleapis.com',
+      'identitytoolkit.googleapis.com',
+      'securetoken.googleapis.com',
+      'firebasestorage.googleapis.com',
+      'firebaseio.com',
+    ],
+    adapter: null,
+    guide: null,
+  },
+  {
+    id: 'supabase',
+    name: 'Supabase',
+    packages: [
+      '@supabase/supabase-js',
+      '@supabase/ssr',
+      '@supabase/auth-helpers-nextjs',
+      '@supabase/auth-helpers-react',
+      '@supabase/auth-helpers-remix',
+      '@supabase/auth-helpers-sveltekit',
+      '@supabase/auth-helpers-shared',
+    ],
+    hostnames: ['.supabase.co'],
+    adapter: null,
+    guide: null,
+  },
+  // NextAuth.js and Auth.js run inside the application, so they have no API host of their own.
+  // Packages read on the npm registry on 2026-10-22, all from nextauthjs/next-auth.
+  {
+    id: 'nextauth',
+    name: 'NextAuth.js',
+    packages: [
+      'next-auth',
+      '@auth/core',
+      '@auth/sveltekit',
+      '@auth/express',
+      '@auth/qwik',
+      '@auth/solid-start',
+    ],
+    hostnames: [],
+    adapter: null,
+    guide: null,
+  },
 ];
 
 const MAX_HOSTNAME_EVIDENCE = 5;
@@ -168,12 +271,20 @@ export interface AgentDetection {
   hostnames: { file: string; line: number; hostname: string }[];
 }
 
+// A hostname in a line, not as the start of a longer name: `.supabase.co` is in
+// `https://abc.supabase.co/rest` but not in `api.supabase.com`.
+function hostnameIn(line: string, hostname: string) {
+  for (let at = line.indexOf(hostname); at >= 0; at = line.indexOf(hostname, at + 1))
+    if (!/[A-Za-z0-9-]/.test(line[at + hostname.length] ?? '')) return true;
+  return false;
+}
+
 function hostnameEvidence(repository: Repository, agent: ProviderAgent) {
   const evidence: AgentDetection['hostnames'] = [];
   for (const file of repository.files)
     for (const [index, line] of file.content.split('\n').entries())
       for (const hostname of agent.hostnames)
-        if (line.includes(hostname) && evidence.length < MAX_HOSTNAME_EVIDENCE)
+        if (hostnameIn(line, hostname) && evidence.length < MAX_HOSTNAME_EVIDENCE)
           evidence.push({ file: file.path, line: index + 1, hostname });
   return evidence;
 }
@@ -182,14 +293,15 @@ function hostnameEvidence(repository: Repository, agent: ProviderAgent) {
 // source, without running repository code or contacting any provider.
 export async function detectProviders(directory: string): Promise<AgentDetection[]> {
   const detections: AgentDetection[] = [];
+  // Source files are the same whichever package a read resolves, so one read serves every
+  // hostname check, and a package is read again only when some manifest declares it.
+  const repository: Repository = await readRepository(directory);
+  const declared = await declaredPackageNames(directory);
   for (const agent of AGENT_CATALOG) {
     const packages: AgentDetection['packages'] = [];
-    let repository: Repository | undefined;
-    // shortcut: reads the repository once per catalog package; fine for a small catalog, share one
-    // read across packages if the catalog grows.
     for (const name of agent.packages) {
-      repository = await readRepository(directory, name);
-      for (const dependency of repository.dependencies)
+      if (declared && !declared.has(name)) continue;
+      for (const dependency of (await readRepository(directory, name)).dependencies)
         packages.push({
           file: dependency.file,
           name,
@@ -197,7 +309,7 @@ export async function detectProviders(directory: string): Promise<AgentDetection
           locked: dependency.lock.version,
         });
     }
-    const hostnames = hostnameEvidence(repository!, agent);
+    const hostnames = hostnameEvidence(repository, agent);
     if (packages.length || hostnames.length) detections.push({ agent, packages, hostnames });
   }
   return detections;

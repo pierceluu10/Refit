@@ -1063,6 +1063,11 @@ it('keeps the shipped registry valid and sourced', async () => {
       'slack',
       'cloudflare',
       'github',
+      'auth0',
+      'clerk',
+      'firebase',
+      'supabase',
+      'nextauth',
     ]),
   );
 });

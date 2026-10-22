@@ -6,7 +6,15 @@ import { AGENT_CATALOG, builtInPackage } from './agent-catalog.ts';
 import { daysUntil, type DeadlineEntry, type DeadlineRegistry } from './deadline-registry.ts';
 import { cloudflareEndpointUses } from './cloudflare-calls.ts';
 import { githubDeadlineUses } from './github-api-calls.ts';
-import { readRepository } from './repository.ts';
+import { declaredPackageNames, readRepository } from './repository.ts';
+import {
+  featureMatches,
+  installedVersion,
+  literalTextAt,
+  markerInProse,
+  satisfiesRange,
+  sdkTarget,
+} from './sdk-deadlines.ts';
 import { slackMethodUses } from './slack-calls.ts';
 import { isObject, parseObject } from './specifications.ts';
 import { PipelineInputError } from './types.ts';
@@ -527,11 +535,15 @@ export async function scanDeadlines(
     else exposure.more += 1;
   };
 
+  const features = registry.deadlines
+    .filter((entry) => entry.kind === 'feature')
+    .flatMap((entry) => entry.versions.map((marker) => ({ provider: entry.provider, marker })));
   const repository = await readRepository(root, META_SDK);
   for (const file of repository.files) {
     const shopifyFile = SHOPIFY_CONTEXT.some((name) => file.content.includes(name));
     const metaFile = META_CONTEXT.some((name) => file.content.includes(name));
     let useAt: ReturnType<typeof tokenUses> | undefined;
+    let literalAt: ReturnType<typeof literalTextAt> | undefined;
     let offset = 0;
     for (const [index, line] of file.content.split('\n').entries()) {
       for (const match of sourceMatches(line, shopifyFile, metaFile, models)) {
@@ -541,6 +553,22 @@ export async function scanDeadlines(
           line: index + 1,
           kind: 'source',
           use: useAt(offset + match.column, match.provider, line, match.version),
+          text: excerpt(line),
+        });
+      }
+      // A product that shuts down: each marker in code, with test and example files kept apart and
+      // a variable name inside prose listed as a comment.
+      for (const match of featureMatches(line, features)) {
+        useAt ??= tokenUses(file.path, file.content, models);
+        literalAt ??= literalTextAt(file.path, file.content);
+        const use = markerInProse(match.marker, literalAt(offset + match.column))
+          ? 'comment'
+          : useAt(offset + match.column, match.provider, line, match.marker);
+        record(match.provider, match.marker, {
+          file: file.path,
+          line: index + 1,
+          kind: 'source',
+          use: use === 'live' && TEST_PATH.test(file.path) ? 'test' : use,
           text: excerpt(line),
         });
       }
@@ -560,18 +588,29 @@ export async function scanDeadlines(
   }
   // A package whose support ended: each manifest that declares it. A repository whose source never
   // names the package is not read a second time. Manifests in test and example paths are not live.
+  // An entry narrowed to a range matches only a release Refit can place in it: the locked version,
+  // or the lowest release a bounded declared range allows.
+  // Each package is read once, and only when a manifest declares it.
+  const declared = await declaredPackageNames(root);
+  const declarations = new Map<string, Promise<Awaited<ReturnType<typeof readRepository>>>>();
   for (const entry of registry.deadlines)
     if (entry.kind === 'sdk')
-      for (const name of entry.versions) {
+      for (const version of entry.versions) {
+        const { name, range } = sdkTarget(version);
+        if (declared && !declared.has(name)) continue;
         if (!repository.files.some((file) => file.content.includes(name))) continue;
-        for (const dependency of (await readRepository(root, name)).dependencies)
-          record(entry.provider, name, {
+        if (!declarations.has(name)) declarations.set(name, readRepository(root, name));
+        for (const dependency of (await declarations.get(name)!).dependencies) {
+          const installed = installedVersion(dependency.version, dependency.lock.version);
+          if (range && !(installed && satisfiesRange(installed, range))) continue;
+          record(entry.provider, version, {
             file: dependency.file,
             line: await lineOf(root, dependency.file, `"${name}"`),
             kind: 'dependency',
             use: TEST_PATH.test(dependency.file) ? 'test' : 'live',
-            text: `${name} ${dependency.lock.version ?? dependency.version}${dependency.lock.version ? ` (locked in ${dependency.lock.file})` : ''} is declared in ${dependency.section}`,
+            text: `${name} ${dependency.lock.version ?? dependency.version}${dependency.lock.version ? ` (locked in ${dependency.lock.file})` : ''} is declared in ${dependency.section}${range ? `, inside ${range}` : ''}`,
           });
+        }
       }
   // Retired API methods: each call site that sends one, from the provider's call scanner.
   if (registry.deadlines.some((entry) => entry.kind === 'method' && entry.provider === 'slack'))

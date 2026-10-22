@@ -1238,6 +1238,160 @@
       "replacement": "fullDatabaseId",
       "source": "https://github.com/github/docs/blob/5815d11586b0796688963a98c889680e60d72dc4/src/graphql/data/fpt/graphql_upcoming_changes.public.yml",
       "checkedAt": "2026-10-22"
+    },
+    {
+      "id": "auth0-2026-09-09-node-auth0-v6",
+      "provider": "auth0",
+      "kind": "sdk",
+      "versions": [
+        "auth0@>=6 <7"
+      ],
+      "date": "2026-09-09",
+      "summary": "Auth0 deprecated v6 of the auth0 (node-auth0) package: its npm deprecation notice says v6 no longer receives updates, and that v7 is Management API only, with the authentication clients moved to @auth0/auth0-auth-js and @auth0/auth0-server-js. The notice gives no date; the date here is when v7.0.0 was published on npm.",
+      "replacement": "auth0 v7 (Management API) with @auth0/auth0-auth-js or @auth0/auth0-server-js for authentication",
+      "source": "https://registry.npmjs.org/auth0",
+      "checkedAt": "2026-10-22",
+      "derivedDate": true
+    },
+    {
+      "id": "clerk-2025-01-10-clerk-sdk-node",
+      "provider": "clerk",
+      "kind": "sdk",
+      "versions": [
+        "@clerk/clerk-sdk-node"
+      ],
+      "date": "2025-01-10",
+      "summary": "Clerk ended support for @clerk/clerk-sdk-node on 2025-01-10, as announced in its October 2024 deprecation notice. Express apps move to @clerk/express.",
+      "replacement": "@clerk/express",
+      "source": "https://registry.npmjs.org/@clerk/clerk-sdk-node",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "id": "clerk-2025-04-19-core-1-unsupported",
+      "provider": "clerk",
+      "kind": "sdk",
+      "versions": [
+        "@clerk/nextjs@<5",
+        "@clerk/clerk-react@<5",
+        "@clerk/clerk-js@<5",
+        "@clerk/backend@<1",
+        "@clerk/fastify@<1",
+        "@clerk/chrome-extension@<1",
+        "@clerk/clerk-expo@<1",
+        "@clerk/remix@<4",
+        "@clerk/types@<4",
+        "@clerk/edge"
+      ],
+      "date": "2025-04-19",
+      "summary": "Clerk's long term support schedule lists Core 1 and the Legacy (v3) SDKs as Unsupported: no changes of any kind. The schedule gives no end date. A previous major gets one year of long term support after the next major ships, and the Core 2 majors were published on npm on 2024-04-19, so the date here is 2025-04-19. The Core 1 majors are the ones Clerk's Core 2 upgrade guides tell you to update to first (@clerk/nextjs@4, @clerk/backend@0, @clerk/remix@3 and so on); @clerk/edge is deprecated on npm in favour of @clerk/backend.",
+      "replacement": "The current Clerk major (Core 3)",
+      "source": "https://github.com/clerk/clerk-docs/blob/main/docs/guides/development/upgrading/versioning.mdx",
+      "checkedAt": "2026-10-22",
+      "derivedDate": true
+    },
+    {
+      "id": "clerk-2026-03-03-elements",
+      "provider": "clerk",
+      "kind": "sdk",
+      "versions": [
+        "@clerk/elements"
+      ],
+      "date": "2026-03-03",
+      "summary": "Clerk no longer supports @clerk/elements, per its npm deprecation notice, which points to the Core 3 release of 2026-03-03.",
+      "replacement": null,
+      "source": "https://registry.npmjs.org/@clerk/elements",
+      "checkedAt": "2026-10-22",
+      "derivedDate": true
+    },
+    {
+      "id": "clerk-2027-01-01-core-2-lts-ends",
+      "provider": "clerk",
+      "kind": "sdk",
+      "versions": [
+        "@clerk/nextjs@>=5 <7",
+        "@clerk/clerk-react@>=5",
+        "@clerk/react@<6",
+        "@clerk/clerk-js@>=5 <6",
+        "@clerk/backend@>=1 <3",
+        "@clerk/express@<2",
+        "@clerk/clerk-expo@>=1",
+        "@clerk/expo@<3",
+        "@clerk/remix@>=4",
+        "@clerk/fastify@>=1 <3",
+        "@clerk/chrome-extension@>=1 <3",
+        "@clerk/astro@<3",
+        "@clerk/vue@<2",
+        "@clerk/nuxt@<2",
+        "@clerk/react-router@<3",
+        "@clerk/tanstack-react-start@<1",
+        "@clerk/types@>=4"
+      ],
+      "date": "2027-01-01",
+      "summary": "Clerk's Core 2 SDKs are in long term support (critical patches only) until January 2027, then unsupported; the schedule gives the month only, so the date here is its first day. Core 2 majors are the ones published from 2024-04-19 until the Core 3 majors on 2026-03-03 (npm release dates); Clerk's Core 3 guide names @clerk/nextjs@6 as the latest Core 2 release. @clerk/clerk-react, @clerk/clerk-expo and @clerk/types were replaced in Core 3 by @clerk/react, @clerk/expo and @clerk/shared/types, and @clerk/remix by @clerk/react-router.",
+      "replacement": "The current Clerk major (Core 3)",
+      "source": "https://github.com/clerk/clerk-docs/blob/main/docs/guides/development/upgrading/versioning.mdx",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "id": "firebase-2025-08-01-dynamic-links",
+      "provider": "firebase",
+      "kind": "feature",
+      "versions": [
+        "dynamicLinkDomain",
+        "firebasedynamiclinks.googleapis.com",
+        "@react-native-firebase/dynamic-links"
+      ],
+      "date": "2025-08-01",
+      "summary": "Firebase Dynamic Links is deprecated and will be shut down as early as August 2025, according to the Firebase JS SDK reference for ActionCodeSettings.dynamicLinkDomain; the page gives no day, so the date here is the first of the month. Auth email links set ActionCodeSettings.linkDomain instead. The markers are that option, the Dynamic Links REST host and the React Native Firebase Dynamic Links module.",
+      "replacement": "ActionCodeSettings.linkDomain (Firebase Hosting link domain)",
+      "source": "https://github.com/firebase/firebase-js-sdk/blob/main/docs-devsite/auth.actioncodesettings.md",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "id": "supabase-2024-11-27-auth-helpers",
+      "provider": "supabase",
+      "kind": "sdk",
+      "versions": [
+        "@supabase/auth-helpers-nextjs",
+        "@supabase/auth-helpers-react",
+        "@supabase/auth-helpers-remix",
+        "@supabase/auth-helpers-sveltekit",
+        "@supabase/auth-helpers-shared"
+      ],
+      "date": "2024-11-27",
+      "summary": "Supabase deprecated every @supabase/auth-helpers-* package in favour of @supabase/ssr; the repository README says they are no longer maintained. The deprecation notice was added to that README on 2024-11-27.",
+      "replacement": "@supabase/ssr",
+      "source": "https://github.com/supabase/auth-helpers/blob/main/README.md",
+      "checkedAt": "2026-10-22",
+      "derivedDate": true
+    },
+    {
+      "id": "supabase-2026-12-31-legacy-api-keys",
+      "provider": "supabase",
+      "kind": "feature",
+      "versions": [
+        "SUPABASE_ANON_KEY",
+        "SUPABASE_SERVICE_ROLE_KEY"
+      ],
+      "date": "2026-12-31",
+      "summary": "Supabase is deprecating the legacy anon and service_role API keys by the end of 2026, in favour of publishable (sb_publishable_…) and secret (sb_secret_…) keys. The markers are the environment variable names that carry the legacy keys (also with NEXT_PUBLIC_ or VITE_ prefixes); a variable with that name may already hold a new key, so check its value.",
+      "replacement": "Publishable and secret API keys",
+      "source": "https://github.com/supabase/supabase/blob/master/apps/docs/content/_partials/api_keys_deprecation.mdx",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "id": "nextauth-2022-08-01-next-auth-v3",
+      "provider": "nextauth",
+      "kind": "sdk",
+      "versions": [
+        "next-auth@<4"
+      ],
+      "date": "2022-08-01",
+      "summary": "Auth.js releases security updates only for the current latest version and does not maintain old releases. next-auth's latest major is 4 (v5 is still a beta), so v3 and older receive no updates. The policy gives no date; the date here is when the last v3 release, 3.29.10, was published on npm.",
+      "replacement": "next-auth v4 (maintenance mode) or v5",
+      "source": "https://github.com/nextauthjs/next-auth/blob/main/docs/pages/security.mdx",
+      "checkedAt": "2026-10-22",
+      "derivedDate": true
     }
   ]
 }
