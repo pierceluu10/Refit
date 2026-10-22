@@ -15,6 +15,7 @@ import { RepositoryApprovalError } from './repository-enrollment.ts';
 import { pollServiceTarget, summarizePoll } from './service-worker.ts';
 import { isObject } from './specifications.ts';
 import { hasErrorCode } from './state-files.ts';
+import type { SlackSend } from './slack.ts';
 import { PipelineInputError } from './types.ts';
 import { watchCarryOver } from './watch.ts';
 
@@ -92,6 +93,7 @@ export async function runHostedTarget(options: {
   aiPatch?: AiOptions;
   repairAttempts: number;
   publishDraft?: boolean;
+  notify?: SlackSend;
   onProgress?: (message: string) => void;
 }): Promise<HostedOutcome> {
   const { target } = options;
@@ -112,6 +114,7 @@ export async function runHostedTarget(options: {
       aiPatch: options.aiPatch,
       repairAttempts: options.repairAttempts,
       publishDraft: options.publishDraft,
+      notify: options.notify,
       inspectReadiness: true,
       onProgress: options.onProgress,
     });

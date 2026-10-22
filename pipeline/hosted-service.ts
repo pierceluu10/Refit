@@ -23,6 +23,7 @@ import {
   runHostedTarget,
   runJobMachine,
 } from './hosted-runner.ts';
+import { failedJobNotifier, filterHostedStatus, type HostedLogContext } from './hosted-ops.ts';
 import { openHostedStore, type HostedTarget } from './hosted-store.ts';
 import type { HostedTenancy } from './hosted-tenancy.ts';
 import {
@@ -33,6 +34,7 @@ import {
   validateServiceSecret,
 } from './local-service.ts';
 import { confirmRepositoryAccess } from './service-worker.ts';
+import type { SlackSend } from './slack.ts';
 import { PipelineInputError } from './types.ts';
 
 const HOSTED_HOST = '0.0.0.0';
@@ -85,6 +87,10 @@ export async function runHostedService(options: {
   // Opens an approval issue on installed repositories without an approval and handles
   // `/refit approve` and `/refit revoke` comments (REFIT_HOSTED_APPROVAL_ISSUES).
   approvalIssues?: boolean;
+  // The workflow's own notices, plus failed jobs at most once per target per hour.
+  notify?: SlackSend;
+  // Applied to job fields before a failure notice cuts them to length.
+  redact?: (text: string) => string;
   host?: string;
   port?: number;
   intervalSeconds?: number;
@@ -92,7 +98,7 @@ export async function runHostedService(options: {
   worker?: string;
   signal: AbortSignal;
   onReady?: (url: string) => void;
-  onProgress?: (message: string) => void;
+  onProgress?: (message: string, context?: HostedLogContext) => void;
 }) {
   const repairAttempts = validateRepairAttempts(
     options.repairAttempts ?? 0,
@@ -172,6 +178,9 @@ export async function runHostedService(options: {
   const store = await openStore();
   outage = OUTAGE_RETRY_MS;
   const approvals = openApprovalStore(options.database);
+  const notifyFailures =
+    options.notify && failedJobNotifier(options.database, options.notify, options.redact);
+  await notifyFailures?.();
 
   let jobs:
     | Omit<
@@ -199,7 +208,13 @@ export async function runHostedService(options: {
     const abort = () => controller.abort();
     options.signal.addEventListener('abort', abort, { once: true });
     running.set(job, controller);
-    const progress = (message: string) => options.onProgress?.(`[${target.id}] ${message}`);
+    const progress = (message: string, level?: 'error') =>
+      options.onProgress?.(message, {
+        job,
+        target: target.id,
+        installation: target.installationId,
+        ...(level && { level }),
+      });
     const leaseMilliseconds = lease * MILLISECONDS_PER_SECOND;
     const renewEvery = leaseMilliseconds / RENEWALS_PER_LEASE;
     // The claim set the lease just before this job started.
@@ -221,7 +236,7 @@ export async function runHostedService(options: {
           if (isDatabaseUnavailable(error) && Date.now() - leased + renewEvery < leaseMilliseconds)
             progress(`${failure}; retrying.`);
           else {
-            progress(`${failure}; stopping.`);
+            progress(`${failure}; stopping.`, 'error');
             controller.abort();
           }
         },
@@ -271,6 +286,7 @@ export async function runHostedService(options: {
             },
             repairAttempts,
             publishDraft: options.publishDraft,
+            notify: options.notify,
             onProgress: progress,
           });
       await store.finish(job, worker, outcome.status, outcome.receipt);
@@ -282,7 +298,7 @@ export async function runHostedService(options: {
       if (!(error instanceof Error)) throw error;
       const outcome = failedOutcome(error, controller.signal.aborted);
       await store.finish(job, worker, outcome.status, outcome.receipt);
-      progress(`${error.name}: ${error.message}`);
+      progress(`${error.name}: ${error.message}`, 'error');
     } finally {
       clearInterval(renewal);
       running.delete(job);
@@ -294,18 +310,24 @@ export async function runHostedService(options: {
   const servers: Server[] = [];
   // Serves one router with the worker's limits; open handlers settle before the service returns.
   const listen = async (
-    router: (request: IncomingMessage, response: ServerResponse) => Promise<void>,
+    router: (
+      request: IncomingMessage,
+      response: ServerResponse,
+      context: HostedLogContext,
+    ) => Promise<void>,
     address: { host: string; port: number; requestTimeout: number; label: string },
   ) => {
     const server = createServer(
       { requestTimeout: address.requestTimeout, headersTimeout: HEADERS_TIMEOUT_MS },
       (request, response) => {
-        const handler = router(request, response).catch((error: unknown) => {
+        const context: HostedLogContext = { level: 'error' };
+        const handler = router(request, response, context).catch((error: unknown) => {
           if (error instanceof WebhookInputError)
             respond(response, error.status, { error: error.message });
           else {
             options.onProgress?.(
               `${address.label} processing failed: ${error instanceof Error ? error.message : 'Unknown storage failure.'}`,
+              context,
             );
             respond(response, 500, {
               error: `${address.label} was not accepted. Inspect service logs before redelivery.`,
@@ -337,16 +359,17 @@ export async function runHostedService(options: {
   try {
     const host = options.host ?? HOSTED_HOST;
     const address = await listen(
-      async (request, response) => {
+      async (request, response, context) => {
         if (request.method === 'GET' && request.url === '/health') {
           respond(response, 200, { status: 'listening' });
           return;
         }
-        if (request.method === 'GET' && request.url === '/status') {
+        const url = new URL(request.url ?? '/', 'http://refit.invalid');
+        if (request.method === 'GET' && url.pathname === '/status') {
           if (!authorized(request, options.controlToken))
             throw new WebhookInputError(401, 'Service authorization is required.');
           respond(response, 200, {
-            ...(await store.read()),
+            ...filterHostedStatus(await store.read(), url.searchParams),
             ...(options.approvalIssues && { approvals: await approvals.read() }),
           });
           return;
@@ -362,8 +385,10 @@ export async function runHostedService(options: {
           request.headers['x-github-delivery'],
           options.webhookSecret,
         );
+        context.delivery = id;
         const event = request.headers['x-github-event'];
         const parsed = parseWebhook(body, event, Number(options.app.appId));
+        if ('installationId' in parsed) context.installation = parsed.installationId;
         const change =
           parsed.kind === 'issue_comment' && !options.approvalIssues
             ? { kind: 'ignored' as const }
@@ -441,8 +466,12 @@ export async function runHostedService(options: {
           let claimed = await store.claim(worker, lease);
           claimed && !options.signal.aborted;
           claimed = await store.claim(worker, lease)
-        )
+        ) {
           await runJob(claimed.job, claimed.target, claimed.retry);
+          await notifyFailures?.();
+        }
+        // A claim can also fail a job whose lease expired too often.
+        await notifyFailures?.();
         outage = OUTAGE_RETRY_MS;
       } catch (error) {
         // A job whose receipt could not be stored keeps its lease until it expires and is reclaimed.
