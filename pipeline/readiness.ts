@@ -236,8 +236,9 @@ export async function inspectRepositoryReadiness(options: {
         title: 'Migration source evidence',
         status: 'blocked',
         detail: originReview,
-        action:
-          'Repair skipped sources and establish SDK or incoming-event provenance before activation.',
+        action: evidence.findings.some((finding) => finding.requestParameter)
+          ? 'Run refit run --human to see where each removed parameter is still sent, and change those calls yourself: Refit has no reviewed replacement for them.'
+          : 'Repair skipped sources and establish SDK or incoming-event provenance before activation.',
       });
     if (webhookReview)
       report.checks.push({
@@ -277,7 +278,9 @@ export async function inspectRepositoryReadiness(options: {
       action:
         evidence.apiVersion.applicability === 'matches-before'
           ? null
-          : 'Verify the application client/account version and configure an exact before-contract API-version pin.',
+          : evidence.apiVersion.application === null && evidence.apiVersion.before
+            ? `Confirm your client and account use ${evidence.apiVersion.before}, then add "apiVersion": "${evidence.apiVersion.before}" to ${workflow.integration ? `the ${workflow.integration} integration in ` : ''}${REPOSITORY_CONFIGURATION}.`
+            : 'Verify the application client/account version and configure an exact before-contract API-version pin.',
     });
     if (workflow.latestStripe && !evidence.provenance.before)
       report.checks.push({

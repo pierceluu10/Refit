@@ -138,3 +138,85 @@ it('names the uncommitted files and the commands that save missing contracts', a
     `Next: ${contracts}`,
   ]);
 });
+
+// Shaped like Stripe's dahlia and endive Checkout Session create bodies (card-payment-methods.test.ts).
+const checkoutContract = (version: string, fields: string[]) => ({
+  openapi: '3.0.0',
+  info: { version },
+  paths: {
+    '/v1/checkout/sessions': {
+      post: {
+        operationId: 'PostCheckoutSessions',
+        requestBody: {
+          content: {
+            'application/x-www-form-urlencoded': {
+              schema: {
+                type: 'object',
+                properties: Object.fromEntries(fields.map((name) => [name, {}])),
+              },
+            },
+          },
+        },
+      },
+    },
+  },
+  components: {
+    schemas: { 'checkout.session': { type: 'object', properties: { id: { type: 'string' } } } },
+  },
+});
+
+it('tells a configured Stripe app where the removed parameter is sent and which apiVersion to add', async () => {
+  const app = await repository();
+  await mkdir(join(app, 'refit'));
+  const files = {
+    'package.json': JSON.stringify({ dependencies: { stripe: '22.6.2' } }),
+    'checkout.js':
+      "import Stripe from 'stripe';\nconst stripe = new Stripe(process.env.STRIPE_KEY);\nexport const checkout = () => stripe.checkout.sessions.create({ mode: 'subscription', payment_method_types: ['card', 'paypal'] });\n",
+    'refit/stripe-before.json': JSON.stringify(
+      checkoutContract('2026-08-26.dahlia', ['mode', 'payment_method_types']),
+    ),
+    'refit/stripe-after.json': JSON.stringify(
+      checkoutContract('2026-09-30.endive', ['mode', 'allowed_payment_method_types']),
+    ),
+    'refit/stripe.provider.json': JSON.stringify({
+      id: 'stripe-checkout',
+      packageName: 'stripe',
+      defaultImport: true,
+      namedExport: 'Stripe',
+      constructorCalls: true,
+      apiVersion: { constructorArgument: 1, property: 'apiVersion', requestArguments: [1, 2] },
+      operations: [
+        {
+          resource: 'checkout.sessions',
+          method: 'create',
+          schema: 'checkout.session',
+          operationId: 'PostCheckoutSessions',
+        },
+      ],
+    }),
+    '.refit.json': JSON.stringify({
+      formatVersion: 2,
+      integrations: [
+        {
+          id: 'stripe',
+          before: './refit/stripe-before.json',
+          after: './refit/stripe-after.json',
+          providerConfig: './refit/stripe.provider.json',
+          image: 'node:22-alpine',
+          command: ['npm', 'test'],
+        },
+      ],
+    }),
+  };
+  for (const [path, content] of Object.entries(files)) await writeFile(join(app, path), content);
+  await commit(app);
+  const report = await inspectRepositoryReadiness({ repository: app });
+  expect(report.checks.find((check) => check.id === 'source-provenance')?.action).toBe(
+    'Run refit run --human to see where each removed parameter is still sent, and change those calls yourself: Refit has no reviewed replacement for them.',
+  );
+  // Before: "Verify the application client/account version and configure an exact
+  // before-contract API-version pin."
+  expect(report.checks.find((check) => check.id === 'api-version')?.action).toBe(
+    'Confirm your client and account use 2026-08-26.dahlia, then add "apiVersion": "2026-08-26.dahlia" to the stripe integration in .refit.json.',
+  );
+});
