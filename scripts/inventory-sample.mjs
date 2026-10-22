@@ -5,16 +5,19 @@
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { parseArgs } from 'node:util';
+import { tsImport } from 'tsx/esm/api';
 import { shallowCheckout } from './ai-app-helpers.mjs';
 
-const { loadDeadlineRegistry } = await import('../pipeline/deadline-registry.ts');
+// Loaded through tsx, as bin/refit.mjs does: pipeline modules use syntax type stripping rejects.
+const load = (path) => tsImport(path, { parentURL: import.meta.url, tsconfig: false });
+const { loadDeadlineRegistry } = await load('../pipeline/deadline-registry.ts');
 const {
   INVENTORY_LIMITS,
   InventoryStopError,
   inventoryDirectory,
   inventorySummary,
   measureCheckout,
-} = await import('../pipeline/inventory.ts');
+} = await load('../pipeline/inventory.ts');
 
 const { values } = parseArgs({
   options: {
