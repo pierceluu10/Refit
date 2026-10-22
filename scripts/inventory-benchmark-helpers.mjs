@@ -416,8 +416,9 @@ const tally = (tp, fp, fn) => ({
   recall: wilson(tp, tp + fn),
 });
 
-// Scores one results file against the labels. Repositories whose detection errored are left out
-// of every count and listed, since a failed scan says nothing about what Refit would report.
+// Scores one results file against the labels. A repository whose detection errored reported
+// nothing, so its labelled providers count as misses (category "other", with the error as the
+// detail); it is also listed in `errored`.
 export function scoreInventory(labels, results) {
   const catalog = results.catalog;
   const catalogIds = new Set(catalog.map((entry) => entry.id));
@@ -430,15 +431,12 @@ export function scoreInventory(labels, results) {
   for (const result of results.repos) {
     const entry = labelled.get(result.repo);
     if (!entry) continue;
-    if (result.error) {
-      errored.push({ repo: result.repo, error: result.error });
-      continue;
-    }
+    if (result.error) errored.push({ repo: result.repo, error: result.error });
     const byProvider = new Map();
     for (const label of entry.labels)
       byProvider.set(label.provider, [...(byProvider.get(label.provider) ?? []), label]);
     const detected = new Map();
-    for (const detection of result.detections)
+    for (const detection of result.error ? [] : result.detections)
       detected.set(detection.provider, [...(detected.get(detection.provider) ?? []), detection]);
     for (const [provider, detections] of [...detected].sort(([a], [b]) => (a < b ? -1 : 1))) {
       const item = {
@@ -458,7 +456,9 @@ export function scoreInventory(labels, results) {
           provider,
           inCatalog: catalogIds.has(provider),
           files: providerLabels.map((label) => `${label.file}:${label.line}`),
-          ...missCategory(providerLabels, catalog),
+          ...(result.error
+            ? { category: 'other', detail: `Refit scan failed: ${result.error}` }
+            : missCategory(providerLabels, catalog)),
         });
   }
   const providers = [
@@ -489,7 +489,7 @@ export function scoreInventory(labels, results) {
   const inCatalog = (item) => catalogIds.has(item.provider);
   const groups = [...new Set([...groupOf.values()].filter(Boolean))].sort();
   return {
-    repositories: results.repos.length - errored.length,
+    repositories: results.repos.length,
     errored,
     catalogProviders: subtotal(inCatalog),
     allProviders: subtotal(() => true),

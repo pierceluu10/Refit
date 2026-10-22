@@ -1,9 +1,9 @@
 // Runs Refit's provider detection on the inventory benchmark's frozen repositories and scores it
-// against the hand labels (docs/INVENTORY-BENCHMARK.md). Detection is every detector on this
-// checkout that names the providers a repository uses: `refit agents --json` (detectProviders)
-// and the live exposures of `refit deadlines --json`. Checkouts are shallow at the pinned commit,
-// without submodules; nothing in them is installed or run. With --results and no --root, it only
-// rescores a saved results file.
+// against the hand labels (docs/INVENTORY-BENCHMARK.md). Detection is every detector command the
+// Refit checkout has that names the providers a repository uses (DETECTORS below). --refit points
+// at another clean checkout, such as a teammate's branch, which is only read and run, never edited.
+// Repository checkouts are shallow at the pinned commit, without submodules; nothing in them is
+// installed or run. With --results and no --root, it only rescores a saved results file.
 import { execFile } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { readFile, writeFile } from 'node:fs/promises';
@@ -25,9 +25,9 @@ Object.assign(process.env, {
   GIT_CONFIG_KEY_2: 'filter.lfs.required',
   GIT_CONFIG_VALUE_2: 'false',
 });
-const REFIT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const { values } = parseArgs({
   options: {
+    refit: { type: 'string' },
     list: { type: 'string', default: 'docs/benchmarks/2026-10-22-inventory-repos.json' },
     labels: { type: 'string', default: 'docs/benchmarks/2026-10-22-inventory-labels.json' },
     root: { type: 'string' },
@@ -39,11 +39,51 @@ const { values } = parseArgs({
 });
 if (values.help || !values.results) {
   console.log(
-    'Usage: node scripts/inventory-benchmark.mjs --results <results.json> [--root <checkouts>] [--score <score.json>] [--list <frozen.json>] [--labels <labels.json>] [--allow-dirty]\nWith --root it runs detection and writes --results; without it, it rescores --results.',
+    'Usage: node scripts/inventory-benchmark.mjs --results <results.json> [--root <checkouts>] [--refit <checkout>] [--score <score.json>] [--list <frozen.json>] [--labels <labels.json>] [--allow-dirty]\nWith --root it runs detection and writes --results; without it, it rescores --results.',
   );
   process.exit(values.help ? 0 : 1);
 }
+const REFIT = resolve(values.refit ?? join(dirname(fileURLToPath(import.meta.url)), '..'));
 const read = async (path) => JSON.parse(await readFile(path, 'utf8'));
+const files = (items) => [...new Set(items)].sort();
+
+// Each detector command and how its JSON names providers. Commands the checkout lacks are skipped.
+const DETECTORS = {
+  // detectProviders: manifests, lockfiles and catalog API hostnames.
+  agents: (json) =>
+    json.detected.map((item) => ({
+      provider: item.id,
+      files: files([
+        ...item.packages.map((p) => p.file),
+        ...item.hostnames.map((h) => `${h.file}:${h.line}`),
+      ]),
+    })),
+  // Live deadline exposures name their provider.
+  deadlines: (json) =>
+    (json.exposures ?? []).map((item) => ({
+      provider: item.deadline.provider,
+      files: files(item.evidence.map((e) => `${e.file}:${e.line}`)),
+    })),
+  // Raw HTTP hosts with a known provider.
+  'api-hosts': (json) =>
+    (json.hosts ?? [])
+      .filter((item) => item.provider)
+      .map((item) => ({
+        provider: item.provider.id,
+        files: files((item.calls ?? []).map((c) => `${c.file}:${c.line}`)),
+      })),
+  // AWS and Azure SDK clients; the SDK id starts with the provider.
+  'cloud-sdk': (json) =>
+    (json.clients ?? []).map((item) => ({
+      provider: item.sdk.startsWith('azure') ? 'azure' : 'aws',
+      files: [`${item.file}:${item.line}`],
+    })),
+  // Slack Web API and webhook calls.
+  slack: (json) =>
+    (json.calls ?? []).length
+      ? [{ provider: 'slack', files: files(json.calls.map((c) => `${c.file}:${c.line}`)) }]
+      : [],
+};
 const list = await read(values.list);
 const labels = await read(values.labels);
 const problems = validateLabels(list, labels);
@@ -92,33 +132,38 @@ if (values.root) {
     packages,
     hostnames,
   }));
+  const { stdout: usage } = await execute(
+    process.execPath,
+    [join(REFIT, 'bin/refit.mjs'), '--help'],
+    {
+      cwd: REFIT,
+    },
+  );
+  const detectors = Object.keys(DETECTORS).filter((name) =>
+    new RegExp(`^  ${name} `, 'm').test(usage),
+  );
   const repos = [];
   for (const entry of list.repos) {
     const result = { repo: entry.repo, group: entry.group, commit: entry.commit, detections: [] };
+    const errors = [];
+    let directory;
     try {
-      const directory = await shallowCheckout(values.root, entry.repo, entry.commit);
-      const agents = await refitJson(['agents', '--json', '--repository', directory]);
-      for (const detected of agents.detected)
-        result.detections.push({
-          provider: detected.id,
-          detector: 'agents',
-          files: [
-            ...new Set([
-              ...detected.packages.map((item) => item.file),
-              ...detected.hostnames.map((item) => `${item.file}:${item.line}`),
-            ]),
-          ].sort(),
-        });
-      const deadlines = await refitJson(['deadlines', '--json', '--repository', directory]);
-      for (const exposure of deadlines.exposures ?? [])
-        result.detections.push({
-          provider: exposure.deadline.provider,
-          detector: 'deadlines',
-          files: [...new Set(exposure.evidence.map((item) => `${item.file}:${item.line}`))].sort(),
-        });
+      directory = await shallowCheckout(values.root, entry.repo, entry.commit);
     } catch (error) {
-      result.error = String(error.message).split('\n')[0];
+      errors.push(`checkout: ${String(error.message).split('\n')[0]}`);
     }
+    // A detector that fails is recorded; the repository errors only when every detector failed.
+    for (const name of directory ? detectors : []) {
+      try {
+        const json = await refitJson([name, '--json', '--repository', directory]);
+        for (const item of DETECTORS[name](json))
+          result.detections.push({ ...item, detector: name });
+      } catch (error) {
+        errors.push(`${name}: ${error.message}`);
+      }
+    }
+    if (errors.length) result.detectorErrors = errors;
+    if (!directory || errors.length === detectors.length) result.error = errors.join('; ');
     repos.push(result);
     console.error(
       `${entry.repo}: ${result.error ?? ([...new Set(result.detections.map((d) => d.provider))].join(', ') || 'none')}`,
@@ -135,7 +180,7 @@ if (values.root) {
         ranAt: new Date().toISOString(),
         refit: { commit, clean },
         list: { path: relative(REFIT, resolve(values.list)), sha256: digest },
-        detectors: ['agents', 'deadlines'],
+        detectors,
         catalog,
         repos,
       },

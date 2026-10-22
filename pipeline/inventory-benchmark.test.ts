@@ -322,22 +322,24 @@ describe('scoring', () => {
       ],
     };
     const score = scoreInventory(labels, results);
-    expect(score.repositories).toBe(3);
+    // The errored repository reported nothing, so its Stripe label is a miss.
+    expect(score.repositories).toBe(4);
     expect(score.errored).toEqual([{ repo: 'a/broken', error: 'checkout failed' }]);
     expect(score.catalogProviders).toMatchObject({
       truePositives: 1,
       falsePositives: 2,
-      falseNegatives: 1,
+      falseNegatives: 2,
     });
     expect(score.allProviders).toMatchObject({
       truePositives: 1,
       falsePositives: 2,
-      falseNegatives: 2,
+      falseNegatives: 3,
     });
     expect(score.perProvider.stripe).toMatchObject({
       inCatalog: true,
       truePositives: 1,
       falsePositives: 0,
+      falseNegatives: 1,
     });
     expect(score.perProvider.openai).toMatchObject({
       truePositives: 0,
@@ -354,14 +356,22 @@ describe('scoring', () => {
       'provider not in catalog': 1,
       'raw HTTP': 0,
       monorepo: 0,
-      other: 0,
+      other: 1,
     });
     expect(
       score.falsePositives.map((item) => `${item.repo}:${item.provider}:${item.files.join(',')}`),
     ).toEqual(['a/shop:openai:package.json', 'a/quiet:openai:docs/x.ts:3']);
     expect(
       score.falseNegatives.map((item) => `${item.repo}:${item.provider}:${item.files.join(',')}`),
-    ).toEqual(['a/shop:supabase:src/db.ts:2', 'a/bot:openai:bot.py:7']);
+    ).toEqual([
+      'a/shop:supabase:src/db.ts:2',
+      'a/bot:openai:bot.py:7',
+      'a/broken:stripe:src/index.ts:1',
+    ]);
+    expect(score.falseNegatives.at(-1)).toMatchObject({
+      category: 'other',
+      detail: 'Refit scan failed: checkout failed',
+    });
   });
 
   it('computes Wilson intervals as percentages', () => {

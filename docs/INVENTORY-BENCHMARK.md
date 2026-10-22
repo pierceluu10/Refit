@@ -158,4 +158,4 @@ Every false positive and false negative is listed with its file. Each miss gets 
 4. **monorepo**: some label for the pair is marked `monorepo` (its evidence is in a workspace package below the root);
 5. **other**: anything else (for example a catalog provider used through a package the catalog does not list), with a note.
 
-The first matching rule wins, in that order.
+The first matching rule wins, in that order. A repository where a detector errored (for example over Refit's scan limits) reported nothing, so every labelled provider in it counts as a miss in **other**, with the error as its detail. The repository is also listed as errored.
