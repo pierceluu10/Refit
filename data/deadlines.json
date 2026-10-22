@@ -831,6 +831,34 @@
       "checkedAt": "2026-10-21"
     },
     {
+      "id": "slack-workflow-steps-from-apps",
+      "provider": "slack",
+      "kind": "method",
+      "versions": [
+        "workflows.stepCompleted",
+        "workflows.stepFailed",
+        "workflows.updateStep"
+      ],
+      "date": "2024-09-12",
+      "summary": "Slack stops executing Steps from Apps on 2024-09-12, so the methods a step calls to report its outcome or update its configuration no longer have a step to act on. @slack/web-api 8 removes all three methods and names no replacement.",
+      "replacement": null,
+      "source": "https://github.com/slackapi/node-slack-sdk/blob/8730b5e3a7cee08a0ccfa44b7f792814f939a9cf/docs/english/reference/web-api/interfaces/WorkflowStepView.md",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "id": "slack-files-upload",
+      "provider": "slack",
+      "kind": "method",
+      "versions": [
+        "files.upload"
+      ],
+      "date": "2025-11-12",
+      "summary": "Slack's planned sunset date for the files.upload Web API method. Slack's Node SDK guide recommends filesUploadV2, which calls files.getUploadURLExternal and files.completeUploadExternal; @slack/web-api 8 removes files.upload.",
+      "replacement": "files.getUploadURLExternal and files.completeUploadExternal (filesUploadV2 in @slack/web-api)",
+      "source": "https://github.com/slackapi/node-slack-sdk/blob/8730b5e3a7cee08a0ccfa44b7f792814f939a9cf/docs/english/web-api.md",
+      "checkedAt": "2026-10-22"
+    },
+    {
       "id": "cloudflare-radar-top-browsers",
       "provider": "cloudflare",
       "kind": "endpoint",

@@ -36,6 +36,47 @@ type Stage = 'inputs' | 'scan' | 'validation' | 'publication';
 type Status =
   'needs-review' | 'validation-failed' | 'validated' | 'draft-created' | 'existing-pr' | 'error';
 
+// The workflow's stops that need only its scan, checked in this order before dependency
+// preparation or validation. The Stripe benchmark applies them before it starts `refit run`.
+export function scanReviewReason(
+  scan: Awaited<ReturnType<typeof runPipeline>>,
+  aiPatch: boolean,
+  leaveRequestParameters: boolean,
+) {
+  const reviewReason = migrationReviewReason(
+    leaveRequestParameters ? withoutRequestParameters(scan) : scan,
+    true,
+    true,
+    aiPatch,
+  );
+  if (reviewReason) return reviewReason;
+  if (scan.apiVersion.applicability !== 'matches-before') return scan.apiVersion.reason;
+  const operationUsageCount = countBreakingOperationUsages(scan.operationImpacts);
+  if (operationUsageCount)
+    return `Refit traced ${operationUsageCount} SDK call site${operationUsageCount === 1 ? '' : 's'} to unresolved breaking OpenAPI changes. A verified migration rule is required before AI generation, validation or publication.`;
+  const unmapped = unmappedBreakingChanges(
+    scan.specificationDiff,
+    scan.changes,
+    scan.findings,
+    scan.operationChanges,
+    scan.requestChanges,
+    scan.expandedFields,
+  );
+  if (unmapped.length)
+    return `${unmapped.length} breaking contract changes are outside the supported migration rules. Review the recorded contract report before proposing a patch.`;
+  if (!scan.findings.some((finding) => finding.confidence === 'confirmed'))
+    return 'No confirmed supported usage was found. This does not prove no impact; no patch or publication was attempted.';
+}
+
+// Checked after the existing-PR lookup, which only publication runs.
+export function proposalReviewReason(
+  scan: Awaited<ReturnType<typeof runPipeline>>,
+  aiPatch: boolean,
+) {
+  if (!aiPatch && scan.patch.status !== 'proposed')
+    return 'Confirmed usage has no deterministic migration rule. Enable AI patch generation or migrate manually.';
+}
+
 export async function runWorkflow(options: {
   repository: string;
   integration?: string;
@@ -177,42 +218,8 @@ export async function runWorkflow(options: {
     const scan = await runPipeline({ ...inputs, proposePatch: true, leaveRequestParameters });
     runId = scan.runId;
     await save('scan.json', `${JSON.stringify(scan, null, 2)}\n`);
-    const reviewReason = migrationReviewReason(
-      leaveRequestParameters ? withoutRequestParameters(scan) : scan,
-      true,
-      true,
-      Boolean(options.aiPatch),
-    );
+    const reviewReason = scanReviewReason(scan, Boolean(options.aiPatch), leaveRequestParameters);
     if (reviewReason) return await finish('needs-review', reviewReason, runId);
-    if (scan.apiVersion.applicability !== 'matches-before')
-      return await finish('needs-review', scan.apiVersion.reason, runId);
-    const operationUsageCount = countBreakingOperationUsages(scan.operationImpacts);
-    if (operationUsageCount)
-      return await finish(
-        'needs-review',
-        `Refit traced ${operationUsageCount} SDK call site${operationUsageCount === 1 ? '' : 's'} to unresolved breaking OpenAPI changes. A verified migration rule is required before AI generation, validation or publication.`,
-        runId,
-      );
-    const unmapped = unmappedBreakingChanges(
-      scan.specificationDiff,
-      scan.changes,
-      scan.findings,
-      scan.operationChanges,
-      scan.requestChanges,
-      scan.expandedFields,
-    );
-    if (unmapped.length)
-      return await finish(
-        'needs-review',
-        `${unmapped.length} breaking contract changes are outside the supported migration rules. Review the recorded contract report before proposing a patch.`,
-        runId,
-      );
-    if (!scan.findings.some((finding) => finding.confidence === 'confirmed'))
-      return await finish(
-        'needs-review',
-        'No confirmed supported usage was found. This does not prove no impact; no patch or publication was attempted.',
-        runId,
-      );
     if (publication?.app) {
       options.signal?.throwIfAborted();
       options.onProgress?.('Checking for an existing Refit Agent migration...');
@@ -236,12 +243,8 @@ export async function runWorkflow(options: {
         }
       }
     }
-    if (!options.aiPatch && scan.patch.status !== 'proposed')
-      return await finish(
-        'needs-review',
-        'Confirmed usage has no deterministic migration rule. Enable AI patch generation or migrate manually.',
-        runId,
-      );
+    const proposalReason = proposalReviewReason(scan, Boolean(options.aiPatch));
+    if (proposalReason) return await finish('needs-review', proposalReason, runId);
     stage = 'validation';
     options.signal?.throwIfAborted();
     options.onProgress?.('Validating the committed repository snapshot...');

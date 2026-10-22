@@ -6,6 +6,7 @@ import { AGENT_CATALOG, builtInPackage } from './agent-catalog.ts';
 import { daysUntil, type DeadlineEntry, type DeadlineRegistry } from './deadline-registry.ts';
 import { cloudflareEndpointUses } from './cloudflare-calls.ts';
 import { readRepository } from './repository.ts';
+import { slackMethodUses } from './slack-calls.ts';
 import { isObject, parseObject } from './specifications.ts';
 import { REPOSITORY_CONFIGURATION } from './workflow-configuration.ts';
 
@@ -569,6 +570,10 @@ export async function scanDeadlines(
             text: `${name} ${dependency.lock.version ?? dependency.version}${dependency.lock.version ? ` (locked in ${dependency.lock.file})` : ''} is declared in ${dependency.section}`,
           });
       }
+  // Retired API methods: each call site that sends one, from the provider's call scanner.
+  if (registry.deadlines.some((entry) => entry.kind === 'method' && entry.provider === 'slack'))
+    for (const use of await slackMethodUses(root, repository))
+      record('slack', use.method, { ...use, kind: 'source' });
   // Retired endpoints: each request that reaches one, from the provider's call scanner.
   const endpoints = registry.deadlines.filter(
     (entry) => entry.kind === 'endpoint' && entry.provider === 'cloudflare',

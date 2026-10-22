@@ -1,8 +1,18 @@
 import { execFile } from 'node:child_process';
 import { existsSync } from 'node:fs';
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { parseArgs, promisify } from 'node:util';
+import {
+  checkoutError,
+  classifyRow,
+  finishedRow,
+  json,
+  openRunDirectory,
+  startRun,
+} from '../scripts/benchmark-harness.mjs';
+import { assertResults } from '../scripts/benchmark-results.mjs';
 import { readRepository } from './repository.ts';
 import { runPipeline } from './run.ts';
 import { scanShopify, SHOPIFY_PACKAGES } from './shopify-analysis.ts';
@@ -16,8 +26,9 @@ delete CHILD_ENV.REFIT_SLACK_WEBHOOK_URL;
 
 const execute = promisify(execFile);
 const USAGE =
-  'Usage: npm run benchmark:shopify -- --root <benchmark-dir> --output <new-dir> [--list <frozen.json>] [--validate] [--limit N] [--concurrency N]';
+  'Usage: npm run benchmark:shopify -- --root <benchmark-dir> --output <new-dir> [--resume] [--allow-dirty] [--list <frozen.json>] [--validate] [--limit N] [--concurrency N]';
 const PINNED = 'docs/benchmarks/2026-10-16-shopify-repos.json';
+const VALIDATION_IMAGE = 'node:22-alpine';
 // Default `npm init` script; it is not a check.
 const PLACEHOLDER_TEST = /no test specified/;
 const VALIDATION_TIMEOUT_MS = 20 * 60 * 1000;
@@ -32,12 +43,16 @@ const { values } = parseArgs({
     validate: { type: 'boolean' },
     limit: { type: 'string' },
     concurrency: { type: 'string' },
+    // Continue an interrupted run in the same --output; see docs/BENCHMARK-HARNESS.md.
+    resume: { type: 'boolean' },
+    'allow-dirty': { type: 'boolean' },
   },
 });
 if (!values.root || !values.output) throw new PipelineInputError(USAGE);
 const root = resolve(values.root);
 const output = resolve(values.output);
-const pinned = JSON.parse(await readFile(values.list ?? PINNED, 'utf8')) as {
+const list = values.list ?? PINNED;
+const pinned = JSON.parse(await readFile(list, 'utf8')) as {
   repos: { repo: string; stars: number; commit: string }[];
   schemas: { versions: { version: string }[] };
 };
@@ -45,7 +60,19 @@ const pinned = JSON.parse(await readFile(values.list ?? PINNED, 'utf8')) as {
 const versions = pinned.schemas.versions.map((entry) => entry.version).sort();
 const repos = pinned.repos.slice(0, values.limit ? Number(values.limit) : undefined);
 const snapshot = (version: string) => join(root, 'snapshots', `${version}.json`);
-await mkdir(output);
+const { rows: previous } = await openRunDirectory(
+  output,
+  await startRun({
+    format: 'shopify-results',
+    refitRoot: fileURLToPath(new URL('..', import.meta.url)),
+    list: { path: list, file: list },
+    options: { validate: values.validate, limit: values.limit, concurrency: values.concurrency },
+    environment: ['REFIT_VALIDATION_WORKSPACE', 'REFIT_DEPENDENCY_TIMEOUT_SECONDS'],
+    ...(values.validate ? { image: VALIDATION_IMAGE } : {}),
+    allowDirty: values['allow-dirty'],
+  }),
+  { resume: values.resume },
+);
 const message = (error: unknown) => (error instanceof Error ? error.message : String(error));
 const results: Record<string, unknown>[] = [];
 
@@ -61,6 +88,12 @@ async function benchmark(entry: (typeof repos)[number], index: number) {
   results[index] = result;
   const log = (stage: string) =>
     console.error(`[${index + 1}/${repos.length}] ${entry.repo}: ${stage}`);
+  const checkout = await checkoutError(directory, entry.commit);
+  if (checkout) {
+    result.infrastructure = { kind: 'clone', message: checkout };
+    log(`clone failure: ${checkout}`);
+    return;
+  }
   const manifest = JSON.parse(
     await readFile(join(directory, 'package.json'), 'utf8').catch(() => '{}'),
   );
@@ -209,7 +242,7 @@ async function benchmark(entry: (typeof repos)[number], index: number) {
   const config = join(work, 'run.json');
   await writeFile(
     config,
-    `${JSON.stringify({ formatVersion: 1, repository: directory, before: snapshot(before), after: snapshot(target), image: 'node:22-alpine', prepareDependencies: true, command, ...(result.checks === 'typecheck' ? { compareTypeErrors: true } : {}) }, null, 2)}\n`,
+    `${JSON.stringify({ formatVersion: 1, repository: directory, before: snapshot(before), after: snapshot(target), image: VALIDATION_IMAGE, prepareDependencies: true, command, ...(result.checks === 'typecheck' ? { compareTypeErrors: true } : {}) }, null, 2)}\n`,
   );
   const bundle = join(work, 'run');
   try {
@@ -253,12 +286,26 @@ await Promise.all(
   Array.from({ length: Math.min(concurrency, repos.length) }, async () => {
     while (next < repos.length) {
       const index = next++;
+      const entry = repos[index];
+      if (finishedRow(previous[index], entry)) {
+        results[index] = previous[index]!;
+        console.error(`[${index + 1}/${repos.length}] ${entry.repo}: finished before resuming`);
+        continue;
+      }
+      // Evidence an interrupted attempt left for this repository is replaced, not mixed in.
+      if (previous.length)
+        await rm(join(output, 'repos', entry.repo.replace('/', '__')), {
+          recursive: true,
+          force: true,
+        });
       const started = Date.now();
-      await benchmark(repos[index], index);
+      await benchmark(entry, index);
       results[index].seconds = Math.round((Date.now() - started) / 1000);
-      await writeFile(join(output, 'results.json'), `${JSON.stringify(results, null, 2)}\n`);
+      Object.assign(results[index], classifyRow('shopify-results', results[index]));
+      await writeFile(join(output, 'results.json'), json(results));
     }
   }),
 );
-await writeFile(join(output, 'results.json'), `${JSON.stringify(results, null, 2)}\n`);
+assertResults('shopify-results', results);
+await writeFile(join(output, 'results.json'), json(results));
 console.log(`Results: ${join(output, 'results.json')}`);

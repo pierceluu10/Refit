@@ -48,6 +48,7 @@ import { SUBSCRIPTION_PERIOD_RULE } from './stripe-subscription-periods.ts';
 import {
   dockerSandboxArguments,
   removeDockerContainer,
+  removeExpiredSandboxContainers,
   resolveDockerImage,
   validationProfile,
 } from './docker-sandbox.ts';
@@ -148,14 +149,23 @@ async function command(binary: string, args: string[], cwd?: string) {
   });
 }
 
-async function containerCheck(
-  directory: string,
-  image: string,
-  argumentsList: string[],
-  dependencies?: string,
-  readOnlyMounts?: { source: string; target: string }[],
-): Promise<CheckResult> {
+async function containerCheck({
+  directory,
+  image,
+  command: argumentsList,
+  dependencies,
+  readOnlyMounts,
+  signal,
+}: {
+  directory: string;
+  image: string;
+  command: string[];
+  dependencies?: string;
+  readOnlyMounts?: { source: string; target: string }[];
+  signal?: AbortSignal;
+}): Promise<CheckResult> {
   const name = `refit-${randomUUID()}`;
+  await removeExpiredSandboxContainers();
   try {
     const result = await execute(
       'docker',
@@ -165,13 +175,23 @@ async function containerCheck(
         image,
         command: argumentsList,
         network: 'none',
+        timeoutMs: CHECK_TIMEOUT_MS,
         dependencies,
         readOnlyMounts,
       }),
-      { timeout: CHECK_TIMEOUT_MS, maxBuffer: MAX_OUTPUT_BYTES, encoding: 'utf8' },
+      {
+        timeout: CHECK_TIMEOUT_MS,
+        maxBuffer: MAX_OUTPUT_BYTES,
+        encoding: 'utf8',
+        // The Docker client forwards SIGTERM to the container, where a process that ignores it keeps
+        // the client waiting forever; SIGKILL ends the client and the finally block the container.
+        killSignal: 'SIGKILL',
+        signal,
+      },
     );
     return { status: 'passed', exitCode: 0, ...result };
   } catch (error) {
+    signal?.throwIfAborted();
     if (!(error instanceof Error)) throw error;
     const failure = error as Error & {
       code?: number | string;
@@ -185,7 +205,12 @@ async function containerCheck(
       exitCode,
       stdout: failure.stdout ?? '',
       stderr: failure.stderr ?? '',
-      error: failure.message,
+      error:
+        failure.code === 'ERR_CHILD_PROCESS_STDIO_MAXBUFFER'
+          ? `Check output exceeded ${MAX_OUTPUT_BYTES / 1024 / 1024} MiB; the container was stopped.`
+          : failure.killed
+            ? `Check exceeded ${CHECK_TIMEOUT_MS / 1000} seconds; the container was stopped.`
+            : failure.message,
     };
   } finally {
     // A killed Docker client does not necessarily stop the container it started.
@@ -340,6 +365,7 @@ async function generatedStripeChecks(options: {
   imports: ReturnType<typeof generatedImportMap>;
   runs: { directory: string; contract: string; side: 'before' | 'after'; dependencies?: string }[];
   onProgress?: (message: string) => void;
+  signal?: AbortSignal;
 }) {
   const { entries, uncovered } = options.entryPoints;
   const tools = await mkdtemp(join(options.root, 'generated-'));
@@ -370,19 +396,20 @@ async function generatedStripeChecks(options: {
       `Running generated Stripe checks against ${run.side}-version stripe-mock in offline Docker...`,
     );
     results.push(
-      await containerCheck(
-        run.directory,
-        options.image,
-        generatedCommand(),
-        run.dependencies ?? options.dependencies,
-        [
+      await containerCheck({
+        directory: run.directory,
+        image: options.image,
+        command: generatedCommand(),
+        dependencies: run.dependencies ?? options.dependencies,
+        readOnlyMounts: [
           { source: mock.binary, target: '/refit/stripe-mock' },
           { source: run.contract, target: '/refit/spec.json' },
           { source: fixtures[run.side], target: '/refit/fixtures.json' },
           { source: tools, target: '/refit/generated' },
           { source: typescriptDirectory(), target: '/refit/typescript' },
         ],
-      ),
+        signal: options.signal,
+      }),
     );
   }
   return {
@@ -525,7 +552,13 @@ export async function validateMigration(options: {
     if (!dependencyFailure) options.onProgress?.('Running baseline checks in offline Docker...');
     const baselineRun: CheckResult = dependencyFailure
       ? { status: 'not-run', exitCode: null, stdout: '', stderr: '' }
-      : await containerCheck(baselineDirectory, image, baselineCommand, dependencies);
+      : await containerCheck({
+          directory: baselineDirectory,
+          image,
+          command: baselineCommand,
+          dependencies,
+          signal: options.signal,
+        });
     const { baseline, compared } = typeCheckComparison(baselineRun, options.compareTypeErrors);
     options.signal?.throwIfAborted();
     const report = await runPipeline({
@@ -653,12 +686,13 @@ export async function validateMigration(options: {
     if (runPatched) options.onProgress?.('Running patched checks in offline Docker...');
     let patched: CheckResult = runPatched
       ? compared(
-          await containerCheck(
-            initialCandidate.directory,
+          await containerCheck({
+            directory: initialCandidate.directory,
             image,
-            options.command,
-            initialCandidate.dependencies,
-          ),
+            command: options.command,
+            dependencies: initialCandidate.dependencies,
+            signal: options.signal,
+          }),
         )
       : { status: 'not-run', exitCode: null, stdout: '', stderr: '' };
     const attempts: ValidationAttempt[] = [];
@@ -739,7 +773,13 @@ export async function validateMigration(options: {
       );
       const prepared = await prepareCandidate(diff);
       const check = compared(
-        await containerCheck(prepared.directory, image, options.command, prepared.dependencies),
+        await containerCheck({
+          directory: prepared.directory,
+          image,
+          command: options.command,
+          dependencies: prepared.dependencies,
+          signal: options.signal,
+        }),
       );
       if (check.status === 'passed') {
         proposal = { ...proposal, diff };
@@ -856,12 +896,13 @@ export async function validateMigration(options: {
         }
         options.onProgress?.('Running repaired checks in offline Docker...');
         const check = compared(
-          await containerCheck(
-            preparedCandidate.directory,
+          await containerCheck({
+            directory: preparedCandidate.directory,
             image,
-            options.command,
-            preparedCandidate.dependencies,
-          ),
+            command: options.command,
+            dependencies: preparedCandidate.dependencies,
+            signal: options.signal,
+          }),
         );
         candidateDependencies = preparedCandidate.dependencies;
         candidateEnvironment = preparedCandidate.environment;
@@ -906,6 +947,7 @@ export async function validateMigration(options: {
               },
             ],
             onProgress: options.onProgress,
+            signal: options.signal,
           })
         : undefined;
     const currentRevision = (await git(['rev-parse', '--verify', 'HEAD^{commit}'])).stdout.trim();
@@ -1023,12 +1065,13 @@ export async function validateSourcePatch(options: {
     }
     options.signal?.throwIfAborted();
     options.onProgress?.('Running baseline checks in offline Docker...');
-    const baselineRun = await containerCheck(
-      baselineDirectory,
+    const baselineRun = await containerCheck({
+      directory: baselineDirectory,
       image,
-      baselineCommand,
+      command: baselineCommand,
       dependencies,
-    );
+      signal: options.signal,
+    });
     const { baseline, compared } = typeCheckComparison(baselineRun, options.compareTypeErrors);
     let patched: CheckResult = { status: 'not-run', exitCode: null, stdout: '', stderr: '' };
     let candidateEnvironment: Record<string, unknown> | undefined;
@@ -1040,7 +1083,13 @@ export async function validateSourcePatch(options: {
           await prepareCandidateDependencies(candidateDirectory, root, image, options));
       options.onProgress?.('Running patched checks in offline Docker...');
       patched = compared(
-        await containerCheck(candidateDirectory, image, options.command, candidateDependencies),
+        await containerCheck({
+          directory: candidateDirectory,
+          image,
+          command: options.command,
+          dependencies: candidateDependencies,
+          signal: options.signal,
+        }),
       );
     }
     return {

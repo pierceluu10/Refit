@@ -1,8 +1,18 @@
 import { execFile } from 'node:child_process';
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { parseArgs, promisify } from 'node:util';
+import {
+  checkoutError,
+  classifyRow,
+  finishedRow,
+  json,
+  openRunDirectory,
+  startRun,
+} from '../scripts/benchmark-harness.mjs';
+import { assertResults } from '../scripts/benchmark-results.mjs';
 import { assessmentConfiguration } from './assessment.ts';
 import { readRepository } from './repository.ts';
 import { runPipeline } from './run.ts';
@@ -13,6 +23,8 @@ import {
   repositoryAdapter,
   stripeOperations,
   summaryTable,
+  workflowExitReason,
+  workflowScanStop,
 } from './stripe-benchmark.ts';
 import { FieldSubstitutionError } from './substitution-guard.ts';
 import { githubAppConfiguration } from './github-app.ts';
@@ -21,7 +33,8 @@ import { PipelineInputError, type Repository } from './types.ts';
 
 const execute = promisify(execFile);
 const USAGE =
-  'Usage: npm run benchmark:stripe -- --root <benchmark-dir> --output <new-dir> [--env .env] [--ai] [--validate] [--offset N] [--limit N] [--concurrency N] [--stripe-package <dir>] [--publish <github-org> [--publish-unresolved]]';
+  'Usage: npm run benchmark:stripe -- --root <benchmark-dir> --output <new-dir> [--resume] [--allow-dirty] [--env .env] [--ai] [--validate] [--offset N] [--limit N] [--concurrency N] [--stripe-package <dir>] [--publish <github-org> [--publish-unresolved]]';
+const VALIDATION_IMAGE = 'node:22-alpine';
 // Default `npm init` script; it is not a check.
 const PLACEHOLDER_TEST = /no test specified/;
 const VALIDATION_TIMEOUT_MS = 20 * 60 * 1000;
@@ -65,6 +78,9 @@ const { values } = parseArgs({
     'stripe-package': { type: 'string' },
     // What-if runs: every repository opts in to keep listed payment methods.
     'keep-listed-payment-methods': { type: 'boolean' },
+    // Continue an interrupted run in the same --output; see docs/BENCHMARK-HARNESS.md.
+    resume: { type: 'boolean' },
+    'allow-dirty': { type: 'boolean' },
   },
 });
 if (!values.root || !values.output) throw new PipelineInputError(USAGE);
@@ -109,7 +125,32 @@ const changelogPages = (
   }
 ).changes;
 const productionFailures = new Map<string, string>();
-await mkdir(output);
+// Every option but the paths that only locate inputs and outputs, and the harness's own flags.
+const {
+  root: _root,
+  output: _output,
+  env: _env,
+  resume,
+  'allow-dirty': allowDirty,
+  ...options
+} = values;
+const { rows: previous } = await openRunDirectory(
+  output,
+  await startRun({
+    format: 'stripe-results',
+    refitRoot: fileURLToPath(new URL('..', import.meta.url)),
+    list: { path: 'selected.json', file: join(root, 'selected.json') },
+    options,
+    environment: [
+      'REFIT_VALIDATION_WORKSPACE',
+      'REFIT_DEPENDENCY_TIMEOUT_SECONDS',
+      ...(values.ai ? ['OPENAI_MODEL'] : []),
+    ],
+    ...(values.validate ? { image: VALIDATION_IMAGE } : {}),
+    allowDirty,
+  }),
+  { resume },
+);
 
 const message = (error: unknown) => (error instanceof Error ? error.message : String(error));
 const results: Record<string, unknown>[] = [];
@@ -132,6 +173,20 @@ async function benchmark(entry: Selected, index: number) {
   results[index] = result;
   const log = (stage: string) =>
     console.error(`[${index + 1}/${selected.length}] ${entry.repo}: ${stage}`);
+  const checkout = await checkoutError(directory, entry.commit);
+  if (checkout) {
+    result.infrastructure = { kind: 'clone', message: checkout };
+    log(`clone failure: ${checkout}`);
+    return;
+  }
+  // Seconds per harness stage, each measured from the end of the previous one.
+  const stageSeconds: Record<string, number> = {};
+  result.stageSeconds = stageSeconds;
+  let lapStarted = Date.now();
+  const lap = (stage: string) => {
+    stageSeconds[stage] = Math.round((Date.now() - lapStarted) / 100) / 10;
+    lapStarted = Date.now();
+  };
   let repository: Repository;
   try {
     repository = await readRepository(directory, 'stripe');
@@ -141,6 +196,7 @@ async function benchmark(entry: Selected, index: number) {
     log('Refit cannot read repository');
     return;
   }
+  lap('read');
   try {
     const sites = measureCoverage(repository, 'stripe').filter((site) => site.likelySdk);
     result.sdkCalls = sites.length;
@@ -150,6 +206,7 @@ async function benchmark(entry: Selected, index: number) {
     log('scanner crashed');
     return;
   }
+  lap('coverage');
   if (!operationsByVersion.has(entry.before))
     operationsByVersion.set(
       entry.before,
@@ -210,12 +267,16 @@ async function benchmark(entry: Selected, index: number) {
         String(pointer).replace('/components/schemas/', '').replace('/properties/', '.'),
       ),
     operationImpacts: report.operationImpacts.length,
-    reviewReasons: report.findings
-      .filter((finding) => finding.confidence === 'review')
-      .reduce<Record<string, number>>((counts, finding) => {
-        counts[finding.reason] = (counts[finding.reason] ?? 0) + 1;
-        return counts;
-      }, {}),
+    reviewReasons: Object.fromEntries(
+      Object.entries(
+        report.findings
+          .filter((finding) => finding.confidence === 'review')
+          .reduce<Record<string, number>>((counts, finding) => {
+            counts[finding.reason] = (counts[finding.reason] ?? 0) + 1;
+            return counts;
+          }, {}),
+      ).sort(([left], [right]) => left.localeCompare(right)),
+    ),
     webhookFileFindings: report.findings.filter((finding) => webhookFiles.has(finding.file)).length,
     apiVersion: report.apiVersion.applicability,
   });
@@ -224,6 +285,7 @@ async function benchmark(entry: Selected, index: number) {
   } catch (error) {
     result.shippedAdapter = { error: message(error) };
   }
+  lap('shippedAdapter');
   if (!mappedMethods) {
     log('no mapped Stripe methods');
     return;
@@ -235,11 +297,13 @@ async function benchmark(entry: Selected, index: number) {
     log('full-adapter scan failed');
     return;
   }
+  lap('fullAdapter');
   // The oasdiff comparison depends only on the contract pair; a failure applies to every
   // repository on the same before version, so it is attempted once per version. A timeout depends
-  // on machine load, not the pair, so it is not reused.
+  // on machine load, not the pair, so it is not reused. A reused failure is recorded exactly like
+  // the first, so a row does not depend on which repository --concurrency reached first.
   const failed = productionFailures.get(entry.before);
-  if (failed) result.productionMode = { error: failed, reusedFromSameVersion: true };
+  if (failed) result.productionMode = { error: failed };
   else
     try {
       result.productionMode = summarize(
@@ -249,6 +313,7 @@ async function benchmark(entry: Selected, index: number) {
       if (!/time limit/.test(message(error))) productionFailures.set(entry.before, message(error));
       result.productionMode = { error: message(error) };
     }
+  lap('productionMode');
   const full = result.fullAdapter as { confirmed: number; confirmedFields: string[] };
   const notes = [
     ...new Set(full.confirmedFields?.map((field) => changelogPages[field]).filter(Boolean)),
@@ -300,51 +365,71 @@ async function benchmark(entry: Selected, index: number) {
     const config = join(work, 'run.json');
     await writeFile(
       config,
-      `${JSON.stringify({ formatVersion: 1, repository: directory, apiVersion: entry.before, before, after, providerConfig: adapterPath, image: 'node:22-alpine', prepareDependencies: true, command, ...(result.checks === 'typecheck' ? { compareTypeErrors: true } : {}), ...(generatedChecks ? { generatedChecks } : {}), ...(values['keep-listed-payment-methods'] ? { stripePaymentMethodTypes: 'keep-listed' } : {}) }, null, 2)}\n`,
+      `${JSON.stringify({ formatVersion: 1, repository: directory, apiVersion: entry.before, before, after, providerConfig: adapterPath, image: VALIDATION_IMAGE, prepareDependencies: true, command, ...(result.checks === 'typecheck' ? { compareTypeErrors: true } : {}), ...(generatedChecks ? { generatedChecks } : {}), ...(values['keep-listed-payment-methods'] ? { stripePaymentMethodTypes: 'keep-listed' } : {}) }, null, 2)}\n`,
     );
     const bundle = join(work, 'run');
-    const validationStarted = Date.now();
-    try {
-      await execute(
-        process.execPath,
-        [
-          resolve('bin/refit.mjs'),
-          'run',
-          '--config',
-          config,
-          '--output',
-          bundle,
-          ...(ai
-            ? [
-                '--ai-patch',
-                ...notes.flatMap((path) => ['--documentation-snapshot', path]),
-                '--repair-attempts',
-                '1',
-              ]
-            : []),
-          // Saves [Needs review] artifacts for waivable stops so they can be published below.
-          ...(values['publish-unresolved'] ? ['--publish-unresolved'] : []),
-          '--quiet',
-          '--json',
-        ],
-        { env: CHILD_ENV, timeout: VALIDATION_TIMEOUT_MS, maxBuffer: 64 * 1024 * 1024 },
-      );
-    } catch {
-      // Non-zero exits are recorded outcomes (needs-review, validation-failed, error).
+    // Scan-stage stops run no repository code, so `refit run` starts only for repositories past them.
+    const leaveRequestParameters = Boolean(values['publish-unresolved']) && !ai;
+    const stop = await workflowScanStop(
+      {
+        repository: directory,
+        before,
+        after,
+        apiVersion: entry.before,
+        providerConfig: adapterPath,
+        ...(values['keep-listed-payment-methods'] ? { keepListedPaymentMethods: true } : {}),
+      },
+      Boolean(ai),
+      leaveRequestParameters,
+    );
+    lap('workflowScan');
+    let exit: string | undefined;
+    if (!stop) {
+      const validationStarted = Date.now();
+      try {
+        await execute(
+          process.execPath,
+          [
+            resolve('bin/refit.mjs'),
+            'run',
+            '--config',
+            config,
+            '--output',
+            bundle,
+            ...(ai
+              ? [
+                  '--ai-patch',
+                  ...notes.flatMap((path) => ['--documentation-snapshot', path]),
+                  '--repair-attempts',
+                  '1',
+                ]
+              : []),
+            // Saves [Needs review] artifacts for waivable stops so they can be published below.
+            ...(values['publish-unresolved'] ? ['--publish-unresolved'] : []),
+            '--quiet',
+            '--json',
+          ],
+          { env: CHILD_ENV, timeout: VALIDATION_TIMEOUT_MS, maxBuffer: 64 * 1024 * 1024 },
+        );
+      } catch (error) {
+        // Non-zero exits are recorded outcomes (needs-review, validation-failed, error).
+        exit = workflowExitReason(error, VALIDATION_TIMEOUT_MS);
+      }
+      result.validationSeconds = Math.round((Date.now() - validationStarted) / 1000);
+      lap('workflow');
     }
-    const outcome = JSON.parse(
-      await readFile(join(bundle, 'manifest.json'), 'utf8').catch(() => '{}'),
-    );
-    const report = JSON.parse(
-      await readFile(join(bundle, 'report.json'), 'utf8').catch(() => '{}'),
-    );
+    const outcome = stop
+      ? { status: 'needs-review', stage: 'scan', reason: stop }
+      : JSON.parse(await readFile(join(bundle, 'manifest.json'), 'utf8').catch(() => '{}'));
+    const report = stop
+      ? {}
+      : JSON.parse(await readFile(join(bundle, 'report.json'), 'utf8').catch(() => '{}'));
     const generated = report.validation?.generated;
-    result.validationSeconds = Math.round((Date.now() - validationStarted) / 1000);
     result.workflow = {
       status: outcome.status ?? 'missing-manifest',
       stage: outcome.stage,
       reason: outcome.reason,
-      error: outcome.error?.message,
+      error: outcome.status ? outcome.error?.message : exit,
       checks: result.checks,
       patch: report.patch?.status,
       generator: report.patch?.generator,
@@ -456,15 +541,29 @@ await Promise.all(
   Array.from({ length: Math.min(concurrency, selected.length) }, async () => {
     while (next < selected.length) {
       const index = next++;
+      const entry = selected[index];
+      if (finishedRow(previous[index], entry)) {
+        results[index] = previous[index]!;
+        console.error(`[${index + 1}/${selected.length}] ${entry.repo}: finished before resuming`);
+        continue;
+      }
+      // Evidence an interrupted attempt left for this repository is replaced, not mixed in.
+      if (previous.length)
+        await rm(join(output, 'repos', entry.repo.replace('/', '__')), {
+          recursive: true,
+          force: true,
+        });
       // Timed here so early returns (not affected, unreadable) are measured too.
       const started = Date.now();
-      await benchmark(selected[index], index);
+      await benchmark(entry, index);
       results[index].seconds = Math.round((Date.now() - started) / 1000);
-      await writeFile(join(output, 'results.json'), `${JSON.stringify(results, null, 2)}\n`);
+      Object.assign(results[index], classifyRow('stripe-results', results[index]));
+      await writeFile(join(output, 'results.json'), json(results));
     }
   }),
 );
-await writeFile(join(output, 'results.json'), `${JSON.stringify(results, null, 2)}\n`);
+assertResults('stripe-results', results);
+await writeFile(join(output, 'results.json'), json(results));
 await writeFile(join(output, 'summary.md'), summaryTable(results));
 console.log(`Results: ${join(output, 'results.json')}`);
 console.log(`Summary: ${join(output, 'summary.md')}`);

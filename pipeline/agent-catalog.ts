@@ -1,5 +1,12 @@
+import { existsSync } from 'node:fs';
+import { readFile } from 'node:fs/promises';
+import { join } from 'node:path';
 import { readRepository } from './repository.ts';
+import { parseObject } from './specifications.ts';
 import { PipelineInputError, type Repository } from './types.ts';
+
+const PLACEHOLDER_TEST = /no test specified/;
+const LOCKFILES = ['package-lock.json', 'pnpm-lock.yaml', 'yarn.lock'];
 
 // A provider agent is a reviewed adapter for one API provider. `adapter` is the built-in adapter
 // ID or a shipped adapter file; null means Refit can detect the provider but has no agent yet.
@@ -104,6 +111,23 @@ export const AGENT_CATALOG: ProviderAgent[] = [
     adapter: null,
     guide: null,
   },
+  // npm packages checked on the registry on 2026-10-22 (@slack/client is deprecated there in favour
+  // of the other four). Hosts from @slack/web-api's default `slackApiUrl` and @slack/webhook's
+  // incoming-webhook URLs. `refit slack` lists the methods called (docs/SLACK-DETECTION.md).
+  {
+    id: 'slack',
+    name: 'Slack',
+    packages: [
+      '@slack/web-api',
+      '@slack/bolt',
+      '@slack/rtm-api',
+      '@slack/webhook',
+      '@slack/client',
+    ],
+    hostnames: ['slack.com/api', 'hooks.slack.com/services'],
+    adapter: null,
+    guide: 'docs/SLACK-DETECTION.md',
+  },
   // The `cloudflare` npm package (checked on the registry on 2026-10-22) and the server of
   // Cloudflare's published OpenAPI document. `refit cloudflare` lists the endpoints called
   // (docs/CLOUDFLARE.md).
@@ -158,6 +182,19 @@ export async function detectProviders(directory: string): Promise<AgentDetection
     if (packages.length || hostnames.length) detections.push({ agent, packages, hostnames });
   }
   return detections;
+}
+
+// Chooses a scaffold's check: npm test when package.json has a real test script, and dependency
+// preparation when a lockfile is committed.
+export async function scaffoldChecks(root: string) {
+  const manifest = existsSync(join(root, 'package.json'))
+    ? parseObject(await readFile(join(root, 'package.json'), 'utf8'), 'package.json')
+    : {};
+  const scripts = (manifest.scripts ?? {}) as Record<string, unknown>;
+  return {
+    testScript: typeof scripts.test === 'string' && !PLACEHOLDER_TEST.test(scripts.test),
+    lockfile: LOCKFILES.some((name) => existsSync(join(root, name))),
+  };
 }
 
 export interface AgentScaffold {

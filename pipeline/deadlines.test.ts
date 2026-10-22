@@ -980,6 +980,10 @@ it('checks the registry shape and flags past-due entries and entries without a s
           }),
           extra: true,
         },
+        {
+          ...entry({ id: 'derived', provider: 'openai', versions: ['d'], date: '2027-01-01' }),
+          derivedDate: false,
+        },
       ],
     },
     NOW,
@@ -991,6 +995,7 @@ it('checks the registry shape and flags past-due entries and entries without a s
     'Bad.Id: id must be lowercase letters, digits and hyphens.',
     'Bad.Id: old-model already has another deadline.',
     'Bad.Id: date must be a real YYYY-MM-DD date.',
+    'derived: derivedDate must be true or left out.',
   ]);
   const path = join(await repository({}), 'registry.json');
   await writeFile(
@@ -1021,7 +1026,7 @@ it('keeps the shipped registry valid and sourced', async () => {
   expect(report.errors).toEqual([]);
   expect(report.missingSource).toEqual([]);
   expect(new Set(shipped.deadlines.map((item) => item.provider))).toEqual(
-    new Set(['shopify', 'meta-graph', 'openai', 'anthropic', 'gemini', 'cloudflare']),
+    new Set(['shopify', 'meta-graph', 'openai', 'anthropic', 'gemini', 'slack', 'cloudflare']),
   );
 });
 
@@ -1299,6 +1304,21 @@ it('lets a committed ignore file accept an alert, and never lets an invalid one 
       message.startsWith('[example/app] Deadline ignores not applied: PipelineInputError'),
     ),
   ).toBe(true);
+
+  // A derived date never opens an issue, even with no ignore file.
+  requests.length = 0;
+  notices.length = 0;
+  await rm(join(checkout.directory, '.refit-deadlines-ignore.json'));
+  await writeFile(
+    registryPath,
+    JSON.stringify({
+      ...registry,
+      deadlines: registry.deadlines.map((item) => ({ ...item, derivedDate: true })),
+    }),
+  );
+  await run();
+  expect(requests).toEqual([]);
+  expect(notices).toEqual([]);
 }, 30_000);
 
 it('renders the deadline issue with evidence, the replacement and the migration path', () => {
