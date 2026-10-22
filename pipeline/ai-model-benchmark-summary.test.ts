@@ -99,6 +99,8 @@ it('keeps every 2026-10-20 summary key and value, and adds the newer counts afte
     exposedUnresolvedOnly: 1,
     exposedUnexplained: 1,
     unresolved: 2,
+    // The failed checkout is an infrastructure error, not a result.
+    infrastructureErrors: 1,
   });
   // The earlier keys keep their order, and the new one follows them.
   expect(Object.keys(benchmarkSummary(results))).toEqual([
@@ -116,6 +118,7 @@ it('keeps every 2026-10-20 summary key and value, and adds the newer counts afte
     'exposedUnresolvedOnly',
     'exposedUnexplained',
     'unresolved',
+    'infrastructureErrors',
   ]);
 });
 
@@ -135,5 +138,6 @@ it('summarizes an empty run as zeros', () => {
     exposedUnresolvedOnly: 0,
     exposedUnexplained: 0,
     unresolved: 0,
+    infrastructureErrors: 0,
   });
 });
