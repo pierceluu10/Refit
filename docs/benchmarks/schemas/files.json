@@ -145,6 +145,10 @@
       "format": "commerce-results",
       "predates": []
     },
+    "2026-10-22-data-apis-results.json": {
+      "format": "data-apis-results",
+      "predates": []
+    },
     "2026-10-22-deadline-fresh-sample-results.json": {
       "format": "deadline-results",
       "predates": ["/*/outcomeClass"]

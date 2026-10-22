@@ -4,6 +4,7 @@ import { isAbsolute, join, relative, resolve } from 'node:path';
 import ts from 'typescript-compiler';
 import { detectApiHosts, type ApiHostScan } from './api-hosts.ts';
 import { AGENT_CATALOG, builtInPackage } from './agent-catalog.ts';
+import { dataApiContext, dataApiMatches, type DataApiContext } from './data-api-matchers.ts';
 import { daysUntil, type DeadlineEntry, type DeadlineRegistry } from './deadline-registry.ts';
 import { cloudflareEndpointUses } from './cloudflare-calls.ts';
 import { githubDeadlineUses } from './github-api-calls.ts';
@@ -116,6 +117,7 @@ function sourceMatches(
   shopifyFile: boolean,
   metaFile: boolean,
   models: Map<string, DeadlineEntry['provider']>,
+  dataApi: DataApiContext,
 ) {
   const found: { provider: DeadlineEntry['provider']; version: string; column: number }[] = [];
   const add = (
@@ -148,6 +150,7 @@ function sourceMatches(
   // `tModel` does the same, so the prefixed form names the registry model too.
   for (const match of line.matchAll(/(['"`])models\/([a-z0-9][a-z0-9.-]*)\1/dg))
     if (models.get(match[2]) === 'gemini') add('gemini', match[2], match, 2);
+  found.push(...dataApiMatches(line, dataApi));
   return found;
 }
 
@@ -574,18 +577,22 @@ export async function scanDeadlines(
   for (const file of repository.files) {
     const shopifyFile = SHOPIFY_CONTEXT.some((name) => file.content.includes(name));
     const metaFile = META_CONTEXT.some((name) => file.content.includes(name));
+    const dataApi = dataApiContext(file.content);
     let useAt: ReturnType<typeof tokenUses> | undefined;
     let literalAt: ReturnType<typeof literalTextAt> | undefined;
     let offset = 0;
     for (const [index, line] of file.content.split('\n').entries()) {
-      for (const match of sourceMatches(line, shopifyFile, metaFile, models)) {
+      for (const match of sourceMatches(line, shopifyFile, metaFile, models, dataApi)) {
         useAt ??= tokenUses(file.path, file.content, models);
         record(match.provider, match.version, {
           file: file.path,
           line: index + 1,
           kind: 'source',
           use: useAt(offset + match.column, match.provider, line, match.version),
-          text: excerpt(line),
+          // An Airtable key is a credential: report where it is, never its value.
+          text: excerpt(
+            match.provider === 'airtable' ? line.replace(/key[A-Za-z0-9]{14}/g, 'key…') : line,
+          ),
           ...(via.has(`${file.path}:${index + 1}:${match.version}`)
             ? { via: via.get(`${file.path}:${index + 1}:${match.version}`) }
             : {}),
