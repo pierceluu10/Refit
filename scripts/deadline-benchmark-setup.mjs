@@ -17,12 +17,14 @@ const { values } = parseArgs({
     // that checkout's current source files.
     refit: { type: 'string', default: fileURLToPath(new URL('..', import.meta.url)) },
     output: { type: 'string', default: 'results.json' },
+    // Clone only, so a blind labeller can read the repositories before Refit scans any of them.
+    'clone-only': { type: 'boolean' },
     help: { type: 'boolean' },
   },
 });
 if (values.help || !values.root) {
   console.log(
-    'Usage: node scripts/deadline-benchmark-setup.mjs --root <dir> [--list <repos.json>] [--refit <checkout>] [--output results.json]',
+    'Usage: node scripts/deadline-benchmark-setup.mjs --root <dir> [--list <repos.json>] [--refit <checkout>] [--output results.json] [--clone-only]',
   );
   process.exit(values.help ? 0 : 1);
 }
@@ -55,6 +57,7 @@ for (const [index, entry] of pinned.repos.entries()) {
       );
       await execute('git', ['-C', directory, 'checkout', '-q', 'FETCH_HEAD']);
     }
+    if (values['clone-only']) continue;
     const { stdout } = await execute(
       process.execPath,
       [refit, 'deadlines', '--repository', directory, '--json'],
@@ -79,7 +82,8 @@ for (const [index, entry] of pinned.repos.entries()) {
     });
   }
 }
-await writeFile(join(root, values.output), `${JSON.stringify(results, null, 2)}\n`);
+if (!values['clone-only'])
+  await writeFile(join(root, values.output), `${JSON.stringify(results, null, 2)}\n`);
 console.log(
   JSON.stringify({ root, repos: pinned.repos.length, scanned: results.length, failures }, null, 2),
 );
