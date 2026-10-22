@@ -222,6 +222,18 @@ export const ping = () => late?.auth.test();
     ]);
   });
 
+  it('stops at cyclic type aliases instead of overflowing the stack', async () => {
+    const found = await calls({
+      'src/cycle.ts': `import { WebClient } from '@slack/web-api';
+type A = B;
+type B = A | undefined;
+class Holder { private sdk?: A; send() { return this.sdk?.chat.update({}); } }
+export const unused = WebClient;
+`,
+    });
+    expect(summary(found)).toEqual([]);
+  });
+
   it('follows functions that return a client, in the same file and imported', async () => {
     const found = await calls({
       'src/client.ts': `import { WebClient } from '@slack/web-api';

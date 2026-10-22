@@ -293,7 +293,11 @@ function resolver(source: ts.SourceFile, imported: Map<string, Holder>) {
     return undefined;
   };
   // `WebClient`, `WebClient | null`, `App`.
-  const typeHolder = (type: ts.TypeNode | undefined): Holder | undefined => {
+  // `aliases` holds the type aliases already followed, so `type A = B; type B = A` ends.
+  const typeHolder = (
+    type: ts.TypeNode | undefined,
+    aliases: ReadonlySet<string> = new Set(),
+  ): Holder | undefined => {
     if (!type) return undefined;
     if (ts.isTypeReferenceNode(type)) {
       const holder = classOf(type.typeName);
@@ -304,15 +308,17 @@ function resolver(source: ts.SourceFile, imported: Map<string, Holder>) {
         (statement): statement is ts.TypeAliasDeclaration =>
           ts.isTypeAliasDeclaration(statement) && statement.name.text === name,
       );
-      return alias && alias.type !== type ? typeHolder(alias.type) : undefined;
+      return alias && !aliases.has(name)
+        ? typeHolder(alias.type, new Set([...aliases, name]))
+        : undefined;
     }
     if (ts.isUnionTypeNode(type)) {
       for (const member of type.types) {
-        const holder = typeHolder(member);
+        const holder = typeHolder(member, aliases);
         if (holder) return holder;
       }
     }
-    if (ts.isParenthesizedTypeNode(type)) return typeHolder(type.type);
+    if (ts.isParenthesizedTypeNode(type)) return typeHolder(type.type, aliases);
     return undefined;
   };
   // The functions a name can call in this file: declarations and `const f = () => …`.
