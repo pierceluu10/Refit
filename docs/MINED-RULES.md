@@ -137,6 +137,12 @@ All four follow the existing rule style:
 
 **Counts.** One repository moves from a stop to a proposed patch (shop.co). Three upcoming invoice calls that Refit did not report at all are now reported (one confirmed stop, two review). Every other outcome is unchanged, and no new patch edits anything the rules do not name.
 
+**Docker validation: Blocked.** The before and after `--validate` runs on shop.co (the one repository with a proposed patch) did not run.
+- They need the machine-wide Docker lock (`/tmp/refit-docker.lock`), and other lanes held it for well over the 45-minute timebox.
+- The lock passed from one lane straight to the next (OG6, then OP4, last checked 2026-10-22T10:05Z), while this lane polled every 5 minutes as the shared rules ask.
+- So the table above is patch-level only: what Refit proposes, not whether shop.co's checks pass on the patch.
+- To unblock it, run `npm run benchmark:stripe -- --offset 0 --limit 1 --validate` against the measurement root, once on `main` and once on this branch, while holding the lock.
+
 ### Every diff, read in full and labelled
 
 `boristenkes/shop.co`, applied to its pinned clone (`git apply`, then `git diff`), excluding the lockfile body:
@@ -185,6 +191,7 @@ All four follow the existing rule style:
 
 ## Not verified
 
+- **No Docker validation.** shop.co's checks were not run on the proposed patch; see Measurement.
 - **Simulated contracts only.** The rules' tests use contracts reduced from the real documents and snippets from the benchmark repositories. No live Stripe call was made.
 - **Real checks prove only what they cover.** A repository's own checks are evidence about the code paths they cover. They do not prove a request behaves the same at Stripe.
 - **Request-side simulation is still open.** Whether `discounts[0][coupon]=` (empty) and `coupon=` behave the same at Stripe was not tested. That is why subscription coupons stay for review.
