@@ -645,6 +645,35 @@ it('stops a fix that chooses a subscription item for the billing period', async 
   expect(proposal.diff).toContain('period: getSubscriptionPeriodEnd(metadata)');
 });
 
+it.each([
+  'subscription.items.data[0].current_period_end',
+  'subscription.items.data[index]!.current_period_start',
+  'subscription.items.data.at(-1)?.current_period_end',
+  '(subscription.items.data.find((item) => item.price.id === PRICE))?.current_period_end',
+])('stops a fix that reads the billing period from an item it picks: %s', async (period) => {
+  const { repository, report, findings, findingId } = await typeErrorFixture();
+  respond([
+    { ...TRIAL_EDIT, replacement: `metadata: { ...metadata, period: ${period} },`, findingId },
+  ]);
+  await expect(proposeAiPatch(repository, report.changes, findings, OPTIONS)).rejects.toThrow(
+    'AI patch chooses a subscription item for the billing period; item selection needs a reviewed policy and stops for review.',
+  );
+  expect(fetch).toHaveBeenCalledTimes(1);
+});
+
+it('lets a fix read fields other than the billing period from a picked item', async () => {
+  const { repository, report, findings, findingId } = await typeErrorFixture();
+  respond([
+    {
+      ...TRIAL_EDIT,
+      replacement: 'metadata: { ...metadata, price: subscription.items.data[0].price.id },',
+      findingId,
+    },
+  ]);
+  const proposal = await proposeAiPatch(repository, report.changes, findings, OPTIONS);
+  expect(proposal.diff).toContain('price: subscription.items.data[0].price.id');
+});
+
 it('repairs the failed candidate at its type-error positions and guards every AI edit since the rules', async () => {
   const previous = `// earlier repair\n${CHECKOUT}`;
   const { repository, report, findings, findingId } = await typeErrorFixture(previous);

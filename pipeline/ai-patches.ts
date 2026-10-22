@@ -298,10 +298,35 @@ function eventTypeLiterals(path: string, content: string) {
   return literals;
 }
 
-// Calls of the generated period helpers that pass a plan-item selector as their second argument.
+// Calls of the generated period helpers that pass a plan-item selector as their second argument,
+// and period reads from one item the code picks, such as `subscription.items.data[0]`.
 function periodItemChoices(content: string) {
   const source = ts.createSourceFile('edit.ts', content, ts.ScriptTarget.Latest, true);
   let count = 0;
+  const unwrap = (node: ts.Expression): ts.Expression =>
+    ts.isParenthesizedExpression(node) || ts.isNonNullExpression(node)
+      ? unwrap(node.expression)
+      : node;
+  // `<x>.items.data`, the list an item is picked from.
+  const itemList = (node: ts.Expression) => {
+    const list = unwrap(node);
+    return (
+      ts.isPropertyAccessExpression(list) &&
+      list.name.text === 'data' &&
+      ts.isPropertyAccessExpression(unwrap(list.expression)) &&
+      (unwrap(list.expression) as ts.PropertyAccessExpression).name.text === 'items'
+    );
+  };
+  const pickedItem = (node: ts.Expression) => {
+    const item = unwrap(node);
+    if (ts.isElementAccessExpression(item)) return itemList(item.expression);
+    return (
+      ts.isCallExpression(item) &&
+      ts.isPropertyAccessExpression(item.expression) &&
+      ['at', 'find'].includes(item.expression.name.text) &&
+      itemList(item.expression.expression)
+    );
+  };
   const visit = (node: ts.Node) => {
     if (ts.isCallExpression(node) && node.arguments.length > 1) {
       const callee = ts.isPropertyAccessExpression(node.expression)
@@ -310,6 +335,12 @@ function periodItemChoices(content: string) {
       if (ts.isIdentifier(callee) && /^getSubscriptionPeriod(?:Start|End)$/.test(callee.text))
         count++;
     }
+    if (
+      ts.isPropertyAccessExpression(node) &&
+      /^current_period_(?:start|end)$/.test(node.name.text) &&
+      pickedItem(node.expression)
+    )
+      count++;
     ts.forEachChild(node, visit);
   };
   ts.forEachChild(source, visit);
