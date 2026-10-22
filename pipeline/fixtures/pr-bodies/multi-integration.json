@@ -1,0 +1,353 @@
+{
+  "formatVersion": 1,
+  "provider": "stripe-full",
+  "adapter": {
+    "id": "stripe-full",
+    "packageName": "stripe",
+    "defaultImport": true,
+    "namedExport": "Stripe",
+    "operations": [
+      {
+        "resource": "billingPortal.sessions",
+        "method": "create",
+        "schema": "billing_portal.session",
+        "operationId": "PostBillingPortalSessions"
+      },
+      {
+        "resource": "checkout.sessions",
+        "method": "create",
+        "schema": "checkout.session",
+        "operationId": "PostCheckoutSessions"
+      },
+      {
+        "resource": "subscriptions",
+        "method": "retrieve",
+        "schema": "subscription",
+        "operationId": "GetSubscriptionsSubscriptionExposedId"
+      }
+    ],
+    "constructorCalls": true,
+    "apiVersion": {
+      "constructorArgument": 1,
+      "property": "apiVersion",
+      "requestArguments": [1, 2]
+    }
+  },
+  "runId": "1da7a5d798d9259e7066a90ce774203bf43b5fc9a399d44fd5bb0cc60b8461b5",
+  "apiVersion": {
+    "application": "2024-06-20",
+    "before": "2024-06-20",
+    "after": "2026-09-30.endive",
+    "applicability": "matches-before",
+    "reason": "Application API version 2024-06-20 matches the before contract.",
+    "policy": "operator-pin",
+    "source": {
+      "status": "verified",
+      "declarations": [
+        {
+          "file": "convex/stripe.ts",
+          "line": 25,
+          "column": 20,
+          "kind": "constructor",
+          "value": "2024-06-20",
+          "status": "literal",
+          "reason": "Literal SDK constructor API-version option."
+        },
+        {
+          "file": "convex/stripe.ts",
+          "line": 28,
+          "column": 27,
+          "kind": "request",
+          "value": null,
+          "status": "inherited",
+          "reason": "No override in the adapter-declared option arguments; inherits the client version."
+        },
+        {
+          "file": "convex/stripe.ts",
+          "line": 63,
+          "column": 20,
+          "kind": "constructor",
+          "value": "2024-06-20",
+          "status": "literal",
+          "reason": "Literal SDK constructor API-version option."
+        },
+        {
+          "file": "convex/stripe.ts",
+          "line": 67,
+          "column": 33,
+          "kind": "request",
+          "value": null,
+          "status": "inherited",
+          "reason": "No override in the adapter-declared option arguments; inherits the client version."
+        },
+        {
+          "file": "convex/stripe.ts",
+          "line": 79,
+          "column": 20,
+          "kind": "constructor",
+          "value": "2024-06-20",
+          "status": "literal",
+          "reason": "Literal SDK constructor API-version option."
+        },
+        {
+          "file": "convex/stripe.ts",
+          "line": 96,
+          "column": 36,
+          "kind": "request",
+          "value": null,
+          "status": "inherited",
+          "reason": "No override in the adapter-declared option arguments; inherits the client version."
+        },
+        {
+          "file": "convex/stripe.ts",
+          "line": 116,
+          "column": 36,
+          "kind": "request",
+          "value": null,
+          "status": "inherited",
+          "reason": "No override in the adapter-declared option arguments; inherits the client version."
+        },
+        {
+          "file": "convex/stripe.ts",
+          "line": 134,
+          "column": 36,
+          "kind": "request",
+          "value": null,
+          "status": "inherited",
+          "reason": "No override in the adapter-declared option arguments; inherits the client version."
+        }
+      ],
+      "reason": "All supported SDK constructor declarations and request overrides match the operator pin under the recorded adapter mapping."
+    }
+  },
+  "findings": [
+    {
+      "file": "convex/stripe.ts",
+      "line": 117,
+      "column": 11,
+      "changeId": "eefe4ea32b74e64919fbc645",
+      "expression": ".subscription",
+      "confidence": "confirmed",
+      "webhook": {
+        "migration": {
+          "rule": "stripe-invoice-subscription-helper"
+        },
+        "schema": "invoice",
+        "eventTypes": ["invoice.paid"],
+        "origin": {
+          "file": "convex/stripe.ts",
+          "line": 85,
+          "column": 21
+        },
+        "apiVersion": "unverified"
+      },
+      "reason": "Removed invoice.subscription read on a Stripe snapshot webhook payload narrowed by event.type. Incoming webhook API version and migration semantics require separate review."
+    }
+  ],
+  "operationChanges": [],
+  "patch": {
+    "generator": "deterministic",
+    "summary": "Move removed Stripe field reads to their documented new locations and update the pinned Stripe API version.",
+    "status": "proposed",
+    "edits": 8,
+    "unresolvedFindings": 0,
+    "diff": "diff --git \"a/convex/stripe.ts\" \"b/convex/stripe.ts\"\n--- \"a/convex/stripe.ts\"\n+++ \"b/convex/stripe.ts\"\n@@ -1,152 +1,153 @@\n-\"use node\";\n-\n-import { ConvexError, v } from \"convex/values\";\n-import Stripe from \"stripe\";\n-\n-import { action, internalAction } from \"./_generated/server\";\n-import { internal } from \"./_generated/api\";\n-\n-type Metadata = {\n-  userId: string; // clerkId\n-};\n-\n-export const pay = action({\n-  args: { priceId: v.string() },\n-  handler: async (ctx, args) => {\n-    const identity = await ctx.auth.getUserIdentity();\n-\n-    if (!identity) {\n-      console.warn(\"[STRIPE PAY] User not authenticated\");\n-      throw new ConvexError(\"[STRIPE PAY] User must be logged in to subscribe\");\n-    }\n-\n-    const domain =\n-      (process.env.NEXT_PUBLIC_URL as string) ?? \"http://localhost:3000\";\n-    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {\n-      apiVersion: \"2024-06-20\",\n-    });\n-    const session = await stripe.checkout.sessions.create({\n-      line_items: [{ price: args.priceId!, quantity: 1 }],\n-      customer_email: identity.email,\n-      metadata: {\n-        userId: identity.subject,\n-      },\n-      mode: \"subscription\",\n-      success_url: `${domain}/profile/${identity.subject}`,\n-      cancel_url: `${domain}/get-verified/${identity.subject}`,\n-    });\n-\n-    return session.url!;\n-  },\n-});\n-\n-export const createPortal = action({\n-  args: {},\n-  handler: async (ctx) => {\n-    const identity = await ctx.auth.getUserIdentity();\n-\n-    if (!identity) {\n-      console.warn(\"[CREATE PORTAL] User not authenticated\");\n-      throw new ConvexError(\"[CREATE PORTAL] User not authenticated\");\n-    }\n-\n-    const customerUser = await ctx.runQuery(internal.users.getUserCustomer, {\n-      clerkId: identity.subject,\n-    });\n-    if (!customerUser?.stripeCustomerId) {\n-      console.warn(\"[CREATE PORTAL] User has no stripe customer id\");\n-      throw new ConvexError(\"[CREATE PORTAL] User has no stripe customer id\");\n-    }\n-\n-    const domain =\n-      (process.env.NEXT_PUBLIC_URL as string) ?? \"http://localhost:3000\";\n-    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {\n-      apiVersion: \"2024-06-20\",\n-    });\n-\n-    const portalSession = await stripe.billingPortal.sessions.create({\n-      customer: customerUser.stripeCustomerId,\n-      return_url: `${domain}`,\n-    });\n-\n-    return portalSession.url!;\n-  },\n-});\n-\n-export const fulfill = internalAction({\n-  args: { signature: v.string(), payload: v.string() },\n-  handler: async (ctx, args) => {\n-    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {\n-      apiVersion: \"2024-06-20\",\n-    });\n-\n-    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;\n-    try {\n-      const event = stripe.webhooks.constructEvent(\n-        args.payload,\n-        args.signature,\n-        webhookSecret,\n-      );\n-\n-      if (event.type === \"checkout.session.completed\") {\n-        const completedEvent = event.data.object as Stripe.Checkout.Session & {\n-          metadata: Metadata;\n-        };\n-\n-        const subscription = await stripe.subscriptions.retrieve(\n-          completedEvent.subscription as string,\n-        );\n-\n-        console.log(\"checkout session completed subscription: \", subscription);\n-\n-        const userId = completedEvent.metadata.userId;\n-\n-        await ctx.runMutation(internal.users.updateSubscription, {\n-          clerkId: userId,\n-          priceId: subscription.items.data[0].price.id,\n-          stripeCustomerId: subscription.customer as string,\n-        });\n-      }\n-\n-      if (event.type === \"invoice.paid\") {\n-        const completedEvent = event.data.object as Stripe.Invoice & {\n-          metadata: Metadata;\n-        };\n-\n-        const subscription = await stripe.subscriptions.retrieve(\n-          completedEvent.subscription as string,\n-        );\n-\n-        console.log(\"invoice paid subscription: \", subscription);\n-\n-        await ctx.runMutation(internal.users.updateSubscriptionByPriceId, {\n-          priceId: subscription.items.data[0]?.price.id,\n-          clerkId: completedEvent.metadata.userId,\n-        });\n-      }\n-\n-      if (event.type === \"customer.subscription.deleted\") {\n-        // The customer subscription stopped\n-        // \u274c Revoke access to the product\n-        const completedEvent = event.data.object as Stripe.Subscription & {\n-          metadata: Metadata;\n-        };\n-        const subscription = await stripe.subscriptions.retrieve(\n-          completedEvent.id as string,\n-        );\n-        const userId = completedEvent.metadata.userId;\n-\n-        await ctx.runMutation(internal.users.updateSubscription, {\n-          clerkId: userId,\n-          priceId: subscription.items.data[0]?.price.id,\n-          stripeCustomerId: subscription.customer as string,\n-        });\n-      }\n-\n-      return { success: true };\n-    } catch (err) {\n-      console.error(err);\n-      return { success: false, error: (err as { message: string }).message };\n-    }\n-  },\n-});\n+\"use node\";\n+\n+import { ConvexError, v } from \"convex/values\";\n+import Stripe from \"stripe\";\n+\n+import { action, internalAction } from \"./_generated/server\";\n+import { internal } from \"./_generated/api\";\n+import { getInvoiceSubscription } from './stripe-subscription-period';\n+\n+type Metadata = {\n+  userId: string; // clerkId\n+};\n+\n+export const pay = action({\n+  args: { priceId: v.string() },\n+  handler: async (ctx, args) => {\n+    const identity = await ctx.auth.getUserIdentity();\n+\n+    if (!identity) {\n+      console.warn(\"[STRIPE PAY] User not authenticated\");\n+      throw new ConvexError(\"[STRIPE PAY] User must be logged in to subscribe\");\n+    }\n+\n+    const domain =\n+      (process.env.NEXT_PUBLIC_URL as string) ?? \"http://localhost:3000\";\n+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {\n+      apiVersion: \"2026-09-30.endive\",\n+    });\n+    const session = await stripe.checkout.sessions.create({\n+      line_items: [{ price: args.priceId!, quantity: 1 }],\n+      customer_email: identity.email,\n+      metadata: {\n+        userId: identity.subject,\n+      },\n+      mode: \"subscription\",\n+      success_url: `${domain}/profile/${identity.subject}`,\n+      cancel_url: `${domain}/get-verified/${identity.subject}`,\n+    });\n+\n+    return session.url!;\n+  },\n+});\n+\n+export const createPortal = action({\n+  args: {},\n+  handler: async (ctx) => {\n+    const identity = await ctx.auth.getUserIdentity();\n+\n+    if (!identity) {\n+      console.warn(\"[CREATE PORTAL] User not authenticated\");\n+      throw new ConvexError(\"[CREATE PORTAL] User not authenticated\");\n+    }\n+\n+    const customerUser = await ctx.runQuery(internal.users.getUserCustomer, {\n+      clerkId: identity.subject,\n+    });\n+    if (!customerUser?.stripeCustomerId) {\n+      console.warn(\"[CREATE PORTAL] User has no stripe customer id\");\n+      throw new ConvexError(\"[CREATE PORTAL] User has no stripe customer id\");\n+    }\n+\n+    const domain =\n+      (process.env.NEXT_PUBLIC_URL as string) ?? \"http://localhost:3000\";\n+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {\n+      apiVersion: \"2026-09-30.endive\",\n+    });\n+\n+    const portalSession = await stripe.billingPortal.sessions.create({\n+      customer: customerUser.stripeCustomerId,\n+      return_url: `${domain}`,\n+    });\n+\n+    return portalSession.url!;\n+  },\n+});\n+\n+export const fulfill = internalAction({\n+  args: { signature: v.string(), payload: v.string() },\n+  handler: async (ctx, args) => {\n+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {\n+      apiVersion: \"2026-09-30.endive\",\n+    });\n+\n+    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;\n+    try {\n+      const event = stripe.webhooks.constructEvent(\n+        args.payload,\n+        args.signature,\n+        webhookSecret,\n+      );\n+\n+      if (event.type === \"checkout.session.completed\") {\n+        const completedEvent = event.data.object as Stripe.Checkout.Session & {\n+          metadata: Metadata;\n+        };\n+\n+        const subscription = await stripe.subscriptions.retrieve(\n+          completedEvent.subscription as string,\n+        );\n+\n+        console.log(\"checkout session completed subscription: \", subscription);\n+\n+        const userId = completedEvent.metadata.userId;\n+\n+        await ctx.runMutation(internal.users.updateSubscription, {\n+          clerkId: userId,\n+          priceId: subscription.items.data[0].price.id,\n+          stripeCustomerId: subscription.customer as string,\n+        });\n+      }\n+\n+      if (event.type === \"invoice.paid\") {\n+        const completedEvent = event.data.object as Stripe.Invoice & {\n+          metadata: Metadata;\n+        };\n+\n+        const subscription = await stripe.subscriptions.retrieve(\n+          (getInvoiceSubscription(completedEvent)) as string,\n+        );\n+\n+        console.log(\"invoice paid subscription: \", subscription);\n+\n+        await ctx.runMutation(internal.users.updateSubscriptionByPriceId, {\n+          priceId: subscription.items.data[0]?.price.id,\n+          clerkId: completedEvent.metadata.userId,\n+        });\n+      }\n+\n+      if (event.type === \"customer.subscription.deleted\") {\n+        // The customer subscription stopped\n+        // \u274c Revoke access to the product\n+        const completedEvent = event.data.object as Stripe.Subscription & {\n+          metadata: Metadata;\n+        };\n+        const subscription = await stripe.subscriptions.retrieve(\n+          completedEvent.id as string,\n+        );\n+        const userId = completedEvent.metadata.userId;\n+\n+        await ctx.runMutation(internal.users.updateSubscription, {\n+          clerkId: userId,\n+          priceId: subscription.items.data[0]?.price.id,\n+          stripeCustomerId: subscription.customer as string,\n+        });\n+      }\n+\n+      return { success: true };\n+    } catch (err) {\n+      console.error(err);\n+      return { success: false, error: (err as { message: string }).message };\n+    }\n+  },\n+});\ndiff --git \"a/convex/stripe-subscription-period.ts\" \"b/convex/stripe-subscription-period.ts\"\nnew file mode 100644\n--- /dev/null\n+++ \"b/convex/stripe-subscription-period.ts\"\n@@ -0,0 +1,63 @@\n+type PeriodItem = { price?: { id?: string } | null };\n+type PeriodField = 'current_period_start' | 'current_period_end';\n+type PlanItem = (items: PeriodItem[]) => PeriodItem | undefined;\n+\n+// Typed like the removed field, which was also absent at runtime when Stripe omitted it.\n+function subscriptionPeriod(subscription: object, field: PeriodField, planItem?: PlanItem): number {\n+  const legacy: unknown = Reflect.get(subscription, field);\n+  if (typeof legacy === 'number') return legacy;\n+  const list: unknown = Reflect.get(subscription, 'items');\n+  const data: unknown = list && typeof list === 'object' ? Reflect.get(list, 'data') : undefined;\n+  const items = (Array.isArray(data) ? data : []).filter(\n+    (item): item is PeriodItem => typeof item === 'object' && item !== null,\n+  );\n+  const periods = new Set(items.map((item) => Reflect.get(item, field)));\n+  const chosen = periods.size === 1 ? items[0] : planItem?.(items);\n+  const value: unknown = chosen ? Reflect.get(chosen, field) : undefined;\n+  return (typeof value === 'number' ? value : undefined) as number;\n+}\n+\n+export function getSubscriptionPeriodStart(subscription: object, planItem?: PlanItem): number {\n+  return subscriptionPeriod(subscription, 'current_period_start', planItem);\n+}\n+\n+export function getSubscriptionPeriodEnd(subscription: object, planItem?: PlanItem): number {\n+  return subscriptionPeriod(subscription, 'current_period_end', planItem);\n+}\n+\n+// Typed like the removed field under old stripe types, like the new location under new ones.\n+type InvoiceSubscription<T> = T extends { subscription: infer S }\n+  ? S\n+  : T extends { parent: infer P }\n+    ? NonNullable<P> extends { subscription_details: infer D }\n+      ? NonNullable<D> extends { subscription: infer S }\n+        ? S | null\n+        : string | null\n+      : string | null\n+    : string | null;\n+\n+// The old top-level field when present (old-version payloads), otherwise the new location.\n+export function getInvoiceSubscription<T extends object>(invoice: T): InvoiceSubscription<T> {\n+  const legacy: unknown = Reflect.get(invoice, 'subscription');\n+  const parent: unknown = Reflect.get(invoice, 'parent');\n+  const details: unknown =\n+    parent && typeof parent === 'object' ? Reflect.get(parent, 'subscription_details') : undefined;\n+  const moved: unknown =\n+    details && typeof details === 'object' ? Reflect.get(details, 'subscription') : undefined;\n+  return (legacy !== undefined ? legacy : (moved ?? null)) as InvoiceSubscription<T>;\n+}\n+\n+// The old Price object's ID when present (old-version payloads), otherwise the price at\n+// pricing.price_details: an ID, or a Price when expanded.\n+export function getInvoicePriceId(line: object): string | undefined {\n+  const legacy: unknown = Reflect.get(line, 'price');\n+  const pricing: unknown = legacy === undefined ? Reflect.get(line, 'pricing') : undefined;\n+  const details: unknown =\n+    pricing && typeof pricing === 'object' && Reflect.get(pricing, 'type') === 'price_details'\n+      ? Reflect.get(pricing, 'price_details')\n+      : undefined;\n+  const price: unknown =\n+    legacy !== undefined ? legacy : details && typeof details === 'object' ? Reflect.get(details, 'price') : undefined;\n+  const id: unknown = price && typeof price === 'object' ? Reflect.get(price, 'id') : price;\n+  return typeof id === 'string' ? id : undefined;\n+}\ndiff --git \"a/package.json\" \"b/package.json\"\n--- \"a/package.json\"\n+++ \"b/package.json\"\n@@ -1,67 +1,67 @@\n-{\n-  \"name\": \"podvex\",\n-  \"version\": \"0.1.0\",\n-  \"private\": true,\n-  \"scripts\": {\n-    \"dev\": \"next dev\",\n-    \"build\": \"next build\",\n-    \"start\": \"next start\",\n-    \"lint\": \"next lint\"\n-  },\n-  \"dependencies\": {\n-    \"@clerk/nextjs\": \"^5.2.4\",\n-    \"@hookform/resolvers\": \"^3.9.0\",\n-    \"@radix-ui/react-alert-dialog\": \"^1.1.1\",\n-    \"@radix-ui/react-aspect-ratio\": \"^1.1.0\",\n-    \"@radix-ui/react-avatar\": \"^1.1.0\",\n-    \"@radix-ui/react-dialog\": \"^1.1.1\",\n-    \"@radix-ui/react-dropdown-menu\": \"^2.1.1\",\n-    \"@radix-ui/react-label\": \"^2.1.0\",\n-    \"@radix-ui/react-progress\": \"^1.1.0\",\n-    \"@radix-ui/react-scroll-area\": \"^1.1.0\",\n-    \"@radix-ui/react-select\": \"^2.1.1\",\n-    \"@radix-ui/react-separator\": \"^1.1.0\",\n-    \"@radix-ui/react-slot\": \"^1.1.0\",\n-    \"@radix-ui/react-switch\": \"^1.1.0\",\n-    \"@radix-ui/react-tabs\": \"^1.1.0\",\n-    \"@radix-ui/react-tooltip\": \"^1.1.2\",\n-    \"@tanstack/react-table\": \"^8.20.1\",\n-    \"@xixixao/uploadstuff\": \"^0.0.5\",\n-    \"class-variance-authority\": \"^0.7.0\",\n-    \"clsx\": \"^2.1.1\",\n-    \"convex\": \"^1.13.2\",\n-    \"embla-carousel-autoplay\": \"^8.1.7\",\n-    \"embla-carousel-react\": \"^8.1.7\",\n-    \"framer-motion\": \"^11.3.19\",\n-    \"lucide-react\": \"^0.412.0\",\n-    \"next\": \"14.2.5\",\n-    \"next-themes\": \"^0.3.0\",\n-    \"nextjs-toploader\": \"^1.6.12\",\n-    \"react\": \"^18\",\n-    \"react-dom\": \"^18\",\n-    \"react-hook-form\": \"^7.52.1\",\n-    \"simplex-noise\": \"^4.0.2\",\n-    \"sonner\": \"^1.5.0\",\n-    \"stripe\": \"^16.5.0\",\n-    \"svix\": \"^1.25.0\",\n-    \"tailwind-merge\": \"^2.4.0\",\n-    \"tailwindcss-animate\": \"^1.0.7\",\n-    \"unrealspeech\": \"^1.8.6\",\n-    \"uuid\": \"^10.0.0\",\n-    \"vaul\": \"^0.9.1\",\n-    \"zod\": \"^3.23.8\"\n-  },\n-  \"devDependencies\": {\n-    \"@types/node\": \"^20\",\n-    \"@types/react\": \"^18\",\n-    \"@types/react-dom\": \"^18\",\n-    \"@types/uuid\": \"^10.0.0\",\n-    \"eslint\": \"^8\",\n-    \"eslint-config-next\": \"14.2.5\",\n-    \"postcss\": \"^8\",\n-    \"prettier\": \"^3.3.3\",\n-    \"prettier-plugin-tailwindcss\": \"^0.6.5\",\n-    \"tailwindcss\": \"^3.4.1\",\n-    \"typescript\": \"^5\"\n-  }\n-}\n+{\n+  \"name\": \"podvex\",\n+  \"version\": \"0.1.0\",\n+  \"private\": true,\n+  \"scripts\": {\n+    \"dev\": \"next dev\",\n+    \"build\": \"next build\",\n+    \"start\": \"next start\",\n+    \"lint\": \"next lint\"\n+  },\n+  \"dependencies\": {\n+    \"@clerk/nextjs\": \"^5.2.4\",\n+    \"@hookform/resolvers\": \"^3.9.0\",\n+    \"@radix-ui/react-alert-dialog\": \"^1.1.1\",\n+    \"@radix-ui/react-aspect-ratio\": \"^1.1.0\",\n+    \"@radix-ui/react-avatar\": \"^1.1.0\",\n+    \"@radix-ui/react-dialog\": \"^1.1.1\",\n+    \"@radix-ui/react-dropdown-menu\": \"^2.1.1\",\n+    \"@radix-ui/react-label\": \"^2.1.0\",\n+    \"@radix-ui/react-progress\": \"^1.1.0\",\n+    \"@radix-ui/react-scroll-area\": \"^1.1.0\",\n+    \"@radix-ui/react-select\": \"^2.1.1\",\n+    \"@radix-ui/react-separator\": \"^1.1.0\",\n+    \"@radix-ui/react-slot\": \"^1.1.0\",\n+    \"@radix-ui/react-switch\": \"^1.1.0\",\n+    \"@radix-ui/react-tabs\": \"^1.1.0\",\n+    \"@radix-ui/react-tooltip\": \"^1.1.2\",\n+    \"@tanstack/react-table\": \"^8.20.1\",\n+    \"@xixixao/uploadstuff\": \"^0.0.5\",\n+    \"class-variance-authority\": \"^0.7.0\",\n+    \"clsx\": \"^2.1.1\",\n+    \"convex\": \"^1.13.2\",\n+    \"embla-carousel-autoplay\": \"^8.1.7\",\n+    \"embla-carousel-react\": \"^8.1.7\",\n+    \"framer-motion\": \"^11.3.19\",\n+    \"lucide-react\": \"^0.412.0\",\n+    \"next\": \"14.2.5\",\n+    \"next-themes\": \"^0.3.0\",\n+    \"nextjs-toploader\": \"^1.6.12\",\n+    \"react\": \"^18\",\n+    \"react-dom\": \"^18\",\n+    \"react-hook-form\": \"^7.52.1\",\n+    \"simplex-noise\": \"^4.0.2\",\n+    \"sonner\": \"^1.5.0\",\n+    \"stripe\": \"^23.0.0\",\n+    \"svix\": \"^1.25.0\",\n+    \"tailwind-merge\": \"^2.4.0\",\n+    \"tailwindcss-animate\": \"^1.0.7\",\n+    \"unrealspeech\": \"^1.8.6\",\n+    \"uuid\": \"^10.0.0\",\n+    \"vaul\": \"^0.9.1\",\n+    \"zod\": \"^3.23.8\"\n+  },\n+  \"devDependencies\": {\n+    \"@types/node\": \"^20\",\n+    \"@types/react\": \"^18\",\n+    \"@types/react-dom\": \"^18\",\n+    \"@types/uuid\": \"^10.0.0\",\n+    \"eslint\": \"^8\",\n+    \"eslint-config-next\": \"14.2.5\",\n+    \"postcss\": \"^8\",\n+    \"prettier\": \"^3.3.3\",\n+    \"prettier-plugin-tailwindcss\": \"^0.6.5\",\n+    \"tailwindcss\": \"^3.4.1\",\n+    \"typescript\": \"^5\"\n+  }\n+}\ndiff --git \"a/package-lock.json\" \"b/package-lock.json\"\n--- \"a/package-lock.json\"\n+++ \"b/package-lock.json\"\n@@ -1,12 +1,12 @@\n-{\n-  \"name\": \"podvex\",\n-  \"version\": \"0.1.0\",\n-  \"lockfileVersion\": 3,\n-  \"requires\": true,\n-  \"packages\": {\n-    \"\": {\n-      \"name\": \"podvex\",\n-      \"version\": \"0.1.0\",\n-      \"dependencies\": {\n-        \"@clerk/nextjs\": \"^5.2.4\",\n-        \"@hookform/resolvers\": \"^3.9.0\",\n+{\n+  \"name\": \"podvex\",\n+  \"version\": \"0.1.0\",\n+  \"lockfileVersion\": 3,\n+  \"requires\": true,\n+  \"packages\": {\n+    \"\": {\n+      \"name\": \"podvex\",\n+      \"version\": \"0.1.0\",\n+      \"dependencies\": {\n+        \"@clerk/nextjs\": \"^5.2.4\",\n+        \"@hookform/resolvers\": \"^3.9.0\",\n",
+    "validation": "passed",
+    "warnings": [
+      "Upgrades stripe from 16.5.0 to 23.0.0 in package.json and package-lock.json, using the npm registry's SHA-512 integrity. A major SDK upgrade can change other types and behavior; review the stripe-node changelog.",
+      "Invoice subscriptions are read through a generated helper: the old invoice.subscription field when present (old-version events), otherwise invoice.parent.subscription_details.subscription. Webhook endpoints are not changed.",
+      "Patch contains source code. Review it for sensitive content before sharing."
+    ],
+    "source": "https://docs.stripe.com/changelog/basil/2025-03-31/adds-new-parent-field-to-invoicing-objects",
+    "ruleEdits": [
+      {
+        "file": "convex/stripe.ts",
+        "start": 3534,
+        "end": 3561,
+        "replacement": "(getInvoiceSubscription(completedEvent))",
+        "changeId": "eefe4ea32b74e64919fbc645",
+        "rule": "stripe-invoice-subscription-helper"
+      },
+      {
+        "file": "convex/stripe-subscription-period.ts",
+        "start": 0,
+        "end": 0,
+        "replacement": "type PeriodItem = { price?: { id?: string } | null };\ntype PeriodField = 'current_period_start' | 'current_period_end';\ntype PlanItem = (items: PeriodItem[]) => PeriodItem | undefined;\n\n// Typed like the removed field, which was also absent at runtime when Stripe omitted it.\nfunction subscriptionPeriod(subscription: object, field: PeriodField, planItem?: PlanItem): number {\n  const legacy: unknown = Reflect.get(subscription, field);\n  if (typeof legacy === 'number') return legacy;\n  const list: unknown = Reflect.get(subscription, 'items');\n  const data: unknown = list && typeof list === 'object' ? Reflect.get(list, 'data') : undefined;\n  const items = (Array.isArray(data) ? data : []).filter(\n    (item): item is PeriodItem => typeof item === 'object' && item !== null,\n  );\n  const periods = new Set(items.map((item) => Reflect.get(item, field)));\n  const chosen = periods.size === 1 ? items[0] : planItem?.(items);\n  const value: unknown = chosen ? Reflect.get(chosen, field) : undefined;\n  return (typeof value === 'number' ? value : undefined) as number;\n}\n\nexport function getSubscriptionPeriodStart(subscription: object, planItem?: PlanItem): number {\n  return subscriptionPeriod(subscription, 'current_period_start', planItem);\n}\n\nexport function getSubscriptionPeriodEnd(subscription: object, planItem?: PlanItem): number {\n  return subscriptionPeriod(subscription, 'current_period_end', planItem);\n}\n\n// Typed like the removed field under old stripe types, like the new location under new ones.\ntype InvoiceSubscription<T> = T extends { subscription: infer S }\n  ? S\n  : T extends { parent: infer P }\n    ? NonNullable<P> extends { subscription_details: infer D }\n      ? NonNullable<D> extends { subscription: infer S }\n        ? S | null\n        : string | null\n      : string | null\n    : string | null;\n\n// The old top-level field when present (old-version payloads), otherwise the new location.\nexport function getInvoiceSubscription<T extends object>(invoice: T): InvoiceSubscription<T> {\n  const legacy: unknown = Reflect.get(invoice, 'subscription');\n  const parent: unknown = Reflect.get(invoice, 'parent');\n  const details: unknown =\n    parent && typeof parent === 'object' ? Reflect.get(parent, 'subscription_details') : undefined;\n  const moved: unknown =\n    details && typeof details === 'object' ? Reflect.get(details, 'subscription') : undefined;\n  return (legacy !== undefined ? legacy : (moved ?? null)) as InvoiceSubscription<T>;\n}\n\n// The old Price object's ID when present (old-version payloads), otherwise the price at\n// pricing.price_details: an ID, or a Price when expanded.\nexport function getInvoicePriceId(line: object): string | undefined {\n  const legacy: unknown = Reflect.get(line, 'price');\n  const pricing: unknown = legacy === undefined ? Reflect.get(line, 'pricing') : undefined;\n  const details: unknown =\n    pricing && typeof pricing === 'object' && Reflect.get(pricing, 'type') === 'price_details'\n      ? Reflect.get(pricing, 'price_details')\n      : undefined;\n  const price: unknown =\n    legacy !== undefined ? legacy : details && typeof details === 'object' ? Reflect.get(details, 'price') : undefined;\n  const id: unknown = price && typeof price === 'object' ? Reflect.get(price, 'id') : price;\n  return typeof id === 'string' ? id : undefined;\n}\n",
+        "changeId": "stripe-subscription-period-helper",
+        "rule": "stripe-invoice-subscription-helper"
+      },
+      {
+        "file": "convex/stripe.ts",
+        "start": 197,
+        "end": 197,
+        "replacement": "\nimport { getInvoiceSubscription } from './stripe-subscription-period';",
+        "changeId": "stripe-subscription-period-helper",
+        "rule": "stripe-invoice-subscription-helper"
+      },
+      {
+        "file": "convex/stripe.ts",
+        "start": 745,
+        "end": 755,
+        "replacement": "2026-09-30.endive",
+        "changeId": "stripe-api-version",
+        "rule": "stripe-api-version"
+      },
+      {
+        "file": "convex/stripe.ts",
+        "start": 1968,
+        "end": 1978,
+        "replacement": "2026-09-30.endive",
+        "changeId": "stripe-api-version",
+        "rule": "stripe-api-version"
+      },
+      {
+        "file": "convex/stripe.ts",
+        "start": 2402,
+        "end": 2412,
+        "replacement": "2026-09-30.endive",
+        "changeId": "stripe-api-version",
+        "rule": "stripe-api-version"
+      }
+    ],
+    "sdkUpgrade": {
+      "from": "16.5.0",
+      "to": "23.0.0"
+    }
+  },
+  "validation": {
+    "status": "passed",
+    "revision": "df827a8a3d719526872b0d4f0e2154f637c96cda",
+    "image": "sha256:0a7108bf6c7bf5de370ffb1a3ed6be93d405b43ff159f681a8d18c0e2bc2e402",
+    "environment": {
+      "formatVersion": 1,
+      "kind": "refit-npm-environment",
+      "signature": "18199cb5a99e9adcfbfc9efbf700d89e2cf6e6c2a76041608b76a17744b18f3a",
+      "recipeVersion": 4,
+      "image": "sha256:0a7108bf6c7bf5de370ffb1a3ed6be93d405b43ff159f681a8d18c0e2bc2e402",
+      "packageHash": "ca6a83f29e4ab3caa70cb59adb2dfafb6619b92274e253d2274b63ac441afe4d",
+      "lockHash": "8179e446ea9299d8b0ab4fe088311f21480572c3818ebc8ae68aff574340bdc8",
+      "packages": 527,
+      "manager": "npm",
+      "nodeVersion": "v22.23.3",
+      "npmVersion": "10.9.9",
+      "archiveHash": "cfa987773a8e55efd3b3db1f21511aed26d7773812c4e854a30677533a46915d",
+      "archiveBytes": 555089920,
+      "installation": {
+        "network": "bridge",
+        "lifecycleScripts": false,
+        "registry": "https://registry.npmjs.org",
+        "timeoutMs": 300000,
+        "workspace": "2g",
+        "memory": "3g"
+      },
+      "validation": {
+        "network": "none"
+      },
+      "reused": true
+    },
+    "patchedEnvironment": {
+      "formatVersion": 1,
+      "kind": "refit-npm-environment",
+      "signature": "b3860ef47574aec9bfae109e276c93145494682520981de447ad4a3ec29a6f72",
+      "recipeVersion": 4,
+      "image": "sha256:0a7108bf6c7bf5de370ffb1a3ed6be93d405b43ff159f681a8d18c0e2bc2e402",
+      "packageHash": "1638b1baed6d33bda1a7e7152f721d1ae941e967c2a7e35b6036d6170dfdd7d0",
+      "lockHash": "bca3a6666009f3a0caf078f49d9c51e0f4a105d2d1b6d851a9887d07388cdc83",
+      "packages": 527,
+      "manager": "npm",
+      "nodeVersion": "v22.23.3",
+      "npmVersion": "10.9.9",
+      "archiveHash": "27c93f5eacaf11157663ef66128736fac859756f38b4b8b885a1416474ca0503",
+      "archiveBytes": 568268288,
+      "installation": {
+        "network": "bridge",
+        "lifecycleScripts": false,
+        "registry": "https://registry.npmjs.org",
+        "timeoutMs": 300000,
+        "workspace": "2g",
+        "memory": "3g"
+      },
+      "validation": {
+        "network": "none"
+      },
+      "reused": true
+    },
+    "command": ["npx", "--no-install", "tsc", "--noEmit", "--pretty", "false", "-p", "."],
+    "baselineCommand": ["npx", "--no-install", "tsc", "--noEmit", "--pretty", "false", "-p", "."],
+    "compareTypeErrors": true,
+    "archiveHash": "1fcdbaf64eea65e94ed6bd332a12ff6b2c637741c04fb8aacd136b84bd7a2a64",
+    "patchHash": "c93ce56b8ae769674c9c162fbad43d3d7ebe185300049054e645fe25a946c2b7",
+    "baseline": {
+      "status": "passed",
+      "exitCode": 2,
+      "stdout": "",
+      "stderr": "",
+      "error": "Command failed: docker run --name refit-1c3f09fc-197b-4d04-8b7a-9a2b252c0cb0 --pull never --network none --read-only --user 65534:65534 --cap-drop ALL --security-opt no-new-privileges --pids-limit 128 --memory 3g --cpus 1 --tmpfs /workspace:rw,exec,size=2g,uid=65534,gid=65534,mode=0700 --tmpfs /tmp:rw,noexec,size=64m,mode=1777 --mount type=bind,src=/tmp/refit-validation-4NzVRq/baseline,dst=/input,readonly --mount type=bind,src=/tmp/refit-validation-4NzVRq/dependencies.tar,dst=/dependencies.tar,readonly --workdir /workspace --entrypoint /bin/sh sha256:0a7108bf6c7bf5de370ffb1a3ed6be93d405b43ff159f681a8d18c0e2bc2e402 -c cp -R /input/. /workspace/ && tar -xf /dependencies.tar -C /workspace/ && export PATH=\"/workspace/node_modules/.refit-tools/node_modules/.bin:/workspace/node_modules/.bin:$PATH\" && exec \"$@\" refit-check npx --no-install tsc --noEmit --pretty false -p .\n"
+    },
+    "patched": {
+      "status": "passed",
+      "exitCode": 2,
+      "stdout": "",
+      "stderr": "",
+      "error": "Command failed: docker run --name refit-76a89df9-1869-4ec7-a0cb-b04c919a6934 --pull never --network none --read-only --user 65534:65534 --cap-drop ALL --security-opt no-new-privileges --pids-limit 128 --memory 3g --cpus 1 --tmpfs /workspace:rw,exec,size=2g,uid=65534,gid=65534,mode=0700 --tmpfs /tmp:rw,noexec,size=64m,mode=1777 --mount type=bind,src=/tmp/refit-validation-4NzVRq/candidate-BPug4s,dst=/input,readonly --mount type=bind,src=/tmp/refit-validation-4NzVRq/candidate-BPug4s-dependencies.tar,dst=/dependencies.tar,readonly --workdir /workspace --entrypoint /bin/sh sha256:0a7108bf6c7bf5de370ffb1a3ed6be93d405b43ff159f681a8d18c0e2bc2e402 -c cp -R /input/. /workspace/ && tar -xf /dependencies.tar -C /workspace/ && export PATH=\"/workspace/node_modules/.refit-tools/node_modules/.bin:/workspace/node_modules/.bin:$PATH\" && exec \"$@\" refit-check npx --no-install tsc --noEmit --pretty false -p .\n"
+    },
+    "generated": {
+      "engine": "stripe-mock",
+      "image": "sha256:aeb96b83e87a893d2ac005e363ac01ffa6e59a5ad85b49c155dfc9129de02e78",
+      "binaryHash": "a14f5b5e15c6fa21c3c399438c6e5f47f0c7732ec882a3e0e775c309d96c1a5c",
+      "inputs": {
+        "before": {
+          "contract": "544dca7224a0abfef4b5eb77aaac30ad1eeb24d15e0be423a40b05a3761cfddc",
+          "fixtures": "64de3e9b3782269fc082536f4bd13e1b76d665fa5b42eeb06ee4e61cfa138fb3"
+        },
+        "after": {
+          "contract": "7cff4cc46d0654101a36a3302f7544640f5f73e4f3cad6f264f0e23c19fa1776",
+          "fixtures": "e6822f7ee6fd71bdde6228537368aafcfb7191109340fe119d9aca27c6e9396d"
+        }
+      },
+      "entryPoints": [],
+      "uncoveredFindings": 1,
+      "notRunnable": [],
+      "regressions": [],
+      "baseline": {
+        "status": "not-run",
+        "exitCode": null,
+        "stdout": "",
+        "stderr": ""
+      },
+      "patched": {
+        "status": "not-run",
+        "exitCode": null,
+        "stdout": "",
+        "stderr": ""
+      },
+      "claim": "Exported functions enclosing confirmed findings ran against stripe-mock serving each side's contract and fixtures. Placeholder fixtures check response shapes, not business data or application tests."
+    },
+    "attempts": [],
+    "repair": {
+      "limit": 1,
+      "requested": 0,
+      "stopReason": "not-needed-or-disabled",
+      "error": null
+    },
+    "limits": {
+      "timeoutMs": 120000,
+      "outputBytes": 1048576,
+      "network": "none",
+      "workspace": "2g",
+      "memory": "3g"
+    },
+    "publishable": false,
+    "reason": "Validation records check results only. Draft publication requires an explicit GitHub target and passing checks; migration semantics require human review."
+  },
+  "changes": [
+    {
+      "id": "eefe4ea32b74e64919fbc645",
+      "schema": "invoice",
+      "property": "subscription",
+      "pointer": "/components/schemas/invoice/properties/subscription"
+    }
+  ],
+  "storedResult": "refit-stripe-fresh/run-6d4f38a-c/repos/tmachnacki__podvex/run/report.json",
+  "storedResultNote": "Lockfile hunks are cut to their first lines; patchHash is recomputed for the cut diff."
+}

@@ -1130,6 +1130,8 @@ it('keeps the shipped registry valid and sourced', async () => {
       'mailchimp',
       'airtable',
       'hubspot',
+      'aws',
+      'azure',
     ]),
   );
 });

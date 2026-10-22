@@ -1,10 +1,11 @@
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { repositoryApiVersionPins, type ApiVersionPin } from './commerce-api-versions.ts';
 import { declaredPackageNames, readRepository } from './repository.ts';
 import { parseObject } from './specifications.ts';
 import { PipelineInputError, type Repository } from './types.ts';
+import { contractCommand } from './contract-commands.ts';
 
 const PLACEHOLDER_TEST = /no test specified/;
 const LOCKFILES = ['package-lock.json', 'pnpm-lock.yaml', 'yarn.lock'];
@@ -19,6 +20,12 @@ export interface ProviderAgent {
   adapter: { builtIn: string } | { file: string } | null;
   guide: string | null;
 }
+
+// The retired legacy (track 1) Azure SDK packages, generated from Microsoft's release data by
+// scripts/azure-sdk-retirements.mjs.
+const AZURE_LEGACY_PACKAGES: string[] = JSON.parse(
+  readFileSync(new URL('../data/azure-sdk-retirements.json', import.meta.url), 'utf8'),
+).packages.map((item: { name: string }) => item.name);
 
 // Source: npm package names and documented API base URLs on each provider's docs, 2026-10-15.
 export const AGENT_CATALOG: ProviderAgent[] = [
@@ -494,6 +501,27 @@ export const AGENT_CATALOG: ProviderAgent[] = [
     adapter: null,
     guide: null,
   },
+  // AWS SDK for JavaScript v2, whose support ended on 2025-09-08 (data/deadlines.json). No hostname:
+  // amazonaws.com also appears in S3 asset URLs and CSP lists that use no SDK. v3's per-service
+  // @aws-sdk/client-* packages are listed by scanCloudSdkClients (pipeline/cloud-sdk-clients.ts)
+  // rather than named here one by one.
+  {
+    id: 'aws',
+    name: 'AWS SDK for JavaScript',
+    packages: ['aws-sdk'],
+    hostnames: [],
+    adapter: null,
+    guide: null,
+  },
+  // Only the retired legacy Azure SDK packages: their end of life is the deadline Refit monitors.
+  {
+    id: 'azure',
+    name: 'Azure SDK (legacy)',
+    packages: AZURE_LEGACY_PACKAGES,
+    hostnames: [],
+    adapter: null,
+    guide: null,
+  },
 ];
 
 const MAX_HOSTNAME_EVIDENCE = 5;
@@ -665,17 +693,12 @@ export function addAgents(options: {
     });
     added.push(id);
     nextSteps.push(
-      `Save reviewed ${detection.agent.name} contracts at refit/${id}-before.json and refit/${id}-after.json` +
-        (id === 'stripe'
-          ? ' (refit stripe-snapshot --revision <sha> --output …).'
-          : id === 'shopify'
-            ? ' (refit shopify-snapshot --version <pinned version, or 2026-01 if older> --output … and --version <target>).'
-            : ' (refit source-snapshot …).'),
+      `Save reviewed ${detection.agent.name} contracts: ${contractCommand(id, 'before', `refit/${id}-before.json`)} and ${contractCommand(id, 'after', `refit/${id}-after.json`)}.`,
     );
   }
   if (added.length)
     nextSteps.push(
-      'Review the check command, then run refit doctor. Nothing runs until you approve the configuration with refit enroll.',
+      'Review the check command in .refit.json, commit .refit.json and the contracts, then run refit doctor. The GitHub App runs nothing until you approve the configuration with refit enroll.',
     );
   return {
     configuration: { formatVersion: 2, integrations },

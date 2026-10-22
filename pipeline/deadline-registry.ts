@@ -38,6 +38,8 @@ const PROVIDERS = new Set([
   'mailchimp',
   'airtable',
   'hubspot',
+  'aws',
+  'azure',
 ]);
 const KINDS = new Set(['api-version', 'model', 'sdk', 'method', 'endpoint', 'field', 'feature']);
 const ENTRY_KEYS = [
@@ -100,7 +102,9 @@ export interface DeadlineEntry {
     | 'zoom'
     | 'mailchimp'
     | 'airtable'
-    | 'hubspot';
+    | 'hubspot'
+    | 'aws'
+    | 'azure';
   kind: 'api-version' | 'model' | 'sdk' | 'method' | 'endpoint' | 'field' | 'feature';
   versions: string[];
   date: string;
