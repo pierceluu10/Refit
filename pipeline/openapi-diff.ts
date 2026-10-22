@@ -196,7 +196,7 @@ export async function compareOpenApi(
     ).stdout.trim();
     const { stdout } = await execute(
       'oasdiff',
-      ['changelog', revision, base, '--format', 'json', '--allow-external-refs=false'],
+      ['changelog', base, revision, '--format', 'json', '--allow-external-refs=false'],
       { timeout: DIFF_TIMEOUT_MS, maxBuffer: MAX_DIFF_BYTES },
     );
     const changes: unknown = JSON.parse(stdout);

@@ -306,7 +306,7 @@ export async function openHostedStore(pool: Pool) {
            JOIN refit_approvals a
              ON a.repository = t.repository AND a.base = t.base AND a.fingerprint = t.fingerprint
            WHERE t.status = 'enrolled'
-             AND j.status = 'queued'
+             AND (j.status = 'queued' OR (j.status = 'running' AND j.lease_expires_at < now()))
            ORDER BY j.id LIMIT 1 FOR UPDATE OF j SKIP LOCKED)
          RETURNING id, target_id, retry`,
           [worker, leaseSeconds],

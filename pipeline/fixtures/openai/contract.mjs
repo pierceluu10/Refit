@@ -7,7 +7,7 @@ import { resolve } from 'node:path';
 const [source, mode, variant = 'model'] = process.argv.slice(2);
 assert.ok(mode === 'before' || mode === 'after');
 assert.ok(variant === 'model' || variant === 'chat');
-const MODEL = 'gpt-4.1';
+const MODEL = 'gpt-4.1-mini';
 const PROMPT = 'Offline conformance test';
 const MODEL_PATH = `/v1/models/${MODEL}`;
 const CHAT_PATH = '/v1/chat/completions';
