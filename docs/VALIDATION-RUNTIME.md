@@ -66,3 +66,18 @@ The census covers every repository in the frozen Stripe and Shopify lists, read 
 - **Lines needed:** of the 53 repositories that need another allowed line, the highest satisfying line is 24 for 23, 20 for 21, 18 for 7, and an older 22.x release than 22.23.3 for 2 (exact `engines.node` pins, which stop).
 - **No allowed line:** 6 of the 9 pin Node 16 in `.nvmrc`; the others are `.nvmrc 26.1.0`, `.nvmrc v19.4.0`, and `.nvmrc 18` with `engines.node ">=20.0.0"`.
 - **Unreadable:** the one unreadable declaration is `.nvmrc "v22/*"`.
+
+## Failures in the committed results
+
+The committed Stripe and Shopify results record 12 repositories whose dependency preparation or baseline check failed. Their stored reasons keep only the first line of the error, so each was rerun on 2026-10-22 at its frozen commit with Refit at `973d476`. Dependency preparation ran on `node:22-alpine`, the benchmark's image, and when it succeeded the benchmark's own check followed: the test script, else `tsc --noEmit -p .`. None of the 12 fails because of a Node.js version mismatch. Ten declare no version; deepa-test-app (`>=20.19 <22 || >=22.12`) and ampertalent (`>=18.0.0`) declare one that 22.23.3 satisfies, so this change keeps their image.
+
+| Cause on 2026-10-22 | Repositories |
+| --- | --- |
+| Yarn 1 runs out of space in the 2 GiB installer workspace (ENOSPC) | vignesh-gupta/digibee-marketplace, Strata-Labs/BitScript, shaoxuan0916/life-slice, Addisu87/digital-marketplace |
+| Checks need the Prisma client generated (`@prisma/client` has no `PrismaClient`, or `.prisma/client/default` is missing) | zero19124/next-ai-platform, Sanjdcool/ApanStack-Newsletter, utsavkrishnatra/pdf_answers (which also has unrelated type errors) |
+| `package-lock.json` out of sync with `package.json` | muhallimir/ampertalent, devczero/saas-pdf-analysis-dev |
+| Dependency archive over 1 GiB | adamhitzger/financehb |
+| `tsc` finds no input files for the committed `tsconfig.json` | Mohanatheeba/deepa-test-app |
+| Jest cannot load `jest.config.ts`: Node.js 22 loads it as native ESM, where the extensionless `import 'next/jest'` does not resolve | 4NDR3S-01/StyleHub |
+
+StyleHub is the only one that may depend on the Node.js release, and it declares none, so a declaration-driven choice cannot reach it. next-ai-platform and pdf_answers failed preparation in the committed run but prepare at current `main`; the stored reasons do not say why they failed then.
