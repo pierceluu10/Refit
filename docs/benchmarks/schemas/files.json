@@ -145,6 +145,10 @@
       "format": "meta-platform-results",
       "predates": []
     },
+    "2026-10-22-model-wrapper-app-results.json": {
+      "format": "ai-model-results",
+      "predates": ["/harness", "/results/*/outcomeClass"]
+    },
     "2026-10-22-openai-app-results.json": {
       "format": "ai-model-results",
       "predates": ["/harness", "/results/*/outcomeClass"]

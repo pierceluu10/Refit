@@ -81,3 +81,21 @@ it('returns the patch untested on a repository-side preparation failure only whe
     sandbox,
   );
 });
+
+it('records how long each validation stage took', async () => {
+  vi.mocked(prepareDependencies).mockRejectedValue(
+    new PipelineInputError(
+      'package.json dependencies differ from the committed package-lock.json: stripe is "11.0.0" in package.json but missing in the lockfile. Run npm install and commit the updated package-lock.json.',
+    ),
+  );
+  const report = await validateMigration({ ...(await options()), recordDependencyFailures: true });
+  // Stages that never ran (checks, here) are absent rather than zero.
+  expect(Object.keys(report.validation.timings ?? {}).sort()).toEqual([
+    'candidates',
+    'preparation',
+    'proposal',
+    'snapshot',
+  ]);
+  for (const milliseconds of Object.values(report.validation.timings ?? {}))
+    expect(Number.isInteger(milliseconds) && milliseconds >= 0).toBe(true);
+});

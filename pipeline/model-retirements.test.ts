@@ -2342,7 +2342,16 @@ it('explains every live model ID that no traced request sends', async () => {
       "export const model = anthropic('claude-3-opus-20240229');",
     ].join('\n'),
   });
-  expect((await proposeModelReplacements(withoutSdk, registry, NOW)).unresolved).toMatchObject([
+  // An AI wrapper SDK call is listed by the wrapper detector (pipeline/model-wrappers.ts).
+  const wrapped = await proposeModelReplacements(withoutSdk, registry, NOW);
+  expect(wrapped.unresolved).toEqual([]);
+  expect(wrapped.stops).toMatchObject([
+    { file: 'src/model.ts', line: 2, call: '@ai-sdk/anthropic anthropic()' },
+  ]);
+  // Without the detector, the same match is unresolved, with where it is written.
+  expect(
+    (await proposeModelReplacements(withoutSdk, registry, NOW, { reportOnly: [] })).unresolved,
+  ).toMatchObject([
     {
       file: 'src/model.ts',
       line: 2,

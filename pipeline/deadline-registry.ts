@@ -6,6 +6,7 @@ import { PipelineInputError } from './types.ts';
 export const DEFAULT_DEADLINE_REGISTRY = new URL('../data/deadlines.json', import.meta.url);
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 const ENTRY_ID = /^[a-z0-9][a-z0-9-]{0,95}$/;
+// `bedrock` and `azure-openai` hold the clouds' own dates for the models and API versions they host.
 const PROVIDERS = new Set([
   'shopify',
   'meta-graph',
@@ -30,6 +31,8 @@ const PROVIDERS = new Set([
   'easypost',
   'lob',
   'coinbase-commerce',
+  'bedrock',
+  'azure-openai',
   'aws',
   'azure',
 ]);
@@ -86,6 +89,8 @@ export interface DeadlineEntry {
     | 'easypost'
     | 'lob'
     | 'coinbase-commerce'
+    | 'bedrock'
+    | 'azure-openai'
     | 'aws'
     | 'azure';
   kind: 'api-version' | 'model' | 'sdk' | 'method' | 'endpoint' | 'field' | 'feature';

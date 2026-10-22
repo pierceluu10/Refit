@@ -49,6 +49,7 @@ import { SUBSCRIPTION_PERIOD_RULE } from './stripe-subscription-periods.ts';
 import { selectValidationRuntime } from './validation-runtime.ts';
 import {
   dockerSandboxArguments,
+  preparationProfile,
   removeDockerContainer,
   removeExpiredSandboxContainers,
   resolveDockerImage,
@@ -217,6 +218,35 @@ async function containerCheck({
   } finally {
     // A killed Docker client does not necessarily stop the container it started.
     await removeDockerContainer(name);
+  }
+}
+
+const GIB = 1024 ** 3;
+
+// Running two sandboxes at once is an operator opt-in (owner decision, 2026-10-22): the memory
+// check below reads the host's total, not what other validations already hold.
+const OVERLAP_SETTING = 'REFIT_VALIDATION_OVERLAP';
+
+// Two sandboxes at once need room for both at their memory limit (two installs, or two checks)
+// and 1 GiB more. Without the opt-in, or on a smaller host such as the 4 GB hosted worker,
+// validation runs one sandbox at a time as before.
+async function roomForTwoSandboxes() {
+  if (process.env[OVERLAP_SETTING] !== '1') return false;
+  const limit = Math.max(
+    ...[preparationProfile().memory, validationProfile().memory].map(
+      (memory) => Number.parseInt(memory, 10) * GIB,
+    ),
+  );
+  try {
+    const { stdout } = await execute('docker', ['info', '--format', '{{.MemTotal}}'], {
+      timeout: PROCESS_TIMEOUT_MS,
+      maxBuffer: MAX_OUTPUT_BYTES,
+      encoding: 'utf8',
+    });
+    return Number(stdout.trim()) >= 2 * limit + GIB;
+  } catch {
+    // A host Refit cannot measure gets the sequential path, which needs no extra room.
+    return false;
   }
 }
 
@@ -399,32 +429,30 @@ async function generatedStripeChecks(options: {
   };
   await writeHarness(tools, entries, options.imports);
   const notRun: CheckResult = { status: 'not-run', exitCode: null, stdout: '', stderr: '' };
-  const results: CheckResult[] = [];
-  for (const run of options.runs) {
-    if (!entries.length) {
-      results.push(notRun);
-      continue;
-    }
+  // Each side runs in its own offline sandbox with its own stripe-mock, so both may run at once.
+  const generatedRun = async (run: (typeof options.runs)[number]) => {
+    if (!entries.length) return notRun;
     options.onProgress?.(
       `Running generated Stripe checks against ${run.side}-version stripe-mock in offline Docker...`,
     );
-    results.push(
-      await containerCheck({
-        directory: run.directory,
-        image: options.image,
-        command: generatedCommand(),
-        dependencies: run.dependencies ?? options.dependencies,
-        readOnlyMounts: [
-          { source: mock.binary, target: '/refit/stripe-mock' },
-          { source: run.contract, target: '/refit/spec.json' },
-          { source: fixtures[run.side], target: '/refit/fixtures.json' },
-          { source: tools, target: '/refit/generated' },
-          { source: typescriptDirectory(), target: '/refit/typescript' },
-        ],
-        signal: options.signal,
-      }),
-    );
-  }
+    return containerCheck({
+      directory: run.directory,
+      image: options.image,
+      command: generatedCommand(),
+      dependencies: run.dependencies ?? options.dependencies,
+      readOnlyMounts: [
+        { source: mock.binary, target: '/refit/stripe-mock' },
+        { source: run.contract, target: '/refit/spec.json' },
+        { source: fixtures[run.side], target: '/refit/fixtures.json' },
+        { source: tools, target: '/refit/generated' },
+        { source: typescriptDirectory(), target: '/refit/typescript' },
+      ],
+      signal: options.signal,
+    });
+  };
+  const results = (await roomForTwoSandboxes())
+    ? await Promise.all(options.runs.map(generatedRun))
+    : [await generatedRun(options.runs[0]), await generatedRun(options.runs[1])];
   return {
     engine: 'stripe-mock',
     image: mock.imageId,
@@ -533,24 +561,80 @@ export async function validateMigration(options: {
   const runtime = await selectValidationRuntime(snapshot, options.image);
   const image = await resolveDockerImage(runtime.image);
   const root = await mkdtemp(join(tmpdir(), 'refit-validation-'));
+  // Wall-clock milliseconds per stage, summed over repeats; they vary between runs.
+  const timings: Record<string, number> = {};
+  const timed = async <T>(stage: string, work: () => Promise<T>) => {
+    const started = performance.now();
+    try {
+      return await work();
+    } finally {
+      timings[stage] = (timings[stage] ?? 0) + Math.round(performance.now() - started);
+    }
+  };
+  // Without AI the proposal does not depend on the baseline, so when the Docker host has room for
+  // two sandboxes the patch, its dependencies and its checks run alongside the baseline's. Results the sequential order would not have used are
+  // discarded unread; anything still running is cancelled and awaited before validation returns.
+  const independent = !options.aiPatch && !options.assessment && (await roomForTwoSandboxes());
+  const speculation = new AbortController();
+  const stopSpeculation = () => speculation.abort();
+  options.signal?.addEventListener('abort', stopSpeculation, { once: true });
+  const speculative: Promise<unknown>[] = [];
+  const ahead = <T>(work: () => Promise<T>) => {
+    const promise = work();
+    promise.catch(() => undefined);
+    speculative.push(promise);
+    return promise;
+  };
   try {
-    const { archive, archiveHash, baselineDirectory } = await extractSnapshot(
-      repository,
-      revision,
-      root,
+    const { archive, archiveHash, baselineDirectory } = await timed('snapshot', () =>
+      extractSnapshot(repository, revision, root),
     );
+    const propose = (baselinePassed: boolean) =>
+      timed('proposal', () =>
+        runPipeline({
+          ...options,
+          repository: baselineDirectory,
+          proposePatch: true,
+          aiPatch: baselinePassed ? options.aiPatch : undefined,
+          assessment: baselinePassed ? options.assessment : undefined,
+          onProgress: baselinePassed ? options.onProgress : undefined,
+        }),
+      );
+    const proposed = independent ? ahead(() => propose(true)) : undefined;
+    // A patch that changes the lockfile prepares its own dependencies; that install starts now.
+    const candidateInstall =
+      proposed && options.prepareDependencies
+        ? ahead(async () => {
+            const { patch } = await proposed;
+            const diff = 'diff' in patch ? patch.diff : '';
+            if (!diff || !packageDiff(diff)) return undefined;
+            const directory = await mkdtemp(join(root, 'candidate-'));
+            await applyPatch(archive, directory, `${directory}.patch`, diff);
+            return {
+              directory,
+              ...(await timed('candidatePreparation', () =>
+                prepareCandidateDependencies(directory, root, image, {
+                  ...options,
+                  signal: speculation.signal,
+                }),
+              )),
+            };
+          })
+        : undefined;
     let dependencies: string | undefined;
     let environment: Record<string, unknown> | undefined;
     let dependencyFailure: ReturnType<typeof repositoryDependencyFailure> = undefined;
     let prepared: Awaited<ReturnType<typeof prepareDependencies>> | undefined;
     if (options.prepareDependencies)
       try {
-        prepared = await prepareDependencies({
-          repository,
-          image,
-          signal: options.signal,
-          onProgress: options.onProgress,
-        });
+        prepared = await timed('preparation', () =>
+          prepareDependencies({
+            repository,
+            image,
+            signal: options.signal,
+            onProgress: options.onProgress,
+          }),
+        );
       } catch (error) {
         dependencyFailure = options.recordDependencyFailures
           ? repositoryDependencyFailure(error)
@@ -560,63 +644,40 @@ export async function validateMigration(options: {
       }
     if (prepared) {
       dependencies = join(root, 'dependencies.tar');
-      environment = await snapshotDependencies(prepared, dependencies);
-    }
-    options.signal?.throwIfAborted();
-    if (!dependencyFailure) options.onProgress?.('Running baseline checks in offline Docker...');
-    const baselineRun: CheckResult = dependencyFailure
-      ? { status: 'not-run', exitCode: null, stdout: '', stderr: '' }
-      : await containerCheck({
-          directory: baselineDirectory,
-          image,
-          command: baselineCommand,
-          dependencies,
-          signal: options.signal,
-        });
-    const { baseline, compared } = typeCheckComparison(baselineRun, options.compareTypeErrors);
-    options.signal?.throwIfAborted();
-    const report = await runPipeline({
-      ...options,
-      repository: baselineDirectory,
-      proposePatch: true,
-      aiPatch: baseline.status === 'passed' ? options.aiPatch : undefined,
-      assessment: baseline.status === 'passed' ? options.assessment : undefined,
-      onProgress: baseline.status === 'passed' ? options.onProgress : undefined,
-    });
-    const configuredEndpointProposal = report.operationChanges.some(
-      (change) => change.usages.length > 0,
-    );
-    const configuredRequestProposal = report.requestChanges?.some(
-      (change) => change.usages.length > 0,
-    );
-    const [beforeSpecification, afterSpecification] = await Promise.all([
-      readSpecification(options.before),
-      readSpecification(options.after),
-    ]);
-    if (beforeSpecification.hash !== report.snapshots.before)
-      throw new PipelineInputError('Baseline specification changed during validation.');
-    if (afterSpecification.hash !== report.snapshots.after)
-      throw new PipelineInputError('Current specification changed during validation.');
-    if (
-      !('diff' in report.patch) ||
-      (!report.patch.diff && (baseline.status === 'passed' || dependencyFailure))
-    )
-      throw new PipelineInputError(
-        'No supported patch proposal is available for this committed revision.',
+      environment = await timed('dependencySnapshot', () =>
+        snapshotDependencies(prepared!, dependencies!),
       );
-    let proposal = report.patch;
-    const originalSources = await readRepository(baselineDirectory, report.adapter.packageName);
-    const prepareCandidate = async (diff: string) => {
+    }
+    type Report = Awaited<ReturnType<typeof runPipeline>>;
+    type Install = Awaited<NonNullable<typeof candidateInstall>>;
+    const prepareCandidate = (
+      diff: string,
+      originalSources: Awaited<ReturnType<typeof readRepository>>,
+      report: Report,
+      install?: Promise<Install>,
+    ) => timed('candidates', () => buildCandidate(diff, originalSources, report, install));
+    const buildCandidate = async (
+      diff: string,
+      originalSources: Awaited<ReturnType<typeof readRepository>>,
+      report: Report,
+      install?: Promise<Install>,
+    ) => {
+      // The install started with the proposal, for this diff, when the patch changes the lockfile.
+      const installed = install && (await install);
       // Reusing a removed bind-mount path can expose a stale directory in Docker Desktop.
-      const patchedDirectory = await mkdtemp(join(root, 'candidate-'));
-      await applyPatch(archive, patchedDirectory, join(root, 'migration.patch'), diff);
+      const patchedDirectory = installed?.directory ?? (await mkdtemp(join(root, 'candidate-')));
+      if (!installed)
+        await applyPatch(archive, patchedDirectory, `${patchedDirectory}.patch`, diff);
       // An SDK upgrade in the patch needs dependencies prepared from the patched lockfile, which
       // preparation reads from a committed snapshot.
       let candidateDependencies = dependencies;
       let candidateEnvironment: Record<string, unknown> | undefined;
       if (packageDiff(diff) && options.prepareDependencies && !dependencyFailure)
         ({ dependencies: candidateDependencies, environment: candidateEnvironment } =
-          await prepareCandidateDependencies(patchedDirectory, root, image, options));
+          installed ??
+          (await timed('candidatePreparation', () =>
+            prepareCandidateDependencies(patchedDirectory, root, image, options),
+          )));
       const patchedSources = await readRepository(patchedDirectory, report.adapter.packageName);
       const shopify = report.provider === SHOPIFY.id;
       const declarations = shopify
@@ -683,10 +744,80 @@ export async function validateMigration(options: {
         environment: candidateEnvironment,
       };
     };
+    options.signal?.throwIfAborted();
+    const earlyReport = proposed && (await proposed);
+    const earlyDiff =
+      earlyReport && 'diff' in earlyReport.patch ? earlyReport.patch.diff : undefined;
+    // Built only to run beside the baseline; used only where the sequential order would use it.
+    const speculativeCandidate =
+      earlyReport && earlyDiff && !dependencyFailure
+        ? ahead(async () =>
+            prepareCandidate(
+              earlyDiff,
+              await readRepository(baselineDirectory, earlyReport.adapter.packageName),
+              earlyReport,
+              candidateInstall,
+            ),
+          )
+        : undefined;
+    const speculativePatched =
+      speculativeCandidate &&
+      ahead(async () => {
+        const candidate = await speculativeCandidate;
+        return timed('patchedChecks', () =>
+          containerCheck({
+            directory: candidate.directory,
+            image,
+            command: options.command,
+            dependencies: candidate.dependencies,
+            signal: speculation.signal,
+          }),
+        );
+      });
+    if (!dependencyFailure) options.onProgress?.('Running baseline checks in offline Docker...');
+    const baselineRun: CheckResult = dependencyFailure
+      ? { status: 'not-run', exitCode: null, stdout: '', stderr: '' }
+      : await timed('baselineChecks', () =>
+          containerCheck({
+            directory: baselineDirectory,
+            image,
+            command: baselineCommand,
+            dependencies,
+            signal: options.signal,
+          }),
+        );
+    const { baseline, compared } = typeCheckComparison(baselineRun, options.compareTypeErrors);
+    options.signal?.throwIfAborted();
+    const report = earlyReport || (await propose(baseline.status === 'passed'));
+    const configuredEndpointProposal = report.operationChanges.some(
+      (change) => change.usages.length > 0,
+    );
+    const configuredRequestProposal = report.requestChanges?.some(
+      (change) => change.usages.length > 0,
+    );
+    const [beforeSpecification, afterSpecification] = await Promise.all([
+      readSpecification(options.before),
+      readSpecification(options.after),
+    ]);
+    if (beforeSpecification.hash !== report.snapshots.before)
+      throw new PipelineInputError('Baseline specification changed during validation.');
+    if (afterSpecification.hash !== report.snapshots.after)
+      throw new PipelineInputError('Current specification changed during validation.');
+    if (
+      !('diff' in report.patch) ||
+      (!report.patch.diff && (baseline.status === 'passed' || dependencyFailure))
+    )
+      throw new PipelineInputError(
+        'No supported patch proposal is available for this committed revision.',
+      );
+    let proposal = report.patch;
+    const originalSources = await readRepository(baselineDirectory, report.adapter.packageName);
     // An untested patch is still applied, so its publication files come from the same candidate.
     const initialCandidate =
       baseline.status === 'passed' || dependencyFailure
-        ? await prepareCandidate(proposal.diff)
+        ? await (speculativeCandidate && baseline.status === 'passed'
+            ? speculativeCandidate
+            : prepareCandidate(proposal.diff, originalSources, report))
         : undefined;
     let publicationFiles = initialCandidate?.publicationFiles ?? [];
     let candidateDirectory = initialCandidate?.directory;
@@ -700,13 +831,17 @@ export async function validateMigration(options: {
     if (runPatched) options.onProgress?.('Running patched checks in offline Docker...');
     let patched: CheckResult = runPatched
       ? compared(
-          await containerCheck({
-            directory: initialCandidate.directory,
-            image,
-            command: options.command,
-            dependencies: initialCandidate.dependencies,
-            signal: options.signal,
-          }),
+          await (speculativePatched && baseline.status === 'passed'
+            ? speculativePatched
+            : timed('patchedChecks', () =>
+                containerCheck({
+                  directory: initialCandidate.directory,
+                  image,
+                  command: options.command,
+                  dependencies: initialCandidate.dependencies,
+                  signal: options.signal,
+                }),
+              )),
         )
       : { status: 'not-run', exitCode: null, stdout: '', stderr: '' };
     const attempts: ValidationAttempt[] = [];
@@ -785,15 +920,17 @@ export async function validateMigration(options: {
       options.onProgress?.(
         'Restoring stripe-node open-enum literals; running checks in offline Docker...',
       );
-      const prepared = await prepareCandidate(diff);
+      const prepared = await prepareCandidate(diff, originalSources, report);
       const check = compared(
-        await containerCheck({
-          directory: prepared.directory,
-          image,
-          command: options.command,
-          dependencies: prepared.dependencies,
-          signal: options.signal,
-        }),
+        await timed('patchedChecks', () =>
+          containerCheck({
+            directory: prepared.directory,
+            image,
+            command: options.command,
+            dependencies: prepared.dependencies,
+            signal: options.signal,
+          }),
+        ),
       );
       if (check.status === 'passed') {
         proposal = { ...proposal, diff };
@@ -895,7 +1032,7 @@ export async function validateMigration(options: {
           repair.stopReason = 'repeated-proposal';
           break;
         }
-        const preparedCandidate = await prepareCandidate(candidate.diff);
+        const preparedCandidate = await prepareCandidate(candidate.diff, originalSources, report);
         // A removed request parameter has no reviewed replacement; a repair must not drop it.
         const dropped = droppedRequestParameters(
           removedParameters,
@@ -910,13 +1047,15 @@ export async function validateMigration(options: {
         }
         options.onProgress?.('Running repaired checks in offline Docker...');
         const check = compared(
-          await containerCheck({
-            directory: preparedCandidate.directory,
-            image,
-            command: options.command,
-            dependencies: preparedCandidate.dependencies,
-            signal: options.signal,
-          }),
+          await timed('patchedChecks', () =>
+            containerCheck({
+              directory: preparedCandidate.directory,
+              image,
+              command: options.command,
+              dependencies: preparedCandidate.dependencies,
+              signal: options.signal,
+            }),
+          ),
         );
         candidateDependencies = preparedCandidate.dependencies;
         candidateEnvironment = preparedCandidate.environment;
@@ -944,25 +1083,27 @@ export async function validateMigration(options: {
       candidateDirectory &&
       baseline.status === 'passed' &&
       patched.status === 'passed'
-        ? await generatedStripeChecks({
-            settings: options.generatedChecks,
-            root,
-            image,
-            dependencies,
-            entryPoints: generatedEntryPoints(originalSources, report.findings),
-            imports: generatedImportMap(originalSources),
-            runs: [
-              { directory: baselineDirectory, contract: options.before, side: 'before' },
-              {
-                directory: candidateDirectory,
-                contract: options.after,
-                side: 'after',
-                dependencies: candidateDependencies,
-              },
-            ],
-            onProgress: options.onProgress,
-            signal: options.signal,
-          })
+        ? await timed('generatedChecks', () =>
+            generatedStripeChecks({
+              settings: options.generatedChecks!,
+              root,
+              image,
+              dependencies,
+              entryPoints: generatedEntryPoints(originalSources, report.findings),
+              imports: generatedImportMap(originalSources),
+              runs: [
+                { directory: baselineDirectory, contract: options.before, side: 'before' },
+                {
+                  directory: candidateDirectory,
+                  contract: options.after,
+                  side: 'after',
+                  dependencies: candidateDependencies,
+                },
+              ],
+              onProgress: options.onProgress,
+              signal: options.signal,
+            }),
+          )
         : undefined;
     const currentRevision = (await git(['rev-parse', '--verify', 'HEAD^{commit}'])).stdout.trim();
     const currentStatus = (await git(['status', '--porcelain', '--untracked-files=all'])).stdout;
@@ -997,6 +1138,7 @@ export async function validateMigration(options: {
       repair,
       ...(reviewTypeErrors.length ? { reviewTypeErrors } : {}),
       ...namedBaselineStop(validationStatus, baselineRun),
+      ...(Object.keys(timings).length ? { timings } : {}),
       limits: validationLimits(),
       publishable: false,
       reason:
@@ -1009,6 +1151,9 @@ export async function validateMigration(options: {
       publicationFiles,
     };
   } finally {
+    speculation.abort();
+    options.signal?.removeEventListener('abort', stopSpeculation);
+    await Promise.allSettled(speculative);
     await rm(root, { recursive: true, force: true });
   }
 }
