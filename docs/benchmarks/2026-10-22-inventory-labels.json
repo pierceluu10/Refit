@@ -119,6 +119,17 @@
           "line": 22,
           "monorepo": false,
           "notes": "webpage to Markdown service"
+        },
+        {
+          "provider": "aws",
+          "via": "http",
+          "package": null,
+          "host": "pmc-oa-opendata.s3.amazonaws.com",
+          "language": "typescript",
+          "file": "lib/literature/search.ts",
+          "line": 140,
+          "monorepo": false,
+          "notes": "S3 ListObjectsV2 on the PMC open-data bucket; correction 3"
         }
       ]
     },
@@ -764,6 +775,17 @@
           "line": 23,
           "monorepo": false,
           "notes": "Jira Cloud gateway"
+        },
+        {
+          "provider": "aws",
+          "via": "http",
+          "package": null,
+          "host": "sts.amazonaws.com",
+          "language": "typescript",
+          "file": "server/src/artifacts/s3-credentials.ts",
+          "line": 70,
+          "monorepo": false,
+          "notes": "STS AssumeRoleWithWebIdentity the repository codes itself; default AWS endpoint; correction 3"
         }
       ]
     },
