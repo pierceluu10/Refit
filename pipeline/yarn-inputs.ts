@@ -322,9 +322,12 @@ export function validateBerryInputs(
       for (const [name, range] of Object.entries(dependencies))
         if (
           typeof range !== 'string' ||
-          !(range.startsWith('workspace:') && names.has(name)
-            ? descriptors.has(`${name}@${range}`)
-            : !LOCAL_OR_ALIASED.test(range) && descriptors.has(`${name}@npm:${range}`))
+          // A sibling workspace is recorded as `name@range` for a workspace: range or for a plain
+          // range Yarn resolved to the workspace; registry packages as `name@npm:range`.
+          !(
+            (names.has(name) && descriptors.has(`${name}@${range}`)) ||
+            (!LOCAL_OR_ALIASED.test(range) && descriptors.has(`${name}@npm:${range}`))
+          )
         )
           throw new PipelineInputError(
             `${name}@${String(range)} in ${file} is not a public registry dependency or a sibling workspace recorded in yarn.lock; regenerate the lockfile or use a custom image.`,

@@ -457,6 +457,16 @@ it('accepts Yarn 2+ workspaces recorded in the lockfile and refuses unrecorded o
   ).toThrow(
     'lodash@^4.0.0 in packages/shared/package.json is not a public registry dependency or a sibling workspace recorded in yarn.lock; regenerate the lockfile or use a custom image.',
   );
+  // Yarn records a plain range it resolved to a sibling workspace without the npm: prefix.
+  expect(() =>
+    validateBerryInputs(
+      JSON.stringify({ ...JSON.parse(root), dependencies: { shared: '1.0.0' } }),
+      lock.replace('"shared@workspace:^, ', '"shared@1.0.0, '),
+      BERRY_RC,
+      undefined,
+      contents,
+    ),
+  ).not.toThrow();
   // A workspace: range must name a sibling workspace.
   expect(() =>
     validateBerryInputs(
@@ -596,4 +606,22 @@ it('accepts platform-specific Yarn packages without checksums and installs none 
   expect(YARN_SKIP_PLATFORM_PACKAGES).toBe(
     "printf 'supportedArchitectures:\\n  os: [refit-none]\\n  cpu: [refit-none]\\n  libc: [refit-none]\\n' > /workspace/.yarnrc.yml; ",
   );
+});
+
+it('accepts legacy npm package names with capitals in a Yarn 2+ lockfile', async () => {
+  const { manifest, berry } = await fixture();
+  const lock = `${berry}
+"JSONStream@npm:^1.3.5":
+  version: 1.3.5
+  resolution: "JSONStream@npm:1.3.5"
+  checksum: ${'e'.repeat(128)}
+  languageName: node
+  linkType: hard
+`;
+  const pinned = JSON.stringify({ ...manifest, packageManager: 'yarn@4.9.2' });
+  expect(() => validateBerryInputs(pinned, lock, BERRY_RC)).not.toThrow();
+  // Scoped names stay lowercase.
+  expect(() =>
+    validateBerryInputs(pinned, lock.replaceAll('JSONStream', '@Scope/JSONStream'), BERRY_RC),
+  ).toThrow('Every Yarn 2+ lock entry must resolve an exact npm version with a checksum');
 });
