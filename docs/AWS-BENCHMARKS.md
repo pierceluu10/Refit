@@ -32,7 +32,7 @@ node scripts/aws-benchmark.mjs launch --run shopify-fresh-2026-10-22 --total 200
 
 - The command after `--` is one quoted string run with `bash` in the source checkout. `{offset}`, `{limit}`, `{shard}` and `{run}` are filled in per shard. Whatever it writes under `/work/out` is uploaded to `runs/<run>/shard-<n>/out`, next to `boot.log` and `exit-code`.
 - `/work/out` is synced to S3 every 10 minutes while the command runs and once more when it ends, so a shard stopped by its deadman shutdown loses at most the last 10 minutes of results. The Stripe and Shopify benchmarks rewrite `results.json` after every repository.
-- The source is `git archive` of `--commit` (default `HEAD`), so commit or pin what you want measured; uncommitted changes are not uploaded. `run.json` records the commit, the archive's SHA-256, the command, the instance settings and the slices. Each instance checks the archive it downloads against that SHA-256 before building it.
+- The source is `git archive` of `--commit` (default `HEAD`), so commit or pin what you want measured; uncommitted changes are not uploaded. `run.json` records the commit, the archive's SHA-256, the command, the instance settings (including the instance type's memory, `memoryMib`) and the slices. A command with `--validate` on an instance under 8 GiB gets a warning, because the harness, `refit run` and a 3 GiB validation container share that memory. Each instance checks the archive it downloads against that SHA-256 before building it.
 - `--env <file>` uploads a `.env` (for `--ai` runs) to the run's prefix. `collect` and `stop` delete it; delete it yourself if you abandon a run.
 - `--images` lists validation images to pull on boot (default `node:22-alpine`), because validation runs with `--pull never`.
 - `stop --run <id>` terminates a run early.
@@ -61,9 +61,9 @@ A finished shard's `stage` says where it ended. Boot stages exit with their own 
 | `command`  | the command's own | The benchmark command. 143 means the instance was terminated while it ran (deadman or `stop`). |
 | `upload`   | 76                | The final upload of `/work/out` after the command                                              |
 
-`boot.log` next to the exit code has the full output. Exit codes uploaded before this change hold only the number, so their `stage` is empty.
+`boot.log` next to the exit code has the full output, and `kernel.log` the kernel log (`dmesg`), where an out-of-memory kill leaves its only trace. Both are uploaded every 10 minutes while the command runs and again at the end, so a shard the deadman shutdown ended still has them up to its last sync. Exit codes uploaded before this change hold only the number, so their `stage` is empty.
 
-`retry --run <id> --shard <n>` relaunches one `failed` or `lost` shard with the slice, commit, command and instance settings in `run.json`. It refuses while the shard still has an instance (wait until it terminates, or `stop` the run) and refuses a shard that succeeded. It deletes the shard's earlier `exit-code`, `boot.log` and `out/` before relaunching, so download anything you want to keep first. A run launched with `--env` needs `--env` again.
+`retry --run <id> --shard <n>` relaunches one `failed` or `lost` shard with the slice, commit, command and instance settings in `run.json`. It refuses while the shard still has an instance (wait until it terminates, or `stop` the run) and refuses a shard that succeeded. It deletes the shard's earlier `exit-code`, `boot.log`, `kernel.log` and `out/` before relaunching, so download anything you want to keep first. A run launched with `--env` needs `--env` again.
 
 `list` prints every run in the bucket, newest first, with its commit and how many shards succeeded, failed, are running or are lost.
 
