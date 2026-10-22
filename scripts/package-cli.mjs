@@ -55,7 +55,7 @@ else {
     await chmod(join(stage, 'bin/refit.mjs'), 0o755);
     await mkdir(join(stage, 'pipeline'));
     for (const name of await readdir(join(root, 'pipeline'))) {
-      if ((name.endsWith('.ts') || name.endsWith('.json')) && !name.endsWith('.test.ts'))
+      if ((name.endsWith('.ts') || name.endsWith('.json')) && !name.endsWith('.test.ts') && name !== 'readiness-presentation.ts')
         await copyFile(join(root, 'pipeline', name), join(stage, 'pipeline', name));
     }
     await cp(join(root, 'pipeline/fixtures'), join(stage, 'pipeline/fixtures'), {
