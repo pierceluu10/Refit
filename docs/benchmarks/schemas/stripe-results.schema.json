@@ -1,0 +1,190 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Stripe benchmark run results",
+  "description": "results.json written by `npm run benchmark:stripe`: one row per repository, in list order. Its harness.json follows harness.schema.json.",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "$ref": "common.schema.json#/$defs/classified",
+    "required": ["repo", "commit", "outcomeClass"],
+    "properties": {
+      "repo": {
+        "$ref": "common.schema.json#/$defs/repo"
+      },
+      "stars": {
+        "$ref": "common.schema.json#/$defs/count"
+      },
+      "commit": {
+        "$ref": "common.schema.json#/$defs/commit"
+      },
+      "before": {
+        "type": "string"
+      },
+      "beforeSource": {
+        "type": "string"
+      },
+      "after": {
+        "type": "string"
+      },
+      "packageManager": {
+        "type": "string"
+      },
+      "read": {
+        "description": "ok, or why Refit could not read the repository.",
+        "type": "string"
+      },
+      "scanCrash": {
+        "type": "string"
+      },
+      "sdkCalls": {
+        "$ref": "common.schema.json#/$defs/count"
+      },
+      "tracedCalls": {
+        "$ref": "common.schema.json#/$defs/count"
+      },
+      "calledMethods": {
+        "$ref": "common.schema.json#/$defs/count"
+      },
+      "mappedMethods": {
+        "$ref": "common.schema.json#/$defs/count"
+      },
+      "webhookHandlers": {
+        "$ref": "common.schema.json#/$defs/count"
+      },
+      "shippedAdapter": {
+        "$ref": "#/$defs/scan"
+      },
+      "fullAdapter": {
+        "$ref": "#/$defs/scan"
+      },
+      "productionMode": {
+        "$ref": "#/$defs/scan"
+      },
+      "changelogNotes": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "validatable": {
+        "type": "boolean"
+      },
+      "checks": {
+        "enum": ["none", "tests", "typecheck", "generated-only"]
+      },
+      "validationSeconds": {
+        "$ref": "common.schema.json#/$defs/count"
+      },
+      "workflow": {
+        "type": "object",
+        "required": ["status"],
+        "properties": {
+          "status": {
+            "type": "string",
+            "minLength": 1
+          },
+          "stage": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "error": {
+            "type": "string"
+          },
+          "validation": {
+            "type": "string"
+          },
+          "repairAttempts": {
+            "$ref": "common.schema.json#/$defs/count"
+          },
+          "pullRequest": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ai": {
+        "type": "object",
+        "required": ["outcome"],
+        "properties": {
+          "outcome": {
+            "enum": ["proposed", "blocked", "declined", "rejected-by-guard", "error"]
+          }
+        }
+      },
+      "publication": {
+        "type": "object"
+      },
+      "seconds": {
+        "$ref": "common.schema.json#/$defs/count"
+      },
+      "outcomeClass": {
+        "$ref": "common.schema.json#/$defs/outcomeClass",
+        "x-added": "2026-10-22"
+      },
+      "infrastructure": {
+        "$ref": "common.schema.json#/$defs/infrastructure"
+      }
+    }
+  },
+  "$defs": {
+    "scan": {
+      "description": "A summarized pipeline report, or the error that stopped it.",
+      "type": "object",
+      "anyOf": [
+        {
+          "required": ["error"],
+          "properties": {
+            "error": {
+              "type": "string"
+            }
+          }
+        },
+        {
+          "required": ["status", "confirmed", "review", "findings"],
+          "properties": {
+            "status": {
+              "type": "string"
+            },
+            "removedFields": {
+              "$ref": "common.schema.json#/$defs/count"
+            },
+            "confirmed": {
+              "$ref": "common.schema.json#/$defs/count"
+            },
+            "review": {
+              "$ref": "common.schema.json#/$defs/count"
+            },
+            "findings": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "$ref": "common.schema.json#/$defs/location",
+                "required": ["property", "confidence"],
+                "properties": {
+                  "property": {
+                    "type": "string"
+                  },
+                  "confidence": {
+                    "enum": ["confirmed", "review"]
+                  }
+                }
+              },
+              "x-added": "2026-10-14",
+              "description": "Added with the Stripe ground truth (b36fbdc); runs before it lack it."
+            },
+            "confirmedFields": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "reviewReasons": {
+              "$ref": "common.schema.json#/$defs/counts"
+            }
+          }
+        }
+      ]
+    }
+  }
+}
