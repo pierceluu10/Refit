@@ -9,6 +9,8 @@ const RUNNING_STATES = ['pending', 'running'];
 // `aws login` session whose refresh failed; "Unable to locate credentials" from no session at all.
 const CREDENTIALS_FAILURE =
   /ExpiredToken|token (?:included in the request is|has) expired|session has expired|Unable to locate credentials/i;
+// `ec2 run-instances --dry-run` reports a launch it would allow as a DryRunOperation error.
+const DRY_RUN_ALLOWED = /\(DryRunOperation\)/;
 const MILLISECONDS_PER_HOUR = 3_600_000;
 // EC2 bills Linux on-demand instances per second with a one-minute minimum.
 const MINIMUM_BILLED_HOURS = 1 / 60;
@@ -99,6 +101,10 @@ export function stateCounts(states) {
 
 export function credentialsFailed(stderr) {
   return CREDENTIALS_FAILURE.test(stderr);
+}
+
+export function dryRunAllowed(stderr) {
+  return DRY_RUN_ALLOWED.test(stderr);
 }
 
 function round(usd) {

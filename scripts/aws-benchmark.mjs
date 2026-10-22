@@ -11,6 +11,7 @@ import {
   bootScript,
   bucketName,
   credentialsFailed,
+  dryRunAllowed,
   fillCommand,
   runCost,
   shardSlices,
@@ -313,11 +314,53 @@ async function checkQuota(market, instanceType, count) {
     );
 }
 
-// Launches one instance per slice and records each launch for `cost`.
-async function launchShards(name, run, slices) {
+// The security group and machine image every launch uses.
+async function launchTarget() {
   const group = await securityGroup();
   if (!group) throw new Error('Run `node scripts/aws-benchmark.mjs setup` first.');
   const image = (await aws('ssm', 'get-parameter', '--name', AMI_PARAMETER)).Parameter.Value;
+  return { group, image };
+}
+
+// `run-instances` arguments for one shard, except its user data.
+function instanceArguments(run, shard, { group, image }) {
+  return [
+    '--image-id',
+    image,
+    '--instance-type',
+    run.instanceType,
+    '--iam-instance-profile',
+    `Name=${ROLE}`,
+    '--security-group-ids',
+    group,
+    ...(run.market === 'spot' ? ['--instance-market-options', SPOT_OPTIONS] : []),
+    '--instance-initiated-shutdown-behavior',
+    'terminate',
+    '--block-device-mappings',
+    `DeviceName=/dev/xvda,Ebs={VolumeSize=${run.diskGib},VolumeType=gp3,DeleteOnTermination=true}`,
+    '--metadata-options',
+    'HttpTokens=required',
+    '--tag-specifications',
+    `ResourceType=instance,Tags=[{Key=${TAG},Value=${run.run}},{Key=${SHARD_TAG},Value=${shard}},{Key=Name,Value=refit-${run.run}-${shard}}]`,
+    `ResourceType=volume,Tags=[{Key=${TAG},Value=${run.run}}]`,
+  ];
+}
+
+// Asks EC2 whether it would launch the shard, so a refused launch (missing permission, a service
+// control policy, an unavailable instance type) stops before anything is uploaded or deleted.
+async function checkLaunch(run, shard, target) {
+  try {
+    await cli(['ec2', 'run-instances', '--dry-run', ...instanceArguments(run, shard, target)]);
+  } catch (error) {
+    const stderr = String(error.stderr ?? '').trim();
+    if (dryRunAllowed(stderr)) return;
+    if (!stderr) throw error;
+    throw new Error(`The launch dry run failed, so nothing was uploaded or changed: ${stderr}`);
+  }
+}
+
+// Launches one instance per slice and records each launch for `cost`.
+async function launchShards(name, run, slices, target) {
   const work = await mkdtemp(join(tmpdir(), 'refit-aws-'));
   try {
     for (const slice of slices) {
@@ -334,30 +377,12 @@ async function launchShards(name, run, slices) {
           COMMAND: fillCommand(run.command, { ...slice, run: run.run }),
         }),
       );
-      const tags = `ResourceType=instance,Tags=[{Key=${TAG},Value=${run.run}},{Key=${SHARD_TAG},Value=${slice.shard}},{Key=Name,Value=refit-${run.run}-${slice.shard}}]`;
       const {
         Instances: [instance],
       } = await aws(
         'ec2',
         'run-instances',
-        '--image-id',
-        image,
-        '--instance-type',
-        run.instanceType,
-        '--iam-instance-profile',
-        `Name=${ROLE}`,
-        '--security-group-ids',
-        group,
-        ...(run.market === 'spot' ? ['--instance-market-options', SPOT_OPTIONS] : []),
-        '--instance-initiated-shutdown-behavior',
-        'terminate',
-        '--block-device-mappings',
-        `DeviceName=/dev/xvda,Ebs={VolumeSize=${run.diskGib},VolumeType=gp3,DeleteOnTermination=true}`,
-        '--metadata-options',
-        'HttpTokens=required',
-        '--tag-specifications',
-        tags,
-        `ResourceType=volume,Tags=[{Key=${TAG},Value=${run.run}}]`,
+        ...instanceArguments(run, slice.shard, target),
         '--user-data',
         `file://${userData}`,
       );
@@ -406,6 +431,20 @@ async function launch(values, command) {
   await checkQuota(market, instanceType, slices.length);
 
   const commit = (await execute('git', ['rev-parse', values.commit ?? 'HEAD'])).stdout.trim();
+  const settings = {
+    run: values.run,
+    commit,
+    command,
+    instanceType,
+    market,
+    hours,
+    images: values.images ?? DEFAULT_IMAGES,
+    diskGib: DISK_GIB,
+    env: Boolean(values.env),
+    slices,
+  };
+  const target = await launchTarget();
+  await checkLaunch(settings, slices[0].shard, target);
   const work = await mkdtemp(join(tmpdir(), 'refit-aws-'));
   let run;
   try {
@@ -423,24 +462,12 @@ async function launch(values, command) {
       '--only-show-errors',
     );
     if (values.env) await uploadEnv(name, values.run, values.env);
-    run = {
-      run: values.run,
-      commit,
-      sourceSha256,
-      command,
-      instanceType,
-      market,
-      hours,
-      images: values.images ?? DEFAULT_IMAGES,
-      diskGib: DISK_GIB,
-      env: Boolean(values.env),
-      slices,
-    };
+    run = { ...settings, sourceSha256 };
   } finally {
     await rm(work, { recursive: true, force: true });
   }
   await writeObject(name, `runs/${values.run}/run.json`, run);
-  await launchShards(name, run, slices);
+  await launchShards(name, run, slices, target);
   console.log(
     `Launched ${slices.length} ${market} ${instanceType} shards of ${values.run} from ${commit.slice(0, 12)}; each terminates within ${hours} h.`,
   );
@@ -551,6 +578,8 @@ async function retry(run, shardOption, env) {
   if (settings.env && !env)
     throw new Error(`Run ${run} was launched with --env; pass --env again.`);
   await checkQuota(settings.market, settings.instanceType, 1);
+  const target = await launchTarget();
+  await checkLaunch(settings, shard, target);
 
   // The earlier launch's end is its exit code's upload time; keep it before deleting the exit code
   // so `cost` still counts that launch.
@@ -570,7 +599,7 @@ async function retry(run, shardOption, env) {
     '--only-show-errors',
   );
   if (env) await uploadEnv(name, run, env);
-  await launchShards(name, settings, [slice]);
+  await launchShards(name, settings, [slice], target);
   console.log(`Relaunched shard ${shard} of ${run} from ${settings.commit.slice(0, 12)}.`);
 }
 

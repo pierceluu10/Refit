@@ -49,6 +49,7 @@ export function stateCounts(
   states: ShardState[],
 ): Record<'succeeded' | 'failed' | 'running' | 'lost', number>;
 export function credentialsFailed(stderr: string): boolean;
+export function dryRunAllowed(stderr: string): boolean;
 export function runCost(
   run: { instanceType: string; market: string; hours: number; diskGib: number },
   launches: Launch[],

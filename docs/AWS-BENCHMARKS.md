@@ -69,6 +69,8 @@ A finished shard's `stage` says where it ended. Boot stages exit with their own 
 
 When `aws login` credentials expire or are missing, every command stops with `AWS credentials expired or missing`, the AWS error, and how to sign in again. A `launch` or `retry` that stops this way may have launched some shards: check `status` (lost shards were never launched or did not finish) and `retry` the ones that are missing.
 
+Before uploading or deleting anything, `launch` and `retry` ask EC2 for a dry run of the launch (`run-instances --dry-run`). When EC2 would refuse it (a missing permission, a service control policy, an instance type the region lacks), the command stops with `The launch dry run failed, so nothing was uploaded or changed` and the AWS error, and the run id stays free.
+
 ## Cost and limits
 
 - Every instance runs `shutdown -h +<hours×60>` on boot and terminates on shutdown, so a hung shard costs at most `--hours` (default 2, maximum 6). Its 100 GiB disk is deleted with it.

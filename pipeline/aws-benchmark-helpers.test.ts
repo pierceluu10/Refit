@@ -1,5 +1,5 @@
 import { execFile } from 'node:child_process';
-import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { chmod, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
@@ -9,6 +9,7 @@ import {
   bootScript,
   bucketName,
   credentialsFailed,
+  dryRunAllowed,
   fillCommand,
   listSlice,
   parseExit,
@@ -243,4 +244,102 @@ it('charges each launch from launch to exit, now or its deadman, with a one-minu
   expect(() =>
     runCost({ ...run, instanceType: 'm7i.large' }, [], exitTimes, new Set(), '', prices),
   ).toThrow('No price for m7i.large; add it to the cost table.');
+});
+
+// From the AWS CLI 2.38.4 on 2026-10-22; account, organization and policy ids replaced.
+const REFUSED_LAUNCH =
+  'aws: [ERROR]: An error occurred (UnauthorizedOperation) when calling the RunInstances operation: You are not authorized to perform this operation. User: arn:aws:sts::123456789012:assumed-role/AccountFullAccessRole/session is not authorized to perform: ec2:RunInstances on resource: arn:aws:ec2:us-east-2:123456789012:instance/* with an explicit deny in a service control policy: arn:aws:organizations::123456789012:policy/o-example/service_control_policy/p-example. Encoded authorization failure message: encoded';
+const ALLOWED_LAUNCH =
+  'aws: [ERROR]: An error occurred (DryRunOperation) when calling the RunInstances operation: Request would have succeeded, but DryRun flag is set.';
+
+it('treats only a DryRunOperation answer as a launch EC2 would allow', () => {
+  expect(dryRunAllowed(ALLOWED_LAUNCH)).toBe(true);
+  for (const stderr of [
+    REFUSED_LAUNCH,
+    'aws: [ERROR]: An error occurred (InsufficientInstanceCapacity) when calling the RunInstances operation',
+    'aws: [ERROR]: An error occurred (NoCredentials): Unable to locate credentials.',
+    '',
+  ])
+    expect(dryRunAllowed(stderr), stderr).toBe(false);
+});
+
+// Runs `launch` against a fake `aws` on PATH that answers the dry run with `dryRun` and logs every
+// call, then returns the calls and how the script ended.
+async function fakeLaunch(dryRun: string) {
+  const bin = await mkdtemp(join(tmpdir(), 'refit-fake-aws-'));
+  const log = join(bin, 'calls.log');
+  try {
+    await writeFile(
+      join(bin, 'aws'),
+      `#!/bin/sh
+echo "$*" >> "$AWS_CALLS"
+case "$*" in
+  "sts get-caller-identity"*) echo '{"Account":"123456789012"}' ;;
+  "ec2 describe-instances"*) echo '{"Reservations":[]}' ;;
+  "ec2 describe-instance-types"*) echo '{"InstanceTypes":[{"VCpuInfo":{"DefaultVCpus":4}}]}' ;;
+  "service-quotas get-service-quota"*) echo '{"Quota":{"Value":16}}' ;;
+  "ec2 describe-vpcs"*) echo '{"Vpcs":[{"VpcId":"vpc-1"}]}' ;;
+  "ec2 describe-security-groups"*) echo '{"SecurityGroups":[{"GroupId":"sg-1"}]}' ;;
+  "ssm get-parameter"*) echo '{"Parameter":{"Value":"ami-1"}}' ;;
+  "ec2 run-instances --dry-run"*) echo "$AWS_DRY_RUN" >&2; exit 254 ;;
+  "ec2 run-instances"*) echo '{"Instances":[{"InstanceId":"i-1","LaunchTime":"2026-10-22T00:00:00Z"}]}' ;;
+esac
+`,
+    );
+    await chmod(join(bin, 'aws'), 0o755);
+    const ended = await execute(
+      process.execPath,
+      [
+        'scripts/aws-benchmark.mjs',
+        'launch',
+        '--run',
+        'fake-1',
+        '--total',
+        '2',
+        '--shards',
+        '2',
+        '--market',
+        'on-demand',
+        '--',
+        'true',
+      ],
+      {
+        env: {
+          ...process.env,
+          PATH: `${bin}:${process.env.PATH}`,
+          AWS_CALLS: log,
+          AWS_DRY_RUN: dryRun,
+          AWS_PROFILE: 'fake',
+        },
+      },
+    ).then(
+      ({ stdout }) => ({ code: 0, output: stdout }),
+      (error) => ({ code: error.code as number, output: String(error.stderr) }),
+    );
+    const calls = (await readFile(log, 'utf8')).trim().split('\n');
+    return { ...ended, calls };
+  } finally {
+    await rm(bin, { recursive: true, force: true });
+  }
+}
+
+it('asks EC2 for a dry run before uploading anything, and stops there when it is refused', async () => {
+  const refused = await fakeLaunch(REFUSED_LAUNCH);
+  expect(refused.code).toBe(1);
+  expect(refused.output).toContain('The launch dry run failed, so nothing was uploaded or changed');
+  expect(refused.output).toContain('(UnauthorizedOperation)');
+  expect(refused.calls.filter((call) => /^s3 |run-instances (?!--dry-run)/.test(call))).toEqual([]);
+
+  const allowed = await fakeLaunch(ALLOWED_LAUNCH);
+  expect(allowed.code, allowed.output).toBe(0);
+  const dryRun = allowed.calls.findIndex((call) => call.startsWith('ec2 run-instances --dry-run'));
+  const firstUpload = allowed.calls.findIndex((call) => call.startsWith('s3 cp'));
+  expect(dryRun).toBeGreaterThanOrEqual(0);
+  expect(firstUpload).toBeGreaterThan(dryRun);
+  // The dry run carries the same instance settings as the real launches, minus the boot script.
+  const launches = allowed.calls.filter((call) => /^ec2 run-instances --image-id/.test(call));
+  expect(launches).toHaveLength(2);
+  expect(launches[0]).toContain(
+    allowed.calls[dryRun].replace('ec2 run-instances --dry-run ', '').replace(/ --region .*/, ''),
+  );
 });
