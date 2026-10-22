@@ -199,3 +199,29 @@ gated(
   },
   60_000,
 );
+
+gated(
+  'installs none of the platform packages Yarn records without checksums',
+  async () => {
+    const source = 'pipeline/fixtures/yarn-platform';
+    const files: Record<string, string> = {};
+    for (const path of ['package.json', 'yarn.lock', '.yarnrc.yml'])
+      files[path] = await readFile(join(source, path), 'utf8');
+    const { root, directory } = await repository(files);
+    const prepared = await prepareDependencies({
+      repository: directory,
+      image: process.env.REFIT_DOCKER_IMAGE!,
+      cacheDirectory: join(root, 'cache'),
+    });
+    expect(prepared.environment).toMatchObject({ yarnVersion: YARN, skippedPlatformPackages: 25 });
+    const stdout = await offline(
+      prepared,
+      directory,
+      `ls node_modules/@esbuild 2>/dev/null | wc -l; node -e "require('is-number');console.log('verified package loads')"; node -e "try{require('esbuild').transformSync('let a')}catch(error){console.log('esbuild:', error.message.split('\\\\n')[0])}"`,
+    );
+    expect(stdout).toMatch(/^0\n/);
+    expect(stdout).toContain('verified package loads');
+    expect(stdout).toMatch(/esbuild: The package "@esbuild\/linux-[a-z0-9]+" could not be found/);
+  },
+  300_000,
+);

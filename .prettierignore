@@ -4,3 +4,4 @@ package-lock.json
 .impeccable/review
 pipeline/fixtures/pnpm-workspaces/*.yaml
 pipeline/fixtures/yarn-workspaces
+pipeline/fixtures/yarn-platform
