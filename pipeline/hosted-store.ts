@@ -9,6 +9,7 @@ import {
   type LifecyclePlan,
 } from './hosted-lifecycle.ts';
 import { migrateHostedSchema } from './hosted-migrations.ts';
+import { recordApprovalCommand } from './hosted-approval-store.ts';
 import {
   DEFAULT_TENANCY_LIMITS,
   installationRefusals,
@@ -158,6 +159,8 @@ export async function openHostedStore(
           );
         return { status: 'duplicate' as const, ...none };
       }
+      if (change.kind === 'issue_comment')
+        return { status: await recordApprovalCommand(client, change), ...none };
       if (change.kind === 'repository' || change.kind === 'account') {
         const allowed = tenancy.accounts.includes(change.owner);
         const plan = await followLifecycle(client, change, allowed);
@@ -288,6 +291,25 @@ export async function openHostedStore(
         (await stop(client, await confirmRepositoryIdentity(client, targetId, githubId))).targets
           .length > 0,
     );
+
+  // Removes a repository's approval and cancels its targets; running jobs are returned to abort.
+  const revoke = (repository: string, revokedBy: string) =>
+    transaction(pool, async (client) => {
+      const { rowCount } = await client.query('DELETE FROM refit_approvals WHERE repository = $1', [
+        repository,
+      ]);
+      const cancelled = await cancel(
+        client,
+        'repository = $1',
+        [repository],
+        `Approval revoked by ${revokedBy}.`,
+      );
+      return {
+        revoked: Boolean(rowCount),
+        cancelled: cancelled.targets,
+        running: cancelled.running,
+      };
+    });
 
   const enqueueDue = async (intervalSeconds: number) =>
     (
@@ -576,6 +598,7 @@ export async function openHostedStore(
     accept,
     approve,
     retire,
+    revoke,
     enqueueDue,
     claim,
     retry,

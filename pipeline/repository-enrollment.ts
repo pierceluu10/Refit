@@ -267,30 +267,39 @@ async function inspectEnrollmentInputs(options: {
   };
 }
 
+// The approval `refit enroll --approve` writes and the hosted approval issue stores, valid only for
+// the exact fingerprint of the inspected configuration.
+export function repositoryApproval(
+  enrollment: Awaited<ReturnType<typeof inspectRepositoryEnrollment>>,
+  fingerprint: string,
+): RepositoryApproval {
+  if (!HASH.test(fingerprint) || fingerprint !== enrollment.fingerprint)
+    throw new RepositoryApprovalError(
+      'The supplied approval fingerprint does not match the current committed configuration. Inspect the profile again before approval.',
+    );
+  return {
+    formatVersion: enrollment.formatVersion,
+    ...(enrollment.integrations ? { integrations: enrollment.integrations } : {}),
+    kind: 'refit-repository-approval',
+    repository: enrollment.repository,
+    base: enrollment.base,
+    fingerprint: enrollment.fingerprint,
+    files: enrollment.files,
+    reviewedRevision: enrollment.reviewedRevision,
+    approvedAt: new Date().toISOString(),
+  };
+}
+
 export async function approveRepositoryEnrollment(options: {
   enrollment: Awaited<ReturnType<typeof inspectRepositoryEnrollment>>;
   fingerprint: string;
   output: string;
 }) {
-  if (!HASH.test(options.fingerprint) || options.fingerprint !== options.enrollment.fingerprint)
-    throw new RepositoryApprovalError(
-      'The supplied approval fingerprint does not match the current committed configuration. Inspect the profile again before approval.',
-    );
+  const approval = repositoryApproval(options.enrollment, options.fingerprint);
   const output = resolve(options.output);
   await standaloneStateDirectory(dirname(output));
   await mkdir(dirname(output), { recursive: true, mode: 0o700 });
   await standaloneStateDirectory(await realpath(dirname(output)));
-  const approval: RepositoryApproval = {
-    formatVersion: options.enrollment.formatVersion,
-    ...(options.enrollment.integrations ? { integrations: options.enrollment.integrations } : {}),
-    kind: 'refit-repository-approval',
-    repository: options.enrollment.repository,
-    base: options.enrollment.base,
-    fingerprint: options.enrollment.fingerprint,
-    files: options.enrollment.files,
-    reviewedRevision: options.enrollment.reviewedRevision,
-    approvedAt: new Date().toISOString(),
-  };
   await writeFile(output, `${JSON.stringify(approval, null, 2)}\n`, { flag: 'wx', mode: 0o600 });
   return { output, approval };
 }

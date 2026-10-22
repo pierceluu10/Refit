@@ -99,6 +99,41 @@ ALTER TABLE refit_installation_usage ENABLE ROW LEVEL SECURITY;
 ALTER TABLE refit_ai_ledgers ENABLE ROW LEVEL SECURITY;
 `;
 
+const APPROVALS = `
+-- One approval issue per installed repository without a stored approval.
+CREATE TABLE IF NOT EXISTS refit_approval_issues (
+  repository text PRIMARY KEY,
+  installation_id bigint NOT NULL REFERENCES refit_installations (id),
+  base text,
+  issue integer,
+  state text NOT NULL CHECK (state IN ('review', 'proposal', 'invalid', 'no-providers', 'approved', 'failed')),
+  fingerprint text,
+  shown text[] NOT NULL DEFAULT '{}',
+  refresh boolean NOT NULL DEFAULT false,
+  message text,
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+-- Each comment is handled once, so a replayed delivery cannot approve twice or make Refit reply.
+CREATE TABLE IF NOT EXISTS refit_approval_commands (
+  id bigserial PRIMARY KEY,
+  comment_id bigint NOT NULL,
+  edited boolean NOT NULL,
+  installation_id bigint NOT NULL,
+  repository text NOT NULL,
+  issue integer NOT NULL,
+  author text NOT NULL,
+  command text NOT NULL CHECK (command IN ('approve', 'revoke')),
+  argument text,
+  status text NOT NULL CHECK (status IN ('pending', 'processing', 'done')),
+  claimed_at timestamptz,
+  outcome text,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (comment_id, edited)
+);
+ALTER TABLE refit_approval_issues ENABLE ROW LEVEL SECURITY;
+ALTER TABLE refit_approval_commands ENABLE ROW LEVEL SECURITY;
+`;
+
 export interface HostedMigration {
   version: number;
   name: string;
@@ -124,6 +159,11 @@ export const MIGRATIONS: HostedMigration[] = [
   },
   {
     version: 4,
+    name: 'Approval issues and commands',
+    up: (client) => client.query(APPROVALS),
+  },
+  {
+    version: 5,
     name: 'Installation event order and delivery pruning',
     // installation.updated_at of the newest installation event applied; older redeliveries are
     // stale. Deliveries are pruned by age.
