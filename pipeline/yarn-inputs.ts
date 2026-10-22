@@ -8,6 +8,7 @@ import {
   MAX_PACKAGE_BYTES,
   MAX_PACKAGES,
   NPM_PACKAGE_NAME,
+  REGISTRY_PACKAGE_NAME,
 } from './npm-lock.ts';
 import {
   CLASSIC_HEADER,
@@ -288,7 +289,7 @@ export function validateBerryInputs(
       if (platform) platformPackages++;
       if (
         ++packages > MAX_PACKAGES ||
-        !NPM_PACKAGE_NAME.test(name) ||
+        !REGISTRY_PACKAGE_NAME.test(name) ||
         typeof record.version !== 'string' ||
         !EXACT_PACKAGE_VERSION.test(record.version) ||
         (builtin

@@ -202,7 +202,7 @@ export async function runModelFixes(options: {
   if (validation.status !== 'passed')
     return result(
       'validation-failed',
-      `Validation returned ${validation.status}; publication was not attempted.`,
+      `Validation returned ${validation.status}; publication was not attempted.${validation.baselineStop ? ` The baseline checks failed because ${validation.baselineStop.summary}. ${validation.baselineStop.action}` : ''}`,
     );
   if (!options.publication)
     return result(
