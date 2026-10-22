@@ -5,7 +5,7 @@ import { PipelineInputError } from './types.ts';
 export const DEFAULT_DEADLINE_REGISTRY = new URL('../data/deadlines.json', import.meta.url);
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 const ENTRY_ID = /^[a-z0-9][a-z0-9-]{0,95}$/;
-const PROVIDERS = new Set(['shopify', 'meta-graph', 'openai', 'anthropic', 'gemini']);
+const PROVIDERS = new Set(['shopify', 'meta-graph', 'openai', 'anthropic', 'gemini', 'twilio']);
 const KINDS = new Set(['api-version', 'model', 'sdk']);
 const ENTRY_KEYS = [
   'id',
@@ -19,13 +19,22 @@ const ENTRY_KEYS = [
   'checkedAt',
 ];
 const MILLISECONDS_PER_DAY = 86_400_000;
+// An npm package name, optionally limited to the releases below a version: `twilio@<6.0.0`.
+const SDK_VERSION = /^((?:@[a-z0-9][\w.-]*\/)?[a-z0-9][\w.-]*)(?:@<(\d+\.\d+\.\d+))?$/;
+
+// The package an sdk entry names and the version its releases end below, if any.
+export function sdkPackage(version: string) {
+  const match = SDK_VERSION.exec(version);
+  return match ? { name: match[1], below: match[2] ?? null } : undefined;
+}
 
 // One reviewed sunset: the date a provider stops serving these API versions or models, or ends
-// support for these SDK packages (`kind: 'sdk'`, whose versions are npm package names), with the
-// page it came from and the day a person last checked that page.
+// support for these SDK packages (`kind: 'sdk'`, whose versions are npm package names, or
+// `name@<x.y.z` for the releases below a version), with the page it came from and the day a person
+// last checked that page.
 export interface DeadlineEntry {
   id: string;
-  provider: 'shopify' | 'meta-graph' | 'openai' | 'anthropic' | 'gemini';
+  provider: 'shopify' | 'meta-graph' | 'openai' | 'anthropic' | 'gemini' | 'twilio';
   kind: 'api-version' | 'model' | 'sdk';
   versions: string[];
   date: string;
@@ -92,6 +101,8 @@ export function checkDeadlineRegistry(value: unknown, now: Date) {
         const key = `${String(entry.provider)}:${version}`;
         if (versions.has(key)) errors.push(`${label}: ${version} already has another deadline.`);
         versions.add(key);
+        if (entry.kind === 'sdk' && !sdkPackage(version))
+          errors.push(`${label}: ${version} must be an npm package name, optionally name@<x.y.z.`);
       }
     if (!validDate(entry.date)) errors.push(`${label}: date must be a real YYYY-MM-DD date.`);
     if (!validDate(entry.checkedAt))

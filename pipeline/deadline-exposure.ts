@@ -3,7 +3,12 @@ import { readFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import ts from 'typescript-compiler';
 import { AGENT_CATALOG, builtInPackage } from './agent-catalog.ts';
-import { daysUntil, type DeadlineEntry, type DeadlineRegistry } from './deadline-registry.ts';
+import {
+  daysUntil,
+  sdkPackage,
+  type DeadlineEntry,
+  type DeadlineRegistry,
+} from './deadline-registry.ts';
 import { readRepository } from './repository.ts';
 import { isObject, parseObject } from './specifications.ts';
 import { REPOSITORY_CONFIGURATION } from './workflow-configuration.ts';
@@ -473,6 +478,25 @@ export function metaSdkVersion(declared: string, locked: string | null) {
   return major ? `v${major}.0` : undefined;
 }
 
+// The lowest version an exact version or a simple npm range allows: `5.3.1`, `^5.3.1`, `~5.3`,
+// `>=5`, `5.x`. Ranges with alternatives, upper bounds only, tags and URLs are unknown.
+export function lowestVersion(range: string) {
+  const match =
+    /^\s*(?:\^|~|>=|=|v)?\s*v?(\d+)(?:\.(\d+|x|\*))?(?:\.(\d+|x|\*))?(?:[-+][\w.-]*)?\s*$/i.exec(
+      range,
+    );
+  if (!match) return undefined;
+  const part = (value: string | undefined) => (value && /^\d+$/.test(value) ? value : '0');
+  return `${match[1]}.${part(match[2])}.${part(match[3])}`;
+}
+
+export function compareVersions(left: string, right: string) {
+  const a = left.split('.').map(Number);
+  const b = right.split('.').map(Number);
+  for (let index = 0; index < 3; index += 1) if (a[index] !== b[index]) return a[index] - b[index];
+  return 0;
+}
+
 async function lineOf(root: string, file: string, needle: string) {
   const lines = (await readFile(join(root, file), 'utf8')).split('\n');
   return Math.max(1, lines.findIndex((line) => line.includes(needle)) + 1);
@@ -555,18 +579,27 @@ export async function scanDeadlines(
   }
   // A package whose support ended: each manifest that declares it. A repository whose source never
   // names the package is not read a second time. Manifests in test and example paths are not live.
+  // An entry for the releases below a version (`twilio@<6.0.0`) matches a declaration only when its
+  // locked version, or the lowest version its range allows, is below that version.
   for (const entry of registry.deadlines)
     if (entry.kind === 'sdk')
-      for (const name of entry.versions) {
+      for (const version of entry.versions) {
+        const { name, below } = sdkPackage(version) ?? { name: version, below: null };
         if (!repository.files.some((file) => file.content.includes(name))) continue;
-        for (const dependency of (await readRepository(root, name)).dependencies)
-          record(entry.provider, name, {
+        for (const dependency of (await readRepository(root, name)).dependencies) {
+          const resolved = dependency.lock.version ?? dependency.version;
+          if (below) {
+            const lowest = lowestVersion(resolved);
+            if (!lowest || compareVersions(lowest, below) >= 0) continue;
+          }
+          record(entry.provider, version, {
             file: dependency.file,
             line: await lineOf(root, dependency.file, `"${name}"`),
             kind: 'dependency',
             use: TEST_PATH.test(dependency.file) ? 'test' : 'live',
-            text: `${name} ${dependency.lock.version ?? dependency.version}${dependency.lock.version ? ` (locked in ${dependency.lock.file})` : ''} is declared in ${dependency.section}`,
+            text: `${name} ${resolved}${dependency.lock.version ? ` (locked in ${dependency.lock.file})` : ''} is declared in ${dependency.section}${below ? `, below ${below}` : ''}`,
           });
+        }
       }
   for (const pin of await configuredApiVersions(root))
     record(pin.provider, pin.version, {

@@ -829,6 +829,19 @@
       "replacement": "@google/genai",
       "source": "https://github.com/google-gemini/deprecated-generative-ai-js/blob/main/README.md",
       "checkedAt": "2026-10-21"
+    },
+    {
+      "id": "twilio-node-below-6-2026-04-20",
+      "provider": "twilio",
+      "kind": "sdk",
+      "versions": [
+        "twilio@<6.0.0"
+      ],
+      "date": "2026-04-20",
+      "summary": "twilio-node 5.x and older are unsupported from 2026-04-20. Twilio supports only the current major version of twilio-node with features, bug fixes and security updates (VERSIONS.md, https://github.com/twilio/twilio-node/blob/main/VERSIONS.md), and 6.0.0 became current on 2026-04-20 (UPGRADE.md). Twilio says 6.x has no breaking API changes but needs Node.js 20 or newer. Twilio does not say that requests through older versions stop working.",
+      "replacement": "twilio 6.x",
+      "source": "https://github.com/twilio/twilio-node/blob/main/UPGRADE.md",
+      "checkedAt": "2026-10-22"
     }
   ]
 }
