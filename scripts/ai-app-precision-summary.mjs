@@ -196,6 +196,8 @@ export function scoreSet(set, labels, results, deadlineOf) {
     ).length,
     precision: wilson(truePositives.length, truePositives.length + falsePositives.length),
     recall: wilson(truePositives.length, truePositives.length + falseNegatives.length),
+    // Over every labelled site, registry or not: how much of the model choice Refit sees at all.
+    recallAllSites: wilson(truePositives.length, scored.length),
     negativeFileFalsePositives: falsePositives.filter((f) => f.negativeFile).length,
     truePositives,
     falsePositives,

@@ -69,3 +69,42 @@ Each set also gets 30 production source files from the sampled repositories wher
 - Seed `20261022`, `seededSample` from `scripts/ai-app-helpers.mjs` (names sorted, then a mulberry32 Fisher-Yates shuffle).
 - 40 of the 100 OpenAI repositories (fraction 0.4) and 25 of the 50 Anthropic repositories (fraction 0.5).
 - The labels file records both lists.
+
+## Rulings
+
+Cases the guide did not foresee, each decided once and applied to every repository:
+
+- A settings catalog that documents environment variables and their defaults for an admin UI (`config-catalog.data.ts`) is documentation; the site is the code constant the request reads.
+- A DeepSeek, Groq or other non-OpenAI host reached through the `openai` client is recorded as `compatible` when its literal is visible, but the candidate search only looks for major-provider model shapes, so compatible sites are under-recorded. They are not scored.
+- A model stored as a default configuration row (`aiConfiguration.create({ model: 'gpt-4o-mini' })`) and later sent counts as an indirect site.
+- A model catalog entry marked as the default, or one the code resolves by a fixed alias for a background task, is a site; the other entries are a catalog.
+- Model lists passed to agent CLIs (Codex, Gemini CLI, OpenCode) are not sites: the CLI makes the request, not this repository.
+- A form or cookie default that only seeds a UI control is not a site; the server-side default the request falls back to is.
+- A gateway's preference list that picks one of the models a key already has is a catalog; its hard fallback when none matches is a site. A remap table from an old ID to a new one is a catalog.
+- Very large applications with provider catalogs (`vual/lobe-chat-pro`, `utter-one/bonsai`, `AnyVM-Tech/AnyGPT`) were labelled file by file: every candidate in settings, defaults, services and runtime code was read, and catalog files (model banks, provider model lists, pricing tables) were confirmed as catalogs by reading their structure, not every entry.
+- Code the application ships as a string and runs elsewhere (a script uploaded to an E2B sandbox) is a site: it is the application's own request, sent from another process.
+- Simulation and smoke harnesses inside `src` (`src/multi/sim/*`) are non-production.
+- Folders named `experimental` with spike runners are non-production.
+- In the six Claude Code source forks (`fazxes/Claude-code`, `kill136/claudecode`, `chenqinggang001/claude-code-build`, `wyh0626/claude-code-local`, `wk42worldworld/cybercode`, `OpenAisec/Miko`), the first-party entries of `src/utils/model/configs.ts` that the default resolution in `src/utils/model/model.ts` returns (`haiku45`, `sonnet45`, `sonnet46`, `opus46`) are sites, and the other entries are a catalog. Code a fork adds outside the shared Claude Code tree was read for defaults; provider alias maps for third-party OAuth proxies and browser-session providers (chatgpt.com and claude.ai web sessions, including `OpenAisec/Miko`'s ChatGPT sign-in models) are not API sites.
+- A per-provider default in a preset table (`defaultProfiles`, media provider presets with `defaultModel`) is a site: it is sent when the user configures that provider without choosing a model. The other entries in the same preset are a catalog. Google image, video and speech models (Imagen, Veo) reached through Vertex are recorded under `gemini`, the Google provider.
+- A model ID written into a system prompt as text (the Claude Code forks' `CLAUDE_4_5_OR_4_6_MODEL_IDS` in `src/constants/prompts.ts`) is documentation, not a site.
+- Probe and diagnostic scripts in a `dev/` folder (`apps/api/dev/testModelLiveProbes.ts`) are non-production. A negative draw that lands on one is replaced.
+- Model fields in an API response body (`meta.model` in a search response) and in a scripted fake response are not sites: nothing is sent to a provider.
+- After all repositories were labelled and before the labels were committed, a second pass listed every model-shaped literal on a line with a default (`||`, `??`, `default`, `.get(`) that had no label, excluding comparisons. It found two OpenAI sites (`AnyVM-Tech/AnyGPT` semanticMemoryStore embeddings, `utter-one/bonsai` OpenAI TTS) and eight compatible sites; all are labelled.
+
+## Labels
+
+The labels were made by the AI agent (Claude) running this lane, not by a human, following the guide above. They were committed before detection ran on any sampled repository.
+
+- 286 sites in the 65 sampled repositories: 92 SDK calls, 3 wrapper calls, 6 raw HTTP requests and 185 indirect sites (constants, defaults, settings and preset tables).
+- OpenAI sample (40 repositories, 34 with a site): 179 sites. 91 send to OpenAI (23 of them registry models), 13 to Anthropic (5 registry), 50 to Gemini (none registry) and 25 to a compatible host.
+- Anthropic sample (25 repositories, all with a site): 129 sites. 69 send to Anthropic (18 registry), 36 to OpenAI (5 registry), 20 to Gemini (none registry) and 4 to a compatible host.
+- Six OpenAI-sample repositories have no site: `Dregen-Yor/auto-invoice`, `LangChat/langchat-slides`, `LeafYeeXYZ/PsychPen`, `LocalRouter/LocalRouter`, `Wing900/ManimCat` and `mcaupybugs/minimal-n8n`. Each takes its model from the user or from a router's configuration.
+- Only 51 of the 257 non-compatible sites name a model that `data/deadlines.json` lists. That is the ceiling on what model-retirement detection can report. The registry recall below is scored over those 51 sites, and the all-site recall over all 257.
+
+### Negative files
+
+- `node scripts/ai-app-precision.mjs negatives --output <candidates>` prints the seeded draw order (seed `20261022`, `seededOrder`, over `repo file` strings).
+- The labeller took files in that order, kept those with no site, and skipped a file that had a labelled site or was not production code. The labels file records every kept and skipped draw.
+- OpenAI took 46 draws to keep 30. Four drawn files had sites not yet labelled (one OpenAI embedding default and three compatible hosts); they were labelled.
+- Anthropic kept its first 30 draws. The draw is uniform over files, and the six Claude Code source forks hold most of the Anthropic sample's provider files, so 28 of its 30 negatives come from them. That set's negative-file result says more about Claude Code's own source than about typical applications.

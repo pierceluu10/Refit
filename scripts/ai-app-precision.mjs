@@ -1,6 +1,7 @@
-// The AI application model-site benchmark (docs/AI-APP-PRECISION.md). Three steps:
+// The AI application model-site benchmark (docs/AI-APP-PRECISION.md). Four steps:
 //   candidates  check out the sampled repositories and write the labeller's independent search,
 //               one text file per repository, outside the repository; no pipeline code is used;
+//   negatives   print the seeded draw order of negative-file candidates from that search;
 //   run         run `refit deadlines --json` on each sampled repository and save the results;
 //   score       score the results against the committed site labels, per set.
 // Checkouts are shallow at the pinned commit, without submodules; nothing in them is installed or
@@ -16,6 +17,7 @@ import {
   isProduction,
   modelCandidates,
   scoreSet,
+  seededOrder,
   talksToProvider,
   validateSiteLabels,
 } from './ai-app-precision-summary.mjs';
@@ -55,9 +57,10 @@ const { values } = parseArgs({
 });
 const usage =
   'Usage: node scripts/ai-app-precision.mjs candidates --root <checkouts> --output <dir>\n' +
+  '       node scripts/ai-app-precision.mjs negatives --output <dir>\n' +
   '       node scripts/ai-app-precision.mjs run --root <checkouts> --results <results.json>\n' +
   '       node scripts/ai-app-precision.mjs score --results <results.json> [--labels <labels.json>] [--output <score.json>]';
-if (values.help || !SETS.length || !['candidates', 'run', 'score'].includes(step)) {
+if (values.help || !SETS.length || !['candidates', 'negatives', 'run', 'score'].includes(step)) {
   console.log(usage);
   process.exit(values.help ? 0 : 1);
 }
@@ -116,6 +119,25 @@ if (step === 'candidates') {
     }
 }
 
+// The seeded draw order of negative-file candidates: each set's files that talk to its provider,
+// read from the candidate search output. The labeller takes them in order, skipping files that
+// have a site, until 30 per set are kept.
+if (step === 'negatives') {
+  if (!values.output) throw new Error(usage);
+  for (const [set, repos] of Object.entries(await sample())) {
+    const pool = [];
+    for (const { repo } of repos) {
+      const text = await readFile(
+        join(resolve(values.output), `${repo.replace('/', '__')}.txt`),
+        'utf8',
+      );
+      const listed = text.split(`Files that talk to ${set}:\n`)[1] ?? '';
+      for (const line of listed.split('\n')) if (line.trim()) pool.push(`${repo} ${line.trim()}`);
+    }
+    for (const entry of seededOrder(pool, SEED)) console.log(`${set} ${entry}`);
+  }
+}
+
 if (step === 'run') {
   if (!values.root || !values.results) throw new Error(usage);
   const git = async (...args) => (await execute('git', ['-C', REFIT, ...args])).stdout.trim();
@@ -172,7 +194,7 @@ if (step === 'score') {
     score.sets[set] = scoreSet(set, labels, run.results, deadlineOf);
     const s = score.sets[set];
     console.log(
-      `${set}: ${s.repositories} repositories, ${s.labelledSites} sites (${s.registrySites} registry), precision ${s.precision.rate}% (${s.precision.k}/${s.precision.n}), recall ${s.recall.rate}% (${s.recall.k}/${s.recall.n}), ${s.beyondLimit.length} beyond the evidence limit, ${s.negativeFileFalsePositives} false positives in negative files`,
+      `${set}: ${s.repositories} repositories, ${s.labelledSites} sites (${s.registrySites} registry), precision ${s.precision.rate}% (${s.precision.k}/${s.precision.n}), recall ${s.recall.rate}% (${s.recall.k}/${s.recall.n}), all-site recall ${s.recallAllSites.rate}% (${s.recallAllSites.k}/${s.recallAllSites.n}), ${s.beyondLimit.length} beyond the evidence limit, ${s.negativeFileFalsePositives} false positives in negative files`,
     );
   }
   if (values.output) await writeFile(resolve(values.output), `${JSON.stringify(score, null, 2)}\n`);
