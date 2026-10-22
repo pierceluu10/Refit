@@ -2,6 +2,7 @@
 // package, optionally narrowed to the releases a provider stopped supporting (`@clerk/nextjs@<5`),
 // and `kind: 'feature'` versions are source markers of a product that shuts down, such as an API
 // hostname or an SDK option name. Nothing is installed or executed.
+import ts from 'typescript-compiler';
 
 // A range is one or more space-separated comparators that must all hold, as in `>=5 <7`. A
 // comparator's version may leave out its minor and patch numbers, which then count as 0.
@@ -12,6 +13,9 @@ const VERSION = /^v?(\d+)\.(\d+)\.(\d+)(?:[-+][0-9A-Za-z.+-]*)?$/;
 // tilde range, or an x-range such as `4.x` or `4`. Open ranges (`>=4`, `*`, `latest`, tags, URLs
 // and workspace links) could resolve to any release, so they are not read.
 const DECLARED = /^[\^~=]?\s*v?(\d+)(?:\.(\d+|x|\*))?(?:\.(\d+|x|\*))?(?:[-+][0-9A-Za-z.+-]*)?$/i;
+
+// A marker that names a variable or option, such as `SUPABASE_ANON_KEY` or `dynamicLinkDomain`.
+const NAME = /^[A-Za-z_$][\w$]*$/;
 
 type Version = [number, number, number];
 
@@ -81,4 +85,30 @@ export function featureMatches<Provider extends string>(
     for (let column = line.indexOf(marker); column >= 0; column = line.indexOf(marker, column + 1))
       found.push({ provider, marker, column });
   return found;
+}
+
+// The text of the string or template piece around each offset of a source file, if any.
+export function literalTextAt(path: string, content: string) {
+  const source = ts.createSourceFile(path, content, ts.ScriptTarget.Latest, true);
+  const ranges: [number, number, string][] = [];
+  const visit = (node: ts.Node) => {
+    if (
+      ts.isStringLiteralLike(node) ||
+      ts.isTemplateHead(node) ||
+      ts.isTemplateMiddle(node) ||
+      ts.isTemplateTail(node)
+    )
+      ranges.push([node.getStart(source), node.end, node.text]);
+    ts.forEachChild(node, visit);
+  };
+  visit(source);
+  return (offset: number) => ranges.find(([start, end]) => offset >= start && offset < end)?.[2];
+}
+
+// A marker that names a variable is used where code reads that name: as an identifier, or as a
+// string that is only a name, as in `Deno.env.get('SUPABASE_ANON_KEY')` or a list of required
+// variables. Inside a longer string, such as an error message or a generated `.env` template, it
+// is prose. Hostnames and package names are used inside longer strings (URLs, import paths).
+export function markerInProse(marker: string, literal: string | undefined) {
+  return NAME.test(marker) && literal !== undefined && !NAME.test(literal.trim());
 }

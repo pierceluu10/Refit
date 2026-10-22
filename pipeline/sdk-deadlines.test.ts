@@ -9,6 +9,7 @@ import { checkDeadlineRegistry, loadDeadlineRegistry } from './deadline-registry
 import {
   featureMatches,
   installedVersion,
+  markerInProse,
   satisfiesRange,
   sdkTarget,
   validRange,
@@ -316,4 +317,39 @@ it('detects Auth0, Clerk, Firebase and Supabase by package and API host', async 
     firebase: { packages: ['firebase-admin'], hostnames: ['3 firebaseio.com'] },
     supabase: { packages: ['@supabase/ssr'], hostnames: ['4 .supabase.co'] },
   });
+});
+
+// Line shapes from the frozen sample (docs/AUTH-BACKEND-SDKS.md): a key variable named in an error
+// message or a generated `.env` template is not a read; a name-only string is.
+it('lists a legacy key variable named inside prose as a comment, and keeps name-only strings live', async () => {
+  const { lines } = await shipped({
+    ...manifest({ '@supabase/supabase-js': '^2.45.0' }),
+    'lib/admin.ts': [
+      "import { createClient } from '@supabase/supabase-js';",
+      "if (!key) throw new Error('Missing SUPABASE_SERVICE_ROLE_KEY environment variable');",
+      "const required = ['NEXT_PUBLIC_SUPABASE_ANON_KEY', 'SUPABASE_SERVICE_ROLE_KEY'];",
+      "const anon = Deno.env.get('SUPABASE_ANON_KEY');",
+      'const env = `NEXT_PUBLIC_SUPABASE_ANON_KEY=${answers.anonKey}`;',
+      'const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;',
+    ].join('\n'),
+  });
+  expect(lines).toEqual([
+    'supabase-2026-12-31-legacy-api-keys lib/admin.ts:2 comment',
+    // One item for each of the two names on the line.
+    'supabase-2026-12-31-legacy-api-keys lib/admin.ts:3 live',
+    'supabase-2026-12-31-legacy-api-keys lib/admin.ts:3 live',
+    'supabase-2026-12-31-legacy-api-keys lib/admin.ts:4 live',
+    'supabase-2026-12-31-legacy-api-keys lib/admin.ts:5 comment',
+    'supabase-2026-12-31-legacy-api-keys lib/admin.ts:6 live',
+  ]);
+  expect(markerInProse('SUPABASE_ANON_KEY', 'Set SUPABASE_ANON_KEY first')).toBe(true);
+  expect(markerInProse('SUPABASE_ANON_KEY', 'VITE_SUPABASE_ANON_KEY')).toBe(false);
+  expect(markerInProse('SUPABASE_ANON_KEY', undefined)).toBe(false);
+  // Hostnames and module names live inside longer strings.
+  expect(
+    markerInProse(
+      'firebasedynamiclinks.googleapis.com',
+      'https://firebasedynamiclinks.googleapis.com/v1/shortLinks',
+    ),
+  ).toBe(false);
 });

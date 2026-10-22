@@ -1,4 +1,4 @@
-import { readRepository } from './repository.ts';
+import { declaredPackageNames, readRepository } from './repository.ts';
 import { PipelineInputError, type Repository } from './types.ts';
 
 // A provider agent is a reviewed adapter for one API provider. `adapter` is the built-in adapter
@@ -214,14 +214,15 @@ function hostnameEvidence(repository: Repository, agent: ProviderAgent) {
 // source, without running repository code or contacting any provider.
 export async function detectProviders(directory: string): Promise<AgentDetection[]> {
   const detections: AgentDetection[] = [];
+  // Source files are the same whichever package a read resolves, so one read serves every
+  // hostname check, and a package is read again only when some manifest declares it.
+  const repository: Repository = await readRepository(directory);
+  const declared = await declaredPackageNames(directory);
   for (const agent of AGENT_CATALOG) {
     const packages: AgentDetection['packages'] = [];
-    let repository: Repository | undefined;
-    // shortcut: reads the repository once per catalog package; fine for a small catalog, share one
-    // read across packages if the catalog grows.
     for (const name of agent.packages) {
-      repository = await readRepository(directory, name);
-      for (const dependency of repository.dependencies)
+      if (declared && !declared.has(name)) continue;
+      for (const dependency of (await readRepository(directory, name)).dependencies)
         packages.push({
           file: dependency.file,
           name,
@@ -229,7 +230,7 @@ export async function detectProviders(directory: string): Promise<AgentDetection
           locked: dependency.lock.version,
         });
     }
-    const hostnames = hostnameEvidence(repository!, agent);
+    const hostnames = hostnameEvidence(repository, agent);
     if (packages.length || hostnames.length) detections.push({ agent, packages, hostnames });
   }
   return detections;
