@@ -4,6 +4,7 @@ import { assessmentConfiguration } from './assessment.ts';
 import { suggestProviderAdapter } from './adapter-suggestions.ts';
 import { validateProviderIdentity } from './providers.ts';
 import { PipelineInputError } from './types.ts';
+import { cliErrorMessage } from './cli-errors.ts';
 
 const USAGE =
   'Usage: refit adapter-suggest --repository <directory> --spec <openapi.json-or-yaml> --id <provider-id> --package <npm-package> (--default-import | --export <client-constructor>) --output <new-adapter.json> [--operation-id <id> ...] [--json]';
@@ -87,6 +88,6 @@ try {
   }
 } catch (error) {
   if (!(error instanceof Error)) throw error;
-  console.error(`${error.name}: ${error.message}`);
+  console.error(cliErrorMessage(error, 'adapter-suggest'));
   process.exitCode = 1;
 }
