@@ -97,7 +97,11 @@ const replacement = (kind: string, value: string) =>
   kind === 'api-version' ? `${value.charAt(0).toLowerCase()}${value.slice(1)}` : code(value);
 
 function nextStep(report: Omit<Report, 'next'>) {
-  const soonest = report.deadlines.find((deadline) => !deadline.ignored);
+  const live = report.deadlines.filter((deadline) => !deadline.ignored);
+  // An SDK's end of support does not stop its requests, so a model or API version that is past or
+  // close to its sunset comes first.
+  const soonest =
+    live.find((deadline) => deadline.kind !== 'sdk' && deadline.days <= URGENT_DAYS) ?? live[0];
   if (soonest) {
     const subject = soonest.versions.map(code).join(', ');
     const when =
@@ -108,7 +112,14 @@ function nextStep(report: Omit<Report, 'next'>) {
       soonest.kind === 'model' && soonest.provider in MODEL_CALLS
         ? '; `refit deadlines --propose-model-fixes` proposes it where the model is a literal in a traced call'
         : '';
-    return `${when}${soonest.replacement ? ` Replacement: ${replacement(soonest.kind, soonest.replacement)}${fixes}.` : ''}`;
+    const others = live.filter(
+      (deadline) => deadline !== soonest && deadline.days <= URGENT_DAYS,
+    ).length;
+    return `${when}${soonest.replacement ? ` Replacement: ${replacement(soonest.kind, soonest.replacement)}${fixes}.` : ''}${
+      others
+        ? ` ${others} more ${others === 1 ? 'deadline is' : 'deadlines are'} past due or within ${URGENT_DAYS} days; see Deadlines.`
+        : ''
+    }`;
   }
   const addable = report.integrations.find(
     (integration) => integration.capability === 'migrate' && !integration.configured,

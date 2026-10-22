@@ -3,3 +3,5 @@ dist
 package-lock.json
 .impeccable/review
 pipeline/fixtures/pnpm-workspaces/*.yaml
+pipeline/fixtures/report/*.md
+pipeline/fixtures/report/*.report.json

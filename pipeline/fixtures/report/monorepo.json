@@ -1,0 +1,91 @@
+{
+  "source": {
+    "list": "docs/benchmarks/2026-10-14-stripe-repos.json",
+    "repository": "agentset-ai/agentset",
+    "commit": "03283cc6383b96facbec53190ed352079b641789",
+    "refit": "2f5cdf18e540f6e32ff857eead5a71c4432e94d8",
+    "scannedAt": "2026-10-22T12:00:00.000Z"
+  },
+  "inventory": {
+    "formatVersion": 1,
+    "providers": [
+      {
+        "id": "stripe",
+        "name": "Stripe",
+        "agent": true,
+        "packages": [
+          {
+            "file": "packages/stripe/package.json",
+            "name": "stripe",
+            "version": "^18.0.0",
+            "locked": null
+          }
+        ],
+        "hostnames": []
+      },
+      {
+        "id": "resend",
+        "name": "Resend",
+        "agent": false,
+        "packages": [
+          {
+            "file": "apps/web/package.json",
+            "name": "resend",
+            "version": "^6.7.0",
+            "locked": null
+          },
+          {
+            "file": "packages/emails/package.json",
+            "name": "resend",
+            "version": "^6.7.0",
+            "locked": null
+          }
+        ],
+        "hostnames": []
+      }
+    ],
+    "integrations": [],
+    "apiVersions": [],
+    "deadlines": {
+      "exposures": [],
+      "mentions": [
+        {
+          "deadline": {
+            "id": "openai-2027-04-01-gpt-5-1",
+            "provider": "openai",
+            "kind": "model",
+            "versions": ["gpt-5.1", "gpt-5.3-codex"],
+            "date": "2027-04-01",
+            "summary": "OpenAI shuts down gpt-5.1, gpt-5.3-codex.",
+            "replacement": "gpt-6-sol",
+            "source": "https://developers.openai.com/api/docs/deprecations",
+            "checkedAt": "2026-10-15"
+          },
+          "days": 161,
+          "evidence": [],
+          "more": 0,
+          "nonLive": [
+            {
+              "file": "packages/validation/src/llm/constants.ts",
+              "line": 6,
+              "kind": "source",
+              "use": "catalog",
+              "text": "{ model: \"gpt-5.1\", name: \"GPT-5.1\" },",
+              "version": "gpt-5.1"
+            }
+          ],
+          "nonLiveMore": 0,
+          "nonLiveCounts": {
+            "catalog": 1
+          }
+        }
+      ]
+    },
+    "ignores": {
+      "file": null,
+      "entries": [],
+      "error": null
+    },
+    "models": []
+  }
+}
