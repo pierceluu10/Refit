@@ -15,6 +15,7 @@ import {
 } from './hosted-database.ts';
 import { runHostedService } from './hosted-service.ts';
 import { hostedTargetId, openHostedStore } from './hosted-store.ts';
+import { DEFAULT_TENANCY_LIMITS } from './hosted-tenancy.ts';
 import type { RepositoryApproval } from './repository-enrollment.ts';
 
 vi.mock('./service-worker.ts', () => ({
@@ -28,6 +29,7 @@ const DATABASE = process.env.REFIT_POSTGRES_URL;
 // A Postgres image for a throwaway container this test stops and starts, never a shared one.
 const OUTAGE_IMAGE = process.env.REFIT_POSTGRES_OUTAGE_IMAGE;
 const LEASE_SECONDS = 15;
+const TENANCY = { accounts: ['example'], limits: DEFAULT_TENANCY_LIMITS };
 const READY_TIMEOUT_MS = 60_000;
 const POLL_MS = 100;
 const execute = promisify(execFile);
@@ -182,7 +184,7 @@ it.skipIf(!OUTAGE_IMAGE)(
     const errors: Error[] = [];
     const observer = openHostedPool(postgres.url, (error) => errors.push(error));
     cleanups.push(() => observer.end());
-    const seed = await openHostedStore(observer);
+    const seed = await openHostedStore(observer, TENANCY);
     const target = hostedTargetId('example/application', 'main');
     await seed.approve(approval('example/application'), 'octo-reviewer');
     await seed.accept(randomUUID(), 'installation', new TextEncoder().encode('created'), {
@@ -249,7 +251,7 @@ it.skipIf(!OUTAGE_IMAGE)(
         directory: join(directory, name),
         webhookSecret: 'webhook-secret-for-hosted-outage-tests-123',
         controlToken: 'control-secret-for-hosted-outage-tests-456',
-        owner: 'example',
+        tenancy: TENANCY,
         host: '127.0.0.1',
         port: 0,
         intervalSeconds: 30,

@@ -131,6 +131,7 @@ async function followAccount(
   client: PoolClient,
   change: AccountChange,
   installation: Installation | undefined,
+  allowed: boolean,
   plan: LifecyclePlan,
 ) {
   if (!installation || installation.owner === change.owner) return;
@@ -140,8 +141,8 @@ async function followAccount(
       `Rename of account ${change.previousOwner} does not match the stored login ${installation.owner}; redeliver earlier account events first.`,
     );
   await client.query(
-    'UPDATE refit_installations SET owner = $2, updated_at = now() WHERE id = $1',
-    [change.installationId, change.owner],
+    'UPDATE refit_installations SET owner = $2, allowed = $3, updated_at = now() WHERE id = $1',
+    [change.installationId, change.owner, allowed],
   );
   const { rows } = await client.query<{ repository: string; github_id: string }>(
     'SELECT repository, github_id FROM refit_installation_repositories WHERE installation_id = $1',
@@ -159,18 +160,21 @@ async function followAccount(
 }
 
 // Repository events and account renames find stored repositories by GitHub ID, never by name.
+// `allowed` says whether the account, by its login after the change, is on the allowlist; a
+// renamed account keeps its targets only if its new login is listed.
 export async function followLifecycle(
   client: PoolClient,
   change: RepositoryChange | AccountChange,
+  allowed: boolean,
 ): Promise<LifecyclePlan> {
   const plan: LifecyclePlan = { cancel: [], enroll: [] };
   const { rows } = await client.query<Installation>(
     'SELECT owner, status FROM refit_installations WHERE id = $1 FOR UPDATE',
     [change.installationId],
   );
-  if (change.kind === 'account') await followAccount(client, change, rows[0], plan);
+  if (change.kind === 'account') await followAccount(client, change, rows[0], allowed, plan);
   else await followRepository(client, change, rows[0], plan);
-  if (rows[0]?.status !== 'active') plan.enroll = [];
+  if (rows[0]?.status !== 'active' || !allowed) plan.enroll = [];
   return plan;
 }
 

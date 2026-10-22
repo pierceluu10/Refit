@@ -79,6 +79,26 @@ ALTER TABLE refit_targets ENABLE ROW LEVEL SECURITY;
 ALTER TABLE refit_jobs ENABLE ROW LEVEL SECURITY;
 `;
 
+const TENANCY = `
+-- Accounts are allowed only by REFIT_HOSTED_ACCOUNTS, which the service applies on start.
+ALTER TABLE refit_installations ADD COLUMN IF NOT EXISTS allowed boolean NOT NULL DEFAULT false;
+ALTER TABLE refit_installations ADD COLUMN IF NOT EXISTS last_claimed_at timestamptz;
+CREATE TABLE IF NOT EXISTS refit_installation_usage (
+  installation_id bigint NOT NULL REFERENCES refit_installations (id),
+  day date NOT NULL,
+  jobs integer NOT NULL DEFAULT 0,
+  inventories integer NOT NULL DEFAULT 0,
+  PRIMARY KEY (installation_id, day)
+);
+CREATE TABLE IF NOT EXISTS refit_ai_ledgers (
+  installation_id bigint PRIMARY KEY REFERENCES refit_installations (id),
+  state jsonb,
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+ALTER TABLE refit_installation_usage ENABLE ROW LEVEL SECURITY;
+ALTER TABLE refit_ai_ledgers ENABLE ROW LEVEL SECURITY;
+`;
+
 export interface HostedMigration {
   version: number;
   name: string;
@@ -99,6 +119,11 @@ export const MIGRATIONS: HostedMigration[] = [
   },
   {
     version: 3,
+    name: 'Allowed accounts, claim fairness, daily usage and AI ledgers',
+    up: (client) => client.query(TENANCY),
+  },
+  {
+    version: 4,
     name: 'Installation event order and delivery pruning',
     // installation.updated_at of the newest installation event applied; older redeliveries are
     // stale. Deliveries are pruned by age.

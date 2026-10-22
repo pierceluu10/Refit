@@ -19,6 +19,7 @@ import {
 import { parseWebhook } from './github-webhooks.ts';
 import { runHostedService } from './hosted-service.ts';
 import { hostedTargetId, openHostedStore } from './hosted-store.ts';
+import { hostedTenancy } from './hosted-tenancy.ts';
 import { readRepositoryApproval, type RepositoryApproval } from './repository-enrollment.ts';
 
 const github = vi.hoisted(() => ({ missing: false, id: 789 }));
@@ -47,6 +48,8 @@ const OTHER_INSTALLATION = 457;
 const WEBHOOK_SECRET = 'webhook-secret-for-lifecycle-tests-123';
 const CONTROL_TOKEN = 'control-secret-for-lifecycle-tests-456';
 const TARGET = hostedTargetId('example/application', 'main');
+// Every account the store-level cases move repositories between; the service allows only example.
+const TENANCY = hostedTenancy({ REFIT_HOSTED_ACCOUNTS: 'example,other,example-labs' });
 const cleanups: (() => Promise<unknown>)[] = [];
 
 afterEach(async () => {
@@ -114,7 +117,7 @@ async function service(pool: pg.Pool, root: string) {
     directory: join(root, 'hosted-state'),
     webhookSecret: WEBHOOK_SECRET,
     controlToken: CONTROL_TOKEN,
-    owner: 'example',
+    tenancy: hostedTenancy({ REFIT_HOSTED_OWNER: 'example' }),
     host: '127.0.0.1',
     port: 0,
     intervalSeconds: 30,
@@ -171,7 +174,7 @@ it.skipIf(!DATABASE)(
   'enrolls the approved repositories an installation lists when it is created and records the rest',
   async () => {
     const pool = await database();
-    const store = await openHostedStore(pool);
+    const store = await openHostedStore(pool, TENANCY);
     await store.approve((await approved()).approval, 'octo-reviewer');
     const created = await deliver(
       store,
@@ -205,7 +208,7 @@ it.skipIf(!DATABASE)(
   'enrolls an approved repository added to an installation and records an unapproved one without enrolling it',
   async () => {
     const pool = await database();
-    const store = await openHostedStore(pool);
+    const store = await openHostedStore(pool, TENANCY);
     const sample = await approved();
     expect(await store.approve(sample.approval, 'octo-reviewer')).toEqual([]);
     expect((await deliver(store, 'installation', installation('created', []))).enrolled).toEqual(
@@ -236,7 +239,7 @@ it.skipIf(!DATABASE)(
   'cancels a removed repository’s targets and running job and forgets the repository',
   async () => {
     const pool = await database();
-    const store = await openHostedStore(pool);
+    const store = await openHostedStore(pool, TENANCY);
     await store.approve((await approved()).approval, 'octo-reviewer');
     await deliver(store, 'installation', installation('created', [['example/application', 789]]));
     const job = await store.claim('worker-a', 30);
@@ -260,7 +263,7 @@ it.skipIf(!DATABASE)(
   'cancels every target on suspend, records repositories added while suspended without enrolling them, and resumes every approved repository on unsuspend',
   async () => {
     const pool = await database();
-    const store = await openHostedStore(pool);
+    const store = await openHostedStore(pool, TENANCY);
     await store.approve((await approved()).approval, 'octo-reviewer');
     await deliver(
       store,
@@ -310,7 +313,7 @@ it.skipIf(!DATABASE)(
   'keeps a suspension in place when new permissions are accepted, and enrolls the listed repositories once active',
   async () => {
     const pool = await database();
-    const store = await openHostedStore(pool);
+    const store = await openHostedStore(pool, TENANCY);
     await store.approve((await approved()).approval, 'octo-reviewer');
     await deliver(store, 'installation', installation('created', []));
     await deliver(store, 'installation', installation('suspend', []));
@@ -339,7 +342,7 @@ it.skipIf(!DATABASE)(
   'follows a renamed repository by its ID: the approval moves, the old target stops and the new name enrolls',
   async () => {
     const pool = await database();
-    const store = await openHostedStore(pool);
+    const store = await openHostedStore(pool, TENANCY);
     const sample = await approved();
     await store.approve(sample.approval, 'octo-reviewer');
     await deliver(
@@ -430,7 +433,7 @@ it.skipIf(!DATABASE)(
   'stops a repository transferred to another account and enrolls one transferred in only under an approval for its new name',
   async () => {
     const pool = await database();
-    const store = await openHostedStore(pool);
+    const store = await openHostedStore(pool, TENANCY);
     const sample = await approved();
     await store.approve(sample.approval, 'octo-reviewer');
     await deliver(
@@ -496,7 +499,7 @@ it.skipIf(!DATABASE)(
   'stops an archived repository’s targets and resumes them when it is unarchived',
   async () => {
     const pool = await database();
-    const store = await openHostedStore(pool);
+    const store = await openHostedStore(pool, TENANCY);
     await store.approve((await approved()).approval, 'octo-reviewer');
     await deliver(
       store,
@@ -531,7 +534,7 @@ it.skipIf(!DATABASE)(
   async () => {
     const pool = await database();
     const sample = await approved();
-    await (await openHostedStore(pool)).approve(sample.approval, 'octo-reviewer');
+    await (await openHostedStore(pool, TENANCY)).approve(sample.approval, 'octo-reviewer');
     const hosted = await service(pool, sample.root);
     // GitHub Apps never receive repository.deleted; the next access check answers 404.
     github.missing = true;
@@ -566,7 +569,7 @@ it.skipIf(!DATABASE)(
   async () => {
     const pool = await database();
     const sample = await approved();
-    const store = await openHostedStore(pool);
+    const store = await openHostedStore(pool, TENANCY);
     await store.approve(sample.approval, 'octo-reviewer');
     const hosted = await service(pool, sample.root);
     // The installed repository was deleted and a new one created under the same name.
@@ -599,7 +602,7 @@ it.skipIf(!DATABASE)(
   'follows an account rename: the login, repository names, approvals and targets move together',
   async () => {
     const pool = await database();
-    const store = await openHostedStore(pool);
+    const store = await openHostedStore(pool, TENANCY);
     const sample = await approved();
     await store.approve(sample.approval, 'octo-reviewer');
     await deliver(
@@ -647,11 +650,20 @@ it.skipIf(!DATABASE)(
       deliver(store, 'installation_target', accountRename('someone', 'example-tools')),
     ).rejects.toMatchObject({ status: 409 });
     expect((await store.read()).installations[0].owner).toBe('example-labs');
+
+    // A rename to a login the allowlist does not name stops every target and enrolls nothing.
+    expect(
+      await deliver(store, 'installation_target', accountRename('example-labs', 'example-gone')),
+    ).toMatchObject({ status: 'not-allowed', cancelled: [renamedTarget], enrolled: [] });
+    expect((await store.read()).installations[0]).toMatchObject({
+      owner: 'example-gone',
+      allowed: false,
+    });
   },
 );
 
 it.skipIf(!DATABASE)(
-  'accepts a rename away from the configured account over HTTP and tells the operator to update REFIT_HOSTED_OWNER',
+  'refuses a renamed account whose new login is not allowed over HTTP and tells the operator to list it',
   async () => {
     const pool = await database();
     const sample = await approved();
@@ -661,11 +673,11 @@ it.skipIf(!DATABASE)(
       'installation_target',
       accountRename('example', 'example-labs'),
     );
-    expect(renamed).toMatchObject({ status: 202, body: { status: 'accepted' } });
+    expect(renamed).toMatchObject({ status: 202, body: { status: 'not-allowed' } });
     expect(hosted.progress).toContain(
-      'Account example is now example-labs; set REFIT_HOSTED_OWNER=example-labs to keep accepting its webhooks.',
+      'Account example is now example-labs, which REFIT_HOSTED_ACCOUNTS does not list; its targets stopped. Add example-labs to allow it again.',
     );
-    // Single-tenant mode matches the configured login, so the new login waits for the operator.
+    // The allowlist matches logins, so the new login stays refused until the operator lists it.
     expect(
       await hosted.send(
         'installation_repositories',
@@ -673,9 +685,13 @@ it.skipIf(!DATABASE)(
           login: 'example-labs',
         }),
       ),
-    ).toMatchObject({ status: 202, body: { status: 'ignored' } });
+    ).toMatchObject({ status: 202, body: { status: 'not-allowed' } });
     expect((await hosted.status()).installations).toEqual([
-      expect.objectContaining({ owner: 'example-labs', repositories: [] }),
+      expect.objectContaining({
+        owner: 'example-labs',
+        allowed: false,
+        repositories: ['example-labs/application'],
+      }),
     ]);
   },
   30_000,
@@ -685,7 +701,7 @@ it.skipIf(!DATABASE)(
   'treats a deleted installation as final when its created delivery arrives late',
   async () => {
     const pool = await database();
-    const store = await openHostedStore(pool);
+    const store = await openHostedStore(pool, TENANCY);
     await store.approve((await approved()).approval, 'octo-reviewer');
     const deleted = await deliver(
       store,
@@ -724,7 +740,7 @@ it.skipIf(!DATABASE)(
   'skips an installation event older than the newest one applied, so a late suspend cannot stop a resumed installation',
   async () => {
     const pool = await database();
-    const store = await openHostedStore(pool);
+    const store = await openHostedStore(pool, TENANCY);
     await store.approve((await approved()).approval, 'octo-reviewer');
     await deliver(
       store,
@@ -766,7 +782,7 @@ it.skipIf(!DATABASE)(
   'treats a redelivery hours later as a duplicate and prunes delivery IDs after 30 days',
   async () => {
     const pool = await database();
-    const store = await openHostedStore(pool);
+    const store = await openHostedStore(pool, TENANCY);
     await store.approve((await approved()).approval, 'octo-reviewer');
     const payload = installation('created', [['example/application', APPLICATION_ID]]);
     const delivery = randomUUID();
