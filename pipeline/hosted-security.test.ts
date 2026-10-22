@@ -351,3 +351,32 @@ it.skipIf(!DATABASE)(
   },
   30_000,
 );
+
+it.skipIf(!DATABASE)(
+  'serves /status only with the exact service token and reveals nothing without it',
+  async () => {
+    const pool = await database();
+    const root = await mkdtemp(join(tmpdir(), 'refit-hosted-status-'));
+    cleanups.push(() => rm(root, { recursive: true, force: true }));
+    const { url } = await start(pool, root);
+    for (const authorization of [
+      undefined,
+      CONTROL_TOKEN,
+      `Basic ${CONTROL_TOKEN}`,
+      `Bearer ${CONTROL_TOKEN.slice(0, -1)}`,
+      `Bearer ${CONTROL_TOKEN}x`,
+      `Bearer ${WEBHOOK_SECRET}`,
+    ]) {
+      const response = await fetch(`${url}/status`, {
+        headers: authorization ? { Authorization: authorization } : {},
+      });
+      expect(response.status).toBe(401);
+      expect(await response.json()).toEqual({ error: 'Service authorization is required.' });
+    }
+    // The token is accepted only in the Authorization header, never from the query string.
+    const query = await fetch(`${url}/status?token=${CONTROL_TOKEN}`);
+    expect(query.status).toBe(404);
+    expect((await status(url)).jobs).toEqual([]);
+  },
+  30_000,
+);
