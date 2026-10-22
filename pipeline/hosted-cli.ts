@@ -6,6 +6,7 @@ import { hostedSchemaStatus, migrateHostedSchema } from './hosted-migrations.ts'
 import { UNINSTALL_GRACE_DAYS } from './hosted-retention.ts';
 import { runHostedService } from './hosted-service.ts';
 import { openHostedStore } from './hosted-store.ts';
+import { hostedTenancy } from './hosted-tenancy.ts';
 import { validateServiceSecret } from './local-service.ts';
 import { readRepositoryApproval } from './repository-enrollment.ts';
 import { PipelineInputError } from './types.ts';
@@ -16,10 +17,12 @@ const USAGE = `Usage: refit hosted serve --state <directory> [--host <address>] 
        refit hosted approve --approval <receipt.json> --approved-by <github-login>
        refit hosted retry --target <id>
        refit hosted migrate [--dry-run]
-Requires REFIT_DATABASE_URL (PostgreSQL). serve also requires GITHUB_APP_ID, GITHUB_APP_PRIVATE_KEY_FILE, REFIT_WEBHOOK_SECRET, a different REFIT_SERVICE_TOKEN and REFIT_HOSTED_OWNER, the only GitHub account whose installations enroll until jobs run in per-job microVMs. --ai-patch uses OPENAI_API_KEY and OPENAI_MODEL with a separate REFIT_AI_BUDGET_USD ledger per installation under REFIT_AI_BUDGET_DIRECTORY.
+       refit hosted accounts
+Requires REFIT_DATABASE_URL (PostgreSQL). serve also requires GITHUB_APP_ID, GITHUB_APP_PRIVATE_KEY_FILE, REFIT_WEBHOOK_SECRET, a different REFIT_SERVICE_TOKEN and REFIT_HOSTED_ACCOUNTS, the comma-separated GitHub accounts whose installations may enroll (default: REFIT_HOSTED_OWNER alone). Other accounts' installations are recorded as not allowed and nothing is cloned. Each installation runs one job at a time, at most REFIT_HOSTED_DAILY_JOBS (default 1440) jobs and REFIT_HOSTED_DAILY_INVENTORIES (default 500) inventories per UTC day. --ai-patch uses OPENAI_API_KEY and OPENAI_MODEL with a separate REFIT_AI_BUDGET_USD ledger per installation in PostgreSQL.
 approve stores a receipt made by refit enroll. Installing the App on an approved repository enrolls it: the worker runs refit doctor, then scans and validates with the approved checks, and stores a job receipt. Installed repositories without an approval never run. Removing the repository or the installation cancels its targets and stops running jobs. --publish-draft opens draft PRs as Refit Agent; Refit never merges.
 retry queues one fresh attempt for an enrolled target, permitting a cached failed job to run again; successful jobs remain cached. Approval and access gates still apply.
-migrate applies pending schema migrations, which serve also does on start; --dry-run lists them without applying anything. serve keeps running through PostgreSQL outages. With --purge-uninstalled it deletes an uninstalled installation's targets, jobs and evidence ${UNINSTALL_GRACE_DAYS} days after the uninstall; without it, nothing is deleted.`;
+migrate applies pending schema migrations, which serve also does on start; --dry-run lists them without applying anything. serve keeps running through PostgreSQL outages. With --purge-uninstalled it deletes an uninstalled installation's targets, jobs and evidence ${UNINSTALL_GRACE_DAYS} days after the uninstall; without it, nothing is deleted.
+accounts lists every recorded installation, whether the serving worker allowed it, and today's usage against the caps. Run it with the worker's REFIT_HOSTED_ACCOUNTS (or REFIT_HOSTED_OWNER) and cap settings.`;
 
 function database() {
   const connectionString = process.env.REFIT_DATABASE_URL;
@@ -104,6 +107,23 @@ try {
     } finally {
       await pool.end();
     }
+  } else if (command === 'accounts') {
+    const tenancy = hostedTenancy(process.env);
+    const pool = database();
+    try {
+      const { installations } = await (await openHostedStore(pool, tenancy)).read();
+      const { dailyJobs, dailyInventories } = tenancy.limits;
+      console.log(
+        `Allowed accounts: ${tenancy.accounts.join(', ')}. Daily caps per installation (UTC): ${dailyJobs} jobs, ${dailyInventories} inventories.`,
+      );
+      if (!installations.length) console.log('No installations recorded.');
+      for (const installation of installations)
+        console.log(
+          `Installation ${installation.id} (${installation.owner}): ${installation.status}, ${installation.allowed ? 'allowed' : 'not allowed'}; ${installation.repositories.length} ${installation.repositories.length === 1 ? 'repository' : 'repositories'}; today ${installation.jobsToday}/${dailyJobs} jobs, ${installation.inventoriesToday}/${dailyInventories} inventories; refusals: ${installation.refusals.join(', ') || 'none'}.`,
+        );
+    } finally {
+      await pool.end();
+    }
   } else if (command === 'serve') {
     if (!values.state) throw new PipelineInputError(USAGE);
     const app = githubAppConfiguration(process.env);
@@ -127,7 +147,7 @@ try {
         directory: values.state,
         webhookSecret,
         controlToken,
-        owner: process.env.REFIT_HOSTED_OWNER ?? '',
+        tenancy: hostedTenancy(process.env),
         aiPatch: assessmentConfiguration(values['ai-patch'], process.env),
         repairAttempts: Number(values['repair-attempts'] ?? 0),
         publishDraft: values['publish-draft'],

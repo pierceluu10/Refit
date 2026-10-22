@@ -7,10 +7,12 @@ import { afterEach, expect, it } from 'vitest';
 import { purgeUninstalled, UNINSTALL_GRACE_DAYS } from './hosted-retention.ts';
 import { runHostedService } from './hosted-service.ts';
 import { hostedTargetId, openHostedStore } from './hosted-store.ts';
+import { DEFAULT_TENANCY_LIMITS } from './hosted-tenancy.ts';
 import type { RepositoryApproval } from './repository-enrollment.ts';
 
 const DATABASE = process.env.REFIT_POSTGRES_URL;
 const OWNER = 'example';
+const TENANCY = { accounts: [OWNER], limits: DEFAULT_TENANCY_LIMITS };
 const cleanups: (() => Promise<unknown>)[] = [];
 
 afterEach(async () => {
@@ -52,7 +54,7 @@ function approval(repository: string): RepositoryApproval {
 
 // Approves and installs each repository, finishes its first job and writes its evidence.
 async function installed(pool: pg.Pool, state: string, installations: Record<number, string>) {
-  const store = await openHostedStore(pool);
+  const store = await openHostedStore(pool, TENANCY);
   for (const [id, repository] of Object.entries(installations)) {
     await store.approve(approval(repository), 'octo-reviewer');
     await install(store, Number(id), repository);
@@ -253,7 +255,7 @@ async function servePass(pool: pg.Pool, state: string, purge: boolean | undefine
     directory: state,
     webhookSecret: 'webhook-secret-for-hosted-retention-tests-123',
     controlToken: 'control-secret-for-hosted-retention-tests-456',
-    owner: OWNER,
+    tenancy: TENANCY,
     host: '127.0.0.1',
     port: 0,
     intervalSeconds: 30,
