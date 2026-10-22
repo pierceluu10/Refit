@@ -120,8 +120,9 @@ export function openInventoryStore(pool: Pool, limits: TenancyLimits = DEFAULT_T
       };
     });
 
-  // Records a refresh. An unchanged revision only updates when it was checked. Returns false when
-  // the lease was lost or the repository was removed meanwhile, so the result is dropped.
+  // Records a refresh. An unchanged revision only updates when it was checked, and a stop keeps the
+  // last complete inventory. Returns false when the lease was lost or the repository was removed
+  // meanwhile, so the result is dropped.
   const finish = async (
     claimed: InventoryClaim,
     worker: string,
@@ -151,7 +152,9 @@ export function openInventoryStore(pool: Pool, limits: TenancyLimits = DEFAULT_T
       (
         await pool.query(
           `UPDATE refit_inventories SET ${release}, error = NULL, base = $4, revision = $5,
-             registry = $6, status = $7, stop = $8, message = $9, inventory = $10,
+             registry = $6, status = $7, stop = $8, message = $9,
+             inventory = CASE WHEN $7 = 'complete' THEN $10 ELSE inventory END,
+             inventory_revision = CASE WHEN $7 = 'complete' THEN $5 ELSE inventory_revision END,
              scanned_at = now(), duration_ms = $11
            ${where}`,
           [
@@ -175,7 +178,8 @@ export function openInventoryStore(pool: Pool, limits: TenancyLimits = DEFAULT_T
       await pool.query(
         `SELECT installation_id::text AS "installationId", repository, state, base, revision,
            status, stop, message, error, requested_at AS "requestedAt", checked_at AS "checkedAt",
-           scanned_at AS "scannedAt", duration_ms AS "durationMs", inventory
+           scanned_at AS "scannedAt", duration_ms AS "durationMs", inventory,
+           inventory_revision AS "inventoryRevision"
          FROM refit_inventories WHERE $1::text IS NULL OR repository = $1
          ORDER BY installation_id, repository`,
         [repository?.toLowerCase() ?? null],

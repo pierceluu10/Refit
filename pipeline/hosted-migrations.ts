@@ -156,7 +156,9 @@ CREATE TABLE IF NOT EXISTS refit_inventories (
   message text,
   scanned_at timestamptz,
   duration_ms integer,
+  -- The last complete inventory and its commit, kept when a later scan stops.
   inventory jsonb,
+  inventory_revision text,
   PRIMARY KEY (installation_id, repository),
   FOREIGN KEY (installation_id, repository)
     REFERENCES refit_installation_repositories (installation_id, repository) ON DELETE CASCADE

@@ -22,7 +22,7 @@ Only installations of allowed accounts (`REFIT_HOSTED_ACCOUNTS`, by default `REF
 
 ## Limits and stops
 
-An inventory that hits a limit ends with `status: "stopped"`, a named `stop` and a `message`, and stores no findings.
+An inventory that hits a limit ends with `status: "stopped"`, a named `stop` and a `message`, and stores no new findings: the last complete inventory, if any, stays in place with its `inventory_revision`.
 
 | Stop                   | When                                                                                                                                                                                    |
 | ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -47,7 +47,7 @@ PostgreSQL table `refit_inventories`, one row per installed repository, created 
 | `checked_at`, `error`                                    | When a worker last looked at the repository, and the last failure (null after a success).                                                                                                           |
 | `base`, `revision`, `registry`                           | The default branch, the commit scanned and a digest of the deadline registry it was matched against.                                                                                                |
 | `status`, `stop`, `message`, `scanned_at`, `duration_ms` | The stored result: `complete` or `stopped`, and when and how long the scan took.                                                                                                                    |
-| `inventory`                                              | The inventory JSON for a complete scan.                                                                                                                                                             |
+| `inventory`, `inventory_revision`                        | The inventory JSON of the last complete scan and the commit it was taken at; a later stop leaves both in place.                                                                                     |
 
 The inventory JSON (`formatVersion: 1`) has these fields:
 
