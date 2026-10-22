@@ -1682,32 +1682,42 @@
     {
       "repo": "nextai-translator/raycast-openai-translator",
       "file": "src/providers/claude/config.ts",
-      "line": 7,
+      "line": 6,
       "model": "claude-3-haiku-20240307",
       "provider": "anthropic",
       "via": "indirect",
       "registry": true,
-      "notes": "provider default model"
+      "notes": "provider default model; corrected from the name line to the id line that is sent"
     },
     {
       "repo": "nextai-translator/raycast-openai-translator",
       "file": "src/providers/gemini/config.ts",
-      "line": 17,
+      "line": 16,
       "model": "gemini-pro",
       "provider": "gemini",
       "via": "indirect",
       "registry": false,
-      "notes": "provider default model"
+      "notes": "provider default model; corrected from the name line to the id line that is sent"
     },
     {
       "repo": "nextai-translator/raycast-openai-translator",
       "file": "src/providers/openai/config.ts",
-      "line": 9,
+      "line": 8,
       "model": "gpt-3.5-turbo",
       "provider": "openai",
       "via": "indirect",
       "registry": true,
-      "notes": "provider default model"
+      "notes": "provider default model; corrected from the name line to the id line that is sent"
+    },
+    {
+      "repo": "nextai-translator/raycast-openai-translator",
+      "file": "src/providers/raycast/index.ts",
+      "line": 7,
+      "model": "gpt-3.5-turbo",
+      "provider": "compatible",
+      "via": "indirect",
+      "registry": false,
+      "notes": "Raycast AI, not the OpenAI API; correction 1"
     },
     {
       "repo": "nimrod-ai/inenglishplease",
@@ -2621,6 +2631,76 @@
     },
     {
       "repo": "vual/lobe-chat-pro",
+      "file": "src/config/modelProviders/aihubmix.ts",
+      "line": 6,
+      "model": "gpt-4.1-nano",
+      "provider": "compatible",
+      "via": "indirect",
+      "registry": false,
+      "notes": "connection-check model on AiHubMix; correction 1"
+    },
+    {
+      "repo": "vual/lobe-chat-pro",
+      "file": "src/config/modelProviders/anthropic.ts",
+      "line": 98,
+      "model": "claude-3-haiku-20240307",
+      "provider": "anthropic",
+      "via": "indirect",
+      "registry": true,
+      "notes": "connection-check model; correction 1"
+    },
+    {
+      "repo": "vual/lobe-chat-pro",
+      "file": "src/config/modelProviders/bedrock.ts",
+      "line": 283,
+      "model": "anthropic.claude-instant-v1",
+      "provider": "compatible",
+      "via": "indirect",
+      "registry": false,
+      "notes": "connection-check model on AWS Bedrock; correction 1"
+    },
+    {
+      "repo": "vual/lobe-chat-pro",
+      "file": "src/config/modelProviders/google.ts",
+      "line": 135,
+      "model": "gemini-2.0-flash",
+      "provider": "gemini",
+      "via": "indirect",
+      "registry": false,
+      "notes": "connection-check model; correction 1"
+    },
+    {
+      "repo": "vual/lobe-chat-pro",
+      "file": "src/config/modelProviders/openai.ts",
+      "line": 248,
+      "model": "gpt-5-nano",
+      "provider": "openai",
+      "via": "indirect",
+      "registry": false,
+      "notes": "connection-check model; correction 1"
+    },
+    {
+      "repo": "vual/lobe-chat-pro",
+      "file": "src/config/modelProviders/vertexai.ts",
+      "line": 6,
+      "model": "gemini-1.5-flash-001",
+      "provider": "gemini",
+      "via": "indirect",
+      "registry": false,
+      "notes": "connection-check model; correction 1"
+    },
+    {
+      "repo": "vual/lobe-chat-pro",
+      "file": "src/services/textToImage.ts",
+      "line": 17,
+      "model": "dall-e-3",
+      "provider": "openai",
+      "via": "indirect",
+      "registry": true,
+      "notes": "DALL-E builtin tool payload; correction 1"
+    },
+    {
+      "repo": "vual/lobe-chat-pro",
       "file": "src/store/image/slices/generationConfig/initialState.ts",
       "line": 13,
       "model": "gpt-image-1",
@@ -2628,6 +2708,16 @@
       "via": "indirect",
       "registry": true,
       "notes": "DEFAULT_AI_IMAGE_MODEL"
+    },
+    {
+      "repo": "vual/lobe-chat-pro",
+      "file": "src/store/palette/initialState.ts",
+      "line": 18,
+      "model": "gpt-image-1.5",
+      "provider": "openai",
+      "via": "indirect",
+      "registry": true,
+      "notes": "painting palette default image model; correction 1"
     },
     {
       "repo": "wk42worldworld/cybercode",
