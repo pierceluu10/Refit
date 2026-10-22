@@ -30,6 +30,7 @@ const commands = new Map([
   ['github-api', 'github-api-cli.ts'],
   ['cloud-sdk', 'cloud-sdk-cli.ts'],
   ['messaging', 'messaging-cli.ts'],
+  ['shopify-rest', 'shopify-rest-cli.ts'],
   ['report', 'report-cli.ts'],
   ['api-hosts', 'api-hosts-cli.ts'],
 ]);
@@ -69,6 +70,7 @@ Usage: refit <command> [options]
   github-api       List GitHub REST, GraphQL and version-header use with deprecations (review only)
   cloud-sdk        List AWS SDK v2 and v3 clients and legacy Azure SDK packages (review only)
   messaging        List deprecated Twilio and Mailgun calls and retired messaging SDKs (review only)
+  shopify-rest     List Shopify REST Admin calls to endpoints a later API version removes (review only)
   report           Report a repository's provider integrations, deadlines and AI model calls
   api-hosts        List the external HTTP API hosts a repository calls (review only)
 
