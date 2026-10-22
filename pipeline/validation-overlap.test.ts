@@ -15,7 +15,13 @@ afterEach(async () => {
 
 // A docker stand-in whose checks take a second each and record when they ran. The baseline
 // directory is mounted from `.../baseline`, candidates from `.../candidate-*`.
-async function fixture(baselineExit: number, generated = false, memory = 16 * 1024 ** 3) {
+async function fixture(
+  baselineExit: number,
+  generated = false,
+  memory = 16 * 1024 ** 3,
+  overlap = true,
+) {
+  if (overlap) vi.stubEnv('REFIT_VALIDATION_OVERLAP', '1');
   const root = await mkdtemp(join(tmpdir(), 'refit-overlap-'));
   roots.push(root);
   const repository = join(root, 'repository');
@@ -127,5 +133,13 @@ it('keeps one sandbox at a time on a Docker host without room for two', async ()
   const baseline = checks.find((check) => check.side === 'baseline')!;
   const patched = checks.find((check) => check.side === 'patched')!;
   expect(patched.started).toBeGreaterThanOrEqual(baseline.ended);
+  expect(report.validation).toMatchObject({ status: 'passed', patched: { status: 'passed' } });
+});
+
+it('keeps one sandbox at a time unless the operator opts in', async () => {
+  const { report, checks } = await fixture(0, true, 16 * 1024 ** 3, false);
+  const side = (name: string) => checks.find((check) => check.side === name)!;
+  expect(side('patched').started).toBeGreaterThanOrEqual(side('baseline').ended);
+  expect(side('generated-after').started).toBeGreaterThanOrEqual(side('generated-before').ended);
   expect(report.validation).toMatchObject({ status: 'passed', patched: { status: 'passed' } });
 });

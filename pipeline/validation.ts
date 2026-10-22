@@ -210,10 +210,15 @@ async function containerCheck(
 
 const GIB = 1024 ** 3;
 
-// Running the patched side alongside the baseline puts two sandboxes on the Docker host at once,
-// so it needs room for both at their memory limit (two installs, or two checks) and 1 GiB more.
-// A smaller host, such as the 4 GB hosted worker, validates one sandbox at a time as before.
+// Running two sandboxes at once is an operator opt-in (owner decision, 2026-10-22): the memory
+// check below reads the host's total, not what other validations already hold.
+const OVERLAP_SETTING = 'REFIT_VALIDATION_OVERLAP';
+
+// Two sandboxes at once need room for both at their memory limit (two installs, or two checks)
+// and 1 GiB more. Without the opt-in, or on a smaller host such as the 4 GB hosted worker,
+// validation runs one sandbox at a time as before.
 async function roomForTwoSandboxes() {
+  if (process.env[OVERLAP_SETTING] !== '1') return false;
   const limit = Math.max(
     ...[preparationProfile().memory, validationProfile().memory].map(
       (memory) => Number.parseInt(memory, 10) * GIB,
@@ -227,6 +232,7 @@ async function roomForTwoSandboxes() {
     });
     return Number(stdout.trim()) >= 2 * limit + GIB;
   } catch {
+    // A host Refit cannot measure gets the sequential path, which needs no extra room.
     return false;
   }
 }
@@ -409,28 +415,29 @@ async function generatedStripeChecks(options: {
   };
   await writeHarness(tools, entries, options.imports);
   const notRun: CheckResult = { status: 'not-run', exitCode: null, stdout: '', stderr: '' };
-  // Each side runs in its own offline sandbox with its own stripe-mock, so both run at once.
-  const results = await Promise.all(
-    options.runs.map(async (run) => {
-      if (!entries.length) return notRun;
-      options.onProgress?.(
-        `Running generated Stripe checks against ${run.side}-version stripe-mock in offline Docker...`,
-      );
-      return containerCheck(
-        run.directory,
-        options.image,
-        generatedCommand(),
-        run.dependencies ?? options.dependencies,
-        [
-          { source: mock.binary, target: '/refit/stripe-mock' },
-          { source: run.contract, target: '/refit/spec.json' },
-          { source: fixtures[run.side], target: '/refit/fixtures.json' },
-          { source: tools, target: '/refit/generated' },
-          { source: typescriptDirectory(), target: '/refit/typescript' },
-        ],
-      );
-    }),
-  );
+  // Each side runs in its own offline sandbox with its own stripe-mock, so both may run at once.
+  const generatedRun = async (run: (typeof options.runs)[number]) => {
+    if (!entries.length) return notRun;
+    options.onProgress?.(
+      `Running generated Stripe checks against ${run.side}-version stripe-mock in offline Docker...`,
+    );
+    return containerCheck(
+      run.directory,
+      options.image,
+      generatedCommand(),
+      run.dependencies ?? options.dependencies,
+      [
+        { source: mock.binary, target: '/refit/stripe-mock' },
+        { source: run.contract, target: '/refit/spec.json' },
+        { source: fixtures[run.side], target: '/refit/fixtures.json' },
+        { source: tools, target: '/refit/generated' },
+        { source: typescriptDirectory(), target: '/refit/typescript' },
+      ],
+    );
+  };
+  const results = (await roomForTwoSandboxes())
+    ? await Promise.all(options.runs.map(generatedRun))
+    : [await generatedRun(options.runs[0]), await generatedRun(options.runs[1])];
   return {
     engine: 'stripe-mock',
     image: mock.imageId,
