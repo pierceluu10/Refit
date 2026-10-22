@@ -5,7 +5,7 @@ This benchmark tests the claim "Refit detects the APIs a repository uses". It is
 - Frozen list: [`benchmarks/2026-10-22-inventory-repos.json`](benchmarks/2026-10-22-inventory-repos.json) (150 repositories: 100 JS/TS, 30 Python, 20 Go).
 - Labels: [`benchmarks/2026-10-22-inventory-labels.json`](benchmarks/2026-10-22-inventory-labels.json).
 - Results on `main`: [`benchmarks/2026-10-22-inventory-results.json`](benchmarks/2026-10-22-inventory-results.json).
-- Scripts: `scripts/inventory-benchmark-select.mjs` (sampling), `scripts/inventory-benchmark-candidates.mjs` (the labeller's independent search), `scripts/inventory-benchmark.mjs` (runs Refit and scores). The pure scoring functions are in `scripts/inventory-benchmark-score.mjs` and are tested by `pipeline/inventory-benchmark.test.ts`.
+- Scripts: `scripts/inventory-benchmark-select.mjs` (sampling), `scripts/inventory-benchmark-candidates.mjs` (the labeller's independent search), `scripts/inventory-benchmark.mjs` (runs Refit and scores). The pure sampling, candidate and scoring functions are in `scripts/inventory-benchmark-helpers.mjs` and are tested by `pipeline/inventory-benchmark.test.ts`.
 
 ## Labelling guide
 
@@ -53,7 +53,7 @@ An **external API** is a network service run by a third party and reached throug
 ```
 
 - One label per distinct `(provider, via, package or host)` in a repository. A provider called through two packages (`stripe` and `@stripe/stripe-js`) has two labels. The repository uses the provider once either way: scoring is per repository and provider.
-- `file` and `line` point at one production line that shows the use: the import or construction of the SDK in a file that calls it, or the line with the provider host for `http`. The labeller reads the file to confirm the call, not just the import.
+- `file` and `line` point at one production line that shows the use: the import or construction of the SDK in a file that calls it, or the line with the provider host for `http`. The labeller reads the evidence line, and the surrounding code wherever the line alone does not show that a request is made (a comment, a link, a type-only import or a configuration value).
 - `language` is the language of the evidence file: `javascript`, `typescript`, `python` or `go`.
 - `package` is the package or module path as written (`@aws-sdk/client-s3`, `boto3`, `github.com/stripe/stripe-go/v76`). `host` is the API host for `http` labels.
 - `monorepo` is `true` when the evidence file is in a workspace package or app below the root (`apps/*`, `packages/*`, `services/*` and similar), not in the root project.
@@ -65,6 +65,51 @@ An **external API** is a network service run by a third party and reached throug
 2. For each repository, at its pinned commit, the labeller reads the output of `scripts/inventory-benchmark-candidates.mjs`. It lists every declared dependency, every bare import with its first production file and line, and every URL host in source. It imports no Refit pipeline code. The labeller then reads the files and decides each label by this guide.
 3. Labels for all 150 repositories are committed before Refit is run on any of them. The commit that adds the last label comes before the commit that adds the first results.
 4. After scoring, labels are not edited to match Refit. If reading Refit's output reveals a labelling mistake, it is fixed in a separate commit, listed under "Label corrections" with the reason, and the score is reported both before and after.
+
+### Rulings
+
+Cases the guide did not foresee, decided once while labelling and applied to every repository:
+
+- Blockchain node JSON-RPC (viem, ethers, web3.js, @solana/web3.js, raw RPC URLs) is a chain protocol client, like a database driver, and is not labelled.
+- A protocol endpoint configured only by URL with no provider default (an x402 facilitator, a dead-man's-switch ping URL, a generic webhook) is not labelled.
+- Static file and media downloads (raw.githubusercontent.com, CDN assets, audio streams) and image URLs (favicon services, Gravatar) are not API uses.
+- A Google API not in the guide's list gets `google-<product>` (for example `google-postmaster`). An OAuth token exchange the repository builds itself is labelled `google-oauth`.
+- Signature verification of incoming webhooks is not a use; the outgoing client of the same provider is.
+- Ad and analytics snippets loaded by script tag count as their provider (`google-adsense`, `goatcounter`), as the guide says for analytics.
+- Maintainer tools run by hand (`tools/*.mjs` bots, generators) are non-production even when not under `scripts/`.
+- Only JS/TS, Python and Go code is labelled; calls made from Rust, Swift, Kotlin, PHP and other languages in the same repository are out of scope.
+- Code written for one specific provider counts even when the deployment switches it off by default (an empty analytics endpoint). A self-hosted service with no provider default does not.
+- Self-hosted tools reached by a user-configured URL (torrent clients, *arr apps, Torznab indexers, Mattermost, OTLP collectors, MinIO clients that require an endpoint) are not labelled. An AWS SDK S3 client is labelled `aws` even with an optional endpoint setting, because it defaults to AWS.
+- A user-supplied webhook URL for a specific provider (Discord, Microsoft Teams) is labelled as that provider, because the payload is written for its API; the host is the provider's documented webhook host.
+- A provider preset table (the user picks one of several hosts for one shared client) labels every provider and host in the table, since the shipped code sends requests to whichever is chosen.
+- OAuth sign-in configured through Passport, NextAuth or Better Auth providers is framework-mediated and not labelled; a token exchange or user lookup the repository codes itself is.
+- Evaluation harnesses (`evals/`) and promotional video projects (`promo/`) are non-production.
+- A type-only import of a provider SDK in an adapter that receives the user's client (`import type { Redis } from '@upstash/redis'`) is not labelled; the repository never constructs or configures the provider client.
+- WebSocket endpoints of a provider's public API (exchange market data streams) count as `http` labels with the WebSocket host.
+- Content Security Policy entries and image URLs built from an API host (QR or verse images) are not API uses.
+- Map tile servers are image URLs and are not labelled. Kubernetes, Helm and other YAML configuration is outside the labelled languages.
+- An S3 client pointed at another provider's S3-compatible API by code written for it (an R2 client) is labelled as that provider.
+- The candidate tool's path heuristic is only a hint: where a repository's production server lives under `scripts/` (ProxMenux's Flask backend), it is labelled as production.
+- Websites a browser automation tool drives (job boards, their internal front-end APIs) are not documented APIs and are not labelled.
+- A code snippet the application shows its users (a string containing an SDK import) is not a use.
+- Registry metadata lookups a shipped CLI makes for self-update checks (npm registry, GitHub releases API) are labelled, like any other public API.
+- Support and chat widgets (Zendesk, Freshdesk, Crisp, donation buttons) loaded for their UI are not labelled.
+- Build-time data fetches of a static site generator (an Astro page reading the GitHub API while building) do not run when the application is used and are not labelled.
+- Cloud data warehouses reached through an HTTPS API SDK (BigQuery, Snowflake) count like the guide's HTTP-API databases; wire-protocol drivers (pg, mysql2, mssql, oracledb) do not.
+- A PostHog (or other analytics) SDK pointed at the project's own self-hosted instance is not labelled.
+- Django management commands that import or scrape data on demand (`erp/management/commands/*`) are operator maintenance and are not labelled.
+- Model hub SDKs (huggingface_hub, modelscope) are labelled: they call the hub's metadata API. Downloading a model file by URL alone is a static download and is not.
+- Source archives a package manager downloads (OpenCores SVN, GitHub tarballs) are static downloads and are not labelled.
+- DNS-over-HTTPS resolvers are a DNS protocol transport and are not labelled.
+- Container registry and OCI distribution protocol clients are a protocol and are not labelled; a registry's own management API would be.
+
+### Labelling summary
+
+- 150 repositories labelled, 463 labels, 414 distinct (repository, provider) pairs, 205 distinct providers.
+- 53 repositories have no external API use in production JS/TS, Python or Go code (`"none": true`).
+- Pairs by group: JS/TS 275, Python 95, Go 44.
+- Most common providers (repositories): `github` 38, `openai` 19, `aws` 14, `gemini` 12, `cloudflare` 12, `sentry` 11, `telegram` 10, `anthropic` 10, `openrouter` 8, `google-analytics` 7.
+- One person (the labeller of this lane) made every label in one pass. There is no second labeller, so inter-rater agreement is not measured. The rulings above are the places where a second labeller would most likely disagree.
 
 ## Sampling procedure
 
@@ -110,7 +155,7 @@ Every false positive and false negative is listed with its file. Each miss gets 
 1. **language not supported**: the evidence is Python or Go;
 2. **provider not in catalog**: the provider id is not in the catalog at that commit;
 3. **raw HTTP**: an `http` label whose host is not one of the catalog's hostnames for that provider;
-4. **monorepo**: the evidence is in a workspace package and the provider's package is declared only there;
+4. **monorepo**: some label for the pair is marked `monorepo` (its evidence is in a workspace package below the root);
 5. **other**: anything else (for example a catalog provider used through a package the catalog does not list), with a note.
 
 The first matching rule wins, in that order.

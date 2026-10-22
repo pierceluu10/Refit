@@ -1,0 +1,6099 @@
+{
+  "formatVersion": 1,
+  "list": "docs/benchmarks/2026-10-22-inventory-repos.json",
+  "guide": "docs/INVENTORY-BENCHMARK.md",
+  "labelledAt": "2026-10-22",
+  "method": "Blind hand labels: made from scripts/inventory-benchmark-candidates.mjs output and reading the files at the pinned commit, before Refit was run on any repository.",
+  "repos": [
+    {
+      "repo": "alharkan7/beeblio",
+      "commit": "c6785237dfb052c3982f64abac86a3abd5033825",
+      "none": false,
+      "labels": [
+        {
+          "provider": "openrouter",
+          "via": "sdk",
+          "package": "@openrouter/ai-sdk-provider",
+          "host": null,
+          "language": "typescript",
+          "file": "agent/agent.ts",
+          "line": 1,
+          "monorepo": false,
+          "notes": "AI SDK provider for the agent model"
+        },
+        {
+          "provider": "gemini",
+          "via": "sdk",
+          "package": "@google/genai",
+          "host": null,
+          "language": "typescript",
+          "file": "lib/knowledge.ts",
+          "line": 2,
+          "monorepo": false,
+          "notes": "file search stores"
+        },
+        {
+          "provider": "gemini",
+          "via": "http",
+          "package": null,
+          "host": "generativelanguage.googleapis.com",
+          "language": "typescript",
+          "file": "agent/tools/transcribe_audio.ts",
+          "line": 15,
+          "monorepo": false,
+          "notes": "interactions endpoint through fetch"
+        },
+        {
+          "provider": "crossref",
+          "via": "http",
+          "package": null,
+          "host": "api.crossref.org",
+          "language": "typescript",
+          "file": "app/[projectId]/bibliography-actions.ts",
+          "line": 235,
+          "monorepo": false,
+          "notes": "works lookup by DOI"
+        },
+        {
+          "provider": "openalex",
+          "via": "http",
+          "package": null,
+          "host": "api.openalex.org",
+          "language": "typescript",
+          "file": "agent/lib/openalex.ts",
+          "line": 8,
+          "monorepo": false,
+          "notes": "works search"
+        },
+        {
+          "provider": "monid",
+          "via": "http",
+          "package": null,
+          "host": "api.monid.ai",
+          "language": "typescript",
+          "file": "agent/lib/monid.ts",
+          "line": 3,
+          "monorepo": false,
+          "notes": "run endpoint"
+        },
+        {
+          "provider": "brave-search",
+          "via": "http",
+          "package": null,
+          "host": "api.search.brave.com",
+          "language": "typescript",
+          "file": "agent/tools/brave_search.ts",
+          "line": 22,
+          "monorepo": false,
+          "notes": "web search API"
+        },
+        {
+          "provider": "worldbank",
+          "via": "http",
+          "package": null,
+          "host": "api.worldbank.org",
+          "language": "typescript",
+          "file": "agent/tools/fetch_demographic_data.ts",
+          "line": 34,
+          "monorepo": false,
+          "notes": "indicators API"
+        },
+        {
+          "provider": "ncbi",
+          "via": "http",
+          "package": null,
+          "host": "eutils.ncbi.nlm.nih.gov",
+          "language": "typescript",
+          "file": "lib/literature/search.ts",
+          "line": 356,
+          "monorepo": false,
+          "notes": "E-utilities literature search"
+        },
+        {
+          "provider": "defuddle",
+          "via": "http",
+          "package": null,
+          "host": "defuddle.md",
+          "language": "typescript",
+          "file": "agent/tools/read_webpage_markdown.ts",
+          "line": 22,
+          "monorepo": false,
+          "notes": "webpage to Markdown service"
+        }
+      ]
+    },
+    {
+      "repo": "zordhalo/runs-on.dev",
+      "commit": "60dff8593b88c0d73e3ddf66e93b89a65fd1b49f",
+      "none": false,
+      "labels": [
+        {
+          "provider": "vercel",
+          "via": "sdk",
+          "package": "@vercel/analytics",
+          "host": null,
+          "language": "javascript",
+          "file": "app/layout.jsx",
+          "line": 7,
+          "monorepo": false,
+          "notes": "Web Analytics"
+        },
+        {
+          "provider": "vercel",
+          "via": "sdk",
+          "package": "@vercel/blob",
+          "host": null,
+          "language": "javascript",
+          "file": "lib/store.js",
+          "line": 1,
+          "monorepo": false,
+          "notes": "Blob store for records"
+        },
+        {
+          "provider": "github",
+          "via": "http",
+          "package": null,
+          "host": "api.github.com",
+          "language": "javascript",
+          "file": "app/api/auth/github/callback/route.js",
+          "line": 27,
+          "monorepo": false,
+          "notes": "OAuth user lookup and REST calls"
+        }
+      ]
+    },
+    {
+      "repo": "databasus/databasus",
+      "commit": "360040e69c1162bd2454eafc6f362eabe2f9c152",
+      "none": false,
+      "labels": [
+        {
+          "provider": "google-workspace",
+          "via": "sdk",
+          "package": "google.golang.org/api/drive/v3",
+          "host": null,
+          "language": "go",
+          "file": "backend/internal/features/storages/models/google_drive/model.go",
+          "line": 18,
+          "monorepo": false,
+          "notes": "Google Drive backup storage"
+        },
+        {
+          "provider": "azure",
+          "via": "sdk",
+          "package": "github.com/Azure/azure-sdk-for-go/sdk/storage/azblob",
+          "host": null,
+          "language": "go",
+          "file": "backend/internal/features/storages/models/azure_blob/model.go",
+          "line": 18,
+          "monorepo": false,
+          "notes": "Azure Blob backup storage"
+        },
+        {
+          "provider": "github",
+          "via": "http",
+          "package": null,
+          "host": "api.github.com",
+          "language": "go",
+          "file": "backend/internal/features/users/services/user_services.go",
+          "line": 503,
+          "monorepo": false,
+          "notes": "OAuth user lookup"
+        },
+        {
+          "provider": "telegram",
+          "via": "http",
+          "package": null,
+          "host": "api.telegram.org",
+          "language": "go",
+          "file": "backend/internal/features/notifiers/models/telegram/bot_api_url.go",
+          "line": 10,
+          "monorepo": false,
+          "notes": "Bot API notifier"
+        },
+        {
+          "provider": "slack",
+          "via": "http",
+          "package": null,
+          "host": "slack.com",
+          "language": "go",
+          "file": "backend/internal/features/notifiers/models/slack/model.go",
+          "line": 94,
+          "monorepo": false,
+          "notes": "chat.postMessage notifier"
+        },
+        {
+          "provider": "discord",
+          "via": "http",
+          "package": null,
+          "host": "discord.com",
+          "language": "go",
+          "file": "backend/internal/features/notifiers/models/discord/model.go",
+          "line": 55,
+          "monorepo": false,
+          "notes": "user-supplied Discord webhook URL"
+        },
+        {
+          "provider": "cloudflare",
+          "via": "http",
+          "package": null,
+          "host": "challenges.cloudflare.com",
+          "language": "go",
+          "file": "backend/internal/util/cloudflare_turnstile/cloudflare_turnstile_service.go",
+          "line": 27,
+          "monorepo": false,
+          "notes": "Turnstile siteverify"
+        },
+        {
+          "provider": "google-oauth",
+          "via": "http",
+          "package": null,
+          "host": "oauth2.googleapis.com",
+          "language": "typescript",
+          "file": "frontend/src/pages/OauthStorageComponent.tsx",
+          "line": 29,
+          "monorepo": false,
+          "notes": "OAuth token exchange for Drive storage"
+        },
+        {
+          "provider": "paddle",
+          "via": "http",
+          "package": null,
+          "host": "cdn.paddle.com",
+          "language": "typescript",
+          "file": "website/app/components/PaddleInitComponent.tsx",
+          "line": 22,
+          "monorepo": false,
+          "notes": "Paddle.js checkout on the website"
+        },
+        {
+          "provider": "microsoft-teams",
+          "via": "http",
+          "package": null,
+          "host": "logic.azure.com",
+          "language": "go",
+          "file": "backend/internal/features/notifiers/models/teams/model.go",
+          "line": 93,
+          "monorepo": false,
+          "notes": "user-supplied Teams workflow webhook URL"
+        }
+      ]
+    },
+    {
+      "repo": "cross-seed/cross-seed",
+      "commit": "a40cf1d150e4f34d9659113af3f5227a94f7eca2",
+      "none": true,
+      "labels": []
+    },
+    {
+      "repo": "skuqre/nikke-font-generator",
+      "commit": "803baf965596176ccae73f8670cfb97dab0fd3ae",
+      "none": false,
+      "labels": [
+        {
+          "provider": "google-analytics",
+          "via": "http",
+          "package": null,
+          "host": "www.googletagmanager.com",
+          "language": "javascript",
+          "file": "src/pages/banner.astro",
+          "line": 32,
+          "monorepo": false,
+          "notes": "gtag.js analytics"
+        },
+        {
+          "provider": "dotgg",
+          "via": "http",
+          "package": null,
+          "host": "api.dotgg.gg",
+          "language": "javascript",
+          "file": "src/pages/blabla-pfps.astro",
+          "line": 172,
+          "monorepo": false,
+          "notes": "NIKKE character data API"
+        }
+      ]
+    },
+    {
+      "repo": "CaoMeiYouRen/rsshub-never-die",
+      "commit": "8f916f85dda6aa8266800c59024b0714c0030476",
+      "none": false,
+      "labels": [
+        {
+          "provider": "rsshub",
+          "via": "http",
+          "package": null,
+          "host": "rsshub.app",
+          "language": "typescript",
+          "file": "src/routes/index.ts",
+          "line": 10,
+          "monorepo": false,
+          "notes": "default public RSSHub node; proxies feeds to the configured instances"
+        }
+      ]
+    },
+    {
+      "repo": "HelloQun54321/nai-atelier",
+      "commit": "09d540a1d78f60711b5b274f06dc28366e263e34",
+      "none": false,
+      "labels": [
+        {
+          "provider": "deepseek",
+          "via": "http",
+          "package": null,
+          "host": "api.deepseek.com', api: 'openai-completions' },",
+          "language": "typescript",
+          "file": "services/agentProviders.ts",
+          "line": 12,
+          "monorepo": false,
+          "notes": "provider preset for the prompt agent"
+        },
+        {
+          "provider": "openai",
+          "via": "http",
+          "package": null,
+          "host": "api.openai.com",
+          "language": "typescript",
+          "file": "services/agentProviders.ts",
+          "line": 13,
+          "monorepo": false,
+          "notes": "provider preset for the prompt agent"
+        },
+        {
+          "provider": "anthropic",
+          "via": "http",
+          "package": null,
+          "host": "api.anthropic.com', api: 'anthropic-messages' },",
+          "language": "typescript",
+          "file": "services/agentProviders.ts",
+          "line": 14,
+          "monorepo": false,
+          "notes": "provider preset for the prompt agent"
+        },
+        {
+          "provider": "gemini",
+          "via": "http",
+          "package": null,
+          "host": "generativelanguage.googleapis.com",
+          "language": "typescript",
+          "file": "services/agentProviders.ts",
+          "line": 15,
+          "monorepo": false,
+          "notes": "provider preset for the prompt agent"
+        },
+        {
+          "provider": "xai",
+          "via": "http",
+          "package": null,
+          "host": "api.x.ai",
+          "language": "typescript",
+          "file": "services/agentProviders.ts",
+          "line": 16,
+          "monorepo": false,
+          "notes": "provider preset for the prompt agent"
+        },
+        {
+          "provider": "moonshot",
+          "via": "http",
+          "package": null,
+          "host": "api.moonshot.cn",
+          "language": "typescript",
+          "file": "services/agentProviders.ts",
+          "line": 17,
+          "monorepo": false,
+          "notes": "provider preset for the prompt agent"
+        },
+        {
+          "provider": "moonshot",
+          "via": "http",
+          "package": null,
+          "host": "api.moonshot.ai",
+          "language": "typescript",
+          "file": "services/agentProviders.ts",
+          "line": 18,
+          "monorepo": false,
+          "notes": "provider preset for the prompt agent"
+        },
+        {
+          "provider": "moonshot",
+          "via": "http",
+          "package": null,
+          "host": "api.kimi.com",
+          "language": "typescript",
+          "file": "services/agentProviders.ts",
+          "line": 19,
+          "monorepo": false,
+          "notes": "provider preset for the prompt agent"
+        },
+        {
+          "provider": "minimax",
+          "via": "http",
+          "package": null,
+          "host": "api.minimax.io",
+          "language": "typescript",
+          "file": "services/agentProviders.ts",
+          "line": 20,
+          "monorepo": false,
+          "notes": "provider preset for the prompt agent"
+        },
+        {
+          "provider": "minimax",
+          "via": "http",
+          "package": null,
+          "host": "api.minimaxi.com",
+          "language": "typescript",
+          "file": "services/agentProviders.ts",
+          "line": 21,
+          "monorepo": false,
+          "notes": "provider preset for the prompt agent"
+        },
+        {
+          "provider": "zhipu",
+          "via": "http",
+          "package": null,
+          "host": "api.z.ai",
+          "language": "typescript",
+          "file": "services/agentProviders.ts",
+          "line": 22,
+          "monorepo": false,
+          "notes": "provider preset for the prompt agent"
+        },
+        {
+          "provider": "zhipu",
+          "via": "http",
+          "package": null,
+          "host": "open.bigmodel.cn",
+          "language": "typescript",
+          "file": "services/agentProviders.ts",
+          "line": 23,
+          "monorepo": false,
+          "notes": "provider preset for the prompt agent"
+        },
+        {
+          "provider": "xiaomi-mimo",
+          "via": "http",
+          "package": null,
+          "host": "api.xiaomimimo.com",
+          "language": "typescript",
+          "file": "services/agentProviders.ts",
+          "line": 24,
+          "monorepo": false,
+          "notes": "provider preset for the prompt agent"
+        },
+        {
+          "provider": "openrouter",
+          "via": "http",
+          "package": null,
+          "host": "openrouter.ai",
+          "language": "typescript",
+          "file": "services/agentProviders.ts",
+          "line": 25,
+          "monorepo": false,
+          "notes": "provider preset for the prompt agent"
+        },
+        {
+          "provider": "groq",
+          "via": "http",
+          "package": null,
+          "host": "api.groq.com",
+          "language": "typescript",
+          "file": "services/agentProviders.ts",
+          "line": 26,
+          "monorepo": false,
+          "notes": "provider preset for the prompt agent"
+        },
+        {
+          "provider": "mistral",
+          "via": "http",
+          "package": null,
+          "host": "api.mistral.ai",
+          "language": "typescript",
+          "file": "services/agentProviders.ts",
+          "line": 27,
+          "monorepo": false,
+          "notes": "provider preset for the prompt agent"
+        },
+        {
+          "provider": "together",
+          "via": "http",
+          "package": null,
+          "host": "api.together.ai",
+          "language": "typescript",
+          "file": "services/agentProviders.ts",
+          "line": 28,
+          "monorepo": false,
+          "notes": "provider preset for the prompt agent"
+        },
+        {
+          "provider": "fireworks",
+          "via": "http",
+          "package": null,
+          "host": "api.fireworks.ai",
+          "language": "typescript",
+          "file": "services/agentProviders.ts",
+          "line": 29,
+          "monorepo": false,
+          "notes": "provider preset for the prompt agent"
+        },
+        {
+          "provider": "cerebras",
+          "via": "http",
+          "package": null,
+          "host": "api.cerebras.ai",
+          "language": "typescript",
+          "file": "services/agentProviders.ts",
+          "line": 30,
+          "monorepo": false,
+          "notes": "provider preset for the prompt agent"
+        },
+        {
+          "provider": "nvidia",
+          "via": "http",
+          "package": null,
+          "host": "integrate.api.nvidia.com",
+          "language": "typescript",
+          "file": "services/agentProviders.ts",
+          "line": 31,
+          "monorepo": false,
+          "notes": "provider preset for the prompt agent"
+        },
+        {
+          "provider": "huggingface",
+          "via": "http",
+          "package": null,
+          "host": "router.huggingface.co",
+          "language": "typescript",
+          "file": "services/agentProviders.ts",
+          "line": 32,
+          "monorepo": false,
+          "notes": "provider preset for the prompt agent"
+        },
+        {
+          "provider": "vercel",
+          "via": "http",
+          "package": null,
+          "host": "ai-gateway.vercel.sh', api: 'anthropic-messages' },",
+          "language": "typescript",
+          "file": "services/agentProviders.ts",
+          "line": 33,
+          "monorepo": false,
+          "notes": "provider preset for the prompt agent"
+        },
+        {
+          "provider": "ant-ling",
+          "via": "http",
+          "package": null,
+          "host": "api.ant-ling.com",
+          "language": "typescript",
+          "file": "services/agentProviders.ts",
+          "line": 34,
+          "monorepo": false,
+          "notes": "provider preset for the prompt agent"
+        },
+        {
+          "provider": "opencode",
+          "via": "http",
+          "package": null,
+          "host": "opencode.ai",
+          "language": "typescript",
+          "file": "services/agentProviders.ts",
+          "line": 35,
+          "monorepo": false,
+          "notes": "provider preset for the prompt agent"
+        },
+        {
+          "provider": "alibaba-cloud",
+          "via": "http",
+          "package": null,
+          "host": "token-plan.ap-southeast-1.maas.aliyuncs.com",
+          "language": "typescript",
+          "file": "services/agentProviders.ts",
+          "line": 37,
+          "monorepo": false,
+          "notes": "provider preset for the prompt agent"
+        },
+        {
+          "provider": "alibaba-cloud",
+          "via": "http",
+          "package": null,
+          "host": "token-plan.cn-beijing.maas.aliyuncs.com",
+          "language": "typescript",
+          "file": "services/agentProviders.ts",
+          "line": 38,
+          "monorepo": false,
+          "notes": "provider preset for the prompt agent"
+        },
+        {
+          "provider": "xiaomi-mimo",
+          "via": "http",
+          "package": null,
+          "host": "token-plan-ams.xiaomimimo.com",
+          "language": "typescript",
+          "file": "services/agentProviders.ts",
+          "line": 39,
+          "monorepo": false,
+          "notes": "provider preset for the prompt agent"
+        },
+        {
+          "provider": "xiaomi-mimo",
+          "via": "http",
+          "package": null,
+          "host": "token-plan-cn.xiaomimimo.com",
+          "language": "typescript",
+          "file": "services/agentProviders.ts",
+          "line": 40,
+          "monorepo": false,
+          "notes": "provider preset for the prompt agent"
+        },
+        {
+          "provider": "xiaomi-mimo",
+          "via": "http",
+          "package": null,
+          "host": "token-plan-sgp.xiaomimimo.com",
+          "language": "typescript",
+          "file": "services/agentProviders.ts",
+          "line": 41,
+          "monorepo": false,
+          "notes": "provider preset for the prompt agent"
+        },
+        {
+          "provider": "novelai",
+          "via": "http",
+          "package": null,
+          "host": "image.novelai.net",
+          "language": "typescript",
+          "file": "mobile/gateway.ts",
+          "line": 74,
+          "monorepo": false,
+          "notes": "NovelAI image generation and subscription API"
+        },
+        {
+          "provider": "github",
+          "via": "http",
+          "package": null,
+          "host": "api.github.com",
+          "language": "javascript",
+          "file": "services/appReleases.mjs",
+          "line": 4,
+          "monorepo": false,
+          "notes": "releases API for update checks"
+        }
+      ]
+    },
+    {
+      "repo": "guaner-334/civ-atlas",
+      "commit": "02ee2cabc6a69c6ae75411aeec6ebaa4f021b690",
+      "none": false,
+      "labels": [
+        {
+          "provider": "deepseek",
+          "via": "http",
+          "package": null,
+          "host": "api.deepseek.com",
+          "language": "typescript",
+          "file": "src/ai/providers/deepseek.ts",
+          "line": 16,
+          "monorepo": false,
+          "notes": "chat completions with a player-supplied key"
+        },
+        {
+          "provider": "alibaba-cloud",
+          "via": "http",
+          "package": null,
+          "host": "dashscope.aliyuncs.com",
+          "language": "typescript",
+          "file": "src/ai/providers/bailian.ts",
+          "line": 20,
+          "monorepo": false,
+          "notes": "Bailian (DashScope) compatible mode"
+        },
+        {
+          "provider": "alibaba-cloud",
+          "via": "http",
+          "package": null,
+          "host": "dashscope-intl.aliyuncs.com",
+          "language": "typescript",
+          "file": "src/ai/providers/bailian.ts",
+          "line": 21,
+          "monorepo": false,
+          "notes": "Bailian international endpoint"
+        }
+      ]
+    },
+    {
+      "repo": "Brajesh31/myPen",
+      "commit": "1a3d522900f5167257e686c711586e3649fcd778",
+      "none": true,
+      "labels": []
+    },
+    {
+      "repo": "francescocartelli/nyla-instant-messaging-app",
+      "commit": "c35d2d3d63e1db273b2da75d189710a3fe021038",
+      "none": true,
+      "labels": []
+    },
+    {
+      "repo": "boundlessfi/builders",
+      "commit": "4443169f083bb1b9e41a860cf473aaed6201b620",
+      "none": true,
+      "labels": []
+    },
+    {
+      "repo": "Bellows-AI/factory",
+      "commit": "843a673a81974a25bf294cc3e6792f6154568f28",
+      "none": false,
+      "labels": [
+        {
+          "provider": "github",
+          "via": "http",
+          "package": null,
+          "host": "api.github.com",
+          "language": "typescript",
+          "file": "server/src/config.ts",
+          "line": 297,
+          "monorepo": false,
+          "notes": "GitHub REST API default base URL"
+        },
+        {
+          "provider": "atlassian",
+          "via": "http",
+          "package": null,
+          "host": "api.atlassian.com",
+          "language": "typescript",
+          "file": "server/src/routes/connector-jira.ts",
+          "line": 23,
+          "monorepo": false,
+          "notes": "Jira Cloud gateway"
+        }
+      ]
+    },
+    {
+      "repo": "FontWoW/FontWoW.github.io",
+      "commit": "208805d8a683c11413327c086da90aedb459ee99",
+      "none": false,
+      "labels": [
+        {
+          "provider": "github",
+          "via": "http",
+          "package": null,
+          "host": "api.github.com",
+          "language": "javascript",
+          "file": "src/App.jsx",
+          "line": 44,
+          "monorepo": false,
+          "notes": "contributors API"
+        },
+        {
+          "provider": "countapi",
+          "via": "http",
+          "package": null,
+          "host": "countapi.mileshilliard.com",
+          "language": "javascript",
+          "file": "src/Landing.jsx",
+          "line": 50,
+          "monorepo": false,
+          "notes": "visit counter API"
+        },
+        {
+          "provider": "counter-dev",
+          "via": "http",
+          "package": null,
+          "host": "t.counter.dev",
+          "language": "javascript",
+          "file": "src/analytics.js",
+          "line": 4,
+          "monorepo": false,
+          "notes": "counter.dev page tracking"
+        }
+      ]
+    },
+    {
+      "repo": "gardener/dashboard",
+      "commit": "d22afb23d1b969211a7d2f5f4afd95193e5a84e0",
+      "none": false,
+      "labels": [
+        {
+          "provider": "github",
+          "via": "sdk",
+          "package": "@octokit/core",
+          "host": null,
+          "language": "javascript",
+          "file": "backend/lib/github/octokit.js",
+          "line": 9,
+          "monorepo": false,
+          "notes": "Octokit for ticket issues"
+        },
+        {
+          "provider": "google-oauth",
+          "via": "sdk",
+          "package": "gtoken",
+          "host": null,
+          "language": "javascript",
+          "file": "packages/kube-config/lib/Config.js",
+          "line": 8,
+          "monorepo": true,
+          "notes": "service-account token exchange for GKE kubeconfigs"
+        }
+      ]
+    },
+    {
+      "repo": "Bearisbug/Quilt",
+      "commit": "9b4ab215054afd7d6c621a681d616aa4e6f96c86",
+      "none": false,
+      "labels": [
+        {
+          "provider": "anthropic",
+          "via": "sdk",
+          "package": "@anthropic-ai/sdk",
+          "host": null,
+          "language": "typescript",
+          "file": "apps/api/src/lib/llm.ts",
+          "line": 43,
+          "monorepo": true,
+          "notes": "messages client"
+        },
+        {
+          "provider": "anthropic",
+          "via": "sdk",
+          "package": "@anthropic-ai/claude-agent-sdk",
+          "host": null,
+          "language": "typescript",
+          "file": "apps/api/src/lib/llm.ts",
+          "line": 96,
+          "monorepo": true,
+          "notes": "Claude Agent SDK query"
+        },
+        {
+          "provider": "gemini",
+          "via": "sdk",
+          "package": "@google/genai",
+          "host": null,
+          "language": "typescript",
+          "file": "apps/api/src/lib/llm.ts",
+          "line": 224,
+          "monorepo": true,
+          "notes": "Gemini client"
+        },
+        {
+          "provider": "openai",
+          "via": "http",
+          "package": null,
+          "host": "api.openai.com",
+          "language": "typescript",
+          "file": "apps/api/src/lib/llm.ts",
+          "line": 389,
+          "monorepo": true,
+          "notes": "OpenAI-compatible client default base URL"
+        },
+        {
+          "provider": "aws",
+          "via": "sdk",
+          "package": "@aws-sdk/client-s3",
+          "host": null,
+          "language": "typescript",
+          "file": "apps/api/src/lib/storage.ts",
+          "line": 66,
+          "monorepo": true,
+          "notes": "S3 object storage"
+        },
+        {
+          "provider": "aws",
+          "via": "sdk",
+          "package": "@aws-sdk/s3-request-presigner",
+          "host": null,
+          "language": "typescript",
+          "file": "apps/api/src/lib/storage.ts",
+          "line": 126,
+          "monorepo": true,
+          "notes": "presigned URLs"
+        },
+        {
+          "provider": "deepseek",
+          "via": "http",
+          "package": null,
+          "host": "api.deepseek.com",
+          "language": "typescript",
+          "file": "packages/core/src/schemas.ts",
+          "line": 431,
+          "monorepo": true,
+          "notes": "vendor preset endpoint"
+        },
+        {
+          "provider": "alibaba-cloud",
+          "via": "http",
+          "package": null,
+          "host": "dashscope.aliyuncs.com",
+          "language": "typescript",
+          "file": "packages/core/src/schemas.ts",
+          "line": 432,
+          "monorepo": true,
+          "notes": "vendor preset endpoint (Qwen)"
+        },
+        {
+          "provider": "moonshot",
+          "via": "http",
+          "package": null,
+          "host": "api.moonshot.cn",
+          "language": "typescript",
+          "file": "packages/core/src/schemas.ts",
+          "line": 433,
+          "monorepo": true,
+          "notes": "vendor preset endpoint"
+        },
+        {
+          "provider": "zhipu",
+          "via": "http",
+          "package": null,
+          "host": "open.bigmodel.cn",
+          "language": "typescript",
+          "file": "packages/core/src/schemas.ts",
+          "line": 434,
+          "monorepo": true,
+          "notes": "vendor preset endpoint"
+        },
+        {
+          "provider": "openrouter",
+          "via": "http",
+          "package": null,
+          "host": "openrouter.ai",
+          "language": "typescript",
+          "file": "packages/core/src/schemas.ts",
+          "line": 435,
+          "monorepo": true,
+          "notes": "vendor preset endpoint"
+        },
+        {
+          "provider": "siliconflow",
+          "via": "http",
+          "package": null,
+          "host": "api.siliconflow.cn",
+          "language": "typescript",
+          "file": "packages/core/src/schemas.ts",
+          "line": 437,
+          "monorepo": true,
+          "notes": "vendor preset endpoint"
+        }
+      ]
+    },
+    {
+      "repo": "Brajesh31/Kennedyconcrete",
+      "commit": "9fb44ec90a07061352a390d93151860604153b88",
+      "none": true,
+      "labels": []
+    },
+    {
+      "repo": "jaygupta17/otto",
+      "commit": "5a48fb79a1f07b3bc233219995aaabc62f5a71d5",
+      "none": false,
+      "labels": [
+        {
+          "provider": "boxd",
+          "via": "sdk",
+          "package": "@boxd-sh/sdk",
+          "host": null,
+          "language": "typescript",
+          "file": "src/lib/providers/boxd.ts",
+          "line": 9,
+          "monorepo": false,
+          "notes": "sandbox machines"
+        },
+        {
+          "provider": "e2b",
+          "via": "http",
+          "package": null,
+          "host": "api.e2b.app",
+          "language": "typescript",
+          "file": "src/lib/providers/e2b.ts",
+          "line": 18,
+          "monorepo": false,
+          "notes": "sandbox control plane"
+        },
+        {
+          "provider": "daytona",
+          "via": "http",
+          "package": null,
+          "host": "app.daytona.io",
+          "language": "typescript",
+          "file": "src/lib/providers/daytona.ts",
+          "line": 18,
+          "monorepo": false,
+          "notes": "sandbox control plane"
+        },
+        {
+          "provider": "boat",
+          "via": "http",
+          "package": null,
+          "host": "boat.dev",
+          "language": "typescript",
+          "file": "src/lib/providers/boat.ts",
+          "line": 11,
+          "monorepo": false,
+          "notes": "sandbox API"
+        },
+        {
+          "provider": "composio",
+          "via": "http",
+          "package": null,
+          "host": "connect.composio.dev",
+          "language": "typescript",
+          "file": "src/lib/composio.ts",
+          "line": 16,
+          "monorepo": false,
+          "notes": "Composio MCP endpoint"
+        }
+      ]
+    },
+    {
+      "repo": "Brajesh31/MathPuzzle",
+      "commit": "c8c29fd68dc662347731231e112a860aa12447ef",
+      "none": true,
+      "labels": []
+    },
+    {
+      "repo": "apify/apify-mcp-server",
+      "commit": "e45c1cd6bde0b8bac2dab192f30ba77299ae6b26",
+      "none": false,
+      "labels": [
+        {
+          "provider": "apify",
+          "via": "sdk",
+          "package": "apify-client",
+          "host": null,
+          "language": "typescript",
+          "file": "src/apify_client.ts",
+          "line": 1,
+          "monorepo": false,
+          "notes": "Apify API client for Actors and datasets"
+        },
+        {
+          "provider": "sentry",
+          "via": "sdk",
+          "package": "@sentry/node",
+          "host": null,
+          "language": "typescript",
+          "file": "src/instrument.ts",
+          "line": 10,
+          "monorepo": false,
+          "notes": "error tracking"
+        },
+        {
+          "provider": "segment",
+          "via": "sdk",
+          "package": "@segment/analytics-node",
+          "host": null,
+          "language": "typescript",
+          "file": "src/telemetry.ts",
+          "line": 3,
+          "monorepo": false,
+          "notes": "telemetry events"
+        },
+        {
+          "provider": "algolia",
+          "via": "sdk",
+          "package": "algoliasearch",
+          "host": null,
+          "language": "typescript",
+          "file": "src/utils/apify_docs.ts",
+          "line": 8,
+          "monorepo": false,
+          "notes": "docs search"
+        }
+      ]
+    },
+    {
+      "repo": "ZengLiangYi/ChatCrystal",
+      "commit": "ef53d6c70ea5facbebabb340460fbe3119f793c2",
+      "none": false,
+      "labels": [
+        {
+          "provider": "openai",
+          "via": "sdk",
+          "package": "@ai-sdk/openai",
+          "host": null,
+          "language": "typescript",
+          "file": "server/src/services/providers.ts",
+          "line": 1,
+          "monorepo": false,
+          "notes": "AI SDK provider"
+        },
+        {
+          "provider": "anthropic",
+          "via": "sdk",
+          "package": "@ai-sdk/anthropic",
+          "host": null,
+          "language": "typescript",
+          "file": "server/src/services/providers.ts",
+          "line": 2,
+          "monorepo": false,
+          "notes": "AI SDK provider"
+        },
+        {
+          "provider": "gemini",
+          "via": "sdk",
+          "package": "@ai-sdk/google",
+          "host": null,
+          "language": "typescript",
+          "file": "server/src/services/providers.ts",
+          "line": 3,
+          "monorepo": false,
+          "notes": "AI SDK provider (Gemini Developer API)"
+        },
+        {
+          "provider": "azure",
+          "via": "sdk",
+          "package": "@ai-sdk/azure",
+          "host": null,
+          "language": "typescript",
+          "file": "server/src/services/providers.ts",
+          "line": 4,
+          "monorepo": false,
+          "notes": "Azure OpenAI through the AI SDK"
+        },
+        {
+          "provider": "orcarouter",
+          "via": "http",
+          "package": null,
+          "host": "api.orcarouter.ai",
+          "language": "typescript",
+          "file": "server/src/services/modelDiscovery.ts",
+          "line": 70,
+          "monorepo": false,
+          "notes": "model list discovery"
+        },
+        {
+          "provider": "github",
+          "via": "http",
+          "package": null,
+          "host": "api.github.com",
+          "language": "typescript",
+          "file": "electron/updates.ts",
+          "line": 9,
+          "monorepo": false,
+          "notes": "release update checks"
+        }
+      ]
+    },
+    {
+      "repo": "SciCatProject/frontend",
+      "commit": "d5f97aebd51d6a72e379a5e536b4003256d8ea34",
+      "none": true,
+      "labels": []
+    },
+    {
+      "repo": "Brajesh31/Zentry-game",
+      "commit": "cfd68785bb60b3690bf07bddff3490c60395001f",
+      "none": true,
+      "labels": []
+    },
+    {
+      "repo": "datalayer/core",
+      "commit": "a473957ed39c8df39cd19f9f5e6521b2790245e3",
+      "none": false,
+      "labels": [
+        {
+          "provider": "stripe",
+          "via": "sdk",
+          "package": "@stripe/stripe-js",
+          "host": null,
+          "language": "typescript",
+          "file": "src/components/checkout/StripeCheckout.tsx",
+          "line": 34,
+          "monorepo": false,
+          "notes": "Stripe.js checkout"
+        },
+        {
+          "provider": "stripe",
+          "via": "sdk",
+          "package": "@stripe/react-stripe-js",
+          "host": null,
+          "language": "typescript",
+          "file": "src/components/checkout/StripeCheckout.tsx",
+          "line": 21,
+          "monorepo": false,
+          "notes": "Stripe Elements for React"
+        },
+        {
+          "provider": "github",
+          "via": "http",
+          "package": null,
+          "host": "api.github.com",
+          "language": "typescript",
+          "file": "src/hooks/useCache.ts",
+          "line": 8985,
+          "monorepo": false,
+          "notes": "GitHub user lookup"
+        }
+      ]
+    },
+    {
+      "repo": "bel-frontend/bel-frontend.github.io",
+      "commit": "d77aac3feb7680b85a5a6a7971e9ec593a8423c1",
+      "none": false,
+      "labels": [
+        {
+          "provider": "firebase",
+          "via": "sdk",
+          "package": "firebase",
+          "host": null,
+          "language": "typescript",
+          "file": "src/modules/firebase/index.ts",
+          "line": 2,
+          "monorepo": false,
+          "notes": "Realtime Database"
+        },
+        {
+          "provider": "goman",
+          "via": "http",
+          "package": null,
+          "host": "translates.goman.live",
+          "language": "typescript",
+          "file": "src/helpers/localization.ts",
+          "line": 9,
+          "monorepo": false,
+          "notes": "translations API"
+        }
+      ]
+    },
+    {
+      "repo": "wakujs/waku",
+      "commit": "83803da555e00b5d3525a7c1d6e08bbbdd04aa30",
+      "none": false,
+      "labels": [
+        {
+          "provider": "github",
+          "via": "http",
+          "package": null,
+          "host": "api.github.com",
+          "language": "typescript",
+          "file": "packages/create-waku/src/helpers/example-option.ts",
+          "line": 43,
+          "monorepo": true,
+          "notes": "repository lookup for examples"
+        },
+        {
+          "provider": "google-analytics",
+          "via": "http",
+          "package": null,
+          "host": "www.googletagmanager.com",
+          "language": "typescript",
+          "file": "packages/website/src/components/analytics.tsx",
+          "line": 14,
+          "monorepo": true,
+          "notes": "gtag.js on the website"
+        }
+      ]
+    },
+    {
+      "repo": "ktmouk/minute",
+      "commit": "b0df5ac8ddf9e6f836f725bf4f83e6a1d8359122",
+      "none": true,
+      "labels": []
+    },
+    {
+      "repo": "ijry/uview-plus",
+      "commit": "282dd9667b0321b644e322539363105bedbc5c73",
+      "none": true,
+      "labels": []
+    },
+    {
+      "repo": "syncular/syncular",
+      "commit": "360e99c51fe078b9c71760bc98e81183114137eb",
+      "none": true,
+      "labels": []
+    },
+    {
+      "repo": "Brajesh31/LangSQL",
+      "commit": "03ea15d5af0daf4574149526a01ba0438ea0838f",
+      "none": false,
+      "labels": [
+        {
+          "provider": "datastax",
+          "via": "sdk",
+          "package": "@datastax/langflow-client",
+          "host": null,
+          "language": "javascript",
+          "file": "Server/src/routes/trinotest.routes.js",
+          "line": 4,
+          "monorepo": false,
+          "notes": "Langflow client"
+        },
+        {
+          "provider": "datastax",
+          "via": "http",
+          "package": null,
+          "host": "api.langflow.astra.datastax.com",
+          "language": "javascript",
+          "file": "Server/src/controllers/connection.controller.js",
+          "line": 153,
+          "monorepo": false,
+          "notes": "Astra Langflow run API"
+        },
+        {
+          "provider": "firebase",
+          "via": "sdk",
+          "package": "firebase",
+          "host": null,
+          "language": "javascript",
+          "file": "Client/src/Firebase/firebase.js",
+          "line": 1,
+          "monorepo": false,
+          "notes": "Firebase client auth"
+        },
+        {
+          "provider": "firebase",
+          "via": "sdk",
+          "package": "firebase-admin",
+          "host": null,
+          "language": "javascript",
+          "file": "Server/src/controllers/auth.controller.js",
+          "line": 5,
+          "monorepo": false,
+          "notes": "token verification through the Admin SDK"
+        },
+        {
+          "provider": "emailjs",
+          "via": "sdk",
+          "package": "@emailjs/browser",
+          "host": null,
+          "language": "javascript",
+          "file": "Client/src/utils/emailjs.js",
+          "line": 1,
+          "monorepo": false,
+          "notes": "contact emails"
+        }
+      ]
+    },
+    {
+      "repo": "OpenByteInc/QuantDinger-Vue",
+      "commit": "6c05a16873fae3a05f059a9664c5fb2d943eb1f1",
+      "none": false,
+      "labels": [
+        {
+          "provider": "binance",
+          "via": "http",
+          "package": null,
+          "host": "stream.binance.com",
+          "language": "javascript",
+          "file": "src/utils/exchangeWs.js",
+          "line": 110,
+          "monorepo": false,
+          "notes": "public market data WebSocket"
+        },
+        {
+          "provider": "binance",
+          "via": "http",
+          "package": null,
+          "host": "fstream.binance.com",
+          "language": "javascript",
+          "file": "src/utils/exchangeWs.js",
+          "line": 109,
+          "monorepo": false,
+          "notes": "futures market data WebSocket"
+        },
+        {
+          "provider": "okx",
+          "via": "http",
+          "package": null,
+          "host": "ws.okx.com",
+          "language": "javascript",
+          "file": "src/utils/exchangeWs.js",
+          "line": 130,
+          "monorepo": false,
+          "notes": "public market data WebSocket"
+        },
+        {
+          "provider": "bitget",
+          "via": "http",
+          "package": null,
+          "host": "ws.bitget.com",
+          "language": "javascript",
+          "file": "src/utils/exchangeWs.js",
+          "line": 159,
+          "monorepo": false,
+          "notes": "public market data WebSocket"
+        },
+        {
+          "provider": "bybit",
+          "via": "http",
+          "package": null,
+          "host": "stream.bybit.com",
+          "language": "javascript",
+          "file": "src/utils/exchangeWs.js",
+          "line": 193,
+          "monorepo": false,
+          "notes": "public market data WebSocket"
+        },
+        {
+          "provider": "gate",
+          "via": "http",
+          "package": null,
+          "host": "api.gateio.ws",
+          "language": "javascript",
+          "file": "src/utils/exchangeWs.js",
+          "line": 225,
+          "monorepo": false,
+          "notes": "spot market data WebSocket"
+        },
+        {
+          "provider": "gate",
+          "via": "http",
+          "package": null,
+          "host": "fx-ws.gateio.ws",
+          "language": "javascript",
+          "file": "src/utils/exchangeWs.js",
+          "line": 224,
+          "monorepo": false,
+          "notes": "futures market data WebSocket"
+        },
+        {
+          "provider": "htx",
+          "via": "http",
+          "package": null,
+          "host": "api.huobi.pro",
+          "language": "javascript",
+          "file": "src/utils/exchangeWs.js",
+          "line": 255,
+          "monorepo": false,
+          "notes": "spot market data WebSocket"
+        },
+        {
+          "provider": "htx",
+          "via": "http",
+          "package": null,
+          "host": "api.hbdm.com",
+          "language": "javascript",
+          "file": "src/utils/exchangeWs.js",
+          "line": 254,
+          "monorepo": false,
+          "notes": "futures market data WebSocket"
+        },
+        {
+          "provider": "cloudflare",
+          "via": "http",
+          "package": null,
+          "host": "challenges.cloudflare.com",
+          "language": "javascript",
+          "file": "src/components/Turnstile/index.vue",
+          "line": 55,
+          "monorepo": false,
+          "notes": "Turnstile widget script"
+        }
+      ]
+    },
+    {
+      "repo": "MWang-TS/easy-dataset",
+      "commit": "255feb366a9a7bafdd51566816ba329533078a58",
+      "none": true,
+      "labels": []
+    },
+    {
+      "repo": "middleapi/orpc",
+      "commit": "947c60afc4e59c9d626bb2db9c378a3536a02007",
+      "none": true,
+      "labels": []
+    },
+    {
+      "repo": "hypercodism/alpine-code",
+      "commit": "465b52bcea33dbea9111ce9c0f48a1d5c528524f",
+      "none": false,
+      "labels": [
+        {
+          "provider": "anthropic",
+          "via": "sdk",
+          "package": "anthropic",
+          "host": null,
+          "language": "python",
+          "file": "packages/core/src/alpine_core/models.py",
+          "line": 11,
+          "monorepo": true,
+          "notes": "Anthropic Python SDK"
+        },
+        {
+          "provider": "openai",
+          "via": "sdk",
+          "package": "openai",
+          "host": null,
+          "language": "python",
+          "file": "packages/core/src/alpine_core/chatgpt/model.py",
+          "line": 149,
+          "monorepo": true,
+          "notes": "OpenAI Python SDK for ChatGPT models"
+        },
+        {
+          "provider": "gemini",
+          "via": "http",
+          "package": null,
+          "host": "generativelanguage.googleapis.com",
+          "language": "python",
+          "file": "packages/core/src/alpine_core/providers.py",
+          "line": 65,
+          "monorepo": true,
+          "notes": "provider preset"
+        },
+        {
+          "provider": "openrouter",
+          "via": "http",
+          "package": null,
+          "host": "openrouter.ai",
+          "language": "python",
+          "file": "packages/core/src/alpine_core/providers.py",
+          "line": 70,
+          "monorepo": true,
+          "notes": "provider preset"
+        },
+        {
+          "provider": "zhipu",
+          "via": "http",
+          "package": null,
+          "host": "api.z.ai",
+          "language": "python",
+          "file": "packages/core/src/alpine_core/providers.py",
+          "line": 77,
+          "monorepo": true,
+          "notes": "provider preset"
+        },
+        {
+          "provider": "moonshot",
+          "via": "http",
+          "package": null,
+          "host": "api.kimi.com",
+          "language": "python",
+          "file": "packages/core/src/alpine_core/providers.py",
+          "line": 85,
+          "monorepo": true,
+          "notes": "provider preset (Kimi)"
+        },
+        {
+          "provider": "minimax",
+          "via": "http",
+          "package": null,
+          "host": "api.minimax.io",
+          "language": "python",
+          "file": "packages/core/src/alpine_core/providers.py",
+          "line": 93,
+          "monorepo": true,
+          "notes": "provider preset"
+        },
+        {
+          "provider": "github",
+          "via": "http",
+          "package": null,
+          "host": "api.github.com",
+          "language": "python",
+          "file": "packages/core/src/alpine_core/github.py",
+          "line": 36,
+          "monorepo": true,
+          "notes": "GitHub REST API"
+        },
+        {
+          "provider": "skills-sh",
+          "via": "http",
+          "package": null,
+          "host": "skills.sh",
+          "language": "python",
+          "file": "packages/core/src/alpine_core/skill_fetch.py",
+          "line": 37,
+          "monorepo": true,
+          "notes": "skill search API"
+        },
+        {
+          "provider": "models-dev",
+          "via": "http",
+          "package": null,
+          "host": "models.dev",
+          "language": "python",
+          "file": "packages/core/src/alpine_core/catalog.py",
+          "line": 26,
+          "monorepo": true,
+          "notes": "model catalog JSON API"
+        }
+      ]
+    },
+    {
+      "repo": "ChurchApps/B1App",
+      "commit": "5ca19ee4ef947235b8ffba9fbb35af42d0dcb41d",
+      "none": false,
+      "labels": [
+        {
+          "provider": "sentry",
+          "via": "sdk",
+          "package": "@sentry/nextjs",
+          "host": null,
+          "language": "typescript",
+          "file": "src/app/global-error.tsx",
+          "line": 10,
+          "monorepo": false,
+          "notes": "error reporting"
+        },
+        {
+          "provider": "google-analytics",
+          "via": "http",
+          "package": null,
+          "host": "www.googletagmanager.com",
+          "language": "typescript",
+          "file": "src/app/[sdSlug]/mobile/MobileGoogleAnalytics.tsx",
+          "line": 28,
+          "monorepo": false,
+          "notes": "gtag.js"
+        },
+        {
+          "provider": "youversion",
+          "via": "sdk",
+          "package": "@youversion/platform-react-ui",
+          "host": null,
+          "language": "typescript",
+          "file": "src/app/[sdSlug]/(public)/[pageSlug]/components/BiblePage.tsx",
+          "line": 6,
+          "monorepo": false,
+          "notes": "YouVersion Bible reader"
+        }
+      ]
+    },
+    {
+      "repo": "linux-do/credit",
+      "commit": "45f87f26c57b51a8c901e4c9501e26a35db936f9",
+      "none": false,
+      "labels": [
+        {
+          "provider": "aws",
+          "via": "sdk",
+          "package": "github.com/aws/aws-sdk-go-v2",
+          "host": null,
+          "language": "go",
+          "file": "internal/storage/s3.go",
+          "line": 27,
+          "monorepo": false,
+          "notes": "S3 storage through the AWS SDK for Go v2"
+        }
+      ]
+    },
+    {
+      "repo": "lingcang728/ZeppBridge",
+      "commit": "aa8efebe72e3aae22ed82180cd14d549775227df",
+      "none": false,
+      "labels": [
+        {
+          "provider": "zepp",
+          "via": "http",
+          "package": null,
+          "host": "api-mifit-us3.zepp.com",
+          "language": "typescript",
+          "file": "src/composables/settings/useAuthFlow.ts",
+          "line": 12,
+          "monorepo": false,
+          "notes": "Zepp (Mi Fit) account and workout API"
+        },
+        {
+          "provider": "github",
+          "via": "http",
+          "package": null,
+          "host": "api.github.com",
+          "language": "javascript",
+          "file": "functions/api/release.js",
+          "line": 2,
+          "monorepo": false,
+          "notes": "latest release lookup"
+        }
+      ]
+    },
+    {
+      "repo": "neo4j-contrib/neodash",
+      "commit": "5d16b689177bb832a37aa3f36a1b074d8809f4aa",
+      "none": false,
+      "labels": [
+        {
+          "provider": "openai",
+          "via": "sdk",
+          "package": "openai",
+          "host": null,
+          "language": "typescript",
+          "file": "src/extensions/text2cypher/clients/OpenAi/OpenAiClient.ts",
+          "line": 1,
+          "monorepo": false,
+          "notes": "text-to-Cypher completions"
+        },
+        {
+          "provider": "azure",
+          "via": "sdk",
+          "package": "@azure/openai",
+          "host": null,
+          "language": "typescript",
+          "file": "src/extensions/text2cypher/clients/AzureOpenAi/AzureOpenAiClient.ts",
+          "line": 1,
+          "monorepo": false,
+          "notes": "Azure OpenAI text-to-Cypher"
+        },
+        {
+          "provider": "sentry",
+          "via": "sdk",
+          "package": "@sentry/react",
+          "host": null,
+          "language": "typescript",
+          "file": "src/index.tsx",
+          "line": 12,
+          "monorepo": false,
+          "notes": "error reporting"
+        }
+      ]
+    },
+    {
+      "repo": "mortennordbye/homelab",
+      "commit": "2aaae87d82a7a91b407490968b3545c1ebebce7c",
+      "none": false,
+      "labels": [
+        {
+          "provider": "github",
+          "via": "http",
+          "package": null,
+          "host": "api.github.com",
+          "language": "typescript",
+          "file": "portfolio/src/app/api/v1/github/route.ts",
+          "line": 36,
+          "monorepo": true,
+          "notes": "GitHub REST API for the portfolio"
+        },
+        {
+          "provider": "quafu",
+          "via": "sdk",
+          "package": "quafu",
+          "host": null,
+          "language": "python",
+          "file": "quantum/shor/shor.py",
+          "line": 22,
+          "monorepo": true,
+          "notes": "Quafu quantum cloud tasks"
+        }
+      ]
+    },
+    {
+      "repo": "kinora-dev/kinora",
+      "commit": "34e6e4b70d48ef440088cfcdb0f0f3e07473c98f",
+      "none": false,
+      "labels": [
+        {
+          "provider": "sentry",
+          "via": "sdk",
+          "package": "@sentry/node",
+          "host": null,
+          "language": "typescript",
+          "file": "packages/server/src/app.ts",
+          "line": 3,
+          "monorepo": true,
+          "notes": "server error tracking"
+        },
+        {
+          "provider": "sentry",
+          "via": "sdk",
+          "package": "@sentry/vue",
+          "host": null,
+          "language": "typescript",
+          "file": "packages/trace-viewer/src/main.ts",
+          "line": 1,
+          "monorepo": true,
+          "notes": "trace viewer error tracking"
+        },
+        {
+          "provider": "sentry",
+          "via": "sdk",
+          "package": "@sentry/electron",
+          "host": null,
+          "language": "typescript",
+          "file": "packages/desktop/home/src/main.ts",
+          "line": 1,
+          "monorepo": true,
+          "notes": "desktop error tracking"
+        },
+        {
+          "provider": "polar",
+          "via": "sdk",
+          "package": "@polar-sh/sdk",
+          "host": null,
+          "language": "typescript",
+          "file": "packages/server/src/billing/polar.ts",
+          "line": 2,
+          "monorepo": true,
+          "notes": "billing meters and events"
+        },
+        {
+          "provider": "aws",
+          "via": "sdk",
+          "package": "@aws-sdk/client-s3",
+          "host": null,
+          "language": "typescript",
+          "file": "packages/server/src/lib/storage.ts",
+          "line": 8,
+          "monorepo": true,
+          "notes": "trace storage"
+        },
+        {
+          "provider": "aws",
+          "via": "sdk",
+          "package": "@aws-sdk/lib-storage",
+          "host": null,
+          "language": "typescript",
+          "file": "packages/server/src/lib/storage.ts",
+          "line": 9,
+          "monorepo": true,
+          "notes": "multipart uploads"
+        },
+        {
+          "provider": "aws",
+          "via": "sdk",
+          "package": "@aws-sdk/s3-request-presigner",
+          "host": null,
+          "language": "typescript",
+          "file": "packages/server/src/lib/storage.ts",
+          "line": 10,
+          "monorepo": true,
+          "notes": "presigned URLs"
+        },
+        {
+          "provider": "github",
+          "via": "http",
+          "package": null,
+          "host": "api.github.com",
+          "language": "typescript",
+          "file": "packages/core/src/lib/pr-comment.ts",
+          "line": 113,
+          "monorepo": true,
+          "notes": "PR comments"
+        },
+        {
+          "provider": "gitlab",
+          "via": "http",
+          "package": null,
+          "host": "gitlab.com",
+          "language": "typescript",
+          "file": "packages/core/src/lib/pr-comment.ts",
+          "line": 81,
+          "monorepo": true,
+          "notes": "merge request notes API v4"
+        },
+        {
+          "provider": "slack",
+          "via": "http",
+          "package": null,
+          "host": "slack.com",
+          "language": "typescript",
+          "file": "packages/server/src/slack/oauth.ts",
+          "line": 133,
+          "monorepo": true,
+          "notes": "OAuth token exchange and Slack Web API"
+        }
+      ]
+    },
+    {
+      "repo": "rknightion/paperless-ngx-dedupe",
+      "commit": "4527207cd1aa12d910c71a46eb1bc860d2651779",
+      "none": false,
+      "labels": [
+        {
+          "provider": "openai",
+          "via": "sdk",
+          "package": "openai",
+          "host": null,
+          "language": "typescript",
+          "file": "packages/core/src/ai/providers/openai.ts",
+          "line": 71,
+          "monorepo": true,
+          "notes": "document classification"
+        }
+      ]
+    },
+    {
+      "repo": "chamals3n4/OpenATS",
+      "commit": "59c83fb6e299073858373eebf27b0fa6afeb4feb",
+      "none": false,
+      "labels": [
+        {
+          "provider": "gemini",
+          "via": "sdk",
+          "package": "@google/genai",
+          "host": null,
+          "language": "typescript",
+          "file": "backend/src/modules/candidate/cv-analysis.service.ts",
+          "line": 1,
+          "monorepo": false,
+          "notes": "CV analysis"
+        },
+        {
+          "provider": "google-workspace",
+          "via": "sdk",
+          "package": "googleapis",
+          "host": null,
+          "language": "typescript",
+          "file": "backend/src/shared/integrations/google-meet.provider.ts",
+          "line": 2,
+          "monorepo": false,
+          "notes": "Calendar and Meet links"
+        },
+        {
+          "provider": "cloudflare",
+          "via": "sdk",
+          "package": "@aws-sdk/client-s3",
+          "host": null,
+          "language": "typescript",
+          "file": "backend/src/shared/services/r2.service.ts",
+          "line": 6,
+          "monorepo": false,
+          "notes": "Cloudflare R2 through the S3 client"
+        },
+        {
+          "provider": "resend",
+          "via": "http",
+          "package": null,
+          "host": "api.resend.com",
+          "language": "typescript",
+          "file": "frontend/lib/auth/password-emails.ts",
+          "line": 3,
+          "monorepo": false,
+          "notes": "password emails"
+        }
+      ]
+    },
+    {
+      "repo": "zeitword/zeitword",
+      "commit": "726047070bb5eb22caa46b7a646b7d2f5b86b3e5",
+      "none": false,
+      "labels": [
+        {
+          "provider": "resend",
+          "via": "sdk",
+          "package": "resend",
+          "host": null,
+          "language": "typescript",
+          "file": "server/api/forgot-password.post.ts",
+          "line": 4,
+          "monorepo": false,
+          "notes": "password reset emails"
+        },
+        {
+          "provider": "openai",
+          "via": "sdk",
+          "package": "@ai-sdk/openai",
+          "host": null,
+          "language": "typescript",
+          "file": "server/api/ai/translate.post.ts",
+          "line": 1,
+          "monorepo": false,
+          "notes": "AI SDK translation"
+        },
+        {
+          "provider": "aws",
+          "via": "sdk",
+          "package": "@aws-sdk/client-s3",
+          "host": null,
+          "language": "typescript",
+          "file": "server/utils/s3.ts",
+          "line": 1,
+          "monorepo": false,
+          "notes": "asset storage; the AWS SDK defaults to AWS when no endpoint is configured"
+        },
+        {
+          "provider": "aws",
+          "via": "sdk",
+          "package": "@aws-sdk/s3-request-presigner",
+          "host": null,
+          "language": "typescript",
+          "file": "server/utils/s3.ts",
+          "line": 14,
+          "monorepo": false,
+          "notes": "presigned URLs"
+        }
+      ]
+    },
+    {
+      "repo": "MacRimi/ProxMenux",
+      "commit": "396b44eacb6ba12995a6e5ac1e44f2c1315b1295",
+      "none": false,
+      "labels": [
+        {
+          "provider": "openai",
+          "via": "http",
+          "package": null,
+          "host": "api.openai.com",
+          "language": "python",
+          "file": "AppImage/scripts/ai_providers/openai_provider.py",
+          "line": 27,
+          "monorepo": false,
+          "notes": "chat completions for notification summaries"
+        },
+        {
+          "provider": "anthropic",
+          "via": "http",
+          "package": null,
+          "host": "api.anthropic.com",
+          "language": "python",
+          "file": "AppImage/scripts/ai_providers/anthropic_provider.py",
+          "line": 15,
+          "monorepo": false,
+          "notes": "messages API"
+        },
+        {
+          "provider": "gemini",
+          "via": "http",
+          "package": null,
+          "host": "generativelanguage.googleapis.com",
+          "language": "python",
+          "file": "AppImage/scripts/ai_providers/gemini_provider.py",
+          "line": 18,
+          "monorepo": false,
+          "notes": "generateContent"
+        },
+        {
+          "provider": "groq",
+          "via": "http",
+          "package": null,
+          "host": "api.groq.com",
+          "language": "python",
+          "file": "AppImage/scripts/ai_providers/groq_provider.py",
+          "line": 18,
+          "monorepo": false,
+          "notes": "chat completions"
+        },
+        {
+          "provider": "openrouter",
+          "via": "http",
+          "package": null,
+          "host": "openrouter.ai",
+          "language": "python",
+          "file": "AppImage/scripts/ai_providers/openrouter_provider.py",
+          "line": 19,
+          "monorepo": false,
+          "notes": "chat completions"
+        },
+        {
+          "provider": "telegram",
+          "via": "http",
+          "package": null,
+          "host": "api.telegram.org",
+          "language": "python",
+          "file": "AppImage/scripts/notification_channels.py",
+          "line": 205,
+          "monorepo": false,
+          "notes": "Bot API notifications"
+        },
+        {
+          "provider": "pushover",
+          "via": "http",
+          "package": null,
+          "host": "api.pushover.net",
+          "language": "python",
+          "file": "AppImage/scripts/notification_channels.py",
+          "line": 402,
+          "monorepo": false,
+          "notes": "push notifications"
+        },
+        {
+          "provider": "discord",
+          "via": "http",
+          "package": null,
+          "host": "discord.com",
+          "language": "python",
+          "file": "AppImage/scripts/notification_channels.py",
+          "line": 536,
+          "monorepo": false,
+          "notes": "user-supplied Discord webhook, host allowlist"
+        }
+      ]
+    },
+    {
+      "repo": "betagouv/mon-aide-cyber",
+      "commit": "59fd149d5af73ceea8409c3f36247abf146217a8",
+      "none": false,
+      "labels": [
+        {
+          "provider": "sentry",
+          "via": "sdk",
+          "package": "@sentry/node",
+          "host": null,
+          "language": "typescript",
+          "file": "mon-aide-cyber-api/src/infrastructure/adaptateurs/AdaptateurGestionnaireErreursSentry.ts",
+          "line": 1,
+          "monorepo": true,
+          "notes": "error tracking"
+        },
+        {
+          "provider": "brevo",
+          "via": "http",
+          "package": null,
+          "host": "api.brevo.com",
+          "language": "typescript",
+          "file": "mon-aide-cyber-api/src/infrastructure/adaptateurs/adaptateursRequeteBrevo.ts",
+          "line": 130,
+          "monorepo": true,
+          "notes": "transactional email and contacts API"
+        }
+      ]
+    },
+    {
+      "repo": "organui/organui",
+      "commit": "69b4589bfa533f8b83901d5249aaafb69e322eb5",
+      "none": false,
+      "labels": [
+        {
+          "provider": "vercel",
+          "via": "sdk",
+          "package": "@vercel/analytics",
+          "host": null,
+          "language": "typescript",
+          "file": "apps/web/components/analytics.tsx",
+          "line": 3,
+          "monorepo": true,
+          "notes": "Web Analytics"
+        },
+        {
+          "provider": "github",
+          "via": "http",
+          "package": null,
+          "host": "api.github.com",
+          "language": "typescript",
+          "file": "apps/web/components/github-link.tsx",
+          "line": 32,
+          "monorepo": true,
+          "notes": "repository stars"
+        }
+      ]
+    },
+    {
+      "repo": "evanbaker315/AttentionOS",
+      "commit": "2ebb8615641defd38e688e58fef2edc1a0a4e2d0",
+      "none": false,
+      "labels": [
+        {
+          "provider": "openai",
+          "via": "http",
+          "package": null,
+          "host": "api.openai.com",
+          "language": "typescript",
+          "file": "packages/knowledge/src/embedder.ts",
+          "line": 130,
+          "monorepo": true,
+          "notes": "embeddings"
+        },
+        {
+          "provider": "voyageai",
+          "via": "http",
+          "package": null,
+          "host": "api.voyageai.com",
+          "language": "typescript",
+          "file": "packages/knowledge/src/embedder.ts",
+          "line": 153,
+          "monorepo": true,
+          "notes": "embeddings"
+        },
+        {
+          "provider": "apify",
+          "via": "http",
+          "package": null,
+          "host": "api.apify.com",
+          "language": "typescript",
+          "file": "packages/providers/scrape-apify/src/index.ts",
+          "line": 34,
+          "monorepo": true,
+          "notes": "Actor runs for scraping"
+        },
+        {
+          "provider": "telegram",
+          "via": "http",
+          "package": null,
+          "host": "api.telegram.org",
+          "language": "typescript",
+          "file": "packages/providers/notify-telegram/src/client.ts",
+          "line": 35,
+          "monorepo": true,
+          "notes": "Bot API notifications"
+        },
+        {
+          "provider": "discord",
+          "via": "http",
+          "package": null,
+          "host": "discord.com",
+          "language": "typescript",
+          "file": "packages/providers/notify-discord/src/client.ts",
+          "line": 29,
+          "monorepo": true,
+          "notes": "Discord API v10"
+        },
+        {
+          "provider": "gohighlevel",
+          "via": "http",
+          "package": null,
+          "host": "services.leadconnectorhq.com",
+          "language": "typescript",
+          "file": "packages/providers/crm-webhook/src/gohighlevel.ts",
+          "line": 6,
+          "monorepo": true,
+          "notes": "CRM contacts API"
+        },
+        {
+          "provider": "hubspot",
+          "via": "http",
+          "package": null,
+          "host": "api.hubapi.com",
+          "language": "typescript",
+          "file": "packages/providers/crm-webhook/src/hubspot.ts",
+          "line": 6,
+          "monorepo": true,
+          "notes": "CRM contacts API"
+        },
+        {
+          "provider": "blotato",
+          "via": "http",
+          "package": null,
+          "host": "backend.blotato.com",
+          "language": "typescript",
+          "file": "packages/providers/publish-blotato/src/mapping.ts",
+          "line": 10,
+          "monorepo": true,
+          "notes": "social publishing API"
+        },
+        {
+          "provider": "zernio",
+          "via": "http",
+          "package": null,
+          "host": "zernio.com",
+          "language": "typescript",
+          "file": "packages/providers/publish-zernio/src/mapping.ts",
+          "line": 14,
+          "monorepo": true,
+          "notes": "publishing REST API v1"
+        },
+        {
+          "provider": "google-news",
+          "via": "http",
+          "package": null,
+          "host": "news.google.com",
+          "language": "typescript",
+          "file": "packages/providers/trends-web/src/index.ts",
+          "line": 87,
+          "monorepo": true,
+          "notes": "news search RSS"
+        },
+        {
+          "provider": "hacker-news",
+          "via": "http",
+          "package": null,
+          "host": "hn.algolia.com",
+          "language": "typescript",
+          "file": "packages/providers/trends-web/src/index.ts",
+          "line": 136,
+          "monorepo": true,
+          "notes": "Algolia HN Search API"
+        },
+        {
+          "provider": "reddit",
+          "via": "http",
+          "package": null,
+          "host": "www.reddit.com",
+          "language": "typescript",
+          "file": "packages/providers/trends-web/src/index.ts",
+          "line": 186,
+          "monorepo": true,
+          "notes": "subreddit listing JSON"
+        },
+        {
+          "provider": "github",
+          "via": "http",
+          "package": null,
+          "host": "api.github.com",
+          "language": "typescript",
+          "file": "packages/providers/trends-web/src/index.ts",
+          "line": 247,
+          "monorepo": true,
+          "notes": "repository search"
+        }
+      ]
+    },
+    {
+      "repo": "scratchfoundation/scratch-www",
+      "commit": "8935857e18b12746e1b1d282bfe4200f7c223594",
+      "none": true,
+      "labels": []
+    },
+    {
+      "repo": "iam567/rich4-renew-app",
+      "commit": "e4224ee00bbb7e18e62e5f9e8be69d47c767d518",
+      "none": false,
+      "labels": [
+        {
+          "provider": "peerjs",
+          "via": "sdk",
+          "package": "peerjs",
+          "host": null,
+          "language": "typescript",
+          "file": "game/src/ui/party-check.ts",
+          "line": 6,
+          "monorepo": false,
+          "notes": "PeerJS cloud signalling server by default"
+        }
+      ]
+    },
+    {
+      "repo": "Peon-sh/Peon",
+      "commit": "ecfe6a548e37e68cf8a745c40f7c66453146b37b",
+      "none": false,
+      "labels": [
+        {
+          "provider": "stripe",
+          "via": "sdk",
+          "package": "stripe",
+          "host": null,
+          "language": "typescript",
+          "file": "src/lib/billing/promotion.ts",
+          "line": 1,
+          "monorepo": false,
+          "notes": "server SDK"
+        },
+        {
+          "provider": "stripe",
+          "via": "sdk",
+          "package": "@stripe/stripe-js",
+          "host": null,
+          "language": "typescript",
+          "file": "src/components/billing/in-app-subscribe-form.tsx",
+          "line": 4,
+          "monorepo": false,
+          "notes": "Stripe.js"
+        },
+        {
+          "provider": "stripe",
+          "via": "sdk",
+          "package": "@stripe/react-stripe-js",
+          "host": null,
+          "language": "typescript",
+          "file": "src/components/billing/in-app-subscribe-form.tsx",
+          "line": 9,
+          "monorepo": false,
+          "notes": "Stripe Elements"
+        },
+        {
+          "provider": "posthog",
+          "via": "sdk",
+          "package": "posthog-js",
+          "host": null,
+          "language": "typescript",
+          "file": "instrumentation-client.ts",
+          "line": 1,
+          "monorepo": false,
+          "notes": "product analytics"
+        },
+        {
+          "provider": "aws",
+          "via": "sdk",
+          "package": "@aws-sdk/client-s3",
+          "host": null,
+          "language": "typescript",
+          "file": "src/lib/mcp/tools/workspace-infra.ts",
+          "line": 3,
+          "monorepo": false,
+          "notes": "S3 buckets for workspaces"
+        },
+        {
+          "provider": "aws",
+          "via": "sdk",
+          "package": "@aws-sdk/client-sqs",
+          "host": null,
+          "language": "typescript",
+          "file": "src/lib/queue/sqs.ts",
+          "line": 8,
+          "monorepo": false,
+          "notes": "job queue"
+        },
+        {
+          "provider": "aws",
+          "via": "sdk",
+          "package": "@aws-sdk/client-ses",
+          "host": null,
+          "language": "typescript",
+          "file": "src/lib/email/drivers/ses.ts",
+          "line": 1,
+          "monorepo": false,
+          "notes": "email driver"
+        },
+        {
+          "provider": "aws",
+          "via": "sdk",
+          "package": "@aws-sdk/s3-request-presigner",
+          "host": null,
+          "language": "typescript",
+          "file": "src/services/external/s3/assets.ts",
+          "line": 7,
+          "monorepo": false,
+          "notes": "presigned URLs"
+        },
+        {
+          "provider": "anthropic",
+          "via": "sdk",
+          "package": "@ai-sdk/anthropic",
+          "host": null,
+          "language": "typescript",
+          "file": "src/services/internal/chat/providers/anthropic.ts",
+          "line": 1,
+          "monorepo": false,
+          "notes": "AI SDK provider"
+        },
+        {
+          "provider": "openai",
+          "via": "sdk",
+          "package": "@ai-sdk/openai",
+          "host": null,
+          "language": "typescript",
+          "file": "src/services/internal/chat/providers/openai.ts",
+          "line": 1,
+          "monorepo": false,
+          "notes": "AI SDK provider"
+        },
+        {
+          "provider": "google-oauth",
+          "via": "http",
+          "package": null,
+          "host": "oauth2.googleapis.com",
+          "language": "typescript",
+          "file": "src/services/external/google/auth.ts",
+          "line": 5,
+          "monorepo": false,
+          "notes": "token info check built in the repository"
+        },
+        {
+          "provider": "github",
+          "via": "http",
+          "package": null,
+          "host": "api.github.com",
+          "language": "typescript",
+          "file": "src/app/(app)/sources/page.tsx",
+          "line": 60,
+          "monorepo": false,
+          "notes": "GitHub API base for source connections"
+        },
+        {
+          "provider": "telegram",
+          "via": "http",
+          "package": null,
+          "host": "api.telegram.org",
+          "language": "typescript",
+          "file": "src/services/internal/notifications/notifications.ts",
+          "line": 277,
+          "monorepo": false,
+          "notes": "Bot API notifications"
+        },
+        {
+          "provider": "pushover",
+          "via": "http",
+          "package": null,
+          "host": "api.pushover.net",
+          "language": "typescript",
+          "file": "src/services/internal/notifications/notifications.ts",
+          "line": 288,
+          "monorepo": false,
+          "notes": "push notifications"
+        }
+      ]
+    },
+    {
+      "repo": "CoderJackZhu/Thingary",
+      "commit": "478be512963fbf10cd5ec6e8d77dbcd9ab3803f9",
+      "none": false,
+      "labels": [
+        {
+          "provider": "goatcounter",
+          "via": "http",
+          "package": null,
+          "host": "gc.zgo.at",
+          "language": "javascript",
+          "file": "site/calc/app.js",
+          "line": 39,
+          "monorepo": false,
+          "notes": "GoatCounter count script on the project site, endpoint set by the owner"
+        }
+      ]
+    },
+    {
+      "repo": "andrebuilds/melodyc",
+      "commit": "8636fefd1db2060a0e10f508431f913e72621aa5",
+      "none": false,
+      "labels": [
+        {
+          "provider": "aws",
+          "via": "sdk",
+          "package": "@aws-sdk/client-s3",
+          "host": null,
+          "language": "typescript",
+          "file": "frontend/src/actions/avatar.ts",
+          "line": 3,
+          "monorepo": true,
+          "notes": "avatar storage"
+        },
+        {
+          "provider": "aws",
+          "via": "sdk",
+          "package": "@aws-sdk/s3-request-presigner",
+          "host": null,
+          "language": "typescript",
+          "file": "frontend/src/actions/generation.ts",
+          "line": 11,
+          "monorepo": true,
+          "notes": "presigned URLs"
+        },
+        {
+          "provider": "aws",
+          "via": "sdk",
+          "package": "boto3",
+          "host": null,
+          "language": "python",
+          "file": "backend/main.py",
+          "line": 7,
+          "monorepo": true,
+          "notes": "S3 uploads from the Modal backend"
+        },
+        {
+          "provider": "inngest",
+          "via": "sdk",
+          "package": "inngest",
+          "host": null,
+          "language": "typescript",
+          "file": "frontend/src/app/api/inngest/route.ts",
+          "line": 1,
+          "monorepo": true,
+          "notes": "background functions"
+        },
+        {
+          "provider": "upstash",
+          "via": "sdk",
+          "package": "@upstash/redis",
+          "host": null,
+          "language": "typescript",
+          "file": "frontend/src/actions/generation.ts",
+          "line": 16,
+          "monorepo": true,
+          "notes": "REST Redis"
+        },
+        {
+          "provider": "upstash",
+          "via": "sdk",
+          "package": "@upstash/ratelimit",
+          "host": null,
+          "language": "typescript",
+          "file": "frontend/src/actions/generation.ts",
+          "line": 15,
+          "monorepo": true,
+          "notes": "rate limits"
+        },
+        {
+          "provider": "vercel",
+          "via": "sdk",
+          "package": "@vercel/analytics",
+          "host": null,
+          "language": "typescript",
+          "file": "frontend/src/components/consented-analytics.tsx",
+          "line": 3,
+          "monorepo": true,
+          "notes": "Web Analytics"
+        },
+        {
+          "provider": "vercel",
+          "via": "sdk",
+          "package": "@vercel/speed-insights",
+          "host": null,
+          "language": "typescript",
+          "file": "frontend/src/components/consented-analytics.tsx",
+          "line": 4,
+          "monorepo": true,
+          "notes": "Speed Insights"
+        },
+        {
+          "provider": "resend",
+          "via": "sdk",
+          "package": "resend",
+          "host": null,
+          "language": "typescript",
+          "file": "frontend/src/lib/email.ts",
+          "line": 2,
+          "monorepo": true,
+          "notes": "transactional email"
+        },
+        {
+          "provider": "github",
+          "via": "http",
+          "package": null,
+          "host": "api.github.com",
+          "language": "typescript",
+          "file": "frontend/src/app/api/github/stars/route.ts",
+          "line": 2,
+          "monorepo": true,
+          "notes": "repository stars"
+        },
+        {
+          "provider": "modal",
+          "via": "sdk",
+          "package": "modal",
+          "host": null,
+          "language": "python",
+          "file": "backend/main.py",
+          "line": 5,
+          "monorepo": true,
+          "notes": "Modal serverless GPU functions"
+        }
+      ]
+    },
+    {
+      "repo": "Brajesh31/issue-tracker-next.js-app",
+      "commit": "c8672df3ffe8fa3d49af2a212e378079f7f2a539",
+      "none": false,
+      "labels": [
+        {
+          "provider": "sentry",
+          "via": "sdk",
+          "package": "@sentry/nextjs",
+          "host": null,
+          "language": "javascript",
+          "file": "app/global-error.jsx",
+          "line": 3,
+          "monorepo": false,
+          "notes": "error reporting"
+        }
+      ]
+    },
+    {
+      "repo": "mwakidenis/mwakidenis.com",
+      "commit": "2b303f8c206a2ecbd48b2ab42d85f4ce3affa686",
+      "none": false,
+      "labels": [
+        {
+          "provider": "formspree",
+          "via": "http",
+          "package": null,
+          "host": "formspree.io",
+          "language": "javascript",
+          "file": "src/data/app.json",
+          "line": 4,
+          "monorepo": false,
+          "notes": "contact form endpoint posted by src/pages/contact.jsx"
+        }
+      ]
+    },
+    {
+      "repo": "ember-learn/super-rentals",
+      "commit": "87087b377ae63955637f6ef414dc2be560597bea",
+      "none": true,
+      "labels": []
+    },
+    {
+      "repo": "YanQuan-dozzy/Boss-Claw",
+      "commit": "9ed6246e558486d4bc0d004534fd57228957a864",
+      "none": false,
+      "labels": [
+        {
+          "provider": "deepseek",
+          "via": "http",
+          "package": null,
+          "host": "api.deepseek.com",
+          "language": "typescript",
+          "file": "desktop-app/src/lib/bossclaw/llm.ts",
+          "line": 481,
+          "monorepo": true,
+          "notes": "chat completions default base URL"
+        },
+        {
+          "provider": "openai",
+          "via": "http",
+          "package": null,
+          "host": "api.openai.com",
+          "language": "typescript",
+          "file": "desktop-app/src/lib/bossclaw/providerPresets.ts",
+          "line": 32,
+          "monorepo": true,
+          "notes": "provider preset"
+        },
+        {
+          "provider": "alibaba-cloud",
+          "via": "http",
+          "package": null,
+          "host": "dashscope.aliyuncs.com",
+          "language": "typescript",
+          "file": "desktop-app/src/lib/bossclaw/providerPresets.ts",
+          "line": 44,
+          "monorepo": true,
+          "notes": "provider preset (Qwen)"
+        },
+        {
+          "provider": "zhipu",
+          "via": "http",
+          "package": null,
+          "host": "open.bigmodel.cn",
+          "language": "typescript",
+          "file": "desktop-app/src/lib/bossclaw/providerPresets.ts",
+          "line": 50,
+          "monorepo": true,
+          "notes": "provider preset"
+        },
+        {
+          "provider": "siliconflow",
+          "via": "http",
+          "package": null,
+          "host": "api.siliconflow.cn",
+          "language": "typescript",
+          "file": "desktop-app/src/lib/bossclaw/providerPresets.ts",
+          "line": 56,
+          "monorepo": true,
+          "notes": "provider preset"
+        },
+        {
+          "provider": "volcengine",
+          "via": "http",
+          "package": null,
+          "host": "ark.cn-beijing.volces.com",
+          "language": "typescript",
+          "file": "desktop-app/src/lib/bossclaw/providerPresets.ts",
+          "line": 70,
+          "monorepo": true,
+          "notes": "provider preset (Ark)"
+        },
+        {
+          "provider": "microsoft-edge-tts",
+          "via": "http",
+          "package": null,
+          "host": "speech.platform.bing.com",
+          "language": "javascript",
+          "file": "desktop-app/electron/edgeTts.cjs",
+          "line": 23,
+          "monorepo": true,
+          "notes": "Edge read-aloud speech synthesis"
+        }
+      ]
+    },
+    {
+      "repo": "merill/mc",
+      "commit": "74232b110d839d788929760793b4bfd946882f4a",
+      "none": true,
+      "labels": []
+    },
+    {
+      "repo": "zhaoolee/ChineseBQB",
+      "commit": "5decb10b50bd5265af86cef8d50111572bcbad76",
+      "none": true,
+      "labels": []
+    },
+    {
+      "repo": "OpenDataEnsemble/ode",
+      "commit": "f3afc11b2f9c71064e25ea9515b182437cd1308a",
+      "none": true,
+      "labels": []
+    },
+    {
+      "repo": "leftos/towercab-3d",
+      "commit": "59819399da9dfab7f49ea08b908b0c86f67a1343",
+      "none": false,
+      "labels": [
+        {
+          "provider": "vatsim",
+          "via": "http",
+          "package": null,
+          "host": "data.vatsim.net",
+          "language": "typescript",
+          "file": "src/renderer/constants/api.ts",
+          "line": 22,
+          "monorepo": false,
+          "notes": "VATSIM v3 network data feed"
+        },
+        {
+          "provider": "aviationweather",
+          "via": "http",
+          "package": null,
+          "host": "aviationweather.gov",
+          "language": "typescript",
+          "file": "src/renderer/constants/api.ts",
+          "line": 32,
+          "monorepo": false,
+          "notes": "METAR data API"
+        },
+        {
+          "provider": "cesium",
+          "via": "sdk",
+          "package": "cesium",
+          "host": null,
+          "language": "typescript",
+          "file": "src/renderer/App.tsx",
+          "line": 1,
+          "monorepo": false,
+          "notes": "CesiumJS with Cesium ion terrain and imagery"
+        },
+        {
+          "provider": "cesium",
+          "via": "http",
+          "package": null,
+          "host": "api.cesium.com",
+          "language": "typescript",
+          "file": "src/renderer/services/CesiumIonValidator.ts",
+          "line": 12,
+          "monorepo": false,
+          "notes": "ion token check"
+        },
+        {
+          "provider": "realtraffic",
+          "via": "http",
+          "package": null,
+          "host": "rtwa.flyrealtraffic.com",
+          "language": "typescript",
+          "file": "src/renderer/constants/realtraffic.ts",
+          "line": 20,
+          "monorepo": false,
+          "notes": "RealTraffic API v5"
+        }
+      ]
+    },
+    {
+      "repo": "eee555/saolei_website",
+      "commit": "aecb7774fa5e4c786e020c3b7c089145aff9542e",
+      "none": false,
+      "labels": [
+        {
+          "provider": "bilibili",
+          "via": "sdk",
+          "package": "bilibili_api",
+          "host": null,
+          "language": "python",
+          "file": "back_end/saolei/accountlink/utils.py",
+          "line": 3,
+          "monorepo": true,
+          "notes": "Bilibili account lookups"
+        }
+      ]
+    },
+    {
+      "repo": "Jaxton07/percho",
+      "commit": "f1a0585c619a3fdf4aef9e769088bf8a17d0c002",
+      "none": false,
+      "labels": [
+        {
+          "provider": "opencode",
+          "via": "http",
+          "package": null,
+          "host": "opencode.ai",
+          "language": "typescript",
+          "file": "packages/backend/src/settings/quota.ts",
+          "line": 5,
+          "monorepo": true,
+          "notes": "OpenCode Zen usage quota API"
+        },
+        {
+          "provider": "pi-dev",
+          "via": "http",
+          "package": null,
+          "host": "pi.dev",
+          "language": "typescript",
+          "file": "packages/backend/src/packages/catalog.ts",
+          "line": 6,
+          "monorepo": true,
+          "notes": "package catalog"
+        }
+      ]
+    },
+    {
+      "repo": "UI5/webcomponents-react",
+      "commit": "08de49188e2349d90f6236ff1aea4df44c2fa6fc",
+      "none": true,
+      "labels": []
+    },
+    {
+      "repo": "Jobcrazy/TRX-USDT-Wallet",
+      "commit": "bdc99c0191b6c3a1df621549be93af1723a41824",
+      "none": true,
+      "labels": []
+    },
+    {
+      "repo": "ralscha/blog",
+      "commit": "c046ef41bcb48fea02138a933a748c2af534962c",
+      "none": false,
+      "labels": [
+        {
+          "provider": "hibp",
+          "via": "sdk",
+          "package": "hibp",
+          "host": null,
+          "language": "javascript",
+          "file": "passwordcheck/client/src/main.js",
+          "line": 4,
+          "monorepo": true,
+          "notes": "Have I Been Pwned password range API"
+        },
+        {
+          "provider": "usgs",
+          "via": "http",
+          "package": null,
+          "host": "earthquake.usgs.gov",
+          "language": "typescript",
+          "file": "dexiejs/src/app/earthquake.service.ts",
+          "line": 39,
+          "monorepo": true,
+          "notes": "earthquake feed CSV"
+        }
+      ]
+    },
+    {
+      "repo": "spr-networks/super",
+      "commit": "975d544ee64179ee3d094db9e19d911b554eb8a3",
+      "none": false,
+      "labels": [
+        {
+          "provider": "github",
+          "via": "http",
+          "package": null,
+          "host": "api.github.com",
+          "language": "go",
+          "file": "superd/code/attest.go",
+          "line": 145,
+          "monorepo": true,
+          "notes": "attestations API"
+        },
+        {
+          "provider": "sigstore",
+          "via": "sdk",
+          "package": "github.com/sigstore/sigstore-go",
+          "host": null,
+          "language": "go",
+          "file": "superd/code/attest.go",
+          "line": 27,
+          "monorepo": true,
+          "notes": "trusted root fetched from Sigstore TUF for bundle verification"
+        },
+        {
+          "provider": "cloudflare",
+          "via": "http",
+          "package": null,
+          "host": "speed.cloudflare.com",
+          "language": "go",
+          "file": "api/code/wan_health.go",
+          "line": 135,
+          "monorepo": true,
+          "notes": "speed test download endpoint"
+        }
+      ]
+    },
+    {
+      "repo": "holistics/dbml",
+      "commit": "0c34d8514ae7ebb457549531ef4fa5dab839c4fa",
+      "none": false,
+      "labels": [
+        {
+          "provider": "google-cloud",
+          "via": "sdk",
+          "package": "@google-cloud/bigquery",
+          "host": null,
+          "language": "typescript",
+          "file": "packages/dbml-connector/src/connectors/bigquery/index.ts",
+          "line": 1,
+          "monorepo": true,
+          "notes": "BigQuery schema introspection"
+        },
+        {
+          "provider": "snowflake",
+          "via": "sdk",
+          "package": "snowflake-sdk",
+          "host": null,
+          "language": "typescript",
+          "file": "packages/dbml-connector/src/connectors/snowflake/index.ts",
+          "line": 9,
+          "monorepo": true,
+          "notes": "Snowflake schema introspection over its HTTPS API"
+        }
+      ]
+    },
+    {
+      "repo": "reactjs/react-tabs",
+      "commit": "1e0d27b8598d1d2fd5709180e37c93cfa834612c",
+      "none": true,
+      "labels": []
+    },
+    {
+      "repo": "HkingAuditore/civ-game",
+      "commit": "99382cd4ac4ade80969d1098679c103f24acc749",
+      "none": false,
+      "labels": [
+        {
+          "provider": "gameanalytics",
+          "via": "sdk",
+          "package": "gameanalytics",
+          "host": null,
+          "language": "javascript",
+          "file": "src/analytics/gaInit.js",
+          "line": 4,
+          "monorepo": false,
+          "notes": "GameAnalytics event SDK"
+        },
+        {
+          "provider": "allorigins",
+          "via": "http",
+          "package": null,
+          "host": "api.allorigins.win",
+          "language": "javascript",
+          "file": "src/components/common/MusicPlayer.jsx",
+          "line": 182,
+          "monorepo": false,
+          "notes": "default CORS proxy API for music feeds"
+        }
+      ]
+    },
+    {
+      "repo": "Brajesh31/Anime-Book-Store",
+      "commit": "3353c65e7a31c7a512c18f0651d201324da6a2c1",
+      "none": true,
+      "labels": []
+    },
+    {
+      "repo": "Kylrix/kylrix",
+      "commit": "5876460e59f76b003f23d53673147609d774903c",
+      "none": false,
+      "labels": [
+        {
+          "provider": "gemini",
+          "via": "sdk",
+          "package": "@google/generative-ai",
+          "host": null,
+          "language": "typescript",
+          "file": "app/api/dev/webmcp-agent/route.ts",
+          "line": 2,
+          "monorepo": false,
+          "notes": "Gemini SDK in an API route"
+        },
+        {
+          "provider": "gemini",
+          "via": "sdk",
+          "package": "@ai-sdk/google",
+          "host": null,
+          "language": "typescript",
+          "file": "lib/agentic/ai-sdk/models.ts",
+          "line": 8,
+          "monorepo": false,
+          "notes": "AI SDK provider"
+        },
+        {
+          "provider": "gemini",
+          "via": "http",
+          "package": null,
+          "host": "generativelanguage.googleapis.com",
+          "language": "typescript",
+          "file": "lib/actions/flow-creator.ts",
+          "line": 44,
+          "monorepo": false,
+          "notes": "generateContent through fetch"
+        },
+        {
+          "provider": "openai",
+          "via": "sdk",
+          "package": "@ai-sdk/openai",
+          "host": null,
+          "language": "typescript",
+          "file": "lib/agentic/ai-sdk/models.ts",
+          "line": 9,
+          "monorepo": false,
+          "notes": "AI SDK provider"
+        },
+        {
+          "provider": "openrouter",
+          "via": "http",
+          "package": null,
+          "host": "openrouter.ai",
+          "language": "typescript",
+          "file": "lib/ai/agent-scheduler.ts",
+          "line": 103,
+          "monorepo": false,
+          "notes": "OpenRouter base URL"
+        },
+        {
+          "provider": "cloudflare",
+          "via": "http",
+          "package": null,
+          "host": "api.cloudflare.com",
+          "language": "typescript",
+          "file": "lib/ai/workers-ai.ts",
+          "line": 94,
+          "monorepo": false,
+          "notes": "Workers AI REST API"
+        },
+        {
+          "provider": "telegram",
+          "via": "http",
+          "package": null,
+          "host": "api.telegram.org",
+          "language": "typescript",
+          "file": "app/api/telegram/webhook/route.ts",
+          "line": 41,
+          "monorepo": false,
+          "notes": "Bot API replies"
+        },
+        {
+          "provider": "blockbee",
+          "via": "http",
+          "package": null,
+          "host": "api.blockbee.io",
+          "language": "typescript",
+          "file": "lib/billing/providers/blockbee.ts",
+          "line": 4,
+          "monorepo": false,
+          "notes": "crypto payments API"
+        },
+        {
+          "provider": "github",
+          "via": "http",
+          "package": null,
+          "host": "api.github.com",
+          "language": "typescript",
+          "file": "lib/actions/contributor-ops.ts",
+          "line": 80,
+          "monorepo": false,
+          "notes": "OAuth user lookup"
+        },
+        {
+          "provider": "npm-registry",
+          "via": "http",
+          "package": null,
+          "host": "registry.npmjs.org",
+          "language": "typescript",
+          "file": "packages/cli/src/updater/index.ts",
+          "line": 46,
+          "monorepo": true,
+          "notes": "latest-version check for the CLI"
+        }
+      ]
+    },
+    {
+      "repo": "ryuzcorp/noite",
+      "commit": "28d12965dddddb26f55dc1f209722b51adea9e4b",
+      "none": true,
+      "labels": []
+    },
+    {
+      "repo": "haposoft/cafekit",
+      "commit": "96da1253261a064641d2228097f5d47938a3c08e",
+      "none": true,
+      "labels": []
+    },
+    {
+      "repo": "huilang-me/CF-Server-Monitor",
+      "commit": "42ad10acd7a3073a22e9516407735f303e412920",
+      "none": false,
+      "labels": [
+        {
+          "provider": "github",
+          "via": "http",
+          "package": null,
+          "host": "api.github.com",
+          "language": "javascript",
+          "file": "src/frontend/views/admin/components/ThemeStorePanel.vue",
+          "line": 448,
+          "monorepo": false,
+          "notes": "theme store commits API"
+        },
+        {
+          "provider": "cloudflare",
+          "via": "http",
+          "package": null,
+          "host": "api.cloudflare.com",
+          "language": "javascript",
+          "file": "src/handlers/admin.js",
+          "line": 280,
+          "monorepo": false,
+          "notes": "GraphQL Analytics API"
+        },
+        {
+          "provider": "cloudflare",
+          "via": "http",
+          "package": null,
+          "host": "challenges.cloudflare.com",
+          "language": "javascript",
+          "file": "src/frontend/utils/turnstile.js",
+          "line": 4,
+          "monorepo": false,
+          "notes": "Turnstile widget script"
+        },
+        {
+          "provider": "frankfurter",
+          "via": "http",
+          "package": null,
+          "host": "api.frankfurter.dev",
+          "language": "javascript",
+          "file": "src/frontend/utils/finance.js",
+          "line": 84,
+          "monorepo": false,
+          "notes": "exchange rates"
+        },
+        {
+          "provider": "exchangerate-api",
+          "via": "http",
+          "package": null,
+          "host": "open.er-api.com",
+          "language": "javascript",
+          "file": "src/frontend/utils/finance.js",
+          "line": 88,
+          "monorepo": false,
+          "notes": "exchange rates fallback"
+        },
+        {
+          "provider": "bark",
+          "via": "http",
+          "package": null,
+          "host": "api.day.app",
+          "language": "javascript",
+          "file": "src/services/notification.js",
+          "line": 902,
+          "monorepo": false,
+          "notes": "Bark push notifications"
+        },
+        {
+          "provider": "wecom",
+          "via": "http",
+          "package": null,
+          "host": "qyapi.weixin.qq.com",
+          "language": "javascript",
+          "file": "src/services/notification.js",
+          "line": 920,
+          "monorepo": false,
+          "notes": "WeCom group robot webhook"
+        },
+        {
+          "provider": "serverchan",
+          "via": "http",
+          "package": null,
+          "host": "sctapi.ftqq.com",
+          "language": "javascript",
+          "file": "src/services/notification.js",
+          "line": 936,
+          "monorepo": false,
+          "notes": "ServerChan push"
+        },
+        {
+          "provider": "wxpusher",
+          "via": "http",
+          "package": null,
+          "host": "wxpusher.zjiecode.com",
+          "language": "javascript",
+          "file": "src/services/notification.js",
+          "line": 953,
+          "monorepo": false,
+          "notes": "WxPusher messages"
+        },
+        {
+          "provider": "telegram",
+          "via": "http",
+          "package": null,
+          "host": "api.telegram.org",
+          "language": "javascript",
+          "file": "src/services/notification.js",
+          "line": 991,
+          "monorepo": false,
+          "notes": "Bot API notifications"
+        }
+      ]
+    },
+    {
+      "repo": "facenox/facenox",
+      "commit": "f859f4fa014361bf31305d3c92e684a2f5b2b273",
+      "none": false,
+      "labels": [
+        {
+          "provider": "ably",
+          "via": "sdk",
+          "package": "ably",
+          "host": null,
+          "language": "typescript",
+          "file": "app/src/electron/managers/BackgroundSyncManager.ts",
+          "line": 1,
+          "monorepo": false,
+          "notes": "realtime sync channel"
+        },
+        {
+          "provider": "github",
+          "via": "http",
+          "package": null,
+          "host": "api.github.com",
+          "language": "typescript",
+          "file": "app/src/electron/updater.ts",
+          "line": 17,
+          "monorepo": false,
+          "notes": "release update checks"
+        }
+      ]
+    },
+    {
+      "repo": "tidepool-org/blip",
+      "commit": "9586b7ecc606245b67b6de2027a1ce7e595b151c",
+      "none": false,
+      "labels": [
+        {
+          "provider": "launchdarkly",
+          "via": "sdk",
+          "package": "launchdarkly-react-client-sdk",
+          "host": null,
+          "language": "javascript",
+          "file": "app/bootstrap.js",
+          "line": 22,
+          "monorepo": false,
+          "notes": "feature flags"
+        },
+        {
+          "provider": "github",
+          "via": "sdk",
+          "package": "@octokit/rest",
+          "host": null,
+          "language": "javascript",
+          "file": "app/components/uploaderbutton/uploaderbutton.js",
+          "line": 3,
+          "monorepo": false,
+          "notes": "latest uploader release lookup"
+        },
+        {
+          "provider": "rollbar",
+          "via": "sdk",
+          "package": "rollbar",
+          "host": null,
+          "language": "javascript",
+          "file": "app/rollbar.js",
+          "line": 2,
+          "monorepo": false,
+          "notes": "error reporting"
+        }
+      ]
+    },
+    {
+      "repo": "ahaoboy/js-engine-benchmark",
+      "commit": "9658e94c0e73cd905acd76fd3f8b59cfc1c26641",
+      "none": true,
+      "labels": []
+    },
+    {
+      "repo": "timoncool/ACE-Step-Studio",
+      "commit": "00a78016f1899e566e5908ec0dfcf40bd40b14d2",
+      "none": false,
+      "labels": [
+        {
+          "provider": "webamp-skin-museum",
+          "via": "http",
+          "package": null,
+          "host": "skins.webamp.org",
+          "language": "typescript",
+          "file": "app/services/winamp.ts",
+          "line": 49,
+          "monorepo": false,
+          "notes": "Winamp Skin Museum skin search"
+        }
+      ]
+    },
+    {
+      "repo": "danything/denpa",
+      "commit": "4b3f816aed8f508b22ddcd2074f8499387517781",
+      "none": true,
+      "labels": []
+    },
+    {
+      "repo": "HSLdevcom/digitransit-ui",
+      "commit": "3454ac67bb64000d0f936b032abd2651c3b7cf43",
+      "none": false,
+      "labels": [
+        {
+          "provider": "fmi",
+          "via": "http",
+          "package": null,
+          "host": "opendata.fmi.fi",
+          "language": "javascript",
+          "file": "server/configs/config.default.js",
+          "line": 106,
+          "monorepo": false,
+          "notes": "FMI open data weather forecast WFS"
+        },
+        {
+          "provider": "matomo",
+          "via": "http",
+          "package": null,
+          "host": "cdn.matomo.cloud",
+          "language": "javascript",
+          "file": "server/configs/config.matka.js",
+          "line": 471,
+          "monorepo": false,
+          "notes": "Matomo Cloud tag manager for the Matka theme"
+        }
+      ]
+    },
+    {
+      "repo": "Felix-Lai-12/whospost",
+      "commit": "d0fbf9efb2a23f22933fdeec76ef4755742a9b94",
+      "none": false,
+      "labels": [
+        {
+          "provider": "apify",
+          "via": "http",
+          "package": null,
+          "host": "api.apify.com",
+          "language": "javascript",
+          "file": "server/providers/apify.mjs",
+          "line": 2,
+          "monorepo": false,
+          "notes": "Threads scraping Actors"
+        },
+        {
+          "provider": "cofacts",
+          "via": "http",
+          "package": null,
+          "host": "api.cofacts.tw",
+          "language": "javascript",
+          "file": "server/providers/cofacts.mjs",
+          "line": 45,
+          "monorepo": false,
+          "notes": "Cofacts fact-check GraphQL API"
+        },
+        {
+          "provider": "gemini",
+          "via": "http",
+          "package": null,
+          "host": "generativelanguage.googleapis.com",
+          "language": "javascript",
+          "file": "server/ai/gemini.mjs",
+          "line": 6,
+          "monorepo": false,
+          "notes": "generateContent"
+        },
+        {
+          "provider": "cloudflare",
+          "via": "http",
+          "package": null,
+          "host": "challenges.cloudflare.com",
+          "language": "javascript",
+          "file": "frontend/src/Turnstile.jsx",
+          "line": 2,
+          "monorepo": false,
+          "notes": "Turnstile widget"
+        },
+        {
+          "provider": "cloudflare",
+          "via": "sdk",
+          "package": "@cloudflare/puppeteer",
+          "host": null,
+          "language": "javascript",
+          "file": "worker/index.mjs",
+          "line": 2,
+          "monorepo": false,
+          "notes": "Browser Rendering"
+        },
+        {
+          "provider": "google-analytics",
+          "via": "http",
+          "package": null,
+          "host": "www.googletagmanager.com",
+          "language": "javascript",
+          "file": "frontend/src/analytics.mjs",
+          "line": 42,
+          "monorepo": false,
+          "notes": "gtag.js"
+        }
+      ]
+    },
+    {
+      "repo": "Affitor/open-affiliate",
+      "commit": "afc364948a4b1dbe42a78864cddca220cfe9fbb6",
+      "none": false,
+      "labels": [
+        {
+          "provider": "supabase",
+          "via": "sdk",
+          "package": "@supabase/supabase-js",
+          "host": null,
+          "language": "typescript",
+          "file": "src/app/api/content-lab/route.ts",
+          "line": 2,
+          "monorepo": false,
+          "notes": "Supabase client"
+        },
+        {
+          "provider": "openai",
+          "via": "sdk",
+          "package": "openai",
+          "host": null,
+          "language": "typescript",
+          "file": "src/app/api/content-lab/route.ts",
+          "line": 1,
+          "monorepo": false,
+          "notes": "OpenAI SDK"
+        },
+        {
+          "provider": "posthog",
+          "via": "sdk",
+          "package": "posthog-js",
+          "host": null,
+          "language": "typescript",
+          "file": "src/lib/posthog-noise.ts",
+          "line": 1,
+          "monorepo": false,
+          "notes": "product analytics"
+        },
+        {
+          "provider": "resend",
+          "via": "http",
+          "package": null,
+          "host": "api.resend.com",
+          "language": "typescript",
+          "file": "src/lib/claims/live.ts",
+          "line": 289,
+          "monorepo": false,
+          "notes": "claim emails"
+        },
+        {
+          "provider": "cloudflare",
+          "via": "http",
+          "package": null,
+          "host": "challenges.cloudflare.com",
+          "language": "typescript",
+          "file": "src/components/turnstile.tsx",
+          "line": 19,
+          "monorepo": false,
+          "notes": "Turnstile widget"
+        }
+      ]
+    },
+    {
+      "repo": "mantrakp04/ardia",
+      "commit": "1dd343fb62f51f39f5143f54b66080183f25dcd6",
+      "none": false,
+      "labels": [
+        {
+          "provider": "github",
+          "via": "http",
+          "package": null,
+          "host": "api.github.com",
+          "language": "typescript",
+          "file": "apps/browser/src/live/net.ts",
+          "line": 15,
+          "monorepo": true,
+          "notes": "GitHub GraphQL for live folders"
+        },
+        {
+          "provider": "bitbucket",
+          "via": "http",
+          "package": null,
+          "host": "api.bitbucket.org",
+          "language": "typescript",
+          "file": "apps/browser/src/live/net.ts",
+          "line": 17,
+          "monorepo": true,
+          "notes": "Bitbucket API 2.0"
+        },
+        {
+          "provider": "notion",
+          "via": "http",
+          "package": null,
+          "host": "api.notion.com",
+          "language": "typescript",
+          "file": "apps/browser/src/live/net.ts",
+          "line": 18,
+          "monorepo": true,
+          "notes": "Notion API v1"
+        },
+        {
+          "provider": "google-oauth",
+          "via": "http",
+          "package": null,
+          "host": "oauth2.googleapis.com",
+          "language": "typescript",
+          "file": "apps/browser/src/live/net.ts",
+          "line": 21,
+          "monorepo": true,
+          "notes": "OAuth token exchange built in the repository"
+        },
+        {
+          "provider": "google-search",
+          "via": "http",
+          "package": null,
+          "host": "suggestqueries.google.com",
+          "language": "typescript",
+          "file": "packages/core/src/engines.ts",
+          "line": 32,
+          "monorepo": true,
+          "notes": "search suggestion preset"
+        },
+        {
+          "provider": "bing",
+          "via": "http",
+          "package": null,
+          "host": "api.bing.com",
+          "language": "typescript",
+          "file": "packages/core/src/engines.ts",
+          "line": 34,
+          "monorepo": true,
+          "notes": "search suggestion preset"
+        },
+        {
+          "provider": "duckduckgo",
+          "via": "http",
+          "package": null,
+          "host": "duckduckgo.com",
+          "language": "typescript",
+          "file": "packages/core/src/engines.ts",
+          "line": 40,
+          "monorepo": true,
+          "notes": "search suggestion preset"
+        },
+        {
+          "provider": "ecosia",
+          "via": "http",
+          "package": null,
+          "host": "ac.ecosia.org",
+          "language": "typescript",
+          "file": "packages/core/src/engines.ts",
+          "line": 49,
+          "monorepo": true,
+          "notes": "search suggestion preset"
+        },
+        {
+          "provider": "brave-search",
+          "via": "http",
+          "package": null,
+          "host": "search.brave.com",
+          "language": "typescript",
+          "file": "packages/core/src/engines.ts",
+          "line": 56,
+          "monorepo": true,
+          "notes": "search suggestion preset"
+        },
+        {
+          "provider": "startpage",
+          "via": "http",
+          "package": null,
+          "host": "www.startpage.com",
+          "language": "typescript",
+          "file": "packages/core/src/engines.ts",
+          "line": 64,
+          "monorepo": true,
+          "notes": "search suggestion preset"
+        },
+        {
+          "provider": "yahoo",
+          "via": "http",
+          "package": null,
+          "host": "search.yahoo.com",
+          "language": "typescript",
+          "file": "packages/core/src/engines.ts",
+          "line": 71,
+          "monorepo": true,
+          "notes": "search suggestion preset"
+        },
+        {
+          "provider": "baidu",
+          "via": "http",
+          "package": null,
+          "host": "www.baidu.com",
+          "language": "typescript",
+          "file": "packages/core/src/engines.ts",
+          "line": 78,
+          "monorepo": true,
+          "notes": "search suggestion preset"
+        },
+        {
+          "provider": "yandex",
+          "via": "http",
+          "package": null,
+          "host": "suggest.yandex.com",
+          "language": "typescript",
+          "file": "packages/core/src/engines.ts",
+          "line": 85,
+          "monorepo": true,
+          "notes": "search suggestion preset"
+        },
+        {
+          "provider": "google-workspace",
+          "via": "http",
+          "package": null,
+          "host": "www.googleapis.com",
+          "language": "typescript",
+          "file": "apps/browser/src/live/net.ts",
+          "line": 22,
+          "monorepo": true,
+          "notes": "Google Drive API v3"
+        }
+      ]
+    },
+    {
+      "repo": "ZyFou/ProceduralTerrains",
+      "commit": "65eef6a0e0c37c67129d1595606c4f298d2db5a1",
+      "none": false,
+      "labels": [
+        {
+          "provider": "openstreetmap",
+          "via": "http",
+          "package": null,
+          "host": "nominatim.openstreetmap.org",
+          "language": "javascript",
+          "file": "src/components/ui/RealWorldMapPicker.jsx",
+          "line": 20,
+          "monorepo": false,
+          "notes": "Nominatim geocoding search"
+        },
+        {
+          "provider": "overpass",
+          "via": "http",
+          "package": null,
+          "host": "overpass-api.de",
+          "language": "javascript",
+          "file": "src/engine/terrain/RealWorldBuildings.js",
+          "line": 12,
+          "monorepo": false,
+          "notes": "Overpass API buildings query (preset)"
+        },
+        {
+          "provider": "overpass",
+          "via": "http",
+          "package": null,
+          "host": "overpass.private.coffee",
+          "language": "javascript",
+          "file": "src/engine/terrain/RealWorldBuildings.js",
+          "line": 11,
+          "monorepo": false,
+          "notes": "Overpass API mirror (preset)"
+        },
+        {
+          "provider": "overpass",
+          "via": "http",
+          "package": null,
+          "host": "maps.mail.ru",
+          "language": "javascript",
+          "file": "src/engine/terrain/RealWorldBuildings.js",
+          "line": 13,
+          "monorepo": false,
+          "notes": "Overpass API mirror (preset)"
+        }
+      ]
+    },
+    {
+      "repo": "debezium/debezium-platform",
+      "commit": "5be96c5b86b05878cbb7c0b941243101eb01b22f",
+      "none": true,
+      "labels": []
+    },
+    {
+      "repo": "dengcb/weixin-reader-desktop",
+      "commit": "46784a16537b4b4ddba4bc109104e46aecad67ed",
+      "none": true,
+      "labels": []
+    },
+    {
+      "repo": "OpenCCU/OpenCCU",
+      "commit": "40c0b48205f129a08f9a0fa8850e2668f6856257",
+      "none": true,
+      "labels": []
+    },
+    {
+      "repo": "nextcloud/tables",
+      "commit": "c5c87cf04206f144749ed7cd4f1ceeb016256b36",
+      "none": true,
+      "labels": []
+    },
+    {
+      "repo": "readium/ts-toolkit",
+      "commit": "26b30f14159d394f16dcece4664deaa3ed4ed80c",
+      "none": true,
+      "labels": []
+    },
+    {
+      "repo": "dengxiaoning/cesium_dev_kit",
+      "commit": "69ece5616c9a320eb0864b7a93f08512f365b141",
+      "none": true,
+      "labels": []
+    },
+    {
+      "repo": "antvis/antvis.github.io",
+      "commit": "2fa91a44668140d52151283a5bc8894442cc0735",
+      "none": true,
+      "labels": []
+    },
+    {
+      "repo": "8starlabs/ui",
+      "commit": "4edff1ddacfd5a47b974916ba07c8d2367b9a151",
+      "none": false,
+      "labels": [
+        {
+          "provider": "vercel",
+          "via": "sdk",
+          "package": "@vercel/analytics",
+          "host": null,
+          "language": "typescript",
+          "file": "app/layout.tsx",
+          "line": 11,
+          "monorepo": false,
+          "notes": "Web Analytics"
+        }
+      ]
+    },
+    {
+      "repo": "ravidsrk/slop-detect",
+      "commit": "456b70440c00902ba211f77d1f7d29af69abee0a",
+      "none": false,
+      "labels": [
+        {
+          "provider": "resend",
+          "via": "http",
+          "package": null,
+          "host": "api.resend.com",
+          "language": "typescript",
+          "file": "apps/web/functions/_email.ts",
+          "line": 74,
+          "monorepo": true,
+          "notes": "alert emails"
+        },
+        {
+          "provider": "cloudflare",
+          "via": "http",
+          "package": null,
+          "host": "challenges.cloudflare.com",
+          "language": "typescript",
+          "file": "apps/web/functions/api/_middleware.ts",
+          "line": 168,
+          "monorepo": true,
+          "notes": "Turnstile siteverify"
+        },
+        {
+          "provider": "cloudflare",
+          "via": "sdk",
+          "package": "@cloudflare/puppeteer",
+          "host": null,
+          "language": "typescript",
+          "file": "apps/web/functions/_browser.ts",
+          "line": 7,
+          "monorepo": true,
+          "notes": "Browser Rendering"
+        },
+        {
+          "provider": "github",
+          "via": "http",
+          "package": null,
+          "host": "api.github.com",
+          "language": "javascript",
+          "file": "packages/action/scan.mjs",
+          "line": 383,
+          "monorepo": true,
+          "notes": "GitHub API from the published Action"
+        }
+      ]
+    },
+    {
+      "repo": "Brajesh31/PassMan-Your-personal-password-manager",
+      "commit": "82904f368f481895a42e8832b102a0cd0775f552",
+      "none": true,
+      "labels": []
+    },
+    {
+      "repo": "SlumperSan/agent-governed-vaults",
+      "commit": "07d1be0e7d4e7fabaf5dc1fcd9cbb5c1a647e43a",
+      "none": true,
+      "labels": []
+    },
+    {
+      "repo": "Brajesh31/Skill_share_grow_final",
+      "commit": "d15e38033e9ce7a895fe703beb3a8628fee4c116",
+      "none": true,
+      "labels": []
+    },
+    {
+      "repo": "r-near/zorsh",
+      "commit": "4a54b28775b58f380d72f4426a471f2b23c37f3b",
+      "none": true,
+      "labels": []
+    },
+    {
+      "repo": "nikunjsingh93/react-glass-keep",
+      "commit": "1a62f2b450c3d9e6f182584121759bbeb5cefa85",
+      "none": true,
+      "labels": []
+    },
+    {
+      "repo": "PapillonApp/Papillon",
+      "commit": "7b5aaed7d2f96ce3a913579cd0af2309a12eb82d",
+      "none": false,
+      "labels": [
+        {
+          "provider": "pronote",
+          "via": "sdk",
+          "package": "@blockshub/pawnote-lts",
+          "host": null,
+          "language": "typescript",
+          "file": "app/(onboarding)/services/pronote/browser.tsx",
+          "line": 15,
+          "monorepo": false,
+          "notes": "Pronote school records"
+        },
+        {
+          "provider": "skolengo",
+          "via": "sdk",
+          "package": "skolengojs",
+          "host": null,
+          "language": "typescript",
+          "file": "app/(features)/(news)/specific.tsx",
+          "line": 11,
+          "monorepo": false,
+          "notes": "Skolengo school records"
+        },
+        {
+          "provider": "ecoledirecte",
+          "via": "sdk",
+          "package": "@blockshub/blocksdirecte",
+          "host": null,
+          "language": "typescript",
+          "file": "app/(onboarding)/services/ed/credentials.tsx",
+          "line": 2,
+          "monorepo": false,
+          "notes": "EcoleDirecte school records"
+        },
+        {
+          "provider": "appscho",
+          "via": "sdk",
+          "package": "@blockshub/blockscho",
+          "host": null,
+          "language": "typescript",
+          "file": "app/(onboarding)/services/appscho/credentials.tsx",
+          "line": 28,
+          "monorepo": false,
+          "notes": "AppScho university services"
+        },
+        {
+          "provider": "turboself",
+          "via": "sdk",
+          "package": "turboself-api",
+          "host": null,
+          "language": "typescript",
+          "file": "app/(onboarding)/restaurants/turboself.tsx",
+          "line": 13,
+          "monorepo": false,
+          "notes": "TurboSelf canteen API"
+        },
+        {
+          "provider": "izly",
+          "via": "sdk",
+          "package": "ezly",
+          "host": null,
+          "language": "typescript",
+          "file": "app/(onboarding)/restaurants/izly.tsx",
+          "line": 4,
+          "monorepo": false,
+          "notes": "Izly campus payments API"
+        },
+        {
+          "provider": "esup-multi",
+          "via": "sdk",
+          "package": "esup-multi.js",
+          "host": null,
+          "language": "typescript",
+          "file": "app/(onboarding)/services/multi/credentials.tsx",
+          "line": 3,
+          "monorepo": false,
+          "notes": "ESUP Multi university back ends"
+        },
+        {
+          "provider": "alise",
+          "via": "sdk",
+          "package": "alise-api",
+          "host": null,
+          "language": "typescript",
+          "file": "app/(onboarding)/restaurants/alise.tsx",
+          "line": 20,
+          "monorepo": false,
+          "notes": "Alise canteen API"
+        },
+        {
+          "provider": "ard",
+          "via": "sdk",
+          "package": "@blockshub/blocksrd",
+          "host": null,
+          "language": "typescript",
+          "file": "app/(onboarding)/restaurants/ard.tsx",
+          "line": 6,
+          "monorepo": false,
+          "notes": "ARD canteen API"
+        },
+        {
+          "provider": "github",
+          "via": "http",
+          "package": null,
+          "host": "api.github.com",
+          "language": "typescript",
+          "file": "utils/github/contributors.ts",
+          "line": 11,
+          "monorepo": false,
+          "notes": "contributors list"
+        },
+        {
+          "provider": "geopf",
+          "via": "http",
+          "package": null,
+          "host": "data.geopf.fr",
+          "language": "typescript",
+          "file": "utils/native/georeverse.ts",
+          "line": 10,
+          "monorepo": false,
+          "notes": "IGN Géoplateforme reverse geocoding"
+        }
+      ]
+    },
+    {
+      "repo": "ProjectSidewalk/SidewalkWebpage",
+      "commit": "21884834a3553c58b76851606c3c9b60b12b8b67",
+      "none": false,
+      "labels": [
+        {
+          "provider": "mapbox",
+          "via": "sdk",
+          "package": "mapbox-gl",
+          "host": null,
+          "language": "javascript",
+          "file": "frontend/js/common/mapboxgl.js",
+          "line": 9,
+          "monorepo": false,
+          "notes": "Mapbox GL maps"
+        },
+        {
+          "provider": "mapbox",
+          "via": "sdk",
+          "package": "@mapbox/search-js-web",
+          "host": null,
+          "language": "javascript",
+          "file": "frontend/js/labelMapLocationSearch.js",
+          "line": 14,
+          "monorepo": false,
+          "notes": "Mapbox Search"
+        },
+        {
+          "provider": "mapbox",
+          "via": "http",
+          "package": null,
+          "host": "api.mapbox.com",
+          "language": "javascript",
+          "file": "frontend/js/common/utilitiesSidewalk.js",
+          "line": 691,
+          "monorepo": false,
+          "notes": "reverse geocoding v6"
+        },
+        {
+          "provider": "mapillary",
+          "via": "http",
+          "package": null,
+          "host": "graph.mapillary.com",
+          "language": "javascript",
+          "file": "frontend/js/common/pano-viewer/MapillaryViewer.js",
+          "line": 316,
+          "monorepo": false,
+          "notes": "Graph API images"
+        },
+        {
+          "provider": "panoramax",
+          "via": "http",
+          "package": null,
+          "host": "api.panoramax.xyz",
+          "language": "javascript",
+          "file": "frontend/js/common/pano-viewer/PanoramaxViewer.js",
+          "line": 48,
+          "monorepo": false,
+          "notes": "Panoramax API"
+        },
+        {
+          "provider": "infra3d",
+          "via": "sdk",
+          "package": "@inovitas/infra3dapi",
+          "host": null,
+          "language": "javascript",
+          "file": "frontend/js/common/pano-viewer/sdk/infra3d.js",
+          "line": 6,
+          "monorepo": false,
+          "notes": "infra3D panorama API"
+        },
+        {
+          "provider": "google-maps",
+          "via": "http",
+          "package": null,
+          "host": "maps.googleapis.com",
+          "language": "javascript",
+          "file": "frontend/js/common/pano-viewer/GsvViewer.js",
+          "line": 90,
+          "monorepo": false,
+          "notes": "Maps JavaScript API Street View service (google.maps.importLibrary; the loader is in the Scala templates)"
+        }
+      ]
+    },
+    {
+      "repo": "plhery/peek-delivery-tracker",
+      "commit": "cad21eba4ae79d6517a434a22017d3deef500102",
+      "none": false,
+      "labels": [
+        {
+          "provider": "sentry",
+          "via": "sdk",
+          "package": "@sentry/node",
+          "host": null,
+          "language": "typescript",
+          "file": "src/server/metrics.ts",
+          "line": 3,
+          "monorepo": false,
+          "notes": "server error reporting"
+        },
+        {
+          "provider": "sentry",
+          "via": "sdk",
+          "package": "@sentry/browser",
+          "host": null,
+          "language": "typescript",
+          "file": "src/lib/errorReporter.ts",
+          "line": 13,
+          "monorepo": false,
+          "notes": "browser error reporting"
+        },
+        {
+          "provider": "supabase",
+          "via": "sdk",
+          "package": "@supabase/auth-js",
+          "host": null,
+          "language": "typescript",
+          "file": "src/auth/AuthContext.tsx",
+          "line": 57,
+          "monorepo": false,
+          "notes": "Supabase Auth (GoTrue) client loaded on demand"
+        },
+        {
+          "provider": "cloudflare",
+          "via": "http",
+          "package": null,
+          "host": "challenges.cloudflare.com",
+          "language": "typescript",
+          "file": "app/api/public/native/turnstile/route.ts",
+          "line": 22,
+          "monorepo": false,
+          "notes": "Turnstile widget page"
+        },
+        {
+          "provider": "apple",
+          "via": "http",
+          "package": null,
+          "host": "appleid.apple.com",
+          "language": "typescript",
+          "file": "src/server/appleSignIn.ts",
+          "line": 8,
+          "monorepo": false,
+          "notes": "Sign in with Apple token verification built in the repository"
+        }
+      ]
+    },
+    {
+      "repo": "MTES-MCT/acceslibre",
+      "commit": "b23e189680e9cfe0293087a05effac6b924250f6",
+      "none": false,
+      "labels": [
+        {
+          "provider": "sentry",
+          "via": "sdk",
+          "package": "sentry_sdk",
+          "host": null,
+          "language": "python",
+          "file": "core/settings_prod.py",
+          "line": 28,
+          "monorepo": false,
+          "notes": "error tracking"
+        },
+        {
+          "provider": "sentry",
+          "via": "sdk",
+          "package": "@sentry/browser",
+          "host": null,
+          "language": "javascript",
+          "file": "static/index.js",
+          "line": 9,
+          "monorepo": false,
+          "notes": "browser error tracking"
+        },
+        {
+          "provider": "aws",
+          "via": "sdk",
+          "package": "boto3",
+          "host": null,
+          "language": "python",
+          "file": "erp/export/s3.py",
+          "line": 14,
+          "monorepo": false,
+          "notes": "export bucket; boto3 defaults to AWS when no endpoint is set"
+        },
+        {
+          "provider": "deepl",
+          "via": "sdk",
+          "package": "deepl",
+          "host": null,
+          "language": "python",
+          "file": "api/frontend_views.py",
+          "line": 23,
+          "monorepo": false,
+          "notes": "DeepL translation"
+        },
+        {
+          "provider": "brevo",
+          "via": "sdk",
+          "package": "sib_api_v3_sdk",
+          "host": null,
+          "language": "python",
+          "file": "core/mailer.py",
+          "line": 5,
+          "monorepo": false,
+          "notes": "Brevo (Sendinblue) transactional email"
+        },
+        {
+          "provider": "geopf",
+          "via": "http",
+          "package": null,
+          "host": "data.geopf.fr",
+          "language": "python",
+          "file": "erp/provider/generic_geoloc.py",
+          "line": 13,
+          "monorepo": false,
+          "notes": "IGN Géoplateforme geocoding"
+        },
+        {
+          "provider": "panoramax",
+          "via": "http",
+          "package": null,
+          "host": "api.panoramax.xyz",
+          "language": "python",
+          "file": "erp/provider/panoramax.py",
+          "line": 3,
+          "monorepo": false,
+          "notes": "street imagery search"
+        },
+        {
+          "provider": "api-gouv",
+          "via": "http",
+          "package": null,
+          "host": "etablissements-publics.api.gouv.fr",
+          "language": "python",
+          "file": "erp/provider/public_erp.py",
+          "line": 14,
+          "monorepo": false,
+          "notes": "public establishments API v3"
+        },
+        {
+          "provider": "openstreetmap",
+          "via": "http",
+          "package": null,
+          "host": "nominatim.openstreetmap.org",
+          "language": "python",
+          "file": "erp/provider/osm.py",
+          "line": 13,
+          "monorepo": false,
+          "notes": "Nominatim geocoding"
+        },
+        {
+          "provider": "matomo",
+          "via": "http",
+          "package": null,
+          "host": "acceslibre.matomo.cloud",
+          "language": "python",
+          "file": "core/settings.py",
+          "line": 494,
+          "monorepo": false,
+          "notes": "Matomo Cloud analytics configured for templates"
+        }
+      ]
+    },
+    {
+      "repo": "gpustack/gpustack",
+      "commit": "4e35ee088abc0f4cc7ee75a86e15970de6b5091b",
+      "none": false,
+      "labels": [
+        {
+          "provider": "huggingface",
+          "via": "sdk",
+          "package": "huggingface_hub",
+          "host": null,
+          "language": "python",
+          "file": "gpustack/utils/hub.py",
+          "line": 11,
+          "monorepo": false,
+          "notes": "Hugging Face Hub file system and model metadata"
+        },
+        {
+          "provider": "modelscope",
+          "via": "sdk",
+          "package": "modelscope",
+          "host": null,
+          "language": "python",
+          "file": "gpustack/utils/hub.py",
+          "line": 42,
+          "monorepo": false,
+          "notes": "ModelScope Hub API"
+        },
+        {
+          "provider": "digitalocean",
+          "via": "sdk",
+          "package": "pydo",
+          "host": null,
+          "language": "python",
+          "file": "gpustack/cloud_providers/digital_ocean.py",
+          "line": 12,
+          "monorepo": false,
+          "notes": "DigitalOcean droplets for GPU workers"
+        }
+      ]
+    },
+    {
+      "repo": "fumingyang2004/Tulpa",
+      "commit": "b9b0d82224040c56842056feaeb80d7a000717a6",
+      "none": false,
+      "labels": [
+        {
+          "provider": "deepseek",
+          "via": "http",
+          "package": null,
+          "host": "api.deepseek.com",
+          "language": "python",
+          "file": "chatlocal/config.py",
+          "line": 33,
+          "monorepo": false,
+          "notes": "default API base for the chat agent"
+        }
+      ]
+    },
+    {
+      "repo": "chedim/babyseat",
+      "commit": "9294a339b083a44dad966cb80a06042dad20eac6",
+      "none": false,
+      "labels": [
+        {
+          "provider": "anthropic",
+          "via": "http",
+          "package": null,
+          "host": "api.anthropic.com",
+          "language": "python",
+          "file": "membrane/auth.py",
+          "line": 90,
+          "monorepo": false,
+          "notes": "provider preset"
+        },
+        {
+          "provider": "anthropic",
+          "via": "sdk",
+          "package": "claude_agent_sdk",
+          "host": null,
+          "language": "python",
+          "file": "membrane/claude_agent.py",
+          "line": 337,
+          "monorepo": false,
+          "notes": "Claude Agent SDK (optional extra)"
+        },
+        {
+          "provider": "openrouter",
+          "via": "http",
+          "package": null,
+          "host": "openrouter.ai",
+          "language": "python",
+          "file": "membrane/auth.py",
+          "line": 99,
+          "monorepo": false,
+          "notes": "provider preset"
+        },
+        {
+          "provider": "gemini",
+          "via": "http",
+          "package": null,
+          "host": "generativelanguage.googleapis.com",
+          "language": "python",
+          "file": "membrane/auth.py",
+          "line": 108,
+          "monorepo": false,
+          "notes": "provider preset"
+        },
+        {
+          "provider": "groq",
+          "via": "http",
+          "package": null,
+          "host": "api.groq.com",
+          "language": "python",
+          "file": "membrane/auth.py",
+          "line": 117,
+          "monorepo": false,
+          "notes": "provider preset"
+        },
+        {
+          "provider": "github",
+          "via": "http",
+          "package": null,
+          "host": "models.github.ai",
+          "language": "python",
+          "file": "membrane/auth.py",
+          "line": 126,
+          "monorepo": false,
+          "notes": "GitHub Models provider preset"
+        },
+        {
+          "provider": "opencode",
+          "via": "http",
+          "package": null,
+          "host": "opencode.ai",
+          "language": "python",
+          "file": "membrane/auth.py",
+          "line": 139,
+          "monorepo": false,
+          "notes": "provider preset"
+        },
+        {
+          "provider": "mistral",
+          "via": "http",
+          "package": null,
+          "host": "api.mistral.ai",
+          "language": "python",
+          "file": "membrane/auth.py",
+          "line": 150,
+          "monorepo": false,
+          "notes": "provider preset"
+        },
+        {
+          "provider": "pypi",
+          "via": "http",
+          "package": null,
+          "host": "pypi.org",
+          "language": "python",
+          "file": "membrane/update.py",
+          "line": 43,
+          "monorepo": false,
+          "notes": "self-update version check"
+        }
+      ]
+    },
+    {
+      "repo": "deep-learning-indaba/Baobab",
+      "commit": "aa497d1bbf75785e9ca8332ede09c9ee252742a1",
+      "none": false,
+      "labels": [
+        {
+          "provider": "google-workspace",
+          "via": "sdk",
+          "package": "googleapiclient",
+          "host": null,
+          "language": "python",
+          "file": "api/app/documents/google_client.py",
+          "line": 20,
+          "monorepo": true,
+          "notes": "Google Docs and Drive API client"
+        },
+        {
+          "provider": "google-cloud",
+          "via": "sdk",
+          "package": "google-cloud-storage",
+          "host": null,
+          "language": "python",
+          "file": "api/app/utils/storage.py",
+          "line": 3,
+          "monorepo": true,
+          "notes": "Cloud Storage for uploaded files"
+        },
+        {
+          "provider": "stripe",
+          "via": "sdk",
+          "package": "stripe",
+          "host": null,
+          "language": "python",
+          "file": "api/app/invoice/api.py",
+          "line": 6,
+          "monorepo": true,
+          "notes": "invoices and payments"
+        },
+        {
+          "provider": "invoice-generator",
+          "via": "http",
+          "package": null,
+          "host": "invoice-generator.com",
+          "language": "python",
+          "file": "api/app/invoice/generator.py",
+          "line": 15,
+          "monorepo": true,
+          "notes": "PDF invoice generation API"
+        },
+        {
+          "provider": "google-analytics",
+          "via": "sdk",
+          "package": "react-ga",
+          "host": null,
+          "language": "javascript",
+          "file": "webapp/src/App.js",
+          "line": 24,
+          "monorepo": true,
+          "notes": "Universal Analytics"
+        },
+        {
+          "provider": "google-cloud",
+          "via": "sdk",
+          "package": "stackdriver-errors-js",
+          "host": null,
+          "language": "javascript",
+          "file": "webapp/src/utils/errorHandlerUtility.js",
+          "line": 1,
+          "monorepo": true,
+          "notes": "Error Reporting from the browser"
+        }
+      ]
+    },
+    {
+      "repo": "aidotse/LeakPro",
+      "commit": "d65e7f4f14fb2c7658a506f184714e6c8d26ba75",
+      "none": false,
+      "labels": [
+        {
+          "provider": "huggingface",
+          "via": "sdk",
+          "package": "huggingface_hub",
+          "host": null,
+          "language": "python",
+          "file": "leakpro/synthetic_data_attacks/syn_text_pii_scanner/pii_token_classif_models/ner_longformer_model.py",
+          "line": 9,
+          "monorepo": false,
+          "notes": "model loading from the Hub"
+        }
+      ]
+    },
+    {
+      "repo": "MCDReforged/MCDReforged",
+      "commit": "00c834307bcf887cc2eddf54256c75210b06eea4",
+      "none": false,
+      "labels": [
+        {
+          "provider": "github",
+          "via": "http",
+          "package": null,
+          "host": "api.github.com",
+          "language": "python",
+          "file": "mcdreforged/constants/core_constant.py",
+          "line": 20,
+          "monorepo": false,
+          "notes": "latest release check"
+        }
+      ]
+    },
+    {
+      "repo": "whoahaow/rjsxrd",
+      "commit": "443307da7e774fc9b739d34791759a4ec2bb462c",
+      "none": false,
+      "labels": [
+        {
+          "provider": "github",
+          "via": "sdk",
+          "package": "PyGithub",
+          "host": null,
+          "language": "python",
+          "file": "source/utils/github_handler.py",
+          "line": 16,
+          "monorepo": false,
+          "notes": "commits results to a repository"
+        },
+        {
+          "provider": "github",
+          "via": "http",
+          "package": null,
+          "host": "api.github.com",
+          "language": "python",
+          "file": "source/fetchers/fetcher.py",
+          "line": 444,
+          "monorepo": false,
+          "notes": "GitHub API fetches"
+        },
+        {
+          "provider": "ipwho",
+          "via": "http",
+          "package": null,
+          "host": "ipwho.is",
+          "language": "python",
+          "file": "source/utils/ip_verifier.py",
+          "line": 22,
+          "monorepo": false,
+          "notes": "IP lookup preset"
+        },
+        {
+          "provider": "ipify",
+          "via": "http",
+          "package": null,
+          "host": "api.ipify.org",
+          "language": "python",
+          "file": "source/utils/ip_verifier.py",
+          "line": 23,
+          "monorepo": false,
+          "notes": "IP lookup preset"
+        },
+        {
+          "provider": "ifconfig-me",
+          "via": "http",
+          "package": null,
+          "host": "ifconfig.me",
+          "language": "python",
+          "file": "source/utils/ip_verifier.py",
+          "line": 24,
+          "monorepo": false,
+          "notes": "IP lookup preset"
+        },
+        {
+          "provider": "telegram",
+          "via": "http",
+          "package": null,
+          "host": "api.telegram.org",
+          "language": "python",
+          "file": "source/utils/telegram_notifier.py",
+          "line": 33,
+          "monorepo": false,
+          "notes": "Bot API notifications"
+        }
+      ]
+    },
+    {
+      "repo": "QuinnDamerell/OctoPrint-OctoEverywhere",
+      "commit": "d7f2cb029805adbac798fbcdccf9a299a9b693b2",
+      "none": false,
+      "labels": [
+        {
+          "provider": "bambulab",
+          "via": "http",
+          "package": null,
+          "host": "api.bambulab.com",
+          "language": "python",
+          "file": "bambu_octoeverywhere/bambucloud.py",
+          "line": 250,
+          "monorepo": false,
+          "notes": "Bambu Lab cloud API"
+        },
+        {
+          "provider": "sentry",
+          "via": "sdk",
+          "package": "sentry_sdk",
+          "host": null,
+          "language": "python",
+          "file": "octoeverywhere/sentry.py",
+          "line": 15,
+          "monorepo": false,
+          "notes": "error reporting"
+        }
+      ]
+    },
+    {
+      "repo": "batocera-linux/batocera.linux",
+      "commit": "a3f0541d9a45473f649f06f0f00e755b157a81e4",
+      "none": true,
+      "labels": []
+    },
+    {
+      "repo": "olofk/fusesoc",
+      "commit": "8cba6be2907020319b25d138feb7a052dcf00d60",
+      "none": true,
+      "labels": []
+    },
+    {
+      "repo": "Optexity/optexity",
+      "commit": "710ca2cc099f6057bc93c8485197f76f5397889d",
+      "none": false,
+      "labels": [
+        {
+          "provider": "browser-use",
+          "via": "sdk",
+          "package": "browser_use_sdk",
+          "host": null,
+          "language": "python",
+          "file": "optexity/inference/infra/actual_browser.py",
+          "line": 305,
+          "monorepo": false,
+          "notes": "Browser Use cloud browsers"
+        },
+        {
+          "provider": "1password",
+          "via": "sdk",
+          "package": "onepassword",
+          "host": null,
+          "language": "python",
+          "file": "optexity/onepassword_integration.py",
+          "line": 4,
+          "monorepo": false,
+          "notes": "1Password SDK for task credentials"
+        },
+        {
+          "provider": "aws",
+          "via": "sdk",
+          "package": "boto3",
+          "host": null,
+          "language": "python",
+          "file": "optexity/utils/aws_secret_manager.py",
+          "line": 7,
+          "monorepo": false,
+          "notes": "Secrets Manager"
+        }
+      ]
+    },
+    {
+      "repo": "odoo/runbot",
+      "commit": "0d47bd6bb0d163c24cb903de801e2e2eb98d450c",
+      "none": false,
+      "labels": [
+        {
+          "provider": "github",
+          "via": "http",
+          "package": null,
+          "host": "api.github.com",
+          "language": "python",
+          "file": "forwardport/models/forwardport.py",
+          "line": 224,
+          "monorepo": false,
+          "notes": "GitHub REST API for forward-port PRs"
+        },
+        {
+          "provider": "sentry",
+          "via": "sdk",
+          "package": "sentry_sdk",
+          "host": null,
+          "language": "python",
+          "file": "forwardport/models/forwardport.py",
+          "line": 9,
+          "monorepo": false,
+          "notes": "error reporting"
+        }
+      ]
+    },
+    {
+      "repo": "Oaklight/llm-rosetta",
+      "commit": "809f7f3659938d218aedf8145c6952738b4dad55",
+      "none": false,
+      "labels": [
+        {
+          "provider": "openai",
+          "via": "http",
+          "package": null,
+          "host": "api.openai.com",
+          "language": "python",
+          "file": "packages/llm-rosetta/src/llm_rosetta/formats/catalog.py",
+          "line": 34,
+          "monorepo": true,
+          "notes": "gateway format catalog base URL"
+        },
+        {
+          "provider": "anthropic",
+          "via": "http",
+          "package": null,
+          "host": "api.anthropic.com",
+          "language": "python",
+          "file": "packages/llm-rosetta/src/llm_rosetta/formats/catalog.py",
+          "line": 51,
+          "monorepo": true,
+          "notes": "gateway format catalog base URL"
+        },
+        {
+          "provider": "openrouter",
+          "via": "http",
+          "package": null,
+          "host": "openrouter.ai",
+          "language": "python",
+          "file": "packages/llm-rosetta/src/llm_rosetta/formats/catalog.py",
+          "line": 67,
+          "monorepo": true,
+          "notes": "gateway format catalog base URL"
+        },
+        {
+          "provider": "gemini",
+          "via": "http",
+          "package": null,
+          "host": "generativelanguage.googleapis.com",
+          "language": "python",
+          "file": "packages/llm-rosetta/src/llm_rosetta/formats/catalog.py",
+          "line": 87,
+          "monorepo": true,
+          "notes": "gateway format catalog base URL"
+        },
+        {
+          "provider": "github",
+          "via": "http",
+          "package": null,
+          "host": "api.github.com",
+          "language": "python",
+          "file": "packages/llm-rosetta-gateway/src/llm_rosetta_gateway/shims/sources.py",
+          "line": 703,
+          "monorepo": true,
+          "notes": "shim source version lookup"
+        },
+        {
+          "provider": "ip-api",
+          "via": "http",
+          "package": null,
+          "host": "ip-api.com",
+          "language": "python",
+          "file": "packages/llm-rosetta-gateway/src/llm_rosetta_gateway/admin/routes/observability.py",
+          "line": 354,
+          "monorepo": true,
+          "notes": "egress IP lookup"
+        }
+      ]
+    },
+    {
+      "repo": "digitalmethodsinitiative/4cat",
+      "commit": "a11a20c16bcb0185a460c866888b0170f835c1f8",
+      "none": false,
+      "labels": [
+        {
+          "provider": "telegram",
+          "via": "sdk",
+          "package": "telethon",
+          "host": null,
+          "language": "python",
+          "file": "datasources/telegram/search_telegram.py",
+          "line": 19,
+          "monorepo": false,
+          "notes": "Telegram MTProto client"
+        },
+        {
+          "provider": "bluesky",
+          "via": "sdk",
+          "package": "atproto",
+          "host": null,
+          "language": "python",
+          "file": "datasources/bsky/search_bsky.py",
+          "line": 10,
+          "monorepo": false,
+          "notes": "Bluesky AT Protocol client"
+        },
+        {
+          "provider": "tumblr",
+          "via": "sdk",
+          "package": "pytumblr",
+          "host": null,
+          "language": "python",
+          "file": "datasources/tumblr/search_tumblr.py",
+          "line": 12,
+          "monorepo": false,
+          "notes": "Tumblr API client"
+        },
+        {
+          "provider": "vk",
+          "via": "sdk",
+          "package": "vk_api",
+          "host": null,
+          "language": "python",
+          "file": "datasources/vk/search_vk.py",
+          "line": 6,
+          "monorepo": false,
+          "notes": "VK API client"
+        },
+        {
+          "provider": "clarifai",
+          "via": "sdk",
+          "package": "clarifai_grpc",
+          "host": null,
+          "language": "python",
+          "file": "processors/machine_learning/clarifai_api.py",
+          "line": 7,
+          "monorepo": false,
+          "notes": "Clarifai image recognition"
+        },
+        {
+          "provider": "google-perspective",
+          "via": "sdk",
+          "package": "googleapiclient",
+          "host": null,
+          "language": "python",
+          "file": "processors/machine_learning/perspective.py",
+          "line": 6,
+          "monorepo": false,
+          "notes": "Perspective API toxicity scores"
+        },
+        {
+          "provider": "youtube",
+          "via": "sdk",
+          "package": "apiclient",
+          "host": null,
+          "language": "python",
+          "file": "processors/visualisation/youtube_thumbnails.py",
+          "line": 7,
+          "monorepo": false,
+          "notes": "YouTube Data API"
+        },
+        {
+          "provider": "openai",
+          "via": "sdk",
+          "package": "openai",
+          "host": null,
+          "language": "python",
+          "file": "processors/machine_learning/audio_to_text.py",
+          "line": 6,
+          "monorepo": false,
+          "notes": "Whisper transcription"
+        },
+        {
+          "provider": "openai",
+          "via": "sdk",
+          "package": "langchain_openai",
+          "host": null,
+          "language": "python",
+          "file": "common/lib/llm/adapter.py",
+          "line": 14,
+          "monorepo": false,
+          "notes": "LangChain OpenAI chat model"
+        },
+        {
+          "provider": "anthropic",
+          "via": "sdk",
+          "package": "langchain_anthropic",
+          "host": null,
+          "language": "python",
+          "file": "common/lib/llm/adapter.py",
+          "line": 11,
+          "monorepo": false,
+          "notes": "LangChain Anthropic chat model"
+        },
+        {
+          "provider": "gemini",
+          "via": "sdk",
+          "package": "langchain_google_genai",
+          "host": null,
+          "language": "python",
+          "file": "common/lib/llm/adapter.py",
+          "line": 12,
+          "monorepo": false,
+          "notes": "LangChain Gemini chat model"
+        },
+        {
+          "provider": "mistral",
+          "via": "sdk",
+          "package": "langchain_mistralai",
+          "host": null,
+          "language": "python",
+          "file": "common/lib/llm/adapter.py",
+          "line": 15,
+          "monorepo": false,
+          "notes": "LangChain Mistral chat model"
+        },
+        {
+          "provider": "deepseek",
+          "via": "sdk",
+          "package": "langchain_deepseek",
+          "host": null,
+          "language": "python",
+          "file": "common/lib/llm/adapter.py",
+          "line": 16,
+          "monorepo": false,
+          "notes": "LangChain DeepSeek chat model"
+        },
+        {
+          "provider": "4chan",
+          "via": "http",
+          "package": null,
+          "host": "a.4cdn.org",
+          "language": "python",
+          "file": "datasources/fourchan/scrapers/scrape_boards.py",
+          "line": 172,
+          "monorepo": false,
+          "notes": "4chan read-only JSON API"
+        },
+        {
+          "provider": "x",
+          "via": "http",
+          "package": null,
+          "host": "api.x.com",
+          "language": "python",
+          "file": "datasources/twitterv2/search_twitter.py",
+          "line": 109,
+          "monorepo": false,
+          "notes": "X API v2 tweet search"
+        },
+        {
+          "provider": "github",
+          "via": "http",
+          "package": null,
+          "host": "api.github.com",
+          "language": "python",
+          "file": "common/lib/helpers.py",
+          "line": 267,
+          "monorepo": false,
+          "notes": "release update check"
+        }
+      ]
+    },
+    {
+      "repo": "devitocodes/devito",
+      "commit": "a9e3f31a57dfc180e8f95f4d9ceabbff807a89a2",
+      "none": true,
+      "labels": []
+    },
+    {
+      "repo": "green-coding-solutions/green-metrics-tool",
+      "commit": "7e6c33aafabdf9c5f3be5cafcad0f36c9cc9c248",
+      "none": false,
+      "labels": [
+        {
+          "provider": "electricitymaps",
+          "via": "http",
+          "package": null,
+          "host": "api.electricitymaps.com",
+          "language": "python",
+          "file": "metric_providers/carbon/intensity/electricitymaps/machine/provider.py",
+          "line": 11,
+          "monorepo": false,
+          "notes": "carbon intensity API"
+        },
+        {
+          "provider": "github",
+          "via": "http",
+          "package": null,
+          "host": "api.github.com",
+          "language": "python",
+          "file": "lib/utils.py",
+          "line": 318,
+          "monorepo": false,
+          "notes": "GitHub API"
+        },
+        {
+          "provider": "ipapi",
+          "via": "http",
+          "package": null,
+          "host": "ipapi.co",
+          "language": "python",
+          "file": "cron/backfill_geo.py",
+          "line": 142,
+          "monorepo": false,
+          "notes": "IP geolocation preset in a shipped cron job"
+        },
+        {
+          "provider": "ip-api",
+          "via": "http",
+          "package": null,
+          "host": "ip-api.com",
+          "language": "python",
+          "file": "cron/backfill_geo.py",
+          "line": 169,
+          "monorepo": false,
+          "notes": "IP geolocation preset in a shipped cron job"
+        },
+        {
+          "provider": "ipinfo",
+          "via": "http",
+          "package": null,
+          "host": "ipinfo.io",
+          "language": "python",
+          "file": "cron/backfill_geo.py",
+          "line": 195,
+          "monorepo": false,
+          "notes": "IP geolocation preset in a shipped cron job"
+        }
+      ]
+    },
+    {
+      "repo": "ashleydarosa/CC-Checker-Validator-Generator",
+      "commit": "a50ad557c0ea3ccabd36b5578ea73bbd41ed4971",
+      "none": true,
+      "labels": []
+    },
+    {
+      "repo": "django-treebeard/django-treebeard",
+      "commit": "7948d1003db8d724d291e2a0b875b75aea32d52b",
+      "none": true,
+      "labels": []
+    },
+    {
+      "repo": "M9nx/CodexA",
+      "commit": "2b4c499a9a9707d8c03c885fc44d52348b3efa09",
+      "none": false,
+      "labels": [
+        {
+          "provider": "openai",
+          "via": "sdk",
+          "package": "openai",
+          "host": null,
+          "language": "python",
+          "file": "semantic_code_intelligence/llm/openai_provider.py",
+          "line": 47,
+          "monorepo": false,
+          "notes": "OpenAI chat provider"
+        }
+      ]
+    },
+    {
+      "repo": "line/promgen",
+      "commit": "5969e7f9b03ccb6f624af60cc3be8ad083f0ae91",
+      "none": false,
+      "labels": [
+        {
+          "provider": "sentry",
+          "via": "sdk",
+          "package": "sentry_sdk",
+          "host": null,
+          "language": "python",
+          "file": "promgen/settings.py",
+          "line": 178,
+          "monorepo": false,
+          "notes": "error reporting"
+        },
+        {
+          "provider": "pagerduty",
+          "via": "http",
+          "package": null,
+          "host": "events.pagerduty.com",
+          "language": "python",
+          "file": "promgen/notification/pagerduty.py",
+          "line": 64,
+          "monorepo": false,
+          "notes": "Events API v2 default URL"
+        },
+        {
+          "provider": "slack",
+          "via": "http",
+          "package": null,
+          "host": "hooks.slack.com",
+          "language": "python",
+          "file": "promgen/notification/slack.py",
+          "line": 58,
+          "monorepo": false,
+          "notes": "user-supplied Slack incoming webhook"
+        },
+        {
+          "provider": "line-notify",
+          "via": "http",
+          "package": null,
+          "host": "notify-api.line.me",
+          "language": "python",
+          "file": "promgen/notification/linenotify.py",
+          "line": 48,
+          "monorepo": false,
+          "notes": "user-supplied LINE Notify endpoint"
+        }
+      ]
+    },
+    {
+      "repo": "shuxiachai/academic-commercialization-agent",
+      "commit": "9fa5bce858631f887be9c37dc7cdde56ba54706f",
+      "none": false,
+      "labels": [
+        {
+          "provider": "openai",
+          "via": "http",
+          "package": null,
+          "host": "api.openai.com",
+          "language": "python",
+          "file": "src/academic_agent/llm_config.py",
+          "line": 148,
+          "monorepo": false,
+          "notes": "provider preset"
+        },
+        {
+          "provider": "anthropic",
+          "via": "http",
+          "package": null,
+          "host": "api.anthropic.com",
+          "language": "python",
+          "file": "src/academic_agent/llm_config.py",
+          "line": 149,
+          "monorepo": false,
+          "notes": "provider preset"
+        },
+        {
+          "provider": "deepseek",
+          "via": "http",
+          "package": null,
+          "host": "api.deepseek.com",
+          "language": "python",
+          "file": "src/academic_agent/llm_config.py",
+          "line": 146,
+          "monorepo": false,
+          "notes": "provider preset"
+        },
+        {
+          "provider": "alibaba-cloud",
+          "via": "http",
+          "package": null,
+          "host": "dashscope.aliyuncs.com",
+          "language": "python",
+          "file": "src/academic_agent/llm_config.py",
+          "line": 36,
+          "monorepo": false,
+          "notes": "Qwen compatible mode base URL"
+        },
+        {
+          "provider": "semantic-scholar",
+          "via": "http",
+          "package": null,
+          "host": "api.semanticscholar.org",
+          "language": "python",
+          "file": "src/academic_agent/source_clients.py",
+          "line": 77,
+          "monorepo": false,
+          "notes": "Graph API papers"
+        },
+        {
+          "provider": "openalex",
+          "via": "http",
+          "package": null,
+          "host": "api.openalex.org",
+          "language": "python",
+          "file": "src/academic_agent/source_clients.py",
+          "line": 683,
+          "monorepo": false,
+          "notes": "works search"
+        },
+        {
+          "provider": "lens",
+          "via": "http",
+          "package": null,
+          "host": "api.lens.org",
+          "language": "python",
+          "file": "src/academic_agent/source_clients.py",
+          "line": 882,
+          "monorepo": false,
+          "notes": "patent search"
+        },
+        {
+          "provider": "crossref",
+          "via": "http",
+          "package": null,
+          "host": "api.crossref.org",
+          "language": "python",
+          "file": "src/academic_agent/source_clients.py",
+          "line": 1009,
+          "monorepo": false,
+          "notes": "works by DOI"
+        }
+      ]
+    },
+    {
+      "repo": "openedx/license-manager",
+      "commit": "fcd7ad010ede418150c1032c9a29398c172e799b",
+      "none": false,
+      "labels": [
+        {
+          "provider": "braze",
+          "via": "sdk",
+          "package": "braze",
+          "host": null,
+          "language": "python",
+          "file": "license_manager/apps/api/tasks.py",
+          "line": 7,
+          "monorepo": false,
+          "notes": "Braze messaging through the edx Braze client"
+        },
+        {
+          "provider": "segment",
+          "via": "sdk",
+          "package": "analytics",
+          "host": null,
+          "language": "python",
+          "file": "license_manager/apps/subscriptions/apps.py",
+          "line": 6,
+          "monorepo": false,
+          "notes": "Segment analytics-python"
+        },
+        {
+          "provider": "aws",
+          "via": "sdk",
+          "package": "boto3",
+          "host": null,
+          "language": "python",
+          "file": "license_manager/apps/api/utils.py",
+          "line": 8,
+          "monorepo": false,
+          "notes": "AWS SDK for Python"
+        }
+      ]
+    },
+    {
+      "repo": "SatyamSingh-Git/ElevenPowers",
+      "commit": "a5dabc12e826957cbdb022bd6a646f97fcc7bae3",
+      "none": true,
+      "labels": []
+    },
+    {
+      "repo": "algorithmicsuperintelligence/openevolve",
+      "commit": "515d1bcb7b36ac64bbe028f8d83b5d08315ca4b5",
+      "none": false,
+      "labels": [
+        {
+          "provider": "openai",
+          "via": "sdk",
+          "package": "openai",
+          "host": null,
+          "language": "python",
+          "file": "openevolve/embedding.py",
+          "line": 10,
+          "monorepo": false,
+          "notes": "OpenAI client for embeddings and LLM calls"
+        }
+      ]
+    },
+    {
+      "repo": "TimSoethout/goodwe-sems-home-assistant",
+      "commit": "b728dedbfeb003953b3a74aff63fc44fd40f1a1b",
+      "none": false,
+      "labels": [
+        {
+          "provider": "goodwe-sems",
+          "via": "http",
+          "package": null,
+          "host": "www.semsportal.com",
+          "language": "python",
+          "file": "custom_components/sems/sems_api.py",
+          "line": 24,
+          "monorepo": false,
+          "notes": "SEMS portal API login"
+        }
+      ]
+    },
+    {
+      "repo": "dalibo/temboard",
+      "commit": "5a509fb0cac2dde80f1598e0fe205257e7bc27a6",
+      "none": false,
+      "labels": [
+        {
+          "provider": "twilio",
+          "via": "http",
+          "package": null,
+          "host": "api.twilio.com",
+          "language": "python",
+          "file": "ui/temboardui/application.py",
+          "line": 151,
+          "monorepo": true,
+          "notes": "SMS notifications through the Messages API"
+        }
+      ]
+    },
+    {
+      "repo": "VocaHQ/vocalinux",
+      "commit": "b148bca5fab1b2a2a8834232c3d4be7b08130bd0",
+      "none": false,
+      "labels": [
+        {
+          "provider": "github",
+          "via": "http",
+          "package": null,
+          "host": "api.github.com",
+          "language": "python",
+          "file": "src/vocalinux/utils/update_checker.py",
+          "line": 58,
+          "monorepo": false,
+          "notes": "release update check"
+        },
+        {
+          "provider": "creatr",
+          "via": "http",
+          "package": null,
+          "host": "proxy.getcreatr.com",
+          "language": "typescript",
+          "file": "web/src/lib/api/util.ts",
+          "line": 244,
+          "monorepo": false,
+          "notes": "LLM proxy for the website"
+        },
+        {
+          "provider": "google-analytics",
+          "via": "http",
+          "package": null,
+          "host": "www.googletagmanager.com",
+          "language": "typescript",
+          "file": "web/src/app/layout.tsx",
+          "line": 189,
+          "monorepo": false,
+          "notes": "gtag.js on the website"
+        }
+      ]
+    },
+    {
+      "repo": "calibrain/shelfmark",
+      "commit": "182e80f894b4e0de9d1062d7c03467403f7c9974",
+      "none": false,
+      "labels": [
+        {
+          "provider": "hardcover",
+          "via": "http",
+          "package": null,
+          "host": "api.hardcover.app",
+          "language": "python",
+          "file": "shelfmark/metadata_providers/hardcover.py",
+          "line": 52,
+          "monorepo": false,
+          "notes": "book metadata GraphQL API"
+        },
+        {
+          "provider": "real-debrid",
+          "via": "http",
+          "package": null,
+          "host": "api.real-debrid.com",
+          "language": "python",
+          "file": "shelfmark/download/clients/realdebrid.py",
+          "line": 37,
+          "monorepo": false,
+          "notes": "Real-Debrid REST API"
+        },
+        {
+          "provider": "alldebrid",
+          "via": "http",
+          "package": null,
+          "host": "api.alldebrid.com",
+          "language": "python",
+          "file": "shelfmark/download/clients/alldebrid.py",
+          "line": 39,
+          "monorepo": false,
+          "notes": "AllDebrid API v4"
+        },
+        {
+          "provider": "torbox",
+          "via": "http",
+          "package": null,
+          "host": "api.torbox.app",
+          "language": "python",
+          "file": "shelfmark/download/clients/torbox.py",
+          "line": 39,
+          "monorepo": false,
+          "notes": "TorBox API"
+        },
+        {
+          "provider": "debrid-link",
+          "via": "http",
+          "package": null,
+          "host": "debrid-link.com",
+          "language": "python",
+          "file": "shelfmark/download/clients/debridlink.py",
+          "line": 50,
+          "monorepo": false,
+          "notes": "Debrid-Link API v2"
+        },
+        {
+          "provider": "openlibrary",
+          "via": "http",
+          "package": null,
+          "host": "openlibrary.org",
+          "language": "python",
+          "file": "shelfmark/metadata_providers/openlibrary.py",
+          "line": 40,
+          "monorepo": false,
+          "notes": "Open Library API"
+        },
+        {
+          "provider": "google-books",
+          "via": "http",
+          "package": null,
+          "host": "www.googleapis.com",
+          "language": "python",
+          "file": "shelfmark/metadata_providers/googlebooks.py",
+          "line": 50,
+          "monorepo": false,
+          "notes": "Google Books API v1"
+        }
+      ]
+    },
+    {
+      "repo": "coaxk/subarr",
+      "commit": "2cbf5df9028fd3e06ce5ce7ddc818de74e47a240",
+      "none": true,
+      "labels": []
+    },
+    {
+      "repo": "git-hulk/clime",
+      "commit": "cfa0b37b22923f8323cd58c0e8e42e5a9a66e493",
+      "none": false,
+      "labels": [
+        {
+          "provider": "github",
+          "via": "http",
+          "package": null,
+          "host": "api.github.com",
+          "language": "go",
+          "file": "internal/githubrelease/githubrelease.go",
+          "line": 19,
+          "monorepo": false,
+          "notes": "releases API for installs and self-update"
+        }
+      ]
+    },
+    {
+      "repo": "fclairamb/ftpserver",
+      "commit": "7804ead2ac1a61fc70a080bf4a01f4200dcdf877",
+      "none": false,
+      "labels": [
+        {
+          "provider": "google-cloud",
+          "via": "sdk",
+          "package": "cloud.google.com/go/storage",
+          "host": null,
+          "language": "go",
+          "file": "fs/gcs/gcs.go",
+          "line": 9,
+          "monorepo": false,
+          "notes": "Cloud Storage backend"
+        },
+        {
+          "provider": "aws",
+          "via": "sdk",
+          "package": "github.com/aws/aws-sdk-go-v2/service/s3",
+          "host": null,
+          "language": "go",
+          "file": "fs/s3/s3.go",
+          "line": 11,
+          "monorepo": false,
+          "notes": "S3 backend"
+        },
+        {
+          "provider": "dropbox",
+          "via": "sdk",
+          "package": "github.com/fclairamb/afero-dropbox",
+          "host": null,
+          "language": "go",
+          "file": "fs/dropbox/dropbox.go",
+          "line": 8,
+          "monorepo": false,
+          "notes": "Dropbox backend"
+        },
+        {
+          "provider": "google-workspace",
+          "via": "sdk",
+          "package": "github.com/fclairamb/afero-gdrive",
+          "host": null,
+          "language": "go",
+          "file": "fs/gdrive/gdrive.go",
+          "line": 11,
+          "monorepo": false,
+          "notes": "Google Drive backend"
+        },
+        {
+          "provider": "telegram",
+          "via": "sdk",
+          "package": "gopkg.in/telebot.v3",
+          "host": null,
+          "language": "go",
+          "file": "fs/telegram/telegram.go",
+          "line": 18,
+          "monorepo": false,
+          "notes": "Telegram bot file backend"
+        }
+      ]
+    },
+    {
+      "repo": "go-task/task",
+      "commit": "ad2782e1709f0bcf8fbbe0d8e00c2d239141e099",
+      "none": true,
+      "labels": []
+    },
+    {
+      "repo": "bookingcom/nanotube",
+      "commit": "32176b251ea064de6be66ae2179d09e1adade54b",
+      "none": true,
+      "labels": []
+    },
+    {
+      "repo": "juicedata/juicefs",
+      "commit": "0eb0e6d5aa549a527c4dd97d170f22d52a0ffec0",
+      "none": false,
+      "labels": [
+        {
+          "provider": "aws",
+          "via": "sdk",
+          "package": "github.com/aws/aws-sdk-go-v2",
+          "host": null,
+          "language": "go",
+          "file": "pkg/object/s3.go",
+          "line": 34,
+          "monorepo": false,
+          "notes": "Amazon S3 object store"
+        },
+        {
+          "provider": "google-cloud",
+          "via": "sdk",
+          "package": "cloud.google.com/go/storage",
+          "host": null,
+          "language": "go",
+          "file": "pkg/object/gs.go",
+          "line": 35,
+          "monorepo": false,
+          "notes": "Google Cloud Storage object store"
+        },
+        {
+          "provider": "azure",
+          "via": "sdk",
+          "package": "github.com/Azure/azure-sdk-for-go/sdk/azcore",
+          "host": null,
+          "language": "go",
+          "file": "pkg/object/azure.go",
+          "line": 32,
+          "monorepo": false,
+          "notes": "Azure Blob object store"
+        },
+        {
+          "provider": "alibaba-cloud",
+          "via": "sdk",
+          "package": "github.com/aliyun/alibabacloud-oss-go-sdk-v2/oss",
+          "host": null,
+          "language": "go",
+          "file": "pkg/object/oss.go",
+          "line": 35,
+          "monorepo": false,
+          "notes": "Alibaba Cloud OSS object store"
+        },
+        {
+          "provider": "baidu-cloud",
+          "via": "sdk",
+          "package": "github.com/baidubce/bce-sdk-go/bce",
+          "host": null,
+          "language": "go",
+          "file": "pkg/object/bos.go",
+          "line": 35,
+          "monorepo": false,
+          "notes": "Baidu BOS object store"
+        },
+        {
+          "provider": "huawei-cloud",
+          "via": "sdk",
+          "package": "github.com/huaweicloud/huaweicloud-sdk-go-obs/obs",
+          "host": null,
+          "language": "go",
+          "file": "pkg/object/obs.go",
+          "line": 38,
+          "monorepo": false,
+          "notes": "Huawei OBS object store"
+        },
+        {
+          "provider": "volcengine",
+          "via": "sdk",
+          "package": "github.com/volcengine/ve-tos-golang-sdk/v2/tos",
+          "host": null,
+          "language": "go",
+          "file": "pkg/object/tos.go",
+          "line": 33,
+          "monorepo": false,
+          "notes": "Volcengine TOS object store"
+        },
+        {
+          "provider": "ibm-cloud",
+          "via": "sdk",
+          "package": "github.com/IBM/ibm-cos-sdk-go/aws",
+          "host": null,
+          "language": "go",
+          "file": "pkg/object/ibmcos.go",
+          "line": 34,
+          "monorepo": false,
+          "notes": "IBM Cloud Object Storage"
+        },
+        {
+          "provider": "tencent-cloud",
+          "via": "sdk",
+          "package": "github.com/tencentyun/cos-go-sdk-v5",
+          "host": null,
+          "language": "go",
+          "file": "pkg/object/cos.go",
+          "line": 37,
+          "monorepo": false,
+          "notes": "Tencent COS object store"
+        },
+        {
+          "provider": "kingsoft-cloud",
+          "via": "sdk",
+          "package": "github.com/ks3sdklib/aws-sdk-go/aws",
+          "host": null,
+          "language": "go",
+          "file": "pkg/object/ks3.go",
+          "line": 37,
+          "monorepo": false,
+          "notes": "Kingsoft KS3 object store"
+        },
+        {
+          "provider": "qiniu",
+          "via": "sdk",
+          "package": "github.com/qiniu/go-sdk/v7/auth",
+          "host": null,
+          "language": "go",
+          "file": "pkg/object/qiniu.go",
+          "line": 40,
+          "monorepo": false,
+          "notes": "Qiniu Kodo object store"
+        },
+        {
+          "provider": "scaleway",
+          "via": "sdk",
+          "package": "github.com/aws/aws-sdk-go-v2/aws",
+          "host": null,
+          "language": "go",
+          "file": "pkg/object/scw.go",
+          "line": 28,
+          "monorepo": false,
+          "notes": "Scaleway Object Storage through the S3 client"
+        },
+        {
+          "provider": "wasabi",
+          "via": "sdk",
+          "package": "github.com/aws/aws-sdk-go-v2/aws",
+          "host": null,
+          "language": "go",
+          "file": "pkg/object/wasabi.go",
+          "line": 27,
+          "monorepo": false,
+          "notes": "Wasabi through the S3 client"
+        }
+      ]
+    },
+    {
+      "repo": "moby/buildkit",
+      "commit": "98d9aa8f76ed6bb92bf0f1fc499a5272de7c624a",
+      "none": false,
+      "labels": [
+        {
+          "provider": "aws",
+          "via": "sdk",
+          "package": "github.com/aws/aws-sdk-go-v2/service/s3",
+          "host": null,
+          "language": "go",
+          "file": "cache/remotecache/s3/s3.go",
+          "line": 18,
+          "monorepo": false,
+          "notes": "S3 remote build cache"
+        },
+        {
+          "provider": "azure",
+          "via": "sdk",
+          "package": "github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/blob",
+          "host": null,
+          "language": "go",
+          "file": "cache/remotecache/azblob/exporter.go",
+          "line": 13,
+          "monorepo": false,
+          "notes": "Azure Blob remote build cache"
+        },
+        {
+          "provider": "github",
+          "via": "sdk",
+          "package": "github.com/tonistiigi/go-actions-cache",
+          "host": null,
+          "language": "go",
+          "file": "cache/remotecache/gha/gha.go",
+          "line": 36,
+          "monorepo": false,
+          "notes": "GitHub Actions cache service"
+        }
+      ]
+    },
+    {
+      "repo": "supersonictw/popsenzawa-echo",
+      "commit": "2a582dcacf11c0a67cd06f7065095c8bec7a39e0",
+      "none": false,
+      "labels": [
+        {
+          "provider": "google-recaptcha",
+          "via": "sdk",
+          "package": "github.com/dpapathanasiou/go-recaptcha",
+          "host": null,
+          "language": "go",
+          "file": "pop/util_recatcha.go",
+          "line": 9,
+          "monorepo": false,
+          "notes": "reCAPTCHA verification"
+        }
+      ]
+    },
+    {
+      "repo": "osmosis-labs/osmosis",
+      "commit": "19f2853c56a26fa8bc3bf82c6fef361d7acc7861",
+      "none": false,
+      "labels": [
+        {
+          "provider": "google-cloud",
+          "via": "sdk",
+          "package": "cloud.google.com/go/pubsub",
+          "host": null,
+          "language": "go",
+          "file": "ingest/indexer/service/client/pubsub_client.go",
+          "line": 9,
+          "monorepo": false,
+          "notes": "Pub/Sub publisher for the indexer"
+        }
+      ]
+    },
+    {
+      "repo": "k8ssandra/k8ssandra-operator",
+      "commit": "8672072e8caf191162bc5d663a7057c132bc5cb1",
+      "none": true,
+      "labels": []
+    },
+    {
+      "repo": "app-sre/deployment-validation-operator",
+      "commit": "deee78a6b24fa3c6fe2ca0dfebc768dcdabac1f0",
+      "none": true,
+      "labels": []
+    },
+    {
+      "repo": "cdalar/onctl",
+      "commit": "7605c758f84190e18343d049951c4f6baa8cf24e",
+      "none": false,
+      "labels": [
+        {
+          "provider": "aws",
+          "via": "sdk",
+          "package": "github.com/aws/aws-sdk-go-v2/service/ec2",
+          "host": null,
+          "language": "go",
+          "file": "internal/provideraws/common.go",
+          "line": 17,
+          "monorepo": false,
+          "notes": "EC2 VMs"
+        },
+        {
+          "provider": "hetzner",
+          "via": "sdk",
+          "package": "github.com/hetznercloud/hcloud-go/v2/hcloud",
+          "host": null,
+          "language": "go",
+          "file": "internal/providerhtz/common.go",
+          "line": 7,
+          "monorepo": false,
+          "notes": "Hetzner Cloud VMs"
+        },
+        {
+          "provider": "ovh",
+          "via": "sdk",
+          "package": "github.com/ovh/go-ovh/ovh",
+          "host": null,
+          "language": "go",
+          "file": "internal/providerovh/common.go",
+          "line": 6,
+          "monorepo": false,
+          "notes": "OVHcloud API"
+        },
+        {
+          "provider": "google-cloud",
+          "via": "sdk",
+          "package": "cloud.google.com/go/compute/apiv1",
+          "host": null,
+          "language": "go",
+          "file": "internal/providergcp/common.go",
+          "line": 10,
+          "monorepo": false,
+          "notes": "Compute Engine VMs"
+        },
+        {
+          "provider": "azure",
+          "via": "sdk",
+          "package": "github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/compute/armcompute/v5",
+          "host": null,
+          "language": "go",
+          "file": "internal/providerazure/common.go",
+          "line": 12,
+          "monorepo": false,
+          "notes": "Azure VMs"
+        },
+        {
+          "provider": "cloudflare",
+          "via": "sdk",
+          "package": "github.com/cloudflare/cloudflare-go",
+          "host": null,
+          "language": "go",
+          "file": "internal/domain/cloudflare.go",
+          "line": 9,
+          "monorepo": false,
+          "notes": "DNS records"
+        },
+        {
+          "provider": "boxctl",
+          "via": "http",
+          "package": null,
+          "host": "vms-backend.boxctl.io",
+          "language": "go",
+          "file": "internal/providerboxes/client.go",
+          "line": 25,
+          "monorepo": false,
+          "notes": "boxctl VM backend API"
+        }
+      ]
+    },
+    {
+      "repo": "benprew/s30",
+      "commit": "b84f93570699a8ddae5aa4a4ff580beab31efe0d",
+      "none": true,
+      "labels": []
+    },
+    {
+      "repo": "sempr/hustoj-go",
+      "commit": "e15a9d9a8862710ec02a6a1f4102bf8eb24ff7a7",
+      "none": true,
+      "labels": []
+    },
+    {
+      "repo": "shpyrd-io/shpyrd",
+      "commit": "c315831f41ddee936a5ad31b75e5126ca38b0ee1",
+      "none": false,
+      "labels": [
+        {
+          "provider": "google-analytics",
+          "via": "sdk",
+          "package": "@next/third-parties",
+          "host": null,
+          "language": "typescript",
+          "file": "apps/website/app/layout.tsx",
+          "line": 2,
+          "monorepo": true,
+          "notes": "Google Tag Manager on the website"
+        },
+        {
+          "provider": "github",
+          "via": "http",
+          "package": null,
+          "host": "api.github.com",
+          "language": "typescript",
+          "file": "apps/website/app/api/github/route.ts",
+          "line": 9,
+          "monorepo": true,
+          "notes": "repository stats route"
+        }
+      ]
+    },
+    {
+      "repo": "damonto/sigmo",
+      "commit": "601f07f40e12c38afb550aaac56fd26eeba86d66",
+      "none": false,
+      "labels": [
+        {
+          "provider": "github",
+          "via": "http",
+          "package": null,
+          "host": "api.github.com",
+          "language": "go",
+          "file": "internal/app/update/github.go",
+          "line": 15,
+          "monorepo": false,
+          "notes": "release update check"
+        },
+        {
+          "provider": "ipinfo",
+          "via": "http",
+          "package": null,
+          "host": "ipinfo.io",
+          "language": "go",
+          "file": "internal/pkg/internet/ipinfo.go",
+          "line": 17,
+          "monorepo": false,
+          "notes": "public IP lookup"
+        },
+        {
+          "provider": "cloudflare",
+          "via": "http",
+          "package": null,
+          "host": "speed.cloudflare.com",
+          "language": "go",
+          "file": "pro/call/ice.go",
+          "line": 19,
+          "monorepo": false,
+          "notes": "TURN credentials endpoint"
+        },
+        {
+          "provider": "telegram",
+          "via": "http",
+          "package": null,
+          "host": "api.telegram.org",
+          "language": "go",
+          "file": "internal/pkg/notify/telegram/sender.go",
+          "line": 17,
+          "monorepo": false,
+          "notes": "Bot API notifications"
+        },
+        {
+          "provider": "bark",
+          "via": "http",
+          "package": null,
+          "host": "api.day.app",
+          "language": "go",
+          "file": "internal/pkg/notify/bark/sender.go",
+          "line": 20,
+          "monorepo": false,
+          "notes": "Bark push default endpoint"
+        },
+        {
+          "provider": "lark",
+          "via": "http",
+          "package": null,
+          "host": "open.feishu.cn",
+          "language": "go",
+          "file": "internal/pkg/notify/lark/sender.go",
+          "line": 54,
+          "monorepo": false,
+          "notes": "user-supplied Lark/Feishu bot webhook"
+        },
+        {
+          "provider": "wecom",
+          "via": "http",
+          "package": null,
+          "host": "qyapi.weixin.qq.com",
+          "language": "go",
+          "file": "internal/pkg/notify/wecom/sender.go",
+          "line": 54,
+          "monorepo": false,
+          "notes": "user-supplied WeCom robot webhook"
+        },
+        {
+          "provider": "serverchan",
+          "via": "http",
+          "package": null,
+          "host": "uid.push.ft07.com",
+          "language": "go",
+          "file": "internal/pkg/notify/sc3/sender.go",
+          "line": 50,
+          "monorepo": false,
+          "notes": "user-supplied ServerChan3 endpoint"
+        }
+      ]
+    },
+    {
+      "repo": "suzuki-shunsuke/pinact",
+      "commit": "0b4394fbe2f865d5a3993e8f830bce5d8ccc17f1",
+      "none": false,
+      "labels": [
+        {
+          "provider": "github",
+          "via": "sdk",
+          "package": "github.com/google/go-github/v93/github",
+          "host": null,
+          "language": "go",
+          "file": "pkg/github/github.go",
+          "line": 16,
+          "monorepo": false,
+          "notes": "GitHub REST client for action versions"
+        }
+      ]
+    },
+    {
+      "repo": "aws-samples/aws-pod-eip-controller",
+      "commit": "d1e603db371fb21605495fba19acea526dae67c2",
+      "none": false,
+      "labels": [
+        {
+          "provider": "aws",
+          "via": "sdk",
+          "package": "github.com/aws/aws-sdk-go-v2/service/ec2",
+          "host": null,
+          "language": "go",
+          "file": "pkg/aws/ec2.go",
+          "line": 15,
+          "monorepo": false,
+          "notes": "EC2 Elastic IP management"
+        }
+      ]
+    },
+    {
+      "repo": "gardener/gardener-landscape-kit",
+      "commit": "6c3acb8d4712f468b3d6ca036ba6987bb50fbc20",
+      "none": true,
+      "labels": []
+    },
+    {
+      "repo": "arkmq-org/arkmq-org-broker-operator",
+      "commit": "d568a39a7028dd118fd5be1ba00c23feaf5f967f",
+      "none": true,
+      "labels": []
+    },
+    {
+      "repo": "openai/openai-cli",
+      "commit": "a74037654d66266e566a7a34730c27f7e5e1419c",
+      "none": false,
+      "labels": [
+        {
+          "provider": "openai",
+          "via": "sdk",
+          "package": "github.com/openai/openai-go/v3",
+          "host": null,
+          "language": "go",
+          "file": "generated/commands/adminorganizationadminapikey.go",
+          "line": 11,
+          "monorepo": false,
+          "notes": "OpenAI Go SDK behind every CLI command"
+        }
+      ]
+    }
+  ]
+}
