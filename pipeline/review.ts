@@ -414,7 +414,8 @@ export function createReviewArtifacts(
             // A configured replacement keeps the HTTP method; its contract signature must match.
             `Retires ${code(`${entry.resource}.${entry.method}`)} (${code(`${entry.httpMethod} ${entry.path}`)}) in favor of ${code(`${entry.replacementResource}.${entry.replacementMethod}`)} (${code(`${entry.httpMethod} ${entry.replacementPath}`)}).`,
         ),
-        ...(validation.repair?.stopReason === OPEN_ENUM_REPAIR
+        ...(validation.repair?.stopReason === OPEN_ENUM_REPAIR ||
+        validation.repair?.openEnumRestored
           ? [
               `Restores the known values of the Stripe enums that stripe-node 22.4.0 widened with ${code('OtherString')}, using ${code('Extract<…>')} types where the upgraded types rejected this code. Runtime code is unchanged: a value Stripe adds later still reaches this code unchecked, as it did before the upgrade.`,
             ]

@@ -6,8 +6,8 @@ import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 import { afterEach, describe, expect, it } from 'vitest';
 import { AGENT_CATALOG } from './agent-catalog.ts';
-import { lowestVersion, scanDeadlines } from './deadline-exposure.ts';
-import { checkDeadlineRegistry, loadDeadlineRegistry, sdkPackage } from './deadline-registry.ts';
+import { scanDeadlines } from './deadline-exposure.ts';
+import { loadDeadlineRegistry } from './deadline-registry.ts';
 import { scanMessagingCalls, type MessagingCall } from './messaging-calls.ts';
 
 const execute = promisify(execFile);
@@ -270,38 +270,12 @@ describe('packages and registry', () => {
       ).exposures.filter((item) => item.deadline.provider === 'twilio');
     const old = await exposed('^5.3.1');
     expect(old.map((item) => item.deadline.id)).toEqual(['twilio-node-below-6-2026-04-20']);
-    expect(old[0].evidence[0].text).toBe('twilio ^5.3.1 is declared in dependencies, below 6.0.0');
+    expect(old[0].evidence[0].text).toBe(
+      'twilio ^5.3.1 is declared in dependencies, inside <6.0.0',
+    );
     expect(await exposed('^6.0.0')).toEqual([]);
     expect(await exposed('latest')).toEqual([]);
     expect(await exposed('^4.0.0 || ^6.0.0')).toEqual([]);
-  });
-
-  it('reads simple ranges and validates bounded sdk names', () => {
-    expect(
-      ['5.3.1', '^5.3.1', '~5.3', '>=5', '5.x', 'v4.1.0', '6.0.0-rc.1'].map(lowestVersion),
-    ).toEqual(['5.3.1', '5.3.1', '5.3.0', '5.0.0', '5.0.0', '4.1.0', '6.0.0']);
-    expect(
-      ['*', 'latest', '<6', '^4 || ^5', 'github:twilio/twilio-node'].map(lowestVersion),
-    ).toEqual([undefined, undefined, undefined, undefined, undefined]);
-    expect(sdkPackage('twilio@<6.0.0')).toEqual({ name: 'twilio', below: '6.0.0' });
-    expect(sdkPackage('@google/generative-ai')).toEqual({
-      name: '@google/generative-ai',
-      below: null,
-    });
-    const entry = {
-      id: 'x',
-      provider: 'twilio',
-      kind: 'sdk',
-      versions: ['twilio@<6'],
-      date: '2026-04-20',
-      summary: 's',
-      replacement: null,
-      source: 'https://example.com',
-      checkedAt: '2026-10-22',
-    };
-    expect(checkDeadlineRegistry({ formatVersion: 1, deadlines: [entry] }, NOW).errors).toEqual([
-      'x: twilio@<6 must be an npm package name, optionally name@<x.y.z.',
-    ]);
   });
 
   it('keeps the generated deprecation list and endpoint list sourced', async () => {

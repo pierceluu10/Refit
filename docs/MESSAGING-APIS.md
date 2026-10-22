@@ -30,7 +30,7 @@ No provider names a date when the deprecated members or the retired packages sto
 
 ## The registry matcher for older releases
 
-An `sdk` entry normally names a whole package. `twilio@<6.0.0` names only the releases below 6.0.0. A declaration matches when its locked version is below 6.0.0. Without a lock, it matches when the lowest version its range allows is below 6.0.0: `5.3.1`, `^5.3.1`, `~5.3`, `>=4` and `5.x` match; `^6.0.0` does not. Ranges with alternatives (`^4 || ^6`), upper bounds only, tags (`latest`, `*`) and URLs are unknown and never match, so an alert is never raised on a guess.
+An `sdk` entry normally names a whole package. `twilio@<6.0.0` names only the releases below 6.0.0, read by the shared package-range matcher described in [Auth and backend SDKs](AUTH-BACKEND-SDKS.md): the locked version when a lockfile records one, otherwise the lowest release a bounded declared specifier allows (`5.3.1`, `^5.3.1`, `~5.3`, `5.x`). Open specifiers (`>=4`, `*`, `latest`), alternatives (`^4 || ^6`) and URLs match nothing, so an alert is never raised on a guess. The benchmark below ran on this lane's earlier matcher, which also read `>=4` as 4.0.0.
 
 ## List the calls
 

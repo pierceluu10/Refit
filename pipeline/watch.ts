@@ -1,6 +1,6 @@
 import { execFile } from 'node:child_process';
 import { createPatch } from 'diff';
-import { mkdir, readFile, realpath, writeFile } from 'node:fs/promises';
+import { mkdir, readdir, readFile, realpath, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { promisify } from 'node:util';
 import {
@@ -410,6 +410,28 @@ async function captureDocumentationSources(
       changes.push(await recordDocumentationChange(observations, sourceId, previous, current));
   }
   return { state, changes, baselines, snapshotPaths };
+}
+
+// The files a later run reads from a watch state directory: its job ledger, the last captured
+// specification, the baselines and the current documentation snapshots. The rest is evidence.
+export async function watchCarryOver(directory: string) {
+  const state = await readState(join(directory, 'state.json'));
+  if (!state) return [];
+  let snapshots: string[] = [];
+  try {
+    snapshots = await readdir(join(directory, 'snapshots'));
+  } catch (error) {
+    if (!hasErrorCode(error, 'ENOENT')) throw error;
+  }
+  return [
+    'state.json',
+    ...snapshots
+      .filter((name) => name.endsWith('.baseline.json') || name === `${state.lastSource}.json`)
+      .map((name) => join('snapshots', name)),
+    ...Object.entries(isObject(state.documentation) ? state.documentation : {}).map(
+      ([sourceId, hash]) => documentationSnapshotPath('snapshots', sourceId, String(hash)),
+    ),
+  ];
 }
 
 function documentationSnapshotPath(snapshots: string, sourceId: string, hash: string) {

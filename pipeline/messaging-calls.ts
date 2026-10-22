@@ -2,8 +2,9 @@ import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import ts from 'typescript-compiler';
 import { AGENT_CATALOG, detectProviders, type AgentDetection } from './agent-catalog.ts';
-import { TEST_PATH, compareVersions, lowestVersion } from './deadline-exposure.ts';
-import { loadDeadlineRegistry, sdkPackage, type DeadlineRegistry } from './deadline-registry.ts';
+import { TEST_PATH } from './deadline-exposure.ts';
+import { loadDeadlineRegistry, type DeadlineRegistry } from './deadline-registry.ts';
+import { installedVersion, satisfiesRange, sdkTarget } from './sdk-deadlines.ts';
 import { excerpt, lineOf, requiredModule, sourceOf, unwrap } from './meta-graph-calls.ts';
 import { readRepository } from './repository.ts';
 
@@ -302,11 +303,11 @@ export async function scanMessagingCalls(
         (deadline) =>
           deadline.kind === 'sdk' &&
           deadline.versions.some((version) => {
-            const spec = sdkPackage(version);
-            if (spec?.name !== item.name) return false;
-            if (!spec.below) return true;
-            const lowest = lowestVersion(item.locked ?? item.version);
-            return lowest !== undefined && compareVersions(lowest, spec.below) < 0;
+            const { name, range } = sdkTarget(version);
+            if (name !== item.name) return false;
+            if (range === null) return true;
+            const installed = installedVersion(item.version, item.locked);
+            return installed !== null && satisfiesRange(installed, range);
           }),
       );
       packages.push({
