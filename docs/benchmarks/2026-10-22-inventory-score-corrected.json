@@ -61,7 +61,7 @@
   "allProviders": {
     "truePositives": 29,
     "falsePositives": 5,
-    "falseNegatives": 390,
+    "falseNegatives": 392,
     "precision": {
       "k": 29,
       "n": 34,
@@ -71,10 +71,10 @@
     },
     "recall": {
       "k": 29,
-      "n": 419,
+      "n": 421,
       "rate": 6.9,
-      "low": 4.9,
-      "high": 9.8
+      "low": 4.8,
+      "high": 9.7
     }
   },
   "byGroup": {
@@ -141,7 +141,7 @@
       "allProviders": {
         "truePositives": 28,
         "falsePositives": 5,
-        "falseNegatives": 249,
+        "falseNegatives": 251,
         "precision": {
           "k": 28,
           "n": 33,
@@ -151,10 +151,10 @@
         },
         "recall": {
           "k": 28,
-          "n": 277,
-          "rate": 10.1,
-          "low": 7.1,
-          "high": 14.2
+          "n": 279,
+          "rate": 10,
+          "low": 7,
+          "high": 14.1
         }
       }
     },
@@ -201,7 +201,7 @@
   },
   "missesByCategory": {
     "language not supported": 158,
-    "provider not in catalog": 211,
+    "provider not in catalog": 213,
     "raw HTTP": 0,
     "monorepo": 0,
     "other": 21
@@ -551,7 +551,7 @@
       "inCatalog": false,
       "truePositives": 0,
       "falsePositives": 0,
-      "falseNegatives": 14,
+      "falseNegatives": 16,
       "precision": {
         "k": 0,
         "n": 0,
@@ -561,10 +561,10 @@
       },
       "recall": {
         "k": 0,
-        "n": 14,
+        "n": 16,
         "rate": 0,
         "low": 0,
-        "high": 21.5
+        "high": 19.4
       }
     },
     "azure": {
@@ -4466,6 +4466,17 @@
     {
       "repo": "alharkan7/beeblio",
       "group": "js-ts",
+      "provider": "aws",
+      "inCatalog": false,
+      "files": [
+        "lib/literature/search.ts:140"
+      ],
+      "category": "provider not in catalog",
+      "detail": "aws"
+    },
+    {
+      "repo": "alharkan7/beeblio",
+      "group": "js-ts",
       "provider": "brave-search",
       "inCatalog": false,
       "files": [
@@ -4978,6 +4989,17 @@
       ],
       "category": "provider not in catalog",
       "detail": "atlassian"
+    },
+    {
+      "repo": "Bellows-AI/factory",
+      "group": "js-ts",
+      "provider": "aws",
+      "inCatalog": false,
+      "files": [
+        "server/src/artifacts/s3-credentials.ts:70"
+      ],
+      "category": "provider not in catalog",
+      "detail": "aws"
     },
     {
       "repo": "Bellows-AI/factory",

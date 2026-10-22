@@ -1,0 +1,560 @@
+{
+  "formatVersion": 1,
+  "labels": "docs/benchmarks/2026-10-22-inventory-labels.json (three corrections)",
+  "measuredAt": "2026-10-22",
+  "note": "Each branch ran read-only from a detached worktree at its PR head; scored by scripts/inventory-benchmark.mjs.",
+  "branches": [
+    {
+      "branch": "main",
+      "pr": null,
+      "lane": null,
+      "commit": "ab0cb9aa89bd1756224674b22f0d630e6c889b04",
+      "clean": true,
+      "detectors": [
+        "agents",
+        "deadlines"
+      ],
+      "aliases": {},
+      "catalog": {
+        "precision": {
+          "k": 29,
+          "n": 34,
+          "rate": 85.3,
+          "low": 69.9,
+          "high": 93.6
+        },
+        "recall": {
+          "k": 29,
+          "n": 51,
+          "rate": 56.9,
+          "low": 43.3,
+          "high": 69.5
+        }
+      },
+      "allProviders": {
+        "recall": {
+          "k": 29,
+          "n": 421,
+          "rate": 6.9,
+          "low": 4.8,
+          "high": 9.7
+        }
+      },
+      "pairsGained": [],
+      "newFalsePositives": []
+    },
+    {
+      "branch": "feat/package-manifests",
+      "pr": 193,
+      "lane": "FG5",
+      "commit": "7f04416d9fb83579bef4442b8429adf938764b80",
+      "clean": true,
+      "detectors": [
+        "agents",
+        "deadlines"
+      ],
+      "aliases": {},
+      "catalog": {
+        "precision": {
+          "k": 35,
+          "n": 43,
+          "rate": 81.4,
+          "low": 67.4,
+          "high": 90.3
+        },
+        "recall": {
+          "k": 35,
+          "n": 51,
+          "rate": 68.6,
+          "low": 55,
+          "high": 79.7
+        }
+      },
+      "allProviders": {
+        "recall": {
+          "k": 35,
+          "n": 421,
+          "rate": 8.3,
+          "low": 6,
+          "high": 11.3
+        }
+      },
+      "pairsGained": [
+        "hypercodism/alpine-code anthropic",
+        "deep-learning-indaba/Baobab stripe",
+        "Oaklight/llm-rosetta anthropic",
+        "Oaklight/llm-rosetta gemini",
+        "algorithmicsuperintelligence/openevolve openai",
+        "openai/openai-cli openai"
+      ],
+      "newFalsePositives": [
+        {
+          "pair": "haposoft/cafekit gemini",
+          "file": "packages/spec/src/claude/skills/ai-multimodal/scripts/requirements.txt"
+        },
+        {
+          "pair": "gpustack/gpustack openai",
+          "file": "pyproject.toml"
+        },
+        {
+          "pair": "algorithmicsuperintelligence/openevolve gemini",
+          "file": "examples/algotune/requirements.txt"
+        }
+      ]
+    },
+    {
+      "branch": "feat/api-hosts",
+      "pr": 191,
+      "lane": "FG4",
+      "commit": "60f82f6408aa17d7a6dda52230f5850e313b48ed",
+      "clean": true,
+      "detectors": [
+        "agents",
+        "deadlines",
+        "api-hosts"
+      ],
+      "aliases": {
+        "telegram-bot-api": "telegram",
+        "openstreetmap-nominatim": "openstreetmap",
+        "hugging-face-hub": "huggingface"
+      },
+      "catalog": {
+        "precision": {
+          "k": 29,
+          "n": 34,
+          "rate": 85.3,
+          "low": 69.9,
+          "high": 93.6
+        },
+        "recall": {
+          "k": 29,
+          "n": 51,
+          "rate": 56.9,
+          "low": 43.3,
+          "high": 69.5
+        }
+      },
+      "allProviders": {
+        "recall": {
+          "k": 40,
+          "n": 421,
+          "rate": 9.5,
+          "low": 7.1,
+          "high": 12.7
+        }
+      },
+      "pairsGained": [
+        "alharkan7/beeblio crossref",
+        "HelloQun54321/nai-atelier huggingface",
+        "Bellows-AI/factory atlassian",
+        "Kylrix/kylrix npm-registry",
+        "Kylrix/kylrix telegram",
+        "huilang-me/CF-Server-Monitor telegram",
+        "Felix-Lai-12/whospost apify",
+        "Affitor/open-affiliate apify",
+        "Affitor/open-affiliate posthog",
+        "ZyFou/ProceduralTerrains openstreetmap",
+        "damonto/sigmo telegram"
+      ],
+      "newFalsePositives": [
+        {
+          "pair": "zordhalo/runs-on.dev open-meteo",
+          "file": "scripts/geocode-owners.mjs:79"
+        },
+        {
+          "pair": "zordhalo/runs-on.dev openstreetmap",
+          "file": "scripts/geocode-owners.mjs:92"
+        },
+        {
+          "pair": "nikunjsingh93/react-glass-keep huggingface",
+          "file": "server/ai-runtime.js:39"
+        },
+        {
+          "pair": "plhery/peek-delivery-tracker npm-registry",
+          "file": "scripts/adopt-scraper.mjs:407"
+        }
+      ]
+    },
+    {
+      "branch": "feat/auth-backend-sdks",
+      "pr": 188,
+      "lane": "FP5",
+      "commit": "fb656ceaa5884ed1e7cccef25a40fc2a3d4bd873",
+      "clean": true,
+      "detectors": [
+        "agents",
+        "deadlines"
+      ],
+      "aliases": {},
+      "catalog": {
+        "precision": {
+          "k": 33,
+          "n": 42,
+          "rate": 78.6,
+          "low": 64.1,
+          "high": 88.3
+        },
+        "recall": {
+          "k": 33,
+          "n": 55,
+          "rate": 60,
+          "low": 46.8,
+          "high": 71.9
+        }
+      },
+      "allProviders": {
+        "recall": {
+          "k": 33,
+          "n": 421,
+          "rate": 7.8,
+          "low": 5.6,
+          "high": 10.8
+        }
+      },
+      "pairsGained": [
+        "bel-frontend/bel-frontend.github.io firebase",
+        "Brajesh31/LangSQL firebase",
+        "Affitor/open-affiliate supabase",
+        "plhery/peek-delivery-tracker supabase"
+      ],
+      "newFalsePositives": [
+        {
+          "pair": "databasus/databasus supabase",
+          "file": "frontend/src/entity/databases/model/postgresql/ConnectionStringParser.test.ts:108"
+        },
+        {
+          "pair": "ktmouk/minute nextauth",
+          "file": "apps/web/package.json"
+        },
+        {
+          "pair": "evanbaker315/AttentionOS supabase",
+          "file": "scripts/test/brand-literal-guard.test.ts:38"
+        },
+        {
+          "pair": "Brajesh31/issue-tracker-next.js-app nextauth",
+          "file": "package.json"
+        }
+      ]
+    },
+    {
+      "branch": "feat/python-models",
+      "pr": 187,
+      "lane": "FG1",
+      "commit": "eb781f6b38b449882508137f7704bb779baf9424",
+      "clean": true,
+      "detectors": [
+        "agents",
+        "deadlines"
+      ],
+      "aliases": {},
+      "catalog": {
+        "precision": {
+          "k": 34,
+          "n": 41,
+          "rate": 82.9,
+          "low": 68.7,
+          "high": 91.5
+        },
+        "recall": {
+          "k": 34,
+          "n": 51,
+          "rate": 66.7,
+          "low": 53,
+          "high": 78
+        }
+      },
+      "allProviders": {
+        "recall": {
+          "k": 34,
+          "n": 421,
+          "rate": 8.1,
+          "low": 5.8,
+          "high": 11.1
+        }
+      },
+      "pairsGained": [
+        "Oaklight/llm-rosetta anthropic",
+        "digitalmethodsinitiative/4cat openai",
+        "M9nx/CodexA openai",
+        "algorithmicsuperintelligence/openevolve openai",
+        "openai/openai-cli openai"
+      ],
+      "newFalsePositives": [
+        {
+          "pair": "HkingAuditore/civ-game openai",
+          "file": "scripts/generate_event_images.py:22"
+        },
+        {
+          "pair": "VocaHQ/vocalinux openai",
+          "file": "src/vocalinux/gateway_embed/preset.py:41"
+        }
+      ]
+    },
+    {
+      "branch": "feat/cloud-sdk-eol",
+      "pr": 189,
+      "lane": "FP7",
+      "commit": "b8f2ca2978c407b2c3b4d227d86512937bb91e76",
+      "clean": true,
+      "detectors": [
+        "agents",
+        "deadlines",
+        "cloud-sdk"
+      ],
+      "aliases": {},
+      "catalog": {
+        "precision": {
+          "k": 36,
+          "n": 48,
+          "rate": 75,
+          "low": 61.2,
+          "high": 85.1
+        },
+        "recall": {
+          "k": 36,
+          "n": 73,
+          "rate": 49.3,
+          "low": 38.2,
+          "high": 60.5
+        }
+      },
+      "allProviders": {
+        "recall": {
+          "k": 36,
+          "n": 421,
+          "rate": 8.6,
+          "low": 6.2,
+          "high": 11.6
+        }
+      },
+      "pairsGained": [
+        "alharkan7/beeblio aws",
+        "Bellows-AI/factory aws",
+        "Bearisbug/Quilt aws",
+        "kinora-dev/kinora aws",
+        "zeitword/zeitword aws",
+        "Peon-sh/Peon aws",
+        "andrebuilds/melodyc aws"
+      ],
+      "newFalsePositives": [
+        {
+          "pair": "databasus/databasus aws",
+          "file": "frontend/src/entity/databases/model/mysql/MySqlConnectionStringParser.test.ts:63"
+        },
+        {
+          "pair": "apify/apify-mcp-server aws",
+          "file": "src/resources/widgets.ts:21"
+        },
+        {
+          "pair": "syncular/syncular aws",
+          "file": "packages/server/src/s3-blob-store.ts:27"
+        },
+        {
+          "pair": "ChurchApps/B1App aws",
+          "file": "tests/issue-1078.spec.ts:15"
+        },
+        {
+          "pair": "chamals3n4/OpenATS aws",
+          "file": "backend/src/db/move-resumes-to-private-bucket.ts:25"
+        },
+        {
+          "pair": "scratchfoundation/scratch-www aws",
+          "file": "src/components/helpform/helpform.jsx:23"
+        },
+        {
+          "pair": "ZyFou/ProceduralTerrains aws",
+          "file": "src/engine/terrain/RealWorldHeightmap.js:21"
+        }
+      ]
+    },
+    {
+      "branch": "feat/slack-detection",
+      "pr": 184,
+      "lane": "FP1",
+      "commit": "6190ef4d60409c792d8d24cbf0009126af7c7a7e",
+      "clean": true,
+      "detectors": [
+        "agents",
+        "deadlines",
+        "slack"
+      ],
+      "aliases": {},
+      "catalog": {
+        "precision": {
+          "k": 30,
+          "n": 37,
+          "rate": 81.1,
+          "low": 65.8,
+          "high": 90.5
+        },
+        "recall": {
+          "k": 30,
+          "n": 54,
+          "rate": 55.6,
+          "low": 42.4,
+          "high": 68
+        }
+      },
+      "allProviders": {
+        "recall": {
+          "k": 30,
+          "n": 421,
+          "rate": 7.1,
+          "low": 5,
+          "high": 10
+        }
+      },
+      "pairsGained": [
+        "kinora-dev/kinora slack"
+      ],
+      "newFalsePositives": [
+        {
+          "pair": "datalayer/core slack",
+          "file": "src/api/iam/__tests__/mcpAuditSettings.unit.test.ts:119"
+        },
+        {
+          "pair": "debezium/debezium-platform slack",
+          "file": "debezium-platform-stage/src/pages/Alerts/AlertChannelFormModal.tsx:246"
+        }
+      ]
+    },
+    {
+      "branch": "feat/model-wedge",
+      "pr": 185,
+      "lane": "FG9",
+      "commit": "ad8a9bbe4630520536c2f6c8d07e65e223fc7356",
+      "clean": true,
+      "detectors": [
+        "agents",
+        "deadlines"
+      ],
+      "aliases": {},
+      "catalog": {
+        "precision": {
+          "k": 29,
+          "n": 34,
+          "rate": 85.3,
+          "low": 69.9,
+          "high": 93.6
+        },
+        "recall": {
+          "k": 29,
+          "n": 51,
+          "rate": 56.9,
+          "low": 43.3,
+          "high": 69.5
+        }
+      },
+      "allProviders": {
+        "recall": {
+          "k": 29,
+          "n": 421,
+          "rate": 6.9,
+          "low": 4.8,
+          "high": 9.7
+        }
+      },
+      "pairsGained": [],
+      "newFalsePositives": []
+    },
+    {
+      "branch": "feat/messaging-apis",
+      "pr": 202,
+      "lane": "FG6",
+      "commit": "03d8869bf39a788bc94973973cd12df09d26d97d",
+      "clean": true,
+      "detectors": [
+        "agents",
+        "deadlines",
+        "messaging"
+      ],
+      "aliases": {},
+      "catalog": {
+        "precision": {
+          "k": 29,
+          "n": 34,
+          "rate": 85.3,
+          "low": 69.9,
+          "high": 93.6
+        },
+        "recall": {
+          "k": 29,
+          "n": 51,
+          "rate": 56.9,
+          "low": 43.3,
+          "high": 69.5
+        }
+      },
+      "allProviders": {
+        "recall": {
+          "k": 29,
+          "n": 421,
+          "rate": 6.9,
+          "low": 4.8,
+          "high": 9.7
+        }
+      },
+      "pairsGained": [],
+      "newFalsePositives": []
+    },
+    {
+      "branch": "feat/workspace-attribution",
+      "pr": 198,
+      "lane": "FP8",
+      "commit": "8f8c0f2b5b5cca1a15debca24749650b92be3aec",
+      "clean": true,
+      "detectors": [
+        "agents",
+        "deadlines"
+      ],
+      "aliases": {},
+      "catalog": {
+        "precision": {
+          "k": 35,
+          "n": 43,
+          "rate": 81.4,
+          "low": 67.4,
+          "high": 90.3
+        },
+        "recall": {
+          "k": 35,
+          "n": 51,
+          "rate": 68.6,
+          "low": 55,
+          "high": 79.7
+        }
+      },
+      "allProviders": {
+        "recall": {
+          "k": 35,
+          "n": 421,
+          "rate": 8.3,
+          "low": 6,
+          "high": 11.3
+        }
+      },
+      "pairsGained": [
+        "hypercodism/alpine-code anthropic",
+        "deep-learning-indaba/Baobab stripe",
+        "Oaklight/llm-rosetta anthropic",
+        "Oaklight/llm-rosetta gemini",
+        "algorithmicsuperintelligence/openevolve openai",
+        "openai/openai-cli openai"
+      ],
+      "newFalsePositives": [
+        {
+          "pair": "haposoft/cafekit gemini",
+          "file": "packages/spec/src/claude/skills/ai-multimodal/scripts/requirements.txt"
+        },
+        {
+          "pair": "gpustack/gpustack openai",
+          "file": "pyproject.toml"
+        },
+        {
+          "pair": "algorithmicsuperintelligence/openevolve gemini",
+          "file": "examples/algotune/requirements.txt"
+        }
+      ]
+    }
+  ]
+}

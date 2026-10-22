@@ -247,7 +247,7 @@ So 5 of the 6 are real Refit false positives, from three mechanisms:
 
 ### Label corrections
 
-Two rounds of corrections were made after the results were committed. Each is in its own commit, and the tables above keep the numbers from the labels as committed.
+Three rounds of corrections were made after the results were committed. Each is in its own commit, and the tables above keep the numbers from the labels as committed.
 
 1. **Found by reading Refit's output (`25a4898`): `evanbaker315/AttentionOS`.** Added `meta-graph`, `http`, host `graph.facebook.com`, at `packages/providers/scrape-iggraph/src/index.ts:124`. The Instagram Graph API client uses that default host, written as a bare string with no scheme. My candidate search only finds hosts that follow a scheme, so I missed it.
 2. **Second labelling pass.** It was prompted by an FG4 branch detection (`api.apify.com` in `Affitor/open-affiliate`). The cause was mine: my summary viewer cut off long host lists, so I never saw that host. The second pass then listed every API-like production host in every candidate summary that had no label (`api.*`, `graph.*`, `oauth2.*`, `hooks.*` and similar) and reviewed each one by the guide. It added 5 labels in 3 repositories:
@@ -260,13 +260,19 @@ Two rounds of corrections were made after the results were committed. Each is in
 
    The juicefs B2, Storj, EOS and OOS backends were left unlabelled: their code does not name a provider host I could confirm.
 
-| Scope | Labels as committed before the run | After correction 1 | After both |
-|---|---|---|---|
-| Catalog providers, precision | 82.4% (28/34) | 85.3% (29/34) | 85.3% (29/34) |
-| Catalog providers, recall | 56% (28/50) | 56.9% (29/51) | 56.9% (29/51) |
-| Every labelled provider, recall | 6.8% (28/414) | 7% (29/415) | 6.9% (29/419) |
+3. **Found through the FP7 cloud SDK branch (`3d7364c`).** Reading that branch's `amazonaws.com` reports turned up two AWS API calls the repositories code themselves. They are labelled `aws` by the guide:
+   - `Bellows-AI/factory`: an STS `AssumeRoleWithWebIdentity` request to the default `sts.<region>.amazonaws.com` endpoint (`server/src/artifacts/s3-credentials.ts:70`);
+   - `alharkan7/beeblio`: an S3 `ListObjectsV2` request on the PMC open-data bucket (`lib/literature/search.ts:140`).
 
-The score with both corrections is in [`2026-10-22-inventory-score-corrected.json`](benchmarks/2026-10-22-inventory-score-corrected.json).
+   `aws` is not in `main`'s catalog, so only the every-provider denominator moves on `main`.
+
+| Scope | Labels as committed before the run | After correction 1 | After 1 and 2 | After all three |
+|---|---|---|---|---|
+| Catalog providers, precision | 82.4% (28/34) | 85.3% (29/34) | 85.3% (29/34) | 85.3% (29/34) |
+| Catalog providers, recall | 56% (28/50) | 56.9% (29/51) | 56.9% (29/51) | 56.9% (29/51) |
+| Every labelled provider, recall | 6.8% (28/414) | 7% (29/415) | 6.9% (29/419) | 6.9% (29/421) |
+
+The score with all three corrections is in [`2026-10-22-inventory-score-corrected.json`](benchmarks/2026-10-22-inventory-score-corrected.json).
 
 **What the corrections show about the labelling method.** Hosts written without a scheme, and hosts in very long candidate lists, were found only by reading. For catalog providers, Refit's own bare-hostname matching covers the first gap. For uncatalogued providers there may be more misses of both kinds, so the overall recall is an upper bound by a small margin.
 
@@ -277,6 +283,80 @@ The score with both corrections is in [`2026-10-22-inventory-score-corrected.jso
 - **Detection is scored per provider and repository.** It does not check whether Refit's evidence file is the right one, or how many call sites it finds.
 - **Only JS/TS, Python and Go code is labelled.** Calls from other languages in the same repositories are out of scope.
 - **The score is for `main` at `7b2c86a`.** Branches that add detectors are compared below, under "Detection branches".
+
+## Detection branches
+
+Keep going: every open detection PR from Furqan's lanes was run against the same 150 repositories and scored with the corrected labels, next to `main`.
+
+- **Read-only.** Each branch ran from a detached worktree at its PR head as of 2026-10-22 09:45 UTC, through `--refit <checkout>`. No branch was edited, pushed or commented on.
+- **New commands become detectors.** A branch's new inventory command joins the detector list (`api-hosts`, `cloud-sdk`, `slack`, `messaging`), parsed from its `refit --help`.
+- **Aliases.** FG4 reports host slugs as provider IDs, and three were mapped to label names with `--aliases`: `telegram-bot-api`→`telegram`, `openstreetmap-nominatim`→`openstreetmap`, `hugging-face-hub`→`huggingface`.
+- **Five heads moved overnight and were rerun:** FP5 `5930f86`→`fb656ce`, FG1 `0b3e8a6`→`eb781f6`, FG9 `263d88f`→`ad8a9bb`, FG6 `920db4d`→`03d8869`, FP8 `f4e587d`→`8f8c0f2`. Only FP5's numbers changed: the new head adds the two NextAuth false positives below.
+- **Pair-level scoring.** A branch gets credit for a pair when any of its evidence names the provider, even when that evidence is the wrong file. For example, FG4's Hugging Face pair in `HelloQun54321/nai-atelier` came from a script.
+
+| Branch (PR, lane) | Commit | Detectors | Catalog precision | Catalog recall | Every-provider recall | Pairs gained | New false positives |
+|---|---|---|---|---|---|---:|---:|
+| `main` | `7b2c86a` (run from `ab0cb9a`) | agents, deadlines | 85.3% (29/34) | 56.9% (29/51) | 6.9% (29/421) | | |
+| `feat/package-manifests` (#193, FG5) | `7f04416` | agents, deadlines | 81.4% (35/43) | 68.6% (35/51) | 8.3% (35/421) | 6 | 3 |
+| `feat/api-hosts` (#191, FG4) | `60f82f6` | agents, deadlines, api-hosts | 85.3% (29/34) | 56.9% (29/51) | 9.5% (40/421) | 11 | 4 |
+| `feat/auth-backend-sdks` (#188, FP5) | `fb656ce` | agents, deadlines | 78.6% (33/42) | 60% (33/55) | 7.8% (33/421) | 4 | 4 |
+| `feat/python-models` (#187, FG1) | `eb781f6` | agents, deadlines | 82.9% (34/41) | 66.7% (34/51) | 8.1% (34/421) | 5 | 2 |
+| `feat/cloud-sdk-eol` (#189, FP7) | `b8f2ca2` | agents, deadlines, cloud-sdk | 75% (36/48) | 49.3% (36/73) | 8.6% (36/421) | 7 | 7 |
+| `feat/slack-detection` (#184, FP1) | `6190ef4` | agents, deadlines, slack | 81.1% (30/37) | 55.6% (30/54) | 7.1% (30/421) | 1 | 2 |
+| `feat/model-wedge` (#185, FG9) | `ad8a9bb` | agents, deadlines | 85.3% (29/34) | 56.9% (29/51) | 6.9% (29/421) | 0 | 0 |
+| `feat/messaging-apis` (#202, FG6) | `03d8869` | agents, deadlines, messaging | 85.3% (29/34) | 56.9% (29/51) | 6.9% (29/421) | 0 | 0 |
+| `feat/workspace-attribution` (#198, FP8) | `8f8c0f2` | agents, deadlines | 81.4% (35/43) | 68.6% (35/51) | 8.3% (35/421) | 6 | 3 |
+
+The numbers behind the table, with each branch's gained pairs and new false positives, are in [`2026-10-22-inventory-branches.json`](benchmarks/2026-10-22-inventory-branches.json). "Catalog" is each branch's own catalog, so its denominator grows when a branch adds providers. FP7 adds `aws`, which brings 22 labelled AWS pairs into scope, many of them in Python or Go. Every false positive below was read in full.
+
+- **FG5, `feat/package-manifests` (#193):**
+  - Gains 6 pairs from Python and Go manifests: `anthropic`, `gemini` and `openai` in Python projects, and `stripe` in `deep-learning-indaba/Baobab`.
+  - 3 new false positives:
+    - `requirements.txt` files under a skill's `scripts/` (`haposoft/cafekit`) and under `examples/` (`algorithmicsuperintelligence/openevolve`);
+    - `gpustack/gpustack`'s `openai`, which is declared in `pyproject.toml` and used only for types.
+- **FP8, `feat/workspace-attribution` (#198):** stacked on FG5 (`7f04416` is an ancestor), and identical to it here. Attribution changes which workspace a finding belongs to, not which pairs are found.
+- **FG4, `feat/api-hosts` (#191):**
+  - Gains 11 uncatalogued pairs from raw HTTP hosts (Crossref, Hugging Face, Atlassian, npm registry, Telegram ×2, Apify ×2, PostHog, OpenStreetMap and one more).
+  - 4 new false positives:
+    - hosts in maintenance scripts (`zordhalo/runs-on.dev` `scripts/geocode-owners.mjs` ×2, `plhery/peek-delivery-tracker` `scripts/adopt-scraper.mjs`);
+    - a model file download from `huggingface.co/<repo>/resolve/` (`nikunjsingh93/react-glass-keep`), which the guide counts as a static download.
+- **FP5, `feat/auth-backend-sdks` (#188):**
+  - Gains 4 Firebase and Supabase pairs.
+  - 4 new false positives:
+    - Supabase connection strings in two test files (`databasus/databasus`, `evanbaker315/AttentionOS`);
+    - `nextauth` from `package.json` in `ktmouk/minute` and `Brajesh31/issue-tracker-next.js-app`. The guide treats NextAuth as framework-mediated sign-in, not an API use.
+- **FG1, `feat/python-models` (#187):**
+  - Gains 5 Python `openai` and `anthropic` pairs.
+  - 2 new false positives: a generator in `scripts/` (`HkingAuditore/civ-game`), and `VocaHQ/vocalinux`'s `whisper-1` sent to a local server.
+- **FP7, `feat/cloud-sdk-eol` (#189):**
+  - Gains 7 AWS pairs. Two of them (`alharkan7/beeblio`, `Bellows-AI/factory`) were labelling misses, now corrected (correction 3).
+  - 7 new false positives, all from `amazonaws.com` text:
+    - two test files (`databasus/databasus`, `ChurchApps/B1App`);
+    - a CSP or asset URL (`apify/apify-mcp-server`);
+    - a Freshdesk widget script on S3 (`scratchfoundation/scratch-www`);
+    - map elevation tiles (`ZyFou/ProceduralTerrains`);
+    - an S3-compatible store whose endpoint the user must set (`syncular/syncular`);
+    - an R2 client in a maintenance script (`chamals3n4/OpenATS`, labelled `cloudflare` elsewhere).
+- **FP1, `feat/slack-detection` (#184):**
+  - Gains `slack` in `kinora-dev/kinora`.
+  - 2 new false positives: `hooks.slack.com/services/…` placeholders in alert-settings forms (`datalayer/core`, `debezium/debezium-platform`), whose evidence also lists test files.
+- **FG9, `feat/model-wedge` (#185), and FG6, `feat/messaging-apis` (#202):**
+  - No change to the provider inventory.
+  - FG9 changes the model-retirement tracer, which this benchmark does not measure.
+  - FG6's `messaging` command reports deprecated Twilio and Mailgun calls. The sample's one Twilio label is not among them.
+
+Requests for Furqan's lanes, from these runs:
+
+- **FG5 and FP8:** skip manifests under `scripts/`, `examples/` and skill folders. Count a Python package only when production code imports it, not for type use alone.
+- **FG4:** skip hosts in `scripts/` and maintenance tools. Treat `huggingface.co/<repo>/resolve/` file URLs as downloads, not API use.
+- **FP5:** skip test files. Needs owner decision: whether NextAuth/Auth.js is reported as a provider at all, since it is a library that makes the OAuth calls itself.
+- **FG1:** skip `scripts/`. A model sent to a client with a non-OpenAI `base_url` is not an OpenAI use.
+- **FP7:**
+  - Skip test files.
+  - Do not count `amazonaws.com` in asset, CSP, widget or tile URLs.
+  - An S3 client whose endpoint is required, or is an R2 endpoint, is not AWS.
+  - A repository's own STS or S3 REST request to an AWS host is AWS, and FP7 already finds both.
+- **FP1:** a Slack webhook host inside an input placeholder is a UI hint, not a use.
 
 ## Appendix: every miss on `main`
 
