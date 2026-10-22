@@ -4,6 +4,7 @@ import { join, resolve } from 'node:path';
 import ts from 'typescript-compiler';
 import { AGENT_CATALOG, builtInPackage } from './agent-catalog.ts';
 import { daysUntil, type DeadlineEntry, type DeadlineRegistry } from './deadline-registry.ts';
+import { detectModelHosts, hostDeadlineMatches } from './model-hosts.ts';
 import { readRepository } from './repository.ts';
 import { isObject, parseObject } from './specifications.ts';
 import { REPOSITORY_CONFIGURATION } from './workflow-configuration.ts';
@@ -542,6 +543,17 @@ export async function scanDeadlines(
       offset += line.length + 1;
     }
   }
+  // Models called through Amazon Bedrock, Azure OpenAI or OpenRouter (pipeline/model-hosts.ts).
+  for (const match of hostDeadlineMatches(detectModelHosts(repository), (provider, version) =>
+    byVersion.has(`${provider}:${version}`),
+  ))
+    record(match.provider, match.version, {
+      file: match.site.file,
+      line: match.site.line,
+      kind: 'source',
+      use: TEST_PATH.test(match.site.file) ? 'test' : 'live',
+      text: excerpt(match.text),
+    });
   for (const dependency of repository.dependencies) {
     const version = metaSdkVersion(dependency.version, dependency.lock.version);
     if (version)

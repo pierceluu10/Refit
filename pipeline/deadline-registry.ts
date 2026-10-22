@@ -5,7 +5,16 @@ import { PipelineInputError } from './types.ts';
 export const DEFAULT_DEADLINE_REGISTRY = new URL('../data/deadlines.json', import.meta.url);
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 const ENTRY_ID = /^[a-z0-9][a-z0-9-]{0,95}$/;
-const PROVIDERS = new Set(['shopify', 'meta-graph', 'openai', 'anthropic', 'gemini']);
+// `bedrock` and `azure-openai` hold the clouds' own dates for the models and API versions they host.
+const PROVIDERS = new Set([
+  'shopify',
+  'meta-graph',
+  'openai',
+  'anthropic',
+  'gemini',
+  'bedrock',
+  'azure-openai',
+]);
 const KINDS = new Set(['api-version', 'model', 'sdk']);
 const ENTRY_KEYS = [
   'id',
@@ -25,7 +34,8 @@ const MILLISECONDS_PER_DAY = 86_400_000;
 // page it came from and the day a person last checked that page.
 export interface DeadlineEntry {
   id: string;
-  provider: 'shopify' | 'meta-graph' | 'openai' | 'anthropic' | 'gemini';
+  provider:
+    'shopify' | 'meta-graph' | 'openai' | 'anthropic' | 'gemini' | 'bedrock' | 'azure-openai';
   kind: 'api-version' | 'model' | 'sdk';
   versions: string[];
   date: string;
