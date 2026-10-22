@@ -11,18 +11,11 @@ import {
   type GitHubAppConfiguration,
 } from './github-app.ts';
 import { suggestAgentsForPullRequest } from './agent-suggestions.ts';
-import {
-  alertDue,
-  alertStage,
-  deadlineBody,
-  deadlineComment,
-  deadlineTitle,
-  syncDeadlineIssue,
-  timing,
-} from './deadline-alerts.ts';
-import { agentStatus, configuredIntegrations, findDeadlineExposures } from './deadline-exposure.ts';
-import { applyDeadlineIgnores, readDeadlineIgnores } from './deadline-ignores.ts';
-import { loadDeadlineRegistry, reportOnly } from './deadline-registry.ts';
+import { deadlineTitle, dueDeadlineAlerts, syncDeadlineAlert, timing } from './deadline-alerts.ts';
+import { configuredIntegrations, findDeadlineExposures } from './deadline-exposure.ts';
+import { readDeadlineIgnores } from './deadline-ignores.ts';
+import { loadDeadlineRegistry } from './deadline-registry.ts';
+import { loadModelParameters } from './model-parameters.ts';
 import { standaloneStateDirectory, type GitHubCheckout } from './github-checkout.ts';
 import { requestGitHub } from './github.ts';
 import { parseWebhook, verifyWebhook, WebhookInputError } from './github-webhooks.ts';
@@ -121,7 +114,7 @@ export async function runLocalService(options: {
   // Off unless set: replaces retiring AI models in each enrolled repository, validates the change
   // with its approved checks and, with publishDraft, opens a draft pull request. No per-change
   // approval is asked; enrollment is the approval.
-  modelFixes?: { registry?: string | URL };
+  modelFixes?: { registry?: string | URL; parameters?: string | URL };
   notify?: SlackSend;
   now?: () => Date;
   signal: AbortSignal;
@@ -263,28 +256,19 @@ export async function runLocalService(options: {
               `[${repository}] Deadline ignores not applied: ${error.name}: ${error.message}`,
             );
           }
-          const { decisions } = applyDeadlineIgnores(
+          const known = (await store.read()).deadlineAlerts ?? {};
+          const due = dueDeadlineAlerts({
             exposures,
             ignores,
-            new Set(registry.deadlines.map((entry) => entry.id)),
+            registry,
             now,
-          );
-          const known = (await store.read()).deadlineAlerts ?? {};
-          const due = exposures
-            .filter(
-              (exposure) =>
-                !reportOnly(exposure.deadline) &&
-                !decisions.get(exposure.deadline.id)?.ignoredBy.length,
-            )
-            .map((exposure) => ({
-              exposure,
-              key: `${repository}|${exposure.deadline.id}`,
-              stage: alertStage(exposure.days, leadDays),
-            }))
-            .filter((alert) => alertDue(alert.stage, known[alert.key]?.stage));
+            leadDays,
+            sent: (deadline) => known[`${repository}|${deadline}`]?.stage,
+          });
           if (!due.length) continue;
           const { token } = await authenticateGitHubIssues(options.app, repository);
-          for (const { exposure, key, stage } of due) {
+          for (const { exposure, stage } of due) {
+            const key = `${repository}|${exposure.deadline.id}`;
             const previous = known[key];
             const save = (change: {
               issue: number | null;
@@ -311,19 +295,14 @@ export async function runLocalService(options: {
               if (notice) await options.notify?.(notice);
             };
             try {
-              const result = await syncDeadlineIssue({
+              const result = await syncDeadlineAlert({
                 request: (method, path, body) => requestGitHub(token, method, path, body),
                 repository,
                 issue: previous?.issue ?? null,
-                title: deadlineTitle(exposure),
-                body: deadlineBody({
-                  exposure,
-                  repository,
-                  revision: checkout.revision,
-                  status: agentStatus(exposure.deadline.provider, integrations),
-                  leadDays,
-                }),
-                comment: deadlineComment(exposure),
+                exposure,
+                revision: checkout.revision,
+                integrations,
+                leadDays,
               });
               await save({ issue: result.issue, status: result.action, message: null });
               options.onProgress?.(
@@ -361,8 +340,12 @@ export async function runLocalService(options: {
       if (!options.modelFixes || !checkouts.size) return;
       const now = options.now?.() ?? new Date();
       let registry: Awaited<ReturnType<typeof loadDeadlineRegistry>>;
+      let parameters: Awaited<ReturnType<typeof loadModelParameters>> | undefined;
       try {
         registry = await loadDeadlineRegistry(options.modelFixes.registry, now);
+        // The sourced parameter table is off unless a path is configured (owner decision, 2026-10-22).
+        if (options.modelFixes.parameters)
+          parameters = await loadModelParameters(options.modelFixes.parameters, now);
       } catch (error) {
         if (!(error instanceof Error)) throw error;
         options.onProgress?.(`Model fixes skipped: ${error.name}: ${error.message}`);
@@ -376,6 +359,7 @@ export async function runLocalService(options: {
           const result = await runModelFixes({
             repository: checkout.directory,
             registry,
+            parameters,
             now,
             checks: approved.checks,
             publication: options.publishDraft

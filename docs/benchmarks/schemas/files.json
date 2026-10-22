@@ -101,9 +101,17 @@
       "format": "paypal-subdirectory-results",
       "predates": []
     },
+    "2026-10-22-ai-patch-results.json": {
+      "format": "ai-patch-results",
+      "predates": []
+    },
     "2026-10-22-anthropic-app-results.json": {
       "format": "ai-model-results",
       "predates": ["/harness", "/results/*/outcomeClass"]
+    },
+    "2026-10-22-auth-backend-results.json": {
+      "format": "auth-backend-results",
+      "predates": []
     },
     "2026-10-22-cloudflare-baseline-results.json": {
       "format": "cloudflare-results",
@@ -117,9 +125,29 @@
       "format": "cloudflare-results",
       "predates": []
     },
+    "2026-10-22-commerce-results.json": {
+      "format": "commerce-results",
+      "predates": []
+    },
+    "2026-10-22-github-first-results.json": {
+      "format": "github-api-results",
+      "predates": []
+    },
+    "2026-10-22-github-results.json": {
+      "format": "github-api-results",
+      "predates": []
+    },
     "2026-10-22-inventory-sample-results.json": {
       "format": "inventory-sample-results",
       "predates": []
+    },
+    "2026-10-22-meta-platform-results.json": {
+      "format": "meta-platform-results",
+      "predates": []
+    },
+    "2026-10-22-model-wrapper-app-results.json": {
+      "format": "ai-model-results",
+      "predates": ["/harness", "/results/*/outcomeClass"]
     },
     "2026-10-22-openai-app-results.json": {
       "format": "ai-model-results",

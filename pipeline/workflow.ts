@@ -91,6 +91,7 @@ export async function runWorkflow(options: {
   generatedChecks?: GeneratedChecks;
   compareTypeErrors?: boolean;
   keepListedPaymentMethods?: boolean;
+  shopifySdkUpgrade?: boolean;
   providerConfig?: string;
   apiVersion?: string;
   apiVersionPolicy?: ApiVersionPolicy;
@@ -212,6 +213,7 @@ export async function runWorkflow(options: {
       apiVersionPolicy: options.apiVersionPolicy,
       fullDiff: options.fullDiff,
       keepListedPaymentMethods: options.keepListedPaymentMethods,
+      shopifySdkUpgrade: options.shopifySdkUpgrade,
     };
     stage = 'scan';
     options.onProgress?.('Scanning repository for affected API usage...');
@@ -274,7 +276,7 @@ export async function runWorkflow(options: {
     if (report.validation.status !== 'passed' && waiver?.gate !== 'dependency-preparation')
       return await finish(
         'validation-failed',
-        `Validation returned ${report.validation.status}; publication was not attempted.`,
+        `Validation returned ${report.validation.status}; publication was not attempted.${report.validation.baselineStop ? ` The baseline checks failed because ${report.validation.baselineStop.summary}. ${report.validation.baselineStop.action}` : ''}`,
         runId,
       );
     if (waiver && !publication)

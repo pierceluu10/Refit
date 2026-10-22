@@ -194,3 +194,71 @@ it.each([
 ])('rejects %s', (_name, packages) => {
   expect(() => validateNpmLock(bundledManifest, bundledLock(packages))).toThrow();
 });
+
+it("accepts an empty range in a published package's declarations, which npm reads as any version", () => {
+  // habibjutt/nextjs_boilerplate locks @tabler/icons-react 3.36.1 (docs/PREPARATION-FAILURES.md).
+  const packages = {
+    ...lock.packages,
+    'node_modules/stripe': { ...record, dependencies: { 'stripe-types': '' } },
+  };
+  expect(
+    validateNpmLock(JSON.stringify(manifest), JSON.stringify({ ...lock, packages })),
+  ).toMatchObject({ packages: 1 });
+  // The repository's own package.json still names an exact registry range.
+  const declared = { ...manifest, dependencies: { stripe: '' } };
+  expect(() =>
+    validateNpmLock(
+      JSON.stringify(declared),
+      JSON.stringify({ ...lock, packages: { ...lock.packages, '': declared } }),
+    ),
+  ).toThrow('package.json declares stripe as "".');
+});
+
+it('accepts tarballs a lockfile resolved through a public npm mirror, which npm fetches from registry.npmjs.org', () => {
+  // Mangu-Commerce/madcaptees resolves 118 packages through registry.npmmirror.com.
+  for (const host of ['registry.npmmirror.com', 'registry.yarnpkg.com'])
+    expect(
+      validateNpmLock(
+        JSON.stringify(manifest),
+        JSON.stringify({
+          ...lock,
+          packages: {
+            ...lock.packages,
+            'node_modules/stripe': {
+              ...record,
+              resolved: `https://${host}/stripe/-/stripe-10.17.0.tgz`,
+            },
+          },
+        }),
+      ),
+    ).toMatchObject({ packages: 1 });
+  for (const resolved of [
+    'https://npm.pkg.github.com/stripe/-/stripe-10.17.0.tgz',
+    'http://registry.npmmirror.com/stripe/-/stripe-10.17.0.tgz',
+    'https://user:token@registry.npmmirror.com/stripe/-/stripe-10.17.0.tgz',
+  ])
+    expect(() =>
+      validateNpmLock(
+        JSON.stringify(manifest),
+        JSON.stringify({
+          ...lock,
+          packages: { ...lock.packages, 'node_modules/stripe': { ...record, resolved } },
+        }),
+      ),
+    ).toThrow('Package tarballs must use public registry.npmjs.org HTTPS URLs');
+});
+
+it('never repeats a source URL credential in a refusal', () => {
+  const refusal = () =>
+    validateNpmLock(
+      JSON.stringify({
+        ...manifest,
+        dependencies: { stripe: 'git+https://user:secret-token@github.com/acme/stripe.git' },
+      }),
+      JSON.stringify(lock),
+    );
+  expect(refusal).toThrow(
+    'package.json declares stripe as "git+https://***@github.com/acme/stripe.git"',
+  );
+  expect(refusal).not.toThrow(/secret-token/);
+});

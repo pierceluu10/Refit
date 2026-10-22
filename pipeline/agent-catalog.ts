@@ -1,7 +1,8 @@
 import { existsSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { readRepository } from './repository.ts';
+import { repositoryApiVersionPins, type ApiVersionPin } from './commerce-api-versions.ts';
+import { declaredPackageNames, readRepository } from './repository.ts';
 import { parseObject } from './specifications.ts';
 import { PipelineInputError, type Repository } from './types.ts';
 
@@ -79,6 +80,25 @@ export const AGENT_CATALOG: ProviderAgent[] = [
     adapter: null,
     guide: null,
   },
+  // The Octokit packages and @actions/github, each checked on npm on 2026-10-22, and the REST and
+  // GraphQL host. Review-only detection lives in `refit github-api`.
+  {
+    id: 'github',
+    name: 'GitHub API',
+    packages: [
+      'octokit',
+      '@octokit/rest',
+      '@octokit/core',
+      '@octokit/request',
+      '@octokit/graphql',
+      '@octokit/app',
+      '@octokit/action',
+      '@actions/github',
+    ],
+    hostnames: ['api.github.com'],
+    adapter: null,
+    guide: 'docs/GITHUB-API-DETECTION.md',
+  },
   {
     id: 'twilio',
     name: 'Twilio',
@@ -139,6 +159,207 @@ export const AGENT_CATALOG: ProviderAgent[] = [
     adapter: null,
     guide: 'docs/CLOUDFLARE.md',
   },
+  // Auth and backend SDKs (docs/AUTH-BACKEND-SDKS.md). Every package was read on the npm registry
+  // on 2026-10-22, with its repository in the provider's GitHub organization. The hostnames come
+  // from the published SDK code: Auth0 tenant domains (`your-tenant.auth0.com` in auth0 7.6.0),
+  // Clerk's Backend API (`API_URL` in @clerk/backend 3.26.1), the Firebase service hosts in
+  // firebase-admin 14.5.0 and the @firebase packages, and Supabase project URLs
+  // (`xyzcompany.supabase.co` in @supabase/supabase-js 2.118.0).
+  {
+    id: 'auth0',
+    name: 'Auth0',
+    packages: [
+      'auth0',
+      '@auth0/nextjs-auth0',
+      '@auth0/auth0-react',
+      '@auth0/auth0-spa-js',
+      '@auth0/auth0-angular',
+      '@auth0/auth0-vue',
+      '@auth0/auth0-auth-js',
+      '@auth0/auth0-server-js',
+      'auth0-js',
+      'auth0-lock',
+      'express-openid-connect',
+      'express-oauth2-jwt-bearer',
+    ],
+    hostnames: ['.auth0.com'],
+    adapter: null,
+    guide: null,
+  },
+  {
+    id: 'clerk',
+    name: 'Clerk',
+    packages: [
+      '@clerk/nextjs',
+      '@clerk/react',
+      '@clerk/clerk-react',
+      '@clerk/clerk-js',
+      '@clerk/backend',
+      '@clerk/express',
+      '@clerk/clerk-sdk-node',
+      '@clerk/expo',
+      '@clerk/clerk-expo',
+      '@clerk/remix',
+      '@clerk/react-router',
+      '@clerk/astro',
+      '@clerk/vue',
+      '@clerk/nuxt',
+      '@clerk/fastify',
+      '@clerk/chrome-extension',
+      '@clerk/tanstack-react-start',
+      '@clerk/types',
+      '@clerk/elements',
+      '@clerk/edge',
+    ],
+    hostnames: ['api.clerk.com'],
+    adapter: null,
+    guide: null,
+  },
+  {
+    id: 'firebase',
+    name: 'Firebase',
+    packages: ['firebase', 'firebase-admin'],
+    hostnames: [
+      'firestore.googleapis.com',
+      'identitytoolkit.googleapis.com',
+      'securetoken.googleapis.com',
+      'firebasestorage.googleapis.com',
+      'firebaseio.com',
+    ],
+    adapter: null,
+    guide: null,
+  },
+  {
+    id: 'supabase',
+    name: 'Supabase',
+    packages: [
+      '@supabase/supabase-js',
+      '@supabase/ssr',
+      '@supabase/auth-helpers-nextjs',
+      '@supabase/auth-helpers-react',
+      '@supabase/auth-helpers-remix',
+      '@supabase/auth-helpers-sveltekit',
+      '@supabase/auth-helpers-shared',
+    ],
+    hostnames: ['.supabase.co'],
+    adapter: null,
+    guide: null,
+  },
+  // Payments and commerce APIs (docs/COMMERCE-APIS.md). Every package was read on the npm registry
+  // on 2026-10-22, with its repository in the provider's GitHub organization (@paddle/paddle-js is
+  // published by the paddle.com npm account). The hostnames are the API bases in each provider's
+  // published SDK code: plaid-node, square-nodejs-sdk, braintree_node and braintree-web,
+  // adyen-node-api-library, paddle-node-sdk, lemonsqueezy.js, shippo-javascript-sdk,
+  // easypost-node, lob-node and coinbase-commerce-node.
+  {
+    id: 'plaid',
+    name: 'Plaid',
+    packages: ['plaid', 'react-plaid-link'],
+    hostnames: ['production.plaid.com', 'sandbox.plaid.com'],
+    adapter: null,
+    guide: null,
+  },
+  {
+    id: 'square',
+    name: 'Square',
+    packages: ['square', '@square/web-sdk', '@square/web-payments-sdk-types'],
+    hostnames: ['connect.squareup.com', 'connect.squareupsandbox.com'],
+    adapter: null,
+    guide: null,
+  },
+  {
+    id: 'braintree',
+    name: 'Braintree',
+    packages: ['braintree', 'braintree-web', 'braintree-web-drop-in'],
+    hostnames: [
+      'api.braintreegateway.com',
+      'api.sandbox.braintreegateway.com',
+      'payments.braintree-api.com',
+      'payments.sandbox.braintree-api.com',
+    ],
+    adapter: null,
+    guide: null,
+  },
+  {
+    id: 'adyen',
+    name: 'Adyen',
+    packages: ['@adyen/api-library', '@adyen/adyen-web'],
+    hostnames: [
+      'checkout-test.adyen.com',
+      'checkout-live.adyenpayments.com',
+      'pal-test.adyen.com',
+      'pal-live.adyen.com',
+      'management-test.adyen.com',
+      'management-live.adyen.com',
+    ],
+    adapter: null,
+    guide: null,
+  },
+  {
+    id: 'paddle',
+    name: 'Paddle',
+    packages: ['@paddle/paddle-node-sdk', '@paddle/paddle-js'],
+    hostnames: ['api.paddle.com', 'sandbox-api.paddle.com'],
+    adapter: null,
+    guide: null,
+  },
+  {
+    id: 'lemon-squeezy',
+    name: 'Lemon Squeezy',
+    packages: ['@lemonsqueezy/lemonsqueezy.js'],
+    hostnames: ['api.lemonsqueezy.com'],
+    adapter: null,
+    guide: null,
+  },
+  {
+    id: 'shippo',
+    name: 'Shippo',
+    packages: ['shippo'],
+    hostnames: ['api.goshippo.com'],
+    adapter: null,
+    guide: null,
+  },
+  {
+    id: 'easypost',
+    name: 'EasyPost',
+    packages: ['@easypost/api'],
+    hostnames: ['api.easypost.com'],
+    adapter: null,
+    guide: null,
+  },
+  {
+    id: 'lob',
+    name: 'Lob',
+    packages: ['lob', '@lob/lob-typescript-sdk'],
+    hostnames: ['api.lob.com'],
+    adapter: null,
+    guide: null,
+  },
+  {
+    id: 'coinbase-commerce',
+    name: 'Coinbase Commerce',
+    packages: ['coinbase-commerce-node'],
+    hostnames: ['api.commerce.coinbase.com'],
+    adapter: null,
+    guide: null,
+  },
+  // NextAuth.js and Auth.js run inside the application, so they have no API host of their own.
+  // Packages read on the npm registry on 2026-10-22, all from nextauthjs/next-auth.
+  {
+    id: 'nextauth',
+    name: 'NextAuth.js',
+    packages: [
+      'next-auth',
+      '@auth/core',
+      '@auth/sveltekit',
+      '@auth/express',
+      '@auth/qwik',
+      '@auth/solid-start',
+    ],
+    hostnames: [],
+    adapter: null,
+    guide: null,
+  },
 ];
 
 const MAX_HOSTNAME_EVIDENCE = 5;
@@ -147,6 +368,16 @@ export interface AgentDetection {
   agent: ProviderAgent;
   packages: { file: string; name: string; version: string; locked: string | null }[];
   hostnames: { file: string; line: number; hostname: string }[];
+  // API versions the code pins for providers that version their API by header, option or path.
+  apiVersions?: ApiVersionPin[];
+}
+
+// A hostname in a line, not as the start of a longer name: `.supabase.co` is in
+// `https://abc.supabase.co/rest` but not in `api.supabase.com`.
+function hostnameIn(line: string, hostname: string) {
+  for (let at = line.indexOf(hostname); at >= 0; at = line.indexOf(hostname, at + 1))
+    if (!/[A-Za-z0-9-]/.test(line[at + hostname.length] ?? '')) return true;
+  return false;
 }
 
 function hostnameEvidence(repository: Repository, agent: ProviderAgent) {
@@ -154,7 +385,7 @@ function hostnameEvidence(repository: Repository, agent: ProviderAgent) {
   for (const file of repository.files)
     for (const [index, line] of file.content.split('\n').entries())
       for (const hostname of agent.hostnames)
-        if (line.includes(hostname) && evidence.length < MAX_HOSTNAME_EVIDENCE)
+        if (hostnameIn(line, hostname) && evidence.length < MAX_HOSTNAME_EVIDENCE)
           evidence.push({ file: file.path, line: index + 1, hostname });
   return evidence;
 }
@@ -163,14 +394,16 @@ function hostnameEvidence(repository: Repository, agent: ProviderAgent) {
 // source, without running repository code or contacting any provider.
 export async function detectProviders(directory: string): Promise<AgentDetection[]> {
   const detections: AgentDetection[] = [];
+  // Source files are the same whichever package a read resolves, so one read serves every
+  // hostname check, and a package is read again only when some manifest declares it.
+  const repository: Repository = await readRepository(directory);
+  const declared = await declaredPackageNames(directory);
+  const pins = repositoryApiVersionPins(repository);
   for (const agent of AGENT_CATALOG) {
     const packages: AgentDetection['packages'] = [];
-    let repository: Repository | undefined;
-    // shortcut: reads the repository once per catalog package; fine for a small catalog, share one
-    // read across packages if the catalog grows.
     for (const name of agent.packages) {
-      repository = await readRepository(directory, name);
-      for (const dependency of repository.dependencies)
+      if (declared && !declared.has(name)) continue;
+      for (const dependency of (await readRepository(directory, name)).dependencies)
         packages.push({
           file: dependency.file,
           name,
@@ -178,8 +411,15 @@ export async function detectProviders(directory: string): Promise<AgentDetection
           locked: dependency.lock.version,
         });
     }
-    const hostnames = hostnameEvidence(repository!, agent);
-    if (packages.length || hostnames.length) detections.push({ agent, packages, hostnames });
+    const hostnames = hostnameEvidence(repository, agent);
+    const apiVersions = pins.filter((pin) => pin.provider === agent.id);
+    if (packages.length || hostnames.length || apiVersions.length)
+      detections.push({
+        agent,
+        packages,
+        hostnames,
+        ...(apiVersions.length ? { apiVersions } : {}),
+      });
   }
   return detections;
 }

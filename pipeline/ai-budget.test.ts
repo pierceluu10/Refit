@@ -8,7 +8,7 @@ import {
   responseUsage,
   usageCostUsd,
 } from './ai-budget.ts';
-import { requestStructuredOutput } from './openai.ts';
+import { MAX_OUTPUT_TOKENS, requestStructuredOutput } from './openai.ts';
 
 const roots: string[] = [];
 const MODEL = 'gpt-5.4-mini';
@@ -19,7 +19,10 @@ const REQUEST = {
   schema: { type: 'object', properties: {}, additionalProperties: false },
 };
 
-async function budget(limitUsd = 0.05) {
+// Enough for one gpt-5.4-mini request of 1,000 input tokens and the maximum output, not two.
+const ONE_REQUEST_USD = 0.2;
+
+async function budget(limitUsd = ONE_REQUEST_USD) {
   const directory = await mkdtemp(join(tmpdir(), 'refit-budget-test-'));
   roots.push(directory);
   return { directory, limitUsd };
@@ -87,7 +90,7 @@ it('refuses generation when its maximum output would exceed the remaining budget
 });
 
 it('retains an uncertain request reservation across restarts instead of spending again after an outage', async () => {
-  const configuration = await budget(0.03);
+  const configuration = await budget();
   const fetcher = vi.fn(async (url: string) => {
     if (url.endsWith('/input_tokens')) return new Response(JSON.stringify({ input_tokens: 1000 }));
     throw new TypeError('Connection lost after request dispatch');
@@ -101,7 +104,8 @@ it('retains an uncertain request reservation across restarts instead of spending
   ).rejects.toThrow(/budget exhausted/);
   expect(fetcher.mock.calls.filter(([url]) => !url.endsWith('/input_tokens'))).toHaveLength(1);
   const ledger = JSON.parse(await readFile(join(configuration.directory, 'budget.json'), 'utf8'));
-  expect(Object.values(ledger.reservations)).toEqual([19182000]);
+  // gpt-5.4-mini: $0.75 per million input and $4.50 per million output tokens, in nano-dollars.
+  expect(Object.values(ledger.reservations)).toEqual([1000 * 750 + MAX_OUTPUT_TOKENS * 4500]);
 });
 
 it('bounds input tokens before a generation and rejects inconsistent provider usage', async () => {
