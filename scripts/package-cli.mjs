@@ -35,6 +35,7 @@ else {
       'fast-xml-parser',
       'graphql',
       'parse5',
+      'pg',
       'tsx',
       'typescript-compiler',
       'yaml',
@@ -53,12 +54,8 @@ else {
     await copyFile(join(root, 'bin/refit.mjs'), join(stage, 'bin/refit.mjs'));
     await chmod(join(stage, 'bin/refit.mjs'), 0o755);
     await mkdir(join(stage, 'pipeline'));
-    await copyFile(
-      join(root, 'pipeline/stripe-sdk-metadata.json'),
-      join(stage, 'pipeline/stripe-sdk-metadata.json'),
-    );
     for (const name of await readdir(join(root, 'pipeline'))) {
-      if (name.endsWith('.ts') && !name.endsWith('.test.ts'))
+      if ((name.endsWith('.ts') || name.endsWith('.json')) && !name.endsWith('.test.ts'))
         await copyFile(join(root, 'pipeline', name), join(stage, 'pipeline', name));
     }
     await cp(join(root, 'pipeline/fixtures'), join(stage, 'pipeline/fixtures'), {
