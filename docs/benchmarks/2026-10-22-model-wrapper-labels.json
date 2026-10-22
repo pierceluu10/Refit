@@ -1842,6 +1842,338 @@
         "src/lib/health-data/parser/vision/openai.ts",
         "src/lib/health-data/parser/vision/google.ts"
       ]
+    },
+    {
+      "repo": "shenpeiheng/ai-smart-draw",
+      "commit": "ad43749a612f417d019720dbb227d62011e56303",
+      "list": "ai-sdk-openai",
+      "heldOut": true,
+      "sites": [
+        {
+          "file": "lib/model-provider.ts",
+          "line": 11,
+          "model": "gpt-4o-mini",
+          "provider": "openai",
+          "wrapper": "ai-sdk"
+        }
+      ],
+      "read": ["lib/model-provider.ts", "and the callers of resolveModel()"],
+      "dynamic": "resolveModel() returns { client, model } and callers call client(model)."
+    },
+    {
+      "repo": "esinecan/skynet-agent",
+      "commit": "0e7d1f46bc8e07be616774947dfc9f0a6408b64f",
+      "list": "ai-sdk-openai",
+      "heldOut": true,
+      "sites": [
+        {
+          "file": "src/lib/llm-service.ts",
+          "line": 104,
+          "model": "gemini-2.5-flash-preview-05-20",
+          "provider": "gemini",
+          "wrapper": "ai-sdk"
+        },
+        {
+          "file": "src/lib/llm-service.ts",
+          "line": 108,
+          "model": "gpt-4o-mini",
+          "provider": "openai",
+          "wrapper": "ai-sdk"
+        },
+        {
+          "file": "src/lib/llm-service.ts",
+          "line": 110,
+          "model": "claude-3-5-haiku-20241022",
+          "provider": "anthropic",
+          "wrapper": "ai-sdk"
+        },
+        {
+          "file": "src/lib/llm-service.ts",
+          "line": 118,
+          "model": "gemini-2.5-flash-preview-05-20",
+          "provider": "gemini",
+          "wrapper": "ai-sdk"
+        },
+        {
+          "file": "src/lib/motive-force-graph.ts",
+          "line": 128,
+          "model": "gemini-2.5-flash-preview-05-20",
+          "provider": "gemini",
+          "wrapper": "ai-sdk"
+        },
+        {
+          "file": "src/lib/motive-force-graph.ts",
+          "line": 132,
+          "model": "gpt-4o-mini",
+          "provider": "openai",
+          "wrapper": "ai-sdk"
+        },
+        {
+          "file": "src/lib/motive-force-graph.ts",
+          "line": 134,
+          "model": "claude-3-5-haiku-20241022",
+          "provider": "anthropic",
+          "wrapper": "ai-sdk"
+        },
+        {
+          "file": "src/lib/motive-force-graph.ts",
+          "line": 142,
+          "model": "gemini-2.5-flash-preview-05-20",
+          "provider": "gemini",
+          "wrapper": "ai-sdk"
+        },
+        {
+          "file": "src/lib/motive-force-graph.ts",
+          "line": 152,
+          "model": "gemini-2.5-flash-preview-05-20",
+          "provider": "gemini",
+          "wrapper": "ai-sdk"
+        },
+        {
+          "file": "src/lib/motive-force-graph.ts",
+          "line": 156,
+          "model": "gpt-4o-mini",
+          "provider": "openai",
+          "wrapper": "ai-sdk"
+        },
+        {
+          "file": "src/lib/motive-force-graph.ts",
+          "line": 158,
+          "model": "claude-3-5-haiku-20241022",
+          "provider": "anthropic",
+          "wrapper": "ai-sdk"
+        },
+        {
+          "file": "src/lib/motive-force-graph.ts",
+          "line": 166,
+          "model": "gemini-2.5-flash-preview-05-20",
+          "provider": "gemini",
+          "wrapper": "ai-sdk"
+        },
+        {
+          "file": "src/lib/motive-force.ts",
+          "line": 19,
+          "model": "gemini-2.5-flash-preview-05-20",
+          "provider": "gemini",
+          "wrapper": "ai-sdk"
+        },
+        {
+          "file": "src/lib/motive-force.ts",
+          "line": 196,
+          "model": "gemini-2.5-flash-preview-05-20",
+          "provider": "gemini",
+          "wrapper": "ai-sdk"
+        },
+        {
+          "file": "src/lib/embeddings.ts",
+          "line": 49,
+          "model": "text-embedding-004",
+          "provider": "gemini",
+          "wrapper": "ai-sdk"
+        },
+        {
+          "file": "src/lib/text-summarizer.ts",
+          "line": 58,
+          "model": "gemini-1.5-flash",
+          "provider": "gemini",
+          "wrapper": "ai-sdk"
+        },
+        {
+          "file": "src/lib/text-summarizer.ts",
+          "line": 63,
+          "model": "gpt-3.5-turbo",
+          "provider": "openai",
+          "wrapper": "ai-sdk"
+        }
+      ],
+      "read": [
+        "src/lib/llm-service.ts",
+        "src/lib/motive-force-graph.ts",
+        "src/lib/motive-force.ts",
+        "src/lib/embeddings.ts",
+        "src/lib/text-summarizer.ts"
+      ],
+      "dynamic": "Defaults reach google(this.modelName), openai(this.modelName) and anthropic(this.modelName) through LLMService's constructor config and a class field."
+    },
+    {
+      "repo": "kalil0321/stapply",
+      "commit": "5bb7a07bb15ff0baf40693367fb193af6bca25d9",
+      "list": "ai-sdk-openai",
+      "heldOut": true,
+      "sites": [
+        {
+          "file": "src/app/api/local-applications/[id]/route.ts",
+          "line": 131,
+          "model": "gpt-5",
+          "provider": "openai",
+          "wrapper": "ai-sdk"
+        },
+        {
+          "file": "src/app/api/local-applications/route.ts",
+          "line": 128,
+          "model": "gpt-4o-mini",
+          "provider": "openai",
+          "wrapper": "ai-sdk"
+        },
+        {
+          "file": "src/app/api/profile/parse-resume/route.ts",
+          "line": 101,
+          "model": "gpt-4.1-mini",
+          "provider": "openai",
+          "wrapper": "ai-sdk"
+        }
+      ],
+      "read": ["the three route files"]
+    },
+    {
+      "repo": "grillsdev/grills",
+      "commit": "dce96be6b12ede3a9ff5b8ea555aa16d42f859b9",
+      "list": "ai-sdk-openai",
+      "heldOut": true,
+      "sites": [
+        {
+          "file": "src/app/api/completion/models/route.ts",
+          "line": 35,
+          "model": "claude-sonnet-4-20250514",
+          "provider": "anthropic",
+          "wrapper": "ai-sdk"
+        },
+        {
+          "file": "src/app/api/completion/models/route.ts",
+          "line": 41,
+          "model": "gpt-3.5-turbo",
+          "provider": "openai",
+          "wrapper": "ai-sdk"
+        },
+        {
+          "file": "src/app/api/theme/route.ts",
+          "line": 38,
+          "model": "o4-mini",
+          "provider": "openai",
+          "wrapper": "ai-sdk"
+        }
+      ],
+      "read": ["src/app/api/completion/models/route.ts", "src/app/api/theme/route.ts"],
+      "dynamic": "A `let operator` is assigned createOpenRouter, createAnthropic or createOpenAI per case and called with a `let model`; the OpenRouter case's models are not counted. theme/route.ts's operator is OpenAI-compatible with a base URL from a table."
+    },
+    {
+      "repo": "nilenso/context-viewer",
+      "commit": "d776680798bde244671498f6f58da003a30fe91a",
+      "list": "ai-sdk-openai",
+      "heldOut": true,
+      "sites": [],
+      "read": ["src/segmentation.ts", "src/componentisation.ts"],
+      "dynamic": "Models come from config.model."
+    },
+    {
+      "repo": "andrelandgraf/aileen",
+      "commit": "35e8d58e1eb411771213f901c878cae227e7a1a7",
+      "list": "ai-sdk-openai",
+      "heldOut": true,
+      "sites": [
+        {
+          "file": "scripts/debug-ai-sdk-freestyle-mcp.ts",
+          "line": 24,
+          "model": "claude-sonnet-4-0",
+          "provider": "anthropic",
+          "wrapper": "ai-sdk"
+        },
+        {
+          "file": "scripts/debug-mastra-freestyle-mcp.ts",
+          "line": 29,
+          "model": "claude-sonnet-4-0",
+          "provider": "anthropic",
+          "wrapper": "ai-sdk"
+        },
+        {
+          "file": "src/mastra/agents/codegenAgent.ts",
+          "line": 218,
+          "model": "anthropic/claude-3-5-haiku-20241022",
+          "provider": "anthropic",
+          "wrapper": "ai-sdk"
+        },
+        {
+          "file": "src/mastra/agents/codegenAgent.ts",
+          "line": 258,
+          "model": "claude-3-5-haiku-20241022",
+          "provider": "anthropic",
+          "wrapper": "ai-sdk"
+        }
+      ],
+      "read": [
+        "src/mastra/agents/codegenAgent.ts",
+        "scripts/debug-ai-sdk-freestyle-mcp.ts",
+        "scripts/debug-mastra-freestyle-mcp.ts"
+      ],
+      "dynamic": "codegenAgent.ts:218 is split at '/' and the name passed to anthropic(modelName)."
+    },
+    {
+      "repo": "zbrave/vcompose",
+      "commit": "be6c09348c22a3ee4493259b15d499c0615ca055",
+      "list": "ai-sdk-openai",
+      "heldOut": true,
+      "sites": [],
+      "read": ["packages/mcp-server/src/tools/ai-generate-compose.ts", "src/lib/ai/ai-types.ts"],
+      "dynamic": "model ?? DEFAULT_MODELS[provider], a model table; the literal in ai-types.ts is a settings default."
+    },
+    {
+      "repo": "thediymaker/slurm-node-dashboard",
+      "commit": "d655bc1a45da689f2ff7342bd3ab92835c489be7",
+      "list": "ai-sdk-openai",
+      "heldOut": true,
+      "sites": [
+        {
+          "file": "actions/actions.tsx",
+          "line": 34,
+          "model": "gpt-3.5-turbo",
+          "provider": "openai",
+          "wrapper": "ai-sdk"
+        },
+        {
+          "file": "app/api/chat/route.ts",
+          "line": 22,
+          "model": "gpt-3.5-turbo",
+          "provider": "openai",
+          "wrapper": "ai-sdk"
+        }
+      ],
+      "read": ["actions/actions.tsx", "app/api/chat/route.ts"]
+    },
+    {
+      "repo": "ctxinf/webpage-summary",
+      "commit": "80cb0ffb57935aef15c4d8e047d2930f6f84c711",
+      "list": "ai-sdk-openai",
+      "heldOut": true,
+      "sites": [],
+      "read": [
+        "constants/model-settings.ts",
+        "and every candidate line in the 16 wrapper-importing files"
+      ],
+      "dynamic": "Models come from user settings and a model table."
+    },
+    {
+      "repo": "PBHAHAHA/Nuxt_Mkdirs",
+      "commit": "7148fd86b3b79b55089965200e076902eec39a62",
+      "list": "ai-sdk-openai",
+      "heldOut": true,
+      "sites": [
+        {
+          "file": "server/utils/ai.ts",
+          "line": 24,
+          "model": "gemini-2.0-flash-exp",
+          "provider": "gemini",
+          "wrapper": "ai-sdk"
+        },
+        {
+          "file": "server/utils/ai.ts",
+          "line": 34,
+          "model": "gpt-4o-mini",
+          "provider": "openai",
+          "wrapper": "ai-sdk"
+        }
+      ],
+      "read": ["server/utils/ai.ts"]
     }
-  ]
+  ],
+  "heldOut": "The 10 AI SDK OpenAI repositories ranked 16 to 25 were labelled after the detector was tuned on the first 40 (gateway(), helper returns, `let` assignments, dynamic imports, late providers, provider shapes) and before it was run on them. They are scored apart as a held-out check."
 }
