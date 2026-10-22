@@ -254,6 +254,20 @@ it('fails on live exposures that are past due or inside the window, unless accep
     failing: [],
     ignored: [],
   });
+  // A derived date or a report-only kind is listed but never fails the check.
+  const derived = exposure('derived', -10, ['a.ts']);
+  derived.deadline.derivedDate = true;
+  const endpoint = exposure('endpoint', 2, ['a.ts']);
+  endpoint.deadline.kind = 'endpoint' as DeadlineEntry['kind'];
+  expect(
+    deadlineCheck([derived, endpoint, exposure('past', -40, ['a.ts'])], new Map(), 30),
+  ).toEqual({
+    failWithin: 30,
+    status: 'fail',
+    failing: ['past'],
+    ignored: [],
+  });
+  expect(deadlineCheck([derived, endpoint], new Map(), 30).status).toBe('pass');
   for (const value of ['30', '0', ' 7 ', '3650'])
     expect(parseFailWithin(value)).toBe(Number(value));
   for (const value of ['', '-1', '30d', '1.5', '3651', 'soon', '1e3'])

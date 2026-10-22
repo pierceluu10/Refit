@@ -1,7 +1,7 @@
 import { lstat, readFile } from 'node:fs/promises';
 import { isAbsolute, join, relative, resolve } from 'node:path';
 import type { DeadlineExposure } from './deadline-exposure.ts';
-import { daysUntil } from './deadline-registry.ts';
+import { daysUntil, reportOnly } from './deadline-registry.ts';
 import { isObject, parseObject } from './specifications.ts';
 import { PipelineInputError } from './types.ts';
 
@@ -217,7 +217,9 @@ export function deadlineCheck(
   decisions: ReadonlyMap<string, IgnoreDecision>,
   failWithin: number,
 ) {
-  const due = exposures.filter((exposure) => exposure.days <= failWithin);
+  const due = exposures.filter(
+    (exposure) => exposure.days <= failWithin && !reportOnly(exposure.deadline),
+  );
   const failing = due.filter((exposure) => !decisions.get(exposure.deadline.id)?.ignoredBy.length);
   return {
     failWithin,
