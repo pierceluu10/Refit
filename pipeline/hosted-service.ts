@@ -52,6 +52,8 @@ export async function runHostedService(options: {
   publishDraft?: boolean;
   // The workflow's own notices, plus failed jobs at most once per target per hour.
   notify?: SlackSend;
+  // Applied to job fields before a failure notice cuts them to length.
+  redact?: (text: string) => string;
   host?: string;
   port?: number;
   intervalSeconds?: number;
@@ -89,7 +91,8 @@ export async function runHostedService(options: {
   await mkdir(root, { recursive: true, mode: 0o700 });
   const directory = await realpath(root);
   const store = await openHostedStore(options.database);
-  const notifyFailures = options.notify && failedJobNotifier(options.database, options.notify);
+  const notifyFailures =
+    options.notify && failedJobNotifier(options.database, options.notify, options.redact);
   await notifyFailures?.();
   const running = new Map<number, AbortController>();
   let waiting: AbortController | undefined;

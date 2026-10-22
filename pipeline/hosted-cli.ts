@@ -196,7 +196,7 @@ try {
   } else if (command === 'serve') {
     if (!values.state) throw new PipelineInputError(USAGE);
     logging = hostedLogging(process.env);
-    const { log, notify } = logging;
+    const { log, notify, redact } = logging;
     const app = githubAppConfiguration(process.env);
     const webhookSecret = validateServiceSecret(
       process.env.REFIT_WEBHOOK_SECRET,
@@ -223,6 +223,7 @@ try {
         repairAttempts: Number(values['repair-attempts'] ?? 0),
         publishDraft: values['publish-draft'],
         notify,
+        redact,
         host: values.host,
         port: values.port === undefined ? undefined : Number(values.port),
         intervalSeconds: values.interval === undefined ? undefined : Number(values.interval),

@@ -9,6 +9,7 @@ import { afterEach, expect, it, vi } from 'vitest';
 import {
   checkHostedHealth,
   failedJobNotifier,
+  hostedRedactor,
   filterHostedStatus,
   hostedLogging,
   JOBS_SHOWN,
@@ -361,9 +362,13 @@ it.skipIf(!DATABASE)(
       return claimed!.job;
     };
     const sent: string[] = [];
-    const notify = failedJobNotifier(pool, async (text) => {
-      sent.push(text);
-    });
+    const notify = failedJobNotifier(
+      pool,
+      async (text) => {
+        sent.push(text);
+      },
+      hostedRedactor(SECRETS),
+    );
     await fail(application, 'Error: before start');
     await notify();
     expect(sent).toEqual([]);
@@ -405,6 +410,14 @@ it.skipIf(!DATABASE)(
     await notify();
     expect(sent).toHaveLength(3);
     expect(sent[2]).toContain(`hosted job ${later} failed (error: Error: an hour later)`);
+
+    // A secret that the notice's length cut would split is redacted before the cut.
+    vi.setSystemTime(new Date('2026-10-22T05:02:00Z'));
+    await fail(billing, `Error: ${'x'.repeat(170)}${SECRETS.OPENAI_API_KEY} tail`);
+    await notify();
+    expect(sent).toHaveLength(4);
+    console.log('Cut notice:', sent[3]);
+    expect(sent[3]).not.toContain('sk-proj');
   },
   30_000,
 );

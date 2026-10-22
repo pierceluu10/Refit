@@ -237,7 +237,13 @@ export function filterHostedStatus<
 // Sends one notice per failed job, at most one per target per hour. Failures already stored when
 // the worker starts are not sent again. shortcut: the hourly limit is in memory, so a restart can
 // send one more notice per target; move it to PostgreSQL when more than one worker runs.
-export function failedJobNotifier(pool: Pool, send: SlackSend) {
+// Notices cut and escape their text, so secrets are redacted from job fields before the notice
+// is built: a secret split by the cut would otherwise survive redaction of the finished text.
+export function failedJobNotifier(
+  pool: Pool,
+  send: SlackSend,
+  redact: (text: string) => string = (text) => text,
+) {
   let cursor: string | undefined;
   const sent = new Map<string, number>();
   return async () => {
@@ -266,7 +272,13 @@ export function failedJobNotifier(pool: Pool, send: SlackSend) {
       const last = sent.get(job.targetId);
       if (last !== undefined && Date.now() - last < NOTICE_INTERVAL_MS) continue;
       sent.set(job.targetId, Date.now());
-      await send(hostedFailureNotice(job));
+      await send(
+        hostedFailureNotice({
+          ...job,
+          repository: redact(job.repository),
+          message: job.message && redact(job.message),
+        }),
+      );
     }
   };
 }
