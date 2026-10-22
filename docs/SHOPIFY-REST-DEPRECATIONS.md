@@ -22,19 +22,19 @@ The generated resources occasionally leave a resource out of one version and res
 
 30 endpoints and 12 fields, read on 2026-10-22:
 
-| Removed in | Endpoints | Fields |
-| --- | --- | --- |
-| 2022-04 | | `Metafield.value_type`, `PriceRule.prerequisite_saved_search_ids` |
-| 2022-07 | `POST orders/<order_id>/fulfillments.json`, `PUT orders/<order_id>/fulfillments/<id>.json`, and its `cancel`, `complete` and `open` actions (the order-based fulfillment writes) | `FulfillmentService.format` |
-| 2022-10 | | `Shop.cookie_consent_level`, `Variant.inventory_quantity_adjustment` |
-| 2023-01 | `AndroidPayKey` (3 endpoints) | |
-| 2023-04 | | `Order.payment_details`, `Order.processing_method` |
-| 2023-07 | `POST application_credits.json` | |
-| 2023-10 | `CustomerSavedSearch` (7 endpoints) | |
-| 2024-04 | `Report` (5 endpoints) | |
-| 2025-01 | `GET checkouts/<checkout_id>/payments.json` and its `count` | `Customer.accepts_marketing`, `Customer.accepts_marketing_updated_at`, `Order.gateway`, `Shop.eligible_for_card_reader_giveaway` |
-| 2025-07 | `CustomerAddress` (7 endpoints: `customers/<customer_id>/addresses…`) | |
-| 2026-04 | | `FulfillmentService.permits_sku_sharing` |
+| Removed in | Endpoints                                                                                                                                                                        | Fields                                                                                                                           |
+| ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| 2022-04    |                                                                                                                                                                                  | `Metafield.value_type`, `PriceRule.prerequisite_saved_search_ids`                                                                |
+| 2022-07    | `POST orders/<order_id>/fulfillments.json`, `PUT orders/<order_id>/fulfillments/<id>.json`, and its `cancel`, `complete` and `open` actions (the order-based fulfillment writes) | `FulfillmentService.format`                                                                                                      |
+| 2022-10    |                                                                                                                                                                                  | `Shop.cookie_consent_level`, `Variant.inventory_quantity_adjustment`                                                             |
+| 2023-01    | `AndroidPayKey` (3 endpoints)                                                                                                                                                    |                                                                                                                                  |
+| 2023-04    |                                                                                                                                                                                  | `Order.payment_details`, `Order.processing_method`                                                                               |
+| 2023-07    | `POST application_credits.json`                                                                                                                                                  |                                                                                                                                  |
+| 2023-10    | `CustomerSavedSearch` (7 endpoints)                                                                                                                                              |                                                                                                                                  |
+| 2024-04    | `Report` (5 endpoints)                                                                                                                                                           |                                                                                                                                  |
+| 2025-01    | `GET checkouts/<checkout_id>/payments.json` and its `count`                                                                                                                      | `Customer.accepts_marketing`, `Customer.accepts_marketing_updated_at`, `Order.gateway`, `Shop.eligible_for_card_reader_giveaway` |
+| 2025-07    | `CustomerAddress` (7 endpoints: `customers/<customer_id>/addresses…`)                                                                                                            |                                                                                                                                  |
+| 2026-04    |                                                                                                                                                                                  | `FulfillmentService.permits_sku_sharing`                                                                                         |
 
 ## Deadlines
 
@@ -55,6 +55,7 @@ Calls come from the REST evidence `scanShopify` already collects, which `refit s
 When the code leaves the endpoint open, the call matches only if every endpoint it could be is removed. That happens with a path but no method, or with `save`, which could be POST or PUT. So `fulfillment.save()`, which today posts to `fulfillments.json`, is never reported because of the removed `orders/<order_id>/fulfillments.json`.
 
 Each reported call has:
+
 - **file and line;**
 - **the call** as `scanShopify` read it;
 - **the removed endpoint;**
@@ -62,13 +63,60 @@ Each reported call has:
   - `removed`: the version the app is served, meaning its newest pin raised to the oldest supported version, no longer has the endpoint;
   - `upcoming`: it still does;
   - `unknown`: no pin was found;
-- **`deadline`:** the registry sunset of `lastVersion`.
+- **`deadline`:** the registry sunset of `lastVersion`. It is null when the registry has no entry for that version, as for versions retired before the registry begins (2022-04, for example).
 
 The output also lists every REST call `scanShopify` found (`rest`), so the inventory shows which REST endpoints an app uses.
 
 ## Measurement
 
-<!-- filled in below -->
+The frozen 200-app Shopify set (`docs/benchmarks/2026-10-16-shopify-fresh-repos.json`) was scanned statically: shallow checkouts at the pinned commits, nothing installed or run. All numbers are from Refit `c9f854f`, in a clean detached worktree. Results are in `docs/benchmarks/2026-10-22-shopify-rest-results.json`.
+
+```sh
+node scripts/shopify-rest-benchmark.mjs --root <dir> --labels docs/benchmarks/2026-10-22-shopify-rest-labels.json
+```
+
+- **Scanned:** 198 of 200. `Crunchyman-ralph/shopify-app-node-monorepo-express-vite` and `strapi-community/shopify` exceed Refit's scan limits.
+- **REST usage:** 48 apps make REST Admin calls in live code, 181 calls in all.
+- **Calls to an endpoint with a removal: 1 app.** `mikelaurenzo7-collab/MANUSshopabot` posts to `orders/<order_id>/fulfillments.json` (`server/adapters/ecommerce/shopifyAdapter.ts:261`), which the generated resources drop in 2022-07. The version the app is served, its 2024-01 pin raised to the oldest supported 2026-01, no longer has it.
+  - The registry has no sunset for that endpoint's last version (2022-04), so the call has no deadline date. It has been gone since long before the registry begins.
+  - No app calls a `CustomerAddress`, `CustomerSavedSearch`, `Report`, `AndroidPayKey`, `ApplicationCredit` or checkout-payments endpoint.
+
+### Labels, precision and recall
+
+Labels are in `docs/benchmarks/2026-10-22-shopify-rest-labels.json`. They were labelled blind:
+
+- **Candidates:** `scripts/shopify-rest-label-candidates.mjs`, an independent text search that imports no pipeline code.
+- **Labellers:** fresh-context AI-assisted agents that read the checkouts, searched beyond the candidates, and used the generated list as their reference for what is removed. They never saw Refit output. Every label was committed before Refit scanned the set.
+- **Sample:** 20 apps, 10 seeded from the 67 with REST usage and 10 from the 133 without, all within scan limits counted before scanning.
+- **Extension:** the sample has no call to a removed endpoint, so the labels were extended the same way to every other app with REST usage (57 more), again before any scan.
+- This is one pass, not second-labelled.
+
+The unit is a REST request site in live code, by file and line.
+
+| Unit                                          | Labelled apps scanned | Labelled sites |                 Precision |        Recall |
+| --------------------------------------------- | --------------------: | -------------: | ------------------------: | ------------: |
+| Call to a removed endpoint, 20-app sample     |                    19 |              0 | not measured (0 reported) |  not measured |
+| Call to a removed endpoint, all labelled apps |                    76 |              1 |             100% (1 of 1) | 100% (1 of 1) |
+| REST request site, 20-app sample              |                    19 |             42 |                     77.8% |         33.3% |
+| REST request site, all labelled apps          |                    76 |            257 |                     78.5% |         55.3% |
+
+**The removed-endpoint row for all labelled apps is after a fix made on these labels.** The first run (`a7722f9`) reported nothing and missed the one call (recall 0%).
+
+- **What it missed:** MANUSshopabot builds the URL as `${this.baseUrl(credentials)}/orders/${orderId}/fulfillments.json`, with the versioned base in a helper and the method in a wrapper's options. `scanShopify` reads a REST URL only when `/admin/api/<version>/` is in the same literal.
+- **The fix, in this module only:**
+  - It reads a bare REST path in a file that builds an `/admin/api/` URL, when the path's first segment is a REST resource root (`orders`, `products`, …).
+  - It takes the method from the call's options.
+  - It reads a version that ends a base URL as a pin.
+- **What it does not change:** `scanShopify`, the Shopify agent's REST stop rule, and `refit scan` are all unchanged.
+- **A first version of the fix also matched an app's own routes such as `/ai/products.json`, adding 16 false REST sites. The resource-root rule removed 12 of them. The other 4 are three requests to a storefront's public `${storeUrl}/products.json` (not the Admin API) and one Admin path held in a variable that the labels place at the helper sending it.
+
+One removed-endpoint call is too few to estimate a rate. It shows the matcher and the fix work on that form.
+
+The REST-site rows measure the evidence `scanShopify` collects, plus the relative paths above, against a strict reading of "request site":
+
+- **False positives:** most are lines that create a REST client (`new shopify.clients.Rest(...)`), which `scanShopify` reports and the labels count as not a request. A few are generic wrappers whose path comes from the caller.
+- **False negatives:** most are calls through an app's own helper whose path or base is built elsewhere, which `scanShopify` cannot follow. A labelled `src/app/api/.../test/route.ts` API route also counts, which Refit's test-path rule treats as a test.
+- **Effect on matching:** a REST call Refit cannot see cannot be matched to a removal, so removed-endpoint recall is bounded by this recall.
 
 ## Blocked
 
