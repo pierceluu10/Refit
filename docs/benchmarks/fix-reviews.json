@@ -239,6 +239,20 @@
         "upgradeComplete": "yes: stripe-node 22.6.2 to 23.0.0.",
         "wouldMerge": "yes, after its checks pass locally and checkout is tried once in test mode."
       }
+    },
+    {
+      "repo": "Evolvededen/niore-platform",
+      "pullRequest": "https://github.com/refit-dev/niore-platform/pull/1",
+      "reviewedAt": "2026-10-21",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: the one Checkout Session creation in lib/stripe.ts sends exactly ['card'], which the owner-approved card rule moves to allowed_payment_method_types.",
+        "bothVersions": "not needed: the shared STRIPE_API_VERSION constant and the two script literals move to 2026-09-30.endive in the same patch; every client reading the constant, including the lazy() Proxy clients in the API routes, is now traced.",
+        "nothingUnrelated": "yes: one parameter, one constant, two script pins, the stripe dependency and its pnpm lockfile entry.",
+        "pleaseCheck": "allowed_payment_method_types filters the methods Stripe finds eligible, so cards must stay enabled for the account. The one untraced read left unchanged, item.description in scripts/sync-stripe-catalog.mjs, is the app's own catalog data. Validation needed the 4g workspace profile; the generated stripe-mock check did not run.",
+        "upgradeComplete": "yes: stripe-node 22.2.1 to 23.0.0.",
+        "wouldMerge": "yes, after confirming cards stay enabled and running checkout once in test mode."
+      }
     }
   ]
 }
