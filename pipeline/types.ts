@@ -51,6 +51,7 @@ export interface Finding extends Location {
       | { rule: 'stripe-invoice-subscription-helper' }
       | { rule: 'stripe-invoice-price-id-helper' }
       | { rule: 'stripe-checkout-shipping-details-helper' }
+      | { rule: 'stripe-coupon-id-helper' }
       | { rule: 'ai-version-tolerant' };
   };
 }
@@ -67,8 +68,10 @@ export interface SourceEdit {
     | 'stripe-invoice-subscription-helper'
     | 'stripe-invoice-price-id-helper'
     | 'stripe-checkout-shipping-details-helper'
+    | 'stripe-coupon-id-helper'
     | 'stripe-card-allowed-payment-method-types'
     | 'stripe-listed-allowed-payment-method-types'
+    | 'stripe-promotion-code-promotion'
     | 'stripe-api-version'
     | 'model-retirement';
 }

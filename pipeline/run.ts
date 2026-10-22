@@ -5,6 +5,7 @@ import { proposeAiPatch } from './ai-patches.ts';
 import { assessMigration, buildAssessmentEvidence } from './assessment.ts';
 import { applySourceEdits, editCovers, isFieldMove, proposePatch, renderPatch } from './patches.ts';
 import { stripePackageUpgrade } from './stripe-package-upgrade.ts';
+import { REQUEST_MOVE_RULES } from './stripe-request-moves.ts';
 import { propertyExists } from './stripe-field-moves.ts';
 import { readRepository } from './repository.ts';
 import {
@@ -50,6 +51,7 @@ import {
   INVOICE_SUBSCRIPTION_HELPER_RULE,
   INVOICE_PRICE_ID_HELPER_RULE,
   CHECKOUT_SHIPPING_HELPER_RULE,
+  COUPON_ID_HELPER_RULE,
   HELPER_RULES,
   SUBSCRIPTION_PERIOD_RULE,
   validateStripeSubscriptionPeriodContract,
@@ -191,6 +193,9 @@ async function runOpenApiPipeline(options: {
       'collected_information',
       'shipping_details',
     ]),
+    [COUPON_ID_HELPER_RULE]:
+      propertyExists(after.schemas, ['promotion_code', 'promotion', 'coupon']) &&
+      propertyExists(after.schemas, ['discount', 'source', 'coupon']),
   } as Record<string, boolean>;
   const targetVersion = isObject(after.document.info) ? after.document.info.version : undefined;
   const versionEdits =
@@ -242,7 +247,10 @@ async function runOpenApiPipeline(options: {
   const patchRequested = Boolean(options.proposePatch || options.aiPatch);
   const cardUpgrade =
     patchRequested &&
-    analyzedEdits.some((edit) => PAYMENT_METHOD_RENAME_RULES.has(edit.rule ?? '')) &&
+    analyzedEdits.some(
+      (edit) =>
+        PAYMENT_METHOD_RENAME_RULES.has(edit.rule ?? '') || REQUEST_MOVE_RULES.has(edit.rule ?? ''),
+    ) &&
     bumpsVersion &&
     upgradeRequired &&
     typeof targetVersion === 'string'
@@ -259,6 +267,8 @@ async function runOpenApiPipeline(options: {
     everyPinMoves &&
     (!patchRequested || !upgradeRequired || Boolean(cardUpgrade && 'upgrade' in cardUpgrade));
   movedTo[LISTED_PAYMENT_METHODS_RULE] = movedTo[CARD_PAYMENT_METHOD_RULE];
+  // Reviewed request moves send a parameter only the target version accepts, like the card rename.
+  for (const rule of REQUEST_MOVE_RULES) movedTo[rule] = movedTo[CARD_PAYMENT_METHOD_RULE];
   // The period helper reads either API version, so it does not depend on the version pin.
   const edits = analyzedEdits.filter((edit) => !isFieldMove(edit) || movedTo[edit.rule!]);
   const ruleEdits = edits.filter(isFieldMove);

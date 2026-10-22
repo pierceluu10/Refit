@@ -16,6 +16,7 @@ import type { OperationReplacement } from './provider-operation-replacements.ts'
 import type { RequestPropertyRename } from './provider-request-renames.ts';
 import type { PropertyMove } from './provider-renames.ts';
 import { removedParameterProperty, requestPropertyEdit } from './request-migration.ts';
+import { requestMoveEdit } from './stripe-request-moves.ts';
 import {
   CARD_PAYMENT_METHOD_RULE,
   LISTED_PAYMENT_METHODS_RULE,
@@ -36,6 +37,9 @@ import {
   INVOICE_PRICE_ID_HELPER,
   INVOICE_PRICE_ID_HELPER_RULE,
   invoicePriceIdHelperEdit,
+  COUPON_ID_HELPER,
+  COUPON_ID_HELPER_RULE,
+  couponIdHelperEdit,
   CHECKOUT_SHIPPING_HELPER,
   CHECKOUT_SHIPPING_HELPER_RULE,
   checkoutShippingHelperEdit,
@@ -975,6 +979,24 @@ export function analyzeRepository(
               new Set(methods).size === methods.length
             ? LISTED_PAYMENT_METHODS_RULE
             : undefined;
+      // A reviewed move to the documented replacement (stripe-request-moves.ts), which also rides
+      // with the version bump and, for TypeScript, the SDK upgrade in run.ts.
+      const moved =
+        confirmed &&
+        removal.move &&
+        !rule &&
+        (ts.isPropertyAssignment(property) || ts.isShorthandPropertyAssignment(property))
+          ? requestMoveEdit(property)
+          : undefined;
+      if (moved && 'replacement' in moved)
+        edits.push({
+          file: location(property).file,
+          start: moved.start,
+          end: moved.end,
+          replacement: moved.replacement,
+          changeId: removal.id,
+          rule: moved.rule,
+        });
       if (confirmed && removal.cardReplacement && rule && ts.isPropertyAssignment(property)) {
         const quote = ts.isStringLiteral(property.name) ? property.name.getText()[0] : '';
         edits.push({
@@ -994,7 +1016,9 @@ export function analyzeRepository(
         requestParameter: { operationId: removal.operationId, parameter: removal.parameter },
         ...helperEvidence(call.client),
         reason:
-          'The target API version no longer accepts this request parameter, and no reviewed replacement exists; removing or replacing it changes request behavior.',
+          moved && 'reason' in moved
+            ? `The target API version no longer accepts this request parameter. ${moved.reason}`
+            : 'The target API version no longer accepts this request parameter, and no reviewed replacement exists; removing or replacing it changes request behavior.',
       });
     }
   }
@@ -1226,6 +1250,17 @@ export function analyzeRepository(
       (webhooks?.origin(receiver) || provenance === 'declared-type' || provenance === 'sdk')
     ) {
       const edit = invoicePriceIdHelperEdit(node, location(node).file, change.id);
+      if (edit && addEdit(edit)) return edit.rule;
+    }
+    // `promotionCode.coupon.id` and `discount.coupon.id`: the coupon moved under `promotion`/`source`.
+    if (
+      provider.packageName === STRIPE.packageName &&
+      (change.schema === 'promotion_code' || change.schema === 'discount') &&
+      change.property === 'coupon' &&
+      !propertyMoves.some((move) => move.schema === change.schema && move.removed === 'coupon') &&
+      (webhooks?.origin(receiver) || provenance === 'declared-type' || provenance === 'sdk')
+    ) {
+      const edit = couponIdHelperEdit(node, location(node).file, change.id);
       if (edit && addEdit(edit)) return edit.rule;
     }
     // Checkout Session shipping details moved under `collected_information`.
@@ -1583,7 +1618,8 @@ export function analyzeRepository(
                 ...(migration === SUBSCRIPTION_PERIOD_HELPER_RULE ||
                 migration === INVOICE_SUBSCRIPTION_HELPER_RULE ||
                 migration === INVOICE_PRICE_ID_HELPER_RULE ||
-                migration === CHECKOUT_SHIPPING_HELPER_RULE
+                migration === CHECKOUT_SHIPPING_HELPER_RULE ||
+                migration === COUPON_ID_HELPER_RULE
                   ? { migration: { rule: migration } }
                   : {}),
                 schema: webhook.schema,
@@ -1719,6 +1755,7 @@ export function analyzeRepository(
     INVOICE_SUBSCRIPTION_HELPER,
     INVOICE_PRICE_ID_HELPER,
     CHECKOUT_SHIPPING_HELPER,
+    COUPON_ID_HELPER,
   ] as string[];
   // Node16/NodeNext resolution requires explicit extensions on relative imports.
   const nodeModuleResolution = (repository.configurations ?? []).some((file) =>
@@ -1752,6 +1789,7 @@ export function analyzeRepository(
         INVOICE_SUBSCRIPTION_HELPER_RULE,
         INVOICE_PRICE_ID_HELPER_RULE,
         CHECKOUT_SHIPPING_HELPER_RULE,
+        COUPON_ID_HELPER_RULE,
       ] as const
     ).find((rule) => edits.some((edit) => edit.rule === rule))!;
     const directories = helperFiles.map((file) => posix.dirname(file).split('/'));
