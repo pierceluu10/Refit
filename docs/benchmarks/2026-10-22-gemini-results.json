@@ -9,7 +9,7 @@
     "errors": 6,
     "timedOut": 0,
     "declaresOldSdk": 6,
-    "exposedToOldSdkEndOfSupport": 22,
+    "exposedToShippedDeadlines": 22,
     "withGeminiIds": 44,
     "withLivePins": 38,
     "pins": {
