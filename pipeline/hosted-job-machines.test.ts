@@ -217,10 +217,14 @@ it.skipIf(!DATABASE)(
       () => status(control.url),
       (value) => value.jobs[0]?.status === 'finished',
     );
+    // refit doctor stops before checks when the approved image is not present locally.
+    const outcome = process.env.REFIT_DOCKER_IMAGE
+      ? { status: 'validated', readiness: 'ready-for-validation' }
+      : { status: 'needs-attention', readiness: 'needs-attention' };
     expect(registry.jobs[0]).toMatchObject({
       targetId: target,
       attempts: 1,
-      receipt: { status: 'needs-attention', revision: sample.head, readiness: 'needs-attention' },
+      receipt: { ...outcome, revision: sample.head },
     });
     const [created] = control.fake.machines.values();
     expect(created).toMatchObject({
