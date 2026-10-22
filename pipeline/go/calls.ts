@@ -415,8 +415,10 @@ function traceModel(
           }
         : stop(`\`${text(node)}\` is not a model constant Refit knows from the SDK.`);
     }
-    // A struct field: every value the package gives it in a struct literal or an assignment.
-    const values = fieldValues(context, file, name);
+    // A field of a package struct type: every value the package gives it in a literal of that
+    // type or an assignment through a receiver of that type.
+    const owner = operand.type === 'identifier' ? structTypeOf(context, file, operand) : undefined;
+    const values = owner ? fieldValues(context, file, name, owner) : [];
     return values.length
       ? merge(
           values.map((item) =>
@@ -524,28 +526,50 @@ function packageFiles(context: Context, file: string) {
   return [...context.files.keys()].filter((path) => posix.dirname(path) === directory);
 }
 
-// Values a package gives a struct field: `Field: value` in struct literals that are not SDK params,
-// and `x.Field = value`.
-function fieldValues(context: Context, file: string, name: string) {
+// The package struct type a variable holds: from a receiver or parameter typed `T` or `*T`, or a
+// value built as `T{…}` or `&T{…}`.
+function structTypeOf(context: Context, file: string, node: Node): string | undefined {
+  const types = bindings(context, file, node, node.text).map((binding) => {
+    let type = binding.kind === 'value' ? binding.node : field(binding.node, 'type');
+    while (type && (type.type === 'unary_expression' || type.type === 'pointer_type'))
+      type = type.type === 'unary_expression' ? field(type, 'operand') : named(type)[0];
+    if (type?.type === 'composite_literal') type = field(type, 'type');
+    return type?.type === 'type_identifier' ? type.text : undefined;
+  });
+  return types.length && types.every((type) => type && type === types[0]) ? types[0] : undefined;
+}
+
+function receiverType(declaration: Node) {
+  let type = named(named(field(declaration, 'receiver'))[0]).find(
+    (item) => item.type === 'pointer_type' || item.type === 'type_identifier',
+  );
+  if (type?.type === 'pointer_type') type = named(type)[0];
+  return type?.text;
+}
+
+// Values a package gives field `name` of struct type `owner`: `name: value` in `owner{…}` literals,
+// and `recv.name = value` in methods of `owner`.
+function fieldValues(context: Context, file: string, name: string, owner: string) {
   const found: { node: Node; file: string }[] = [];
   for (const path of packageFiles(context, file)) {
     const root = context.tree(path)?.rootNode;
     if (!root) continue;
-    const fileImports = imports(root);
-    for (const element of root.descendantsOfType('keyed_element')) {
-      const [key, value] = named(element);
-      if (key?.text !== name || !value) continue;
-      const type = element!.parent?.parent?.childForFieldName('type');
-      const sdkType =
-        type?.type === 'qualified_type' && fileImports.has(field(type, 'package')!.text);
-      if (sdkType) continue;
-      found.push({ node: named(value)[0] ?? value, file: path });
+    for (const literal of root.descendantsOfType('composite_literal')) {
+      if (field(literal!, 'type')?.text !== owner) continue;
+      for (const element of named(field(literal!, 'body'))) {
+        const [key, value] = named(element);
+        if (element.type === 'keyed_element' && key?.text === name && value)
+          found.push({ node: named(value)[0] ?? value, file: path });
+      }
     }
-    for (const assignment of root.descendantsOfType('assignment_statement')) {
-      const [left] = named(field(assignment!, 'left'));
-      const [right] = named(field(assignment!, 'right'));
-      if (left?.type === 'selector_expression' && field(left, 'field')?.text === name && right)
-        found.push({ node: right, file: path });
+    for (const method of root.descendantsOfType('method_declaration')) {
+      if (receiverType(method!) !== owner) continue;
+      for (const assignment of method!.descendantsOfType('assignment_statement')) {
+        const [left] = named(field(assignment!, 'left'));
+        const [right] = named(field(assignment!, 'right'));
+        if (left?.type === 'selector_expression' && field(left, 'field')?.text === name && right)
+          found.push({ node: right, file: path });
+      }
     }
   }
   return found;
