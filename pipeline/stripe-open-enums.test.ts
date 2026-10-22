@@ -1,5 +1,10 @@
 import { expect, it } from 'vitest';
-import { crossesOpenEnums, openEnumRepair } from './stripe-open-enums.ts';
+import {
+  crossesOpenEnums,
+  keepsPartialRestore,
+  openEnumRepair,
+  restorableOpenEnumErrors,
+} from './stripe-open-enums.ts';
 
 // Shapes from the Supabase subscription starter that stripe-node 23 stops compiling.
 const types = `import Stripe from 'stripe';
@@ -85,6 +90,42 @@ it('repairs nothing when any introduced error is outside the open-enum shapes', 
     undefined,
   );
   expect(openEnumRepair(files, [])).toBeUndefined();
+});
+
+it('picks the open-enum errors out of a mix, so an AI repair gets only the rest', () => {
+  const index = at(types, 'types.ts', 'Stripe.PaymentMethod.Type]', 'TS2538');
+  const element = at(admin, 'libs/admin.ts', 'payment_method[payment_method.type]', 'TS7053');
+  // Errors of any other shape stay with the model.
+  const other = at(admin, 'libs/admin.ts', 'id: price.id', 'TS2551');
+  const unrelated = at(admin, 'libs/admin.ts', 'id: price.id', 'TS2322');
+  const restorable = restorableOpenEnumErrors(files, [index, other, element, unrelated]);
+  expect(restorable).toEqual([index, element]);
+  const repaired = Object.fromEntries(
+    openEnumRepair(files, restorable)!.map((file) => [file.path, file.content]),
+  );
+  expect(repaired['types.ts']).toContain(
+    'Stripe.PaymentMethod[Extract<Stripe.PaymentMethod.Type, keyof Stripe.PaymentMethod>]',
+  );
+  expect(repaired['libs/admin.ts']).toContain('    id: price.id,');
+  expect(restorableOpenEnumErrors(files, [other])).toEqual([]);
+});
+
+it('keeps a partial restore only when the checks fail on nothing but the errors it left', () => {
+  const error = (key: string) => ({ key });
+  const introduced = [error('types.ts TS2538'), error('route.ts TS2353'), error('a.ts TS2551')];
+  const restored = [error('types.ts TS2538')];
+  expect(keepsPartialRestore(introduced, restored, [error('route.ts TS2353')])).toBe(true);
+  expect(
+    keepsPartialRestore(introduced, restored, [error('route.ts TS2353'), error('a.ts TS2551')]),
+  ).toBe(true);
+  // A restored error that stays, or a new one, means the restore did not do what it claims.
+  expect(
+    keepsPartialRestore(introduced, restored, [error('types.ts TS2538'), error('a.ts TS2551')]),
+  ).toBe(false);
+  expect(keepsPartialRestore(introduced, restored, [error('b.ts TS2322')])).toBe(false);
+  // A failure with no type errors is something else; a full restore is kept only if it passes.
+  expect(keepsPartialRestore(introduced, restored, [])).toBe(false);
+  expect(keepsPartialRestore(restored, restored, [error('types.ts TS2538')])).toBe(false);
 });
 
 it('applies only to an upgrade across stripe-node 22.4.0', () => {

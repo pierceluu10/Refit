@@ -27,6 +27,13 @@ async function report(): Promise<Report> {
       status: 'regression',
       revision: 'a'.repeat(40),
       image: `sha256:${'b'.repeat(64)}`,
+      runtime: {
+        configured: 'node:22-alpine',
+        image: 'node:22-alpine',
+        nodeVersion: '22.23.3',
+        declarations: [],
+        reason: 'The repository declares no Node.js version.',
+      },
       command: ['npm', 'test'],
       baselineCommand: ['npm', 'test'],
       archiveHash: 'c'.repeat(64),
@@ -164,6 +171,13 @@ async function renameReport(evidence?: Record<string, unknown>): Promise<Report>
       status: 'passed',
       revision: 'a'.repeat(40),
       image: `sha256:${'b'.repeat(64)}`,
+      runtime: {
+        configured: 'node:22-alpine',
+        image: 'node:22-alpine',
+        nodeVersion: '22.23.3',
+        declarations: [],
+        reason: 'The repository declares no Node.js version.',
+      },
       command: ['npm', 'run', 'test:after'],
       baselineCommand: ['npm', 'test'],
       archiveHash: 'c'.repeat(64),
@@ -293,6 +307,12 @@ it('says when the open-enum repair restored widened Stripe enum values', async (
   const plain = createReviewArtifacts(value).files['pull-request.md'];
   expect(plain).not.toContain('OtherString');
   value.validation.repair.stopReason = 'open-enum-repair';
+  expect(createReviewArtifacts(value).files['pull-request.md']).toContain(
+    'Restores the known values of the Stripe enums that stripe-node 22.4.0 widened with `OtherString`',
+  );
+  // A restore of part of the errors, before an AI repair fixed the rest, is disclosed too.
+  value.validation.repair.stopReason = 'checks-passed';
+  value.validation.repair.openEnumRestored = true;
   expect(createReviewArtifacts(value).files['pull-request.md']).toContain(
     'Restores the known values of the Stripe enums that stripe-node 22.4.0 widened with `OtherString`',
   );

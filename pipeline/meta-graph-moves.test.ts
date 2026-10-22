@@ -371,6 +371,26 @@ fetch('https://graph.facebook.com/v18.0/1/media', { method: 'POST', body: JSON.s
     expect(proposal.moves.map((move) => move.line)).toEqual([4]);
   });
 
+  it('stops the WhatsApp and Messenger edges and parameters found in the platform sample', async () => {
+    const reason = (line: number) =>
+      `a.js:${line}: WhatsApp Business Platform and Messenger Platform requests follow their own changelogs, which the change list does not cover`;
+    // Request shapes from docs/benchmarks/2026-10-22-meta-platform-labels.json, with literal versions.
+    const proposal = await propose({
+      'a.js': `fetch('https://graph.facebook.com/v18.0/1/calls', { method: 'POST', body: JSON.stringify({ to, action: 'connect' }) });
+fetch('https://graph.facebook.com/v18.0/1/smb_app_data', { method: 'POST', body: JSON.stringify({ sync_type: 'history' }) });
+fetch('https://graph.facebook.com/v18.0/1/request_display_name', { method: 'POST', body: JSON.stringify({ new_display_name }) });
+fetch('https://graph.facebook.com/v18.0/1/pin', { method: 'DELETE' });
+fetch('https://graph.facebook.com/v18.0/1/settings', { method: 'POST', body: JSON.stringify({ calling }) });
+fetch('https://graph.facebook.com/v18.0/message_template_library?fields=name');
+fetch('https://graph.facebook.com/v18.0/1/moderate_conversations', { method: 'POST', body: JSON.stringify({ user_ids, actions }) });
+fetch('https://graph.facebook.com/v18.0/2?phone_number_id=1&fields=url');`,
+    });
+    expect(proposal.moves).toEqual([]);
+    expect(proposal.stops.map((stop) => [stop.line, stop.reasons])).toEqual(
+      [1, 2, 3, 4, 5, 6, 7, 8].map((line) => [line, [reason(line)]]),
+    );
+  });
+
   it('applies a whole-node change only to requests on a single opaque node', async () => {
     const list = changes([
       change({
