@@ -451,6 +451,14 @@ export function modelWrapperSites(repository: Repository): ModelWrapperSite[] {
               true,
             );
         }
+        // The AI SDK gateway provider: `gateway('openai/gpt-4o')`.
+        if (binding?.module === 'ai' && binding.name === 'gateway' && first)
+          add(
+            node,
+            first,
+            { wrapper: 'ai-sdk', provider: 'openai', via: 'ai gateway()', text: true },
+            true,
+          );
         if (method === 'languageModel' && !instance && first)
           add(
             node,

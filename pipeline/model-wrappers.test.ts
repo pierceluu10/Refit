@@ -66,7 +66,7 @@ it('maps Vercel AI SDK provider calls to their provider and model', async () => 
       'src/ai.ts': [
         "import { openai, createOpenAI } from '@ai-sdk/openai';",
         "import { anthropic as claude } from '@ai-sdk/anthropic';",
-        "import { generateText, embed } from 'ai';",
+        "import { generateText, embed, gateway } from 'ai';",
         "export const a = generateText({ model: openai('gpt-4'), prompt: 'x' });",
         "export const b = generateText({ model: openai.responses('gpt-4o'), prompt: 'x' });",
         "export const c = generateText({ model: claude('claude-3-opus-20240229'), prompt: 'x' });",
@@ -77,6 +77,7 @@ it('maps Vercel AI SDK provider calls to their provider and model', async () => 
         "export const f = generateText({ model: 'anthropic/claude-3-opus-20240229', prompt: 'x' });",
         'declare const registry: { languageModel(id: string): unknown };',
         "export const g = registry.languageModel('openai:gpt-4');",
+        "export const gw = generateText({ model: gateway('openai/gpt-4'), prompt: 'x' });",
         // Not a model: a bare string in a gateway position, another library's call.
         "export const h = generateText({ model: 'my-local-model', prompt: 'x' });",
         "export const i = [].map(() => 'gpt-4');",
@@ -90,6 +91,7 @@ it('maps Vercel AI SDK provider calls to their provider and model', async () => 
     ['src/ai.ts:9', 'openai', 'gpt-4', '@ai-sdk/openai custom.chat()', true],
     ['src/ai.ts:10', 'anthropic', 'claude-3-opus-20240229', 'ai generateText()', true],
     ['src/ai.ts:12', 'openai', 'gpt-4', 'ai registry.languageModel()', true],
+    ['src/ai.ts:13', 'openai', 'gpt-4', 'ai gateway()', true],
   ]);
 });
 
