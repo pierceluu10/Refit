@@ -31,6 +31,17 @@ const FIXTURE_GIT = {
   GIT_TERMINAL_PROMPT: '0',
 };
 
+// A fetch that sends api.github.com requests to the fake at `url`; everything else is unchanged.
+export function throughFakeApi(url: string, realFetch: typeof fetch = globalThis.fetch) {
+  return ((input: string | URL | Request, init?: RequestInit) => {
+    const target =
+      typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
+    return target.startsWith(API_ROOT)
+      ? realFetch(`${url}${target.slice(API_ROOT.length)}`, init)
+      : realFetch(input, init);
+  }) as typeof fetch;
+}
+
 export interface FakeInstallation {
   id: number;
   login: string;
@@ -416,14 +427,8 @@ export async function startFakeGitHub(options: { appId: number; webhookSecret: s
     issued: () => [...tokens.keys()],
     issues: (fullName: string) => repositories.get(fullName.toLowerCase())?.issues,
     roles: (fullName: string) => repositories.get(fullName.toLowerCase())!.roles,
-    // Pass to vi.stubGlobal('fetch', …): api.github.com requests come here, everything else is unchanged.
-    fetch: ((input: string | URL | Request, init?: RequestInit) => {
-      const target =
-        typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
-      return target.startsWith(API_ROOT)
-        ? realFetch(`${url}${target.slice(API_ROOT.length)}`, init)
-        : realFetch(input, init);
-    }) as typeof fetch,
+    // Pass to vi.stubGlobal('fetch', …).
+    fetch: throughFakeApi(url, realFetch),
 
     // Creates the repository's bare remote on first use and pushes the source's HEAD to its default
     // branch; returns the pushed commit.
