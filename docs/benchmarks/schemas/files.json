@@ -141,6 +141,10 @@
       "format": "commerce-results",
       "predates": []
     },
+    "2026-10-22-gemini-results.json": {
+      "format": "gemini-results",
+      "predates": []
+    },
     "2026-10-22-github-first-results.json": {
       "format": "github-api-results",
       "predates": []
