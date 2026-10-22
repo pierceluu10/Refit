@@ -32,6 +32,7 @@ import {
   PNPM_INSTALL_COMMAND,
   YARN_BERRY_INSTALL_COMMAND,
   YARN_INSTALL_COMMAND,
+  YARN_SKIP_PLATFORM_PACKAGES,
 } from './manager-install.ts';
 import { hasStrongIntegrity } from './npm-lock.ts';
 import { digest, parseObject } from './specifications.ts';
@@ -96,7 +97,12 @@ for (const name of Object.keys(links)) {
   if (!(await lstat(resolve(workspace, name))).isSymbolicLink()) throw new Error("Missing workspace dependency link");
 }
 `;
-function installCommand({ manager, managerVersion, legacyPeerDeps }: PreparationIdentity) {
+function installCommand({
+  manager,
+  managerVersion,
+  legacyPeerDeps,
+  skippedPlatformPackages,
+}: PreparationIdentity) {
   const NPM_CI = npmCi(managerVersion ? '"$refit_tool"' : 'npm');
   return [
     'sh',
@@ -110,7 +116,8 @@ function installCommand({ manager, managerVersion, legacyPeerDeps }: Preparation
         : manager === 'yarn'
           ? managerVersion?.startsWith('1.')
             ? YARN_INSTALL_COMMAND
-            : YARN_BERRY_INSTALL_COMMAND
+            : (skippedPlatformPackages ? YARN_SKIP_PLATFORM_PACKAGES : '') +
+              YARN_BERRY_INSTALL_COMMAND
           : (managerVersion ? NPM_TOOL_INSTALL_COMMAND : '') +
             (legacyPeerDeps
               ? // The repository's own .npmrc asks for it, so there is nothing to retry.

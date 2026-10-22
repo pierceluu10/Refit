@@ -1,6 +1,6 @@
 import { execFile } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
-import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { promisify } from 'node:util';
@@ -66,6 +66,7 @@ async function singlePackage(packageManager?: string) {
   return {
     'package.json': `${JSON.stringify(manifest, null, 2)}\n`,
     'yarn.lock': await readFile(join(fixtures, 'berry.lock'), 'utf8'),
+    '.yarnrc.yml': 'nodeLinker: node-modules\n',
   };
 }
 
@@ -99,23 +100,10 @@ gated(
   'prepares Yarn 4 workspaces and links them for offline checks',
   async () => {
     const source = 'pipeline/fixtures/yarn-workspaces';
-    const { root, directory } = await repository({});
-    await cp(source, directory, { recursive: true });
-    await execute('git', ['-C', directory, 'add', '.']);
-    await execute('git', [
-      '-C',
-      directory,
-      '-c',
-      'user.name=Refit Test',
-      '-c',
-      'user.email=test@example.invalid',
-      '-c',
-      'commit.gpgsign=false',
-      'commit',
-      '-q',
-      '-m',
-      'test: yarn workspaces fixture',
-    ]);
+    const files: Record<string, string> = {};
+    for (const path of ['package.json', 'yarn.lock', '.yarnrc.yml', 'packages/shared/package.json'])
+      files[path] = await readFile(join(source, path), 'utf8');
+    const { root, directory } = await repository(files);
     const prepared = await prepareDependencies({
       repository: directory,
       image: process.env.REFIT_DOCKER_IMAGE!,

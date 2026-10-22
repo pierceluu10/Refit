@@ -38,6 +38,7 @@ export interface PreparationIdentity {
   workspaceLinks?: Record<string, string>;
   workspaceOptionalLinks?: Record<string, string>;
   legacyPeerDeps?: true;
+  skippedPlatformPackages?: number;
 }
 
 export async function readPreparationInputs(

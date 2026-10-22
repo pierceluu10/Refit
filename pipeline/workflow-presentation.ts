@@ -279,7 +279,11 @@ function renderReportRows(report: Record<string, unknown> | undefined, existingP
     const validation = report.validation;
     if (isObject(validation.environment))
       rows.push(
-        `Dependencies ${validation.environment.reused ? 'Verified cache reused' : `Prepared from ${typeof validation.environment.manager === 'string' ? validation.environment.manager : 'npm'} lockfile`}; checks offline`,
+        `Dependencies ${validation.environment.reused ? 'Verified cache reused' : `Prepared from ${typeof validation.environment.manager === 'string' ? validation.environment.manager : 'npm'} lockfile`}; checks offline${
+          typeof validation.environment.skippedPlatformPackages === 'number'
+            ? `; ${validation.environment.skippedPlatformPackages} platform-specific packages without checksums not installed`
+            : ''
+        }`,
       );
     const runtime = validation.runtime;
     if (isObject(runtime) && typeof runtime.image === 'string')

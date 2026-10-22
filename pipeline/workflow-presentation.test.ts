@@ -77,6 +77,13 @@ it('summarizes API impact, proposed edits and offline checks for interactive CLI
   expect(output).toContain('Original: passed; proposed: passed');
 
   const report = JSON.parse(await readFile(join(directory, 'report.json'), 'utf8'));
+  report.validation.environment = { reused: false, manager: 'yarn', skippedPlatformPackages: 25 };
+  await writeFile(join(directory, 'report.json'), JSON.stringify(report));
+  expect(await renderWorkflowResult(result)).toContain(
+    'Prepared from yarn lockfile; checks offline; 25 platform-specific packages without checksums not installed',
+  );
+  report.validation.environment = { reused: false };
+  await writeFile(join(directory, 'report.json'), JSON.stringify(report));
   report.changes.unshift({ id: 'unrelated', schema: 'invoice', property: 'subscription' });
   report.changes[1].id = 'history';
   report.findings.forEach((finding: { changeId: string }) => {

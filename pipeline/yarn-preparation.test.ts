@@ -10,6 +10,7 @@ import { readCommittedRepository } from './committed-repository.ts';
 import { readPreparationInputs } from './dependency-inputs.ts';
 import { installTimeoutSeconds, prepareDependencies } from './dependency-preparation.ts';
 import { dockerSandboxArguments, removeDockerContainer } from './docker-sandbox.ts';
+import { YARN_SKIP_PLATFORM_PACKAGES } from './manager-install.ts';
 import { DEFAULT_YARN_VERSION, validateBerryInputs, validateYarnInputs } from './yarn-inputs.ts';
 
 const execute = promisify(execFile);
@@ -556,5 +557,43 @@ it('names a Yarn 2+ project that commits no lockfile', async () => {
   ]);
   await expect(readPreparationInputs(await readCommittedRepository(repository))).rejects.toThrow(
     'The repository commits .yarnrc.yml but no yarn.lock, so the dependency versions to verify are unknown. Run yarn install and commit the yarn.lock it writes.',
+  );
+});
+
+it('accepts platform-specific Yarn packages without checksums and installs none of them', async () => {
+  const { manifest, berry } = await fixture();
+  const pinned = { ...manifest, packageManager: 'yarn@4.9.2' };
+  // Yarn 4 writes platform packages with conditions and never with a checksum.
+  const lock = `${berry}
+"@esbuild/linux-x64@npm:0.25.0":
+  version: 0.25.0
+  resolution: "@esbuild/linux-x64@npm:0.25.0"
+  conditions: os=linux & cpu=x64
+  languageName: node
+  linkType: hard
+
+"@esbuild/darwin-arm64@npm:0.25.0":
+  version: 0.25.0
+  resolution: "@esbuild/darwin-arm64@npm:0.25.0"
+  conditions: os=darwin & cpu=arm64
+  languageName: node
+  linkType: hard
+`;
+  expect(validateBerryInputs(JSON.stringify(pinned), lock, BERRY_RC)).toMatchObject({
+    skippedPlatformPackages: 2,
+  });
+  expect(validateBerryInputs(JSON.stringify(pinned), berry, BERRY_RC)).not.toHaveProperty(
+    'skippedPlatformPackages',
+  );
+  // Without conditions, a missing checksum still refuses the lockfile.
+  expect(() =>
+    validateBerryInputs(
+      JSON.stringify(pinned),
+      lock.replace(/^ {2}conditions: .*\n/m, ''),
+      BERRY_RC,
+    ),
+  ).toThrow('Every Yarn 2+ lock entry must resolve an exact npm version with a checksum');
+  expect(YARN_SKIP_PLATFORM_PACKAGES).toBe(
+    "printf 'supportedArchitectures:\\n  os: [refit-none]\\n  cpu: [refit-none]\\n  libc: [refit-none]\\n' > /workspace/.yarnrc.yml; ",
   );
 });

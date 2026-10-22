@@ -262,6 +262,9 @@ export function validateBerryInputs(
   const descriptors = new Set<string>();
   const locked = new Set<string>();
   let packages = 0;
+  // Yarn 3.2+ records platform-specific packages with `conditions` and, since Yarn 4, never with a
+  // checksum. Refit does not install any of them (see YARN_SKIP_PLATFORM_PACKAGES).
+  let platformPackages = 0;
   for (const [key, record] of Object.entries(lock)) {
     if (key === '__metadata') continue;
     if (!isObject(record)) throw new PipelineInputError('yarn.lock entries must be objects.');
@@ -281,6 +284,8 @@ export function validateBerryInputs(
     } else {
       const builtin = BUILTIN_PATCH.exec(resolution);
       const name = builtin ? builtin[1] : resolution.split('@npm:')[0];
+      const platform = typeof record.conditions === 'string';
+      if (platform) platformPackages++;
       if (
         ++packages > MAX_PACKAGES ||
         !NPM_PACKAGE_NAME.test(name) ||
@@ -290,12 +295,13 @@ export function validateBerryInputs(
           ? builtin[2] !== record.version ||
             (record.checksum !== undefined && !BERRY_CHECKSUM.test(String(record.checksum)))
           : resolution !== `${name}@npm:${record.version}` ||
-            typeof record.checksum !== 'string' ||
-            !BERRY_CHECKSUM.test(record.checksum)) ||
+            (record.checksum === undefined
+              ? !platform
+              : typeof record.checksum !== 'string' || !BERRY_CHECKSUM.test(record.checksum))) ||
         record.linkType !== 'hard'
       )
         throw new PipelineInputError(
-          'Every Yarn 2+ lock entry must resolve an exact npm version with a checksum; patches, git and local sources require a custom image.',
+          'Every Yarn 2+ lock entry must resolve an exact npm version with a checksum (platform-specific packages excepted, which Refit does not install); patches, git and local sources require a custom image.',
         );
     }
     for (const descriptor of key.split(/,\s*/)) descriptors.add(descriptor);
@@ -332,6 +338,7 @@ export function validateBerryInputs(
     lockHash: digest(lockContent),
     ...(rcContent === undefined ? {} : { workspaceConfigHash: digest(rcContent) }),
     packages,
+    ...(platformPackages ? { skippedPlatformPackages: platformPackages } : {}),
     ...(workspaceContents.size
       ? {
           workspaceHashes: Object.fromEntries(

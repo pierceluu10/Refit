@@ -64,3 +64,9 @@ export const YARN_BERRY_INSTALL_COMMAND =
 // A packageManager pin of npm installs that exact npm the same way; npm ci then runs with it, and
 // it moves into node_modules so checks run it too. REFIT_NPM_VERSION stays the image's own npm.
 export const NPM_TOOL_INSTALL_COMMAND = installTool('npm', 'npm', 'NPM_TOOL');
+
+// Yarn records platform-specific packages without checksums, so Refit installs none of them: no
+// platform matches these values. The setting lives in the installer's own workspace, never the
+// repository's, and needs Yarn 3.2+, which is also what writes platform conditions.
+export const YARN_SKIP_PLATFORM_PACKAGES =
+  "printf 'supportedArchitectures:\\n  os: [refit-none]\\n  cpu: [refit-none]\\n  libc: [refit-none]\\n' > /workspace/.yarnrc.yml; ";
