@@ -17,9 +17,12 @@ done
 # Validation images named by approved .refit.json files must exist before doctor runs.
 for image in ${REFIT_HOSTED_IMAGES:-}; do docker pull "$image"; done
 
-umask 077
-mkdir -p /run/refit
-printf '%s\n' "${GITHUB_APP_PRIVATE_KEY:?GITHUB_APP_PRIVATE_KEY secret is required}" >/run/refit/app.pem
+# Scope umask to the key: checkouts must stay readable to the unprivileged validation container.
+(
+  umask 077
+  mkdir -p /run/refit
+  printf '%s\n' "${GITHUB_APP_PRIVATE_KEY:?GITHUB_APP_PRIVATE_KEY secret is required}" >/run/refit/app.pem
+)
 export GITHUB_APP_PRIVATE_KEY_FILE=/run/refit/app.pem
 unset GITHUB_APP_PRIVATE_KEY
 
