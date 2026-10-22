@@ -13,6 +13,8 @@ The labels were made by Claude (an AI assistant) with the tooling below, on 2026
 
 Refit at `7b2c86a` (`main`, clean detached worktree), scan only: `npm run benchmark:stripe` without `--ai` or `--validate`. 120 labelled repositories, 89 of them broken by the upgrade to `2026-09-30.endive`.
 
+The `7b2c86a` scan (`results.json` and the `score` output) is not committed, so the precision figures, the false-positive count and the repository counts below are not backed by a committed results file; only the misses are.
+
 | | Recall | Precision |
 |---|---|---|
 | Breaking reads, confirmed findings | **72%** (159/222) | **86%** (159/185); 99% (184/185) if the 25 disputed reads count as breaking |
@@ -42,7 +44,7 @@ The sample was drawn from the outcomes in the committed results, recorded at `67
 
 ### Outcomes with validation, at `6d4f38a`
 
-`7b2c86a` was scanned without validation, so its outcomes cannot be scored. The last full run with `--ai --validate` is `6d4f38a` (2026-10-20), and `npm run benchmark:stripe-score` against these labels gives the following. The run directory is named for that commit; whether its worktree was clean was not recorded.
+`7b2c86a` was scanned without validation, so its outcomes cannot be scored. The last full run with `--ai --validate` is `6d4f38a` (2026-10-20), and `npm run benchmark:stripe-score` against these labels gives the following. The run directory is named for that commit; whether its worktree was clean was not recorded, and its results are not committed, so these numbers are not backed by a committed results file.
 
 | | 120 labelled repositories |
 |---|---|
@@ -171,6 +173,7 @@ Labels were made before looking at any Refit finding for these repositories.
 - Sampling needs each repository's committed outcome.
 - While reading the results file's format, the summary rows (outcome, confirmed read count and confirmed field names, no files or lines) of 8 sampled repositories were displayed before labelling: `Emmah-oo/spotify-clone`, `zainulabedeen123/Best-Saas-Kit--V2`, `profullstack/vibe-stack`, `helloworld9912/Stripe-Account-Migration`, `VishalRaut2106/HackMate_AI`, `LuqP2/Image-MetaHub`, `tomsoderlund/login-as-a-service` and `joschan21/contentport`.
 - Refit's runs on these repositories were started only after the labels were committed.
+- Not blind: 6 label overrides and 12 disputed marks were added after the run (commits 510754e and 889484f), two of them turning oracle breaks into `excluded`. The scores above include them.
 
 ### Labelling root
 
