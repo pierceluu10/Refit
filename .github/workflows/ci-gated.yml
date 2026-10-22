@@ -2,7 +2,7 @@ name: Gated suites
 
 # The suites that need Docker, PostgreSQL, oasdiff, real SDK installs or the packed CLI. None of
 # them uses a secret or reaches a paid API. They run on main, nightly and on pull requests labelled
-# full-ci, so the required checks in ci.yml stay fast. docs/CI.md explains each job.
+# full-ci, so the checks every pull request runs in ci.yml stay fast. docs/CI.md explains each job.
 on:
   push:
     branches: [main]
