@@ -1,6 +1,7 @@
 // Runs benchmark shards on EC2 instances that terminate themselves. Uses the AWS CLI with the
 // caller's AWS_PROFILE and AWS_REGION. See docs/AWS-BENCHMARKS.md.
 import { execFile } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
@@ -9,8 +10,12 @@ import {
   RUN_ID,
   bootScript,
   bucketName,
+  credentialsFailed,
   fillCommand,
+  runCost,
   shardSlices,
+  shardStates,
+  stateCounts,
 } from './aws-benchmark-helpers.mjs';
 
 const execute = promisify(execFile);
@@ -18,6 +23,7 @@ const DEFAULT_REGION = 'us-east-2';
 const ROLE = 'refit-benchmark-instance';
 const SECURITY_GROUP = 'refit-benchmark-no-inbound';
 const TAG = 'refit-benchmark-run';
+const SHARD_TAG = 'refit-benchmark-shard';
 const AMI_PARAMETER = '/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64';
 // Standard-family vCPU quotas. The AWS free plan denies spot launches, so on-demand is an option.
 const VCPU_QUOTAS = { spot: 'L-34B43A08', 'on-demand': 'L-1216C47A' };
@@ -31,24 +37,54 @@ const DISK_GIB = 100;
 const RUN_RETENTION_DAYS = 30;
 const DEFAULT_IMAGES = 'node:22-alpine';
 const ACTIVE_STATES = ['pending', 'running', 'stopping', 'shutting-down'];
+const RUN_FILE = /^runs\/([^/]+)\/run\.json$/;
+const EXIT_CODE = /^runs\/[^/]+\/shard-(\d+)\/exit-code$/;
+const LAUNCH_FILE = /^runs\/[^/]+\/launches\/[^/]+\.json$/;
+// On-demand Linux and gp3 prices in us-east-2 (https://aws.amazon.com/ec2/pricing/on-demand/,
+// https://aws.amazon.com/ebs/pricing/), read through the AWS Price List API on 2026-10-22; in
+// effect since 2026-10-01.
+const PRICE_REGION = 'us-east-2';
+const PRICES = {
+  onDemandUsdPerHour: { 'c7i.large': 0.08925, 'c7i.xlarge': 0.1785, 'c7i.2xlarge': 0.357 },
+  gp3UsdPerGibMonth: 0.08,
+};
 const USAGE = `Usage: node scripts/aws-benchmark.mjs <command>
   setup                                     create the bucket, instance role and security group (idempotent)
   launch --run <id> --total N --shards K [--commit <ref>] [--instance-type ${DEFAULT_INSTANCE_TYPE}] [--market spot|on-demand]
          [--hours ${DEFAULT_HOURS}] [--images "${DEFAULT_IMAGES}"] [--env <file>] -- <command>
                                             {offset} {limit} {shard} {run} are replaced per shard;
                                             write results to /work/out
-  status --run <id>                         instances and finished shards
+  list                                      every run with its shard counts, newest first
+  status --run <id>                         each shard's state, exit code and stage, and the run's instances
+  retry --run <id> --shard N [--env <file>] relaunch a failed or lost shard with the same slice and commit
+  cost --run <id>                           instance and disk cost of each of the run's launches
   collect --run <id> --to <dir>             download results and delete the uploaded .env
   stop --run <id>                           terminate the run's instances and delete the uploaded .env
 Requires AWS_PROFILE (signed in with \`aws login\`); AWS_REGION defaults to ${DEFAULT_REGION}.`;
 
 const region = process.env.AWS_REGION ?? DEFAULT_REGION;
 
+class CredentialsError extends Error {}
+
+async function cli(args) {
+  try {
+    const { stdout } = await execute('aws', [...args, '--region', region], {
+      maxBuffer: 64 * 1024 * 1024,
+    });
+    return stdout;
+  } catch (error) {
+    const stderr = String(error.stderr ?? '').trim();
+    if (credentialsFailed(stderr))
+      throw new CredentialsError(
+        `AWS credentials expired or missing: ${stderr}\nSign in again with \`aws login --region ${region}\` for profile ${process.env.AWS_PROFILE ?? 'default'}. This command may have stopped partway: check \`status\` (or \`list\`) before rerunning it.`,
+      );
+    throw error;
+  }
+}
+
 async function aws(...args) {
-  const { stdout } = await execute('aws', [...args, '--region', region, '--output', 'json'], {
-    maxBuffer: 64 * 1024 * 1024,
-  });
-  return stdout.trim() ? JSON.parse(stdout) : null;
+  const stdout = (await cli([...args, '--output', 'json'])).trim();
+  return stdout ? JSON.parse(stdout) : null;
 }
 
 async function missing(operation) {
@@ -65,6 +101,31 @@ async function missing(operation) {
 async function bucket() {
   const { Account } = await aws('sts', 'get-caller-identity');
   return bucketName(Account, region);
+}
+
+async function objects(name, prefix) {
+  return (
+    (await aws('s3api', 'list-objects-v2', '--bucket', name, '--prefix', prefix))?.Contents ?? []
+  );
+}
+
+function readObject(name, key) {
+  return cli(['s3', 'cp', `s3://${name}/${key}`, '-']);
+}
+
+async function writeObject(name, key, value) {
+  const work = await mkdtemp(join(tmpdir(), 'refit-aws-'));
+  try {
+    const path = join(work, 'object.json');
+    await writeFile(path, `${JSON.stringify(value, null, 2)}\n`);
+    await aws('s3', 'cp', path, `s3://${name}/${key}`, '--only-show-errors');
+  } finally {
+    await rm(work, { recursive: true, force: true });
+  }
+}
+
+async function uploadEnv(name, run, path) {
+  await aws('s3', 'cp', resolve(path), `s3://${name}/runs/${run}/env`, '--only-show-errors');
 }
 
 async function defaultVpc() {
@@ -200,7 +261,18 @@ async function instances(run) {
   const filters = ['--filters', `Name=instance-state-name,Values=${ACTIVE_STATES.join(',')}`];
   if (run) filters.push(`Name=tag:${TAG},Values=${run}`);
   const { Reservations } = await aws('ec2', 'describe-instances', ...filters);
-  return Reservations.flatMap((reservation) => reservation.Instances);
+  return Reservations.flatMap((reservation) => reservation.Instances).map((instance) => {
+    const tag = (key) => instance.Tags?.find((candidate) => candidate.Key === key)?.Value;
+    return {
+      id: instance.InstanceId,
+      state: instance.State.Name,
+      type: instance.InstanceType,
+      spot: instance.InstanceLifecycle === 'spot',
+      run: tag(TAG),
+      shard: Number(tag(SHARD_TAG)),
+      launched: instance.LaunchTime,
+    };
+  });
 }
 
 async function vcpus(instanceType) {
@@ -213,6 +285,96 @@ async function vcpus(instanceType) {
   return InstanceTypes[0].VCpuInfo.DefaultVCpus;
 }
 
+// Every active instance of the same market counts against its vCPU quota, including ones other
+// people launched by hand.
+async function checkQuota(market, instanceType, count) {
+  if (!(market in VCPU_QUOTAS)) throw new Error('--market must be spot or on-demand.');
+  const [active, perInstance, quota] = await Promise.all([
+    instances(),
+    vcpus(instanceType),
+    aws(
+      'service-quotas',
+      'get-service-quota',
+      '--service-code',
+      'ec2',
+      '--quota-code',
+      VCPU_QUOTAS[market],
+    ),
+  ]);
+  const sameMarket = active.filter((instance) => instance.spot === (market === 'spot'));
+  const used = (await Promise.all(sameMarket.map((instance) => vcpus(instance.type)))).reduce(
+    (sum, count) => sum + count,
+    0,
+  );
+  const needed = perInstance * count;
+  if (used + needed > quota.Quota.Value)
+    throw new Error(
+      `Needs ${needed} ${market} vCPUs but ${used} of ${quota.Quota.Value} are in use. Use fewer shards or wait.`,
+    );
+}
+
+// Launches one instance per slice and records each launch for `cost`.
+async function launchShards(name, run, slices) {
+  const group = await securityGroup();
+  if (!group) throw new Error('Run `node scripts/aws-benchmark.mjs setup` first.');
+  const image = (await aws('ssm', 'get-parameter', '--name', AMI_PARAMETER)).Parameter.Value;
+  const work = await mkdtemp(join(tmpdir(), 'refit-aws-'));
+  try {
+    for (const slice of slices) {
+      const userData = join(work, `shard-${slice.shard}.sh`);
+      await writeFile(
+        userData,
+        bootScript({
+          BUCKET: name,
+          RUN: run.run,
+          SHARD: slice.shard,
+          MINUTES: Math.round(run.hours * MINUTES_PER_HOUR),
+          SOURCE_SHA256: run.sourceSha256,
+          IMAGES: run.images,
+          COMMAND: fillCommand(run.command, { ...slice, run: run.run }),
+        }),
+      );
+      const tags = `ResourceType=instance,Tags=[{Key=${TAG},Value=${run.run}},{Key=${SHARD_TAG},Value=${slice.shard}},{Key=Name,Value=refit-${run.run}-${slice.shard}}]`;
+      const {
+        Instances: [instance],
+      } = await aws(
+        'ec2',
+        'run-instances',
+        '--image-id',
+        image,
+        '--instance-type',
+        run.instanceType,
+        '--iam-instance-profile',
+        `Name=${ROLE}`,
+        '--security-group-ids',
+        group,
+        ...(run.market === 'spot' ? ['--instance-market-options', SPOT_OPTIONS] : []),
+        '--instance-initiated-shutdown-behavior',
+        'terminate',
+        '--block-device-mappings',
+        `DeviceName=/dev/xvda,Ebs={VolumeSize=${run.diskGib},VolumeType=gp3,DeleteOnTermination=true}`,
+        '--metadata-options',
+        'HttpTokens=required',
+        '--tag-specifications',
+        tags,
+        `ResourceType=volume,Tags=[{Key=${TAG},Value=${run.run}}]`,
+        '--user-data',
+        `file://${userData}`,
+      );
+      await writeObject(name, `runs/${run.run}/launches/${instance.InstanceId}.json`, {
+        shard: slice.shard,
+        instance: instance.InstanceId,
+        launchedAt: instance.LaunchTime,
+      });
+      console.log(
+        `shard ${slice.shard}: offset ${slice.offset}, limit ${slice.limit} -> ${instance.InstanceId}`,
+      );
+    }
+  } finally {
+    await rm(work, { recursive: true, force: true });
+  }
+}
+
 async function launch(values, command) {
   if (!values.run || !RUN_ID.test(values.run))
     throw new Error('--run needs 3-41 lowercase letters, digits or dashes.');
@@ -222,10 +384,10 @@ async function launch(values, command) {
     throw new Error(`--hours must be above 0 and at most ${MAX_HOURS}.`);
   const slices = shardSlices(Number(values.total), Number(values.shards));
   const instanceType = values['instance-type'] ?? DEFAULT_INSTANCE_TYPE;
+  const market = values.market ?? 'spot';
   const name = await bucket();
   if ((await instances(values.run)).length)
     throw new Error(`Run ${values.run} already has active instances.`);
-  const prefix = `s3://${name}/runs/${values.run}`;
   if (
     (
       await aws(
@@ -240,141 +402,195 @@ async function launch(values, command) {
       )
     )?.Contents
   )
-    throw new Error(`Run ${values.run} already exists in ${prefix}; pick a new run id.`);
-
-  const market = values.market ?? 'spot';
-  if (!(market in VCPU_QUOTAS)) throw new Error('--market must be spot or on-demand.');
-  // Every active instance of the same market counts against its vCPU quota, including ones other
-  // people launched by hand.
-  const [active, perInstance, quota] = await Promise.all([
-    instances(),
-    vcpus(instanceType),
-    aws(
-      'service-quotas',
-      'get-service-quota',
-      '--service-code',
-      'ec2',
-      '--quota-code',
-      VCPU_QUOTAS[market],
-    ),
-  ]);
-  const sameMarket = active.filter(
-    (instance) => (instance.InstanceLifecycle === 'spot') === (market === 'spot'),
-  );
-  const used = (
-    await Promise.all(sameMarket.map((instance) => vcpus(instance.InstanceType)))
-  ).reduce((sum, count) => sum + count, 0);
-  const needed = perInstance * slices.length;
-  if (used + needed > quota.Quota.Value)
-    throw new Error(
-      `Needs ${needed} ${market} vCPUs but ${used} of ${quota.Quota.Value} are in use. Use fewer shards or wait.`,
-    );
+    throw new Error(`Run ${values.run} already exists; pick a new run id.`);
+  await checkQuota(market, instanceType, slices.length);
 
   const commit = (await execute('git', ['rev-parse', values.commit ?? 'HEAD'])).stdout.trim();
   const work = await mkdtemp(join(tmpdir(), 'refit-aws-'));
+  let run;
   try {
     const archive = join(work, 'source.tar.gz');
     await execute('git', ['archive', '--format=tar.gz', '--output', archive, commit]);
-    await aws('s3', 'cp', archive, `${prefix}/source.tar.gz`, '--only-show-errors');
-    if (values.env)
-      await aws('s3', 'cp', resolve(values.env), `${prefix}/env`, '--only-show-errors');
-    await writeFile(
-      join(work, 'run.json'),
-      JSON.stringify({ run: values.run, commit, command, instanceType, hours, slices }, null, 2),
+    // Each instance checks the tarball it downloads against this before building it.
+    const sourceSha256 = createHash('sha256')
+      .update(await readFile(archive))
+      .digest('hex');
+    await aws(
+      's3',
+      'cp',
+      archive,
+      `s3://${name}/runs/${values.run}/source.tar.gz`,
+      '--only-show-errors',
     );
-    await aws('s3', 'cp', join(work, 'run.json'), `${prefix}/run.json`, '--only-show-errors');
-
-    const image = (await aws('ssm', 'get-parameter', '--name', AMI_PARAMETER)).Parameter.Value;
-    const group = await securityGroup();
-    if (!group) throw new Error('Run `node scripts/aws-benchmark.mjs setup` first.');
-    for (const slice of slices) {
-      const userData = join(work, `shard-${slice.shard}.sh`);
-      await writeFile(
-        userData,
-        bootScript({
-          BUCKET: name,
-          RUN: values.run,
-          SHARD: slice.shard,
-          MINUTES: Math.round(hours * MINUTES_PER_HOUR),
-          IMAGES: values.images ?? DEFAULT_IMAGES,
-          COMMAND: fillCommand(command, { ...slice, run: values.run }),
-        }),
-      );
-      const tags = `ResourceType=instance,Tags=[{Key=${TAG},Value=${values.run}},{Key=Name,Value=refit-${values.run}-${slice.shard}}]`;
-      const { Instances } = await aws(
-        'ec2',
-        'run-instances',
-        '--image-id',
-        image,
-        '--instance-type',
-        instanceType,
-        '--iam-instance-profile',
-        `Name=${ROLE}`,
-        '--security-group-ids',
-        group,
-        ...(market === 'spot' ? ['--instance-market-options', SPOT_OPTIONS] : []),
-        '--instance-initiated-shutdown-behavior',
-        'terminate',
-        '--block-device-mappings',
-        `DeviceName=/dev/xvda,Ebs={VolumeSize=${DISK_GIB},VolumeType=gp3,DeleteOnTermination=true}`,
-        '--metadata-options',
-        'HttpTokens=required',
-        '--tag-specifications',
-        tags,
-        `ResourceType=volume,Tags=[{Key=${TAG},Value=${values.run}}]`,
-        '--user-data',
-        `file://${userData}`,
-      );
-      console.log(
-        `shard ${slice.shard}: offset ${slice.offset}, limit ${slice.limit} -> ${Instances[0].InstanceId}`,
-      );
-    }
+    if (values.env) await uploadEnv(name, values.run, values.env);
+    run = {
+      run: values.run,
+      commit,
+      sourceSha256,
+      command,
+      instanceType,
+      market,
+      hours,
+      images: values.images ?? DEFAULT_IMAGES,
+      diskGib: DISK_GIB,
+      env: Boolean(values.env),
+      slices,
+    };
   } finally {
     await rm(work, { recursive: true, force: true });
   }
+  await writeObject(name, `runs/${values.run}/run.json`, run);
+  await launchShards(name, run, slices);
   console.log(
     `Launched ${slices.length} ${market} ${instanceType} shards of ${values.run} from ${commit.slice(0, 12)}; each terminates within ${hours} h.`,
   );
 }
 
-async function finished(run) {
-  const name = await bucket();
-  const listing = await aws(
-    's3api',
-    'list-objects-v2',
-    '--bucket',
-    name,
-    '--prefix',
-    `runs/${run}/`,
-  );
-  const codes = (listing?.Contents ?? []).filter((object) => object.Key.endsWith('/exit-code'));
-  return Promise.all(
-    codes.map(async (object) => {
-      const { stdout } = await execute('aws', [
-        's3',
-        'cp',
-        `s3://${name}/${object.Key}`,
-        '-',
-        '--region',
-        region,
-      ]);
-      return { shard: object.Key.split('/').at(-2), exit: Number(stdout.trim()) };
+// Exit-code texts by shard from one run's object listing.
+async function exitCodes(name, listing) {
+  const entries = await Promise.all(
+    listing.flatMap((object) => {
+      const match = EXIT_CODE.exec(object.Key);
+      return match ? [readObject(name, object.Key).then((text) => [Number(match[1]), text])] : [];
     }),
+  );
+  return new Map(entries);
+}
+
+async function runState(name, run) {
+  const [listing, active] = await Promise.all([objects(name, `runs/${run}/`), instances(run)]);
+  if (!listing.some((object) => object.Key === `runs/${run}/run.json`))
+    throw new Error(`No run ${run}.`);
+  const settings = JSON.parse(await readObject(name, `runs/${run}/run.json`));
+  const states = shardStates(settings.slices, await exitCodes(name, listing), active);
+  return { settings, listing, active, states };
+}
+
+async function readLaunches(name, listing) {
+  return Promise.all(
+    listing
+      .filter((object) => LAUNCH_FILE.test(object.Key))
+      .map(async (object) => ({
+        key: object.Key,
+        ...JSON.parse(await readObject(name, object.Key)),
+      })),
   );
 }
 
 async function status(run) {
-  const [active, done] = await Promise.all([instances(run), finished(run)]);
+  const { settings, active, states } = await runState(await bucket(), run);
   console.log(
     JSON.stringify(
       {
-        running: active.map((instance) => ({
-          id: instance.InstanceId,
-          state: instance.State.Name,
-          shard: instance.Tags.find((tag) => tag.Key === 'Name')?.Value,
-          launched: instance.LaunchTime,
+        commit: settings.commit,
+        shards: states,
+        instances: active.map(({ id, state, shard, launched }) => ({
+          id,
+          state,
+          shard,
+          launched,
         })),
-        finished: done,
+      },
+      null,
+      2,
+    ),
+  );
+}
+
+async function list() {
+  const name = await bucket();
+  const [listing, active] = await Promise.all([objects(name, 'runs/'), instances()]);
+  const rows = await Promise.all(
+    listing
+      .filter((object) => RUN_FILE.test(object.Key))
+      .map(async (object) => {
+        const run = RUN_FILE.exec(object.Key)[1];
+        const settings = JSON.parse(await readObject(name, object.Key));
+        const exits = await exitCodes(
+          name,
+          listing.filter((entry) => entry.Key.startsWith(`runs/${run}/`)),
+        );
+        const states = shardStates(
+          settings.slices,
+          exits,
+          active.filter((instance) => instance.run === run),
+        );
+        return {
+          run,
+          launched: object.LastModified,
+          commit: settings.commit.slice(0, 12),
+          instanceType: settings.instanceType,
+          shards: settings.slices.length,
+          ...stateCounts(states),
+        };
+      }),
+  );
+  console.log(
+    JSON.stringify(
+      rows.sort((a, b) => b.launched.localeCompare(a.launched)),
+      null,
+      2,
+    ),
+  );
+}
+
+// Relaunches one shard with run.json's slice, commit and settings, replacing its earlier output.
+async function retry(run, shardOption, env) {
+  const name = await bucket();
+  const { settings, listing, active, states } = await runState(name, run);
+  const slice = settings.slices.find((candidate) => String(candidate.shard) === shardOption);
+  if (!slice) throw new Error(`retry needs --shard between 0 and ${settings.slices.length - 1}.`);
+  const { shard } = slice;
+  if (active.some((instance) => instance.shard === shard))
+    throw new Error(
+      `Shard ${shard} of ${run} still has an instance; wait until it terminates or stop the run.`,
+    );
+  const state = states.find((candidate) => candidate.shard === shard);
+  if (state.state === 'finished' && state.exit === 0)
+    throw new Error(`Shard ${shard} of ${run} succeeded; nothing to retry.`);
+  if (settings.env && !env)
+    throw new Error(`Run ${run} was launched with --env; pass --env again.`);
+  await checkQuota(settings.market, settings.instanceType, 1);
+
+  // The earlier launch's end is its exit code's upload time; keep it before deleting the exit code
+  // so `cost` still counts that launch.
+  const exit = listing.find((object) => object.Key === `runs/${run}/shard-${shard}/exit-code`);
+  const [previous] = (await readLaunches(name, listing))
+    .filter((launch) => launch.shard === shard)
+    .sort((a, b) => Date.parse(b.launchedAt) - Date.parse(a.launchedAt));
+  if (exit && previous && !previous.endedAt) {
+    const { key, ...launch } = previous;
+    await writeObject(name, key, { ...launch, endedAt: exit.LastModified });
+  }
+  await aws(
+    's3',
+    'rm',
+    `s3://${name}/runs/${run}/shard-${shard}/`,
+    '--recursive',
+    '--only-show-errors',
+  );
+  if (env) await uploadEnv(name, run, env);
+  await launchShards(name, settings, [slice]);
+  console.log(`Relaunched shard ${shard} of ${run} from ${settings.commit.slice(0, 12)}.`);
+}
+
+async function cost(run) {
+  if (region !== PRICE_REGION) throw new Error(`The cost table has ${PRICE_REGION} prices only.`);
+  const name = await bucket();
+  const { settings, listing, active } = await runState(name, run);
+  const launches = (await readLaunches(name, listing)).map(({ key, ...launch }) => launch);
+  const exitTimes = new Map(
+    listing.flatMap((object) => {
+      const match = EXIT_CODE.exec(object.Key);
+      return match ? [[Number(match[1]), object.LastModified]] : [];
+    }),
+  );
+  const running = new Set(active.map((instance) => instance.id));
+  console.log(
+    JSON.stringify(
+      {
+        run,
+        ...runCost(settings, launches, exitTimes, running, new Date().toISOString(), PRICES),
       },
       null,
       2,
@@ -410,10 +626,11 @@ async function mergeResults(directory) {
 
 async function collect(run, to) {
   if (!to) throw new Error('collect needs --to <dir>.');
+  const name = await bucket();
   await aws(
     's3',
     'sync',
-    `s3://${await bucket()}/runs/${run}`,
+    `s3://${name}/runs/${run}`,
     resolve(to),
     '--exclude',
     'env',
@@ -423,9 +640,9 @@ async function collect(run, to) {
   );
   await deleteEnv(run);
   await mergeResults(resolve(to));
-  const active = await instances(run);
+  const counts = stateCounts((await runState(name, run)).states);
   console.log(
-    `Downloaded ${run} to ${resolve(to)}.${active.length ? ` ${active.length} shard(s) still running.` : ''}`,
+    `Downloaded ${run} to ${resolve(to)}: ${counts.succeeded} succeeded, ${counts.failed} failed, ${counts.running} running, ${counts.lost} lost.`,
   );
 }
 
@@ -436,7 +653,7 @@ async function stop(run) {
       'ec2',
       'terminate-instances',
       '--instance-ids',
-      ...active.map((instance) => instance.InstanceId),
+      ...active.map((instance) => instance.id),
     );
   await deleteEnv(run);
   console.log(`Terminated ${active.length} instance(s) of ${run}.`);
@@ -450,6 +667,7 @@ const { values, positionals } = parseArgs({
     run: { type: 'string' },
     total: { type: 'string' },
     shards: { type: 'string' },
+    shard: { type: 'string' },
     commit: { type: 'string' },
     'instance-type': { type: 'string' },
     market: { type: 'string' },
@@ -466,8 +684,11 @@ try {
   if (values.help || !action) console.log(USAGE);
   else if (action === 'setup') await setup();
   else if (action === 'launch') await launch(values, command);
+  else if (action === 'list') await list();
   else if (!values.run || !RUN_ID.test(values.run)) throw new Error(USAGE);
   else if (action === 'status') await status(values.run);
+  else if (action === 'retry') await retry(values.run, values.shard, values.env);
+  else if (action === 'cost') await cost(values.run);
   else if (action === 'collect') await collect(values.run, values.to);
   else if (action === 'stop') await stop(values.run);
   else throw new Error(USAGE);
