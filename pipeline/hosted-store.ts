@@ -194,6 +194,8 @@ export async function openHostedStore(
 
   const accept = (delivery: string, event: string, body: Uint8Array, change: GitHubWebhook) =>
     transaction(pool, async (client) => {
+      // claim locks jobs and then installations; taking its lock first keeps the order the same.
+      await client.query('SELECT pg_advisory_xact_lock($1)', [CLAIM_LOCK]);
       const hash = digest(body);
       const inserted = await client.query(
         'INSERT INTO refit_deliveries (id, hash, event) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING',
@@ -462,6 +464,7 @@ export async function openHostedStore(
   // installed repository; newly disallowed ones are cancelled as if uninstalled.
   const allow = () =>
     transaction(pool, async (client) => {
+      await client.query('SELECT pg_advisory_xact_lock($1)', [CLAIM_LOCK]);
       const { rows } = await client.query<{ id: string; allowed: boolean; status: string }>(
         `UPDATE refit_installations SET allowed = owner = ANY($1::text[]), updated_at = now()
          WHERE allowed <> (owner = ANY($1::text[])) RETURNING id, allowed, status`,
