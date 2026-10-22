@@ -15,6 +15,8 @@ node scripts/benchmark-claims.mjs --json     # every value with its status
 | [DEADLINE-BENCHMARK.md](DEADLINE-BENCHMARK.md) | the whole document |
 | [READINESS.md](READINESS.md) | the five latest checkpoints on 2026-10-22, named by heading |
 | [PROVIDER-GOALS.md](PROVIDER-GOALS.md) | the OpenAI and Anthropic, Gemini and PayPal progress checklists |
+| [SHOPIFY-BENCHMARK.md](SHOPIFY-BENCHMARK.md) | the whole document |
+| [STRIPE-BENCHMARK.md](STRIPE-BENCHMARK.md) | the whole document |
 
 Headings and code blocks are skipped. Within the scope, the checker reads every number in prose, lists and tables: counts, percentages, fractions, ranges and money. It does not count numbers that are dates, versions (`x.y.z`, `v25.0`), pull request references, years, or anything inside inline code or a link target.
 
@@ -30,15 +32,17 @@ The checker fails when a recomputed value differs from what the document says, w
 
 ## Results on 2026-10-22
 
-389 claims cover 1,099 numbers: 967 values and 132 ignored numbers that are not claims. The commit this was run at is in the pull request.
+582 claims cover 1,579 numbers: 1,403 values and 176 ignored numbers that are not claims. The commit this was run at is in the pull request.
 
 | Document | Reproduce | Differ | Not checkable |
 |---|---|---|---|
-| BENCHMARKS.md | 327 | 3 | 212 |
+| BENCHMARKS.md | 324 | 3 | 215 |
 | DEADLINE-BENCHMARK.md | 74 | 0 | 239 |
 | READINESS.md (5 checkpoints) | 29 | 0 | 8 |
 | PROVIDER-GOALS.md (3 checklists) | 58 | 0 | 17 |
-| **All** | **488** | **3** | **476** |
+| SHOPIFY-BENCHMARK.md | 93 | 0 | 88 |
+| STRIPE-BENCHMARK.md | 29 | 0 | 226 |
+| **All** | **607** | **3** | **793** |
 
 Every covered number is in a claim, so nothing is unaccounted for.
 
@@ -63,11 +67,14 @@ Most unchecked numbers describe runs whose results were never committed. Committ
 |---|---|---|
 | The deadline benchmark's Refit runs (`7bd59f8`, `be587f1`, `0e911e5`) and the loose search | 221 | `before.json`, `after.json`, `classified.json` and `grep.json` from the Reproduce section. The labels are committed, so every label-only count and interval already reproduces. |
 | The October 21 active-teams rescan (`cc426fe`) and its `--validate` runs | 36 | Its `results.json`, condensed like the October 16 file |
-| The October 20 Shopify run at `0b5480b` | 30 | Its condensed rows. The committed tracing run is at `4a99c1e`, before the REST reclassification. |
+| The October 20 Shopify runs at `0b5480b`, with the REST call details | 57 | Its condensed rows and REST call counts. The committed tracing run is at `4a99c1e`, before the REST reclassification. |
 | The October 16 reruns of the original and held-out sets at `5f94ab4` | 27 | Their condensed rows |
 | The October 21 coverage rescan of 10 active-team repositories | 16 | The `benchmark:coverage` output |
 | The runs right after the card-only policy (`6d02116`) | 14 | Their condensed rows |
 | Deadline dates as the registry stood on 2026-10-15 | 21 | The registry at that date beside the labels; the score script reads today's registry |
+| The October 14–15 Stripe runs on the original 100 (`03648a6` and the phase-2 work) | 135 | Their `results.json`. The frozen list and labels are committed, so list and label counts already reproduce. |
+| Ground-truth scores (recall and precision against the Stripe labels) | 48 | The scored runs' `results.json`; the score itself is recomputed by `npm run benchmark:stripe-score` |
+| The held-out Stripe runs before the card policy | 34 | Their condensed rows |
 
 The rest are judgements from reading code, prose-only records (selection counts kept in a frozen list's `criteria` text), timings and AI spend (kept in each run's ledger outside the repository), and the checklists' own percentages. Each value's reason is in `claims.json`.
 

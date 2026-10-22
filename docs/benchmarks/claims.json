@@ -25,6 +25,12 @@
         "Gemini: progress checklist (2026-10-21)",
         "PayPal: progress checklist (2026-10-21)"
       ]
+    },
+    {
+      "doc": "docs/SHOPIFY-BENCHMARK.md"
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md"
     }
   ],
   "claims": [
@@ -4257,15 +4263,7 @@
         },
         {
           "says": "336",
-          "query": {
-            "results": [
-              "docs/benchmarks/2026-10-20-shopify-tracing-results.json"
-            ],
-            "rows": "/sets/original",
-            "where": [],
-            "measure": "sum",
-            "field": "tracedDocuments.0"
-          }
+          "notCheckable": "From the helper-tracing run at 21efc5a, which is not committed. The committed tracing run's before column (c262f8f, a later commit) has the same value."
         },
         {
           "says": "644",
@@ -4327,15 +4325,7 @@
         },
         {
           "says": "336",
-          "query": {
-            "results": [
-              "docs/benchmarks/2026-10-20-shopify-tracing-results.json"
-            ],
-            "rows": "/sets/original",
-            "where": [],
-            "measure": "sum",
-            "field": "tracedDocuments.0"
-          }
+          "notCheckable": "From the helper-tracing run at 21efc5a, which is not committed. The committed tracing run's before column (c262f8f, a later commit) has the same value."
         },
         {
           "says": "55",
@@ -4343,15 +4333,7 @@
         },
         {
           "says": "27",
-          "query": {
-            "results": [
-              "docs/benchmarks/2026-10-20-shopify-tracing-results.json"
-            ],
-            "rows": "/sets/original",
-            "where": [],
-            "measure": "sum",
-            "field": "unreadable.0"
-          }
+          "notCheckable": "From the helper-tracing run at 21efc5a, which is not committed. The committed tracing run's before column (c262f8f, a later commit) has the same value."
         }
       ]
     },
@@ -12074,6 +12056,4379 @@
         {
           "token": "3",
           "reason": "A list item number."
+        }
+      ]
+    },
+    {
+      "doc": "docs/SHOPIFY-BENCHMARK.md",
+      "quote": "The 50 apps in [`2026-10-16-shopify-repos.json`](benchmarks/2026-10-16-shopify-repos.json) were chosen and frozen before any Refit Shopify code existed. A GitHub code search for Shopify Admin clients with a pinned `apiVersion` returned 187 repositories. 155 were not forks or archived, were under 50 MB, had been pushed since 2024-01, and declared a Shopify SDK in their root `package.json`; the 50 most starred were pinned at their default-branch HEAD. Development used 10 other eligible apps (ranks 51–60), never these.",
+      "values": [
+        {
+          "says": "50",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-16-shopify-repos.json"
+            ],
+            "rows": "/repos",
+            "where": []
+          }
+        },
+        {
+          "says": "187",
+          "notCheckable": "Recorded only as prose in the frozen list's criteria, not as data that can be counted."
+        },
+        {
+          "says": "155",
+          "notCheckable": "Recorded only as prose in the frozen list's criteria, not as data that can be counted."
+        },
+        {
+          "says": "50",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-16-shopify-repos.json"
+            ],
+            "rows": "/repos",
+            "where": []
+          }
+        },
+        {
+          "says": "10",
+          "notCheckable": "The 10 development apps are not listed in a committed file."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "50",
+          "reason": "A configured limit or setting, not a measurement."
+        },
+        {
+          "token": "51–60",
+          "reason": "Ranks of the development apps, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/SHOPIFY-BENCHMARK.md",
+      "quote": "Contracts are the four supported Admin API schemas, `2026-01` to `2026-10`, pinned by SHA-256 in the same file. For each app:",
+      "values": [],
+      "ignore": [
+        {
+          "token": "256",
+          "reason": "A version or release in a name (a package, runtime or tool), not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/SHOPIFY-BENCHMARK.md",
+      "quote": "When a patch is proposed and the app has a root npm lockfile, it is validated like the [Stripe benchmark](STRIPE-BENCHMARK.md): the app's tests, or `tsc` with only newly introduced errors counted, run in offline Docker on the original and migrated code. No AI is used (spend: $0), and nothing contacts a store.",
+      "values": [
+        {
+          "says": "$0",
+          "notCheckable": "AI spend is kept in each run's budget ledger outside the repository; no committed results file records it."
+        }
+      ]
+    },
+    {
+      "doc": "docs/SHOPIFY-BENCHMARK.md",
+      "quote": "| Patched and validated | **1** |",
+      "values": [
+        {
+          "says": "1",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-16-shopify-results.json"
+            ],
+            "rows": "/rows",
+            "where": [
+              {
+                "field": "outcome",
+                "in": [
+                  "patched-validated"
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "doc": "docs/SHOPIFY-BENCHMARK.md",
+      "quote": "| Already on `2026-10` | 3 |",
+      "values": [
+        {
+          "says": "3",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-16-shopify-results.json"
+            ],
+            "rows": "/rows",
+            "where": [
+              {
+                "field": "outcome",
+                "in": [
+                  "current"
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "doc": "docs/SHOPIFY-BENCHMARK.md",
+      "quote": "| On the newest version the locked SDK can name (`2026-10` needs SDK 14) | 3 |",
+      "values": [
+        {
+          "says": "3",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-16-shopify-results.json"
+            ],
+            "rows": "/rows",
+            "where": [
+              {
+                "field": "outcome",
+                "in": [
+                  "current-for-sdk"
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "ignore": [
+        {
+          "token": "14",
+          "reason": "A version or release in a name (a package, runtime or tool), not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/SHOPIFY-BENCHMARK.md",
+      "quote": "| Stopped: an SDK upgrade is needed to reach a supported version | 15 |",
+      "values": [
+        {
+          "says": "15",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-16-shopify-results.json"
+            ],
+            "rows": "/rows",
+            "where": [
+              {
+                "field": "outcome",
+                "in": [
+                  "stopped-sdk-upgrade"
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "doc": "docs/SHOPIFY-BENCHMARK.md",
+      "quote": "| Stopped: REST Admin calls (no published versioned contract) | 7 |",
+      "values": [
+        {
+          "says": "7",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-16-shopify-results.json"
+            ],
+            "rows": "/rows",
+            "where": [
+              {
+                "field": "outcome",
+                "in": [
+                  "stopped-rest"
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "doc": "docs/SHOPIFY-BENCHMARK.md",
+      "quote": "| Stopped: a GraphQL document is built at runtime | 6 |",
+      "values": [
+        {
+          "says": "6",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-16-shopify-results.json"
+            ],
+            "rows": "/rows",
+            "where": [
+              {
+                "field": "outcome",
+                "in": [
+                  "stopped-runtime-document"
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "doc": "docs/SHOPIFY-BENCHMARK.md",
+      "quote": "| Stopped: the pin is dynamic (environment or configuration value) | 6 |",
+      "values": [
+        {
+          "says": "6",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-16-shopify-results.json"
+            ],
+            "rows": "/rows",
+            "where": [
+              {
+                "field": "outcome",
+                "in": [
+                  "stopped-dynamic-pin"
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "doc": "docs/SHOPIFY-BENCHMARK.md",
+      "quote": "| Stopped: a GraphQL document already fails on the served version | 5 |",
+      "values": [
+        {
+          "says": "5",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-16-shopify-results.json"
+            ],
+            "rows": "/rows",
+            "where": [
+              {
+                "field": "outcome",
+                "in": [
+                  "stopped-already-failing"
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "doc": "docs/SHOPIFY-BENCHMARK.md",
+      "quote": "| No Admin API usage | 2 |",
+      "values": [
+        {
+          "says": "2",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-16-shopify-results.json"
+            ],
+            "rows": "/rows",
+            "where": [
+              {
+                "field": "outcome",
+                "in": [
+                  "no-admin-usage"
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "doc": "docs/SHOPIFY-BENCHMARK.md",
+      "quote": "| Repository exceeds Refit's scan limits (50 MB) | 2 |",
+      "values": [
+        {
+          "says": "2",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-16-shopify-results.json"
+            ],
+            "rows": "/rows",
+            "where": [
+              {
+                "field": "outcome",
+                "in": [
+                  "exceeds-scan-limits"
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "ignore": [
+        {
+          "token": "50",
+          "reason": "A configured limit or setting, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/SHOPIFY-BENCHMARK.md",
+      "quote": "The same commit run a second time gave the **same outcome for 50 of 50 apps**. Per-app outcomes, pins, SDK releases and stop reasons are in [`2026-10-16-shopify-results.json`](benchmarks/2026-10-16-shopify-results.json).",
+      "values": [
+        {
+          "says": "50",
+          "notCheckable": "A comparison with a repeat run that is not committed."
+        },
+        {
+          "says": "50",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-16-shopify-results.json"
+            ],
+            "rows": "/rows",
+            "where": []
+          }
+        }
+      ]
+    },
+    {
+      "doc": "docs/SHOPIFY-BENCHMARK.md",
+      "quote": "Across the 50 apps Refit found 320 Admin calls and 443 GraphQL documents, 255 of them traced to an Admin call.",
+      "values": [
+        {
+          "says": "50",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-16-shopify-results.json"
+            ],
+            "rows": "/rows",
+            "where": []
+          }
+        },
+        {
+          "says": "320",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-16-shopify-results.json"
+            ],
+            "rows": "/rows",
+            "where": [],
+            "measure": "sum",
+            "field": "adminCalls"
+          }
+        },
+        {
+          "says": "443",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-16-shopify-results.json"
+            ],
+            "rows": "/rows",
+            "where": [],
+            "measure": "sum",
+            "field": "documents"
+          }
+        },
+        {
+          "says": "255",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-16-shopify-results.json"
+            ],
+            "rows": "/rows",
+            "where": [],
+            "measure": "sum",
+            "field": "tracedDocuments"
+          }
+        }
+      ]
+    },
+    {
+      "doc": "docs/SHOPIFY-BENCHMARK.md",
+      "quote": "- **31 apps pin a version Shopify no longer serves.** Their requests already get `2026-01`.",
+      "values": [
+        {
+          "says": "31",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-16-shopify-results.json"
+            ],
+            "rows": "/rows",
+            "where": [
+              {
+                "field": "pins",
+                "some": [
+                  {
+                    "field": "",
+                    "matches": "^(20[01]\\d|202[0-5])-"
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "doc": "docs/SHOPIFY-BENCHMARK.md",
+      "quote": "- **32 apps cannot reach `2026-10` without upgrading `@shopify/shopify-api`.** `ApiVersion.October26` first ships in 14.0.0, and Shopify's app frameworks pin older SDKs.",
+      "values": [
+        {
+          "says": "32",
+          "notCheckable": "The condensed October 16 rows do not record it."
+        }
+      ]
+    },
+    {
+      "doc": "docs/SHOPIFY-BENCHMARK.md",
+      "quote": "- **5 apps contain queries that fail on every version Shopify serves.** This is real breakage, at exact lines:",
+      "values": [
+        {
+          "says": "5",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-16-shopify-results.json"
+            ],
+            "rows": "/rows",
+            "where": [
+              {
+                "field": "outcome",
+                "in": [
+                  "stopped-already-failing"
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "doc": "docs/SHOPIFY-BENCHMARK.md",
+      "quote": "- **29 apps select fields deprecated on their target.** These are listed for review, not changed.",
+      "values": [
+        {
+          "says": "29",
+          "notCheckable": "The condensed October 16 rows do not record it."
+        }
+      ]
+    },
+    {
+      "doc": "docs/SHOPIFY-BENCHMARK.md",
+      "quote": "| Already on `2026-10`, or on the newest version the SDK can name | 1 | 6 |",
+      "values": [
+        {
+          "says": "1",
+          "notCheckable": "From the first Shopify run (844adee), whose results are not committed."
+        },
+        {
+          "says": "6",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-16-shopify-results.json"
+            ],
+            "rows": "/rows",
+            "where": [
+              {
+                "field": "outcome",
+                "in": [
+                  "current",
+                  "current-for-sdk"
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "doc": "docs/SHOPIFY-BENCHMARK.md",
+      "quote": "| Stopped: dynamic pin | 14 | 6 |",
+      "values": [
+        {
+          "says": "14",
+          "notCheckable": "From the first Shopify run (844adee), whose results are not committed."
+        },
+        {
+          "says": "6",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-16-shopify-results.json"
+            ],
+            "rows": "/rows",
+            "where": [
+              {
+                "field": "outcome",
+                "in": [
+                  "stopped-dynamic-pin"
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "doc": "docs/SHOPIFY-BENCHMARK.md",
+      "quote": "| Stopped: SDK upgrade needed | 8 | 15 |",
+      "values": [
+        {
+          "says": "8",
+          "notCheckable": "From the first Shopify run (844adee), whose results are not committed."
+        },
+        {
+          "says": "15",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-16-shopify-results.json"
+            ],
+            "rows": "/rows",
+            "where": [
+              {
+                "field": "outcome",
+                "in": [
+                  "stopped-sdk-upgrade"
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "doc": "docs/SHOPIFY-BENCHMARK.md",
+      "quote": "| Stopped: document already fails | 6 | 5 |",
+      "values": [
+        {
+          "says": "6",
+          "notCheckable": "From the first Shopify run (844adee), whose results are not committed."
+        },
+        {
+          "says": "5",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-16-shopify-results.json"
+            ],
+            "rows": "/rows",
+            "where": [
+              {
+                "field": "outcome",
+                "in": [
+                  "stopped-already-failing"
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "doc": "docs/SHOPIFY-BENCHMARK.md",
+      "quote": "| Stopped: runtime-built document | 8 | 6 |",
+      "values": [
+        {
+          "says": "8",
+          "notCheckable": "From the first Shopify run (844adee), whose results are not committed."
+        },
+        {
+          "says": "6",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-16-shopify-results.json"
+            ],
+            "rows": "/rows",
+            "where": [
+              {
+                "field": "outcome",
+                "in": [
+                  "stopped-runtime-document"
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "doc": "docs/SHOPIFY-BENCHMARK.md",
+      "quote": "| Misclassified as stopped while already on `2026-10` | 1 | 0 |",
+      "values": [
+        {
+          "says": "1",
+          "notCheckable": "From the first Shopify run (844adee), whose results are not committed."
+        },
+        {
+          "says": "0",
+          "notCheckable": "A misclassification is a judgement from reading the outcome; the condensed rows do not record it."
+        }
+      ]
+    },
+    {
+      "doc": "docs/SHOPIFY-BENCHMARK.md",
+      "quote": "- **`LATEST_API_VERSION` counted as unknown.** It is fixed by the locked SDK release, so 10 apps moved from \"dynamic pin\" to the more precise \"SDK upgrade needed\".",
+      "values": [
+        {
+          "says": "10",
+          "notCheckable": "From the first Shopify run (844adee), whose results are not committed."
+        }
+      ]
+    },
+    {
+      "doc": "docs/SHOPIFY-BENCHMARK.md",
+      "quote": "Refit now follows default-exported documents, Remix-style `./shopify.server` imports and documents passed as a helper's parameter (see [Shopify](SHOPIFY.md#what-refit-reads)). On the same 50 apps, traced Admin documents rose from 255 to **336** and unreadable documents fell from 55 to **27**. Every outcome stayed the same (50 of 50): Shopify's own `subscriptions-reference-app` is now fully read, and stops only because it pins `ApiVersion.Unstable`. The whole run took 22 seconds.",
+      "values": [
+        {
+          "says": "50",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-16-shopify-repos.json"
+            ],
+            "rows": "/repos",
+            "where": []
+          }
+        },
+        {
+          "says": "255",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-16-shopify-results.json"
+            ],
+            "rows": "/rows",
+            "where": [],
+            "measure": "sum",
+            "field": "tracedDocuments"
+          }
+        },
+        {
+          "says": "336",
+          "notCheckable": "From the helper-tracing run at 21efc5a, which is not committed. The committed tracing run's before column (c262f8f, a later commit) has the same value."
+        },
+        {
+          "says": "55",
+          "notCheckable": "The condensed October 16 rows do not record it."
+        },
+        {
+          "says": "27",
+          "notCheckable": "From the helper-tracing run at 21efc5a, which is not committed. The committed tracing run's before column (c262f8f, a later commit) has the same value."
+        },
+        {
+          "says": "50",
+          "notCheckable": "From the helper-tracing run at 21efc5a, which is not committed. The committed tracing run's before column (c262f8f, a later commit) has the same value."
+        },
+        {
+          "says": "50",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-16-shopify-repos.json"
+            ],
+            "rows": "/repos",
+            "where": []
+          }
+        },
+        {
+          "says": "22",
+          "notCheckable": "A timing from a run whose times are not committed."
+        }
+      ]
+    },
+    {
+      "doc": "docs/SHOPIFY-BENCHMARK.md",
+      "quote": "The 200 apps in [`2026-10-16-shopify-fresh-repos.json`](benchmarks/2026-10-16-shopify-fresh-repos.json) were frozen before any run, and none of them was in the original 50 or the 10 development apps. A wider search covered 13 queries: Shopify SDK dependencies in `package.json`, `authenticate.admin`, `admin.graphql` with `#graphql`, `ApiVersion` with `shopifyApp`, `clients.Graphql` and `createAdminApiClient`. It returned 3,496 repositories. 2,139 met the same criteria as above, and the 200 most starred were pinned at HEAD (1 to 562 stars).",
+      "values": [
+        {
+          "says": "200",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-16-shopify-fresh-repos.json"
+            ],
+            "rows": "/repos",
+            "where": []
+          }
+        },
+        {
+          "says": "50",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-16-shopify-repos.json"
+            ],
+            "rows": "/repos",
+            "where": []
+          }
+        },
+        {
+          "says": "10",
+          "notCheckable": "The 10 development apps are not listed in a committed file."
+        },
+        {
+          "says": "13",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-16-shopify-fresh-repos.json"
+            ],
+            "rows": "/search/queries",
+            "where": []
+          }
+        },
+        {
+          "says": "3,496",
+          "notCheckable": "Recorded only as prose in the frozen list's criteria, not as data that can be counted."
+        },
+        {
+          "says": "2,139",
+          "notCheckable": "Recorded only as prose in the frozen list's criteria, not as data that can be counted."
+        },
+        {
+          "says": "200",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-16-shopify-fresh-repos.json"
+            ],
+            "rows": "/repos",
+            "where": []
+          }
+        },
+        {
+          "says": "1",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-16-shopify-fresh-repos.json"
+            ],
+            "rows": "/repos",
+            "where": [],
+            "measure": "range",
+            "field": "stars",
+            "pick": 0
+          }
+        },
+        {
+          "says": "562",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-16-shopify-fresh-repos.json"
+            ],
+            "rows": "/repos",
+            "where": [],
+            "measure": "max",
+            "field": "stars"
+          }
+        }
+      ]
+    },
+    {
+      "doc": "docs/SHOPIFY-BENCHMARK.md",
+      "quote": "| **Patched and validated** in offline Docker (2 with tests, 4 with `tsc`) | **6** |",
+      "values": [
+        {
+          "says": "2",
+          "notCheckable": "The condensed October 16 rows do not record it."
+        },
+        {
+          "says": "4",
+          "notCheckable": "The condensed October 16 rows do not record it."
+        },
+        {
+          "says": "6",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-16-shopify-fresh-results.json"
+            ],
+            "rows": "/rows",
+            "where": [
+              {
+                "field": "outcome",
+                "in": [
+                  "patched-validated"
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "doc": "docs/SHOPIFY-BENCHMARK.md",
+      "quote": "| Patched, no runnable checks (no npm lockfile or test script) | 5 |",
+      "values": [
+        {
+          "says": "5",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-16-shopify-fresh-results.json"
+            ],
+            "rows": "/rows",
+            "where": [
+              {
+                "field": "outcome",
+                "in": [
+                  "patched-no-checks"
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "doc": "docs/SHOPIFY-BENCHMARK.md",
+      "quote": "| Patched, baseline checks already fail | 1 |",
+      "values": [
+        {
+          "says": "1",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-16-shopify-fresh-results.json"
+            ],
+            "rows": "/rows",
+            "where": [
+              {
+                "field": "outcome",
+                "in": [
+                  "patched-baseline-failed"
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "doc": "docs/SHOPIFY-BENCHMARK.md",
+      "quote": "| Patched, repository refused for validation (tracked symbolic link) | 1 |",
+      "values": [
+        {
+          "says": "1",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-16-shopify-fresh-results.json"
+            ],
+            "rows": "/rows",
+            "where": [
+              {
+                "field": "outcome",
+                "in": [
+                  "patched-preparation-error"
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "doc": "docs/SHOPIFY-BENCHMARK.md",
+      "quote": "| Already on `2026-10` | 1 |",
+      "values": [
+        {
+          "says": "1",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-16-shopify-fresh-results.json"
+            ],
+            "rows": "/rows",
+            "where": [
+              {
+                "field": "outcome",
+                "in": [
+                  "current"
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "doc": "docs/SHOPIFY-BENCHMARK.md",
+      "quote": "| Stopped: an SDK upgrade is needed to reach a supported version | 44 |",
+      "values": [
+        {
+          "says": "44",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-16-shopify-fresh-results.json"
+            ],
+            "rows": "/rows",
+            "where": [
+              {
+                "field": "outcome",
+                "in": [
+                  "stopped-sdk-upgrade"
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "doc": "docs/SHOPIFY-BENCHMARK.md",
+      "quote": "| Stopped: REST Admin calls | 39 |",
+      "values": [
+        {
+          "says": "39",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-16-shopify-fresh-results.json"
+            ],
+            "rows": "/rows",
+            "where": [
+              {
+                "field": "outcome",
+                "in": [
+                  "stopped-rest"
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "doc": "docs/SHOPIFY-BENCHMARK.md",
+      "quote": "| Stopped: a GraphQL document is built at runtime | 26 |",
+      "values": [
+        {
+          "says": "26",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-16-shopify-fresh-results.json"
+            ],
+            "rows": "/rows",
+            "where": [
+              {
+                "field": "outcome",
+                "in": [
+                  "stopped-runtime-document"
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "doc": "docs/SHOPIFY-BENCHMARK.md",
+      "quote": "| Stopped: a GraphQL document **already fails** on the version Shopify serves | **23** |",
+      "values": [
+        {
+          "says": "23",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-16-shopify-fresh-results.json"
+            ],
+            "rows": "/rows",
+            "where": [
+              {
+                "field": "outcome",
+                "in": [
+                  "stopped-already-failing"
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "doc": "docs/SHOPIFY-BENCHMARK.md",
+      "quote": "| Stopped: the pin is dynamic, missing or set from configuration | 21 |",
+      "values": [
+        {
+          "says": "21",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-16-shopify-fresh-results.json"
+            ],
+            "rows": "/rows",
+            "where": [
+              {
+                "field": "outcome",
+                "in": [
+                  "stopped-dynamic-pin"
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "doc": "docs/SHOPIFY-BENCHMARK.md",
+      "quote": "| Stopped: a document does not parse, or two pins conflict | 3 |",
+      "values": [
+        {
+          "says": "3",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-16-shopify-fresh-results.json"
+            ],
+            "rows": "/rows",
+            "where": [
+              {
+                "field": "outcome",
+                "in": [
+                  "stopped-unparseable-document",
+                  "stopped-conflicting-pins"
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "doc": "docs/SHOPIFY-BENCHMARK.md",
+      "quote": "| No Admin API usage (Storefront, Functions, themes or extensions only) | 28 |",
+      "values": [
+        {
+          "says": "28",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-16-shopify-fresh-results.json"
+            ],
+            "rows": "/rows",
+            "where": [
+              {
+                "field": "outcome",
+                "in": [
+                  "no-admin-usage"
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "doc": "docs/SHOPIFY-BENCHMARK.md",
+      "quote": "| Repository exceeds Refit's scan limits | 2 |",
+      "values": [
+        {
+          "says": "2",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-16-shopify-fresh-results.json"
+            ],
+            "rows": "/rows",
+            "where": [
+              {
+                "field": "outcome",
+                "in": [
+                  "exceeds-scan-limits"
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "doc": "docs/SHOPIFY-BENCHMARK.md",
+      "quote": "Refit found 677 Admin calls and 895 GraphQL documents, 628 of them traced to an Admin call. Per-app outcomes are in [`2026-10-16-shopify-fresh-results.json`](benchmarks/2026-10-16-shopify-fresh-results.json). Scanning all 200 took 134 seconds of CPU time on one machine; validation ran in Docker with concurrency 1, and no AI was used.",
+      "values": [
+        {
+          "says": "677",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-16-shopify-fresh-results.json"
+            ],
+            "rows": "/rows",
+            "where": [],
+            "measure": "sum",
+            "field": "adminCalls"
+          }
+        },
+        {
+          "says": "895",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-16-shopify-fresh-results.json"
+            ],
+            "rows": "/rows",
+            "where": [],
+            "measure": "sum",
+            "field": "documents"
+          }
+        },
+        {
+          "says": "628",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-16-shopify-fresh-results.json"
+            ],
+            "rows": "/rows",
+            "where": [],
+            "measure": "sum",
+            "field": "tracedDocuments"
+          }
+        },
+        {
+          "says": "200",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-16-shopify-fresh-results.json"
+            ],
+            "rows": "/rows",
+            "where": []
+          }
+        },
+        {
+          "says": "134",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-16-shopify-fresh-results.json"
+            ],
+            "rows": "/rows",
+            "where": [],
+            "measure": "sum",
+            "field": "seconds"
+          }
+        }
+      ],
+      "ignore": [
+        {
+          "token": "1",
+          "reason": "A configured limit or setting, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/SHOPIFY-BENCHMARK.md",
+      "quote": "- **13 apps were patched (6.5%), against 1 of the original 50.** All 13 diffs were read by hand. Each moves only Admin API version pins, to the newest version the locked SDK can name, in the runtime configuration and the matching `.graphqlrc` codegen file.",
+      "values": [
+        {
+          "says": "13",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-16-shopify-fresh-results.json"
+            ],
+            "rows": "/rows",
+            "where": [
+              {
+                "field": "outcome",
+                "matches": "^patched-"
+              }
+            ]
+          }
+        },
+        {
+          "says": "6.5%",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-16-shopify-fresh-results.json"
+            ],
+            "rows": "/rows",
+            "where": [],
+            "measure": "rate",
+            "part": [
+              {
+                "field": "outcome",
+                "matches": "^patched-"
+              }
+            ]
+          }
+        },
+        {
+          "says": "1",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-16-shopify-results.json"
+            ],
+            "rows": "/rows",
+            "where": [
+              {
+                "field": "outcome",
+                "matches": "^patched"
+              }
+            ]
+          }
+        },
+        {
+          "says": "50",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-16-shopify-results.json"
+            ],
+            "rows": "/rows",
+            "where": []
+          }
+        },
+        {
+          "says": "13",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-16-shopify-fresh-results.json"
+            ],
+            "rows": "/rows",
+            "where": [
+              {
+                "field": "outcome",
+                "matches": "^patched-"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "doc": "docs/SHOPIFY-BENCHMARK.md",
+      "quote": "- **23 apps (12%) send a query that fails today.** Each error was rechecked with graphql-js against the served schema. 11 are the old Remix template's `productVariantUpdate(input: ProductVariantInput)`, which no supported version has. Others select removed fields (`Product.publishedScope`, `ProductVariant.weight`, `Collection.onlineStoreUrl`), call removed mutations (`inventoryAdjustQuantity`, `orderAddNote`), select `productsCount` without its new subfields, or declare unused variables.",
+      "values": [
+        {
+          "says": "23",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-16-shopify-fresh-results.json"
+            ],
+            "rows": "/rows",
+            "where": [
+              {
+                "field": "outcome",
+                "in": [
+                  "stopped-already-failing"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "says": "12%",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-16-shopify-fresh-results.json"
+            ],
+            "rows": "/rows",
+            "where": [],
+            "measure": "rate",
+            "part": [
+              {
+                "field": "outcome",
+                "in": [
+                  "stopped-already-failing"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "says": "11",
+          "notCheckable": "From reading the code or the diffs by hand; not recorded as data."
+        }
+      ]
+    },
+    {
+      "doc": "docs/SHOPIFY-BENCHMARK.md",
+      "quote": "The fourth was preparation: npm workspaces declared as `{ \"packages\": [...] }`, the Shopify CLI template's form, were refused. npm reads that form the same way as an array, so `cornerstone-report/x-money-shopify` and `sahmsec/conversion-app` (63 tests) now validate. The REST fixes turned 3 wrongly patched apps into stops; none of them had validated. Between the first run (`d368c2a`) and the final one, 10 apps changed, each because of one of these fixes.",
+      "values": [
+        {
+          "says": "63",
+          "notCheckable": "From the first fresh run (d368c2a), whose results are not committed."
+        },
+        {
+          "says": "3",
+          "notCheckable": "From the first fresh run (d368c2a), whose results are not committed."
+        },
+        {
+          "says": "10",
+          "notCheckable": "From the first fresh run (d368c2a), whose results are not committed."
+        }
+      ]
+    },
+    {
+      "doc": "docs/SHOPIFY-BENCHMARK.md",
+      "quote": "Before changing tracing, every Admin call whose document Refit could not read was classified by the pattern hiding it, on both frozen sets (250 apps, Refit `c262f8f`). Scan-level runs only: no Docker validation, no AI, no store.",
+      "values": [
+        {
+          "says": "250",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-16-shopify-repos.json",
+              "docs/benchmarks/2026-10-16-shopify-fresh-repos.json"
+            ],
+            "rows": "/repos",
+            "where": []
+          }
+        }
+      ]
+    },
+    {
+      "doc": "docs/SHOPIFY-BENCHMARK.md",
+      "quote": "| Template literal interpolating a runtime value (ID, cursor, filter) | 22 | 45 | 45, still stops: correct |",
+      "values": [
+        {
+          "says": "22",
+          "notCheckable": "The classification of unread documents by pattern was done by reading them; not recorded per pattern."
+        },
+        {
+          "says": "45",
+          "notCheckable": "The classification of unread documents by pattern was done by reading them; not recorded per pattern."
+        },
+        {
+          "says": "45",
+          "notCheckable": "The classification of unread documents by pattern was done by reading them; not recorded per pattern."
+        }
+      ]
+    },
+    {
+      "doc": "docs/SHOPIFY-BENCHMARK.md",
+      "quote": "| Helper reached through a callback, a `const` arrow passed on, or a closure factory | 6 | 18 | 0; 5 stop where the function later leaves Refit's reach |",
+      "values": [
+        {
+          "says": "6",
+          "notCheckable": "The classification of unread documents by pattern was done by reading them; not recorded per pattern."
+        },
+        {
+          "says": "18",
+          "notCheckable": "The classification of unread documents by pattern was done by reading them; not recorded per pattern."
+        },
+        {
+          "says": "0",
+          "notCheckable": "The classification of unread documents by pattern was done by reading them; not recorded per pattern."
+        },
+        {
+          "says": "5",
+          "notCheckable": "The classification of unread documents by pattern was done by reading them; not recorded per pattern."
+        }
+      ]
+    },
+    {
+      "doc": "docs/SHOPIFY-BENCHMARK.md",
+      "quote": "| Helper stored as an object property | 3 | 3 | 3, now stop at the property line |",
+      "values": [
+        {
+          "says": "3",
+          "notCheckable": "The classification of unread documents by pattern was done by reading them; not recorded per pattern."
+        },
+        {
+          "says": "3",
+          "notCheckable": "The classification of unread documents by pattern was done by reading them; not recorded per pattern."
+        },
+        {
+          "says": "3",
+          "notCheckable": "The classification of unread documents by pattern was done by reading them; not recorded per pattern."
+        }
+      ]
+    },
+    {
+      "doc": "docs/SHOPIFY-BENCHMARK.md",
+      "quote": "| Document built by a function call (`queryForProducts(params)`) | 5 | 10 | 10, still stops |",
+      "values": [
+        {
+          "says": "5",
+          "notCheckable": "The classification of unread documents by pattern was done by reading them; not recorded per pattern."
+        },
+        {
+          "says": "10",
+          "notCheckable": "The classification of unread documents by pattern was done by reading them; not recorded per pattern."
+        },
+        {
+          "says": "10",
+          "notCheckable": "The classification of unread documents by pattern was done by reading them; not recorded per pattern."
+        }
+      ]
+    },
+    {
+      "doc": "docs/SHOPIFY-BENCHMARK.md",
+      "quote": "| Class or object method parameter | 4 | 5 | 5, still stops (needs the receiver's type) |",
+      "values": [
+        {
+          "says": "4",
+          "notCheckable": "The classification of unread documents by pattern was done by reading them; not recorded per pattern."
+        },
+        {
+          "says": "5",
+          "notCheckable": "The classification of unread documents by pattern was done by reading them; not recorded per pattern."
+        },
+        {
+          "says": "5",
+          "notCheckable": "The classification of unread documents by pattern was done by reading them; not recorded per pattern."
+        }
+      ]
+    },
+    {
+      "doc": "docs/SHOPIFY-BENCHMARK.md",
+      "quote": "| Member of a constant array or object (`for (const tier of TIERS)`) | 2 | 2 | 1 |",
+      "values": [
+        {
+          "says": "2",
+          "notCheckable": "The classification of unread documents by pattern was done by reading them; not recorded per pattern."
+        },
+        {
+          "says": "2",
+          "notCheckable": "The classification of unread documents by pattern was done by reading them; not recorded per pattern."
+        },
+        {
+          "says": "1",
+          "notCheckable": "The classification of unread documents by pattern was done by reading them; not recorded per pattern."
+        }
+      ]
+    },
+    {
+      "doc": "docs/SHOPIFY-BENCHMARK.md",
+      "quote": "| Other (destructured or reassignable bindings, unresolved names) | 7 | 7 | 7 |",
+      "values": [
+        {
+          "says": "7",
+          "notCheckable": "The classification of unread documents by pattern was done by reading them; not recorded per pattern."
+        },
+        {
+          "says": "7",
+          "notCheckable": "The classification of unread documents by pattern was done by reading them; not recorded per pattern."
+        },
+        {
+          "says": "7",
+          "notCheckable": "The classification of unread documents by pattern was done by reading them; not recorded per pattern."
+        }
+      ]
+    },
+    {
+      "doc": "docs/SHOPIFY-BENCHMARK.md",
+      "quote": "| Measure | Original 50 before | after | Fresh 200 before | after |",
+      "values": [
+        {
+          "says": "50",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-16-shopify-repos.json"
+            ],
+            "rows": "/repos",
+            "where": []
+          }
+        },
+        {
+          "says": "200",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-16-shopify-fresh-repos.json"
+            ],
+            "rows": "/repos",
+            "where": []
+          }
+        }
+      ]
+    },
+    {
+      "doc": "docs/SHOPIFY-BENCHMARK.md",
+      "quote": "| Traced Admin documents | 336 | **350** | 628 | **644** |",
+      "values": [
+        {
+          "says": "336",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-20-shopify-tracing-results.json"
+            ],
+            "rows": "/sets/original",
+            "where": [],
+            "measure": "sum",
+            "field": "tracedDocuments.0"
+          }
+        },
+        {
+          "says": "350",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-20-shopify-tracing-results.json"
+            ],
+            "rows": "/sets/original",
+            "where": [],
+            "measure": "sum",
+            "field": "tracedDocuments.1"
+          }
+        },
+        {
+          "says": "628",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-20-shopify-tracing-results.json"
+            ],
+            "rows": "/sets/fresh",
+            "where": [],
+            "measure": "sum",
+            "field": "tracedDocuments.0"
+          }
+        },
+        {
+          "says": "644",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-20-shopify-tracing-results.json"
+            ],
+            "rows": "/sets/fresh",
+            "where": [],
+            "measure": "sum",
+            "field": "tracedDocuments.1"
+          }
+        }
+      ]
+    },
+    {
+      "doc": "docs/SHOPIFY-BENCHMARK.md",
+      "quote": "| Admin calls with an unread document | 27 | **22** | 63 | **54** |",
+      "values": [
+        {
+          "says": "27",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-20-shopify-tracing-results.json"
+            ],
+            "rows": "/sets/original",
+            "where": [],
+            "measure": "sum",
+            "field": "unreadable.0"
+          }
+        },
+        {
+          "says": "22",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-20-shopify-tracing-results.json"
+            ],
+            "rows": "/sets/original",
+            "where": [],
+            "measure": "sum",
+            "field": "unreadable.1"
+          }
+        },
+        {
+          "says": "63",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-20-shopify-tracing-results.json"
+            ],
+            "rows": "/sets/fresh",
+            "where": [],
+            "measure": "sum",
+            "field": "unreadable.0"
+          }
+        },
+        {
+          "says": "54",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-20-shopify-tracing-results.json"
+            ],
+            "rows": "/sets/fresh",
+            "where": [],
+            "measure": "sum",
+            "field": "unreadable.1"
+          }
+        }
+      ]
+    },
+    {
+      "doc": "docs/SHOPIFY-BENCHMARK.md",
+      "quote": "| Stopped: runtime-built or unfollowable document | 5 | 4 | 26 | 25 |",
+      "values": [
+        {
+          "says": "5",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-20-shopify-tracing-results.json"
+            ],
+            "rows": "/sets/original",
+            "where": [
+              {
+                "field": "outcome.0",
+                "in": [
+                  "stopped-runtime-document",
+                  "stopped-fragment"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "says": "4",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-20-shopify-tracing-results.json"
+            ],
+            "rows": "/sets/original",
+            "where": [
+              {
+                "field": "outcome.1",
+                "in": [
+                  "stopped-runtime-document",
+                  "stopped-fragment"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "says": "26",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-20-shopify-tracing-results.json"
+            ],
+            "rows": "/sets/fresh",
+            "where": [
+              {
+                "field": "outcome.0",
+                "in": [
+                  "stopped-runtime-document",
+                  "stopped-fragment"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "says": "25",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-20-shopify-tracing-results.json"
+            ],
+            "rows": "/sets/fresh",
+            "where": [
+              {
+                "field": "outcome.1",
+                "in": [
+                  "stopped-runtime-document",
+                  "stopped-fragment"
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "doc": "docs/SHOPIFY-BENCHMARK.md",
+      "quote": "| Stopped: query already fails | 5 | 5 | 23 | **24** |",
+      "values": [
+        {
+          "says": "5",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-20-shopify-tracing-results.json"
+            ],
+            "rows": "/sets/original",
+            "where": [
+              {
+                "field": "outcome.0",
+                "in": [
+                  "stopped-already-failing"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "says": "5",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-20-shopify-tracing-results.json"
+            ],
+            "rows": "/sets/original",
+            "where": [
+              {
+                "field": "outcome.1",
+                "in": [
+                  "stopped-already-failing"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "says": "23",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-20-shopify-tracing-results.json"
+            ],
+            "rows": "/sets/fresh",
+            "where": [
+              {
+                "field": "outcome.0",
+                "in": [
+                  "stopped-already-failing"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "says": "24",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-20-shopify-tracing-results.json"
+            ],
+            "rows": "/sets/fresh",
+            "where": [
+              {
+                "field": "outcome.1",
+                "in": [
+                  "stopped-already-failing"
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "doc": "docs/SHOPIFY-BENCHMARK.md",
+      "quote": "| Stopped: SDK upgrade needed | 14 | 15 | 44 | 44 |",
+      "values": [
+        {
+          "says": "14",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-20-shopify-tracing-results.json"
+            ],
+            "rows": "/sets/original",
+            "where": [
+              {
+                "field": "outcome.0",
+                "in": [
+                  "stopped-sdk-upgrade"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "says": "15",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-20-shopify-tracing-results.json"
+            ],
+            "rows": "/sets/original",
+            "where": [
+              {
+                "field": "outcome.1",
+                "in": [
+                  "stopped-sdk-upgrade"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "says": "44",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-20-shopify-tracing-results.json"
+            ],
+            "rows": "/sets/fresh",
+            "where": [
+              {
+                "field": "outcome.0",
+                "in": [
+                  "stopped-sdk-upgrade"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "says": "44",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-20-shopify-tracing-results.json"
+            ],
+            "rows": "/sets/fresh",
+            "where": [
+              {
+                "field": "outcome.1",
+                "in": [
+                  "stopped-sdk-upgrade"
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "doc": "docs/SHOPIFY-BENCHMARK.md",
+      "quote": "| Patched | 1 | 1 | 13 | 13 |",
+      "values": [
+        {
+          "says": "1",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-20-shopify-tracing-results.json"
+            ],
+            "rows": "/sets/original",
+            "where": [
+              {
+                "field": "outcome.0",
+                "in": [
+                  "patched"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "says": "1",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-20-shopify-tracing-results.json"
+            ],
+            "rows": "/sets/original",
+            "where": [
+              {
+                "field": "outcome.1",
+                "in": [
+                  "patched"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "says": "13",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-20-shopify-tracing-results.json"
+            ],
+            "rows": "/sets/fresh",
+            "where": [
+              {
+                "field": "outcome.0",
+                "in": [
+                  "patched"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "says": "13",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-20-shopify-tracing-results.json"
+            ],
+            "rows": "/sets/fresh",
+            "where": [
+              {
+                "field": "outcome.1",
+                "in": [
+                  "patched"
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "doc": "docs/SHOPIFY-BENCHMARK.md",
+      "quote": "| Same outcome on a second run at `4a99c1e` | | 50/50 | | 200/200 |",
+      "values": [
+        {
+          "says": "50/50",
+          "notCheckable": "A comparison with a repeat run that is not committed."
+        },
+        {
+          "says": "200/200",
+          "notCheckable": "A comparison with a repeat run that is not committed."
+        }
+      ]
+    },
+    {
+      "doc": "docs/SHOPIFY-BENCHMARK.md",
+      "quote": "- **`Leilanigreer/lpc-product-manager`** passes `(query, options) => admin.graphql(query, options)` into `fetchCreationCollections`. All 61 documents are now read and valid; the app stops only because `ApiVersion.October26` needs a newer `@shopify/shopify-api`.",
+      "values": [
+        {
+          "says": "61",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-20-shopify-tracing-results.json"
+            ],
+            "rows": "/sets/original",
+            "where": [
+              {
+                "field": "repo",
+                "equals": "Leilanigreer/lpc-product-manager"
+              }
+            ],
+            "measure": "sum",
+            "field": "tracedDocuments.1"
+          }
+        }
+      ]
+    },
+    {
+      "doc": "docs/SHOPIFY-BENCHMARK.md",
+      "quote": "Scanning the fresh 200 took the same CPU time as before (1 min 42 s). The schemas came from Shopify's own `@shopify/dev-mcp` 1.17.0 npm package (`dist/data/admin_2026-01.json` to `admin_2026-10.json`), because this environment could not reach `shopify.dev`. Their SHA-256 differs from the pinned introspection, so they were used only to compare runs with each other: at `c262f8f` they reproduced the published outcomes for 199 of 200 fresh apps (the other is the fragment stop, counted with runtime documents above) and 48 of 50 original apps (both differences come from Refit fixes made after the original run).",
+      "values": [
+        {
+          "says": "200",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-16-shopify-fresh-repos.json"
+            ],
+            "rows": "/repos",
+            "where": []
+          }
+        },
+        {
+          "says": "1",
+          "notCheckable": "A timing from a run whose times are not committed."
+        },
+        {
+          "says": "42",
+          "notCheckable": "A timing from a run whose times are not committed."
+        },
+        {
+          "says": "199",
+          "notCheckable": "From comparing runs on the dev-mcp schemas, whose outputs are not committed."
+        },
+        {
+          "says": "200",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-16-shopify-fresh-repos.json"
+            ],
+            "rows": "/repos",
+            "where": []
+          }
+        },
+        {
+          "says": "48",
+          "notCheckable": "From comparing runs on the dev-mcp schemas, whose outputs are not committed."
+        },
+        {
+          "says": "50",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-16-shopify-repos.json"
+            ],
+            "rows": "/repos",
+            "where": []
+          }
+        }
+      ],
+      "ignore": [
+        {
+          "token": "256",
+          "reason": "A version or release in a name (a package, runtime or tool), not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/SHOPIFY-BENCHMARK.md",
+      "quote": "Before, each REST finding gave only the matching expression (`admin.rest.resources.Product.all`, or the first 120 characters of a URL). Now every REST Admin call is reported at its file and line with the HTTP method and the path or REST resource operation wherever the code states them, under `shopify.restCalls` in the report and in `refit scan`'s summary. Refit still never migrates them. Measured at `0b5480b` against `4a99c1e`, scan level:",
+      "values": [],
+      "ignore": [
+        {
+          "token": "120",
+          "reason": "A configured limit or setting, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/SHOPIFY-BENCHMARK.md",
+      "quote": "| | Original 50 | Fresh 200 |",
+      "values": [
+        {
+          "says": "50",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-16-shopify-repos.json"
+            ],
+            "rows": "/repos",
+            "where": []
+          }
+        },
+        {
+          "says": "200",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-16-shopify-fresh-repos.json"
+            ],
+            "rows": "/repos",
+            "where": []
+          }
+        }
+      ]
+    },
+    {
+      "doc": "docs/SHOPIFY-BENCHMARK.md",
+      "quote": "| Apps with REST calls | 10 → 8 | 54 → 46 |",
+      "values": [
+        {
+          "says": "10",
+          "notCheckable": "From the REST reporting runs at 0b5480b and 4a99c1e; per-call REST details are not in the committed tracing file."
+        },
+        {
+          "says": "8",
+          "notCheckable": "From the REST reporting runs at 0b5480b and 4a99c1e; per-call REST details are not in the committed tracing file."
+        },
+        {
+          "says": "54",
+          "notCheckable": "From the REST reporting runs at 0b5480b and 4a99c1e; per-call REST details are not in the committed tracing file."
+        },
+        {
+          "says": "46",
+          "notCheckable": "From the REST reporting runs at 0b5480b and 4a99c1e; per-call REST details are not in the committed tracing file."
+        }
+      ]
+    },
+    {
+      "doc": "docs/SHOPIFY-BENCHMARK.md",
+      "quote": "| REST calls reported | 32 → 28 | 184 → 152 |",
+      "values": [
+        {
+          "says": "32",
+          "notCheckable": "From the REST reporting runs at 0b5480b and 4a99c1e; per-call REST details are not in the committed tracing file."
+        },
+        {
+          "says": "28",
+          "notCheckable": "From the REST reporting runs at 0b5480b and 4a99c1e; per-call REST details are not in the committed tracing file."
+        },
+        {
+          "says": "184",
+          "notCheckable": "From the REST reporting runs at 0b5480b and 4a99c1e; per-call REST details are not in the committed tracing file."
+        },
+        {
+          "says": "152",
+          "notCheckable": "From the REST reporting runs at 0b5480b and 4a99c1e; per-call REST details are not in the committed tracing file."
+        }
+      ]
+    },
+    {
+      "doc": "docs/SHOPIFY-BENCHMARK.md",
+      "quote": "| … raw `graphql.json` requests removed from REST | 4 (2 apps) | 56 (11 apps) |",
+      "values": [
+        {
+          "says": "4",
+          "notCheckable": "From the REST reporting runs at 0b5480b and 4a99c1e; per-call REST details are not in the committed tracing file."
+        },
+        {
+          "says": "2",
+          "notCheckable": "From the REST reporting runs at 0b5480b and 4a99c1e; per-call REST details are not in the committed tracing file."
+        },
+        {
+          "says": "56",
+          "notCheckable": "From the REST reporting runs at 0b5480b and 4a99c1e; per-call REST details are not in the committed tracing file."
+        },
+        {
+          "says": "11",
+          "notCheckable": "From the REST reporting runs at 0b5480b and 4a99c1e; per-call REST details are not in the committed tracing file."
+        }
+      ]
+    },
+    {
+      "doc": "docs/SHOPIFY-BENCHMARK.md",
+      "quote": "| … calls on REST client variables, newly reported one by one | 0 | 24 |",
+      "values": [
+        {
+          "says": "0",
+          "notCheckable": "From the REST reporting runs at 0b5480b and 4a99c1e; per-call REST details are not in the committed tracing file."
+        },
+        {
+          "says": "24",
+          "notCheckable": "From the REST reporting runs at 0b5480b and 4a99c1e; per-call REST details are not in the committed tracing file."
+        }
+      ]
+    },
+    {
+      "doc": "docs/SHOPIFY-BENCHMARK.md",
+      "quote": "| … with method and path (`GET products/{id}.json`) | 3 | 80 |",
+      "values": [
+        {
+          "says": "3",
+          "notCheckable": "From the REST reporting runs at 0b5480b and 4a99c1e; per-call REST details are not in the committed tracing file."
+        },
+        {
+          "says": "80",
+          "notCheckable": "From the REST reporting runs at 0b5480b and 4a99c1e; per-call REST details are not in the committed tracing file."
+        }
+      ]
+    },
+    {
+      "doc": "docs/SHOPIFY-BENCHMARK.md",
+      "quote": "| … resource operation with method (`Product.all`, GET) | 11 | 20 |",
+      "values": [
+        {
+          "says": "11",
+          "notCheckable": "From the REST reporting runs at 0b5480b and 4a99c1e; per-call REST details are not in the committed tracing file."
+        },
+        {
+          "says": "20",
+          "notCheckable": "From the REST reporting runs at 0b5480b and 4a99c1e; per-call REST details are not in the committed tracing file."
+        }
+      ]
+    },
+    {
+      "doc": "docs/SHOPIFY-BENCHMARK.md",
+      "quote": "| … new resource record (`new Metafield`, sent by `save()`) | 14 | 5 |",
+      "values": [
+        {
+          "says": "14",
+          "notCheckable": "From the REST reporting runs at 0b5480b and 4a99c1e; per-call REST details are not in the committed tracing file."
+        },
+        {
+          "says": "5",
+          "notCheckable": "From the REST reporting runs at 0b5480b and 4a99c1e; per-call REST details are not in the committed tracing file."
+        }
+      ]
+    },
+    {
+      "doc": "docs/SHOPIFY-BENCHMARK.md",
+      "quote": "| … path only, or method only | 0 | 19 |",
+      "values": [
+        {
+          "says": "0",
+          "notCheckable": "From the REST reporting runs at 0b5480b and 4a99c1e; per-call REST details are not in the committed tracing file."
+        },
+        {
+          "says": "19",
+          "notCheckable": "From the REST reporting runs at 0b5480b and 4a99c1e; per-call REST details are not in the committed tracing file."
+        }
+      ]
+    },
+    {
+      "doc": "docs/SHOPIFY-BENCHMARK.md",
+      "quote": "| … client construction, nothing else stated | 0 | 28 |",
+      "values": [
+        {
+          "says": "0",
+          "notCheckable": "From the REST reporting runs at 0b5480b and 4a99c1e; per-call REST details are not in the committed tracing file."
+        },
+        {
+          "says": "28",
+          "notCheckable": "From the REST reporting runs at 0b5480b and 4a99c1e; per-call REST details are not in the committed tracing file."
+        }
+      ]
+    },
+    {
+      "doc": "docs/SHOPIFY-BENCHMARK.md",
+      "quote": "| Stopped: REST Admin calls | 8 → **6** | 39 → **32** |",
+      "values": [
+        {
+          "says": "8",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-20-shopify-tracing-results.json"
+            ],
+            "rows": "/sets/original",
+            "where": [
+              {
+                "field": "outcome.1",
+                "in": [
+                  "stopped-rest"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "says": "6",
+          "notCheckable": "From the REST reporting runs at 0b5480b and 4a99c1e; per-call REST details are not in the committed tracing file."
+        },
+        {
+          "says": "39",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-20-shopify-tracing-results.json"
+            ],
+            "rows": "/sets/fresh",
+            "where": [
+              {
+                "field": "outcome.1",
+                "in": [
+                  "stopped-rest"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "says": "32",
+          "notCheckable": "From the REST reporting runs at 0b5480b and 4a99c1e; per-call REST details are not in the committed tracing file."
+        }
+      ]
+    },
+    {
+      "doc": "docs/SHOPIFY-BENCHMARK.md",
+      "quote": "| Same outcome on a second run | 50/50 | 200/200 |",
+      "values": [
+        {
+          "says": "50/50",
+          "notCheckable": "A comparison with a repeat run that is not committed."
+        },
+        {
+          "says": "200/200",
+          "notCheckable": "A comparison with a repeat run that is not committed."
+        }
+      ]
+    },
+    {
+      "doc": "docs/SHOPIFY-BENCHMARK.md",
+      "quote": "The drop is a fix. A URL to `/admin/api/<version>/graphql.json` matched the REST pattern, so 9 apps (`tomhooker/Post-Purchase-Extension`, `ersinkoc/CouponEngine`, `drizzle-team/tento`, `callobuzz/cob-shopify-mcp`, `evigauge-org/helix`, `CABlank/referrd-react-app-shopify`, `LazerTechnologies/shopify-app-development-course`, `Priyadharshini29-M/Combo-page-app`, `tahmidbintaslim/shopify-ucp`) were counted as REST while they only `POST` GraphQL documents with `fetch`. Refit does not read those documents, so each still stops, now as an unread Admin GraphQL document at the exact line. No other outcome changed.",
+      "values": [
+        {
+          "says": "9",
+          "notCheckable": "From the REST reporting runs at 0b5480b and 4a99c1e; per-call REST details are not in the committed tracing file."
+        }
+      ]
+    },
+    {
+      "doc": "docs/SHOPIFY-BENCHMARK.md",
+      "quote": "A random sample of 20 reported calls was checked by hand against the code: all 20 methods and paths or resource operations were right.",
+      "values": [
+        {
+          "says": "20",
+          "notCheckable": "From reading the code or the diffs by hand; not recorded as data."
+        },
+        {
+          "says": "20",
+          "notCheckable": "From reading the code or the diffs by hand; not recorded as data."
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "This records historical scans of **100 real public Stripe integrations** with **real Stripe API changes**: each repository's recorded API version, compared with Stripe's published target OpenAPI specifications. The initial run on October 14, 2026 used Refit `03648a6`, which includes shared SDK client support. No repository code was installed or run in those scans.",
+      "values": [
+        {
+          "says": "100",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-14-stripe-repos.json"
+            ],
+            "rows": "/repos",
+            "where": []
+          }
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "The phase-2 figures below precede the webhook integration safeguards. Current automation treats declared Stripe types as review hints, requires separately verified incoming webhook policy, and stops on skipped source files. Response unions are not mapped to their first member. These historical scores are not current migration coverage or proof of runtime compatibility; rerun and independently review labels before quoting them for the integrated release.",
+      "values": [],
+      "ignore": [
+        {
+          "token": "2",
+          "reason": "A phase of the plan, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "- **Repositories:** GitHub code search for TypeScript/JavaScript files using the `stripe` package (imports, `require`, `new Stripe(…apiVersion…)`, common calls) found 1,556 repositories. We kept those that are not archived or forks, are under 50 MB and were pushed since January 2024. From the 140 most-starred we cloned them shallowly, kept the ones with a `stripe` dependency whose API version maps to a real specification, and took the top 100 that have an upgrade ahead of them (7 to 2,110 stars). Repositories and commits are pinned in [`benchmarks/2026-10-14-stripe-repos.json`](benchmarks/2026-10-14-stripe-repos.json). No repository code was installed or run.",
+      "values": [
+        {
+          "says": "1,556",
+          "notCheckable": "Recorded only as prose in the frozen list's criteria, not as data that can be counted."
+        },
+        {
+          "says": "140",
+          "notCheckable": "Recorded only as prose in the frozen list's criteria, not as data that can be counted."
+        },
+        {
+          "says": "100",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-14-stripe-repos.json"
+            ],
+            "rows": "/repos",
+            "where": []
+          }
+        },
+        {
+          "says": "7",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-14-stripe-repos.json"
+            ],
+            "rows": "/repos",
+            "where": [],
+            "measure": "range",
+            "field": "stars",
+            "pick": 0
+          }
+        },
+        {
+          "says": "2,110",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-14-stripe-repos.json"
+            ],
+            "rows": "/repos",
+            "where": [],
+            "measure": "max",
+            "field": "stars"
+          }
+        }
+      ],
+      "ignore": [
+        {
+          "token": "50",
+          "reason": "A configured limit or setting, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "- **Each repository's API version:** taken from its literal `apiVersion: '…'` (68 of the 100), or else from its locked or declared `stripe` package version (32). We read each stripe-node release's `OPENAPI_VERSION` and `apiVersion` to map 175 SDK releases to 31 API versions.",
+      "values": [
+        {
+          "says": "68",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-14-stripe-repos.json"
+            ],
+            "rows": "/repos",
+            "where": [
+              {
+                "field": "beforeSource",
+                "equals": "apiVersion pin"
+              }
+            ]
+          }
+        },
+        {
+          "says": "100",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-14-stripe-repos.json"
+            ],
+            "rows": "/repos",
+            "where": []
+          }
+        },
+        {
+          "says": "32",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-14-stripe-repos.json"
+            ],
+            "rows": "/repos",
+            "where": [
+              {
+                "field": "beforeSource",
+                "equals": "SDK version"
+              }
+            ]
+          }
+        },
+        {
+          "says": "175",
+          "notCheckable": "The mapping of 175 stripe-node releases is built by the setup script, not committed."
+        },
+        {
+          "says": "31",
+          "notCheckable": "The mapping of stripe-node releases to API versions is built by the setup script, not committed."
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "- **Real contracts:** for each API version, `openapi/spec3.json` from the `stripe/openapi` release that version shipped with. We verified that each spec's `info.version` equals the API version, after correcting two releases. The target is the latest, `2026-09-30.endive`. 80 repositories start before `2025-03-31.basil`, Stripe's large breaking release.",
+      "values": [
+        {
+          "says": "80",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-14-stripe-repos.json"
+            ],
+            "rows": "/repos",
+            "where": [
+              {
+                "field": "before",
+                "matches": "^(202[0-4]|2025-0[12]|2025-03-([012]\\d|30))"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "1. read the repository;",
+      "values": [],
+      "ignore": [
+        {
+          "token": "1",
+          "reason": "A list item number."
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "2. trace Stripe SDK calls;",
+      "values": [],
+      "ignore": [
+        {
+          "token": "2",
+          "reason": "A list item number."
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "3. scan for removed fields with the built-in Stripe adapter;",
+      "values": [],
+      "ignore": [
+        {
+          "token": "3",
+          "reason": "A list item number."
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "4. scan again with a **generated full Stripe adapter**: every stripe-node method the repository calls, mapped to the object it returns, from `x-stripeOperations` in Stripe's SDK spec (`pipeline/stripe-benchmark.ts`);",
+      "values": [],
+      "ignore": [
+        {
+          "token": "4",
+          "reason": "A list item number."
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "5. run production mode (full contract diff);",
+      "values": [],
+      "ignore": [
+        {
+          "token": "5",
+          "reason": "A list item number."
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "6. for confirmed affected code, run an AI patch and Docker validation through `refit run`.",
+      "values": [],
+      "ignore": [
+        {
+          "token": "6",
+          "reason": "A list item number."
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "| Selected | 100 |",
+      "values": [
+        {
+          "says": "100",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-14-stripe-repos.json"
+            ],
+            "rows": "/repos",
+            "where": []
+          }
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "| Refit reads the repository | 100 |",
+      "values": [
+        {
+          "says": "100",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "| Scanner completes without crashing | **97**. Three crashed on a single file: a syntax error, a declaration error and a binary `.ts` file |",
+      "values": [
+        {
+          "says": "97",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "| Stripe SDK calls found | 96 |",
+      "values": [
+        {
+          "says": "96",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "| A traced call maps to a Stripe object | 54 |",
+      "values": [
+        {
+          "says": "54",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "| Breaking-field reads reported, any confidence | 83 (built-in adapter) |",
+      "values": [
+        {
+          "says": "83",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "| **Confirmed** affected code, built-in adapter (`paymentIntents` only) | **0** |",
+      "values": [
+        {
+          "says": "0",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "| **Confirmed** affected code, generated full adapter | **0** |",
+      "values": [
+        {
+          "says": "0",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "| AI proposal attempted | **0**: nothing was confirmed |",
+      "values": [
+        {
+          "says": "0",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "| Validated draft PR | **0** |",
+      "values": [
+        {
+          "says": "0",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "| Could be validated with the repository's own checks at all | **10**: needs a root npm lockfile, a real `test` script and `stripe` in the root `package.json` |",
+      "values": [
+        {
+          "says": "10",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "| At least one call **traced** | **55**. Only 355 of 1,556 likely Stripe calls were traced (23%) |",
+      "values": [
+        {
+          "says": "55",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        },
+        {
+          "says": "355",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        },
+        {
+          "says": "1,556",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        },
+        {
+          "says": "23%",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "| Production mode (full contract diff) completes | **0 of 54**. `oasdiff` exceeded its 30s limit or could not compare the real specs |",
+      "values": [
+        {
+          "says": "0",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        },
+        {
+          "says": "54",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "30",
+          "reason": "A configured limit or setting, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "Refit's scanner sees the right fields. The most common removed fields read by these repositories, counted per repository: `line_item.type` (66), `line_item.price` and `invoiceitem.price` (58), `invoice.subscription` (40), `subscription.current_period_end` (30), `invoice.payment_intent` (11).",
+      "values": [
+        {
+          "says": "66",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        },
+        {
+          "says": "58",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        },
+        {
+          "says": "40",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        },
+        {
+          "says": "30",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        },
+        {
+          "says": "11",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "A plain source check confirms the scale for one field only Stripe uses. **31 of the 80 pre-basil repositories (39%) read `subscription.current_period_end` or `current_period_start`, 97 reads in total.** Stripe removed both from subscriptions in `2025-03-31.basil`. These applications break on upgrade, and 21 of the files involved are webhook handlers.",
+      "values": [
+        {
+          "says": "31",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        },
+        {
+          "says": "80",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-14-stripe-repos.json"
+            ],
+            "rows": "/repos",
+            "where": [
+              {
+                "field": "before",
+                "matches": "^(202[0-4]|2025-0[12]|2025-03-([012]\\d|30))"
+              }
+            ]
+          }
+        },
+        {
+          "says": "39%",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        },
+        {
+          "says": "97",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        },
+        {
+          "says": "21",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "All 6,539 reported reads were `review` confidence:",
+      "values": [
+        {
+          "says": "6,539",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "| \"Response or SDK client may be mutated or escape through an alias or call…\" | 6,026 |",
+      "values": [
+        {
+          "says": "6,026",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "| \"Receiver or property cannot be proven by the supported local analysis\" | 513 |",
+      "values": [
+        {
+          "says": "513",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "1. **Stripe objects arrive through webhooks.** 74 of 100 repositories call `stripe.webhooks.constructEvent`, then read `event.data.object` (often `as Stripe.Subscription`). Refit doesn't trace event payloads.",
+      "values": [
+        {
+          "says": "74",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        },
+        {
+          "says": "100",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-14-stripe-repos.json"
+            ],
+            "rows": "/repos",
+            "where": []
+          }
+        }
+      ],
+      "ignore": [
+        {
+          "token": "1",
+          "reason": "A list item number."
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "2. **Objects are passed around.** A subscription retrieved in one function is read in another, often typed as `Stripe.Subscription`. Refit's tracing stops at the first call or alias, and doesn't use TypeScript's `Stripe.*` type annotations.",
+      "values": [],
+      "ignore": [
+        {
+          "token": "2",
+          "reason": "A list item number."
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "3. **Common names cause noise.** Because Stripe removed `line_item.type`, any `.type` read near Stripe code is reported, for example in a UI toast hook.",
+      "values": [],
+      "ignore": [
+        {
+          "token": "3",
+          "reason": "A list item number."
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "4. **The built-in Stripe adapter maps only `paymentIntents`.** Custom adapters can't use the reserved `stripe` id. The benchmark's generated adapter uses `stripe-full`, which skips Stripe-specific extras such as the charges rule.",
+      "values": [],
+      "ignore": [
+        {
+          "token": "4",
+          "reason": "A list item number."
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "- **Production mode can't diff real Stripe specs.** The 30s `oasdiff` limit is exceeded on 8–11 MB specifications, and some pairs fail to compare at all. The default worker mode therefore never reaches the code stage for Stripe.",
+      "values": [
+        {
+          "says": "8–11",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "30",
+          "reason": "A configured limit or setting, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "- **Validation coverage:** 57 repositories use npm, 26 pnpm, 5 yarn and 12 have no lockfile. Only 17 have a real test script.",
+      "values": [
+        {
+          "says": "57",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-14-stripe-repos.json"
+            ],
+            "rows": "/repos",
+            "where": [
+              {
+                "field": "packageManager",
+                "equals": "npm"
+              }
+            ]
+          }
+        },
+        {
+          "says": "26",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-14-stripe-repos.json"
+            ],
+            "rows": "/repos",
+            "where": [
+              {
+                "field": "packageManager",
+                "equals": "pnpm"
+              }
+            ]
+          }
+        },
+        {
+          "says": "5",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-14-stripe-repos.json"
+            ],
+            "rows": "/repos",
+            "where": [
+              {
+                "field": "packageManager",
+                "equals": "yarn"
+              }
+            ]
+          }
+        },
+        {
+          "says": "12",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-14-stripe-repos.json"
+            ],
+            "rows": "/repos",
+            "where": [
+              {
+                "field": "packageManager",
+                "equals": "none"
+              }
+            ]
+          }
+        },
+        {
+          "says": "17",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "[`benchmarks/STRIPE-LABELS.md`](benchmarks/STRIPE-LABELS.md) labels 30 of the repositories: 40 real breaking reads in 11 repositories. Today's Refit, generated full adapter, labelled set:",
+      "values": [
+        {
+          "says": "30",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-14-stripe-labels.json"
+            ],
+            "rows": "/labelled",
+            "where": []
+          }
+        },
+        {
+          "says": "40",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-14-stripe-labels.json"
+            ],
+            "rows": "/repos",
+            "within": [
+              {
+                "field": "repo",
+                "inQuery": {
+                  "results": [
+                    "docs/benchmarks/2026-10-14-stripe-labels.json"
+                  ],
+                  "rows": "/labelled"
+                }
+              }
+            ],
+            "flatten": "reads",
+            "where": [
+              {
+                "field": "label",
+                "equals": "breaking"
+              }
+            ]
+          }
+        },
+        {
+          "says": "11",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-14-stripe-labels.json"
+            ],
+            "rows": "/repos",
+            "where": [
+              {
+                "field": "repo",
+                "inQuery": {
+                  "results": [
+                    "docs/benchmarks/2026-10-14-stripe-labels.json"
+                  ],
+                  "rows": "/labelled"
+                }
+              },
+              {
+                "field": "reads",
+                "some": [
+                  {
+                    "field": "label",
+                    "equals": "breaking"
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "| Confirmed findings (what Refit acts on) | **0%** (0/39) | n/a |",
+      "values": [
+        {
+          "says": "0%",
+          "notCheckable": "From the ground-truth scorer over a run whose results are not committed; the labels are committed, so the denominators of label-only counts are checked where they appear alone."
+        },
+        {
+          "says": "0/39",
+          "notCheckable": "From the ground-truth scorer over a run whose results are not committed; the labels are committed, so the denominators of label-only counts are checked where they appear alone."
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "| Any finding, including review | 100% (39/39) | **1%** (39/3,048) |",
+      "values": [
+        {
+          "says": "100%",
+          "notCheckable": "From the ground-truth scorer over a run whose results are not committed; the labels are committed, so the denominators of label-only counts are checked where they appear alone."
+        },
+        {
+          "says": "39/39",
+          "notCheckable": "From the ground-truth scorer over a run whose results are not committed; the labels are committed, so the denominators of label-only counts are checked where they appear alone."
+        },
+        {
+          "says": "1%",
+          "notCheckable": "From the ground-truth scorer over a run whose results are not committed; the labels are committed, so the denominators of label-only counts are checked where they appear alone."
+        },
+        {
+          "says": "39/3,048",
+          "notCheckable": "From the ground-truth scorer over a run whose results are not committed; the labels are committed, so the denominators of label-only counts are checked where they appear alone."
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "Refit reports every real break but can't separate it from about 3,000 false matches, so it confirms none. Phase 2 of the [plan](STRIPE-PLAN.md) targets confirmed recall ≥ 90% at precision ≥ 98%.",
+      "values": [
+        {
+          "says": "3,000",
+          "notCheckable": "From the ground-truth scorer over a run whose results are not committed; the labels are committed, so the denominators of label-only counts are checked where they appear alone."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "2",
+          "reason": "A phase of the plan, not a measurement."
+        },
+        {
+          "token": "90%",
+          "reason": "The plan's target, not a measurement."
+        },
+        {
+          "token": "98%",
+          "reason": "The plan's target, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "**After phase 2** (`Stripe.*` types, typed arrays and helper returns, narrowed webhook events, inline list items, primitive field values passed along, noise limited to Stripe files), with the existing escape and alias safety rules kept:",
+      "values": [],
+      "ignore": [
+        {
+          "token": "2",
+          "reason": "A phase of the plan, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "| Confirmed findings, labelled set | **51%** (20/39) | **100%** (20/20) |",
+      "values": [
+        {
+          "says": "51%",
+          "notCheckable": "From the phase-2 run on the original 100, whose results are not committed."
+        },
+        {
+          "says": "20/39",
+          "notCheckable": "From the phase-2 run on the original 100, whose results are not committed."
+        },
+        {
+          "says": "100%",
+          "notCheckable": "From the phase-2 run on the original 100, whose results are not committed."
+        },
+        {
+          "says": "20/20",
+          "notCheckable": "From the phase-2 run on the original 100, whose results are not committed."
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "| Any finding | 100% (39/39) | 6% (39/619) |",
+      "values": [
+        {
+          "says": "100%",
+          "notCheckable": "From the phase-2 run on the original 100, whose results are not committed."
+        },
+        {
+          "says": "39/39",
+          "notCheckable": "From the phase-2 run on the original 100, whose results are not committed."
+        },
+        {
+          "says": "6%",
+          "notCheckable": "From the phase-2 run on the original 100, whose results are not committed."
+        },
+        {
+          "says": "39/619",
+          "notCheckable": "From the phase-2 run on the original 100, whose results are not committed."
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "| Confirmed findings, 20 held-out repositories (checked by hand) | n/a | **100%** (8/8) |",
+      "values": [
+        {
+          "says": "20",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-14-stripe-labels.json"
+            ],
+            "rows": "/heldOut",
+            "where": []
+          }
+        },
+        {
+          "says": "100%",
+          "notCheckable": "From the phase-2 run on the original 100, whose results are not committed."
+        },
+        {
+          "says": "8/8",
+          "notCheckable": "From the phase-2 run on the original 100, whose results are not committed."
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "Across all 100 repositories: 0 scan crashes (was 3), 25 repositories with confirmed affected code (was 0), and 6,555 → about 1,000 review flags.",
+      "values": [
+        {
+          "says": "100",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-14-stripe-repos.json"
+            ],
+            "rows": "/repos",
+            "where": []
+          }
+        },
+        {
+          "says": "0",
+          "notCheckable": "From the phase-2 run on the original 100, whose results are not committed."
+        },
+        {
+          "says": "3",
+          "notCheckable": "From the phase-2 run on the original 100, whose results are not committed."
+        },
+        {
+          "says": "25",
+          "notCheckable": "From the phase-2 run on the original 100, whose results are not committed."
+        },
+        {
+          "says": "0",
+          "notCheckable": "From the phase-2 run on the original 100, whose results are not committed."
+        },
+        {
+          "says": "6,555",
+          "notCheckable": "From the phase-2 run on the original 100, whose results are not committed."
+        },
+        {
+          "says": "1,000",
+          "notCheckable": "From the phase-2 run on the original 100, whose results are not committed."
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "The remaining misses are downgraded by deliberate safety rules: a Stripe response passed into another function, returned, or stored with an object-valued field; and repository-wide alias doubt when an alias import may resolve to an unscanned declaration file (2 reads). An experiment that trusted traced Stripe responses despite those escapes reached 95% recall at 100% precision on this set, but it contradicts tested safety requirements, so it is not applied. See the plan's open decisions.",
+      "values": [
+        {
+          "says": "2",
+          "notCheckable": "From the phase-2 run on the original 100, whose results are not committed."
+        },
+        {
+          "says": "95%",
+          "notCheckable": "From the phase-2 run on the original 100, whose results are not committed."
+        },
+        {
+          "says": "100%",
+          "notCheckable": "From the phase-2 run on the original 100, whose results are not committed."
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "Measured on October 15, 2026, on the same pinned 100 repositories. \"Before\" is `main` at `f512ffa` (Refit 0.21). \"After\" is the self-maintaining pipeline branch (escape changes, Stripe enum gating, field-move rules, `apiVersion` bump). Both runs used `npm run benchmark:stripe -- --env .env --ai --validate` with the generated full Stripe adapter. See the [plan](STRIPE-PLAN.md#self-maintaining-pipeline-october-15-2026) for what changed and the open decisions.",
+      "values": [
+        {
+          "says": "100",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-14-stripe-repos.json"
+            ],
+            "rows": "/repos",
+            "where": []
+          }
+        }
+      ],
+      "ignore": [
+        {
+          "token": "0.21",
+          "reason": "A version or release in a name (a package, runtime or tool), not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "| Labelled set: confirmed recall | 5% (2/39) | **95% (37/39)** |",
+      "values": [
+        {
+          "says": "5%",
+          "notCheckable": "From the ground-truth scorer over a run whose results are not committed; the labels are committed, so the denominators of label-only counts are checked where they appear alone."
+        },
+        {
+          "says": "2/39",
+          "notCheckable": "From the ground-truth scorer over a run whose results are not committed; the labels are committed, so the denominators of label-only counts are checked where they appear alone."
+        },
+        {
+          "says": "95%",
+          "notCheckable": "From the ground-truth scorer over a run whose results are not committed; the labels are committed, so the denominators of label-only counts are checked where they appear alone."
+        },
+        {
+          "says": "37/39",
+          "notCheckable": "From the ground-truth scorer over a run whose results are not committed; the labels are committed, so the denominators of label-only counts are checked where they appear alone."
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "| Labelled set: confirmed precision, as labelled | 100% (2/2) | 86% (37/43) |",
+      "values": [
+        {
+          "says": "100%",
+          "notCheckable": "From the ground-truth scorer over a run whose results are not committed; the labels are committed, so the denominators of label-only counts are checked where they appear alone."
+        },
+        {
+          "says": "2/2",
+          "notCheckable": "From the ground-truth scorer over a run whose results are not committed; the labels are committed, so the denominators of label-only counts are checked where they appear alone."
+        },
+        {
+          "says": "86%",
+          "notCheckable": "From the ground-truth scorer over a run whose results are not committed; the labels are committed, so the denominators of label-only counts are checked where they appear alone."
+        },
+        {
+          "says": "37/43",
+          "notCheckable": "From the ground-truth scorer over a run whose results are not committed; the labels are committed, so the denominators of label-only counts are checked where they appear alone."
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "| Labelled set: confirmed precision, six disputed labels corrected | 100% (2/2) | 100% (43/43) |",
+      "values": [
+        {
+          "says": "100%",
+          "notCheckable": "From the ground-truth scorer over a run whose results are not committed; the labels are committed, so the denominators of label-only counts are checked where they appear alone."
+        },
+        {
+          "says": "2/2",
+          "notCheckable": "From the ground-truth scorer over a run whose results are not committed; the labels are committed, so the denominators of label-only counts are checked where they appear alone."
+        },
+        {
+          "says": "100%",
+          "notCheckable": "From the ground-truth scorer over a run whose results are not committed; the labels are committed, so the denominators of label-only counts are checked where they appear alone."
+        },
+        {
+          "says": "43/43",
+          "notCheckable": "From the ground-truth scorer over a run whose results are not committed; the labels are committed, so the denominators of label-only counts are checked where they appear alone."
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "| Held-out set: confirmed reads (checked by hand) | 1 in 1 repository | **10 in 4 repositories, all real breaks** |",
+      "values": [
+        {
+          "says": "1",
+          "notCheckable": "From the ground-truth scorer over a run whose results are not committed; the labels are committed, so the denominators of label-only counts are checked where they appear alone."
+        },
+        {
+          "says": "1",
+          "notCheckable": "From the ground-truth scorer over a run whose results are not committed; the labels are committed, so the denominators of label-only counts are checked where they appear alone."
+        },
+        {
+          "says": "10",
+          "notCheckable": "From the ground-truth scorer over a run whose results are not committed; the labels are committed, so the denominators of label-only counts are checked where they appear alone."
+        },
+        {
+          "says": "4",
+          "notCheckable": "From the ground-truth scorer over a run whose results are not committed; the labels are committed, so the denominators of label-only counts are checked where they appear alone."
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "| All 100: confirmed reads | 5 in 4 repositories | **76 in 23 repositories** |",
+      "values": [
+        {
+          "says": "100",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-14-stripe-repos.json"
+            ],
+            "rows": "/repos",
+            "where": []
+          }
+        },
+        {
+          "says": "5",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        },
+        {
+          "says": "4",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        },
+        {
+          "says": "76",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        },
+        {
+          "says": "23",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "| All 100: review-only reads | 744 | 673 |",
+      "values": [
+        {
+          "says": "100",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-14-stripe-repos.json"
+            ],
+            "rows": "/repos",
+            "where": []
+          }
+        },
+        {
+          "says": "744",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        },
+        {
+          "says": "673",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "| Production mode (full contract diff) completes | 0 of 74 | **74 of 74** |",
+      "values": [
+        {
+          "says": "0",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        },
+        {
+          "says": "74",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        },
+        {
+          "says": "74",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        },
+        {
+          "says": "74",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "All six \"false positives\" read `.subscription` inside an `invoice.payment_succeeded` branch on a payload cast to `Stripe.Checkout.Session`. At runtime it is an Invoice, whose `subscription` field basil removed (plan open decision 1). The two misses are tracing gaps, not escapes: an expanded `latest_invoice.payment_intent`, and `entitled[0] ?? sorted[0]`.",
+      "values": [],
+      "ignore": [
+        {
+          "token": "1",
+          "reason": "An item number of the plan, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "| `subscription.current_period_end` | 35 | 22 | 30 SDK responses, 4 typed values, 1 webhook |",
+      "values": [
+        {
+          "says": "35",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        },
+        {
+          "says": "22",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        },
+        {
+          "says": "30",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        },
+        {
+          "says": "4",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        },
+        {
+          "says": "1",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "| `invoice.subscription` | 14 | 11 | 10 webhook, 4 typed values |",
+      "values": [
+        {
+          "says": "14",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        },
+        {
+          "says": "11",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        },
+        {
+          "says": "10",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        },
+        {
+          "says": "4",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "| `invoice.payment_intent` | 14 | 2 | 12 typed values, 2 SDK responses |",
+      "values": [
+        {
+          "says": "14",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        },
+        {
+          "says": "2",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        },
+        {
+          "says": "12",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        },
+        {
+          "says": "2",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "| `subscription.current_period_start` | 9 | 7 | 8 SDK responses, 1 typed value |",
+      "values": [
+        {
+          "says": "9",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        },
+        {
+          "says": "7",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        },
+        {
+          "says": "8",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        },
+        {
+          "says": "1",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "| `line_item.price` | 3 | 1 | typed values |",
+      "values": [
+        {
+          "says": "3",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        },
+        {
+          "says": "1",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "| `line_item.type` | 1 | 1 | typed value |",
+      "values": [
+        {
+          "says": "1",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        },
+        {
+          "says": "1",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "Subscription periods (44 reads):",
+      "values": [
+        {
+          "says": "44",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "- **Pierce's price-ID webhook rule handles 0.** No repository configures a price policy, none targets the exact `2025-02-24.acacia → 2025-03-31.basil` incoming pair, and only one confirmed period read is a webhook payload.",
+      "values": [
+        {
+          "says": "0",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "- **The new SDK-response rule rewrites all 38 SDK-response reads.** 19 of them sit in repositories whose patch the repository-wide webhook gate blocks, and 2 in a repository with skipped unparseable files.",
+      "values": [
+        {
+          "says": "38",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        },
+        {
+          "says": "19",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        },
+        {
+          "says": "2",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "- The 5 typed reads and the 1 webhook read are left to AI or review.",
+      "values": [
+        {
+          "says": "5",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        },
+        {
+          "says": "1",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "`invoice.subscription` (14 reads): none is on an SDK response, so a [configured nested move](PROPERTY-MOVES.md) would not edit any of them either. The benchmark's generated adapter configures no moves. (An earlier version of this branch had a built-in `invoice.subscription` rule; it also fired zero times and was dropped in favor of the configured moves.)",
+      "values": [
+        {
+          "says": "14",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "| Affected repositories | 4 | 23 |",
+      "values": [
+        {
+          "says": "4",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        },
+        {
+          "says": "23",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "| No patch generated | 4 (reason not recorded by the old benchmark) | 16 |",
+      "values": [
+        {
+          "says": "4",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        },
+        {
+          "says": "16",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "| … blocked by the webhook incoming-version gate | | 9 |",
+      "values": [
+        {
+          "says": "9",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "| … blocked by skipped files, unverified alias context or declared-type mutation | | 3 |",
+      "values": [
+        {
+          "says": "3",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "| … stopped by the AI budget ledger or sandbox dependency preparation | | 4 |",
+      "values": [
+        {
+          "says": "4",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "| Deterministic patches proposed | 0 | **6** (7 before the account-default fix below) |",
+      "values": [
+        {
+          "says": "0",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        },
+        {
+          "says": "6",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        },
+        {
+          "says": "7",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "| Patches that bump the Stripe `apiVersion` in the same patch | 0 | 6 of 6 |",
+      "values": [
+        {
+          "says": "0",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        },
+        {
+          "says": "6",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        },
+        {
+          "says": "6",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "| Repositories with runnable checks, among affected | 0 | 3 (`odota/core`, `alanagoyal/branded`, `pretzelai/stripe-no-webhooks`) |",
+      "values": [
+        {
+          "says": "0",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        },
+        {
+          "says": "3",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "| Patches passing the repository's own checks | 0 | **0**, see below |",
+      "values": [
+        {
+          "says": "0",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        },
+        {
+          "says": "0",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "| Repair attempts | 0 | 0 |",
+      "values": [
+        {
+          "says": "0",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        },
+        {
+          "says": "0",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "| Patches that were wrong | 0 | **1 runtime-wrong** (fixed); **6 fail TypeScript typecheck** until the `stripe` package is upgraded |",
+      "values": [
+        {
+          "says": "0",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        },
+        {
+          "says": "1",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        },
+        {
+          "says": "6",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "| AI patches proposed | 0 | 0: the AI budget ledger refused every call (plan open decision 9) |",
+      "values": [
+        {
+          "says": "0",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        },
+        {
+          "says": "0",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "9",
+          "reason": "An item number of the plan, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "- `alanagoyal/branded`: dependency preparation ran out of space in the sandbox's 512 MB `/workspace` tmpfs (`ENOSPC`).",
+      "values": [],
+      "ignore": [
+        {
+          "token": "512",
+          "reason": "A configured limit or setting, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "- **The other six are correct at runtime when a subscription's items share one billing period.** All six are TypeScript projects on stripe-node 12–16. Type-checking the patched code against stripe@12.9.0 and stripe@16.12.0 types fails twice: `apiVersion` is typed as the package's own version literal, and `SubscriptionItem` has no `current_period_end`. They need the `stripe` package upgrade before they build (plan open decision 7).",
+      "values": [],
+      "ignore": [
+        {
+          "token": "12–16",
+          "reason": "A version or release in a name (a package, runtime or tool), not a measurement."
+        },
+        {
+          "token": "7",
+          "reason": "An item number of the plan, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "Rebuilt from pinned inputs with `scripts/stripe-benchmark-setup.mjs` (100 repositories, 21 versions, no failures), the scan reproduces **23 affected repositories** with the full adapter. A run with `--ai --validate` on `gpt-5.4-mini`, capped at $5 by a fresh ledger, **spent $0.038**:",
+      "values": [
+        {
+          "says": "100",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-14-stripe-repos.json"
+            ],
+            "rows": "/repos",
+            "where": []
+          }
+        },
+        {
+          "says": "21",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-14-stripe-repos.json"
+            ],
+            "rows": "/specs"
+          },
+          "note": "The specs the setup script downloads for the original list."
+        },
+        {
+          "says": "23",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        },
+        {
+          "says": "$0.038",
+          "notCheckable": "AI spend is kept in each run's budget ledger outside the repository; no committed results file records it."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "$5",
+          "reason": "A configured limit or setting, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "| Deterministic patches (subscription-period moves) | 6 |",
+      "values": [
+        {
+          "says": "6",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "| AI asked, no edit proposed | 2 |",
+      "values": [
+        {
+          "says": "2",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "| AI error (exact-replacement mismatch; ambiguous alias configuration) | 2 |",
+      "values": [
+        {
+          "says": "2",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "| Blocked by skipped unparseable files | 1 |",
+      "values": [
+        {
+          "says": "1",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "| Validation stopped (lockfile integrity, dependency archive size, declared types) | 3 |",
+      "values": [
+        {
+          "says": "3",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "| Blocked by the repository-wide webhook gate (plan open decision 2) | 10 |",
+      "values": [
+        {
+          "says": "10",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "2",
+          "reason": "An item number of the plan, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "[Generated checks](GENERATED-CHECKS.md) now find an entry point in 5 of the 6 patched repositories, all the Vercel/Supabase template's `manageSubscriptionStatusChange`, exported through an `export { … }` list. The sixth patch is in a webhook route. None of the five ran: `kpirabaharan/Spotify-Clone`'s Next.js dependencies exceed the 256 MiB archive limit, which the 512 MiB validation workspace imposes. These helpers also query Supabase before calling Stripe, so even with room they would be excluded offline as not runnable in isolation.",
+      "values": [
+        {
+          "says": "5",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        },
+        {
+          "says": "6",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "256",
+          "reason": "A configured limit or setting, not a measurement."
+        },
+        {
+          "token": "512",
+          "reason": "A configured limit or setting, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "A third set, [`2026-10-16-stripe-fresh-repos.json`](benchmarks/2026-10-16-stripe-fresh-repos.json), holds the 381 eligible repositories among the 400 most starred of 3,034 new candidates. None overlaps the 150 above. Its method, results and hand reviews are in [Benchmarks](BENCHMARKS.md#stripe), which also consolidates every set.",
+      "values": [
+        {
+          "says": "381",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-16-stripe-fresh-repos.json"
+            ],
+            "rows": "/repos",
+            "where": []
+          }
+        },
+        {
+          "says": "400",
+          "notCheckable": "Recorded only as prose in the frozen list's criteria, not as data that can be counted."
+        },
+        {
+          "says": "3,034",
+          "notCheckable": "Recorded only as prose in the frozen list's criteria, not as data that can be counted."
+        },
+        {
+          "says": "150",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-14-stripe-repos.json",
+              "docs/benchmarks/2026-10-15-stripe-heldout-repos.json"
+            ],
+            "rows": "/repos",
+            "where": []
+          }
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "| Affected (confirmed breaks) | 23 |",
+      "values": [
+        {
+          "says": "23",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "| Root npm lockfile with `stripe` declared, so checks can be prepared | 18 (3 with tests, 15 TypeScript typecheck) |",
+      "values": [
+        {
+          "says": "18",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        },
+        {
+          "says": "3",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        },
+        {
+          "says": "15",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "| Stopped at scan for review | 5 (4 with no deterministic rule for their reads, AI off; 1 declared-type mutation) |",
+      "values": [
+        {
+          "says": "5",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        },
+        {
+          "says": "4",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        },
+        {
+          "says": "1",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "| Lockfile entries without registry integrity | 1 (`odota/core`) |",
+      "values": [
+        {
+          "says": "1",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "| Lockfile out of sync with `package.json` | 1 (`LDAWoo/webprodigies-plura`) |",
+      "values": [
+        {
+          "says": "1",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "| Reached the repository's checks | **0** |",
+      "values": [
+        {
+          "says": "0",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "| **Dependency archive exceeds the 256 MiB validation limit** | **11** |",
+      "values": [
+        {
+          "says": "11",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "256",
+          "reason": "A configured limit or setting, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "The archive limit is what stops validation on real applications. Next.js apps routinely install more than 256 MiB, even though dependency preparation now has a 2 GiB workspace. Validation unpacks the archive into its 512 MiB workspace, so raising the archive limit also means raising the validation workspace and memory. The owner made the 2 GiB profile the default in 0.33.0; see [readiness](READINESS.md). Detection and patch generation are unaffected: production mode completed on 74 of 74 contract pairs.",
+      "values": [
+        {
+          "says": "74",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        },
+        {
+          "says": "74",
+          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "256",
+          "reason": "A configured limit or setting, not a measurement."
+        },
+        {
+          "token": "2",
+          "reason": "A configured limit or setting, not a measurement."
+        },
+        {
+          "token": "512",
+          "reason": "A configured limit or setting, not a measurement."
+        },
+        {
+          "token": "2",
+          "reason": "A configured limit or setting, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "The 50 repositories in [`2026-10-15-stripe-heldout-repos.json`](benchmarks/2026-10-15-stripe-heldout-repos.json) were frozen before any run and never used to tune Refit. Every run below used the full pipeline: deterministic rules, AI patches and one AI repair on `gpt-5.6-luna` (OpenAI lists no `gpt-5.6-mini`; Luna is the smallest 5.6 model), and offline Docker validation with generated `stripe-mock` checks. The upgrade target is `2026-09-30.endive`. Each run executed from a pinned worktree, so edits in progress could not leak into its subprocesses. All four held-out runs plus the 100-repository run cost **$0.059** on a fresh $5 ledger.",
+      "values": [
+        {
+          "says": "50",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-15-stripe-heldout-repos.json"
+            ],
+            "rows": "/repos",
+            "where": []
+          }
+        },
+        {
+          "says": "100",
+          "notCheckable": "From the held-out runs, whose per-repository results are not committed."
+        },
+        {
+          "says": "$0.059",
+          "notCheckable": "AI spend is kept in each run's budget ledger outside the repository; no committed results file records it."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "5.6",
+          "reason": "A version or release in a name (a package, runtime or tool), not a measurement."
+        },
+        {
+          "token": "$5",
+          "reason": "A configured limit or setting, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "| Affected (confirmed breaks) | 17 | 23 |",
+      "values": [
+        {
+          "says": "17",
+          "notCheckable": "From the held-out runs, whose per-repository results are not committed."
+        },
+        {
+          "says": "23",
+          "notCheckable": "From the held-out runs, whose per-repository results are not committed."
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "| Validated | 4 (2 deterministic, 2 AI) | 1 (deterministic, published) |",
+      "values": [
+        {
+          "says": "4",
+          "notCheckable": "From the held-out runs, whose per-repository results are not committed."
+        },
+        {
+          "says": "2",
+          "notCheckable": "From the held-out runs, whose per-repository results are not committed."
+        },
+        {
+          "says": "2",
+          "notCheckable": "From the held-out runs, whose per-repository results are not committed."
+        },
+        {
+          "says": "1",
+          "notCheckable": "From the held-out runs, whose per-repository results are not committed."
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "| Validation regression | 5 | 1 |",
+      "values": [
+        {
+          "says": "5",
+          "notCheckable": "From the held-out runs, whose per-repository results are not committed."
+        },
+        {
+          "says": "1",
+          "notCheckable": "From the held-out runs, whose per-repository results are not committed."
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "| Stopped for review: removed request parameter | — | 16 |",
+      "values": [
+        {
+          "says": "16",
+          "notCheckable": "From the held-out runs, whose per-repository results are not committed."
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "| Baseline checks already failing | 1 | 1 |",
+      "values": [
+        {
+          "says": "1",
+          "notCheckable": "From the held-out runs, whose per-repository results are not committed."
+        },
+        {
+          "says": "1",
+          "notCheckable": "From the held-out runs, whose per-repository results are not committed."
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "| Repository-side preparation errors | 4 | 1 |",
+      "values": [
+        {
+          "says": "4",
+          "notCheckable": "From the held-out runs, whose per-repository results are not committed."
+        },
+        {
+          "says": "1",
+          "notCheckable": "From the held-out runs, whose per-repository results are not committed."
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "| Benchmark error (no manifest) | 1 | 0 |",
+      "values": [
+        {
+          "says": "1",
+          "notCheckable": "From the held-out runs, whose per-repository results are not committed."
+        },
+        {
+          "says": "0",
+          "notCheckable": "From the held-out runs, whose per-repository results are not committed."
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "| No lockfile Refit can prepare (bun or none) | 2 | 3 |",
+      "values": [
+        {
+          "says": "2",
+          "notCheckable": "From the held-out runs, whose per-repository results are not committed."
+        },
+        {
+          "says": "3",
+          "notCheckable": "From the held-out runs, whose per-repository results are not committed."
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "| Same outcome in a second run on the same commit | 48/50 | 50/50 |",
+      "values": [
+        {
+          "says": "48/50",
+          "notCheckable": "From the held-out runs, whose per-repository results are not committed."
+        },
+        {
+          "says": "50/50",
+          "notCheckable": "From the held-out runs, whose per-repository results are not committed."
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "- **4 of 5 regressions** came from one change: `2026-09-30.endive` removed `payment_method_types` from Checkout Session, PaymentIntent and SetupIntent creation. Refit only diffed response fields, so it bumped the version and stripe-node, and the patched typecheck rejected the parameter. Refit now compares each mapped operation's request body parameters and stops for review when a traced call still sends a removed one (#62). That also explains the 6 newly affected repositories.",
+      "values": [
+        {
+          "says": "4",
+          "notCheckable": "From the held-out runs, whose per-repository results are not committed."
+        },
+        {
+          "says": "5",
+          "notCheckable": "From the held-out runs, whose per-repository results are not committed."
+        },
+        {
+          "says": "6",
+          "notCheckable": "From the held-out runs, whose per-repository results are not committed."
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "- **All 4 AI \"validated\" results across both runs were wrong.** To fix that type error, the AI repair renamed the parameter to `allowed_payment_method_types` and called it the same-meaning property. The endive contract says it is a filter on dynamically eligible methods, unlike the static list it replaces. The typecheck could not see the difference. The new check stops before AI, so this no longer reaches a draft.",
+      "values": [
+        {
+          "says": "4",
+          "notCheckable": "From the held-out runs, whose per-repository results are not committed."
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "- **The rest are repository-side and stay refused:** a lockfile out of sync with `package.json` (`piyush805/miro-clone`), npm entries without integrity, a lockfile with an unresolvable peer conflict, a dependency archive over 1 GiB, and failing baseline tests. The benchmark's no-op check for repositories without checks was an empty argument that Refit refuses; it now evaluates `0` (#63).",
+      "values": [
+        {
+          "says": "1",
+          "notCheckable": "From the held-out runs, whose per-repository results are not committed."
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "40 affected; **4 validated drafts published**; 25 stopped on the removed request parameter; 5 repository-side errors; 5 without a JavaScript lockfile; 1 declared-type review. Across both sets, **48 of 63 affected repositories send `payment_method_types`** (41 of them reach the check; the rest have no preparable lockfile or fail preparation), so a reviewed policy for that one change decides most of the remaining automation.",
+      "values": [
+        {
+          "says": "40",
+          "notCheckable": "From the held-out runs, whose per-repository results are not committed."
+        },
+        {
+          "says": "4",
+          "notCheckable": "From the held-out runs, whose per-repository results are not committed."
+        },
+        {
+          "says": "25",
+          "notCheckable": "From the held-out runs, whose per-repository results are not committed."
+        },
+        {
+          "says": "5",
+          "notCheckable": "From the held-out runs, whose per-repository results are not committed."
+        },
+        {
+          "says": "5",
+          "notCheckable": "From the held-out runs, whose per-repository results are not committed."
+        },
+        {
+          "says": "1",
+          "notCheckable": "From the held-out runs, whose per-repository results are not committed."
+        },
+        {
+          "says": "48",
+          "notCheckable": "From the held-out runs, whose per-repository results are not committed."
+        },
+        {
+          "says": "63",
+          "notCheckable": "From the held-out runs, whose per-repository results are not committed."
+        },
+        {
+          "says": "41",
+          "notCheckable": "From the held-out runs, whose per-repository results are not committed."
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "When a repository's stripe type definitions are available (`node_modules/stripe`, or `--stripe-package <dir>` in the benchmark, where `<dir>/<owner__repo>` is that repository's stripe package directory), Refit runs the ground-truth oracle's TypeScript checker over the scanned files. A removed-field read whose receiver resolves to a Stripe object that loses the field becomes a confirmed finding with `typeEvidence` (`asserted` when a local `as` cast states the type, since casts can lie). Type evidence only confirms detection: any such finding stops automatic migration, AI and publication for review. Repositories with more than 2,000 source files are skipped.",
+      "values": [],
+      "ignore": [
+        {
+          "token": "2,000",
+          "reason": "A configured limit or setting, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "| Confirmed recall | 95% (37/39) | **97% (38/39)** |",
+      "values": [
+        {
+          "says": "95%",
+          "notCheckable": "From the ground-truth scorer over a run whose results are not committed; the labels are committed, so the denominators of label-only counts are checked where they appear alone."
+        },
+        {
+          "says": "37/39",
+          "notCheckable": "From the ground-truth scorer over a run whose results are not committed; the labels are committed, so the denominators of label-only counts are checked where they appear alone."
+        },
+        {
+          "says": "97%",
+          "notCheckable": "From the ground-truth scorer over a run whose results are not committed; the labels are committed, so the denominators of label-only counts are checked where they appear alone."
+        },
+        {
+          "says": "38/39",
+          "notCheckable": "From the ground-truth scorer over a run whose results are not committed; the labels are committed, so the denominators of label-only counts are checked where they appear alone."
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "| Confirmed precision | 41% (37/91) | 41% (38/92) |",
+      "values": [
+        {
+          "says": "41%",
+          "notCheckable": "From the ground-truth scorer over a run whose results are not committed; the labels are committed, so the denominators of label-only counts are checked where they appear alone."
+        },
+        {
+          "says": "37/91",
+          "notCheckable": "From the ground-truth scorer over a run whose results are not committed; the labels are committed, so the denominators of label-only counts are checked where they appear alone."
+        },
+        {
+          "says": "41%",
+          "notCheckable": "From the ground-truth scorer over a run whose results are not committed; the labels are committed, so the denominators of label-only counts are checked where they appear alone."
+        },
+        {
+          "says": "38/92",
+          "notCheckable": "From the ground-truth scorer over a run whose results are not committed; the labels are committed, so the denominators of label-only counts are checked where they appear alone."
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "| Any-finding recall / precision | 100% / 6% (39/672) | 100% / 6% (39/672) |",
+      "values": [
+        {
+          "says": "100%",
+          "notCheckable": "From the ground-truth scorer over a run whose results are not committed; the labels are committed, so the denominators of label-only counts are checked where they appear alone."
+        },
+        {
+          "says": "6%",
+          "notCheckable": "From the ground-truth scorer over a run whose results are not committed; the labels are committed, so the denominators of label-only counts are checked where they appear alone."
+        },
+        {
+          "says": "39/672",
+          "notCheckable": "From the ground-truth scorer over a run whose results are not committed; the labels are committed, so the denominators of label-only counts are checked where they appear alone."
+        },
+        {
+          "says": "100%",
+          "notCheckable": "From the ground-truth scorer over a run whose results are not committed; the labels are committed, so the denominators of label-only counts are checked where they appear alone."
+        },
+        {
+          "says": "6%",
+          "notCheckable": "From the ground-truth scorer over a run whose results are not committed; the labels are committed, so the denominators of label-only counts are checked where they appear alone."
+        },
+        {
+          "says": "39/672",
+          "notCheckable": "From the ground-truth scorer over a run whose results are not committed; the labels are committed, so the denominators of label-only counts are checked where they appear alone."
+        }
+      ]
+    },
+    {
+      "doc": "docs/STRIPE-BENCHMARK.md",
+      "quote": "Of the 54 confirmed \"false positives\", 48 are removed `payment_method_types` request parameters, which the labels do not cover, and 6 are the disputed Checkout Session casts above; type evidence adds none. The remaining miss is in JavaScript (`vue-stripe-subscriptions`, `latest_invoice.payment_intent`), which the checker cannot type. Across all 100 repositories, with SDK versions approximated from lockfiles or the lower bound of the `package.json` range (91 resolved; 22 of 30 match the labelled versions): 41 → 44 affected repositories and 18 newly confirmed reads in 7 repositories, all `current_period_start`/`current_period_end` reads on subscriptions (spot-checked by hand). The labelled scan took 2m11s before and 4m17s after.",
+      "values": [
+        {
+          "says": "54",
+          "notCheckable": "From the ground-truth scorer over a run whose results are not committed; the labels are committed, so the denominators of label-only counts are checked where they appear alone."
+        },
+        {
+          "says": "48",
+          "notCheckable": "From the ground-truth scorer over a run whose results are not committed; the labels are committed, so the denominators of label-only counts are checked where they appear alone."
+        },
+        {
+          "says": "6",
+          "notCheckable": "From the ground-truth scorer over a run whose results are not committed; the labels are committed, so the denominators of label-only counts are checked where they appear alone."
+        },
+        {
+          "says": "100",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-14-stripe-repos.json"
+            ],
+            "rows": "/repos",
+            "where": []
+          }
+        },
+        {
+          "says": "91",
+          "notCheckable": "From the ground-truth scorer over a run whose results are not committed; the labels are committed, so the denominators of label-only counts are checked where they appear alone."
+        },
+        {
+          "says": "22",
+          "notCheckable": "From the ground-truth scorer over a run whose results are not committed; the labels are committed, so the denominators of label-only counts are checked where they appear alone."
+        },
+        {
+          "says": "30",
+          "notCheckable": "From the ground-truth scorer over a run whose results are not committed; the labels are committed, so the denominators of label-only counts are checked where they appear alone."
+        },
+        {
+          "says": "41",
+          "notCheckable": "From the ground-truth scorer over a run whose results are not committed; the labels are committed, so the denominators of label-only counts are checked where they appear alone."
+        },
+        {
+          "says": "44",
+          "notCheckable": "From the ground-truth scorer over a run whose results are not committed; the labels are committed, so the denominators of label-only counts are checked where they appear alone."
+        },
+        {
+          "says": "18",
+          "notCheckable": "From the ground-truth scorer over a run whose results are not committed; the labels are committed, so the denominators of label-only counts are checked where they appear alone."
+        },
+        {
+          "says": "7",
+          "notCheckable": "From the ground-truth scorer over a run whose results are not committed; the labels are committed, so the denominators of label-only counts are checked where they appear alone."
+        },
+        {
+          "says": "2",
+          "notCheckable": "A timing from a run whose times are not committed."
+        },
+        {
+          "says": "4",
+          "notCheckable": "A timing from a run whose times are not committed."
         }
       ]
     }
