@@ -879,6 +879,649 @@
       "replacement": "@google/genai",
       "source": "https://github.com/google-gemini/deprecated-generative-ai-js/blob/main/README.md",
       "checkedAt": "2026-10-21"
+    },
+    {
+      "id": "slack-workflow-steps-from-apps",
+      "provider": "slack",
+      "kind": "method",
+      "versions": [
+        "workflows.stepCompleted",
+        "workflows.stepFailed",
+        "workflows.updateStep"
+      ],
+      "date": "2024-09-12",
+      "summary": "Slack stops executing Steps from Apps on 2024-09-12, so the methods a step calls to report its outcome or update its configuration no longer have a step to act on. @slack/web-api 8 removes all three methods and names no replacement.",
+      "replacement": null,
+      "source": "https://github.com/slackapi/node-slack-sdk/blob/8730b5e3a7cee08a0ccfa44b7f792814f939a9cf/docs/english/reference/web-api/interfaces/WorkflowStepView.md",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "id": "slack-files-upload",
+      "provider": "slack",
+      "kind": "method",
+      "versions": [
+        "files.upload"
+      ],
+      "date": "2025-11-12",
+      "summary": "Slack's planned sunset date for the files.upload Web API method. Slack's Node SDK guide recommends filesUploadV2, which calls files.getUploadURLExternal and files.completeUploadExternal; @slack/web-api 8 removes files.upload.",
+      "replacement": "files.getUploadURLExternal and files.completeUploadExternal (filesUploadV2 in @slack/web-api)",
+      "source": "https://github.com/slackapi/node-slack-sdk/blob/8730b5e3a7cee08a0ccfa44b7f792814f939a9cf/docs/english/web-api.md",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "id": "cloudflare-radar-top-browsers",
+      "provider": "cloudflare",
+      "kind": "endpoint",
+      "versions": [
+        "GET /radar/http/top/browser",
+        "GET /radar/http/top/browser_family",
+        "GET /radar/netflows/summary"
+      ],
+      "date": "2027-04-02",
+      "summary": "Cloudflare's API deprecations page lists these endpoints under \"Cloudflare Radar: Top browsers and NetFlows summary endpoints\", deprecated 2026-10-02, end of life 2027-04-02.",
+      "replacement": null,
+      "source": "https://github.com/cloudflare/cloudflare-docs/blob/ea89e14e0b75bab7f0dfca82ae14f35ba3550cdf/src/content/release-notes/api-deprecations.yaml",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "id": "cloudflare-zone-settings-batch",
+      "provider": "cloudflare",
+      "kind": "endpoint",
+      "versions": [
+        "GET /zones/{zone_id}/settings",
+        "PATCH /zones/{zone_id}/settings"
+      ],
+      "date": "2027-03-31",
+      "summary": "Cloudflare's API deprecations page lists these endpoints under \"Zone Settings Batch API\", deprecated 2025-04-23, end of life 2027-03-31.",
+      "replacement": null,
+      "source": "https://github.com/cloudflare/cloudflare-docs/blob/ea89e14e0b75bab7f0dfca82ae14f35ba3550cdf/src/content/release-notes/api-deprecations.yaml",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "id": "cloudflare-kv-legacy-namespace-routes",
+      "provider": "cloudflare",
+      "kind": "endpoint",
+      "versions": [
+        "GET /accounts/{account_id}/workers/namespaces",
+        "POST /accounts/{account_id}/workers/namespaces",
+        "GET /accounts/{account_id}/workers/namespaces/{namespace_id}",
+        "PUT /accounts/{account_id}/workers/namespaces/{namespace_id}",
+        "DELETE /accounts/{account_id}/workers/namespaces/{namespace_id}",
+        "GET /accounts/{account_id}/workers/namespaces/{namespace_id}/keys",
+        "GET /accounts/{account_id}/workers/namespaces/{namespace_id}/metadata/{key_name}",
+        "GET /accounts/{account_id}/workers/namespaces/{namespace_id}/values/{key_name}",
+        "PUT /accounts/{account_id}/workers/namespaces/{namespace_id}/values/{key_name}",
+        "DELETE /accounts/{account_id}/workers/namespaces/{namespace_id}/values/{key_name}"
+      ],
+      "date": "2026-10-15",
+      "summary": "Cloudflare's API deprecations page lists these endpoints under \"Workers KV: Legacy Namespace Routes\", deprecated 2026-07-15, end of life 2026-10-15.",
+      "replacement": null,
+      "source": "https://github.com/cloudflare/cloudflare-docs/blob/ea89e14e0b75bab7f0dfca82ae14f35ba3550cdf/src/content/release-notes/api-deprecations.yaml",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "id": "cloudflare-teamnet-cidr-routes",
+      "provider": "cloudflare",
+      "kind": "endpoint",
+      "versions": [
+        "POST /accounts/{account_id}/teamnet/routes/network/{ip_network_encoded}",
+        "PATCH /accounts/{account_id}/teamnet/routes/network/{ip_network_encoded}",
+        "DELETE /accounts/{account_id}/teamnet/routes/network/{ip_network_encoded}"
+      ],
+      "date": "2026-10-05",
+      "summary": "Cloudflare's API deprecations page lists these endpoints under \"Zero Trust Networks Route Endpoints and Cloudflare Tunnel Connections Field\", deprecated 2026-07-09, end of life 2026-10-05.",
+      "replacement": null,
+      "source": "https://github.com/cloudflare/cloudflare-docs/blob/ea89e14e0b75bab7f0dfca82ae14f35ba3550cdf/src/content/release-notes/api-deprecations.yaml",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "id": "cloudflare-amp-sxg",
+      "provider": "cloudflare",
+      "kind": "endpoint",
+      "versions": [
+        "GET /zones/{zone_id}/amp/sxg",
+        "PUT /zones/{zone_id}/amp/sxg"
+      ],
+      "date": "2026-06-23",
+      "summary": "Cloudflare's API deprecations page lists these endpoints under \"AMP/SXG API and Rules\", deprecated 2025-09-18, end of life 2026-06-23.",
+      "replacement": null,
+      "source": "https://github.com/cloudflare/cloudflare-docs/blob/ea89e14e0b75bab7f0dfca82ae14f35ba3550cdf/src/content/release-notes/api-deprecations.yaml",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "id": "cloudflare-legacy-registrar-domains",
+      "provider": "cloudflare",
+      "kind": "endpoint",
+      "versions": [
+        "GET /accounts/{account_id}/registrar/domains",
+        "GET /accounts/{account_id}/registrar/domains/{domain_name}",
+        "PUT /accounts/{account_id}/registrar/domains/{domain_name}"
+      ],
+      "date": "2026-09-27",
+      "summary": "Cloudflare's API deprecations page lists these endpoints under \"Legacy Registrar Domain Management API\", deprecated 2026-04-10, end of life 2026-09-27.",
+      "replacement": null,
+      "source": "https://github.com/cloudflare/cloudflare-docs/blob/ea89e14e0b75bab7f0dfca82ae14f35ba3550cdf/src/content/release-notes/api-deprecations.yaml",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "id": "cloudflare-dns-legacy-analytics",
+      "provider": "cloudflare",
+      "kind": "endpoint",
+      "versions": [
+        "GET /zones/{zone_id}/dns_analytics",
+        "GET /accounts/{account_id}/dns_firewall/{dns_firewall_id}/dns_analytics/report"
+      ],
+      "date": "2026-12-01",
+      "summary": "Cloudflare's API deprecations page lists these endpoints under \"Authoritative DNS and DNS Firewall Legacy Analytics\", deprecated 2025-12-09, end of life 2026-12-01.",
+      "replacement": null,
+      "source": "https://github.com/cloudflare/cloudflare-docs/blob/ea89e14e0b75bab7f0dfca82ae14f35ba3550cdf/src/content/release-notes/api-deprecations.yaml",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "id": "cloudflare-radar-summary-timeseries-groups",
+      "provider": "cloudflare",
+      "kind": "endpoint",
+      "versions": [
+        "GET /radar/http/summary/device_type",
+        "GET /radar/http/summary/bot_class",
+        "GET /radar/http/timeseries_groups/device_type",
+        "GET /radar/http/timeseries_groups/bot_class"
+      ],
+      "date": "2026-04-15",
+      "summary": "Cloudflare's API deprecations page lists these endpoints under \"Cloudflare Radar: Summary and Timeseries Groups Endpoints\", deprecated 2025-10-15, end of life 2026-04-15.",
+      "replacement": null,
+      "source": "https://github.com/cloudflare/cloudflare-docs/blob/ea89e14e0b75bab7f0dfca82ae14f35ba3550cdf/src/content/release-notes/api-deprecations.yaml",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "id": "cloudflare-radar-verified-bots",
+      "provider": "cloudflare",
+      "kind": "endpoint",
+      "versions": [
+        "GET /radar/verified_bots/top/bots",
+        "GET /radar/verified_bots/top/categories"
+      ],
+      "date": "2026-01-01",
+      "summary": "Cloudflare's API deprecations page lists these endpoints under \"Cloudflare Radar: Verified Bots APIs\", deprecated 2025-07-01, end of life 2026-01-01.",
+      "replacement": null,
+      "source": "https://github.com/cloudflare/cloudflare-docs/blob/ea89e14e0b75bab7f0dfca82ae14f35ba3550cdf/src/content/release-notes/api-deprecations.yaml",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "id": "cloudflare-zero-trust-devices",
+      "provider": "cloudflare",
+      "kind": "endpoint",
+      "versions": [
+        "GET /accounts/{account_id}/devices",
+        "GET /accounts/{account_id}/devices/{device_id}",
+        "GET /accounts/{account_id}/devices/{device_id}/override_codes",
+        "POST /accounts/{account_id}/devices/revoke",
+        "POST /accounts/{account_id}/devices/unrevoke"
+      ],
+      "date": "2025-11-11",
+      "summary": "Cloudflare's API deprecations page lists these endpoints under \"Zero Trust Devices\", deprecated, end of life 2025-11-11.",
+      "replacement": null,
+      "source": "https://github.com/cloudflare/cloudflare-docs/blob/ea89e14e0b75bab7f0dfca82ae14f35ba3550cdf/src/content/release-notes/api-deprecations.yaml",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "id": "cloudflare-access-bookmarks",
+      "provider": "cloudflare",
+      "kind": "endpoint",
+      "versions": [
+        "GET /accounts/{account_id}/access/bookmarks",
+        "DELETE /accounts/{account_id}/access/bookmarks/{bookmark_id}",
+        "GET /accounts/{account_id}/access/bookmarks/{bookmark_id}",
+        "POST /accounts/{account_id}/access/bookmarks/{bookmark_id}",
+        "PUT /accounts/{account_id}/access/bookmarks/{bookmark_id}"
+      ],
+      "date": "2023-03-19",
+      "summary": "Cloudflare's OpenAPI document marks these operations deprecated, end of life 2023-03-19 (x-cfDeprecation bookmarks_deprecation): This endpoint is deprecated in favor of using a specialized Access Application App Type.",
+      "replacement": null,
+      "source": "https://github.com/cloudflare/api-schemas/blob/d3e86eec17211653ca9bc18c0d4bfcace2904148/openapi.json",
+      "checkedAt": "2026-10-22",
+      "derivedDate": true
+    },
+    {
+      "id": "cloudflare-user-organizations",
+      "provider": "cloudflare",
+      "kind": "endpoint",
+      "versions": [
+        "GET /user/organizations",
+        "DELETE /user/organizations/{organization_id}",
+        "GET /user/organizations/{organization_id}"
+      ],
+      "date": "2020-02-04",
+      "summary": "Cloudflare's OpenAPI document marks these operations deprecated, end of life 2020-02-04 (x-cfDeprecation org_deprecation): This endpoint and its related APIs are deprecated in favor of the `/accounts` equivalent APIs, which have a broader range of features and are backwards compatible with these API.",
+      "replacement": null,
+      "source": "https://github.com/cloudflare/api-schemas/blob/d3e86eec17211653ca9bc18c0d4bfcace2904148/openapi.json",
+      "checkedAt": "2026-10-22",
+      "derivedDate": true
+    },
+    {
+      "id": "cloudflare-zone-analytics",
+      "provider": "cloudflare",
+      "kind": "endpoint",
+      "versions": [
+        "GET /zones/{zone_identifier}/analytics/colos",
+        "GET /zones/{zone_identifier}/analytics/dashboard"
+      ],
+      "date": "2021-03-01",
+      "summary": "Cloudflare's OpenAPI document marks these operations deprecated, end of life 2021-03-01 (x-cfDeprecation zone_analytics_deprecation): Please use the new GraphQL Analytics API instead: https://developers.cloudflare.com/analytics/graphql-api/. It provides equivalent data and more features, including the ability to select only the metrics you need. Migration guide: https://developers.cloudflare.com/analytics/migration-guides/zone-analytics/.",
+      "replacement": null,
+      "source": "https://github.com/cloudflare/api-schemas/blob/d3e86eec17211653ca9bc18c0d4bfcace2904148/openapi.json",
+      "checkedAt": "2026-10-22",
+      "derivedDate": true
+    },
+    {
+      "id": "cloudflare-origin-cloud-regions-v1",
+      "provider": "cloudflare",
+      "kind": "endpoint",
+      "versions": [
+        "GET /zones/{zone_id}/cache/origin_cloud_regions",
+        "PATCH /zones/{zone_id}/cache/origin_cloud_regions",
+        "POST /zones/{zone_id}/cache/origin_cloud_regions",
+        "DELETE /zones/{zone_id}/cache/origin_cloud_regions/batch",
+        "PATCH /zones/{zone_id}/cache/origin_cloud_regions/batch",
+        "GET /zones/{zone_id}/cache/origin_cloud_regions/supported_regions",
+        "DELETE /zones/{zone_id}/cache/origin_cloud_regions/{origin_ip}",
+        "GET /zones/{zone_id}/cache/origin_cloud_regions/{origin_ip}"
+      ],
+      "date": "2026-10-01",
+      "summary": "Cloudflare's OpenAPI document marks these operations deprecated, end of life 2026-10-01 (x-cfDeprecation opcr_v1_deprecation): Use the v2 endpoints under `/zones/{zone_id}/origin/cloud_regions` instead. The v2 API uses idempotent PUT semantics for create+update, provides a flat response shape, and is the supported path for Terraform and SDK clients. The v1 endpoints under `/zones/{zone_id}/cache/origin_cloud_regions` will be removed on 2026-10-01.",
+      "replacement": null,
+      "source": "https://github.com/cloudflare/api-schemas/blob/d3e86eec17211653ca9bc18c0d4bfcace2904148/openapi.json",
+      "checkedAt": "2026-10-22",
+      "derivedDate": true
+    },
+    {
+      "id": "cloudflare-origin-post-quantum-encryption",
+      "provider": "cloudflare",
+      "kind": "endpoint",
+      "versions": [
+        "GET /zones/{zone_id}/cache/origin_post_quantum_encryption",
+        "PUT /zones/{zone_id}/cache/origin_post_quantum_encryption"
+      ],
+      "date": "2026-07-19",
+      "summary": "Cloudflare's OpenAPI document marks these operations deprecated, end of life 2026-07-19 (x-cfDeprecation origin_pqe_deprecation): Origin post-quantum encryption selection is now handled automatically by Auto-Origin TLS KEX (`/zones/{zone_id}/settings/auto_origin_tls_kex`) combined with Origin TLS Compliance Modes (`/zones/{zone_id}/settings/origin_tls_compliance_modes`). As that rollout proceeds, the manual `origin_post_quantum_encryption` setting becomes ineffective and the endpoint will be removed on 2026-07-19.",
+      "replacement": null,
+      "source": "https://github.com/cloudflare/api-schemas/blob/d3e86eec17211653ca9bc18c0d4bfcace2904148/openapi.json",
+      "checkedAt": "2026-10-22",
+      "derivedDate": true
+    },
+    {
+      "id": "github-rest-2022-11-28",
+      "provider": "github",
+      "kind": "api-version",
+      "versions": [
+        "2022-11-28"
+      ],
+      "date": "2028-03-10",
+      "summary": "GitHub supports a REST API version for at least 24 months after the next version is released; 2022-11-28 ends support on 2028-03-10, after version 2026-03-10. Requests that pin an unsupported version through X-GitHub-Api-Version get 410 Gone, and requests without the header use the oldest supported version, so they move too. Version 2026-03-10 has breaking changes to listed endpoints.",
+      "replacement": "2026-03-10",
+      "source": "https://github.com/github/docs/blob/5815d11586b0796688963a98c889680e60d72dc4/data/tables/rest-api-versions.yml",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "id": "github-teams-legacy-endpoints",
+      "provider": "github",
+      "kind": "endpoint",
+      "versions": [
+        "GET /teams/{team_id}",
+        "PATCH /teams/{team_id}",
+        "DELETE /teams/{team_id}",
+        "GET /teams/{team_id}/invitations",
+        "GET /teams/{team_id}/members",
+        "GET /teams/{team_id}/members/{username}",
+        "PUT /teams/{team_id}/members/{username}",
+        "DELETE /teams/{team_id}/members/{username}",
+        "GET /teams/{team_id}/memberships/{username}",
+        "PUT /teams/{team_id}/memberships/{username}",
+        "DELETE /teams/{team_id}/memberships/{username}",
+        "GET /teams/{team_id}/repos",
+        "GET /teams/{team_id}/repos/{owner}/{repo}",
+        "PUT /teams/{team_id}/repos/{owner}/{repo}",
+        "DELETE /teams/{team_id}/repos/{owner}/{repo}",
+        "GET /teams/{team_id}/teams"
+      ],
+      "date": "2021-02-01",
+      "summary": "GitHub’s OpenAPI description marks the legacy /teams/{team_id} endpoints deprecated (deprecation date 2020-01-21) with a removal date of 2021-02-01. 16 operations.",
+      "replacement": "the /orgs/{org}/teams/{team_slug} endpoints",
+      "source": "https://github.com/github/rest-api-description/blob/755ee33b4a81d51f6f07a902cce26cbec3b822f2/descriptions/api.github.com/api.github.com.json",
+      "checkedAt": "2026-10-22",
+      "derivedDate": true
+    },
+    {
+      "id": "github-source-imports-endpoints",
+      "provider": "github",
+      "kind": "endpoint",
+      "versions": [
+        "GET /repos/{owner}/{repo}/import",
+        "PUT /repos/{owner}/{repo}/import",
+        "PATCH /repos/{owner}/{repo}/import",
+        "DELETE /repos/{owner}/{repo}/import",
+        "GET /repos/{owner}/{repo}/import/authors",
+        "PATCH /repos/{owner}/{repo}/import/authors/{author_id}",
+        "GET /repos/{owner}/{repo}/import/large_files",
+        "PATCH /repos/{owner}/{repo}/import/lfs"
+      ],
+      "date": "2024-04-12",
+      "summary": "GitHub’s OpenAPI description marks the source imports endpoints under /repos/{owner}/{repo}/import deprecated (deprecation date 2023-10-12) with a removal date of 2024-04-12. 8 operations.",
+      "replacement": null,
+      "source": "https://github.com/github/rest-api-description/blob/755ee33b4a81d51f6f07a902cce26cbec3b822f2/descriptions/api.github.com/api.github.com.json",
+      "checkedAt": "2026-10-22",
+      "derivedDate": true
+    },
+    {
+      "id": "github-org-security-product-enablement",
+      "provider": "github",
+      "kind": "endpoint",
+      "versions": [
+        "POST /orgs/{org}/{security_product}/{enablement}"
+      ],
+      "date": "2025-07-22",
+      "summary": "GitHub’s OpenAPI description marks the endpoint that enables or disables a security product on all organization repositories deprecated (deprecation date 2024-07-22) with a removal date of 2025-07-22. 1 operation.",
+      "replacement": null,
+      "source": "https://github.com/github/rest-api-description/blob/755ee33b4a81d51f6f07a902cce26cbec3b822f2/descriptions/api.github.com/api.github.com.json",
+      "checkedAt": "2026-10-22",
+      "derivedDate": true
+    },
+    {
+      "id": "github-org-security-managers-endpoints",
+      "provider": "github",
+      "kind": "endpoint",
+      "versions": [
+        "GET /orgs/{org}/security-managers",
+        "PUT /orgs/{org}/security-managers/teams/{team_slug}",
+        "DELETE /orgs/{org}/security-managers/teams/{team_slug}"
+      ],
+      "date": "2026-01-01",
+      "summary": "GitHub’s OpenAPI description marks the organization security managers endpoints deprecated (deprecation date 2024-12-01) with a removal date of 2026-01-01. 3 operations.",
+      "replacement": null,
+      "source": "https://github.com/github/rest-api-description/blob/755ee33b4a81d51f6f07a902cce26cbec3b822f2/descriptions/api.github.com/api.github.com.json",
+      "checkedAt": "2026-10-22",
+      "derivedDate": true
+    },
+    {
+      "id": "github-classroom-endpoints",
+      "provider": "github",
+      "kind": "endpoint",
+      "versions": [
+        "GET /assignments/{assignment_id}",
+        "GET /assignments/{assignment_id}/accepted_assignments",
+        "GET /assignments/{assignment_id}/grades",
+        "GET /classrooms",
+        "GET /classrooms/{classroom_id}",
+        "GET /classrooms/{classroom_id}/assignments"
+      ],
+      "date": "2026-08-28",
+      "summary": "GitHub’s OpenAPI description marks the GitHub Classroom endpoints deprecated (deprecation date 2026-05-22) with a removal date of 2026-08-28. 6 operations.",
+      "replacement": null,
+      "source": "https://github.com/github/rest-api-description/blob/755ee33b4a81d51f6f07a902cce26cbec3b822f2/descriptions/api.github.com/api.github.com.json",
+      "checkedAt": "2026-10-22",
+      "derivedDate": true
+    },
+    {
+      "id": "github-dependency-graph-sbom-export",
+      "provider": "github",
+      "kind": "endpoint",
+      "versions": [
+        "GET /repos/{owner}/{repo}/dependency-graph/sbom"
+      ],
+      "date": "2026-11-13",
+      "summary": "GitHub’s OpenAPI description marks the dependency graph SBOM export endpoint deprecated (deprecation date 2026-05-12) with a removal date of 2026-11-13. 1 operation.",
+      "replacement": null,
+      "source": "https://github.com/github/rest-api-description/blob/755ee33b4a81d51f6f07a902cce26cbec3b822f2/descriptions/api.github.com/api.github.com.json",
+      "checkedAt": "2026-10-22",
+      "derivedDate": true
+    },
+    {
+      "id": "github-graphql-databaseid-2027",
+      "provider": "github",
+      "kind": "field",
+      "versions": [
+        "Artifact.databaseId",
+        "CheckAnnotation.databaseId"
+      ],
+      "date": "2027-01-01",
+      "summary": "GitHub’s GraphQL upcoming breaking changes remove databaseId from Artifact and CheckAnnotation on 2027-01-01; use fullDatabaseId instead.",
+      "replacement": "fullDatabaseId",
+      "source": "https://github.com/github/docs/blob/5815d11586b0796688963a98c889680e60d72dc4/src/graphql/data/fpt/graphql_upcoming_changes.public.yml",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "id": "auth0-2026-09-09-node-auth0-v6",
+      "provider": "auth0",
+      "kind": "sdk",
+      "versions": [
+        "auth0@>=6 <7"
+      ],
+      "date": "2026-09-09",
+      "summary": "Auth0 deprecated v6 of the auth0 (node-auth0) package: its npm deprecation notice says v6 no longer receives updates, and that v7 is Management API only, with the authentication clients moved to @auth0/auth0-auth-js and @auth0/auth0-server-js. The notice gives no date; the date here is when v7.0.0 was published on npm.",
+      "replacement": "auth0 v7 (Management API) with @auth0/auth0-auth-js or @auth0/auth0-server-js for authentication",
+      "source": "https://registry.npmjs.org/auth0",
+      "checkedAt": "2026-10-22",
+      "derivedDate": true
+    },
+    {
+      "id": "clerk-2025-01-10-clerk-sdk-node",
+      "provider": "clerk",
+      "kind": "sdk",
+      "versions": [
+        "@clerk/clerk-sdk-node"
+      ],
+      "date": "2025-01-10",
+      "summary": "Clerk ended support for @clerk/clerk-sdk-node on 2025-01-10, as announced in its October 2024 deprecation notice. Express apps move to @clerk/express.",
+      "replacement": "@clerk/express",
+      "source": "https://registry.npmjs.org/@clerk/clerk-sdk-node",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "id": "clerk-2025-04-19-core-1-unsupported",
+      "provider": "clerk",
+      "kind": "sdk",
+      "versions": [
+        "@clerk/nextjs@<5",
+        "@clerk/clerk-react@<5",
+        "@clerk/clerk-js@<5",
+        "@clerk/backend@<1",
+        "@clerk/fastify@<1",
+        "@clerk/chrome-extension@<1",
+        "@clerk/clerk-expo@<1",
+        "@clerk/remix@<4",
+        "@clerk/types@<4",
+        "@clerk/edge"
+      ],
+      "date": "2025-04-19",
+      "summary": "Clerk's long term support schedule lists Core 1 and the Legacy (v3) SDKs as Unsupported: no changes of any kind. The schedule gives no end date. A previous major gets one year of long term support after the next major ships, and the Core 2 majors were published on npm on 2024-04-19, so the date here is 2025-04-19. The Core 1 majors are the ones Clerk's Core 2 upgrade guides tell you to update to first (@clerk/nextjs@4, @clerk/backend@0, @clerk/remix@3 and so on); @clerk/edge is deprecated on npm in favour of @clerk/backend.",
+      "replacement": "The current Clerk major (Core 3)",
+      "source": "https://github.com/clerk/clerk-docs/blob/main/docs/guides/development/upgrading/versioning.mdx",
+      "checkedAt": "2026-10-22",
+      "derivedDate": true
+    },
+    {
+      "id": "clerk-2026-03-03-elements",
+      "provider": "clerk",
+      "kind": "sdk",
+      "versions": [
+        "@clerk/elements"
+      ],
+      "date": "2026-03-03",
+      "summary": "Clerk no longer supports @clerk/elements, per its npm deprecation notice, which points to the Core 3 release of 2026-03-03.",
+      "replacement": null,
+      "source": "https://registry.npmjs.org/@clerk/elements",
+      "checkedAt": "2026-10-22",
+      "derivedDate": true
+    },
+    {
+      "id": "clerk-2027-01-01-core-2-lts-ends",
+      "provider": "clerk",
+      "kind": "sdk",
+      "versions": [
+        "@clerk/nextjs@>=5 <7",
+        "@clerk/clerk-react@>=5",
+        "@clerk/react@<6",
+        "@clerk/clerk-js@>=5 <6",
+        "@clerk/backend@>=1 <3",
+        "@clerk/express@<2",
+        "@clerk/clerk-expo@>=1",
+        "@clerk/expo@<3",
+        "@clerk/remix@>=4",
+        "@clerk/fastify@>=1 <3",
+        "@clerk/chrome-extension@>=1 <3",
+        "@clerk/astro@<3",
+        "@clerk/vue@<2",
+        "@clerk/nuxt@<2",
+        "@clerk/react-router@<3",
+        "@clerk/tanstack-react-start@<1",
+        "@clerk/types@>=4"
+      ],
+      "date": "2027-01-01",
+      "summary": "Clerk's Core 2 SDKs are in long term support (critical patches only) until January 2027, then unsupported; the schedule gives the month only, so the date here is its first day. Core 2 majors are the ones published from 2024-04-19 until the Core 3 majors on 2026-03-03 (npm release dates); Clerk's Core 3 guide names @clerk/nextjs@6 as the latest Core 2 release. @clerk/clerk-react, @clerk/clerk-expo and @clerk/types were replaced in Core 3 by @clerk/react, @clerk/expo and @clerk/shared/types, and @clerk/remix by @clerk/react-router.",
+      "replacement": "The current Clerk major (Core 3)",
+      "source": "https://github.com/clerk/clerk-docs/blob/main/docs/guides/development/upgrading/versioning.mdx",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "id": "firebase-2025-08-01-dynamic-links",
+      "provider": "firebase",
+      "kind": "feature",
+      "versions": [
+        "dynamicLinkDomain",
+        "firebasedynamiclinks.googleapis.com",
+        "@react-native-firebase/dynamic-links"
+      ],
+      "date": "2025-08-01",
+      "summary": "Firebase Dynamic Links is deprecated and will be shut down as early as August 2025, according to the Firebase JS SDK reference for ActionCodeSettings.dynamicLinkDomain; the page gives no day, so the date here is the first of the month. Auth email links set ActionCodeSettings.linkDomain instead. The markers are that option, the Dynamic Links REST host and the React Native Firebase Dynamic Links module.",
+      "replacement": "ActionCodeSettings.linkDomain (Firebase Hosting link domain)",
+      "source": "https://github.com/firebase/firebase-js-sdk/blob/main/docs-devsite/auth.actioncodesettings.md",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "id": "supabase-2024-11-27-auth-helpers",
+      "provider": "supabase",
+      "kind": "sdk",
+      "versions": [
+        "@supabase/auth-helpers-nextjs",
+        "@supabase/auth-helpers-react",
+        "@supabase/auth-helpers-remix",
+        "@supabase/auth-helpers-sveltekit",
+        "@supabase/auth-helpers-shared"
+      ],
+      "date": "2024-11-27",
+      "summary": "Supabase deprecated every @supabase/auth-helpers-* package in favour of @supabase/ssr; the repository README says they are no longer maintained. The deprecation notice was added to that README on 2024-11-27.",
+      "replacement": "@supabase/ssr",
+      "source": "https://github.com/supabase/auth-helpers/blob/main/README.md",
+      "checkedAt": "2026-10-22",
+      "derivedDate": true
+    },
+    {
+      "id": "supabase-2026-12-31-legacy-api-keys",
+      "provider": "supabase",
+      "kind": "feature",
+      "versions": [
+        "SUPABASE_ANON_KEY",
+        "SUPABASE_SERVICE_ROLE_KEY"
+      ],
+      "date": "2026-12-31",
+      "summary": "Supabase is deprecating the legacy anon and service_role API keys by the end of 2026, in favour of publishable (sb_publishable_…) and secret (sb_secret_…) keys. The markers are the environment variable names that carry the legacy keys (also with NEXT_PUBLIC_ or VITE_ prefixes); a variable with that name may already hold a new key, so check its value.",
+      "replacement": "Publishable and secret API keys",
+      "source": "https://github.com/supabase/supabase/blob/master/apps/docs/content/_partials/api_keys_deprecation.mdx",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "id": "nextauth-2022-08-01-next-auth-v3",
+      "provider": "nextauth",
+      "kind": "sdk",
+      "versions": [
+        "next-auth@<4"
+      ],
+      "date": "2022-08-01",
+      "summary": "Auth.js releases security updates only for the current latest version and does not maintain old releases. next-auth's latest major is 4 (v5 is still a beta), so v3 and older receive no updates. The policy gives no date; the date here is when the last v3 release, 3.29.10, was published on npm.",
+      "replacement": "next-auth v4 (maintenance mode) or v5",
+      "source": "https://github.com/nextauthjs/next-auth/blob/main/docs/pages/security.mdx",
+      "checkedAt": "2026-10-22",
+      "derivedDate": true
+    },
+    {
+      "id": "adyen-2025-10-01-adyen-web-v3",
+      "provider": "adyen",
+      "kind": "sdk",
+      "versions": [
+        "@adyen/adyen-web@<4"
+      ],
+      "date": "2025-10-01",
+      "summary": "Adyen no longer supports version 3.x of @adyen/adyen-web (Drop-in and Components) after October 1, 2025, per the npm deprecation notice on every 3.x release; the adyen-web README lists 3.x as end-of-life since October 2025.",
+      "replacement": "@adyen/adyen-web v6",
+      "source": "https://registry.npmjs.org/@adyen/adyen-web",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "id": "adyen-2026-08-01-adyen-web-v4",
+      "provider": "adyen",
+      "kind": "sdk",
+      "versions": [
+        "@adyen/adyen-web@>=4 <5"
+      ],
+      "date": "2026-08-01",
+      "summary": "Adyen no longer supports version 4.x of @adyen/adyen-web (Drop-in and Components) after August 1, 2026, per the npm deprecation notice on every 4.x release; the adyen-web README lists 4.x as end-of-life since August 2026.",
+      "replacement": "@adyen/adyen-web v6",
+      "source": "https://registry.npmjs.org/@adyen/adyen-web",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "id": "braintree-2023-02-01-braintree-web-v2",
+      "provider": "braintree",
+      "kind": "sdk",
+      "versions": [
+        "braintree-web@<3"
+      ],
+      "date": "2023-02-01",
+      "summary": "Braintree's client SDK table lists braintree-web 2.x as Unsupported since February 2023 (deprecated February 2022). The table gives the month only, so the date here is its first day.",
+      "replacement": "braintree-web v3",
+      "source": "https://github.com/braintree/braintree-web/blob/main/README.md",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "id": "braintree-2023-09-01-braintree-node-v2",
+      "provider": "braintree",
+      "kind": "sdk",
+      "versions": [
+        "braintree@<3"
+      ],
+      "date": "2023-09-01",
+      "summary": "Braintree's server SDK table lists the braintree Node.js SDK 2.x as unsupported from September 2023 (deprecated September 2022). The table gives the month only, so the date here is its first day.",
+      "replacement": "braintree v3",
+      "source": "https://github.com/braintree/braintree_node/blob/master/README.md",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "id": "coinbase-commerce-2021-06-10-commerce-node",
+      "provider": "coinbase-commerce",
+      "kind": "sdk",
+      "versions": [
+        "coinbase-commerce-node"
+      ],
+      "date": "2021-06-10",
+      "summary": "Coinbase marks coinbase-commerce-node as not actively maintained, in its README (notice added 2021-06-10) and in the npm deprecation notice on every release.",
+      "replacement": null,
+      "source": "https://github.com/coinbase/coinbase-commerce-node/blob/master/README.md",
+      "checkedAt": "2026-10-22",
+      "derivedDate": true
+    },
+    {
+      "id": "easypost-2025-04-28-easypost-node-v7",
+      "provider": "easypost",
+      "kind": "sdk",
+      "versions": [
+        "@easypost/api@<8"
+      ],
+      "date": "2025-04-28",
+      "summary": "EasyPost's upgrade guide marks @easypost/api v5, v6 and v7 as deprecated; older majors predate them. It gives no dates; the date here is when v8.0.0 was released (CHANGELOG), the latest any of these became deprecated.",
+      "replacement": "@easypost/api v8",
+      "source": "https://github.com/EasyPost/easypost-node/blob/master/UPGRADE_GUIDE.md",
+      "checkedAt": "2026-10-22",
+      "derivedDate": true
     }
   ]
 }

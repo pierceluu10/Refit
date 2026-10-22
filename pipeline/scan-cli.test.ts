@@ -24,18 +24,14 @@ it('prints readable scan results without claiming validation or changing the sca
 it('preserves full redirected JSON and saves it separately from a readable summary', async () => {
   const root = await mkdtemp(join(tmpdir(), 'refit-readable-scan-'));
   try {
-    const json = await execute(process.execPath, [bin, 'replay', '--propose-patch']);
-    const explicit = await execute(process.execPath, [bin, 'replay', '--propose-patch', '--json']);
-    expect(JSON.parse(explicit.stdout)).toEqual(JSON.parse(json.stdout));
     const output = join(root, 'scan.json');
-    const human = await execute(process.execPath, [
-      bin,
-      'replay',
-      '--propose-patch',
-      '--human',
-      '--output',
-      output,
+    // Independent runs start together; each CLI start costs about 0.3 s.
+    const [json, explicit, human] = await Promise.all([
+      execute(process.execPath, [bin, 'replay', '--propose-patch']),
+      execute(process.execPath, [bin, 'replay', '--propose-patch', '--json']),
+      execute(process.execPath, [bin, 'replay', '--propose-patch', '--human', '--output', output]),
     ]);
+    expect(JSON.parse(explicit.stdout)).toEqual(JSON.parse(json.stdout));
     const report = JSON.parse(await readFile(output, 'utf8'));
     expect(report.patch.status).toBe('proposed');
     expect(report.findings[0].file).toBe('billing.ts');

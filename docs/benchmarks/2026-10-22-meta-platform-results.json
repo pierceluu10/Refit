@@ -1,0 +1,2177 @@
+{
+  "formatVersion": 1,
+  "list": "docs/benchmarks/2026-10-22-meta-platform-repos.json",
+  "target": "v25.0",
+  "scannedAt": "2026-10-22T13:11:24.099Z",
+  "repos": [
+    {
+      "repo": "vercel/chat",
+      "commit": "5781d46cd6dc59f2645771d4252b0c7ce305c609",
+      "calls": [
+        "packages/adapter-messenger/src/index.ts:841"
+      ],
+      "guarded": [],
+      "moved": [],
+      "stops": [
+        {
+          "pin": "null:null",
+          "reasons": [
+            "packages/adapter-messenger/src/index.ts:841: the version is built at runtime"
+          ]
+        }
+      ],
+      "moves": []
+    },
+    {
+      "repo": "CopilotKit/CopilotKit",
+      "commit": "54dddf799b9dd2be67731baba35416ef5feafa21",
+      "calls": [],
+      "guarded": [],
+      "moved": [],
+      "error": "PipelineInputError: Repository exceeds scan limits (10,000 files, 2 MiB per file, 50 MiB total).\n"
+    },
+    {
+      "repo": "novuhq/novu",
+      "commit": "1f302a418498e896c27c15361b4ceb275ad0634f",
+      "calls": [],
+      "guarded": [],
+      "moved": [],
+      "error": "PipelineInputError: Repository exceeds scan limits (10,000 files, 2 MiB per file, 50 MiB total).\n"
+    },
+    {
+      "repo": "tawn33y/whatsapp-cloud-api",
+      "commit": "c3158fe94dd47f42fb37ab09b02e25d1fee10912",
+      "calls": [
+        "src/sendRequestHelper.ts:27"
+      ],
+      "guarded": [],
+      "moved": [],
+      "stops": [
+        {
+          "pin": "null:null",
+          "reasons": [
+            "src/sendRequestHelper.ts:27: the version is built at runtime"
+          ]
+        }
+      ],
+      "moves": []
+    },
+    {
+      "repo": "Secreto31126/whatsapp-api-js",
+      "commit": "540881ee3b1736119584e670af7b2f8aa6599545",
+      "calls": [
+        "src/index.ts:1001",
+        "src/index.ts:296",
+        "src/index.ts:441",
+        "src/index.ts:495",
+        "src/index.ts:524",
+        "src/index.ts:547",
+        "src/index.ts:571",
+        "src/index.ts:595",
+        "src/index.ts:622",
+        "src/index.ts:633",
+        "src/index.ts:641",
+        "src/index.ts:652",
+        "src/index.ts:668",
+        "src/index.ts:681",
+        "src/index.ts:709",
+        "src/index.ts:742",
+        "src/index.ts:781",
+        "src/index.ts:811",
+        "src/index.ts:844",
+        "src/index.ts:854",
+        "src/index.ts:865",
+        "src/index.ts:894",
+        "src/index.ts:906",
+        "src/index.ts:917",
+        "src/index.ts:925",
+        "src/index.ts:948",
+        "src/index.ts:969",
+        "src/index.ts:980"
+      ],
+      "guarded": [],
+      "moved": [],
+      "stops": [
+        {
+          "pin": "null:null",
+          "reasons": [
+            "src/index.ts:296: the version is built at runtime"
+          ]
+        },
+        {
+          "pin": "null:null",
+          "reasons": [
+            "src/index.ts:441: the version is built at runtime"
+          ]
+        },
+        {
+          "pin": "null:null",
+          "reasons": [
+            "src/index.ts:495: the version is built at runtime"
+          ]
+        },
+        {
+          "pin": "null:null",
+          "reasons": [
+            "src/index.ts:524: the version is built at runtime"
+          ]
+        },
+        {
+          "pin": "null:null",
+          "reasons": [
+            "src/index.ts:547: the version is built at runtime"
+          ]
+        },
+        {
+          "pin": "null:null",
+          "reasons": [
+            "src/index.ts:571: the version is built at runtime"
+          ]
+        },
+        {
+          "pin": "null:null",
+          "reasons": [
+            "src/index.ts:595: the version is built at runtime"
+          ]
+        },
+        {
+          "pin": "null:null",
+          "reasons": [
+            "src/index.ts:622: the version is built at runtime"
+          ]
+        },
+        {
+          "pin": "null:null",
+          "reasons": [
+            "src/index.ts:633: the version is built at runtime"
+          ]
+        },
+        {
+          "pin": "null:null",
+          "reasons": [
+            "src/index.ts:641: the version is built at runtime"
+          ]
+        },
+        {
+          "pin": "null:null",
+          "reasons": [
+            "src/index.ts:652: the version is built at runtime"
+          ]
+        },
+        {
+          "pin": "null:null",
+          "reasons": [
+            "src/index.ts:668: the version is built at runtime"
+          ]
+        },
+        {
+          "pin": "null:null",
+          "reasons": [
+            "src/index.ts:681: the version is built at runtime"
+          ]
+        },
+        {
+          "pin": "null:null",
+          "reasons": [
+            "src/index.ts:709: the version is built at runtime"
+          ]
+        },
+        {
+          "pin": "null:null",
+          "reasons": [
+            "src/index.ts:742: the version is built at runtime"
+          ]
+        },
+        {
+          "pin": "null:null",
+          "reasons": [
+            "src/index.ts:781: the version is built at runtime"
+          ]
+        },
+        {
+          "pin": "null:null",
+          "reasons": [
+            "src/index.ts:811: the version is built at runtime"
+          ]
+        },
+        {
+          "pin": "null:null",
+          "reasons": [
+            "src/index.ts:844: the version is built at runtime"
+          ]
+        },
+        {
+          "pin": "null:null",
+          "reasons": [
+            "src/index.ts:854: the version is built at runtime"
+          ]
+        },
+        {
+          "pin": "null:null",
+          "reasons": [
+            "src/index.ts:865: the version is built at runtime"
+          ]
+        },
+        {
+          "pin": "null:null",
+          "reasons": [
+            "src/index.ts:894: the version is built at runtime"
+          ]
+        },
+        {
+          "pin": "null:null",
+          "reasons": [
+            "src/index.ts:906: the version is built at runtime"
+          ]
+        },
+        {
+          "pin": "null:null",
+          "reasons": [
+            "src/index.ts:917: the version is built at runtime"
+          ]
+        },
+        {
+          "pin": "null:null",
+          "reasons": [
+            "src/index.ts:925: the version is built at runtime"
+          ]
+        },
+        {
+          "pin": "null:null",
+          "reasons": [
+            "src/index.ts:948: the version is built at runtime"
+          ]
+        },
+        {
+          "pin": "null:null",
+          "reasons": [
+            "src/index.ts:969: the version is built at runtime"
+          ]
+        },
+        {
+          "pin": "null:null",
+          "reasons": [
+            "src/index.ts:980: the version is built at runtime"
+          ]
+        },
+        {
+          "pin": "null:null",
+          "reasons": [
+            "src/index.ts:1001: the version is built at runtime"
+          ]
+        }
+      ],
+      "moves": []
+    },
+    {
+      "repo": "MarcosNicolau/whatsapp-business-sdk",
+      "commit": "24c881f669d30f189d2f28ec614361d4482e4ee9",
+      "calls": [
+        "src/WABA_client.ts:50"
+      ],
+      "guarded": [],
+      "moved": [],
+      "stops": [
+        {
+          "pin": "src/WABA_client.ts:50",
+          "reasons": [
+            "src/WABA_client.ts:50: no request call was traced for this URL",
+            "src/WABA_client.ts:50: the path is not known",
+            "src/WABA_client.ts:50: the HTTP method is not known",
+            "src/WABA_client.ts:50: the requested fields are not known",
+            "src/WABA_client.ts:50: the requested metrics are not known",
+            "src/WABA_client.ts:50: the request parameters are not known"
+          ]
+        }
+      ],
+      "moves": []
+    },
+    {
+      "repo": "froggy1014/meta-cloud-api",
+      "commit": "0e91b5561152d335197beacad80913c1426dac80",
+      "calls": [],
+      "guarded": [],
+      "moved": [],
+      "stops": [
+        {
+          "pin": "null:null",
+          "reasons": [
+            "src/testing/__test__/isolation.test.ts:19: the URL names no version"
+          ]
+        },
+        {
+          "pin": "null:null",
+          "reasons": [
+            "src/testing/__test__/isolation.test.ts:33: the URL names no version"
+          ]
+        },
+        {
+          "pin": "src/api/media/__test__/unit.test.ts:275",
+          "reasons": [
+            "src/api/media/__test__/unit.test.ts:275: the HTTP method is not known",
+            "src/api/media/__test__/unit.test.ts:275: the requested fields are not known",
+            "src/api/media/__test__/unit.test.ts:275: the requested metrics are not known",
+            "src/api/media/__test__/unit.test.ts:275: the request parameters are not known",
+            "src/api/media/__test__/unit.test.ts:275: only tests and examples use this version"
+          ]
+        }
+      ],
+      "moves": []
+    },
+    {
+      "repo": "postboi-mail/postboi",
+      "commit": "ff0b95311254c836fd6bb586d7621fbb0b292e13",
+      "calls": [
+        "src/cli/whatsapp_templates.ts:91",
+        "src/library/whatsapp/meta.ts:119"
+      ],
+      "guarded": [],
+      "moved": [],
+      "stops": [
+        {
+          "pin": "null:null",
+          "reasons": [
+            "src/cli/whatsapp_templates.test.ts:41: the URL names no version"
+          ]
+        },
+        {
+          "pin": "null:null",
+          "reasons": [
+            "src/cli/whatsapp_templates.test.ts:56: the URL names no version"
+          ]
+        },
+        {
+          "pin": "null:null",
+          "reasons": [
+            "src/cli/whatsapp_templates.ts:91: the version is built at runtime"
+          ]
+        },
+        {
+          "pin": "null:null",
+          "reasons": [
+            "src/library/whatsapp/meta.ts:119: the version is built at runtime"
+          ]
+        }
+      ],
+      "moves": []
+    },
+    {
+      "repo": "agent-messenger/agent-messenger",
+      "commit": "9d2de96a43fe3e0e172e8e399454c475146a2697",
+      "calls": [
+        "src/platforms/whatsappbot/client.ts:188"
+      ],
+      "guarded": [
+        "src/platforms/whatsappbot/client.test.ts:112"
+      ],
+      "moved": [],
+      "stops": [
+        {
+          "pin": "src/platforms/whatsappbot/client.test.ts:86",
+          "reasons": [
+            "src/platforms/whatsappbot/client.test.ts:86: the HTTP method is not known",
+            "src/platforms/whatsappbot/client.test.ts:86: the requested metrics are not known",
+            "src/platforms/whatsappbot/client.test.ts:86: the request parameters are not known",
+            "src/platforms/whatsappbot/client.test.ts:86: only tests and examples use this version"
+          ]
+        },
+        {
+          "pin": "src/platforms/whatsappbot/client.test.ts:112",
+          "reasons": [
+            "src/platforms/whatsappbot/client.test.ts:112: the HTTP method is not known",
+            "src/platforms/whatsappbot/client.test.ts:112: the requested fields are not known",
+            "src/platforms/whatsappbot/client.test.ts:112: the requested metrics are not known",
+            "src/platforms/whatsappbot/client.test.ts:112: the request parameters are not known",
+            "src/platforms/whatsappbot/client.test.ts:112: WhatsApp Business Platform and Messenger Platform requests follow their own changelogs, which the change list does not cover",
+            "src/platforms/whatsappbot/client.test.ts:112: only tests and examples use this version"
+          ]
+        },
+        {
+          "pin": "src/platforms/whatsappbot/client.test.ts:404",
+          "reasons": [
+            "src/platforms/whatsappbot/client.test.ts:404: no request call was traced for this URL",
+            "src/platforms/whatsappbot/client.test.ts:404: the path is not known",
+            "src/platforms/whatsappbot/client.test.ts:404: the HTTP method is not known",
+            "src/platforms/whatsappbot/client.test.ts:404: the requested fields are not known",
+            "src/platforms/whatsappbot/client.test.ts:404: the requested metrics are not known",
+            "src/platforms/whatsappbot/client.test.ts:404: the request parameters are not known",
+            "src/platforms/whatsappbot/client.test.ts:404: only tests and examples use this version"
+          ]
+        },
+        {
+          "pin": "src/platforms/whatsappbot/client.ts:4",
+          "reasons": [
+            "src/platforms/whatsappbot/client.ts:188: the path is not known",
+            "src/platforms/whatsappbot/client.ts:188: the requested fields are not known",
+            "src/platforms/whatsappbot/client.ts:188: the requested metrics are not known",
+            "src/platforms/whatsappbot/client.ts:188: the request parameters are not known"
+          ]
+        }
+      ],
+      "moves": []
+    },
+    {
+      "repo": "AyushJain070401/msgly",
+      "commit": "6f16be25c59c410c2d3a0046b0ae290344fab50d",
+      "calls": [],
+      "guarded": [],
+      "moved": [],
+      "stops": [],
+      "moves": []
+    },
+    {
+      "repo": "Intentface/intentface-latch",
+      "commit": "d810e0fd53f9b281348cf1ff2793f183691e3e20",
+      "calls": [],
+      "guarded": [],
+      "moved": [],
+      "stops": [],
+      "moves": []
+    },
+    {
+      "repo": "guidone/node-red-contrib-chatbot",
+      "commit": "0464f7648425b5f78855e8d03300877f82ab2007",
+      "calls": [
+        "lib/platforms/facebook/facebook.js:378",
+        "lib/platforms/facebook/facebook.js:484",
+        "lib/platforms/facebook/facebook.js:525",
+        "lib/platforms/facebook/facebook.js:601",
+        "lib/platforms/facebook/facebook.js:618",
+        "lib/platforms/facebook/facebook.js:631",
+        "lib/platforms/whatsapp/index.js:242",
+        "lib/platforms/whatsapp/index.js:275"
+      ],
+      "guarded": [
+        "lib/platforms/facebook/facebook.js:378",
+        "lib/platforms/facebook/facebook.js:525",
+        "lib/platforms/facebook/facebook.js:601",
+        "lib/platforms/facebook/facebook.js:618",
+        "lib/platforms/facebook/facebook.js:631"
+      ],
+      "moved": [],
+      "stops": [
+        {
+          "pin": "lib/platforms/facebook/facebook.js:12",
+          "reasons": [
+            "lib/platforms/facebook/facebook.js:378: the HTTP method is not known",
+            "lib/platforms/facebook/facebook.js:378: the requested fields are not known",
+            "lib/platforms/facebook/facebook.js:378: the requested metrics are not known",
+            "lib/platforms/facebook/facebook.js:378: the request parameters are not known",
+            "lib/platforms/facebook/facebook.js:484: no request call was traced for this URL",
+            "lib/platforms/facebook/facebook.js:484: the HTTP method is not known",
+            "lib/platforms/facebook/facebook.js:484: the requested fields are not known",
+            "lib/platforms/facebook/facebook.js:484: the requested metrics are not known",
+            "lib/platforms/facebook/facebook.js:484: the request parameters are not known",
+            "lib/platforms/facebook/facebook.js:525: no request call was traced for this URL",
+            "lib/platforms/facebook/facebook.js:525: the HTTP method is not known",
+            "lib/platforms/facebook/facebook.js:525: the requested fields are not known",
+            "lib/platforms/facebook/facebook.js:525: the requested metrics are not known",
+            "lib/platforms/facebook/facebook.js:525: the request parameters are not known",
+            "lib/platforms/facebook/facebook.js:601: the HTTP method is not known",
+            "lib/platforms/facebook/facebook.js:601: the requested fields are not known",
+            "lib/platforms/facebook/facebook.js:601: the requested metrics are not known",
+            "lib/platforms/facebook/facebook.js:601: the request parameters are not known",
+            "lib/platforms/facebook/facebook.js:618: no request call was traced for this URL",
+            "lib/platforms/facebook/facebook.js:618: the HTTP method is not known",
+            "lib/platforms/facebook/facebook.js:618: the requested fields are not known",
+            "lib/platforms/facebook/facebook.js:618: the requested metrics are not known",
+            "lib/platforms/facebook/facebook.js:618: the request parameters are not known",
+            "lib/platforms/facebook/facebook.js:631: no request call was traced for this URL",
+            "lib/platforms/facebook/facebook.js:631: the HTTP method is not known",
+            "lib/platforms/facebook/facebook.js:631: the requested fields are not known",
+            "lib/platforms/facebook/facebook.js:631: the requested metrics are not known",
+            "lib/platforms/facebook/facebook.js:631: the request parameters are not known",
+            "lib/platforms/facebook/facebook.js:378: WhatsApp Business Platform and Messenger Platform requests follow their own changelogs, which the change list does not cover",
+            "lib/platforms/facebook/facebook.js:525: WhatsApp Business Platform and Messenger Platform requests follow their own changelogs, which the change list does not cover",
+            "lib/platforms/facebook/facebook.js:601: WhatsApp Business Platform and Messenger Platform requests follow their own changelogs, which the change list does not cover",
+            "lib/platforms/facebook/facebook.js:618: WhatsApp Business Platform and Messenger Platform requests follow their own changelogs, which the change list does not cover",
+            "lib/platforms/facebook/facebook.js:631: WhatsApp Business Platform and Messenger Platform requests follow their own changelogs, which the change list does not cover",
+            "lib/platforms/facebook/facebook.js:484: v24.0 endpoint-removed meta-graph-v24-0-endpoint-removed-messenger-lead-gen-template-id: GET /{messenger-lead-gen-template-id} is deprecated with Messenger lead ads.",
+            "lib/platforms/facebook/facebook.js:484: v24.0 endpoint-removed meta-graph-v24-0-endpoint-removed-custom-audience-id: Updating /{custom-audience-id} fails when the audience or conversion is flagged.",
+            "lib/platforms/facebook/facebook.js:484: v24.0 endpoint-removed meta-graph-v24-0-endpoint-removed-custom-conversion-id: Updating /{custom-conversion-id} fails when the audience or conversion is flagged."
+          ]
+        },
+        {
+          "pin": "lib/platforms/whatsapp/index.js:16",
+          "reasons": [
+            "lib/platforms/whatsapp/index.js:242: the path is not known",
+            "lib/platforms/whatsapp/index.js:242: the HTTP method is not known",
+            "lib/platforms/whatsapp/index.js:242: the requested fields are not known",
+            "lib/platforms/whatsapp/index.js:242: the requested metrics are not known",
+            "lib/platforms/whatsapp/index.js:242: the request parameters are not known",
+            "lib/platforms/whatsapp/index.js:275: the requested fields are not known",
+            "lib/platforms/whatsapp/index.js:275: the requested metrics are not known",
+            "lib/platforms/whatsapp/index.js:275: the request parameters are not known"
+          ]
+        }
+      ],
+      "moves": []
+    },
+    {
+      "repo": "a792883583/dsh-message-gateway",
+      "commit": "989511403bc226f26825ac883604357d85365f4e",
+      "calls": [
+        "src/host/callback-bridges.ts:258",
+        "src/host/platforms.ts:279"
+      ],
+      "guarded": [],
+      "moved": [],
+      "stops": [
+        {
+          "pin": "src/host/callback-bridges.ts:259",
+          "reasons": [
+            "src/host/callback-bridges.ts:258: the path is not known",
+            "src/host/callback-bridges.ts:258: the HTTP method is not known",
+            "src/host/callback-bridges.ts:258: the requested fields are not known",
+            "src/host/callback-bridges.ts:258: the requested metrics are not known",
+            "src/host/callback-bridges.ts:258: the request parameters are not known"
+          ]
+        },
+        {
+          "pin": "src/host/platforms.ts:278",
+          "reasons": [
+            "src/host/platforms.ts:279: the path is not known",
+            "src/host/platforms.ts:279: the HTTP method is not known",
+            "src/host/platforms.ts:279: the requested fields are not known",
+            "src/host/platforms.ts:279: the requested metrics are not known",
+            "src/host/platforms.ts:279: the request parameters are not known"
+          ]
+        }
+      ],
+      "moves": []
+    },
+    {
+      "repo": "DavideCarvalho/nestjs-agent",
+      "commit": "aa7989e2dd9d906c5b39c04e85dfc9812fc44644",
+      "calls": [
+        "packages/channels/src/adapters/whatsapp-cloud.ts:123",
+        "packages/channels/src/adapters/whatsapp-cloud.ts:213"
+      ],
+      "guarded": [
+        "packages/channels/src/adapters.spec.ts:679"
+      ],
+      "moved": [],
+      "stops": [
+        {
+          "pin": "null:null",
+          "reasons": [
+            "packages/channels/src/adapters/whatsapp-cloud.ts:123: the version is built at runtime"
+          ]
+        },
+        {
+          "pin": "null:null",
+          "reasons": [
+            "packages/channels/src/adapters/whatsapp-cloud.ts:213: the version is built at runtime"
+          ]
+        },
+        {
+          "pin": "packages/channels/src/adapters.spec.ts:680",
+          "reasons": [
+            "packages/channels/src/adapters.spec.ts:679: the HTTP method is not known",
+            "packages/channels/src/adapters.spec.ts:679: the requested fields are not known",
+            "packages/channels/src/adapters.spec.ts:679: the requested metrics are not known",
+            "packages/channels/src/adapters.spec.ts:679: the request parameters are not known",
+            "packages/channels/src/adapters.spec.ts:679: WhatsApp Business Platform and Messenger Platform requests follow their own changelogs, which the change list does not cover",
+            "packages/channels/src/adapters.spec.ts:680: only tests and examples use this version"
+          ]
+        },
+        {
+          "pin": "packages/channels/src/adapters.spec.ts:960",
+          "reasons": [
+            "packages/channels/src/adapters.spec.ts:960: no request call was traced for this URL",
+            "packages/channels/src/adapters.spec.ts:960: the HTTP method is not known",
+            "packages/channels/src/adapters.spec.ts:960: the requested fields are not known",
+            "packages/channels/src/adapters.spec.ts:960: the requested metrics are not known",
+            "packages/channels/src/adapters.spec.ts:960: the request parameters are not known",
+            "packages/channels/src/adapters.spec.ts:960: only tests and examples use this version"
+          ]
+        },
+        {
+          "pin": "packages/channels/src/adapters.spec.ts:1146",
+          "reasons": [
+            "packages/channels/src/adapters.spec.ts:1146: the HTTP method is not known",
+            "packages/channels/src/adapters.spec.ts:1146: the requested fields are not known",
+            "packages/channels/src/adapters.spec.ts:1146: the requested metrics are not known",
+            "packages/channels/src/adapters.spec.ts:1146: the request parameters are not known",
+            "packages/channels/src/adapters.spec.ts:1146: only tests and examples use this version"
+          ]
+        }
+      ],
+      "moves": []
+    },
+    {
+      "repo": "pixelinfinito/twenty-app-whatsapp",
+      "commit": "8b29e23152996c4a8cdfa30ff743877900779bb5",
+      "calls": [],
+      "guarded": [],
+      "moved": [],
+      "stops": [
+        {
+          "pin": "src/providers/whatsapp/cloud-api.provider.test.ts:92",
+          "reasons": [
+            "src/providers/whatsapp/cloud-api.provider.test.ts:92: v26.0 is newer than the target v25.0"
+          ]
+        },
+        {
+          "pin": "src/providers/whatsapp/cloud-api.provider.test.ts:237",
+          "reasons": [
+            "src/providers/whatsapp/cloud-api.provider.test.ts:237: no request call was traced for this URL",
+            "src/providers/whatsapp/cloud-api.provider.test.ts:237: the HTTP method is not known",
+            "src/providers/whatsapp/cloud-api.provider.test.ts:237: the requested fields are not known",
+            "src/providers/whatsapp/cloud-api.provider.test.ts:237: the requested metrics are not known",
+            "src/providers/whatsapp/cloud-api.provider.test.ts:237: the request parameters are not known",
+            "src/providers/whatsapp/cloud-api.provider.test.ts:237: only tests and examples use this version"
+          ]
+        },
+        {
+          "pin": "src/providers/whatsapp/cloud-api.provider.test.ts:347",
+          "reasons": [
+            "src/providers/whatsapp/cloud-api.provider.test.ts:347: v26.0 is newer than the target v25.0"
+          ]
+        }
+      ],
+      "moves": []
+    },
+    {
+      "repo": "codigoencasa/bot-whatsapp",
+      "commit": "cb24cf93f0efe7d7d3cc586223115b44f0dc8b4f",
+      "calls": [
+        "packages/provider-facebook-messenger/src/facebook.provider.ts:141",
+        "packages/provider-facebook-messenger/src/facebook.provider.ts:176",
+        "packages/provider-facebook-messenger/src/facebook.provider.ts:207",
+        "packages/provider-facebook-messenger/src/facebook.provider.ts:236",
+        "packages/provider-facebook-messenger/src/facebook.provider.ts:265",
+        "packages/provider-facebook-messenger/src/facebook.provider.ts:294",
+        "packages/provider-facebook-messenger/src/facebook.provider.ts:333",
+        "packages/provider-facebook-messenger/src/facebook.provider.ts:363",
+        "packages/provider-meta/src/meta/provider.ts:1035",
+        "packages/provider-meta/src/meta/provider.ts:1306",
+        "packages/provider-meta/src/meta/provider.ts:415",
+        "packages/provider-meta/src/meta/provider.ts:488",
+        "packages/provider-meta/src/meta/provider.ts:980",
+        "packages/provider-meta/src/utils/getOrderDetails.ts:87",
+        "packages/provider-meta/src/utils/getOrderDetails.ts:99",
+        "packages/provider-meta/src/utils/mediaUrl.ts:21",
+        "packages/provider-meta/src/utils/profile.ts:22",
+        "packages/provider-voice/src/calls/meta-call-client.ts:162"
+      ],
+      "guarded": [
+        "packages/provider-meta/__tests__/provider.test.ts:167",
+        "packages/provider-meta/__tests__/provider.test.ts:191"
+      ],
+      "moved": [],
+      "stops": [
+        {
+          "pin": "null:null",
+          "reasons": [
+            "packages/provider-facebook-messenger/__tests__/facebook.provider.spec.ts:113: the version is built at runtime"
+          ]
+        },
+        {
+          "pin": "null:null",
+          "reasons": [
+            "packages/provider-facebook-messenger/__tests__/facebook.provider.spec.ts:151: the version is built at runtime"
+          ]
+        },
+        {
+          "pin": "null:null",
+          "reasons": [
+            "packages/provider-facebook-messenger/__tests__/facebook.provider.spec.ts:192: the version is built at runtime"
+          ]
+        },
+        {
+          "pin": "null:null",
+          "reasons": [
+            "packages/provider-facebook-messenger/__tests__/facebook.provider.spec.ts:233: the version is built at runtime"
+          ]
+        },
+        {
+          "pin": "null:null",
+          "reasons": [
+            "packages/provider-facebook-messenger/__tests__/facebook.provider.spec.ts:347: the version is built at runtime"
+          ]
+        },
+        {
+          "pin": "null:null",
+          "reasons": [
+            "packages/provider-facebook-messenger/src/facebook.provider.ts:141: the version is built at runtime"
+          ]
+        },
+        {
+          "pin": "null:null",
+          "reasons": [
+            "packages/provider-facebook-messenger/src/facebook.provider.ts:176: the version is built at runtime"
+          ]
+        },
+        {
+          "pin": "null:null",
+          "reasons": [
+            "packages/provider-facebook-messenger/src/facebook.provider.ts:207: the version is built at runtime"
+          ]
+        },
+        {
+          "pin": "null:null",
+          "reasons": [
+            "packages/provider-facebook-messenger/src/facebook.provider.ts:236: the version is built at runtime"
+          ]
+        },
+        {
+          "pin": "null:null",
+          "reasons": [
+            "packages/provider-facebook-messenger/src/facebook.provider.ts:265: the version is built at runtime"
+          ]
+        },
+        {
+          "pin": "null:null",
+          "reasons": [
+            "packages/provider-facebook-messenger/src/facebook.provider.ts:294: the version is built at runtime"
+          ]
+        },
+        {
+          "pin": "null:null",
+          "reasons": [
+            "packages/provider-facebook-messenger/src/facebook.provider.ts:333: the version is built at runtime"
+          ]
+        },
+        {
+          "pin": "null:null",
+          "reasons": [
+            "packages/provider-facebook-messenger/src/facebook.provider.ts:363: the version is built at runtime"
+          ]
+        },
+        {
+          "pin": "null:null",
+          "reasons": [
+            "packages/provider-meta/__tests__/mediaUrl.test.ts:29: the URL names no version"
+          ]
+        },
+        {
+          "pin": "null:null",
+          "reasons": [
+            "packages/provider-meta/__tests__/profile.test.ts:32: the URL names no version"
+          ]
+        },
+        {
+          "pin": "null:null",
+          "reasons": [
+            "packages/provider-meta/src/meta/provider.ts:415: the version is built at runtime"
+          ]
+        },
+        {
+          "pin": "null:null",
+          "reasons": [
+            "packages/provider-meta/src/meta/provider.ts:488: the version is built at runtime"
+          ]
+        },
+        {
+          "pin": "null:null",
+          "reasons": [
+            "packages/provider-meta/src/meta/provider.ts:980: the version is built at runtime"
+          ]
+        },
+        {
+          "pin": "null:null",
+          "reasons": [
+            "packages/provider-meta/src/meta/provider.ts:1035: the version is built at runtime"
+          ]
+        },
+        {
+          "pin": "null:null",
+          "reasons": [
+            "packages/provider-meta/src/meta/provider.ts:1306: the version is built at runtime"
+          ]
+        },
+        {
+          "pin": "null:null",
+          "reasons": [
+            "packages/provider-meta/src/utils/getOrderDetails.ts:87: the version is built at runtime"
+          ]
+        },
+        {
+          "pin": "null:null",
+          "reasons": [
+            "packages/provider-meta/src/utils/getOrderDetails.ts:99: the version is built at runtime"
+          ]
+        },
+        {
+          "pin": "null:null",
+          "reasons": [
+            "packages/provider-meta/src/utils/mediaUrl.ts:21: the version is built at runtime"
+          ]
+        },
+        {
+          "pin": "null:null",
+          "reasons": [
+            "packages/provider-meta/src/utils/profile.ts:22: the version is built at runtime"
+          ]
+        },
+        {
+          "pin": "null:null",
+          "reasons": [
+            "packages/provider-voice/src/calls/meta-call-client.ts:162: the version is built at runtime"
+          ]
+        },
+        {
+          "pin": "packages/provider-meta/__tests__/getOrderDetails.test.ts:12",
+          "reasons": [
+            "packages/provider-meta/__tests__/getOrderDetails.test.ts:100: the HTTP method is not known",
+            "packages/provider-meta/__tests__/getOrderDetails.test.ts:100: the requested fields are not known",
+            "packages/provider-meta/__tests__/getOrderDetails.test.ts:100: the requested metrics are not known",
+            "packages/provider-meta/__tests__/getOrderDetails.test.ts:100: the request parameters are not known",
+            "packages/provider-meta/__tests__/getOrderDetails.test.ts:108: the HTTP method is not known",
+            "packages/provider-meta/__tests__/getOrderDetails.test.ts:108: the requested fields are not known",
+            "packages/provider-meta/__tests__/getOrderDetails.test.ts:108: the requested metrics are not known",
+            "packages/provider-meta/__tests__/getOrderDetails.test.ts:108: the request parameters are not known",
+            "packages/provider-meta/__tests__/getOrderDetails.test.ts:12: only tests and examples use this version",
+            "packages/provider-meta/__tests__/getOrderDetails.test.ts:100: v20.0 endpoint-removed meta-graph-v20-0-endpoint-removed-offline-event-set-id: POST, GET and DELETE /{offline-event-set-id} (Offline Conversions API) are deprecated on v20.0.",
+            "packages/provider-meta/__tests__/getOrderDetails.test.ts:100: v22.0 endpoint-removed meta-graph-v22-0-endpoint-removed-instagram-user-id: GET, POST and DELETE /{instagram-user-id} on the Instagram v1.0 API are deprecated; migrate to Instagram Platform endpoints.",
+            "packages/provider-meta/__tests__/getOrderDetails.test.ts:100: v22.0 endpoint-removed meta-graph-v22-0-endpoint-removed-instagram-media-id: GET, POST and DELETE /{instagram-media-id} on the Instagram v1.0 API are deprecated; migrate to Instagram Platform endpoints.",
+            "packages/provider-meta/__tests__/getOrderDetails.test.ts:100: v22.0 endpoint-removed meta-graph-v22-0-endpoint-removed-instagram-carousel-id: GET, POST and DELETE /{instagram-carousel-id} on the Instagram v1.0 API are deprecated; migrate to Instagram Platform endpoints.",
+            "packages/provider-meta/__tests__/getOrderDetails.test.ts:100: v22.0 endpoint-removed meta-graph-v22-0-endpoint-removed-instagram-comment-id: GET, POST and DELETE /{instagram-comment-id} on the Instagram v1.0 API are deprecated; migrate to Instagram Platform endpoints.",
+            "packages/provider-meta/__tests__/getOrderDetails.test.ts:100: v22.0 endpoint-removed meta-graph-v22-0-endpoint-removed-recommendation-id: Reading a recommendation, GET /{recommendation-id}, returns error 12.",
+            "packages/provider-meta/__tests__/getOrderDetails.test.ts:100: v24.0 endpoint-removed meta-graph-v24-0-endpoint-removed-messenger-lead-gen-template-id: GET /{messenger-lead-gen-template-id} is deprecated with Messenger lead ads.",
+            "packages/provider-meta/__tests__/getOrderDetails.test.ts:100: v24.0 endpoint-removed meta-graph-v24-0-endpoint-removed-custom-audience-id: Updating /{custom-audience-id} fails when the audience or conversion is flagged.",
+            "packages/provider-meta/__tests__/getOrderDetails.test.ts:100: v24.0 endpoint-removed meta-graph-v24-0-endpoint-removed-custom-conversion-id: Updating /{custom-conversion-id} fails when the audience or conversion is flagged.",
+            "packages/provider-meta/__tests__/getOrderDetails.test.ts:64: `VERSION` is used in a way the request scan does not follow",
+            "packages/provider-meta/__tests__/getOrderDetails.test.ts:97: `VERSION` is used in a way the request scan does not follow",
+            "packages/provider-meta/__tests__/getOrderDetails.test.ts:102: `VERSION` is used in a way the request scan does not follow",
+            "packages/provider-meta/__tests__/getOrderDetails.test.ts:110: `VERSION` is used in a way the request scan does not follow",
+            "packages/provider-meta/__tests__/getOrderDetails.test.ts:131: `VERSION` is used in a way the request scan does not follow",
+            "packages/provider-meta/__tests__/getOrderDetails.test.ts:144: `VERSION` is used in a way the request scan does not follow",
+            "packages/provider-meta/__tests__/getOrderDetails.test.ts:158: `VERSION` is used in a way the request scan does not follow",
+            "packages/provider-meta/__tests__/getOrderDetails.test.ts:189: `VERSION` is used in a way the request scan does not follow",
+            "packages/provider-meta/__tests__/getOrderDetails.test.ts:207: `VERSION` is used in a way the request scan does not follow",
+            "packages/provider-meta/__tests__/getOrderDetails.test.ts:219: `VERSION` is used in a way the request scan does not follow"
+          ]
+        },
+        {
+          "pin": "packages/provider-meta/__tests__/provider.test.ts:155",
+          "reasons": [
+            "packages/provider-meta/__tests__/provider.test.ts:167: the HTTP method is not known",
+            "packages/provider-meta/__tests__/provider.test.ts:167: the requested fields are not known",
+            "packages/provider-meta/__tests__/provider.test.ts:167: the requested metrics are not known",
+            "packages/provider-meta/__tests__/provider.test.ts:167: the request parameters are not known",
+            "packages/provider-meta/__tests__/provider.test.ts:167: WhatsApp Business Platform and Messenger Platform requests follow their own changelogs, which the change list does not cover",
+            "packages/provider-meta/__tests__/provider.test.ts:155: only tests and examples use this version",
+            "packages/provider-meta/__tests__/provider.test.ts:167: v20.0 edge-changed meta-graph-v20-0-edge-changed-messages: The Booking button is no longer supported in Messenger API calls."
+          ]
+        },
+        {
+          "pin": "packages/provider-meta/__tests__/provider.test.ts:192",
+          "reasons": [
+            "packages/provider-meta/__tests__/provider.test.ts:191: the HTTP method is not known",
+            "packages/provider-meta/__tests__/provider.test.ts:191: the requested fields are not known",
+            "packages/provider-meta/__tests__/provider.test.ts:191: the requested metrics are not known",
+            "packages/provider-meta/__tests__/provider.test.ts:191: the request parameters are not known",
+            "packages/provider-meta/__tests__/provider.test.ts:191: WhatsApp Business Platform and Messenger Platform requests follow their own changelogs, which the change list does not cover",
+            "packages/provider-meta/__tests__/provider.test.ts:192: only tests and examples use this version",
+            "packages/provider-meta/__tests__/provider.test.ts:191: v20.0 edge-changed meta-graph-v20-0-edge-changed-messages: The Booking button is no longer supported in Messenger API calls."
+          ]
+        }
+      ],
+      "moves": []
+    },
+    {
+      "repo": "melandlabs/opencontext",
+      "commit": "6fc6a9d6258835319bd3477d0107a242438ee103",
+      "calls": [
+        "packages/integrations/facebook-messenger/src/index.ts:75",
+        "packages/integrations/facebook-messenger/src/index.ts:94",
+        "packages/integrations/instagram/src/index.ts:120",
+        "packages/integrations/instagram/src/index.ts:50"
+      ],
+      "guarded": [
+        "packages/integrations/instagram/src/index.ts:120"
+      ],
+      "moved": [],
+      "stops": [
+        {
+          "pin": "null:null",
+          "reasons": [
+            "packages/integrations/facebook-messenger/src/index.ts:75: the version is built at runtime"
+          ]
+        },
+        {
+          "pin": "null:null",
+          "reasons": [
+            "packages/integrations/facebook-messenger/src/index.ts:94: the version is built at runtime"
+          ]
+        },
+        {
+          "pin": "packages/integrations/instagram/src/index.ts:49",
+          "reasons": [
+            "packages/integrations/instagram/src/index.ts:50: the path is not known",
+            "packages/integrations/instagram/src/index.ts:50: the requested fields are not known",
+            "packages/integrations/instagram/src/index.ts:50: the requested metrics are not known",
+            "packages/integrations/instagram/src/index.ts:50: the request parameters are not known"
+          ]
+        },
+        {
+          "pin": "packages/integrations/instagram/src/index.ts:120",
+          "reasons": [
+            "packages/integrations/instagram/src/index.ts:120: WhatsApp Business Platform and Messenger Platform requests follow their own changelogs, which the change list does not cover"
+          ]
+        }
+      ],
+      "moves": []
+    },
+    {
+      "repo": "lc-cn/onebots",
+      "commit": "82616a4671f50531cba35ce6ee4235e9d2be74d4",
+      "calls": [],
+      "guarded": [
+        "adapters/adapter-whatsapp/src/business-phone-numbers.spec.ts:38",
+        "adapters/adapter-whatsapp/src/business-phone-numbers.spec.ts:74",
+        "adapters/adapter-whatsapp/src/calling.spec.ts:57",
+        "adapters/adapter-whatsapp/src/message-templates.spec.ts:40",
+        "adapters/adapter-whatsapp/src/settings.spec.ts:55"
+      ],
+      "moved": [],
+      "stops": [
+        {
+          "pin": "null:null",
+          "reasons": [
+            "adapters/adapter-whatsapp/src/business-phone-numbers.spec.ts:189: the URL names no version"
+          ]
+        },
+        {
+          "pin": "null:null",
+          "reasons": [
+            "adapters/adapter-whatsapp/src/client.spec.ts:475: the URL names no version"
+          ]
+        },
+        {
+          "pin": "null:null",
+          "reasons": [
+            "adapters/adapter-whatsapp/src/client.spec.ts:476: the URL names no version"
+          ]
+        },
+        {
+          "pin": "null:null",
+          "reasons": [
+            "adapters/adapter-whatsapp/src/schedules.spec.ts:244: the URL names no version"
+          ]
+        },
+        {
+          "pin": "adapters/adapter-whatsapp/src/blocked-users.spec.ts:21",
+          "reasons": [
+            "adapters/adapter-whatsapp/src/blocked-users.spec.ts:21: no request call was traced for this URL",
+            "adapters/adapter-whatsapp/src/blocked-users.spec.ts:21: the HTTP method is not known",
+            "adapters/adapter-whatsapp/src/blocked-users.spec.ts:21: the requested fields are not known",
+            "adapters/adapter-whatsapp/src/blocked-users.spec.ts:21: the requested metrics are not known",
+            "adapters/adapter-whatsapp/src/blocked-users.spec.ts:21: the request parameters are not known",
+            "adapters/adapter-whatsapp/src/blocked-users.spec.ts:21: only tests and examples use this version"
+          ]
+        },
+        {
+          "pin": "adapters/adapter-whatsapp/src/blocked-users.spec.ts:29",
+          "reasons": [
+            "adapters/adapter-whatsapp/src/blocked-users.spec.ts:29: no request call was traced for this URL",
+            "adapters/adapter-whatsapp/src/blocked-users.spec.ts:29: the HTTP method is not known",
+            "adapters/adapter-whatsapp/src/blocked-users.spec.ts:29: the requested fields are not known",
+            "adapters/adapter-whatsapp/src/blocked-users.spec.ts:29: the requested metrics are not known",
+            "adapters/adapter-whatsapp/src/blocked-users.spec.ts:29: the request parameters are not known",
+            "adapters/adapter-whatsapp/src/blocked-users.spec.ts:29: only tests and examples use this version"
+          ]
+        },
+        {
+          "pin": "adapters/adapter-whatsapp/src/business-account.spec.ts:98",
+          "reasons": [
+            "adapters/adapter-whatsapp/src/business-account.spec.ts:98: no request call was traced for this URL",
+            "adapters/adapter-whatsapp/src/business-account.spec.ts:98: the HTTP method is not known",
+            "adapters/adapter-whatsapp/src/business-account.spec.ts:98: the requested fields are not known",
+            "adapters/adapter-whatsapp/src/business-account.spec.ts:98: the requested metrics are not known",
+            "adapters/adapter-whatsapp/src/business-account.spec.ts:98: the request parameters are not known",
+            "adapters/adapter-whatsapp/src/business-account.spec.ts:98: only tests and examples use this version"
+          ]
+        },
+        {
+          "pin": "adapters/adapter-whatsapp/src/business-account.spec.ts:116",
+          "reasons": [
+            "adapters/adapter-whatsapp/src/business-account.spec.ts:116: no request call was traced for this URL",
+            "adapters/adapter-whatsapp/src/business-account.spec.ts:116: the HTTP method is not known",
+            "adapters/adapter-whatsapp/src/business-account.spec.ts:116: the requested fields are not known",
+            "adapters/adapter-whatsapp/src/business-account.spec.ts:116: the requested metrics are not known",
+            "adapters/adapter-whatsapp/src/business-account.spec.ts:116: the request parameters are not known",
+            "adapters/adapter-whatsapp/src/business-account.spec.ts:116: only tests and examples use this version"
+          ]
+        },
+        {
+          "pin": "adapters/adapter-whatsapp/src/business-phone-numbers.spec.ts:38",
+          "reasons": [
+            "adapters/adapter-whatsapp/src/business-phone-numbers.spec.ts:38: no request call was traced for this URL",
+            "adapters/adapter-whatsapp/src/business-phone-numbers.spec.ts:38: the HTTP method is not known",
+            "adapters/adapter-whatsapp/src/business-phone-numbers.spec.ts:38: the requested fields are not known",
+            "adapters/adapter-whatsapp/src/business-phone-numbers.spec.ts:38: the requested metrics are not known",
+            "adapters/adapter-whatsapp/src/business-phone-numbers.spec.ts:38: the request parameters are not known",
+            "adapters/adapter-whatsapp/src/business-phone-numbers.spec.ts:38: WhatsApp Business Platform and Messenger Platform requests follow their own changelogs, which the change list does not cover",
+            "adapters/adapter-whatsapp/src/business-phone-numbers.spec.ts:38: only tests and examples use this version"
+          ]
+        },
+        {
+          "pin": "adapters/adapter-whatsapp/src/business-phone-numbers.spec.ts:74",
+          "reasons": [
+            "adapters/adapter-whatsapp/src/business-phone-numbers.spec.ts:74: no request call was traced for this URL",
+            "adapters/adapter-whatsapp/src/business-phone-numbers.spec.ts:74: the HTTP method is not known",
+            "adapters/adapter-whatsapp/src/business-phone-numbers.spec.ts:74: the requested fields are not known",
+            "adapters/adapter-whatsapp/src/business-phone-numbers.spec.ts:74: the requested metrics are not known",
+            "adapters/adapter-whatsapp/src/business-phone-numbers.spec.ts:74: the request parameters are not known",
+            "adapters/adapter-whatsapp/src/business-phone-numbers.spec.ts:74: WhatsApp Business Platform and Messenger Platform requests follow their own changelogs, which the change list does not cover",
+            "adapters/adapter-whatsapp/src/business-phone-numbers.spec.ts:74: only tests and examples use this version"
+          ]
+        },
+        {
+          "pin": "adapters/adapter-whatsapp/src/calling.spec.ts:43",
+          "reasons": [
+            "adapters/adapter-whatsapp/src/calling.spec.ts:42: the HTTP method is not known",
+            "adapters/adapter-whatsapp/src/calling.spec.ts:42: the requested fields are not known",
+            "adapters/adapter-whatsapp/src/calling.spec.ts:42: the requested metrics are not known",
+            "adapters/adapter-whatsapp/src/calling.spec.ts:42: the request parameters are not known",
+            "adapters/adapter-whatsapp/src/calling.spec.ts:43: only tests and examples use this version"
+          ]
+        },
+        {
+          "pin": "adapters/adapter-whatsapp/src/calling.spec.ts:57",
+          "reasons": [
+            "adapters/adapter-whatsapp/src/calling.spec.ts:57: the HTTP method is not known",
+            "adapters/adapter-whatsapp/src/calling.spec.ts:57: the requested fields are not known",
+            "adapters/adapter-whatsapp/src/calling.spec.ts:57: the requested metrics are not known",
+            "adapters/adapter-whatsapp/src/calling.spec.ts:57: the request parameters are not known",
+            "adapters/adapter-whatsapp/src/calling.spec.ts:57: WhatsApp Business Platform and Messenger Platform requests follow their own changelogs, which the change list does not cover",
+            "adapters/adapter-whatsapp/src/calling.spec.ts:57: only tests and examples use this version"
+          ]
+        },
+        {
+          "pin": "adapters/adapter-whatsapp/src/groups.spec.ts:28",
+          "reasons": [
+            "adapters/adapter-whatsapp/src/groups.spec.ts:28: the HTTP method is not known",
+            "adapters/adapter-whatsapp/src/groups.spec.ts:28: the requested fields are not known",
+            "adapters/adapter-whatsapp/src/groups.spec.ts:28: the requested metrics are not known",
+            "adapters/adapter-whatsapp/src/groups.spec.ts:28: the request parameters are not known",
+            "adapters/adapter-whatsapp/src/groups.spec.ts:28: only tests and examples use this version"
+          ]
+        },
+        {
+          "pin": "adapters/adapter-whatsapp/src/groups.spec.ts:48",
+          "reasons": [
+            "adapters/adapter-whatsapp/src/groups.spec.ts:48: the HTTP method is not known",
+            "adapters/adapter-whatsapp/src/groups.spec.ts:48: the requested fields are not known",
+            "adapters/adapter-whatsapp/src/groups.spec.ts:48: the requested metrics are not known",
+            "adapters/adapter-whatsapp/src/groups.spec.ts:48: the request parameters are not known",
+            "adapters/adapter-whatsapp/src/groups.spec.ts:48: only tests and examples use this version"
+          ]
+        },
+        {
+          "pin": "adapters/adapter-whatsapp/src/history.spec.ts:44",
+          "reasons": [
+            "adapters/adapter-whatsapp/src/history.spec.ts:43: the HTTP method is not known",
+            "adapters/adapter-whatsapp/src/history.spec.ts:43: the requested fields are not known",
+            "adapters/adapter-whatsapp/src/history.spec.ts:43: the requested metrics are not known",
+            "adapters/adapter-whatsapp/src/history.spec.ts:43: the request parameters are not known",
+            "adapters/adapter-whatsapp/src/history.spec.ts:44: only tests and examples use this version"
+          ]
+        },
+        {
+          "pin": "adapters/adapter-whatsapp/src/message-templates.spec.ts:40",
+          "reasons": [
+            "adapters/adapter-whatsapp/src/message-templates.spec.ts:40: no request call was traced for this URL",
+            "adapters/adapter-whatsapp/src/message-templates.spec.ts:40: the HTTP method is not known",
+            "adapters/adapter-whatsapp/src/message-templates.spec.ts:40: the requested fields are not known",
+            "adapters/adapter-whatsapp/src/message-templates.spec.ts:40: the requested metrics are not known",
+            "adapters/adapter-whatsapp/src/message-templates.spec.ts:40: the request parameters are not known",
+            "adapters/adapter-whatsapp/src/message-templates.spec.ts:40: WhatsApp Business Platform and Messenger Platform requests follow their own changelogs, which the change list does not cover",
+            "adapters/adapter-whatsapp/src/message-templates.spec.ts:40: only tests and examples use this version"
+          ]
+        },
+        {
+          "pin": "adapters/adapter-whatsapp/src/qr-codes.spec.ts:28",
+          "reasons": [
+            "adapters/adapter-whatsapp/src/qr-codes.spec.ts:28: no request call was traced for this URL",
+            "adapters/adapter-whatsapp/src/qr-codes.spec.ts:28: the HTTP method is not known",
+            "adapters/adapter-whatsapp/src/qr-codes.spec.ts:28: the requested fields are not known",
+            "adapters/adapter-whatsapp/src/qr-codes.spec.ts:28: the requested metrics are not known",
+            "adapters/adapter-whatsapp/src/qr-codes.spec.ts:28: the request parameters are not known",
+            "adapters/adapter-whatsapp/src/qr-codes.spec.ts:28: only tests and examples use this version"
+          ]
+        },
+        {
+          "pin": "adapters/adapter-whatsapp/src/schedules.spec.ts:37",
+          "reasons": [
+            "adapters/adapter-whatsapp/src/schedules.spec.ts:37: no request call was traced for this URL",
+            "adapters/adapter-whatsapp/src/schedules.spec.ts:37: the HTTP method is not known",
+            "adapters/adapter-whatsapp/src/schedules.spec.ts:37: the requested fields are not known",
+            "adapters/adapter-whatsapp/src/schedules.spec.ts:37: the requested metrics are not known",
+            "adapters/adapter-whatsapp/src/schedules.spec.ts:37: the request parameters are not known",
+            "adapters/adapter-whatsapp/src/schedules.spec.ts:37: only tests and examples use this version"
+          ]
+        },
+        {
+          "pin": "adapters/adapter-whatsapp/src/schedules.spec.ts:67",
+          "reasons": [
+            "adapters/adapter-whatsapp/src/schedules.spec.ts:67: no request call was traced for this URL",
+            "adapters/adapter-whatsapp/src/schedules.spec.ts:67: the HTTP method is not known",
+            "adapters/adapter-whatsapp/src/schedules.spec.ts:67: the requested fields are not known",
+            "adapters/adapter-whatsapp/src/schedules.spec.ts:67: the requested metrics are not known",
+            "adapters/adapter-whatsapp/src/schedules.spec.ts:67: the request parameters are not known",
+            "adapters/adapter-whatsapp/src/schedules.spec.ts:67: only tests and examples use this version"
+          ]
+        },
+        {
+          "pin": "adapters/adapter-whatsapp/src/schema.spec.ts:25",
+          "reasons": [
+            "adapters/adapter-whatsapp/src/schema.spec.ts:25: no request call was traced for this URL",
+            "adapters/adapter-whatsapp/src/schema.spec.ts:25: the path is not known",
+            "adapters/adapter-whatsapp/src/schema.spec.ts:25: the HTTP method is not known",
+            "adapters/adapter-whatsapp/src/schema.spec.ts:25: the requested fields are not known",
+            "adapters/adapter-whatsapp/src/schema.spec.ts:25: the requested metrics are not known",
+            "adapters/adapter-whatsapp/src/schema.spec.ts:25: the request parameters are not known",
+            "adapters/adapter-whatsapp/src/schema.spec.ts:25: only tests and examples use this version"
+          ]
+        },
+        {
+          "pin": "adapters/adapter-whatsapp/src/settings.spec.ts:56",
+          "reasons": [
+            "adapters/adapter-whatsapp/src/settings.spec.ts:55: the HTTP method is not known",
+            "adapters/adapter-whatsapp/src/settings.spec.ts:55: the requested fields are not known",
+            "adapters/adapter-whatsapp/src/settings.spec.ts:55: the requested metrics are not known",
+            "adapters/adapter-whatsapp/src/settings.spec.ts:55: the request parameters are not known",
+            "adapters/adapter-whatsapp/src/settings.spec.ts:55: WhatsApp Business Platform and Messenger Platform requests follow their own changelogs, which the change list does not cover",
+            "adapters/adapter-whatsapp/src/settings.spec.ts:56: only tests and examples use this version"
+          ]
+        }
+      ],
+      "moves": []
+    },
+    {
+      "repo": "iamnocodeveloper/kooni-bot",
+      "commit": "490a9919a257d9239464b89aeb59c586293a31a6",
+      "calls": [
+        "src/channels/whatsapp.ts:170",
+        "src/channels/whatsapp.ts:205"
+      ],
+      "guarded": [
+        "src/channels/whatsapp.ts:205",
+        "test/channels/whatsapp.test.ts:100"
+      ],
+      "moved": [],
+      "stops": [
+        {
+          "pin": "src/channels/whatsapp.ts:17",
+          "reasons": [
+            "src/channels/whatsapp.ts:170: the path is not known",
+            "src/channels/whatsapp.ts:205: WhatsApp Business Platform and Messenger Platform requests follow their own changelogs, which the change list does not cover",
+            "src/channels/whatsapp.ts:170: v22.0 field-removed meta-graph-v22-0-field-removed-instagram-actor-id: The ad creative instagram_actor_id field is deprecated.",
+            "src/channels/whatsapp.ts:170: v22.0 field-removed meta-graph-v22-0-field-removed-effective-instagram-story-id: The ad creative effective_instagram_story_id field is deprecated.",
+            "src/channels/whatsapp.ts:170: v22.0 field-removed meta-graph-v22-0-field-removed-instagram-story-id: The ad creative instagram_story_id field is deprecated.",
+            "src/channels/whatsapp.ts:170: v22.0 field-changed meta-graph-v22-0-field-changed-targeting: GET /{adset-id} reflects location targeting that expands to people interested in a location.",
+            "src/channels/whatsapp.ts:170: v22.0 field-removed meta-graph-v22-0-field-removed-promotions: The commerce order promotions field is deprecated; use promotion_details.",
+            "src/channels/whatsapp.ts:170: v23.0 field-changed meta-graph-v23-0-field-changed-smart-promotion-type: The campaign smart_promotion_type field will no longer be available (GET /{ad-campaign-id}, /{ad-account-id}/campaigns).",
+            "src/channels/whatsapp.ts:170: v23.0 field-changed meta-graph-v23-0-field-changed-instagram-destination-id: The instagram_destination_id field returns the ig_user_id instead of the instagram_actor_id.",
+            "src/channels/whatsapp.ts:170: v23.0 field-removed meta-graph-v23-0-field-removed-is-eligible-for-sac-campaigns: The is_eligible_for_sac_campaigns field should no longer be used (GET /{custom_audience_id}).",
+            "src/channels/whatsapp.ts:170: v24.0 field-removed meta-graph-v24-0-field-removed-overlay-url: The Live Video overlay_url field is removed for v24.0 and later.",
+            "src/channels/whatsapp.ts:170: v24.0 field-changed meta-graph-v24-0-field-changed-destination-spec: Website destination optimization changes destination_spec on ad creatives.",
+            "src/channels/whatsapp.ts:170: v25.0 field-changed meta-graph-v25-0-field-changed-error-code: Failed asynchronous ad reports return new default error fields, and error_code changes from uint to int (GET /{ad-report-run-id}).",
+            "src/channels/whatsapp.ts:205: v24.0 parameter-changed meta-graph-v24-0-parameter-changed-search-type: Detailed targeting interest searches (GET /search with a targeting type, and the targetingsearch, targetingsuggestions and targetingvalidation edges) return consolidated interest options."
+          ]
+        },
+        {
+          "pin": "test/channels/whatsapp.test.ts:100",
+          "reasons": [
+            "test/channels/whatsapp.test.ts:100: the HTTP method is not known",
+            "test/channels/whatsapp.test.ts:100: the requested fields are not known",
+            "test/channels/whatsapp.test.ts:100: the requested metrics are not known",
+            "test/channels/whatsapp.test.ts:100: the request parameters are not known",
+            "test/channels/whatsapp.test.ts:100: WhatsApp Business Platform and Messenger Platform requests follow their own changelogs, which the change list does not cover",
+            "test/channels/whatsapp.test.ts:100: only tests and examples use this version"
+          ]
+        }
+      ],
+      "moves": []
+    },
+    {
+      "repo": "Dosbodoke/better-zap",
+      "commit": "3b3b9d4eb400ff059367e9c906a1daedc643cc40",
+      "calls": [
+        "packages/better-zap/src/services/whatsapp.service.ts:56",
+        "packages/cli/src/template-generator.ts:157"
+      ],
+      "guarded": [],
+      "moved": [],
+      "stops": [
+        {
+          "pin": "null:null",
+          "reasons": [
+            "packages/cli/src/template-generator.ts:157: the version is built at runtime"
+          ]
+        }
+      ],
+      "moves": []
+    }
+  ],
+  "score": {
+    "repositories": 9,
+    "failed": [
+      "CopilotKit/CopilotKit"
+    ],
+    "labelled": 111,
+    "found": 27,
+    "guarded": 5,
+    "moved": 0,
+    "falseGuards": 0,
+    "foundRecall": 0.24324324324324326,
+    "guardRecall": 0.04504504504504504,
+    "guardPrecision": 1,
+    "misses": [
+      {
+        "repo": "tawn33y/whatsapp-cloud-api",
+        "line": "src/sendRequestHelper.ts:27",
+        "error": "not guarded"
+      },
+      {
+        "repo": "MarcosNicolau/whatsapp-business-sdk",
+        "line": "src/WABA_client.ts:66",
+        "error": "not found"
+      },
+      {
+        "repo": "MarcosNicolau/whatsapp-business-sdk",
+        "line": "src/WABA_client.ts:66",
+        "error": "not guarded"
+      },
+      {
+        "repo": "MarcosNicolau/whatsapp-business-sdk",
+        "line": "src/WABA_client.ts:76",
+        "error": "not found"
+      },
+      {
+        "repo": "MarcosNicolau/whatsapp-business-sdk",
+        "line": "src/WABA_client.ts:76",
+        "error": "not guarded"
+      },
+      {
+        "repo": "MarcosNicolau/whatsapp-business-sdk",
+        "line": "src/WABA_client.ts:99",
+        "error": "not found"
+      },
+      {
+        "repo": "MarcosNicolau/whatsapp-business-sdk",
+        "line": "src/WABA_client.ts:99",
+        "error": "not guarded"
+      },
+      {
+        "repo": "MarcosNicolau/whatsapp-business-sdk",
+        "line": "src/WABA_client.ts:113",
+        "error": "not found"
+      },
+      {
+        "repo": "MarcosNicolau/whatsapp-business-sdk",
+        "line": "src/WABA_client.ts:113",
+        "error": "not guarded"
+      },
+      {
+        "repo": "MarcosNicolau/whatsapp-business-sdk",
+        "line": "src/WABA_client.ts:116",
+        "error": "not found"
+      },
+      {
+        "repo": "MarcosNicolau/whatsapp-business-sdk",
+        "line": "src/WABA_client.ts:116",
+        "error": "not guarded"
+      },
+      {
+        "repo": "MarcosNicolau/whatsapp-business-sdk",
+        "line": "src/WABA_client.ts:158",
+        "error": "not found"
+      },
+      {
+        "repo": "MarcosNicolau/whatsapp-business-sdk",
+        "line": "src/WABA_client.ts:158",
+        "error": "not guarded"
+      },
+      {
+        "repo": "MarcosNicolau/whatsapp-business-sdk",
+        "line": "src/WABA_client.ts:169",
+        "error": "not found"
+      },
+      {
+        "repo": "MarcosNicolau/whatsapp-business-sdk",
+        "line": "src/WABA_client.ts:169",
+        "error": "not guarded"
+      },
+      {
+        "repo": "MarcosNicolau/whatsapp-business-sdk",
+        "line": "src/WABA_client.ts:184",
+        "error": "not found"
+      },
+      {
+        "repo": "MarcosNicolau/whatsapp-business-sdk",
+        "line": "src/WABA_client.ts:184",
+        "error": "not guarded"
+      },
+      {
+        "repo": "MarcosNicolau/whatsapp-business-sdk",
+        "line": "src/WABA_client.ts:189",
+        "error": "not found"
+      },
+      {
+        "repo": "MarcosNicolau/whatsapp-business-sdk",
+        "line": "src/WABA_client.ts:189",
+        "error": "not guarded"
+      },
+      {
+        "repo": "MarcosNicolau/whatsapp-business-sdk",
+        "line": "src/WABA_client.ts:196",
+        "error": "not found"
+      },
+      {
+        "repo": "MarcosNicolau/whatsapp-business-sdk",
+        "line": "src/WABA_client.ts:196",
+        "error": "not guarded"
+      },
+      {
+        "repo": "MarcosNicolau/whatsapp-business-sdk",
+        "line": "src/WABA_client.ts:206",
+        "error": "not found"
+      },
+      {
+        "repo": "MarcosNicolau/whatsapp-business-sdk",
+        "line": "src/WABA_client.ts:206",
+        "error": "not guarded"
+      },
+      {
+        "repo": "MarcosNicolau/whatsapp-business-sdk",
+        "line": "src/WABA_client.ts:212",
+        "error": "not found"
+      },
+      {
+        "repo": "MarcosNicolau/whatsapp-business-sdk",
+        "line": "src/WABA_client.ts:212",
+        "error": "not guarded"
+      },
+      {
+        "repo": "MarcosNicolau/whatsapp-business-sdk",
+        "line": "src/WABA_client.ts:215",
+        "error": "not found"
+      },
+      {
+        "repo": "MarcosNicolau/whatsapp-business-sdk",
+        "line": "src/WABA_client.ts:215",
+        "error": "not guarded"
+      },
+      {
+        "repo": "MarcosNicolau/whatsapp-business-sdk",
+        "line": "src/WABA_client.ts:221",
+        "error": "not found"
+      },
+      {
+        "repo": "MarcosNicolau/whatsapp-business-sdk",
+        "line": "src/WABA_client.ts:221",
+        "error": "not guarded"
+      },
+      {
+        "repo": "MarcosNicolau/whatsapp-business-sdk",
+        "line": "src/WABA_client.ts:224",
+        "error": "not found"
+      },
+      {
+        "repo": "MarcosNicolau/whatsapp-business-sdk",
+        "line": "src/WABA_client.ts:224",
+        "error": "not guarded"
+      },
+      {
+        "repo": "MarcosNicolau/whatsapp-business-sdk",
+        "line": "src/WABA_client.ts:236",
+        "error": "not found"
+      },
+      {
+        "repo": "MarcosNicolau/whatsapp-business-sdk",
+        "line": "src/WABA_client.ts:236",
+        "error": "not guarded"
+      },
+      {
+        "repo": "postboi-mail/postboi",
+        "line": "src/library/whatsapp/meta.ts:118",
+        "error": "not guarded"
+      },
+      {
+        "repo": "AyushJain070401/msgly",
+        "line": "packages/adapter-instagram/src/index.ts:388",
+        "error": "not found"
+      },
+      {
+        "repo": "AyushJain070401/msgly",
+        "line": "packages/adapter-instagram/src/index.ts:388",
+        "error": "not guarded"
+      },
+      {
+        "repo": "AyushJain070401/msgly",
+        "line": "packages/adapter-instagram/src/meta-base.ts:196",
+        "error": "not found"
+      },
+      {
+        "repo": "AyushJain070401/msgly",
+        "line": "packages/adapter-instagram/src/meta-base.ts:196",
+        "error": "not guarded"
+      },
+      {
+        "repo": "AyushJain070401/msgly",
+        "line": "packages/adapter-instagram/src/meta-base.ts:265",
+        "error": "not found"
+      },
+      {
+        "repo": "AyushJain070401/msgly",
+        "line": "packages/adapter-instagram/src/meta-base.ts:265",
+        "error": "not guarded"
+      },
+      {
+        "repo": "AyushJain070401/msgly",
+        "line": "packages/adapter-messenger/src/meta-base.ts:200",
+        "error": "not found"
+      },
+      {
+        "repo": "AyushJain070401/msgly",
+        "line": "packages/adapter-messenger/src/meta-base.ts:200",
+        "error": "not guarded"
+      },
+      {
+        "repo": "AyushJain070401/msgly",
+        "line": "packages/adapter-messenger/src/meta-base.ts:269",
+        "error": "not found"
+      },
+      {
+        "repo": "AyushJain070401/msgly",
+        "line": "packages/adapter-messenger/src/meta-base.ts:269",
+        "error": "not guarded"
+      },
+      {
+        "repo": "AyushJain070401/msgly",
+        "line": "packages/adapter-messenger/src/meta-base.ts:435",
+        "error": "not found"
+      },
+      {
+        "repo": "AyushJain070401/msgly",
+        "line": "packages/adapter-messenger/src/meta-base.ts:435",
+        "error": "not guarded"
+      },
+      {
+        "repo": "AyushJain070401/msgly",
+        "line": "packages/adapter-whatsapp/src/index.ts:1354",
+        "error": "not found"
+      },
+      {
+        "repo": "AyushJain070401/msgly",
+        "line": "packages/adapter-whatsapp/src/index.ts:1354",
+        "error": "not guarded"
+      },
+      {
+        "repo": "AyushJain070401/msgly",
+        "line": "packages/adapter-whatsapp/src/index.ts:1381",
+        "error": "not found"
+      },
+      {
+        "repo": "AyushJain070401/msgly",
+        "line": "packages/adapter-whatsapp/src/index.ts:1381",
+        "error": "not guarded"
+      },
+      {
+        "repo": "AyushJain070401/msgly",
+        "line": "packages/adapter-whatsapp/src/index.ts:1420",
+        "error": "not found"
+      },
+      {
+        "repo": "AyushJain070401/msgly",
+        "line": "packages/adapter-whatsapp/src/index.ts:1420",
+        "error": "not guarded"
+      },
+      {
+        "repo": "AyushJain070401/msgly",
+        "line": "packages/adapter-whatsapp/src/index.ts:1430",
+        "error": "not found"
+      },
+      {
+        "repo": "AyushJain070401/msgly",
+        "line": "packages/adapter-whatsapp/src/index.ts:1430",
+        "error": "not guarded"
+      },
+      {
+        "repo": "AyushJain070401/msgly",
+        "line": "packages/adapter-whatsapp/src/index.ts:1441",
+        "error": "not found"
+      },
+      {
+        "repo": "AyushJain070401/msgly",
+        "line": "packages/adapter-whatsapp/src/index.ts:1441",
+        "error": "not guarded"
+      },
+      {
+        "repo": "AyushJain070401/msgly",
+        "line": "packages/adapter-whatsapp/src/index.ts:1452",
+        "error": "not found"
+      },
+      {
+        "repo": "AyushJain070401/msgly",
+        "line": "packages/adapter-whatsapp/src/index.ts:1452",
+        "error": "not guarded"
+      },
+      {
+        "repo": "AyushJain070401/msgly",
+        "line": "packages/adapter-whatsapp/src/index.ts:1460",
+        "error": "not found"
+      },
+      {
+        "repo": "AyushJain070401/msgly",
+        "line": "packages/adapter-whatsapp/src/index.ts:1460",
+        "error": "not guarded"
+      },
+      {
+        "repo": "AyushJain070401/msgly",
+        "line": "packages/adapter-whatsapp/src/index.ts:1475",
+        "error": "not found"
+      },
+      {
+        "repo": "AyushJain070401/msgly",
+        "line": "packages/adapter-whatsapp/src/index.ts:1475",
+        "error": "not guarded"
+      },
+      {
+        "repo": "AyushJain070401/msgly",
+        "line": "packages/adapter-whatsapp/src/index.ts:1500",
+        "error": "not found"
+      },
+      {
+        "repo": "AyushJain070401/msgly",
+        "line": "packages/adapter-whatsapp/src/index.ts:1500",
+        "error": "not guarded"
+      },
+      {
+        "repo": "AyushJain070401/msgly",
+        "line": "packages/adapter-whatsapp/src/index.ts:1512",
+        "error": "not found"
+      },
+      {
+        "repo": "AyushJain070401/msgly",
+        "line": "packages/adapter-whatsapp/src/index.ts:1512",
+        "error": "not guarded"
+      },
+      {
+        "repo": "AyushJain070401/msgly",
+        "line": "packages/adapter-whatsapp/src/index.ts:1523",
+        "error": "not found"
+      },
+      {
+        "repo": "AyushJain070401/msgly",
+        "line": "packages/adapter-whatsapp/src/index.ts:1523",
+        "error": "not guarded"
+      },
+      {
+        "repo": "AyushJain070401/msgly",
+        "line": "packages/adapter-whatsapp/src/index.ts:1537",
+        "error": "not found"
+      },
+      {
+        "repo": "AyushJain070401/msgly",
+        "line": "packages/adapter-whatsapp/src/index.ts:1537",
+        "error": "not guarded"
+      },
+      {
+        "repo": "AyushJain070401/msgly",
+        "line": "packages/adapter-whatsapp/src/index.ts:1553",
+        "error": "not found"
+      },
+      {
+        "repo": "AyushJain070401/msgly",
+        "line": "packages/adapter-whatsapp/src/index.ts:1553",
+        "error": "not guarded"
+      },
+      {
+        "repo": "AyushJain070401/msgly",
+        "line": "packages/adapter-whatsapp/src/index.ts:1561",
+        "error": "not found"
+      },
+      {
+        "repo": "AyushJain070401/msgly",
+        "line": "packages/adapter-whatsapp/src/index.ts:1561",
+        "error": "not guarded"
+      },
+      {
+        "repo": "AyushJain070401/msgly",
+        "line": "packages/adapter-whatsapp/src/index.ts:1569",
+        "error": "not found"
+      },
+      {
+        "repo": "AyushJain070401/msgly",
+        "line": "packages/adapter-whatsapp/src/index.ts:1569",
+        "error": "not guarded"
+      },
+      {
+        "repo": "AyushJain070401/msgly",
+        "line": "packages/adapter-whatsapp/src/index.ts:1580",
+        "error": "not found"
+      },
+      {
+        "repo": "AyushJain070401/msgly",
+        "line": "packages/adapter-whatsapp/src/index.ts:1580",
+        "error": "not guarded"
+      },
+      {
+        "repo": "AyushJain070401/msgly",
+        "line": "packages/adapter-whatsapp/src/index.ts:1598",
+        "error": "not found"
+      },
+      {
+        "repo": "AyushJain070401/msgly",
+        "line": "packages/adapter-whatsapp/src/index.ts:1598",
+        "error": "not guarded"
+      },
+      {
+        "repo": "AyushJain070401/msgly",
+        "line": "packages/adapter-whatsapp/src/index.ts:1616",
+        "error": "not found"
+      },
+      {
+        "repo": "AyushJain070401/msgly",
+        "line": "packages/adapter-whatsapp/src/index.ts:1616",
+        "error": "not guarded"
+      },
+      {
+        "repo": "AyushJain070401/msgly",
+        "line": "packages/adapter-whatsapp/src/index.ts:1631",
+        "error": "not found"
+      },
+      {
+        "repo": "AyushJain070401/msgly",
+        "line": "packages/adapter-whatsapp/src/index.ts:1631",
+        "error": "not guarded"
+      },
+      {
+        "repo": "AyushJain070401/msgly",
+        "line": "packages/adapter-whatsapp/src/index.ts:1645",
+        "error": "not found"
+      },
+      {
+        "repo": "AyushJain070401/msgly",
+        "line": "packages/adapter-whatsapp/src/index.ts:1645",
+        "error": "not guarded"
+      },
+      {
+        "repo": "AyushJain070401/msgly",
+        "line": "packages/adapter-whatsapp/src/index.ts:1726",
+        "error": "not found"
+      },
+      {
+        "repo": "AyushJain070401/msgly",
+        "line": "packages/adapter-whatsapp/src/index.ts:1726",
+        "error": "not guarded"
+      },
+      {
+        "repo": "AyushJain070401/msgly",
+        "line": "packages/adapter-whatsapp/src/index.ts:1873",
+        "error": "not found"
+      },
+      {
+        "repo": "AyushJain070401/msgly",
+        "line": "packages/adapter-whatsapp/src/index.ts:1873",
+        "error": "not guarded"
+      },
+      {
+        "repo": "AyushJain070401/msgly",
+        "line": "packages/adapter-whatsapp/src/index.ts:1883",
+        "error": "not found"
+      },
+      {
+        "repo": "AyushJain070401/msgly",
+        "line": "packages/adapter-whatsapp/src/index.ts:1883",
+        "error": "not guarded"
+      },
+      {
+        "repo": "AyushJain070401/msgly",
+        "line": "packages/adapter-whatsapp/src/index.ts:1972",
+        "error": "not found"
+      },
+      {
+        "repo": "AyushJain070401/msgly",
+        "line": "packages/adapter-whatsapp/src/index.ts:1972",
+        "error": "not guarded"
+      },
+      {
+        "repo": "AyushJain070401/msgly",
+        "line": "packages/adapter-whatsapp/src/index.ts:976",
+        "error": "not found"
+      },
+      {
+        "repo": "AyushJain070401/msgly",
+        "line": "packages/adapter-whatsapp/src/index.ts:976",
+        "error": "not guarded"
+      },
+      {
+        "repo": "AyushJain070401/msgly",
+        "line": "packages/adapter-whatsapp/src/index.ts:1186",
+        "error": "not found"
+      },
+      {
+        "repo": "AyushJain070401/msgly",
+        "line": "packages/adapter-whatsapp/src/index.ts:1186",
+        "error": "not guarded"
+      },
+      {
+        "repo": "AyushJain070401/msgly",
+        "line": "packages/adapter-whatsapp/src/index.ts:978",
+        "error": "not found"
+      },
+      {
+        "repo": "AyushJain070401/msgly",
+        "line": "packages/adapter-whatsapp/src/index.ts:978",
+        "error": "not guarded"
+      },
+      {
+        "repo": "AyushJain070401/msgly",
+        "line": "packages/adapter-whatsapp/src/index.ts:1283",
+        "error": "not found"
+      },
+      {
+        "repo": "AyushJain070401/msgly",
+        "line": "packages/adapter-whatsapp/src/index.ts:1283",
+        "error": "not guarded"
+      },
+      {
+        "repo": "AyushJain070401/msgly",
+        "line": "packages/adapter-whatsapp/src/index.ts:976",
+        "error": "not found"
+      },
+      {
+        "repo": "AyushJain070401/msgly",
+        "line": "packages/adapter-whatsapp/src/index.ts:976",
+        "error": "not guarded"
+      },
+      {
+        "repo": "AyushJain070401/msgly",
+        "line": "packages/adapter-whatsapp/src/index.ts:976",
+        "error": "not found"
+      },
+      {
+        "repo": "AyushJain070401/msgly",
+        "line": "packages/adapter-whatsapp/src/index.ts:976",
+        "error": "not guarded"
+      },
+      {
+        "repo": "AyushJain070401/msgly",
+        "line": "packages/adapter-whatsapp/src/index.ts:976",
+        "error": "not found"
+      },
+      {
+        "repo": "AyushJain070401/msgly",
+        "line": "packages/adapter-whatsapp/src/index.ts:976",
+        "error": "not guarded"
+      },
+      {
+        "repo": "guidone/node-red-contrib-chatbot",
+        "line": "lib/platforms/facebook/facebook.js:482",
+        "error": "not guarded"
+      },
+      {
+        "repo": "guidone/node-red-contrib-chatbot",
+        "line": "lib/platforms/whatsapp/index.js:191",
+        "error": "not found"
+      },
+      {
+        "repo": "guidone/node-red-contrib-chatbot",
+        "line": "lib/platforms/whatsapp/index.js:191",
+        "error": "not guarded"
+      },
+      {
+        "repo": "guidone/node-red-contrib-chatbot",
+        "line": "lib/platforms/whatsapp/index.js:275",
+        "error": "not guarded"
+      },
+      {
+        "repo": "guidone/node-red-contrib-chatbot",
+        "line": "lib/platforms/whatsapp/index.js:389",
+        "error": "not found"
+      },
+      {
+        "repo": "guidone/node-red-contrib-chatbot",
+        "line": "lib/platforms/whatsapp/index.js:389",
+        "error": "not guarded"
+      },
+      {
+        "repo": "guidone/node-red-contrib-chatbot",
+        "line": "lib/platforms/whatsapp/index.js:415",
+        "error": "not found"
+      },
+      {
+        "repo": "guidone/node-red-contrib-chatbot",
+        "line": "lib/platforms/whatsapp/index.js:415",
+        "error": "not guarded"
+      },
+      {
+        "repo": "guidone/node-red-contrib-chatbot",
+        "line": "lib/platforms/whatsapp/index.js:440",
+        "error": "not found"
+      },
+      {
+        "repo": "guidone/node-red-contrib-chatbot",
+        "line": "lib/platforms/whatsapp/index.js:440",
+        "error": "not guarded"
+      },
+      {
+        "repo": "guidone/node-red-contrib-chatbot",
+        "line": "lib/platforms/whatsapp/index.js:495",
+        "error": "not found"
+      },
+      {
+        "repo": "guidone/node-red-contrib-chatbot",
+        "line": "lib/platforms/whatsapp/index.js:495",
+        "error": "not guarded"
+      },
+      {
+        "repo": "guidone/node-red-contrib-chatbot",
+        "line": "lib/platforms/whatsapp/index.js:527",
+        "error": "not found"
+      },
+      {
+        "repo": "guidone/node-red-contrib-chatbot",
+        "line": "lib/platforms/whatsapp/index.js:527",
+        "error": "not guarded"
+      },
+      {
+        "repo": "DavideCarvalho/nestjs-agent",
+        "line": "packages/channels/src/adapters/whatsapp-cloud.ts:121",
+        "error": "not guarded"
+      },
+      {
+        "repo": "DavideCarvalho/nestjs-agent",
+        "line": "packages/channels/src/adapters/whatsapp-cloud.ts:136",
+        "error": "not found"
+      },
+      {
+        "repo": "DavideCarvalho/nestjs-agent",
+        "line": "packages/channels/src/adapters/whatsapp-cloud.ts:136",
+        "error": "not guarded"
+      },
+      {
+        "repo": "DavideCarvalho/nestjs-agent",
+        "line": "packages/channels/src/adapters/whatsapp-cloud.ts:213",
+        "error": "not guarded"
+      },
+      {
+        "repo": "codigoencasa/bot-whatsapp",
+        "line": "packages/provider-facebook-messenger/src/facebook.provider.ts:168",
+        "error": "not guarded"
+      },
+      {
+        "repo": "codigoencasa/bot-whatsapp",
+        "line": "packages/provider-facebook-messenger/src/facebook.provider.ts:191",
+        "error": "not guarded"
+      },
+      {
+        "repo": "codigoencasa/bot-whatsapp",
+        "line": "packages/provider-facebook-messenger/src/facebook.provider.ts:220",
+        "error": "not guarded"
+      },
+      {
+        "repo": "codigoencasa/bot-whatsapp",
+        "line": "packages/provider-facebook-messenger/src/facebook.provider.ts:249",
+        "error": "not guarded"
+      },
+      {
+        "repo": "codigoencasa/bot-whatsapp",
+        "line": "packages/provider-facebook-messenger/src/facebook.provider.ts:278",
+        "error": "not guarded"
+      },
+      {
+        "repo": "codigoencasa/bot-whatsapp",
+        "line": "packages/provider-facebook-messenger/src/facebook.provider.ts:311",
+        "error": "not guarded"
+      },
+      {
+        "repo": "codigoencasa/bot-whatsapp",
+        "line": "packages/provider-facebook-messenger/src/facebook.provider.ts:352",
+        "error": "not guarded"
+      },
+      {
+        "repo": "codigoencasa/bot-whatsapp",
+        "line": "packages/provider-meta/src/meta/provider.ts:415",
+        "error": "not guarded"
+      },
+      {
+        "repo": "codigoencasa/bot-whatsapp",
+        "line": "packages/provider-meta/src/meta/provider.ts:488",
+        "error": "not guarded"
+      },
+      {
+        "repo": "codigoencasa/bot-whatsapp",
+        "line": "packages/provider-meta/src/meta/provider.ts:980",
+        "error": "not guarded"
+      },
+      {
+        "repo": "codigoencasa/bot-whatsapp",
+        "line": "packages/provider-meta/src/meta/provider.ts:1035",
+        "error": "not guarded"
+      },
+      {
+        "repo": "codigoencasa/bot-whatsapp",
+        "line": "packages/provider-meta/src/meta/provider.ts:1305",
+        "error": "not guarded"
+      },
+      {
+        "repo": "codigoencasa/bot-whatsapp",
+        "line": "packages/provider-meta/src/utils/mediaUrl.ts:21",
+        "error": "not guarded"
+      },
+      {
+        "repo": "codigoencasa/bot-whatsapp",
+        "line": "packages/provider-meta/src/utils/profile.ts:22",
+        "error": "not guarded"
+      },
+      {
+        "repo": "codigoencasa/bot-whatsapp",
+        "line": "packages/provider-voice/src/calls/meta-call-client.ts:155",
+        "error": "not guarded"
+      },
+      {
+        "repo": "lc-cn/onebots",
+        "line": "adapters/adapter-facebook-messenger/src/client.ts:182",
+        "error": "not found"
+      },
+      {
+        "repo": "lc-cn/onebots",
+        "line": "adapters/adapter-facebook-messenger/src/client.ts:182",
+        "error": "not guarded"
+      },
+      {
+        "repo": "lc-cn/onebots",
+        "line": "adapters/adapter-facebook-messenger/src/client.ts:202",
+        "error": "not found"
+      },
+      {
+        "repo": "lc-cn/onebots",
+        "line": "adapters/adapter-facebook-messenger/src/client.ts:202",
+        "error": "not guarded"
+      },
+      {
+        "repo": "lc-cn/onebots",
+        "line": "adapters/adapter-facebook-messenger/src/client.ts:224",
+        "error": "not found"
+      },
+      {
+        "repo": "lc-cn/onebots",
+        "line": "adapters/adapter-facebook-messenger/src/client.ts:224",
+        "error": "not guarded"
+      },
+      {
+        "repo": "lc-cn/onebots",
+        "line": "adapters/adapter-facebook-messenger/src/client.ts:241",
+        "error": "not found"
+      },
+      {
+        "repo": "lc-cn/onebots",
+        "line": "adapters/adapter-facebook-messenger/src/client.ts:241",
+        "error": "not guarded"
+      },
+      {
+        "repo": "lc-cn/onebots",
+        "line": "adapters/adapter-facebook-messenger/src/client.ts:251",
+        "error": "not found"
+      },
+      {
+        "repo": "lc-cn/onebots",
+        "line": "adapters/adapter-facebook-messenger/src/client.ts:251",
+        "error": "not guarded"
+      },
+      {
+        "repo": "lc-cn/onebots",
+        "line": "adapters/adapter-facebook-messenger/src/client.ts:264",
+        "error": "not found"
+      },
+      {
+        "repo": "lc-cn/onebots",
+        "line": "adapters/adapter-facebook-messenger/src/client.ts:264",
+        "error": "not guarded"
+      },
+      {
+        "repo": "lc-cn/onebots",
+        "line": "adapters/adapter-facebook-messenger/src/client.ts:277",
+        "error": "not found"
+      },
+      {
+        "repo": "lc-cn/onebots",
+        "line": "adapters/adapter-facebook-messenger/src/client.ts:277",
+        "error": "not guarded"
+      },
+      {
+        "repo": "lc-cn/onebots",
+        "line": "adapters/adapter-facebook-messenger/src/client.ts:296",
+        "error": "not found"
+      },
+      {
+        "repo": "lc-cn/onebots",
+        "line": "adapters/adapter-facebook-messenger/src/client.ts:296",
+        "error": "not guarded"
+      },
+      {
+        "repo": "lc-cn/onebots",
+        "line": "adapters/adapter-facebook-messenger/src/client.ts:332",
+        "error": "not found"
+      },
+      {
+        "repo": "lc-cn/onebots",
+        "line": "adapters/adapter-facebook-messenger/src/client.ts:332",
+        "error": "not guarded"
+      },
+      {
+        "repo": "lc-cn/onebots",
+        "line": "adapters/adapter-facebook-messenger/src/platform-actions.ts:57",
+        "error": "not found"
+      },
+      {
+        "repo": "lc-cn/onebots",
+        "line": "adapters/adapter-facebook-messenger/src/platform-actions.ts:57",
+        "error": "not guarded"
+      },
+      {
+        "repo": "lc-cn/onebots",
+        "line": "adapters/adapter-facebook-messenger/src/platform-actions.ts:61",
+        "error": "not found"
+      },
+      {
+        "repo": "lc-cn/onebots",
+        "line": "adapters/adapter-facebook-messenger/src/platform-actions.ts:61",
+        "error": "not guarded"
+      },
+      {
+        "repo": "lc-cn/onebots",
+        "line": "adapters/adapter-facebook-messenger/src/platform-actions.ts:65",
+        "error": "not found"
+      },
+      {
+        "repo": "lc-cn/onebots",
+        "line": "adapters/adapter-facebook-messenger/src/platform-actions.ts:65",
+        "error": "not guarded"
+      },
+      {
+        "repo": "lc-cn/onebots",
+        "line": "adapters/adapter-facebook-messenger/src/platform-actions.ts:80",
+        "error": "not found"
+      },
+      {
+        "repo": "lc-cn/onebots",
+        "line": "adapters/adapter-facebook-messenger/src/platform-actions.ts:80",
+        "error": "not guarded"
+      },
+      {
+        "repo": "lc-cn/onebots",
+        "line": "adapters/adapter-facebook-messenger/src/platform-actions.ts:87",
+        "error": "not found"
+      },
+      {
+        "repo": "lc-cn/onebots",
+        "line": "adapters/adapter-facebook-messenger/src/platform-actions.ts:87",
+        "error": "not guarded"
+      },
+      {
+        "repo": "lc-cn/onebots",
+        "line": "adapters/adapter-facebook-messenger/src/platform-actions.ts:89",
+        "error": "not found"
+      },
+      {
+        "repo": "lc-cn/onebots",
+        "line": "adapters/adapter-facebook-messenger/src/platform-actions.ts:89",
+        "error": "not guarded"
+      },
+      {
+        "repo": "lc-cn/onebots",
+        "line": "adapters/adapter-facebook-messenger/src/platform-actions.ts:98",
+        "error": "not found"
+      },
+      {
+        "repo": "lc-cn/onebots",
+        "line": "adapters/adapter-facebook-messenger/src/platform-actions.ts:98",
+        "error": "not guarded"
+      },
+      {
+        "repo": "lc-cn/onebots",
+        "line": "adapters/adapter-facebook-messenger/src/platform-actions.ts:112",
+        "error": "not found"
+      },
+      {
+        "repo": "lc-cn/onebots",
+        "line": "adapters/adapter-facebook-messenger/src/platform-actions.ts:112",
+        "error": "not guarded"
+      },
+      {
+        "repo": "lc-cn/onebots",
+        "line": "adapters/adapter-facebook-messenger/src/platform-actions.ts:116",
+        "error": "not found"
+      },
+      {
+        "repo": "lc-cn/onebots",
+        "line": "adapters/adapter-facebook-messenger/src/platform-actions.ts:116",
+        "error": "not guarded"
+      },
+      {
+        "repo": "lc-cn/onebots",
+        "line": "adapters/adapter-facebook-messenger/src/platform-actions.ts:125",
+        "error": "not found"
+      },
+      {
+        "repo": "lc-cn/onebots",
+        "line": "adapters/adapter-facebook-messenger/src/platform-actions.ts:125",
+        "error": "not guarded"
+      },
+      {
+        "repo": "lc-cn/onebots",
+        "line": "adapters/adapter-facebook-messenger/src/platform-actions.ts:133",
+        "error": "not found"
+      },
+      {
+        "repo": "lc-cn/onebots",
+        "line": "adapters/adapter-facebook-messenger/src/platform-actions.ts:133",
+        "error": "not guarded"
+      },
+      {
+        "repo": "lc-cn/onebots",
+        "line": "adapters/adapter-facebook-messenger/src/platform-actions.ts:166",
+        "error": "not found"
+      },
+      {
+        "repo": "lc-cn/onebots",
+        "line": "adapters/adapter-facebook-messenger/src/platform-actions.ts:166",
+        "error": "not guarded"
+      },
+      {
+        "repo": "Dosbodoke/better-zap",
+        "line": "packages/better-zap/src/services/whatsapp.service.ts:56",
+        "error": "not guarded"
+      },
+      {
+        "repo": "Dosbodoke/better-zap",
+        "line": "packages/better-zap/src/services/coexistence.service.ts:116",
+        "error": "not found"
+      },
+      {
+        "repo": "Dosbodoke/better-zap",
+        "line": "packages/better-zap/src/services/coexistence.service.ts:116",
+        "error": "not guarded"
+      },
+      {
+        "repo": "Dosbodoke/better-zap",
+        "line": "packages/better-zap/src/services/coexistence.service.ts:127",
+        "error": "not found"
+      },
+      {
+        "repo": "Dosbodoke/better-zap",
+        "line": "packages/better-zap/src/services/coexistence.service.ts:127",
+        "error": "not guarded"
+      },
+      {
+        "repo": "Dosbodoke/better-zap",
+        "line": "packages/better-zap/src/services/coexistence.service.ts:166",
+        "error": "not found"
+      },
+      {
+        "repo": "Dosbodoke/better-zap",
+        "line": "packages/better-zap/src/services/coexistence.service.ts:166",
+        "error": "not guarded"
+      }
+    ]
+  }
+}

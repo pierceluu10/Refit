@@ -138,7 +138,8 @@ export function changesUsedBy(call: GraphCall, changes: MetaGraphChange[]) {
 
 // WhatsApp Business Platform and Messenger Platform publish their own changelogs, which the change
 // list does not cover, so a request that belongs to either stops any move of its version. A
-// request belongs to them by its edge, or by a parameter only their send APIs take.
+// request belongs to them by its edge (or root endpoint), or by a parameter only their send APIs
+// take.
 const SEPARATE_CHANGELOG_EDGES = new Set([
   'messages',
   'message_templates',
@@ -161,16 +162,31 @@ const SEPARATE_CHANGELOG_EDGES = new Set([
   'message_attachments',
   'custom_labels',
   'nlp_configs',
+  // Found in the WhatsApp and Messenger sample (docs/META-PLATFORM-CHANGELOGS.md): the WhatsApp
+  // Calling API, coexistence sync, display-name and two-step PIN, phone-number settings and the
+  // template library, and Messenger conversation moderation.
+  'calls',
+  'smb_app_data',
+  'request_display_name',
+  'pin',
+  'settings',
+  'message_template_library',
+  'moderate_conversations',
 ]);
 const SEPARATE_CHANGELOG_PARAMETERS = new Set([
   'messaging_product',
   'messaging_type',
   'recipient',
   'sender_action',
+  // A WhatsApp media node read names the phone number it belongs to.
+  'phone_number_id',
 ]);
 
 function separateChangelog(call: GraphCall) {
+  // A root endpoint such as `/message_template_library` is a path with no node before it.
+  const root = call.path !== null && /^\/[a-z_]+$/.test(call.path) ? call.path.slice(1) : null;
   return (call.edge !== null && SEPARATE_CHANGELOG_EDGES.has(call.edge)) ||
+    (root !== null && SEPARATE_CHANGELOG_EDGES.has(root)) ||
     (call.parameters ?? []).some((name) => SEPARATE_CHANGELOG_PARAMETERS.has(name))
     ? [
         `${call.file}:${call.line}: WhatsApp Business Platform and Messenger Platform requests follow their own changelogs, which the change list does not cover`,

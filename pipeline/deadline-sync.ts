@@ -38,7 +38,11 @@ const SEPARATOR = /^\|?\s*:?-+:?\s*(?:\|\s*:?-+:?\s*)*\|?$/;
 // quoted strings anywhere in a repository, and these also name unrelated things.
 const PLAIN_WORD = /^[a-z]+$/;
 
-export type SyncProvider = DeadlineEntry['provider'];
+// The providers whose deprecations or versioning page Refit can read.
+export type SyncProvider = Extract<
+  DeadlineEntry['provider'],
+  'anthropic' | 'openai' | 'gemini' | 'shopify' | 'meta-graph'
+>;
 
 export interface Retirement {
   date: string;
