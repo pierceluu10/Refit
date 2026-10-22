@@ -2,12 +2,14 @@
 
 Two workflows test Refit. Neither uses a repository secret or calls a paid API.
 
-| Workflow       | Runs on                                                                                       | Jobs                                                            |
-| -------------- | --------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
-| `ci.yml`       | every pull request and push to `main`                                                         | `Typecheck, format, test and build`, on Node 22 and 24          |
-| `ci-gated.yml` | pushes to `main`, nightly at 06:41 UTC, manual dispatch, and pull requests labelled `full-ci` | oasdiff, Docker, PostgreSQL, real SDK, package (Node 22 and 24) |
+| Workflow       | Runs on                                                                                       | Jobs                                                                              |
+| -------------- | --------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| `ci.yml`       | every pull request and push to `main`                                                         | `Typecheck, format, test and build`, on Node 22 and 24; `Benchmark results files` |
+| `ci-gated.yml` | pushes to `main`, nightly at 06:41 UTC, manual dispatch, and pull requests labelled `full-ci` | oasdiff, Docker, PostgreSQL, real SDK, package (Node 22 and 24)                   |
 
-The required check is the `ci.yml` job. It runs the default suite, where every test that needs Docker, PostgreSQL, oasdiff, a real SDK or the packed CLI is skipped. `ci-gated.yml` runs those tests. On a pull request without the `full-ci` label its jobs are skipped, so the required check stays as fast as before. Add the label to run them on a pull request; the label triggers a run, and every later push reruns them while the label stays.
+The required check is the first `ci.yml` job. It runs the default suite, where every test that needs Docker, PostgreSQL, oasdiff, a real SDK or the packed CLI is skipped. `ci-gated.yml` runs those tests. On a pull request without the `full-ci` label its jobs are skipped, so the required check stays as fast as before. Add the label to run them on a pull request; the label triggers a run, and every later push reruns them while the label stays.
+
+`Benchmark results files` runs `node scripts/benchmark-results.mjs --committed`, which checks every committed `docs/benchmarks/*-results.json` against the schema `docs/benchmarks/schemas/files.json` assigns it and exits 1 on any error or unlisted file (see [benchmark harness](BENCHMARK-HARNESS.md)). It uses only Node built-ins, so it skips `npm ci` and finishes in seconds. The default suite runs the same check.
 
 `deadlines-sync.yml` is the daily registry sync. It is described in [API deadlines](DEADLINES.md) and is not a test workflow.
 
