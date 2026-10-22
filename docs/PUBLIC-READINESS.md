@@ -64,8 +64,10 @@ Audited on 2026-10-22 from a fresh `git clone --mirror` of GitHub (204 branches,
 | S9 | `pipeline/hosted-ops.test.ts:119` | `b001fb8` | github-app-token `ghs_…` | PP5 branch | No: letters then a digit run, a synthetic token |
 | S10 | `pipeline/hosted-ops.test.ts:132` | `b001fb8` | github-app-token `ghs_…` | PP5 branch | No: same synthetic token |
 | S11 | `pipeline/hosted-ops-logging.test.ts:20` | `b001fb8` | github-app-token `ghs_…` | PP5 branch | No: synthetic |
+| S12 | `docs/benchmarks/2026-10-22-stripe-fresh-labels.json:68` | `6953014` | generic-api-key `wyve…` | OG4 branch | No: a public GitHub repository name in the frozen list |
+| S13 | `docs/benchmarks/2026-10-22-stripe-fresh-labels.json:151` | `6953014` | generic-api-key `wyve…` | OG4 branch | No: the same repository name |
 
-**HEAD fix.** `.gitleaksignore` lists S1–S6 by gitleaks fingerprint (commit, file, rule, line; no values), so a future scan or CI step reports only new findings. With it, the full-history scan reports exactly S7–S11. S7–S11 are deliberately not ignored: see Requests.
+**HEAD fix.** `.gitleaksignore` lists S1–S6, S12 and S13 by gitleaks fingerprint (commit, file, rule, line; no values), so a future scan or CI step reports only new findings. With it, the full-history scan reports exactly S7–S11. S12 and S13 appeared when the scans were repeated on a refreshed mirror at wrap-up: 1,013 commits, 727 with diffs. That rerun found nothing else new; the other new path matches are third-party route names in benchmark labels and this document's own redacted values. S7–S11 are deliberately not ignored: see Requests.
 
 ### Account identifiers
 
