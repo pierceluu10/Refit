@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Deadline benchmark scan results",
+  "description": "Written by scripts/deadline-benchmark-setup.mjs: `refit deadlines --json` on each repository of a frozen list, in list order, read by scripts/deadline-benchmark-score.mjs. Runs before the harness wrote a bare array of rows and listed failed repositories only on the console.",
+  "anyOf": [
+    { "type": "array", "items": { "$ref": "#/$defs/row" } },
+    {
+      "type": "object",
+      "required": ["formatVersion", "list", "harness", "results"],
+      "additionalProperties": false,
+      "properties": {
+        "formatVersion": { "const": 2 },
+        "list": { "type": "string", "minLength": 1 },
+        "harness": { "$ref": "harness.schema.json" },
+        "results": { "type": "array", "items": { "$ref": "#/$defs/row" } }
+      }
+    }
+  ],
+  "$defs": {
+    "row": {
+      "type": "object",
+      "$ref": "common.schema.json#/$defs/classified",
+      "required": ["repo", "commit", "outcomeClass"],
+      "anyOf": [
+        { "required": ["exposures", "mentions"] },
+        { "required": ["error"], "properties": { "error": { "type": "string", "minLength": 1 } } }
+      ],
+      "properties": {
+        "provider": { "type": "string", "minLength": 1 },
+        "repo": { "$ref": "common.schema.json#/$defs/repo" },
+        "commit": { "$ref": "common.schema.json#/$defs/commit" },
+        "checkedAt": { "type": "string" },
+        "exposures": { "type": "array", "items": { "type": "object" } },
+        "mentions": { "type": "array", "items": { "type": "object" } },
+        "error": { "type": "string", "minLength": 1 },
+        "outcomeClass": {
+          "$ref": "common.schema.json#/$defs/outcomeClass",
+          "x-added": "2026-10-22"
+        },
+        "infrastructure": { "$ref": "common.schema.json#/$defs/infrastructure" }
+      }
+    }
+  }
+}

@@ -9,6 +9,17 @@ const RUNNING_STATES = ['pending', 'running'];
 // `aws login` session whose refresh failed; "Unable to locate credentials" from no session at all.
 const CREDENTIALS_FAILURE =
   /ExpiredToken|token (?:included in the request is|has) expired|session has expired|Unable to locate credentials/i;
+// `ec2 run-instances --dry-run` reports a launch it would allow as a DryRunOperation error.
+const DRY_RUN_ALLOWED = /\(DryRunOperation\)/;
+// AWS errors name the account (also inside the bucket name), the organization's policy ARN and an
+// encoded authorization message; none of them may reach output that lanes paste into PRs.
+const ACCOUNT_ID = /\b\d{12}\b/g;
+const ORGANIZATION_ARN = /arn:aws:organizations::[\w:/-]+/g;
+const ENCODED_AUTHORIZATION = /Encoded authorization failure message: \S+/g;
+// A validating benchmark holds the harness, a `refit run` child and a 3 GiB validation container at
+// once; under this much memory a c7i.large shard can be starved.
+const VALIDATE_MEMORY_MIB = 8 * 1024;
+const VALIDATE = /--validate\b/;
 const MILLISECONDS_PER_HOUR = 3_600_000;
 // EC2 bills Linux on-demand instances per second with a one-minute minimum.
 const MINIMUM_BILLED_HOURS = 1 / 60;
@@ -99,6 +110,22 @@ export function stateCounts(states) {
 
 export function credentialsFailed(stderr) {
   return CREDENTIALS_FAILURE.test(stderr);
+}
+
+export function dryRunAllowed(stderr) {
+  return DRY_RUN_ALLOWED.test(stderr);
+}
+
+export function redactAws(text) {
+  return text
+    .replace(ORGANIZATION_ARN, '[organization policy]')
+    .replace(ACCOUNT_ID, '[account]')
+    .replace(ENCODED_AUTHORIZATION, 'Encoded authorization failure message omitted.');
+}
+
+export function memoryWarning(command, instanceType, memoryMib) {
+  if (!VALIDATE.test(command) || memoryMib >= VALIDATE_MEMORY_MIB) return undefined;
+  return `Warning: ${instanceType} has ${memoryMib / 1024} GiB of memory; a --validate run needs at least ${VALIDATE_MEMORY_MIB / 1024} GiB, or the harness, refit run and the validation container compete for it.`;
 }
 
 function round(usd) {

@@ -4,6 +4,8 @@ Whether running the Stripe benchmark twice at one Refit commit gives the same re
 
 ## Result
 
+The run outputs behind these counts are not committed; the counts are not backed by a committed results file.
+
 - **Scans and proposed patches are deterministic.** Repeated at one commit, every run of each set gave the same value in every compared field for every repository, apart from the wording of one environment error. Every `scan.json` was byte-identical across runs, and so was every proposed patch.
   - Held-out set (50): four runs, two scan-only and two with `--validate`. Identical in every field; 21 `scan.json` files and 18 proposed patches identical.
   - Active set (66): three runs with `--validate`. A and B identical in every field; pass 1 differs only in the Docker error text on the 10 repositories that reached validation. 21 `scan.json` files and 10 proposed patches identical across all three.
@@ -75,7 +77,7 @@ With the fixes below, rerunning `scripts/stripe-benchmark-setup.mjs` on the acti
 
 ### Fixes
 
-- **Checkouts.** `scripts/stripe-benchmark-setup.mjs` and `scripts/shopify-benchmark-setup.mjs` now use the AI-app setup's `shallowCheckout`. It reuses a clone only when its `HEAD` is the pinned commit, and removes a clone whose fetch failed, so a rerun retries it and reports the failure again. Both benchmark CLIs refuse a checkout whose `HEAD` is not the pinned commit (`pipeline/benchmark-checkout.ts`). The row then reads `No checkout at <commit>; rerun scripts/…-setup.mjs.` and counts as `unreadable`, which covers roots built before this change. `pipeline/benchmark-checkout.test.ts` runs both CLIs on an empty checkout, a checkout at the wrong commit and a good one; it fails before the fix, when both bad checkouts read `ok` with 0 calls. Rerun on this root, `unique-point/car-trailers` now reads `No checkout at 4fcbdfe…`.
+- **Checkouts.** `scripts/stripe-benchmark-setup.mjs` and `scripts/shopify-benchmark-setup.mjs` now use the AI-app setup's `shallowCheckout`. It reuses a clone only when its `HEAD` is the pinned commit, and removes a clone whose fetch failed, so a rerun retries it and reports the failure again. Both benchmark CLIs check every checkout with the harness's `checkoutError` (`scripts/benchmark-harness.mjs`) before reading it; an empty checkout or one at another commit is recorded as a clone infrastructure error, not as a repository with no calls.
 - **Comparison.** `--details` hashes `scan.json` (content-addressed: its run id hashes the contracts, repository and settings) and the proposed patch inside it when a run stopped before `report.json`. `pipeline/stripe-benchmark-compare.test.ts` covers it and failed before the change.
 
 ## Not measured

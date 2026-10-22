@@ -7,7 +7,7 @@ shutdown -h "+${MINUTES}"
 
 OASDIFF_VERSION=1.33.0
 NODE_DIST=https://nodejs.org/dist/latest-v22.x
-# A deadman shutdown loses at most this much of the command's /work/out.
+# A deadman shutdown loses at most this much of the command's /work/out and of the logs.
 UPLOAD_SECONDS=600
 PREFIX="s3://${BUCKET}/runs/${RUN}"
 SHARD_PREFIX="${PREFIX}/shard-${SHARD}"
@@ -27,13 +27,20 @@ finish() {
   echo "exit ${status} (${STAGE})"
   echo "${status} ${STAGE}" > /tmp/exit-code
   aws s3 cp /tmp/exit-code "${SHARD_PREFIX}/exit-code" --only-show-errors || true
-  aws s3 cp "$LOG" "${SHARD_PREFIX}/boot.log" --only-show-errors || true
+  diagnostics
   shutdown -h now
 }
 trap finish EXIT
 
 upload() {
   aws s3 sync /work/out "${SHARD_PREFIX}/out" --only-show-errors
+}
+
+# The boot log, and the kernel log, where an out-of-memory kill leaves its only trace.
+diagnostics() {
+  dmesg --ctime > /tmp/kernel.log 2>&1 || true
+  aws s3 cp "$LOG" "${SHARD_PREFIX}/boot.log" --only-show-errors || true
+  aws s3 cp /tmp/kernel.log "${SHARD_PREFIX}/kernel.log" --only-show-errors || true
 }
 
 stage packages 70
@@ -75,6 +82,7 @@ stage command 0
     sleep "$UPLOAD_SECONDS" &
     wait $!
     upload || echo "incremental upload failed"
+    diagnostics
   done
 ) &
 uploader=$!
