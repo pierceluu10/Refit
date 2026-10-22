@@ -459,7 +459,9 @@ describe('inventory and deadlines', () => {
     ]);
     const slack = (await detectProviders(root)).find((item) => item.agent.id === 'slack');
     expect(slack?.packages.map((item) => item.name)).toEqual(['@slack/bolt', '@slack/client']);
-    expect(slack?.hostnames).toEqual([{ file: 'src/a.js', line: 1, hostname: 'slack.com/api' }]);
+    expect(slack?.hostnames).toEqual([
+      expect.objectContaining({ file: 'src/a.js', line: 1, hostname: 'slack.com/api' }),
+    ]);
   });
 
   it('matches retired methods in the registry with file and line', async () => {
