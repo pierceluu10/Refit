@@ -110,13 +110,15 @@ The main sample has no deprecated calls to measure, so a second list was frozen:
 - All 21 were labelled blind the same way (`docs/benchmarks/2026-10-22-messaging-targeted-labels.json`). The labelling agent used the twilio and mailgun.js declarations as its reference for what is deprecated.
 - 3 repositories exceed the scan limits (`yorch/simple-sms-sender`, `karimsa/quicksend`, `novuhq/novu`).
 
-On the 18 scanned repositories:
+Failed scans stay in the denominator: the 3 repositories over the limits hold 7 labelled providers and 3 labelled twilio-below-6 declarations, counted as misses. The committed results file's `score` excludes them.
+
+On all 21 labelled repositories:
 
 | Unit                                   | Labelled positives | Refit `0473d9d` (before)                             | Refit `03d8869` (after)                              |
 | -------------------------------------- | -----------------: | ---------------------------------------------------- | ---------------------------------------------------- |
 | Deprecated calls                       |                  6 | 1 of 4 reported correct: precision 25%, recall 16.7% | 6 of 6 reported correct: precision 100%, recall 100% |
-| twilio declared below 6.0.0            |                  8 | precision 100%, recall 100%                          | precision 100%, recall 100%                          |
-| Provider used in live code (105 pairs) |                 19 | precision 90.5%, recall 100%                         | precision 90.5%, recall 100%                         |
+| twilio declared below 6.0.0            |                 11 | precision 100%, recall 72.7%                         | precision 100%, recall 72.7%                         |
+| Provider used in live code (105 pairs) |                 26 | precision 90.5%, recall 73.1%                        | precision 90.5%, recall 73.1%                        |
 
 **The "after" column was tuned on these labels**, so it is not an independent measurement. The first run's errors had three causes, all fixed in `03d8869` with tests:
 
@@ -128,12 +130,12 @@ The six true calls are all version-less accessors: `client.serverless.services` 
 
 ### Combined
 
-Across both lists (43 labelled, scanned repositories):
+Across both lists (46 labelled repositories, 3 failed scans counted as misses):
 
 | Unit                                    |        Precision |           Recall |
 | --------------------------------------- | ---------------: | ---------------: |
-| Provider used in live code              | 96.2% (50 of 52) | 96.2% (50 of 52) |
-| twilio declared below 6.0.0             |  100% (13 of 13) |  100% (13 of 13) |
+| Provider used in live code              | 96.2% (50 of 52) | 84.7% (50 of 59) |
+| twilio declared below 6.0.0             |  100% (13 of 13) | 81.3% (13 of 16) |
 | Deprecated calls (after the fix, tuned) |    100% (6 of 6) |    100% (6 of 6) |
 
 The counts are small. Six deprecated calls in two repositories say the matcher handles these forms; they do not establish a rate.
