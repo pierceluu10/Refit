@@ -110,6 +110,7 @@ it('packs only CLI runtime sources, fixtures, docs and exact runtime dependencie
     'fast-xml-parser',
     'graphql',
     'parse5',
+    'pg',
     'tsx',
     'typescript-compiler',
     'yaml',

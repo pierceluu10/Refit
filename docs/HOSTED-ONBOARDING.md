@@ -1,6 +1,6 @@
 # Hosted onboarding (design proposal)
 
-Status: **proposal, not implemented.** The decisions at the end need the owner's choice before any code is written.
+Status: **milestone 3 core implemented, not deployed.** `refit hosted` runs the single-tenant hosted worker on PostgreSQL (see [what is implemented](#implemented-single-tenant-hosted-worker)). The platform, isolation, OAuth and budget decisions at the end are still open, and nothing is hosted for customers.
 
 ## Goal
 
@@ -31,6 +31,25 @@ A customer installs the Refit GitHub App on selected repositories, reviews and a
 3. Single-tenant hosted worker for the owner's own installation, with leases and retries, scanning and validation only.
 4. Isolation upgrade to per-job microVMs, then a pilot for a second tenant with draft PRs.
 5. Per-tenant AI budgets and the audit log, then early access.
+
+## Implemented: single-tenant hosted worker
+
+`refit hosted serve` replaces the tunnel and the static service file with PostgreSQL state. It reuses the local service's webhook verification, the `refit enroll` fingerprint, `pollServiceTarget` and `watchOnce`; there is no second orchestration path.
+
+1. **Approval.** `refit hosted approve --approval <receipt.json> --approved-by <login>` stores a receipt made by `refit enroll`. Until OAuth ownership exists (milestone 1), only someone with database access can approve.
+2. **Enrollment.** A signed `installation` or `installation_repositories` webhook records the installation and its repositories. Each installed repository with a stored approval becomes a target (one per approved integration), and one job is queued. Installed repositories without an approval are recorded and never run. Approving an already installed repository enrolls it immediately.
+3. **Jobs and leases.** Workers claim jobs with `FOR UPDATE SKIP LOCKED` and a time-limited lease that they renew while running. An expired lease is reclaimed by another worker, up to three attempts, after which the job is marked failed. At most one job per target is open at a time, and enrolled targets are queued again after the polling interval.
+4. **Pipeline.** Each job confirms repository access through the GitHub API, verifies the approved inputs on a fresh App-managed checkout, runs `refit doctor`, then scans and validates with the approved checks in offline Docker. Blocked doctor checks stop the job before scanning. The job receipt (status, evidence path, revision, doctor status) is stored in PostgreSQL.
+5. **Cancellation.** Removing a repository, or deleting or suspending the installation, cancels its targets and open jobs in the same transaction that records the delivery. Running jobs in the same process are aborted immediately; jobs in other processes stop at their next lease renewal. A cancelled job keeps whatever evidence it produced. Re-adding the repository enrolls it again.
+
+Not yet included: AI generation and draft PR publication (they wait for per-tenant budgets and isolation), OAuth installation ownership, object storage for evidence (it stays on the worker's disk under `--state`), and per-job microVMs. Validation still uses the worker host's Docker daemon, which is not a multi-tenant boundary, so run this only for your own installation.
+
+The end-to-end test in `pipeline/hosted-service.test.ts` runs when `REFIT_POSTGRES_URL`, `REFIT_DOCKER_IMAGE` and `REFIT_OASDIFF` are set. For example, with a disposable database:
+
+```sh
+docker run -d --name refit-hosted-pg -e POSTGRES_USER=refit -e POSTGRES_PASSWORD=refit-local-test -e POSTGRES_DB=refit -p 127.0.0.1:55432:5432 postgres:17-alpine
+REFIT_POSTGRES_URL=postgres://refit:refit-local-test@127.0.0.1:55432/refit REFIT_DOCKER_IMAGE=node:22-alpine REFIT_OASDIFF=1 npx vitest run pipeline/hosted-service.test.ts
+```
 
 ## Decisions needed
 

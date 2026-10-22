@@ -1,5 +1,13 @@
 # Refit implementation checkpoints
 
+## October 21 checkpoint: single-tenant hosted enrollment (unreleased, after 0.39.0)
+
+`refit hosted serve` is milestone 3 of the [hosted onboarding proposal](HOSTED-ONBOARDING.md#implemented-single-tenant-hosted-worker). A signed App installation webhook enrolls each installed repository that has a stored `refit enroll` approval. PostgreSQL then holds the installation, the target, a leased job and its receipt. The worker reuses the service's existing core: access confirmation, an App-managed checkout, the approval fingerprint check, `refit doctor`, then scanning and validation with the approved checks. Removing the repository, or deleting or suspending the installation, cancels its targets and stops running jobs. `refit hosted approve` stores an approval.
+
+What was verified: an end-to-end test against PostgreSQL 17 sends a signed installation delivery for one approved and one unapproved repository. Only the approved repository was enrolled. Doctor reported `ready-for-validation`, the deterministic migration passed baseline and patched checks in offline Docker (`node:22-alpine`), and the stored receipt was `validated` with integrity-verified evidence. A duplicate delivery was ignored and a conflicting one rejected (409). Uninstalling cancelled the target, and no further job was queued or claimed. A second test covers lease expiry and reclaim by another worker, a stale worker's renewal and finish being refused, cancellation of a running job that keeps its evidence, and re-enrollment.
+
+Boundaries: GitHub's API and the git remote were simulated in these tests. No real GitHub delivery, deployment, AI request or publication was used. Hosted mode is single-tenant and not deployed. It has no OAuth approval UI and does not generate with AI or publish draft PRs. Evidence stays on the worker's disk, and validation uses the host's Docker daemon, which is not a multi-tenant boundary. The hosting platform, data residency and isolation decisions in the proposal are still open.
+
 ## October 21 checkpoint: OpenAI and Anthropic benchmarks re-measured (unreleased, after 0.39.0)
 
 Both frozen AI SDK sets and the 34-application deadline set were run again, from a worktree pinned at main `72386c2`. That is after #137 (class properties reported, not edited), #138 (shared analyzer program) and #143 (catalog precision and build output). Scans ran three or four at a time with nothing else running. Four repositories that hit the 2-minute cap only under that load were re-run alone with the same cap. An earlier run on a tree that still edited class properties gave the same counts. The one difference: a policy-synth stop now names the class property `llmModel` instead of the sampling parameters.

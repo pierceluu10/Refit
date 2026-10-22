@@ -35,6 +35,7 @@ else {
       'fast-xml-parser',
       'graphql',
       'parse5',
+      'pg',
       'tsx',
       'typescript-compiler',
       'yaml',
