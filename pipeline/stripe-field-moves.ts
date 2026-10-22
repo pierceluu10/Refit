@@ -70,9 +70,9 @@ export const STRIPE_MOVE_REVIEW: Record<string, string> = {
   'line_item.price': PRICING_REVIEW,
   'invoiceitem.price': PRICING_REVIEW,
   'promotion_code.coupon':
-    'Stripe 2025-09-30.clover moved the auto-expanded promotion code coupon to promotion.coupon, which holds only the coupon ID unless promotion.coupon is expanded. Reading other Coupon fields needs that expand or a coupons.retrieve call, so Refit rewrites only coupon.id reads. Source: https://docs.stripe.com/changelog/clover/2025-09-30/polymorphic-coupon',
+    'Stripe 2025-09-30.clover moved the auto-expanded promotion code coupon to promotion.coupon, which holds only the coupon ID unless promotion.coupon is expanded. Reading other Coupon fields needs that expand or a coupons.retrieve call. Refit does not rewrite these reads. Source: https://docs.stripe.com/changelog/clover/2025-09-30/polymorphic-coupon',
   'discount.coupon':
-    'Stripe 2025-09-30.clover moved the auto-expanded discount coupon to source.coupon, which holds only the coupon ID unless source.coupon is expanded. Reading other Coupon fields needs that expand or a coupons.retrieve call, so Refit rewrites only coupon.id reads. Source: https://docs.stripe.com/changelog/clover/2025-09-30/add-discount-source-property',
+    'Stripe 2025-09-30.clover moved the auto-expanded discount coupon to source.coupon, which holds only the coupon ID unless source.coupon is expanded. Reading other Coupon fields needs that expand or a coupons.retrieve call. Refit does not rewrite these reads. Source: https://docs.stripe.com/changelog/clover/2025-09-30/add-discount-source-property',
   'invoice.payment_intent':
     'Stripe 2025-03-31.basil removed invoice.payment_intent: an invoice can have several payments, listed in invoice.payments (expand payments) or the Invoice Payments API. Picking one PaymentIntent changes behaviour, so Refit does not rewrite it. For a Payment Element client secret, Stripe documents invoice.confirmation_secret.client_secret (expand confirmation_secret). Source: https://docs.stripe.com/changelog/basil/2025-03-31/add-support-for-multiple-partial-payments-on-invoices',
 };

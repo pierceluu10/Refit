@@ -5,8 +5,7 @@ import { proposeAiPatch } from './ai-patches.ts';
 import { assessMigration, buildAssessmentEvidence } from './assessment.ts';
 import { applySourceEdits, editCovers, isFieldMove, proposePatch, renderPatch } from './patches.ts';
 import { stripePackageUpgrade } from './stripe-package-upgrade.ts';
-import { REQUEST_MOVE_RULES } from './stripe-request-moves.ts';
-import { INVOICE_PREVIEW_RULE, invoicePreviewMove } from './stripe-invoice-preview.ts';
+import { invoicePreviewMove } from './stripe-invoice-preview.ts';
 import { propertyExists } from './stripe-field-moves.ts';
 import { readRepository } from './repository.ts';
 import {
@@ -52,8 +51,6 @@ import {
   INVOICE_SUBSCRIPTION_HELPER_RULE,
   INVOICE_PRICE_ID_HELPER_RULE,
   CHECKOUT_SHIPPING_HELPER_RULE,
-  COUPON_ID_HELPER_RULE,
-  PRODUCT_FEATURES_HELPER_RULE,
   HELPER_RULES,
   SUBSCRIPTION_PERIOD_RULE,
   validateStripeSubscriptionPeriodContract,
@@ -200,13 +197,8 @@ async function runOpenApiPipeline(options: {
       'collected_information',
       'shipping_details',
     ]),
-    [COUPON_ID_HELPER_RULE]:
-      propertyExists(after.schemas, ['promotion_code', 'promotion', 'coupon']) &&
-      propertyExists(after.schemas, ['discount', 'source', 'coupon']),
-    [PRODUCT_FEATURES_HELPER_RULE]: propertyExists(after.schemas, [
-      'product',
-      'marketing_features',
-    ]),
+    // The coupon ID and product features helpers, the mined request moves and the createPreview
+    // move have no entry: they stay review-only (owner decision, 2026-10-22).
   } as Record<string, boolean>;
   const targetVersion = isObject(after.document.info) ? after.document.info.version : undefined;
   const versionEdits =
@@ -249,11 +241,7 @@ async function runOpenApiPipeline(options: {
   const bumpsVersion = versionEdits.length > 0 || sdkPinned;
   const typescript = repository.files.some((file) => /\.(?:[cm]?ts|tsx)$/.test(file.path));
   // A client without the option follows the package's pin, so any such client needs the upgrade.
-  // invoices.createPreview exists only in newer stripe-node releases, in any language.
-  const upgradeRequired =
-    typescript ||
-    constructors.some((entry) => entry.absent) ||
-    analyzedEdits.some((edit) => edit.rule === INVOICE_PREVIEW_RULE);
+  const upgradeRequired = typescript || constructors.some((entry) => entry.absent);
   // The reviewed card-only rename is kept only with the target pin in the same patch and, for
   // TypeScript or an SDK-pinned version, the stripe-node release whose types have
   // allowed_payment_method_types. Without a patch request (validation preflight, scans) only the
@@ -262,12 +250,7 @@ async function runOpenApiPipeline(options: {
   const patchRequested = Boolean(options.proposePatch || options.aiPatch);
   const cardUpgrade =
     patchRequested &&
-    analyzedEdits.some(
-      (edit) =>
-        PAYMENT_METHOD_RENAME_RULES.has(edit.rule ?? '') ||
-        REQUEST_MOVE_RULES.has(edit.rule ?? '') ||
-        edit.rule === INVOICE_PREVIEW_RULE,
-    ) &&
+    analyzedEdits.some((edit) => PAYMENT_METHOD_RENAME_RULES.has(edit.rule ?? '')) &&
     bumpsVersion &&
     upgradeRequired &&
     typeof targetVersion === 'string'
@@ -284,9 +267,6 @@ async function runOpenApiPipeline(options: {
     everyPinMoves &&
     (!patchRequested || !upgradeRequired || Boolean(cardUpgrade && 'upgrade' in cardUpgrade));
   movedTo[LISTED_PAYMENT_METHODS_RULE] = movedTo[CARD_PAYMENT_METHOD_RULE];
-  // Reviewed request moves send a parameter only the target version accepts, like the card rename.
-  for (const rule of REQUEST_MOVE_RULES) movedTo[rule] = movedTo[CARD_PAYMENT_METHOD_RULE];
-  movedTo[INVOICE_PREVIEW_RULE] = movedTo[CARD_PAYMENT_METHOD_RULE];
   // The period helper reads either API version, so it does not depend on the version pin.
   const edits = analyzedEdits.filter((edit) => !isFieldMove(edit) || movedTo[edit.rule!]);
   const ruleEdits = edits.filter(isFieldMove);
@@ -304,10 +284,6 @@ async function runOpenApiPipeline(options: {
   for (const finding of analysis.findings)
     if (finding.requestParameter && editCovers(repository, edits, finding))
       delete finding.requestParameter;
-  // The removed upcoming invoice call is migrated only while its createPreview edit is kept.
-  for (const finding of analysis.findings)
-    if (finding.changeId === INVOICE_PREVIEW_RULE && editCovers(repository, edits, finding))
-      delete finding.contractReview;
   if (specificationDiff && provider.packageName === STRIPE.packageName)
     specificationDiff.changes.push(
       ...switchedEnumAdditions(enumChecks, before.schemas, after.schemas),

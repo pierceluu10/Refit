@@ -6,7 +6,7 @@ import { analyzeRepository } from './analyzer.ts';
 import type { ProviderAdapter } from './providers.ts';
 import { REMOVED_PARAMETER_NOTES, removedRequestParameters } from './request-removals.ts';
 import { runPipeline } from './run.ts';
-import { PROMOTION_CODE_PROMOTION_RULE, REQUEST_MOVE_WARNINGS } from './stripe-request-moves.ts';
+import { PROMOTION_CODE_PROMOTION_RULE } from './stripe-request-moves.ts';
 import type { Repository } from './types.ts';
 
 const directories: string[] = [];
@@ -201,7 +201,7 @@ it('explains removed coupon parameters that keep stopping', () => {
   expect(REMOVED_PARAMETER_NOTES.promotion_code).toMatch(/customers have no replacement/);
 });
 
-it('rides with the endive pin in one deterministic patch', async () => {
+it('leaves a removed request parameter for review instead of moving it', async () => {
   const root = await mkdtemp(join(tmpdir(), 'refit-promotion-codes-'));
   directories.push(root);
   const repository = join(root, 'repository');
@@ -237,15 +237,8 @@ export const create = (coupon) => stripe.promotionCodes.create({ code: 'SPRING',
     apiVersion: '2025-08-27.basil',
     proposePatch: true,
   });
-  expect(report.patch).toMatchObject({ status: 'proposed', generator: 'deterministic' });
-  if (!('diff' in report.patch)) throw new Error('Expected a patch');
-  expect(report.patch.diff).toContain(
-    "+export const create = (coupon) => stripe.promotionCodes.create({ code: 'SPRING', promotion: { type: 'coupon', coupon: coupon } });",
-  );
-  expect(report.patch.diff).toContain("apiVersion: '2026-09-30.endive'");
-  expect(report.patch.summary).toBe(
-    'Move removed Stripe request parameters to their documented replacements and update the pinned Stripe API version.',
-  );
-  expect(report.patch.warnings).toContain(REQUEST_MOVE_WARNINGS[PROMOTION_CODE_PROMOTION_RULE]);
-  expect(report.findings[0].requestParameter).toBeUndefined();
+  // Owner decision (2026-10-22): mined request moves stay review-only.
+  const diff = 'diff' in report.patch ? report.patch.diff : '';
+  expect(diff).not.toContain("promotion: { type: 'coupon'");
+  expect(report.findings[0].requestParameter).toBeDefined();
 });
