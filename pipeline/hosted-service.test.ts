@@ -376,3 +376,63 @@ it.skipIf(!DATABASE)(
   },
   30_000,
 );
+
+it.skipIf(!DATABASE)(
+  'queues one operator retry per enrolled target and hands the retry flag to the claiming worker',
+  async () => {
+    const pool = await database();
+    const sample = await approvedRepository();
+    const store = await openHostedStore(pool);
+    const target = hostedTargetId('example/application', 'main');
+    const change = (action: string, added: string[], removed: string[] = []) => ({
+      kind: 'repositories' as const,
+      installationId: 456,
+      owner: 'example',
+      action,
+      added: added.map((name) => ({ id: 789, name })),
+      removed: removed.map((name) => ({ id: 789, name })),
+    });
+    const body = (value: string) => new TextEncoder().encode(value);
+    await expect(store.retry(target)).rejects.toThrow(`No enrolled hosted target ${target}.`);
+    await store.approve(sample.approval, 'octo-reviewer');
+    await store.accept(
+      randomUUID(),
+      'installation_repositories',
+      body('a'),
+      change('added', ['example/application']),
+    );
+
+    // The enrollment job is still queued, so retry marks it instead of queueing a second job.
+    const queued = await store.retry(target);
+    const first = await store.claim('worker-a', 30);
+    expect(first).toMatchObject({ job: queued, retry: true, target: { id: target } });
+    await expect(store.retry(target)).rejects.toThrow('has a running job');
+    await store.finish(first!.job, 'worker-a', 'finished', {
+      status: 'error',
+      output: null,
+      message: 'boom',
+    });
+
+    expect(await store.enqueueDue(0)).toBe(1);
+    const scheduled = await store.claim('worker-a', 30);
+    expect(scheduled).toMatchObject({ retry: false });
+    await store.finish(scheduled!.job, 'worker-a', 'finished', {
+      status: 'error',
+      output: null,
+      message: 'boom',
+    });
+    const retried = await store.retry(target);
+    expect(retried).toBeGreaterThan(scheduled!.job);
+    expect(await store.claim('worker-b', 30)).toMatchObject({ job: retried, retry: true });
+    expect((await store.read()).jobs.map((job) => job.retry)).toEqual([true, false, true]);
+
+    await store.accept(
+      randomUUID(),
+      'installation_repositories',
+      body('b'),
+      change('removed', [], ['example/application']),
+    );
+    await expect(store.retry(target)).rejects.toThrow(`No enrolled hosted target ${target}.`);
+  },
+  30_000,
+);

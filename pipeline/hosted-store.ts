@@ -3,6 +3,7 @@ import type { GitHubWebhook } from './github-webhooks.ts';
 import { WebhookInputError } from './github-webhooks.ts';
 import type { RepositoryApproval } from './repository-enrollment.ts';
 import { digest } from './specifications.ts';
+import { PipelineInputError } from './types.ts';
 
 // A crashed worker's lease is reclaimed this many times before the job is marked failed.
 const MAX_LEASE_ATTEMPTS = 3;
@@ -59,6 +60,8 @@ CREATE TABLE IF NOT EXISTS refit_jobs (
   finished_at timestamptz,
   receipt jsonb
 );
+-- An operator retry permits one fresh attempt of a cached failure; successful results stay cached.
+ALTER TABLE refit_jobs ADD COLUMN IF NOT EXISTS retry boolean NOT NULL DEFAULT false;
 CREATE UNIQUE INDEX IF NOT EXISTS refit_jobs_open ON refit_jobs (target_id)
   WHERE status IN ('queued', 'running');
 CREATE INDEX IF NOT EXISTS refit_targets_installation ON refit_targets (installation_id);
@@ -285,16 +288,18 @@ export async function openHostedStore(pool: Pool) {
     ).rowCount ?? 0;
 
   const claim = (worker: string, leaseSeconds: number) =>
-    transaction(pool, async (client): Promise<{ job: number; target: HostedTarget } | null> => {
-      await client.query(
-        `UPDATE refit_jobs SET status = 'failed', finished_at = now(), lease_owner = NULL,
+    transaction(
+      pool,
+      async (client): Promise<{ job: number; retry: boolean; target: HostedTarget } | null> => {
+        await client.query(
+          `UPDATE refit_jobs SET status = 'failed', finished_at = now(), lease_owner = NULL,
            receipt = jsonb_build_object('status', 'error', 'output', NULL,
              'message', 'Worker lease expired repeatedly; the job needs an explicit retry.')
          WHERE status = 'running' AND lease_expires_at < now() AND attempts >= $1`,
-        [MAX_LEASE_ATTEMPTS],
-      );
-      const { rows } = await client.query<{ id: string; target_id: string }>(
-        `UPDATE refit_jobs SET status = 'running', lease_owner = $1, attempts = attempts + 1,
+          [MAX_LEASE_ATTEMPTS],
+        );
+        const { rows } = await client.query<{ id: string; target_id: string; retry: boolean }>(
+          `UPDATE refit_jobs SET status = 'running', lease_owner = $1, attempts = attempts + 1,
            lease_expires_at = now() + make_interval(secs => $2)
          WHERE id = (
            SELECT j.id FROM refit_jobs j JOIN refit_targets t ON t.id = j.target_id
@@ -303,36 +308,68 @@ export async function openHostedStore(pool: Pool) {
            WHERE t.status = 'enrolled'
              AND (j.status = 'queued' OR (j.status = 'running' AND j.lease_expires_at < now()))
            ORDER BY j.id LIMIT 1 FOR UPDATE OF j SKIP LOCKED)
-         RETURNING id, target_id`,
-        [worker, leaseSeconds],
-      );
-      if (!rows[0]) return null;
-      const { rows: targets } = await client.query<{
-        id: string;
-        repository: string;
-        base: string;
-        integration: string | null;
-        installation_id: string;
-        approval: RepositoryApproval;
-      }>(
-        `SELECT t.id, t.repository, t.base, t.integration, t.installation_id, a.approval
+         RETURNING id, target_id, retry`,
+          [worker, leaseSeconds],
+        );
+        if (!rows[0]) return null;
+        const { rows: targets } = await client.query<{
+          id: string;
+          repository: string;
+          base: string;
+          integration: string | null;
+          installation_id: string;
+          approval: RepositoryApproval;
+        }>(
+          `SELECT t.id, t.repository, t.base, t.integration, t.installation_id, a.approval
          FROM refit_targets t JOIN refit_approvals a
            ON a.repository = t.repository AND a.base = t.base AND a.fingerprint = t.fingerprint
          WHERE t.id = $1`,
-        [rows[0].target_id],
+          [rows[0].target_id],
+        );
+        const target = targets[0];
+        return {
+          job: Number(rows[0].id),
+          retry: rows[0].retry,
+          target: {
+            id: target.id,
+            repository: target.repository,
+            base: target.base,
+            integration: target.integration,
+            installationId: Number(target.installation_id),
+            approval: target.approval,
+          },
+        };
+      },
+    );
+
+  // Queues one retry for an enrolled target, or marks its already-queued job as a retry.
+  const retry = (targetId: string) =>
+    transaction(pool, async (client) => {
+      const { rows: targets } = await client.query<{ status: string }>(
+        'SELECT status FROM refit_targets WHERE id = $1 FOR UPDATE',
+        [targetId],
       );
-      const target = targets[0];
-      return {
-        job: Number(rows[0].id),
-        target: {
-          id: target.id,
-          repository: target.repository,
-          base: target.base,
-          integration: target.integration,
-          installationId: Number(target.installation_id),
-          approval: target.approval,
-        },
-      };
+      if (targets[0]?.status !== 'enrolled')
+        throw new PipelineInputError(`No enrolled hosted target ${targetId}.`);
+      const { rows } = await client.query<{ id: string }>(
+        `INSERT INTO refit_jobs (target_id, status, retry) VALUES ($1, 'queued', true)
+         ON CONFLICT DO NOTHING RETURNING id`,
+        [targetId],
+      );
+      const queued = rows[0]
+        ? rows
+        : (
+            await client.query<{ id: string }>(
+              `UPDATE refit_jobs SET retry = true WHERE target_id = $1 AND status = 'queued'
+               RETURNING id`,
+              [targetId],
+            )
+          ).rows;
+      if (!queued[0])
+        throw new PipelineInputError(
+          `Hosted target ${targetId} has a running job; retry after it finishes.`,
+        );
+      return Number(queued[0].id);
     });
 
   const renew = async (job: number, worker: string, leaseSeconds: number) =>
@@ -378,7 +415,7 @@ export async function openHostedStore(pool: Pool) {
            fingerprint, status, message FROM refit_targets ORDER BY id`,
       ),
       pool.query(
-        `SELECT id::text, target_id AS "targetId", status, attempts, receipt,
+        `SELECT id::text, target_id AS "targetId", status, attempts, retry, receipt,
            created_at AS "createdAt", finished_at AS "finishedAt"
          FROM refit_jobs ORDER BY id`,
       ),
@@ -386,5 +423,5 @@ export async function openHostedStore(pool: Pool) {
     return { installations: installations.rows, targets: targets.rows, jobs: jobs.rows };
   };
 
-  return { accept, approve, enqueueDue, claim, renew, finish, read };
+  return { accept, approve, enqueueDue, claim, retry, renew, finish, read };
 }

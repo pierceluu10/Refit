@@ -98,7 +98,7 @@ export async function runHostedService(options: {
   };
   options.signal.addEventListener('abort', stop, { once: true });
 
-  const runJob = async (job: number, target: HostedTarget) => {
+  const runJob = async (job: number, target: HostedTarget, retry: boolean) => {
     const controller = new AbortController();
     const abort = () => controller.abort();
     options.signal.addEventListener('abort', abort, { once: true });
@@ -136,6 +136,7 @@ export async function runHostedService(options: {
         app: options.app,
         stateDirectory: join(directory, 'targets', target.id),
         signal: controller.signal,
+        retry,
         aiPatch: options.aiPatch && {
           ...options.aiPatch,
           ...(options.aiPatch.budget && {
@@ -259,7 +260,7 @@ export async function runHostedService(options: {
         claimed && !options.signal.aborted;
         claimed = await store.claim(worker, lease)
       )
-        await runJob(claimed.job, claimed.target);
+        await runJob(claimed.job, claimed.target, claimed.retry);
       if (options.signal.aborted || requested) continue;
       waiting = new AbortController();
       try {
