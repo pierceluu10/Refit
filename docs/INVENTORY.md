@@ -12,7 +12,7 @@ An inventory never runs repository code: no dependency install, no Docker, no AI
 
 Queued inventories run before the next validation job, one at a time per worker, oldest request first. A request for a repository whose inventory is running is queued again when that run ends.
 
-Only installations of allowed accounts (`REFIT_HOSTED_ACCOUNTS`, by default `REFIT_HOSTED_OWNER` alone) are inventoried. Other accounts' installations are recorded as not allowed, and nothing is queued or cloned for them; allowing the account later backfills their inventories on the next pass. Each installation takes at most `REFIT_HOSTED_DAILY_INVENTORIES` (default 500) inventories per UTC day, counting every one a worker takes, including those that find the revision unchanged; reclaiming a crashed worker's lease does not count again. Requests over the cap stay queued until the next day, and `/status` lists `daily-inventory-cap` among that installation's refusals.
+Only installations of allowed accounts (`REFIT_HOSTED_ACCOUNTS`, by default `REFIT_HOSTED_OWNER` alone; see [hosted tenancy](HOSTED-TENANCY.md)) are inventoried. Other accounts' installations are recorded as not allowed, and nothing is queued or cloned for them; allowing the account later backfills their inventories on the next pass. Each installation takes at most `REFIT_HOSTED_DAILY_INVENTORIES` (default 500) inventories per UTC day, counting every one a worker takes, including those that find the revision unchanged; reclaiming a crashed worker's lease does not count again. Requests over the cap stay queued until the next day, and `/status` lists `daily-inventory-cap` among that installation's refusals.
 
 ## How it runs
 
