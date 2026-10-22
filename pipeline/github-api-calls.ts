@@ -9,7 +9,6 @@ import {
   constantString,
   excerpt,
   expressionName,
-  extendedElsewhere,
   findDeclaration,
   httpMethod,
   importedNames,
@@ -63,6 +62,11 @@ const HOST = /^(?:https?:)?\/\/api\.github\.com(?=[/?#]|$)/;
 const VERSION_HEADER = /^x-github-api-version$/i;
 const AXIOS_METHODS = new Set(['get', 'delete', 'head', 'options', 'post', 'put', 'patch']);
 const PATH_NAME = /path|endpoint|url|route|uri/i;
+const OCTOKIT_NAME = /^(?:[A-Z]\w*)?Octokit$/;
+// The receiver names an unresolved Octokit call may have: `octokit`, `github`, `gh`, `client`,
+// `api`, `app`, `octo`.
+const CLIENT_NAME = /octo|git|gh|client|api|app|kit|bot|hub/i;
+const FETCHES = new Set(['fetch', '$fetch', 'ofetch', 'got', 'axios', 'rawFetch', 'fetchImpl']);
 
 type Method = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
@@ -126,6 +130,8 @@ export interface GitHubApiData {
     string,
     { route: string; releases: string; deprecated?: string; renamed?: string }[]
   >;
+  // `issues`, `repos`: the scopes of every recorded Octokit method.
+  scopes: Set<string>;
   versions: Map<string, string | null>;
   supported: string[];
   defaultVersion: string;
@@ -200,6 +206,7 @@ export function loadGitHubApiData(path: string | URL = GITHUB_API): Promise<GitH
       checkedAt: String(value.checkedAt),
       octokitReleases: (octokit.releases as unknown[]).map(String),
       methods: new Map(Object.entries(octokit.methods as Record<string, never>)),
+      scopes: new Set(Object.keys(octokit.methods as object).map((key) => key.split('.')[0])),
       versions: new Map(
         (rest.versions as { version: string; endOfSupport: string | null }[]).map((item) => [
           item.version,
@@ -327,7 +334,10 @@ function resolver(source: ts.SourceFile, context: ResolverContext = EMPTY_CONTEX
     if (ts.isIdentifier(node)) {
       if (classes.has(node.text) || context.names.has(node.text)) return true;
       const declaration = depth < 3 ? findDeclaration(node.text, node) : undefined;
-      return !!declaration?.initializer && isClass(declaration.initializer, depth + 1);
+      if (declaration?.initializer) return isClass(declaration.initializer, depth + 1);
+      // A class passed in or built elsewhere under an Octokit name: `{ Octokit }` parameters,
+      // `MyOctokit`, `ThrottledOctokit`.
+      return OCTOKIT_NAME.test(node.text);
     }
     if (ts.isPropertyAccessExpression(node) && ts.isIdentifier(node.expression)) {
       const module = namespaces.get(node.expression.text);
@@ -568,6 +578,86 @@ function apiUrl(expression: ts.Expression, depth = 0): Part[] | undefined {
   return inner && [...inner, ...rest];
 }
 
+// What a name holds where it is used: a variable, a parameter or a destructured element, with its
+// initializer or default value and, for a destructured element, the property it reads.
+interface Binding {
+  initializer: ts.Expression | undefined;
+  // The object a destructured element reads from, and the property name.
+  from?: ts.Expression;
+  property?: string;
+  constant: boolean;
+}
+
+export function bindingOf(name: string, from: ts.Node): Binding | undefined {
+  const element = (
+    pattern: ts.BindingName,
+    source: ts.Expression | undefined,
+    constant: boolean,
+  ) => {
+    if (!ts.isObjectBindingPattern(pattern)) return undefined;
+    for (const item of pattern.elements)
+      if (ts.isIdentifier(item.name) && item.name.text === name)
+        return {
+          initializer: item.initializer,
+          from: source,
+          property: propertyName(item.propertyName) ?? item.name.text,
+          constant,
+        };
+    return undefined;
+  };
+  for (let scope: ts.Node | undefined = from; scope; scope = scope.parent) {
+    if (ts.isFunctionLike(scope))
+      for (const parameter of scope.parameters) {
+        if (ts.isIdentifier(parameter.name) && parameter.name.text === name)
+          return { initializer: parameter.initializer, constant: false };
+        const found = element(parameter.name, undefined, false);
+        if (found) return found;
+      }
+    if (ts.isSourceFile(scope) || ts.isBlock(scope) || ts.isModuleBlock(scope))
+      for (const statement of scope.statements) {
+        if (!ts.isVariableStatement(statement)) continue;
+        const constant = !!(statement.declarationList.flags & ts.NodeFlags.Const);
+        for (const declaration of statement.declarationList.declarations) {
+          if (ts.isIdentifier(declaration.name) && declaration.name.text === name)
+            return { initializer: declaration.initializer, constant };
+          const found = element(declaration.name, declaration.initializer, constant);
+          if (found) return found;
+        }
+      }
+  }
+  return undefined;
+}
+
+// The parts of a URL an expression can spell from https://api.github.com, following names to
+// their initializers and default values, and `a || 'https://api.github.com'` and `a ? b : c` to
+// the branch that names the host.
+function resolveUrl(expression: ts.Expression, depth = 0): Part[] | undefined {
+  if (depth > 8) return undefined;
+  const node = unwrap(expression);
+  if (ts.isBinaryExpression(node) && node.operatorToken.kind !== ts.SyntaxKind.PlusToken)
+    return [ts.SyntaxKind.BarBarToken, ts.SyntaxKind.QuestionQuestionToken].includes(
+      node.operatorToken.kind,
+    )
+      ? (resolveUrl(node.right, depth + 1) ?? resolveUrl(node.left, depth + 1))
+      : undefined;
+  if (ts.isConditionalExpression(node))
+    return resolveUrl(node.whenFalse, depth + 1) ?? resolveUrl(node.whenTrue, depth + 1);
+  if (ts.isIdentifier(node)) {
+    const binding = bindingOf(node.text, node);
+    return binding?.initializer && !binding.from
+      ? resolveUrl(binding.initializer, depth + 1)
+      : undefined;
+  }
+  const [first, ...rest] = partsOf(node);
+  if (!first) return undefined;
+  if ('text' in first)
+    return HOST.test(first.text)
+      ? [{ text: first.text.replace(HOST, ''), node: first.node }, ...rest]
+      : undefined;
+  const inner = resolveUrl(first.expression, depth + 1);
+  return inner && [...inner, ...rest];
+}
+
 function requestMethod(call: ts.CallExpression, argument: number, unknown: string[]) {
   const client = calleeText(call);
   const name = ts.isPropertyAccessExpression(call.expression)
@@ -591,7 +681,7 @@ function requestMethod(call: ts.CallExpression, argument: number, unknown: strin
     if (value === undefined) unknown.push('HTTP method is chosen at runtime');
     return httpMethod(value);
   };
-  if (name === 'fetch' || name === '$fetch' || name === 'ofetch') {
+  if (FETCHES.has(name) && name !== 'axios') {
     if (argument !== 0) return { client, method: null, helper: true };
     const method = optionMethod(call.arguments[1]);
     return { client, method: method === undefined ? ('GET' as const) : method, helper: false };
@@ -726,18 +816,87 @@ function octokitCalls(
   const { graphqls } = bindings(file.source);
   const calls: GitHubCall[] = [];
   const newest = data.octokitReleases.at(-1)!;
-  // A method reference such as `octokit.rest.issues.listForRepo` passed to paginate.
-  const methodOf = (expression: ts.Expression): string | undefined => {
+  const githubFile = PACKAGE_TEXT.test(file.source.text);
+  // `octokit.rest.issues.create` with a receiver Refit could not resolve: the method must be a
+  // recorded Octokit method, and without `.rest` the file must use a GitHub package and the
+  // receiver must be named like a client. `const { issues } = octokit()` binds a scope.
+  const unresolvedMethod = (path: string[], root: ts.Expression): string | undefined => {
+    const rest = path.lastIndexOf('rest');
+    if (rest >= 0 && path.length === rest + 3) {
+      const method = path.slice(rest + 1).join('.');
+      return data.methods.has(method) ? method : undefined;
+    }
+    if (!githubFile) return undefined;
+    if (path.length >= 2) {
+      const method = path.slice(-2).join('.');
+      const before =
+        path.length > 2 ? path.at(-3)! : ts.isIdentifier(root) ? root.text : root.getText();
+      return data.methods.has(method) && CLIENT_NAME.test(before) ? method : undefined;
+    }
+    if (path.length === 1 && ts.isIdentifier(root)) {
+      const binding = bindingOf(root.text, root);
+      const method = binding?.property && `${binding.property}.${path[0]}`;
+      return method && binding.from && data.methods.has(method) ? method : undefined;
+    }
+    return undefined;
+  };
+  const pathOf = (expression: ts.Expression) => {
     const path: string[] = [];
     let node: ts.Expression = unwrap(expression);
+    let resolved = false;
     while (ts.isPropertyAccessExpression(node)) {
       path.unshift(node.name.text);
       node = node.expression;
-      if (holds(node)) break;
+      if (holds(node)) {
+        resolved = true;
+        break;
+      }
     }
-    if (!holds(node)) return undefined;
+    return { path, root: node, resolved };
+  };
+  // A method reference such as `octokit.rest.issues.listForRepo` passed to paginate.
+  const methodOf = (expression: ts.Expression): string | undefined => {
+    const { path, root, resolved } = pathOf(expression);
+    if (!resolved) return unresolvedMethod(path, root);
     if (path[0] === 'rest') path.shift();
-    return path.length === 2 ? path.join('.') : undefined;
+    return path.length === 2 && data.methods.has(path.join('.')) ? path.join('.') : undefined;
+  };
+  // A GraphQL function: `graphql` from @octokit/graphql, `graphql.defaults(…)`,
+  // `withCustomRequest(…)`, and names or class fields that hold one.
+  const isGraphql = (expression: ts.Expression, depth = 0): boolean => {
+    const node = unwrap(expression);
+    if (depth > 4) return false;
+    if (ts.isIdentifier(node)) {
+      if (graphqls.has(node.text)) return true;
+      const binding = bindingOf(node.text, node);
+      return !!binding?.initializer && !binding.from && isGraphql(binding.initializer, depth + 1);
+    }
+    if (ts.isCallExpression(node))
+      return (
+        /(?:^|\.)withCustomRequest$/.test(calleeText(node)) ||
+        (ts.isPropertyAccessExpression(node.expression) &&
+          node.expression.name.text === 'defaults' &&
+          isGraphql(node.expression.expression, depth + 1))
+      );
+    if (ts.isPropertyAccessExpression(node) && node.expression.kind === ts.SyntaxKind.ThisKeyword) {
+      const owner = ts.findAncestor(node, ts.isClassLike);
+      let found = false;
+      const visit = (child: ts.Node) => {
+        if (found) return;
+        if (
+          ts.isBinaryExpression(child) &&
+          child.operatorToken.kind === ts.SyntaxKind.EqualsToken &&
+          ts.isPropertyAccessExpression(child.left) &&
+          child.left.expression.kind === ts.SyntaxKind.ThisKeyword &&
+          child.left.name.text === node.name.text
+        )
+          found = isGraphql(child.right, depth + 1);
+        ts.forEachChild(child, visit);
+      };
+      if (owner) visit(owner);
+      return found;
+    }
+    return false;
   };
   const restRecord = (call: ts.CallExpression, method: string): GitHubCall => {
     const entries = data.methods.get(method);
@@ -810,35 +969,51 @@ function octokitCalls(
       text: excerpt(file.source, call),
     };
   };
+  // `paginate(…)` and `request(…)` destructured from a client.
+  const destructured = (callee: ts.Identifier, name: string) => {
+    const binding = githubFile ? bindingOf(callee.text, callee) : undefined;
+    return binding?.property === name && !!binding.from;
+  };
+  const routeLiteral = (argument: ts.Expression | undefined) => {
+    const value = argument && constantString(argument)?.value;
+    return !!value && /^(GET|POST|PUT|PATCH|DELETE|HEAD) \//.test(value);
+  };
   const visit = (node: ts.Node) => {
     if (ts.isCallExpression(node)) {
       const callee = node.expression;
-      // A standalone `graphql(query)` from @octokit/graphql, or `graphql.defaults(…)(query)`.
-      if (ts.isIdentifier(callee) && graphqls.has(callee.text))
-        calls.push(graphqlRecord(file, node, node.arguments[0], data));
-      if (ts.isPropertyAccessExpression(callee)) {
-        const path: string[] = [];
-        let receiver: ts.Expression = callee;
-        let found = false;
-        while (ts.isPropertyAccessExpression(receiver)) {
-          path.unshift(receiver.name.text);
-          receiver = receiver.expression;
-          if (holds(receiver)) {
-            found = true;
-            break;
-          }
-        }
-        if (found) {
+      const [first] = node.arguments;
+      if (isGraphql(callee)) calls.push(graphqlRecord(file, node, first, data));
+      else if (ts.isIdentifier(callee)) {
+        const method = callee.text.startsWith('paginate') && first ? methodOf(first) : undefined;
+        if (method && destructured(callee, 'paginate')) calls.push(restRecord(node, method));
+        else if (destructured(callee, 'request') && routeLiteral(first))
+          calls.push(routeRecord(node, first));
+      } else if (ts.isPropertyAccessExpression(callee)) {
+        const { path, root, resolved } = pathOf(callee);
+        if (resolved) {
           if (path[0] === 'rest') path.shift();
           const joined = path.join('.');
           if (joined === 'graphql' || joined === 'graphql.paginate')
-            calls.push(graphqlRecord(file, node, node.arguments[0], data));
-          else if (joined === 'request') calls.push(routeRecord(node, node.arguments[0]));
+            calls.push(graphqlRecord(file, node, first, data));
+          else if (joined === 'request') calls.push(routeRecord(node, first));
           else if (joined === 'paginate' || joined === 'paginate.iterator') {
-            const first = node.arguments[0];
             const method = first && methodOf(first);
             calls.push(method ? restRecord(node, method) : routeRecord(node, first));
-          } else if (path.length === 2) calls.push(restRecord(node, joined));
+          } else if (path.length === 2 && data.scopes.has(path[0]))
+            calls.push(restRecord(node, joined));
+        } else {
+          const method = unresolvedMethod(path, root);
+          const last = path.at(-1);
+          const before = path.at(-2) ?? (ts.isIdentifier(root) ? root.text : '');
+          const named = githubFile && CLIENT_NAME.test(before);
+          if (method) calls.push(restRecord(node, method));
+          else if (named && last === 'request' && routeLiteral(first))
+            calls.push(routeRecord(node, first));
+          else if (named && (last === 'paginate' || path.join('.').endsWith('paginate.iterator'))) {
+            const reference = first && methodOf(first);
+            if (reference) calls.push(restRecord(node, reference));
+            else if (routeLiteral(first)) calls.push(routeRecord(node, first));
+          }
         }
       }
     }
@@ -850,17 +1025,57 @@ function octokitCalls(
 
 function urlCalls(file: FileContext, data: GitHubApiData): GitHubCall[] {
   const calls: GitHubCall[] = [];
+  const anchored = new Set<number>();
   const visit = (node: ts.Node) => {
     if (ts.isExpression(node) && isUrlRoot(node)) {
       const parts = apiUrl(node);
       if (parts) {
-        calls.push(...urlRecords(file, node, parts, data));
+        for (const call of urlRecords(file, node, parts, data)) {
+          calls.push(call);
+          anchored.add(call.line);
+        }
         return;
       }
     }
     ts.forEachChild(node, visit);
   };
   visit(file.source);
+  // Requests whose URL argument is a name or expression that leads back to the host:
+  // `fetch(url)` after `const url = `${base}/x`` and `base = env || 'https://api.github.com'`.
+  const backward = (node: ts.Node) => {
+    if (ts.isCallExpression(node) && !anchored.has(lineOf(file.source, node))) {
+      const name = ts.isPropertyAccessExpression(node.expression)
+        ? node.expression.name.text
+        : ts.isIdentifier(node.expression)
+          ? node.expression.text
+          : '';
+      const argument = node.arguments[0];
+      const parts = FETCHES.has(name) && argument ? resolveUrl(argument) : undefined;
+      if (parts) {
+        const unknown: string[] = [];
+        const path = urlPath(parts, unknown);
+        const read = requestMethod(node, 0, unknown);
+        const route = read.method && path ? `${read.method} ${path}` : null;
+        calls.push({
+          kind: 'url',
+          file: file.path,
+          line: lineOf(file.source, node),
+          use: file.use,
+          method: null,
+          route,
+          client: read.client,
+          fields: [],
+          notices: routeNotices(data, route),
+          versionChanges: versionChanges(data, route),
+          notes: [],
+          unknown: [...new Set(unknown)],
+          text: excerpt(file.source, node),
+        });
+      }
+    }
+    ts.forEachChild(node, backward);
+  };
+  backward(file.source);
   return calls;
 }
 
@@ -880,26 +1095,26 @@ function urlRecords(
     parent.arguments?.[0] === node
       ? parent
       : node;
+  // A URL that reaches no request call, such as a default base URL or a config value, is not a
+  // request; requests built from it are found from the request call instead.
   const found = consumers(wrapped);
-  if (base && !found.length) return [];
-  const declaration = ts.isVariableDeclaration(node.parent) ? node.parent : undefined;
-  if (declaration && !found.length && extendedElsewhere(declaration)) return [];
-  return (found.length ? found : [undefined]).map((consumer) => {
+  if (!found.length) return [];
+  return found.map((consumer) => {
     const unknown = [...pathUnknown];
     let client: string | null = null;
     let method: Method | null = null;
-    if (consumer && base)
+    if (base)
       unknown.push(
         `the base URL is passed to \`${calleeText(consumer.call)}\`; requests built from it are not traced`,
       );
-    else if (consumer) {
+    else {
       const read = requestMethod(consumer.call, consumer.argument, unknown);
       client = read.client;
       method = read.method;
       if (read.helper) unknown.push(`HTTP method of helper \`${client}\` is not known`);
-    } else unknown.push('no request call was traced for this URL');
+    }
     const route = !base && method && path ? `${method} ${path}` : null;
-    const anchor = consumer?.call ?? node;
+    const anchor = consumer.call;
     return {
       kind: 'url' as const,
       file: file.path,
@@ -989,6 +1204,9 @@ function exportsOf(source: ts.SourceFile) {
 }
 
 const PACKAGE_TEXT = /['"](?:octokit|@octokit\/[\w-]+|@actions\/github|probot)['"]/;
+// Files that use a client without importing a GitHub package: a class passed in under an Octokit
+// name, or `.rest.<scope>.<method>` calls.
+const CLIENT_TEXT = /\bnew\s+(?:[A-Z]\w*)?Octokit\b|\.rest\.\w+\.\w+\s*\(/;
 
 function scanFiles(repository: Repository, data: GitHubApiData) {
   const calls: GitHubCall[] = [];
@@ -1029,6 +1247,7 @@ function scanFiles(repository: Repository, data: GitHubApiData) {
     const inherited = [...methods].some((method) => file.content.includes(`this.${method}(`));
     const sdk =
       PACKAGE_TEXT.test(file.content) ||
+      CLIENT_TEXT.test(file.content) ||
       context.names.size > 0 ||
       context.functions.size > 0 ||
       inherited;

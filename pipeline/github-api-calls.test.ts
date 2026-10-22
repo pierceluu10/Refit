@@ -71,7 +71,8 @@ describe('Octokit clients', () => {
         "  await octokit.request('GET /teams/{team_id}/members', { team_id: 1 });",
         "  await octokit.paginate(octokit.rest.issues.listForRepo, { owner: 'o', repo: 'r' });",
         "  await octokit.paginate('GET /classrooms');",
-        '  await octokit.rest.nothing.here();',
+        '  await octokit.rest.issues.notAMethod();',
+        '  await app.webhooks.on();',
         '}',
       ].join('\n'),
     });
@@ -105,6 +106,8 @@ describe('Octokit clients', () => {
       notices: [expect.objectContaining({ date: '2026-08-28' })],
     });
     expect(at(calls, 'src/a.ts', 10).notes[0]).toMatch(/not a method of any recorded/);
+    // `webhooks` is not an Octokit REST scope.
+    expect(calls.find((call) => call.line === 11)).toBeUndefined();
   });
 
   it('follows getOctokit, Probot handlers, class fields and runtime routes', async () => {
@@ -183,6 +186,69 @@ describe('Octokit clients', () => {
   });
 });
 
+describe('clients Refit cannot resolve', () => {
+  it('reads recorded methods on client-like receivers, destructured scopes and GraphQL holders', async () => {
+    const { calls } = await scan(
+      {
+        'lib/publish.js': [
+          'export default async function publish(config, { Octokit }) {',
+          '  const octokit = new Octokit();',
+          "  await octokit.request('POST /repos/{owner}/{repo}/releases', {});",
+          '}',
+        ].join('\n'),
+        'src/driver.js': [
+          "const { Octokit } = require('@octokit/rest');",
+          "const { withCustomRequest } = require('@octokit/graphql');",
+          'const client = (token) => new Octokit({ auth: token });',
+          'async function run(token) {',
+          '  const { issues, paginate, repos } = client(token);',
+          "  await issues.createComment({ owner: 'o', repo: 'r', issue_number: 1, body: 'b' });",
+          '  await paginate(repos.listCommentsForCommit, {});',
+          '  const graphql = withCustomRequest(client(token).request);',
+          '  await graphql(`{ viewer { login } }`);',
+          '}',
+          'async function helper(github) {',
+          '  await github.search.commits({ q: "x" });',
+          '  const cache = new Map();',
+          '  cache.get("x");',
+          '}',
+        ].join('\n'),
+        'src/changelog.js': [
+          "const { graphql } = require('@octokit/graphql');",
+          'class Fetcher {',
+          '  constructor() {',
+          '    this.client = graphql.defaults({});',
+          '  }',
+          '  run() {',
+          '    return this.client(`{ viewer { login } }`);',
+          '  }',
+          '}',
+        ].join('\n'),
+        'src/other.ts': [
+          'export function run(thing: { rest: { repos: { get(): void } } }) {',
+          '  thing.rest.repos.get();',
+          '  thing.repos.get();',
+          '}',
+        ].join('\n'),
+      },
+      { name: 'app' },
+    );
+    expect(at(calls, 'lib/publish.js', 3).route).toBe('POST /repos/{owner}/{repo}/releases');
+    expect(at(calls, 'src/driver.js', 6).method).toBe('issues.createComment');
+    expect(at(calls, 'src/driver.js', 7).method).toBe('repos.listCommentsForCommit');
+    expect(at(calls, 'src/driver.js', 9).kind).toBe('graphql');
+    expect(at(calls, 'src/driver.js', 12).method).toBe('search.commits');
+    expect(at(calls, 'src/changelog.js', 7).kind).toBe('graphql');
+    // `.rest.<scope>.<method>` is specific enough without a GitHub import; `thing.repos.get` is not.
+    expect(calls.filter((call) => call.file === 'src/other.ts').map((call) => call.line)).toEqual([
+      2,
+    ]);
+    expect(calls.filter((call) => call.file === 'src/driver.js').map((call) => call.line)).toEqual([
+      6, 7, 9, 12,
+    ]);
+  });
+});
+
 describe('raw requests and version headers', () => {
   it('reads api.github.com URLs and pinned API versions', async () => {
     const { calls, pins } = await scan(
@@ -220,6 +286,34 @@ describe('raw requests and version headers', () => {
         endOfSupport: null,
         notes: [expect.stringMatching(/not a REST API version GitHub lists/)],
       }),
+    ]);
+  });
+});
+
+describe('URLs built from a default base', () => {
+  it('follows a request URL back to an env fallback or a parameter default', async () => {
+    const { calls } = await scan(
+      {
+        'src/a.ts': [
+          'export async function run(path: string, id: string) {',
+          "  const base = process.env.API_URL || 'https://api.github.com';",
+          '  const url = path.startsWith("http") ? path : `${base}/${path}`;',
+          "  await fetch(url, { method: 'DELETE' });",
+          '  const token = `${base}/app/installations/${id}/access_tokens`;',
+          "  return fetch(token, { method: 'POST' });",
+          '}',
+          "export async function query({ endpoint = 'https://api.github.com/graphql' }) {",
+          "  return fetch(endpoint, { method: 'POST' });",
+          '}',
+          "const unused = 'https://api.github.com/graphql';",
+        ].join('\n'),
+      },
+      { name: 'app' },
+    );
+    expect(calls.map((call) => [call.line, call.route])).toEqual([
+      [4, null],
+      [6, 'POST /app/installations/{id}/access_tokens'],
+      [9, 'POST /graphql'],
     ]);
   });
 });
