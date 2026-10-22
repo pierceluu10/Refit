@@ -40,18 +40,17 @@ it('names the dependency that comes from outside the public registry', () => {
   expect(nested).toContain(
     'package-lock.json record node_modules/@electron/rebuild declares @electron/node-gyp as "git+https://github.com/electron/node-gyp.git#06b29aa".',
   );
-  // Mangu-Commerce/madcaptees resolves 118 packages from a registry mirror.
-  const mirror = refusal(manifest, {
+  const privateRegistry = refusal(manifest, {
     '': manifest,
     'node_modules/stripe': {
       ...stripe,
-      resolved: 'https://registry.npmmirror.com/stripe/-/stripe-10.17.0.tgz',
+      resolved: 'https://npm.pkg.github.com/stripe/-/stripe-10.17.0.tgz',
     },
   });
-  expect(mirror).toContain(
-    'package-lock.json resolves node_modules/stripe from registry.npmmirror.com',
+  expect(privateRegistry).toContain(
+    'package-lock.json resolves node_modules/stripe from npm.pkg.github.com',
   );
-  for (const message of [declared, nested, mirror])
+  for (const message of [declared, nested, privateRegistry])
     expect(preparationStop(message)).toMatchObject({
       reason: 'non-registry-dependency',
       action: expect.stringContaining('In .refit.json, remove "prepareDependencies"'),
