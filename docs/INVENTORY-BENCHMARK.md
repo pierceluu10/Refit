@@ -74,10 +74,15 @@ An **external API** is a network service run by a third party and reached throug
 2. **Exclusions before checking.** It drops:
    - forks, archived repositories and templates;
    - repositories already in any frozen list under `docs/benchmarks/`;
-   - names or topics matching tutorial, course, example, demo, template, boilerplate, starter, awesome, learn, homework, exercise, interview, cheatsheet, roadmap, dotfiles, config, sdk, library, framework, plugin, wrapper or client.
-3. **Shuffle.** It shuffles the pool with a seeded generator (seed in the frozen file), so selection does not favour stars or any provider.
+   - names or topics matching tutorial, course, example, sample, demo, template, boilerplate, starter, awesome, learn, homework, exercise, interview, cheatsheet, roadmap, dotfiles, config, docs, documentation, sdk, library, framework, plugin, extension, wrapper or client.
+3. **Shuffle.** It shuffles the whole pool with a seeded generator (seed in the frozen file), so selection does not favour stars or any provider. The shuffle comes before the exclusions, so changing an exclusion only removes repositories and never reorders the rest.
 4. **Application check, in shuffled order, until the quota per language is met.** It reads the repository tree at the default branch's head (that commit is pinned) and requires:
-   - **JS/TS**: a root or `apps/*` or `packages/*` `package.json` that `appShape` (`scripts/ai-app-helpers.mjs`) classes as an application;
+   - **JS/TS**: an app marker in the root package or in a workspace package. An app marker is:
+     - a framework or deployment config (Next, Vite, Nuxt, SvelteKit, Astro, Remix, Angular, Expo, Electron-Vite, Wrangler, Tauri, `app.json`);
+     - an `app/`, `pages/` or `routes/` directory;
+     - or a server, desktop, mobile or bot runtime dependency (Express, Fastify, Hono, Koa, Nest, Electron, React Native, Expo, Tauri, discord.js, Telegraf, grammY).
+
+     A single-package root must also be unpublished: private, or without `main`, `exports`, `bin` or `files`. A workspace root (a `workspaces` field, `pnpm-workspace.yaml`, `lerna.json`, `turbo.json`, `nx.json` or `rush.json`) is private by convention, so it counts only through a workspace package with an app marker. A workspace package is a top-level directory or a direct child of `apps/`, `packages/` or `services/`. Trial runs showed why each part is needed: a private root alone let library monorepos through, and a `package.json` alone let solution and notes repositories through.
    - **Python**: a dependency manifest (`requirements*.txt`, `pyproject.toml`, `Pipfile` or `setup.py`), plus an entry point or deployment file (`manage.py`, `app.py`, `main.py`, `server.py`, `bot.py`, `run.py`, `wsgi.py`, `asgi.py`, a `Dockerfile`, `docker-compose.yml` or a `Procfile`);
    - **Go**: a root `go.mod`, plus `main.go` at the root or `cmd/<name>/main.go`;
    - **all languages**: between 10 and 1,000 source files in the language, a tree GitHub did not truncate, and a commit on or after the cutoff. The size cap keeps hand labelling exhaustive; it biases the sample away from very large codebases, and that bias is stated with the results.

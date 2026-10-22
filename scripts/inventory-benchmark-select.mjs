@@ -60,7 +60,7 @@ if (values.help || !values.output || !values.work) {
   process.exit(values.help ? 0 : 1);
 }
 const work = resolve(values.work);
-for (const directory of ['search', 'checks'])
+for (const directory of ['search', 'heads', 'trees'])
   await mkdir(join(work, directory), { recursive: true });
 
 const pause = (ms) => new Promise((done) => setTimeout(done, ms));
@@ -185,44 +185,63 @@ for (const [group, { languages, count }] of Object.entries(GROUPS)) {
     else eligible.set(key, item);
   }
 
-  // 5. Seeded shuffle, then the application check in that order until the quota passes.
+  // 5. Seeded shuffle of the whole pool, then the application check in that order until the quota
+  // passes. Shuffling before the exclusions keeps the order fixed when an exclusion changes.
   let accepted = 0;
-  for (const key of seededSample([...eligible.keys()], SEED, 1)) {
+  for (const key of seededSample([...pool.keys()], SEED, 1)) {
     if (accepted === count) break;
     const item = eligible.get(key);
-    const check = await cached(join(work, 'checks', `${key.replace('/', '__')}.json`), async () => {
+    if (!item) continue;
+    const file = `${key.replace('/', '__')}.json`;
+    // The head is cached apart from the tree, so the pinned commit never moves between runs and
+    // the application rule is applied to the raw tree on every run.
+    const head = await cached(join(work, 'heads', file), async () => {
       try {
-        const head = await gh([`repos/${item.repo}/commits/${encodeURIComponent(item.branch)}`]);
-        const commit = head.sha;
-        if (!validSha(commit)) return { verdict: 'invalid commit' };
-        const committedDate = head.commit?.committer?.date ?? null;
-        const listing = await gh([`repos/${item.repo}/git/trees/${commit}?recursive=1`]);
-        if (listing.truncated) return { verdict: 'tree truncated' };
-        const paths = (listing.tree ?? [])
-          .filter((entry) => entry.type === 'blob')
-          .map((entry) => entry.path);
-        const manifests = {};
-        if (group === 'js-ts')
-          for (const path of candidateManifests(paths).slice(0, MAX_MANIFESTS))
-            try {
-              manifests[path] = JSON.parse(
-                await gh([`repos/${item.repo}/contents/${path}?ref=${commit}`], { raw: true }),
-              );
-            } catch {
-              manifests[path] = null;
-            }
-        return {
-          verdict: 'checked',
-          commit,
-          committedDate,
-          application: applicationReason(group, paths, manifests),
-          sourceFiles: sourceFileCount(group, paths),
-        };
+        const response = await gh([
+          `repos/${item.repo}/commits/${encodeURIComponent(item.branch)}`,
+        ]);
+        if (!validSha(response.sha)) return { verdict: 'invalid commit' };
+        return { commit: response.sha, committedDate: response.commit?.committer?.date ?? null };
       } catch (error) {
         if (error.skip) return { verdict: 'unreachable' };
         throw error;
       }
     });
+    const tree = head.verdict
+      ? head
+      : await cached(join(work, 'trees', file), async () => {
+          try {
+            const listing = await gh([`repos/${item.repo}/git/trees/${head.commit}?recursive=1`]);
+            if (listing.truncated) return { verdict: 'tree truncated' };
+            const paths = (listing.tree ?? [])
+              .filter((entry) => entry.type === 'blob')
+              .map((entry) => entry.path);
+            const manifests = {};
+            if (group === 'js-ts')
+              for (const path of candidateManifests(paths).slice(0, MAX_MANIFESTS))
+                try {
+                  manifests[path] = JSON.parse(
+                    await gh([`repos/${item.repo}/contents/${path}?ref=${head.commit}`], {
+                      raw: true,
+                    }),
+                  );
+                } catch {
+                  manifests[path] = null;
+                }
+            return { paths, manifests };
+          } catch (error) {
+            if (error.skip) return { verdict: 'unreachable' };
+            throw error;
+          }
+        });
+    const check = tree.verdict
+      ? tree
+      : {
+          verdict: 'checked',
+          ...head,
+          application: applicationReason(group, tree.paths, tree.manifests),
+          sourceFiles: sourceFileCount(group, tree.paths),
+        };
     if (check.verdict !== 'checked') reject(group, check.verdict);
     else if (!check.committedDate || check.committedDate.slice(0, 10) < values.cutoff)
       reject(group, 'commit before cutoff');
@@ -256,7 +275,7 @@ const frozenFile = {
   cutoff: `frozen commit committedDate >= ${values.cutoff}`,
   sourceFiles: `${MIN_SOURCE_FILES}..${MAX_SOURCE_FILES} in the group's language`,
   method:
-    'GitHub repository search through gh api (queries below, sorted by most recently updated), pool deduplicated by lower-cased full name per group, forks, archived repositories, templates, repositories in other frozen lists and excluded names or topics removed, the rest shuffled with the seed (mulberry32 Fisher-Yates over sorted names) and checked in that order until each group quota passed. No provider, package or keyword is searched for.',
+    'GitHub repository search through gh api (queries below, sorted by most recently updated), pool deduplicated by lower-cased full name per group, forks, archived repositories, templates, repositories in other frozen lists and excluded names or topics removed, the whole pool shuffled with the seed (mulberry32 Fisher-Yates over sorted names) before those exclusions, and the remaining repositories checked in that order until each group quota passed. No provider, package or keyword is searched for.',
   queries,
   excludedLists,
   rejected,

@@ -65,15 +65,43 @@ describe('sampling', () => {
   });
 
   it('classes applications per language and rejects libraries', () => {
+    // A single package needs an app marker; a package.json that only configures tooling is not one.
+    expect(
+      applicationReason('js-ts', ['package.json', 'src/app/page.tsx'], {
+        'package.json': { private: true },
+      }),
+    ).toBe('private, marker:src/app/');
+    expect(
+      applicationReason('js-ts', ['package.json', 'index.js'], {
+        'package.json': { dependencies: { express: '5' } },
+      }),
+    ).toBe('unpublished, dependency:express');
     expect(
       applicationReason('js-ts', ['package.json'], { 'package.json': { private: true } }),
-    ).toBe('private');
+    ).toBe(null);
+    // A private workspace root counts only through a workspace with an app marker.
+    const workspace = ['package.json', 'pnpm-workspace.yaml', 'packages/core/package.json'];
+    const libraries = {
+      'package.json': { private: true },
+      'packages/core/package.json': { private: true, main: 'dist/index.js' },
+    };
+    expect(applicationReason('js-ts', workspace, libraries)).toBe(null);
     expect(
-      applicationReason('js-ts', ['package.json', 'apps/web/package.json'], {
-        'package.json': { main: 'index.js' },
-        'apps/web/package.json': { private: true },
+      applicationReason(
+        'js-ts',
+        [...workspace, 'apps/web/package.json', 'apps/web/next.config.mjs'],
+        {
+          ...libraries,
+          'apps/web/package.json': { private: true },
+        },
+      ),
+    ).toBe('apps/web: marker:next.config.mjs');
+    expect(
+      applicationReason('js-ts', ['package.json', 'server/package.json'], {
+        'package.json': { private: true, workspaces: ['server'] },
+        'server/package.json': { dependencies: { fastify: '5' } },
       }),
-    ).toBe('apps/web: private');
+    ).toBe('server: dependency:fastify');
     expect(applicationReason('js-ts', ['package.json'], { 'package.json': { main: 'x.js' } })).toBe(
       null,
     );

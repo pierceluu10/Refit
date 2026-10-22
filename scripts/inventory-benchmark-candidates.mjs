@@ -37,6 +37,9 @@ if (values.help || !values.root || !values.output) {
 const MAX_FILE_BYTES = 1024 * 1024;
 const TEXT =
   /\.(?:[cm]?[jt]sx?|vue|svelte|astro|py|go|json|toml|ya?ml|txt|cfg|ini|env[^/]*)$|(?:^|\/)(?:Pipfile|\.env[^/]*)$/;
+// Local environment files may hold real credentials, even in a public repository: only committed
+// templates are read.
+const SECRET_FILE = /^\.env(?!\.(?:example|sample|template|dist)$)(?:\..*)?$/;
 const ENV_NAME =
   /\b[A-Z][A-Z0-9]*_(?:[A-Z0-9]+_)*(?:API_KEY|SECRET_KEY|SECRET|TOKEN|API_TOKEN|ACCESS_KEY|DSN|API_URL|BASE_URL|ENDPOINT|KEY)\b/g;
 
@@ -46,7 +49,9 @@ const pythonStdlib = new Set(
     .then(({ stdout }) => stdout.split('\n').filter(Boolean))
     .catch(() => []),
 );
-const nodeBuiltins = new Set(builtinModules.flatMap((name) => [name, name.split('/')[0]]));
+const nodeBuiltins = new Set(
+  builtinModules.map((name) => name.replace(/^node:/, '').split('/')[0]),
+);
 
 async function walk(root, directory = '', files = []) {
   for (const entry of (await readdir(join(root, directory), { withFileTypes: true })).sort(
@@ -56,7 +61,7 @@ async function walk(root, directory = '', files = []) {
     if (entry.isSymbolicLink()) continue;
     if (entry.isDirectory()) {
       if (!skippedPath(`${path}/x`)) await walk(root, path, files);
-    } else if (entry.isFile() && TEXT.test(path)) files.push(path);
+    } else if (entry.isFile() && TEXT.test(path) && !SECRET_FILE.test(entry.name)) files.push(path);
   }
   return files;
 }

@@ -2,13 +2,12 @@
 // repositories count as applications, and how Refit's provider detections score against the hand
 // labels. They live apart from the scripts so pipeline/inventory-benchmark.test.ts can test them.
 // Nothing here imports Refit's pipeline code.
-import { appShape } from './ai-app-helpers.mjs';
 
 export const LANGUAGE_GROUPS = ['js-ts', 'python', 'go'];
 
 // Matched against the repository name and its topics, never the owner.
 export const EXCLUDED_NAME =
-  /tutorial|course|example|demo|template|boilerplate|starter|awesome|learn|homework|exercise|interview|cheatsheet|roadmap|dotfiles|config|sdk|library|framework|plugin|wrapper|client/i;
+  /tutorial|course|example|sample|demo|template|boilerplate|starter|awesome|learn|homework|exercise|interview|cheatsheet|roadmap|dotfiles|config|docs|documentation|sdk|library|framework|plugin|extension|wrapper|client/i;
 
 // Vendored, generated and dependency directories are never counted or scanned.
 export const SKIPPED_DIRECTORIES = new Set([
@@ -60,14 +59,57 @@ export function sourceFileCount(group, paths) {
   return paths.filter((path) => isSource(group, path)).length;
 }
 
-// The package.json files that may make a JS/TS repository an application: the root and direct
-// children of apps/ and packages/. Paths come from GitHub and are only matched, never opened here.
+// The package.json files that may make a JS/TS repository an application: the root, top-level
+// directories and direct children of apps/, packages/ and services/. Paths come from GitHub and are
+// only matched, never opened here.
 export function candidateManifests(paths) {
   return paths
     .filter(
-      (path) => path === 'package.json' || /^(?:apps|packages)\/[^/]+\/package\.json$/.test(path),
+      (path) =>
+        !skippedPath(path) &&
+        (path === 'package.json' ||
+          /^[^/]+\/package\.json$/.test(path) ||
+          /^(?:apps|packages|services)\/[^/]+\/package\.json$/.test(path)),
     )
     .sort((a, b) => (a === 'package.json' ? -1 : b === 'package.json' ? 1 : a < b ? -1 : 1));
+}
+
+const WORKSPACE_FILES = ['pnpm-workspace.yaml', 'lerna.json', 'turbo.json', 'nx.json', 'rush.json'];
+const APP_CONFIG =
+  /^(?:(?:next|vite|nuxt|svelte|astro|remix|vue|angular|electron\.vite|webpack|expo|app)\.config\.[^/]+|angular\.json|wrangler\.(?:toml|jsonc?)|tauri\.conf\.json|app\.json)$/;
+const APP_DEPENDENCIES = [
+  'express',
+  'fastify',
+  'hono',
+  'koa',
+  '@nestjs/core',
+  'electron',
+  'react-native',
+  'expo',
+  '@tauri-apps/api',
+  'discord.js',
+  'telegraf',
+  'grammy',
+];
+
+export function isWorkspaceRoot(manifest, paths) {
+  return Boolean(manifest?.workspaces) || WORKSPACE_FILES.some((name) => paths.includes(name));
+}
+
+// An app marker in one package directory: a framework or deployment config, a routes directory, or
+// a server, desktop, mobile or bot runtime dependency.
+export function appMarker(manifest, paths, directory) {
+  const prefix = directory ? `${directory}/` : '';
+  for (const path of paths) {
+    if (!path.startsWith(prefix)) continue;
+    const rest = path.slice(prefix.length);
+    if (APP_CONFIG.test(rest)) return `marker:${rest}`;
+    const route = /^((?:src\/)?(?:app|pages|routes))\//.exec(rest);
+    if (route) return `marker:${route[1]}/`;
+  }
+  const dependencies = manifest?.dependencies ?? {};
+  const runtime = APP_DEPENDENCIES.find((name) => Object.hasOwn(dependencies, name));
+  return runtime ? `dependency:${runtime}` : null;
 }
 
 const PYTHON_MANIFEST = /^(?:requirements[^/]*\.txt|pyproject\.toml|Pipfile|setup\.py)$/;
@@ -80,12 +122,23 @@ export function applicationReason(group, paths, manifests = {}) {
   const shallow = (path) => path.split('/').length <= 2 && !skippedPath(path);
   const name = (path) => path.split('/').at(-1);
   if (group === 'js-ts') {
-    for (const path of candidateManifests(paths)) {
-      const directory = path === 'package.json' ? '' : path.slice(0, -'/package.json'.length);
-      const reason = appShape(manifests[path], paths, directory);
-      if (reason) return directory ? `${directory}: ${reason}` : reason;
+    // A workspace root is private by convention, so it counts only through an app workspace.
+    const root = manifests['package.json'];
+    if (root && !isWorkspaceRoot(root, paths)) {
+      // A published package is a library; an unpublished one still needs an app marker, because a
+      // package.json alone often only configures tooling (solution and notes repositories).
+      const published = ['main', 'exports', 'bin', 'files'].some((field) => field in root);
+      if (published && root.private !== true) return null;
+      const marker = appMarker(root, paths, '');
+      return marker ? `${root.private === true ? 'private' : 'unpublished'}, ${marker}` : null;
     }
-    return null;
+    for (const path of candidateManifests(paths)) {
+      if (path === 'package.json' || !manifests[path]) continue;
+      const directory = path.slice(0, -'/package.json'.length);
+      const reason = appMarker(manifests[path], paths, directory);
+      if (reason) return `${directory}: ${reason}`;
+    }
+    return root ? appMarker(root, paths, '') : null;
   }
   if (group === 'python') {
     const manifest = paths.find((path) => !path.includes('/') && PYTHON_MANIFEST.test(path));
