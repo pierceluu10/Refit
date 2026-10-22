@@ -7,6 +7,8 @@ import {
 
 export interface ManifestSdkDeclaration {
   deadline: DeadlineEntry;
+  // The entry's package name that matched.
+  name: string;
   file: string;
   line: number;
   text: string;
@@ -26,14 +28,13 @@ export async function manifestSdkDeclarations(
   const declarations: ManifestSdkDeclaration[] = [];
   for (const entry of entries)
     for (const dependency of dependencies)
-      if (
-        dependency.direct &&
-        dependency.ecosystem === entry.ecosystem &&
-        entry.versions.some((name) => matchesPackage(dependency, name))
-      ) {
+      if (dependency.direct && dependency.ecosystem === entry.ecosystem) {
+        const name = entry.versions.find((candidate) => matchesPackage(dependency, candidate));
+        if (name === undefined) continue;
         const version = dependency.locked ?? dependency.declared;
         declarations.push({
           deadline: entry,
+          name,
           file: dependency.file,
           line: dependency.line,
           text: `${dependency.ecosystem}:${dependency.name}${version ? ` ${version}` : ''}${dependency.locked ? ' (locked)' : ''} is declared in ${dependency.file}`,

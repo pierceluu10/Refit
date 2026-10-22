@@ -670,7 +670,7 @@ export async function scanDeadlines(
   for (const declaration of await manifestSdkDeclarations(root, registry))
     record(
       declaration.deadline.provider,
-      declaration.deadline.versions[0],
+      declaration.name,
       {
         file: declaration.file,
         line: declaration.line,

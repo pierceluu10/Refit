@@ -29,18 +29,35 @@ const ESCAPES: Record<string, string> = {
   '\\': '\\',
 };
 
+// Tables have no prototype, so a `__proto__` key or table is an ordinary entry and cannot reach
+// Object.prototype.
+const newTable = (): TomlTable => Object.create(null) as TomlTable;
+// Arrays and inline tables nested deeper than this are refused instead of exhausting the stack.
+const MAX_DEPTH = 100;
+
 function isTable(value: TomlValue | undefined): value is TomlTable {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 export function parseToml(text: string): TomlTable {
+  try {
+    return parseDocument(text);
+  } catch (error) {
+    if (error instanceof TomlError) throw error;
+    // Anything the checks below miss still reaches callers as a named stop, not a crash.
+    throw new TomlError(`Unreadable TOML: ${(error as Error).message}`, 0);
+  }
+}
+
+function parseDocument(text: string): TomlTable {
   const source = text.replace(/\r\n/g, '\n');
-  const root: TomlTable = {};
+  const root = newTable();
   // Tables created implicitly by a dotted header may be defined later; explicit ones only once.
   const defined = new Set<TomlTable>();
   let position = 0;
   let line = 1;
   let current = root;
+  let depth = 0;
 
   const fail = (message: string): never => {
     throw new TomlError(message, line);
@@ -101,7 +118,9 @@ export function parseToml(text: string): TomlTable {
           const length = escape === 'u' ? 4 : 8;
           const hex = source.slice(position + 1, position + 1 + length);
           if (!/^[0-9A-Fa-f]+$/.test(hex) || hex.length !== length) fail('Invalid unicode escape');
-          value += String.fromCodePoint(parseInt(hex, 16));
+          const code = parseInt(hex, 16);
+          if (code > 0x10ffff || (code >= 0xd800 && code <= 0xdfff)) fail('Invalid unicode escape');
+          value += String.fromCodePoint(code);
           position += length + 1;
           continue;
         }
@@ -169,6 +188,16 @@ export function parseToml(text: string): TomlTable {
   }
 
   function value(): TomlValue {
+    if (depth >= MAX_DEPTH) fail('Arrays or inline tables are nested too deeply');
+    depth += 1;
+    try {
+      return plainValue();
+    } finally {
+      depth -= 1;
+    }
+  }
+
+  function plainValue(): TomlValue {
     const character = peek();
     if (character === '"') return basicString();
     if (character === "'") return literalString();
@@ -190,7 +219,7 @@ export function parseToml(text: string): TomlTable {
     if (character === '{') {
       // TOML 1.1 (which Cargo reads) allows newlines, comments and a trailing comma here.
       advance();
-      const table: TomlTable = {};
+      const table = newTable();
       for (;;) {
         skipBlank();
         if (peek() === '}') {
@@ -207,8 +236,8 @@ export function parseToml(text: string): TomlTable {
   }
 
   function descend(table: TomlTable, part: string): TomlTable {
-    const existing = table[part];
-    if (existing === undefined) return (table[part] = {});
+    const existing = Object.hasOwn(table, part) ? table[part] : undefined;
+    if (existing === undefined) return (table[part] = newTable());
     if (isTable(existing)) return existing;
     if (Array.isArray(existing) && isTable(existing.at(-1))) return existing.at(-1) as TomlTable;
     return fail(`Key ${part} is already a value`);
@@ -247,14 +276,14 @@ export function parseToml(text: string): TomlTable {
       if (array) {
         const existing = parent[last] ?? (parent[last] = []);
         if (!Array.isArray(existing)) fail(`${parts.join('.')} is not an array of tables`);
-        const table: TomlTable = {};
+        const table = newTable();
         (existing as TomlValue[]).push(table);
         current = table;
       } else {
         const existing = parent[last];
         if (existing !== undefined && !isTable(existing))
           fail(`${parts.join('.')} is already a value`);
-        const table = (existing as TomlTable | undefined) ?? (parent[last] = {});
+        const table = (existing as TomlTable | undefined) ?? (parent[last] = newTable());
         if (defined.has(table as TomlTable)) fail(`Table ${parts.join('.')} is defined twice`);
         defined.add(table as TomlTable);
         current = table as TomlTable;
