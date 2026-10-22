@@ -1,0 +1,983 @@
+{
+  "run": "shopify-2026-10-22-base",
+  "refit": "7b2c86a",
+  "target": "2026-10",
+  "list": "2026-10-16-shopify-repos.json",
+  "level": "deterministic scan and patch, offline Docker validation (node:22-alpine); no AI, no publication",
+  "command": "node scripts/shopify-benchmark-setup.mjs --root <root> --list <the frozen list with the served schema hashes below> && REFIT_DOCKER_IMAGE=node:22-alpine npm run benchmark:shopify -- --root <root> --output <run> --validate --concurrency 2",
+  "images": {
+    "node:22-alpine": "sha256:fe4f6d74e20370acb04ad889077d14d0f64a9c8ea6a42bc60cddf1e844699914"
+  },
+  "schemas": {
+    "source": "refit shopify-snapshot on 2026-10-22 (shopify.dev public documentation proxy)",
+    "note": "All four served schemas differ from the SHA-256 pinned in the frozen list, so the setup script refused them. These hashes are kept so the post-merge rerun uses the same files; outcomes compare with each other, not with the pinned introspection.",
+    "versions": [
+      {
+        "version": "2026-01",
+        "sha256": "5747ad7041eaf69a64116d456abe7150c602b5ea466332537fa77704d5d33ddc"
+      },
+      {
+        "version": "2026-04",
+        "sha256": "20a24bb5e96e20da8b40be4dad42a43e3cd4229f23215a4690bae5a9e764e94f"
+      },
+      {
+        "version": "2026-07",
+        "sha256": "33504bea51c6fee37a90722d143bbad17f20ccf2c83f21360025c649716d578f"
+      },
+      {
+        "version": "2026-10",
+        "sha256": "b10dfd193ade1e90b33387059773c12216e5ce549ea64daff558e9119e851f34"
+      }
+    ]
+  },
+  "environment": "local laptop while other sessions merged pull requests; AWS EC2 launches were denied by an organization policy. Timings are noisy.",
+  "outcomeLabels": "stopped rows are labelled by their reason, as in 2026-10-16-shopify-results.json",
+  "outcomes": {
+    "current": 3,
+    "stopped-dynamic-pin": 7,
+    "stopped-sdk-upgrade": 15,
+    "no-admin-usage": 2,
+    "stopped-already-failing": 5,
+    "exceeds-scan-limits": 2,
+    "stopped-rest": 6,
+    "stopped-runtime-document": 6,
+    "current-for-sdk": 3,
+    "patched-validated": 1
+  },
+  "rows": [
+    {
+      "repo": "Shopify/shopify-app-template-react-router",
+      "commit": "48b841a7746e1b08d1e6d8793b1208f3096e41d0",
+      "outcome": "current",
+      "sdk": null,
+      "pins": [
+        "2026-10"
+      ],
+      "before": "2026-10",
+      "target": "2026-10",
+      "adminCalls": 2,
+      "documents": 2,
+      "tracedDocuments": 2,
+      "unreadable": 0,
+      "rest": 0,
+      "checks": null,
+      "reason": "The code already pins Admin API 2026-10.",
+      "seconds": 0
+    },
+    {
+      "repo": "Shopify/subscriptions-reference-app",
+      "commit": "575a825f9f38aca9b0a1880e0fac10121b572a1c",
+      "outcome": "stopped-dynamic-pin",
+      "sdk": null,
+      "pins": [],
+      "before": "2026-01",
+      "target": "2026-10",
+      "adminCalls": 13,
+      "documents": 75,
+      "tracedDocuments": 12,
+      "unreadable": 0,
+      "rest": 0,
+      "checks": null,
+      "reason": "The Shopify Admin API version is not a literal Refit can verify and bump: ApiVersion.Unstable is not a dated Admin API version.",
+      "seconds": 3
+    },
+    {
+      "repo": "Shopify/example-app--qr-code--remix",
+      "commit": "6ed425cab13f9e8d1e64dc23de0da6711531650c",
+      "outcome": "stopped-sdk-upgrade",
+      "sdk": "11.14.1",
+      "pins": [
+        "2026-01",
+        "2025-07"
+      ],
+      "before": "2026-01",
+      "target": "2026-10",
+      "adminCalls": 2,
+      "documents": 2,
+      "tracedDocuments": 2,
+      "unreadable": 0,
+      "rest": 0,
+      "checks": null,
+      "reason": "LATEST_API_VERSION is 2025-07 in @shopify/shopify-api 11.14.1, and only an SDK upgrade changes it. ApiVersion.October26 first ships in 14.0.0, a separate, reviewed SDK upgrade.",
+      "seconds": 0
+    },
+    {
+      "repo": "Hujjat/wishlist-inspire-app",
+      "commit": "684f64f9d21ec1ef1e7ab7f1514a51056ad0ff40",
+      "outcome": "no-admin-usage",
+      "sdk": null,
+      "pins": [],
+      "before": "2026-01",
+      "target": null,
+      "adminCalls": 0,
+      "documents": 0,
+      "tracedDocuments": 0,
+      "unreadable": 0,
+      "rest": 0,
+      "checks": null,
+      "reason": null,
+      "seconds": 0
+    },
+    {
+      "repo": "gruntlord5/cloudflare-worker-shopifyd1",
+      "commit": "0c8b131fb3d7b4b2cda532347ec2031e93e22b4d",
+      "outcome": "stopped-sdk-upgrade",
+      "sdk": null,
+      "pins": [
+        "2025-01"
+      ],
+      "before": "2026-01",
+      "target": "2026-10",
+      "adminCalls": 2,
+      "documents": 2,
+      "tracedDocuments": 2,
+      "unreadable": 0,
+      "rest": 0,
+      "checks": null,
+      "reason": "@shopify/shopify-api (version not found in the lockfile) has no ApiVersion.October26; it first ships in 14.0.0. Upgrading the SDK is a separate, reviewed change.",
+      "seconds": 0
+    },
+    {
+      "repo": "celadonworks/pixiehog-app",
+      "commit": "31e9721c88452ed8cd43209d20822195cc1b6c6a",
+      "outcome": "stopped-dynamic-pin",
+      "sdk": "11.6.0",
+      "pins": [],
+      "before": "2026-01",
+      "target": "2026-10",
+      "adminCalls": 0,
+      "documents": 16,
+      "tracedDocuments": 0,
+      "unreadable": 0,
+      "rest": 0,
+      "checks": null,
+      "reason": "The Shopify Admin API version is not a literal Refit can verify and bump: apiVersion is set from Constant.SHOPIFY_API_VERSION, which Refit cannot resolve statically.",
+      "seconds": 0
+    },
+    {
+      "repo": "alexandrosk/marketplace-app",
+      "commit": "4643023281797480c9ff805426ed6fbef096cd9c",
+      "outcome": "stopped-already-failing",
+      "sdk": null,
+      "pins": [
+        "2024-01"
+      ],
+      "before": "2026-01",
+      "target": "2026-10",
+      "adminCalls": 30,
+      "documents": 24,
+      "tracedDocuments": 22,
+      "unreadable": 1,
+      "rest": 4,
+      "checks": null,
+      "reason": "A Shopify GraphQL document already fails on Admin API 2026-01; fix it before any version upgrade.",
+      "seconds": 0
+    },
+    {
+      "repo": "vincaslt/remix-cf-pages-d1-drizzle-shopify-app",
+      "commit": "6558a4cfb32ae81f63809c8f7d06c906a6531298",
+      "outcome": "exceeds-scan-limits",
+      "sdk": null,
+      "pins": [],
+      "before": null,
+      "target": null,
+      "adminCalls": null,
+      "documents": null,
+      "tracedDocuments": null,
+      "unreadable": null,
+      "rest": null,
+      "checks": null,
+      "reason": "Repository exceeds scan limits (10,000 files, 2 MiB per file, 50 MiB total).",
+      "seconds": 0
+    },
+    {
+      "repo": "aaronarrays/shopify-vercel-app",
+      "commit": "41ca20587779dfd0b07a4e184d8d1af69ccb466d",
+      "outcome": "stopped-sdk-upgrade",
+      "sdk": "11.7.0",
+      "pins": [
+        "2024-10"
+      ],
+      "before": "2026-01",
+      "target": "2026-10",
+      "adminCalls": 0,
+      "documents": 0,
+      "tracedDocuments": 0,
+      "unreadable": 0,
+      "rest": 0,
+      "checks": null,
+      "reason": "LATEST_API_VERSION is 2024-10 in @shopify/shopify-api 11.7.0, and only an SDK upgrade changes it. ApiVersion.October26 first ships in 14.0.0, a separate, reviewed SDK upgrade.",
+      "seconds": 0
+    },
+    {
+      "repo": "intentionull/Shopify-RemixJS-Cloudflare-Workers-Template",
+      "commit": "811df94e7fd9d64ac7cc632284e39521ca48b609",
+      "outcome": "stopped-sdk-upgrade",
+      "sdk": "10.0.0",
+      "pins": [
+        "2024-04"
+      ],
+      "before": "2026-01",
+      "target": "2026-10",
+      "adminCalls": 0,
+      "documents": 0,
+      "tracedDocuments": 0,
+      "unreadable": 0,
+      "rest": 0,
+      "checks": null,
+      "reason": "@shopify/shopify-api 10.0.0 has no ApiVersion.October26; it first ships in 14.0.0. Upgrading the SDK is a separate, reviewed change.",
+      "seconds": 0
+    },
+    {
+      "repo": "IliasHad/shopify-app-template-remix-cloudflare-workers",
+      "commit": "23397cc062b5cf5e3175184f0b1b3212b30095ea",
+      "outcome": "stopped-sdk-upgrade",
+      "sdk": "11.8.0",
+      "pins": [
+        "2024-10"
+      ],
+      "before": "2026-01",
+      "target": "2026-10",
+      "adminCalls": 2,
+      "documents": 2,
+      "tracedDocuments": 2,
+      "unreadable": 0,
+      "rest": 0,
+      "checks": null,
+      "reason": "LATEST_API_VERSION is 2024-10 in @shopify/shopify-api 11.8.0, and only an SDK upgrade changes it. ApiVersion.October26 first ships in 14.0.0, a separate, reviewed SDK upgrade.",
+      "seconds": 0
+    },
+    {
+      "repo": "marktiddy/Shopify-Remix-Billing-Demo",
+      "commit": "5b0a65f202a1f4a23e8806230433b4616382d0e3",
+      "outcome": "stopped-dynamic-pin",
+      "sdk": null,
+      "pins": [
+        "2024-04"
+      ],
+      "before": "2026-01",
+      "target": "2026-10",
+      "adminCalls": 0,
+      "documents": 3,
+      "tracedDocuments": 0,
+      "unreadable": 0,
+      "rest": 0,
+      "checks": null,
+      "reason": "The Shopify Admin API version is not a literal Refit can verify and bump: LATEST_API_VERSION follows the installed Shopify package, so the version changes only with an SDK upgrade.",
+      "seconds": 0
+    },
+    {
+      "repo": "Shopify/tutorial-discount-functions-with-remix",
+      "commit": "2baa29e5d021b77f09e53cdd02897142c72fc11e",
+      "outcome": "stopped-already-failing",
+      "sdk": null,
+      "pins": [],
+      "before": "2026-01",
+      "target": "2026-10",
+      "adminCalls": 7,
+      "documents": 7,
+      "tracedDocuments": 7,
+      "unreadable": 0,
+      "rest": 0,
+      "checks": null,
+      "reason": "A Shopify GraphQL document already fails on Admin API 2026-01; fix it before any version upgrade.",
+      "seconds": 0
+    },
+    {
+      "repo": "dan-gamble/cloudflare-workers-remix-shopify",
+      "commit": "9a6add645ad99900b15797385d41dedcb142425c",
+      "outcome": "exceeds-scan-limits",
+      "sdk": null,
+      "pins": [],
+      "before": null,
+      "target": null,
+      "adminCalls": null,
+      "documents": null,
+      "tracedDocuments": null,
+      "unreadable": null,
+      "rest": null,
+      "checks": null,
+      "reason": "Repository exceeds scan limits (10,000 files, 2 MiB per file, 50 MiB total).",
+      "seconds": 0
+    },
+    {
+      "repo": "Stephnn0/shopify-email-marking-app-example",
+      "commit": "68d143b6f5cc6367bc15ea20c618d56563468522",
+      "outcome": "stopped-rest",
+      "sdk": null,
+      "pins": [],
+      "before": "2026-01",
+      "target": "2026-10",
+      "adminCalls": 0,
+      "documents": 0,
+      "tracedDocuments": 0,
+      "unreadable": 0,
+      "rest": 1,
+      "checks": null,
+      "reason": "The repository calls the REST Admin API, which has no published versioned contract; Refit cannot prove those calls survive the version change.",
+      "seconds": 0
+    },
+    {
+      "repo": "gruntlord5/cloudflare-react-router7-shopify-d1",
+      "commit": "828ad7c9194e946ecaa8e474c54e6e0d03ea4ef5",
+      "outcome": "stopped-sdk-upgrade",
+      "sdk": null,
+      "pins": [
+        "2025-01"
+      ],
+      "before": "2026-01",
+      "target": "2026-10",
+      "adminCalls": 2,
+      "documents": 2,
+      "tracedDocuments": 2,
+      "unreadable": 0,
+      "rest": 0,
+      "checks": null,
+      "reason": "@shopify/shopify-api (version not found in the lockfile) has no ApiVersion.October26; it first ships in 14.0.0. Upgrading the SDK is a separate, reviewed change.",
+      "seconds": 0
+    },
+    {
+      "repo": "Stephnn0/remix-youtube-tutorial",
+      "commit": "05e0423e28b7b48b561cd9a80554238092ae8504",
+      "outcome": "stopped-rest",
+      "sdk": null,
+      "pins": [],
+      "before": "2026-01",
+      "target": "2026-10",
+      "adminCalls": 3,
+      "documents": 3,
+      "tracedDocuments": 3,
+      "unreadable": 0,
+      "rest": 1,
+      "checks": null,
+      "reason": "The repository calls the REST Admin API, which has no published versioned contract; Refit cannot prove those calls survive the version change.",
+      "seconds": 0
+    },
+    {
+      "repo": "madeburo/GEO-AI-Shopify",
+      "commit": "317d32ac805bf38c1620a086afe187bb3d686c6a",
+      "outcome": "stopped-already-failing",
+      "sdk": "12.3.0",
+      "pins": [
+        "2025-01"
+      ],
+      "before": "2026-01",
+      "target": "2026-04",
+      "adminCalls": 20,
+      "documents": 16,
+      "tracedDocuments": 16,
+      "unreadable": 3,
+      "rest": 0,
+      "checks": null,
+      "reason": "A Shopify GraphQL document already fails on Admin API 2026-01; fix it before any version upgrade.",
+      "seconds": 0
+    },
+    {
+      "repo": "prowebcoder/shopify-app-tutorial",
+      "commit": "89141451b7ab618428f981d21efdb3a567c7f115",
+      "outcome": "no-admin-usage",
+      "sdk": null,
+      "pins": [],
+      "before": "2026-01",
+      "target": null,
+      "adminCalls": 0,
+      "documents": 0,
+      "tracedDocuments": 0,
+      "unreadable": 0,
+      "rest": 0,
+      "checks": null,
+      "reason": null,
+      "seconds": 0
+    },
+    {
+      "repo": "alexCevi/shopify-metaform-os",
+      "commit": "d90d327098f3bb62299ac2c949db127fb40fd78c",
+      "outcome": "stopped-sdk-upgrade",
+      "sdk": null,
+      "pins": [
+        "2025-10"
+      ],
+      "before": "2026-01",
+      "target": "2026-10",
+      "adminCalls": 12,
+      "documents": 12,
+      "tracedDocuments": 12,
+      "unreadable": 0,
+      "rest": 0,
+      "checks": null,
+      "reason": "@shopify/shopify-api (version not found in the lockfile) has no ApiVersion.October26; it first ships in 14.0.0. Upgrading the SDK is a separate, reviewed change.",
+      "seconds": 0
+    },
+    {
+      "repo": "christianmittler/shopify-react-extension",
+      "commit": "f7c7ae3293393c1cb13774a6a808029944235003",
+      "outcome": "stopped-dynamic-pin",
+      "sdk": null,
+      "pins": [],
+      "before": "2026-01",
+      "target": "2026-10",
+      "adminCalls": 1,
+      "documents": 1,
+      "tracedDocuments": 1,
+      "unreadable": 0,
+      "rest": 0,
+      "checks": null,
+      "reason": "The Shopify Admin API version is not a literal Refit can verify and bump: LATEST_API_VERSION follows the installed Shopify package, so the version changes only with an SDK upgrade.",
+      "seconds": 0
+    },
+    {
+      "repo": "Lightspace-dev/shopify-remix-app-template",
+      "commit": "01fe63d736ccc49ede0d2c361c8b7a717ca5f9fa",
+      "outcome": "stopped-sdk-upgrade",
+      "sdk": "11.8.1",
+      "pins": [
+        "2025-01"
+      ],
+      "before": "2026-01",
+      "target": "2026-10",
+      "adminCalls": 0,
+      "documents": 0,
+      "tracedDocuments": 0,
+      "unreadable": 0,
+      "rest": 0,
+      "checks": null,
+      "reason": "LATEST_API_VERSION is 2025-01 in @shopify/shopify-api 11.8.1, and only an SDK upgrade changes it. ApiVersion.October26 first ships in 14.0.0, a separate, reviewed SDK upgrade.",
+      "seconds": 0
+    },
+    {
+      "repo": "edmondso006/shopify-remix-i18n-blog-post",
+      "commit": "43bc13ae699b4d419549efab80a2a3f105588f71",
+      "outcome": "stopped-sdk-upgrade",
+      "sdk": "11.6.0",
+      "pins": [
+        "2024-10"
+      ],
+      "before": "2026-01",
+      "target": "2026-10",
+      "adminCalls": 0,
+      "documents": 0,
+      "tracedDocuments": 0,
+      "unreadable": 0,
+      "rest": 0,
+      "checks": null,
+      "reason": "LATEST_API_VERSION is 2024-10 in @shopify/shopify-api 11.6.0, and only an SDK upgrade changes it. ApiVersion.October26 first ships in 14.0.0, a separate, reviewed SDK upgrade.",
+      "seconds": 0
+    },
+    {
+      "repo": "hookdeck/shopify-festive-notifications",
+      "commit": "a250e19f2eac1a4ba34cc87409d88cacdf264c2d",
+      "outcome": "stopped-sdk-upgrade",
+      "sdk": "11.6.0",
+      "pins": [
+        "2024-10"
+      ],
+      "before": "2026-01",
+      "target": "2026-10",
+      "adminCalls": 1,
+      "documents": 1,
+      "tracedDocuments": 1,
+      "unreadable": 0,
+      "rest": 0,
+      "checks": null,
+      "reason": "LATEST_API_VERSION is 2024-10 in @shopify/shopify-api 11.6.0, and only an SDK upgrade changes it. ApiVersion.October26 first ships in 14.0.0, a separate, reviewed SDK upgrade.",
+      "seconds": 0
+    },
+    {
+      "repo": "tomhooker/Post-Purchase-Extension",
+      "commit": "192041bdeabe25a0ea9ced2b9e6aa2385064ce1e",
+      "outcome": "stopped-runtime-document",
+      "sdk": null,
+      "pins": [
+        "2024-01"
+      ],
+      "before": "2026-01",
+      "target": "2026-10",
+      "adminCalls": 2,
+      "documents": 1,
+      "tracedDocuments": 1,
+      "unreadable": 1,
+      "rest": 0,
+      "checks": null,
+      "reason": "Refit cannot read an Admin API call's GraphQL document statically, so it cannot prove it works on Admin API 2026-10.",
+      "seconds": 0
+    },
+    {
+      "repo": "Hujjat/easy-product-recommendations",
+      "commit": "e59b2fc532234d762cb2117fb6d827b2968b0098",
+      "outcome": "stopped-runtime-document",
+      "sdk": "12.3.0",
+      "pins": [
+        "2025-10"
+      ],
+      "before": "2026-01",
+      "target": "2026-04",
+      "adminCalls": 9,
+      "documents": 8,
+      "tracedDocuments": 8,
+      "unreadable": 1,
+      "rest": 0,
+      "checks": null,
+      "reason": "Refit cannot read an Admin API call's GraphQL document statically, so it cannot prove it works on Admin API 2026-04.",
+      "seconds": 0
+    },
+    {
+      "repo": "terza98/shopify-app-starter-workers-d1",
+      "commit": "11785cef6e8a415b3d6f0d42a333cf90acf48867",
+      "outcome": "current-for-sdk",
+      "sdk": "12.3.0",
+      "pins": [
+        "2026-04"
+      ],
+      "before": "2026-04",
+      "target": "2026-10",
+      "adminCalls": 2,
+      "documents": 2,
+      "tracedDocuments": 2,
+      "unreadable": 0,
+      "rest": 0,
+      "checks": null,
+      "reason": "@shopify/shopify-api 12.3.0 has no ApiVersion.October26; it first ships in 14.0.0. Upgrading the SDK is a separate, reviewed change.",
+      "seconds": 0
+    },
+    {
+      "repo": "tuminfei/ic_nft_creater",
+      "commit": "fdce55dec54856afe212edf336921d41a09ceee2",
+      "outcome": "stopped-rest",
+      "sdk": "9.0.2",
+      "pins": [
+        "2024-01"
+      ],
+      "before": "2026-01",
+      "target": "2026-10",
+      "adminCalls": 1,
+      "documents": 3,
+      "tracedDocuments": 1,
+      "unreadable": 0,
+      "rest": 1,
+      "checks": null,
+      "reason": "The repository calls the REST Admin API, which has no published versioned contract; Refit cannot prove those calls survive the version change.",
+      "seconds": 0
+    },
+    {
+      "repo": "angryred027/Remix-Shopify",
+      "commit": "a71b6b92d3cc21bfea1efd25732a4c763cc9b8d3",
+      "outcome": "stopped-sdk-upgrade",
+      "sdk": "11.1.0",
+      "pins": [
+        "2024-04",
+        "2024-07"
+      ],
+      "before": "2026-01",
+      "target": "2026-10",
+      "adminCalls": 0,
+      "documents": 0,
+      "tracedDocuments": 0,
+      "unreadable": 0,
+      "rest": 0,
+      "checks": null,
+      "reason": "LATEST_API_VERSION is 2024-07 in @shopify/shopify-api 11.1.0, and only an SDK upgrade changes it. ApiVersion.October26 first ships in 14.0.0, a separate, reviewed SDK upgrade.",
+      "seconds": 0
+    },
+    {
+      "repo": "markusvoigt/market_discount_full_app",
+      "commit": "3b1c9211084da77f72c47f69f2118d6931ab0e75",
+      "outcome": "stopped-dynamic-pin",
+      "sdk": null,
+      "pins": [
+        "2025-04"
+      ],
+      "before": "2026-01",
+      "target": "2026-10",
+      "adminCalls": 10,
+      "documents": 11,
+      "tracedDocuments": 11,
+      "unreadable": 0,
+      "rest": 0,
+      "checks": null,
+      "reason": "The Shopify Admin API version is not a literal Refit can verify and bump: ApiVersion.Unstable is not a dated Admin API version.",
+      "seconds": 0
+    },
+    {
+      "repo": "Shopify/ai-agent-partner-sales-channel-template",
+      "commit": "1e71c916e9c4abb019bb763bdb5af5a9c64a0c38",
+      "outcome": "current-for-sdk",
+      "sdk": "12.3.0",
+      "pins": [
+        "2026-04"
+      ],
+      "before": "2026-04",
+      "target": "2026-10",
+      "adminCalls": 4,
+      "documents": 4,
+      "tracedDocuments": 4,
+      "unreadable": 0,
+      "rest": 0,
+      "checks": null,
+      "reason": "@shopify/shopify-api 12.3.0 has no ApiVersion.October26; it first ships in 14.0.0. Upgrading the SDK is a separate, reviewed change.",
+      "seconds": 0
+    },
+    {
+      "repo": "Shopify/editions-dev-2024-workshop-customer-account",
+      "commit": "24b51d3dc82509f723b89e71a969de7e47170cd1",
+      "outcome": "stopped-already-failing",
+      "sdk": "11.0.1",
+      "pins": [
+        "2024-04"
+      ],
+      "before": "2026-01",
+      "target": "2026-10",
+      "adminCalls": 2,
+      "documents": 2,
+      "tracedDocuments": 2,
+      "unreadable": 0,
+      "rest": 0,
+      "checks": null,
+      "reason": "A Shopify GraphQL document already fails on Admin API 2026-01; fix it before any version upgrade.",
+      "seconds": 0
+    },
+    {
+      "repo": "tungbinzzz/instagram-app-shopify",
+      "commit": "e1b0e4a05c0a4207a348625e4f0f81d18210e6f5",
+      "outcome": "stopped-rest",
+      "sdk": "11.6.0",
+      "pins": [
+        "2024-10"
+      ],
+      "before": "2026-01",
+      "target": "2026-10",
+      "adminCalls": 2,
+      "documents": 2,
+      "tracedDocuments": 2,
+      "unreadable": 0,
+      "rest": 16,
+      "checks": null,
+      "reason": "The repository calls the REST Admin API, which has no published versioned contract; Refit cannot prove those calls survive the version change.",
+      "seconds": 0
+    },
+    {
+      "repo": "Akmal1255553/startup1",
+      "commit": "063cfa8c658311156f1f7e7a3a8ccbdb6ea4d1f9",
+      "outcome": "stopped-runtime-document",
+      "sdk": "12.3.0",
+      "pins": [
+        "2025-01"
+      ],
+      "before": "2026-01",
+      "target": "2026-04",
+      "adminCalls": 8,
+      "documents": 9,
+      "tracedDocuments": 9,
+      "unreadable": 4,
+      "rest": 0,
+      "checks": null,
+      "reason": "Refit cannot read an Admin API call's GraphQL document statically, so it cannot prove it works on Admin API 2026-04.",
+      "seconds": 1
+    },
+    {
+      "repo": "ar1579/AI_Product_Content_Generator",
+      "commit": "7aead4799e8daaab49cf6ae16d7cf3c7cb39db1b",
+      "outcome": "stopped-sdk-upgrade",
+      "sdk": "12.0.0",
+      "pins": [
+        "2025-10"
+      ],
+      "before": "2026-01",
+      "target": "2026-10",
+      "adminCalls": 2,
+      "documents": 2,
+      "tracedDocuments": 2,
+      "unreadable": 0,
+      "rest": 0,
+      "checks": null,
+      "reason": "@shopify/shopify-api 12.0.0 has no ApiVersion.October26; it first ships in 14.0.0. Upgrading the SDK is a separate, reviewed change.",
+      "seconds": 0
+    },
+    {
+      "repo": "arsalan-arshad/Ai-Agent-Shopify-App",
+      "commit": "62d2a839734aacd82d346ab2cb0b21e2dbb6d787",
+      "outcome": "current",
+      "sdk": "15.0.0",
+      "pins": [
+        "2026-10"
+      ],
+      "before": "2026-10",
+      "target": "2026-10",
+      "adminCalls": 3,
+      "documents": 3,
+      "tracedDocuments": 3,
+      "unreadable": 0,
+      "rest": 0,
+      "checks": null,
+      "reason": "The code already pins Admin API 2026-10.",
+      "seconds": 0
+    },
+    {
+      "repo": "aura-historia/shopify-app",
+      "commit": "0da78690c8ee22609eb81ee3be5a5de5f2f82b18",
+      "outcome": "current",
+      "sdk": "15.0.1",
+      "pins": [
+        "2026-10"
+      ],
+      "before": "2026-10",
+      "target": "2026-10",
+      "adminCalls": 1,
+      "documents": 3,
+      "tracedDocuments": 3,
+      "unreadable": 1,
+      "rest": 0,
+      "checks": null,
+      "reason": "Refit cannot read an Admin API call's GraphQL document statically, so it cannot prove it works on Admin API 2026-10.",
+      "seconds": 0
+    },
+    {
+      "repo": "chandandadhekar/ListAI-V2",
+      "commit": "4918509b1a3bd7e1d6b99b838e43d70328b62145",
+      "outcome": "stopped-rest",
+      "sdk": "11.4.1",
+      "pins": [
+        "2024-10",
+        "2024-07"
+      ],
+      "before": "2026-01",
+      "target": "2026-10",
+      "adminCalls": 3,
+      "documents": 3,
+      "tracedDocuments": 3,
+      "unreadable": 0,
+      "rest": 1,
+      "checks": null,
+      "reason": "The repository calls the REST Admin API, which has no published versioned contract; Refit cannot prove those calls survive the version change.",
+      "seconds": 0
+    },
+    {
+      "repo": "ersinkoc/CouponEngine",
+      "commit": "a2f4d5a0f1dbb7fad776d30e32eb4a44143cdb71",
+      "outcome": "stopped-runtime-document",
+      "sdk": "12.3.0",
+      "pins": [
+        "2024-10"
+      ],
+      "before": "2026-01",
+      "target": "2026-04",
+      "adminCalls": 3,
+      "documents": 0,
+      "tracedDocuments": 0,
+      "unreadable": 3,
+      "rest": 0,
+      "checks": null,
+      "reason": "Refit cannot read an Admin API call's GraphQL document statically, so it cannot prove it works on Admin API 2026-04.",
+      "seconds": 0
+    },
+    {
+      "repo": "Leilanigreer/lpc-product-manager",
+      "commit": "fd0627a0b6489148dfd2eacaf29817f370752543",
+      "outcome": "stopped-sdk-upgrade",
+      "sdk": "11.10.0",
+      "pins": [
+        "2024-10",
+        "2025-01"
+      ],
+      "before": "2026-01",
+      "target": "2026-10",
+      "adminCalls": 60,
+      "documents": 61,
+      "tracedDocuments": 61,
+      "unreadable": 0,
+      "rest": 0,
+      "checks": null,
+      "reason": "LATEST_API_VERSION is 2025-01 in @shopify/shopify-api 11.10.0, and only an SDK upgrade changes it. ApiVersion.October26 first ships in 14.0.0, a separate, reviewed SDK upgrade.",
+      "seconds": 1
+    },
+    {
+      "repo": "sachin21kumar/Infinite-bundler",
+      "commit": "97af7f111cc8ab4c54c77b3bc0e66831fc97dd2c",
+      "outcome": "stopped-sdk-upgrade",
+      "sdk": "11.7.0",
+      "pins": [
+        "2024-10"
+      ],
+      "before": "2026-01",
+      "target": "2026-10",
+      "adminCalls": 6,
+      "documents": 6,
+      "tracedDocuments": 6,
+      "unreadable": 0,
+      "rest": 0,
+      "checks": null,
+      "reason": "LATEST_API_VERSION is 2024-10 in @shopify/shopify-api 11.7.0, and only an SDK upgrade changes it. ApiVersion.October26 first ships in 14.0.0, a separate, reviewed SDK upgrade.",
+      "seconds": 0
+    },
+    {
+      "repo": "samirjabib/shopify-apps-convex-template",
+      "commit": "acb8dcd6a42004298433286f69e8252570b5a95e",
+      "outcome": "patched-validated",
+      "sdk": "13.0.0",
+      "pins": [
+        "2025-10"
+      ],
+      "before": "2026-01",
+      "target": "2026-04",
+      "adminCalls": 0,
+      "documents": 0,
+      "tracedDocuments": 0,
+      "unreadable": 0,
+      "rest": 0,
+      "checks": "tests",
+      "reason": "Baseline and patched checks passed. Review artifacts are ready; publication was not requested.",
+      "seconds": 24
+    },
+    {
+      "repo": "serebano/busymate-ai-connector-shopify",
+      "commit": "11cde8c19b017988c9b3609a3b9e405f665ca273",
+      "outcome": "stopped-already-failing",
+      "sdk": "14.0.1",
+      "pins": [
+        "2026-07"
+      ],
+      "before": "2026-07",
+      "target": "2026-10",
+      "adminCalls": 26,
+      "documents": 25,
+      "tracedDocuments": 19,
+      "unreadable": 1,
+      "rest": 0,
+      "checks": null,
+      "reason": "A Shopify GraphQL document already fails on Admin API 2026-07; fix it before any version upgrade.",
+      "seconds": 0
+    },
+    {
+      "repo": "Shopify/editions-dev-2k-variants",
+      "commit": "370b6811dd84a0874f0a5111c681525366dca135",
+      "outcome": "stopped-rest",
+      "sdk": null,
+      "pins": [
+        "2023-07"
+      ],
+      "before": "2026-01",
+      "target": "2026-10",
+      "adminCalls": 0,
+      "documents": 0,
+      "tracedDocuments": 0,
+      "unreadable": 0,
+      "rest": 3,
+      "checks": null,
+      "reason": "The repository calls the REST Admin API, which has no published versioned contract; Refit cannot prove those calls survive the version change.",
+      "seconds": 0
+    },
+    {
+      "repo": "tmtuan04/qr-code-product-remix",
+      "commit": "14bee1e1a601a10507a8a95412cac3a0757d0f1d",
+      "outcome": "stopped-sdk-upgrade",
+      "sdk": "11.12.0",
+      "pins": [
+        "2025-01",
+        "2025-04"
+      ],
+      "before": "2026-01",
+      "target": "2026-10",
+      "adminCalls": 0,
+      "documents": 0,
+      "tracedDocuments": 0,
+      "unreadable": 0,
+      "rest": 0,
+      "checks": null,
+      "reason": "LATEST_API_VERSION is 2025-04 in @shopify/shopify-api 11.12.0, and only an SDK upgrade changes it. ApiVersion.October26 first ships in 14.0.0, a separate, reviewed SDK upgrade.",
+      "seconds": 0
+    },
+    {
+      "repo": "Yespo-CDP/yespo-shopify",
+      "commit": "3eefb11a5e85e6a32079a70329da95dc74d73c1e",
+      "outcome": "stopped-dynamic-pin",
+      "sdk": "14.0.0",
+      "pins": [
+        "2026-04",
+        "2025-07"
+      ],
+      "before": "2026-01",
+      "target": "2026-10",
+      "adminCalls": 17,
+      "documents": 18,
+      "tracedDocuments": 18,
+      "unreadable": 0,
+      "rest": 0,
+      "checks": null,
+      "reason": "The Shopify Admin API version is not a literal Refit can verify and bump: LATEST_API_VERSION follows the installed Shopify package, so the version changes only with an SDK upgrade.",
+      "seconds": 0
+    },
+    {
+      "repo": "aargonlab/Self-Service-Returns",
+      "commit": "788a25a0379afadd9d0250759e0a84e8a8dd5805",
+      "outcome": "current-for-sdk",
+      "sdk": "13.0.0",
+      "pins": [
+        "2026-04"
+      ],
+      "before": "2026-04",
+      "target": "2026-10",
+      "adminCalls": 16,
+      "documents": 14,
+      "tracedDocuments": 14,
+      "unreadable": 0,
+      "rest": 0,
+      "checks": null,
+      "reason": "@shopify/shopify-api 13.0.0 has no ApiVersion.October26; it first ships in 14.0.0. Upgrading the SDK is a separate, reviewed change.",
+      "seconds": 0
+    },
+    {
+      "repo": "AbsoluteWebServices/shopify-app-react-cf",
+      "commit": "96df4983927aecf4a3b7cc3da001ce557500f158",
+      "outcome": "stopped-dynamic-pin",
+      "sdk": "11.13.0",
+      "pins": [
+        "2025-04"
+      ],
+      "before": "2026-01",
+      "target": "2026-10",
+      "adminCalls": 2,
+      "documents": 2,
+      "tracedDocuments": 2,
+      "unreadable": 0,
+      "rest": 0,
+      "checks": null,
+      "reason": "The Shopify Admin API version is not a literal Refit can verify and bump: apiVersion is set from apiVersion, which Refit cannot resolve statically.",
+      "seconds": 0
+    },
+    {
+      "repo": "alistairmartin/honey-birdette-checkout-amd",
+      "commit": "293d32151ae9d7aac3bf4ccae143470cf21ee79c",
+      "outcome": "stopped-runtime-document",
+      "sdk": "13.0.0",
+      "pins": [
+        "2026-01"
+      ],
+      "before": "2026-01",
+      "target": "2026-04",
+      "adminCalls": 37,
+      "documents": 93,
+      "tracedDocuments": 87,
+      "unreadable": 7,
+      "rest": 0,
+      "checks": null,
+      "reason": "Refit cannot read an Admin API call's GraphQL document statically, so it cannot prove it works on Admin API 2026-04.",
+      "seconds": 0
+    },
+    {
+      "repo": "bloomreach/shopify-discovery-connector-v2",
+      "commit": "141b84aced67c74bb54b58f2b3e40db90f4c06dc",
+      "outcome": "stopped-runtime-document",
+      "sdk": null,
+      "pins": [],
+      "before": "2026-01",
+      "target": "2026-10",
+      "adminCalls": 11,
+      "documents": 9,
+      "tracedDocuments": 8,
+      "unreadable": 4,
+      "rest": 1,
+      "checks": null,
+      "reason": "Refit cannot read an Admin API call's GraphQL document statically, so it cannot prove it works on Admin API 2026-10.",
+      "seconds": 0
+    }
+  ]
+}

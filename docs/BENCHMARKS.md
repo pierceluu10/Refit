@@ -4,6 +4,8 @@ Every number here comes from real public repositories, frozen before the run tha
 
 **Latest (October 21):** the active-teams set has its first validated fix, published as a draft PR: [refit-dev/Signl#1](https://github.com/refit-dev/Signl/pull/1). A second, [refit-dev/pci-update#1](https://github.com/refit-dev/pci-update/pull/1), passed its checks and is published as a `[Needs review]` draft because one read is untraced. A third, [refit-dev/wedillybird#1](https://github.com/refit-dev/wedillybird/pull/1), passed its 8 Stripe-related unit test files (operator-chosen, since the full suite exceeds the 120-second limit) and is published the same way, with 8 untraced `.description` reads on its own objects. [refit-dev/insightly#1](https://github.com/refit-dev/insightly/pull/1) is published under the #88 waiver and reviewed as incomplete: it fixes the removed subscription and invoice reads but leaves `payment_method_types`, which needs the stripe-node upgrade its `@types/node` 18 blocks. [refit-dev/BrainTrain-#1](https://github.com/refit-dev/BrainTrain-/pull/1) is an untested `[Needs review]` draft under the same waiver: its lockfile lacks integrity hashes, so dependencies were never installed, but the patch is the complete card rule. [refit-dev/ampertalent#1](https://github.com/refit-dev/ampertalent/pull/1) is untested for the same reason (its lockfile and `package.json` disagree) and lists 233 unresolved reads. [refit-dev/niore-platform#1](https://github.com/refit-dev/niore-platform/pull/1) passed `pnpm test` before and after, after [#156](https://github.com/pierceluu10/Refit/pull/156) (owner decision, 2026-10-21) traced its `lazy(() => new Stripe(...))` Proxy clients, so the shared `STRIPE_API_VERSION` could move. With factory tracing, 21 of the 66 active-team repositories are affected, against 11 on October 16; see [the full rescan](#full-rescan-of-the-active-teams-set-october-21).
 
+**October 22:** a no-AI baseline at `7b2c86a`, before the overnight merges, validated 9 of the held-out 50 Stripe repositories and reproduced the published Shopify original-50 counts. See [the baseline](#local-baseline-at-7b2c86a-october-22).
+
 **Also October 21:** on the 40 affected repositories Refit did not fix, a sandboxed Codex agent (`gpt-5.6-sol`) got 8 patches through Refit's validation; 1 was correct, and 7 silently dropped `payment_method_types`. See [the comparison](#a-coding-agent-on-the-repositories-refit-did-not-fix-october-21).
 
 **October 16 (unreleased):** validated Stripe fixes rose from 53 to **74** on the same 531 repositories after the stripe-node upgrade gained pnpm and Yarn 1, and a new active-teams set (66 repositories) shows that client factories, not fix logic, limit Refit on current code. See [the section below](#stripe-node-upgrade-for-pnpm-and-yarn-and-the-active-teams-set-october-16).
@@ -25,6 +27,36 @@ Every number here comes from real public repositories, frozen before the run tha
 - **Real breakage is common and precise.** 24 of 200 fresh Shopify apps (12%) send a query that fails on every Admin API version Shopify serves today, each at an exact line. 51 of 381 fresh Stripe apps (13%) also send an OpenAI model that OpenAI retires on 2026-10-23.
 - **Outcomes are deterministic.** Repeat runs matched 381 of 381 fresh Stripe repositories, 200 of 200 fresh Shopify apps and 150 of 150 earlier Stripe repositories (publication aside). Since the `payment_method_types` stop, no outcome depends on AI sampling.
 - **AI was almost never needed:** **$0.02** across every Stripe run in this release. Deterministic rules made every validated fix.
+
+## Local baseline at `7b2c86a` (October 22)
+
+A baseline for the overnight merges: the Stripe held-out 50 and the Shopify original 50, run with the real CLI from a pinned worktree of `main` at `7b2c86a`. It used deterministic rules and offline Docker validation only, with no AI and no publication. AWS EC2 launches were denied by an organization policy, so both sets ran on a laptop while other sessions merged pull requests. Timings are noisy; compare outcomes. Per-repository results, each with its exact command and image digests: [Stripe](benchmarks/2026-10-22-stripe-heldout-results.json), [Shopify](benchmarks/2026-10-22-shopify-results.json).
+
+| Stripe held-out 50 | Repositories |
+|---|---|
+| No mapped Stripe method, or no SDK call | 8 |
+| Not affected | 18 |
+| **Affected** | **24** |
+| … **validated** (7 by `tsc`, 2 by generated `stripe-mock` checks only) | **9** |
+| … checks passed, untraced reads left unresolved | 5 |
+| … stopped: sends a removed request parameter | 3 |
+| … refused at dependency preparation | 3 |
+| … no root lockfile, so no workflow runs without `--ai` | 3 |
+| … no deterministic rule, and AI was off | 1 |
+
+- **Nine validated, as on October 16, but not the same nine.** That run (`7238e46`) used `--ai`.
+  - New: `siavashsk/spotify-clone` was a validation regression and now adds no type errors. `adrianhorning08/web-scraping-course-app` and `manfraio/stripe_elements_customized_card_form` stopped on `payment_method_types`; they now take the card rule, checked only by generated `stripe-mock` checks.
+  - Lost: `Devanshjain2110/QueryPDF`, `ryananhtuan-nguyen/quill` and `mwangimuringi/BlogNest` pass their checks but leave 5, 5 and 8 untraced reads. Since the owner decision of 2026-10-21 these count as unresolved.
+- **Other changes from October 16.**
+  - `utsavkrishnatra/pdf_answers` was refused at preparation; it now passes its checks with 4 unresolved reads.
+  - `LucasKlemke/StudMed` stopped on a removed request parameter; it is now refused at preparation (pnpm registry declarations).
+  - `zjx-artcc/website` had no mapped calls; it is now affected and refused (dependency archive over 1 GiB).
+  - `Sanjdcool/ApanStack-Newsletter` failed its baseline; it now stops before validation, with no deterministic rule and AI off.
+  - `Codehagen/social-forge` and `durunsong/yoyo_mall` now map their calls and are not affected.
+- **Coverage.** Refit traced 231 of 314 likely Stripe calls. The run took 22 minutes.
+- **Shopify matches the published counts.** On the original 50 the outcome counts and the 350 traced documents equal the [Shopify table](#shopify): 1 patched and validated (`samirjabib/shopify-apps-convex-template`, `npm test`), 6 current, 15 SDK upgrade, 6 REST, 6 runtime document, 5 already failing, 7 dynamic pin and 4 other. Against the per-repository October 20 file, 48 of 50 labels match. The other two are the raw `graphql.json` requests that moved from REST to unread documents, as described below the table.
+- **Shopify schemas changed.** All four served Admin schemas (`2026-01` to `2026-10`) now differ from the SHA-256 pinned in the frozen list, so the setup script refused them. The run used the schemas served on October 22, recorded by hash in the results file, and the post-merge rerun will use the same files. As on October 20, these results compare runs with each other, not with the pinned introspection.
+- **Not measured:** AI patches, publication, a repeat run, and the fresh and original Stripe sets.
 
 ## A coding agent on the repositories Refit did not fix (October 21)
 
