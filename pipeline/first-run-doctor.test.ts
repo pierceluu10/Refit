@@ -91,6 +91,12 @@ it('sends a new user to refit agents when the repository has no .refit.json', as
   expect(lines.at(-1)).toBe(
     'Doctor only reads files: it runs no code, installs and downloads nothing, and the configuration is not approved or activated. Passing checks permit a validation attempt, not proof the migration is correct.',
   );
+  expect(
+    (await inspectRepositoryReadiness({ repository: join(app, 'typo') })).checks[0],
+  ).toMatchObject({
+    detail: `${join(app, 'typo')} does not exist.`,
+    action: 'Check the --repository path, or run refit doctor from inside the repository.',
+  });
   const missing = join(app, 'elsewhere.json');
   expect((await inspectRepositoryReadiness({ config: missing })).checks[0]).toMatchObject({
     detail: `${missing} does not exist.`,

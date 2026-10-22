@@ -122,16 +122,24 @@ export async function inspectRepositoryReadiness(options: {
     (error: unknown) => hasErrorCode(error, 'ENOENT') || hasErrorCode(error, 'ENOTDIR'),
   );
   if (missing) {
+    const repositoryExists = await lstat(dirname(configurationPath)).then(
+      () => true,
+      () => false,
+    );
     report.checks.push({
       id: 'configuration',
       title: 'Workflow configuration',
       status: 'blocked',
       detail: options.config
         ? `${configurationPath} does not exist.`
-        : `No ${REPOSITORY_CONFIGURATION} in ${dirname(configurationPath)} yet.`,
+        : repositoryExists
+          ? `No ${REPOSITORY_CONFIGURATION} in ${dirname(configurationPath)} yet.`
+          : `${dirname(configurationPath)} does not exist.`,
       action: options.config
         ? `Check the --config path, or omit --config to use the repository's ${REPOSITORY_CONFIGURATION}.`
-        : `Run refit agents to see which provider agents apply, then refit agents --add <id> to write ${REPOSITORY_CONFIGURATION}.`,
+        : repositoryExists
+          ? `Run refit agents to see which provider agents apply, then refit agents --add <id> to write ${REPOSITORY_CONFIGURATION}.`
+          : 'Check the --repository path, or run refit doctor from inside the repository.',
     });
     return report;
   }
