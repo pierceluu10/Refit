@@ -45,6 +45,7 @@ import {
   openEnumRepair,
 } from './stripe-open-enums.ts';
 import { SUBSCRIPTION_PERIOD_RULE } from './stripe-subscription-periods.ts';
+import { selectValidationRuntime } from './validation-runtime.ts';
 import {
   dockerSandboxArguments,
   removeDockerContainer,
@@ -517,7 +518,8 @@ export async function validateMigration(options: {
   const git = (args: string[]) =>
     command('git', ['-c', 'core.fsmonitor=false', '-C', repository, ...args]);
   const { revision, entries } = snapshot;
-  const image = await resolveDockerImage(options.image);
+  const runtime = await selectValidationRuntime(snapshot, options.image);
+  const image = await resolveDockerImage(runtime.image);
   const root = await mkdtemp(join(tmpdir(), 'refit-validation-'));
   try {
     const { archive, archiveHash, baselineDirectory } = await extractSnapshot(
@@ -967,6 +969,7 @@ export async function validateMigration(options: {
       status: validationStatus,
       revision,
       image,
+      runtime,
       ...(environment ? { environment } : {}),
       ...(dependencyFailure ? { dependencyFailure } : {}),
       ...(candidateEnvironment ? { patchedEnvironment: candidateEnvironment } : {}),
@@ -1018,7 +1021,8 @@ export async function validateSourcePatch(options: {
   const baselineCommand = validateCheckCommand(options.baselineCommand ?? options.command);
   const snapshot = await readCommittedRepository(options.repository);
   const { revision, entries } = snapshot;
-  const image = await resolveDockerImage(options.image);
+  const runtime = await selectValidationRuntime(snapshot, options.image);
+  const image = await resolveDockerImage(runtime.image);
   const root = await mkdtemp(join(tmpdir(), 'refit-source-patch-'));
   try {
     const { archive, archiveHash, baselineDirectory } = await extractSnapshot(
@@ -1096,6 +1100,7 @@ export async function validateSourcePatch(options: {
       status: checkStatus(baseline, patched),
       revision,
       image,
+      runtime,
       ...(environment ? { environment } : {}),
       ...(candidateEnvironment ? { candidateEnvironment } : {}),
       command: options.command,
