@@ -280,10 +280,19 @@ Every alert and CLI result states one of three outcomes:
 - **Agent available:** Refit ships an agent for the provider, currently OpenAI's preview adapter and the built-in Shopify agent. The alert gives `refit agents --add <id>` and the enrollment steps.
 - **No agent yet:** currently Meta, Anthropic and Gemini. The alert says so and points to the provider's guide. Anthropic's adapter exists for model replacement proposals, but it is not in the agent catalog because Anthropic publishes no contract that `refit run` could compare.
 
+### Sourced model parameters
+
+`data/model-parameters.json` records, per replacement model, what an official provider page read on `checkedAt` says it accepts. Each entry has `provider`, `model`, `parameters` (per parameter `accepts` of `any`, `default-only` or `none`, with `min` and `max`, `default`, or `renamedTo` where they apply), a `source` and, whenever a default is given, a `defaultSource`. Every URL must be https on an official OpenAI or Anthropic host. The table is off by default (owner decision, 2026-10-22): only `refit deadlines --propose-model-fixes --parameters <path>` reads it, and without it the heuristic below applies to every replacement. Any error rejects the whole file, and that command then stops instead of falling back to an empty table. Check it with `npm run model-parameters:check`. Nothing runs, installs or contacts a provider.
+
+Only a number written directly in the request, optionally signed, is compared with the table. Constants and expressions are not followed. A renamed parameter, such as `max_tokens` on `o3`, stops with a reason naming the new parameter and is never rewritten.
+
+With the shipped table passed, only a literal `temperature: 1` on a `claude-sonnet-5-5` replacement continues. For replacements with a table entry, the table decides each parameter, and everything it does not prove keeps stopping (`top_p` and `top_k` on `claude-sonnet-5-5`, for example). For replacements without an entry the earlier heuristic is unchanged: Claude 4.7-and-later replacements, such as Opus 4.8, stop on `temperature`, `top_p` and `top_k`; earlier ones, such as `claude-haiku-4-5-20251001`, continue; every OpenAI replacement stops on its sensitive parameters. A computed property name in the request stops in both paths. Entries come only from official pages someone read. See AGENTS.md.
+
 A deadline starts a code change only through [automatic model fixes](#automatic-model-fixes), which the service runs when `--model-fixes` is on. Every other migration starts from contract changes, approved configuration and the existing gates.
 
 ## Limits
 
+- Parameter values are read only as numeric literals. Renamed parameters are never rewritten. Fixture tests of the parameter rule do not exercise a live provider.
 - Only JavaScript and TypeScript source is scanned. Models named in environment files, YAML or other languages are not found. Values built at runtime are invisible.
 - Shopify package versions are not mapped to the API version they default to, and Shopify versions older than 2025-04 are not in the registry yet.
 - A version held in a constant or an environment-variable fallback, such as `SHOPIFY_API_VERSION = '2025-07'`, and the Meta JS SDK's `FB.init({ version })` are not read.

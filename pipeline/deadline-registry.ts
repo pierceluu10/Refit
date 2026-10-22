@@ -13,8 +13,9 @@ const PROVIDERS = new Set([
   'gemini',
   'slack',
   'cloudflare',
+  'github',
 ]);
-const KINDS = new Set(['api-version', 'model', 'sdk', 'method', 'endpoint']);
+const KINDS = new Set(['api-version', 'model', 'sdk', 'method', 'endpoint', 'field']);
 const ENTRY_KEYS = [
   'id',
   'provider',
@@ -33,15 +34,23 @@ const MILLISECONDS_PER_DAY = 86_400_000;
 
 // One reviewed sunset: the date a provider stops serving these API versions or models, or ends
 // support for these SDK packages (`kind: 'sdk'`, whose versions are npm package names) or retires
-// these API methods (`kind: 'method'`, whose versions are method names such as `files.upload`) or
-// HTTP endpoints (`kind: 'endpoint'`, whose versions read `GET /zones/{zone_id}/settings`), with the
-// page it came from and the day a person last checked that page. `derivedDate` marks a date the
-// provider never announced as a shutdown, such as one taken from a release date or an OpenAPI eol
-// field.
+// these API methods (`kind: 'method'`, whose versions are method names such as `files.upload`),
+// HTTP endpoints (`kind: 'endpoint'`, whose versions read `GET /zones/{zone_id}/settings`) or
+// GraphQL fields (`kind: 'field'`, whose versions read `Type.field`), with the page it came from
+// and the day a person last checked that page. `derivedDate` marks a date the provider never
+// announced as a shutdown, such as one taken from a release date or an OpenAPI eol field.
 export interface DeadlineEntry {
   id: string;
-  provider: 'shopify' | 'meta-graph' | 'openai' | 'anthropic' | 'gemini' | 'slack' | 'cloudflare';
-  kind: 'api-version' | 'model' | 'sdk' | 'method' | 'endpoint';
+  provider:
+    | 'shopify'
+    | 'meta-graph'
+    | 'openai'
+    | 'anthropic'
+    | 'gemini'
+    | 'slack'
+    | 'cloudflare'
+    | 'github';
+  kind: 'api-version' | 'model' | 'sdk' | 'method' | 'endpoint' | 'field';
   versions: string[];
   date: string;
   summary: string;
@@ -61,7 +70,7 @@ export function reportOnly(entry: DeadlineEntry) {
   return entry.derivedDate === true || REPORT_ONLY_KINDS.has(entry.kind);
 }
 
-function validDate(value: unknown): value is string {
+export function validDate(value: unknown): value is string {
   if (typeof value !== 'string' || !ISO_DATE.test(value)) return false;
   return new Date(`${value}T00:00:00Z`).toISOString().startsWith(value);
 }

@@ -25,6 +25,11 @@ import {
   readDeadlineIgnores,
   type DeadlineIgnore,
 } from './deadline-ignores.ts';
+import {
+  checkModelParameters,
+  DEFAULT_MODEL_PARAMETERS,
+  loadModelParameters,
+} from './model-parameters.ts';
 import { proposeModelReplacements } from './model-retirements.ts';
 import {
   ANTHROPIC_DEPRECATIONS,
@@ -35,14 +40,16 @@ import { parseObject } from './specifications.ts';
 import { terminalText } from './workflow-presentation.ts';
 
 const USAGE = `Usage: refit deadlines [--repository <root>] [--fail-within <days>] [--ignore-file <path>] [--registry <path>] [--json]
-       refit deadlines --propose-model-fixes [--repository <root>] [--output <patch>] [--registry <path>] [--json]
+       refit deadlines --propose-model-fixes [--repository <root>] [--output <patch>] [--registry <path>] [--parameters <path>] [--json]
        refit deadlines --check-registry [--registry <path>] [--json]
+       refit deadlines --check-parameters [--parameters <path>] [--json]
        refit deadlines --sync anthropic [--registry <path>] [--write] [--json]
 Lists API versions and models a repository pins, and SDK packages it declares, that have a provider sunset or end-of-support date in the reviewed registry, with file:line evidence. Only live code counts; model lists, tests, examples, comments, tokenizers and checks are listed separately.
 --fail-within <days> exits 2 when a live exposure is past due or within that many days, for CI. Report-only deadlines (a derived date, or kind method, endpoint, field or feature) are listed but never fail it. Reviewed, expiring exceptions go in ${DEADLINE_IGNORE_FILE} at the repository root; --ignore-file reads another file. Exit 0 means the check passed, 1 an error (including an invalid ignore file).
---propose-model-fixes proposes replacing retiring OpenAI and Anthropic model IDs with the registry replacement, only where the ID is a literal model in a traced SDK call, lists every case that stops for review, and lists every other live model ID with why no traced request sends it. It prints a patch, or writes it to --output; it never applies, validates or publishes it.
+--propose-model-fixes proposes replacing retiring OpenAI and Anthropic model IDs with the registry replacement, only where the ID is a literal model in a traced SDK call, lists every case that stops for review, and lists every other live model ID with why no traced request sends it. It prints a patch, or writes it to --output; it never applies, validates or publishes it. --parameters <path> lets a sourced parameter table (such as data/model-parameters.json) decide sampling and length parameters; without it they stop for review.
 --sync anthropic reads Anthropic's model deprecations page and lists registry entries to add or update; --write saves them. It never deletes an entry. A scheduled workflow runs it and opens a pull request for review.
---check-registry validates the registry and flags past-due entries and entries without a source. Nothing runs, installs or contacts a provider.`;
+--check-registry validates the registry and flags past-due entries and entries without a source. Nothing runs, installs or contacts a provider.
+--check-parameters validates the sourced model parameter table (data/model-parameters.json) and rejects the whole file on any error. Nothing runs, installs or contacts a provider.`;
 
 try {
   const { values } = parseArgs({
@@ -50,6 +57,8 @@ try {
       repository: { type: 'string' },
       registry: { type: 'string' },
       'check-registry': { type: 'boolean' },
+      'check-parameters': { type: 'boolean' },
+      parameters: { type: 'string' },
       'fail-within': { type: 'string' },
       'ignore-file': { type: 'string' },
       'propose-model-fixes': { type: 'boolean' },
@@ -125,10 +134,29 @@ try {
         );
     }
     process.exitCode = report.errors.length ? 1 : 0;
+  } else if (values['check-parameters']) {
+    const path = values.parameters ? resolve(values.parameters) : DEFAULT_MODEL_PARAMETERS;
+    const table = parseObject(await readFile(path, 'utf8'), 'Model parameter table');
+    const report = checkModelParameters(table, now);
+    if (values.json) console.log(JSON.stringify(report));
+    else {
+      const count = Array.isArray(table.models) ? table.models.length : 0;
+      console.log(
+        report.errors.length
+          ? 'Model parameter table is invalid'
+          : `Model parameter table is valid (${count} models)`,
+      );
+      for (const error of report.errors) console.log(`  error     ${terminalText(error)}`);
+    }
+    process.exitCode = report.errors.length ? 1 : 0;
   } else if (values['propose-model-fixes']) {
     const root = resolve(values.repository ?? '.');
     const registry = await loadDeadlineRegistry(registryPath, now);
-    const proposal = await proposeModelReplacements(root, registry, now);
+    // The sourced parameter table is off by default (owner decision, 2026-10-22).
+    const parameters = values.parameters
+      ? await loadModelParameters(resolve(values.parameters), now)
+      : undefined;
+    const proposal = await proposeModelReplacements(root, registry, now, { parameters });
     if (values.output && proposal.patch) await writeFile(resolve(values.output), proposal.patch);
     if (values.json)
       console.log(JSON.stringify({ repository: root, checkedAt: now.toISOString(), ...proposal }));

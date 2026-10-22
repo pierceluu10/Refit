@@ -5,6 +5,7 @@ import ts from 'typescript-compiler';
 import { AGENT_CATALOG, builtInPackage } from './agent-catalog.ts';
 import { daysUntil, type DeadlineEntry, type DeadlineRegistry } from './deadline-registry.ts';
 import { cloudflareEndpointUses } from './cloudflare-calls.ts';
+import { githubDeadlineUses } from './github-api-calls.ts';
 import { readRepository } from './repository.ts';
 import { slackMethodUses } from './slack-calls.ts';
 import { isObject, parseObject } from './specifications.ts';
@@ -587,6 +588,16 @@ export async function scanDeadlines(
       repository,
     ))
       record('cloudflare', use.version, { ...use, kind: 'source' });
+  // GitHub: pinned X-GitHub-Api-Version headers, requests to removed endpoints and GraphQL fields,
+  // from the GitHub API call scanner.
+  const github = registry.deadlines.filter((entry) => entry.provider === 'github');
+  if (github.length)
+    for (const use of await githubDeadlineUses(
+      root,
+      github.flatMap((entry) => entry.versions),
+      repository,
+    ))
+      record('github', use.version, { ...use, kind: 'source' });
   for (const pin of await configuredApiVersions(root))
     record(pin.provider, pin.version, {
       file: REPOSITORY_CONFIGURATION,

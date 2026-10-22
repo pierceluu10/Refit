@@ -117,6 +117,14 @@
       "format": "cloudflare-results",
       "predates": []
     },
+    "2026-10-22-github-first-results.json": {
+      "format": "github-api-results",
+      "predates": []
+    },
+    "2026-10-22-github-results.json": {
+      "format": "github-api-results",
+      "predates": []
+    },
     "2026-10-22-inventory-sample-results.json": {
       "format": "inventory-sample-results",
       "predates": []
