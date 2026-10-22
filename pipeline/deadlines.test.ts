@@ -1,8 +1,8 @@
 import { execFile } from 'node:child_process';
 import { createHmac, randomUUID } from 'node:crypto';
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { dirname, join, resolve } from 'node:path';
+import { basename, dirname, join, resolve } from 'node:path';
 import { promisify } from 'node:util';
 import { afterEach, expect, it, vi } from 'vitest';
 import {
@@ -954,6 +954,34 @@ it('matches API versions pinned in .refit.json and reports how a migration can f
   expect(agentStatus('openai', integrations)).toEqual({ state: 'configured', integration: 'ai' });
   expect(agentStatus('meta-graph', integrations)).toEqual({ state: 'none' });
   expect(agentStatus('openai', [])).toEqual({ state: 'available' });
+});
+
+it('reads .refit.json and adapters only as regular files inside the repository', async () => {
+  const outside = await repository({ 'secret.provider.json': { packageName: 'openai' } });
+  const root = await repository({
+    '.refit.json': {
+      formatVersion: 2,
+      integrations: [
+        { id: 'escape', providerConfig: `../${basename(outside)}/secret.provider.json` },
+        { id: 'absolute', providerConfig: join(outside, 'secret.provider.json') },
+        { id: 'linked', providerConfig: './refit/linked.provider.json' },
+        { id: 'large', providerConfig: './refit/large.provider.json' },
+        { id: 'ai', providerConfig: './refit/ai.provider.json' },
+      ],
+    },
+    'refit/ai.provider.json': { packageName: 'openai' },
+    'refit/large.provider.json': { packageName: 'openai', padding: 'x'.repeat(200 * 1024) },
+  });
+  await symlink(join(outside, 'secret.provider.json'), join(root, 'refit/linked.provider.json'));
+  const integrations = await configuredIntegrations(root);
+  console.log(integrations);
+  expect(integrations).toEqual([{ agent: 'openai', integration: 'ai', apiVersion: null }]);
+
+  const linked = await repository({});
+  await symlink(join(root, '.refit.json'), join(linked, '.refit.json'));
+  await expect(configuredIntegrations(linked)).rejects.toThrow(
+    '.refit.json must be a file inside the repository, not a link.',
+  );
 });
 
 it('checks the registry shape and flags past-due entries and entries without a source', async () => {
