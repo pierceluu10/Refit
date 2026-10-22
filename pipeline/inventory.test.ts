@@ -275,7 +275,7 @@ it('attributes packages to each pnpm workspace with their locked versions', asyn
       "import Anthropic from '@anthropic-ai/sdk';",
       'const client = new Anthropic();',
       'export const ask = (content: string) =>',
-      "  client.messages.create({ model: 'claude-3-haiku-20240307', max_tokens: 64, messages: [{ role: 'user', content }] });",
+      "  client.messages.create({ model: 'claude-3-haiku-20240307', max_tokens: 64, messages: [{ role: 'user', content }] }).then((message) => message.content);",
     ].join('\n'),
     'apps/shop/package.json': JSON.stringify({
       name: 'shop',
@@ -492,6 +492,7 @@ it('stops with a timeout when the inventory runs past its time cap', async () =>
   await remote(STRIPE_AND_OPENAI);
   expect(await refresh({ ...INVENTORY_LIMITS, seconds: 0 })).toMatchObject({
     outcome: 'stopped',
+    revision: null,
     stop: 'timeout',
     message: 'Inventory took longer than 0 seconds.',
   });

@@ -129,12 +129,18 @@ export class InventoryStopError extends PipelineInputError {
   }
 }
 
-// The literal `model` of a call's first argument, as in `create({ model: 'gpt-4o', ... })`.
-function literalModel(source: ts.SourceFile, line: number, column: number) {
+// The literal `model` of a call's first argument, as in `create({ model: 'gpt-4o', ... })`. A chained
+// call such as `.then()` starts at the same position, so the method name picks the traced call.
+function literalModel(source: ts.SourceFile, line: number, column: number, method: string) {
   const position = source.getPositionOfLineAndCharacter(line - 1, column - 1);
   let model: string | null = null;
   const visit = (node: ts.Node): void => {
-    if (ts.isCallExpression(node) && node.getStart(source) === position) {
+    if (
+      ts.isCallExpression(node) &&
+      node.getStart(source) === position &&
+      ts.isPropertyAccessExpression(node.expression) &&
+      node.expression.name.text === method
+    ) {
       const [argument] = node.arguments;
       if (argument && ts.isObjectLiteralExpression(argument))
         for (const property of argument.properties)
@@ -174,7 +180,7 @@ async function modelCalls(directory: string, detected: Set<string>) {
         file: call.file,
         line: call.line,
         call: name,
-        model: literalModel(source, call.line, call.column),
+        model: literalModel(source, call.line, call.column, call.method),
         test: TEST_PATH.test(call.file),
       });
     }
@@ -399,11 +405,12 @@ export async function refreshInventory(options: {
   } catch (error) {
     if (error instanceof InventoryStopError)
       return { outcome: 'stopped', base, revision, stop: error.stop, message: error.message };
+    // A timeout keeps no revision, so the same commit is scanned again rather than skipped.
     if (signal.aborted && !options.signal.aborted)
       return {
         outcome: 'stopped',
         base,
-        revision,
+        revision: null,
         stop: 'timeout',
         message: `Inventory took longer than ${limits.seconds} seconds.`,
       };
