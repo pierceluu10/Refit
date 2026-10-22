@@ -13,6 +13,7 @@ import type { GitHubAppConfiguration } from './github-app.ts';
 import { standaloneStateDirectory } from './github-checkout.ts';
 import { parseWebhook, verifyWebhook, WebhookInputError } from './github-webhooks.ts';
 import { hostedPages } from './hosted-setup.ts';
+import { GitHubRequestError } from './github.ts';
 import { isDatabaseUnavailable } from './hosted-database.ts';
 import { purgeUninstalled } from './hosted-retention.ts';
 import { processApprovalIssues } from './hosted-approval.ts';
@@ -72,6 +73,7 @@ const DEFAULT_LEASE_SECONDS = 300;
 const MIN_LEASE_SECONDS = 3;
 // Renewing three times per lease keeps one missed renewal from releasing a running job.
 const RENEWALS_PER_LEASE = 3;
+const NOT_FOUND = 404;
 // An inventory holds its lease for its whole time cap, plus this margin, without renewing it.
 const INVENTORY_LEASE_MARGIN_SECONDS = 60;
 // While PostgreSQL is unreachable the worker waits, doubling the wait up to the maximum.
@@ -119,6 +121,9 @@ export async function runHostedService(options: {
   // Opens an approval issue on installed repositories without an approval and handles
   // `/refit approve` and `/refit revoke` comments (REFIT_HOSTED_APPROVAL_ISSUES).
   approvalIssues?: boolean;
+  // Off by default (owner decision, 2026-10-22): follows repository renames, transfers and
+  // archiving, account renames, and repositories GitHub no longer serves (REFIT_HOSTED_LIFECYCLE).
+  lifecycle?: boolean;
   // The workflow's own notices, plus failed jobs at most once per target per hour.
   notify?: SlackSend;
   // Applied to job fields before a failure notice cuts them to length.
@@ -279,9 +284,23 @@ export async function runHostedService(options: {
       );
     }, renewEvery);
     try {
-      const access = await confirmRepositoryAccess(options.app, target.repository);
+      const access = await confirmRepositoryAccess(options.app, target.repository).catch(
+        async (error: unknown) => {
+          if (
+            options.lifecycle &&
+            error instanceof GitHubRequestError &&
+            error.status === NOT_FOUND
+          )
+            await store.retire(target.id, null);
+          throw error;
+        },
+      );
       if (access.installationId !== target.installationId)
         throw new PipelineInputError('Repository now belongs to another App installation.');
+      if (options.lifecycle && (await store.retire(target.id, access.id)))
+        throw new PipelineInputError(
+          'Repository name now belongs to a different GitHub repository; approve it again.',
+        );
       const outcome = jobs
         ? await runJobMachine({
             ...jobs,
@@ -502,10 +521,19 @@ export async function runHostedService(options: {
         const parsed = parseWebhook(body, event, Number(options.app.appId));
         if ('installationId' in parsed) context.installation = parsed.installationId;
         const change =
-          parsed.kind === 'issue_comment' && !options.approvalIssues
+          (parsed.kind === 'issue_comment' && !options.approvalIssues) ||
+          ((parsed.kind === 'repository' || parsed.kind === 'account') && !options.lifecycle)
             ? { kind: 'ignored' as const }
             : parsed;
         const receipt = await store.accept(id, String(event), body, change);
+        if (
+          change.kind === 'account' &&
+          options.tenancy.accounts.includes(change.previousOwner) &&
+          !options.tenancy.accounts.includes(change.owner)
+        )
+          options.onProgress?.(
+            `Account ${change.previousOwner} is now ${change.owner}, which REFIT_HOSTED_ACCOUNTS does not list; its targets stopped. Add ${change.owner} to allow it again.`,
+          );
         for (const job of receipt.running) running.get(job)?.abort();
         const inventoried =
           receipt.status === 'accepted' && 'added' in change && change.added.length

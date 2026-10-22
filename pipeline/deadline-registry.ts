@@ -40,6 +40,7 @@ const PROVIDERS = new Set([
   'hubspot',
   'aws',
   'azure',
+  'twilio',
 ]);
 const KINDS = new Set(['api-version', 'model', 'sdk', 'method', 'endpoint', 'field', 'feature']);
 const ENTRY_KEYS = [
@@ -104,7 +105,8 @@ export interface DeadlineEntry {
     | 'airtable'
     | 'hubspot'
     | 'aws'
-    | 'azure';
+    | 'azure'
+    | 'twilio';
   kind: 'api-version' | 'model' | 'sdk' | 'method' | 'endpoint' | 'field' | 'feature';
   versions: string[];
   date: string;

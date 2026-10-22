@@ -1132,6 +1132,7 @@ it('keeps the shipped registry valid and sourced', async () => {
       'hubspot',
       'aws',
       'azure',
+      'twilio',
     ]),
   );
 });

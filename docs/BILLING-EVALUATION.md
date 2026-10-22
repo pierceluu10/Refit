@@ -18,7 +18,7 @@ The full Refit suite passed **239 tests with none skipped**, with the independen
 The independent repository must be clean and committed, with dependencies already installed for local evaluation. From the Refit checkout:
 
 ```sh
-REFIT_BILLING_REPOSITORY=/Users/pierceluu/Repos/refit-billing-demo npm test
+REFIT_BILLING_REPOSITORY=~/Repos/refit-billing-demo npm test
 ```
 
 This opt-in integration test creates a disposable copy, applies Refit's generated patch, runs the original and upgraded suites and typechecking, verifies test bytes remain unchanged, and checks multi-page history. It deletes its temporary copy afterward.
@@ -27,18 +27,18 @@ For the Docker workflow, build a local dependency image. Image preparation downl
 
 ```sh
 mkdir -p /tmp/refit-billing-image
-cp /Users/pierceluu/Repos/refit-billing-demo/package.json \
-  /Users/pierceluu/Repos/refit-billing-demo/package-lock.json \
+cp ~/Repos/refit-billing-demo/package.json \
+  ~/Repos/refit-billing-demo/package-lock.json \
   pipeline/fixtures/billing-pagination.mjs /tmp/refit-billing-image/
 docker build --pull=false \
-  --file /Users/pierceluu/Repos/Refit/scripts/billing-validation.Dockerfile \
+  --file ~/Repos/Refit/scripts/billing-validation.Dockerfile \
   --tag refit-billing-check:history \
   /tmp/refit-billing-image
 
 node bin/refit.mjs run \
-  --repository /Users/pierceluu/Repos/refit-billing-demo \
-  --before /Users/pierceluu/Repos/refit-billing-demo/docs/contracts/before.json \
-  --after /Users/pierceluu/Repos/refit-billing-demo/docs/contracts/after.json \
+  --repository ~/Repos/refit-billing-demo \
+  --before ~/Repos/refit-billing-demo/docs/contracts/before.json \
+  --after ~/Repos/refit-billing-demo/docs/contracts/after.json \
   --output /tmp/refit-billing-review \
   --image refit-billing-check:history \
   --baseline-command '["sh","-c","ln -s /opt/billing/node_modules node_modules && npm test && node --import tsx /opt/refit-checks/billing-pagination.mjs before"]' \
