@@ -8,6 +8,13 @@ import { daysUntil } from './deadline-registry.ts';
 import { scanDeadlines, TEST_PATH } from './deadline-exposure.ts';
 import { modelWrapperStops } from './model-wrappers.ts';
 import { renderPatch } from './patches.ts';
+import {
+  EMPTY_MODEL_PARAMETERS,
+  MODEL_PARAMETER_NAMES,
+  parameterReason,
+  parameterVerdict,
+  type ModelParameterTable,
+} from './model-parameters.ts';
 import { readProviderAdapter, type ProviderAdapter } from './providers.ts';
 import { readRepository } from './repository.ts';
 import { createSourceImportResolver } from './source-imports.ts';
@@ -16,7 +23,7 @@ import type { Repository, SourceEdit } from './types.ts';
 // Text-generation calls whose `model` selects a chat or reasoning model. Embeddings, images, audio,
 // moderation and legacy completions are left out: their replacements change vector sizes, formats,
 // endpoints or parameters.
-const MODEL_CALLS: Record<string, Set<string>> = {
+export const MODEL_CALLS: Record<string, Set<string>> = {
   openai: new Set([
     'chat.completions.create',
     'chat.completions.parse',
@@ -136,31 +143,13 @@ const UNTRACED_CALLS: Record<string, string[]> = {
   ],
   anthropic: [...MODEL_CALLS.anthropic, ...MESSAGE_HELPERS, ...BATCH_CALLS, 'completions.create'],
 };
-// Request parameters a newer model may reject or treat differently. Anthropic returns a 400 for
-// non-default temperature, top_p and top_k on Claude 4.7 and later models (Anthropic model
-// deprecations page, 2026-10-20), and for `thinking: { type: 'enabled', budget_tokens }`, the
-// only thinking mode of the retiring models (platform.claude.com extended thinking page, read
-// 2026-10-22). OpenAI reasoning models' support for the sampling and length
-// parameters below: unverified, so they stop for review too.
-const SENSITIVE_PARAMETERS: Record<string, Set<string>> = {
-  openai: new Set([
-    'temperature',
-    'top_p',
-    'max_tokens',
-    'presence_penalty',
-    'frequency_penalty',
-    'logit_bias',
-    'logprobs',
-    'top_logprobs',
-  ]),
-  anthropic: new Set(['temperature', 'top_p', 'top_k', 'thinking']),
-};
 // Claude API model IDs such as `claude-opus-4-8` or `claude-haiku-4-5-20251001`.
 const CLAUDE_VERSIONED = /^claude-(?:opus|sonnet|haiku)-(\d+)(?:-(\d{1,2}))?(?:-\d{8})?$/;
 
 // Whether a replacement model is one on which Anthropic rejects non-default sampling parameters:
-// Claude 4.7 and later models, per the model deprecations page (2026-10-20). Unrecognized IDs are
-// treated as rejecting them, so the request stops for review.
+// Claude 4.7 and later models, per the Anthropic model deprecations page (2026-10-20). Unrecognized
+// IDs are treated as rejecting them, so the request stops for review. This serves replacements with
+// no entry in a model parameter table; an entry there overrides it per parameter.
 function rejectsSampling(provider: string, model: string) {
   if (provider !== 'anthropic') return true;
   const match = CLAUDE_VERSIONED.exec(model);
@@ -1958,6 +1947,22 @@ function sweepLiterals(
   return [...found];
 }
 
+// A number written directly in the request, optionally signed. Constants and expressions are not followed.
+function numericLiteral(expression: ts.Expression): number | undefined {
+  const node = unwrap(expression);
+  let value: number | undefined;
+  if (ts.isNumericLiteral(node)) value = Number(node.text);
+  else if (
+    ts.isPrefixUnaryExpression(node) &&
+    (node.operator === ts.SyntaxKind.MinusToken || node.operator === ts.SyntaxKind.PlusToken) &&
+    ts.isNumericLiteral(unwrap(node.operand))
+  ) {
+    const operand = Number((unwrap(node.operand) as ts.NumericLiteral).text);
+    value = node.operator === ts.SyntaxKind.MinusToken ? -operand : operand;
+  }
+  return value !== undefined && Number.isFinite(value) ? value : undefined;
+}
+
 // The model sites the rule edited before indirect sources were traced: string literals in the
 // request, a `??` or `||` default, a constant or enum member holding a literal, and a helper
 // parameter's default and its callers' literals. A site maps to its stop, or `undefined` when it
@@ -2079,7 +2084,15 @@ export async function proposeModelReplacements(
     // Edit requests whose own client sets no endpoint although the repository mentions one
     // elsewhere. Off until an owner decision; until then they stop with where the mention is.
     endpoints = false,
-  }: { indirect?: boolean; reportOnly?: ReportOnlySource[]; endpoints?: boolean } = {},
+    // A sourced table (data/model-parameters.json) that decides each sampling or length parameter
+    // per replacement. Off unless passed (owner decision, 2026-10-22); until then the heuristic stops.
+    parameters = EMPTY_MODEL_PARAMETERS,
+  }: {
+    indirect?: boolean;
+    reportOnly?: ReportOnlySource[];
+    endpoints?: boolean;
+    parameters?: ModelParameterTable;
+  } = {},
 ): Promise<ModelReplacementProposal> {
   const byProvider = new Map<string, Map<string, DeadlineEntry>>();
   for (const entry of registry.deadlines)
@@ -2364,12 +2377,31 @@ export async function proposeModelReplacements(
       if (!entry || skipped(program.path(site.literal))) continue;
       const platform = request.platform ?? onPlatform?.platform;
       const resolved = finalReplacement(entry, models) ?? { to: '', via: [entry.id] };
-      const sensitive = found.object.properties
-        .map((item) => (item.name ? propertyName(item.name) : undefined))
-        .filter((name): name is string =>
-          Boolean(name && SENSITIVE_PARAMETERS[request.provider].has(name)),
-        )
-        .filter(() => rejectsSampling(request.provider, resolved.to));
+      const tabled = parameters.models.some(
+        (item) => item.provider === request.provider && item.model === resolved.to,
+      );
+      const sensitiveProperties = found.object.properties.flatMap((item) => {
+        const name = item.name && propertyName(item.name);
+        return name && MODEL_PARAMETER_NAMES[request.provider].has(name) ? [{ item, name }] : [];
+      });
+      const sensitive = rejectsSampling(request.provider, resolved.to)
+        ? sensitiveProperties.map(({ name }) => name)
+        : [];
+      const tableReasons = tabled
+        ? sensitiveProperties.flatMap(({ item, name }) => {
+            const value = ts.isPropertyAssignment(item)
+              ? numericLiteral(item.initializer)
+              : undefined;
+            const verdict = parameterVerdict(
+              parameters,
+              request.provider,
+              resolved.to,
+              name,
+              value,
+            );
+            return verdict.ok ? [] : [parameterReason(name, value, resolved.to, verdict)];
+          })
+        : [];
       const stop = site.stop ?? sharedUse(program, site.passes, reached);
       const reason = !resolved.to
         ? 'The registry names no concrete replacement model ID.'
@@ -2418,9 +2450,11 @@ export async function proposeModelReplacements(
                                         (item) => item.name && ts.isComputedPropertyName(item.name),
                                       )
                                     ? `The request sets a computed property, which may be a parameter the replacement rejects; change it by hand to ${resolved.to}.`
-                                    : sensitive.length
-                                      ? `The request sets ${sensitive.join(', ')}, which ${resolved.to} may reject or treat differently.`
-                                      : undefined;
+                                    : tabled
+                                      ? tableReasons.join(' ') || undefined
+                                      : sensitive.length
+                                        ? `The request sets ${sensitive.join(', ')}, which ${resolved.to} may reject or treat differently.`
+                                        : undefined;
       const decision = decisions.get(site.literal) ?? {
         entry,
         ...resolved,

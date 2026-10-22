@@ -66,7 +66,14 @@ function subject(exposure: DeadlineExposure) {
     return `${versions.length === 1 ? 'model' : 'models'} ${listed}${extra}`;
   if (deadline.kind === 'sdk')
     return `${versions.length === 1 ? 'package' : 'packages'} ${listed}${extra}`;
+  if (deadline.kind === 'method')
+    return `${versions.length === 1 ? 'method' : 'methods'} ${listed}${extra}`;
+  if (deadline.kind === 'endpoint')
+    return `${versions.length === 1 ? 'endpoint' : 'endpoints'} ${listed}${extra}`;
+  if (deadline.kind === 'field')
+    return `GraphQL ${versions.length === 1 ? 'field' : 'fields'} ${listed}${extra}`;
   if (deadline.provider === 'meta-graph') return `Graph API ${listed}`;
+  if (deadline.provider === 'github') return `REST API version ${listed}`;
   return `API version ${listed}`;
 }
 

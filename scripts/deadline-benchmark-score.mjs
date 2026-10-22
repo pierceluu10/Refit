@@ -4,6 +4,8 @@
 import { readFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
+import { splitRows } from './benchmark-harness.mjs';
+import { assertResults } from './benchmark-results.mjs';
 
 const { values } = parseArgs({
   options: {
@@ -27,9 +29,23 @@ const read = async (path) => JSON.parse(await readFile(path, 'utf8'));
 const pinned = await read(values.list);
 const labelled = await read(values.labels);
 const { deadlines } = await read(values.registry);
+// A run from scripts/deadline-benchmark-setup.mjs, checked against its schema before anything is
+// counted: the harness file, or a bare array of scanned rows from before it. Rows whose scan or
+// checkout failed were never in the bare arrays, so they stay out of the scores and are counted.
+const failed = {};
 const runs = Object.fromEntries(
   await Promise.all(
-    values.runs.split(',').map(async (name) => [name, await read(join(root, `${name}.json`))]),
+    values.runs.split(',').map(async (name) => {
+      const data = await read(join(root, `${name}.json`));
+      assertResults('deadline-results', data, { allowPredating: true });
+      const rows = Array.isArray(data) ? data : data.results;
+      const errored = rows.filter((row) => row.error);
+      failed[name] = {
+        infrastructure: splitRows('deadline-results', errored).infrastructure.length,
+        repository: splitRows('deadline-results', errored).results.length,
+      };
+      return [name, rows.filter((row) => !row.error)];
+    }),
   ),
 );
 const grep = await read(join(root, 'grep.json'));
@@ -194,6 +210,7 @@ console.log(
           name,
           {
             scanned: results.length,
+            failed: failed[name],
             all: scoreRun(results),
             ...Object.fromEntries(providers.map((p) => [p, scoreRun(results, p)])),
           },

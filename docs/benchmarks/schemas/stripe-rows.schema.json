@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Committed Stripe benchmark results",
+  "description": "The condensed form of a Stripe run committed under docs/benchmarks: one row per repository with its outcome label. Copy the run's harness.json into `harness`.",
+  "type": "object",
+  "required": ["run", "refit", "target", "rows", "harness"],
+  "properties": {
+    "run": { "$ref": "common.schema.json#/$defs/date" },
+    "refit": { "$ref": "common.schema.json#/$defs/shortCommit" },
+    "target": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}\\.[a-z]+$" },
+    "list": { "type": "string" },
+    "profile": { "type": "string" },
+    "repeat": { "type": "string" },
+    "outcomes": { "$ref": "common.schema.json#/$defs/counts" },
+    "harness": { "$ref": "harness.schema.json", "x-added": "2026-10-22" },
+    "rows": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "$ref": "common.schema.json#/$defs/classified",
+        "required": [
+          "repo",
+          "commit",
+          "before",
+          "beforeSource",
+          "outcome",
+          "sdkCalls",
+          "tracedCalls",
+          "confirmedReads",
+          "confirmedFields",
+          "checks",
+          "reason",
+          "seconds",
+          "outcomeClass"
+        ],
+        "properties": {
+          "repo": { "$ref": "common.schema.json#/$defs/repo" },
+          "commit": { "$ref": "common.schema.json#/$defs/commit" },
+          "before": { "type": "string" },
+          "beforeSource": { "type": "string" },
+          "packageManager": { "enum": ["npm", "pnpm", "yarn", "none"] },
+          "outcome": {
+            "enum": [
+              "ai-declined",
+              "ai-evidence-limit",
+              "baseline-failed",
+              "exceeds-scan-limits",
+              "no-mapped-methods",
+              "no-sdk-calls",
+              "not-affected",
+              "proposed-no-checks",
+              "refused-for-validation",
+              "stopped-declared-types-or-pin-conflict",
+              "stopped-for-review",
+              "stopped-invalid-source",
+              "stopped-removed-request-parameter",
+              "validated",
+              "validation-regression"
+            ]
+          },
+          "sdkCalls": { "type": ["integer", "null"], "minimum": 0 },
+          "tracedCalls": { "type": ["integer", "null"], "minimum": 0 },
+          "confirmedReads": { "type": ["integer", "null"], "minimum": 0 },
+          "confirmedFields": { "type": ["array", "null"], "items": { "type": "string" } },
+          "checks": { "enum": [null, "none", "tests", "typecheck", "generated-only"] },
+          "sdkUpgrade": {
+            "type": "object",
+            "required": ["from", "to"],
+            "properties": { "from": { "type": "string" }, "to": { "type": "string" } }
+          },
+          "reason": { "type": ["string", "null"] },
+          "seconds": { "$ref": "common.schema.json#/$defs/count" },
+          "outcomeClass": {
+            "$ref": "common.schema.json#/$defs/outcomeClass",
+            "x-added": "2026-10-22"
+          },
+          "infrastructure": { "$ref": "common.schema.json#/$defs/infrastructure" }
+        }
+      }
+    }
+  }
+}

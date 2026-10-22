@@ -1,12 +1,22 @@
 // Runs the deadline scan and the model replacement rule on a frozen AI SDK benchmark list
 // (scripts/ai-sdk-select.mjs). Each repository is fetched at its recorded commit into --root; Refit
-// reads files only, with no install, no repository code run and no provider contacted.
+// reads files only, with no install, no repository code run and no provider contacted. The output
+// is rewritten after every repository, so --resume can continue an interrupted run.
 import { execFile } from 'node:child_process';
-import { existsSync } from 'node:fs';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { parseArgs, promisify } from 'node:util';
 import { benchmarkSummary, repositoryNonLive, stopReasons } from './ai-model-benchmark-summary.mjs';
+import {
+  checkoutError,
+  classifyRow,
+  finishedRow,
+  json,
+  openResultsFile,
+  startRun,
+} from './benchmark-harness.mjs';
+import { assertResults } from './benchmark-results.mjs';
 
 const execute = promisify(execFile);
 const GIT_TIMEOUT_MS = 300_000;
@@ -17,23 +27,38 @@ const { values } = parseArgs({
     list: { type: 'string' },
     root: { type: 'string' },
     output: { type: 'string' },
+    resume: { type: 'boolean' },
+    'allow-dirty': { type: 'boolean' },
     help: { type: 'boolean' },
   },
 });
 if (values.help || !values.list || !values.root || !values.output) {
   console.log(
-    'Usage: node scripts/ai-model-benchmark.mjs --list <frozen.json> --root <dir> --output <results.json>',
+    'Usage: node scripts/ai-model-benchmark.mjs --list <frozen.json> --root <dir> --output <results.json> [--resume] [--allow-dirty]',
   );
   process.exit(values.help ? 0 : 1);
 }
 const frozen = JSON.parse(await readFile(values.list, 'utf8'));
 const root = resolve(values.root);
 await mkdir(root, { recursive: true });
-const refit = resolve('bin/refit.mjs');
+const REFIT = fileURLToPath(new URL('..', import.meta.url));
+const refit = join(REFIT, 'bin', 'refit.mjs');
+const { harness, rows: previous } = await openResultsFile(
+  values.output,
+  await startRun({
+    format: 'ai-model-results',
+    refitRoot: REFIT,
+    list: { path: values.list, file: values.list },
+    options: {},
+    allowDirty: values['allow-dirty'],
+  }),
+  { resume: values.resume },
+);
 
+// A checkout at the recorded commit. A directory left by a failed fetch is fetched again.
 async function checkout(entry) {
   const directory = join(root, entry.repo.replace('/', '__'));
-  if (existsSync(join(directory, '.git'))) return directory;
+  if (!(await checkoutError(directory, entry.commit))) return directory;
   await execute('git', ['init', '-q', directory]);
   await execute(
     'git',
@@ -50,6 +75,8 @@ async function checkout(entry) {
     { timeout: GIT_TIMEOUT_MS, env: { ...process.env, GIT_TERMINAL_PROMPT: '0' } },
   );
   await execute('git', ['-C', directory, 'checkout', '-q', 'FETCH_HEAD']);
+  const wrong = await checkoutError(directory, entry.commit);
+  if (wrong) throw new Error(wrong);
   return directory;
 }
 
@@ -86,15 +113,12 @@ function nonLive(result) {
   return merged;
 }
 
-const results = [];
-for (const [index, entry] of frozen.repos.entries()) {
-  console.error(`[${index + 1}/${frozen.repos.length}] ${entry.repo}`);
+async function scan(entry) {
   let directory;
   try {
     directory = await checkout(entry);
   } catch (error) {
-    results.push({ repo: entry.repo, commit: entry.commit, error: `checkout: ${error.message}` });
-    continue;
+    return { repo: entry.repo, commit: entry.commit, error: `checkout: ${error.message}` };
   }
   const deadlines = await refitJson(['deadlines', '--repository', directory]);
   const live = (deadlines.result?.exposures ?? []).filter((exposure) =>
@@ -105,7 +129,7 @@ for (const [index, entry] of frozen.repos.entries()) {
   const proposal = live.length
     ? await refitJson(['deadlines', '--propose-model-fixes', '--repository', directory])
     : { result: { replacements: [], stops: [], unresolved: [] } };
-  results.push({
+  return {
     repo: entry.repo,
     commit: entry.commit,
     ...(deadlines.error || proposal.error ? { error: deadlines.error ?? proposal.error } : {}),
@@ -140,25 +164,35 @@ for (const [index, entry] of frozen.repos.entries()) {
       .filter((item) => counted(item.provider))
       .map(({ file, line, model, to, reason }) => ({ file, line, model, to, reason })),
     ...nonLive(deadlines.result),
-  });
+  };
 }
 
-const summary = benchmarkSummary(results);
-await writeFile(
-  values.output,
-  `${JSON.stringify(
-    {
-      formatVersion: 1,
-      list: values.list,
-      provider: frozen.provider ?? providers.join(', '),
-      ranAt: new Date().toISOString(),
-      note: 'refit deadlines and refit deadlines --propose-model-fixes at each frozen commit; files read only. Exposure counts live evidence for this provider only.',
-      summary,
-      stopReasons: stopReasons(results),
-      results,
-    },
-    null,
-    2,
-  )}\n`,
-);
-console.error(JSON.stringify(summary));
+// Rows in list order; the file is checked against its schema before the summary counts it.
+const results = [];
+const document = () => ({
+  formatVersion: 2,
+  list: values.list,
+  provider: frozen.provider ?? providers.join(', '),
+  ranAt: new Date().toISOString(),
+  note: 'refit deadlines and refit deadlines --propose-model-fixes at each frozen commit; files read only. Exposure counts live evidence for this provider only.',
+  harness,
+  summary: benchmarkSummary(results),
+  stopReasons: stopReasons(results),
+  results,
+});
+for (const [index, entry] of frozen.repos.entries()) {
+  const label = `[${index + 1}/${frozen.repos.length}] ${entry.repo}`;
+  if (finishedRow(previous[index], entry)) {
+    console.error(`${label}: finished before resuming`);
+    results.push(previous[index]);
+    continue;
+  }
+  console.error(label);
+  const row = await scan(entry);
+  results.push({ ...row, ...classifyRow('ai-model-results', row) });
+  await writeFile(values.output, json(document()));
+}
+const final = document();
+assertResults('ai-model-results', final);
+await writeFile(values.output, json(final));
+console.error(JSON.stringify(final.summary));

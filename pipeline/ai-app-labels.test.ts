@@ -16,7 +16,7 @@ const labelsScript = 'scripts/ai-app-labels.mjs';
 
 let dir = '';
 let commit = '';
-const args = () => [
+const args = (labels: string) => [
   '--list',
   join(dir, 'list.json'),
   '--root',
@@ -24,20 +24,48 @@ const args = () => [
   '--registry',
   join(dir, 'registry.json'),
   '--output',
-  join(dir, 'labels', 'candidates.json'),
+  join(labels, 'candidates.json'),
   '--batches',
-  join(dir, 'labels'),
+  labels,
 ];
-const mergeArgs = (out: string) => [
+const mergeArgs = (labels: string, out: string) => [
   '--candidates',
-  join(dir, 'labels', 'candidates.json'),
+  join(labels, 'candidates.json'),
   '--batches',
-  join(dir, 'labels'),
+  labels,
   '--output',
   out,
   '--labelled-at',
   '2026-10-21',
 ];
+const label = (c: { file: string; line: number; column: number; model: string }) => ({
+  repo: 'o/r',
+  provider: 'openai',
+  file: c.file,
+  line: c.line,
+  column: c.column,
+  model: c.model,
+  live: true,
+  via: 'sdk-text',
+  replacement: 'gpt-5',
+  notes: 'passed to the chat call',
+});
+
+// Each test labels its own copy, so no test reads files another test wrote and the order is free.
+async function labelled(name: string) {
+  const labels = join(dir, name, 'labels');
+  const found = await node(candidatesScript, args(labels));
+  expect(found.code, found.stderr).toBe(0);
+  const batch = JSON.parse(await readFile(join(labels, 'batch-01.json'), 'utf8'));
+  await writeFile(
+    join(labels, 'labels-01.json'),
+    JSON.stringify({ batch: '01', labels: batch.candidates.map(label) }),
+  );
+  const out = join(dir, name, 'merged.json');
+  const merged = await node(labelsScript, mergeArgs(labels, out));
+  expect(merged.code, merged.stderr).toBe(0);
+  return { labels, out };
+}
 
 beforeAll(async () => {
   dir = await mkdtemp(join(tmpdir(), 'ai-app-labels-'));
@@ -114,9 +142,10 @@ beforeAll(async () => {
 afterAll(() => rm(dir, { recursive: true, force: true }));
 
 it('runs candidates -> batches -> labels -> labels file, and rejects bad or missing batches', async () => {
-  const found = await node(candidatesScript, args());
+  const labelsDir = join(dir, 'flow', 'labels');
+  const found = await node(candidatesScript, args(labelsDir));
   expect(found.code, found.stderr).toBe(0);
-  const candidates = JSON.parse(await readFile(join(dir, 'labels', 'candidates.json'), 'utf8'));
+  const candidates = JSON.parse(await readFile(join(labelsDir, 'candidates.json'), 'utf8'));
   expect(candidates.repos.map((r: { repo: string }) => r.repo)).toEqual(['o/empty', 'o/r']);
   const mine = candidates.repos[1].candidates;
   expect(mine.map((c: { file: string }) => c.file)).toEqual([
@@ -133,43 +162,31 @@ it('runs candidates -> batches -> labels -> labels file, and rejects bad or miss
     replacement: 'gpt-5',
   });
   expect(JSON.stringify(candidates)).not.toContain('const m');
-  const batch = JSON.parse(await readFile(join(dir, 'labels', 'batch-01.json'), 'utf8'));
+  const batch = JSON.parse(await readFile(join(labelsDir, 'batch-01.json'), 'utf8'));
   expect(batch.candidates).toHaveLength(4);
   expect(batch.candidates[1].context.line).toBe('const m = "gpt-4-turbo";');
 
-  const out = join(dir, 'merged.json');
-  const missing = await node(labelsScript, mergeArgs(out));
+  const out = join(dir, 'flow', 'merged.json');
+  const missing = await node(labelsScript, mergeArgs(labelsDir, out));
   expect(missing.code).toBe(3);
   expect(missing.stderr).toContain('missing batches: 01');
   await expect(readFile(out)).rejects.toThrow();
 
-  const label = (c: { file: string; line: number; column: number; model: string }) => ({
-    repo: 'o/r',
-    provider: 'openai',
-    file: c.file,
-    line: c.line,
-    column: c.column,
-    model: c.model,
-    live: true,
-    via: 'sdk-text',
-    replacement: 'gpt-5',
-    notes: 'passed to the chat call',
-  });
   const labels = batch.candidates.map(label);
   await writeFile(
-    join(dir, 'labels', 'labels-01.json'),
+    join(labelsDir, 'labels-01.json'),
     JSON.stringify({
       batch: '01',
       labels: [{ ...labels[0], replacement: 'wrong' }, ...labels.slice(1)],
     }),
   );
-  const wrong = await node(labelsScript, mergeArgs(out));
+  const wrong = await node(labelsScript, mergeArgs(labelsDir, out));
   expect(wrong.code).toBe(1);
   expect(wrong.stderr).toContain('invalid batch 01');
   await expect(readFile(out)).rejects.toThrow();
 
-  await writeFile(join(dir, 'labels', 'labels-01.json'), JSON.stringify({ batch: '01', labels }));
-  const merged = await node(labelsScript, mergeArgs(out));
+  await writeFile(join(labelsDir, 'labels-01.json'), JSON.stringify({ batch: '01', labels }));
+  const merged = await node(labelsScript, mergeArgs(labelsDir, out));
   expect(merged.code, merged.stderr).toBe(0);
   const file = JSON.parse(await readFile(out, 'utf8'));
   expect(file.counts).toMatchObject({
@@ -197,14 +214,14 @@ it('runs candidates -> batches -> labels -> labels file, and rejects bad or miss
 });
 
 it('re-reads a seeded sample: agreement, adjudication, regenerated labels, and the exit codes', async () => {
-  const out = join(dir, 'merged.json');
-  const sample = join(dir, 'sample.json');
+  const { labels, out } = await labelled('reread');
+  const sample = join(dir, 'reread', 'sample.json');
   const drawn = await node(labelsScript, [
     '--reread-sample',
     '--candidates',
-    join(dir, 'labels', 'candidates.json'),
+    join(labels, 'candidates.json'),
     '--batches',
-    join(dir, 'labels'),
+    labels,
     '--seed',
     '5',
     '--fraction',
@@ -234,14 +251,14 @@ it('re-reads a seeded sample: agreement, adjudication, regenerated labels, and t
     replacement: 'gpt-5',
     notes: 'second reading',
   }));
-  const reread = join(dir, 'reread.json');
+  const reread = join(dir, 'reread', 'reread.json');
   const mergeReread = (extra: string[]) =>
     node(labelsScript, [
       '--reread-merge',
       '--candidates',
-      join(dir, 'labels', 'candidates.json'),
+      join(labels, 'candidates.json'),
       '--batches',
-      join(dir, 'labels'),
+      labels,
       '--labels',
       out,
       '--sample',
@@ -249,7 +266,7 @@ it('re-reads a seeded sample: agreement, adjudication, regenerated labels, and t
       '--reread',
       reread,
       '--output',
-      join(dir, 'final.json'),
+      join(dir, 'reread', 'final.json'),
       ...extra,
     ]);
   expect((await mergeReread([])).code).toBe(3);
@@ -258,13 +275,13 @@ it('re-reads a seeded sample: agreement, adjudication, regenerated labels, and t
   const open = await mergeReread([]);
   expect(open.code).toBe(2);
   expect(open.stderr).toContain('unadjudicated');
-  await expect(readFile(join(dir, 'final.json'))).rejects.toThrow();
+  await expect(readFile(join(dir, 'reread', 'final.json'))).rejects.toThrow();
 
   const first = second[0];
   const key = [first.repo, first.provider, first.file, first.line, first.column, first.model].join(
     '|',
   );
-  const adjudications = join(dir, 'adjudications.json');
+  const adjudications = join(dir, 'reread', 'adjudications.json');
   await writeFile(
     adjudications,
     JSON.stringify([
@@ -273,7 +290,7 @@ it('re-reads a seeded sample: agreement, adjudication, regenerated labels, and t
   );
   const done = await mergeReread(['--adjudications', adjudications]);
   expect(done.code, done.stderr).toBe(0);
-  const file = JSON.parse(await readFile(join(dir, 'final.json'), 'utf8'));
+  const file = JSON.parse(await readFile(join(dir, 'reread', 'final.json'), 'utf8'));
   expect(file.reread).toMatchObject({
     seed: 5,
     sampleSize: 2,
@@ -297,14 +314,15 @@ it('re-reads a seeded sample: agreement, adjudication, regenerated labels, and t
 });
 
 it('refuses to merge when a candidate lacks exactly one label', async () => {
-  const out = join(dir, 'unlabelled.json');
-  const candidatesPath = join(dir, 'labels', 'candidates.json');
+  const { labels } = await labelled('unlabelled');
+  const out = join(dir, 'unlabelled', 'unlabelled.json');
+  const candidatesPath = join(labels, 'candidates.json');
   const candidates = JSON.parse(await readFile(candidatesPath, 'utf8'));
   const extra = { ...candidates.repos[1].candidates[0], line: 99 };
   candidates.repos[1].candidates.push(extra);
-  const skewed = join(dir, 'skewed-candidates.json');
+  const skewed = join(dir, 'unlabelled', 'skewed-candidates.json');
   await writeFile(skewed, JSON.stringify(candidates));
-  const args = mergeArgs(out);
+  const args = mergeArgs(labels, out);
   args[1] = skewed;
   const result = await node(labelsScript, args);
   expect(result.code).toBe(1);
@@ -313,15 +331,16 @@ it('refuses to merge when a candidate lacks exactly one label', async () => {
 });
 
 it('takes identity fields from the candidate, never from the label', async () => {
-  const out = join(dir, 'identity.json');
-  const batch = JSON.parse(await readFile(join(dir, 'labels', 'batch-01.json'), 'utf8'));
-  const labels = JSON.parse(await readFile(join(dir, 'labels', 'labels-01.json'), 'utf8'));
+  const { labels: labelsDir } = await labelled('identity');
+  const out = join(dir, 'identity', 'identity.json');
+  const batch = JSON.parse(await readFile(join(labelsDir, 'batch-01.json'), 'utf8'));
+  const labels = JSON.parse(await readFile(join(labelsDir, 'labels-01.json'), 'utf8'));
   labels.labels[0].line = String(labels.labels[0].line);
-  const bad = join(dir, 'identity-batches');
+  const bad = join(dir, 'identity', 'bad-batches');
   await mkdir(bad, { recursive: true });
   await writeFile(join(bad, 'batch-01.json'), JSON.stringify(batch));
   await writeFile(join(bad, 'labels-01.json'), JSON.stringify(labels));
-  const args = mergeArgs(out);
+  const args = mergeArgs(labelsDir, out);
   args[3] = bad;
   const result = await node(labelsScript, args);
   expect(result.code).toBe(1);
