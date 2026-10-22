@@ -13,7 +13,7 @@ import {
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { promisify } from 'node:util';
-import { afterEach, expect, it, vi } from 'vitest';
+import { afterAll, afterEach, beforeAll, expect, it, vi } from 'vitest';
 import {
   approveRepositoryEnrollment,
   inspectRepositoryEnrollment,
@@ -54,9 +54,13 @@ async function commit(repository: string) {
   ]);
 }
 
-async function setup() {
+async function freshSetup() {
   const root = await mkdtemp(join(tmpdir(), 'refit-enrollment-'));
   roots.push(root);
+  return approvedCheckout(root);
+}
+
+async function approvedCheckout(root: string) {
   const repository = join(root, 'repository');
   await cp(join(fixture, 'repository'), repository, { recursive: true });
   for (const name of ['before.json', 'after.json', 'provider.json'])
@@ -85,8 +89,7 @@ async function setup() {
   return { root, repository, configuration, input, enrollment, approval, output };
 }
 
-async function multipleIntegrations() {
-  const sample = await setup();
+async function multipleIntegrationsCheckout(sample: Awaited<ReturnType<typeof approvedCheckout>>) {
   const configuration: Record<string, unknown> = { ...sample.configuration };
   delete configuration.formatVersion;
   for (const [source, destination] of [
@@ -126,6 +129,38 @@ async function multipleIntegrations() {
   });
   return { ...sample, enrollment, approval, output };
 }
+
+// Committing, inspecting and approving the fixture was most of each test's time. Tests start from a
+// private copy of one approved checkout instead: the copy keeps the same Git revision, and neither
+// the enrollment nor the receipt holds a local path.
+type Sample = Awaited<ReturnType<typeof approvedCheckout>>;
+let single: Sample;
+let multiple: Sample;
+const templates: string[] = [];
+beforeAll(async () => {
+  for (let index = 0; index < 2; index++)
+    templates.push(await mkdtemp(join(tmpdir(), 'refit-enrollment-template-')));
+  single = await approvedCheckout(templates[0]);
+  multiple = await multipleIntegrationsCheckout(await approvedCheckout(templates[1]));
+});
+afterAll(() => Promise.all(templates.map((root) => rm(root, { recursive: true, force: true }))));
+
+async function copyOf(template: Sample) {
+  const root = await mkdtemp(join(tmpdir(), 'refit-enrollment-'));
+  roots.push(root);
+  await cp(template.root, root, { recursive: true });
+  const repository = join(root, 'repository');
+  return {
+    ...structuredClone(template),
+    root,
+    repository,
+    input: { ...template.input, repository },
+    output: join(root, template.output.slice(template.root.length + 1)),
+  };
+}
+
+const setup = () => copyOf(single);
+const multipleIntegrations = () => copyOf(multiple);
 
 it('approves all integration inputs together and loads only an explicitly selected workflow', async () => {
   const sample = await multipleIntegrations();
@@ -294,7 +329,7 @@ it('reviews only committed inputs, requires the exact fingerprint and writes a p
       throw new Error('Enrollment must not contact a provider');
     }),
   );
-  const sample = await setup();
+  const sample = await freshSetup();
   expect(sample.enrollment.repository).toBe('example/application');
   expect(sample.enrollment.files.map((file) => file.role)).toEqual([
     'workflow',
